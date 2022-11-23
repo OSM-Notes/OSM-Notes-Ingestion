@@ -55,8 +55,7 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
 # Temporal directory for all files.
-#TODO declare -r TMP_DIR=$(mktemp -d "/tmp/${0%.sh}_XXXXXX")
-TMP_DIR=./
+declare -r TMP_DIR=$(mktemp -d "/tmp/${0%.sh}_XXXXXX")
 # Lof file for output.
 declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
 
@@ -300,7 +299,9 @@ function __createPropertiesTable {
       || ')';
    END IF;
 
-   SELECT MAX(TIMESTAMP) INTO new_last_update
+   -- FIXME This is adding a second. Let's hope it didn't leave object missing.
+   SELECT MAX(TIMESTAMP) + interval '1 second'
+     INTO new_last_update
    FROM (
     SELECT MAX(created_at) TIMESTAMP
     FROM notes
@@ -326,7 +327,7 @@ function __createPropertiesTable {
    END IF;
   END;
   \$\$;
-
+  SELECT value FROM execution_properties WHERE key = 'lastUpdate';
 EOF
  __log_finish
 }
@@ -338,14 +339,14 @@ function __getNewNotesFromApi {
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
  # Gets the most recent value on the database.
   psql -d "${DBNAME}" -Atq \
-    -c "SELECT TO_CHAR(TO_DATE(value, 'YYYY-MM-DD HH24:MI:SS') at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM execution_properties WHERE KEY = 'lastUpdate'" \
+    -c "SELECT TO_CHAR(TO_TIMESTAMP(value, 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM execution_properties WHERE KEY = 'lastUpdate'" \
     -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
- __logt "Last update ${LAST_UPDATE}"
+ __logd "Last update: ${LAST_UPDATE}"
 
  # Gets the values from OSM API.
  wget -O "${API_NOTES_FILE}" \
-   "https://api.openstreetmap.org/api/0.6/notes/search.xml?closed=-1&from=${LAST_UPDATE}"
+   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=10000&closed=-1&from=${LAST_UPDATE}"
 
  rm "${TEMP_FILE}"
  __log_finish
@@ -355,6 +356,7 @@ function __getNewNotesFromApi {
 function __validateApiNotesXMLFile {
  __log_start
  xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}"
+ # TODO check if there are 10000 notes in the output. That means not all notes were downloaded.
  __log_finish
 }
 
@@ -413,7 +415,7 @@ EOF
    -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
 
- grep "<note>" ${API_NOTES_FILE} | wc -l
+ grep "<note " "${API_NOTES_FILE}" | wc -l
  head "${OUTPUT_NOTES_FILE}"
  wc -l "${OUTPUT_NOTES_FILE}"
  grep "<comment>" ${API_NOTES_FILE} | wc -l
@@ -429,10 +431,10 @@ function __loadApiNotes {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status)
     FROM '${OUTPUT_NOTES_FILE}' csv;
-  SELECT COUNT(1) FROM notes_api;
+  SELECT COUNT(1), 'uploaded new notes' as type FROM notes_api;
   COPY note_comments_api FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
-  SELECT COUNT(1) FROM note_comments_api;
+  SELECT COUNT(1), 'uplodaded new comments' as type FROM note_comments_api;
 EOF
  __log_finish
 }
@@ -442,7 +444,7 @@ EOF
 function __insertNewNotesAndComments {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  SELECT COUNT(1) FROM notes;
+  SELECT COUNT(1), 'current notes - before' as qty FROM notes;
   DO
   \$\$
    DECLARE
@@ -454,40 +456,43 @@ function __insertNewNotesAndComments {
       SELECT note_id, latitude, longitude, created_at, closed_at, status
       FROM notes_api
      LOOP
-      closed_time := 'TO_DATE(''' || r.closed_at
+      closed_time := 'TO_TIMESTAMP(''' || r.closed_at
         || ''', ''YYYY-MM-DD HH24:MI:SS'')';
       EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
         || r.longitude || ', ' 
-        || 'TO_DATE(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
+        || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
         || COALESCE (closed_time, 'NULL') || ','
         || '''' || r.status || '''::note_status_enum)';
      END LOOP;
    END;
   \$\$;
-  SELECT COUNT(1) FROM notes;
+  SELECT COUNT(1), 'current notes - after' as qty FROM notes;
 
-  SELECT COUNT(1) FROM note_comments;
+  SELECT COUNT(1), 'current comments - before' as qty FROM note_comments;
   DO
   \$\$
    DECLARE
     r RECORD;
     created_time VARCHAR(100);
+    m_username VARCHAR(256);
    BEGIN
     FOR r IN
      SELECT note_id, event, created_at, user_id, username
      FROM note_comments_api
     LOOP
-     created_time := 'TO_DATE(''' || r.created_at
+     created_time := 'TO_TIMESTAMP(''' || r.created_at
        || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+     m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
+       '\1''''\2', 'g');
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
        || '''' || r.event || '''::note_event_enum, '
        || COALESCE (created_time, 'NULL') || ', ' 
        || COALESCE (r.user_id || '', 'NULL') || ', '
-       || COALESCE ('''' || r.username || '''', 'NULL') || ')';
+       || COALESCE ('''' || m_username || '''', 'NULL') || ')';
     END LOOP;
    END;
   \$\$;
-  SELECT COUNT(1) FROM note_comments;
+  SELECT COUNT(1), 'current comments - after' as qty FROM note_comments;
 EOF
  __log_finish
 }
@@ -504,7 +509,8 @@ function __updateLastValue {
     last_update VARCHAR(32);
     new_last_update VARCHAR(32);
    BEGIN
-    SELECT MAX(TIMESTAMP) INTO new_last_update
+    SELECT MAX(TIMESTAMP)
+      INTO new_last_update
     FROM (
      SELECT MAX(created_at) TIMESTAMP
      FROM notes
@@ -529,7 +535,7 @@ EOF
 # Clean files generated during the process.
 function __cleanNotesFiles {
  __log_start
-# ToDo rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
+ rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
  __log_finish
 }
 
@@ -569,6 +575,6 @@ chmod go+x "${TMP_DIR}"
 } >> "${LOG_FILE}" 2>&1
 
 if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
- # ToDo mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S).log"
+ mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S).log"
  rmdir "${TMP_DIR}"
 fi
