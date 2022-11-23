@@ -88,93 +88,193 @@
 # order by area, count(1) desc
 #
 # This is the list of error codes:
-# 1) Library or utility missing.
-# 2) Invalid argument.
-# 3) Id list cannot be downloaded, for boundary geometries.
+# 1) Help message.
+# 241) Library or utility missing.
+# 242) Invalid argument for script invocation.
+# 243) The list of ids for boundary geometries can not be downloaded.
+# 244) Error downloading planet notes file.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-11-18
+# Version: 2022-11-22
+declare -r VERSION="2022-11-22"
 
-#set -xv
-set -euo pipefail
-CLEAN=true
+set -xv
+# Fails when a variable is not initialized.
+set -u
+# Fails with an non-zero return code.
+set -e
+# Fails if the commands of a pipe return non-zero.
+set -o pipefail
+# Fails if an internal function fails.
+set -E
 
-DBNAME=notes
-LOG_FILE=${0%.sh}.log
-COUNTRIES_FILE=countries
-MARITIMES_FILE=maritimes
-QUERY_FILE=query
-XSLT_NOTES_FILE=notes-csv.xslt
-XSLT_NOTE_COMMENTS_FILE=note_comments-csv.xslt
-XMLSCHEMA_PLANET_NOTES=OSM-notes-planet-schema.xsd
-OUTPUT_NOTES_FILE=output-notes.csv
-OUTPUT_NOTE_COMMENTS_FILE=output-note_comments.csv
-PLANET_NOTES_FILE=planet-notes-latest.osn
-SAXON_JAR=${SAXON_CLASSPATH:-.}/saxon-he-11.4.jar
-SECONDS_TO_WAIT=5
-LOOP_SIZE=10000
-MAX_NOTE_ID=3500000
-PROCESS_TYPE=${1:-}
+# Error codes.
+# 1: Help message.
+declare -r ERROR_HELP_MESSAGE=1
+# 241: Library or utility missing.
+declare -r ERROR_MISSING_LIBRARY=241
+# 242: Invalid argument for script invocation.
+declare -r ERROR_INVALID_ARGUMENT=242
+# 243: The list of ids for boundary geometries can not be downloaded.
+declare -r ERROR_DOWNLOADING_ID_LIST=243
+# 244: Error downloading planet notes file.
+declare -r ERROR_DOWNLOADIND_NOTES=244
 
-function checkPrereqs {
- if [ "${PROCESS_TYPE}" != "" ] && [ "${PROCESS_TYPE}" != "--base" ]  ; then
+# If all files should be deleted. In case of an error, this could be disabled.
+# You can defined when calling: export CLEAN=false
+declare -r CLEAN=${CLEAN:-true}
+
+# Base directory, where the ticket script resides.
+# Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
+# shellcheck disable=SC2155
+declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
+  &> /dev/null && pwd)"
+
+# Temporal directory for all files.
+declare -r TMP_DIR=$(mktemp -d "/tmp/${0%.sh}-XXXXXX")
+# Lof file for output.
+declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
+
+# Type of process to run in the script: base, sync or boundaries.
+declare -r PROCESS_TYPE=${1:-}
+
+# Name of the PostgreSQL database to insert or update the data.
+declare -r DBNAME=notes
+
+# Wait between loops when downloading boundaries, to prevent "Too many
+# requests".
+declare -r SECONDS_TO_WAIT=5
+
+# File that contains the ids of the boundaries for countries.
+declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
+# File taht contains the ids of the boundaries of the maritimes areas.
+declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
+# File for the Overpass query.
+declare -r QUERY_FILE="${TMP_DIR}/query"
+
+# Name of the file to download.
+declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
+# Filename fot the OSM Notes from Planet.
+declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
+
+# XML Schema of the Planet notes file.
+declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/OSM-notes-planet-schema.xsd"
+# Jar name of the XSLT processor.
+declare -r SAXON_JAR=${SAXON_CLASSPATH:-.}/saxon-he-11.4.jar
+# Name of the file of the XSLT transformation for notes.
+declare -r XSLT_NOTES_FILE="${TMP_DIR}/notes-csv.xslt"
+# Name of the file of the XSLT transformation for note comments.
+declare -r XSLT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments-csv.xslt"
+# Filename for the flat file for notes.
+declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
+# Filename for the flat file for comment notes.
+declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
+
+# Quantity of notes to process per loop.
+declare -r LOOP_SIZE=10000
+# Maximum number to process notes. In the future, this value has to be
+# increased.
+declare -r MAX_NOTE_ID=5000000
+
+###########
+# FUNCTIONS
+
+# TODO Put logger
+
+# Shows the help information.
+function __show_help {
+ echo "${0} version ${VERSION}"
+ echo "This is a script that downloads the OSM notes from the Planet,"
+ echo "processes them with a XSLT transformation, to create a flat file,"
+ echo "and finally it uploads them into a PostgreSQL database."
+ echo
+ echo "It could receive the parameter --base to starts from scratch."
+ echo "Without parameter it processes the new notes."
+ echo
+ echo "Written by: Andres Gomez (AngocA)"
+ exit ${ERROR_HELP_MESSAGE}
+}
+
+# Function that activates the error trap.
+function __trapOn() {
+ trap '{ printf "\n%s ERROR: The script did not finish correctly. Line number: ${LINENO}.\n" ; exit ;}' \
+   ERR
+ trap '{ printf "\n%s INFO: The script finished succesfully.\n\" \"$(date +%Y%m%d_%H:%M:%S)\n" ; exit ;}' \
+   EXIT
+ trap '{ printf "\n%s WARN: The script was terminated.\n\" \"$(date +%Y%m%d_%H:%M:%S)\n"; exit ;}' \
+   SIGINT SIGTERM
+}
+
+# Checks prerequisites to run the script.
+function __checkPrereqs {
+ if [ "${PROCESS_TYPE}" != "" ] && [ "${PROCESS_TYPE}" != "--base" ] \
+   && [ "${PROCESS_TYPE}" != "--boundaries" ] && [ "${PROCESS_TYPE}" != "--help" ] \
+   && [ "${PROCESS_TYPE}" != "-h" ] ; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --base"
   echo " * --boundaries"
-  exit 2
+  echo " * --help"
+  exit ${ERROR_INVALID_ARGUMENT}
  fi
  set +e
  # Checks prereqs.
  ## PostgreSQL
  if ! psql --version > /dev/null 2>&1 ; then
   echo "ERROR: PostgreSQL is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## Wget
  if ! wget --version > /dev/null 2>&1 ; then
   echo "ERROR: Wget is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## osmtogeojson
  if ! osmtogeojson --version > /dev/null 2>&1 ; then
   echo "ERROR: osmtogeojson is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## gdal ogr2ogr
  if ! ogr2ogr --version > /dev/null 2>&1 ; then
   echo "ERROR: ogr2ogr is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## cURL
  if ! curl --version > /dev/null 2>&1 ; then
   echo "ERROR: curl is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## Block-sorting file compressor
  if ! bzip2 --help > /dev/null 2>&1 ; then
   echo "ERROR: bzip2 is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## Java
  if ! java --version > /dev/null 2>&1 ; then
   echo "ERROR: Java JRE is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## XML lint
  if ! xmllint --version > /dev/null 2>&1 ; then
   echo "ERROR: XMLlint is missing."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  ## Saxon Jar
  if [ ! -r "${SAXON_JAR}" ] ; then
   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  exit 1
+  exit ${ERROR_MISSING_LIBRARY}
+ fi
+ ## Checks required files.
+ if [ ! -r "${XMLSCHEMA_PLANET_NOTES}" ] ; then
+  # TODO Generate XSD file from this script
+  echo "ERROR: File is missing at ${XMLSCHEMA_PLANET_NOTES}."
+  exit ${ERROR_MISSING_LIBRARY}
  fi
  set -e
 }
 
-function dropBaseTables {
+# Drop existing base tables.
+function __dropBaseTables {
  echo "Droping tables."
  psql -d "${DBNAME}" << EOF
   DROP TABLE tries;
@@ -186,7 +286,8 @@ function dropBaseTables {
 EOF
 }
 
-function dropSyncTables {
+# Drop sync tables.
+function __dropSyncTables {
  echo "Droping tables."
  psql -d "${DBNAME}" << EOF
   DROP TABLE note_comments_sync;
@@ -194,7 +295,8 @@ function dropSyncTables {
 EOF
 }
 
-function createBaseTables {
+# Creates base tables that hold the whole history.
+function __createBaseTables {
  echo "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TABLE countries (
@@ -268,7 +370,9 @@ function createBaseTables {
 EOF
 }
 
-function createSyncTables {
+# Creates sync tables that receives the whole history, but then keep the new
+# ones.
+function __createSyncTables {
  echo "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF 
   CREATE TABLE notes_sync (
@@ -291,7 +395,10 @@ function createSyncTables {
 EOF
 }
 
-function processCountries {
+# Download the list of countries, then it downloads each country individually,
+# converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
+# country into the Postgres database with ogr2ogr.
+function __processCountries {
  echo "DELETE FROM countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
 
  # Extracts ids of all country relations into a JSON.
@@ -311,7 +418,7 @@ EOF
  set -e
  if [ "${RET}" -ne 0 ] ; then
   echo "ERROR: Country list could not be downloaded."
-  exit 3
+  exit ${ERROR_DOWNLOADING_ID_LIST}
  fi
  
  tail -n +2 "${COUNTRIES_FILE}" > "${COUNTRIES_FILE}.tmp"
@@ -380,7 +487,10 @@ EOF
  done < "${COUNTRIES_FILE}"
 }
 
-function processMaritimes {
+# Download the list of maritimes areas, then it downloads each area
+# individually, converts the OSM JSON into a GeoJSON, and then it inserts the
+# geometry of the maritime area into the Postgres database with ogr2ogr.
+function __processMaritimes {
  # Extracts ids of all EEZ relations into a JSON.
  echo "Obtaining the eez ids."
  cat << EOF > "${QUERY_FILE}"
@@ -398,7 +508,7 @@ EOF
  set -e
  if [ "${RET}" -ne 0 ] ; then
   echo "ERROR: Maritimes border list could not be downloaded."
-  exit 3
+  exit ${ERROR_DOWNLOADING_ID_LIST}
  fi
  
  tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
@@ -447,29 +557,37 @@ EOF
  done < "${MARITIMES_FILE}"
 }
 
-function cleanPartial {
+# Clean files and tables.
+function __cleanPartial {
  if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
   rm query "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   echo "DROP TABLE import" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
  fi
 }
 
-function downloadPlanetNotes {
+# Downloads the notes from the planet.
+function __downloadPlanetNotes {
  # Download Planet notes.
  echo "Retrieving Planet notes file... $(date)"
- curl --output planet-notes-latest.osn.bz2 \
-   "https://planet.openstreetmap.org/notes/${PLANET_NOTES_FILE}.bz2"
- 
+ curl --output "${PLANET_NOTES_FILE}.bz2" \
+   "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
+
+ if [ ! -r "${PLANET_NOTES_FILE}.bz2" ] ; then
+  echo "ERROR: Downloading notes file."
+  exit "${ERROR_DOWNLOADIND_NOTES}"
+ fi 
  echo "Extracting Planet notes..."
  bzip2 -d "${PLANET_NOTES_FILE}.bz2"
  mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
 }
 
-function validatePlanetNotesXMLFile {
+# Validates the XML file to be sure everything will work fine.
+function __validatePlanetNotesXMLFile {
  xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml"
 }
 
-function convertPlanetNotesToFlatFile {
+# Creates the XSLT files and process the XML files with them.
+function __convertPlanetNotesToFlatFile {
  # Process the notes file.
  # XSLT transformations.
  cat << EOF > "${XSLT_NOTES_FILE}"
@@ -513,31 +631,37 @@ EOF
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
 }
 
-function loadBaseNotes {
+# Loads notes into the database.
+function __loadBaseNotes {
  # Loads the data in the database.
- # Adds a column to include the country where it belongs.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   COPY notes (note_id, latitude, longitude, created_at, closed_at, status)
-    FROM '$(pwd)/${OUTPUT_NOTES_FILE}' csv;
-  COPY note_comments FROM '$(pwd)/${OUTPUT_NOTE_COMMENTS_FILE}' csv
+    FROM '${OUTPUT_NOTES_FILE}' csv;
+  SELECT COUNT(1), 'uploaded notes' as type FROM notes;
+  COPY note_comments FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
+  SELECT COUNT(1), 'uploaded comments' as type FROM note_comments;
 EOF
 }
 
-function loadSyncNotes {
+# Loads new notes from sync.
+function __loadSyncNotes {
  # Loads the data in the database.
  # Adds a column to include the country where it belongs.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   DELETE FROM notes_sync;
   COPY notes_sync (note_id, latitude, longitude, created_at, closed_at, status)
-    FROM '$(pwd)/${OUTPUT_NOTES_FILE}' csv;
+    FROM '${OUTPUT_NOTES_FILE}' csv;
+  SELECT COUNT(1), 'uploaded sync notes' as type FROM notes_sync;
   DELETE FROM note_comments_sync;
-  COPY note_comments_sync FROM '$(pwd)/${OUTPUT_NOTE_COMMENTS_FILE}' csv
+  COPY note_comments_sync FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
+  SELECT COUNT(1), 'uploaded sync comments' as type FROM note_comments_sync;
 EOF
 }
 
-function createsFunctionToGetCountry {
+# Creates a function to get the country or maritime area from coordinates.
+function __createsFunctionToGetCountry {
  # Creates a function that performs a basic triage according to its longitude:
  # * -180 - -30: Americas.
  # * -30 - 25: West Europe and West Africa.
@@ -626,15 +750,16 @@ function createsFunctionToGetCountry {
 EOF
 } 
 
-function createsProcedures {
+# Creates procedures to insert notes and comments.
+function __createsProcedures {
  # Creates a procedure that inserts a note.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
  CREATE OR REPLACE PROCEDURE insert_note (
    m_note_id INTEGER,
    m_latitude DECIMAL,
    m_longitude DECIMAL,
-   m_created_at TIMESTAMP,
-   m_closed_at TIMESTAMP,
+   m_created_at TIMESTAMP WITH TIME ZONE,
+   m_closed_at TIMESTAMP WITH TIME ZONE,
    m_status note_status_enum
  )
  LANGUAGE plpgsql
@@ -643,6 +768,9 @@ function createsProcedures {
    id_country INTEGER;
   BEGIN
    id_country := get_country(m_longitude, m_latitude, m_note_id);
+
+   -- FIXME this should support errors with primary key, and not return an
+   -- error.
    INSERT INTO notes (
    note_id,
    latitude,
@@ -669,13 +797,18 @@ EOF
  CREATE OR REPLACE PROCEDURE insert_note_comment (
    m_note_id INTEGER,
    m_event note_event_enum,
-   m_created_at TIMESTAMP,
+   m_created_at TIMESTAMP WITH TIME ZONE,
    m_user_id INTEGER,
    m_username VARCHAR(256)
  )
  LANGUAGE plpgsql
  AS \$proc\$
   BEGIN
+   m_username:=REGEXP_REPLACE(m_username, \$\$([^'])'([^'])\$\$, \$\$\1''\2\$\$,
+     'g');
+
+   -- FIXME this should support errors with primary key, and not return an
+   -- error.
    INSERT INTO note_comments (
    note_id,
    event,
@@ -705,10 +838,14 @@ EOF
 EOF
 }
 
-function removeDuplicates {
+# Removes notes and comments from the new set that are already in the database.
+function __removeDuplicates {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+  SELECT COUNT(1), 'sync notes' as type FROM notes_sync;
   DELETE FROM notes_sync
     WHERE note_id IN (SELECT note_id FROM notes);
+  SELECT COUNT(1), 'sync notes no duplicates' as type FROM notes_sync;
+
   DO
   \$\$
   DECLARE
@@ -719,38 +856,44 @@ function removeDuplicates {
     SELECT note_id, latitude, longitude, created_at, closed_at, status
     FROM notes_sync
    LOOP
-    closed_time := 'TO_DATE(''' || r.closed_at
+    closed_time := 'TO_TIMESTAMP(''' || r.closed_at
       || ''', ''YYYY-MM-DD HH24:MI:SS'')';
     EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
       || r.longitude || ', ' 
-      || 'TO_DATE(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
+      || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
       || COALESCE (closed_time, 'NULL') || ','
       || '''' || r.status || '''::note_status_enum)';
    END LOOP;
   END;
   \$\$;
 
+  SELECT COUNT(1), 'sync comments' as type FROM note_comments_sync;
   DELETE FROM note_comments_sync
     WHERE (note_id, event, created_at) IN
       (SELECT note_id, event, created_at FROM note_comments);
+  SELECT COUNT(1), 'sync comments no duplicates' as type
+    FROM note_comments_sync;
 
   DO
   \$\$
   DECLARE
    r RECORD;
    created_time VARCHAR(100);
+   m_username VARCHAR(256);
   BEGIN
    FOR r IN
     SELECT note_id, event, created_at, user_id, username
     FROM note_comments_sync
    LOOP
-    created_time := 'TO_DATE(''' || r.created_at
+    created_time := 'TO_TIMESTAMP(''' || r.created_at
       || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+    m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
+      '\1''''\2', 'g');
     EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
       || '''' || r.event || '''::note_event_enum, '
       || COALESCE (created_time, 'NULL') || ', ' 
       || COALESCE (r.user_id || '', 'NULL') || ', '
-      || COALESCE ('''' || r.username || '''', 'NULL') || ')';
+      || COALESCE ('''' || m_username || '''', 'NULL') || ')';
    END LOOP;
   END
   \$\$;
@@ -759,7 +902,8 @@ BEGIN
 EOF
 }
 
-function cleanNotesFiles {
+# Cleans files generated during the process.
+function __cleanNotesFiles {
  if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
   rm "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
     "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
@@ -767,7 +911,8 @@ function cleanNotesFiles {
  fi
 }
 
-function organizeAreas {
+# Assigns a value to each area to find it easily.
+function __organizeAreas {
  # Insert values for representative countries in each area.
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
@@ -950,7 +1095,8 @@ EOF
 }
 
 # ToDo Parallelize.
-function getLocationNotes {
+# Gets the area of each note.
+function __getLocationNotes {
  for i in $(seq -f %1.0f ${LOOP_SIZE} ${LOOP_SIZE} "${MAX_NOTE_ID}") ; do
   echo "${i} $(date)"
   echo "UPDATE notes
@@ -960,45 +1106,58 @@ function getLocationNotes {
  done
 }
 
-checkPrereqs
+######
+# MAIN
+
+# Allows to other user read the directory.
+chmod go+x "${TMP_DIR}"
+
+__checkPrereqs
+if [ "${PROCESS_TYPE}" == "-h" ] || [ "${PROCESS_TYPE}" == "--help" ]; then
+ __show_help
+fi
 {
  echo "$(date) Starting process"
+ # Sets the trap in case of any signal.
+ __trapOn
+
  if [ "${PROCESS_TYPE}" == "--base" ] ; then
-  dropSyncTables
-  dropBaseTables
-  createBaseTables
+  __dropSyncTables
+  __dropBaseTables
+  __createBaseTables
  else
-  dropSyncTables
-  createSyncTables
+  __dropSyncTables
+  __createSyncTables
  fi
  if [ "${PROCESS_TYPE}" == "--base" ] \
    || [ "${PROCESS_TYPE}" == "--boundaries" ] ; then
-  processCountries
-  processMaritimes
-  cleanPartial
+  __processCountries
+  __processMaritimes
+  __cleanPartial
   if [ "${PROCESS_TYPE}" == "--boundaries" ] ; then
    echo "$(date) Ending process"
    exit 0
   fi
  fi
- downloadPlanetNotes
- validatePlanetNotesXMLFile
- convertPlanetNotesToFlatFile
- createsFunctionToGetCountry
- createsProcedures
+ __downloadPlanetNotes
+ __validatePlanetNotesXMLFile
+ __convertPlanetNotesToFlatFile
+ __createsFunctionToGetCountry
+ __createsProcedures
  if [ "${PROCESS_TYPE}" == "--base" ] ; then
-  loadBaseNotes
+  __loadBaseNotes
  else
-  loadSyncNotes
-  removeDuplicates
-  dropSyncTables
+  __loadSyncNotes
+  __removeDuplicates
+  __dropSyncTables
  fi
- cleanNotesFiles
- organizeAreas
- getLocationNotes
+ __cleanNotesFiles
+ __organizeAreas
+ __getLocationNotes
  echo "$(date) Ending process"
 } >> "${LOG_FILE}" 2>&1
 
 if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
- rm -f "${LOG_FILE}"
+ mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S).log"
+ rmdir "${TMP_DIR}"
 fi
