@@ -64,18 +64,24 @@ declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
 # Type of process to run in the script: base, sync or boundaries.
 declare -r PROCESS_TYPE=${1:-}
 
+# Maximum of notes to download from the API.
+declare -r MAX_NOTES=10000
+
 # XML Schema of the API notes file.
-declare -r XMLSCHEMA_API_NOTES="OSM-notes-API-schema.xsd"
+declare -r XMLSCHEMA_API_NOTES="${TMP_DIR}/OSM-notes-API-schema.xsd"
 # Jar name of the XSLT processor.
 declare -r SAXON_JAR="${SAXON_CLASSPATH:-.}/saxon-he-11.4.jar"
 # Name of the file of the XSLT transformation for notes from API.
-declare -r XSLT_NOTES_API_FILE="notes-API-csv.xslt"
+declare -r XSLT_NOTES_API_FILE="${TMP_DIR}/notes-API-csv.xslt"
 # Name of the file of the XSLT transformation for note comments from API.
-declare -r XSLT_NOTE_COMMENTS_API_FILE="note_comments-API-csv.xslt"
+declare -r XSLT_NOTE_COMMENTS_API_FILE="${TMP_DIR}/note_comments-API-csv.xslt"
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 # Filename for the flat file for comment notes.
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
+
+# Script to synchronize the notes with the Planet.
+declar -r NOTES_SYNC_SCRIPT=processPlanetNotes.sh
 
 # Name of the PostgreSQL database to insert or update the data.
 declare -r DBNAME=notes
@@ -348,7 +354,7 @@ function __getNewNotesFromApi {
 
  # Gets the values from OSM API.
  wget -O "${API_NOTES_FILE}" \
-   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=10000&closed=-1&from=${LAST_UPDATE}"
+   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=-1&from=${LAST_UPDATE}"
 
  rm "${TEMP_FILE}"
  __log_finish
@@ -506,7 +512,6 @@ EOF
  xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}"
 
  rm -f "${XMLSCHEMA_API_NOTES}"
- # TODO check if there are 10000 notes in the output. That means not all notes were downloaded.
  __log_finish
 }
 
@@ -571,7 +576,19 @@ EOF
  grep -c "<comment>" "${API_NOTES_FILE}"
  head "${OUTPUT_NOTE_COMMENTS_FILE}"
  wc -l "${OUTPUT_NOTE_COMMENTS_FILE}"
+
+ rm -f "${XSLT_NOTES_API_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}"
  __log_finish
+}
+
+# Checks if the quantity of notes is less that the maximum allowed. If is the
+# the same, it means not all notes were downloaded, and it needs a
+# synchronization
+function __checkQtyNotes {
+ QTY=$(wc -l "${OUTPUT_NOTES_FILE}")
+ if [ ${QTY} -ge ${MAX_NOTES} ] ; then
+  "${SCRIPT_BASE_DIRECTORY}/${NOTES_SYNC_SCRIPT}"
+ fi
 }
 
 # Loads notes from API into the database.
@@ -717,6 +734,7 @@ chmod go+x "${TMP_DIR}"
  __getNewNotesFromApi
  __validateApiNotesXMLFile
  __convertApiNotesToFlatFile
+ __checkQtyNotes
  __loadApiNotes
  __insertNewNotesAndComments
  __updateLastValue
