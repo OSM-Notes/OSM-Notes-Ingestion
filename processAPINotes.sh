@@ -14,8 +14,8 @@
 # 243) Logger utility is missing.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-11-22
-declare -r VERSION="2022-11-22"
+# Version: 2022-11-23
+declare -r VERSION="2022-11-23"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -55,7 +55,9 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
 # Temporal directory for all files.
-declare -r TMP_DIR=$(mktemp -d "/tmp/${0%.sh}_XXXXXX")
+declare -r TMP_DIR
+TMP_DIR=$(mktemp -d "/tmp/${0%.sh}_XXXXXX")
+readonly TMP_DIR
 # Lof file for output.
 declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
 
@@ -355,7 +357,155 @@ function __getNewNotesFromApi {
 # Validates the XML file to be sure everything will work fine.
 function __validateApiNotesXMLFile {
  __log_start
+ # XML Schema.
+ cat << EOF > "${XMLSCHEMA_API_NOTES}"
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- Attributes for OSM API -->
+  <xs:attributeGroup name="attributesOSMAPI">
+    <xs:attribute name="version" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:decimal">
+          <xs:minInclusive value="0.6"/>
+        </xs:restriction> 
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="generator" type="xs:string" use="required"/>
+    <xs:attribute name="copyright" type="xs:string" use="required"/>
+    <xs:attribute name="attribution" type="xs:anyURI" use="required"/>
+    <xs:attribute name="license" type="xs:anyURI" use="required"/>
+  </xs:attributeGroup>
+
+  <!-- Attributes for Notes -->
+  <xs:attributeGroup name="attributesNotes">
+    <xs:attribute name="lon" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:decimal">
+          <xs:fractionDigits value="7"/>
+          <xs:minInclusive value="-180"/>
+          <xs:maxInclusive value="180"/>
+        </xs:restriction> 
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="lat" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:decimal">
+          <xs:fractionDigits value="7"/>
+          <xs:minInclusive value="-90"/>
+          <xs:maxInclusive value="90"/>
+        </xs:restriction> 
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:attributeGroup>
+
+  <!-- Elements for Comments -->
+  <xs:element name="comment">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="date">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC"/>
+            </xs:restriction> 
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="uid" minOccurs="0">
+          <xs:simpleType>
+            <xs:restriction base="xs:integer">
+              <xs:minInclusive value="1"/>
+            </xs:restriction> 
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="user" minOccurs="0">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:minLength value="1"/>
+            </xs:restriction> 
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="user_url" type="xs:anyURI" minOccurs="0"/>
+        <xs:element name="action" >
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="opened"/>
+              <xs:enumeration value="closed"/>
+              <xs:enumeration value="reopened"/>
+              <xs:enumeration value="commented"/>
+              <xs:enumeration value="hidden"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="text" type="xs:string"/>
+        <xs:element name="html" type="xs:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Elements for Notes -->
+  <xs:element name="note">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="id">
+          <xs:simpleType>
+            <xs:restriction base="xs:integer">
+              <xs:minInclusive value="1"/>
+            </xs:restriction> 
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="url" type="xs:anyURI"/>
+        <xs:element name="comment_url" type="xs:anyURI" minOccurs="0"/>
+        <xs:element name="close_url" type="xs:anyURI" minOccurs="0"/>
+        <xs:element name="reopen_url" type="xs:string" minOccurs="0"/>
+        <xs:element name="date_created" type="xs:string"/>
+          <!--xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC"/>
+            </xs:restriction> 
+          </xs:simpleType>
+        </xs:element-->
+        <xs:element name="status">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:enumeration value="open"/>
+              <xs:enumeration value="closed"/>
+            </xs:restriction>
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="date_closed" minOccurs="0">
+          <xs:simpleType>
+            <xs:restriction base="xs:string">
+              <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC"/>
+            </xs:restriction> 
+          </xs:simpleType>
+        </xs:element>
+        <xs:element name="comments">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element ref="comment" maxOccurs="unbounded" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attributeGroup ref="attributesNotes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Root tag -->
+  <xs:element name="osm">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="note" maxOccurs="unbounded" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="attributesOSMAPI"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
+EOF
+
  xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}"
+
+ rm -f "${XMLSCHEMA_API_NOTES}"
  # TODO check if there are 10000 notes in the output. That means not all notes were downloaded.
  __log_finish
 }
@@ -415,10 +565,10 @@ EOF
    -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
 
- grep "<note " "${API_NOTES_FILE}" | wc -l
+ grep -c "<note " "${API_NOTES_FILE}"
  head "${OUTPUT_NOTES_FILE}"
  wc -l "${OUTPUT_NOTES_FILE}"
- grep "<comment>" ${API_NOTES_FILE} | wc -l
+ grep -c "<comment>" "${API_NOTES_FILE}"
  head "${OUTPUT_NOTE_COMMENTS_FILE}"
  wc -l "${OUTPUT_NOTE_COMMENTS_FILE}"
  __log_finish
