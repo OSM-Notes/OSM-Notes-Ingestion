@@ -71,7 +71,7 @@
 # The most iterations to find an area.
 # select iter, area, count(1)
 # from tries
-# group by iter, area 
+# group by iter, area
 # order by ITER desc;
 #
 # Details of the iteration.
@@ -84,7 +84,7 @@
 # select iter, count(1), area, country_name_en
 # from tries t join countries c
 # on t.id_country = c.country_id
-# group by iter, area, country_name_en 
+# group by iter, area, country_name_en
 # order by area, count(1) desc
 #
 # This is the list of error codes:
@@ -160,7 +160,7 @@ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
 # XML Schema of the Planet notes file.
-declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/OSM-notes-planet-schema.xsd"
+declare -r XMLSCHEMA_PLANET_NOTES="${TMP_DIR}/OSM-notes-planet-schema.xsd"
 # Jar name of the XSLT processor.
 declare -r SAXON_JAR=${SAXON_CLASSPATH:-.}/saxon-he-11.4.jar
 # Name of the file of the XSLT transformation for notes.
@@ -181,7 +181,57 @@ declare -r MAX_NOTE_ID=5000000
 ###########
 # FUNCTIONS
 
-# TODO Put logger
+### Logger
+
+# Loads the logger (log4j like) tool.
+# It has the following functions.
+# __log default.
+# __logt for trace.
+# __logd for debug.
+# __logi for info.
+# __logw for warn.
+# __loge for error. Writes in standard error.
+# __logf for fatal.
+# Declare mock functions, in order to have them in case the logger utility
+# cannot be found.
+function __log() { :; }
+function __logt() { :; }
+function __logd() { :; }
+function __logi() { :; }
+function __logw() { :; }
+function __loge() { :; }
+function __logf() { :; }
+function __log_start() { :; }
+function __log_finish() { :; }
+
+# Starts the logger utility.
+function __start_logger() {
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}" ]] ; then
+  # Starts the logger mechanism.
+  set +e
+  # shellcheck source=./bash_logger.sh
+  source "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}"
+  local -i RET=${?}
+  set -e
+  if [[ "${RET}" -ne 0 ]] ; then
+   printf "\nERROR: Invalid logger framework file.\n"
+   exit "${ERROR_LOGGER_UTILITY}"
+  fi
+  # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
+  __bl_set_log_level "${LOG_LEVEL}"
+  __logd "Logger loaded."
+ else
+  printf "\nLogger was not found.\n"
+ fi
+}
+
+# Function that activates the error trap.
+function __trapOn() {
+ trap '{ printf "\n%s ERROR: The script did not finish correctly. Line number: ${LINENO}.\n" ; exit ;}' \
+   ERR
+ trap '{ printf "\n%s WARN: The script was terminated.\n\" \"$(date +%Y%m%d_%H:%M:%S)\n"; exit ;}' \
+   SIGINT SIGTERM
+}
 
 # Shows the help information.
 function __show_help {
@@ -195,16 +245,6 @@ function __show_help {
  echo
  echo "Written by: Andres Gomez (AngocA)"
  exit "${ERROR_HELP_MESSAGE}"
-}
-
-# Function that activates the error trap.
-function __trapOn() {
- trap '{ printf "\n%s ERROR: The script did not finish correctly. Line number: ${LINENO}.\n" ; exit ;}' \
-   ERR
- trap '{ printf "\n%s INFO: The script finished succesfully.\n\" \"$(date +%Y%m%d_%H:%M:%S)\n" ; exit ;}' \
-   EXIT
- trap '{ printf "\n%s WARN: The script was terminated.\n\" \"$(date +%Y%m%d_%H:%M:%S)\n"; exit ;}' \
-   SIGINT SIGTERM
 }
 
 # Checks prerequisites to run the script.
@@ -267,12 +307,6 @@ function __checkPrereqs {
   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## Checks required files.
- if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]] ; then
-  # TODO Generate XSD file from this script
-  echo "ERROR: File is missing at ${XMLSCHEMA_PLANET_NOTES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  set -e
 }
 
@@ -308,9 +342,9 @@ function __createBaseTables {
    country_name_es VARCHAR(100),
    country_name_en VARCHAR(100),
    geom GEOMETRY NOT NULL,
-   americas INTEGER, 
-   europe INTEGER, 
-   russia_middle_east INTEGER, 
+   americas INTEGER,
+   europe INTEGER,
+   russia_middle_east INTEGER,
    asia_oceania INTEGER
   );
 
@@ -323,7 +357,7 @@ function __createBaseTables {
     'close',
     'hidden'
     );
- 
+
   CREATE TYPE note_event_enum AS ENUM (
    'opened',
    'closed',
@@ -331,7 +365,7 @@ function __createBaseTables {
    'commented',
    'hidden'
    );
- 
+
   CREATE TABLE notes (
    note_id INTEGER NOT NULL, -- id
    latitude DECIMAL NOT NULL,
@@ -341,11 +375,11 @@ function __createBaseTables {
    closed_at TIMESTAMP,
    id_country INTEGER
   );
- 
+
   ALTER TABLE notes
    ADD CONSTRAINT pk_notes
    PRIMARY KEY (note_id);
- 
+
   CREATE TABLE note_comments (
    note_id INTEGER NOT NULL,
    created_at TIMESTAMP NOT NULL,
@@ -353,7 +387,7 @@ function __createBaseTables {
    event note_event_enum NOT NULL,
    username VARCHAR(256)
   );
- 
+
   -- ToDo primary key duplicated error.
   --ALTER TABLE note_comments
   -- ADD CONSTRAINT pk_note_comments
@@ -377,7 +411,7 @@ EOF
 # ones.
 function __createSyncTables {
  echo "Creating tables"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF 
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TABLE notes_sync (
    note_id INTEGER NOT NULL,
    latitude DECIMAL NOT NULL,
@@ -387,7 +421,7 @@ function __createSyncTables {
    status note_status_enum,
    id_country INTEGER
   );
- 
+
   CREATE TABLE note_comments_sync (
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
@@ -402,7 +436,7 @@ EOF
 # converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
 # country into the Postgres database with ogr2ogr.
 function __processCountries {
- echo "DELETE FROM countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
+ echo "DELETE FROM countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
  # Extracts ids of all country relations into a JSON.
  echo "Obtaining the countries ids."
@@ -423,13 +457,13 @@ EOF
   echo "ERROR: Country list could not be downloaded."
   exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
- 
+
  tail -n +2 "${COUNTRIES_FILE}" > "${COUNTRIES_FILE}.tmp"
  mv "${COUNTRIES_FILE}.tmp" "${COUNTRIES_FILE}"
- 
+
  # Adds the Gaza Strip, as it is not at country level.
  echo "1703814" "${COUNTRIES_FILE}"
- 
+
  echo "Retrieving the countries' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
@@ -438,12 +472,12 @@ EOF
    [out:json];
    rel(${ID});
    (._;>;);
-   out; 
+   out;
 EOF
   echo "Retrieving shape."
   wget -O "${ID}.json" --post-file="${QUERY_FILE}" \
     "https://overpass-api.de/api/interpreter"
- 
+
   echo "Converting into geoJSON."
   osmtogeojson "${ID}.json" > "${ID}.geojson"
   set +e
@@ -454,34 +488,34 @@ EOF
   COUNTRY_EN=$(grep "\"name:en\":" "${ID}.geojson" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
   set -e
- 
+
   # Taiwan cannot be imported directly. Thus, a simplification is done.
   # ERROR:  row is too big: size 8616, maximum size 8160
   grep -v "official_name" "${ID}.geojson" | \
     grep -v "alt_name" > "${ID}.geojson-new"
   mv "${ID}.geojson-new" "${ID}.geojson"
- 
+
   echo "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${ID}.geojson" \
     -nln import -overwrite
- 
+
   echo "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]] ; then
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es, 
-     country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}', 
-     '${COUNTRY_EN}', ST_Union(ST_makeValid(wkb_geometry)) 
+   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
+     country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}',
+     '${COUNTRY_EN}', ST_Union(ST_makeValid(wkb_geometry))
      from import group by 1"
   else # This case is for Austria.
-   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid: 
-   # Self-intersection at or near point 10.454439900000001 47.555796399999998 
+   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
+   # Self-intersection at or near point 10.454439900000001 47.555796399999998
    # at 10.454439900000001 47.555796399999998
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es, 
-     country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}', 
-     '${COUNTRY_EN}', ST_Union(ST_Buffer(wkb_geometry,0.0)) 
+   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
+     country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}',
+     '${COUNTRY_EN}', ST_Union(ST_Buffer(wkb_geometry,0.0))
      from import group by 1"
   fi
-  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
- 
+  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
    rm -f "${ID}.json" "${ID}.geojson"
   fi
@@ -513,24 +547,24 @@ EOF
   echo "ERROR: Maritimes border list could not be downloaded."
   exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
- 
+
  tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
  mv "${MARITIMES_FILE}.tmp" "${MARITIMES_FILE}"
- 
+
  echo "Retrieving the maritimes' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
-  echo "----> ${ID} $(date +%Y-%m-%d_%H-%M-%S || true)" 
+  echo "----> ${ID} $(date +%Y-%m-%d_%H-%M-%S || true)"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
    (._;>;);
-   out; 
+   out;
 EOF
   echo "Retrieving shape."
   wget -O "${ID}.json" --post-file="${QUERY_FILE}" \
     "https://overpass-api.de/api/interpreter"
- 
+
   echo "Converting into geoJSON."
   osmtogeojson "${ID}.json" > "${ID}.geojson"
   set +e
@@ -541,17 +575,17 @@ EOF
   NAME_EN=$(grep "\"name:en\":" "${ID}.geojson" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
   set -e
- 
+
   echo "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${ID}.geojson" \
     -nln import -overwrite
- 
+
   echo "Inserting into final table."
-  STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es, 
-    country_name_en, geom) select ${ID}, '${NAME}', '${NAME_ES:-${NAME}}', 
+  STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
+    country_name_en, geom) select ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
     '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) from import group by 1"
-  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
- 
+  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
    rm -f "${ID}.json" "${ID}.geojson"
   fi
@@ -564,7 +598,7 @@ EOF
 function __cleanPartial {
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm query "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
-  echo "DROP TABLE import" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
+  echo "DROP TABLE import" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  fi
 }
 
@@ -578,7 +612,7 @@ function __downloadPlanetNotes {
  if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]] ; then
   echo "ERROR: Downloading notes file."
   exit "${ERROR_DOWNLOADING_NOTES}"
- fi 
+ fi
  echo "Extracting Planet notes..."
  bzip2 -d "${PLANET_NOTES_FILE}.bz2"
  mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
@@ -586,7 +620,134 @@ function __downloadPlanetNotes {
 
 # Validates the XML file to be sure everything will work fine.
 function __validatePlanetNotesXMLFile {
+ # XML Schema.
+ cat << EOF > "${XMLSCHEMA_PLANET_NOTES}"
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- Attributes for Notes -->
+  <xs:attributeGroup name="attributesNotes">
+    <xs:attribute name="id" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:integer">
+          <xs:minInclusive value="1"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="lat" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:decimal">
+          <xs:fractionDigits value="7"/>
+          <xs:minInclusive value="-90"/>
+          <xs:maxInclusive value="90"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="lon" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:decimal">
+          <xs:fractionDigits value="7"/>
+          <xs:minInclusive value="-180"/>
+          <xs:maxInclusive value="180"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="created_at" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="closed_at" use="optional">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:attributeGroup>
+
+  <!-- Attrbitues for Comments -->
+  <xs:attributeGroup name="attributesComments">
+    <xs:attribute name="action" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="opened"/>
+          <xs:enumeration value="closed"/>
+          <xs:enumeration value="reopened"/>
+          <xs:enumeration value="commented"/>
+          <xs:enumeration value="hidden"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="timestamp" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="uid" use="optional">
+      <xs:simpleType>
+        <xs:restriction base="xs:integer">
+          <xs:minInclusive value="1"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+
+    <xs:attribute name="user" use="optional">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:minLength value="1"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+  </xs:attributeGroup>
+
+  <!-- Elements for Comments -->
+  <xs:element name="comment">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attributeGroup ref="attributesComments"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Elements for Notes -->
+  <xs:element name="note">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="comment" maxOccurs="unbounded" minOccurs="0"/>
+        <!-- There are a couple of notes that do not have comments -->
+        <!-- 1555586 and 1555588 -->
+      </xs:sequence>
+      <xs:attributeGroup ref="attributesNotes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Root tag -->
+  <xs:element name="osm-notes">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="note" maxOccurs="unbounded" minOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
+EOF
+
  xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml"
+
+ rm -f "${XMLSCHEMA_PLANET_NOTES}"
 }
 
 # Creates the XSLT files and process the XML files with them.
@@ -751,7 +912,7 @@ function __createsFunctionToGetCountry {
   END
  \$func\$
 EOF
-} 
+}
 
 # Creates procedures to insert notes and comments.
 function __createsProcedures {
@@ -862,7 +1023,7 @@ function __removeDuplicates {
     closed_time := 'TO_TIMESTAMP(''' || r.closed_at
       || ''', ''YYYY-MM-DD HH24:MI:SS'')';
     EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-      || r.longitude || ', ' 
+      || r.longitude || ', '
       || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
       || COALESCE (closed_time, 'NULL') || ','
       || '''' || r.status || '''::note_status_enum)';
@@ -894,7 +1055,7 @@ function __removeDuplicates {
       '\1''''\2', 'g');
     EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
       || '''' || r.event || '''::note_event_enum, '
-      || COALESCE (created_time, 'NULL') || ', ' 
+      || COALESCE (created_time, 'NULL') || ', '
       || COALESCE (r.user_id || '', 'NULL') || ', '
       || COALESCE ('''' || m_username || '''', 'NULL') || ')';
    END LOOP;
@@ -910,7 +1071,7 @@ function __cleanNotesFiles {
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
     "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
-    "${OUTPUT_NOTE_COMMENTS_FILE}" 
+    "${OUTPUT_NOTE_COMMENTS_FILE}"
  fi
 }
 
@@ -948,7 +1109,7 @@ function __organizeAreas {
     'Cook Islands', 'Dominica', 'Grenada', 'Samoa', 'Bermuda',
     'Cayman Islands', 'Turks and Caicos Islands',
     'South Georgia and the South Sandwich Islands', 'Saint Kitts and Nevis',
-    'Antigua and Barbuda', 'Russia', 'Portugal', 'British Virgin Islands', 
+    'Antigua and Barbuda', 'Russia', 'Portugal', 'British Virgin Islands',
     'New Zealand', 'Anguilla', 'Fiji', 'Pitcairn Islands', 'Montserrat',
     'Kiribati', 'Niue', 'British Overseas Territories', 'French Polynesia',
     'French Guiana', 'Aruba'
@@ -984,27 +1145,27 @@ EOF
     'Finland', 'Romania', 'Serbia', 'Libya', 'Latvia'
     );
   -- More than 2K
-  UPDATE countries SET europe = 8 WHERE country_name_en IN ('Morocco', 
+  UPDATE countries SET europe = 8 WHERE country_name_en IN ('Morocco',
     'Democratic Republic of the Congo', 'Bosnia and Herzegovina', 'Bulgaria',
     'Ghana', 'Slovenia', 'Belarus', 'Kosovo', 'Iceland', 'Lithuania', 'Albania',
-    'Russia', 'South Africa', 'Estonia', 'Montenegro', 'Luxembourg', 'Angola', 
+    'Russia', 'South Africa', 'Estonia', 'Montenegro', 'Luxembourg', 'Angola',
     'Tunisia');
   -- More than 1K
-  UPDATE countries SET europe = 9 WHERE country_name_en IN ('Nigeria', 
+  UPDATE countries SET europe = 9 WHERE country_name_en IN ('Nigeria',
     'Togo', 'North Macedonia', 'Jersey', 'Cameroon', 'Burkina Faso',
     'Namibia', 'Senegal', 'Mali');
   -- Less than 1K
-  UPDATE countries SET europe = 10 WHERE country_name_en IN ('Malta', 'Benin', 
+  UPDATE countries SET europe = 10 WHERE country_name_en IN ('Malta', 'Benin',
     'Niger', 'Guinea');
   -- Less than 500
-  UPDATE countries SET europe = 11 WHERE country_name_en IN ('Sierra Leone', 
+  UPDATE countries SET europe = 11 WHERE country_name_en IN ('Sierra Leone',
     'Mauritania', 'Congo-Brazzaville', 'Chad', 'Cape Verde', 'Botswana',
-    'Andorra', 'Guernsey', 'Isle of Man', 'Central African Republic', 
+    'Andorra', 'Guernsey', 'Isle of Man', 'Central African Republic',
     'Faroe Islands', 'Guinea-Bissau', 'Liberia', 'The Gambia', 'San Marino',
     'Gabon', 'Liechtenstein', 'Gibraltar', 'Monaco', 'Equatorial Guinea',
-    'Sahrawi Arab Democratic Republic', 'Vatican City', 'Zambia', 
-    'São Tomé and Príncipe', 'Greenland', 
-    'Saint Helena, Ascension and Tristan da Cunha', 
+    'Sahrawi Arab Democratic Republic', 'Vatican City', 'Zambia',
+    'São Tomé and Príncipe', 'Greenland',
+    'Saint Helena, Ascension and Tristan da Cunha',
     'Sudan', 'Brazil');
   -- Maritimes areas
   UPDATE countries SET europe = 12 WHERE country_name_en IN ('Spain (EEZ)',
@@ -1034,13 +1195,13 @@ EOF
   UPDATE countries SET russia_middle_east = 4 WHERE country_name_en IN ('');
   -- More than 5K
   UPDATE countries SET russia_middle_east = 5 WHERE country_name_en IN (
-    'Romania', 'Saudi Arabia', 'Georgia', 'Armenia', 'Egypt', 'Israel', 
-    'Finland', 'Azerbaijan', 'Democratic Republic of the Congo', 'Moldova' 
+    'Romania', 'Saudi Arabia', 'Georgia', 'Armenia', 'Egypt', 'Israel',
+    'Finland', 'Azerbaijan', 'Democratic Republic of the Congo', 'Moldova'
     );
   -- More than 2K
   UPDATE countries SET russia_middle_east = 6 WHERE country_name_en IN (
     'United Arab Emirates', 'Cyprus', 'South Africa', 'Tanzania', 'Yemen',
-    'Kazakhstan', 'Greece', 'Syria', 'Uganda', 'France', 'Ethiopia', 
+    'Kazakhstan', 'Greece', 'Syria', 'Uganda', 'France', 'Ethiopia',
     'Bulgaria', 'Jordan');
   -- More than 1K
   UPDATE countries SET russia_middle_east = 7 WHERE country_name_en IN (
@@ -1048,13 +1209,13 @@ EOF
     'Madagascar', 'Latvia', 'Zimbabwe');
   -- Less than 1K
   UPDATE countries SET russia_middle_east = 8 WHERE country_name_en IN (
-    'Estonia', 'Sudan', 'Kuwait', 'Somalia', 'Mozambique', 'Qatar', 'Zambia', 
+    'Estonia', 'Sudan', 'Kuwait', 'Somalia', 'Mozambique', 'Qatar', 'Zambia',
     'Mauritius');
   -- Less than 500
   UPDATE countries SET russia_middle_east = 9 WHERE country_name_en IN (
-    'Botswana', 'Rwanda', 'Bahrain', 'Malawi', 'Seychelles', 'South Sudan', 
-    'Lesotho', 'Burundi', 'Eritrea', 'Norway', 'Djibouti', 'Afghanistan', 
-    'Comoros', 'Eswatini', 'Central African Republic', 'Pakistan', 
+    'Botswana', 'Rwanda', 'Bahrain', 'Malawi', 'Seychelles', 'South Sudan',
+    'Lesotho', 'Burundi', 'Eritrea', 'Norway', 'Djibouti', 'Afghanistan',
+    'Comoros', 'Eswatini', 'Central African Republic', 'Pakistan',
     'Libya', 'Namibia', 'Gaza Strip');
   -- Maritimes areas
   UPDATE countries SET russia_middle_east = 10 WHERE country_name_en IN (
@@ -1105,7 +1266,7 @@ function __getLocationNotes {
   echo "UPDATE notes
     SET id_country = get_country(longitude, latitude, note_id)
     WHERE $((i - LOOP_SIZE)) <= note_id AND note_id <= ${i}
-    AND id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
+    AND id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  done
 }
 
