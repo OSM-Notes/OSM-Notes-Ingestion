@@ -14,8 +14,8 @@
 # 243) Logger utility is missing.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-11-23
-declare -r VERSION="2022-11-23"
+# Version: 2022-11-29
+declare -r VERSION="2022-11-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -44,15 +44,15 @@ declare -r CLEAN="${CLEAN:-true}"
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
 
-# Logger framework.
-# Taken from https://github.com/DushyanthJyothi/bash-logger.
-declare -r LOGGER_UTILITY=bash_logger.sh
-
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
 # shellcheck disable=SC2155
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
+
+# Logger framework.
+# Taken from https://github.com/DushyanthJyothi/bash-logger.
+declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
 # Temporal directory for all files.
 declare TMP_DIR
@@ -117,11 +117,11 @@ function __log_finish() { :; }
 
 # Starts the logger utility.
 function __start_logger() {
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}" ]] ; then
+ if [[ -f "${LOGGER_UTILITY}" ]] ; then
   # Starts the logger mechanism.
   set +e
   # shellcheck source=./bash_logger.sh
-  source "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}"
+  source "${LOGGER_UTILITY}"
   local -i RET=${?}
   set -e
   if [[ "${RET}" -ne 0 ]] ; then
@@ -589,7 +589,7 @@ EOF
 # synchronization
 function __checkQtyNotes {
  __log_start
- QTY=$(wc -l "${OUTPUT_NOTES_FILE}")
+ QTY=$(wc -l "${OUTPUT_NOTES_FILE}" | awk '{print $1}')
  if [[ "${QTY}" -ge "${MAX_NOTES}" ]] ; then
   "${NOTES_SYNC_SCRIPT}"
  fi
