@@ -264,7 +264,7 @@ EOF
 function __createApiTables {
  __log_start
  __logi "Creating tables"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF 
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TABLE notes_api (
    note_id INTEGER NOT NULL,
    latitude DECIMAL NOT NULL,
@@ -274,7 +274,7 @@ function __createApiTables {
    status note_status_enum,
    id_country INTEGER
   );
- 
+
   CREATE TABLE note_comments_api (
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
@@ -343,7 +343,7 @@ function __createPropertiesTable {
 EOF
  __log_finish
 }
- 
+
 # Gets the new notes
 function __getNewNotesFromApi {
  __log_start
@@ -376,7 +376,7 @@ function __validateApiNotesXMLFile {
       <xs:simpleType>
         <xs:restriction base="xs:decimal">
           <xs:minInclusive value="0.6"/>
-        </xs:restriction> 
+        </xs:restriction>
       </xs:simpleType>
     </xs:attribute>
 
@@ -394,7 +394,7 @@ function __validateApiNotesXMLFile {
           <xs:fractionDigits value="7"/>
           <xs:minInclusive value="-180"/>
           <xs:maxInclusive value="180"/>
-        </xs:restriction> 
+        </xs:restriction>
       </xs:simpleType>
     </xs:attribute>
     <xs:attribute name="lat" use="required">
@@ -403,7 +403,7 @@ function __validateApiNotesXMLFile {
           <xs:fractionDigits value="7"/>
           <xs:minInclusive value="-90"/>
           <xs:maxInclusive value="90"/>
-        </xs:restriction> 
+        </xs:restriction>
       </xs:simpleType>
     </xs:attribute>
   </xs:attributeGroup>
@@ -416,21 +416,21 @@ function __validateApiNotesXMLFile {
           <xs:simpleType>
             <xs:restriction base="xs:string">
               <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC"/>
-            </xs:restriction> 
+            </xs:restriction>
           </xs:simpleType>
         </xs:element>
         <xs:element name="uid" minOccurs="0">
           <xs:simpleType>
             <xs:restriction base="xs:integer">
               <xs:minInclusive value="1"/>
-            </xs:restriction> 
+            </xs:restriction>
           </xs:simpleType>
         </xs:element>
         <xs:element name="user" minOccurs="0">
           <xs:simpleType>
             <xs:restriction base="xs:string">
               <xs:minLength value="1"/>
-            </xs:restriction> 
+            </xs:restriction>
           </xs:simpleType>
         </xs:element>
         <xs:element name="user_url" type="xs:anyURI" minOccurs="0"/>
@@ -459,7 +459,7 @@ function __validateApiNotesXMLFile {
           <xs:simpleType>
             <xs:restriction base="xs:integer">
               <xs:minInclusive value="1"/>
-            </xs:restriction> 
+            </xs:restriction>
           </xs:simpleType>
         </xs:element>
         <xs:element name="url" type="xs:anyURI"/>
@@ -470,7 +470,7 @@ function __validateApiNotesXMLFile {
           <!--xs:simpleType>
             <xs:restriction base="xs:string">
               <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC"/>
-            </xs:restriction> 
+            </xs:restriction>
           </xs:simpleType>
         </xs:element-->
         <xs:element name="status">
@@ -485,7 +485,7 @@ function __validateApiNotesXMLFile {
           <xs:simpleType>
             <xs:restriction base="xs:string">
               <xs:pattern value="20[0-3][0-9]-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC"/>
-            </xs:restriction> 
+            </xs:restriction>
           </xs:simpleType>
         </xs:element>
         <xs:element name="comments">
@@ -630,7 +630,7 @@ function __insertNewNotesAndComments {
       closed_time := 'TO_TIMESTAMP(''' || r.closed_at
         || ''', ''YYYY-MM-DD HH24:MI:SS'')';
       EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-        || r.longitude || ', ' 
+        || r.longitude || ', '
         || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
         || COALESCE (closed_time, 'NULL') || ','
         || '''' || r.status || '''::note_status_enum)';
@@ -657,7 +657,7 @@ function __insertNewNotesAndComments {
        '\1''''\2', 'g');
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
        || '''' || r.event || '''::note_event_enum, '
-       || COALESCE (created_time, 'NULL') || ', ' 
+       || COALESCE (created_time, 'NULL') || ', '
        || COALESCE (r.user_id || '', 'NULL') || ', '
        || COALESCE ('''' || m_username || '''', 'NULL') || ')';
     END LOOP;
@@ -692,7 +692,7 @@ function __updateLastValue {
      SELECT MAX(created_at) TIMESTAMP
      FROM note_comments
     ) T;
- 
+
     UPDATE execution_properties
      SET value = new_last_update
      WHERE key = 'lastUpdate';
@@ -723,7 +723,7 @@ chmod go+x "${TMP_DIR}"
  __start_logger
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
- 
+
  # Sets the trap in case of any signal.
  __trapOn
  __checkPrereqs
