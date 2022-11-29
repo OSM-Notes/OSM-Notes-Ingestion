@@ -344,7 +344,6 @@ EOF
  __log_finish
 }
  
-
 # Gets the new notes
 function __getNewNotesFromApi {
  __log_start
@@ -589,10 +588,12 @@ EOF
 # the same, it means not all notes were downloaded, and it needs a
 # synchronization
 function __checkQtyNotes {
+ __log_start
  QTY=$(wc -l "${OUTPUT_NOTES_FILE}")
  if [[ "${QTY}" -ge "${MAX_NOTES}" ]] ; then
   "${NOTES_SYNC_SCRIPT}"
  fi
+ __log_finish
 }
 
 # Loads notes from API into the database.
@@ -609,7 +610,6 @@ function __loadApiNotes {
 EOF
  __log_finish
 }
-
 
 # Inserts new notes and comments into the database.
 function __insertNewNotesAndComments {
