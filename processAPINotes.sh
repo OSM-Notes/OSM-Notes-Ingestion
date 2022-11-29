@@ -81,8 +81,7 @@ declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 
 # Script to synchronize the notes with the Planet.
-declare -r NOTES_SYNC_SCRIPT=processPlanetNotes.sh
-# TODO check this file NOTES_SYNC_SCRIPT exist
+declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/processPlanetNotes.sh"
 
 # Name of the PostgreSQL database to insert or update the data.
 declare -r DBNAME=notes
@@ -238,6 +237,11 @@ function __checkPrereqs {
  __logd "Checking Bash version."
  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
   echo "ERROR: Requires Bash 4+."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Checks required files.
+ if [[ ! -r "${NOTES_SYNC_SCRIPT}" ]] ; then
+  echo "ERROR: File is missing at ${NOTES_SYNC_SCRIPT}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -587,7 +591,7 @@ EOF
 function __checkQtyNotes {
  QTY=$(wc -l "${OUTPUT_NOTES_FILE}")
  if [[ "${QTY}" -ge "${MAX_NOTES}" ]] ; then
-  "${SCRIPT_BASE_DIRECTORY}/${NOTES_SYNC_SCRIPT}"
+  "${NOTES_SYNC_SCRIPT}"
  fi
 }
 
