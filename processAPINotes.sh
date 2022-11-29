@@ -55,7 +55,7 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
 # Temporal directory for all files.
-declare -r TMP_DIR
+declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${0%.sh}_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
@@ -81,7 +81,8 @@ declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 
 # Script to synchronize the notes with the Planet.
-declar -r NOTES_SYNC_SCRIPT=processPlanetNotes.sh
+declare -r NOTES_SYNC_SCRIPT=processPlanetNotes.sh
+# TODO check this file NOTES_SYNC_SCRIPT exist
 
 # Name of the PostgreSQL database to insert or update the data.
 declare -r DBNAME=notes
@@ -117,14 +118,14 @@ function __log_finish() { :; }
 
 # Starts the logger utility.
 function __start_logger() {
- if [ -f "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}" ] ; then
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}" ]] ; then
   # Starts the logger mechanism.
   set +e
   # shellcheck source=./bash_logger.sh
   source "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}"
   local -i RET=${?}
   set -e
-  if [ ${RET} -ne 0 ] ; then
+  if [[ "${RET}" -ne 0 ]] ; then
    printf "\nERROR: Invalid logger framework file.\n"
    exit "${ERROR_LOGGER_UTILITY}"
   fi
@@ -168,8 +169,8 @@ function __show_help {
 function __checkPrereqs {
  __log_start
  __logd "Checking process type."
- if [ "${PROCESS_TYPE}" != "" ] && [ "${PROCESS_TYPE}" != "--help" ] \
-   && [ "${PROCESS_TYPE}" != "-h" ] ; then
+ if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
+   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string (nothing)."
   echo " * --help"
@@ -229,13 +230,13 @@ function __checkPrereqs {
  fi
  ## Saxon Jar
  __logd "Checking Saxon Jar."
- if [ ! -r "${SAXON_JAR}" ] ; then
+ if [[ ! -r "${SAXON_JAR}" ]] ; then
   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Bash 4 or greater.
  __logd "Checking Bash version."
- if [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
   echo "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -307,8 +308,7 @@ function __createPropertiesTable {
       || ')';
    END IF;
 
-   -- FIXME This is adding a second. Let's hope it didn't leave object missing.
-   SELECT MAX(TIMESTAMP) + interval '1 second'
+   SELECT MAX(TIMESTAMP)
      INTO new_last_update
    FROM (
     SELECT MAX(created_at) TIMESTAMP
@@ -586,7 +586,7 @@ EOF
 # synchronization
 function __checkQtyNotes {
  QTY=$(wc -l "${OUTPUT_NOTES_FILE}")
- if [ ${QTY} -ge ${MAX_NOTES} ] ; then
+ if [[ "${QTY}" -ge "${MAX_NOTES}" ]] ; then
   "${SCRIPT_BASE_DIRECTORY}/${NOTES_SYNC_SCRIPT}"
  fi
 }
@@ -723,7 +723,7 @@ chmod go+x "${TMP_DIR}"
  # Sets the trap in case of any signal.
  __trapOn
  __checkPrereqs
- if [ "${PROCESS_TYPE}" == "-h" ] || [ "${PROCESS_TYPE}" == "--help" ]; then
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __logw "Process started."
@@ -742,7 +742,7 @@ chmod go+x "${TMP_DIR}"
  __logw "Process finished."
 } >> "${LOG_FILE}" 2>&1
 
-if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
- mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S).log"
+if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
  rmdir "${TMP_DIR}"
 fi
