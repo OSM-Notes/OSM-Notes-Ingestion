@@ -139,7 +139,7 @@ declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
 # Temporal directory for all files.
 declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${0%.sh}-XXXXXX")
+TMP_DIR=$(mktemp -d "/tmp/${0%.sh}_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
 declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
@@ -213,11 +213,11 @@ function __log_finish() { :; }
 
 # Starts the logger utility.
 function __start_logger() {
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}" ]] ; then
+ if [[ -f "${LOGGER_UTILITY}" ]] ; then
   # Starts the logger mechanism.
   set +e
   # shellcheck source=./bash_logger.sh
-  source "${SCRIPT_BASE_DIRECTORY}/${LOGGER_UTILITY}"
+  source "${LOGGER_UTILITY}"
   local -i RET=${?}
   set -e
   if [[ "${RET}" -ne 0 ]] ; then
@@ -973,26 +973,24 @@ function __createsProcedures {
   BEGIN
    id_country := get_country(m_longitude, m_latitude, m_note_id);
 
-   -- FIXME this should support errors with primary key, and not return an
-   -- error.
    INSERT INTO notes (
-   note_id,
-   latitude,
-   longitude,
-   created_at,
-   closed_at,
-   status,
-   id_country
-  ) VALUES (
-   m_note_id,
-   m_latitude,
-   m_longitude,
-   m_created_at,
-   m_closed_at,
-   m_status,
-   id_country
-  );
- END
+    note_id,
+    latitude,
+    longitude,
+    created_at,
+    closed_at,
+    status,
+    id_country
+   ) VALUES (
+    m_note_id,
+    m_latitude,
+    m_longitude,
+    m_created_at,
+    m_closed_at,
+    m_status,
+    id_country
+   ) ON CONFLICT DO NOTHING;
+  END
  \$proc\$
 EOF
 
@@ -1014,30 +1012,30 @@ EOF
    -- FIXME this should support errors with primary key, and not return an
    -- error.
    INSERT INTO note_comments (
-   note_id,
-   event,
-   created_at,
-   user_id,
-   username
-  ) VALUES (
-   m_note_id,
-   m_event,
-   m_created_at,
-   m_user_id,
-   m_username
-  );
-  IF (m_event = 'closed') THEN
-   UPDATE notes
-     SET status = 'close',
-     closed_at = m_created_at
-     WHERE note_id = m_note_id;
-  ELSIF (m_event = 'reopened') THEN
-   UPDATE notes
-     SET status = 'open',
-     closed_at = NULL
-     WHERE note_id = m_note_id;
-  END IF;
- END
+    note_id,
+    event,
+    created_at,
+    user_id,
+    username
+   ) VALUES (
+    m_note_id,
+    m_event,
+    m_created_at,
+    m_user_id,
+    m_username
+   ) ON CONFLICT DO NOTHING;
+   IF (m_event = 'closed') THEN
+    UPDATE notes
+      SET status = 'close',
+      closed_at = m_created_at
+      WHERE note_id = m_note_id;
+   ELSIF (m_event = 'reopened') THEN
+    UPDATE notes
+      SET status = 'open',
+      closed_at = NULL
+      WHERE note_id = m_note_id;
+   END IF;
+  END
  \$proc\$
 EOF
  __log_finish
