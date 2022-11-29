@@ -95,10 +95,10 @@
 # 244) Error downloading planet notes file.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-11-22
-declare -r VERSION="2022-11-22"
+# Version: 2022-11-29
+declare -r VERSION="2022-11-29"
 
-set -xv
+#set -xv
 # Fails when a variable is not initialized.
 set -u
 # Fails with an non-zero return code.
@@ -124,11 +124,18 @@ declare -r ERROR_DOWNLOADING_NOTES=244
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN=${CLEAN:-true}
 
+# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
+
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
 # shellcheck disable=SC2155
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
+
+# Logger framework.
+# Taken from https://github.com/DushyanthJyothi/bash-logger.
+declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
 # Temporal directory for all files.
 declare TMP_DIR
@@ -227,14 +234,17 @@ function __start_logger() {
 
 # Function that activates the error trap.
 function __trapOn() {
- trap '{ printf "\n%s ERROR: The script did not finish correctly. Line number: ${LINENO}.\n" ; exit ;}' \
+ __log_start
+ trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}"; exit ;}' \
    ERR
- trap '{ printf "\n%s WARN: The script was terminated.\n\" \"$(date +%Y%m%d_%H:%M:%S)\n"; exit ;}' \
+ trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ;}' \
    SIGINT SIGTERM
+ __log_finish
 }
 
 # Shows the help information.
 function __show_help {
+ __log_start
  echo "${0} version ${VERSION}"
  echo "This is a script that downloads the OSM notes from the Planet,"
  echo "processes them with a XSLT transformation, to create a flat file,"
@@ -245,10 +255,12 @@ function __show_help {
  echo
  echo "Written by: Andres Gomez (AngocA)"
  exit "${ERROR_HELP_MESSAGE}"
+ __log_finish
 }
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
+ __log_start
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
    && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
    && [[ "${PROCESS_TYPE}" != "--help" ]] \
@@ -307,12 +319,14 @@ function __checkPrereqs {
   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ __log_finish
  set -e
 }
 
 # Drop existing base tables.
 function __dropBaseTables {
- echo "Droping tables."
+ __log_start
+ __logi "Droping tables."
  psql -d "${DBNAME}" << EOF
   DROP TABLE tries;
   DROP TABLE note_comments;
@@ -321,20 +335,24 @@ function __dropBaseTables {
   DROP TYPE note_status_enum;
   DROP TABLE countries;
 EOF
+ __log_finish
 }
 
 # Drop sync tables.
 function __dropSyncTables {
- echo "Droping tables."
+ __log_start
+ __logi "Droping tables."
  psql -d "${DBNAME}" << EOF
   DROP TABLE note_comments_sync;
   DROP TABLE notes_sync;
 EOF
+ __log_finish
 }
 
 # Creates base tables that hold the whole history.
 function __createBaseTables {
- echo "Creating tables"
+ __log_start
+ __logi "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TABLE countries (
    country_id INTEGER NOT NULL,
@@ -405,12 +423,14 @@ function __createBaseTables {
    id_country INTEGER
   );
 EOF
+ __log_finish
 }
 
 # Creates sync tables that receives the whole history, but then keep the new
 # ones.
 function __createSyncTables {
- echo "Creating tables"
+ __log_start
+ __logi "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TABLE notes_sync (
    note_id INTEGER NOT NULL,
@@ -430,16 +450,18 @@ function __createSyncTables {
    username VARCHAR(256)
   );
 EOF
+ __log_finish
 }
 
 # Download the list of countries, then it downloads each country individually,
 # converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
 # country into the Postgres database with ogr2ogr.
 function __processCountries {
+ __log_start
  echo "DELETE FROM countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
  # Extracts ids of all country relations into a JSON.
- echo "Obtaining the countries ids."
+ __logi "Obtaining the countries ids."
  cat << EOF > "${QUERY_FILE}"
   [out:csv(::id)];
   (
@@ -454,7 +476,7 @@ EOF
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
-  echo "ERROR: Country list could not be downloaded."
+  __loge "ERROR: Country list could not be downloaded."
   exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
 
@@ -462,23 +484,23 @@ EOF
  mv "${COUNTRIES_FILE}.tmp" "${COUNTRIES_FILE}"
 
  # Adds the Gaza Strip, as it is not at country level.
- echo "1703814" "${COUNTRIES_FILE}"
+ echo "1703814" >> "${COUNTRIES_FILE}"
 
- echo "Retrieving the countries' boundaries."
+ __logi "Retrieving the countries' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
-  echo "----> ${ID} $(date +%Y-%m-%d_%H-%M-%S || true)"
+  __logi "${ID}"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
    (._;>;);
    out;
 EOF
-  echo "Retrieving shape."
+  __logi "Retrieving shape."
   wget -O "${ID}.json" --post-file="${QUERY_FILE}" \
     "https://overpass-api.de/api/interpreter"
 
-  echo "Converting into geoJSON."
+  __logi "Converting into geoJSON."
   osmtogeojson "${ID}.json" > "${ID}.geojson"
   set +e
   COUNTRY=$(grep "\"name\":" "${ID}.geojson" | head -1 \
@@ -495,11 +517,11 @@ EOF
     grep -v "alt_name" > "${ID}.geojson-new"
   mv "${ID}.geojson-new" "${ID}.geojson"
 
-  echo "Importing into Postgres."
+  __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${ID}.geojson" \
     -nln import -overwrite
 
-  echo "Inserting into final table."
+  __logi "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]] ; then
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
      country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}',
@@ -519,17 +541,19 @@ EOF
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
    rm -f "${ID}.json" "${ID}.geojson"
   fi
-  echo "Waiting ${SECONDS_TO_WAIT} seconds..."
+  __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
   sleep "${SECONDS_TO_WAIT}"
  done < "${COUNTRIES_FILE}"
+ __log_finish
 }
 
 # Download the list of maritimes areas, then it downloads each area
 # individually, converts the OSM JSON into a GeoJSON, and then it inserts the
 # geometry of the maritime area into the Postgres database with ogr2ogr.
 function __processMaritimes {
+ __log_start
  # Extracts ids of all EEZ relations into a JSON.
- echo "Obtaining the eez ids."
+ __logi "Obtaining the eez ids."
  cat << EOF > "${QUERY_FILE}"
   [out:csv(::id)];
   (
@@ -544,28 +568,28 @@ EOF
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
-  echo "ERROR: Maritimes border list could not be downloaded."
+  __loge "ERROR: Maritimes border list could not be downloaded."
   exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
 
  tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
  mv "${MARITIMES_FILE}.tmp" "${MARITIMES_FILE}"
 
- echo "Retrieving the maritimes' boundaries."
+ __logi "Retrieving the maritimes' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
-  echo "----> ${ID} $(date +%Y-%m-%d_%H-%M-%S || true)"
+  __logi "${ID}"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
    (._;>;);
    out;
 EOF
-  echo "Retrieving shape."
+  __logi "Retrieving shape."
   wget -O "${ID}.json" --post-file="${QUERY_FILE}" \
     "https://overpass-api.de/api/interpreter"
 
-  echo "Converting into geoJSON."
+  __logi "Converting into geoJSON."
   osmtogeojson "${ID}.json" > "${ID}.geojson"
   set +e
   NAME=$(grep "\"name\":" "${ID}.geojson" | head -1 \
@@ -576,11 +600,11 @@ EOF
     | awk -F\" '{print $4}' | sed "s/'/''/")
   set -e
 
-  echo "Importing into Postgres."
+  __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${ID}.geojson" \
     -nln import -overwrite
 
-  echo "Inserting into final table."
+  __logi "Inserting into final table."
   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
     country_name_en, geom) select ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
     '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) from import group by 1"
@@ -589,37 +613,43 @@ EOF
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
    rm -f "${ID}.json" "${ID}.geojson"
   fi
-  echo "Waiting ${SECONDS_TO_WAIT} seconds..."
+  __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
   sleep "${SECONDS_TO_WAIT}"
  done < "${MARITIMES_FILE}"
+ __log_finish
 }
 
 # Clean files and tables.
 function __cleanPartial {
+ __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm query "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   echo "DROP TABLE import" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  fi
+ __log_finish
 }
 
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
+ __log_start
  # Download Planet notes.
- echo "Retrieving Planet notes file... $(date +%Y-%m-%d_%H-%M-%S || true)"
+ __loge "Retrieving Planet notes file..."
  curl --output "${PLANET_NOTES_FILE}.bz2" \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
 
  if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]] ; then
-  echo "ERROR: Downloading notes file."
+  __loge "ERROR: Downloading notes file."
   exit "${ERROR_DOWNLOADING_NOTES}"
  fi
- echo "Extracting Planet notes..."
+ __logi "Extracting Planet notes..."
  bzip2 -d "${PLANET_NOTES_FILE}.bz2"
  mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
+ __log_finish
 }
 
 # Validates the XML file to be sure everything will work fine.
 function __validatePlanetNotesXMLFile {
+ __log_start
  # XML Schema.
  cat << EOF > "${XMLSCHEMA_PLANET_NOTES}"
 <?xml version="1.0"?>
@@ -748,10 +778,12 @@ EOF
  xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml"
 
  rm -f "${XMLSCHEMA_PLANET_NOTES}"
+ __log_finish
 }
 
 # Creates the XSLT files and process the XML files with them.
 function __convertPlanetNotesToFlatFile {
+ __log_start
  # Process the notes file.
  # XSLT transformations.
  cat << EOF > "${XSLT_NOTES_FILE}"
@@ -793,10 +825,12 @@ EOF
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
+ __log_finish
 }
 
 # Loads notes into the database.
 function __loadBaseNotes {
+ __log_start
  # Loads the data in the database.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   COPY notes (note_id, latitude, longitude, created_at, closed_at, status)
@@ -806,10 +840,12 @@ function __loadBaseNotes {
     DELIMITER ',' QUOTE '''';
   SELECT COUNT(1), 'uploaded comments' as type FROM note_comments;
 EOF
+ __log_finish
 }
 
 # Loads new notes from sync.
 function __loadSyncNotes {
+ __log_start
  # Loads the data in the database.
  # Adds a column to include the country where it belongs.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
@@ -822,10 +858,12 @@ function __loadSyncNotes {
     DELIMITER ',' QUOTE '''';
   SELECT COUNT(1), 'uploaded sync comments' as type FROM note_comments_sync;
 EOF
+ __log_finish
 }
 
 # Creates a function to get the country or maritime area from coordinates.
 function __createsFunctionToGetCountry {
+ __log_start
  # Creates a function that performs a basic triage according to its longitude:
  # * -180 - -30: Americas.
  # * -30 - 25: West Europe and West Africa.
@@ -912,10 +950,12 @@ function __createsFunctionToGetCountry {
   END
  \$func\$
 EOF
+ __log_finish
 }
 
 # Creates procedures to insert notes and comments.
 function __createsProcedures {
+ __log_start
  # Creates a procedure that inserts a note.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
  CREATE OR REPLACE PROCEDURE insert_note (
@@ -1000,10 +1040,12 @@ EOF
  END
  \$proc\$
 EOF
+ __log_finish
 }
 
 # Removes notes and comments from the new set that are already in the database.
 function __removeDuplicates {
+ __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   SELECT COUNT(1), 'sync notes' as type FROM notes_sync;
   DELETE FROM notes_sync
@@ -1064,19 +1106,23 @@ function __removeDuplicates {
 
 BEGIN
 EOF
+ __log_finish
 }
 
 # Cleans files generated during the process.
 function __cleanNotesFiles {
+ __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
     "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
     "${OUTPUT_NOTE_COMMENTS_FILE}"
  fi
+ __log_finish
 }
 
 # Assigns a value to each area to find it easily.
 function __organizeAreas {
+ __log_start
  # Insert values for representative countries in each area.
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
@@ -1256,18 +1302,21 @@ EOF
     'New Caledonia (EEZ)', 'New Zealand (EEZ)',
     'New Zealand (Contiguous Zone)');
 EOF
+ __log_finish
 }
 
 # ToDo Parallelize.
 # Gets the area of each note.
 function __getLocationNotes {
+ __log_start
  for i in $(seq -f %1.0f "${LOOP_SIZE}" "${LOOP_SIZE}" "${MAX_NOTE_ID}") ; do
-  echo "${i} $(date +%Y-%m-%d_%H-%M-%S || true)"
+  __logi "${i}"
   echo "UPDATE notes
     SET id_country = get_country(longitude, latitude, note_id)
     WHERE $((i - LOOP_SIZE)) <= note_id AND note_id <= ${i}
     AND id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  done
+ __log_finish
 }
 
 ######
@@ -1281,7 +1330,7 @@ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
  __show_help
 fi
 {
- echo "$(date +%Y-%m-%d_%H-%M-%S || true) Starting process"
+ __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
 
@@ -1299,7 +1348,7 @@ fi
   __processMaritimes
   __cleanPartial
   if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
-   echo "$(date +%Y-%m-%d_%H-%M-%S || true) Ending process"
+   __logw "Ending process"
    exit 0
   fi
  fi
@@ -1318,7 +1367,7 @@ fi
  __cleanNotesFiles
  __organizeAreas
  __getLocationNotes
- echo "$(date +%Y-%m-%d_%H-%M-%S || true) Ending process"
+ __logw "Ending process"
 } >> "${LOG_FILE}" 2>&1
 
 if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
