@@ -118,7 +118,7 @@ declare -r ERROR_INVALID_ARGUMENT=242
 # 243: The list of ids for boundary geometries can not be downloaded.
 declare -r ERROR_DOWNLOADING_ID_LIST=243
 # 244: Error downloading planet notes file.
-declare -r ERROR_DOWNLOADIND_NOTES=244
+declare -r ERROR_DOWNLOADING_NOTES=244
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
@@ -131,7 +131,9 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
 # Temporal directory for all files.
-declare -r TMP_DIR=$(mktemp -d "/tmp/${0%.sh}-XXXXXX")
+declare TMP_DIR
+TMP_DIR=$(mktemp -d "/tmp/${0%.sh}-XXXXXX")
+readonly TMP_DIR
 # Lof file for output.
 declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
 
@@ -192,7 +194,7 @@ function __show_help {
  echo "Without parameter it processes the new notes."
  echo
  echo "Written by: Andres Gomez (AngocA)"
- exit ${ERROR_HELP_MESSAGE}
+ exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Function that activates the error trap.
@@ -207,68 +209,69 @@ function __trapOn() {
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
- if [ "${PROCESS_TYPE}" != "" ] && [ "${PROCESS_TYPE}" != "--base" ] \
-   && [ "${PROCESS_TYPE}" != "--boundaries" ] && [ "${PROCESS_TYPE}" != "--help" ] \
-   && [ "${PROCESS_TYPE}" != "-h" ] ; then
+ if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
+   && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
+   && [[ "${PROCESS_TYPE}" != "--help" ]] \
+   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --base"
   echo " * --boundaries"
   echo " * --help"
-  exit ${ERROR_INVALID_ARGUMENT}
+  exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
  # Checks prereqs.
  ## PostgreSQL
  if ! psql --version > /dev/null 2>&1 ; then
   echo "ERROR: PostgreSQL is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Wget
  if ! wget --version > /dev/null 2>&1 ; then
   echo "ERROR: Wget is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## osmtogeojson
  if ! osmtogeojson --version > /dev/null 2>&1 ; then
   echo "ERROR: osmtogeojson is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## gdal ogr2ogr
  if ! ogr2ogr --version > /dev/null 2>&1 ; then
   echo "ERROR: ogr2ogr is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## cURL
  if ! curl --version > /dev/null 2>&1 ; then
   echo "ERROR: curl is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Block-sorting file compressor
  if ! bzip2 --help > /dev/null 2>&1 ; then
   echo "ERROR: bzip2 is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Java
  if ! java --version > /dev/null 2>&1 ; then
   echo "ERROR: Java JRE is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## XML lint
  if ! xmllint --version > /dev/null 2>&1 ; then
   echo "ERROR: XMLlint is missing."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Saxon Jar
- if [ ! -r "${SAXON_JAR}" ] ; then
+ if [[ ! -r "${SAXON_JAR}" ]] ; then
   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks required files.
- if [ ! -r "${XMLSCHEMA_PLANET_NOTES}" ] ; then
+ if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]] ; then
   # TODO Generate XSD file from this script
   echo "ERROR: File is missing at ${XMLSCHEMA_PLANET_NOTES}."
-  exit ${ERROR_MISSING_LIBRARY}
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  set -e
 }
@@ -416,9 +419,9 @@ EOF
    "https://overpass-api.de/api/interpreter"
  RET=${?}
  set -e
- if [ "${RET}" -ne 0 ] ; then
+ if [[ "${RET}" -ne 0 ]] ; then
   echo "ERROR: Country list could not be downloaded."
-  exit ${ERROR_DOWNLOADING_ID_LIST}
+  exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
  
  tail -n +2 "${COUNTRIES_FILE}" > "${COUNTRIES_FILE}.tmp"
@@ -430,7 +433,7 @@ EOF
  echo "Retrieving the countries' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
-  echo "----> ${ID} $(date)"
+  echo "----> ${ID} $(date +%Y-%m-%d_%H-%M-%S || true)"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
@@ -463,7 +466,7 @@ EOF
     -nln import -overwrite
  
   echo "Inserting into final table."
-  if [ "${ID}" -ne 16239 ] ; then
+  if [[ "${ID}" -ne 16239 ]] ; then
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es, 
      country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}', 
      '${COUNTRY_EN}', ST_Union(ST_makeValid(wkb_geometry)) 
@@ -479,7 +482,7 @@ EOF
   fi
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
  
-  if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
    rm -f "${ID}.json" "${ID}.geojson"
   fi
   echo "Waiting ${SECONDS_TO_WAIT} seconds..."
@@ -506,9 +509,9 @@ EOF
    "https://overpass-api.de/api/interpreter"
  RET=${?}
  set -e
- if [ "${RET}" -ne 0 ] ; then
+ if [[ "${RET}" -ne 0 ]] ; then
   echo "ERROR: Maritimes border list could not be downloaded."
-  exit ${ERROR_DOWNLOADING_ID_LIST}
+  exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
  
  tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
@@ -517,7 +520,7 @@ EOF
  echo "Retrieving the maritimes' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
-  echo "----> ${ID} $(date)" 
+  echo "----> ${ID} $(date +%Y-%m-%d_%H-%M-%S || true)" 
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
@@ -549,7 +552,7 @@ EOF
     '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) from import group by 1"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
  
-  if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
    rm -f "${ID}.json" "${ID}.geojson"
   fi
   echo "Waiting ${SECONDS_TO_WAIT} seconds..."
@@ -559,7 +562,7 @@ EOF
 
 # Clean files and tables.
 function __cleanPartial {
- if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm query "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   echo "DROP TABLE import" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 
  fi
@@ -568,13 +571,13 @@ function __cleanPartial {
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
  # Download Planet notes.
- echo "Retrieving Planet notes file... $(date)"
+ echo "Retrieving Planet notes file... $(date +%Y-%m-%d_%H-%M-%S || true)"
  curl --output "${PLANET_NOTES_FILE}.bz2" \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
 
- if [ ! -r "${PLANET_NOTES_FILE}.bz2" ] ; then
+ if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]] ; then
   echo "ERROR: Downloading notes file."
-  exit "${ERROR_DOWNLOADIND_NOTES}"
+  exit "${ERROR_DOWNLOADING_NOTES}"
  fi 
  echo "Extracting Planet notes..."
  bzip2 -d "${PLANET_NOTES_FILE}.bz2"
@@ -904,7 +907,7 @@ EOF
 
 # Cleans files generated during the process.
 function __cleanNotesFiles {
- if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
     "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
     "${OUTPUT_NOTE_COMMENTS_FILE}" 
@@ -1097,8 +1100,8 @@ EOF
 # ToDo Parallelize.
 # Gets the area of each note.
 function __getLocationNotes {
- for i in $(seq -f %1.0f ${LOOP_SIZE} ${LOOP_SIZE} "${MAX_NOTE_ID}") ; do
-  echo "${i} $(date)"
+ for i in $(seq -f %1.0f "${LOOP_SIZE}" "${LOOP_SIZE}" "${MAX_NOTE_ID}") ; do
+  echo "${i} $(date +%Y-%m-%d_%H-%M-%S || true)"
   echo "UPDATE notes
     SET id_country = get_country(longitude, latitude, note_id)
     WHERE $((i - LOOP_SIZE)) <= note_id AND note_id <= ${i}
@@ -1113,15 +1116,15 @@ function __getLocationNotes {
 chmod go+x "${TMP_DIR}"
 
 __checkPrereqs
-if [ "${PROCESS_TYPE}" == "-h" ] || [ "${PROCESS_TYPE}" == "--help" ]; then
+if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
  __show_help
 fi
 {
- echo "$(date) Starting process"
+ echo "$(date +%Y-%m-%d_%H-%M-%S || true) Starting process"
  # Sets the trap in case of any signal.
  __trapOn
 
- if [ "${PROCESS_TYPE}" == "--base" ] ; then
+ if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
   __dropSyncTables
   __dropBaseTables
   __createBaseTables
@@ -1129,13 +1132,13 @@ fi
   __dropSyncTables
   __createSyncTables
  fi
- if [ "${PROCESS_TYPE}" == "--base" ] \
-   || [ "${PROCESS_TYPE}" == "--boundaries" ] ; then
+ if [[ "${PROCESS_TYPE}" == "--base" ]] \
+   || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
   __processCountries
   __processMaritimes
   __cleanPartial
-  if [ "${PROCESS_TYPE}" == "--boundaries" ] ; then
-   echo "$(date) Ending process"
+  if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
+   echo "$(date +%Y-%m-%d_%H-%M-%S || true) Ending process"
    exit 0
   fi
  fi
@@ -1144,7 +1147,7 @@ fi
  __convertPlanetNotesToFlatFile
  __createsFunctionToGetCountry
  __createsProcedures
- if [ "${PROCESS_TYPE}" == "--base" ] ; then
+ if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
   __loadBaseNotes
  else
   __loadSyncNotes
@@ -1154,10 +1157,10 @@ fi
  __cleanNotesFiles
  __organizeAreas
  __getLocationNotes
- echo "$(date) Ending process"
+ echo "$(date +%Y-%m-%d_%H-%M-%S || true) Ending process"
 } >> "${LOG_FILE}" 2>&1
 
-if [ -n "${CLEAN}" ] && [ "${CLEAN}" = true ] ; then
- mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S).log"
+if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
  rmdir "${TMP_DIR}"
 fi
