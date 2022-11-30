@@ -58,8 +58,11 @@ declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh ${0})_XXXXXX")
 readonly TMP_DIR
-# Lof file for output.
+# Log file for output.
 declare -r LOG_FILE="${TMP_DIR}/$(basename -s .sh ${0}).log"
+
+# Lock file for single execution.
+declare -r LOCK="/tmp/$(basename -s .sh ${0}).lock"
 
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
@@ -372,7 +375,9 @@ EOF
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
+  __logw "Creating base tables. It will take several hours."
   "${NOTES_SYNC_SCRIPT}" --base
+  __logw "Base tables created."
  fi
  __log_finish
 
@@ -765,7 +770,8 @@ chmod go+x "${TMP_DIR}"
  __logw "Process started."
  # Sets the trap in case of any signal.
  __trapOn
- # TODO Locks for only one execution
+ exec 8> "${LOCK}"
+ flock -n 8
  __dropApiTables
  set +E
  __checkBaseTables
