@@ -120,12 +120,12 @@ declare -r ERROR_DOWNLOADING_ID_LIST=243
 # 244: Error downloading planet notes file.
 declare -r ERROR_DOWNLOADING_NOTES=244
 
+# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
+
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN=${CLEAN:-true}
-
-# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
-declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
 
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
@@ -183,7 +183,10 @@ declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 declare -r LOOP_SIZE=10000
 # Maximum number to process notes. In the future, this value has to be
 # increased.
+# FIXME this is the maximum ID of a note. This should be updated in a few years.
 declare -r MAX_NOTE_ID=5000000
+# Parallel threads to process notes.
+declare -r PARALLELISM=5
 
 ###########
 # FUNCTIONS
@@ -1009,8 +1012,6 @@ EOF
    m_username:=REGEXP_REPLACE(m_username, \$\$([^'])'([^'])\$\$, \$\$\1''\2\$\$,
      'g');
 
-   -- FIXME this should support errors with primary key, and not return an
-   -- error.
    INSERT INTO note_comments (
     note_id,
     event,
@@ -1303,17 +1304,30 @@ EOF
  __log_finish
 }
 
-# ToDo Parallelize.
 # Gets the area of each note.
 function __getLocationNotes {
  __log_start
- for i in $(seq -f %1.0f "${LOOP_SIZE}" "${LOOP_SIZE}" "${MAX_NOTE_ID}") ; do
-  __logi "${i}"
-  echo "UPDATE notes
-    SET id_country = get_country(longitude, latitude, note_id)
-    WHERE $((i - LOOP_SIZE)) <= note_id AND note_id <= ${i}
-    AND id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ declare -l SIZE=$((MAX_NOTE_ID/PARALLELISM))
+ declare -l MAX="${SIZE}"
+ declare -l MIN=0
+ declare -l THREAD=1
+
+ for j in $(seq 1 1 ${PARALLELISM}) ; do
+  (
+   __logi "Starting ${j}"
+   for i in $(seq -f %1.0f "$((MIN + LOOP_SIZE))" "${LOOP_SIZE}" "$((MAX))") ; do
+    __logd "${i}"
+    echo "UPDATE notes
+      SET id_country = get_country(longitude, latitude, note_id)
+      WHERE $((i - LOOP_SIZE)) <= note_id AND note_id <= ${i}
+      AND id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   done
+   __logi "Finishing ${j}"
+  ) &
+  MIN=${MAX}
+  MAX=$((MAX+SIZE))
  done
+ wait
  __log_finish
 }
 
@@ -1323,11 +1337,12 @@ function __getLocationNotes {
 # Allows to other user read the directory.
 chmod go+x "${TMP_DIR}"
 
-__checkPrereqs
-if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
- __show_help
-fi
 {
+ __start_logger
+ __checkPrereqs
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+ fi
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
