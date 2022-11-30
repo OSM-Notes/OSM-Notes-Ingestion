@@ -517,6 +517,7 @@ EOF
     | awk -F\" '{print $4}' | sed "s/'/''/")
   set -o pipefail
   set -e
+  __logi "${COUNTRY_EN}"
 
   # Taiwan cannot be imported directly. Thus, a simplification is done.
   # ERROR:  row is too big: size 8616, maximum size 8160
@@ -543,6 +544,7 @@ EOF
      '${COUNTRY_EN}', ST_Union(ST_Buffer(wkb_geometry,0.0))
      from import group by 1"
   fi
+  __logd "${STATEMENT}"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
@@ -610,6 +612,7 @@ EOF
     | awk -F\" '{print $4}' | sed "s/'/''/")
   set -o pipefail
   set -e
+  __logi "${NAME_EN}"
 
   __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${GEOJSON_FILE}" \
@@ -619,6 +622,7 @@ EOF
   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
     country_name_en, geom) select ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
     '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) from import group by 1"
+  __logd "${STATEMENT}"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
