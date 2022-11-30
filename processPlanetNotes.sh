@@ -492,6 +492,8 @@ EOF
  __logi "Retrieving the countries' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
+  JSON_FILE="${TMP_DIR}/${ID}.json"
+  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
   __logi "${ID}"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
@@ -500,28 +502,30 @@ EOF
    out;
 EOF
   __logi "Retrieving shape."
-  wget -O "${ID}.json" --post-file="${QUERY_FILE}" \
+  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
     "https://overpass-api.de/api/interpreter"
 
   __logi "Converting into geoJSON."
-  osmtogeojson "${ID}.json" > "${ID}.geojson"
+  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
   set +e
-  COUNTRY=$(grep "\"name\":" "${ID}.geojson" | head -1 \
+  set +o pipefail
+  COUNTRY=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
-  COUNTRY_ES=$(grep "\"name:es\":" "${ID}.geojson" | head -1 \
+  COUNTRY_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
-  COUNTRY_EN=$(grep "\"name:en\":" "${ID}.geojson" | head -1 \
+  COUNTRY_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
+  set -o pipefail
   set -e
 
   # Taiwan cannot be imported directly. Thus, a simplification is done.
   # ERROR:  row is too big: size 8616, maximum size 8160
-  grep -v "official_name" "${ID}.geojson" | \
-    grep -v "alt_name" > "${ID}.geojson-new"
-  mv "${ID}.geojson-new" "${ID}.geojson"
+  grep -v "official_name" "${GEOJSON_FILE}" | \
+    grep -v "alt_name" > "${GEOJSON_FILE}-new"
+  mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
 
   __logi "Importing into Postgres."
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${ID}.geojson" \
+  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${GEOJSON_FILE}" \
     -nln import -overwrite
 
   __logi "Inserting into final table."
@@ -542,7 +546,7 @@ EOF
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-   rm -f "${ID}.json" "${ID}.geojson"
+   rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
   fi
   __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
   sleep "${SECONDS_TO_WAIT}"
@@ -581,6 +585,8 @@ EOF
  __logi "Retrieving the maritimes' boundaries."
  while read -r LINE ; do
   ID=$(echo "${LINE}" | awk '{print $1}')
+  JSON_FILE="${TMP_DIR}/${ID}.json"
+  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
   __logi "${ID}"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
@@ -589,22 +595,24 @@ EOF
    out;
 EOF
   __logi "Retrieving shape."
-  wget -O "${ID}.json" --post-file="${QUERY_FILE}" \
+  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
     "https://overpass-api.de/api/interpreter"
 
   __logi "Converting into geoJSON."
-  osmtogeojson "${ID}.json" > "${ID}.geojson"
+  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
   set +e
-  NAME=$(grep "\"name\":" "${ID}.geojson" | head -1 \
+  set +o pipefail
+  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
-  NAME_ES=$(grep "\"name:es\":" "${ID}.geojson" | head -1 \
+  NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
-  NAME_EN=$(grep "\"name:en\":" "${ID}.geojson" | head -1 \
+  NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
     | awk -F\" '{print $4}' | sed "s/'/''/")
+  set -o pipefail
   set -e
 
   __logi "Importing into Postgres."
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${ID}.geojson" \
+  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${GEOJSON_FILE}" \
     -nln import -overwrite
 
   __logi "Inserting into final table."
@@ -614,7 +622,7 @@ EOF
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-   rm -f "${ID}.json" "${ID}.geojson"
+   rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
   fi
   __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
   sleep "${SECONDS_TO_WAIT}"
