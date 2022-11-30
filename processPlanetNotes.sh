@@ -139,10 +139,10 @@ declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
 # Temporal directory for all files.
 declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${0%.sh}_XXXXXX")
+TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh ${0})_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
-declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
+declare -r LOG_FILE="${TMP_DIR}/$(basename -s .sh ${0}).log"
 
 # Type of process to run in the script: base, sync or boundaries.
 declare -r PROCESS_TYPE=${1:-}
