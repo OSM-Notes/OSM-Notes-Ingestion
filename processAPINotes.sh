@@ -315,13 +315,13 @@ function __createPropertiesTable {
    SELECT MAX(TIMESTAMP)
      INTO new_last_update
    FROM (
-    SELECT MAX(created_at) TIMESTAMP
+    SELECT MAX(created_at) AS TIMESTAMP
     FROM notes
     UNION
-    SELECT MAX(closed_at) TIMESTAMP
+    SELECT MAX(closed_at) AS TIMESTAMP
     FROM notes
     UNION
-    SELECT MAX(created_at) TIMESTAMP
+    SELECT MAX(created_at) AS TIMESTAMP
     FROM note_comments
    ) T;
 
@@ -342,6 +342,40 @@ function __createPropertiesTable {
   SELECT value FROM execution_properties WHERE key = 'lastUpdate';
 EOF
  __log_finish
+}
+
+# Checks the base tables if exist.
+function __checkBaseTables {
+ __log_start
+ set +e
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+  DO
+  \$\$
+  DECLARE
+   last_update VARCHAR(32);
+   new_last_update VARCHAR(32);
+   qty INT;
+  BEGIN
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME IN ('contries', 'notes', 'note_comments', 'tries')
+   ;
+
+   IF (qty <> 4) THEN
+    RAISE EXCEPTION 'Base tables are missing';
+   END IF;
+  END;
+  \$\$;
+EOF
+ RET=${?}
+ set -e
+ if [[ "${RET}" -ne 0 ]] ; then
+  "${NOTES_SYNC_SCRIPT}" --base
+ fi
+ __log_finish
+
 }
 
 # Gets the new notes
@@ -724,17 +758,18 @@ chmod go+x "${TMP_DIR}"
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
 
- # Sets the trap in case of any signal.
- __trapOn
- __checkPrereqs
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
+ __checkPrereqs
  __logw "Process started."
+ # Sets the trap in case of any signal.
+ __trapOn
  # TODO Locks for only one execution
  __dropApiTables
  __createApiTables
  __createPropertiesTable
+ __checkBaseTables
  __getNewNotesFromApi
  __validateApiNotesXMLFile
  __convertApiNotesToFlatFile
