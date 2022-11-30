@@ -638,7 +638,7 @@ EOF
 function __cleanPartial {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-  rm query "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
+  rm -f "${QUERY_FILE}" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   echo "DROP TABLE import" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  fi
  __log_finish
