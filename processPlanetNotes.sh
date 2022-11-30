@@ -1339,10 +1339,13 @@ chmod go+x "${TMP_DIR}"
 
 {
  __start_logger
- __checkPrereqs
+ __logi "Preparing environment."
+ __logd "Output saved at: ${TMP_DIR}"
+
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
+ __checkPrereqs
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
