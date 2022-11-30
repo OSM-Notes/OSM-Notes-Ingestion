@@ -494,7 +494,7 @@ EOF
   ID=$(echo "${LINE}" | awk '{print $1}')
   JSON_FILE="${TMP_DIR}/${ID}.json"
   GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "${ID}"
+  __logi "ID: ${ID}"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
@@ -517,7 +517,7 @@ EOF
     | awk -F\" '{print $4}' | sed "s/'/''/")
   set -o pipefail
   set -e
-  __logi "${COUNTRY_EN}"
+  __logi "Name: ${COUNTRY_EN}"
 
   # Taiwan cannot be imported directly. Thus, a simplification is done.
   # ERROR:  row is too big: size 8616, maximum size 8160
@@ -589,7 +589,7 @@ EOF
   ID=$(echo "${LINE}" | awk '{print $1}')
   JSON_FILE="${TMP_DIR}/${ID}.json"
   GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "${ID}"
+  __logi "ID: ${ID}"
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
@@ -612,7 +612,7 @@ EOF
     | awk -F\" '{print $4}' | sed "s/'/''/")
   set -o pipefail
   set -e
-  __logi "${NAME_EN}"
+  __logi "Name: ${NAME_EN}"
 
   __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${GEOJSON_FILE}" \
