@@ -37,12 +37,12 @@ declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
 
+# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
+
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN="${CLEAN:-true}"
-
-# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
-declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
 
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
@@ -61,7 +61,7 @@ readonly TMP_DIR
 # Lof file for output.
 declare -r LOG_FILE="${TMP_DIR}/${0%.sh}.log"
 
-# Type of process to run in the script: base, sync or boundaries.
+# Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
 # Maximum of notes to download from the API.
