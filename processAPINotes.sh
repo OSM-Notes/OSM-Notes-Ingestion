@@ -7,6 +7,9 @@
 # * It uploads the data into temp tables of a PostreSQL database.
 # * Finally, it synchronizes the master tables.
 #
+# To follow the progress you can execute:
+#   tail -40f $(ls -1rtd /tmp/processApiNotes_* | tail -1)/processApiNotes.log
+#
 # This is the list of error codes:
 # 1) Help message.
 # 241) Library or utility missing.
