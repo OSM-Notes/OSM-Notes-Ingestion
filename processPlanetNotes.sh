@@ -1511,24 +1511,25 @@ chmod go+x "${TMP_DIR}"
   __validatePlanetNotesXMLFile # sync and flatfile
   __convertPlanetNotesToFlatFile # sync and flatfile
   if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+   echo "CSV files are at ${TMP_DIR}"
    __logw "Ending process"
    exit 0
   fi
  fi
- __createsFunctionToGetCountry # all
+ __createsFunctionToGetCountry # base, sync & locate
  __createsProcedures # all
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-  __copyFlatFiles # locatenotes
+  __copyFlatFiles # locate
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
    || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
   __loadSyncNotes # sync & locate
   __removeDuplicates # sync & locate
   __dropSyncTables # sync & locate
- __organizeAreas # sync & locate
- __getLocationNotes # sync & locate
+  __organizeAreas # sync & locate
+  __getLocationNotes # sync & locate
  fi
- __cleanNotesFiles # all
+ __cleanNotesFiles # base, sync & locate
  __logw "Ending process"
 } >> "${LOG_FILE}" 2>&1
 
