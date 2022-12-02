@@ -199,27 +199,6 @@ function __checkPrereqs {
   __loge "ERROR: Wget is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## osmtogeojson
- __logd "Checking OSMtoGeoJSON."
- if ! osmtogeojson --version > /dev/null 2>&1 ; then
-  echo "ERROR: osmtogeojson is missing."
-  __loge "ERROR: osmtogeojson is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## gdal ogr2ogr
- __logd "Checking GDAL ogr2ogr."
- if ! ogr2ogr --version > /dev/null 2>&1 ; then
-  echo "ERROR: ogr2ogr is missing."
-  __loge "ERROR: ogr2ogr is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## cURL
- __logd "Checking cURL."
- if ! curl --version > /dev/null 2>&1 ; then
-  echo "ERROR: curl is missing."
-  __loge "ERROR: curl is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  ## Java
  __logd "Checking Java."
  if ! java --version > /dev/null 2>&1 ; then
