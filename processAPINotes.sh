@@ -54,18 +54,21 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
+declare BASENAME
+BASENAME=$(basename -s .sh "${0}")
+readonly BASENAME
 # Temporal directory for all files.
 declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh "${0}")_XXXXXX")
+TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 # Log file for output.
 declare LOG_FILE
-LOG_FILE="${TMP_DIR}/$(basename -s .sh "${0}").log"
+LOG_FILE="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILE
 
 # Lock file for single execution.
 declare LOCK
-LOCK="/tmp/$(basename -s .sh "${0}").lock"
+LOCK="/tmp/${BASENAME}.lock"
 readonly LOCK
 
 # Type of process to run in the script.
@@ -773,6 +776,6 @@ chmod go+x "${TMP_DIR}"
 } >> "${LOG_FILE}" 2>&1
 
 if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
- mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+ mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
  rmdir "${TMP_DIR}"
 fi
