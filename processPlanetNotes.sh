@@ -45,8 +45,11 @@
 # npm install -g osmtogeojson
 # https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
 #
-# When running under MacOS or zsh:
-# setopt interactivecomments
+# When running under MacOS or zsh, it is better to invoke bash:
+# bash ./processPlanetNotes.sh
+#
+# To follow the progress you can execute:
+#   tail -40f $(ls -1rtd /tmp/processPlanetNotes_* | tail -1)/processPlanetNotes.log
 #
 # You need to create a database called 'notes':
 #   CREATE DATABASE notes;
@@ -192,7 +195,7 @@ declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 # XML Schema of the Planet notes file.
 declare -r XMLSCHEMA_PLANET_NOTES="${TMP_DIR}/OSM-notes-planet-schema.xsd"
 # Jar name of the XSLT processor.
-declare -r SAXON_JAR=${SAXON_CLASSPATH:-.}/saxon-he-*.*.jar
+declare -r SAXON_JAR="$(ls -1 ${SAXON_CLASSPATH:-.}/saxon-he-*.*.jar)"
 # Name of the file of the XSLT transformation for notes.
 declare -r XSLT_NOTES_FILE="${TMP_DIR}/notes-csv.xslt"
 # Name of the file of the XSLT transformation for note comments.
@@ -340,6 +343,11 @@ function __checkPrereqs {
   ## gdal ogr2ogr
   if ! ogr2ogr --version > /dev/null 2>&1 ; then
    echo "ERROR: ogr2ogr is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## flock
+  if ! flock --version > /dev/null 2>&1 ; then
+   echo "ERROR: flock is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
@@ -531,8 +539,8 @@ function __createSyncTables {
    latitude DECIMAL NOT NULL,
    longitude DECIMAL NOT NULL,
    created_at TIMESTAMP NOT NULL,
-   closed_at TIMESTAMP,
    status note_status_enum,
+   closed_at TIMESTAMP,
    id_country INTEGER
   );
 
@@ -1470,8 +1478,10 @@ chmod go+x "${TMP_DIR}"
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
- exec 7> "${LOCK}"
- flock -n 7
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+  exec 7> "${LOCK}"
+  flock -n 7
+ fi
 
  if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
   __dropSyncTables # base
