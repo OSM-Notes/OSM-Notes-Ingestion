@@ -21,7 +21,7 @@
 # Globally there are two workflows:
 #
 # * base > sync (This workflow is called from processApiNotes)
-# * base > flatfile > locate > sync (if there is not enough memory for the 
+# * base > flatfile > locatenotes > sync (if there is not enough memory for the
 #   other workflow, this can be used with 2 computers)
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
@@ -1153,19 +1153,27 @@ function __removeDuplicates {
   DECLARE
    r RECORD;
    closed_time VARCHAR(100);
+   qty INT;
   BEGIN
-   FOR r IN
-    SELECT note_id, latitude, longitude, created_at, closed_at, status
-    FROM notes_sync
-   LOOP
-    closed_time := 'TO_TIMESTAMP(''' || r.closed_at
-      || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-    EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-      || r.longitude || ', '
-      || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-      || COALESCE (closed_time, 'NULL') || ','
-      || '''' || r.status || '''::note_status_enum)';
-   END LOOP;
+   SELECT COUNT(1) INTO qty
+   FROM notes;
+
+   IF (qty = 0) THEN
+    INSERT INTO notes SELECT * FROM notes_sync;
+   ELSE
+    FOR r IN
+     SELECT note_id, latitude, longitude, created_at, closed_at, status
+     FROM notes_sync
+    LOOP
+     closed_time := 'TO_TIMESTAMP(''' || r.closed_at
+       || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+     EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
+       || r.longitude || ', '
+       || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
+       || COALESCE (closed_time, 'NULL') || ','
+       || '''' || r.status || '''::note_status_enum)';
+    END LOOP;
+   END IF;
   END;
   \$\$;
 
@@ -1183,21 +1191,29 @@ function __removeDuplicates {
    r RECORD;
    created_time VARCHAR(100);
    m_username VARCHAR(256);
+   qty INT;
   BEGIN
-   FOR r IN
-    SELECT note_id, event, created_at, user_id, username
-    FROM note_comments_sync
-   LOOP
-    created_time := 'TO_TIMESTAMP(''' || r.created_at
-      || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-    m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
-      '\1''''\2', 'g');
-    EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
-      || '''' || r.event || '''::note_event_enum, '
-      || COALESCE (created_time, 'NULL') || ', '
-      || COALESCE (r.user_id || '', 'NULL') || ', '
-      || COALESCE ('''' || m_username || '''', 'NULL') || ')';
-   END LOOP;
+   SELECT COUNT(1) INTO qty
+   FROM note_comments;
+
+   IF (qty = 0) THEN
+    INSERT INTO note_comments SELECT * FROM note_comments_sync;
+   ELSE
+    FOR r IN
+     SELECT note_id, event, created_at, user_id, username
+     FROM note_comments_sync
+    LOOP
+     created_time := 'TO_TIMESTAMP(''' || r.created_at
+       || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+     m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
+       '\1''''\2', 'g');
+     EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
+       || '''' || r.event || '''::note_event_enum, '
+       || COALESCE (created_time, 'NULL') || ', '
+       || COALESCE (r.user_id || '', 'NULL') || ', '
+       || COALESCE ('''' || m_username || '''', 'NULL') || ')';
+    END LOOP;
+   END IF;
   END
   \$\$;
 
