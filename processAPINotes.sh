@@ -37,12 +37,12 @@ declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
 
-# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
-declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
-
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN="${CLEAN:-true}"
+
+# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
 
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
@@ -56,13 +56,17 @@ declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
 # Temporal directory for all files.
 declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh ${0})_XXXXXX")
+TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh "${0}")_XXXXXX")
 readonly TMP_DIR
 # Log file for output.
-declare -r LOG_FILE="${TMP_DIR}/$(basename -s .sh ${0}).log"
+declare LOG_FILE
+LOG_FILE="${TMP_DIR}/$(basename -s .sh "${0}").log"
+readonly LOG_FILE
 
 # Lock file for single execution.
-declare -r LOCK="/tmp/$(basename -s .sh ${0}).lock"
+declare LOCK
+LOCK="/tmp/$(basename -s .sh "${0}").lock"
+readonly LOCK
 
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
