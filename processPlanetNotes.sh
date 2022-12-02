@@ -192,7 +192,7 @@ declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 # XML Schema of the Planet notes file.
 declare -r XMLSCHEMA_PLANET_NOTES="${TMP_DIR}/OSM-notes-planet-schema.xsd"
 # Jar name of the XSLT processor.
-declare -r SAXON_JAR=${SAXON_CLASSPATH:-.}/saxon-he-11.4.jar
+declare -r SAXON_JAR=${SAXON_CLASSPATH:-.}/saxon-he-*.*.jar
 # Name of the file of the XSLT transformation for notes.
 declare -r XSLT_NOTES_FILE="${TMP_DIR}/notes-csv.xslt"
 # Name of the file of the XSLT transformation for note comments.
@@ -321,50 +321,55 @@ function __checkPrereqs {
  fi
  set +e
  # Checks prereqs.
- ## PostgreSQL
- if ! psql --version > /dev/null 2>&1 ; then
-  echo "ERROR: PostgreSQL is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+  ## PostgreSQL
+  if ! psql --version > /dev/null 2>&1 ; then
+   echo "ERROR: PostgreSQL is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## Wget
+  if ! wget --version > /dev/null 2>&1 ; then
+   echo "ERROR: Wget is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## osmtogeojson
+  if ! osmtogeojson --version > /dev/null 2>&1 ; then
+   echo "ERROR: osmtogeojson is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## gdal ogr2ogr
+  if ! ogr2ogr --version > /dev/null 2>&1 ; then
+   echo "ERROR: ogr2ogr is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
- ## Wget
- if ! wget --version > /dev/null 2>&1 ; then
-  echo "ERROR: Wget is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## osmtogeojson
- if ! osmtogeojson --version > /dev/null 2>&1 ; then
-  echo "ERROR: osmtogeojson is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## gdal ogr2ogr
- if ! ogr2ogr --version > /dev/null 2>&1 ; then
-  echo "ERROR: ogr2ogr is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## cURL
- if ! curl --version > /dev/null 2>&1 ; then
-  echo "ERROR: curl is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Block-sorting file compressor
- if ! bzip2 --help > /dev/null 2>&1 ; then
-  echo "ERROR: bzip2 is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Java
- if ! java --version > /dev/null 2>&1 ; then
-  echo "ERROR: Java JRE is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## XML lint
- if ! xmllint --version > /dev/null 2>&1 ; then
-  echo "ERROR: XMLlint is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Saxon Jar
- if [[ ! -r "${SAXON_JAR}" ]] ; then
-  echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  exit "${ERROR_MISSING_LIBRARY}"
+ if [[ "${PROCESS_TYPE}" == "" ]] \
+   || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+  ## cURL
+  if ! curl --version > /dev/null 2>&1 ; then
+   echo "ERROR: curl is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## Block-sorting file compressor
+  if ! bzip2 --help > /dev/null 2>&1 ; then
+   echo "ERROR: bzip2 is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## XML lint
+  if ! xmllint --version > /dev/null 2>&1 ; then
+   echo "ERROR: XMLlint is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## Java
+  if ! java --version > /dev/null 2>&1 ; then
+   echo "ERROR: Java JRE is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  ## Saxon Jar
+  if [[ ! -r "${SAXON_JAR}" ]] ; then
+   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
  ## Checks the flat file if exist.
  if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]] ; then
