@@ -115,17 +115,19 @@ declare -r ERROR_HELP_MESSAGE=1
 declare -r ERROR_MISSING_LIBRARY=241
 # 242: Invalid argument for script invocation.
 declare -r ERROR_INVALID_ARGUMENT=242
-# 243: The list of ids for boundary geometries can not be downloaded.
-declare -r ERROR_DOWNLOADING_ID_LIST=243
-# 244: Error downloading planet notes file.
-declare -r ERROR_DOWNLOADING_NOTES=244
-
-# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
-declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
+# 243: Logger utility is not available.
+declare -r ERROR_LOGGER_UTILITY=243
+# 244: The list of ids for boundary geometries can not be downloaded.
+declare -r ERROR_DOWNLOADING_ID_LIST=244
+# 245: Error downloading planet notes file.
+declare -r ERROR_DOWNLOADING_NOTES=245
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN=${CLEAN:-true}
+
+# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
 
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
@@ -139,13 +141,19 @@ declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
 # Temporal directory for all files.
 declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh ${0})_XXXXXX")
+TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh "${0}")_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
-declare -r LOG_FILE="${TMP_DIR}/$(basename -s .sh ${0}).log"
+declare LOG_FILE
+LOG_FILE="${TMP_DIR}/$(basename -s .sh "${0}").log"
+readonly LOG_FILE
 
 # Type of process to run in the script: base, sync or boundaries.
 declare -r PROCESS_TYPE=${1:-}
+
+# Flat file to start from load.
+declare -r FLAT_NOTES_FILE=${2:-}
+declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
 
 # Name of the PostgreSQL database to insert or update the data.
 declare -r DBNAME=notes
@@ -247,18 +255,25 @@ function __trapOn() {
 
 # Shows the help information.
 function __show_help {
- __log_start
  echo "${0} version ${VERSION}"
  echo "This is a script that downloads the OSM notes from the Planet,"
  echo "processes them with a XSLT transformation, to create a flat file,"
  echo "and finally it uploads them into a PostgreSQL database."
  echo
- echo "It could receive the parameter --base to starts from scratch."
- echo "Without parameter it processes the new notes."
+ echo "It could receive one of these parameters:"
+ echo " * --base to starts from scratch from Planet notes file."
+ echo " * --boundaries processes the countries and maritimes areas only."
+ echo " * --flatfile converts the planet file into a flat csv file."
+ echo " * --locatenotes <flatNotesfile> <flatNoteCommentsfile> takes the flat"
+ echo "     files, import them and finally locate the notes."
+ echo " * Without parameter it processes the new notes from Planet notes file."
+ echo
+ echo "Flatfile option is useful when the regular machine does not have enough"
+ echo "memory to process the notes file. Normally it needs 6 GB for Java."
+ echo "LocateNotes is useful to continue from the flat file."
  echo
  echo "Written by: Andres Gomez (AngocA)"
  exit "${ERROR_HELP_MESSAGE}"
- __log_finish
 }
 
 # Checks prerequisites to run the script.
@@ -266,13 +281,27 @@ function __checkPrereqs {
  __log_start
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
    && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
+   && [[ "${PROCESS_TYPE}" != "--flatfile" ]] \
+   && [[ "${PROCESS_TYPE}" != "--locatenotes" ]] \
    && [[ "${PROCESS_TYPE}" != "--help" ]] \
    && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --base"
   echo " * --boundaries"
+  echo " * --flatfile"
   echo " * --help"
+  echo " * --locatenotes"
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+ if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
+   && [[ "${FLAT_NOTES_FILE}" == "" ]] ; then
+  echo "ERROR: You  must specify a flat Notes CSV file to process."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+ if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
+   && [[ "${FLAT_NOTE_COMMENTS_FILE}" == "" ]] ; then
+  echo "ERROR: You  must specify a flat Note Comments CSV file to process."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
@@ -322,21 +351,44 @@ function __checkPrereqs {
   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## Checks the flat file if exist.
+ if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]] ; then
+  echo "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+ ## Checks the flat file if exist.
+ if [[ "${FLAT_NOTE_COMMENTS_FILE}" != "" ]] \
+   && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]] ; then
+  echo "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
  __log_finish
  set -e
 }
 
 # Drop existing base tables.
-function __dropBaseTables {
+function __dropCountryTables {
  __log_start
- __logi "Droping tables."
+ __logi "Droping country tables."
  psql -d "${DBNAME}" << EOF
   DROP TABLE tries;
+  DROP TABLE countries;
+EOF
+ __log_finish
+}
+
+# Drop existing base tables.
+function __dropBaseTables {
+ __log_start
+ __logi "Droping base tables."
+ psql -d "${DBNAME}" << EOF
+  DROP FUNCTION get_country;
+  DROP PROCEDURE insert_note_comment;
+  DROP PROCEDURE insert_note;
   DROP TABLE note_comments;
   DROP TABLE notes;
   DROP TYPE note_event_enum;
   DROP TYPE note_status_enum;
-  DROP TABLE countries;
 EOF
  __log_finish
 }
@@ -344,7 +396,7 @@ EOF
 # Drop sync tables.
 function __dropSyncTables {
  __log_start
- __logi "Droping tables."
+ __logi "Droping sync tables."
  psql -d "${DBNAME}" << EOF
   DROP TABLE note_comments_sync;
   DROP TABLE notes_sync;
@@ -352,8 +404,19 @@ EOF
  __log_finish
 }
 
+# Drop tables for notes from API.
+function __dropApiTables {
+ __log_start
+ __logi "Droping api tables."
+ psql -d "${DBNAME}" << EOF
+  DROP TABLE note_comments_api;
+  DROP TABLE notes_api;
+EOF
+ __log_finish
+}
+
 # Creates base tables that hold the whole history.
-function __createBaseTables {
+function __createCountryTables {
  __log_start
  __logi "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
@@ -373,6 +436,21 @@ function __createBaseTables {
    ADD CONSTRAINT pk_countries
    PRIMARY KEY (country_id);
 
+  CREATE TABLE tries (
+   area VARCHAR(20),
+   iter INTEGER,
+   id_note INTEGER,
+   id_country INTEGER
+  );
+EOF
+ __log_finish
+}
+
+# Creates base tables that hold the whole history.
+function __createBaseTables {
+ __log_start
+ __logi "Creating tables"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TYPE note_status_enum AS ENUM (
     'open',
     'close',
@@ -403,9 +481,9 @@ function __createBaseTables {
 
   CREATE TABLE note_comments (
    note_id INTEGER NOT NULL,
+   event note_event_enum NOT NULL,
    created_at TIMESTAMP NOT NULL,
    user_id INTEGER,
-   event note_event_enum NOT NULL,
    username VARCHAR(256)
   );
 
@@ -418,13 +496,6 @@ function __createBaseTables {
    ADD CONSTRAINT fk_notes
    FOREIGN KEY (note_id)
    REFERENCES notes (note_id);
-
-  CREATE TABLE tries (
-   area VARCHAR(20),
-   iter INTEGER,
-   id_note INTEGER,
-   id_country INTEGER
-  );
 EOF
  __log_finish
 }
@@ -858,6 +929,14 @@ EOF
  __log_finish
 }
 
+# Copies the CSV file to temporal directory.
+function __copyFlatFiles {
+ __log_start
+ cp "${FLAT_NOTES_FILE}" "${OUTPUT_NOTES_FILE}"
+ cp "${FLAT_NOTE_COMMENTS_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
+ __log_finish
+}
+
 # Loads new notes from sync.
 function __loadSyncNotes {
  __log_start
@@ -1124,7 +1203,7 @@ EOF
 function __cleanNotesFiles {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-  rm "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
+  rm -f "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
     "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
     "${OUTPUT_NOTE_COMMENTS_FILE}"
  fi
@@ -1322,9 +1401,8 @@ function __getLocationNotes {
  declare -l SIZE=$((MAX_NOTE_ID/PARALLELISM))
  declare -l MAX="${SIZE}"
  declare -l MIN=0
- declare -l THREAD=1
 
- for j in $(seq 1 1 ${PARALLELISM}) ; do
+ for j in $(seq 1 1 "${PARALLELISM}") ; do
   (
    __logi "Starting ${j}"
    for i in $(seq -f %1.0f "$((MIN + LOOP_SIZE))" "${LOOP_SIZE}" "$((MAX))") ; do
@@ -1353,25 +1431,32 @@ chmod go+x "${TMP_DIR}"
  __start_logger
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
+ __logi "Processing: ${PROCESS_TYPE}"
+} >> "${LOG_FILE}" 2>&1
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __checkPrereqs
+{
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
 
- if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
+ if [[ "${PROCESS_TYPE}" == "--base" ]] \
+   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
   __dropSyncTables
+  __dropApiTables
   __dropBaseTables
   __createBaseTables
- else
+ elif [[ "${PROCESS_TYPE}" == "" ]] ; then
   __dropSyncTables
   __createSyncTables
  fi
  if [[ "${PROCESS_TYPE}" == "--base" ]] \
    || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
+  __dropCountryTables
+  __createCountryTables
   __processCountries
   __processMaritimes
   __cleanPartial
@@ -1380,14 +1465,26 @@ chmod go+x "${TMP_DIR}"
    exit 0
   fi
  fi
- __downloadPlanetNotes
- __validatePlanetNotesXMLFile
- __convertPlanetNotesToFlatFile
+ if [[ "${PROCESS_TYPE}" == "--base" ]] \
+   || [[ "${PROCESS_TYPE}" == "" ]] \
+   || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+  __downloadPlanetNotes
+  __validatePlanetNotesXMLFile
+  __convertPlanetNotesToFlatFile
+  if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+   __logw "Ending process"
+   exit 0
+  fi
+ fi
  __createsFunctionToGetCountry
  __createsProcedures
- if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
+ if [[ "${PROCESS_TYPE}" == "--base" ]] \
+   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+   __copyFlatFiles
+  fi
   __loadBaseNotes
- else
+ elif [[ "${PROCESS_TYPE}" == "" ]] ; then
   __loadSyncNotes
   __removeDuplicates
   __dropSyncTables
