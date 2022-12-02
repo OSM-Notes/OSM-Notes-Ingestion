@@ -5,29 +5,28 @@ Mechanism to show a user and country profile about the work on OSM notes.
 
 ## Downloading notes
 
-There are three ways to download notes:
+There are two ways to download notes:
 
-* All notes from planet.
-* Recent notes from planet.
+* Recent notes from planet (including all notes).
 * Near real-time notes from API.
 
-All three options are defined in these two files:
+All these options are defined in these two files:
 
 * `processPlanetNotes.sh`
 * `processAPINotes.sh`
 
 And everything can be called from `processAPINotes.sh`.
 
-If `processAPINotes.sh` cannot find the base tables, then it will can `processPlanetNotes.sh --base` that will create everything on the database:
+If `processAPINotes.sh` cannot find the base tables, then it will invoke `processPlanetNotes.sh --base` that will create the basic elements on the database:
 
 * Download countries and maritimes areas.
-* Download planet notes file, and process them, associating them with a country or maritime area.
 
 If `processAPINotes.sh` get more than 10 000 notes from an API call, then it will synchronize the database calling `processPlanetNotes.sh`. Then it will:
 
 * Download the notes from planet.
 * Remove the duplicates.
 * Process the new ones.
+* Associate notes with a country or maritime area.
 
 If `processAPINotes.sh` get less than 10 000 notes, it will process them directly.
 
@@ -47,3 +46,14 @@ export LOG_LEVEL=DEBUG
 * `bash_logger.sh` is a tool for logging with different levels.
 * `processAPINotes.sh` is the main script that process the notes with the API.
 * `processPlanetNotes.sh` is the base script to process notes from Planet file.
+
+### Insufficient memory resources
+
+If the server where this script runs does not have enough memory (6 GB for Java), then it will not be able to process the Planet notes file, to convert it into a flat file.
+
+To overcome this issue, you can prepare the environment with 3 steps, performed in different computers.
+
+* `processPlanetNotes.sh --base` This creates the basic elements on the db.
+* `processPlanetNotes.sh --flatfile` Downloads the Planet notes file and converts it into two CSV flat files. This is the process that should be done in a computer that can reserve 6 GB for Java Saxon.
+* `processPlanetNotes.sh --locatenotes` Assign a country to the notes.
+
