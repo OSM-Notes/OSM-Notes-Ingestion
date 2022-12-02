@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # This script prepares a database for note analysis, and loads the notes from
-# the planet, completely or the missing ones.
+# the planet, completely or the missing ones. Depending on the invokation it
+# performs some tasks.
 # The script structure is:
 # * Creates the database structure.
 # * Downloads the list of country ids (overpass).
@@ -16,6 +17,12 @@
 # * Creates a function to get the country of a position using the order by
 #   zones.
 # * Runs the function against all notes.
+#
+# Globally there are two workflows:
+#
+# * base > sync (This workflow is called from processApiNotes)
+# * base > flatfile > locate > sync (if there is not enough memory for the 
+#   other workflow, this can be used with 2 computers)
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
 #
@@ -139,14 +146,22 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
 
+declare BASENAME
+BASENAME=$(basename -s .sh "${0}")
+readonly BASENAME
 # Temporal directory for all files.
 declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/$(basename -s .sh "${0}")_XXXXXX")
+TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
 declare LOG_FILE
-LOG_FILE="${TMP_DIR}/$(basename -s .sh "${0}").log"
+LOG_FILE="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILE
+
+# Lock file for single execution.
+declare LOCK
+LOCK="/tmp/${BASENAME}.lock"
+readonly LOCK
 
 # Type of process to run in the script: base, sync or boundaries.
 declare -r PROCESS_TYPE=${1:-}
@@ -710,7 +725,7 @@ function __cleanPartial {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm -f "${QUERY_FILE}" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
-  echo "DROP TABLE import" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  echo "DROP TABLE import" | psql -d "${DBNAME}"
  fi
  __log_finish
 }
@@ -914,21 +929,6 @@ EOF
  __log_finish
 }
 
-# Loads notes into the database.
-function __loadBaseNotes {
- __log_start
- # Loads the data in the database.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  COPY notes (note_id, latitude, longitude, created_at, closed_at, status)
-    FROM '${OUTPUT_NOTES_FILE}' csv;
-  SELECT COUNT(1), 'uploaded notes' as type FROM notes;
-  COPY note_comments FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
-    DELIMITER ',' QUOTE '''';
-  SELECT COUNT(1), 'uploaded comments' as type FROM note_comments;
-EOF
- __log_finish
-}
-
 # Copies the CSV file to temporal directory.
 function __copyFlatFiles {
  __log_start
@@ -944,13 +944,18 @@ function __loadSyncNotes {
  # Adds a column to include the country where it belongs.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   DELETE FROM notes_sync;
+  SELECT 'Uploading sync notes', current_timestamp AS Processing;
   COPY notes_sync (note_id, latitude, longitude, created_at, closed_at, status)
     FROM '${OUTPUT_NOTES_FILE}' csv;
-  SELECT COUNT(1), 'uploaded sync notes' as type FROM notes_sync;
+  SELECT 'Counting sync notes', current_timestamp AS Processing;
+  SELECT COUNT(1), 'Uploaded sync notes' AS Type FROM notes_sync;
+
   DELETE FROM note_comments_sync;
+  SELECT 'Uploading sync comments', current_timestamp AS Processing;
   COPY note_comments_sync FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
-  SELECT COUNT(1), 'uploaded sync comments' as type FROM note_comments_sync;
+  SELECT 'Counting sync comments', current_timestamp AS Processing;
+  SELECT COUNT(1), 'Uploaded sync comments' AS Type FROM note_comments_sync;
 EOF
  __log_finish
 }
@@ -1137,11 +1142,12 @@ EOF
 function __removeDuplicates {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  SELECT COUNT(1), 'sync notes' as type FROM notes_sync;
+  SELECT COUNT(1), 'Sync notes' AS Type FROM notes_sync;
   DELETE FROM notes_sync
     WHERE note_id IN (SELECT note_id FROM notes);
-  SELECT COUNT(1), 'sync notes no duplicates' as type FROM notes_sync;
+  SELECT COUNT(1), 'Sync notes no duplicates' AS Type FROM notes_sync;
 
+  SELECT 'Inserting sync note', current_timestamp AS Processing;
   DO
   \$\$
   DECLARE
@@ -1163,13 +1169,14 @@ function __removeDuplicates {
   END;
   \$\$;
 
-  SELECT COUNT(1), 'sync comments' as type FROM note_comments_sync;
+  SELECT COUNT(1), 'Sync comments' AS Type FROM note_comments_sync;
   DELETE FROM note_comments_sync
     WHERE (note_id, event, created_at) IN
       (SELECT note_id, event, created_at FROM note_comments);
-  SELECT COUNT(1), 'sync comments no duplicates' as type
+  SELECT COUNT(1), 'Sync comments no duplicates' AS Type
     FROM note_comments_sync;
 
+  SELECT 'Inserting sync comments', current_timestamp AS Processing;
   DO
   \$\$
   DECLARE
@@ -1442,60 +1449,59 @@ chmod go+x "${TMP_DIR}"
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
+ exec 7> "${LOCK}"
+ flock -n 7
 
- if [[ "${PROCESS_TYPE}" == "--base" ]] \
+ if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
+  __dropSyncTables # base
+  __dropApiTables # base
+  __dropBaseTables # base
+  __createBaseTables # base
+ elif [[ "${PROCESS_TYPE}" == "" ]] \
    || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-  __dropSyncTables
-  __dropApiTables
-  __dropBaseTables
-  __createBaseTables
- elif [[ "${PROCESS_TYPE}" == "" ]] ; then
-  __dropSyncTables
-  __createSyncTables
+  __dropSyncTables # sync
+  __createSyncTables # sync
  fi
  if [[ "${PROCESS_TYPE}" == "--base" ]] \
    || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
-  __dropCountryTables
-  __createCountryTables
-  __processCountries
-  __processMaritimes
-  __cleanPartial
+  __dropCountryTables # base and boundaries
+  __createCountryTables # base and boundaries
+  __processCountries # base and boundaries
+  __processMaritimes # base and boundaries
+  __cleanPartial # base and boundaries
   if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
    __logw "Ending process"
    exit 0
   fi
  fi
- if [[ "${PROCESS_TYPE}" == "--base" ]] \
-   || [[ "${PROCESS_TYPE}" == "" ]] \
+ if [[ "${PROCESS_TYPE}" == "" ]] \
    || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
-  __downloadPlanetNotes
-  __validatePlanetNotesXMLFile
-  __convertPlanetNotesToFlatFile
+  __downloadPlanetNotes # sync and flatfile
+  __validatePlanetNotesXMLFile # sync and flatfile
+  __convertPlanetNotesToFlatFile # sync and flatfile
   if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
    __logw "Ending process"
    exit 0
   fi
  fi
- __createsFunctionToGetCountry
- __createsProcedures
- if [[ "${PROCESS_TYPE}" == "--base" ]] \
-   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-   __copyFlatFiles
-  fi
-  __loadBaseNotes
- elif [[ "${PROCESS_TYPE}" == "" ]] ; then
-  __loadSyncNotes
-  __removeDuplicates
-  __dropSyncTables
+ __createsFunctionToGetCountry # all
+ __createsProcedures # all
+ if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+  __copyFlatFiles # locatenotes
  fi
- __cleanNotesFiles
- __organizeAreas
- __getLocationNotes
+ if [[ "${PROCESS_TYPE}" == "" ]] \
+   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+  __loadSyncNotes # sync & locate
+  __removeDuplicates # sync & locate
+  __dropSyncTables # sync & locate
+ __organizeAreas # sync & locate
+ __getLocationNotes # sync & locate
+ fi
+ __cleanNotesFiles # all
  __logw "Ending process"
 } >> "${LOG_FILE}" 2>&1
 
 if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
- mv "${LOG_FILE}" "/tmp/${0%.log}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+ mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
  rmdir "${TMP_DIR}"
 fi
