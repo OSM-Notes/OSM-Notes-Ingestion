@@ -24,6 +24,10 @@
 # * base > flatfile > locatenotes > sync (if there is not enough memory for the
 #   other workflow, this can be used with 2 computers)
 #
+# These are some examples to call this script:
+#
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processPlanetNotes.sh --base
+#
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
 #
 # If the download fails with "Too many requests", you can check this page:
@@ -196,7 +200,7 @@ declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 declare -r XMLSCHEMA_PLANET_NOTES="${TMP_DIR}/OSM-notes-planet-schema.xsd"
 # Jar name of the XSLT processor.
 declare SAXON_JAR
-SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -type f -name "saxon-he-*.*.jar" -maxdepth 1 | head -1)"
+SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f -name "saxon-he-*.*.jar" | head -1)"
 readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
 declare -r XSLT_NOTES_FILE="${TMP_DIR}/notes-csv.xslt"
