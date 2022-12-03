@@ -399,7 +399,6 @@ EOF
   fi
  fi
  ## Bash 4 or greater.
- __logd "Checking Bash version."
  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
   echo "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
