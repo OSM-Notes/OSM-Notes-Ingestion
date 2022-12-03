@@ -370,7 +370,7 @@ function __checkBaseTables {
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'countries
+   AND TABLE_NAME = 'countries'
    ;
 
    IF (qty <> 1) THEN
@@ -380,7 +380,7 @@ function __checkBaseTables {
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'countries
+   AND TABLE_NAME = 'notes'
    ;
 
    IF (qty <> 1) THEN
@@ -390,7 +390,7 @@ function __checkBaseTables {
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'countries
+   AND TABLE_NAME = 'note_comments'
    ;
 
    IF (qty <> 1) THEN
