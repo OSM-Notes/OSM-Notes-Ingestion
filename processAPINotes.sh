@@ -370,7 +370,7 @@ function __checkBaseTables {
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME IN ('countries', 'notes', 'note_comments', 'tries')
+   AND TABLE_NAME IN ('countries', 'notes', 'note_comments')
    ;
 
    IF (qty <> 4) THEN
