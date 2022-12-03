@@ -340,7 +340,8 @@ function __checkPrereqs {
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
   SELECT PostGIS_version();
 EOF
-  if [[ ${?} -ne 0 ]]; then
+RET=${?}
+  if [[ "${RET}" -ne 0 ]]; then
    echo "ERROR: PostGIS is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
