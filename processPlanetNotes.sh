@@ -182,7 +182,7 @@ declare -r DBNAME=notes
 
 # Wait between loops when downloading boundaries, to prevent "Too many
 # requests".
-declare -r SECONDS_TO_WAIT=5
+declare -r SECONDS_TO_WAIT=3
 
 # File that contains the ids of the boundaries for countries.
 declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
