@@ -32,7 +32,7 @@ If `processAPINotes.sh` get less than 10 000 notes, it will process them directl
 
 You can run `processAPINotes.sh` from a crontab each 15 minutes, to process notes almost on real-time.
 
-### Logger
+## Logger
 
 You can export the `LOG_LEVEL` variable, and then call the scripts normally. They will 
 
@@ -47,7 +47,7 @@ export LOG_LEVEL=DEBUG
 * `processAPINotes.sh` is the main script that process the notes with the API.
 * `processPlanetNotes.sh` is the base script to process notes from Planet file.
 
-### Insufficient memory resources
+# Insufficient memory resources
 
 If the server where this script runs does not have enough memory (6 GB for Java), then it will not be able to process the Planet notes file, to convert it into a flat file.
 
@@ -57,3 +57,25 @@ To overcome this issue, you can prepare the environment with 3 steps, performed 
 * `processPlanetNotes.sh --flatfile` Downloads the Planet notes file and converts it into two CSV flat files. This is the process that should be done in a computer that can reserve 6 GB for Java Saxon.
 * `processPlanetNotes.sh --locatenotes` Assign a country to the notes.
 
+# Install prerequisites on Ubuntu
+
+```
+sudo apt -y install postgresql
+sudo systemctl start postgresql.service
+sudo apt -y install npm
+npm install -g osmtogeojson
+sudo npm install -g osmtogeojson
+sudo add-apt-repository ppa:ubuntugis/ppa
+sudo apt-get -y install gdal-bin
+sudo su - postgres
+psql << EOF
+CREATE USER angoca SUPERUSER;
+CREATE DATABASE notes WITH OWNER angoca;
+EOF
+exit
+sudo apt -y install postgis
+psql -d notes << EOF
+CREATE EXTENSION postgis;
+EOF
+
+```
