@@ -202,6 +202,15 @@ function __checkPrereqs {
   __loge "ERROR: PostgreSQL is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## PostGIS
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
+ SELECT PostGIS_version();
+EOF
+ RET=${?}
+ if [[ "${RET}" -ne 0 ]]; then
+  echo "ERROR: PostGIS is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  ## Wget
  __logd "Checking wget."
  if ! wget --version > /dev/null 2>&1 ; then
@@ -209,11 +218,9 @@ function __checkPrereqs {
   __loge "ERROR: Wget is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## Java
- __logd "Checking Java."
- if ! java --version > /dev/null 2>&1 ; then
-  echo "ERROR: Java JRE is missing."
-  __loge "ERROR: Java JRE is missing."
+ ## flock
+ if ! flock --version > /dev/null 2>&1 ; then
+  echo "ERROR: flock is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## XML lint
@@ -221,6 +228,13 @@ function __checkPrereqs {
  if ! xmllint --version > /dev/null 2>&1 ; then
   echo "ERROR: XMLlint is missing."
   __loge "ERROR: XMLlint is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Java
+ __logd "Checking Java."
+ if ! java --version > /dev/null 2>&1 ; then
+  echo "ERROR: Java JRE is missing."
+  __loge "ERROR: Java JRE is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Saxon Jar

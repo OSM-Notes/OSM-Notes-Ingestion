@@ -78,9 +78,12 @@ psql -d notes << EOF
 CREATE EXTENSION postgis;
 EOF
 
+sudo apt -y install libxml2-utils
 sudo apt install -y openjdk-18-jdk
+mkdir ~/saxon
+cd ~/saxon
 wget -O SaxonHE11-4J.zip https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
-apt -y install libxml2-utils
+unzip SaxonHE11-4J.zip
 ```
 
 # Cron scheduling
