@@ -7,8 +7,12 @@
 # * It uploads the data into temp tables of a PostreSQL database.
 # * Finally, it synchronizes the master tables.
 #
+# These are some examples to call this script:
+#
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh
+#
 # To follow the progress you can execute:
-#   tail -40f $(ls -1rtd /tmp/processApiNotes_* | tail -1)/processApiNotes.log
+#   tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
 #
 # This is the list of error codes:
 # 1) Help message.
@@ -751,11 +755,14 @@ chmod go+x "${TMP_DIR}"
  __start_logger
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
+ __logi "Processing: ${PROCESS_TYPE}"
+} >> "${LOG_FILE}" 2>&1
 
- if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-  __show_help
- fi
- __checkPrereqs
+if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+ __show_help
+fi
+__checkPrereqs
+{
  __logw "Process started."
  # Sets the trap in case of any signal.
  __trapOn
