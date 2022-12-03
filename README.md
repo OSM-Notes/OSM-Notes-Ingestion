@@ -78,4 +78,15 @@ psql -d notes << EOF
 CREATE EXTENSION postgis;
 EOF
 
+sudo apt install -y openjdk-18-jdk
+wget -O SaxonHE11-4J.zip https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
+apt -y install libxml2-utils
 ```
+
+# Cron scheduling
+
+```
+# Runs the API extraction each 15 minutes.
+*/15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh
+```
+
