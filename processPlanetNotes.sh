@@ -27,6 +27,10 @@
 # These are some examples to call this script:
 #
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processPlanetNotes.sh --base
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processPlanetNotes.sh
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processPlanetNotes.sh --flatfile
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processPlanetNotes.sh --locatenotes ~/OSM-Notes-profile/output-notes.csv ~/OSM-Notes-profile/output-note_comments.csv
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processPlanetNotes.sh --boundaries
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
 #
@@ -218,7 +222,7 @@ declare -r LOOP_SIZE=10000
 # FIXME this is the maximum ID of a note. This should be updated in a few years.
 declare -r MAX_NOTE_ID=5000000
 # Parallel threads to process notes.
-declare -r PARALLELISM=5
+declare -r PARALLELISM=3
 
 ###########
 # FUNCTIONS
@@ -1485,10 +1489,10 @@ chmod go+x "${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
 } >> "${LOG_FILE}" 2>&1
 
- if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-  __show_help
- fi
- __checkPrereqs
+if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+ __show_help
+fi
+__checkPrereqs
 {
  __logw "Starting process"
  # Sets the trap in case of any signal.
