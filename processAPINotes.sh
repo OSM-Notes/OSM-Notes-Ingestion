@@ -370,11 +370,31 @@ function __checkBaseTables {
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME IN ('countries', 'notes', 'note_comments')
+   AND TABLE_NAME = 'countries
    ;
 
-   IF (qty <> 4) THEN
-    RAISE EXCEPTION 'Base tables are missing';
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: countries';
+   END IF;
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'countries
+   ;
+
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: notes';
+   END IF;
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'countries
+   ;
+
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: note_comments';
    END IF;
   END;
   \$\$;
