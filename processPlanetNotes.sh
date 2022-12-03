@@ -301,6 +301,7 @@ function __show_help {
  echo "LocateNotes is useful to continue from the flat file."
  echo
  echo "Written by: Andres Gomez (AngocA)"
+ echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
  exit "${ERROR_HELP_MESSAGE}"
 }
 
@@ -324,12 +325,12 @@ function __checkPrereqs {
  fi
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
    && [[ "${FLAT_NOTES_FILE}" == "" ]] ; then
-  echo "ERROR: You  must specify a flat Notes CSV file to process."
+  __loge "ERROR: You  must specify a flat Notes CSV file to process."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
    && [[ "${FLAT_NOTE_COMMENTS_FILE}" == "" ]] ; then
-  echo "ERROR: You  must specify a flat Note Comments CSV file to process."
+  __loge "ERROR: You  must specify a flat Note Comments CSV file to process."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
@@ -337,7 +338,7 @@ function __checkPrereqs {
  if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
   ## PostgreSQL
   if ! psql --version > /dev/null 2>&1 ; then
-   echo "ERROR: PostgreSQL is missing."
+   __loge "ERROR: PostgreSQL is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## PostGIS
@@ -346,27 +347,27 @@ function __checkPrereqs {
 EOF
   RET=${?}
   if [[ "${RET}" -ne 0 ]]; then
-   echo "ERROR: PostGIS is missing."
+   __loge "ERROR: PostGIS is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## Wget
   if ! wget --version > /dev/null 2>&1 ; then
-   echo "ERROR: Wget is missing."
+   __loge "ERROR: Wget is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## osmtogeojson
   if ! osmtogeojson --version > /dev/null 2>&1 ; then
-   echo "ERROR: osmtogeojson is missing."
+   __loge "ERROR: osmtogeojson is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## gdal ogr2ogr
   if ! ogr2ogr --version > /dev/null 2>&1 ; then
-   echo "ERROR: ogr2ogr is missing."
+   __loge "ERROR: ogr2ogr is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## flock
   if ! flock --version > /dev/null 2>&1 ; then
-   echo "ERROR: flock is missing."
+   __loge "ERROR: flock is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
@@ -374,44 +375,44 @@ EOF
    || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
   ## cURL
   if ! curl --version > /dev/null 2>&1 ; then
-   echo "ERROR: curl is missing."
+   __loge "ERROR: curl is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## Block-sorting file compressor
   if ! bzip2 --help > /dev/null 2>&1 ; then
-   echo "ERROR: bzip2 is missing."
+   __loge "ERROR: bzip2 is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## XML lint
   if ! xmllint --version > /dev/null 2>&1 ; then
-   echo "ERROR: XMLlint is missing."
+   __loge "ERROR: XMLlint is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## Java
   if ! java --version > /dev/null 2>&1 ; then
-   echo "ERROR: Java JRE is missing."
+   __loge "ERROR: Java JRE is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## Saxon Jar
   if [[ ! -r "${SAXON_JAR}" ]] ; then
-   echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
+   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
  ## Bash 4 or greater.
  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
-  echo "ERROR: Requires Bash 4+."
+  __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks the flat file if exist.
  if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]] ; then
-  echo "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
+  __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  ## Checks the flat file if exist.
  if [[ "${FLAT_NOTE_COMMENTS_FILE}" != "" ]] \
    && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]] ; then
-  echo "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
+  __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  __log_finish

@@ -165,20 +165,18 @@ function __trapOn() {
 
 # Shows the help information.
 function __show_help {
- __log_start
-  echo "${0} version ${VERSION}."
-  echo
-  echo "This is a script that downloads the OSM notes from the OpenStreetMap"
-  echo "API. It takes the most recent ones and synchronizes a database that"
-  echo "holds the whole history."
-  echo
-  echo "It does not receive any parameter. This script should be configured"
-  echo "in a crontab or similar scheduler."
-  echo
-  echo "Written by: Andres Gomez (AngocA)."
-  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
-  exit "${ERROR_HELP_MESSAGE}"
- __log_finish
+ echo "${0} version ${VERSION}."
+ echo
+ echo "This is a script that downloads the OSM notes from the OpenStreetMap"
+ echo "API. It takes the most recent ones and synchronizes a database that"
+ echo "holds the whole history."
+ echo
+ echo "It does not receive any parameter. This script should be configured"
+ echo "in a crontab or similar scheduler."
+ echo
+ echo "Written by: Andres Gomez (AngocA)."
+ echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+ exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Checks prerequisites to run the script.
@@ -198,7 +196,6 @@ function __checkPrereqs {
  ## PostgreSQL
  __logd "Checking PostgreSQL."
  if ! psql --version > /dev/null 2>&1 ; then
-  echo "ERROR: PostgreSQL is missing."
   __loge "ERROR: PostgreSQL is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -208,50 +205,47 @@ function __checkPrereqs {
 EOF
  RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
-  echo "ERROR: PostGIS is missing."
+  __loge "ERROR: PostGIS is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Wget
  __logd "Checking wget."
  if ! wget --version > /dev/null 2>&1 ; then
-  echo "ERROR: Wget is missing."
   __loge "ERROR: Wget is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## flock
  if ! flock --version > /dev/null 2>&1 ; then
-  echo "ERROR: flock is missing."
+  __loge "ERROR: flock is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## XML lint
  __logd "Checking XML lint."
  if ! xmllint --version > /dev/null 2>&1 ; then
-  echo "ERROR: XMLlint is missing."
   __loge "ERROR: XMLlint is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Java
  __logd "Checking Java."
  if ! java --version > /dev/null 2>&1 ; then
-  echo "ERROR: Java JRE is missing."
   __loge "ERROR: Java JRE is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Saxon Jar
  __logd "Checking Saxon Jar."
  if [[ ! -r "${SAXON_JAR}" ]] ; then
-  echo "ERROR: Saxon jar is missing at ${SAXON_JAR}."
+  __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Bash 4 or greater.
  __logd "Checking Bash version."
  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
-  echo "ERROR: Requires Bash 4+."
+  __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks required files.
  if [[ ! -r "${NOTES_SYNC_SCRIPT}" ]] ; then
-  echo "ERROR: File is missing at ${NOTES_SYNC_SCRIPT}."
+  __loge "ERROR: File is missing at ${NOTES_SYNC_SCRIPT}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -362,8 +356,6 @@ function __checkBaseTables {
   DO
   \$\$
   DECLARE
-   last_update VARCHAR(32);
-   new_last_update VARCHAR(32);
    qty INT;
   BEGIN
    SELECT COUNT(TABLE_NAME) INTO qty
@@ -420,6 +412,8 @@ function __getNewNotesFromApi {
     -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  __logd "Last update: ${LAST_UPDATE}"
+ if [[ "${LAST_UPDATE}" == "" ]] ; then
+  __loge "ERROR "
 
  # Gets the values from OSM API.
  wget -O "${API_NOTES_FILE}" \
