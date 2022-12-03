@@ -19,6 +19,7 @@
 # 241) Library or utility missing.
 # 242) Invalid argument.
 # 243) Logger utility is missing.
+# 244) No last update.
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2022-11-29
@@ -43,6 +44,8 @@ declare -r ERROR_MISSING_LIBRARY=241
 declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
+# 244: No last update.
+declare -r ERROR_NO_LAST_UPDATE=244
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
@@ -413,7 +416,9 @@ function __getNewNotesFromApi {
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  __logd "Last update: ${LAST_UPDATE}"
  if [[ "${LAST_UPDATE}" == "" ]] ; then
-  __loge "ERROR "
+  __loge "ERROR: No last update. Please load notes."
+  exit "${ERROR_NO_LAST_UPDATE}"
+ fi
 
  # Gets the values from OSM API.
  wget -O "${API_NOTES_FILE}" \
