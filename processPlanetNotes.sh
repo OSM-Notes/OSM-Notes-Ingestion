@@ -336,6 +336,14 @@ function __checkPrereqs {
    echo "ERROR: PostgreSQL is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
+  ## PostGIS
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2> /dev/null << EOF
+  SELECT PostGIS_version();
+EOF
+  if [[ ${?} -ne 0 ]]; then
+   echo "ERROR: PostGIS is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
   ## Wget
   if ! wget --version > /dev/null 2>&1 ; then
    echo "ERROR: Wget is missing."
