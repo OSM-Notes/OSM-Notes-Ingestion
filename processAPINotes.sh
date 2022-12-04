@@ -339,7 +339,7 @@ function __createPropertiesTable {
 
     IF (last_update IS NULL) THEN
      INSERT INTO execution_properties VALUES
-       ('lastUpdate', last_update);
+       ('lastUpdate', new_last_update);
     ELSE
      UPDATE execution_properties
        SET value = new_last_update
