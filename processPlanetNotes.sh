@@ -215,12 +215,10 @@ declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 # Filename for the flat file for comment notes.
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 
+# Last note id file.
+declare -r LAST_NOTE_FILE="${TMP_DIR}/lastNote.xml"
 # Quantity of notes to process per loop.
 declare -r LOOP_SIZE="${LOOP_SIZE:-10000}"
-# Maximum number to process notes. In the future, this value has to be
-# increased.
-# FIXME this is the maximum ID of a note. This should be updated in a few years.
-declare -r MAX_NOTE_ID=5000000
 # Parallel threads to process notes.
 declare -r PARALLELISM="${PARALLELISM:-5}"
 
@@ -1459,8 +1457,14 @@ EOF
 # Gets the area of each note.
 function __getLocationNotes {
  __log_start
- declare -l SIZE=$((MAX_NOTE_ID/PARALLELISM))
+ declare -l MAX_NOTE_ID
+ wget -O "${LAST_NOTE_FILE}" \
+   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
+ MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
+ MAX_NOTE_ID=$((MAX_NOTE_ID+100))
 
+ declare -l SIZE=$((MAX_NOTE_ID/PARALLELISM))
+ rm -r "${LAST_NOTE_FILE}"
  for j in $(seq 1 1 "${PARALLELISM}") ; do
   (
    __logi "Starting ${j}"
