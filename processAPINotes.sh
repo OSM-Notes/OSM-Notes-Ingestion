@@ -332,7 +332,7 @@ function __createPropertiesTable {
     FROM note_comments
    ) T;
 
-   IF (new_last_update <> NULL) THEN
+   IF (new_last_update IS NOT NULL) THEN
     SELECT value INTO last_update
       FROM execution_properties
       WHERE key = 'lastUpdate';
