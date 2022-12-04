@@ -216,13 +216,13 @@ declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 
 # Quantity of notes to process per loop.
-declare -r LOOP_SIZE=10000
+declare -r LOOP_SIZE="${LOOP_SIZE:-10000}"
 # Maximum number to process notes. In the future, this value has to be
 # increased.
 # FIXME this is the maximum ID of a note. This should be updated in a few years.
 declare -r MAX_NOTE_ID=5000000
 # Parallel threads to process notes.
-declare -r PARALLELISM=3
+declare -r PARALLELISM="${PARALLELISM:-5}"
 
 ###########
 # FUNCTIONS
@@ -1460,25 +1460,28 @@ EOF
 function __getLocationNotes {
  __log_start
  declare -l SIZE=$((MAX_NOTE_ID/PARALLELISM))
- declare -l MAX="${SIZE}"
- declare -l MIN=0
 
  for j in $(seq 1 1 "${PARALLELISM}") ; do
   (
    __logi "Starting ${j}"
-   for i in $(seq -f %1.0f "$((MIN + LOOP_SIZE))" "${LOOP_SIZE}" "$((MAX))") ; do
-    __logd "${i}"
+   MIN=$((SIZE*(j-1)+LOOP_SIZE))
+   MAX=$((SIZE*j))
+   for i in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}") ; do
+    MIN_LOOP=$((i - LOOP_SIZE))
+    MAX_LOOP=${i}
+    __logd "${i}: [${MIN_LOOP} - ${MAX_LOOP}]"
     echo "UPDATE notes
       SET id_country = get_country(longitude, latitude, note_id)
-      WHERE $((i - LOOP_SIZE)) <= note_id AND note_id <= ${i}
+      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
    done
    __logi "Finishing ${j}"
   ) &
-  MIN=${MAX}
-  MAX=$((MAX+SIZE))
  done
  wait
+ echo "UPDATE notes
+   SET id_country = get_country(longitude, latitude, note_id)
+   WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
 }
 
