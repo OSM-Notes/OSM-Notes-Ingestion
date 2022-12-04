@@ -332,17 +332,21 @@ function __createPropertiesTable {
     FROM note_comments
    ) T;
 
-   SELECT value INTO last_update
-     FROM execution_properties
-     WHERE key = 'lastUpdate';
-
-   IF (last_update IS NULL) THEN
-    INSERT INTO execution_properties VALUES
-      ('lastUpdate', last_update);
-   ELSE
-    UPDATE execution_properties
-      SET value = new_last_update
+   IF (new_last_update <> NULL) THEN
+    SELECT value INTO last_update
+      FROM execution_properties
       WHERE key = 'lastUpdate';
+
+    IF (last_update IS NULL) THEN
+     INSERT INTO execution_properties VALUES
+       ('lastUpdate', last_update);
+    ELSE
+     UPDATE execution_properties
+       SET value = new_last_update
+       WHERE key = 'lastUpdate';
+    END IF;
+   ELSE
+    RAISE EXCEPTION 'Notes are not yet on the database';
    END IF;
   END;
   \$\$;
