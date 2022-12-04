@@ -103,7 +103,7 @@
 # from tries t join countries c
 # on t.id_country = c.country_id
 # group by iter, area, country_name_en
-# order by area, count(1) desc
+# order by area, count(1) desc;
 #
 # This is the list of error codes:
 # 1) Help message.
@@ -1512,6 +1512,7 @@ __checkPrereqs
  __trapOn
  if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
   exec 7> "${LOCK}"
+  __logw "Validating single execution."
   flock -n 7
  fi
 

@@ -675,7 +675,7 @@ function __loadApiNotes {
   SELECT COUNT(1), 'uploaded new notes' as type FROM notes_api;
   COPY note_comments_api FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
-  SELECT COUNT(1), 'uplodaded new comments' as type FROM note_comments_api;
+  SELECT COUNT(1), 'uploaded new comments' as type FROM note_comments_api;
 EOF
  __log_finish
 }
@@ -804,6 +804,7 @@ __checkPrereqs
  # Sets the trap in case of any signal.
  __trapOn
  exec 8> "${LOCK}"
+ __logw "Validating single execution."
  flock -n 8
  __dropApiTables
  set +E
