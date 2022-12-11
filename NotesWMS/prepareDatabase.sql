@@ -3,8 +3,11 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2022-12-10
 
+-- Creates an independent schema for all objects related to WMS.
+CREATE SCHEMA IF NOT EXISTS wms;
+
 -- Creates another table with only the necessary columns for WMS.
-CREATE TABLE IF NOT EXISTS notes_wms AS
+CREATE TABLE IF NOT EXISTS wms.notes_wms AS
  SELECT
   note_id,
   extract(year from created_at) AS year_created_at,
@@ -14,17 +17,17 @@ CREATE TABLE IF NOT EXISTS notes_wms AS
 ;
 
 -- Index for open notes. The most important.
-CREATE INDEX notes_open on notes_wms (year_created_at);
+CREATE INDEX notes_open on wms.notes_wms (year_created_at);
 
 -- Index for closed notes.
-CREATE INDEX notes_closed on notes_wms (year_closed_at);
+CREATE INDEX notes_closed on wms.notes_wms (year_closed_at);
 
 -- Function for trigger when inserting new notes.
-CREATE OR REPLACE FUNCTION insert_new_notes()
+CREATE OR REPLACE FUNCTION wms.insert_new_notes()
   RETURNS TRIGGER AS
  $$
  BEGIN
-  INSERT INTO notes_wms
+  INSERT INTO wms.notes_wms
    VALUES
    (
     NEW.note_id,
@@ -33,6 +36,7 @@ CREATE OR REPLACE FUNCTION insert_new_notes()
     ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326)
    )
   ;
+  RETURN NEW;
  END;
  $$ LANGUAGE plpgsql
 ;
@@ -41,13 +45,14 @@ CREATE OR REPLACE FUNCTION insert_new_notes()
 -- * From open to close (solving).
 -- * From close to open (reopening).
 -- It is not used when adding a comment.
-CREATE OR REPLACE FUNCTION update_notes()
+CREATE OR REPLACE FUNCTION wms.update_notes()
   RETURNS TRIGGER AS
  $$
  BEGIN
-  UPDATE notes_wms
+  UPDATE wms.notes_wms
    SET closed_at = NEW.closed_at
   ;
+  RETURN NEW;
  END;
  $$ LANGUAGE plpgsql
 ;
@@ -56,7 +61,7 @@ CREATE OR REPLACE FUNCTION update_notes()
 CREATE OR REPLACE TRIGGER insert_new_notes
   AFTER INSERT ON notes
   FOR EACH ROW
-  EXECUTE FUNCTION insert_new_notes()
+  EXECUTE FUNCTION wms.insert_new_notes()
 ;
 
 -- Trigger for updated notes.
@@ -64,5 +69,5 @@ CREATE OR REPLACE TRIGGER update_notes
   AFTER UPDATE ON notes
   FOR EACH ROW
   WHEN (OLD.closed_at IS DISTINCT FROM NEW.closed_at)
-  EXECUTE FUNCTION update_notes()
+  EXECUTE FUNCTION wms.update_notes()
 ;
