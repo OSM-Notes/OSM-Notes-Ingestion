@@ -109,7 +109,27 @@ psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
 * User:
 * Passwd:
 
+## Styles
+
+### Syle Data
+
+* Name: Open notes
+* Workspace: OSM_Notes
+* Upload a style line
+  * Choose File: OpenNotes.sld
+  * Upload...
+
+* Name: Closed notes
+* Workspace: OSM_Notes
+* Upload a style line
+  * Choose File: ClosedNotes.sld
+  * Upload...
+
 ## Layers
+
+__Open Notes__
+
+**On Data tab:**
 
 Layer from OSM_Notes:OSM_Notes_DS.
 
@@ -117,9 +137,9 @@ Layer from OSM_Notes:OSM_Notes_DS.
 * SQL Statement:
 
 ```
-select geometry
-from notes
-where closed_at is null
+SELECT year_created_at, year_closed_at, geometry
+FROM wms.notes_wms
+WHERE year_closed_at IS NULL
 ```
 
 ### Basic Resource Info
@@ -136,13 +156,70 @@ The color intensity shows the age of the creation time.
 * Compute from SRS bounds
 * Compute from native bounds
 
-## Styles
+**On Publishing tab:**
 
-### Syle Data
+### WMS Settings - Layers Settings
 
-* Name: Open notes
-* Workspace: OSM_Notes
-* Upload a style line: OpenNotes.sld
+* Additional Styles: OSM_Notes:OpenNotes
+
+### WMS Attribution
+
+* Attribution Text: OpenStreetMap contributors
+* Attribution Link: https://www.openstreetmap.org/copyright
+
+**On Tile Caching tab:**
+
+### Tile cache configuration
+
+* Uncheck image/jpeg
+* Styles: Default Style: OSM_Notes:ClosedNotes (and check it).
+* Gridset:
+  * Published zoom levels: 0 - 8
+
+__Closed Notes__
+
+**On Data tab:**
+
+Layer from OSM_Notes:OSM_Notes_DS.
+
+* View Name: Closed OSM Notes
+* SQL Statement:
+
+```
+SELECT year_created_at, year_closed_at, geometry
+FROM wms.notes_wms
+WHERE year_closed_at IS NOT NULL
+```
+
+### Basic Resource Info
+
+* Abstract: This layer shows the location of the closed notes.
+The color intensity shows the age of the creation time.
+
+**On Publishing tab:**
+
+### WMS Settings - Layers Settings
+
+* Additional Styles: OSM_Notes:CloseNotes
+
+The other options the same as for open notes.
+
+## Disk Quota
+
+* Enable disk quota
+* Maximum tile cache size: 5 GB
+
+## Passwords
+
+* Change active master provider.
+
+## Users, Groups, Roles
+
+* Change admin password.
+
+## Additionally
+
+* Activate BlobStores.
 
 # Files
 
