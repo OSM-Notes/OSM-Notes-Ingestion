@@ -13,6 +13,12 @@ CREATE TABLE IF NOT EXISTS notes_wms AS
  FROM notes
 ;
 
+-- Index for open notes. The most important.
+CREATE INDEX notes_open on notes_wms (year_created_at);
+
+-- Index for closed notes.
+CREATE INDEX notes_closed on notes_wms (year_closed_at);
+
 -- Function for trigger when inserting new notes.
 CREATE OR REPLACE FUNCTION insert_new_notes()
   RETURNS TRIGGER AS
