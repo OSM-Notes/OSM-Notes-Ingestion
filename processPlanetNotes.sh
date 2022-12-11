@@ -109,12 +109,13 @@
 # 1) Help message.
 # 241) Library or utility missing.
 # 242) Invalid argument for script invocation.
-# 243) The list of ids for boundary geometries can not be downloaded.
-# 244) Error downloading planet notes file.
+# 243) Logger utility is not available.
+# 244) The list of ids for boundary geometries can not be downloaded.
+# 245) Error downloading planet notes file.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-11-29
-declare -r VERSION="2022-11-29"
+# Version: 2022-12-10
+declare -r VERSION="2022-12-10"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -174,7 +175,7 @@ declare LOCK
 LOCK="/tmp/${BASENAME}.lock"
 readonly LOCK
 
-# Type of process to run in the script: base, sync or boundaries.
+# Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
 # Flat file to start from load.
@@ -547,6 +548,10 @@ function __createBaseTables {
    ADD CONSTRAINT fk_notes
    FOREIGN KEY (note_id)
    REFERENCES notes (note_id);
+
+  CREATE INDEX notes_closed ON notes (closed_at);
+  CREATE INDEX notes_countries ON notes (id_country);
+  CREATE INDEX note_comments_users ON note_comments (user_id);
 EOF
  __log_finish
 }
