@@ -93,3 +93,9 @@ unzip SaxonHE11-4J.zip
 */15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh
 ```
 
+# Acknowledgements
+
+Andres Gomez (@AngocA) was the main developer of this idea.
+He personally thanks to Jose Luis Ceron Sarria for all his help designing the
+architecture, defining the data modeling, and implementing the infrastructure
+on the cloud.
