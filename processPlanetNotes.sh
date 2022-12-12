@@ -146,7 +146,7 @@ declare -r ERROR_DOWNLOADING_NOTES=245
 declare -r CLEAN=${CLEAN:-true}
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
-declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
+declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
@@ -968,9 +968,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 EOF
 
  # Converts the XML into a flat file in CSV format.
- java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+ java -Xmx500m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" -o:"${OUTPUT_NOTES_FILE}"
- java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+ java -Xmx500m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
  __log_finish
