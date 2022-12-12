@@ -602,8 +602,10 @@ function __convertApiNotesToFlatFile {
  # XSLT transformations.
  cat << EOF > "${XSLT_NOTES_API_FILE}"
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="1.0"
+<xsl:stylesheet version="3.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:mode streamable="yes"/>
+<xsl:strip-space elements="*"/>
 <xsl:output method="text" />
 <xsl:template match="/">
  <xsl:for-each select="osm/note"><xsl:value-of select="id"/>,<xsl:value-of select="@lat"/>,<xsl:value-of select="@lon"/>,"<xsl:value-of select="date_created"/>",<xsl:choose><xsl:when test="date_closed != ''">"<xsl:value-of select="date_closed"/>","close"
@@ -616,8 +618,10 @@ EOF
 
  cat << EOF > "${XSLT_NOTE_COMMENTS_API_FILE}"
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="1.0"
+<xsl:stylesheet version="3.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:mode streamable="yes"/>
+<xsl:strip-space elements="*"/>
 <xsl:output method="text" />
 <xsl:template match="/">
  <xsl:for-each select="osm/note">

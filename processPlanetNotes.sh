@@ -932,8 +932,10 @@ function __convertPlanetNotesToFlatFile {
  # XSLT transformations.
  cat << EOF > "${XSLT_NOTES_FILE}"
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="1.0"
+<xsl:stylesheet version="3.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:mode streamable="yes"/>
+<xsl:strip-space elements="*"/>
 <xsl:output method="text" />
 <xsl:template match="/">
  <xsl:for-each select="osm-notes/note"><xsl:value-of select="@id"/>,<xsl:value-of select="@lat"/>,<xsl:value-of select="@lon"/>,"<xsl:value-of select="@created_at"/>",<xsl:choose><xsl:when test="@closed_at != ''">"<xsl:value-of select="@closed_at"/>","close"
@@ -946,8 +948,10 @@ EOF
 
  cat << EOF > "${XSLT_NOTE_COMMENTS_FILE}"
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="1.0"
+<xsl:stylesheet version="3.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:mode streamable="yes"/>
+<xsl:strip-space elements="*"/>
 <xsl:output method="text" />
 <xsl:template match="/">
  <xsl:for-each select="osm-notes/note">
