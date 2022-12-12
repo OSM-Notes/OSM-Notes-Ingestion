@@ -552,6 +552,8 @@ function __createBaseTables {
   CREATE INDEX notes_closed ON notes (closed_at);
   CREATE INDEX notes_countries ON notes (id_country);
   CREATE INDEX note_comments_users ON note_comments (user_id);
+  CREATE INDEX note_comments_id ON note_comments (note_id);
+
 EOF
  __log_finish
 }
