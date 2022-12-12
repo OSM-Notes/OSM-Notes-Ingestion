@@ -678,14 +678,14 @@ function __loadApiNotes {
  __logd "Notes to be processed:"
  declare -i ID
  while read LINE ; do
-  ID=$(echo "${LINE}" | cut -f 1 -d ',')
+  ID=$(echo "${LINE}" | cut -f 1 -d,)
   __logd "${ID}"
  done < ${OUTPUT_NOTES_FILE}
 
  __logd "Note comments to be processed:"
  declare -i ID
  while read LINE ; do
-  ID=$(echo "${LINE}" | cut -f 1-2 -d ',')
+  ID=$(echo "${LINE}" | cut -f 1-2 -d,)
   __logd "${ID}"
  done < ${OUTPUT_NOTE_COMMENTS_FILE}
 
