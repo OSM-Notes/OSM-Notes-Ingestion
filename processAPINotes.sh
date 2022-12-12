@@ -52,7 +52,7 @@ declare -r ERROR_NO_LAST_UPDATE=244
 declare -r CLEAN="${CLEAN:-true}"
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
-declare LOG_LEVEL="${LOG_LEVEL:-FATAL}"
+declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Base directory, where the ticket script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
@@ -745,6 +745,7 @@ function __insertNewNotesAndComments {
        || ''', ''YYYY-MM-DD HH24:MI:SS'')';
      m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
        '\1''''\2', 'g');
+     -- FIXME TODO This is inserting a second comment in each iteration.
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
        || '''' || r.event || '''::note_event_enum, '
        || COALESCE (created_time, 'NULL') || ', '
