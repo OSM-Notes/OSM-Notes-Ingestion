@@ -50,7 +50,7 @@ CREATE OR REPLACE FUNCTION wms.update_notes()
  $$
  BEGIN
   UPDATE wms.notes_wms
-   SET closed_at = NEW.closed_at
+   SET year_closed_at = extract (year from NEW.closed_at)
   ;
   RETURN NEW;
  END;
