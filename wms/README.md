@@ -118,12 +118,14 @@ psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
 * Upload a style line
   * Choose File: OpenNotes.sld
   * Upload...
+* Legend: Add legend
 
 * Name: Closed notes
 * Workspace: OSM_Notes
 * Upload a style line
   * Choose File: ClosedNotes.sld
   * Upload...
+* Legend: Add legend
 
 ## Layers
 
@@ -140,7 +142,16 @@ Layer from OSM_Notes:OSM_Notes_DS.
 SELECT year_created_at, year_closed_at, geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NULL
+ORDER BY year_created_at DESC
 ```
+
+## Styles
+
+For each layer.
+
+### Publishing
+
+* Default
 
 ### Basic Resource Info
 
@@ -172,6 +183,7 @@ The color intensity shows the age of the creation time.
 ### Tile cache configuration
 
 * Uncheck image/jpeg
+* (Optional) Put 3600 for Expire Server cache after n seconds.
 * Styles: Default Style: OSM_Notes:ClosedNotes (and check it).
 * Gridset:
   * Published zoom levels: 0 - 8
@@ -189,6 +201,7 @@ Layer from OSM_Notes:OSM_Notes_DS.
 SELECT year_created_at, year_closed_at, geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NOT NULL
+ORDER BY year_created_at DESC
 ```
 
 ### Basic Resource Info
@@ -208,6 +221,19 @@ The other options the same as for open notes.
 
 * Enable disk quota
 * Maximum tile cache size: 5 GB
+
+## BlobStores
+
+* Add new:
+* Type of BlobStore: File BlobStore
+* Identifier: OSM Notes
+* Enabled.
+* Default.
+* Base Directory: A location with more than 50 GB space.
+
+## Tile Layers
+
+* Choose each layer, and click on Seed/Truncate.
 
 ## Passwords
 
