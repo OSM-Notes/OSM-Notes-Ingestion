@@ -99,3 +99,6 @@ Andres Gomez (@AngocA) was the main developer of this idea.
 He personally thanks to Jose Luis Ceron Sarria for all his help designing the
 architecture, defining the data modeling, and implementing the infrastructure
 on the cloud.
+
+Also, thanks to Martin Honnen who helped us improve the XSLT as in this thread:
+https://stackoverflow.com/questions/74672609/saxon-out-of-memory-when-processing-openstreetmap-notes-file-from-planet?noredirect=1#comment131821658_74672609
