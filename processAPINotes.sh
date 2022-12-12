@@ -371,27 +371,26 @@ function __checkBaseTables {
    AND TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_NAME = 'countries'
    ;
-
    IF (qty <> 1) THEN
     RAISE EXCEPTION 'Base tables are missing: countries';
    END IF;
+
    SELECT COUNT(TABLE_NAME) INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_NAME = 'notes'
    ;
-
    IF (qty <> 1) THEN
     RAISE EXCEPTION 'Base tables are missing: notes';
    END IF;
+
    SELECT COUNT(TABLE_NAME) INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_NAME = 'note_comments'
    ;
-
    IF (qty <> 1) THEN
     RAISE EXCEPTION 'Base tables are missing: note_comments';
    END IF;
@@ -414,9 +413,9 @@ function __getNewNotesFromApi {
  __log_start
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
  # Gets the most recent value on the database.
-  psql -d "${DBNAME}" -Atq \
-    -c "SELECT TO_CHAR(TO_TIMESTAMP(value, 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM execution_properties WHERE KEY = 'lastUpdate'" \
-    -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
+ psql -d "${DBNAME}" -Atq \
+   -c "SELECT TO_CHAR(TO_TIMESTAMP(value, 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM execution_properties WHERE KEY = 'lastUpdate'" \
+   -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  __logd "Last update: ${LAST_UPDATE}"
  if [[ "${LAST_UPDATE}" == "" ]] ; then
@@ -660,7 +659,10 @@ function __checkQtyNotes {
  __log_start
  QTY=$(wc -l "${OUTPUT_NOTES_FILE}" | awk '{print $1}')
  if [[ "${QTY}" -ge "${MAX_NOTES}" ]] ; then
+  __logw "Starting full synchronization from Planet."
+  __logi "This could take several minutes."
   "${NOTES_SYNC_SCRIPT}"
+  __logw "Finished full synchronization from Planet."
  fi
  __log_finish
 }
@@ -668,6 +670,21 @@ function __checkQtyNotes {
 # Loads notes from API into the database.
 function __loadApiNotes {
  __log_start
+
+ __logd "Notes to be processed:"
+ declare -i ID
+ while read LINE ; do
+  ID=$(echo "${LINE}" | cut -f 1 -d ',')
+  __logd "${ID}"
+ done < ${OUTPUT_NOTES_FILE}
+
+ __logd "Note comments to be processed:"
+ declare -i ID
+ while read LINE ; do
+  ID=$(echo "${LINE}" | cut -f 1-2 -d ',')
+  __logd "${ID}"
+ done < ${OUTPUT_NOTE_COMMENTS_FILE}
+
  # Loads the data in the database.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status)
