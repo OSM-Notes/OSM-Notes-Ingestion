@@ -417,7 +417,7 @@ function __getNewNotesFromApi {
    -c "SELECT TO_CHAR(TO_TIMESTAMP(value, 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM execution_properties WHERE KEY = 'lastUpdate'" \
    -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
- __logd "Last update: ${LAST_UPDATE}"
+ __logw "Last update: ${LAST_UPDATE}"
  if [[ "${LAST_UPDATE}" == "" ]] ; then
   __loge "ERROR: No last update. Please load notes."
   exit "${ERROR_NO_LAST_UPDATE}"
@@ -675,17 +675,17 @@ function __checkQtyNotes {
 function __loadApiNotes {
  __log_start
 
- __logd "Notes to be processed:"
+ __logi "Notes to be processed:"
  declare TEXT
  while read LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1 -d,)
-  __logd "${TEXT}"
+  __logi "${TEXT}"
  done < ${OUTPUT_NOTES_FILE}
 
- __logd "Note comments to be processed:"
+ __logi "Note comments to be processed:"
  while read LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
-  __logd "${TEXT}"
+  __logi "${TEXT}"
  done < ${OUTPUT_NOTE_COMMENTS_FILE}
 
  # Loads the data in the database.
