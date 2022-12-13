@@ -676,17 +676,16 @@ function __loadApiNotes {
  __log_start
 
  __logd "Notes to be processed:"
- declare -i ID
+ declare TEXT
  while read LINE ; do
-  ID=$(echo "${LINE}" | cut -f 1 -d,)
-  __logd "${ID}"
+  TEXT=$(echo "${LINE}" | cut -f 1 -d,)
+  __logd "${TEXT}"
  done < ${OUTPUT_NOTES_FILE}
 
  __logd "Note comments to be processed:"
- declare -i ID
  while read LINE ; do
-  ID=$(echo "${LINE}" | cut -f 1-2 -d,)
-  __logd "${ID}"
+  TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
+  __logd "${TEXT}"
  done < ${OUTPUT_NOTE_COMMENTS_FILE}
 
  # Loads the data in the database.
