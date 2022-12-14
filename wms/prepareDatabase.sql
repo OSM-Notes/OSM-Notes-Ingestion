@@ -17,10 +17,10 @@ CREATE TABLE IF NOT EXISTS wms.notes_wms AS
 ;
 
 -- Index for open notes. The most important.
-CREATE INDEX notes_open on wms.notes_wms (year_created_at);
+CREATE INDEX notes_open ON wms.notes_wms (year_created_at);
 
 -- Index for closed notes.
-CREATE INDEX notes_closed on wms.notes_wms (year_closed_at);
+CREATE INDEX notes_closed ON wms.notes_wms (year_closed_at);
 
 -- Function for trigger when inserting new notes.
 CREATE OR REPLACE FUNCTION wms.insert_new_notes()
