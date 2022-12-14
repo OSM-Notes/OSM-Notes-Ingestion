@@ -74,8 +74,11 @@ readonly LOCK
 # Name of the PostgreSQL database to insert or update the data.
 declare -r DBNAME=notes
 
+# Name of the SQL script that contains the objects to create in the DB.
+declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/createObjects.sql"
+
 # Name of the SQL script that contains the ETL.
-declare -r ETL_FILE="${SCRIPT_BASE_DIRECTORY}/ETL.sql"
+declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/populateTables.sql"
 
 ###########
 # FUNCTIONS
@@ -172,68 +175,13 @@ function __checkPrereqs {
 function __createBaseTables {
  __log_start
  __logi "Creating star model"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  CREATE SCHEMA IF NOT EXISTS dwh;
-
-  CREATE TABLE IF NOT EXISTS dwh.facts (
-   id_note INTEGER NOT NULL, -- id
-   created_at TIMESTAMP NOT NULL,
-   created_id_user INTEGER,
-   closed_at TIMESTAMP,
-   closed_id_user INTEGER,
-   id_country INTEGER,
-   action_comment note_event_enum,
-   action_id_user INTEGER,
-   action_at TIMESTAMP
-  );
-
-  CREATE TABLE IF NOT EXISTS dwh.dimension_users (
-   user_id INTEGER NOT NULL,
-   username VARCHAR(256)
-  );
-
-  ALTER TABLE dwh.dimension_users
-   ADD CONSTRAINT pk_user_dim
-   PRIMARY KEY (user_id);
-
-  ALTER TABLE dwh.facts
-   ADD CONSTRAINT fk_users_created
-   FOREIGN KEY (created_id_user)
-   REFERENCES dwh.dimension_users (user_id);
-
-  ALTER TABLE dwh.facts
-   ADD CONSTRAINT fk_users_closed
-   FOREIGN KEY (closed_id_user)
-   REFERENCES dwh.dimension_users (user_id);
-
-  ALTER TABLE dwh.facts
-   ADD CONSTRAINT fk_users_action
-   FOREIGN KEY (action_id_user)
-   REFERENCES dwh.dimension_users (user_id);
-
-  CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
-   country_id INTEGER NOT NULL,
-   country_name VARCHAR(100),
-   country_name_es VARCHAR(100),
-   country_name_en VARCHAR(100)
--- ToDo Include the regions
-  );
-
-  ALTER TABLE dwh.dimension_countries
-   ADD CONSTRAINT pk_countries_dim
-   PRIMARY KEY (country_id);
-
-  ALTER TABLE dwh.facts
-   ADD CONSTRAINT fk_country
-   FOREIGN KEY (id_country)
-   REFERENCES dwh.dimension_countries (country_id);
-EOF
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
  __log_finish
 }
 
 # Processes the notes and comments.
 function __processNotes {
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${ETL_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}"
 }
 
 ######
