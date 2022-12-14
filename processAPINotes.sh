@@ -712,7 +712,7 @@ function __insertNewNotesAndComments {
     m_closed_time VARCHAR(100);
     m_lastupdate TIMESTAMP;
    BEGIN
-    m_lastupdate := SELECT value
+    SELECT value INTO m_lastupdate
      FROM execution_properties
      WHERE key = 'lastUpdate';
     FOR r IN
@@ -744,7 +744,7 @@ function __insertNewNotesAndComments {
     m_username VARCHAR(256);
     m_lastupdate TIMESTAMP;
    BEGIN
-    m_lastupdate := SELECT value
+    SELECT value INTO m_lastupdate
      FROM execution_properties
      WHERE key = 'lastUpdate';
     FOR r IN
