@@ -549,10 +549,11 @@ function __createBaseTables {
    FOREIGN KEY (note_id)
    REFERENCES notes (note_id);
 
-  CREATE INDEX notes_closed ON notes (closed_at);
+  CREATE INDEX notes_closed ON notes (closed_at, created_at);
   CREATE INDEX notes_countries ON notes (id_country);
   CREATE INDEX note_comments_users ON note_comments (user_id);
   CREATE INDEX note_comments_id ON note_comments (note_id);
+  CREATE INDEX note_comments_created ON note_comments (created_at);
 
 EOF
  __log_finish
