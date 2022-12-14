@@ -549,7 +549,8 @@ function __createBaseTables {
    FOREIGN KEY (note_id)
    REFERENCES notes (note_id);
 
-  CREATE INDEX notes_closed ON notes (closed_at, created_at);
+  CREATE INDEX notes_closed ON notes (closed_at);
+  CREATE INDEX notes_created ON notes (created_at);
   CREATE INDEX notes_countries ON notes (id_country);
   CREATE INDEX note_comments_users ON note_comments (user_id);
   CREATE INDEX note_comments_id ON note_comments (note_id);
@@ -935,7 +936,6 @@ function __convertPlanetNotesToFlatFile {
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="3.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:mode streamable="yes"/>
 <xsl:strip-space elements="*"/>
 <xsl:output method="text" />
 <xsl:template match="/">
@@ -951,7 +951,6 @@ EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="3.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:mode streamable="yes"/>
 <xsl:strip-space elements="*"/>
 <xsl:output method="text" />
 <xsl:template match="/">
