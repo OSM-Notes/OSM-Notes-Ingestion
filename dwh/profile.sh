@@ -43,7 +43,7 @@ declare -r ERROR_HELP_MESSAGE=1
 # 241: Library or utility missing.
 declare -r ERROR_MISSING_LIBRARY=241
 # 242: Invalid argument for script invocation.
-declare -r ERROR_INVALID_ARGUMENT=242
+# TODO declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
 
@@ -71,11 +71,6 @@ readonly TMP_DIR
 declare LOG_FILE
 LOG_FILE="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILE
-
-# Lock file for single execution.
-declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
-readonly LOCK
 
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
@@ -292,7 +287,7 @@ __checkPrereqs
 
  if [[ "${PROCESS_TYPE}" == "--user" ]] ; then
   __processUserProfile
- elif [[ "${PROCESS_TYPE}" == "--country" ]] 
+ elif [[ "${PROCESS_TYPE}" == "--country" ]] ; then
   __processCountryProfile
  fi
 

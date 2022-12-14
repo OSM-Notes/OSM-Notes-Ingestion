@@ -37,7 +37,7 @@ declare -r ERROR_HELP_MESSAGE=1
 # 241: Library or utility missing.
 declare -r ERROR_MISSING_LIBRARY=241
 # 242: Invalid argument for script invocation.
-declare -r ERROR_INVALID_ARGUMENT=242
+# TODO declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
 
@@ -52,7 +52,7 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
-declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
+declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/../bash_logger.sh"
 
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
@@ -194,12 +194,12 @@ chmod go+x "${TMP_DIR}"
  __start_logger
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
+ # TODO __logi "Processing: ${PROCESS_TYPE}"
 } >> "${LOG_FILE}" 2>&1
 
-if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
- __show_help
-fi
+#TODO if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+# __show_help
+#fi
 __checkPrereqs
 {
  __logw "Starting process"

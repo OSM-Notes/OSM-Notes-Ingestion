@@ -677,16 +677,16 @@ function __loadApiNotes {
 
  __logi "Notes to be processed:"
  declare TEXT
- while read LINE ; do
+ while read -r LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1 -d,)
   __logi "${TEXT}"
- done < ${OUTPUT_NOTES_FILE}
+ done < "${OUTPUT_NOTES_FILE}"
 
  __logi "Note comments to be processed:"
- while read LINE ; do
+ while read -r LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
   __logi "${TEXT}"
- done < ${OUTPUT_NOTE_COMMENTS_FILE}
+ done < "${OUTPUT_NOTE_COMMENTS_FILE}"
 
  # Loads the data in the database.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
