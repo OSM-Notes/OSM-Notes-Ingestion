@@ -704,7 +704,8 @@ EOF
 function __insertNewNotesAndComments {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  SELECT COUNT(1), 'current notes - before' as qty FROM notes;
+  SELECT 'current notes - before' AS qty;
+  SELECT COUNT(1) FROM notes;
   DO
   \$\$
    DECLARE
@@ -719,7 +720,7 @@ function __insertNewNotesAndComments {
      SELECT note_id, latitude, longitude, created_at, closed_at, status
      FROM notes_api
     LOOP
-     IF (created_at = m_lastupdate OR closed_at = m_lastupdate) THEN
+     IF (r.created_at = m_lastupdate OR r.closed_at = m_lastupdate) THEN
       CONTINUE;
      END IF;
      m_closed_time := 'TO_TIMESTAMP(''' || r.closed_at
@@ -751,7 +752,7 @@ function __insertNewNotesAndComments {
      SELECT note_id, event, created_at, user_id, username
      FROM note_comments_api
     LOOP
-     IF (created_at = m_lastupdate) THEN
+     IF (r.created_at = m_lastupdate) THEN
       CONTINUE;
      END IF;
      m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
