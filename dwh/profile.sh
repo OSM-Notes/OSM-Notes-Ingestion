@@ -212,7 +212,7 @@ function __processUserProfile {
      FROM dwh.facts f
      JOIN dwh.dimension_countries u
      ON f.closed_id_user = u.user_id
-     WHERE u.username = ${NAME}
+     WHERE u.username = '${NAME}'
      " \
     -v ON_ERROR_STOP=1 )
 
@@ -225,7 +225,7 @@ function __processUserProfile {
      ON f.closed_id_user = u.user_id
      JOIN dwh.dimension_countries c
      ON f.id_country = c.country_id
-     WHERE u.username = ${NAME}
+     WHERE u.username = '${NAME}'
      AND f.action_comment = 'opened'
      GROUP BY country_name_en
      " \
@@ -240,12 +240,26 @@ function __processUserProfile {
      ON f.closed_id_user = u.user_id
      JOIN dwh.dimension_countries c
      ON f.id_country = c.country_id
-     WHERE u.username = ${NAME}
+     WHERE u.username = '${NAME}'
      AND f.action_comment = 'closed'
      GROUP BY country_name_en
      " \
     -v ON_ERROR_STOP=1 )
 
+ # Last year's ations.
+ psql -d "${DBNAME}" -Atq \
+    -c "SELECT COUNT(1)
+     FROM dwh.facts f
+     JOIN dwh.users_dimension u
+     ON f.action_id_user = u.user_id
+     RIGHT JOIN dwh.dimension_time t
+     ON f.action_id_date = t.date_id
+     WHERE u.username = '${NAME}'
+     GROUP BY f.action_id_date
+     ORDER BY days_from_notes_epoch DESC 
+     FETCH FIRST 365 ROWS ONLY
+     " \
+    -v ON_ERROR_STOP=1 
 
  echo "User: ${NAME}"
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}"
