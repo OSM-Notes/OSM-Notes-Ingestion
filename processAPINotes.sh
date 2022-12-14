@@ -350,7 +350,9 @@ function __createPropertiesTable {
    END IF;
   END;
   \$\$;
-  SELECT value FROM execution_properties WHERE key = 'lastUpdate';
+  SELECT value, 'oldLastUpdate' AS key
+  FROM execution_properties
+  WHERE key = 'lastUpdate';
 EOF
  __log_finish
 }
@@ -709,21 +711,28 @@ function __insertNewNotesAndComments {
   \$\$
    DECLARE
     r RECORD;
-    closed_time VARCHAR(100);
-    created_time VARCHAR(100);
+    m_closed_time VARCHAR(100);
+    m_lastupdate TIMESTAMP;
    BEGIN
-     FOR r IN
-      SELECT note_id, latitude, longitude, created_at, closed_at, status
-      FROM notes_api
-     LOOP
-      closed_time := 'TO_TIMESTAMP(''' || r.closed_at
-        || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-      EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-        || r.longitude || ', '
-        || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-        || COALESCE (closed_time, 'NULL') || ','
-        || '''' || r.status || '''::note_status_enum)';
-     END LOOP;
+    m_lastupdate := SELECT value
+     FROM execution_properties
+     WHERE key = 'lastUpdate';
+    FOR r IN
+     SELECT note_id, latitude, longitude, created_at, closed_at, status
+     FROM notes_api
+    LOOP
+     IF (created_at = m_lastupdate OR closed_at = m_lastupdate) THEN
+      CONTINUE;
+     END IF;
+     m_closed_time := 'TO_TIMESTAMP(''' || r.closed_at
+       || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+     EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
+       || r.longitude || ', '
+       || 'TO_TIMESTAMP(''' || r.created_at
+       || ''', ''YYYY-MM-DD HH24:MI:SS''), '
+       || COALESCE (m_closed_time, 'NULL') || ','
+       || '''' || r.status || '''::note_status_enum)';
+    END LOOP;
    END;
   \$\$;
   SELECT COUNT(1), 'current notes - after' as qty FROM notes;
@@ -733,21 +742,26 @@ function __insertNewNotesAndComments {
   \$\$
    DECLARE
     r RECORD;
-    created_time VARCHAR(100);
+    m_created_time VARCHAR(100);
     m_username VARCHAR(256);
+    m_lastupdate TIMESTAMP;
    BEGIN
+    m_lastupdate := SELECT value
+     FROM execution_properties
+     WHERE key = 'lastUpdate';
     FOR r IN
      SELECT note_id, event, created_at, user_id, username
      FROM note_comments_api
     LOOP
-     created_time := 'TO_TIMESTAMP(''' || r.created_at
-       || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+     IF (created_at = m_lastupdate) THEN
+      CONTINUE;
+     END IF;
      m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
        '\1''''\2', 'g');
-     -- FIXME TODO This is inserting a second comment in each iteration.
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
        || '''' || r.event || '''::note_event_enum, '
-       || COALESCE (created_time, 'NULL') || ', '
+       || 'TO_TIMESTAMP(''' || r.created_at
+       || ''', ''YYYY-MM-DD HH24:MI:SS''), '
        || COALESCE (r.user_id || '', 'NULL') || ', '
        || COALESCE ('''' || m_username || '''', 'NULL') || ')';
     END LOOP;
@@ -788,7 +802,9 @@ function __updateLastValue {
      WHERE key = 'lastUpdate';
    END;
   \$\$;
-  SELECT value FROM execution_properties WHERE key = 'lastUpdate';
+  SELECT value, 'newLastUpdate' AS key
+  FROM execution_properties
+  WHERE key = 'lastUpdate';
 EOF
  __log_finish
 }
