@@ -641,16 +641,16 @@ EOF
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTES_API_FILE}" \
    -o:"${OUTPUT_NOTES_FILE}"
+ __logi "$(grep -c "<note " "${API_NOTES_FILE}") - Notes from API."
+ __logw "$(wc -l "${OUTPUT_NOTES_FILE}") - Notes in flat file."
+ head "${OUTPUT_NOTES_FILE}"
+
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
-
- grep -c "<note " "${API_NOTES_FILE}"
- head "${OUTPUT_NOTES_FILE}"
- wc -l "${OUTPUT_NOTES_FILE}"
- grep -c "<comment>" "${API_NOTES_FILE}"
+ __logi "$(grep -c "<comment>" "${API_NOTES_FILE}") - Comments from API."
+ __logw "$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}") - Notes in flat file."
  head "${OUTPUT_NOTE_COMMENTS_FILE}"
- wc -l "${OUTPUT_NOTE_COMMENTS_FILE}"
 
  rm -f "${XSLT_NOTES_API_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}"
  __log_finish
@@ -692,10 +692,12 @@ function __loadApiNotes {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status)
     FROM '${OUTPUT_NOTES_FILE}' csv;
-  SELECT COUNT(1), 'uploaded new notes' as type FROM notes_api;
+  SELECT CURRENT_TIMESTAMP, COUNT(1), 'uploaded new notes' as type
+  FROM notes_api;
   COPY note_comments_api FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
-  SELECT COUNT(1), 'uploaded new comments' as type FROM note_comments_api;
+  SELECT CURRENT_TIMESTAMP, COUNT(1), 'uploaded new comments' as type
+  FROM note_comments_api;
 EOF
  __log_finish
 }
@@ -704,8 +706,8 @@ EOF
 function __insertNewNotesAndComments {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  SELECT 'current notes - before' AS qty;
-  SELECT COUNT(1) FROM notes;
+  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current notes - before' as qty
+  FROM notes;
   DO
   \$\$
    DECLARE
@@ -734,9 +736,10 @@ function __insertNewNotesAndComments {
     END LOOP;
    END;
   \$\$;
-  SELECT COUNT(1), 'current notes - after' as qty FROM notes;
+  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current notes - after' as qty FROM notes;
 
-  SELECT COUNT(1), 'current comments - before' as qty FROM note_comments;
+  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - before' as qty
+  FROM note_comments;
   DO
   \$\$
    DECLARE
@@ -766,7 +769,8 @@ function __insertNewNotesAndComments {
     END LOOP;
    END;
   \$\$;
-  SELECT COUNT(1), 'current comments - after' as qty FROM note_comments;
+  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - after' as qty
+  FROM note_comments;
 EOF
  __log_finish
 }
