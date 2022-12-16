@@ -184,7 +184,7 @@ function __show_help {
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
- __log_start
+ #__log_start
  __logd "Checking process type."
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
    && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
@@ -252,7 +252,7 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- __log_finish
+ #__log_finish
  set -e
 }
 
