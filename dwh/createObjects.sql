@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  id_country INTEGER,
  action_comment note_event_enum,
  action_id_user INTEGER,
- action_at TIMESTAMP
+ action_at TIMESTAMP,
  action_id_date DATE
 );
 
