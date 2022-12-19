@@ -80,14 +80,14 @@ declare -r DBNAME=notes
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/createObjects.sql"
 
+# Name of the SQL script that contains the statement to empty the tables.
+declare -r EMPTY_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/emptyTables.sql"
+
 # Name of the SQL script that contains the alter statements.
 declare -r ALTER_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/alterObjects.sql"
 
 # Name of the SQL script that contains the ETL process.
 declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/populateTables.sql"
-
-# Name of the SQL script that contains the statement to empty the tables.
-declare -r EMPTY_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/emptyTables.sql"
 
 ###########
 # FUNCTIONS
