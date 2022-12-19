@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS wms.notes_wms AS
  FROM notes
 ;
 
+-- Index for id.
+CREATE INDEX notes_id ON wms.notes_wms (note_id);
+
 -- Index for open notes. The most important.
 CREATE INDEX notes_open ON wms.notes_wms (year_created_at);
 
@@ -51,6 +54,7 @@ CREATE OR REPLACE FUNCTION wms.update_notes()
  BEGIN
   UPDATE wms.notes_wms
    SET year_closed_at = extract (year from NEW.closed_at)
+   WHERE note_id = NEW.note_id
   ;
   RETURN NEW;
  END;
