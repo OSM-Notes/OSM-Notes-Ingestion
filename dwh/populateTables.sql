@@ -1,14 +1,17 @@
+SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting dimension countries';
+
 -- Populates the countries dimension with new countries.
-INSERT INTO dwh.countries_dimension
+INSERT INTO dwh.dimension_countries
  (country_id, country_name, country_name_es, country_name_en)
  SELECT country_id, country_name, country_name_es, country_name_en
  FROM countries
  WHERE country_id NOT IN (
   SELECT country_id
-  FROM dwh.countries_dimension
+  FROM dwh.dimension_countries
  )
 ;
-INSERT INTO dwh.countries_dimension 
+
+INSERT INTO dwh.dimension_countries 
  (country_id, country_name, country_name_es, country_name_en)
  VALUES
  (-1, 'Unkown - International waters',
@@ -16,37 +19,45 @@ INSERT INTO dwh.countries_dimension
 ;
 -- ToDo update countries with regions.
 
+SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting dimension users';
+
 -- Inserts new users.
-INSERT INTO dwh.users_dimension
+INSERT INTO dwh.dimension_users
  (user_id, username)
  SELECT DISTINCT c.user_id, c.username
  FROM note_comments c
  WHERE c.user_id IS NOT NULL
  AND c.user_id NOT IN (
   SELECT u.user_id
-  FROM dwh.users_dimension u
+  FROM dwh.dimension_users u
   WHERE u.user_id IS NOT NULL
   GROUP BY u.user_id
   )
  ON CONFLICT DO NOTHING
 ;
 
+SELECT CURRENT_TIMESTAMP AS Processing, 'Showing modified usernames';
+
 -- Shows usernames renamed.
 -- TODO Revisar si es necesario. Toma mucho tiempo la comparacion lexicografica.
 SELECT DISTINCT d.username AS OldUsername, c.username AS NewUsername
  FROM note_comments c
-  JOIN dwh.users_dimension d
+  JOIN dwh.dimension_users d
   ON d.user_id = c.user_id
  WHERE c.username <> d.username
 ;
 
+SELECT CURRENT_TIMESTAMP AS Processing, 'Updating modified usernames';
+
 -- Updates the dimension when username is changed.
 -- TODO Revisar si es necesario. Toma mucho tiempo la comparacion lexicografica.
-UPDATE dwh.users_dimension d
- SET d.username = c.username
+UPDATE dwh.dimension_users AS d
+ SET username = c.username
  FROM note_comments c
  WHERE c.username <> d.username
 ;
+
+SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting facts';
 
 -- Inserts new facts.
 -- TODO Cambiar de sample a definitivo
@@ -135,15 +146,4 @@ WITH opened (
   n.note_id,
   cac.created_at
 ;
-
-
-
-
-
-
-
-
-
-
-
 
