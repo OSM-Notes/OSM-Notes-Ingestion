@@ -61,7 +61,7 @@ function __log() {
 	__bl_log_message="$*"
 
 	local time_and_date
-	time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+	time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
 	echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
 }
 
@@ -91,7 +91,7 @@ function __logt() {
 
 		#${FUNCNAME[$i]} was called from the file ${BASH_SOURCE[$i+1]} at line number ${BASH_LINENO[$i]}
     local time_and_date
-    time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+    time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
     echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
 
   if [ ${#FUNCNAME[@]} -gt 2 ]; then
@@ -132,7 +132,7 @@ function __logd() {
     __bl_log_message="$*"
 
     local time_and_date
-    time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+    time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
     echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
   fi
 }
@@ -159,7 +159,7 @@ function __logi() {
     __bl_log_message="$*"
 
     local time_and_date
-    time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+    time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
     echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
   fi
 }
@@ -185,7 +185,7 @@ function __logw() {
     __bl_log_message="$*"
 
     local time_and_date
-    time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+    time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
     echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
   fi
 }
@@ -212,7 +212,7 @@ function __loge() {
     __bl_log_message="$*"
 
     local time_and_date
-    time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+    time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
 		>&2  echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
   fi
 }
@@ -239,7 +239,7 @@ function __logf() {
     __bl_log_message="$*"
 
     local time_and_date
-    time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+    time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
     echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
   fi
 }
@@ -265,7 +265,7 @@ function __log_start() {
   __bl_log_message="STARTED"
 
   local time_and_date
-  time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+  time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
   echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
   fi
 }
@@ -291,7 +291,7 @@ function __log_finish() {
   __bl_log_message="FINISHED"
 
   local time_and_date
-  time_and_date=$(date '+%d-%m-%Y %H:%M:%S')
+  time_and_date=$(date '+%Y-%m-%d %H:%M:%S')
   echo "${time_and_date} [${__bl_script_name}:${__bl_function_name}:line:${__bl_called_line_number}] ${__bl_log_message_type} - ${__bl_log_message}"
   #echo ""
   fi
