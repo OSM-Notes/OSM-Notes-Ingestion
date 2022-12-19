@@ -47,15 +47,30 @@ SELECT DISTINCT d.username AS OldUsername, c.username AS NewUsername
  WHERE c.username <> d.username
 ;
 
+SELECT CURRENT_TIMESTAMP AS Processing, 'Populating new usernames';
+
+CREATE TEMPORARY TABLE temp_new_usernames (
+ user_id INTEGER,
+ username VARCHAR(256)
+);
+
+INSERT INTO temp_new_usernames 
+ SELECT user_id, username
+ FROM note_comments
+ GROUP BY user_id;
+
 SELECT CURRENT_TIMESTAMP AS Processing, 'Updating modified usernames';
 
 -- Updates the dimension when username is changed.
--- TODO Revisar si es necesario. Toma mucho tiempo la comparacion lexicografica.
-UPDATE dwh.dimension_users AS d
+UPDATE dwh.dimension_users
  SET username = c.username
- FROM note_comments c
+ FROM temp_new_usernames AS c
+  JOIN dwh.dimension_users d
+  ON d.user_id = c.user_id
  WHERE c.username <> d.username
 ;
+
+DROP TABLE temp_new_usernames;
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting facts';
 
