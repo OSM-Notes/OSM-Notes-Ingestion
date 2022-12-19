@@ -8,6 +8,9 @@
 # notes from Planet and API. This allows a longer execution that the periodic
 # poll for new notes.
 #
+# To follow the progress you can execute:
+#   tail -40f $(ls -1rtd /tmp/ETL_* | tail -1)/ETL.log
+#
 # This is the list of error codes:
 # 1) Help message.
 # 241) Library or utility missing.
@@ -15,8 +18,8 @@
 # 243) Logger utility is not available.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-06
-declare -r VERSION="2022-12-06"
+# Version: 2022-12-18
+declare -r VERSION="2022-12-18"
 
 # TODO Hay un problema con los nombres de usuario que tiene comilla sencilla.
 # Como parte del proceso lo esta duplicando.
@@ -77,8 +80,14 @@ declare -r DBNAME=notes
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/createObjects.sql"
 
-# Name of the SQL script that contains the ETL.
+# Name of the SQL script that contains the alter statements.
+declare -r ALTER_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/alterObjects.sql"
+
+# Name of the SQL script that contains the ETL process.
 declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/populateTables.sql"
+
+# Name of the SQL script that contains the statement to empty the tables.
+declare -r EMPTY_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/emptyTables.sql"
 
 ###########
 # FUNCTIONS
@@ -176,6 +185,8 @@ function __createBaseTables {
  __log_start
  __logi "Creating star model"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
+ psql -d "${DBNAME}" -f "${EMPTY_TABLES_FILE}"
+ psql -d "${DBNAME}" -f "${ALTER_OBJECTS_FILE}"
  __log_finish
 }
 
