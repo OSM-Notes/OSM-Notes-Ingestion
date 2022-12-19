@@ -991,17 +991,17 @@ function __loadSyncNotes {
  # Adds a column to include the country where it belongs.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   DELETE FROM notes_sync;
-  SELECT 'Uploading sync notes', current_timestamp AS Processing;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync notes';
   COPY notes_sync (note_id, latitude, longitude, created_at, closed_at, status)
     FROM '${OUTPUT_NOTES_FILE}' csv;
-  SELECT 'Counting sync notes', current_timestamp AS Processing;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync notes';
   SELECT COUNT(1), 'Uploaded sync notes' AS Type FROM notes_sync;
 
   DELETE FROM note_comments_sync;
-  SELECT 'Uploading sync comments', current_timestamp AS Processing;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync comments';
   COPY note_comments_sync FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
-  SELECT 'Counting sync comments', current_timestamp AS Processing;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync comments';
   SELECT COUNT(1), 'Uploaded sync comments' AS Type FROM note_comments_sync;
 EOF
  __log_finish
@@ -1194,7 +1194,7 @@ function __removeDuplicates {
     WHERE note_id IN (SELECT note_id FROM notes);
   SELECT COUNT(1), 'Sync notes no duplicates' AS Type FROM notes_sync;
 
-  SELECT 'Inserting sync note', current_timestamp AS Processing;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync note';
   DO
   \$\$
   DECLARE
@@ -1231,7 +1231,7 @@ function __removeDuplicates {
   SELECT COUNT(1), 'Sync comments no duplicates' AS Type
     FROM note_comments_sync;
 
-  SELECT 'Inserting sync comments', current_timestamp AS Processing;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync comments';
   DO
   \$\$
   DECLARE
