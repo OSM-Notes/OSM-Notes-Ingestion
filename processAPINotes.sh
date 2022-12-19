@@ -853,12 +853,14 @@ __checkPrereqs
  __createApiTables
  __createPropertiesTable
  __getNewNotesFromApi
- __validateApiNotesXMLFile
- __convertApiNotesToFlatFile
- __checkQtyNotes
- __loadApiNotes
- __insertNewNotesAndComments
- __updateLastValue
+ if [ -s ${API_NOTES_FILE} ] ; then
+  __validateApiNotesXMLFile
+  __convertApiNotesToFlatFile
+  __checkQtyNotes
+  __loadApiNotes
+  __insertNewNotesAndComments
+  __updateLastValue
+ fi
  __cleanNotesFiles
  __logw "Process finished."
 } >> "${LOG_FILE}" 2>&1
