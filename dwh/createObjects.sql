@@ -18,25 +18,6 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_users (
  username VARCHAR(256)
 );
 
-ALTER TABLE dwh.dimension_users
- ADD CONSTRAINT pk_user_dim
- PRIMARY KEY (user_id);
-
-ALTER TABLE dwh.facts
- ADD CONSTRAINT fk_users_created
- FOREIGN KEY (created_id_user)
- REFERENCES dwh.dimension_users (user_id);
-
-ALTER TABLE dwh.facts
- ADD CONSTRAINT fk_users_closed
- FOREIGN KEY (closed_id_user)
- REFERENCES dwh.dimension_users (user_id);
-
-ALTER TABLE dwh.facts
- ADD CONSTRAINT fk_users_action
- FOREIGN KEY (action_id_user)
- REFERENCES dwh.dimension_users (user_id);
-
 CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
  country_id INTEGER NOT NULL,
  country_name VARCHAR(100),
@@ -45,30 +26,12 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
 -- ToDo Include the regions
 );
 
-ALTER TABLE dwh.dimension_countries
- ADD CONSTRAINT pk_countries_dim
- PRIMARY KEY (country_id);
-
-ALTER TABLE dwh.facts
- ADD CONSTRAINT fk_country
- FOREIGN KEY (id_country)
- REFERENCES dwh.dimension_countries (country_id);
-
 CREATE TABLE IF NOT EXISTS dwh.dimension_time (
  date_id DATE,
  days_from_notes_epoch INTEGER
 );
 
-ALTER TABLE dwh.dimension_time
- ADD CONSTRAINT pk_date_dim
- PRIMARY KEY (date_id);
-
-ALTER TABLE dwh.facts
- ADD CONSTRAINT fk_date
- FOREIGN KEY (action_id_date)
- REFERENCES dwh.dimension_time (date_id);
-
-CREATE INDEX facts_action_date ON dwh.facts (action_at);
+CREATE INDEX IF NOT EXISTS facts_action_date ON dwh.facts (action_at);
 
 -- Function for trigger when inserting new dates.
 -- FIXME if there are no action on a given date, then that date will be missing.
