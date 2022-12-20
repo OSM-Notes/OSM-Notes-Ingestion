@@ -43,8 +43,8 @@ CREATE OR REPLACE FUNCTION dwh.insert_new_notes()
    VALUES
    (
     date(NEW.action_at),
-    DATE_PART('doy', NEW.action_at),
-    365 - DATE_PART('doy', NEW.action_at)
+    DATE_PART('day', NEW.action_at),
+    365 - DATE_PART('day', NEW.action_at)
    ) ON CONFLICT DO NOTHING
   ;
   RETURN NEW;
