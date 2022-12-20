@@ -20,13 +20,33 @@ INSERT INTO dwh.dimension_countries
 ;
 -- ToDo update countries with regions.
 
+SELECT CURRENT_TIMESTAMP AS Processing, 'Populating users temporal table';
+
+CREATE TEMPORARY TABLE temp_new_usernames (
+ user_id INTEGER,
+ username VARCHAR(256)
+);
+
+INSERT INTO temp_new_usernames 
+ SELECT m.user_id, u.username
+ FROM (
+  -- Returns the most recent comment per user
+  SELECT user_id, MAX(created_at) AS max_created_at 
+  FROM note_comments 
+  GROUP BY user_id 
+ ) AS m 
+ JOIN note_comments u 
+ ON m.user_id = u.user_id 
+ AND m.max_created_at = u.created_at
+;
+
 SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting dimension users';
 
 -- Inserts new users.
 INSERT INTO dwh.dimension_users
  (user_id, username)
  SELECT DISTINCT c.user_id, c.username
- FROM note_comments c
+ FROM temp_new_usernames c
  WHERE c.user_id IS NOT NULL
  AND c.user_id NOT IN (
   SELECT u.user_id
@@ -42,23 +62,11 @@ SELECT CURRENT_TIMESTAMP AS Processing, 'Showing modified usernames';
 -- Shows usernames renamed.
 -- TODO Revisar si es necesario. Toma mucho tiempo la comparacion lexicografica.
 SELECT DISTINCT d.username AS OldUsername, c.username AS NewUsername
- FROM note_comments c
+ FROM temp_new_usernames c
   JOIN dwh.dimension_users d
   ON d.user_id = c.user_id
  WHERE c.username <> d.username
 ;
-
-SELECT CURRENT_TIMESTAMP AS Processing, 'Populating new usernames';
-
-CREATE TEMPORARY TABLE temp_new_usernames (
- user_id INTEGER,
- username VARCHAR(256)
-);
-
-INSERT INTO temp_new_usernames 
- SELECT user_id, username
- FROM note_comments
- GROUP BY user_id;
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Updating modified usernames';
 
@@ -156,7 +164,7 @@ WITH opened (
    action_comment,
    action_id_user,
    action_at
-  FROM facts
+  FROM dwh.facts
  )
  ORDER BY
   n.note_id,
