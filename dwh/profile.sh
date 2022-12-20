@@ -47,6 +47,10 @@ declare -r ERROR_MISSING_LIBRARY=241
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
 
+# If all files should be deleted. In case of an error, this could be disabled.
+# You can defined when calling: export CLEAN=false
+declare -r CLEAN="${CLEAN:-true}"
+
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
@@ -58,7 +62,7 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
-declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
+declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/../bash_logger.sh"
 
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
@@ -79,7 +83,7 @@ declare -r PROCESS_TYPE=${1:-}
 declare -r DBNAME=notes
 
 # Name of the user or the country.
-declare -r NAME="${2}"
+declare -r NAME="${2:-}"
 
 ###########
 # FUNCTIONS
@@ -194,9 +198,9 @@ function __processUserProfile {
  QTY_DAYS_OPEN=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT CURRENT_DATE - DATE(MIN(created_at))
      FROM dwh.facts f
-     JOIN dwh.users_dimension u
+     JOIN dwh.dimension_users u
      ON f.created_id_user = u.user_id
-     WHERE u.username = ${NAME}
+     WHERE u.username = '${NAME}'
      " \
     -v ON_ERROR_STOP=1 )
 
@@ -205,39 +209,45 @@ function __processUserProfile {
  QTY_DAYS_CLOSE=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT CURRENT_DATE - DATE(MIN(closed_at))
      FROM dwh.facts f
-     JOIN dwh.dimension_countries u
+     JOIN dwh.dimension_users u
      ON f.closed_id_user = u.user_id
      WHERE u.username = '${NAME}'
      " \
     -v ON_ERROR_STOP=1 )
 
  # Countries opening notes.
- declare -i COUNTRIES_OPENING
+ declare COUNTRIES_OPENING
  COUNTRIES_OPENING=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT STRING_AGG(country_name_en, ',')
-     FROM dwh.facts f
-     JOIN dwh.users_dimension u
-     ON f.closed_id_user = u.user_id
-     JOIN dwh.dimension_countries c
-     ON f.id_country = c.country_id
-     WHERE u.username = '${NAME}'
-     AND f.action_comment = 'opened'
-     GROUP BY country_name_en
+     FROM (
+      SELECT country_name_en
+      FROM dwh.facts f
+      JOIN dwh.dimension_users u
+      ON f.closed_id_user = u.user_id
+      JOIN dwh.dimension_countries c
+      ON f.id_country = c.country_id
+      WHERE u.username = '${NAME}'
+      AND f.action_comment = 'opened'
+      GROUP BY country_name_en
+     ) AS T
      " \
     -v ON_ERROR_STOP=1 )
 
  # Countries closing notes.
- declare -i COUNTRIES_CLOSING
+ declare COUNTRIES_CLOSING
  COUNTRIES_CLOSING=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT STRING_AGG(country_name_en, ',')
-     FROM dwh.facts f
-     JOIN dwh.users_dimension u
-     ON f.closed_id_user = u.user_id
-     JOIN dwh.dimension_countries c
-     ON f.id_country = c.country_id
-     WHERE u.username = '${NAME}'
-     AND f.action_comment = 'closed'
-     GROUP BY country_name_en
+     FROM (
+      SELECT country_name_en
+      FROM dwh.facts f
+      JOIN dwh.dimension_users u
+      ON f.closed_id_user = u.user_id
+      JOIN dwh.dimension_countries c
+      ON f.id_country = c.country_id
+      WHERE u.username = '${NAME}'
+      AND f.action_comment = 'closed'
+      GROUP BY country_name_en
+     ) AS T
      " \
     -v ON_ERROR_STOP=1 )
 
@@ -245,12 +255,12 @@ function __processUserProfile {
  psql -d "${DBNAME}" -Atq \
     -c "SELECT COUNT(1)
      FROM dwh.facts f
-     JOIN dwh.users_dimension u
+     JOIN dwh.dimension_users u
      ON f.action_id_user = u.user_id
      RIGHT JOIN dwh.dimension_time t
      ON f.action_id_date = t.date_id
      WHERE u.username = '${NAME}'
-     GROUP BY f.action_id_date
+     GROUP BY f.action_id_date, days_from_notes_epoch
      ORDER BY days_from_notes_epoch DESC 
      FETCH FIRST 365 ROWS ONLY
      " \
@@ -292,7 +302,8 @@ __checkPrereqs
  fi
 
  __logw "Ending process"
-} >> "${LOG_FILE}" 2>&1
+}
+# >> "${LOG_FILE}" 2>&1
 
 if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
