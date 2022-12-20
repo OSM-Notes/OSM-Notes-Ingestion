@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_time (
  date_id DATE,
- days_from_notes_epoch INTEGER
+ days_from_notes_epoch INTEGER,
+ days_to_next_year INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS facts_action_date ON dwh.facts (action_at);
