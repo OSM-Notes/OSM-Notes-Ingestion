@@ -853,7 +853,7 @@ __checkPrereqs
  __createApiTables
  __createPropertiesTable
  __getNewNotesFromApi
- if [ -s ${API_NOTES_FILE} ] ; then
+ if [ $(cat "${API_NOTES_FILE}" | wc -l) -ne 0 ] ; then
   __validateApiNotesXMLFile
   __convertApiNotesToFlatFile
   __checkQtyNotes
