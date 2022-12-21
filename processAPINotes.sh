@@ -641,15 +641,20 @@ EOF
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTES_API_FILE}" \
    -o:"${OUTPUT_NOTES_FILE}"
- __logi "$(grep -c "<note " "${API_NOTES_FILE}") - Notes from API."
- __logw "$(wc -l "${OUTPUT_NOTES_FILE}") - Notes in flat file."
+ local RESULT
+ RESULT=$(grep -c "<note " "${API_NOTES_FILE}")
+ __logi "${RESULT} - Notes from API."
+ RESULT=$(wc -l "${OUTPUT_NOTES_FILE}")
+ __logw "${RESULT} - Notes in flat file."
  head "${OUTPUT_NOTES_FILE}"
 
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
- __logi "$(grep -c "<comment>" "${API_NOTES_FILE}") - Comments from API."
- __logw "$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}") - Notes in flat file."
+ RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
+ __logi "${RESULT} - Comments from API."
+ RESULT=$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}")
+ __logw "${RESULT} - Notes in flat file."
  head "${OUTPUT_NOTE_COMMENTS_FILE}"
 
  rm -f "${XSLT_NOTES_API_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}"
@@ -850,7 +855,9 @@ __checkPrereqs
  __createApiTables
  __createPropertiesTable
  __getNewNotesFromApi
- if [ $(cat "${API_NOTES_FILE}" | wc -l) -ne 0 ] ; then
+ declare -i RESULT
+ RESULT=$(wc -l < "${API_NOTES_FILE}")
+ if [[ "${RESULT}" -ne 0 ]] ; then
   __validateApiNotesXMLFile
   __convertApiNotesToFlatFile
   __checkQtyNotes
