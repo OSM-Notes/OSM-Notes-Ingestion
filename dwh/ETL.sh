@@ -18,11 +18,8 @@
 # 243) Logger utility is not available.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-18
-declare -r VERSION="2022-12-18"
-
-# TODO Hay un problema con los nombres de usuario que tiene comilla sencilla.
-# Como parte del proceso lo esta duplicando.
+# Version: 2022-12-20
+declare -r VERSION="2022-12-20"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -40,9 +37,13 @@ declare -r ERROR_HELP_MESSAGE=1
 # 241: Library or utility missing.
 declare -r ERROR_MISSING_LIBRARY=241
 # 242: Invalid argument for script invocation.
-# TODO declare -r ERROR_INVALID_ARGUMENT=242
+declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
+
+# If all files should be deleted. In case of an error, this could be disabled.
+# You can defined when calling: export CLEAN=false
+declare -r CLEAN="${CLEAN:-true}"
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -73,6 +74,9 @@ readonly LOG_FILE
 declare LOCK
 LOCK="/tmp/${BASENAME}.lock"
 readonly LOCK
+
+# Type of process to run in the script.
+declare -r PROCESS_TYPE=${1:-}
 
 # Name of the PostgreSQL database to insert or update the data.
 declare -r DBNAME=notes
@@ -161,6 +165,17 @@ function __show_help {
 # Checks prerequisites to run the script.
 function __checkPrereqs {
  __log_start
+ if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--create" ]] \
+   && [[ "${PROCESS_TYPE}" != "--help" ]] \
+   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
+  echo "ERROR: Invalid parameter. It should be:"
+  echo " * Empty string (nothing)."
+  echo " * --create"
+  echo " * --help"
+  __loge "ERROR: Invalid parameter."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+ set +e
  ## PostgreSQL
  if ! psql --version > /dev/null 2>&1 ; then
   __loge "ERROR: PostgreSQL is missing."
@@ -180,19 +195,38 @@ function __checkPrereqs {
  set -e
 }
 
+# Shows the help information.
+function __show_help {
+ echo "${0} version ${VERSION}"
+ echo "This is the ETL process that extracts the values from transactional"
+ echo "tables and then inserts them into the facts and dimensions tables."
+ echo
+ echo "It could receive one of these parameters:"
+ echo " * --create to create the tables and start from empty tables."
+ echo " * Without parameter it processes with existing data."
+ echo
+ echo "Written by: Andres Gomez (AngocA)"
+ echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+ exit "${ERROR_HELP_MESSAGE}"
+}
+
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- __logi "Creating star model"
+ __logi "Creating tables for star model if they do not exist"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
+ __logi "Deleting any data"
  psql -d "${DBNAME}" -f "${EMPTY_TABLES_FILE}"
+ __logi "Adding relation and indexes"
  psql -d "${DBNAME}" -f "${ALTER_OBJECTS_FILE}"
  __log_finish
 }
 
 # Processes the notes and comments.
 function __processNotes {
+ __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}"
+ __log_finish
 }
 
 ######
@@ -205,12 +239,12 @@ chmod go+x "${TMP_DIR}"
  __start_logger
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
- # TODO __logi "Processing: ${PROCESS_TYPE}"
+ __logi "Processing: ${PROCESS_TYPE}"
 } >> "${LOG_FILE}" 2>&1
 
-#TODO if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-# __show_help
-#fi
+if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+ __show_help
+fi
 __checkPrereqs
 {
  __logw "Starting process"
@@ -220,7 +254,9 @@ __checkPrereqs
  __logw "Validating single execution."
  flock -n 7
 
- __createBaseTables
+ if [[ "${PROCESS_TYPE}" == "--create" ]] ; then
+  __createBaseTables
+ fi
  __processNotes
 
  __logw "Ending process"
