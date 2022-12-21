@@ -50,7 +50,7 @@ BEGIN
 
   stmt := 'INSERT INTO dwh.datamartUsers VALUES ('
     || r.user_id || ', '
-    || COALESCE('''' || m_username || '''', 'NULL') || ', '
+    || QUOTE_NULLABLE('''' || m_username || '''') || ', '
     || COALESCE('''' || TO_CHAR(m_date_starting_creating_notes, 'yyyy-mm-dd') || '''', 'NULL') || ', '
     || COALESCE('''' || TO_CHAR(m_date_starting_solving_notes, 'yyyy-mm-dd') || '''', 'NULL') || ', '
     || COALESCE('''' || m_countries_open_notes || '''', 'NULL') || ', '
