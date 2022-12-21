@@ -1037,9 +1037,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 EOF
 
  # Converts the XML into a flat file in CSV format.
- java -Xmx500m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+ __logi "Processing notes from XML"
+ java -Xmx5000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" -o:"${OUTPUT_NOTES_FILE}"
- java -Xmx500m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+ __logi "Processing comments from XML"
+ java -Xmx5000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
  __log_finish
