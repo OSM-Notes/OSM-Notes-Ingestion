@@ -745,7 +745,6 @@ function __insertNewNotesAndComments {
    DECLARE
     r RECORD;
     m_created_time VARCHAR(100);
-    m_username VARCHAR(256);
     m_lastupdate TIMESTAMP;
    BEGIN
     SELECT value INTO m_lastupdate
@@ -758,14 +757,12 @@ function __insertNewNotesAndComments {
      IF (r.created_at = m_lastupdate) THEN
       CONTINUE;
      END IF;
-     m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
-       '\1''''\2', 'g');
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
        || '''' || r.event || '''::note_event_enum, '
        || 'TO_TIMESTAMP(''' || r.created_at
        || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || COALESCE (r.user_id || '', 'NULL') || ', '
-       || COALESCE ('''' || m_username || '''', 'NULL') || ')';
+       || COALESCE(r.user_id || '', 'NULL') || ', '
+       || QUOTE_NULLABLE('''' || r.username || '''') || ')';
     END LOOP;
    END;
   \$\$;
