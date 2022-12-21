@@ -24,8 +24,8 @@
 # 243) Logger utility is not available.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-06
-declare -r VERSION="2022-12-06"
+# Version: 2022-12-20
+declare -r VERSION="2022-12-20"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -43,7 +43,7 @@ declare -r ERROR_HELP_MESSAGE=1
 # 241: Library or utility missing.
 declare -r ERROR_MISSING_LIBRARY=241
 # 242: Invalid argument for script invocation.
-# TODO declare -r ERROR_INVALID_ARGUMENT=242
+declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
 
@@ -177,6 +177,7 @@ function __checkPrereqs {
   echo " * --user"
   echo " * --country"
   echo " * --help"
+  exit "${ERROR_INVALID_ARGUMENT}"
  fi
  ## PostgreSQL
  if ! psql --version > /dev/null 2>&1 ; then
@@ -193,61 +194,47 @@ function __checkPrereqs {
 }
 
 function __processUserProfile {
+ # User id
+ declare -i USER_ID
+ USER_ID=$(psql -d "${DBNAME}" -Atq \
+    -c "SELECT user_id
+     FROM dwh.datamartUsers
+     WHERE username = '${NAME}'
+     " \
+     -v ON_ERROR_STOP=1 )
  # Quantity of days creating notes.
  declare -i QTY_DAYS_OPEN
  QTY_DAYS_OPEN=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT CURRENT_DATE - DATE(MIN(created_at))
-     FROM dwh.facts f
-     JOIN dwh.dimension_users u
-     ON f.created_id_user = u.user_id
-     WHERE u.username = '${NAME}'
+    -c "SELECT CURRENT_DATE - date_starting_creating_notes
+     FROM dwh.datamartUsers
+     WHERE user_id = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
  # Quantity of days solving notes.
  declare -i QTY_DAYS_CLOSE
  QTY_DAYS_CLOSE=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT CURRENT_DATE - DATE(MIN(closed_at))
-     FROM dwh.facts f
-     JOIN dwh.dimension_users u
-     ON f.closed_id_user = u.user_id
-     WHERE u.username = '${NAME}'
+    -c "SELECT CURRENT_DATE - date_starting_solving_notes
+     FROM dwh.datamartUsers
+     WHERE user_id = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
  # Countries opening notes.
  declare COUNTRIES_OPENING
  COUNTRIES_OPENING=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT STRING_AGG(country_name_en, ',')
-     FROM (
-      SELECT country_name_en
-      FROM dwh.facts f
-      JOIN dwh.dimension_users u
-      ON f.closed_id_user = u.user_id
-      JOIN dwh.dimension_countries c
-      ON f.id_country = c.country_id
-      WHERE u.username = '${NAME}'
-      AND f.action_comment = 'opened'
-      GROUP BY country_name_en
-     ) AS T
+    -c "SELECT countries_open_notes
+     FROM dwh.datamartUsers
+     WHERE user_id = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
  # Countries closing notes.
  declare COUNTRIES_CLOSING
  COUNTRIES_CLOSING=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT STRING_AGG(country_name_en, ',')
-     FROM (
-      SELECT country_name_en
-      FROM dwh.facts f
-      JOIN dwh.dimension_users u
-      ON f.closed_id_user = u.user_id
-      JOIN dwh.dimension_countries c
-      ON f.id_country = c.country_id
-      WHERE u.username = '${NAME}'
-      AND f.action_comment = 'closed'
-      GROUP BY country_name_en
-     ) AS T
+    -c "SELECT countries_solving_notes
+     FROM dwh.datamartUsers
+     WHERE user_id = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
