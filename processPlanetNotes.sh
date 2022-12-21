@@ -1152,9 +1152,6 @@ EOF
  LANGUAGE plpgsql
  AS \$proc\$
   BEGIN
-   m_username:=REGEXP_REPLACE(m_username, \$\$([^'])'([^'])\$\$, \$\$\1''\2\$\$,
-     'g');
-
    INSERT INTO note_comments (
     note_id,
     event,
@@ -1237,7 +1234,6 @@ function __removeDuplicates {
   DECLARE
    r RECORD;
    created_time VARCHAR(100);
-   m_username VARCHAR(256);
    qty INT;
   BEGIN
    SELECT COUNT(1) INTO qty
@@ -1252,13 +1248,11 @@ function __removeDuplicates {
     LOOP
      created_time := 'TO_TIMESTAMP(''' || r.created_at
        || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-     m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
-       '\1''''\2', 'g');
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
        || '''' || r.event || '''::note_event_enum, '
-       || COALESCE (created_time, 'NULL') || ', '
-       || COALESCE (r.user_id || '', 'NULL') || ', '
-       || COALESCE ('''' || m_username || '''', 'NULL') || ')';
+       || COALESCE(created_time, 'NULL') || ', '
+       || COALESCE(r.user_id || '', 'NULL') || ', '
+       || QUOTE_NULLABLE('''' || r.username || '''') || ')';
     END LOOP;
    END IF;
   END
