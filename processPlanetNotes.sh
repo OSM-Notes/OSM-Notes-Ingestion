@@ -502,7 +502,7 @@ EOF
 function __createBaseTables {
  __log_start
  __logi "Creating tables"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+ psql -d "${DBNAME}" << EOF
   CREATE TYPE note_status_enum AS ENUM (
     'open',
     'close',
@@ -516,7 +516,9 @@ function __createBaseTables {
    'commented',
    'hidden'
    );
+EOF
 
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TABLE notes (
    note_id INTEGER NOT NULL, -- id
    latitude DECIMAL NOT NULL,
@@ -531,12 +533,20 @@ function __createBaseTables {
    ADD CONSTRAINT pk_notes
    PRIMARY KEY (note_id);
 
+  CREATE TABLE users(
+   user_id INTEGER NOT NULL,
+   username VARCHAR(256) NOT NULL
+  );
+
+  ALTER TABLE users
+   ADD CONSTRAINT pk_users
+   PRIMARY KEY (user_id);
+
   CREATE TABLE note_comments (
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
    created_at TIMESTAMP NOT NULL,
-   user_id INTEGER,
-   username VARCHAR(256)
+   id_user INTEGER
   );
 
   -- ToDo primary key duplicated error.
@@ -549,13 +559,17 @@ function __createBaseTables {
    FOREIGN KEY (note_id)
    REFERENCES notes (note_id);
 
+  ALTER TABLE note_comments
+   ADD CONSTRAINT fk_users
+   FOREIGN KEY (id_user)
+   REFERENCES users (user_id);
+
   CREATE INDEX IF NOT EXISTS notes_closed ON notes (closed_at);
   CREATE INDEX IF NOT EXISTS notes_created ON notes (created_at);
   CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
-  CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (user_id);
   CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
+  CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (id_user);
   CREATE INDEX IF NOT EXISTS note_comments_created ON note_comments (created_at);
-
 EOF
  __log_finish
 }
@@ -580,10 +594,61 @@ function __createSyncTables {
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
    created_at TIMESTAMP NOT NULL,
-   user_id INTEGER,
+   id_user INTEGER,
    username VARCHAR(256)
   );
 EOF
+ __log_finish
+}
+
+
+# Checks the base tables if exist.
+function __checkBaseTables {
+ __log_start
+ set +e
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+  DO
+  \$\$
+  DECLARE
+   qty INT;
+  BEGIN
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'countries'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: countries';
+   END IF;
+
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'notes'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: notes';
+   END IF;
+
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'note_comments'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: note_comments';
+   END IF;
+  END;
+  \$\$;
+EOF
+ RET=${?}
+ set -e
+ if [[ "${RET}" -ne 0 ]] ; then
+  __createBaseTables
+ fi
  __log_finish
 }
 
@@ -751,8 +816,8 @@ EOF
 
   __logi "Inserting into final table."
   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-    country_name_en, geom) select ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
-    '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) from import group by 1"
+    country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
+    '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) FROM import GROUP BY 1"
   __logd "${STATEMENT}"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
@@ -1146,24 +1211,31 @@ EOF
    m_note_id INTEGER,
    m_event note_event_enum,
    m_created_at TIMESTAMP WITH TIME ZONE,
-   m_user_id INTEGER,
+   m_id_user INTEGER,
    m_username VARCHAR(256)
  )
  LANGUAGE plpgsql
  AS \$proc\$
   BEGIN
+   INSERT INTO users (
+    user_id,
+    username
+   ) VALUES (
+    m_id_user,
+    m_username
+   ) ON CONFLICT (user_id) DO UPDATE
+    SET username = EXCLUDED.username;
+
    INSERT INTO note_comments (
     note_id,
     event,
     created_at,
-    user_id,
-    username
+    id_user
    ) VALUES (
     m_note_id,
     m_event,
     m_created_at,
-    m_user_id,
-    m_username
+    m_id_user
    ) ON CONFLICT DO NOTHING;
    IF (m_event = 'closed') THEN
     UPDATE notes
@@ -1203,7 +1275,11 @@ function __removeDuplicates {
    FROM notes;
 
    IF (qty = 0) THEN
-    INSERT INTO notes SELECT * FROM notes_sync;
+    INSERT INTO notes (
+      note_id, latitude, longitude, created_at, status, closed_at, id_country
+      ) SELECT
+      note_id, latitude, longitude, created_at, status, closed_at, id_country
+      FROM notes_sync;
    ELSE
     FOR r IN
      SELECT note_id, latitude, longitude, created_at, closed_at, status
@@ -1240,10 +1316,22 @@ function __removeDuplicates {
    FROM note_comments;
 
    IF (qty = 0) THEN
-    INSERT INTO note_comments SELECT * FROM note_comments_sync;
+    INSERT INTO users (
+     user_id, username
+     ) SELECT
+     id_user, username
+     FROM note_comments_sync
+     WHERE id_user IS NOT NULL
+     GROUP BY id_user, username;
+     
+    INSERT INTO note_comments (
+     note_id, event, created_at, id_user
+     ) SELECT 
+     note_id, event, created_at, id_user
+     FROM note_comments_sync;
    ELSE
     FOR r IN
-     SELECT note_id, event, created_at, user_id, username
+     SELECT note_id, event, created_at, id_user, username
      FROM note_comments_sync
     LOOP
      created_time := 'TO_TIMESTAMP(''' || r.created_at
@@ -1251,7 +1339,7 @@ function __removeDuplicates {
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
        || '''' || r.event || '''::note_event_enum, '
        || COALESCE(created_time, 'NULL') || ', '
-       || COALESCE(r.user_id || '', 'NULL') || ', '
+       || COALESCE(r.id_user || '', 'NULL') || ', '
        || QUOTE_NULLABLE('''' || r.username || '''') || ')';
     END LOOP;
    END IF;
@@ -1530,6 +1618,9 @@ __checkPrereqs
    || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
   __dropSyncTables # sync
   __createSyncTables # sync
+  set +E
+  __checkBaseTables # sync
+  set -E
  fi
  if [[ "${PROCESS_TYPE}" == "--base" ]] \
    || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
@@ -1575,3 +1666,4 @@ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
  rmdir "${TMP_DIR}"
 fi
+
