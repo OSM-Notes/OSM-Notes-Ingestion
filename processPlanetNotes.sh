@@ -519,7 +519,7 @@ function __createBaseTables {
 EOF
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  CREATE TABLE notes (
+  CREATE TABLE IF NOT EXISTS notes (
    note_id INTEGER NOT NULL, -- id
    latitude DECIMAL NOT NULL,
    longitude DECIMAL NOT NULL,
@@ -529,25 +529,35 @@ EOF
    id_country INTEGER
   );
 
-  ALTER TABLE notes
-   ADD CONSTRAINT pk_notes
-   PRIMARY KEY (note_id);
-
-  CREATE TABLE users(
+  CREATE TABLE IF NOT EXISTS users(
    user_id INTEGER NOT NULL,
    username VARCHAR(256) NOT NULL
   );
 
-  ALTER TABLE users
-   ADD CONSTRAINT pk_users
-   PRIMARY KEY (user_id);
-
-  CREATE TABLE note_comments (
+  CREATE TABLE IF NOT EXISTS note_comments (
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
    created_at TIMESTAMP NOT NULL,
    id_user INTEGER
   );
+
+  CREATE INDEX IF NOT EXISTS notes_closed ON notes (closed_at);
+  CREATE INDEX IF NOT EXISTS notes_created ON notes (created_at);
+  CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
+  CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
+  CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (id_user);
+  CREATE INDEX IF NOT EXISTS note_comments_created ON note_comments (created_at);
+EOF
+
+ psql -d "${DBNAME}" << EOF
+
+  ALTER TABLE notes
+   ADD CONSTRAINT pk_notes
+   PRIMARY KEY (note_id);
+
+  ALTER TABLE users
+   ADD CONSTRAINT pk_users
+   PRIMARY KEY (user_id);
 
   -- ToDo primary key duplicated error.
   --ALTER TABLE note_comments
@@ -564,12 +574,6 @@ EOF
    FOREIGN KEY (id_user)
    REFERENCES users (user_id);
 
-  CREATE INDEX IF NOT EXISTS notes_closed ON notes (closed_at);
-  CREATE INDEX IF NOT EXISTS notes_created ON notes (created_at);
-  CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
-  CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
-  CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (id_user);
-  CREATE INDEX IF NOT EXISTS note_comments_created ON note_comments (created_at);
 EOF
  __log_finish
 }
