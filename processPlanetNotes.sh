@@ -1280,12 +1280,13 @@ function __removeDuplicates {
     FROM notes_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
     'Deleting duplicates notes sync' as Text;
+  DROP TABLE notes_sync_no_duplicates;
   CREATE TABLE notes_sync_no_duplicates AS
     SELECT * FROM notes_sync WHERE note_id IN (
       SELECT note_id FROM notes_sync s
       EXCEPT 
       SELECT note_id FROM notes);
-  DROP TABLE note_comments_sync;
+  DROP TABLE notes_sync;
   ALTER TABLE notes_sync_no_duplicates RENAME TO notes_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes sync' as Text;
   ANALYZE notes_sync;
@@ -1334,6 +1335,7 @@ function __removeDuplicates {
     FROM note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
     'Deleting duplicates comments sync' as Text;
+  DROP TABLE note_comments_sync_no_duplicates;
   CREATE TABLE note_comments_sync_no_duplicates AS
     SELECT *
     FROM note_comments_sync
@@ -1346,8 +1348,10 @@ function __removeDuplicates {
   ALTER TABLE note_comments_sync_no_duplicates RENAME TO note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments sync' as Text;
   ANALYZE note_comments_sync;
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting comments sync different' as Text;
-  SELECT COUNT(1), 'Sync comments no duplicates' AS Type
+  SELECT CURRENT_TIMESTAMP AS Processing,
+    'Counting comments sync different' as Text;
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1),
+    'Sync comments no duplicates' AS Type
     FROM note_comments_sync;
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync comments';
