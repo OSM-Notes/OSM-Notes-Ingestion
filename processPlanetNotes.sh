@@ -1232,14 +1232,16 @@ EOF
  LANGUAGE plpgsql
  AS \$proc\$
   BEGIN
-   INSERT INTO users (
-    user_id,
-    username
-   ) VALUES (
-    m_id_user,
-    m_username
-   ) ON CONFLICT (user_id) DO UPDATE
-    SET username = EXCLUDED.username;
+   IF (user_id IS NOT NULL AND username IS NOT NULL) THEN
+    INSERT INTO users (
+     user_id,
+     username
+    ) VALUES (
+     m_id_user,
+     m_username
+    ) ON CONFLICT (user_id) DO UPDATE
+     SET username = EXCLUDED.username;
+   END IF;
 
    INSERT INTO note_comments (
     note_id,
