@@ -1328,10 +1328,13 @@ function __removeDuplicates {
   SELECT COUNT(1), 'Sync comments' AS Type FROM note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Deleting duplicates comments sync' as Text;
   CREATE TABLE note_comments_sync_no_duplicates AS
-    SELECT * FROM note_comments_sync WHERE (note_id, created_at) IN (
-      SELECT note_id, created_at FROM note_comments_sync s
+    SELECT *
+    FROM note_comments_sync
+    WHERE note_id IN (
+      SELECT note_id FROM note_comments_sync s
       EXCEPT 
-      SELECT note_id, created_at FROM note_comments);
+      SELECT note_id FROM note_comments)
+     AND created_at > (SELECT MAX(created_at) TIMESTAMP FROM note_comments);
   DROP TABLE note_comments_sync;
   ALTER TABLE note_comments_sync_no_duplicates RENAME TO note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments sync' as Text;
