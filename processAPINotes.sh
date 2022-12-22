@@ -309,13 +309,12 @@ function __createPropertiesTable {
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'execution_properties'
+   AND TABLE_NAME = 'max_note_timestamp'
    ;
 
    IF (qty = 0) THEN
-    EXECUTE 'CREATE TABLE execution_properties ('
-      || 'key VARCHAR(256) NOT NULL,'
-      || 'value VARCHAR(256)'
+    EXECUTE 'CREATE TABLE max_note_timestamp ('
+      || 'timestamp TIMESTAMP NOT NULL'
       || ')';
    END IF;
 
@@ -334,25 +333,21 @@ function __createPropertiesTable {
 
    IF (new_last_update IS NOT NULL) THEN
     SELECT value INTO last_update
-      FROM execution_properties
-      WHERE key = 'lastUpdate';
+      FROM max_note_timestamp;
 
     IF (last_update IS NULL) THEN
-     INSERT INTO execution_properties VALUES
-       ('lastUpdate', new_last_update);
+     INSERT INTO max_note_timestamp (timestamp) VALUES (new_last_update);
     ELSE
-     UPDATE execution_properties
-       SET value = new_last_update
-       WHERE key = 'lastUpdate';
+     UPDATE max_note_timestamp
+       SET timestamp = new_last_update;
     END IF;
    ELSE
     RAISE EXCEPTION 'Notes are not yet on the database';
    END IF;
   END;
   \$\$;
-  SELECT value, 'oldLastUpdate' AS key
-  FROM execution_properties
-  WHERE key = 'lastUpdate';
+  SELECT timestamp, 'oldLastUpdate' AS key
+  FROM max_note_timestamp;
 EOF
  __log_finish
 }
@@ -416,7 +411,8 @@ function __getNewNotesFromApi {
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
  # Gets the most recent value on the database.
  psql -d "${DBNAME}" -Atq \
-   -c "SELECT TO_CHAR(TO_TIMESTAMP(value, 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM execution_properties WHERE KEY = 'lastUpdate'" \
+   -c "SELECT TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
+     FROM max_note_timestamp" \
    -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  __logw "Last update: ${LAST_UPDATE}"
@@ -729,9 +725,8 @@ function __insertNewNotesAndComments {
     m_closed_time VARCHAR(100);
     m_lastupdate TIMESTAMP;
    BEGIN
-    SELECT value INTO m_lastupdate
-     FROM execution_properties
-     WHERE key = 'lastUpdate';
+    SELECT timestamp INTO m_lastupdate
+     FROM max_note_timestamp;
     FOR r IN
      SELECT note_id, latitude, longitude, created_at, closed_at, status
      FROM notes_api
@@ -763,9 +758,8 @@ function __insertNewNotesAndComments {
     m_created_time VARCHAR(100);
     m_lastupdate TIMESTAMP;
    BEGIN
-    SELECT value INTO m_lastupdate
-     FROM execution_properties
-     WHERE key = 'lastUpdate';
+    SELECT timestamp INTO m_lastupdate
+     FROM max_note_timestamp;
     FOR r IN
      SELECT note_id, event, created_at, id_user, username
      FROM note_comments_api
@@ -795,7 +789,7 @@ function __updateLastValue {
  __log_start
  __logi "Updating last update time"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  SELECT value FROM execution_properties WHERE key = 'lastUpdate';
+  SELECT timestamp FROM max_note_timestamp;
   DO
   \$\$
    DECLARE
@@ -815,14 +809,12 @@ function __updateLastValue {
      FROM note_comments
     ) T;
 
-    UPDATE execution_properties
-     SET value = new_last_update
-     WHERE key = 'lastUpdate';
+    UPDATE max_note_timestamp
+     SET timestamp = new_last_update;
    END;
   \$\$;
-  SELECT value, 'newLastUpdate' AS key
-  FROM execution_properties
-  WHERE key = 'lastUpdate';
+  SELECT timestamp, 'newLastUpdate' AS key
+  FROM max_note_timestamp;
 EOF
  __log_finish
 }
