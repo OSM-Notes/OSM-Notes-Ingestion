@@ -1276,8 +1276,10 @@ function __removeDuplicates {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting notes sync' as Text;
-  SELECT COUNT(1), 'Sync notes' AS Type FROM notes_sync;
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Deleting duplicates notes sync' as Text;
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1), 'Sync notes' AS Type
+    FROM notes_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing,
+    'Deleting duplicates notes sync' as Text;
   CREATE TABLE notes_sync_no_duplicates AS
     SELECT * FROM notes_sync WHERE note_id IN (
       SELECT note_id FROM notes_sync s
@@ -1287,7 +1289,8 @@ function __removeDuplicates {
   ALTER TABLE notes_sync_no_duplicates RENAME TO notes_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes sync' as Text;
   ANALYZE notes_sync;
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting notes sync different' as Text;
+  SELECT CURRENT_TIMESTAMP AS Processing,
+    'Counting notes sync different' as Text;
   SELECT COUNT(1), 'Sync notes no duplicates' AS Type FROM notes_sync;
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync note';
@@ -1327,8 +1330,10 @@ function __removeDuplicates {
   ANALYZE notes;
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting comments sync' as Text;
-  SELECT COUNT(1), 'Sync comments' AS Type FROM note_comments_sync;
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Deleting duplicates comments sync' as Text;
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1), 'Sync comments' AS Type
+    FROM note_comments_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing,
+    'Deleting duplicates comments sync' as Text;
   CREATE TABLE note_comments_sync_no_duplicates AS
     SELECT *
     FROM note_comments_sync
