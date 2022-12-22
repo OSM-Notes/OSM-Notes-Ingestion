@@ -286,7 +286,7 @@ function __createApiTables {
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
    created_at TIMESTAMP NOT NULL,
-   user_id INTEGER,
+   id_user INTEGER,
    username VARCHAR(256)
   );
 EOF
@@ -751,7 +751,7 @@ function __insertNewNotesAndComments {
      FROM execution_properties
      WHERE key = 'lastUpdate';
     FOR r IN
-     SELECT note_id, event, created_at, user_id, username
+     SELECT note_id, event, created_at, id_user, username
      FROM note_comments_api
     LOOP
      IF (r.created_at = m_lastupdate) THEN
@@ -761,7 +761,7 @@ function __insertNewNotesAndComments {
        || '''' || r.event || '''::note_event_enum, '
        || 'TO_TIMESTAMP(''' || r.created_at
        || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || COALESCE(r.user_id || '', 'NULL') || ', '
+       || COALESCE(r.id_user || '', 'NULL') || ', '
        || QUOTE_NULLABLE('''' || r.username || '''') || ')';
     END LOOP;
    END;
