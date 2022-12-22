@@ -437,6 +437,7 @@ function __dropBaseTables {
   DROP FUNCTION get_country;
   DROP PROCEDURE insert_note_comment;
   DROP PROCEDURE insert_note;
+  DROP TABLE users;
   DROP TABLE note_comments;
   DROP TABLE notes;
   DROP TYPE note_event_enum;
