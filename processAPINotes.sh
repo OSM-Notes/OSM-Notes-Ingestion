@@ -695,12 +695,21 @@ function __loadApiNotes {
 
  # Loads the data in the database.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+  SELECT CURRENT_TIMESTAMP, 'Loading notes from API' as text;
   COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status)
     FROM '${OUTPUT_NOTES_FILE}' csv;
+  SELECT CURRENT_TIMESTAMP, 'Statistics on notes from API' as text;
+  ANALYZE notes_api;
+  SELECT CURRENT_TIMESTAMP, 'Counting notes from API' as text;
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'uploaded new notes' as type
   FROM notes_api;
+
+  SELECT CURRENT_TIMESTAMP, 'Loading comments from API' as text;
   COPY note_comments_api FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
+  SELECT CURRENT_TIMESTAMP, 'Statistics on comments from API' as text;
+  ANALYZE note_comments_api;
+  SELECT CURRENT_TIMESTAMP, 'Counting comments from API' as text;
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'uploaded new comments' as type
   FROM note_comments_api;
 EOF
@@ -741,6 +750,8 @@ function __insertNewNotesAndComments {
     END LOOP;
    END;
   \$\$;
+  SELECT CURRENT_TIMESTAMP, 'Statistics on notes' as text;
+  ANALYZE notes;
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'current notes - after' as qty FROM notes;
 
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - before' as qty
@@ -771,6 +782,8 @@ function __insertNewNotesAndComments {
     END LOOP;
    END;
   \$\$;
+  SELECT CURRENT_TIMESTAMP, 'Statistics on comments' as text;
+  ANALYZE note_comments;
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - after' as qty
   FROM note_comments;
 EOF
