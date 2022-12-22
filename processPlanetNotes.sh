@@ -831,6 +831,9 @@ EOF
   __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
   sleep "${SECONDS_TO_WAIT}"
  done < "${MARITIMES_FILE}"
+
+ __logi "Calculating statistics on countries"
+ echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
 }
 
@@ -1062,17 +1065,21 @@ function __loadSyncNotes {
  # Adds a column to include the country where it belongs.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   DELETE FROM notes_sync;
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync notes';
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync notes' AS Text;
   COPY notes_sync (note_id, latitude, longitude, created_at, closed_at, status)
     FROM '${OUTPUT_NOTES_FILE}' csv;
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync notes';
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes sync' as Text;
+  ANALYZE notes_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync notes' AS Text;
   SELECT COUNT(1), 'Uploaded sync notes' AS Type FROM notes_sync;
 
   DELETE FROM note_comments_sync;
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync comments';
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync comments' AS Text;
   COPY note_comments_sync FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
     DELIMITER ',' QUOTE '''';
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync comments';
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments sync' as Text;
+  ANALYZE note_comments_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync comments' AS Text;
   SELECT COUNT(1), 'Uploaded sync comments' AS Type FROM note_comments_sync;
 EOF
  __log_finish
@@ -1264,9 +1271,14 @@ EOF
 function __removeDuplicates {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting notes sync' as Text;
   SELECT COUNT(1), 'Sync notes' AS Type FROM notes_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Deleting duplicates notes sync' as Text;
   DELETE FROM notes_sync
     WHERE note_id IN (SELECT note_id FROM notes);
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes sync' as Text;
+  ANALYZE notes_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting notes sync different' as Text;
   SELECT COUNT(1), 'Sync notes no duplicates' AS Type FROM notes_sync;
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync note';
@@ -1302,11 +1314,18 @@ function __removeDuplicates {
    END IF;
   END;
   \$\$;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes' as Text;
+  ANALYZE notes;
 
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting comments sync' as Text;
   SELECT COUNT(1), 'Sync comments' AS Type FROM note_comments_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Deleting duplicates comments sync' as Text;
   DELETE FROM note_comments_sync
     WHERE (note_id, event, created_at) IN
       (SELECT note_id, event, created_at FROM note_comments);
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments sync' as Text;
+  ANALYZE note_comments_sync;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting comments sync different' as Text;
   SELECT COUNT(1), 'Sync comments no duplicates' AS Type
     FROM note_comments_sync;
 
@@ -1351,6 +1370,8 @@ function __removeDuplicates {
    END IF;
   END
   \$\$;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments' as Text;
+  ANALYZE note_comments;
 
 BEGIN
 EOF
