@@ -20,49 +20,24 @@ INSERT INTO dwh.dimension_countries
 ;
 -- ToDo update countries with regions.
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Populating users temporal table';
-
-CREATE TEMPORARY TABLE temp_new_usernames (
- user_id INTEGER,
- username VARCHAR(256)
-);
-
-INSERT INTO temp_new_usernames 
- SELECT m.user_id, u.username
- FROM (
-  -- Returns the most recent comment per user
-  SELECT user_id, MAX(created_at) AS max_created_at 
-  FROM note_comments 
-  GROUP BY user_id 
- ) AS m 
- JOIN note_comments u 
- ON m.user_id = u.user_id 
- AND m.max_created_at = u.created_at
-;
-
 SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting dimension users';
 
 -- Inserts new users.
 INSERT INTO dwh.dimension_users
  (user_id, username)
- SELECT DISTINCT c.user_id, c.username
- FROM temp_new_usernames c
- WHERE c.user_id IS NOT NULL
- AND c.user_id NOT IN (
+ SELECT c.user_id, c.username
+ FROM users c
+ WHERE c.user_id NOT IN (
   SELECT u.user_id
   FROM dwh.dimension_users u
-  WHERE u.user_id IS NOT NULL
-  GROUP BY u.user_id
   )
- ON CONFLICT DO NOTHING
 ;
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Showing modified usernames';
 
 -- Shows usernames renamed.
--- TODO Revisar si es necesario. Toma mucho tiempo la comparacion lexicografica.
 SELECT DISTINCT d.username AS OldUsername, c.username AS NewUsername
- FROM temp_new_usernames c
+ FROM users c
   JOIN dwh.dimension_users d
   ON d.user_id = c.user_id
  WHERE c.username <> d.username
@@ -73,18 +48,15 @@ SELECT CURRENT_TIMESTAMP AS Processing, 'Updating modified usernames';
 -- Updates the dimension when username is changed.
 UPDATE dwh.dimension_users
  SET username = c.username
- FROM temp_new_usernames AS c
+ FROM users AS c
   JOIN dwh.dimension_users d
   ON d.user_id = c.user_id
  WHERE c.username <> d.username
 ;
 
-DROP TABLE temp_new_usernames;
-
 SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting facts';
 
 -- Inserts new facts.
--- TODO Cambiar de sample a definitivo
 INSERT INTO dwh.facts (
  id_note,
  created_at,
@@ -104,9 +76,9 @@ WITH opened (
   SELECT
    note_id,
    created_at,
-   user_id
+   id_user
   FROM
-   note_comments_sample
+   note_comments
   WHERE
    event = 'opened'
  ), closed (
@@ -117,9 +89,9 @@ WITH opened (
   SELECT
    note_id,
    created_at,
-   user_id
+   id_user
   FROM
-   note_comments_sample
+   note_comments
   WHERE
    event = 'closed'
  ), action (
@@ -131,10 +103,10 @@ WITH opened (
   SELECT
    note_id,
    created_at,
-   user_id,
+   id_user,
    event
   FROM
-   note_comments_sample
+   note_comments
  )
  SELECT
   n.note_id,
@@ -146,12 +118,12 @@ WITH opened (
   cac.event,
   cac.user_id, -- Could be null, if user has been deleted.
   cac.created_at
- FROM notes_sample n
-  JOIN opened cop
+ FROM notes n
+  JOIN opened cop -- open
   ON n.note_id = cop.note_id
-  LEFT JOIN closed ccl
+  LEFT JOIN closed ccl -- closed
   ON n.note_id = ccl.note_id
-  JOIN action cac
+  JOIN action cac -- action
   ON n.note_id = cac.note_id
  WHERE (n.closed_at is null OR n.closed_at = ccl.created_at) -- Only last close
  AND (
