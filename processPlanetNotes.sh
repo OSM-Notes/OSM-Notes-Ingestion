@@ -1233,7 +1233,7 @@ EOF
  LANGUAGE plpgsql
  AS \$proc\$
   BEGIN
-   IF (user_id IS NOT NULL AND username IS NOT NULL) THEN
+   IF (m_id_user IS NOT NULL AND m_username IS NOT NULL) THEN
     INSERT INTO users (
      user_id,
      username
