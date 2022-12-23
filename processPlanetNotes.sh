@@ -423,8 +423,8 @@ function __dropCountryTables {
  __log_start
  __logi "Droping country tables."
  psql -d "${DBNAME}" << EOF
-  DROP TABLE tries;
-  DROP TABLE countries;
+  DROP TABLE IF EXISTS tries;
+  DROP TABLE IF EXISTS countries;
 EOF
  __log_finish
 }
@@ -434,12 +434,12 @@ function __dropBaseTables {
  __log_start
  __logi "Droping base tables."
  psql -d "${DBNAME}" << EOF
-  DROP FUNCTION get_country;
-  DROP PROCEDURE insert_note_comment;
-  DROP PROCEDURE insert_note;
-  DROP TABLE users;
-  DROP TABLE note_comments;
-  DROP TABLE notes;
+  DROP FUNCTION IF EXISTS get_country;
+  DROP PROCEDURE IF EXISTS insert_note_comment;
+  DROP PROCEDURE IF EXISTS insert_note;
+  DROP TABLE IF EXISTS users;
+  DROP TABLE IF EXISTS note_comments;
+  DROP TABLE IF EXISTS notes;
   DROP TYPE note_event_enum;
   DROP TYPE note_status_enum;
 EOF
@@ -451,8 +451,8 @@ function __dropSyncTables {
  __log_start
  __logi "Droping sync tables."
  psql -d "${DBNAME}" << EOF
-  DROP TABLE note_comments_sync;
-  DROP TABLE notes_sync;
+  DROP TABLE IF EXISTS note_comments_sync;
+  DROP TABLE IF EXISTS notes_sync;
 EOF
  __log_finish
 }
@@ -462,8 +462,8 @@ function __dropApiTables {
  __log_start
  __logi "Droping api tables."
  psql -d "${DBNAME}" << EOF
-  DROP TABLE note_comments_api;
-  DROP TABLE notes_api;
+  DROP TABLE IF EXISTS note_comments_api;
+  DROP TABLE IF EXISTS notes_api;
 EOF
  __log_finish
 }
@@ -843,7 +843,7 @@ function __cleanPartial {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   rm -f "${QUERY_FILE}" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
-  echo "DROP TABLE import" | psql -d "${DBNAME}"
+  echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
  fi
  __log_finish
 }
@@ -1281,7 +1281,7 @@ function __removeDuplicates {
     FROM notes_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
     'Deleting duplicates notes sync' as Text;
-  DROP TABLE notes_sync_no_duplicates;
+  DROP TABLE IF EXISTS notes_sync_no_duplicates;
   CREATE TABLE notes_sync_no_duplicates AS
     SELECT * FROM notes_sync WHERE note_id IN (
       SELECT note_id FROM notes_sync s
@@ -1336,7 +1336,7 @@ function __removeDuplicates {
     FROM note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
     'Deleting duplicates comments sync' as Text;
-  DROP TABLE note_comments_sync_no_duplicates;
+  DROP TABLE IF EXISTS note_comments_sync_no_duplicates;
   CREATE TABLE note_comments_sync_no_duplicates AS
     SELECT *
     FROM note_comments_sync
