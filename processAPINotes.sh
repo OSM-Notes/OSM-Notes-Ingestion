@@ -260,8 +260,11 @@ EOF
 }
 
 # Checks that no processPlanetNotes is runnning
-function __checkNoNotesProcess {
- QTY=$(ps -ef | grep processPlanetNotes.sh | grep -v grep | wc -l)
+function __checkNoProcessPlanet {
+ local QTY
+ set +e
+ QTY="$(ps -ef | grep processPlanetNotes.sh | grep -v grep | wc -l)"
+ set -e
  if [[ "${QTY}" -ne "0" ]] ; then
   __loge "ERROR processPlanetNotes.sh is currently running."
   __logw "It is better to wait for it to finish."
@@ -674,6 +677,7 @@ EOF
 # synchronization
 function __checkQtyNotes {
  __log_start
+ local -i QTY
  QTY=$(wc -l "${OUTPUT_NOTES_FILE}" | awk '{print $1}')
  if [[ "${QTY}" -ge "${MAX_NOTES}" ]] ; then
   __logw "Starting full synchronization from Planet."
@@ -865,9 +869,9 @@ __checkPrereqs
  exec 8> "${LOCK}"
  __logw "Validating single execution."
  flock -n 8
- __checkNoNotesProcess
  __dropApiTables
  set +E
+ __checkNoProcessPlanet
  __checkBaseTables
  set -E
  __createApiTables
