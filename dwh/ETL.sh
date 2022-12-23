@@ -210,6 +210,66 @@ function __show_help {
  exit "${ERROR_HELP_MESSAGE}"
 }
 
+# Checks the base tables if exist.
+function __checkBaseTables {
+ __log_start
+ set +e
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+  DO
+  \$\$
+  DECLARE
+   qty INT;
+  BEGIN
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'dwh'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'dimension_countries'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_countries';
+   END IF;
+
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'dwh'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'dimension_users'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_users';
+   END IF;
+
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'dwh'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'dimension_time'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_time';
+   END IF;
+
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'dwh'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'facts'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Tables are missing: dwh.facts';
+   END IF;
+  END;
+  \$\$;
+EOF
+ RET=${?}
+ set -e
+ if [[ "${RET}" -ne 0 ]] ; then
+  __createBaseTables
+ fi
+ __log_finish
+}
+
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
@@ -257,6 +317,7 @@ __checkPrereqs
  if [[ "${PROCESS_TYPE}" == "--create" ]] ; then
   __createBaseTables
  fi
+ __checkBaseTables
  __processNotes
 
  __logw "Ending process"
