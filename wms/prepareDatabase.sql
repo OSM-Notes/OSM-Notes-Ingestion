@@ -17,13 +17,13 @@ CREATE TABLE IF NOT EXISTS wms.notes_wms AS
 ;
 
 -- Index for id.
-CREATE INDEX notes_id ON wms.notes_wms (note_id);
+CREATE INDEX IF NOT EXISTS notes_id ON wms.notes_wms (note_id);
 
 -- Index for open notes. The most important.
-CREATE INDEX notes_open ON wms.notes_wms (year_created_at);
+CREATE INDEX IF NOT EXISTS notes_open ON wms.notes_wms (year_created_at);
 
 -- Index for closed notes.
-CREATE INDEX notes_closed ON wms.notes_wms (year_closed_at);
+CREATE INDEX IF NOT EXISTS notes_closed ON wms.notes_wms (year_closed_at);
 
 -- Function for trigger when inserting new notes.
 CREATE OR REPLACE FUNCTION wms.insert_new_notes()
@@ -75,3 +75,4 @@ CREATE OR REPLACE TRIGGER update_notes
   WHEN (OLD.closed_at IS DISTINCT FROM NEW.closed_at)
   EXECUTE FUNCTION wms.update_notes()
 ;
+
