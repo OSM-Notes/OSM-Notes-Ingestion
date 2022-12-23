@@ -20,6 +20,7 @@
 # 242) Invalid argument.
 # 243) Logger utility is missing.
 # 244) No last update.
+# 245) Planet process is currently running.
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2022-11-29
@@ -46,6 +47,8 @@ declare -r ERROR_INVALID_ARGUMENT=242
 declare -r ERROR_LOGGER_UTILITY=243
 # 244: No last update.
 declare -r ERROR_NO_LAST_UPDATE=244
+# 245: Planet process is currently running.
+declare -r ERROR_PLANET_PROCESS_IS_RUNNING=245
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
@@ -256,6 +259,15 @@ EOF
  set -e
 }
 
+# Checks that no processPlanetNotes is runnning
+function __checkNoNotesProcess {
+ QTY=$(ps -ef | grep processPlanetNotes.sh | grep -v grep | wc -l)
+ if [[ "${QTY}" -ne "0" ]] ; then
+  __loge "ERROR processPlanetNotes.sh is currently running."
+  __logw "It is better to wait for it to finish."
+  exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
+ fi
+}
 # Drop tables for notes from API.
 function __dropApiTables {
  __log_start
@@ -301,8 +313,8 @@ function __createPropertiesTable {
   DO
   \$\$
   DECLARE
-   last_update VARCHAR(32);
-   new_last_update VARCHAR(32);
+   last_update TIMESTAMP;
+   new_last_update TIMESTAMP;
    qty INT;
   BEGIN
    SELECT COUNT(TABLE_NAME) INTO qty
@@ -332,7 +344,7 @@ function __createPropertiesTable {
    ) T;
 
    IF (new_last_update IS NOT NULL) THEN
-    SELECT value INTO last_update
+    SELECT timestamp INTO last_update
       FROM max_note_timestamp;
 
     IF (last_update IS NULL) THEN
@@ -793,8 +805,8 @@ function __updateLastValue {
   DO
   \$\$
    DECLARE
-    last_update VARCHAR(32);
-    new_last_update VARCHAR(32);
+    last_update TIMESTAMP;
+    new_last_update TIMESTAMP;
    BEGIN
     SELECT MAX(TIMESTAMP)
       INTO new_last_update
@@ -853,6 +865,7 @@ __checkPrereqs
  exec 8> "${LOCK}"
  __logw "Validating single execution."
  flock -n 8
+ __checkNoNotesProcess
  __dropApiTables
  set +E
  __checkBaseTables
