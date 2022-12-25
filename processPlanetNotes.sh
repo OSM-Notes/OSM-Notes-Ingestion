@@ -542,6 +542,11 @@ EOF
    id_user INTEGER
   );
 
+  CREATE TABLE IF NOT EXISTS logs (
+   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+   message VARCHAR(1000)
+  );
+
   CREATE INDEX IF NOT EXISTS notes_closed ON notes (closed_at);
   CREATE INDEX IF NOT EXISTS notes_created ON notes (created_at);
   CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
@@ -645,6 +650,26 @@ function __checkBaseTables {
    ;
    IF (qty <> 1) THEN
     RAISE EXCEPTION 'Base tables are missing: note_comments';
+   END IF;
+
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'logs'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: logs';
+   END IF;
+
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'public'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'tries'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: tries';
    END IF;
   END;
   \$\$;
@@ -1198,6 +1223,7 @@ function __createsProcedures {
   DECLARE
    id_country INTEGER;
   BEGIN
+   INSERT INTO logs (message) VALUES ('Inserting note: ' || m_note_id);
    id_country := get_country(m_longitude, m_latitude, m_note_id);
 
    INSERT INTO notes (
@@ -1233,6 +1259,8 @@ EOF
  LANGUAGE plpgsql
  AS \$proc\$
   BEGIN
+   INSERT INTO logs (message) VALUES ('Inserting comment: ' || m_note_id || '-'
+     || m_event);
    IF (m_id_user IS NOT NULL AND m_username IS NOT NULL) THEN
     INSERT INTO users (
      user_id,
@@ -1302,6 +1330,7 @@ function __removeDuplicates {
    r RECORD;
    closed_time VARCHAR(100);
    qty INT;
+   count INT;
   BEGIN
    SELECT COUNT(1) INTO qty
    FROM notes;
@@ -1313,6 +1342,7 @@ function __removeDuplicates {
       note_id, latitude, longitude, created_at, status, closed_at, id_country
       FROM notes_sync;
    ELSE
+    count := 0;
     FOR r IN
      SELECT note_id, latitude, longitude, created_at, closed_at, status
      FROM notes_sync
@@ -1325,6 +1355,10 @@ function __removeDuplicates {
        || COALESCE (closed_time, 'NULL') || ','
        || '''' || r.status || '''::note_status_enum)';
     END LOOP;
+    IF (count % 1000 = 0) THEN
+     COMMIT;
+    END IF;
+    count := count + 1;
    END IF;
   END;
   \$\$;
@@ -1343,8 +1377,7 @@ function __removeDuplicates {
     WHERE note_id IN (
       SELECT note_id FROM note_comments_sync s
       EXCEPT 
-      SELECT note_id FROM note_comments)
-     AND created_at > (SELECT MAX(created_at) TIMESTAMP FROM note_comments);
+      SELECT note_id FROM note_comments);
   DROP TABLE note_comments_sync;
   ALTER TABLE note_comments_sync_no_duplicates RENAME TO note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments sync' as Text;
