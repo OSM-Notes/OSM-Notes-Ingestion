@@ -870,10 +870,12 @@ __checkPrereqs
  __logw "Validating single execution."
  flock -n 8
  __dropApiTables
- set +E
- __checkNoProcessPlanet
- __checkBaseTables
- set -E
+} >> "${LOG_FILE}" 2>&1
+set +E
+__checkNoProcessPlanet
+__checkBaseTables
+set -E
+{
  __createApiTables
  __createPropertiesTable
  __getNewNotesFromApi
