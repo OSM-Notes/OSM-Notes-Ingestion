@@ -712,8 +712,21 @@ EOF
  tail -n +2 "${COUNTRIES_FILE}" > "${COUNTRIES_FILE}.tmp"
  mv "${COUNTRIES_FILE}.tmp" "${COUNTRIES_FILE}"
 
- # Adds the Gaza Strip, as it is not at country level.
+ # Areas not at country level.
+ # Adds the Gaza Strip
  echo "1703814" >> "${COUNTRIES_FILE}"
+ # Adds Judea and Samaria.
+ echo "1803010" >> "${COUNTRIES_FILE}"
+ # Adds the Buthan - China dispute.
+ echo "12931402" >> "${COUNTRIES_FILE}"
+ # Adds Ilemi Triangle
+ echo "192797" >> "${COUNTRIES_FILE}"
+ # Adds Neutral zone Burkina Faso - Benin
+ echo "12940096" >> "${COUNTRIES_FILE}"
+ # Adds Bir Tawil
+ echo "3335661" >> "${COUNTRIES_FILE}"
+ # Adds Jungholz, Austria
+ echo "37848" >> "${COUNTRIES_FILE}"
 
  __logi "Retrieving the countries' boundaries."
  while read -r LINE ; do
