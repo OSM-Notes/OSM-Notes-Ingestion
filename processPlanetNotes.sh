@@ -1138,7 +1138,7 @@ function __createsFunctionToGetCountry {
   BEGIN
    id_country := -1;
    iter := 1;
-   IF (-5 < lat AND lat < 5 AND 4 > lon AND lon > -4) THEN
+   IF (-5 < lat AND lat < 4.53 AND 4 > lon AND lon > -4) THEN
     area := 'Null Island';
    ELSIF (lon < -30) THEN -- Americas
     area := 'Americas';
