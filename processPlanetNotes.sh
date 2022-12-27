@@ -1323,6 +1323,16 @@ EOF
  __log_finish
 }
 
+# Calculates statistics on all tables and vacuum.
+function __AnalyzeAndVacuum {
+ __log_start
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+  VACUUM VERBOSE;
+  ANALYZE VERBOSE;
+EOF
+ __log_finish
+}
+
 # Removes notes and comments from the new set that are already in the database.
 function __removeDuplicates {
  __log_start
@@ -1756,6 +1766,7 @@ __checkPrereqs
  fi
  __createsFunctionToGetCountry # base, sync & locate
  __createsProcedures # all
+ --AnalyzeAndVacuum # all
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
   __copyFlatFiles # locate
  fi
