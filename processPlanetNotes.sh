@@ -727,16 +727,16 @@ EOF
  echo "3335661" >> "${COUNTRIES_FILE}"
  # Adds Jungholz, Austria
  echo "37848" >> "${COUNTRIES_FILE}"
- # Adds Antartida areas
- echo "3394112" >> "${COUNTRIES_FILE}" # British Antartic
- echo "3394110" >> "${COUNTRIES_FILE}" # Argentine Antartic
- echo "3394115" >> "${COUNTRIES_FILE}" # Chilean Antartic
+ # Adds Antarctica areas
+ echo "3394112" >> "${COUNTRIES_FILE}" # British Antarctic
+ echo "3394110" >> "${COUNTRIES_FILE}" # Argentine Antarctic
+ echo "3394115" >> "${COUNTRIES_FILE}" # Chilean Antarctic
  echo "3394113" >> "${COUNTRIES_FILE}" # Ross dependency
- echo "3394111" >> "${COUNTRIES_FILE}" # Australian Antartic
+ echo "3394111" >> "${COUNTRIES_FILE}" # Australian Antarctic
  echo "3394114" >> "${COUNTRIES_FILE}" # Adelia Land
  echo "3245621" >> "${COUNTRIES_FILE}" # Queen Maud Land
  echo "2955118" >> "${COUNTRIES_FILE}" # Peter I Island
- echo "2186646" >> "${COUNTRIES_FILE}" # Antactica continent
+ echo "2186646" >> "${COUNTRIES_FILE}" # Antarctica continent
 
  __logi "Retrieving the countries' boundaries."
  while read -r LINE ; do
