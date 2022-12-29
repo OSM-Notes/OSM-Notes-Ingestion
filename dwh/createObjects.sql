@@ -40,12 +40,10 @@ CREATE OR REPLACE FUNCTION dwh.insert_new_notes()
   RETURNS TRIGGER AS
  $$
  BEGIN
-  INSERT INTO dwh.dimension_time
-   VALUES
-   (
-    date(NEW.action_at),
-    DATE_PART('day', NEW.action_at),
-    365 - DATE_PART('day', NEW.action_at)
+  INSERT INTO dwh.dimension_time VALUES (
+    date(NEW.action_at), -- date_id
+    DATE_PART('doy', NEW.action_at), -- days_from_notes_epoch
+    365 - DATE_PART('doy', NEW.action_at) -- days_to_next_year
    ) ON CONFLICT DO NOTHING
   ;
   RETURN NEW;
