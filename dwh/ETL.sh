@@ -306,6 +306,7 @@ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
  __show_help
 fi
 __checkPrereqs
+__checkBaseTables
 {
  __logw "Starting process"
  # Sets the trap in case of any signal.
@@ -317,7 +318,6 @@ __checkPrereqs
  if [[ "${PROCESS_TYPE}" == "--create" ]] ; then
   __createBaseTables
  fi
- __checkBaseTables
  __processNotes
 
  __logw "Ending process"
