@@ -266,8 +266,8 @@ function __checkNoProcessPlanet {
  QTY="$(ps -ef | grep processPlanetNotes.sh | grep -v grep | wc -l)"
  set -e
  if [[ "${QTY}" -ne "0" ]] ; then
-  __loge "${BASENAME} is currently running." | tee "${LOG_FILE}"
-  __logw "It is better to wait for it to finish." | tee "${LOG_FILE}"
+  __loge "${BASENAME} is currently running." | tee -a "${LOG_FILE}"
+  __logw "It is better to wait for it to finish." | tee -a "${LOG_FILE}"
   exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
  fi
 }
@@ -412,9 +412,9 @@ EOF
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
-  __logw "Creating base tables. It will take several hours." | tee "${LOG_FILE}"
+  __logw "Creating base tables. It will take several hours." | tee -a "${LOG_FILE}"
   "${NOTES_SYNC_SCRIPT}" --base
-  __logw "Base tables created." | tee "${LOG_FILE}"
+  __logw "Base tables created." | tee -a "${LOG_FILE}"
  fi
  __log_finish
 
@@ -869,7 +869,7 @@ __checkPrereqs
 # Sets the trap in case of any signal.
 __trapOn
 exec 8> "${LOCK}"
-__logw "Validating single execution." | tee "${LOG_FILE}"
+__logw "Validating single execution." | tee -a "${LOG_FILE}"
 flock -n 8
 
 {

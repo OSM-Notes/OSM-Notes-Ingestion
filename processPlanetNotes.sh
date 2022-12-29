@@ -1726,7 +1726,7 @@ __checkPrereqs
 __trapOn
 if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
  exec 7> "${LOCK}"
- __logw "Validating single execution." | tee "${LOG_FILE}"
+ __logw "Validating single execution." | tee -a "${LOG_FILE}"
  flock -n 7
 fi
 
