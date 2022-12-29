@@ -1720,14 +1720,17 @@ fi
 __checkPrereqs
 {
  __logw "Starting process"
- # Sets the trap in case of any signal.
- __trapOn
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
-  exec 7> "${LOCK}"
-  __logw "Validating single execution."
-  flock -n 7
- fi
+} >> "${LOG_FILE}" 2>&1
 
+# Sets the trap in case of any signal.
+__trapOn
+if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+ exec 7> "${LOCK}"
+ __logw "Validating single execution." | tee "${LOG_FILE}"
+ flock -n 7
+fi
+
+{
  if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
   __dropSyncTables # base
   __dropApiTables # base

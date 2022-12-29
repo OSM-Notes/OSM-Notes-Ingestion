@@ -266,8 +266,8 @@ function __checkNoProcessPlanet {
  QTY="$(ps -ef | grep processPlanetNotes.sh | grep -v grep | wc -l)"
  set -e
  if [[ "${QTY}" -ne "0" ]] ; then
-  __loge "ERROR processPlanetNotes.sh is currently running."
-  __logw "It is better to wait for it to finish."
+  __loge "${BASENAME} is currently running." | tee "${LOG_FILE}"
+  __logw "It is better to wait for it to finish." | tee "${LOG_FILE}"
   exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
  fi
 }
@@ -412,9 +412,9 @@ EOF
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
-  __logw "Creating base tables. It will take several hours."
+  __logw "Creating base tables. It will take several hours." | tee "${LOG_FILE}"
   "${NOTES_SYNC_SCRIPT}" --base
-  __logw "Base tables created."
+  __logw "Base tables created." | tee "${LOG_FILE}"
  fi
  __log_finish
 
@@ -432,7 +432,7 @@ function __getNewNotesFromApi {
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  __logw "Last update: ${LAST_UPDATE}"
  if [[ "${LAST_UPDATE}" == "" ]] ; then
-  __loge "ERROR: No last update. Please load notes."
+  __loge "No last update. Please load notes."
   exit "${ERROR_NO_LAST_UPDATE}"
  fi
 
@@ -864,11 +864,15 @@ fi
 __checkPrereqs
 {
  __logw "Process started."
- # Sets the trap in case of any signal.
- __trapOn
- exec 8> "${LOCK}"
- __logw "Validating single execution."
- flock -n 8
+} >> "${LOG_FILE}" 2>&1
+
+# Sets the trap in case of any signal.
+__trapOn
+exec 8> "${LOCK}"
+__logw "Validating single execution." | tee "${LOG_FILE}"
+flock -n 8
+
+{
  __dropApiTables
 } >> "${LOG_FILE}" 2>&1
 set +E
