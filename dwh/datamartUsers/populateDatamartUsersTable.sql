@@ -13,8 +13,6 @@ BEGIN
   SELECT user_id, username
   FROM dwh.dimension_users
  LOOP
-  m_username:=REGEXP_REPLACE(r.username, '([^''])''([^''])',
-       '\1''''\2', 'g');
 
   SELECT DATE(MIN(created_at))
    INTO m_date_starting_solving_notes
