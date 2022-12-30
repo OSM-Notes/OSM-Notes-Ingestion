@@ -56,6 +56,7 @@ UPDATE dwh.dimension_users
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting facts';
 
+-- TODO Procesar solo las notas que han sido modificadas
 -- Inserts new facts.
 INSERT INTO dwh.facts (
  id_note,
@@ -143,3 +144,4 @@ WITH opened (
   cac.created_at
 ;
 
+-- TODO Create a process montly to get the badges

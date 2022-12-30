@@ -12,6 +12,7 @@ BEGIN
  FOR r IN
   SELECT user_id, username
   FROM dwh.dimension_users
+  -- TODO hacer el query solo sobre usuarios modificados
  LOOP
 
   SELECT DATE(MIN(created_at))
