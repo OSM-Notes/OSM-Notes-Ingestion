@@ -1266,6 +1266,7 @@ function __createsProcedures {
     m_status,
     id_country
    ) ON CONFLICT DO NOTHING;
+   -- TODO Insertar nota en la lista de notas a analizar
   END
  \$proc\$
 EOF
@@ -1317,6 +1318,8 @@ EOF
       closed_at = NULL
       WHERE note_id = m_note_id;
    END IF;
+   -- TODO Insertar en otra tabla el usuario que hay que recalcular.
+   -- TODO Insertar en otra tabla el país que hay que recalcular.
   END
  \$proc\$
 EOF
