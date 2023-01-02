@@ -33,31 +33,31 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_time (
 );
 
 CREATE TABLE IF NOT EXISTS dwh.ranking_historic (
- action note_event_enum
+ action note_event_enum,
  id_country INTEGER,
  id_user INTEGER NOT NULL,
- position INTEGER NOT NULL,
+ position INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS dwh.ranking_year (
- action note_event_enum
+ action note_event_enum,
  id_country INTEGER,
  id_user INTEGER NOT NULL,
- position INTEGER NOT NULL,
+ position INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS dwh.ranking_month (
- action note_event_enum
+ action note_event_enum,
  id_country INTEGER,
  id_user INTEGER NOT NULL,
- position INTEGER NOT NULL,
+ position INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS dwh.ranking_day (
- action note_event_enum
+ action note_event_enum,
  id_country INTEGER,
  id_user INTEGER NOT NULL,
- position INTEGER NOT NULL,
+ position INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS facts_action_date ON dwh.facts (action_at);
