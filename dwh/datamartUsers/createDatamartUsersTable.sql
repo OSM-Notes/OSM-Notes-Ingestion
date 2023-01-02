@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
  date_starting_solving_notes DATE,
  countries_open_notes VARCHAR(1024),
  countries_solving_notes VARCHAR(1024),
- contributor_type_id INTEGER,
+ id_contributor_type INTEGER,
  last_year_activity CHAR(366),
  working_hours_opening CHAR(7),
  working_hours_commenting CHAR(7),
@@ -105,28 +105,29 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
 CREATE TABLE IF NOT EXISTS dwh.badges (
  badge_id INTEGER NOT NULL,
  badge_name VARCHAR(64)
-};
+);
 
 CREATE TABLE IF NOT EXISTS dwh.badges_per_users (
  id_user INTEGER NOT NULL,
  id_badge INTEGER NOT NULL,
  date_awarded DATE NOT NULL
-};
+);
 
 CREATE TABLE IF NOT EXISTS dwh.contributor_types (
  contributor_type_id INTEGER NOT NULL,
  contributor_type_name VARCHAR(64) NOT NULL
-};
+);
 
 CREATE OR REPLACE FUNCTION get_last_year_actions (
- user_id INTEGER NOT NULL
-) RETURN CHAR(365)
+ user_id INTEGER
+) RETURNS CHAR(365)
  LANGUAGE plpgsql
  AS $func$
   DECLARE
    id_country INTEGER;
   BEGIN
    id_country := -1;
+   -- TODO
    RETURN id_country;
   END
  $func$
