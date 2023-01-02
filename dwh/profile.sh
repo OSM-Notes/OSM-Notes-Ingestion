@@ -246,7 +246,7 @@ function __processUserProfile {
      FROM dwh.datamartUsers u
       JOIN dwh.contributor_types t
       ON u.id_contributor_type = t.contributor_type_id
-     WHERE id_user = ${USER_ID}
+     WHERE user_id = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
@@ -977,166 +977,150 @@ function __processUserProfile {
     -v ON_ERROR_STOP=1 )
 
  # Ranking historic
- declare -i RANKING_HISTORIC_OPEN
+ declare RANKING_HISTORIC_OPEN
  RANKING_HISTORIC_OPEN=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_historic
       WHERE action = 'opened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_HISTORIC_COMMENTED
+ declare RANKING_HISTORIC_COMMENTED
  RANKING_HISTORIC_COMMENTED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_historic
       WHERE action = 'commented'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_HISTORIC_CLOSED
+ declare RANKING_HISTORIC_CLOSED
  RANKING_HISTORIC_CLOSED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_historic
       WHERE action = 'closed'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_HISTORIC_REOPENED
+ declare RANKING_HISTORIC_REOPENED
  RANKING_HISTORIC_REOPENED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_historic
       WHERE action = 'reopened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
  # Ranking year
- declare -i RANKING_YEAR_OPEN
+ declare RANKING_YEAR_OPEN
  RANKING_YEAR_OPEN=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_year
       WHERE action = 'opened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_YEAR_COMMENTED
+ declare RANKING_YEAR_COMMENTED
  RANKING_YEAR_COMMENTED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_year
       WHERE action = 'commented'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_YEAR_CLOSED
+ declare RANKING_YEAR_CLOSED
  RANKING_YEAR_CLOSED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_year
       WHERE action = 'closed'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_YEAR_REOPENED
+ declare RANKING_YEAR_REOPENED
  RANKING_YEAR_REOPENED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_year
       WHERE action = 'reopened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
  # Ranking month
- declare -i RANKING_MONTH_OPEN
+ declare RANKING_MONTH_OPEN
  RANKING_MONTH_OPEN=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_month
       WHERE action = 'opened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_MONTH_COMMENTED
+ declare RANKING_MONTH_COMMENTED
  RANKING_MONTH_COMMENTED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_month
       WHERE action = 'commented'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_MONTH_CLOSED
+ declare RANKING_MONTH_CLOSED
  RANKING_MONTH_CLOSED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_month
       WHERE action = 'closed'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_MONTH_REOPENED
+ declare RANKING_MONTH_REOPENED
  RANKING_MONTH_REOPENED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_month
       WHERE action = 'reopened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
  # Ranking day
- declare -i RANKING_DAY_OPEN
+ declare RANKING_DAY_OPEN
  RANKING_DAY_OPEN=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_day
       WHERE action = 'opened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_DAY_COMMENTED
+ declare RANKING_DAY_COMMENTED
  RANKING_DAY_COMMENTED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_day
       WHERE action = 'commented'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_DAY_CLOSED
+ declare RANKING_DAY_CLOSED
  RANKING_DAY_CLOSED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_day
       WHERE action = 'closed'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
- declare -i RANKING_DAY_REOPENED
+ declare RANKING_DAY_REOPENED
  RANKING_DAY_REOPENED=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT position, id_country
       FROM dwh.ranking_day
       WHERE action = 'reopened'
-      AND user_id = ${USER_ID}
-     ) AS t
+      AND id_user = ${USER_ID}
      " \
     -v ON_ERROR_STOP=1 )
 
