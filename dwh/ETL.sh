@@ -260,6 +260,7 @@ function __checkBaseTables {
     RAISE EXCEPTION 'Tables are missing: dwh.facts';
    END IF;
   END;
+--TODO include the new ranking tables
   \$\$;
 EOF
  RET=${?}
