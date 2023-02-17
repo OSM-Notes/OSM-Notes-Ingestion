@@ -63,7 +63,6 @@ To overcome this issue, you can prepare the environment with 3 steps, performed 
 sudo apt -y install postgresql
 sudo systemctl start postgresql.service
 sudo apt -y install npm
-npm install -g osmtogeojson
 sudo npm install -g osmtogeojson
 sudo add-apt-repository ppa:ubuntugis/ppa
 sudo apt-get -y install gdal-bin
