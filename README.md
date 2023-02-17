@@ -84,6 +84,7 @@ mkdir ~/saxon
 cd ~/saxon
 wget -O SaxonHE11-4J.zip https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
 unzip SaxonHE11-4J.zip
+export SAXON_CLASSPATH=~/saxon/
 ```
 
 # Cron scheduling
