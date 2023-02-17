@@ -62,16 +62,13 @@ To overcome this issue, you can prepare the environment with 3 steps, performed 
 ```
 sudo apt -y install postgresql
 sudo systemctl start postgresql.service
-sudo apt -y install npm
-sudo npm install -g osmtogeojson
-sudo add-apt-repository ppa:ubuntugis/ppa
-sudo apt-get -y install gdal-bin
 sudo su - postgres
 psql << EOF
 CREATE USER angoca SUPERUSER;
 CREATE DATABASE notes WITH OWNER angoca;
 EOF
 exit
+
 sudo apt -y install postgis
 psql -d notes << EOF
 CREATE EXTENSION postgis;
@@ -79,11 +76,18 @@ EOF
 
 sudo apt -y install libxml2-utils
 sudo apt install -y openjdk-18-jdk
+
 mkdir ~/saxon
 cd ~/saxon
 wget -O SaxonHE11-4J.zip https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
 unzip SaxonHE11-4J.zip
 export SAXON_CLASSPATH=~/saxon/
+
+sudo apt -y install npm
+sudo npm install -g osmtogeojson
+
+sudo add-apt-repository ppa:ubuntugis/ppa
+sudo apt-get -y install gdal-bin
 ```
 
 # Cron scheduling
