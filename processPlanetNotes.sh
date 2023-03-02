@@ -105,6 +105,35 @@
 # group by iter, area, country_name_en
 # order by area, count(1) desc;
 #
+# Sections per parameter:
+#                       	        empty	base	locate	bounda	flatfile
+#                                                       notes   ries
+# __dropSyncTables              		x
+# __dropApiTables               		x
+# __dropBaseTables              		x
+# __createBaseTables             		x
+# __dropSyncTables              	x		x
+# __createSyncTable             	x		x
+# __checkBaseTables             	x		x
+# __dropCountryTables 	                	x		x
+# __createCountryTables         		x		x
+# __processCountries             		x		x
+# __processMaritimes             		x		x
+# __cleanPartial                		x		x
+# __downloadPlanetNotes          	x				x
+# __validatePlanetNotesXMLFile         	x				x
+# __convertPlanetNotesToFlatFile 	x				x
+# __createsFunctionToGetCountry 	x	x	x
+# __createsProcedures                 	x	x	x
+# __analyzeAndVacuum                 	x	x	x
+# __copyFlatFiles                 			x
+# __loadSyncNotes                 	x		x
+# __removeDuplicates                 	x		x
+# __dropSyncTables                 	x		x
+# __organizeAreas                 	x		x
+# __getLocationNotes                 	x		x
+# __cleanNotesFiles                   	x	x	x
+#
 # This is the list of error codes:
 # 1) Help message.
 # 241) Library or utility missing.
@@ -205,7 +234,7 @@ declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 declare -r XMLSCHEMA_PLANET_NOTES="${TMP_DIR}/OSM-notes-planet-schema.xsd"
 # Jar name of the XSLT processor.
 declare SAXON_JAR
-SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f -name "saxon-he-*.*.jar" | head -1)"
+SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
 readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
 declare -r XSLT_NOTES_FILE="${TMP_DIR}/notes-csv.xslt"
@@ -288,12 +317,13 @@ function __show_help {
  echo "and finally it uploads them into a PostgreSQL database."
  echo
  echo "It could receive one of these parameters:"
- echo " * --base to starts from scratch from Planet notes file."
- echo " * --boundaries processes the countries and maritimes areas only."
- echo " * --flatfile converts the planet file into a flat csv file."
- echo " * --locatenotes <flatNotesfile> <flatNoteCommentsfile> takes the flat"
+ echo " * --base : to starts from scratch from Planet notes file, including the"
+ echo "     boundaries."
+ echo " * --boundaries : processes the countries and maritimes areas only."
+ echo " * --flatfile : converts the planet file into a flat csv file."
+ echo " * --locatenotes <flatNotesfile> <flatNoteCommentsfile> : takes the flat"
  echo "     files, import them and finally locate the notes."
- echo " * Without parameter it processes the new notes from Planet notes file."
+ echo " * Without parameter, it processes the new notes from Planet notes file."
  echo
  echo "Flatfile option is useful when the regular machine does not have enough"
  echo "memory to process the notes file. Normally it needs 6 GB for Java."
@@ -394,6 +424,10 @@ EOF
   fi
   ## Saxon Jar
   if [[ ! -r "${SAXON_JAR}" ]] ; then
+   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+  if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1 ; then
    __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
@@ -1327,7 +1361,7 @@ EOF
 }
 
 # Calculates statistics on all tables and vacuum.
-function __AnalyzeAndVacuum {
+function __analyzeAndVacuum {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   VACUUM VERBOSE;
@@ -1772,7 +1806,7 @@ fi
  fi
  __createsFunctionToGetCountry # base, sync & locate
  __createsProcedures # all
- --AnalyzeAndVacuum # all
+ __analyzeAndVacuum # all
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
   __copyFlatFiles # locate
  fi
