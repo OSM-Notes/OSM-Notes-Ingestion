@@ -90,7 +90,8 @@ unzip SaxonHE11-4J.zip
 
 ```
 # Runs the API extraction each 15 minutes.
-*/15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh
+*/15 * * * * ~/OSM-Notes-profile/processAPINotes.sh
+*/15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh # For detailed execution.
 ```
 
 # Acknowledgements
