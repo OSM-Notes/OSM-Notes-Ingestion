@@ -97,9 +97,11 @@ psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
 
 ### Basic Store Info
 
+PostGis
+
 * Workspace: OSM_Notes
-* Data Source Name: 
-* Description: Data for OSM Notes Profile
+* Data Source Name: OSM Notes DS
+* Description: Data for OSM Notes
 
 ### Connection Parameters
 
@@ -133,7 +135,9 @@ __Open Notes__
 
 **On Data tab:**
 
-Layer from OSM_Notes:OSM_Notes_DS.
+Add layer from OSM_Notes:OSM_Notes_DS.
+
+Configure new SQL view...
 
 * View Name: Open OSM Notes
 * SQL Statement:
