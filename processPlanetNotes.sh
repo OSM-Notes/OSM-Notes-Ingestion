@@ -234,7 +234,9 @@ declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 declare -r XMLSCHEMA_PLANET_NOTES="${TMP_DIR}/OSM-notes-planet-schema.xsd"
 # Jar name of the XSLT processor.
 declare SAXON_JAR
+set +ue
 SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
+set -ue
 readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
 declare -r XSLT_NOTES_FILE="${TMP_DIR}/notes-csv.xslt"
