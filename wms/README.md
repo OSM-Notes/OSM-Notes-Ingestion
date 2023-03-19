@@ -261,3 +261,4 @@ maritimes areas.
 * OpenNotes.sld - QGIS generated file for WMS style on open notes.
 * prepareDatabase.sql - All the necessary scripts to synchronize the OSM Notes
 profile mechanism with this WMS layer service.
+
