@@ -115,14 +115,14 @@ PostGis
 
 ### Syle Data
 
-* Name: Open notes
+* Name: Open notes style
 * Workspace: OSM_Notes
 * Upload a style line
   * Choose File: OpenNotes.sld
   * Upload...
 * Legend: Add legend
 
-* Name: Closed notes
+* Name: Closed notes style
 * Workspace: OSM_Notes
 * Upload a style line
   * Choose File: ClosedNotes.sld
@@ -139,7 +139,7 @@ Add layer from OSM_Notes:OSM_Notes_DS.
 
 Configure new SQL view...
 
-* View Name: Open OSM Notes
+* View Name: Open OSM Notes layer
 * SQL Statement:
 
 ```
@@ -198,7 +198,7 @@ __Closed Notes__
 
 Layer from OSM_Notes:OSM_Notes_DS.
 
-* View Name: Closed OSM Notes
+* View Name: Closed OSM Notes layer
 * SQL Statement:
 
 ```
