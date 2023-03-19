@@ -46,6 +46,17 @@ export LOG_LEVEL=DEBUG
 * `bash_logger.sh` is a tool for logging with different levels.
 * `processAPINotes.sh` is the main script that process the notes with the API.
 * `processPlanetNotes.sh` is the base script to process notes from Planet file.
+* `processCheckPlanetNotes.sh` is a script that allows to check the notes in
+  the database with a new download from planet. This allow to identify
+  unprocessed notes and errors in the others scripts.
+
+## Directories
+
+The following directories have their own README file.
+
+* dwh provides the scripts to perform a transformation to a data warehouse and
+  show the notes profile.
+* wms provides the mechanism to publish a WMS from the notes.
 
 # Insufficient memory resources
 
@@ -107,3 +118,4 @@ on the cloud.
 
 Also, thanks to Martin Honnen who helped us improve the XSLT as in this thread:
 https://stackoverflow.com/questions/74672609/saxon-out-of-memory-when-processing-openstreetmap-notes-file-from-planet?noredirect=1#comment131821658_74672609
+
