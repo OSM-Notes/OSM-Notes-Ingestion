@@ -371,7 +371,7 @@ EOF
 function __checkBaseTables {
  __log_start
  set +e
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${LOG_FILE}" 2>&1
   DO
   \$\$
   DECLARE
