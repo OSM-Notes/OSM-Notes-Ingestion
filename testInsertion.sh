@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# API notes tester. It creates mock notes:
+# API notes tester. It creates mock notes in the local database:
 # * Id bigger than 7 000 000.
 # * Position 4/72
-# * Created on 2000
+# * Created on 2 000
 # * Userid bigger than 20 000 000
 # * User testUser
 #
