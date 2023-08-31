@@ -2,9 +2,9 @@
 
 # This scripts processes the most recents notes (creation or modification) from
 # the OpenStreetMap API.
-# * It downloads the notes via HTTP call.
+# * It downloads the notes via an HTTP call.
 # * Then with an XSLT transformation converts the data into flat files.
-# * It uploads the data into temp tables of a PostreSQL database.
+# * It uploads the data into temp tables on a PostreSQL database.
 # * Finally, it synchronizes the master tables.
 #
 # These are some examples to call this script:
@@ -50,7 +50,8 @@ declare -r ERROR_NO_LAST_UPDATE=244
 # 245: Planet process is currently running.
 declare -r ERROR_PLANET_PROCESS_IS_RUNNING=245
 
-# If all files should be deleted. In case of an error, this could be disabled.
+# If all generated files should be deleted. In case of an error, this could be
+# disabled.
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN="${CLEAN:-true}"
 
@@ -173,12 +174,20 @@ function __trapOn() {
 function __show_help {
  echo "${0} version ${VERSION}."
  echo
- echo "This is a script that downloads the OSM notes from the OpenStreetMap"
- echo "API. It takes the most recent ones and synchronizes a database that"
- echo "holds the whole history."
+ echo "This script downloads the OSM notes from the OpenStreetMap API."
+ echo "It requests the most recent ones and synchronizes them on a local"
+ echo "database that holds the whole notes history."
  echo
- echo "It does not receive any parameter. This script should be configured"
- echo "in a crontab or similar scheduler."
+ echo "It does not receive any parameter for regular execution. The only"
+ echo "parameter allowed is to invoke the help message (-h|--help)."
+ echo "This script should be configured in a crontab or similar scheduler."
+ echo
+ echo "Instead, it could be parametrized with the following environment"
+ echo "variables."
+ echo "* CLEAN={true|false/empty}: Deletes all generated files."
+ echo "* LOG_LEVEL={TRACE|DEBUG|INFO|WARN|ERROR|FATAL}: Configures the"
+ echo "  logger level."
+ echo "* SAXON_CLASSPATH=: Location of the saxon-he-11.4.jar file."
  echo
  echo "Written by: Andres Gomez (AngocA)."
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
@@ -305,6 +314,7 @@ function __createApiTables {
    username VARCHAR(256)
   );
 EOF
+# TODO Add another table for the comment's text.
  __log_finish
 }
 
@@ -409,6 +419,7 @@ function __checkBaseTables {
   END;
   \$\$;
 EOF
+ # TODO Checks the comment's text table.
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
@@ -609,6 +620,7 @@ EOF
 # 3450803,'closed','2022-11-22 02:06:53 UTC',15422751,'GHOSTsama2503'
 # 3450803,'reopened','2022-11-22 02:06:58 UTC',15422751,'GHOSTsama2503'
 # 3450803,'commented','2022-11-22 02:07:24 UTC',15422751,'GHOSTsama2503'
+# TODO This example should include the text.
 function __convertApiNotesToFlatFile {
  __log_start
  # Process the notes file.
@@ -647,6 +659,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 </xsl:template>
 </xsl:stylesheet>
 EOF
+# TODO this XSLT should include the text.
 
  # Converts the XML into a flat file in CSV format.
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
@@ -703,6 +716,7 @@ function __loadApiNotes {
  while read -r LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
   __logi "${TEXT}"
+  # TODO Support the comment's text when multiline.
  done < "${OUTPUT_NOTE_COMMENTS_FILE}"
 
  # Loads the data in the database.
@@ -725,6 +739,7 @@ function __loadApiNotes {
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'uploaded new comments' as type
   FROM note_comments_api;
 EOF
+ # TODO Load the text into another table.
  __log_finish
 }
 
@@ -763,7 +778,8 @@ function __insertNewNotesAndComments {
   \$\$;
   SELECT CURRENT_TIMESTAMP, 'Statistics on notes' as text;
   ANALYZE notes;
-  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current notes - after' as qty FROM notes;
+  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current notes - after' as qty
+  FROM notes;
 
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - before' as qty
   FROM note_comments;
@@ -797,10 +813,11 @@ function __insertNewNotesAndComments {
   SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - after' as qty
   FROM note_comments;
 EOF
+ # TODO The insert_note_comment procedure should accept the text.
  __log_finish
 }
 
-# Updates the refresh value.
+# Updates the refreshed value.
 function __updateLastValue {
  __log_start
  __logi "Updating last update time"
@@ -848,7 +865,7 @@ function __cleanNotesFiles {
 # Return value for several functions.
 declare -i RET
 
-# Allows to other user read the directory.
+# Allows to other users read the directory.
 chmod go+x "${TMP_DIR}"
 
 {
@@ -901,3 +918,4 @@ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
  rmdir "${TMP_DIR}"
 fi
+
