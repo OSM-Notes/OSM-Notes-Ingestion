@@ -105,7 +105,7 @@ sudo apt-get -y install gdal-bin
 
 ```
 # Runs the API extraction each 15 minutes.
-*/15 * * * * ~/OSM-Notes-profile/processAPINotes.sh
+*/15 * * * * ~/OSM-Notes-profile/processAPINotes.sh # For normal execution.
 */15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh # For detailed execution.
 ```
 
@@ -119,3 +119,4 @@ on the cloud.
 Also, thanks to Martin Honnen who helped us improve the XSLT as in this thread:
 https://stackoverflow.com/questions/74672609/saxon-out-of-memory-when-processing-openstreetmap-notes-file-from-planet?noredirect=1#comment131821658_74672609
 
+TODO Include the testNotes script.
