@@ -109,6 +109,29 @@ sudo apt-get -y install gdal-bin
 */15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh # For detailed execution.
 ```
 
+# Saxon - XML XSLT processor
+
+To run the scripts, it is necessary to have Saxon on the path.
+You can also specify the location by defining this in the crons or the command line:
+
+```
+export SAXON_CLASSPATH=~/saxon/
+```
+
+# Monitoring
+
+To monitor and valida the executions are correct, periodically you can run the
+`processCheckPlanetNotes.sh`. This will create 2 tables, one for notes and one
+for comments, with the suffix `_check`.
+By querying the tables with and without the suffix, you can get the
+differences; however it only works around 0h where the planet file is
+published. This will compare the differences between the API process and the
+Planet.
+If you find many difference, specially very old ones, it means the script
+failed in the past, and the best is to recreate the database with the
+`processPlanetNotes.sh` script, but also create an issue for the project,
+providing as much informaction as possible.
+
 # Acknowledgements
 
 Andres Gomez (@AngocA) was the main developer of this idea.
@@ -119,4 +142,3 @@ on the cloud.
 Also, thanks to Martin Honnen who helped us improve the XSLT as in this thread:
 https://stackoverflow.com/questions/74672609/saxon-out-of-memory-when-processing-openstreetmap-notes-file-from-planet?noredirect=1#comment131821658_74672609
 
-TODO Include the testNotes script.
