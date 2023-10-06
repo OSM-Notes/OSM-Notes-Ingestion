@@ -39,8 +39,8 @@
 # 245) Error downloading planet notes file.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-03-03
-declare -r VERSION="2023-03-03"
+# Version: 2023-10-06
+declare -r VERSION="2023-10-06"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -216,9 +216,9 @@ function __checkPrereqs {
   __loge "ERROR: flock is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## cURL
- if ! curl --version > /dev/null 2>&1 ; then
-  __loge "ERROR: curl is missing."
+ ## wget
+ if ! wget --version > /dev/null 2>&1 ; then
+  __loge "ERROR: wget is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Block-sorting file compressor
@@ -239,6 +239,7 @@ function __checkPrereqs {
  ## Saxon Jar
  if [[ ! -r "${SAXON_JAR}" ]] ; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
+  __loge "You can specify it by export SAXON_CLASSPATH="
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1 ; then
@@ -307,7 +308,7 @@ function __downloadPlanetNotes {
  __log_start
  # Download Planet notes.
  __loge "Retrieving Planet notes file..."
- curl --output "${PLANET_NOTES_FILE}.bz2" \
+ wget -O "${PLANET_NOTES_FILE}.bz2" \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
 
  if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]] ; then
