@@ -116,6 +116,17 @@ declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 ###########
 # FUNCTIONS
 
+source "${SCRIPT_BASE_DIRECTORY}/functionsProcess.sh"
+# __log
+# __logt
+# __logd
+# __logi
+# __logw
+# __loge
+# __logf
+# __start_logger
+# __trapOn
+
 ### Logger
 
 # Loads the logger (log4j like) tool.
@@ -375,60 +386,6 @@ function __createPropertiesTable {
   FROM max_note_timestamp;
 EOF
  __log_finish
-}
-
-# Checks the base tables if exist.
-function __checkBaseTables {
- __log_start
- set +e
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${LOG_FILE}" 2>&1
-  DO
-  \$\$
-  DECLARE
-   qty INT;
-  BEGIN
-   SELECT COUNT(TABLE_NAME) INTO qty
-   FROM INFORMATION_SCHEMA.TABLES
-   WHERE TABLE_SCHEMA LIKE 'public'
-   AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'countries'
-   ;
-   IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: countries';
-   END IF;
-
-   SELECT COUNT(TABLE_NAME) INTO qty
-   FROM INFORMATION_SCHEMA.TABLES
-   WHERE TABLE_SCHEMA LIKE 'public'
-   AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'notes'
-   ;
-   IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: notes';
-   END IF;
-
-   SELECT COUNT(TABLE_NAME) INTO qty
-   FROM INFORMATION_SCHEMA.TABLES
-   WHERE TABLE_SCHEMA LIKE 'public'
-   AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'note_comments'
-   ;
-   IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: note_comments';
-   END IF;
-  END;
-  \$\$;
-EOF
- # TODO Checks the comment's text table.
- RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]] ; then
-  __logw "Creating base tables. It will take several hours." | tee -a "${LOG_FILE}"
-  "${NOTES_SYNC_SCRIPT}" --base
-  __logw "Base tables created." | tee -a "${LOG_FILE}"
- fi
- __log_finish
-
 }
 
 # Gets the new notes
@@ -894,7 +851,14 @@ flock -n 8
 } >> "${LOG_FILE}" 2>&1
 set +E
 __checkNoProcessPlanet
-__checkBaseTables
+__checkBaseTables || RET=${?}
+set -e
+if [[ "${RET}" -ne 0 ]] ; then
+ __logw "Creating base tables. It will take several hours." | tee -a "${LOG_FILE}"
+ "${NOTES_SYNC_SCRIPT}" --base
+ __logw "Base tables created." | tee -a "${LOG_FILE}"
+fi
+
 set -E
 {
  __createApiTables
