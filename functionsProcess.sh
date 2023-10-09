@@ -22,15 +22,25 @@
 # __logf for fatal.
 # Declare mock functions, in order to have them in case the logger utility
 # cannot be found.
-function __log() { :; }
-function __logt() { :; }
-function __logd() { :; }
-function __logi() { :; }
-function __logw() { :; }
-function __loge() { :; }
-function __logf() { :; }
-function __log_start() { :; }
-function __log_finish() { :; }
+function log() { :; }
+function log_trace() { :; }
+function log_debug() { :; }
+function log_info() { :; }
+function log_warn() { :; }
+function log_error() { :; }
+function log_fatal() { :; }
+function log_start() { :; }
+function log_finish() { :; }
+
+function __log() {  log        ${@}; }
+function __logt() { log_trace  ${@}; }
+function __logd() { log_debug  ${@}; }
+function __logi() { log_info   ${@}; }
+function __logw() { log_warn   ${@}; }
+function __loge() { log_error  ${@}; }
+function __logf() {  log_fatal ${@}; }
+function __log_start() {  log_start; }
+function __log_finish() { log_finish; }
 
 # Starts the logger utility.
 function __start_logger() {
@@ -46,7 +56,7 @@ function __start_logger() {
    exit "${ERROR_LOGGER_UTILITY}"
   fi
   # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
-  __bl_set_log_level "${LOG_LEVEL}"
+  set_log_level "${LOG_LEVEL}"
   __logd "Logger loaded."
  else
   printf "\nLogger was not found.\n"
