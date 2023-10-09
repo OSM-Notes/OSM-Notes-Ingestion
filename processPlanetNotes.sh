@@ -87,10 +87,11 @@
 #  russia_middle_east nulls last, asia_oceania nulls last;
 #
 # The most iterations to find an area.
-# select iter, area, count(1)
-# from tries
-# group by iter, area
-# order by ITER desc;
+# select iter, country_name_en, count(1)
+# from tries t join countries c
+# on (t.id_country = c.country_id)
+# group by iter, country_name_en
+# order by iter desc, count(1) desc;
 #
 # Details of the iteration.
 # select t.*, country_name_en
@@ -519,7 +520,8 @@ EOF
    created_at TIMESTAMP NOT NULL,
    status note_status_enum,
    closed_at TIMESTAMP,
-   id_country INTEGER
+   id_country INTEGER,
+   conflict VARCHAR(50)
   );
 
   CREATE TABLE IF NOT EXISTS users(
@@ -531,7 +533,8 @@ EOF
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
    created_at TIMESTAMP NOT NULL,
-   id_user INTEGER
+   id_user INTEGER,
+   conflict VARCHAR(50)
   );
 
   CREATE TABLE IF NOT EXISTS logs (
@@ -583,22 +586,14 @@ function __createSyncTables {
  __logi "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
   CREATE TABLE notes_sync (
-   note_id INTEGER NOT NULL,
-   latitude DECIMAL NOT NULL,
-   longitude DECIMAL NOT NULL,
-   created_at TIMESTAMP NOT NULL,
-   status note_status_enum,
-   closed_at TIMESTAMP,
-   id_country INTEGER
+   LIKE notes
   );
 
   CREATE TABLE note_comments_sync (
-   note_id INTEGER NOT NULL,
-   event note_event_enum NOT NULL,
-   created_at TIMESTAMP NOT NULL,
-   id_user INTEGER,
-   username VARCHAR(256)
+   LIKE note_comments
   );
+
+  ALTER TABLE note_comments_sync ADD COLUMN username VARCHAR(256);
 EOF
  __log_finish
 }
@@ -877,7 +872,14 @@ function __removeDuplicates {
     'Deleting duplicates notes sync' as Text;
   DROP TABLE IF EXISTS notes_sync_no_duplicates;
   CREATE TABLE notes_sync_no_duplicates AS
-    SELECT * FROM notes_sync WHERE note_id IN (
+    SELECT
+     note_id,
+     latitude,
+     longitude,
+     created_at,
+     status,
+     id_country
+    FROM notes_sync WHERE note_id IN (
       SELECT note_id FROM notes_sync s
       EXCEPT 
       SELECT note_id FROM notes);
@@ -938,7 +940,12 @@ function __removeDuplicates {
     'Deleting duplicates comments sync' as Text;
   DROP TABLE IF EXISTS note_comments_sync_no_duplicates;
   CREATE TABLE note_comments_sync_no_duplicates AS
-    SELECT *
+    SELECT
+     note_id,
+     event,
+     created_at,
+     id_user,
+     username
     FROM note_comments_sync
     WHERE note_id IN (
       SELECT note_id FROM note_comments_sync s
@@ -1011,191 +1018,6 @@ function __cleanNotesFiles {
     "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
     "${OUTPUT_NOTE_COMMENTS_FILE}"
  fi
- __log_finish
-}
-
-# Assigns a value to each area to find it easily.
-function __organizeAreas {
- __log_start
- # Insert values for representative countries in each area.
-
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  -- More than 200K
-  UPDATE countries SET americas = 1 WHERE country_name_en IN ('United States');
-  -- More than 50K
-  UPDATE countries SET americas = 2 WHERE country_name_en IN ('Brazil',
-    'Canada');
-  -- More than 20K
-  UPDATE countries SET americas = 3 WHERE country_name_en IN ('Argentina',
-    'Mexico', 'Ecuador');
-  -- More than 10K
-  UPDATE countries SET americas = 4 WHERE country_name_en IN ('Peru',
-    'Colombia', 'Chile', 'Cuba', 'Nicaragua', 'Bolivia');
-  -- More than 5K
-  UPDATE countries SET americas = 5 WHERE country_name_en IN ('Venezuela',
-    'Haiti');
-  -- More than 2K
-  UPDATE countries SET americas = 6 WHERE country_name_en IN ('Costa Rica',
-    'Guatemala', 'France', 'Dominican Republic', 'Uruguay', 'Paraguay');
-  -- More than 1K
-  UPDATE countries SET americas = 7 WHERE country_name_en IN (
-    'Trinidad and Tobago', 'Panama', 'Honduras', 'El Salvador', 'Netherlands');
-  -- Less than 1K
-  UPDATE countries SET americas = 8 WHERE country_name_en IN ('Jamaica');
-  -- Less than 500
-  UPDATE countries SET americas = 9 WHERE country_name_en IN ('Greenland',
-    'Suriname', 'Guyana', 'Belize', 'The Bahamas', 'Falkland Islands',
-    'Saint Lucia', 'Barbados', 'Saint Vincent and the Grenadines', 'Tonga',
-    'Cook Islands', 'Dominica', 'Grenada', 'Samoa', 'Bermuda',
-    'Cayman Islands', 'Turks and Caicos Islands',
-    'South Georgia and the South Sandwich Islands', 'Saint Kitts and Nevis',
-    'Antigua and Barbuda', 'Russia', 'Portugal', 'British Virgin Islands',
-    'New Zealand', 'Anguilla', 'Fiji', 'Pitcairn Islands', 'Montserrat',
-    'Kiribati', 'Niue', 'British Overseas Territories', 'French Polynesia',
-    'French Guiana', 'Aruba'
-    );
-  -- Maritimes areas
-  UPDATE countries SET americas = 10 WHERE country_name_en IN ('Brazil (EEZ)',
-    'Chile (EEZ)', 'Brazil (Contiguous Zone)', 'United States (EEZ)',
-    'Colombia (EEZ)', 'Ecuador (EEZ)', 'Argentina (EEZ)', 'Guadeloupe (EEZ)',
-    'Nicaragua (EEZ)', 'French Polynesia (EEZ)',
-    'Contiguous Zone of the Netherlands', 'Costa Rica (EEZ)',
-    'New Zealand (EEZ)');
-EOF
-
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  -- More than 500K
-  UPDATE countries SET europe = 1 WHERE country_name_en IN ('Germany');
-  -- More than 200K
-  UPDATE countries SET europe = 2 WHERE country_name_en IN ('France');
-  -- More than 100K
-  UPDATE countries SET europe = 3 WHERE country_name_en IN ('Spain',
-    'United Kingdom', 'Italy', 'Poland');
-  -- More than 50K
-  UPDATE countries SET europe = 4 WHERE country_name_en IN ('Netherlands');
-  -- More than 20K
-  UPDATE countries SET europe = 5 WHERE country_name_en IN ('Belgium',
-    'Austria', 'Switzerland', 'Croatia', 'Sweden', 'Czechia');
-  -- More than 10K
-  UPDATE countries SET europe = 6 WHERE country_name_en IN ('Greece',
-    'Ireland', 'Hungary','Ukraine', 'Portugal', 'Slovakia', 'Denmark',
-    'Côte d''Ivoire', 'Algeria');
-  -- More than 5K
-  UPDATE countries SET europe = 7 WHERE country_name_en IN ('Norway',
-    'Finland', 'Romania', 'Serbia', 'Libya', 'Latvia'
-    );
-  -- More than 2K
-  UPDATE countries SET europe = 8 WHERE country_name_en IN ('Morocco',
-    'Democratic Republic of the Congo', 'Bosnia and Herzegovina', 'Bulgaria',
-    'Ghana', 'Slovenia', 'Belarus', 'Kosovo', 'Iceland', 'Lithuania', 'Albania',
-    'Russia', 'South Africa', 'Estonia', 'Montenegro', 'Luxembourg', 'Angola',
-    'Tunisia');
-  -- More than 1K
-  UPDATE countries SET europe = 9 WHERE country_name_en IN ('Nigeria',
-    'Togo', 'North Macedonia', 'Jersey', 'Cameroon', 'Burkina Faso',
-    'Namibia', 'Senegal', 'Mali');
-  -- Less than 1K
-  UPDATE countries SET europe = 10 WHERE country_name_en IN ('Malta', 'Benin',
-    'Niger', 'Guinea');
-  -- Less than 500
-  UPDATE countries SET europe = 11 WHERE country_name_en IN ('Sierra Leone',
-    'Mauritania', 'Congo-Brazzaville', 'Chad', 'Cape Verde', 'Botswana',
-    'Andorra', 'Guernsey', 'Isle of Man', 'Central African Republic',
-    'Faroe Islands', 'Guinea-Bissau', 'Liberia', 'The Gambia', 'San Marino',
-    'Gabon', 'Liechtenstein', 'Gibraltar', 'Monaco', 'Equatorial Guinea',
-    'Sahrawi Arab Democratic Republic', 'Vatican City', 'Zambia',
-    'São Tomé and Príncipe', 'Greenland',
-    'Saint Helena, Ascension and Tristan da Cunha',
-    'Sudan', 'Brazil');
-  -- Maritimes areas
-  UPDATE countries SET europe = 12 WHERE country_name_en IN ('Spain (EEZ)',
-    'United Kingdom (EEZ)', 'Italy (EEZ)', 'Germany (EEZ)', 'Norway (EEZ)',
-    'France (EEZ) - Mediterranean Sea', 'Denmark (EEZ)', 'Ireland (EEZ)',
-    'Dutch Exclusive Economic Zone', 'Sweden (EEZ)',
-    'Contiguous Zone of the Netherlands', 'France (Contiguous Zone)',
-    'South Africa (EEZ)', 'Brazil (EEZ)', 'Belgium (EEZ)', 'Poland (EEZ)',
-    'Russia (EEZ)', 'Iceland (EEZ)',
-    'Fisheries protection zone around Jan Mayen',
-    'South Georgia and the South Sandwich Islands',
-    'Fishing territory around the Faroe Islands',
-    'France (contiguous area in the Gulf of Biscay and west of English Channel)');
-EOF
-
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  -- More than 200K
-  UPDATE countries SET russia_middle_east = 1 WHERE country_name_en IN (
-    'Russia');
-  -- More than 50K
-  UPDATE countries SET russia_middle_east = 2 WHERE country_name_en IN ('Iran',
-    'Ukraine');
-  -- More than 20K
-  UPDATE countries SET russia_middle_east = 3 WHERE country_name_en IN (
-    'Iraq', 'Belarus', 'Turkey');
-  -- More than 10K
-  UPDATE countries SET russia_middle_east = 4 WHERE country_name_en IN ('');
-  -- More than 5K
-  UPDATE countries SET russia_middle_east = 5 WHERE country_name_en IN (
-    'Romania', 'Saudi Arabia', 'Georgia', 'Armenia', 'Egypt', 'Israel',
-    'Finland', 'Azerbaijan', 'Democratic Republic of the Congo', 'Moldova'
-    );
-  -- More than 2K
-  UPDATE countries SET russia_middle_east = 6 WHERE country_name_en IN (
-    'United Arab Emirates', 'Cyprus', 'South Africa', 'Tanzania', 'Yemen',
-    'Kazakhstan', 'Greece', 'Syria', 'Uganda', 'France', 'Ethiopia',
-    'Bulgaria', 'Jordan');
-  -- More than 1K
-  UPDATE countries SET russia_middle_east = 7 WHERE country_name_en IN (
-    'Uzbekistan', 'Lithuania', 'Oman', 'Turkmenistan', 'Kenya', 'Lebanon',
-    'Madagascar', 'Latvia', 'Zimbabwe');
-  -- Less than 1K
-  UPDATE countries SET russia_middle_east = 8 WHERE country_name_en IN (
-    'Estonia', 'Sudan', 'Kuwait', 'Somalia', 'Mozambique', 'Qatar', 'Zambia',
-    'Mauritius');
-  -- Less than 500
-  UPDATE countries SET russia_middle_east = 9 WHERE country_name_en IN (
-    'Botswana', 'Rwanda', 'Bahrain', 'Malawi', 'Seychelles', 'South Sudan',
-    'Lesotho', 'Burundi', 'Eritrea', 'Norway', 'Djibouti', 'Afghanistan',
-    'Comoros', 'Eswatini', 'Central African Republic', 'Pakistan',
-    'Libya', 'Namibia', 'Gaza Strip');
-  -- Maritimes areas
-  UPDATE countries SET russia_middle_east = 10 WHERE country_name_en IN (
-    'British Sovereign Base Areas', 'Fisheries protection zone around Svalbard',
-    'NEAFC (EEZ)', 'South Africa (EEZ)',
-    'France - La Réunion - Tromelin Island (EEZ)');
-EOF
-
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-  -- More than 20K
-  UPDATE countries SET asia_oceania = 1 WHERE country_name_en IN ('Australia',
-    'India', 'Russia', 'China', 'Philippines', 'Japan', 'Taiwan',
-    'Indonesia');
-  -- More than 10K
-  UPDATE countries SET asia_oceania = 2 WHERE country_name_en IN ('Thailand',
-    'South Korea', 'Vietnam', 'Malaysia');
-  -- More than 5K
-  UPDATE countries SET asia_oceania = 3 WHERE country_name_en IN ('New Zealand',
-    'Kazakhstan', 'Uzbekistan', 'Myanmar', 'Nepal', 'Pakistan');
-  -- More than 2K
-  UPDATE countries SET asia_oceania = 4 WHERE country_name_en IN ('Kyrgyzstan',
-    'Cambodia', 'Sri Lanka', 'Bangladesh', 'Laos', 'Singapore',
-    'Tajikistan');
-  -- More than 1K
-  UPDATE countries SET asia_oceania = 5 WHERE country_name_en IN ('Mongolia');
-  -- Less than 1K
-  UPDATE countries SET asia_oceania = 6 WHERE country_name_en IN ('France',
-    'Afghanistan');
-  -- Less than 500
-  UPDATE countries SET asia_oceania = 7 WHERE country_name_en IN ('Maldives',
-    'Bhutan', 'Vanuatu', 'East Timor', 'Fiji', 'Papua New Guinea',
-    'United States', 'North Korea', 'Brunei', 'Solomon Islands', 'Palau',
-    'Federated States of Micronesia', 'Marshall Islands', 'Kiribati',
-    'Turkmenistan', 'Tuvalu', 'Nauru');
-  -- Maritimes areas
-  UPDATE countries SET asia_oceania = 8 WHERE country_name_en IN (
-    'Philippine (EEZ)', 'Australia (EEZ)', 'British Indian Ocean Territory',
-    'New Caledonia (EEZ)', 'New Zealand (EEZ)',
-    'New Zealand (Contiguous Zone)');
-EOF
  __log_finish
 }
 
