@@ -13,34 +13,13 @@
 
 # Loads the logger (log4j like) tool.
 # It has the following functions.
-# __log default.
-# __logt for trace.
-# __logd for debug.
-# __logi for info.
-# __logw for warn.
-# __loge for error. Writes in standard error.
-# __logf for fatal.
-# Declare mock functions, in order to have them in case the logger utility
-# cannot be found.
-function log() { :; }
-function log_trace() { :; }
-function log_debug() { :; }
-function log_info() { :; }
-function log_warn() { :; }
-function log_error() { :; }
-function log_fatal() { :; }
-function log_start() { :; }
-function log_finish() { :; }
-
-function __log() {  log        ${@}; }
-function __logt() { log_trace  ${@}; }
-function __logd() { log_debug  ${@}; }
-function __logi() { log_info   ${@}; }
-function __logw() { log_warn   ${@}; }
-function __loge() { log_error  ${@}; }
-function __logf() {  log_fatal ${@}; }
-function __log_start() {  log_start; }
-function __log_finish() { log_finish; }
+#function __log(){log ${@};}
+#function __logt(){log_trace ${@};}
+#function __logd(){log_debug ${@};}
+#function __logi(){log_info ${@};}
+#function __logw(){log_warn ${@};}
+#function __loge(){log_error ${@};}
+#function __logf(){log_fatal ${@};}
 
 # Starts the logger utility.
 function __start_logger() {
@@ -56,7 +35,7 @@ function __start_logger() {
    exit "${ERROR_LOGGER_UTILITY}"
   fi
   # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
-  set_log_level "${LOG_LEVEL}"
+  __set_log_level "${LOG_LEVEL}"
   __logd "Logger loaded."
  else
   printf "\nLogger was not found.\n"
