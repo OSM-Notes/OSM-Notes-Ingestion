@@ -108,14 +108,14 @@
 #
 # Sections per parameter:
 #                       	        empty	base	locate	bounda	flatfile
-#                                                       notes   ries
-# __dropSyncTables              		x
+#                                       (sync)          notes   ries
+# __dropSyncTables              	 	x
 # __dropApiTables               		x
 # __dropBaseTables              		x
-# __createBaseTables             		x
-# __dropSyncTables              	x		x
-# __createSyncTable             	x		x
+# __dropSyncTables              	x	 	x
 # __checkBaseTables             	x		x
+# __createBaseTables             	x	x	x
+# __createSyncTables            	x		x
 # __dropCountryTables 	                	x		x
 # __createCountryTables         		x		x
 # __processCountries             		x		x
@@ -257,13 +257,6 @@ declare -r PARALLELISM="${PARALLELISM:-5}"
 # FUNCTIONS
 
 source "${SCRIPT_BASE_DIRECTORY}/functionsProcess.sh"
-# __log
-# __logt
-# __logd
-# __logi
-# __logw
-# __loge
-# __logf
 # __start_logger
 # __trapOn
 # __checkBaseTables
@@ -295,7 +288,6 @@ function __show_help {
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
- exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Checks prerequisites to run the script.
@@ -560,7 +552,7 @@ EOF
    ADD CONSTRAINT pk_users
    PRIMARY KEY (user_id);
 
-  -- ToDo primary key duplicated error.
+  -- ToDo primary key duplicated error. This is an API error.
   --ALTER TABLE note_comments
   -- ADD CONSTRAINT pk_note_comments
   -- PRIMARY KEY (note_id, event, created_at);
@@ -840,8 +832,8 @@ function __loadSyncNotes {
 
   TRUNCATE TABLE note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync comments' AS Text;
-  COPY note_comments_sync FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
-    DELIMITER ',' QUOTE '''';
+  COPY note_comments_sync(note_id, event, created_at, id_user, username)
+    FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv DELIMITER ',' QUOTE '''';
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments sync' as Text;
   ANALYZE note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync comments' AS Text;
@@ -878,6 +870,7 @@ function __removeDuplicates {
      longitude,
      created_at,
      status,
+     closed_at,
      id_country
     FROM notes_sync WHERE note_id IN (
       SELECT note_id FROM notes_sync s
@@ -1062,92 +1055,109 @@ function __getLocationNotes {
 # Allows to other user read the directory.
 chmod go+x "${TMP_DIR}"
 
-{
- __start_logger
- __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
-} >> "${LOG_FILE}" 2>&1
+__start_logger
+if [ ! -t 1 ] ; then
+ __set_log_file "${LOG_FILE}"
+fi
+__logi "Preparing environment."
+__logd "Output saved at: ${TMP_DIR}"
+__logi "Processing: ${PROCESS_TYPE}"
 
 if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
  __show_help
+ exit "${ERROR_HELP_MESSAGE}"
+else
+ if [[ "${PROCESS_TYPE}" == "" ]]; then
+  __logi "Process: Imports new notes from Planet."
+ elif [[ "${PROCESS_TYPE}" == "--base" ]]; then
+  __logi "Process: From scratch."
+ elif [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
+  __logi "Process: Downloads the countries and maritimes areas only."
+ elif [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
+  __logi "Process: Converts the planet into a flat CSV file."
+ elif [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
+  __logi "Process: Takes the flat file and import it into the DB."
+ fi
 fi
+# Checks the prerequisities. It could terminate the process.
 __checkPrereqs
-{
- __logw "Starting process"
-} >> "${LOG_FILE}" 2>&1
+
+__logw "Starting process"
 
 # Sets the trap in case of any signal.
 __trapOn
 if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
  exec 7> "${LOCK}"
- __logw "Validating single execution." | tee -a "${LOG_FILE}"
+ __logw "Validating single execution."
  flock -n 7
 fi
 
-{
- if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
-  __dropSyncTables # base
-  __dropApiTables # base
-  __dropBaseTables # base
-  __createBaseTables # base
- elif [[ "${PROCESS_TYPE}" == "" ]] \
-   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-  __dropSyncTables # sync
-  __createSyncTables # sync
-  set +E
-  set +e
-  __checkBaseTables # sync
-  RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]] ; then
-   __createBaseTables
-  fi
-  set -E
+if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
+ __dropSyncTables # base
+ __dropApiTables # base
+ __dropBaseTables # base
+ __createBaseTables # base
+elif [[ "${PROCESS_TYPE}" == "" ]] \
+  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+ __dropSyncTables # sync
+ set +E
+ set +e
+ __checkBaseTables # sync
+ RET=${?}
+ set -e
+ if [[ "${RET}" -ne 0 ]] ; then
+  __createBaseTables # sync
  fi
- if [[ "${PROCESS_TYPE}" == "--base" ]] \
-   || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
-  __dropCountryTables # base and boundaries
-  __createCountryTables # base and boundaries
-  __processCountries # base and boundaries
-  __processMaritimes # base and boundaries
-  __cleanPartial # base and boundaries
-  if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
-   __logw "Ending process"
-   exit 0
-  fi
+ set -E
+ __createSyncTables # sync
+fi
+if [[ "${PROCESS_TYPE}" == "--base" ]] \
+  || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
+ __dropCountryTables # base and boundaries
+ __createCountryTables # base and boundaries
+
+ # Downloads the areas. It could terminate the execution if an error appears.
+ __processCountries # base and boundaries
+ __processMaritimes # base and boundaries
+
+ __cleanPartial # base and boundaries
+ if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
+  __logw "Ending process"
+  exit 0
  fi
- if [[ "${PROCESS_TYPE}" == "" ]] \
-   || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
-  __downloadPlanetNotes # sync and flatfile
-  __validatePlanetNotesXMLFile # sync and flatfile
-  __convertPlanetNotesToFlatFile # sync and flatfile
-  if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
-   echo "CSV files are at ${TMP_DIR}"
-   __logw "Ending process"
-   exit 0
-  fi
+fi
+if [[ "${PROCESS_TYPE}" == "" ]] \
+  || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+ __downloadPlanetNotes # sync and flatfile
+ __validatePlanetNotesXMLFile # sync and flatfile
+ __convertPlanetNotesToFlatFile # sync and flatfile
+ if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+  echo "CSV files are at ${TMP_DIR}"
+  __logw "Ending process"
+  exit 0
  fi
- __createsFunctionToGetCountry # base, sync & locate
- __createsProcedures # all
- __analyzeAndVacuum # all
- if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-  __copyFlatFiles # locate
- fi
- if [[ "${PROCESS_TYPE}" == "" ]] \
-   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-  __loadSyncNotes # sync & locate
-  __removeDuplicates # sync & locate
-  __dropSyncTables # sync & locate
-  __organizeAreas # sync & locate
-  __getLocationNotes # sync & locate
- fi
- __cleanNotesFiles # base, sync & locate
- __logw "Ending process"
-} >> "${LOG_FILE}" 2>&1
+fi
+__createsFunctionToGetCountry # base, sync & locate
+__createsProcedures # all
+__analyzeAndVacuum # all
+if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+ __copyFlatFiles # locate
+fi
+if [[ "${PROCESS_TYPE}" == "" ]] \
+  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+ __loadSyncNotes # sync & locate
+ __removeDuplicates # sync & locate
+ __dropSyncTables # sync & locate
+ __organizeAreas # sync & locate
+ __getLocationNotes # sync & locate
+fi
+__cleanNotesFiles # base, sync & locate
+__logw "Ending process"
 
 if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
- rmdir "${TMP_DIR}"
+ if [ ! -t 1 ] ; then
+  rmdir "${TMP_DIR}"
+ fi
 fi
 
