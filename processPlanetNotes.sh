@@ -182,6 +182,9 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
+# Loads the global properties.
+source ${SCRIPT_BASE_DIRECTORY}/properties.sh
+
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
@@ -209,9 +212,6 @@ declare -r PROCESS_TYPE=${1:-}
 # Flat file to start from load.
 declare -r FLAT_NOTES_FILE=${2:-}
 declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
-
-# Name of the PostgreSQL database to insert or update the data.
-declare -r DBNAME=notes
 
 # Wait between loops when downloading boundaries, to prevent "Too many
 # requests".
