@@ -64,6 +64,9 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
+# Loads the global properties.
+source ${SCRIPT_BASE_DIRECTORY}/properties.sh
+
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
@@ -107,9 +110,6 @@ declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 # Script to synchronize the notes with the Planet.
 declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/processPlanetNotes.sh"
 
-# Name of the PostgreSQL database to insert or update the data.
-declare -r DBNAME=notes
-
 # Temporal file that contiains the downloaded notes from the API.
 declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 
@@ -117,69 +117,6 @@ declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 # FUNCTIONS
 
 source "${SCRIPT_BASE_DIRECTORY}/functionsProcess.sh"
-# __log
-# __logt
-# __logd
-# __logi
-# __logw
-# __loge
-# __logf
-# __start_logger
-# __trapOn
-
-### Logger
-
-# Loads the logger (log4j like) tool.
-# It has the following functions.
-# __log default.
-# __logt for trace.
-# __logd for debug.
-# __logi for info.
-# __logw for warn.
-# __loge for error. Writes in standard error.
-# __logf for fatal.
-# Declare mock functions, in order to have them in case the logger utility
-# cannot be found.
-function __log() { :; }
-function __logt() { :; }
-function __logd() { :; }
-function __logi() { :; }
-function __logw() { :; }
-function __loge() { :; }
-function __logf() { :; }
-function __log_start() { :; }
-function __log_finish() { :; }
-
-# Starts the logger utility.
-function __start_logger() {
- if [[ -f "${LOGGER_UTILITY}" ]] ; then
-  # Starts the logger mechanism.
-  set +e
-  # shellcheck source=./bash_logger.sh
-  source "${LOGGER_UTILITY}"
-  local -i RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]] ; then
-   printf "\nERROR: Invalid logger framework file.\n"
-   exit "${ERROR_LOGGER_UTILITY}"
-  fi
-  # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
-  __bl_set_log_level "${LOG_LEVEL}"
-  __logd "Logger loaded."
- else
-  printf "\nLogger was not found.\n"
- fi
-}
-
-# Function that activates the error trap.
-function __trapOn() {
- __log_start
- trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d.\n" "$(date +%Y-%m-%d_%H:%M:%S)" "${LINENO}"; exit ;}' \
-   ERR
- trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit 1 ;}' \
-   SIGINT SIGTERM
- __log_finish
-}
 
 # Shows the help information.
 function __show_help {
@@ -825,20 +762,19 @@ declare -i RET
 # Allows to other users read the directory.
 chmod go+x "${TMP_DIR}"
 
-{
- __start_logger
- __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
-} >> "${LOG_FILE}" 2>&1
+__start_logger
+if [ ! -t 1 ] ; then
+ __set_log_file "${LOG_FILE}"
+fi
+__logi "Preparing environment."
+__logd "Output saved at: ${TMP_DIR}"
+__logi "Processing: ${PROCESS_TYPE}"
 
 if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
  __show_help
 fi
 __checkPrereqs
-{
- __logw "Process started."
-} >> "${LOG_FILE}" 2>&1
+__logw "Process started."
 
 # Sets the trap in case of any signal.
 __trapOn
@@ -846,9 +782,7 @@ exec 8> "${LOCK}"
 __logw "Validating single execution." | tee -a "${LOG_FILE}"
 flock -n 8
 
-{
  __dropApiTables
-} >> "${LOG_FILE}" 2>&1
 set +E
 __checkNoProcessPlanet
 __checkBaseTables || RET=${?}
@@ -860,23 +794,21 @@ if [[ "${RET}" -ne 0 ]] ; then
 fi
 
 set -E
-{
- __createApiTables
- __createPropertiesTable
- __getNewNotesFromApi
- declare -i RESULT
- RESULT=$(wc -l < "${API_NOTES_FILE}")
- if [[ "${RESULT}" -ne 0 ]] ; then
-  __validateApiNotesXMLFile
-  __convertApiNotesToFlatFile
-  __checkQtyNotes
-  __loadApiNotes
-  __insertNewNotesAndComments
-  __updateLastValue
- fi
- __cleanNotesFiles
- __logw "Process finished."
-} >> "${LOG_FILE}" 2>&1
+__createApiTables
+__createPropertiesTable
+__getNewNotesFromApi
+declare -i RESULT
+RESULT=$(wc -l < "${API_NOTES_FILE}")
+if [[ "${RESULT}" -ne 0 ]] ; then
+ __validateApiNotesXMLFile
+ __convertApiNotesToFlatFile
+ __checkQtyNotes
+ __loadApiNotes
+ __insertNewNotesAndComments
+ __updateLastValue
+fi
+__cleanNotesFiles
+__logw "Process finished."
 
 if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
