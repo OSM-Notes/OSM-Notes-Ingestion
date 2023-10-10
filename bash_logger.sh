@@ -35,7 +35,7 @@ __bl_time_and_date=
 
 
 
-function set_log_level() {
+function __set_log_level() {
   if [ -z "$1" ]; then
     echo "No log level provided, setting to INFO log level"
     __log_level="INFO"
@@ -48,7 +48,7 @@ function set_log_level() {
   fi
 }
 
-function set_log_file() {
+function __set_log_file() {
   local -r LOG_FILE="${1}"
   if [ -z "${LOG_FILE}" ]; then
     echo "Log file not defined."
@@ -67,7 +67,7 @@ function set_log_file() {
 }
 
 # Default log : INFO
-function log() {
+function __log() {
 
   __bl_script_name="${BASH_SOURCE[1]}"
   __bl_script_name="${__bl_script_name##*/}"
@@ -89,7 +89,7 @@ function log() {
 }
 
 # TRACE: designates finer-grained informational events than the DEBUG
-function log_trace() {
+function __logt() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
@@ -149,7 +149,7 @@ function log_trace() {
 
 
 # DEBUG: designates fine-grained informational events that are most useful to debug an application.
-function log_debug() {
+function __logd() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
@@ -176,7 +176,7 @@ function log_debug() {
 
 
 # INFO: designates informational messages that highlight the progress of the application at coarse-grained level.
-function log_info() {
+function __logi() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
@@ -202,7 +202,7 @@ function log_info() {
 }
 
 # WARN: designates potentially harmful situations.
-function log_warn() {
+function __logw() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO [WARN]=WARN)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
@@ -229,7 +229,7 @@ function log_warn() {
 
 
 # ERROR: designates error events that might still allow the application to continue running.
-function log_error() {
+function __loge() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO [WARN]=WARN [ERROR]=ERROR)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
@@ -288,7 +288,7 @@ function log_error() {
 
 
 # FATAL: designates very severe error events that will presumably lead the application to abort.
-function log_fatal() {
+function __logf() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO [WARN]=WARN [ERROR]=ERROR [FATAL]=FATAL)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
@@ -346,7 +346,7 @@ function log_fatal() {
 }
 
 # info message to log start of something
-function log_start() {
+function __log_start() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
@@ -376,7 +376,7 @@ function log_start() {
 }
 
 # info message to log end of something
-function log_finish() {
+function __log_finish() {
   declare -A __bl_allowed_log_levels
   __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO)
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
