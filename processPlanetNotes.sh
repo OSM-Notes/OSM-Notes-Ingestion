@@ -144,8 +144,8 @@
 # 245) Error downloading planet notes file.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-10
-declare -r VERSION="2022-12-10"
+# Version: 2023-10-10
+declare -r VERSION="2023-10-10"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -197,9 +197,9 @@ declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
-declare LOG_FILE
-LOG_FILE="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILE
+declare LOG_FILENAME
+LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+readonly LOG_FILENAME
 
 # Lock file for single execution.
 declare LOCK
@@ -422,9 +422,12 @@ function __dropBaseTables {
   DROP FUNCTION IF EXISTS get_country;
   DROP PROCEDURE IF EXISTS insert_note_comment;
   DROP PROCEDURE IF EXISTS insert_note;
-  DROP TABLE IF EXISTS users;
+  DROP TABLE IF EXISTS note_comments_check;
+  DROP TABLE IF EXISTS notes_check;
   DROP TABLE IF EXISTS note_comments;
   DROP TABLE IF EXISTS notes;
+  DROP TABLE IF EXISTS users;
+  DROP TABLE IF EXISTS logs;
   DROP TYPE note_event_enum;
   DROP TYPE note_status_enum;
 EOF
@@ -608,8 +611,7 @@ function __processCountries {
 EOF
 
  set +e
- wget -O "${COUNTRIES_FILE}" --post-file="${QUERY_FILE}" \
-   "https://overpass-api.de/api/interpreter"
+ wget -O "${COUNTRIES_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
@@ -661,8 +663,7 @@ EOF
    out;
 EOF
   __logi "Retrieving shape."
-  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-    "https://overpass-api.de/api/interpreter"
+  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
 
   __logi "Converting into geoJSON."
   osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
@@ -731,8 +732,7 @@ function __processMaritimes {
 EOF
 
  set +e
- wget -O "${MARITIMES_FILE}" --post-file="${QUERY_FILE}" \
-   "https://overpass-api.de/api/interpreter"
+ wget -O "${MARITIMES_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
@@ -756,8 +756,7 @@ EOF
    out;
 EOF
   __logi "Retrieving shape."
-  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-    "https://overpass-api.de/api/interpreter"
+  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
 
   __logi "Converting into geoJSON."
   osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
@@ -1052,112 +1051,118 @@ function __getLocationNotes {
 ######
 # MAIN
 
+function main() {
+ __logi "Preparing environment."
+ __logd "Output saved at: ${TMP_DIR}"
+ __logi "Processing: ${PROCESS_TYPE}"
+ 
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+  exit "${ERROR_HELP_MESSAGE}"
+ else
+  if [[ "${PROCESS_TYPE}" == "" ]]; then
+   __logi "Process: Imports new notes from Planet."
+  elif [[ "${PROCESS_TYPE}" == "--base" ]]; then
+   __logi "Process: From scratch."
+  elif [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
+   __logi "Process: Downloads the countries and maritimes areas only."
+  elif [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
+   __logi "Process: Converts the planet into a flat CSV file."
+  elif [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
+   __logi "Process: Takes the flat file and import it into the DB."
+  fi
+ fi
+ # Checks the prerequisities. It could terminate the process.
+ __checkPrereqs
+ 
+ __logw "Starting process"
+ 
+ # Sets the trap in case of any signal.
+ __trapOn
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+  exec 7> "${LOCK}"
+  __logw "Validating single execution."
+  flock -n 7
+ fi
+ 
+ if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
+  __dropSyncTables # base
+  __dropApiTables # base
+  __dropBaseTables # base
+  __createBaseTables # base
+ elif [[ "${PROCESS_TYPE}" == "" ]] \
+   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+  __dropSyncTables # sync
+  set +E
+  set +e
+  __checkBaseTables # sync
+  RET=${?}
+  set -e
+  if [[ "${RET}" -ne 0 ]] ; then
+   __createBaseTables # sync
+  fi
+  set -E
+  __createSyncTables # sync
+ fi
+ if [[ "${PROCESS_TYPE}" == "--base" ]] \
+   || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
+  __dropCountryTables # base and boundaries
+  __createCountryTables # base and boundaries
+ 
+  # Downloads the areas. It could terminate the execution if an error appears.
+  __processCountries # base and boundaries
+  __processMaritimes # base and boundaries
+ 
+  __cleanPartial # base and boundaries
+  if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
+   __logw "Ending process"
+   exit 0
+  fi
+ fi
+ if [[ "${PROCESS_TYPE}" == "" ]] \
+   || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+  __downloadPlanetNotes # sync and flatfile
+  __validatePlanetNotesXMLFile # sync and flatfile
+  __convertPlanetNotesToFlatFile # sync and flatfile
+  if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+   echo "CSV files are at ${TMP_DIR}"
+   __logw "Ending process"
+   exit 0
+  fi
+ fi
+ __createsFunctionToGetCountry # base, sync & locate
+ __createsProcedures # all
+ __analyzeAndVacuum # all
+ if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+  __copyFlatFiles # locate
+ fi
+ if [[ "${PROCESS_TYPE}" == "" ]] \
+   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+  __loadSyncNotes # sync & locate
+  __removeDuplicates # sync & locate
+  __dropSyncTables # sync & locate
+  __organizeAreas # sync & locate
+  __getLocationNotes # sync & locate
+ fi
+ __cleanNotesFiles # base, sync & locate
+ __logw "Ending process"
+ 
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  if [ ! -t 1 ] ; then
+   rmdir "${TMP_DIR}"
+  fi
+ fi
+}
+
 # Allows to other user read the directory.
 chmod go+x "${TMP_DIR}"
 
 __start_logger
 if [ ! -t 1 ] ; then
- __set_log_file "${LOG_FILE}"
-fi
-__logi "Preparing environment."
-__logd "Output saved at: ${TMP_DIR}"
-__logi "Processing: ${PROCESS_TYPE}"
-
-if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
- __show_help
- exit "${ERROR_HELP_MESSAGE}"
+ __set_log_file "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}"
 else
- if [[ "${PROCESS_TYPE}" == "" ]]; then
-  __logi "Process: Imports new notes from Planet."
- elif [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __logi "Process: From scratch."
- elif [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
-  __logi "Process: Downloads the countries and maritimes areas only."
- elif [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
-  __logi "Process: Converts the planet into a flat CSV file."
- elif [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __logi "Process: Takes the flat file and import it into the DB."
- fi
-fi
-# Checks the prerequisities. It could terminate the process.
-__checkPrereqs
-
-__logw "Starting process"
-
-# Sets the trap in case of any signal.
-__trapOn
-if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
- exec 7> "${LOCK}"
- __logw "Validating single execution."
- flock -n 7
-fi
-
-if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
- __dropSyncTables # base
- __dropApiTables # base
- __dropBaseTables # base
- __createBaseTables # base
-elif [[ "${PROCESS_TYPE}" == "" ]] \
-  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
- __dropSyncTables # sync
- set +E
- set +e
- __checkBaseTables # sync
- RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]] ; then
-  __createBaseTables # sync
- fi
- set -E
- __createSyncTables # sync
-fi
-if [[ "${PROCESS_TYPE}" == "--base" ]] \
-  || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
- __dropCountryTables # base and boundaries
- __createCountryTables # base and boundaries
-
- # Downloads the areas. It could terminate the execution if an error appears.
- __processCountries # base and boundaries
- __processMaritimes # base and boundaries
-
- __cleanPartial # base and boundaries
- if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
-  __logw "Ending process"
-  exit 0
- fi
-fi
-if [[ "${PROCESS_TYPE}" == "" ]] \
-  || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
- __downloadPlanetNotes # sync and flatfile
- __validatePlanetNotesXMLFile # sync and flatfile
- __convertPlanetNotesToFlatFile # sync and flatfile
- if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
-  echo "CSV files are at ${TMP_DIR}"
-  __logw "Ending process"
-  exit 0
- fi
-fi
-__createsFunctionToGetCountry # base, sync & locate
-__createsProcedures # all
-__analyzeAndVacuum # all
-if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
- __copyFlatFiles # locate
-fi
-if [[ "${PROCESS_TYPE}" == "" ]] \
-  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
- __loadSyncNotes # sync & locate
- __removeDuplicates # sync & locate
- __dropSyncTables # sync & locate
- __organizeAreas # sync & locate
- __getLocationNotes # sync & locate
-fi
-__cleanNotesFiles # base, sync & locate
-__logw "Ending process"
-
-if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
- mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
- if [ ! -t 1 ] ; then
-  rmdir "${TMP_DIR}"
- fi
+ main
 fi
 
