@@ -73,9 +73,12 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
+# Loads the global properties.
+source ${SCRIPT_BASE_DIRECTORY}/../properties.sh
+
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
-declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/bash_logger.sh"
+declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/../bash_logger.sh"
 
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
@@ -85,9 +88,9 @@ declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
-declare LOG_FILE
-LOG_FILE="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILE
+declare LOG_FILENAME
+LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+readonly LOG_FILENAME
 
 # Lock file for single execution.
 declare LOCK
@@ -100,9 +103,6 @@ declare -r PROCESS_TYPE=${1:-}
 # Flat file to start from load.
 declare -r FLAT_NOTES_FILE=${2:-}
 declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
-
-# Name of the PostgreSQL database to insert or update the data.
-declare -r DBNAME=notes
 
 # Name of the file to download.
 declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
@@ -130,15 +130,6 @@ declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 # FUNCTIONS
 
 source "${SCRIPT_BASE_DIRECTORY}/../functionsProcess.sh"
-# __log
-# __logt
-# __logd
-# __logi
-# __logw
-# __loge
-# __logf
-# __start_logger
-# __trapOn
 # __downloadPlanetNotes
 # __validatePlanetNotesXMLFile
 # __convertPlanetNotesToFlatFile
@@ -314,33 +305,25 @@ function __cleanNotesFiles {
 ######
 # MAIN
 
-# Allows to other user read the directory.
-chmod go+x "${TMP_DIR}"
-
-{
- __start_logger
+function main() {
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
-} >> "${LOG_FILE}" 2>&1
-
-if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
- __show_help
-fi
-__checkPrereqs
-{
+ 
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+ fi
+ __checkPrereqs
  __logw "Starting process"
-} >> "${LOG_FILE}" 2>&1
-
-# Sets the trap in case of any signal.
-__trapOn
-if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
- exec 7> "${LOCK}"
- __logw "Validating single execution." | tee -a "${LOG_FILE}"
- flock -n 7
-fi
-
-{
+ 
+ # Sets the trap in case of any signal.
+ __trapOn
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+  exec 7> "${LOCK}"
+  __logw "Validating single execution."
+  flock -n 7
+ fi
+ 
  __dropCheckTables
  __createCheckTables
  __downloadPlanetNotes
@@ -350,8 +333,19 @@ fi
  __analyzeAndVacuum
  __cleanNotesFiles
  __logw "Ending process"
-} >> "${LOG_FILE}" 2>&1
+ 
+}
 
-mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-rmdir "${TMP_DIR}"
+# Allows to other user read the directory.
+chmod go+x "${TMP_DIR}"
+
+__start_logger
+if [ ! -t 1 ] ; then
+ __set_log_file "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}" 2>&1
+ mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+ rmdir "${TMP_DIR}"
+else
+ main
+fi
 
