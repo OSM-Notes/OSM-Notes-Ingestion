@@ -883,7 +883,7 @@ function __removeDuplicates {
     'Counting notes sync different' as Text;
   SELECT COUNT(1), 'Sync notes no duplicates' AS Type FROM notes_sync;
 
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync note';
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync note' AS Text;
   DO
   \$\$
   DECLARE
@@ -953,7 +953,7 @@ function __removeDuplicates {
     'Sync comments no duplicates' AS Type
     FROM note_comments_sync;
 
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync comments';
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync comments' AS Text;
   DO
   \$\$
   DECLARE
@@ -1148,8 +1148,8 @@ function main() {
  __logw "Ending process"
  
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   if [ ! -t 1 ] ; then
+   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
    rmdir "${TMP_DIR}"
   fi
  fi
