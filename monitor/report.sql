@@ -98,9 +98,12 @@ CREATE TABLE temp_diff_notes (
 
 INSERT INTO temp_diff_notes
  SELECT note_id FROM (
-  SELECT note_id, latitude, longitude, created_at, status, closed_at FROM notes_check 
+  SELECT note_id, latitude, longitude, created_at, status, closed_at
+  FROM notes_check 
   EXCEPT
-  SELECT note_id, latitude, longitude, created_at, status, closed_at FROM notes
+  SELECT note_id, latitude, longitude, created_at, status, closed_at
+  FROM notes
+  WHERE (closed_at IS NULL OR closed_at < now()::date)
  ) AS t
  ORDER BY note_id
 ;
@@ -109,21 +112,21 @@ COPY
  (
   SELECT *
   FROM (
-   SELECT 'Planet', *
+   SELECT 'Planet' as source, note_id, latitude, longitude, created_at, status, closed_at
    FROM notes_check
    WHERE note_id IN (
     SELECT note_id
     FROM temp_diff_notes
    )
    UNION
-   SELECT 'API   ', *
+   SELECT 'API   ' as source, note_id, latitude, longitude, created_at, status, closed_at
    FROM notes
    WHERE note_id IN (
     SELECT note_id
     FROM temp_diff_notes
    )
   ) AS T
-  ORDER BY note_id
+  ORDER BY note_id, source
  )
  TO '/tmp/differentNotes.csv' WITH DELIMITER ',' CSV HEADER
 ;
@@ -144,6 +147,7 @@ INSERT INTO temp_diff_note_comments
   SELECT note_id, event, created_at, id_user FROM note_comments_check 
   EXCEPT
   SELECT note_id, event, created_at, id_user FROM note_comments
+  WHERE created_at < now()::date
  ) AS t
  ORDER BY note_id
 ;
@@ -152,17 +156,20 @@ COPY
  (
   SELECT *
   FROM (
-   SELECT 'Planet', note_id, event, created_at, id_user FROM note_comments_check
+   SELECT 'Planet', note_id, event, created_at, id_user
+   FROM note_comments_check
    WHERE note_id IN (
     SELECT note_id
     FROM temp_diff_note_comments
    )
    UNION
-   SELECT 'API   ', note_id, event, created_at, id_user FROM note_comments
+   SELECT 'API   ', note_id, event, created_at, id_user
+   FROM note_comments
    WHERE note_id IN (
     SELECT note_id
     FROM temp_diff_note_comments
    )
+   AND created_at < now()::date
   ) AS T
   ORDER BY note_id, created_at
  )
