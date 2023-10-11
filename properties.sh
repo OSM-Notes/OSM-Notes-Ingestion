@@ -11,4 +11,6 @@ declare -r DBNAME=notes
 # Mails to send the report.
 declare -r EMAILS="${EMAILS:-angoca@yahoo.com}"
 
+# Overpass interpreter.
+declare -r OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
 
