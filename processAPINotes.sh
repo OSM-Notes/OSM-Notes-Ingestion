@@ -23,8 +23,8 @@
 # 245) Planet process is currently running.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-11-29
-declare -r VERSION="2022-11-29"
+# Version: 2023-10-10
+declare -r VERSION="2023-10-10"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -79,9 +79,9 @@ declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 # Log file for output.
-declare LOG_FILE
-LOG_FILE="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILE
+declare LOG_FILENAME
+LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+readonly LOG_FILENAME
 
 # Lock file for single execution.
 declare LOCK
@@ -223,11 +223,12 @@ function __checkNoProcessPlanet {
  QTY="$(ps -ef | grep processPlanetNotes.sh | grep -v grep | wc -l)"
  set -e
  if [[ "${QTY}" -ne "0" ]] ; then
-  __loge "${BASENAME} is currently running." | tee -a "${LOG_FILE}"
-  __logw "It is better to wait for it to finish." | tee -a "${LOG_FILE}"
+  __loge "${BASENAME} is currently running."
+  __logw "It is better to wait for it to finish."
   exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
  fi
 }
+
 # Drop tables for notes from API.
 function __dropApiTables {
  __log_start
@@ -343,7 +344,7 @@ function __getNewNotesFromApi {
 
  # Gets the values from OSM API.
  wget -O "${API_NOTES_FILE}" \
-   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=-1&from=${LAST_UPDATE}"
+   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=7&from=${LAST_UPDATE}"
 
  rm "${TEMP_FILE}"
  __log_finish
@@ -749,13 +750,60 @@ EOF
 # Clean files generated during the process.
 function __cleanNotesFiles {
  __log_start
- rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+  rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
+ fi
  __log_finish
 }
 
 ######
 # MAIN
 
+function main() {
+ __logi "Preparing environment."
+ __logd "Output saved at: ${TMP_DIR}"
+ __logi "Processing: ${PROCESS_TYPE}"
+ 
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+ fi
+ __checkPrereqs
+ __logw "Process started."
+ 
+ # Sets the trap in case of any signal.
+ __trapOn
+ exec 8> "${LOCK}"
+ __logw "Validating single execution."
+ flock -n 8
+ 
+  __dropApiTables
+ set +E
+ __checkNoProcessPlanet
+ __checkBaseTables || RET=${?}
+ set -e
+ if [[ "${RET}" -ne 0 ]] ; then
+  __logw "Creating base tables. It will take several hours."
+  "${NOTES_SYNC_SCRIPT}" --base
+  __logw "Base tables created."
+ fi
+ 
+ set -E
+ __createApiTables
+ __createPropertiesTable
+ __getNewNotesFromApi
+ declare -i RESULT
+ RESULT=$(wc -l < "${API_NOTES_FILE}")
+ if [[ "${RESULT}" -ne 0 ]] ; then
+  __validateApiNotesXMLFile
+  __convertApiNotesToFlatFile
+  __checkQtyNotes
+  __loadApiNotes
+  __insertNewNotesAndComments
+  __updateLastValue
+ fi
+ __cleanNotesFiles
+ __logw "Process finished."
+}
 # Return value for several functions.
 declare -i RET
 
@@ -764,54 +812,15 @@ chmod go+x "${TMP_DIR}"
 
 __start_logger
 if [ ! -t 1 ] ; then
- __set_log_file "${LOG_FILE}"
-fi
-__logi "Preparing environment."
-__logd "Output saved at: ${TMP_DIR}"
-__logi "Processing: ${PROCESS_TYPE}"
-
-if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
- __show_help
-fi
-__checkPrereqs
-__logw "Process started."
-
-# Sets the trap in case of any signal.
-__trapOn
-exec 8> "${LOCK}"
-__logw "Validating single execution." | tee -a "${LOG_FILE}"
-flock -n 8
-
- __dropApiTables
-set +E
-__checkNoProcessPlanet
-__checkBaseTables || RET=${?}
-set -e
-if [[ "${RET}" -ne 0 ]] ; then
- __logw "Creating base tables. It will take several hours." | tee -a "${LOG_FILE}"
- "${NOTES_SYNC_SCRIPT}" --base
- __logw "Base tables created." | tee -a "${LOG_FILE}"
-fi
-
-set -E
-__createApiTables
-__createPropertiesTable
-__getNewNotesFromApi
-declare -i RESULT
-RESULT=$(wc -l < "${API_NOTES_FILE}")
-if [[ "${RESULT}" -ne 0 ]] ; then
- __validateApiNotesXMLFile
- __convertApiNotesToFlatFile
- __checkQtyNotes
- __loadApiNotes
- __insertNewNotesAndComments
- __updateLastValue
-fi
-__cleanNotesFiles
-__logw "Process finished."
-
-if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
- mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
- rmdir "${TMP_DIR}"
+ __set_log_file "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}"
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  if [ ! -t 1 ] ; then
+   rmdir "${TMP_DIR}"
+  fi
+ fi
+else
+ main
 fi
 
