@@ -176,7 +176,7 @@ declare -r CLEAN=${CLEAN:-true}
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
-# Base directory, where the ticket script resides.
+# Base directory, where the script resides.
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
 # shellcheck disable=SC2155
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
@@ -196,7 +196,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-# Lof file for output.
+# Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILENAME
@@ -268,7 +268,7 @@ source "${SCRIPT_BASE_DIRECTORY}/functionsProcess.sh"
 
 # Shows the help information.
 function __show_help {
- echo "${0} version ${VERSION}"
+ echo "${BASENAME} version ${VERSION}"
  echo "This is a script that downloads the OSM notes from the Planet,"
  echo "processes them with a XSLT transformation, to create a flat file,"
  echo "and finally it uploads them into a PostgreSQL database."
@@ -388,7 +388,7 @@ EOF
   __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## Checks the flat file if exist.
+ ## Checks if the flat file exist.
  if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]] ; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
@@ -1075,7 +1075,7 @@ function main() {
  # Checks the prerequisities. It could terminate the process.
  __checkPrereqs
  
- __logw "Starting process"
+ __logw "Starting process."
  
  # Sets the trap in case of any signal.
  __trapOn
