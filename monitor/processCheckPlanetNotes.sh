@@ -71,10 +71,10 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
 # shellcheck disable=SC2155
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 
 # Loads the global properties.
-source ${SCRIPT_BASE_DIRECTORY}/../properties.sh
+source "${SCRIPT_BASE_DIRECTORY}/../properties.sh"
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
@@ -149,7 +149,7 @@ function __show_help {
 function __checkPrereqs {
  __log_start
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
-   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --help"
@@ -158,58 +158,58 @@ function __checkPrereqs {
  set +e
  # Checks prereqs.
  ## PostgreSQL
- if ! psql --version > /dev/null 2>&1 ; then
+ if ! psql --version > /dev/null 2>&1; then
   __loge "ERROR: PostgreSQL is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## flock
- if ! flock --version > /dev/null 2>&1 ; then
+ if ! flock --version > /dev/null 2>&1; then
   __loge "ERROR: flock is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## wget
- if ! wget --version > /dev/null 2>&1 ; then
+ if ! wget --version > /dev/null 2>&1; then
   __loge "ERROR: wget is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Block-sorting file compressor
- if ! bzip2 --help > /dev/null 2>&1 ; then
+ if ! bzip2 --help > /dev/null 2>&1; then
   __loge "ERROR: bzip2 is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## XML lint
- if ! xmllint --version > /dev/null 2>&1 ; then
+ if ! xmllint --version > /dev/null 2>&1; then
   __loge "ERROR: XMLlint is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Java
- if ! java --version > /dev/null 2>&1 ; then
+ if ! java --version > /dev/null 2>&1; then
   __loge "ERROR: Java JRE is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Saxon Jar
- if [[ ! -r "${SAXON_JAR}" ]] ; then
+ if [[ ! -r "${SAXON_JAR}" ]]; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   __loge "You can specify it by export SAXON_CLASSPATH="
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1 ; then
+ if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Bash 4 or greater.
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
+ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
   __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks the flat file if exist.
- if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]] ; then
+ if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  ## Checks the flat file if exist.
  if [[ "${FLAT_NOTE_COMMENTS_FILE}" != "" ]] \
-   && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]] ; then
+  && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
@@ -297,8 +297,8 @@ EOF
 function __cleanNotesFiles {
  __log_start
  rm -f "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
-   "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
-   "${OUTPUT_NOTE_COMMENTS_FILE}"
+  "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
+  "${OUTPUT_NOTE_COMMENTS_FILE}"
  __log_finish
 }
 
@@ -309,21 +309,21 @@ function main() {
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
- 
+
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __checkPrereqs
  __logw "Starting process"
- 
+
  # Sets the trap in case of any signal.
  __trapOn
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
   exec 7> "${LOCK}"
   __logw "Validating single execution."
   flock -n 7
  fi
- 
+
  __dropCheckTables
  __createCheckTables
  __downloadPlanetNotes
@@ -333,14 +333,14 @@ function main() {
  __analyzeAndVacuum
  __cleanNotesFiles
  __logw "Ending process"
- 
+
 }
 
 # Allows to other user read the directory.
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [ ! -t 1 ] ; then
+if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}" 2>&1
  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
@@ -348,4 +348,3 @@ if [ ! -t 1 ] ; then
 else
  main
 fi
-

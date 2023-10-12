@@ -48,7 +48,7 @@ COPY
    SELECT note_id
    FROM temp_diff_notes_id
   )
-  ORDER BY created_at
+  ORDER BY note_id, created_at
  )
  TO '/tmp/differentNoteIds.csv' WITH DELIMITER ',' CSV HEADER
 ;
@@ -80,7 +80,7 @@ COPY
    SELECT note_id
    FROM temp_diff_comments_id
   )
-  ORDER BY created_at
+  ORDER BY note_id, created_at
  )
  TO '/tmp/differentNoteCommentIds.csv' WITH DELIMITER ',' CSV HEADER
 ;
@@ -156,14 +156,14 @@ COPY
  (
   SELECT *
   FROM (
-   SELECT 'Planet', note_id, event, created_at, id_user
+   SELECT 'Planet'as source, note_id, event, created_at, id_user
    FROM note_comments_check
    WHERE note_id IN (
     SELECT note_id
     FROM temp_diff_note_comments
    )
    UNION
-   SELECT 'API   ', note_id, event, created_at, id_user
+   SELECT 'API   ' as source, note_id, event, created_at, id_user
    FROM note_comments
    WHERE note_id IN (
     SELECT note_id
@@ -171,7 +171,7 @@ COPY
    )
    AND created_at < now()::date
   ) AS T
-  ORDER BY note_id, created_at
+  ORDER BY note_id, created_at, source
  )
  TO '/tmp/differentNoteComments.csv' WITH DELIMITER ',' CSV HEADER
 ;
