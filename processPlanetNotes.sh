@@ -184,7 +184,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Taken from https://stackoverflow.com/questions/59895/how-can-i-get-the-source-directory-of-a-bash-script-from-within-the-script-itsel
 # shellcheck disable=SC2155
 declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 
 # Loads the global properties.
 source "${SCRIPT_BASE_DIRECTORY}/properties.sh"
@@ -298,11 +298,11 @@ function __show_help {
 function __checkPrereqs {
  __log_start
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
-   && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
-   && [[ "${PROCESS_TYPE}" != "--flatfile" ]] \
-   && [[ "${PROCESS_TYPE}" != "--locatenotes" ]] \
-   && [[ "${PROCESS_TYPE}" != "--help" ]] \
-   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
+  && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
+  && [[ "${PROCESS_TYPE}" != "--flatfile" ]] \
+  && [[ "${PROCESS_TYPE}" != "--locatenotes" ]] \
+  && [[ "${PROCESS_TYPE}" != "--help" ]] \
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --base"
@@ -313,20 +313,20 @@ function __checkPrereqs {
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
-   && [[ "${FLAT_NOTES_FILE}" == "" ]] ; then
+  && [[ "${FLAT_NOTES_FILE}" == "" ]]; then
   __loge "ERROR: You  must specify a flat Notes CSV file to process."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
-   && [[ "${FLAT_NOTE_COMMENTS_FILE}" == "" ]] ; then
+  && [[ "${FLAT_NOTE_COMMENTS_FILE}" == "" ]]; then
   __loge "ERROR: You  must specify a flat Note Comments CSV file to process."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
  # Checks prereqs.
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
   ## PostgreSQL
-  if ! psql --version > /dev/null 2>&1 ; then
+  if ! psql --version > /dev/null 2>&1; then
    __loge "ERROR: PostgreSQL is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
@@ -340,66 +340,66 @@ EOF
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## Wget
-  if ! wget --version > /dev/null 2>&1 ; then
+  if ! wget --version > /dev/null 2>&1; then
    __loge "ERROR: Wget is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## osmtogeojson
-  if ! osmtogeojson --version > /dev/null 2>&1 ; then
+  if ! osmtogeojson --version > /dev/null 2>&1; then
    __loge "ERROR: osmtogeojson is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## gdal ogr2ogr
-  if ! ogr2ogr --version > /dev/null 2>&1 ; then
+  if ! ogr2ogr --version > /dev/null 2>&1; then
    __loge "ERROR: ogr2ogr is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## flock
-  if ! flock --version > /dev/null 2>&1 ; then
+  if ! flock --version > /dev/null 2>&1; then
    __loge "ERROR: flock is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
-   || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+  || [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
   ## Block-sorting file compressor
-  if ! bzip2 --help > /dev/null 2>&1 ; then
+  if ! bzip2 --help > /dev/null 2>&1; then
    __loge "ERROR: bzip2 is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## XML lint
-  if ! xmllint --version > /dev/null 2>&1 ; then
+  if ! xmllint --version > /dev/null 2>&1; then
    __loge "ERROR: XMLlint is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## Java
-  if ! java --version > /dev/null 2>&1 ; then
+  if ! java --version > /dev/null 2>&1; then
    __loge "ERROR: Java JRE is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
   ## Saxon Jar
-  if [[ ! -r "${SAXON_JAR}" ]] ; then
+  if [[ ! -r "${SAXON_JAR}" ]]; then
    __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
-  if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1 ; then
+  if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1; then
    __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
  ## Bash 4 or greater.
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
+ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
   __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks if the flat file exist.
- if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]] ; then
+ if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  ## Checks the flat file if exist.
  if [[ "${FLAT_NOTE_COMMENTS_FILE}" != "" ]] \
-   && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]] ; then
+  && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
@@ -618,7 +618,7 @@ EOF
  wget -O "${COUNTRIES_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
- if [[ "${RET}" -ne 0 ]] ; then
+ if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: Country list could not be downloaded."
   exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
@@ -628,34 +628,34 @@ EOF
 
  # Areas not at country level.
  {
- # Adds the Gaza Strip
- echo "1703814"
- # Adds Judea and Samaria.
- echo "1803010"
- # Adds the Buthan - China dispute.
- echo "12931402"
- # Adds Ilemi Triangle
- echo "192797"
- # Adds Neutral zone Burkina Faso - Benin
- echo "12940096"
- # Adds Bir Tawil
- echo "3335661"
- # Adds Jungholz, Austria
- echo "37848"
- # Adds Antarctica areas
- echo "3394112" # British Antarctic
- echo "3394110" # Argentine Antarctic
- echo "3394115" # Chilean Antarctic
- echo "3394113" # Ross dependency
- echo "3394111" # Australian Antarctic
- echo "3394114" # Adelia Land
- echo "3245621" # Queen Maud Land
- echo "2955118" # Peter I Island
- echo "2186646" # Antarctica continent
-} >> "${COUNTRIES_FILE}"
+  # Adds the Gaza Strip
+  echo "1703814"
+  # Adds Judea and Samaria.
+  echo "1803010"
+  # Adds the Buthan - China dispute.
+  echo "12931402"
+  # Adds Ilemi Triangle
+  echo "192797"
+  # Adds Neutral zone Burkina Faso - Benin
+  echo "12940096"
+  # Adds Bir Tawil
+  echo "3335661"
+  # Adds Jungholz, Austria
+  echo "37848"
+  # Adds Antarctica areas
+  echo "3394112" # British Antarctic
+  echo "3394110" # Argentine Antarctic
+  echo "3394115" # Chilean Antarctic
+  echo "3394113" # Ross dependency
+  echo "3394111" # Australian Antarctic
+  echo "3394114" # Adelia Land
+  echo "3245621" # Queen Maud Land
+  echo "2955118" # Peter I Island
+  echo "2186646" # Antarctica continent
+ } >> "${COUNTRIES_FILE}"
 
  __logi "Retrieving the countries' boundaries."
- while read -r LINE ; do
+ while read -r LINE; do
   ID=$(echo "${LINE}" | awk '{print $1}')
   JSON_FILE="${TMP_DIR}/${ID}.json"
   GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
@@ -674,27 +674,27 @@ EOF
   set +e
   set +o pipefail
   COUNTRY=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
-    | awk -F\" '{print $4}' | sed "s/'/''/")
+   | awk -F\" '{print $4}' | sed "s/'/''/")
   COUNTRY_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
-    | awk -F\" '{print $4}' | sed "s/'/''/")
+   | awk -F\" '{print $4}' | sed "s/'/''/")
   COUNTRY_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
-    | awk -F\" '{print $4}' | sed "s/'/''/")
+   | awk -F\" '{print $4}' | sed "s/'/''/")
   set -o pipefail
   set -e
   __logi "Name: ${COUNTRY_EN}"
 
   # Taiwan cannot be imported directly. Thus, a simplification is done.
   # ERROR:  row is too big: size 8616, maximum size 8160
-  grep -v "official_name" "${GEOJSON_FILE}" | \
-    grep -v "alt_name" > "${GEOJSON_FILE}-new"
+  grep -v "official_name" "${GEOJSON_FILE}" \
+   | grep -v "alt_name" > "${GEOJSON_FILE}-new"
   mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
 
   __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${GEOJSON_FILE}" \
-    -nln import -overwrite
+   -nln import -overwrite
 
   __logi "Inserting into final table."
-  if [[ "${ID}" -ne 16239 ]] ; then
+  if [[ "${ID}" -ne 16239 ]]; then
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
      country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}',
      '${COUNTRY_EN}', ST_Union(ST_makeValid(wkb_geometry))
@@ -711,7 +711,7 @@ EOF
   __logd "${STATEMENT}"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
-  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
    rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
   fi
   __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
@@ -739,7 +739,7 @@ EOF
  wget -O "${MARITIMES_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
- if [[ "${RET}" -ne 0 ]] ; then
+ if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: Maritimes border list could not be downloaded."
   exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
@@ -748,7 +748,7 @@ EOF
  mv "${MARITIMES_FILE}.tmp" "${MARITIMES_FILE}"
 
  __logi "Retrieving the maritimes' boundaries."
- while read -r LINE ; do
+ while read -r LINE; do
   ID=$(echo "${LINE}" | awk '{print $1}')
   JSON_FILE="${TMP_DIR}/${ID}.json"
   GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
@@ -767,18 +767,18 @@ EOF
   set +e
   set +o pipefail
   NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
-    | awk -F\" '{print $4}' | sed "s/'/''/")
+   | awk -F\" '{print $4}' | sed "s/'/''/")
   NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
-    | awk -F\" '{print $4}' | sed "s/'/''/")
+   | awk -F\" '{print $4}' | sed "s/'/''/")
   NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
-    | awk -F\" '{print $4}' | sed "s/'/''/")
+   | awk -F\" '{print $4}' | sed "s/'/''/")
   set -o pipefail
   set -e
   __logi "Name: ${NAME_EN}"
 
   __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${GEOJSON_FILE}" \
-    -nln import -overwrite
+   -nln import -overwrite
 
   __logi "Inserting into final table."
   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
@@ -787,7 +787,7 @@ EOF
   __logd "${STATEMENT}"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
-  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
    rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
   fi
   __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
@@ -802,7 +802,7 @@ EOF
 # Clean files and tables.
 function __cleanPartial {
  __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${QUERY_FILE}" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
  fi
@@ -1009,10 +1009,10 @@ EOF
 # Cleans files generated during the process.
 function __cleanNotesFiles {
  __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${XSLT_NOTES_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
-    "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
-    "${OUTPUT_NOTE_COMMENTS_FILE}"
+   "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
+   "${OUTPUT_NOTE_COMMENTS_FILE}"
  fi
  __log_finish
 }
@@ -1022,18 +1022,18 @@ function __getLocationNotes {
  __log_start
  declare -l MAX_NOTE_ID
  wget -O "${LAST_NOTE_FILE}" \
-   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
+  "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
  MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
- MAX_NOTE_ID=$((MAX_NOTE_ID+100))
+ MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 
- declare -l SIZE=$((MAX_NOTE_ID/PARALLELISM))
+ declare -l SIZE=$((MAX_NOTE_ID / PARALLELISM))
  rm -r "${LAST_NOTE_FILE}"
- for j in $(seq 1 1 "${PARALLELISM}") ; do
+ for j in $(seq 1 1 "${PARALLELISM}"); do
   (
    __logi "Starting ${j}"
-   MIN=$((SIZE*(j-1)+LOOP_SIZE))
-   MAX=$((SIZE*j))
-   for i in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}") ; do
+   MIN=$((SIZE * (j - 1) + LOOP_SIZE))
+   MAX=$((SIZE * j))
+   for i in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
     MIN_LOOP=$((i - LOOP_SIZE))
     MAX_LOOP=${i}
     __logd "${i}: [${MIN_LOOP} - ${MAX_LOOP}]"
@@ -1059,7 +1059,7 @@ function main() {
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
- 
+
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
   exit "${ERROR_HELP_MESSAGE}"
@@ -1078,81 +1078,81 @@ function main() {
  fi
  # Checks the prerequisities. It could terminate the process.
  __checkPrereqs
- 
+
  __logw "Starting process."
- 
+
  # Sets the trap in case of any signal.
  __trapOn
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]] ; then
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
   exec 7> "${LOCK}"
   __logw "Validating single execution."
   flock -n 7
  fi
- 
- if [[ "${PROCESS_TYPE}" == "--base" ]] ; then
-  __dropSyncTables # base
-  __dropApiTables # base
-  __dropBaseTables # base
+
+ if [[ "${PROCESS_TYPE}" == "--base" ]]; then
+  __dropSyncTables   # base
+  __dropApiTables    # base
+  __dropBaseTables   # base
   __createBaseTables # base
  elif [[ "${PROCESS_TYPE}" == "" ]] \
-   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
   __dropSyncTables # sync
   set +E
   set +e
   __checkBaseTables # sync
   RET=${?}
   set -e
-  if [[ "${RET}" -ne 0 ]] ; then
+  if [[ "${RET}" -ne 0 ]]; then
    __createBaseTables # sync
   fi
   set -E
   __createSyncTables # sync
  fi
  if [[ "${PROCESS_TYPE}" == "--base" ]] \
-   || [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
-  __dropCountryTables # base and boundaries
+  || [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
+  __dropCountryTables   # base and boundaries
   __createCountryTables # base and boundaries
- 
+
   # Downloads the areas. It could terminate the execution if an error appears.
   __processCountries # base and boundaries
   __processMaritimes # base and boundaries
- 
+
   __cleanPartial # base and boundaries
-  if [[ "${PROCESS_TYPE}" == "--boundaries" ]] ; then
+  if [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
    __logw "Ending process"
    exit 0
   fi
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
-   || [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
-  __downloadPlanetNotes # sync and flatfile
-  __validatePlanetNotesXMLFile # sync and flatfile
+  || [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
+  __downloadPlanetNotes          # sync and flatfile
+  __validatePlanetNotesXMLFile   # sync and flatfile
   __convertPlanetNotesToFlatFile # sync and flatfile
-  if [[ "${PROCESS_TYPE}" == "--flatfile" ]] ; then
+  if [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
    echo "CSV files are at ${TMP_DIR}"
    __logw "Ending process"
    exit 0
   fi
  fi
  __createsFunctionToGetCountry # base, sync & locate
- __createsProcedures # all
- __analyzeAndVacuum # all
- if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
+ __createsProcedures           # all
+ __analyzeAndVacuum            # all
+ if [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
   __copyFlatFiles # locate
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
-   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]] ; then
-  __loadSyncNotes # sync & locate
+  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
+  __loadSyncNotes    # sync & locate
   __removeDuplicates # sync & locate
-  __dropSyncTables # sync & locate
-  __organizeAreas # sync & locate
+  __dropSyncTables   # sync & locate
+  __organizeAreas    # sync & locate
   __getLocationNotes # sync & locate
  fi
  __cleanNotesFiles # base, sync & locate
  __logw "Ending process"
- 
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-  if [[ ! -t 1 ]] ; then
+
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+  if [[ ! -t 1 ]]; then
    mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
    rmdir "${TMP_DIR}"
   fi
@@ -1163,10 +1163,9 @@ function main() {
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [[ ! -t 1 ]] ; then
+if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
 else
  main
 fi
-
