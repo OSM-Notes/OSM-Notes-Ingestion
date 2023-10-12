@@ -22,6 +22,10 @@
 # 244) No last update.
 # 245) Planet process is currently running.
 #
+# For contributing, please execute these commands before subimitting:
+# * shellcheck -x -o all processAPINotes.sh
+# * shfmt -w -i 1 -sr -bn processAPINotes.sh
+#
 # Author: Andres Gomez (AngocA)
 # Version: 2023-10-10
 declare -r VERSION="2023-10-10"
@@ -65,7 +69,7 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
   &> /dev/null && pwd)"
 
 # Loads the global properties.
-source ${SCRIPT_BASE_DIRECTORY}/properties.sh
+source "${SCRIPT_BASE_DIRECTORY}/properties.sh"
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
@@ -343,8 +347,9 @@ function __getNewNotesFromApi {
  fi
 
  # Gets the values from OSM API.
- wget -O "${API_NOTES_FILE}" \
-   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=7&from=${LAST_UPDATE}"
+ REQUEST="https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=7&from=${LAST_UPDATE}"
+ __logd "${REQUEST}"
+ wget -O "${API_NOTES_FILE}" "${REQUEST}"
 
  rm "${TEMP_FILE}"
  __log_finish
@@ -606,7 +611,7 @@ function __loadApiNotes {
   TEXT=$(echo "${LINE}" | cut -f 1 -d,)
   __logi "${TEXT}"
  done < "${OUTPUT_NOTES_FILE}"
-
+ echo 
  __logi "Note comments to be processed:"
  while read -r LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
@@ -811,14 +816,12 @@ declare -i RET
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [ ! -t 1 ] ; then
+if [[ ! -t 1 ]] ; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-  if [ ! -t 1 ] ; then
-   rmdir "${TMP_DIR}"
-  fi
+  rmdir "${TMP_DIR}"
  fi
 else
  main
