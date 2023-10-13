@@ -349,7 +349,7 @@ function __getNewNotesFromApi {
  # Gets the values from OSM API.
  REQUEST="https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=7&from=${LAST_UPDATE}"
  __logd "${REQUEST}"
- wget -O "${API_NOTES_FILE}" "${REQUEST}"
+ wget -O "${API_NOTES_FILE}" "${REQUEST}" 2> "${LOG_FILENAME}"
 
  rm "${TEMP_FILE}"
  __log_finish
@@ -504,7 +504,7 @@ function __validateApiNotesXMLFile {
 </xs:schema>
 EOF
 
- xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}"
+ xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" 2> "${LOG_FILENAME}"
 
  rm -f "${XMLSCHEMA_API_NOTES}"
  __log_finish
