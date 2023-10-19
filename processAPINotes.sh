@@ -347,7 +347,7 @@ function __getNewNotesFromApi {
  fi
 
  # Gets the values from OSM API.
- REQUEST="https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=7&from=${LAST_UPDATE}"
+ REQUEST="https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
  __logd "${REQUEST}"
  wget -O "${API_NOTES_FILE}" "${REQUEST}" 2> "${LOG_FILENAME}"
 
