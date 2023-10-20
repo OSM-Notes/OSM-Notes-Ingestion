@@ -48,6 +48,9 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/../../bash_logger.sh"
 
+# Loads the global properties.
+source ${SCRIPT_BASE_DIRECTORY}/properties.sh
+
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
@@ -68,9 +71,6 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Name of the PostgreSQL database to insert or update the data.
-declare -r DBNAME=notes
-
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/createDatamartUsersTable.sql"
 
@@ -86,59 +86,7 @@ declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/populateDatamartUsersTable.sq
 ###########
 # FUNCTIONS
 
-### Logger
-
-# Loads the logger (log4j like) tool.
-# It has the following functions.
-# __log default.
-# __logt for trace.
-# __logd for debug.
-# __logi for info.
-# __logw for warn.
-# __loge for error. Writes in standard error.
-# __logf for fatal.
-# Declare mock functions, in order to have them in case the logger utility
-# cannot be found.
-function __log() { :; }
-function __logt() { :; }
-function __logd() { :; }
-function __logi() { :; }
-function __logw() { :; }
-function __loge() { :; }
-function __logf() { :; }
-function __log_start() { :; }
-function __log_finish() { :; }
-
-# Starts the logger utility.
-function __start_logger() {
- if [[ -f "${LOGGER_UTILITY}" ]] ; then
-  # Starts the logger mechanism.
-  set +e
-  # shellcheck source=./bash_logger.sh
-  source "${LOGGER_UTILITY}"
-  local -i RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]] ; then
-   printf "\nERROR: Invalid logger framework file.\n"
-   exit "${ERROR_LOGGER_UTILITY}"
-  fi
-  # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
-  __bl_set_log_level "${LOG_LEVEL}"
-  __logd "Logger loaded."
- else
-  printf "\nLogger was not found.\n"
- fi
-}
-
-# Function that activates the error trap.
-function __trapOn() {
- __log_start
- trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}"; exit ;}' \
-   ERR
- trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ;}' \
-   SIGINT SIGTERM
- __log_finish
-}
+source "${SCRIPT_BASE_DIRECTORY}/../../functionsProcess.sh"
 
 # Shows the help information.
 function __show_help {
@@ -198,21 +146,16 @@ function __processNotes {
 ######
 # MAIN
 
-# Allows to other user read the directory.
-chmod go+x "${TMP_DIR}"
-
-{
- __start_logger
+function main() {
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
-} #TODO >> "${LOG_FILE}" 2>&1
 
-if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
- __show_help
-fi
-__checkPrereqs
-{
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+ fi
+ __checkPrereqs
+
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
@@ -224,10 +167,20 @@ __checkPrereqs
  __processNotes
 
  __logw "Ending process"
-} # TODO >> "${LOG_FILE}" 2>&1
+}
 
-if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
- mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
- rmdir "${TMP_DIR}"
+# Allows to other user read the directory.
+chmod go+x "${TMP_DIR}"
+
+__start_logger
+if [ ! -t 1 ] ; then
+ __set_log_file "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}"
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  rmdir "${TMP_DIR}"
+ fi
+else
+ main
 fi
 
