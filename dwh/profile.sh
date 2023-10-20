@@ -64,6 +64,9 @@ declare -r SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" \
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/../bash_logger.sh"
 
+# Loads the global properties.
+source ${SCRIPT_BASE_DIRECTORY}/../properties.sh
+
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
@@ -78,82 +81,34 @@ readonly LOG_FILE
 
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
+# Argument for the process type.
+declare -r ARGUMENT=${2:-}
 
-# Name of the PostgreSQL database to insert or update the data.
-declare -r DBNAME=notes
-
+# Username.
+declare -i USER_NAME
+# User_id of the username.
+declare -i USER_ID
 # Name of the user or the country.
-declare -r NAME="${2:-}"
+declare COUNTRY_NAME
 
 ###########
 # FUNCTIONS
 
-### Logger
-
-# Loads the logger (log4j like) tool.
-# It has the following functions.
-# __log default.
-# __logt for trace.
-# __logd for debug.
-# __logi for info.
-# __logw for warn.
-# __loge for error. Writes in standard error.
-# __logf for fatal.
-# Declare mock functions, in order to have them in case the logger utility
-# cannot be found.
-function __log() { :; }
-function __logt() { :; }
-function __logd() { :; }
-function __logi() { :; }
-function __logw() { :; }
-function __loge() { :; }
-function __logf() { :; }
-function __log_start() { :; }
-function __log_finish() { :; }
-
-# Starts the logger utility.
-function __start_logger() {
- if [[ -f "${LOGGER_UTILITY}" ]] ; then
-  # Starts the logger mechanism.
-  set +e
-  # shellcheck source=./bash_logger.sh
-  source "${LOGGER_UTILITY}"
-  local -i RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]] ; then
-   printf "\nERROR: Invalid logger framework file.\n"
-   exit "${ERROR_LOGGER_UTILITY}"
-  fi
-  # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
-  __bl_set_log_level "${LOG_LEVEL}"
-  __logd "Logger loaded."
- else
-  printf "\nLogger was not found.\n"
- fi
-}
-
-# Function that activates the error trap.
-function __trapOn() {
- __log_start
- trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}"; exit ;}' \
-   ERR
- trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ;}' \
-   SIGINT SIGTERM
- __log_finish
-}
+source "${SCRIPT_BASE_DIRECTORY}/../functionsProcess.sh"
 
 # Shows the help information.
 function __show_help {
  echo "${0} version ${VERSION}"
- echo "This is an ETL script that takes the data from notes and comments and"
- echo "process it into a star schema. This schema allows an easier access from"
- echo "the OSM Notes profile."
+ echo "This is an ETL script that takes the data from notes and comments, and"
+ echo "processes them into a star schema. This schema allows an easier access"
+ echo "from the OSM Notes profile."
  echo
  echo "There are 2 ways to call this script:"
  echo "* --user <UserName> : Shows the profile for the given user."
- echo "* --country <CountryName> : Shows the profiel for the given country."
+ echo "* --country <CountryName> : Shows the profile for the given country."
  echo "If the UserName or CountryName has spaces in the name, it should be"
  echo "invoked between double quotes."
+ echo
  echo "For example:"
  echo "* --user AngocA"
  echo "* --country Colombia"
@@ -179,6 +134,21 @@ function __checkPrereqs {
   echo " * --help"
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
+ if [[ "${PROCESS_TYPE}" == "--user" ]] \
+  && [[ "${ARGUMENT}" == "" ]]; then
+  __loge "ERROR: You  must a username."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ else
+  USERNAME="${ARGUMENT}"
+ fi
+ if [[ "${PROCESS_TYPE}" == "--country" ]] \
+  && [[ "${ARGUMENT}" == "" ]]; then
+  __loge "ERROR: You  must a country name."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ else
+  COUNTRY_NAME="${ARGUMENT}"
+ fi
+
  ## PostgreSQL
  if ! psql --version > /dev/null 2>&1 ; then
   __loge "ERROR: PostgreSQL is missing."
@@ -193,16 +163,17 @@ function __checkPrereqs {
  set -e
 }
 
-function __processUserProfile {
- # User id
- declare -i USER_ID
- USER_ID=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT user_id
-     FROM dwh.datamartUsers
-     WHERE username = '${NAME}'
-     " \
-     -v ON_ERROR_STOP=1 )
+# Retrives the user_id from a username.
+function __getUserId {
+ USER_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  <<< "select user_id from dwh.datamartUsers where username = '${USERNAME}'")
+ if [ "${USER_ID}" == "" ]; then
+  __loge "ERROR: The username \"${USERNAME}\" does not exist."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+}
 
+function __processUserProfile {
  # Quantity of days creating notes.
  declare -i QTY_DAYS_OPEN
  QTY_DAYS_OPEN=$(psql -d "${DBNAME}" -Atq \
@@ -1151,7 +1122,7 @@ function __processUserProfile {
      " \
     -v ON_ERROR_STOP=1 )
 
- echo "User name: ${NAME}"
+ echo "User name: ${USERNAME}"
  echo "User ID: ${USER_ID}"
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}"
  echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}"
@@ -1185,29 +1156,30 @@ function __processUserProfile {
  echo "Hashtags: ${HASHTAGS}"
 }
 
+# Shows the note statistics for a given country.
+function __processCountryProfile {
+ echo "ToDo: it has not been implemented yet."
+}
+
 ######
 # MAIN
 
-# Allows to other user read the directory.
-chmod go+x "${TMP_DIR}"
-
-{
- __start_logger
+function main() {
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
-} >> "${LOG_FILE}" 2>&1
 
-if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
- __show_help
-fi
-__checkPrereqs
-{
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+ fi
+ __checkPrereqs
+
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
 
  if [[ "${PROCESS_TYPE}" == "--user" ]] ; then
+  __getUserId
   __processUserProfile
  elif [[ "${PROCESS_TYPE}" == "--country" ]] ; then
   __processCountryProfile
@@ -1215,10 +1187,19 @@ __checkPrereqs
 
  __logw "Ending process"
 }
-# >> "${LOG_FILE}" 2>&1
 
-if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
- mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
- rmdir "${TMP_DIR}"
+# Allows to other user read the directory.
+chmod go+x "${TMP_DIR}"
+
+__start_logger
+if [ ! -t 1 ] ; then
+ __set_log_file "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}"
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  rmdir "${TMP_DIR}"
+ fi
+else
+ main
 fi
 
