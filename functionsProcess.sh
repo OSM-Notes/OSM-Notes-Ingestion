@@ -489,6 +489,7 @@ EOF
      SET username = EXCLUDED.username;
    END IF;
 
+    -- TODO Perform validation that the note is in open state.
    INSERT INTO note_comments (
     note_id,
     event,
@@ -500,24 +501,24 @@ EOF
     m_created_at,
     m_id_user
    ) ON CONFLICT 
-    --(note_id) DO UPDATE
-    -- SET conflict = Current_timestamp || '-' || m_event;
     DO NOTHING;
 
    IF (m_event = 'closed') THEN
+    -- TODO Perform validation that the note is in open state.
     UPDATE notes
       SET status = 'close',
       closed_at = m_created_at
       WHERE note_id = m_note_id;
-    INSERT INTO logs (message) VALUES ('Close note ' || m_note_id);
+    INSERT INTO logs (message) VALUES ('Update to close note ' || m_note_id);
    ELSIF (m_event = 'reopened') THEN
+    -- TODO Perform validation that the note is in close state.
     UPDATE notes
       SET status = 'open',
       closed_at = NULL
       WHERE note_id = m_note_id;
-    INSERT INTO logs (message) VALUES ('Reopen note ' || m_note_id);
-   ELSE
-    INSERT INTO logs (message) VALUES ('Another event ' || m_note_id || '-' || m_event);
+    INSERT INTO logs (message) VALUES ('Update to reopen note ' || m_note_id);
+   --ELSE
+   -- INSERT INTO logs (message) VALUES ('Another event ' || m_note_id || '-' || m_event);
    END IF;
 
    -- TODO HAcer algo en los conflictos, como registrar en otra tabla.
