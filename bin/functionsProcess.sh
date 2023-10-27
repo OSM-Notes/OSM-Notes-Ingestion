@@ -26,7 +26,7 @@ declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
 
 # PostgreSQL files.
 # Check base tables.
-declare -r POSTGRES_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/processPlanetNotes-dropCountryTables.sql"
+declare -r POSTGRES_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess-checkBaseTables.sql"
 # Create get country function.
 declare -r POSTGRES_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess-createFunctionToGetCountry.sql"
 # Create insert note procedure.

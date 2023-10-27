@@ -48,7 +48,7 @@ declare CLEAN_FILES="${CLEAN_FILES:-true}"
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}"/../..)" \
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
   &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
@@ -92,7 +92,7 @@ declare -r REPORT_ZIP=${TMP_DIR}/report.zip
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 # Script to process notes from Planet.
-declare -r SCRIPT_PROCESS_PLANET="${SCRIPT_BASE_DIRECTORY}/bin/processCheckPlanetNotes.sh"
+declare -r SCRIPT_PROCESS_PLANET="${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
 
 # SQL report file.
 declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-report.sql"
@@ -166,7 +166,24 @@ function __downloadingPlanet {
 function __checkingDifferences {
  __log_start
 
+ DIFFERENT_NOTE_IDS_FILE=/tmp/differentNoteIds.csv
+ DIFFERENT_COMMENT_IDS_FILE=/tmp/differentNoteCommentIds.csv
+ DIRRERENT_NOTES_FILE=/tmp/differentNotes.csv
+ DIRRERENT_COMMENTS_FILE=/tmp/differentNoteComments.csv
+ LAST_NOTE=/tmp/lastNote.csv
+ LAST_COMMENT=/tmp/lastNote.csv
+
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${SQL_REPORT}"
+
+ if [ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ] \
+  || [ ! -r "${DIFFERENT_COMMENT_IDS_FILE}" ] \
+  || [ ! -r "${DIRRERENT_NOTES_FILE}" ] \
+  || [ ! -r "${DIRRERENT_COMMENTS_FILE}" ] || [ ! -r "${LAST_NOTE}" ] \
+  || [ ! -r "${LAST_COMMENT}" ]; then
+  __loge "Difference files were not created."
+  exit 1
+ fi
+  
  zip "${REPORT_ZIP}" /tmp/differentNoteIds.csv \
   /tmp/differentNoteCommentIds.csv /tmp/differentNotes.csv \
   /tmp/differentNoteComments.csv
@@ -193,7 +210,7 @@ function __sendMail {
    echo "https://github.com/OSMLatam/OSM-Notes-profile"
   } >> "${REPORT}"
   echo "" | mutt -s "OSM Notes profile differences" -i "${REPORT}" -a "${REPORT_ZIP}" -- "${EMAILS}"
-  __logi "Mensaje enviado."
+  __logi "Menssage sent."
  fi
  __log_finish
 }

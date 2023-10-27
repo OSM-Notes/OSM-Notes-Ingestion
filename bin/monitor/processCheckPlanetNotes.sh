@@ -64,13 +64,13 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}"/..)" \
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
   &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
 # shellcheck source=../../etc/properties.sh
-source "${SCRIPT_BASE_DIRECTORY}/../properties.sh"
+source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
@@ -260,8 +260,11 @@ function __createCheckTables {
 function __loadCheckNotes {
  __log_start
  # Loads the data in the database.
- # Adds a column to include the country where it belongs.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_LOAD_CHECK_NOTES}"
+ export OUTPUT_NOTES_FILE
+ export OUTPUT_NOTE_COMMENTS_FILE
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' < "${POSTGRES_LOAD_CHECK_NOTES}")"
  __log_finish
 }
 

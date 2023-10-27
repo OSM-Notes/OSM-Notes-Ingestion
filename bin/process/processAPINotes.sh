@@ -56,7 +56,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}"/../..)" \
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
   &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
@@ -404,7 +404,9 @@ function __loadApiNotes {
  export OUTPUT_NOTES_FILE
  export OUTPUT_NOTE_COMMENTS_FILE
  # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_LOAD_API_NOTES}"
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' < "${POSTGRES_LOAD_API_NOTES}")"
+
  # TODO Load the text into another table.
  __log_finish
 }
@@ -412,7 +414,7 @@ function __loadApiNotes {
 # Inserts new notes and comments into the database.
 function __insertNewNotesAndComments {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}"
  # TODO The insert_note_comment procedure should accept the text.
  __log_finish
 }
