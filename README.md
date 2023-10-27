@@ -1,7 +1,38 @@
 # OSM-Notes-profile
 Mechanism to show a user and country profile about the work on OSM notes.
+Also, it allows to publish a layer with the location of the opened and
+closed notes.
+
+
+# Main functions
+
+These are the main functions of this project.
+
+* Download the notes from the OSM Planet, and then keep data in sync
+with the main OSM database via API calls.
+This is configured with a scheduler (cron) and it does everything.
+* Copy the note's data to another set to tables to allow the
+publishing of a WMS layer.
+This is configured via triggers on the database.
+* Monitor the sync by comparing the daily Planet with the notes on the
+database.
+This is optional and can be configured with a cron.
+* Data warehouse for the notes data.
+This is performed with an ETL that takes the note's data and changes the
+structure to allow reports, which are used to publish the user and
+country profile.
+This is configured via a cron.
+* Test the user or country's profile.
+
 
 # Workflow
+
+## Configuration file
+
+Before everything, you need to configure the database access and other
+properties under the next file:
+
+`etc/properties.sh`
 
 ## Downloading notes
 
@@ -10,63 +41,99 @@ There are two ways to download notes:
 * Recent notes from planet (including all notes).
 * Near real-time notes from API.
 
-All these options are defined in these two files:
+All these options are defined in these two files under `bin` directory:
 
 * `processPlanetNotes.sh`
 * `processAPINotes.sh`
 
 And everything can be called from `processAPINotes.sh`.
 
-If `processAPINotes.sh` cannot find the base tables, then it will invoke `processPlanetNotes.sh --base` that will create the basic elements on the database:
+If `processAPINotes.sh` cannot find the base tables, then it will invoke
+`processPlanetNotes.sh --base` that will create the basic elements on the
+database:
 
 * Download countries and maritimes areas.
 
-If `processAPINotes.sh` get more than 10 000 notes from an API call, then it will synchronize the database calling `processPlanetNotes.sh`. Then it will:
+If `processAPINotes.sh` get more than 10 000 notes from an API call, then it
+will synchronize the database calling `processPlanetNotes.sh`. Then it will:
 
 * Download the notes from planet.
 * Remove the duplicates.
 * Process the new ones.
 * Associate notes with a country or maritime area.
 
-If `processAPINotes.sh` get less than 10 000 notes, it will process them directly.
+If `processAPINotes.sh` get less than 10 000 notes, it will process them
+directly.
 
-You can run `processAPINotes.sh` from a crontab each 15 minutes, to process notes almost on real-time.
+You can run `processAPINotes.sh` from a crontab each 15 minutes, to process
+notes almost on real-time.
 
 ## Logger
 
-You can export the `LOG_LEVEL` variable, and then call the scripts normally. They will 
+You can export the `LOG_LEVEL` variable, and then call the scripts normally.
 
 ```
 export LOG_LEVEL=DEBUG
 ./processAPINotes.sh
 ```
 
-# Files
+The levels are (case sensitive):
 
-* `bash_logger.sh` is a tool for logging with different levels.
-* `processAPINotes.sh` is the main script that process the notes with the API.
-* `processPlanetNotes.sh` is the base script to process notes from Planet file.
-* `processCheckPlanetNotes.sh` is a script that allows to check the notes in
-  the database with a new download from planet. This allow to identify
-  unprocessed notes and errors in the others scripts.
+* TRACE
+* DEBUG
+* INFO
+* WARN
+* ERROR
+* FATAL
+
+## Database
+
+The database has different set of tables.
+
+* Base tables (notes and note_comments) that are the most important with the
+whole history.
+* API tables which contain the data for recently modified notes and comments.
+The data from these tables are then bulked into base tables.
+* Sync tables contain the data from the recent planet.
+* WMS tables in its own schema.
+Contains the simplified version of the notes with only the location and age.
+* DWH are the tables from the data warehouse to perform analyzed on the DB.
+* Check tables are used for monitoring to compare the notes on the previous day
+between the normal behaviour with API and the notes on the last day of the
+Planet.
 
 ## Directories
 
 The following directories have their own README file.
+These files include details how to run or troubleshot the scripts.
 
-* dwh provides the scripts to perform a transformation to a data warehouse and
+* `bin` explains all scripts under that directory to call the main functions.
+* `bin/dwh` provides the scripts to perform a transformation to a data warehouse and
   show the notes profile.
-* wms provides the mechanism to publish a WMS from the notes.
-
-# Insufficient memory resources
-
-If the server where this script runs does not have enough memory (6 GB for Java), then it will not be able to process the Planet notes file, to convert it into a flat file.
-
-To overcome this issue, you can prepare the environment with 3 steps, performed in different computers.
-
-* `processPlanetNotes.sh --base` This creates the basic elements on the db.
-* `processPlanetNotes.sh --flatfile` Downloads the Planet notes file and converts it into two CSV flat files. This is the process that should be done in a computer that can reserve 6 GB for Java Saxon.
-* `processPlanetNotes.sh --locatenotes` Assign a country to the notes.
+* `etc` configuration file for many script. 
+* `lib` libraries used in the project.
+Currently onely bash logger.
+* `overpass` queries to download data with Overpass to the countries and
+maritimes boundaries. 
+* `sld` files to format the WMS layer on the GeoServer. 
+* `sql` contains most of the SQL statement to be executed in Postgres.
+It follows the same directory structure from `/bin` where the prefix name is
+the same of the scripts on the other directory.
+This directory also contains a script to keep a copy of the locations of the
+notes in case of a re-execution of the whole Planet process.
+* `sql/wms` provides the mechanism to publish a WMS from the notes.
+This is the only exception to the other files under `/sql`.
+In fact, this is the only location of the files related to the WMS layer
+publishing.
+* `test` set of scripts to perform test.
+This is not part of a Unit Test set. 
+* `xsd` contains the structure of the XML documents to be retrieved - XML
+Schema.
+This helps to validate the structure of the documents, preventing errors
+during the import.
+* `xslt` contains all the XML transformation for the data retrieved from the
+API. 
+They are used from `processAPINotes.sh` and `processPlanetNotes.sh`.
 
 # Install prerequisites on Ubuntu
 
@@ -127,10 +194,18 @@ By querying the tables with and without the suffix, you can get the
 differences; however it only works around 0h where the planet file is
 published. This will compare the differences between the API process and the
 Planet.
-If you find many difference, specially very old ones, it means the script
+
+If you find many differences, specially very old ones, it means the script
 failed in the past, and the best is to recreate the database with the
 `processPlanetNotes.sh` script, but also create an issue for the project,
 providing as much informaction as possible.
+
+# Help
+
+You can start looking for help by reading the README.md files.
+Also, you run the scripts with -h or --help.
+You can even take a look at the code, which is highly documented.
+Finally, you can create an issue or contact the author.
 
 # Acknowledgements
 

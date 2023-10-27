@@ -1,0 +1,5 @@
+[out:csv(::id)];
+(
+  relation["type"="boundary"]["boundary"="administrative"]["admin_level"="2"];
+);
+out ids;

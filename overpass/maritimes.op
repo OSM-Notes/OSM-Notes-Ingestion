@@ -1,0 +1,5 @@
+[out:csv(::id)];
+(
+  relation["border_type"]["border_type"~"contiguous|eez"];
+);
+out ids;
