@@ -24,7 +24,7 @@
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}"/..)" \
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." \
   &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
