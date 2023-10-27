@@ -7,9 +7,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <xsl:for-each select="osm/note">
  <xsl:variable name="note_id"><xsl:value-of select="id"/></xsl:variable>
   <xsl:for-each select="comments/comment">
-<xsl:choose> <xsl:when test="uid != ''"> <xsl:copy-of select="\$note_id" />,'<xsl:value-of select="action" />','<xsl:value-of select="date"/>',<xsl:value-of select="uid"/>,'<xsl:value-of select="replace(user,'''','''''')"/>'<xsl:text>
+<xsl:choose> <xsl:when test="uid != ''"> <xsl:copy-of select="$note_id" />,'<xsl:value-of select="action" />','<xsl:value-of select="date"/>',<xsl:value-of select="uid"/>,'<xsl:value-of select="replace(user,'''','''''')"/>'<xsl:text>
 </xsl:text></xsl:when><xsl:otherwise>
-<xsl:copy-of select="\$note_id" />,'<xsl:value-of select="action" />','<xsl:value-of select="date"/>',,<xsl:text>
+<xsl:copy-of select="$note_id" />,'<xsl:value-of select="action" />','<xsl:value-of select="date"/>',,<xsl:text>
 </xsl:text></xsl:otherwise> </xsl:choose>
   </xsl:for-each>
  </xsl:for-each>
