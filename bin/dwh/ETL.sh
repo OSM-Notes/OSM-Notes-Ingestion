@@ -2,8 +2,6 @@
 
 # ETL process that takes the notes and its comments and populates a table which
 # is easy to read from the OSM Notes profile.
-# When this ETL is run, it updates each note and comment with an associated
-# code.
 # The execution of this ETL is independent of the process that retrieves the
 # notes from Planet and API. This allows a longer execution that the periodic
 # poll for new notes.
@@ -16,15 +14,14 @@
 # 241) Library or utility missing.
 # 242) Invalid argument for script invocation.
 # 243) Logger utility is not available.
-# 248) Required file is missing.
 #
 # For contributing, please execute these commands before subimitting:
 # * shellcheck -x -o all ETL.sh
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-20
-declare -r VERSION="2022-12-20"
+# Version: 2022-12-28
+declare -r VERSION="2022-12-28"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -35,16 +32,6 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
-
-# Error codes.
-# 1: Help message.
-declare -r ERROR_HELP_MESSAGE=1
-# 241: Library or utility missing.
-declare -r ERROR_MISSING_LIBRARY=241
-# 242: Invalid argument for script invocation.
-declare -r ERROR_INVALID_ARGUMENT=242
-# 248: Missing dependant file.
-declare -r ERROR_MISSING_FILE=248
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
@@ -83,20 +70,17 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
+# Name of the SQL script that contains the ETL process.
+declare -r POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-populateDimensionTables.sql"
+
 # Name of the SQL script that check the existance of base tables.
-declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/checkBaseTables.sql"
+declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkBaseDWHTables.sql"
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/createObjects.sql"
-
-# Name of the SQL script that contains the statement to empty the tables.
-declare -r EMPTY_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/emptyTables.sql"
+declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHObjects.sql"
 
 # Name of the SQL script that contains the alter statements.
-declare -r ALTER_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/alterObjects.sql"
-
-# Name of the SQL script that contains the ETL process.
-declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/populateTables.sql"
+declare -r ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-addConstraintsIndexesTriggers.sql"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -112,10 +96,6 @@ function __show_help {
  echo "${0} version ${VERSION}"
  echo "This is the ETL process that extracts the values from transactional"
  echo "tables and then inserts them into the facts and dimensions tables."
- echo
- echo "It could receive one of these parameters:"
- echo " * --create to create the tables and start from empty tables."
- echo " * Without parameter it processes with existing data."
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
@@ -154,26 +134,32 @@ function __checkPrereqs {
  ## Check files
  if [[ ! -r "${CHECK_BASE_TABLES_FILE}" ]]; then
   __loge "ERROR: File checkBaseTables.sql was not found."
-  exit "${ERROR_MISSING_FILE}"
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${CREATE_OBJECTS_FILE}" ]]; then
   __loge "ERROR: File createObjects.sql was not found."
-  exit "${ERROR_MISSING_FILE}"
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${EMPTY_TABLES_FILE}" ]]; then
-  __loge "ERROR: File emptyTables.sql was not found."
-  exit "${ERROR_MISSING_FILE}"
- fi
- if [[ ! -r "${ALTER_OBJECTS_FILE}" ]]; then
+ if [[ ! -r "${ADD_OBJECTS_FILE}" ]]; then
   __loge "ERROR: File alterObjects.sql was not found."
-  exit "${ERROR_MISSING_FILE}"
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POPULATE_FILE}" ]]; then
+ if [[ ! -r "${POPULATE_DIMENSIONS_FILE}" ]]; then
   __loge "ERROR: File populateTables.sql was not found."
-  exit "${ERROR_MISSING_FILE}"
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
  set -e
+}
+
+# Creates base tables that hold the whole history.
+function __createBaseTables {
+ __log_start
+ __logi "Creating tables for star model if they do not exist"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
+ __logi "Adding relation, indexes AND triggers"
+ psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}"
+ __log_finish
 }
 
 # Checks the base tables if exist.
@@ -189,22 +175,10 @@ function __checkBaseTables {
  __log_finish
 }
 
-# Creates base tables that hold the whole history.
-function __createBaseTables {
- __log_start
- __logi "Creating tables for star model if they do not exist"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
- __logi "Deleting any data"
- psql -d "${DBNAME}" -f "${EMPTY_TABLES_FILE}"
- __logi "Adding relation and indexes"
- psql -d "${DBNAME}" -f "${ALTER_OBJECTS_FILE}"
- __log_finish
-}
-
 # Processes the notes and comments.
 function __processNotes {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
  __log_finish
 }
 
@@ -229,9 +203,6 @@ function main() {
  __logw "Validating single execution."
  flock -n 7
  
- if [[ "${PROCESS_TYPE}" == "--create" ]] ; then
-  __createBaseTables
- fi
  __processNotes
  
  __logw "Ending process"
@@ -251,4 +222,3 @@ if [ ! -t 1 ] ; then
 else
  main
 fi
-

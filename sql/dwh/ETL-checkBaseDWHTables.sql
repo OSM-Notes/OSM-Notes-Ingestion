@@ -1,5 +1,10 @@
+-- Chech data warehouse tables.
+--
+-- Author: Andres Gomez (AngocA)
+-- Version: 2023-10-28
+
   DO
-  \$\$
+  $$
   DECLARE
    qty INT;
   BEGIN
@@ -27,10 +32,10 @@
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'dwh'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'dimension_time'
+   AND TABLE_NAME = 'dimension_days'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_time';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_days';
    END IF;
 
    SELECT COUNT(TABLE_NAME) INTO qty
@@ -43,5 +48,5 @@
     RAISE EXCEPTION 'Tables are missing: dwh.facts';
    END IF;
   END;
---TODO include the new ranking tables
-  \$\$;
+  $$;
+  
