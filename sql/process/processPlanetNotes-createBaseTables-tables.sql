@@ -19,6 +19,7 @@
    username VARCHAR(256) NOT NULL
   );
 
+-- ToDo Crear un mecanismo que identificque la secuencia de comentario
   CREATE TABLE IF NOT EXISTS note_comments (
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
