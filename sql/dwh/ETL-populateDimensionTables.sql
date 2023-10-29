@@ -19,7 +19,7 @@ INSERT INTO dwh.dimension_countries
 
 -- Insert an id for notes without a country.
 INSERT INTO dwh.dimension_countries 
- (country_id, country_name, country_name_es, )
+ (country_id, country_name, country_name_es, country_name_en)
  SELECT -1, 'Unkown - International waters',
   'Desconocido - Aguas internacionales', 'Unkown - International waters'
  FROM countries
@@ -45,7 +45,7 @@ SELECT CURRENT_TIMESTAMP AS Processing, 'Updating modified country names';
 -- Updates the dimension when username is changed.
 UPDATE dwh.dimension_countries
  SET country_name = c.country_name,
- country_name_es = c.country_name_es
+ country_name_es = c.country_name_es,
  country_name_en = c.country_name_en
  FROM countries AS c
   JOIN dwh.dimension_countries d

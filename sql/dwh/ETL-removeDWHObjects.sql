@@ -9,12 +9,12 @@ DROP FUNCTION IF EXISTS dwh.insert_new_dates();
 
 DROP INDEX IF EXISTS facts_action_date;
 
+DROP TABLE IF EXISTS dwh.facts;
+
 DROP TABLE IF EXISTS dwh.dimension_days;
 
 DROP TABLE IF EXISTS dwh.dimension_countries;
 
 DROP TABLE IF EXISTS dwh.dimension_users;
-
-DROP TABLE IF EXISTS dwh.facts;
 
 DROP SCHEMA IF EXISTS dwh;

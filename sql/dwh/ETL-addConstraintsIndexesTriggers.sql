@@ -16,7 +16,7 @@ ALTER TABLE dwh.dimension_countries
  ADD CONSTRAINT pk_countries_dim
  PRIMARY KEY (dimension_country_id);
 
-ALTER TABLE dwh.dimension_time
+ALTER TABLE dwh.dimension_days
  ADD CONSTRAINT pk_date_dim
  PRIMARY KEY (dimension_day_id);
 
@@ -44,23 +44,23 @@ ALTER TABLE dwh.facts
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_date
  FOREIGN KEY (action_id_date)
- REFERENCES dwh.dimension_time (dimension_day_id);
+ REFERENCES dwh.dimension_days (dimension_day_id);
 
 -- Unique keys
 CREATE UNIQUE INDEX fact_id_uniq
- ON TABLE dwh.facts
+ ON  dwh.facts
  (id_note);
 
 CREATE UNIQUE INDEX dimension_user_id_uniq
- ON TABLE dwh.dimension_users
+ ON dwh.dimension_users
  (user_id);
 
 CREATE UNIQUE INDEX dimension_country_id_uniq
- ON TABLE dwh.dimension_countries
+ ON dwh.dimension_countries
  (country_id);
 
 CREATE UNIQUE INDEX dimension_day_id_uniq
- ON TABLE dwh.dimension_days
+ ON dwh.dimension_days
  (date_id);
 
 CREATE INDEX IF NOT EXISTS facts_action_date ON dwh.facts (action_at);

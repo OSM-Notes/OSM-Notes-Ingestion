@@ -6,7 +6,7 @@
 CREATE SCHEMA IF NOT EXISTS dwh;
 
 CREATE TABLE IF NOT EXISTS dwh.facts (
- fact_id INTEGER NOT NULL,
+ fact_id SERIAL,
  id_note INTEGER NOT NULL, -- id
  created_at TIMESTAMP NOT NULL,
  created_id_user INTEGER,
@@ -16,17 +16,17 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  action_comment note_event_enum,
  action_id_user INTEGER,
  action_at TIMESTAMP,
- action_id_date DATE
+ action_id_date INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
- dimension_user_id INTEGER NOT NULL,
+ dimension_user_id SERIAL,
  user_id INTEGER NOT NULL,
  username VARCHAR(256)
 );
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
- dimension_country_id INTEGER NOT NULL,
+ dimension_country_id SERIAL,
  country_id INTEGER NOT NULL,
  country_name VARCHAR(100),
  country_name_es VARCHAR(100),
@@ -35,8 +35,9 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
 );
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_days (
- dimension_day_id INTEGER NOT NULL,
+ dimension_day_id SERIAL,
  date_id DATE,
  days_from_notes_epoch INTEGER,
  days_to_next_year INTEGER
 );
+
