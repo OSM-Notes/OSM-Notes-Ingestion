@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  action_comment note_event_enum,
  action_id_user INTEGER,
  action_at TIMESTAMP,
- action_id_date INTEGER
+ action_id_date INTEGER,
+ action_id_hour INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
@@ -41,3 +42,8 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_days (
  days_to_next_year INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS dwh.dimension_times (
+ dimension_time_id SERIAL,
+ hour SMALLINT,
+ morning BOOLEAN -- true for am, false for pm.
+);
