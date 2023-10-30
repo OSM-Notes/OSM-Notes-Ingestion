@@ -3,12 +3,8 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-28
 
-DROP TABLE IF EXISTS staging.ranking_day;
+DROP PROCEDURE staging.process_notes_at_date;
 
-DROP TABLE IF EXISTS staging.ranking_month;
-
-DROP TABLE IF EXISTS staging.ranking_year;
-
-DROP TABLE IF EXISTS staging.ranking_historic;
+DROP PROCEDURE staging.process_notes_actions_into_dwh;
 
 DROP SCHEMA IF EXISTS staging;
