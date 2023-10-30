@@ -10,8 +10,7 @@
    created_at TIMESTAMP NOT NULL,
    status note_status_enum,
    closed_at TIMESTAMP,
-   id_country INTEGER,
-   conflict VARCHAR(50)
+   id_country INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS users(
@@ -24,8 +23,7 @@
    note_id INTEGER NOT NULL,
    event note_event_enum NOT NULL,
    created_at TIMESTAMP NOT NULL,
-   id_user INTEGER,
-   conflict VARCHAR(50)
+   id_user INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS logs (
