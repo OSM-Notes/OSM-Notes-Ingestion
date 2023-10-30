@@ -13,7 +13,7 @@ INSERT INTO dwh.dimension_countries
  WHERE country_id NOT IN (
   SELECT country_id
   FROM dwh.dimension_countries
- ) ON CONFLICT DO NOTHING
+ )
 ;
 -- ToDo update countries with regions.
 
