@@ -85,6 +85,12 @@ declare -r ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-addConstraints
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
+# Create staging procedures.
+declare -r CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-createStagingObjects.sql"
+
+# Create staging procedures.
+declare -r LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-loadNotes.sql"
+
 ###########
 # FUNCTIONS
 
@@ -159,6 +165,9 @@ function __createBaseTables {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
  __logi "Adding relation, indexes AND triggers"
  psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}"
+
+ __logi "Creating staging objects"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}"
  __log_finish
 }
 
@@ -179,6 +188,8 @@ function __checkBaseTables {
 function __processNotes {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
+
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${LOAD_NOTES_STAGING_FILE}"
  __log_finish
 }
 
