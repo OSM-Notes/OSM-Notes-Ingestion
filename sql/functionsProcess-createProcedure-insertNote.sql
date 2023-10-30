@@ -35,9 +35,6 @@
     m_closed_at,
     m_status,
     id_country
-   ) ON CONFLICT (note_id) DO UPDATE
-     SET conflict = Current_timestamp || '-' || m_status;
-    -- DO NOTHING;
-   -- TODO Insertar nota en la lista de notas a analizar
+   );
   END
  $proc$
