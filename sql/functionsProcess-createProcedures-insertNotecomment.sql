@@ -28,40 +28,48 @@
      SET username = EXCLUDED.username;
    END IF;
 
-    -- TODO Perform validation that the note is in open state.
-   INSERT INTO note_comments (
-    note_id,
-    event,
-    created_at,
-    id_user
-   ) VALUES (
-    m_note_id,
-    m_event,
-    m_created_at,
-    m_id_user
-   ) ON CONFLICT 
-    DO NOTHING;
+    -- Perform validation that the note is in open state.
+   SELECT status INTO m_status
+   FROM notes
+   WHERE note_id = m_note_id;
 
-   IF (m_event = 'closed') THEN
-    -- TODO Perform validation that the note is in open state.
-    UPDATE notes
-      SET status = 'close',
-      closed_at = m_created_at
-      WHERE note_id = m_note_id;
-    INSERT INTO logs (message) VALUES ('Update to close note ' || m_note_id);
-   ELSIF (m_event = 'reopened') THEN
-    -- TODO Perform validation that the note is in close state.
-    UPDATE notes
-      SET status = 'open',
-      closed_at = NULL
-      WHERE note_id = m_note_id;
-    INSERT INTO logs (message) VALUES ('Update to reopen note ' || m_note_id);
-   --ELSE
-   -- INSERT INTO logs (message) VALUES ('Another event ' || m_note_id || '-' || m_event);
+   -- Actions for an open note.
+   IF (m_status = 'opened') THEN
+    INSERT INTO note_comments (
+     note_id,
+     event,
+     created_at,
+     id_user
+    ) VALUES (
+     m_note_id,
+     m_event,
+     m_created_at,
+     m_id_user
+    );
+
+    IF (m_event = 'closed') THEN
+     UPDATE notes
+       SET status = 'close',
+       closed_at = m_created_at
+       WHERE note_id = m_note_id;
+     INSERT INTO logs (message) VALUES ('Update to close note ' || m_note_id);
+    ELSIF (m_event = 'reopened') THEN
+     RAISE EXCEPTION 'Trying to reopen an opened note: ' || m_note_id;
+     INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
+       || m_note_id || '-' || m_event);
+    END IF;
+   ELSE
+    IF (m_event = 'reopened') THEN
+     UPDATE notes
+       SET status = 'open',
+       closed_at = NULL
+       WHERE note_id = m_note_id;
+     INSERT INTO logs (message) VALUES ('Update to reopen note ' || m_note_id);
+    ELSIF (m_event = 'closed') THEN
+     RAISE EXCEPTION 'Trying to close a closed note: ' || m_note_id;
+     INSERT INTO logs (message) VALUES ('Trying to close a closed note '
+       || m_note_id || '-' || m_event);
+    END IF;
    END IF;
-
-   -- TODO Hacer algo en los conflictos, como registrar en otra tabla.
-   -- TODO Insertar en otra tabla el usuario que hay que recalcular.
-   -- TODO Insertar en otra tabla el país que hay que recalcular.
   END
  $proc$
