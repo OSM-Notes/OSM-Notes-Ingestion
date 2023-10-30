@@ -3,7 +3,6 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-28
 
--- Primary keys.
 ALTER TABLE dwh.facts
  ADD CONSTRAINT pk_facts
  PRIMARY KEY (fact_id);
@@ -17,8 +16,12 @@ ALTER TABLE dwh.dimension_countries
  PRIMARY KEY (dimension_country_id);
 
 ALTER TABLE dwh.dimension_days
- ADD CONSTRAINT pk_date_dim
+ ADD CONSTRAINT pk_days_dim
  PRIMARY KEY (dimension_day_id);
+
+ALTER TABLE dwh.dimension_times
+ ADD CONSTRAINT pk_times_dim
+ PRIMARY KEY (dimension_time_id);
 
 -- Foreign keys.
 ALTER TABLE dwh.facts
@@ -42,9 +45,14 @@ ALTER TABLE dwh.facts
  REFERENCES dwh.dimension_countries (dimension_country_id);
 
 ALTER TABLE dwh.facts
- ADD CONSTRAINT fk_date
+ ADD CONSTRAINT fk_day
  FOREIGN KEY (action_id_date)
  REFERENCES dwh.dimension_days (dimension_day_id);
+
+ALTER TABLE dwh.facts
+ ADD CONSTRAINT fk_time
+ FOREIGN KEY (action_id_hour)
+ REFERENCES dwh.dimension_times (dimension_time_id);
 
 -- Unique keys
 CREATE UNIQUE INDEX fact_id_uniq
@@ -65,26 +73,56 @@ CREATE UNIQUE INDEX dimension_day_id_uniq
 
 CREATE INDEX IF NOT EXISTS facts_action_date ON dwh.facts (action_at);
 
--- Function for trigger when inserting new dates.
--- FIXME if there are no action on a given date, then that date will be missing.
-CREATE OR REPLACE FUNCTION dwh.insert_new_dates()
-  RETURNS TRIGGER AS
+-- TODO if there are no action on a given date, then that date will be missing.
+CREATE OR REPLACE FUNCTION dwh.get_data_id(new_date TIMESTAMP)
+  RETURNS INTEGER AS
  $$
+ DECLARE
+  id_date INTEGER;
  BEGIN
-  INSERT INTO dwh.dimension_days VALUES (
-    date(NEW.action_at), -- date_id
-    DATE_PART('doy', NEW.action_at), -- days_from_notes_epoch
-    365 - DATE_PART('doy', NEW.action_at) -- days_to_next_year
-   ) ON CONFLICT DO NOTHING
-  ;
-  RETURN NEW;
+  SELECT dimension_day_id INTO id_date
+  FROM dwh.dimension_days
+  WHERE date_id = new_date::DATE;
+  
+  IF (id_date IS NULL) THEN
+   INSERT INTO dwh.dimension_days (
+     date_id, days_from_notes_epoch, days_to_next_year
+    ) VALUES (
+     new_date::DATE,
+     DATE_PART('doy', new_date::DATE),
+     365 - DATE_PART('doy', new_date::DATE)
+    ) RETURNING id_date
+   ;
+  END IF;
+  RETURN id_date;
  END;
  $$ LANGUAGE plpgsql
 ;
 
--- Trigger for new notes.
-CREATE OR REPLACE TRIGGER insert_new_dates
-  AFTER INSERT ON dwh.facts
-  FOR EACH ROW
-  EXECUTE FUNCTION dwh.insert_new_dates()
+CREATE OR REPLACE FUNCTION dwh.get_time_id(new_date TIMESTAMP)
+  RETURNS INTEGER AS
+ $$
+ DECLARE
+  id_time INTEGER;
+  morning BOOLEAN;
+ BEGIN
+  SELECT dimension_time_id INTO id_time
+  FROM dwh.dimension_times
+  WHERE id_time = HOUR(new_date);
+  
+  IF (id_time IS NULL) THEN
+   IF (HOUR(new_date) <= 12) THEN
+    morning := true;
+   END IF;
+   INSERT INTO dwh.dimension_times (
+     hour, morning
+    ) VALUES (
+     HOUR(new_date),
+     morning
+    ) RETURNING id_time
+   ;
+  END IF;
+  RETURN id_time;
+ END;
+ $$ LANGUAGE plpgsql
 ;
