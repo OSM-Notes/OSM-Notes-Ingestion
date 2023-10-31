@@ -1,7 +1,7 @@
 -- Chech staging tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-28
+-- Version: 2023-10-31
 
 CREATE SCHEMA IF NOT EXISTS staging;
 
@@ -15,9 +15,12 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_dimension_user_open INTEGER;
   m_dimension_user_close INTEGER;
   m_dimension_user_action INTEGER;
-  closed_at TIMESTAMP;
-  action_id_date INTEGER;
-  action_id_hour INTEGER;
+  m_opened_id_date INTEGER;
+  m_opened_id_hour INTEGER;
+  m_closed_id_date INTEGER;
+  m_closed_id_hour INTEGER;
+  m_action_id_date INTEGER;
+  m_action_id_hour INTEGER;
   rec_note_action RECORD;
   notes_on_day CURSOR (c_process_date DATE) FOR
    SELECT
@@ -38,38 +41,62 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
 
   LOOP
     FETCH notes_on_day INTO rec_note_action;
-    -- Exit when no more row to fetch.
+    -- Exit when no more rows to fetch.
     EXIT WHEN NOT FOUND;
 
-    action_id_date := dwh.get_date_id(rec_note_action.action_at);
-    action_id_hour := dwh.get_time_id(rec_note_action.action_at);
+    SELECT dimension_country_id INTO m_dimension_country_id
+     FROM dwh.dimension_countries
+     WHERE country_id = rec_note_action.id_country;
+    IF (m_dimension_country_id IS NULL) THEN
+     m_dimension_country_id := 1;
+    END IF;
+
     SELECT dimension_user_id INTO m_dimension_user_open
      FROM dwh.dimension_users
      WHERE user_id = rec_note_action.created_id_user;
     SELECT dimension_user_id INTO m_dimension_user_action
      FROM dwh.dimension_users
      WHERE user_id = rec_note_action.action_id_user;
-    SELECT dimension_country_id INTO m_dimension_country_id
-     FROM dwh.dimension_countries
-     WHERE country_id = rec_note_action.id_country;
+
+    m_opened_id_date := dwh.get_date_id(rec_note_action.created_at);
+    m_opened_id_hour := dwh.get_time_id(rec_note_action.created_at);
+    m_action_id_date := dwh.get_date_id(rec_note_action.action_at);
+    m_action_id_hour := dwh.get_time_id(rec_note_action.action_at);
 
     IF (rec_note_action.action_comment = 'closed') THEN
-     closed_at := rec_note_action.action_at;
+     m_closed_id_date := m_action_id_date;
+     m_closed_id_hour := m_action_id_hour;
      m_dimension_user_close := m_dimension_user_action;
     END IF;
 
     INSERT INTO dwh.facts (
-      id_note, created_at, created_dimension_id_user, closed_at,
-      closed_dimension_id_user, dimension_id_country, action_comment, 
-      action_dimension_id_user, action_at, action_dimension_id_date,
-      action_dimension_id_hour
+      id_note, dimension_id_country,
+      action_at, action_comment, action_dimension_id_date,
+      action_dimension_id_hour, action_dimension_id_user, 
+      opened_dimension_id_date, opened_dimension_id_hour,
+      opened_dimension_id_user,
+      closed_dimension_id_date, closed_dimension_id_hour,
+      closed_dimension_id_user
     ) VALUES (
-      rec_note_action.id_note, rec_note_action.created_at,
-      m_dimension_user_open, closed_at, m_dimension_user_close,
-      m_dimension_country_id, rec_note_action.action_comment,
-      m_dimension_user_action, rec_note_action.action_at,
-      action_id_date, action_id_hour
+      rec_note_action.id_note, m_dimension_country_id,
+      rec_note_action.action_at, rec_note_action.action_comment,
+      m_action_id_date, m_action_id_hour, m_dimension_user_action,
+      m_opened_id_date, m_opened_id_hour, m_dimension_user_open,
+      m_closed_id_date, m_closed_id_hour, m_dimension_user_close
     );
+    m_dimension_country_id := null;
+
+    m_opened_id_date := null;
+    m_opened_id_hour := null;
+    m_dimension_user_open := null;
+
+    m_closed_id_date := null;
+    m_closed_id_hour := null;
+    m_dimension_user_close := null;
+
+    m_action_id_date := null;
+    m_action_id_hour := null;
+    m_dimension_user_action := null;
   END LOOP;
 
   CLOSE notes_on_day;
