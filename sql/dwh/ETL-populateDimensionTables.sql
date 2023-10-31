@@ -70,6 +70,7 @@ INSERT INTO dwh.dimension_users
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Showing modified usernames';
 
+-- TODO send to a file
 -- Shows usernames renamed.
 SELECT DISTINCT d.username AS OldUsername, c.username AS NewUsername
  FROM users c
@@ -88,3 +89,4 @@ UPDATE dwh.dimension_users
   ON d.user_id = c.user_id
  WHERE c.username <> d.username
 ;
+
