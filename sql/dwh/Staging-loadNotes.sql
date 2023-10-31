@@ -5,4 +5,4 @@
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting facts';
 
-CALL staging.process_notes_actions_into_dwh;
+CALL staging.process_notes_actions_into_dwh();

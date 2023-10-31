@@ -3,9 +3,9 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-28
 
-DROP FUNCTION IF EXISTS dwh.insert_new_dates();
+DROP FUNCTION IF EXISTS dwh.get_time_id;
 
-DROP INDEX IF EXISTS facts_action_date;
+DROP FUNCTION IF EXISTS dwh.get_date_id;
 
 DROP TABLE IF EXISTS dwh.facts;
 

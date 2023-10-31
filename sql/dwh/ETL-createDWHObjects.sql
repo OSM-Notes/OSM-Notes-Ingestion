@@ -9,15 +9,15 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  fact_id SERIAL,
  id_note INTEGER NOT NULL, -- id
  created_at TIMESTAMP NOT NULL,
- created_id_user INTEGER,
+ created_dimension_id_user INTEGER,
  closed_at TIMESTAMP,
- closed_id_user INTEGER,
- id_country INTEGER,
+ closed_dimension_id_user INTEGER,
+ dimension_id_country INTEGER,
  action_comment note_event_enum,
- action_id_user INTEGER,
+ action_dimension_id_user INTEGER,
  action_at TIMESTAMP,
- action_id_date INTEGER,
- action_id_hour INTEGER
+ action_dimension_id_date INTEGER,
+ action_dimension_id_hour INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
