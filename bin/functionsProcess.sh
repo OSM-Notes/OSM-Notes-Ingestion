@@ -116,25 +116,23 @@ function __checkBaseTables {
  set +e
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CHECK_BASE_TABLES}"
  RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]] ; then
-  __createBaseTables
- fi
  __log_finish
 }
 
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
  __log_start
+ set -e
  # Download Planet notes.
  __loge "Retrieving Planet notes file..."
- aria2c -c "${PLANET_NOTES_FILE}.bz2" -x 8 \
+ aria2c -d "${TMP_DIR}" -o "${PLANET_NOTES_NAME}.bz2" -x 8 \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
  wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2.md5"
 
  # Validates the download with the hash value md5.
- diff "${PLANET_NOTES_FILE}.bz2" "${PLANET_NOTES_FILE}.bz2.md5"
+ diff <(md5sum "${PLANET_NOTES_FILE}.bz2" | cut -d' ' -f 1) \
+  <(cut -d' ' -f 1 "${PLANET_NOTES_FILE}.bz2.md5")
  # If there is a difference, if will return non-zero value and fail the script.
 
  rm "${PLANET_NOTES_FILE}.bz2.md5"
@@ -192,6 +190,7 @@ function __createFunctionToGetCountry {
 # Creates procedures to insert notes and comments.
 function __createProcedures {
  __log_start
+ set -e
  # Creates a procedure that inserts a note.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_CREATE_PROC_INSERT_NOTE}"
