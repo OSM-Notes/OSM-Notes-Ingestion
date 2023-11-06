@@ -369,6 +369,11 @@ EOF
    __loge "ERROR: Wget is missing."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
+  ## Aria2c
+  if ! aria2c --version > /dev/null 2>&1; then
+   __loge "ERROR: Aria2c is missing."
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
   ## osmtogeojson
   if ! osmtogeojson --version > /dev/null 2>&1; then
    __loge "ERROR: osmtogeojson is missing."

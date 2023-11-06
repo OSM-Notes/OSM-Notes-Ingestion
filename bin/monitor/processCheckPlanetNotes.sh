@@ -178,6 +178,11 @@ function __checkPrereqs {
   __loge "ERROR: wget is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## Aria2c
+ if ! aria2c --version > /dev/null 2>&1; then
+  __loge "ERROR: Aria2c is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  ## Block-sorting file compressor
  if ! bzip2 --help > /dev/null 2>&1; then
   __loge "ERROR: bzip2 is missing."
