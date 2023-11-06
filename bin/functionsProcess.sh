@@ -130,6 +130,14 @@ function __downloadPlanetNotes {
  __loge "Retrieving Planet notes file..."
  wget -O "${PLANET_NOTES_FILE}.bz2" \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
+ wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
+   "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2.md5"
+
+ # Validates the download with the hash value md5.
+ diff "${PLANET_NOTES_FILE}.bz2" "${PLANET_NOTES_FILE}.bz2.md5"
+ # If there is a difference, if will return non-zero value and fail the script.
+
+ rm "${PLANET_NOTES_FILE}.bz2.md5"
 
  if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]] ; then
   __loge "ERROR: Downloading notes file."
@@ -145,7 +153,8 @@ function __downloadPlanetNotes {
 function __validatePlanetNotesXMLFile {
  __log_start
 
- xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml"
+ xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
+  "${PLANET_NOTES_FILE}.xml"
 
  __log_finish
 }
@@ -158,7 +167,8 @@ function __convertPlanetNotesToFlatFile {
  # Converts the XML into a flat file in CSV format.
  __logi "Processing notes from XML"
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" -o:"${OUTPUT_NOTES_FILE}"
+   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" \
+   -o:"${OUTPUT_NOTES_FILE}"
  __logi "Processing comments from XML"
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
@@ -174,7 +184,8 @@ function __createFunctionToGetCountry {
  # * -30 - 25: West Europe and West Africa.
  # * 25 - 65: Middle East, East Africa and Russia.
  # * 65 - 180: Southeast Asia and Oceania.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}"
  __log_finish
 }
 
@@ -182,10 +193,12 @@ function __createFunctionToGetCountry {
 function __createProcedures {
  __log_start
  # Creates a procedure that inserts a note.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_PROC_INSERT_NOTE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_CREATE_PROC_INSERT_NOTE}"
 
  # Creates a procedure that inserts a note comment.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}"
  __log_finish
 }
 
