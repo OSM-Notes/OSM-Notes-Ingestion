@@ -107,33 +107,34 @@
 # order by area, count(1) desc;
 #
 # Sections per parameter:
-#                       	        empty	base	locate	bounda	flatfile
-#                                       (sync)          notes   ries
-# __dropSyncTables              	 	x
-# __dropApiTables               		x
-# __dropBaseTables              		x
-# __dropSyncTables              	x	 	x
-# __checkBaseTables             	x		x
-# __createBaseTables             	x	x	x
-# __createSyncTables            	x		x
-# __dropCountryTables 	                	x		x
-# __createCountryTables         		x		x
-# __processCountries             		x		x
-# __processMaritimes             		x		x
-# __cleanPartial                		x		x
-# __downloadPlanetNotes          	x				x
-# __validatePlanetNotesXMLFile         	x				x
-# __convertPlanetNotesToFlatFile 	x				x
-# __createFunctionToGetCountry 	  x	x	x
-# __createProcedures                 	x	x	x
-# __analyzeAndVacuum                 	x	x	x
-# __copyFlatFiles                 			x
-# __loadSyncNotes                 	x		x
-# __removeDuplicates                 	x		x
-# __dropSyncTables                 	x		x
-# __organizeAreas                 	x		x
-# __getLocationNotes                 	x		x
-# __cleanNotesFiles                   	x	x	x
+#                                   empty    base    locate  bounda flatfile
+#                                   (sync)           notes   ries
+# __dropSyncTables                             x
+# __dropApiTables                              x
+# __dropBaseTables                             x
+# __createBaseTables                           x
+# __dropSyncTables                     x               x
+# __checkBaseTables                    x               x
+# __createBaseTables                   x               x
+# __createSyncTables                   x               x
+# __dropCountryTables                          x               x
+# __createCountryTables                        x               x
+# __processCountries                           x               x
+# __processMaritimes                           x               x
+# __cleanPartial                               x               x
+# __downloadPlanetNotes                x                                x
+# __validatePlanetNotesXMLFile         x                                x
+# __convertPlanetNotesToFlatFile       x                                x
+# __createFunctionToGetCountry         x       x       x
+# __createProcedures                   x       x       x
+# __analyzeAndVacuum                   x       x       x
+# __copyFlatFiles                                      x
+# __loadSyncNotes                      x               x
+# __removeDuplicates                   x               x
+# __dropSyncTables                     x               x
+# __organizeAreas                      x               x
+# __getLocationNotes                   x               x
+# __cleanNotesFiles                    x       x       x
 #
 # This is the list of error codes:
 # 1) Help message.
