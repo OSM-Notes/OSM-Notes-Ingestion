@@ -128,7 +128,7 @@ function __downloadPlanetNotes {
  __log_start
  # Download Planet notes.
  __loge "Retrieving Planet notes file..."
- wget -O "${PLANET_NOTES_FILE}.bz2" \
+ aria2c -c "${PLANET_NOTES_FILE}.bz2" -x 8 \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
  wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
    "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2.md5"
