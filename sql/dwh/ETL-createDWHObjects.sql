@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  fact_id SERIAL,
  id_note INTEGER NOT NULL,
  dimension_id_country INTEGER,
+ processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  action_at TIMESTAMP,
  action_comment note_event_enum NOT NULL,
  action_dimension_id_date INTEGER,
