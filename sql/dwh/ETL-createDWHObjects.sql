@@ -1,23 +1,26 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-28
+-- Version: 2023-10-31
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 
 CREATE TABLE IF NOT EXISTS dwh.facts (
  fact_id SERIAL,
- id_note INTEGER NOT NULL, -- id
- created_at TIMESTAMP NOT NULL,
- created_id_user INTEGER,
- closed_at TIMESTAMP,
- closed_id_user INTEGER,
- id_country INTEGER,
- action_comment note_event_enum,
- action_id_user INTEGER,
+ id_note INTEGER NOT NULL,
+ dimension_id_country INTEGER,
+ processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  action_at TIMESTAMP,
- action_id_date INTEGER,
- action_id_hour INTEGER
+ action_comment note_event_enum NOT NULL,
+ action_dimension_id_date INTEGER,
+ action_dimension_id_hour INTEGER,
+ action_dimension_id_user INTEGER,
+ opened_dimension_id_date INTEGER NOT NULL,
+ opened_dimension_id_hour INTEGER NOT NULL,
+ opened_dimension_id_user INTEGER,
+ closed_dimension_id_date INTEGER,
+ closed_dimension_id_hour INTEGER,
+ closed_dimension_id_user INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
