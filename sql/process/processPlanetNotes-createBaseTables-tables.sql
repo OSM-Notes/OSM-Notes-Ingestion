@@ -33,7 +33,7 @@ COMMENT ON COLUMN note_comments.event IS
   'Type of operation performed on the note';
 COMMENT ON COLUMN note_comments.processing_time IS
   'Registers when this was inserted in the database. Automatic value';
-COMMENT ON COLUMN note_comments.create_at IS
+COMMENT ON COLUMN note_comments.created_at IS
   'Timestamps when the comment/action was done';
 COMMENT ON COLUMN note_comments.id_user IS
   'OSM id of the user who performed the action';
