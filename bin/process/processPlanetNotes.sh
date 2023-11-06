@@ -77,7 +77,23 @@
 #
 # To specify the Saxon location, you can put this file in the same directory as
 # saxon ; otherwise, it will this location:
-#   export SAXON_CLASSPATH=~/saxon/
+#   export SAXON_JAR=~/saxon/
+#
+# To not remove all generated files, you can export this:
+#   export CLEAN=false
+#
+# To insert the rows from a backup for boundaries and notes:
+#   export BACKUP=true
+# It will need to run these from a PostgreSQL console:
+#   INSERT INTO countries SELECT * FROM backup_countries ;
+#   UPDATE notes as n
+#    SET id_country = b.id_country
+#    FROM backup_note_country as b
+#    WHERE b.note_id = n.note_id;
+# To create the copy before the execution:
+#   CREATE TABLE backup_countries AS TABLE countries;
+#   CREATE TABLE backup_note_country AS
+#    SELECT note_id, id_country, country_name_en FROM notes;
 #
 # Some interesting queries to track the process:
 #
@@ -168,6 +184,8 @@ declare -r ERROR_DOWNLOADING_ID_LIST=244
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN=${CLEAN:-true}
+# If boundary rows and location of the notes are retrieved from backup table.
+declare -r BACKUP=${BACKUP:-false}
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -234,7 +252,7 @@ readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
 declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-csv.xslt"
 # Name of the file of the XSLT transformation for note comments.
-declare -r XSLT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments-csv.xslt"
+declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-csv.xslt"
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 # Filename for the flat file for comment notes.
@@ -315,6 +333,11 @@ function __show_help {
  echo "Flatfile option is useful when the regular machine does not have enough"
  echo "memory to process the notes file. Normally it needs 6 GB for Java."
  echo "LocateNotes is useful to continue from the flat file."
+ echo
+ echo "Environment variable:"
+ echo " * BACKUP could be set to true, to insert rows from backup tables."
+ echo " * CLEAN could be set to false, to left all created files."
+ echo " * SAXON_JAR specifies the location of the Saxon JAR file."
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
@@ -794,35 +817,45 @@ function __cleanNotesFiles {
 # Gets the area of each note.
 function __getLocationNotes {
  __log_start
- declare -l MAX_NOTE_ID
- wget -O "${LAST_NOTE_FILE}" \
-  "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
- MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
- MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
+ if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]]; then
+  echo "Please update the rows from the backup table:"
+  echo "   UPDATE notes as n"
+  echo "    SET id_country = b.id_country"
+  echo "    FROM backup_note_country as b"
+  echo "    WHERE b.note_id = n.note_id;"
+  read
+ else
+  declare -l MAX_NOTE_ID
+  wget -O "${LAST_NOTE_FILE}" \
+   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
+  MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
+  MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 
- declare -l SIZE=$((MAX_NOTE_ID / PARALLELISM))
- rm -r "${LAST_NOTE_FILE}"
- for j in $(seq 1 1 "${PARALLELISM}"); do
-  (
-   __logi "Starting ${j}"
-   MIN=$((SIZE * (j - 1) + LOOP_SIZE))
-   MAX=$((SIZE * j))
-   for i in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
-    MIN_LOOP=$((i - LOOP_SIZE))
-    MAX_LOOP=${i}
-    __logd "${i}: [${MIN_LOOP} - ${MAX_LOOP}]"
-    echo "UPDATE notes
-      SET id_country = get_country(longitude, latitude, note_id)
-      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-      AND id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-   done
-   __logi "Finishing ${j}"
-  ) &
- done
- wait
- echo "UPDATE notes
-   SET id_country = get_country(longitude, latitude, note_id)
-   WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  declare -l SIZE=$((MAX_NOTE_ID / PARALLELISM))
+  rm -r "${LAST_NOTE_FILE}"
+  for j in $(seq 1 1 "${PARALLELISM}"); do
+   (
+    __logi "Starting ${j}"
+    MIN=$((SIZE * (j - 1) + LOOP_SIZE))
+    MAX=$((SIZE * j))
+    for i in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
+     MIN_LOOP=$((i - LOOP_SIZE))
+     MAX_LOOP=${i}
+     __logd "${i}: [${MIN_LOOP} - ${MAX_LOOP}]"
+     STMT="UPDATE notes
+       SET id_country = get_country(longitude, latitude, note_id)
+       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+       AND id_country IS NULL" 
+      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    done
+    __logi "Finishing ${j}"
+   ) &
+  done
+  wait
+  echo "UPDATE notes
+    SET id_country = get_country(longitude, latitude, note_id)
+    WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ fi
  __log_finish
 }
 
@@ -888,8 +921,14 @@ function main() {
   __createCountryTables # base and boundaries
 
   # Downloads the areas. It could terminate the execution if an error appears.
-  __processCountries # base and boundaries
-  __processMaritimes # base and boundaries
+  if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]]; then
+   echo "Please copy the rows from the backup table:"
+   echo "   INSERT INTO countries SELECT * FROM backup_countries ;"
+   read
+  else
+   __processCountries # base and boundaries
+   __processMaritimes # base and boundaries
+  fi
 
   __cleanPartial # base and boundaries
   if [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
