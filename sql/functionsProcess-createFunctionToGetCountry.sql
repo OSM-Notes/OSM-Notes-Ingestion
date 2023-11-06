@@ -82,4 +82,4 @@
    RETURN id_country;
   END
  $func$
-EOF
+

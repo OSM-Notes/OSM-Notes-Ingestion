@@ -6,6 +6,7 @@
  CREATE OR REPLACE PROCEDURE insert_note_comment (
    m_note_id INTEGER,
    m_event note_event_enum,
+   m_status note_status_enum,
    m_created_at TIMESTAMP WITH TIME ZONE,
    m_id_user INTEGER,
    m_username VARCHAR(256)
@@ -54,9 +55,9 @@
        WHERE note_id = m_note_id;
      INSERT INTO logs (message) VALUES ('Update to close note ' || m_note_id);
     ELSIF (m_event = 'reopened') THEN
-     RAISE EXCEPTION 'Trying to reopen an opened note: ' || m_note_id;
      INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
        || m_note_id || '-' || m_event);
+     RAISE EXCEPTION 'Trying to reopen an opened note';
     END IF;
    ELSE
     IF (m_event = 'reopened') THEN
@@ -66,9 +67,9 @@
        WHERE note_id = m_note_id;
      INSERT INTO logs (message) VALUES ('Update to reopen note ' || m_note_id);
     ELSIF (m_event = 'closed') THEN
-     RAISE EXCEPTION 'Trying to close a closed note: ' || m_note_id;
      INSERT INTO logs (message) VALUES ('Trying to close a closed note '
        || m_note_id || '-' || m_event);
+     RAISE EXCEPTION 'Trying to close a closed note';
     END IF;
    END IF;
   END

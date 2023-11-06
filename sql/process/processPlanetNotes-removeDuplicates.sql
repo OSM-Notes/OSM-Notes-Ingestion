@@ -32,7 +32,7 @@
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync note' AS Text;
   DO
-  \$\$
+  $$
   DECLARE
    r RECORD;
    closed_time VARCHAR(100);
@@ -68,7 +68,7 @@
     count := count + 1;
    END IF;
   END;
-  \$\$;
+  $$;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes' as Text;
   ANALYZE notes;
 
@@ -102,7 +102,7 @@
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync comments' AS Text;
   DO
-  \$\$
+  $$
   DECLARE
    r RECORD;
    created_time VARCHAR(100);
@@ -140,6 +140,6 @@
     END LOOP;
    END IF;
   END
-  \$\$;
+  $$;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments' as Text;
   ANALYZE note_comments;
