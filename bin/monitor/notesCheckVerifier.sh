@@ -44,7 +44,7 @@ set -E
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Clean files.
-declare CLEAN_FILES="${CLEAN_FILES:-true}"
+declare CLEAN="${CLEAN:-true}"
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
@@ -218,7 +218,7 @@ function __sendMail {
 # Clean unnecessary files.
 function __cleanFiles {
  __log_start
- if [[ "${CLEAN_FILES}" = "true" ]]; then
+ if [[ "${CLEAN}" = "true" ]]; then
   __logi "Limpiando archivos innecesarios."
   rm -f "${REPORT}" "${REPORT_ZIP}"
  fi
