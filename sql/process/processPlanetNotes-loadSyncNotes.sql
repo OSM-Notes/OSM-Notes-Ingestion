@@ -11,7 +11,7 @@
   ANALYZE notes_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync notes' AS Text;
   SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
-    'Uploaded sync notes' AS Type FROM notes_sync;
+    'Uploaded sync notes' AS Text FROM notes_sync;
 
   TRUNCATE TABLE note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading sync comments' AS Text;
@@ -21,4 +21,4 @@
   ANALYZE note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting sync comments' AS Text;
   SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
-    'Uploaded sync comments' AS Type FROM note_comments_sync;
+    'Uploaded sync comments' AS Text FROM note_comments_sync;
