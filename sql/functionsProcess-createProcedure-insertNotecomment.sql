@@ -62,7 +62,6 @@ AS $proc$
     -- Invalid operation for an open note.
     INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
       || m_note_id || '-' || m_event);
-    COMMIT;
     RAISE EXCEPTION 'Trying to reopen an opened note';
    END IF;
   ELSE
@@ -78,10 +77,8 @@ AS $proc$
     -- Invalid operation for a closed note.
     INSERT INTO logs (message) VALUES ('Trying to close a closed note '
       || m_note_id || '-' || m_event);
-    COMMIT;
     RAISE EXCEPTION 'Trying to close a closed note';
    END IF;
   END IF;
-  COMMIT;
  END
 $proc$

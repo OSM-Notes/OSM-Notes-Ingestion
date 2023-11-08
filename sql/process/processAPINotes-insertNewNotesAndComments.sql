@@ -31,7 +31,6 @@ $$
    IF (r.created_at <= m_lastupdate) THEN
     -- Rejects all notes before the latest processed.
     INSERT INTO logs (message) VALUES ('Skipped');
-    COMMIT;
     CONTINUE;
    END IF;
 
@@ -41,8 +40,8 @@ $$
      || ''', ''YYYY-MM-DD HH24:MI:SS''), '
      || m_closed_time || ')';
    INSERT INTO logs (message) VALUES ('Inserted');
-   COMMIT;
   END LOOP;
+  COMMIT;
  END;
 $$;
 
@@ -79,7 +78,6 @@ $$
      || r.created_at || ',last:' || m_lastupdate || ',event:' || r.event);
     -- Rejects all comments before the latest processed.
     INSERT INTO logs (message) VALUES ('Skipped');
-    COMMIT;
     CONTINUE;
    END IF;
 
@@ -90,8 +88,8 @@ $$
      || m_id_user || ', '
      || QUOTE_NULLABLE(r.username) || ')';
    INSERT INTO logs (message) VALUES ('Inserted');
-   COMMIT;
   END LOOP;
+  COMMIT;
  END;
 $$;
 
