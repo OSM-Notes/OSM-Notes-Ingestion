@@ -27,8 +27,9 @@
        || r.longitude || ', '
        || 'TO_TIMESTAMP(''' || r.created_at
        || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || COALESCE (m_closed_time, 'NULL') || ','
-       || '''' || r.status || '''::note_status_enum)';
+       || COALESCE (m_closed_time, 'NULL') -- TODO || ','
+       -- TODO || '''' || r.status || '''::note_status_enum'
+       || ')';
     END LOOP;
    END;
   $$;
@@ -61,6 +62,7 @@
        || ''', ''YYYY-MM-DD HH24:MI:SS''), '
        || COALESCE(r.id_user || '', 'NULL') || ', '
        || QUOTE_NULLABLE('''' || r.username || '''') || ')';
+       -- TODO Quitar comillas en la funcion QUOTE_NULLABLE en todo el codigo.
     END LOOP;
    END;
   $$;
