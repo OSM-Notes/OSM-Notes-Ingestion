@@ -24,7 +24,7 @@ $$
   LOOP
    INSERT INTO logs (message) VALUES ('Note:' || r.note_id || ',created:'
     || r.created_at || ',last:' || m_lastupdate || ',closed:'
-   || COALESCE(r.closed_at, ''));
+   || COALESCE(r.closed_at || '', 'NULL'));
    IF (r.created_at <= m_lastupdate) THEN
     -- Rejects all notes before the latest processed.
     INSERT INTO logs (message) VALUES ('Skipped');
@@ -72,8 +72,8 @@ $$
    ORDER BY created_at
   LOOP
    IF (r.created_at <= m_lastupdate) THEN
-    INSERT INTO logs (message) VALUES ('Note:' || r.note_id || ',created:'
-     || r.created_at || ',event:' || r.event);
+    INSERT INTO logs (message) VALUES ('Comment:' || r.note_id || ',created:'
+     || r.created_at || ',last:' || m_lastupdate || ',event:' || r.event);
     -- Rejects all comments before the latest processed.
     INSERT INTO logs (message) VALUES ('Skipped');
     COMMIT;
@@ -85,9 +85,9 @@ $$
      || ''', ''YYYY-MM-DD HH24:MI:SS''), '
      || COALESCE(r.id_user || '', 'NULL') || ', '
      || QUOTE_NULLABLE(r.username) || ')';
+   INSERT INTO logs (message) VALUES ('Inserted');
+   COMMIT;
   END LOOP;
-  INSERT INTO logs (message) VALUES ('Inserted');
-  COMMIT;
  END;
 $$;
 
