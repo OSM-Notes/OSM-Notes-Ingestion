@@ -38,6 +38,7 @@
    -- Actions for an open note.
    IF (m_status = 'open') THEN
     -- The note is currently open.
+    -- TODO put incremental number in comments, and add this to this uniq index
     INSERT INTO note_comments (
      note_id,
      event,
