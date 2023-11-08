@@ -18,7 +18,8 @@
      SELECT note_id, latitude, longitude, created_at, closed_at, status
      FROM notes_api
     LOOP
-     IF (r.created_at = m_lastupdate OR r.closed_at = m_lastupdate) THEN
+     IF (r.created_at <= m_lastupdate OR r.closed_at <= m_lastupdate) THEN
+      -- Rejects all notes before the latest processed.
       CONTINUE;
      END IF;
      m_closed_time := 'TO_TIMESTAMP(''' || r.closed_at
@@ -27,8 +28,7 @@
        || r.longitude || ', '
        || 'TO_TIMESTAMP(''' || r.created_at
        || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || COALESCE (m_closed_time, 'NULL') -- TODO || ','
-       -- TODO || '''' || r.status || '''::note_status_enum'
+       || COALESCE (m_closed_time, 'NULL')
        || ')';
     END LOOP;
    END;
@@ -53,7 +53,8 @@
      SELECT note_id, event, created_at, id_user, username
      FROM note_comments_api
     LOOP
-     IF (r.created_at = m_lastupdate) THEN
+     IF (r.created_at <= m_lastupdate) THEN
+      -- Rejects all comments before the latest processed.
       CONTINUE;
      END IF;
      EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
@@ -61,8 +62,7 @@
        || 'TO_TIMESTAMP(''' || r.created_at
        || ''', ''YYYY-MM-DD HH24:MI:SS''), '
        || COALESCE(r.id_user || '', 'NULL') || ', '
-       || QUOTE_NULLABLE('''' || r.username || '''') || ')';
-       -- TODO Quitar comillas en la funcion QUOTE_NULLABLE en todo el codigo.
+       || QUOTE_NULLABLE(r.username) || ')';
     END LOOP;
    END;
   $$;
