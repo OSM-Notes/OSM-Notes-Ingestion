@@ -387,17 +387,17 @@ function __checkQtyNotes {
 function __loadApiNotes {
  __log_start
 
- __logi "Notes to be processed:"
+ __logt "Notes to be processed:"
  declare TEXT
  while read -r LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1 -d,)
-  __logi "${TEXT}"
+  __logt "${TEXT}"
  done < "${OUTPUT_NOTES_FILE}"
  echo 
- __logi "Note comments to be processed:"
+ __logt "Note comments to be processed:"
  while read -r LINE ; do
   TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
-  __logi "${TEXT}"
+  __logt "${TEXT}"
   # TODO Support the comment's text when multiline.
  done < "${OUTPUT_NOTE_COMMENTS_FILE}"
 
