@@ -8,8 +8,7 @@
    m_latitude DECIMAL,
    m_longitude DECIMAL,
    m_created_at TIMESTAMP WITH TIME ZONE,
-   m_closed_at TIMESTAMP WITH TIME ZONE--,
-   --TODO m_status note_status_enum
+   m_closed_at TIMESTAMP WITH TIME ZONE
  )
  LANGUAGE plpgsql
  AS $proc$
@@ -33,8 +32,8 @@
     m_longitude,
     m_created_at,
     m_closed_at,
-    'open',-- TODO Debe ser siempre open al insertar m_status,
+    'open',
     id_country
-   ) ON CONFLICT DO NOTHING;
+   );
   END
  $proc$
