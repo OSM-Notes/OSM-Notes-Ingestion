@@ -59,8 +59,7 @@
      EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
        || r.longitude || ', '
        || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || COALESCE (closed_time, 'NULL') -- TODO || ','
-       -- TODO || '''' || r.status || '''::note_status_enum'
+       || COALESCE (closed_time, 'NULL')
        || ')';
     END LOOP;
     IF (count % 1000 = 0) THEN
@@ -137,7 +136,7 @@
        || '''' || r.event || '''::note_event_enum, '
        || COALESCE(created_time, 'NULL') || ', '
        || COALESCE(r.id_user || '', 'NULL') || ', '
-       || QUOTE_NULLABLE('''' || r.username || '''') || ')';
+       || QUOTE_NULLABLE(r.username) || ')';
     END LOOP;
    END IF;
   END
