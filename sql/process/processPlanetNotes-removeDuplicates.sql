@@ -59,8 +59,9 @@
      EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
        || r.longitude || ', '
        || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || COALESCE (closed_time, 'NULL') || ','
-       || '''' || r.status || '''::note_status_enum)';
+       || COALESCE (closed_time, 'NULL') -- TODO || ','
+       -- TODO || '''' || r.status || '''::note_status_enum'
+       || ')';
     END LOOP;
     IF (count % 1000 = 0) THEN
      COMMIT;

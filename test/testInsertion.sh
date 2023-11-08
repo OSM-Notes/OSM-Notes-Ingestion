@@ -46,7 +46,7 @@ USERNAME="testUser"
 DBNAME=notes
 
 echo "CALL insert_note (${NOTE_ID}, ${LATITUDE}, ${LONGITUDE}, '${CREATED_AT}',
-  NULL, '${STATUS_NOTE}')" \
+  NULL)" \ #, '${STATUS_NOTE}')" \
   | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
 echo "CALL insert_note_comment(${NOTE_ID}, '${STATUS_COMMENT}', '${CREATED_AT}',
