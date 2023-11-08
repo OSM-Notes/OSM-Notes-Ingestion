@@ -35,6 +35,6 @@
     m_closed_at,
     m_status,
     id_country
-   );
+   ) ON CONFLICT DO NOTHING;
   END
  $proc$
