@@ -3,7 +3,8 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
   
-  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current notes - before' as qty
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) Qty,
+   'current notes - before' as Text
   FROM notes;
   DO
   $$
@@ -17,6 +18,7 @@
     FOR r IN
      SELECT note_id, latitude, longitude, created_at, closed_at, status
      FROM notes_api
+     ORDER BY created_at
     LOOP
      IF (r.created_at <= m_lastupdate OR r.closed_at <= m_lastupdate) THEN
       -- Rejects all notes before the latest processed.
@@ -33,12 +35,14 @@
     END LOOP;
    END;
   $$;
-  SELECT CURRENT_TIMESTAMP, 'Statistics on notes' as text;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes' as Text;
   ANALYZE notes;
-  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current notes - after' as qty
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
+   'current notes - after' as Text
   FROM notes;
 
-  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - before' as qty
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
+   'current comments - before' as Text
   FROM note_comments;
   DO
   $$
@@ -52,6 +56,7 @@
     FOR r IN
      SELECT note_id, event, created_at, id_user, username
      FROM note_comments_api
+     ORDER BY created_at
     LOOP
      IF (r.created_at <= m_lastupdate) THEN
       -- Rejects all comments before the latest processed.
@@ -66,7 +71,8 @@
     END LOOP;
    END;
   $$;
-  SELECT CURRENT_TIMESTAMP, 'Statistics on comments' as text;
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments' as Text;
   ANALYZE note_comments;
-  SELECT CURRENT_TIMESTAMP, COUNT(1), 'current comments - after' as qty
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
+   'current comments - after' as Qty
   FROM note_comments;
