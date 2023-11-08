@@ -6,13 +6,14 @@
  CREATE OR REPLACE PROCEDURE insert_note_comment (
    m_note_id INTEGER,
    m_event note_event_enum,
-   m_status note_status_enum,
    m_created_at TIMESTAMP WITH TIME ZONE,
    m_id_user INTEGER,
    m_username VARCHAR(256)
  )
  LANGUAGE plpgsql
  AS $proc$
+  DECLARE
+   m_status note_status_enum;
   BEGIN
    INSERT INTO logs (message) VALUES ('Inserting comment: ' || m_note_id || '-'
      || m_event);
@@ -35,7 +36,8 @@
    WHERE note_id = m_note_id;
 
    -- Actions for an open note.
-   IF (m_status = 'opened') THEN
+   IF (m_status = 'open') THEN
+    -- The note is currently open.
     INSERT INTO note_comments (
      note_id,
      event,
@@ -49,24 +51,29 @@
     );
 
     IF (m_event = 'closed') THEN
+     -- The note is closed.
      UPDATE notes
        SET status = 'close',
        closed_at = m_created_at
        WHERE note_id = m_note_id;
      INSERT INTO logs (message) VALUES ('Update to close note ' || m_note_id);
     ELSIF (m_event = 'reopened') THEN
+     -- Invalid operation for an open note.
      INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
        || m_note_id || '-' || m_event);
      RAISE EXCEPTION 'Trying to reopen an opened note';
     END IF;
    ELSE
+    -- The note is closed.
     IF (m_event = 'reopened') THEN
+     -- The note is reopened.
      UPDATE notes
        SET status = 'open',
        closed_at = NULL
        WHERE note_id = m_note_id;
      INSERT INTO logs (message) VALUES ('Update to reopen note ' || m_note_id);
     ELSIF (m_event = 'closed') THEN
+     -- Invalid operation for a closed note.
      INSERT INTO logs (message) VALUES ('Trying to close a closed note '
        || m_note_id || '-' || m_event);
      RAISE EXCEPTION 'Trying to close a closed note';
