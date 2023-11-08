@@ -3,11 +3,11 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
   
-  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting notes sync' as Text;
-  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1), 'Sync notes' AS Type
+  SELECT CURRENT_TIMESTAMP AS Processing, 'Counting notes sync' AS Text;
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty, 'Sync notes' AS Text
     FROM notes_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
-    'Deleting duplicates notes sync' as Text;
+    'Deleting duplicates notes sync' AS Text;
   DROP TABLE IF EXISTS notes_sync_no_duplicates;
   CREATE TABLE notes_sync_no_duplicates AS
     SELECT
@@ -28,7 +28,8 @@
   ANALYZE notes_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
     'Counting notes sync different' as Text;
-  SELECT COUNT(1), 'Sync notes no duplicates' AS Type FROM notes_sync;
+  SELECT COUNT(1) AS Qty, 'Sync notes no duplicates' AS Text
+   FROM notes_sync;
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync note' AS Text;
   DO
@@ -73,7 +74,7 @@
   ANALYZE notes;
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting comments sync' as Text;
-  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1), 'Sync comments' AS Type
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1), 'Sync comments' AS Text
     FROM note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
     'Deleting duplicates comments sync' as Text;
@@ -96,8 +97,8 @@
   ANALYZE note_comments_sync;
   SELECT CURRENT_TIMESTAMP AS Processing,
     'Counting comments sync different' as Text;
-  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1),
-    'Sync comments no duplicates' AS Type
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
+    'Sync comments no duplicates' AS Text
     FROM note_comments_sync;
 
   SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting sync comments' AS Text;

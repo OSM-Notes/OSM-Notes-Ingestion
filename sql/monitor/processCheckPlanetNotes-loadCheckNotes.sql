@@ -10,7 +10,7 @@
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes check' as Text;
   ANALYZE notes_check;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting check notes' AS Text;
-  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1),
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
     'Uploaded check notes' AS Type FROM notes_check;
 
   TRUNCATE TABLE note_comments_check;
@@ -20,5 +20,5 @@
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments check' as Text;
   ANALYZE note_comments_check;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting check comments' AS Text;
-  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1),
+  SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
     'Uploaded check comments' AS Type FROM note_comments_check;
