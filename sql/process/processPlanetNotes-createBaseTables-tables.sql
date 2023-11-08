@@ -39,6 +39,7 @@ COMMENT ON COLUMN note_comments.id_user IS
   'OSM id of the user who performed the action';
 
 CREATE TABLE IF NOT EXISTS logs (
+ id SERIAL,
  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  message VARCHAR(1000)
 );
