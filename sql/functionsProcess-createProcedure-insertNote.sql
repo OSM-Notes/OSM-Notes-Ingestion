@@ -34,6 +34,6 @@ AS $proc$
    m_closed_at,
    'open',
    id_country
-  );
+  ) ON CONFLICT DO NOTHING;
  END
 $proc$
