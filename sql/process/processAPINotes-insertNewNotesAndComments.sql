@@ -22,17 +22,11 @@ $$
    FROM notes_api
    ORDER BY created_at
   LOOP
-   m_closed_time := COALESCE('TO_TIMESTAMP(''' || r.closed_at
-     || ''', ''YYYY-MM-DD HH24:MI:SS'')', 'NULL');
+   m_closed_time := QUOTE_NULLABLE(r.closed_at);
 
    INSERT INTO logs (message) VALUES ('Note:' || r.note_id || ',created:'
     || r.created_at || ',last:' || m_lastupdate || ',closed:'
     || m_closed_time);
-   IF (r.created_at <= m_lastupdate) THEN
-    -- Rejects all notes before the latest processed.
-    INSERT INTO logs (message) VALUES ('Skipped');
-    CONTINUE;
-   END IF;
 
    EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
      || r.longitude || ', '
@@ -62,7 +56,6 @@ $$
   r RECORD;
   m_created_time VARCHAR(100);
   m_lastupdate TIMESTAMP;
-  m_id_user VARCHAR(256);
  BEGIN
   SELECT timestamp INTO m_lastupdate
    FROM max_note_timestamp;
@@ -71,8 +64,6 @@ $$
    FROM note_comments_api
    ORDER BY created_at
   LOOP
-   m_id_user := COALESCE(r.id_user, 'NULL');
-
    IF (r.created_at <= m_lastupdate) THEN
     INSERT INTO logs (message) VALUES ('Comment:' || r.note_id || ',created:'
      || r.created_at || ',last:' || m_lastupdate || ',event:' || r.event);
@@ -81,12 +72,21 @@ $$
     CONTINUE;
    END IF;
 
-   EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
-     || '''' || r.event || '''::note_event_enum, '
-     || 'TO_TIMESTAMP(''' || r.created_at
-     || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-     || m_id_user || ', '
-     || QUOTE_NULLABLE(r.username) || ')';
+   IF (r.id_user IS NOT NULL) THEN
+    EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
+      || '''' || r.event || '''::note_event_enum, '
+      || 'TO_TIMESTAMP(''' || r.created_at
+      || ''', ''YYYY-MM-DD HH24:MI:SS''), '
+      || r.id_user || ', '
+      || QUOTE_NULLABLE(r.username) || ')';
+   ELSE
+    EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
+      || '''' || r.event || '''::note_event_enum, '
+      || 'TO_TIMESTAMP(''' || r.created_at
+      || ''', ''YYYY-MM-DD HH24:MI:SS''), '
+      || 'NULL, '
+      || QUOTE_NULLABLE(r.username) || ')';
+   END IF;
    INSERT INTO logs (message) VALUES ('Inserted');
   END LOOP;
   COMMIT;
