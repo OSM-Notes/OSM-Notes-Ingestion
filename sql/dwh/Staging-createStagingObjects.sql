@@ -122,6 +122,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   SELECT COUNT(1) INTO qty_dwh_notes
     FROM dwh.facts;
   IF (qty_dwh_notes = 0) THEN
+   RAISE NOTICE '0 facts, processing all history';
    CALL staging.process_notes_at_date ('2013-04-24');
   END IF;
 
@@ -141,7 +142,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
 
   -- Processes notes while the max note received is equal to the most recent
   -- note processed.
-  WHILE (max_processed_date < max_note_action) LOOP
+  WHILE (max_processed_date <= max_note_action) LOOP
    SELECT MAX(action_at) INTO max_note_on_dwh
    FROM dwh.facts;
 
@@ -149,14 +150,29 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
    SELECT COUNT(1) INTO qty_notes_on_date
    FROM note_comments
    WHERE DATE(created_at) = max_processed_date
-   AND created_at > max_note_on_dwh;
+    AND created_at > max_note_on_dwh;
+
    -- If there are 0 notes to process, then increase one day.
    IF (qty_notes_on_date = 0) THEN
+    RAISE NOTICE 'Increasing 1 day, and processing facts for %',
+     max_processed_date;
     max_processed_date := max_processed_date + 1;
+
+    SELECT COUNT(1) INTO qty_notes_on_date
+    FROM note_comments
+    WHERE DATE(created_at) = max_processed_date
+     AND created_at > max_note_on_dwh;
+    RAISE NOTICE 'Notes to process for %: %', max_processed_date,
+     qty_notes_on_date;
+
     CALL staging.process_notes_at_date (max_processed_date);
    ELSE
+    RAISE NOTICE 'Processing facts for %: %', max_processed_date,
+     qty_notes_on_date;
+
     CALL staging.process_notes_at_date (max_processed_date);
    END IF;
   END LOOP;
+  RAISE NOTICE 'No facts to process % > %', max_processed_date, max_note_action;
  END
 $proc$
