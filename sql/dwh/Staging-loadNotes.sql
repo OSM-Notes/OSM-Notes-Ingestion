@@ -3,7 +3,11 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-31
 
-SELECT COUNT(1) FROM dwh.facts;
+SELECT COUNT(1) AS facts, 0 AS comments
+FROM dwh.facts
+UNION
+SELECT 0 AS facts, count(1) AS comments
+FROM note_comments;
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting facts' AS Task;
 
@@ -11,5 +15,9 @@ CALL staging.process_notes_actions_into_dwh();
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Facts inserted' AS Task;
 
-SELECT COUNT(1) FROM dwh.facts;
+SELECT COUNT(1) AS facts, 0 AS comments
+FROM dwh.facts
+UNION
+SELECT 0 AS facts, count(1) AS comments
+FROM note_comments;
 
