@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-20
-declare -r VERSION="2022-12-20"
+# Version: 2023-11-09
+declare -r VERSION="2023-11-09"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -28,14 +28,6 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
-
-# Error codes.
-# 1: Help message.
-declare -r ERROR_HELP_MESSAGE=1
-# 241: Library or utility missing.
-declare -r ERROR_MISSING_LIBRARY=241
-# 242: Invalid argument for script invocation.
-declare -r ERROR_INVALID_ARGUMENT=242
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -71,19 +63,19 @@ readonly LOCK
 declare -r PROCESS_TYPE=${1:-}
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamart/createDatamartUsersTable.sql"
+declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-checkDatamartUsersTable.sql"
 
-# Name of the SQL script that contains the statement to empty the tables.
-declare -r EMPTY_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamart/emptyDatamartUsersTable.sql"
-
-# Name of the SQL script that contains the alter statements.
-declare -r ALTER_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamart/alterDatamartUsersTable.sql"
+# Name of the SQL script that contains the objects to create in the DB.
+declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createDatamartUsersTable.sql"
 
 # Name of the SQL script that contains the ETL process.
-declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamart/populateDatamartUsersTable.sql"
+declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateDatamartUsersTable.sql"
+
+# Generic script to add years.
+declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-alterTableAddYears.sql"
 
 # Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess.sh"
 
 ###########
 # FUNCTIONS
@@ -134,16 +126,44 @@ function __checkPrereqs {
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- __logi "Creating star model"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
- psql -d "${DBNAME}" -f "${EMPTY_TABLES_FILE}"
- psql -d "${DBNAME}" -f "${ALTER_OBJECTS_FILE}"
+ __log_finish
+}
+
+# Checks the tables are created.
+function __checkBaseTables {
+ __log_start
+ set +e
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_OBJECTS_FILE}"
+ set -e
+ RET=${?}
+ if [[ "${RET}" -ne 0 ]] ; then
+  __logw "Creating datamart users tables."
+  __createBaseTables
+  __logw "Datamart users tables created."
+ fi
+ __log_finish
+}
+
+# Adds the columns up to the current year.
+function __addYears {
+ __log_start
+YEAR=2013
+CURRENT_YEAR=$(date +%Y)
+while [ "${YEAR}" -le "${CURRENT_YEAR}" ]; do
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}")"
+ YEAR=$((YEAR + 1)) 
+done
  __log_finish
 }
 
 # Processes the notes and comments.
 function __processNotes {
+ __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}"
+ __log_finish
 }
 
 ######
@@ -166,7 +186,9 @@ function main() {
  __logw "Validating single execution."
  flock -n 7
 
- __createBaseTables
+ __checkBaseTables
+ # Add new columns for years after 2013.
+ __addYears
  __processNotes
 
  __logw "Ending process"
@@ -186,4 +208,3 @@ if [ ! -t 1 ] ; then
 else
  main
 fi
-

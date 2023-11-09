@@ -1,3 +1,8 @@
+-- Populates datamart for users.
+--
+-- Author: Andres Gomez (AngocA)
+-- Version: 2023-11-09
+
 DO
 $$
 DECLARE
@@ -49,7 +54,7 @@ BEGIN
 
   stmt := 'INSERT INTO dwh.datamartUsers VALUES ('
     || r.user_id || ', '
-    || QUOTE_NULLABLE('''' || m_username || '''') || ', '
+    || QUOTE_NULLABLE(m_username) || ', '
     || COALESCE('''' || TO_CHAR(m_date_starting_creating_notes, 'yyyy-mm-dd') || '''', 'NULL') || ', '
     || COALESCE('''' || TO_CHAR(m_date_starting_solving_notes, 'yyyy-mm-dd') || '''', 'NULL') || ', '
     || COALESCE('''' || m_countries_open_notes || '''', 'NULL') || ', '
@@ -60,4 +65,3 @@ BEGIN
  END LOOP;
 END
 $$;
-
