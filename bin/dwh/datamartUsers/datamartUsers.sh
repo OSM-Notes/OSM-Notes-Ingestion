@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-11-09
-declare -r VERSION="2023-11-09"
+# Version: 2023-11-10
+declare -r VERSION="2023-11-10"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -178,8 +178,8 @@ function __addYears {
  while [ "${YEAR}" -lt "${CURRENT_YEAR}" ]; do
   YEAR=$((YEAR + 1)) 
   export YEAR
-  # shellcheck disable=SC2016
   set +e
+  # shellcheck disable=SC2016
   psql -d "${DBNAME}" -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}")"
   set -e
  done
