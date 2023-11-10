@@ -18,6 +18,7 @@ CREATE TABLE countries (
 ALTER TABLE countries
  ADD CONSTRAINT pk_countries
  PRIMARY KEY (country_id);
+
 CREATE TABLE tries (
  area VARCHAR(20),
  iter INTEGER,
