@@ -65,8 +65,11 @@ declare -r PROCESS_TYPE=${1:-}
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-checkDatamartUsersTable.sql"
 
-# Name of the SQL script that contains the objects to create in the DB.
-declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createDatamartUsersTable.sql"
+# Name of the SQL script that contains the tables to create in the DB.
+declare -r CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createDatamartUsersTable.sql"
+
+# Name of the SQL script that contains the procedures to create in the DB.
+declare -r CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createProcedure.sql"
 
 # Name of the SQL script that contains the ETL process.
 declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateDatamartUsersTable.sql"
@@ -126,7 +129,7 @@ function __checkPrereqs {
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_TABLES_FILE}"
  __log_finish
 }
 
@@ -142,6 +145,7 @@ function __checkBaseTables {
   __createBaseTables
   __logw "Datamart users tables created."
  fi
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_PROCEDURES_FILE}"
  __log_finish
 }
 
