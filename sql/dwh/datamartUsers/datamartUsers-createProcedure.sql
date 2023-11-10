@@ -101,7 +101,7 @@ AS $proc$
    first_closed_note_id,
    first_reopened_note_id
   ) VALUES (
-   m_dimension_user_id
+   m_dimension_user_id,
    m_user_id,
    m_username,
    m_date_starting_creating_notes,
