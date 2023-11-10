@@ -76,9 +76,21 @@ CREATE TABLE IF NOT EXISTS dwh.contributor_types (
 );
 
 -- Primary keys.
+ALTER TABLE dwh.datamartUsers
+ ADD CONSTRAINT pk_datamartUsers
+ PRIMARY KEY (dimension_user_id);
+
+ALTER TABLE dwh.badges
+ ADD CONSTRAINT pk_badges
+ PRIMARY KEY (badge_id);
+
 ALTER TABLE dwh.badges_per_users
  ADD CONSTRAINT pk_badge_users
  PRIMARY KEY (id_user, id_badge);
+
+ALTER TABLE dwh.contributor_types
+ ADD CONSTRAINT pk_contributor_types
+ PRIMARY KEY (contributor_type_id);
 
 -- Foreign keys.
 ALTER TABLE dwh.datamartUsers
@@ -94,7 +106,7 @@ ALTER TABLE dwh.badges_per_users
 ALTER TABLE dwh.badges_per_users
  ADD CONSTRAINT fk_b_p_u_id_user
  FOREIGN KEY (id_user)
- REFERENCES dwh.datamartUsers (user_id);
+ REFERENCES dwh.datamartUsers (dimension_user_id);
 
 -- Insert values
 -- TODO populate badges.
