@@ -63,7 +63,7 @@ readonly LOCK
 declare -r PROCESS_TYPE=${1:-}
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-checkDatamartUsersTable.sql"
+declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-checkDatamartUsersTables.sql"
 
 # Name of the SQL script that contains the tables to create in the DB.
 declare -r CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createDatamartUsersTable.sql"
@@ -78,7 +78,7 @@ declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamar
 declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-alterTableAddYears.sql"
 
 # Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess.sh"
+declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 ###########
 # FUNCTIONS
@@ -124,6 +124,7 @@ function __checkPrereqs {
  fi
  __log_finish
  set -e
+ # TODO Checks scripts that exist
 }
 
 # Creates base tables that hold the whole history.
@@ -138,8 +139,8 @@ function __checkBaseTables {
  __log_start
  set +e
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_OBJECTS_FILE}"
- set -e
  RET=${?}
+ set -e
  if [[ "${RET}" -ne 0 ]] ; then
   __logw "Creating datamart users tables."
   __createBaseTables
@@ -152,14 +153,16 @@ function __checkBaseTables {
 # Adds the columns up to the current year.
 function __addYears {
  __log_start
-YEAR=2013
-CURRENT_YEAR=$(date +%Y)
-while [ "${YEAR}" -le "${CURRENT_YEAR}" ]; do
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}")"
- YEAR=$((YEAR + 1)) 
-done
+ YEAR=2013
+ CURRENT_YEAR=$(date +%Y)
+ while [ "${YEAR}" -lt "${CURRENT_YEAR}" ]; do
+  YEAR=$((YEAR + 1)) 
+  export YEAR
+  # shellcheck disable=SC2016
+  set +e
+  psql -d "${DBNAME}" -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}")"
+  set -e
+ done
  __log_finish
 }
 
@@ -190,9 +193,11 @@ function main() {
  __logw "Validating single execution."
  flock -n 7
 
+ set +E
  __checkBaseTables
  # Add new columns for years after 2013.
  __addYears
+ set -E
  __processNotes
 
  __logw "Ending process"
