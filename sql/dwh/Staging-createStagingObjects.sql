@@ -84,6 +84,12 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
       m_opened_id_date, m_opened_id_hour, m_dimension_user_open,
       m_closed_id_date, m_closed_id_hour, m_dimension_user_close
     );
+
+    -- Modifies the dimension user for the datamart to identify it.
+    UPDATE dwh.dimension_users
+     SET modified = TRUE
+     WHERE dimension_user_id = action_dimension_id_user;
+
     m_dimension_country_id := null;
 
     m_opened_id_date := null;
