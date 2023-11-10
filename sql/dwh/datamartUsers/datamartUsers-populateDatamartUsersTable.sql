@@ -61,15 +61,18 @@ BEGIN
    FROM dwh.datamartUsers
    WHERE dimension_user_id = r.dimension_user_id;
   IF (qty = 0) THEN
+   RAISE NOTICE 'Inserting user';
    CALL dwh.insert_datamart_user(r.dimension_user_id);
+  ELSE
+   RAISE NOTICE 'User does not exist';
   END IF;
 
   -- id_contributor_type
   -- TODO
-  m_id_contributor_type := 0;
+  m_id_contributor_type := 1;
 
   -- last_year_activity
-  SELECT YEAR(date_id)
+  SELECT EXTRACT(YEAR FROM date_id)
    INTO m_last_year_activity
   FROM dwh.dimension_days
   WHERE dimension_day_id = (
@@ -144,30 +147,30 @@ BEGIN
 
   -- hashtags
   -- TODO
-  m_hashtags := '';
+  m_hashtags := NULL;
 
   -- countries_open_notes
   SELECT JSON_AGG(country_name_es)
    INTO m_countries_open_notes
   FROM (
-   SELECT country_name_en
+   SELECT country_name_es 
    FROM dwh.facts f
     JOIN dwh.dimension_countries c
     ON f.dimension_id_country = c.dimension_country_id
    WHERE f.opened_dimension_id_user = r.dimension_user_id
-   GROUP BY country_name_en
+   GROUP BY country_name_es
   ) AS T;
 
   -- countries_solving_notes
   SELECT JSON_AGG(country_name_es)
    INTO m_countries_solving_notes
   FROM (
-   SELECT country_name_en
+   SELECT country_name_es
    FROM dwh.facts f
     JOIN dwh.dimension_countries c
     ON f.dimension_id_country = c.dimension_country_id
    WHERE  f.closed_dimension_id_user = r.dimension_user_id
-   GROUP BY country_name_en
+   GROUP BY country_name_es
   ) AS T;
 
   -- working_hours_opening
@@ -215,21 +218,21 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_whole_open
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'opened';
 
   -- history_whole_commented
   SELECT COUNT(1)
    INTO m_history_whole_commented
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'commented';
 
   -- history_whole_closed
   SELECT COUNT(1)
    INTO m_history_whole_closed
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'closed';
 
   -- history_whole_closed_with_comment
@@ -240,10 +243,10 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_whole_reopened
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'reopened';
 
-  SELECT YEAR(CURRENT_TIMESTAMP)
+  SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
    INTO m_current_year;
 
   -- history_year_open
@@ -252,7 +255,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'opened'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -260,7 +263,9 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_year_commented
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'commented'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -268,7 +273,9 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_year_closed
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'closed'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -280,11 +287,13 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_year_reopened
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'reopened'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
-  SELECT MONTH(CURRENT_TIMESTAMP)
+  SELECT EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
    INTO m_current_month;
 
   -- history_month_open
@@ -293,7 +302,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'opened'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
@@ -301,7 +310,9 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_month_commented
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'commented'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
@@ -309,7 +320,9 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_month_closed
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'closed'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
@@ -321,11 +334,13 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_month_reopened
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'reopened'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
-  SELECT DAY(CURRENT_TIMESTAMP)
+  SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)
    INTO m_current_day;
 
   -- history_day_open
@@ -334,7 +349,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'opened'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
@@ -342,7 +357,9 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_day_commented
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'commented'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
@@ -350,7 +367,9 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_day_closed
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'closed'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
@@ -362,7 +381,9 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_day_reopened
   FROM dwh.facts f
-  WHERE f.action_dimension_id_user = m_dimension_user_id
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'reopened'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
@@ -379,7 +400,7 @@ BEGIN
    date_most_closed = m_date_most_closed,
    date_most_closed_qty = m_date_most_closed_qty,
    hashtags = m_hashtags,
-   countries_open_notes = m_countries_open_notes
+   countries_open_notes = m_countries_open_notes,
    countries_solving_notes = m_countries_solving_notes,
    working_hours_opening = m_working_hours_opening,
    working_hours_commenting = m_working_hours_commenting,
@@ -409,10 +430,11 @@ BEGIN
    SET modified = FALSE
    WHERE dimension_user_id = r.dimension_user_id;
 
-  WHILE (m_year < m_current_year) DO
+  WHILE (m_year < m_current_year) LOOP
    CALL dwh.update_datamart_user_activity_year(r.dimension_user_id, m_year);
    m_year := m_year + 1;
-  END DO;
+  END LOOP;
+  COMMIT;
  END LOOP;
 END
 $$;
