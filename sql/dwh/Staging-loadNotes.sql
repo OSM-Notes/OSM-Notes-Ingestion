@@ -20,4 +20,3 @@ FROM dwh.facts
 UNION
 SELECT 0 AS facts, count(1) AS comments
 FROM note_comments;
-
