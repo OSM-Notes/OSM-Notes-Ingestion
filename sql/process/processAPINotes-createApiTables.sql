@@ -14,6 +14,7 @@ CREATE TABLE notes_api (
 );
 
 CREATE TABLE note_comments_api (
+ id SERIAL,
  note_id INTEGER NOT NULL,
  event note_event_enum NOT NULL,
  created_at TIMESTAMP NOT NULL,

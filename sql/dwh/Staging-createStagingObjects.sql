@@ -33,7 +33,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     JOIN note_comments o
     ON (n.note_id = o.note_id AND o.event = 'opened')
    WHERE DATE(c.created_at) = c_process_date
-   ORDER BY c.note_id, c.created_at;
+   ORDER BY c.note_id, c.id;
 
  BEGIN
 

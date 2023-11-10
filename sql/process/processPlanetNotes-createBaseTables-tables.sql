@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS notes (
  id_country INTEGER
 );
 
--- ToDo Crear un mecanismo que identificque la secuencia de comentario
 CREATE TABLE IF NOT EXISTS note_comments (
+ id SERIAL,
  note_id INTEGER NOT NULL,
  event note_event_enum NOT NULL,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS note_comments (
  id_user INTEGER
 );
 COMMENT ON TABLE note_comments IS 'Stores all comments associated to notes';
+COMMENT ON COLUMN note_comments.id IS
+  'Generated ID to keep track of the order';
+  -- https://api.openstreetmap.org/api/0.6/notes/3750896
+  -- Multiples actions at the same time.
 COMMENT ON COLUMN note_comments.note_id IS
   'Id of the associated note of this comment';
 COMMENT ON COLUMN note_comments.event IS

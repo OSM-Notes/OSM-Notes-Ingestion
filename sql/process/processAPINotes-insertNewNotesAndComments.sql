@@ -62,7 +62,7 @@ $$
   FOR r IN
    SELECT note_id, event, created_at, id_user, username
    FROM note_comments_api
-   ORDER BY created_at
+   ORDER BY id
   LOOP
    IF (r.created_at <= m_lastupdate) THEN
     INSERT INTO logs (message) VALUES ('Comment:' || r.note_id || ',created:'

@@ -11,12 +11,13 @@ ALTER TABLE users
  ADD CONSTRAINT pk_users
  PRIMARY KEY (user_id);
 
--- ToDo Primary key duplicated error. This is an API error because there is
--- no way to identify the order of the comments, other that by analyzing the
--- order of the retrieved comments.
---ALTER TABLE note_comments
--- ADD CONSTRAINT pk_note_comments
--- PRIMARY KEY (note_id, event, created_at);
+-- The API does not provide an identifier for the comments, therefore, this
+-- project implemented another column for the id. However, the execution cannot
+-- be parallelized.
+-- https://api.openstreetmap.org/api/0.6/notes/3750896
+ALTER TABLE note_comments
+ ADD CONSTRAINT pk_note_comments
+ PRIMARY KEY (id);
 
 ALTER TABLE note_comments
  ADD CONSTRAINT fk_notes
