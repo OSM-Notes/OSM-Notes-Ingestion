@@ -268,7 +268,7 @@ declare -r POSTGRES_DROP_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/proce
 # Drop api tables.
 declare -r POSTGRES_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-dropApiTables.sql"
 # Create country tables.
-declare -r POSTGRES_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createConutryTables.sql"
+declare -r POSTGRES_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createCountryTables.sql"
 # Create enums.
 declare -r POSTGRES_CREATE_ENUMS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createBaseTables-enum.sql"
 # Create base tables.
