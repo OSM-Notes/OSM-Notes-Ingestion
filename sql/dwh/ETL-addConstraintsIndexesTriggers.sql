@@ -82,10 +82,6 @@ ALTER TABLE dwh.facts
 SELECT CURRENT_TIMESTAMP AS Processing, 'Creating indexes' AS Task;
 
 -- Unique keys
--- TODO put incremental number in comments, and add this to this uniq index
---CREATE UNIQUE INDEX fact_id_uniq
--- ON  dwh.facts
--- (id_note);
 
 CREATE UNIQUE INDEX dimension_user_id_uniq
  ON dwh.dimension_users
@@ -99,7 +95,43 @@ CREATE UNIQUE INDEX dimension_day_id_uniq
  ON dwh.dimension_days
  (date_id);
 
-CREATE INDEX IF NOT EXISTS facts_action_date ON dwh.facts (action_at);
+CREATE INDEX facts_action_date ON dwh.facts (action_at);
+
+CREATE INDEX action_idx 
+ ON dwh.facts (action_dimension_id_user, action_comment);
+
+CREATE INDEX open_user_date_idx
+ ON dwh.facts (opened_dimension_id_date, opened_dimension_id_user);
+
+CREATE INDEX open_user_idx
+ ON dwh.facts (opened_dimension_id_user);
+
+CREATE INDEX closed_user_date_idx
+ON dwh.facts (closed_dimension_id_date, closed_dimension_id_user);
+
+CREATE INDEX closed_user_idx
+ON dwh.facts (closed_dimension_id_user);
+
+CREATE INDEX country_open_user_idx
+ON dwh.facts (dimension_id_country, opened_dimension_id_user);
+
+CREATE INDEX country_closed_user_idx
+ON dwh.facts (dimension_id_country, closed_dimension_id_user);
+
+CREATE INDEX hours_opening_idx
+ON dwh.facts (opened_dimension_id_hour, opened_dimension_id_user);
+
+CREATE INDEX hours_commenting_idx
+ON dwh.facts (action_dimension_id_hour, action_dimension_id_user);
+
+CREATE INDEX hours_closing_idx
+ON dwh.facts (closed_dimension_id_hour, closed_dimension_id_user);
+
+CREATE INDEX date_user_action_idx
+ON dwh.facts (action_dimension_id_date, action_dimension_id_user, action_comment);
+
+CREATE INDEX modified_users_idx
+ON dwh.dimension_users (modified);
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Creating functions' AS Task;
 
