@@ -82,14 +82,20 @@ declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHOb
 # Name of the SQL script that contains the alter statements.
 declare -r ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-addConstraintsIndexesTriggers.sql"
 
-# Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-
 # Create staging procedures.
 declare -r CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-createStagingObjects.sql"
 
 # Create staging procedures.
 declare -r LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-loadNotes.sql"
+
+# Location of the datamart user script.
+declare -r DATAMART_COUNTRIES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartConutries.sh"
+
+# Location of the datamart user script.
+declare -r DATAMART_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
+
+# Location of the common functions.
+declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 ###########
 # FUNCTIONS
@@ -138,6 +144,14 @@ function __checkPrereqs {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Check files
+ if [[ ! -r "${DATAMART_COUNTRIES_FILE}" ]]; then
+  __loge "ERROR: File datamartConutries.sh was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${DATAMART_USERS_FILE}" ]]; then
+  __loge "ERROR: File datamartUsers.sh was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  if [[ ! -r "${CHECK_BASE_TABLES_FILE}" ]]; then
   __loge "ERROR: File checkBaseTables.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -215,7 +229,13 @@ function main() {
  flock -n 7
  
  __processNotes
+
+ # Updates the datamart for countries.
+ "${DATAMART_COUNTRIES_FILE}"
  
+ # Updates the datamart for users.
+ "${DATAMART_USERS_FILE}"
+
  __logw "Ending process"
 }
 
