@@ -4,29 +4,34 @@
 -- Version: 2023-11-09
 
 CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
+ -- Static values (username could change)
  dimension_user_id INTEGER, -- The dimension id user.
  user_id INTEGER, -- The OSM id user.
  username VARCHAR,
  date_starting_creating_notes DATE, -- Oldest opened note.
  date_starting_solving_notes DATE, -- Oldest closed note.
- countries_open_notes JSON, -- List of countries where opening notes.
- countries_solving_notes JSON, -- List of countries where closing notes.
- id_contributor_type INTEGER, -- Note contributor type.
- last_year_activity TEXT, -- Most recent note action.
- working_hours_opening CHAR(7), -- ?
- working_hours_commenting CHAR(7),
- working_hours_closing CHAR(7),
  first_open_note_id INTEGER, -- Oldest.
  first_commented_note_id INTEGER,
  first_closed_note_id INTEGER,
  first_reopened_note_id INTEGER,
+
+ -- Dynamic values
+ id_contributor_type SMALLINT, -- Note contributor type.
+ last_year_activity TEXT, -- Most recent note action.
  lastest_open_note_id INTEGER, -- Newest.
  lastest_commented_note_id INTEGER,
  lastest_closed_note_id INTEGER,
  lastest_reopened_note_id INTEGER,
  date_most_open DATE, -- Day when the user opened the most notes.
+ date_most_open_qty SMALLINT,
  date_most_closed DATE, -- Day when the user closed notes the most.
+ date_most_closed_qty SMALLINT,
  hashtags JSON, -- List of used hashtag.
+ countries_open_notes JSON, -- List of countries where opening notes.
+ countries_solving_notes JSON, -- List of countries where closing notes.
+ working_hours_opening JSON, -- Hours when the user creates notes.
+ working_hours_commenting JSON, -- Hours when the user comments notes.
+ working_hours_closing JSON, -- Hours when the user closes notes.
  history_whole_open INTEGER, -- Qty opened notes.
  history_whole_commented INTEGER, -- Qty commented notes.
  history_whole_closed INTEGER, -- Qty closed notes.
