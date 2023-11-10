@@ -1,7 +1,7 @@
--- Creates data warehouse relations.
+-- Creates datamart for users.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-09
+-- Version: 2023-11-10
 
 CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
  -- Static values (username could change)
