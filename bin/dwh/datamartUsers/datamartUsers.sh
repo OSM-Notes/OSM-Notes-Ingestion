@@ -122,9 +122,29 @@ function __checkPrereqs {
   __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## Check files
+ if [[ ! -r "${CHECK_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File datamartUsers-checkDatamartUsersTables.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${CREATE_TABLES_FILE}" ]]; then
+  __loge "ERROR: File datamartUsers-createDatamartUsersTable.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${CREATE_PROCEDURES_FILE}" ]]; then
+  __loge "ERROR: File datamartUsers-createProcedure.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POPULATE_FILE}" ]]; then
+  __loge "ERROR: File datamartUsers-populateDatamartUsersTable.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${ADD_YEARS_SCRIPT}" ]]; then
+  __loge "ERROR: File datamartUsers-alterTableAddYears.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  __log_finish
  set -e
- # TODO Checks scripts that exist
 }
 
 # Creates base tables that hold the whole history.
