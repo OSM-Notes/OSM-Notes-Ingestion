@@ -1,0 +1,21 @@
+-- Verifies if the base tables are created in the database.
+--
+-- Author: Andres Gomez (AngocA)
+-- Version: 2023-11-10
+  
+  DO
+  $$
+  DECLARE
+   qty INT;
+  BEGIN
+   SELECT COUNT(TABLE_NAME) INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_SCHEMA LIKE 'dwh'
+   AND TABLE_NAME = 'datamartcountries'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Base tables are missing: datamartCountries';
+   END IF;
+  END;
+  $$;
