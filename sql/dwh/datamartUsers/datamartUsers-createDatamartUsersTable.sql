@@ -17,19 +17,19 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
 
  -- Dynamic values
  id_contributor_type SMALLINT, -- Note contributor type.
- last_year_activity TEXT, -- Most recent note action.
+ last_year_activity TEXT, -- Most recent note action. TODO
  lastest_open_note_id INTEGER, -- Newest.
  lastest_commented_note_id INTEGER,
  lastest_closed_note_id INTEGER,
  lastest_reopened_note_id INTEGER,
- date_most_open DATE, -- Day when the user opened the most notes.
+ date_most_open DATE, -- Day when the user opened the most notes. TODO convert to a JSON to show the top 10
  date_most_open_qty SMALLINT,
  date_most_closed DATE, -- Day when the user closed notes the most.
  date_most_closed_qty SMALLINT,
  hashtags JSON, -- List of used hashtag.
  countries_open_notes JSON, -- List of countries where opening notes.
  countries_solving_notes JSON, -- List of countries where closing notes.
- working_hours_opening JSON, -- Hours when the user creates notes.
+ working_hours_opening JSON, -- Hours when the user creates notes. TODO mostrar semana
  working_hours_commenting JSON, -- Hours when the user comments notes.
  working_hours_closing JSON, -- Hours when the user closes notes.
  history_whole_open INTEGER, -- Qty opened notes.
