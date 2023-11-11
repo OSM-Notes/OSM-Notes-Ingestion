@@ -52,9 +52,14 @@ DECLARE
 BEGIN
  FOR r IN
   -- Process the datamart only for modified users.
-  SELECT dimension_user_id
-  FROM dwh.dimension_users
-  WHERE modified = TRUE
+  SELECT f.action_dimension_id_user
+  FROM dwh.facts f
+   JOIN dwh.dimension_users u
+   ON (f.action_dimension_id_user = u.dimension_user_id)
+  WHERE u.modified = TRUE
+  GROUP BY f.action_dimension_id_user
+  ORDER BY MAX(f.action_at) DESC
+  LIMIT 500
  LOOP
   SELECT COUNT(1)
    INTO qty
