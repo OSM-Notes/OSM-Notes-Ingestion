@@ -130,6 +130,12 @@ ON dwh.facts (closed_dimension_id_hour, closed_dimension_id_user);
 CREATE INDEX date_user_action_idx
 ON dwh.facts (action_dimension_id_date, action_dimension_id_user, action_comment);
 
+CREATE INDEX date_action_country_idx
+ON dwh.facts (action_dimension_id_date, dimension_id_country, action_comment);
+
+CREATE INDEX action_country_idx
+ON dwh.facts (dimension_id_country, action_comment);
+
 CREATE INDEX modified_users_idx
 ON dwh.dimension_users (modified);
 
