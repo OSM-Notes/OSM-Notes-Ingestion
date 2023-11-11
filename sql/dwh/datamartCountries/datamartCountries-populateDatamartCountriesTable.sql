@@ -51,9 +51,13 @@ DECLARE
 BEGIN
  FOR r IN
   -- Process the datamart only for modified countries.
-  SELECT dimension_country_id
-  FROM dwh.dimension_countries
-  WHERE modified = TRUE
+  SELECT f.dimension_id_country
+  FROM dwh.facts f
+   JOIN dwh.dimension_countries c
+   ON (f.dimension_id_country = c.dimension_country_id)
+  WHERE c.modified = TRUE
+  GROUP BY f.dimension_id_country
+  ORDER BY MAX(f.action_at) DESC
  LOOP
   SELECT COUNT(1)
    INTO qty
