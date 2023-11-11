@@ -92,12 +92,12 @@ AS $proc$
     AND f.action_comment = 'reopened'
   );
 
-  INSERT INTO dwh.datamartUsers (
+  INSERT INTO dwh.datamartCountries (
    dimension_country_id,
    country_id,
    country_name,
    country_name_es,
-   country_name_en
+   country_name_en,
    date_starting_creating_notes,
    date_starting_solving_notes,
    first_open_note_id,
@@ -172,7 +172,7 @@ AS $proc$
    AND f.action_comment = 'reopened'
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
-  stmt := 'UPDATE dwh.datamartUsers SET '
+  stmt := 'UPDATE dwh.datamartCountries SET '
     || 'history_' || m_year || '_open = ' || m_history_year_open || ', '
     || 'history_' || m_year || '_commented = ' || m_history_year_commented || ', '
     || 'history_' || m_year || '_closed = ' || m_history_year_closed || ', '

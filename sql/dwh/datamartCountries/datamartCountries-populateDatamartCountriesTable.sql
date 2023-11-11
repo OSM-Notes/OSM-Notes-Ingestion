@@ -62,10 +62,10 @@ BEGIN
   SELECT COUNT(1)
    INTO qty
    FROM dwh.datamartCountries
-   WHERE dimension_country_id = r.dimension_country_id;
+   WHERE dimension_country_id = r.dimension_id_country;
   IF (qty = 0) THEN
    RAISE NOTICE 'Inserting country';
-   CALL dwh.insert_datamart_country(r.dimension_country_id);
+   CALL dwh.insert_datamart_country(r.dimension_id_country);
   ELSE
    RAISE NOTICE 'Country does not exist';
   END IF;
@@ -77,7 +77,7 @@ BEGIN
   WHERE dimension_day_id = (
    SELECT MAX(action_dimension_id_date)
    FROM dwh.facts f
-   WHERE f.action_dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
   );
 
   -- lastest_open_note_id
@@ -87,7 +87,7 @@ BEGIN
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
   );
 
   -- lastest_commented_note_id
@@ -97,7 +97,7 @@ BEGIN
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'commented'
   );
 
@@ -108,7 +108,7 @@ BEGIN
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
   );
 
   -- lastest_reopened_note_id
@@ -118,7 +118,7 @@ BEGIN
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'reopened'
   );
 
@@ -128,7 +128,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.opened_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
   GROUP BY date_id
   ORDER BY COUNT(1) DESC
   FETCH FIRST 1 ROWS ONLY;
@@ -139,7 +139,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.closed_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
   GROUP BY date_id
   ORDER BY COUNT(1) DESC
   FETCH FIRST 1 ROWS ONLY;
@@ -156,7 +156,7 @@ BEGIN
    FROM dwh.facts f
     JOIN dwh.dimension_users u
     ON f.opened_dimension_id_user = u.dimension_user_id
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
    GROUP BY username
   ) AS T;
 
@@ -168,7 +168,7 @@ BEGIN
    FROM dwh.facts f
     JOIN dwh.dimension_users u
     ON f.closed_dimension_id_user = u.dimension_user_id
-   WHERE  f.dimension_id_country = r.dimension_country_id
+   WHERE  f.dimension_id_country = r.dimension_id_country
    GROUP BY username
   ) AS T;
 
@@ -178,7 +178,7 @@ BEGIN
    FROM dwh.facts f
     JOIN dwh.dimension_times t
     ON f.opened_dimension_id_hour = t.dimension_time_id
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'opened'
    GROUP BY opened_dimension_id_hour
   )
@@ -192,7 +192,7 @@ BEGIN
    FROM dwh.facts f
     JOIN dwh.dimension_times t
     ON f.action_dimension_id_hour = t.dimension_time_id
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'commented'
    GROUP BY action_dimension_id_hour
   )
@@ -206,7 +206,7 @@ BEGIN
    FROM dwh.facts f
     JOIN dwh.dimension_times t
     ON f.closed_dimension_id_hour = t.dimension_time_id
-   WHERE f.dimension_id_country = r.dimension_country_id
+   WHERE f.dimension_id_country = r.dimension_id_country
    GROUP BY closed_dimension_id_hour
   )
   SELECT JSON_AGG(hours.*)
@@ -217,21 +217,21 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_whole_open
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'opened';
 
   -- history_whole_commented
   SELECT COUNT(1)
    INTO m_history_whole_commented
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'commented';
 
   -- history_whole_closed
   SELECT COUNT(1)
    INTO m_history_whole_closed
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'closed';
 
   -- history_whole_closed_with_comment
@@ -242,7 +242,7 @@ BEGIN
   SELECT COUNT(1)
    INTO m_history_whole_reopened
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'reopened';
 
   SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
@@ -254,7 +254,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'opened'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -264,7 +264,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'commented'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -274,7 +274,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'closed'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -288,7 +288,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'reopened'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -301,7 +301,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'opened'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
@@ -311,7 +311,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'commented'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
@@ -321,7 +321,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'closed'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
@@ -335,7 +335,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'reopened'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
 
@@ -348,7 +348,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'opened'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
@@ -358,7 +358,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'commented'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
@@ -368,7 +368,7 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'closed'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
@@ -382,13 +382,13 @@ BEGIN
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_country_id
+  WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'reopened'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day;
 
   -- Updates country with new values.
   UPDATE dwh.datamartCountries
-  SET id_contributor_type = m_id_contributor_type,
+  SET 
    last_year_activity = m_last_year_activity,
    lastest_open_note_id = m_lastest_open_note_id,
    lastest_commented_note_id = m_lastest_commented_note_id,
@@ -401,8 +401,6 @@ BEGIN
    hashtags = m_hashtags,
    users_open_notes = m_users_open_notes,
    users_solving_notes = m_users_solving_notes,
-   countries_open_notes = m_countries_open_notes,
-   countries_solving_notes = m_countries_solving_notes,
    working_hours_opening = m_working_hours_opening,
    working_hours_commenting = m_working_hours_commenting,
    working_hours_closing = m_working_hours_closing,
@@ -425,14 +423,14 @@ BEGIN
    history_day_closed = m_history_day_closed,
    history_day_closed_with_comment = m_history_day_closed_with_comment,
    history_day_reopened =m_history_day_reopened
-  WHERE dimension_country_id = r.dimension_country_id;
+  WHERE dimension_country_id = r.dimension_id_country;
 
   UPDATE dwh.dimension_countries
    SET modified = FALSE
-   WHERE dimension_country_id = r.dimension_country_id;
+   WHERE dimension_country_id = r.dimension_id_country;
 
   WHILE (m_year < m_current_year) LOOP
-   CALL dwh.update_datamart_country_activity_year(r.dimension_country_id, m_year);
+   CALL dwh.update_datamart_country_activity_year(r.dimension_id_country, m_year);
    m_year := m_year + 1;
   END LOOP;
   COMMIT;
