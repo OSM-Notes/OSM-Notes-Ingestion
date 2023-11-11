@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
  country_id INTEGER NOT NULL,
  country_name VARCHAR(100),
  country_name_es VARCHAR(100),
- country_name_en VARCHAR(100)
+ country_name_en VARCHAR(100),
+ modified BOOLEAN
 -- ToDo Include the regions
 );
 
