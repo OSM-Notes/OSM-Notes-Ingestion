@@ -15,8 +15,8 @@ SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
 FROM notes_api;
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Loading comments from API' as Text;
-COPY note_comments_api FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
-  DELIMITER ',' QUOTE '''';
+COPY note_comments_api (note_id, event, processing_time, created_at, id_user)
+  FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv DELIMITER ',' QUOTE '''';
 SELECT CURRENT_TIMESTAMP AS Processing,
  'Statistics on comments from API' as Text;
 ANALYZE note_comments_api;
