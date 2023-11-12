@@ -313,7 +313,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'opened'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_commented
   SELECT COUNT(1)
@@ -323,7 +324,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'commented'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_closed
   SELECT COUNT(1)
@@ -333,7 +335,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'closed'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_closed_with_comment
   -- TODO
@@ -347,7 +350,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'reopened'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)
    INTO m_current_day;
@@ -360,7 +364,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'opened'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_commented
   SELECT COUNT(1)
@@ -370,7 +376,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'commented'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_closed
   SELECT COUNT(1)
@@ -380,7 +388,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'closed'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_closed_with_comment
   -- TODO
@@ -394,7 +404,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = r.dimension_user_id
    AND f.action_comment = 'reopened'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- Updates user with new values.
   UPDATE dwh.datamartUsers
