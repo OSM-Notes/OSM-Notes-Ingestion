@@ -23,7 +23,7 @@ AS $proc$
   m_first_closed_note_id INTEGER;
   m_first_reopened_note_id INTEGER;
  BEGIN
-  SELECT country_id, m_country_name, m_country_name_es, m_country_name_en
+  SELECT country_id, country_name, country_name_es, country_name_en
    INTO m_country_id, m_country_name, m_country_name_es, m_country_name_en
   FROM dwh.dimension_countries
   WHERE dimension_country_id = m_dimension_country_id;
