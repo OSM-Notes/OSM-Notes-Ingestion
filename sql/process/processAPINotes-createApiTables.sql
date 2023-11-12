@@ -17,6 +17,7 @@ CREATE TABLE note_comments_api (
  id SERIAL,
  note_id INTEGER NOT NULL,
  event note_event_enum NOT NULL,
+ processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  created_at TIMESTAMP NOT NULL,
  id_user INTEGER,
  username VARCHAR(256)
