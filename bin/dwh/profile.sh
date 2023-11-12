@@ -316,7 +316,7 @@ function __processUserProfile {
 
  # Last year's ations. TODO
  declare LAST_YEAR_ACTIONS
- #LAST_YEAR_ACTIONS=$(psql -d "${DBNAME}" -Atq \
+ LAST_YEAR_ACTIONS="TODO" #$(psql -d "${DBNAME}" -Atq \
  #   -c "SELECT get_last_year_actions(${USER_ID})
  #    " \
  #   -v ON_ERROR_STOP=1 )
@@ -324,7 +324,7 @@ function __processUserProfile {
  # Last actions.
  declare -i LAST_OPEN_NOTE_ID
  LAST_OPEN_NOTE_ID=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT last_open_note_id
+    -c "SELECT lastest_open_note_id
      FROM dwh.datamartUsers
      WHERE user_id = ${USER_ID}
      " \
@@ -332,7 +332,7 @@ function __processUserProfile {
 
  declare -i LAST_COMMENTED_NOTE_ID
  LAST_COMMENTED_NOTE_ID=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT last_commented_note_id
+    -c "SELECT lastest_commented_note_id
      FROM dwh.datamartUsers
      WHERE user_id = ${USER_ID}
      " \
@@ -340,7 +340,7 @@ function __processUserProfile {
 
  declare -i LAST_CLOSED_NOTE_ID
  LAST_CLOSED_NOTE_ID=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT last_closed_note_id
+    -c "SELECT lastest_closed_note_id
      FROM dwh.datamartUsers
      WHERE user_id = ${USER_ID}
      " \
@@ -348,7 +348,7 @@ function __processUserProfile {
 
  declare -i LAST_REOPENED_NOTE_ID
  LAST_REOPENED_NOTE_ID=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT last_reopened_note_id
+    -c "SELECT lastest_reopened_note_id
      FROM dwh.datamartUsers
      WHERE user_id = ${USER_ID}
      " \
@@ -589,165 +589,166 @@ function __processUserProfile {
      " \
     -v ON_ERROR_STOP=1 )
  
- # Ranking historic # TODO
- declare RANKING_HISTORIC_OPEN
- RANKING_HISTORIC_OPEN=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_historic
-      WHERE action = 'opened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_HISTORIC_COMMENTED
- RANKING_HISTORIC_COMMENTED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_historic
-      WHERE action = 'commented'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_HISTORIC_CLOSED
- RANKING_HISTORIC_CLOSED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_historic
-      WHERE action = 'closed'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_HISTORIC_REOPENED
- RANKING_HISTORIC_REOPENED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_historic
-      WHERE action = 'reopened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- # Ranking year #TODO
- declare RANKING_YEAR_OPEN
- RANKING_YEAR_OPEN=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_year
-      WHERE action = 'opened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_YEAR_COMMENTED
- RANKING_YEAR_COMMENTED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_year
-      WHERE action = 'commented'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_YEAR_CLOSED
- RANKING_YEAR_CLOSED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_year
-      WHERE action = 'closed'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_YEAR_REOPENED
- RANKING_YEAR_REOPENED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_year
-      WHERE action = 'reopened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- # Ranking month #TODO
- declare RANKING_MONTH_OPEN
- RANKING_MONTH_OPEN=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_month
-      WHERE action = 'opened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_MONTH_COMMENTED
- RANKING_MONTH_COMMENTED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_month
-      WHERE action = 'commented'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_MONTH_CLOSED
- RANKING_MONTH_CLOSED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_month
-      WHERE action = 'closed'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_MONTH_REOPENED
- RANKING_MONTH_REOPENED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_month
-      WHERE action = 'reopened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- # Ranking day #TODO
- declare RANKING_DAY_OPEN
- RANKING_DAY_OPEN=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_day
-      WHERE action = 'opened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_DAY_COMMENTED
- RANKING_DAY_COMMENTED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_day
-      WHERE action = 'commented'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_DAY_CLOSED
- RANKING_DAY_CLOSED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_day
-      WHERE action = 'closed'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
-
- declare RANKING_DAY_REOPENED
- RANKING_DAY_REOPENED=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT position, id_country
-      FROM dwh.ranking_day
-      WHERE action = 'reopened'
-      AND id_user = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
+# # Ranking historic # TODO
+# declare RANKING_HISTORIC_OPEN
+# RANKING_HISTORIC_OPEN=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_historic
+#      WHERE action = 'opened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_HISTORIC_COMMENTED
+# RANKING_HISTORIC_COMMENTED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_historic
+#      WHERE action = 'commented'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_HISTORIC_CLOSED
+# RANKING_HISTORIC_CLOSED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_historic
+#      WHERE action = 'closed'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_HISTORIC_REOPENED
+# RANKING_HISTORIC_REOPENED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_historic
+#      WHERE action = 'reopened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# # Ranking year #TODO
+# declare RANKING_YEAR_OPEN
+# RANKING_YEAR_OPEN=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_year
+#      WHERE action = 'opened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_YEAR_COMMENTED
+# RANKING_YEAR_COMMENTED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_year
+#      WHERE action = 'commented'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_YEAR_CLOSED
+# RANKING_YEAR_CLOSED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_year
+#      WHERE action = 'closed'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_YEAR_REOPENED
+# RANKING_YEAR_REOPENED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_year
+#      WHERE action = 'reopened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# # Ranking month #TODO
+# declare RANKING_MONTH_OPEN
+# RANKING_MONTH_OPEN=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_month
+#      WHERE action = 'opened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_MONTH_COMMENTED
+# RANKING_MONTH_COMMENTED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_month
+#      WHERE action = 'commented'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_MONTH_CLOSED
+# RANKING_MONTH_CLOSED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_month
+#      WHERE action = 'closed'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_MONTH_REOPENED
+# RANKING_MONTH_REOPENED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_month
+#      WHERE action = 'reopened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# # Ranking day #TODO
+# declare RANKING_DAY_OPEN
+# RANKING_DAY_OPEN=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_day
+#      WHERE action = 'opened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_DAY_COMMENTED
+# RANKING_DAY_COMMENTED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_day
+#      WHERE action = 'commented'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_DAY_CLOSED
+# RANKING_DAY_CLOSED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_day
+#      WHERE action = 'closed'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
+#
+# declare RANKING_DAY_REOPENED
+# RANKING_DAY_REOPENED=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT position, id_country
+#      FROM dwh.ranking_day
+#      WHERE action = 'reopened'
+#      AND id_user = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
 
  # Badges. TODO
  declare BADGES
- BADGES=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT b.badge_name, p.date_awarded
-     FROM dwh.badges_per_users p
-      JOIN dwh.badges b
-      ON p.id_badge = b.badge_id
-     WHERE dimension_user_id = ${USER_ID}
-     " \
-    -v ON_ERROR_STOP=1 )
+# BADGES=$(psql -d "${DBNAME}" -Atq \
+#    -c "SELECT b.badge_name, p.date_awarded
+#     FROM dwh.badges_per_users p
+#      JOIN dwh.badges b
+#      ON p.id_badge = b.badge_id
+#     WHERE dimension_user_id = ${USER_ID}
+#     " \
+#    -v ON_ERROR_STOP=1 )
 
+# TODO si cero, ocultar
  echo "User name: ${USERNAME} (id: ${USER_ID})"
  echo "Note solver type: ${CONTRIBUTOR_TYPE}"
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}, since ${DATE_FIRST_OPEN}."
@@ -763,21 +764,22 @@ function __processUserProfile {
  echo "Countries for closed notes: ${COUNTRIES_CLOSING}"
  echo "Working hours: Opening ${WORKING_HOURS_OPENING} Commenting ${WORKING_HOURS_COMMENTING} Closing ${WORKING_HOURS_CLOSING}" # Mostrar semana
 #                       1234567890 1234567890 1234567890 1234567890 1234567890
- printf "               Opened     Commented  Closed     Cld w/cmmt Reopened\n"
+ printf "                 Opened   Commented  Closed     Cld w/cmmt Reopened\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
  printf "Last 365 year: %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
- printf "Last 30 days  %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_MONTH_OPEN}" "${HISTORY_MONTH_COMMENTED}" "${HISTORY_MONTH_CLOSED}" "${HISTORY_MONTH_CLOSED_WITH_COMMENT}" "${HISTORY_MONTH_REOPENED}"
+ printf "Last 30 days:  %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_MONTH_OPEN}" "${HISTORY_MONTH_COMMENTED}" "${HISTORY_MONTH_CLOSED}" "${HISTORY_MONTH_CLOSED_WITH_COMMENT}" "${HISTORY_MONTH_REOPENED}"
  printf "Last day      %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_DAY_OPEN}" "${HISTORY_DAY_COMMENTED}" "${HISTORY_DAY_CLOSED}" "${HISTORY_DAY_CLOSED_WITH_COMMENT}" "${HISTORY_DAY_REOPENED}"
  I=2013
  CURRENT_YEAR=$(date +%Y)
  while [ "${I}" -le "${CURRENT_YEAR}" ]; do
   __showActivityYear "${I}"
+  I=$((I+1))
  done
- echo "Rankings historic       ${RANKING_HISTORIC_OPEN} ${RANKING_HISTORIC_COMMENTED} ${RANKING_HISTORIC_CLOSED} ${RANKING_HISTORIC_REOPENED}"
- echo "Rankings last 12 months ${RANKING_YEAR_OPEN} ${RANKING_YEAR_COMMENTED} ${RANKING_YEAR_CLOSED} ${RANKING_YEAR_REOPENED}"
- echo "Rankings last 30 days   ${RANKING_MONTH_OPEN} ${RANKING_MONTH_COMMENTED} ${RANKING_MONTH_CLOSED} ${RANKING_MONTH_REOPENED}"
- echo "Rankings today          ${RANKING_DAY_OPEN} ${RANKING_DAY_COMMENTED} ${RANKING_DAY_CLOSED} ${RANKING_DAY_REOPENED}"
- echo "Badges: ${BADGES}" #TODO
+# echo "Rankings historic       ${RANKING_HISTORIC_OPEN} ${RANKING_HISTORIC_COMMENTED} ${RANKING_HISTORIC_CLOSED} ${RANKING_HISTORIC_REOPENED}"
+# echo "Rankings last 12 months ${RANKING_YEAR_OPEN} ${RANKING_YEAR_COMMENTED} ${RANKING_YEAR_CLOSED} ${RANKING_YEAR_REOPENED}"
+# echo "Rankings last 30 days   ${RANKING_MONTH_OPEN} ${RANKING_MONTH_COMMENTED} ${RANKING_MONTH_CLOSED} ${RANKING_MONTH_REOPENED}"
+# echo "Rankings today          ${RANKING_DAY_OPEN} ${RANKING_DAY_COMMENTED} ${RANKING_DAY_CLOSED} ${RANKING_DAY_REOPENED}"
+# echo "Badges: ${BADGES}" #TODO
 }
 
 # Shows the note statistics for a given country.
