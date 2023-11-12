@@ -155,27 +155,31 @@ BEGIN
   m_hashtags := NULL;
 
   -- countries_open_notes
-  SELECT JSON_AGG(country_name_es)
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries',country_name_es, 'quantity', qty))
    INTO m_countries_open_notes
   FROM (
-   SELECT country_name_es 
+   SELECT c.country_name_es AS country_name, COUNT(1) AS qty
    FROM dwh.facts f
     JOIN dwh.dimension_countries c
-    ON f.dimension_id_country = c.dimension_country_id
+    ON f.dimension_id_country = c.dimension_country_id 
    WHERE f.opened_dimension_id_user = r.dimension_user_id
-   GROUP BY country_name_es
+   GROUP BY c.country_name_es
+   ORDER BY COUNT(1) DESC
+   LIMIT 50)
   ) AS T;
 
   -- countries_solving_notes
-  SELECT JSON_AGG(country_name_es)
-   INTO m_countries_solving_notes
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries',country_name_es, 'quantity', qty))
+   INTO m_countries_open_notes
   FROM (
-   SELECT country_name_es
+   SELECT c.country_name_es AS country_name, COUNT(1) AS qty
    FROM dwh.facts f
     JOIN dwh.dimension_countries c
-    ON f.dimension_id_country = c.dimension_country_id
-   WHERE  f.closed_dimension_id_user = r.dimension_user_id
-   GROUP BY country_name_es
+    ON f.dimension_id_country = c.dimension_country_id 
+   WHERE f.closed_dimension_id_user = r.dimension_user_id
+   GROUP BY c.country_name_es
+   ORDER BY COUNT(1) DESC
+   LIMIT 50)
   ) AS T;
 
   -- working_hours_opening
