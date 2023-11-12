@@ -54,9 +54,9 @@ declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
-declare LOG_FILE
-LOG_FILE="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILE
+declare LOG_FILENAME
+LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+readonly LOG_FILENAME
 
 # Lock file for single execution.
 declare LOCK
@@ -235,7 +235,7 @@ if [ ! -t 1 ] ; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  fi
 else
