@@ -29,6 +29,10 @@ set -o pipefail
 # Fails if an internal function fails.
 set -E
 
+# If all files should be deleted. In case of an error, this could be disabled.
+# You can defined when calling: export CLEAN=false
+declare -r CLEAN="${CLEAN:-true}"
+
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
