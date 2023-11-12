@@ -149,27 +149,31 @@ BEGIN
   m_hashtags := NULL;
 
   -- users_open_notes
-  SELECT JSON_AGG(username)
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('username',username, 'quantity', qty))
    INTO m_users_open_notes
   FROM (
-   SELECT username 
+   SELECT u.username AS username, COUNT(1) AS qty
    FROM dwh.facts f
     JOIN dwh.dimension_users u
-    ON f.opened_dimension_id_user = u.dimension_user_id
+    ON f.opened_dimension_id_user = u.dimension_user_id 
    WHERE f.dimension_id_country = r.dimension_id_country
-   GROUP BY username
+   GROUP BY u.username
+   ORDER BY COUNT(1) DESC
+   LIMIT 50)
   ) AS T;
 
   -- users_solving_notes
-  SELECT JSON_AGG(username)
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('username',username, 'quantity', qty))
    INTO m_users_solving_notes
   FROM (
-   SELECT username
+   SELECT u.username AS username, COUNT(1) AS qty
    FROM dwh.facts f
     JOIN dwh.dimension_users u
-    ON f.closed_dimension_id_user = u.dimension_user_id
-   WHERE  f.dimension_id_country = r.dimension_id_country
-   GROUP BY username
+    ON F.closed_dimension_id_user = u.dimension_user_id 
+   WHERE f.dimension_id_country = r.dimension_id_country
+   GROUP BY u.username
+   ORDER BY COUNT(1) DESC
+   LIMIT 50)
   ) AS T;
 
   -- working_hours_opening
@@ -181,6 +185,7 @@ BEGIN
    WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'opened'
    GROUP BY opened_dimension_id_hour
+   ORDER BY opened_dimension_id_hour
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_opening
@@ -195,6 +200,7 @@ BEGIN
    WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'commented'
    GROUP BY action_dimension_id_hour
+   ORDER BY opened_dimension_id_hour
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_commenting
@@ -208,6 +214,7 @@ BEGIN
     ON f.closed_dimension_id_hour = t.dimension_time_id
    WHERE f.dimension_id_country = r.dimension_id_country
    GROUP BY closed_dimension_id_hour
+   ORDER BY opened_dimension_id_hour
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_closing
@@ -227,7 +234,7 @@ BEGIN
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'commented';
 
-  -- history_whole_closed
+  -- history_whole_closed TODO quitar cuando se cierra multiples veces
   SELECT COUNT(1)
    INTO m_history_whole_closed
   FROM dwh.facts f
@@ -238,7 +245,7 @@ BEGIN
   -- TODO
   m_history_whole_closed_with_comment := 0;
 
-  -- history_whole_reopened
+  -- history_whole_reopened TODO quitar cuando se reabre multiples veces
   SELECT COUNT(1)
    INTO m_history_whole_reopened
   FROM dwh.facts f
@@ -303,7 +310,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'opened'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_commented
   SELECT COUNT(1)
@@ -313,7 +321,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'commented'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_closed
   SELECT COUNT(1)
@@ -323,7 +332,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'closed'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_closed_with_comment
   -- TODO
@@ -337,7 +347,8 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'reopened'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month;
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)
    INTO m_current_day;
@@ -350,7 +361,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'opened'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_commented
   SELECT COUNT(1)
@@ -360,7 +373,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'commented'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_closed
   SELECT COUNT(1)
@@ -370,7 +385,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'closed'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_closed_with_comment
   -- TODO
@@ -384,7 +401,9 @@ BEGIN
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = r.dimension_id_country
    AND f.action_comment = 'reopened'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day;
+   AND EXTRACT(DAY FROM d.date_id) = m_current_day
+   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- Updates country with new values.
   UPDATE dwh.datamartCountries
