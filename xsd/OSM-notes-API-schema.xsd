@@ -1,3 +1,11 @@
+<!-- 
+XML Schema for the results returned from an API call. This validates the
+structure is correct to prevent invalid insertions.
+
+Author: Andres Gomez (AngocA)
+Version: 2023-11-13
+-->
+<?xml version="1.0"?>
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
   <!-- Attributes for OSM API -->
