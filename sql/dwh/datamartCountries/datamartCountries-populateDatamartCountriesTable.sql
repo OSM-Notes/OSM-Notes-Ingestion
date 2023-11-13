@@ -159,7 +159,7 @@ BEGIN
    WHERE f.dimension_id_country = r.dimension_id_country
    GROUP BY u.username
    ORDER BY COUNT(1) DESC
-   LIMIT 50)
+   LIMIT 50
   ) AS T;
 
   -- users_solving_notes
@@ -173,7 +173,7 @@ BEGIN
    WHERE f.dimension_id_country = r.dimension_id_country
    GROUP BY u.username
    ORDER BY COUNT(1) DESC
-   LIMIT 50)
+   LIMIT 50
   ) AS T;
 
   -- working_hours_opening
