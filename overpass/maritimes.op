@@ -1,3 +1,12 @@
+/**
+ * Oveerpass query to download the boundary relation id for all maritimes
+ * areas.
+ * This is called from the processPlanetNotes.sh.
+ *
+ * Author: Andres Gomez (AngocA)
+ * Version: 2023-11-13
+ */
+
 [out:csv(::id)];
 (
   relation["border_type"]["border_type"~"contiguous|eez"];

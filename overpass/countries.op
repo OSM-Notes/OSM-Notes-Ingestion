@@ -1,3 +1,11 @@
+/**
+ * Oveerpass query to download the boundary relation id for all countries.
+ * This is called from the processPlanetNotes.sh.
+ *
+ * Author: Andres Gomez (AngocA)
+ * Version: 2023-11-13
+ */
+
 [out:csv(::id)];
 (
   relation["type"="boundary"]["boundary"="administrative"]["admin_level"="2"];

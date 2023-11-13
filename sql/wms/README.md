@@ -1,20 +1,20 @@
 # Configure Notes WMS
 
-Notes WMS is a layer service that locates the open and closed notes in a map.
+Notes WMS is a layer service that locates the open and closed notes on a map.
 This layer can be included in JOSM or Vespucci to easily locate notes, and
 process them by location.
 By having the location of notes from a wide perspective, one can zoom in on
 the areas where the notes are still open.
 This service does not provide a lot of zoom detail, because it is only
-necessary to have a rough idea where open notes are located.
+necessary to have a rough idea of where open notes are located.
 
 As part of the service, it also locates closed notes.
-This allows to identify areas where many notes have being opened, and imagine
+This allows us to identify areas where many notes have been opened, and imagine
 the reason why.
 
 This service uses the OSM Notes profile mechanism, which has an updated set
 of notes (open and close).
-To make WMS working, some changes on the database are necessary, to copy just
+To make WMS work some changes on the database are necessary, to copy just
 the necessary values into another table, with the geometry already created.
 This speeds up the queries for the WMS, without impacting the notes base table.
 
@@ -25,7 +25,7 @@ The layer is configured with a style (SLD file) that changes the color of the
 note according to its age.
 When open notes, the older the darker the note, meaning it has less value than
 recently open notes.
-When closed notes, the lighter the older, meaning it was proess long before.
+When closed notes, the lighter the older, meaning it was processed long before.
 
 # Database configuration
 
@@ -43,7 +43,7 @@ Also, you can find the configuration file with this:
 find / -name "postgresql.conf" 2> /dev/null
 ```
 
-And modify the file to listen any address:
+And modify the file to make Postgres listen from any address:
 
 ```
 vi /etc/postgresql/14/main/postgresql.conf
@@ -68,7 +68,7 @@ host    all             all              ::/0                            md5
 
 * Execute the necessary SQLs to adapt the database to synchronize with this
 service.
-Let's suppose the Postgres database is called notes.
+Let's suppose the Postgres database is called `notes`.
 
 ```
 psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
@@ -108,7 +108,7 @@ these instructions.
 
 ### Basic Store Info
 
-PostGis
+PostGIS
 
 * Workspace: OSM_Notes
 * Data Source Name: OSM Notes DS
@@ -184,7 +184,7 @@ The color intensity shows the age of the creation time.
 * Compute from SRS bounds
 * Compute from native bounds
 
-**On Publishing tab:**
+**On the Publishing tab:**
 
 ### WMS Settings - Layers Settings
 
@@ -195,7 +195,7 @@ The color intensity shows the age of the creation time.
 * Attribution Text: OpenStreetMap contributors
 * Attribution Link: https://www.openstreetmap.org/copyright
 
-**On Tile Caching tab:**
+**On the Tile Caching tab:**
 
 ### Tile cache configuration
 
@@ -207,7 +207,7 @@ The color intensity shows the age of the creation time.
 
 __Closed Notes__
 
-**On Data tab:**
+**On the Data tab:**
 
 Layer from OSM_Notes:OSM_Notes_DS.
 
@@ -226,7 +226,7 @@ ORDER BY year_created_at DESC
 * Abstract: This layer shows the location of the closed notes.
 The color intensity shows the age of the creation time.
 
-**On Publishing tab:**
+**On the Publishing tab:**
 
 ### WMS Settings - Layers Settings
 

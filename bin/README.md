@@ -1,21 +1,22 @@
-Under this directory you can find all shell scripts to run the main
-functionnalities.
+Under this directory, you can find all shell scripts to run the main
+functionalities.
 
 # Directories
 
 * `bin` In this script resides shared functions across many scripts.
 * `bin/dwh` Scripts to load and sync the data warehouse.
-* `bin/dwh/database` Scripts to group the data by user or by country. 
-* `bin/monitor` Script to monitor the daily load comparing with the Planet
-notes.
+* `bin/dwh/datamart*` Scripts to group the data by user or by country. 
+* `bin/monitor` Script to monitor the daily load compared with the Planet
+  notes.
 * `bin/process` Main scripts, that load notes from API and Planet.
 
 # Files
 
-* `bin/process/processAPINotes.sh` is the main script that process the notes
+* `bin/process/processAPINotes.sh` is the main script that processes the notes
   from the API.
 * `bin/process/processPlanetNotes.sh` is the base script to process notes from
   Planet file.
+  This script is called internally from `processAPINotes.sh`.
 
 * `bin/functionsProcess.sh` share functions across several scripts.
 
@@ -23,8 +24,8 @@ notes.
 * `bin/dwh/profiles.sh` shows a user or country profile.
 
 * `bin/monitor/processCheckPlanetNotes.sh` is a script that allows to check the
-   notes in the database with a new download from planet. This allow to
-   identify unprocessed notes or errors in the others scripts.
+  notes in the database with a new download from planet.
+  This allow to identify unprocessed notes or errors in the other scripts.
 * `bin/monitor/notesCheckVerifier.sh` sends an email if there are old
   differences.
   
@@ -37,8 +38,9 @@ into a flat file.
 To overcome this issue, you can prepare the environment with 3 steps, performed
 in different computers with different RAM.
 
-* `processPlanetNotes.sh --base` This creates the basic elements on the db.
+* `processPlanetNotes.sh --base` This creates the basic elements of the
+  database.
 * `processPlanetNotes.sh --flatfile` Downloads the Planet notes file and
-converts it into two CSV flat files. This is the process that should be done in
-a computer that can reserve 6 GB for Java Saxon.
+  converts it into two CSV flat files. This is the process that should be done
+  in a computer that can reserve 6 GB for Java Saxon.
 * `processPlanetNotes.sh --locatenotes` Assign a country to the notes.
