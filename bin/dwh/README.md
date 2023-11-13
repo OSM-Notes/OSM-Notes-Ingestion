@@ -2,42 +2,67 @@ This is the star-model of the data warehouse.
 
 # Fact table
 
-* id                     # Surrogated.
-* id_note                # Id of the note from OSM.
-* created_at             # Timestamp when the note was created.
-* created_id_user        # Username who created the note, it not annonyous.
-* number_open_notes_user # Number of notes created by this user, historically.
-* closed_at              # Timestamp when the note was closed. This value is only filled when the comment is a closing one.
-* closed_id_user         # Username who closed the node. Only when this comment is a closing one.
-* number_closed_notes_user # Number of notes closed by this user, historically.
-* id_country             # Country where the note was created.
-* number_notes_country     # Number of notes created in this country.
-* action_comment         # Comment action - opened, closed, reopenned, commented, hidden.
-* action_id_user         # Username who performed the comment action. Creation could be annonymous.
-* action_at              # Timestamp when the action was performed.
-* action_id_date         # Date when the action was performed.
-
-# Dimension: country
-
-
-# Dimesion: time
-
+* fact_id                   # Surrogated id.
+* id_note                   # Id of the note from OSM.
+* dimesion_id_country       # Country where the note was created.
+* processing_time           # Timestamp when the row was inserted.
+* action_at                 # Timestamp when the note action was performed.
+* action_comment            # Comment action - opened, closed, reopened,
+                              commented, hidden.
+* action_dimension_id_date  # Date when the action was performed.
+* action_dimension_id_hour  # Hour of the day when the action was performed.
+* action_dimension_id_user  # Username who performed the comment action.
+                              Creation could be anonymous.
+* opened_dimension_id_date  # Timestamp when the note was created.
+* opened_dimension_id_hour  # Hour of the day when the note was created.
+* opened_dimension_id_user  # Username of who created the note, it is not
+                              anonymous.
+* closed_dimension_id_date  # Timestamp when the note was closed. This value is
+                              only filled when the comment is a closing one.
+* closed_dimension_id_hour  # Hour of the day when the note was closed.
+* closed_dimension_id_user  # Username who closed the node. Only when this
+                              comment is a closing one.
 
 # Dimension: users
 
+* dimension_user_id  # Surrogated id.
+* user_id            # User's id in OSM.
+* username           # Most recent username in OSM.
+* modified           # If the user has performed actions after the last
+                       datamart load.
 
-# Staging tables
-These are the necessary files to process the note and show a profile for users
-and countries.
+# Dimension: countries
+
+* dimension_country_id  # Surrogated id.
+* country_id            # Relation id of the country in OSM.
+* country_name          # Name in the local language.
+* country_name_es       # Name in English.
+* country_name_en       # Name is Spanish.
+* modified              # If the country has a modified note after the last
+                          datamart load.
+
+# Dimension: days
+
+* dimension_day_id       # Surrogate id.
+* date_id                # Date.
+* days_from_notes_epoch  # Days from the beginning of the notes mechanism. TODO
+* days_to_next_year      # Number of days to finish the current year. TODO
+
+# Dimension: times
+
+* dimension_time_id  # Surrogate id.
+* hour               # Hour of the day.
+* morning            # If the hour is during the day. # TODO
+
+# Datamart tables
+
+There is also a set of tables for each datamart with the already computed data
+for common queries.
 
 # Files
 
-* `ETL.sh`
-* `alterObjects.sql`
-* `createObjects.sql`
-* `datamartUsers`
-* `emptyTables.sql`
-* `populateTables.sql`
-* `profile.sh`
-* `removeObjects.sql`
-
+* `ETL.sh` reads the new changes from the notes database and inserts them into
+  the facts.
+  Also, some dimensions could be changed.
+* `profile.sh` generates the profile for a country or a user.
+  It is a command line tester for the datamart.
