@@ -200,7 +200,6 @@ readonly SCRIPT_BASE_DIRECTORY
 # shellcheck source=../../etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
-
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
@@ -982,3 +981,4 @@ if [[ ! -t 1 ]]; then
 else
  main
 fi
+# TODO 3944119 ocultada y reactivada

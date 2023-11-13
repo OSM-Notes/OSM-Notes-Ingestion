@@ -14,26 +14,37 @@ LANGUAGE plpgsql
 AS $proc$
  DECLARE
   id_country INTEGER;
+  qty INTEGER;
  BEGIN
-  INSERT INTO logs (message) VALUES ('Inserting note: ' || m_note_id);
-  id_country := get_country(m_longitude, m_latitude, m_note_id);
+  SELECT COUNT(1)
+   INTO qty
+  FROM notes
+  WHERE note_id = m_note_id;
 
-  INSERT INTO notes (
-   note_id,
-   latitude,
-   longitude,
-   created_at,
-   closed_at,
-   status,
-   id_country
-  ) VALUES (
-   m_note_id,
-   m_latitude,
-   m_longitude,
-   m_created_at,
-   m_closed_at,
-   'open',
-   id_country
-  ) ON CONFLICT DO NOTHING;
+  IF (qty = 0) THEN
+   INSERT INTO logs (message) VALUES ('Inserting note: ' || m_note_id);
+   id_country := get_country(m_longitude, m_latitude, m_note_id);
+
+   INSERT INTO notes (
+    note_id,
+    latitude,
+    longitude,
+    created_at,
+    closed_at,
+    status,
+    id_country
+   ) VALUES (
+    m_note_id,
+    m_latitude,
+    m_longitude,
+    m_created_at,
+    m_closed_at,
+    'open',
+    id_country
+   ) ON CONFLICT DO NOTHING;
+  ELSE
+   INSERT INTO logs (message) VALUES ('Note is already inserted: ' || m_note_id);
+   id_country := get_country(m_longitude, m_latitude, m_note_id);
+  END IF;
  END
 $proc$

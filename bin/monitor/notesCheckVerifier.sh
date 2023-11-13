@@ -184,9 +184,9 @@ function __checkingDifferences {
   exit 1
  fi
   
- zip "${REPORT_ZIP}" /tmp/differentNoteIds.csv \
-  /tmp/differentNoteCommentIds.csv /tmp/differentNotes.csv \
-  /tmp/differentNoteComments.csv
+ zip "${REPORT_ZIP}" "${DIFFERENT_NOTE_IDS_FILE}" \
+  "${DIFFERENT_COMMENT_IDS_FILE}" "${DIRRERENT_NOTES_FILE}" \
+  "${DIRRERENT_COMMENTS_FILE}"
 
  __log_finish
 }
@@ -194,7 +194,7 @@ function __checkingDifferences {
 # Sends the report of differences in the database.
 function __sendMail {
  __log_start
- QTY=$(wc -l /tmp/differentNoteIds | cut -f 1 -d' ')
+ QTY=$(wc -l "${DIFFERENT_NOTE_IDS_FILE}" | cut -f 1 -d' ')
  if [[ "${QTY}" -ne 0 ]]; then
   __logi "Sending mail."
   {
