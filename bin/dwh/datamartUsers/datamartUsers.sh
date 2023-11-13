@@ -191,7 +191,7 @@ function __addYears {
 }
 
 # Processes the notes and comments.
-function __processNotes {
+function __processNotesUser {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}"
  __log_finish
@@ -222,7 +222,7 @@ function main() {
  # Add new columns for years after 2013.
  __addYears
  set -E
- __processNotes
+ __processNotesUser
 
  __logw "Ending process"
 }

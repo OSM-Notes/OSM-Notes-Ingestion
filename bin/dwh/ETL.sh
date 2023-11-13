@@ -199,7 +199,7 @@ function __checkBaseTables {
 }
 
 # Processes the notes and comments.
-function __processNotes {
+function __processNotesETL {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
 
@@ -228,7 +228,7 @@ function main() {
  __logw "Validating single execution."
  flock -n 7
  
- __processNotes
+ __processNotesETL
 
  # Updates the datamart for countries.
  "${DATAMART_COUNTRIES_FILE}"
