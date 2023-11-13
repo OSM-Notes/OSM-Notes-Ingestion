@@ -255,7 +255,7 @@ chmod go+x "${TMP_DIR}"
 __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILE_NAME}"
- main >> "${LOG_FILE_NAME}" 2>&1
+ main >> "${LOG_FILE_NAME}"
 else
  main
 fi

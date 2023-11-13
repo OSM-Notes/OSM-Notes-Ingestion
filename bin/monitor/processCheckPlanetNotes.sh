@@ -328,7 +328,7 @@ chmod go+x "${TMP_DIR}"
 __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}" 2>&1
+ main >> "${LOG_FILENAME}"
  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
  rmdir "${TMP_DIR}"
 else
