@@ -18,6 +18,7 @@
 # DELETE FROM note_comments WHERE note_id >= 7000000;
 # DELETE FROM wms.notes_wms WHERE note_id >= 7000000;
 # DELETE FROM notes WHERE note_id >= 7000000;
+# TODO is still necessary, if so, then adjust.
 #
 # Author: Andres Gomez
 # Version: 2023-10-23
