@@ -1,3 +1,10 @@
+<!-- 
+SLD file to give colors to the notes. The darker the note was recently closed.
+The lighter the note was closed several years ago. It is used in GeoServer.
+
+Author: Andres Gomez (AngocA)
+Version: 2023-11-13
+-->
 <?xml version="1.0" encoding="UTF-8"?>
 <StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" xmlns:se="http://www.opengis.net/se" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <NamedLayer>
