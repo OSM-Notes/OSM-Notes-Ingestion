@@ -1,7 +1,7 @@
 -- Execute performance tunning.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2023-11-13
   
-  VACUUM VERBOSE;
-  ANALYZE VERBOSE;
+VACUUM ;
+ANALYZE ;
