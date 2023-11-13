@@ -184,7 +184,7 @@ function __addYears {
   export YEAR
   set +e
   # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}")"
+  psql -d "${DBNAME}" -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}")" 2>&1
   set -e
  done
  __log_finish
