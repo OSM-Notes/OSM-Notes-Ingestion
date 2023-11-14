@@ -232,6 +232,12 @@ means the script failed in the past, and the best is to recreate the database
 with the `processPlanetNotes.sh` script, but also create an issue for this
 project, providing as much information as possible.
 
+# Remove
+
+```
+psql -d notes -f sql/dwh/datamartCountries/datamartCountries-dropDatamartObjects.sql ; psql -d notes -f sql/dwh/datamartUsers/datamartUsers-dropDatamartObjects.sql ; psql -d notes -f sql/dwh/Staging-removeStagingObjects.sql ; psql -d notes -f sql/dwh/ETL-removeDWHObjects.sql ; psql -d notes -f sql/wms/removeFromDatabase.sql ; psql -d notes -f sql/process/processAPINotes-dropApiTables.sql ; psql -d notes -f sql/process/processPlanetNotes-dropApiTables.sql ; psql -d notes -f sql/process/processPlanetNotes-dropSyncTables.sql ; psql -d notes -f sql/process/processPlanetNotes-dropBaseTables.sql ; psql -d notes -f sql/process/processPlanetNotes-dropCountryTables.sql 
+```
+
 # Help
 
 You can start looking for help by reading the README.md files.
