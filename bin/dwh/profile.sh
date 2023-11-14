@@ -409,7 +409,7 @@ function __processUserProfile {
      " \
     -v ON_ERROR_STOP=1 )
  declare DATE_MOST_OPEN_QTY
- DATE_MOST_OPEN=$(psql -d "${DBNAME}" -Atq \
+ DATE_MOST_OPEN_QTY=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT date_most_open_qty
      FROM dwh.datamartUsers
      WHERE user_id = ${USER_ID}
@@ -425,7 +425,7 @@ function __processUserProfile {
      " \
     -v ON_ERROR_STOP=1 )
  declare DATE_MOST_CLOSED_QTY
- DATE_MOST_CLOSED=$(psql -d "${DBNAME}" -Atq \
+ DATE_MOST_CLOSED_QTY=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT date_most_closed_qty
      FROM dwh.datamartUsers
      WHERE user_id = ${USER_ID}
@@ -969,7 +969,7 @@ function __processCountryProfile {
      " \
     -v ON_ERROR_STOP=1 )
  declare DATE_MOST_OPEN_QTY
- DATE_MOST_OPEN=$(psql -d "${DBNAME}" -Atq \
+ DATE_MOST_OPEN_QTY=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT date_most_open_qty
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
@@ -985,7 +985,7 @@ function __processCountryProfile {
      " \
     -v ON_ERROR_STOP=1 )
  declare DATE_MOST_CLOSED_QTY
- DATE_MOST_CLOSED=$(psql -d "${DBNAME}" -Atq \
+ DATE_MOST_CLOSED_QTY=$(psql -d "${DBNAME}" -Atq \
     -c "SELECT date_most_closed_qty
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
@@ -1220,8 +1220,8 @@ function __processCountryProfile {
  echo "The date when the most notes were opened: ${DATE_MOST_OPEN} (${DATE_MOST_OPEN_QTY})"
  echo "The date when the most notes were closed: ${DATE_MOST_CLOSED} (${DATE_MOST_CLOSED_QTY})"
  echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Users creating notes: ${COUNTRIES_OPENING}"
- echo "Users closing notes: ${COUNTRIES_CLOSING}"
+ echo "Users creating notes: ${USERS_OPENING}"
+ echo "Users closing notes: ${USERS_CLOSING}"
  echo "Working hours: Opening ${WORKING_HOURS_OPENING} Commenting ${WORKING_HOURS_COMMENTING} Closing ${WORKING_HOURS_CLOSING}" # Mostrar semana
 #                       1234567890 1234567890 1234567890 1234567890 1234567890
  printf "                 Opened   Commented  Closed     Cld w/cmmt Reopened\n"
