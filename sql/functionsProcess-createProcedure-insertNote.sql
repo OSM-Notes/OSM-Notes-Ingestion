@@ -7,8 +7,7 @@ CREATE OR REPLACE PROCEDURE insert_note (
   m_note_id INTEGER,
   m_latitude DECIMAL,
   m_longitude DECIMAL,
-  m_created_at TIMESTAMP WITH TIME ZONE,
-  m_closed_at TIMESTAMP WITH TIME ZONE
+  m_created_at TIMESTAMP WITH TIME ZONE
 )
 LANGUAGE plpgsql
 AS $proc$
@@ -30,7 +29,6 @@ AS $proc$
     latitude,
     longitude,
     created_at,
-    closed_at,
     status,
     id_country
    ) VALUES (
@@ -38,7 +36,6 @@ AS $proc$
     m_latitude,
     m_longitude,
     m_created_at,
-    m_closed_at,
     'open',
     id_country
    ) ON CONFLICT DO NOTHING;

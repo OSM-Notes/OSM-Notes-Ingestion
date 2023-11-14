@@ -32,7 +32,7 @@ $$
      || r.longitude || ', '
      || 'TO_TIMESTAMP(''' || r.created_at
      || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-     || m_closed_time || ')';
+     || ')';
    INSERT INTO logs (message) VALUES ('Inserted');
   END LOOP;
   COMMIT;

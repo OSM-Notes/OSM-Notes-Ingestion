@@ -61,10 +61,8 @@ BEGIN
    closed_time := 'TO_TIMESTAMP(''' || r.closed_at
      || ''', ''YYYY-MM-DD HH24:MI:SS'')';
    EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-     || r.longitude || ', '
-     || 'TO_TIMESTAMP(''' || r.created_at || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-     || COALESCE (closed_time, 'NULL')
-     || ')';
+     || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at || ''', ' 
+     ||'''YYYY-MM-DD HH24:MI:SS'')' || ')';
   END LOOP;
   IF (count % 1000 = 0) THEN
    COMMIT;
