@@ -624,4 +624,4 @@ m_history_whole_closed_with_comment := 0;
   m_year := m_year + 1;
  END LOOP;
 END
-$$;
+$proc$;

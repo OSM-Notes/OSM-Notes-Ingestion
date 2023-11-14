@@ -625,4 +625,4 @@ BEGIN
    m_year := m_year + 1;
   END LOOP;
 END
-$$;
+$proc$;
