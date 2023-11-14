@@ -7,7 +7,7 @@ DO
 $$
 DECLARE
  r RECORD;
-
+ text VARCHAR(100);
 BEGIN
  FOR r IN
   -- Process the datamart only for modified users.
@@ -20,6 +20,7 @@ BEGIN
   ORDER BY MAX(f.action_at) DESC
   LIMIT 500
  LOOP
+  RAISE NOTICE 'Processing user %', r.dimension_user_id;
   CALL dwh.update_datamart_user(r.dimension_user_id);
 
   UPDATE dwh.dimension_users
