@@ -115,8 +115,8 @@ function __checkBaseTables {
  __log_start
  set +e
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CHECK_BASE_TABLES}"
- set -e
  RET=${?}
+ set -e
  __log_finish
  return ${RET}
 }
