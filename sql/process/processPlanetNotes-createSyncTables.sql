@@ -4,8 +4,15 @@
 -- Version: 2023-10-25
   
 CREATE TABLE notes_sync (
- LIKE notes
+ note_id INTEGER NOT NULL, -- id
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ status note_status_enum,
+ closed_at TIMESTAMP,
+ id_country INTEGER
 );
+
 CREATE TABLE note_comments_sync (
  note_id INTEGER NOT NULL,
  event note_event_enum NOT NULL,
