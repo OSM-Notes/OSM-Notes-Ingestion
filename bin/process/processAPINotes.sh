@@ -21,6 +21,7 @@
 # 243) Logger utility is missing.
 # 245) No last update.
 # 246) Planet process is currently running.
+# 248) Error executing the Planet dump.
 #
 # For contributing, please execute these commands before subimitting:
 # * shellcheck -x -o all processAPINotes.sh
@@ -45,6 +46,8 @@ set -E
 declare -r ERROR_NO_LAST_UPDATE=245
 # 246: Planet process is currently running.
 declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
+# 248: Error executing the Planet dump.
+declare -r ERROR_EXECUTING_PLANET_DUMP=248
 
 # If all generated files should be deleted. In case of an error, this could be
 # disabled.
@@ -147,6 +150,9 @@ function __show_help {
  echo "* LOG_LEVEL={TRACE|DEBUG|INFO|WARN|ERROR|FATAL}: Configures the"
  echo "  logger level."
  echo "* SAXON_CLASSPATH=: Location of the saxon-he-11.4.jar file."
+ echo
+ echo "This script could call processPlanetNotes.sh which use another"
+ echo "environment variables. Please check the documentation of that script." 
  echo
  echo "Written by: Andres Gomez (AngocA)."
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
@@ -467,7 +473,12 @@ function main() {
   "${NOTES_SYNC_SCRIPT}" --base
   __logw "Base tables created."
   __logi "This could take several minutes."
-  "${NOTES_SYNC_SCRIPT}"
+  "${NOTES_SYNC_SCRIPT}" || RET=${?}
+  set -e
+  if [[ "${RET}" -ne 0 ]] ; then
+  __loge "Error while executing the planet dump."
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  fi
   __logw "Finished full synchronization from Planet."
  fi
  

@@ -95,6 +95,10 @@
 #   CREATE TABLE backup_note_country AS
 #    SELECT note_id, id_country, country_name_en FROM notes;
 #
+# To increase or reduce the verbosity, you can change the logger:
+#   export LOG_LEVEL=DEBUG # For more messages.
+#   export LOG_LEVEL=WARN  # Important messages.
+#
 # Some interesting queries to track the process:
 #
 # select country_name_en, americas, europe, russia_middle_east, asia_oceania
@@ -337,6 +341,8 @@ function __show_help {
  echo " * BACKUP could be set to true, to insert rows from backup tables."
  echo " * CLEAN could be set to false, to left all created files."
  echo " * SAXON_JAR specifies the location of the Saxon JAR file."
+ echo " * LOG_LEVEL specifies the logger leves. Possible values are:"
+ echo "   DEBUG, INFO, WARN, ERROR"
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
