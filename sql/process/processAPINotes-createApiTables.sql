@@ -12,6 +12,7 @@ CREATE TABLE notes_api (
  status note_status_enum,
  id_country INTEGER
 );
+-- TODO Add comments
 
 CREATE TABLE note_comments_api (
  id SERIAL,
@@ -22,3 +23,16 @@ CREATE TABLE note_comments_api (
  id_user INTEGER,
  username VARCHAR(256)
 );
+COMMENT ON TABLE note_comments_api IS 'Stores all comments associated to notes';
+COMMENT ON COLUMN note_comments_api.id IS
+  'Generated ID to keep track of the comments order';
+COMMENT ON COLUMN note_comments_api.note_id IS
+  'Id of the associated note of this comment';
+COMMENT ON COLUMN note_comments_api.event IS
+  'Type of action was performed on the note';
+COMMENT ON COLUMN note_comments_api.processing_time IS
+  'Registers when this comment was inserted in the database. Automatic value';
+COMMENT ON COLUMN note_comments_api.created_at IS
+  'Timestamps when the comment/action was done';
+COMMENT ON COLUMN note_comments_api.id_user IS
+  'OSM id of the user who performed the action';

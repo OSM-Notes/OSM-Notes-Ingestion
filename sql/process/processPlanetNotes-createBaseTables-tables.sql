@@ -28,15 +28,15 @@ CREATE TABLE IF NOT EXISTS note_comments (
 );
 COMMENT ON TABLE note_comments IS 'Stores all comments associated to notes';
 COMMENT ON COLUMN note_comments.id IS
-  'Generated ID to keep track of the order';
+  'Generated ID to keep track of the comments order';
   -- https://api.openstreetmap.org/api/0.6/notes/3750896
   -- Multiples actions at the same time.
 COMMENT ON COLUMN note_comments.note_id IS
   'Id of the associated note of this comment';
 COMMENT ON COLUMN note_comments.event IS
-  'Type of operation performed on the note';
+  'Type of action was performed on the note';
 COMMENT ON COLUMN note_comments.processing_time IS
-  'Registers when this was inserted in the database. Automatic value';
+  'Registers when this comment was inserted in the database. Automatic value';
 COMMENT ON COLUMN note_comments.created_at IS
   'Timestamps when the comment/action was done';
 COMMENT ON COLUMN note_comments.id_user IS
@@ -55,3 +55,4 @@ CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
 CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
 CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (id_user);
 CREATE INDEX IF NOT EXISTS note_comments_created ON note_comments (created_at);
+-- TODO Add comments

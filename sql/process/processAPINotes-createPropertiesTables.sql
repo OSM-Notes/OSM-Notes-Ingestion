@@ -53,3 +53,4 @@ END;
 $$;
 SELECT timestamp, 'oldLastUpdate' AS key
 FROM max_note_timestamp;
+-- TODO Add comments
