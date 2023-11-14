@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS dwh.datamartCountries (
  first_reopened_note_id INTEGER,
 
  -- Dynamic values
- last_year_activity TEXT, -- Most recent note action.
+ last_year_activity TEXT, -- Most recent note action. TODO
  lastest_open_note_id INTEGER, -- Newest.
  lastest_commented_note_id INTEGER,
  lastest_closed_note_id INTEGER,
