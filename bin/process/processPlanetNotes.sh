@@ -911,8 +911,7 @@ function main() {
   __dropSyncTables # sync
   set +E
   set +e
-  __checkBaseTables # sync
-  RET=${?}
+  __checkBaseTables  || RET=${?} # sync
   set -e
   if [[ "${RET}" -ne 0 ]]; then
    __createBaseTables # sync
