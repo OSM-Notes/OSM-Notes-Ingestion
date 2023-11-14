@@ -474,6 +474,7 @@ function main() {
  set -E
  __createApiTables
  __createPropertiesTable
+ __createProcedures
  __getNewNotesFromApi
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
