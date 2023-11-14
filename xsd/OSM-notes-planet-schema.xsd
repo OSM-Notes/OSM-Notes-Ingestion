@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <!-- 
 XML Schema for the dump of the Planet. This validates the structure is correct
 to prevent invalid insertions.
@@ -5,7 +6,6 @@ to prevent invalid insertions.
 Author: Andres Gomez (AngocA)
 Version: 2023-11-13
 -->
-<?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
   <!-- Attributes for Notes -->
