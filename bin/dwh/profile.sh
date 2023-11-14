@@ -66,9 +66,9 @@ declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 # Lof file for output.
-declare LOG_FILE
-LOG_FILE="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILE
+declare LOG_FILENAME
+LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+readonly LOG_FILENAME
 
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
@@ -83,6 +83,8 @@ declare -i USER_ID
 declare COUNTRY_NAME
 # Country_id of the contry.
 declare -i COUNTRY_ID
+# Country OSM ID
+declare -i COUNTRY_OSM_ID
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -822,7 +824,14 @@ function __processUserProfile {
  echo "Hashtags used: ${HASHTAGS}" # TODO
  echo "Countries for open notes: ${COUNTRIES_OPENING}"
  echo "Countries for closed notes: ${COUNTRIES_CLOSING}"
- echo "Working hours: Opening ${WORKING_HOURS_OPENING} Commenting ${WORKING_HOURS_COMMENTING} Closing ${WORKING_HOURS_CLOSING}" # Mostrar semana
+ echo "Working hours:"
+ echo "  Opening:"
+ echo "${WORKING_HOURS_OPENING}"
+ echo "  Commenting:"
+ echo "${WORKING_HOURS_COMMENTING}"
+ echo "  Closing:"
+ echo "${WORKING_HOURS_CLOSING}"
+ # TODO Mostrar semana
 #                       1234567890 1234567890 1234567890 1234567890 1234567890
  printf "                 Opened   Commented  Closed     Cld w/cmmt Reopened\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
@@ -844,6 +853,15 @@ function __processUserProfile {
 
 # Shows the note statistics for a given country.
 function __processCountryProfile {
+ # Country OSM Id
+ declare -i COUNTRY_OSM_ID
+ COUNTRY_OSM_ID=$(psql -d "${DBNAME}" -Atq \
+    -c "SELECT country_id
+     FROM dwh.datamartCountries
+     WHERE dimension_country_id = ${COUNTRY_ID}
+     " \
+    -v ON_ERROR_STOP=1 )
+
  # Quantity of days with open notes.
  declare -i QTY_DAYS_OPEN
  QTY_DAYS_OPEN=$(psql -d "${DBNAME}" -Atq \
@@ -1004,7 +1022,7 @@ function __processCountryProfile {
  # Users opening notes.
  declare USERS_OPENING
  USERS_OPENING=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT countries_open_notes
+    -c "SELECT users_open_notes
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
@@ -1013,7 +1031,7 @@ function __processCountryProfile {
  # Users closing notes.
  declare USERS_CLOSING
  USERS_CLOSING=$(psql -d "${DBNAME}" -Atq \
-    -c "SELECT countries_solving_notes
+    -c "SELECT users_solving_notes
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
@@ -1210,7 +1228,7 @@ function __processCountryProfile {
     -v ON_ERROR_STOP=1 )
  
 # TODO si cero, ocultar
- echo "COUNTRY name: ${COUNTRY_NAME} (id: ${COUNTRY_ID})"
+ echo "COUNTRY name: ${COUNTRY_NAME} (id: ${COUNTRY_OSM_ID})"
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}, since ${DATE_FIRST_OPEN}."
  echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}"
  echo "First actions: https://www.openstreetmap.org/note/${FIRST_OPEN_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_COMMENTED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_CLOSED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_REOPENED_NOTE_ID}"
@@ -1222,7 +1240,14 @@ function __processCountryProfile {
  echo "Hashtags used: ${HASHTAGS}" # TODO
  echo "Users creating notes: ${USERS_OPENING}"
  echo "Users closing notes: ${USERS_CLOSING}"
- echo "Working hours: Opening ${WORKING_HOURS_OPENING} Commenting ${WORKING_HOURS_COMMENTING} Closing ${WORKING_HOURS_CLOSING}" # Mostrar semana
+ echo "Working hours:"
+ echo "  Opening:"
+ echo "${WORKING_HOURS_OPENING}"
+ echo "  Commenting:"
+ echo "${WORKING_HOURS_COMMENTING}"
+ echo "  Closing:"
+ echo "${WORKING_HOURS_CLOSING}"
+# TODO Mostrar semana
 #                       1234567890 1234567890 1234567890 1234567890 1234567890
  printf "                 Opened   Commented  Closed     Cld w/cmmt Reopened\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
@@ -1273,7 +1298,7 @@ if [ ! -t 1 ] ; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-  mv "${LOG_FILE}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  fi
 else
