@@ -828,7 +828,7 @@ function __getLocationNotes {
   echo "    SET id_country = b.id_country"
   echo "    FROM backup_note_country as b"
   echo "    WHERE b.note_id = n.note_id;"
-  read
+  read -r
  else
   declare -l MAX_NOTE_ID
   wget -O "${LAST_NOTE_FILE}" \
@@ -911,7 +911,7 @@ function main() {
   __dropSyncTables # sync
   set +E
   set +e
-  __checkBaseTables  || RET=${?} # sync
+  __checkBaseTables || RET=${?} # sync
   set -e
   if [[ "${RET}" -ne 0 ]]; then
    __createBaseTables # sync
@@ -928,7 +928,7 @@ function main() {
   if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]]; then
    echo "Please copy the rows from the backup table:"
    echo "   INSERT INTO countries SELECT * FROM backup_countries ;"
-   read
+   read -r
   else
    __processCountries # base and boundaries
    __processMaritimes # base and boundaries
@@ -953,17 +953,24 @@ function main() {
  fi
  __createFunctionToGetCountry # base, sync & locate
  __createProcedures           # all
- __analyzeAndVacuum            # all
+ __analyzeAndVacuum           # all
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
   __copyFlatFiles # locate
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __loadSyncNotes    # sync & locate
-  __removeDuplicates # sync & locate
-  __dropSyncTables   # sync & locate
-  __organizeAreas    # sync & locate
-  __getLocationNotes # sync & locate
+  __loadSyncNotes               # sync & locate
+  __removeDuplicates            # sync & locate
+  __dropSyncTables              # sync & locate
+  __organizeAreas || RET=${?}   # sync & locate
+  if [[ "${RET}" -ne 0 ]]; then
+   __createCountryTables        # sync & locate
+   __processCountries           # sync & locate
+   __processMaritimes           # sync & locate
+   __cleanPartial               # sync & locate
+   __organizeAreas
+  fi
+  __getLocationNotes            # sync & locate
  fi
  __cleanNotesFiles # base, sync & locate
  __logw "Ending process"
