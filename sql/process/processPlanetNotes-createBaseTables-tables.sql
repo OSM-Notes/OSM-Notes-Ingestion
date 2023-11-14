@@ -32,7 +32,7 @@ COMMENT ON COLUMN note_comments.id IS
   -- https://api.openstreetmap.org/api/0.6/notes/3750896
   -- Multiples actions at the same time.
 COMMENT ON COLUMN note_comments.note_id IS
-  'Id of the associated note of this comment';
+  'OSM Note Id associated to this comment';
 COMMENT ON COLUMN note_comments.event IS
   'Type of action was performed on the note';
 COMMENT ON COLUMN note_comments.processing_time IS
