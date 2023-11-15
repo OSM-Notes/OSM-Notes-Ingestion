@@ -45,3 +45,5 @@ AS $proc$
   END IF;
  END
 $proc$
+COMMENT ON PROCEDURE insert_note IS
+  'Inserts a note in as opened the database, validating it does not already exist';

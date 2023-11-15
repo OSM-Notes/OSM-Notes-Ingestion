@@ -12,6 +12,17 @@ CREATE TABLE notes_sync (
  closed_at TIMESTAMP,
  id_country INTEGER
 );
+COMMENT ON TABLE notes_sync IS 'Stores notes to sync';
+COMMENT ON COLUMN notes_sync.note_id IS 'OSM note id';
+COMMENT ON COLUMN notes_sync.latitude IS 'Latitude';
+COMMENT ON COLUMN notes_sync.longitude IS 'Longitude';
+COMMENT ON COLUMN notes_sync.created_at IS
+  'Timestamp of the creation of the note';
+COMMENT ON COLUMN notes_sync.status IS 
+  'Current status of the note (opened, closed; hidden is not possible)';
+COMMENT ON COLUMN notes_sync.closed_at IS 'Timestamp when the note was closed';
+COMMENT ON COLUMN notes_sync.id_country IS
+  'Country id where the note is located';
 
 CREATE TABLE note_comments_sync (
  note_id INTEGER NOT NULL,

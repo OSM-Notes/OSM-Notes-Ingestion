@@ -51,6 +51,9 @@ BEGIN
  END IF;
 END;
 $$;
+COMMENT ON TABLE max_note_timestamp IS
+  'Timestamps of the max notes to reduce queries';
+COMMENT ON COLUMN max_note_timestamp.timestamp IS
+  'Timestamp of the last note inserted';
 SELECT timestamp, 'oldLastUpdate' AS key
 FROM max_note_timestamp;
--- TODO Add comments

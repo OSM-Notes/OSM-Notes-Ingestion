@@ -7,6 +7,10 @@ CREATE TABLE IF NOT EXISTS users(
  user_id INTEGER NOT NULL,
  username VARCHAR(256) NOT NULL
 );
+COMMENT ON TABLE users IS 'OSM user id';
+COMMENT ON COLUMN users.user_id IS 'OSM user id';
+COMMENT ON COLUMN users.username IS
+  'Name of the user for the last note action';
 
 CREATE TABLE IF NOT EXISTS notes (
  note_id INTEGER NOT NULL, -- id
@@ -17,6 +21,15 @@ CREATE TABLE IF NOT EXISTS notes (
  closed_at TIMESTAMP,
  id_country INTEGER
 );
+COMMENT ON TABLE notes IS 'Stores all notes';
+COMMENT ON COLUMN notes.note_id IS 'OSM note id';
+COMMENT ON COLUMN notes.latitude IS 'Latitude';
+COMMENT ON COLUMN notes.longitude IS 'Longitude';
+COMMENT ON COLUMN notes.created_at IS 'Timestamp of the creation of the note';
+COMMENT ON COLUMN notes.status IS 
+  'Current status of the note (opened, closed; hidden is not possible)';
+COMMENT ON COLUMN notes.closed_at IS 'Timestamp when the note was closed';
+COMMENT ON COLUMN notes.id_country IS 'Country id where the note is located';
 
 CREATE TABLE IF NOT EXISTS note_comments (
  id SERIAL,
@@ -47,12 +60,23 @@ CREATE TABLE IF NOT EXISTS logs (
  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  message VARCHAR(1000)
 );
+COMMENT ON TABLE logs IS 'Messages during the operations';
+COMMENT ON COLUMN logs.user_id IS 'Sequential generated id';
+COMMENT ON COLUMN logs.timestamp IS 'Timestamp when the event was recorded';
+COMMENT ON COLUMN logs.message IS 'Text of the event';
 
 CREATE INDEX IF NOT EXISTS usernames ON users (username);
+COMMENT ON INDEX usernames IS 'To query by username';
 CREATE INDEX IF NOT EXISTS notes_closed ON notes (closed_at);
+COMMENT ON INDEX notes_closed IS 'To query by closed time';
 CREATE INDEX IF NOT EXISTS notes_created ON notes (created_at);
+COMMENT ON INDEX notes_created IS 'To query by opening time';
 CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
+COMMENT ON INDEX notes_countries IS 'To query by location of the note';
 CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
+COMMENT ON INDEX notes_countries IS 'To query by the associated note';
 CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (id_user);
+COMMENT ON INDEX notes_countries IS
+  'To query by the user who perfomed the action';
 CREATE INDEX IF NOT EXISTS note_comments_created ON note_comments (created_at);
--- TODO Add comments
+COMMENT ON INDEX notes_countries IS 'To query by the time of the action';

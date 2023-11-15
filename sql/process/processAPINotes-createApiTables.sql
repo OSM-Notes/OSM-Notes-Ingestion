@@ -12,7 +12,17 @@ CREATE TABLE notes_api (
  status note_status_enum,
  id_country INTEGER
 );
--- TODO Add comments
+COMMENT ON TABLE notes_api IS 'Stores notes downloaded from API call';
+COMMENT ON COLUMN notes_api.note_id IS 'OSM note id';
+COMMENT ON COLUMN notes_api.latitude IS 'Latitude';
+COMMENT ON COLUMN notes_api.longitude IS 'Longitude';
+COMMENT ON COLUMN notes_api.created_at IS
+  'Timestamp of the creation of the note';
+COMMENT ON COLUMN notes_api.status IS 
+  'Current status of the note (opened, closed; hidden is not possible)';
+COMMENT ON COLUMN notes_api.closed_at IS 'Timestamp when the note was closed';
+COMMENT ON COLUMN notes_api.id_country IS
+  'Country id where the note is located';
 
 CREATE TABLE note_comments_api (
  id SERIAL,
@@ -23,7 +33,8 @@ CREATE TABLE note_comments_api (
  id_user INTEGER,
  username VARCHAR(256)
 );
-COMMENT ON TABLE note_comments_api IS 'Stores all comments associated to notes';
+COMMENT ON TABLE note_comments_api IS
+  'Stores comments downloaded from API call.';
 COMMENT ON COLUMN note_comments_api.id IS
   'Generated ID to keep track of the comments order';
 COMMENT ON COLUMN note_comments_api.note_id IS

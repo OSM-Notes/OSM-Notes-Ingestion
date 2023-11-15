@@ -16,6 +16,15 @@ CREATE TABLE notes_new AS
   FROM notes n
   LEFT JOIN notes_bkp b
   ON n.note_id = b.note_id;
+COMMENT ON TABLE notes_new IS 'Stores all notes';
+COMMENT ON COLUMN notes_new.note_id IS 'OSM note id';
+COMMENT ON COLUMN notes_new.latitude IS 'Latitude';
+COMMENT ON COLUMN notes_new.longitude IS 'Longitude';
+COMMENT ON COLUMN notes_new.created_at IS 'Timestamp of the creation of the note';
+COMMENT ON COLUMN notes_new.status IS 
+  'Current status of the note (opened, closed; hidden is not possible)';
+COMMENT ON COLUMN notes_new.closed_at IS 'Timestamp when the note was closed';
+COMMENT ON COLUMN notes_new.id_country IS 'Country id where the note is located';
 
 -- To run after the new execution.
 ALTER TABLE notes RENAME TO notes_orig;
@@ -31,8 +40,11 @@ ALTER TABLE note_comments
    FOREIGN KEY (note_id)
    REFERENCES notes_new (note_id);
 CREATE INDEX IF NOT EXISTS notes_closed ON notes_new (closed_at);
+COMMENT ON INDEX notes_closed IS 'To query by closed time';
 CREATE INDEX IF NOT EXISTS notes_created ON notes_new (created_at);
+COMMENT ON INDEX notes_created IS 'To query by opening time';
 CREATE INDEX IF NOT EXISTS notes_countries ON notes_new (id_country);
+COMMENT ON INDEX notes_countries IS 'To query by location of the note';
 ALTER TABLE notes_new RENAME TO notes;
 
 -- To release space.
@@ -51,6 +63,10 @@ CREATE TABLE backup_note_country (
   note_id INTEGER,
   id_country INTEGER
 );
+COMMENT ON TABLE backup_note_country IS
+  'Stores the location of the already processed notes';
+COMMENT ON COLUMN backup_note_country.note_id IS 'OSM note id';
+COMMENT ON COLUMN backup_note_country.id_country IS 'Location of the note';
 INSERT INTO backup_note_country
   SELECT note_id, id_country
   FROM notes;

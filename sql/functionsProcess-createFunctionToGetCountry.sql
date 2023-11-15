@@ -82,4 +82,6 @@
    RETURN id_country;
   END
  $func$
+COMMENT ON FUNCTION get_country IS
+  'Returns the country given the coordinates of a note. The note id is only for logging.';
 

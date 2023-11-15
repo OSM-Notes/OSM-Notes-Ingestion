@@ -23,6 +23,19 @@ CREATE TABLE notes_sync_no_duplicates AS
     SELECT note_id FROM notes_sync s
     EXCEPT 
     SELECT note_id FROM notes);
+COMMENT ON TABLE notes_sync_no_duplicates IS
+  'Temporal table that stores the notes to insert';
+COMMENT ON COLUMN notes_sync_no_duplicates.note_id IS 'OSM note id';
+COMMENT ON COLUMN notes_sync_no_duplicates.latitude IS 'Latitude';
+COMMENT ON COLUMN notes_sync_no_duplicates.longitude IS 'Longitude';
+COMMENT ON COLUMN notes_sync_no_duplicates.created_at IS
+  'Timestamp of the creation of the note';
+COMMENT ON COLUMN notes_sync_no_duplicates.status IS
+  'Current status of the note (opened, closed; hidden is not possible)';
+COMMENT ON COLUMN notes_sync_no_duplicates.closed_at IS
+  'Timestamp when the note was closed';
+COMMENT ON COLUMN notes_sync_no_duplicates.id_country IS
+  'Country id where the note is located';
 
 DROP TABLE notes_sync;
 ALTER TABLE notes_sync_no_duplicates RENAME TO notes_sync;
@@ -93,6 +106,18 @@ CREATE TABLE note_comments_sync_no_duplicates AS
     SELECT note_id FROM note_comments_sync s
     EXCEPT 
     SELECT note_id FROM note_comments);
+COMMENT ON TABLE note_comments_sync_no_duplicates IS
+  'Temporal table with the comments to insert';
+COMMENT ON COLUMN note_comments_sync_no_duplicates.note_id IS
+  'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_sync_no_duplicates.event IS
+  'Type of action was performed on the note';
+COMMENT ON COLUMN note_comments_sync_no_duplicates.created_at IS
+  'Timestamps when the comment/action was done';
+COMMENT ON COLUMN note_comments_sync_no_duplicates.id_user IS
+  'OSM id of the user who performed the action';
+COMMENT ON COLUMN note_comments_sync_no_duplicates.username IS
+  'OSM username at the time of this action';
 
 DROP TABLE note_comments_sync;
 ALTER TABLE note_comments_sync_no_duplicates RENAME TO note_comments_sync;

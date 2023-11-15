@@ -81,3 +81,5 @@ AS $proc$
   END IF;
  END
 $proc$
+COMMENT ON PROCEDURE insert_note_comment IS
+  'Inserts a comment of a given note. It updates the note accordingly if closed';
