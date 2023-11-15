@@ -88,7 +88,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     -- Modifies the dimension user for the datamart to identify it.
     UPDATE dwh.dimension_users
      SET modified = TRUE
-     WHERE dimension_user_id = action_dimension_id_user;
+     WHERE dimension_user_id = m_dimension_user_action;
 
     m_dimension_country_id := null;
 
