@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS logs (
  message VARCHAR(1000)
 );
 COMMENT ON TABLE logs IS 'Messages during the operations';
-COMMENT ON COLUMN logs.user_id IS 'Sequential generated id';
+COMMENT ON COLUMN logs.id IS 'Sequential generated id';
 COMMENT ON COLUMN logs.timestamp IS 'Timestamp when the event was recorded';
 COMMENT ON COLUMN logs.message IS 'Text of the event';
 
