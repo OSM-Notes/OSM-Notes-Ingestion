@@ -14,6 +14,26 @@ CREATE TABLE countries (
  russia_middle_east INTEGER,
  asia_oceania INTEGER
 );
+COMMENT ON TABLE countries IS
+  'Basic data about countries and maritimes areas from OSM';
+COMMENT ON COLUMN countries.country_id IS
+  'Relation id from OSM for the country';
+COMMENT ON COLUMN countries.country_name IS
+  'Country name in the local language';
+COMMENT ON COLUMN countries.country_name_es IS
+  'Country name in Spanish';
+COMMENT ON COLUMN countries.country_name_en IS
+  'Country name in English';
+COMMENT ON COLUMN countries.geom IS
+  'Geometry of the country''s boundary';
+COMMENT ON COLUMN countries.americas IS
+  'Position in the sequence to look for the location of this country in America';
+COMMENT ON COLUMN countries.europe IS
+  'Position in the sequence to look for the location of this country in Europe';
+COMMENT ON COLUMN countries.russia_middle_east IS
+  'Position in the sequence to look for the location of this country in Russia and Middle East';
+COMMENT ON COLUMN countries.asia_oceania IS
+  'Position in the sequence to look for the location of this country in Oceania';
 
 ALTER TABLE countries
  ADD CONSTRAINT pk_countries
@@ -25,3 +45,9 @@ CREATE TABLE tries (
  id_note INTEGER,
  id_country INTEGER
 );
+COMMENT ON TABLE tries IS
+  'Number of tries to find a country. This is used to improve the sequence order';
+COMMENT ON COLUMN tries.area IS 'Name of the area where the note is located';
+COMMENT ON COLUMN tries.iter IS 'Number of tries before find the proper country';
+COMMENT ON COLUMN tries.id_note IS 'OSM note id';
+COMMENT ON COLUMN tries.id_country IS 'OSM country id';
