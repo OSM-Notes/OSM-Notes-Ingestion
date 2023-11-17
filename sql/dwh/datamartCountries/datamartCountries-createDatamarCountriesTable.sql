@@ -59,6 +59,107 @@ CREATE TABLE IF NOT EXISTS dwh.datamartCountries (
  history_2013_closed_with_comment INTEGER,
  history_2013_reopened INTEGER
 );
+COMMENT ON TABLE dwh.datamartCountries IS
+  'Contains all precalculated statistical values for countries';
+COMMENT ON COLUMN dwh.datamartCountries.dimension_country_id IS
+  'Surrogated ID from dimension''country';
+COMMENT ON COLUMN dwh.datamartCountries.country_id IS 'OSM country relation id';
+COMMENT ON COLUMN dwh.datamartCountries.country_name IS
+  'OSM country name in local language';
+COMMENT ON COLUMN dwh.datamartCountries.country_name_es IS
+  'OSM country name in Spanish';
+COMMENT ON COLUMN dwh.datamartCountries.country_name_en IS
+  'OSM country name in English';
+COMMENT ON COLUMN dwh.datamartCountries.date_starting_creating_notes IS
+  'Oldest opened note';
+COMMENT ON COLUMN dwh.datamartCountries.date_starting_solving_notes IS
+  'Oldest closed note';
+COMMENT ON COLUMN dwh.datamartCountries.first_open_note_id IS 'First opened note';
+COMMENT ON COLUMN dwh.datamartCountries.first_commented_note_id IS
+  'First commented note';
+COMMENT ON COLUMN dwh.datamartCountries.first_closed_note_id IS
+  'First closed note';
+COMMENT ON COLUMN dwh.datamartCountries.first_reopened_note_id IS
+  'First reopened note';
+COMMENT ON COLUMN dwh.datamartCountries.last_year_activity IS
+  'Most recent note action. TODO';
+COMMENT ON COLUMN dwh.datamartCountries.lastest_open_note_id IS
+  'Most recent opened note';
+COMMENT ON COLUMN dwh.datamartCountries.lastest_commented_note_id IS
+  'Most recent commented note';
+COMMENT ON COLUMN dwh.datamartCountries.lastest_closed_note_id IS
+  'Most recent closed note';
+COMMENT ON COLUMN dwh.datamartCountries.lastest_reopened_note_id IS
+  'Most recent reopened note';
+COMMENT ON COLUMN dwh.datamartCountries.date_most_open IS
+  'The day on which the most notes were openen on the country';
+COMMENT ON COLUMN dwh.datamartCountries.date_most_open_qty IS
+  'The quantity of notes the day on which the user opened the most notes';
+COMMENT ON COLUMN dwh.datamartCountries.date_most_closed IS
+  'The day on which the user closed the most notes';
+COMMENT ON COLUMN dwh.datamartCountries.date_most_closed_qty IS
+  'The quantity of notes The day on which the user closed the most notes';
+COMMENT ON COLUMN dwh.datamartCountries.hashtags IS 'List of used hashtag';
+COMMENT ON COLUMN dwh.datamartCountries.users_open_notes IS
+  'List of users opening notes in the country';
+COMMENT ON COLUMN dwh.datamartCountries.users_solving_notes IS
+  'List of users closing notes in the country';
+COMMENT ON COLUMN dwh.datamartCountries.working_hours_opening IS
+  'Hours when the user creates notes';
+COMMENT ON COLUMN dwh.datamartCountries.working_hours_commenting IS
+  'Hours when the user comments notes';
+COMMENT ON COLUMN dwh.datamartCountries.working_hours_closing IS
+  'Hours when the user closes notes';
+COMMENT ON COLUMN dwh.datamartCountries.history_whole_open IS
+  'Qty opened notes in the whole history';
+COMMENT ON COLUMN dwh.datamartCountries.history_whole_commented IS
+  'Qty commented notes in the whole history';
+COMMENT ON COLUMN dwh.datamartCountries.history_whole_closed IS
+  'Qty closed notes in the whole history';
+COMMENT ON COLUMN dwh.datamartCountries.history_whole_closed_with_comment IS
+  'Qty closed notes with comments in the whole history';
+COMMENT ON COLUMN dwh.datamartCountries.history_whole_reopened IS
+  'Qty reopened notes in the whole history';
+COMMENT ON COLUMN dwh.datamartCountries.history_year_open IS
+  'Qty of notes opened in the current year';
+COMMENT ON COLUMN dwh.datamartCountries.history_year_commented IS
+  'Qty of notes commented in the current year';
+COMMENT ON COLUMN dwh.datamartCountries.history_year_closed IS
+  'Qty of notes closed in the current year';
+COMMENT ON COLUMN dwh.datamartCountries.history_year_closed_with_comment IS
+  'Qty of notes closed with comment in the current year';
+COMMENT ON COLUMN dwh.datamartCountries.history_year_reopened IS
+  'Qty of notes reopened in the current year';
+COMMENT ON COLUMN dwh.datamartCountries.history_month_open IS
+  'Qty of notes opened in the current month';
+COMMENT ON COLUMN dwh.datamartCountries.history_month_commented IS
+  'Qty of notes commented in the current month';
+COMMENT ON COLUMN dwh.datamartCountries.history_month_closed IS
+  'Qty of notes closed in the current month';
+COMMENT ON COLUMN dwh.datamartCountries.history_month_closed_with_comment IS
+  'Qty of notes closed with comment in the current month';
+COMMENT ON COLUMN dwh.datamartCountries.history_month_reopened IS
+  'Qty of notes reopened in the current month';
+COMMENT ON COLUMN dwh.datamartCountries.history_day_open IS
+  'Qty of notes opened in the current day';
+COMMENT ON COLUMN dwh.datamartCountries.history_day_commented IS
+  'Qty of notes commented in the current day';
+COMMENT ON COLUMN dwh.datamartCountries.history_day_closed IS
+  'Qty of notes closed in the current day';
+COMMENT ON COLUMN dwh.datamartCountries.history_day_closed_with_comment IS
+  'Qty of notes closed with comments in the current day';
+COMMENT ON COLUMN dwh.datamartCountries.history_day_reopened IS
+  'Qty of notes reopened in the current day';
+COMMENT ON COLUMN dwh.datamartCountries.history_2013_open IS
+  'Qty of notes opened in 2013';
+COMMENT ON COLUMN dwh.datamartCountries.history_2013_commented IS
+  'Qty of notes commented in 2013';
+COMMENT ON COLUMN dwh.datamartCountries.history_2013_closed IS
+  'Qty of notes closed in 2013';
+COMMENT ON COLUMN dwh.datamartCountries.history_2013_closed_with_comment IS
+  'Qty of notes closed with comment in 2013';
+COMMENT ON COLUMN dwh.datamartCountries.history_2013_reopened IS
+  'Qty of notes reopened in 2013';
 
 -- Primary keys.
 ALTER TABLE dwh.datamartCountries

@@ -119,6 +119,8 @@ AS $proc$
   ) ON CONFLICT DO NOTHING;
  END
 $proc$;
+COMMENT ON PROCEDURE dwh.insert_datamart_country IS
+  'Inserts a country in the corresponding datamart';
 
 CREATE OR REPLACE PROCEDURE dwh.update_datamart_country_activity_year (
   m_dimension_country_id INTEGER,
@@ -183,6 +185,8 @@ AS $proc$
   EXECUTE stmt;
  END
 $proc$;
+COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
+  'Processes the country''s activity per given year';
 
 /**
  * Updates a datamart country.
@@ -626,3 +630,5 @@ BEGIN
   END LOOP;
 END
 $proc$;
+COMMENT ON PROCEDURE dwh.update_datamart_user IS
+  'Processes modifed countries';
