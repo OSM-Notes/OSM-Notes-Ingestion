@@ -36,6 +36,9 @@ DROP TABLE IF EXISTS temp_diff_notes_id;
 CREATE TABLE temp_diff_notes_id (
  note_id INTEGER
 );
+COMMENT ON TABLE temp_diff_notes_id IS
+  'Temporal table for differences in note''s ids';
+COMMENT ON COLUMN notes_check.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_notes_id
  SELECT note_id
@@ -68,6 +71,9 @@ DROP TABLE IF EXISTS temp_diff_comments_id;
 CREATE TABLE temp_diff_comments_id (
  note_id INTEGER
 );
+COMMENT ON TABLE temp_diff_comments_id IS
+  'Temporal table for differences in comment''s ids';
+COMMENT ON COLUMN notes_check.temp_diff_comments_id IS 'OSM note id';
 
 INSERT INTO temp_diff_comments_id
  SELECT note_id
@@ -100,6 +106,9 @@ DROP TABLE IF EXISTS temp_diff_notes;
 CREATE TABLE temp_diff_notes (
  note_id INTEGER
 );
+COMMENT ON TABLE temp_diff_notes IS
+  'Temporal table for differences in notes';
+COMMENT ON COLUMN temp_diff_notes.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_notes
  SELECT note_id FROM (
@@ -146,6 +155,9 @@ DROP TABLE IF EXISTS temp_diff_note_comments;
 CREATE TABLE temp_diff_note_comments (
  note_id INTEGER
 );
+COMMENT ON TABLE temp_diff_note_comments IS
+  'Temporal table for differences in comments';
+COMMENT ON COLUMN temp_diff_note_comments.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_note_comments
  SELECT note_id FROM (
