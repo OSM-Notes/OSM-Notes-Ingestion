@@ -1,13 +1,16 @@
 #!/bin/bash
 
-# This script allows to see a user profile or a country profile. It reads all
-# values from the database, from the datamart.
+# This script allows to see a user profile, a country profile or general
+# statistics about notes. It reads all values from the database, from the
+# datamart.
 #
-# There are 2 ways to call this script:
+# There are 3 ways to call this script:
 # * --user <UserName> : Shows the profile for the given user.
 # * --country <CountryName> : Shows the profile for the given country.
 # If the UserName or CountryName has spaces in the name, it should be invoked
 # between double quotes.
+# * (empty) : It shows general statistics about notes.
+#
 # For example:
 # * --user AngocA
 # * --country Colombia
@@ -98,14 +101,16 @@ source "${FUNCTIONS_FILE}"
 # Shows the help information.
 function __show_help {
  echo "${0} version ${VERSION}"
- echo "This scripts shows the resulting profile for a given user or country."
+ echo "This scripts shows the resulting profile for a given user or country,"
+ echo "Or general statistics about notes."
  echo
- echo "There are 2 ways to call this script:"
+ echo "There are 3 ways to call this script:"
  echo "* --user <UserName> : Shows the profile for the given user."
  echo "* --country <CountryName> : Shows the profile for the given country."
  echo "If the UserName or CountryName has spaces in the name, it should be"
  echo "invoked between double quotes. The name should match the name in"
  echo "Spanish in the database."
+ echo "* (empty) : Shows general statistics about notes."
  echo
  echo "For example:"
  echo "* --user AngocA"
@@ -121,7 +126,8 @@ function __show_help {
 # Checks prerequisites to run the script.
 function __checkPrereqs {
  __log_start
- if [[ "${PROCESS_TYPE}" != "--user" ]] \
+ if [[ "${PROCESS_TYPE}" != "" ]] \
+   && [[ "${PROCESS_TYPE}" != "--user" ]] \
    && [[ "${PROCESS_TYPE}" != "--country" ]] \
    && [[ "${PROCESS_TYPE}" != "--help" ]] \
    && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
@@ -134,14 +140,14 @@ function __checkPrereqs {
  fi
  if [[ "${PROCESS_TYPE}" == "--user" ]] \
   && [[ "${ARGUMENT}" == "" ]]; then
-  __loge "ERROR: You  must a username."
+  __loge "ERROR: You  must provide a username."
   exit "${ERROR_INVALID_ARGUMENT}"
  else
   USERNAME="${ARGUMENT}"
  fi
  if [[ "${PROCESS_TYPE}" == "--country" ]] \
   && [[ "${ARGUMENT}" == "" ]]; then
-  __loge "ERROR: You  must a country name."
+  __loge "ERROR: You  must provide a country name."
   exit "${ERROR_INVALID_ARGUMENT}"
  else
   COUNTRY_NAME="${ARGUMENT}"
@@ -182,6 +188,7 @@ function __getCountryId {
  fi
 }
 
+# Shows the user activity for all years after 2013.
 function __showActivityYearUsers {
  YEAR="${1}"
 
@@ -228,6 +235,7 @@ function __showActivityYearUsers {
  printf "${YEAR}          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
 }
 
+# Shows the country activity for all years after 2013.
 function __showActivityYearCountries {
  YEAR="${1}"
 
@@ -274,6 +282,7 @@ function __showActivityYearCountries {
  printf "${YEAR}          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
 }
 
+# Shows the user profile.
 function __processUserProfile {
  # Quantity of days creating notes.
  declare -i QTY_DAYS_OPEN
@@ -1259,7 +1268,45 @@ function __processCountryProfile {
  while [ "${I}" -le "${CURRENT_YEAR}" ]; do
   __showActivityYearCountries "${I}"
   I=$((I+1))
+  # TODO Top 10 Notas con más comentarios por año.
+  # TODO Top 10 Notas con más reopening por año.
  done
+}
+
+# Shows general stats about notes.
+function __generalNoteStats {
+ echo "ToDo Number of notes"
+ echo "ToDo Number of currently open notes"
+ echo "ToDo Number of currently closed notes"
+ echo "ToDo Number of reactivated notes after hidden"
+ echo "ToDo Number of OSM note id gaps (probably hidden notes)"
+ echo "ToDo Number of reopened notes"
+ echo "ToDo Number of note comments"
+ echo "ToDo Number of users doing things on notes"
+ echo "ToDo Number of users opening notes"
+ echo "ToDo Number of users closing notes"
+ echo "ToDo Number of users reactivating notes after hidden"
+ echo "ToDo All previous values per year since 2013, to show the increment"
+ echo "ToDo working hours for opening notes"
+ echo "ToDo working hours for closing notes"
+ echo "ToDo Top 10 Notes with most comments"
+ echo "ToDo Top 10 Notes with most comments por cada año desde 2013"
+ echo "ToDo Top 10 Notes with most reopenings (guerra)"
+ echo "ToDo Top 10 Notes with most reopenings por cada año desde 2013 (guerra)"
+ echo "ToDo Nota más vieja disponible (no oculta)"
+ echo "ToDo Nota más recientemente abierta"
+ echo "ToDo Notas creadas hoy"
+ echo "ToDo Notas creadas este mes"
+ echo "ToDo Notas creadas este año"
+ echo "ToDo Promedio de creación de notas diario para cada año"
+ echo "ToDo Promedio de cerrado de notas diario para cada año"
+ echo "ToDo Promedio de creación de notas mensual para cada año"
+ echo "ToDo Promedio de cerrado de notas mensual para cada año"
+ echo "ToDo Promedio de creación de notas anual para cada año"
+ echo "ToDo Promedio de cerrado de notas anual para cada año"
+ echo "ToDo Top 10 usuarios haciendo auto guerra de abrir y cerrar"
+ echo "ToDo Top 10 usuarios participando en guerra de notas"
+ echo "ToDo Top 10 usuarios participando en guerra de notas por año"
 }
 
 ######
@@ -1283,8 +1330,10 @@ function main() {
   __getUserId
   __processUserProfile
  elif [[ "${PROCESS_TYPE}" == "--country" ]] ; then
- __getCountryId
+  __getCountryId
   __processCountryProfile
+ elif [[ "${PROCESS_TYPE}" == "" ]] ; then
+  __generalNoteStats
  fi
 
  __logw "Ending process"
