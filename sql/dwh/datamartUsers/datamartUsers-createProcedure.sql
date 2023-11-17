@@ -113,6 +113,8 @@ AS $proc$
   ) ON CONFLICT DO NOTHING;
  END
 $proc$;
+COMMENT ON PROCEDURE dwh.insert_datamart_user IS
+  'Inserts a user in the corresponding datamart';
 
 /*
  * Updates the datamart for a specific year.
@@ -180,6 +182,8 @@ AS $proc$
   EXECUTE stmt;
  END
 $proc$;
+COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
+  'Processes the user''s activity per given year';
 
 /**
  * Updates a datamart user.
@@ -625,3 +629,5 @@ m_history_whole_closed_with_comment := 0;
  END LOOP;
 END
 $proc$;
+COMMENT ON PROCEDURE dwh.update_datamart_user IS
+  'Processes modifed user';
