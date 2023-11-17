@@ -86,58 +86,94 @@ SELECT CURRENT_TIMESTAMP AS Processing, 'Creating indexes' AS Task;
 CREATE UNIQUE INDEX dimension_user_id_uniq
  ON dwh.dimension_users
  (user_id);
+COMMENT ON INDEX dwh.dimension_user_id_uniq IS 'OSM User id';
 
 CREATE UNIQUE INDEX dimension_country_id_uniq
  ON dwh.dimension_countries
  (country_id);
+COMMENT ON INDEX dwh.dimension_country_id_uniq IS 'OSM Country relation id';
 
 CREATE UNIQUE INDEX dimension_day_id_uniq
  ON dwh.dimension_days
  (date_id);
+COMMENT ON INDEX dwh.dimension_day_id_uniq IS 'Date';
 
 CREATE INDEX facts_action_date ON dwh.facts (action_at);
+COMMENT ON INDEX dwh.facts_action_date IS
+  'Improves queries by action timestamp';
 
 CREATE INDEX action_idx 
  ON dwh.facts (action_dimension_id_user, action_comment);
+COMMENT ON INDEX dwh.action_idx IS 'Improves queries by user and action type';
 
 CREATE INDEX open_user_date_idx
  ON dwh.facts (opened_dimension_id_date, opened_dimension_id_user);
+COMMENT ON INDEX dwh.open_user_date_idx IS
+  'Improves queries by creating date and user';
 
 CREATE INDEX open_user_idx
  ON dwh.facts (opened_dimension_id_user);
+COMMENT ON INDEX dwh.open_user_idx IS 'Improves queries by creating user';
 
 CREATE INDEX closed_user_date_idx
 ON dwh.facts (closed_dimension_id_date, closed_dimension_id_user);
+COMMENT ON INDEX dwh.closed_user_date_idx IS
+  'Improves queries by closing data and user';
 
 CREATE INDEX closed_user_idx
 ON dwh.facts (closed_dimension_id_user);
+COMMENT ON INDEX dwh.closed_user_idx IS 'Improves queries by closing user';
 
 CREATE INDEX country_open_user_idx
 ON dwh.facts (dimension_id_country, opened_dimension_id_user);
+COMMENT ON INDEX dwh.country_open_user_idx IS
+  'Improves queries by country and opening user';
 
 CREATE INDEX country_closed_user_idx
 ON dwh.facts (dimension_id_country, closed_dimension_id_user);
+COMMENT ON INDEX dwh.country_closed_user_idx IS
+  'Improves queries by country and closing user';
 
 CREATE INDEX hours_opening_idx
 ON dwh.facts (opened_dimension_id_hour, opened_dimension_id_user);
+COMMENT ON INDEX dwh.hours_opening_idx IS
+  'Improves queries by opening hour and user';
 
 CREATE INDEX hours_commenting_idx
 ON dwh.facts (action_dimension_id_hour, action_dimension_id_user);
+COMMENT ON INDEX dwh.hours_commenting_idx IS
+  'Improves queries by action hour and user';
 
 CREATE INDEX hours_closing_idx
 ON dwh.facts (closed_dimension_id_hour, closed_dimension_id_user);
+COMMENT ON INDEX dwh.hours_closing_idx IS
+  'Improves queries by closing hour and user';
 
 CREATE INDEX date_user_action_idx
-ON dwh.facts (action_dimension_id_date, action_dimension_id_user, action_comment);
+ON dwh.facts (action_dimension_id_date, action_dimension_id_user,
+ action_comment);
+COMMENT ON INDEX dwh.date_user_action_idx IS
+  'Improves queries by action date, user and type';
 
 CREATE INDEX date_action_country_idx
 ON dwh.facts (action_dimension_id_date, dimension_id_country, action_comment);
+COMMENT ON INDEX dwh.date_action_country_idx IS
+  'Improves queries by action date, country and type';
 
 CREATE INDEX action_country_idx
 ON dwh.facts (dimension_id_country, action_comment);
+COMMENT ON INDEX dwh.action_country_idx IS
+  'Improves queries by country and action type';
 
 CREATE INDEX modified_users_idx
 ON dwh.dimension_users (modified);
+COMMENT ON INDEX dwh.modified_users_idx IS
+  'Improves queries by user that performed actions';
+
+CREATE INDEX modified_countries_idx
+ON dwh.dimension_countries (modified);
+COMMENT ON INDEX dwh.modified_countries_idx IS
+  'Improves queries by country where performed actions were done';
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Creating functions' AS Task;
 
@@ -167,6 +203,9 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
  $$ LANGUAGE plpgsql
 ;
 
+/**
+ * Returns the given hour of a timestamp.
+ */
 CREATE OR REPLACE FUNCTION dwh.get_time_id(new_date TIMESTAMP)
   RETURNS INTEGER AS
  $$
@@ -194,6 +233,8 @@ CREATE OR REPLACE FUNCTION dwh.get_time_id(new_date TIMESTAMP)
  END;
  $$ LANGUAGE plpgsql
 ;
+COMMENT ON FUNCTION dwh.get_time_id IS
+  'Returns the given hour of a timestamp, and persist it on the dimension';
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Extra objects created' AS Task;
 

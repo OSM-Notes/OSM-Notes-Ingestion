@@ -4,6 +4,8 @@
 -- Version: 2023-10-31
 
 CREATE SCHEMA IF NOT EXISTS staging;
+COMMENT ON SCHEMA staging IS
+  'Objects to load from base tables to data warehouse';
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   process_date DATE
@@ -110,6 +112,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
  END
 $proc$
 ;
+COMMENT ON PROCEDURE staging.process_notes_at_date IS
+  'Processes all notes from base tables in a specific date and loads them in the data warehouse';
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
  )
@@ -182,3 +186,6 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   RAISE NOTICE 'No facts to process % > %', max_processed_date, max_note_action;
  END
 $proc$
+;
+COMMENT ON PROCEDURE staging.process_notes_actions_into_dwh IS
+  'Processes all non-processes notes';
