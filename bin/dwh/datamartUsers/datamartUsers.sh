@@ -193,7 +193,7 @@ function __addYears {
 # Processes the notes and comments.
 function __processNotesUser {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}" 2>&1
  __log_finish
 }
 

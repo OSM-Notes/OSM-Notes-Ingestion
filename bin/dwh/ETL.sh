@@ -181,7 +181,7 @@ function __createBaseTables {
  psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}"
 
  __logi "Creating staging objects"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}" 2>&1
  __log_finish
 }
 

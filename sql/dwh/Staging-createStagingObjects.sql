@@ -164,9 +164,9 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
 
    -- If there are 0 notes to process, then increase one day.
    IF (qty_notes_on_date = 0) THEN
+    max_processed_date := max_processed_date + 1;
     RAISE NOTICE 'Increasing 1 day, and processing facts for %',
      max_processed_date;
-    max_processed_date := max_processed_date + 1;
 
     SELECT COUNT(1) INTO qty_notes_on_date
     FROM note_comments
@@ -183,7 +183,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
     CALL staging.process_notes_at_date (max_processed_date);
    END IF;
   END LOOP;
-  RAISE NOTICE 'No facts to process % > %', max_processed_date, max_note_action;
+  RAISE NOTICE 'No facts to process (% !> %)', max_processed_date, max_note_action;
  END
 $proc$
 ;
