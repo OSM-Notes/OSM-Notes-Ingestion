@@ -173,56 +173,15 @@ function __checkPrereqs {
  fi
  set +e
  # Checks prereqs.
- ## PostgreSQL
- __logd "Checking PostgreSQL."
- if ! psql --version > /dev/null 2>&1 ; then
-  __loge "ERROR: PostgreSQL is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## PostGIS
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
- SELECT PostGIS_version();
-EOF
- RET=${?}
- if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: PostGIS is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Wget
- __logd "Checking wget."
- if ! wget --version > /dev/null 2>&1 ; then
-  __loge "ERROR: Wget is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## flock
- if ! flock --version > /dev/null 2>&1 ; then
-  __loge "ERROR: flock is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## XML lint
- __logd "Checking XML lint."
- if ! xmllint --version > /dev/null 2>&1 ; then
-  __loge "ERROR: XMLlint is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Java
- __logd "Checking Java."
- if ! java --version > /dev/null 2>&1 ; then
-  __loge "ERROR: Java JRE is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ __checkPrereqsCommands
+
  ## Saxon Jar
  __logd "Checking Saxon Jar."
  if [[ ! -r "${SAXON_JAR}" ]] ; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## Bash 4 or greater.
- __logd "Checking Bash version."
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
-  __loge "ERROR: Requires Bash 4+."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+
  ## Checks required files.
  if [[ ! -r "${NOTES_SYNC_SCRIPT}" ]] ; then
   __loge "ERROR: File is missing at ${NOTES_SYNC_SCRIPT}."

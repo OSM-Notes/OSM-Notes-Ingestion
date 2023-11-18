@@ -111,21 +111,8 @@ function __checkPrereqs {
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
 
- ## PostgreSQL
- if ! psql --version > /dev/null 2>&1 ; then
-  __loge "ERROR: PostgreSQL is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## flock
- if ! flock --version > /dev/null 2>&1 ; then
-  __loge "ERROR: flock is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Bash 4 or greater.
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
-  __loge "ERROR: Requires Bash 4+."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ __checkPrereqsCommands
+ 
  ## Check files
  if [[ ! -r "${CHECK_OBJECTS_FILE}" ]]; then
   __loge "ERROR: File datamartCountries-checkDatamartCountriesTables.sql was not found."

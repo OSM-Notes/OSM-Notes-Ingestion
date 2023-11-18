@@ -379,63 +379,11 @@ function __checkPrereqs {
  set +e
  # Checks prereqs.
  if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
-  ## PostgreSQL
-  if ! psql --version > /dev/null 2>&1; then
-   __loge "ERROR: PostgreSQL is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## PostGIS
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
-  SELECT PostGIS_version();
-EOF
-  RET=${?}
-  if [[ "${RET}" -ne 0 ]]; then
-   __loge "ERROR: PostGIS is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## Wget
-  if ! wget --version > /dev/null 2>&1; then
-   __loge "ERROR: Wget is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## Aria2c
-  if ! aria2c --version > /dev/null 2>&1; then
-   __loge "ERROR: Aria2c is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## osmtogeojson
-  if ! osmtogeojson --version > /dev/null 2>&1; then
-   __loge "ERROR: osmtogeojson is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## gdal ogr2ogr
-  if ! ogr2ogr --version > /dev/null 2>&1; then
-   __loge "ERROR: ogr2ogr is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## flock
-  if ! flock --version > /dev/null 2>&1; then
-   __loge "ERROR: flock is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
+  __checkPrereqsCommands
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
   || [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
-  ## Block-sorting file compressor
-  if ! bzip2 --help > /dev/null 2>&1; then
-   __loge "ERROR: bzip2 is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## XML lint
-  if ! xmllint --version > /dev/null 2>&1; then
-   __loge "ERROR: XMLlint is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  ## Java
-  if ! java --version > /dev/null 2>&1; then
-   __loge "ERROR: Java JRE is missing."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
+  __checkPrereqsCommands
   ## Saxon Jar
   if [[ ! -r "${SAXON_JAR}" ]]; then
    __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
@@ -446,11 +394,7 @@ EOF
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
- ## Bash 4 or greater.
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
-  __loge "ERROR: Requires Bash 4+."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ 
  ## Checks if the flat file exist.
  if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."

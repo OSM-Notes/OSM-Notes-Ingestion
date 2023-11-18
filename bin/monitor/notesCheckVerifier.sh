@@ -128,21 +128,7 @@ function __checkPrereqs {
  __log_start
  set +e
  # Checks prereqs.
- ## Mutt.
- if ! mutt -v > /dev/null 2>&1; then
-  __loge "Falta instalar mutt."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## flock.
- if ! flock --version > /dev/null 2>&1; then
-  __loge "Falta instalar flock."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Bash 4 or greater.
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
-  __loge "Requiere Bash 4+."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ __checkPrereqsCommands
  ## Checks if the process file exists.
  if [[ "${PROCESS_FILE}" != "" ]] && [[ ! -r "${PROCESS_FILE}" ]]; then
   __loge "El archivo para obtener los ids no se encuentra: ${PROCESS_FILE}."
