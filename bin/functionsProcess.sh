@@ -82,6 +82,88 @@ function __trapOn() {
  __log_finish
 }
 
+# Checks prerequisites commands to run the script.
+function __checkPrereqsCommands {
+ __log_start
+ set +e
+ ## PostgreSQL
+ __logd "Checking PostgreSQL."
+ if ! psql --version > /dev/null 2>&1 ; then
+  __loge "ERROR: PostgreSQL is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## PostGIS
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
+ SELECT PostGIS_version();
+EOF
+ RET=${?}
+ if [[ "${RET}" -ne 0 ]]; then
+  __loge "ERROR: PostGIS is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Wget
+ __logd "Checking wget."
+ if ! wget --version > /dev/null 2>&1 ; then
+  __loge "ERROR: Wget is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Aria2c
+ if ! aria2c --version > /dev/null 2>&1; then
+  __loge "ERROR: Aria2c is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## osmtogeojson
+ if ! osmtogeojson --version > /dev/null 2>&1; then
+  __loge "ERROR: osmtogeojson is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## gdal ogr2ogr
+ if ! ogr2ogr --version > /dev/null 2>&1; then
+  __loge "ERROR: ogr2ogr is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## flock
+ if ! flock --version > /dev/null 2>&1 ; then
+  __loge "ERROR: flock is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Mutt.
+ if ! mutt -v > /dev/null 2>&1; then
+  __loge "Falta instalar mutt."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## wget
+ if ! wget --version > /dev/null 2>&1; then
+  __loge "ERROR: wget is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Block-sorting file compressor
+ if ! bzip2 --help > /dev/null 2>&1; then
+  __loge "ERROR: bzip2 is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## XML lint
+ __logd "Checking XML lint."
+ if ! xmllint --version > /dev/null 2>&1 ; then
+  __loge "ERROR: XMLlint is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Java
+ __logd "Checking Java."
+ if ! java --version > /dev/null 2>&1 ; then
+  __loge "ERROR: Java JRE is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Bash 4 or greater.
+ __logd "Checking Bash version."
+ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
+  __loge "ERROR: Requires Bash 4+."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ set -e
+ __log_finish
+}
+
 function __checkPrereqs_functions {
   ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_CHECK_BASE_TABLES}" ]] ; then

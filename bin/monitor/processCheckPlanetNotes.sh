@@ -163,41 +163,8 @@ function __checkPrereqs {
  fi
  set +e
  # Checks prereqs.
- ## PostgreSQL
- if ! psql --version > /dev/null 2>&1; then
-  __loge "ERROR: PostgreSQL is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## flock
- if ! flock --version > /dev/null 2>&1; then
-  __loge "ERROR: flock is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## wget
- if ! wget --version > /dev/null 2>&1; then
-  __loge "ERROR: wget is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Aria2c
- if ! aria2c --version > /dev/null 2>&1; then
-  __loge "ERROR: Aria2c is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Block-sorting file compressor
- if ! bzip2 --help > /dev/null 2>&1; then
-  __loge "ERROR: bzip2 is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## XML lint
- if ! xmllint --version > /dev/null 2>&1; then
-  __loge "ERROR: XMLlint is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Java
- if ! java --version > /dev/null 2>&1; then
-  __loge "ERROR: Java JRE is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ __checkPrereqsCommands
+
  ## Saxon Jar
  if [[ ! -r "${SAXON_JAR}" ]]; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
@@ -206,11 +173,6 @@ function __checkPrereqs {
  fi
  if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Bash 4 or greater.
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
-  __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks the flat file if exist.

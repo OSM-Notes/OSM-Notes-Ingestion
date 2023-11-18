@@ -153,16 +153,8 @@ function __checkPrereqs {
   COUNTRY_NAME="${ARGUMENT}"
  fi
 
- ## PostgreSQL
- if ! psql --version > /dev/null 2>&1 ; then
-  __loge "ERROR: PostgreSQL is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## Bash 4 or greater.
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
-  __loge "ERROR: Requires Bash 4+."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+__checkPrereqsCommands
+
  __log_finish
  set -e
 }
