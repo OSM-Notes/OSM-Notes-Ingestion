@@ -128,9 +128,9 @@ function __downloadPlanetNotes {
  # Download Planet notes.
  __loge "Retrieving Planet notes file..."
  aria2c -d "${TMP_DIR}" -o "${PLANET_NOTES_NAME}.bz2" -x 8 \
-   "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2"
+   "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
  wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
-   "https://planet.openstreetmap.org/notes/${PLANET_NOTES_NAME}.bz2.md5"
+   "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
 
  # Validates the download with the hash value md5.
  diff <(md5sum "${PLANET_NOTES_FILE}.bz2" | cut -d' ' -f 1) \
