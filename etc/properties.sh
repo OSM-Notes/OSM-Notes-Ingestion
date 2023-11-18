@@ -14,7 +14,7 @@ declare -r OSM_API="https://api.openstreetmap.org/api/0.6"
 declare -r DBNAME=notes
 
 # Mails to send the report to.
-declare -r EMAILS="${EMAILS:-angoca@yahoo.com}"
+declare -r EMAILS="${EMAILS:-user@mail.com}"
 
 # OpenStreetMap Planet dump
 # shellcheck disable=SC2034
