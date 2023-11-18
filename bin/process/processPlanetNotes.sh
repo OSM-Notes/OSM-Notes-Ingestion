@@ -832,7 +832,7 @@ function __getLocationNotes {
  else
   declare -l MAX_NOTE_ID
   wget -O "${LAST_NOTE_FILE}" \
-   "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
+   "${OSM_API}/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
   MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
   MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 

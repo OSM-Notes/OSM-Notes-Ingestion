@@ -14,7 +14,6 @@ ALTER TABLE users
 -- The API does not provide an identifier for the comments, therefore, this
 -- project implemented another column for the id. However, the execution cannot
 -- be parallelized.
--- https://api.openstreetmap.org/api/0.6/notes/3750896
 ALTER TABLE note_comments
  ADD CONSTRAINT pk_note_comments
  PRIMARY KEY (id);
