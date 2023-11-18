@@ -147,6 +147,8 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_year_commented
   FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'commented'
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
@@ -155,6 +157,8 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_year_closed
   FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'closed'
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
@@ -167,6 +171,8 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_year_reopened
   FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'reopened'
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
@@ -245,7 +251,7 @@ AS $proc$
   --RAISE NOTICE 'Inserting user';
   CALL dwh.insert_datamart_user(m_dimension_user_id);
  ELSE
-  RAISE NOTICE 'User does not exist: %', m_dimension_user_id;
+  RAISE NOTICE 'User is already in the db: %', m_dimension_user_id;
  END IF;
 
  -- id_contributor_type
@@ -367,11 +373,11 @@ AS $proc$
   WHERE f.opened_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'opened'
   GROUP BY opened_dimension_id_hour
+  ORDER BY opened_dimension_id_hour
  )
  SELECT JSON_AGG(hours.*)
   INTO m_working_hours_opening
- FROM hours
- ORDER BY opened_dimension_id_hour;
+ FROM hours;
 
  -- working_hours_commenting
  WITH hours AS (
@@ -382,11 +388,11 @@ AS $proc$
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'commented'
   GROUP BY action_dimension_id_hour
+ ORDER BY action_dimension_id_hour
  )
  SELECT JSON_AGG(hours.*)
   INTO m_working_hours_commenting
- FROM hours
- ORDER BY action_dimension_id_hour;
+ FROM hours;
 
  -- working_hours_closing
  WITH hours AS (
@@ -396,11 +402,11 @@ AS $proc$
    ON f.closed_dimension_id_hour = t.dimension_time_id
   WHERE f.closed_dimension_id_user = m_dimension_user_id
   GROUP BY closed_dimension_id_hour
+  ORDER BY closed_dimension_id_hour
  )
  SELECT JSON_AGG(hours.*)
   INTO m_working_hours_closing
- FROM hours
- ORDER BY closed_dimension_id_hour;
+ FROM hours;
 
  -- history_whole_open
  SELECT COUNT(1)
@@ -626,7 +632,8 @@ m_history_whole_closed_with_comment := 0;
   history_day_reopened =m_history_day_reopened
  WHERE dimension_user_id = m_dimension_user_id;
 
- WHILE (m_year < m_current_year) LOOP
+ m_year := 2013;
+ WHILE (m_year <= m_current_year) LOOP
   CALL dwh.update_datamart_user_activity_year(m_dimension_user_id, m_year);
   m_year := m_year + 1;
  END LOOP;

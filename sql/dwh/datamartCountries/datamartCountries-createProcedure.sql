@@ -150,6 +150,8 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_year_commented
   FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = m_dimension_country_id
    AND f.action_comment = 'commented'
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
@@ -158,6 +160,8 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_year_closed
   FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = m_dimension_country_id
    AND f.action_comment = 'closed'
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
@@ -170,6 +174,8 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_year_reopened
   FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = m_dimension_country_id
    AND f.action_comment = 'reopened'
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
@@ -369,8 +375,7 @@ BEGIN
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_opening
-  FROM hours
-  ORDER BY opened_dimension_id_hour;
+  FROM hours;
 
   -- working_hours_commenting
   WITH hours AS (
@@ -381,12 +386,11 @@ BEGIN
    WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'commented'
    GROUP BY action_dimension_id_hour
-   ORDER BY opened_dimension_id_hour
+   ORDER BY action_dimension_id_hour
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_commenting
-  FROM hours
-  ORDER BY action_dimension_id_hour;
+  FROM hours;
 
   -- working_hours_closing
   WITH hours AS (
@@ -396,12 +400,11 @@ BEGIN
     ON f.closed_dimension_id_hour = t.dimension_time_id
    WHERE f.dimension_id_country = r.dimension_id_country
    GROUP BY closed_dimension_id_hour
-   ORDER BY opened_dimension_id_hour
+   ORDER BY closed_dimension_id_hour
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_closing
-  FROM hours
-  ORDER BY closed_dimension_id_hour;
+  FROM hours;
 
   -- history_whole_open
   SELECT COUNT(1)
@@ -627,7 +630,8 @@ BEGIN
    history_day_reopened =m_history_day_reopened
   WHERE dimension_country_id = r.dimension_id_country;
 
-  WHILE (m_year < m_current_year) LOOP
+  m_year := 2013;
+  WHILE (m_year <= m_current_year) LOOP
    CALL dwh.update_datamart_country_activity_year(r.dimension_id_country, m_year);
    m_year := m_year + 1;
   END LOOP;
