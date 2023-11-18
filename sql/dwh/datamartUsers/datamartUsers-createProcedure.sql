@@ -346,7 +346,7 @@ AS $proc$
 
  -- countries_solving_notes
  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries',country_name, 'quantity', quantity))
-  INTO m_countries_open_notes
+  INTO m_countries_solving_notes
  FROM (
   SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
   FROM dwh.facts f
@@ -370,7 +370,8 @@ AS $proc$
  )
  SELECT JSON_AGG(hours.*)
   INTO m_working_hours_opening
- FROM hours;
+ FROM hours
+ ORDER BY opened_dimension_id_hour;
 
  -- working_hours_commenting
  WITH hours AS (
@@ -384,7 +385,8 @@ AS $proc$
  )
  SELECT JSON_AGG(hours.*)
   INTO m_working_hours_commenting
- FROM hours;
+ FROM hours
+ ORDER BY action_dimension_id_hour;
 
  -- working_hours_closing
  WITH hours AS (
@@ -397,7 +399,8 @@ AS $proc$
  )
  SELECT JSON_AGG(hours.*)
   INTO m_working_hours_closing
- FROM hours;
+ FROM hours
+ ORDER BY closed_dimension_id_hour;
 
  -- history_whole_open
  SELECT COUNT(1)

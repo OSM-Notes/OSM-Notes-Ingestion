@@ -369,7 +369,8 @@ BEGIN
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_opening
-  FROM hours;
+  FROM hours
+  ORDER BY opened_dimension_id_hour;
 
   -- working_hours_commenting
   WITH hours AS (
@@ -384,7 +385,8 @@ BEGIN
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_commenting
-  FROM hours;
+  FROM hours
+  ORDER BY action_dimension_id_hour;
 
   -- working_hours_closing
   WITH hours AS (
@@ -398,7 +400,8 @@ BEGIN
   )
   SELECT JSON_AGG(hours.*)
    INTO m_working_hours_closing
-  FROM hours;
+  FROM hours
+  ORDER BY closed_dimension_id_hour;
 
   -- history_whole_open
   SELECT COUNT(1)
