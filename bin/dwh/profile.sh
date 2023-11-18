@@ -818,6 +818,12 @@ function __processUserProfile {
 #     WHERE dimension_user_id = ${USER_ID}
 #     " \
 #    -v ON_ERROR_STOP=1 )
+# ToDo Abrir más de 100 notas en un día
+# ToDo Abrir más de 300 notas en un día
+# ToDo Abrir más de 1000 notas en un día
+# ToDo Resolver más de 100 notas en un día
+# ToDo Resolver más de 300 notas en un día
+# ToDo Resolver más de 1000 notas en un día
 
 # TODO si cero, ocultar
  echo "User name: ${USERNAME} (id: ${USER_ID})"
@@ -1307,6 +1313,8 @@ function __generalNoteStats {
  echo "ToDo Top 10 usuarios haciendo auto guerra de abrir y cerrar"
  echo "ToDo Top 10 usuarios participando en guerra de notas"
  echo "ToDo Top 10 usuarios participando en guerra de notas por año"
+ echo "ToDo Usuarios que han abierto más de 1000 notas en un día"
+ echo "ToDo Usuarios que han cerrado más de 1000 notas en un día"
 }
 
 ######
