@@ -937,4 +937,3 @@ if [[ ! -t 1 ]]; then
 else
  main
 fi
-# TODO 3944119 ocultada y reactivada
