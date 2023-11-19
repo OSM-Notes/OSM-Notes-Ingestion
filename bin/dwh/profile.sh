@@ -1353,5 +1353,3 @@ if [ ! -t 1 ] ; then
 else
  main
 fi
-# TODO Validar que esta nota se procesa bien https://api.openstreetmap.org/api/0.6/notes/3750896
-
