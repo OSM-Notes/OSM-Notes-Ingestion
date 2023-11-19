@@ -45,14 +45,11 @@ This is the star-model of the data warehouse.
 
 * dimension_day_id       # Surrogate id.
 * date_id                # Date.
-* days_from_notes_epoch  # Days from the beginning of the notes mechanism. TODO
-* days_to_next_year      # Number of days to finish the current year. TODO
 
 # Dimension: times
 
 * dimension_time_id  # Surrogate id.
 * hour               # Hour of the day.
-* morning            # If the hour is during the day. # TODO
 
 # Datamart tables
 

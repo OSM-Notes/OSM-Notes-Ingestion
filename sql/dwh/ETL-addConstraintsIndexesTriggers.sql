@@ -190,11 +190,9 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
   
   IF (m_id_date IS NULL) THEN
    INSERT INTO dwh.dimension_days (
-     date_id, days_from_notes_epoch, days_to_next_year
+     date_id
     ) VALUES (
-     DATE(new_date),
-     DATE_PART('doy', DATE(new_date)),
-     365 - DATE_PART('doy', DATE(new_date))
+     DATE(new_date)
     ) RETURNING dimension_day_id INTO m_id_date
    ;
   END IF;
@@ -211,21 +209,16 @@ CREATE OR REPLACE FUNCTION dwh.get_time_id(new_date TIMESTAMP)
  $$
  DECLARE
   id_time INTEGER;
-  morning BOOLEAN;
  BEGIN
   SELECT dimension_time_id INTO id_time
   FROM dwh.dimension_times
   WHERE hour = EXTRACT(HOUR FROM new_date);
   
   IF (id_time IS NULL) THEN
-   IF (EXTRACT(HOUR FROM new_date) <= 12) THEN
-    morning := true;
-   END IF;
    INSERT INTO dwh.dimension_times (
-     hour, morning
+     hour
     ) VALUES (
-     EXTRACT(HOUR FROM new_date),
-     morning
+     EXTRACT(HOUR FROM new_date)
     )
    ;
   END IF;
