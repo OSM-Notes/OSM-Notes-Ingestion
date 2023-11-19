@@ -73,7 +73,7 @@ CREATE TABLE temp_diff_comments_id (
 );
 COMMENT ON TABLE temp_diff_comments_id IS
   'Temporal table for differences in comment''s ids';
-COMMENT ON COLUMN notes_check.temp_diff_comments_id IS 'OSM note id';
+COMMENT ON COLUMN temp_diff_comments_id.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_comments_id
  SELECT note_id
