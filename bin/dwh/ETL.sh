@@ -79,6 +79,9 @@ declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkBas
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHObjects.sql"
 
+# Regions per country.
+declare -r REGIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-getWorldRegion.sql"
+
 # Name of the SQL script that contains the alter statements.
 declare -r ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-addConstraintsIndexesTriggers.sql"
 
@@ -147,6 +150,10 @@ function __checkPrereqs {
   __loge "ERROR: File createObjects.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${REGIONS_FILE}" ]]; then
+  __loge "ERROR: File ETL-getWorldRegion.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  if [[ ! -r "${ADD_OBJECTS_FILE}" ]]; then
   __loge "ERROR: File alterObjects.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -164,6 +171,8 @@ function __createBaseTables {
  __log_start
  __logi "Creating tables for star model if they do not exist"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
+ __logi "Regions for countries"
+ psql -d "${DBNAME}" -f "${REGIONS_FILE}"
  __logi "Adding relation, indexes AND triggers"
  psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}"
 

@@ -1,7 +1,7 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-31
+-- Version: 2023-11-18
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 COMMENT ON SCHEMA dwh IS
@@ -64,14 +64,23 @@ COMMENT ON COLUMN dwh.dimension_users.username IS
 COMMENT ON COLUMN dwh.dimension_users.modified IS
   'Flag to mark users that have performed note actions';
 
+CREATE TABLE IF NOT EXISTS dwh.dimension_regions (
+ dimension_region_id SERIAL,
+ region_name_es VARCHAR(30),
+ region_name_en VARCHAR(30)
+);
+COMMENT ON TABLE dwh.dimension_regions IS 'Regions for contries';
+COMMENT ON COLUMN dwh.dimension_regions.dimension_region_id IS 'Id';
+COMMENT ON COLUMN dwh.dimension_regions.region_name IS 'Name of the region';
+
 CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
  dimension_country_id SERIAL,
  country_id INTEGER NOT NULL,
  country_name VARCHAR(100),
  country_name_es VARCHAR(100),
  country_name_en VARCHAR(100),
+ region_id INTEGER;
  modified BOOLEAN
--- ToDo Include the regions
 );
 COMMENT ON TABLE dwh.dimension_countries IS 'Dimension for contries';
 COMMENT ON COLUMN dwh.dimension_countries.dimension_country_id IS
@@ -87,22 +96,37 @@ COMMENT ON COLUMN dwh.dimension_countries.modified IS
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_days (
  dimension_day_id SERIAL,
- date_id DATE,
- days_from_notes_epoch INTEGER, -- TODO who uses
- days_to_next_year INTEGER -- TODO who uses
+ date_id DATE
 );
 COMMENT ON TABLE dwh.dimension_days IS 'Dimension for days';
 COMMENT ON COLUMN dwh.dimension_days.dimension_day_id IS 'Surrogated ID';
 COMMENT ON COLUMN dwh.dimension_days.date_id IS 'Complete date';
-COMMENT ON COLUMN dwh.dimension_days.days_from_notes_epoch IS 'ToDo';
-COMMENT ON COLUMN dwh.dimension_days.days_to_next_year IS 'ToDo';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_times (
  dimension_time_id SERIAL,
- hour SMALLINT,
- morning BOOLEAN -- true for am, false for pm. TODO Who uses
+ hour SMALLINT
 );
 COMMENT ON TABLE dwh.dimension_times IS 'Dimension for days';
 COMMENT ON COLUMN dwh.dimension_times.dimension_time_id IS 'Surrogated ID';
 COMMENT ON COLUMN dwh.dimension_times.hour IS 'Hour of the day';
-COMMENT ON COLUMN dwh.dimension_times.morning IS 'ToDO';
+
+INSERT INTO dwh.dimension_regions (region_name) VALUES
+ ('Indefinida', 'Undefined'),
+ ('Norteamérica', 'North America'),
+ ('Centroamérica', 'Central America'),
+ ('Antillas', 'Antilles'),
+ ('Sudamérica', 'South America'),
+ ('Europa Occidental', 'Western Europe'),
+ ('Europa Oriental', 'Eastern Europe'),
+ ('Cáucaso', 'Caucasus'),
+ ('Siberia', 'Siberia'),
+ ('Asia Central', 'Central Asia'),
+ ('Asia Oriental', 'East Asia'),
+ ('África del Norte', 'North Africa'),
+ ('África subsahariana', 'Sub-Saharan Africa'),
+ ('Medio Oriente', 'Middle East'),
+ ('Indostán', 'Indian subcontinent'),
+ ('Indochina', 'Mainland Southeast Asia'),
+ ('Insulindia', 'Malay Archipelago'),
+ ('Islas del Pacífico (Melanesia, Micronesia y Polinesia)', 'Pacific Islands (Melanesia, Micronesia and Polynesia)'),
+ ('Australia', 'Australia');

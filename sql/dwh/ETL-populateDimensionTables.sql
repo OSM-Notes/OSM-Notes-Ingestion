@@ -27,7 +27,9 @@ INSERT INTO dwh.dimension_countries
   FROM dwh.dimension_countries
  )
 ;
--- ToDo update countries with regions.
+-- Updates countries with regions.
+UPDATE dwh.dimension_countries
+ SET region_id = get_country_region(country_id)
 
 -- Shows usernames renamed.
 -- TODO export to a file
