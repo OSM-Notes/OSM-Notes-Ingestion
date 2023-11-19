@@ -30,28 +30,17 @@ AS $proc$
     SET username = EXCLUDED.username;
   END IF;
 
-   -- Perform validation that the note is in open state.
+   -- Gets the current status of the note.
   SELECT status INTO m_status
   FROM notes
   WHERE note_id = m_note_id;
 
-  -- Actions for an open note.
+  -- Possible comment actions depending the current note state.
   IF (m_status = 'open') THEN
    -- The note is currently open.
-   INSERT INTO note_comments (
-    note_id,
-    event,
-    created_at,
-    id_user
-   ) VALUES (
-    m_note_id,
-    m_event,
-    m_created_at,
-    m_id_user
-   );
    
    IF (m_event = 'closed') THEN
-    -- The note is closed.
+    -- The note was closed.
     UPDATE notes
       SET status = 'close',
       closed_at = m_created_at
@@ -61,12 +50,14 @@ AS $proc$
     -- Invalid operation for an open note.
     INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
       || m_note_id || '-' || m_event);
-    RAISE EXCEPTION 'Trying to reopen an opened note';
+    RAISE EXCEPTION 'Trying to reopen an opened note: % - % %', m_note_id,
+      m_status, m_event;
    END IF;
   ELSE
-   -- The note is closed.
+   -- The note is currently closed.
+
    IF (m_event = 'reopened') THEN
-    -- The note is reopened.
+    -- The note was reopened.
     UPDATE notes
       SET status = 'open',
       closed_at = NULL
@@ -76,9 +67,22 @@ AS $proc$
     -- Invalid operation for a closed note.
     INSERT INTO logs (message) VALUES ('Trying to close a closed note '
       || m_note_id || '-' || m_event);
-    RAISE EXCEPTION 'Trying to close a closed note';
+    RAISE EXCEPTION 'Trying to close a closed note: % - % %', m_note_id,
+      m_status, m_event;
    END IF;
   END IF;
+
+  INSERT INTO note_comments (
+   note_id,
+   event,
+   created_at,
+   id_user
+  ) VALUES (
+   m_note_id,
+   m_event,
+   m_created_at,
+   m_id_user
+  );
  END
 $proc$
 ;
