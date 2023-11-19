@@ -167,7 +167,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
   -- history_year_closed_with_comment
-  -- TODO
+  -- TODO comment's text
   m_history_year_closed_with_comment := 0;
 
   -- history_year_reopened
@@ -331,7 +331,7 @@ BEGIN
   FETCH FIRST 1 ROWS ONLY;
 
   -- hashtags
-  -- TODO
+  -- TODO comment's text
   m_hashtags := NULL;
 
   -- users_open_notes
@@ -428,7 +428,7 @@ BEGIN
    AND f.action_comment = 'closed';
 
   -- history_whole_closed_with_comment
-  -- TODO
+  -- TODO comment's text
   m_history_whole_closed_with_comment := 0;
 
   -- history_whole_reopened TODO quitar cuando se reabre multiples veces
@@ -472,7 +472,7 @@ BEGIN
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_year_closed_with_comment
-  -- TODO
+  -- TODO comment's text
   m_history_year_closed_with_comment := 0;
 
   -- history_year_reopened
@@ -522,7 +522,7 @@ BEGIN
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_closed_with_comment
-  -- TODO
+  -- TODO comment's text
   m_history_month_closed_with_comment := 0;
 
   -- history_month_reopened
@@ -576,7 +576,7 @@ BEGIN
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_closed_with_comment
-  -- TODO
+  -- TODO comment's text
   m_history_day_closed_with_comment := 0;
 
   -- history_day_reopened
