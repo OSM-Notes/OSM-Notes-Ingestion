@@ -61,9 +61,9 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
      WHERE user_id = rec_note_action.action_id_user;
 
     m_opened_id_date := dwh.get_date_id(rec_note_action.created_at);
-    m_opened_id_hour := dwh.get_time_id(rec_note_action.created_at);
+    m_opened_id_hour := dwh.get_hour_of_week_id(rec_note_action.created_at);
     m_action_id_date := dwh.get_date_id(rec_note_action.action_at);
-    m_action_id_hour := dwh.get_time_id(rec_note_action.action_at);
+    m_action_id_hour := dwh.get_hour_of_week_id(rec_note_action.action_at);
 
     IF (rec_note_action.action_comment = 'closed') THEN
      m_closed_id_date := m_action_id_date;
@@ -74,10 +74,10 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     INSERT INTO dwh.facts (
       id_note, dimension_id_country,
       action_at, action_comment, action_dimension_id_date,
-      action_dimension_id_hour, action_dimension_id_user, 
-      opened_dimension_id_date, opened_dimension_id_hour,
+      action_dimension_id_hour_of_week, action_dimension_id_user, 
+      opened_dimension_id_date, opened_dimension_id_hour_of_week,
       opened_dimension_id_user,
-      closed_dimension_id_date, closed_dimension_id_hour,
+      closed_dimension_id_date, closed_dimension_id_hour_of_week,
       closed_dimension_id_user
     ) VALUES (
       rec_note_action.id_note, m_dimension_country_id,

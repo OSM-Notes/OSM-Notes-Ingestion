@@ -216,9 +216,9 @@ AS $proc$
  m_hashtags JSON;
  m_users_open_notes JSON;
  m_users_solving_notes JSON;
- m_working_hours_opening JSON;
- m_working_hours_commenting JSON;
- m_working_hours_closing JSON;
+ m_working_hours_of_week_opening JSON;
+ m_working_hours_of_week_commenting JSON;
+ m_working_hours_of_week_closing JSON;
  m_history_whole_open INTEGER; -- Qty opened notes.
  m_history_whole_commented INTEGER; -- Qty commented notes.
  m_history_whole_closed INTEGER; -- Qty closed notes.
@@ -362,48 +362,48 @@ BEGIN
    LIMIT 50
   ) AS T;
 
-  -- working_hours_opening
+  -- working_hours_of_week_opening
   WITH hours AS (
-   SELECT opened_dimension_id_hour, COUNT(1)
+   SELECT day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
-    JOIN dwh.dimension_times t
-    ON f.opened_dimension_id_hour = t.dimension_time_id
+    JOIN dwh.dimension_hours_of_week t
+    ON f.opened_dimension_id_hour_of_week = t.dimension_how_id
    WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'opened'
-   GROUP BY opened_dimension_id_hour
-   ORDER BY opened_dimension_id_hour
+   GROUP BY day_of_week, hour_of_day
+   ORDER BY day_of_week, hour_of_day
   )
   SELECT JSON_AGG(hours.*)
-   INTO m_working_hours_opening
+   INTO m_working_hours_of_week_opening
   FROM hours;
 
-  -- working_hours_commenting
+  -- working_hours_of_week_commenting
   WITH hours AS (
-   SELECT action_dimension_id_hour, COUNT(1)
+   SELECT day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
-    JOIN dwh.dimension_times t
-    ON f.action_dimension_id_hour = t.dimension_time_id
+    JOIN dwh.dimension_hours_of_week t
+    ON f.action_dimension_id_hour_of_week = t.dimension_how_id
    WHERE f.dimension_id_country = r.dimension_id_country
     AND f.action_comment = 'commented'
-   GROUP BY action_dimension_id_hour
-   ORDER BY action_dimension_id_hour
+   GROUP BY day_of_week, hour_of_day
+   ORDER BY day_of_week, hour_of_day
   )
   SELECT JSON_AGG(hours.*)
-   INTO m_working_hours_commenting
+   INTO m_working_hours_of_week_commenting
   FROM hours;
 
-  -- working_hours_closing
+  -- working_hours_of_week_closing
   WITH hours AS (
-   SELECT closed_dimension_id_hour, COUNT(1)
+   SELECT day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
-    JOIN dwh.dimension_times t
-    ON f.closed_dimension_id_hour = t.dimension_time_id
+    JOIN dwh.dimension_hours_of_week t
+    ON f.closed_dimension_id_hour_of_week = t.dimension_how_id
    WHERE f.dimension_id_country = r.dimension_id_country
-   GROUP BY closed_dimension_id_hour
-   ORDER BY closed_dimension_id_hour
+   GROUP BY day_of_week, hour_of_day
+   ORDER BY day_of_week, hour_of_day
   )
   SELECT JSON_AGG(hours.*)
-   INTO m_working_hours_closing
+   INTO m_working_hours_of_week_closing
   FROM hours;
 
   -- history_whole_open
@@ -606,9 +606,9 @@ BEGIN
    hashtags = m_hashtags,
    users_open_notes = m_users_open_notes,
    users_solving_notes = m_users_solving_notes,
-   working_hours_opening = m_working_hours_opening,
-   working_hours_commenting = m_working_hours_commenting,
-   working_hours_closing = m_working_hours_closing,
+   working_hours_of_week_opening = m_working_hours_of_week_opening,
+   working_hours_of_week_commenting = m_working_hours_of_week_commenting,
+   working_hours_of_week_closing = m_working_hours_of_week_closing,
    history_whole_open = m_history_whole_open,
    history_whole_commented = m_history_whole_commented,
    history_whole_closed = m_history_whole_closed,

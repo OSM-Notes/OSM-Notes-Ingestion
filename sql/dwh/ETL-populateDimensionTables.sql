@@ -96,30 +96,36 @@ INSERT INTO dwh.dimension_users
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Adding hour values' AS Task;
 
-SELECT dwh.get_time_id('2013-04-24 01:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 02:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 03:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 04:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 05:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 06:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 07:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 08:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 09:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 10:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 11:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 12:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 13:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 14:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 15:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 16:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 17:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 18:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 19:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 20:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 21:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 22:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 23:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 24:00:00.00000+00');
-SELECT dwh.get_time_id('2013-04-24 00:00:00.00000+00');
+DO
+$$
+DECLARE
+ m_day SMALLINT;
+ m_hour SMALLINT;
+ m_date VARCHAR(32);
+BEGIN
+ m_day := 1;
+ WHILE (m_day <= 7) LOOP
+  m_hour := 1;
+  WHILE (m_hour <= 24) LOOP
+   IF (m_day < 10) THEN
+    IF (m_hour < 10) THEN
+     m_date := '2013-07-0' || m_day || ' 0' || m_hour || ':00:00.00000+00';
+    ELSE
+     m_date := '2013-07-0' || m_day || ' ' || m_hour || ':00:00.00000+00';
+    END IF;
+   ELSE
+    IF (m_hour < 10) THEN
+     m_date := '2013-07-' || m_day || ' 0' || m_hour || ':00:00.00000+00';
+    ELSE
+     m_date := '2013-07-' || m_day || ' ' || m_hour || ':00:00.00000+00';
+    END IF;
+   END IF;
+   PERFORM dwh.get_hour_of_week_id(m_date::timestamp);
+   m_hour := m_hour + 1;
+  END LOOP;
+  m_day := m_day + 1;
+ END LOOP;
+END
+$$;
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Dimensions populated' AS Task;

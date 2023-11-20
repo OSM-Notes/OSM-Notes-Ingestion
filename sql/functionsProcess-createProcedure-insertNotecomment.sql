@@ -38,7 +38,7 @@ AS $proc$
   -- Possible comment actions depending the current note state.
   IF (m_status = 'open') THEN
    -- The note is currently open.
-   
+   -- TODO No puede ser open event varias veces
    IF (m_event = 'closed') THEN
     -- The note was closed.
     UPDATE notes

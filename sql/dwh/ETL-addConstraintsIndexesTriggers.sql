@@ -22,9 +22,9 @@ ALTER TABLE dwh.dimension_days
  ADD CONSTRAINT pk_days_dim
  PRIMARY KEY (dimension_day_id);
 
-ALTER TABLE dwh.dimension_times
- ADD CONSTRAINT pk_times_dim
- PRIMARY KEY (dimension_time_id);
+ALTER TABLE dwh.dimension_hours_of_week
+ ADD CONSTRAINT pk_HoW_dim
+ PRIMARY KEY (dimension_how_id);
 
 -- Foreign keys.
 SELECT CURRENT_TIMESTAMP AS Processing, 'Creating foreign keys' AS Task;
@@ -40,9 +40,9 @@ ALTER TABLE dwh.facts
  REFERENCES dwh.dimension_days (dimension_day_id);
 
 ALTER TABLE dwh.facts
- ADD CONSTRAINT fk_time_action
- FOREIGN KEY (action_dimension_id_hour)
- REFERENCES dwh.dimension_times (dimension_time_id);
+ ADD CONSTRAINT fk_hour_of_week_action
+ FOREIGN KEY (action_dimension_id_hour_of_week)
+ REFERENCES dwh.dimension_hours_of_week (dimension_how_id);
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_users_action
@@ -56,8 +56,8 @@ ALTER TABLE dwh.facts
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_time_opened
- FOREIGN KEY (opened_dimension_id_hour)
- REFERENCES dwh.dimension_times (dimension_time_id);
+ FOREIGN KEY (opened_dimension_id_hour_of_week)
+ REFERENCES dwh.dimension_hours_of_week (dimension_how_id);
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_users_opened
@@ -71,8 +71,8 @@ ALTER TABLE dwh.facts
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_time_closed
- FOREIGN KEY (closed_dimension_id_hour)
- REFERENCES dwh.dimension_times (dimension_time_id);
+ FOREIGN KEY (closed_dimension_id_hour_of_week)
+ REFERENCES dwh.dimension_hours_of_week (dimension_how_id);
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_users_closed
@@ -135,17 +135,17 @@ COMMENT ON INDEX dwh.country_closed_user_idx IS
   'Improves queries by country and closing user';
 
 CREATE INDEX hours_opening_idx
-ON dwh.facts (opened_dimension_id_hour, opened_dimension_id_user);
+ON dwh.facts (opened_dimension_id_hour_of_week, opened_dimension_id_user);
 COMMENT ON INDEX dwh.hours_opening_idx IS
   'Improves queries by opening hour and user';
 
 CREATE INDEX hours_commenting_idx
-ON dwh.facts (action_dimension_id_hour, action_dimension_id_user);
+ON dwh.facts (action_dimension_id_hour_of_week, action_dimension_id_user);
 COMMENT ON INDEX dwh.hours_commenting_idx IS
   'Improves queries by action hour and user';
 
 CREATE INDEX hours_closing_idx
-ON dwh.facts (closed_dimension_id_hour, closed_dimension_id_user);
+ON dwh.facts (closed_dimension_id_hour_of_week, closed_dimension_id_user);
 COMMENT ON INDEX dwh.hours_closing_idx IS
   'Improves queries by closing hour and user';
 
@@ -204,30 +204,41 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
 /**
  * Returns the given hour of a timestamp.
  */
-CREATE OR REPLACE FUNCTION dwh.get_time_id(new_date TIMESTAMP)
+CREATE OR REPLACE FUNCTION dwh.get_hour_of_week_id(m_date TIMESTAMP)
   RETURNS INTEGER AS
  $$
  DECLARE
-  id_time INTEGER;
+  m_day_of_week SMALLINT;
+  m_hour_of_day SMALLINT;
+  m_dimension_how_id SMALLINT;
  BEGIN
-  SELECT dimension_time_id INTO id_time
-  FROM dwh.dimension_times
-  WHERE hour = EXTRACT(HOUR FROM new_date);
-  
-  IF (id_time IS NULL) THEN
-   INSERT INTO dwh.dimension_times (
-     hour
+  SELECT EXTRACT(isodow FROM m_date)
+   INTO m_day_of_week;
+
+  SELECT EXTRACT(HOUR FROM m_date)
+   INTO m_hour_of_day;
+
+  SELECT dimension_how_id
+   INTO m_dimension_how_id
+  FROM dwh.dimension_hours_of_week
+  WHERE dimension_how_id = m_day_of_week * 100 + m_hour_of_day;
+
+   RAISE NOTICE 'date %', m_date;
+
+  IF (m_dimension_how_id IS NULL) THEN
+   INSERT INTO dwh.dimension_hours_of_week (
+     dimension_how_id, day_of_week, hour_of_day
     ) VALUES (
-     EXTRACT(HOUR FROM new_date)
+     m_day_of_week * 100 + m_hour_of_day, m_day_of_week, m_hour_of_day
     )
    ;
   END IF;
-  RETURN id_time;
+  RETURN m_dimension_how_id;
  END;
  $$ LANGUAGE plpgsql
 ;
-COMMENT ON FUNCTION dwh.get_time_id IS
-  'Returns the given hour of a timestamp, and persist it on the dimension';
+COMMENT ON FUNCTION dwh.get_hour_of_week_id IS
+  'Returns id of the hour of a week';
 
 SELECT CURRENT_TIMESTAMP AS Processing, 'Extra objects created' AS Task;
 

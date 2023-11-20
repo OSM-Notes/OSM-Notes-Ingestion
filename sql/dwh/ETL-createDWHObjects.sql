@@ -15,13 +15,13 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  action_at TIMESTAMP NOT NULL,
  action_comment note_event_enum NOT NULL,
  action_dimension_id_date INTEGER NOT NULL,
- action_dimension_id_hour INTEGER NOT NULL,
+ action_dimension_id_hour_of_week SMALLINT NOT NULL,
  action_dimension_id_user INTEGER,
  opened_dimension_id_date INTEGER NOT NULL,
- opened_dimension_id_hour INTEGER NOT NULL,
+ opened_dimension_id_hour_of_week SMALLINT NOT NULL,
  opened_dimension_id_user INTEGER,
  closed_dimension_id_date INTEGER,
- closed_dimension_id_hour INTEGER,
+ closed_dimension_id_hour_of_week SMALLINT,
  closed_dimension_id_user INTEGER
 );
 COMMENT ON TABLE dwh.facts IS 'Facts id, center of the star schema';
@@ -34,19 +34,20 @@ COMMENT ON COLUMN dwh.facts.action_at IS
  'Timestamp when the action took place';
 COMMENT ON COLUMN dwh.facts.action_comment IS 'Type of comment action';
 COMMENT ON COLUMN dwh.facts.action_dimension_id_date IS 'Date of the action';
-COMMENT ON COLUMN dwh.facts.action_dimension_id_hour IS 'Hour of the action';
+COMMENT ON COLUMN dwh.facts.action_dimension_id_hour_of_week IS
+  'Hour of the week action';
 COMMENT ON COLUMN dwh.facts.action_dimension_id_user IS
   'User who performed the action';
 COMMENT ON COLUMN dwh.facts.opened_dimension_id_date IS
   'Date when the note was created';
-COMMENT ON COLUMN dwh.facts.opened_dimension_id_hour IS
-  'Hour when the note was created';
+COMMENT ON COLUMN dwh.facts.opened_dimension_id_hour_of_week IS
+  'Hour of the week when the note was created';
 COMMENT ON COLUMN dwh.facts.opened_dimension_id_user IS
   'User who created the note. It could be annonymous';
 COMMENT ON COLUMN dwh.facts.closed_dimension_id_date IS
   'Date when the note was closed';
-COMMENT ON COLUMN dwh.facts.closed_dimension_id_hour IS
-  'Time when the note was closed';
+COMMENT ON COLUMN dwh.facts.closed_dimension_id_hour_of_week IS
+  'Hour of the week when the note was closed';
 COMMENT ON COLUMN dwh.facts.closed_dimension_id_user IS
   'User who created the note';
 
@@ -79,7 +80,7 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
  country_name VARCHAR(100),
  country_name_es VARCHAR(100),
  country_name_en VARCHAR(100),
- region_id INTEGER;
+ region_id INTEGER,
  modified BOOLEAN
 );
 COMMENT ON TABLE dwh.dimension_countries IS 'Dimension for contries';
@@ -102,13 +103,15 @@ COMMENT ON TABLE dwh.dimension_days IS 'Dimension for days';
 COMMENT ON COLUMN dwh.dimension_days.dimension_day_id IS 'Surrogated ID';
 COMMENT ON COLUMN dwh.dimension_days.date_id IS 'Complete date';
 
-CREATE TABLE IF NOT EXISTS dwh.dimension_times (
- dimension_time_id SERIAL,
- hour SMALLINT
+CREATE TABLE IF NOT EXISTS dwh.dimension_hours_of_week (
+ dimension_how_id SMALLINT,
+ day_of_week SMALLINT,
+ hour_of_day SMALLINT
 );
-COMMENT ON TABLE dwh.dimension_times IS 'Dimension for days';
-COMMENT ON COLUMN dwh.dimension_times.dimension_time_id IS 'Surrogated ID';
-COMMENT ON COLUMN dwh.dimension_times.hour IS 'Hour of the day';
+COMMENT ON TABLE dwh.dimension_hours_of_week IS 'Dimension for days';
+COMMENT ON COLUMN dwh.dimension_hours_of_week.dimension_how_id IS 'Hour of week identifier: dayOfWeek-hourOfDay';
+COMMENT ON COLUMN dwh.dimension_hours_of_week.day_of_week IS 'Day of the week';
+COMMENT ON COLUMN dwh.dimension_hours_of_week.hour_of_day IS 'Hour of the day';
 
 INSERT INTO dwh.dimension_regions (region_name) VALUES
  ('Indefinida', 'Undefined'),

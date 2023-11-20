@@ -34,3 +34,4 @@ Lista de ToDo's
 * Por país, las notas que tomaron más tiempo en cerrarse
 * Aplicaciones usadas para notas.
   * Mostrar en el perfil de país.
+* Usar una DB direferente para el DWH
