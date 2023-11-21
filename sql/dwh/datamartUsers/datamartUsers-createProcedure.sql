@@ -362,7 +362,7 @@ AS $proc$
   m_hashtags := NULL;
  
   -- countries_open_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries',country_name, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries', country_name, 'quantity', quantity))
    INTO m_countries_open_notes
   FROM (
    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
@@ -376,7 +376,7 @@ AS $proc$
   ) AS T;
  
   -- countries_solving_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries',country_name, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries', country_name, 'quantity', quantity))
    INTO m_countries_solving_notes
   FROM (
    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
