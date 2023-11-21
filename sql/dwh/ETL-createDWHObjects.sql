@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_regions (
 );
 COMMENT ON TABLE dwh.dimension_regions IS 'Regions for contries';
 COMMENT ON COLUMN dwh.dimension_regions.dimension_region_id IS 'Id';
-COMMENT ON COLUMN dwh.dimension_regions.region_name IS 'Name of the region';
+COMMENT ON COLUMN dwh.dimension_regions.region_name_es IS 'Name of the region in Spanish';
+COMMENT ON COLUMN dwh.dimension_regions.region_name_en IS 'Name of the region in English';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
  dimension_country_id SERIAL,

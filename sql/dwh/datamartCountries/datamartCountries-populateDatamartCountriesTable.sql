@@ -7,8 +7,20 @@ DO
 $$
 DECLARE
  r RECORD;
-
+ max_date DATE;
 BEGIN
+ SELECT date
+  INTO max_date
+ FROM dwh.max_date_countries_processed;
+ IF (max_timestamp < CURRENT_DATE) THEN
+  RAISE NOTICE 'Moving activites';
+  -- Updates all countries, moving a day.
+  UPDATE dwh.datamartCountries
+   SET last_year_activity = move_day(last_year_activity);
+  UPDATE dwh.max_date_countries_processed
+   SET date = CURRENT_DATE;
+ END IF;
+
  FOR r IN
   -- Process the datamart only for modified countries.
   SELECT f.dimension_id_country

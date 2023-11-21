@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
 
  -- Dynamic values
  id_contributor_type SMALLINT, -- Note contributor type.
- last_year_activity TEXT, -- Most recent note action. TODO
+ last_year_activity CHAR(371),  -- Last year's actions. GitHub tile style.
  lastest_open_note_id INTEGER, -- Newest.
  lastest_commented_note_id INTEGER,
  lastest_closed_note_id INTEGER,
@@ -79,7 +79,7 @@ COMMENT ON COLUMN dwh.datamartUsers.first_reopened_note_id IS
 COMMENT ON COLUMN dwh.datamartUsers.id_contributor_type IS
   'Note contributor type';
 COMMENT ON COLUMN dwh.datamartUsers.last_year_activity IS
-  'Most recent note action. TODO';
+  'Last year''s actions. GitHub tile style.';
 COMMENT ON COLUMN dwh.datamartUsers.lastest_open_note_id IS
   'Most recent opened note';
 COMMENT ON COLUMN dwh.datamartUsers.lastest_commented_note_id IS
@@ -184,6 +184,14 @@ CREATE TABLE IF NOT EXISTS dwh.contributor_types (
  contributor_type_id SERIAL,
  contributor_type_name VARCHAR(64) NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS dwh.max_date_users_processed (
+  date NOT NULL
+);
+COMMENT ON TABLE dwh.max_date_user_processed IS
+  'Max date for users processed, to move the activities';
+COMMENT ON COLUMN dwh.max_date_users_processed.date IS
+  'Value of the max date of users processed';
 
 -- Primary keys.
 ALTER TABLE dwh.datamartUsers

@@ -129,11 +129,11 @@ CREATE OR REPLACE PROCEDURE dwh.update_datamart_country_activity_year (
 LANGUAGE plpgsql
 AS $proc$
  DECLARE
- m_history_year_open INTEGER;
- m_history_year_commented INTEGER;
- m_history_year_closed INTEGER;
- m_history_year_closed_with_comment INTEGER;
- m_history_year_reopened INTEGER;
+  m_history_year_open INTEGER;
+  m_history_year_commented INTEGER;
+  m_history_year_closed INTEGER;
+  m_history_year_closed_with_comment INTEGER;
+  m_history_year_reopened INTEGER;
  stmt TEXT;
  BEGIN
   -- history_year_open
@@ -203,48 +203,49 @@ CREATE OR REPLACE PROCEDURE dwh.update_datamart_country (
 LANGUAGE plpgsql
 AS $proc$
  DECLARE
- qty SMALLINT;
- m_last_year_activity SMALLINT;
- m_lastest_open_note_id INTEGER;
- m_lastest_commented_note_id INTEGER;
- m_lastest_closed_note_id INTEGER;
- m_lastest_reopened_note_id INTEGER;
- m_date_most_open DATE;
- m_date_most_open_qty SMALLINT;
- m_date_most_closed DATE;
- m_date_most_closed_qty SMALLINT;
- m_hashtags JSON;
- m_users_open_notes JSON;
- m_users_solving_notes JSON;
- m_working_hours_of_week_opening JSON;
- m_working_hours_of_week_commenting JSON;
- m_working_hours_of_week_closing JSON;
- m_history_whole_open INTEGER; -- Qty opened notes.
- m_history_whole_commented INTEGER; -- Qty commented notes.
- m_history_whole_closed INTEGER; -- Qty closed notes.
- m_history_whole_closed_with_comment INTEGER; -- Qty closed notes with comments.
- m_history_whole_reopened INTEGER; -- Qty reopened notes.
- m_history_year_open INTEGER; -- Qty in the current year.
- m_history_year_commented INTEGER;
- m_history_year_closed INTEGER;
- m_history_year_closed_with_comment INTEGER;
- m_history_year_reopened INTEGER;
- m_history_month_open INTEGER; -- Qty in the current month.
- m_history_month_commented INTEGER;
- m_history_month_closed INTEGER;
- m_history_month_closed_with_comment INTEGER;
- m_history_month_reopened INTEGER;
- m_history_day_open INTEGER; -- Qty in the current day.
- m_history_day_commented INTEGER;
- m_history_day_closed INTEGER;
- m_history_day_closed_with_comment INTEGER;
- m_history_day_reopened INTEGER;
-
- m_year SMALLINT;
- m_current_year SMALLINT;
- m_current_month SMALLINT;
- m_current_day SMALLINT;
-BEGIN
+  qty SMALLINT;
+  m_todays_activity SMALLINT;
+  m_last_year_activity CHAR(371);
+  m_lastest_open_note_id INTEGER;
+  m_lastest_commented_note_id INTEGER;
+  m_lastest_closed_note_id INTEGER;
+  m_lastest_reopened_note_id INTEGER;
+  m_date_most_open DATE;
+  m_date_most_open_qty SMALLINT;
+  m_date_most_closed DATE;
+  m_date_most_closed_qty SMALLINT;
+  m_hashtags JSON;
+  m_users_open_notes JSON;
+  m_users_solving_notes JSON;
+  m_working_hours_of_week_opening JSON;
+  m_working_hours_of_week_commenting JSON;
+  m_working_hours_of_week_closing JSON;
+  m_history_whole_open INTEGER; -- Qty opened notes.
+  m_history_whole_commented INTEGER; -- Qty commented notes.
+  m_history_whole_closed INTEGER; -- Qty closed notes.
+  m_history_whole_closed_with_comment INTEGER; -- Qty closed notes with comments.
+  m_history_whole_reopened INTEGER; -- Qty reopened notes.
+  m_history_year_open INTEGER; -- Qty in the current year.
+  m_history_year_commented INTEGER;
+  m_history_year_closed INTEGER;
+  m_history_year_closed_with_comment INTEGER;
+  m_history_year_reopened INTEGER;
+  m_history_month_open INTEGER; -- Qty in the current month.
+  m_history_month_commented INTEGER;
+  m_history_month_closed INTEGER;
+  m_history_month_closed_with_comment INTEGER;
+  m_history_month_reopened INTEGER;
+  m_history_day_open INTEGER; -- Qty in the current day.
+  m_history_day_commented INTEGER;
+  m_history_day_closed INTEGER;
+  m_history_day_closed_with_comment INTEGER;
+  m_history_day_reopened INTEGER;
+ 
+  m_year SMALLINT;
+  m_current_year SMALLINT;
+  m_current_month SMALLINT;
+  m_current_day SMALLINT;
+ BEGIN
   SELECT COUNT(1)
    INTO qty
    FROM dwh.datamartCountries
@@ -257,14 +258,13 @@ BEGIN
   END IF;
 
   -- last_year_activity
-  SELECT EXTRACT(YEAR FROM date_id)
-   INTO m_last_year_activity
-  FROM dwh.dimension_days
-  WHERE dimension_day_id = (
-   SELECT MAX(action_dimension_id_date)
-   FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_id_country
-  );
+  SELECT COUNT(1)
+   INTO m_todays_activity
+  FROM dwh.facts
+  WHERE f.dimension_id_country = dimension_id_country
+  AND f.action_dimension_id_date = CURRENT_TIMESTAMP;
+  m_last_year_activity := refresh_today_activities(last_year_activity,
+    get_score_country_activity(m_todays_activity));
 
   -- lastest_open_note_id
   SELECT id_note
@@ -635,7 +635,7 @@ BEGIN
    CALL dwh.update_datamart_country_activity_year(r.dimension_id_country, m_year);
    m_year := m_year + 1;
   END LOOP;
-END
+ END
 $proc$;
 COMMENT ON PROCEDURE dwh.update_datamart_user IS
   'Processes modifed countries';

@@ -3,16 +3,16 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-29
 
-DROP PROCEDURE dwh.update_datamart_user;
+DROP PROCEDURE IF EXISTS dwh.update_datamart_user;
 
-DROP PROCEDURE dwh.update_datamart_user_activity_year;
+DROP PROCEDURE IF EXISTS dwh.update_datamart_user_activity_year;
 
-DROP PROCEDURE dwh.insert_datamart_user;
+DROP PROCEDURE IF EXISTS dwh.insert_datamart_user;
 
-DROP TABLE dwh.badges_per_users;
+DROP TABLE IF EXISTS dwh.badges_per_users;
 
-DROP TABLE dwh.badges;
+DROP TABLE IF EXISTS dwh.badges;
 
-DROP TABLE dwh.datamartUsers;
+DROP TABLE IF EXISTS dwh.datamartUsers;
 
-DROP TABLE dwh.contributor_types;
+DROP TABLE IF EXISTS dwh.contributor_types;

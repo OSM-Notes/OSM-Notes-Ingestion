@@ -37,7 +37,7 @@ COMMENT ON COLUMN notes_sync_no_duplicates.closed_at IS
 COMMENT ON COLUMN notes_sync_no_duplicates.id_country IS
   'Country id where the note is located';
 
-DROP TABLE notes_sync;
+DROP TABLE IF EXISTS notes_sync;
 ALTER TABLE notes_sync_no_duplicates RENAME TO notes_sync;
 SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes sync' as Text;
 
@@ -119,7 +119,7 @@ COMMENT ON COLUMN note_comments_sync_no_duplicates.id_user IS
 COMMENT ON COLUMN note_comments_sync_no_duplicates.username IS
   'OSM username at the time of this action';
 
-DROP TABLE note_comments_sync;
+DROP TABLE IF EXISTS note_comments_sync;
 ALTER TABLE note_comments_sync_no_duplicates RENAME TO note_comments_sync;
 SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments sync' as Text;
 ANALYZE note_comments_sync;

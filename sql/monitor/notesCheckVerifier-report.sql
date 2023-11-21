@@ -61,7 +61,7 @@ COPY
  TO '/tmp/differentNoteIds.csv' WITH DELIMITER ',' CSV HEADER
 ;
 
-DROP TABLE temp_diff_notes_id;
+DROP TABLE IF EXISTS temp_diff_notes_id;
 
 -- Ids de comentarios que no están en la DB de API, pero si en la de Planet.
 -- Si hay varios comentarios de la misma fecha, es probable que haya fallado el
@@ -96,7 +96,7 @@ COPY
  TO '/tmp/differentNoteCommentIds.csv' WITH DELIMITER ',' CSV HEADER
 ;
 
-DROP TABLE temp_diff_comments_id;
+DROP TABLE IF EXISTS temp_diff_comments_id;
 
 -- Notas diferentes entre las recuperadas por el API y las del Planet.
 -- Si hay varias notas de la misma fecha, es probable que haya fallado el
@@ -145,7 +145,7 @@ COPY
  TO '/tmp/differentNotes.csv' WITH DELIMITER ',' CSV HEADER
 ;
 
-DROP TABLE temp_diff_notes;
+DROP TABLE IF EXISTS temp_diff_notes;
 
 -- Comentarios diferentes entre los recuperadas por el API y los del Planet.
 -- Si hay varios comentarios de la misma fecha, es probable que haya fallado el
@@ -193,5 +193,5 @@ COPY
  TO '/tmp/differentNoteComments.csv' WITH DELIMITER ',' CSV HEADER
 ;
 
-DROP TABLE temp_diff_note_comments;
+DROP TABLE IF EXISTS temp_diff_note_comments;
 

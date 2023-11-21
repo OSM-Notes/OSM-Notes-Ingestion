@@ -235,7 +235,17 @@ project, providing as much information as possible.
 # Remove
 
 ```
-psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartCountries/datamartCountries-dropDatamartObjects.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartUsers/datamartUsers-dropDatamartObjects.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/dwh/Staging-removeStagingObjects.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/dwh/ETL-removeDWHObjects.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/wms/removeFromDatabase.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/process/processAPINotes-dropApiTables.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropApiTables.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropSyncTables.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropBaseTables.sql ; psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropCountryTables.sql 
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartCountries/datamartCountries-dropDatamartObjects.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartUsers/datamartUsers-dropDatamartObjects.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/Staging-removeStagingObjects.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/ETL-removeDWHObjects.sql ;
+
+psql -d notes -f ~/OSM-Notes-profile/sql/wms/removeFromDatabase.sql ;
+
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processAPINotes-dropApiTables.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropSyncTables.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropBaseTables.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropCountryTables.sql 
 ```
 
 # Help
