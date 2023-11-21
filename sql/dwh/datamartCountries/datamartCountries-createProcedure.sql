@@ -284,8 +284,10 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_todays_activity
   FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   (ON f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = dimension_id_country
-  AND f.action_dimension_id_date = CURRENT_DATE;
+  AND d.date_id = CURRENT_DATE;
   m_last_year_activity := dwh.refresh_today_activities(last_year_activity,
     dwh.get_score_country_activity(m_todays_activity));
 
