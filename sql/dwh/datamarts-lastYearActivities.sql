@@ -6,7 +6,7 @@
 /**
  * Returns the score, from 0 to 9 for the activities of a user in a day.
  */
-CREATE OR REPLACE FUNCTION get_score_user_activity (
+CREATE OR REPLACE FUNCTION dwh.get_score_user_activity (
   qty INTEGER
 ) RETURNS SMALLINT
  LANGUAGE plpgsql
@@ -35,17 +35,17 @@ CREATE OR REPLACE FUNCTION get_score_user_activity (
    ELSIF (511 <= qty ) THEN
     score := 9;
    END IF;
-   RETURN score
+   RETURN score;
   END
  $func$
 ;
-COMMENT ON FUNCTION get_score_user_activity IS
+COMMENT ON FUNCTION dwh.get_score_user_activity IS
   'Returns the score (0-9) for the given numer of actions for a user';
 
 /**
  * Returns the score, from 0 to 9 for the activities in a country in a day.
  */
-CREATE OR REPLACE FUNCTION get_score_country_activity (
+CREATE OR REPLACE FUNCTION dwh.get_score_country_activity (
   qty INTEGER
 ) RETURNS SMALLINT
  LANGUAGE plpgsql
@@ -74,20 +74,20 @@ CREATE OR REPLACE FUNCTION get_score_country_activity (
    ELSIF (511 <= qty ) THEN
     score := 9;
    END IF;
-   RETURN score
+   RETURN score;
   END
  $func$
 ;
-COMMENT ON FUNCTION get_score_country_activity IS
+COMMENT ON FUNCTION dwh.get_score_country_activity IS
   'Returns the score (0-9) for the given numer of actions for a country';
 
 /**
  * Moves the activities day, removing the oldest day at the right, and
  * inserting a new day with 0 at the left.
  */
-CREATE OR REPLACE PROCEDURE move_day (
+CREATE OR REPLACE FUNCTION dwh.move_day (
   activity CHAR(371)
-) 
+) RETURNS CHAR(371)
  LANGUAGE plpgsql
  AS $func$
   DECLARE
@@ -98,13 +98,13 @@ CREATE OR REPLACE PROCEDURE move_day (
   END
  $func$
 ;
-COMMENT ON PROCEDURE move_day IS
+COMMENT ON FUNCTION dwh.move_day IS
   'Moves the activities by one position. First is removed (oldest at left), new is a 0 (newest at right)';
 
 /**
  * Updates today's value, which is at the left.
  */
-CREATE OR REPLACE FUNCTION refresh_today_activities (
+CREATE OR REPLACE FUNCTION dwh.refresh_today_activities (
   activity CHAR(371),
   score SMALLINT
 ) RETURNS CHAR(371)
@@ -118,5 +118,5 @@ CREATE OR REPLACE FUNCTION refresh_today_activities (
   END
  $func$
 ;
-COMMENT ON FUNCTION refresh_today_activities IS
+COMMENT ON FUNCTION dwh.refresh_today_activities IS
   'Updates the today''activities with the new value given';
