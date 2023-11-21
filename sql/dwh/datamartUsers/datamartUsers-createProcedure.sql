@@ -287,7 +287,7 @@ AS $proc$
    INTO m_todays_activity
   FROM dwh.facts f
   WHERE f.action_dimension_id_user = m_dimension_user_id
-  AND f.action_dimension_id_date = CURRENT_TIMESTAMP;
+  AND f.action_dimension_id_date = CURRENT_DATE;
   m_last_year_activity := refresh_today_activities(last_year_activity,
     get_score_user_activity(m_todays_activity));
 
