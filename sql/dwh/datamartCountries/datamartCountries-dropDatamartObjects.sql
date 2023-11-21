@@ -3,10 +3,10 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-11-11
 
-DROP PROCEDURE dwh.update_datamart_country;
+DROP PROCEDURE IF EXISTS dwh.update_datamart_country;
 
-DROP PROCEDURE dwh.update_datamart_country_activity_year;
+DROP PROCEDURE IF EXISTS dwh.update_datamart_country_activity_year;
 
-DROP PROCEDURE dwh.insert_datamart_country;
+DROP PROCEDURE IF EXISTS dwh.insert_datamart_country;
 
-DROP TABLE dwh.datamartCountries;
+DROP TABLE IF EXISTS dwh.datamartCountries;

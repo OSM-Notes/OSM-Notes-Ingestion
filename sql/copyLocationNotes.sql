@@ -48,7 +48,7 @@ COMMENT ON INDEX notes_countries IS 'To query by location of the note';
 ALTER TABLE notes_new RENAME TO notes;
 
 -- To release space.
-DROP TABLE notes_orig;
+DROP TABLE IF EXISTS notes_orig;
 
 -- To update new notes without location.
 UPDATE notes
@@ -78,4 +78,4 @@ FROM backup_note_country as b
 WHERE b.note_id = n.note_id;
 
 -- To release space.
-DROP TABLE backup_note_country;
+DROP TABLE IF EXISTS backup_note_country;
