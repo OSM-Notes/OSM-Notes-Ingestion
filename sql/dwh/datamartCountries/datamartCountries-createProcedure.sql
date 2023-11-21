@@ -110,9 +110,9 @@ AS $proc$
    ORDER BY e.date_id DESC
    LIMIT 371
   LOOP
-   m_last_year_activity := refresh_today_activities(m_last_year_activity
-     (get_score_user_activity(r.qty)));
-   m_last_year_activity := move_day(m_last_year_activity);
+   m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity
+     (dwh.get_score_user_activity(r.qty::SMALLINT)));
+   m_last_year_activity := dwh.move_day(m_last_year_activity);
   END LOOP;
 
   INSERT INTO dwh.datamartCountries (
@@ -286,8 +286,8 @@ AS $proc$
   FROM dwh.facts
   WHERE f.dimension_id_country = dimension_id_country
   AND f.action_dimension_id_date = CURRENT_TIMESTAMP;
-  m_last_year_activity := refresh_today_activities(last_year_activity,
-    get_score_country_activity(m_todays_activity));
+  m_last_year_activity := dwh.refresh_today_activities(last_year_activity,
+    dwh.get_score_country_activity(m_todays_activity));
 
   -- lastest_open_note_id
   SELECT id_note

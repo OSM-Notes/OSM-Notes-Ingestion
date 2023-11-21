@@ -16,7 +16,7 @@ BEGIN
   RAISE NOTICE 'Moving activites';
   -- Updates all countries, moving a day.
   UPDATE dwh.datamartCountries
-   SET last_year_activity = move_day(last_year_activity);
+   SET last_year_activity = dwh.move_day(last_year_activity);
   UPDATE dwh.max_date_countries_processed
    SET date = CURRENT_DATE;
  END IF;
