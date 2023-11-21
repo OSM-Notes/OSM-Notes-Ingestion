@@ -67,8 +67,8 @@ COMMENT ON COLUMN dwh.dimension_users.modified IS
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_regions (
  dimension_region_id SERIAL,
- region_name_es VARCHAR(30),
- region_name_en VARCHAR(30)
+ region_name_es VARCHAR(60),
+ region_name_en VARCHAR(60)
 );
 COMMENT ON TABLE dwh.dimension_regions IS 'Regions for contries';
 COMMENT ON COLUMN dwh.dimension_regions.dimension_region_id IS 'Id';

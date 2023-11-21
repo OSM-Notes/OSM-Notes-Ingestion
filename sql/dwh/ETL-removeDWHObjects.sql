@@ -11,6 +11,8 @@ DROP FUNCTION IF EXISTS dwh.get_date_id;
 
 DROP TABLE IF EXISTS dwh.facts;
 
+DROP TABLE IF EXISTS dwh.dimension_regions;
+
 DROP TABLE IF EXISTS dwh.dimension_hours_of_week;
 
 DROP TABLE IF EXISTS dwh.dimension_days;
