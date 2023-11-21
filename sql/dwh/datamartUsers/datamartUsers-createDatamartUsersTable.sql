@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
  hashtags JSON, -- List of used hashtag.
  countries_open_notes JSON, -- List of countries where opening notes.
  countries_solving_notes JSON, -- List of countries where closing notes.
- working_hours_opening JSON, -- Hours when the user creates notes. TODO mostrar semana
- working_hours_commenting JSON, -- Hours when the user comments notes.
- working_hours_closing JSON, -- Hours when the user closes notes.
+ working_hours_of_week_opening JSON, -- Hours when the user creates notes. TODO mostrar semana
+ working_hours_of_week_commenting JSON, -- Hours when the user comments notes.
+ working_hours_of_week_closing JSON, -- Hours when the user closes notes.
  history_whole_open INTEGER, -- Qty opened notes.
  history_whole_commented INTEGER, -- Qty commented notes.
  history_whole_closed INTEGER, -- Qty closed notes.
@@ -101,11 +101,11 @@ COMMENT ON COLUMN dwh.datamartUsers.countries_open_notes IS
   'List of countries where opening notes';
 COMMENT ON COLUMN dwh.datamartUsers.countries_solving_notes IS
   'List of countries where closing notes';
-COMMENT ON COLUMN dwh.datamartUsers.working_hours_opening IS
+COMMENT ON COLUMN dwh.datamartUsers.working_hours_of_week_opening IS
   'Hours when the user creates notes';
-COMMENT ON COLUMN dwh.datamartUsers.working_hours_commenting IS
+COMMENT ON COLUMN dwh.datamartUsers.working_hours_of_week_commenting IS
   'Hours when the user comments notes';
-COMMENT ON COLUMN dwh.datamartUsers.working_hours_closing IS
+COMMENT ON COLUMN dwh.datamartUsers.working_hours_of_week_closing IS
   'Hours when the user closes notes';
 COMMENT ON COLUMN dwh.datamartUsers.history_whole_open IS
   'Qty opened notes in the whole history';
