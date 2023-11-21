@@ -108,7 +108,7 @@ AS $proc$
    ORDER BY e.date_id DESC
    LIMIT 371
   LOOP
-   m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity
+   m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
      (dwh.get_score_user_activity(r.qty::SMALLINT)));
    m_last_year_activity := dwh.move_day(m_last_year_activity);
   END LOOP;
