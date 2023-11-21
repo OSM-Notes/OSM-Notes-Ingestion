@@ -2,7 +2,9 @@ Lista de ToDo's
 
 * Procesar el texto de los comentarios. Debe insertarlos en otra tabla.
   * Se debe crear otro XSLT
-  * Hacer un analizar de hashtags
+  * Hacer un analizador de hashtags
+* Aplicaciones usadas para notas.
+  * Mostrar en el perfil de país.
 * Definir los tipos de contribuidores, insertarlos y asignarlos dinámicamente.
 * Definir los badges y asignarlos.
 * Revisar cuando una nota se reabre, que se quite el closed en DWH
@@ -13,7 +15,6 @@ Lista de ToDo's
 * Validar que esta nota se procesa bien https://api.openstreetmap.org/api/0.6/notes/3750896
 * Mostrar resultados en OSM y en el API.
 * Mostrar los tiles de actividad del último año.
-  * Puede crearse un varchar de 365 o 7*52=364
 * Día con más notas creadas
 * Hora con más notas creadas
 * Minuto con más notas creadas
@@ -30,6 +31,5 @@ Lista de ToDo's
 * Tener rankings de los 100 histórico, último año, último mes, hoy
   * El que más ha abierto, más cerrado, más comentado, más reabierto
 * Por país, las notas que tomaron más tiempo en cerrarse
-* Aplicaciones usadas para notas.
-  * Mostrar en el perfil de país.
 * Usar una DB direferente para el DWH
+* ERROR: Cuando se ejecuta el datamart de nuevo, vuelve a cargar las notas del mismo dia, ya que había cargado
