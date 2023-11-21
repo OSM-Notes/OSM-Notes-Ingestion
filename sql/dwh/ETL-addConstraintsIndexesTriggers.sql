@@ -223,8 +223,6 @@ CREATE OR REPLACE FUNCTION dwh.get_hour_of_week_id(m_date TIMESTAMP)
   FROM dwh.dimension_hours_of_week
   WHERE dimension_how_id = m_day_of_week * 100 + m_hour_of_day;
 
-   RAISE NOTICE 'date %', m_date;
-
   IF (m_dimension_how_id IS NULL) THEN
    INSERT INTO dwh.dimension_hours_of_week (
      dimension_how_id, day_of_week, hour_of_day
