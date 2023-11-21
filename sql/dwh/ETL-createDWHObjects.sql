@@ -114,7 +114,7 @@ COMMENT ON COLUMN dwh.dimension_hours_of_week.dimension_how_id IS 'Hour of week 
 COMMENT ON COLUMN dwh.dimension_hours_of_week.day_of_week IS 'Day of the week';
 COMMENT ON COLUMN dwh.dimension_hours_of_week.hour_of_day IS 'Hour of the day';
 
-INSERT INTO dwh.dimension_regions (region_name) VALUES
+INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
  ('Indefinida', 'Undefined'),
  ('Norteamérica', 'North America'),
  ('Centroamérica', 'Central America'),
