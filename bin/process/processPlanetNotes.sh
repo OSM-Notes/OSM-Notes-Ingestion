@@ -607,7 +607,7 @@ EOF
   mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
 
   __logi "Importing into Postgres."
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${USER}" "${GEOJSON_FILE}" \
+  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" "${GEOJSON_FILE}" \
    -nln import -overwrite
 
   __logi "Inserting into final table."
