@@ -20,6 +20,8 @@ AS $proc$
   m_first_commented_note_id INTEGER;
   m_first_closed_note_id INTEGER;
   m_first_reopened_note_id INTEGER;
+  m_last_year_activity CHAR(371);
+  r RECORD;
  BEGIN
   SELECT user_id, username
    INTO m_user_id, m_username
@@ -89,6 +91,27 @@ AS $proc$
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'reopened'
   );
+
+  -- Create the last year activity
+  FOR r IN
+   SELECT e.date_id, COALESCE(u.qty, 0) qty
+   FROM dwh.dimension_days e
+   LEFT JOIN (
+    SELECT d.dimension_day_id day_id, count(1) qty
+    FROM dwh.facts f
+     JOIN dwh.dimension_days d
+     ON (f.action_dimension_id_date = d.dimension_day_id)
+    WHERE f.action_dimension_id_user = m_dimension_user_id
+    GROUP BY d.dimension_day_id
+   ) u
+   ON (e.dimension_day_id = u.day_id)
+   ORDER BY e.date_id DESC
+   LIMIT 371
+  LOOP
+   m_last_year_activity := refresh_today_activities(m_last_year_activity
+     (get_score_user_activity(r.qty)));
+   m_last_year_activity := move_day(m_last_year_activity);
+  END LOOP;
 
   INSERT INTO dwh.datamartUsers (
    dimension_user_id,

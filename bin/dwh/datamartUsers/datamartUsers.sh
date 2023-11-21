@@ -81,6 +81,9 @@ declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamar
 # Generic script to add years.
 declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-alterTableAddYears.sql"
 
+# Last year activites script.
+declare -r LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamart-lastYearActivities.sql"
+
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
@@ -134,6 +137,10 @@ function __checkPrereqs {
   __loge "ERROR: File datamartUsers-alterTableAddYears.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${LAST_YEAR_ACTITIES_SCRIPT}" ]]; then
+  __loge "ERROR: File datamart-lastYearActivities.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  __log_finish
  set -e
 }
@@ -158,6 +165,7 @@ function __checkBaseTables {
   __logw "Datamart users tables created."
  fi
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_PROCEDURES_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${LAST_YEAR_ACTITIES_SCRIPT}"
  __log_finish
 }
 
