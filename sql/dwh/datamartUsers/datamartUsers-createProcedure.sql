@@ -287,11 +287,11 @@ AS $proc$
    INTO m_todays_activity
   FROM dwh.facts f
    JOIN dwh.dimension_days d
-   (ON f.action_dimension_id_date = d.dimension_day_id)
+   ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
   AND d.date_id = CURRENT_DATE;
-  m_last_year_activity := refresh_today_activities(last_year_activity,
-    get_score_user_activity(m_todays_activity));
+  m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
+    dwh.get_score_user_activity(m_todays_activity));
 
   -- lastest_open_note_id
   SELECT id_note
