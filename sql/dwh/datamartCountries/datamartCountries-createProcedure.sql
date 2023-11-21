@@ -272,10 +272,10 @@ AS $proc$
   SELECT COUNT(1)
    INTO qty
    FROM dwh.datamartCountries
-   WHERE dimension_country_id = r.dimension_id_country;
+   WHERE dimension_country_id = m_dimension_id_country;
   IF (qty = 0) THEN
    RAISE NOTICE 'Inserting country';
-   CALL dwh.insert_datamart_country(r.dimension_id_country);
+   CALL dwh.insert_datamart_country(m_dimension_id_country);
   ELSE
    RAISE NOTICE 'Country does not exist';
   END IF;
@@ -288,7 +288,7 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.dimension_id_country = dimension_id_country
   AND d.date_id = CURRENT_DATE;
-  m_last_year_activity := dwh.refresh_today_activities(last_year_activity,
+  m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
     dwh.get_score_country_activity(m_todays_activity));
 
   -- lastest_open_note_id
@@ -298,7 +298,7 @@ AS $proc$
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
   );
 
   -- lastest_commented_note_id
@@ -308,7 +308,7 @@ AS $proc$
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
     AND f.action_comment = 'commented'
   );
 
@@ -319,7 +319,7 @@ AS $proc$
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
   );
 
   -- lastest_reopened_note_id
@@ -329,7 +329,7 @@ AS $proc$
   WHERE fact_id = (
    SELECT MAX(fact_id)
    FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
     AND f.action_comment = 'reopened'
   );
 
@@ -339,7 +339,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.opened_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
   GROUP BY date_id
   ORDER BY COUNT(1) DESC
   FETCH FIRST 1 ROWS ONLY;
@@ -350,7 +350,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.closed_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
   GROUP BY date_id
   ORDER BY COUNT(1) DESC
   FETCH FIRST 1 ROWS ONLY;
@@ -360,28 +360,28 @@ AS $proc$
   m_hashtags := NULL;
 
   -- users_open_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('username',username, 'quantity', qty))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('username', username, 'quantity', quantity))
    INTO m_users_open_notes
   FROM (
-   SELECT u.username AS username, COUNT(1) AS qty
+   SELECT u.username AS username, COUNT(1) AS quantity
    FROM dwh.facts f
     JOIN dwh.dimension_users u
     ON f.opened_dimension_id_user = u.dimension_user_id 
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
    GROUP BY u.username
    ORDER BY COUNT(1) DESC
    LIMIT 50
   ) AS T;
 
   -- users_solving_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('username',username, 'quantity', qty))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('username', username, 'quantity', quantity))
    INTO m_users_solving_notes
   FROM (
-   SELECT u.username AS username, COUNT(1) AS qty
+   SELECT u.username AS username, COUNT(1) AS quantity
    FROM dwh.facts f
     JOIN dwh.dimension_users u
     ON F.closed_dimension_id_user = u.dimension_user_id 
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
    GROUP BY u.username
    ORDER BY COUNT(1) DESC
    LIMIT 50
@@ -393,7 +393,7 @@ AS $proc$
    FROM dwh.facts f
     JOIN dwh.dimension_hours_of_week t
     ON f.opened_dimension_id_hour_of_week = t.dimension_how_id
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
     AND f.action_comment = 'opened'
    GROUP BY day_of_week, hour_of_day
    ORDER BY day_of_week, hour_of_day
@@ -408,7 +408,7 @@ AS $proc$
    FROM dwh.facts f
     JOIN dwh.dimension_hours_of_week t
     ON f.action_dimension_id_hour_of_week = t.dimension_how_id
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
     AND f.action_comment = 'commented'
    GROUP BY day_of_week, hour_of_day
    ORDER BY day_of_week, hour_of_day
@@ -423,7 +423,7 @@ AS $proc$
    FROM dwh.facts f
     JOIN dwh.dimension_hours_of_week t
     ON f.closed_dimension_id_hour_of_week = t.dimension_how_id
-   WHERE f.dimension_id_country = r.dimension_id_country
+   WHERE f.dimension_id_country = m_dimension_id_country
    GROUP BY day_of_week, hour_of_day
    ORDER BY day_of_week, hour_of_day
   )
@@ -435,21 +435,21 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_whole_open
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'opened';
 
   -- history_whole_commented
   SELECT COUNT(1)
    INTO m_history_whole_commented
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'commented';
 
   -- history_whole_closed TODO quitar cuando se cierra multiples veces
   SELECT COUNT(1)
    INTO m_history_whole_closed
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'closed';
 
   -- history_whole_closed_with_comment
@@ -460,7 +460,7 @@ AS $proc$
   SELECT COUNT(1)
    INTO m_history_whole_reopened
   FROM dwh.facts f
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'reopened';
 
   SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
@@ -472,7 +472,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'opened'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -482,7 +482,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'commented'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -492,7 +492,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'closed'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -506,7 +506,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'reopened'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
@@ -519,7 +519,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'opened'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
@@ -530,7 +530,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'commented'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
@@ -541,7 +541,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'closed'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
@@ -556,7 +556,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'reopened'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
@@ -570,7 +570,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'opened'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
@@ -582,7 +582,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'commented'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
@@ -594,7 +594,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'closed'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
@@ -610,7 +610,7 @@ AS $proc$
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.dimension_id_country = r.dimension_id_country
+  WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'reopened'
    AND EXTRACT(DAY FROM d.date_id) = m_current_day
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
@@ -653,11 +653,11 @@ AS $proc$
    history_day_closed = m_history_day_closed,
    history_day_closed_with_comment = m_history_day_closed_with_comment,
    history_day_reopened =m_history_day_reopened
-  WHERE dimension_country_id = r.dimension_id_country;
+  WHERE dimension_country_id = m_dimension_id_country;
 
   m_year := 2013;
   WHILE (m_year <= m_current_year) LOOP
-   CALL dwh.update_datamart_country_activity_year(r.dimension_id_country, m_year);
+   CALL dwh.update_datamart_country_activity_year(m_dimension_id_country, m_year);
    m_year := m_year + 1;
   END LOOP;
  END

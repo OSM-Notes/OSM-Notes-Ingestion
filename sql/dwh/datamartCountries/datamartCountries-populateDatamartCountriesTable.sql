@@ -23,7 +23,7 @@ BEGIN
 
  FOR r IN
   -- Process the datamart only for modified countries.
-  SELECT f.dimension_id_country
+  SELECT f.dimension_id_country AS dimension_id_country
   FROM dwh.facts f
    JOIN dwh.dimension_countries c
    ON (f.dimension_id_country = c.dimension_country_id)
@@ -31,6 +31,7 @@ BEGIN
   GROUP BY f.dimension_id_country
   ORDER BY MAX(f.action_at) DESC
  LOOP
+  RAISE NOTICE 'Processing country %', r.dimension_id_country;
   CALL dwh.update_datamart_country(r.dimension_id_country);
 
   UPDATE dwh.dimension_countries
