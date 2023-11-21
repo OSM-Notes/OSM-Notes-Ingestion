@@ -283,7 +283,7 @@ AS $proc$
   -- last_year_activity
   SELECT COUNT(1)
    INTO m_todays_activity
-  FROM dwh.facts
+  FROM dwh.facts f
   WHERE f.dimension_id_country = dimension_id_country
   AND f.action_dimension_id_date = CURRENT_TIMESTAMP;
   m_last_year_activity := dwh.refresh_today_activities(last_year_activity,
