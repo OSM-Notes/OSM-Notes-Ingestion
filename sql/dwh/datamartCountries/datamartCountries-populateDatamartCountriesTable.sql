@@ -12,7 +12,7 @@ BEGIN
  SELECT date
   INTO max_date
  FROM dwh.max_date_countries_processed;
- IF (max_timestamp < CURRENT_DATE) THEN
+ IF (max_date < CURRENT_DATE) THEN
   RAISE NOTICE 'Moving activites';
   -- Updates all countries, moving a day.
   UPDATE dwh.datamartCountries

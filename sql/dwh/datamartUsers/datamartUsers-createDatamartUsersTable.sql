@@ -169,7 +169,7 @@ COMMENT ON COLUMN dwh.badges.badge_name IS 'Name of the badge';
 CREATE TABLE IF NOT EXISTS dwh.badges_per_users (
  id_user INTEGER NOT NULL,
  id_badge INTEGER NOT NULL,
- date_awarded DATE NOT NULL
+ date_awarded DATE NOT NULL,
  comment TEXT NULL
 );
 COMMENT ON TABLE dwh.badges_per_users IS 'List of badges granted to users';
@@ -186,9 +186,9 @@ CREATE TABLE IF NOT EXISTS dwh.contributor_types (
 );
 
 CREATE TABLE IF NOT EXISTS dwh.max_date_users_processed (
-  date NOT NULL
+  date date NOT NULL
 );
-COMMENT ON TABLE dwh.max_date_user_processed IS
+COMMENT ON TABLE dwh.max_date_users_processed IS
   'Max date for users processed, to move the activities';
 COMMENT ON COLUMN dwh.max_date_users_processed.date IS
   'Value of the max date of users processed';

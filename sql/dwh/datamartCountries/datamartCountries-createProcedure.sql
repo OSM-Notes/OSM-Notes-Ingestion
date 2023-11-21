@@ -214,7 +214,7 @@ AS $proc$
   EXECUTE stmt;
  END
 $proc$;
-COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
+COMMENT ON PROCEDURE dwh.update_datamart_country_activity_year IS
   'Processes the country''s activity per given year';
 
 /**
@@ -660,5 +660,5 @@ AS $proc$
   END LOOP;
  END
 $proc$;
-COMMENT ON PROCEDURE dwh.update_datamart_user IS
+COMMENT ON PROCEDURE dwh.update_datamart_country IS
   'Processes modifed countries';

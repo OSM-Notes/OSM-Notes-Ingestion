@@ -162,7 +162,7 @@ COMMENT ON COLUMN dwh.datamartCountries.history_2013_reopened IS
   'Qty of notes reopened in 2013';
 
 CREATE TABLE IF NOT EXISTS dwh.max_date_countries_processed (
-  date NOT NULL
+  date date NOT NULL
 );
 COMMENT ON TABLE dwh.max_date_countries_processed IS
   'Max date for countries processed, to move the activities';

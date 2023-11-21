@@ -399,7 +399,7 @@ AS $proc$
    ORDER BY day_of_week, hour_of_day
   )
   SELECT JSON_AGG(hours.*)
-   INTO m_working_hours_opening
+   INTO m_working_hours_of_week_opening
   FROM hours;
  
   -- working_hours_of_week_commenting
@@ -414,7 +414,7 @@ AS $proc$
   ORDER BY day_of_week, hour_of_day
   )
   SELECT JSON_AGG(hours.*)
-   INTO m_working_hours_commenting
+   INTO m_working_hours_of_week_commenting
   FROM hours;
  
   -- working_hours_of_week_closing
@@ -428,7 +428,7 @@ AS $proc$
    ORDER BY day_of_week, hour_of_day
   )
   SELECT JSON_AGG(hours.*)
-   INTO m_working_hours_closing
+   INTO m_working_hours_of_week_closing
   FROM hours;
  
   -- history_whole_open
@@ -631,9 +631,9 @@ AS $proc$
    hashtags = m_hashtags,
    countries_open_notes = m_countries_open_notes,
    countries_solving_notes = m_countries_solving_notes,
-   working_hours_opening = m_working_hours_opening,
-   working_hours_commenting = m_working_hours_commenting,
-   working_hours_closing = m_working_hours_closing,
+   working_hours_of_week_opening = m_working_hours_of_week_opening,
+   working_hours_of_week_commenting = m_working_hours_of_week_commenting,
+   working_hours_of_week_closing = m_working_hours_of_week_closing,
    history_whole_open = m_history_whole_open,
    history_whole_commented = m_history_whole_commented,
    history_whole_closed = m_history_whole_closed,
