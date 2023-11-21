@@ -135,7 +135,7 @@ function __checkPrereqs {
  
  ## Check files
  if [[ ! -r "${DATAMART_COUNTRIES_FILE}" ]]; then
-  __loge "ERROR: File datamartConutries.sh was not found."
+  __loge "ERROR: File datamartCountries.sh was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${DATAMART_USERS_FILE}" ]]; then
