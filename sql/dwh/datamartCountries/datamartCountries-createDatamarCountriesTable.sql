@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS dwh.datamartCountries (
  first_reopened_note_id INTEGER,
 
  -- Dynamic values
- last_year_activity TEXT, -- Most recent note action. TODO
+ last_year_activity CHAR(371), -- Last year's actions. GitHub tile style.
  lastest_open_note_id INTEGER, -- Newest.
  lastest_commented_note_id INTEGER,
  lastest_closed_note_id INTEGER,
@@ -82,7 +82,7 @@ COMMENT ON COLUMN dwh.datamartCountries.first_closed_note_id IS
 COMMENT ON COLUMN dwh.datamartCountries.first_reopened_note_id IS
   'First reopened note';
 COMMENT ON COLUMN dwh.datamartCountries.last_year_activity IS
-  'Most recent note action. TODO';
+  'Last year''s actions. GitHub tile style.';
 COMMENT ON COLUMN dwh.datamartCountries.lastest_open_note_id IS
   'Most recent opened note';
 COMMENT ON COLUMN dwh.datamartCountries.lastest_commented_note_id IS
@@ -160,6 +160,14 @@ COMMENT ON COLUMN dwh.datamartCountries.history_2013_closed_with_comment IS
   'Qty of notes closed with comment in 2013';
 COMMENT ON COLUMN dwh.datamartCountries.history_2013_reopened IS
   'Qty of notes reopened in 2013';
+
+CREATE TABLE IF NOT EXISTS dwh.max_date_countries_processed (
+  date NOT NULL
+);
+COMMENT ON TABLE dwh.max_date_countries_processed IS
+  'Max date for countries processed, to move the activities';
+COMMENT ON COLUMN dwh.max_date_countries_processed.date IS
+  'Value of the max date of countries processed';
 
 -- Primary keys.
 ALTER TABLE dwh.datamartCountries

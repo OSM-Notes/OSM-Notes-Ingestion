@@ -7,8 +7,20 @@ DO
 $$
 DECLARE
  r RECORD;
- text VARCHAR(100);
+ max_date DATE;
 BEGIN
+ SELECT date
+  INTO max_date
+ FROM dwh.max_date_users_processed;
+ IF (max_timestamp < CURRENT_DATE) THEN
+  RAISE NOTICE 'Moving activites';
+  -- Updates all users, moving a day.
+  UPDATE dwh.datamartUsers
+   SET last_year_activity = move_day(last_year_activity);
+  UPDATE dwh.max_date_users_processed
+   SET date = CURRENT_DATE;
+ END IF;
+
  FOR r IN
   -- Process the datamart only for modified users.
   SELECT f.action_dimension_id_user AS dimension_user_id

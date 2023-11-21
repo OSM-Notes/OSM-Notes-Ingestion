@@ -204,7 +204,8 @@ LANGUAGE plpgsql
 AS $proc$
  DECLARE
  qty SMALLINT;
- m_last_year_activity SMALLINT;
+ m_todays_activity SMALLINT;
+ m_last_year_activity CHAR(371);
  m_lastest_open_note_id INTEGER;
  m_lastest_commented_note_id INTEGER;
  m_lastest_closed_note_id INTEGER;
@@ -257,14 +258,13 @@ BEGIN
   END IF;
 
   -- last_year_activity
-  SELECT EXTRACT(YEAR FROM date_id)
-   INTO m_last_year_activity
-  FROM dwh.dimension_days
-  WHERE dimension_day_id = (
-   SELECT MAX(action_dimension_id_date)
-   FROM dwh.facts f
-   WHERE f.dimension_id_country = r.dimension_id_country
-  );
+  SELECT COUNT(1)
+   INTO m_todays_activity
+  FROM dwh.facts
+  WHERE f.dimension_id_country = dimension_id_country
+  AND f.action_dimension_id_date = CURRENT_TIMESTAMP;
+  m_last_year_activity := refresh_today_activities(last_year_activity,
+    get_score_country_activity(m_todays_activity));
 
   -- lastest_open_note_id
   SELECT id_note
