@@ -5,12 +5,10 @@ Lista de ToDo's
   * Hacer un analizar de hashtags
 * Definir los tipos de contribuidores, insertarlos y asignarlos dinámicamente.
 * Definir los badges y asignarlos.
-* Tener dimensión para mostrar el trabajo por semana.
-  * Tener una variable de 24*7=168
-  * Se podría quitar la dimensión día, ya que no se le ve mucho uso
 * Revisar cuando una nota se reabre, que se quite el closed en DWH
   * O procesar estos de una manera diferente.
 * Generar un reporte de cambios identificados al cargar la ETL.
+  * Los select cambiarlos a exports
 * 3944119 ocultada y reactivada. Revisar que se procesa bien esta nota.
 * Validar que esta nota se procesa bien https://api.openstreetmap.org/api/0.6/notes/3750896
 * Mostrar resultados en OSM y en el API.
