@@ -3,6 +3,14 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-28
 
+DROP FUNCTION IF EXISTS dwh.get_score_user_activity;
+
+DROP FUNCTION IF EXISTS dwh.get_score_country_activity;
+
+DROP FUNCTION IF EXISTS dwh.move_day;
+
+DROP FUNCTION IF EXISTS dwh.refresh_today_activities;
+
 DROP FUNCTION IF EXISTS get_country_region;
 
 DROP FUNCTION IF EXISTS dwh.get_hour_of_week_id;

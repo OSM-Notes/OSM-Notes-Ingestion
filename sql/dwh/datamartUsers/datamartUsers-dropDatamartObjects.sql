@@ -9,6 +9,8 @@ DROP PROCEDURE IF EXISTS dwh.update_datamart_user_activity_year;
 
 DROP PROCEDURE IF EXISTS dwh.insert_datamart_user;
 
+DROP TABLE IF EXISTS dwh.max_date_users_processed;
+
 DROP TABLE IF EXISTS dwh.badges_per_users;
 
 DROP TABLE IF EXISTS dwh.badges;
