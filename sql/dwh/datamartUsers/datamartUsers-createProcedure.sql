@@ -109,7 +109,7 @@ AS $proc$
    LIMIT 371
   LOOP
    m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
-     (dwh.get_score_user_activity(r.qty::SMALLINT)));
+     (dwh.get_score_user_activity(r.qty::INTEGER)));
    m_last_year_activity := dwh.move_day(m_last_year_activity);
   END LOOP;
 
@@ -225,16 +225,16 @@ AS $proc$
  DECLARE
   qty SMALLINT;
   m_id_contributor_type SMALLINT;
-  m_todays_activity SMALLINT;
+  m_todays_activity INTEGER;
   m_last_year_activity CHAR(371);
   m_lastest_open_note_id INTEGER;
   m_lastest_commented_note_id INTEGER;
   m_lastest_closed_note_id INTEGER;
   m_lastest_reopened_note_id INTEGER;
   m_date_most_open DATE;
-  m_date_most_open_qty SMALLINT;
+  m_date_most_open_qty INTEGER;
   m_date_most_closed DATE;
-  m_date_most_closed_qty SMALLINT;
+  m_date_most_closed_qty INTEGER;
   m_hashtags JSON;
   m_countries_open_notes JSON;
   m_countries_solving_notes JSON;
