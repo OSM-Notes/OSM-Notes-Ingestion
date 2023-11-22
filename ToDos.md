@@ -16,6 +16,9 @@ ToDo list
 * Poder acceder al listado de todas, o las últimas 10 000 abiertas y 10 000 cerradas de una persona
 * Usar una DB direferente para el DWH
 * Procesar en paralelo los usuarios de datamart.
+* Usar un mecanismo de logger para postgres
+* Crear SPs para consultar el perfil. Y así poder guardar qué perfiles están siendo visitados
+* Probar https://crates.io/crates/anglosaxon en vez de saxon
 
 ## Profile
 
