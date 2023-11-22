@@ -276,8 +276,6 @@ AS $proc$
   IF (qty = 0) THEN
    RAISE NOTICE 'Inserting country';
    CALL dwh.insert_datamart_country(m_dimension_id_country);
-  ELSE
-   RAISE NOTICE 'Country does not exist';
   END IF;
 
   -- last_year_activity

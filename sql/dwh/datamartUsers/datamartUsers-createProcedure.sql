@@ -274,8 +274,6 @@ AS $proc$
   IF (qty = 0) THEN
    --RAISE NOTICE 'Inserting user';
    CALL dwh.insert_datamart_user(m_dimension_user_id);
-  ELSE
-   RAISE NOTICE 'User is already in the db: %', m_dimension_user_id;
   END IF;
  
   -- id_contributor_type
