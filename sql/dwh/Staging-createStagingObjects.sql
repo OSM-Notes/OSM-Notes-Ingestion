@@ -113,15 +113,15 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     m_dimension_country_id := null;
 
     m_opened_id_date := null;
-    m_opened_id_hour := null;
+    m_opened_id_hour_of_week := null;
     m_dimension_user_open := null;
 
     m_closed_id_date := null;
-    m_closed_id_hour := null;
+    m_closed_id_hour_of_week := null;
     m_dimension_user_close := null;
 
     m_action_id_date := null;
-    m_action_id_hour := null;
+    m_action_id_hour_of_week := null;
     m_dimension_user_action := null;
   END LOOP;
 
