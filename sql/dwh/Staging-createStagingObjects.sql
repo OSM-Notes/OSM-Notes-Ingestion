@@ -142,8 +142,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
  DECLARE
   qty_dwh_notes INTEGER;
   qty_notes_on_date INTEGER;
-  max_note_action DATE;
-  max_note_on_dwh TIMESTAMP;
+  max_note_action_date DATE;
+  max_note_on_dwh_timestamp TIMESTAMP;
   max_processed_date DATE;
  BEGIN
 
@@ -158,35 +158,39 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   END IF;
 
   -- Recursive case, when there is at least a day already processed.
-  -- Gets the most recent note action.
+  -- Gets the date of the most recent note action from base tables.
   SELECT MAX(DATE(created_at))
-   INTO max_note_action
+   INTO max_note_action_date
   FROM note_comments;
 
-  -- Gest the most recent note processed.
+  -- Gest the date of the most recent note processed on the DWH.
   SELECT MAX(date_id)
    INTO max_processed_date
   FROM dwh.facts f
    JOIN dwh.dimension_days d 
    ON (f.action_dimension_id_date = d.dimension_day_id);
 
-  IF (max_note_action < max_processed_date) THEN
-   RAISE EXCEPTION 'DWH has more recent notes than received.';
+  IF (max_note_action_date < max_processed_date) THEN
+   RAISE EXCEPTION 'DWH has more recent notes than received on base tables.';
   END IF;
 
   -- Processes notes while the max note received is equal to the most recent
   -- note processed.
-  WHILE (max_processed_date <= max_note_action) LOOP
+  WHILE (max_processed_date <= max_note_action_date) LOOP
+   -- Timestamp of the max processed note on DWH.
+   -- It is on the same DATE of max_processed_date.
    SELECT MAX(action_at)
-    INTO max_note_on_dwh
-   FROM dwh.facts;
+    INTO max_note_on_dwh_timestamp
+   FROM dwh.facts
+   WHERE DATE(created_at) = max_processed_date;
 
-   -- Gets the number of notes of the date.
+   -- Gets the number of notes that have not being processed on the date being
+   -- processed.
    SELECT COUNT(1)
     INTO qty_notes_on_date
    FROM note_comments
    WHERE DATE(created_at) = max_processed_date
-    AND created_at > max_note_on_dwh;
+    AND created_at > max_note_on_dwh_timestamp;
 
    -- If there are 0 notes to process, then increase one day.
    IF (qty_notes_on_date = 0) THEN
@@ -198,21 +202,21 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
      INTO qty_notes_on_date
     FROM note_comments
     WHERE DATE(created_at) = max_processed_date
-     AND created_at > max_note_on_dwh;
+     AND created_at > max_note_on_dwh_timestamp;
     RAISE NOTICE 'Notes to process for %: %', max_processed_date,
      qty_notes_on_date;
 
-    CALL staging.process_notes_at_date(max_note_on_dwh);
+    CALL staging.process_notes_at_date(max_note_on_dwh_timestamp);
    ELSE
     -- There are comments not processed on the DHW for the currently processing
     -- day.
     RAISE NOTICE 'Processing facts for %: %', max_processed_date,
      qty_notes_on_date;
 
-    CALL staging.process_notes_at_date(max_note_on_dwh);
+    CALL staging.process_notes_at_date(max_note_on_dwh_timestamp);
    END IF;
   END LOOP;
-  RAISE NOTICE 'No facts to process (% !> %)', max_processed_date, max_note_action;
+  RAISE NOTICE 'No facts to process (% !> %)', max_processed_date, max_note_action_date;
  END
 $proc$
 ;
