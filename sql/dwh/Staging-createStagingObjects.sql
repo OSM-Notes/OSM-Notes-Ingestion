@@ -34,7 +34,9 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     ON (c.note_id = n.note_id)
     JOIN note_comments o
     ON (n.note_id = o.note_id AND o.event = 'opened')
-   WHERE c.created_at > c_max_processed_timestamp
+   WHERE c.created_at > c_max_processed_timestamp 
+    AND DATE(c.created_at) = DATE(c_max_processed_timestamp) -- Notes for the
+      -- same date.
    ORDER BY c.note_id, c.id;
 
  BEGIN
