@@ -15,7 +15,7 @@ ToDo list
   * Los select cambiarlos a exports para mostrar otras cosas.
 * Poder acceder al listado de todas, o las últimas 10 000 abiertas y 10 000 cerradas de una persona
 * Usar una DB direferente para el DWH
-* Procesar en paralelo los usuarios de datamart.
+* Procesar en paralelo los usuarios de datamart, ya que actualmente dura 3 horas.
 * Usar un mecanismo de logger para postgres
 * Crear SPs para consultar el perfil. Y así poder guardar qué perfiles están siendo visitados
 * Probar https://crates.io/crates/anglosaxon en vez de saxon
@@ -48,4 +48,5 @@ ToDo list
 * Validar que esta nota se procesa bien https://api.openstreetmap.org/api/0.6/notes/3750896
 * Tener rankings de los 100 histórico, último año, último mes, hoy
   * El que más ha abierto, más cerrado, más comentado, más reabierto
-* Cuando se ejecuta el datamart de nuevo, vuelve a cargar las notas del mismo dia, ya que había cargado
+* Cuando se ejecuta el datamart de nuevo, vuelve a cargar las notas del mismo dia, ya que había cargado.
+  * Parece que ya se arregló, ya que estaba cargando todo el día de nuevo
