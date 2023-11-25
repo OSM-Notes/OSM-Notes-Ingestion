@@ -43,7 +43,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -121,8 +121,8 @@ function __show_help {
 function __checkPrereqs {
  __log_start
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--create" ]] \
-   && [[ "${PROCESS_TYPE}" != "--help" ]] \
-   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
+  && [[ "${PROCESS_TYPE}" != "--help" ]] \
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string (nothing)."
   echo " * --create"
@@ -132,7 +132,7 @@ function __checkPrereqs {
  fi
  set +e
  __checkPrereqsCommands
- 
+
  ## Check files
  if [[ ! -r "${DATAMART_COUNTRIES_FILE}" ]]; then
   __loge "ERROR: File datamartCountries.sh was not found."
@@ -188,7 +188,7 @@ function __checkBaseTables {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_BASE_TABLES_FILE}"
  RET=${?}
  set -e
- if [[ "${RET}" -ne 0 ]] ; then
+ if [[ "${RET}" -ne 0 ]]; then
   __createBaseTables
  fi
  __log_finish
@@ -210,25 +210,25 @@ function main() {
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
- 
+
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __checkPrereqs
  __checkBaseTables
- 
+
  __logw "Starting process"
  # Sets the trap in case of any signal.
  __trapOn
  exec 7> "${LOCK}"
  __logw "Validating single execution."
  flock -n 7
- 
+
  __processNotesETL
 
  # Updates the datamart for countries.
  "${DATAMART_COUNTRIES_FILE}"
- 
+
  # Updates the datamart for users.
  "${DATAMART_USERS_FILE}"
 
@@ -239,10 +239,10 @@ function main() {
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [[ ! -t 1 ]] ; then
+if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  fi
