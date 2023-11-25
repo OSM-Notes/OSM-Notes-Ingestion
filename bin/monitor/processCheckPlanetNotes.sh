@@ -106,7 +106,8 @@ declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet
 # Jar name of the XSLT processor.
 declare SAXON_JAR
 set +ue
-SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
+SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f \
+ -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
 set -ue
 readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
@@ -231,7 +232,8 @@ function __loadCheckNotes {
  export OUTPUT_NOTE_COMMENTS_FILE
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' < "${POSTGRES_LOAD_CHECK_NOTES}")"
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+  < "${POSTGRES_LOAD_CHECK_NOTES}" || true)"
  __log_finish
 }
 
@@ -258,7 +260,8 @@ function main() {
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
 
- if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+ if [[ "${PROCESS_TYPE}" == "-h" ]] \
+  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __checkPrereqs
