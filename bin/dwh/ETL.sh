@@ -239,7 +239,7 @@ function main() {
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [ ! -t 1 ] ; then
+if [[ ! -t 1 ]] ; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
