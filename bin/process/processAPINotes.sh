@@ -429,7 +429,8 @@ function main() {
   __dropApiTables
  set +E
  __checkNoProcessPlanet
- __checkBaseTables || RET=${?}
+ __checkBaseTables
+ RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]] ; then
   __logw "Creating base tables. It will take half an hour."
