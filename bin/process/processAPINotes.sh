@@ -60,7 +60,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -152,7 +152,7 @@ function __show_help {
  echo "* SAXON_CLASSPATH=: Location of the saxon-he-11.4.jar file."
  echo
  echo "This script could call processPlanetNotes.sh which use another"
- echo "environment variables. Please check the documentation of that script." 
+ echo "environment variables. Please check the documentation of that script."
  echo
  echo "Written by: Andres Gomez (AngocA)."
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
@@ -164,7 +164,7 @@ function __checkPrereqs {
  #__log_start
  __logd "Checking process type."
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
-   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string (nothing)."
   echo " * --help"
@@ -177,39 +177,39 @@ function __checkPrereqs {
 
  ## Saxon Jar
  __logd "Checking Saxon Jar."
- if [[ ! -r "${SAXON_JAR}" ]] ; then
+ if [[ ! -r "${SAXON_JAR}" ]]; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  ## Checks required files.
- if [[ ! -r "${NOTES_SYNC_SCRIPT}" ]] ; then
+ if [[ ! -r "${NOTES_SYNC_SCRIPT}" ]]; then
   __loge "ERROR: File is missing at ${NOTES_SYNC_SCRIPT}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_DROP_API_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_DROP_API_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_API_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_API_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_API_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_API_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_PROPERTIES_TABLE}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_PROPERTIES_TABLE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_PROPERTIES_TABLE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_LOAD_API_NOTES}" ]] ; then
+ if [[ ! -r "${POSTGRES_LOAD_API_NOTES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_LOAD_API_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}" ]] ; then
+ if [[ ! -r "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_UPDATE_LAST_VALUES}" ]] ; then
+ if [[ ! -r "${POSTGRES_UPDATE_LAST_VALUES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_UPDATE_LAST_VALUES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -224,7 +224,7 @@ function __checkNoProcessPlanet {
  set +e
  QTY="$(pgrep processPlanetNotes.sh | wc -l)"
  set -e
- if [[ "${QTY}" -ne "0" ]] ; then
+ if [[ "${QTY}" -ne "0" ]]; then
   __loge "${BASENAME} is currently running."
   __logw "It is better to wait for it to finish."
   exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
@@ -244,7 +244,7 @@ function __createApiTables {
  __log_start
  __logi "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_API_TABLES}"
-# TODO Add another table for the comment's text.
+ # TODO Add another table for the comment's text.
  __log_finish
 }
 
@@ -254,7 +254,7 @@ function __createPropertiesTable {
  set -e
  __logi "Creating properties table"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_CREATE_PROPERTIES_TABLE}"
+  -f "${POSTGRES_CREATE_PROPERTIES_TABLE}"
  __log_finish
 }
 
@@ -264,12 +264,12 @@ function __getNewNotesFromApi {
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
  # Gets the most recent value on the database.
  psql -d "${DBNAME}" -Atq \
-   -c "SELECT TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
+  -c "SELECT TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
      FROM max_note_timestamp" \
-   -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
+  -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  __logw "Last update: ${LAST_UPDATE}"
- if [[ "${LAST_UPDATE}" == "" ]] ; then
+ if [[ "${LAST_UPDATE}" == "" ]]; then
   __loge "No last update. Please load notes."
   exit "${ERROR_NO_LAST_UPDATE}"
  fi
@@ -288,7 +288,7 @@ function __validateApiNotesXMLFile {
  __log_start
 
  xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" \
-   2> "${LOG_FILENAME}"
+  2> "${LOG_FILENAME}"
 
  __log_finish
 }
@@ -309,12 +309,12 @@ function __convertApiNotesToFlatFile {
  # Process the notes file.
  # XSLT transformations.
 
-# TODO this XSLT should include the text.
+ # TODO this XSLT should include the text.
 
  # Converts the XML into a flat file in CSV format.
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-   -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTES_API_FILE}" \
-   -o:"${OUTPUT_NOTES_FILE}"
+  -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTES_API_FILE}" \
+  -o:"${OUTPUT_NOTES_FILE}"
  local RESULT
  RESULT=$(grep -c "<note " "${API_NOTES_FILE}")
  __logi "${RESULT} - Notes from API."
@@ -323,8 +323,8 @@ function __convertApiNotesToFlatFile {
  head "${OUTPUT_NOTES_FILE}"
 
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-   -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
-   -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
+  -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
+  -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
  __logi "${RESULT} - Comments from API."
  RESULT=$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}")
@@ -341,7 +341,7 @@ function __checkQtyNotes {
  __log_start
  local -i QTY
  QTY=$(wc -l "${OUTPUT_NOTES_FILE}" | awk '{print $1}')
- if [[ "${QTY}" -ge "${MAX_NOTES}" ]] ; then
+ if [[ "${QTY}" -ge "${MAX_NOTES}" ]]; then
   __logw "Starting full synchronization from Planet."
   __logi "This could take several minutes."
   "${NOTES_SYNC_SCRIPT}"
@@ -356,13 +356,13 @@ function __loadApiNotes {
 
  __logt "Notes to be processed:"
  declare TEXT
- while read -r LINE ; do
+ while read -r LINE; do
   TEXT=$(echo "${LINE}" | cut -f 1 -d,)
   __logt "${TEXT}"
  done < "${OUTPUT_NOTES_FILE}"
- echo 
+ echo
  __logt "Note comments to be processed:"
- while read -r LINE ; do
+ while read -r LINE; do
   TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
   __logt "${TEXT}"
   # TODO Support the comment's text when multiline.
@@ -372,8 +372,8 @@ function __loadApiNotes {
  export OUTPUT_NOTES_FILE
  export OUTPUT_NOTE_COMMENTS_FILE
  # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
    < "${POSTGRES_LOAD_API_NOTES}" || true)"
 
  # TODO Load the text into another table.
@@ -400,7 +400,7 @@ function __updateLastValue {
 # Clean files generated during the process.
 function __cleanNotesFiles {
  __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
  fi
  __log_finish
@@ -413,39 +413,39 @@ function main() {
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
- 
+
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __checkPrereqs
  __logw "Process started."
- 
+
  # Sets the trap in case of any signal.
  __trapOn
  exec 8> "${LOCK}"
  __logw "Validating single execution."
  flock -n 8
- 
-  __dropApiTables
+
+ __dropApiTables
  set +E
  __checkNoProcessPlanet
  __checkBaseTables
  RET=${?}
  set -e
- if [[ "${RET}" -ne 0 ]] ; then
+ if [[ "${RET}" -ne 0 ]]; then
   __logw "Creating base tables. It will take half an hour."
   "${NOTES_SYNC_SCRIPT}" --base
   __logw "Base tables created."
   __logi "This could take several minutes."
   "${NOTES_SYNC_SCRIPT}" || RET=${?}
   set -e
-  if [[ "${RET}" -ne 0 ]] ; then
-  __loge "Error while executing the planet dump."
+  if [[ "${RET}" -ne 0 ]]; then
+   __loge "Error while executing the planet dump."
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logw "Finished full synchronization from Planet."
  fi
- 
+
  set -E
  __createApiTables
  __createPropertiesTable
@@ -453,7 +453,7 @@ function main() {
  __getNewNotesFromApi
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
- if [[ "${RESULT}" -ne 0 ]] ; then
+ if [[ "${RESULT}" -ne 0 ]]; then
   __validateApiNotesXMLFile
   __convertApiNotesToFlatFile
   __checkQtyNotes
@@ -471,10 +471,10 @@ declare -i RET
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [[ ! -t 1 ]] ; then
+if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  fi
