@@ -58,14 +58,14 @@ declare -r POSTGRES_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProces
 
 # Starts the logger utility.
 function __start_logger() {
- if [[ -f "${LOGGER_UTILITY}" ]] ; then
+ if [[ -f "${LOGGER_UTILITY}" ]]; then
   # Starts the logger mechanism.
   set +e
   # shellcheck source=../lib/bash_logger.sh
   source "${LOGGER_UTILITY}"
   local -i RET=${?}
   set -e
-  if [[ "${RET}" -ne 0 ]] ; then
+  if [[ "${RET}" -ne 0 ]]; then
    printf "\nERROR: Invalid logger framework file.\n"
    exit "${ERROR_LOGGER_UTILITY}"
   fi
@@ -82,9 +82,9 @@ function __start_logger() {
 function __trapOn() {
  __log_start
  trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}"; exit ;}' \
-   ERR
+  ERR
  trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ;}' \
-   SIGINT SIGTERM
+  SIGINT SIGTERM
  __log_finish
 }
 
@@ -94,7 +94,7 @@ function __checkPrereqsCommands {
  set +e
  ## PostgreSQL
  __logd "Checking PostgreSQL."
- if ! psql --version > /dev/null 2>&1 ; then
+ if ! psql --version > /dev/null 2>&1; then
   __loge "ERROR: PostgreSQL is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -110,7 +110,7 @@ EOF
  fi
  ## Wget
  __logd "Checking wget."
- if ! wget --version > /dev/null 2>&1 ; then
+ if ! wget --version > /dev/null 2>&1; then
   __loge "ERROR: Wget is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -130,7 +130,7 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## flock
- if ! flock --version > /dev/null 2>&1 ; then
+ if ! flock --version > /dev/null 2>&1; then
   __loge "ERROR: flock is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -151,19 +151,19 @@ EOF
  fi
  ## XML lint
  __logd "Checking XML lint."
- if ! xmllint --version > /dev/null 2>&1 ; then
+ if ! xmllint --version > /dev/null 2>&1; then
   __loge "ERROR: XMLlint is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Java
  __logd "Checking Java."
- if ! java --version > /dev/null 2>&1 ; then
+ if ! java --version > /dev/null 2>&1; then
   __loge "ERROR: Java JRE is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Bash 4 or greater.
  __logd "Checking Bash version."
- if [[ "${BASH_VERSINFO[0]}" -lt 4 ]] ; then
+ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
   __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -172,28 +172,28 @@ EOF
 }
 
 function __checkPrereqs_functions {
-  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CHECK_BASE_TABLES}" ]] ; then
+ ## Checks postgres scripts.
+ if [[ ! -r "${POSTGRES_CHECK_BASE_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CHECK_BASE_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
-  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}" ]] ; then
+ ## Checks postgres scripts.
+ if [[ ! -r "${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
-  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CREATE_PROC_INSERT_NOTE}" ]] ; then
+ ## Checks postgres scripts.
+ if [[ ! -r "${POSTGRES_CREATE_PROC_INSERT_NOTE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_PROC_INSERT_NOTE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
-  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}" ]] ; then
+ ## Checks postgres scripts.
+ if [[ ! -r "${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
-  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_ORGANIZE_AREAS}" ]] ; then
+ ## Checks postgres scripts.
+ if [[ ! -r "${POSTGRES_ORGANIZE_AREAS}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_ORGANIZE_AREAS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -218,10 +218,10 @@ function __downloadPlanetNotes {
  __loge "Retrieving Planet notes file..."
  # shellcheck disable=SC2154
  aria2c -d "${TMP_DIR}" -o "${PLANET_NOTES_NAME}.bz2" -x 8 \
-   "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
+  "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
  # shellcheck disable=SC2154
  wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
-   "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
+  "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
 
  # Validates the download with the hash value md5.
  diff <(md5sum "${PLANET_NOTES_FILE}.bz2" || true | cut -d' ' -f 1 || true) \
@@ -230,7 +230,7 @@ function __downloadPlanetNotes {
 
  rm "${PLANET_NOTES_FILE}.bz2.md5"
 
- if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]] ; then
+ if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]]; then
   __loge "ERROR: Downloading notes file."
   # shellcheck disable=SC2154
   exit "${ERROR_DOWNLOADING_NOTES}"
@@ -261,13 +261,13 @@ function __convertPlanetNotesToFlatFile {
  __logi "Processing notes from XML"
  # shellcheck disable=SC2154
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" \
-   -o:"${OUTPUT_NOTES_FILE}"
+  -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" \
+  -o:"${OUTPUT_NOTES_FILE}"
  __logi "Processing comments from XML"
  # shellcheck disable=SC2154
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
-   -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
+  -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
+  -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
  __log_finish
 }
 
