@@ -5,6 +5,10 @@
 #
 # This scripts uses the constant ERROR_LOGGER_UTILITY.
 #
+# For contributing, please execute these commands before subimitting:
+# * shellcheck -x -o all functionsProcess.sh
+# * shfmt -w -i 1 -sr -bn functionsProcess.sh
+#
 # Author: Andres Gomez (AngocA)
 # Version: 2023-10-07
 
@@ -22,6 +26,7 @@ declare -r ERROR_LOGGER_UTILITY=243
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
+# shellcheck disable=SC2154
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
 
 # PostgreSQL files.
@@ -65,6 +70,7 @@ function __start_logger() {
    exit "${ERROR_LOGGER_UTILITY}"
   fi
   # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
+  # shellcheck disable=SC2154
   __set_log_level "${LOG_LEVEL}"
   __logd "Logger loaded."
  else
@@ -93,6 +99,7 @@ function __checkPrereqsCommands {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## PostGIS
+ # shellcheck disable=SC2154
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
  SELECT PostGIS_version();
 EOF
@@ -200,7 +207,7 @@ function __checkBaseTables {
  RET=${?}
  set -e
  __log_finish
- return ${RET}
+ return "${RET}"
 }
 
 # Downloads the notes from the planet.
@@ -209,20 +216,23 @@ function __downloadPlanetNotes {
  set -e
  # Download Planet notes.
  __loge "Retrieving Planet notes file..."
+ # shellcheck disable=SC2154
  aria2c -d "${TMP_DIR}" -o "${PLANET_NOTES_NAME}.bz2" -x 8 \
    "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
+ # shellcheck disable=SC2154
  wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
    "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
 
  # Validates the download with the hash value md5.
- diff <(md5sum "${PLANET_NOTES_FILE}.bz2" | cut -d' ' -f 1) \
-  <(cut -d' ' -f 1 "${PLANET_NOTES_FILE}.bz2.md5")
+ diff <(md5sum "${PLANET_NOTES_FILE}.bz2" || true | cut -d' ' -f 1 || true) \
+  <(cut -d' ' -f 1 "${PLANET_NOTES_FILE}.bz2.md5" || true)
  # If there is a difference, if will return non-zero value and fail the script.
 
  rm "${PLANET_NOTES_FILE}.bz2.md5"
 
  if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]] ; then
   __loge "ERROR: Downloading notes file."
+  # shellcheck disable=SC2154
   exit "${ERROR_DOWNLOADING_NOTES}"
  fi
  __logi "Extracting Planet notes..."
@@ -235,6 +245,7 @@ function __downloadPlanetNotes {
 function __validatePlanetNotesXMLFile {
  __log_start
 
+ # shellcheck disable=SC2154
  xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
   "${PLANET_NOTES_FILE}.xml"
 
@@ -248,10 +259,12 @@ function __convertPlanetNotesToFlatFile {
 
  # Converts the XML into a flat file in CSV format.
  __logi "Processing notes from XML"
+ # shellcheck disable=SC2154
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" \
    -o:"${OUTPUT_NOTES_FILE}"
  __logi "Processing comments from XML"
+ # shellcheck disable=SC2154
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
    -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
    -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
