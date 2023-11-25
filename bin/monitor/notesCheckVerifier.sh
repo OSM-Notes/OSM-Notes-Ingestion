@@ -161,11 +161,11 @@ function __checkingDifferences {
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${SQL_REPORT}"
 
- if [ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ] \
-  || [ ! -r "${DIFFERENT_COMMENT_IDS_FILE}" ] \
-  || [ ! -r "${DIRRERENT_NOTES_FILE}" ] \
-  || [ ! -r "${DIRRERENT_COMMENTS_FILE}" ] || [ ! -r "${LAST_NOTE}" ] \
-  || [ ! -r "${LAST_COMMENT}" ]; then
+ if [[ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ]] \
+  || [[ ! -r "${DIFFERENT_COMMENT_IDS_FILE}" ]] \
+  || [[ ! -r "${DIRRERENT_NOTES_FILE}" ]] \
+  || [[ ! -r "${DIRRERENT_COMMENTS_FILE}" ]] || [[ ! -r "${LAST_NOTE}" ]] \
+  || [[ ! -r "${LAST_COMMENT}" ]]; then
   __loge "Difference files were not created."
   exit 1
  fi
