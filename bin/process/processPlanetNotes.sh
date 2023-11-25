@@ -249,7 +249,8 @@ declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet
 # Jar name of the XSLT processor.
 declare SAXON_JAR
 set +ue
-SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
+SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f \
+  -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
 set -ue
 readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
@@ -532,7 +533,8 @@ function __processCountries {
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
  set +e
- wget -O "${COUNTRIES_FILE}" --post-file="${OVERPASS_COUNTRIES}" "${OVERPASS_INTERPRETER}"
+ wget -O "${COUNTRIES_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
+   "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -607,8 +609,8 @@ EOF
   mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
 
   __logi "Importing into Postgres."
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" "${GEOJSON_FILE}" \
-   -nln import -overwrite
+  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
+    "${GEOJSON_FILE}" -nln import -overwrite
 
   __logi "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]]; then
@@ -645,7 +647,8 @@ function __processMaritimes {
  # Extracts ids of all EEZ relations into a JSON.
  __logi "Obtaining the eez ids."
  set +e
- wget -O "${MARITIMES_FILE}" --post-file="${OVERPASS_MARITIMES}" "${OVERPASS_INTERPRETER}"
+ wget -O "${MARITIMES_FILE}" --post-file="${OVERPASS_MARITIMES}" \
+   "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -686,8 +689,8 @@ EOF
   __logi "Name: ${NAME_EN}"
 
   __logi "Importing into Postgres."
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" "${GEOJSON_FILE}" \
-   -nln import -overwrite
+  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
+   "${GEOJSON_FILE}" -nln import -overwrite
 
   __logi "Inserting into final table."
   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
@@ -735,7 +738,8 @@ function __loadSyncNotes {
  export OUTPUT_NOTE_COMMENTS_FILE
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' < "${POSTGRES_LOAD_SYNC_NOTES}")"
+   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+   < "${POSTGRES_LOAD_SYNC_NOTES}" || true)"
  __log_finish
 }
 
@@ -776,7 +780,8 @@ function __getLocationNotes {
  else
   declare -l MAX_NOTE_ID
   wget -O "${LAST_NOTE_FILE}" \
-   "${OSM_API}/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" || true)"
+   "${OSM_API}/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" \
+   || true)"
   MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
   MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 
@@ -816,7 +821,8 @@ function main() {
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
 
- if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+ if [[ "${PROCESS_TYPE}" == "-h" ]] \
+   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
   exit "${ERROR_HELP_MESSAGE}"
  else
@@ -855,7 +861,8 @@ function main() {
   __dropSyncTables # sync
   set +E
   set +e
-  __checkBaseTables || RET=${?} # sync
+  __checkBaseTables # sync
+  RET=${?}
   set -e
   if [[ "${RET}" -ne 0 ]]; then
    __createBaseTables # sync
@@ -906,7 +913,8 @@ function main() {
   __loadSyncNotes               # sync & locate
   __removeDuplicates            # sync & locate
   __dropSyncTables              # sync & locate
-  __organizeAreas || RET=${?}   # sync & locate
+  __organizeAreas               # sync & locate
+  RET=${?}
   if [[ "${RET}" -ne 0 ]]; then
    __createCountryTables        # sync & locate
    __processCountries           # sync & locate
@@ -921,7 +929,8 @@ function main() {
 
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   if [[ ! -t 1 ]]; then
-   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
+     || true).log"
    rmdir "${TMP_DIR}"
   fi
  fi
