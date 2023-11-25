@@ -174,12 +174,13 @@ function __addYears {
  __log_start
  YEAR=2013
  CURRENT_YEAR=$(date +%Y)
- while [ "${YEAR}" -lt "${CURRENT_YEAR}" ]; do
+ while [[ "${YEAR}" -lt "${CURRENT_YEAR}" ]]; do
   YEAR=$((YEAR + 1)) 
   export YEAR
   set +e
   # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}")" 2>&1
+  psql -d "${DBNAME}" -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}" \
+   || true)" 2>&1
   set -e
  done
  __log_finish
@@ -200,7 +201,8 @@ function main() {
  __logd "Output saved at: ${TMP_DIR}"
  __logi "Processing: ${PROCESS_TYPE}"
 
- if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+ if [[ "${PROCESS_TYPE}" == "-h" ]] \
+  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __checkPrereqs
@@ -226,11 +228,12 @@ function main() {
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [ ! -t 1 ] ; then
+if [[ ! -t 1 ]] ; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
+   || true).log"
   rmdir "${TMP_DIR}"
  fi
 else
