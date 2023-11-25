@@ -49,7 +49,7 @@ declare CLEAN="${CLEAN:-true}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -169,7 +169,7 @@ function __checkingDifferences {
   __loge "Difference files were not created."
   exit 1
  fi
-  
+
  zip "${REPORT_ZIP}" "${DIFFERENT_NOTE_IDS_FILE}" \
   "${DIFFERENT_COMMENT_IDS_FILE}" "${DIRRERENT_NOTES_FILE}" \
   "${DIRRERENT_COMMENTS_FILE}"
