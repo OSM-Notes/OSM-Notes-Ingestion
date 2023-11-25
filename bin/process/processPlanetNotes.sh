@@ -197,7 +197,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -250,7 +250,7 @@ declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet
 declare SAXON_JAR
 set +ue
 SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f \
-  -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
+ -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
 set -ue
 readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
@@ -395,7 +395,7 @@ function __checkPrereqs {
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
- 
+
  ## Checks if the flat file exist.
  if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
@@ -409,51 +409,51 @@ function __checkPrereqs {
  fi
 
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_DROP_COUNTRY_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_DROP_COUNTRY_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_COUNTRY_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_DROP_BASE_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_DROP_BASE_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_BASE_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_DROP_SYNC_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_DROP_SYNC_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_SYNC_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_DROP_API_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_DROP_API_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_API_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_COUNTRY_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_COUNTRY_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_COUNTRY_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_ENUMS}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_ENUMS}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_ENUMS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_BASE_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_BASE_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_BASE_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_CONSTRAINTS}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_CONSTRAINTS}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_CONSTRAINTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_SYNC_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_SYNC_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_SYNC_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_LOAD_SYNC_NOTES}" ]] ; then
+ if [[ ! -r "${POSTGRES_LOAD_SYNC_NOTES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_LOAD_SYNC_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_VACUUM_AND_ANALYZE}" ]] ; then
+ if [[ ! -r "${POSTGRES_VACUUM_AND_ANALYZE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_VACUUM_AND_ANALYZE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_REMOVE_DUPLICATES}" ]] ; then
+ if [[ ! -r "${POSTGRES_REMOVE_DUPLICATES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_REMOVE_DUPLICATES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -534,7 +534,7 @@ function __processCountries {
  __logi "Obtaining the countries ids."
  set +e
  wget -O "${COUNTRIES_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
-   "${OVERPASS_INTERPRETER}"
+  "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -610,7 +610,7 @@ EOF
 
   __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
-    "${GEOJSON_FILE}" -nln import -overwrite
+   "${GEOJSON_FILE}" -nln import -overwrite
 
   __logi "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]]; then
@@ -648,7 +648,7 @@ function __processMaritimes {
  __logi "Obtaining the eez ids."
  set +e
  wget -O "${MARITIMES_FILE}" --post-file="${OVERPASS_MARITIMES}" \
-   "${OVERPASS_INTERPRETER}"
+  "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -738,7 +738,7 @@ function __loadSyncNotes {
  export OUTPUT_NOTE_COMMENTS_FILE
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
    < "${POSTGRES_LOAD_SYNC_NOTES}" || true)"
  __log_finish
 }
@@ -781,7 +781,7 @@ function __getLocationNotes {
   declare -l MAX_NOTE_ID
   wget -O "${LAST_NOTE_FILE}" \
    "${OSM_API}/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" \
-   || true)"
+    || true)"
   MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
   MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 
@@ -799,8 +799,8 @@ function __getLocationNotes {
      STMT="UPDATE notes
        SET id_country = get_country(longitude, latitude, note_id)
        WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-       AND id_country IS NULL" 
-      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+       AND id_country IS NULL"
+     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     done
     __logi "Finishing ${j}"
    ) &
@@ -822,7 +822,7 @@ function main() {
  __logi "Processing: ${PROCESS_TYPE}"
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
-   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
   exit "${ERROR_HELP_MESSAGE}"
  else
@@ -910,19 +910,19 @@ function main() {
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __loadSyncNotes               # sync & locate
-  __removeDuplicates            # sync & locate
-  __dropSyncTables              # sync & locate
-  __organizeAreas               # sync & locate
+  __loadSyncNotes    # sync & locate
+  __removeDuplicates # sync & locate
+  __dropSyncTables   # sync & locate
+  __organizeAreas    # sync & locate
   RET=${?}
   if [[ "${RET}" -ne 0 ]]; then
-   __createCountryTables        # sync & locate
-   __processCountries           # sync & locate
-   __processMaritimes           # sync & locate
-   __cleanPartial               # sync & locate
+   __createCountryTables # sync & locate
+   __processCountries    # sync & locate
+   __processMaritimes    # sync & locate
+   __cleanPartial        # sync & locate
    __organizeAreas
   fi
-  __getLocationNotes            # sync & locate
+  __getLocationNotes # sync & locate
  fi
  __cleanNotesFiles # base, sync & locate
  __logw "Ending process"
@@ -930,7 +930,7 @@ function main() {
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   if [[ ! -t 1 ]]; then
    mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
-     || true).log"
+    || true).log"
    rmdir "${TMP_DIR}"
   fi
  fi
