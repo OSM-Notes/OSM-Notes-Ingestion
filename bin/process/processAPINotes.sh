@@ -253,7 +253,8 @@ function __createPropertiesTable {
  __log_start
  set -e
  __logi "Creating properties table"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_PROPERTIES_TABLE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_CREATE_PROPERTIES_TABLE}"
  __log_finish
 }
 
@@ -286,7 +287,8 @@ function __getNewNotesFromApi {
 function __validateApiNotesXMLFile {
  __log_start
 
- xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" 2> "${LOG_FILENAME}"
+ xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" \
+   2> "${LOG_FILENAME}"
 
  __log_finish
 }
@@ -371,7 +373,8 @@ function __loadApiNotes {
  export OUTPUT_NOTE_COMMENTS_FILE
  # shellcheck disable=SC2016
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' < "${POSTGRES_LOAD_API_NOTES}")"
+   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+   < "${POSTGRES_LOAD_API_NOTES}" || true)"
 
  # TODO Load the text into another table.
  __log_finish
@@ -380,7 +383,8 @@ function __loadApiNotes {
 # Inserts new notes and comments into the database.
 function __insertNewNotesAndComments {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f \
+  "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}"
  # TODO The insert_note_comment procedure should accept the text.
  __log_finish
 }
