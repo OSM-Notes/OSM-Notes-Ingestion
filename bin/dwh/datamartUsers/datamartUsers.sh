@@ -39,7 +39,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -106,8 +106,8 @@ function __show_help {
 # Checks prerequisites to run the script.
 function __checkPrereqs {
  __log_start
-  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
-   && [[ "${PROCESS_TYPE}" != "-h" ]] ; then
+ if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --help"
@@ -159,7 +159,7 @@ function __checkBaseTables {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_OBJECTS_FILE}"
  RET=${?}
  set -e
- if [[ "${RET}" -ne 0 ]] ; then
+ if [[ "${RET}" -ne 0 ]]; then
   __logw "Creating datamart users tables."
   __createBaseTables
   __logw "Datamart users tables created."
@@ -175,7 +175,7 @@ function __addYears {
  YEAR=2013
  CURRENT_YEAR=$(date +%Y)
  while [[ "${YEAR}" -lt "${CURRENT_YEAR}" ]]; do
-  YEAR=$((YEAR + 1)) 
+  YEAR=$((YEAR + 1))
   export YEAR
   set +e
   # shellcheck disable=SC2016
@@ -228,10 +228,10 @@ function main() {
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [[ ! -t 1 ]] ; then
+if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}"
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]] ; then
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
    || true).log"
   rmdir "${TMP_DIR}"
