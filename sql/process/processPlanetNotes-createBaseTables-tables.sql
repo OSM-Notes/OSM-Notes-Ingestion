@@ -63,19 +63,3 @@ COMMENT ON TABLE logs IS 'Messages during the operations';
 COMMENT ON COLUMN logs.id IS 'Sequential generated id';
 COMMENT ON COLUMN logs.timestamp IS 'Timestamp when the event was recorded';
 COMMENT ON COLUMN logs.message IS 'Text of the event';
-
-CREATE INDEX IF NOT EXISTS usernames ON users (username);
-COMMENT ON INDEX usernames IS 'To query by username';
-CREATE INDEX IF NOT EXISTS notes_closed ON notes (closed_at);
-COMMENT ON INDEX notes_closed IS 'To query by closed time';
-CREATE INDEX IF NOT EXISTS notes_created ON notes (created_at);
-COMMENT ON INDEX notes_created IS 'To query by opening time';
-CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
-COMMENT ON INDEX notes_countries IS 'To query by location of the note';
-CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
-COMMENT ON INDEX notes_countries IS 'To query by the associated note';
-CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (id_user);
-COMMENT ON INDEX notes_countries IS
-  'To query by the user who perfomed the action';
-CREATE INDEX IF NOT EXISTS note_comments_created ON note_comments (created_at);
-COMMENT ON INDEX notes_countries IS 'To query by the time of the action';
