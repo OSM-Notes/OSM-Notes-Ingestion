@@ -92,6 +92,8 @@ AS $proc$
     AND f.action_comment = 'reopened'
   );
 
+  m_last_year_activity := '0';
+  RAISE NOTICE 'Activity array %', m_last_year_activity;
   -- Create the last year activity
   FOR r IN
    SELECT e.date_id, COALESCE(u.qty, 0) qty
@@ -107,14 +109,12 @@ AS $proc$
    ON (e.dimension_day_id = u.day_id)
    ORDER BY e.date_id DESC
    LIMIT 371
-
-  m_last_year_activity :=
-   '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
   LOOP
    m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
      (dwh.get_score_user_activity(r.qty::INTEGER)));
    m_last_year_activity := dwh.move_day(m_last_year_activity);
   END LOOP;
+  RAISE NOTICE 'Activity array %', m_last_year_activity;
 
   INSERT INTO dwh.datamartUsers (
    dimension_user_id,
@@ -234,10 +234,8 @@ AS $proc$
   m_lastest_commented_note_id INTEGER;
   m_lastest_closed_note_id INTEGER;
   m_lastest_reopened_note_id INTEGER;
-  m_date_most_open DATE;
-  m_date_most_open_qty INTEGER;
-  m_date_most_closed DATE;
-  m_date_most_closed_qty INTEGER;
+  m_dates_most_open JSON;
+  m_dates_most_closed JSON;
   m_hashtags JSON;
   m_countries_open_notes JSON;
   m_countries_solving_notes JSON;
@@ -284,6 +282,10 @@ AS $proc$
   m_id_contributor_type := 1;
 
   -- last_year_activity
+  SELECT last_year_activity
+   INTO m_last_year_activity
+  FROM dwh.datamartUsers u
+  WHERE u.dimension_user_id = m_dimension_user_id;
   SELECT COUNT(1)
    INTO m_todays_activity
   FROM dwh.facts f
@@ -293,6 +295,8 @@ AS $proc$
   AND d.date_id = CURRENT_DATE;
   m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
     dwh.get_score_user_activity(m_todays_activity));
+
+  RAISE NOTICE 'Activity array %', m_last_year_activity;
 
   -- lastest_open_note_id
   SELECT id_note
@@ -336,27 +340,33 @@ AS $proc$
     AND f.action_comment = 'reopened'
   );
  
-  -- date_most_open
-  SELECT date_id, COUNT(1)
-   INTO m_date_most_open, m_date_most_open_qty
-  FROM dwh.facts f
-   JOIN dwh.dimension_days d
-   ON (f.opened_dimension_id_date = d.dimension_day_id)
-  WHERE f.opened_dimension_id_user = m_dimension_user_id
-  GROUP BY date_id
-  ORDER BY COUNT(1) DESC
-  FETCH FIRST 1 ROWS ONLY;
+  -- dates_most_open
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
+   INTO m_dates_most_open
+  FROM (
+   SELECT date_id AS date, COUNT(1) AS quantity
+   FROM dwh.facts f
+    JOIN dwh.dimension_days d
+    ON (f.opened_dimension_id_date = d.dimension_day_id)
+   WHERE f.opened_dimension_id_user = m_dimension_user_id
+   GROUP BY date_id
+   ORDER BY COUNT(1) DESC
+   LIMIT 50
+  ) AS T;
  
-  -- date_most_closed
-  SELECT date_id, COUNT(1)
-   INTO m_date_most_closed, m_date_most_closed_qty
-  FROM dwh.facts f
-   JOIN dwh.dimension_days d
-   ON (f.closed_dimension_id_date = d.dimension_day_id)
-  WHERE f.closed_dimension_id_user = m_dimension_user_id
-  GROUP BY date_id
-  ORDER BY COUNT(1) DESC
-  FETCH FIRST 1 ROWS ONLY;
+  -- dates_most_closed
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
+   INTO m_dates_most_closed
+  FROM (
+   SELECT date_id AS date, COUNT(1) AS quantity
+   FROM dwh.facts f
+    JOIN dwh.dimension_days d
+    ON (f.closed_dimension_id_date = d.dimension_day_id)
+   WHERE f.closed_dimension_id_user = m_dimension_user_id
+   GROUP BY date_id
+   ORDER BY COUNT(1) DESC
+   LIMIT 50
+  ) AS T;
  
   -- hashtags
   -- TODO comment's text
@@ -627,10 +637,8 @@ AS $proc$
    lastest_commented_note_id = m_lastest_commented_note_id,
    lastest_closed_note_id = m_lastest_closed_note_id,
    lastest_reopened_note_id = m_lastest_reopened_note_id,
-   date_most_open = m_date_most_open,
-   date_most_open_qty = m_date_most_open_qty,
-   date_most_closed = m_date_most_closed,
-   date_most_closed_qty = m_date_most_closed_qty,
+   dates_most_open = m_dates_most_open,
+   dates_most_closed = m_dates_most_closed,
    hashtags = m_hashtags,
    countries_open_notes = m_countries_open_notes,
    countries_solving_notes = m_countries_solving_notes,

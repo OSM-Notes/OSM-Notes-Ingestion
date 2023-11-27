@@ -22,10 +22,8 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
  lastest_commented_note_id INTEGER,
  lastest_closed_note_id INTEGER,
  lastest_reopened_note_id INTEGER,
- date_most_open DATE, -- Day when the user opened the most notes. TODO convert to a JSON to show the top 10
- date_most_open_qty SMALLINT,
- date_most_closed DATE, -- Day when the user closed notes the most.
- date_most_closed_qty SMALLINT,
+ dates_most_open JSON, -- Day when the user opened the most notes.
+ dates_most_closed JSON, -- Day when the user closed notes the most.
  hashtags JSON, -- List of used hashtag.
  countries_open_notes JSON, -- List of countries where opening notes.
  countries_solving_notes JSON, -- List of countries where closing notes.
@@ -88,14 +86,10 @@ COMMENT ON COLUMN dwh.datamartUsers.lastest_closed_note_id IS
   'Most recent closed note';
 COMMENT ON COLUMN dwh.datamartUsers.lastest_reopened_note_id IS
   'Most recent reopened note';
-COMMENT ON COLUMN dwh.datamartUsers.date_most_open IS
-  'The day on which the user opened the most notes';
-COMMENT ON COLUMN dwh.datamartUsers.date_most_open_qty IS
-  'The quantity of notes the day on which the user opened the most notes';
-COMMENT ON COLUMN dwh.datamartUsers.date_most_closed IS
-  'The day on which the user closed the most notes';
-COMMENT ON COLUMN dwh.datamartUsers.date_most_closed_qty IS
-  'The quantity of notes The day on which the user closed the most notes';
+COMMENT ON COLUMN dwh.datamartUsers.dates_most_open IS
+  'The dates on which the user opened the most notes';
+COMMENT ON COLUMN dwh.datamartUsers.dates_most_closed IS
+  'The dates on which the user closed the most notes';
 COMMENT ON COLUMN dwh.datamartUsers.hashtags IS 'List of used hashtag';
 COMMENT ON COLUMN dwh.datamartUsers.countries_open_notes IS
   'List of countries where opening notes';
