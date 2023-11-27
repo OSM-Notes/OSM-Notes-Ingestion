@@ -283,7 +283,7 @@ function __processUserProfile {
      WHERE dimension_user_id = ${USER_ID}
      " \
   -v ON_ERROR_STOP=1)
- set -xv
+
  # Quantity of days creating notes. (TODO Puede que haya dejado de abrir o cerrar notas)
  declare -i QTY_DAYS_OPEN
  QTY_DAYS_OPEN=$(psql -d "${DBNAME}" -Atq \
@@ -293,16 +293,13 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i DATE_FIRST_OPEN
- DATE_FIRST_OPEN=$(psql -d "${DBNAME}" -Atq \
+ declare DATE_FIRST_OPEN
+ DATE_FIRST_OPEN=($(psql -d "${DBNAME}" -Atq \
   -c "SELECT date_starting_creating_notes
      FROM dwh.datamartUsers
      WHERE dimension_user_id = ${USER_ID}
      " \
-  -v ON_ERROR_STOP=1)
- echo "${DATE_FIRST_OPEN}"
- set +xv
- exit 1
+  -v ON_ERROR_STOP=1))
 
  # Quantity of days solving notes.
  declare -i QTY_DAYS_CLOSE
@@ -313,7 +310,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i DATE_FIRST_CLOSE
+ declare DATE_FIRST_CLOSE
  DATE_FIRST_CLOSE=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT date_starting_solving_notes
      FROM dwh.datamartUsers
@@ -374,13 +371,6 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Last year's ations. TODO
- declare LAST_YEAR_ACTIONS
- LAST_YEAR_ACTIONS="TODO" #$(psql -d "${DBNAME}" -Atq \
- #   -c "SELECT get_last_year_actions_user(${USER_ID})
- #    " \
- #   -v ON_ERROR_STOP=1 )
-
  # Most recent actions.
  declare -i LAST_OPEN_NOTE_ID
  LAST_OPEN_NOTE_ID=$(psql -d "${DBNAME}" -Atq \
@@ -414,33 +404,19 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Date with more opened notes TODO retrieve a JOSN with 10 ten
- declare DATE_MOST_OPEN
- DATE_MOST_OPEN=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_open
-     FROM dwh.datamartUsers
-     WHERE dimension_user_id = ${USER_ID}
-     " \
-  -v ON_ERROR_STOP=1)
- declare DATE_MOST_OPEN_QTY
- DATE_MOST_OPEN_QTY=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_open_qty
+ # Dates with more opened notes.
+ declare DATES_MOST_OPEN
+ DATES_MOST_OPEN=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT dates_most_open
      FROM dwh.datamartUsers
      WHERE dimension_user_id = ${USER_ID}
      " \
   -v ON_ERROR_STOP=1)
 
- # Date with more closed notes
- declare DATE_MOST_CLOSED
- DATE_MOST_CLOSED=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_closed
-     FROM dwh.datamartUsers
-     WHERE dimension_user_id = ${USER_ID}
-     " \
-  -v ON_ERROR_STOP=1)
- declare DATE_MOST_CLOSED_QTY
- DATE_MOST_CLOSED_QTY=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_closed_qty
+ # Dates with more closed notes
+ declare DATES_MOST_CLOSED
+ DATES_MOST_CLOSED=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT dates_most_closed
      FROM dwh.datamartUsers
      WHERE dimension_user_id = ${USER_ID}
      " \
@@ -829,16 +805,15 @@ function __processUserProfile {
  # ToDo Resolver más de 1000 notas en un día
 
  # TODO si cero, ocultar
- echo "User name: ${USERNAME} (id: ${OSM_USER_ID})"
- echo "Note solver type: ${CONTRIBUTOR_TYPE}"
+ echo "User name: ${USERNAME} (id: ${OSM_USER_ID})."
+ echo "Note solver type: ${CONTRIBUTOR_TYPE}."
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}, since ${DATE_FIRST_OPEN}."
- echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}"
+ echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}."
  echo "First actions: https://www.openstreetmap.org/note/${FIRST_OPEN_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_COMMENTED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_CLOSED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_REOPENED_NOTE_ID}"
- echo "Last actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
+ echo "Most recent actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
  echo "Last activity year: ${LAST_ACTIVITY_YEAR}"
- echo "Last year actions: ${LAST_YEAR_ACTIONS}" # TODO
- echo "The date when the most notes were opened: ${DATE_MOST_OPEN} (${DATE_MOST_OPEN_QTY})"
- echo "The date when the most notes were closed: ${DATE_MOST_CLOSED} (${DATE_MOST_CLOSED_QTY})"
+ echo "The date when the most notes were opened: ${DATES_MOST_OPEN}"
+ echo "The date when the most notes were closed: ${DATES_MOST_CLOSED}"
  echo "Hashtags used: ${HASHTAGS}" # TODO
  echo "Countries for open notes: ${COUNTRIES_OPENING}"
  echo "Countries for closed notes: ${COUNTRIES_CLOSING}"
@@ -956,13 +931,6 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Last year's ations. TODO
- declare LAST_YEAR_ACTIONS
- LAST_YEAR_ACTIONS="TODO" #$(psql -d "${DBNAME}" -Atq \
- #   -c "SELECT get_last_year_actions_country(${COUNTRY_ID})
- #    " \
- #   -v ON_ERROR_STOP=1 )
-
  # Most recent actions.
  declare -i LAST_OPEN_NOTE_ID
  LAST_OPEN_NOTE_ID=$(psql -d "${DBNAME}" -Atq \
@@ -996,33 +964,26 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Date with more opened notes TODO retrieve a JOSN with 10 ten
- declare DATE_MOST_OPEN
- DATE_MOST_OPEN=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_open
-     FROM dwh.datamartCountries
-     WHERE dimension_country_id = ${COUNTRY_ID}
-     " \
-  -v ON_ERROR_STOP=1)
- declare DATE_MOST_OPEN_QTY
- DATE_MOST_OPEN_QTY=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_open_qty
+ # Date with more opened notes.
+ declare DATES_MOST_OPEN
+ DATES_MOST_OPEN=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT dateS_most_open
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
   -v ON_ERROR_STOP=1)
 
  # Date with more closed notes
- declare DATE_MOST_CLOSED
- DATE_MOST_CLOSED=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_closed
+ declare DATES_MOST_CLOSED
+ DATES_MOST_CLOSED=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT dates_most_closed
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
   -v ON_ERROR_STOP=1)
- declare DATE_MOST_CLOSED_QTY
- DATE_MOST_CLOSED_QTY=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT date_most_closed_qty
+ declare DATES_MOST_CLOSED_QTY
+ DATES_MOST_CLOSED_QTY=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT dates_most_closed_qty
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
@@ -1252,9 +1213,8 @@ function __processCountryProfile {
  echo "First actions: https://www.openstreetmap.org/note/${FIRST_OPEN_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_COMMENTED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_CLOSED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_REOPENED_NOTE_ID}"
  echo "Last actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
  echo "Last activity year: ${LAST_ACTIVITY_YEAR}"
- echo "Last year actions: ${LAST_YEAR_ACTIONS}" # TODO
- echo "The date when the most notes were opened: ${DATE_MOST_OPEN} (${DATE_MOST_OPEN_QTY})"
- echo "The date when the most notes were closed: ${DATE_MOST_CLOSED} (${DATE_MOST_CLOSED_QTY})"
+ echo "The date when the most notes were opened: ${DATES_MOST_OPEN}"
+ echo "The date when the most notes were closed: ${DATES_MOST_CLOSED}"
  echo "Hashtags used: ${HASHTAGS}" # TODO
  echo "Users creating notes: ${USERS_OPENING}"
  echo "Users closing notes: ${USERS_CLOSING}"
