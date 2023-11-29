@@ -55,7 +55,10 @@ CREATE TABLE IF NOT EXISTS dwh.datamartCountries (
  history_2013_commented INTEGER,
  history_2013_closed INTEGER,
  history_2013_closed_with_comment INTEGER,
- history_2013_reopened INTEGER
+ history_2013_reopened INTEGER,
+ ranking_users_opening_2013 JSON,
+ ranking_users_closing_2013 JSON
+
 );
 COMMENT ON TABLE dwh.datamartCountries IS
   'Contains all precalculated statistical values for countries';
@@ -154,6 +157,10 @@ COMMENT ON COLUMN dwh.datamartCountries.history_2013_closed_with_comment IS
   'Qty of notes closed with comment in 2013';
 COMMENT ON COLUMN dwh.datamartCountries.history_2013_reopened IS
   'Qty of notes reopened in 2013';
+COMMENT ON COLUMN dwh.datamartCountries.ranking_users_opening_2013 IS
+  'Ranking of users creating notes on year 2013';
+COMMENT ON COLUMN dwh.datamartCountries.ranking_users_closing_2013 IS
+  'Ranking of users closing notes on year 2013';
 
 CREATE TABLE IF NOT EXISTS dwh.max_date_countries_processed (
   date date NOT NULL
