@@ -94,6 +94,7 @@ CREATE OR REPLACE FUNCTION dwh.move_day (
    m_new_activity CHAR(371);
   BEGIN
    m_new_activity := SUBSTRING(activity, 2) || '0';
+   --RAISE NOTICE 'New vector %', m_new_activity;
    RETURN m_new_activity;
   END
  $func$
@@ -114,6 +115,7 @@ CREATE OR REPLACE FUNCTION dwh.refresh_today_activities (
    m_new_activity CHAR(371);
   BEGIN
    m_new_activity := SUBSTRING(activity, 1, 370) || score;
+   --RAISE NOTICE 'Updated %-%', m_new_activity, score;
    RETURN m_new_activity;
   END
  $func$

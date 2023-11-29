@@ -96,23 +96,26 @@ AS $proc$
   --RAISE NOTICE 'Activity array %', m_last_year_activity;
   -- Create the last year activity
   FOR r IN
-   SELECT e.date_id, COALESCE(u.qty, 0) qty
-   FROM dwh.dimension_days e
-   LEFT JOIN (
-    SELECT d.dimension_day_id day_id, count(1) qty
-    FROM dwh.facts f
-     JOIN dwh.dimension_days d
-     ON (f.action_dimension_id_date = d.dimension_day_id)
-    WHERE f.action_dimension_id_user = m_dimension_user_id
-    GROUP BY d.dimension_day_id
-   ) u
-   ON (e.dimension_day_id = u.day_id)
-   ORDER BY e.date_id DESC
-   LIMIT 371
-  LOOP
+   SELECT t.date_id, qty
+   FROM (
+    SELECT e.date_id, COALESCE(u.qty, 0) qty
+    FROM dwh.dimension_days e
+    LEFT JOIN (
+     SELECT d.dimension_day_id day_id, count(1) qty
+     FROM dwh.facts f
+      JOIN dwh.dimension_days d
+      ON (f.action_dimension_id_date = d.dimension_day_id)
+     WHERE f.action_dimension_id_user = m_dimension_user_id
+     GROUP BY d.dimension_day_id
+    ) u
+    ON (e.dimension_day_id = u.day_id)
+    ORDER BY e.date_id DESC
+    LIMIT 371
+   ) AS t
+   ORDER BY t.date_id ASC
+ LOOP
    m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
      (dwh.get_score_user_activity(r.qty::INTEGER)));
-   m_last_year_activity := dwh.move_day(m_last_year_activity);
   END LOOP;
   --RAISE NOTICE 'Activity array %', m_last_year_activity;
 
