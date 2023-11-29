@@ -39,6 +39,8 @@ ToDo list
   * Un valor histórico
   * Valor por año para mostrar el desempeño
 * Por país, las notas que tomaron más tiempo en cerrarse
+* Mostrar el timestamp del comentario más reciente en la DB - Última actualización de la db
+* Mostrar la hora actual del servidor de DB.
 
 # Check
 
@@ -50,3 +52,8 @@ ToDo list
   * El que más ha abierto, más cerrado, más comentado, más reabierto
 * Cuando se ejecuta el datamart de nuevo, vuelve a cargar las notas del mismo dia, ya que había cargado.
   * Parece que ya se arregló, ya que estaba cargando todo el día de nuevo
+
+# Documentation
+
+* Hacer un diagrama de la curva de puntos de las actividades del último año (GitHib tiles).
+* Hacer un diagrama de componenetes, enfocado en el flujo de la información, dónde la volva y dónde la obtiene cada elemento. 
