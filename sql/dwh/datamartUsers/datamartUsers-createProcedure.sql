@@ -93,7 +93,7 @@ AS $proc$
   );
 
   m_last_year_activity := '0';
-  RAISE NOTICE 'Activity array %', m_last_year_activity;
+  --RAISE NOTICE 'Activity array %', m_last_year_activity;
   -- Create the last year activity
   FOR r IN
    SELECT e.date_id, COALESCE(u.qty, 0) qty
@@ -114,7 +114,7 @@ AS $proc$
      (dwh.get_score_user_activity(r.qty::INTEGER)));
    m_last_year_activity := dwh.move_day(m_last_year_activity);
   END LOOP;
-  RAISE NOTICE 'Activity array %', m_last_year_activity;
+  --RAISE NOTICE 'Activity array %', m_last_year_activity;
 
   INSERT INTO dwh.datamartUsers (
    dimension_user_id,
@@ -125,7 +125,8 @@ AS $proc$
    first_open_note_id,
    first_commented_note_id,
    first_closed_note_id,
-   first_reopened_note_id
+   first_reopened_note_id,
+   last_year_activity
   ) VALUES (
    m_dimension_user_id,
    m_user_id,
@@ -135,7 +136,8 @@ AS $proc$
    m_first_open_note_id,
    m_first_commented_note_id,
    m_first_closed_note_id,
-   m_first_reopened_note_id
+   m_first_reopened_note_id,
+   m_last_year_activity
   ) ON CONFLICT DO NOTHING;
  END
 $proc$;
@@ -295,8 +297,7 @@ AS $proc$
   AND d.date_id = CURRENT_DATE;
   m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
     dwh.get_score_user_activity(m_todays_activity));
-
-  RAISE NOTICE 'Activity array %', m_last_year_activity;
+  --RAISE NOTICE 'Activity array %', m_last_year_activity;
 
   -- lastest_open_note_id
   SELECT id_note
