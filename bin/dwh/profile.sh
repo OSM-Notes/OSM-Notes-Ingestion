@@ -271,7 +271,7 @@ function __showActivityYearCountries {
      " \
   -v ON_ERROR_STOP=1)
 
- printf "${YEAR}          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
+ printf "${YEAR}:          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
 }
 
 # Shows the user profile.
@@ -864,7 +864,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i DATE_FIRST_OPEN
+ declare DATE_FIRST_OPEN
  DATE_FIRST_OPEN=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT date_starting_creating_notes
      FROM dwh.datamartCountries
@@ -881,7 +881,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i DATE_FIRST_CLOSE
+ declare DATE_FIRST_CLOSE
  DATE_FIRST_CLOSE=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT date_starting_solving_notes
      FROM dwh.datamartCountries
@@ -981,13 +981,6 @@ function __processCountryProfile {
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
   -v ON_ERROR_STOP=1)
- declare DATES_MOST_CLOSED_QTY
- DATES_MOST_CLOSED_QTY=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT dates_most_closed_qty
-     FROM dwh.datamartCountries
-     WHERE dimension_country_id = ${COUNTRY_ID}
-     " \
-  -v ON_ERROR_STOP=1)
 
  # Used hashtags TODO procesar texto de notas
  declare HASHTAGS
@@ -1017,25 +1010,25 @@ function __processCountryProfile {
   -v ON_ERROR_STOP=1)
 
  # Working hours. TODO mostrar semana
- declare WORKING_HOURS_OPENING
- WORKING_HOURS_OPENING=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT working_hours_opening
+ declare WORKING_HOURS_OF_WEEK_OPENING
+ WORKING_HOURS_OF_WEEK_OPENING=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT working_hours_of_week_opening
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
   -v ON_ERROR_STOP=1)
 
- declare WORKING_HOURS_COMMENTING
- WORKING_HOURS_COMMENTING=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT working_hours_commenting
+ declare WORKING_HOURS_OF_WEEK_COMMENTING
+ WORKING_HOURS_OF_WEEK_COMMENTING=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT working_hours_of_week_commenting
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
   -v ON_ERROR_STOP=1)
 
- declare WORKING_HOURS_CLOSING
- WORKING_HOURS_CLOSING=$(psql -d "${DBNAME}" -Atq \
-  -c "SELECT working_hours_closing
+ declare WORKING_HOURS_OF_WEEK_CLOSING
+ WORKING_HOURS_OF_WEEK_CLOSING=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT working_hours_of_week_closing
      FROM dwh.datamartCountries
      WHERE dimension_country_id = ${COUNTRY_ID}
      " \
@@ -1220,18 +1213,18 @@ function __processCountryProfile {
  echo "Users closing notes: ${USERS_CLOSING}"
  echo "Working hours:"
  echo "  Opening:"
- echo "${WORKING_HOURS_OPENING}"
+ echo "${WORKING_HOURS_OF_WEEK_OPENING}"
  echo "  Commenting:"
- echo "${WORKING_HOURS_COMMENTING}"
+ echo "${WORKING_HOURS_OF_WEEK_COMMENTING}"
  echo "  Closing:"
- echo "${WORKING_HOURS_CLOSING}"
+ echo "${WORKING_HOURS_OF_WEEK_CLOSING}"
  # TODO Mostrar semana
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
- printf "                 Opened   Commented  Closed     Cld w/cmmt Reopened\n"
+ printf "                  Opened  Commented     Closed Cld w/cmmt   Reopened\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
  printf "Last 365 year: %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
  printf "Last 30 days:  %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_MONTH_OPEN}" "${HISTORY_MONTH_COMMENTED}" "${HISTORY_MONTH_CLOSED}" "${HISTORY_MONTH_CLOSED_WITH_COMMENT}" "${HISTORY_MONTH_REOPENED}"
- printf "Last day      %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_DAY_OPEN}" "${HISTORY_DAY_COMMENTED}" "${HISTORY_DAY_CLOSED}" "${HISTORY_DAY_CLOSED_WITH_COMMENT}" "${HISTORY_DAY_REOPENED}"
+ printf "Last day:      %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_DAY_OPEN}" "${HISTORY_DAY_COMMENTED}" "${HISTORY_DAY_CLOSED}" "${HISTORY_DAY_CLOSED_WITH_COMMENT}" "${HISTORY_DAY_REOPENED}"
  I=2013
  CURRENT_YEAR=$(date +%Y)
  while [[ "${I}" -le "${CURRENT_YEAR}" ]]; do
