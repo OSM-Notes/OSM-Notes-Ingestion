@@ -128,7 +128,8 @@ AS $proc$
    first_open_note_id,
    first_commented_note_id,
    first_closed_note_id,
-   first_reopened_note_id
+   first_reopened_note_id,
+   last_year_activity
   ) VALUES (
    m_dimension_country_id,
    m_country_id,
@@ -140,7 +141,8 @@ AS $proc$
    m_first_open_note_id,
    m_first_commented_note_id,
    m_first_closed_note_id,
-   m_first_reopened_note_id
+   m_first_reopened_note_id,
+   m_last_year_activity
   ) ON CONFLICT DO NOTHING;
  END
 $proc$;
