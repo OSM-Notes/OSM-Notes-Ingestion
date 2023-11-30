@@ -1,7 +1,7 @@
 -- Verifies if the base tables are created in the database.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-10
+-- Version: 2023-11-29
   
 ALTER TABLE dwh.datamartCountries
  ADD COLUMN history_${YEAR}_open INTEGER,
