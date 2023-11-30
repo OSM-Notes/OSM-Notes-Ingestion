@@ -444,32 +444,42 @@ AS $proc$
   m_hashtags := NULL;
  
   -- countries_open_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('country', country_name, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+   'quantity', quantity))
    INTO m_countries_open_notes
   FROM (
-   SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
-   FROM dwh.facts f
-    JOIN dwh.dimension_countries c
-    ON f.dimension_id_country = c.dimension_country_id 
-   WHERE f.opened_dimension_id_user = m_dimension_user_id
-   GROUP BY c.country_name_es
-   ORDER BY COUNT(1) DESC
-   LIMIT 50
-  ) AS T;
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
+   FROM (
+    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_countries c
+     ON f.dimension_id_country = c.dimension_country_id 
+    WHERE f.opened_dimension_id_user = m_dimension_user_id
+    GROUP BY c.country_name_es
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
  
   -- countries_solving_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('country', country_name, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+   'quantity', quantity))
    INTO m_countries_solving_notes
   FROM (
-   SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
-   FROM dwh.facts f
-    JOIN dwh.dimension_countries c
-    ON f.dimension_id_country = c.dimension_country_id 
-   WHERE f.closed_dimension_id_user = m_dimension_user_id
-   GROUP BY c.country_name_es
-   ORDER BY COUNT(1) DESC
-   LIMIT 50
-  ) AS T;
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
+   FROM (
+    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_countries c
+     ON f.dimension_id_country = c.dimension_country_id 
+    WHERE f.closed_dimension_id_user = m_dimension_user_id
+    GROUP BY c.country_name_es
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
  
   -- working_hours_of_week_opening
   WITH hours AS (

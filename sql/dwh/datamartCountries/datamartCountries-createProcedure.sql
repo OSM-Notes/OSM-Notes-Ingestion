@@ -440,32 +440,42 @@ AS $proc$
   m_hashtags := NULL;
 
   -- users_open_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('username', username, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+   'quantity', quantity))
    INTO m_users_open_notes
   FROM (
-   SELECT u.username AS username, COUNT(1) AS quantity
-   FROM dwh.facts f
-    JOIN dwh.dimension_users u
-    ON f.opened_dimension_id_user = u.dimension_user_id 
-   WHERE f.dimension_id_country = m_dimension_id_country
-   GROUP BY u.username
-   ORDER BY COUNT(1) DESC
-   LIMIT 50
-  ) AS T;
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+   FROM (
+    SELECT u.username AS username, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_users u
+     ON f.opened_dimension_id_user = u.dimension_user_id 
+    WHERE f.dimension_id_country = m_dimension_id_country
+    GROUP BY u.username
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
 
   -- users_solving_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('username', username, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+   'quantity', quantity))
    INTO m_users_solving_notes
   FROM (
-   SELECT u.username AS username, COUNT(1) AS quantity
-   FROM dwh.facts f
-    JOIN dwh.dimension_users u
-    ON F.closed_dimension_id_user = u.dimension_user_id 
-   WHERE f.dimension_id_country = m_dimension_id_country
-   GROUP BY u.username
-   ORDER BY COUNT(1) DESC
-   LIMIT 50
-  ) AS T;
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+   FROM (
+    SELECT u.username AS username, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_users u
+     ON F.closed_dimension_id_user = u.dimension_user_id 
+    WHERE f.dimension_id_country = m_dimension_id_country
+    GROUP BY u.username
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
 
   -- working_hours_of_week_opening
   WITH hours AS (
