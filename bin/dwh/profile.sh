@@ -86,8 +86,6 @@ declare -i DIMENSION_USER_ID
 declare COUNTRY_NAME
 # Country_id of the contry.
 declare -i COUNTRY_ID
-# Country OSM ID
-declare -i COUNTRY_OSM_ID
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -162,8 +160,9 @@ function __checkPrereqs {
 # Retrives the dimension_user_id from a username.
 function __getUserId {
  DIMENSION_USER_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-  <<< "SELECT dimension_user_id FROM dwh.datamartUsers WHERE username = '${USERNAME}'")
- if [[ "${DIMENSION_USER_ID}" == "" ]]; then
+  <<< "SELECT dimension_user_id FROM dwh.datamartUsers
+  WHERE username = '${USERNAME}'")
+ if [[ "${DIMENSION_USER_ID}" == "" ]] || [[ "${DIMENSION_USER_ID}" -eq 0 ]]; then
   __loge "ERROR: The username \"${USERNAME}\" does not exist."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
@@ -172,7 +171,7 @@ function __getUserId {
 # Retrives the country_id from a country name.
 function __getCountryId {
  COUNTRY_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-  <<< "SELECT dimension_country_id FROM dwh.dimension_countries 
+  <<< "SELECT dimension_country_id FROM dwh.datamartCountries 
   WHERE country_name_es = '${COUNTRY_NAME}'")
  if [[ "${COUNTRY_ID}" == "" ]]; then
   __loge "ERROR: The country name \"${COUNTRY_NAME}\" does not exist."
@@ -274,11 +273,18 @@ function __showActivityYearCountries {
  printf "${YEAR}:          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
 }
 
+# Prints a given ranking in a better way.
+function __printRanking {
+ RANKING=${1}
+
+ echo "${RANKING}" | sed 's/}, {/\n/g' | sed 's/^\[{//' | sed 's/}\]//' | sed 's/"rank" ://g' | sed 's/, "country_name" : "/ - /g' | sed 's/", "quantity" :/:/g'
+}
+
 # Shows the historic yearly rankings when the user has contributed the most.
 function __showRankingYearUsers {
  YEAR="${1}"
 
- declare -i RANKING_OPENING
+ declare RANKING_OPENING
  RANKING_OPENING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT ranking_countries_opening_${YEAR}
      FROM dwh.datamartUsers
@@ -286,7 +292,7 @@ function __showRankingYearUsers {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i RANKING_CLOSING
+ declare RANKING_CLOSING
  RANKING_CLOSING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT ranking_countries_closing_${YEAR}
      FROM dwh.datamartUsers
@@ -294,15 +300,18 @@ function __showRankingYearUsers {
      " \
   -v ON_ERROR_STOP=1)
 
-  echo "Countries for opened notes on ${YEAR}: ${RANKING_OPENING}"
-  echo "Countries for closed notes on ${YEAR}: ${RANKING_OPENING}"
+  echo
+  echo "Countries for opened notes on ${YEAR}:"
+  __printRanking "${RANKING_OPENING}"
+  echo "Countries for closed notes on ${YEAR}:"
+  __printRanking "${RANKING_CLOSING}"
 }
 
 # Shows the historic yearly rankings on which users have been contributed the most.
 function __showRankingYearCountries {
  YEAR="${1}"
 
- declare -i RANKING_OPENING
+ declare RANKING_OPENING
  RANKING_OPENING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT ranking_users_opening_${YEAR}
      FROM dwh.datamartCountries
@@ -310,7 +319,7 @@ function __showRankingYearCountries {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i RANKING_CLOSING
+ declare RANKING_CLOSING
  RANKING_CLOSING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT ranking_users_closing_${YEAR}
      FROM dwh.datamartCountries
@@ -318,8 +327,103 @@ function __showRankingYearCountries {
      " \
   -v ON_ERROR_STOP=1)
 
- echo "Users creating notes: ${USERS_OPENING}"
- echo "Users closing notes: ${USERS_CLOSING}"
+ echo
+ echo "Users creating notes on ${YEAR}:"
+ __printRanking "${RANKING_OPENING}"
+ echo "Users closing notes on ${YEAR}:"
+ __printRanking "${RANKING_CLOSING}"
+}
+
+# Prints the hour the hour of the week.
+function __processHourWeek {
+ HOUR=${1}
+ NUMBER=$(echo "${WEEK}" | grep "\"day_of_week\":${I},\"hour_of_day\":${HOUR}," | awk -F: '{print $4}' | sed 's/}, //' | sed 's/}\]//')
+ printf "%5d" "${NUMBER}"
+}
+
+# Shows the week hours in a better fashion.
+function __showWorkingWeek {
+ WEEK=${1}
+ declare HOUR_0=" 0h"
+ declare HOUR_1=" 1h"
+ declare HOUR_2=" 2h"
+ declare HOUR_3=" 3h"
+ declare HOUR_4=" 4h"
+ declare HOUR_5=" 5h"
+ declare HOUR_6=" 6h"
+ declare HOUR_7=" 7h"
+ declare HOUR_8=" 8h"
+ declare HOUR_9=" 9h"
+ declare HOUR_10="10h"
+ declare HOUR_11="11h"
+ declare HOUR_12="12h"
+ declare HOUR_13="13h"
+ declare HOUR_14="14h"
+ declare HOUR_15="15h"
+ declare HOUR_16="16h"
+ declare HOUR_17="17h"
+ declare HOUR_18="18h"
+ declare HOUR_19="19h"
+ declare HOUR_20="20h"
+ declare HOUR_21="21h"
+ declare HOUR_22="22h"
+ declare HOUR_23="23h"
+ I=1
+ set +e
+ while [ ${I} -le 7 ]; do
+  J=0
+  HOUR_0="${HOUR_0} - $(__processHourWeek 0)"
+  HOUR_1="${HOUR_1} - $(__processHourWeek 1)"
+  HOUR_2="${HOUR_2} - $(__processHourWeek 2)"
+  HOUR_3="${HOUR_3} - $(__processHourWeek 3)"
+  HOUR_4="${HOUR_4} - $(__processHourWeek 4)"
+  HOUR_5="${HOUR_5} - $(__processHourWeek 5)"
+  HOUR_6="${HOUR_6} - $(__processHourWeek 6)"
+  HOUR_7="${HOUR_7} - $(__processHourWeek 7)"
+  HOUR_8="${HOUR_8} - $(__processHourWeek 8)"
+  HOUR_9="${HOUR_9} - $(__processHourWeek 9)"
+  HOUR_10="${HOUR_10} - $(__processHourWeek 10)"
+  HOUR_11="${HOUR_11} - $(__processHourWeek 11)"
+  HOUR_12="${HOUR_12} - $(__processHourWeek 12)"
+  HOUR_13="${HOUR_13} - $(__processHourWeek 13)"
+  HOUR_14="${HOUR_14} - $(__processHourWeek 14)"
+  HOUR_15="${HOUR_15} - $(__processHourWeek 15)"
+  HOUR_16="${HOUR_16} - $(__processHourWeek 16)"
+  HOUR_17="${HOUR_17} - $(__processHourWeek 17)"
+  HOUR_18="${HOUR_18} - $(__processHourWeek 18)"
+  HOUR_19="${HOUR_19} - $(__processHourWeek 19)"
+  HOUR_20="${HOUR_20} - $(__processHourWeek 20)"
+  HOUR_21="${HOUR_21} - $(__processHourWeek 21)"
+  HOUR_22="${HOUR_22} - $(__processHourWeek 22)"
+  HOUR_23="${HOUR_23} - $(__processHourWeek 23)"
+  I=$((I+1))
+ done
+ set -e
+ echo "        Sun -   Mon -   Tue -   Wed -   Thu -   Fri -   Sat"
+ echo "${HOUR_0}"
+ echo "${HOUR_1}"
+ echo "${HOUR_2}"
+ echo "${HOUR_3}"
+ echo "${HOUR_4}"
+ echo "${HOUR_5}"
+ echo "${HOUR_6}"
+ echo "${HOUR_7}"
+ echo "${HOUR_8}"
+ echo "${HOUR_9}"
+ echo "${HOUR_10}"
+ echo "${HOUR_11}"
+ echo "${HOUR_12}"
+ echo "${HOUR_13}"
+ echo "${HOUR_14}"
+ echo "${HOUR_15}"
+ echo "${HOUR_16}"
+ echo "${HOUR_17}"
+ echo "${HOUR_18}"
+ echo "${HOUR_19}"
+ echo "${HOUR_20}"
+ echo "${HOUR_21}"
+ echo "${HOUR_22}"
+ echo "${HOUR_23}"
 }
 
 # Shows the user profile.
@@ -497,7 +601,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Working hours. TODO mostrar semana
+ # Working hours.
  declare WORKING_HOURS_OPENING
  WORKING_HOURS_OPENING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT working_hours_of_week_opening
@@ -859,18 +963,21 @@ function __processUserProfile {
  echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}."
  echo "First actions: https://www.openstreetmap.org/note/${FIRST_OPEN_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_COMMENTED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_CLOSED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_REOPENED_NOTE_ID}"
  echo "Most recent actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
- echo "Last activity year: ${LAST_ACTIVITY_YEAR}"
- echo "The date when the most notes were opened: ${DATES_MOST_OPEN}"
- echo "The date when the most notes were closed: ${DATES_MOST_CLOSED}"
+ echo "Last activity year: ${LAST_ACTIVITY_YEAR}" # TODO Mostrar por columnas cada semana
+ echo "The date when the most notes were opened:"
+ echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
+ echo "The date when the most notes were closed:"
+ echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "Hashtags used: ${HASHTAGS}" # TODO
  echo "Working hours:" # TODO Por año
+ set +E
  echo "  Opening:"
- echo "${WORKING_HOURS_OPENING}"
+ __showWorkingWeek "${WORKING_HOURS_OPENING}"
  echo "  Commenting:"
- echo "${WORKING_HOURS_COMMENTING}"
+ __showWorkingWeek "${WORKING_HOURS_COMMENTING}"
  echo "  Closing:"
- echo "${WORKING_HOURS_CLOSING}"
- # TODO Mostrar semana
+ __showWorkingWeek "${WORKING_HOURS_CLOSING}"
+ set -E
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
  printf "                  Opened  Commented     Closed Cld w/cmmt   Reopened\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
@@ -1262,17 +1369,20 @@ function __processCountryProfile {
  echo "First actions: https://www.openstreetmap.org/note/${FIRST_OPEN_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_COMMENTED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_CLOSED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_REOPENED_NOTE_ID}"
  echo "Last actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
  echo "Last activity year: ${LAST_ACTIVITY_YEAR}"
- echo "The date when the most notes were opened: ${DATES_MOST_OPEN}"
- echo "The date when the most notes were closed: ${DATES_MOST_CLOSED}"
+ echo "The date when the most notes were opened:"
+ echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
+ echo "The date when the most notes were closed:"
+ echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "Hashtags used: ${HASHTAGS}" # TODO
  echo "Working hours:" # TODO Por año
+ set +E
  echo "  Opening:"
- echo "${WORKING_HOURS_OF_WEEK_OPENING}"
+ __showWorkingWeek "${WORKING_HOURS_OF_WEEK_OPENING}"
  echo "  Commenting:"
- echo "${WORKING_HOURS_OF_WEEK_COMMENTING}"
+ __showWorkingWeek "${WORKING_HOURS_OF_WEEK_COMMENTING}"
  echo "  Closing:"
- echo "${WORKING_HOURS_OF_WEEK_CLOSING}"
- # TODO Mostrar semana
+ __showWorkingWeek "${WORKING_HOURS_OF_WEEK_CLOSING}"
+ set -E
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
  printf "                  Opened  Commented     Closed Cld w/cmmt   Reopened\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
