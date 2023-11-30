@@ -1,7 +1,7 @@
 -- Procedure to insert datamart country.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-10
+-- Version: 2023-11-29
 
 /**
  * Inserts a contry in the datamart, with the values that do not change.
@@ -226,38 +226,48 @@ AS $proc$
     AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
    -- m_ranking_users_opening_year
-   SELECT JSON_AGG(JSON_BUILD_OBJECT('username', username, 'quantity', quantity))
+   SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+     'quantity', quantity))
     INTO m_ranking_users_opening_year
    FROM (
-    SELECT u.username AS username, COUNT(1) AS quantity
-    FROM dwh.facts f
-     JOIN dwh.dimension_users u
-     ON f.opened_dimension_id_user = u.dimension_user_id
-     JOIN dwh.dimension_days d
-     ON f.opened_dimension_id_date = d.dimension_day_id
-    WHERE f.dimension_id_country = m_dimension_country_id
-    AND EXTRACT(YEAR FROM d.date_id) = m_year
-     GROUP BY u.username
-    ORDER BY COUNT(1) DESC
-    LIMIT 50
-   ) AS T;
+    SELECT
+     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+	  FROM (
+     SELECT u.username AS username, COUNT(1) AS quantity
+     FROM dwh.facts f
+      JOIN dwh.dimension_users u
+      ON f.opened_dimension_id_user = u.dimension_user_id
+      JOIN dwh.dimension_days d
+      ON f.opened_dimension_id_date = d.dimension_day_id
+     WHERE f.dimension_id_country = m_dimension_country_id
+     AND EXTRACT(YEAR FROM d.date_id) = m_year
+      GROUP BY u.username
+     ORDER BY COUNT(1) DESC
+     LIMIT 50
+    ) AS T
+   ) AS S;
 
    -- m_ranking_users_closing_year
-   SELECT JSON_AGG(JSON_BUILD_OBJECT('username', username, 'quantity', quantity))
+   SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+     'quantity', quantity))
     INTO m_ranking_users_closing_year
    FROM (
-    SELECT u.username AS username, COUNT(1) AS quantity
-    FROM dwh.facts f
-     JOIN dwh.dimension_users u
-     ON f.opened_dimension_id_user = u.dimension_user_id
-     JOIN dwh.dimension_days d
-     ON f.closed_dimension_id_date = d.dimension_day_id
-    WHERE f.dimension_id_country = m_dimension_country_id
-     AND EXTRACT(YEAR FROM d.date_id) = m_year
-    GROUP BY u.username
-    ORDER BY COUNT(1) DESC
-    LIMIT 50
-   ) AS T;
+    SELECT
+     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+    FROM (
+     SELECT u.username AS username, COUNT(1) AS quantity
+     FROM dwh.facts f
+      JOIN dwh.dimension_users u
+      ON f.closed_dimension_id_user = u.dimension_user_id
+      JOIN dwh.dimension_days d
+      ON f.closed_dimension_id_date = d.dimension_day_id
+     WHERE f.dimension_id_country = m_dimension_country_id
+      AND EXTRACT(YEAR FROM d.date_id) = m_year
+     GROUP BY u.username
+     ORDER BY COUNT(1) DESC
+     LIMIT 50
+    ) AS T
+   ) AS S;
 
    stmt := 'UPDATE dwh.datamartCountries SET '
      || 'history_' || m_year || '_open = ' || m_history_year_open || ', '
@@ -336,7 +346,7 @@ AS $proc$
    FROM dwh.datamartCountries
    WHERE dimension_country_id = m_dimension_id_country;
   IF (qty = 0) THEN
-   RAISE NOTICE 'Inserting country';
+   --RAISE NOTICE 'Inserting country';
    CALL dwh.insert_datamart_country(m_dimension_id_country);
   END IF;
 
