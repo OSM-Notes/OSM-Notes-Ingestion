@@ -277,7 +277,7 @@ function __showActivityYearCountries {
 function __printRanking {
  RANKING=${1}
 
- echo "${RANKING}" | sed 's/}, {/\n/g' | sed 's/^\[{//' | sed 's/}\]//' | sed 's/"rank" ://g' | sed 's/, "country_name" : "/ - /g' | sed 's/", "quantity" :/:/g'
+ echo "${RANKING}" | sed 's/}, {/\n/g' | sed 's/^\[{//' | sed 's/}\]//' | sed 's/"rank" ://g' | sed 's/, "country_name" : "/ - /g' | sed 's/, "username" : "/ - /g' | sed 's/", "quantity" :/:/g'
 }
 
 # Shows the historic yearly rankings when the user has contributed the most.
@@ -991,8 +991,10 @@ function __processUserProfile {
   I=$((I + 1))
  done
  echo "Historically:"
- echo "Countries for open notes: ${COUNTRIES_OPENING}"
- echo "Countries for closed notes: ${COUNTRIES_CLOSING}"
+ echo "Countries for open notes:"
+ __printRanking "${COUNTRIES_OPENING}"
+ echo "Countries for closed notes:"
+ __printRanking "${COUNTRIES_CLOSING}"
  I=2013
  CURRENT_YEAR=$(date +%Y)
  while [[ "${I}" -le "${CURRENT_YEAR}" ]]; do
@@ -1398,8 +1400,10 @@ function __processCountryProfile {
   # TODO Top 10 Notas con más reopening por año.
  done
  echo "Historically:"
- echo "Users creating notes: ${USERS_OPENING}"
- echo "Users closing notes: ${USERS_CLOSING}"
+ echo "Users creating notes:"
+ __printRanking "${USERS_OPENING}"
+ echo "Users closing notes:"
+ __printRanking "${USERS_CLOSING}"
  I=2013
  CURRENT_YEAR=$(date +%Y)
  while [[ "${I}" -le "${CURRENT_YEAR}" ]]; do
