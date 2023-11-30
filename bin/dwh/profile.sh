@@ -31,8 +31,8 @@
 # * shfmt -w -i 1 -sr -bn profile.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-11-11
-declare -r VERSION="2023-11-11"
+# Version: 2023-11-29
+declare -r VERSION="2023-11-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -272,6 +272,54 @@ function __showActivityYearCountries {
   -v ON_ERROR_STOP=1)
 
  printf "${YEAR}:          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
+}
+
+# Shows the historic yearly rankings when the user has contributed the most.
+function __showRankingYearUsers {
+ YEAR="${1}"
+
+ declare -i RANKING_OPENING
+ RANKING_OPENING=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT ranking_countries_opening_${YEAR}
+     FROM dwh.datamartUsers
+     WHERE dimension_user_id = ${USER_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ declare -i RANKING_CLOSING
+ RANKING_CLOSING=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT ranking_countries_closing_${YEAR}
+     FROM dwh.datamartUsers
+     WHERE dimension_user_id = ${USER_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+  echo "Countries for opened notes on ${YEAR}: ${RANKING_OPENING}"
+  echo "Countries for closed notes on ${YEAR}: ${RANKING_OPENING}"
+}
+
+# Shows the historic yearly rankings on which users have been contributed the most.
+function __showRankingYearCountries {
+ YEAR="${1}"
+
+ declare -i RANKING_OPENING
+ RANKING_OPENING=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT ranking_users_opening_${YEAR}
+     FROM dwh.datamartCountries
+     WHERE dimension_country_id = ${COUNTRY_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ declare -i RANKING_CLOSING
+ RANKING_CLOSING=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT ranking_users_closing_${YEAR}
+     FROM dwh.datamartCountries
+     WHERE dimension_country_id = ${COUNTRY_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ echo "Users creating notes: ${USERS_OPENING}"
+ echo "Users closing notes: ${USERS_CLOSING}"
 }
 
 # Shows the user profile.
@@ -815,9 +863,7 @@ function __processUserProfile {
  echo "The date when the most notes were opened: ${DATES_MOST_OPEN}"
  echo "The date when the most notes were closed: ${DATES_MOST_CLOSED}"
  echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Countries for open notes: ${COUNTRIES_OPENING}"
- echo "Countries for closed notes: ${COUNTRIES_CLOSING}"
- echo "Working hours:"
+ echo "Working hours:" # TODO Por año
  echo "  Opening:"
  echo "${WORKING_HOURS_OPENING}"
  echo "  Commenting:"
@@ -837,6 +883,16 @@ function __processUserProfile {
   __showActivityYearUsers "${I}"
   I=$((I + 1))
  done
+ echo "Historically:"
+ echo "Countries for open notes: ${COUNTRIES_OPENING}"
+ echo "Countries for closed notes: ${COUNTRIES_CLOSING}"
+ I=2013
+ CURRENT_YEAR=$(date +%Y)
+ while [[ "${I}" -le "${CURRENT_YEAR}" ]]; do
+  __showRankingYearUsers "${I}"
+  I=$((I + 1))
+ done
+
  # echo "Rankings historic       ${RANKING_HISTORIC_OPEN} ${RANKING_HISTORIC_COMMENTED} ${RANKING_HISTORIC_CLOSED} ${RANKING_HISTORIC_REOPENED}"
  # echo "Rankings last 12 months ${RANKING_YEAR_OPEN} ${RANKING_YEAR_COMMENTED} ${RANKING_YEAR_CLOSED} ${RANKING_YEAR_REOPENED}"
  # echo "Rankings last 30 days   ${RANKING_MONTH_OPEN} ${RANKING_MONTH_COMMENTED} ${RANKING_MONTH_CLOSED} ${RANKING_MONTH_REOPENED}"
@@ -991,7 +1047,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Users opening notes.
+ # Users opening notes. Global ranking.
  declare USERS_OPENING
  USERS_OPENING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT users_open_notes
@@ -1000,7 +1056,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Users closing notes.
+ # Users closing notes. Global ranking.
  declare USERS_CLOSING
  USERS_CLOSING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT users_solving_notes
@@ -1209,9 +1265,7 @@ function __processCountryProfile {
  echo "The date when the most notes were opened: ${DATES_MOST_OPEN}"
  echo "The date when the most notes were closed: ${DATES_MOST_CLOSED}"
  echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Users creating notes: ${USERS_OPENING}"
- echo "Users closing notes: ${USERS_CLOSING}"
- echo "Working hours:"
+ echo "Working hours:" # TODO Por año
  echo "  Opening:"
  echo "${WORKING_HOURS_OF_WEEK_OPENING}"
  echo "  Commenting:"
@@ -1232,6 +1286,15 @@ function __processCountryProfile {
   I=$((I + 1))
   # TODO Top 10 Notas con más comentarios por año.
   # TODO Top 10 Notas con más reopening por año.
+ done
+ echo "Historically:"
+ echo "Users creating notes: ${USERS_OPENING}"
+ echo "Users closing notes: ${USERS_CLOSING}"
+ I=2013
+ CURRENT_YEAR=$(date +%Y)
+ while [[ "${I}" -le "${CURRENT_YEAR}" ]]; do
+  __showRankingYearCountries "${I}"
+  I=$((I + 1))
  done
 }
 
