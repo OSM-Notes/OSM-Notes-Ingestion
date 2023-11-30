@@ -1,7 +1,7 @@
 -- Procedure to insert datamart user.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-13
+-- Version: 2023-11-29
 
 /**
  * Inserts a user in the datamart, with the values that do not change.
@@ -162,61 +162,128 @@ AS $proc$
   m_history_year_closed INTEGER;
   m_history_year_closed_with_comment INTEGER;
   m_history_year_reopened INTEGER;
+  m_ranking_countries_opening_year JSON;
+  m_ranking_countries_closing_year JSON;
+  m_current_year SMALLINT;
+  m_check_year_populated INTEGER;
   stmt TEXT;
  BEGIN
-  -- history_year_open
-  SELECT COUNT(1)
-   INTO m_history_year_open
-  FROM dwh.facts f
-   JOIN dwh.dimension_days d
-   ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.action_dimension_id_user = m_dimension_user_id
-   AND f.action_comment = 'opened'
-   AND EXTRACT(YEAR FROM d.date_id) = m_year;
+  SELECT EXTRACT(YEAR FROM CURRENT_DATE)
+   INTO m_current_year;
 
-  -- history_year_commented
-  SELECT COUNT(1)
-   INTO m_history_year_commented
-  FROM dwh.facts f
-   JOIN dwh.dimension_days d
-   ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.action_dimension_id_user = m_dimension_user_id
-   AND f.action_comment = 'commented'
-   AND EXTRACT(YEAR FROM d.date_id) = m_year;
-
-  -- history_year_closed
-  SELECT COUNT(1)
-   INTO m_history_year_closed
-  FROM dwh.facts f
-   JOIN dwh.dimension_days d
-   ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.action_dimension_id_user = m_dimension_user_id
-   AND f.action_comment = 'closed'
-   AND EXTRACT(YEAR FROM d.date_id) = m_year;
-
-  -- history_year_closed_with_comment
-  -- TODO comment's text
-  m_history_year_closed_with_comment := 0;
-
-  -- history_year_reopened
-  SELECT COUNT(1)
-   INTO m_history_year_reopened
-  FROM dwh.facts f
-   JOIN dwh.dimension_days d
-   ON (f.action_dimension_id_date = d.dimension_day_id)
-  WHERE f.action_dimension_id_user = m_dimension_user_id
-   AND f.action_comment = 'reopened'
-   AND EXTRACT(YEAR FROM d.date_id) = m_year;
-
-  stmt := 'UPDATE dwh.datamartUsers SET '
-    || 'history_' || m_year || '_open = ' || m_history_year_open || ', '
-    || 'history_' || m_year || '_commented = ' || m_history_year_commented || ', '
-    || 'history_' || m_year || '_closed = ' || m_history_year_closed || ', '
-    || 'history_' || m_year || '_closed_with_comment = ' || m_history_year_closed_with_comment || ', '
-    || 'history_' || m_year || '_reopened = ' || m_history_year_reopened || ' '
-    || 'WHERE dimension_user_id = ' || m_dimension_user_id;
+  stmt := 'SELECT history_' || m_year || '_open '
+   || 'FROM dwh.datamartUsers '
+   || 'WHERE dimension_user_id = ' || m_dimension_user_id;
   INSERT INTO logs (message) VALUES (stmt);
-  EXECUTE stmt;
+  EXECUTE stmt INTO m_check_year_populated;
+
+  IF (m_check_year_populated IS NULL OR m_check_year_populated = m_current_year) THEN
+
+   -- history_year_open
+   SELECT COUNT(1)
+    INTO m_history_year_open
+   FROM dwh.facts f
+    JOIN dwh.dimension_days d
+    ON (f.action_dimension_id_date = d.dimension_day_id)
+   WHERE f.action_dimension_id_user = m_dimension_user_id
+    AND f.action_comment = 'opened'
+    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+
+   -- history_year_commented
+   SELECT COUNT(1)
+    INTO m_history_year_commented
+   FROM dwh.facts f
+    JOIN dwh.dimension_days d
+    ON (f.action_dimension_id_date = d.dimension_day_id)
+   WHERE f.action_dimension_id_user = m_dimension_user_id
+    AND f.action_comment = 'commented'
+    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+
+   -- history_year_closed
+   SELECT COUNT(1)
+    INTO m_history_year_closed
+   FROM dwh.facts f
+    JOIN dwh.dimension_days d
+    ON (f.action_dimension_id_date = d.dimension_day_id)
+   WHERE f.action_dimension_id_user = m_dimension_user_id
+    AND f.action_comment = 'closed'
+    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+
+   -- history_year_closed_with_comment
+   -- TODO comment's text
+   m_history_year_closed_with_comment := 0;
+
+   -- history_year_reopened
+   SELECT COUNT(1)
+    INTO m_history_year_reopened
+   FROM dwh.facts f
+    JOIN dwh.dimension_days d
+    ON (f.action_dimension_id_date = d.dimension_day_id)
+   WHERE f.action_dimension_id_user = m_dimension_user_id
+    AND f.action_comment = 'reopened'
+    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+
+   -- m_ranking_countries_opening_year
+   SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country_name',
+     country_name, 'quantity', quantity))
+    INTO m_ranking_countries_opening_year
+   FROM (
+    SELECT
+     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
+	  FROM (
+     SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+     FROM dwh.facts f
+      JOIN dwh.dimension_countries c
+      ON f.dimension_id_country = c.dimension_country_id
+      JOIN dwh.dimension_days d
+      ON f.opened_dimension_id_date = d.dimension_day_id
+     WHERE f.opened_dimension_id_user = m_dimension_user_id
+      AND EXTRACT(YEAR FROM d.date_id) = m_year
+     GROUP BY c.country_name_es
+     ORDER BY COUNT(1) DESC
+     LIMIT 50
+    ) AS T
+   ) AS S;
+
+   -- m_ranking_countries_closing_year
+   SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country_name',
+     country_name, 'quantity', quantity))
+    INTO m_ranking_countries_closing_year
+   FROM (
+    SELECT
+     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
+    FROM (
+     SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+     FROM dwh.facts f
+      JOIN dwh.dimension_countries c
+      ON f.dimension_id_country = c.dimension_country_id
+      JOIN dwh.dimension_days d
+      ON f.closed_dimension_id_date = d.dimension_day_id
+     WHERE f.closed_dimension_id_user = m_dimension_user_id
+      AND EXTRACT(YEAR FROM d.date_id) = m_year
+     GROUP BY c.country_name_es
+     ORDER BY COUNT(1) DESC
+     LIMIT 50
+    ) AS T
+   ) AS S;
+
+   stmt := 'UPDATE dwh.datamartUsers SET '
+     || 'history_' || m_year || '_open = ' || m_history_year_open || ', '
+     || 'history_' || m_year || '_commented = ' 
+     || m_history_year_commented || ', '
+     || 'history_' || m_year || '_closed = ' || m_history_year_closed || ', '
+     || 'history_' || m_year || '_closed_with_comment = '
+     || m_history_year_closed_with_comment || ', '
+     || 'history_' || m_year || '_reopened = '
+     || m_history_year_reopened || ', '
+     || 'ranking_countries_opening_' || m_year || ' = '
+     || QUOTE_NULLABLE(m_ranking_countries_opening_year) || ', '
+     || 'ranking_countries_closing_' || m_year || ' = '
+     || QUOTE_NULLABLE(m_ranking_countries_closing_year) || ' '
+     || 'WHERE dimension_user_id = ' || m_dimension_user_id;
+   INSERT INTO logs (message) VALUES (SUBSTR(stmt, 1, 900));
+   EXECUTE stmt;
+  END IF;
  END
 $proc$;
 COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
@@ -377,7 +444,7 @@ AS $proc$
   m_hashtags := NULL;
  
   -- countries_open_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries', country_name, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('country', country_name, 'quantity', quantity))
    INTO m_countries_open_notes
   FROM (
    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
@@ -391,7 +458,7 @@ AS $proc$
   ) AS T;
  
   -- countries_solving_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('countries', country_name, 'quantity', quantity))
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('country', country_name, 'quantity', quantity))
    INTO m_countries_solving_notes
   FROM (
    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity

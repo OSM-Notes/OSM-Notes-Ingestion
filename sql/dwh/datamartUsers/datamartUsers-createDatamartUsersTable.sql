@@ -1,7 +1,7 @@
 -- Creates datamart for users.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-10
+-- Version: 2023-11-29
 
 CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
  -- Static values (username could change)
@@ -54,7 +54,9 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
  history_2013_commented INTEGER,
  history_2013_closed INTEGER,
  history_2013_closed_with_comment INTEGER,
- history_2013_reopened INTEGER
+ history_2013_reopened INTEGER,
+ ranking_countries_opening_2013 JSON,
+ ranking_countries_closing_2013 JSON
 );
 COMMENT ON TABLE dwh.datamartUsers IS
   'Contains all precalculated statistical values for users';
@@ -151,6 +153,10 @@ COMMENT ON COLUMN dwh.datamartUsers.history_2013_closed_with_comment IS
   'Qty of notes closed with comment in 2013';
 COMMENT ON COLUMN dwh.datamartUsers.history_2013_reopened IS
   'Qty of notes reopened in 2013';
+COMMENT ON COLUMN dwh.datamartUsers.ranking_countries_opening_2013 IS
+  'Ranking of countries where creating notes on year 2013';
+COMMENT ON COLUMN dwh.datamartUsers.ranking_countries_closing_2013 IS
+  'Ranking of countries where closing notes on year 2013';
 
 CREATE TABLE IF NOT EXISTS dwh.badges (
  badge_id SERIAL,
