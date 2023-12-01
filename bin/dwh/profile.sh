@@ -371,7 +371,6 @@ function __showWorkingWeek {
  I=1
  set +e
  while [ ${I} -le 7 ]; do
-  J=0
   HOUR_0="${HOUR_0} - $(__processHourWeek 0)"
   HOUR_1="${HOUR_1} - $(__processHourWeek 1)"
   HOUR_2="${HOUR_2} - $(__processHourWeek 2)"
@@ -424,6 +423,55 @@ function __showWorkingWeek {
  echo "${HOUR_21}"
  echo "${HOUR_22}"
  echo "${HOUR_23}"
+}
+
+# Shows the activity as GitHub tiles.
+function __printActivity {
+ ACTIVITY="${1}"
+
+ declare SUN="Sunday:    "
+ declare MON="Monday:    "
+ declare TUE="Tuesday:   "
+ declare WED="Wednesday: "
+ declare THU="Thursay:   "
+ declare FRI="Friday:    "
+ declare SAT="Saturday:  "
+
+ I=1
+ set +e
+ while [ ${I} -le 53 ]; do
+  DAY="${ACTIVITY:0:1}"
+  ACTIVITY="${ACTIVITY:1}"
+  SUN="${SUN}${DAY}"
+  DAY="${ACTIVITY:0:1}"
+  ACTIVITY="${ACTIVITY:1}"
+  MON="${MON}${DAY}"
+  DAY="${ACTIVITY:0:1}"
+  ACTIVITY="${ACTIVITY:1}"
+  TUE="${TUE}${DAY}"
+  DAY="${ACTIVITY:0:1}"
+  ACTIVITY="${ACTIVITY:1}"
+  WED="${WED}${DAY}"
+  DAY="${ACTIVITY:0:1}"
+  ACTIVITY="${ACTIVITY:1}"
+  THU="${THU}${DAY}"
+  DAY="${ACTIVITY:0:1}"
+  ACTIVITY="${ACTIVITY:1}"
+  FRI="${FRI}${DAY}"
+  DAY="${ACTIVITY:0:1}"
+  ACTIVITY="${ACTIVITY:1}"
+  SAT="${SAT}${DAY}"
+  I=$((I+1))
+ done
+ set -e
+
+ echo "${SUN}"
+ echo "${MON}"
+ echo "${TUE}"
+ echo "${WED}"
+ echo "${THU}"
+ echo "${FRI}"
+ echo "${SAT}"
 }
 
 # Shows the user profile.
@@ -792,78 +840,6 @@ function __processUserProfile {
   -v ON_ERROR_STOP=1)
 
  # # Ranking historic # TODO
- # declare RANKING_HISTORIC_OPEN
- # RANKING_HISTORIC_OPEN=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_historic
- #      WHERE action = 'opened'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
- #
- # declare RANKING_HISTORIC_COMMENTED
- # RANKING_HISTORIC_COMMENTED=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_historic
- #      WHERE action = 'commented'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
- #
- # declare RANKING_HISTORIC_CLOSED
- # RANKING_HISTORIC_CLOSED=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_historic
- #      WHERE action = 'closed'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
- #
- # declare RANKING_HISTORIC_REOPENED
- # RANKING_HISTORIC_REOPENED=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_historic
- #      WHERE action = 'reopened'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
- #
- # # Ranking year #TODO
- # declare RANKING_YEAR_OPEN
- # RANKING_YEAR_OPEN=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_year
- #      WHERE action = 'opened'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
- #
- # declare RANKING_YEAR_COMMENTED
- # RANKING_YEAR_COMMENTED=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_year
- #      WHERE action = 'commented'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
- #
- # declare RANKING_YEAR_CLOSED
- # RANKING_YEAR_CLOSED=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_year
- #      WHERE action = 'closed'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
- #
- # declare RANKING_YEAR_REOPENED
- # RANKING_YEAR_REOPENED=$(psql -d "${DBNAME}" -Atq \
- #    -c "SELECT position, id_country
- #      FROM dwh.ranking_year
- #      WHERE action = 'reopened'
- #      AND dimension_user_id = ${DIMENSION_USER_ID}
- #     " \
- #    -v ON_ERROR_STOP=1 )
  #
  # # Ranking month #TODO
  # declare RANKING_MONTH_OPEN
@@ -963,7 +939,8 @@ function __processUserProfile {
  echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}."
  echo "First actions: https://www.openstreetmap.org/note/${FIRST_OPEN_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_COMMENTED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_CLOSED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_REOPENED_NOTE_ID}"
  echo "Most recent actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
- echo "Last activity year: ${LAST_ACTIVITY_YEAR}" # TODO Mostrar por columnas cada semana
+ echo "Last activity year:"
+ __printActivity "${LAST_ACTIVITY_YEAR}"
  echo "The date when the most notes were opened:"
  echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "The date when the most notes were closed:"
@@ -1370,7 +1347,8 @@ function __processCountryProfile {
  echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}"
  echo "First actions: https://www.openstreetmap.org/note/${FIRST_OPEN_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_COMMENTED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_CLOSED_NOTE_ID} https://www.openstreetmap.org/note/${FIRST_REOPENED_NOTE_ID}"
  echo "Last actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
- echo "Last activity year: ${LAST_ACTIVITY_YEAR}"
+ echo "Last activity year:"
+ __printActivity ${LAST_ACTIVITY_YEAR}
  echo "The date when the most notes were opened:"
  echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "The date when the most notes were closed:"
