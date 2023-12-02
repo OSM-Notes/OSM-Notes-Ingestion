@@ -743,7 +743,7 @@ AS $proc$
    history_day_reopened =m_history_day_reopened
   WHERE dimension_country_id = m_dimension_id_country;
 
-  m_year := 2013; -- TODO Cuando se modifica, no toca actualizar toda la historia
+  m_year := 2013;
   WHILE (m_year <= m_current_year) LOOP
    CALL dwh.update_datamart_country_activity_year(m_dimension_id_country, m_year);
    m_year := m_year + 1;

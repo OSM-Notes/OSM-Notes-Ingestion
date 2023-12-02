@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS dwh.datamartUsers (
  hashtags JSON, -- List of used hashtag.
  countries_open_notes JSON, -- List of countries where opening notes.
  countries_solving_notes JSON, -- List of countries where closing notes.
- working_hours_of_week_opening JSON, -- Hours when the user creates notes. TODO mostrar semana
+ working_hours_of_week_opening JSON, -- Hours when the user creates notes.
  working_hours_of_week_commenting JSON, -- Hours when the user comments notes.
  working_hours_of_week_closing JSON, -- Hours when the user closes notes.
  history_whole_open INTEGER, -- Qty opened notes.
