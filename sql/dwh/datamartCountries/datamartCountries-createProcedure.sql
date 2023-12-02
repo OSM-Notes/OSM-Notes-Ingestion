@@ -1,7 +1,7 @@
 -- Procedure to insert datamart country.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-29
+-- Version: 2023-12-01
 
 /**
  * Inserts a contry in the datamart, with the values that do not change.
@@ -312,6 +312,10 @@ AS $proc$
   m_hashtags JSON;
   m_users_open_notes JSON;
   m_users_solving_notes JSON;
+  m_users_open_notes_current_month JSON;
+  m_users_solving_notes_current_month JSON;
+  m_users_open_notes_current_day JSON;
+  m_users_solving_notes_current_day JSON;
   m_working_hours_of_week_opening JSON;
   m_working_hours_of_week_commenting JSON;
   m_working_hours_of_week_closing JSON;
@@ -477,6 +481,101 @@ AS $proc$
    ) AS T
   ) AS S;
 
+  SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
+   INTO m_current_year;
+
+  SELECT EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
+   INTO m_current_month;
+
+  SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)
+   INTO m_current_day;
+
+  -- users_open_notes_current_month
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+   'quantity', quantity))
+   INTO m_users_open_notes_current_month
+  FROM (
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+   FROM (
+    SELECT u.username AS username, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_users u
+     ON f.opened_dimension_id_user = u.dimension_user_id 
+    WHERE f.dimension_id_country = m_dimension_id_country
+     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+    GROUP BY u.username
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
+
+  -- users_solving_notes_current_month
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+   'quantity', quantity))
+   INTO m_users_solving_notes_current_month
+  FROM (
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+   FROM (
+    SELECT u.username AS username, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_users u
+     ON F.closed_dimension_id_user = u.dimension_user_id 
+    WHERE f.dimension_id_country = m_dimension_id_country
+     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+    GROUP BY u.username
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
+
+  -- users_open_notes_current_day
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+   'quantity', quantity))
+   INTO m_users_open_notes_current_day
+  FROM (
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+   FROM (
+    SELECT u.username AS username, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_users u
+     ON f.opened_dimension_id_user = u.dimension_user_id 
+    WHERE f.dimension_id_country = m_dimension_id_country
+     AND EXTRACT(DAY FROM d.date_id) = m_current_day
+     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+    GROUP BY u.username
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
+
+  -- users_solving_notes_current_day
+  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
+   'quantity', quantity))
+   INTO m_users_solving_notes_current_day
+  FROM (
+   SELECT
+    RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
+   FROM (
+    SELECT u.username AS username, COUNT(1) AS quantity
+    FROM dwh.facts f
+     JOIN dwh.dimension_users u
+     ON F.closed_dimension_id_user = u.dimension_user_id 
+    WHERE f.dimension_id_country = m_dimension_id_country
+     AND EXTRACT(DAY FROM d.date_id) = m_current_day
+     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+    GROUP BY u.username
+    ORDER BY COUNT(1) DESC
+    LIMIT 50
+   ) AS T
+  ) AS S;
+
   -- working_hours_of_week_opening
   WITH hours AS (
    SELECT day_of_week, hour_of_day, COUNT(1)
@@ -553,9 +652,6 @@ AS $proc$
   WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'reopened';
 
-  SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
-   INTO m_current_year;
-
   -- history_year_open
   SELECT COUNT(1)
    INTO m_history_year_open
@@ -599,9 +695,6 @@ AS $proc$
   WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'reopened'
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
-
-  SELECT EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
-   INTO m_current_month;
 
   -- history_month_open
   SELECT COUNT(1)
@@ -650,9 +743,6 @@ AS $proc$
    AND f.action_comment = 'reopened'
    AND EXTRACT(MONTH FROM d.date_id) = m_current_month
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
-
-  SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)
-   INTO m_current_day;
 
   -- history_day_open
   SELECT COUNT(1)
@@ -719,6 +809,10 @@ AS $proc$
    hashtags = m_hashtags,
    users_open_notes = m_users_open_notes,
    users_solving_notes = m_users_solving_notes,
+   users_open_notes_current_month = m_users_open_notes_current_month,
+   users_solving_notes_current_month = m_users_solving_notes_current_month,
+   users_open_notes_current_day = m_users_open_notes_current_day,
+   users_solving_notes_current_day = m_users_solving_notes_current_day,
    working_hours_of_week_opening = m_working_hours_of_week_opening,
    working_hours_of_week_commenting = m_working_hours_of_week_commenting,
    working_hours_of_week_closing = m_working_hours_of_week_closing,

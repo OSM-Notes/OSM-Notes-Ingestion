@@ -31,8 +31,8 @@
 # * shfmt -w -i 1 -sr -bn profile.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-11-30
-declare -r VERSION="2023-11-30"
+# Version: 2023-12-01
+declare -r VERSION="2023-12-01"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -649,6 +649,42 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
+ # Countries opening notes current month.
+ declare COUNTRIES_OPENING_CURRENT_MONTH
+ COUNTRIES_OPENING_CURRENT_MONTH=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT countries_open_notes_current_month
+     FROM dwh.datamartUsers
+     WHERE dimension_user_id = ${DIMENSION_USER_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ # Countries closing notes current month.
+ declare COUNTRIES_CLOSING_CURRENT_MONTH
+ COUNTRIES_CLOSING_CURRENT_MONTH=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT countries_solving_notes_current_month
+     FROM dwh.datamartUsers
+     WHERE dimension_user_id = ${DIMENSION_USER_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ # Countries opening notes current day.
+ declare COUNTRIES_OPENING_CURRENT_DAY
+ COUNTRIES_OPENING_CURRENT_DAY=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT countries_open_notes_current_day
+     FROM dwh.datamartUsers
+     WHERE dimension_user_id = ${DIMENSION_USER_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ # Countries closing notes current day.
+ declare COUNTRIES_CLOSING_CURRENT_DAY
+ COUNTRIES_CLOSING_CURRENT_DAY=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT countries_solving_notes_current_day
+     FROM dwh.datamartUsers
+     WHERE dimension_user_id = ${DIMENSION_USER_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
  # Working hours.
  declare WORKING_HOURS_OPENING
  WORKING_HOURS_OPENING=$(psql -d "${DBNAME}" -Atq \
@@ -839,8 +875,6 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # # Ranking historic # TODO
- #
  # # Ranking month #TODO
  # declare RANKING_MONTH_OPEN
  # RANKING_MONTH_OPEN=$(psql -d "${DBNAME}" -Atq \
@@ -946,7 +980,7 @@ function __processUserProfile {
  echo "The date when the most notes were closed:"
  echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Working hours:" # TODO Por año
+ echo "Working hours:" # TODO Por años pasados
  set +E
  echo "  Opening:"
  __showWorkingWeek "${WORKING_HOURS_OPENING}"
@@ -978,9 +1012,17 @@ function __processUserProfile {
   __showRankingYearUsers "${I}"
   I=$((I + 1))
  done
+ "Ranking in the current month:"
+ echo "Countries for open notes:"
+ __printRanking "${COUNTRIES_OPENING_CURRENT_MONTH}"
+ echo "Countries for closed notes:"
+ __printRanking "${COUNTRIES_CLOSING_CURRENT_MONTH}"
+ "Ranking in the current day:"
+ echo "Countries for open notes:"
+ __printRanking "${COUNTRIES_OPENING_CURRENT_DAY}"
+ echo "Countries for closed notes:"
+ __printRanking "${COUNTRIES_CLOSING_CURRENT_DAY}"
 
- # echo "Rankings historic       ${RANKING_HISTORIC_OPEN} ${RANKING_HISTORIC_COMMENTED} ${RANKING_HISTORIC_CLOSED} ${RANKING_HISTORIC_REOPENED}"
- # echo "Rankings last 12 months ${RANKING_YEAR_OPEN} ${RANKING_YEAR_COMMENTED} ${RANKING_YEAR_CLOSED} ${RANKING_YEAR_REOPENED}"
  # echo "Rankings last 30 days   ${RANKING_MONTH_OPEN} ${RANKING_MONTH_COMMENTED} ${RANKING_MONTH_CLOSED} ${RANKING_MONTH_REOPENED}"
  # echo "Rankings today          ${RANKING_DAY_OPEN} ${RANKING_DAY_COMMENTED} ${RANKING_DAY_CLOSED} ${RANKING_DAY_REOPENED}"
  # echo "Badges: ${BADGES}" #TODO
@@ -1133,7 +1175,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Users opening notes. Global ranking.
+ # Users opening notes. Global ranking, historically.
  declare USERS_OPENING
  USERS_OPENING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT users_open_notes
@@ -1142,7 +1184,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Users closing notes. Global ranking.
+ # Users closing notes. Global ranking, historically.
  declare USERS_CLOSING
  USERS_CLOSING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT users_solving_notes
@@ -1151,7 +1193,43 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Working hours. TODO mostrar semana
+ # Users opening notes. Current month.
+ declare USERS_OPENING_CURRENT_MONTH
+ USERS_OPENING_CURRENT_MONTH=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT users_open_notes_current_month
+     FROM dwh.datamartCountries
+     WHERE dimension_country_id = ${COUNTRY_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ # Users closing notes. Current month.
+ declare USERS_CLOSING_CURRENT_MONTH
+ USERS_CLOSING_CURRENT_MONTH=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT users_solving_notes_current_month
+     FROM dwh.datamartCountries
+     WHERE dimension_country_id = ${COUNTRY_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ # Users opening notes. Current day.
+ declare USERS_OPENING_CURRENT_DAY
+ USERS_OPENING_CURRENT_DAY=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT users_open_notes_current_day
+     FROM dwh.datamartCountries
+     WHERE dimension_country_id = ${COUNTRY_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ # Users closing notes. Current day.
+ declare USERS_CLOSING_CURRENT_DAY
+ USERS_CLOSING_CURRENT_DAY=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT users_solving_notes_current_day
+     FROM dwh.datamartCountries
+     WHERE dimension_country_id = ${COUNTRY_ID}
+     " \
+  -v ON_ERROR_STOP=1)
+
+ # Working hours.
  declare WORKING_HOURS_OF_WEEK_OPENING
  WORKING_HOURS_OF_WEEK_OPENING=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT working_hours_of_week_opening
@@ -1388,6 +1466,14 @@ function __processCountryProfile {
   __showRankingYearCountries "${I}"
   I=$((I + 1))
  done
+ echo "Ranking users creating notes in the current month:"
+ __printRanking "${USERS_OPENING_CURRENT_MONTH}"
+ echo "Ranking users closing notes in the current month:"
+ __printRanking "${USERS_CLOSING_CURRENT_MONTH}"
+ echo "Ranking users creating notes in the current day:"
+ __printRanking "${USERS_OPENING_CURRENT_DAY}"
+ echo "Ranking users closing notes in the current day:"
+ __printRanking "${USERS_CLOSING_CURRENT_DAY}"
 }
 
 # Shows general stats about notes.

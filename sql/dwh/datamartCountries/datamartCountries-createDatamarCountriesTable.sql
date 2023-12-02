@@ -1,7 +1,7 @@
 -- Creates datamart for countries.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-10
+-- Version: 2023-12-01
 
 CREATE TABLE IF NOT EXISTS dwh.datamartCountries (
  -- Static values (country name could change)
@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS dwh.datamartCountries (
  hashtags JSON, -- List of used hashtag.
  users_open_notes JSON, -- List of countries where opening notes.
  users_solving_notes JSON, -- List of countries where closing notes.
+ users_open_notes_current_month JSON,
+ users_solving_notes_current_month JSON,
+ users_open_notes_current_day JSON,
+ users_solving_notes_current_day JSON,
  working_hours_of_week_opening JSON, -- Hours when creates notes.
  working_hours_of_week_commenting JSON, -- Hours when comments notes.
  working_hours_of_week_closing JSON, -- Hours when closes notes.
@@ -101,6 +105,14 @@ COMMENT ON COLUMN dwh.datamartCountries.users_open_notes IS
   'List of users opening notes in the country';
 COMMENT ON COLUMN dwh.datamartCountries.users_solving_notes IS
   'List of users closing notes in the country';
+COMMENT ON COLUMN dwh.datamartCountries.users_open_notes_current_month IS
+  'List of users opening notes in the country in the current month';
+COMMENT ON COLUMN dwh.datamartCountries.users_solving_notes_current_month IS
+  'List of users closing notes in the country in the current month';
+COMMENT ON COLUMN dwh.datamartCountries.users_open_notes_current_day IS
+  'List of users opening notes in the country today';
+COMMENT ON COLUMN dwh.datamartCountries.users_solving_notes_current_day IS
+  'List of users closing notes in the country today';
 COMMENT ON COLUMN dwh.datamartCountries.working_hours_of_week_opening IS
   'Hours when the user creates notes';
 COMMENT ON COLUMN dwh.datamartCountries.working_hours_of_week_commenting IS
