@@ -502,9 +502,11 @@ AS $proc$
     FROM dwh.facts f
      JOIN dwh.dimension_users u
      ON f.opened_dimension_id_user = u.dimension_user_id 
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY u.username
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -522,10 +524,12 @@ AS $proc$
     SELECT u.username AS username, COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_users u
-     ON F.closed_dimension_id_user = u.dimension_user_id 
+     ON f.closed_dimension_id_user = u.dimension_user_id 
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY u.username
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -544,10 +548,12 @@ AS $proc$
     FROM dwh.facts f
      JOIN dwh.dimension_users u
      ON f.opened_dimension_id_user = u.dimension_user_id 
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(DAY FROM d.date_id) = m_current_day
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY u.username
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -565,11 +571,13 @@ AS $proc$
     SELECT u.username AS username, COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_users u
-     ON F.closed_dimension_id_user = u.dimension_user_id 
+     ON f.closed_dimension_id_user = u.dimension_user_id
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(DAY FROM d.date_id) = m_current_day
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY u.username
     ORDER BY COUNT(1) DESC
     LIMIT 50

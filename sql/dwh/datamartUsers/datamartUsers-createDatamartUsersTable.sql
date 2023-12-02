@@ -246,3 +246,7 @@ INSERT INTO dwh.badges (badge_name) VALUES
 -- TODO Populate contributor types.
 INSERT INTO dwh.contributor_types (contributor_type_name) VALUES
  ('Notero');
+
+-- Processes all users.
+UPDATE dwh.dimension_users
+  SET modified = TRUE;

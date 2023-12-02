@@ -186,3 +186,7 @@ COMMENT ON COLUMN dwh.max_date_countries_processed.date IS
 ALTER TABLE dwh.datamartCountries
  ADD CONSTRAINT pk_datamartCountries
  PRIMARY KEY (dimension_country_id);
+
+-- Processes all countries.
+UPDATE dwh.dimension_countries
+  SET modified = TRUE;

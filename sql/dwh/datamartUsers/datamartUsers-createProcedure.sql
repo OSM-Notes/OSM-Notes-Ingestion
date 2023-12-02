@@ -506,9 +506,11 @@ AS $proc$
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.opened_dimension_id_user = m_dimension_user_id
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -527,9 +529,11 @@ AS $proc$
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.closed_dimension_id_user = m_dimension_user_id
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -548,10 +552,12 @@ AS $proc$
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.opened_dimension_id_user = m_dimension_user_id
      AND EXTRACT(DAY FROM d.date_id) = m_current_day
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -570,10 +576,12 @@ AS $proc$
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
+     JOIN dwh.dimension_days d
+     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.closed_dimension_id_user = m_dimension_user_id
      AND EXTRACT(DAY FROM d.date_id) = m_current_day
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
