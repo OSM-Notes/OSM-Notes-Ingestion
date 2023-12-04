@@ -180,7 +180,7 @@ function __checkingDifferences {
 # Sends the report of differences in the database.
 function __sendMail {
  __log_start
- QTY=$(wc -l "${DIFFERENT_NOTE_IDS_FILE}" | cut -f 1 -d' ')
+ QTY=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" | wc -l | cut -f 1 -d' ')
  if [[ "${QTY}" -ne 0 ]]; then
   __logi "Sending mail."
   {
