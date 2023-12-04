@@ -21,8 +21,6 @@ BEGIN
    SET date = CURRENT_DATE;
  END IF;
 
- -- TODO Si es cambio de año, guardar el ranking del año pasado.
-
  FOR r IN
   -- Process the datamart only for modified users.
   SELECT f.action_dimension_id_user AS dimension_user_id
