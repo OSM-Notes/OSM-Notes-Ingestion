@@ -3,6 +3,29 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-31
 
+SELECT CURRENT_TIMESTAMP AS Processing, 'Regions added' AS Task;
+
+INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
+ ('Indefinida', 'Undefined'),
+ ('Norteamérica', 'North America'),
+ ('Centroamérica', 'Central America'),
+ ('Antillas', 'Antilles'),
+ ('Sudamérica', 'South America'),
+ ('Europa Occidental', 'Western Europe'),
+ ('Europa Oriental', 'Eastern Europe'),
+ ('Cáucaso', 'Caucasus'),
+ ('Siberia', 'Siberia'),
+ ('Asia Central', 'Central Asia'),
+ ('Asia Oriental', 'East Asia'),
+ ('África del Norte', 'North Africa'),
+ ('África subsahariana', 'Sub-Saharan Africa'),
+ ('Medio Oriente', 'Middle East'),
+ ('Indostán', 'Indian subcontinent'),
+ ('Indochina', 'Mainland Southeast Asia'),
+ ('Insulindia', 'Malay Archipelago'),
+ ('Islas del Pacífico (Melanesia, Micronesia y Polinesia)', 'Pacific Islands (Melanesia, Micronesia and Polynesia)'),
+ ('Australia', 'Australia');
+
 SELECT CURRENT_TIMESTAMP AS Processing, 'Updating dimension countries' AS Task;
 
 -- Insert an id for notes without a country.
