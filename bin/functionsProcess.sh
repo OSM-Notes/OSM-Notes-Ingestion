@@ -29,8 +29,22 @@ declare -r ERROR_LOGGER_UTILITY=243
 # shellcheck disable=SC2154
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
 
+# Name of the file of the XSLT transformation for notes.
+declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+# Name of the file of the XSLT transformation for note comments.
+declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
+# Name of the file of the XSLT transformation for text comments.
+declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-text-Planet-csv.xslt"
 # XML Schema of the Planet notes file.
 declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
+
+# Jar name of the XSLT processor.
+declare SAXON_JAR
+set +ue
+SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f \
+ -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
+set -ue
+readonly SAXON_JAR
 
 # PostgreSQL files.
 # Check base tables.
@@ -225,9 +239,8 @@ function __downloadPlanetNotes {
  # shellcheck disable=SC2154
  wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
   "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
-
  # Validates the download with the hash value md5.
- diff <(md5sum "${PLANET_NOTES_FILE}.bz2" || true | cut -d' ' -f 1 || true) \
+ diff <(md5sum "${PLANET_NOTES_FILE}.bz2" | cut -d' ' -f 1 || true) \
   <(cut -d' ' -f 1 "${PLANET_NOTES_FILE}.bz2.md5" || true)
  # If there is a difference, if will return non-zero value and fail the script.
 
@@ -271,6 +284,11 @@ function __convertPlanetNotesToFlatFile {
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
   -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
+ __logi "Processing text from XML"
+ # shellcheck disable=SC2154
+ java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+  -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_TEXT_COMMENTS_FILE}" \
+  -o:"${OUTPUT_TEXT_COMMENTS_FILE}"
  __log_finish
 }
 

@@ -54,6 +54,22 @@ COMMENT ON COLUMN note_comments.created_at IS
 COMMENT ON COLUMN note_comments.id_user IS
   'OSM id of the user who performed the action';
 
+CREATE TABLE IF NOT EXISTS note_comments_text (
+ id SERIAL,
+ note_id INTEGER NOT NULL,
+ processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ body TEXT 
+);
+COMMENT ON TABLE note_comments_text IS 'Stores all text associated with comment notes';
+COMMENT ON COLUMN note_comments_text.id IS
+  'ID of the comment. Same value from the other table';
+COMMENT ON COLUMN note_comments.note_id IS
+  'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_text.processing_time IS
+  'Registers when this comment was inserted in the database. Automatic value';
+COMMENT ON COLUMN note_comments_text.body IS
+  'Text of the note comment';
+
 CREATE TABLE IF NOT EXISTS logs (
  id SERIAL,
  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

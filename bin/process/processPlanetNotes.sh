@@ -29,7 +29,7 @@
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --base
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --flatfile
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --locatenotes ~/OSM-Notes-profile/output-notes.csv ~/OSM-Notes-profile/output-note_comments.csv
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --locatenotes output-notes.csv output-note_comments.csv output-text_comments.csv
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --boundaries
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
@@ -227,6 +227,7 @@ declare -r PROCESS_TYPE=${1:-}
 # Flat file to start from load.
 declare -r FLAT_NOTES_FILE=${2:-}
 declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
+declare -r FLAT_TEXT_COMMENTS_FILE=${4:-}
 
 # Wait between loops when downloading boundaries, to prevent "Too many
 # requests".
@@ -244,21 +245,12 @@ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 # Filename for the OSM Notes from Planet.
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
-# Jar name of the XSLT processor.
-declare SAXON_JAR
-set +ue
-SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f \
- -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
-set -ue
-readonly SAXON_JAR
-# Name of the file of the XSLT transformation for notes.
-declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
-# Name of the file of the XSLT transformation for note comments.
-declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 # Filename for the flat file for comment notes.
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
+# Filename for the flat file for comment notes.
+declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
 
 # PostgreSQL files.
 # Drop current country tables.
@@ -328,8 +320,8 @@ function __show_help {
  echo "     boundaries."
  echo " * --boundaries : processes the countries and maritimes areas only."
  echo " * --flatfile : converts the planet file into a flat csv file."
- echo " * --locatenotes <flatNotesfile> <flatNoteCommentsfile> : takes the flat"
- echo "     files, import them and finally locate the notes."
+ echo " * --locatenotes <flatNotesfile> <flatNoteCommentsfile> <flatTextCommentsfile> :"
+ echo "      takes the flatfiles, import them and finally locate the notes."
  echo " * Without parameter, it processes the new notes from Planet notes file."
  echo
  echo "Flatfile option is useful when the regular machine does not have enough"
@@ -375,6 +367,11 @@ function __checkPrereqs {
   __loge "ERROR: You  must specify a flat Note Comments CSV file to process."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
+ if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
+  && [[ "${FLAT_TEXT_COMMENTS_FILE}" == "" ]]; then
+  __loge "ERROR: You  must specify a flat TextComments CSV file to process."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
  set +e
  # Checks prereqs.
  if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
@@ -403,6 +400,12 @@ function __checkPrereqs {
  if [[ "${FLAT_NOTE_COMMENTS_FILE}" != "" ]] \
   && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+ ## Checks the flat file if exist.
+ if [[ "${FLAT_TEXT_COMMENTS_FILE}" != "" ]] \
+  && [[ ! -r "${FLAT_TEXT_COMMENTS_FILE}" ]]; then
+  __loge "ERROR: The flat file cannot be accessed: ${FLAT_TEXT_COMMENTS_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
 
@@ -724,6 +727,7 @@ function __copyFlatFiles {
  __log_start
  cp "${FLAT_NOTES_FILE}" "${OUTPUT_NOTES_FILE}"
  cp "${FLAT_NOTE_COMMENTS_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
+ cp "${FLAT_TEXT_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  __log_finish
 }
 
@@ -734,9 +738,10 @@ function __loadSyncNotes {
  # Adds a column to include the country where it belongs.
  export OUTPUT_NOTES_FILE
  export OUTPUT_NOTE_COMMENTS_FILE
+ export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
    < "${POSTGRES_LOAD_SYNC_NOTES}" || true)"
  __log_finish
 }
@@ -760,7 +765,7 @@ function __cleanNotesFiles {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
-   "${OUTPUT_NOTE_COMMENTS_FILE}"
+   "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  fi
  __log_finish
 }
