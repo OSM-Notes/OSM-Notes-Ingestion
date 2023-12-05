@@ -113,24 +113,3 @@ COMMENT ON TABLE dwh.dimension_hours_of_week IS 'Dimension for days';
 COMMENT ON COLUMN dwh.dimension_hours_of_week.dimension_how_id IS 'Hour of week identifier: dayOfWeek-hourOfDay';
 COMMENT ON COLUMN dwh.dimension_hours_of_week.day_of_week IS 'Day of the week';
 COMMENT ON COLUMN dwh.dimension_hours_of_week.hour_of_day IS 'Hour of the day';
-
-INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
- ('Indefinida', 'Undefined'),
- ('Norteamérica', 'North America'),
- ('Centroamérica', 'Central America'),
- ('Antillas', 'Antilles'),
- ('Sudamérica', 'South America'),
- ('Europa Occidental', 'Western Europe'),
- ('Europa Oriental', 'Eastern Europe'),
- ('Cáucaso', 'Caucasus'),
- ('Siberia', 'Siberia'),
- ('Asia Central', 'Central Asia'),
- ('Asia Oriental', 'East Asia'),
- ('África del Norte', 'North Africa'),
- ('África subsahariana', 'Sub-Saharan Africa'),
- ('Medio Oriente', 'Middle East'),
- ('Indostán', 'Indian subcontinent'),
- ('Indochina', 'Mainland Southeast Asia'),
- ('Insulindia', 'Malay Archipelago'),
- ('Islas del Pacífico (Melanesia, Micronesia y Polinesia)', 'Pacific Islands (Melanesia, Micronesia and Polynesia)'),
- ('Australia', 'Australia');
