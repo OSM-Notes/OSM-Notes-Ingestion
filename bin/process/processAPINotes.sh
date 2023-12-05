@@ -92,8 +92,6 @@ declare -r MAX_NOTES=10000
 
 # XML Schema of the API notes file.
 declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
-# Jar name of the XSLT processor.
-declare -r SAXON_JAR="${SAXON_CLASSPATH:-.}/saxon-he-11.4.jar"
 # Name of the file of the XSLT transformation for notes from API.
 declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
 # Name of the file of the XSLT transformation for note comments from API.
