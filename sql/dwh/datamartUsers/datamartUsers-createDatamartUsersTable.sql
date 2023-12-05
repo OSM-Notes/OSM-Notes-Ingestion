@@ -245,7 +245,30 @@ INSERT INTO dwh.badges (badge_name) VALUES
 
 -- TODO Populate contributor types.
 INSERT INTO dwh.contributor_types (contributor_type_name) VALUES
- ('Notero');
+ ('Normal Notero'), -- 1
+ ('Just starting notero'), --2
+ ('Newbie Notero'), -- 3
+ ('All-time notero'), -- 4
+ ('Hit-and-run notero'), -- 5
+ ('Junior notero'), -- 6
+ ('Inactive notero'), -- 7
+ ('Retired notero'), -- 8
+ ('Forgotten notero'), -- 9
+ ('Exporadic notero'), -- 10
+ ('Start closing notero'), -- 11
+ ('Casual notero'), -- 12
+ ('Power closing notero'), -- 13
+ ('Power notero'), -- 14
+ ('Crazy closing notero'), -- 15
+ ('Crazy notero'), -- 16
+ ('Addicted closing notero'), -- 17
+ ('Addicted notero'), -- 18
+ ('Epic closing notero'), -- 19
+ ('Epic notero'), -- 20
+ ('Bot closing notero'), -- 21
+ ('Robot notero'), -- 22
+ ('OoM Exception notero') -- 23
+ ;
 
 -- Processes all users.
 UPDATE dwh.dimension_users

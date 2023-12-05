@@ -290,6 +290,127 @@ COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
   'Processes the user''s activity per given year';
 
 /**
+ * Returns the type of type of contributor.
+ */
+ CREATE OR REPLACE FUNCTION dwh.get_contributor_type (
+   m_dimension_user_id INTEGER
+ ) RETURNS SMALLINT AS
+ $$
+ DECLARE
+  m_cointributor_id SMALLINT;
+  m_oldest_action DATE;
+  m_recent_action DATE;
+  m_total_actions INTEGER;
+  m_total_opened INTEGER;
+  m_total_closed INTEGER;
+  coeficient DECIMAL;
+ BEGIN
+  SELECT MIN(d.date_id), MAX(d.date_id)
+   INTO m_oldest_action, m_recent_action
+  FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.action_dimension_id_date = d.dimension_day_id)
+  WHERE f.action_dimension_id_user = m_dimension_user_id;
+
+  SELECT COUNT(1)
+   INTO m_total_actions
+  FROM dwh.facts f
+  WHERE f.action_dimension_id_user = m_dimension_user_id;
+
+  SELECT COUNT(1)
+   INTO m_total_closed
+  FROM dwh.facts f
+  WHERE f.closed_dimension_id_user = m_dimension_user_id;
+
+  SELECT COUNT(1)
+   INTO m_total_opened
+  FROM dwh.facts f
+  WHERE f.opened_dimension_id_user = m_dimension_user_id;
+
+  coeficient := m_total_closed / (m_total_opened + 1);
+
+  m_cointributor_id := 0;
+  IF (m_oldest_action > CURRENT_DATE - 30) THEN
+   m_cointributor_id := 2; -- Just starting notero
+  ELSIF (m_oldest_action > CURRENT_DATE - 90) THEN
+   m_cointributor_id := 3; -- Newbie notero.
+  ELSIF (EXTRACT(YEAR FROM m_oldest_action) = 2013
+    AND EXTRACT(YEAR FROM m_oldest_action) = EXTRACT(YEAR FROM CURRENT_DATE)) THEN
+   m_cointributor_id := 4; -- All-time notero.
+   -- It has contributed since the first year, and the current year.
+   -- The assumption is that is has contributed all years in between.
+  ELSIF (m_oldest_action = m_recent_action) THEN
+   m_cointributor_id := 5; -- Hit and run.
+   -- It contibuted only one day older than 90 days.
+  ELSIF (EXTRACT(YEAR FROM m_oldest_action) = EXTRACT(YEAR FROM CURRENT_DATE)
+    OR EXTRACT(YEAR FROM m_oldest_action) = EXTRACT(YEAR FROM CURRENT_DATE) - 1) THEN
+   m_cointributor_id := 6; -- Junior notero.
+   -- It has been contributed in the last 2 calendar years.
+  ELSIF (m_recent_action < CURRENT_DATE - 720) THEN
+   m_cointributor_id := 7; -- Inactive notero.
+   -- It has not contributed in the last 2 years.
+  ELSIF (m_recent_action < CURRENT_DATE - 1800) THEN
+   m_cointributor_id := 8; -- Retired notero.
+   -- It has not contributed in the last 5 years.
+  ELSIF (m_recent_action < CURRENT_DATE - 2000) THEN
+   m_cointributor_id := 9; -- Forgotten notero.
+   -- It has not contributed in the last 7 years.
+  ELSIF (m_total_actions < 25) THEN
+   m_cointributor_id := 10; -- Exporadic notero.
+   -- Less than 100 contributions, in more than 2 years.
+  ELSIF (m_total_closed < 100 AND coeficient > 1) THEN
+   m_cointributor_id := 11; -- Start closing notero.
+   -- Less than 100 closed, in more than 2 years.
+  ELSIF (m_total_actions < 100) THEN
+   m_cointributor_id := 12; -- Casual notero.
+   -- Less than 100 contributions, in more than 2 years.
+  ELSIF (m_total_closed < 400 AND coeficient > 1) THEN
+   m_cointributor_id := 13; -- Heavy closing notero.
+   -- Less than 400 contributions, in more than 2 years.
+  ELSIF (m_total_actions < 400) THEN
+   m_cointributor_id := 14; -- Heavy notero.
+   -- Less than 400 contributions, in more than 2 years.
+  ELSIF (m_total_closed < 1600 AND coeficient > 1) THEN
+   m_cointributor_id := 15; -- Crazy closing notero.
+   -- Less than 1600 contributions, in more than 2 years.
+  ELSIF (m_total_actions < 1600) THEN
+   m_cointributor_id := 16; -- Crazy notero.
+   -- Less than 1600 contributions, in more than 2 years.
+  ELSIF (m_total_closed < 6400 AND coeficient > 1) THEN
+   m_cointributor_id := 17; -- Addicted closing notero.
+   -- Less than 6400 contributions, in more than 2 years.
+  ELSIF (m_total_actions < 6400) THEN
+   m_cointributor_id := 18; -- Addicted notero.
+   -- Less than 6400 contributions, in more than 2 years.
+  ELSIF (m_total_closed < 25600 AND coeficient > 1) THEN
+   m_cointributor_id := 19; -- Epic closing notero.
+   -- Less than 25600 contributions, in more than 2 years.
+  ELSIF (m_total_actions < 25600) THEN
+   m_cointributor_id := 20; -- Epic notero.
+   -- Less than 25600 contributions, in more than 2 years.
+  ELSIF (m_total_closed < 102400 AND coeficient > 1) THEN
+   m_cointributor_id := 21; -- Bot closing notero.
+   -- Less than 102400 contributions, in more than 2 years.
+  ELSIF (m_total_actions < 102400) THEN
+   m_cointributor_id := 22; -- Robot notero.
+   -- Less than 102400 contributions, in more than 2 years.
+  ELSIF (m_total_actions >= 102400) THEN
+   m_cointributor_id := 23; -- OoM exception notero.
+   -- More than 102400 contributions, in more than 2 years.
+   -- Out of memory execption notero.
+  ELSE
+   m_cointributor_id := 1; -- Normal noter.
+   -- It should never return this.
+   RAISE NOTICE 'Unkown contributor type %', m_dimension_user_id;
+  END IF;
+  RETURN m_cointributor_id;
+ END;
+ $$ LANGUAGE plpgsql
+;
+COMMENT ON FUNCTION dwh.get_contributor_type IS
+  'Returns the type of contributor';
+
+/**
  * Updates a datamart user.
  */
 CREATE OR REPLACE PROCEDURE dwh.update_datamart_user (
@@ -354,9 +475,8 @@ AS $proc$
   END IF;
  
   -- id_contributor_type
-  -- TODO contributor types
-  m_id_contributor_type := 1;
-
+  m_id_contributor_type := dwh.get_contributor_type(m_dimension_user_id);
+  
   -- last_year_activity
   SELECT last_year_activity
    INTO m_last_year_activity
