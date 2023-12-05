@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 
-XML transformation to convert notes from an API call to a CSV file.
+XML transformation to convert note comments from an API call to a CSV file.
 
 Author: Andres Gomez (AngocA)
 Version: 2023-11-13
