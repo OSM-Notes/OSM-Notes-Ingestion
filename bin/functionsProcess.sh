@@ -29,6 +29,9 @@ declare -r ERROR_LOGGER_UTILITY=243
 # shellcheck disable=SC2154
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
 
+# XML Schema of the Planet notes file.
+declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
+
 # PostgreSQL files.
 # Check base tables.
 declare -r POSTGRES_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess-checkBaseTables.sql"

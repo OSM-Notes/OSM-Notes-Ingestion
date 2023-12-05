@@ -101,8 +101,6 @@ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 # Filename fot the OSM Notes from Planet.
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
-# XML Schema of the Planet notes file.
-declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
 # Jar name of the XSLT processor.
 declare SAXON_JAR
 set +ue
@@ -111,9 +109,9 @@ SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f \
 set -ue
 readonly SAXON_JAR
 # Name of the file of the XSLT transformation for notes.
-declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-csv.xslt"
+declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
 # Name of the file of the XSLT transformation for note comments.
-declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-csv.xslt"
+declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 # Filename for the flat file for comment notes.
