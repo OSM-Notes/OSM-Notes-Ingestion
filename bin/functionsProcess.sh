@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-10-07
+# Version: 2023-12-06
 
 # Error codes.
 # 1: Help message.
@@ -222,9 +222,8 @@ function __checkBaseTables {
  set +e
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CHECK_BASE_TABLES}"
  RET=${?}
- set -e
  __log_finish
- return "${RET}"
+ RET_FUNC="${RET}"
 }
 
 # Downloads the notes from the planet.
