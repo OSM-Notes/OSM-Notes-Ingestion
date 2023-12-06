@@ -273,6 +273,8 @@ declare -r POSTGRES_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/pro
 declare -r POSTGRES_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createSyncTables.sql"
 # Load sync notes.
 declare -r POSTGRES_LOAD_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-loadSyncNotes.sql"
+# Load text comments.
+declare -r POSTGRES_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-loadTextComments.sql"
 # Vacuum and analyze.
 declare -r POSTGRES_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-analyzeVacuum.sql"
 # Remove duplicates.
@@ -450,6 +452,10 @@ function __checkPrereqs {
   __loge "ERROR: File is missing at ${POSTGRES_LOAD_SYNC_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${POSTGRES_LOAD_TEXT_COMMENTS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_LOAD_TEXT_COMMENTS}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  if [[ ! -r "${POSTGRES_VACUUM_AND_ANALYZE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_VACUUM_AND_ANALYZE}."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -612,6 +618,12 @@ EOF
   __logi "Importing into Postgres."
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
    "${GEOJSON_FILE}" -nln import -overwrite
+  # If an error like this appear:
+  # ERROR:  column "name:xx-XX" specified more than once
+  # It means two of the objects of the country has a name for the same
+  # language, but with different case. The current solution is to open
+  # the JSON file, look for the language, and modify the parts to have the
+  # same case.
 
   __logi "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]]; then
@@ -735,14 +747,24 @@ function __copyFlatFiles {
 function __loadSyncNotes {
  __log_start
  # Loads the data in the database.
- # Adds a column to include the country where it belongs.
  export OUTPUT_NOTES_FILE
  export OUTPUT_NOTE_COMMENTS_FILE
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+   < "${POSTGRES_LOAD_SYNC_NOTES}" || true)"
+ __log_finish
+}
+
+# Loads text comments.
+function __loadTextComments {
+ __log_start
+ # Loads the text comment in the database.
  export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
-   < "${POSTGRES_LOAD_SYNC_NOTES}" || true)"
+  -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
+   < "${POSTGRES_LOAD_TEXT_COMMENTS}" || true)"
  __log_finish
 }
 
@@ -913,6 +935,7 @@ function main() {
   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
   __loadSyncNotes    # sync & locate
   __removeDuplicates # sync & locate
+  __loadTextComments # sync & locate
   __dropSyncTables   # sync & locate
   __organizeAreas    # sync & locate
   RET=${?}
