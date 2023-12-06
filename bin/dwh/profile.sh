@@ -31,8 +31,8 @@
 # * shfmt -w -i 1 -sr -bn profile.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-01
-declare -r VERSION="2023-12-01"
+# Version: 2023-12-06
+declare -r VERSION="2023-12-06"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -43,6 +43,8 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
+# Fails parent it child fails.
+shopt -s inherit_errexit
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
@@ -370,7 +372,7 @@ function __showWorkingWeek {
  declare HOUR_23="23h"
  I=1
  set +e
- while [ ${I} -le 7 ]; do
+ while [[ "${I}" -le 7 ]]; do
   HOUR_0="${HOUR_0} - $(__processHourWeek 0)"
   HOUR_1="${HOUR_1} - $(__processHourWeek 1)"
   HOUR_2="${HOUR_2} - $(__processHourWeek 2)"
@@ -439,7 +441,7 @@ function __printActivity {
 
  I=1
  set +e
- while [ ${I} -le 53 ]; do
+ while [[ ${I} -le 53 ]]; do
   DAY="${ACTIVITY:0:1}"
   ACTIVITY="${ACTIVITY:1}"
   SUN="${SUN}${DAY}"
@@ -494,12 +496,12 @@ function __processUserProfile {
   -v ON_ERROR_STOP=1)
 
  declare DATE_FIRST_OPEN
- DATE_FIRST_OPEN=($(psql -d "${DBNAME}" -Atq \
+ DATE_FIRST_OPEN=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT date_starting_creating_notes
      FROM dwh.datamartUsers
      WHERE dimension_user_id = ${DIMENSION_USER_ID}
      " \
-  -v ON_ERROR_STOP=1))
+  -v ON_ERROR_STOP=1)
 
  # Quantity of days solving notes.
  declare -i QTY_DAYS_CLOSE
