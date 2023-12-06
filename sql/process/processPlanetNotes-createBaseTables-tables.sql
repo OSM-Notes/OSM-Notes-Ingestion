@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2023-12-05
   
 CREATE TABLE IF NOT EXISTS users(
  user_id INTEGER NOT NULL,
