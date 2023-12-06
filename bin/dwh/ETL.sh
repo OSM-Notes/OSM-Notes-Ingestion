@@ -74,10 +74,10 @@ declare -r PROCESS_TYPE=${1:-}
 declare -r POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-populateDimensionTables.sql"
 
 # Name of the SQL script that check the existance of base tables.
-declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkBaseDWHTables.sql"
+declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkDWHTables.sql"
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHObjects.sql"
+declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHTables.sql"
 
 # Regions per country.
 declare -r REGIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-getWorldRegion.sql"
