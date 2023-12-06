@@ -65,7 +65,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -175,19 +175,19 @@ function __checkPrereqs {
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_DROP_CHECK_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_DROP_CHECK_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_CHECK_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_CHECK_TABLES}" ]] ; then
+ if [[ ! -r "${POSTGRES_CREATE_CHECK_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CREATE_CHECK_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_LOAD_CHECK_NOTES}" ]] ; then
+ if [[ ! -r "${POSTGRES_LOAD_CHECK_NOTES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_CHECK_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_ANALYZE_AND_VACUUM}" ]] ; then
+ if [[ ! -r "${POSTGRES_ANALYZE_AND_VACUUM}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_ANALYZE_AND_VACUUM}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -220,7 +220,7 @@ function __loadCheckNotes {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
-  < "${POSTGRES_LOAD_CHECK_NOTES}" || true)"
+   < "${POSTGRES_LOAD_CHECK_NOTES}" || true)"
  __log_finish
 }
 
