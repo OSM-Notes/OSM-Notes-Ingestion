@@ -25,6 +25,21 @@ This is configured via a cron.
 * View the user or country's profile.
 
 
+# Timing
+
+The whole process takes several hours, even days to complete, before the
+profile can be used for any user.
+
+* 40 minutes: Downloading the countries and maritimes areas.
+* 2 minutes: Download Planet notes file.
+* 4 hours: Locating notes in the appropriate country.
+  This DB process is in parallel with multiple threads.
+* 1 hour: Loading the ETL from main tables.
+* 20 minutes: Preparing the countries datamart.
+* 5 days: Preparing the users datamart.
+  This part analyzes the most active user first; then, all old users that
+  have contributed with only one note.
+
 # Workflow
 
 ## Configuration file
