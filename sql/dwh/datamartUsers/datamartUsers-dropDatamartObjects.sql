@@ -1,7 +1,9 @@
 -- Drop datamart for users tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-29
+-- Version: 2023-12-05
+
+DROP FUNCTION IF EXISTS dwh.get_contributor_type;
 
 DROP PROCEDURE IF EXISTS dwh.update_datamart_user;
 
