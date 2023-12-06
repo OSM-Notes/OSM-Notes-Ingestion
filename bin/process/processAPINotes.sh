@@ -379,7 +379,7 @@ function __loadApiNotes {
   __logt "${TEXT}"
  done < "${OUTPUT_NOTE_COMMENTS_FILE}"
 
-  # Comment's text are not shown because they are multiline.
+ # Comment's text are not shown because they are multiline.
 
  # Loads the data in the database.
  export OUTPUT_NOTES_FILE
@@ -413,7 +413,7 @@ function __cleanNotesFiles {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
-    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
+   "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  fi
  __log_finish
 }
@@ -444,11 +444,12 @@ function main() {
  export RET_FUNC=0
  __checkBaseTables
  if [[ "${RET_FUNC}" -ne 0 ]]; then
-  __logw "Creating base tables. It will take half an hour."
+  __logw "Creating base tables. It will take half an hour approximately."
   "${NOTES_SYNC_SCRIPT}" --base
   __logw "Base tables created."
   __logi "This could take several minutes."
-  "${NOTES_SYNC_SCRIPT}" || RET=${?}
+  "${NOTES_SYNC_SCRIPT}"
+  RET=${?}
   set -e
   if [[ "${RET}" -ne 0 ]]; then
    __loge "Error while executing the planet dump."
