@@ -13,7 +13,7 @@ with the main OSM database via API calls.
 This is configured with a scheduler (cron) and it does everything.
 * Copy the note's data to another set of tables to allow the
 publishing of a WMS layer.
-This is configured via triggers on the database.
+This is configured via triggers on the database, on the main tables.
 * Monitor the sync by comparing the Daily Planet with the notes on the
 database.
 This is optional and can be configured daily with a cron.
