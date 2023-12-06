@@ -96,10 +96,14 @@ declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schem
 declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
 # Name of the file of the XSLT transformation for note comments from API.
 declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
+# Name of the file of the XSLT transformation for text comments from API.
+declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 # Filename for the flat file for comment notes.
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
+# Filename for the flat file for text comment notes.
+declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
 
 # Script to synchronize the notes with the Planet.
 declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
@@ -242,7 +246,6 @@ function __createApiTables {
  __log_start
  __logi "Creating tables"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_API_TABLES}"
- # TODO Add another table for the comment's text.
  __log_finish
 }
 
@@ -301,13 +304,15 @@ function __validateApiNotesXMLFile {
 # 3450803,'closed','2022-11-22 02:06:53 UTC',15422751,'GHOSTsama2503'
 # 3450803,'reopened','2022-11-22 02:06:58 UTC',15422751,'GHOSTsama2503'
 # 3450803,'commented','2022-11-22 02:07:24 UTC',15422751,'GHOSTsama2503'
-# TODO This example should include the text.
+#
+# The CSV file structure for text comment is:
+# 3450803,'Iglesia pentecostal Monte de Sion aquí es donde está realmente'
+# 3450803,'Existe otra iglesia sin nombre cercana a la posición de la nota, ¿es posible que se trate de un error, o hay una al lado de la otra?'
+# 3451247,'If you are in the area, could you please survey a more exact location for Nothing Bundt Cakes and move the node to that location? Thanks!'
 function __convertApiNotesToFlatFile {
  __log_start
  # Process the notes file.
  # XSLT transformations.
-
- # TODO this XSLT should include the text.
 
  # Converts the XML into a flat file in CSV format.
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
@@ -326,8 +331,17 @@ function __convertApiNotesToFlatFile {
  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
  __logi "${RESULT} - Comments from API."
  RESULT=$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}")
- __logw "${RESULT} - Notes in flat file."
+ __logw "${RESULT} - Note comments in flat file."
  head "${OUTPUT_NOTE_COMMENTS_FILE}"
+
+ java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+  -s:"${API_NOTES_FILE}" -xsl:"${XSLT_TEXT_COMMENTS_API_FILE}" \
+  -o:"${OUTPUT_TEXT_COMMENTS_FILE}"
+ RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
+ __logi "${RESULT} - Text comments from API."
+ RESULT=$(wc -l "${OUTPUT_TEXT_COMMENTS_FILE}")
+ __logw "${RESULT} - Text comment in flat file."
+ head "${OUTPUT_TEXT_COMMENTS_FILE}"
 
  __log_finish
 }
@@ -363,18 +377,18 @@ function __loadApiNotes {
  while read -r LINE; do
   TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
   __logt "${TEXT}"
-  # TODO Support the comment's text when multiline.
  done < "${OUTPUT_NOTE_COMMENTS_FILE}"
+
+  # Comment's text are not shown because they are multiline.
 
  # Loads the data in the database.
  export OUTPUT_NOTES_FILE
  export OUTPUT_NOTE_COMMENTS_FILE
+ export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
    < "${POSTGRES_LOAD_API_NOTES}" || true)"
-
- # TODO Load the text into another table.
  __log_finish
 }
 
@@ -383,7 +397,6 @@ function __insertNewNotesAndComments {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f \
   "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}"
- # TODO The insert_note_comment procedure should accept the text.
  __log_finish
 }
 
@@ -399,7 +412,8 @@ function __updateLastValue {
 function __cleanNotesFiles {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-  rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
+  rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
+    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  fi
  __log_finish
 }
