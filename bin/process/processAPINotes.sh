@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-10-22
-declare -r VERSION="2023-10-22"
+# Version: 2023-12-06
+declare -r VERSION="2023-12-06"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -441,10 +441,9 @@ function main() {
  __dropApiTables
  set +E
  __checkNoProcessPlanet
+ export RET_FUNC=0
  __checkBaseTables
- RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]]; then
+ if [[ "${RET_FUNC}" -ne 0 ]]; then
   __logw "Creating base tables. It will take half an hour."
   "${NOTES_SYNC_SCRIPT}" --base
   __logw "Base tables created."

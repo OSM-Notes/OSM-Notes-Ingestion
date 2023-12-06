@@ -863,11 +863,9 @@ function main() {
   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
   __dropSyncTables # sync
   set +E
-  set +e
+  export RET_FUNC=0
   __checkBaseTables # sync
-  RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]]; then
+  if [[ "${RET_FUNC}" -ne 0 ]]; then
    __createBaseTables # sync
   fi
   set -E
