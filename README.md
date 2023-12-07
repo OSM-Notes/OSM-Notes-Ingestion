@@ -256,6 +256,15 @@ with the `processPlanetNotes.sh` script.
 It is also recommended to create an issue in this GitHub repository, providing
 as much information as possible.
 
+# WMS layer
+
+This is the way to create the objects for the WMS layer.
+More information in the README file under the sql/wms directory.
+
+``` 
+psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-profile/sql/wms/prepareDatabase.sql
+```
+
 # Remove
 
 ```
