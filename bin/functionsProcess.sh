@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-06
+# Version: 2023-12-07
 
 # Error codes.
 # 1: Help message.
@@ -23,6 +23,8 @@ declare -r ERROR_MISSING_LIBRARY=241
 declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
+# 255: General error.
+declare -r ERROR_GENERAL=255
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
@@ -54,7 +56,7 @@ declare -r POSTGRES_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/fu
 # Create insert note procedure.
 declare -r POSTGRES_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess-createProcedure-insertNote.sql"
 # Create insert note comment procedure.
-declare -r POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess-createProcedure-insertNotecomment.sql"
+declare -r POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess-createProcedure-insertNoteComment.sql"
 # Organize areas.
 declare -r POSTGRES_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess-organizeAreas.sql"
 
@@ -95,14 +97,22 @@ function __start_logger() {
  fi
 }
 
+# Shows if there is another executing process.
+function __onlyExecution {
+ if [[ -n "${ONLY_EXECUTION}" ]] && [[ "${ONLY_EXECUTION}" == "no" ]]; then
+  echo "There is another process already in execution."
+ fi
+}
+
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}"; exit ;}' \
+ trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d %s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ;}' \
   ERR
  trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ;}' \
   SIGINT SIGTERM
  __log_finish
+ exit "${ERROR_GENERAL}"
 }
 
 # Checks prerequisites commands to run the script.
