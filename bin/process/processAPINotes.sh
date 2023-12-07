@@ -98,13 +98,6 @@ declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt
 declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
 # Name of the file of the XSLT transformation for text comments from API.
 declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
-# Filename for the flat file for notes.
-declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
-# Filename for the flat file for comment notes.
-declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
-# Filename for the flat file for text comment notes.
-declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
-
 # Script to synchronize the notes with the Planet.
 declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
 

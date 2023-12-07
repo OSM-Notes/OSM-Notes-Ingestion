@@ -101,11 +101,6 @@ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 # Filename fot the OSM Notes from Planet.
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
-# Filename for the flat file for notes.
-declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
-# Filename for the flat file for comment notes.
-declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
-
 # PostgreSQL files.
 # Drop check tables.
 declare -r POSTGRES_DROP_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes-dropCheckTables.sql"

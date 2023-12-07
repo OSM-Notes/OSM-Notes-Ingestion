@@ -245,13 +245,6 @@ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 # Filename for the OSM Notes from Planet.
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
-# Filename for the flat file for notes.
-declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
-# Filename for the flat file for comment notes.
-declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
-# Filename for the flat file for comment notes.
-declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
-
 # PostgreSQL files.
 # Drop current country tables.
 declare -r POSTGRES_DROP_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-dropCountryTables.sql"

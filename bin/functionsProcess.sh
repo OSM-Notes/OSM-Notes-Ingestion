@@ -40,6 +40,13 @@ declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_
 # XML Schema of the Planet notes file.
 declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
 
+# Filename for the flat file for notes.
+declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
+# Filename for the flat file for comment notes.
+declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
+# Filename for the flat file for text comment notes.
+declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
+
 # Jar name of the XSLT processor.
 declare SAXON_JAR
 set +ue
@@ -99,17 +106,17 @@ function __start_logger() {
 
 # Shows if there is another executing process.
 function __onlyExecution {
- if [[ -n "${ONLY_EXECUTION}" ]] && [[ "${ONLY_EXECUTION}" == "no" ]]; then
-  echo "There is another process already in execution"
+ if [[ -n "${ONLY_EXECUTION:-}" ]] && [[ "${ONLY_EXECUTION}" == "no" ]]; then
+  echo " There is another process already in execution"
  fi
 }
 
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d %s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ${ERROR_GENERAL};}' \
   ERR
- trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
  __log_finish
 }
