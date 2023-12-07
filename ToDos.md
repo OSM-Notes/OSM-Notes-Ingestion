@@ -18,6 +18,7 @@ ToDo list
 * Actualizar a Saxon 12 apuntando al repositorio GitHub.
   * https://github.com/Saxonica/Saxon-HE/releases
 * Exportar la db en formato CSV para que pueda ser publicada.
+* Control de una sola ejecución por medio de la DB.
 
 ## Profile
 
