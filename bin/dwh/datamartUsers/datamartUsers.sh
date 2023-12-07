@@ -78,6 +78,9 @@ declare -r CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUser
 # Name of the SQL script that contains the ETL process.
 declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateDatamartUsersTable.sql"
 
+# Name of the SQL script to analyse only users with few actions.
+declare -r POPULATE_OLD_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateOldUsers.sql"
+
 # Generic script to add years.
 declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-alterTableAddYears.sql"
 
@@ -149,6 +152,7 @@ function __checkPrereqs {
 function __createBaseTables {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_TABLES_FILE}"
+ PROCESS_OLD_USERS=yes
  __log_finish
 }
 
@@ -189,6 +193,9 @@ function __addYears {
 # Processes the notes and comments.
 function __processNotesUser {
  __log_start
+ if [[ "${PROCESS_OLD_USERS}" == "yes" ]]; then
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_OLD_USERS_FILE}" 2>&1
+ fi
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}" 2>&1
  __log_finish
 }
@@ -215,6 +222,11 @@ function main() {
  ONLY_EXECUTION="no"
  flock -n 7
  ONLY_EXECUTION="yes"
+
+ # This variable is to process all those users that have performed less than 20
+ # note actions, but are 95% of the users. It should be processes when the
+ # tables are created.
+ PROCESS_OLD_USERS=no
 
  set +E
  __checkBaseTables
