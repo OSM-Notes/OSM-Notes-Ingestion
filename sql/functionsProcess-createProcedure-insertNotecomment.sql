@@ -49,10 +49,10 @@ AS $proc$
     -- Invalid operation for an open note.
     INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
       || m_note_id || '-' || m_event);
-    RAISE EXCEPTION 'Trying to reopen an opened note: % - % %',m _note_id,
+    RAISE EXCEPTION 'Trying to reopen an opened note: % - % %', m_note_id,
       m_status, m_event;
-   ELSIF (m_event = 'open') THEN
-    RAISE EXCEPTION 'Invalid new event: % - % %',m _note_id,
+   ELSIF (m_event = 'opened') THEN
+    RAISE EXCEPTION 'Invalid new event: % - % %', m_note_id,
       m_status, m_event;
    END IF;
   ELSE
