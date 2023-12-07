@@ -39,6 +39,7 @@ ToDo list
 * Por país, las notas que tomaron más tiempo en cerrarse
 * Mostrar el timestamp del comentario más reciente en la DB - Última actualización de la db
 * Mostrar la hora actual del servidor de DB.
+* Calidad de la nota. Menos de 5 caracteres es mala. Menos de 10 regular. Mas de 200 compleja, Mas de 500 un tratado.
 
 # Check
 
