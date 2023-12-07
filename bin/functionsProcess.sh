@@ -100,19 +100,18 @@ function __start_logger() {
 # Shows if there is another executing process.
 function __onlyExecution {
  if [[ -n "${ONLY_EXECUTION}" ]] && [[ "${ONLY_EXECUTION}" == "no" ]]; then
-  echo "There is another process already in execution."
+  echo "There is another process already in execution"
  fi
 }
 
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d %s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ;}' \
+ trap '{ printf "%s ERROR: The script did not finish correctly. Line number: %d %s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ${ERROR_GENERAL};}' \
   ERR
- trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ;}' \
+ trap '{ printf "%s WARN: The script was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
  __log_finish
- exit "${ERROR_GENERAL}"
 }
 
 # Checks prerequisites commands to run the script.
