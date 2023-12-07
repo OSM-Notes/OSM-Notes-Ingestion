@@ -152,14 +152,25 @@ function __downloadingPlanet {
 function __checkingDifferences {
  __log_start
 
+ LAST_NOTE=/tmp/lastNote.csv
+ LAST_COMMENT=/tmp/lastNote.csv
  DIFFERENT_NOTE_IDS_FILE=/tmp/differentNoteIds.csv
  DIFFERENT_COMMENT_IDS_FILE=/tmp/differentNoteCommentIds.csv
  DIRRERENT_NOTES_FILE=/tmp/differentNotes.csv
  DIRRERENT_COMMENTS_FILE=/tmp/differentNoteComments.csv
- LAST_NOTE=/tmp/lastNote.csv
- LAST_COMMENT=/tmp/lastNote.csv
+ DIFFERENCES_TEXT_COMMENT=/tmp/textComments.csv
 
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${SQL_REPORT}"
+ export LAST_NOTE
+ export LAST_COMMENT
+ export DIFFERENT_NOTE_IDS_FILE
+ export DIFFERENT_COMMENT_IDS_FILE
+ export DIRRERENT_NOTES_FILE
+ export DIRRERENT_COMMENTS_FILE
+ export DIFFERENCES_TEXT_COMMENT
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIRRERENT_NOTES_FILE,$DIRRERENT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT' \
+   < "${SQL_REPORT}" || true)"
 
  if [[ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ]] \
   || [[ ! -r "${DIFFERENT_COMMENT_IDS_FILE}" ]] \

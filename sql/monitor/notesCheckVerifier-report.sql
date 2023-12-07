@@ -3,7 +3,7 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
   
--- Muestra la información de la última nota, la cual debe ser reciente.
+-- Shows the information of the latest note, which should be recent.
 COPY
  (
   SELECT *
@@ -13,7 +13,7 @@ COPY
    FROM NOTES
   )
  )
- TO '/tmp/lastNote.csv' WITH DELIMITER ',' CSV HEADER
+ TO '${LAST_NOTE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 COPY
@@ -25,12 +25,12 @@ COPY
    FROM NOTES
   )
  )
- TO '/tmp/lastNoteComment.csv' WITH DELIMITER ',' CSV HEADER
+ TO '${LAST_COMMENT}' WITH DELIMITER ',' CSV HEADER
 ;
 
--- Ids de notas que no están en la DB de API, pero si en la de Planet.
--- Si hay varias notas de la misma fecha, es probable que haya fallado el
--- script maestro ese día.
+-- Note ids that are not in the API DB, but are in the Planet.
+-- If there are notes from the same date, it is probably that the sync script
+-- had failed that day.
 DROP TABLE IF EXISTS temp_diff_notes_id;
 
 CREATE TABLE temp_diff_notes_id (
@@ -58,14 +58,14 @@ COPY
   )
   ORDER BY note_id, created_at
  )
- TO '/tmp/differentNoteIds.csv' WITH DELIMITER ',' CSV HEADER
+ TO '${DIFFERENT_NOTE_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_notes_id;
 
--- Ids de comentarios que no están en la DB de API, pero si en la de Planet.
--- Si hay varios comentarios de la misma fecha, es probable que haya fallado el
--- script maestro ese día.
+-- Comment notes id that are not in the API DB, but are in the Planet.
+-- If there are comment from the same date, it is probably that the sync script
+-- had failed that day.
 DROP TABLE IF EXISTS temp_diff_comments_id;
 
 CREATE TABLE temp_diff_comments_id (
@@ -93,14 +93,12 @@ COPY
   )
   ORDER BY note_id, created_at
  )
- TO '/tmp/differentNoteCommentIds.csv' WITH DELIMITER ',' CSV HEADER
+ TO '${DIFFERENT_COMMENT_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_comments_id;
 
--- Notas diferentes entre las recuperadas por el API y las del Planet.
--- Si hay varias notas de la misma fecha, es probable que haya fallado el
--- script maestro ese día.
+-- Notes differences between the retrieved from API and the Planet.
 DROP TABLE IF EXISTS temp_diff_notes;
 
 CREATE TABLE temp_diff_notes (
@@ -142,14 +140,12 @@ COPY
   ) AS T
   ORDER BY note_id, source
  )
- TO '/tmp/differentNotes.csv' WITH DELIMITER ',' CSV HEADER
+ TO '${DIRRERENT_NOTES_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_notes;
 
--- Comentarios diferentes entre los recuperadas por el API y los del Planet.
--- Si hay varios comentarios de la misma fecha, es probable que haya fallado el
--- script maestro ese día.
+-- Comment differences between the retrieved from API and the Planet.
 DROP TABLE IF EXISTS temp_diff_note_comments;
 
 CREATE TABLE temp_diff_note_comments (
@@ -190,8 +186,30 @@ COPY
   ) AS T
   ORDER BY note_id, created_at, source
  )
- TO '/tmp/differentNoteComments.csv' WITH DELIMITER ',' CSV HEADER
+ TO '${DIRRERENT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_note_comments;
 
+-- Differences between comments and text
+COPY (
+ SELECT *
+ FROM (
+  SELECT COUNT(1) qty, c.note_id note_id
+  FROM note_comments c
+  GROUP BY c.note_id
+  ORDER BY c.note_id
+ ) AS c
+ JOIN
+ (
+  SELECT COUNT(1) qty, t.note_id note_id
+  FROM note_comments_text t
+  GROUP BY t.note_id
+  ORDER BY t.note_id
+ ) AS t
+ ON c.note_id = t.note_id
+ WHERE c.qty <> t.qty
+ ORDER BY t.note_id
+ )
+ TO '${DIFFERENCES_TEXT_COMMENT}' WITH DELIMITER ',' CSV HEADER
+;
