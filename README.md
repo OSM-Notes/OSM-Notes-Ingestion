@@ -215,8 +215,8 @@ could configure the crontab like:
 
 ```
 # Runs the API extraction each 15 minutes.
-*/15 * * * * export SAXON_CLASSPATH=~/saxon/ ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For normal execution for notes database and data warehouse.
-#*/15 * * * * export LOG_LEVEL=DEBUG ; export SAXON_CLASSPATH=~/saxon/ ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
+*/15 * * * * export SAXON_CLASSPATH=~/saxon/ ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh # For normal execution for notes database and data warehouse.
+#*/15 * * * * export LOG_LEVEL=DEBUG ; export SAXON_CLASSPATH=~/saxon/ && ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
 ```
 
 You can also configure the ETL at different times from the notes' processing.
