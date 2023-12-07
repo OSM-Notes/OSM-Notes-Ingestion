@@ -1440,6 +1440,15 @@ function __generalNoteStats {
  echo "ToDo Top 10 usuarios participando en guerra de notas por año"
  echo "ToDo Usuarios que han abierto más de 1000 notas en un día"
  echo "ToDo Usuarios que han cerrado más de 1000 notas en un día"
+ # TODO Distribucion de contribuciones por usuario
+ # select t.qty, count(1)
+ # from (
+ #  select count(1) qty, f.action_dimension_id_user user_notes
+ #  from dwh.facts f 
+ #  group by f.action_dimension_id_user
+ # ) as t
+ # group by qty 
+ # order by qty desc
 }
 
 ######
