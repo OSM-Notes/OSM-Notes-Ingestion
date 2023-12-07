@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-11-10
-declare -r VERSION="2023-11-10"
+# Version: 2023-12-07
+declare -r VERSION="2023-12-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -212,7 +212,9 @@ function main() {
  __trapOn
  exec 7> "${LOCK}"
  __logw "Validating single execution."
+ ONLY_EXECUTION="no"
  flock -n 7
+ ONLY_EXECUTION="yes"
 
  set +E
  __checkBaseTables

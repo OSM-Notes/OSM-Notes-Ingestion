@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-28
-declare -r VERSION="2022-12-28"
+# Version: 2022-12-07
+declare -r VERSION="2022-12-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -222,7 +222,9 @@ function main() {
  __trapOn
  exec 7> "${LOCK}"
  __logw "Validating single execution."
+ ONLY_EXECUTION="no"
  flock -n 7
+ ONLY_EXECUTION="yes"
 
  __processNotesETL
 

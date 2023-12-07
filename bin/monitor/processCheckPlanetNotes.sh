@@ -42,8 +42,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-10-06
-declare -r VERSION="2023-10-06"
+# Version: 2023-12-07
+declare -r VERSION="2023-12-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -259,7 +259,9 @@ function main() {
  if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
   exec 7> "${LOCK}"
   __logw "Validating single execution."
+  ONLY_EXECUTION="no"
   flock -n 7
+  ONLY_EXECUTION="yes"
  fi
 
  __dropCheckTables
