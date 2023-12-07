@@ -31,12 +31,15 @@ The whole process takes several hours, even days to complete, before the
 profile can be used for any user.
 
 * 40 minutes: Downloading the countries and maritimes areas.
-* 2 minutes: Download Planet notes file.
-* 4 hours: Locating notes in the appropriate country.
+* 1 minute: Download Planet notes file.
+* 4 minutes: Processing XML notes file, but this requirest 6GB RAM.
+* 8 hours: Locating notes in the appropriate country.
   This DB process is in parallel with multiple threads.
 * 1 hour: Loading the ETL from main tables.
 * 20 minutes: Preparing the countries datamart.
 * 5 days: Preparing the users datamart.
+  This process is asynchronous, it means each ETL execution processes
+  500 users.
   This part analyzes the most active user first; then, all old users that
   have contributed with only one note.
 
@@ -170,7 +173,7 @@ These files include details about how to run or troubleshoot the scripts.
 
 # Install prerequisites on Ubuntu
 
-This is a simplify version of what you need to run on Ubuntu to make it work.
+This is a simplified version of what you need to execute to run this project on Ubuntu.
 
 ```
 sudo apt -y install postgresql
@@ -213,7 +216,7 @@ could configure the crontab like:
 ```
 # Runs the API extraction each 15 minutes.
 */15 * * * * export SAXON_CLASSPATH=~/saxon/ ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For normal execution for notes database and data warehouse.
-*/15 * * * * export LOG_LEVEL=DEBUG ; export SAXON_CLASSPATH=~/saxon/ ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution.
+#*/15 * * * * export LOG_LEVEL=DEBUG ; export SAXON_CLASSPATH=~/saxon/ ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
 ```
 
 You can also configure the ETL at different times from the notes' processing.
@@ -230,22 +233,28 @@ crontab or the command line:
 export SAXON_CLASSPATH=~/saxon/
 ```
 
+This tool requires 6 GB in RAM to process the complete Notes files from Planet.
+We are looking for alternatives to process the XML notes files to create the
+flat files that are loaded in the Postgres database.
+
 # Monitoring
 
-To monitor and validate that executions are correct, and the notes processing
-does not have errors, periodically you can run the
+Periodically, you can run the following script to monitor and validate that
+executions are correct, and also that notes processing have not had errors:
 `processCheckPlanetNotes.sh`.
-This will create 2 tables, one for notes and one for comments, with the suffix
-`_check`.
-By querying the tables with and without the suffix, you can get the
-differences; however, it only works around 0h UTC where the planet file is
-published. This will compare the differences between the API process and the
-Planet.
 
-If you find many differences, especially for comments older than a day, it
+This script will create 2 tables, one for notes and one for comments, with the
+ suffix `_check`.
+By querying the tables with and without the suffix, you can get the
+differences; however, it only works better around 0h UTC when the OSM Planet
+file is published.
+This will compare the differences between the API process and the Planet data.
+
+If you find many differences, especially for comments older than one day, it
 means the script failed in the past, and the best is to recreate the database
-with the `processPlanetNotes.sh` script, but also create an issue for this
-project, providing as much information as possible.
+with the `processPlanetNotes.sh` script.
+It is also recommended to create an issue in this GitHub repository, providing
+as much information as possible.
 
 # Remove
 
