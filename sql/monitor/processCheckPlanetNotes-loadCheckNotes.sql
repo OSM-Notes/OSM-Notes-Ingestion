@@ -15,8 +15,7 @@
 
   TRUNCATE TABLE note_comments_check;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Uploading check comments' AS Text;
-  COPY note_comments_check FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv
-    DELIMITER ',' QUOTE '''';
+  COPY note_comments_check FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments check' as Text;
   ANALYZE note_comments_check;
   SELECT CURRENT_TIMESTAMP AS Processing, 'Counting check comments' AS Text;
