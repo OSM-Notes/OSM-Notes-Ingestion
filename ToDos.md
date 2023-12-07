@@ -2,33 +2,30 @@ ToDo list
 
 # New features
 
-* Procesar el texto de los comentarios.
-  * Debe insertarlos en otra tabla.
-  * Se debe crear otro XSLT.
 * Hacer un analizador de hashtags.
   * Incluir los hashtags de una nota.
   * Mostrar los hashtags más usados en país y notas.
   * Filtrar notas por hashtags.
-* Definir los tipos de contribuidores, insertarlos y asignarlos dinámicamente.
 * Definir los badges y asignarlos.
 * Generar un reporte de cambios identificados al cargar la ETL.
   * Los select cambiarlos a exports para mostrar otras cosas.
 * Poder acceder al listado de todas, o las últimas 10 000 abiertas y 10 000 cerradas de una persona
 * Usar una DB direferente para el DWH
-* Procesar en paralelo los usuarios de datamart, ya que actualmente dura 3 horas.
+* Procesar en paralelo los usuarios de datamart, ya que actualmente dura muchas horas.
 * Usar un mecanismo de logger para postgres
 * Crear SPs para consultar el perfil. Y así poder guardar qué perfiles están siendo visitados
 * Probar https://crates.io/crates/anglosaxon en vez de saxon
+* Actualizar a Saxon 12 apuntando al repositorio GitHub.
+  * https://github.com/Saxonica/Saxon-HE/releases
+* Exportar la db en formato CSV para que pueda ser publicada.
 
 ## Profile
 
 * Mostrar aplicaciones usadas para notas, tanto para usuarios como para países.
   * Se identifican a partir del texto de los comentarios.
 * Mostrar resultados con link a OSM y al API. El API ofrece detalles de horas, pero no mapa.
-* Mostrar los tiles de actividad del último año.
 * Día con más notas creadas
 * Hora con más notas creadas
-* Minuto con más notas creadas
 * Tabla de notas aún en estado abierto de cada año
   * Las columnas son los años desde 2013.
   * Las filas son los países
