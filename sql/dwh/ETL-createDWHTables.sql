@@ -1,7 +1,7 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-18
+-- Version: 2023-12-08
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 COMMENT ON SCHEMA dwh IS
@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  opened_dimension_id_user INTEGER,
  closed_dimension_id_date INTEGER,
  closed_dimension_id_hour_of_week SMALLINT,
- closed_dimension_id_user INTEGER
+ closed_dimension_id_user INTEGER,
+ dimension_application_creation INTEGER
 );
 COMMENT ON TABLE dwh.facts IS 'Facts id, center of the star schema';
 COMMENT ON COLUMN dwh.facts.fact_id IS 'Surrogated ID';
@@ -50,6 +51,8 @@ COMMENT ON COLUMN dwh.facts.closed_dimension_id_hour_of_week IS
   'Hour of the week when the note was closed';
 COMMENT ON COLUMN dwh.facts.closed_dimension_id_user IS
   'User who created the note';
+COMMENT ON COLUMN dwh.facts.dimension_application_creation IS
+  'Application used to create the note. Only for opened actions';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
  dimension_user_id SERIAL,
@@ -72,8 +75,10 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_regions (
 );
 COMMENT ON TABLE dwh.dimension_regions IS 'Regions for contries';
 COMMENT ON COLUMN dwh.dimension_regions.dimension_region_id IS 'Id';
-COMMENT ON COLUMN dwh.dimension_regions.region_name_es IS 'Name of the region in Spanish';
-COMMENT ON COLUMN dwh.dimension_regions.region_name_en IS 'Name of the region in English';
+COMMENT ON COLUMN dwh.dimension_regions.region_name_es IS
+  'Name of the region in Spanish';
+COMMENT ON COLUMN dwh.dimension_regions.region_name_en IS
+  'Name of the region in English';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
  dimension_country_id SERIAL,
@@ -109,7 +114,26 @@ CREATE TABLE IF NOT EXISTS dwh.dimension_hours_of_week (
  day_of_week SMALLINT,
  hour_of_day SMALLINT
 );
-COMMENT ON TABLE dwh.dimension_hours_of_week IS 'Dimension for days';
-COMMENT ON COLUMN dwh.dimension_hours_of_week.dimension_how_id IS 'Hour of week identifier: dayOfWeek-hourOfDay';
+COMMENT ON TABLE dwh.dimension_hours_of_week IS
+  'Dimension for hours of the week';
+COMMENT ON COLUMN dwh.dimension_hours_of_week.dimension_how_id IS
+  'Hour of week identifier: dayOfWeek-hourOfDay';
 COMMENT ON COLUMN dwh.dimension_hours_of_week.day_of_week IS 'Day of the week';
 COMMENT ON COLUMN dwh.dimension_hours_of_week.hour_of_day IS 'Hour of the day';
+
+CREATE TABLE IF NOT EXISTS dwh.dimension_applications (
+ dimension_application_id SERIAL,
+ application_name VARCHAR(64) NOT NULL,
+ pattern VARCHAR(64),
+ platform VARCHAR(16)
+);
+COMMENT ON TABLE dwh.dimension_applications IS
+  'Dimension for applications creating notes';
+COMMENT ON COLUMN dwh.dimension_applications.dimension_application_id IS
+  'Surrogated ID';
+COMMENT ON COLUMN dwh.dimension_applications.application_name IS
+  'Complete name of the application';
+COMMENT ON COLUMN dwh.dimension_applications.pattern IS
+  'Pattern to find in the comment''text with a SIMILAR TO predicate';
+COMMENT ON COLUMN dwh.dimension_applications.platform IS
+  'Platform of the appLication';

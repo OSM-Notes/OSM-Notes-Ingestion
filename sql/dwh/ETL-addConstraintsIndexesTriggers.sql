@@ -1,18 +1,23 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-31
+-- Version: 2023-12-05
 
 -- Primrary keys
-SELECT CURRENT_TIMESTAMP AS Processing, 'Creating primary keys' AS Task;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating primary keys' AS Task;
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT pk_facts
  PRIMARY KEY (fact_id);
 
 ALTER TABLE dwh.dimension_users
- ADD CONSTRAINT pk_user_dim
+ ADD CONSTRAINT pk_users_dim
  PRIMARY KEY (dimension_user_id);
+
+ALTER TABLE dwh.dimension_regions
+ ADD CONSTRAINT pk_regions_dim
+ PRIMARY KEY (dimension_region_id);
 
 ALTER TABLE dwh.dimension_countries
  ADD CONSTRAINT pk_countries_dim
@@ -26,8 +31,13 @@ ALTER TABLE dwh.dimension_hours_of_week
  ADD CONSTRAINT pk_HoW_dim
  PRIMARY KEY (dimension_how_id);
 
+ALTER TABLE dwh.dimension_applications
+ ADD CONSTRAINT pk_applications_dim
+ PRIMARY KEY (dimension_application_id);
+
 -- Foreign keys.
-SELECT CURRENT_TIMESTAMP AS Processing, 'Creating foreign keys' AS Task;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating foreign keys' AS Task;
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_country
@@ -79,7 +89,18 @@ ALTER TABLE dwh.facts
  FOREIGN KEY (closed_dimension_id_user)
  REFERENCES dwh.dimension_users (dimension_user_id);
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Creating indexes' AS Task;
+ALTER TABLE dwh.facts
+ ADD CONSTRAINT fk_application_created
+ FOREIGN KEY (dimension_application_creation)
+ REFERENCES dwh.dimension_applications (dimension_application_id);
+
+ALTER TABLE dwh.dimension_countries
+ ADD CONSTRAINT fk_region
+ FOREIGN KEY (region_id)
+ REFERENCES dwh.dimension_regions (dimension_region_id);
+
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating indexes' AS Task;
 
 -- Unique keys
 
@@ -175,7 +196,8 @@ ON dwh.dimension_countries (modified);
 COMMENT ON INDEX dwh.modified_countries_idx IS
   'Improves queries by country where performed actions were done';
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Creating functions' AS Task;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating functions' AS Task;
 
 -- TODO if there are no action on a given date, then that date will be missing.
 CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
@@ -184,7 +206,8 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
  DECLARE
   m_id_date INTEGER;
  BEGIN
-  SELECT dimension_day_id INTO m_id_date
+  SELECT /* Notes-ETL */ dimension_day_id
+   INTO m_id_date
   FROM dwh.dimension_days
   WHERE date_id = DATE(new_date);
   
@@ -193,7 +216,9 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
      date_id
     ) VALUES (
      DATE(new_date)
-    ) RETURNING dimension_day_id INTO m_id_date
+    )
+    RETURNING dimension_day_id
+     INTO m_id_date
    ;
   END IF;
   RETURN m_id_date;
@@ -212,13 +237,13 @@ CREATE OR REPLACE FUNCTION dwh.get_hour_of_week_id(m_date TIMESTAMP)
   m_hour_of_day SMALLINT;
   m_dimension_how_id SMALLINT;
  BEGIN
-  SELECT EXTRACT(isodow FROM m_date)
+  SELECT /* Notes-ETL */ EXTRACT(isodow FROM m_date)
    INTO m_day_of_week;
 
-  SELECT EXTRACT(HOUR FROM m_date)
+  SELECT /* Notes-ETL */ EXTRACT(HOUR FROM m_date)
    INTO m_hour_of_day;
 
-  SELECT dimension_how_id
+  SELECT /* Notes-ETL */ dimension_how_id
    INTO m_dimension_how_id
   FROM dwh.dimension_hours_of_week
   WHERE dimension_how_id = m_day_of_week * 100 + m_hour_of_day;
@@ -238,5 +263,6 @@ CREATE OR REPLACE FUNCTION dwh.get_hour_of_week_id(m_date TIMESTAMP)
 COMMENT ON FUNCTION dwh.get_hour_of_week_id IS
   'Returns id of the hour of a week';
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Extra objects created' AS Task;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Extra objects created' AS Task;
 
