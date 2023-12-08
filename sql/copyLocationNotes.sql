@@ -4,7 +4,7 @@
 -- CREATE TABLE notes_bkp AS SELECT * FROM notes;
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-22
+-- Version: 2023-12-08
 
 -- ====
 -- Method 1
@@ -12,7 +12,7 @@
 -- To run before the new execution.
 CREATE TABLE notes_new AS
   SELECT n.note_id, n.latitude, n.longitude, n.created_at, n.status,
-  n.closed_at, b.id_country
+   n.closed_at, b.id_country
   FROM notes n
   LEFT JOIN notes_bkp b
   ON n.note_id = b.note_id;
@@ -72,9 +72,9 @@ INSERT INTO backup_note_country
   FROM notes;
 
 -- To run after the new execution.
-UPDATE notes as n
+UPDATE notes AS n
 SET id_country = b.id_country
-FROM backup_note_country as b
+FROM backup_note_country AS b
 WHERE b.note_id = n.note_id;
 
 -- To release space.
