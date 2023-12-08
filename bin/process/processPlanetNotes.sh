@@ -85,10 +85,11 @@
 # To insert the rows from a backup for boundaries and notes:
 #   export BACKUP=true
 # It will need to run these from a PostgreSQL console:
-#   INSERT INTO countries SELECT * FROM backup_countries ;
-#   UPDATE notes as n
+#   INSERT INTO countries
+#    SELECT * FROM backup_countries ;
+#   UPDATE notes AS n
 #    SET id_country = b.id_country
-#    FROM backup_note_country as b
+#    FROM backup_note_country AS b
 #    WHERE b.note_id = n.note_id;
 # To create the copy before the execution:
 #   CREATE TABLE backup_countries AS TABLE countries;
@@ -108,20 +109,24 @@
 #
 # The most iterations to find an area.
 # select iter, country_name_en, count(1)
-# from tries t join countries c
+# from tries t
+# join countries c
 # on (t.id_country = c.country_id)
 # group by iter, country_name_en
 # order by iter desc, count(1) desc;
 #
 # Details of the iteration.
 # select t.*, country_name_en
-# from tries t join countries c on (t.id_country = c.country_id)
+# from tries t 
+# join countries c 
+# on (t.id_country = c.country_id)
 # where iter = 121;
 #
 # How many iterations per region to find the appropriate area.
 # This allows to reorganize the updates of the organizeAreas function.
 # select iter, count(1), area, country_name_en
-# from tries t join countries c
+# from tries 
+# join countries c
 # on t.id_country = c.country_id
 # group by iter, area, country_name_en
 # order by area, count(1) desc;
@@ -168,8 +173,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-07
-declare -r VERSION="2023-12-07"
+# Version: 2023-12-08
+declare -r VERSION="2023-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -281,10 +286,6 @@ declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
 
 # Last note id file.
 declare -r LAST_NOTE_FILE="${TMP_DIR}/lastNote.xml"
-# Quantity of notes to process per loop.
-declare -r LOOP_SIZE="${LOOP_SIZE:-10000}"
-# Parallel threads to process notes.
-declare -r PARALLELISM="${PARALLELISM:-5}"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -621,16 +622,18 @@ EOF
   __logi "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]]; then
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}',
-     '${COUNTRY_EN}', ST_Union(ST_makeValid(wkb_geometry))
+     country_name_en, geom)
+     select ${ID}, '${COUNTRY}', '${COUNTRY_ES}', '${COUNTRY_EN}',
+      ST_Union(ST_makeValid(wkb_geometry))
      from import group by 1"
   else # This case is for Austria.
    # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
    # Self-intersection at or near point 10.454439900000001 47.555796399999998
    # at 10.454439900000001 47.555796399999998
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom) select ${ID}, '${COUNTRY}', '${COUNTRY_ES}',
-     '${COUNTRY_EN}', ST_Union(ST_Buffer(wkb_geometry,0.0))
+     country_name_en, geom)
+     select ${ID}, '${COUNTRY}', '${COUNTRY_ES}', '${COUNTRY_EN}',
+      ST_Union(ST_Buffer(wkb_geometry,0.0))
      from import group by 1"
   fi
   __logd "${STATEMENT}"
@@ -700,8 +703,10 @@ EOF
 
   __logi "Inserting into final table."
   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-    country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
-    '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) FROM import GROUP BY 1"
+    country_name_en, geom) 
+    SELECT /* Notes-processPlanet */ ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
+     '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) 
+    FROM import GROUP BY 1"
   __logd "${STATEMENT}"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
@@ -790,9 +795,9 @@ function __getLocationNotes {
  __log_start
  if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]]; then
   echo "Please update the rows from the backup table:"
-  echo "   UPDATE notes as n"
+  echo "   UPDATE notes AS n"
   echo "    SET id_country = b.id_country"
-  echo "    FROM backup_note_country as b"
+  echo "    FROM backup_note_country AS b"
   echo "    WHERE b.note_id = n.note_id;"
   read -r
  else
@@ -896,7 +901,8 @@ function main() {
   # Downloads the areas. It could terminate the execution if an error appears.
   if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]]; then
    echo "Please copy the rows from the backup table:"
-   echo "   INSERT INTO countries SELECT * FROM backup_countries ;"
+   echo "   INSERT INTO countries "
+   echo "     SELECT * FROM backup_countries ;"
    read -r
   else
    __processCountries # base and boundaries
