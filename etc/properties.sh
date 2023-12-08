@@ -27,3 +27,9 @@ declare -r PLANET="https://planet.openstreetmap.org"
 # Overpass interpreter.
 # shellcheck disable=SC2034
 declare -r OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
+
+# Get location in processPlanet.
+# Quantity of notes to process per loop, to get the location of the note.
+declare -r LOOP_SIZE="${LOOP_SIZE:-10000}"
+# Number of parallel threads to process notes to get the location.
+declare -r PARALLELISM="${PARALLELISM:-5}"
