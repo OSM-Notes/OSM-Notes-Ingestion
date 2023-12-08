@@ -156,7 +156,7 @@ Configure new SQL view...
 * SQL Statement:
 
 ```
-SELECT year_created_at, year_closed_at, geometry
+SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NULL
 ORDER BY year_created_at DESC
@@ -215,7 +215,7 @@ Layer from OSM_Notes:OSM_Notes_DS.
 * SQL Statement:
 
 ```
-SELECT year_created_at, year_closed_at, geometry
+SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NOT NULL
 ORDER BY year_created_at DESC
