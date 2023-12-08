@@ -1,9 +1,10 @@
--- Populares DWH tables.
+-- Populates the dimensions tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-31
+-- Version: 2023-12-08
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Regions added' AS Task;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Inserting Regions' AS Task;
 
 INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
  ('Indefinida', 'Undefined'),
@@ -23,103 +24,31 @@ INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
  ('Indostán', 'Indian subcontinent'),
  ('Indochina', 'Mainland Southeast Asia'),
  ('Insulindia', 'Malay Archipelago'),
- ('Islas del Pacífico (Melanesia, Micronesia y Polinesia)', 'Pacific Islands (Melanesia, Micronesia and Polynesia)'),
- ('Australia', 'Australia');
+ ('Islas del Pacífico (Melanesia, Micronesia y Polinesia)',
+   'Pacific Islands (Melanesia, Micronesia and Polynesia)'),
+ ('Australia', 'Australia'),
+ ('Antártida','Antarctica');
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Updating dimension countries' AS Task;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Inserting dimension countries' AS Task;
 
--- Insert an id for notes without a country.
+-- Insert an id for notes without a country. It does not insert again if it
+-- already exist on the table (-1 NOT IN).
 INSERT INTO dwh.dimension_countries 
  (country_id, country_name, country_name_es, country_name_en)
- SELECT -1, 'Unkown - International waters',
+ SELECT /* Notes-ETL */ -1, 'Unkown - International waters',
   'Desconocido - Aguas internacionales', 'Unkown - International waters'
  FROM countries
  WHERE -1 NOT IN (
-  SELECT country_id
+  SELECT /* Notes-ETL */ country_id
   FROM dwh.dimension_countries
  ) LIMIT 1 
 ;
 
--- Populates the countries dimension with new countries.
-INSERT INTO dwh.dimension_countries
- (country_id, country_name, country_name_es, country_name_en)
- SELECT country_id, country_name, country_name_es, country_name_en
- FROM countries
- WHERE country_id NOT IN (
-  SELECT country_id
-  FROM dwh.dimension_countries
- )
-;
--- Updates countries with regions.
-UPDATE dwh.dimension_countries
- SET region_id = get_country_region(country_id);
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Adding hour values' AS Task;
 
--- Shows usernames renamed.
--- TODO export to a file
---SELECT DISTINCT d.country_name AS OldCountryName, c.country_name AS NewCountryName
--- FROM countries c
---  JOIN dwh.dimension_countries d
---  ON d.country_id = c.country_id
--- WHERE c.country_name <> d.country_name
---  OR c.country_name_es <> d.country_name_es
---  OR c.country_name_en <> d.country_name_en
---;
--- TODO esto podría ser parte de un reporte de cambios de nombres - Vandalismo
-
-SELECT CURRENT_TIMESTAMP AS Processing, 'Updating modified country names' AS Task;
-
--- Updates the dimension when username is changed.
-UPDATE dwh.dimension_countries
- SET country_name = c.country_name,
- country_name_es = c.country_name_es,
- country_name_en = c.country_name_en
- FROM countries AS c
-  JOIN dwh.dimension_countries d
-  ON d.country_id = c.country_id
- WHERE c.country_name <> d.country_name
-  OR c.country_name_es <> d.country_name_es
-  OR c.country_name_en <> d.country_name_en
-;
-
-SELECT CURRENT_TIMESTAMP AS Processing, 'Inserting dimension users' AS Task;
-
--- Inserts new users.
-INSERT INTO dwh.dimension_users
- (user_id, username)
- SELECT c.user_id, c.username
- FROM users c
- WHERE c.user_id NOT IN (
-  SELECT u.user_id
-  FROM dwh.dimension_users u
-  )
-;
-
---SELECT CURRENT_TIMESTAMP AS Processing, 'Showing modified usernames' AS Task;
---
--- TODO send to a file
--- Shows usernames renamed.
---SELECT DISTINCT d.username AS OldUsername, c.username AS NewUsername
--- FROM users c
---  JOIN dwh.dimension_users d
---  ON d.user_id = c.user_id
--- WHERE c.username <> d.username
---;
-
---SELECT CURRENT_TIMESTAMP AS Processing, 'Updating modified usernames' AS Task;
---
--- Updates the dimension when username is changed.
--- TODO Esta actualizando todos con todos, y se esta demorando
---UPDATE dwh.dimension_users
--- SET username = c.username
--- FROM users AS c
---  JOIN dwh.dimension_users d
---  ON d.user_id = c.user_id
--- WHERE c.username <> d.username
-;
-
-SELECT CURRENT_TIMESTAMP AS Processing, 'Adding hour values' AS Task;
-
-DO
+DO /* Notes-ETL-addWeekHours */
 $$
 DECLARE
  m_day SMALLINT;
@@ -151,4 +80,27 @@ BEGIN
 END
 $$;
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Dimensions populated' AS Task;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Adding application names' AS Task;
+
+INSERT INTO dwh.dimension_applications (application_name, pattern) VALUES
+('Unknown', NULL),
+('StreetComplete', '%via StreetComplete%'),
+('Maps.me', '%#mapsme'),
+('EveryDoor', '%#EveryDoor'),
+('OsmAnd', '%#OsmAnd'),
+('LocusMap', '%#LocusMap')
+;
+
+INSERT INTO dwh.dimension_applications (application_name, pattern, platform) VALUES
+('OrganicMaps', '%#organicmaps android', 'android'),
+('OrganicMaps', '%#organicmaps ios', 'ios'),
+('OnOSM.org', 'onosm.org %', 'web'),
+('MapComplete', '%#MapComplete #notes', 'web'),
+('Mapy.cz', '(%#Mapy.cz%|%#Mapycz%|#Mapy.cz%|%#mapycz%)', 'web'),
+('msftopenmaps', '%(#msftopenmaps|%#MSFTOpenMaps)%', 'web'),
+('OnOSM.OSMiranorg', 'onosm.osmiran.org %', 'web')
+;
+
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Dimensions populated' AS Task;

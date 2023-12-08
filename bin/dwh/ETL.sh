@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-07
-declare -r VERSION="2022-12-07"
+# Version: 2022-12-08
+declare -r VERSION="2022-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -70,8 +70,11 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Name of the SQL script that contains the ETL process.
+# Name of the SQL script that populates the dimensions.
 declare -r POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-populateDimensionTables.sql"
+
+# Name of the SQL script that updates the dimensions.
+declare -r UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-updateDimensionTables.sql"
 
 # Name of the SQL script that check the existance of base tables.
 declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkDWHTables.sql"
@@ -178,6 +181,9 @@ function __createBaseTables {
 
  __logi "Creating staging objects"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}" 2>&1
+
+ __logi "Initial dimension population"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
  __log_finish
 }
 
@@ -197,7 +203,7 @@ function __checkBaseTables {
 # Processes the notes and comments.
 function __processNotesETL {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${UDPATE_DIMENSIONS_FILE}"
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${LOAD_NOTES_STAGING_FILE}" 2>&1
  __log_finish
