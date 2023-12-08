@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-07
+# Version: 2023-12-08
 
 # Error codes.
 # 1: Help message.
@@ -134,7 +134,7 @@ function __checkPrereqsCommands {
  ## PostGIS
  # shellcheck disable=SC2154
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
- SELECT PostGIS_version();
+ SELECT /* Notes-base */ PostGIS_version();
 EOF
  RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
