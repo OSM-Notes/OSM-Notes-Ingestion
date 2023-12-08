@@ -1,15 +1,15 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2023-12-08
   
 -- Shows the information of the latest note, which should be recent.
 COPY
  (
-  SELECT *
+  SELECT /* Notes-check */ *
   FROM notes
   WHERE note_id = (
-   SELECT MAX(note_id)
+   SELECT /* Notes-check */ MAX(note_id)
    FROM NOTES
   )
  )
@@ -18,10 +18,10 @@ COPY
 
 COPY
  (
-  SELECT *
+  SELECT /* Notes-check */ *
   FROM note_comments
   WHERE note_id = (
-   SELECT MAX(note_id)
+   SELECT /* Notes-check */ MAX(note_id)
    FROM NOTES
   )
  )
@@ -41,19 +41,19 @@ COMMENT ON TABLE temp_diff_notes_id IS
 COMMENT ON COLUMN notes_check.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_notes_id
- SELECT note_id
+ SELECT /* Notes-check */ note_id
  FROM notes_check 
  EXCEPT
- SELECT note_id
+ SELECT /* Notes-check */ note_id
  FROM notes
 ;
 
 COPY
  (
-  SELECT notes_check.*
+  SELECT /* Notes-check */ notes_check.*
   FROM notes_check
   WHERE note_id IN (
-   SELECT note_id
+   SELECT /* Notes-check */ note_id
    FROM temp_diff_notes_id
   )
   ORDER BY note_id, created_at
@@ -76,19 +76,19 @@ COMMENT ON TABLE temp_diff_comments_id IS
 COMMENT ON COLUMN temp_diff_comments_id.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_comments_id
- SELECT note_id
+ SELECT /* Notes-check */ note_id
  FROM note_comments_check 
  EXCEPT
- SELECT note_id
+ SELECT /* Notes-check */ note_id
  FROM note_comments
 ;
 
 COPY
  (
-  SELECT note_comments_check.*
+  SELECT /* Notes-check */ note_comments_check.*
   FROM note_comments_check
   WHERE note_id IN (
-   SELECT note_id
+   SELECT /* Notes-check */ note_id
    FROM temp_diff_comments_id
   )
   ORDER BY note_id, created_at
@@ -109,11 +109,14 @@ COMMENT ON TABLE temp_diff_notes IS
 COMMENT ON COLUMN temp_diff_notes.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_notes
- SELECT note_id FROM (
-  SELECT note_id, latitude, longitude, created_at, status, closed_at
+ SELECT /* Notes-check */ note_id
+ FROM (
+  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status,
+   closed_at
   FROM notes_check 
   EXCEPT
-  SELECT note_id, latitude, longitude, created_at, status, closed_at
+  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status,
+   closed_at
   FROM notes
   WHERE (closed_at IS NULL OR closed_at < now()::date)
  ) AS t
@@ -122,19 +125,21 @@ INSERT INTO temp_diff_notes
 
 COPY
  (
-  SELECT *
+  SELECT /* Notes-check */ *
   FROM (
-   SELECT 'Planet' as source, note_id, latitude, longitude, created_at, status, closed_at
+   SELECT /* Notes-check */ 'Planet' AS source, note_id, latitude, longitude,
+    created_at, status, closed_at
    FROM notes_check
    WHERE note_id IN (
-    SELECT note_id
+    SELECT /* Notes-check */ note_id
     FROM temp_diff_notes
    )
    UNION
-   SELECT 'API   ' as source, note_id, latitude, longitude, created_at, status, closed_at
+   SELECT /* Notes-check */ 'API   ' AS source, note_id, latitude, longitude,
+    created_at, status, closed_at
    FROM notes
    WHERE note_id IN (
-    SELECT note_id
+    SELECT /* Notes-check */ note_id
     FROM temp_diff_notes
    )
   ) AS T
@@ -156,10 +161,13 @@ COMMENT ON TABLE temp_diff_note_comments IS
 COMMENT ON COLUMN temp_diff_note_comments.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_note_comments
- SELECT note_id FROM (
-  SELECT note_id, event, created_at, id_user FROM note_comments_check 
+ SELECT /* Notes-check */ note_id
+ FROM (
+  SELECT /* Notes-check */ note_id, event, created_at, id_user
+  FROM note_comments_check 
   EXCEPT
-  SELECT note_id, event, created_at, id_user FROM note_comments
+  SELECT /* Notes-check */ note_id, event, created_at, id_user
+  FROM note_comments
   WHERE created_at < now()::date
  ) AS t
  ORDER BY note_id
@@ -167,19 +175,21 @@ INSERT INTO temp_diff_note_comments
 
 COPY
  (
-  SELECT *
+  SELECT /* Notes-check */ *
   FROM (
-   SELECT 'Planet'as source, note_id, event, created_at, id_user
+   SELECT /* Notes-check */ 'Planet' AS source, note_id, event, created_at,
+    id_user
    FROM note_comments_check
    WHERE note_id IN (
-    SELECT note_id
+    SELECT /* Notes-check */ note_id
     FROM temp_diff_note_comments
    )
    UNION
-   SELECT 'API   ' as source, note_id, event, created_at, id_user
+   SELECT /* Notes-check */ 'API   ' AS source, note_id, event, created_at,
+    id_user
    FROM note_comments
    WHERE note_id IN (
-    SELECT note_id
+    SELECT /* Notes-check */ note_id
     FROM temp_diff_note_comments
    )
    AND created_at < now()::date
@@ -193,16 +203,16 @@ DROP TABLE IF EXISTS temp_diff_note_comments;
 
 -- Differences between comments and text
 COPY (
- SELECT *
+ /* Notes-check */ *
  FROM (
-  SELECT COUNT(1) qty, c.note_id note_id
+  SELECT /* Notes-check */ COUNT(1) qty, c.note_id note_id
   FROM note_comments c
   GROUP BY c.note_id
   ORDER BY c.note_id
  ) AS c
  JOIN
  (
-  SELECT COUNT(1) qty, t.note_id note_id
+  SELECT /* Notes-check */ COUNT(1) qty, t.note_id note_id
   FROM note_comments_text t
   GROUP BY t.note_id
   ORDER BY t.note_id
