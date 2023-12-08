@@ -1,15 +1,15 @@
 -- Populates datamart for users.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-13
+-- Version: 2023-12-08
 
-DO
+DO /* Notes-datamartUsers-processRecentUsers */
 $$
 DECLARE
  r RECORD;
  max_date DATE;
 BEGIN
- SELECT date
+ SELECT /* Notes-datamartUsers */ date
   INTO max_date
  FROM dwh.max_date_users_processed;
  IF (max_date < CURRENT_DATE) THEN
@@ -23,7 +23,8 @@ BEGIN
 
  FOR r IN
   -- Process the datamart only for modified users.
-  SELECT f.action_dimension_id_user AS dimension_user_id
+  SELECT /* Notes-datamartUsers */ 
+   f.action_dimension_id_user AS dimension_user_id
   FROM dwh.facts f
    JOIN dwh.dimension_users u
    ON (f.action_dimension_id_user = u.dimension_user_id)

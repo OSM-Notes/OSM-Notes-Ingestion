@@ -1,7 +1,7 @@
 -- Procedure to insert datamart user.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-01
+-- Version: 2023-12-08
 
 /**
  * Inserts a user in the datamart, with the values that do not change.
@@ -23,70 +23,70 @@ AS $proc$
   m_last_year_activity CHAR(371);
   r RECORD;
  BEGIN
-  SELECT user_id, username
+  SELECT /* Notes-datamartUsers */ user_id, username
    INTO m_user_id, m_username
   FROM dwh.dimension_users
   WHERE dimension_user_id = m_dimension_user_id;
 
   -- date_starting_creating_notes
-  SELECT date_id
+  SELECT /* Notes-datamartUsers */ date_id
    INTO m_date_starting_creating_notes
   FROM dwh.dimension_days
   WHERE dimension_day_id = (
-   SELECT MIN(opened_dimension_id_date)
+   SELECT /* Notes-datamartUsers */ MIN(opened_dimension_id_date)
    FROM dwh.facts f
    WHERE f.opened_dimension_id_user = m_dimension_user_id
   );
   
   -- date_starting_solving_notes
-  SELECT date_id
+  SELECT /* Notes-datamartUsers */ date_id
    INTO m_date_starting_solving_notes
   FROM dwh.dimension_days
   WHERE dimension_day_id = (
-   SELECT MIN(closed_dimension_id_date)
+   SELECT /* Notes-datamartUsers */ MIN(closed_dimension_id_date)
    FROM dwh.facts f
    WHERE f.closed_dimension_id_user = m_dimension_user_id
   );
   
   -- first_open_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_first_open_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MIN(fact_id)
+   SELECT /* Notes-datamartUsers */ MIN(fact_id)
    FROM dwh.facts f
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'opened'
   );
 
   -- first_commented_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_first_commented_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MIN(fact_id)
+   SELECT /* Notes-datamartUsers */ MIN(fact_id)
    FROM dwh.facts f
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'commented'
   );
 
   -- first_closed_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_first_closed_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MIN(fact_id)
+   SELECT /* Notes-datamartUsers */ MIN(fact_id)
    FROM dwh.facts f
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'closed'
   );
 
   -- first_reopened_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_first_reopened_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MIN(fact_id)
+   SELECT /* Notes-datamartUsers */ MIN(fact_id)
    FROM dwh.facts f
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'reopened'
@@ -96,12 +96,12 @@ AS $proc$
   --RAISE NOTICE 'Activity array %', m_last_year_activity;
   -- Create the last year activity
   FOR r IN
-   SELECT t.date_id, qty
+   SELECT /* Notes-datamartUsers */ t.date_id, qty
    FROM (
-    SELECT e.date_id, COALESCE(u.qty, 0) qty
+    SELECT /* Notes-datamartUsers */ e.date_id, COALESCE(u.qty, 0) qty
     FROM dwh.dimension_days e
     LEFT JOIN (
-     SELECT d.dimension_day_id day_id, count(1) qty
+     SELECT /* Notes-datamartUsers */ d.dimension_day_id day_id, count(1) qty
      FROM dwh.facts f
       JOIN dwh.dimension_days d
       ON (f.action_dimension_id_date = d.dimension_day_id)
@@ -168,19 +168,21 @@ AS $proc$
   m_check_year_populated INTEGER;
   stmt TEXT;
  BEGIN
-  SELECT EXTRACT(YEAR FROM CURRENT_DATE)
+  SELECT /* Notes-datamartUsers */ EXTRACT(YEAR FROM CURRENT_DATE)
    INTO m_current_year;
 
-  stmt := 'SELECT history_' || m_year || '_open '
+  stmt := 'SELECT /* Notes-datamartUsers */ history_' || m_year || '_open '
    || 'FROM dwh.datamartUsers '
    || 'WHERE dimension_user_id = ' || m_dimension_user_id;
   INSERT INTO logs (message) VALUES (stmt);
-  EXECUTE stmt INTO m_check_year_populated;
+  EXECUTE stmt
+   INTO m_check_year_populated;
 
-  IF (m_check_year_populated IS NULL OR m_check_year_populated = m_current_year) THEN
+  IF (m_check_year_populated IS NULL
+   OR m_check_year_populated = m_current_year) THEN
 
    -- history_year_open
-   SELECT COUNT(1)
+   SELECT /* Notes-datamartUsers */ COUNT(1)
     INTO m_history_year_open
    FROM dwh.facts f
     JOIN dwh.dimension_days d
@@ -190,7 +192,7 @@ AS $proc$
     AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
    -- history_year_commented
-   SELECT COUNT(1)
+   SELECT /* Notes-datamartUsers */ COUNT(1)
     INTO m_history_year_commented
    FROM dwh.facts f
     JOIN dwh.dimension_days d
@@ -200,7 +202,7 @@ AS $proc$
     AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
    -- history_year_closed
-   SELECT COUNT(1)
+   SELECT /* Notes-datamartUsers */ COUNT(1)
     INTO m_history_year_closed
    FROM dwh.facts f
     JOIN dwh.dimension_days d
@@ -214,7 +216,7 @@ AS $proc$
    m_history_year_closed_with_comment := 0;
 
    -- history_year_reopened
-   SELECT COUNT(1)
+   SELECT /* Notes-datamartUsers */ COUNT(1)
     INTO m_history_year_reopened
    FROM dwh.facts f
     JOIN dwh.dimension_days d
@@ -224,14 +226,16 @@ AS $proc$
     AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
    -- m_ranking_countries_opening_year
-   SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country_name',
-     country_name, 'quantity', quantity))
+   SELECT /* Notes-datamartUsers */ 
+    JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country_name', country_name,
+    'quantity', quantity))
     INTO m_ranking_countries_opening_year
    FROM (
-    SELECT
+    SELECT /* Notes-datamartUsers */ 
      RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
 	  FROM (
-     SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+     SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
+      COUNT(1) AS quantity
      FROM dwh.facts f
       JOIN dwh.dimension_countries c
       ON f.dimension_id_country = c.dimension_country_id
@@ -246,14 +250,16 @@ AS $proc$
    ) AS S;
 
    -- m_ranking_countries_closing_year
-   SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country_name',
-     country_name, 'quantity', quantity))
+   SELECT /* Notes-datamartUsers */
+    JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country_name', country_name,
+    'quantity', quantity))
     INTO m_ranking_countries_closing_year
    FROM (
     SELECT
      RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
     FROM (
-     SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+     SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
+      COUNT(1) AS quantity
      FROM dwh.facts f
       JOIN dwh.dimension_countries c
       ON f.dimension_id_country = c.dimension_country_id
@@ -305,24 +311,24 @@ COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
   m_total_closed INTEGER;
   coeficient DECIMAL;
  BEGIN
-  SELECT MIN(d.date_id), MAX(d.date_id)
+  SELECT /* Notes-datamartUsers */ MIN(d.date_id), MAX(d.date_id)
    INTO m_oldest_action, m_recent_action
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id;
 
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_total_actions
   FROM dwh.facts f
   WHERE f.action_dimension_id_user = m_dimension_user_id;
 
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_total_closed
   FROM dwh.facts f
   WHERE f.closed_dimension_id_user = m_dimension_user_id;
 
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_total_opened
   FROM dwh.facts f
   WHERE f.opened_dimension_id_user = m_dimension_user_id;
@@ -465,7 +471,7 @@ AS $proc$
   m_current_month SMALLINT;
   m_current_day SMALLINT;
  BEGIN
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO qty
   FROM dwh.datamartUsers
   WHERE dimension_user_id = m_dimension_user_id;
@@ -478,11 +484,11 @@ AS $proc$
   m_id_contributor_type := dwh.get_contributor_type(m_dimension_user_id);
   
   -- last_year_activity
-  SELECT last_year_activity
+  SELECT /* Notes-datamartUsers */ last_year_activity
    INTO m_last_year_activity
   FROM dwh.datamartUsers u
   WHERE u.dimension_user_id = m_dimension_user_id;
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_todays_activity
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -494,52 +500,53 @@ AS $proc$
   --RAISE NOTICE 'Activity array %', m_last_year_activity;
 
   -- lastest_open_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_lastest_open_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MAX(fact_id)
+   SELECT /* Notes-datamartUsers */ MAX(fact_id)
    FROM dwh.facts f
    WHERE f.opened_dimension_id_user = m_dimension_user_id
   );
 
   -- lastest_commented_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_lastest_commented_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MAX(fact_id)
+   SELECT /* Notes-datamartUsers */ MAX(fact_id)
    FROM dwh.facts f
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'commented'
   );
  
   -- lastest_closed_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_lastest_closed_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MAX(fact_id)
+   SELECT /* Notes-datamartUsers */ MAX(fact_id)
    FROM dwh.facts f
    WHERE f.closed_dimension_id_user = m_dimension_user_id
   );
  
   -- lastest_reopened_note_id
-  SELECT id_note
+  SELECT /* Notes-datamartUsers */ id_note
    INTO m_lastest_reopened_note_id
   FROM dwh.facts
   WHERE fact_id = (
-   SELECT MAX(fact_id)
+   SELECT /* Notes-datamartUsers */ MAX(fact_id)
    FROM dwh.facts f
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'reopened'
   );
  
   -- dates_most_open
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
+  SELECT /* Notes-datamartUsers */ 
+   JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
    INTO m_dates_most_open
   FROM (
-   SELECT date_id AS date, COUNT(1) AS quantity
+   SELECT /* Notes-datamartUsers */ date_id AS date, COUNT(1) AS quantity
    FROM dwh.facts f
     JOIN dwh.dimension_days d
     ON (f.opened_dimension_id_date = d.dimension_day_id)
@@ -550,10 +557,11 @@ AS $proc$
   ) AS T;
  
   -- dates_most_closed
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
+  SELECT /* Notes-datamartUsers */ 
+   JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
    INTO m_dates_most_closed
   FROM (
-   SELECT date_id AS date, COUNT(1) AS quantity
+   SELECT /* Notes-datamartUsers */ date_id AS date, COUNT(1) AS quantity
    FROM dwh.facts f
     JOIN dwh.dimension_days d
     ON (f.closed_dimension_id_date = d.dimension_day_id)
@@ -568,14 +576,16 @@ AS $proc$
   m_hashtags := NULL;
  
   -- countries_open_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+  SELECT /* Notes-datamartUsers */ 
+   JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
    'quantity', quantity))
    INTO m_countries_open_notes
   FROM (
    SELECT
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
-    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
+     COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
@@ -587,14 +597,16 @@ AS $proc$
   ) AS S;
  
   -- countries_solving_notes
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+  SELECT /* Notes-datamartUsers */ 
+   JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
    'quantity', quantity))
    INTO m_countries_solving_notes
   FROM (
    SELECT
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
-    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    SELECT /* Notes-datamartUsers */ 
+     c.country_name_es AS country_name, COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
@@ -605,24 +617,26 @@ AS $proc$
    ) AS T
   ) AS S;
  
-  SELECT EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
+  SELECT /* Notes-datamartUsers */ EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
    INTO m_current_year;
  
-  SELECT EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
+  SELECT /* Notes-datamartUsers */ EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
    INTO m_current_month;
  
-  SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)
+  SELECT /* Notes-datamartUsers */ EXTRACT(DAY FROM CURRENT_TIMESTAMP)
    INTO m_current_day;
 
   -- countries_open_notes_current_month
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+  SELECT /* Notes-datamartUsers */ 
+   JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
    'quantity', quantity))
    INTO m_countries_open_notes_current_month
   FROM (
    SELECT
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
-    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
+     COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
@@ -638,14 +652,16 @@ AS $proc$
   ) AS S;
  
   -- countries_solving_notes_current_month
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+  SELECT /* Notes-datamartUsers */ 
+   JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
    'quantity', quantity))
    INTO m_countries_solving_notes_current_month
   FROM (
    SELECT
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
-    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
+     COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
@@ -661,14 +677,16 @@ AS $proc$
   ) AS S;
  
   -- countries_open_notes_current_day
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+  SELECT /* Notes-datamartUsers */ 
+   JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
    'quantity', quantity))
    INTO m_countries_open_notes_current_day
   FROM (
    SELECT
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
-    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
+     COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
@@ -685,14 +703,16 @@ AS $proc$
   ) AS S;
  
   -- countries_solving_notes_current_day
-  SELECT JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
+  SELECT /* Notes-datamartUsers */
+   JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'country', country_name,
    'quantity', quantity))
    INTO m_countries_solving_notes_current_day
   FROM (
    SELECT
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
-    SELECT c.country_name_es AS country_name, COUNT(1) AS quantity
+    SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
+     COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_countries c
      ON f.dimension_id_country = c.dimension_country_id 
@@ -710,7 +730,7 @@ AS $proc$
  
   -- working_hours_of_week_opening
   WITH hours AS (
-   SELECT day_of_week, hour_of_day, COUNT(1)
+   SELECT /* Notes-datamartUsers */ day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
     JOIN dwh.dimension_hours_of_week t
     ON f.opened_dimension_id_hour_of_week = t.dimension_how_id
@@ -719,13 +739,13 @@ AS $proc$
    GROUP BY day_of_week, hour_of_day
    ORDER BY day_of_week, hour_of_day
   )
-  SELECT JSON_AGG(hours.*)
+  SELECT /* Notes-datamartUsers */ JSON_AGG(hours.*)
    INTO m_working_hours_of_week_opening
   FROM hours;
  
   -- working_hours_of_week_commenting
   WITH hours AS (
-   SELECT day_of_week, hour_of_day, COUNT(1)
+   SELECT /* Notes-datamartUsers */ day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
     JOIN dwh.dimension_hours_of_week t
     ON f.action_dimension_id_hour_of_week = t.dimension_how_id
@@ -734,13 +754,13 @@ AS $proc$
    GROUP BY day_of_week, hour_of_day
   ORDER BY day_of_week, hour_of_day
   )
-  SELECT JSON_AGG(hours.*)
+  SELECT /* Notes-datamartUsers */ JSON_AGG(hours.*)
    INTO m_working_hours_of_week_commenting
   FROM hours;
  
   -- working_hours_of_week_closing
   WITH hours AS (
-   SELECT day_of_week, hour_of_day, COUNT(1)
+   SELECT /* Notes-datamartUsers */ day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
     JOIN dwh.dimension_hours_of_week t
     ON f.closed_dimension_id_hour_of_week = t.dimension_how_id
@@ -748,26 +768,26 @@ AS $proc$
    GROUP BY day_of_week, hour_of_day
    ORDER BY day_of_week, hour_of_day
   )
-  SELECT JSON_AGG(hours.*)
+  SELECT /* Notes-datamartUsers */ JSON_AGG(hours.*)
    INTO m_working_hours_of_week_closing
   FROM hours;
  
   -- history_whole_open
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_whole_open
   FROM dwh.facts f
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'opened';
  
   -- history_whole_commented
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_whole_commented
   FROM dwh.facts f
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'commented';
  
   -- history_whole_closed
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_whole_closed
   FROM dwh.facts f
   WHERE f.action_dimension_id_user = m_dimension_user_id
@@ -778,14 +798,14 @@ AS $proc$
   m_history_whole_closed_with_comment := 0;
 
   -- history_whole_reopened
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_whole_reopened
   FROM dwh.facts f
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'reopened';
  
   -- history_year_open
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_year_open
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -795,7 +815,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_year_commented
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_year_commented
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -805,7 +825,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_year_closed
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_year_closed
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -819,7 +839,7 @@ AS $proc$
   m_history_year_closed_with_comment := 0;
  
   -- history_year_reopened
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_year_reopened
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -829,7 +849,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_month_open
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_month_open
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -840,7 +860,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_month_commented
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_month_commented
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -851,7 +871,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_month_closed
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_month_closed
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -866,7 +886,7 @@ AS $proc$
   m_history_month_closed_with_comment := 0;
  
   -- history_month_reopened
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_month_reopened
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -877,7 +897,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_day_open
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_day_open
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -889,7 +909,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_day_commented
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_day_commented
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -901,7 +921,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
  
   -- history_day_closed
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_day_closed
   FROM dwh.facts f
    JOIN dwh.dimension_days d
@@ -917,7 +937,7 @@ AS $proc$
   m_history_day_closed_with_comment := 0;
  
   -- history_day_reopened
-  SELECT COUNT(1)
+  SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_history_day_reopened
   FROM dwh.facts f
    JOIN dwh.dimension_days d

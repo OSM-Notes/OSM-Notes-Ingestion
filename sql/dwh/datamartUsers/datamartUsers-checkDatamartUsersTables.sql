@@ -1,14 +1,15 @@
 -- Verifies if the base tables are created in the database.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-09
+-- Version: 2023-12-08
   
-  DO
+  DO /* Notes-datamartUsers-checkTables */
   $$
   DECLARE
    qty INT;
   BEGIN
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-datamartUsers */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_SCHEMA LIKE 'dwh'
@@ -18,7 +19,8 @@
     RAISE EXCEPTION 'Base tables are missing: datamartUsers';
    END IF;
 
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-datamartUsers */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_SCHEMA LIKE 'dwh'
@@ -28,7 +30,8 @@
     RAISE EXCEPTION 'Base tables are missing: badges';
    END IF;
 
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-datamartUsers */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_SCHEMA LIKE 'dwh'
@@ -38,7 +41,8 @@
     RAISE EXCEPTION 'Base tables are missing: badges_per_users';
    END IF;
 
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-datamartUsers */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_SCHEMA LIKE 'dwh'
