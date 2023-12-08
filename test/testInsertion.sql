@@ -41,7 +41,11 @@ SELECT n.note_id, n.created_at, n.status, n.closed_at, nc."event"
 FROM notes n JOIN note_comments nc ON n.note_id = nc.note_id
 WHERE n.note_id > 6000000;
 
-SELECT * FROM logs l WHERE l.message LIKE '%700000%';
+SELECT *
+FROM logs l
+WHERE l.message LIKE '%700000%';
 
-DELETE FROM note_comments WHERE note_id > 6000000;
-DELETE FROM notes WHERE note_id > 6000000;
+DELETE FROM note_comments
+WHERE note_id > 6000000;
+DELETE FROM notes
+WHERE note_id > 6000000;
