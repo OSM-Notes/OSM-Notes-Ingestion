@@ -1,16 +1,17 @@
 -- Creates the max note timestamp table.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2023-12-08
   
-DO
+DO /* Notes-processAPI-createLastUpdateTable */
 $$
 DECLARE
  last_update TIMESTAMP;
  new_last_update TIMESTAMP;
  qty INT;
 BEGIN
- SELECT COUNT(TABLE_NAME) INTO qty
+ SELECT /* Notes-processAPI */ COUNT(TABLE_NAME)
+  INTO qty
  FROM INFORMATION_SCHEMA.TABLES
  WHERE TABLE_SCHEMA LIKE 'public'
  AND TABLE_TYPE LIKE 'BASE TABLE'
@@ -23,22 +24,23 @@ BEGIN
     || ')';
  END IF;
 
- SELECT MAX(TIMESTAMP)
+ SELECT /* Notes-processAPI */ MAX(TIMESTAMP)
    INTO new_last_update
  FROM (
-  SELECT MAX(created_at) AS TIMESTAMP
+  SELECT /* Notes-processAPI */ MAX(created_at) AS TIMESTAMP
   FROM notes
   UNION
-  SELECT MAX(closed_at) AS TIMESTAMP
+  SELECT /* Notes-processAPI */ MAX(closed_at) AS TIMESTAMP
   FROM notes
   UNION
-  SELECT MAX(created_at) AS TIMESTAMP
+  SELECT /* Notes-processAPI */ MAX(created_at) AS TIMESTAMP
   FROM note_comments
  ) T;
 
  IF (new_last_update IS NOT NULL) THEN
-  SELECT timestamp INTO last_update
-    FROM max_note_timestamp;
+  SELECT /* Notes-processAPI */ timestamp
+    INTO last_update
+  FROM max_note_timestamp;
 
   IF (last_update IS NULL) THEN
    INSERT INTO max_note_timestamp (timestamp) VALUES (new_last_update);
@@ -55,5 +57,5 @@ COMMENT ON TABLE max_note_timestamp IS
   'Timestamps of the max notes to reduce queries';
 COMMENT ON COLUMN max_note_timestamp.timestamp IS
   'Timestamp of the last note inserted';
-SELECT timestamp, 'oldLastUpdate' AS key
+SELECT /* Notes-processAPI */ timestamp, 'oldLastUpdate' AS key
 FROM max_note_timestamp;

@@ -1,24 +1,26 @@
 -- Bulk notes and notes comments insertion.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2023-12-08
   
-SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) Qty,
- 'current notes - before' as Text
+SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+  COUNT(1) Qty, 'current notes - before' AS Text
 FROM notes;
 
-DO
+DO /* Notes-processAPI-insertNotes */
 $$
  DECLARE
   r RECORD;
   m_closed_time VARCHAR(100);
   m_lastupdate TIMESTAMP;
  BEGIN
-  SELECT timestamp INTO m_lastupdate
-   FROM max_note_timestamp;
+  SELECT /* Notes-processAPI */ timestamp
+   INTO m_lastupdate
+  FROM max_note_timestamp;
 
   FOR r IN
-   SELECT note_id, latitude, longitude, created_at, closed_at, status
+   SELECT /* Notes-processAPI */ note_id, latitude, longitude, created_at,
+     closed_at, status
    FROM notes_api
    ORDER BY created_at
   LOOP
@@ -39,28 +41,31 @@ $$
  END;
 $$;
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on notes' as Text;
+SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+  'Statistics on notes' AS Text;
 ANALYZE notes;
 
-SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
- 'current notes - after' as Text
+SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+  COUNT(1) AS Qty, 'current notes - after' AS Text
 FROM notes;
 
-SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
- 'current comments - before' as Text
+SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+  COUNT(1) AS Qty, 'current comments - before' AS Text
 FROM note_comments;
 
-DO
+DO /* Notes-processAPI-insertComments */
 $$
  DECLARE
   r RECORD;
   m_created_time VARCHAR(100);
   m_lastupdate TIMESTAMP;
  BEGIN
-  SELECT timestamp INTO m_lastupdate
-   FROM max_note_timestamp;
+  SELECT /* Notes-processAPI */ timestamp
+   INTO m_lastupdate
+  FROM max_note_timestamp;
   FOR r IN
-   SELECT note_id, event, created_at, id_user, username
+   SELECT /* Notes-processAPI */ note_id, event, created_at, id_user,
+    username
    FROM note_comments_api
    ORDER BY id
   LOOP
@@ -93,8 +98,9 @@ $$
  END;
 $$;
 
-SELECT CURRENT_TIMESTAMP AS Processing, 'Statistics on comments' as Text;
+SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+  'Statistics on comments' AS Text;
 ANALYZE note_comments;
-SELECT CURRENT_TIMESTAMP AS Processing, COUNT(1) AS Qty,
- 'current comments - after' as Qty
+SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+  COUNT(1) AS Qty, 'current comments - after' AS Qty
 FROM note_comments;
