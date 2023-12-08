@@ -1,14 +1,15 @@
 -- Verifies if the base tables are created in the database.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-10
+-- Version: 2023-12-08
   
-  DO
+  DO /* Notes-datamartCountries-checkTables */
   $$
   DECLARE
    qty INT;
   BEGIN
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-datamartCountries */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_TYPE LIKE 'BASE TABLE'
    AND TABLE_SCHEMA LIKE 'dwh'

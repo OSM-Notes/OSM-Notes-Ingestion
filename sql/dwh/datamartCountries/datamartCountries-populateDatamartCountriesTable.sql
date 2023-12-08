@@ -1,15 +1,15 @@
 -- Populates datamart for countries.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-11-13
+-- Version: 2023-12-08
 
-DO
+DO /* Notes-datamartCountries-processCountries */
 $$
 DECLARE
  r RECORD;
  max_date DATE;
 BEGIN
- SELECT date
+ SELECT /* Notes-datamartCountries */ date
   INTO max_date
  FROM dwh.max_date_countries_processed;
  IF (max_date < CURRENT_DATE) THEN
@@ -23,7 +23,8 @@ BEGIN
 
  FOR r IN
   -- Process the datamart only for modified countries.
-  SELECT f.dimension_id_country AS dimension_id_country
+  SELECT /* Notes-datamartCountries */
+   f.dimension_id_country AS dimension_id_country
   FROM dwh.facts f
    JOIN dwh.dimension_countries c
    ON (f.dimension_id_country = c.dimension_country_id)
