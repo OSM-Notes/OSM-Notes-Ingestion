@@ -1,7 +1,7 @@
 -- Creates syn tables based on base tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2023-12-08
   
 CREATE TABLE notes_sync (
  note_id INTEGER NOT NULL, -- id
@@ -31,7 +31,8 @@ CREATE TABLE note_comments_sync (
  id_user INTEGER,
  username VARCHAR(256)
 );
-COMMENT ON TABLE note_comments_sync IS 'Temporal table for note comments from Planet';
+COMMENT ON TABLE note_comments_sync IS
+  'Temporal table for note comments from Planet';
 COMMENT ON COLUMN note_comments_sync.note_id IS
   'OSM Note Id associated to this comment';
 COMMENT ON COLUMN note_comments_sync.event IS
