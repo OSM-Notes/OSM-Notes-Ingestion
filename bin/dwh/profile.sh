@@ -1446,7 +1446,7 @@ function __generalNoteStats {
  #  select count(1) qty, f.action_dimension_id_user user_notes
  #  from dwh.facts f 
  #  group by f.action_dimension_id_user
- # ) as t
+ # ) AS t
  # group by qty 
  # order by qty desc
 }
