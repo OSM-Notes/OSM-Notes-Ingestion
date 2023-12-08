@@ -24,7 +24,7 @@
    ELSIF (lon < -30) THEN -- Americas
     area := 'Americas';
     FOR f IN
-      SELECT geom, country_id
+      SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY americas NULLS LAST
      LOOP
@@ -38,7 +38,7 @@
    ELSIF (lon < 25) THEN -- Europe & part of Africa
     area := 'Europe/Africa';
     FOR f IN
-      SELECT geom, country_id
+      SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY europe NULLS LAST
      LOOP
@@ -52,7 +52,7 @@
    ELSIF (lon < 65) THEN -- Russia, Middle East & part of Africa
     area := 'Russia/Middle east';
     FOR f IN
-      SELECT geom, country_id
+      SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY russia_middle_east NULLS LAST
      LOOP
@@ -66,7 +66,7 @@
    ELSE
     area := 'Asia/Oceania';
     FOR f IN
-      SELECT geom, country_id
+      SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY asia_oceania NULLS LAST
      LOOP

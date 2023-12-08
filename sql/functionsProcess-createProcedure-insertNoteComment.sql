@@ -31,7 +31,8 @@ AS $proc$
   END IF;
 
    -- Gets the current status of the note.
-  SELECT status INTO m_status
+  SELECT /* Notes-base */ status
+   INTO m_status
   FROM notes
   WHERE note_id = m_note_id;
 

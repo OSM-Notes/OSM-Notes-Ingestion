@@ -3,12 +3,13 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
   
-  DO
+  DO /* Notes-base-checkTables */
   $$
   DECLARE
    qty INT;
   BEGIN
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-base */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
@@ -18,7 +19,8 @@
     RAISE EXCEPTION 'Base tables are missing: countries';
    END IF;
 
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-base */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
@@ -28,7 +30,8 @@
     RAISE EXCEPTION 'Base tables are missing: notes';
    END IF;
 
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-base */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
@@ -38,7 +41,8 @@
     RAISE EXCEPTION 'Base tables are missing: note_comments';
    END IF;
 
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-base */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'
@@ -48,7 +52,8 @@
     RAISE EXCEPTION 'Base tables are missing: logs';
    END IF;
 
-   SELECT COUNT(TABLE_NAME) INTO qty
+   SELECT /* Notes-base */ COUNT(TABLE_NAME)
+    INTO qty
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'public'
    AND TABLE_TYPE LIKE 'BASE TABLE'

@@ -15,7 +15,7 @@ AS $proc$
   id_country INTEGER;
   qty INTEGER;
  BEGIN
-  SELECT COUNT(1)
+  SELECT /* Notes-base */ COUNT(1)
    INTO qty
   FROM notes
   WHERE note_id = m_note_id;
