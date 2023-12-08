@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-07
-declare -r VERSION="2023-12-07"
+# Version: 2023-12-08
+declare -r VERSION="2023-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -258,7 +258,8 @@ function __getNewNotesFromApi {
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
  # Gets the most recent value on the database.
  psql -d "${DBNAME}" -Atq \
-  -c "SELECT TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
+  -c "SELECT /* Notes-processAPI */ \
+      TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
      FROM max_note_timestamp" \
   -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
