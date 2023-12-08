@@ -42,8 +42,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-07
-declare -r VERSION="2023-12-07"
+# Version: 2023-12-08
+declare -r VERSION="2023-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -230,7 +230,7 @@ function __analyzeAndVacuum {
 function __cleanNotesFiles {
  __log_start
  rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
-  "${OUTPUT_NOTE_COMMENTS_FILE}"
+  "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  __log_finish
 }
 
