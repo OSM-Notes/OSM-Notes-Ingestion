@@ -40,6 +40,9 @@ ToDo list
 * Mostrar el timestamp del comentario más reciente en la DB - Última actualización de la db
 * Mostrar la hora actual del servidor de DB.
 * Calidad de la nota. Menos de 5 caracteres es mala. Menos de 10 regular. Mas de 200 compleja, Mas de 500 un tratado.
+* Monitor debe revisar que la cantidad de comentarios es la misma de actions en facts.
+  * Algo similar para los datamarts.
+* Github tiles de https://github.com/sallar/github-contributions-canvas
 
 # Check
 
