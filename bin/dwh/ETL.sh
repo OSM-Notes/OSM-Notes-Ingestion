@@ -91,6 +91,13 @@ declare -r ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-addConstraints
 # Create staging procedures.
 declare -r CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-createStagingObjects.sql"
 
+# Script to do the initial load - create.
+declare -r POSTGRES_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadCreate.sql"
+# Script to do the initial load - execute.
+declare -r POSTGRES_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadExecute.sql"
+# Script to do the initial load - drop.
+declare -r POSTGRES_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadDrop.sql"
+
 # Create staging procedures.
 declare -r LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-loadNotes.sql"
 
@@ -146,11 +153,11 @@ function __checkPrereqs {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${CHECK_BASE_TABLES_FILE}" ]]; then
-  __loge "ERROR: File checkBaseTables.sql was not found."
+  __loge "ERROR: File ETL-checkDWHTables.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${CREATE_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File createObjects.sql was not found."
+  __loge "ERROR: File ETL-createDWHTables.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${REGIONS_FILE}" ]]; then
@@ -158,32 +165,89 @@ function __checkPrereqs {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${ADD_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File alterObjects.sql was not found."
+  __loge "ERROR: File ETL-addConstraintsIndexesTriggers.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POPULATE_DIMENSIONS_FILE}" ]]; then
-  __loge "ERROR: File populateTables.sql was not found."
+  __loge "ERROR: File ETL-populateDimensionTables.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_FACTS_YEAR_CREATE}" ]]; then
+  __loge "ERROR: File Staging-initialFactsLoadCreate.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_FACTS_YEAR_EXECUTE}" ]]; then
+  __loge "ERROR: File Staging-initialFactsLoadExecute.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_FACTS_YEAR_DROP}" ]]; then
+  __loge "ERROR: File Staging-initialFactsLoadDrop.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
  set -e
 }
 
+# Process facts in parallel.
+function __initialFacts {
+  # Initial year.
+  YEAR="2013"
+  # Gets the current year as max.
+  MAX=$(date +%Y)
+
+  while [[ "${YEAR}" -le "${MAX}" ]]; do
+   (
+    __logi "Starting ${YEAR}."
+    # Loads the data in the database.
+    export YEAR
+    # shellcheck disable=SC2016
+    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_CREATE}" || true)"
+    # shellcheck disable=SC2016
+    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_EXECUTE}" || true)"
+    # shellcheck disable=SC2016
+    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_DROP}" || true)"
+
+    __logi "Finishing ${YEAR}."
+   ) &
+   sleep 5 # To insert all days of the year in the dimension.
+   YEAR=$((YEAR + 1))
+  done
+   # Waits until all years are fniished.
+  wait
+  while [[ "${YEAR}" -le "${MAX}" ]]; do
+   __logi "Copying facts from ${YEAR}."
+   STMT="
+    INSERT INTO dwh.facts
+     SELECT *
+     FROM dwh.facts_${YEAR}
+    "
+   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 "DROP TABLE dwh.facts_${YEAR}"
+   YEAR=$((YEAR + 1))
+  done
+}
+
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- __logi "Creating tables for star model if they do not exist"
+ __logi "Creating tables for star model if they do not exist."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
- __logi "Regions for countries"
+ __logi "Regions for countries."
  psql -d "${DBNAME}" -f "${REGIONS_FILE}"
- __logi "Adding relation, indexes AND triggers"
+ __logi "Adding relation, indexes AND triggers."
  psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}"
 
- __logi "Creating staging objects"
+ __logi "Creating staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}" 2>&1
 
- __logi "Initial dimension population"
+ __logi "Initial dimension population."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
+
+ __initialFacts
+
  __log_finish
 }
 
@@ -214,16 +278,14 @@ function __processNotesETL {
 
 function main() {
  __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
+ __logd "Output saved at: ${TMP_DIR}."
+ __logi "Processing: ${PROCESS_TYPE}."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
- __checkPrereqs
- __checkBaseTables
 
- __logw "Starting process"
+ __logw "Starting process."
  # Sets the trap in case of any signal.
  __trapOn
  exec 7> "${LOCK}"
@@ -231,6 +293,11 @@ function main() {
  ONLY_EXECUTION="no"
  flock -n 7
  ONLY_EXECUTION="yes"
+
+ __checkPrereqs
+ set +E
+ __checkBaseTables
+ set -E
 
  __processNotesETL
 
@@ -240,7 +307,7 @@ function main() {
  # Updates the datamart for users.
  "${DATAMART_USERS_FILE}"
 
- __logw "Ending process"
+ __logw "Ending process."
 }
 
 # Allows to other user read the directory.

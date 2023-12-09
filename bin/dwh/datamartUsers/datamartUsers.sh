@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-07
-declare -r VERSION="2023-12-07"
+# Version: 2023-12-08
+declare -r VERSION="2023-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -205,8 +205,8 @@ function __processNotesUser {
 
 function main() {
  __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
+ __logd "Output saved at: ${TMP_DIR}."
+ __logi "Processing: ${PROCESS_TYPE}."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
@@ -214,7 +214,7 @@ function main() {
  fi
  __checkPrereqs
 
- __logw "Starting process"
+ __logw "Starting process."
  # Sets the trap in case of any signal.
  __trapOn
  exec 7> "${LOCK}"
@@ -235,7 +235,7 @@ function main() {
  set -E
  __processNotesUser
 
- __logw "Ending process"
+ __logw "Ending process."
 }
 
 # Allows to other user read the directory.
