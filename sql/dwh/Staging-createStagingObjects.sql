@@ -189,7 +189,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
 $proc$
 ;
 COMMENT ON PROCEDURE staging.process_notes_at_date IS
-  'Processes all comments from base tables more recent thatn a specific timestamp and loads them in the data warehouse';
+  'Processes all comments from base tables more recent than a specific timestamp and loads them in the data warehouse';
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
  )
