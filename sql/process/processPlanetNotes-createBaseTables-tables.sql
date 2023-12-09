@@ -1,9 +1,9 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-05
+-- Version: 2023-12-08
   
-CREATE TABLE IF NOT EXISTS users(
+CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL,
  username VARCHAR(256) NOT NULL
 );
