@@ -290,17 +290,17 @@ function __convertPlanetNotesToFlatFile {
  # Process the notes file.
 
  # Converts the XML into a flat file in CSV format.
- __logi "Processing notes from XML"
+ __logi "Processing notes from XML."
  # shellcheck disable=SC2154
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" \
   -o:"${OUTPUT_NOTES_FILE}"
- __logi "Processing comments from XML"
+ __logi "Processing comments from XML."
  # shellcheck disable=SC2154
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
   -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
- __logi "Processing text from XML"
+ __logi "Processing text from XML."
  # shellcheck disable=SC2154
  java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_TEXT_COMMENTS_FILE}" \
