@@ -239,15 +239,15 @@ function __cleanNotesFiles {
 
 function main() {
  __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
+ __logd "Output saved at: ${TMP_DIR}."
+ __logi "Processing: ${PROCESS_TYPE}."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
  __checkPrereqs
- __logw "Starting process"
+ __logw "Starting process."
 
  # Sets the trap in case of any signal.
  __trapOn
@@ -267,7 +267,7 @@ function main() {
  __loadCheckNotes
  __analyzeAndVacuum
  __cleanNotesFiles
- __logw "Ending process"
+ __logw "Ending process."
 
 }
 

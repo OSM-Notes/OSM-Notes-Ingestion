@@ -234,10 +234,6 @@ declare -r FLAT_NOTES_FILE=${2:-}
 declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
 declare -r FLAT_TEXT_COMMENTS_FILE=${4:-}
 
-# Wait between loops when downloading boundaries, to prevent "Too many
-# requests".
-declare -r SECONDS_TO_WAIT=3
-
 # File that contains the ids of the boundaries for countries.
 declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
 # File taht contains the ids of the boundaries of the maritimes areas.
@@ -498,7 +494,7 @@ function __dropApiTables {
 # Creates base tables that hold the whole history.
 function __createCountryTables {
  __log_start
- __logi "Creating tables"
+ __logi "Creating tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_COUNTRY_TABLES}"
  __log_finish
 }
@@ -506,7 +502,7 @@ function __createCountryTables {
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- __logi "Creating tables"
+ __logi "Creating tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_ENUMS}"
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_BASE_TABLES}"
@@ -519,7 +515,7 @@ function __createBaseTables {
 # ones.
 function __createSyncTables {
  __log_start
- __logi "Creating tables"
+ __logi "Creating tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_SYNC_TABLES}"
  __log_finish
 }
@@ -601,7 +597,7 @@ EOF
    | awk -F\" '{print $4}' | sed "s/'/''/")
   set -o pipefail
   set -e
-  __logi "Name: ${COUNTRY_EN}"
+  __logi "Name: ${COUNTRY_EN}."
 
   # Taiwan cannot be imported directly. Thus, a simplification is done.
   # ERROR:  row is too big: size 8616, maximum size 8160
@@ -717,7 +713,7 @@ EOF
   sleep "${SECONDS_TO_WAIT}"
  done < "${MARITIMES_FILE}"
 
- __logi "Calculating statistics on countries"
+ __logi "Calculating statistics on countries."
  echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
 }
@@ -810,22 +806,22 @@ function __getLocationNotes {
 
   declare -l SIZE=$((MAX_NOTE_ID / PARALLELISM))
   rm -r "${LAST_NOTE_FILE}"
-  for j in $(seq 1 1 "${PARALLELISM}"); do
+  for J in $(seq 1 1 "${PARALLELISM}"); do
    (
-    __logi "Starting ${j}"
-    MIN=$((SIZE * (j - 1) + LOOP_SIZE))
-    MAX=$((SIZE * j))
-    for i in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
-     MIN_LOOP=$((i - LOOP_SIZE))
-     MAX_LOOP=${i}
-     __logd "${i}: [${MIN_LOOP} - ${MAX_LOOP}]"
+    __logi "Starting ${J}."
+    MIN=$((SIZE * (J - 1) + LOOP_SIZE))
+    MAX=$((SIZE * J))
+    for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
+     MIN_LOOP=$((I - LOOP_SIZE))
+     MAX_LOOP=${I}
+     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
      STMT="UPDATE notes
        SET id_country = get_country(longitude, latitude, note_id)
        WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
        AND id_country IS NULL"
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     done
-    __logi "Finishing ${j}"
+    __logi "Finishing ${J}."
    ) &
   done
   wait
@@ -841,8 +837,8 @@ function __getLocationNotes {
 
 function main() {
  __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
+ __logd "Output saved at: ${TMP_DIR}."
+ __logi "Processing: ${PROCESS_TYPE}."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
@@ -911,7 +907,7 @@ function main() {
 
   __cleanPartial # base and boundaries
   if [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
-   __logw "Ending process"
+   __logw "Ending process."
    exit 0
   fi
  fi
@@ -922,7 +918,7 @@ function main() {
   __convertPlanetNotesToFlatFile # sync and flatfile
   if [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
    echo "CSV files are at ${TMP_DIR}"
-   __logw "Ending process"
+   __logw "Ending process."
    exit 0
   fi
  fi
@@ -950,7 +946,7 @@ function main() {
   __getLocationNotes # sync & locate
  fi
  __cleanNotesFiles # base, sync & locate
- __logw "Ending process"
+ __logw "Ending process."
 
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   if [[ ! -t 1 ]]; then

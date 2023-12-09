@@ -237,7 +237,7 @@ function __dropApiTables {
 # Creates tables for notes from API.
 function __createApiTables {
  __log_start
- __logi "Creating tables"
+ __logi "Creating tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_API_TABLES}"
  __log_finish
 }
@@ -246,7 +246,7 @@ function __createApiTables {
 function __createPropertiesTable {
  __log_start
  set -e
- __logi "Creating properties table"
+ __logi "Creating properties table."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_CREATE_PROPERTIES_TABLE}"
  __log_finish
@@ -263,7 +263,7 @@ function __getNewNotesFromApi {
      FROM max_note_timestamp" \
   -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
- __logw "Last update: ${LAST_UPDATE}"
+ __logw "Last update: ${LAST_UPDATE}."
  if [[ "${LAST_UPDATE}" == "" ]]; then
   __loge "No last update. Please load notes."
   exit "${ERROR_NO_LAST_UPDATE}"
@@ -397,7 +397,7 @@ function __insertNewNotesAndComments {
 # Updates the refreshed value.
 function __updateLastValue {
  __log_start
- __logi "Updating last update time"
+ __logi "Updating last update time."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_UPDATE_LAST_VALUES}"
  __log_finish
 }
@@ -417,8 +417,8 @@ function __cleanNotesFiles {
 
 function main() {
  __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}"
- __logi "Processing: ${PROCESS_TYPE}"
+ __logd "Output saved at: ${TMP_DIR}."
+ __logi "Processing: ${PROCESS_TYPE}."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
