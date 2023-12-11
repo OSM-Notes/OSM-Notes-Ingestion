@@ -59,3 +59,14 @@ ToDo list
 
 * Hacer un diagrama de la curva de puntos de las actividades del último año (GitHib tiles).
 * Hacer un diagrama de componenetes, enfocado en el flujo de la información, dónde la volva y dónde la obtiene cada elemento. 
+
+
+-- ANDRES, EJECUTA ESTO. MUESTRA CUÁNTOS USUARIOS SOLO HAN HECHO UNA CONTRIBUCIÓN
+-- INCLUSIVE SE PODRIA CONVERTIR PARA MOSTRAR LA TASA DE USUARIOS QUE POCO HACEN
+select count(1)
+from (
+ select f.action_dimension_id_user user
+ from dwh.facts f 
+ group by f.action_dimension_id_user
+ having count(1) = 1
+) as t
