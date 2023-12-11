@@ -142,7 +142,6 @@ function __checkPrereqs {
 function __downloadingPlanet {
  __log_start
 
- export SAXON_CLASSPATH=${SAXON_CLASSPATH:-~/saxon/}
  "${SCRIPT_PROCESS_PLANET}"
 
  __log_finish
