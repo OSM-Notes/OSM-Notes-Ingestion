@@ -1,7 +1,7 @@
 -- Chech data warehouse tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2023-12-09
 
   DO /* Notes-ETL-checkTables */
   $$
@@ -86,6 +86,26 @@
     RAISE EXCEPTION 'Tables are missing: dwh.dimension_applications';
    END IF;
 
+   SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
+    INTO qty
+   FROM INFORMATION_SCHEMA.TABLES
+   WHERE TABLE_SCHEMA LIKE 'dwh'
+   AND TABLE_TYPE LIKE 'BASE TABLE'
+   AND TABLE_NAME = 'properties'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Tables are missing: dwh.properties';
+   END IF;
+
+   SELECT /* Notes-ETL */ COUNT(1)
+    INTO qty
+   FROM dwh.properties
+   WHERE key = 'initial load'
+   AND value = 'true'
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Previous initial load was not complete correctly';
+   END IF;
   END;
   $$;
   

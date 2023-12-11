@@ -1,7 +1,7 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2023-12-09
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 COMMENT ON SCHEMA dwh IS
@@ -137,3 +137,11 @@ COMMENT ON COLUMN dwh.dimension_applications.pattern IS
   'Pattern to find in the comment''text with a SIMILAR TO predicate';
 COMMENT ON COLUMN dwh.dimension_applications.platform IS
   'Platform of the appLication';
+
+CREATE TABLE IF NOT EXISTS dwh.properties (
+ key VARCHAR(16),
+ value VARCHAR(26)
+);
+COMMENT ON TABLE dwh.properties IS 'Properties table for ETL';
+COMMENT ON COLUMN dwh.properties.key IS 'Property name';
+COMMENT ON COLUMN dwh.properties.value IS 'Property value';

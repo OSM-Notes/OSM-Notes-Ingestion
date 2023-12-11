@@ -1,7 +1,7 @@
 -- Drop data warehouse objects.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2023-12-09
 
 DROP FUNCTION IF EXISTS dwh.get_score_user_activity;
 
@@ -16,6 +16,8 @@ DROP FUNCTION IF EXISTS get_country_region;
 DROP FUNCTION IF EXISTS dwh.get_hour_of_week_id;
 
 DROP FUNCTION IF EXISTS dwh.get_date_id;
+
+DROP TABLE IF EXISTS dwh.properties;
 
 DROP TABLE IF EXISTS dwh.facts;
 

@@ -60,7 +60,7 @@ profile can be used for any user.
 
 **ETL and datamarts population**
 
-* 6 hours: Loading the ETL from main tables.
+* 30 hours: Loading the ETL from main tables.
   * This process is parallel according to the number of years since 2013.
     However, not all years have the same number of notes.
 * 20 minutes: Preparing the countries datamart.

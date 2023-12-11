@@ -1,9 +1,17 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2023-12-09
 
 CREATE TABLE dwh.facts_${YEAR} AS TABLE dwh.facts;
+
+CREATE SEQUENCE dwh.facts_${YEAR}_seq;
+
+ALTER TABLE dwh.facts_${YEAR} ALTER fact_id
+  SET DEFAULT NEXTVAL('dwh.facts_${YEAR}_seq'::regclass);
+
+ALTER TABLE dwh.facts_${YEAR} ALTER processing_time
+  SET DEFAULT CURRENT_TIMESTAMP;
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   max_processed_timestamp TIMESTAMP
@@ -160,7 +168,6 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh_${YEAR} (
  LANGUAGE plpgsql
  AS
 $$
-DECLARE
  DECLARE
   qty_dwh_notes INTEGER;
   qty_notes_on_date INTEGER;

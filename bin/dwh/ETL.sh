@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-08
-declare -r VERSION="2022-12-08"
+# Version: 2022-12-09
+declare -r VERSION="2022-12-09"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -78,6 +78,9 @@ declare -r UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-updateDi
 
 # Name of the SQL script that check the existance of base tables.
 declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkDWHTables.sql"
+
+# Name of the SQL script that contains the objects to create in the DB.
+declare -r DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-removeDWHObjects.sql"
 
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHTables.sql"
@@ -156,6 +159,10 @@ function __checkPrereqs {
   __loge "ERROR: File ETL-checkDWHTables.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${DROP_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File ETL-removeDWHObjects.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  if [[ ! -r "${CREATE_OBJECTS_FILE}" ]]; then
   __loge "ERROR: File ETL-createDWHTables.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -190,6 +197,7 @@ function __checkPrereqs {
 
 # Process facts in parallel.
 function __initialFacts {
+ __log_start
   # Initial year.
   YEAR="2013"
   # Gets the current year as max.
@@ -202,13 +210,10 @@ function __initialFacts {
     export YEAR
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_CREATE}" || true)"
+     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_CREATE}" || true)"
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_EXECUTE}" || true)"
-    # shellcheck disable=SC2016
-    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_DROP}" || true)"
+     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_EXECUTE}" || true)"
 
     __logi "Finishing ${YEAR}."
    ) &
@@ -217,22 +222,44 @@ function __initialFacts {
   done
    # Waits until all years are fniished.
   wait
+
+  YEAR="2013"
   while [[ "${YEAR}" -le "${MAX}" ]]; do
    __logi "Copying facts from ${YEAR}."
    STMT="
-    INSERT INTO dwh.facts
-     SELECT *
+    INSERT INTO dwh.facts (
+      id_note, dimension_id_country, processing_time, action_at, action_comment,
+      action_dimension_id_date, action_dimension_id_hour_of_week,
+      action_dimension_id_user, opened_dimension_id_date,
+      opened_dimension_id_hour_of_week, opened_dimension_id_user,
+      closed_dimension_id_date, closed_dimension_id_hour_of_week,
+      closed_dimension_id_user, dimension_application_creation
+      )
+     SELECT
+      id_note, dimension_id_country, processing_time, action_at, action_comment,
+      action_dimension_id_date, action_dimension_id_hour_of_week,
+      action_dimension_id_user, opened_dimension_id_date,
+      opened_dimension_id_hour_of_week, opened_dimension_id_user,
+      closed_dimension_id_date, closed_dimension_id_hour_of_week,
+      closed_dimension_id_user, dimension_application_creation
      FROM dwh.facts_${YEAR}
     "
    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 "DROP TABLE dwh.facts_${YEAR}"
+   # shellcheck disable=SC2016
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_DROP}" || true)"
+
    YEAR=$((YEAR + 1))
   done
+ __log_finish
 }
 
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
+ __logi "Droping any ETL object if any exist"
+ psql -d "${DBNAME}" -f "${DROP_OBJECTS_FILE}"
+
  __logi "Creating tables for star model if they do not exist."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
  __logi "Regions for countries."
@@ -245,6 +272,9 @@ function __createBaseTables {
 
  __logi "Initial dimension population."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
+
+ echo "INSERT INTO dwh.properties VALUES ('initial load', 'true')" | \
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
  __initialFacts
 
