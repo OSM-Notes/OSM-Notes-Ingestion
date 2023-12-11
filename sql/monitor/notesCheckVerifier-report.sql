@@ -6,7 +6,7 @@
 -- Shows the information of the latest note, which should be recent.
 COPY
  (
-  SELECT /* Notes-check */ *
+  SELECT *
   FROM notes
   WHERE note_id = (
    SELECT /* Notes-check */ MAX(note_id)
@@ -18,7 +18,7 @@ COPY
 
 COPY
  (
-  SELECT /* Notes-check */ *
+  SELECT *
   FROM note_comments
   WHERE note_id = (
    SELECT /* Notes-check */ MAX(note_id)
@@ -125,7 +125,7 @@ INSERT INTO temp_diff_notes
 
 COPY
  (
-  SELECT /* Notes-check */ *
+  SELECT *
   FROM (
    SELECT /* Notes-check */ 'Planet' AS source, note_id, latitude, longitude,
     created_at, status, closed_at
@@ -175,7 +175,7 @@ INSERT INTO temp_diff_note_comments
 
 COPY
  (
-  SELECT /* Notes-check */ *
+  SELECT *
   FROM (
    SELECT /* Notes-check */ 'Planet' AS source, note_id, event, created_at,
     id_user
@@ -203,7 +203,7 @@ DROP TABLE IF EXISTS temp_diff_note_comments;
 
 -- Differences between comments and text
 COPY (
- /* Notes-check */ *
+ *
  FROM (
   SELECT /* Notes-check */ COUNT(1) qty, c.note_id note_id
   FROM note_comments c
