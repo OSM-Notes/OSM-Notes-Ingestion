@@ -199,7 +199,11 @@ COMMENT ON INDEX dwh.modified_countries_idx IS
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Creating functions' AS Task;
 
--- TODO if there are no action on a given date, then that date will be missing.
+/**
+ * Gets the id of the given timestamp. If the ID does not exist, it creates it.
+ * If this function is not called at all for a day, they that day will not have
+ * an ID, and it will be missing.
+ */
 CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
   RETURNS INTEGER AS
  $$
