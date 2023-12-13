@@ -15,6 +15,11 @@ declare -r DBNAME="notes"
 declare -r DB_USER="notes"
 
 
+# Location of the Saxon JAR. This can be override from a environment variable.
+# shellcheck disable=SC2034
+declare -r SAXON_CLASSPATH=${SAXON_CLASSPATH:-~/saxon/}
+
+
 # Mails to send the report about checking the differences between planet and database.
 declare -r EMAILS="username@domain.com"
 
