@@ -203,7 +203,7 @@ DROP TABLE IF EXISTS temp_diff_note_comments;
 
 -- Differences between comments and text
 COPY (
- *
+ SELECT *
  FROM (
   SELECT /* Notes-check */ COUNT(1) qty, c.note_id note_id
   FROM note_comments c
