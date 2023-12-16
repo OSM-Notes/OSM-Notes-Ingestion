@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-09
-declare -r VERSION="2022-12-09"
+# Version: 2022-12-16
+declare -r VERSION="2022-12-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -245,6 +245,7 @@ function __initialFacts {
      FROM dwh.facts_${YEAR}
     "
    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_DROP}" || true)"
