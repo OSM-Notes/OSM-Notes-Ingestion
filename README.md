@@ -71,6 +71,30 @@ profile can be used for any user.
   have contributed with only one note.
   TODO parallelize
 
+# Note's stats
+
+Notes' ids
+
+* 6 - 2013-04-24
+* 1 000 000 - 2017-05-18
+* 2 000 000 - 2019-11-18
+* 3 000 000 - 2022-01-06
+* 4 000 000 - 2023-11-24
+
+Comments' ids
+
+* 2013 - 183 809
+* 2014 - 412 582
+* 2015 - 425 287
+* 2016 - 651 678
+* 2017 - 898 289
+* 2018 - 807 806
+* 2019 - 874 127
+* 2020 - 927 141
+* 2021 - 1 066 639
+* 2022 - 1 093 186
+* 2023 - More than 1 214 348
+
 # Install prerequisites on Ubuntu
 
 This is a simplified version of what you need to execute to run this project on Ubuntu.
