@@ -245,6 +245,10 @@ function __initialFacts {
      FROM dwh.facts_${YEAR}
     "
    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   # Updates the sequence.
+   STMT="SELECT SETVAL((SELECT PG_GET_SERIAL_SEQUENCE('dwh.facts', 'fact_id')),
+    (SELECT (MAX(fact_id) + 1) FROM dwh.facts), FALSE)"
+   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
