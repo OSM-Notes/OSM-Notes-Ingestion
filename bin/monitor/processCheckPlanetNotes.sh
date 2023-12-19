@@ -42,8 +42,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-08
-declare -r VERSION="2023-12-08"
+# Version: 2023-12-19
+declare -r VERSION="2023-12-19"
 
 #set -xv
 # Fails when a variable is not initialized.
