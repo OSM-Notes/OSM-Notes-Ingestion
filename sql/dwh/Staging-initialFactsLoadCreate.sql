@@ -1,16 +1,16 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-09
+-- Version: 2023-12-19
 
-CREATE TABLE dwh.facts_${YEAR} AS TABLE dwh.facts;
+CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
 
-CREATE SEQUENCE dwh.facts_${YEAR}_seq;
+CREATE SEQUENCE staging.facts_${YEAR}_seq;
 
-ALTER TABLE dwh.facts_${YEAR} ALTER fact_id
-  SET DEFAULT NEXTVAL('dwh.facts_${YEAR}_seq'::regclass);
+ALTER TABLE staging.facts_${YEAR} ALTER fact_id
+  SET DEFAULT NEXTVAL('staging.facts_${YEAR}_seq'::regclass);
 
-ALTER TABLE dwh.facts_${YEAR} ALTER processing_time
+ALTER TABLE staging.facts_${YEAR} ALTER processing_time
   SET DEFAULT CURRENT_TIMESTAMP;
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
@@ -52,7 +52,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
  BEGIN
   SELECT /* Notes-staging */ COUNT(1)
    INTO m_count
-  FROM dwh.facts_${YEAR};
+  FROM staging.facts_${YEAR};
 
   --RAISE NOTICE 'Processing at %', max_processed_timestamp;
 
@@ -112,7 +112,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    END IF;
 
    -- Insert the fact.
-   INSERT INTO dwh.facts_${YEAR} (
+   INSERT INTO staging.facts_${YEAR} (
      id_note, dimension_id_country,
      action_at, action_comment, action_dimension_id_date,
      action_dimension_id_hour_of_week, action_dimension_id_user, 
@@ -146,7 +146,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
 
    SELECT /* Notes-staging */ COUNT(1)
     INTO m_count
-   FROM dwh.facts_${YEAR};
+   FROM staging.facts_${YEAR};
    IF (MOD(m_count, 1000) = 0) THEN
     RAISE NOTICE '%: % processed facts for % until %', CURRENT_TIMESTAMP,
      m_count, ${YEAR}, max_processed_timestamp;
@@ -163,7 +163,7 @@ $proc$
 COMMENT ON PROCEDURE staging.process_notes_at_date_${YEAR} IS
   'Processes comments for ${YEAR} from base tables more recent than a specific timestamp and loads them in the data warehouse';
 
-CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh_${YEAR} (
+CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_staging_${YEAR} (
  )
  LANGUAGE plpgsql
  AS
@@ -195,7 +195,7 @@ $$
   -- Base case, when at least the first day of notes of the year is processed.
   SELECT /* Notes-staging */ COUNT(1)
    INTO qty_dwh_notes
-  FROM dwh.facts_${YEAR};
+  FROM staging.facts_${YEAR};
   IF (qty_dwh_notes = 0) THEN
    -- This is usually January 1st, except for 2013.
    RAISE NOTICE '0 facts, processing all year ${YEAR}. It could take several hours';
@@ -217,7 +217,7 @@ $$
   -- Gets the date of the most recent note processed on the DWH.
   SELECT /* Notes-staging */ MAX(date_id)
    INTO max_processed_date
-  FROM dwh.facts_${YEAR} f
+  FROM staging.facts_${YEAR} f
    JOIN dwh.dimension_days d 
    ON (f.action_dimension_id_date = d.dimension_day_id);
   --RAISE NOTICE 'get max processed date from facts %', max_processed_date;
@@ -234,7 +234,7 @@ $$
    -- It is on the same DATE of max_processed_date.
    SELECT /* Notes-staging */ MAX(action_at)
     INTO max_note_on_dwh_timestamp
-   FROM dwh.facts_${YEAR}
+   FROM staging.facts_${YEAR}
    WHERE DATE(action_at) = max_processed_date;
    --RAISE NOTICE 'max timestamp dwh %', max_note_on_dwh_timestamp;
    IF (max_note_on_dwh_timestamp IS NULL) THEN
@@ -283,5 +283,5 @@ $$
  END
 $$
 ;
-COMMENT ON PROCEDURE staging.process_notes_actions_into_dwh_${YEAR} IS
+COMMENT ON PROCEDURE staging.process_notes_actions_into_staging_${YEAR} IS
   'Inserts facts for year ${YEAR}';
