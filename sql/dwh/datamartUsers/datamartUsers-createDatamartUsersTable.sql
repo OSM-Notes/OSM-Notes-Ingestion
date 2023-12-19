@@ -243,7 +243,7 @@ ALTER TABLE dwh.badges_per_users
 INSERT INTO dwh.badges (badge_name) VALUES
  ('Test');
 
--- TODO Populate contributor types.
+-- Contributor types.
 INSERT INTO dwh.contributor_types (contributor_type_name) VALUES
  ('Normal Notero'), -- 1
  ('Just starting notero'), --2
