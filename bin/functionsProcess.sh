@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-08
+# Version: 2023-12-20
 
 # Error codes.
 # 1: Help message.
@@ -279,7 +279,7 @@ function __validatePlanetNotesXMLFile {
 
  # shellcheck disable=SC2154
  xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
-  "${PLANET_NOTES_FILE}.xml"
+  "${PLANET_NOTES_FILE}.xml" 2>&1
 
  __log_finish
 }
