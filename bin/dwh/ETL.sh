@@ -195,25 +195,47 @@ function __checkPrereqs {
  set -e
 }
 
+# Waits until a job is finished, to not have more parallel process than cores
+# to the server.
+function __waitForJobs {
+ __log_start
+ MAX_THREADS=$(nproc)
+ # Uses n-1 cores, if number of cores is greater than 1.
+ # This prevents monopolization of the CPUs.
+ if [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
+ fi
+ QTY=$(jobs -p | wc -l)
+ __logd "Number of threads ${QTY} from max ${MAX_THREADS}."
+ while [[ "${QTY}" -ge ${MAX_THREADS} ]]; do
+  __logi "Waiting for a thread..."
+  wait -n
+  __logi "Waiting is over."
+  QTY=$(jobs -p | wc -l)
+ done
+ __log_finish
+}
+
 # Process facts in parallel.
 function __initialFacts {
  __log_start
   # Initial year.
   YEAR="2013"
   # Gets the current year as max.
-  MAX=$(date +%Y)
+  MAX_YEAR=$(date +%Y)
 
-  while [[ "${YEAR}" -le "${MAX}" ]]; do
+  while [[ "${YEAR}" -le "${MAX_YEAR}" ]]; do
+   __waitForJobs
    (
     __logi "Starting ${YEAR}."
     # Loads the data in the database.
     export YEAR
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_CREATE}" || true)"
+     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_CREATE}" || true)" 2>&1
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_EXECUTE}" || true)"
+     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_EXECUTE}" || true)" 2>&1
 
     __logi "Finishing ${YEAR}."
    ) &
@@ -224,7 +246,7 @@ function __initialFacts {
   wait
 
   YEAR="2013"
-  while [[ "${YEAR}" -le "${MAX}" ]]; do
+  while [[ "${YEAR}" -le "${MAX_YEAR}" ]]; do
    __logi "Copying facts from ${YEAR}."
    STMT="
     INSERT INTO dwh.facts (
@@ -242,17 +264,17 @@ function __initialFacts {
       opened_dimension_id_hour_of_week, opened_dimension_id_user,
       closed_dimension_id_date, closed_dimension_id_hour_of_week,
       closed_dimension_id_user, dimension_application_creation
-     FROM dwh.facts_${YEAR}
+     FROM staging.facts_${YEAR}
     "
-   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
    # Updates the sequence.
    STMT="SELECT SETVAL((SELECT PG_GET_SERIAL_SEQUENCE('dwh.facts', 'fact_id')),
     (SELECT (MAX(fact_id) + 1) FROM dwh.facts), FALSE)"
-   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_DROP}" || true)"
+    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_DROP}" || true)" 2>&1
 
    YEAR=$((YEAR + 1))
   done
@@ -263,23 +285,26 @@ function __initialFacts {
 function __createBaseTables {
  __log_start
  __logi "Droping any ETL object if any exist"
- psql -d "${DBNAME}" -f "${DROP_OBJECTS_FILE}"
+ psql -d "${DBNAME}" -f "${DROP_OBJECTS_FILE}" 2>&1
 
  __logi "Creating tables for star model if they do not exist."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}" 2>&1
  __logi "Regions for countries."
- psql -d "${DBNAME}" -f "${REGIONS_FILE}"
+ psql -d "${DBNAME}" -f "${REGIONS_FILE}" 2>&1
  __logi "Adding relation, indexes AND triggers."
- psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}"
+ psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}" 2>&1
 
  __logi "Creating staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}" 2>&1
 
  __logi "Initial dimension population."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}" 2>&1
+
+ __logi "Initial user dimension population."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${UDPATE_DIMENSIONS_FILE}" 2>&1
 
  echo "INSERT INTO dwh.properties VALUES ('initial load', 'true')" | \
-   psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
 
  __initialFacts
 
@@ -290,7 +315,7 @@ function __createBaseTables {
 function __checkBaseTables {
  __log_start
  set +e
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_BASE_TABLES_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_BASE_TABLES_FILE}" 2>&1
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -302,7 +327,7 @@ function __checkBaseTables {
 # Processes the notes and comments.
 function __processNotesETL {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${UDPATE_DIMENSIONS_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${UDPATE_DIMENSIONS_FILE}" 2>&1
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${LOAD_NOTES_STAGING_FILE}" 2>&1
  __log_finish
