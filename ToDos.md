@@ -19,6 +19,9 @@ ToDo list
   * https://github.com/Saxonica/Saxon-HE/releases
 * Exportar la db en formato CSV para que pueda ser publicada.
 * Control de una sola ejecución por medio de la DB.
+* Procesar los facts en paralelo, comenzando con el año más reciente, y llegando
+  a 2013. Los años más recientes tienen más notas
+* Corregir las diferencias que se identifican con el monitor script.
 
 ## Profile
 
@@ -33,16 +36,21 @@ ToDo list
   * Cada uno de los campos es las notas de cada año que aún están abiertas.
   * Colombia solo tiene notas de 2023
   * Chile tiene solo 1 de 2016 de bien abajo
+  * Mostrar un gráfico de notas abiertas en un año, con eje por mes, donde
+    se muestre la evolución, donde se vea que las notas viejas aún están abiertas.
 * Mostrar el tiempo promedio de resolución de notas
   * Un valor histórico
   * Valor por año para mostrar el desempeño
 * Por país, las notas que tomaron más tiempo en cerrarse
+* Mostrar un gráfico animado de cómo se mueve el top 10 del Open/closed a lo
+  largo del tiempo. Como esas gráficas animadas que muestran países más productores.
 * Mostrar el timestamp del comentario más reciente en la DB - Última actualización de la db
 * Mostrar la hora actual del servidor de DB.
 * Calidad de la nota. Menos de 5 caracteres es mala. Menos de 10 regular. Mas de 200 compleja, Mas de 500 un tratado.
 * Monitor debe revisar que la cantidad de comentarios es la misma de actions en facts.
   * Algo similar para los datamarts.
 * Github tiles de https://github.com/sallar/github-contributions-canvas
+* Cantidad de notas aun en estado abierto
 
 # Check
 
