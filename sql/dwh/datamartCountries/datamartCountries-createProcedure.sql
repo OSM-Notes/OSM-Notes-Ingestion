@@ -1,7 +1,7 @@
 -- Procedure to insert datamart country.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2023-12-20
 
 /**
  * Inserts a contry in the datamart, with the values that do not change.
@@ -518,7 +518,7 @@ AS $proc$
      JOIN dwh.dimension_users u
      ON f.opened_dimension_id_user = u.dimension_user_id 
      JOIN dwh.dimension_days d
-     ON f.action_dimension_id_date = d.dimension_day_id
+     ON f.opened_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
      AND EXTRACT(YEAR FROM d.date_id) = m_current_year
@@ -543,7 +543,7 @@ AS $proc$
      JOIN dwh.dimension_users u
      ON f.closed_dimension_id_user = u.dimension_user_id 
      JOIN dwh.dimension_days d
-     ON f.action_dimension_id_date = d.dimension_day_id
+     ON f.closed_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
      AND EXTRACT(YEAR FROM d.date_id) = m_current_year
@@ -568,7 +568,7 @@ AS $proc$
      JOIN dwh.dimension_users u
      ON f.opened_dimension_id_user = u.dimension_user_id 
      JOIN dwh.dimension_days d
-     ON f.action_dimension_id_date = d.dimension_day_id
+     ON f.opened_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(DAY FROM d.date_id) = m_current_day
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
@@ -594,7 +594,7 @@ AS $proc$
      JOIN dwh.dimension_users u
      ON f.closed_dimension_id_user = u.dimension_user_id
      JOIN dwh.dimension_days d
-     ON f.action_dimension_id_date = d.dimension_day_id
+     ON f.closed_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
      AND EXTRACT(DAY FROM d.date_id) = m_current_day
      AND EXTRACT(MONTH FROM d.date_id) = m_current_month
