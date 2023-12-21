@@ -430,6 +430,7 @@ function __showWorkingWeek {
 # Shows the activity as GitHub tiles.
 function __printActivity {
  ACTIVITY="${1}"
+ # TODO no está teniendo el día actual, y siempre está comenzando en Sunday
 
  declare SUN="Sunday:    "
  declare MON="Monday:    "
@@ -917,6 +918,8 @@ function __processUserProfile {
  echo "  Closing:"
  __showWorkingWeek "${WORKING_HOURS_CLOSING}"
  set -E
+ echo
+ echo "Actions:"
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
  printf "                  Opened  Commented     Closed Cld w/cmmt   Reopened\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
@@ -940,6 +943,7 @@ function __processUserProfile {
   __showRankingYearUsers "${I}"
   I=$((I + 1))
  done
+ echo
  echo "Ranking in the current month:"
  echo "Countries for open notes:"
  __printRanking "${COUNTRIES_OPENING_CURRENT_MONTH}"
@@ -1355,6 +1359,7 @@ function __processCountryProfile {
  echo "Last actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
  echo "Last activity year:"
  __printActivity "${LAST_ACTIVITY_YEAR}"
+ # TODO La actividad está poniendo 0000009 en la última semana
  echo "The date when the most notes were opened:"
  echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "The date when the most notes were closed:"
@@ -1369,8 +1374,12 @@ function __processCountryProfile {
  echo "  Closing:"
  __showWorkingWeek "${WORKING_HOURS_OF_WEEK_CLOSING}"
  set -E
+ # TODO Mostrar la cantidad de notas actualmente en estado abierto
+ # TODO Mostrar la cantidad de notas actualmente en estado cerrado
+ echo 
+ echo "Actions:"
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
- printf "                  Opened  Commented     Closed Cld w/cmmt   Reopened\n"
+ printf "                   Opens   Comments     Closes Cls w/cmmt    Reopens\n"
  printf "Total:         %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_WHOLE_OPEN}" "${HISTORY_WHOLE_COMMENTED}" "${HISTORY_WHOLE_CLOSED}" "${HISTORY_WHOLE_CLOSED_WITH_COMMENT}" "${HISTORY_WHOLE_REOPENED}"
  printf "Current year:  %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
  printf "Current month: %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_MONTH_OPEN}" "${HISTORY_MONTH_COMMENTED}" "${HISTORY_MONTH_CLOSED}" "${HISTORY_MONTH_CLOSED_WITH_COMMENT}" "${HISTORY_MONTH_REOPENED}"
@@ -1394,6 +1403,7 @@ function __processCountryProfile {
   __showRankingYearCountries "${I}"
   I=$((I + 1))
  done
+ echo
  echo "Ranking users creating notes in the current month:"
  __printRanking "${USERS_OPENING_CURRENT_MONTH}"
  echo "Ranking users closing notes in the current month:"
@@ -1402,6 +1412,9 @@ function __processCountryProfile {
  __printRanking "${USERS_OPENING_CURRENT_DAY}"
  echo "Ranking users closing notes in the current day:"
  __printRanking "${USERS_CLOSING_CURRENT_DAY}"
+ # TODO Badges
+ # TODO Cantidad de días con 0 notas (a media noche UTC)
+ # TODO CAntidad de new UTC years eve con 0 notas
 }
 
 # Shows general stats about notes.
