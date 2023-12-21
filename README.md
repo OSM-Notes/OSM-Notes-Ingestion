@@ -5,11 +5,12 @@ closed notes.
 
 # tl;dr - 5 minutes configuration
 
-You just need to download or clone this project in a Linux server, and configure
-the crontab to invoke the notes pulling. This example is for 15 minutes polling:
+You just need to download or clone this project in a Linux server and configure
+the crontab to invoke the notes pulling.
+This example is for polling every 15 minutes:
 
 ```
-*/15 * * * * export SAXON_CLASSPATH=~/saxon/ ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh
+*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh
 ```
 
 The configuration file contains the properties needed to configure this tool,
@@ -34,25 +35,28 @@ These are the main functions of this project.
   country profile.
   This is configured via a cron.
 * View the user or country's profile.
-  This is a basic version of the report, to test from command line.
+  This is a basic version of the report, to test from the command line.
 
 # Timing
 
-The whole process takes several hours, even days to complete, before the
+The whole process takes several hours, even days to complete before the
 profile can be used for any user.
 
 **Notes synchronization**
 
-* 40 minutes: Downloading the countries and maritimes areas.
-  * This process has a pause between calls, because the public Overpass turbo
-    restricts by number of requests per minute.
+* 40 minutes: Downloading the countries and maritime areas.
+  * This process has a pause between calls because the public Overpass turbo is
+    restricted by the number of requests per minute.
     If another Overpass instance is used that do not blocks for many requests,
     the pause could be removed or reduced
-* 1 minute: Download Planet notes file.
+* 1 minute: Download the Planet notes file.
 * 4 minutes: Processing XML notes file, but this requires 6GB RAM for Saxon.
 * 8 hours: Locating notes in the appropriate country.
   * This DB process is in parallel with multiple threads.
-    The parallelism could be configured, for example to the number of cores.
+    The parallelism could be configured, for example to a given number of cores.
+    Also, it could be set to the current number of cores, by specifying the
+    same values as the command `nproc`.
+    It is not recommended to have a higher value than the cores.
 
 **WMS layer**
 
@@ -63,11 +67,11 @@ profile can be used for any user.
 * 30 hours: Loading the ETL from main tables.
   * This process is parallel according to the number of years since 2013.
     However, not all years have the same number of notes.
-* 20 minutes: Preparing the countries datamart.
-* 5 days: Preparing the users datamart.
-  This process is asynchronous, it means each ETL execution processes
+* 20 minutes: Preparing the countries' datamart.
+* 5 days: Preparing the users' datamart.
+  This process is asynchronous, which means each ETL execution processes
   500 users.
-  This part analyzes the most active user first; then, all old users that
+  This part analyzes the most active users first; then, all old users that
   have contributed with only one note.
   TODO parallelize
 
@@ -163,7 +167,8 @@ properties under the next file:
 
 You specify the database name and the user to access it.
 
-Other properties are to improve the parallelism or to use another URLs.
+Other properties are related to improve the parallelism to process the note's
+location, or to use another URLs for Overpass or the API.
 
 ## Downloading notes
 
