@@ -22,6 +22,7 @@ ToDo list
 * Procesar los facts en paralelo, comenzando con el año más reciente, y llegando
   a 2013. Los años más recientes tienen más notas
 * Corregir las diferencias que se identifican con el monitor script.
+* Mostrar de manera diferente la cuenta https://www.openstreetmap.org/user/ContributionReviewer
 
 ## Profile
 
