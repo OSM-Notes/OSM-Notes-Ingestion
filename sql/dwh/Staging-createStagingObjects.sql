@@ -50,6 +50,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_action_id_date INTEGER;
   m_action_id_hour_of_week INTEGER;
   m_application INTEGER;
+  m_recent_opened_dimension_id_date INTEGER;
+  m_previous_action INTEGER;
   m_count INTEGER;
   m_text_comment TEXT;
   rec_note_action RECORD;
@@ -134,7 +136,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    IF (rec_note_action.action_comment = 'opened') THEN
     m_recent_opened_dimension_id_date := m_opened_id_date;
    ELSIF (rec_note_action.action_comment = 'reopened') THEN
-    m_recent_opened_dimension_id_date := action_dimension_id_date;
+    m_recent_opened_dimension_id_date := m_action_id_date;
    ELSE
     SELECT max(fact_id)
      INTO m_previous_action
@@ -313,6 +315,7 @@ CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
  AS $proc$
  DECLARE
   m_recent_opened_dimension_id_date INTEGER;
+  m_previous_action INTEGER;
   rec_no_recent_open_fact RECORD;
   no_recent_open CURSOR  FOR
    SELECT
@@ -323,7 +326,7 @@ CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
    FOR UPDATE;
 
  BEGIN
-  OPEN no_recent_open
+  OPEN no_recent_open;
 
   LOOP
    FETCH no_recent_open INTO rec_no_recent_open_fact;

@@ -3,7 +3,7 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-02
 
-DROP TRIGGER IF EXISTS update_days_to_resolution ON dwh.etl;
+DROP TRIGGER IF EXISTS update_days_to_resolution ON dwh.facts;
 
 DROP FUNCTION IF EXISTS dwh.update_days_to_resolution;
 

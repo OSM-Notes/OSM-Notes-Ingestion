@@ -302,9 +302,9 @@ function __createBaseTables {
  __logi "Creating tables for star model if they do not exist."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}" 2>&1
  __logi "Regions for countries."
- psql -d "${DBNAME}" -f "${REGIONS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REGIONS_FILE}" 2>&1
  __logi "Adding relation, indexes AND triggers."
- psql -d "${DBNAME}" -f "${ADD_OBJECTS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${ADD_OBJECTS_FILE}" 2>&1
 
  __logi "Creating staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}" 2>&1

@@ -13,6 +13,99 @@ ALTER TABLE staging.facts_${YEAR} ALTER fact_id
 ALTER TABLE staging.facts_${YEAR} ALTER processing_time
   SET DEFAULT CURRENT_TIMESTAMP;
 
+ALTER TABLE staging.facts_${YEAR} ADD PRIMARY KEY (fact_id);
+
+CREATE INDEX facts_action_date_${YEAR} ON staging.facts_${YEAR} (action_at);
+COMMENT ON INDEX dwh.facts_action_date IS
+  'Improves queries by action timestamp';
+
+CREATE INDEX action_idx_${YEAR}
+ ON staging.facts_${YEAR} (action_dimension_id_date, id_note, action_comment);
+COMMENT ON INDEX dwh.action_idx IS 'Improves queries for reopened notes';
+
+CREATE INDEX date_differences_idx_${YEAR}
+ ON staging.facts_${YEAR} (action_dimension_id_date,
+  recent_opened_dimension_id_date, id_note, action_comment);
+COMMENT ON INDEX dwh.action_idx IS 'Improves queries for reopened notes';
+
+CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
+  RETURNS TRIGGER AS
+ $$
+ DECLARE
+  open_date DATE;
+  reopen_date DATE;
+  close_date DATE;
+  days INTEGER;
+ BEGIN
+  IF (NEW.action_comment = 'closed') THEN
+   -- Days between initial open and most recent close.
+   SELECT date_id
+    INTO open_date
+    FROM dwh.dimension_days
+    WHERE dimension_day_id = NEW.opened_dimension_id_date;
+
+   SELECT date_id
+    INTO close_date
+    FROM dwh.dimension_days
+    WHERE dimension_day_id = NEW.action_dimension_id_date;
+
+   days := close_date - open_date;
+   UPDATE staging.facts_${YEAR}
+    SET days_to_resolution = days
+    WHERE fact_id = NEW.fact_id;
+
+   -- Days between last reopen and most recent close.
+   SELECT MAX(date_id)
+    INTO reopen_date
+   FROM staging.facts_${YEAR} f
+    JOIN dwh.dimension_days d
+    ON f.action_dimension_id_date = d.dimension_day_id
+    WHERE f.id_note = NEW.id_note
+    AND f.action_comment = 'reopened';
+   --RAISE NOTICE 'Reopen date: %', reopen_date;
+   IF (reopen_date IS NOT NULL) THEN
+    -- Days from the last reopen.
+    days := close_date - reopen_date;
+    --RAISE NOTICE 'Difference dates %-%: %', close_date, reopen_date, days;
+    UPDATE staging.facts_${YEAR}
+     SET days_to_resolution_from_reopen = days
+     WHERE fact_id = NEW.fact_id;
+
+    -- Days in open status
+    SELECT SUM(days_difference)
+     INTO days
+    FROM (
+     SELECT dd.date_id - dd2.date_id days_difference
+     FROM staging.facts_${YEAR} f
+     JOIN dwh.dimension_days dd
+     ON f.action_dimension_id_date = dd.dimension_day_id
+     JOIN dwh.dimension_days dd2
+     ON f.recent_opened_dimension_id_date = dd2.dimension_day_id
+     WHERE f.id_note = NEW.id_note
+     AND f.action_comment <> 'closed'
+    ) AS t
+    ;
+    UPDATE staging.facts_${YEAR}
+     SET days_to_resolution_active = days
+     WHERE fact_id = NEW.fact_id;
+
+   END IF;
+  END IF;
+  RETURN NEW;
+ END;
+ $$ LANGUAGE plpgsql
+;
+COMMENT ON FUNCTION dwh.update_days_to_resolution IS
+  'Sets the number of days between the creation and the resolution dates';
+
+CREATE OR REPLACE TRIGGER update_days_to_resolution
+  AFTER INSERT ON staging.facts_${YEAR}
+  FOR EACH ROW
+  EXECUTE FUNCTION dwh.update_days_to_resolution()
+;
+COMMENT ON TRIGGER update_days_to_resolution ON staging.facts_${YEAR} IS
+  'Updates the number of days between creation and resolution dates';
+
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   max_processed_timestamp TIMESTAMP
  )
@@ -117,17 +210,17 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    IF (rec_note_action.action_comment = 'opened') THEN
     m_recent_opened_dimension_id_date := m_opened_id_date;
    ELSIF (rec_note_action.action_comment = 'reopened') THEN
-    m_recent_opened_dimension_id_date := action_dimension_id_date;
+    m_recent_opened_dimension_id_date := m_action_id_date;
    ELSE
     -- This returns null when initial load on parallel.
-    SELECT max(fact_id)
+    SELECT MAX(fact_id)
      INTO m_previous_action
-    FROM dwh.facts f
+    FROM staging.facts_${YEAR} f
     WHERE f.id_note = rec_note_action.id_note;
 
     SELECT recent_opened_dimension_id_date
      INTO m_recent_opened_dimension_id_date
-    FROM dwh.facts f
+    FROM staging.facts_${YEAR} f
     WHERE f.fact_id = m_previous_action;
    END IF;
 
@@ -201,7 +294,7 @@ $$
   m_max_day_year DATE;
  BEGIN
   -- Insert all days of the year in the dimension.
-  SELECT /* Notes-staging */ DATE('${YEAR}-01-01')
+  SELECT /* Notes-staging */ DATE('2013-04-24')
     INTO m_day_year;
   SELECT /* Notes-staging */ DATE('${YEAR}-12-31')
     INTO m_max_day_year;

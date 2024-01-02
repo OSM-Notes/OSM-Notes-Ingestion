@@ -284,44 +284,53 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
    SELECT date_id
     INTO open_date
     FROM dwh.dimension_days
-    WHERE dimension_how_id = NEW.opened_dimension_id_date;
+    WHERE dimension_day_id = NEW.opened_dimension_id_date;
 
    SELECT date_id
     INTO close_date
     FROM dwh.dimension_days
-    WHERE dimension_how_id = NEW.action_dimension_id_date;
+    WHERE dimension_day_id = NEW.action_dimension_id_date;
 
    days := close_date - open_date;
    UPDATE dwh.facts
-    SET days_to_resolution = days;
+    SET days_to_resolution = days
+     WHERE fact_id = NEW.fact_id;
 
    -- Days between last reopen and most recent close.
    SELECT MAX(date_id)
     INTO reopen_date
-    FROM dwh.facts f
+   FROM dwh.facts f
     JOIN dwh.dimension_days d
     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE id_note = NEW.id_note
-    AND action_at = 'reopened';
+    AND action_comment = 'reopened';
+   --RAISE NOTICE 'Reopen date: %', reopen_date;
    IF (reopen_date IS NOT NULL) THEN
     -- Days from the last reopen.
-    days := close_date - reopen_date
-    SET days_to_resolution_from_reopen := days;
+    days := close_date - reopen_date;
+    --RAISE NOTICE 'Difference dates %-%: %', close_date, reopen_date, days;
+    UPDATE dwh.facts
+     SET days_to_resolution_from_reopen = days
+     WHERE fact_id = NEW.fact_id;
 
     -- Days in open status
-    SELECT SUM(days)
+    SELECT SUM(days_difference)
      INTO days
     FROM (
-     SELECT dd.date_id - dd2.date_id days
+     SELECT dd.date_id - dd2.date_id days_difference
      FROM dwh.facts f
      JOIN dwh.dimension_days dd
      ON f.action_dimension_id_date = dd.dimension_day_id
      JOIN dwh.dimension_days dd2
      ON f.recent_opened_dimension_id_date = dd2.dimension_day_id
      WHERE f.id_note = NEW.id_note
-     AND f.action_comment <> 'opened'
+     AND f.action_comment <> 'closed'
     ) AS t
     ;
+    UPDATE dwh.facts
+     SET days_to_resolution_active = days
+     WHERE fact_id = NEW.fact_id;
+
    END IF;
   END IF;
   RETURN NEW;
@@ -332,10 +341,10 @@ COMMENT ON FUNCTION dwh.update_days_to_resolution IS
   'Sets the number of days between the creation and the resolution dates';
 
 CREATE OR REPLACE TRIGGER update_days_to_resolution
-  AFTER INSERT ON dwh.etl
+  AFTER INSERT ON dwh.facts
   FOR EACH ROW
   EXECUTE FUNCTION dwh.update_days_to_resolution()
 ;
-COMMENT ON TRIGGER update_days_to_resolution ON dwh.etl IS
+COMMENT ON TRIGGER update_days_to_resolution ON dwh.facts IS
   'Updates the number of days between creation and resolution dates';
 
