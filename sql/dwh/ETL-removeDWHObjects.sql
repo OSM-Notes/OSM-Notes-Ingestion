@@ -37,4 +37,6 @@ DROP TABLE IF EXISTS dwh.dimension_users;
 
 DROP TABLE IF EXISTS dwh.dimension_applications;
 
+DROP TABLE IF EXISTS dwh.dimension_hashtags;
+
 DROP SCHEMA IF EXISTS dwh;

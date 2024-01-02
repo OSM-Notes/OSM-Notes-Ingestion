@@ -27,7 +27,12 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  recent_opened_dimension_id_date INTEGER NOT NULL,
  days_to_resolution INTEGER,
  days_to_resolution_active INTEGER,
- days_to_resolution_from_reopen INTEGER
+ days_to_resolution_from_reopen INTEGER,
+ hashtag_1 INTEGER,
+ hashtag_2 INTEGER,
+ hashtag_3 INTEGER,
+ hashtag_4 INTEGER,
+ hashtag_5 INTEGER
 );
 COMMENT ON TABLE dwh.facts IS 'Facts id, center of the star schema';
 COMMENT ON COLUMN dwh.facts.fact_id IS 'Surrogated ID';
@@ -65,6 +70,16 @@ COMMENT ON COLUMN dwh.facts.days_to_resolution_active IS
   'Number of days open - including only reopens';
 COMMENT ON COLUMN dwh.facts.days_to_resolution_from_reopen IS
   'Number of days between last reopening and most recent close';
+COMMENT ON COLUMN dwh.facts.hashtag_1 IS
+  'First hashtag of the comment';
+COMMENT ON COLUMN dwh.facts.hashtag_2 IS
+  'Second hashtag of the comment';
+COMMENT ON COLUMN dwh.facts.hashtag_3 IS
+  'Third hashtag of the comment';
+COMMENT ON COLUMN dwh.facts.hashtag_4 IS
+  'Fourth hashtag of the comment';
+COMMENT ON COLUMN dwh.facts.hashtag_5 IS
+  'Fifth hashtag of the comment';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
  dimension_user_id SERIAL,
@@ -149,6 +164,17 @@ COMMENT ON COLUMN dwh.dimension_applications.pattern IS
   'Pattern to find in the comment''text with a SIMILAR TO predicate';
 COMMENT ON COLUMN dwh.dimension_applications.platform IS
   'Platform of the appLication';
+
+CREATE TABLE IF NOT EXISTS dwh.dimension_hashtags (
+ dimension_hashtag_id SERIAL,
+ description VARCHAR(64)
+);
+COMMENT ON TABLE dwh.dimension_hashtags IS
+  'Dimension for hashtags';
+COMMENT ON COLUMN dwh.dimension_hashtags.dimension_hashtag_id IS
+  'Surrogated ID';
+COMMENT ON COLUMN dwh.dimension_hashtags.description IS
+  'Description of the hashtag, only for popular ones';
 
 CREATE TABLE IF NOT EXISTS dwh.properties (
  key VARCHAR(16),

@@ -33,6 +33,68 @@ CREATE OR REPLACE FUNCTION staging.get_application (
 COMMENT ON FUNCTION staging.get_application IS
   'Returns the name of the application.';
 
+CREATE OR REPLACE FUNCTION staging.get_hashtag_id (
+ m_hashtag_name TEXT
+) RETURNS INTEGER
+ LANGUAGE plpgsql
+ AS $func$
+ DECLARE
+  m_id_dimension_hashtag INTEGER;
+  r RECORD;
+ BEGIN
+  SELECT /* Notes-ETL */ dimension_hashtag_id
+   INTO m_id_dimension_hashtag
+  FROM dwh.dimension_hashtags
+  WHERE description = m_hashtag_name;
+
+  IF (m_id_dimension_hashtag IS NULL) THEN
+   INSERT INTO dwh.dimension_hashtags (
+     description
+    ) VALUES (
+     m_hashtag_name
+    )
+    RETURNING dimension_hashtag_id
+     INTO m_id_dimension_hashtag
+   ;
+  END IF;
+  RETURN m_id_dimension_hashtag;
+ END
+ $func$
+;
+COMMENT ON FUNCTION staging.get_hashtag_id IS
+  'Returns the id of the hashtag.';
+
+CREATE OR REPLACE PROCEDURE staging.get_hashtag (
+  INOUT m_text_comment TEXT,
+  OUT m_hashtag_name TEXT
+ )
+ LANGUAGE plpgsql
+ AS $proc$
+ DECLARE
+  pos INTEGER;
+  substr_after TEXT;
+  length INTEGER;
+ BEGIN
+  pos := STRPOS(m_text_comment, '#');
+  IF (pos <> 0) THEN
+   --RAISE NOTICE 'Position number sign: %', pos;
+   substr_after := SUBSTR(m_text_comment, pos+1);
+   --RAISE NOTICE 'Substring after number sign: %', substr_after;
+   m_hashtag_name := ARRAY_TO_STRING(REGEXP_MATCHES(substr_after, '^\w+'), ';');
+   --RAISE NOTICE 'Hashtag name: %', m_hashtag_name;
+   length := LENGTH(m_hashtag_name);
+   --RAISE NOTICE 'Length hashtag name: %', length;
+   m_text_comment := SUBSTR(substr_after, length+2);
+   --RAISE NOTICE 'New substring: %', m_text_comment;
+  ELSE
+   m_text_comment := NULL;
+  END IF;
+ END
+$proc$
+;
+COMMENT ON PROCEDURE staging.get_hashtag IS
+  'Returns the first hashtag of the given string';
+
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   max_processed_timestamp TIMESTAMP
  )
@@ -51,20 +113,24 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_action_id_hour_of_week INTEGER;
   m_application INTEGER;
   m_recent_opened_dimension_id_date INTEGER;
+  m_hashtag_id INTEGER;
   m_previous_action INTEGER;
   m_count INTEGER;
   m_text_comment TEXT;
+  m_hashtag_name TEXT;
   rec_note_action RECORD;
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
    SELECT
     c.note_id id_note, n.created_at created_at, o.id_user created_id_user,
     n.id_country id_country, c.event action_comment, c.id_user action_id_user,
-    c.created_at action_at
+    c.created_at action_at, t.body
    FROM note_comments c
     JOIN notes n
     ON (c.note_id = n.note_id)
     JOIN note_comments o
     ON (n.note_id = o.note_id AND o.event = 'opened')
+    JOIN note_comments_text t
+    ON (c.note_id = t.note_id)
    WHERE c.created_at > c_max_processed_timestamp 
     AND DATE(c.created_at) = DATE(c_max_processed_timestamp) -- Notes for the
       -- same date.
@@ -149,6 +215,28 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     WHERE f.fact_id = m_previous_action;
    END IF;
 
+   -- Gets hashtags.
+   IF (rec_note_action.body LIKE '%#%') THEN
+    CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+    m_hashtag_id_1 := staging.get_hashtag_id(m_hashtag_name);
+    IF (m_text_comment LIKE '%#%') THEN
+     CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+     m_hashtag_id_2 := staging.get_hashtag_id(m_hashtag_name);
+     IF (m_text_comment LIKE '%#%') THEN
+      CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+      m_hashtag_id_3 := staging.get_hashtag_id(m_hashtag_name);
+      IF (m_text_comment LIKE '%#%') THEN
+       CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+       m_hashtag_id_4 := staging.get_hashtag_id(m_hashtag_name);
+       IF (m_text_comment LIKE '%#%') THEN
+        CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+        m_hashtag_id_5 := staging.get_hashtag_id(m_hashtag_name);
+       END IF;
+      END IF;
+     END IF;
+    END IF;
+   END IF;
+
    -- Insert the fact.
    INSERT INTO dwh.facts (
      id_note, dimension_id_country,
@@ -158,14 +246,16 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
      opened_dimension_id_user,
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
      closed_dimension_id_user, dimension_application_creation,
-     recent_opened_dimension_id_date
+     recent_opened_dimension_id_date, hashtag_1, hashtag_2, hashtag_3,
+     hashtag_4, hashtag_5
    ) VALUES (
      rec_note_action.id_note, m_dimension_country_id,
      rec_note_action.action_at, rec_note_action.action_comment,
      m_action_id_date, m_action_id_hour_of_week, m_dimension_user_action,
      m_opened_id_date, m_opened_id_hour_of_week, m_dimension_user_open,
      m_closed_id_date, m_closed_id_hour_of_week, m_dimension_user_close,
-     m_application, m_recent_opened_dimension_id_date
+     m_application, m_recent_opened_dimension_id_date, m_hashtag_id_1,
+     m_hashtag_id_2, m_hashtag_id_3, m_hashtag_id_4, m_hashtag_id_5
    );
 
    -- Modifies the dimension user and country for the datamart to identify it.
