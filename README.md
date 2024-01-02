@@ -25,7 +25,7 @@ These are the main functions of this project.
   This is configured with a scheduler (cron) and it does everything.
 * Copy the note's data to another set of tables to allow the
   WMS layer publishing.
-  This is configured via triggers on the database, on the main tables.
+  This is configured via triggers on the database on the main tables.
 * Monitor the sync by comparing the daily Planet dump with the notes on the
   database.
   This is optional and can be configured daily with a cron.
@@ -47,7 +47,7 @@ profile can be used for any user.
 * 40 minutes: Downloading the countries and maritime areas.
   * This process has a pause between calls because the public Overpass turbo is
     restricted by the number of requests per minute.
-    If another Overpass instance is used that do not blocks for many requests,
+    If another Overpass instance is used that does not block when many requests,
     the pause could be removed or reduced
 * 1 minute: Download the Planet notes file.
 * 4 minutes: Processing XML notes file, but this requires 6GB RAM for Saxon.
@@ -167,8 +167,8 @@ properties under the next file:
 
 You specify the database name and the user to access it.
 
-Other properties are related to improve the parallelism to process the note's
-location, or to use another URLs for Overpass or the API.
+Other properties are related to improving the parallelism to process the note's
+location, or to use other URLs for Overpass or the API.
 
 ## Downloading notes
 
@@ -179,7 +179,7 @@ There are two ways to download OSM notes:
 
 These two methods are used in this tool to initialize the DB and poll the API
 periodically.
-The two mecanism are used, and they are available under the `bin` directory:
+The two mechanisms are used, and they are available under the `bin` directory:
 
 * `processAPINotes.sh`
 * `processPlanetNotes.sh`
@@ -194,8 +194,8 @@ basic elements on the database and populate it:
 * Download countries and maritime areas.
 * Download the Planet dump, validate it and convert it CSV to import it into
   the database.
-  The conversion from the XML Planet dump to CSV is done with a XLST and it
-  user Saxon, which required 6 GB RAM to process it.
+  The conversion from the XML Planet dump to CSV is done with an XLST and it
+  uses Saxon, which requires 6 GB RAM to process it.
 * Get the location of the notes.
 
 If `processAPINotes.sh` gets more than 10,000 notes from an API call, then it
@@ -248,13 +248,13 @@ The database has a different set of tables.
   They don't belong to a specific schema, but a suffix.
 * Sync tables contain the data from the recent planet download.
   They don't belong to a specific schema, but a suffix.
-* WMS tables which are user to publish the WMS layer.
+* WMS tables which are used to publish the WMS layer.
   Their schema is `wms`.
-  They contains the simplified version of the notes with only the location and
+They contain a simplified version of the notes with only the location and
   age.
 * `dwh` are the tables from the data warehouse to perform analysis on the DB.
-  They are divided in 2:
-  * The star schema, composed by the fact and dimensions tables.
+  They are divided into 2:
+The star schema is composed of the fact and dimensions tables.
   * The datamarts which are precomputed views.
 * Check tables are used for monitoring to compare the notes on the previous day
   between the normal behavior with API and the notes on the last day of the
@@ -293,7 +293,7 @@ These files include details about how to run or troubleshoot the scripts.
   dump.
 * `sql/process` has all SQL scripts to load the notes database.
 * `sql/wms` provides the mechanism to publish a WMS from the notes.
-  This is the only exception to the other files under `/sql`, because this
+  This is the only exception to the other files under `sql` because this
   feature is supported only on SQL scripts; there is no bash script for this.
   this is the only location of the files related to the WMS layer publishing.
 * `test` set of scripts to perform tests.
@@ -342,7 +342,7 @@ as much information as possible.
 ## WMS layer
 
 This is the way to create the objects for the WMS layer.
-More information in the `README.md` file under the `sql/wms` directory.
+More information is in the `README.md` file under the `sql/wms` directory.
 
 ``` 
 psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-profile/sql/wms/prepareDatabase.sql
@@ -353,16 +353,16 @@ psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-profile/sql/wms/prepareDatabase.
 These are the external dependencies to make it work.
 
 * OSM Planet dump, which creates a daily file with all notes and comments.
-  The file is an XML and it weights several hundreds of MB of compressed data.
+  The file is an XML and it weighs several hundreds of MB of compressed data.
 * Overpass to download the current boundaries of the countries and maritimes
   areas.
-* OSM API which is used to get the most recent notes and its comments.
+* OSM API which is used to get the most recent notes and comments.
   The current API version supported is 0.6.
 * The whole process relies on a PostgreSQL database.
   It uses intensive SQL action to have a good performance when processing the
   data.
 
-The external dependencies are almost fixes, however they could be changes from
+The external dependencies are almost fixed, however, they could be changes from
 the properties file.
 
 These are external libraries:
@@ -370,8 +370,8 @@ These are external libraries:
 * Bash 4 or higher, because the main code is developed in the scripting
   language.
 * Saxon for the XLST transformation.
-  This tool is not include, to prevent licensing problems.
-* bash_logger, which is a tool to write log4j like messages in Bash.
+This tool is not included, to prevent licensing problems.
+* bash_logger, which is a tool to write log4j-like messages in Bash.
   This tool is included as part of the project.
 * Linux and its commands, because it is developed in Bash, which uses a lot
   of command line instructions.
@@ -380,7 +380,7 @@ These are external libraries:
 # Remove
 
 You can use the following script to remove components from this tool.
-This is useful if you have to recreate some part, but the rest is working fine.
+This is useful if you have to recreate some parts, but the rest is working fine.
 
 ```
 # ETL part.
