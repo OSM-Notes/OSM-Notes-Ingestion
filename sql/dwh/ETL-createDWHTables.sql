@@ -1,7 +1,7 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-09
+-- Version: 2024-01-02
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 COMMENT ON SCHEMA dwh IS
@@ -23,7 +23,11 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  closed_dimension_id_date INTEGER,
  closed_dimension_id_hour_of_week SMALLINT,
  closed_dimension_id_user INTEGER,
- dimension_application_creation INTEGER
+ dimension_application_creation INTEGER,
+ recent_opened_dimension_id_date INTEGER NOT NULL,
+ days_to_resolution INTEGER,
+ days_to_resolution_active INTEGER,
+ days_to_resolution_from_reopen INTEGER
 );
 COMMENT ON TABLE dwh.facts IS 'Facts id, center of the star schema';
 COMMENT ON COLUMN dwh.facts.fact_id IS 'Surrogated ID';
@@ -53,6 +57,14 @@ COMMENT ON COLUMN dwh.facts.closed_dimension_id_user IS
   'User who created the note';
 COMMENT ON COLUMN dwh.facts.dimension_application_creation IS
   'Application used to create the note. Only for opened actions';
+COMMENT ON COLUMN dwh.facts.recent_opened_dimension_id_date IS
+  'Open date or most recent reopen date';
+COMMENT ON COLUMN dwh.facts.days_to_resolution IS
+  'Number of days between opening and most recent close';
+COMMENT ON COLUMN dwh.facts.days_to_resolution_active IS
+  'Number of days open - including only reopens';
+COMMENT ON COLUMN dwh.facts.days_to_resolution_from_reopen IS
+  'Number of days between last reopening and most recent close';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
  dimension_user_id SERIAL,
@@ -145,3 +157,4 @@ CREATE TABLE IF NOT EXISTS dwh.properties (
 COMMENT ON TABLE dwh.properties IS 'Properties table for ETL';
 COMMENT ON COLUMN dwh.properties.key IS 'Property name';
 COMMENT ON COLUMN dwh.properties.value IS 'Property value';
+

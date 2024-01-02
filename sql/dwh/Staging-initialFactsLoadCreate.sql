@@ -1,7 +1,7 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-19
+-- Version: 2024-01-02
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
 
@@ -30,6 +30,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   m_action_id_date INTEGER;
   m_action_id_hour_of_week INTEGER;
   m_application INTEGER;
+  m_recent_opened_dimension_id_date INTEGER;
+  m_previous_action INTEGER;
   m_count INTEGER;
   m_text_comment TEXT;
   rec_note_action RECORD;
@@ -111,6 +113,24 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
     m_application := NULL;
    END IF;
 
+   -- Gets the most recent opening action: creation or reopening.
+   IF (rec_note_action.action_comment = 'opened') THEN
+    m_recent_opened_dimension_id_date := m_opened_id_date;
+   ELSIF (rec_note_action.action_comment = 'reopened') THEN
+    m_recent_opened_dimension_id_date := action_dimension_id_date;
+   ELSE
+    -- This returns null when initial load on parallel.
+    SELECT max(fact_id)
+     INTO m_previous_action
+    FROM dwh.facts f
+    WHERE f.id_note = rec_note_action.id_note;
+
+    SELECT recent_opened_dimension_id_date
+     INTO m_recent_opened_dimension_id_date
+    FROM dwh.facts f
+    WHERE f.fact_id = m_previous_action;
+   END IF;
+
    -- Insert the fact.
    INSERT INTO staging.facts_${YEAR} (
      id_note, dimension_id_country,
@@ -119,14 +139,15 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
      opened_dimension_id_date, opened_dimension_id_hour_of_week,
      opened_dimension_id_user,
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
-     closed_dimension_id_user, dimension_application_creation
+     closed_dimension_id_user, dimension_application_creation,
+     recent_opened_dimension_id_date
    ) VALUES (
      rec_note_action.id_note, m_dimension_country_id,
      rec_note_action.action_at, rec_note_action.action_comment,
      m_action_id_date, m_action_id_hour_of_week, m_dimension_user_action,
      m_opened_id_date, m_opened_id_hour_of_week, m_dimension_user_open,
      m_closed_id_date, m_closed_id_hour_of_week, m_dimension_user_close,
-     m_application
+     m_application, m_recent_opened_dimension_id_date
    );
 
    -- Resets the variables.

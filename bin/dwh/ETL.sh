@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-31
-declare -r VERSION="2022-12-31"
+# Version: 2023-01-02
+declare -r VERSION="2023-01-02"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -100,6 +100,8 @@ declare -r POSTGRES_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-
 declare -r POSTGRES_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadExecute.sql"
 # Script to do the initial load - drop.
 declare -r POSTGRES_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadDrop.sql"
+# Script to do the initial load - execute.
+declare -r POSTGRES_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-unify.sql"
 
 # Create staging procedures.
 declare -r LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-loadNotes.sql"
@@ -191,6 +193,10 @@ function __checkPrereqs {
   __loge "ERROR: File Staging-initialFactsLoadDrop.sql was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${POSTGRES_FACTS_UNIFY}" ]]; then
+  __loge "ERROR: File Staging-unify.sql was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  __log_finish
  set -e
 }
@@ -280,6 +286,10 @@ function __initialFacts {
 
    YEAR=$((YEAR + 1))
   done
+
+  # Unifies the facts, by computing dates between years.
+  psql -d "${DBNAME}" -f "${POSTGRES_FACTS_UNIFY}" 2>&1
+
  __log_finish
 }
 

@@ -1,7 +1,7 @@
 -- Chech staging tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2024-01-02
 
 CREATE SCHEMA IF NOT EXISTS staging;
 COMMENT ON SCHEMA staging IS
@@ -130,6 +130,23 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     m_application := NULL;
    END IF;
 
+   -- Gets the most recent opening action: creation or reopening.
+   IF (rec_note_action.action_comment = 'opened') THEN
+    m_recent_opened_dimension_id_date := m_opened_id_date;
+   ELSIF (rec_note_action.action_comment = 'reopened') THEN
+    m_recent_opened_dimension_id_date := action_dimension_id_date;
+   ELSE
+    SELECT max(fact_id)
+     INTO m_previous_action
+    FROM dwh.facts f
+    WHERE f.id_note = rec_note_action.id_note;
+  
+    SELECT recent_opened_dimension_id_date
+     INTO m_recent_opened_dimension_id_date
+    FROM dwh.facts f
+    WHERE f.fact_id = m_previous_action;
+   END IF;
+
    -- Insert the fact.
    INSERT INTO dwh.facts (
      id_note, dimension_id_country,
@@ -138,14 +155,15 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
      opened_dimension_id_date, opened_dimension_id_hour_of_week,
      opened_dimension_id_user,
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
-     closed_dimension_id_user, dimension_application_creation
+     closed_dimension_id_user, dimension_application_creation,
+     recent_opened_dimension_id_date
    ) VALUES (
      rec_note_action.id_note, m_dimension_country_id,
      rec_note_action.action_at, rec_note_action.action_comment,
      m_action_id_date, m_action_id_hour_of_week, m_dimension_user_action,
      m_opened_id_date, m_opened_id_hour_of_week, m_dimension_user_open,
      m_closed_id_date, m_closed_id_hour_of_week, m_dimension_user_close,
-     m_application
+     m_application, m_recent_opened_dimension_id_date
    );
 
    -- Modifies the dimension user and country for the datamart to identify it.
@@ -288,3 +306,50 @@ $proc$
 ;
 COMMENT ON PROCEDURE staging.process_notes_actions_into_dwh IS
   'Processes all non-processes notes';
+
+CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
+ )
+ LANGUAGE plpgsql
+ AS $proc$
+ DECLARE
+  m_recent_opened_dimension_id_date INTEGER;
+  rec_no_recent_open_fact RECORD;
+  no_recent_open CURSOR  FOR
+   SELECT
+    fact_id
+   FROM dwh.facts f
+   WHERE f.days_to_resolution_active IS NULL
+   ORDER BY action_at
+   FOR UPDATE;
+
+ BEGIN
+  OPEN no_recent_open
+
+  LOOP
+   FETCH no_recent_open INTO rec_no_recent_open_fact;
+   -- Exit when no more rows to fetch.
+   EXIT WHEN NOT FOUND;
+
+   SELECT max(fact_id)
+    INTO m_previous_action
+   FROM dwh.facts f
+   WHERE f.id_note = rec_no_recent_open_fact.id_note
+   AND  f.days_to_resolution_active IS NOT NULL;
+
+   SELECT recent_opened_dimension_id_date
+    INTO m_recent_opened_dimension_id_date
+   FROM dwh.facts f
+   WHERE f.fact_id = m_previous_action;
+
+   UPDATE dwh.facts
+    SET recent_opened_dimension_id_date = m_recent_opened_dimension_id_date
+    WHERE CURRENT OF no_recent_open;
+  END LOOP;
+
+  CLOSE no_recent_open;
+ END
+$proc$
+;
+COMMENT ON PROCEDURE staging.unify_facts_from_parallel_load IS
+  'Corrects the missing values after the initial parallel processing';
+

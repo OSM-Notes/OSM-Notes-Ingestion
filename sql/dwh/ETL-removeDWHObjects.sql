@@ -1,7 +1,11 @@
 -- Drop data warehouse objects.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-09
+-- Version: 2024-01-02
+
+DROP TRIGGER IF EXISTS update_days_to_resolution ON dwh.etl;
+
+DROP FUNCTION IF EXISTS dwh.update_days_to_resolution;
 
 DROP FUNCTION IF EXISTS dwh.get_score_user_activity;
 

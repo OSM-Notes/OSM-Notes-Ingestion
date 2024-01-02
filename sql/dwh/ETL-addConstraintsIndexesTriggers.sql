@@ -1,7 +1,7 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-05
+-- Version: 2024-01-02
 
 -- Primrary keys
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
@@ -269,4 +269,73 @@ COMMENT ON FUNCTION dwh.get_hour_of_week_id IS
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Extra objects created' AS Task;
+
+CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
+  RETURNS TRIGGER AS
+ $$
+ DECLARE
+  open_date DATE;
+  reopen_date DATE;
+  close_date DATE;
+  days INTEGER;
+ BEGIN
+  IF (NEW.action_comment = 'closed') THEN
+   -- Days between initial open and most recent close.
+   SELECT date_id
+    INTO open_date
+    FROM dwh.dimension_days
+    WHERE dimension_how_id = NEW.opened_dimension_id_date;
+
+   SELECT date_id
+    INTO close_date
+    FROM dwh.dimension_days
+    WHERE dimension_how_id = NEW.action_dimension_id_date;
+
+   days := close_date - open_date;
+   UPDATE dwh.facts
+    SET days_to_resolution = days;
+
+   -- Days between last reopen and most recent close.
+   SELECT MAX(date_id)
+    INTO reopen_date
+    FROM dwh.facts f
+    JOIN dwh.dimension_days d
+    ON f.action_dimension_id_date = d.dimension_day_id
+    WHERE id_note = NEW.id_note
+    AND action_at = 'reopened';
+   IF (reopen_date IS NOT NULL) THEN
+    -- Days from the last reopen.
+    days := close_date - reopen_date
+    SET days_to_resolution_from_reopen := days;
+
+    -- Days in open status
+    SELECT SUM(days)
+     INTO days
+    FROM (
+     SELECT dd.date_id - dd2.date_id days
+     FROM dwh.facts f
+     JOIN dwh.dimension_days dd
+     ON f.action_dimension_id_date = dd.dimension_day_id
+     JOIN dwh.dimension_days dd2
+     ON f.recent_opened_dimension_id_date = dd2.dimension_day_id
+     WHERE f.id_note = NEW.id_note
+     AND f.action_comment <> 'opened'
+    ) AS t
+    ;
+   END IF;
+  END IF;
+  RETURN NEW;
+ END;
+ $$ LANGUAGE plpgsql
+;
+COMMENT ON FUNCTION dwh.update_days_to_resolution IS
+  'Sets the number of days between the creation and the resolution dates';
+
+CREATE OR REPLACE TRIGGER update_days_to_resolution
+  AFTER INSERT ON dwh.etl
+  FOR EACH ROW
+  EXECUTE FUNCTION dwh.update_days_to_resolution()
+;
+COMMENT ON TRIGGER update_days_to_resolution ON dwh.etl IS
+  'Updates the number of days between creation and resolution dates';
 
