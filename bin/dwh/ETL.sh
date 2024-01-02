@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2022-12-16
-declare -r VERSION="2022-12-16"
+# Version: 2022-12-31
+declare -r VERSION="2022-12-31"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -219,12 +219,14 @@ function __waitForJobs {
 # Process facts in parallel.
 function __initialFacts {
  __log_start
-  # Initial year.
-  YEAR="2013"
-  # Gets the current year as max.
+  # First year (less number of notes).
+  MIN_YEAR="2013"
+  # Gets the current year as max (max number of notes).
   MAX_YEAR=$(date +%Y)
+  # Processing year.
+  YEAR="${MAX_YEAR}"
 
-  while [[ "${YEAR}" -le "${MAX_YEAR}" ]]; do
+  while [[ "${YEAR}" -ge "${MIN_YEAR}" ]]; do
    __waitForJobs
    (
     __logi "Starting ${YEAR}."
@@ -240,7 +242,7 @@ function __initialFacts {
     __logi "Finishing ${YEAR}."
    ) &
    sleep 5 # To insert all days of the year in the dimension.
-   YEAR=$((YEAR + 1))
+   YEAR=$((YEAR - 1))
   done
    # Waits until all years are fniished.
   wait
