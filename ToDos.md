@@ -62,6 +62,8 @@ ToDo list
 * Mostrar el ranking de países como Neis. Abiertas, cerradas, actualmente
   abiertas, y la tasa.
 * Ranking de los usuarios que más han abierto y cerrado notas mundo.
+* Promedio de comentarios por notas
+* Promerio de comentarios por notas por país
 
 # Check
 
