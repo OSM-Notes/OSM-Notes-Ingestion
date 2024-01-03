@@ -33,6 +33,10 @@ ToDo list
 * Calidad de la nota. Menos de 5 caracteres es mala. Menos de 10 regular. Mas de
   200 compleja, Mas de 500 un tratado.
 
+* Poner la secuencia de comentrios de texto.
+* Usar la secuencia de comentarios en los facts
+* Ajustar los queries de los hashtags para relacionar con la secuencia de comentario
+
 ## Profile
 
 * Mostrar aplicaciones usadas para notas, tanto para usuarios como para países.
