@@ -42,20 +42,25 @@ CREATE OR REPLACE FUNCTION staging.get_hashtag_id (
   m_id_dimension_hashtag INTEGER;
   r RECORD;
  BEGIN
-  SELECT /* Notes-ETL */ dimension_hashtag_id
-   INTO m_id_dimension_hashtag
-  FROM dwh.dimension_hashtags
-  WHERE description = m_hashtag_name;
+  --RAISE NOTICE 'Requesting id for hashtag: %', m_hashtag_name;
+  IF (m_hashtag_name IS NULL) THEN
+   m_id_dimension_hashtag := 1;
+  ELSE
+   SELECT /* Notes-ETL */ dimension_hashtag_id
+    INTO m_id_dimension_hashtag
+   FROM dwh.dimension_hashtags
+   WHERE description = m_hashtag_name;
 
-  IF (m_id_dimension_hashtag IS NULL) THEN
-   INSERT INTO dwh.dimension_hashtags (
-     description
-    ) VALUES (
-     m_hashtag_name
-    )
-    RETURNING dimension_hashtag_id
-     INTO m_id_dimension_hashtag
-   ;
+   IF (m_id_dimension_hashtag IS NULL) THEN
+    INSERT INTO dwh.dimension_hashtags (
+      description
+     ) VALUES (
+      m_hashtag_name
+     )
+     RETURNING dimension_hashtag_id
+      INTO m_id_dimension_hashtag
+    ;
+   END IF;
   END IF;
   RETURN m_id_dimension_hashtag;
  END
@@ -113,7 +118,11 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_action_id_hour_of_week INTEGER;
   m_application INTEGER;
   m_recent_opened_dimension_id_date INTEGER;
-  m_hashtag_id INTEGER;
+  m_hashtag_id_1 INTEGER;
+  m_hashtag_id_2 INTEGER;
+  m_hashtag_id_3 INTEGER;
+  m_hashtag_id_4 INTEGER;
+  m_hashtag_id_5 INTEGER;
   m_previous_action INTEGER;
   m_count INTEGER;
   m_text_comment TEXT;
@@ -129,7 +138,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     ON (c.note_id = n.note_id)
     JOIN note_comments o
     ON (n.note_id = o.note_id AND o.event = 'opened')
-    JOIN note_comments_text t
+    JOIN note_comments_text t -- TODO incluir la secuencia de comentario
     ON (c.note_id = t.note_id)
    WHERE c.created_at > c_max_processed_timestamp 
     AND DATE(c.created_at) = DATE(c_max_processed_timestamp) -- Notes for the
@@ -191,7 +200,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    IF (rec_note_action.action_comment = 'opened') THEN
     SELECT /* Notes-staging */ body
      INTO m_text_comment
-    FROM note_comments_text
+    FROM note_comments_text -- TODO incluir la secuencia de comentario. En este caso es 1 porque es la primera que corresponde a abrir la nota
     WHERE note_id = rec_note_action.id_note;
     m_application := staging.get_application(m_text_comment);
    ELSE
@@ -217,6 +226,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
 
    -- Gets hashtags.
    IF (rec_note_action.body LIKE '%#%') THEN
+    m_text_comment := rec_note_action.body;
+    --RAISE NOTICE 'Requesting id for hashtag: %', m_hashtag_name;
     CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
     m_hashtag_id_1 := staging.get_hashtag_id(m_hashtag_name);
     IF (m_text_comment LIKE '%#%') THEN
@@ -281,6 +292,14 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    m_action_id_date := null;
    m_action_id_hour_of_week := null;
    m_dimension_user_action := null;
+
+   m_text_comment := null;
+   m_hashtag_name := null;
+   m_hashtag_id_1 := null;
+   m_hashtag_id_2 := null;
+   m_hashtag_id_3 := null;
+   m_hashtag_id_4 := null;
+   m_hashtag_id_5 := null;
 
    SELECT /* Notes-staging */ COUNT(1)
     INTO m_count

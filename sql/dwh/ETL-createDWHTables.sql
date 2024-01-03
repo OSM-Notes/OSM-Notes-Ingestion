@@ -167,7 +167,7 @@ COMMENT ON COLUMN dwh.dimension_applications.platform IS
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_hashtags (
  dimension_hashtag_id SERIAL,
- description VARCHAR(64)
+ description TEXT
 );
 COMMENT ON TABLE dwh.dimension_hashtags IS
   'Dimension for hashtags';

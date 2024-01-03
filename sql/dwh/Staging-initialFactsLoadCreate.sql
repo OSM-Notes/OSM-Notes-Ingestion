@@ -124,20 +124,28 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   m_action_id_hour_of_week INTEGER;
   m_application INTEGER;
   m_recent_opened_dimension_id_date INTEGER;
+  m_hashtag_id_1 INTEGER;
+  m_hashtag_id_2 INTEGER;
+  m_hashtag_id_3 INTEGER;
+  m_hashtag_id_4 INTEGER;
+  m_hashtag_id_5 INTEGER;
   m_previous_action INTEGER;
   m_count INTEGER;
   m_text_comment TEXT;
+  m_hashtag_name TEXT;
   rec_note_action RECORD;
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
    SELECT
     c.note_id id_note, n.created_at created_at, o.id_user created_id_user,
     n.id_country id_country, c.event action_comment, c.id_user action_id_user,
-    c.created_at action_at
+    c.created_at action_at, t.body
    FROM note_comments c
     JOIN notes n
     ON (c.note_id = n.note_id)
     JOIN note_comments o
     ON (n.note_id = o.note_id AND o.event = 'opened')
+    JOIN note_comments_text t -- TODO Incluir la secuencia de comentario
+    ON (c.note_id = t.note_id)
    WHERE c.created_at > c_max_processed_timestamp 
     AND DATE(c.created_at) = DATE(c_max_processed_timestamp) -- Notes for the
       -- same date.
@@ -199,7 +207,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    IF (rec_note_action.action_comment = 'opened') THEN
     SELECT /* Notes-staging */ body
      INTO m_text_comment
-    FROM note_comments_text
+    FROM note_comments_text -- TODO incluir la secuencia de comentario. En este caso es 1 porque es la primera que corresponde a abrir la nota
     WHERE note_id = rec_note_action.id_note;
     m_application := staging.get_application(m_text_comment);
    ELSE
@@ -224,6 +232,31 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
     WHERE f.fact_id = m_previous_action;
    END IF;
 
+   -- Gets hashtags.
+   IF (rec_note_action.body LIKE '%#%') THEN
+    m_text_comment := rec_note_action.body;
+    RAISE NOTICE 'Requesting id for hashtag: %', m_text_comment;
+    CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+    m_hashtag_id_1 := staging.get_hashtag_id(m_hashtag_name);
+    RAISE NOTICE 'hashtag: %: %', m_hashtag_id_1, m_hashtag_name;
+    IF (m_text_comment LIKE '%#%') THEN
+     CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+     m_hashtag_id_2 := staging.get_hashtag_id(m_hashtag_name);
+     IF (m_text_comment LIKE '%#%') THEN
+      CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+      m_hashtag_id_3 := staging.get_hashtag_id(m_hashtag_name);
+      IF (m_text_comment LIKE '%#%') THEN
+       CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+       m_hashtag_id_4 := staging.get_hashtag_id(m_hashtag_name);
+       IF (m_text_comment LIKE '%#%') THEN
+        CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+        m_hashtag_id_5 := staging.get_hashtag_id(m_hashtag_name);
+       END IF;
+      END IF;
+     END IF;
+    END IF;
+   END IF;
+
    -- Insert the fact.
    INSERT INTO staging.facts_${YEAR} (
      id_note, dimension_id_country,
@@ -233,14 +266,16 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
      opened_dimension_id_user,
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
      closed_dimension_id_user, dimension_application_creation,
-     recent_opened_dimension_id_date
+     recent_opened_dimension_id_date, hashtag_1, hashtag_2, hashtag_3,
+     hashtag_4, hashtag_5
    ) VALUES (
      rec_note_action.id_note, m_dimension_country_id,
      rec_note_action.action_at, rec_note_action.action_comment,
      m_action_id_date, m_action_id_hour_of_week, m_dimension_user_action,
      m_opened_id_date, m_opened_id_hour_of_week, m_dimension_user_open,
      m_closed_id_date, m_closed_id_hour_of_week, m_dimension_user_close,
-     m_application, m_recent_opened_dimension_id_date
+     m_application, m_recent_opened_dimension_id_date, m_hashtag_id_1,
+     m_hashtag_id_2, m_hashtag_id_3, m_hashtag_id_4, m_hashtag_id_5
    );
 
    -- Resets the variables.
@@ -257,6 +292,14 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    m_action_id_date := null;
    m_action_id_hour_of_week := null;
    m_dimension_user_action := null;
+
+   m_text_comment := null;
+   m_hashtag_name := null;
+   m_hashtag_id_1 := null;
+   m_hashtag_id_2 := null;
+   m_hashtag_id_3 := null;
+   m_hashtag_id_4 := null;
+   m_hashtag_id_5 := null;
 
    SELECT /* Notes-staging */ COUNT(1)
     INTO m_count
