@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2024-01-02
   
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL,
@@ -34,6 +34,7 @@ COMMENT ON COLUMN notes.id_country IS 'Country id where the note is located';
 CREATE TABLE IF NOT EXISTS note_comments (
  id SERIAL,
  note_id INTEGER NOT NULL,
+ sequence_action INTEGER NOT NULL,
  event note_event_enum NOT NULL,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  created_at TIMESTAMP NOT NULL,
@@ -57,14 +58,18 @@ COMMENT ON COLUMN note_comments.id_user IS
 CREATE TABLE IF NOT EXISTS note_comments_text (
  id SERIAL,
  note_id INTEGER NOT NULL,
+ sequence_action INTEGER NOT NULL,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  body TEXT 
 );
-COMMENT ON TABLE note_comments_text IS 'Stores all text associated with comment notes';
+COMMENT ON TABLE note_comments_text IS
+  'Stores all text associated with comment notes';
 COMMENT ON COLUMN note_comments_text.id IS
   'ID of the comment. Same value from the other table';
 COMMENT ON COLUMN note_comments.note_id IS
   'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments.sequence_action IS
+  'Comment sequence, first is open, then any action in the creation order';
 COMMENT ON COLUMN note_comments_text.processing_time IS
   'Registers when this comment was inserted in the database. Automatic value';
 COMMENT ON COLUMN note_comments_text.body IS
