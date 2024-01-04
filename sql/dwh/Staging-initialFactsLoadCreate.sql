@@ -1,7 +1,7 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-02
+-- Version: 2024-01-03
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
 
@@ -137,15 +137,15 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
    SELECT
     c.note_id id_note, n.created_at created_at, o.id_user created_id_user,
-    n.id_country id_country, c.event action_comment, c.id_user action_id_user,
-    c.created_at action_at, t.body
+    n.id_country id_country, c.sequence_action seq, c.event action_comment,
+    c.id_user action_id_user, c.created_at action_at, t.body
    FROM note_comments c
     JOIN notes n
     ON (c.note_id = n.note_id)
     JOIN note_comments o
     ON (n.note_id = o.note_id AND o.event = 'opened')
-    JOIN note_comments_text t -- TODO Incluir la secuencia de comentario
-    ON (c.note_id = t.note_id)
+    JOIN note_comments_text t
+    ON (c.note_id = t.note_id AND c.sequence_action = t.sequence_action)
    WHERE c.created_at > c_max_processed_timestamp 
     AND DATE(c.created_at) = DATE(c_max_processed_timestamp) -- Notes for the
       -- same date.
@@ -207,8 +207,9 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    IF (rec_note_action.action_comment = 'opened') THEN
     SELECT /* Notes-staging */ body
      INTO m_text_comment
-    FROM note_comments_text -- TODO incluir la secuencia de comentario. En este caso es 1 porque es la primera que corresponde a abrir la nota
-    WHERE note_id = rec_note_action.id_note;
+    FROM note_comments_text
+    WHERE note_id = rec_note_action.id_note
+     AND sequence_action = rec_note_action.seq; -- Sequence should be 1.
     m_application := staging.get_application(m_text_comment);
    ELSE
     m_application := NULL;
