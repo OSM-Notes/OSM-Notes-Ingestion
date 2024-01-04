@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-08
-declare -r VERSION="2023-12-08"
+# Version: 2024-01-03
+declare -r VERSION="2024-01-03"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -481,7 +481,7 @@ chmod go+x "${TMP_DIR}"
 __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}" 2>&1
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
