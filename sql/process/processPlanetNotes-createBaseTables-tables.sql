@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-02
+-- Version: 2024-01-03
   
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL,
@@ -34,7 +34,7 @@ COMMENT ON COLUMN notes.id_country IS 'Country id where the note is located';
 CREATE TABLE IF NOT EXISTS note_comments (
  id SERIAL,
  note_id INTEGER NOT NULL,
- sequence_action INTEGER NOT NULL,
+ sequence_action INTEGER,
  event note_event_enum NOT NULL,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  created_at TIMESTAMP NOT NULL,
@@ -58,7 +58,7 @@ COMMENT ON COLUMN note_comments.id_user IS
 CREATE TABLE IF NOT EXISTS note_comments_text (
  id SERIAL,
  note_id INTEGER NOT NULL,
- sequence_action INTEGER NOT NULL,
+ sequence_action INTEGER,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  body TEXT 
 );
