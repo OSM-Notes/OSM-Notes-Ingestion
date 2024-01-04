@@ -84,6 +84,7 @@
 #
 # To insert the rows from a backup for boundaries and notes:
 #   export BACKUP=true
+#   export BACKUP_COUNTRIES=true
 # It will need to run these from a PostgreSQL console:
 #   INSERT INTO countries
 #    SELECT * FROM backup_countries ;
@@ -173,8 +174,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-08
-declare -r VERSION="2023-12-08"
+# Version: 2024-01-03
+declare -r VERSION="2024-01-03"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -195,6 +196,8 @@ declare -r ERROR_DOWNLOADING_ID_LIST=244
 declare -r CLEAN=${CLEAN:-true}
 # If boundary rows and location of the notes are retrieved from backup table.
 declare -r BACKUP=${BACKUP:-false}
+# If the boundary rows are retrieved from backup table.
+declare -r BACKUP_COUNTRIES=${BACKUP_COUNTRIES:-false}
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -322,6 +325,8 @@ function __show_help {
  echo
  echo "Environment variable:"
  echo " * BACKUP could be set to true, to insert rows from backup tables."
+ echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
+ echo "   backup tables."
  echo " * CLEAN could be set to false, to left all created files."
  echo " * SAXON_JAR specifies the location of the Saxon JAR file."
  echo " * LOG_LEVEL specifies the logger leves. Possible values are:"
@@ -895,7 +900,8 @@ function main() {
   __createCountryTables # base and boundaries
 
   # Downloads the areas. It could terminate the execution if an error appears.
-  if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]]; then
+  if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]] \
+    || [[ -n "${BACKUP_COUNTRIES}" ]] && [[ "${BACKUP_COUNTRIES}" = true ]]; then
    echo "Please copy the rows from the backup table:"
    echo "   INSERT INTO countries "
    echo "     SELECT * FROM backup_countries ;"
@@ -963,7 +969,7 @@ chmod go+x "${TMP_DIR}"
 __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}" 2>&1
 else
  main
 fi
