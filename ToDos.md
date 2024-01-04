@@ -32,6 +32,7 @@ ToDo list
   productores.
 * Calidad de la nota. Menos de 5 caracteres es mala. Menos de 10 regular. Mas de
   200 compleja, Mas de 500 un tratado.
+* Calcular la cantidad de hashtags y ponerla en FACTS
 
 * Poner la secuencia de comentrios de texto.
 * Usar la secuencia de comentarios en los facts
