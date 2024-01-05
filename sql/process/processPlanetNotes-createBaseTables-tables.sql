@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-03
+-- Version: 2024-01-05
   
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL,
@@ -46,6 +46,8 @@ COMMENT ON COLUMN note_comments.id IS
   -- Multiples actions at the same time.
 COMMENT ON COLUMN note_comments.note_id IS
   'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments.sequence_action IS
+  'Comment sequence generated from this tool';
 COMMENT ON COLUMN note_comments.event IS
   'Type of action was performed on the note';
 COMMENT ON COLUMN note_comments.processing_time IS
