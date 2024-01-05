@@ -174,8 +174,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-03
-declare -r VERSION="2024-01-03"
+# Version: 2024-01-05
+declare -r VERSION="2024-01-05"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -276,6 +276,8 @@ declare -r POSTGRES_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/pro
 declare -r POSTGRES_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-analyzeVacuum.sql"
 # Remove duplicates.
 declare -r POSTGRES_REMOVE_DUPLICATES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-removeDuplicates.sql"
+# Assign sequence for comments
+declare -r POSTGRES_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-commentsSequence.sql"
 
 # Overpass queries
 # Get countries.
@@ -457,6 +459,10 @@ function __checkPrereqs {
  fi
  if [[ ! -r "${POSTGRES_REMOVE_DUPLICATES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_REMOVE_DUPLICATES}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_COMMENTS_SEQUENCE}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_COMMENTS_SEQUENCE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __checkPrereqs_functions
@@ -778,6 +784,8 @@ function __analyzeAndVacuum {
 function __removeDuplicates {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_REMOVE_DUPLICATES}"
+ # Puts the sequence.
+ psql -d "${DBNAME}" -f "${POSTGRES_COMMENTS_SEQUENCE}"
  __log_finish
 }
 
