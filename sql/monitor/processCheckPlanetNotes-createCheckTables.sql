@@ -1,7 +1,7 @@
 -- Creates check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2024-01-05
   
 CREATE TABLE notes_check (
  note_id INTEGER NOT NULL,
@@ -26,7 +26,9 @@ COMMENT ON COLUMN notes_check.id_country IS
   'Country id where the note is located';
 
 CREATE TABLE note_comments_check (
+ id SERIAL,
  note_id INTEGER NOT NULL,
+ sequence_action INTEGER,
  event note_event_enum NOT NULL,
  created_at TIMESTAMP NOT NULL,
  id_user INTEGER,
@@ -34,8 +36,12 @@ CREATE TABLE note_comments_check (
 );
 COMMENT ON TABLE note_comments_check IS
   'Stores all comments to check agains base table';
+COMMENT ON COLUMN note_comments_check.id IS
+  'Generated ID to keep track of the comments order';
 COMMENT ON COLUMN note_comments_check.note_id IS
   'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_check.sequence_action IS
+  'Comment sequence generated';
 COMMENT ON COLUMN note_comments_check.event IS
   'Type of action was performed on the note';
 COMMENT ON COLUMN note_comments_check.created_at IS

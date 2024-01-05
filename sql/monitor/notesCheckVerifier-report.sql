@@ -1,7 +1,7 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2024-01-05
   
 -- Shows the information of the latest note, which should be recent.
 COPY
@@ -24,6 +24,7 @@ COPY
    SELECT /* Notes-check */ MAX(note_id)
    FROM NOTES
   )
+  ORDER BY sequence_action
  )
  TO '${LAST_COMMENT}' WITH DELIMITER ',' CSV HEADER
 ;
@@ -163,30 +164,30 @@ COMMENT ON COLUMN temp_diff_note_comments.note_id IS 'OSM note id';
 INSERT INTO temp_diff_note_comments
  SELECT /* Notes-check */ note_id
  FROM (
-  SELECT /* Notes-check */ note_id, event, created_at, id_user
+  SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
   FROM note_comments_check 
   EXCEPT
-  SELECT /* Notes-check */ note_id, event, created_at, id_user
+  SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
   FROM note_comments
   WHERE created_at < now()::date
  ) AS t
- ORDER BY note_id
+ ORDER BY note_id, sequence_action
 ;
 
 COPY
  (
   SELECT *
   FROM (
-   SELECT /* Notes-check */ 'Planet' AS source, note_id, event, created_at,
-    id_user
+   SELECT /* Notes-check */ 'Planet' AS source, note_id, event, sequence_action,
+    created_at, id_user
    FROM note_comments_check
    WHERE note_id IN (
     SELECT /* Notes-check */ note_id
     FROM temp_diff_note_comments
    )
    UNION
-   SELECT /* Notes-check */ 'API   ' AS source, note_id, event, created_at,
-    id_user
+   SELECT /* Notes-check */ 'API   ' AS source, note_id, event, sequence_action,
+    created_at, id_user
    FROM note_comments
    WHERE note_id IN (
     SELECT /* Notes-check */ note_id
@@ -194,7 +195,7 @@ COPY
    )
    AND created_at < now()::date
   ) AS T
-  ORDER BY note_id, created_at, source
+  ORDER BY note_id, sequence_action, source
  )
  TO '${DIRRERENT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
@@ -205,21 +206,21 @@ DROP TABLE IF EXISTS temp_diff_note_comments;
 COPY (
  SELECT *
  FROM (
-  SELECT /* Notes-check */ COUNT(1) qty, c.note_id note_id
+  SELECT /* Notes-check */ COUNT(1) qty, c.note_id note_id, c.sequence_action
   FROM note_comments c
-  GROUP BY c.note_id
-  ORDER BY c.note_id
+  GROUP BY c.note_id, c.sequence_action
+  ORDER BY c.note_id, c.sequence_action
  ) AS c
  JOIN
  (
-  SELECT /* Notes-check */ COUNT(1) qty, t.note_id note_id
+  SELECT /* Notes-check */ COUNT(1) qty, t.note_id note_id, t.sequence_action
   FROM note_comments_text t
-  GROUP BY t.note_id
-  ORDER BY t.note_id
+  GROUP BY t.note_id, t.sequence_action
+  ORDER BY t.note_id, t.sequence_action
  ) AS t
- ON c.note_id = t.note_id
+ ON c.note_id = t.note_id AND c.sequence_action = t.sequence_action
  WHERE c.qty <> t.qty
- ORDER BY t.note_id
+ ORDER BY t.note_id, t.sequence_action
  )
  TO '${DIFFERENCES_TEXT_COMMENT}' WITH DELIMITER ',' CSV HEADER
 ;
