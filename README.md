@@ -42,7 +42,7 @@ These are the main functions of this project.
 The whole process takes several hours, even days to complete before the
 profile can be used for any user.
 
-**Notes synchronization**
+**Notes initial load**
 
 * 40 minutes: Downloading the countries and maritime areas.
   * This process has a pause between calls because the public Overpass turbo is
@@ -51,7 +51,8 @@ profile can be used for any user.
     the pause could be removed or reduced
 * 1 minute: Download the Planet notes file.
 * 4 minutes: Processing XML notes file, but this requires 6GB RAM for Saxon.
-* 8 hours: Locating notes in the appropriate country.
+* 12 minutes: Inserting notes into the database.
+* 7 hours: Locating notes in the appropriate country.
   * This DB process is in parallel with multiple threads.
     The parallelism could be configured, for example to a given number of cores.
     Also, it could be set to the current number of cores, by specifying the
@@ -61,6 +62,13 @@ profile can be used for any user.
 **WMS layer**
 
 * 1 minute: creating the objects.
+
+**Notes synchronization**
+
+The synchronization process time depends on the frequency of the calls and the
+number of comment actions.
+If the notes API call is executed every 15 minutes, the complete process takes
+less than 2 minutes to complete.
 
 **ETL and datamarts population**
 
