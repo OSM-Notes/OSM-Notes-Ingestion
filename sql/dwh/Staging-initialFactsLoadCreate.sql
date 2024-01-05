@@ -236,10 +236,10 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    -- Gets hashtags.
    IF (rec_note_action.body LIKE '%#%') THEN
     m_text_comment := rec_note_action.body;
-    RAISE NOTICE 'Requesting id for hashtag: %', m_text_comment;
+    --RAISE NOTICE 'Requesting id for hashtag: %', m_text_comment;
     CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
     m_hashtag_id_1 := staging.get_hashtag_id(m_hashtag_name);
-    RAISE NOTICE 'hashtag: %: %', m_hashtag_id_1, m_hashtag_name;
+    --RAISE NOTICE 'hashtag: %: %', m_hashtag_id_1, m_hashtag_name;
     IF (m_text_comment LIKE '%#%') THEN
      CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
      m_hashtag_id_2 := staging.get_hashtag_id(m_hashtag_name);
@@ -308,6 +308,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    IF (MOD(m_count, 1000) = 0) THEN
     RAISE NOTICE '%: % processed facts for % until %', CURRENT_TIMESTAMP,
      m_count, ${YEAR}, max_processed_timestamp;
+    COMMIT; -- TODO Funcionara para agilizar?
    END IF;
 
    m_count := m_count + 1;
