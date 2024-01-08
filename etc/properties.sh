@@ -48,6 +48,6 @@ declare -r SECONDS_TO_WAIT="3"
 # shellcheck disable=SC2034
 declare -r LOOP_SIZE="10000"
 
-# Number of parallel threads to process notes to get the location.
+# Number of parallel threads to get conutry and maritime boundaries.
 # shellcheck disable=SC2034
 declare -r PARALLELISM="5"
