@@ -248,7 +248,7 @@ function __downloadPlanetNotes {
  __log_start
  set -e
  # Download Planet notes.
- __loge "Retrieving Planet notes file..."
+ __logw "Retrieving Planet notes file..."
  # shellcheck disable=SC2154
  aria2c -d "${TMP_DIR}" -o "${PLANET_NOTES_NAME}.bz2" -x 8 \
   "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
