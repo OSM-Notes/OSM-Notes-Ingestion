@@ -33,11 +33,6 @@ ALTER TABLE note_comments
  FOREIGN KEY (id_user)
  REFERENCES users (user_id);
 
-ALTER TABLE note_comments_text
- ADD CONSTRAINT fk_note_comment
- FOREIGN KEY (id)
- REFERENCES note_comments (id);
-
 CREATE INDEX IF NOT EXISTS usernames ON users (username);
 COMMENT ON INDEX usernames IS 'To query by username';
 
