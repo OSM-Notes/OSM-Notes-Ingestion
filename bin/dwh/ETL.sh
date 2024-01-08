@@ -210,6 +210,8 @@ function __waitForJobs {
  # This prevents monopolization of the CPUs.
  if [[ "${MAX_THREADS}" -gt 1 ]]; then
   MAX_THREADS=$((MAX_THREADS-1))
+ elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+  MAX_THREADS=$((MAX_THREADS-2))
  fi
  QTY=$(jobs -p | wc -l)
  __logd "Number of threads ${QTY} from max ${MAX_THREADS}."
