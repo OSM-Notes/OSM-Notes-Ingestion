@@ -61,9 +61,10 @@ INSERT INTO countries
 -- Note's location
 -- To run after the new execution.
 UPDATE notes AS n
-SET id_country = b.id_country
-FROM backup_note_country AS b
-WHERE b.note_id = n.note_id;
+ SET id_country = b.id_country
+ FROM backup_note_country AS b
+ WHERE b.note_id = n.note_id
+ AND id_country IS NULL;
 
 -- To release space.
 DROP TABLE IF EXISTS backup_note_country;
