@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-03
-declare -r VERSION="2024-01-03"
+# Version: 2024-01-08
+declare -r VERSION="2024-01-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -112,6 +112,8 @@ declare -r POSTGRES_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/proces
 declare -r POSTGRES_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-loadApiNotes.sql"
 # Insert new notes and comments.
 declare -r POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-insertNewNotesAndComments.sql"
+# Insert new text comments.
+declare -r POSTGRES_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-loadNewTextComments.sql"
 # Update last values.
 declare -r POSTGRES_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-updateLastValues.sql"
 
@@ -204,6 +206,10 @@ function __checkPrereqs {
   __loge "ERROR: File is missing at ${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${POSTGRES_INSERT_NEW_TEXT_COMMENTS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_INSERT_NEW_TEXT_COMMENTS}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  if [[ ! -r "${POSTGRES_UPDATE_LAST_VALUES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_UPDATE_LAST_VALUES}."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -282,8 +288,7 @@ function __getNewNotesFromApi {
 function __validateApiNotesXMLFile {
  __log_start
 
- xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" \
-  2> "${LOG_FILENAME}"
+ xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}"
 
  __log_finish
 }
@@ -394,6 +399,17 @@ function __insertNewNotesAndComments {
  __log_finish
 }
 
+# Inserts the net text comments.
+function __loadApiTextComments {
+ __log_start
+ export OUTPUT_TEXT_COMMENTS_FILE
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
+   < "${POSTGRES_INSERT_NEW_TEXT_COMMENTS}" || true)"
+ __log_finish
+}
+
 # Updates the refreshed value.
 function __updateLastValue {
  __log_start
@@ -467,6 +483,7 @@ function main() {
   __checkQtyNotes
   __loadApiNotes
   __insertNewNotesAndComments
+  __loadApiTextComments
   __updateLastValue
  fi
  __cleanNotesFiles
