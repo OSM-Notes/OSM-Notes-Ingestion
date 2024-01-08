@@ -25,7 +25,9 @@ COMMENT ON COLUMN notes_sync.id_country IS
   'Country id where the note is located';
 
 CREATE TABLE note_comments_sync (
+ id SERIAL,
  note_id INTEGER NOT NULL,
+ sequence_action INTEGER,
  event note_event_enum NOT NULL,
  created_at TIMESTAMP NOT NULL,
  id_user INTEGER,
@@ -33,8 +35,12 @@ CREATE TABLE note_comments_sync (
 );
 COMMENT ON TABLE note_comments_sync IS
   'Temporal table for note comments from Planet';
+COMMENT ON COLUMN note_comments_sync.id IS
+  'Generated ID to keep track of the comments order';
 COMMENT ON COLUMN note_comments_sync.note_id IS
   'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_sync.sequence_action IS
+  'Comment sequence generated from this tool';
 COMMENT ON COLUMN note_comments_sync.event IS
   'Type of action was performed on the note';
 COMMENT ON COLUMN note_comments_sync.created_at IS
