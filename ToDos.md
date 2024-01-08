@@ -2,8 +2,9 @@ ToDo list
 
 # New features
 
+* Contar los hashtags de las notas en la ETL.
 * Hacer un analizador de hashtags.
-  * Incluir los hashtags de una nota.
+  * Incluir los hashtags de una nota. HECHO
   * Mostrar los hashtags más usados en país y notas.
   * Filtrar notas por hashtags.
 * Definir los badges y asignarlos.
@@ -33,6 +34,13 @@ ToDo list
 * Calidad de la nota. Menos de 5 caracteres es mala. Menos de 10 regular. Mas de
   200 compleja, Mas de 500 un tratado.
 * Calcular la cantidad de hashtags y ponerla en FACTS
+* Limitar el paralelismo a nproc, para no ahogar el servidor.
+* Poner el trigger en comment_tet. Si el sequence viene vacio, calcular y 
+  asignar. Si no viene vacio, dejar asi.
+* Usar "tiempo para resolver notas" en los datamart
+* Usar hashtags en los datamart
+* En el ETL calcular la cantidad de notas abiertas actualmente.
+* En el ETL mantener la cantidad de notas abiertas en el país.
 
 * Poner la secuencia de comentrios de texto.
 * Usar la secuencia de comentarios en los facts
