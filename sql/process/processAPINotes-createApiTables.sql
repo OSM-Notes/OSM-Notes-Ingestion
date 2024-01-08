@@ -1,7 +1,7 @@
 -- Create API tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2024-01-08
   
 CREATE TABLE notes_api (
  note_id INTEGER NOT NULL,
@@ -47,3 +47,23 @@ COMMENT ON COLUMN note_comments_api.created_at IS
   'Timestamps when the comment/action was done';
 COMMENT ON COLUMN note_comments_api.id_user IS
   'OSM id of the user who performed the action';
+
+CREATE TABLE IF NOT EXISTS note_comments_text_api (
+ id SERIAL,
+ note_id INTEGER NOT NULL,
+ sequence_action INTEGER,
+ processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ body TEXT 
+);
+COMMENT ON TABLE note_comments_text_api IS
+  'Stores all text associated with comment notes';
+COMMENT ON COLUMN note_comments_text_api.id IS
+  'ID of the comment. Same value from the other table';
+COMMENT ON COLUMN note_comments_text_api.note_id IS
+  'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_text_api.sequence_action IS
+  'Comment sequence, first is open, then any action in the creation order';
+COMMENT ON COLUMN note_comments_text_api.processing_time IS
+  'Registers when this comment was inserted in the database. Automatic value';
+COMMENT ON COLUMN note_comments_text_api.body IS
+  'Text of the note comment';
