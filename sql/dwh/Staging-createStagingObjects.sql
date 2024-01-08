@@ -309,7 +309,6 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    IF (MOD(m_count, 1000) = 0) THEN
     RAISE NOTICE '%: % processed facts until %', CURRENT_TIMESTAMP, m_count,
      max_processed_timestamp;
-    COMMIT; -- TODO Funcionara para agilizar?
    END IF;
 
    m_count := m_count + 1;
