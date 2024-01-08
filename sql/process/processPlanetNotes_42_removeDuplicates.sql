@@ -74,7 +74,8 @@ BEGIN
   )
   SELECT
     note_id, latitude, longitude, created_at, status, closed_at, id_country
-  FROM notes_sync;
+  FROM notes_sync
+  ORDER BY note_id;
  ELSE
   count := 0;
   FOR r IN
@@ -111,6 +112,7 @@ DROP TABLE IF EXISTS note_comments_sync_no_duplicates;
 CREATE TABLE note_comments_sync_no_duplicates AS
   SELECT
    note_id,
+   sequence_action,
    event,
    created_at,
    id_user,
@@ -122,11 +124,14 @@ CREATE TABLE note_comments_sync_no_duplicates AS
     EXCEPT 
     SELECT /* Notes-processPlanet */ note_id
     FROM note_comments
-  );
+  )
+  ORDER BY note_id, sequence_action;
 COMMENT ON TABLE note_comments_sync_no_duplicates IS
   'Temporal table with the comments to insert';
 COMMENT ON COLUMN note_comments_sync_no_duplicates.note_id IS
   'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_sync_no_duplicates.sequence_action IS
+  'Comment sequence generated from this tool';
 COMMENT ON COLUMN note_comments_sync_no_duplicates.event IS
   'Type of action was performed on the note';
 COMMENT ON COLUMN note_comments_sync_no_duplicates.created_at IS
@@ -174,7 +179,8 @@ BEGIN
    )
    SELECT /* Notes-processPlanet */ 
     note_id, event, created_at, id_user
-   FROM note_comments_sync;
+   FROM note_comments_sync
+   ORDER BY note_id, sequence_action;
  ELSE
   FOR r IN
    SELECT /* Notes-processPlanet */
