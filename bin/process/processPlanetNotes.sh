@@ -95,7 +95,9 @@
 # To create the copy before the execution:
 #   CREATE TABLE backup_countries AS TABLE countries;
 #   CREATE TABLE backup_note_country AS
-#    SELECT note_id, id_country, country_name_en FROM notes;
+#    SELECT note_id, id_country FROM notes;
+# For more information, please check this file:
+# OSM-Notes-profile/sql/copyCountriesAndLocationNotes.sql
 #
 # To increase or reduce the verbosity, you can change the logger:
 #   export LOG_LEVEL=DEBUG # For more messages.
@@ -174,8 +176,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-05
-declare -r VERSION="2024-01-05"
+# Version: 2024-01-08
+declare -r VERSION="2024-01-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -250,34 +252,36 @@ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
 # PostgreSQL files.
-# Drop current country tables.
-declare -r POSTGRES_DROP_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-dropCountryTables.sql"
-# Drop base tables.
-declare -r POSTGRES_DROP_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-dropBaseTables.sql"
 # Drop sync tables.
-declare -r POSTGRES_DROP_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-dropSyncTables.sql"
+declare -r POSTGRES_11_DROP_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"
 # Drop api tables.
-declare -r POSTGRES_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-dropApiTables.sql"
-# Create country tables.
-declare -r POSTGRES_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createCountryTables.sql"
+declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropApiTables.sql"
+# Drop base tables.
+declare -r POSTGRES_13_DROP_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+# Drop current country tables.
+declare -r POSTGRES_14_DROP_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_14_dropCountryTables.sql"
 # Create enums.
-declare -r POSTGRES_CREATE_ENUMS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createBaseTables-enum.sql"
+declare -r POSTGRES_21_CREATE_ENUMS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables-enum.sql"
 # Create base tables.
-declare -r POSTGRES_CREATE_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createBaseTables-tables.sql"
+declare -r POSTGRES_22_CREATE_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables-tables.sql"
 # Create constraints for base tables.
-declare -r POSTGRES_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createBaseTables-constraints.sql"
+declare -r POSTGRES_23_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables-constraints.sql"
 # Create sync tables.
-declare -r POSTGRES_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-createSyncTables.sql"
-# Load sync notes.
-declare -r POSTGRES_LOAD_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-loadSyncNotes.sql"
-# Load text comments.
-declare -r POSTGRES_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-loadTextComments.sql"
+declare -r POSTGRES_24_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
+# Create country tables.
+declare -r POSTGRES_25_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
 # Vacuum and analyze.
-declare -r POSTGRES_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-analyzeVacuum.sql"
+declare -r POSTGRES_31_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_31_analyzeVacuum.sql"
+# Load sync notes.
+declare -r POSTGRES_41_LOAD_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadSyncNotes.sql"
 # Remove duplicates.
-declare -r POSTGRES_REMOVE_DUPLICATES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-removeDuplicates.sql"
+declare -r POSTGRES_42_REMOVE_DUPLICATES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_removeDuplicates.sql"
 # Assign sequence for comments
-declare -r POSTGRES_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes-commentsSequence.sql"
+declare -r POSTGRES_43_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_commentsSequence.sql"
+# Load text comments.
+declare -r POSTGRES_44_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
+# Load text comments.
+declare -r POSTGRES_45_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
 
 # Overpass queries
 # Get countries.
@@ -409,60 +413,64 @@ function __checkPrereqs {
  fi
 
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_DROP_COUNTRY_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_DROP_COUNTRY_TABLES}."
+ if [[ ! -r "${POSTGRES_11_DROP_SYNC_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_11_DROP_SYNC_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_DROP_BASE_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_DROP_BASE_TABLES}."
+ if [[ ! -r "${POSTGRES_12_DROP_API_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_12_DROP_API_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_DROP_SYNC_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_DROP_SYNC_TABLES}."
+ if [[ ! -r "${POSTGRES_13_DROP_BASE_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_13_DROP_BASE_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_DROP_API_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_DROP_API_TABLES}."
+ if [[ ! -r "${POSTGRES_14_DROP_COUNTRY_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_14_DROP_COUNTRY_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_COUNTRY_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_COUNTRY_TABLES}."
+ if [[ ! -r "${POSTGRES_21_CREATE_ENUMS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_ENUMS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_ENUMS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_ENUMS}."
+ if [[ ! -r "${POSTGRES_22_CREATE_BASE_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_BASE_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_BASE_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_BASE_TABLES}."
+ if [[ ! -r "${POSTGRES_23_CREATE_CONSTRAINTS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_23_CREATE_CONSTRAINTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_CONSTRAINTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_CONSTRAINTS}."
+ if [[ ! -r "${POSTGRES_24_CREATE_SYNC_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_24_CREATE_SYNC_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_SYNC_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_SYNC_TABLES}."
+ if [[ ! -r "${POSTGRES_25_CREATE_COUNTRY_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_25_CREATE_COUNTRY_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_LOAD_SYNC_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_LOAD_SYNC_NOTES}."
+ if [[ ! -r "${POSTGRES_31_VACUUM_AND_ANALYZE}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_31_VACUUM_AND_ANALYZE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_LOAD_TEXT_COMMENTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_LOAD_TEXT_COMMENTS}."
+ if [[ ! -r "${POSTGRES_41_LOAD_SYNC_NOTES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_41_LOAD_SYNC_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_VACUUM_AND_ANALYZE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_VACUUM_AND_ANALYZE}."
+ if [[ ! -r "${POSTGRES_42_REMOVE_DUPLICATES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_42_REMOVE_DUPLICATES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_REMOVE_DUPLICATES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_REMOVE_DUPLICATES}."
+ if [[ ! -r "${POSTGRES_43_COMMENTS_SEQUENCE}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_43_COMMENTS_SEQUENCE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_COMMENTS_SEQUENCE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_COMMENTS_SEQUENCE}."
+ if [[ ! -r "${POSTGRES_44_LOAD_TEXT_COMMENTS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_44_LOAD_TEXT_COMMENTS}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_45_OBJECTS_TEXT_COMMENTS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_45_OBJECTS_TEXT_COMMENTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __checkPrereqs_functions
@@ -470,27 +478,11 @@ function __checkPrereqs {
  set -e
 }
 
-# Drop existing base tables.
-function __dropCountryTables {
- __log_start
- __logi "Droping country tables."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_COUNTRY_TABLES}"
- __log_finish
-}
-
-# Drop existing base tables.
-function __dropBaseTables {
- __log_start
- __logi "Droping base tables."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_BASE_TABLES}"
- __log_finish
-}
-
 # Drop sync tables.
 function __dropSyncTables {
  __log_start
  __logi "Droping sync tables."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_SYNC_TABLES}"
+ psql -d "${DBNAME}" -f "${POSTGRES_11_DROP_SYNC_TABLES}"
  __log_finish
 }
 
@@ -498,15 +490,23 @@ function __dropSyncTables {
 function __dropApiTables {
  __log_start
  __logi "Droping api tables."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_API_TABLES}"
+ psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
  __log_finish
 }
 
-# Creates base tables that hold the whole history.
-function __createCountryTables {
+# Drop existing base tables.
+function __dropBaseTables {
  __log_start
- __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_COUNTRY_TABLES}"
+ __logi "Droping base tables."
+ psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_BASE_TABLES}"
+ __log_finish
+}
+
+# Drop existing base tables.
+function __dropCountryTables {
+ __log_start
+ __logi "Droping country tables."
+ psql -d "${DBNAME}" -f "${POSTGRES_14_DROP_COUNTRY_TABLES}"
  __log_finish
 }
 
@@ -514,11 +514,11 @@ function __createCountryTables {
 function __createBaseTables {
  __log_start
  __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_ENUMS}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_ENUMS}"
 
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_BASE_TABLES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_22_CREATE_BASE_TABLES}"
 
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_CONSTRAINTS}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_CREATE_CONSTRAINTS}"
  __log_finish
 }
 
@@ -527,7 +527,15 @@ function __createBaseTables {
 function __createSyncTables {
  __log_start
  __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_SYNC_TABLES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
+ __log_finish
+}
+
+# Creates base tables that hold the whole history.
+function __createCountryTables {
+ __log_start
+ __logi "Creating tables."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_25_CREATE_COUNTRY_TABLES}"
  __log_finish
 }
 
@@ -581,6 +589,7 @@ function __processCountries {
   echo "2186646" # Antarctica continent
  } >> "${COUNTRIES_FILE}"
 
+ # TODO This should be in parallel, using the variable.
  __logi "Retrieving the countries' boundaries."
  while read -r LINE; do
   ID=$(echo "${LINE}" | awk '{print $1}')
@@ -739,6 +748,13 @@ function __cleanPartial {
  __log_finish
 }
 
+# Calculates statistics on all tables and vacuum.
+function __analyzeAndVacuum {
+ __log_start
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_VACUUM_AND_ANALYZE}"
+ __log_finish
+}
+
 # Copies the CSV file to temporal directory.
 function __copyFlatFiles {
  __log_start
@@ -757,7 +773,16 @@ function __loadSyncNotes {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
-   < "${POSTGRES_LOAD_SYNC_NOTES}" || true)"
+   < "${POSTGRES_41_LOAD_SYNC_NOTES}" || true)"
+ __log_finish
+}
+
+# Removes notes and comments from the new set that are already in the database.
+function __removeDuplicates {
+ __log_start
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_42_REMOVE_DUPLICATES}"
+ # Puts the sequence. When reexecuting, some objects already exist.
+ psql -d "${DBNAME}" -f "${POSTGRES_43_COMMENTS_SEQUENCE}"
  __log_finish
 }
 
@@ -769,33 +794,9 @@ function __loadTextComments {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
-   < "${POSTGRES_LOAD_TEXT_COMMENTS}" || true)"
- __log_finish
-}
-
-# Calculates statistics on all tables and vacuum.
-function __analyzeAndVacuum {
- __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_VACUUM_AND_ANALYZE}"
- __log_finish
-}
-
-# Removes notes and comments from the new set that are already in the database.
-function __removeDuplicates {
- __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_REMOVE_DUPLICATES}"
- # Puts the sequence.
- psql -d "${DBNAME}" -f "${POSTGRES_COMMENTS_SEQUENCE}"
- __log_finish
-}
-
-# Cleans files generated during the process.
-function __cleanNotesFiles {
- __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-  rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
-   "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
- fi
+   < "${POSTGRES_44_LOAD_TEXT_COMMENTS}" || true)"
+ # Some objects could already exist.
+ psql -d "${DBNAME}" -f "${POSTGRES_45_OBJECTS_TEXT_COMMENTS}"
  __log_finish
 }
 
@@ -817,6 +818,7 @@ function __getLocationNotes {
   MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
   MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 
+  # TODO Paralelismo debe ser automatico basado en nproc
   declare -l SIZE=$((MAX_NOTE_ID / PARALLELISM))
   rm -r "${LAST_NOTE_FILE}"
   for J in $(seq 1 1 "${PARALLELISM}"); do
@@ -841,6 +843,16 @@ function __getLocationNotes {
   echo "UPDATE notes
     SET id_country = get_country(longitude, latitude, note_id)
     WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ fi
+ __log_finish
+}
+
+# Cleans files generated during the process.
+function __cleanNotesFiles {
+ __log_start
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+  rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
+   "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  fi
  __log_finish
 }
@@ -908,8 +920,8 @@ function main() {
   __createCountryTables # base and boundaries
 
   # Downloads the areas. It could terminate the execution if an error appears.
-  if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]] \
-    || [[ -n "${BACKUP_COUNTRIES}" ]] && [[ "${BACKUP_COUNTRIES}" = true ]]; then
+  if [[ (  -n "${BACKUP}" && "${BACKUP}" = true ) ]] \
+    || [[ ( -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ) ]]; then
    echo "Please copy the rows from the backup table:"
    echo "   INSERT INTO countries "
    echo "     SELECT * FROM backup_countries ;"
