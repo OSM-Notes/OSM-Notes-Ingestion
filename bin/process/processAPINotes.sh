@@ -103,19 +103,19 @@ declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanet
 
 # PostgreSQL files.
 # Drop API tables.
-declare -r POSTGRES_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-dropApiTables.sql"
+declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropApiTables.sql"
 # Create API tables.
-declare -r POSTGRES_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-createApiTables.sql"
+declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
 # Create properties file.
-declare -r POSTGRES_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-createPropertiesTables.sql"
+declare -r POSTGRES_22_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPropertiesTables.sql"
 # Load notes.
-declare -r POSTGRES_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-loadApiNotes.sql"
+declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 # Insert new notes and comments.
-declare -r POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-insertNewNotesAndComments.sql"
+declare -r POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
 # Insert new text comments.
-declare -r POSTGRES_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-loadNewTextComments.sql"
+declare -r POSTGRES_33_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_33_loadNewTextComments.sql"
 # Update last values.
-declare -r POSTGRES_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes-updateLastValues.sql"
+declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_34_updateLastValues.sql"
 
 # Temporal file that contiains the downloaded notes from the API.
 declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
@@ -186,37 +186,45 @@ function __checkPrereqs {
  fi
 
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_DROP_API_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_DROP_API_TABLES}."
+ if [[ ! -r "${POSTGRES_12_DROP_API_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_12_DROP_API_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_API_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_API_TABLES}."
+ if [[ ! -r "${POSTGRES_21_CREATE_API_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_API_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_PROPERTIES_TABLE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_PROPERTIES_TABLE}."
+ if [[ ! -r "${POSTGRES_22_CREATE_PROPERTIES_TABLE}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_PROPERTIES_TABLE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_LOAD_API_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_LOAD_API_NOTES}."
+ if [[ ! -r "${POSTGRES_31_LOAD_API_NOTES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_31_LOAD_API_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}."
+ if [[ ! -r "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_INSERT_NEW_TEXT_COMMENTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_INSERT_NEW_TEXT_COMMENTS}."
+ if [[ ! -r "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_UPDATE_LAST_VALUES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_UPDATE_LAST_VALUES}."
+ if [[ ! -r "${POSTGRES_34_UPDATE_LAST_VALUES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_34_UPDATE_LAST_VALUES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __checkPrereqs_functions
  #__log_finish
  set -e
+}
+
+# Drop tables for notes from API.
+function __dropApiTables {
+ __log_start
+ __logi "Droping tables."
+ psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
+ __log_finish
 }
 
 # Checks that no processPlanetNotes is runnning
@@ -232,19 +240,11 @@ function __checkNoProcessPlanet {
  fi
 }
 
-# Drop tables for notes from API.
-function __dropApiTables {
- __log_start
- __logi "Droping tables."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_API_TABLES}"
- __log_finish
-}
-
 # Creates tables for notes from API.
 function __createApiTables {
  __log_start
  __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_API_TABLES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
  __log_finish
 }
 
@@ -254,7 +254,7 @@ function __createPropertiesTable {
  set -e
  __logi "Creating properties table."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_CREATE_PROPERTIES_TABLE}"
+  -f "${POSTGRES_22_CREATE_PROPERTIES_TABLE}"
  __log_finish
 }
 
@@ -387,7 +387,7 @@ function __loadApiNotes {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
-   < "${POSTGRES_LOAD_API_NOTES}" || true)"
+   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
  __log_finish
 }
 
@@ -395,7 +395,7 @@ function __loadApiNotes {
 function __insertNewNotesAndComments {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f \
-  "${POSTGRES_INSERT_NEW_NOTES_AND_COMMENTS}"
+  "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}"
  __log_finish
 }
 
@@ -406,7 +406,7 @@ function __loadApiTextComments {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
-   < "${POSTGRES_INSERT_NEW_TEXT_COMMENTS}" || true)"
+   < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)"
  __log_finish
 }
 
@@ -414,7 +414,7 @@ function __loadApiTextComments {
 function __updateLastValue {
  __log_start
  __logi "Updating last update time."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_UPDATE_LAST_VALUES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_34_UPDATE_LAST_VALUES}"
  __log_finish
 }
 
