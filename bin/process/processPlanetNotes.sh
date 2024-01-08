@@ -808,7 +808,8 @@ function __getLocationNotes {
   echo "   UPDATE notes AS n"
   echo "    SET id_country = b.id_country"
   echo "    FROM backup_note_country AS b"
-  echo "    WHERE b.note_id = n.note_id;"
+  echo "    WHERE b.note_id = n.note_id"
+  echo "     AND id_country IS NULL;"
   read -r
  else
   declare -l MAX_NOTE_ID
@@ -818,7 +819,15 @@ function __getLocationNotes {
   MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
   MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 
-  # TODO Paralelismo debe ser automatico basado en nproc
+  PARALLELISM=$(nproc)
+  # Uses n-1 cores, if number of cores is greater than 1.
+  # This prevents monopolization of the CPUs.
+  if [[ "${PARALLELISM}" -gt 1 ]]; then
+   PARALLELISM=$((PARALLELISM-1))
+  elif [[ "${PARALLELISM}" -gt 6 ]]; then
+   PARALLELISM=$((PARALLELISM-2))
+  fi
+
   declare -l SIZE=$((MAX_NOTE_ID / PARALLELISM))
   rm -r "${LAST_NOTE_FILE}"
   for J in $(seq 1 1 "${PARALLELISM}"); do
