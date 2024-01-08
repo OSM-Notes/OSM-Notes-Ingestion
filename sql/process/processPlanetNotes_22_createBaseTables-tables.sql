@@ -68,9 +68,9 @@ COMMENT ON TABLE note_comments_text IS
   'Stores all text associated with comment notes';
 COMMENT ON COLUMN note_comments_text.id IS
   'ID of the comment. Same value from the other table';
-COMMENT ON COLUMN note_comments.note_id IS
+COMMENT ON COLUMN note_comments_text.note_id IS
   'OSM Note Id associated to this comment';
-COMMENT ON COLUMN note_comments.sequence_action IS
+COMMENT ON COLUMN note_comments_text.sequence_action IS
   'Comment sequence, first is open, then any action in the creation order';
 COMMENT ON COLUMN note_comments_text.processing_time IS
   'Registers when this comment was inserted in the database. Automatic value';
