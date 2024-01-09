@@ -415,10 +415,10 @@ psql -d notes -f ~/OSM-Notes-profile/sql/dwh/ETL-removeDWHObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/wms/removeFromDatabase.sql ;
 
 # Base part.
-psql -d notes -f ~/OSM-Notes-profile/sql/process/processAPINotes-dropApiTables.sql ;
-psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropSyncTables.sql ;
-psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropBaseTables.sql ;
-psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes-dropCountryTables.sql 
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes_11_dropSyncTables.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes_12_dropApiTables.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes_13_dropBaseTables.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes_14_dropCountryTables.sql ;
 ```
 
 # Help
