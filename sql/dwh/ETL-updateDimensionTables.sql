@@ -17,18 +17,19 @@ INSERT INTO dwh.dimension_users
   )
 ;
 
--- SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
---  'Showing modified usernames' AS Task;
---
--- TODO send to a file
--- Shows usernames renamed.
--- SELECT /* Notes-ETL */ DISTINCT d.username AS OldUsername,
---  c.username AS NewUsername
--- FROM users c
---  JOIN dwh.dimension_users d
---  ON d.user_id = c.user_id
--- WHERE c.username <> d.username
---;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Showing modified usernames' AS Task;
+-- Exports usernames renamed.
+COPY (
+ SELECT /* Notes-ETL */ DISTINCT d.username AS OldUsername,
+  c.username AS NewUsername
+ FROM users c
+  JOIN dwh.dimension_users d
+  ON d.user_id = c.user_id
+ WHERE c.username <> d.username
+)
+TO '/tmp/usernames_changed.csv' WITH DELIMITER ',' CSV HEADER
+;
 
 -- SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
 --  'Updating modified usernames' AS Task;
@@ -61,18 +62,21 @@ INSERT INTO dwh.dimension_countries
 UPDATE dwh.dimension_countries
  SET region_id = get_country_region(country_id);
 
--- Shows usernames renamed.
--- TODO export to a file
--- SELECT /* Notes-ETL */ DISTINCT d.country_name AS OldCountryName,
---  c.country_name AS NewCountryName
--- FROM countries c
---  JOIN dwh.dimension_countries d
---  ON d.country_id = c.country_id
--- WHERE c.country_name <> d.country_name
---  OR c.country_name_es <> d.country_name_es
---  OR c.country_name_en <> d.country_name_en
---;
--- TODO esto podría ser parte de un reporte de cambios de nombres - Vandalismo
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Showing modified countries' AS Task;
+-- Shows countries renamed.
+COPY (
+ SELECT /* Notes-ETL */ DISTINCT d.country_name AS OldCountryName,
+  c.country_name AS NewCountryName
+ FROM countries c
+  JOIN dwh.dimension_countries d
+  ON d.country_id = c.country_id
+ WHERE c.country_name <> d.country_name
+  OR c.country_name_es <> d.country_name_es
+  OR c.country_name_en <> d.country_name_en
+)
+TO '/tmp/countries_changed.csv' WITH DELIMITER ',' CSV HEADER
+;
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Updating modified country names' AS Task;
