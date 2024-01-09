@@ -91,7 +91,8 @@
 #   UPDATE notes AS n
 #    SET id_country = b.id_country
 #    FROM backup_note_country AS b
-#    WHERE b.note_id = n.note_id;
+#    WHERE b.note_id = n.note_id
+#     AND n.id_country IS NULL;
 # To create the copy before the execution:
 #   CREATE TABLE backup_countries AS TABLE countries;
 #   CREATE TABLE backup_note_country AS
@@ -589,7 +590,7 @@ function __processCountries {
   echo "2186646" # Antarctica continent
  } >> "${COUNTRIES_FILE}"
 
- # TODO This should be in parallel, using the variable.
+ # TODO This should be in parallel, using the variable. PARALLELISM
  __logi "Retrieving the countries' boundaries."
  while read -r LINE; do
   ID=$(echo "${LINE}" | awk '{print $1}')
@@ -809,7 +810,7 @@ function __getLocationNotes {
   echo "    SET id_country = b.id_country"
   echo "    FROM backup_note_country AS b"
   echo "    WHERE b.note_id = n.note_id"
-  echo "     AND id_country IS NULL;"
+  echo "     AND n.id_country IS NULL;"
   read -r
  else
   declare -l MAX_NOTE_ID
@@ -819,18 +820,18 @@ function __getLocationNotes {
   MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
   MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
 
-  PARALLELISM=$(nproc)
+  MAX_THREADS=$(nproc)
   # Uses n-1 cores, if number of cores is greater than 1.
   # This prevents monopolization of the CPUs.
-  if [[ "${PARALLELISM}" -gt 1 ]]; then
-   PARALLELISM=$((PARALLELISM-1))
-  elif [[ "${PARALLELISM}" -gt 6 ]]; then
-   PARALLELISM=$((PARALLELISM-2))
+  if [[ "${MAX_THREADS}" -gt 1 ]]; then
+   MAX_THREADS=$((MAX_THREADS-1))
+  elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+   MAX_THREADS=$((MAX_THREADS-2))
   fi
 
-  declare -l SIZE=$((MAX_NOTE_ID / PARALLELISM))
+  declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
   rm -r "${LAST_NOTE_FILE}"
-  for J in $(seq 1 1 "${PARALLELISM}"); do
+  for J in $(seq 1 1 "${MAX_THREADS}"); do
    (
     __logi "Starting ${J}."
     MIN=$((SIZE * (J - 1) + LOOP_SIZE))
@@ -969,12 +970,22 @@ function main() {
   __removeDuplicates # sync & locate
   __loadTextComments # sync & locate
   __dropSyncTables   # sync & locate
+  set +E
+  export RET_FUNC=0
   __organizeAreas    # sync & locate
-  RET=${?}
-  if [[ "${RET}" -ne 0 ]]; then
+  set -E
+  if [[ "${RET_FUNC}" -ne 0 ]]; then
    __createCountryTables # sync & locate
-   __processCountries    # sync & locate
-   __processMaritimes    # sync & locate
+   if [[ (  -n "${BACKUP}" && "${BACKUP}" = true ) ]] \
+     || [[ ( -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ) ]]; then
+    echo "Please copy the rows from the backup table:"
+    echo "   INSERT INTO countries "
+    echo "     SELECT * FROM backup_countries ;"
+    read -r
+   else
+    __processCountries # sync & locate
+    __processMaritimes # sync & locate
+   fi
    __cleanPartial        # sync & locate
    __organizeAreas
   fi
