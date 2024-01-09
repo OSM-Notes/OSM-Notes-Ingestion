@@ -220,17 +220,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
     m_recent_opened_dimension_id_date := m_opened_id_date;
    ELSIF (rec_note_action.action_comment = 'reopened') THEN
     m_recent_opened_dimension_id_date := m_action_id_date;
-   ELSE
-    -- This returns null when initial load on parallel.
-    SELECT MAX(fact_id)
-     INTO m_previous_action
-    FROM staging.facts_${YEAR} f
-    WHERE f.id_note = rec_note_action.id_note;
-
-    SELECT recent_opened_dimension_id_date
-     INTO m_recent_opened_dimension_id_date
-    FROM staging.facts_${YEAR} f
-    WHERE f.fact_id = m_previous_action;
+   --ELSE
+   -- The real value is computed once all years are merged.
    END IF;
 
    -- Gets hashtags.
@@ -308,7 +299,6 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    IF (MOD(m_count, 1000) = 0) THEN
     RAISE NOTICE '%: % processed facts for % until %', CURRENT_TIMESTAMP,
      m_count, ${YEAR}, max_processed_timestamp;
-    COMMIT; -- TODO Funcionara para agilizar?
    END IF;
 
    m_count := m_count + 1;
