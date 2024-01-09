@@ -44,7 +44,7 @@ profile can be used for any user.
 
 **Notes initial load**
 
-* 40 minutes: Downloading the countries and maritime areas.
+* 10 minutes: Downloading the countries and maritime areas.
   * This process has a pause between calls because the public Overpass turbo is
     restricted by the number of requests per minute.
     If another Overpass instance is used that does not block when many requests,
