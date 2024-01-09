@@ -177,8 +177,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-08
-declare -r VERSION="2024-01-08"
+# Version: 2024-01-09
+declare -r VERSION="2024-01-09"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -540,6 +540,94 @@ function __createCountryTables {
  __log_finish
 }
 
+# Processes the list of countries or maritimes areas in the given file.
+function __processList {
+ __log_start
+
+ BOUNDARIES_FILE="${1}"
+ __logi "Retrieving the countriy or maritime boundaries."
+ while read -r LINE; do
+  ID=$(echo "${LINE}" | awk '{print $1}')
+  JSON_FILE="${TMP_DIR}/${ID}.json"
+  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
+  __logi "ID: ${ID}"
+  cat << EOF > "${QUERY_FILE}"
+   [out:json];
+   rel(${ID});
+   (._;>;);
+   out;
+EOF
+  __logi "Retrieving shape."
+  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
+
+  __logi "Converting into geoJSON."
+  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
+  set +e
+  set +o pipefail
+  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
+   | awk -F\" '{print $4}' | sed "s/'/''/")
+  NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
+   | awk -F\" '{print $4}' | sed "s/'/''/")
+  NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
+   | awk -F\" '{print $4}' | sed "s/'/''/")
+  set -o pipefail
+  set -e
+  __logi "Name: ${NAME_EN}."
+
+  # Taiwan cannot be imported directly. Thus, a simplification is done.
+  # ERROR:  row is too big: size 8616, maximum size 8160
+  grep -v "official_name" "${GEOJSON_FILE}" \
+   | grep -v "alt_name" > "${GEOJSON_FILE}-new"
+  mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
+
+  __logi "Importing into Postgres."
+  LOCK_OVERPASS=/tmp/ogr2ogr.lock
+  while [[ -r "${LOCK_OVERPASS}" && $(cat "${LOCK_OVERPASS}") != "" ]]; do
+   __logw "$(date '+%Y-%m-%d %H:%M:%S') ${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
+   sleep 1
+  done
+  echo "${BASHPID}" > "${LOCK_OVERPASS}"
+  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
+   "${GEOJSON_FILE}" -nln import -overwrite
+  # If an error like this appear:
+  # ERROR:  column "name:xx-XX" specified more than once
+  # It means two of the objects of the country has a name for the same
+  # language, but with different case. The current solution is to open
+  # the JSON file, look for the language, and modify the parts to have the
+  # same case.
+  sleep 1
+  echo "" > "${LOCK_OVERPASS}"
+
+  __logi "Inserting into final table."
+  if [[ "${ID}" -ne 16239 ]]; then
+   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
+     country_name_en, geom)
+     select ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
+      ST_Union(ST_makeValid(wkb_geometry))
+     from import group by 1"
+  else # This case is for Austria.
+   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
+   # Self-intersection at or near point 10.454439900000001 47.555796399999998
+   # at 10.454439900000001 47.555796399999998
+   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
+     country_name_en, geom)
+     select ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
+      ST_Union(ST_Buffer(wkb_geometry,0.0))
+     from import group by 1"
+  fi
+  __logd "${STATEMENT}"
+  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+   rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
+  fi
+  __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
+  sleep "${SECONDS_TO_WAIT}"
+ done < "${BOUNDARIES_FILE}"
+
+ __log_finish
+}
+
 # Download the list of countries, then it downloads each country individually,
 # converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
 # country into the Postgres database with ogr2ogr.
@@ -590,78 +678,29 @@ function __processCountries {
   echo "2186646" # Antarctica continent
  } >> "${COUNTRIES_FILE}"
 
- # TODO This should be in parallel, using the variable. PARALLELISM
- __logi "Retrieving the countries' boundaries."
- while read -r LINE; do
-  ID=$(echo "${LINE}" | awk '{print $1}')
-  JSON_FILE="${TMP_DIR}/${ID}.json"
-  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "ID: ${ID}"
-  cat << EOF > "${QUERY_FILE}"
-   [out:json];
-   rel(${ID});
-   (._;>;);
-   out;
-EOF
-  __logi "Retrieving shape."
-  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
+ # Processes the countries in parallel.
+ MAX_THREADS=$(nproc)
+ # Uses n-1 cores, if number of cores is greater than 1.
+ # This prevents monopolization of the CPUs.
+ if [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
+ elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+  MAX_THREADS=$((MAX_THREADS-2))
+ fi
+ TOTAL_LINES=$(cat ${COUNTRIES_FILE} | wc -l)
+ SIZE=$((TOTAL_LINES / MAX_THREADS))
+ SIZE=$((SIZE + 1))
+ split -l"${SIZE}" "${COUNTRIES_FILE}" "${TMP_DIR}/part_country_"
+ for I in $(ls -1 ${TMP_DIR}/part_country_??) ; do
+  (
+   __logi "Starting list ${I}"
+   __processList "${I}"
+   __logi "Finished list ${I}"
+  ) &
+  sleep 5
+ done
 
-  __logi "Converting into geoJSON."
-  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
-  set +e
-  set +o pipefail
-  COUNTRY=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  COUNTRY_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  COUNTRY_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  set -o pipefail
-  set -e
-  __logi "Name: ${COUNTRY_EN}."
-
-  # Taiwan cannot be imported directly. Thus, a simplification is done.
-  # ERROR:  row is too big: size 8616, maximum size 8160
-  grep -v "official_name" "${GEOJSON_FILE}" \
-   | grep -v "alt_name" > "${GEOJSON_FILE}-new"
-  mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
-
-  __logi "Importing into Postgres."
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
-   "${GEOJSON_FILE}" -nln import -overwrite
-  # If an error like this appear:
-  # ERROR:  column "name:xx-XX" specified more than once
-  # It means two of the objects of the country has a name for the same
-  # language, but with different case. The current solution is to open
-  # the JSON file, look for the language, and modify the parts to have the
-  # same case.
-
-  __logi "Inserting into final table."
-  if [[ "${ID}" -ne 16239 ]]; then
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom)
-     select ${ID}, '${COUNTRY}', '${COUNTRY_ES}', '${COUNTRY_EN}',
-      ST_Union(ST_makeValid(wkb_geometry))
-     from import group by 1"
-  else # This case is for Austria.
-   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
-   # Self-intersection at or near point 10.454439900000001 47.555796399999998
-   # at 10.454439900000001 47.555796399999998
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom)
-     select ${ID}, '${COUNTRY}', '${COUNTRY_ES}', '${COUNTRY_EN}',
-      ST_Union(ST_Buffer(wkb_geometry,0.0))
-     from import group by 1"
-  fi
-  __logd "${STATEMENT}"
-  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
-  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-   rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
-  fi
-  __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
-  sleep "${SECONDS_TO_WAIT}"
- done < "${COUNTRIES_FILE}"
+ wait
  __log_finish
 }
 
@@ -685,54 +724,29 @@ function __processMaritimes {
  tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
  mv "${MARITIMES_FILE}.tmp" "${MARITIMES_FILE}"
 
- __logi "Retrieving the maritimes' boundaries."
- while read -r LINE; do
-  ID=$(echo "${LINE}" | awk '{print $1}')
-  JSON_FILE="${TMP_DIR}/${ID}.json"
-  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "ID: ${ID}"
-  cat << EOF > "${QUERY_FILE}"
-   [out:json];
-   rel(${ID});
-   (._;>;);
-   out;
-EOF
-  __logi "Retrieving shape."
-  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
+ # Processes the maritimes in parallel.
+ MAX_THREADS=$(nproc)
+ # Uses n-1 cores, if number of cores is greater than 1.
+ # This prevents monopolization of the CPUs.
+ if [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
+ elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+  MAX_THREADS=$((MAX_THREADS-2))
+ fi
+ TOTAL_LINES=$(cat ${MARITIMES_FILE} | wc -l)
+ SIZE=$((TOTAL_LINES / MAX_THREADS))
+ SIZE=$((SIZE + 1))
+ split -l"${SIZE}" "${MARITIMES_FILE}" "${TMP_DIR}/part_maritime_"
+ for I in $(ls -1 ${TMP_DIR}/part_maritime_??) ; do
+  (
+   __logi "Starting list ${I}"
+   __processList "${I}"
+   __logi "Finished list ${I}"
+  ) &
+  sleep 5
+ done
 
-  __logi "Converting into geoJSON."
-  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
-  set +e
-  set +o pipefail
-  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  set -o pipefail
-  set -e
-  __logi "Name: ${NAME_EN}"
-
-  __logi "Importing into Postgres."
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
-   "${GEOJSON_FILE}" -nln import -overwrite
-
-  __logi "Inserting into final table."
-  STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-    country_name_en, geom) 
-    SELECT /* Notes-processPlanet */ ${ID}, '${NAME}', '${NAME_ES:-${NAME}}',
-     '${NAME_EN:-${NAME}}', ST_Union(wkb_geometry) 
-    FROM import GROUP BY 1"
-  __logd "${STATEMENT}"
-  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
-  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-   rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
-  fi
-  __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
-  sleep "${SECONDS_TO_WAIT}"
- done < "${MARITIMES_FILE}"
+ wait
 
  __logi "Calculating statistics on countries."
  echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
@@ -863,6 +877,7 @@ function __cleanNotesFiles {
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
+  rm -f "${TMP_DIR}"/part_country_* "${TMP_DIR}"/part_maritime_*
  fi
  __log_finish
 }
