@@ -109,6 +109,11 @@ CREATE UNIQUE INDEX dimension_user_id_uniq
  (user_id);
 COMMENT ON INDEX dwh.dimension_user_id_uniq IS 'OSM User id';
 
+CREATE UNIQUE INDEX dimension_username_uniq
+ ON dwh.dimension_users
+ (username);
+COMMENT ON INDEX dwh.dimension_username_uniq IS 'Unique username';
+
 CREATE UNIQUE INDEX dimension_country_id_uniq
  ON dwh.dimension_countries
  (country_id);
