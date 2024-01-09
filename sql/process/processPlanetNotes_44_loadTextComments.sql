@@ -1,8 +1,8 @@
 -- Loads notes into the sync tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-03
-  
+-- Version: 2024-01-08
+
 TRUNCATE TABLE note_comments_text;
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
  'Uploading text comments' AS Text;
@@ -17,6 +17,9 @@ SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
  COUNT(1) AS Qty,
   'Uploaded text comments' AS Text
 FROM note_comments_text;
+
+SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+ 'Adding sequence text comment' AS Text;
 
 DO /* Notes-processPlanet-assignSequence-text */
 $$
@@ -57,4 +60,7 @@ DECLARE
 
 END
 $$;
+
+SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+ 'Sequence added text comment' AS Text;
 

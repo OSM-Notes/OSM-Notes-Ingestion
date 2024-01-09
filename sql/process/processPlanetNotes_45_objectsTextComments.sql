@@ -3,6 +3,9 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-08
 
+SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+ 'Changing sequence text comment - adding foreign key and trigger' AS Text;
+
 ALTER TABLE note_comments_text ALTER COLUMN sequence_action SET NOT NULL;
 
 CREATE UNIQUE INDEX sequence_note_comment_text
@@ -51,3 +54,6 @@ CREATE OR REPLACE TRIGGER put_seq_on_text_comment_trigger
 ;
 COMMENT ON TRIGGER put_seq_on_text_comment_trigger ON note_comments_text IS
   'Trigger to assign the sequence value';
+
+SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+ 'Sequence changed text comment' AS Text;

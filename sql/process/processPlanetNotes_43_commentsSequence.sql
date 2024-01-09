@@ -2,7 +2,10 @@
 -- this.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-05
+-- Version: 2024-01-08
+
+SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+ 'Assign sequence to comments' AS Text;
 
 DO /* Notes-processPlanet-assignSequence */
 $$
@@ -43,6 +46,9 @@ DECLARE
 
 END
 $$;
+
+SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+ 'Changing sequence comment - adding foreign key and trigger' AS Text;
 
 ALTER TABLE note_comments ALTER COLUMN sequence_action SET NOT NULL;
 
@@ -85,3 +91,7 @@ CREATE OR REPLACE TRIGGER put_seq_on_comment_trigger
 ;
 COMMENT ON TRIGGER put_seq_on_comment_trigger ON note_comments IS
   'Trigger to assign the sequence value';
+
+SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+ 'Sequence changed comment' AS Text;
+
