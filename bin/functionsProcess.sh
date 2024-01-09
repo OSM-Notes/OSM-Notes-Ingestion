@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-20
+# Version: 2024-01-08
 
 # Error codes.
 # 1: Help message.
@@ -239,8 +239,8 @@ function __checkBaseTables {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CHECK_BASE_TABLES}"
  RET=${?}
  set -e
- __log_finish
  RET_FUNC="${RET}"
+ __log_finish
 }
 
 # Downloads the notes from the planet.
@@ -338,8 +338,11 @@ function __createProcedures {
 # Assigns a value to each area to find it easily.
 function __organizeAreas {
  __log_start
+ set +e
  # Insert values for representative countries in each area.
-
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_ORGANIZE_AREAS}"
+ RET=${?}
+ set -e
+ RET_FUNC="${RET}"
  __log_finish
 }
