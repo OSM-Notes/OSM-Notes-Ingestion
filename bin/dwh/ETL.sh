@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-01-02
-declare -r VERSION="2023-01-02"
+# Version: 2023-01-09
+declare -r VERSION="2023-01-09"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -70,41 +70,35 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Name of the SQL script that populates the dimensions.
-declare -r POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-populateDimensionTables.sql"
-
-# Name of the SQL script that updates the dimensions.
-declare -r UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-updateDimensionTables.sql"
-
 # Name of the SQL script that check the existance of base tables.
-declare -r CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkDWHTables.sql"
+declare -r POSTGRES_11_CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-checkDWHTables.sql"
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-removeDWHObjects.sql"
-
+declare -r POSTGRES_21_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-removeDWHObjects.sql"
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHTables.sql"
-
+declare -r POSTGRES_22_CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-createDWHTables.sql"
 # Regions per country.
-declare -r REGIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-getWorldRegion.sql"
-
+declare -r POSTGRES_23_REGIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-getWorldRegion.sql"
 # Name of the SQL script that contains the alter statements.
-declare -r ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-addConstraintsIndexesTriggers.sql"
-
+declare -r POSTGRES_24_ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-addConstraintsIndexesTriggers.sql"
 # Create staging procedures.
-declare -r CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-createStagingObjects.sql"
+declare -r POSTGRES_25_CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-createStagingObjects.sql"
+# Name of the SQL script that populates the dimensions.
+declare -r POSTGRES_26_POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-populateDimensionTables.sql"
+# Name of the SQL script that updates the dimensions.
+declare -r POSTGRES_27_UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL-updateDimensionTables.sql"
 
 # Script to do the initial load - create.
-declare -r POSTGRES_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadCreate.sql"
+declare -r POSTGRES_31_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadCreate.sql"
 # Script to do the initial load - execute.
-declare -r POSTGRES_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadExecute.sql"
+declare -r POSTGRES_32_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadExecute.sql"
 # Script to do the initial load - drop.
-declare -r POSTGRES_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadDrop.sql"
+declare -r POSTGRES_33_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-initialFactsLoadDrop.sql"
 # Script to do the initial load - execute.
-declare -r POSTGRES_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-unify.sql"
+declare -r POSTGRES_34_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-unify.sql"
 
 # Create staging procedures.
-declare -r LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-loadNotes.sql"
+declare -r POSTGRES_21_LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging-loadNotes.sql"
 
 # Location of the datamart user script.
 declare -r DATAMART_COUNTRIES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
@@ -157,44 +151,56 @@ function __checkPrereqs {
   __loge "ERROR: File datamartUsers.sh was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${CHECK_BASE_TABLES_FILE}" ]]; then
-  __loge "ERROR: File ETL-checkDWHTables.sql was not found."
+ if [[ ! -r "${POSTGRES_11_CHECK_BASE_TABLES_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_11_CHECK_BASE_TABLES_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${DROP_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ETL-removeDWHObjects.sql was not found."
+ if [[ ! -r "${POSTGRES_21_DROP_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_21_DROP_OBJECTS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${CREATE_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ETL-createDWHTables.sql was not found."
+ if [[ ! -r "${POSTGRES_22_CREATE_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_22_CREATE_OBJECTS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${REGIONS_FILE}" ]]; then
-  __loge "ERROR: File ETL-getWorldRegion.sql was not found."
+ if [[ ! -r "${POSTGRES_23_REGIONS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_23_REGIONS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${ADD_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ETL-addConstraintsIndexesTriggers.sql was not found."
+ if [[ ! -r "${POSTGRES_24_ADD_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_24_ADD_OBJECTS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POPULATE_DIMENSIONS_FILE}" ]]; then
-  __loge "ERROR: File ETL-populateDimensionTables.sql was not found."
+ if [[ ! -r "${POSTGRES_25_CREATE_STAGING_OBJS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_25_CREATE_STAGING_OBJS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_FACTS_YEAR_CREATE}" ]]; then
-  __loge "ERROR: File Staging-initialFactsLoadCreate.sql was not found."
+ if [[ ! -r "${POSTGRES_26_POPULATE_DIMENSIONS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_26_POPULATE_DIMENSIONS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_FACTS_YEAR_EXECUTE}" ]]; then
-  __loge "ERROR: File Staging-initialFactsLoadExecute.sql was not found."
+ if [[ ! -r "${POSTGRES_27_UDPATE_DIMENSIONS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_27_UDPATE_DIMENSIONS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_FACTS_YEAR_DROP}" ]]; then
-  __loge "ERROR: File Staging-initialFactsLoadDrop.sql was not found."
+ if [[ ! -r "${POSTGRES_21_LOAD_NOTES_STAGING_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_21_LOAD_NOTES_STAGING_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_FACTS_UNIFY}" ]]; then
-  __loge "ERROR: File Staging-unify.sql was not found."
+ if [[ ! -r "${POSTGRES_31_FACTS_YEAR_CREATE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_31_FACTS_YEAR_CREATE} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_32_FACTS_YEAR_EXECUTE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_32_FACTS_YEAR_EXECUTE} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_33_FACTS_YEAR_DROP}" ]]; then
+  __loge "ERROR: File ${POSTGRES_33_FACTS_YEAR_DROP} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_34_FACTS_UNIFY}" ]]; then
+  __loge "ERROR: File ${POSTGRES_34_FACTS_UNIFY} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -242,10 +248,10 @@ function __initialFacts {
     export YEAR
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_CREATE}" || true)" 2>&1
+     -c "$(envsubst '$YEAR' < "${POSTGRES_31_FACTS_YEAR_CREATE}" || true)" 2>&1
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_EXECUTE}" || true)" 2>&1
+     -c "$(envsubst '$YEAR' < "${POSTGRES_32_FACTS_YEAR_EXECUTE}" || true)" 2>&1
 
     __logi "Finishing ${YEAR}."
    ) &
@@ -284,13 +290,13 @@ function __initialFacts {
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_FACTS_YEAR_DROP}" || true)" 2>&1
+    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_DROP}" || true)" 2>&1
 
    YEAR=$((YEAR + 1))
   done
 
   # Unifies the facts, by computing dates between years.
-  psql -d "${DBNAME}" -f "${POSTGRES_FACTS_UNIFY}" 2>&1
+  psql -d "${DBNAME}" -f "${POSTGRES_34_FACTS_UNIFY}" 2>&1
 
  __log_finish
 }
@@ -299,23 +305,28 @@ function __initialFacts {
 function __createBaseTables {
  __log_start
  __logi "Droping any ETL object if any exist"
- psql -d "${DBNAME}" -f "${DROP_OBJECTS_FILE}" 2>&1
+ psql -d "${DBNAME}" -f "${POSTGRES_21_DROP_OBJECTS_FILE}" 2>&1
 
  __logi "Creating tables for star model if they do not exist."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_OBJECTS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_22_CREATE_OBJECTS_FILE}" 2>&1
  __logi "Regions for countries."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REGIONS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_REGIONS_FILE}" 2>&1
  __logi "Adding relation, indexes AND triggers."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${ADD_OBJECTS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_24_ADD_OBJECTS_FILE}" 2>&1
 
  __logi "Creating staging objects."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_STAGING_OBJS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_25_CREATE_STAGING_OBJS_FILE}" 2>&1
 
  __logi "Initial dimension population."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_DIMENSIONS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_26_POPULATE_DIMENSIONS_FILE}" 2>&1
 
  __logi "Initial user dimension population."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${UDPATE_DIMENSIONS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_27_UDPATE_DIMENSIONS_FILE}" 2>&1
 
  echo "INSERT INTO dwh.properties VALUES ('initial load', 'true')" | \
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
@@ -329,7 +340,8 @@ function __createBaseTables {
 function __checkBaseTables {
  __log_start
  set +e
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_BASE_TABLES_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_11_CHECK_BASE_TABLES_FILE}" 2>&1
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -341,9 +353,11 @@ function __checkBaseTables {
 # Processes the notes and comments.
 function __processNotesETL {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${UDPATE_DIMENSIONS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_27_UDPATE_DIMENSIONS_FILE}" 2>&1
 
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${LOAD_NOTES_STAGING_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_21_LOAD_NOTES_STAGING_FILE}" 2>&1
  __log_finish
 }
 
