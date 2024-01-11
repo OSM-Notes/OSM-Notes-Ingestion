@@ -41,8 +41,7 @@ DECLARE
   m_sequence_value INTEGER;
   m_rec_note_comment RECORD;
   m_note_comments_cursor CURSOR  FOR
-   SELECT
-    note_id
+   SELECT /* Notes-check */ note_id
    FROM note_comments_check
    ORDER BY note_id, id
    FOR UPDATE;
