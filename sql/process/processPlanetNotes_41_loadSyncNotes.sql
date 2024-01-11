@@ -40,8 +40,7 @@ DECLARE
   m_sequence_value INTEGER;
   m_rec_note_comment_sync RECORD;
   m_note_comments_sync_cursor CURSOR  FOR
-   SELECT
-    note_id
+   SELECT /* Notes-processPlanet */ note_id
    FROM note_comments_sync
    ORDER BY note_id, id
    FOR UPDATE;

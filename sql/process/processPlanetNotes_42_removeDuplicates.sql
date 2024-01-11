@@ -72,7 +72,7 @@ BEGIN
   INSERT INTO notes (
     note_id, latitude, longitude, created_at, status, closed_at, id_country
   )
-  SELECT
+  SELECT /* Notes-processPlanet */
     note_id, latitude, longitude, created_at, status, closed_at, id_country
   FROM notes_sync
   ORDER BY note_id;
@@ -110,7 +110,7 @@ SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
   'Deleting duplicates comments sync' AS Text;
 DROP TABLE IF EXISTS note_comments_sync_no_duplicates;
 CREATE TABLE note_comments_sync_no_duplicates AS
-  SELECT
+  SELECT /* Notes-processPlanet */
    note_id,
    sequence_action,
    event,
@@ -168,8 +168,7 @@ BEGIN
   INSERT INTO users (
    user_id, username
    )
-   SELECT
-    id_user, username
+   SELECT /* Notes-processPlanet */ id_user, username
    FROM note_comments_sync
    WHERE id_user IS NOT NULL
    GROUP BY id_user, username;

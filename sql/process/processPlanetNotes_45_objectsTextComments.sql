@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION put_seq_on_text_comment()
   max_value INTEGER;
  BEGIN
   IF (NEW.sequence_action IS NULL) THEN
-   SELECT MAX(sequence_action)
+   SELECT /* Notes-processPlanet */ MAX(sequence_action)
     INTO max_value
    FROM note_comments_text
    WHERE note_id = NEW.note_id;

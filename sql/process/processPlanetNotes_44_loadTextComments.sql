@@ -29,8 +29,7 @@ DECLARE
   m_sequence_value INTEGER;
   m_rec_note_comment_text RECORD;
   m_note_comments_text_cursor CURSOR  FOR
-   SELECT
-    note_id
+   SELECT /* Notes-processPlanet */ note_id
    FROM note_comments_text
    ORDER BY note_id, id
    FOR UPDATE;

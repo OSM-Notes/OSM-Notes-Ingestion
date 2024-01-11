@@ -15,8 +15,7 @@ DECLARE
   m_sequence_value INTEGER;
   m_rec_note_comment RECORD;
   m_note_comments_cursor CURSOR  FOR
-   SELECT
-    note_id
+   SELECT /* Notes-processPlanet */ note_id
    FROM note_comments
    ORDER BY note_id, id
    FOR UPDATE;
@@ -66,7 +65,7 @@ CREATE OR REPLACE FUNCTION put_seq_on_comment()
  DECLARE
   max_value INTEGER;
  BEGIN
-   SELECT MAX(sequence_action)
+   SELECT /* Notes-processPlanet */ MAX(sequence_action)
     INTO max_value
    FROM note_comments
    WHERE note_id = NEW.note_id;
