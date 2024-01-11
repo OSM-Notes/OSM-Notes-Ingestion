@@ -12,8 +12,7 @@ DECLARE
   m_sequence_value INTEGER;
   m_rec_note_comment_text RECORD;
   m_note_comments_text_api_cursor CURSOR  FOR
-   SELECT
-    note_id
+   SELECT /* Notes-processAPI */ note_id
    FROM note_comments_text_api
    ORDER BY note_id, id
    FOR UPDATE;
@@ -51,5 +50,5 @@ SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
  'Sequence values assigned' AS Text;
 
 INSERT INTO note_comments_text (note_id, sequence_action, body)
- SELECT note_id, sequence_action, body FROM note_comments_text_api
+ SELECT /* Notes-processAPI */ note_id, sequence_action, body FROM note_comments_text_api
  ON CONFLICT DO NOTHING;
