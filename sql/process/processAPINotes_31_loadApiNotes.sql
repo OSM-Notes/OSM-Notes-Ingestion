@@ -1,7 +1,7 @@
 -- Loads the notes and note comments on the API tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-08
+-- Version: 2024-01-11
   
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
  'Loading notes from API' AS Text;
@@ -41,3 +41,42 @@ SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
  COUNT(1) AS Qty, 'Uploaded new text comments' AS Text
 FROM note_comments_text_api;
+
+DO /* Notes-processPlanet-assignSequence-api */
+$$
+DECLARE
+  m_current_note_id INTEGER;
+  m_previous_note_id INTEGER;
+  m_sequence_value INTEGER;
+  m_rec_note_comment_api RECORD;
+  m_note_comments_api_cursor CURSOR  FOR
+   SELECT /* Notes-processAPI */ note_id
+   FROM note_comments_api
+   ORDER BY note_id, id
+   FOR UPDATE;
+
+ BEGIN
+  OPEN m_note_comments_api_cursor;
+
+  LOOP
+   FETCH m_note_comments_api_cursor INTO m_rec_note_comment_api;
+   -- Exit when no more rows to fetch.
+   EXIT WHEN NOT FOUND;
+
+   m_current_note_id := m_rec_note_comment_api.note_id;
+   IF (m_previous_note_id = m_current_note_id) THEN
+    m_sequence_value := m_sequence_value + 1;
+   ELSE
+    m_sequence_value := 1;
+    m_previous_note_id := m_current_note_id;
+   END IF;
+
+   UPDATE note_comments_api
+    SET sequence_action = m_sequence_value
+    WHERE CURRENT OF m_note_comments_api_cursor;
+  END LOOP;
+
+  CLOSE m_note_comments_api_cursor;
+
+END
+$$;

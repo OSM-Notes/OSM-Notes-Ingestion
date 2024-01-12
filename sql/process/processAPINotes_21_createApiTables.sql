@@ -1,7 +1,7 @@
 -- Create API tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-08
+-- Version: 2024-01-11
   
 CREATE TABLE notes_api (
  note_id INTEGER NOT NULL,
@@ -27,6 +27,7 @@ COMMENT ON COLUMN notes_api.id_country IS
 CREATE TABLE note_comments_api (
  id SERIAL,
  note_id INTEGER NOT NULL,
+ sequence_action INTEGER,
  event note_event_enum NOT NULL,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
  created_at TIMESTAMP NOT NULL,
@@ -39,6 +40,8 @@ COMMENT ON COLUMN note_comments_api.id IS
   'Generated ID to keep track of the comments order';
 COMMENT ON COLUMN note_comments_api.note_id IS
   'Id of the associated note of this comment';
+COMMENT ON COLUMN note_comments_api.sequence_action IS
+  'Comment sequence generated from this tool';
 COMMENT ON COLUMN note_comments_api.event IS
   'Type of action was performed on the note';
 COMMENT ON COLUMN note_comments_api.processing_time IS
