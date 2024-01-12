@@ -1,7 +1,7 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-03
+-- Version: 2024-01-12
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
 
@@ -129,6 +129,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   m_hashtag_id_3 INTEGER;
   m_hashtag_id_4 INTEGER;
   m_hashtag_id_5 INTEGER;
+  m_hashtag_number INTEGER;
   m_previous_action INTEGER;
   m_count INTEGER;
   m_text_comment TEXT;
@@ -227,22 +228,32 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    -- Gets hashtags.
    IF (rec_note_action.body LIKE '%#%') THEN
     m_text_comment := rec_note_action.body;
-    --RAISE NOTICE 'Requesting id for hashtag: %', m_text_comment;
+    --RAISE NOTICE 'Requesting id for hashtag: %', m_hashtag_name;
     CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
     m_hashtag_id_1 := staging.get_hashtag_id(m_hashtag_name);
+    m_hashtag_number := 1;
     --RAISE NOTICE 'hashtag: %: %', m_hashtag_id_1, m_hashtag_name;
     IF (m_text_comment LIKE '%#%') THEN
      CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
      m_hashtag_id_2 := staging.get_hashtag_id(m_hashtag_name);
+     m_hashtag_number := 2;
      IF (m_text_comment LIKE '%#%') THEN
       CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
       m_hashtag_id_3 := staging.get_hashtag_id(m_hashtag_name);
+      m_hashtag_number := 3;
       IF (m_text_comment LIKE '%#%') THEN
        CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
        m_hashtag_id_4 := staging.get_hashtag_id(m_hashtag_name);
+       m_hashtag_number := 4;
        IF (m_text_comment LIKE '%#%') THEN
         CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
         m_hashtag_id_5 := staging.get_hashtag_id(m_hashtag_name);
+        m_hashtag_number := 5;
+        WHILE (m_text_comment LIKE '%#%') DO
+         CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
+         -- If there are new hashtags, it does not insert them in the dimension.
+         m_hashtag_number := m_hashtag_number + 1;
+        END WHILE;
        END IF;
       END IF;
      END IF;
@@ -259,7 +270,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
      closed_dimension_id_user, dimension_application_creation,
      recent_opened_dimension_id_date, hashtag_1, hashtag_2, hashtag_3,
-     hashtag_4, hashtag_5
+     hashtag_4, hashtag_5, hashtag_number
    ) VALUES (
      rec_note_action.id_note, m_dimension_country_id,
      rec_note_action.action_at, rec_note_action.action_comment,
@@ -267,7 +278,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
      m_opened_id_date, m_opened_id_hour_of_week, m_dimension_user_open,
      m_closed_id_date, m_closed_id_hour_of_week, m_dimension_user_close,
      m_application, m_recent_opened_dimension_id_date, m_hashtag_id_1,
-     m_hashtag_id_2, m_hashtag_id_3, m_hashtag_id_4, m_hashtag_id_5
+     m_hashtag_id_2, m_hashtag_id_3, m_hashtag_id_4, m_hashtag_id_5,
+     m_hashtag_number
    );
 
    -- Resets the variables.
@@ -292,6 +304,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    m_hashtag_id_3 := null;
    m_hashtag_id_4 := null;
    m_hashtag_id_5 := null;
+   hashtag_number := 0;
 
    SELECT /* Notes-staging */ COUNT(1)
     INTO m_count
