@@ -1,7 +1,7 @@
 -- Create constraints in base tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-03
+-- Version: 2024-01-11
   
 ALTER TABLE users
  ADD CONSTRAINT pk_users
@@ -57,3 +57,8 @@ COMMENT ON INDEX note_comments_id_created IS 'To query by the id and creation ti
 
 CREATE INDEX IF NOT EXISTS note_comments_id_text ON note_comments_text (note_id);
 COMMENT ON INDEX note_comments_id_text IS 'To query by the note id';
+
+CREATE UNIQUE INDEX username_uniq
+ ON users
+ (username);
+COMMENT ON INDEX username_uniq IS 'Username is unique';
