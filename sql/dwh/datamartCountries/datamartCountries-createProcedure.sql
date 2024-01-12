@@ -234,7 +234,7 @@ AS $proc$
     'quantity', quantity))
     INTO m_ranking_users_opening_year
    FROM (
-    SELECT
+    SELECT /* Notes-datamartCountries */
      RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
 	  FROM (
      SELECT /* Notes-datamartCountries */ u.username AS username,
@@ -258,7 +258,7 @@ AS $proc$
     'quantity', quantity))
     INTO m_ranking_users_closing_year
    FROM (
-    SELECT
+    SELECT /* Notes-datamartCountries */
      RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
     FROM (
      SELECT /* Notes-datamartCountries */ u.username AS username,
@@ -458,7 +458,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_users_open_notes
   FROM (
-   SELECT
+   SELECT /* Notes-datamartCountries */
     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
    FROM (
     SELECT /* Notes-datamartCountries */ u.username AS username,
@@ -479,7 +479,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_users_solving_notes
   FROM (
-   SELECT
+   SELECT /* Notes-datamartCountries */
     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
    FROM (
     SELECT /* Notes-datamartCountries */ u.username AS username,
@@ -509,7 +509,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_users_open_notes_current_month
   FROM (
-   SELECT
+   SELECT /* Notes-datamartCountries */
     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
    FROM (
     SELECT /* Notes-datamartCountries */ u.username AS username,
@@ -534,7 +534,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_users_solving_notes_current_month
   FROM (
-   SELECT
+   SELECT /* Notes-datamartCountries */
     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
    FROM (
     SELECT /* Notes-datamartCountries */ u.username AS username,
@@ -559,7 +559,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_users_open_notes_current_day
   FROM (
-   SELECT
+   SELECT /* Notes-datamartCountries */
     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
    FROM (
     SELECT /* Notes-datamartCountries */ u.username AS username,
@@ -585,7 +585,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_users_solving_notes_current_day
   FROM (
-   SELECT
+   SELECT /* Notes-datamartCountries */
     RANK () OVER (ORDER BY quantity DESC) rank, username, quantity
    FROM (
     SELECT /* Notes-datamartCountries */ u.username AS username,
