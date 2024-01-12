@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-01-09
-declare -r VERSION="2023-01-09"
+# Version: 2024-01-12
+declare -r VERSION="2024-01-12"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -80,14 +80,13 @@ declare -r POSTGRES_22_CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL
 # Regions per country.
 declare -r POSTGRES_23_REGIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_23_getWorldRegion.sql"
 # Name of the SQL script that contains the alter statements.
-declare -r POSTGRES_24_ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_24_addConstraintsIndexesTriggers.sql"
+declare -r POSTGRES_24_ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_24_addFunctions.sql"
 # Create staging procedures.
 declare -r POSTGRES_25_POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_25_populateDimensionTables.sql"
 # Name of the SQL script that updates the dimensions.
 declare -r POSTGRES_26_UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_26_updateDimensionTables.sql"
 # Create staging procedures.
 declare -r POSTGRES_27_LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_27_loadNotes.sql"
-
 
 declare -r POSTGRES_31_CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_31_createStagingObjects.sql"
 # Name of the SQL script that populates the dimensions.
@@ -99,6 +98,9 @@ declare -r POSTGRES_33_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Stag
 declare -r POSTGRES_34_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_34_initialFactsLoadDrop.sql"
 # Script to do the initial load - execute.
 declare -r POSTGRES_35_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_35_unify.sql"
+
+# Name of the SQL script that contains the alter statements.
+declare -r POSTGRES_36_ADD_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_36_addConstraintsIndexesTriggers.sql"
 
 # Location of the datamart user script.
 declare -r DATAMART_COUNTRIES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
@@ -201,6 +203,10 @@ function __checkPrereqs {
  fi
  if [[ ! -r "${POSTGRES_35_FACTS_UNIFY}" ]]; then
   __loge "ERROR: File ${POSTGRES_35_FACTS_UNIFY} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_36_ADD_CONSTRAINTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_36_ADD_CONSTRAINTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -310,6 +316,9 @@ function __initialFacts {
   # Unifies the facts, by computing dates between years.
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_FACTS_UNIFY}" 2>&1
 
+  # Unifies the facts, by computing dates between years.
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -f "${POSTGRES_36_ADD_CONSTRAINTS}" 2>&1
  __log_finish
 }
 
