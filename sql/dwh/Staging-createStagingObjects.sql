@@ -46,7 +46,7 @@ CREATE OR REPLACE FUNCTION staging.get_hashtag_id (
   IF (m_hashtag_name IS NULL) THEN
    m_id_dimension_hashtag := 1;
   ELSE
-   SELECT /* Notes-ETL */ dimension_hashtag_id
+   SELECT /* Notes-staging */ dimension_hashtag_id
     INTO m_id_dimension_hashtag
    FROM dwh.dimension_hashtags
    WHERE description = m_hashtag_name;
@@ -129,7 +129,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_hashtag_name TEXT;
   rec_note_action RECORD;
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
-   SELECT
+   SELECT /* Notes-staging */
     c.note_id id_note, n.created_at created_at, o.id_user created_id_user,
     n.id_country id_country, c.sequence_action seq, c.event action_comment,
     c.id_user action_id_user, c.created_at action_at, t.body
@@ -214,12 +214,12 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    ELSIF (rec_note_action.action_comment = 'reopened') THEN
     m_recent_opened_dimension_id_date := m_action_id_date;
    ELSE
-    SELECT max(fact_id)
+    SELECT /* Notes-staging */ max(fact_id)
      INTO m_previous_action
     FROM dwh.facts f
     WHERE f.id_note = rec_note_action.id_note;
   
-    SELECT recent_opened_dimension_id_date
+    SELECT /* Notes-staging */ recent_opened_dimension_id_date
      INTO m_recent_opened_dimension_id_date
     FROM dwh.facts f
     WHERE f.fact_id = m_previous_action;
@@ -429,7 +429,7 @@ CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
   m_previous_action INTEGER;
   rec_no_recent_open_fact RECORD;
   no_recent_open CURSOR  FOR
-   SELECT
+   SELECT /* Notes-staging */
     fact_id
    FROM dwh.facts f
    WHERE f.days_to_resolution_active IS NULL
@@ -444,13 +444,13 @@ CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
    -- Exit when no more rows to fetch.
    EXIT WHEN NOT FOUND;
 
-   SELECT max(fact_id)
+   SELECT /* Notes-staging */ max(fact_id)
     INTO m_previous_action
    FROM dwh.facts f
    WHERE f.id_note = rec_no_recent_open_fact.id_note
    AND  f.days_to_resolution_active IS NOT NULL;
 
-   SELECT recent_opened_dimension_id_date
+   SELECT /* Notes-staging */ recent_opened_dimension_id_date
     INTO m_recent_opened_dimension_id_date
    FROM dwh.facts f
    WHERE f.fact_id = m_previous_action;
