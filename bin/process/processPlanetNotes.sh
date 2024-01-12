@@ -171,6 +171,7 @@
 # 242) Invalid argument for script invocation.
 # 243) Logger utility is not available.
 # 244) Ids list cannot be downloaded.
+# 249) Error downloading boundary.
 #
 # For contributing, please execute these commands before subimitting:
 # * shellcheck -x -o all processPlanetNotes.sh
@@ -193,6 +194,8 @@ set -E
 # Error codes.
 # 244: The list of ids for boundary geometries cannot be downloaded.
 declare -r ERROR_DOWNLOADING_ID_LIST=244
+# 249: Error downloading boundary.
+declare -r ERROR_DOWNLOADING_BOUNDARY=249
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
@@ -295,6 +298,9 @@ declare -r LAST_NOTE_FILE="${TMP_DIR}/lastNote.xml"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
+# File for lock when downloading countries.
+declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
 
 ###########
 # FUNCTIONS
@@ -558,7 +564,14 @@ function __processList {
    out;
 EOF
   __logi "Retrieving shape."
+  set +e
   wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
+  if [[ "${?}" -ne 0 ]]; then
+   # Retry once if there was an error.
+   set -e
+   wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
+  fi
+  set -e
 
   __logi "Converting into geoJSON."
   osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
@@ -581,12 +594,12 @@ EOF
   mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
 
   __logi "Importing into Postgres."
-  LOCK_OVERPASS=/tmp/ogr2ogr.lock
-  while [[ -r "${LOCK_OVERPASS}" && $(cat "${LOCK_OVERPASS}") != "" ]]; do
-   __logw "$(date '+%Y-%m-%d %H:%M:%S') ${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
+  while [[ -r "${LOCK_OGR2OGR}"
+    && $(cat "${LOCK_OGR2OGR}") != "${BASHPID}" ]]; do
+   __logw "${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
    sleep 1
   done
-  echo "${BASHPID}" > "${LOCK_OVERPASS}"
+  echo "${BASHPID}" > "${LOCK_OGR2OGR}"
   ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
    "${GEOJSON_FILE}" -nln import -overwrite
   # If an error like this appear:
@@ -594,9 +607,8 @@ EOF
   # It means two of the objects of the country has a name for the same
   # language, but with different case. The current solution is to open
   # the JSON file, look for the language, and modify the parts to have the
-  # same case.
-  sleep 1
-  echo "" > "${LOCK_OVERPASS}"
+  # same case. Or modify the objects in OSM.
+  rm "${LOCK_OGR2OGR}"
 
   __logi "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]]; then
@@ -682,25 +694,34 @@ function __processCountries {
  MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+ if [[ "${MAX_THREADS}" -gt 6 ]]; then
   MAX_THREADS=$((MAX_THREADS-2))
+ elif [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
  fi
+
  TOTAL_LINES=$(cat ${COUNTRIES_FILE} | wc -l)
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  split -l"${SIZE}" "${COUNTRIES_FILE}" "${TMP_DIR}/part_country_"
+ rm -f "${LOCK_OGR2OGR}"
  for I in $(ls -1 ${TMP_DIR}/part_country_??) ; do
   (
-   __logi "Starting list ${I}"
-   __processList "${I}"
-   __logi "Finished list ${I}"
+   __logi "Starting list ${I} - ${BASHPID}"
+   __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   __logi "Finished list ${I} - ${BASHPID}"
+   rm -f "${LOG_FILENAME}.${BASHPID}"
   ) &
   sleep 5
  done
 
  wait
+
+ # If some of the threads generated an error.
+ if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\." | wc -l) -ne 0 ]]; then
+  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+ fi
+ rm -f "${LOCK_OGR2OGR}"
  __log_finish
 }
 
@@ -728,25 +749,34 @@ function __processMaritimes {
  MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+ if [[ "${MAX_THREADS}" -gt 6 ]]; then
   MAX_THREADS=$((MAX_THREADS-2))
+ elif [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
  fi
+
  TOTAL_LINES=$(cat ${MARITIMES_FILE} | wc -l)
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  split -l"${SIZE}" "${MARITIMES_FILE}" "${TMP_DIR}/part_maritime_"
+ rm -f "${LOCK_OGR2OGR}"
  for I in $(ls -1 ${TMP_DIR}/part_maritime_??) ; do
   (
-   __logi "Starting list ${I}"
-   __processList "${I}"
-   __logi "Finished list ${I}"
+   __logi "Starting list ${I} - ${BASHPID}"
+   __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   __logi "Finished list ${I} - ${BASHPID}"
+   rm -f "${LOG_FILENAME}.${BASHPID}"
   ) &
   sleep 5
  done
 
  wait
+
+ # If some of the threads generated an error.
+ if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\." | wc -l) -ne 0 ]]; then
+  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+ fi
+ rm -f "${LOCK_OGR2OGR}"
 
  __logi "Calculating statistics on countries."
  echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
@@ -837,10 +867,10 @@ function __getLocationNotes {
   MAX_THREADS=$(nproc)
   # Uses n-1 cores, if number of cores is greater than 1.
   # This prevents monopolization of the CPUs.
-  if [[ "${MAX_THREADS}" -gt 1 ]]; then
-   MAX_THREADS=$((MAX_THREADS-1))
-  elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+  if [[ "${MAX_THREADS}" -gt 6 ]]; then
    MAX_THREADS=$((MAX_THREADS-2))
+  elif [[ "${MAX_THREADS}" -gt 1 ]]; then
+   MAX_THREADS=$((MAX_THREADS-1))
   fi
 
   declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
@@ -952,8 +982,10 @@ function main() {
    echo "     SELECT * FROM backup_countries ;"
    read -r
   else
+   set +E
    __processCountries # base and boundaries
    __processMaritimes # base and boundaries
+   set -E
   fi
 
   __cleanPartial # base and boundaries
