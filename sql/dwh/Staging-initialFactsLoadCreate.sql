@@ -39,12 +39,12 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
  BEGIN
   IF (NEW.action_comment = 'closed') THEN
    -- Days between initial open and most recent close.
-   SELECT date_id
+   SELECT /* Notes-staging */ date_id
     INTO open_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.opened_dimension_id_date;
 
-   SELECT date_id
+   SELECT /* Notes-staging */ date_id
     INTO close_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.action_dimension_id_date;
@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
     WHERE fact_id = NEW.fact_id;
 
    -- Days between last reopen and most recent close.
-   SELECT MAX(date_id)
+   SELECT /* Notes-staging */ MAX(date_id)
     INTO reopen_date
    FROM staging.facts_${YEAR} f
     JOIN dwh.dimension_days d
@@ -72,10 +72,10 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
      WHERE fact_id = NEW.fact_id;
 
     -- Days in open status
-    SELECT SUM(days_difference)
+    SELECT /* Notes-staging */ SUM(days_difference)
      INTO days
     FROM (
-     SELECT dd.date_id - dd2.date_id days_difference
+     SELECT /* Notes-staging */ dd.date_id - dd2.date_id days_difference
      FROM staging.facts_${YEAR} f
      JOIN dwh.dimension_days dd
      ON f.action_dimension_id_date = dd.dimension_day_id
@@ -135,7 +135,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   m_hashtag_name TEXT;
   rec_note_action RECORD;
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
-   SELECT
+   SELECT /* Notes-staging */
     c.note_id id_note, n.created_at created_at, o.id_user created_id_user,
     n.id_country id_country, c.sequence_action seq, c.event action_comment,
     c.id_user action_id_user, c.created_at action_at, t.body
