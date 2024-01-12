@@ -28,7 +28,7 @@ CREATE INDEX date_differences_idx_${YEAR}
   recent_opened_dimension_id_date, id_note, action_comment);
 COMMENT ON INDEX dwh.action_idx IS 'Improves queries for reopened notes';
 
-CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
+CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution_${YEAR}()
   RETURNS TRIGGER AS
  $$
  DECLARE
@@ -95,15 +95,15 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
  END;
  $$ LANGUAGE plpgsql
 ;
-COMMENT ON FUNCTION dwh.update_days_to_resolution IS
+COMMENT ON FUNCTION dwh.update_days_to_resolution_${YEAR} IS
   'Sets the number of days between the creation and the resolution dates';
 
-CREATE OR REPLACE TRIGGER update_days_to_resolution
+CREATE OR REPLACE TRIGGER update_days_to_resolution_${YEAR}
   AFTER INSERT ON staging.facts_${YEAR}
   FOR EACH ROW
-  EXECUTE FUNCTION dwh.update_days_to_resolution()
+  EXECUTE FUNCTION dwh.update_days_to_resolution_${YEAR}()
 ;
-COMMENT ON TRIGGER update_days_to_resolution ON staging.facts_${YEAR} IS
+COMMENT ON TRIGGER update_days_to_resolution_${YEAR} ON staging.facts_${YEAR} IS
   'Updates the number of days between creation and resolution dates';
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
