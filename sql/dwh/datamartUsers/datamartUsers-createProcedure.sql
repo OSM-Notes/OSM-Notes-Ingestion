@@ -255,7 +255,7 @@ AS $proc$
     'quantity', quantity))
     INTO m_ranking_countries_closing_year
    FROM (
-    SELECT
+    SELECT /* Notes-datamartUsers */
      RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
     FROM (
      SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
@@ -581,7 +581,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_countries_open_notes
   FROM (
-   SELECT
+   SELECT /* Notes-datamartUsers */
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
     SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
@@ -602,7 +602,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_countries_solving_notes
   FROM (
-   SELECT
+   SELECT /* Notes-datamartUsers */
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
     SELECT /* Notes-datamartUsers */ 
@@ -632,7 +632,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_countries_open_notes_current_month
   FROM (
-   SELECT
+   SELECT /* Notes-datamartUsers */
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
     SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
@@ -657,7 +657,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_countries_solving_notes_current_month
   FROM (
-   SELECT
+   SELECT /* Notes-datamartUsers */
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
     SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
@@ -682,7 +682,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_countries_open_notes_current_day
   FROM (
-   SELECT
+   SELECT /* Notes-datamartUsers */
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
     SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
@@ -708,7 +708,7 @@ AS $proc$
    'quantity', quantity))
    INTO m_countries_solving_notes_current_day
   FROM (
-   SELECT
+   SELECT /* Notes-datamartUsers */
     RANK () OVER (ORDER BY quantity DESC) rank, country_name, quantity
    FROM (
     SELECT /* Notes-datamartUsers */ c.country_name_es AS country_name,
