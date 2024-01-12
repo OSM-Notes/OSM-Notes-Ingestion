@@ -1,7 +1,7 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-02
+-- Version: 2024-01-12
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 COMMENT ON SCHEMA dwh IS
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  closed_dimension_id_hour_of_week SMALLINT,
  closed_dimension_id_user INTEGER,
  dimension_application_creation INTEGER,
- recent_opened_dimension_id_date INTEGER NOT NULL,
+ recent_opened_dimension_id_date INTEGER, -- Later converted to not null
  days_to_resolution INTEGER,
  days_to_resolution_active INTEGER,
  days_to_resolution_from_reopen INTEGER,
@@ -32,8 +32,13 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  hashtag_2 INTEGER,
  hashtag_3 INTEGER,
  hashtag_4 INTEGER,
- hashtag_5 INTEGER
+ hashtag_5 INTEGER,
+ hashtag_number INTEGER
 );
+-- Note: Any new column should be included in:
+-- staging.process_notes_at_date_${YEAR} (initialFactsLoadCreate)
+-- staging.process_notes_at_date (createStagingObjects)
+-- ETL.sh > __initialFacts
 COMMENT ON TABLE dwh.facts IS 'Facts id, center of the star schema';
 COMMENT ON COLUMN dwh.facts.fact_id IS 'Surrogated ID';
 COMMENT ON COLUMN dwh.facts.id_note IS 'OSM note id';
@@ -80,6 +85,8 @@ COMMENT ON COLUMN dwh.facts.hashtag_4 IS
   'Fourth hashtag of the comment';
 COMMENT ON COLUMN dwh.facts.hashtag_5 IS
   'Fifth hashtag of the comment';
+COMMENT ON COLUMN dwh.facts.hashtag_number IS
+  'Number of hashtags in the note';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_users (
  dimension_user_id SERIAL,
