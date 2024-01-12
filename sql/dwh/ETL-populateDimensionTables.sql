@@ -1,7 +1,7 @@
 -- Populates the dimensions tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-01
+-- Version: 2024-01-11
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Inserting Regions' AS Task;
@@ -90,7 +90,8 @@ INSERT INTO dwh.dimension_applications (application_name, pattern) VALUES
 ('EveryDoor', '%#EveryDoor'),
 ('OsmAnd', '%#OsmAnd'),
 ('LocusMap', '%#LocusMap'),
-('OrganicMaps', '%#organicmaps')
+('OrganicMaps', '%#organicmaps'),
+('OSM Report', '%#osmreport')
 ;
 
 INSERT INTO dwh.dimension_applications (application_name, pattern, platform) VALUES
