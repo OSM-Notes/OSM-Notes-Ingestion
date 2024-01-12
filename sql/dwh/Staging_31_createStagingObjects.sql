@@ -439,14 +439,14 @@ CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
  AS $proc$
  DECLARE
   m_recent_opened_dimension_id_date INTEGER;
-  m_previous_action INTEGER;
+  m_previous_action_fact_id INTEGER;
   rec_no_recent_open_fact RECORD;
-  no_recent_open CURSOR  FOR
+  no_recent_open CURSOR FOR
    SELECT /* Notes-staging */
-    fact_id
+    fact_id, id_note
    FROM dwh.facts f
-   WHERE f.days_to_resolution_active IS NULL
-   ORDER BY action_at
+   WHERE f.recent_opened_dimension_id_date IS NULL
+   ORDER BY id_note, action_at
    FOR UPDATE;
 
  BEGIN
@@ -458,15 +458,16 @@ CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
    EXIT WHEN NOT FOUND;
 
    SELECT /* Notes-staging */ max(fact_id)
-    INTO m_previous_action
+    INTO m_previous_action_fact_id
    FROM dwh.facts f
    WHERE f.id_note = rec_no_recent_open_fact.id_note
-   AND  f.days_to_resolution_active IS NOT NULL;
+   AND f.days_to_resolution_active IS NOT NULL
+   AND f.fact_id < rec_no_recent_open_fact.fact_id;
 
    SELECT /* Notes-staging */ recent_opened_dimension_id_date
     INTO m_recent_opened_dimension_id_date
    FROM dwh.facts f
-   WHERE f.fact_id = m_previous_action;
+   WHERE f.fact_id = m_previous_action_fact_id;
 
    UPDATE dwh.facts
     SET recent_opened_dimension_id_date = m_recent_opened_dimension_id_date
