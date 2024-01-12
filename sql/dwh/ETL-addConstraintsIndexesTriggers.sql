@@ -286,12 +286,12 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
  BEGIN
   IF (NEW.action_comment = 'closed') THEN
    -- Days between initial open and most recent close.
-   SELECT date_id
+   SELECT /* Notes-ETL */ date_id
     INTO open_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.opened_dimension_id_date;
 
-   SELECT date_id
+   SELECT /* Notes-ETL */ date_id
     INTO close_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.action_dimension_id_date;
@@ -302,7 +302,7 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
      WHERE fact_id = NEW.fact_id;
 
    -- Days between last reopen and most recent close.
-   SELECT MAX(date_id)
+   SELECT /* Notes-ETL */ MAX(date_id)
     INTO reopen_date
    FROM dwh.facts f
     JOIN dwh.dimension_days d
@@ -319,10 +319,10 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
      WHERE fact_id = NEW.fact_id;
 
     -- Days in open status
-    SELECT SUM(days_difference)
+    SELECT /* Notes-ETL */ SUM(days_difference)
      INTO days
     FROM (
-     SELECT dd.date_id - dd2.date_id days_difference
+     SELECT /* Notes-ETL */ dd.date_id - dd2.date_id days_difference
      FROM dwh.facts f
      JOIN dwh.dimension_days dd
      ON f.action_dimension_id_date = dd.dimension_day_id
