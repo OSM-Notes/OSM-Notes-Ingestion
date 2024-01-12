@@ -96,11 +96,12 @@ declare -r POSTGRES_32_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Stagi
 declare -r POSTGRES_33_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_33_initialFactsLoadExecute.sql"
 # Script to do the initial load - drop.
 declare -r POSTGRES_34_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_34_initialFactsLoadDrop.sql"
-# Script to do the initial load - execute.
-declare -r POSTGRES_35_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_35_unify.sql"
 
 # Name of the SQL script that contains the alter statements.
-declare -r POSTGRES_36_ADD_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_36_addConstraintsIndexesTriggers.sql"
+declare -r POSTGRES_35_ADD_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_35_addConstraintsIndexesTriggers.sql"
+
+# Script to do the initial load - execute.
+declare -r POSTGRES_36_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_36_unify.sql"
 
 # Location of the datamart user script.
 declare -r DATAMART_COUNTRIES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
@@ -201,12 +202,12 @@ function __checkPrereqs {
   __loge "ERROR: File ${POSTGRES_34_FACTS_YEAR_DROP} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_35_FACTS_UNIFY}" ]]; then
-  __loge "ERROR: File ${POSTGRES_35_FACTS_UNIFY} was not found."
+ if [[ ! -r "${POSTGRES_35_ADD_CONSTRAINTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_35_ADD_CONSTRAINTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_36_ADD_CONSTRAINTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_36_ADD_CONSTRAINTS} was not found."
+ if [[ ! -r "${POSTGRES_36_FACTS_UNIFY}" ]]; then
+  __loge "ERROR: File ${POSTGRES_36_FACTS_UNIFY} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -313,12 +314,13 @@ function __initialFacts {
    YEAR=$((YEAR + 1))
   done
 
-  # Unifies the facts, by computing dates between years.
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_FACTS_UNIFY}" 2>&1
+  # Assign all constraints to the fact table.
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -f "${POSTGRES_35_ADD_CONSTRAINTS}" 2>&1
 
   # Unifies the facts, by computing dates between years.
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -f "${POSTGRES_36_ADD_CONSTRAINTS}" 2>&1
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_FACTS_UNIFY}" 2>&1
+
  __log_finish
 }
 
