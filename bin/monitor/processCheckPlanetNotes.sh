@@ -42,8 +42,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-19
-declare -r VERSION="2023-12-19"
+# Version: 2024-01-11
+declare -r VERSION="2024-01-11"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -179,7 +179,7 @@ function __checkPrereqs {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_LOAD_CHECK_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_DROP_CHECK_TABLES}."
+  __loge "ERROR: File is missing at ${POSTGRES_LOAD_CHECK_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_ANALYZE_AND_VACUUM}" ]]; then
@@ -194,7 +194,7 @@ function __checkPrereqs {
 function __dropCheckTables {
  __log_start
  __logi "Droping check tables."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_CHECK_TABLES}"
+ psql -d "${DBNAME}" -f "${POSTGRES_DROP_CHECK_TABLES}" 2>&1
  __log_finish
 }
 
