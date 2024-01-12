@@ -214,10 +214,10 @@ function __waitForJobs {
  MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- elif [[ "${MAX_THREADS}" -gt 6 ]]; then
+ if [[ "${MAX_THREADS}" -gt 6 ]]; then
   MAX_THREADS=$((MAX_THREADS-2))
+ elif [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
  fi
  QTY=$(jobs -p | wc -l)
  __logd "Number of threads ${QTY} from max ${MAX_THREADS}."
@@ -271,32 +271,44 @@ function __initialFacts {
       action_dimension_id_user, opened_dimension_id_date,
       opened_dimension_id_hour_of_week, opened_dimension_id_user,
       closed_dimension_id_date, closed_dimension_id_hour_of_week,
-      closed_dimension_id_user, dimension_application_creation
+      closed_dimension_id_user, dimension_application_creation,
+      recent_opened_dimension_id_date, days_to_resolution,
+      days_to_resolution_active, days_to_resolution_from_reopen, hashtag_1,
+      hashtag_2, hashtag_3, hashtag_4, hashtag_5, hashtag_number
       )
-     SELECT
+     SELECT /* Notes-ETL */
       id_note, dimension_id_country, processing_time, action_at, action_comment,
       action_dimension_id_date, action_dimension_id_hour_of_week,
       action_dimension_id_user, opened_dimension_id_date,
       opened_dimension_id_hour_of_week, opened_dimension_id_user,
       closed_dimension_id_date, closed_dimension_id_hour_of_week,
-      closed_dimension_id_user, dimension_application_creation
+      closed_dimension_id_user, dimension_application_creation,
+      recent_opened_dimension_id_date, days_to_resolution,
+      days_to_resolution_active, days_to_resolution_from_reopen, hashtag_1,
+      hashtag_2, hashtag_3, hashtag_4, hashtag_5, hashtag_number
      FROM staging.facts_${YEAR}
     "
    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
    # Updates the sequence.
-   STMT="SELECT SETVAL((SELECT PG_GET_SERIAL_SEQUENCE('dwh.facts', 'fact_id')),
+   STMT="SELECT /* Notes-ETL */ 
+    SETVAL((SELECT PG_GET_SERIAL_SEQUENCE('dwh.facts', 'fact_id')),
     (SELECT (MAX(fact_id) + 1) FROM dwh.facts), FALSE)"
    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
-   export YEAR
-   # shellcheck disable=SC2016
-   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_DROP}" || true)" 2>&1
+   # TODO Mover la actualizaci'on de la secuencia a UNIFY
+   
+   # Drops the temporal tables.
+   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+    export YEAR
+    # shellcheck disable=SC2016
+    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+     -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_DROP}" || true)" 2>&1
+   fi
 
    YEAR=$((YEAR + 1))
   done
 
   # Unifies the facts, by computing dates between years.
-  psql -d "${DBNAME}" -f "${POSTGRES_34_FACTS_UNIFY}" 2>&1
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_34_FACTS_UNIFY}" 2>&1
 
  __log_finish
 }
