@@ -21,14 +21,15 @@
 # 241) Library or utility missing.
 # 242) Invalid argument for script invocation.
 # 243) Logger utility is not available.
+# 239) Error creating report files.
 #
 # For contributing, please execute these commands at the end:
 # * shellcheck -x -o all notesCheckVerifier.sh
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Autor: Andres Gomez Casanova - AngocA
-# Version: 2023-10-06
-declare -r VERSION="2023-10-06"
+# Version: 2024-01-11
+declare -r VERSION="2024-01-11"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -39,6 +40,10 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
+
+# Error codes.
+# 239: Library or utility missing.
+declare -r ERROR_CREATING_REPORT=239
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -177,7 +182,7 @@ function __checkingDifferences {
   || [[ ! -r "${DIRRERENT_COMMENTS_FILE}" ]] || [[ ! -r "${LAST_NOTE}" ]] \
   || [[ ! -r "${LAST_COMMENT}" ]]; then
   __loge "Difference files were not created."
-  exit 1
+  exit "${ERROR_CREATING_REPORT}"
  fi
 
  zip "${REPORT_ZIP}" "${DIFFERENT_NOTE_IDS_FILE}" \
