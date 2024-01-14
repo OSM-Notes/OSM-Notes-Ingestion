@@ -250,17 +250,19 @@ function __initialFacts {
   while [[ "${YEAR}" -ge "${MIN_YEAR}" ]]; do
    __waitForJobs
    (
-    __logi "Starting ${YEAR}."
+    __logi "Starting ${YEAR} - ${BASHPID}."
     # Loads the data in the database.
     export YEAR
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_32_FACTS_YEAR_CREATE}" || true)" 2>&1
+     -c "$(envsubst '$YEAR' < "${POSTGRES_32_FACTS_YEAR_CREATE}" || true)" \
+      >> "${LOG_FILENAME}.${BASHPID}" 2>&1
     # shellcheck disable=SC2016
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_EXECUTE}" || true)" 2>&1
+     -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_EXECUTE}" || true)" \
+      >> "${LOG_FILENAME}.${BASHPID}" 2>&1
 
-    __logi "Finishing ${YEAR}."
+    __logi "Finishing ${YEAR} - ${BASHPID}."
    ) &
    sleep 5 # To insert all days of the year in the dimension.
    YEAR=$((YEAR - 1))
