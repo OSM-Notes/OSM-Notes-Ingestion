@@ -1,9 +1,7 @@
 -- Drop staging objects.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-02
-
-DROP PROCEDURE IF EXISTS staging.unify_facts_from_parallel_load;
+-- Version: 2024-01-13
 
 DROP PROCEDURE IF EXISTS staging.process_notes_at_date;
 
