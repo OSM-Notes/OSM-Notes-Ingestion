@@ -1,7 +1,7 @@
 -- Chech staging tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-12
+-- Version: 2024-01-13
 
 CREATE SCHEMA IF NOT EXISTS staging;
 COMMENT ON SCHEMA staging IS
@@ -124,16 +124,17 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_hashtag_id_4 INTEGER;
   m_hashtag_id_5 INTEGER;
   m_hashtag_number INTEGER;
-  m_previous_action INTEGER;
+  m_previous_action_fact_id INTEGER;
   m_count INTEGER;
   m_text_comment TEXT;
   m_hashtag_name TEXT;
   rec_note_action RECORD;
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
    SELECT /* Notes-staging */
-    c.note_id id_note, n.created_at created_at, o.id_user created_id_user,
-    n.id_country id_country, c.sequence_action seq, c.event action_comment,
-    c.id_user action_id_user, c.created_at action_at, t.body
+    c.fact_id fact_id, c.note_id id_note, n.created_at created_at,
+    o.id_user created_id_user, n.id_country id_country, c.sequence_action seq,
+    c.event action_comment, c.id_user action_id_user, c.created_at action_at,
+    t.body
    FROM note_comments c
     JOIN notes n
     ON (c.note_id = n.note_id)
@@ -216,14 +217,15 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     m_recent_opened_dimension_id_date := m_action_id_date;
    ELSE
     SELECT /* Notes-staging */ max(fact_id)
-     INTO m_previous_action
+     INTO m_previous_action_fact_id
     FROM dwh.facts f
-    WHERE f.id_note = rec_note_action.id_note;
+    WHERE f.id_note = rec_note_action.id_note
+     AND f.fact_id < rec_note_action.fact_id;
   
     SELECT /* Notes-staging */ recent_opened_dimension_id_date
      INTO m_recent_opened_dimension_id_date
     FROM dwh.facts f
-    WHERE f.fact_id = m_previous_action;
+    WHERE f.fact_id = m_previous_action_fact_id;
    END IF;
 
    -- Gets hashtags.
@@ -432,52 +434,3 @@ $proc$
 ;
 COMMENT ON PROCEDURE staging.process_notes_actions_into_dwh IS
   'Processes all non-processes notes';
-
-CREATE OR REPLACE PROCEDURE staging.unify_facts_from_parallel_load (
- )
- LANGUAGE plpgsql
- AS $proc$
- DECLARE
-  m_recent_opened_dimension_id_date INTEGER;
-  m_previous_action_fact_id INTEGER;
-  rec_no_recent_open_fact RECORD;
-  no_recent_open CURSOR FOR
-   SELECT /* Notes-staging */
-    fact_id, id_note
-   FROM dwh.facts f
-   WHERE f.recent_opened_dimension_id_date IS NULL
-   ORDER BY id_note, action_at
-   FOR UPDATE;
-
- BEGIN
-  OPEN no_recent_open;
-
-  LOOP
-   FETCH no_recent_open INTO rec_no_recent_open_fact;
-   -- Exit when no more rows to fetch.
-   EXIT WHEN NOT FOUND;
-
-   SELECT /* Notes-staging */ max(fact_id)
-    INTO m_previous_action_fact_id
-   FROM dwh.facts f
-   WHERE f.id_note = rec_no_recent_open_fact.id_note
-   AND f.days_to_resolution_active IS NOT NULL
-   AND f.fact_id < rec_no_recent_open_fact.fact_id;
-
-   SELECT /* Notes-staging */ recent_opened_dimension_id_date
-    INTO m_recent_opened_dimension_id_date
-   FROM dwh.facts f
-   WHERE f.fact_id = m_previous_action_fact_id;
-
-   UPDATE dwh.facts
-    SET recent_opened_dimension_id_date = m_recent_opened_dimension_id_date
-    WHERE CURRENT OF no_recent_open;
-  END LOOP;
-
-  CLOSE no_recent_open;
- END
-$proc$
-;
-COMMENT ON PROCEDURE staging.unify_facts_from_parallel_load IS
-  'Corrects the missing values after the initial parallel processing';
-
