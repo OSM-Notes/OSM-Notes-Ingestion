@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-08
-declare -r VERSION="2023-12-08"
+# Version: 2023-12-14
+declare -r VERSION="2023-12-14"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -67,25 +67,25 @@ readonly LOCK
 declare -r PROCESS_TYPE=${1:-}
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-checkDatamartUsersTables.sql"
+declare -r POSTGRES_11_CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-checkDatamartUsersTables.sql"
 
 # Name of the SQL script that contains the tables to create in the DB.
-declare -r CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createDatamartUsersTable.sql"
+declare -r POSTGRES_12_CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createDatamartUsersTable.sql"
 
 # Name of the SQL script that contains the procedures to create in the DB.
-declare -r CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createProcedure.sql"
-
-# Name of the SQL script that contains the ETL process.
-declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateDatamartUsersTable.sql"
-
-# Name of the SQL script to analyse only users with few actions.
-declare -r POPULATE_OLD_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateOldUsers.sql"
-
-# Generic script to add years.
-declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-alterTableAddYears.sql"
+declare -r POSTGRES_13_CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createProcedure.sql"
 
 # Last year activites script.
-declare -r LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts-lastYearActivities.sql"
+declare -r POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts-lastYearActivities.sql"
+
+# Generic script to add years.
+declare -r POSTGRES_21_ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-alterTableAddYears.sql"
+
+# Name of the SQL script to analyse only users with few actions.
+declare -r POSTGRES_31_POPULATE_OLD_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateOldUsers.sql"
+
+# Name of the SQL script that contains the ETL process.
+declare -r POSTGRES_32_POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateDatamartUsersTable.sql"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -120,28 +120,32 @@ function __checkPrereqs {
  __checkPrereqsCommands
 
  ## Check files
- if [[ ! -r "${CHECK_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File datamartUsers-checkDatamartUsersTables.sql was not found."
+ if [[ ! -r "${POSTGRES_11_CHECK_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_11_CHECK_OBJECTS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${CREATE_TABLES_FILE}" ]]; then
-  __loge "ERROR: File datamartUsers-createDatamartUsersTable.sql was not found."
+ if [[ ! -r "${POSTGRES_12_CREATE_TABLES_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_12_CREATE_TABLES_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${CREATE_PROCEDURES_FILE}" ]]; then
-  __loge "ERROR: File datamartUsers-createProcedure.sql was not found."
+ if [[ ! -r "${POSTGRES_13_CREATE_PROCEDURES_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_13_CREATE_PROCEDURES_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POPULATE_FILE}" ]]; then
-  __loge "ERROR: File datamartUsers-populateDatamartUsersTable.sql was not found."
+ if [[ ! -r "${POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT}" ]]; then
+  __loge "ERROR: File ${POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${ADD_YEARS_SCRIPT}" ]]; then
-  __loge "ERROR: File datamartUsers-alterTableAddYears.sql was not found."
+ if [[ ! -r "${POSTGRES_21_ADD_YEARS_SCRIPT}" ]]; then
+  __loge "ERROR: File ${POSTGRES_21_ADD_YEARS_SCRIPT} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${LAST_YEAR_ACTITIES_SCRIPT}" ]]; then
-  __loge "ERROR: File datamart-lastYearActivities.sql was not found."
+ if [[ ! -r "${POSTGRES_31_POPULATE_OLD_USERS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_31_POPULATE_OLD_USERS_FILE} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_32_POPULATE_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_32_POPULATE_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -151,7 +155,7 @@ function __checkPrereqs {
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_TABLES_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_12_CREATE_TABLES_FILE}"
  PROCESS_OLD_USERS=yes
  __log_finish
 }
@@ -160,7 +164,7 @@ function __createBaseTables {
 function __checkBaseTables {
  __log_start
  set +e
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CHECK_OBJECTS_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_OBJECTS_FILE}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -168,8 +172,10 @@ function __checkBaseTables {
   __createBaseTables
   __logw "Datamart users tables created."
  fi
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${CREATE_PROCEDURES_FILE}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${LAST_YEAR_ACTITIES_SCRIPT}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_13_CREATE_PROCEDURES_FILE}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT}"
  __log_finish
 }
 
@@ -183,8 +189,8 @@ function __addYears {
   export YEAR
   set +e
   # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -c "$(envsubst '$YEAR' < "${ADD_YEARS_SCRIPT}" \
-   || true)" 2>&1
+  psql -d "${DBNAME}" -c "$(envsubst '$YEAR' \
+   < "${POSTGRES_21_ADD_YEARS_SCRIPT}" || true)" 2>&1
   set -e
  done
  __log_finish
@@ -194,9 +200,11 @@ function __addYears {
 function __processNotesUser {
  __log_start
  if [[ "${PROCESS_OLD_USERS}" == "yes" ]]; then
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_OLD_USERS_FILE}" 2>&1
+  # TODO parallel
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_31_POPULATE_OLD_USERS_FILE}" 2>&1
  fi
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POPULATE_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_32_POPULATE_FILE}" 2>&1
  __log_finish
 }
 
