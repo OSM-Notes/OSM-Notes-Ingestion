@@ -1,7 +1,7 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-12
+-- Version: 2024-01-13
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
 
@@ -16,17 +16,19 @@ ALTER TABLE staging.facts_${YEAR} ALTER processing_time
 ALTER TABLE staging.facts_${YEAR} ADD PRIMARY KEY (fact_id);
 
 CREATE INDEX facts_action_date_${YEAR} ON staging.facts_${YEAR} (action_at);
-COMMENT ON INDEX dwh.facts_action_date IS
-  'Improves queries by action timestamp';
+COMMENT ON INDEX facts_action_date_${YEAR} IS
+  'Improves queries by action timestamp on ${YEAR}';
 
 CREATE INDEX action_idx_${YEAR}
  ON staging.facts_${YEAR} (action_dimension_id_date, id_note, action_comment);
-COMMENT ON INDEX dwh.action_idx IS 'Improves queries for reopened notes';
+COMMENT ON INDEX action_idx_${YEAR}
+ IS 'Improves queries for reopened notes on ${YEAR}';
 
 CREATE INDEX date_differences_idx_${YEAR}
  ON staging.facts_${YEAR} (action_dimension_id_date,
   recent_opened_dimension_id_date, id_note, action_comment);
-COMMENT ON INDEX dwh.action_idx IS 'Improves queries for reopened notes';
+COMMENT ON INDEX date_differences_idx_${YEAR}
+  IS 'Improves queries for reopened notes on ${YEAR}';
 
 CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution_${YEAR}()
   RETURNS TRIGGER AS
@@ -96,7 +98,7 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution_${YEAR}()
  $$ LANGUAGE plpgsql
 ;
 COMMENT ON FUNCTION dwh.update_days_to_resolution_${YEAR} IS
-  'Sets the number of days between the creation and the resolution dates';
+  'Sets the number of days between the creation and the resolution dates on ${YEAR}';
 
 CREATE OR REPLACE TRIGGER update_days_to_resolution_${YEAR}
   AFTER INSERT ON staging.facts_${YEAR}
@@ -104,7 +106,7 @@ CREATE OR REPLACE TRIGGER update_days_to_resolution_${YEAR}
   EXECUTE FUNCTION dwh.update_days_to_resolution_${YEAR}()
 ;
 COMMENT ON TRIGGER update_days_to_resolution_${YEAR} ON staging.facts_${YEAR} IS
-  'Updates the number of days between creation and resolution dates';
+  'Updates the number of days between creation and resolution dates on ${YEAR}';
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   max_processed_timestamp TIMESTAMP
@@ -222,7 +224,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    ELSIF (rec_note_action.action_comment = 'reopened') THEN
     m_recent_opened_dimension_id_date := m_action_id_date;
    --ELSE
-   -- The real value is computed once all years are merged.
+   -- The real value is computed once all years are merged, in unify part.
    END IF;
 
    -- Gets hashtags.
@@ -312,6 +314,9 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    IF (MOD(m_count, 1000) = 0) THEN
     RAISE NOTICE '%: % processed facts for % until %', CURRENT_TIMESTAMP,
      m_count, ${YEAR}, max_processed_timestamp;
+   END IF;
+   IF (MOD(m_count, 10000) = 0) THEN
+    ANALYZE staging.facts_${YEAR};
    END IF;
 
    m_count := m_count + 1;
@@ -447,3 +452,6 @@ $$
 ;
 COMMENT ON PROCEDURE staging.process_notes_actions_into_staging_${YEAR} IS
   'Inserts facts for year ${YEAR}';
+
+ANALYZE staging.facts_${YEAR};
+
