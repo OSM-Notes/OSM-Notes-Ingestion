@@ -3,6 +3,15 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-12-08
 
+DO /* Notes-datamartUsers-badges */
+$$
+DECLARE
+ r RECORD;
+ max_date DATE;
+BEGIN
+END
+$$;
+
 DO /* Notes-datamartUsers-processRecentUsers */
 $$
 DECLARE

@@ -172,11 +172,13 @@ COMMENT ON COLUMN dwh.datamartUsers.ranking_countries_closing_2013 IS
 
 CREATE TABLE IF NOT EXISTS dwh.badges (
  badge_id SERIAL,
- badge_name VARCHAR(64)
+ badge_name VARCHAR(64),
+ description TEXT
 );
 COMMENT ON TABLE dwh.badges IS 'List of available badges';
 COMMENT ON COLUMN dwh.badges.badge_id IS 'Id of the badge';
 COMMENT ON COLUMN dwh.badges.badge_name IS 'Name of the badge';
+COMMENT ON COLUMN dwh.badges.description IS 'Description of the badge';
 
 CREATE TABLE IF NOT EXISTS dwh.badges_per_users (
  id_user INTEGER NOT NULL,
