@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-12
-declare -r VERSION="2024-01-12"
+# Version: 2024-01-13
+declare -r VERSION="2024-01-13"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -294,14 +294,9 @@ function __initialFacts {
       days_to_resolution_active, days_to_resolution_from_reopen, hashtag_1,
       hashtag_2, hashtag_3, hashtag_4, hashtag_5, hashtag_number
      FROM staging.facts_${YEAR}
+     ORDER BY fact_id
     "
    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
-   # Updates the sequence.
-   STMT="SELECT /* Notes-ETL */ 
-    SETVAL((SELECT PG_GET_SERIAL_SEQUENCE('dwh.facts', 'fact_id')),
-    (SELECT (MAX(fact_id) + 1) FROM dwh.facts), FALSE)"
-   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
-   # TODO Mover la actualizaci'on de la secuencia a UNIFY
    
    # Drops the temporal tables.
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
