@@ -3,6 +3,68 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-12
 
+-- Primrary keys
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating primary keys' AS Task;
+
+ALTER TABLE dwh.dimension_users
+ ADD CONSTRAINT pk_users_dim
+ PRIMARY KEY (dimension_user_id);
+
+ALTER TABLE dwh.dimension_regions
+ ADD CONSTRAINT pk_regions_dim
+ PRIMARY KEY (dimension_region_id);
+
+ALTER TABLE dwh.dimension_countries
+ ADD CONSTRAINT pk_countries_dim
+ PRIMARY KEY (dimension_country_id);
+
+ALTER TABLE dwh.dimension_days
+ ADD CONSTRAINT pk_days_dim
+ PRIMARY KEY (dimension_day_id);
+
+ALTER TABLE dwh.dimension_hours_of_week
+ ADD CONSTRAINT pk_HoW_dim
+ PRIMARY KEY (dimension_how_id);
+
+ALTER TABLE dwh.dimension_applications
+ ADD CONSTRAINT pk_applications_dim
+ PRIMARY KEY (dimension_application_id);
+
+-- Foreign keys.
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating foreign keys' AS Task;
+
+ALTER TABLE dwh.dimension_countries
+ ADD CONSTRAINT fk_region
+ FOREIGN KEY (region_id)
+ REFERENCES dwh.dimension_regions (dimension_region_id);
+
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating indexes' AS Task;
+
+-- Unique keys
+
+CREATE UNIQUE INDEX dimension_user_id_uniq
+ ON dwh.dimension_users
+ (user_id);
+COMMENT ON INDEX dwh.dimension_user_id_uniq IS 'OSM User id';
+
+CREATE UNIQUE INDEX dimension_username_uniq
+ ON dwh.dimension_users
+ (username);
+COMMENT ON INDEX dwh.dimension_username_uniq IS 'Unique username';
+
+CREATE UNIQUE INDEX dimension_country_id_uniq
+ ON dwh.dimension_countries
+ (country_id);
+COMMENT ON INDEX dwh.dimension_country_id_uniq IS 'OSM Country relation id';
+
+CREATE UNIQUE INDEX dimension_day_id_uniq
+ ON dwh.dimension_days
+ (date_id);
+COMMENT ON INDEX dwh.dimension_day_id_uniq IS 'Date';
+
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Creating functions' AS Task;
 

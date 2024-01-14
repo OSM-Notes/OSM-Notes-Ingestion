@@ -11,30 +11,6 @@ ALTER TABLE dwh.facts
  ADD CONSTRAINT pk_facts
  PRIMARY KEY (fact_id);
 
-ALTER TABLE dwh.dimension_users
- ADD CONSTRAINT pk_users_dim
- PRIMARY KEY (dimension_user_id);
-
-ALTER TABLE dwh.dimension_regions
- ADD CONSTRAINT pk_regions_dim
- PRIMARY KEY (dimension_region_id);
-
-ALTER TABLE dwh.dimension_countries
- ADD CONSTRAINT pk_countries_dim
- PRIMARY KEY (dimension_country_id);
-
-ALTER TABLE dwh.dimension_days
- ADD CONSTRAINT pk_days_dim
- PRIMARY KEY (dimension_day_id);
-
-ALTER TABLE dwh.dimension_hours_of_week
- ADD CONSTRAINT pk_HoW_dim
- PRIMARY KEY (dimension_how_id);
-
-ALTER TABLE dwh.dimension_applications
- ADD CONSTRAINT pk_applications_dim
- PRIMARY KEY (dimension_application_id);
-
 -- Foreign keys.
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Creating foreign keys' AS Task;
@@ -94,35 +70,10 @@ ALTER TABLE dwh.facts
  FOREIGN KEY (dimension_application_creation)
  REFERENCES dwh.dimension_applications (dimension_application_id);
 
-ALTER TABLE dwh.dimension_countries
- ADD CONSTRAINT fk_region
- FOREIGN KEY (region_id)
- REFERENCES dwh.dimension_regions (dimension_region_id);
-
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Creating indexes' AS Task;
 
 -- Unique keys
-
-CREATE UNIQUE INDEX dimension_user_id_uniq
- ON dwh.dimension_users
- (user_id);
-COMMENT ON INDEX dwh.dimension_user_id_uniq IS 'OSM User id';
-
-CREATE UNIQUE INDEX dimension_username_uniq
- ON dwh.dimension_users
- (username);
-COMMENT ON INDEX dwh.dimension_username_uniq IS 'Unique username';
-
-CREATE UNIQUE INDEX dimension_country_id_uniq
- ON dwh.dimension_countries
- (country_id);
-COMMENT ON INDEX dwh.dimension_country_id_uniq IS 'OSM Country relation id';
-
-CREATE UNIQUE INDEX dimension_day_id_uniq
- ON dwh.dimension_days
- (date_id);
-COMMENT ON INDEX dwh.dimension_day_id_uniq IS 'Date';
 
 CREATE INDEX facts_action_date ON dwh.facts (action_at);
 COMMENT ON INDEX dwh.facts_action_date IS
@@ -191,15 +142,14 @@ ON dwh.facts (dimension_id_country, action_comment);
 COMMENT ON INDEX dwh.action_country_idx IS
   'Improves queries by country and action type';
 
-CREATE INDEX modified_users_idx
-ON dwh.dimension_users (modified);
-COMMENT ON INDEX dwh.modified_users_idx IS
-  'Improves queries by user that performed actions';
+CREATE INDEX recent_opened_idx
+ ON dwh.facts (recent_opened_dimension_id_date);
+COMMENT ON INDEX dwh.recent_opened_idx IS 'Improves queries for reopened notes';
 
-CREATE INDEX modified_countries_idx
-ON dwh.dimension_countries (modified);
-COMMENT ON INDEX dwh.modified_countries_idx IS
-  'Improves queries by country where performed actions were done';
+CREATE INDEX resolution_idx
+ ON dwh.facts (id_note, fact_id);
+COMMENT ON INDEX dwh.resolution_idx IS 'Improves queries to get resolve notes';
+
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Creating triggers' AS Task;
