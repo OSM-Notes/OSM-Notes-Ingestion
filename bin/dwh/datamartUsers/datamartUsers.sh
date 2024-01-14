@@ -67,25 +67,25 @@ readonly LOCK
 declare -r PROCESS_TYPE=${1:-}
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r POSTGRES_11_CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-checkDatamartUsersTables.sql"
+declare -r POSTGRES_11_CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_11_checkDatamartUsersTables.sql"
 
 # Name of the SQL script that contains the tables to create in the DB.
-declare -r POSTGRES_12_CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createDatamartUsersTable.sql"
+declare -r POSTGRES_12_CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_12_createDatamartUsersTable.sql"
 
 # Name of the SQL script that contains the procedures to create in the DB.
-declare -r POSTGRES_13_CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-createProcedure.sql"
+declare -r POSTGRES_13_CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_13_createProcedure.sql"
 
 # Last year activites script.
 declare -r POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts-lastYearActivities.sql"
 
 # Generic script to add years.
-declare -r POSTGRES_21_ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-alterTableAddYears.sql"
+declare -r POSTGRES_21_ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_21_alterTableAddYears.sql"
 
 # Name of the SQL script to analyse only users with few actions.
-declare -r POSTGRES_31_POPULATE_OLD_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateOldUsers.sql"
+declare -r POSTGRES_31_POPULATE_OLD_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_31_populateOldUsers.sql"
 
 # Name of the SQL script that contains the ETL process.
-declare -r POSTGRES_32_POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers-populateDatamartUsersTable.sql"
+declare -r POSTGRES_32_POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_32_populateDatamartUsersTable.sql"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
