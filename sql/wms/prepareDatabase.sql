@@ -42,8 +42,8 @@ CREATE OR REPLACE FUNCTION wms.insert_new_notes()
    VALUES
    (
     NEW.note_id,
-    extract(year from NEW.created_at),
-    extract(year from NEW.closed_at),
+    EXTRACT(YEAR FROM NEW.created_at),
+    EXTRACT(YEAR FROM NEW.closed_at),
     ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326)
    )
   ;
