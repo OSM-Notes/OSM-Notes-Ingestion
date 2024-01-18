@@ -1,7 +1,7 @@
 -- Remove duplicates for notes and note comments, when syncing from the Planet.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-03
+-- Version: 2024-01-18
   
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
   'Counting notes sync' AS Text;
@@ -82,6 +82,7 @@ BEGIN
    SELECT /* Notes-processPlanet */ note_id, latitude, longitude, created_at,
     closed_at, status
    FROM notes_sync
+   ORDER BY note_id
   LOOP
    closed_time := 'TO_TIMESTAMP(''' || r.closed_at
      || ''', ''YYYY-MM-DD HH24:MI:SS'')';
@@ -158,7 +159,7 @@ DO /* Notes-processPlanet-insertComments */
 $$
 DECLARE
  r RECORD;
- created_time VARCHAR(100);
+ m_created_time VARCHAR(100);
  qty INT;
 BEGIN
  SELECT /* Notes-processPlanet */ COUNT(1)
@@ -179,18 +180,19 @@ BEGIN
    SELECT /* Notes-processPlanet */ 
     note_id, event, created_at, id_user
    FROM note_comments_sync
-   ORDER BY note_id, sequence_action;
+   ORDER BY created_at;
  ELSE
   FOR r IN
    SELECT /* Notes-processPlanet */
     note_id, event, created_at, id_user, username
    FROM note_comments_sync
+   ORDER BY created_at
   LOOP
-   created_time := 'TO_TIMESTAMP(''' || r.created_at
+   m_created_time := 'TO_TIMESTAMP(''' || r.created_at
      || ''', ''YYYY-MM-DD HH24:MI:SS'')';
    EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
      || '''' || r.event || '''::note_event_enum, '
-     || COALESCE(created_time, 'NULL') || ', '
+     || COALESCE(m_created_time, 'NULL') || ', '
      || COALESCE(r.id_user || '', 'NULL') || ', '
      || QUOTE_NULLABLE(r.username) || ')';
   END LOOP;
