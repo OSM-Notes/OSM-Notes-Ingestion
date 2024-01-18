@@ -1,7 +1,7 @@
 -- Bulk notes and notes comments insertion.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-11
+-- Version: 2024-01-18
   
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
   COUNT(1) Qty, 'current notes - before' AS Text
@@ -67,7 +67,7 @@ $$
    SELECT /* Notes-processAPI */ note_id, event, created_at, id_user,
     username
    FROM note_comments_api
-   ORDER BY note_id, sequence_action
+   ORDER BY created_at
   LOOP
    IF (r.created_at <= m_lastupdate) THEN
     INSERT INTO logs (message) VALUES ('Comment:' || r.note_id || ',created:'
