@@ -1,7 +1,7 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-17
+-- Version: 2024-01-18
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 COMMENT ON SCHEMA dwh IS
@@ -10,6 +10,7 @@ COMMENT ON SCHEMA dwh IS
 CREATE TABLE IF NOT EXISTS dwh.facts (
  fact_id SERIAL,
  id_note INTEGER NOT NULL,
+ sequence_action INTEGER,
  dimension_id_country INTEGER NOT NULL,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
  action_at TIMESTAMP NOT NULL,
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
 COMMENT ON TABLE dwh.facts IS 'Facts id, center of the star schema';
 COMMENT ON COLUMN dwh.facts.fact_id IS 'Surrogated ID';
 COMMENT ON COLUMN dwh.facts.id_note IS 'OSM note id';
+COMMENT ON COLUMN dwh.facts.sequence_action IS 'Creation sequence';
 COMMENT ON COLUMN dwh.facts.dimension_id_country IS 'OSM country relation id';
 COMMENT ON COLUMN dwh.facts.processing_time IS
   'Timestamp when the comment was processed';
