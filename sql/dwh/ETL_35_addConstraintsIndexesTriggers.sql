@@ -1,7 +1,7 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-02
+-- Version: 2024-01-17
 
 -- Primrary keys
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
