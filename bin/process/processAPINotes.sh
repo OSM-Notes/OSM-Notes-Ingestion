@@ -16,6 +16,7 @@
 #
 # This is the list of error codes:
 # 1) Help message.
+# 238) Previous execution failed.
 # 241) Library or utility missing.
 # 242) Invalid argument.
 # 243) Logger utility is missing.
@@ -40,14 +41,6 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
-
-# Error codes.
-# 245: No last update.
-declare -r ERROR_NO_LAST_UPDATE=245
-# 246: Planet process is currently running.
-declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
-# 248: Error executing the Planet dump.
-declare -r ERROR_EXECUTING_PLANET_DUMP=248
 
 # If all generated files should be deleted. In case of an error, this could be
 # disabled.
@@ -438,6 +431,12 @@ function main() {
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
+ fi
+ if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
+  echo "Previous execution failed. Please verify the data and then remove the"
+  echo "next file:"
+  echo "   ${FAILED_EXECUTION_FILE}"
+  exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
  fi
  __checkPrereqs
  __logw "Process started."
