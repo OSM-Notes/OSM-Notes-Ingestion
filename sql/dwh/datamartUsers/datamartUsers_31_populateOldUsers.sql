@@ -1,7 +1,7 @@
 -- Populates datamart for users.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2024-01-17
 
 
 DO /* Notes-datamartUsers-processOldUsers */
@@ -13,15 +13,21 @@ DECLARE
 BEGIN
  m_count := 1;
  RAISE NOTICE 'Started to process old users';
+
+ -- Inserts the part of the date to reduce calling the function Extract.
+ DELETE FROM dwh.properties WHERE key IN ('year', 'month', 'day');
+ INSERT INTO dwh.properties VALUES ('year', DATE_PART('year', CURRENT_DATE));
+ INSERT INTO dwh.properties VALUES ('month', DATE_PART('month', CURRENT_DATE));
+ INSERT INTO dwh.properties VALUES ('day', DATE_PART('day', CURRENT_DATE));
+
  FOR r IN
-  -- Process the datamart only for modified users.
   SELECT /* Notes-datamartUsers */
    f.action_dimension_id_user AS dimension_user_id
   FROM dwh.facts f 
    JOIN dwh.dimension_users u
    ON (f.action_dimension_id_user = u.dimension_user_id)
-  WHERE f.action_dimension_id_user IS NOT NULL
-   AND u.modified = TRUE
+  WHERE ${LOWER_VALUE} <= u.user_id
+   AND u.user_id < ${HIGH_VALUE}
   GROUP BY f.action_dimension_id_user
   HAVING COUNT(1) <= 20
   ORDER BY COUNT(1) DESC
@@ -38,6 +44,5 @@ BEGIN
 
   m_count := m_count + 1;
  END LOOP;
- -- TODO Aquí se debería volver a ejecutar en paralelo para los más viejos usuarios sin modificar.
 END
 $$;
