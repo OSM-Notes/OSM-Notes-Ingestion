@@ -623,7 +623,7 @@ EOF
    # at 10.454439900000001 47.555796399999998
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
      country_name_en, geom)
-     select ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
+     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
       ST_Union(ST_Buffer(wkb_geometry,0.0))
      from import group by 1"
   fi
