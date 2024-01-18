@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Autor: Andres Gomez Casanova - AngocA
-# Version: 2024-01-11
-declare -r VERSION="2024-01-11"
+# Version: 2024-01-18
+declare -r VERSION="2024-01-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -40,10 +40,6 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
-
-# Error codes.
-# 239: Library or utility missing.
-declare -r ERROR_CREATING_REPORT=239
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"

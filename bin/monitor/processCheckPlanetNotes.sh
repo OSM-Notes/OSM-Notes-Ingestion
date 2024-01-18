@@ -42,8 +42,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-11
-declare -r VERSION="2024-01-11"
+# Version: 2024-01-18
+declare -r VERSION="2024-01-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -54,10 +54,6 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
-
-# Error codes.
-# 247: Error downloading planet notes file.
-declare -r ERROR_DOWNLOADING_NOTES=247
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
