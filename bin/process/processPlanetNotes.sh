@@ -178,8 +178,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-09
-declare -r VERSION="2024-01-09"
+# Version: 2024-01-18
+declare -r VERSION="2024-01-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -190,12 +190,6 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
-
-# Error codes.
-# 244: The list of ids for boundary geometries cannot be downloaded.
-declare -r ERROR_DOWNLOADING_ID_LIST=244
-# 249: Error downloading boundary.
-declare -r ERROR_DOWNLOADING_BOUNDARY=249
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
