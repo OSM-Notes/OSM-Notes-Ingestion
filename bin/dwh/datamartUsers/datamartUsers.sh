@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-14
-declare -r VERSION="2023-12-14"
+# Version: 2023-12-17
+declare -r VERSION="2023-12-17"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -196,13 +196,57 @@ function __addYears {
  __log_finish
 }
 
+# Processes initial batch of users.
+function __processOldUsers {
+ __log_start
+ MAX_USER_ID=$(psql -d "${DBNAME}" -Atq \
+  -c "SELECT MAX(user_id) FROM dwh.dimension_users" -v ON_ERROR_STOP=1)
+ MAX_USER_ID=$(("MAX_USER_ID"+1))
+
+ # Processes the users in parallel.
+ MAX_THREADS=$(nproc)
+ # Uses n-1 cores, if number of cores is greater than 1.
+ # This prevents monopolization of the CPUs.
+ if [[ "${MAX_THREADS}" -gt 6 ]]; then
+  MAX_THREADS=$((MAX_THREADS-2))
+ elif [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
+ fi
+
+ SIZE=$((MAX_USER_ID / MAX_THREADS))
+ LOWER_VALUE=1
+ HIGH_VALUE="${SIZE}"
+ ITER=1
+ while [[ "${ITER}" -le "${MAX_THREADS}" ]] ; do
+  (
+   __logi "Starting user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}"
+
+   export LOWER_VALUE
+   export HIGH_VALUE
+   set +e
+   # shellcheck disable=SC2016
+   psql -d "${DBNAME}" -c "$(envsubst '$LOWER_VALUE,$HIGH_VALUE' \
+    < "${POSTGRES_31_POPULATE_OLD_USERS_FILE}" || true)" \
+    >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   set -e
+
+   __logi "Finished user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}"
+  ) &
+  ITER=$((ITER+1))
+  LOWER_VALUE=$((HIGH_VALUE+1))
+  HIGH_VALUE=$((HIGH_VALUE+SIZE))
+  sleep 5
+ done
+
+ wait
+
+ __log_finish
+}
 # Processes the notes and comments.
 function __processNotesUser {
  __log_start
  if [[ "${PROCESS_OLD_USERS}" == "yes" ]]; then
-  # TODO parallel
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_31_POPULATE_OLD_USERS_FILE}" 2>&1
+  __processOldUsers
  fi
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_32_POPULATE_FILE}" 2>&1
  __log_finish
@@ -232,7 +276,7 @@ function main() {
  ONLY_EXECUTION="yes"
 
  # This variable is to process all those users that have performed less than 20
- # note actions, but are 95% of the users. It should be processes when the
+ # note actions, but are 95% of the users. It should be processed when the
  # tables are created.
  PROCESS_OLD_USERS=no
 
