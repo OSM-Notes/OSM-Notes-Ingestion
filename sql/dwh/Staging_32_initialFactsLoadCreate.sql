@@ -415,7 +415,7 @@ $$
    FROM note_comments
    WHERE DATE(created_at) = max_processed_date
     AND created_at > max_note_on_dwh_timestamp
-     AND EXTRACT(YEAR FROM created_at) = ${YEAR};
+    AND EXTRACT(YEAR FROM created_at) = ${YEAR};
    --RAISE NOTICE 'count notes to process on date %: %', max_processed_date,
    -- qty_notes_on_date;
 
