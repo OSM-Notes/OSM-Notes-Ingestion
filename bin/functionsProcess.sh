@@ -10,12 +10,16 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-08
+# Version: 2024-01-18
 
 # Error codes.
 # 1: Help message.
 # shellcheck disable=SC2034
 declare -r ERROR_HELP_MESSAGE=1
+# 238: Preivous execution failed.
+declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
+# 239: Library or utility missing.
+declare -r ERROR_CREATING_REPORT=239
 # 241: Library or utility missing.
 declare -r ERROR_MISSING_LIBRARY=241
 # 242: Invalid argument for script invocation.
@@ -23,8 +27,23 @@ declare -r ERROR_MISSING_LIBRARY=241
 declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
+# 244: The list of ids for boundary geometries cannot be downloaded.
+declare -r ERROR_DOWNLOADING_ID_LIST=244
+# 245: No last update.
+declare -r ERROR_NO_LAST_UPDATE=245
+# 246: Planet process is currently running.
+declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
+# 247: Error downloading planet notes file.
+declare -r ERROR_DOWNLOADING_NOTES=247
+# 248: Error executing the Planet dump.
+declare -r ERROR_EXECUTING_PLANET_DUMP=248
+# 249: Error downloading boundary.
+declare -r ERROR_DOWNLOADING_BOUNDARY=249
 # 255: General error.
 declare -r ERROR_GENERAL=255
+
+# Previous execution failed.
+declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
@@ -114,7 +133,7 @@ function __onlyExecution {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; touch "${FAILED_EXECUTION_FILE" ; exit ${ERROR_GENERAL};}' \
   ERR
  trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
