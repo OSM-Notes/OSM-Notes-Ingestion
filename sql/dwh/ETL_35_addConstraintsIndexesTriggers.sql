@@ -80,26 +80,44 @@ COMMENT ON INDEX dwh.facts_action_date IS
   'Improves queries by action timestamp';
 
 CREATE INDEX action_idx 
- ON dwh.facts (action_dimension_id_user, action_comment);
+ ON dwh.facts (action_dimension_id_user, action_comment, id_note);
 COMMENT ON INDEX dwh.action_idx IS 'Improves queries by user and action type';
+
+CREATE INDEX open_user_idx
+ ON dwh.facts (opened_dimension_id_user);
+COMMENT ON INDEX dwh.open_user_idx IS 'Improves queries by creating user';
+
+CREATE INDEX open_idnote_idx
+ ON dwh.facts (opened_dimension_id_user, id_note);
+COMMENT ON INDEX dwh.open_idnote_idx IS 'Improves queries by creating user';
 
 CREATE INDEX open_user_date_idx
  ON dwh.facts (opened_dimension_id_date, opened_dimension_id_user);
 COMMENT ON INDEX dwh.open_user_date_idx IS
   'Improves queries by creating date and user';
 
-CREATE INDEX open_user_idx
- ON dwh.facts (opened_dimension_id_user);
-COMMENT ON INDEX dwh.open_user_idx IS 'Improves queries by creating user';
-
-CREATE INDEX closed_user_date_idx
-ON dwh.facts (closed_dimension_id_date, closed_dimension_id_user);
-COMMENT ON INDEX dwh.closed_user_date_idx IS
-  'Improves queries by closing data and user';
+CREATE INDEX open_date_user_idx
+ ON dwh.facts (opened_dimension_id_user, opened_dimension_id_date);
+COMMENT ON INDEX dwh.open_date_user_idx IS
+  'Improves queries by creating user and date';
 
 CREATE INDEX closed_user_idx
 ON dwh.facts (closed_dimension_id_user);
 COMMENT ON INDEX dwh.closed_user_idx IS 'Improves queries by closing user';
+
+CREATE INDEX closed_idnote_idx
+ON dwh.facts (closed_dimension_id_user, id_note);
+COMMENT ON INDEX dwh.closed_idnote_idx IS 'Improves queries by closing user';
+
+CREATE INDEX closed_user_date_idx
+ON dwh.facts (closed_dimension_id_date, closed_dimension_id_user);
+COMMENT ON INDEX dwh.closed_user_date_idx IS
+  'Improves queries by closing date and user';
+
+CREATE INDEX closed_date_user_idx
+ON dwh.facts (closed_dimension_id_user, closed_dimension_id_date);
+COMMENT ON INDEX dwh.closed_date_user_idx IS
+  'Improves queries by closing user and date';
 
 CREATE INDEX country_open_user_idx
 ON dwh.facts (dimension_id_country, opened_dimension_id_user);
@@ -126,6 +144,11 @@ ON dwh.facts (closed_dimension_id_hour_of_week, closed_dimension_id_user);
 COMMENT ON INDEX dwh.hours_closing_idx IS
   'Improves queries by closing hour and user';
 
+CREATE INDEX user_dateidx
+ON dwh.facts (action_dimension_id_user, action_dimension_id_date);
+COMMENT ON INDEX dwh.user_dateidx IS
+  'Improves queries by action user and date';
+
 CREATE INDEX date_user_action_idx
 ON dwh.facts (action_dimension_id_date, action_dimension_id_user,
  action_comment);
@@ -133,9 +156,21 @@ COMMENT ON INDEX dwh.date_user_action_idx IS
   'Improves queries by action date, user and type';
 
 CREATE INDEX date_action_country_idx
-ON dwh.facts (action_dimension_id_date, dimension_id_country, action_comment);
+ON dwh.facts (dimension_id_country, action_dimension_id_date, action_comment);
 COMMENT ON INDEX dwh.date_action_country_idx IS
-  'Improves queries by action date, country and type';
+  'Improves queries by action country, date and type';
+
+CREATE INDEX date_action_open_idx
+ON dwh.facts (dimension_id_country, action_dimension_id_date,
+  opened_dimension_id_user);
+COMMENT ON INDEX dwh.date_action_open_idx IS
+  'Improves queries by action country, date and user open';
+
+CREATE INDEX date_action_close_idx
+ON dwh.facts (dimension_id_country, action_dimension_id_date,
+  closed_dimension_id_user);
+COMMENT ON INDEX dwh.date_action_close_idx IS
+  'Improves queries by action country, date and user close';
 
 CREATE INDEX action_country_idx
 ON dwh.facts (dimension_id_country, action_comment);
@@ -150,6 +185,9 @@ CREATE INDEX resolution_idx
  ON dwh.facts (id_note, fact_id);
 COMMENT ON INDEX dwh.resolution_idx IS 'Improves queries to get resolve notes';
 
+CREATE INDEX user_note_idx
+ ON dwh.facts (id_note, fact_id);
+COMMENT ON INDEX dwh.user_note_idx IS 'Improves queries to get resolve notes';
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Creating triggers' AS Task;
