@@ -1,7 +1,7 @@
 -- Populates datamart for users.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2024-01-17
 
 DO /* Notes-datamartUsers-badges */
 $$
@@ -30,6 +30,12 @@ BEGIN
    SET date = CURRENT_DATE;
  END IF;
 
+ -- Inserts the part of the date to reduce calling the function Extract.
+ DELETE FROM dwh.properties WHERE key IN ('year', 'month', 'day');
+ INSERT INTO dwh.properties VALUES ('year', DATE_PART('year', CURRENT_DATE));
+ INSERT INTO dwh.properties VALUES ('month', DATE_PART('month', CURRENT_DATE));
+ INSERT INTO dwh.properties VALUES ('day', DATE_PART('day', CURRENT_DATE));
+
  FOR r IN
   -- Process the datamart only for modified users.
   SELECT /* Notes-datamartUsers */ 
@@ -39,7 +45,7 @@ BEGIN
    ON (f.action_dimension_id_user = u.dimension_user_id)
   WHERE u.modified = TRUE
   GROUP BY f.action_dimension_id_user
-  ORDER BY MAX(f.action_at) DESC
+  ORDER BY MAX(f.action_at) DESC -- TODO quitar?
   LIMIT 500
  LOOP
   RAISE NOTICE 'Processing user %', r.dimension_user_id;
@@ -49,8 +55,6 @@ BEGIN
    SET modified = FALSE
    WHERE dimension_user_id = r.dimension_user_id;
 
-  COMMIT;
  END LOOP;
- -- TODO Aquí se debería volver a ejecutar en paralelo para los más viejos usuarios sin modificar.
 END
 $$;
