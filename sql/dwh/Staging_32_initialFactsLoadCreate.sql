@@ -1,7 +1,7 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-13
+-- Version: 2024-01-18
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
 
@@ -139,9 +139,10 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   rec_note_action RECORD;
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
    SELECT /* Notes-staging */
-    c.note_id id_note, n.created_at created_at, o.id_user created_id_user,
-    n.id_country id_country, c.sequence_action seq, c.event action_comment,
-    c.id_user action_id_user, c.created_at action_at, t.body
+    c.note_id id_note, c.sequence_action sequence_action,
+    n.created_at created_at, o.id_user created_id_user, n.id_country id_country,
+    c.sequence_action seq, c.event action_comment, c.id_user action_id_user,
+    c.created_at action_at, t.body
    FROM note_comments c
     JOIN notes n
     ON (c.note_id = n.note_id)
@@ -251,11 +252,11 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
         CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
         m_hashtag_id_5 := staging.get_hashtag_id(m_hashtag_name);
         m_hashtag_number := 5;
-        WHILE (m_text_comment LIKE '%#%') DO
+        WHILE (m_text_comment LIKE '%#%') LOOP
          CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
          -- If there are new hashtags, it does not insert them in the dimension.
          m_hashtag_number := m_hashtag_number + 1;
-        END WHILE;
+        END LOOP;
        END IF;
       END IF;
      END IF;
@@ -306,7 +307,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    m_hashtag_id_3 := null;
    m_hashtag_id_4 := null;
    m_hashtag_id_5 := null;
-   hashtag_number := 0;
+   m_hashtag_number := 0;
 
    SELECT /* Notes-staging */ COUNT(1)
     INTO m_count
