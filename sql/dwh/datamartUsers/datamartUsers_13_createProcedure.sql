@@ -1,7 +1,7 @@
 -- Procedure to insert datamart user.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2024-01-17
 
 /**
  * Inserts a user in the datamart, with the values that do not change.
@@ -23,75 +23,59 @@ AS $proc$
   m_last_year_activity CHAR(371);
   r RECORD;
  BEGIN
+  -- Gets the OSM user id and the username.
   SELECT /* Notes-datamartUsers */ user_id, username
    INTO m_user_id, m_username
   FROM dwh.dimension_users
   WHERE dimension_user_id = m_dimension_user_id;
 
+  -- Gets the date of the first note created by the current user.
   -- date_starting_creating_notes
-  SELECT /* Notes-datamartUsers */ date_id
+  SELECT /* Notes-datamartUsers */ MIN(date_id)
    INTO m_date_starting_creating_notes
-  FROM dwh.dimension_days
-  WHERE dimension_day_id = (
-   SELECT /* Notes-datamartUsers */ MIN(opened_dimension_id_date)
-   FROM dwh.facts f
-   WHERE f.opened_dimension_id_user = m_dimension_user_id
-  );
+  FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.opened_dimension_id_date = d.dimension_day_id)
+  WHERE f.opened_dimension_id_user = m_dimension_user_id;
   
+  -- Gets the date of the first note resolved by the current user.
   -- date_starting_solving_notes
-  SELECT /* Notes-datamartUsers */ date_id
+  SELECT /* Notes-datamartUsers */ MIN(date_id)
    INTO m_date_starting_solving_notes
-  FROM dwh.dimension_days
-  WHERE dimension_day_id = (
-   SELECT /* Notes-datamartUsers */ MIN(closed_dimension_id_date)
-   FROM dwh.facts f
-   WHERE f.closed_dimension_id_user = m_dimension_user_id
-  );
+  FROM dwh.facts f
+   JOIN dwh.dimension_days d
+   ON (f.closed_dimension_id_date = d.dimension_day_id)
+   WHERE f.closed_dimension_id_user = m_dimension_user_id;
   
   -- first_open_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MIN(id_note)
    INTO m_first_open_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MIN(fact_id)
-   FROM dwh.facts f
-   WHERE f.action_dimension_id_user = m_dimension_user_id
-    AND f.action_comment = 'opened'
-  );
+  FROM dwh.facts f
+  WHERE f.action_dimension_id_user = m_dimension_user_id
+   AND f.action_comment = 'opened';
 
   -- first_commented_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MIN(id_note)
    INTO m_first_commented_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MIN(fact_id)
-   FROM dwh.facts f
-   WHERE f.action_dimension_id_user = m_dimension_user_id
-    AND f.action_comment = 'commented'
-  );
+  FROM dwh.facts f
+  WHERE f.action_dimension_id_user = m_dimension_user_id
+   AND f.action_comment = 'commented';
 
   -- first_closed_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MIN(id_note)
    INTO m_first_closed_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MIN(fact_id)
-   FROM dwh.facts f
-   WHERE f.action_dimension_id_user = m_dimension_user_id
-    AND f.action_comment = 'closed'
-  );
+  FROM dwh.facts f
+  WHERE f.action_dimension_id_user = m_dimension_user_id
+   AND f.action_comment = 'closed';
 
   -- first_reopened_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MIN(id_note)
    INTO m_first_reopened_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MIN(fact_id)
-   FROM dwh.facts f
-   WHERE f.action_dimension_id_user = m_dimension_user_id
-    AND f.action_comment = 'reopened'
-  );
+  FROM dwh.facts f
+  WHERE f.action_dimension_id_user = m_dimension_user_id
+   AND f.action_comment = 'reopened';
 
+  -- Creates the activity array.
   m_last_year_activity := '0';
   --RAISE NOTICE 'Activity array %', m_last_year_activity;
   -- Create the last year activity
@@ -189,7 +173,7 @@ AS $proc$
     ON (f.action_dimension_id_date = d.dimension_day_id)
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'opened'
-    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+    AND d.year = m_year;
 
    -- history_year_commented
    SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -199,7 +183,7 @@ AS $proc$
     ON (f.action_dimension_id_date = d.dimension_day_id)
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'commented'
-    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+    AND d.year = m_year;
 
    -- history_year_closed
    SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -209,7 +193,7 @@ AS $proc$
     ON (f.action_dimension_id_date = d.dimension_day_id)
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'closed'
-    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+    AND d.year = m_year;
 
    -- history_year_closed_with_comment
    -- TODO comment's text
@@ -223,7 +207,7 @@ AS $proc$
     ON (f.action_dimension_id_date = d.dimension_day_id)
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'reopened'
-    AND EXTRACT(YEAR FROM d.date_id) = m_year;
+    AND d.year = m_year;
 
    -- m_ranking_countries_opening_year
    SELECT /* Notes-datamartUsers */ 
@@ -242,7 +226,7 @@ AS $proc$
       JOIN dwh.dimension_days d
       ON f.opened_dimension_id_date = d.dimension_day_id
      WHERE f.opened_dimension_id_user = m_dimension_user_id
-      AND EXTRACT(YEAR FROM d.date_id) = m_year
+      AND d.year = m_year
      GROUP BY c.country_name_es
      ORDER BY COUNT(1) DESC
      LIMIT 50
@@ -266,7 +250,7 @@ AS $proc$
       JOIN dwh.dimension_days d
       ON f.closed_dimension_id_date = d.dimension_day_id
      WHERE f.closed_dimension_id_user = m_dimension_user_id
-      AND EXTRACT(YEAR FROM d.date_id) = m_year
+      AND d.year = m_year
      GROUP BY c.country_name_es
      ORDER BY COUNT(1) DESC
      LIMIT 50
@@ -305,6 +289,8 @@ COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
  DECLARE
   m_cointributor_id SMALLINT;
   m_oldest_action DATE;
+  m_oldest_action_year SMALLINT;
+  m_current_year SMALLINT;
   m_recent_action DATE;
   m_total_actions INTEGER;
   m_total_opened INTEGER;
@@ -335,21 +321,23 @@ COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
 
   coeficient := m_total_closed / (m_total_opened + 1);
 
+  m_oldest_action_year := EXTRACT(YEAR FROM m_oldest_action);
+  m_current_year := EXTRACT(YEAR FROM CURRENT_DATE);
   m_cointributor_id := 0;
   IF (m_oldest_action > CURRENT_DATE - 30) THEN
    m_cointributor_id := 2; -- Just starting notero
   ELSIF (m_oldest_action > CURRENT_DATE - 90) THEN
    m_cointributor_id := 3; -- Newbie notero.
-  ELSIF (EXTRACT(YEAR FROM m_oldest_action) = 2013
-    AND EXTRACT(YEAR FROM m_oldest_action) = EXTRACT(YEAR FROM CURRENT_DATE)) THEN
+  ELSIF (m_oldest_action_year = 2013
+    AND m_oldest_action_year = m_current_year) THEN
    m_cointributor_id := 4; -- All-time notero.
    -- It has contributed since the first year, and the current year.
    -- The assumption is that is has contributed all years in between.
   ELSIF (m_oldest_action = m_recent_action) THEN
    m_cointributor_id := 5; -- Hit and run.
    -- It contibuted only one day older than 90 days.
-  ELSIF (EXTRACT(YEAR FROM m_oldest_action) = EXTRACT(YEAR FROM CURRENT_DATE)
-    OR EXTRACT(YEAR FROM m_oldest_action) = EXTRACT(YEAR FROM CURRENT_DATE) - 1) THEN
+  ELSIF (m_oldest_action_year = m_current_year
+    OR m_oldest_action_year = m_current_year - 1) THEN
    m_cointributor_id := 6; -- Junior notero.
    -- It has been contributed in the last 2 calendar years.
   ELSIF (m_recent_action < CURRENT_DATE - 720) THEN
@@ -426,6 +414,8 @@ LANGUAGE plpgsql
 AS $proc$
  DECLARE
   qty SMALLINT;
+  m_start_time TIMESTAMP;
+  m_end_time TIMESTAMP;
   m_id_contributor_type SMALLINT;
   m_todays_activity INTEGER;
   m_last_year_activity CHAR(371);
@@ -471,12 +461,14 @@ AS $proc$
   m_current_month SMALLINT;
   m_current_day SMALLINT;
  BEGIN
+  --m_start_time := CLOCK_TIMESTAMP();
   SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO qty
   FROM dwh.datamartUsers
   WHERE dimension_user_id = m_dimension_user_id;
+  -- Checks if the user is already in the datamart.
   IF (qty = 0) THEN
-   --RAISE NOTICE 'Inserting user';
+   --RAISE NOTICE 'Inserting user in the datamart - %', CLOCK_TIMESTAMP();
    CALL dwh.insert_datamart_user(m_dimension_user_id);
   END IF;
  
@@ -488,6 +480,9 @@ AS $proc$
    INTO m_last_year_activity
   FROM dwh.datamartUsers u
   WHERE u.dimension_user_id = m_dimension_user_id;
+
+  -- Retrieves the curent activity array from the user, and updates with the
+  -- current day's activities.
   SELECT /* Notes-datamartUsers */ COUNT(1)
    INTO m_todays_activity
   FROM dwh.facts f
@@ -500,47 +495,31 @@ AS $proc$
   --RAISE NOTICE 'Activity array %', m_last_year_activity;
 
   -- lastest_open_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MAX(id_note)
+  FROM dwh.facts f
    INTO m_lastest_open_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MAX(fact_id)
-   FROM dwh.facts f
-   WHERE f.opened_dimension_id_user = m_dimension_user_id
-  );
+  WHERE f.opened_dimension_id_user = m_dimension_user_id;
 
   -- lastest_commented_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MAX(id_note)
    INTO m_lastest_commented_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MAX(fact_id)
-   FROM dwh.facts f
+  FROM dwh.facts f
    WHERE f.action_dimension_id_user = m_dimension_user_id
-    AND f.action_comment = 'commented'
-  );
+    AND f.action_comment = 'commented';
  
   -- lastest_closed_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MAX(id_note)
    INTO m_lastest_closed_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MAX(fact_id)
-   FROM dwh.facts f
-   WHERE f.closed_dimension_id_user = m_dimension_user_id
-  );
+  FROM dwh.facts f
+  WHERE f.closed_dimension_id_user = m_dimension_user_id;
  
   -- lastest_reopened_note_id
-  SELECT /* Notes-datamartUsers */ id_note
+  SELECT /* Notes-datamartUsers */ MAX(id_note)
    INTO m_lastest_reopened_note_id
-  FROM dwh.facts
-  WHERE fact_id = (
-   SELECT /* Notes-datamartUsers */ MAX(fact_id)
-   FROM dwh.facts f
-   WHERE f.action_dimension_id_user = m_dimension_user_id
-    AND f.action_comment = 'reopened'
-  );
- 
+  FROM dwh.facts f
+  WHERE f.action_dimension_id_user = m_dimension_user_id
+   AND f.action_comment = 'reopened';
+
   -- dates_most_open
   SELECT /* Notes-datamartUsers */ 
    JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
@@ -617,14 +596,36 @@ AS $proc$
    ) AS T
   ) AS S;
  
-  SELECT /* Notes-datamartUsers */ EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
+  -- PEFR: high impact.
+  -- 22 per second.
+  SELECT /* Notes-datamartUsers */ EXTRACT(YEAR FROM CURRENT_DATE)
    INTO m_current_year;
- 
-  SELECT /* Notes-datamartUsers */ EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
+  SELECT /* Notes-datamartUsers */ EXTRACT(MONTH FROM CURRENT_DATE)
    INTO m_current_month;
- 
-  SELECT /* Notes-datamartUsers */ EXTRACT(DAY FROM CURRENT_TIMESTAMP)
+  SELECT /* Notes-datamartUsers */ EXTRACT(DAY FROM CURRENT_DATE)
    INTO m_current_day;
+
+  -- 21 per second
+--  SELECT /* Notes-datamartUsers */ DATE_PART('year', CURRENT_DATE)
+--   INTO m_current_year;
+--  SELECT /* Notes-datamartUsers */ DATE_PART('month', CURRENT_DATE)
+--   INTO m_current_month;
+--  SELECT /* Notes-datamartUsers */ DATE_PART('day', CURRENT_DATE)
+--   INTO m_current_day;
+
+  -- 21 per second
+--  SELECT /* Notes-datamartUsers */ value
+--   INTO m_current_year
+--  FROM dwh.properties
+--  WHERE key = 'year';
+--  SELECT /* Notes-datamartUsers */ value
+--   INTO m_current_month
+--  FROM dwh.properties
+--  WHERE key = 'month';
+--  SELECT /* Notes-datamartUsers */ value
+--   INTO m_current_day
+--  FROM dwh.properties
+--  WHERE key = 'day';
 
   -- countries_open_notes_current_month
   SELECT /* Notes-datamartUsers */ 
@@ -643,8 +644,8 @@ AS $proc$
      JOIN dwh.dimension_days d
      ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.opened_dimension_id_user = m_dimension_user_id
-     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
+     AND d.month = m_current_month
+     AND d.year = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -668,8 +669,8 @@ AS $proc$
      JOIN dwh.dimension_days d
      ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.closed_dimension_id_user = m_dimension_user_id
-     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
+     AND d.month = m_current_month
+     AND d.year = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -693,9 +694,9 @@ AS $proc$
      JOIN dwh.dimension_days d
      ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.opened_dimension_id_user = m_dimension_user_id
-     AND EXTRACT(DAY FROM d.date_id) = m_current_day
-     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
+     AND d.day = m_current_day
+     AND d.month = m_current_month
+     AND d.year = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -719,9 +720,9 @@ AS $proc$
      JOIN dwh.dimension_days d
      ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.closed_dimension_id_user = m_dimension_user_id
-     AND EXTRACT(DAY FROM d.date_id) = m_current_day
-     AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-     AND EXTRACT(YEAR FROM d.date_id) = m_current_year
+     AND d.day = m_current_day
+     AND d.month = m_current_month
+     AND d.year = m_current_year
     GROUP BY c.country_name_es
     ORDER BY COUNT(1) DESC
     LIMIT 50
@@ -735,7 +736,6 @@ AS $proc$
     JOIN dwh.dimension_hours_of_week t
     ON f.opened_dimension_id_hour_of_week = t.dimension_how_id
    WHERE f.opened_dimension_id_user = m_dimension_user_id
-    AND f.action_comment = 'opened'
    GROUP BY day_of_week, hour_of_day
    ORDER BY day_of_week, hour_of_day
   )
@@ -752,7 +752,7 @@ AS $proc$
    WHERE f.action_dimension_id_user = m_dimension_user_id
     AND f.action_comment = 'commented'
    GROUP BY day_of_week, hour_of_day
-  ORDER BY day_of_week, hour_of_day
+   ORDER BY day_of_week, hour_of_day
   )
   SELECT /* Notes-datamartUsers */ JSON_AGG(hours.*)
    INTO m_working_hours_of_week_commenting
@@ -812,7 +812,7 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'opened'
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.year = m_current_year;
  
   -- history_year_commented
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -822,7 +822,7 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'commented'
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.year = m_current_year;
  
   -- history_year_closed
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -832,7 +832,7 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'closed'
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.year = m_current_year;
  
   -- history_year_closed_with_comment
   -- TODO comment's text
@@ -846,7 +846,7 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'reopened'
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.year = m_current_year;
  
   -- history_month_open
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -856,8 +856,8 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'opened'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- history_month_commented
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -867,8 +867,8 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'commented'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- history_month_closed
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -878,8 +878,8 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'closed'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- history_month_closed_with_comment
   -- TODO comment's text
@@ -893,8 +893,8 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'reopened'
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- history_day_open
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -904,9 +904,9 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'opened'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.day = m_current_day
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- history_day_commented
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -916,9 +916,9 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'commented'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.day = m_current_day
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- history_day_closed
   SELECT /* Notes-datamartUsers */ COUNT(1)
@@ -928,9 +928,9 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'closed'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.day = m_current_day
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- history_day_closed_with_comment
   -- TODO comment's text
@@ -944,9 +944,9 @@ AS $proc$
    ON (f.action_dimension_id_date = d.dimension_day_id)
   WHERE f.action_dimension_id_user = m_dimension_user_id
    AND f.action_comment = 'reopened'
-   AND EXTRACT(DAY FROM d.date_id) = m_current_day
-   AND EXTRACT(MONTH FROM d.date_id) = m_current_month
-   AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
+   AND d.day = m_current_day
+   AND d.month = m_current_month
+   AND d.year = m_current_year;
  
   -- Updates user with new values.
   UPDATE dwh.datamartUsers
@@ -994,6 +994,8 @@ AS $proc$
    CALL dwh.update_datamart_user_activity_year(m_dimension_user_id, m_year);
    m_year := m_year + 1;
  END LOOP;
+ --m_end_time := CLOCK_TIMESTAMP();
+ --RAISE NOTICE 'Duration  %', m_end_time - m_start_time;
 END
 $proc$;
 COMMENT ON PROCEDURE dwh.update_datamart_user IS
