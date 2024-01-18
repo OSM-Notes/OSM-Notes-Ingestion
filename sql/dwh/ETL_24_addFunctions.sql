@@ -1,7 +1,7 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-12
+-- Version: 2024-01-17
 
 -- Primrary keys
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
@@ -86,9 +86,10 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
   
   IF (m_id_date IS NULL) THEN
    INSERT INTO dwh.dimension_days (
-     date_id
+     date_id, year, month, day
     ) VALUES (
-     DATE(new_date)
+     DATE(new_date), EXTRACT(YEAR FROM new_date), EXTRACT(MONTH FROM new_date),
+     EXTRACT(DAY FROM new_date)
     )
     RETURNING dimension_day_id
      INTO m_id_date
@@ -110,7 +111,7 @@ CREATE OR REPLACE FUNCTION dwh.get_hour_of_week_id(m_date TIMESTAMP)
   m_hour_of_day SMALLINT;
   m_dimension_how_id SMALLINT;
  BEGIN
-  SELECT /* Notes-ETL */ EXTRACT(isodow FROM m_date)
+  SELECT /* Notes-ETL */ EXTRACT(ISODOW FROM m_date)
    INTO m_day_of_week;
 
   SELECT /* Notes-ETL */ EXTRACT(HOUR FROM m_date)

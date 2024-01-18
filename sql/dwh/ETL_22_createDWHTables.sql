@@ -1,7 +1,7 @@
 -- Create data warehouse tables, indexes, functions and triggers.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-12
+-- Version: 2024-01-17
 
 CREATE SCHEMA IF NOT EXISTS dwh;
 COMMENT ON SCHEMA dwh IS
@@ -137,11 +137,17 @@ COMMENT ON COLUMN dwh.dimension_countries.modified IS
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_days (
  dimension_day_id SERIAL,
- date_id DATE
+ date_id DATE,
+ year SMALLINT,
+ month SMALLINT,
+  SMALLINT
 );
 COMMENT ON TABLE dwh.dimension_days IS 'Dimension for days';
 COMMENT ON COLUMN dwh.dimension_days.dimension_day_id IS 'Surrogated ID';
 COMMENT ON COLUMN dwh.dimension_days.date_id IS 'Complete date';
+COMMENT ON COLUMN dwh.dimension_days.year IS 'Year of the date';
+COMMENT ON COLUMN dwh.dimension_days.month IS 'Month of the date';
+COMMENT ON COLUMN dwh.dimension_days.day IS 'Day of date';
 
 CREATE TABLE IF NOT EXISTS dwh.dimension_hours_of_week (
  dimension_how_id SMALLINT,
