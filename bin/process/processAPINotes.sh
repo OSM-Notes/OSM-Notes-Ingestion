@@ -222,6 +222,7 @@ function __dropApiTables {
 
 # Checks that no processPlanetNotes is runnning
 function __checkNoProcessPlanet {
+ __log_start
  local QTY
  set +e
  QTY="$(pgrep processPlanetNotes.sh | wc -l)"
@@ -231,6 +232,7 @@ function __checkNoProcessPlanet {
   __logw "It is better to wait for it to finish."
   exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
  fi
+ __log_finish
 }
 
 # Creates tables for notes from API.
@@ -425,6 +427,7 @@ function __cleanNotesFiles {
 # MAIN
 
 function main() {
+ __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."
  __logi "Processing: ${PROCESS_TYPE}."
@@ -487,6 +490,7 @@ function main() {
  fi
  __cleanNotesFiles
  __logw "Process finished."
+ __log_finish
 }
 # Return value for several functions.
 declare -i RET
