@@ -227,6 +227,7 @@ function __cleanFiles {
 # MAIN
 
 function main() {
+ __log_start
  __logi "Preparing the env."
  __logd "Output saved at: ${TMP_DIR}."
 
@@ -245,6 +246,7 @@ function main() {
  __sendMail
  __cleanFiles
  __logw "Process finished."
+ __log_finish
 }
 
 # Allows to other user read the directory.
