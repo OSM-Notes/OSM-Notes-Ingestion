@@ -256,6 +256,7 @@ function __processNotesUser {
 # MAIN
 
 function main() {
+ __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."
  __logi "Processing: ${PROCESS_TYPE}."
@@ -288,6 +289,7 @@ function main() {
  __processNotesUser
 
  __logw "Ending process."
+ __log_finish
 }
 
 # Allows to other user read the directory.
