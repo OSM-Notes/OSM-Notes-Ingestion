@@ -1,7 +1,10 @@
 -- Loads data warehouse data for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-18
+-- Version: 2024-01-22
+
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating objects for year ${YEAR}' AS Task;
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
 
@@ -15,67 +18,68 @@ ALTER TABLE staging.facts_${YEAR} ALTER processing_time
 
 ALTER TABLE staging.facts_${YEAR} ADD PRIMARY KEY (fact_id);
 
-CREATE INDEX facts_action_date_${YEAR} ON staging.facts_${YEAR} (action_at);
-COMMENT ON INDEX facts_action_date_${YEAR} IS
+CREATE INDEX facts_action_at_idx_${YEAR} ON staging.facts_${YEAR} (action_at);
+COMMENT ON INDEX staging.facts_action_at_idx_${YEAR} IS
   'Improves queries by action timestamp on ${YEAR}';
 
 CREATE INDEX action_idx_${YEAR}
  ON staging.facts_${YEAR} (action_dimension_id_date, id_note, action_comment);
-COMMENT ON INDEX action_idx_${YEAR}
+COMMENT ON INDEX staging.action_idx_${YEAR}
  IS 'Improves queries for reopened notes on ${YEAR}';
 
 CREATE INDEX date_differences_idx_${YEAR}
  ON staging.facts_${YEAR} (action_dimension_id_date,
   recent_opened_dimension_id_date, id_note, action_comment);
-COMMENT ON INDEX date_differences_idx_${YEAR}
+COMMENT ON INDEX staging.date_differences_idx_${YEAR}
   IS 'Improves queries for reopened notes on ${YEAR}';
 
-CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution_${YEAR}()
+CREATE OR REPLACE FUNCTION staging.update_days_to_resolution_${YEAR}()
   RETURNS TRIGGER AS
  $$
  DECLARE
-  open_date DATE;
-  reopen_date DATE;
-  close_date DATE;
-  days INTEGER;
+  m_open_date DATE;
+  m_reopen_date DATE;
+  m_close_date DATE;
+  m_days INTEGER;
  BEGIN
   IF (NEW.action_comment = 'closed') THEN
    -- Days between initial open and most recent close.
    SELECT /* Notes-staging */ date_id
-    INTO open_date
+    INTO m_open_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.opened_dimension_id_date;
 
    SELECT /* Notes-staging */ date_id
-    INTO close_date
+    INTO m_close_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.action_dimension_id_date;
 
-   days := close_date - open_date;
+   m_days := m_close_date - m_open_date;
    UPDATE staging.facts_${YEAR}
-    SET days_to_resolution = days
+    SET days_to_resolution = m_days
     WHERE fact_id = NEW.fact_id;
 
    -- Days between last reopen and most recent close.
    SELECT /* Notes-staging */ MAX(date_id)
-    INTO reopen_date
+    INTO m_reopen_date
    FROM staging.facts_${YEAR} f
     JOIN dwh.dimension_days d
     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE f.id_note = NEW.id_note
     AND f.action_comment = 'reopened';
-   --RAISE NOTICE 'Reopen date: %', reopen_date;
-   IF (reopen_date IS NOT NULL) THEN
+   --RAISE NOTICE 'Reopen date: %', m_reopen_date;
+   IF (m_reopen_date IS NOT NULL) THEN
     -- Days from the last reopen.
-    days := close_date - reopen_date;
-    --RAISE NOTICE 'Difference dates %-%: %', close_date, reopen_date, days;
+    m_days := m_close_date - m_reopen_date;
+    --RAISE NOTICE 'Difference dates %-%: %', m_close_date, m_reopen_date,
+    -- m_days;
     UPDATE staging.facts_${YEAR}
-     SET days_to_resolution_from_reopen = days
+     SET days_to_resolution_from_reopen = m_days
      WHERE fact_id = NEW.fact_id;
 
     -- Days in open status
     SELECT /* Notes-staging */ SUM(days_difference)
-     INTO days
+     INTO m_days
     FROM (
      SELECT /* Notes-staging */ dd.date_id - dd2.date_id days_difference
      FROM staging.facts_${YEAR} f
@@ -88,7 +92,7 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution_${YEAR}()
     ) AS t
     ;
     UPDATE staging.facts_${YEAR}
-     SET days_to_resolution_active = days
+     SET days_to_resolution_active = m_days
      WHERE fact_id = NEW.fact_id;
 
    END IF;
@@ -97,13 +101,13 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution_${YEAR}()
  END;
  $$ LANGUAGE plpgsql
 ;
-COMMENT ON FUNCTION dwh.update_days_to_resolution_${YEAR} IS
+COMMENT ON FUNCTION staging.update_days_to_resolution_${YEAR} IS
   'Sets the number of days between the creation and the resolution dates on ${YEAR}';
 
 CREATE OR REPLACE TRIGGER update_days_to_resolution_${YEAR}
   AFTER INSERT ON staging.facts_${YEAR}
   FOR EACH ROW
-  EXECUTE FUNCTION dwh.update_days_to_resolution_${YEAR}()
+  EXECUTE FUNCTION staging.update_days_to_resolution_${YEAR}()
 ;
 COMMENT ON TRIGGER update_days_to_resolution_${YEAR} ON staging.facts_${YEAR} IS
   'Updates the number of days between creation and resolution dates on ${YEAR}';
@@ -137,7 +141,20 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   m_text_comment TEXT;
   m_hashtag_name TEXT;
   rec_note_action RECORD;
-  notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
+  notes_on_day REFCURSOR;
+
+ BEGIN
+  --RAISE NOTICE 'Day % started', max_processed_timestamp;
+
+  SELECT /* Notes-staging */ COUNT(1)
+   INTO m_count
+  FROM staging.facts_${YEAR};
+
+  --RAISE NOTICE 'Processing at %', max_processed_timestamp;
+
+
+
+  OPEN notes_on_day FOR EXECUTE ('
    SELECT /* Notes-staging */
     c.note_id id_note, c.sequence_action sequence_action,
     n.created_at created_at, o.id_user created_id_user, n.id_country id_country,
@@ -147,26 +164,20 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
     JOIN notes n
     ON (c.note_id = n.note_id)
     JOIN note_comments o
-    ON (n.note_id = o.note_id AND o.event = 'opened')
+    ON (n.note_id = o.note_id AND o.event = ''opened'')
     JOIN note_comments_text t
     ON (c.note_id = t.note_id AND c.sequence_action = t.sequence_action)
-   WHERE c.created_at > c_max_processed_timestamp 
-    AND DATE(c.created_at) = DATE(c_max_processed_timestamp) -- Notes for the
-      -- same date.
-    AND EXTRACT(YEAR FROM c.created_at) = EXTRACT(YEAR FROM c_max_processed_timestamp)
-   ORDER BY c.note_id, c.id;
-
- BEGIN
-  SELECT /* Notes-staging */ COUNT(1)
-   INTO m_count
-  FROM staging.facts_${YEAR};
-
-  --RAISE NOTICE 'Processing at %', max_processed_timestamp;
-
-  OPEN notes_on_day(max_processed_timestamp);
-
+    JOIN dwh.dimension_days dd
+    ON (DATE(c.created_at) = dd.date_id)
+   WHERE c.created_at > ''' || max_processed_timestamp
+   || '''  AND dd.date_id = ''' || DATE(max_processed_timestamp) -- Notes for the same date.
+   || '''  AND dd.year = ''' || EXTRACT(YEAR FROM max_processed_timestamp)
+   || ''' ORDER BY c.note_id, c.id
+   ');
   LOOP
+  RAISE NOTICE 'before fetch % - %', CLOCK_TIMESTAMP(), m_count;
    FETCH notes_on_day INTO rec_note_action;
+  RAISE NOTICE 'after fetch % - %', CLOCK_TIMESTAMP(), m_count;
    -- Exit when no more rows to fetch.
    EXIT WHEN NOT FOUND;
 
@@ -309,22 +320,15 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    m_hashtag_id_5 := null;
    m_hashtag_number := 0;
 
-   SELECT /* Notes-staging */ COUNT(1)
-    INTO m_count
-   FROM staging.facts_${YEAR};
    IF (MOD(m_count, 1000) = 0) THEN
-    RAISE NOTICE '%: % processed facts for % until %', CURRENT_TIMESTAMP,
-     m_count, ${YEAR}, max_processed_timestamp;
-   END IF;
-   IF (MOD(m_count, 10000) = 0) THEN
-    ANALYZE staging.facts_${YEAR};
+    RAISE NOTICE '%: % processed facts for % until % - %', CURRENT_TIMESTAMP,
+     m_count, ${YEAR}, max_processed_timestamp, CLOCK_TIMESTAMP();
    END IF;
 
    m_count := m_count + 1;
   END LOOP;
 
   CLOSE notes_on_day;
-  COMMIT;
  END
 $proc$
 ;
@@ -435,7 +439,8 @@ $$
     --RAISE NOTICE 'Notes to process for %: %', max_processed_date,
     -- qty_notes_on_date;
 
-    CALL staging.process_notes_at_date_${YEAR}(max_note_on_dwh_timestamp);
+    -- Not necessary to process more notes on the same date.
+    --CALL staging.process_notes_at_date_${YEAR}(max_note_on_dwh_timestamp);
    ELSE
     -- There are comments not processed on the DHW for the currently processing
     -- day.
@@ -447,12 +452,18 @@ $$
    --RAISE NOTICE 'loop % - % - %', max_processed_date,
    -- max_note_on_dwh_timestamp, qty_notes_on_date;
   END LOOP;
-  --RAISE NOTICE 'No facts to process (% !> %)', max_processed_date, max_note_action_date;
+  --RAISE NOTICE 'No facts to process (% !> %)', max_processed_date,
+  -- max_note_action_date;
  END
 $$
 ;
 COMMENT ON PROCEDURE staging.process_notes_actions_into_staging_${YEAR} IS
   'Inserts facts for year ${YEAR}';
 
+SELECT /* Notes-staging */ CURRENT_TIMESTAMP AS Processing,
+ 'Analyzing facts_${YEAR}' AS Text;
+
 ANALYZE staging.facts_${YEAR};
 
+SELECT /* Notes-staging */ CURRENT_TIMESTAMP AS Processing,
+ 'Analysis finished facts_${YEAR}' AS Text;
