@@ -3,6 +3,9 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-13
 
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating staging objects' AS Task;
+
 CREATE SCHEMA IF NOT EXISTS staging;
 COMMENT ON SCHEMA staging IS
   'Objects to load from base tables to data warehouse';
@@ -126,15 +129,16 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_hashtag_number INTEGER;
   m_previous_action_fact_id INTEGER;
   m_count INTEGER;
+  m_fact_id INTEGER;
   m_text_comment TEXT;
   m_hashtag_name TEXT;
   rec_note_action RECORD;
   notes_on_day CURSOR (c_max_processed_timestamp TIMESTAMP) FOR
    SELECT /* Notes-staging */
-    c.fact_id fact_id, c.note_id id_note, n.created_at created_at,
-    o.id_user created_id_user, n.id_country id_country, c.sequence_action seq,
-    c.event action_comment, c.id_user action_id_user, c.created_at action_at,
-    t.body
+    c.note_id id_note, c.sequence_action sequence_action,
+    n.created_at created_at, o.id_user created_id_user, n.id_country id_country,
+    c.sequence_action seq, c.event action_comment, c.id_user action_id_user,
+    c.created_at action_at, t.body
    FROM note_comments c
     JOIN notes n
     ON (c.note_id = n.note_id)
@@ -142,8 +146,10 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     ON (n.note_id = o.note_id AND o.event = 'opened')
     JOIN note_comments_text t
     ON (c.note_id = t.note_id AND c.sequence_action = t.sequence_action)
+    JOIN dwh.dimension_days dd
+    ON (DATE(c.created_at) = dd.date_id)
    WHERE c.created_at > c_max_processed_timestamp 
-    AND DATE(c.created_at) = DATE(c_max_processed_timestamp) -- Notes for the
+    AND dd.date_id = DATE(c_max_processed_timestamp) -- Notes for the
       -- same date.
    ORDER BY c.note_id, c.id;
 
@@ -216,11 +222,17 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    ELSIF (rec_note_action.action_comment = 'reopened') THEN
     m_recent_opened_dimension_id_date := m_action_id_date;
    ELSE
+    SELECT /* Notes-staging */ fact_id
+     INTO m_fact_id
+    FROM dwh.facts f
+    WHERE f.id_note = rec_note_action.id_note
+     AND f.sequence_action = rec_note_action.sequence_action;
+
     SELECT /* Notes-staging */ max(fact_id)
      INTO m_previous_action_fact_id
     FROM dwh.facts f
     WHERE f.id_note = rec_note_action.id_note
-     AND f.fact_id < rec_note_action.fact_id;
+     AND f.fact_id < m_fact_id;
   
     SELECT /* Notes-staging */ recent_opened_dimension_id_date
      INTO m_recent_opened_dimension_id_date
@@ -252,11 +264,11 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
         CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
         m_hashtag_id_5 := staging.get_hashtag_id(m_hashtag_name);
         m_hashtag_number := 5;
-        WHILE (m_text_comment LIKE '%#%') DO
+        WHILE (m_text_comment LIKE '%#%') LOOP
          CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
          -- If there are new hashtags, it does not insert them in the dimension.
          m_hashtag_number := m_hashtag_number + 1;
-        END WHILE;
+        END LOOP;
        END IF;
       END IF;
      END IF;
@@ -316,7 +328,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    m_hashtag_id_3 := null;
    m_hashtag_id_4 := null;
    m_hashtag_id_5 := null;
-   hashtag_number := 0;
+   m_hashtag_number := 0;
 
    SELECT /* Notes-staging */ COUNT(1)
     INTO m_count
@@ -434,3 +446,6 @@ $proc$
 ;
 COMMENT ON PROCEDURE staging.process_notes_actions_into_dwh IS
   'Processes all non-processes notes';
+
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'All staging objects created' AS Task;
