@@ -1,7 +1,7 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-17
+-- Version: 2024-01-22
 
 -- Primrary keys
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
@@ -99,6 +99,8 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
  END;
  $$ LANGUAGE plpgsql
 ;
+COMMENT ON FUNCTION dwh.get_date_id IS
+  'Returns id of the day';
 
 /**
  * Returns the given hour of a timestamp.
