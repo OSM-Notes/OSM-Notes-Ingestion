@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-13
-declare -r VERSION="2024-01-13"
+# Version: 2024-01-22
+declare -r VERSION="2024-01-22"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -73,35 +73,34 @@ declare -r PROCESS_TYPE=${1:-}
 # Name of the SQL script that check the existance of base tables.
 declare -r POSTGRES_11_CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_11_checkDWHTables.sql"
 
-# Name of the SQL script that contains the objects to create in the DB.
+# Name of the SQL script that contains existing ETL object form the DB.
 declare -r POSTGRES_21_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_21_removeDWHObjects.sql"
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r POSTGRES_22_CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_22_createDWHTables.sql"
-# Regions per country.
+# Populates regions per country.
 declare -r POSTGRES_23_REGIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_23_getWorldRegion.sql"
-# Name of the SQL script that contains the alter statements.
+# Name of the SQL script that contains the alter statements and PK.
 declare -r POSTGRES_24_ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_24_addFunctions.sql"
 # Create staging procedures.
 declare -r POSTGRES_25_POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_25_populateDimensionTables.sql"
 # Name of the SQL script that updates the dimensions.
 declare -r POSTGRES_26_UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_26_updateDimensionTables.sql"
-# Create staging procedures.
-declare -r POSTGRES_27_LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_27_loadNotes.sql"
 
+ # Create staging objets.
 declare -r POSTGRES_31_CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_31_createStagingObjects.sql"
-# Name of the SQL script that populates the dimensions.
-# Script to do the initial load - create.
+# Script to do the initial load - create. One-time execution.
 declare -r POSTGRES_32_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_32_initialFactsLoadCreate.sql"
 # Script to do the initial load - execute.
 declare -r POSTGRES_33_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_33_initialFactsLoadExecute.sql"
 # Script to do the initial load - drop.
 declare -r POSTGRES_34_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_34_initialFactsLoadDrop.sql"
-
 # Name of the SQL script that contains the alter statements.
-declare -r POSTGRES_35_ADD_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_35_addConstraintsIndexesTriggers.sql"
-
+declare -r POSTGRES_41_ADD_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_41_addConstraintsIndexesTriggers.sql"
 # Script to do the initial load - execute.
-declare -r POSTGRES_36_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_36_unify.sql"
+declare -r POSTGRES_51_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_51_unify.sql"
+
+# Create staging procedures.
+declare -r POSTGRES_61_LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_61_loadNotes.sql"
 
 # Location of the datamart user script.
 declare -r DATAMART_COUNTRIES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
@@ -186,10 +185,6 @@ function __checkPrereqs {
   __loge "ERROR: File ${POSTGRES_31_CREATE_STAGING_OBJS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_27_LOAD_NOTES_STAGING_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_27_LOAD_NOTES_STAGING_FILE} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  if [[ ! -r "${POSTGRES_32_FACTS_YEAR_CREATE}" ]]; then
   __loge "ERROR: File ${POSTGRES_32_FACTS_YEAR_CREATE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -202,12 +197,16 @@ function __checkPrereqs {
   __loge "ERROR: File ${POSTGRES_34_FACTS_YEAR_DROP} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_35_ADD_CONSTRAINTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_35_ADD_CONSTRAINTS} was not found."
+ if [[ ! -r "${POSTGRES_41_ADD_CONSTRAINTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_41_ADD_CONSTRAINTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_36_FACTS_UNIFY}" ]]; then
-  __loge "ERROR: File ${POSTGRES_36_FACTS_UNIFY} was not found."
+ if [[ ! -r "${POSTGRES_51_FACTS_UNIFY}" ]]; then
+  __loge "ERROR: File ${POSTGRES_51_FACTS_UNIFY} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_61_LOAD_NOTES_STAGING_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_61_LOAD_NOTES_STAGING_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -261,7 +260,6 @@ function __initialFacts {
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
      -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_EXECUTE}" || true)" \
       >> "${LOG_FILENAME}.${BASHPID}" 2>&1
-
     __logi "Finishing ${YEAR} - ${BASHPID}."
    ) &
    sleep 5 # To insert all days of the year in the dimension.
@@ -313,10 +311,10 @@ function __initialFacts {
 
   # Assign all constraints to the fact table.
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -f "${POSTGRES_35_ADD_CONSTRAINTS}" 2>&1
+    -f "${POSTGRES_41_ADD_CONSTRAINTS}" 2>&1
 
   # Unifies the facts, by computing dates between years.
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_FACTS_UNIFY}" 2>&1
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_FACTS_UNIFY}" 2>&1
 
  __log_finish
 }
@@ -377,7 +375,7 @@ function __processNotesETL {
    -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_27_LOAD_NOTES_STAGING_FILE}" 2>&1
+   -f "${POSTGRES_61_LOAD_NOTES_STAGING_FILE}" 2>&1
  __log_finish
 }
 
@@ -385,6 +383,7 @@ function __processNotesETL {
 # MAIN
 
 function main() {
+ __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."
  __logi "Processing: ${PROCESS_TYPE}."
@@ -416,6 +415,7 @@ function main() {
  "${DATAMART_USERS_FILE}"
 
  __logw "Ending process."
+ __log_finish
 }
 
 # Allows to other user read the directory.
