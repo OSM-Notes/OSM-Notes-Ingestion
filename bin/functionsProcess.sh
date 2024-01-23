@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-18
+# Version: 2024-01-22
 
 # Error codes.
 # 1: Help message.
@@ -125,15 +125,19 @@ function __start_logger() {
 
 # Shows if there is another executing process.
 function __onlyExecution {
+ __log_start
  if [[ -n "${ONLY_EXECUTION:-}" ]] && [[ "${ONLY_EXECUTION}" == "no" ]]; then
   echo " There is another process already in execution"
+ else
+  touch "${FAILED_EXECUTION_FILE}"
  fi
+ __log_finish
 }
 
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; touch "${FAILED_EXECUTION_FILE" ; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ${ERROR_GENERAL};}' \
   ERR
  trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
@@ -224,6 +228,7 @@ EOF
 }
 
 function __checkPrereqs_functions {
+ __log_start
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_CHECK_BASE_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_CHECK_BASE_TABLES}."
@@ -249,6 +254,7 @@ function __checkPrereqs_functions {
   __loge "ERROR: File is missing at ${POSTGRES_ORGANIZE_AREAS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ __log_finish
 }
 
 # Checks the base tables if exist.
