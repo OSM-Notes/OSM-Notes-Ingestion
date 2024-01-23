@@ -196,48 +196,48 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
   RETURNS TRIGGER AS
  $$
  DECLARE
-  open_date DATE;
-  reopen_date DATE;
-  close_date DATE;
-  days INTEGER;
+  m_open_date DATE;
+  m_reopen_date DATE;
+  m_close_date DATE;
+  m_days INTEGER;
  BEGIN
   IF (NEW.action_comment = 'closed') THEN
    -- Days between initial open and most recent close.
    SELECT /* Notes-ETL */ date_id
-    INTO open_date
+    INTO m_open_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.opened_dimension_id_date;
 
    SELECT /* Notes-ETL */ date_id
-    INTO close_date
+    INTO m_close_date
     FROM dwh.dimension_days
     WHERE dimension_day_id = NEW.action_dimension_id_date;
 
-   days := close_date - open_date;
+   m_days := m_close_date - m_open_date;
    UPDATE dwh.facts
-    SET days_to_resolution = days
+    SET days_to_resolution = m_days
      WHERE fact_id = NEW.fact_id;
 
    -- Days between last reopen and most recent close.
    SELECT /* Notes-ETL */ MAX(date_id)
-    INTO reopen_date
+    INTO m_reopen_date
    FROM dwh.facts f
     JOIN dwh.dimension_days d
     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE id_note = NEW.id_note
     AND action_comment = 'reopened';
-   --RAISE NOTICE 'Reopen date: %', reopen_date;
-   IF (reopen_date IS NOT NULL) THEN
+   --RAISE NOTICE 'Reopen date: %', m_reopen_date;
+   IF (m_reopen_date IS NOT NULL) THEN
     -- Days from the last reopen.
-    days := close_date - reopen_date;
-    --RAISE NOTICE 'Difference dates %-%: %', close_date, reopen_date, days;
+    m_days := m_close_date - m_reopen_date;
+    --RAISE NOTICE 'Difference dates %-%: %', m_close_date, m_reopen_date, m_days;
     UPDATE dwh.facts
-     SET days_to_resolution_from_reopen = days
+     SET days_to_resolution_from_reopen = m_days
      WHERE fact_id = NEW.fact_id;
 
     -- Days in open status
     SELECT /* Notes-ETL */ SUM(days_difference)
-     INTO days
+     INTO m_days
     FROM (
      SELECT /* Notes-ETL */ dd.date_id - dd2.date_id days_difference
      FROM dwh.facts f
@@ -250,7 +250,7 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
     ) AS t
     ;
     UPDATE dwh.facts
-     SET days_to_resolution_active = days
+     SET days_to_resolution_active = m_days
      WHERE fact_id = NEW.fact_id;
 
    END IF;
