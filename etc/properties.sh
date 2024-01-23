@@ -32,6 +32,10 @@ declare -r OSM_API="https://api.openstreetmap.org/api/0.6"
 # shellcheck disable=SC2034
 declare -r PLANET="https://planet.openstreetmap.org"
 
+# File that contains the note location data.
+# shellcheck disable=SC2034
+declare -r NOTE_LOCATION_DATA_FILE="data/noteLocation.sql"
+
 
 # Overpass interpreter. Used to download the contries and maritimes boundaries.
 # shellcheck disable=SC2034
