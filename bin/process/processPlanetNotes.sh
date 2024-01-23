@@ -83,20 +83,12 @@
 #   export CLEAN=false
 #
 # To insert the rows from a backup for boundaries and notes:
-#   export BACKUP=true
 #   export BACKUP_COUNTRIES=true
 # It will need to run these from a PostgreSQL console:
 #   INSERT INTO countries
 #    SELECT * FROM backup_countries ;
-#   UPDATE notes AS n
-#    SET id_country = b.id_country
-#    FROM backup_note_country AS b
-#    WHERE b.note_id = n.note_id
-#     AND n.id_country IS NULL;
 # To create the copy before the execution:
 #   CREATE TABLE backup_countries AS TABLE countries;
-#   CREATE TABLE backup_note_country AS
-#    SELECT note_id, id_country FROM notes;
 # For more information, please check this file:
 # OSM-Notes-profile/sql/copyCountriesAndLocationNotes.sql
 #
@@ -178,8 +170,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-18
-declare -r VERSION="2024-01-18"
+# Version: 2024-01-22
+declare -r VERSION="2024-01-22"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -194,8 +186,6 @@ set -E
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can defined when calling: export CLEAN=false
 declare -r CLEAN=${CLEAN:-true}
-# If boundary rows and location of the notes are retrieved from backup table.
-declare -r BACKUP=${BACKUP:-false}
 # If the boundary rows are retrieved from backup table.
 declare -r BACKUP_COUNTRIES=${BACKUP_COUNTRIES:-false}
 
@@ -280,15 +270,18 @@ declare -r POSTGRES_43_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/p
 declare -r POSTGRES_44_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
 # Load text comments.
 declare -r POSTGRES_45_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
+# Upload note locations.
+declare -r POSTGRES_51_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_55_loadsBackupNoteLocation.sql"
+
+# Note location backup file
+declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
+declare -r CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
 
 # Overpass queries
 # Get countries.
 declare -r OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
 # Get maritimes.
 declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
-
-# Last note id file.
-declare -r LAST_NOTE_FILE="${TMP_DIR}/lastNote.xml"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -331,7 +324,6 @@ function __show_help {
  echo "LocateNotes is useful to continue from the flat file."
  echo
  echo "Environment variable:"
- echo " * BACKUP could be set to true, to insert rows from backup tables."
  echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
  echo "   backup tables."
  echo " * CLEAN could be set to false, to left all created files."
@@ -472,6 +464,14 @@ function __checkPrereqs {
  fi
  if [[ ! -r "${POSTGRES_45_OBJECTS_TEXT_COMMENTS}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_45_OBJECTS_TEXT_COMMENTS}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_51_UPLOAD_NOTE_LOCATION}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_51_UPLOAD_NOTE_LOCATION}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
+  __loge "ERROR: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __checkPrereqs_functions
@@ -842,56 +842,64 @@ function __loadTextComments {
 # Gets the area of each note.
 function __getLocationNotes {
  __log_start
- if [[ -n "${BACKUP}" ]] && [[ "${BACKUP}" = true ]]; then
-  echo "Please update the rows from the backup table:"
-  echo "   UPDATE notes AS n"
-  echo "    SET id_country = b.id_country"
-  echo "    FROM backup_note_country AS b"
-  echo "    WHERE b.note_id = n.note_id"
-  echo "     AND n.id_country IS NULL;"
-  read -r
- else
-  declare -l MAX_NOTE_ID
-  wget -O "${LAST_NOTE_FILE}" \
-   "${OSM_API}/notes/search.xml?limit=1&closed=0&from=$(date "+%Y-%m-%d" \
-    || true)"
-  MAX_NOTE_ID=$(awk -F'[<>]' '/^  <id>/ {print $3}' "${LAST_NOTE_FILE}")
-  MAX_NOTE_ID=$((MAX_NOTE_ID + 100))
+ rm -f "${CSV_BACKUP_NOTE_LOCATION}"
+ unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
+ chmod 666 "${CSV_BACKUP_NOTE_LOCATION}"
 
-  MAX_THREADS=$(nproc)
-  # Uses n-1 cores, if number of cores is greater than 1.
-  # This prevents monopolization of the CPUs.
-  if [[ "${MAX_THREADS}" -gt 6 ]]; then
-   MAX_THREADS=$((MAX_THREADS-2))
-  elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-   MAX_THREADS=$((MAX_THREADS-1))
-  fi
+ export CSV_BACKUP_NOTE_LOCATION
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
+   < "${POSTGRES_51_UPLOAD_NOTE_LOCATION}" || true)"
 
-  declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
-  rm -r "${LAST_NOTE_FILE}"
-  for J in $(seq 1 1 "${MAX_THREADS}"); do
-   (
-    __logi "Starting ${J}."
-    MIN=$((SIZE * (J - 1) + LOOP_SIZE))
-    MAX=$((SIZE * J))
-    for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
-     MIN_LOOP=$((I - LOOP_SIZE))
-     MAX_LOOP=${I}
-     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-     STMT="UPDATE notes
-       SET id_country = get_country(longitude, latitude, note_id)
-       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-       AND id_country IS NULL"
-     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-    done
-    __logi "Finishing ${J}."
-   ) &
-  done
-  wait
-  echo "UPDATE notes
-    SET id_country = get_country(longitude, latitude, note_id)
-    WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  <<< "SELECT MAX(note_id) FROM notes")
+ # The last thread has less notes.
+ MAX_NOTE_ID=$((MAX_NOTE_ID+500))
+
+ MAX_THREADS=$(nproc)
+ # Uses n-1 cores, if number of cores is greater than 1.
+ # This prevents monopolization of the CPUs.
+ if [[ "${MAX_THREADS}" -gt 6 ]]; then
+  MAX_THREADS=$((MAX_THREADS-2))
+ elif [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS-1))
  fi
+
+ declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
+ for J in $(seq 1 1 "${MAX_THREADS}"); do
+  (
+   __logi "Starting ${J}."
+   MIN=$((SIZE * (J - 1) + LOOP_SIZE))
+   MAX=$((SIZE * J))
+   for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
+    MIN_LOOP=$((I - LOOP_SIZE))
+    MAX_LOOP=${I}
+    __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
+    # Validates the uploaded location.
+    STMT="UPDATE notes AS n
+      SET id_country = NULL
+      FROM countries AS C
+      WHERE n.id_country = c.country_id
+      AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude), 4326))
+      AND ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+      AND id_country IS NOT NULL"
+    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+
+    STMT="UPDATE notes
+      SET id_country = get_country(longitude, latitude, note_id)
+      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+      AND id_country IS NULL"
+    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   done
+   __logi "Finishing ${J}."
+  ) &
+ done
+ wait
+ echo "UPDATE notes
+   SET id_country = get_country(longitude, latitude, note_id)
+   WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+
  __log_finish
 }
 
@@ -910,6 +918,7 @@ function __cleanNotesFiles {
 # MAIN
 
 function main() {
+ __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."
  __logi "Processing: ${PROCESS_TYPE}."
@@ -969,8 +978,7 @@ function main() {
   __createCountryTables # base and boundaries
 
   # Downloads the areas. It could terminate the execution if an error appears.
-  if [[ (  -n "${BACKUP}" && "${BACKUP}" = true ) ]] \
-    || [[ ( -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ) ]]; then
+  if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
    echo "Please copy the rows from the backup table:"
    echo "   INSERT INTO countries "
    echo "     SELECT * FROM backup_countries ;"
@@ -1017,8 +1025,7 @@ function main() {
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
    __createCountryTables # sync & locate
-   if [[ (  -n "${BACKUP}" && "${BACKUP}" = true ) ]] \
-     || [[ ( -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ) ]]; then
+   if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
     echo "Please copy the rows from the backup table:"
     echo "   INSERT INTO countries "
     echo "     SELECT * FROM backup_countries ;"
@@ -1042,6 +1049,7 @@ function main() {
    rmdir "${TMP_DIR}"
   fi
  fi
+ __log_finish
 }
 
 # Allows to other user read the directory.
