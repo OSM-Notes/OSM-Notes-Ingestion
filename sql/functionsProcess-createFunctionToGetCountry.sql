@@ -1,7 +1,7 @@
 -- Function to get the country where the note is located.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2024-01-23
   
  CREATE OR REPLACE FUNCTION get_country (
    lon DECIMAL,
@@ -11,75 +11,79 @@
  LANGUAGE plpgsql
  AS $func$
   DECLARE
-   id_country INTEGER;
-   f RECORD;
-   contains BOOLEAN;
-   iter INTEGER;
-   area VARCHAR(20);
+   m_id_country INTEGER;
+   m_record RECORD;
+   m_contains BOOLEAN;
+   m_iter INTEGER;
+   m_area VARCHAR(20);
   BEGIN
-   id_country := -1;
-   iter := 1;
+   m_id_country := -1;
+   m_iter := 1;
    IF (-5 < lat AND lat < 4.53 AND 4 > lon AND lon > -4) THEN
-    area := 'Null Island';
+    m_area := 'Null Island';
    ELSIF (lon < -30) THEN -- Americas
-    area := 'Americas';
-    FOR f IN
+    m_area := 'Americas';
+    FOR m_record IN
       SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY americas NULLS LAST
      LOOP
-      contains := ST_Contains(f.geom, ST_SetSRID(ST_Point(lon, lat), 4326));
-      IF (contains) THEN
-       id_country := f.country_id;
+      m_contains := ST_Contains(m_record.geom, ST_SetSRID(ST_Point(lon, lat),
+       4326));
+      IF (m_contains) THEN
+       m_id_country := m_record.country_id;
        EXIT;
       END IF;
-      iter := iter + 1;
+      m_iter := m_iter + 1;
      END LOOP;
    ELSIF (lon < 25) THEN -- Europe & part of Africa
-    area := 'Europe/Africa';
-    FOR f IN
+    m_area := 'Europe/Africa';
+    FOR m_record IN
       SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY europe NULLS LAST
      LOOP
-      contains := ST_Contains(f.geom, ST_SetSRID(ST_Point(lon, lat), 4326));
-      IF (contains) THEN
-       id_country := f.country_id;
+      m_contains := ST_Contains(m_record.geom, ST_SetSRID(ST_Point(lon, lat),
+       4326));
+      IF (m_contains) THEN
+       m_id_country := m_record.country_id;
        EXIT;
       END IF;
-      iter := iter + 1;
+      m_iter := m_iter + 1;
      END LOOP;
    ELSIF (lon < 65) THEN -- Russia, Middle East & part of Africa
-    area := 'Russia/Middle east';
-    FOR f IN
+    m_area := 'Russia/Middle east';
+    FOR m_record IN
       SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY russia_middle_east NULLS LAST
      LOOP
-      contains := ST_Contains(f.geom, ST_SetSRID(ST_Point(lon, lat), 4326));
-      IF (contains) THEN
-       id_country := f.country_id;
+      m_contains := ST_Contains(m_record.geom, ST_SetSRID(ST_Point(lon, lat),
+       4326));
+      IF (m_contains) THEN
+       m_id_country := m_record.country_id;
        EXIT;
       END IF;
-      iter := iter + 1;
+      m_iter := m_iter + 1;
      END LOOP;
    ELSE
-    area := 'Asia/Oceania';
-    FOR f IN
+    m_area := 'Asia/Oceania';
+    FOR m_record IN
       SELECT /* Notes-base */ geom, country_id
       FROM countries
       ORDER BY asia_oceania NULLS LAST
      LOOP
-      contains := ST_Contains(f.geom, ST_SetSRID(ST_Point(lon, lat), 4326));
-      IF (contains) THEN
-       id_country := f.country_id;
+      m_contains := ST_Contains(m_record.geom, ST_SetSRID(ST_Point(lon, lat),
+       4326));
+      IF (m_contains) THEN
+       m_id_country := m_record.country_id;
        EXIT;
       END IF;
-      iter := iter + 1;
+      m_iter := m_iter + 1;
      END LOOP;
    END IF;
-   INSERT INTO tries VALUES (area, iter, id_note, id_country);
-   RETURN id_country;
+   INSERT INTO tries VALUES (m_area, m_iter, id_note, m_id_country);
+   RETURN m_id_country;
   END
  $func$
 ;
