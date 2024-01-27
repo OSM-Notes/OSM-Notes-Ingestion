@@ -34,10 +34,6 @@
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
 #
-# If the download fails with "Too many requests", you can check this page:
-# http://overpass-api.de/api/status and increase the sleep time between loops.
-# There is a variable for this: SECONDS_TO_WAIT.
-#
 # Known errors:
 # * Austria has an issue to be imported with ogr2ogr for a particular thing in
 #   the geometry. A simplification is done to upload it. However, there is a
