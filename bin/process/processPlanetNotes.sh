@@ -121,7 +121,7 @@
 # How many iterations per region to find the appropriate area.
 # This allows to reorganize the updates of the organizeAreas function.
 # select iter, count(1), area, country_name_en
-# from tries 
+# from tries t
 # join countries c
 # on t.id_country = c.country_id
 # group by iter, area, country_name_en
@@ -170,8 +170,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-22
-declare -r VERSION="2024-01-22"
+# Version: 2024-01-26
+declare -r VERSION="2024-01-26"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -232,7 +232,7 @@ declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
 # File taht contains the ids of the boundaries of the maritimes areas.
 declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 # File for the Overpass query.
-declare -r QUERY_FILE="${TMP_DIR}/query"
+declare QUERY_FILE="${TMP_DIR}/query"
 
 # Name of the file to download.
 declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
@@ -258,6 +258,8 @@ declare -r POSTGRES_23_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/
 declare -r POSTGRES_24_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
 # Create country tables.
 declare -r POSTGRES_25_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
+# Create country tables.
+#TODO declare -r POSTGRES_26_KNOWN_RELATIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_26_osmRelationNames.sql"
 # Vacuum and analyze.
 declare -r POSTGRES_31_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_31_analyzeVacuum.sql"
 # Load sync notes.
@@ -271,7 +273,7 @@ declare -r POSTGRES_44_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/
 # Load text comments.
 declare -r POSTGRES_45_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
 # Upload note locations.
-declare -r POSTGRES_51_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_55_loadsBackupNoteLocation.sql"
+declare -r POSTGRES_51_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_51_loadsBackupNoteLocation.sql"
 
 # Note location backup file
 declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
@@ -287,6 +289,8 @@ declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 # File for lock when downloading countries.
+# TODO declare -r LOCK_OVERPASS_OUTPUT=/tmp/overpassOutput.lock
+# File for Lock when inserting in the database
 declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
 
 ###########
@@ -442,6 +446,10 @@ function __checkPrereqs {
   __loge "ERROR: File is missing at ${POSTGRES_25_CREATE_COUNTRY_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ #TODO if [[ ! -r "${POSTGRES_26_KNOWN_RELATIONS}" ]]; then
+ # __loge "ERROR: File is missing at ${POSTGRES_26_KNOWN_RELATIONS}."
+ # exit "${ERROR_MISSING_LIBRARY}"
+ #fi
  if [[ ! -r "${POSTGRES_31_VACUUM_AND_ANALYZE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_31_VACUUM_AND_ANALYZE}."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -537,49 +545,87 @@ function __createCountryTables {
  __log_start
  __logi "Creating tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_25_CREATE_COUNTRY_TABLES}"
+ #TODO psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_KNOWN_RELATIONS}"
  __log_finish
 }
 
-# Processes the list of countries or maritimes areas in the given file.
-function __processList {
+# Processes a specific boundary id.
+function __processBoundary {
  __log_start
-
- BOUNDARIES_FILE="${1}"
- __logi "Retrieving the countriy or maritime boundaries."
- while read -r LINE; do
-  ID=$(echo "${LINE}" | awk '{print $1}')
-  JSON_FILE="${TMP_DIR}/${ID}.json"
-  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "ID: ${ID}"
-  cat << EOF > "${QUERY_FILE}"
-   [out:json];
-   rel(${ID});
-   (._;>;);
-   out;
-EOF
-  __logi "Retrieving shape."
-  set +e
-  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
-  if [[ "${?}" -ne 0 ]]; then
-   # Retry once if there was an error.
-   set -e
-   wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}"
-  fi
+  #CORRECT_DATA=false
+  #SECONDS_RETRY=1
+  #while [[ "${CORRECT_DATA}" = false ]]; do
+   #while [[ -r "${LOCK_OVERPASS_OUTPUT}"
+   #  && $(cat "${LOCK_OVERPASS_OUTPUT}") != "${BASHPID}" ]]; do
+   # __logw "${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
+   # sleep 1
+   #done
+ set +e
+ __logi "Retrieving shape."
+ wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
+   "${OVERPASS_INTERPRETER}"
+ if [[ "${?}" -ne 0 ]]; then
+  # Retry once if there was an error.
   set -e
+  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
+    "${OVERPASS_INTERPRETER}"
+ fi
+ set -e
 
-  __logi "Converting into geoJSON."
-  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
-  set +e
-  set +o pipefail
-  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
-   | awk -F\" '{print $4}' | sed "s/'/''/")
-  set -o pipefail
-  set -e
-  __logi "Name: ${NAME_EN}."
+ __logi "Converting into geoJSON."
+ osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
+ set +e
+ set +o pipefail
+ NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
+  | awk -F\" '{print $4}' | sed "s/'/''/")
+ NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
+  | awk -F\" '{print $4}' | sed "s/'/''/")
+ NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
+  | awk -F\" '{print $4}' | sed "s/'/''/")
+ set -o pipefail
+ set -e
+ NAME_EN="${NAME_EN:-No English name}"
+ __logi "Name: ${NAME_EN:-}."
+
+   # TODO
+   # Checks if there is a registered relation with that id.
+   #STATEMENT="
+   # SELECT count(1)
+   # FROM osm_relations_boundaries b
+   # WHERE b.id = ${ID}
+   #"
+   #__logd "${STATEMENT}"
+   #EXIST=$(echo "${STATEMENT}" | psql -t -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   #  | awk '{print $1}')
+   #if [[ "${EXIST}" -eq 1 ]]; then
+
+    # Checks the that id is the correct one for the country name.
+    #STATEMENT="
+    # SELECT count(1)
+    # FROM osm_relations_boundaries b
+    # WHERE b.id = ${ID} AND b.name = '${NAME}'
+    #"
+    #__logd "${STATEMENT}"
+    #VALID_NAME=$(echo "${STATEMENT}" | psql -t -d "${DBNAME}" \
+    #  -v ON_ERROR_STOP=1 | awk '{print $1}')
+    #if [[ "${VALID_NAME}" -eq 1 ]]; then
+     #CORRECT_DATA=true
+     #__logi "This is a know country with that id ${ID} - ${NAME} (${NAME_EN})"
+     #SECONDS_RETRY=0
+     #rm -f "${LOCK_OVERPASS_OUTPUT}"
+    #else
+     #__logw "The retrieved data from Overpass does not match the country id ${ID} - ${NAME} (${NAME_EN})"
+     #echo "${BASHPID}" > "${LOCK_OVERPASS_OUTPUT}"
+     #__logi "Waiting ${SECONDS_RETRY} seconds for retry (${BASHPID})..."
+     #sleep "${SECONDS_RETRY}"
+     #SECONDS_RETRY=$((SECONDS_RETRY+2))
+    #fi
+   #else
+    #__logi "This is a new relation ${ID} - ${NAME} (${NAME_EN})"
+    #CORRECT_DATA=true
+    #rm -f "${LOCK_OVERPASS_OUTPUT}"
+   #fi
+  #done
 
   # Taiwan cannot be imported directly. Thus, a simplification is done.
   # ERROR:  row is too big: size 8616, maximum size 8160
@@ -602,15 +648,15 @@ EOF
   # language, but with different case. The current solution is to open
   # the JSON file, look for the language, and modify the parts to have the
   # same case. Or modify the objects in OSM.
-  rm "${LOCK_OGR2OGR}"
 
   __logi "Inserting into final table."
   if [[ "${ID}" -ne 16239 ]]; then
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
      country_name_en, geom)
-     select ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
+     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
       ST_Union(ST_makeValid(wkb_geometry))
-     from import group by 1"
+     FROM import
+     GROUP BY 1"
   else # This case is for Austria.
    # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
    # Self-intersection at or near point 10.454439900000001 47.555796399999998
@@ -618,17 +664,46 @@ EOF
    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
      country_name_en, geom)
      SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
-      ST_Union(ST_Buffer(wkb_geometry,0.0))
-     from import group by 1"
+      ST_Union(ST_Buffer(wkb_geometry, 0.0))
+     FROM import
+     GROUP BY 1"
   fi
   __logd "${STATEMENT}"
   echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  rm "${LOCK_OGR2OGR}"
+  unset NAME
+  unset NAME_ES
+  unset NAME_EN
+ __log_finish
+}
+
+# Processes the list of countries or maritimes areas in the given file.
+function __processList {
+ __log_start
+
+ BOUNDARIES_FILE="${1}"
+ QUERY_FILE="${QUERY_FILE}.${BASHPID}"
+ __logi "Retrieving the countriy or maritime boundaries."
+ while read -r LINE; do
+  ID=$(echo "${LINE}" | awk '{print $1}')
+  JSON_FILE="${TMP_DIR}/${ID}.json"
+  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
+  __logi "ID: ${ID}"
+  cat << EOF > "${QUERY_FILE}"
+   [out:json];
+   rel(${ID});
+   (._;>;);
+   out;
+EOF
+
+  __processBoundary "${ID}"
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
    rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
+  else
+   mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old"
+   mv "${GEOJSON_FILE}" "${TMP_DIR}/${ID}.geojson.old"
   fi
-  __logi "Waiting ${SECONDS_TO_WAIT} seconds..."
-  sleep "${SECONDS_TO_WAIT}"
  done < "${BOUNDARIES_FILE}"
 
  __log_finish
@@ -704,7 +779,11 @@ function __processCountries {
    __logi "Starting list ${I} - ${BASHPID}"
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finished list ${I} - ${BASHPID}"
-   rm -f "${LOG_FILENAME}.${BASHPID}"
+   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+    rm -f "${LOG_FILENAME}.${BASHPID}"
+   else
+    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/old.${BASHPID}"
+   fi
   ) &
   sleep 5
  done
@@ -759,7 +838,11 @@ function __processMaritimes {
    __logi "Starting list ${I} - ${BASHPID}"
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finished list ${I} - ${BASHPID}"
-   rm -f "${LOG_FILENAME}.${BASHPID}"
+   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+    rm -f "${LOG_FILENAME}.${BASHPID}"
+   else
+    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/old.${BASHPID}"
+   fi
   ) &
   sleep 5
  done
@@ -772,6 +855,8 @@ function __processMaritimes {
  fi
  rm -f "${LOCK_OGR2OGR}"
 
+ #TODO echo "DROP TABLE osm_relations_boundaries" | psql -d "${DBNAME}"
+
  __logi "Calculating statistics on countries."
  echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
@@ -781,7 +866,7 @@ function __processMaritimes {
 function __cleanPartial {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-  rm -f "${QUERY_FILE}" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
+  rm -f "${QUERY_FILE}.*" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
  fi
  __log_finish
@@ -881,7 +966,8 @@ function __getLocationNotes {
       SET id_country = NULL
       FROM countries AS C
       WHERE n.id_country = c.country_id
-      AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude), 4326))
+      AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude),
+       4326))
       AND ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NOT NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
