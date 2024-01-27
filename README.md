@@ -44,7 +44,7 @@ profile can be used for any user.
 
 **Notes initial load**
 
-* 10 minutes: Downloading the countries and maritime areas.
+* 5 minutes: Downloading the countries and maritime areas.
   * This process has a pause between calls because the public Overpass turbo is
     restricted by the number of requests per minute.
     If another Overpass instance is used that does not block when many requests,
@@ -52,12 +52,10 @@ profile can be used for any user.
 * 1 minute: Download the Planet notes file.
 * 4 minutes: Processing XML notes file, but this requires 6GB RAM for Saxon.
 * 12 minutes: Inserting notes into the database.
-* 7 hours: Locating notes in the appropriate country.
+* 5 minutes: Assign sequence to comments.
+* 5 minutes: Load text comments.
+* 5 hours: Locating notes in the appropriate country.
   * This DB process is in parallel with multiple threads.
-    The parallelism could be configured, for example to a given number of cores.
-    Also, it could be set to the current number of cores, by specifying the
-    same values as the command `nproc`.
-    It is not recommended to have a higher value than the cores.
 
 **WMS layer**
 
