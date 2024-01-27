@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-08
-declare -r VERSION="2024-01-08"
+# Version: 2024-01-27
+declare -r VERSION="2024-01-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -317,7 +317,7 @@ function __convertApiNotesToFlatFile {
  __logi "${RESULT} - Notes from API."
  RESULT=$(wc -l "${OUTPUT_NOTES_FILE}")
  __logw "${RESULT} - Notes in flat file."
- head "${OUTPUT_NOTES_FILE}"
+ cat "${OUTPUT_NOTES_FILE}"
 
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
@@ -326,7 +326,7 @@ function __convertApiNotesToFlatFile {
  __logi "${RESULT} - Comments from API."
  RESULT=$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}")
  __logw "${RESULT} - Note comments in flat file."
- head "${OUTPUT_NOTE_COMMENTS_FILE}"
+ cat "${OUTPUT_NOTE_COMMENTS_FILE}"
 
  java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${API_NOTES_FILE}" -xsl:"${XSLT_TEXT_COMMENTS_API_FILE}" \
@@ -335,7 +335,7 @@ function __convertApiNotesToFlatFile {
  __logi "${RESULT} - Text comments from API."
  RESULT=$(wc -l "${OUTPUT_TEXT_COMMENTS_FILE}")
  __logw "${RESULT} - Text comment in flat file."
- head "${OUTPUT_TEXT_COMMENTS_FILE}"
+ cat "${OUTPUT_TEXT_COMMENTS_FILE}"
 
  __log_finish
 }
