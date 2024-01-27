@@ -1,4 +1,4 @@
--- Loads the old notes locations into the databse, and then updates the
+-- Loads the old notes locations into the database, and then updates the
 -- note's location.
 --
 -- Author: Andres Gomez (AngocA)
