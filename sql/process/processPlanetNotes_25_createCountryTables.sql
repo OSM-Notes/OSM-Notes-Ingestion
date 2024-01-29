@@ -12,7 +12,8 @@ CREATE TABLE countries (
  americas INTEGER,
  europe INTEGER,
  russia_middle_east INTEGER,
- asia_oceania INTEGER
+ asia_oceania INTEGER,
+ updated BOOLEAN
 );
 COMMENT ON TABLE countries IS
   'Basic data about countries and maritimes areas from OSM';
@@ -34,6 +35,8 @@ COMMENT ON COLUMN countries.russia_middle_east IS
   'Position in the sequence to look for the location of this country in Russia and Middle East';
 COMMENT ON COLUMN countries.asia_oceania IS
   'Position in the sequence to look for the location of this country in Oceania';
+COMMENT ON COLUMN countries.updated IS
+  'Used when updating all countries to refresh properties';
 
 ALTER TABLE countries
  ADD CONSTRAINT pk_countries
