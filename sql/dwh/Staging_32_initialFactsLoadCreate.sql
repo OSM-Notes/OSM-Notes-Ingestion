@@ -175,9 +175,9 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    || ''' ORDER BY c.note_id, c.id
    ');
   LOOP
-  RAISE NOTICE 'before fetch % - %', CLOCK_TIMESTAMP(), m_count;
+  --RAISE NOTICE 'before fetch % - %', CLOCK_TIMESTAMP(), m_count;
    FETCH notes_on_day INTO rec_note_action;
-  RAISE NOTICE 'after fetch % - %', CLOCK_TIMESTAMP(), m_count;
+  --RAISE NOTICE 'after fetch % - %', CLOCK_TIMESTAMP(), m_count;
    -- Exit when no more rows to fetch.
    EXIT WHEN NOT FOUND;
 
