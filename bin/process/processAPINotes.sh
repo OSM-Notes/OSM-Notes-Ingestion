@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-27
-declare -r VERSION="2024-01-27"
+# Version: 2024-01-29
+declare -r VERSION="2024-01-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -59,6 +59,9 @@ readonly SCRIPT_BASE_DIRECTORY
 # Loads the global properties.
 # shellcheck source=../../etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+
+# Mask for the files and directories.
+umask 0000
 
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
