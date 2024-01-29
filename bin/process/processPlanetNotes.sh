@@ -166,8 +166,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-26
-declare -r VERSION="2024-01-26"
+# Version: 2024-01-29
+declare -r VERSION="2024-01-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -198,6 +198,9 @@ readonly SCRIPT_BASE_DIRECTORY
 # shellcheck source=../../etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
+# Mask for the files and directories.
+umask 0000
+
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
@@ -223,13 +226,6 @@ declare -r FLAT_NOTES_FILE=${2:-}
 declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
 declare -r FLAT_TEXT_COMMENTS_FILE=${4:-}
 
-# File that contains the ids of the boundaries for countries.
-declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
-# File taht contains the ids of the boundaries of the maritimes areas.
-declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
-# File for the Overpass query.
-declare QUERY_FILE="${TMP_DIR}/query"
-
 # Name of the file to download.
 declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 # Filename for the OSM Notes from Planet.
@@ -245,11 +241,11 @@ declare -r POSTGRES_13_DROP_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/pr
 # Drop current country tables.
 declare -r POSTGRES_14_DROP_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_14_dropCountryTables.sql"
 # Create enums.
-declare -r POSTGRES_21_CREATE_ENUMS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables-enum.sql"
+declare -r POSTGRES_21_CREATE_ENUMS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
 # Create base tables.
-declare -r POSTGRES_22_CREATE_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables-tables.sql"
+declare -r POSTGRES_22_CREATE_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
 # Create constraints for base tables.
-declare -r POSTGRES_23_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables-constraints.sql"
+declare -r POSTGRES_23_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
 # Create sync tables.
 declare -r POSTGRES_24_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
 # Create country tables.
@@ -268,26 +264,9 @@ declare -r POSTGRES_43_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/p
 declare -r POSTGRES_44_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
 # Load text comments.
 declare -r POSTGRES_45_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
-# Upload note locations.
-declare -r POSTGRES_51_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_51_loadsBackupNoteLocation.sql"
-
-# Note location backup file
-declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
-declare -r CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
-
-# Overpass queries
-# Get countries.
-declare -r OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
-# Get maritimes.
-declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-
-# File for lock when downloading countries.
-# TODO declare -r LOCK_OVERPASS_OUTPUT=/tmp/overpassOutput.lock
-# File for Lock when inserting in the database
-declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
 
 ###########
 # FUNCTIONS
@@ -470,14 +449,6 @@ function __checkPrereqs {
   __loge "ERROR: File is missing at ${POSTGRES_45_OBJECTS_TEXT_COMMENTS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_51_UPLOAD_NOTE_LOCATION}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_51_UPLOAD_NOTE_LOCATION}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
-  __loge "ERROR: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  __checkPrereqs_functions
  __log_finish
  set -e
@@ -545,319 +516,6 @@ function __createCountryTables {
  __log_finish
 }
 
-# Processes a specific boundary id.
-function __processBoundary {
- __log_start
-  #CORRECT_DATA=false
-  #SECONDS_RETRY=1
-  #while [[ "${CORRECT_DATA}" = false ]]; do
-   #while [[ -r "${LOCK_OVERPASS_OUTPUT}"
-   #  && $(cat "${LOCK_OVERPASS_OUTPUT}") != "${BASHPID}" ]]; do
-   # __logw "${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
-   # sleep 1
-   #done
- set +e
- __logi "Retrieving shape."
- wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-   "${OVERPASS_INTERPRETER}"
- if [[ "${?}" -ne 0 ]]; then
-  # Retry once if there was an error.
-  set -e
-  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-    "${OVERPASS_INTERPRETER}"
- fi
- set -e
-
- __logi "Converting into geoJSON."
- osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
- set +e
- set +o pipefail
- NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
-  | awk -F\" '{print $4}' | sed "s/'/''/")
- NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
-  | awk -F\" '{print $4}' | sed "s/'/''/")
- NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
-  | awk -F\" '{print $4}' | sed "s/'/''/")
- set -o pipefail
- set -e
- NAME_EN="${NAME_EN:-No English name}"
- __logi "Name: ${NAME_EN:-}."
-
-   # TODO
-   # Checks if there is a registered relation with that id.
-   #STATEMENT="
-   # SELECT count(1)
-   # FROM osm_relations_boundaries b
-   # WHERE b.id = ${ID}
-   #"
-   #__logd "${STATEMENT}"
-   #EXIST=$(echo "${STATEMENT}" | psql -t -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   #  | awk '{print $1}')
-   #if [[ "${EXIST}" -eq 1 ]]; then
-
-    # Checks the that id is the correct one for the country name.
-    #STATEMENT="
-    # SELECT count(1)
-    # FROM osm_relations_boundaries b
-    # WHERE b.id = ${ID} AND b.name = '${NAME}'
-    #"
-    #__logd "${STATEMENT}"
-    #VALID_NAME=$(echo "${STATEMENT}" | psql -t -d "${DBNAME}" \
-    #  -v ON_ERROR_STOP=1 | awk '{print $1}')
-    #if [[ "${VALID_NAME}" -eq 1 ]]; then
-     #CORRECT_DATA=true
-     #__logi "This is a know country with that id ${ID} - ${NAME} (${NAME_EN})"
-     #SECONDS_RETRY=0
-     #rm -f "${LOCK_OVERPASS_OUTPUT}"
-    #else
-     #__logw "The retrieved data from Overpass does not match the country id ${ID} - ${NAME} (${NAME_EN})"
-     #echo "${BASHPID}" > "${LOCK_OVERPASS_OUTPUT}"
-     #__logi "Waiting ${SECONDS_RETRY} seconds for retry (${BASHPID})..."
-     #sleep "${SECONDS_RETRY}"
-     #SECONDS_RETRY=$((SECONDS_RETRY+2))
-    #fi
-   #else
-    #__logi "This is a new relation ${ID} - ${NAME} (${NAME_EN})"
-    #CORRECT_DATA=true
-    #rm -f "${LOCK_OVERPASS_OUTPUT}"
-   #fi
-  #done
-
-  # Taiwan cannot be imported directly. Thus, a simplification is done.
-  # ERROR:  row is too big: size 8616, maximum size 8160
-  grep -v "official_name" "${GEOJSON_FILE}" \
-   | grep -v "alt_name" > "${GEOJSON_FILE}-new"
-  mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
-
-  __logi "Importing into Postgres."
-  while [[ -r "${LOCK_OGR2OGR}"
-    && $(cat "${LOCK_OGR2OGR}") != "${BASHPID}" ]]; do
-   __logw "${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
-   sleep 1
-  done
-  echo "${BASHPID}" > "${LOCK_OGR2OGR}"
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
-   "${GEOJSON_FILE}" -nln import -overwrite
-  # If an error like this appear:
-  # ERROR:  column "name:xx-XX" specified more than once
-  # It means two of the objects of the country has a name for the same
-  # language, but with different case. The current solution is to open
-  # the JSON file, look for the language, and modify the parts to have the
-  # same case. Or modify the objects in OSM.
-
-  __logi "Inserting into final table."
-  if [[ "${ID}" -ne 16239 ]]; then
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom)
-     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
-      ST_Union(ST_makeValid(wkb_geometry))
-     FROM import
-     GROUP BY 1"
-  else # This case is for Austria.
-   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
-   # Self-intersection at or near point 10.454439900000001 47.555796399999998
-   # at 10.454439900000001 47.555796399999998
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom)
-     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
-      ST_Union(ST_Buffer(wkb_geometry, 0.0))
-     FROM import
-     GROUP BY 1"
-  fi
-  __logd "${STATEMENT}"
-  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-  rm "${LOCK_OGR2OGR}"
-  unset NAME
-  unset NAME_ES
-  unset NAME_EN
- __log_finish
-}
-
-# Processes the list of countries or maritimes areas in the given file.
-function __processList {
- __log_start
-
- BOUNDARIES_FILE="${1}"
- QUERY_FILE="${QUERY_FILE}.${BASHPID}"
- __logi "Retrieving the countriy or maritime boundaries."
- while read -r LINE; do
-  ID=$(echo "${LINE}" | awk '{print $1}')
-  JSON_FILE="${TMP_DIR}/${ID}.json"
-  GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "ID: ${ID}"
-  cat << EOF > "${QUERY_FILE}"
-   [out:json];
-   rel(${ID});
-   (._;>;);
-   out;
-EOF
-
-  __processBoundary "${ID}"
-
-  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-   rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
-  else
-   mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old"
-   mv "${GEOJSON_FILE}" "${TMP_DIR}/${ID}.geojson.old"
-  fi
- done < "${BOUNDARIES_FILE}"
-
- __log_finish
-}
-
-# Download the list of countries, then it downloads each country individually,
-# converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
-# country into the Postgres database with ogr2ogr.
-function __processCountries {
- __log_start
- echo "TRUNCATE TABLE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
- # Extracts ids of all country relations into a JSON.
- __logi "Obtaining the countries ids."
- set +e
- wget -O "${COUNTRIES_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
-  "${OVERPASS_INTERPRETER}"
- RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: Country list could not be downloaded."
-  exit "${ERROR_DOWNLOADING_ID_LIST}"
- fi
-
- tail -n +2 "${COUNTRIES_FILE}" > "${COUNTRIES_FILE}.tmp"
- mv "${COUNTRIES_FILE}.tmp" "${COUNTRIES_FILE}"
-
- # Areas not at country level.
- {
-  # Adds the Gaza Strip
-  echo "1703814"
-  # Adds Judea and Samaria.
-  echo "1803010"
-  # Adds the Buthan - China dispute.
-  echo "12931402"
-  # Adds Ilemi Triangle
-  echo "192797"
-  # Adds Neutral zone Burkina Faso - Benin
-  echo "12940096"
-  # Adds Bir Tawil
-  echo "3335661"
-  # Adds Jungholz, Austria
-  echo "37848"
-  # Adds Antarctica areas
-  echo "3394112" # British Antarctic
-  echo "3394110" # Argentine Antarctic
-  echo "3394115" # Chilean Antarctic
-  echo "3394113" # Ross dependency
-  echo "3394111" # Australian Antarctic
-  echo "3394114" # Adelia Land
-  echo "3245621" # Queen Maud Land
-  echo "2955118" # Peter I Island
-  echo "2186646" # Antarctica continent
- } >> "${COUNTRIES_FILE}"
-
- # Processes the countries in parallel.
- MAX_THREADS=$(nproc)
- # Uses n-1 cores, if number of cores is greater than 1.
- # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
- elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- fi
-
- TOTAL_LINES=$(cat ${COUNTRIES_FILE} | wc -l)
- SIZE=$((TOTAL_LINES / MAX_THREADS))
- SIZE=$((SIZE + 1))
- split -l"${SIZE}" "${COUNTRIES_FILE}" "${TMP_DIR}/part_country_"
- rm -f "${LOCK_OGR2OGR}"
- for I in $(ls -1 ${TMP_DIR}/part_country_??) ; do
-  (
-   __logi "Starting list ${I} - ${BASHPID}"
-   __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
-   __logi "Finished list ${I} - ${BASHPID}"
-   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-    rm -f "${LOG_FILENAME}.${BASHPID}"
-   else
-    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/old.${BASHPID}"
-   fi
-  ) &
-  sleep 5
- done
-
- wait
-
- # If some of the threads generated an error.
- if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\." | wc -l) -ne 0 ]]; then
-  exit "${ERROR_DOWNLOADING_BOUNDARY}"
- fi
- rm -f "${LOCK_OGR2OGR}"
- __log_finish
-}
-
-# Download the list of maritimes areas, then it downloads each area
-# individually, converts the OSM JSON into a GeoJSON, and then it inserts the
-# geometry of the maritime area into the Postgres database with ogr2ogr.
-function __processMaritimes {
- __log_start
- # Extracts ids of all EEZ relations into a JSON.
- __logi "Obtaining the eez ids."
- set +e
- wget -O "${MARITIMES_FILE}" --post-file="${OVERPASS_MARITIMES}" \
-  "${OVERPASS_INTERPRETER}"
- RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: Maritimes border list could not be downloaded."
-  exit "${ERROR_DOWNLOADING_ID_LIST}"
- fi
-
- tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
- mv "${MARITIMES_FILE}.tmp" "${MARITIMES_FILE}"
-
- # Processes the maritimes in parallel.
- MAX_THREADS=$(nproc)
- # Uses n-1 cores, if number of cores is greater than 1.
- # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
- elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- fi
-
- TOTAL_LINES=$(cat ${MARITIMES_FILE} | wc -l)
- SIZE=$((TOTAL_LINES / MAX_THREADS))
- SIZE=$((SIZE + 1))
- split -l"${SIZE}" "${MARITIMES_FILE}" "${TMP_DIR}/part_maritime_"
- rm -f "${LOCK_OGR2OGR}"
- for I in $(ls -1 ${TMP_DIR}/part_maritime_??) ; do
-  (
-   __logi "Starting list ${I} - ${BASHPID}"
-   __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
-   __logi "Finished list ${I} - ${BASHPID}"
-   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-    rm -f "${LOG_FILENAME}.${BASHPID}"
-   else
-    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/old.${BASHPID}"
-   fi
-  ) &
-  sleep 5
- done
-
- wait
-
- # If some of the threads generated an error.
- if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\." | wc -l) -ne 0 ]]; then
-  exit "${ERROR_DOWNLOADING_BOUNDARY}"
- fi
- rm -f "${LOCK_OGR2OGR}"
-
- #TODO echo "DROP TABLE osm_relations_boundaries" | psql -d "${DBNAME}"
-
- __logi "Calculating statistics on countries."
- echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
- __log_finish
-}
-
 # Clean files and tables.
 function __cleanPartial {
  __log_start
@@ -917,71 +575,6 @@ function __loadTextComments {
    < "${POSTGRES_44_LOAD_TEXT_COMMENTS}" || true)"
  # Some objects could already exist.
  psql -d "${DBNAME}" -f "${POSTGRES_45_OBJECTS_TEXT_COMMENTS}"
- __log_finish
-}
-
-# Gets the area of each note.
-function __getLocationNotes {
- __log_start
- rm -f "${CSV_BACKUP_NOTE_LOCATION}"
- unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
- chmod 666 "${CSV_BACKUP_NOTE_LOCATION}"
-
- export CSV_BACKUP_NOTE_LOCATION
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
-   < "${POSTGRES_51_UPLOAD_NOTE_LOCATION}" || true)"
-
- MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-  <<< "SELECT MAX(note_id) FROM notes")
- # The last thread has less notes.
- MAX_NOTE_ID=$((MAX_NOTE_ID+500))
-
- MAX_THREADS=$(nproc)
- # Uses n-1 cores, if number of cores is greater than 1.
- # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
- elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- fi
-
- declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
- for J in $(seq 1 1 "${MAX_THREADS}"); do
-  (
-   __logi "Starting ${J}."
-   MIN=$((SIZE * (J - 1) + LOOP_SIZE))
-   MAX=$((SIZE * J))
-   for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
-    MIN_LOOP=$((I - LOOP_SIZE))
-    MAX_LOOP=${I}
-    __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    # Validates the uploaded location.
-    STMT="UPDATE notes AS n
-      SET id_country = NULL
-      FROM countries AS C
-      WHERE n.id_country = c.country_id
-      AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude),
-       4326))
-      AND ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-      AND id_country IS NOT NULL"
-    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
-    STMT="UPDATE notes
-      SET id_country = get_country(longitude, latitude, note_id)
-      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-      AND id_country IS NULL"
-    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-   done
-   __logi "Finishing ${J}."
-  ) &
- done
- wait
- echo "UPDATE notes
-   SET id_country = get_country(longitude, latitude, note_id)
-   WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
  __log_finish
 }
 
