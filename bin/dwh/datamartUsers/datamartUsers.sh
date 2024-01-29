@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-17
-declare -r VERSION="2023-12-17"
+# Version: 2024-01-29
+declare -r VERSION="2024-01-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -76,7 +76,7 @@ declare -r POSTGRES_12_CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/data
 declare -r POSTGRES_13_CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_13_createProcedure.sql"
 
 # Last year activites script.
-declare -r POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts-lastYearActivities.sql"
+declare -r POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts_lastYearActivities.sql"
 
 # Generic script to add years.
 declare -r POSTGRES_21_ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_21_alterTableAddYears.sql"

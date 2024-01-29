@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2023-12-08
-declare -r VERSION="2023-12-08"
+# Version: 2024-01-29
+declare -r VERSION="2024-01-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -82,7 +82,7 @@ declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/dat
 declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries-alterTableAddYears.sql"
 
 # Last year activites script.
-declare -r LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts-lastYearActivities.sql"
+declare -r LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts_lastYearActivities.sql"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
