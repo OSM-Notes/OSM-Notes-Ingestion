@@ -23,6 +23,7 @@ These are the main functions of this project.
 * Download the notes from the OSM Planet, and then keep data in sync
   with the main OSM database via API calls.
   This is configured with a scheduler (cron) and it does everything.
+* Updates the current country and maritime information.
 * Copy the note's data to another set of tables to allow the
   WMS layer publishing.
   This is configured via triggers on the database on the main tables.
@@ -169,6 +170,10 @@ could configure the crontab like (`crontab -e`):
 # Runs the API extraction each 15 minutes.
 */15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh # For normal execution for notes database and data warehouse.
 
+# Runs the boundaries update. Once a month.
+0 0 0 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh
+
+# Runs the API extraction in debug mode, keeping all the generated files.
 #*/15 * * * * export LOG_LEVEL=DEBUG ; export SAXON_CLASSPATH=~/saxon/ && ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
 ```
 
