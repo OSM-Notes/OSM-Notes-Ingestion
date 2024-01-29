@@ -110,3 +110,17 @@ from (
  group by f.action_dimension_id_user
  having count(1) = 1
 ) as t
+
+
+* La ubicacion de getcountry esta fallando. Algunas notas de alemania las pone
+Mali. Y cuando se verifica la ubicacion de nuevo sobre los valores retornados
+no concuerda.
+
+
+* revisar que BACKUP solo es para la descarga de paises. Ya que la ubicacion
+de notas es por defecto
+
+* Factorizas CREATE and INITIAL en Staging, ya que tiene partes comunes
+
+* Bajo un extraño caso, los boundaries descargados tienen nombres duplicados
+pero el id coresponde a otro país.
