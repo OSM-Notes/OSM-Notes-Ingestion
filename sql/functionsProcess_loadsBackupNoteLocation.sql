@@ -2,7 +2,10 @@
 -- note's location.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-18
+-- Version: 2024-01-29
+
+SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+ 'Creating table...' AS Text;
 
 DROP TABLE IF EXISTS backup_note_locations;
 CREATE TABLE backup_note_locations (
@@ -11,7 +14,7 @@ CREATE TABLE backup_note_locations (
 );
 
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
- 'Loading old note location...' AS Text;
+ 'Loading old note locations...' AS Text;
 COPY backup_note_locations (note_id, id_country)
 FROM '${CSV_BACKUP_NOTE_LOCATION}' csv;
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
