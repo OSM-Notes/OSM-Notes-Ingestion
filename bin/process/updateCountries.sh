@@ -1,0 +1,152 @@
+#!/bin/bash
+
+# Updates the current country and maritimes boundaries, or
+# insert new ones.
+#
+# To not remove all generated files, you can export this:
+#   export CLEAN=false
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2024-01-28
+declare -r VERSION="2024-01-28"
+
+#set -xv
+# Fails when a variable is not initialized.
+set -u
+# Fails with an non-zero return code.
+set -e
+# Fails if the commands of a pipe return non-zero.
+set -o pipefail
+# Fails if an internal function fails.
+set -E
+
+# If all files should be deleted. In case of an error, this could be disabled.
+# You can defined when calling: export CLEAN=false
+declare -r CLEAN=${CLEAN:-true}
+
+# Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
+declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
+
+# Base directory for the project.
+declare SCRIPT_BASE_DIRECTORY
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+ &> /dev/null && pwd)"
+readonly SCRIPT_BASE_DIRECTORY
+
+# Loads the global properties.
+# shellcheck source=../../etc/properties.sh
+source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+
+# Mask for the files and directories.
+umask 0000
+
+declare BASENAME
+BASENAME=$(basename -s .sh "${0}")
+readonly BASENAME
+# Temporal directory for all files.
+declare TMP_DIR
+TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
+readonly TMP_DIR
+# Log file for output.
+declare LOG_FILENAME
+LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+readonly LOG_FILENAME
+
+# Lock file for single execution.
+declare LOCK
+LOCK="/tmp/${BASENAME}.lock"
+readonly LOCK
+
+# Type of process to run in the script.
+declare -r PROCESS_TYPE=${1:-}
+
+# Location of the common functions.
+declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
+###########
+# FUNCTIONS
+
+# shellcheck source=../functionsProcess.sh
+source "${FUNCTIONS_FILE}"
+
+# Shows the help information.
+function __show_help {
+ echo "${BASENAME} version ${VERSION}"
+ echo "Updates the conutry and maritime boundaries."
+ echo
+ echo "Written by: Andres Gomez (AngocA)"
+ echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+}
+
+# Checks prerequisites to run the script.
+function __checkPrereqs {
+ __log_start
+ if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
+  && [[ "${PROCESS_TYPE}" != "--help" ]] \
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
+  echo "ERROR: Invalid parameter. It should be:"
+  echo " * Empty string, nothing."
+  echo " * --help"
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+ __checkPrereqs_functions
+ __log_finish
+ set -e
+}
+
+# Clean files and tables.
+function __cleanPartial {
+ __log_start
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+  rm -f "${QUERY_FILE}.*" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
+  echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
+ fi
+ __log_finish
+}
+
+######
+# MAIN
+
+function main() {
+ __log_start
+ __logi "Preparing environment."
+ __logd "Output saved at: ${TMP_DIR}."
+ __logi "Processing: ${PROCESS_TYPE}."
+
+ # Checks the prerequisities. It could terminate the process.
+ __checkPrereqs
+
+ __logw "Starting process."
+
+ # Sets the trap in case of any signal.
+ __trapOn
+ if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
+  exec 7> "${LOCK}"
+  __logw "Validating single execution."
+  ONLY_EXECUTION="no"
+  flock -n 7
+  ONLY_EXECUTION="yes"
+ fi
+
+ if [[ "${PROCESS_TYPE}" == "-h" ]] \
+  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+  exit "${ERROR_HELP_MESSAGE}"
+ else
+  STMT="UPDATE countries SET updated = TRUE"
+  echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  __processCountries
+  __processMaritimes
+  __cleanPartial
+  __getLocationNotes
+ fi
+ __log_finish
+}
+
+__start_logger
+if [[ ! -t 1 ]]; then
+ __set_log_file "${LOG_FILENAME}"
+ main >> "${LOG_FILENAME}" 2>&1
+else
+ main
+fi
