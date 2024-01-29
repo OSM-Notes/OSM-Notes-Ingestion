@@ -406,7 +406,7 @@ This is useful if you have to recreate some parts, but the rest is working fine.
 # ETL part.
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartCountries/datamartCountries-dropDatamartObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartUsers/datamartUsers-dropDatamartObjects.sql ;
-psql -d notes -f ~/OSM-Notes-profile/sql/dwh/Staging-removeStagingObjects.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/Staging_removeStagingObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/ETL_21_removeDWHObjects.sql ;
 
 # WMS part.
