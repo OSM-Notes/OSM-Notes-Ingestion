@@ -249,7 +249,6 @@ function __createApiTables {
 # Creates table properties during the execution.
 function __createPropertiesTable {
  __log_start
- set -e
  __logi "Creating properties table."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_22_CREATE_PROPERTIES_TABLE}"
@@ -465,6 +464,7 @@ function main() {
   "${NOTES_SYNC_SCRIPT}" --base
   __logw "Base tables created."
   __logi "This could take several minutes."
+  set +e
   "${NOTES_SYNC_SCRIPT}"
   RET=${?}
   set -e
