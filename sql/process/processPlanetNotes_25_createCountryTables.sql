@@ -38,6 +38,10 @@ COMMENT ON COLUMN countries.asia_oceania IS
 COMMENT ON COLUMN countries.updated IS
   'Used when updating all countries to refresh properties';
 
+CREATE INDEX IF NOT EXISTS countries_spatial ON countries
+  USING GIST (geom);
+COMMENT ON INDEX notes_countries IS 'Spatial index for countries';
+
 ALTER TABLE countries
  ADD CONSTRAINT pk_countries
  PRIMARY KEY (country_id);
