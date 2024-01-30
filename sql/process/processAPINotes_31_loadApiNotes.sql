@@ -49,7 +49,7 @@ DECLARE
   m_previous_note_id INTEGER;
   m_sequence_value INTEGER;
   m_rec_note_comment_api RECORD;
-  m_note_comments_api_cursor CURSOR  FOR
+  m_note_comments_api_cursor CURSOR FOR
    SELECT /* Notes-processAPI */ note_id
    FROM note_comments_api
    ORDER BY note_id, id
