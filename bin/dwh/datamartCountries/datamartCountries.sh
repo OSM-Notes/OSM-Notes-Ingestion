@@ -142,7 +142,6 @@ function __checkPrereqs {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
- set -e
 }
 
 # Creates base tables that hold the whole history.
