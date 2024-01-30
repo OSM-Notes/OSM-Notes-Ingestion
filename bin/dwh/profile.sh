@@ -156,7 +156,6 @@ function __checkPrereqs {
  __checkPrereqsCommands
 
  __log_finish
- set -e
 }
 
 # Retrives the dimension_user_id from a username.
