@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-29
-declare -r VERSION="2024-01-29"
+# Version: 2024-02-02
+declare -r VERSION="2024-02-02"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -53,6 +53,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
+chmod 777 ${TMP_DIR}
 # Lof file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -216,6 +217,7 @@ function __processOldUsers {
  LOWER_VALUE=1
  HIGH_VALUE="${SIZE}"
  ITER=1
+ __logw "Starting parallel process for datamartUsers..."
  while [[ "${ITER}" -le "${MAX_THREADS}" ]] ; do
   (
    __logi "Starting user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}"
