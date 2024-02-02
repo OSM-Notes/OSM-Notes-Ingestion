@@ -42,8 +42,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-18
-declare -r VERSION="2024-01-18"
+# Version: 2024-02-02
+declare -r VERSION="2024-02-02"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -75,6 +75,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
+chmod 777 ${TMP_DIR}
 # Lof file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
