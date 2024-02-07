@@ -269,6 +269,7 @@ function __initialFacts {
   done
    # Waits until all years are fniished.
   wait
+   __logw "Waited for all jobs, restarting in main thread"
 
   YEAR="2013"
   while [[ "${YEAR}" -le "${MAX_YEAR}" ]]; do
