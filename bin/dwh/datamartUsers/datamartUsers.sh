@@ -240,6 +240,7 @@ function __processOldUsers {
  done
 
  wait
+ __logw "Waited for all jobs, restarting in main thread"
 
  __log_finish
 }
