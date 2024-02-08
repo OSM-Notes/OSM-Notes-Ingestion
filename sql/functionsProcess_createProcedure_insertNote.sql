@@ -1,4 +1,6 @@
--- Procedure to insert a note.
+-- Procedure to insert a note. Even if the current status of the note is closed,
+-- the note is inserted as opened. Then, when the comment that closes the note
+-- is processed, the note will be updated to closed.
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
