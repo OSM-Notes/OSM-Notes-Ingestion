@@ -51,13 +51,13 @@ SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
 
 ALTER TABLE note_comments ALTER COLUMN sequence_action SET NOT NULL;
 
-CREATE UNIQUE INDEX sequence_note_comment
+CREATE UNIQUE INDEX unique_comment_note
  ON note_comments
  (note_id, sequence_action);
-COMMENT ON INDEX sequence_note_comment IS 'Sequence of comments creation';
+COMMENT ON INDEX unique_comment_note IS 'Sequence of comments creation';
 ALTER TABLE note_comments
  ADD CONSTRAINT unique_comment_note
- UNIQUE USING INDEX sequence_note_comment;
+ UNIQUE USING INDEX unique_comment_note;
 
 CREATE OR REPLACE FUNCTION put_seq_on_comment()
   RETURNS TRIGGER AS
