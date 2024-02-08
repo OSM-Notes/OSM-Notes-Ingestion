@@ -1,4 +1,6 @@
--- Refreshes the last value stored in the database.
+-- Refreshes the last value stored in the database. It calculates the max value
+-- by taking the most recent open note, most recent closed note and most recent
+-- comment.
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-12-08
@@ -11,6 +13,7 @@ $$
   last_update TIMESTAMP;
   new_last_update TIMESTAMP;
  BEGIN
+  -- Takes the max value among: most recent open note, closed note, comment.
   SELECT /* Notes-processAPI */ MAX(TIMESTAMP)
     INTO new_last_update
   FROM (
