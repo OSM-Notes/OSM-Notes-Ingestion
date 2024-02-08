@@ -218,7 +218,7 @@ function __sendMail {
 function __cleanFiles {
  __log_start
  if [[ "${CLEAN}" = "true" ]]; then
-  __logi "Limpiando archivos innecesarios."
+  __logi "Cleaning unnecesary files."
   rm -f "${REPORT}" "${REPORT_ZIP}" # Other files cannot be removed.
  fi
  __log_finish
