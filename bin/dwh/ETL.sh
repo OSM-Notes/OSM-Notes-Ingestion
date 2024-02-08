@@ -269,7 +269,7 @@ function __initialFacts {
   done
    # Waits until all years are fniished.
   wait
-   __logw "Waited for all jobs, restarting in main thread"
+   __logw "Waited for all jobs, restarting in main thread."
 
   YEAR="2013"
   while [[ "${YEAR}" -le "${MAX_YEAR}" ]]; do
@@ -325,7 +325,7 @@ function __initialFacts {
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- __logi "Droping any ETL object if any exist"
+ __logi "Droping any ETL object if any exist."
  psql -d "${DBNAME}" -f "${POSTGRES_21_DROP_OBJECTS_FILE}" 2>&1
 
  __logi "Creating tables for star model if they do not exist."
