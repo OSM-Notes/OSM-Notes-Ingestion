@@ -33,22 +33,6 @@ COMMENT ON COLUMN backup_countries.russia_middle_east IS
 COMMENT ON COLUMN backup_countries.asia_oceania IS
   'Position in the sequence to look for the location of this country in Oceania';
 
--- ---------------
--- Note's location
--- Copy the note_id and location.
--- To run before the new execution.
-CREATE TABLE backup_note_country (
-  note_id INTEGER,
-  id_country INTEGER
-);
-COMMENT ON TABLE backup_note_country IS
-  'Stores the location of the already processed notes';
-COMMENT ON COLUMN backup_note_country.note_id IS 'OSM note id';
-COMMENT ON COLUMN backup_note_country.id_country IS 'Location of the note';
-INSERT INTO backup_note_country
-  SELECT note_id, id_country
-  FROM notes;
-
 -- =======
 -- RECOVER
 
@@ -57,14 +41,3 @@ INSERT INTO backup_note_country
 INSERT INTO countries
   SELECT * FROM backup_countries ;
 
--- ---------------
--- Note's location
--- To run after the new execution.
-UPDATE notes AS n
- SET id_country = b.id_country
- FROM backup_note_country AS b
- WHERE b.note_id = n.note_id
- AND id_country IS NULL;
-
--- To release space.
-DROP TABLE IF EXISTS backup_note_country;
