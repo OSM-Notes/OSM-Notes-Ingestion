@@ -220,7 +220,7 @@ function __processOldUsers {
  __logw "Starting parallel process for datamartUsers..."
  while [[ "${ITER}" -le "${MAX_THREADS}" ]] ; do
   (
-   __logi "Starting user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}"
+   __logi "Starting user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}."
 
    export LOWER_VALUE
    export HIGH_VALUE
@@ -231,7 +231,7 @@ function __processOldUsers {
     >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    set -e
 
-   __logi "Finished user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}"
+   __logi "Finished user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}."
   ) &
   ITER=$((ITER+1))
   LOWER_VALUE=$((HIGH_VALUE+1))
@@ -240,7 +240,7 @@ function __processOldUsers {
  done
 
  wait
- __logw "Waited for all jobs, restarting in main thread"
+ __logw "Waited for all jobs, restarting in main thread."
 
  __log_finish
 }
