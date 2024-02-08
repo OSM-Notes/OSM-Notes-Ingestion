@@ -166,8 +166,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2024-02-07
+declare -r VERSION="2024-02-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -265,6 +265,9 @@ declare -r POSTGRES_43_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/p
 declare -r POSTGRES_44_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
 # Load text comments.
 declare -r POSTGRES_45_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
+
+# Variable to define that the process should update the location of notes.
+declare -r UPDATE_NOTE_LOCATION=false
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -521,7 +524,8 @@ function __createCountryTables {
 function __cleanPartial {
  __log_start
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-  rm -f "${QUERY_FILE}.*" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
+  rm -f "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
+  __logw "Dropping import table."
   echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
  fi
  __log_finish
