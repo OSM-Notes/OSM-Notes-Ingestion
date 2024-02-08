@@ -24,6 +24,7 @@ BEGIN
     || ')';
  END IF;
 
+ -- Takes the max value among: most recent open note, closed note, comment.
  SELECT /* Notes-processAPI */ MAX(TIMESTAMP)
    INTO new_last_update
  FROM (
@@ -43,8 +44,10 @@ BEGIN
   FROM max_note_timestamp;
 
   IF (last_update IS NULL) THEN
+   -- Inserting the first "Max" value.
    INSERT INTO max_note_timestamp (timestamp) VALUES (new_last_update);
   ELSE
+   -- Updating the "Max" value.
    UPDATE max_note_timestamp
      SET timestamp = new_last_update;
   END IF;
