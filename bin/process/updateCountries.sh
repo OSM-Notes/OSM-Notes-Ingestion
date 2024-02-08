@@ -7,8 +7,8 @@
 #   export CLEAN=false
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-28
-declare -r VERSION="2024-01-28"
+# Version: 2024-02-07
+declare -r VERSION="2024-02-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -33,6 +33,9 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
  &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
+# Variable to define that the process should update the location of notes.
+declare -r UPDATE_NOTE_LOCATION=true
+
 # Loads the global properties.
 # shellcheck source=../../etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
@@ -47,6 +50,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
+chmod 777 ${TMP_DIR}
 # Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -91,7 +95,6 @@ function __checkPrereqs {
  fi
  __checkPrereqs_functions
  __log_finish
- set -e
 }
 
 # Clean files and tables.
