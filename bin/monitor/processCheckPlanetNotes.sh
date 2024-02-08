@@ -148,7 +148,7 @@ function __checkPrereqs {
  ## Saxon Jar
  if [[ ! -r "${SAXON_JAR}" ]]; then
   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  __loge "You can specify it by export SAXON_CLASSPATH="
+  __loge "You can specify it by export SAXON_CLASSPATH=."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1; then
@@ -198,7 +198,7 @@ function __dropCheckTables {
 # Creates check tables that receives the whole history.
 function __createCheckTables {
  __log_start
- __logi "Creating tables"
+ __logi "Creating tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_CHECK_TABLES}"
  __log_finish
 }
