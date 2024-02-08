@@ -8,13 +8,13 @@ SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
 
 ALTER TABLE note_comments_text ALTER COLUMN sequence_action SET NOT NULL;
 
-CREATE UNIQUE INDEX sequence_note_comment_text
+CREATE UNIQUE INDEX unique_comment_note_text
  ON note_comments_text
  (note_id, sequence_action);
-COMMENT ON INDEX sequence_note_comment_text IS 'Sequence of comments creation';
+COMMENT ON INDEX unique_comment_note_text IS 'Sequence of comments creation';
 ALTER TABLE note_comments_text
  ADD CONSTRAINT unique_comment_note_text
- UNIQUE USING INDEX sequence_note_comment_text;
+ UNIQUE USING INDEX unique_comment_note_text;
 
 ALTER TABLE note_comments_text
  ADD CONSTRAINT fk_note_comment_uniq
