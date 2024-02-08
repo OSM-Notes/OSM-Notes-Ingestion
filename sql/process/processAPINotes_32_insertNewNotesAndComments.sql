@@ -13,6 +13,7 @@ $$
   r RECORD;
   m_closed_time VARCHAR(100);
   m_lastupdate TIMESTAMP;
+  m_stmt VARCHAR(200);
  BEGIN
   SELECT /* Notes-processAPI */ timestamp
    INTO m_lastupdate
@@ -30,11 +31,13 @@ $$
     || r.created_at || ',last:' || m_lastupdate || ',closed:'
     || m_closed_time);
 
-   EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
+   m_stmt := 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
      || r.longitude || ', '
      || 'TO_TIMESTAMP(''' || r.created_at
      || ''', ''YYYY-MM-DD HH24:MI:SS'')'
      || ')';
+   RAISE NOTICE 'Note % (%)', m_stmt, m_lastupdate;
+   EXECUTE m_stmt;
    INSERT INTO logs (message) VALUES ('Inserted');
   END LOOP;
   COMMIT;
@@ -59,10 +62,12 @@ $$
   r RECORD;
   m_created_time VARCHAR(100);
   m_lastupdate TIMESTAMP;
+  m_stmt VARCHAR(200);
  BEGIN
   SELECT /* Notes-processAPI */ timestamp
    INTO m_lastupdate
   FROM max_note_timestamp;
+
   FOR r IN
    SELECT /* Notes-processAPI */ note_id, event, created_at, id_user,
     username
@@ -78,20 +83,22 @@ $$
    END IF;
 
    IF (r.id_user IS NOT NULL) THEN
-    EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
+    m_stmt := 'CALL insert_note_comment (' || r.note_id || ', '
       || '''' || r.event || '''::note_event_enum, '
       || 'TO_TIMESTAMP(''' || r.created_at
       || ''', ''YYYY-MM-DD HH24:MI:SS''), '
       || r.id_user || ', '
       || QUOTE_NULLABLE(r.username) || ')';
    ELSE
-    EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
+    m_stmt := 'CALL insert_note_comment (' || r.note_id || ', '
       || '''' || r.event || '''::note_event_enum, '
       || 'TO_TIMESTAMP(''' || r.created_at
       || ''', ''YYYY-MM-DD HH24:MI:SS''), '
       || 'NULL, '
       || QUOTE_NULLABLE(r.username) || ')';
    END IF;
+   RAISE NOTICE 'Comment % (%)', m_stmt, m_lastupdate;
+   EXECUTE m_stmt;
    INSERT INTO logs (message) VALUES ('Inserted');
   END LOOP;
   COMMIT;
