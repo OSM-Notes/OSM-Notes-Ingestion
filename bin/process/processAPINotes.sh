@@ -275,7 +275,7 @@ function __getNewNotesFromApi {
 
  # Gets the values from OSM API.
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
- __logd "${REQUEST}"
+ __logt "${REQUEST}"
  wget -O "${API_NOTES_FILE}" "${REQUEST}" 2> "${LOG_FILENAME}"
 
  rm "${TEMP_FILE}"
