@@ -1,7 +1,7 @@
 -- Procedure to insert a note comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2024-02-07
   
 CREATE OR REPLACE PROCEDURE insert_note_comment (
   m_note_id INTEGER,
@@ -31,6 +31,7 @@ AS $proc$
   END IF;
 
    -- Gets the current status of the note.
+   -- The real status of the note could be closed, but it is inserted as open.
   SELECT /* Notes-base */ status
    INTO m_status
   FROM notes
@@ -39,13 +40,13 @@ AS $proc$
   -- Possible comment actions depending the current note state.
   IF (m_status = 'open') THEN
    -- The note is currently open.
+
    IF (m_event = 'closed') THEN
-    -- The note was closed.
+    INSERT INTO logs (message) VALUES ('Update to close note ' || m_note_id);
     UPDATE notes
       SET status = 'close',
       closed_at = m_created_at
       WHERE note_id = m_note_id;
-    INSERT INTO logs (message) VALUES ('Update to close note ' || m_note_id);
    ELSIF (m_event = 'reopened') THEN
     -- Invalid operation for an open note.
     INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
@@ -57,12 +58,11 @@ AS $proc$
    -- The note is currently closed.
 
    IF (m_event = 'reopened') THEN
-    -- The note was reopened.
+    INSERT INTO logs (message) VALUES ('Update to reopen note ' || m_note_id);
     UPDATE notes
       SET status = 'open',
       closed_at = NULL
       WHERE note_id = m_note_id;
-    INSERT INTO logs (message) VALUES ('Update to reopen note ' || m_note_id);
    ELSIF (m_event = 'closed') THEN
     -- Invalid operation for a closed note.
     INSERT INTO logs (message) VALUES ('Trying to close a closed note '
