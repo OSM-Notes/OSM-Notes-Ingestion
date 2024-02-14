@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/OSMLatam/OSM-Notes-profile/blob/main/json-schema/osm-jsonschema.json",
+  "title": "JSON schema for OSM json files from Overpass",
+  "description": "This is the JSON schema for the files retrieved from an Overpass query",
+  "type": "object",
+  "properties": {
+    "version": {
+      "description": "OpenStreetMap API version",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "generator": {
+      "description": "Overpass version",
+      "type": "string"
+    },
+    "osm3s": {
+      "description": "Description of Overpass operation (OSM Server Side Scripting)",
+      "type": "object",
+      "properties": {
+        "timestamp_osm_base": {
+          "description": "Time when the data was extracted from OSM",
+          "type": "string"
+        },
+        "copyright": {
+          "description": "Provides information about the source and licensing of the data",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timestamp_osm_base",
+        "copyright"
+      ],
+      "additionalProperties": false
+    },
+    "elements": {
+      "description": "List of OSM Elements that compose the object",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "description": "OSM nodes",
+            "type": "object",
+            "items": {
+              "$ref": "#/$defs/osm_nodes"
+            }
+          },
+          {
+            "description": "OSM ways",
+            "type": "object",
+            "items": {
+              "$ref": "#/$defs/osm_ways"
+            }
+          },
+          {
+            "description": "OSM relations",
+            "type": "object",
+            "items": {
+              "$ref": "#/$defs/osm_relations"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "version",
+    "generator",
+    "osm3s",
+    "elements"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "osm_nodes": {
+      "$comment": "##### OSM nodes",
+      "description": "Properties of an OSM node",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Name of the OSM object type (node)",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the OSM node",
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "lat": {
+          "description": "Latitude of the node location",
+          "type": "number",
+          "maximum": 90,
+          "minimum": -90
+        },
+        "lon": {
+          "description": "Longitude of the node location",
+          "type": "number",
+          "maximum": 180,
+          "minimum": -180
+        },
+        "tags": {
+          "description": "List of tags for the OSM node",
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "lat",
+        "lon"
+      ],
+      "additionalProperties": false
+    },
+    "osm_ways": {
+      "$comment": "##### OSM ways",
+      "description": "Properties of an OSM way",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Name of the OSM object type (way)",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the OSM way",
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "nodes": {
+          "description": "List of nodes that delimitate the way",
+          "type": "array",
+          "properties": {
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "tags": {
+          "description": "List of tags for the OSM way",
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "nodes"
+      ],
+      "additionalProperties": false
+    },
+    "osm_relations": {
+      "$comment": "##### OSM relations",
+      "description": "Properties of an OSM relation",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Name of the OSM object type (relation)",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the OSM relation",
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "members": {
+          "description": "List of members of an OSM relation",
+          "type": "array",
+          "items": {
+            "description": "Decription of the members that belongs to an OSM relation",
+            "type": "object",
+            "properties": {
+              "type": {
+                "description": "Type of object referenced",
+                "type": "string"
+              },
+              "ref": {
+                "description": "Reference to the object",
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "role": {
+                "description": "Role name of the element in the relation",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "ref"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "tags": {
+          "description": "List of tags for the OSM relation",
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "id",
+        "members"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
