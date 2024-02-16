@@ -166,8 +166,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-07
-declare -r VERSION="2024-02-07"
+# Version: 2024-02-16
+declare -r VERSION="2024-02-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -251,8 +251,6 @@ declare -r POSTGRES_23_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/
 declare -r POSTGRES_24_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
 # Create country tables.
 declare -r POSTGRES_25_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
-# Create country tables.
-#TODO declare -r POSTGRES_26_KNOWN_RELATIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_26_osmRelationNames.sql"
 # Vacuum and analyze.
 declare -r POSTGRES_31_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_31_analyzeVacuum.sql"
 # Load sync notes.
@@ -425,10 +423,6 @@ function __checkPrereqs {
   __loge "ERROR: File is missing at ${POSTGRES_25_CREATE_COUNTRY_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- #TODO if [[ ! -r "${POSTGRES_26_KNOWN_RELATIONS}" ]]; then
- # __loge "ERROR: File is missing at ${POSTGRES_26_KNOWN_RELATIONS}."
- # exit "${ERROR_MISSING_LIBRARY}"
- #fi
  if [[ ! -r "${POSTGRES_31_VACUUM_AND_ANALYZE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_31_VACUUM_AND_ANALYZE}."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -516,7 +510,6 @@ function __createCountryTables {
  __log_start
  __logi "Creating tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_25_CREATE_COUNTRY_TABLES}"
- #TODO psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_KNOWN_RELATIONS}"
  __log_finish
 }
 
@@ -563,7 +556,9 @@ function __loadSyncNotes {
 # Removes notes and comments from the new set that are already in the database.
 function __removeDuplicates {
  __log_start
+ echo "CALL put_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_42_REMOVE_DUPLICATES}"
+ echo "CALL remove_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
  psql -d "${DBNAME}" -f "${POSTGRES_43_COMMENTS_SEQUENCE}"
  __log_finish

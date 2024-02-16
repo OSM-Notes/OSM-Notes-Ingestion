@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2024-02-16
+declare -r VERSION="2024-02-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -392,8 +392,10 @@ function __loadApiNotes {
 # Inserts new notes and comments into the database.
 function __insertNewNotesAndComments {
  __log_start
+ echo "CALL put_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f \
   "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}"
+ echo "CALL remove_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
 }
 

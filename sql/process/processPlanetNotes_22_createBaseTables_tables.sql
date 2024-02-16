@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-05
+-- Version: 2024-02-16
   
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL,
@@ -86,3 +86,71 @@ COMMENT ON TABLE logs IS 'Messages during the operations';
 COMMENT ON COLUMN logs.id IS 'Sequential generated id';
 COMMENT ON COLUMN logs.timestamp IS 'Timestamp when the event was recorded';
 COMMENT ON COLUMN logs.message IS 'Text of the event';
+
+CREATE TABLE IF NOT EXISTS properties (
+ key VARCHAR(16),
+ value VARCHAR(26)
+);
+COMMENT ON TABLE dwh.properties IS 'Properties table for base load';
+COMMENT ON COLUMN dwh.properties.key IS 'Property name';
+COMMENT ON COLUMN dwh.properties.value IS 'Property value';
+
+CREATE OR REPLACE PROCEDURE put_lock (
+  m_id CHAR(20)
+ )
+ LANGUAGE plpgsql
+ AS $proc$
+ DECLARE
+  m_qty SMALLINT;
+ BEGIN
+  SELECT COUNT (1)
+   INTO m_qty
+  FROM properties;
+  IF (m_qty = 0) THEN
+   INSERT INTO properties VALUES ('lock', m_id);
+  ELSE
+   SELECT value
+    INTO m_id
+   FROM properties
+   WHERE key = 'lock';
+   RAISE EXCEPTION 'There is a lock on the table. Shell id %', m_id;
+  END IF;
+ END
+$proc$
+;
+COMMENT ON PROCEDURE put_lock IS
+  'Tries to put a lock for only one process inserting notes and comments. Otherwise it raise error';
+
+CREATE OR REPLACE PROCEDURE remove_lock (
+  m_id CHAR(20)
+ )
+ LANGUAGE plpgsql
+ AS $proc$
+ DECLARE
+  m_qty SMALLINT;
+  m_current_id SMALLINT;
+ BEGIN
+  SELECT count(1)
+   INTO m_qty
+  FROM properties
+  WHERE key = 'lock';
+  IF (m_qty = 1) THEN
+   SELECT value
+    INTO m_current_id
+   FROM properties
+   WHERE key = 'lock';
+   IF (m_id = m_current_id) THEN
+    DELETE FROM properties
+    WHERE key = 'lock' AND value = 'm_id';
+   ELSE
+    RAISE EXCEPTION 'Lock is hold by another app: %, current app: %',
+      m_current_id, m_id;
+   END IF;
+  ELSE
+   RAISE NOTICE 'No lock to remove';
+  END IF;
+ END
+$proc$
+;
+COMMENT ON PROCEDURE remove_lock IS
+  'Removes the lock';
