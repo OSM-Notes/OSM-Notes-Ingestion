@@ -1,20 +1,31 @@
 -- Procedure to insert a note comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-07
-  
+-- Version: 2024-02-16
+
 CREATE OR REPLACE PROCEDURE insert_note_comment (
   m_note_id INTEGER,
   m_event note_event_enum,
   m_created_at TIMESTAMP WITH TIME ZONE,
   m_id_user INTEGER,
-  m_username VARCHAR(256)
+  m_username VARCHAR(256),
+  m_process_id_bash INTEGER
 )
 LANGUAGE plpgsql
 AS $proc$
  DECLARE
   m_status note_status_enum;
+  m_process_id_db INTEGER;
  BEGIN
+  SELECT value
+    INTO m_process_id_db
+  FROM properties
+  WHERE key = 'lock';
+  IF (m_process_id_bash = m_process_id_db) THEN
+    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%)',
+      m_process_id_db, m_process_id_bash;
+  END IF;
+
   INSERT INTO logs (message) VALUES ('Inserting comment: ' || m_note_id || '-'
     || m_event);
 
