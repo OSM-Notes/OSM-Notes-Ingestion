@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
-  
+
 DROP TRIGGER IF EXISTS update_notes ON notes;
 DROP TRIGGER IF EXISTS insert_new_notes ON notes;
 DROP FUNCTION IF EXISTS wms.update_notes();
