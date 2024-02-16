@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-05
-  
+
 TRUNCATE TABLE notes_check;
 SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
  'Uploading check notes' AS Text;

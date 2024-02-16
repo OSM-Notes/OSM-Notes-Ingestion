@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-05
-  
+
 CREATE TABLE notes_check (
  note_id INTEGER NOT NULL,
  latitude DECIMAL NOT NULL,
@@ -18,7 +18,7 @@ COMMENT ON COLUMN notes_check.latitude IS 'Latitude';
 COMMENT ON COLUMN notes_check.longitude IS 'Longitude';
 COMMENT ON COLUMN notes_check.created_at IS
   'Timestamp of the creation of the note';
-COMMENT ON COLUMN notes_check.status IS 
+COMMENT ON COLUMN notes_check.status IS
   'Current status of the note (opened, closed; hidden is not possible)';
 COMMENT ON COLUMN notes_check.closed_at IS
   'Timestamp when the note was closed';

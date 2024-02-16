@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-05
-  
+
 -- Shows the information of the latest note, which should be recent.
 COPY
  (
@@ -43,7 +43,7 @@ COMMENT ON COLUMN notes_check.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_notes_id
  SELECT /* Notes-check */ note_id
- FROM notes_check 
+ FROM notes_check
  EXCEPT
  SELECT /* Notes-check */ note_id
  FROM notes
@@ -78,7 +78,7 @@ COMMENT ON COLUMN temp_diff_comments_id.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_comments_id
  SELECT /* Notes-check */ note_id
- FROM note_comments_check 
+ FROM note_comments_check
  EXCEPT
  SELECT /* Notes-check */ note_id
  FROM note_comments
@@ -114,7 +114,7 @@ INSERT INTO temp_diff_notes
  FROM (
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status,
    closed_at
-  FROM notes_check 
+  FROM notes_check
   EXCEPT
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status,
    closed_at
@@ -165,7 +165,7 @@ INSERT INTO temp_diff_note_comments
  SELECT /* Notes-check */ note_id
  FROM (
   SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
-  FROM note_comments_check 
+  FROM note_comments_check
   EXCEPT
   SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
   FROM note_comments
