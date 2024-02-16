@@ -9,7 +9,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
-  
+
 -- More than 200K
 UPDATE countries SET americas = 1 WHERE country_name_en IN ('United States');
 -- More than 50K
@@ -179,4 +179,3 @@ UPDATE countries SET asia_oceania = 8 WHERE country_name_en IN (
   'Philippine (EEZ)', 'Australia (EEZ)', 'British Indian Ocean Territory',
   'New Caledonia (EEZ)', 'New Zealand (EEZ)',
   'New Zealand (Contiguous Zone)');
-  
