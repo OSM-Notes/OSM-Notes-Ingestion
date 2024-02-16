@@ -5,7 +5,7 @@ functionalities.
 
 * `bin` In this script resides shared functions across many scripts.
 * `bin/dwh` Scripts to load and sync the data warehouse.
-* `bin/dwh/datamart*` Scripts to group the data by user or by country. 
+* `bin/dwh/datamart*` Scripts to group the data by user or by country.
 * `bin/monitor` Script to monitor the daily load compared with the Planet
   notes.
 * `bin/process` Main scripts, that load notes from API and Planet.
@@ -28,7 +28,7 @@ functionalities.
   This allow to identify unprocessed notes or errors in the other scripts.
 * `bin/monitor/notesCheckVerifier.sh` sends an email if there are old
   differences.
-  
+
 # Insufficient memory resources
 
 If the server where this script runs does not have enough memory (6 GB for

@@ -599,7 +599,7 @@ EOF
   __processBoundary "${ID}"
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-   rm -f "${JSON_FILE}" "${GEOJSON_FILE}" "${QUERY_FILE}" 
+   rm -f "${JSON_FILE}" "${GEOJSON_FILE}" "${QUERY_FILE}"
   else
    mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old"
    mv "${GEOJSON_FILE}" "${TMP_DIR}/${ID}.geojson.old"
@@ -819,7 +819,7 @@ function __getLocationNotes {
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
     __logd "Number of notes without country - before."
     STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-      FROM notes 
+      FROM notes
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
@@ -839,7 +839,7 @@ function __getLocationNotes {
 
     __logd "New number of notes without country - after."
     STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-      FROM notes 
+      FROM notes
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
