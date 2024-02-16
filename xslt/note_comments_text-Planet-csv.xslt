@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 XML transformation to convert note comment's text from a Planet dump to a CSV file.
 
 Author: Andres Gomez (AngocA)
