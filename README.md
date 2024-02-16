@@ -235,7 +235,7 @@ process:
 If `processAPINotes.sh` gets less than 10,000 notes, it will process them
 directly.
 
-Note: If during the same day, there are more than 10,000 notes between two 
+Note: If during the same day, there are more than 10,000 notes between two
 `processAPINotes.sh` calls, it will remain unsynchronized until the Planet dump
 is updated the next UTC day.
 That's why it is recommended to perform frequent API calls.
@@ -297,10 +297,10 @@ These files include details about how to run or troubleshoot the scripts.
   It also includes the datamart load and a profile tester.
 * `bin/monitor` contains a set of scripts to monitor the notes database to
   validate it has the same data as the planet, and eventually send an email
-  message with the differences. 
+  message with the differences.
 * `bin/process` has the main script to download the notes database, with the
   Planet dump and via API calls.
-* `etc` configuration file for many scripts. 
+* `etc` configuration file for many scripts.
 * `lib` libraries used in the project.
   Currently only a modified version of bash logger.
 * `overpass` queries to download data with Overpass for the countries and
@@ -369,7 +369,7 @@ as much information as possible.
 This is the way to create the objects for the WMS layer.
 More information is in the `README.md` file under the `sql/wms` directory.
 
-``` 
+```
 psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-profile/sql/wms/prepareDatabase.sql
 ```
 
