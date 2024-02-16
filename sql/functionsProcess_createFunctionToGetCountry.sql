@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-23
-  
+
  CREATE OR REPLACE FUNCTION get_country (
    lon DECIMAL,
    lat DECIMAL,
