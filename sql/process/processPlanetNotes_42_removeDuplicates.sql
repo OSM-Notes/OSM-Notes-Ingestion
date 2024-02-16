@@ -1,8 +1,8 @@
 -- Remove duplicates for notes and note comments, when syncing from the Planet.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-18
-  
+-- Version: 2024-02-16
+
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
   'Counting notes sync' AS Text;
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
@@ -13,7 +13,7 @@ SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
 
 DROP TABLE IF EXISTS notes_sync_no_duplicates;
 CREATE TABLE notes_sync_no_duplicates AS
-  SELECT /* Notes-processPlanet */ 
+  SELECT /* Notes-processPlanet */
    note_id,
    latitude,
    longitude,
@@ -24,7 +24,7 @@ CREATE TABLE notes_sync_no_duplicates AS
   FROM notes_sync WHERE note_id IN (
     SELECT /* Notes-processPlanet */ note_id
     FROM notes_sync s
-    EXCEPT 
+    EXCEPT
     SELECT /* Notes-processPlanet */ note_id
     FROM notes
   );
@@ -62,39 +62,20 @@ $$
 DECLARE
  r RECORD;
  closed_time VARCHAR(100);
- qty INT;
- count INT;
 BEGIN
- SELECT /* Notes-processPlanet */ COUNT(1)
-  INTO qty
- FROM notes;
- IF (qty = 0) THEN
-  INSERT INTO notes (
-    note_id, latitude, longitude, created_at, status, closed_at, id_country
-  )
-  SELECT /* Notes-processPlanet */
-    note_id, latitude, longitude, created_at, status, closed_at, id_country
+ FOR r IN
+  SELECT /* Notes-processPlanet */ note_id, latitude, longitude, created_at,
+   closed_at, status
   FROM notes_sync
-  ORDER BY note_id;
- ELSE
-  count := 0;
-  FOR r IN
-   SELECT /* Notes-processPlanet */ note_id, latitude, longitude, created_at,
-    closed_at, status
-   FROM notes_sync
-   ORDER BY note_id
-  LOOP
-   closed_time := 'TO_TIMESTAMP(''' || r.closed_at
-     || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-   EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-     || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at || ''', ' 
-     ||'''YYYY-MM-DD HH24:MI:SS'')' || ')';
-  END LOOP;
-  IF (count % 1000 = 0) THEN
-   COMMIT;
-  END IF;
-  count := count + 1;
- END IF;
+  ORDER BY note_id
+ LOOP
+  closed_time := 'TO_TIMESTAMP(''' || r.closed_at
+    || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+  EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
+    || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at || ''', '
+    ||'''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
+ END LOOP;
+ COMMIT;
 END;
 $$;
 
@@ -122,7 +103,7 @@ CREATE TABLE note_comments_sync_no_duplicates AS
   WHERE note_id IN (
     SELECT /* Notes-processPlanet */ note_id
     FROM note_comments_sync s
-    EXCEPT 
+    EXCEPT
     SELECT /* Notes-processPlanet */ note_id
     FROM note_comments
   )
@@ -160,43 +141,22 @@ $$
 DECLARE
  r RECORD;
  m_created_time VARCHAR(100);
- qty INT;
 BEGIN
- SELECT /* Notes-processPlanet */ COUNT(1)
-  INTO qty
- FROM note_comments;
- IF (qty = 0) THEN
-  INSERT INTO users (
-   user_id, username
-   )
-   SELECT /* Notes-processPlanet */ id_user, username
-   FROM note_comments_sync
-   WHERE id_user IS NOT NULL
-   GROUP BY id_user, username;
-   
-  INSERT INTO note_comments (
-   note_id, event, created_at, id_user
-   )
-   SELECT /* Notes-processPlanet */ 
-    note_id, event, created_at, id_user
-   FROM note_comments_sync
-   ORDER BY created_at;
- ELSE
-  FOR r IN
-   SELECT /* Notes-processPlanet */
-    note_id, event, created_at, id_user, username
-   FROM note_comments_sync
-   ORDER BY created_at
-  LOOP
-   m_created_time := 'TO_TIMESTAMP(''' || r.created_at
-     || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-   EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
-     || '''' || r.event || '''::note_event_enum, '
-     || COALESCE(m_created_time, 'NULL') || ', '
-     || COALESCE(r.id_user || '', 'NULL') || ', '
-     || QUOTE_NULLABLE(r.username) || ')';
-  END LOOP;
- END IF;
+ FOR r IN
+  SELECT /* Notes-processPlanet */
+   note_id, event, created_at, id_user, username
+  FROM note_comments_sync
+  ORDER BY created_at
+ LOOP
+  m_created_time := 'TO_TIMESTAMP(''' || r.created_at
+    || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+  EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
+    || '''' || r.event || '''::note_event_enum, '
+    || COALESCE(m_created_time, 'NULL') || ', '
+    || COALESCE(r.id_user || '', 'NULL') || ', '
+    || QUOTE_NULLABLE(r.username) || ', $PROCESS_ID' || ')';
+ END LOOP;
+ COMMIT;
 END
 $$;
 
