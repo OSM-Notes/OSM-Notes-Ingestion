@@ -55,7 +55,7 @@ function __set_log_file() {
   else
     if ! touch "${LOG_FILE}"; then
       echo "It is not possible to create this file: ${LOG_FILE}."
-    else 
+    else
       if [ ! -w "${LOG_FILE}" ]; then
         echo "It is not possible to write in this file: ${LOG_FILE}."
       else
@@ -352,18 +352,18 @@ function __log_start() {
   if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
     __bl_log_message_type="INFO"
     __bl_function_start_time=$(date +%s)
-  
+
     __bl_script_name="${BASH_SOURCE[1]}"
     __bl_script_name="${__bl_script_name##*/}"
-  
+
     __bl_function_name="${FUNCNAME[1]}"
-  
+
     __bl_called_line_number="${BASH_LINENO[0]}"
-  
+
     __bl_run_times["${__bl_script_name}:${__bl_function_name}"]="$__bl_function_start_time"
-  
+
      __bl_log_message="#-- STARTED ${__bl_function_name^^} --#"
-  
+
     __bl_time_and_date="$(date '+%Y-%m-%d %H:%M:%S')"
     LOG=$(echo "${__bl_time_and_date} - ${__bl_script_name}:${__bl_function_name}:${__bl_called_line_number} - ${__bl_log_message}")
     if [ -z "${__log_fd}" ]; then
@@ -384,13 +384,13 @@ function __log_finish() {
 
     __bl_script_name="${BASH_SOURCE[1]}"
     __bl_script_name="${__bl_script_name##*/}"
-  
+
     __bl_function_name="${FUNCNAME[1]}"
-  
+
     __bl_called_line_number="${BASH_LINENO[0]}"
-  
+
     __bl_log_message="|-- FINISHED ${__bl_function_name^^} --|"
-  
+
     __bl_time_and_date="$(date '+%Y-%m-%d %H:%M:%S')"
     if [ "${__bl_function_name^^}" = "MAIN" ]; then
       run_time=$(( $(date +%s) - __bl_script_start_time ))
@@ -399,7 +399,7 @@ function __log_finish() {
       run_time=$(( $(date +%s) - __bl_function_start_time ))
     fi
     __bl_log_message="|-- FINISHED ${__bl_function_name^^} - Took: $((run_time / 3600))h:$(( (run_time % 3600) / 60 ))m:$(( (run_time % 3600) % 60 ))s --|"
-  
+
     LOG=$(echo "${__bl_time_and_date} - ${__bl_script_name}:${__bl_function_name}:${__bl_called_line_number} - ${__bl_log_message}")
     if [ -z "${__log_fd}" ]; then
       echo "${LOG}"
