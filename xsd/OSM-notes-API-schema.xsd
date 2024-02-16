@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- 
+<!--
 XML Schema for the results returned from an API call. This validates the
 structure is correct to prevent invalid insertions.
 
