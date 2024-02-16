@@ -173,7 +173,7 @@ function __getUserId {
 # Retrives the country_id from a country name.
 function __getCountryId {
  COUNTRY_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-  <<< "SELECT dimension_country_id FROM dwh.datamartCountries 
+  <<< "SELECT dimension_country_id FROM dwh.datamartCountries
   WHERE country_name_es = '${COUNTRY_NAME}'")
  if [[ "${COUNTRY_ID}" == "" ]]; then
   __loge "ERROR: The country name \"${COUNTRY_NAME}\" does not exist."
@@ -1376,7 +1376,7 @@ function __processCountryProfile {
  set -E
  # TODO Mostrar la cantidad de notas actualmente en estado abierto
  # TODO Mostrar la cantidad de notas actualmente en estado cerrado
- echo 
+ echo
  echo "Actions:"
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
  printf "                   Opens   Comments     Closes Cls w/cmmt    Reopens\n"
@@ -1457,10 +1457,10 @@ function __generalNoteStats {
  # select t.qty, count(1)
  # from (
  #  select count(1) qty, f.action_dimension_id_user user_notes
- #  from dwh.facts f 
+ #  from dwh.facts f
  #  group by f.action_dimension_id_user
  # ) AS t
- # group by qty 
+ # group by qty
  # order by qty desc
 }
 

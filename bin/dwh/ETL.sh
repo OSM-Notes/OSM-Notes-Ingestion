@@ -300,7 +300,7 @@ function __initialFacts {
      ORDER BY fact_id
     "
    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
-   
+
    # Drops the temporal tables.
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
     export YEAR
