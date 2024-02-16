@@ -1,4 +1,4 @@
-<!-- 
+<!--
 SLD file to give colors to coutries. Pale yellow for the countries, light blue
 for the international areas. It is used in GeoServer.
 

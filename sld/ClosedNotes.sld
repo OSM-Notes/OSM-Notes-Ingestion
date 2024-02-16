@@ -1,4 +1,4 @@
-<!-- 
+<!--
 SLD file to give colors to the notes. The darker the note was recently closed.
 The lighter the note was closed several years ago. It is used in GeoServer.
 
