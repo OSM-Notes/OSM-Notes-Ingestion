@@ -195,8 +195,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
     INTO m_dimension_user_open
    FROM dwh.dimension_users
    WHERE user_id = rec_note_action.created_id_user;
-    
-   -- Gets the user who performed the action (if action is opened, then it 
+
+   -- Gets the user who performed the action (if action is opened, then it
    -- is the same).
    SELECT /* Notes-staging */ dimension_user_id
     INTO m_dimension_user_action
@@ -278,7 +278,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
    INSERT INTO staging.facts_${YEAR} (
      id_note, dimension_id_country,
      action_at, action_comment, action_dimension_id_date,
-     action_dimension_id_hour_of_week, action_dimension_id_user, 
+     action_dimension_id_hour_of_week, action_dimension_id_user,
      opened_dimension_id_date, opened_dimension_id_hour_of_week,
      opened_dimension_id_user,
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
@@ -390,7 +390,7 @@ $$
   SELECT /* Notes-staging */ MAX(date_id)
    INTO max_processed_date
   FROM staging.facts_${YEAR} f
-   JOIN dwh.dimension_days d 
+   JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id);
   --RAISE NOTICE 'get max processed date from facts %', max_processed_date;
 

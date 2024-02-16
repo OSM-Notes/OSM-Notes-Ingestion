@@ -148,7 +148,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     ON (c.note_id = t.note_id AND c.sequence_action = t.sequence_action)
     JOIN dwh.dimension_days dd
     ON (DATE(c.created_at) = dd.date_id)
-   WHERE c.created_at > c_max_processed_timestamp 
+   WHERE c.created_at > c_max_processed_timestamp
     AND dd.date_id = DATE(c_max_processed_timestamp) -- Notes for the
       -- same date.
    ORDER BY c.note_id, c.id;
@@ -181,8 +181,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     INTO m_dimension_user_open
    FROM dwh.dimension_users
    WHERE user_id = rec_note_action.created_id_user;
-    
-   -- Gets the user who performed the action (if action is opened, then it 
+
+   -- Gets the user who performed the action (if action is opened, then it
    -- is the same).
    SELECT /* Notes-staging */ dimension_user_id
     INTO m_dimension_user_action
@@ -233,7 +233,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     FROM dwh.facts f
     WHERE f.id_note = rec_note_action.id_note
      AND f.fact_id < m_fact_id;
-  
+
     SELECT /* Notes-staging */ recent_opened_dimension_id_date
      INTO m_recent_opened_dimension_id_date
     FROM dwh.facts f
@@ -279,7 +279,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    INSERT INTO dwh.facts (
      id_note, dimension_id_country,
      action_at, action_comment, action_dimension_id_date,
-     action_dimension_id_hour_of_week, action_dimension_id_user, 
+     action_dimension_id_hour_of_week, action_dimension_id_user,
      opened_dimension_id_date, opened_dimension_id_hour_of_week,
      opened_dimension_id_user,
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
@@ -381,7 +381,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   SELECT /* Notes-staging */ MAX(date_id)
    INTO max_processed_date
   FROM dwh.facts f
-   JOIN dwh.dimension_days d 
+   JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id);
   --RAISE NOTICE 'get max processed date from facts %', max_processed_date;
 

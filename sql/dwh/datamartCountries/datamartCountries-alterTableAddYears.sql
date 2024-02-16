@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-11-29
-  
+
 ALTER TABLE dwh.datamartCountries
  ADD COLUMN history_${YEAR}_open INTEGER,
  ADD COLUMN history_${YEAR}_commented INTEGER,

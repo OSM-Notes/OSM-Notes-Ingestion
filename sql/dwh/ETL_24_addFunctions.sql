@@ -83,7 +83,7 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
    INTO m_id_date
   FROM dwh.dimension_days
   WHERE date_id = DATE(new_date);
-  
+
   IF (m_id_date IS NULL) THEN
    INSERT INTO dwh.dimension_days (
      date_id, year, month, day

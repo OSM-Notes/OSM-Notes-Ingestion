@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-12-08
-  
+
   DO /* Notes-datamartUsers-checkTables */
   $$
   DECLARE

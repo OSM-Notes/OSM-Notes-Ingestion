@@ -40,7 +40,7 @@ AS $proc$
    FROM dwh.facts f
    WHERE f.dimension_id_country = m_dimension_country_id
   );
-  
+
   -- date_starting_solving_notes
   SELECT /* Notes-datamartCountries */ date_id
    INTO m_date_starting_solving_notes
@@ -50,7 +50,7 @@ AS $proc$
    FROM dwh.facts f
    WHERE f.dimension_id_country = m_dimension_country_id
   );
-  
+
   -- first_open_note_id
   SELECT /* Notes-datamartCountries */ id_note
    INTO m_first_open_note_id
@@ -229,7 +229,7 @@ AS $proc$
     AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
    -- m_ranking_users_opening_year
-   SELECT /* Notes-datamartCountries */ 
+   SELECT /* Notes-datamartCountries */
     JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
     'quantity', quantity))
     INTO m_ranking_users_opening_year
@@ -253,7 +253,7 @@ AS $proc$
    ) AS S;
 
    -- m_ranking_users_closing_year
-   SELECT /* Notes-datamartCountries */ 
+   SELECT /* Notes-datamartCountries */
     JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
     'quantity', quantity))
     INTO m_ranking_users_closing_year
@@ -346,7 +346,7 @@ AS $proc$
   m_history_day_closed INTEGER;
   m_history_day_closed_with_comment INTEGER;
   m_history_day_reopened INTEGER;
- 
+
   m_year SMALLINT;
   m_current_year SMALLINT;
   m_current_month SMALLINT;
@@ -419,7 +419,7 @@ AS $proc$
   );
 
   -- dates_most_open
-  SELECT /* Notes-datamartCountries */ 
+  SELECT /* Notes-datamartCountries */
    JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
    INTO m_dates_most_open
   FROM (
@@ -432,7 +432,7 @@ AS $proc$
    ORDER BY COUNT(1) DESC
    LIMIT 50
   ) AS T;
- 
+
   -- dates_most_closed
   SELECT /* Notes-datamartCountries */
    JSON_AGG(JSON_BUILD_OBJECT('date', date, 'quantity', quantity))
@@ -465,7 +465,7 @@ AS $proc$
      COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_users u
-     ON f.opened_dimension_id_user = u.dimension_user_id 
+     ON f.opened_dimension_id_user = u.dimension_user_id
     WHERE f.dimension_id_country = m_dimension_id_country
     GROUP BY u.username
     ORDER BY COUNT(1) DESC
@@ -474,7 +474,7 @@ AS $proc$
   ) AS S;
 
   -- users_solving_notes
-  SELECT /* Notes-datamartCountries */ 
+  SELECT /* Notes-datamartCountries */
    JSON_AGG(JSON_BUILD_OBJECT('rank', rank, 'username', username,
    'quantity', quantity))
    INTO m_users_solving_notes
@@ -486,7 +486,7 @@ AS $proc$
      COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_users u
-     ON F.closed_dimension_id_user = u.dimension_user_id 
+     ON F.closed_dimension_id_user = u.dimension_user_id
     WHERE f.dimension_id_country = m_dimension_id_country
     GROUP BY u.username
     ORDER BY COUNT(1) DESC
@@ -516,7 +516,7 @@ AS $proc$
      COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_users u
-     ON f.opened_dimension_id_user = u.dimension_user_id 
+     ON f.opened_dimension_id_user = u.dimension_user_id
      JOIN dwh.dimension_days d
      ON f.opened_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
@@ -541,7 +541,7 @@ AS $proc$
      COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_users u
-     ON f.closed_dimension_id_user = u.dimension_user_id 
+     ON f.closed_dimension_id_user = u.dimension_user_id
      JOIN dwh.dimension_days d
      ON f.closed_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
@@ -566,7 +566,7 @@ AS $proc$
      COUNT(1) AS quantity
     FROM dwh.facts f
      JOIN dwh.dimension_users u
-     ON f.opened_dimension_id_user = u.dimension_user_id 
+     ON f.opened_dimension_id_user = u.dimension_user_id
      JOIN dwh.dimension_days d
      ON f.opened_dimension_id_date = d.dimension_day_id
     WHERE f.dimension_id_country = m_dimension_id_country
@@ -827,7 +827,7 @@ AS $proc$
 
   -- Updates country with new values.
   UPDATE dwh.datamartCountries
-  SET 
+  SET
    last_year_activity = m_last_year_activity,
    lastest_open_note_id = m_lastest_open_note_id,
    lastest_commented_note_id = m_lastest_commented_note_id,

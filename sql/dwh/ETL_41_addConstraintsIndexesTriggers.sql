@@ -79,7 +79,7 @@ CREATE INDEX facts_action_date ON dwh.facts (action_at);
 COMMENT ON INDEX dwh.facts_action_date IS
   'Improves queries by action timestamp';
 
-CREATE INDEX action_idx 
+CREATE INDEX action_idx
  ON dwh.facts (action_dimension_id_user, action_comment, id_note);
 COMMENT ON INDEX dwh.action_idx IS 'Improves queries by user and action type';
 

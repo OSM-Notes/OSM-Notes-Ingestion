@@ -142,7 +142,7 @@
     14296, -- Slovakia
     218657, -- Slovenia
     60199, -- Ukraine
-    11285925 
+    11285925
     )) THEN
     m_region := 7;
    ELSIF (osm_id_country IN (

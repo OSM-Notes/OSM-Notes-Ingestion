@@ -23,7 +23,7 @@ BEGIN
  FOR r IN
   SELECT /* Notes-datamartUsers */
    f.action_dimension_id_user AS dimension_user_id
-  FROM dwh.facts f 
+  FROM dwh.facts f
    JOIN dwh.dimension_users u
    ON (f.action_dimension_id_user = u.dimension_user_id)
   WHERE ${LOWER_VALUE} <= u.user_id

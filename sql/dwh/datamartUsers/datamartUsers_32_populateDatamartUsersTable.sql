@@ -38,7 +38,7 @@ BEGIN
 
  FOR r IN
   -- Process the datamart only for modified users.
-  SELECT /* Notes-datamartUsers */ 
+  SELECT /* Notes-datamartUsers */
    f.action_dimension_id_user AS dimension_user_id
   FROM dwh.facts f
    JOIN dwh.dimension_users u
