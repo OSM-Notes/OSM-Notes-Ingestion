@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-01-29
+# Version: 2024-02-02
 
 # Error codes.
 # 1: Help message.
@@ -66,6 +66,9 @@ declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_
 # XML Schema of the Planet notes file.
 declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
 
+# JSON schema for Overpass files
+declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json-schema/osm-jsonschema.json"
+
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 # Filename for the flat file for comment notes.
@@ -95,9 +98,7 @@ declare -r POSTGRES_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProces
 # Upload note locations.
 declare -r POSTGRES_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_loadsBackupNoteLocation.sql"
 
-# File for lock when downloading countries.
-# TODO declare -r LOCK_OVERPASS_OUTPUT=/tmp/overpassOutput.lock
-# File for Lock when inserting in the database
+# Directory for Lock when inserting in the database
 declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
 
 # Overpass queries
@@ -204,6 +205,11 @@ EOF
   __loge "ERROR: osmtogeojson is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## JSON validator
+ if ! ajv help > /dev/null 2>&1; then
+  __loge "ERROR: ajv is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  ## gdal ogr2ogr
  if ! ogr2ogr --version > /dev/null 2>&1; then
   __loge "ERROR: ogr2ogr is missing."
@@ -255,6 +261,26 @@ EOF
   __loge "ERROR: File is missing at ${POSTGRES_UPLOAD_NOTE_LOCATION}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${XSLT_NOTES_FILE}" ]]; then
+  __loge "ERROR: File is missing at ${XSLT_NOTES_FILE}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${XSLT_NOTE_COMMENTS_FILE}" ]]; then
+  __loge "ERROR: File is missing at ${XSLT_NOTE_COMMENTS_FILE}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${XSLT_TEXT_COMMENTS_FILE}" ]]; then
+  __loge "ERROR: File is missing at ${XSLT_TEXT_COMMENTS_FILE}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]]; then
+  __loge "ERROR: File is missing at ${XMLSCHEMA_PLANET_NOTES}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${JSON_SCHEMA_OVERPASS}" ]]; then
+  __loge "ERROR: File is missing at ${JSON_SCHEMA_OVERPASS}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  set -e
  __log_finish
 }
@@ -303,7 +329,6 @@ function __checkBaseTables {
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
  __log_start
- set -e
  # Download Planet notes.
  __logw "Retrieving Planet notes file..."
  # shellcheck disable=SC2154
@@ -381,7 +406,6 @@ function __createFunctionToGetCountry {
 # Creates procedures to insert notes and comments.
 function __createProcedures {
  __log_start
- set -e
  # Creates a procedure that inserts a note.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_CREATE_PROC_INSERT_NOTE}"
@@ -407,30 +431,46 @@ function __organizeAreas {
 # Processes a specific boundary id.
 function __processBoundary {
  __log_start
-  #CORRECT_DATA=false
-  #SECONDS_RETRY=1
-  #while [[ "${CORRECT_DATA}" = false ]]; do
-   #while [[ -r "${LOCK_OVERPASS_OUTPUT}"
-   #  && $(cat "${LOCK_OVERPASS_OUTPUT}") != "${BASHPID}" ]]; do
-   # __logw "${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
-   # sleep 1
-   #done
+ PROCESS="${BASHPID}"
+ OUTPUT_OVERPASS="${TMP_DIR}/output.${BASHPID}"
  set +e
  __logi "Retrieving shape."
- wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-   "${OVERPASS_INTERPRETER}"
- RET="${?}"
- if [[ "${RET}" -ne 0 ]]; then
-  # Retry once if there was an error.
-  set -e
+ RETRY=true
+ while [[ "${RETRY}" = true ]]; do
+  # Retrieves the JSON from Overpass.
   wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-    "${OVERPASS_INTERPRETER}"
- fi
+    "${OVERPASS_INTERPRETER}" > "${OUTPUT_OVERPASS}"
+  RET="${?}"
+  MANY_REQUESTS=$(grep "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}" | wc -l)
+  if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
+   # If "too many requests" as part of the output, then waits.
+   sleep 30
+  elif [[ "${RET}" -ne 0 ]]; then
+   # Retry once if there was an error.
+   set -e
+  else
+   # Validates the JSON with a JSON schema.
+   set +e
+   ajv validate -s "${JSON_SCHEMA_OVERPASS}" -d "${JSON_FILE}" \
+     --spec=draft2020 2> /dev/null
+   echo "${RET}"
+   set -e
+   if [[ "${RET}" -eq 0 ]]; then
+    # The format is valid.
+    __logd "The JSON file ${JSON_FILE} is valid."
+    RETRY=false
+   else
+    __logd "The JSON file ${JSON_FILE} is invalid; retrying."
+   fi
+  fi
+ done
+ rm -f "${OUTPUT_OVERPASS}"
  set -e
 
  __logi "Converting into geoJSON."
  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
  set +e
+ # TODO validate the geojson with a json schema
  set +o pipefail
  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
   | awk -F\" '{print $4}' | sed "s/'/''/")
@@ -443,128 +483,97 @@ function __processBoundary {
  NAME_EN="${NAME_EN:-No English name}"
  __logi "Name: ${NAME_EN:-}."
 
-   # TODO
-   # Checks if there is a registered relation with that id.
-   #STATEMENT="
-   # SELECT count(1)
-   # FROM osm_relations_boundaries b
-   # WHERE b.id = ${ID}
-   #"
-   #__logd "${STATEMENT}"
-   #EXIST=$(echo "${STATEMENT}" | psql -t -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   #  | awk '{print $1}')
-   #if [[ "${EXIST}" -eq 1 ]]; then
+ # Taiwan cannot be imported directly. Thus, a simplification is done.
+ # ERROR:  row is too big: size 8616, maximum size 8160
+ grep -v "official_name" "${GEOJSON_FILE}" \
+  | grep -v "alt_name" > "${GEOJSON_FILE}-new"
+ mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
 
-    # Checks the that id is the correct one for the country name.
-    #STATEMENT="
-    # SELECT count(1)
-    # FROM osm_relations_boundaries b
-    # WHERE b.id = ${ID} AND b.name = '${NAME}'
-    #"
-    #__logd "${STATEMENT}"
-    #VALID_NAME=$(echo "${STATEMENT}" | psql -t -d "${DBNAME}" \
-    #  -v ON_ERROR_STOP=1 | awk '{print $1}')
-    #if [[ "${VALID_NAME}" -eq 1 ]]; then
-     #CORRECT_DATA=true
-     #__logi "This is a know country with that id ${ID} - ${NAME} (${NAME_EN})"
-     #SECONDS_RETRY=0
-     #rm -f "${LOCK_OVERPASS_OUTPUT}"
-    #else
-     #__logw "The retrieved data from Overpass does not match the country id ${ID} - ${NAME} (${NAME_EN})"
-     #echo "${BASHPID}" > "${LOCK_OVERPASS_OUTPUT}"
-     #__logi "Waiting ${SECONDS_RETRY} seconds for retry (${BASHPID})..."
-     #sleep "${SECONDS_RETRY}"
-     #SECONDS_RETRY=$((SECONDS_RETRY+2))
-    #fi
-   #else
-    #__logi "This is a new relation ${ID} - ${NAME} (${NAME_EN})"
-    #CORRECT_DATA=true
-    #rm -f "${LOCK_OVERPASS_OUTPUT}"
-   #fi
-  #done
-
-  # Taiwan cannot be imported directly. Thus, a simplification is done.
-  # ERROR:  row is too big: size 8616, maximum size 8160
-  grep -v "official_name" "${GEOJSON_FILE}" \
-   | grep -v "alt_name" > "${GEOJSON_FILE}-new"
-  mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
-
-  __logi "Importing into Postgres."
-  while [[ -r "${LOCK_OGR2OGR}"
-    && $(cat "${LOCK_OGR2OGR}" || true) != "${BASHPID}" ]]; do
-   __logw "${BOUNDARIES_FILE} - Waiting ${BASHPID} for ${ID}..."
-   sleep 1
-  done
-  echo "${BASHPID}" > "${LOCK_OGR2OGR}"
-  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
-   "${GEOJSON_FILE}" -nln import -overwrite
-  # If an error like this appear:
-  # ERROR:  column "name:xx-XX" specified more than once
-  # It means two of the objects of the country has a name for the same
-  # language, but with different case. The current solution is to open
-  # the JSON file, look for the language, and modify the parts to have the
-  # same case. Or modify the objects in OSM.
-
-  STATEMENT="SELECT COUNT(1) FROM countries
-    WHERE country_id = ${ID}"
-  COUNTRY_QTY=$(echo "${STATEMENT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1)
-  if [[ "${COUNTRY_QTY}" -eq 0 ]]; then
-   __logi "Inserting into final table."
-   if [[ "${ID}" -ne 16239 ]]; then
-    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-      country_name_en, geom)
-      SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
-       ST_Union(ST_makeValid(wkb_geometry))
-      FROM import
-      GROUP BY 1"
-   else # This case is for Austria.
-    # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
-    # Self-intersection at or near point 10.454439900000001 47.555796399999998
-    # at 10.454439900000001 47.555796399999998
-    STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-      country_name_en, geom)
-      SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
-       ST_Union(ST_Buffer(wkb_geometry, 0.0))
-      FROM import
-      GROUP BY 1"
-   fi
-  elif [[ "${COUNTRY_QTY}" -eq 1 ]]; then
-   if [[ "${ID}" -ne 16239 ]]; then
-    STATEMENT="UPDATE countries AS c
-     SET country_name = '${NAME}', country_name_es = '${NAME_ES}',
-     country_name_en = '${NAME_EN}',
-     geom = (
-      SELECT geom FROM (
-       SELECT ${ID}, ST_Union(ST_makeValid(wkb_geometry)) geom
-       FROM import GROUP BY 1
-      ) AS t
-     ),
-     updated = true
-     WHERE country_id = ${ID}"
-   else # This case is for Austria.
-    # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
-    # Self-intersection at or near point 10.454439900000001 47.555796399999998
-    # at 10.454439900000001 47.555796399999998
-    STATEMENT="UPDATE countries AS c
-     SET country_name = '${NAME}', country_name_es = '${NAME_ES}',
-     country_name_en = '${NAME_EN}',
-     geom = (
-      SELECT geom FROM (
-       SELECT ${ID}, ST_Union(ST_Buffer(wkb_geometry, 0.0))
-       FROM import GROUP BY 1
-      ) AS t
-     ),
-     updated = true
-     FROM import AS i
-     WHERE country_id = ${ID}"
-   fi
+ __logi "Importing into Postgres."
+ set +e
+ mkdir "${LOCK_OGR2OGR}" 2> /dev/null
+ RET="${?}"
+ set -e
+ while [[ "${RET}" -ne 0 ]]; do
+  __logd "${PROCESS} waiting for the lock. Current owner $(cat ${LOCK_OGR2OGR}/pid)."
+  sleep 1
+  set +e
+  mkdir "${LOCK_OGR2OGR}" 2> /dev/null
+  RET="${?}"
+  set -e
+ done
+ echo "${PROCESS}" > ${LOCK_OGR2OGR}/pid
+ __logi "I took the lock ${PROCESS} - ${ID}."
+ ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
+  "${GEOJSON_FILE}" -nln import -overwrite
+ # If an error like this appear:
+ # ERROR:  column "name:xx-XX" specified more than once
+ # It means two of the objects of the country has a name for the same
+ # language, but with different case. The current solution is to open
+ # the JSON file, look for the language, and modify the parts to have the
+ # same case. Or modify the objects in OSM.
+ STATEMENT="SELECT COUNT(1) FROM countries
+   WHERE country_id = ${ID}"
+ COUNTRY_QTY=$(echo "${STATEMENT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1)
+ if [[ "${COUNTRY_QTY}" -eq 0 ]]; then
+  __logi "Inserting into final table."
+  if [[ "${ID}" -ne 16239 ]]; then
+   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
+     country_name_en, geom)
+     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
+      ST_Union(ST_makeValid(wkb_geometry))
+     FROM import
+     GROUP BY 1"
+  else # This case is for Austria.
+   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
+   # Self-intersection at or near point 10.454439900000001 47.555796399999998
+   # at 10.454439900000001 47.555796399999998
+   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
+     country_name_en, geom)
+     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
+      ST_Union(ST_Buffer(wkb_geometry, 0.0))
+     FROM import
+     GROUP BY 1"
   fi
-  __logd "${STATEMENT}"
-  echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-  rm "${LOCK_OGR2OGR}"
-  unset NAME
-  unset NAME_ES
-  unset NAME_EN
+ elif [[ "${COUNTRY_QTY}" -eq 1 ]]; then
+  if [[ "${ID}" -ne 16239 ]]; then
+   STATEMENT="UPDATE countries AS c
+    SET country_name = '${NAME}', country_name_es = '${NAME_ES}',
+    country_name_en = '${NAME_EN}',
+    geom = (
+     SELECT geom FROM (
+      SELECT ${ID}, ST_Union(ST_makeValid(wkb_geometry)) geom
+      FROM import GROUP BY 1
+     ) AS t
+    ),
+    updated = true
+    WHERE country_id = ${ID}"
+  else # This case is for Austria.
+   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
+   # Self-intersection at or near point 10.454439900000001 47.555796399999998
+   # at 10.454439900000001 47.555796399999998
+   STATEMENT="UPDATE countries AS c
+    SET country_name = '${NAME}', country_name_es = '${NAME_ES}',
+    country_name_en = '${NAME_EN}',
+    geom = (
+     SELECT geom FROM (
+      SELECT ${ID}, ST_Union(ST_Buffer(wkb_geometry, 0.0))
+      FROM import GROUP BY 1
+     ) AS t
+    ),
+    updated = true
+    FROM import AS i
+    WHERE country_id = ${ID}"
+  fi
+ fi
+ __logt "${STATEMENT}"
+ echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ unset NAME
+ unset NAME_ES
+ unset NAME_EN
+
+ __logi "I release the lock ${PROCESS} - ${ID}."
+ rm -Rf "${LOCK_OGR2OGR}/"
  __log_finish
 }
 
@@ -579,7 +588,7 @@ function __processList {
   ID=$(echo "${LINE}" | awk '{print $1}')
   JSON_FILE="${TMP_DIR}/${ID}.json"
   GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "ID: ${ID}"
+  __logi "ID: ${ID}."
   cat << EOF > "${QUERY_FILE}"
    [out:json];
    rel(${ID});
@@ -590,7 +599,7 @@ EOF
   __processBoundary "${ID}"
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-   rm -f "${JSON_FILE}" "${GEOJSON_FILE}"
+   rm -f "${JSON_FILE}" "${GEOJSON_FILE}" "${QUERY_FILE}" 
   else
    mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old"
    mv "${GEOJSON_FILE}" "${TMP_DIR}/${ID}.geojson.old"
@@ -650,40 +659,49 @@ function __processCountries {
 
  # Processes the countries in parallel.
  MAX_THREADS=$(nproc)
- # Uses n-1 cores, if number of cores is greater than 1.
- # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
- elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- fi
 
  TOTAL_LINES=$(wc -l < "${COUNTRIES_FILE}")
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  split -l"${SIZE}" "${COUNTRIES_FILE}" "${TMP_DIR}/part_country_"
- rm -f "${LOCK_OGR2OGR}"
+ rm -f "${LOCK_OGR2OGR}/"
+ __logw "Starting parallel process to process country boundaries..."
  for I in $(ls -1 "${TMP_DIR}"/part_country_??) ; do
   (
-   __logi "Starting list ${I} - ${BASHPID}"
+   __logi "Starting list ${I} - ${BASHPID}."
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
-   __logi "Finished list ${I} - ${BASHPID}"
+   __logi "Finished list ${I} - ${BASHPID}."
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${BASHPID}"
    else
-    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/old.${BASHPID}"
+    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"
    fi
   ) &
   sleep 5
  done
 
- wait
+ FAIL=0
+ for job in $(jobs -p); do
+  echo "${job}"
+  set +e
+  wait "${job}"
+  RET="${?}"
+  set -e
+  if [[ "${RET}" -ne 0 ]]; then
+   let "FAIL+=1"
+  fi
+ done
+ __logw "Waited for all jobs, restarting in main thread."
+ if [ "${FAIL}" != "0" ]; then
+  echo "FAIL! (${FAIL})"
+  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+ fi
 
  # If some of the threads generated an error.
  if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\."| wc -l) -ne 0 ]]; then
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
- rm -f "${LOCK_OGR2OGR}"
+ rm -f "${LOCK_OGR2OGR}/"
  __log_finish
 }
 
@@ -709,42 +727,49 @@ function __processMaritimes {
 
  # Processes the maritimes in parallel.
  MAX_THREADS=$(nproc)
- # Uses n-1 cores, if number of cores is greater than 1.
- # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
- elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
- fi
 
  TOTAL_LINES=$(wc -l < "${MARITIMES_FILE}")
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  split -l"${SIZE}" "${MARITIMES_FILE}" "${TMP_DIR}/part_maritime_"
- rm -f "${LOCK_OGR2OGR}"
+ rm -f "${LOCK_OGR2OGR}/"
+ __logw "Starting parallel process to process maritime boundaries..."
  for I in $(ls -1 "${TMP_DIR}"/part_maritime_??) ; do
   (
-   __logi "Starting list ${I} - ${BASHPID}"
+   __logi "Starting list ${I} - ${BASHPID}."
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
-   __logi "Finished list ${I} - ${BASHPID}"
+   __logi "Finished list ${I} - ${BASHPID}."
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${BASHPID}"
    else
-    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/old.${BASHPID}"
+    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"
    fi
   ) &
   sleep 5
  done
 
- wait
+ FAIL=0
+ for job in $(jobs -p); do
+  echo "${job}"
+  set +e
+  wait "${job}"
+  RET="${?}"
+  set -e
+  if [[ "${RET}" -ne 0 ]]; then
+   let "FAIL+=1"
+  fi
+ done
+ __logw "Waited for all jobs, restarting in main thread."
+ if [ "${FAIL}" != "0" ]; then
+  echo "FAIL! (${FAIL})"
+  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+ fi
 
  # If some of the threads generated an error.
  if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\."| wc -l) -ne 0 ]]; then
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
- rm -f "${LOCK_OGR2OGR}"
-
- #TODO echo "DROP TABLE osm_relations_boundaries" | psql -d "${DBNAME}"
+ rm -f "${LOCK_OGR2OGR}/"
 
  __logi "Calculating statistics on countries."
  echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
@@ -754,15 +779,20 @@ function __processMaritimes {
 # Gets the area of each note.
 function __getLocationNotes {
  __log_start
- rm -f "${CSV_BACKUP_NOTE_LOCATION}"
- unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
- chmod 666 "${CSV_BACKUP_NOTE_LOCATION}"
+ __logd "Testing if notes should be updated."
+ if [[  "${UPDATE_NOTE_LOCATION}" = false ]]; then
+  __logi "Extracting notes backup."
+  rm -f "${CSV_BACKUP_NOTE_LOCATION}"
+  unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
+  chmod 666 "${CSV_BACKUP_NOTE_LOCATION}"
 
- export CSV_BACKUP_NOTE_LOCATION
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
-   < "${POSTGRES_UPLOAD_NOTE_LOCATION}" || true)"
+  __logi "Importing notes location."
+  export CSV_BACKUP_NOTE_LOCATION
+  # shellcheck disable=SC2016
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
+    < "${POSTGRES_UPLOAD_NOTE_LOCATION}" || true)"
+ fi
 
  MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT MAX(note_id) FROM notes")
@@ -772,13 +802,12 @@ function __getLocationNotes {
  MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
- if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
- elif [[ "${MAX_THREADS}" -gt 1 ]]; then
+ if [[ "${MAX_THREADS}" -gt 1 ]]; then
   MAX_THREADS=$((MAX_THREADS-1))
  fi
 
  declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
+ __logw "Starting parallel process to locate notes..."
  for J in $(seq 1 1 "${MAX_THREADS}"); do
   (
    __logi "Starting ${J}."
@@ -788,17 +817,34 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    # Validates the uploaded location.
-    STMT="UPDATE notes AS n
-      SET id_country = NULL
-      FROM countries AS c
-      WHERE n.id_country = c.country_id
-      AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude),
-       4326))
+    __logd "Number of notes without country - before."
+    STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
+      FROM notes 
+      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+      AND id_country IS NULL"
+    echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
+    if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
+     __logd "Updating incorrectly located notes."
+     STMT="UPDATE notes AS n
+     SET id_country = NULL
+     FROM countries AS c
+     WHERE n.id_country = c.country_id
+     AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude),
+      4326))
       AND ${MIN_LOOP} <= n.note_id AND n.note_id <= ${MAX_LOOP}
       AND id_country IS NOT NULL"
-    #__logd "${STMT}"
-    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+     __logt "${STMT}"
+     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    fi
+
+    __logd "New number of notes without country - after."
+    STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
+      FROM notes 
+      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+      AND id_country IS NULL"
+    echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
+    # Validates the uploaded location.
+    __logd "Assigning country to notes."
     STMT="UPDATE notes
       SET id_country = get_country(longitude, latitude, note_id)
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -809,6 +855,8 @@ function __getLocationNotes {
   ) &
  done
  wait
+  __logw "Waited for all jobs, restarting in main thread."
+
  echo "UPDATE notes
    SET id_country = get_country(longitude, latitude, note_id)
    WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
