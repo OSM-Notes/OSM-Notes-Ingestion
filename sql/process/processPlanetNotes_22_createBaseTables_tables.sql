@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-02-16
-  
+
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL,
  username VARCHAR(256) NOT NULL
@@ -26,7 +26,7 @@ COMMENT ON COLUMN notes.note_id IS 'OSM note id';
 COMMENT ON COLUMN notes.latitude IS 'Latitude';
 COMMENT ON COLUMN notes.longitude IS 'Longitude';
 COMMENT ON COLUMN notes.created_at IS 'Timestamp of the creation of the note';
-COMMENT ON COLUMN notes.status IS 
+COMMENT ON COLUMN notes.status IS
   'Current status of the note (opened, closed; hidden is not possible)';
 COMMENT ON COLUMN notes.closed_at IS 'Timestamp when the note was closed';
 COMMENT ON COLUMN notes.id_country IS 'Country id where the note is located';
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS note_comments_text (
  note_id INTEGER NOT NULL,
  sequence_action INTEGER,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
- body TEXT 
+ body TEXT
 );
 COMMENT ON TABLE note_comments_text IS
   'Stores all text associated with comment notes';
@@ -128,7 +128,7 @@ CREATE OR REPLACE PROCEDURE remove_lock (
  AS $proc$
  DECLARE
   m_qty SMALLINT;
-  m_current_id SMALLINT;
+  m_current_id INTEGER;
  BEGIN
   SELECT count(1)
    INTO m_qty

@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
-  
+
 DROP FUNCTION IF EXISTS get_country;
 DROP PROCEDURE IF EXISTS insert_note_comment;
 DROP PROCEDURE IF EXISTS insert_note;

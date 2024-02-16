@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-11
-  
+
 CREATE TABLE notes_api (
  note_id INTEGER NOT NULL,
  latitude DECIMAL NOT NULL,
@@ -18,7 +18,7 @@ COMMENT ON COLUMN notes_api.latitude IS 'Latitude';
 COMMENT ON COLUMN notes_api.longitude IS 'Longitude';
 COMMENT ON COLUMN notes_api.created_at IS
   'Timestamp of the creation of the note';
-COMMENT ON COLUMN notes_api.status IS 
+COMMENT ON COLUMN notes_api.status IS
   'Current status of the note (opened, closed; hidden is not possible)';
 COMMENT ON COLUMN notes_api.closed_at IS 'Timestamp when the note was closed';
 COMMENT ON COLUMN notes_api.id_country IS
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS note_comments_text_api (
  note_id INTEGER NOT NULL,
  sequence_action INTEGER,
  processing_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
- body TEXT 
+ body TEXT
 );
 COMMENT ON TABLE note_comments_text_api IS
   'Stores all text associated with comment notes';

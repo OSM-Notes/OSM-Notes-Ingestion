@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-12-08
-  
+
 TRUNCATE TABLE notes_sync;
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
  'Uploading sync notes' AS Text;

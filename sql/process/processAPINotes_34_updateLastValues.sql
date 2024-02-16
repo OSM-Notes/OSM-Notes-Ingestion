@@ -4,7 +4,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-12-08
-  
+
 SELECT /* Notes-processAPI */ timestamp
 FROM max_note_timestamp;
 DO /* Notes-proessAPI-updateLastValues */

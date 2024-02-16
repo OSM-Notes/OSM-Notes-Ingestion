@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-11
-  
+
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
  'Loading notes from API' AS Text;
 COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status)

@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-29
-  
+
 ALTER TABLE users
  ADD CONSTRAINT pk_users
  PRIMARY KEY (user_id);

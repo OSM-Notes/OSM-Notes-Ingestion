@@ -2,7 +2,7 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2023-10-25
-  
+
 CREATE TABLE countries (
  country_id INTEGER NOT NULL,
  country_name VARCHAR(100) NOT NULL,
