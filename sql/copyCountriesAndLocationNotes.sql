@@ -1,5 +1,5 @@
 -- When running the whole planet process, it could fail to assign the new notes
--- location, or if the process is interrupted it should be started from the 
+-- location, or if the process is interrupted it should be started from the
 -- beginning. If there is a copy of the locations ids of a previous execution,
 -- one can reuse these locations after recreating the tables.
 --
