@@ -393,8 +393,14 @@ function __loadApiNotes {
 function __insertNewNotesAndComments {
  __log_start
  echo "CALL put_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f \
-  "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}"
+
+ PROCESS_ID="${$}"
+ export PROCESS_ID
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" \
+  || true)"
+
  echo "CALL remove_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
 }

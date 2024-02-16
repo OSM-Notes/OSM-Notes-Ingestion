@@ -109,8 +109,8 @@
 #
 # Details of the iteration.
 # select t.*, country_name_en
-# from tries t 
-# join countries c 
+# from tries t
+# join countries c
 # on (t.id_country = c.country_id)
 # where iter = 121;
 #
@@ -557,9 +557,16 @@ function __loadSyncNotes {
 function __removeDuplicates {
  __log_start
  echo "CALL put_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_42_REMOVE_DUPLICATES}"
+
+ PROCESS_ID="${$}"
+ export PROCESS_ID
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_42_REMOVE_DUPLICATES}" || true)"
+
  echo "CALL remove_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
+
  psql -d "${DBNAME}" -f "${POSTGRES_43_COMMENTS_SEQUENCE}"
  __log_finish
 }
