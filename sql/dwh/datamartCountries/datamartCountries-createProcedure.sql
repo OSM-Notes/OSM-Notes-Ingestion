@@ -357,7 +357,7 @@ AS $proc$
    FROM dwh.datamartCountries
    WHERE dimension_country_id = m_dimension_id_country;
   IF (qty = 0) THEN
-   --RAISE NOTICE 'Inserting country';
+   --RAISE NOTICE 'Inserting country.';
    CALL dwh.insert_datamart_country(m_dimension_id_country);
   END IF;
 

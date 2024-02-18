@@ -22,7 +22,7 @@ BEGIN
   INTO max_date
  FROM dwh.max_date_users_processed;
  IF (max_date < CURRENT_DATE) THEN
-  RAISE NOTICE 'Moving activites';
+  RAISE NOTICE 'Moving activites.';
   -- Updates all users, moving a day.
   UPDATE dwh.datamartUsers
    SET last_year_activity = dwh.move_day(last_year_activity);
@@ -48,7 +48,7 @@ BEGIN
   ORDER BY MAX(f.action_at) DESC -- TODO quitar?
   LIMIT 500
  LOOP
-  RAISE NOTICE 'Processing user %', r.dimension_user_id;
+  RAISE NOTICE 'Processing user %.', r.dimension_user_id;
   CALL dwh.update_datamart_user(r.dimension_user_id);
 
   UPDATE dwh.dimension_users

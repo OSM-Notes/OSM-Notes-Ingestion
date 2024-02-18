@@ -16,7 +16,7 @@
    AND TABLE_NAME = 'datamartcountries'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: datamartCountries';
+    RAISE EXCEPTION 'Base tables are missing: datamartCountries.';
    END IF;
   END;
   $$;

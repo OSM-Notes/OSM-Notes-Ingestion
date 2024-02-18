@@ -45,7 +45,7 @@ CREATE OR REPLACE FUNCTION staging.get_hashtag_id (
   m_id_dimension_hashtag INTEGER;
   r RECORD;
  BEGIN
-  --RAISE NOTICE 'Requesting id for hashtag: %', m_hashtag_name;
+  --RAISE NOTICE 'Requesting id for hashtag: %.', m_hashtag_name;
   IF (m_hashtag_name IS NULL) THEN
    m_id_dimension_hashtag := 1;
   ELSE
@@ -85,15 +85,15 @@ CREATE OR REPLACE PROCEDURE staging.get_hashtag (
  BEGIN
   pos := STRPOS(m_text_comment, '#');
   IF (pos <> 0) THEN
-   --RAISE NOTICE 'Position number sign: %', pos;
+   --RAISE NOTICE 'Position number sign: %.', pos;
    substr_after := SUBSTR(m_text_comment, pos+1);
-   --RAISE NOTICE 'Substring after number sign: %', substr_after;
+   --RAISE NOTICE 'Substring after number sign: %.', substr_after;
    m_hashtag_name := ARRAY_TO_STRING(REGEXP_MATCHES(substr_after, '^\w+'), ';');
-   --RAISE NOTICE 'Hashtag name: %', m_hashtag_name;
+   --RAISE NOTICE 'Hashtag name: %.', m_hashtag_name;
    length := LENGTH(m_hashtag_name);
-   --RAISE NOTICE 'Length hashtag name: %', length;
+   --RAISE NOTICE 'Length hashtag name: %.', length;
    m_text_comment := SUBSTR(substr_after, length+2);
-   --RAISE NOTICE 'New substring: %', m_text_comment;
+   --RAISE NOTICE 'New substring: %.', m_text_comment;
   ELSE
    m_text_comment := NULL;
   END IF;
@@ -158,7 +158,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    INTO m_count
   FROM dwh.facts;
 
-  --RAISE NOTICE 'Processing at %', max_processed_timestamp;
+  --RAISE NOTICE 'Processing at %.', max_processed_timestamp;
 
   OPEN notes_on_day(max_processed_timestamp);
 
@@ -243,11 +243,11 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    -- Gets hashtags.
    IF (rec_note_action.body LIKE '%#%') THEN
     m_text_comment := rec_note_action.body;
-    --RAISE NOTICE 'Requesting id for hashtag: %', m_hashtag_name;
+    --RAISE NOTICE 'Requesting id for hashtag: %.', m_hashtag_name;
     CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
     m_hashtag_id_1 := staging.get_hashtag_id(m_hashtag_name);
     m_hashtag_number := 1;
-    --RAISE NOTICE 'hashtag: %: %', m_hashtag_id_1, m_hashtag_name;
+    --RAISE NOTICE 'hashtag: %: %.', m_hashtag_id_1, m_hashtag_name;
     IF (m_text_comment LIKE '%#%') THEN
      CALL staging.get_hashtag(m_text_comment, m_hashtag_name);
      m_hashtag_id_2 := staging.get_hashtag_id(m_hashtag_name);
@@ -334,7 +334,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     INTO m_count
    FROM dwh.facts;
    IF (MOD(m_count, 1000) = 0) THEN
-    RAISE NOTICE '%: % processed facts until %', CURRENT_TIMESTAMP, m_count,
+    RAISE NOTICE '%: % processed facts until %.', CURRENT_TIMESTAMP, m_count,
      max_processed_timestamp;
    END IF;
 
@@ -366,7 +366,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
    INTO qty_dwh_notes
   FROM dwh.facts;
   IF (qty_dwh_notes = 0) THEN
-   RAISE NOTICE '0 facts, processing all history. It could take several hours';
+   RAISE NOTICE '0 facts, processing all history. It could take several hours.';
    CALL staging.process_notes_at_date('2013-04-24 00:00:00.000000+00');
   END IF;
 
@@ -375,7 +375,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   SELECT /* Notes-staging */ MAX(DATE(created_at))
    INTO max_note_action_date
   FROM note_comments;
-  --RAISE NOTICE 'recursive case %', max_note_action_date;
+  --RAISE NOTICE 'recursive case %.', max_note_action_date;
 
   -- Gets the date of the most recent note processed on the DWH.
   SELECT /* Notes-staging */ MAX(date_id)
@@ -383,7 +383,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   FROM dwh.facts f
    JOIN dwh.dimension_days d
    ON (f.action_dimension_id_date = d.dimension_day_id);
-  --RAISE NOTICE 'get max processed date from facts %', max_processed_date;
+  --RAISE NOTICE 'get max processed date from facts %.', max_processed_date;
 
   IF (max_note_action_date < max_processed_date) THEN
    RAISE EXCEPTION 'DWH has more recent notes than received on base tables.';
@@ -392,14 +392,14 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   -- Processes notes while the max note received is equal to the most recent
   -- note processed.
   WHILE (max_processed_date <= max_note_action_date) LOOP
-   --RAISE NOTICE 'test % < %', max_processed_date, max_note_action_date;
+   --RAISE NOTICE 'test % < %.', max_processed_date, max_note_action_date;
    -- Timestamp of the max processed note on DWH.
    -- It is on the same DATE of max_processed_date.
    SELECT /* Notes-staging */ MAX(action_at)
     INTO max_note_on_dwh_timestamp
    FROM dwh.facts
    WHERE DATE(action_at) = max_processed_date;
-   --RAISE NOTICE 'max timestamp dwh %', max_note_on_dwh_timestamp;
+   --RAISE NOTICE 'max timestamp dwh %.', max_note_on_dwh_timestamp;
    IF (max_note_on_dwh_timestamp IS NULL) THEN
     max_note_on_dwh_timestamp := max_processed_date::TIMESTAMP;
    END IF;
@@ -411,13 +411,13 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
    FROM note_comments
    WHERE DATE(created_at) = max_processed_date
     AND created_at > max_note_on_dwh_timestamp;
-   --RAISE NOTICE 'count notes to process on date %: %', max_processed_date,
+   --RAISE NOTICE 'count notes to process on date %: %.', max_processed_date,
    -- qty_notes_on_date;
 
    -- If there are 0 notes to process, then increase one day.
    IF (qty_notes_on_date = 0) THEN
     max_processed_date := max_processed_date + 1;
-    --RAISE NOTICE 'Increasing 1 day, processing facts for %',
+    --RAISE NOTICE 'Increasing 1 day, processing facts for %.',
     -- max_processed_date;
 
     SELECT /* Notes-staging */ COUNT(1)
@@ -425,22 +425,23 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
     FROM note_comments
     WHERE DATE(created_at) = max_processed_date
      AND created_at > max_note_on_dwh_timestamp;
-    --RAISE NOTICE 'Notes to process for %: %', max_processed_date,
+    --RAISE NOTICE 'Notes to process for %: %.', max_processed_date,
     -- qty_notes_on_date;
 
     CALL staging.process_notes_at_date(max_note_on_dwh_timestamp);
    ELSE
     -- There are comments not processed on the DHW for the currently processing
     -- day.
-    --RAISE NOTICE 'Processing facts for %: %', max_processed_date,
+    --RAISE NOTICE 'Processing facts for %: %.', max_processed_date,
     -- qty_notes_on_date;
 
     CALL staging.process_notes_at_date(max_note_on_dwh_timestamp);
    END IF;
-   --RAISE NOTICE 'loop % - % - %', max_processed_date,
+   --RAISE NOTICE 'loop % - % - %.', max_processed_date,
    -- max_note_on_dwh_timestamp, qty_notes_on_date;
   END LOOP;
-  --RAISE NOTICE 'No facts to process (% !> %)', max_processed_date, max_note_action_date;
+  --RAISE NOTICE 'No facts to process (% !> %).', max_processed_date,
+  -- max_note_action_date;
  END
 $proc$
 ;

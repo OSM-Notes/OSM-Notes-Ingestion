@@ -72,7 +72,7 @@ BEGIN
      m_date := '2013-07-' || m_day || ' ' || m_hour || ':00:00.00000+00';
     END IF;
    END IF;
-   PERFORM dwh.get_hour_of_week_id(m_date::timestamp);
+   PERFORM dwh.get_hour_of_week_id(m_date::TIMESTAMP);
    m_hour := m_hour + 1;
   END LOOP;
   m_day := m_day + 1;

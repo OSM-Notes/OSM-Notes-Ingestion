@@ -17,7 +17,7 @@
    AND TABLE_NAME = 'facts'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.facts';
+    RAISE EXCEPTION 'Tables are missing: dwh.facts.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -28,7 +28,7 @@
    AND TABLE_NAME = 'dimension_users'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_users';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_users.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -39,7 +39,7 @@
    AND TABLE_NAME = 'dimension_regions'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_regions';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_regions.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -50,7 +50,7 @@
    AND TABLE_NAME = 'dimension_countries'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_countries';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_countries.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -61,7 +61,7 @@
    AND TABLE_NAME = 'dimension_days'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_days';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_days.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -72,7 +72,7 @@
    AND TABLE_NAME = 'dimension_hours_of_week'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_hours_of_week';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_hours_of_week.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -83,7 +83,7 @@
    AND TABLE_NAME = 'dimension_applications'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_applications';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_applications.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -94,7 +94,7 @@
    AND TABLE_NAME = 'dimension_hashtags'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_hashtags';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_hashtags.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)
@@ -105,7 +105,7 @@
    AND TABLE_NAME = 'properties'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.properties';
+    RAISE EXCEPTION 'Tables are missing: dwh.properties.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(1)
@@ -115,7 +115,7 @@
    AND value = 'true'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Previous initial load was not complete correctly';
+    RAISE EXCEPTION 'Previous initial load was not complete correctly.';
    END IF;
   END;
   $$;

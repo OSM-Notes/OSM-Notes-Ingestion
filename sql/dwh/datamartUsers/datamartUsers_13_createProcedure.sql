@@ -77,7 +77,7 @@ AS $proc$
 
   -- Creates the activity array.
   m_last_year_activity := '0';
-  --RAISE NOTICE 'Activity array %', m_last_year_activity;
+  --RAISE NOTICE 'Activity array %.', m_last_year_activity;
   -- Create the last year activity
   FOR r IN
    SELECT /* Notes-datamartUsers */ t.date_id, qty
@@ -101,7 +101,7 @@ AS $proc$
    m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
      (dwh.get_score_user_activity(r.qty::INTEGER)));
   END LOOP;
-  --RAISE NOTICE 'Activity array %', m_last_year_activity;
+  --RAISE NOTICE 'Activity array %.', m_last_year_activity;
 
   INSERT INTO dwh.datamartUsers (
    dimension_user_id,
@@ -395,7 +395,7 @@ COMMENT ON PROCEDURE dwh.update_datamart_user_activity_year IS
   ELSE
    m_cointributor_id := 1; -- Normal noter.
    -- It should never return this.
-   RAISE NOTICE 'Unkown contributor type %', m_dimension_user_id;
+   RAISE NOTICE 'Unkown contributor type %.', m_dimension_user_id;
   END IF;
   RETURN m_cointributor_id;
  END;
@@ -468,7 +468,7 @@ AS $proc$
   WHERE dimension_user_id = m_dimension_user_id;
   -- Checks if the user is already in the datamart.
   IF (qty = 0) THEN
-   --RAISE NOTICE 'Inserting user in the datamart - %', CLOCK_TIMESTAMP();
+   --RAISE NOTICE 'Inserting user in the datamart - %.', CLOCK_TIMESTAMP();
    CALL dwh.insert_datamart_user(m_dimension_user_id);
   END IF;
 
@@ -492,7 +492,7 @@ AS $proc$
   AND d.date_id = CURRENT_DATE;
   m_last_year_activity := dwh.refresh_today_activities(m_last_year_activity,
     dwh.get_score_user_activity(m_todays_activity));
-  --RAISE NOTICE 'Activity array %', m_last_year_activity;
+  --RAISE NOTICE 'Activity array %.', m_last_year_activity;
 
   -- lastest_open_note_id
   SELECT /* Notes-datamartUsers */ MAX(id_note)
@@ -995,7 +995,7 @@ AS $proc$
    m_year := m_year + 1;
  END LOOP;
  --m_end_time := CLOCK_TIMESTAMP();
- --RAISE NOTICE 'Duration  %', m_end_time - m_start_time;
+ --RAISE NOTICE 'Duration  %.', m_end_time - m_start_time;
 END
 $proc$;
 COMMENT ON PROCEDURE dwh.update_datamart_user IS

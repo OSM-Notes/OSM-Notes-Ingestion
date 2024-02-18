@@ -58,7 +58,7 @@ DO /* Notes-ETL */
     UPDATE dwh.facts
      SET recent_opened_dimension_id_date = m_recent_opened_dimension_id_date
      WHERE CURRENT OF no_recent_open;
-    --RAISE NOTICE 'Updating id_note % with fact_id % data %',
+    --RAISE NOTICE 'Updating id_note % with fact_id % data %.',
     -- rec_no_recent_open_fact.id_note, m_previous_action_fact_id,
     -- m_recent_opened_dimension_id_date;
    END LOOP;

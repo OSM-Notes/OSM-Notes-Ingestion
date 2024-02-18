@@ -13,7 +13,7 @@ BEGIN
   INTO max_date
  FROM dwh.max_date_countries_processed;
  IF (max_date < CURRENT_DATE) THEN
-  RAISE NOTICE 'Moving activites';
+  RAISE NOTICE 'Moving activites.';
   -- Updates all countries, moving a day.
   UPDATE dwh.datamartCountries
    SET last_year_activity = dwh.move_day(last_year_activity);
@@ -32,7 +32,7 @@ BEGIN
   GROUP BY f.dimension_id_country
   ORDER BY MAX(f.action_at) DESC
  LOOP
-  RAISE NOTICE 'Processing country %', r.dimension_id_country;
+  RAISE NOTICE 'Processing country %.', r.dimension_id_country;
   CALL dwh.update_datamart_country(r.dimension_id_country);
 
   UPDATE dwh.dimension_countries

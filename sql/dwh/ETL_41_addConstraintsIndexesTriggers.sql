@@ -226,11 +226,11 @@ CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()
     ON f.action_dimension_id_date = d.dimension_day_id
     WHERE id_note = NEW.id_note
     AND action_comment = 'reopened';
-   --RAISE NOTICE 'Reopen date: %', m_reopen_date;
+   --RAISE NOTICE 'Reopen date: %.', m_reopen_date;
    IF (m_reopen_date IS NOT NULL) THEN
     -- Days from the last reopen.
     m_days := m_close_date - m_reopen_date;
-    --RAISE NOTICE 'Difference dates %-%: %', m_close_date, m_reopen_date, m_days;
+    --RAISE NOTICE 'Difference dates %-%: %.', m_close_date, m_reopen_date, m_days;
     UPDATE dwh.facts
      SET days_to_resolution_from_reopen = m_days
      WHERE fact_id = NEW.fact_id;

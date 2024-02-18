@@ -16,7 +16,7 @@
    AND TABLE_NAME = 'datamartusers'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: datamartUsers';
+    RAISE EXCEPTION 'Base tables are missing: datamartUsers.';
    END IF;
 
    SELECT /* Notes-datamartUsers */ COUNT(TABLE_NAME)
@@ -27,7 +27,7 @@
    AND TABLE_NAME = 'badges'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: badges';
+    RAISE EXCEPTION 'Base tables are missing: badges.';
    END IF;
 
    SELECT /* Notes-datamartUsers */ COUNT(TABLE_NAME)
@@ -38,7 +38,7 @@
    AND TABLE_NAME = 'badges_per_users'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: badges_per_users';
+    RAISE EXCEPTION 'Base tables are missing: badges_per_users.';
    END IF;
 
    SELECT /* Notes-datamartUsers */ COUNT(TABLE_NAME)
@@ -49,7 +49,7 @@
    AND TABLE_NAME = 'contributor_types'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: contributor_types';
+    RAISE EXCEPTION 'Base tables are missing: contributor_types.';
    END IF;
   END;
   $$;

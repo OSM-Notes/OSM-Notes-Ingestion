@@ -12,7 +12,7 @@ DECLARE
  m_count INTEGER;
 BEGIN
  m_count := 1;
- RAISE NOTICE 'Started to process old users';
+ RAISE NOTICE 'Started to process old users.';
 
  -- Inserts the part of the date to reduce calling the function Extract.
  DELETE FROM dwh.properties WHERE key IN ('year', 'month', 'day');
@@ -39,7 +39,7 @@ BEGIN
    WHERE dimension_user_id = r.dimension_user_id;
 
   IF (MOD(m_count, 500) = 0) THEN
-   RAISE NOTICE '% processed users', m_count;
+   RAISE NOTICE '% processed users.', m_count;
   END IF;
 
   m_count := m_count + 1;
