@@ -26,7 +26,7 @@ DECLARE
    EXIT WHEN NOT FOUND;
 
    m_current_note_id := m_rec_note_comment_text.note_id;
-   --RAISE NOTICE 'Old Values %-%: %', m_previous_note_id, m_current_note_id,
+   --RAISE NOTICE 'Old Values %-%: %.', m_previous_note_id, m_current_note_id,
    -- m_sequence_value;
    IF (m_previous_note_id = m_current_note_id) THEN
     m_sequence_value := m_sequence_value + 1;
@@ -35,13 +35,13 @@ DECLARE
     m_previous_note_id := m_current_note_id;
    END IF;
 
-   --RAISE NOTICE 'New values %-%: %', m_previous_note_id, m_current_note_id,
+   --RAISE NOTICE 'New values %-%: %.', m_previous_note_id, m_current_note_id,
    -- m_sequence_value;
    UPDATE note_comments_text_api
     SET sequence_action = m_sequence_value
     WHERE CURRENT OF m_note_comments_text_api_cursor;
   END LOOP;
-  RAISE NOTICE 'End loop';
+  RAISE NOTICE 'End loop.';
 
   CLOSE m_note_comments_text_api_cursor;
 END

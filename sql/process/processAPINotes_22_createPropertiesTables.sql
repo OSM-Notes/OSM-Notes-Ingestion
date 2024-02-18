@@ -52,7 +52,7 @@ BEGIN
      SET timestamp = new_last_update;
   END IF;
  ELSE
-  RAISE EXCEPTION 'Notes are not yet on the database';
+  RAISE EXCEPTION 'Notes are not yet on the database.';
  END IF;
 END;
 $$;

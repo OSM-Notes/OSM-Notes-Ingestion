@@ -34,7 +34,7 @@ $$
    m_stmt := 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
      || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at
      || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
-   RAISE NOTICE 'Note % (%)', m_stmt, m_lastupdate;
+   RAISE NOTICE 'Note % (%).', m_stmt, m_lastupdate;
    EXECUTE m_stmt;
    INSERT INTO logs (message) VALUES ('Inserted');
   END LOOP;
@@ -95,7 +95,7 @@ $$
       || 'NULL, '
       || QUOTE_NULLABLE(r.username) || ', $PROCESS_ID' || ')';
    END IF;
-   RAISE NOTICE 'Comment % (%)', m_stmt, m_lastupdate;
+   RAISE NOTICE 'Comment % (%).', m_stmt, m_lastupdate;
    EXECUTE m_stmt;
    INSERT INTO logs (message) VALUES ('Inserted');
   END LOOP;
