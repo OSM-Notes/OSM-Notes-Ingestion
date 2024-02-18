@@ -1,11 +1,12 @@
 -- Drop base tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2024-02-17
 
 DROP FUNCTION IF EXISTS get_country;
 DROP PROCEDURE IF EXISTS insert_note_comment;
 DROP PROCEDURE IF EXISTS insert_note;
+DROP TABLE IF EXISTS properties;
 DROP TABLE IF EXISTS note_comments_check;
 DROP TABLE IF EXISTS notes_check;
 DROP TABLE IF EXISTS note_comments_text;
