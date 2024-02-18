@@ -119,7 +119,7 @@ INSERT INTO temp_diff_notes
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status,
    closed_at
   FROM notes
-  WHERE (closed_at IS NULL OR closed_at < now()::date)
+  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE)
  ) AS t
  ORDER BY note_id
 ;
@@ -169,7 +169,7 @@ INSERT INTO temp_diff_note_comments
   EXCEPT
   SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
   FROM note_comments
-  WHERE created_at < now()::date
+  WHERE created_at < NOW()::DATE
  ) AS t
  ORDER BY note_id, sequence_action
 ;
@@ -193,7 +193,7 @@ COPY
     SELECT /* Notes-check */ note_id
     FROM temp_diff_note_comments
    )
-   AND created_at < now()::date
+   AND created_at < NOW()::DATE
   ) AS T
   ORDER BY note_id, sequence_action, source
  )
