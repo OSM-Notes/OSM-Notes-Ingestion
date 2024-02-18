@@ -3,7 +3,7 @@
 -- is processed, the note will be updated to closed.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-17
+-- Version: 2024-02-18
 
 CREATE OR REPLACE PROCEDURE insert_note (
   m_note_id INTEGER,
@@ -25,8 +25,7 @@ AS $proc$
   FROM properties
   WHERE key = 'lock';
   IF (m_process_id_db IS NULL) THEN
-   RAISE EXCEPTION 'This call does not have a lock.',
-     m_process_id_db, m_process_id_bash;
+   RAISE EXCEPTION 'This call does not have a lock.';
   ELSIF (m_process_id_bash <> m_process_id_db) THEN
    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%).',
      m_process_id_db, m_process_id_bash;
@@ -38,7 +37,7 @@ AS $proc$
   WHERE note_id = m_note_id;
 
   IF (m_qty = 0) THEN
-   INSERT INTO logs (message) VALUES ('Inserting note: ' || m_note_id);
+   INSERT INTO logs (message) VALUES (m_note_id || ' - Inserting note.');
    m_id_country := get_country(m_longitude, m_latitude, m_note_id);
 
    INSERT INTO notes (
@@ -57,7 +56,7 @@ AS $proc$
     m_id_country
    ) ON CONFLICT DO NOTHING;
   ELSE
-   INSERT INTO logs (message) VALUES ('Note is already inserted: ' || m_note_id);
+   INSERT INTO logs (message) VALUES (m_note_id || 'Note is already inserted.');
    m_id_country := get_country(m_longitude, m_latitude, m_note_id);
   END IF;
  END
