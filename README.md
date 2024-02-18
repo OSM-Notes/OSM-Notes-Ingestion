@@ -401,7 +401,6 @@ This tool is not included, to prevent licensing problems.
 * Linux and its commands, because it is developed in Bash, which uses a lot
   of command line instructions.
 
-
 # Remove
 
 You can use the following script to remove components from this tool.

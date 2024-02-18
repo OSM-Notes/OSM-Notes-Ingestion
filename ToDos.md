@@ -109,7 +109,6 @@ ToDo list
 * Hacer un diagrama de componenetes, enfocado en el flujo de la información,
   dónde la volva y dónde la obtiene cada elemento.
 
-
 -- ANDRES, EJECUTA ESTO. MUESTRA CUÁNTOS USUARIOS SOLO HAN HECHO UNA CONTRIBUCIÓN
 -- INCLUSIVE SE PODRIA CONVERTIR PARA MOSTRAR LA TASA DE USUARIOS QUE POCO HACEN
 select count(1)
@@ -120,9 +119,6 @@ from (
  having count(1) = 1
 ) as t
 
-
-
 * revisar que BACKUP solo es para la descarga de paises. Ya que la ubicacion
 de notas es por defecto
-
 
