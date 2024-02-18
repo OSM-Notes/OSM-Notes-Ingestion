@@ -142,7 +142,6 @@ function __start_logger() {
   # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
   # shellcheck disable=SC2154
   __set_log_level "${LOG_LEVEL}"
-  __logd "Logger loaded."
  else
   printf "\nLogger was not found.\n"
  fi
