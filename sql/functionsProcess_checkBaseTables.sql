@@ -16,7 +16,7 @@
    AND TABLE_NAME = 'countries'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: countries';
+    RAISE EXCEPTION 'Base tables are missing: countries.';
    END IF;
 
    SELECT /* Notes-base */ COUNT(TABLE_NAME)
@@ -27,7 +27,7 @@
    AND TABLE_NAME = 'notes'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: notes';
+    RAISE EXCEPTION 'Base tables are missing: notes.';
    END IF;
 
    SELECT /* Notes-base */ COUNT(TABLE_NAME)
@@ -38,7 +38,7 @@
    AND TABLE_NAME = 'note_comments'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: note_comments';
+    RAISE EXCEPTION 'Base tables are missing: note_comments.';
    END IF;
 
    SELECT /* Notes-base */ COUNT(TABLE_NAME)
@@ -49,7 +49,7 @@
    AND TABLE_NAME = 'logs'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: logs';
+    RAISE EXCEPTION 'Base tables are missing: logs.';
    END IF;
 
    SELECT /* Notes-base */ COUNT(TABLE_NAME)
@@ -60,7 +60,7 @@
    AND TABLE_NAME = 'tries'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: tries';
+    RAISE EXCEPTION 'Base tables are missing: tries.';
    END IF;
   END;
   $$;
