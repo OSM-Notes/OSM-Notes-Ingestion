@@ -3,7 +3,6 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-08
 
-
 DO /* Notes-processApi-assignSequence-text */
 $$
 DECLARE
