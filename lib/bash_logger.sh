@@ -33,8 +33,6 @@ __bl_called_line_number=
 __bl_log_message=
 __bl_time_and_date=
 
-
-
 function __set_log_level() {
   if [ -z "$1" ]; then
     echo "No log level provided, setting to INFO log level"
@@ -147,7 +145,6 @@ function __logt() {
   fi
 }
 
-
 # DEBUG: designates fine-grained informational events that are most useful to debug an application.
 function __logd() {
   declare -A __bl_allowed_log_levels
@@ -173,7 +170,6 @@ function __logd() {
     fi
   fi
 }
-
 
 # INFO: designates informational messages that highlight the progress of the application at coarse-grained level.
 function __logi() {
@@ -226,7 +222,6 @@ function __logw() {
     fi
   fi
 }
-
 
 # ERROR: designates error events that might still allow the application to continue running.
 function __loge() {
@@ -285,7 +280,6 @@ function __loge() {
 
   fi
 }
-
 
 # FATAL: designates very severe error events that will presumably lead the application to abort.
 function __logf() {
