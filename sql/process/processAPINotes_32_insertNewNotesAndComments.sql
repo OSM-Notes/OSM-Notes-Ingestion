@@ -1,7 +1,7 @@
 -- Bulk notes and notes comments insertion.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-16
+-- Version: 2024-02-18
 
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
   COUNT(1) Qty, 'current notes - before' AS Text
@@ -27,16 +27,16 @@ $$
   LOOP
    m_closed_time := QUOTE_NULLABLE(r.closed_at);
 
-   INSERT INTO logs (message) VALUES ('Note:' || r.note_id || ',created:'
+   INSERT INTO logs (message) VALUES (r.note_id || ' - created:'
     || r.created_at || ',last:' || m_lastupdate || ',closed:'
-    || m_closed_time);
+    || m_closed_time || '.');
 
    m_stmt := 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
      || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at
      || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
    RAISE NOTICE 'Note % (%).', m_stmt, m_lastupdate;
    EXECUTE m_stmt;
-   INSERT INTO logs (message) VALUES ('Inserted');
+   INSERT INTO logs (message) VALUES (r.note_id || ' - Note inserted.');
   END LOOP;
   COMMIT;
  END;
@@ -73,10 +73,11 @@ $$
    ORDER BY created_at, sequence_action
   LOOP
    IF (r.created_at <= m_lastupdate) THEN
-    INSERT INTO logs (message) VALUES ('Comment:' || r.note_id || ',created:'
-     || r.created_at || ',last:' || m_lastupdate || ',event:' || r.event);
+    INSERT INTO logs (message) VALUES (r.note_id || ' - Comment - created:'
+     || r.created_at || ',last:' || m_lastupdate || ',event:' || r.event
+     || '.');
     -- Rejects all comments before the latest processed.
-    INSERT INTO logs (message) VALUES ('Skipped');
+    INSERT INTO logs (message) VALUES (r.note_id || ' - Comment skipped.');
     CONTINUE;
    END IF;
 
@@ -97,7 +98,8 @@ $$
    END IF;
    RAISE NOTICE 'Comment % (%).', m_stmt, m_lastupdate;
    EXECUTE m_stmt;
-   INSERT INTO logs (message) VALUES ('Inserted');
+   INSERT INTO logs (message) VALUES (r.note_id
+     || ' - Comment for note inserted.');
   END LOOP;
   COMMIT;
  END;
