@@ -3,7 +3,7 @@
 -- is processed, the note will be updated to closed.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-16
+-- Version: 2024-02-17
 
 CREATE OR REPLACE PROCEDURE insert_note (
   m_note_id INTEGER,
@@ -19,13 +19,17 @@ AS $proc$
   m_qty INTEGER;
   m_process_id_db INTEGER;
  BEGIN
+  -- Check the DB lock to validate it is from the same process.
   SELECT value
     INTO m_process_id_db
   FROM properties
   WHERE key = 'lock';
-  IF (m_process_id_bash = m_process_id_db) THEN
-    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%)',
-      m_process_id_db, m_process_id_bash;
+  IF (m_process_id_db IS NULL) THEN
+   RAISE EXCEPTION 'This call does not have a lock.',
+     m_process_id_db, m_process_id_bash;
+  ELSIF (m_process_id_bash <> m_process_id_db) THEN
+   RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%).',
+     m_process_id_db, m_process_id_bash;
   END IF;
 
   SELECT /* Notes-base */ COUNT(1)
