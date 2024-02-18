@@ -32,7 +32,6 @@ SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
  COUNT(1) AS Qty, 'Uploaded check comments' AS Text
 FROM note_comments_check;
 
-
 DO /* Notes-processPlanet-assignSequence */
 $$
 DECLARE
