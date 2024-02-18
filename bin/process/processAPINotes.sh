@@ -392,7 +392,7 @@ function __loadApiNotes {
 # Inserts new notes and comments into the database.
 function __insertNewNotesAndComments {
  __log_start
- echo "CALL put_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL put_lock(${$}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
  PROCESS_ID="${$}"
  export PROCESS_ID
@@ -401,7 +401,7 @@ function __insertNewNotesAndComments {
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" \
   || true)"
 
- echo "CALL remove_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL remove_lock(${$}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
 }
 
