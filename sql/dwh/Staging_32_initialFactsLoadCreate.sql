@@ -152,8 +152,6 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
 
   --RAISE NOTICE 'Processing at %.', max_processed_timestamp;
 
-
-
   OPEN notes_on_day FOR EXECUTE ('
    SELECT /* Notes-staging */
     c.note_id id_note, c.sequence_action sequence_action,

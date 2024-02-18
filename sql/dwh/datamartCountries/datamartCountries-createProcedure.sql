@@ -95,7 +95,6 @@ AS $proc$
     AND f.action_comment = 'reopened'
   );
 
-
   m_last_year_activity := '0';
   -- Create the last year activity
   FOR r IN

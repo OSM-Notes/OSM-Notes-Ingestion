@@ -3,7 +3,6 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-17
 
-
 DO /* Notes-datamartUsers-processOldUsers */
 $$
 DECLARE
