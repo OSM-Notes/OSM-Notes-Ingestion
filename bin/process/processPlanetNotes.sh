@@ -556,7 +556,7 @@ function __loadSyncNotes {
 # Removes notes and comments from the new set that are already in the database.
 function __removeDuplicates {
  __log_start
- echo "CALL put_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL put_lock('${$}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
  PROCESS_ID="${$}"
  export PROCESS_ID
@@ -564,7 +564,7 @@ function __removeDuplicates {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_42_REMOVE_DUPLICATES}" || true)"
 
- echo "CALL remove_lock(${$})" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL remove_lock('${$}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
 
  psql -d "${DBNAME}" -f "${POSTGRES_43_COMMENTS_SEQUENCE}"
