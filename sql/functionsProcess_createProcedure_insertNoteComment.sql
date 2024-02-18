@@ -1,7 +1,7 @@
 -- Procedure to insert a note comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-16
+-- Version: 2024-02-17
 
 CREATE OR REPLACE PROCEDURE insert_note_comment (
   m_note_id INTEGER,
@@ -21,8 +21,8 @@ AS $proc$
     INTO m_process_id_db
   FROM properties
   WHERE key = 'lock';
-  IF (m_process_id_bash = m_process_id_db) THEN
-    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%)',
+  IF (m_process_id_bash <> m_process_id_db) THEN
+    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%).',
       m_process_id_db, m_process_id_bash;
   END IF;
 
@@ -62,7 +62,7 @@ AS $proc$
     -- Invalid operation for an open note.
     INSERT INTO logs (message) VALUES ('Trying to reopen an opened note '
       || m_note_id || '-' || m_event);
-    RAISE EXCEPTION 'Trying to reopen an opened note: % - % %', m_note_id,
+    RAISE EXCEPTION 'Trying to reopen an opened note: % - % %.', m_note_id,
       m_status, m_event;
    END IF;
   ELSE
@@ -78,7 +78,7 @@ AS $proc$
     -- Invalid operation for a closed note.
     INSERT INTO logs (message) VALUES ('Trying to close a closed note '
       || m_note_id || '-' || m_event);
-    RAISE EXCEPTION 'Trying to close a closed note: % - % %', m_note_id,
+    RAISE EXCEPTION 'Trying to close a closed note: % - % %.', m_note_id,
       m_status, m_event;
    END IF;
   END IF;
