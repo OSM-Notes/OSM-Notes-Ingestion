@@ -88,15 +88,20 @@ COMMENT ON COLUMN logs.timestamp IS 'Timestamp when the event was recorded';
 COMMENT ON COLUMN logs.message IS 'Text of the event';
 
 CREATE TABLE IF NOT EXISTS properties (
- key VARCHAR(16),
- value VARCHAR(26)
+ key VARCHAR(32),
+ value VARCHAR(32)
 );
-COMMENT ON TABLE dwh.properties IS 'Properties table for base load';
-COMMENT ON COLUMN dwh.properties.key IS 'Property name';
-COMMENT ON COLUMN dwh.properties.value IS 'Property value';
+COMMENT ON TABLE properties IS 'Properties table for base load';
+COMMENT ON COLUMN properties.key IS 'Property name';
+COMMENT ON COLUMN properties.value IS 'Property value';
+
+-- Insert properties only for the initial load.
+INSERT INTO properties (key, value) VALUES
+  ('initialLoadNotes', 'true'),
+  ('initialLoadComments', 'true');
 
 CREATE OR REPLACE PROCEDURE put_lock (
-  m_id CHAR(20)
+  m_id VARCHAR(32)
  )
  LANGUAGE plpgsql
  AS $proc$
@@ -105,7 +110,8 @@ CREATE OR REPLACE PROCEDURE put_lock (
  BEGIN
   SELECT COUNT (1)
    INTO m_qty
-  FROM properties;
+  FROM properties
+  WHERE key = 'lock';
   IF (m_qty = 0) THEN
    INSERT INTO properties VALUES ('lock', m_id);
   ELSE
@@ -113,7 +119,7 @@ CREATE OR REPLACE PROCEDURE put_lock (
     INTO m_id
    FROM properties
    WHERE key = 'lock';
-   RAISE EXCEPTION 'There is a lock on the table. Shell id %', m_id;
+   RAISE EXCEPTION 'There is a lock on the table. Shell id %.', m_id;
   END IF;
  END
 $proc$
@@ -122,13 +128,13 @@ COMMENT ON PROCEDURE put_lock IS
   'Tries to put a lock for only one process inserting notes and comments. Otherwise it raise error';
 
 CREATE OR REPLACE PROCEDURE remove_lock (
-  m_id CHAR(20)
+  m_id VARCHAR(32)
  )
  LANGUAGE plpgsql
  AS $proc$
  DECLARE
   m_qty SMALLINT;
-  m_current_id INTEGER;
+  m_current_id VARCHAR(32);
  BEGIN
   SELECT count(1)
    INTO m_qty
@@ -143,14 +149,120 @@ CREATE OR REPLACE PROCEDURE remove_lock (
     DELETE FROM properties
     WHERE key = 'lock' AND value = 'm_id';
    ELSE
-    RAISE EXCEPTION 'Lock is hold by another app: %, current app: %',
+    RAISE EXCEPTION 'Lock is hold by another app: %, current app: %.',
       m_current_id, m_id;
    END IF;
   ELSE
-   RAISE NOTICE 'No lock to remove';
+   RAISE NOTICE 'No lock to remove.';
   END IF;
  END
 $proc$
 ;
 COMMENT ON PROCEDURE remove_lock IS
   'Removes the lock';
+
+CREATE OR REPLACE FUNCTION log_insert_note()
+  RETURNS TRIGGER AS
+ $$
+ BEGIN
+  INSERT INTO logs (message) VALUES (NEW.note_id || ' - Note inserted.');
+
+  RETURN NEW;
+ END;
+ $$ LANGUAGE plpgsql
+;
+COMMENT ON FUNCTION log_insert_note IS
+  'Updates the notes according the new comments';
+
+CREATE OR REPLACE TRIGGER log_insert_note
+  AFTER INSERT ON notes
+  FOR EACH ROW
+  EXECUTE FUNCTION log_insert_note()
+;
+COMMENT ON TRIGGER log_insert_note ON notes IS
+  'Updates the notes according the new comments';
+
+CREATE OR REPLACE FUNCTION update_note()
+  RETURNS TRIGGER AS
+ $$
+ DECLARE
+  m_status note_status_enum;
+ BEGIN
+   -- Gets the current status of the note.
+   -- The real status of the note could be closed, but it is inserted as open.
+  SELECT /* Notes-base */ status
+   INTO m_status
+  FROM notes
+  WHERE note_id = NEW.note_id;
+
+  -- Possible comment actions depending the current note state.
+  IF (m_status = 'open') THEN
+   -- The note is currently open.
+
+   IF (NEW.event = 'closed') THEN
+    INSERT INTO logs (message) VALUES (NEW.note_id
+      || ' - Update to close note.');
+    UPDATE notes
+      SET status = 'close',
+      closed_at = NEW.created_at
+      WHERE note_id = NEW.note_id;
+   ELSIF (NEW.event = 'reopened') THEN
+    -- There are some known issues in the API, and cannot be strictly validated.
+    -- Consecutives reopens.
+
+    -- Invalid operation for an open note.
+    INSERT INTO logs (message) VALUES (NEW.note_id
+      || ' - Trying to reopen an opened note ' || NEW.event || '.');
+    RAISE NOTICE 'Trying to reopen an opened note: % - % %.', NEW.note_id,
+      m_status, NEW.event;
+   ELSIF (NEW.event = 'hidden') THEN
+    INSERT INTO logs (message) VALUES (NEW.note_id
+      || ' - Update to hidden note.');
+    UPDATE notes
+      SET status = 'hidden',
+      closed_at = NEW.created_at
+      WHERE note_id = NEW.note_id;
+   END IF;
+  ELSE
+   -- The note is currently closed.
+
+   IF (NEW.event = 'reopened') THEN
+    INSERT INTO logs (message) VALUES (NEW.note_id
+      || ' - Update to reopen note.');
+    UPDATE notes
+      SET status = 'open',
+      closed_at = NULL
+      WHERE note_id = NEW.note_id;
+   ELSIF (NEW.event = 'closed') THEN
+    -- There are some known issues in the API, and this cannot be strictly
+    -- validated. Consecutives closes.
+
+    -- Invalid operation for a closed note.
+    INSERT INTO logs (message) VALUES (NEW.note_id
+      || ' - Trying to close a closed note ' || NEW.event || '.');
+    RAISE NOTICE 'Trying to close a closed note: % - % %.', NEW.note_id,
+      m_status, NEW.event;
+   ELSIF (NEW.event = 'hidden') THEN
+    INSERT INTO logs (message) VALUES (NEW.note_id
+      || ' - Update to hidden note.');
+    UPDATE notes
+      SET status = 'hidden',
+      closed_at = NEW.created_at
+      WHERE note_id = NEW.note_id;
+   END IF;
+  END IF;
+
+  RETURN NEW;
+ END;
+ $$ LANGUAGE plpgsql
+;
+COMMENT ON FUNCTION update_note IS
+  'Updates the notes according the new comments';
+
+CREATE OR REPLACE TRIGGER update_note
+  AFTER INSERT ON note_comments
+  FOR EACH ROW
+  EXECUTE FUNCTION update_note()
+;
+COMMENT ON TRIGGER update_note ON note_comments IS
+  'Updates the notes according the new comments';
