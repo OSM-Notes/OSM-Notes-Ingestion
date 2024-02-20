@@ -61,21 +61,44 @@ DO /* Notes-processPlanet-insertNotes */
 $$
 DECLARE
  r RECORD;
- closed_time VARCHAR(100);
+ m_qty INT;
 BEGIN
- FOR r IN
-  SELECT /* Notes-processPlanet */ note_id, latitude, longitude, created_at,
-   closed_at, status
-  FROM notes_sync
-  ORDER BY note_id
- LOOP
-  closed_time := 'TO_TIMESTAMP(''' || r.closed_at
-    || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-  EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-    || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at || ''', '
-    ||'''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
- END LOOP;
- COMMIT;
+ SELECT /* Notes-processPlanet */ COUNT(1)
+  INTO m_qty
+ FROM properties
+ WHERE key = 'initialLoadNotes' AND value = 'true';
+ IF (m_qty = 1) THEN
+  RAISE NOTICE 'Inserting bulk notes.';
+  -- Load all historical notes as open.
+  INSERT INTO notes (
+    note_id, latitude, longitude, created_at, status, closed_at, id_country
+   )
+   SELECT /* Notes-processPlanet */
+     note_id, latitude, longitude, created_at, 'open', null, id_country
+   FROM notes_sync
+   ORDER BY note_id;
+
+  -- Remove the trigger that register the log.
+  DROP TRIGGER IF EXISTS log_insert_note ON notes;
+  DROP FUNCTION IF EXISTS log_insert_note;
+
+  -- Removes the initial property to load in bulk.
+  DELETE FROM properties
+  WHERE key = 'initialLoadNotes' AND value = 'true';
+ ELSE
+  RAISE NOTICE 'Inserting notes.';
+  FOR r IN
+   SELECT /* Notes-processPlanet */ note_id, latitude, longitude, created_at,
+    closed_at, status
+   FROM notes_sync
+   ORDER BY note_id
+  LOOP
+   EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
+     || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at || ''', '
+     ||'''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
+  END LOOP;
+  COMMIT;
+ END IF;
 END;
 $$;
 
@@ -141,25 +164,63 @@ $$
 DECLARE
  r RECORD;
  m_created_time VARCHAR(100);
+ m_qty INT;
 BEGIN
- FOR r IN
-  SELECT /* Notes-processPlanet */
-   note_id, event, created_at, id_user, username
-  FROM note_comments_sync
-  ORDER BY created_at
- LOOP
-  m_created_time := 'TO_TIMESTAMP(''' || r.created_at
-    || ''', ''YYYY-MM-DD HH24:MI:SS'')';
-  EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
-    || '''' || r.event || '''::note_event_enum, '
-    || COALESCE(m_created_time, 'NULL') || ', '
-    || COALESCE(r.id_user || '', 'NULL') || ', '
-    || QUOTE_NULLABLE(r.username) || ', $PROCESS_ID' || ')';
- END LOOP;
- COMMIT;
+ SELECT /* Notes-processPlanet */ COUNT(1)
+  INTO m_qty
+ FROM properties
+ WHERE key = 'initialLoadComments' AND value = 'true';
+ IF (m_qty = 1) THEN
+  RAISE NOTICE 'Inserting bulk users.';
+
+  INSERT INTO users (
+    user_id, username
+   )
+   SELECT /* Notes-processPlanet */
+     id_user, username
+   FROM note_comments_sync
+   WHERE id_user IS NOT NULL
+   GROUP BY id_user, username;
+
+  RAISE NOTICE 'Inserting bulk comments.';
+
+  INSERT INTO note_comments (
+    note_id, event, created_at, id_user
+   )
+   SELECT /* Notes-processPlanet */
+    note_id, event, created_at, id_user
+   FROM note_comments_sync
+   ORDER BY created_at, sequence_action;
+
+  -- Removes the initial property to load in bulk.
+  DELETE FROM properties
+  WHERE key = 'initialLoadComments' AND value = 'true';
+ ELSE
+  RAISE NOTICE 'Inserting comments.';
+  FOR r IN
+   SELECT /* Notes-processPlanet */
+    note_id, event, created_at, id_user, username
+   FROM note_comments_sync
+   ORDER BY created_at
+  LOOP
+   m_created_time := 'TO_TIMESTAMP(''' || r.created_at
+     || ''', ''YYYY-MM-DD HH24:MI:SS'')';
+   EXECUTE 'CALL insert_note_comment (' || r.note_id || ', '
+     || '''' || r.event || '''::note_event_enum, '
+     || COALESCE(m_created_time, 'NULL') || ', '
+     || COALESCE(r.id_user || '', 'NULL') || ', '
+     || QUOTE_NULLABLE(r.username) || ', $PROCESS_ID' || ')';
+  END LOOP;
+  COMMIT;
+ END IF;
 END
 $$;
 
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
  'Statistics on comments' AS Text;
 ANALYZE note_comments;
+
+-- TODO Perform checks
+-- Toda nota tiene acci'on inicial como open
+-- Toda nota cerrada tiene acci'on final close, tiene al menos 2 comentarios
+
