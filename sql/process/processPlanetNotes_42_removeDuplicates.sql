@@ -1,7 +1,7 @@
 -- Remove duplicates for notes and note comments, when syncing from the Planet.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-16
+-- Version: 2024-02-19
 
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
   'Counting notes sync' AS Text;
@@ -97,7 +97,6 @@ BEGIN
      || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at || ''', '
      ||'''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
   END LOOP;
-  COMMIT;
  END IF;
 END;
 $$;
@@ -211,7 +210,6 @@ BEGIN
      || COALESCE(r.id_user || '', 'NULL') || ', '
      || QUOTE_NULLABLE(r.username) || ', $PROCESS_ID' || ')';
   END LOOP;
-  COMMIT;
  END IF;
 END
 $$;

@@ -1,7 +1,7 @@
 -- Bulk notes and notes comments insertion.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-18
+-- Version: 2024-02-19
 
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
   COUNT(1) Qty, 'current notes - before' AS Text
@@ -34,11 +34,10 @@ $$
    m_stmt := 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
      || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at
      || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
-   RAISE NOTICE 'Note % (%).', m_stmt, m_lastupdate;
+   --RAISE NOTICE 'Note % (%) %.', r.note_id, m_stmt, m_lastupdate;
    EXECUTE m_stmt;
    INSERT INTO logs (message) VALUES (r.note_id || ' - Note inserted.');
   END LOOP;
-  COMMIT;
  END;
 $$;
 
@@ -101,7 +100,6 @@ $$
    INSERT INTO logs (message) VALUES (r.note_id
      || ' - Comment for note inserted.');
   END LOOP;
-  COMMIT;
  END;
 $$;
 
