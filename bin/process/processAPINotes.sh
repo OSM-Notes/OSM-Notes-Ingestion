@@ -30,7 +30,7 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2024-02-16
-declare -r VERSION="2024-02-16"
+declare -r VERSION="2024-02-19"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -392,16 +392,16 @@ function __loadApiNotes {
 # Inserts new notes and comments into the database.
 function __insertNewNotesAndComments {
  __log_start
- echo "CALL put_lock(${$}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
  PROCESS_ID="${$}"
+ echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+
  export PROCESS_ID
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" \
   || true)"
 
- echo "CALL remove_lock(${$}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish
 }
 
