@@ -166,8 +166,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-16
-declare -r VERSION="2024-02-16"
+# Version: 2024-02-19
+declare -r VERSION="2024-02-19"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -556,15 +556,15 @@ function __loadSyncNotes {
 # Removes notes and comments from the new set that are already in the database.
 function __removeDuplicates {
  __log_start
- echo "CALL put_lock('${$}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
  PROCESS_ID="${$}"
+ echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+
  export PROCESS_ID
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_42_REMOVE_DUPLICATES}" || true)"
 
- echo "CALL remove_lock('${$}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
 
  psql -d "${DBNAME}" -f "${POSTGRES_43_COMMENTS_SEQUENCE}"
