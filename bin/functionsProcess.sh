@@ -816,7 +816,6 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    __logd "Number of notes without country - before."
     STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
       FROM notes
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -836,14 +835,13 @@ function __getLocationNotes {
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
 
-    __logd "New number of notes without country - after."
     STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
       FROM notes
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
     # Validates the uploaded location.
-    __logd "Assigning country to notes."
+
     STMT="UPDATE notes
       SET id_country = get_country(longitude, latitude, note_id)
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
