@@ -116,7 +116,7 @@ COMMENT ON COLUMN dwh.dimension_regions.region_name_es IS
 COMMENT ON COLUMN dwh.dimension_regions.region_name_en IS
   'Name of the region in English';
 
--- TODO Cuando se actualizan los pa'ises, puede que algunas notas cambien de pais
+-- TODO Cuando se actualizan los países, puede que algunas notas cambien de pais
 -- por lo que hay que actualizar la dimension, y todo usuario y pais de datamarts
 -- afectados
 CREATE TABLE IF NOT EXISTS dwh.dimension_countries (
