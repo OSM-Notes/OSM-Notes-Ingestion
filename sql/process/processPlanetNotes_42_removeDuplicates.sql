@@ -217,8 +217,3 @@ $$;
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
  'Statistics on comments' AS Text;
 ANALYZE note_comments;
-
--- TODO Perform checks
--- Toda nota tiene acci'on inicial como open
--- Toda nota cerrada tiene acci'on final close, tiene al menos 2 comentarios
-
