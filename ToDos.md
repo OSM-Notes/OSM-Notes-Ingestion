@@ -4,9 +4,9 @@ ToDo list
 
 ## Base
 
+* Poner la secuencia de comentarios de texto.
 * Poner el trigger en comment_text. Si el sequence viene vacio, calcular y
   asignar. Si no viene vacio, dejar asi.
-* Poner la secuencia de comentrios de texto.
 * Usar un mecanismo de logger para postgres
 * Actualizar a Saxon 12 apuntando al repositorio GitHub.
   * https://github.com/Saxonica/Saxon-HE/releases
@@ -23,7 +23,7 @@ ToDo list
 * En el ETL calcular la cantidad de notas abiertas actualmente.
 * En el ETL mantener la cantidad de notas abiertas en el país.
 * Usar la secuencia de comentarios en los facts
-* Factorizas CREATE and INITIAL en Staging, ya que tiene partes comunes
+* Factorizar CREATE and INITIAL en Staging, ya que tiene partes comunes
 
 ## Datamarts
 
@@ -33,7 +33,8 @@ ToDo list
   * Incluir los hashtags de una nota. HECHO
   * Mostrar los hashtags más usados en país y notas.
   * Filtrar notas por hashtags.
-* Ajustar los queries de los hashtags para relacionar con la secuencia de comentario
+* Ajustar los queries de los hashtags para relacionar con la secuencia de
+  comentario
 * Definir los badges y asignarlos.
 * Procesar en paralelo los usuarios de datamart, ya que actualmente dura muchas
   horas.
@@ -49,12 +50,14 @@ ToDo list
   * Colombia solo tiene notas de 2023
   * Chile tiene solo 1 de 2016 de bien abajo
   * Mostrar un gráfico de notas abiertas en un año, con eje por mes, donde
-    se muestre la evolución, donde se vea que las notas viejas aún están abiertas.
+    se muestre la evolución, donde se vea que las notas viejas aún están
+    abiertas.
 * Por país, las notas que tomaron más tiempo en cerrarse
 * Mostrar el tiempo promedio de resolución de notas
   * Un valor histórico
   * Valor por año para mostrar el desempeño
-* Mostrar el timestamp del comentario más reciente en la DB - Última actualización de la db
+* Mostrar el timestamp del comentario más reciente en la DB - Última
+  actualización de la db
 * Cantidad de notas aun en estado abierto
 * Tener rankings de los 100 histórico, último año, último mes, hoy
   * El que más ha abierto, más cerrado, más comentado, más reabierto
@@ -71,8 +74,10 @@ ToDo list
   siendo visitados
   * Podría generar un archivo JSON, y que el archivo sea usado para por el
     generador de código HTML estático.
-* Mostrar de manera diferente la cuenta https://www.openstreetmap.org/user/ContributionReviewer
-* Mostrar resultados con link a OSM y al API. El API ofrece detalles de horas, pero no mapa.
+* Mostrar de manera diferente la cuenta
+  https://www.openstreetmap.org/user/ContributionReviewer
+* Mostrar resultados con link a OSM y al API. El API ofrece detalles de horas,
+  pero no mapa.
 * Mostrar la hora actual del servidor de DB.
 * Mostrar la hora del procesamiento.
 * Github tiles de https://github.com/sallar/github-contributions-canvas
@@ -97,7 +102,8 @@ ToDo list
   * O procesar estos de una manera diferente. Por ejemplo teniendo el max
     action.
 * 3944119 ocultada y reactivada. Revisar que se procesa bien esta nota.
-* Validar que esta nota se procesa bien https://api.openstreetmap.org/api/0.6/notes/3750896
+* Validar que esta nota se procesa bien
+  https://api.openstreetmap.org/api/0.6/notes/3750896
 * Cuando se ejecuta el datamart de nuevo, vuelve a cargar las notas del mismo
   dia, ya que había cargado.
   * Parece que ya se arregló, ya que estaba cargando todo el día de nuevo
