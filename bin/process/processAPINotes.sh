@@ -70,7 +70,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-chmod 777 ${TMP_DIR}
+chmod 777 "${TMP_DIR}"
 # Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -399,7 +399,7 @@ function __insertNewNotesAndComments {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" \
-  || true)"
+   || true)"
 
  echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  __log_finish

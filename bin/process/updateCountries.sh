@@ -6,6 +6,10 @@
 # To not remove all generated files, you can export this:
 #   export CLEAN=false
 #
+# For contributing, please execute these commands before subimitting:
+# * shellcheck -x -o all updateCountries.sh
+# * shfmt -w -i 1 -sr -bn updateCountries.sh
+#
 # Author: Andres Gomez (AngocA)
 # Version: 2024-02-07
 declare -r VERSION="2024-02-07"
@@ -50,7 +54,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-chmod 777 ${TMP_DIR}
+chmod 777 "${TMP_DIR}"
 # Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"

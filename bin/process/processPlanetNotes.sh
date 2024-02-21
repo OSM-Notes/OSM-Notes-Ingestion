@@ -208,7 +208,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-chmod 777 ${TMP_DIR}
+chmod 777 "${TMP_DIR}"
 # Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -705,7 +705,7 @@ function main() {
   __dropSyncTables   # sync & locate
   set +E
   export RET_FUNC=0
-  __organizeAreas    # sync & locate
+  __organizeAreas # sync & locate
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
    __createCountryTables # sync & locate
@@ -718,7 +718,7 @@ function main() {
     __processCountries # sync & locate
     __processMaritimes # sync & locate
    fi
-   __cleanPartial      # sync & locate
+   __cleanPartial # sync & locate
    __organizeAreas
   fi
   __getLocationNotes # sync & locate
@@ -739,7 +739,7 @@ if [[ ! -t 1 ]]; then
  main >> "${LOG_FILENAME}" 2>&1
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
-    || true).log"
+   || true).log"
   rmdir "${TMP_DIR}"
  fi
 else
