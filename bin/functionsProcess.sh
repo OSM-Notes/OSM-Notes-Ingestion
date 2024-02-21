@@ -793,6 +793,8 @@ function __getLocationNotes {
     < "${POSTGRES_UPLOAD_NOTE_LOCATION}" || true)"
  fi
 
+ # TODO process loaded location (max not null)
+ # TODO process in parallel the remaining ones.
  MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT MAX(note_id) FROM notes")
  # The last thread has less notes.
