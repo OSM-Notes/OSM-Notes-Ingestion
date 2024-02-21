@@ -301,6 +301,7 @@ These files include details about how to run or troubleshoot the scripts.
 * `bin/process` has the main script to download the notes database, with the
   Planet dump and via API calls.
 * `etc` configuration file for many scripts.
+* `json-schema` schemas for JSON files.
 * `lib` libraries used in the project.
   Currently only a modified version of bash logger.
 * `overpass` queries to download data with Overpass for the countries and
