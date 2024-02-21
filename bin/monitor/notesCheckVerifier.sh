@@ -68,7 +68,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-chmod 777 ${TMP_DIR}
+chmod 777 "${TMP_DIR}"
 # Log file for output.
 declare LOG_FILE_NAME
 LOG_FILE_NAME="${TMP_DIR}/${BASENAME}.log"
@@ -208,7 +208,7 @@ function __sendMail {
    echo "https://github.com/OSMLatam/OSM-Notes-profile"
   } >> "${REPORT}"
   echo "" | mutt -s "OSM Notes profile differences" -i "${REPORT}" \
-    -a "${REPORT_ZIP}" -- "${EMAILS}" 2>&1
+   -a "${REPORT_ZIP}" -- "${EMAILS}" 2>&1
   __logi "Menssage sent."
  fi
  __log_finish
