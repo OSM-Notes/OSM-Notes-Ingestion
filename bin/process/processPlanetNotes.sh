@@ -166,8 +166,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-19
-declare -r VERSION="2024-02-19"
+# Version: 2024-02-20
+declare -r VERSION="2024-02-20"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -558,6 +558,7 @@ function __removeDuplicates {
  __log_start
  PROCESS_ID="${$}"
  echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ __logi "Lock put ${PROCESS_ID}"
 
  export PROCESS_ID
  # shellcheck disable=SC2016
@@ -566,6 +567,7 @@ function __removeDuplicates {
 
  echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
+ __logi "Lock removed ${PROCESS_ID}"
 
  psql -d "${DBNAME}" -f "${POSTGRES_43_COMMENTS_SEQUENCE}"
  __log_finish
@@ -716,21 +718,15 @@ function main() {
     __processCountries # sync & locate
     __processMaritimes # sync & locate
    fi
-   __cleanPartial        # sync & locate
+   __cleanPartial      # sync & locate
    __organizeAreas
   fi
   __getLocationNotes # sync & locate
  fi
  __cleanNotesFiles # base, sync & locate
- __logw "Ending process."
 
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-  if [[ ! -t 1 ]]; then
-   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
-    || true).log"
-   rmdir "${TMP_DIR}"
-  fi
- fi
+ rm -f "${LOCK}"
+ __logw "Ending process."
  __log_finish
 }
 
@@ -741,6 +737,11 @@ __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}" 2>&1
+ if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
+    || true).log"
+  rmdir "${TMP_DIR}"
+ fi
 else
  main
 fi
