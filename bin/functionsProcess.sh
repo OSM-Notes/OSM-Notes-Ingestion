@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
+# Version: 2024-02-21
 
 # Error codes.
 # 1: Help message.
@@ -39,6 +39,8 @@ declare -r ERROR_DOWNLOADING_NOTES=247
 declare -r ERROR_EXECUTING_PLANET_DUMP=248
 # 249: Error downloading boundary.
 declare -r ERROR_DOWNLOADING_BOUNDARY=249
+# 250: Error converting OSM JSON to GeoJSON.
+declare -r ERROR_GEOJSON=250
 # 255: General error.
 declare -r ERROR_GENERAL=255
 
@@ -66,8 +68,10 @@ declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_
 # XML Schema of the Planet notes file.
 declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
 
-# JSON schema for Overpass files
+# JSON schema for Overpass files.
 declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json-schema/osm-jsonschema.json"
+# JSON schema for GeoJSON files.
+declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json-schema/geojsonschema.json"
 
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
@@ -438,9 +442,9 @@ function __processBoundary {
  while [[ "${RETRY}" = true ]]; do
   # Retrieves the JSON from Overpass.
   wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-    "${OVERPASS_INTERPRETER}" > "${OUTPUT_OVERPASS}"
+   "${OVERPASS_INTERPRETER}" > "${OUTPUT_OVERPASS}"
   RET="${?}"
-  MANY_REQUESTS=$(grep "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}" | wc -l)
+  MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
   if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
    # If "too many requests" as part of the output, then waits.
    sleep 30
@@ -451,7 +455,7 @@ function __processBoundary {
    # Validates the JSON with a JSON schema.
    set +e
    ajv validate -s "${JSON_SCHEMA_OVERPASS}" -d "${JSON_FILE}" \
-     --spec=draft2020 2> /dev/null
+    --spec=draft2020 2> /dev/null
    echo "${RET}"
    set -e
    if [[ "${RET}" -eq 0 ]]; then
@@ -469,6 +473,15 @@ function __processBoundary {
  __logi "Converting into geoJSON."
  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
  set +e
+ ajv validate -s "${JSON_SCHEMA_GEOJSON}" -d "${JSON_FILE}" \
+  --spec=draft2020 2> /dev/null
+ echo "${RET}"
+ set -e
+ if [[ "${RET}" -ne 0 ]]; then
+  __logd "The GeoJSON file ${JSON_FILE} is invalid; failing."
+  exit "${ERROR_GEOJSON}"
+ fi
+
  # TODO validate the geojson with a json schema
  set +o pipefail
  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
@@ -494,14 +507,15 @@ function __processBoundary {
  RET="${?}"
  set -e
  while [[ "${RET}" -ne 0 ]]; do
-  __logd "${PROCESS} waiting for the lock. Current owner $(cat ${LOCK_OGR2OGR}/pid)."
+  LOCK_ID=$(cat "${LOCK_OGR2OGR}"/pid)
+  __logd "${PROCESS} waiting for the lock. Current owner ${LOCK_ID}."
   sleep 1
   set +e
   mkdir "${LOCK_OGR2OGR}" 2> /dev/null
   RET="${?}"
   set -e
  done
- echo "${PROCESS}" > ${LOCK_OGR2OGR}/pid
+ echo "${PROCESS}" > "${LOCK_OGR2OGR}"/pid
  __logi "I took the lock ${PROCESS} - ${ID}."
  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
   "${GEOJSON_FILE}" -nln import -overwrite
@@ -572,7 +586,8 @@ function __processBoundary {
  unset NAME_EN
 
  __logi "I release the lock ${PROCESS} - ${ID}."
- rm -Rf "${LOCK_OGR2OGR}/"
+ rm -f "${LOCK_OGR2OGR}/pid" "${LOCK_OGR2OGR}/"
+
  __log_finish
 }
 
@@ -665,7 +680,7 @@ function __processCountries {
  split -l"${SIZE}" "${COUNTRIES_FILE}" "${TMP_DIR}/part_country_"
  rm -f "${LOCK_OGR2OGR}/"
  __logw "Starting parallel process to process country boundaries..."
- for I in $(ls -1 "${TMP_DIR}"/part_country_??) ; do
+ for I in "${TMP_DIR}"/part_country_??; do
   (
    __logi "Starting list ${I} - ${BASHPID}."
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
@@ -680,24 +695,26 @@ function __processCountries {
  done
 
  FAIL=0
- for job in $(jobs -p); do
-  echo "${job}"
+ for JOB in $(jobs -p); do
+  echo "${JOB}"
   set +e
-  wait "${job}"
+  wait "${JOB}"
   RET="${?}"
   set -e
   if [[ "${RET}" -ne 0 ]]; then
-   let "FAIL+=1"
+   FAIL=$((FAIL + 1))
   fi
  done
  __logw "Waited for all jobs, restarting in main thread."
- if [ "${FAIL}" != "0" ]; then
+ if [[ "${FAIL}" != "0" ]]; then
   echo "FAIL! (${FAIL})"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
  # If some of the threads generated an error.
- if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\."| wc -l) -ne 0 ]]; then
+ QTY_LOGS=$(ls -1 "${TMP_DIR}" | grep -c "${BASENAME}\.log\.")
+ if [[ "${QTY_LOGS}" -ne 0 ]]; then
+  __logw "Some thread generated an error."
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  rm -f "${LOCK_OGR2OGR}/"
@@ -733,7 +750,7 @@ function __processMaritimes {
  split -l"${SIZE}" "${MARITIMES_FILE}" "${TMP_DIR}/part_maritime_"
  rm -f "${LOCK_OGR2OGR}/"
  __logw "Starting parallel process to process maritime boundaries..."
- for I in $(ls -1 "${TMP_DIR}"/part_maritime_??) ; do
+ for I in "${TMP_DIR}"/part_maritime_??; do
   (
    __logi "Starting list ${I} - ${BASHPID}."
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
@@ -748,24 +765,26 @@ function __processMaritimes {
  done
 
  FAIL=0
- for job in $(jobs -p); do
-  echo "${job}"
+ for JOB in $(jobs -p); do
+  echo "${JOB}"
   set +e
-  wait "${job}"
+  wait "${JOB}"
   RET="${?}"
   set -e
   if [[ "${RET}" -ne 0 ]]; then
-   let "FAIL+=1"
+   FAIL=$((FAIL + 1))
   fi
  done
  __logw "Waited for all jobs, restarting in main thread."
- if [ "${FAIL}" != "0" ]; then
+ if [[ "${FAIL}" != "0" ]]; then
   echo "FAIL! (${FAIL})"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
  # If some of the threads generated an error.
- if [[ $(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\."| wc -l) -ne 0 ]]; then
+ QTY_LOGS=$(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\.")
+ if [[ "${QTY_LOGS}" -ne 0 ]]; then
+  __logw "Some thread generated an error."
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  rm -f "${LOCK_OGR2OGR}/"
@@ -779,7 +798,7 @@ function __processMaritimes {
 function __getLocationNotes {
  __log_start
  __logd "Testing if notes should be updated."
- if [[  "${UPDATE_NOTE_LOCATION}" = false ]]; then
+ if [[ "${UPDATE_NOTE_LOCATION}" = false ]]; then
   __logi "Extracting notes backup."
   rm -f "${CSV_BACKUP_NOTE_LOCATION}"
   unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
@@ -798,13 +817,13 @@ function __getLocationNotes {
  MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT MAX(note_id) FROM notes")
  # The last thread has less notes.
- MAX_NOTE_ID=$((MAX_NOTE_ID+500))
+ MAX_NOTE_ID=$((MAX_NOTE_ID + 500))
 
  MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
  if [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
+  MAX_THREADS=$((MAX_THREADS - 1))
  fi
 
  declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
@@ -855,7 +874,7 @@ function __getLocationNotes {
  done
 
  wait
-  __logw "Waited for all jobs, restarting in main thread."
+ __logw "Waited for all jobs, restarting in main thread."
 
  echo "UPDATE notes
    SET id_country = get_country(longitude, latitude, note_id)
@@ -863,4 +882,3 @@ function __getLocationNotes {
 
  __log_finish
 }
-
