@@ -27,7 +27,7 @@ AS $proc$
      m_process_id_db, m_process_id_bash;
   END IF;
 
-  INSERT INTO logs (message) VALUES (m_note_id || ' - Inserting comment -'
+  INSERT INTO logs (message) VALUES (m_note_id || ' - Inserting comment - '
     || m_event || '.');
 
   -- Insert a new username, or update the username to an existing userid.
