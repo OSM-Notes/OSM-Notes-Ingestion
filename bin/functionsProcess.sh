@@ -821,6 +821,7 @@ function __getLocationNotes {
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
+
     if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
      __logd "Updating incorrectly located notes."
      STMT="UPDATE notes AS n
@@ -840,7 +841,6 @@ function __getLocationNotes {
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
-    # Validates the uploaded location.
 
     STMT="UPDATE notes
       SET id_country = get_country(longitude, latitude, note_id)
@@ -851,6 +851,7 @@ function __getLocationNotes {
    __logi "Finishing ${J}."
   ) &
  done
+
  wait
   __logw "Waited for all jobs, restarting in main thread."
 
