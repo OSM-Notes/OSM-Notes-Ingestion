@@ -31,8 +31,8 @@
 # * shfmt -w -i 1 -sr -bn profile.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2024-02-21
+declare -r VERSION="2024-02-21"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -70,7 +70,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-chmod 777 ${TMP_DIR}
+chmod 777 "${TMP_DIR}"
 # Lof file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -339,7 +339,9 @@ function __showRankingYearCountries {
 # Prints the hour the hour of the week.
 function __processHourWeek {
  HOUR=${1}
- NUMBER=$(echo "${WEEK}" | grep "\"day_of_week\":${I},\"hour_of_day\":${HOUR}," | awk -F: '{print $4}' | sed 's/}, //' | sed 's/}\]//')
+ DOW=${2}
+ NUMBER=$(echo "${WEEK}" | grep "\"day_of_week\":${DOW},\"hour_of_day\":${HOUR}," \
+  | awk -F: '{print $4}' | sed 's/}, //' | sed 's/}\]//')
  printf "%5d" "${NUMBER}"
 }
 
@@ -373,31 +375,31 @@ function __showWorkingWeek {
  I=1
  set +e
  while [[ "${I}" -le 7 ]]; do
-  HOUR_0="${HOUR_0} - $(__processHourWeek 0)"
-  HOUR_1="${HOUR_1} - $(__processHourWeek 1)"
-  HOUR_2="${HOUR_2} - $(__processHourWeek 2)"
-  HOUR_3="${HOUR_3} - $(__processHourWeek 3)"
-  HOUR_4="${HOUR_4} - $(__processHourWeek 4)"
-  HOUR_5="${HOUR_5} - $(__processHourWeek 5)"
-  HOUR_6="${HOUR_6} - $(__processHourWeek 6)"
-  HOUR_7="${HOUR_7} - $(__processHourWeek 7)"
-  HOUR_8="${HOUR_8} - $(__processHourWeek 8)"
-  HOUR_9="${HOUR_9} - $(__processHourWeek 9)"
-  HOUR_10="${HOUR_10} - $(__processHourWeek 10)"
-  HOUR_11="${HOUR_11} - $(__processHourWeek 11)"
-  HOUR_12="${HOUR_12} - $(__processHourWeek 12)"
-  HOUR_13="${HOUR_13} - $(__processHourWeek 13)"
-  HOUR_14="${HOUR_14} - $(__processHourWeek 14)"
-  HOUR_15="${HOUR_15} - $(__processHourWeek 15)"
-  HOUR_16="${HOUR_16} - $(__processHourWeek 16)"
-  HOUR_17="${HOUR_17} - $(__processHourWeek 17)"
-  HOUR_18="${HOUR_18} - $(__processHourWeek 18)"
-  HOUR_19="${HOUR_19} - $(__processHourWeek 19)"
-  HOUR_20="${HOUR_20} - $(__processHourWeek 20)"
-  HOUR_21="${HOUR_21} - $(__processHourWeek 21)"
-  HOUR_22="${HOUR_22} - $(__processHourWeek 22)"
-  HOUR_23="${HOUR_23} - $(__processHourWeek 23)"
-  I=$((I+1))
+  HOUR_0="${HOUR_0} - $(__processHourWeek 0 "${I}")"
+  HOUR_1="${HOUR_1} - $(__processHourWeek 1 "${I}")"
+  HOUR_2="${HOUR_2} - $(__processHourWeek 2 "${I}")"
+  HOUR_3="${HOUR_3} - $(__processHourWeek 3 "${I}")"
+  HOUR_4="${HOUR_4} - $(__processHourWeek 4 "${I}")"
+  HOUR_5="${HOUR_5} - $(__processHourWeek 5 "${I}")"
+  HOUR_6="${HOUR_6} - $(__processHourWeek 6 "${I}")"
+  HOUR_7="${HOUR_7} - $(__processHourWeek 7 "${I}")"
+  HOUR_8="${HOUR_8} - $(__processHourWeek 8 "${I}")"
+  HOUR_9="${HOUR_9} - $(__processHourWeek 9 "${I}")"
+  HOUR_10="${HOUR_10} - $(__processHourWeek 10 "${I}")"
+  HOUR_11="${HOUR_11} - $(__processHourWeek 11 "${I}")"
+  HOUR_12="${HOUR_12} - $(__processHourWeek 12 "${I}")"
+  HOUR_13="${HOUR_13} - $(__processHourWeek 13 "${I}")"
+  HOUR_14="${HOUR_14} - $(__processHourWeek 14 "${I}")"
+  HOUR_15="${HOUR_15} - $(__processHourWeek 15 "${I}")"
+  HOUR_16="${HOUR_16} - $(__processHourWeek 16 "${I}")"
+  HOUR_17="${HOUR_17} - $(__processHourWeek 17 "${I}")"
+  HOUR_18="${HOUR_18} - $(__processHourWeek 18 "${I}")"
+  HOUR_19="${HOUR_19} - $(__processHourWeek 19 "${I}")"
+  HOUR_20="${HOUR_20} - $(__processHourWeek 20 "${I}")"
+  HOUR_21="${HOUR_21} - $(__processHourWeek 21 "${I}")"
+  HOUR_22="${HOUR_22} - $(__processHourWeek 22 "${I}")"
+  HOUR_23="${HOUR_23} - $(__processHourWeek 23 "${I}")"
+  ((I+=1))
  done
  set -e
  echo "        Sun -   Mon -   Tue -   Wed -   Thu -   Fri -   Sat"

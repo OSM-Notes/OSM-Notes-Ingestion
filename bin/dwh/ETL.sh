@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2024-02-21
+declare -r VERSION="2024-02-21"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -57,7 +57,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-chmod 777 ${TMP_DIR}
+chmod 777 "${TMP_DIR}"
 # Lof file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -87,7 +87,7 @@ declare -r POSTGRES_25_POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dw
 # Name of the SQL script that updates the dimensions.
 declare -r POSTGRES_26_UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_26_updateDimensionTables.sql"
 
- # Create staging objets.
+# Create staging objets.
 declare -r POSTGRES_31_CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_31_createStagingObjects.sql"
 # Script to do the initial load - create. One-time execution.
 declare -r POSTGRES_32_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_32_initialFactsLoadCreate.sql"
@@ -222,9 +222,9 @@ function __waitForJobs {
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
  if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
+  MAX_THREADS=$((MAX_THREADS - 2))
  elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
+  MAX_THREADS=$((MAX_THREADS - 1))
  fi
  QTY=$(jobs -p | wc -l)
  __logd "Number of threads ${QTY} from max ${MAX_THREADS}."
@@ -240,41 +240,41 @@ function __waitForJobs {
 # Process facts in parallel.
 function __initialFacts {
  __log_start
-  # First year (less number of notes).
-  MIN_YEAR="2013"
-  # Gets the current year as max (max number of notes).
-  MAX_YEAR=$(date +%Y)
-  # Processing year.
-  YEAR="${MAX_YEAR}"
+ # First year (less number of notes).
+ MIN_YEAR="2013"
+ # Gets the current year as max (max number of notes).
+ MAX_YEAR=$(date +%Y)
+ # Processing year.
+ YEAR="${MAX_YEAR}"
 
  __logw "Starting parallel process to process facts per year..."
-  while [[ "${YEAR}" -ge "${MIN_YEAR}" ]]; do
-   __waitForJobs
-   (
-    __logi "Starting ${YEAR} - ${BASHPID}."
-    # Loads the data in the database.
-    export YEAR
-    # shellcheck disable=SC2016
-    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_32_FACTS_YEAR_CREATE}" || true)" \
-      >> "${LOG_FILENAME}.${BASHPID}" 2>&1
-    # shellcheck disable=SC2016
-    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_EXECUTE}" || true)" \
-      >> "${LOG_FILENAME}.${BASHPID}" 2>&1
-    __logi "Finishing ${YEAR} - ${BASHPID}."
-   ) &
-   sleep 5 # To insert all days of the year in the dimension.
-   YEAR=$((YEAR - 1))
-  done
-   # Waits until all years are fniished.
-  wait
-   __logw "Waited for all jobs, restarting in main thread."
+ while [[ "${YEAR}" -ge "${MIN_YEAR}" ]]; do
+  __waitForJobs
+  (
+   __logi "Starting ${YEAR} - ${BASHPID}."
+   # Loads the data in the database.
+   export YEAR
+   # shellcheck disable=SC2016
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_32_FACTS_YEAR_CREATE}" || true)" \
+    >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   # shellcheck disable=SC2016
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_EXECUTE}" || true)" \
+    >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   __logi "Finishing ${YEAR} - ${BASHPID}."
+  ) &
+  sleep 5 # To insert all days of the year in the dimension.
+  YEAR=$((YEAR - 1))
+ done
+ # Waits until all years are fniished.
+ wait
+ __logw "Waited for all jobs, restarting in main thread."
 
-  YEAR="2013"
-  while [[ "${YEAR}" -le "${MAX_YEAR}" ]]; do
-   __logi "Copying facts from ${YEAR}."
-   STMT="
+ YEAR="2013"
+ while [[ "${YEAR}" -le "${MAX_YEAR}" ]]; do
+  __logi "Copying facts from ${YEAR}."
+  STMT="
     INSERT INTO dwh.facts (
       id_note, dimension_id_country, processing_time, action_at, action_comment,
       action_dimension_id_date, action_dimension_id_hour_of_week,
@@ -299,25 +299,25 @@ function __initialFacts {
      FROM staging.facts_${YEAR}
      ORDER BY fact_id
     "
-   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
+  echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
 
-   # Drops the temporal tables.
-   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-    export YEAR
-    # shellcheck disable=SC2016
-    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$YEAR' < "${POSTGRES_34_FACTS_YEAR_DROP}" || true)" 2>&1
-   fi
+  # Drops the temporal tables.
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+   export YEAR
+   # shellcheck disable=SC2016
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_34_FACTS_YEAR_DROP}" || true)" 2>&1
+  fi
 
-   YEAR=$((YEAR + 1))
-  done
+  YEAR=$((YEAR + 1))
+ done
 
-  # Assign all constraints to the fact table.
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -f "${POSTGRES_41_ADD_CONSTRAINTS}" 2>&1
+ # Assign all constraints to the fact table.
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_41_ADD_CONSTRAINTS}" 2>&1
 
-  # Unifies the facts, by computing dates between years.
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_FACTS_UNIFY}" 2>&1
+ # Unifies the facts, by computing dates between years.
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_FACTS_UNIFY}" 2>&1
 
  __log_finish
 }
@@ -330,27 +330,27 @@ function __createBaseTables {
 
  __logi "Creating tables for star model if they do not exist."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_22_CREATE_OBJECTS_FILE}" 2>&1
+  -f "${POSTGRES_22_CREATE_OBJECTS_FILE}" 2>&1
  __logi "Regions for countries."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_REGIONS_FILE}" 2>&1
  __logi "Adding relation, indexes AND triggers."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_24_ADD_OBJECTS_FILE}" 2>&1
+  -f "${POSTGRES_24_ADD_OBJECTS_FILE}" 2>&1
 
  __logi "Initial dimension population."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_25_POPULATE_DIMENSIONS_FILE}" 2>&1
+  -f "${POSTGRES_25_POPULATE_DIMENSIONS_FILE}" 2>&1
 
  __logi "Initial user dimension population."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
+  -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
 
  __logi "Creating staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_31_CREATE_STAGING_OBJS_FILE}" 2>&1
+  -f "${POSTGRES_31_CREATE_STAGING_OBJS_FILE}" 2>&1
 
- echo "INSERT INTO dwh.properties VALUES ('initial load', 'true')" | \
-   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
+ echo "INSERT INTO dwh.properties VALUES ('initial load', 'true')" \
+  | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
 
  __initialFacts
 
@@ -362,7 +362,7 @@ function __checkBaseTables {
  __log_start
  set +e
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_11_CHECK_BASE_TABLES_FILE}" 2>&1
+  -f "${POSTGRES_11_CHECK_BASE_TABLES_FILE}" 2>&1
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -375,10 +375,10 @@ function __checkBaseTables {
 function __processNotesETL {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
+  -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${POSTGRES_61_LOAD_NOTES_STAGING_FILE}" 2>&1
+  -f "${POSTGRES_61_LOAD_NOTES_STAGING_FILE}" 2>&1
  __log_finish
 }
 

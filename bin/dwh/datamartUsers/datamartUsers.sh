@@ -53,7 +53,7 @@ readonly BASENAME
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
-chmod 777 ${TMP_DIR}
+chmod 777 "${TMP_DIR}"
 # Lof file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -201,16 +201,16 @@ function __processOldUsers {
  __log_start
  MAX_USER_ID=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT MAX(user_id) FROM dwh.dimension_users" -v ON_ERROR_STOP=1)
- MAX_USER_ID=$(("MAX_USER_ID"+1))
+ MAX_USER_ID=$(("MAX_USER_ID" + 1))
 
  # Processes the users in parallel.
  MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
  if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  MAX_THREADS=$((MAX_THREADS-2))
+  MAX_THREADS=$((MAX_THREADS - 2))
  elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  MAX_THREADS=$((MAX_THREADS-1))
+  MAX_THREADS=$((MAX_THREADS - 1))
  fi
 
  SIZE=$((MAX_USER_ID / MAX_THREADS))
@@ -218,7 +218,7 @@ function __processOldUsers {
  HIGH_VALUE="${SIZE}"
  ITER=1
  __logw "Starting parallel process for datamartUsers..."
- while [[ "${ITER}" -le "${MAX_THREADS}" ]] ; do
+ while [[ "${ITER}" -le "${MAX_THREADS}" ]]; do
   (
    __logi "Starting user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}."
 
@@ -233,9 +233,9 @@ function __processOldUsers {
 
    __logi "Finished user batch ${LOWER_VALUE}-${HIGH_VALUE} - ${BASHPID}."
   ) &
-  ITER=$((ITER+1))
-  LOWER_VALUE=$((HIGH_VALUE+1))
-  HIGH_VALUE=$((HIGH_VALUE+SIZE))
+  ITER=$((ITER + 1))
+  LOWER_VALUE=$((HIGH_VALUE + 1))
+  HIGH_VALUE=$((HIGH_VALUE + SIZE))
   sleep 5
  done
 
