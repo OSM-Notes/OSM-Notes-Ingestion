@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-16
+-- Version: 2024-02-20
 
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL,
@@ -114,6 +114,7 @@ CREATE OR REPLACE PROCEDURE put_lock (
   WHERE key = 'lock';
   IF (m_qty = 0) THEN
    INSERT INTO properties VALUES ('lock', m_id);
+   RAISE NOTICE 'Lock inserted %.', m_id;
   ELSE
    SELECT value
     INTO m_id
@@ -147,7 +148,8 @@ CREATE OR REPLACE PROCEDURE remove_lock (
    WHERE key = 'lock';
    IF (m_id = m_current_id) THEN
     DELETE FROM properties
-    WHERE key = 'lock' AND value = 'm_id';
+    WHERE key = 'lock';
+    RAISE NOTICE 'Lock removed %.', m_id;
    ELSE
     RAISE EXCEPTION 'Lock is hold by another app: %, current app: %.',
       m_current_id, m_id;
@@ -217,7 +219,7 @@ CREATE OR REPLACE FUNCTION update_note()
       m_status, NEW.event;
    ELSIF (NEW.event = 'hidden') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
-      || ' - Update to hidden note.');
+      || ' - Update to hide open note.');
     UPDATE notes
       SET status = 'hidden',
       closed_at = NEW.created_at
@@ -244,7 +246,7 @@ CREATE OR REPLACE FUNCTION update_note()
       m_status, NEW.event;
    ELSIF (NEW.event = 'hidden') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
-      || ' - Update to hidden note.');
+      || ' - Update to hide close note.');
     UPDATE notes
       SET status = 'hidden',
       closed_at = NEW.created_at
