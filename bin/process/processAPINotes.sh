@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-19
-declare -r VERSION="2024-02-19"
+# Version: 2024-02-20
+declare -r VERSION="2024-02-20"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -269,7 +269,7 @@ function __getNewNotesFromApi {
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  __logw "Last update: ${LAST_UPDATE}."
  if [[ "${LAST_UPDATE}" == "" ]]; then
-  __loge "No last update. Please load notes."
+  __loge "No last update. Please load notes first."
   exit "${ERROR_NO_LAST_UPDATE}"
  fi
 
@@ -501,6 +501,8 @@ function main() {
   __updateLastValue
  fi
  __cleanNotesFiles
+
+ rm -f "${LOCK}"
  __logw "Process finished."
  __log_finish
 }
