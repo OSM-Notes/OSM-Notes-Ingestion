@@ -605,7 +605,8 @@ function main() {
  __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."
- __logi "Processing: ${PROCESS_TYPE}."
+ __logi "Process Id: ${$}"
+ __logi "Processing: '${PROCESS_TYPE}'."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
