@@ -4,18 +4,13 @@ ToDo list
 
 ## Base
 
-* Poner la secuencia de comentarios de texto.
-* Poner el trigger en comment_text. Si el sequence viene vacio, calcular y
-  asignar. Si no viene vacio, dejar asi.
 * Usar un mecanismo de logger para postgres
-* Actualizar a Saxon 12 apuntando al repositorio GitHub.
-  * https://github.com/Saxonica/Saxon-HE/releases
 * Probar https://crates.io/crates/anglosaxon en vez de saxon
 * Corregir las diferencias que se identifican con el monitor script.
+  * Ya no debe haber.
 
 ## ETL
 
-* Usar una DB direferente para el DWH
 * Generar un reporte de cambios identificados al cargar la ETL.
   * Los select cambiarlos a exports para mostrar otras cosas.
 * Contar los hashtags de las notas en la ETL.
@@ -24,6 +19,7 @@ ToDo list
 * En el ETL mantener la cantidad de notas abiertas en el país.
 * Usar la secuencia de comentarios en los facts
 * Factorizar CREATE and INITIAL en Staging, ya que tiene partes comunes
+* Usar una DB direferente para el DWH
 
 ## Datamarts
 
