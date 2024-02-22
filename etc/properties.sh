@@ -4,7 +4,7 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2023-12-09
+# Version: 2024-02-22
 
 # Name of the Postgresql database to connect.
 # shellcheck disable=SC2034
@@ -14,15 +14,12 @@ declare -r DBNAME="notes"
 # shellcheck disable=SC2034
 declare -r DB_USER="notes"
 
-
 # Location of the Saxon JAR. This can be override from a environment variable.
 # shellcheck disable=SC2034
 declare -r SAXON_CLASSPATH=${SAXON_CLASSPATH:-~/saxon/}
 
-
 # Mails to send the report about checking the differences between planet and database.
 declare -r EMAILS="username@domain.com"
-
 
 # OpenStreetMap API URL.
 # shellcheck disable=SC2034
@@ -32,11 +29,6 @@ declare -r OSM_API="https://api.openstreetmap.org/api/0.6"
 # shellcheck disable=SC2034
 declare -r PLANET="https://planet.openstreetmap.org"
 
-# File that contains the note location data.
-# shellcheck disable=SC2034
-declare -r NOTE_LOCATION_DATA_FILE="data/noteLocation.sql"
-
-
 # Overpass interpreter. Used to download the contries and maritimes boundaries.
 # shellcheck disable=SC2034
 declare -r OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
@@ -44,14 +36,9 @@ declare -r OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
 # Wait between loops when downloading boundaries, to prevent "Too many
 # requests".
 # shellcheck disable=SC2034
-declare -r SECONDS_TO_WAIT="3"
-
+declare -r SECONDS_TO_WAIT="30"
 
 # Get location in processPlanet.
 # Quantity of notes to process per loop, to get the location of the note.
 # shellcheck disable=SC2034
 declare -r LOOP_SIZE="10000"
-
-# Number of parallel threads to get conutry and maritime boundaries.
-# shellcheck disable=SC2034
-declare -r PARALLELISM="5"
