@@ -19,7 +19,7 @@ COPY backup_note_locations (note_id, id_country)
 FROM '${CSV_BACKUP_NOTE_LOCATION}' csv;
 SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
  'Locations loaded. Updating notes...' AS Text;
-UPDATE notes AS n
+UPDATE notes AS n /* Notes-processAPI */
  SET id_country = b.id_country
  FROM backup_note_locations AS b
  WHERE b.note_id = n.note_id
