@@ -4,10 +4,11 @@ ToDo list
 
 ## Base
 
-* Usar un mecanismo de logger para postgres
-* Probar https://crates.io/crates/anglosaxon en vez de saxon
+* Usar un mecanismo de logger para postgres.
+* Probar https://crates.io/crates/anglosaxon en vez de saxon.
 * Corregir las diferencias que se identifican con el monitor script.
   * Ya no debe haber.
+* Si falla base, enviar mail, ya que hay algo mal.
 
 ## ETL
 
