@@ -204,7 +204,7 @@ CREATE OR REPLACE FUNCTION update_note()
    IF (NEW.event = 'closed') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - Update to close note.');
-    UPDATE notes
+    UPDATE notes /* trigger update note */
       SET status = 'close',
       closed_at = NEW.created_at
       WHERE note_id = NEW.note_id;
@@ -220,7 +220,7 @@ CREATE OR REPLACE FUNCTION update_note()
    ELSIF (NEW.event = 'hidden') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - Update to hide open note.');
-    UPDATE notes
+    UPDATE notes /* trigger update note */
       SET status = 'hidden',
       closed_at = NEW.created_at
       WHERE note_id = NEW.note_id;
@@ -231,7 +231,7 @@ CREATE OR REPLACE FUNCTION update_note()
    IF (NEW.event = 'reopened') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - Update to reopen note.');
-    UPDATE notes
+    UPDATE notes /* trigger update note */
       SET status = 'open',
       closed_at = NULL
       WHERE note_id = NEW.note_id;
@@ -247,7 +247,7 @@ CREATE OR REPLACE FUNCTION update_note()
    ELSIF (NEW.event = 'hidden') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - Update to hide close note.');
-    UPDATE notes
+    UPDATE notes /* trigger update note */
       SET status = 'hidden',
       closed_at = NEW.created_at
       WHERE note_id = NEW.note_id;
