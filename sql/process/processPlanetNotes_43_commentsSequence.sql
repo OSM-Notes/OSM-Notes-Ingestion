@@ -7,6 +7,7 @@
 SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
  'Assign sequence to comments' AS Text;
 
+-- This only works for the first time. 
 DO /* Notes-processPlanet-assignSequence */
 $$
 DECLARE
@@ -55,6 +56,7 @@ CREATE UNIQUE INDEX unique_comment_note
  ON note_comments
  (note_id, sequence_action);
 COMMENT ON INDEX unique_comment_note IS 'Sequence of comments creation';
+ALTER TABLE note_comments DROP CONSTRAINT IF EXISTS unique_comment_note;
 ALTER TABLE note_comments
  ADD CONSTRAINT unique_comment_note
  UNIQUE USING INDEX unique_comment_note;
