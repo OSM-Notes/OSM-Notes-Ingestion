@@ -10,3 +10,13 @@ CALL staging.process_notes_actions_into_staging_${YEAR}();
 
 SELECT /* Notes-staging */ CURRENT_TIMESTAMP AS Processing,
  'Year ${YEAR} processed' AS Text;
+
+SELECT /* Notes-staging */ CURRENT_TIMESTAMP AS Processing,
+ 'Analyzing facts_${YEAR}' AS Text;
+
+ANALYZE staging.facts_${YEAR};
+
+SELECT /* Notes-staging */ CURRENT_TIMESTAMP AS Processing,
+ 'Analysis finished facts_${YEAR}' AS Text;
+
+DROP INDEX IF EXISTS comments_function_year;
