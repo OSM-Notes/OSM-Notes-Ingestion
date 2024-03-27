@@ -267,6 +267,7 @@ function __getNewNotesFromApi {
      FROM max_note_timestamp" \
   -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
  LAST_UPDATE=$(cat "${TEMP_FILE}")
+ rm "${TEMP_FILE}"
  __logw "Last update: ${LAST_UPDATE}."
  if [[ "${LAST_UPDATE}" == "" ]]; then
   __loge "No last update. Please load notes first."
@@ -276,9 +277,22 @@ function __getNewNotesFromApi {
  # Gets the values from OSM API.
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
  __logt "${REQUEST}"
- wget -O "${API_NOTES_FILE}" "${REQUEST}" 2> "${LOG_FILENAME}"
-
- rm "${TEMP_FILE}"
+ set +e
+ local OUTPUT_WGET="${TMP_DIR}/${BASENAME}.wget.log"
+ wget -O "${API_NOTES_FILE}" "${REQUEST}" > "${OUTPUT_WGET}" 2>&1
+ RET="${?}"
+ set -e
+ cat "${OUTPUT_WGET}"
+ local QTY=$(grep "unable to resolve host address ‘api.openstreetmap.org’" \
+   "${OUTPUT_WGET}" | wc -l)
+ rm "${OUTPUT_WGET}"
+ if [[ "${QTY}" -ne 1 ]]; then
+  return "${RET}"
+ else
+  __loge "API unreachable. Probably there are Internet issues."
+  GENERATE_FAILED_FILE=false
+  return "${ERROR_INTERNET_ISSUE}"
+ fi
  __log_finish
 }
 
@@ -489,7 +503,9 @@ function main() {
  __createApiTables
  __createPropertiesTable
  __createProcedures
+ set +E
  __getNewNotesFromApi
+ set -E
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
  if [[ "${RESULT}" -ne 0 ]]; then
