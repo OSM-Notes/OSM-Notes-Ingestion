@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-21
-declare -r VERSION="2024-02-21"
+# Version: 2024-03-13
+declare -r VERSION="2024-03-13"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -87,14 +87,18 @@ declare -r POSTGRES_25_POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dw
 # Name of the SQL script that updates the dimensions.
 declare -r POSTGRES_26_UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_26_updateDimensionTables.sql"
 
+# Create base staging objects.
+declare -r POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_31_createBaseStagingObjects.sql"
 # Create staging objets.
-declare -r POSTGRES_31_CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_31_createStagingObjects.sql"
+declare -r POSTGRES_32_CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_32_createStagingObjects.sql"
 # Script to do the initial load - create. One-time execution.
-declare -r POSTGRES_32_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_32_initialFactsLoadCreate.sql"
+declare -r POSTGRES_33_FACTS_BASE_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_33_initialFactsBaseObjects.sql"
+# Script to do the initial load - create. One-time execution.
+declare -r POSTGRES_34_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_34_initialFactsLoadCreate.sql"
 # Script to do the initial load - execute.
-declare -r POSTGRES_33_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_33_initialFactsLoadExecute.sql"
+declare -r POSTGRES_35_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_35_initialFactsLoadExecute.sql"
 # Script to do the initial load - drop.
-declare -r POSTGRES_34_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_34_initialFactsLoadDrop.sql"
+declare -r POSTGRES_36_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_36_initialFactsLoadDrop.sql"
 # Name of the SQL script that contains the alter statements.
 declare -r POSTGRES_41_ADD_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_41_addConstraintsIndexesTriggers.sql"
 # Script to do the initial load - execute.
@@ -182,20 +186,28 @@ function __checkPrereqs {
   __loge "ERROR: File ${POSTGRES_26_UDPATE_DIMENSIONS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_31_CREATE_STAGING_OBJS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_31_CREATE_STAGING_OBJS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_32_FACTS_YEAR_CREATE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_32_FACTS_YEAR_CREATE} was not found."
+ if [[ ! -r "${POSTGRES_32_CREATE_STAGING_OBJS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_32_CREATE_STAGING_OBJS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_33_FACTS_YEAR_EXECUTE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_33_FACTS_YEAR_EXECUTE} was not found."
+ if [[ ! -r "${POSTGRES_33_FACTS_BASE_CREATE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_33_FACTS_BASE_CREATE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_34_FACTS_YEAR_DROP}" ]]; then
-  __loge "ERROR: File ${POSTGRES_34_FACTS_YEAR_DROP} was not found."
+ if [[ ! -r "${POSTGRES_34_FACTS_YEAR_CREATE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_34_FACTS_YEAR_CREATE} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_35_FACTS_YEAR_EXECUTE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_35_FACTS_YEAR_EXECUTE} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_36_FACTS_YEAR_DROP}" ]]; then
+  __loge "ERROR: File ${POSTGRES_36_FACTS_YEAR_DROP} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_41_ADD_CONSTRAINTS}" ]]; then
@@ -256,11 +268,13 @@ function __initialFacts {
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_32_FACTS_YEAR_CREATE}" || true)" \
-    >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_BASE_CREATE}" || true)" 
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_YEAR_EXECUTE}" || true)" \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_34_FACTS_YEAR_CREATE}" || true)"
+   # shellcheck disable=SC2016
+   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_35_FACTS_YEAR_EXECUTE}" || true)" \
     >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finishing ${YEAR} - ${BASHPID}."
   ) &
@@ -306,7 +320,7 @@ function __initialFacts {
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_34_FACTS_YEAR_DROP}" || true)" 2>&1
+    -c "$(envsubst '$YEAR' < "${POSTGRES_36_FACTS_YEAR_DROP}" || true)" 2>&1
   fi
 
   YEAR=$((YEAR + 1))
@@ -345,9 +359,13 @@ function __createBaseTables {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
 
+ __logi "Creating base staging objects."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE}" 2>&1
+
  __logi "Creating staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_31_CREATE_STAGING_OBJS_FILE}" 2>&1
+  -f "${POSTGRES_32_CREATE_STAGING_OBJS_FILE}" 2>&1
 
  echo "INSERT INTO dwh.properties VALUES ('initial load', 'true')" \
   | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
@@ -368,6 +386,15 @@ function __checkBaseTables {
  if [[ "${RET}" -ne 0 ]]; then
   __createBaseTables
  fi
+
+ __logi "Recreating base staging objects."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE}" 2>&1
+
+ __logi "Recreating staging objects."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_32_CREATE_STAGING_OBJS_FILE}" 2>&1
+
  __log_finish
 }
 
