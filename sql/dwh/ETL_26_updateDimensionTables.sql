@@ -58,8 +58,10 @@ INSERT INTO dwh.dimension_countries
   FROM dwh.dimension_countries
  )
 ;
+SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+ 'Updating countries with region' AS Task;
 -- Updates countries with regions.
-UPDATE dwh.dimension_countries
+UPDATE /* Notes-ETL */ dwh.dimension_countries
  SET region_id = get_country_region(country_id);
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
@@ -82,7 +84,7 @@ SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Updating modified country names' AS Task;
 
 -- Updates the dimension when username is changed.
-UPDATE dwh.dimension_countries
+UPDATE /* Notes-ETL */ dwh.dimension_countries
  SET country_name = c.country_name,
  country_name_es = c.country_name_es,
  country_name_en = c.country_name_en
