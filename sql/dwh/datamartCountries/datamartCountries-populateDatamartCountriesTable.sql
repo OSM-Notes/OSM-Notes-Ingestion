@@ -1,7 +1,7 @@
 -- Populates datamart for countries.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2024-03-14
 
 DO /* Notes-datamartCountries-processCountries */
 $$
@@ -32,10 +32,11 @@ BEGIN
   GROUP BY f.dimension_id_country
   ORDER BY MAX(f.action_at) DESC
  LOOP
-  RAISE NOTICE 'Processing country %.', r.dimension_id_country;
+  RAISE NOTICE 'Processing country % - %.', r.dimension_id_country,
+   CLOCK_TIMESTAMP();
   CALL dwh.update_datamart_country(r.dimension_id_country);
 
-  UPDATE dwh.dimension_countries
+  UPDATE /* Notes-ETL */ dwh.dimension_countries
    SET modified = FALSE
    WHERE dimension_country_id = r.dimension_id_country;
 
