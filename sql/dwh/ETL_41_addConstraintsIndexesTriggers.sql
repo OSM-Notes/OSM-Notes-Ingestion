@@ -189,6 +189,14 @@ CREATE INDEX user_note_idx
  ON dwh.facts (id_note, fact_id);
 COMMENT ON INDEX dwh.user_note_idx IS 'Improves queries to get resolve notes';
 
+CREATE INDEX note_sequence_idx
+ ON dwh.facts (id_note, sequence_action);
+COMMENT ON INDEX dwh.note_sequence_idx IS 'Improves queries to get notes and sequence';
+
+CREATE INDEX note_action_at_idx
+ ON dwh.facts (action_at);
+COMMENT ON INDEX dwh.note_action_at_idx IS 'Improves queries with action_at';
+
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Creating triggers' AS Task;
 
