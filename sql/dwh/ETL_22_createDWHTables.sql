@@ -1,4 +1,4 @@
--- Create data warehouse tables, indexes, functions and triggers.
+-- Create data warehouse tables.
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-27
