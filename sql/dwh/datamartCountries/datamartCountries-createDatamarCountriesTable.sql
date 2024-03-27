@@ -188,5 +188,5 @@ ALTER TABLE dwh.datamartCountries
  PRIMARY KEY (dimension_country_id);
 
 -- Processes all countries.
-UPDATE dwh.dimension_countries
+UPDATE /* Notes-ETL */ dwh.dimension_countries
   SET modified = TRUE;
