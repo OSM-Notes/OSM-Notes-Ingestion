@@ -124,13 +124,14 @@ BEGIN
     INTO m_day_year;
   SELECT /* Notes-staging */ DATE('${YEAR}-12-31')
     INTO m_max_day_year;
-  RAISE NOTICE 'Min and max dates % - %', m_day_year, m_max_day_year;
+  RAISE NOTICE 'Min and max dates % - %.', m_day_year, m_max_day_year;
   WHILE (m_day_year <= m_max_day_year) LOOP
    m_dummy := dwh.get_date_id(m_day_year);
    --RAISE NOTICE 'Processed date %.', m_day_year;
    SELECT /* Notes-staging */ m_day_year + 1
      INTO m_day_year;
   END LOOP;
+  RAISE NOTICE 'All dates generated.';
 END
 $$;
 
