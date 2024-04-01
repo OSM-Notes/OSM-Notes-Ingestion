@@ -6,16 +6,22 @@
 #
 # There are 3 ways to call this script:
 # * --user <UserName> : Shows the profile for the given user.
-# * --country <CountryName> : Shows the profile for the given country.
-# If the UserName or CountryName has spaces in the name, it should be invoked
-# between double quotes.
+# * --country <CountryName> : Shows the profile for the given country (name in
+#   in English).
+# * --pais <NombrePais> : Shows the profile for the given country (name in
+#   Spanish).
+# If the UserName, CountryName or NombrePais has spaces in the name, it should
+# be invoked between double quotes.
 # * (empty) : It shows general statistics about notes.
 #
 # For example:
 # * --user AngocA
 # * --country Colombia
 # * --country "Estados Unidos de América"
-# The name should match the name on the database in Spanish.
+# * --pais Alemania
+# * --country Germany
+# The name should match the name on the database in English or Spanish,
+# respectively.
 #
 # This script is only to test data on the data warehouse, and validate the data
 # to show in the web page report.
@@ -31,8 +37,8 @@
 # * shfmt -w -i 1 -sr -bn profile.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-21
-declare -r VERSION="2024-02-21"
+# Version: 2024-03-31
+declare -r VERSION="2024-03-31"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -85,8 +91,10 @@ declare -r ARGUMENT=${2:-}
 declare USERNAME
 # Dimension_User_id of the username.
 declare -i DIMENSION_USER_ID
-# Name of the user or the country.
+# Name of the user or the country in English.
 declare COUNTRY_NAME
+# Name of the user or the country in Spanish.
+declare PAIS_NAME
 # Country_id of the contry.
 declare -i COUNTRY_ID
 
@@ -130,12 +138,14 @@ function __checkPrereqs {
  if [[ "${PROCESS_TYPE}" != "" ]] \
   && [[ "${PROCESS_TYPE}" != "--user" ]] \
   && [[ "${PROCESS_TYPE}" != "--country" ]] \
+  && [[ "${PROCESS_TYPE}" != "--pais" ]] \
   && [[ "${PROCESS_TYPE}" != "--help" ]] \
   && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --user"
   echo " * --country"
+  echo " * --pais"
   echo " * --help"
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
@@ -153,6 +163,13 @@ function __checkPrereqs {
  else
   COUNTRY_NAME="${ARGUMENT}"
  fi
+ if [[ "${PROCESS_TYPE}" == "--pais" ]] \
+  && [[ "${ARGUMENT}" == "" ]]; then
+  __loge "ERROR: You  must provide a country name."
+  exit "${ERROR_INVALID_ARGUMENT}"
+ else
+  PAIS_NAME="${ARGUMENT}"
+ fi
 
  __checkPrereqsCommands
 
@@ -164,7 +181,8 @@ function __getUserId {
  DIMENSION_USER_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT dimension_user_id FROM dwh.datamartUsers
   WHERE username = '${USERNAME}'")
- if [[ "${DIMENSION_USER_ID}" == "" ]] || [[ "${DIMENSION_USER_ID}" -eq 0 ]]; then
+ if [[ "${DIMENSION_USER_ID}" == "" ]] \
+   || [[ "${DIMENSION_USER_ID}" -eq 0 ]]; then
   __loge "ERROR: The username \"${USERNAME}\" does not exist."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
@@ -172,11 +190,18 @@ function __getUserId {
 
 # Retrives the country_id from a country name.
 function __getCountryId {
- COUNTRY_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-  <<< "SELECT dimension_country_id FROM dwh.datamartCountries
-  WHERE country_name_es = '${COUNTRY_NAME}'")
+ if [[ "${PROCESS_TYPE}" == "--country" ]]; then
+  COUNTRY_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+   <<< "SELECT dimension_country_id FROM dwh.datamartCountries
+   WHERE country_name_en = '${COUNTRY_NAME}'")
+ else
+  COUNTRY_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+   <<< "SELECT dimension_country_id FROM dwh.datamartCountries
+   WHERE country_name_es = '${PAIS_NAME}'")
+ fi
+
  if [[ "${COUNTRY_ID}" == "" ]]; then
-  __loge "ERROR: The country name \"${COUNTRY_NAME}\" does not exist."
+  __loge "ERROR: The country name \"${COUNTRY_NAME}${PAIS_NAME}\" does not exist."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
 }
@@ -1486,7 +1511,8 @@ function main() {
  if [[ "${PROCESS_TYPE}" == "--user" ]]; then
   __getUserId
   __processUserProfile
- elif [[ "${PROCESS_TYPE}" == "--country" ]]; then
+ elif [[ "${PROCESS_TYPE}" == "--country" ]] \
+   || [[ "${PROCESS_TYPE}" == "--pais" ]]; then
   __getCountryId
   __processCountryProfile
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
