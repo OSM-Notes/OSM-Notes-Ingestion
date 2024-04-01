@@ -59,7 +59,7 @@ INSERT INTO dwh.dimension_countries
  )
 ;
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
- 'Updating countries with region' AS Task;
+ 'Updating countries with region (takes a while)' AS Task;
 -- Updates countries with regions.
 UPDATE /* Notes-ETL */ dwh.dimension_countries
  SET region_id = get_country_region(country_id);
