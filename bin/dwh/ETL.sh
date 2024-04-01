@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-03-13
-declare -r VERSION="2024-03-13"
+# Version: 2024-03-31
+declare -r VERSION="2024-03-31"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -281,6 +281,8 @@ function __initialFacts {
   sleep 5 # To insert all days of the year in the dimension.
   YEAR=$((YEAR - 1))
  done
+ psql -d "${DBNAME}" -c "DROP INDEX IF EXISTS comments_function_year";
+
  # Waits until all years are fniished.
  wait
  __logw "Waited for all jobs, restarting in main thread."
