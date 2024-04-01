@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-21
+# Version: 2024-03-31
 
 # Error codes.
 # 1: Help message.
@@ -41,9 +41,13 @@ declare -r ERROR_EXECUTING_PLANET_DUMP=248
 declare -r ERROR_DOWNLOADING_BOUNDARY=249
 # 250: Error converting OSM JSON to GeoJSON.
 declare -r ERROR_GEOJSON=250
+# 251: Internet issue.
+declare -r ERROR_INTERNET_ISSUE=251
 # 255: General error.
 declare -r ERROR_GENERAL=255
 
+# Generates file for failed exeuction.
+declare GENERATE_FAILED_FILE=true
 # Previous execution failed.
 declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"
 
@@ -157,7 +161,12 @@ function __onlyExecution {
  if [[ -n "${ONLY_EXECUTION:-}" ]] && [[ "${ONLY_EXECUTION}" == "no" ]]; then
   echo " There is another process already in execution"
  else
-  touch "${FAILED_EXECUTION_FILE}"
+  if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+   __logw "Generating file for failed exeuction."
+   touch "${FAILED_EXECUTION_FILE}"
+  else
+   __logi "Do not generate file for failed execution."
+  fi
  fi
  __log_finish
 }
@@ -437,7 +446,7 @@ function __processBoundary {
  PROCESS="${BASHPID}"
  OUTPUT_OVERPASS="${TMP_DIR}/output.${BASHPID}"
  set +e
- __logi "Retrieving shape."
+ __logi "Retrieving shape ${ID}."
  RETRY=true
  while [[ "${RETRY}" = true ]]; do
   # Retrieves the JSON from Overpass.
@@ -447,7 +456,8 @@ function __processBoundary {
   MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
   if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
    # If "too many requests" as part of the output, then waits.
-   sleep 30
+   __logw "Waiting ${SECONDS_TO_WAIT} seconds because too many requests."
+   sleep "${SECONDS_TO_WAIT}"
   elif [[ "${RET}" -ne 0 ]]; then
    # Retry once if there was an error.
    set -e
@@ -470,6 +480,7 @@ function __processBoundary {
  rm -f "${OUTPUT_OVERPASS}"
  set -e
 
+ # Validate the geojson with a json schema
  __logi "Converting into geoJSON."
  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
  set +e
@@ -478,11 +489,10 @@ function __processBoundary {
  echo "${RET}"
  set -e
  if [[ "${RET}" -ne 0 ]]; then
-  __logd "The GeoJSON file ${JSON_FILE} is invalid; failing."
+  __loge "The GeoJSON file ${JSON_FILE} is invalid; failing."
   exit "${ERROR_GEOJSON}"
  fi
 
- # TODO validate the geojson with a json schema
  set +o pipefail
  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
   | awk -F\" '{print $4}' | sed "s/'/''/")
@@ -507,7 +517,9 @@ function __processBoundary {
  RET="${?}"
  set -e
  while [[ "${RET}" -ne 0 ]]; do
+  set +e
   LOCK_ID=$(cat "${LOCK_OGR2OGR}"/pid)
+  set -e
   __logd "${PROCESS} waiting for the lock. Current owner ${LOCK_ID}."
   sleep 1
   set +e
@@ -586,7 +598,8 @@ function __processBoundary {
  unset NAME_EN
 
  __logi "I release the lock ${PROCESS} - ${ID}."
- rm -f "${LOCK_OGR2OGR}/pid" "${LOCK_OGR2OGR}/"
+ rm -f "${LOCK_OGR2OGR}/pid"
+ rmdir "${LOCK_OGR2OGR}/"
 
  __log_finish
 }
@@ -610,7 +623,7 @@ function __processList {
    out;
 EOF
 
-  __processBoundary "${ID}"
+  __processBoundary
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
    rm -f "${JSON_FILE}" "${GEOJSON_FILE}" "${QUERY_FILE}"
@@ -678,7 +691,10 @@ function __processCountries {
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  split -l"${SIZE}" "${COUNTRIES_FILE}" "${TMP_DIR}/part_country_"
- rm -f "${LOCK_OGR2OGR}/"
+ if [[ -d "${LOCK_OGR2OGR}" ]]; then
+  rm -f "${LOCK_OGR2OGR}/pid"
+  rmdir "${LOCK_OGR2OGR}"
+ fi
  __logw "Starting parallel process to process country boundaries..."
  for I in "${TMP_DIR}"/part_country_??; do
   (
@@ -705,19 +721,24 @@ function __processCountries {
    FAIL=$((FAIL + 1))
   fi
  done
- __logw "Waited for all jobs, restarting in main thread."
- if [[ "${FAIL}" != "0" ]]; then
+ __logw "Waited for all jobs, restarting in main thread - countries."
+ if [[ "${FAIL}" -ne 0 ]]; then
   echo "FAIL! (${FAIL})"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
  # If some of the threads generated an error.
+ set +e
  QTY_LOGS=$(ls -1 "${TMP_DIR}" | grep -c "${BASENAME}\.log\.")
+ set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some thread generated an error."
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
- rm -f "${LOCK_OGR2OGR}/"
+ if [[ -d "${LOCK_OGR2OGR}" ]]; then
+  rm -f "${LOCK_OGR2OGR}/pid"
+  rmdir "${LOCK_OGR2OGR}"
+ fi
  __log_finish
 }
 
@@ -748,7 +769,10 @@ function __processMaritimes {
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  split -l"${SIZE}" "${MARITIMES_FILE}" "${TMP_DIR}/part_maritime_"
- rm -f "${LOCK_OGR2OGR}/"
+ if [[ -d "${LOCK_OGR2OGR}" ]]; then
+  rm -f "${LOCK_OGR2OGR}/pid"
+  rmdir "${LOCK_OGR2OGR}"
+ fi
  __logw "Starting parallel process to process maritime boundaries..."
  for I in "${TMP_DIR}"/part_maritime_??; do
   (
@@ -775,19 +799,24 @@ function __processMaritimes {
    FAIL=$((FAIL + 1))
   fi
  done
- __logw "Waited for all jobs, restarting in main thread."
- if [[ "${FAIL}" != "0" ]]; then
+ __logw "Waited for all jobs, restarting in main thread - maritimes."
+ if [[ "${FAIL}" -ne 0 ]]; then
   echo "FAIL! (${FAIL})"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
  # If some of the threads generated an error.
+ set +e
  QTY_LOGS=$(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\.")
+ set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some thread generated an error."
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
- rm -f "${LOCK_OGR2OGR}/"
+ if [[ -d "${LOCK_OGR2OGR}" ]]; then
+  rm -f "${LOCK_OGR2OGR}/pid"
+  rmdir "${LOCK_OGR2OGR}"
+ fi
 
  __logi "Calculating statistics on countries."
  echo "ANALYZE countries" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
@@ -812,12 +841,12 @@ function __getLocationNotes {
     < "${POSTGRES_UPLOAD_NOTE_LOCATION}" || true)"
  fi
 
- # TODO process loaded location (max not null)
- # TODO process in parallel the remaining ones.
+ # Retrieves the max note for already location processed notes (from file.)
+ MAX_NOTE_ID_NOT_NULL=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  <<< "SELECT MAX(note_id) FROM notes WHERE id_country IS NOT NULL")
+ # Retrieves the max note.
  MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT MAX(note_id) FROM notes")
- # The last thread has less notes.
- MAX_NOTE_ID=$((MAX_NOTE_ID + 500))
 
  MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
@@ -826,8 +855,9 @@ function __getLocationNotes {
   MAX_THREADS=$((MAX_THREADS - 1))
  fi
 
- declare -l SIZE=$((MAX_NOTE_ID / MAX_THREADS))
- __logw "Starting parallel process to locate notes..."
+ # Processes notes that should already have a location.
+ declare -l SIZE=$((MAX_NOTE_ID_NOT_NULL / MAX_THREADS))
+ __logw "Starting parallel process to locate notes - old..."
  for J in $(seq 1 1 "${MAX_THREADS}"); do
   (
    __logi "Starting ${J}."
@@ -837,15 +867,15 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-      FROM notes
-      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-      AND id_country IS NULL"
-    echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
+    #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
+    #  FROM notes
+    #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+    #  AND id_country IS NULL"
+    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
 
     if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
      __logd "Updating incorrectly located notes."
-     STMT="UPDATE notes AS n
+     STMT="UPDATE notes AS n /* Notes-base thread old review */
      SET id_country = NULL
      FROM countries AS c
      WHERE n.id_country = c.country_id
@@ -857,13 +887,13 @@ function __getLocationNotes {
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
 
-    STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-      FROM notes
-      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-      AND id_country IS NULL"
-    echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
+    #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
+    #  FROM notes
+    #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+    #  AND id_country IS NULL"
+    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
 
-    STMT="UPDATE notes
+    STMT="UPDATE notes /* Notes-base thread old */
       SET id_country = get_country(longitude, latitude, note_id)
       WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
       AND id_country IS NULL"
@@ -874,9 +904,62 @@ function __getLocationNotes {
  done
 
  wait
- __logw "Waited for all jobs, restarting in main thread."
+ __logw "Waited for all jobs, restarting in main thread - old notes."
 
- echo "UPDATE notes
+ # Processes new notes that do not have location.
+ MAX_NOTE_ID_NOT_NULL=$((MAX_NOTE_ID_NOT_NULL - LOOP_SIZE))
+ QTY=$((MAX_NOTE_ID - MAX_NOTE_ID_NOT_NULL))
+ declare -l SIZE=$((QTY / MAX_THREADS))
+ __logw "Starting parallel process to locate notes - new..."
+ for J in $(seq 1 1 "${MAX_THREADS}"); do
+  (
+   __logi "Starting ${J}."
+   MIN=$((MAX_NOTE_ID_NOT_NULL + SIZE * (J - 1) + LOOP_SIZE))
+   MAX=$((MAX_NOTE_ID_NOT_NULL + SIZE * J))
+   for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
+    MIN_LOOP=$((I - LOOP_SIZE))
+    MAX_LOOP=${I}
+    __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
+    #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
+    #  FROM notes
+    #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
+    #  AND id_country IS NULL"
+    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
+
+    if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
+     __logd "Updating incorrectly located notes."
+     STMT="UPDATE notes AS n /* Notes-base thread new review */
+     SET id_country = NULL
+     FROM countries AS c
+     WHERE n.id_country = c.country_id
+     AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude),
+      4326))
+      AND ${MIN_LOOP} <= n.note_id AND n.note_id < ${MAX_LOOP}
+      AND id_country IS NOT NULL"
+     __logt "${STMT}"
+     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    fi
+
+    #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
+    #  FROM notes
+    #  WHERE ${MIN_LOOP} <= note_id AND note_id < ${MAX_LOOP}
+    #  AND id_country IS NULL"
+    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
+
+    STMT="UPDATE notes /* Notes-base thread old */
+      SET id_country = get_country(longitude, latitude, note_id)
+      WHERE ${MIN_LOOP} <= note_id AND note_id < ${MAX_LOOP}
+      AND id_country IS NULL"
+    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+   done
+   __logi "Finishing ${J}."
+  ) &
+ done
+
+ wait
+ __logw "Waited for all jobs, restarting in main thread - new notes."
+
+ echo "UPDATE notes /* Notes-base remaining */
    SET id_country = get_country(longitude, latitude, note_id)
    WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
