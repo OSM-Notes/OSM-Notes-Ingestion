@@ -1,7 +1,7 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-22
+-- Version: 2024-03-31
 
 -- Primrary keys
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
@@ -91,6 +91,7 @@ CREATE OR REPLACE FUNCTION dwh.get_date_id(new_date TIMESTAMP)
      DATE(new_date), EXTRACT(YEAR FROM new_date), EXTRACT(MONTH FROM new_date),
      EXTRACT(DAY FROM new_date)
     )
+    ON CONFLICT DO NOTHING -- This should not happen, but happens.
     RETURNING dimension_day_id
      INTO m_id_date
    ;
