@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-03-31
+# Version: 2024-11-16
 
 # Error codes.
 # 1: Help message.
@@ -386,17 +386,17 @@ function __convertPlanetNotesToFlatFile {
  # Converts the XML into a flat file in CSV format.
  __logi "Processing notes from XML."
  # shellcheck disable=SC2154
- java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+ java -Xmx8000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" \
   -o:"${OUTPUT_NOTES_FILE}"
  __logi "Processing comments from XML."
  # shellcheck disable=SC2154
- java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+ java -Xmx8000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
   -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
  __logi "Processing text from XML."
  # shellcheck disable=SC2154
- java -Xmx6000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
+ java -Xmx8000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
   -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_TEXT_COMMENTS_FILE}" \
   -o:"${OUTPUT_TEXT_COMMENTS_FILE}"
  __log_finish
