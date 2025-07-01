@@ -6,16 +6,8 @@
   <comment action="reopened" timestamp="2022-04-15T21:58:43Z" uid="13874704" user="Emilius123"></comment>
   <comment action="commented" timestamp="2022-04-15T21:59:07Z" uid="13874704" user="Emilius123">Since this now is the oldest note, LOOK MOM, I'M OLD</comment>
   <comment action="closed" timestamp="2022-05-18T21:43:39Z" uid="13792107" user="LordGarySugar">This note didn't need to be reactivated.</comment>
-  <comment action="reopened" timestamp="2024-04-01T01:57:32Z" uid="13874704" user="Emilius123"></comment>
-  <comment action="closed" timestamp="2024-04-01T01:57:36Z" uid="13874704" user="Emilius123">Yes, it did.</comment>
-  <comment action="reopened" timestamp="2024-09-12T13:41:32Z" uid="21788230" user="shlerksofftorobots"></comment>
-  <comment action="closed" timestamp="2024-09-12T13:42:19Z" uid="21788230" user="shlerksofftorobots">thought this was the comment button mb</comment>
-  <comment action="reopened" timestamp="2024-11-03T17:56:29Z" uid="21231804" user="KlopanRin"></comment>
-  <comment action="closed" timestamp="2024-11-03T17:57:27Z" uid="21231804" user="KlopanRin">So inspiring! This note encouraged all of us to make more notes on OSM! And yes i reactivated the note just to say this</comment>
-  <comment action="reopened" timestamp="2025-04-02T12:19:26Z" uid="14916119" user="HugoC01"/>
-  <comment action="closed" timestamp="2025-04-02T12:19:48Z" uid="14916119" user="HugoC01">The first note</comment>
 </note>
-<note id="7" lat="50.9381992" lon="1.8605947" created_at="2013-04-24T08:14:28Z" closed_at="2024-12-31T23:06:19Z">
+<note id="7" lat="50.9381992" lon="1.8605947" created_at="2013-04-24T08:14:28Z">
   <comment action="opened" timestamp="2013-04-24T08:14:28Z">Adresse complète :
 B&amp;B CALAIS Centre St Pierre 	 
 ZAC Curie
@@ -24,11 +16,8 @@ Rue de Lille
 Tel. 08 92 70 75 18 (0.34€ TTC/mn depuis un poste fixe)
 Fax. 03 21 00 92 71
 Parking, accès handicapé, wifi, ascenseur, caméra</comment>
-  <comment action="closed" timestamp="2013-04-24T08:14:50Z" uid="37548" user="Marcussacapuces91"></comment>
-  <comment action="reopened" timestamp="2024-12-31T23:05:45Z" uid="22337282" user="رينشهر"/>
-  <comment action="closed" timestamp="2024-12-31T23:06:19Z" uid="22337282" user="رينشهر">نجاح باهر، أقدم ملاحظة بدون تعليقات من قبل مستخدمين مجهولين</comment>
 </note>
-<note id="8" lat="50.7550836" lon="6.1373234" created_at="2013-04-24T08:15:06Z" closed_at="2016-05-30T13:22:19Z">
+<note id="8" lat="50.7550836" lon="6.1373234" created_at="2013-04-24T08:15:06Z">
   <comment action="opened" timestamp="2013-04-24T08:15:07Z" uid="293774" user="Oli-Wan">test</comment>
   <comment action="closed" timestamp="2013-04-24T08:15:14Z" uid="293774" user="Oli-Wan">fine</comment>
   <comment action="reopened" timestamp="2016-04-26T20:03:32Z" uid="2316730" user="Geography Canada"></comment>
@@ -40,7 +29,6 @@ http://nesseler.de/</comment>
   <comment action="reopened" timestamp="2016-05-29T18:57:26Z" uid="2316730" user="Geography Canada"></comment>
   <comment action="commented" timestamp="2016-05-29T18:57:31Z" uid="2316730" user="Geography Canada">Sollte nusseler Grünzig aktiviert werden?</comment>
   <comment action="commented" timestamp="2016-05-29T18:59:25Z" uid="2316730" user="Geography Canada">Wiederverwenden von alten Hinweis für andere Frage (sollte nusseler Grünzig aktiviert werden?).</comment>
-  <comment action="closed" timestamp="2016-05-30T13:22:19Z" uid="3298438" user="aixbrick">No, nesseler grünzig (entirely lowercase) is the company's preferred spelling. No action required.</comment>
 </note>
 <note id="9" lat="47.3958110" lon="8.3768338" created_at="2013-04-24T08:17:47Z" closed_at="2016-08-26T05:57:13Z">
   <comment action="opened" timestamp="2013-04-24T08:17:47Z">Building is currently demolished</comment>

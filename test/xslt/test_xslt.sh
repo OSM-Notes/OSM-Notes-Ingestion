@@ -2,6 +2,10 @@
 #
 # Test the XSLT files to produce the expected output.
 #
+# xsltproc ../../xslt/note_comments_text-Planet-csv.xslt osm-notes-Planet.xml > note_comments_text-Planet-expected.csv
+# xsltproc ../../xslt/note_comments-Planet-csv.xslt osm-notes-Planet.xml > note_comments-Planet-expected.csv
+# xsltproc ../../xslt/notes-Planet-csv.xslt osm-notes-Planet.xml > notes-Planet-expected.csv
+#
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-01
 
