@@ -19,6 +19,8 @@ function test() {
  echo
 }
 
+rm -f *actual*
+
 TEST="note_comments_text"
 TYPE="Planet"
 test
