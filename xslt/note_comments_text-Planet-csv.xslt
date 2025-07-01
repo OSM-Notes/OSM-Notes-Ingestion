@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-XML transformation to convert note comment's text from a Planet dump to a CSV file.
+XML transformation to convert note comment's text from a Planet dump to a CSV
+file.
 
 Author: Andres Gomez (AngocA)
 Version: 2025-07-01
@@ -34,9 +35,16 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <!-- Main template -->
  <xsl:template match="/">
   <xsl:for-each select="osm-notes/note">
-   <xsl:variable name="note_id"><xsl:value-of select="@id"/></xsl:variable>
+   <xsl:variable name="note_id">
+    <xsl:value-of select="@id"/>
+   </xsl:variable>
    <xsl:for-each select="comment">
-    <xsl:copy-of select="$note_id"/>,"<xsl:call-template name='escape-quotes'><xsl:with-param name='text' select='.'/></xsl:call-template>"
+    <xsl:copy-of select="$note_id"/>
+    <xsl:text>,"</xsl:text>
+    <xsl:call-template name='escape-quotes'>
+     <xsl:with-param name='text' select='.'/>
+    </xsl:call-template>
+    <xsl:text>"&#10;</xsl:text>
    </xsl:for-each>
   </xsl:for-each>
  </xsl:template>
