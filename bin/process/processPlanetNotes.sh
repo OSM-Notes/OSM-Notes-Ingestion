@@ -47,7 +47,6 @@
 # The following files are necessary to prepare the environment.
 # https://github.com/tyrasd/osmtogeojson
 # npm install -g osmtogeojson
-# https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
 #
 # When running under MacOS or zsh, it is better to invoke bash:
 # bash ./processPlanetNotes.sh
@@ -70,10 +69,6 @@
 # Or change the pg_hba.conf file.
 # Also you need to give permissions to create objects in public schema:
 #   GRANT USAGE ON SCHEMA public TO myuser
-#
-# To specify the Saxon location, you can put this file in the same directory as
-# saxon ; otherwise, it will this location:
-#   export SAXON_JAR=~/saxon/
 #
 # To not remove all generated files, you can export this:
 #   export CLEAN=false
@@ -166,8 +161,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-20
-declare -r VERSION="2024-02-20"
+# Version: 2025-07-01
+declare -r VERSION="2025-07-01"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -301,14 +296,13 @@ function __show_help {
  echo " * Without parameter, it processes the new notes from Planet notes file."
  echo
  echo "Flatfile option is useful when the regular machine does not have enough"
- echo "memory to process the notes file. Normally it needs 6 GB for Java."
+ echo "memory to process the notes file."
  echo "LocateNotes is useful to continue from the flat file."
  echo
  echo "Environment variable:"
  echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
  echo "   backup tables."
  echo " * CLEAN could be set to false, to left all created files."
- echo " * SAXON_JAR specifies the location of the Saxon JAR file."
  echo " * LOG_LEVEL specifies the logger leves. Possible values are:"
  echo "   DEBUG, INFO, WARN, ERROR"
  echo
@@ -357,15 +351,6 @@ function __checkPrereqs {
  if [[ "${PROCESS_TYPE}" == "" ]] \
   || [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
   __checkPrereqsCommands
-  ## Saxon Jar
-  if [[ ! -r "${SAXON_JAR}" ]]; then
-   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1; then
-   __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
  fi
 
  ## Checks if the flat file exist.

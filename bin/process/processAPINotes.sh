@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-20
-declare -r VERSION="2024-02-20"
+# Version: 2025-07-01
+declare -r VERSION="2025-07-01"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -143,7 +143,6 @@ function __show_help {
  echo "* CLEAN={true|false/empty}: Deletes all generated files."
  echo "* LOG_LEVEL={TRACE|DEBUG|INFO|WARN|ERROR|FATAL}: Configures the"
  echo "  logger level."
- echo "* SAXON_CLASSPATH=: Location of the saxon-he-11.4.jar file."
  echo
  echo "This script could call processPlanetNotes.sh which use another"
  echo "environment variables. Please check the documentation of that script."
@@ -168,13 +167,6 @@ function __checkPrereqs {
  set +e
  # Checks prereqs.
  __checkPrereqsCommands
-
- ## Saxon Jar
- __logd "Checking Saxon Jar."
- if [[ ! -r "${SAXON_JAR}" ]]; then
-  __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
 
  ## Checks required files.
  if [[ ! -r "${NOTES_SYNC_SCRIPT}" ]]; then
@@ -326,9 +318,8 @@ function __convertApiNotesToFlatFile {
  # XSLT transformations.
 
  # Converts the XML into a flat file in CSV format.
- java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-  -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTES_API_FILE}" \
-  -o:"${OUTPUT_NOTES_FILE}"
+ xsltproc -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" \
+   "${API_NOTES_FILE}"
  local RESULT
  RESULT=$(grep -c "<note " "${API_NOTES_FILE}")
  __logi "${RESULT} - Notes from API."
@@ -336,18 +327,16 @@ function __convertApiNotesToFlatFile {
  __logw "${RESULT} - Notes in flat file."
  cat "${OUTPUT_NOTES_FILE}"
 
- java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-  -s:"${API_NOTES_FILE}" -xsl:"${XSLT_NOTE_COMMENTS_API_FILE}" \
-  -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
+ xsltproc -o "${OUTPUT_NOTE_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" \
+   "${API_NOTES_FILE}"
  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
  __logi "${RESULT} - Comments from API."
  RESULT=$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}")
  __logw "${RESULT} - Note comments in flat file."
  cat "${OUTPUT_NOTE_COMMENTS_FILE}"
 
- java -Xmx1000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-  -s:"${API_NOTES_FILE}" -xsl:"${XSLT_TEXT_COMMENTS_API_FILE}" \
-  -o:"${OUTPUT_TEXT_COMMENTS_FILE}"
+ xsltproc -o "${OUTPUT_TEXT_COMMENTS_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" \
+   "${API_NOTES_FILE}"
  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
  __logi "${RESULT} - Text comments from API."
  RESULT=$(wc -l "${OUTPUT_TEXT_COMMENTS_FILE}")
