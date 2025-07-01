@@ -14,7 +14,7 @@ This example is for polling every 15 minutes:
 ```
 
 The configuration file contains the properties needed to configure this tool,
-especially the database and the Saxon JAR location.
+especially the database properties.
 
 # Main functions
 
@@ -51,7 +51,7 @@ profile can be used for any user.
     If another Overpass instance is used that does not block when many requests,
     the pause could be removed or reduced
 * 1 minute: Download the Planet notes file.
-* 4 minutes: Processing XML notes file, but this requires 6GB RAM for Saxon.
+* 4 minutes: Processing XML notes file, ToDo validar esto.
 * 12 minutes: Inserting notes into the database.
 * 5 minutes: Assign sequence to comments.
 * 5 minutes: Load text comments.
@@ -141,14 +141,7 @@ CREATE EXTENSION postgis;
 EOF
 
 # Tools to process the XML and convert it into CSV.
-sudo apt -y install libxml2-utils
-sudo apt install -y openjdk-18-jdk
-
-mkdir ~/saxon
-cd ~/saxon
-wget -O SaxonHE11-4J.zip https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
-unzip SaxonHE11-4J.zip
-export SAXON_CLASSPATH=~/saxon/
+sudo apt -y install libxml2-utils xsltproc
 
 # Tools to process geometries.
 sudo apt -y install npm
@@ -174,7 +167,7 @@ could configure the crontab like (`crontab -e`):
 0 0 0 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh
 
 # Runs the API extraction in debug mode, keeping all the generated files.
-#*/15 * * * * export LOG_LEVEL=DEBUG ; export SAXON_CLASSPATH=~/saxon/ && ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
+#*/15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
 ```
 
 You can also configure the ETL at different times from the notes' processing.
@@ -219,8 +212,7 @@ basic elements on the database and populate it:
 * Download countries and maritime areas.
 * Download the Planet dump, validate it and convert it CSV to import it into
   the database.
-  The conversion from the XML Planet dump to CSV is done with an XLST and it
-  uses Saxon, which requires 6 GB RAM to process it.
+  The conversion from the XML Planet dump to CSV is done with an XLST.
 * Get the location of the notes.
 
 If `processAPINotes.sh` gets more than 10,000 notes from an API call, then it
@@ -332,20 +324,6 @@ These files include details about how to run or troubleshoot the scripts.
   Planet dump and API calls.
   They are used from `processAPINotes.sh` and `processPlanetNotes.sh`.
 
-## Saxon - XML XSLT processor
-
-To run the scripts, it is necessary to have Saxon on the path.
-You can also specify the location by defining this environment variable in the
-crontab or the command line:
-
-```
-export SAXON_CLASSPATH=~/saxon/
-```
-
-This tool requires 6 GB in RAM to process the complete Notes files from Planet.
-We are looking for alternatives to process the XML notes files to create the
-flat files that are loaded in the Postgres database.
-
 ## Monitoring
 
 Periodically, you can run the following script to monitor and validate that
@@ -395,7 +373,6 @@ These are external libraries:
 
 * Bash 4 or higher, because the main code is developed in the scripting
   language.
-* Saxon for the XLST transformation.
 This tool is not included, to prevent licensing problems.
 * bash_logger, which is a tool to write log4j-like messages in Bash.
   This tool is included as part of the project.
@@ -437,7 +414,4 @@ Andres Gomez (@AngocA) was the main developer of this idea.
 He thanks Jose Luis Ceron Sarria for all his help designing the
 architecture, defining the data modeling and implementing the infrastructure
 on the cloud.
-
-Also, thanks to Martin Honnen who helped us improve the XSLT as in this thread:
-https://stackoverflow.com/questions/74672609/saxon-out-of-memory-when-processing-openstreetmap-notes-file-from-planet?noredirect=1#comment131821658_74672609
 
