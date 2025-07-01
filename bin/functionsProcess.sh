@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-11-16
+# Version: 2025-07-01
 
 # Error codes.
 # 1: Help message.
@@ -83,14 +83,6 @@ declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
 # Filename for the flat file for text comment notes.
 declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
-
-# Jar name of the XSLT processor.
-declare SAXON_JAR
-set +ue
-SAXON_JAR="$(find "${SAXON_CLASSPATH:-.}" -maxdepth 1 -type f \
- -name "saxon-he-*.*.jar" | grep -v test | grep -v xqj | head -1)"
-set -ue
-readonly SAXON_JAR
 
 # PostgreSQL files.
 # Check base tables.
@@ -253,10 +245,10 @@ EOF
   __loge "ERROR: XMLlint is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## Java
- __logd "Checking Java."
- if ! java --version > /dev/null 2>&1; then
-  __loge "ERROR: Java JRE is missing."
+ ## XSLTproc
+ __logd "Checking XSLTproc."
+ if ! xsltproc --version > /dev/null 2>&1; then
+  __loge "ERROR: XSLTproc is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Bash 4 or greater.
@@ -385,20 +377,14 @@ function __convertPlanetNotesToFlatFile {
 
  # Converts the XML into a flat file in CSV format.
  __logi "Processing notes from XML."
- # shellcheck disable=SC2154
- java -Xmx8000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-  -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTES_FILE}" \
-  -o:"${OUTPUT_NOTES_FILE}"
+ xsltproc -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_FILE}" \
+   "${PLANET_NOTES_FILE}.xml"
  __logi "Processing comments from XML."
- # shellcheck disable=SC2154
- java -Xmx8000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-  -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_NOTE_COMMENTS_FILE}" \
-  -o:"${OUTPUT_NOTE_COMMENTS_FILE}"
+ xsltproc -o "${OUTPUT_NOTE_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
+   "${PLANET_NOTES_FILE}.xml"
  __logi "Processing text from XML."
- # shellcheck disable=SC2154
- java -Xmx8000m -cp "${SAXON_JAR}" net.sf.saxon.Transform \
-  -s:"${PLANET_NOTES_FILE}.xml" -xsl:"${XSLT_TEXT_COMMENTS_FILE}" \
-  -o:"${OUTPUT_TEXT_COMMENTS_FILE}"
+ xsltproc -o "${OUTPUT_TEXT_COMMENTS_FILE}" "${XSLT_TEXT_COMMENTS_FILE}" \
+   "${PLANET_NOTES_FILE}.xml"
  __log_finish
 }
 
