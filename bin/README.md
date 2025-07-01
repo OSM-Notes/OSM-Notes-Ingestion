@@ -31,9 +31,8 @@ functionalities.
 
 # Insufficient memory resources
 
-If the server where this script runs does not have enough memory (6 GB for
-Java), then it will not be able to process the Planet notes file, to convert it
-into a flat file.
+If the server where this script runs does not have enough memory, then it will
+not be able to process the Planet notes file, to convert it into a flat file.
 
 To overcome this issue, you can prepare the environment with 3 steps, performed
 in different computers with different RAM.
@@ -41,6 +40,5 @@ in different computers with different RAM.
 * `processPlanetNotes.sh --base` This creates the basic elements of the
   database.
 * `processPlanetNotes.sh --flatfile` Downloads the Planet notes file and
-  converts it into two CSV flat files. This is the process that should be done
-  in a computer that can reserve 6 GB for Java Saxon.
+  converts it into two CSV flat files.
 * `processPlanetNotes.sh --locatenotes` Assign a country to the notes.
