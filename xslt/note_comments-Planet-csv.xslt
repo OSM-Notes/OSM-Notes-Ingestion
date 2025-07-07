@@ -3,7 +3,7 @@
 XML transformation to convert note comments from a Planet dump to a CSV file.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-01
+Version: 2025-07-07
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -16,14 +16,17 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <!-- Template to duplicate double quotes -->
  <xsl:template name="escape-quotes">
   <xsl:param name="text"/>
+  <xsl:variable name="rest" select="substring-after($text, $quote)"/>
 
   <xsl:choose>
    <xsl:when test="contains($text, $quote)">
     <xsl:value-of select="substring-before($text, $quote)"/>
     <xsl:value-of select="$escaped-quote"/>
-    <xsl:call-template name="escape-quotes">
-     <xsl:with-param name="text" select="substring-after($text, $quote)"/>
-    </xsl:call-template>
+    <xsl:if test="string-length($rest) &gt; 0">
+     <xsl:call-template name="escape-quotes">
+      <xsl:with-param name="text" select="$rest"/>
+      </xsl:call-template>
+    </xsl:if>
    </xsl:when>
    <xsl:otherwise>
     <xsl:value-of select="$text"/>
@@ -49,9 +52,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
       <xsl:value-of select="@uid"/>
       <xsl:text>,"</xsl:text>
       <xsl:call-template name='escape-quotes'>
-       <xsl:with-param name='text' select='.'/>
+       <xsl:with-param name='text' select='@user'/>
       </xsl:call-template>
-      <xsl:text>"</xsl:text><xsl:text></xsl:text>
+      <xsl:text>"</xsl:text>
      </xsl:when>
      <xsl:otherwise>
       <xsl:copy-of select="$note_id" />

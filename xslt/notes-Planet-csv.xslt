@@ -3,7 +3,7 @@
 XML transformation to convert notes from a Planet dump to a CSV file.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-01
+Version: 2025-07-07
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -27,7 +27,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
      <xsl:text>","close"</xsl:text>
     </xsl:when>
     <xsl:otherwise>
-     <xsl:text>","open"</xsl:text>
+     <xsl:text>,"open"</xsl:text>
     </xsl:otherwise>
    </xsl:choose>
    <xsl:text>&#10;</xsl:text>
