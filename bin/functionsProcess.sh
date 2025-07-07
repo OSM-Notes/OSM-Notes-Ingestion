@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-01
+# Version: 2025-07-07
 
 # Error codes.
 # 1: Help message.
@@ -375,16 +375,18 @@ function __convertPlanetNotesToFlatFile {
  __log_start
  # Process the notes file.
 
+ # Note too large: https://www.openstreetmap.org/note/156572
+ # It requires --maxdepth 5000
  # Converts the XML into a flat file in CSV format.
  __logi "Processing notes from XML."
- xsltproc -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_FILE}" \
-   "${PLANET_NOTES_FILE}.xml"
+ xsltproc --timing --load-trace -o "${OUTPUT_NOTES_FILE}" \
+   "${XSLT_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
  __logi "Processing comments from XML."
- xsltproc -o "${OUTPUT_NOTE_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_FILE}" \
-   "${PLANET_NOTES_FILE}.xml"
+ xsltproc --timing --load-trace -o "${OUTPUT_NOTE_COMMENTS_FILE}" \
+   "${XSLT_NOTE_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
  __logi "Processing text from XML."
- xsltproc -o "${OUTPUT_TEXT_COMMENTS_FILE}" "${XSLT_TEXT_COMMENTS_FILE}" \
-   "${PLANET_NOTES_FILE}.xml"
+ xsltproc --timing --load-trace --maxdepth 40000 -o "${OUTPUT_TEXT_COMMENTS_FILE}" \
+   "${XSLT_TEXT_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
  __log_finish
 }
 
@@ -437,8 +439,9 @@ function __processBoundary {
  while [[ "${RETRY}" = true ]]; do
   # Retrieves the JSON from Overpass.
   wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-   "${OVERPASS_INTERPRETER}" > "${OUTPUT_OVERPASS}"
+   "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
   RET="${?}"
+  cat "${OUTPUT_OVERPASS}"
   MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
   if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
    # If "too many requests" as part of the output, then waits.
