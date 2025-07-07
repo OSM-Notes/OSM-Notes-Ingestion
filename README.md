@@ -51,7 +51,7 @@ profile can be used for any user.
     If another Overpass instance is used that does not block when many requests,
     the pause could be removed or reduced
 * 1 minute: Download the Planet notes file.
-* 4 minutes: Processing XML notes file, ToDo validar esto.
+* 4 minutes: Processing XML notes file.
 * 12 minutes: Inserting notes into the database.
 * 5 minutes: Assign sequence to comments.
 * 5 minutes: Load text comments.
@@ -105,6 +105,7 @@ Notes per year
 * 2021 - 497 559
 * 2022 - 493 232
 * 2023 - 533 245
+ToDo 2024, 2025
 
 Comments per year
 
@@ -119,6 +120,7 @@ Comments per year
 * 2021 - 1 066 639
 * 2022 - 1 093 186
 * 2023 - 1 259 911
+ToDo 2024, 2025
 
 # Install prerequisites on Ubuntu
 
