@@ -15,9 +15,6 @@
 #
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processCheckPlanetNotes.sh
 #
-# The following file is necessary to prepare the environment.
-# https://sourceforge.net/projects/saxon/files/Saxon-HE/11/Java/SaxonHE11-4J.zip/download
-#
 # When running under MacOS or zsh, it is better to invoke bash:
 # bash ./processPlanetNotes.sh
 #
@@ -25,10 +22,6 @@
 #   tail -40f $(ls -1rtd /tmp/processCheckPlanetNotes_* | tail -1)/processCheckPlanetNotes.log
 #
 # The database should already be prepared with base tables for notes.
-#
-# To specify the Saxon location, you can put this file in the same directory as
-# saxon ; otherwise, it will this location:
-#   export SAXON_CLASSPATH=~/saxon/
 #
 # This is the list of error codes:
 # 1) Help message.
@@ -42,8 +35,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2025-07-01
+declare -r VERSION="2025-07-01"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -145,16 +138,6 @@ function __checkPrereqs {
  # Checks prereqs.
  __checkPrereqsCommands
 
- ## Saxon Jar
- if [[ ! -r "${SAXON_JAR}" ]]; then
-  __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  __loge "You can specify it by export SAXON_CLASSPATH=."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if ! java -cp "${SAXON_JAR}" net.sf.saxon.Transform -? > /dev/null 2>&1; then
-  __loge "ERROR: Saxon jar is missing at ${SAXON_JAR}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  ## Checks the flat file if exist.
  if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]]; then
   __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
