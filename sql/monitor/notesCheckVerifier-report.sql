@@ -1,7 +1,7 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-05
+-- Version: 2025-07-07
 
 -- Shows the information of the latest note, which should be recent.
 COPY
@@ -112,12 +112,12 @@ COMMENT ON COLUMN temp_diff_notes.note_id IS 'OSM note id';
 INSERT INTO temp_diff_notes
  SELECT /* Notes-check */ note_id
  FROM (
-  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status,
-   closed_at
+  -- closed_at could be different from last comment. That's why it is not
+  -- considered.
+  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes_check
   EXCEPT
-  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status,
-   closed_at
+  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status--,
   FROM notes
   WHERE (closed_at IS NULL OR closed_at < NOW()::DATE)
  ) AS t
@@ -128,8 +128,9 @@ COPY
  (
   SELECT *
   FROM (
+   -- closed_at, the API could close it one second before closing the comment.
    SELECT /* Notes-check */ 'Planet' AS source, note_id, latitude, longitude,
-    created_at, status, closed_at
+    created_at, status
    FROM notes_check
    WHERE note_id IN (
     SELECT /* Notes-check */ note_id
@@ -137,7 +138,7 @@ COPY
    )
    UNION
    SELECT /* Notes-check */ 'API   ' AS source, note_id, latitude, longitude,
-    created_at, status, closed_at
+    created_at, status
    FROM notes
    WHERE note_id IN (
     SELECT /* Notes-check */ note_id
