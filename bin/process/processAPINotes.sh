@@ -221,6 +221,7 @@ function __checkNoProcessPlanet {
  __log_start
  local QTY
  set +e
+ # FIXME pgrep: pattern that searches for process name longer than 15 characters will result in zero matches
  QTY="$(pgrep processPlanetNotes.sh | wc -l)"
  set -e
  if [[ "${QTY}" -ne "0" ]]; then
