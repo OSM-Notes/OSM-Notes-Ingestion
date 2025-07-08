@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-01
-declare -r VERSION="2025-07-01"
+# Version: 2025-07-07
+declare -r VERSION="2025-07-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -95,8 +95,11 @@ declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt
 declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
 # Name of the file of the XSLT transformation for text comments from API.
 declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
+
+# Name of the script to process notes from Planet.
+declare -r PROCESS_PLANET_NOTES_SCRIPT="processPlanetNotes.sh"
 # Script to synchronize the notes with the Planet.
-declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
+declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/${PROCESS_PLANET_NOTES_SCRIPT}"
 
 # PostgreSQL files.
 # Drop API tables.
@@ -221,8 +224,7 @@ function __checkNoProcessPlanet {
  __log_start
  local QTY
  set +e
- # FIXME pgrep: pattern that searches for process name longer than 15 characters will result in zero matches
- QTY="$(pgrep processPlanetNotes.sh | wc -l)"
+ QTY="$(pgrep "{PROCESS_PLANET_NOTES_SCRIPT:0:15}" | wc -l)"
  set -e
  if [[ "${QTY}" -ne "0" ]]; then
   __loge "${BASENAME} is currently running."
