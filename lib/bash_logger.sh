@@ -13,8 +13,6 @@
 # Copyright (c) 2017-2021 Dushyanth Jyothi
 # Licensed under the GNU General Public License v3.0
 #
-# TODO(dushyanth): lots of repeat code (improve)
-#
 # Follow shellguide: https://google.github.io/styleguide/shellguide.html
 # Check code against: https://www.shellcheck.net/
 
