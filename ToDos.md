@@ -4,7 +4,6 @@ ToDo list
 
 ## Base
 
-* Usar un mecanismo de logger para postgres.
 * Corregir las diferencias que se identifican con el monitor script.
   * Ya no debe haber.
 * Si falla base, enviar mail, ya que hay algo mal.
