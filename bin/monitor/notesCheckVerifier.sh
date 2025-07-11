@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Autor: Andres Gomez Casanova - AngocA
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2025-07-08
+declare -r VERSION="2025-07-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -110,7 +110,7 @@ function __show_help {
  echo "${BASENAME} version ${VERSION}"
  echo "Checks the differences in the database from the most recent planet"
  echo "for notes and the notes ingested via API calls. This script works"
- echo "better around 0h UTF, when the planer file is published and the"
+ echo "better around 0h UTC, when the Planet file is published and the"
  echo "difference with the API calls are less."
  echo
  echo "If the script returns a lot of old differences, it is because the"
@@ -133,7 +133,7 @@ function __checkPrereqs {
  __checkPrereqsCommands
  ## Checks if the process file exists.
  if [[ "${PROCESS_FILE}" != "" ]] && [[ ! -r "${PROCESS_FILE}" ]]; then
-  __loge "El archivo para obtener los ids no se encuentra: ${PROCESS_FILE}."
+  __loge "The file to get the ids cannot be found: ${PROCESS_FILE}."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  __log_finish
