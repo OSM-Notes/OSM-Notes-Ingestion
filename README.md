@@ -24,6 +24,7 @@ These are the main functions of this project.
   with the main OSM database via API calls.
   This is configured with a scheduler (cron) and it does everything.
 * Updates the current country and maritime information.
+  This should be run once a month.
 * Copy the note's data to another set of tables to allow the
   WMS layer publishing.
   This is configured via triggers on the database on the main tables.
@@ -49,14 +50,14 @@ profile can be used for any user.
   * This process has a pause between calls because the public Overpass turbo is
     restricted by the number of requests per minute.
     If another Overpass instance is used that does not block when many requests,
-    the pause could be removed or reduced
+    the pause could be removed or reduced.
 * 1 minute: Download the Planet notes file.
 * 4 minutes: Processing XML notes file.
 * 12 minutes: Inserting notes into the database.
 * 5 minutes: Assign sequence to comments.
 * 5 minutes: Load text comments.
 * 5 hours: Locating notes in the appropriate country.
-  * This DB process is in parallel with multiple threads.
+  * This DB process is executed in parallel with multiple threads.
 
 **WMS layer**
 
@@ -80,7 +81,7 @@ less than 2 minutes to complete.
   500 users.
   This part analyzes the most active users first; then, all old users that
   have contributed with only one note.
-  TODO parallelize
+  TODO ETL - parallelize
 
 # Install prerequisites on Ubuntu
 
@@ -123,13 +124,20 @@ could configure the crontab like (`crontab -e`):
 
 ```
 # Runs the API extraction each 15 minutes.
-*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh # For normal execution for notes database and data warehouse.
+# Normal execution for Planet and API process and then data warehouse population.
+*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh
+
+# Download a new Planet version, and checks if the executions have been successful.
+# Planet used to be published around 5 am (https://planet.openstreetmap.org/notes/)
+0 6 * * * ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh ; ~/OSM-Notes-profile/bin/monitor/notesCheckVerifier.sh 
 
 # Runs the boundaries update. Once a month.
-0 0 0 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh
+0 12 1 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh
+```
 
+```
 # Runs the API extraction in debug mode, keeping all the generated files.
-#*/15 * * * * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processAPINotes.sh ; ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
+#*/15 * * * * export LOG_LEVEL=DEBUG ; export CLEAN=false ;~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
 ```
 
 You can also configure the ETL at different times from the notes' processing.
@@ -154,7 +162,7 @@ location, or to use other URLs for Overpass or the API.
 
 There are two ways to download OSM notes:
 
-* Recent notes from the planet (including all notes on the daily backup).
+* Recent notes from the Planet (including all notes on the daily backup).
 * Near real-time notes from API.
 
 These two methods are used in this tool to initialize the DB and poll the API
@@ -181,7 +189,7 @@ If `processAPINotes.sh` gets more than 10,000 notes from an API call, then it
 will synchronize the database calling `processPlanetNotes.sh` following this
 process:
 
-* Download the notes from the planet.
+* Download the notes from the Planet.
 * Remove the duplicates from the ones already in the DB.
 * Process the new ones.
 * Associate new notes with a country or maritime area.
@@ -217,7 +225,7 @@ The levels are (case-sensitive):
 
 ## Database
 
-The database has a different set of tables.
+These are the table types on the database:
 
 * Base tables (notes and note_comments) are the most important holding the
   whole history.
@@ -296,7 +304,7 @@ This script will create 2 tables, one for notes and one for comments, with the
  suffix `_check`.
 By querying the tables with and without the suffix, you can get the
 differences;
-however, it better works around 0h UTC when the OSM Planet file is published.
+however, it better works around 6h UTC when the OSM Planet file is published.
 This will compare the differences between the API process and the Planet data.
 
 If you find many differences, especially for comments older than one day, it
@@ -328,16 +336,15 @@ These are the external dependencies to make it work.
   It uses intensive SQL action to have a good performance when processing the
   data.
 
-The external dependencies are almost fixed, however, they could be changes from
+The external dependencies are almost fixed, however, they could be changed from
 the properties file.
 
 These are external libraries:
 
-* Bash 4 or higher, because the main code is developed in the scripting
-  language.
-This tool is not included, to prevent licensing problems.
 * bash_logger, which is a tool to write log4j-like messages in Bash.
   This tool is included as part of the project.
+* Bash 4 or higher, because the main code is developed in the scripting
+  language.
 * Linux and its commands, because it is developed in Bash, which uses a lot
   of command line instructions.
 
@@ -367,6 +374,7 @@ psql -d notes -f ~/OSM-Notes-profile/sql/process/processPlanetNotes_14_dropCount
 
 You can start looking for help by reading the README.md files.
 Also, you run the scripts with -h or --help.
+There are few Github wiki pages with interesting information.
 You can even take a look at the code, which is highly documented.
 Finally, you can create an issue or contact the author.
 
