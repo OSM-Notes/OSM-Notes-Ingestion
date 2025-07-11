@@ -1,21 +1,13 @@
 -- Drop data warehouse objects.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-02
+-- Version: 2025-07-10
 
 DROP TRIGGER IF EXISTS update_days_to_resolution ON dwh.facts;
 
 DROP FUNCTION IF EXISTS dwh.update_days_to_resolution;
 
-DROP FUNCTION IF EXISTS dwh.get_score_user_activity;
-
-DROP FUNCTION IF EXISTS dwh.get_score_country_activity;
-
-DROP FUNCTION IF EXISTS dwh.move_day;
-
-DROP FUNCTION IF EXISTS dwh.refresh_today_activities;
-
-DROP FUNCTION IF EXISTS get_country_region;
+DROP FUNCTION IF EXISTS dwh.get_country_region;
 
 DROP FUNCTION IF EXISTS dwh.get_hour_of_week_id;
 
@@ -40,3 +32,4 @@ DROP TABLE IF EXISTS dwh.dimension_applications;
 DROP TABLE IF EXISTS dwh.dimension_hashtags;
 
 DROP SCHEMA IF EXISTS dwh;
+
