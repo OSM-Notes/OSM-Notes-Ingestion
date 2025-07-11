@@ -5,8 +5,15 @@ ToDo list
 ## Base
 
 * Corregir las diferencias que se identifican con el monitor script.
-  * Ya no debe haber.
 * Si falla base, enviar mail, ya que hay algo mal.
+
+## Check monitor
+
+* 3944119 ocultada y reactivada. Revisar que se procesa bien esta nota.
+  https://api.openstreetmap.org/api/0.6/notes/3944119 (hidden - reopened)
+* Validar que esta nota se procesa bien
+  https://api.openstreetmap.org/api/0.6/notes/3750896
+
 
 ## ETL
 
@@ -19,6 +26,19 @@ ToDo list
 * Usar la secuencia de comentarios en los facts
 * Factorizar CREATE and INITIAL en Staging, ya que tiene partes comunes
 * Usar una DB direferente para el DWH
+
+## Monitor ETL
+
+* Revisar cuando una nota se reabre, que se quite el closed en DWH (pero implica
+  un update lo cual es malo).
+  * O procesar estos de una manera diferente. Por ejemplo teniendo el max
+    action.
+* Monitor debe revisar que la cantidad de comentarios es la misma de actions en
+  facts.
+  * Algo similar para los datamarts.
+* Cuando se ejecuta el datamart de nuevo, vuelve a cargar las notas del mismo
+  dia, ya que había cargado.
+  * Parece que ya se arregló, ya que estaba cargando todo el día de nuevo
 
 ## Datamarts
 
@@ -86,22 +106,6 @@ ToDo list
 * Mostrar un gráfico animado de cómo se mueve el top 10 del Open/closed a lo
   largo del tiempo. Como esas gráficas animadas que muestran países más
   productores.
-
-## Check monitor
-
-* Monitor debe revisar que la cantidad de comentarios es la misma de actions en
-  facts.
-  * Algo similar para los datamarts.
-* Revisar cuando una nota se reabre, que se quite el closed en DWH (pero implica
-  un update lo cual es malo).
-  * O procesar estos de una manera diferente. Por ejemplo teniendo el max
-    action.
-* 3944119 ocultada y reactivada. Revisar que se procesa bien esta nota.
-* Validar que esta nota se procesa bien
-  https://api.openstreetmap.org/api/0.6/notes/3750896
-* Cuando se ejecuta el datamart de nuevo, vuelve a cargar las notas del mismo
-  dia, ya que había cargado.
-  * Parece que ya se arregló, ya que estaba cargando todo el día de nuevo
 
 ## Documentation
 
