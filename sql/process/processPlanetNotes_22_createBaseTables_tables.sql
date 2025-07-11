@@ -206,6 +206,8 @@ CREATE OR REPLACE FUNCTION update_note()
       || ' - Update to close note.');
     UPDATE notes /* trigger update note */
       SET status = 'close',
+      -- This date could differ between notes and comments, sometimes several
+      -- seconds before.
       closed_at = NEW.created_at
       WHERE note_id = NEW.note_id;
    ELSIF (NEW.event = 'reopened') THEN
