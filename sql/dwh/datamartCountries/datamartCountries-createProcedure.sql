@@ -214,7 +214,7 @@ AS $proc$
     AND EXTRACT(YEAR FROM d.date_id) = m_year;
 
    -- history_year_closed_with_comment
-   -- TODO comment's text
+   -- TODO datamart - comment's text
    m_history_year_closed_with_comment := 0;
 
    -- history_year_reopened
@@ -448,7 +448,7 @@ AS $proc$
   ) AS T;
 
   -- hashtags
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_hashtags := NULL;
 
   -- users_open_notes
@@ -662,7 +662,7 @@ AS $proc$
   WHERE f.dimension_id_country = m_dimension_id_country
    AND f.action_comment = 'commented';
 
-  -- history_whole_closed TODO quitar cuando se cierra multiples veces
+  -- history_whole_closed TODO datamart - quitar cuando se cierra multiples veces
   SELECT /* Notes-datamartCountries */ COUNT(1)
    INTO m_history_whole_closed
   FROM dwh.facts f
@@ -673,7 +673,7 @@ AS $proc$
   -- TODO comment's text
   m_history_whole_closed_with_comment := 0;
 
-  -- history_whole_reopened TODO quitar cuando se reabre multiples veces
+  -- history_whole_reopened TODO datamart - quitar cuando se reabre multiples veces
   SELECT /* Notes-datamartCountries */ COUNT(1)
    INTO m_history_whole_reopened
   FROM dwh.facts f
@@ -711,7 +711,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_year_closed_with_comment
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_history_year_closed_with_comment := 0;
 
   -- history_year_reopened
@@ -758,7 +758,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_month_closed_with_comment
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_history_month_closed_with_comment := 0;
 
   -- history_month_reopened
@@ -809,7 +809,7 @@ AS $proc$
    AND EXTRACT(YEAR FROM d.date_id) = m_current_year;
 
   -- history_day_closed_with_comment
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_history_day_closed_with_comment := 0;
 
   -- history_day_reopened
