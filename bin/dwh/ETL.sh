@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-03-31
-declare -r VERSION="2024-03-31"
+# Version: 2025-07-10
+declare -r VERSION="2025-07-10"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -73,9 +73,11 @@ declare -r PROCESS_TYPE=${1:-}
 
 # Name of the SQL script that check the existance of base tables.
 declare -r POSTGRES_11_CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_11_checkDWHTables.sql"
-
 # Name of the SQL script that contains existing ETL object form the DB.
-declare -r POSTGRES_21_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_21_removeDWHObjects.sql"
+declare -r POSTGRES_12_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_12_removeDatamartObjects.sql"
+# Name of the SQL script that contains existing ETL object form the DB.
+declare -r POSTGRES_13_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql"
+
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r POSTGRES_22_CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_22_createDWHTables.sql"
 # Populates regions per country.
@@ -162,8 +164,12 @@ function __checkPrereqs {
   __loge "ERROR: File ${POSTGRES_11_CHECK_BASE_TABLES_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_21_DROP_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_21_DROP_OBJECTS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_12_DROP_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_12_DROP_OBJECTS_FILE} was not found."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_13_DROP_OBJECTS_FILE}" ]]; then
+  __loge "ERROR: File ${POSTGRES_13_DROP_OBJECTS_FILE} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_22_CREATE_OBJECTS_FILE}" ]]; then
@@ -342,7 +348,8 @@ function __initialFacts {
 function __createBaseTables {
  __log_start
  __logi "Droping any ETL object if any exist."
- psql -d "${DBNAME}" -f "${POSTGRES_21_DROP_OBJECTS_FILE}" 2>&1
+ psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_OBJECTS_FILE}" 2>&1
+ psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_OBJECTS_FILE}" 2>&1
 
  __logi "Creating tables for star model if they do not exist."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
