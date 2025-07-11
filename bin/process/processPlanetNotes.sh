@@ -123,6 +123,7 @@
 #                                   (sync)           notes   ries
 # __dropSyncTables                             x
 # __dropApiTables                              x
+# __dropGenericObjects                         x
 # __dropBaseTables                             x
 # __createBaseTables                           x
 # __dropSyncTables                     x               x
@@ -162,8 +163,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-01
-declare -r VERSION="2025-07-01"
+# Version: 2025-07-11
+declare -r VERSION="2025-07-11"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -627,21 +628,22 @@ function main() {
  fi
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __dropSyncTables   # base
-  __dropApiTables    # base
-  __dropBaseTables   # base
-  __createBaseTables # base
+  __dropSyncTables      # base
+  __dropApiTables       # base
+  __dropGenericObjects  # base
+  __dropBaseTables      # base
+  __createBaseTables    # base
  elif [[ "${PROCESS_TYPE}" == "" ]] \
   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __dropSyncTables # sync
+  __dropSyncTables      # sync
   set +E
   export RET_FUNC=0
-  __checkBaseTables # sync
+  __checkBaseTables     # sync
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __createBaseTables # sync
+   __createBaseTables   # sync
   fi
   set -E
-  __createSyncTables # sync
+  __createSyncTables    # sync
  fi
  if [[ "${PROCESS_TYPE}" == "--base" ]] \
   || [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
@@ -656,12 +658,12 @@ function main() {
    read -r
   else
    set +E
-   __processCountries # base and boundaries
-   __processMaritimes # base and boundaries
+   __processCountries   # base and boundaries
+   __processMaritimes   # base and boundaries
    set -E
   fi
 
-  __cleanPartial # base and boundaries
+  __cleanPartial        # base and boundaries
   if [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
    __logw "Ending process."
    exit 0
@@ -685,13 +687,13 @@ function main() {
  fi
  if [[ "${PROCESS_TYPE}" == "" ]] \
   || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __loadSyncNotes    # sync & locate
-  __removeDuplicates # sync & locate
-  __loadTextComments # sync & locate
-  __dropSyncTables   # sync & locate
+  __loadSyncNotes       # sync & locate
+  __removeDuplicates    # sync & locate
+  __loadTextComments    # sync & locate
+  __dropSyncTables      # sync & locate
   set +E
   export RET_FUNC=0
-  __organizeAreas # sync & locate
+  __organizeAreas       # sync & locate
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
    __createCountryTables # sync & locate
@@ -701,16 +703,16 @@ function main() {
     echo "     SELECT * FROM backup_countries ;"
     read -r
    else
-    __processCountries # sync & locate
-    __processMaritimes # sync & locate
+    __processCountries  # sync & locate
+    __processMaritimes  # sync & locate
    fi
-   __cleanPartial # sync & locate
+   __cleanPartial       # sync & locate
    __organizeAreas
   fi
-  __getLocationNotes # sync & locate
+  __getLocationNotes    # sync & locate
  fi
- __cleanNotesFiles  # base, sync & locate
- __analyzeAndVacuum # base, sync & locate
+ __cleanNotesFiles      # base, sync & locate
+ __analyzeAndVacuum     # base, sync & locate
 
  rm -f "${LOCK}"
  __logw "Ending process."
