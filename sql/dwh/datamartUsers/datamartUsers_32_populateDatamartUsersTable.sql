@@ -45,7 +45,7 @@ BEGIN
    ON (f.action_dimension_id_user = u.dimension_user_id)
   WHERE u.modified = TRUE
   GROUP BY f.action_dimension_id_user
-  ORDER BY MAX(f.action_at) DESC -- TODO quitar?
+  ORDER BY MAX(f.action_at) DESC -- TODO datamart - quitar?
   LIMIT 500
  LOOP
   RAISE NOTICE 'Processing user %.', r.dimension_user_id;

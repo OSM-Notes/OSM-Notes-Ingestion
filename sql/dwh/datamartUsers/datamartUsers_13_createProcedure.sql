@@ -196,7 +196,7 @@ AS $proc$
     AND d.year = m_year;
 
    -- history_year_closed_with_comment
-   -- TODO comment's text
+   -- TODO datamart - comment's text
    m_history_year_closed_with_comment := 0;
 
    -- history_year_reopened
@@ -551,7 +551,7 @@ AS $proc$
   ) AS T;
 
   -- hashtags
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_hashtags := NULL;
 
   -- countries_open_notes
@@ -794,7 +794,7 @@ AS $proc$
    AND f.action_comment = 'closed';
 
   -- history_whole_closed_with_comment
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_history_whole_closed_with_comment := 0;
 
   -- history_whole_reopened
@@ -835,7 +835,7 @@ AS $proc$
    AND d.year = m_current_year;
 
   -- history_year_closed_with_comment
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_history_year_closed_with_comment := 0;
 
   -- history_year_reopened
@@ -882,7 +882,7 @@ AS $proc$
    AND d.year = m_current_year;
 
   -- history_month_closed_with_comment
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_history_month_closed_with_comment := 0;
 
   -- history_month_reopened
@@ -933,7 +933,7 @@ AS $proc$
    AND d.year = m_current_year;
 
   -- history_day_closed_with_comment
-  -- TODO comment's text
+  -- TODO datamart - comment's text
   m_history_day_closed_with_comment := 0;
 
   -- history_day_reopened

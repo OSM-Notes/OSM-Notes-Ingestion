@@ -241,7 +241,7 @@ ALTER TABLE dwh.badges_per_users
  REFERENCES dwh.datamartUsers (dimension_user_id);
 
 -- Insert values
--- TODO populate badges.
+-- TODO datamart - populate badges.
 INSERT INTO dwh.badges (badge_name) VALUES
  ('Test');
 
