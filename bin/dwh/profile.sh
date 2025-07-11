@@ -457,7 +457,7 @@ function __showWorkingWeek {
 # Shows the activity as GitHub tiles.
 function __printActivity {
  ACTIVITY="${1}"
- # TODO no está teniendo el día actual, y siempre está comenzando en Sunday
+ # TODO profile - no está teniendo el día actual, y siempre está comenzando en Sunday
 
  declare SUN="Sunday:    "
  declare MON="Monday:    "
@@ -514,7 +514,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Quantity of days creating notes. (TODO Puede que haya dejado de abrir o cerrar notas)
+ # Quantity of days creating notes. (TODO profile - Puede que haya dejado de abrir o cerrar notas)
  declare -i QTY_DAYS_OPEN
  QTY_DAYS_OPEN=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT CURRENT_DATE - date_starting_creating_notes
@@ -652,7 +652,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Used hashtags TODO procesar texto de notas
+ # Used hashtags TODO profile - procesar texto de notas
  declare HASHTAGS
  HASHTAGS=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT hashtags
@@ -766,7 +766,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_WHOLE_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_WHOLE_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_WHOLE_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_whole_closed_with_comment
      FROM dwh.datamartUsers
@@ -807,7 +807,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_YEAR_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_YEAR_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_YEAR_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_year_closed_with_comment
      FROM dwh.datamartUsers
@@ -848,7 +848,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_MONTH_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_MONTH_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_MONTH_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_month_closed_with_comment
      FROM dwh.datamartUsers
@@ -889,7 +889,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_DAY_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_DAY_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_DAY_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_day_closed_with_comment
      FROM dwh.datamartUsers
@@ -905,7 +905,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Badges. TODO
+ # Badges. TODO profile - asignar
  declare BADGES
  # BADGES=$(psql -d "${DBNAME}" -Atq \
  #    -c "SELECT b.badge_name, p.date_awarded
@@ -915,14 +915,14 @@ function __processUserProfile {
  #     WHERE dimension_user_id = ${DIMENSION_USER_ID}
  #     " \
  #    -v ON_ERROR_STOP=1 )
- # ToDo Abrir más de 100 notas en un día
- # ToDo Abrir más de 300 notas en un día
- # ToDo Abrir más de 1000 notas en un día
- # ToDo Resolver más de 100 notas en un día
- # ToDo Resolver más de 300 notas en un día
- # ToDo Resolver más de 1000 notas en un día
+ # ToDo profile - Abrir más de 100 notas en un día
+ # ToDo profile - Abrir más de 300 notas en un día
+ # ToDo profile - Abrir más de 1000 notas en un día
+ # ToDo profile - Resolver más de 100 notas en un día
+ # ToDo profile - Resolver más de 300 notas en un día
+ # ToDo profile - Resolver más de 1000 notas en un día
 
- # TODO si cero, ocultar
+ # TODO profile - si cero, ocultar
  echo "User name: ${USERNAME} (id: ${OSM_USER_ID})."
  echo "Note solver type: ${CONTRIBUTOR_TYPE}."
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}, since ${DATE_FIRST_OPEN}."
@@ -935,8 +935,8 @@ function __processUserProfile {
  echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "The date when the most notes were closed:"
  echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
- echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Working hours:" # TODO Por años pasados
+ echo "Hashtags used: ${HASHTAGS}" # TODO profile - 
+ echo "Working hours:" # TODO profile - Por años pasados
  set +E
  echo "  Opening:"
  __showWorkingWeek "${WORKING_HOURS_OPENING}"
@@ -984,7 +984,7 @@ function __processUserProfile {
 
  # echo "Rankings last 30 days   ${RANKING_MONTH_OPEN} ${RANKING_MONTH_COMMENTED} ${RANKING_MONTH_CLOSED} ${RANKING_MONTH_REOPENED}"
  # echo "Rankings today          ${RANKING_DAY_OPEN} ${RANKING_DAY_COMMENTED} ${RANKING_DAY_CLOSED} ${RANKING_DAY_REOPENED}"
- # echo "Badges: ${BADGES}" #TODO
+ # echo "Badges: ${BADGES}" #TODO profile - 
 }
 
 # Shows the note statistics for a given country.
@@ -1125,7 +1125,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Used hashtags TODO procesar texto de notas
+ # Used hashtags TODO profile - procesar texto de notas
  declare HASHTAGS
  HASHTAGS=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT hashtags
@@ -1239,7 +1239,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_WHOLE_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_WHOLE_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_WHOLE_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_whole_closed_with_comment
      FROM dwh.datamartCountries
@@ -1280,7 +1280,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_YEAR_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_YEAR_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_YEAR_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_year_closed_with_comment
      FROM dwh.datamartCountries
@@ -1321,7 +1321,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_MONTH_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_MONTH_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_MONTH_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_month_closed_with_comment
      FROM dwh.datamartCountries
@@ -1362,7 +1362,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- declare -i HISTORY_DAY_CLOSED_WITH_COMMENT # TODO process text
+ declare -i HISTORY_DAY_CLOSED_WITH_COMMENT # TODO profile - process text
  HISTORY_DAY_CLOSED_WITH_COMMENT=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT history_day_closed_with_comment
      FROM dwh.datamartCountries
@@ -1378,7 +1378,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # TODO si cero, ocultar
+ # TODO profile - si cero, ocultar
  echo "COUNTRY name: ${COUNTRY_NAME} (id: ${COUNTRY_OSM_ID})"
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}, since ${DATE_FIRST_OPEN}."
  echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}"
@@ -1386,13 +1386,13 @@ function __processCountryProfile {
  echo "Last actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
  echo "Last activity year:"
  __printActivity "${LAST_ACTIVITY_YEAR}"
- # TODO La actividad está poniendo 0000009 en la última semana
+ # TODO profile - La actividad está poniendo 0000009 en la última semana
  echo "The date when the most notes were opened:"
  echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "The date when the most notes were closed:"
  echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Working hours:" # TODO Por año
+ echo "Working hours:" # TODO profile - Por año
  set +E
  echo "  Opening:"
  __showWorkingWeek "${WORKING_HOURS_OF_WEEK_OPENING}"
@@ -1401,8 +1401,8 @@ function __processCountryProfile {
  echo "  Closing:"
  __showWorkingWeek "${WORKING_HOURS_OF_WEEK_CLOSING}"
  set -E
- # TODO Mostrar la cantidad de notas actualmente en estado abierto
- # TODO Mostrar la cantidad de notas actualmente en estado cerrado
+ # TODO profile - Mostrar la cantidad de notas actualmente en estado abierto
+ # TODO profile - Mostrar la cantidad de notas actualmente en estado cerrado
  echo
  echo "Actions:"
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
