@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-07
+# Version: 2025-07-10
 
 # Error codes.
 # 1: Help message.
@@ -283,6 +283,10 @@ EOF
  fi
  if [[ ! -r "${JSON_SCHEMA_OVERPASS}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_OVERPASS}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${JSON_SCHEMA_GEOJSON}" ]]; then
+  __loge "ERROR: File is missing at ${JSON_SCHEMA_GEOJSON}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  set -e
