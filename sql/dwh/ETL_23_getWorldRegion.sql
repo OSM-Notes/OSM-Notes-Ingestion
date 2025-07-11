@@ -7,7 +7,7 @@
  * Returns the region id for a given country.
  * Based on https://es.wikipedia.org/wiki/Archivo:Regiones_del_mundo.png
  */
- CREATE OR REPLACE FUNCTION get_country_region (
+ CREATE OR REPLACE FUNCTION dwh.get_country_region (
    osm_id_country INTEGER
  ) RETURNS INTEGER
  LANGUAGE plpgsql
