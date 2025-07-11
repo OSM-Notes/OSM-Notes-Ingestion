@@ -1,7 +1,7 @@
 -- Updates the dimensions tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2025-07-10
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Updates dimension users' AS Task;
@@ -35,7 +35,7 @@ TO '/tmp/usernames_changed.csv' WITH DELIMITER ',' CSV HEADER
 --  'Updating modified usernames' AS Task;
 --
 -- Updates the dimension when username is changed.
--- TODO Esta actualizando todos con todos, y se esta demorando
+-- TODO datamart - Esta actualizando todos con todos, y se esta demorando
 --UPDATE dwh.dimension_users
 -- SET username = c.username
 -- FROM users AS c
@@ -62,7 +62,7 @@ SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Updating countries with region (takes a while)' AS Task;
 -- Updates countries with regions.
 UPDATE /* Notes-ETL */ dwh.dimension_countries
- SET region_id = get_country_region(country_id);
+ SET region_id = dwh.get_country_region(country_id);
 
 SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
  'Showing modified countries' AS Task;
