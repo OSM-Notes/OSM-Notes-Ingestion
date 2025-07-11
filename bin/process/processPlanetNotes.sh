@@ -143,6 +143,7 @@
 # __copyFlatFiles                                      x
 # __loadSyncNotes                      x               x
 # __removeDuplicates                   x               x
+# __loadTextComments                   x               x
 # __dropSyncTables                     x               x
 # __organizeAreas                      x               x
 # __getLocationNotes                   x               x
@@ -679,7 +680,6 @@ function main() {
  fi
  __createFunctionToGetCountry # base, sync & locate
  __createProcedures           # all
- __analyzeAndVacuum           # all
  if [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
   __copyFlatFiles # locate
  fi
@@ -709,7 +709,8 @@ function main() {
   fi
   __getLocationNotes # sync & locate
  fi
- __cleanNotesFiles # base, sync & locate
+ __cleanNotesFiles  # base, sync & locate
+ __analyzeAndVacuum # base, sync & locate
 
  rm -f "${LOCK}"
  __logw "Ending process."
