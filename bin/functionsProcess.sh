@@ -86,7 +86,7 @@ declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
 
 # PostgreSQL files.
 # Check base tables.
-declare -r POSTGRES_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_checkBaseTables.sql"
+declare -r POSTGRES_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
 # Create get country function.
 declare -r POSTGRES_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
 # Create insert note procedure.
@@ -94,9 +94,9 @@ declare -r POSTGRES_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functi
 # Create insert note comment procedure.
 declare -r POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
 # Organize areas.
-declare -r POSTGRES_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_organizeAreas.sql"
+declare -r POSTGRES_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
 # Upload note locations.
-declare -r POSTGRES_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_loadsBackupNoteLocation.sql"
+declare -r POSTGRES_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
 
 # Directory for Lock when inserting in the database
 declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
