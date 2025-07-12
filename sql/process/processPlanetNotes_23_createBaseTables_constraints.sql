@@ -1,7 +1,7 @@
 -- Create constraints in base tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-29
+-- Version: 2025-07-11
 
 ALTER TABLE users
  ADD CONSTRAINT pk_users
@@ -44,7 +44,7 @@ CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
 COMMENT ON INDEX notes_countries IS 'To query by location of the note';
 CREATE INDEX IF NOT EXISTS notes_spatial ON notes
   USING GIST (id_country, note_id, ST_Point(longitude, latitude));
-COMMENT ON INDEX notes_countries IS 'Spatial index';
+COMMENT ON INDEX notes_spatial IS 'Spatial index';
 
 CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
 COMMENT ON INDEX note_comments_id IS 'To query by the associated note';

@@ -1,7 +1,7 @@
 -- Creates country tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-10-25
+-- Version: 2025-07-11
 
 CREATE TABLE countries (
  country_id INTEGER NOT NULL,
@@ -40,7 +40,7 @@ COMMENT ON COLUMN countries.updated IS
 
 CREATE INDEX IF NOT EXISTS countries_spatial ON countries
   USING GIST (geom);
-COMMENT ON INDEX notes_countries IS 'Spatial index for countries';
+COMMENT ON INDEX countries_spatial IS 'Spatial index for countries';
 
 ALTER TABLE countries
  ADD CONSTRAINT pk_countries
