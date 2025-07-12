@@ -1,10 +1,10 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-03-31
+-- Version: 2025-07-11
 
 -- Primrary keys
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating primary keys' AS Task;
 
 ALTER TABLE dwh.dimension_users
@@ -32,7 +32,7 @@ ALTER TABLE dwh.dimension_applications
  PRIMARY KEY (dimension_application_id);
 
 -- Foreign keys.
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating foreign keys' AS Task;
 
 ALTER TABLE dwh.dimension_countries
@@ -40,7 +40,7 @@ ALTER TABLE dwh.dimension_countries
  FOREIGN KEY (region_id)
  REFERENCES dwh.dimension_regions (dimension_region_id);
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating indexes' AS Task;
 
 -- Unique keys
@@ -65,7 +65,7 @@ CREATE UNIQUE INDEX dimension_day_id_uniq
  (date_id);
 COMMENT ON INDEX dwh.dimension_day_id_uniq IS 'Date';
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating functions' AS Task;
 
 /**
@@ -140,6 +140,6 @@ CREATE OR REPLACE FUNCTION dwh.get_hour_of_week_id(m_date TIMESTAMP)
 COMMENT ON FUNCTION dwh.get_hour_of_week_id IS
   'Returns id of the hour of a week';
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Extra objects created' AS Task;
 

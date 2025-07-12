@@ -1,9 +1,9 @@
 -- Populates the dimensions tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-11
+-- Version: 2025-07-11
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Inserting Regions' AS Task;
 
 INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
@@ -29,7 +29,7 @@ INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
  ('Australia', 'Australia'),
  ('Antártida','Antarctica');
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Inserting dimension countries' AS Task;
 
 -- Insert an id for notes without a country. It does not insert again if it
@@ -45,7 +45,7 @@ INSERT INTO dwh.dimension_countries
  ) LIMIT 1
 ;
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Adding hour values' AS Task;
 
 DO /* Notes-ETL-addWeekHours */
@@ -80,7 +80,7 @@ BEGIN
 END
 $$;
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Adding application names' AS Task;
 
 INSERT INTO dwh.dimension_applications (application_name, pattern) VALUES
@@ -104,5 +104,5 @@ INSERT INTO dwh.dimension_applications (application_name, pattern, platform) VAL
 ('OnOSM.OSMiranorg', 'onosm.osmiran.org %', 'web')
 ;
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Dimensions populated' AS Task;

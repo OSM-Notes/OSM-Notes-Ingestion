@@ -1,10 +1,10 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-17
+-- Version: 2025-07-11
 
 -- Primrary keys
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating primary keys' AS Task;
 
 ALTER TABLE dwh.facts
@@ -12,7 +12,7 @@ ALTER TABLE dwh.facts
  PRIMARY KEY (fact_id);
 
 -- Foreign keys.
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating foreign keys' AS Task;
 
 ALTER TABLE dwh.facts
@@ -70,7 +70,7 @@ ALTER TABLE dwh.facts
  FOREIGN KEY (dimension_application_creation)
  REFERENCES dwh.dimension_applications (dimension_application_id);
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating indexes' AS Task;
 
 -- Unique keys
@@ -197,7 +197,7 @@ CREATE INDEX note_action_at_idx
  ON dwh.facts (action_at);
 COMMENT ON INDEX dwh.note_action_at_idx IS 'Improves queries with action_at';
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating triggers' AS Task;
 
 CREATE OR REPLACE FUNCTION dwh.update_days_to_resolution()

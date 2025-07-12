@@ -1,9 +1,9 @@
 -- Updates the dimensions tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-10
+-- Version: 2025-07-11
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Updates dimension users' AS Task;
 
 -- Inserts new users.
@@ -17,7 +17,7 @@ INSERT INTO dwh.dimension_users
   )
 ;
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Showing modified usernames' AS Task;
 -- Exports usernames renamed.
 COPY (
@@ -31,7 +31,7 @@ COPY (
 TO '/tmp/usernames_changed.csv' WITH DELIMITER ',' CSV HEADER
 ;
 
--- SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+-- SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
 --  'Updating modified usernames' AS Task;
 --
 -- Updates the dimension when username is changed.
@@ -44,7 +44,7 @@ TO '/tmp/usernames_changed.csv' WITH DELIMITER ',' CSV HEADER
 -- WHERE c.username <> d.username
 ;
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Updating dimension countries' AS Task;
 
 -- Populates the countries dimension with new countries.
@@ -58,13 +58,13 @@ INSERT INTO dwh.dimension_countries
   FROM dwh.dimension_countries
  )
 ;
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Updating countries with region (takes a while)' AS Task;
 -- Updates countries with regions.
 UPDATE /* Notes-ETL */ dwh.dimension_countries
  SET region_id = dwh.get_country_region(country_id);
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Showing modified countries' AS Task;
 -- Shows countries renamed.
 COPY (
@@ -80,7 +80,7 @@ COPY (
 TO '/tmp/countries_changed.csv' WITH DELIMITER ',' CSV HEADER
 ;
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Updating modified country names' AS Task;
 
 -- Updates the dimension when username is changed.
@@ -96,5 +96,5 @@ UPDATE /* Notes-ETL */ dwh.dimension_countries
   OR c.country_name_en <> d.country_name_en
 ;
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Dimensions udpated' AS Task;
