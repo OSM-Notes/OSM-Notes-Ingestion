@@ -1,34 +1,34 @@
 -- Loads check notes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-05
+-- Version: 2025-07-11
 
 TRUNCATE TABLE notes_check;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Uploading check notes' AS Text;
 COPY notes_check (note_id, latitude, longitude, created_at, closed_at,
  status)
 FROM '${OUTPUT_NOTES_FILE}' csv;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Statistics on notes check' AS Text;
 ANALYZE notes_check;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Counting check notes' AS Text;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  COUNT(1) AS Qty, 'Uploaded check notes' AS Text
 FROM notes_check;
 
 TRUNCATE TABLE note_comments_check;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Uploading check comments' AS Text;
 COPY note_comments_check (note_id, event, created_at, id_user, username)
 FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Statistics on comments check' AS Text;
 ANALYZE note_comments_check;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Counting check comments' AS Text;
-SELECT /* Notes-check */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-check */ clock_timestamp() AS Processing,
  COUNT(1) AS Qty, 'Uploaded check comments' AS Text
 FROM note_comments_check;
 
