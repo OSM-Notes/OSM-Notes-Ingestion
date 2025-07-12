@@ -1,34 +1,34 @@
 -- Loads notes into the sync tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2025-07-11
 
 TRUNCATE TABLE notes_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Uploading sync notes' AS Text;
 COPY notes_sync (note_id, latitude, longitude, created_at, closed_at, status)
 FROM '${OUTPUT_NOTES_FILE}' csv;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Statistics on notes sync' AS Text;
 ANALYZE notes_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Counting sync notes' AS Text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  COUNT(1) AS Qty,
   'Uploaded sync notes' AS Text
 FROM notes_sync;
 
 TRUNCATE TABLE note_comments_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Uploading sync comments' AS Text;
 COPY note_comments_sync(note_id, event, created_at, id_user, username)
 FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Statistics on comments sync' AS Text;
 ANALYZE note_comments_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Counting sync comments' AS Text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  COUNT(1) AS Qty, 'Uploaded sync comments' AS Text
 FROM note_comments_sync;
 

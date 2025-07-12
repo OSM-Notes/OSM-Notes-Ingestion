@@ -1,14 +1,14 @@
 -- Remove duplicates for notes and note comments, when syncing from the Planet.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-19
+-- Version: 2025-05-11
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Counting notes sync' AS Text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'Sync notes' AS Text
   FROM notes_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Deleting duplicates notes sync' AS Text;
 
 DROP TABLE IF EXISTS notes_sync_no_duplicates;
@@ -44,18 +44,18 @@ COMMENT ON COLUMN notes_sync_no_duplicates.id_country IS
 
 DROP TABLE IF EXISTS notes_sync;
 ALTER TABLE notes_sync_no_duplicates RENAME TO notes_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Statistics on notes sync' AS Text;
 
 ANALYZE notes_sync;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Counting notes sync different' AS Text;
 SELECT /* Notes-processPlanet */ COUNT(1) AS Qty,
   'Sync notes no duplicates' AS Text
 FROM notes_sync;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Inserting sync note' AS Text;
 DO /* Notes-processPlanet-insertNotes */
 $$
@@ -101,16 +101,16 @@ BEGIN
 END;
 $$;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Statistics on notes' AS Text;
 ANALYZE notes;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Counting comments sync' AS Text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'Sync comments' AS Text
 FROM note_comments_sync;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Deleting duplicates comments sync' AS Text;
 DROP TABLE IF EXISTS note_comments_sync_no_duplicates;
 CREATE TABLE note_comments_sync_no_duplicates AS
@@ -147,16 +147,16 @@ COMMENT ON COLUMN note_comments_sync_no_duplicates.username IS
 
 DROP TABLE IF EXISTS note_comments_sync;
 ALTER TABLE note_comments_sync_no_duplicates RENAME TO note_comments_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Statistics on comments sync' AS Text;
 ANALYZE note_comments_sync;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Counting comments sync different' AS Text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'Sync comments no duplicates' AS Text
   FROM note_comments_sync;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Inserting sync comments' AS Text;
 DO /* Notes-processPlanet-insertComments */
 $$
@@ -214,6 +214,6 @@ BEGIN
 END
 $$;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Statistics on comments' AS Text;
 ANALYZE note_comments;

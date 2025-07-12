@@ -1,9 +1,9 @@
 -- Modify text comments table.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-08
+-- Version: 2025-07-11
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Changing sequence text comment - adding foreign key and trigger' AS Text;
 
 ALTER TABLE note_comments_text ALTER COLUMN sequence_action SET NOT NULL;
@@ -55,5 +55,5 @@ CREATE OR REPLACE TRIGGER put_seq_on_text_comment_trigger
 COMMENT ON TRIGGER put_seq_on_text_comment_trigger ON note_comments_text IS
   'Trigger to assign the sequence value';
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Sequence changed text comment' AS Text;

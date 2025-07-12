@@ -1,24 +1,24 @@
 -- Loads notes into the sync tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-08
+-- Version: 2025-07-11
 
 TRUNCATE TABLE note_comments_text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Uploading text comments' AS Text;
 COPY note_comments_text(note_id, body)
 FROM '${OUTPUT_TEXT_COMMENTS_FILE}' csv;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Statistics on text comments' AS Text;
 ANALYZE note_comments_text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Counting text comments' AS Text;
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  COUNT(1) AS Qty,
   'Uploaded text comments' AS Text
 FROM note_comments_text;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Adding sequence text comment' AS Text;
 
 DO /* Notes-processPlanet-assignSequence-text */
@@ -60,6 +60,6 @@ DECLARE
 END
 $$;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Sequence added text comment' AS Text;
 
