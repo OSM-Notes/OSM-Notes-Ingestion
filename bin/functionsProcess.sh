@@ -87,6 +87,8 @@ declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
 # PostgreSQL files.
 # Check base tables.
 declare -r POSTGRES_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
+# Drop generic objects.
+declare -r POSTGRES_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
 # Create get country function.
 declare -r POSTGRES_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
 # Create insert note procedure.
@@ -331,6 +333,14 @@ function __checkBaseTables {
  RET=${?}
  set -e
  RET_FUNC="${RET}"
+ __log_finish
+}
+
+# Drop generic objects.
+function __dropGenericObjects {
+ __log_start
+ __logi "Droping generic objects."
+ psql -d "${DBNAME}" -f "${POSTGRES_DROP_GENERIC_OBJECTS}"
  __log_finish
 }
 
