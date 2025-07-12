@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-07
-declare -r VERSION="2025-07-07"
+# Version: 2025-07-11
+declare -r VERSION="2025-07-11"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -103,7 +103,7 @@ declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/${PROCESS_PLA
 
 # PostgreSQL files.
 # Drop API tables.
-declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropApiTables.sql"
+declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_11_dropApiTables.sql"
 # Create API tables.
 declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
 # Create properties file.
