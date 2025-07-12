@@ -45,7 +45,7 @@ DECLARE
   CLOSE m_note_comments_text_api_cursor;
 END
 $$;
-SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Sequence values assigned' AS Text;
 
 INSERT INTO note_comments_text (note_id, sequence_action, body)

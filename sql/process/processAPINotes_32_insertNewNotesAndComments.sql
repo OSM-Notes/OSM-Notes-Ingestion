@@ -1,9 +1,9 @@
 -- Bulk notes and notes comments insertion.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-20
+-- Version: 2025-07-11
 
-SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) Qty, 'current notes - before' AS Text
 FROM notes;
 
@@ -36,15 +36,15 @@ $$
  END;
 $$;
 
-SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   'Statistics on notes' AS Text;
 ANALYZE notes;
 
-SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'current notes - after' AS Text
 FROM notes;
 
-SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'current comments - before' AS Text
 FROM note_comments;
 
@@ -86,9 +86,9 @@ $$
  END;
 $$;
 
-SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   'Statistics on comments' AS Text;
 ANALYZE note_comments;
-SELECT /* Notes-processAPI */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'current comments - after' AS Qty
 FROM note_comments;
