@@ -1,9 +1,9 @@
 -- Create base objects for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-03-13
+-- Version: 2027-07-11
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating objects for year ${YEAR}' AS Task;
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
