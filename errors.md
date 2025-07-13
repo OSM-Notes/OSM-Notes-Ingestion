@@ -34,6 +34,15 @@ processAPINotes.log:DETAIL:  Key (note_id, sequence_action)=(3037001, 4) is not 
 ----
 
 
+ERROR:  insert or update on table "note_comments_text" violates foreign key constraint "fk_note_comment_uniq"
+DETAIL:  Key (note_id, sequence_action)=(4082535, 2) is not present in table "note_comments".
+
+Revisar los mensajes que se pusieron, para identificar el orden de inserción de los objetos.
+
+
+----
+
+
 DATE: 2024-01-29
 2024-01-29 13:53:08 - functionsProcess.sh:__processBoundary:562 - DEBUG - UPDATE countries AS c
      SET country_name = 'الأردن', country_name_es = 'Jordania',
@@ -49,15 +58,6 @@ DATE: 2024-01-29
 ERROR:  null value in column "geom" of relation "countries" violates not-null constraint
 DETAIL:  Failing row contains (184818, الأردن, Jordania, Jordan, null, null, null, 6, null, t).
 20240129_13:53:08 ERROR: The script updateCountries did not finish correctly. Line number: 563
-
-
-----
-
-
-ERROR:  insert or update on table "note_comments_text" violates foreign key constraint "fk_note_comment_uniq"
-DETAIL:  Key (note_id, sequence_action)=(4082535, 2) is not present in table "note_comments".
-
-Revisar los mensajes que se pusieron, para identificar el orden de inserción de los objetos.
 
 
 -----
