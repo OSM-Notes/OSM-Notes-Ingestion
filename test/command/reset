@@ -15,12 +15,21 @@ set -o pipefail
 # Fails if an internal function fails.
 set -E
 
+# File for multiple API calls with consecutive calls.
 COUNTS_FILE_API="/tmp/mock_wget_counts"
+
+# Base directory for the project.
+declare SCRIPT_BASE_DIRECTORY
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+ &> /dev/null && pwd)"
+readonly SCRIPT_BASE_DIRECTORY
 
 # Removes count file for API.
 rm -f $"{COUNTS_FILE_API}"
 
 # Regenerates compress file and md5.
-bzip2 -k "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn"
-md5sum "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn.bz2" \
-  > "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn.bz2.md5"
+cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn.xml" \
+  "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn"
+bzip2 "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn"
+md5sum "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn.bz2" \
+  > "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn.bz2.md5"

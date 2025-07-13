@@ -15,13 +15,17 @@ set -o pipefail
 # Fails if an internal function fails.
 set -E
 
+# No params
+if [[ -z "${1:-}" ]]; then
+ echo "This is a mock aria2c command."
+
 # aria2c --version
-if [[ "${1}" == "--version" ]]; then
+elif [[ "${1}" == "--version" ]]; then
  echo "Mock aria2c for OSM Notes Profile"
 
 # Retrieves Planet notes dump file
 # planet-notes-latest.osn.bz2
-elif [[ "${1}" == "-O" ]]
+elif [[ "${1}" == "-O" ]] \
   && [[ "${2:(-31)}" == "planet-notes-latest.osn.bz2" ]] \
   && [[ "${3}" == "${PLANET}/notes/planet-notes-latest.osn.bz2" ]]; then
  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn.bz2" "${2}"

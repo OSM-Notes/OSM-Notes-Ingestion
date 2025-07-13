@@ -15,6 +15,7 @@ set -o pipefail
 # Fails if an internal function fails.
 set -E
 
+# File for multiple API calls with consecutive calls.
 COUNTS_FILE_API="/tmp/mock_wget_counts"
 
 # Base directory for the project.
@@ -22,6 +23,13 @@ declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
   &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
+
+declare BASENAME
+BASENAME=$(basename "${0}")
+readonly BASENAME
+declare TMP_DIR
+TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
+readonly TMP_DIR
 
 # Loads the global properties.
 # shellcheck source=../etc/properties.sh
@@ -32,13 +40,17 @@ FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 # shellcheck source=../functionsProcess.sh
 source "${FUNCTIONS_FILE}"
 
+# No params
+if [[ -z "${1:-}" ]]; then
+ echo "This is a mock wget command."
+
 # wget --version
-if [[ "${1}" == "--version" ]]; then
+elif [[ "${1}" == "--version" ]]; then
  echo "Mock Wget for OSM Notes Profile"
 
 # Retrieves Planet notes dump file md5.
 # planet-notes-latest.osn.bz2.md5
-elif [[ "${1}" == "-O" ]]
+elif [[ "${1}" == "-O" ]] \
   && [[ "${2:(-31)}" == "planet-notes-latest.osn.bz2.md5" ]] \
   && [[ "${3}" == "${PLANET}/notes/planet-notes-latest.osn.bz2.md5" ]]; then
  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn.bz2.md5" "${2}"
@@ -47,7 +59,7 @@ elif [[ "${1}" == "-O" ]]
 # API call.
 # From  REQUEST="${OSM_API}/notes/search.xml?...
 # To API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
-elif [[ "${1}" == "-O" ]]
+elif [[ "${1}" == "-O" ]] \
   && [[ "${2:(-17)}" == "OSM-notes-API.xml" ]] \
   && [[ "${3:0:37}" == "${OSM_API}" ]]; then
  if [[ -r "${COUNTS_FILE_API}" ]]; then
@@ -60,17 +72,17 @@ elif [[ "${1}" == "-O" ]]
  fi
 
 # User overpass interpreter
-elif [[ "${1}" == "-O" ]]
-  && [[ "${3:1:12}" == "--post-file=" ]]
-  && [[ "${4}" == "${OVERPASS_INTERPRETER}"]]; then
+elif [[ "${1}" == "-O" ]] \
+  && [[ "${3:1:12}" == "--post-file=" ]] \
+  && [[ "${4}" == "${OVERPASS_INTERPRETER}" ]]; then
 
  # Retrieves a JSON file
  # From QUERY_FILE="${TMP_DIR}/query" or QUERY_FILE="${QUERY_FILE}.${BASHPID}"
  # To JSON_FILE="${TMP_DIR}/${ID}.json"
  if [[ "${2}" == "${}" ]]; then
   QUERY_FILE=$(echo "${2}" | awk -F= '{print $2}')
-  BASENAME=$(basename -s .json "${QUERY_FILE}")
-  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/${BASENAME}.json" "${2}"
+  JSONFILE=$(basename -s .json "${QUERY_FILE}")
+  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/${JSONFILE}.json" "${2}"
   # ToDo Copiar los archivos de overpass.
 
  # Countries file
@@ -83,7 +95,7 @@ elif [[ "${1}" == "-O" ]]
  # Maritimes files
  # From OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
  # To MARITIMES_FILE="${TMP_DIR}/maritimes"
- elif [[ "${2}" == "${MARITIMES_FILE}" ]]; 
+ elif [[ "${2}" == "${MARITIMES_FILE}" ]]; then
   cp "${SCRIPT_BASE_DIRECTORY}/test/extra/maritimes.json" "${2}"
   # ToDo Copiar los archivos de overpass.
 
