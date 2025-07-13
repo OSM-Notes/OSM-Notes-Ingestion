@@ -35,8 +35,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-07
-declare -r VERSION="2025-07-07"
+# Version: 2025-07-13
+declare -r VERSION="2025-07-13"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -93,13 +93,13 @@ declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
 # PostgreSQL files.
 # Drop check tables.
-declare -r POSTGRES_DROP_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes-11-dropCheckTables.sql"
+declare -r POSTGRES_DROP_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql"
 # Create check tables.
-declare -r POSTGRES_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes-21-createCheckTables.sql"
+declare -r POSTGRES_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
 # Load check notes.
-declare -r POSTGRES_LOAD_CHECK_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes-31-loadCheckNotes.sql"
+declare -r POSTGRES_LOAD_CHECK_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_31_loadCheckNotes.sql"
 # Analyze and vacuum.
-declare -r POSTGRES_ANALYZE_AND_VACUUM="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes-41-analyzeAndVacuum.sql"
+declare -r POSTGRES_ANALYZE_AND_VACUUM="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_41_analyzeAndVacuum.sql"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
