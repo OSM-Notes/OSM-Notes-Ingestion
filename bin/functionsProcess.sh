@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-11
+# Version: 2025-07-13
 
 # Error codes.
 # 1: Help message.
@@ -150,7 +150,7 @@ function __start_logger() {
 }
 
 # Shows if there is another executing process.
-function __onlyExecution {
+function __validation {
  __log_start
  if [[ -n "${ONLY_EXECUTION:-}" ]] && [[ "${ONLY_EXECUTION}" == "no" ]]; then
   echo " There is another process already in execution"
@@ -168,7 +168,7 @@ function __onlyExecution {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__onlyExecution)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__validation)"; exit ${ERROR_GENERAL};}' \
   ERR
  trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
