@@ -1,7 +1,7 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-07
+-- Version: 2025-07-11
 
 -- Shows the information of the latest note, which should be recent.
 COPY
@@ -117,9 +117,9 @@ INSERT INTO temp_diff_notes
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes_check
   EXCEPT
-  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status--,
+  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes
-  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE)
+  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE) -- TODO no entiendo esto
  ) AS t
  ORDER BY note_id
 ;
@@ -128,7 +128,7 @@ COPY
  (
   SELECT *
   FROM (
-   -- closed_at, the API could close it one second before closing the comment.
+   -- closed_at, the API could close it before closing the comment.
    SELECT /* Notes-check */ 'Planet' AS source, note_id, latitude, longitude,
     created_at, status
    FROM notes_check
