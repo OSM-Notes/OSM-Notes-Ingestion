@@ -278,6 +278,7 @@ function __getNewNotesFromApi {
  RET="${?}"
  set -e
  cat "${OUTPUT_WGET}"
+ # TODO What is the API is on another URL?
  local QTY=$(grep "unable to resolve host address ‘api.openstreetmap.org’" \
    "${OUTPUT_WGET}" | wc -l)
  rm "${OUTPUT_WGET}"
