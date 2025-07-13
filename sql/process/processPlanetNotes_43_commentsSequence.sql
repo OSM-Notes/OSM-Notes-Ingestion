@@ -2,12 +2,14 @@
 -- this.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-01-08
+-- Version: 2025-07-11
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Assign sequence to comments' AS Text;
 
 -- This only works for the first time. 
+-- This process could take a long time, and sometimes if a remote connection is
+-- used, it could disconnect.
 DO /* Notes-processPlanet-assignSequence */
 $$
 DECLARE
@@ -47,16 +49,15 @@ DECLARE
 END
 $$;
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Changing sequence comment - adding foreign key and trigger' AS Text;
 
 ALTER TABLE note_comments ALTER COLUMN sequence_action SET NOT NULL;
 
-CREATE UNIQUE INDEX unique_comment_note
+CREATE UNIQUE INDEX IF NOT EXISTS unique_comment_note
  ON note_comments
  (note_id, sequence_action);
 COMMENT ON INDEX unique_comment_note IS 'Sequence of comments creation';
-ALTER TABLE note_comments DROP CONSTRAINT IF EXISTS unique_comment_note;
 ALTER TABLE note_comments
  ADD CONSTRAINT unique_comment_note
  UNIQUE USING INDEX unique_comment_note;
@@ -93,6 +94,6 @@ CREATE OR REPLACE TRIGGER put_seq_on_comment_trigger
 COMMENT ON TRIGGER put_seq_on_comment_trigger ON note_comments IS
   'Trigger to assign the sequence value';
 
-SELECT /* Notes-processPlanet */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Sequence changed comment' AS Text;
 
