@@ -18,6 +18,8 @@ set -E
 # File for multiple API calls with consecutive calls.
 COUNTS_FILE_API="/tmp/mock_wget_counts"
 
+LOG=/tmp/mock_wget.log
+
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -40,6 +42,9 @@ FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 # shellcheck source=../functionsProcess.sh
 source "${FUNCTIONS_FILE}"
 
+echo "====" >> "${LOG}"
+date  >> "${LOG}"
+echo "Parameters: ${@}" >> "${LOG}"
 # No params
 if [[ -z "${1:-}" ]]; then
  echo "This is a mock wget command."
@@ -53,8 +58,8 @@ elif [[ "${1}" == "--version" ]]; then
 elif [[ "${1}" == "-O" ]] \
   && [[ "${2:(-31)}" == "planet-notes-latest.osn.bz2.md5" ]] \
   && [[ "${3}" == "${PLANET}/notes/planet-notes-latest.osn.bz2.md5" ]]; then
- cp "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn.bz2.md5" "${2}"
-# ToDo Copiar el md5 en el directorio extra
+ cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn.bz2.md5" "${2}"
+ echo "md5 planet" >> "${LOG}"
 
 # API call.
 # From  REQUEST="${OSM_API}/notes/search.xml?...
@@ -68,39 +73,43 @@ elif [[ "${1}" == "-O" ]] \
   echo "${ITERATION}" > "${COUNTS_FILE_API}"
  else
   echo 1 > "${COUNTS_FILE_API}"
-  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/apiCall_1.xml" "${2}"
+  cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/apiCall_1.xml" "${2}"
  fi
+ echo "api call ${ITERATION}" >> "${LOG}"
 
 # User overpass interpreter
 elif [[ "${1}" == "-O" ]] \
-  && [[ "${3:1:12}" == "--post-file=" ]] \
+  && [[ "${3:0:12}" == "--post-file=" ]] \
   && [[ "${4}" == "${OVERPASS_INTERPRETER}" ]]; then
-
- # Retrieves a JSON file
- # From QUERY_FILE="${TMP_DIR}/query" or QUERY_FILE="${QUERY_FILE}.${BASHPID}"
- # To JSON_FILE="${TMP_DIR}/${ID}.json"
- if [[ "${2}" == "${}" ]]; then
-  QUERY_FILE=$(echo "${2}" | awk -F= '{print $2}')
-  JSONFILE=$(basename -s .json "${QUERY_FILE}")
-  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/${JSONFILE}.json" "${2}"
-  # ToDo Copiar los archivos de overpass.
 
  # Countries file
  # From OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
  # To COUNTRIES_FILE="${TMP_DIR}/countries"
- elif [[ "${2}" == "${COUNTRIES_FILE}" ]]; then
-  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/countries.json" "${2}"
-  # ToDo Copiar los archivos de overpass.
+ if [[ "${2:(-9)}" == "countries" ]]; then
+  cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/countries" "${2}"
+  echo "countries" >> "${LOG}"
 
  # Maritimes files
  # From OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
  # To MARITIMES_FILE="${TMP_DIR}/maritimes"
- elif [[ "${2}" == "${MARITIMES_FILE}" ]]; then
-  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/maritimes.json" "${2}"
-  # ToDo Copiar los archivos de overpass.
+ elif [[ "${2:(-9)}" == "maritimes" ]]; then
+  cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/maritimes" "${2}"
+  echo "maritimes" >> "${LOG}"
 
+ # Retrieves a JSON file
+ # From QUERY_FILE="${TMP_DIR}/query" or QUERY_FILE="${QUERY_FILE}.${BASHPID}"
+ # To JSON_FILE="${TMP_DIR}/${ID}.json"
+ elif [[ "${2:(-5)}" == ".json" ]]; then
+  JSONFILE=$(basename "$(echo "${2}")")
+  cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/${JSONFILE}" "${2}"
+  echo "boundary json ${JSONFILE}" >> "${LOG}"
+
+ else
+  echo "ERROR: Overpass interpreter."
+  echo "error overpass interpreter" >> "${LOG}"
  fi
 
 else
  echo "ERROR: Invalid parameter for mock wget."
+ echo "error" >> "${LOG}"
 fi

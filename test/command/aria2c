@@ -15,6 +15,21 @@ set -o pipefail
 # Fails if an internal function fails.
 set -E
 
+LOG=/tmp/mock_aria2c.log
+
+# Base directory for the project.
+declare SCRIPT_BASE_DIRECTORY
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+  &> /dev/null && pwd)"
+readonly SCRIPT_BASE_DIRECTORY
+
+# Loads the global properties.
+# shellcheck source=../etc/properties.sh
+source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+
+echo "====" >> "${LOG}"
+date  >> "${LOG}"
+echo "Parameters: ${@}" >> "${LOG}"
 # No params
 if [[ -z "${1:-}" ]]; then
  echo "This is a mock aria2c command."
@@ -25,12 +40,17 @@ elif [[ "${1}" == "--version" ]]; then
 
 # Retrieves Planet notes dump file
 # planet-notes-latest.osn.bz2
-elif [[ "${1}" == "-O" ]] \
-  && [[ "${2:(-31)}" == "planet-notes-latest.osn.bz2" ]] \
-  && [[ "${3}" == "${PLANET}/notes/planet-notes-latest.osn.bz2" ]]; then
- cp "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn.bz2" "${2}"
-# ToDo Copiar el osn en el directorio extra
+elif [[ "${1}" == "-d" ]] \
+  && [[ "${3}" == "-o" ]] \
+  && [[ "${4}" == "planet-notes-latest.osn.bz2" ]] \
+  && [[ "${5}" == "-x" ]] \
+  && [[ "${6}" == "8" ]] \
+  && [[ "${7}" == "${PLANET}/notes/planet-notes-latest.osn.bz2" ]]; then
+ cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn.bz2" \
+   "${2}/${4}"
+ echo "planet" >> "${LOG}"
 
 else
  echo "ERROR: Invalid parameter for mock aria2c."
+ echo "error" >> "${LOG}"
 fi

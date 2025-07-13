@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+
+<!-- Open Note with one comment-->
+<note lon="9.9770663" lat="52.1417038">
+  <id>4555663</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4555663.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4555663/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4555663/close.xml</close_url>
+  <date_created>2024-12-18 10:16:51 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2024-12-18 10:16:51 UTC</date>
+      <uid>2858810</uid>
+      <user>ortwinr</user>
+      <user_url>https://api.openstreetmap.org/user/ortwinr</user_url>
+      <action>opened</action>
+      <text>Wegeaufzeichnungen, muss ich nacharbeiten
+
+via StreetComplete 59.3
+
+GPS Trace: https://www.openstreetmap.org/user/ortwinr/traces/11706592
+</text>
+      <html>&lt;p dir="auto"&gt;Wegeaufzeichnungen, muss ich nacharbeiten&lt;/p&gt;
+
+&lt;p dir="auto"&gt;via StreetComplete 59.3&lt;/p&gt;
+
+&lt;p dir="auto"&gt;GPS Trace: &lt;a href="https://www.openstreetmap.org/user/ortwinr/traces/11706592" rel="nofollow noopener noreferrer" dir="auto"&gt;osm.org/user/ortwinr/traces/11706592&lt;/a&gt;
+&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:43:30 UTC</date>
+      <uid>12616326</uid>
+      <user>os-emmer</user>
+      <user_url>https://api.openstreetmap.org/user/os-emmer</user_url>
+      <action>commented</action>
+      <text>Hast du diese Nacharbeit bereits durchgeführt?</text>
+      <html>&lt;p dir="auto"&gt;Hast du diese Nacharbeit bereits durchgeführt?&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+
+<!-- Closed Note with comment -->
+<note lon="44.0100825" lat="36.2041916">
+  <id>2016248</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/2016248.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/2016248/reopen.xml</reopen_url>
+  <date_created>2019-12-04 12:13:23 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:43:27 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2019-12-04 12:13:23 UTC</date>
+      <action>opened</action>
+      <text>onosm.org submitted note from a business:
+name: NewStyle-WallPaper
+phone: 07514481952
+website: 
+twitter: undefined
+hours: Saturday morning- Thursday, 08:00 am to 07:00 pm
+category: ,Home Decor
+address: طريق بحركة القديم</text>
+      <html>&lt;p dir="auto"&gt;onosm.org submitted note from a business:
+&lt;br /&gt;name: NewStyle-WallPaper
+&lt;br /&gt;phone: 07514481952
+&lt;br /&gt;website: 
+&lt;br /&gt;twitter: undefined
+&lt;br /&gt;hours: Saturday morning- Thursday, 08:00 am to 07:00 pm
+&lt;br /&gt;category: ,Home Decor
+&lt;br /&gt;address: طريق بحركة القديم&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:43:27 UTC</date>
+      <uid>1722488</uid>
+      <user>Mateusz Konieczny</user>
+      <user_url>https://api.openstreetmap.org/user/Mateusz%20Konieczny</user_url>
+      <action>closed</action>
+      <text>closing note that is duplicate of https://www.openstreetmap.org/note/2016247</text>
+      <html>&lt;p dir="auto"&gt;closing note that is duplicate of &lt;a href="https://www.openstreetmap.org/note/2016247" rel="nofollow noopener noreferrer" dir="auto"&gt;osm.org/note/2016247&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+</osm>
