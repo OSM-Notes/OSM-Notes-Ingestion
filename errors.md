@@ -117,8 +117,8 @@ CONTEXT:  PL/pgSQL function insert_note_comment(integer,note_event_enum,timestam
 SQL statement "CALL insert_note_comment (3924749, 'reopened'::note_event_enum, TO_TIMESTAMP('2024-02-02 07:52:52', 'YYYY-MM-DD HH24:MI:SS'), 10493879, 'Oskarst_')"
 PL/pgSQL function inline_code_block line 25 at EXECUTE
 20240202_19:11:23 ERROR: The script processAPINotes did not finish correctly. Line number: 395
-2024-02-02 19:11:23 - functionsProcess.sh:__onlyExecution:152 - #-- STARTED __ONLYEXECUTION --#
-2024-02-02 19:11:23 - functionsProcess.sh:__onlyExecution:158 - |-- FINISHED __ONLYEXECUTION - Took: 0h:0m:0s --|.
+2024-02-02 19:11:23 - functionsProcess.sh:__validation:152 - #-- STARTED __validation --#
+2024-02-02 19:11:23 - functionsProcess.sh:__validation:158 - |-- FINISHED __validation - Took: 0h:0m:0s --|.
 
 Se pusieron mas banderas, se muestra el statment del call, se invirtieron los logs.
 Toca ver si está insertando primero el cerrado y después el abierto.
