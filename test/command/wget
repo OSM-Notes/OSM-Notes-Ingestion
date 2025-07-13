@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Mock wget command to retrieve a smaller Planet dump.
+#
+# Author: Andres Gomez
+# Verison: 2025-07-12
+
+#set -xv
+# Fails when a variable is not initialized.
+set -u
+# Fails with an non-zero return code.
+set -e
+# Fails if the commands of a pipe return non-zero.
+set -o pipefail
+# Fails if an internal function fails.
+set -E
+
+COUNTS_FILE_API="/tmp/mock_wget_counts"
+
+# Base directory for the project.
+declare SCRIPT_BASE_DIRECTORY
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+  &> /dev/null && pwd)"
+readonly SCRIPT_BASE_DIRECTORY
+
+# Loads the global properties.
+# shellcheck source=../etc/properties.sh
+source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+
+# Location of the common functions.
+FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+# shellcheck source=../functionsProcess.sh
+source "${FUNCTIONS_FILE}"
+
+# wget --version
+if [[ "${1}" == "--version" ]]; then
+ echo "Mock Wget for OSM Notes Profile"
+
+# Retrieves Planet notes dump file md5.
+# planet-notes-latest.osn.bz2.md5
+elif [[ "${1}" == "-O" ]]
+  && [[ "${2:(-31)}" == "planet-notes-latest.osn.bz2.md5" ]] \
+  && [[ "${3}" == "${PLANET}/notes/planet-notes-latest.osn.bz2.md5" ]]; then
+ cp "${SCRIPT_BASE_DIRECTORY}/test/extra/mockPlanetDump.osn.bz2.md5" "${2}"
+# ToDo Copiar el md5 en el directorio extra
+
+# API call.
+# From  REQUEST="${OSM_API}/notes/search.xml?...
+# To API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
+elif [[ "${1}" == "-O" ]]
+  && [[ "${2:(-17)}" == "OSM-notes-API.xml" ]] \
+  && [[ "${3:0:37}" == "${OSM_API}" ]]; then
+ if [[ -r "${COUNTS_FILE_API}" ]]; then
+  $((ITERATION=$(cat "${COUNTS_FILE_API}")+1))
+  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/apiCall_$(ITERATION).xml" "${2}"
+  echo "${ITERATION}" > "${COUNTS_FILE_API}"
+ else
+  echo 1 > "${COUNTS_FILE_API}"
+  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/apiCall_1.xml" "${2}"
+ fi
+
+# User overpass interpreter
+elif [[ "${1}" == "-O" ]]
+  && [[ "${3:1:12}" == "--post-file=" ]]
+  && [[ "${4}" == "${OVERPASS_INTERPRETER}"]]; then
+
+ # Retrieves a JSON file
+ # From QUERY_FILE="${TMP_DIR}/query" or QUERY_FILE="${QUERY_FILE}.${BASHPID}"
+ # To JSON_FILE="${TMP_DIR}/${ID}.json"
+ if [[ "${2}" == "${}" ]]; then
+  QUERY_FILE=$(echo "${2}" | awk -F= '{print $2}')
+  BASENAME=$(basename -s .json "${QUERY_FILE}")
+  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/${BASENAME}.json" "${2}"
+  # ToDo Copiar los archivos de overpass.
+
+ # Countries file
+ # From OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
+ # To COUNTRIES_FILE="${TMP_DIR}/countries"
+ elif [[ "${2}" == "${COUNTRIES_FILE}" ]]; then
+  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/countries.json" "${2}"
+  # ToDo Copiar los archivos de overpass.
+
+ # Maritimes files
+ # From OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
+ # To MARITIMES_FILE="${TMP_DIR}/maritimes"
+ elif [[ "${2}" == "${MARITIMES_FILE}" ]]; 
+  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/maritimes.json" "${2}"
+  # ToDo Copiar los archivos de overpass.
+
+ fi
+
+else
+ echo "ERROR: Invalid parameter for mock wget."
+fi
