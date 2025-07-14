@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ETL part.
-psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartCountries/datamartCountries-dropDatamartObjects.sql ;
-psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartUsers/datamartUsers-dropDatamartObjects.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartCountries/datamartCountries_dropDatamartObjects.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartUsers/datamartUsers_dropDatamartObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/Staging_removeStagingObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/ETL_13_removeDWHObjects.sql ;
 
