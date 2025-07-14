@@ -1,11 +1,14 @@
 -- Create procedure for staging tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-03-13
+-- Version: 2025-07-14
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating staging procedure' AS Task;
 
+/**
+ * Processes comments and inserts them into the fact table.
+ */
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   max_processed_timestamp TIMESTAMP,
   INOUT m_count INTEGER,
@@ -56,6 +59,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
      ON (n.note_id = o.note_id AND o.event = ''opened'')
      LEFT JOIN note_comments_text t
      ON (c.note_id = t.note_id AND c.sequence_action = t.sequence_action)
+
     WHERE c.created_at >= ''' || max_processed_timestamp
     || '''  AND DATE(c.created_at) = ''' || DATE(max_processed_timestamp) -- Notes for the same date.
     || ''' ORDER BY c.note_id, c.id
@@ -75,6 +79,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
      ON (n.note_id = o.note_id AND o.event = ''opened'')
      LEFT JOIN note_comments_text t
      ON (c.note_id = t.note_id AND c.sequence_action = t.sequence_action)
+
     WHERE c.created_at > ''' || max_processed_timestamp
     || '''  AND DATE(c.created_at) = ''' || DATE(max_processed_timestamp) -- Notes for the same date.
     || ''' ORDER BY c.note_id, c.id
@@ -290,7 +295,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
 $proc$
 ;
 COMMENT ON PROCEDURE staging.process_notes_at_date IS
-  'Processes all comments from base tables more recent than a specific timestamp and loads them in the data warehouse';
+  'Processes all comments more recent than a specific timestamp, from base tables and loads them in the data warehouse';
 
 CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
  )
@@ -312,7 +317,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
   IF (qty_dwh_notes = 0) THEN
 --RAISE NOTICE '0 facts, processing all history. It could take several hours.';
    CALL staging.process_notes_at_date('2013-04-24 00:00:00.000000+00',
-    qty_dwh_notes, true);
+     qty_dwh_notes, TRUE);
   END IF;
 --RAISE NOTICE '1Flag 2: %', CLOCK_TIMESTAMP();
 
@@ -385,7 +390,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
 
     -- Not necessary to process more notes on the same date.
     CALL staging.process_notes_at_date(max_note_on_dwh_timestamp,
-     qty_dwh_notes, false);
+      qty_dwh_notes, FALSE);
 --RAISE NOTICE '1Flag 9: %', CLOCK_TIMESTAMP();
    ELSE
     -- There are comments not processed on the DHW for the currently processing
@@ -395,7 +400,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_dwh (
 --RAISE NOTICE '1Flag 10: % - %', CLOCK_TIMESTAMP(), max_note_on_dwh_timestamp;
 
     CALL staging.process_notes_at_date(max_note_on_dwh_timestamp,
-     qty_dwh_notes, true);
+      qty_dwh_notes, TRUE);
 --RAISE NOTICE '1Flag 11: %', CLOCK_TIMESTAMP();
    END IF;
 --RAISE NOTICE 'loop % - % - %.', max_processed_date,
@@ -409,5 +414,5 @@ $proc$
 COMMENT ON PROCEDURE staging.process_notes_actions_into_dwh IS
   'Processes all non-processes notes';
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'All staging objects created' AS Task;
