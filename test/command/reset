@@ -3,7 +3,7 @@
 # Reset status for mock files
 #
 # Author: Andres Gomez
-# Verison: 2025-07-12
+# Verison: 2025-07-14
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -24,7 +24,7 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
  &> /dev/null && pwd)"
 
 # Removes count file for API.
-rm -f $"{COUNTS_FILE_API}"
+rm -f "${COUNTS_FILE_API}"
 
 # Regenerates compress file and md5.
 rm -f "${SCRIPT_BASE_DIRECTORY}/test/command/extra/mockPlanetDump.osn" \

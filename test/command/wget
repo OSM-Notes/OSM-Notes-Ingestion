@@ -3,7 +3,7 @@
 # Mock wget command to retrieve a smaller Planet dump.
 #
 # Author: Andres Gomez
-# Verison: 2025-07-12
+# Verison: 2025-07-14
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -67,12 +67,16 @@ elif [[ "${1}" == "-O" ]] \
 elif [[ "${1}" == "-O" ]] \
   && [[ "${2:(-17)}" == "OSM-notes-API.xml" ]] \
   && [[ "${3:0:37}" == "${OSM_API}" ]]; then
+ 
+ declare ITERATION=0
  if [[ -r "${COUNTS_FILE_API}" ]]; then
-  $((ITERATION=$(cat "${COUNTS_FILE_API}")+1))
-  cp "${SCRIPT_BASE_DIRECTORY}/test/extra/apiCall_$(ITERATION).xml" "${2}"
+  ITERATION=$(cat "${COUNTS_FILE_API}")
+  ITERATION=$((ITERATION + 1))
+  cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/apiCall_${ITERATION}.xml" "${2}"
   echo "${ITERATION}" > "${COUNTS_FILE_API}"
  else
-  echo 1 > "${COUNTS_FILE_API}"
+  ITERATION=1
+  echo "${ITERATION}" > "${COUNTS_FILE_API}"
   cp "${SCRIPT_BASE_DIRECTORY}/test/command/extra/apiCall_1.xml" "${2}"
  fi
  echo "api call ${ITERATION}" >> "${LOG}"
