@@ -396,7 +396,7 @@ function __checkBaseTables {
   __createBaseTables
  fi
 
--- TODO Por qué se vuelve a crear, si es parte de createBaseTables. De pronto se puede borrar estos dos.
+ # TODO Por qué se vuelve a crear, si es parte de createBaseTables. De pronto se puede borrar estos dos.
  __logi "Recreating base staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE}" 2>&1
