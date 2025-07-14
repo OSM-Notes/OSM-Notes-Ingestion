@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2025-07-14
+declare -r VERSION="2025-07-14"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -68,19 +68,19 @@ readonly LOCK
 declare -r PROCESS_TYPE=${1:-}
 
 # Name of the SQL script that contains the objects to create in the DB.
-declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries-checkDatamartCountriesTables.sql"
+declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_11_checkDatamartCountriesTables.sql"
 
 # Name of the SQL script that contains the tables to create in the DB.
-declare -r CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries-createDatamarCountriesTable.sql"
+declare -r CREATE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_12_createDatamarCountriesTable.sql"
 
 # Name of the SQL script that contains the procedures to create in the DB.
-declare -r CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries-createProcedure.sql"
-
-# Name of the SQL script that contains the ETL process.
-declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries-populateDatamartCountriesTable.sql"
+declare -r CREATE_PROCEDURES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_13_createProcedure.sql"
 
 # Generic script to add years.
-declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries-alterTableAddYears.sql"
+declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_21_alterTableAddYears.sql"
+
+# Name of the SQL script that contains the ETL process.
+declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_31_populateDatamartCountriesTable.sql"
 
 # Last year activites script.
 declare -r LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts_lastYearActivities.sql"
