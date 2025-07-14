@@ -4,6 +4,7 @@
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartCountries/datamartCountries_dropDatamartObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartUsers/datamartUsers_dropDatamartObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/Staging_removeStagingObjects.sql ;
+psql -d notes -f ~/OSM-Notes-profile/sql/dwh/ETL_12_removeDatamartObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/ETL_13_removeDWHObjects.sql ;
 
 # WMS part.
