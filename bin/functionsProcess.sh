@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-13
+# Version: 2025-07-14
 
 # Error codes.
 # 1: Help message.
@@ -190,9 +190,16 @@ function __checkPrereqsCommands {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
  SELECT /* Notes-base */ PostGIS_version();
 EOF
- RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: PostGIS is missing."
+  __loge "ERROR: PostGIS extension is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## btree gist
+ # shellcheck disable=SC2154
+ RESULT=$(psql -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
+ RET=${?}
+ if [[ "${RET}" -ne 0 ]] && [[ "${RESULT}" -ne 0 ]]; then
+  __loge "ERROR: btree_gist extension is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Wget

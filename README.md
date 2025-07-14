@@ -98,6 +98,7 @@ CREATE DATABASE notes WITH OWNER angoca;
 EOF
 exit
 
+# PostGIS extension for Postgres.
 sudo apt -y install postgis
 psql -d notes << EOF
 CREATE EXTENSION postgis;
@@ -110,8 +111,20 @@ sudo apt -y install libxml2-utils xsltproc
 sudo apt -y install npm
 sudo npm install -g osmtogeojson
 
+# JSON validator.
+sudo npm install ajv
+sudo npm install -g ajv-cli
+
+# Mail sender for notifications.
+sudo apt install -y mutt
+
 sudo add-apt-repository ppa:ubuntugis/ppa
 sudo apt-get -y install gdal-bin
+
+# Generalized Search Tree extension for Postgres.
+psql -d notes << EOF
+CREATE EXTENSION btree_gist
+EOF
 ```
 
 If you do not configure the prerequisites, each script validates the necessary

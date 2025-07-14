@@ -58,6 +58,7 @@
 #   CREATE DATABASE notes;
 # You need to install postgis and add the extension:
 #   CREATE EXTENSION postgis;
+#   CREATE EXTENSION btree_gist;
 # You also need to log into the database with the current user ${USER}
 #   createuser myuser
 #   CREATE ROLE myuser WITH LOGIN
