@@ -1,15 +1,21 @@
 -- Create procedure for staging tables for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-03-13
+-- Version: 2027-07-11
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating staging procedure for year' AS Task;
 
+/**
+ * Processes comments and inserts them into the fact table.
+ * There are different processing types:
+ * 1: >=
+ * 2: =
+ */
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   max_processed_timestamp TIMESTAMP,
   INOUT m_count INTEGER,
-  m_equals BOOLEAN
+  m_process_type SMALLINT
  )
  LANGUAGE plpgsql
  AS $proc$
@@ -41,7 +47,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
 --  RAISE NOTICE 'Day % started.', max_processed_timestamp;
 
 --RAISE NOTICE 'Flag 1: %', CLOCK_TIMESTAMP();
-  IF (m_equals) THEN
+  IF (m_process_type = 1) THEN
 --RAISE NOTICE 'Processing equals';
    OPEN notes_on_day FOR EXECUTE('
     SELECT /* Notes-staging */
@@ -60,7 +66,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
     || '''  AND DATE(c.created_at) = ''' || DATE(max_processed_timestamp) -- Notes for the same date.
     || ''' ORDER BY c.note_id, c.id
     ');
-  ELSE
+  ELSIF (m_process_type = 2) THEN
 --RAISE NOTICE 'Processing greater than';
    OPEN notes_on_day FOR EXECUTE('
     SELECT /* Notes-staging */
@@ -292,7 +298,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_staging_${YEAR} (
    FROM note_comments
    WHERE EXTRACT(YEAR FROM created_at) = ${YEAR};
    CALL staging.process_notes_at_date_${YEAR}(min_timestamp, qty_dwh_notes,
-     true);
+     1);
   END IF;
 --RAISE NOTICE '1Flag 2: %', CLOCK_TIMESTAMP();
 
@@ -368,7 +374,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_staging_${YEAR} (
 
     -- Not necessary to process more notes on the same date.
     CALL staging.process_notes_at_date_${YEAR}(max_note_on_dwh_timestamp,
-     qty_dwh_notes, false);
+     qty_dwh_notes, 2);
 --RAISE NOTICE '1Flag 9: %', CLOCK_TIMESTAMP();
    ELSE
     -- There are comments not processed on the DHW for the currently processing
@@ -378,7 +384,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_actions_into_staging_${YEAR} (
 --RAISE NOTICE '1Flag 10: % - %', CLOCK_TIMESTAMP(), max_note_on_dwh_timestamp;
 
     CALL staging.process_notes_at_date_${YEAR}(max_note_on_dwh_timestamp,
-     qty_dwh_notes, true);
+     qty_dwh_notes, 1);
 --RAISE NOTICE '1Flag 11: %', CLOCK_TIMESTAMP();
    END IF;
 --RAISE NOTICE 'loop % - % - %.', max_processed_date,
@@ -392,5 +398,5 @@ $proc$
 COMMENT ON PROCEDURE staging.process_notes_actions_into_staging_${YEAR} IS
   'Processes all non-processes notes for year ${YEAR}';
 
-SELECT /* Notes-ETL */ CURRENT_TIMESTAMP AS Processing,
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'All staging objects created for year ${YEAR}' AS Task;
