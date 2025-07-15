@@ -93,8 +93,8 @@ sudo apt -y install postgresql
 sudo systemctl start postgresql.service
 sudo su - postgres
 psql << EOF
-CREATE USER angoca SUPERUSER;
-CREATE DATABASE notes WITH OWNER angoca;
+CREATE USER notes SUPERUSER;
+CREATE DATABASE notes WITH OWNER notes;
 EOF
 exit
 
@@ -102,6 +102,11 @@ exit
 sudo apt -y install postgis
 psql -d notes << EOF
 CREATE EXTENSION postgis;
+EOF
+
+# Generalized Search Tree extension for Postgres.
+psql -d notes << EOF
+CREATE EXTENSION btree_gist
 EOF
 
 # Tools to process the XML and convert it into CSV.
@@ -121,10 +126,6 @@ sudo apt install -y mutt
 sudo add-apt-repository ppa:ubuntugis/ppa
 sudo apt-get -y install gdal-bin
 
-# Generalized Search Tree extension for Postgres.
-psql -d notes << EOF
-CREATE EXTENSION btree_gist
-EOF
 ```
 
 If you do not configure the prerequisites, each script validates the necessary
@@ -276,7 +277,7 @@ These files include details about how to run or troubleshoot the scripts.
 * `bin/process` has the main script to download the notes database, with the
   Planet dump and via API calls.
 * `etc` configuration file for many scripts.
-* `json-schema` schemas for JSON files.
+* `json` JSON files for schema and testing.
 * `lib` libraries used in the project.
   Currently only a modified version of bash logger.
 * `overpass` queries to download data with Overpass for the countries and

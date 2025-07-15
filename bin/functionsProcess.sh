@@ -73,9 +73,9 @@ declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_
 declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
 
 # JSON schema for Overpass files.
-declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json-schema/osm-jsonschema.json"
+declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"
 # JSON schema for GeoJSON files.
-declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json-schema/geojsonschema.json"
+declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"
 
 # Filename for the flat file for notes.
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
@@ -112,6 +112,9 @@ declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
 # Note location backup file
 declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
 declare -r CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
+
+# ogr2ogr GeoJSON test file.
+declare -r GEOJSON_TEST="${SCRIPT_BASE_DIRECTORY}/json/map.geojson"
 
 ###########
 # FUNCTIONS
@@ -200,8 +203,7 @@ EOF
  # shellcheck disable=SC2154
  __logd "Checking btree gist."
  RESULT=$(psql -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
- RET=${?}
- if [[ "${RET}" -eq 0 ]] && [[ "${RESULT}" -eq 0 ]]; then
+ if [[ "${RESULT}" -ne 1 ]]; then
   __loge "ERROR: btree_gist extension is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -235,6 +237,7 @@ EOF
   __loge "ERROR: ogr2ogr is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+
  ## flock
  __logd "Checking flock."
  if ! flock --version > /dev/null 2>&1; then
@@ -303,6 +306,18 @@ EOF
  fi
  if [[ ! -r "${JSON_SCHEMA_GEOJSON}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_GEOJSON}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${GEOJSON_TEST}" ]]; then
+  __loge "ERROR: File is missing at ${GEOJSON_TEST}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ ## ogr2ogr import without password
+ __logd "Checking ogr2ogr import into postgres without password."
+ if ! ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
+    "${GEOJSON_TEST}" -nln import -overwrite; then
+  __loge "ERROR: ogr2ogr cannot access the database."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  set -e
