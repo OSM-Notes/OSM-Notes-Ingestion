@@ -14,7 +14,7 @@
 # * EMAILS : List of emails to send the report, separated by comma.
 # * LOG_LEVEL : Log level in capitals.
 #
-# export EMAILS="angoca@yahoo.com" ; export LOG_LEVEL=WARN; cd ~/OSM-Notes-profile ; ./notesCheckVerifier.sh
+# export EMAILS="angoca osm.lat" ; export LOG_LEVEL=WARN; cd ~/OSM-Notes-profile ; ./notesCheckVerifier.sh
 #
 # This is the list of error codes:
 # 1) Help message.
