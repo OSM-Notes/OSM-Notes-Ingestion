@@ -187,18 +187,21 @@ function __checkPrereqsCommands {
  fi
  ## PostGIS
  # shellcheck disable=SC2154
+ __logd "Checking PostGIS."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
  SELECT /* Notes-base */ PostGIS_version();
 EOF
+ RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: PostGIS extension is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## btree gist
  # shellcheck disable=SC2154
+ __logd "Checking btree gist."
  RESULT=$(psql -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
  RET=${?}
- if [[ "${RET}" -ne 0 ]] && [[ "${RESULT}" -ne 0 ]]; then
+ if [[ "${RET}" -eq 0 ]] && [[ "${RESULT}" -eq 0 ]]; then
   __loge "ERROR: btree_gist extension is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -209,41 +212,43 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Aria2c
+ __logd "Checking aria2c."
  if ! aria2c --version > /dev/null 2>&1; then
   __loge "ERROR: Aria2c is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## osmtogeojson
+ __logd "Checking osmtogeojson."
  if ! osmtogeojson --version > /dev/null 2>&1; then
   __loge "ERROR: osmtogeojson is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## JSON validator
+ __logd "Checking ajv."
  if ! ajv help > /dev/null 2>&1; then
   __loge "ERROR: ajv is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## gdal ogr2ogr
+ __logd "Checking ogr2ogr."
  if ! ogr2ogr --version > /dev/null 2>&1; then
   __loge "ERROR: ogr2ogr is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## flock
+ __logd "Checking flock."
  if ! flock --version > /dev/null 2>&1; then
   __loge "ERROR: flock is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Mutt.
+ __logd "Checking mutt."
  if ! mutt -v > /dev/null 2>&1; then
   __loge "Falta instalar mutt."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## wget
- if ! wget --version > /dev/null 2>&1; then
-  __loge "ERROR: wget is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  ## Block-sorting file compressor
+ __logd "Checking bzip2."
  if ! bzip2 --help > /dev/null 2>&1; then
   __loge "ERROR: bzip2 is missing."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -266,6 +271,8 @@ EOF
   __loge "ERROR: Requires Bash 4+."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+
+ __logd "Checking files."
  if [[ ! -r "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
   __loge "ERROR: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}."
   exit "${ERROR_MISSING_LIBRARY}"
