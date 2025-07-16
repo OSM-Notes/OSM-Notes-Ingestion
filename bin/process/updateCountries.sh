@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Updates the current country and maritimes boundaries, or
+# Updates the current country and maritime boundaries, or
 # insert new ones.
 #
-# To not remove all generated files, you can export this:
+# To not remove all generated files, you can export this variable:
 #   export CLEAN=false
 #
 # For contributing, please execute these commands before subimitting:
