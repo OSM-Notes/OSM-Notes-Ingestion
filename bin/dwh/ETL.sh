@@ -284,6 +284,7 @@ function __initialFacts {
     >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finishing ${YEAR} - ${BASHPID}."
   ) &
+  __logi "Check log per thread for more information."
   sleep 5 # To insert all days of the year in the dimension.
   YEAR=$((YEAR - 1))
  done

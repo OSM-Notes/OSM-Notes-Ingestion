@@ -739,6 +739,7 @@ function __processCountries {
     mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"
    fi
   ) &
+  __logi "Check log per thread for more information."
   sleep 5
  done
 
@@ -817,6 +818,7 @@ function __processMaritimes {
     mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"
    fi
   ) &
+  __logi "Check log per thread for more information."
   sleep 5
  done
 
@@ -933,6 +935,7 @@ function __getLocationNotes {
    done
    __logi "Finishing ${J}."
   ) &
+  __logi "Check log per thread for more information."
  done
 
  wait
@@ -986,6 +989,7 @@ function __getLocationNotes {
    done
    __logi "Finishing ${J}."
   ) &
+  __logi "Check log per thread for more information."
  done
 
  wait

@@ -236,6 +236,7 @@ function __processOldUsers {
   ITER=$((ITER + 1))
   LOWER_VALUE=$((HIGH_VALUE + 1))
   HIGH_VALUE=$((HIGH_VALUE + SIZE))
+  __logi "Check log per thread for more information."
   sleep 5
  done
 
