@@ -22,7 +22,8 @@
 #
 # * base > sync (This workflow is called from processApiNotes)
 # * base > flatfile > locatenotes > sync (if there is not enough memory for the
-#   other workflow, this can be used with 2 computers)
+#   other workflow, this can be used with 2 computers) 
+# TODO no longer necessary. With xsltProc, it requires less memory.
 #
 # These are some examples to call this script:
 #
@@ -43,10 +44,6 @@
 # * The Gaza Strip is not at the same level as a country. The ID is hardcoded.
 # * Not all countries have defined the maritimes borders. Also, not all
 #   countries have signed the Covemar.
-#
-# The following files are necessary to prepare the environment.
-# https://github.com/tyrasd/osmtogeojson
-# npm install -g osmtogeojson
 #
 # When running under MacOS or zsh, it is better to invoke bash:
 # bash ./processPlanetNotes.sh
