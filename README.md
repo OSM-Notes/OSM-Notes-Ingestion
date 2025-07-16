@@ -109,6 +109,9 @@ psql -d notes << EOF
 CREATE EXTENSION btree_gist
 EOF
 
+# Tool to download in parallel threads.
+sudo apt install -y aria2
+
 # Tools to process the XML and convert it into CSV.
 sudo apt -y install libxml2-utils xsltproc
 
