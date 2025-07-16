@@ -73,7 +73,7 @@ DO /* Notes-ETL */
  $$
 ;
 
--- FIXME This deletes facts that had importing issues. This should be corrected
+-- TODO FIXME This deletes facts that had importing issues. This should be corrected
 -- because some facts are being lost. The issue is why these facts had
 -- importing issues, like why it did not load all "opens".
 DELETE FROM dwh.facts
