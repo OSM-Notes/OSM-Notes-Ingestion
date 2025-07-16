@@ -11,8 +11,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-07
-declare -r VERSION="2024-02-07"
+# Version: 2025-07-16
+declare -r VERSION="2025-07-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -127,13 +127,11 @@ function main() {
 
  # Sets the trap in case of any signal.
  __trapOn
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
-  exec 7> "${LOCK}"
-  __logw "Validating single execution."
-  ONLY_EXECUTION="no"
-  flock -n 7
-  ONLY_EXECUTION="yes"
- fi
+ exec 7> "${LOCK}"
+ __logw "Validating single execution."
+ ONLY_EXECUTION="no"
+ flock -n 7
+ ONLY_EXECUTION="yes"
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then

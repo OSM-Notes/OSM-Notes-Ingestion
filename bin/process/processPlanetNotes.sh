@@ -18,19 +18,15 @@
 #   zones.
 # * Runs the function against all notes.
 #
-# Globally there are two workflows:
+# There are these workflows:
 #
-# * base > sync (This workflow is called from processApiNotes)
-# * base > flatfile > locatenotes > sync (if there is not enough memory for the
-#   other workflow, this can be used with 2 computers) 
-# TODO no longer necessary. With xsltProc, it requires less memory.
+# * base > sync (This workflow is called from processApiNotes).
+# * boundaries (Processes the countries and maritimes areas only).
 #
 # These are some examples to call this script:
 #
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --base
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --flatfile
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --locatenotes output-notes.csv output-note_comments.csv output-text_comments.csv
 # * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --boundaries
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
@@ -117,36 +113,35 @@
 # order by area, count(1) desc;
 #
 # Sections per parameter:
-#                                   empty    base    locate  bounda flatfile
-#                                   (sync)           notes   ries
+#                                   empty    base    bounda
+#                                   (sync)           ries
 # __dropSyncTables                             x
 # __dropApiTables                              x
 # __dropGenericObjects                         x
 # __dropBaseTables                             x
 # __createBaseTables                           x
-# __dropSyncTables                     x               x
-# __checkBaseTables                    x               x
-# __createBaseTables                   x               x
-# __createSyncTables                   x               x
-# __dropCountryTables                          x               x
-# __createCountryTables                        x               x
-# __processCountries                           x               x
-# __processMaritimes                           x               x
-# __cleanPartial                               x               x
-# __downloadPlanetNotes                x                                x
-# __validatePlanetNotesXMLFile         x                                x
-# __convertPlanetNotesToFlatFile       x                                x
-# __createFunctionToGetCountry         x       x       x
-# __createProcedures                   x       x       x
-# __analyzeAndVacuum                   x       x       x
-# __copyFlatFiles                                      x
-# __loadSyncNotes                      x               x
-# __removeDuplicates                   x               x
-# __loadTextComments                   x               x
-# __dropSyncTables                     x               x
-# __organizeAreas                      x               x
-# __getLocationNotes                   x               x
-# __cleanNotesFiles                    x       x       x
+# __dropSyncTables                     x             
+# __checkBaseTables                    x             
+# __createBaseTables                   x             
+# __createSyncTables                   x             
+# __dropCountryTables                          x        x
+# __createCountryTables                        x        x
+# __processCountries                           x        x
+# __processMaritimes                           x        x
+# __cleanPartial                               x        x
+# __downloadPlanetNotes                x           
+# __validatePlanetNotesXMLFile         x
+# __convertPlanetNotesToFlatFile       x
+# __createFunctionToGetCountry         x       x
+# __createProcedures                   x       x
+# __analyzeAndVacuum                   x       x
+# __loadSyncNotes                      x
+# __removeDuplicates                   x
+# __loadTextComments                   x
+# __dropSyncTables                     x
+# __organizeAreas                      x
+# __getLocationNotes                   x
+# __cleanNotesFiles                    x       x
 #
 # This is the list of error codes:
 # 1) Help message.
@@ -161,8 +156,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-11
-declare -r VERSION="2025-07-11"
+# Version: 2025-07-16
+declare -r VERSION="2025-07-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -216,11 +211,6 @@ readonly LOCK
 
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
-
-# Flat file to start from load.
-declare -r FLAT_NOTES_FILE=${2:-}
-declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
-declare -r FLAT_TEXT_COMMENTS_FILE=${4:-}
 
 # Name of the file to download.
 declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
@@ -290,14 +280,7 @@ function __show_help {
  echo " * --base : to starts from scratch from Planet notes file, including the"
  echo "     boundaries."
  echo " * --boundaries : processes the countries and maritimes areas only."
- echo " * --flatfile : converts the planet file into a flat csv file."
- echo " * --locatenotes <flatNotesfile> <flatNoteCommentsfile> <flatTextCommentsfile> :"
- echo "      takes the flatfiles, import them and finally locate the notes."
  echo " * Without parameter, it processes the new notes from Planet notes file."
- echo
- echo "Flatfile option is useful when the regular machine does not have enough"
- echo "memory to process the notes file."
- echo "LocateNotes is useful to continue from the flat file."
  echo
  echo "Environment variable:"
  echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
@@ -315,61 +298,18 @@ function __checkPrereqs {
  __log_start
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
   && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
-  && [[ "${PROCESS_TYPE}" != "--flatfile" ]] \
-  && [[ "${PROCESS_TYPE}" != "--locatenotes" ]] \
   && [[ "${PROCESS_TYPE}" != "--help" ]] \
   && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --base"
   echo " * --boundaries"
-  echo " * --flatfile"
   echo " * --help"
-  echo " * --locatenotes"
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
-  && [[ "${FLAT_NOTES_FILE}" == "" ]]; then
-  __loge "ERROR: You  must specify a flat Notes CSV file to process."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
-  && [[ "${FLAT_NOTE_COMMENTS_FILE}" == "" ]]; then
-  __loge "ERROR: You  must specify a flat Note Comments CSV file to process."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- if [[ "${PROCESS_TYPE}" == "--locatenotes" ]] \
-  && [[ "${FLAT_TEXT_COMMENTS_FILE}" == "" ]]; then
-  __loge "ERROR: You  must specify a flat TextComments CSV file to process."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
  # Checks prereqs.
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
-  __checkPrereqsCommands
- fi
- if [[ "${PROCESS_TYPE}" == "" ]] \
-  || [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
-  __checkPrereqsCommands
- fi
-
- ## Checks if the flat file exist.
- if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]]; then
-  __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- ## Checks the flat file if exist.
- if [[ "${FLAT_NOTE_COMMENTS_FILE}" != "" ]] \
-  && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]]; then
-  __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- ## Checks the flat file if exist.
- if [[ "${FLAT_TEXT_COMMENTS_FILE}" != "" ]] \
-  && [[ ! -r "${FLAT_TEXT_COMMENTS_FILE}" ]]; then
-  __loge "ERROR: The flat file cannot be accessed: ${FLAT_TEXT_COMMENTS_FILE}."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
+ __checkPrereqsCommands
 
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_11_DROP_SYNC_TABLES}" ]]; then
@@ -516,15 +456,6 @@ function __analyzeAndVacuum {
  __log_finish
 }
 
-# Copies the CSV file to temporal directory.
-function __copyFlatFiles {
- __log_start
- cp "${FLAT_NOTES_FILE}" "${OUTPUT_NOTES_FILE}"
- cp "${FLAT_NOTE_COMMENTS_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
- cp "${FLAT_TEXT_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
- __log_finish
-}
-
 # Loads new notes from sync.
 function __loadSyncNotes {
  __log_start
@@ -604,10 +535,6 @@ function main() {
    __logi "Process: From scratch."
   elif [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
    __logi "Process: Downloads the countries and maritimes areas only."
-  elif [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
-   __logi "Process: Converts the planet into a flat CSV file."
-  elif [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-   __logi "Process: Takes the flat file and import it into the DB."
   fi
  fi
  # Checks the prerequisities. It could terminate the process.
@@ -617,36 +544,33 @@ function main() {
 
  # Sets the trap in case of any signal.
  __trapOn
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
-  exec 7> "${LOCK}"
-  __logw "Validating single execution."
-  ONLY_EXECUTION="no"
-  flock -n 7
-  ONLY_EXECUTION="yes"
- fi
+ exec 7> "${LOCK}"
+ __logw "Validating single execution."
+ ONLY_EXECUTION="no"
+ flock -n 7
+ ONLY_EXECUTION="yes"
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __dropSyncTables      # base
-  __dropApiTables       # base
-  __dropGenericObjects  # base
-  __dropBaseTables      # base
-  __createBaseTables    # base
- elif [[ "${PROCESS_TYPE}" == "" ]] \
-  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __dropSyncTables      # sync
+  __dropSyncTables               # base
+  __dropApiTables                # base
+  __dropGenericObjects           # base
+  __dropBaseTables               # base
+  __createBaseTables             # base
+ elif [[ "${PROCESS_TYPE}" == "" ]]; then
+  __dropSyncTables               # sync
   set +E
   export RET_FUNC=0
-  __checkBaseTables     # sync
+  __checkBaseTables              # sync
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __createBaseTables   # sync
+   __createBaseTables            # sync
   fi
   set -E
-  __createSyncTables    # sync
+  __createSyncTables             # sync
  fi
  if [[ "${PROCESS_TYPE}" == "--base" ]] \
   || [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
-  __dropCountryTables   # base and boundaries
-  __createCountryTables # base and boundaries
+  __dropCountryTables            # base and boundaries
+  __createCountryTables          # base and boundaries
 
   # Downloads the areas. It could terminate the execution if an error appears.
   if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
@@ -656,61 +580,51 @@ function main() {
    read -r
   else
    set +E
-   __processCountries   # base and boundaries
-   __processMaritimes   # base and boundaries
+   __processCountries            # base and boundaries
+   __processMaritimes            # base and boundaries
    set -E
   fi
 
-  __cleanPartial        # base and boundaries
+  __cleanPartial                 # base and boundaries
   if [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
    __logw "Ending process."
    exit 0
   fi
  fi
- if [[ "${PROCESS_TYPE}" == "" ]] \
-  || [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
-  __downloadPlanetNotes          # sync and flatfile
-  __validatePlanetNotesXMLFile   # sync and flatfile
-  __convertPlanetNotesToFlatFile # sync and flatfile
-  if [[ "${PROCESS_TYPE}" == "--flatfile" ]]; then
-   echo "CSV files are at ${TMP_DIR}"
-   __logw "Ending process."
-   exit 0
-  fi
+ if [[ "${PROCESS_TYPE}" == "" ]]; then
+  __downloadPlanetNotes          # sync
+  __validatePlanetNotesXMLFile   # sync
+  __convertPlanetNotesToFlatFile # sync
  fi
- __createFunctionToGetCountry # base, sync & locate
- __createProcedures           # all
- if [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __copyFlatFiles # locate
- fi
- if [[ "${PROCESS_TYPE}" == "" ]] \
-  || [[ "${PROCESS_TYPE}" == "--locatenotes" ]]; then
-  __loadSyncNotes       # sync & locate
-  __removeDuplicates    # sync & locate
-  __loadTextComments    # sync & locate
-  __dropSyncTables      # sync & locate
+ __createFunctionToGetCountry    # base & sync
+ __createProcedures              # all
+ if [[ "${PROCESS_TYPE}" == "" ]]; then
+  __loadSyncNotes                # sync
+  __removeDuplicates             # sync
+  __loadTextComments             # sync
+  __dropSyncTables               # sync
   set +E
   export RET_FUNC=0
-  __organizeAreas       # sync & locate
+  __organizeAreas                # sync
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __createCountryTables # sync & locate
+   __createCountryTables         # sync
    if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
     echo "Please copy the rows from the backup table:"
     echo "   INSERT INTO countries "
     echo "     SELECT * FROM backup_countries ;"
     read -r
    else
-    __processCountries  # sync & locate
-    __processMaritimes  # sync & locate
+    __processCountries           # sync
+    __processMaritimes           # sync
    fi
-   __cleanPartial       # sync & locate
+   __cleanPartial                # sync
    __organizeAreas
   fi
-  __getLocationNotes    # sync & locate
+  __getLocationNotes             # sync
  fi
- __cleanNotesFiles      # base, sync & locate
- __analyzeAndVacuum     # base, sync & locate
+ __cleanNotesFiles               # base & sync
+ __analyzeAndVacuum              # base & sync
 
  rm -f "${LOCK}"
  __logw "Ending process."

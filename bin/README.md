@@ -28,17 +28,3 @@ functionalities.
   This allow to identify unprocessed notes or errors in the other scripts.
 * `bin/monitor/notesCheckVerifier.sh` sends an email if there are old
   differences.
-
-# Insufficient memory resources
-
-If the server where this script runs does not have enough memory, then it will
-not be able to process the Planet notes file, to convert it into a flat file.
-
-To overcome this issue, you can prepare the environment with 3 steps, performed
-in different computers with different RAM.
-
-* `processPlanetNotes.sh --base` This creates the basic elements of the
-  database.
-* `processPlanetNotes.sh --flatfile` Downloads the Planet notes file and
-  converts it into two CSV flat files.
-* `processPlanetNotes.sh --locatenotes` Assign a country to the notes.

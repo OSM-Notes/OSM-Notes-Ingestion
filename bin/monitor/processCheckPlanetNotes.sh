@@ -35,8 +35,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-13
-declare -r VERSION="2025-07-13"
+# Version: 2025-07-16
+declare -r VERSION="2025-07-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -81,10 +81,6 @@ readonly LOCK
 
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
-
-# Flat file to start from load.
-declare -r FLAT_NOTES_FILE=${2:-}
-declare -r FLAT_NOTE_COMMENTS_FILE=${3:-}
 
 # Name of the file to download.
 declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
@@ -138,17 +134,6 @@ function __checkPrereqs {
  # Checks prereqs.
  __checkPrereqsCommands
 
- ## Checks the flat file if exist.
- if [[ "${FLAT_NOTES_FILE}" != "" ]] && [[ ! -r "${FLAT_NOTES_FILE}" ]]; then
-  __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTES_FILE}."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- ## Checks the flat file if exist.
- if [[ "${FLAT_NOTE_COMMENTS_FILE}" != "" ]] \
-  && [[ ! -r "${FLAT_NOTE_COMMENTS_FILE}" ]]; then
-  __loge "ERROR: The flat file cannot be accessed: ${FLAT_NOTE_COMMENTS_FILE}."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_DROP_CHECK_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_DROP_CHECK_TABLES}."
@@ -232,13 +217,11 @@ function main() {
 
  # Sets the trap in case of any signal.
  __trapOn
- if [[ "${PROCESS_TYPE}" != "--flatfile" ]]; then
-  exec 7> "${LOCK}"
-  __logw "Validating single execution."
-  ONLY_EXECUTION="no"
-  flock -n 7
-  ONLY_EXECUTION="yes"
- fi
+ exec 7> "${LOCK}"
+ __logw "Validating single execution."
+ ONLY_EXECUTION="no"
+ flock -n 7
+ ONLY_EXECUTION="yes"
 
  __dropCheckTables
  __createCheckTables
