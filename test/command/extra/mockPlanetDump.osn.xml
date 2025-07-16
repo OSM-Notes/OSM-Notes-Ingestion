@@ -1,124 +1,1292 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
-<note id="1" lat="35.5170066" lon="139.6322554" created_at="2013-04-24T08:12:38Z" closed_at="2025-04-02T12:19:48Z">
-  <comment action="opened" timestamp="2013-04-24T08:12:38Z" uid="1" user="user1">Nota creada y despues cerrada</comment>
-  <comment action="closed" timestamp="2013-05-10T12:28:11Z" uid="2" user="user2">Nota cerrada</comment>
-</note>
-<note id="2" lat="50.9381992" lon="1.8605947" created_at="2013-04-24T08:14:28Z">
-  <comment action="opened" timestamp="2013-04-24T08:12:38Z" uid="3" user="user3">Nota abierta y no cerrada</comment>
-</note>
-<note id="3" lat="50.9381992" lon="1.8605947" created_at="2013-04-24T08:14:28Z" closed_at="2024-12-31T23:06:19Z">
-  <comment action="opened" timestamp="2013-04-24T08:14:28Z">Nota
-con múltiple
-líneas y caracateres no en inglés</comment>
-  <comment action="closed" timestamp="2024-12-31T23:06:19Z" uid="4" user="ﺮﻴﻨﺸﻫﺭ">ﻦﺟﺎﺣ ﺏﺎﻫﺭ، ﺄﻗﺪﻣ ﻡﻼﺤﻇﺓ ﺏﺩﻮﻧ ﺖﻌﻠﻴﻗﺎﺗ ﻢﻧ ﻖﺒﻟ ﻢﺴﺘﺧﺪﻤﻴﻧ ﻢﺠﻫﻮﻠﻴﻧ</comment>
-</note>
-<note id="4" lat="50.7550836" lon="6.1373234" created_at="2013-04-24T08:15:06Z" closed_at="2016-05-30T13:22:19Z">
-  <comment action="opened" timestamp="2013-04-24T08:15:07Z" uid="5" user="user5">Nota abierta, cerrar y reabierta</comment>
-  <comment action="closed" timestamp="2013-04-24T08:15:14Z" uid="5" user="user5">fine</comment>
-  <comment action="reopened" timestamp="2016-04-26T20:03:32Z" uid="6" user="user6"></comment>
+<!-- Note: 6 first per year 2013 -->
+<note id="6" lat="35.5170066" lon="139.6322554" created_at="2013-04-24T08:12:38Z" closed_at="2025-04-02T12:19:48Z">
+  <comment action="opened" timestamp="2013-04-24T08:12:38Z" uid="378532" user="nyampire">Ministopは閉店済み</comment>
+  <comment action="closed" timestamp="2013-05-10T12:28:11Z" uid="10353" user="gorn">name corrected</comment>
+  <comment action="reopened" timestamp="2022-04-15T21:58:43Z" uid="13874704" user="Emilius123"></comment>
+  <comment action="commented" timestamp="2022-04-15T21:59:07Z" uid="13874704" user="Emilius123">Since this now is the oldest note, LOOK MOM, I'M OLD</comment>
+  <comment action="closed" timestamp="2022-05-18T21:43:39Z" uid="13792107" user="LordGarySugar">This note didn't need to be reactivated.</comment>
+  <comment action="reopened" timestamp="2024-04-01T01:57:32Z" uid="13874704" user="Emilius123"></comment>
+  <comment action="closed" timestamp="2024-04-01T01:57:36Z" uid="13874704" user="Emilius123">Yes, it did.</comment>
+  <comment action="reopened" timestamp="2024-09-12T13:41:32Z" uid="21788230" user="shlerksofftorobots"></comment>
+  <comment action="closed" timestamp="2024-09-12T13:42:19Z" uid="21788230" user="shlerksofftorobots">thought this was the comment button mb</comment>
+  <comment action="reopened" timestamp="2024-11-03T17:56:29Z" uid="21231804" user="KlopanRin"></comment>
+  <comment action="closed" timestamp="2024-11-03T17:57:27Z" uid="21231804" user="KlopanRin">So inspiring! This note encouraged all of us to make more notes on 
+OSM! And yes i reactivated the note just to say this</comment>
+  <comment action="reopened" timestamp="2025-04-02T12:19:26Z" uid="14916119" user="HugoC01"/>
+  <comment action="closed" timestamp="2025-04-02T12:19:48Z" uid="14916119" user="HugoC01">The first note</comment>
 </note>
 
-<!-- Note: 6 first per year 2013 -->
 <!-- Note: only open -->
+<note id="18" lat="49.6512270" lon="6.2609464" created_at="2013-04-24T08:41:16Z">
+  <comment action="opened" timestamp="2013-04-24T08:41:16Z">Fix names of building, shouldnt be streetname, in this case rather nothing</comment>
+</note>
+
 <!-- Note: only open -->
+<note id="51" lat="48.5800710" lon="7.7391386" created_at="2013-04-24T10:40:13Z">
+  <comment action="opened" timestamp="2013-04-24T10:40:13Z">test</comment>
+</note>
+
 <!-- Note: only open -->
+<note id="57" lat="45.5556731" lon="18.6850780" created_at="2013-04-24T10:58:06Z">
+  <comment action="opened" timestamp="2013-04-24T10:58:06Z">Iskon</comment>
+</note>
+
 <!-- Note: only open -->
+<note id="66" lat="46.7985391" lon="-1.1292690" created_at="2013-04-24T12:03:41Z">
+  <comment action="opened" timestamp="2013-04-24T12:03:41Z" uid="420883" user="joedal-osm">Plots interdisant le passage</comment>
+</note>
+
 <!-- Note: only open -->
+<note id="73" lat="54.8103498" lon="9.1768885" created_at="2013-04-24T12:18:34Z">
+  <comment action="opened" timestamp="2013-04-24T12:18:34Z" uid="40397" user="Zartbitter">Polizeistation hier irgendwo? Adresse: Achter de Möhl 7</comment>
+</note>
+
 <!-- Note: closed -->
+<note id="85" lat="52.2240140" lon="6.9023538" created_at="2013-04-24T13:17:32Z" closed_at="2013-04-24T14:19:17Z">
+  <comment action="opened" timestamp="2013-04-24T13:17:32Z">aaaa</comment>
+  <comment action="closed" timestamp="2013-04-24T14:19:17Z" uid="81244" user="rurseekatze">Spam</comment>
+</note>
+
 <!-- Note: closed -->
+<note id="98" lat="54.8122510" lon="11.0159826" created_at="2013-04-24T15:14:08Z" closed_at="2013-04-29T14:41:32Z">
+  <comment action="opened" timestamp="2013-04-24T15:14:08Z">Har denne her kirke ikke et navn?</comment>
+  <comment action="closed" timestamp="2013-04-29T14:41:32Z" uid="21323" user="AE35">Navnet Langø Kirke er blevet tilføjet nu </comment>
+</note>
+
 <!-- Note: closed -->
+<note id="106" lat="50.9425666" lon="3.0638015" created_at="2013-04-24T15:24:20Z" closed_at="2013-12-22T10:37:43Z">
+  <comment action="opened" timestamp="2013-04-24T15:24:20Z" uid="253266" user="Sanderd17">Uitverkoop, zal binnenkort een slagerij worden</comment>
+  <comment action="closed" timestamp="2013-12-22T10:37:43Z" uid="233248" user="zors1843">gewijzigd</comment>
+</note>
+
 <!-- Note: closed -->
+<note id="114" lat="33.6487790" lon="-117.8436792" created_at="2013-04-24T15:45:08Z" closed_at="2013-04-28T02:39:27Z">
+  <comment action="opened" timestamp="2013-04-24T15:45:08Z">Testing out this new note feature. There are some paths here I haven't mapped yet.</comment>
+  <comment action="closed" timestamp="2013-04-28T02:39:27Z" uid="53073" user="Aaron Lidman">added</comment>
+</note>
+
 <!-- Note: closed -->
+<note id="147" lat="49.3633816" lon="8.6742908" created_at="2013-04-24T20:15:21Z" closed_at="2014-07-23T02:34:17Z">
+  <comment action="opened" timestamp="2013-04-24T20:15:21Z">"Warenlager" ist eine Beschreibung, falscher Name.</comment>
+  <comment action="closed" timestamp="2014-07-23T02:34:17Z" uid="15398" user="mappy123"/>
+</note>
+
 <!-- Note: reopened -->
+<note id="266" lat="52.2549190" lon="9.1777897" created_at="2013-04-25T21:16:17Z">
+  <comment action="opened" timestamp="2013-04-25T21:16:18Z">Wald</comment>
+  <comment action="closed" timestamp="2013-05-03T10:47:28Z" uid="599804" user="NotBob">nonsense</comment>
+  <comment action="reopened" timestamp="2015-03-14T17:31:10Z" uid="2758290" user="peisker"></comment>
+</note>
+
 <!-- Note: reopened -->
+<note id="314" lat="49.4137758" lon="8.7147492" created_at="2013-04-26T09:35:23Z">
+  <comment action="opened" timestamp="2013-04-26T09:35:23Z">Bin mir fast sicher, dass hier kein Radweg ist.</comment>
+  <comment action="closed" timestamp="2013-06-29T20:43:26Z" uid="1214489" user="noaHDMA"></comment>
+  <comment action="reopened" timestamp="2013-06-29T20:43:30Z" uid="1214489" user="noaHDMA"></comment>
+</note>
+
 <!-- Note: reopened -->
+<note id="344" lat="55.2568225" lon="9.4623613" created_at="2013-04-26T15:16:51Z">
+  <comment action="opened" timestamp="2013-04-26T15:16:51Z" uid="207581" user="Hjart">Nyt boligområde under etablering syd for Ejsbølgård. "Ejsbølsvinget" &amp; "Ejsbølhøj"</comment>
+  <comment action="closed" timestamp="2013-06-10T21:09:55Z" uid="207581" user="Hjart">Der står et stort skilt og annoncerer grunde til salg i området, men ellers er området endnu helt urør
+t.</comment>
+  <comment action="reopened" timestamp="2013-06-11T15:10:12Z" uid="207581" user="Hjart"></comment>
+</note>
+
 <!-- Note: reopened -->
+<note id="368" lat="59.3484096" lon="18.2051182" created_at="2013-04-26T19:13:58Z">
+  <comment action="opened" timestamp="2013-04-26T19:13:58Z" uid="577365" user="TheOddOne2">Ligger det verkligen två orter med namnet Brevik precis brevid varandra här? </comment>
+  <comment action="closed" timestamp="2013-06-19T18:32:41Z" uid="371" user="emj">Alla tågstationer rendras så här, det finns ingen extra ort som heter Brevik här.</comment>
+  <comment action="reopened" timestamp="2013-06-24T18:27:09Z" uid="577365" user="TheOddOne2"></comment>
+</note>
 <!-- Note: reopened -->
+<note id="412" lat="52.2738429" lon="8.0422550" created_at="2013-04-27T10:27:22Z">
+  <comment action="opened" timestamp="2013-04-27T10:27:22Z">Haus der Gesundheit, Hakenstr. 6, Osnabrück</comment>
+  <comment action="commented" timestamp="2013-04-27T10:27:49Z">ok</comment>
+  <comment action="closed" timestamp="2013-08-09T14:01:56Z" uid="710985" user="N9713"></comment>
+  <comment action="reopened" timestamp="2013-08-09T14:02:05Z" uid="710985" user="N9713"></comment>
+</note>
+
 <!-- Note: reclosed -->
+<note id="464" lat="48.8209087" lon="2.2609091" created_at="2013-04-27T22:56:15Z" closed_at="2013-09-23T15:40:41Z">
+  <comment action="opened" timestamp="2013-04-27T22:56:15Z" uid="1679" user="andrewpmk">Grand Paris ligne 15</comment>
+  <comment action="closed" timestamp="2013-08-21T14:01:49Z" uid="1720618" user="sgissinger"></comment>
+  <comment action="reopened" timestamp="2013-08-21T14:01:51Z" uid="1720618" user="sgissinger"></comment>
+  <comment action="closed" timestamp="2013-08-29T16:52:45Z" uid="138059" user="Truchin">Elle y est depuis juillet</comment>
+  <comment action="reopened" timestamp="2013-09-01T16:41:44Z" uid="1731362" user="Like A Boy - Streemap"></comment>
+  <comment action="commented" timestamp="2013-09-03T07:35:05Z" uid="138059" user="Truchin">Pourquoi "Like A Boy - Streemap" a t il réactivé la note ? </comment>
+  <comment action="closed" timestamp="2013-09-23T15:40:41Z" uid="138059" user="Truchin"></comment>
+</note>
+
 <!-- Note: reclosed -->
+<note id="469" lat="45.1102936" lon="5.7252181" created_at="2013-04-28T04:03:42Z" closed_at="2013-06-15T04:52:22Z">
+  <comment action="opened" timestamp="2013-04-28T04:03:42Z" uid="163973" user="badpap">Voir comment les petites routes ont été faite
+</comment>
+  <comment action="closed" timestamp="2013-06-15T04:52:12Z" uid="163973" user="badpap">ok</comment>
+  <comment action="reopened" timestamp="2013-06-15T04:52:14Z" uid="163973" user="badpap"></comment>
+  <comment action="closed" timestamp="2013-06-15T04:52:22Z" uid="163973" user="badpap">ok</comment>
+</note>
+
 <!-- Note: reclosed -->
+<note id="490" lat="51.0369313" lon="13.2977003" created_at="2013-04-28T09:43:42Z" closed_at="2013-06-12T17:58:11Z">
+  <comment action="opened" timestamp="2013-04-28T09:43:42Z" uid="86504" user="Thomas8122">Hier macht bald ein McDonald’s auf.</comment>
+  <comment action="commented" timestamp="2013-05-01T13:36:05Z" uid="44170" user="Emploi">Als hätten wir davon nicht genug... </comment>
+  <comment action="commented" timestamp="2013-05-01T15:07:28Z" uid="86504" user="Thomas8122">brauchst ja nicht hingehen...</comment>
+  <comment action="commented" timestamp="2013-05-01T15:09:49Z">???</comment>
+  <comment action="closed" timestamp="2013-06-12T17:11:15Z" uid="86504" user="Thomas8122">Freitag wird aufgemacht</comment>
+  <comment action="reopened" timestamp="2013-06-12T17:57:44Z" uid="44170" user="Emploi"></comment>
+  <comment action="closed" timestamp="2013-06-12T17:58:11Z" uid="44170" user="Emploi">Ich teste nur was.. Mal sehen, ist gleich wieder zu. ;)</comment>
+</note>
+
 <!-- Note: reclosed -->
+<note id="497" lat="45.8662260" lon="6.1257792" created_at="2013-04-28T12:45:51Z" closed_at="2014-04-13T12:33:08Z">
+  <comment action="opened" timestamp="2013-04-28T12:45:51Z">Note</comment>
+  <comment action="commented" timestamp="2013-04-28T12:46:43Z">Centre de vacances des Puisots</comment>
+  <comment action="commented" timestamp="2014-02-02T17:33:43Z" uid="704348" user="JBacc1">Quelle activité ?</comment>
+  <comment action="closed" timestamp="2014-04-09T13:51:13Z" uid="2024728" user="Sertyma"></comment>
+  <comment action="reopened" timestamp="2014-04-09T13:51:18Z" uid="2024728" user="Sertyma"></comment>
+  <comment action="closed" timestamp="2014-04-09T13:53:21Z" uid="2024728" user="Sertyma">Le centre des Puisots ne propose pas spécialement d'activité propre. C'est simplement de l'hébergem
+ent !!</comment>
+  <comment action="reopened" timestamp="2014-04-12T16:58:29Z" uid="498662" user="Ocirne94"></comment>
+  <comment action="commented" timestamp="2014-04-12T17:15:04Z">C'est aussi le centre aéré de la ville d'Annecy.</comment>
+  <comment action="closed" timestamp="2014-04-13T12:33:08Z" uid="704348" user="JBacc1">J'ai de la forêt ici. À replacer plus précisément.</comment>
+</note>
+
 <!-- Note: reclosed -->
+<note id="506" lat="59.3443290" lon="18.1704426" created_at="2013-04-28T16:16:35Z" closed_at="2013-06-24T18:30:23Z">
+  <comment action="opened" timestamp="2013-04-28T16:16:35Z" uid="577365" user="TheOddOne2">Två Skärsätra också... är det nån slags redigeringskrig eller slarvig import?</comment>
+  <comment action="closed" timestamp="2013-06-19T18:33:20Z" uid="371" user="emj">Tågstation och ort är inte samma sak imho.
+http://www.openstreetmap.org/?note=368</comment>
+  <comment action="reopened" timestamp="2013-06-24T18:29:46Z" uid="577365" user="TheOddOne2"></comment>
+  <comment action="closed" timestamp="2013-06-24T18:30:23Z" uid="577365" user="TheOddOne2">Inte imho heller. Se kommentar Brevik.</comment>
+</note>
+
 <!-- Note: commented -->
+<note id="551" lat="55.9256438" lon="-4.3292356" created_at="2013-04-28T22:50:21Z">
+  <comment action="opened" timestamp="2013-04-28T22:50:21Z">Possibly new roads here</comment>
+  <comment action="commented" timestamp="2013-04-28T22:50:38Z" uid="1410" user="SuborbitalPigeon">me</comment>
+</note>
+
 <!-- Note: commented -->
+<note id="562" lat="-34.6525561" lon="-58.7880778" created_at="2013-04-29T01:45:19Z">
+  <comment action="opened" timestamp="2013-04-29T01:45:20Z">martin fierro y tucuman</comment>
+  <comment action="commented" timestamp="2013-04-29T03:58:42Z" uid="331218" user="AgusQui">?</comment>
+</note>
+
 <!-- Note: commented -->
+<note id="568" lat="49.8407537" lon="24.0304470" created_at="2013-04-29T03:31:52Z">
+  <comment action="opened" timestamp="2013-04-29T03:31:52Z">Building outline is not precise.</comment>
+  <comment action="commented" timestamp="2013-05-28T15:59:55Z" uid="20517" user="Denys">Could you clarify what is not precise? It looks fine to me.</comment>
+</note>
+
 <!-- Note: commented -->
+<note id="592" lat="49.5773217" lon="17.2487605" created_at="2013-04-29T10:46:38Z">
+  <comment action="opened" timestamp="2013-04-29T10:46:38Z" uid="5013" user="walley">prejmenovano?</comment>
+  <comment action="commented" timestamp="2013-05-09T00:11:06Z" uid="10353" user="gorn">Může někdo z místních ověřit nový název podniku, případně další detaily?</comment>
+  <comment action="commented" timestamp="2013-08-18T11:47:45Z">go4games hawai s jednim i</comment>
+</note>
+
 <!-- Note: commented -->
+<note id="609" lat="37.7585014" lon="-122.4867439" created_at="2013-04-29T11:32:15Z">
+  <comment action="opened" timestamp="2013-04-29T11:32:15Z">Why is the label for San Francisco out in the Sunset?  It should be downtown, somewhere around the Civic Center, Union Square, or Financial District.</comment>
+  <comment action="commented" timestamp="2013-04-29T16:50:49Z" uid="153669" user="dchiles">My best guess is because of the Farallon Islands to the west which are part of the city</comment>
+  <comment action="commented" timestamp="2013-04-29T17:44:36Z" uid="105946" user="ElliottPlack">That'd be my guess too. Here is the SF polygon: http://www.openstreetmap.org/browse/relation/111968 . I guess the render computes the centro
+id and then looks for areas that don't have a lot of other labels maybe?</comment>
+  <comment action="commented" timestamp="2013-04-30T03:03:00Z" uid="262151" user="ToeBee">No, the renderer does not (currently) render city names from polygons. The San Francisco label is coming from this node: http://www.openstreetmap.
+org/browse/node/26819236
+
+I will leave it to a local to move it.</comment>
+</note>
+
 <!-- Note: commented after reopened -->
+<note id="824" lat="34.9371817" lon="135.7091171" created_at="2013-04-30T13:39:33Z" closed_at="2024-01-25T11:36:26Z">
+  <comment action="opened" timestamp="2013-04-30T13:39:33Z" uid="171028" user="yasunari">発掘調査していたので、宅地になるかも</comment>
+  <comment action="closed" timestamp="2013-11-30T02:50:36Z" uid="171028" user="yasunari"></comment>
+  <comment action="reopened" timestamp="2013-11-30T02:50:38Z" uid="171028" user="yasunari"></comment>
+  <comment action="commented" timestamp="2013-11-30T02:50:53Z" uid="171028" user="yasunari">半分駐車場、半分住宅造成</comment>
+  <comment action="closed" timestamp="2019-02-19T09:16:22Z" uid="4954428" user="Rakkka"></comment>
+  <comment action="reopened" timestamp="2019-02-26T18:46:22Z" uid="171028" user="yasunari"></comment>
+  <comment action="commented" timestamp="2019-02-26T18:46:29Z" uid="171028" user="yasunari">なにも解決されていないので、最有効化します</comment>
+  <comment action="closed" timestamp="2024-01-25T11:36:26Z" uid="20246541" user="PoCoSoFo">周辺の住宅を追加しました。</comment>
+</note>
+
 <!-- Note: commented after reopened -->
+<note id="997" lat="49.2327039" lon="-122.8600457" created_at="2013-05-01T07:56:30Z" closed_at="2014-01-27T03:46:28Z">
+  <comment action="opened" timestamp="2013-05-01T07:56:30Z" uid="135851" user="z-dude">Woolridge street was recently realigned.  Need to move this section of road to the east.  Also, there's a new service road to the east of king edward
+.</comment>
+  <comment action="closed" timestamp="2014-01-19T12:28:14Z" uid="1355239" user="d19dotca">Fixed. :-)</comment>
+  <comment action="reopened" timestamp="2014-01-27T01:21:24Z" uid="355617" user="pnorman"></comment>
+  <comment action="commented" timestamp="2014-01-27T01:22:12Z" uid="355617" user="pnorman">You deleted roads that exist (e.g. the road from Lougheed to Woolridge parallel King Ed) so I had to undo the changes</comment>
+  <comment action="closed" timestamp="2014-01-27T03:46:28Z" uid="1355239" user="d19dotca">Apologies, I didn't mean to, I must have deleted it intending to re-add it and forgot before I saved. Looks like it's all fixed up now though, jus
+t reviewed it. Marking as resolved. If something is still wrong, please re-activate the Note.</comment>
+</note>
+
 <!-- Note: commented after reopened -->
+<note id="1037" lat="54.3626079" lon="10.1448870" created_at="2013-05-01T11:47:35Z" closed_at="2013-07-26T11:36:54Z">
+  <comment action="opened" timestamp="2013-05-01T11:47:35Z">Maritimes Viertel</comment>
+  <comment action="closed" timestamp="2013-06-27T13:53:29Z" uid="72151" user="GeorgFausB">???</comment>
+  <comment action="reopened" timestamp="2013-06-28T10:50:46Z" uid="42619" user="kerosin"></comment>
+  <comment action="closed" timestamp="2013-06-28T10:57:05Z" uid="42619" user="kerosin">http://www.maritimes-viertel.de/
+Ist natürlich kein Stadtviertel, aber hat durchaus seine Daseinsberechtigung! Ich könnte den Verlauf grob einzeichnen (exakt geht ja sowieso nicht, da es nichts offizielles ist), dann bleibt aber die Frage nach dem Tagging. (area=yes; n
+ame=Maritimes Viertel;tourism=attraction)?</comment>
+  <comment action="reopened" timestamp="2013-06-28T10:57:07Z" uid="42619" user="kerosin"></comment>
+  <comment action="closed" timestamp="2013-07-05T11:13:49Z" uid="42619" user="kerosin">Alternativ könnte man natürlich auch eine Relation machen, in der sich alle Meilensteine befinden. Siehe http://www.maritimes-viertel.de/images/detai
+lkarten/maritimes-viertel-tour.pdf
+
+Das ist glaube ich doch besser als eine ohnehin nichts aussagende Fläche. Andere Meinungen?</comment>
+  <comment action="reopened" timestamp="2013-07-05T11:13:54Z" uid="42619" user="kerosin"></comment>
+  <comment action="commented" timestamp="2013-07-08T08:37:17Z" uid="40397" user="Zartbitter">Eine site-Relation scheint mir passend zu sein. Ist besser als eine dubiose, nicht eindeutig festgelegte/festlegbare Fläche.</comment>
+  <comment action="commented" timestamp="2013-07-15T14:28:29Z">ok
+</comment>
+  <comment action="closed" timestamp="2013-07-26T11:36:54Z" uid="1575526" user="Action85">Es ist ja kein Stadtviertel also würde Ich hier auch nichts ändern</comment>
+</note>
+
 <!-- Note: commented after reopened -->
+<note id="1046" lat="53.3943082" lon="-1.4882398" created_at="2013-05-01T12:13:36Z" closed_at="2017-08-08T16:50:20Z">
+  <comment action="opened" timestamp="2013-05-01T12:13:36Z">name has changed</comment>
+  <comment action="commented" timestamp="2013-05-06T17:46:40Z" uid="1183113" user="jboz1">to what?</comment>
+  <comment action="closed" timestamp="2014-01-22T18:27:27Z" uid="412560" user="Meersbrook">Gotta love these reports...</comment>
+  <comment action="reopened" timestamp="2014-01-22T18:27:31Z" uid="412560" user="Meersbrook"></comment>
+  <comment action="commented" timestamp="2014-04-11T21:52:32Z" uid="1802093" user="Paul Berry">I'll check we've got the right business addresses in the immediate area then.</comment>
+  <comment action="commented" timestamp="2017-07-28T16:25:16Z">в</comment>
+  <comment action="commented" timestamp="2017-07-28T16:25:17Z">п</comment>
+  <comment action="closed" timestamp="2017-08-08T16:50:20Z" uid="1802093" user="Paul Berry">Resolved on changeset #50949137.</comment>
+</note>
+
 <!-- Note: commented after reopened -->
+<note id="1125" lat="18.5338772" lon="-72.3187494" created_at="2013-05-02T02:54:46Z" closed_at="2013-07-31T18:20:49Z">
+  <comment action="opened" timestamp="2013-05-02T02:54:46Z" uid="24440" user="jaakkoh">This twist in the road is just the tip of the iceberg of the mess that was caused by Serge's attempt to align data with badly aligned Bing imagery fr
+om 2010. From here to the Villa Rosa area and slightly toward SW from here needs to be adjusted carefully.</comment>
+  <comment action="closed" timestamp="2013-07-12T02:38:56Z" uid="643855" user="Steven Loken"></comment>
+  <comment action="reopened" timestamp="2013-07-12T09:02:57Z" uid="24440" user="jaakkoh"></comment>
+  <comment action="commented" timestamp="2013-07-12T09:05:25Z" uid="24440" user="jaakkoh">As noted in the thorough description above this note was added due to extensive problems caused by an erroneous edit. I've  fixed most of it but t
+here are still some things to check. 
+.. As a general rule of thumb: If you don't understand a note you can always ask its creator if you want. Don't close bugs/notes when you don't understand them. .. And please always consider making a comment when closing notes (to help 
+others understand what has been done).</comment>
+  <comment action="closed" timestamp="2013-07-31T18:20:49Z" uid="24440" user="jaakkoh">verified; damage fixed pretty ok.</comment>
+</note>
+
 <!-- Note: annonymous -->
+<note id="1133" lat="53.3244717" lon="-6.2151289" created_at="2013-05-02T03:59:21Z" closed_at="2013-05-06T15:36:53Z">
+  <comment action="opened" timestamp="2013-05-02T03:59:21Z">Why is this cricket and rugby ground flagged to appear as parking?  The (just about illegible) note about a one off event is no justification.
+The yellow south-east corner is a permanent private car park for the grounds so I'm not commenting on that, just the second P and the note alongside it about "IEC 2012 Pilgrims Parking".</comment>
+  <comment action="closed" timestamp="2013-05-06T15:36:53Z" uid="578519" user="DaCor">A search for IEC 2012 shows it was the Eucharist Congress. Seeing as its unlike to be used as a parking facility for this event in the long term, I ha
+ve removed the note and parking details</comment>
+</note>
+
 <!-- Note: annonymous -->
+<note id="1143" lat="48.5130686" lon="9.0859777" created_at="2013-05-02T07:30:42Z" closed_at="2015-02-19T12:38:12Z">
+  <comment action="opened" timestamp="2013-05-02T07:30:42Z">Was ist das hier?</comment>
+  <comment action="commented" timestamp="2013-07-11T20:12:19Z">Schießstand ?</comment>
+  <comment action="commented" timestamp="2013-09-11T16:49:46Z" uid="1714220" user="luschi">sieht mir nach einer Kegelbahn aus</comment>
+  <comment action="commented" timestamp="2013-09-29T21:42:40Z">Nein. Gehört zum Schützenhaus</comment>
+  <comment action="commented" timestamp="2013-09-30T16:28:38Z" uid="1714220" user="luschi">Habe jetzt noch ein paar Details eingezeichnet
+Das könnte der Schießstand sein und im Halbkreis die Zielscheiben.
+Bitte kontrollieren</comment>
+  <comment action="commented" timestamp="2014-07-04T05:45:08Z">Schießscheiben sind ja putzig.  Wenn einer daneben trifft, geht der Schuss über die Straße.  :-). Es wird natürlich längs der Bahn geschossen. Scheiben sind im NO parallel z
+u einander. </comment>
+  <comment action="commented" timestamp="2014-07-04T05:46:53Z">Bahn dürfte wohl breiter sein?</comment>
+  <comment action="commented" timestamp="2014-07-04T16:17:29Z" uid="1714220" user="luschi">habe das vor 9 Monate laut Bing-Satellitenbild eingezeichnet. Da ist der Schießstand nicht breiter und im Halbkreis diese 6 kleine Dächlein/Hüttc
+hen. Da muss wohl ein Ortskundigen Mapper das richtig erfassen.</comment>
+  <comment action="closed" timestamp="2015-02-19T12:38:12Z" uid="2680778" user="2010max">Ist Schießstand</comment>
+</note>
+
 <!-- Note: annonymous -->
+<note id="1152" lat="45.3818136" lon="27.2349358" created_at="2013-05-02T10:39:11Z" closed_at="2013-05-02T10:52:26Z">
+  <comment action="opened" timestamp="2013-05-02T10:39:11Z">Nicolești</comment>
+  <comment action="closed" timestamp="2013-05-02T10:52:26Z" uid="1410252" user="TheSmokey"></comment>
+</note>
+
 <!-- Note: annonymous -->
+<note id="1165" lat="55.9776703" lon="-3.6578465" created_at="2013-05-02T11:50:17Z" closed_at="2013-05-02T11:50:45Z">
+  <comment action="opened" timestamp="2013-05-02T11:50:17Z">Platform being built here</comment>
+  <comment action="closed" timestamp="2013-05-02T11:50:45Z" uid="1410" user="SuborbitalPigeon"></comment>
+</note>
+
 <!-- Note: annonymous -->
+<note id="1178" lat="5.8335915" lon="-72.9847956" created_at="2013-05-02T12:44:26Z" closed_at="2021-05-02T03:43:22Z">
+  <comment action="opened" timestamp="2013-05-02T12:44:26Z">via suelta y desconectada</comment>
+  <comment action="commented" timestamp="2017-07-28T17:01:26Z">в</comment>
+  <comment action="commented" timestamp="2017-07-28T17:01:27Z">р</comment>
+  <comment action="closed" timestamp="2021-05-02T03:43:22Z" uid="89128" user="AngocA">La via ya se ve conectada.</comment>
+</note>
+
 <!-- Note: creation multiple lines -->
+<note id="1188" lat="50.8276259" lon="13.6659622" created_at="2013-05-02T13:16:52Z" closed_at="2013-05-08T14:32:31Z">
+  <comment action="opened" timestamp="2013-05-02T13:16:52Z" uid="501441" user="washeck">It seems like there are typos (b vs p) in addr:street and also the bus stop names.
+
+addr:street=Niederpöpel
+addr:suburb=Niederpöbel</comment>
+  <comment action="commented" timestamp="2013-05-08T09:49:01Z" uid="423685" user="geri-oc">addr:suburb=Niederpöbel
+addr:street=Niederpöbel
+bus stops dito</comment>
+  <comment action="closed" timestamp="2013-05-08T14:32:31Z" uid="423685" user="geri-oc">erledigt - geri-oc</comment>
+</note>
+
 <!-- Note: creation multiple lines -->
+<note id="1196" lat="39.9001234" lon="-96.8224669" created_at="2013-05-02T15:08:55Z" closed_at="2013-05-12T16:22:42Z">
+  <comment action="opened" timestamp="2013-05-02T15:08:55Z" uid="1243566" user="Nate Bargmann">K-243 only extends from K-148 to Big Bear Road.  Yes, it is only one mile long.  K-243 does not go west of K-148.
+
+23rd Road extends from Big Bear Road to 1st road, or for two miles east from the eastern terminus of K-243 to the Washington/Marshall County line.
+
+The entire length of K-243, 23rd Road in Washington county, and Granite Road in Marshall County to the intersection with 2nd road at Bremen, is paved.</comment>
+  <comment action="closed" timestamp="2013-05-12T16:22:42Z" uid="262151" user="ToeBee">Thanks for the detailed report. I believe I have fixed up the state highway situation in the area.</comment>
+</note>
+<note id="1197" lat="39.8941640" lon="-96.7875767" created_at="2013-05-02T15:10:05Z" closed_at="2013-05-12T18:01:54Z">
+  <comment action="opened" timestamp="2013-05-02T15:10:05Z" uid="1243566" user="Nate Bargmann">2nd Road from Bremen, south four miles to US 36 highway is a paved county road.</comment>
+  <comment action="closed" timestamp="2013-05-12T18:01:54Z" uid="262151" user="ToeBee">Marked it as a tertiary road and added a surface=paved tag</comment>
+</note>
+
 <!-- Note: creation multiple lines -->
+<note id="1218" lat="49.5526258" lon="8.6655951" created_at="2013-05-02T17:14:16Z" closed_at="2013-08-26T06:39:34Z">
+  <comment action="opened" timestamp="2013-05-02T17:14:16Z">Baustelle für neuen ZOB. Gebäude abgerissen.
+
+http://www.weinheim.de/servlet/PB/menu/1317209/index.html</comment>
+  <comment action="commented" timestamp="2013-05-15T11:03:31Z">sag, was hier der Fehler ist.</comment>
+  <comment action="closed" timestamp="2013-08-26T06:39:34Z" uid="38255" user="BearT">Die braune Fläche ist eine Baustelle. Gebäude ist keines mehr eingezeichnet.</comment>
+</note>
+
 <!-- Note: creation multiple lines -->
+<note id="1229" lat="52.3536061" lon="17.0150918" created_at="2013-05-02T18:57:41Z" closed_at="2013-07-19T21:46:39Z">
+  <comment action="opened" timestamp="2013-05-02T18:57:41Z">On Splawie street, there are two more hotels that I cannot see:
+
+- Willa Arkadia, Splawie 48
+- Bluszcz, Splawie 30A</comment>
+  <comment action="closed" timestamp="2013-07-19T21:46:39Z" uid="950182" user="RitterR">done</comment>
+</note>
+
 <!-- Note: creation multiple lines -->
+<note id="1310" lat="26.2648244" lon="50.2135438" created_at="2013-05-03T15:17:14Z" closed_at="2013-07-21T08:30:38Z">
+  <comment action="opened" timestamp="2013-05-03T15:17:14Z">Hi owner open street maps
+I downloaded program navigation app for mobile as free i thanks you very much for that but your maps is not latest update for all middle east maps not only for my country Saudi Arabia, and it's not come correct way and your maps not sho
+w stalit layer .. you've good people i hope you do update and develop your application to be good and not loss this people do you have.
+
+Sorry if i noise you or talk about things not for me business. 
+
+Thank you </comment>
+  <comment action="closed" timestamp="2013-07-21T08:30:38Z" uid="47888" user="Gwilbor">Don't worry, your report is useful and your request is pertinent. Recently I've been able to solve some errors and add details in the zone of Dammam 
+and Al Jubail. The routing here should be better now. It's still far from perfect, there's a lot of work to do...</comment>
+</note>
+
 <!-- Note: comment multiple lines -->
+<note id="1642" lat="43.4637673" lon="-79.6844816" created_at="2013-05-06T01:58:50Z" closed_at="2020-03-31T16:00:53Z">
+  <comment action="opened" timestamp="2013-05-06T01:58:50Z" uid="1679" user="andrewpmk">i thought I saw a sign advertising a proposed office building here</comment>
+  <comment action="commented" timestamp="2013-05-07T01:23:45Z" uid="58277" user="stevens">They've been talking about building something here for a while, I think I've seen that sign as well, but they haven't started to build anything ye
+t</comment>
+  <comment action="commented" timestamp="2019-08-25T19:28:57Z" uid="58277" user="stevens">Construction has now started.
+The steel frame of the building is starting to be up</comment>
+  <comment action="closed" timestamp="2020-03-31T16:00:53Z" uid="10214266" user="Eric Geiler - A&amp;B Courier">fixed</comment>
+</note>
+
 <!-- Note: comment multiple lines -->
+<note id="1674" lat="49.5974854" lon="11.0111117" created_at="2013-05-06T10:08:18Z" closed_at="2014-08-10T21:59:33Z">
+  <comment action="opened" timestamp="2013-05-06T10:08:18Z" uid="310589" user="hno2">Viele Busrouten in Erlangen sollten überprüft und ggf. verbessert werden</comment>
+  <comment action="commented" timestamp="2014-01-06T11:34:41Z">der Wunsch klingt sehr allgemein.
+
+Nach jedem Fahrplanwechsel - und auch zwischendurch (z.B. wegen grösseren Baustellen) - werden Busrouten geändert.</comment>
+  <comment action="commented" timestamp="2014-01-28T17:16:09Z" uid="240041" user="kugelfiesch">Hier die aktuelle ToDo-Liste:
+http://wiki.openstreetmap.org/wiki/Erlangen/Buslinien#Stadtlinien</comment>
+  <comment action="closed" timestamp="2014-08-10T21:59:33Z" uid="44457" user="cMorty">...ich schließe das mal, weil allgemein.</comment>
+</note>
+
 <!-- Note: comment multiple lines -->
+</note>
+<note id="1755" lat="-1.3119791" lon="36.7737722" created_at="2013-05-06T19:27:54Z" closed_at="2020-06-15T19:36:49Z">
+  <comment action="opened" timestamp="2013-05-06T19:27:54Z" uid="999" user="mikelmaron">village bounday missing for Kianda</comment>
+  <comment action="closed" timestamp="2014-05-26T17:46:11Z" uid="261003" user="omino"></comment>
+  <comment action="reopened" timestamp="2014-05-26T17:50:58Z" uid="999" user="mikelmaron"></comment>
+  <comment action="commented" timestamp="2014-05-26T17:51:18Z" uid="999" user="mikelmaron">@omino, I still don't see a boundary for kianda</comment>
+  <comment action="commented" timestamp="2014-05-26T18:17:18Z" uid="261003" user="omino">@mikel,still dont understand why its not showing,its there</comment>
+  <comment action="commented" timestamp="2014-07-20T21:45:47Z" uid="113518" user="hadw">It is definitely there: https://www.openstreetmap.org/way/48161259
+
+I can't see anything wrong with except that level 10 may be considered too fine a level of detail to render.  It is the map data that matters.
+
+However, the lack of rendering of the name, although again not a map data error, suggests that you might want to repeat the place information as a node, as well as adding it to the boundary way.</comment>
+  <comment action="commented" timestamp="2014-09-28T11:53:32Z" uid="999" user="mikelmaron">the issue is that there is no residential landuse poly for this area, unlike other pars of kibera. </comment>
+  <comment action="commented" timestamp="2017-06-03T15:01:10Z">ы</comment>
+  <comment action="commented" timestamp="2017-06-03T15:01:12Z">р</comment>
+  <comment action="commented" timestamp="2017-06-29T05:41:18Z">а</comment>
+  <comment action="commented" timestamp="2017-06-29T05:41:20Z">а</comment>
+  <comment action="closed" timestamp="2020-06-15T19:36:49Z" uid="261050" user="muindre">I fixed that</comment>
+</note>
+
 <!-- Note: comment multiple lines -->
+<note id="1807" lat="51.8796370" lon="8.3779496" created_at="2013-05-07T08:53:32Z" closed_at="2013-06-03T17:57:11Z">
+  <comment action="opened" timestamp="2013-05-07T08:53:33Z" uid="34927" user="flohoff">Hier ist die Ossietzkystraße fuer Fahrzeuge &gt;7.5to fuer Durchgangsverkehr gesperrt - D.h. access=destination fuer maxweight=7.5 - Wie man das tagg
+en !??!</comment>
+  <comment action="commented" timestamp="2013-06-03T17:48:04Z" uid="550300" user="Klumbumbus">schau mal hier:
+http://wiki.openstreetmap.org/wiki/DE:Conditional_restrictions
+
+(Das 4. Beispiel auf der Seite weiter unten müsste der Fall hier sein.)</comment>
+  <comment action="closed" timestamp="2013-06-03T17:57:11Z" uid="34927" user="flohoff">Es ist noch schlimmer. Ich glaube die Sperrung gilt nur vom Brockweg aus - nicht von der Eggestraße ... Muss ich nochmal kontrollieren. One-way restr
+ictions *grrr*
+</comment>
+</note>
+
 <!-- Note: comment multiple lines -->
-<!-- Note: reopened after hidden -->
-<!-- Note: reopened after hidden -->
-<!-- Note: reopened after hidden -->
-<!-- Note: reopened after hidden -->
-<!-- Note: reopened after hidden -->
+<note id="1900" lat="52.7015624" lon="10.1177216" created_at="2013-05-07T20:17:22Z" closed_at="2015-04-10T10:57:36Z">
+  <comment action="opened" timestamp="2013-05-07T20:17:22Z" uid="387237" user="SammysHP">Hier sollte aber wirklich überprüft werden, wie das Gelände genutzt wird. Schilder über den (ehemaligen?) militärischen Sicherheitsbereich gibt es 
+nicht an allen Wegen, eventuell hängt das aber auch mit der "neuen" Zufahrt zur (Sport-)Schießanlage zusammen. Im Osten befindet sich noch ein kleiner mittels Zaun abgetrennter Hubschrauberübungsplatz, ansonsten konnte ich bei meiner um
+fangreichen Erkundung nichts von einer Nutzung feststellen (außer von Privatpersonen).</comment>
+  <comment action="commented" timestamp="2013-05-17T10:52:54Z" uid="42191" user="Jano John Akim Franke">Hubschrauberübungsplatz nach Bing markiert, FIXMEs enstanden.</comment>
+  <comment action="commented" timestamp="2013-05-17T11:29:04Z" uid="42191" user="Jano John Akim Franke">Schießpark Celler Land verbessert.</comment>
+  <comment action="closed" timestamp="2013-12-27T07:18:32Z" uid="175579" user="thal1982"></comment>
+  <comment action="reopened" timestamp="2013-12-27T08:57:39Z" uid="387237" user="SammysHP"></comment>
+  <comment action="commented" timestamp="2013-12-27T08:58:47Z" uid="387237" user="SammysHP">Warum hast du diese Note als "Erledigt" markiert? In OSM wurden die Daten nicht geändert. Könntest du mir den Kontakt mitteilen, von dem du die 
+Information über die momentane Verwendung erhalten hast?</comment>
+  <comment action="closed" timestamp="2013-12-27T09:10:03Z" uid="175579" user="thal1982">Zufälligerweise war ich in der Gegend, vor zwei Monaten.
+Darum habe ich es erstmal als Erledigt angesehen.</comment>
+  <comment action="reopened" timestamp="2013-12-27T09:11:55Z" uid="387237" user="SammysHP"></comment>
+  <comment action="commented" timestamp="2013-12-27T09:13:40Z" uid="387237" user="SammysHP">Echt nervig, dass man nur bei offenen Notes kommentieren kann …
+
+DURFTEST du denn da (als "Zivilist") dort auf das Gelände oder ist das immer noch (schlecht gepflegtes) militärisches Sperrgebiet? Ich war zwar auch drauf, bin aber aus den halben Schranken und vereinzelten Schildern nicht schlau geword
+en.</comment>
+  <comment action="commented" timestamp="2013-12-27T09:21:02Z" uid="175579" user="thal1982">Was nicht eingezäunt ist, das ist doch öffentliches Gelände, selbst wenn ein dezenter Hinweis vorhanden ist...</comment>
+  <comment action="commented" timestamp="2013-12-27T09:21:46Z" uid="175579" user="thal1982">...auf deren Nutzung.
+Bei militärischen Übungen darf man auf jeden Fall nicht betreten.
+</comment>
+  <comment action="commented" timestamp="2013-12-27T09:23:18Z" uid="387237" user="SammysHP">Das ist mir neu. Also nicht nur bei TrÜbPl, sondern allgemein. TrÜbPl sind eigentlich nie eingezäunt. Zum einen wäre das viel zu teuer, zum ande
+ren wäre das wegen des Wildes gar nicht möglich.</comment>
+  <comment action="commented" timestamp="2013-12-27T09:25:17Z" uid="387237" user="SammysHP">Finden hier denn überhaupt noch militärische Übungen statt oder wird nur noch das Hubschrauberübungsgelände genutzt? Einige Schranken schienen m
+ir in einem nicht funktionsfähigen Zustand zu sein und z.B. die Schaukästen mit Informationen waren auch ziemlich verwahrlost.</comment>
+  <comment action="commented" timestamp="2013-12-27T09:31:24Z" uid="175579" user="thal1982">Militärische Übungen können dort noch durchgeführt werden.
+Es ist auch egal wie die Schranken und Infokästen aussehen.</comment>
+  <comment action="closed" timestamp="2015-04-10T10:57:36Z" uid="387237" user="SammysHP">Heute habe ich mir das nochmal angeschaut. Inzwischen wurden die Schilder ("keine Munition anfassen") umgedreht, sodass jetzt wieder "Betreten verb
+oten" zu lesen ist. Ja, die Schilder sind beidseitig bedruckt. Einige Schilder sehen auch recht neu aus, sodass davon auszugehen ist, dass man das Gelände (leider) nicht legal betreten darf.
+Ich habe es wieder entsprechend eingetragen, werde bei Gelegenheit aber nochmal nachfragen (ist ein wirklich schönes Gebiet).
+Lustiger Nebeneffekt: Man kann den Schießpark nicht mehr legal erreichen! Der Weg ist laut Beschilderung gesperrt. In OSM habe ich es erstmal nicht eingetragen, landuse=military dürfte erstmal reichen.</comment>
+</note>
+
 <!-- Note: open close same user -->
+<note id="1905" lat="-30.0559502" lon="-51.2180042" created_at="2013-05-07T20:50:40Z" closed_at="2013-05-07T20:50:49Z">
+  <comment action="opened" timestamp="2013-05-07T20:50:40Z" uid="1425871" user="Christian Franzen">Clinica Veterinária A Terra dos Bichos
+Telefone (51) 3028-6642, 3217-6243</comment>
+  <comment action="closed" timestamp="2013-05-07T20:50:49Z" uid="1425871" user="Christian Franzen"></comment>
+</note>
+
 <!-- Note: open close same user -->
+<note id="1912" lat="51.8797827" lon="14.1725028" created_at="2013-05-07T21:26:38Z" closed_at="2013-05-07T21:27:00Z">
+  <comment action="opened" timestamp="2013-05-07T21:26:39Z" uid="28234" user="derandi">Test</comment>
+  <comment action="closed" timestamp="2013-05-07T21:27:00Z" uid="28234" user="derandi"></comment>
+</note>
+
 <!-- Note: open close same user -->
+<note id="1926" lat="-27.4779259" lon="153.0236399" created_at="2013-05-08T00:37:29Z" closed_at="2013-06-09T08:47:06Z">
+  <comment action="opened" timestamp="2013-05-08T00:37:29Z" uid="251816" user="Dacs">I've added this drinking water point which is somewhere here along the path, but position may need to be corrected slightly</comment>
+  <comment action="closed" timestamp="2013-06-09T08:47:06Z" uid="251816" user="Dacs"></comment>
+</note>
+
 <!-- Note: open close same user -->
+<note id="1943" lat="40.2119983" lon="28.3609593" created_at="2013-05-08T06:39:39Z" closed_at="2013-05-08T06:39:52Z">
+  <comment action="opened" timestamp="2013-05-08T06:39:39Z" uid="331548" user="derFred">@ Necdet 
+- Classification of Bursa Cd?</comment>
+  <comment action="closed" timestamp="2013-05-08T06:39:52Z" uid="331548" user="derFred"></comment>
+</note>
+
 <!-- Note: open close same user -->
-<!-- Note:  first of year 2014 -->
-<!-- Note:  first of year 2015 -->
-<!-- Note:  first of year 2016 -->
-<!-- Note:  first of year 2017 -->
-<!-- Note:  first of year 2018 -->
-<!-- Note:  first of year 2019 -->
-<!-- Note:  first of year 2020 -->
-<!-- Note:  first of year 2021 -->
-<!-- Note:  first of year 2022 -->
-<!-- Note:  first of year 2023 -->
-<!-- Note:  first of year 2024 -->
-<!-- Note:  first of year 2025 -->
+<note id="1989" lat="53.5733301" lon="11.2271583" created_at="2013-05-08T10:10:39Z" closed_at="2013-05-08T10:12:12Z">
+  <comment action="opened" timestamp="2013-05-08T10:10:39Z" uid="1427982" user="oeverkiek">Överkiek 01</comment>
+  <comment action="closed" timestamp="2013-05-08T10:12:12Z" uid="1427982" user="oeverkiek"></comment>
+</note>
 
 <!-- Note: 11696 close closed -->
+<note id="11696" lat="-34.1718582" lon="-70.6905520" created_at="2013-07-06T02:12:17Z" closed_at="2018-09-07T14:29:11Z">
+  <comment action="opened" timestamp="2013-07-06T02:12:17Z" uid="1616554" user="carvajalot">carlos romo, emsa</comment>
+  <comment action="closed" timestamp="2014-07-09T21:08:16Z" uid="2168305" user="Scoobypants"></comment>
+  <comment action="reopened" timestamp="2014-07-09T21:13:07Z" uid="1616554" user="carvajalot"></comment>
+  <comment action="closed" timestamp="2018-09-07T14:28:33Z" uid="337684" user="felipeeugenio">?</comment>
+  <comment action="closed" timestamp="2018-09-07T14:29:52Z" uid="337684" user="felipeeugenio"></comment>
+</note>
+
 <!-- Note: 19523 close closed -->
+<note id="19523" lat="49.9740198" lon="12.7041891" created_at="2013-07-31T13:44:51Z" closed_at="2013-12-23T12:10:08Z">
+  <comment action="opened" timestamp="2013-07-31T13:44:51Z" uid="1697955" user="fuky">A. Hlavní třída</comment>
+  <comment action="closed" timestamp="2013-07-31T13:44:56Z" uid="1697955" user="fuky"></comment>
+  <comment action="reopened" timestamp="2013-07-31T13:45:15Z" uid="1697955" user="fuky"></comment>
+  <comment action="closed" timestamp="2013-07-31T13:45:58Z" uid="1697955" user="fuky"></comment>
+  <comment action="reopened" timestamp="2013-07-31T13:46:59Z" uid="1697955" user="fuky"></comment>
+  <comment action="closed" timestamp="2013-07-31T14:19:30Z" uid="1697955" user="fuky">kkkkk</comment>
+  <comment action="reopened" timestamp="2013-07-31T14:19:39Z" uid="1697955" user="fuky"></comment>
+  <comment action="commented" timestamp="2013-09-13T20:37:40Z" uid="748291" user="Prot D">nerozumím</comment>
+  <comment action="closed" timestamp="2013-12-23T12:10:08Z" uid="8007" user="vrabcak">nesmysly</comment>
+  <comment action="closed" timestamp="2013-12-23T12:11:24Z" uid="8007" user="vrabcak">nesmysly</comment>
+</note>
+
 <!-- Note: 52751 mulitple reopens -->
+<note id="52751" lat="2.8246589" lon="-75.3137040" created_at="2013-10-05T15:12:52Z" closed_at="2013-10-05T15:22:56Z">
+  <comment action="opened" timestamp="2013-10-05T15:12:52Z" uid="1765938" user="vramirez">Finca arrocera</comment>
+  <comment action="closed" timestamp="2013-10-05T15:12:59Z" uid="1765938" user="vramirez"></comment>
+  <comment action="reopened" timestamp="2013-10-05T15:13:03Z" uid="1765938" user="vramirez"></comment>
+  <comment action="closed" timestamp="2013-10-05T15:13:05Z" uid="1765938" user="vramirez"></comment>
+  <comment action="reopened" timestamp="2013-10-05T15:13:12Z" uid="1765938" user="vramirez"></comment>
+  <comment action="closed" timestamp="2013-10-05T15:13:36Z" uid="1765938" user="vramirez"></comment>
+  <comment action="reopened" timestamp="2013-10-05T15:13:48Z" uid="1765938" user="vramirez"></comment>
+  <comment action="reopened" timestamp="2013-10-05T15:13:48Z" uid="1765938" user="vramirez"></comment>
+  <comment action="closed" timestamp="2013-10-05T15:13:59Z" uid="1765938" user="vramirez"></comment>
+  <comment action="reopened" timestamp="2013-10-05T15:14:29Z" uid="1765938" user="vramirez"></comment>
+  <comment action="closed" timestamp="2013-10-05T15:22:56Z" uid="1765938" user="vramirez"></comment>
+</note>
+
 <!-- Note: 90515 close closed -->
+<note id="90515" lat="48.8112159" lon="9.1616535" created_at="2013-12-25T07:13:53Z" closed_at="2013-12-27T10:13:58Z">
+  <comment action="opened" timestamp="2013-12-25T07:13:53Z" uid="140685" user="Max2509">Übernahme aus OSB
+-----------------------------------------------------------
+Ungelöster Fehler
+
+Beschreibung: Burgenlandstr ist Einbahn Richtung Ost zumindest zw. St.-Pöltener und Leobener [mrudolph, 2012-10-14 21:03:32 CEST]
+
+Kommentar: mit Freigabe für Radfahrer entgegen der Richtung [Bananeweizen, 2012-12-06 19:52:17 CET]</comment>
+  <comment action="closed" timestamp="2013-12-27T10:13:58Z" uid="12982" user="miscosm"></comment>
+  <comment action="closed" timestamp="2013-12-27T10:13:58Z" uid="12982" user="miscosm"></comment>
+</note>
+
+<!-- Note:  first of year 2014 -->
+<note id="94094" lat="50.0265800" lon="22.0296907" created_at="2014-01-01T00:17:10Z" closed_at="2014-01-17T15:20:17Z">
+  <comment action="opened" timestamp="2014-01-01T00:17:10Z" uid="973600" user="eBin">Sprawdzić przebieg szlaku w terenie.</comment>
+  <comment action="commented" timestamp="2014-01-01T00:21:26Z" uid="467703" user="Zibior2">Uściślę, że chodzi o ten szlak czerwony: http://osmapa.pl/#lat=50.02677&amp;lon=22.02793&amp;z=17&amp;m=os</comment>
+  <comment action="commented" timestamp="2014-01-10T08:47:47Z">Pelczara 2
+</comment>
+  <comment action="commented" timestamp="2014-01-16T15:50:07Z" uid="973600" user="eBin">Sprawdziłem dzisiaj i skręca w prawo we Wrześniową, Letnią i później w lewo Wiosenną.</comment>
+  <comment action="closed" timestamp="2014-01-17T15:20:17Z" uid="973600" user="eBin"></comment>
+</note>
+
 <!-- Note: 108035 close closed -->
+<note id="108035" lat="52.4852369" lon="1.2208450" created_at="2014-01-26T12:46:40Z" closed_at="2014-01-27T07:21:45Z">
+  <comment action="opened" timestamp="2014-01-26T12:46:40Z" uid="1903645" user="ncfcreevo">We are here</comment>
+  <comment action="closed" timestamp="2014-01-26T12:47:14Z" uid="1903645" user="ncfcreevo"></comment>
+  <comment action="closed" timestamp="2014-01-26T12:47:14Z" uid="1903645" user="ncfcreevo"></comment>
+  <comment action="reopened" timestamp="2014-01-26T12:47:31Z" uid="1903645" user="ncfcreevo"></comment>
+  <comment action="closed" timestamp="2014-01-26T12:47:42Z" uid="1903645" user="ncfcreevo"></comment>
+  <comment action="reopened" timestamp="2014-01-26T12:52:04Z" uid="1903645" user="ncfcreevo"></comment>
+  <comment action="closed" timestamp="2014-01-27T07:21:45Z" uid="322785" user="BCNorwich">ncfcreevo, You have added your company name to the map so this note can be marked resolved. I have corrected the service roads you added. Many Thanks.</comment>
+</note>
+
 <!-- Note: 114364 close closed -->
-<!-- Note: 125396 very long -->
+<note id="114364" lat="45.7655167" lon="4.7669932" created_at="2014-02-07T06:07:10Z" closed_at="2014-02-07T09:31:06Z">
+  <comment action="opened" timestamp="2014-02-07T06:07:10Z" uid="858513" user="ylark">Bus stop. Valvert</comment>
+  <comment action="closed" timestamp="2014-02-07T09:31:06Z" uid="704348" user="JBacc1">ok</comment>
+  <comment action="closed" timestamp="2014-02-07T09:31:07Z" uid="704348" user="JBacc1">ok</comment>
+</note>
+
+<!-- Note: 125396 -->
+<note id="125396" lat="37.3413405" lon="127.1101695" created_at="2014-02-27T02:34:12Z" closed_at="2024-03-03T07:34:19Z">
+  <comment action="opened" timestamp="2014-02-27T02:34:12Z">LH 한국토지주택공사(오리)</comment>
+  <comment action="reopened" timestamp="2024-03-03T07:34:17Z" uid="7245212" user="LuxuryCoop"></comment>
+  <comment action="closed" timestamp="2024-03-03T07:34:19Z" uid="7245212" user="LuxuryCoop"></comment>
+</note>
+
 <!-- Note: 153166 -->
+<note id="153166" lat="40.8203838" lon="-73.9065632" created_at="2014-04-18T18:53:56Z" closed_at="2025-07-11T20:04:56Z">
+  <comment action="opened" timestamp="2014-04-18T18:53:56Z" uid="1781294" user="Rub21_nycbuildings">school  is of</comment>
+  <comment action="closed" timestamp="2025-07-11T19:09:00Z" uid="3307068" user="Hypsometric">Bad gnis data.</comment>
+  <comment action="reopened" timestamp="2025-07-11T19:30:32Z" uid="3307068" user="Hypsometric"/>
+  <comment action="commented" timestamp="2025-07-11T19:30:53Z" uid="3307068" user="Hypsometric">In the process of updating but too much data. Crashed and was unable to save. Will address shortly.</comment>
+  <comment action="closed" timestamp="2025-07-11T20:04:56Z" uid="3307068" user="Hypsometric">Updated. Moved node to correct location.</comment>
+</note>
+
 <!-- Note: 153187 -->
+<note id="153187" lat="40.8241570" lon="-73.9016554" created_at="2014-04-18T19:34:30Z" closed_at="2025-07-11T22:16:18Z">
+  <comment action="opened" timestamp="2014-04-18T19:34:30Z" uid="1781294" user="Rub21_nycbuildings">Church is of</comment>
+  <comment action="closed" timestamp="2025-07-11T22:16:18Z" uid="3307068" user="Hypsometric">Moved to correct location, very far away.</comment>
+</note>
+
 <!-- Note: 153214 -->
+<note id="153214" lat="40.8291995" lon="-73.9032801" created_at="2014-04-18T20:29:24Z" closed_at="2025-07-11T22:23:48Z">
+  <comment action="opened" timestamp="2014-04-18T20:29:24Z" uid="1781294" user="Rub21_nycbuildings">Church is of </comment>
+  <comment action="closed" timestamp="2025-07-11T22:23:48Z" uid="3307068" user="Hypsometric">Removed. Bad GNIS data. It no longer exists or has no presence online. The only other one I could find is already mapped and was also from a GNIS import.</comment>
+</note>
+
 <!-- Note: 156572 double quotes -->
+<note id="156572" lat="45.6735630" lon="-0.4418564" created_at="2014-04-24T20:37:37Z" closed_at="2014-04-26T12:25:09Z">
+  <comment action="opened" timestamp="2014-04-24T20:37:37Z">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom"&gt;
+&lt;Document&gt;
+        &lt;name&gt;06_BOUCLE-F1a v4.kmz&lt;/name&gt;
+        &lt;open&gt;1&lt;/open&gt;
+        &lt;Schema name="Lot3_-_238_BTS_SFR" id="Lot3_-_238_BTS_SFR_schema"&gt;
+                &lt;SimpleField type="int" name="OID"&gt;&lt;displayName&gt;OID&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="int" name="NAME"&gt;&lt;displayName&gt;NAME&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="double" name="X"&gt;&lt;displayName&gt;X&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="double" name="Y"&gt;&lt;displayName&gt;Y&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="NOM_SITE"&gt;&lt;displayName&gt;NOM_SITE&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="AGGLOS"&gt;&lt;displayName&gt;AGGLOS&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="int" name="DPT"&gt;&lt;displayName&gt;DPT&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="COMMUNE"&gt;&lt;displayName&gt;COMMUNE&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="LOT3"&gt;&lt;displayName&gt;LOT3&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="VERIF_PATR"&gt;&lt;displayName&gt;VERIF_PATR&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="ADRINTL"&gt;&lt;displayName&gt;ADRINTL&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="ADRCPLT"&gt;&lt;displayName&gt;ADRCPLT&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="LIEUDIT"&gt;&lt;displayName&gt;LIEUDIT&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="CP"&gt;&lt;displayName&gt;CP&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="VILLE"&gt;&lt;displayName&gt;VILLE&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="TYPE_DE_SI"&gt;&lt;displayName&gt;TYPE_DE_SI&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="RACCORDEME"&gt;&lt;displayName&gt;RACCORDEME&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="double" name="ELIGIBILIT"&gt;&lt;displayName&gt;ELIGIBILIT&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="LATITUDE"&gt;&lt;displayName&gt;LATITUDE&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="string" name="LONGITUDE"&gt;&lt;displayName&gt;LONGITUDE&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+        &lt;/Schema&gt;
+        &lt;Schema name="BTS_SFR_France_11-2012" id="BTS_SFR_France_11-2012_schema200"&gt;
+                &lt;SimpleField type="double" name="NAME"&gt;&lt;displayName&gt;NAME&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                &lt;SimpleField type="int" name="OID"&gt;&lt;displayName&gt;OID&lt;/displayName&gt;
+&lt;/SimpleField&gt;
+                                                &lt;/coordinates&gt;
+                                        &lt;/LineString&gt;
+                                &lt;/Placemark&gt;
+                                &lt;Placemark&gt;
+                                        &lt;name&gt;12 FO-NC Ã  tirer du Manchon F1 au Manchon F2&lt;/name&gt;
+                                        &lt;open&gt;1&lt;/open&gt;
+                                        &lt;description&gt;12 FO : 400m Ã  tire en GC Concessif + 40m de love&lt;/description&gt;
+                                        &lt;styleUrl&gt;#msn_ylw-pushpin150&lt;/styleUrl&gt;
+                                        &lt;LineString&gt;
+                                                &lt;tessellate&gt;1&lt;/tessellate&gt;
+                                                &lt;coordinates&gt;
+                                                        6.928660908823612,43.65803142476294,0 6.928621785924012,43.65804290199993,0 6.92857433914093,43.65805449210466,0 6.928504441170058,43.65806553351475,0 6.928435689344625,43.65808723
+20349,0 6.928359399087453,43.65809999252864,0 6.92830449916003,43.65811578756874,0 6.928232490686646,43.65811146605175,0 6.928161758934969,43.65808535376284,0 6.928127494180116,43.65801299079692,0 6.928058571494457,43.65790851556672,0 6
+.927966384795363,43.65782055567457,0 6.927919209189561,43.65776199296592,0 6.927872006092811,43.65772785651323,0 6.92780079788434,43.65775677633516,0 6.927601171777155,43.65780190158623,0 6.927302795455326,43.6578843917848,0 6.927150327
+428282,43.65793086750161,0 6.92698844516171,43.65799155608036,0 6.926785817699801,43.6580946859827,0 6.926708748994283,43.6581396926788,0 6.926720777250635,43.65822917939067,0 6.926729887083103,43.65829094604901,0 6.926736253402115,43.6
+5842012448502,0 6.926750663099471,43.65849353972287,0 6.926773537308437,43.65857019873059,0 6.926779617719991,43.65864812861697,0 6.926791997012282,43.65872448461629,0 6.92677043592095,43.65878777658765,0 6.926703995925245,43.6588072588
+7932,0 6.926647165921942,43.65878167828374,0 6.926578072651497,43.6587514068207,0 6.926491941665773,43.658720094398,0 6.926374158239341,43.65865605055105,0 6.926053883228609,43.65853551879111,0 6.925930210447033,43.65849809346788,0 6.92
+5895367953523,43.65843009438201,0 6.925872655214313,43.65834697038126,0 6.925853586889275,43.65827289334523,0 6.9258090680747,43.65819541310297,0 6.92578804283605,43.6581266319258,0 6.925728247612217,43.65813488878099,0 6.92568446784116
+9,43.6581472149707,0 
+                                                &lt;/coordinates&gt;
+                                        &lt;/LineString&gt;
+                                &lt;/Placemark&gt;
+                                &lt;Placemark&gt;
+                                        &lt;name&gt;12 FO-NC Ã  tirer du Manchon F9 au Manchon F10&lt;/name&gt;
+                                        &lt;description&gt;12 FO : 640m Ã  tirer en GC Concessif + 40m de love&lt;/description&gt;
+                                        &lt;styleUrl&gt;#msn_ylw-pushpin5&lt;/styleUrl&gt;
+                                        &lt;LineString&gt;
+                                                &lt;tessellate&gt;1&lt;/tessellate&gt;
+                                                &lt;coordinates&gt;
+                                                        6.922918504869706,43.65126282416854,0 6.922915281067881,43.65125789376399,0 6.922845705843759,43.65128085024795,0 6.922843673339894,43.65129767930996,0 6.922837802785711,43.6513177330347,0 6.922838528781854,43.65134299593095,0 6.922839142535702,43.65135865458439,0 6.922159368942986,43.65162365196077,0 6.922161146714776,43.65146649055934,0 6.922134220344043,43.65130624562109,0 6.922119725657931,43.65119639153494,0 6.922110004706987,43.65105453859199,0 6.9220400595265,43.6509141593534,0 6.922053178151366,43.6508250288317,0 6.922025672171412,43.65073805915917,0 6.921830425261493,43.65073657559461,0 6.921671713075859,43.65069461143084,0 6.92149768313474,43.65064398395467,0 6.921475478863439,43.65056801355918,0 6.921347991197855,43.65054158591723,0 6.921171572458118,43.65048648796557,0 6.920979024678937,43.65043684013748,0 6.920763594675741,43.65037574622522,0 6.920301472671097,43.65024926325889,0 6.919861746055018,43.6501345603761,0 6.91935428641401,43.65000266724928,0 6.919055376897372,43.6499178429163,0 6.918724556187326,43.64983095419154,0 6.918458118830728,43.64976414693874,0 6.918152703130978,43.64968132319375,0 6.918012027100254,43.64970649034974,0 6.917806149959558,43.64968460056498,0 6.917670749990322,43.64959849013766,0 6.917580006928636,43.64949798705157,0 6.917525026273468,43.64936807019284,0 6.917449329565766,43.64912215211069,0 6.917400066407852,43.64898134075697,0 6.917445875879029,43.64897005195041,0 6.917459994210673,43.64896316889983,0 6.917450497830711,43.64894983797561,0 
+                                                &lt;/coordinates&gt;
+                                        &lt;/LineString&gt;
+                                &lt;/Placemark&gt;
+                        &lt;/Folder&gt;
+                &lt;/Folder&gt;
+        &lt;/Folder&gt;
+&lt;/Document&gt;
+&lt;/kml&gt;
+</comment>
+  <comment action="closed" timestamp="2014-04-26T12:25:09Z" uid="575934" user="ZZ29"></comment>
+</note>
+
 <!-- Note: 197131 dobule quotes -->
+<note id="197131" lat="28.2915899" lon="-82.6762873" created_at="2014-07-10T11:32:44Z" closed_at="2014-07-15T17:13:14Z">
+  <comment action="opened" timestamp="2014-07-10T11:32:44Z">&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 transitional//EN"&gt;
+&lt;html&gt; &lt;head&gt;
+&lt;title&gt;&lt;/title&gt;
+&lt;meta HTTP-EQUIV="Content-Style-Type" CONTENT="text/css" CHARSET="ISO-8859-1"&gt;&lt;/meta&gt;
+&lt;meta NAME="Subject" CONTENT=""&gt;&lt;/meta&gt;
+&lt;meta NAME="Keywords" CONTENT=""&gt;&lt;/meta&gt;
+&lt;meta NAME="Author" CONTENT=""&gt;&lt;/meta&gt;
+&lt;meta NAME="Creator" CONTENT=""&gt;&lt;/meta&gt;
+&lt;meta NAME="Producer" CONTENT="Gnostice eDocEngine v2.5"&gt;
+&lt;/meta&gt;
+&lt;style&gt;
+&lt;!--
+body {background: no-repeat center fixed}
+SPAN {position: absolute; visibility: hidden}
+--&gt;
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div style="position: absolute; font: 0pt; top: 50px; left: 68px; width: 719px; height: 48px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 58px; left: 68px; width: 719px; height: 34px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 57px; left: 190px; width:475px; font:italic 18pt Arial Black; color: #FFFFFF"&gt;Basic&amp;nbsp;Axle&amp;nbsp;Classification&amp;nbsp;Report:&amp;nbsp;10&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 100px; left: 68px; width: 719px; height: 119px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 115px; left: 79px; width:84px; font:bold 12pt Arial; color: #000000"&gt;Station&amp;nbsp;ID&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 135px; left: 96px; width:67px; font:10pt Arial; color: #000000"&gt;Info&amp;nbsp;Line&amp;nbsp;1&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 154px; left: 96px; width:67px; font:10pt Arial; color: #000000"&gt;Info&amp;nbsp;Line&amp;nbsp;2&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 176px; left: 80px; width:83px; font:10pt Arial; color: #000000"&gt;GPS&amp;nbsp;Lat/Lon&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 195px; left: 112px; width:51px; font:10pt Arial; color: #000000"&gt;DB&amp;nbsp;File&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 194px; left: 168px; width:36px; font:10pt Arial; color: #000000"&gt;10.DB&lt;/div&gt;
+&lt;div style="position: absolute; top: 154px; left: 168px; width:84px; font:10pt Arial; color: #000000"&gt;South&amp;nbsp;of&amp;nbsp;CR54&lt;/div&gt;
+&lt;div style="position: absolute; top: 135px; left: 168px; width:42px; font:10pt Arial; color: #000000"&gt;20th&amp;nbsp;St&lt;/div&gt;
+&lt;div style="position: absolute; top: 115px; left: 168px; width:18px; font:bold 12pt Arial; color: #000000"&gt;10&lt;/div&gt;
+&lt;div style="position: absolute; top: 118px; left: 494px; width:173px; font:10pt Arial; color: #000000"&gt;Last&amp;nbsp;Connected&amp;nbsp;Device&amp;nbsp;Type&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 136px; left: 566px; width:101px; font:10pt Arial; color: #000000"&gt;Version&amp;nbsp;Number&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 153px; left: 577px; width:90px; font:10pt Arial; color: #000000"&gt;Serial&amp;nbsp;Number&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 176px; left: 561px; width:106px; font:10pt Arial; color: #000000"&gt;Number&amp;nbsp;of&amp;nbsp;Lanes&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 194px; left: 545px; width:122px; font:10pt Arial; color: #000000"&gt;Posted&amp;nbsp;Speed&amp;nbsp;Limit&amp;nbsp;:&lt;/div&gt;
+&lt;div style="position: absolute; top: 194px; left: 673px; width:54px; font:10pt Arial; color: #000000"&gt;30.0&amp;nbsp;mph&lt;/div&gt;
+&lt;div style="position: absolute; top: 176px; left: 673px; width:7px; font:10pt Arial; color: #000000"&gt;2&lt;/div&gt;
+&lt;div style="position: absolute; top: 154px; left: 673px; width:35px; font:10pt Arial; color: #000000"&gt;36654&lt;/div&gt;
+&lt;div style="position: absolute; top: 135px; left: 673px; width:25px; font:10pt Arial; color: #000000"&gt;2.39&lt;/div&gt;
+&lt;div style="position: absolute; top: 118px; left: 673px; width:44px; font:10pt Arial; color: #000000"&gt;Unicorn&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 220px; left: 68px; width: 719px; height: 67px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 226px; left: 68px; width: 718px; height: 26px; background-color: #D7DADB; border: 1px solid #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 230px; left: 354px; width: 147px; height: 19px; background-color: #D7DADB"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 229px; left: 354px; width:147px; font:bold 12pt Arial; color: #000000"&gt;Lane&amp;nbsp;Configuration&lt;/div&gt;
+&lt;div style="position: absolute; top: 270px; left: 72px; width:6px; font:italic 8pt Arial; color: #000000"&gt;#&lt;/div&gt;
+&lt;div style="position: absolute; top: 270px; left: 88px; width:18px; font:italic 8pt Arial; color: #000000"&gt;Dir.&lt;/div&gt;
+&lt;div style="position: absolute; top: 270px; left: 118px; width:55px; font:italic 8pt Arial; color: #000000"&gt;Information&lt;/div&gt;
+&lt;div style="position: absolute; top: 270px; left: 258px; width:81px; font:italic 8pt Arial; color: #000000"&gt;Vehicle&amp;nbsp;Sensors&lt;/div&gt;
+&lt;div style="position: absolute; top: 270px; left: 359px; width:78px; font:italic 8pt Arial; color: #000000"&gt;Sensor&amp;nbsp;Spacing&lt;/div&gt;
+&lt;div style="position: absolute; top: 270px; left: 455px; width:60px; font:italic 8pt Arial; color: #000000"&gt;Loop&amp;nbsp;Length&lt;/div&gt;
+&lt;div style="position: absolute; top: 270px; left: 528px; width:47px; font:italic 8pt Arial; color: #000000"&gt;Comment&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 68px; width: 719px; height: 41px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5793px; left: 243px; width:6px; font:italic 8pt Arial; color: #000000"&gt;&amp;nbsp;&amp;nbsp;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 222px; width: 27px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5793px; left: 275px; width:6px; font:italic 8pt Arial; color: #000000"&gt;&amp;nbsp;&amp;nbsp;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 254px; width: 27px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5793px; left: 307px; width:6px; font:italic 8pt Arial; color: #000000"&gt;&amp;nbsp;&amp;nbsp;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 286px; width: 26px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5793px; left: 340px; width:6px; font:italic 8pt Arial; color: #000000"&gt;&amp;nbsp;&amp;nbsp;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 318px; width: 27px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5793px; left: 372px; width:6px; font:italic 8pt Arial; color: #000000"&gt;&amp;nbsp;&amp;nbsp;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 350px; width: 27px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5793px; left: 404px; width:6px; font:italic 8pt Arial; color: #000000"&gt;&amp;nbsp;&amp;nbsp;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 384px; width: 26px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5793px; left: 437px; width:6px; font:italic 8pt Arial; color: #000000"&gt;&amp;nbsp;&amp;nbsp;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5792px; left: 416px; width: 27px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 216px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5794px; left: 226px; width:21px; font:7pt Arial; color: #000000"&gt;&amp;nbsp;27.2&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 248px; width: 32px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5794px; left: 259px; width:21px; font:7pt Arial; color: #000000"&gt;&amp;nbsp;27.5&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 280px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5794px; left: 291px; width:21px; font:7pt Arial; color: #000000"&gt;&amp;nbsp;29.2&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 312px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5794px; left: 323px; width:21px; font:7pt Arial; color: #000000"&gt;&amp;nbsp;32.6&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 344px; width: 32px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5794px; left: 356px; width:21px; font:7pt Arial; color: #000000"&gt;&amp;nbsp;20.1&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 378px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5794px; left: 385px; width:24px; font:7pt Arial; color: #000000"&gt;-&amp;nbsp;30.0&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 410px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 5794px; left: 423px; width:18px; font:7pt Arial; color: #000000"&gt;70%&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 442px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 474px; width: 32px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 506px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 538px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 570px; width: 32px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 604px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 636px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 668px; width: 32px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 700px; width: 31px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 5794px; left: 732px; width: 44px; height: 14px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 6266px; left: 68px; width: 719px; height: 24px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 6270px; left: 68px; width: 127px; height: 12px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 6269px; left: 67px; width:127px; font:italic 6pt Arial; color: #000000"&gt;Centurion&amp;nbsp;Basic&amp;nbsp;Classification&amp;nbsp;Report&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 6270px; left: 672px; width: 64px; height: 12px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 6269px; left: 672px; width:64px; font:italic 6pt Arial; color: #000000"&gt;Printed:&amp;nbsp;11/10/2009&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 6270px; left: 764px; width: 23px; height: 12px; background-color: #FFFFFF"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 6269px; left: 764px; width:23px; font:italic 6pt Arial; color: #000000"&gt;Page&amp;nbsp;6&lt;/div&gt;
+&lt;div style="position: absolute; font: 0pt; top: 6266px; left: 68px; width: 719px; height: 0px; background-color: #000000"&gt;&lt;/div&gt;
+&lt;div style="position: absolute; top: 6324px"&gt;&lt;hr size= 2 width= 806 noshade&gt;&lt;/hr&gt;&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</comment>
+  <comment action="closed" timestamp="2014-07-15T17:13:14Z" uid="55916" user="maxolasersquad"> &lt;wtf&gt;Huh‽&lt;/wtf&gt;</comment>
+</note>
+
 <!-- Note: 233763 double quotes -->
+<note id="233763" lat="51.3694227" lon="22.2325301" created_at="2014-08-31T16:58:40Z" closed_at="2015-02-24T21:23:04Z">
+  <comment action="opened" timestamp="2014-08-31T16:58:40Z">rzeczywisty kształt zalewu wykonany pomiarem gps przez program osmand
+
+
+&lt;?xml version='1.0' encoding='UTF-8' standalone='yes' ?&gt;
+&lt;gpx version="1.1" creator="OsmAnd" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd"&gt;
+  &lt;trk&gt;
+    &lt;trkseg&gt;
+      &lt;trkpt lat="51.3711538" lon="22.2303229" /&gt;
+      &lt;trkpt lat="51.3711076" lon="22.2304958" /&gt;
+      &lt;trkpt lat="51.3710861" lon="22.2306831" /&gt;
+      &lt;trkpt lat="51.3710556" lon="22.2309068" /&gt;
+      &lt;trkpt lat="51.3710182" lon="22.2310661" /&gt;
+      &lt;trkpt lat="51.3709794" lon="22.2312004" /&gt;
+      &lt;trkpt lat="51.3708939" lon="22.2313601" /&gt;
+      &lt;trkpt lat="51.3708057" lon="22.2314494" /&gt;
+      &lt;trkpt lat="51.3706648" lon="22.231679" /&gt;
+      &lt;trkpt lat="51.3705546" lon="22.2318464" /&gt;
+      &lt;trkpt lat="51.3703867" lon="22.2320444" /&gt;
+      &lt;trkpt lat="51.370244" lon="22.2322537" /&gt;
+      &lt;trkpt lat="51.3701573" lon="22.2323677" /&gt;
+      &lt;trkpt lat="51.3700766" lon="22.2324888" /&gt;
+      &lt;trkpt lat="51.3699883" lon="22.232609" /&gt;
+      &lt;trkpt lat="51.3698759" lon="22.2327854" /&gt;
+      &lt;trkpt lat="51.369822" lon="22.2329678" /&gt;
+      &lt;trkpt lat="51.3697857" lon="22.2331564" /&gt;
+      &lt;trkpt lat="51.3697648" lon="22.2332833" /&gt;
+      &lt;trkpt lat="51.3697333" lon="22.233444" /&gt;
+      &lt;trkpt lat="51.3697092" lon="22.2336285" /&gt;
+      &lt;trkpt lat="51.3696805" lon="22.2337592" /&gt;
+      &lt;trkpt lat="51.3696675" lon="22.2338933" /&gt;
+      &lt;trkpt lat="51.3696661" lon="22.2341495" /&gt;
+      &lt;trkpt lat="51.369636" lon="22.2343081" /&gt;
+      &lt;trkpt lat="51.3696424" lon="22.2344163" /&gt;
+      &lt;trkpt lat="51.3696013" lon="22.2345777" /&gt;
+      &lt;trkpt lat="51.3695662" lon="22.234717" /&gt;
+      &lt;trkpt lat="51.3695421" lon="22.234864" /&gt;
+      &lt;trkpt lat="51.369501" lon="22.2351454" /&gt;
+      &lt;trkpt lat="51.3695137" lon="22.2353463" /&gt;
+      &lt;trkpt lat="51.3695135" lon="22.2355175" /&gt;
+      &lt;trkpt lat="51.3695074" lon="22.2356935" /&gt;
+      &lt;trkpt lat="51.3695018" lon="22.2358519" /&gt;
+      &lt;trkpt lat="51.3695236" lon="22.2359406" /&gt;
+      &lt;trkpt lat="51.3695303" lon="22.2360542" /&gt;
+      &lt;trkpt lat="51.369532" lon="22.2361959" /&gt;
+      &lt;trkpt lat="51.3695445" lon="22.2363846" /&gt;
+      &lt;trkpt lat="51.3695428" lon="22.2365439" /&gt;
+      &lt;trkpt lat="51.3695535" lon="22.2366797" /&gt;
+      &lt;trkpt lat="51.3695398" lon="22.2368087" /&gt;
+      &lt;trkpt lat="51.3694858" lon="22.2369067" /&gt;
+      &lt;trkpt lat="51.369438" lon="22.2369709" /&gt;
+      &lt;trkpt lat="51.369378" lon="22.2370317" /&gt;
+      &lt;trkpt lat="51.3692646" lon="22.2370647" /&gt;
+      &lt;trkpt lat="51.3687917" lon="22.2299534" /&gt;
+      &lt;trkpt lat="51.3687063" lon="22.2297916" /&gt;
+      &lt;trkpt lat="51.3686795" lon="22.229579" /&gt;
+      &lt;trkpt lat="51.3686712" lon="22.2294414" /&gt;
+      &lt;trkpt lat="51.3686329" lon="22.229251" /&gt;
+      &lt;trkpt lat="51.3686274" lon="22.2290984" /&gt;
+      &lt;trkpt lat="51.3686063" lon="22.2288837" /&gt;
+      &lt;trkpt lat="51.3685823" lon="22.2287145" /&gt;
+      &lt;trkpt lat="51.368591" lon="22.2286053" /&gt;
+      &lt;trkpt lat="51.3686148" lon="22.2285441" /&gt;
+      &lt;trkpt lat="51.3686544" lon="22.228444" /&gt;
+      &lt;trkpt lat="51.3686989" lon="22.228433" /&gt;
+      &lt;trkpt lat="51.3687898" lon="22.2284144" /&gt;
+      &lt;trkpt lat="51.3690377" lon="22.2283515" /&gt;
+      &lt;trkpt lat="51.3692106" lon="22.2283031" /&gt;
+      &lt;trkpt lat="51.3693492" lon="22.2282846" /&gt;
+      &lt;trkpt lat="51.3695083" lon="22.2282453" /&gt;
+      &lt;trkpt lat="51.3696365" lon="22.2282414" /&gt;
+      &lt;trkpt lat="51.3697379" lon="22.2282142" /&gt;
+      &lt;trkpt lat="51.3698339" lon="22.2282221" /&gt;
+      &lt;trkpt lat="51.3699334" lon="22.2282004" /&gt;
+      &lt;trkpt lat="51.370006" lon="22.2281794" /&gt;
+      &lt;trkpt lat="51.3701769" lon="22.228155" /&gt;
+      &lt;trkpt lat="51.3702571" lon="22.2281423" /&gt;
+      &lt;trkpt lat="51.3704058" lon="22.228367" /&gt;
+      &lt;trkpt lat="51.3704437" lon="22.2285956" /&gt;
+      &lt;trkpt lat="51.3704457" lon="22.2289508" /&gt;
+      &lt;trkpt lat="51.3704657" lon="22.2291056" /&gt;
+      &lt;trkpt lat="51.3704735" lon="22.229192" /&gt;
+      &lt;trkpt lat="51.3704852" lon="22.2292267" /&gt;
+      &lt;trkpt lat="51.3705135" lon="22.2292594" /&gt;
+      &lt;trkpt lat="51.3705601" lon="22.2292801" /&gt;
+      &lt;trkpt lat="51.3705969" lon="22.2292984" /&gt;
+      &lt;trkpt lat="51.3706694" lon="22.2293136" /&gt;
+      &lt;trkpt lat="51.3707596" lon="22.2293082" /&gt;
+      &lt;trkpt lat="51.3708324" lon="22.2293124" /&gt;
+      &lt;trkpt lat="51.3709071" lon="22.2293611" /&gt;
+      &lt;trkpt lat="51.3709822" lon="22.2293424" /&gt;
+      &lt;trkpt lat="51.3710277" lon="22.2293811" /&gt;
+      &lt;trkpt lat="51.3710677" lon="22.2294005" /&gt;
+      &lt;trkpt lat="51.3711055" lon="22.2294444" /&gt;
+      &lt;trkpt lat="51.3711302" lon="22.2294798" /&gt;
+      &lt;trkpt lat="51.3711619" lon="22.2295644" /&gt;
+      &lt;trkpt lat="51.3711887" lon="22.2296541" /&gt;
+      &lt;trkpt lat="51.3711974" lon="22.2297597" /&gt;
+      &lt;trkpt lat="51.3711775" lon="22.2298532" /&gt;
+      &lt;trkpt lat="51.3711525" lon="22.2303237" /&gt;
+    &lt;/trkseg&gt;
+  &lt;/trk&gt;
+&lt;/gpx&gt;</comment>
+  <comment action="commented" timestamp="2015-02-24T20:46:31Z" uid="2098272" user="maraf24">Ale jakim sprzętem ?!</comment>
+  <comment action="closed" timestamp="2015-02-24T21:23:04Z" uid="2098272" user="maraf24">@RicoElectrico, zamykaj te uwagi jak już je przerobisz :)</comment>
+</note>
+
+<!-- Note: reopened after hidden -->
+<note id="233775" lat="48.2411985" lon="-122.3744820" created_at="2014-08-31T17:13:29Z" closed_at="2015-09-06T23:35:14Z">
+  <comment action="opened" timestamp="2014-08-31T17:13:29Z" uid="7247" user="goldfndr">Jump Start Espresso | 26930</comment>
+  <comment action="hidden" timestamp="2015-09-06T23:34:26Z" uid="355617" user="pnorman"></comment>
+  <comment action="reopened" timestamp="2015-09-06T23:34:38Z" uid="355617" user="pnorman"></comment>
+  <comment action="closed" timestamp="2015-09-06T23:35:14Z" uid="355617" user="pnorman">mapped, but inadvertently hid the note</comment>
+</note>
+
+<!-- Note:  first of year 2015 -->
+<note id="294233" lat="-36.9474567" lon="174.6149397" created_at="2015-01-01T00:00:31Z" closed_at="2017-01-16T03:47:57Z">
+  <comment action="opened" timestamp="2015-01-01T00:00:31Z" uid="2544536" user="Justin G">Rainforest Express railway now defunct</comment>
+  <comment action="closed" timestamp="2017-01-16T03:47:57Z" uid="4994674" user="LACDH">Outdated note.</comment>
+</note>
+
 <!-- Note: 315946 mulitple reopens -->
+<note id="315946" lat="51.9159899" lon="8.3709710" created_at="2015-02-13T11:38:42Z" closed_at="2020-02-28T15:51:26Z">
+  <comment action="opened" timestamp="2015-02-13T11:38:42Z" uid="34927" user="flohoff">Es soll eine Schlüterstraße 7 geben</comment>
+  <comment action="closed" timestamp="2018-06-04T07:40:35Z" uid="3074952" user="jankneu">Es gibt keine Schlüterstraße 7 laut TIM-Online</comment>
+  <comment action="reopened" timestamp="2018-06-05T06:35:37Z" uid="34927" user="flohoff"></comment>
+  <comment action="reopened" timestamp="2018-06-05T06:37:01Z" uid="34927" user="flohoff"></comment>
+  <comment action="commented" timestamp="2018-06-05T06:41:11Z" uid="34927" user="flohoff">Selbes wie bei dem letzten Note. mit ist klar das das im TIM und ALKIS nicht existiert. Sonst hätte ich den Note nicht aufgemacht. In Datenbeständen großer Telcos ist das aber drin.
+</comment>
+  <comment action="closed" timestamp="2020-02-28T15:51:26Z" uid="34927" user="flohoff">Done
+</comment>
+</note>
+
+<!-- Note: reopened after hidden -->
+<note id="372068" lat="40.8781390" lon="-73.8904890" created_at="2015-05-30T02:38:15Z" closed_at="2015-08-23T12:21:25Z">
+  <comment action="opened" timestamp="2015-05-30T02:38:15Z" uid="2950547" user="Bxscience team">The auditorium's seats require desks to be reinstalled due to a plethora of desks missing</comment>
+  <comment action="hidden" timestamp="2015-08-23T12:21:19Z" uid="74937" user="emacsen"></comment>
+  <comment action="reopened" timestamp="2015-08-23T12:21:22Z" uid="74937" user="emacsen"></comment>
+  <comment action="closed" timestamp="2015-08-23T12:21:25Z" uid="74937" user="emacsen"></comment>
+</note>
+
 <!-- Note: 393437 very long -->
+<note id="393437" lat="55.7868297" lon="49.1237113" created_at="2015-07-09T08:42:31Z" closed_at="2017-06-23T10:44:51Z">
+  <comment action="opened" timestamp="2015-07-09T08:42:31Z">Нужно проставить все POI по представленным схемам: http://koltso-kazan.ru/%D1%8D%D1%82%D0%B0%D0%B6-0; http://koltso-kazan.ru/%D1%8D%D1%82%D0%B0%D0%B6-1; http://koltso-kazan.ru/%D1%8D%D1%82%D0%B0%D0%B6-2; http://koltso-kazan.ru/%D1%8D%D1%82%D0%B0%D0%B6-3; http://koltso-kazan.ru/%D1%8D%D1%82%D0%B0%D0%B6-4. Также, если в списках снизу нажимать на интересующие Вас POI, есть возможность получить всю необходимую информацию о нем.</comment>
+  <comment action="commented" timestamp="2016-09-28T18:01:00Z">ну так сделай это!!!</comment>
+  <comment action="closed" timestamp="2017-04-07T18:28:12Z" uid="5632542" user="Zakryvatel"></comment>
+  <comment action="reopened" timestamp="2017-04-14T13:06:37Z" uid="345493" user="acsd"></comment>
+  <comment action="commented" timestamp="2017-04-17T21:03:06Z">закрывайте  на хуй эту заметку. раз за ДВА года её не выполнили</comment>
+  <comment action="commented" timestamp="2017-04-18T15:20:13Z" uid="345493" user="acsd">может у кого когда-нибудь дойдут руки занести все пои</comment>
+  <comment action="commented" timestamp="2017-06-13T20:36:13Z">Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck FuckFuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fu Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck FuckFuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck F</comment>
+  <comment action="closed" timestamp="2017-06-19T13:18:26Z" uid="463504" user="erickdeoliveiraleal"></comment>
+  <comment action="reopened" timestamp="2017-06-19T14:43:50Z" uid="345493" user="acsd"></comment>
+  <comment action="closed" timestamp="2017-06-23T10:44:51Z" uid="248768" user="chnav">no information to map, rude comments</comment>
+</note>
+ 
 <!-- Note: 393440 very long -->
+<note id="393440" lat="55.7808555" lon="49.2130369" created_at="2015-07-09T08:55:34Z" closed_at="2017-06-23T10:44:02Z">
+  <comment action="opened" timestamp="2015-07-09T08:55:34Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2016-09-28T18:01:31Z">ну так сделай это!!!</comment>
+  <comment action="closed" timestamp="2017-04-07T18:28:03Z" uid="5632542" user="Zakryvatel"></comment>
+  <comment action="reopened" timestamp="2017-04-14T13:06:45Z" uid="345493" user="acsd"></comment>
+  <comment action="commented" timestamp="2017-06-12T20:00:45Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2017-06-12T20:00:47Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2017-06-12T20:00:50Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2017-06-12T20:00:53Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2017-06-12T20:00:56Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2017-06-12T20:01:00Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2017-06-12T20:01:03Z">Нужно проставить все POI по представленной схеме: http://megamall.ru/kazan/scheme/. А также, если нажимать на интересующие Вас сектора, есть возможность получить всю необходимую информацию об этом POI.</comment>
+  <comment action="commented" timestamp="2017-06-13T20:35:42Z">Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck FuckFuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck Fuck F</comment>
+  <comment action="closed" timestamp="2017-06-19T13:14:24Z" uid="463504" user="erickdeoliveiraleal"></comment>
+  <comment action="reopened" timestamp="2017-06-19T14:43:33Z" uid="345493" user="acsd"></comment>
+  <comment action="closed" timestamp="2017-06-23T10:44:02Z" uid="248768" user="chnav">No information to map</comment>
+</note>
+
+<!-- Note:  first of year 2016 -->
+<note id="491149" lat="61.5305638" lon="76.4544692" created_at="2016-01-01T00:09:02Z" closed_at="2016-02-20T14:35:14Z">
+  <comment action="opened" timestamp="2016-01-01T00:09:02Z" uid="1910506" user="afgul">моста нет , проезд через К2500</comment>
+  <comment action="closed" timestamp="2016-02-20T14:35:14Z" uid="1910506" user="afgul"></comment>
+</note>
+
+<!-- Note: reopened after hidden -->
+<note id="547697" lat="51.3912270" lon="-0.7347490" created_at="2016-04-15T09:15:36Z" closed_at="2016-04-15T10:08:00Z">
+  <comment action="opened" timestamp="2016-04-15T09:15:36Z">This error is submitted from Navmii GPS.
+Wrong roundabout:
+No roundabout anymore </comment>
+  <comment action="closed" timestamp="2016-04-15T09:18:30Z" uid="12992" user="trigpoint">There is no roundabout mapped , maybe you need to update your maps</comment>
+  <comment action="reopened" timestamp="2016-04-15T09:19:02Z" uid="57884" user="EdLoach"></comment>
+  <comment action="closed" timestamp="2016-04-15T09:19:23Z" uid="57884" user="EdLoach">As trigpoint says, Navmii needs an update. Roundabout removed 5 days ago - http://www.openstreetmap.org/changeset/38458426</comment>
+  <comment action="hidden" timestamp="2016-04-15T10:06:57Z" uid="2231" user="Deanna Earley"></comment>
+  <comment action="reopened" timestamp="2016-04-15T10:07:55Z" uid="2231" user="Deanna Earley"></comment>
+  <comment action="closed" timestamp="2016-04-15T10:08:00Z" uid="2231" user="Deanna Earley"></comment>
+</note>
+
 <!-- Note: 580255 mulitple reopens -->
+<note id="580255" lat="-46.5884280" lon="168.3056060" created_at="2016-06-02T06:48:54Z" closed_at="2018-02-02T09:03:17Z">
+  <comment action="opened" timestamp="2016-06-02T06:48:54Z">此错误提交自Navmii GPS。阻塞街道:
+No U turn here
+</comment>
+  <comment action="closed" timestamp="2017-06-30T07:05:41Z" uid="4055838" user="Hamish Kirkman"></comment>
+  <comment action="reopened" timestamp="2017-06-30T07:05:43Z" uid="4055838" user="Hamish Kirkman"></comment>
+  <comment action="commented" timestamp="2018-01-29T13:03:41Z" uid="527535" user="Constable">you mean this is not allowed?
+https://www.openstreetmap.org/directions?engine=osrm_car&amp;route=-46.58808%2C168.30454%3B-46.58771%2C168.30510#map=19/-46.58810/168.30509&amp;layers=N</comment>
+  <comment action="closed" timestamp="2018-02-01T02:30:22Z" uid="4055838" user="Hamish Kirkman">No I think you are supposed to go this way
+https://www.openstreetmap.org/directions?engine=graphhopper_car&amp;route=-46.58902%2C168.30609%3B-46.58814%2C168.30469#map=19/-46.58858/168.30541&amp;layers=N</comment>
+  <comment action="reopened" timestamp="2018-02-01T07:49:51Z" uid="527535" user="Constable"></comment>
+  <comment action="reopened" timestamp="2018-02-01T07:50:51Z" uid="527535" user="Constable"></comment>
+  <comment action="commented" timestamp="2018-02-01T07:52:42Z" uid="527535" user="Constable">Well, if you're supposed to go that way you pointed out, I guess we should add a turn restriction to prevent the routing services to make the u turn I did point out, correct?</comment>
+  <comment action="commented" timestamp="2018-02-02T02:29:40Z">Yes</comment>
+  <comment action="closed" timestamp="2018-02-02T02:32:04Z" uid="4055838" user="Hamish Kirkman"></comment>
+  <comment action="reopened" timestamp="2018-02-02T09:01:16Z" uid="527535" user="Constable"></comment>
+  <comment action="closed" timestamp="2018-02-02T09:03:17Z" uid="527535" user="Constable"></comment>
+</note>
+
 <!-- Note: 633509 double quotes -->
+<note id="633509" lat="-21.3154669" lon="55.4734739" created_at="2016-07-19T10:44:29Z" closed_at="2017-03-05T22:11:17Z">
+  <comment action="opened" timestamp="2016-07-19T10:44:29Z" uid="4242020" user="Pato974">Soretole (OSM data version: 2016-06-20T05:57:02Z) #mapsme</comment>
+  <comment action="commented" timestamp="2017-02-10T06:19:10Z">
+
+
+
+
+&lt;!DOCTYPE html&gt;
+&lt;html lang="fr-FR" dir="ltr"&gt;
+  &lt;head&gt;
+  &lt;meta http-equiv="X-UA-Compatible" content="IE=edge"/&gt;
+  &lt;meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0"/&gt;
+  &lt;!--[if lt IE 9]&gt;&lt;script src="/assets/html5shiv-4a9e0197939f35e615870d2b867253119f465045ef42911474560accba5ef5ab.js"&gt;&lt;/script&gt;&lt;![endif]--&gt;
+  &lt;script src="/assets/application-ec6b7c0eef3eee75dec283d5688643f0f9504af489dc37b731bfd0c8c81dc215.js"&gt;&lt;/script&gt;
+  &lt;link rel="stylesheet" media="screen" href="/assets/screen-ltr-29d5f0511f7cc0a1b369191b70426e83250c47318efc1f07bd5d9e97ee08a2b4.css" /&gt;
+  &lt;link rel="stylesheet" media="print" href="/assets/print-ltr-f0e982d0ba074e914962563e26dfc48b3d2d9a05e5442932889cec8769cd2eaf.css" /&gt;
+  &lt;link rel="stylesheet" media="screen, print" href="/assets/leaflet-all-3da50ba8896d843d84826a23a77c2d130cffe8f052c6c0bfa1853dc18b300e64.css" /&gt;
+  &lt;!--[if IE]&gt;
+    &lt;link rel="stylesheet" media="screen" href="/assets/large-ltr-1cf527cfc2440d0b93cd4bf36e61bd90.css" /&gt;
+    &lt;link rel="shortcut icon" type="image/x-icon" href="/assets/favicon-bf2dfee28b5006e3ea82ef78ae7f42adc1e2024165fbd39cadc9517a7d2bd8bf.ico" /&gt;
+  &lt;![endif]--&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-57x57-3fb65f787d95381a1fc1310a03599228f9a2b34615c0bb002510cfcfa3ab7d7b.png" sizes="57x57" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-60x60-24d8c222e95e5769237fecb64e3d9396f8087391f4254e807fe5981f445ef9ec.png" sizes="60x60" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-72x72-cbcf21a01fc6e7d59ab1d61523f5ec569dc34e6e31e279e17df0ef81000ff20e.png" sizes="72x72" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-76x76-763efbc4c5186950149f5bfd214ca47153ef55b86f43c6c28dbd1b9645308c6e.png" sizes="76x76" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-114x114-d63eb634fffcf58470b207260ca4680e74f5601786c3f3acf5242a7d3b0c2428.png" sizes="114x114" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-120x120-6b9842ca3d9d3f6c216b27a37e9d1437d405cc63048907db39fce7f790c169e4.png" sizes="120x120" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-144x144-4af65b3317dc639c0470834ece0feeae85426717cfaf258f070e9d4631652213.png" sizes="144x144" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-152x152-2c9080d0432e558575e840c72c8181676f7e3072c584225341d4b8913fc91a29.png" sizes="152x152" /&gt;
+  &lt;link rel="apple-touch-icon" type="image/png" href="/assets/apple-touch-icon-180x180-d259f523a4a6fedd1eceb58a9ae89ca567c4898fb084954e2028a7a72f5e76b5.png" sizes="180x180" /&gt;
+  &lt;link rel="icon" type="image/png" href="/assets/favicon-32x32-36d06d8a01933075bc7093c9631cffd02d49b03b659f767340f256bb6839d990.png" sizes="32x32" /&gt;
+  &lt;link rel="icon" type="image/png" href="/assets/favicon-194x194-d344a6bd2033108770b5ab4f8ac939d296872baee00278e5b2bc87e150c9be61.png" sizes="194x194" /&gt;
+  &lt;link rel="icon" type="image/png" href="/assets/favicon-96x96-538aa7e9e2315beabc6b074c4d7688602fe2b39ecd6e80f5e55f92c2be21744a.png" sizes="96x96" /&gt;
+  &lt;link rel="icon" type="image/png" href="/assets/android-chrome-192x192-1d10acc5e9ee8558d223e434537a58ec30414cc2bd86562b8c30f77d72df845e.png" sizes="192x192" /&gt;
+  &lt;link rel="icon" type="image/png" href="/assets/favicon-16x16-b5e4abe84fb615809252921d52099ede3236d1b7112ea86065a8e37e421c610b.png" sizes="16x16" /&gt;
+  &lt;link rel="mask-icon" href="/tag-icon.svg" color="#7ebc6f" /&gt;
+  &lt;link rel="manifest" href="/assets/manifest-66ee8c38f7aa3fcb7c528e518ccc67d1d61c0dabd004359b2fc01f463d4340f9.json" /&gt;
+  &lt;meta name="msapplication-config" content="/assets/browserconfig-452fba6260105b79bf7c858b07d05d84afcbfd713b17bb800e3f8328dfdab78e.xml" /&gt;
+  &lt;meta name="msapplication-TileColor" content="#00a300" /&gt;
+  &lt;meta name="msapplication-TileImage" content="/assets/mstile-144x144-7ca1379c629c16f810daaf2a6cc1945eb92f771fcd6ba14dac02a2fd6bf1f45c.png" /&gt;
+  &lt;meta name="theme-color" content="#ffffff" /&gt;
+  &lt;link rel="publisher" href="https://plus.google.com/111953119785824514010" /&gt;
+  &lt;link rel="search" type="application/opensearchdescription+xml" title="OpenStreetMap Search" href="/assets/osm-56590ff64c4318003dfdd1c3edd7acf3eb8c2ccada67987495274cbadf821cdf.xml" /&gt;
+  &lt;meta name="description" content="OpenStreetMap is the free wiki world map." /&gt;
+  &lt;meta property="og:site_name" content="OpenStreetMap" /&gt;&lt;meta property="og:title" content="OpenStreetMap | Note : 633509" /&gt;&lt;meta property="og:type" content="website" /&gt;&lt;meta property="og:image" content="http://www.openstreetmap.org/assets/osm_logo_256-835a859acf0d378e1d14e88b15e7b4b95211ccd41a2c061b1629cfbbb8deb697.png" /&gt;&lt;meta property="og:image:secure_url" content="http://www.openstreetmap.org/assets/osm_logo_256-835a859acf0d378e1d14e88b15e7b4b95211ccd41a2c061b1629cfbbb8deb697.png" /&gt;&lt;meta property="og:url" content="http://www.openstreetmap.org/note/633509" /&gt;&lt;meta property="og:description" content="OpenStreetMap est une carte du monde, créée par des gens comme vous et libre d’utilisation sous licence libre." /&gt;
+  &lt;style type="text/css"&gt;.hidden { display: none !important }.hide_unless_logged_in { display: none !important }.hide_unless_administrator { display: none !important }.hide_unless_moderator { display: none !important }&lt;/style&gt;
+    &lt;script src="/assets/index-48a31fd48b817d33119c554b30d2aaa44b43be0680ba4678a8796a3d8d05b12f.js"&gt;&lt;/script&gt;
+      &lt;/div&gt;
+    &lt;/form&gt;
+&lt;/div&gt;
+
+    &lt;/div&gt;
+
+      &lt;div class="welcome"&gt;
+        &lt;h2&gt;Bienvenue dans OpenStreetMap !&lt;/h2&gt;
+        &lt;div class="close-wrap"&gt;&lt;span class="icon close"&gt;&lt;/span&gt;&lt;/div&gt;
+        &lt;p&gt;OpenStreetMap est une carte du monde, créée par des gens comme vous et libre d’utilisation sous licence libre.&lt;/p&gt;
+        &lt;a class="button learn-more" href="/about"&gt;En savoir plus&lt;/a&gt;
+        &lt;a class="button sign-up" href="/user/new"&gt;Commencer à cartographier&lt;/a&gt;
+      &lt;/div&gt;
+
+    &lt;div id="banner"&gt;
+      
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;noscript&gt;
+    &lt;div id="noscript"&gt;
+      &lt;p&gt;JavaScript n’est pas pris en charge par le navigateur que vous utilisez, ou bien vous l’avez désactivé.&lt;/p&gt;
+      &lt;p&gt;OpenStreetMap utilise Javascript pour ses cartes glissantes.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/noscript&gt;
+
+  &lt;div id="map-ui"&gt;
+  &lt;/div&gt;
+
+  &lt;div id="map" tabindex="2"&gt;
+  &lt;/div&gt;
+
+  &lt;div id="attribution"&gt;
+    &lt;table&gt;
+      &lt;tr&gt;
+        &lt;td class="attribution_license"&gt;http://openstreetmap.org/copyright&lt;/td&gt;
+        &lt;td class="attribution_project"&gt;http://openstreetmap.org&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td colspan="2" class="attribution_notice"&gt;Copyright OpenStreetMap et ses contributeurs, sous une licence ouverte&lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/table&gt;
+  &lt;/div&gt;
+
+&lt;/div&gt;
+
+    &lt;noscript&gt;&lt;p&gt;&lt;img src="http://piwik.openstreetmap.org/piwik.php?idsite=1" style="border:0" alt="" /&gt;&lt;/p&gt;&lt;/noscript&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+
+</comment>
+  <comment action="closed" timestamp="2017-03-05T22:11:18Z" uid="1075986" user="py_berrard">inexploitable</comment>
+</note>
+
 <!-- Note: 658625 mulitple reopens -->
+<note id="658625" lat="52.0586223" lon="7.6593682" created_at="2016-08-05T15:17:33Z" closed_at="2018-05-14T15:14:29Z">
+  <comment action="opened" timestamp="2016-08-05T15:17:33Z" uid="34927" user="flohoff">Dieses Gate steht nicht mitten auf der Kreuzung - Das steht nur in einem der beteiligten wege. Kontrollieren und versetzen.
+</comment>
+  <comment action="closed" timestamp="2018-05-14T13:52:50Z" uid="3172019" user="nurdafur"/>
+  <comment action="reopened" timestamp="2018-05-14T14:38:53Z" uid="34927" user="flohoff"></comment>
+  <comment action="reopened" timestamp="2018-05-14T14:41:55Z" uid="34927" user="flohoff"></comment>
+  <comment action="commented" timestamp="2018-05-14T14:47:29Z" uid="34927" user="flohoff">Hi, 
+du hast den note kommentarlos geschlossen. Hast du da was geändert?
+
+Flo</comment>
+  <comment action="commented" timestamp="2018-05-14T15:01:53Z" uid="3172019" user="nurdafur">Hallo Flo
+Die Schranke wurde schon vor mehr als einem Jahr von einem Mapper namens bomblayer an die wohl richtige Stelle verschoben. So hatte ich zumindest den Eindruck, als ich heute Mittag dort vorbei wanderte. Somit habe ich den Fehler als erledigt geschlossen. Vespucci, die app, die ich zum mappen benutze ermöglicht mir keine Kommentare. Ich kann nur  zwischen offen, behoben und falschmeldung wählen.
+Liebe Grüsse
+Urs</comment>
+  <comment action="closed" timestamp="2018-05-14T15:14:29Z" uid="34927" user="flohoff">Ah prima - Dann mache ich den note zu - Wenn sowas kommentarlos geschlossen wird frage ich immer nach.
+
+Flo</comment>
+</note>
+
 <!-- Note: 756683 opens created -->
+<note id="756683" lat="53.3425344" lon="-6.2561455" created_at="2016-10-22T15:19:36Z" closed_at="2020-11-23T14:58:32Z">
+  <comment action="opened" timestamp="2016-10-22T15:19:37Z" uid="4764441" user="Willex Adams">bus Irlande ! (OSM data version: 2016-09-19T14:38:03Z) #mapsme</comment>
+  <comment action="reopened" timestamp="2020-11-23T14:58:29Z" uid="578519" user="DaCor"></comment>
+  <comment action="closed" timestamp="2020-11-23T14:58:32Z" uid="578519" user="DaCor"></comment>
+</note>
+
+<!-- Note:  first of year 2017 -->
+<note id="836633" lat="51.2061324" lon="4.3912664" created_at="2017-01-01T00:00:51Z" closed_at="2017-01-01T09:29:38Z">
+  <comment action="opened" timestamp="2017-01-01T00:00:51Z" uid="4251218" user="valko gotchev">Петя (OSM data version: 2016-12-14T16:41:03Z) #mapsme</comment>
+  <comment action="closed" timestamp="2017-01-01T09:29:38Z" uid="2403313" user="Jakka">Please clarify your note thx.</comment>
+</note>
+
 <!-- Note: 988393 mulitple reopens -->
+<note id="850845" lat="47.9883934" lon="37.8981782" created_at="2017-01-13T21:47:25Z">
+  <comment action="opened" timestamp="2017-01-13T21:47:25Z" uid="5046513" user="ЮрикБ">Автомойка .   СТО (OSM data version: 2016-12-14T16:41:03Z) #mapsme</comment>
+  <comment action="commented" timestamp="2017-07-16T14:07:45Z">п</comment>
+  <comment action="commented" timestamp="2017-07-16T14:07:46Z">в</comment>
+</note>
+
+<!-- Note: reopened after hidden -->
+<note id="965671" lat="25.1377306" lon="121.5278809" created_at="2017-04-16T06:46:07Z" closed_at="2019-10-27T08:56:19Z">
+  <comment action="opened" timestamp="2017-04-16T06:46:07Z" uid="274857" user="Supaplex">椰林溫泉美食</comment>
+  <comment action="hidden" timestamp="2019-10-27T08:56:12Z" uid="274857" user="Supaplex"></comment>
+  <comment action="reopened" timestamp="2019-10-27T08:56:17Z" uid="274857" user="Supaplex"></comment>
+  <comment action="closed" timestamp="2019-10-27T08:56:19Z" uid="274857" user="Supaplex"></comment>
+</note>
+
 <!-- Note: 1000000 million -->
+<note id="1000000" lat="22.3053771" lon="114.1704274" created_at="2017-05-18T08:41:38Z" closed_at="2020-07-20T13:41:31Z">
+  <comment action="opened" timestamp="2017-05-18T08:41:38Z" uid="5617330" user="LivInTheLookingGlass">building is 31-37 (way #492877311 )</comment>
+  <comment action="commented" timestamp="2017-05-25T17:01:48Z" uid="472018" user="DenisCarriere">@gappleto Winner! You opened note 1 million!</comment>
+  <comment action="closed" timestamp="2017-05-26T15:17:43Z" uid="149223" user="Stalfur">Address updated.</comment>
+  <comment action="reopened" timestamp="2019-01-06T18:35:22Z" uid="9334045" user="JW Modar"></comment>
+  <comment action="closed" timestamp="2020-07-20T13:41:31Z" uid="6250193" user="Kovoschiz">(https://www.openstreetmap.org/changeset/49005303)</comment>
+</note>
+
+<!-- Note: reopened after hidden -->
+<note id="1033703" lat="53.9210400" lon="19.3450200" created_at="2017-06-18T11:14:24Z" closed_at="2019-05-02T22:41:40Z">
+  <comment action="opened" timestamp="2017-06-18T11:14:24Z" uid="6186441" user="abbott40566">Ten sklep został zamknięty już kilka dobrych lat temu.</comment>
+  <comment action="hidden" timestamp="2019-05-02T22:41:18Z" uid="604437" user="RicoElectrico"></comment>
+  <comment action="reopened" timestamp="2019-05-02T22:41:26Z" uid="604437" user="RicoElectrico"></comment>
+  <comment action="closed" timestamp="2019-05-02T22:41:40Z" uid="604437" user="RicoElectrico">https://www.openstreetmap.org/node/2429449065/history
+
+Autor sam skasował, do zamknięcia.</comment>
+</note>
+
+<!-- Note:  first of year 2018 -->
+<note id="1254173" lat="40.3905200" lon="-104.7689600" created_at="2018-01-01T00:09:01Z" closed_at="2018-01-01T17:17:18Z">
+  <comment action="opened" timestamp="2018-01-01T00:09:01Z">who</comment>
+  <comment action="closed" timestamp="2018-01-01T17:17:18Z" uid="527535" user="Constable">ya</comment>
+</note>
+
 <!-- Note: 1322305 very long -->
-<!-- Note: 1325509 very long -->
+<note id="1322305" lat="41.4293489" lon="-83.2241842" created_at="2018-03-09T18:33:44Z" closed_at="2018-03-09T19:15:10Z">
+  <comment action="opened" timestamp="2018-03-09T18:33:44Z">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!v</comment>
+  <comment action="closed" timestamp="2018-03-09T19:15:10Z" uid="429761" user="freebeer">spam</comment>
+</note>
+
+  <!-- Note: 1325509 very long -->
+<note id="1325509" lat="33.1412126" lon="-117.2884470" created_at="2018-03-12T20:27:42Z" closed_at="2018-03-15T17:55:54Z">
+  <comment action="opened" timestamp="2018-03-12T20:27:42Z">!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  </comment>
+  <comment action="closed" timestamp="2018-03-13T12:00:43Z" uid="527535" user="Constable"></comment>
+</note>
+
+<!-- Note:  first of year 2019 -->
+<note id="1635240" lat="-0.2437544" lon="-79.1780154" created_at="2019-01-01T00:00:08Z" closed_at="2022-10-20T23:05:33Z">
+  <comment action="opened" timestamp="2019-01-01T00:00:08Z" uid="9312400" user="juan84">"Río Chiche"
+POI name: Calle Piloton
+POI types: highway-residential
+OSM data version: 2018-12-13T07:12:02Z
+ #mapsme</comment>
+  <comment action="closed" timestamp="2022-10-20T23:05:33Z" uid="7387802" user="g_normand"></comment>
+</note>
+
+<!-- Note: 2000000 million -->
+<note id="2000000" lat="-12.5728315" lon="131.3175616" created_at="2019-11-18T12:32:07Z" closed_at="2020-01-06T14:24:28Z">
+  <comment action="opened" timestamp="2019-11-18T12:32:07Z" uid="1203657" user="Jan van Bekkum">surface=asphalt</comment>
+  <comment action="closed" timestamp="2020-01-06T14:24:28Z" uid="3755477" user="ent8r">Fixed with https://www.openstreetmap.org/changeset/79247398</comment>
+</note>
+
+<!-- Note:  first of year 2020 -->
+<note id="2042261" lat="-20.1007242" lon="-44.5912849" created_at="2020-01-01T00:03:12Z" closed_at="2021-10-05T14:47:56Z">
+  <comment action="opened" timestamp="2020-01-01T00:03:12Z" uid="9848532" user="SAMUEL FABIO">Caixa D'água Cidade Nova 3.</comment>
+  <comment action="closed" timestamp="2020-01-01T00:08:06Z" uid="9848532" user="SAMUEL FABIO">Área residencial.</comment>
+  <comment action="reopened" timestamp="2020-01-01T00:08:15Z" uid="9848532" user="SAMUEL FABIO"></comment>
+  <comment action="closed" timestamp="2021-10-05T14:47:56Z" uid="14239681" user="Iasminclaraf"></comment>
+</note>
+
+<!-- Note:  first of year 2021 -->
+<note id="2480422" lat="-25.2809900" lon="-57.6502400" created_at="2021-01-01T00:11:02Z">
+  <comment action="opened" timestamp="2021-01-01T00:11:02Z">Interpol</comment>
+</note>
+
+<!-- Note:  first of year 2022 -->
+<note id="2991121" lat="42.0599142" lon="-72.4426424" created_at="2022-01-01T00:00:09Z" closed_at="2022-01-02T19:19:03Z">
+  <comment action="opened" timestamp="2022-01-01T00:00:09Z">onosm.org submitted note from a business:
+name: Mountain View Restaurant
+phone: 413-566-5376
+website: https://mountain-view-drive-in-restaurant.business.site/?utm_source=gmb&amp;utm_medium=referral
+twitter: 
+facebook: https://m.facebook.com/mtviewhampden/
+email: 
+hours: 
+category: American Restaurants
+address: 25 Allen st hampden ma 01036</comment>
+  <comment action="closed" timestamp="2022-01-02T19:19:03Z" uid="6641970" user="CurlingMan13">added</comment>
+</note>
+
+<!-- Note: 3000000 million -->
+<note id="3000000" lat="-39.0018102" lon="-67.5865388" created_at="2022-01-06T22:23:42Z" closed_at="2022-01-07T12:32:00Z">
+  <comment action="opened" timestamp="2022-01-06T22:23:42Z" uid="14793637" user="Nahue253">Casa</comment>
+  <comment action="closed" timestamp="2022-01-07T12:32:00Z" uid="1311281" user="mweper">Esto no está relacionado con OpenStreetMap. Ponte en contacto con tu proveedor de aplicaciones de terceros (o con el servicio que te ha llevado hasta aquí). OpenStreetMap no tiene control sobre sus datos de localización ni hay datos significativos que añadir al mapa en esta nota.</comment>
+</note>
+
+<!-- Note:  first of year 2023 -->
+<note id="3499651" lat="34.8707760" lon="-117.9918957" created_at="2023-01-01T00:12:48Z" closed_at="2023-01-01T04:19:57Z">
+  <comment action="opened" timestamp="2023-01-01T00:12:48Z">The speedsl limit is 65mph from here west until Rosamond</comment>
+  <comment action="closed" timestamp="2023-01-01T04:19:57Z" uid="6641970" user="CurlingMan13"></comment>
+</note>
+
+<!-- Note: 4000000 million -->
+<note id="4000000" lat="50.8431500" lon="20.8610400" created_at="2023-11-24T10:24:11Z" closed_at="2023-12-07T16:40:47Z">
+  <comment action="opened" timestamp="2023-11-24T10:24:11Z">Paczkomat InPost</comment>
+  <comment action="closed" timestamp="2023-12-07T16:40:47Z" uid="1479852" user="kubahahaha">Dodałem</comment>
+</note>
+
+<!-- Note:  first of year 2024 -->
+<note id="4048521" lat="47.8689036" lon="13.8155304" created_at="2024-01-01T00:09:54Z" closed_at="2024-01-05T12:53:22Z">
+  <comment action="opened" timestamp="2024-01-01T00:09:54Z" uid="15877601" user="gechytil">Trinkbrunnen nur im Sommer
+
+via StreetComplete 55.1</comment>
+  <comment action="closed" timestamp="2024-01-05T12:53:22Z" uid="1213571" user="mcliquid">seasonal=summer ergänzt</comment>
+</note>
+
+<!-- Note:  first of year 2025 -->
+<note id="4571148" lat="38.7131203" lon="-76.5338585" created_at="2025-01-01T00:01:08Z" closed_at="2025-03-31T18:30:11Z">
+  <comment action="opened" timestamp="2025-01-01T00:01:08Z" uid="3349582" user="Goldbattle">Green trail
+
+via StreetComplete 60.0
+
+GPS Trace: https://www.openstreetmap.org/user/Goldbattle/traces/11712863
+</comment>
+  <comment action="closed" timestamp="2025-03-31T18:30:11Z" uid="80285" user="Sparks"/>
+</note>
+
 <!-- Note: 1349475 different close time -->
 <!-- Note: 1680216 different close time -->
-<!-- Note: 2000000 million -->
-<!-- Note: 3000000 million -->
 <!-- Note: 3316160 different close time -->
 <!-- Note: 3291195 different close time -->
-<!-- Note: 4000000 million -->
 <!-- Note: 4084111 different close time -->
  
 </osm-notes>
