@@ -49,11 +49,14 @@ declare -r ERROR_GENERAL=255
 # Generates file for failed exeuction.
 declare GENERATE_FAILED_FILE=true
 # Previous execution failed.
+# shellcheck disable=SC2154
 declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"
 
 # File that contains the ids of the boundaries for countries.
+# shellcheck disable=SC2154
 declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
 # File taht contains the ids of the boundaries of the maritimes areas.
+# shellcheck disable=SC2154
 declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 # File for the Overpass query.
 declare QUERY_FILE="${TMP_DIR}/query"
@@ -189,8 +192,8 @@ function __checkPrereqsCommands {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## PostGIS
- # shellcheck disable=SC2154
  __logd "Checking PostGIS."
+ # shellcheck disable=SC2154
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
  SELECT /* Notes-base */ PostGIS_version();
 EOF
@@ -315,6 +318,7 @@ EOF
 
  ## ogr2ogr import without password
  __logd "Checking ogr2ogr import into postgres without password."
+ # shellcheck disable=SC2154
  if ! ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
   "${GEOJSON_TEST}" -nln import -overwrite; then
   __loge "ERROR: ogr2ogr cannot access the database."
@@ -481,6 +485,7 @@ function __processBoundary {
  RETRY=true
  while [[ "${RETRY}" = true ]]; do
   # Retrieves the JSON from Overpass.
+  # shellcheck disable=SC2154
   wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
    "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
   RET="${?}"
@@ -488,6 +493,7 @@ function __processBoundary {
   MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
   if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
    # If "too many requests" as part of the output, then waits.
+   # shellcheck disable=SC2154
    __logw "Waiting ${SECONDS_TO_WAIT} seconds because too many requests."
    sleep "${SECONDS_TO_WAIT}"
   elif [[ "${RET}" -ne 0 ]]; then
@@ -731,6 +737,7 @@ function __processCountries {
  for I in "${TMP_DIR}"/part_country_??; do
   (
    __logi "Starting list ${I} - ${BASHPID}."
+   # shellcheck disable=SC2154
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finished list ${I} - ${BASHPID}."
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
@@ -861,6 +868,7 @@ function __processMaritimes {
 function __getLocationNotes {
  __log_start
  __logd "Testing if notes should be updated."
+ # shellcheck disable=SC2154
  if [[ "${UPDATE_NOTE_LOCATION}" = false ]]; then
   __logi "Extracting notes backup."
   rm -f "${CSV_BACKUP_NOTE_LOCATION}"
@@ -895,6 +903,7 @@ function __getLocationNotes {
  for J in $(seq 1 1 "${MAX_THREADS}"); do
   (
    __logi "Starting ${J}."
+   # shellcheck disable=SC2154
    MIN=$((SIZE * (J - 1) + LOOP_SIZE))
    MAX=$((SIZE * J))
    for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
