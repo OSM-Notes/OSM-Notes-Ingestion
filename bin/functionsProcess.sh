@@ -316,7 +316,7 @@ EOF
  ## ogr2ogr import without password
  __logd "Checking ogr2ogr import into postgres without password."
  if ! ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
-    "${GEOJSON_TEST}" -nln import -overwrite; then
+  "${GEOJSON_TEST}" -nln import -overwrite; then
   __loge "ERROR: ogr2ogr cannot access the database."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
@@ -423,13 +423,13 @@ function __convertPlanetNotesToFlatFile {
  # Converts the XML into a flat file in CSV format.
  __logi "Processing notes from XML."
  xsltproc --timing --load-trace -o "${OUTPUT_NOTES_FILE}" \
-   "${XSLT_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
+  "${XSLT_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
  __logi "Processing comments from XML."
  xsltproc --timing --load-trace -o "${OUTPUT_NOTE_COMMENTS_FILE}" \
-   "${XSLT_NOTE_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
+  "${XSLT_NOTE_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
  __logi "Processing text from XML."
  xsltproc --timing --load-trace --maxdepth 40000 -o "${OUTPUT_TEXT_COMMENTS_FILE}" \
-   "${XSLT_TEXT_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
+  "${XSLT_TEXT_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
  __log_finish
 }
 
