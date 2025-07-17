@@ -120,16 +120,16 @@
 # __dropGenericObjects                         x
 # __dropBaseTables                             x
 # __createBaseTables                           x
-# __dropSyncTables                     x             
-# __checkBaseTables                    x             
-# __createBaseTables                   x             
-# __createSyncTables                   x             
+# __dropSyncTables                     x
+# __checkBaseTables                    x
+# __createBaseTables                   x
+# __createSyncTables                   x
 # __dropCountryTables                          x        x
 # __createCountryTables                        x        x
 # __processCountries                           x        x
 # __processMaritimes                           x        x
 # __cleanPartial                               x        x
-# __downloadPlanetNotes                x           
+# __downloadPlanetNotes                x
 # __validatePlanetNotesXMLFile         x
 # __convertPlanetNotesToFlatFile       x
 # __createFunctionToGetCountry         x       x
@@ -551,26 +551,26 @@ function main() {
  ONLY_EXECUTION="yes"
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __dropSyncTables               # base
-  __dropApiTables                # base
-  __dropGenericObjects           # base
-  __dropBaseTables               # base
-  __createBaseTables             # base
+  __dropSyncTables     # base
+  __dropApiTables      # base
+  __dropGenericObjects # base
+  __dropBaseTables     # base
+  __createBaseTables   # base
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
-  __dropSyncTables               # sync
+  __dropSyncTables # sync
   set +E
   export RET_FUNC=0
-  __checkBaseTables              # sync
+  __checkBaseTables # sync
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __createBaseTables            # sync
+   __createBaseTables # sync
   fi
   set -E
-  __createSyncTables             # sync
+  __createSyncTables # sync
  fi
  if [[ "${PROCESS_TYPE}" == "--base" ]] \
   || [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
-  __dropCountryTables            # base and boundaries
-  __createCountryTables          # base and boundaries
+  __dropCountryTables   # base and boundaries
+  __createCountryTables # base and boundaries
 
   # Downloads the areas. It could terminate the execution if an error appears.
   if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
@@ -580,12 +580,12 @@ function main() {
    read -r
   else
    set +E
-   __processCountries            # base and boundaries
-   __processMaritimes            # base and boundaries
+   __processCountries # base and boundaries
+   __processMaritimes # base and boundaries
    set -E
   fi
 
-  __cleanPartial                 # base and boundaries
+  __cleanPartial # base and boundaries
   if [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
    __logw "Ending process."
    exit 0
@@ -596,35 +596,35 @@ function main() {
   __validatePlanetNotesXMLFile   # sync
   __convertPlanetNotesToFlatFile # sync
  fi
- __createFunctionToGetCountry    # base & sync
- __createProcedures              # all
+ __createFunctionToGetCountry # base & sync
+ __createProcedures           # all
  if [[ "${PROCESS_TYPE}" == "" ]]; then
-  __loadSyncNotes                # sync
-  __removeDuplicates             # sync
-  __loadTextComments             # sync
-  __dropSyncTables               # sync
+  __loadSyncNotes    # sync
+  __removeDuplicates # sync
+  __loadTextComments # sync
+  __dropSyncTables   # sync
   set +E
   export RET_FUNC=0
-  __organizeAreas                # sync
+  __organizeAreas # sync
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __createCountryTables         # sync
+   __createCountryTables # sync
    if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
     echo "Please copy the rows from the backup table:"
     echo "   INSERT INTO countries "
     echo "     SELECT * FROM backup_countries ;"
     read -r
    else
-    __processCountries           # sync
-    __processMaritimes           # sync
+    __processCountries # sync
+    __processMaritimes # sync
    fi
-   __cleanPartial                # sync
+   __cleanPartial # sync
    __organizeAreas
   fi
-  __getLocationNotes             # sync
+  __getLocationNotes # sync
  fi
- __cleanNotesFiles               # base & sync
- __analyzeAndVacuum              # base & sync
+ __cleanNotesFiles  # base & sync
+ __analyzeAndVacuum # base & sync
 
  rm -f "${LOCK}"
  __logw "Ending process."
