@@ -182,7 +182,7 @@ function __getUserId {
   <<< "SELECT dimension_user_id FROM dwh.datamartUsers
   WHERE username = '${USERNAME}'")
  if [[ "${DIMENSION_USER_ID}" == "" ]] \
-   || [[ "${DIMENSION_USER_ID}" -eq 0 ]]; then
+  || [[ "${DIMENSION_USER_ID}" -eq 0 ]]; then
   __loge "ERROR: The username \"${USERNAME}\" does not exist."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
@@ -327,11 +327,11 @@ function __showRankingYearUsers {
      " \
   -v ON_ERROR_STOP=1)
 
-  echo
-  echo "Countries for opened notes on ${YEAR}:"
-  __printRanking "${RANKING_OPENING}"
-  echo "Countries for closed notes on ${YEAR}:"
-  __printRanking "${RANKING_CLOSING}"
+ echo
+ echo "Countries for opened notes on ${YEAR}:"
+ __printRanking "${RANKING_OPENING}"
+ echo "Countries for closed notes on ${YEAR}:"
+ __printRanking "${RANKING_CLOSING}"
 }
 
 # Shows the historic yearly rankings on which users have been contributed the most.
@@ -424,7 +424,7 @@ function __showWorkingWeek {
   HOUR_21="${HOUR_21} - $(__processHourWeek 21 "${I}")"
   HOUR_22="${HOUR_22} - $(__processHourWeek 22 "${I}")"
   HOUR_23="${HOUR_23} - $(__processHourWeek 23 "${I}")"
-  ((I+=1))
+  ((I += 1))
  done
  set -e
  echo "        Sun -   Mon -   Tue -   Wed -   Thu -   Fri -   Sat"
@@ -491,7 +491,7 @@ function __printActivity {
   DAY="${ACTIVITY:0:1}"
   ACTIVITY="${ACTIVITY:1}"
   SAT="${SAT}${DAY}"
-  I=$((I+1))
+  I=$((I + 1))
  done
  set -e
 
@@ -935,8 +935,8 @@ function __processUserProfile {
  echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "The date when the most notes were closed:"
  echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
- echo "Hashtags used: ${HASHTAGS}" # TODO profile - 
- echo "Working hours:" # TODO profile - Por años pasados
+ echo "Hashtags used: ${HASHTAGS}" # TODO profile -
+ echo "Working hours:"             # TODO profile - Por años pasados
  set +E
  echo "  Opening:"
  __showWorkingWeek "${WORKING_HOURS_OPENING}"
@@ -984,7 +984,7 @@ function __processUserProfile {
 
  # echo "Rankings last 30 days   ${RANKING_MONTH_OPEN} ${RANKING_MONTH_COMMENTED} ${RANKING_MONTH_CLOSED} ${RANKING_MONTH_REOPENED}"
  # echo "Rankings today          ${RANKING_DAY_OPEN} ${RANKING_DAY_COMMENTED} ${RANKING_DAY_CLOSED} ${RANKING_DAY_REOPENED}"
- # echo "Badges: ${BADGES}" #TODO profile - 
+ # echo "Badges: ${BADGES}" #TODO profile -
 }
 
 # Shows the note statistics for a given country.
@@ -1392,7 +1392,7 @@ function __processCountryProfile {
  echo "The date when the most notes were closed:"
  echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Working hours:" # TODO profile - Por año
+ echo "Working hours:"             # TODO profile - Por año
  set +E
  echo "  Opening:"
  __showWorkingWeek "${WORKING_HOURS_OF_WEEK_OPENING}"
@@ -1512,7 +1512,7 @@ function main() {
   __getUserId
   __processUserProfile
  elif [[ "${PROCESS_TYPE}" == "--country" ]] \
-   || [[ "${PROCESS_TYPE}" == "--pais" ]]; then
+  || [[ "${PROCESS_TYPE}" == "--pais" ]]; then
   __getCountryId
   __processCountryProfile
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
