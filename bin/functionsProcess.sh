@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-14
+# Version: 2025-07-16
 
 # Error codes.
 # 1: Help message.
@@ -769,7 +769,7 @@ function __processCountries {
 
  # If some of the threads generated an error.
  set +e
- QTY_LOGS=$(ls -1 "${TMP_DIR}" | grep -c "${BASENAME}\.log\.")
+ QTY_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | wc -l)
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some thread generated an error."
@@ -848,7 +848,7 @@ function __processMaritimes {
 
  # If some of the threads generated an error.
  set +e
- QTY_LOGS=$(ls -1 "${TMP_DIR}" | grep "${BASENAME}\.log\.")
+ QTY_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | wc -l)
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some thread generated an error."
