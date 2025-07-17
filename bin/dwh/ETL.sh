@@ -274,7 +274,7 @@ function __initialFacts {
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_BASE_CREATE}" || true)" 
+    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_BASE_CREATE}" || true)"
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
     -c "$(envsubst '$YEAR' < "${POSTGRES_34_FACTS_YEAR_CREATE}" || true)"
@@ -288,7 +288,7 @@ function __initialFacts {
   sleep 5 # To insert all days of the year in the dimension.
   YEAR=$((YEAR - 1))
  done
- psql -d "${DBNAME}" -c "DROP INDEX IF EXISTS comments_function_year";
+ psql -d "${DBNAME}" -c "DROP INDEX IF EXISTS comments_function_year"
 
  # Waits until all years are fniished.
  wait
