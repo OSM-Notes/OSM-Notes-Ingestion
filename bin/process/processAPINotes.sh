@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-11
-declare -r VERSION="2025-07-11"
+# Version: 2025-07-16
+declare -r VERSION="2025-07-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -278,18 +278,17 @@ function __getNewNotesFromApi {
  RET="${?}"
  set -e
  cat "${OUTPUT_WGET}"
- # TODO What if the API is on another URL?
- local QTY=$(grep "unable to resolve host address ‘api.openstreetmap.org’" \
-   "${OUTPUT_WGET}" | wc -l)
+ HOST_API="$(echo "${OSM_API}" | awk -F/ '{print $3}')"
+ local QTY
+ QTY=$(grep -c "unable to resolve host address ‘${HOST_API}’")
  rm "${OUTPUT_WGET}"
- if [[ "${QTY}" -ne 1 ]]; then
-  return "${RET}"
- else
+ if [[ "${QTY}" -eq 1 ]]; then
   __loge "API unreachable. Probably there are Internet issues."
   GENERATE_FAILED_FILE=false
-  return "${ERROR_INTERNET_ISSUE}"
+  RET="${ERROR_INTERNET_ISSUE}"
  fi
  __log_finish
+ return "${RET}"
 }
 
 # Validates the XML file to be sure everything will work fine.
