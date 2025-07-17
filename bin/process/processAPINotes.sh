@@ -277,10 +277,12 @@ function __getNewNotesFromApi {
  wget -O "${API_NOTES_FILE}" "${REQUEST}" > "${OUTPUT_WGET}" 2>&1
  RET="${?}"
  set -e
- cat "${OUTPUT_WGET}"
+ local HOST_API
  HOST_API="$(echo "${OSM_API}" | awk -F/ '{print $3}')"
  local QTY
- QTY=$(grep -c "unable to resolve host address ‘${HOST_API}’")
+ set +e
+ QTY=$(grep -c "unable to resolve host address ‘${HOST_API}’" "${OUTPUT_WGET}")
+ set -e
  rm "${OUTPUT_WGET}"
  if [[ "${QTY}" -eq 1 ]]; then
   __loge "API unreachable. Probably there are Internet issues."
