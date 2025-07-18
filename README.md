@@ -115,6 +115,9 @@ sudo apt install -y aria2
 # Tools to process the XML and convert it into CSV.
 sudo apt -y install libxml2-utils xsltproc
 
+# Tools to split the XML.
+sudo apt install xmlstarlet
+
 # Tools to process geometries.
 sudo apt -y install npm
 sudo npm install -g osmtogeojson

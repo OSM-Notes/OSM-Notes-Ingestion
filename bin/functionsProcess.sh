@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-16
+# Version: 2025-07-18
 
 # Error codes.
 # 1: Help message.
@@ -269,6 +269,12 @@ EOF
  __logd "Checking XSLTproc."
  if ! xsltproc --version > /dev/null 2>&1; then
   __loge "ERROR: XSLTproc is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## XMLStarlet for XML processing and splitting
+ __logd "Checking XMLStarlet."
+ if ! xmlstarlet --version > /dev/null 2>&1; then
+  __loge "ERROR: XMLStarlet is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Bash 4 or greater.
@@ -722,9 +728,6 @@ function __processCountries {
   echo "2186646" # Antarctica continent
  } >> "${COUNTRIES_FILE}"
 
- # Processes the countries in parallel.
- MAX_THREADS=$(nproc)
-
  TOTAL_LINES=$(wc -l < "${COUNTRIES_FILE}")
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
@@ -801,9 +804,6 @@ function __processMaritimes {
 
  tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
  mv "${MARITIMES_FILE}.tmp" "${MARITIMES_FILE}"
-
- # Processes the maritimes in parallel.
- MAX_THREADS=$(nproc)
 
  TOTAL_LINES=$(wc -l < "${MARITIMES_FILE}")
  SIZE=$((TOTAL_LINES / MAX_THREADS))
@@ -890,7 +890,6 @@ function __getLocationNotes {
  MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT MAX(note_id) FROM notes")
 
- MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
  if [[ "${MAX_THREADS}" -gt 1 ]]; then

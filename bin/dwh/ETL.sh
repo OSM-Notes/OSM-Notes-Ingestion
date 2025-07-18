@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-10
-declare -r VERSION="2025-07-10"
+# Version: 2025-07-18
+declare -r VERSION="2025-07-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -236,7 +236,6 @@ function __checkPrereqs {
 # to the server.
 function __waitForJobs {
  __log_start
- MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
  if [[ "${MAX_THREADS}" -gt 6 ]]; then

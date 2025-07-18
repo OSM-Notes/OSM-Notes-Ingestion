@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2024-02-02
-declare -r VERSION="2024-02-02"
+# Version: 2025-07-18
+declare -r VERSION="2025-07-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -204,7 +204,6 @@ function __processOldUsers {
  MAX_USER_ID=$(("MAX_USER_ID" + 1))
 
  # Processes the users in parallel.
- MAX_THREADS=$(nproc)
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
  if [[ "${MAX_THREADS}" -gt 6 ]]; then

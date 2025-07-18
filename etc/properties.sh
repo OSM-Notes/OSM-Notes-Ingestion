@@ -38,3 +38,9 @@ declare -r SECONDS_TO_WAIT="30"
 # Quantity of notes to process per loop, to get the location of the note.
 # shellcheck disable=SC2034
 declare -r LOOP_SIZE="10000"
+
+# Number of threads to use in parallel processing.
+# It should be less than the number of cores of the server.
+# shellcheck disable=SC2034
+declare -r MAX_THREADS="4"
+MAX_THREADS=$(nproc)
