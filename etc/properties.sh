@@ -39,8 +39,11 @@ declare -r SECONDS_TO_WAIT="30"
 # shellcheck disable=SC2034
 declare -r LOOP_SIZE="10000"
 
+# Maximum of notes to download from the API.
+declare -r MAX_NOTES="10000"
+
 # Number of threads to use in parallel processing.
 # It should be less than the number of cores of the server.
 # shellcheck disable=SC2034
-declare -r MAX_THREADS="4"
+declare MAX_THREADS="4"
 MAX_THREADS=$(nproc)

@@ -84,9 +84,6 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Maximum of notes to download from the API.
-declare -r MAX_NOTES=10000
-
 # XML Schema of the API notes file.
 declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
 # Name of the file of the XSLT transformation for notes from API.
@@ -224,7 +221,7 @@ function __checkNoProcessPlanet {
  __log_start
  local QTY
  set +e
- QTY="$(pgrep "{PROCESS_PLANET_NOTES_SCRIPT:0:15}" | wc -l)"
+ QTY="$(pgrep "${PROCESS_PLANET_NOTES_SCRIPT:0:15}" | wc -l)"
  set -e
  if [[ "${QTY}" -ne "0" ]]; then
   __loge "${BASENAME} is currently running."
@@ -272,8 +269,9 @@ function __getNewNotesFromApi {
  # Gets the values from OSM API.
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
  __logt "${REQUEST}"
- set +e
+ __logw "Retrieving notes from API."
  local OUTPUT_WGET="${TMP_DIR}/${BASENAME}.wget.log"
+ set +e
  wget -O "${API_NOTES_FILE}" "${REQUEST}" > "${OUTPUT_WGET}" 2>&1
  RET="${?}"
  set -e
@@ -317,49 +315,26 @@ function __validateApiNotesXMLFile {
 # 3450803,'Iglesia pentecostal Monte de Sion aquí es donde está realmente'
 # 3450803,'Existe otra iglesia sin nombre cercana a la posición de la nota, ¿es posible que se trate de un error, o hay una al lado de la otra?'
 # 3451247,'If you are in the area, could you please survey a more exact location for Nothing Bundt Cakes and move the node to that location? Thanks!'
-function __convertApiNotesToFlatFile {
- __log_start
- # Process the notes file.
- # XSLT transformations.
-
- # Count notes in XML file
- __countXmlNotes "${API_NOTES_FILE}"
- 
- # Check if we need to sync with Planet based on TOTAL_NOTES
- if ! __checkQtyNotes; then
-  __log_finish
-  return
- fi
- 
- # Split XML into parts and process in parallel if there are notes to process
- if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-  __splitXmlForParallel "${API_NOTES_FILE}"
-  __processXmlPartsParallel "__processApiXmlPart"
- fi
-
- __log_finish
-}
-
-
-
-
 
 # Checks if the quantity of notes requires synchronization with Planet
-# Uses TOTAL_NOTES from __countXmlNotes to make the decision
-function __checkQtyNotes {
+function __processXMLorPlanet {
  __log_start
+ local TOTAL_NOTES="${1}"
  
  if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
   __logw "Starting full synchronization from Planet."
   __logi "This could take several minutes."
   "${NOTES_SYNC_SCRIPT}"
   __logw "Finished full synchronization from Planet."
-  __log_finish
-  return 1  # Indicate that we should stop processing
+ else
+   # Split XML into parts and process in parallel if there are notes to process
+  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+   __splitXmlForParallel "${API_NOTES_FILE}"
+   __processXmlPartsParallel "__processApiXmlPart"
+  fi
  fi
  
  __log_finish
- return 0  # Continue with processing
 }
 
 # Inserts new notes and comments into the database with parallel processing.
@@ -502,7 +477,9 @@ function main() {
  RESULT=$(wc -l < "${API_NOTES_FILE}")
  if [[ "${RESULT}" -ne 0 ]]; then
   __validateApiNotesXMLFile
-  __convertApiNotesToFlatFile
+  # Count notes in XML file
+  TOTAL_NOTES=$(__countXmlNotes "${API_NOTES_FILE}")
+  __processXMLorPlanet "${TOTAL_NOTES}"
   __insertNewNotesAndComments
   __loadApiTextComments
   __updateLastValue

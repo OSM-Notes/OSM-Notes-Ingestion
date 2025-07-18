@@ -198,13 +198,12 @@ function __countXmlNotes() {
  
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
-  export TOTAL_NOTES=0
  else
   __logi "Total notes found: ${TOTAL_NOTES}"
-  export TOTAL_NOTES="${TOTAL_NOTES}"
  fi
  
  __log_finish
+ return "${TOTAL_NOTES}"
 }
 
 # Splits XML file into parts for parallel processing
@@ -334,6 +333,7 @@ function __processApiXmlPart() {
 # Checks prerequisites commands to run the script.
 function __checkPrereqsCommands {
  __log_start
+ # TODO poner una marca que identifique que ya se chequearon los prerequisitos.
  set +e
  ## PostgreSQL
  __logd "Checking PostgreSQL."

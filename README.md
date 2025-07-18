@@ -118,6 +118,9 @@ sudo apt -y install libxml2-utils xsltproc
 # Tools to split the XML.
 sudo apt install xmlstarlet
 
+# Process parts in paralle.
+sudo apt install parallel
+
 # Tools to process geometries.
 sudo apt -y install npm
 sudo npm install -g osmtogeojson
