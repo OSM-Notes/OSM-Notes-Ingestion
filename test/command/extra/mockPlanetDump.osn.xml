@@ -1258,6 +1258,29 @@ address: 25 Allen st hampden ma 01036</comment>
   <comment action="closed" timestamp="2023-01-01T04:19:57Z" uid="6641970" user="CurlingMan13"></comment>
 </note>
 
+<note id="3750896" lat="54.5087402" lon="36.2649186" created_at="2023-06-25T16:37:45Z" closed_at="2023-11-10T06:57:38Z">
+  <comment action="opened" timestamp="2023-06-25T16:37:45Z" uid="5187543" user="kataguk">"здесь был пожар пару лет назад"
+The place has gone or never existed. A user of Organic Maps application has reported that the POI was visible on the map (see snapshot date below), but was not found on the ground.
+OSM snapshot date: 2023-06-02T17:16:21Z
+POI name: Хлеб-молоко
+POI types: shop-convenience
+ #organicmaps</comment>
+  <comment action="closed" timestamp="2023-11-10T06:57:38Z" uid="383200" user="Takuto"/>
+  <comment action="reopened" timestamp="2023-11-10T06:57:38Z" uid="383200" user="Takuto"/>
+  <comment action="closed" timestamp="2023-11-10T06:57:38Z" uid="383200" user="Takuto"/>
+</note>
+
+<!-- Note: reopened after hidden -->
+<note id="3944119" lat="6.1601162" lon="-71.7602234" created_at="2023-10-16T22:54:09Z" closed_at="2023-11-13T02:55:50Z">
+  <comment action="opened" timestamp="2023-10-16T22:54:09Z" uid="10906997" user="GOPIWIDA">Reductor de Velocidad
+
+#OsmAnd</comment>
+  <comment action="hidden" timestamp="2023-10-16T22:56:01Z" uid="5164" user="woodpeck"/>
+  <comment action="reopened" timestamp="2023-11-01T12:30:40Z" uid="5164" user="woodpeck"/>
+  <comment action="commented" timestamp="2023-11-01T12:30:40Z" uid="5164" user="woodpeck">this note was accidentally hidden (sorry) and has now been reopened.</comment>
+  <comment action="closed" timestamp="2023-11-13T02:55:50Z" uid="89128" user="AngocA">Nota resuelta. https://bit.ly/ONLatam Tg https://bit.ly/osm-nl #ONL&lt;br /&gt;Cambio: https://www.openstreetmap.org/changeset/143954005&lt;br /&gt;Gracias por contribuir en OSM.</comment>
+</note>
+
 <!-- Note: 4000000 million -->
 <note id="4000000" lat="50.8431500" lon="20.8610400" created_at="2023-11-24T10:24:11Z" closed_at="2023-12-07T16:40:47Z">
   <comment action="opened" timestamp="2023-11-24T10:24:11Z">Paczkomat InPost</comment>
