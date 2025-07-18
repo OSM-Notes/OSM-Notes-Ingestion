@@ -87,6 +87,10 @@ Planet de OSM para descargar el archivo histórico de notas.
 Por otro lado, se ha usado Overpass para descargar los países y otras regiones
 en el mundo, y con esta información poder asociar una nota con un territorio.
 
+Es necesario aclarar que el documento XML del Planet para notas no tiene la
+misma estructura del XML recuperado a través del API. Ambas estructuras de XML
+están en el directorio xsd para validarlos de manera independiente.
+
 Con toda esta información, se ha diseñado un data warehouse, que está compuesto
 por un conjunto de tablas en modelo estrella, una ETL que carga los datos
 históricos en dichas tablas, usando unas tablas de staging.
