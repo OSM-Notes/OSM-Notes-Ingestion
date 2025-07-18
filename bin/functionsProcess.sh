@@ -181,6 +181,156 @@ function __trapOn() {
  __log_finish
 }
 
+# Counts notes in XML file
+# Parameters:
+#   $1: Input XML file
+# Returns:
+#   TOTAL_NOTES: Number of notes found (exported variable)
+function __countXmlNotes() {
+ local XML_FILE="${1}"
+ 
+ __log_start
+ __logi "Counting notes in XML file ${XML_FILE}"
+ 
+ # Get total number of notes
+ local TOTAL_NOTES
+ TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2>/dev/null)
+ 
+ if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
+  __logi "No notes found in XML file"
+  export TOTAL_NOTES=0
+ else
+  __logi "Total notes found: ${TOTAL_NOTES}"
+  export TOTAL_NOTES="${TOTAL_NOTES}"
+ fi
+ 
+ __log_finish
+}
+
+# Splits XML file into parts for parallel processing
+# Parameters:
+#   $1: Input XML file
+#   $2: Number of notes to split (optional, uses TOTAL_NOTES if not provided)
+function __splitXmlForParallel() {
+ local XML_FILE="${1}"
+ local TOTAL_NOTES_TO_SPLIT="${2:-${TOTAL_NOTES}}"
+ local PARTS="${MAX_THREADS}"
+ local PARTS_DIR="${TMP_DIR}"
+ local PART_PREFIX="part"
+ 
+ __log_start
+ __logi "Splitting XML file ${XML_FILE} into ${PARTS} parts"
+ 
+ if [[ "${TOTAL_NOTES_TO_SPLIT}" -eq 0 ]]; then
+  __logi "No notes to split, skipping XML division"
+  __log_finish
+  return
+ fi
+ 
+ # Calculate notes per part (round up)
+ local NOTES_PER_PART
+ NOTES_PER_PART=$(((TOTAL_NOTES_TO_SPLIT + PARTS - 1) / PARTS))
+ 
+ __logi "Notes per part: ${NOTES_PER_PART}"
+ 
+ # Split XML into parts
+ for PART in $(seq 1 "${PARTS}"); do
+  local START
+  local END
+  START=$(((PART - 1) * NOTES_PER_PART + 1))
+  END=$((PART * NOTES_PER_PART))
+  
+  # Ensure last part doesn't exceed total notes
+  if [[ "${END}" -gt "${TOTAL_NOTES_TO_SPLIT}" ]]; then
+   END="${TOTAL_NOTES_TO_SPLIT}"
+  fi
+  
+  # Skip if start exceeds total notes
+  if [[ "${START}" -gt "${TOTAL_NOTES_TO_SPLIT}" ]]; then
+   break
+  fi
+  
+  local OUTPUT_FILE
+  OUTPUT_FILE="${PARTS_DIR}/${PART_PREFIX}_${PART}.xml"
+  
+  __logi "Creating part ${PART}: notes ${START}-${END} -> ${OUTPUT_FILE}"
+  
+  # Extract XML part using xmlstarlet
+  xmlstarlet sel -t \
+   -o '<?xml version="1.0" encoding="UTF-8"?>' \
+   -o '<osm>' \
+   -m "/osm/note[position() >= ${START} and position() <= ${END}]" -c . \
+   -o '</osm>' "${XML_FILE}" > "${OUTPUT_FILE}"
+ done
+ 
+ __logi "XML splitting completed. Parts saved in: ${PARTS_DIR}"
+ __log_finish
+}
+
+# Processes XML parts in parallel
+# Parameters:
+#   $1: Processing function name
+function __processXmlPartsParallel() {
+ local PROCESS_FUNCTION="${1}"
+ local PARTS_DIR="${TMP_DIR}"
+ local PART_PREFIX="part"
+ 
+ __log_start
+ __logi "Processing XML parts in ${PARTS_DIR} with ${MAX_THREADS} parallel jobs"
+ 
+ # Process parts in parallel
+ find "${PARTS_DIR}" -name "${PART_PREFIX}_*.xml" | sort | \
+  parallel --jobs "${MAX_THREADS}" --bar \
+   --env PROCESS_FUNCTION \
+   "${PROCESS_FUNCTION}" {}
+ 
+ __log_finish
+}
+
+# Processes a single XML part for API notes
+# Parameters:
+#   $1: XML part file path
+function __processApiXmlPart() {
+ local XML_PART="${1}"
+ local PART_NUM
+ PART_NUM=$(basename "${XML_PART}" .xml | sed 's/part_//')
+ 
+ __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
+ 
+ # Convert XML part to CSV using XSLT
+ local OUTPUT_NOTES_PART
+ local OUTPUT_COMMENTS_PART
+ local OUTPUT_TEXT_PART
+ OUTPUT_NOTES_PART="${TMP_DIR}/output-notes-part-${PART_NUM}.csv"
+ OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
+ OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
+ 
+ # Process notes
+ xsltproc -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_API_FILE}" "${XML_PART}"
+ 
+ # Process comments
+ xsltproc -o "${OUTPUT_COMMENTS_PART}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_PART}"
+ 
+ # Process text comments
+ xsltproc -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_PART}"
+ 
+ # Debug: Show generated CSV files
+ __logd "Generated CSV files for part ${PART_NUM}:"
+ __logd "  Notes: ${OUTPUT_NOTES_PART}"
+ __logd "  Comments: ${OUTPUT_COMMENTS_PART}"
+ __logd "  Text: ${OUTPUT_TEXT_PART}"
+ 
+ # Load into database
+ export OUTPUT_NOTES_PART
+ export OUTPUT_COMMENTS_PART
+ export OUTPUT_TEXT_PART
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART' \
+   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+ 
+ __logi "Completed processing API part ${PART_NUM}"
+}
+
 # Checks prerequisites commands to run the script.
 function __checkPrereqsCommands {
  __log_start
@@ -277,6 +427,12 @@ EOF
   __loge "ERROR: XMLStarlet is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## GNU Parallel for parallel processing
+ __logd "Checking GNU Parallel."
+ if ! parallel --version > /dev/null 2>&1; then
+  __loge "ERROR: GNU Parallel is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi 
  ## Bash 4 or greater.
  __logd "Checking Bash version."
  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
@@ -329,6 +485,30 @@ EOF
   "${GEOJSON_TEST}" -nln import -overwrite; then
   __loge "ERROR: ogr2ogr cannot access the database."
   exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ 
+ ## Validate configuration variables
+ __logd "Validating configuration variables."
+ 
+ # Validate MAX_THREADS
+ if [[ ! "${MAX_THREADS}" =~ ^[1-9][0-9]*$ ]]; then
+  __loge "ERROR: MAX_THREADS must be a positive integer, got: ${MAX_THREADS}"
+  exit "${ERROR_GENERAL}"
+ fi
+ # Validate TMP_DIR
+ if [[ -z "${TMP_DIR}" ]]; then
+  __loge "ERROR: TMP_DIR is not set"
+  exit "${ERROR_GENERAL}"
+ fi
+ # Validate DBNAME
+ if [[ -z "${DBNAME}" ]]; then
+  __loge "ERROR: DBNAME is not set"
+  exit "${ERROR_GENERAL}"
+ fi
+ # Validate MAX_NOTES
+ if [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
+  __loge "ERROR: MAX_NOTES must be a positive integer, got: ${MAX_NOTES}"
+  exit "${ERROR_GENERAL}"
  fi
  set -e
  __log_finish

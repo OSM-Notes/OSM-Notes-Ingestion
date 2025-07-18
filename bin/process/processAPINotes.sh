@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-17
-declare -r VERSION="2025-07-17"
+# Version: 2025-07-18
+declare -r VERSION="2025-07-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -322,119 +322,92 @@ function __convertApiNotesToFlatFile {
  # Process the notes file.
  # XSLT transformations.
 
- # Converts the XML into a flat file in CSV format.
- # Process notes transformation.
- (
-  xsltproc -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" \
-    "${API_NOTES_FILE}"
-  local RESULT
-  RESULT=$(grep -c "<note " "${API_NOTES_FILE}")
-  __logi "${RESULT} - Notes from API."
- ) &
- # Process comments transformation
- (
-  xsltproc -o "${OUTPUT_NOTE_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" \
-    "${API_NOTES_FILE}"
-  local RESULT
-  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
-  __logi "${RESULT} - Comments from API."
- ) &
+ # Count notes in XML file
+ __countXmlNotes "${API_NOTES_FILE}"
  
- # Process text comments transformation.
- (
-  xsltproc -o "${OUTPUT_TEXT_COMMENTS_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" \
-    "${API_NOTES_FILE}"
-  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
-  __logi "${RESULT} - Text comments from API."
- ) &
-
- # Wait for all transformations to complete.
- wait
-
- # Show results
- local RESULT
- RESULT=$(wc -l "${OUTPUT_NOTES_FILE}")
- __logw "${RESULT} - Notes in flat file."
- RESULT=$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}")
- __logw "${RESULT} - Note comments in flat file."
- RESULT=$(wc -l "${OUTPUT_TEXT_COMMENTS_FILE}")
- __logw "${RESULT} - Text comment in flat file."
-
- # For debugging purposes.
- cat "${OUTPUT_NOTES_FILE}"
- cat "${OUTPUT_NOTE_COMMENTS_FILE}"
- cat "${OUTPUT_TEXT_COMMENTS_FILE}"
+ # Check if we need to sync with Planet based on TOTAL_NOTES
+ if ! __checkQtyNotes; then
+  __log_finish
+  return
+ fi
+ 
+ # Split XML into parts and process in parallel if there are notes to process
+ if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+  __splitXmlForParallel "${API_NOTES_FILE}"
+  __processXmlPartsParallel "__processApiXmlPart"
+ fi
 
  __log_finish
 }
 
-# Checks if the quantity of notes is less that the maximum allowed. If is the
-# the same, it means not all notes were downloaded, and it needs a
-# synchronization
+
+
+
+
+# Checks if the quantity of notes requires synchronization with Planet
+# Uses TOTAL_NOTES from __countXmlNotes to make the decision
 function __checkQtyNotes {
  __log_start
- local -i QTY
- QTY=$(wc -l "${OUTPUT_NOTES_FILE}" | awk '{print $1}')
- if [[ "${QTY}" -ge "${MAX_NOTES}" ]]; then
+ 
+ if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
   __logw "Starting full synchronization from Planet."
   __logi "This could take several minutes."
   "${NOTES_SYNC_SCRIPT}"
   __logw "Finished full synchronization from Planet."
+  __log_finish
+  return 1  # Indicate that we should stop processing
  fi
+ 
  __log_finish
+ return 0  # Continue with processing
 }
 
-# Loads notes from API into the database.
-function __loadApiNotes {
- __log_start
-
- # Shows the notes to be processed. For debugging purposes.
- __logt "Notes to be processed:"
- declare TEXT
- while read -r LINE; do
-  TEXT=$(echo "${LINE}" | cut -f 1 -d,)
-  __logt "${TEXT}"
- done < "${OUTPUT_NOTES_FILE}"
- echo
- __logt "Note comments to be processed:"
- while read -r LINE; do
-  TEXT=$(echo "${LINE}" | cut -f 1-2 -d,)
-  __logt "${TEXT}"
- done < "${OUTPUT_NOTE_COMMENTS_FILE}"
-
- # Comment's text are not shown because they are multiline.
-
- # Loads the data in the database.
- export OUTPUT_NOTES_FILE
- export OUTPUT_NOTE_COMMENTS_FILE
- export OUTPUT_TEXT_COMMENTS_FILE
- # TODO This can be done in parallel if the source XML file is split,
- # and notes, comments and text comments are grouped in different files and
- # then the load is done in parallel. The problem is how to split the XML file
- # and how to group the data in the different files.
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
-   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
- __log_finish
-}
-
-# Inserts new notes and comments into the database.
+# Inserts new notes and comments into the database with parallel processing.
 function __insertNewNotesAndComments {
  __log_start
- PROCESS_ID="${$}"
- echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
- # TODO It could be done in parallel if the select is by ranges, when
- # splitting the XML file into different CSV files, and getting the min and
- # max values of the note_id to be processed.
- export PROCESS_ID
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" \
-   || true)"
-
- echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ 
+ # Get the number of notes to process
+ local NOTES_COUNT
+ NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(1) FROM notes_api" 2>/dev/null || echo "0")
+ 
+ if [[ "${NOTES_COUNT}" -gt 1000 ]]; then
+  # Split the insertion into chunks
+  local PARTS="${MAX_THREADS}"
+  local CHUNK_SIZE
+  CHUNK_SIZE=$((NOTES_COUNT / PARTS))
+  
+  for PART in $(seq 1 "${PARTS}"); do
+   (
+    __logi "Processing insertion part ${PART}"
+    
+    PROCESS_ID="${$}_${PART}"
+    echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    
+    export PROCESS_ID
+    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+     -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
+    
+    echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    
+    __logi "Completed insertion part ${PART}"
+   ) &
+  done
+  
+  # Wait for all insertion jobs to complete
+  wait
+  
+ else
+  # For small datasets, use single connection
+  PROCESS_ID="${$}"
+  echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  
+  export PROCESS_ID
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
+  
+  echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ fi
+ 
  __log_finish
 }
 
@@ -530,8 +503,6 @@ function main() {
  if [[ "${RESULT}" -ne 0 ]]; then
   __validateApiNotesXMLFile
   __convertApiNotesToFlatFile
-  __checkQtyNotes
-  __loadApiNotes
   __insertNewNotesAndComments
   __loadApiTextComments
   __updateLastValue

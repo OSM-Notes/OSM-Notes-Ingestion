@@ -1,12 +1,12 @@
--- Loads the notes and note comments on the API tables.
+-- Loads the notes and note comments on the API tables with parallel processing support.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-07-18
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading notes from API' AS Text;
 COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status)
-FROM '${OUTPUT_NOTES_FILE}' csv;
+FROM '${OUTPUT_NOTES_PART}' csv;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Statistics on notes from API' AS Text;
 ANALYZE notes_api;
@@ -19,7 +19,7 @@ FROM notes_api;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading comments from API' AS Text;
 COPY note_comments_api (note_id, event, created_at, id_user, username)
-FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv DELIMITER ',' QUOTE '''';
+FROM '${OUTPUT_COMMENTS_PART}' csv DELIMITER ',' QUOTE '''';
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Statistics on comments from API' AS Text;
 ANALYZE note_comments_api;
@@ -32,7 +32,7 @@ FROM note_comments_api;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading text comments from API' AS Text;
 COPY note_comments_text_api (note_id, body)
-FROM '${OUTPUT_TEXT_COMMENTS_FILE}' csv DELIMITER ',' QUOTE '''';
+FROM '${OUTPUT_TEXT_PART}' csv DELIMITER ',' QUOTE '''';
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Statistics on text comments from API' AS Text;
 ANALYZE note_comments_text_api;
