@@ -52,4 +52,11 @@ Generate database designs and scripts that align with best practices for scalabi
 - When possible, create test for Bash functions.
 - Use the mock commands to load sample notes, and prepare the whole environment easier.
 - Every command that brings external information should have an equivalent mock script to provide sample information.
+
+---
+
+## User Rules
+
+- Always respond in Spanish
+- Commit messages should be in English
   
