@@ -196,7 +196,6 @@ function __countXmlNotes() {
  __logi "Counting notes in XML file ${XML_FILE}"
 
  # Get total number of notes
- local TOTAL_NOTES
  TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
@@ -206,7 +205,7 @@ function __countXmlNotes() {
  fi
 
  __log_finish
- return "${TOTAL_NOTES}"
+ set +e
 }
 
 # Splits XML file into parts for parallel processing
@@ -257,12 +256,49 @@ function __splitXmlForParallel() {
 
   __logi "Creating part ${PART}: notes ${START}-${END} -> ${OUTPUT_FILE}"
 
-  # Extract XML part using xmlstarlet
+  # Extract XML part using xmlstarlet with proper structure
+  # First, create a temporary file with the selected notes
   xmlstarlet sel -t \
-   -o '<?xml version="1.0" encoding="UTF-8"?>' \
-   -o '<osm>' \
-   -m "/osm/note[position() >= ${START} and position() <= ${END}]" -c . \
-   -o '</osm>' "${XML_FILE}" > "${OUTPUT_FILE}"
+   -m "/osm/note[position() >= ${START} and position() <= ${END}]" -c . -n \
+   "${XML_FILE}" > "${OUTPUT_FILE}.tmp"
+  
+  # Then wrap the content in proper XML structure
+  {
+   echo '<?xml version="1.0" encoding="UTF-8"?>'
+   echo '<osm>'
+   cat "${OUTPUT_FILE}.tmp"
+   echo '</osm>'
+  } > "${OUTPUT_FILE}"
+  
+  # Clean up temporary file
+  rm -f "${OUTPUT_FILE}.tmp"
+  
+  # Validate the generated XML file
+  if [[ ! -f "${OUTPUT_FILE}" ]]; then
+   __loge "ERROR: XML part file was not created: ${OUTPUT_FILE}"
+   return 1
+  fi
+  
+  # Check if file is empty
+  if [[ ! -s "${OUTPUT_FILE}" ]]; then
+   __logw "WARNING: XML part file is empty: ${OUTPUT_FILE}"
+  fi
+  
+  # Validate XML structure and fix encoding issues
+  if grep -q "&lt;\|&gt;" "${OUTPUT_FILE}"; then
+   __logw "WARNING: Found HTML entities in XML file, fixing encoding issues..."
+   # Fix HTML entities
+   sed -i 's/&lt;/</g; s/&gt;/>/g' "${OUTPUT_FILE}"
+   __logi "Fixed HTML entities in ${OUTPUT_FILE}"
+  fi
+  
+  # Validate XML structure
+  if ! xmllint --noout "${OUTPUT_FILE}" 2>/dev/null; then
+   __loge "ERROR: Invalid XML structure in file: ${OUTPUT_FILE}"
+   return 1
+  fi
+  
+  __logd "Validated XML part ${PART}: ${OUTPUT_FILE}"
  done
 
  __logi "XML splitting completed. Parts saved in: ${PARTS_DIR}"
@@ -280,11 +316,17 @@ function __processXmlPartsParallel() {
  __log_start
  __logi "Processing XML parts in ${PARTS_DIR} with ${MAX_THREADS} parallel jobs"
 
+ # FIXME: el parallel no está funcionando bien. Me esta arrojando este error
+#2025-07-18 14:06:01 - [DEBUG] - Extracting part number from: 
+#2025-07-18 14:06:01 - [DEBUG] - Basename: 
+#2025-07-18 14:06:01 - [DEBUG] - Part number: 
+#2025-07-18 14:06:01 - [ERROR] - Invalid part number extracted: '' from file: 
  # Process parts in parallel
+ 
  find "${PARTS_DIR}" -name "${PART_PREFIX}_*.xml" | sort \
   | parallel --jobs "${MAX_THREADS}" --bar \
-   --env PROCESS_FUNCTION \
-   "${PROCESS_FUNCTION}" {}
+   --env PROCESS_FUNCTION,XSLT_NOTES_API_FILE,XSLT_NOTE_COMMENTS_API_FILE,XSLT_TEXT_COMMENTS_API_FILE,TMP_DIR,DBNAME,POSTGRES_31_LOAD_API_NOTES,MAX_THREADS,SCRIPT_BASE_DIRECTORY \
+   bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh; ${PROCESS_FUNCTION} {}"
 
  __log_finish
 }
@@ -292,12 +334,39 @@ function __processXmlPartsParallel() {
 # Processes a single XML part for API notes
 # Parameters:
 #   $1: XML part file path
+#   $2: XSLT notes file (optional, uses global if not provided)
+#   $3: XSLT comments file (optional, uses global if not provided)
+#   $4: XSLT text comments file (optional, uses global if not provided)
 function __processApiXmlPart() {
  local XML_PART="${1}"
+ local XSLT_NOTES_FILE="${2:-${XSLT_NOTES_API_FILE}}"
+ local XSLT_COMMENTS_FILE="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
+ local XSLT_TEXT_FILE="${4:-${XSLT_TEXT_COMMENTS_API_FILE}}"
  local PART_NUM
- PART_NUM=$(basename "${XML_PART}" .xml | sed 's/part_//')
+ local BASENAME_PART
+ 
+ # Debug: Show environment variables
+ __simple_log "DEBUG" "Environment check in subshell:"
+ __simple_log "DEBUG" "  XML_PART: '${XML_PART}'"
+ __simple_log "DEBUG" "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
+ __simple_log "DEBUG" "  XSLT_NOTES_API_FILE: '${XSLT_NOTES_API_FILE:-NOT_SET}'"
+ __simple_log "DEBUG" "  DBNAME: '${DBNAME:-NOT_SET}'"
+ 
+ BASENAME_PART=$(basename "${XML_PART}" .xml)
+ PART_NUM=$(echo "${BASENAME_PART}" | sed 's/part_//')
 
- __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
+ # Debug: Show extraction process
+ __simple_log "DEBUG" "Extracting part number from: ${XML_PART}"
+ __simple_log "DEBUG" "Basename: ${BASENAME_PART}"
+ __simple_log "DEBUG" "Part number: ${PART_NUM}"
+
+ # Validate part number
+ if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
+  __simple_log "ERROR" "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
+  return 1
+ fi
+
+ __simple_log "INFO" "Processing API XML part ${PART_NUM}: ${XML_PART}"
 
  # Convert XML part to CSV using XSLT
  local OUTPUT_NOTES_PART
@@ -308,19 +377,34 @@ function __processApiXmlPart() {
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
  # Process notes
- xsltproc -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_API_FILE}" "${XML_PART}"
+ __simple_log "DEBUG" "Processing notes with xsltproc: ${XSLT_NOTES_FILE} -> ${OUTPUT_NOTES_PART}"
+ xsltproc -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE}" "${XML_PART}"
+ if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
+  __simple_log "ERROR" "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+  return 1
+ fi
 
  # Process comments
- xsltproc -o "${OUTPUT_COMMENTS_PART}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_PART}"
+ __simple_log "DEBUG" "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE} -> ${OUTPUT_COMMENTS_PART}"
+ xsltproc -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE}" "${XML_PART}"
+ if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
+  __simple_log "ERROR" "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+  return 1
+ fi
 
  # Process text comments
- xsltproc -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_PART}"
+ __simple_log "DEBUG" "Processing text comments with xsltproc: ${XSLT_TEXT_FILE} -> ${OUTPUT_TEXT_PART}"
+ xsltproc -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE}" "${XML_PART}"
+ if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
+  __simple_log "ERROR" "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
+  return 1
+ fi
 
- # Debug: Show generated CSV files
- __logd "Generated CSV files for part ${PART_NUM}:"
- __logd "  Notes: ${OUTPUT_NOTES_PART}"
- __logd "  Comments: ${OUTPUT_COMMENTS_PART}"
- __logd "  Text: ${OUTPUT_TEXT_PART}"
+ # Debug: Show generated CSV files and their sizes
+ __simple_log "DEBUG" "Generated CSV files for part ${PART_NUM}:"
+ __simple_log "DEBUG" "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)"
+ __simple_log "DEBUG" "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)"
+ __simple_log "DEBUG" "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)"
 
  # Load into database with partition ID and MAX_THREADS
  export OUTPUT_NOTES_PART
@@ -329,11 +413,29 @@ function __processApiXmlPart() {
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID,$MAX_THREADS' \
+  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
+  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART' \
    < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
- __logi "Completed processing API part ${PART_NUM}"
+ __simple_log "INFO" "Completed processing API part ${PART_NUM}"
 }
+
+# Export the function so it's available to parallel subshells
+export -f __processApiXmlPart
+
+# Create a simple logger function for parallel subshells to avoid complex variable issues
+function __simple_log() {
+  local level="${1:-INFO}"
+  shift
+  local message="$*"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - [${level}] - ${message}"
+}
+
+# Export the function so it's available to parallel subshells
+export -f __simple_log
+
+# Export required environment variables for parallel processing
+export DBNAME TMP_DIR POSTGRES_31_LOAD_API_NOTES XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
 
 # Checks prerequisites commands to run the script.
 function __checkPrereqsCommands {
@@ -342,7 +444,6 @@ function __checkPrereqsCommands {
  if [[ "${PREREQS_CHECKED}" = true ]]; then
   __logd "Prerequisites already checked in this execution, skipping verification."
   __log_finish
-  return 0
  fi
  set +e
  ## PostgreSQL
