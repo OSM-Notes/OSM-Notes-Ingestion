@@ -191,7 +191,7 @@ function __trapOn() {
 #   TOTAL_NOTES: Number of notes found (exported variable)
 function __countXmlNotes() {
  local XML_FILE="${1}"
- 
+
  __log_start
  __logi "Counting notes in XML file ${XML_FILE}"
 
@@ -322,12 +322,14 @@ function __processApiXmlPart() {
  __logd "  Comments: ${OUTPUT_COMMENTS_PART}"
  __logd "  Text: ${OUTPUT_TEXT_PART}"
 
- # Load into database
+ # Load into database with partition ID and MAX_THREADS
  export OUTPUT_NOTES_PART
  export OUTPUT_COMMENTS_PART
  export OUTPUT_TEXT_PART
+ export PART_ID="${PART_NUM}"
+ export MAX_THREADS
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART' \
+  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID,$MAX_THREADS' \
    < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
  __logi "Completed processing API part ${PART_NUM}"
@@ -502,6 +504,11 @@ EOF
  if [[ ! "${MAX_THREADS}" =~ ^[1-9][0-9]*$ ]]; then
   __loge "ERROR: MAX_THREADS must be a positive integer, got: ${MAX_THREADS}"
   exit "${ERROR_GENERAL}"
+ fi
+ # Validate MAX_THREADS to prevent excessive resource usage
+ if [[ "${MAX_THREADS}" -gt 100 ]]; then
+  __logw "MAX_THREADS exceeds 100, limiting to 100"
+  MAX_THREADS=100
  fi
  # Validate TMP_DIR
  if [[ -z "${TMP_DIR}" ]]; then

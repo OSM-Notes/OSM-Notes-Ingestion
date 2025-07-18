@@ -103,8 +103,10 @@ declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/${PROCESS_PLA
 declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_11_dropApiTables.sql"
 # Create API tables.
 declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+# Create partitions dynamically.
+declare -r POSTGRES_22_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"
 # Create properties file.
-declare -r POSTGRES_22_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPropertiesTables.sql"
+declare -r POSTGRES_23_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPropertiesTables.sql"
 # Load notes.
 declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 # Insert new notes and comments.
@@ -113,6 +115,8 @@ declare -r POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/s
 declare -r POSTGRES_33_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_33_loadNewTextComments.sql"
 # Update last values.
 declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_34_updateLastValues.sql"
+# Consolidate partitions.
+declare -r POSTGRES_35_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_35_consolidatePartitions.sql"
 
 # Temporal file that contiains the downloaded notes from the API.
 declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
@@ -183,8 +187,12 @@ function __checkPrereqs {
   __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_API_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_22_CREATE_PROPERTIES_TABLE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_PROPERTIES_TABLE}."
+ if [[ ! -r "${POSTGRES_22_CREATE_PARTITIONS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_PARTITIONS}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_23_CREATE_PROPERTIES_TABLE}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_23_CREATE_PROPERTIES_TABLE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_31_LOAD_API_NOTES}" ]]; then
@@ -201,6 +209,10 @@ function __checkPrereqs {
  fi
  if [[ ! -r "${POSTGRES_34_UPDATE_LAST_VALUES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_34_UPDATE_LAST_VALUES}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_35_CONSOLIDATE_PARTITIONS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_35_CONSOLIDATE_PARTITIONS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __checkPrereqs_functions
@@ -239,12 +251,26 @@ function __createApiTables {
  __log_finish
 }
 
+# Creates partitions dynamically based on MAX_THREADS.
+function __createPartitions {
+ __log_start
+ __logi "Creating partitions dynamically based on MAX_THREADS."
+
+ # Validate MAX_THREADS before creating partitions
+ __validateMaxThreads
+
+ export MAX_THREADS
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$MAX_THREADS' < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
+ __log_finish
+}
+
 # Creates table properties during the execution.
 function __createPropertiesTable {
  __log_start
  __logi "Creating properties table."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_22_CREATE_PROPERTIES_TABLE}"
+  -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
  __log_finish
 }
 
@@ -320,69 +346,67 @@ function __validateApiNotesXMLFile {
 function __processXMLorPlanet {
  __log_start
  local TOTAL_NOTES="${1}"
- 
+
  if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
   __logw "Starting full synchronization from Planet."
   __logi "This could take several minutes."
   "${NOTES_SYNC_SCRIPT}"
   __logw "Finished full synchronization from Planet."
  else
-   # Split XML into parts and process in parallel if there are notes to process
+  # Split XML into parts and process in parallel if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
    __splitXmlForParallel "${API_NOTES_FILE}"
    __processXmlPartsParallel "__processApiXmlPart"
   fi
  fi
- 
+
  __log_finish
 }
 
 # Inserts new notes and comments into the database with parallel processing.
 function __insertNewNotesAndComments {
  __log_start
- 
+
  # Get the number of notes to process
  local NOTES_COUNT
- NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(1) FROM notes_api" 2>/dev/null || echo "0")
- 
+ NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(1) FROM notes_api" 2> /dev/null || echo "0")
+
  if [[ "${NOTES_COUNT}" -gt 1000 ]]; then
   # Split the insertion into chunks
   local PARTS="${MAX_THREADS}"
-  local CHUNK_SIZE
-  CHUNK_SIZE=$((NOTES_COUNT / PARTS))
-  
+
   for PART in $(seq 1 "${PARTS}"); do
    (
     __logi "Processing insertion part ${PART}"
-    
+
     PROCESS_ID="${$}_${PART}"
     echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-    
+
     export PROCESS_ID
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
      -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
-    
+
     echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-    
+
     __logi "Completed insertion part ${PART}"
    ) &
   done
-  
+
   # Wait for all insertion jobs to complete
   wait
-  
+
  else
   # For small datasets, use single connection
   PROCESS_ID="${$}"
   echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-  
+
   export PROCESS_ID
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
    -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
-  
+
   echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  fi
- 
+
  __log_finish
 }
 
@@ -394,6 +418,14 @@ function __loadApiTextComments {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
    < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)"
+ __log_finish
+}
+
+# Consolidates data from all partitions into single tables.
+function __consolidatePartitions {
+ __log_start
+ __logi "Consolidating data from all partitions."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
  __log_finish
 }
 
@@ -468,6 +500,7 @@ function main() {
 
  set -E
  __createApiTables
+ __createPartitions
  __createPropertiesTable
  __createProcedures
  set +E
@@ -480,6 +513,7 @@ function main() {
   # Count notes in XML file
   TOTAL_NOTES=$(__countXmlNotes "${API_NOTES_FILE}")
   __processXMLorPlanet "${TOTAL_NOTES}"
+  __consolidatePartitions
   __insertNewNotesAndComments
   __loadApiTextComments
   __updateLastValue
