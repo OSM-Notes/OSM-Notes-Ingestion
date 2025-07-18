@@ -15,6 +15,7 @@ $$
   m_stmt VARCHAR(200);
  BEGIN
 
+  -- TODO It could be done in parallel if the select is by ranges.
   FOR r IN
    SELECT /* Notes-processAPI */ note_id, latitude, longitude, created_at,
      closed_at, status

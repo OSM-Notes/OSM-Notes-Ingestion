@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-16
-declare -r VERSION="2025-07-16"
+# Version: 2025-07-17
+declare -r VERSION="2025-07-17"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -323,29 +323,46 @@ function __convertApiNotesToFlatFile {
  # XSLT transformations.
 
  # Converts the XML into a flat file in CSV format.
- xsltproc -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" \
-   "${API_NOTES_FILE}"
+ # Process notes transformation.
+ (
+  xsltproc -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" \
+    "${API_NOTES_FILE}"
+  local RESULT
+  RESULT=$(grep -c "<note " "${API_NOTES_FILE}")
+  __logi "${RESULT} - Notes from API."
+ ) &
+ # Process comments transformation
+ (
+  xsltproc -o "${OUTPUT_NOTE_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" \
+    "${API_NOTES_FILE}"
+  local RESULT
+  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
+  __logi "${RESULT} - Comments from API."
+ ) &
+ 
+ # Process text comments transformation.
+ (
+  xsltproc -o "${OUTPUT_TEXT_COMMENTS_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" \
+    "${API_NOTES_FILE}"
+  RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
+  __logi "${RESULT} - Text comments from API."
+ ) &
+
+ # Wait for all transformations to complete.
+ wait
+
+ # Show results
  local RESULT
- RESULT=$(grep -c "<note " "${API_NOTES_FILE}")
- __logi "${RESULT} - Notes from API."
  RESULT=$(wc -l "${OUTPUT_NOTES_FILE}")
  __logw "${RESULT} - Notes in flat file."
- cat "${OUTPUT_NOTES_FILE}"
-
- xsltproc -o "${OUTPUT_NOTE_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" \
-   "${API_NOTES_FILE}"
- RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
- __logi "${RESULT} - Comments from API."
  RESULT=$(wc -l "${OUTPUT_NOTE_COMMENTS_FILE}")
  __logw "${RESULT} - Note comments in flat file."
- cat "${OUTPUT_NOTE_COMMENTS_FILE}"
-
- xsltproc -o "${OUTPUT_TEXT_COMMENTS_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" \
-   "${API_NOTES_FILE}"
- RESULT=$(grep -c "<comment>" "${API_NOTES_FILE}")
- __logi "${RESULT} - Text comments from API."
  RESULT=$(wc -l "${OUTPUT_TEXT_COMMENTS_FILE}")
  __logw "${RESULT} - Text comment in flat file."
+
+ # For debugging purposes.
+ cat "${OUTPUT_NOTES_FILE}"
+ cat "${OUTPUT_NOTE_COMMENTS_FILE}"
  cat "${OUTPUT_TEXT_COMMENTS_FILE}"
 
  __log_finish
@@ -371,6 +388,7 @@ function __checkQtyNotes {
 function __loadApiNotes {
  __log_start
 
+ # Shows the notes to be processed. For debugging purposes.
  __logt "Notes to be processed:"
  declare TEXT
  while read -r LINE; do
@@ -390,6 +408,10 @@ function __loadApiNotes {
  export OUTPUT_NOTES_FILE
  export OUTPUT_NOTE_COMMENTS_FILE
  export OUTPUT_TEXT_COMMENTS_FILE
+ # TODO This can be done in parallel if the source XML file is split,
+ # and notes, comments and text comments are grouped in different files and
+ # then the load is done in parallel. The problem is how to split the XML file
+ # and how to group the data in the different files.
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
@@ -403,6 +425,9 @@ function __insertNewNotesAndComments {
  PROCESS_ID="${$}"
  echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
+ # TODO It could be done in parallel if the select is by ranges, when
+ # splitting the XML file into different CSV files, and getting the min and
+ # max values of the note_id to be processed.
  export PROCESS_ID
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
