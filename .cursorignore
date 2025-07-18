@@ -1,0 +1,6 @@
+# Test files that should not be considered as part of the code analysis.
+test/cleanAll.sh
+test/testInsertion.sh
+
+# Complete directory for test and mock commands.
+test/command/ 
