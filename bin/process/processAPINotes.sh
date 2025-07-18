@@ -84,6 +84,9 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
+# Total notes.
+declare -i TOTAL_NOTES=-1
+
 # XML Schema of the API notes file.
 declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
 # Name of the file of the XSLT transformation for notes from API.
@@ -256,9 +259,6 @@ function __createPartitions {
  __log_start
  __logi "Creating partitions dynamically based on MAX_THREADS."
 
- # Validate MAX_THREADS before creating partitions
- __validateMaxThreads
-
  export MAX_THREADS
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$MAX_THREADS' < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
@@ -345,7 +345,6 @@ function __validateApiNotesXMLFile {
 # Checks if the quantity of notes requires synchronization with Planet
 function __processXMLorPlanet {
  __log_start
- local TOTAL_NOTES="${1}"
 
  if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
   __logw "Starting full synchronization from Planet."
@@ -356,6 +355,8 @@ function __processXMLorPlanet {
   # Split XML into parts and process in parallel if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
    __splitXmlForParallel "${API_NOTES_FILE}"
+   # Export XSLT variables for parallel processing
+   export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
    __processXmlPartsParallel "__processApiXmlPart"
   fi
  fi
@@ -511,8 +512,8 @@ function main() {
  if [[ "${RESULT}" -ne 0 ]]; then
   __validateApiNotesXMLFile
   # Count notes in XML file
-  TOTAL_NOTES=$(__countXmlNotes "${API_NOTES_FILE}")
-  __processXMLorPlanet "${TOTAL_NOTES}"
+  __countXmlNotes "${API_NOTES_FILE}"
+  __processXMLorPlanet
   __consolidatePartitions
   __insertNewNotesAndComments
   __loadApiTextComments
