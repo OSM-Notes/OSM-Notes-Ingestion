@@ -5,15 +5,11 @@ ToDo list
 ## Base
 
 * Corregir las diferencias que se identifican con el monitor script.
-* Si falla base, enviar mail, ya que hay algo mal.
+* Si falla processPlanet base, enviar mail, ya que hay algo mal.
 
 ## Check monitor
 
-* 3944119 ocultada y reactivada. Revisar que se procesa bien esta nota.
-  https://api.openstreetmap.org/api/0.6/notes/3944119 (hidden - reopened)
-* Validar que esta nota se procesa bien
-  https://api.openstreetmap.org/api/0.6/notes/3750896
-
+All good.
 
 ## ETL
 
@@ -22,10 +18,17 @@ ToDo list
 * Contar los hashtags de las notas en la ETL.
 * Calcular la cantidad de hashtags y ponerla en FACTS
 * En el ETL calcular la cantidad de notas abiertas actualmente.
+  * por usuario? total?
 * En el ETL mantener la cantidad de notas abiertas en el país.
 * Usar la secuencia de comentarios en los facts
 * Factorizar CREATE and INITIAL en Staging, ya que tiene partes comunes
 * Usar una DB direferente para el DWH
+* Cuando se actualizan los países, puede que algunas notas cambien de pais
+ por lo que hay que actualizar la dimension, y todo usuario y pais de datamarts
+ afectados
+  * La mejor estrategia es actualizar los valores del modelo estrella.
+  * Pero se debe asegurar que los valores de los datamarts los toman en
+    cuenta. Podría ser que se tengan que calcular todo de nuevo.
 
 ## Monitor ETL
 
