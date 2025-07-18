@@ -1,0 +1,1 @@
+export LOG_LEVEL=DEBUG;  export CLEAN=false ; export PATH="./test/command/:${PATH}";  date ; ./bin/process/processAPINotes.sh
