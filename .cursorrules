@@ -13,6 +13,7 @@ Generate database designs and scripts that align with best practices for scalabi
   - Bash functions should start with double underscore and be in lower case.
   - SQL reserved words should be in capitals. Everything else in lower case.
 - Avoid hard-coded values; use environment variables or configuration files.
+- Each time a file is modified, put the current date as part of version.
 
 ---
   
