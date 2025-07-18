@@ -4,7 +4,7 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2024-02-22
+# Version: 2025-07-17
 
 # Name of the Postgresql database to connect.
 # shellcheck disable=SC2034
@@ -13,10 +13,6 @@ declare -r DBNAME="notes"
 # User to connect to the database.
 # shellcheck disable=SC2034
 declare -r DB_USER="notes"
-
-# Location of the Saxon JAR. This can be override from a environment variable.
-# shellcheck disable=SC2034
-declare -r SAXON_CLASSPATH=${SAXON_CLASSPATH:-~/saxon/}
 
 # Mails to send the report about checking the differences between planet and database.
 declare -r EMAILS="username@domain.com"

@@ -4,11 +4,11 @@
 -- Version: 2024-01-14
 
 -- Set the next number to generate to the sequence.
-SELECT /* Notes-ETL */
+SELECT /* Notes-staging */
     SETVAL((SELECT PG_GET_SERIAL_SEQUENCE('dwh.facts', 'fact_id')),
     (SELECT (MAX(fact_id) + 1) FROM dwh.facts), FALSE);
 
-DO /* Notes-ETL */
+DO /* Notes-staging */
  $$
  DECLARE
   m_qty_iterations INTEGER;
@@ -26,7 +26,7 @@ DO /* Notes-ETL */
 
  BEGIN
   -- Calculates how many iterations should be run.
-  SELECT MAX(qty)
+  SELECT /* Notes-staging */ MAX(qty)
    INTO m_qty_iterations
   FROM (
    SELECT COUNT(1) qty, id_note

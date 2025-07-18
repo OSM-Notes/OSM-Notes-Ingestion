@@ -9,7 +9,7 @@ COMMENT ON SCHEMA wms IS 'Objects to publish the WMS layer';
 
 -- Creates another table with only the necessary columns for WMS.
 CREATE TABLE IF NOT EXISTS wms.notes_wms AS
- SELECT
+ SELECT /* Notes-WMS */
   note_id,
   extract(year from created_at) AS year_created_at,
   extract (year from closed_at) AS year_closed_at,

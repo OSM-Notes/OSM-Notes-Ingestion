@@ -3,7 +3,7 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-07-14
 
-SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'Creating staging procedure' AS Task;
 
 /**
@@ -414,5 +414,5 @@ $proc$
 COMMENT ON PROCEDURE staging.process_notes_actions_into_dwh IS
   'Processes all non-processes notes';
 
-SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'All staging objects created' AS Task;

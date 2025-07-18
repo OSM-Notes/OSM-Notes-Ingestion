@@ -3,7 +3,7 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2027-07-11
 
-SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'Creating staging procedure for year' AS Task;
 
 /**
@@ -400,5 +400,5 @@ $proc$
 COMMENT ON PROCEDURE staging.process_notes_actions_into_staging_${YEAR} IS
   'Processes all non-processes notes for year ${YEAR}';
 
-SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'All staging objects created for year ${YEAR}' AS Task;

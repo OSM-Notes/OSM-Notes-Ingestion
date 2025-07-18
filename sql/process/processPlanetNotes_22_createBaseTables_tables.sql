@@ -108,7 +108,7 @@ CREATE OR REPLACE PROCEDURE put_lock (
  DECLARE
   m_qty SMALLINT;
  BEGIN
-  SELECT COUNT (1)
+  SELECT /* Notes-base */ COUNT (1)
    INTO m_qty
   FROM properties
   WHERE key = 'lock';
@@ -137,7 +137,7 @@ CREATE OR REPLACE PROCEDURE remove_lock (
   m_qty SMALLINT;
   m_current_id VARCHAR(32);
  BEGIN
-  SELECT count(1)
+  SELECT /* Notes-base */ count(1)
    INTO m_qty
   FROM properties
   WHERE key = 'lock';

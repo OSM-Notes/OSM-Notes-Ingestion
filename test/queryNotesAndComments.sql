@@ -1,10 +1,10 @@
 -- Diferencias entre notas en check y notas ya cargadas.
 -- Primeros ids.
-SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
+SELECT note_id, latitude, longitude, created_at, status
   FROM notes_check
    where note_id < 500000 
   EXCEPT
-  SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
+  SELECT note_id, latitude, longitude, created_at, status
   FROM notes
   WHERE (closed_at IS NULL OR closed_at < NOW()::DATE) 
   and note_id < 500000 

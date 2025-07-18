@@ -1,9 +1,9 @@
 -- Chech base staging tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-07-17
 
-SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'Creating base staging objects' AS Task;
 
 CREATE SCHEMA IF NOT EXISTS staging;
@@ -103,5 +103,5 @@ $proc$
 COMMENT ON PROCEDURE staging.get_hashtag IS
   'Returns the first hashtag of the given string';
 
-SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'Finished creating base staging objects' AS Task;

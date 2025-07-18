@@ -20,7 +20,7 @@ AS $proc$
   m_process_id_db INTEGER;
  BEGIN
   -- Check the DB lock to validate it is from the same process.
-  SELECT value
+  SELECT /* Notes-base */ value
     INTO m_process_id_db
   FROM properties
   WHERE key = 'lock';

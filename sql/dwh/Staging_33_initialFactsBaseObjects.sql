@@ -3,7 +3,7 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2027-07-11
 
-SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'Creating objects for year ${YEAR}' AS Task;
 
 CREATE TABLE staging.facts_${YEAR} AS TABLE dwh.facts;
@@ -139,3 +139,5 @@ CREATE INDEX IF NOT EXISTS comments_function_year ON note_comments (EXTRACT(YEAR
 COMMENT ON INDEX comments_function_year IS
   'Index to improve access when processing ETL per years';
 
+SELECT /* Notes-staging */ clock_timestamp() AS Processing,
+ 'Objects for year ${YEAR} created' AS Task;

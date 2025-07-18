@@ -910,6 +910,7 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
+    # TODO could it be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -930,6 +931,7 @@ function __getLocationNotes {
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
 
+    # TODO could it be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -964,6 +966,7 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
+    # TODO could it be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -984,6 +987,7 @@ function __getLocationNotes {
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
 
+    # TODO could it be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id < ${MAX_LOOP}
