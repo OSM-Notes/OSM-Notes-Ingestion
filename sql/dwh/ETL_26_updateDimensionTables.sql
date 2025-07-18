@@ -36,12 +36,12 @@ TO '/tmp/usernames_changed.csv' WITH DELIMITER ',' CSV HEADER
 --
 -- Updates the dimension when username is changed.
 -- TODO datamart - Esta actualizando todos con todos, y se esta demorando
---UPDATE dwh.dimension_users
--- SET username = c.username
--- FROM users AS c
---  JOIN dwh.dimension_users d
---  ON d.user_id = c.user_id
--- WHERE c.username <> d.username
+--   2025-07-16 Ya se hizo un cambio, para el alias de dimension. Es raro que actualice todos
+UPDATE dwh.dimension_users AS d
+ SET username = c.username
+ FROM users AS c
+ WHERE d.user_id = c.user_id
+  AND c.username IS DISTINCT FROM d.username
 ;
 
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
