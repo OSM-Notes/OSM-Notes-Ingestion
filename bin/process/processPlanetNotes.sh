@@ -473,7 +473,8 @@ function __loadSyncNotes {
 function __removeDuplicates {
  __log_start
  PROCESS_ID="${$}"
- echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" \
+   -v ON_ERROR_STOP=1
  __logi "Lock put ${PROCESS_ID}"
 
  export PROCESS_ID
@@ -481,7 +482,8 @@ function __removeDuplicates {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_42_REMOVE_DUPLICATES}" || true)"
 
- echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" \
+ -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
  __logi "Lock removed ${PROCESS_ID}"
 
