@@ -4,3 +4,6 @@ test/testInsertion.sh
 
 # Complete directory for test and mock commands.
 test/command/ 
+
+# Ignore all files in the lib directory. They are not developed as part of this project.
+lib/
