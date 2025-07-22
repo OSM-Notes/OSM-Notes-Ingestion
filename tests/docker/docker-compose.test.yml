@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  test-db:
+    image: postgres:15
+    container_name: osm_notes_test_db
+    environment:
+      POSTGRES_DB: osm_notes_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./fixtures:/docker-entrypoint-initdb.d
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d osm_notes_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  test-app:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile.test
+    container_name: osm_notes_test_app
+    depends_on:
+      test-db:
+        condition: service_healthy
+    environment:
+      TEST_DBNAME: osm_notes_test
+      TEST_DBUSER: test_user
+      TEST_DBPASSWORD: test_pass
+      TEST_DBHOST: test-db
+      TEST_DBPORT: 5432
+      LOG_LEVEL: DEBUG
+      CLEAN: false
+    volumes:
+      - ../..:/app
+      - /app/node_modules
+    working_dir: /app
+    command: ./tests/run_tests.sh
+
+volumes:
+  postgres_test_data: 
