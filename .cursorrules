@@ -27,6 +27,7 @@ Generate database designs and scripts that align with best practices for scalabi
 - Avoid hardcoding values, and try to use values from properties file.
 - Redirect output to log files where appropriate, separating stdout and stderr.
 - Use `trap` for error handling and cleaning up temporary files.
+- Nothing could be hardcoded based on the current environment. Like the home directory, nor the repository name.
 
 ---
   
@@ -35,6 +36,7 @@ Generate database designs and scripts that align with best practices for scalabi
 - Write meaningful unit, integration, and acceptance tests.
 - Document solutions thoroughly in markdown.
 - Use diagrams to describe high-level architecture and workflows.
+- Each time an error is discovere, a new test should be added or correct an existing one.
   
 ---
   

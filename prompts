@@ -1,11 +1,13 @@
 
-Me parece  que la tabla note_comment_text_sync no está siendo usada de la misma forma que note_sync y note_comment_sync. Es normal?
-Recuerda que las tablas sync es para capturar solo las diferencias con las tablas base. Pareciera que esto no se hace para los textos de los comentarios de las notas. Me puedes confirmar
+
+Haz la segunda fase de pruebas de integración, configurando docker, mocks para el api de osm, pruebas end-to-end y automatizando CI/CD.
+
+Ya que has hecho las dos fases anteriors, ahora has pruebas avanzadas que incluya
+Cobertura de código, pruebas de integración, pruebas de seguridad y monitoreo de calidad.
 
 
-ahora quiero que me hagas un conjunto de pruebas unitarias para el archivo de functions
-HE escuchado que el mejor es bats para pruebas en Bash, se podría usar ese
-El objetivo es probar los diferentes escenarios que se procesan.
+
+
 Por ejemplo:
 Cuando el llamado del api, no contiene notas.
 Cuando solo tiene 1 notas
@@ -15,8 +17,6 @@ Cuando tiene muchos más que la cantidad de nucleos.
 En cada caso me gustaría que se borraran los elementos de la DB y poder enteder el proceso
 Se debe utilizar los script de mock que se tienen bajo test/command
 Debe haber un archivo XML con cada uno de los escenarios
-
-Ya que pudiste hacer el paralelismo para el llamado al aPI, ahora quiero hacer lo mismo para el llamado al planet. Contando la cantidad notas. Dividiendo el xml original en chuncks con la misma cantidad a la de threads. Paralelisando el xmlproc de notas, commments y text. Insertando en paralelo en una tabla particionada y después agrupar.
 
 Quiero que revises los comentarios de todo el código.
 Revises sintaxis y gramática en inglés. Si es necesario, mejora el texto para mayor claridad.
