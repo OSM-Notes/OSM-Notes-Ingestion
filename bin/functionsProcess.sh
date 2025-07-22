@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-18
+# Version: 2025-01-27
 
 # Error codes.
 # 1: Help message.
@@ -129,13 +129,13 @@ declare -r GEOJSON_TEST="${SCRIPT_BASE_DIRECTORY}/json/map.geojson"
 
 # Loads the logger (log4j like) tool.
 # It has the following functions.
-#function __log(){log ${@};}
-#function __logt(){log_trace ${@};}
-#function __logd(){log_debug ${@};}
-#function __logi(){log_info ${@};}
-#function __logw(){log_warn ${@};}
-#function __loge(){log_error ${@};}
-#function __logf(){log_fatal ${@};}
+function __log() { log "${@}"; }
+function __logt() { log_trace "${@}"; }
+function __logd() { log_debug "${@}"; }
+function __logi() { log_info "${@}"; }
+function __logw() { log_warn "${@}"; }
+function __loge() { log_error "${@}"; }
+function __logf() { log_fatal "${@}"; }
 
 # Starts the logger utility.
 function __start_logger() {
@@ -177,25 +177,25 @@ function __validation {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__validation)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Directory "${TMP_DIR:-}" - Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__validation)"; exit ${ERROR_GENERAL};}' \
   ERR
  trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
  __log_finish
 }
 
-# Counts notes in XML file
+# Counts notes in XML file (API format)
 # Parameters:
 #   $1: Input XML file
 # Returns:
 #   TOTAL_NOTES: Number of notes found (exported variable)
-function __countXmlNotes() {
+function __countXmlNotesAPI() {
  local XML_FILE="${1}"
 
  __log_start
- __logi "Counting notes in XML file ${XML_FILE}"
+ __logi "Counting notes in XML file (API format) ${XML_FILE}"
 
- # Get total number of notes
+ # Get total number of notes for API format
  TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
@@ -205,22 +205,62 @@ function __countXmlNotes() {
  fi
 
  __log_finish
- set +e
 }
 
-# Splits XML file into parts for parallel processing
+# Counts notes in XML file (Planet format)
 # Parameters:
 #   $1: Input XML file
-#   $2: Number of notes to split (optional, uses TOTAL_NOTES if not provided)
-function __splitXmlForParallel() {
+# Returns:
+#   TOTAL_NOTES: Number of notes found (exported variable)
+function __countXmlNotesPlanet() {
  local XML_FILE="${1}"
- local TOTAL_NOTES_TO_SPLIT="${2:-${TOTAL_NOTES}}"
+
+ __log_start
+ __logi "Counting notes in XML file (Planet format) ${XML_FILE}"
+
+ # Get total number of notes for Planet format
+ TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm-notes/note)" "${XML_FILE}" 2> /dev/null)
+
+ if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
+  __logi "No notes found in XML file"
+ else
+  __logi "Total notes found: ${TOTAL_NOTES}"
+ fi
+
+ __log_finish
+}
+
+# Wrapper function for API format that uses parallel processing
+# Parameters:
+#   $1: XML file path
+#   $2: Number of notes to split (optional, uses TOTAL_NOTES if not provided)
+function __splitXmlForParallelAPI() {
+ __splitXmlForParallelSafe "${1}" "API" "${2:-}"
+}
+
+# Wrapper function for Planet format that uses parallel processing
+# Parameters:
+#   $1: XML file path
+#   $2: Number of notes to split (optional, uses TOTAL_NOTES if not provided)
+function __splitXmlForParallelPlanet() {
+ __splitXmlForParallelSafe "${1}" "Planet" "${2:-}"
+}
+
+# Splits XML file into parts using parallel processing to avoid file access conflicts
+# Parameters:
+#   $1: XML file path
+#   $2: XML format type ("API" or "Planet")
+#   $3: Number of notes to split (optional, uses TOTAL_NOTES if not provided)
+function __splitXmlForParallelSafe() {
+ local XML_FILE="${1}"
+ local XML_FORMAT="${2}"
+ local TOTAL_NOTES_TO_SPLIT="${3:-${TOTAL_NOTES}}"
  local PARTS="${MAX_THREADS}"
  local PARTS_DIR="${TMP_DIR}"
  local PART_PREFIX="part"
 
  __log_start
- __logi "Splitting XML file ${XML_FILE} into ${PARTS} parts"
+ __logi "Splitting XML file (${XML_FORMAT} format) ${XML_FILE} into ${PARTS} parts using parallel processing"
 
  if [[ "${TOTAL_NOTES_TO_SPLIT}" -eq 0 ]]; then
   __logi "No notes to split, skipping XML division"
@@ -234,7 +274,151 @@ function __splitXmlForParallel() {
 
  __logi "Notes per part: ${NOTES_PER_PART}"
 
- # Split XML into parts
+ # Create a function to process a single part
+ process_part() {
+  local PART="${1}"
+  local START="${2}"
+  local END="${3}"
+  local OUTPUT_FILE="${4}"
+  local XML_FORMAT_LOCAL="${5}"
+
+  __logi "Creating part ${PART}: notes ${START}-${END} -> ${OUTPUT_FILE}"
+
+  # Use different XPath based on format
+  local XPATH_SELECTOR
+  if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
+   XPATH_SELECTOR="/osm/note[position() >= ${START} and position() <= ${END}]"
+  else
+   XPATH_SELECTOR="/osm-notes/note[position() >= ${START} and position() <= ${END}]"
+  fi
+
+  # Extract XML part using xmlstarlet with proper structure
+  # First, create a temporary file with the selected notes
+  xmlstarlet sel -t \
+   -m "${XPATH_SELECTOR}" -c . -n \
+   "${XML_FILE}" > "${OUTPUT_FILE}.tmp"
+
+  # Then wrap the content in proper XML structure
+  {
+   echo '<?xml version="1.0" encoding="UTF-8"?>'
+   if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
+    echo '<osm>'
+   else
+    echo '<osm-notes>'
+   fi
+   cat "${OUTPUT_FILE}.tmp"
+   if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
+    echo '</osm>'
+   else
+    echo '</osm-notes>'
+   fi
+  } > "${OUTPUT_FILE}"
+
+  # Clean up temporary file
+  rm -f "${OUTPUT_FILE}.tmp"
+
+  # Validate the generated XML file
+  if [[ ! -f "${OUTPUT_FILE}" ]]; then
+   __loge "ERROR: XML part file was not created: ${OUTPUT_FILE}"
+   return 1
+  fi
+
+  # Check if file is empty
+  if [[ ! -s "${OUTPUT_FILE}" ]]; then
+   __logw "WARNING: XML part file is empty: ${OUTPUT_FILE}"
+  fi
+
+  # Validate XML structure first
+  if ! xmllint --noout "${OUTPUT_FILE}" 2> /dev/null; then
+   __logw "WARNING: XML validation failed, attempting to fix encoding issues..."
+
+   # Check if there are HTML entities in XML structure (not in text content)
+   if grep -q "&lt;\|&gt;" "${OUTPUT_FILE}"; then
+    __logw "WARNING: Found HTML entities in XML structure, attempting selective fix..."
+
+    # Create a temporary file for the fix
+    local TEMP_FILE="${OUTPUT_FILE}.temp"
+
+    # Use a more sophisticated approach to fix only XML structure entities
+    # This preserves HTML entities in text content while fixing XML structure
+    awk '
+     BEGIN { in_text_content = 0; in_tag = 0; in_attribute_value = 0; }
+     {
+       line = $0
+       # Process line character by character to distinguish between XML structure and text content
+       result = ""
+       i = 1
+       while (i <= length(line)) {
+         char = substr(line, i, 1)
+         if (char == "<") {
+           # Start of XML tag - fix HTML entities in tag name and attribute names only
+           in_tag = 1
+           in_attribute_value = 0
+           result = result char
+           i++
+           # Process the tag content
+           while (i <= length(line) && substr(line, i, 1) != ">") {
+             if (substr(line, i, 1) == "=") {
+               # Start of attribute value
+               in_attribute_value = 1
+               result = result substr(line, i, 1)
+               i++
+             } else if (substr(line, i, 1) == "\"") {
+               # Toggle attribute value state
+               in_attribute_value = !in_attribute_value
+               result = result substr(line, i, 1)
+               i++
+             } else if (in_attribute_value) {
+               # Inside attribute value - preserve HTML entities
+               result = result substr(line, i, 1)
+               i++
+             } else {
+               # Outside attribute value - fix HTML entities in tag/attribute names
+               if (substr(line, i, 4) == "&lt;") {
+                 result = result "<"
+                 i += 4
+               } else if (substr(line, i, 4) == "&gt;") {
+                 result = result ">"
+                 i += 4
+               } else {
+                 result = result substr(line, i, 1)
+                 i++
+               }
+             }
+           }
+           if (i <= length(line)) {
+             result = result substr(line, i, 1)  # Add the closing ">"
+             i++
+           }
+         } else {
+           # Text content - preserve HTML entities
+           result = result char
+           i++
+         }
+       }
+       print result
+     }' "${OUTPUT_FILE}" > "${TEMP_FILE}"
+
+    # Replace original file with fixed version
+    mv "${TEMP_FILE}" "${OUTPUT_FILE}"
+    __logi "Selectively fixed HTML entities in XML structure: ${OUTPUT_FILE}"
+   fi
+
+   # Validate again after fix
+   if ! xmllint --noout "${OUTPUT_FILE}" 2> /dev/null; then
+    __loge "ERROR: Invalid XML structure in file: ${OUTPUT_FILE} after encoding fix"
+    return 1
+   fi
+  fi
+
+  __logd "Validated XML part ${PART}: ${OUTPUT_FILE}"
+ }
+
+ # Export the function for parallel execution
+ export -f process_part
+
+ # Process parts in parallel
+ local PART
  for PART in $(seq 1 "${PARTS}"); do
   local START
   local END
@@ -254,58 +438,25 @@ function __splitXmlForParallel() {
   local OUTPUT_FILE
   OUTPUT_FILE="${PARTS_DIR}/${PART_PREFIX}_${PART}.xml"
 
-  __logi "Creating part ${PART}: notes ${START}-${END} -> ${OUTPUT_FILE}"
-
-  # Extract XML part using xmlstarlet with proper structure
-  # First, create a temporary file with the selected notes
-  xmlstarlet sel -t \
-   -m "/osm/note[position() >= ${START} and position() <= ${END}]" -c . -n \
-   "${XML_FILE}" > "${OUTPUT_FILE}.tmp"
-  
-  # Then wrap the content in proper XML structure
-  {
-   echo '<?xml version="1.0" encoding="UTF-8"?>'
-   echo '<osm>'
-   cat "${OUTPUT_FILE}.tmp"
-   echo '</osm>'
-  } > "${OUTPUT_FILE}"
-  
-  # Clean up temporary file
-  rm -f "${OUTPUT_FILE}.tmp"
-  
-  # Validate the generated XML file
-  if [[ ! -f "${OUTPUT_FILE}" ]]; then
-   __loge "ERROR: XML part file was not created: ${OUTPUT_FILE}"
-   return 1
-  fi
-  
-  # Check if file is empty
-  if [[ ! -s "${OUTPUT_FILE}" ]]; then
-   __logw "WARNING: XML part file is empty: ${OUTPUT_FILE}"
-  fi
-  
-  # Validate XML structure and fix encoding issues
-  if grep -q "&lt;\|&gt;" "${OUTPUT_FILE}"; then
-   __logw "WARNING: Found HTML entities in XML file, fixing encoding issues..."
-   # Fix HTML entities
-   sed -i 's/&lt;/</g; s/&gt;/>/g' "${OUTPUT_FILE}"
-   __logi "Fixed HTML entities in ${OUTPUT_FILE}"
-  fi
-  
-  # Validate XML structure
-  if ! xmllint --noout "${OUTPUT_FILE}" 2>/dev/null; then
-   __loge "ERROR: Invalid XML structure in file: ${OUTPUT_FILE}"
-   return 1
-  fi
-  
-  __logd "Validated XML part ${PART}: ${OUTPUT_FILE}"
+  # Process this part in background
+  (
+   process_part "${PART}" "${START}" "${END}" "${OUTPUT_FILE}" "${XML_FORMAT}"
+  ) &
  done
+
+ # Wait for all background jobs to complete
+ wait
+ local WAIT_EXIT_CODE=${?}
+ if [[ ${WAIT_EXIT_CODE} -ne 0 ]]; then
+  __loge "ERROR: One or more XML splitting jobs failed"
+  return 1
+ fi
 
  __logi "XML splitting completed. Parts saved in: ${PARTS_DIR}"
  __log_finish
 }
 
-# Processes XML parts in parallel
+# Processes XML parts using traditional background jobs
 # Parameters:
 #   $1: Processing function name
 function __processXmlPartsParallel() {
@@ -314,19 +465,51 @@ function __processXmlPartsParallel() {
  local PART_PREFIX="part"
 
  __log_start
- __logi "Processing XML parts in ${PARTS_DIR} with ${MAX_THREADS} parallel jobs"
+ __logi "Processing XML parts in ${PARTS_DIR} with ${MAX_THREADS} background jobs"
 
- # FIXME: el parallel no está funcionando bien. Me esta arrojando este error
-#2025-07-18 14:06:01 - [DEBUG] - Extracting part number from: 
-#2025-07-18 14:06:01 - [DEBUG] - Basename: 
-#2025-07-18 14:06:01 - [DEBUG] - Part number: 
-#2025-07-18 14:06:01 - [ERROR] - Invalid part number extracted: '' from file: 
- # Process parts in parallel
- 
- find "${PARTS_DIR}" -name "${PART_PREFIX}_*.xml" | sort \
-  | parallel --jobs "${MAX_THREADS}" --bar \
-   --env PROCESS_FUNCTION,XSLT_NOTES_API_FILE,XSLT_NOTE_COMMENTS_API_FILE,XSLT_TEXT_COMMENTS_API_FILE,TMP_DIR,DBNAME,POSTGRES_31_LOAD_API_NOTES,MAX_THREADS,SCRIPT_BASE_DIRECTORY \
-   bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh; ${PROCESS_FUNCTION} {}"
+ # Process parts using traditional background jobs
+ for XML_PART in $(find "${PARTS_DIR}" -name "${PART_PREFIX}_*.xml" | sort); do
+  (
+   __logi "Starting processing ${XML_PART} - ${BASHPID}."
+   "${PROCESS_FUNCTION}" "${XML_PART}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   __logi "Finished processing ${XML_PART} - ${BASHPID}."
+   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+    rm -f "${LOG_FILENAME}.${BASHPID}"
+   else
+    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"
+   fi
+  ) &
+  __logi "Check log per thread for more information."
+  # Wait between starting background jobs to prevent overwhelming the system
+  sleep 2
+ done
+
+ # Wait for all jobs to complete
+ FAIL=0
+ for JOB in $(jobs -p); do
+  echo "${JOB}"
+  set +e
+  wait "${JOB}"
+  RET="${?}"
+  set -e
+  if [[ "${RET}" -ne 0 ]]; then
+   FAIL=$((FAIL + 1))
+  fi
+ done
+ __logw "Waited for all jobs, restarting in main thread - XML processing."
+ if [[ "${FAIL}" -ne 0 ]]; then
+  echo "FAIL! (${FAIL})"
+  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+ fi
+
+ # If some of the threads generated an error.
+ set +e
+ QTY_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | wc -l)
+ set -e
+ if [[ "${QTY_LOGS}" -ne 0 ]]; then
+  __logw "Some thread generated an error."
+  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+ fi
 
  __log_finish
 }
@@ -339,34 +522,34 @@ function __processXmlPartsParallel() {
 #   $4: XSLT text comments file (optional, uses global if not provided)
 function __processApiXmlPart() {
  local XML_PART="${1}"
- local XSLT_NOTES_FILE="${2:-${XSLT_NOTES_API_FILE}}"
- local XSLT_COMMENTS_FILE="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
- local XSLT_TEXT_FILE="${4:-${XSLT_TEXT_COMMENTS_API_FILE}}"
+ local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_API_FILE}}"
+ local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
+ local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_API_FILE}}"
  local PART_NUM
  local BASENAME_PART
- 
+
  # Debug: Show environment variables
- __simple_log "DEBUG" "Environment check in subshell:"
- __simple_log "DEBUG" "  XML_PART: '${XML_PART}'"
- __simple_log "DEBUG" "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
- __simple_log "DEBUG" "  XSLT_NOTES_API_FILE: '${XSLT_NOTES_API_FILE:-NOT_SET}'"
- __simple_log "DEBUG" "  DBNAME: '${DBNAME:-NOT_SET}'"
- 
+ __logd "Environment check in subshell:"
+ __logd "  XML_PART: '${XML_PART}'"
+ __logd "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
+ __logd "  XSLT_NOTES_API_FILE: '${XSLT_NOTES_API_FILE:-NOT_SET}'"
+ __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
+
  BASENAME_PART=$(basename "${XML_PART}" .xml)
  PART_NUM=$(echo "${BASENAME_PART}" | sed 's/part_//')
 
  # Debug: Show extraction process
- __simple_log "DEBUG" "Extracting part number from: ${XML_PART}"
- __simple_log "DEBUG" "Basename: ${BASENAME_PART}"
- __simple_log "DEBUG" "Part number: ${PART_NUM}"
+ __logd "Extracting part number from: ${XML_PART}"
+ __logd "Basename: ${BASENAME_PART}"
+ __logd "Part number: ${PART_NUM}"
 
  # Validate part number
  if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
-  __simple_log "ERROR" "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
+  __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
   return 1
  fi
 
- __simple_log "INFO" "Processing API XML part ${PART_NUM}: ${XML_PART}"
+ __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
 
  # Convert XML part to CSV using XSLT
  local OUTPUT_NOTES_PART
@@ -377,34 +560,46 @@ function __processApiXmlPart() {
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
  # Process notes
- __simple_log "DEBUG" "Processing notes with xsltproc: ${XSLT_NOTES_FILE} -> ${OUTPUT_NOTES_PART}"
- xsltproc -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE}" "${XML_PART}"
+ __logd "Processing notes with xsltproc: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
+ xsltproc -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
-  __simple_log "ERROR" "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+  __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   return 1
  fi
 
  # Process comments
- __simple_log "DEBUG" "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE} -> ${OUTPUT_COMMENTS_PART}"
- xsltproc -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE}" "${XML_PART}"
+ __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
+ xsltproc -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
-  __simple_log "ERROR" "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+  __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   return 1
  fi
 
  # Process text comments
- __simple_log "DEBUG" "Processing text comments with xsltproc: ${XSLT_TEXT_FILE} -> ${OUTPUT_TEXT_PART}"
- xsltproc -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE}" "${XML_PART}"
+ __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
+ xsltproc -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
-  __simple_log "ERROR" "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
+  __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
   return 1
  fi
 
+ # Add part_id to the end of each line for notes
+ __logd "Adding part_id ${PART_NUM} to notes CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+
+ # Add part_id to the end of each line for comments
+ __logd "Adding part_id ${PART_NUM} to comments CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+
+ # Add part_id to the end of each line for text comments
+ __logd "Adding part_id ${PART_NUM} to text comments CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+
  # Debug: Show generated CSV files and their sizes
- __simple_log "DEBUG" "Generated CSV files for part ${PART_NUM}:"
- __simple_log "DEBUG" "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)"
- __simple_log "DEBUG" "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)"
- __simple_log "DEBUG" "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)"
+ __logd "Generated CSV files for part ${PART_NUM}:"
+ __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)"
+ __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)"
+ __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)"
 
  # Load into database with partition ID and MAX_THREADS
  export OUTPUT_NOTES_PART
@@ -414,28 +609,112 @@ function __processApiXmlPart() {
  export MAX_THREADS
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
-  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART' \
+  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
    < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
- __simple_log "INFO" "Completed processing API part ${PART_NUM}"
+ __logi "Completed processing API part ${PART_NUM}"
 }
 
-# Export the function so it's available to parallel subshells
-export -f __processApiXmlPart
+# Processes a single XML part for Planet notes
+# Parameters:
+#   $1: XML part file path
+#   $2: XSLT notes file (optional, uses global if not provided)
+#   $3: XSLT comments file (optional, uses global if not provided)
+#   $4: XSLT text comments file (optional, uses global if not provided)
+function __processPlanetXmlPart() {
+ local XML_PART="${1}"
+ local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_FILE}}"
+ local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_FILE}}"
+ local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_FILE}}"
+ local PART_NUM
+ local BASENAME_PART
 
-# Create a simple logger function for parallel subshells to avoid complex variable issues
-function __simple_log() {
-  local level="${1:-INFO}"
-  shift
-  local message="$*"
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - [${level}] - ${message}"
+ # Debug: Show environment variables
+ __logd "Environment check in subshell:"
+ __logd "  XML_PART: '${XML_PART}'"
+ __logd "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
+ __logd "  XSLT_NOTES_FILE: '${XSLT_NOTES_FILE:-NOT_SET}'"
+ __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
+
+ BASENAME_PART=$(basename "${XML_PART}" .xml)
+ PART_NUM=$(echo "${BASENAME_PART}" | sed 's/part_//')
+
+ # Debug: Show extraction process
+ __logd "Extracting part number from: ${XML_PART}"
+ __logd "Basename: ${BASENAME_PART}"
+ __logd "Part number: ${PART_NUM}"
+
+ # Validate part number
+ if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
+  __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
+  return 1
+ fi
+
+ __logi "Processing Planet XML part ${PART_NUM}: ${XML_PART}"
+
+ # Convert XML part to CSV using XSLT
+ local OUTPUT_NOTES_PART
+ local OUTPUT_COMMENTS_PART
+ local OUTPUT_TEXT_PART
+ OUTPUT_NOTES_PART="${TMP_DIR}/output-notes-part-${PART_NUM}.csv"
+ OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
+ OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
+
+ # Process notes
+ __logd "Processing notes with xsltproc: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
+ xsltproc -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
+ if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
+  __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+  return 1
+ fi
+
+ # Add part_id to the end of each line
+ __logd "Adding part_id ${PART_NUM} to notes CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+
+ # Process comments
+ __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
+ xsltproc -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
+ if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
+  __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+  return 1
+ fi
+
+ # Add part_id to the end of each line
+ __logd "Adding part_id ${PART_NUM} to comments CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+
+ # Process text comments
+ __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
+ xsltproc -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
+ if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
+  __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
+  return 1
+ fi
+
+ # Add part_id to the end of each line
+ __logd "Adding part_id ${PART_NUM} to text comments CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+
+ # Debug: Show generated CSV files and their sizes
+ __logd "Generated CSV files for part ${PART_NUM}:"
+ __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)"
+ __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)"
+ __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)"
+
+ # Load into database with partition ID and MAX_THREADS
+ export OUTPUT_NOTES_PART
+ export OUTPUT_COMMENTS_PART
+ export OUTPUT_TEXT_PART
+ export PART_ID="${PART_NUM}"
+ export MAX_THREADS
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
+  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+   < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" || true)"
+
+ __logi "Completed processing Planet part ${PART_NUM}"
 }
-
-# Export the function so it's available to parallel subshells
-export -f __simple_log
-
-# Export required environment variables for parallel processing
-export DBNAME TMP_DIR POSTGRES_31_LOAD_API_NOTES XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
 
 # Checks prerequisites commands to run the script.
 function __checkPrereqsCommands {
@@ -538,12 +817,7 @@ EOF
   __loge "ERROR: XMLStarlet is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## GNU Parallel for parallel processing
- __logd "Checking GNU Parallel."
- if ! parallel --version > /dev/null 2>&1; then
-  __loge "ERROR: GNU Parallel is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+
  ## Bash 4 or greater.
  __logd "Checking Bash version."
  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
@@ -721,26 +995,6 @@ function __validatePlanetNotesXMLFile {
  __log_finish
 }
 
-# Creates the XSLT files and process the XML files with them.
-function __convertPlanetNotesToFlatFile {
- __log_start
- # Process the notes file.
-
- # Note too large: https://www.openstreetmap.org/note/156572
- # It requires --maxdepth 5000
- # Converts the XML into a flat file in CSV format.
- __logi "Processing notes from XML."
- xsltproc --timing --load-trace -o "${OUTPUT_NOTES_FILE}" \
-  "${XSLT_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
- __logi "Processing comments from XML."
- xsltproc --timing --load-trace -o "${OUTPUT_NOTE_COMMENTS_FILE}" \
-  "${XSLT_NOTE_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
- __logi "Processing text from XML."
- xsltproc --timing --load-trace --maxdepth 40000 -o "${OUTPUT_TEXT_COMMENTS_FILE}" \
-  "${XSLT_TEXT_COMMENTS_FILE}" "${PLANET_NOTES_FILE}.xml"
- __log_finish
-}
-
 # Creates a function to get the country or maritime area from coordinates.
 function __createFunctionToGetCountry {
  __log_start
@@ -863,7 +1117,7 @@ function __processBoundary {
   LOCK_ID=$(cat "${LOCK_OGR2OGR}"/pid)
   set -e
   __logd "${PROCESS} waiting for the lock. Current owner ${LOCK_ID}."
-  sleep 1
+  sleep 2
   set +e
   mkdir "${LOCK_OGR2OGR}" 2> /dev/null
   RET="${?}"
@@ -1034,7 +1288,7 @@ function __processCountries {
   rm -f "${LOCK_OGR2OGR}/pid"
   rmdir "${LOCK_OGR2OGR}"
  fi
- __logw "Starting parallel process to process country boundaries..."
+ __logw "Starting background process to process country boundaries..."
  for I in "${TMP_DIR}"/part_country_??; do
   (
    __logi "Starting list ${I} - ${BASHPID}."
@@ -1048,7 +1302,7 @@ function __processCountries {
    fi
   ) &
   __logi "Check log per thread for more information."
-  sleep 5
+  sleep 2
  done
 
  FAIL=0
@@ -1111,7 +1365,7 @@ function __processMaritimes {
   rm -f "${LOCK_OGR2OGR}/pid"
   rmdir "${LOCK_OGR2OGR}"
  fi
- __logw "Starting parallel process to process maritime boundaries..."
+ __logw "Starting background process to process maritime boundaries..."
  for I in "${TMP_DIR}"/part_maritime_??; do
   (
    __logi "Starting list ${I} - ${BASHPID}."
@@ -1124,7 +1378,7 @@ function __processMaritimes {
    fi
   ) &
   __logi "Check log per thread for more information."
-  sleep 5
+  sleep 2
  done
 
  FAIL=0
@@ -1196,7 +1450,7 @@ function __getLocationNotes {
 
  # Processes notes that should already have a location.
  declare -l SIZE=$((MAX_NOTE_ID_NOT_NULL / MAX_THREADS))
- __logw "Starting parallel process to locate notes - old..."
+ __logw "Starting background process to locate notes - old..."
  for J in $(seq 1 1 "${MAX_THREADS}"); do
   (
    __logi "Starting ${J}."
@@ -1253,7 +1507,7 @@ function __getLocationNotes {
  MAX_NOTE_ID_NOT_NULL=$((MAX_NOTE_ID_NOT_NULL - LOOP_SIZE))
  QTY=$((MAX_NOTE_ID - MAX_NOTE_ID_NOT_NULL))
  declare -l SIZE=$((QTY / MAX_THREADS))
- __logw "Starting parallel process to locate notes - new..."
+ __logw "Starting background process to locate notes - new..."
  for J in $(seq 1 1 "${MAX_THREADS}"); do
   (
    __logi "Starting ${J}."

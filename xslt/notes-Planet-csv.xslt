@@ -22,12 +22,12 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
    <xsl:text>",</xsl:text>
    <xsl:choose>
     <xsl:when test="@closed_at != ''">
-     <xsl:text>"</xsl:text>
+     <xsl:text>"close","</xsl:text>
      <xsl:value-of select="@closed_at"/>
-     <xsl:text>","close"</xsl:text>
+     <xsl:text>",</xsl:text>
     </xsl:when>
     <xsl:otherwise>
-     <xsl:text>,"open"</xsl:text>
+     <xsl:text>"open",,</xsl:text>
     </xsl:otherwise>
    </xsl:choose>
    <xsl:text>&#10;</xsl:text>

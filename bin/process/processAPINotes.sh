@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-18
-declare -r VERSION="2025-07-18"
+# Version: 2025-07-19
+declare -r VERSION="2025-07-19"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -109,7 +109,7 @@ declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/p
 # Create partitions dynamically.
 declare -r POSTGRES_22_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"
 # Create properties file.
-declare -r POSTGRES_23_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPropertiesTables.sql"
+declare -r POSTGRES_23_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
 # Load notes.
 declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 # Insert new notes and comments.
@@ -354,10 +354,12 @@ function __processXMLorPlanet {
  else
   # Split XML into parts and process in parallel if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-   __splitXmlForParallel "${API_NOTES_FILE}"
+   __splitXmlForParallelAPI "${API_NOTES_FILE}"
    # Export XSLT variables for parallel processing
    export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
    __processXmlPartsParallel "__processApiXmlPart"
+  else
+   __logi "No notes found in XML file, skipping processing."
   fi
  fi
 
@@ -511,8 +513,7 @@ function main() {
  RESULT=$(wc -l < "${API_NOTES_FILE}")
  if [[ "${RESULT}" -ne 0 ]]; then
   __validateApiNotesXMLFile
-  # Count notes in XML file
-  __countXmlNotes "${API_NOTES_FILE}"
+  __countXmlNotesAPI "${API_NOTES_FILE}"
   __processXMLorPlanet
   __consolidatePartitions
   __insertNewNotesAndComments

@@ -43,11 +43,13 @@ AS $proc$
   END IF;
 
   INSERT INTO note_comments (
+   id,
    note_id,
    event,
    created_at,
    id_user
   ) VALUES (
+   nextval('note_comments_id_seq'),
    m_note_id,
    m_event,
    m_created_at,

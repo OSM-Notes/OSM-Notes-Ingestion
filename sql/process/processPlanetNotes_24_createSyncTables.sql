@@ -49,3 +49,14 @@ COMMENT ON COLUMN note_comments_sync.id_user IS
   'OSM id of the user who performed the action';
 COMMENT ON COLUMN note_comments_sync.username IS
   'OSM username who perfomed the action';
+
+CREATE TABLE note_comments_text_sync (
+ note_id INTEGER NOT NULL,
+ body TEXT
+);
+COMMENT ON TABLE note_comments_text_sync IS
+  'Temporal table for note comments text from Planet';
+COMMENT ON COLUMN note_comments_text_sync.note_id IS
+  'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_text_sync.body IS
+  'Text content of the comment';

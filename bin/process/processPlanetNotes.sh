@@ -131,7 +131,6 @@
 # __cleanPartial                               x        x
 # __downloadPlanetNotes                x
 # __validatePlanetNotesXMLFile         x
-# __convertPlanetNotesToFlatFile       x
 # __createFunctionToGetCountry         x       x
 # __createProcedures                   x       x
 # __analyzeAndVacuum                   x       x
@@ -212,6 +211,9 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
+# Total notes.
+declare -i TOTAL_NOTES=-1
+
 # Name of the file to download.
 declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 # Filename for the OSM Notes from Planet.
@@ -234,20 +236,26 @@ declare -r POSTGRES_22_CREATE_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/
 declare -r POSTGRES_23_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
 # Create sync tables.
 declare -r POSTGRES_24_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
+# Create partitions for parallel processing.
+declare -r POSTGRES_25_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createPartitions.sql"
 # Create country tables.
-declare -r POSTGRES_25_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
+declare -r POSTGRES_26_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
 # Vacuum and analyze.
 declare -r POSTGRES_31_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_31_analyzeVacuum.sql"
-# Load sync notes.
-declare -r POSTGRES_41_LOAD_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadSyncNotes.sql"
+# Load partitioned sync notes.
+declare -r POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
+# Consolidate partitions.
+declare -r POSTGRES_42_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_consolidatePartitions.sql"
 # Remove duplicates.
-declare -r POSTGRES_42_REMOVE_DUPLICATES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_removeDuplicates.sql"
+declare -r POSTGRES_43_REMOVE_DUPLICATES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_removeDuplicates.sql"
 # Assign sequence for comments
-declare -r POSTGRES_43_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_commentsSequence.sql"
+declare -r POSTGRES_44_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_commentsSequence.sql"
 # Load text comments.
-declare -r POSTGRES_44_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
+declare -r POSTGRES_45_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
 # Load text comments.
-declare -r POSTGRES_45_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
+declare -r POSTGRES_46_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
+# Move sync to main tables.
+declare -r POSTGRES_43_MOVE_SYNC_TO_MAIN="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_moveSyncToMain.sql"
 
 # Variable to define that the process should update the location of notes.
 declare -r UPDATE_NOTE_LOCATION=false
@@ -265,7 +273,6 @@ source "${FUNCTIONS_FILE}"
 # __checkBaseTables
 # __downloadPlanetNotes
 # __validatePlanetNotesXMLFile
-# __convertPlanetNotesToFlatFile
 # __createFunctionToGetCountry
 # __createProcedures
 
@@ -344,32 +351,24 @@ function __checkPrereqs {
   __loge "ERROR: File is missing at ${POSTGRES_24_CREATE_SYNC_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_25_CREATE_COUNTRY_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_25_CREATE_COUNTRY_TABLES}."
+ if [[ ! -r "${POSTGRES_26_CREATE_COUNTRY_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_26_CREATE_COUNTRY_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_31_VACUUM_AND_ANALYZE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_31_VACUUM_AND_ANALYZE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_41_LOAD_SYNC_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_41_LOAD_SYNC_NOTES}."
+ if [[ ! -r "${POSTGRES_25_CREATE_PARTITIONS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_25_CREATE_PARTITIONS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_42_REMOVE_DUPLICATES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_42_REMOVE_DUPLICATES}."
+ if [[ ! -r "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_43_COMMENTS_SEQUENCE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_43_COMMENTS_SEQUENCE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_44_LOAD_TEXT_COMMENTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_44_LOAD_TEXT_COMMENTS}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_45_OBJECTS_TEXT_COMMENTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_45_OBJECTS_TEXT_COMMENTS}."
+ if [[ ! -r "${POSTGRES_42_CONSOLIDATE_PARTITIONS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_42_CONSOLIDATE_PARTITIONS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __checkPrereqs_functions
@@ -381,7 +380,7 @@ function __checkPrereqs {
 function __dropSyncTables {
  __log_start
  __logi "Droping sync tables."
- psql -d "${DBNAME}" -f "${POSTGRES_11_DROP_SYNC_TABLES}"
+ psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_11_DROP_SYNC_TABLES}"
  __log_finish
 }
 
@@ -389,7 +388,7 @@ function __dropSyncTables {
 function __dropApiTables {
  __log_start
  __logi "Droping api tables."
- psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
+ psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_12_DROP_API_TABLES}"
  __log_finish
 }
 
@@ -434,7 +433,7 @@ function __createSyncTables {
 function __createCountryTables {
  __log_start
  __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_25_CREATE_COUNTRY_TABLES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
  __log_finish
 }
 
@@ -474,7 +473,7 @@ function __removeDuplicates {
  __log_start
  PROCESS_ID="${$}"
  echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" \
-   -v ON_ERROR_STOP=1
+  -v ON_ERROR_STOP=1
  __logi "Lock put ${PROCESS_ID}"
 
  export PROCESS_ID
@@ -483,7 +482,7 @@ function __removeDuplicates {
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_42_REMOVE_DUPLICATES}" || true)"
 
  echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" \
- -v ON_ERROR_STOP=1
+  -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
  __logi "Lock removed ${PROCESS_ID}"
 
@@ -502,6 +501,60 @@ function __loadTextComments {
    < "${POSTGRES_44_LOAD_TEXT_COMMENTS}" || true)"
  # Some objects could already exist.
  psql -d "${DBNAME}" -f "${POSTGRES_45_OBJECTS_TEXT_COMMENTS}"
+ __log_finish
+}
+
+# Moves data from sync tables to main tables after consolidation.
+function __moveSyncToMain {
+ __log_start
+ __logi "Moving data from sync tables to main tables"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_43_MOVE_SYNC_TO_MAIN}"
+ __log_finish
+}
+
+# Creates partition tables for parallel processing and verifies their creation.
+function __createPartitionTables {
+ __log_start
+ __logi "Creating partition tables with MAX_THREADS=${MAX_THREADS}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "SET app.max_threads = '${MAX_THREADS}';" \
+  -f "${POSTGRES_25_CREATE_PARTITIONS}"
+ __logi "Partition tables creation completed"
+
+ # Verify that partition tables were created
+ __logi "Verifying partition tables creation..."
+ psql -d "${DBNAME}" -c "
+ SELECT table_name, COUNT(*) as count 
+ FROM information_schema.tables 
+ WHERE table_name LIKE '%_part_%' 
+ GROUP BY table_name 
+ ORDER BY table_name;
+ "
+ __log_finish
+}
+
+# Processes Planet notes with parallel processing when notes are available.
+function __processPlanetNotesWithParallel {
+ __log_start
+ __logi "Processing Planet notes with parallel processing"
+
+ # Create partitions for parallel processing
+ __createPartitionTables
+
+ __splitXmlForParallelPlanet "${PLANET_NOTES_FILE}.xml"
+ # Export XSLT variables for parallel processing
+ export XSLT_NOTES_FILE XSLT_NOTE_COMMENTS_FILE XSLT_TEXT_COMMENTS_FILE
+ __processXmlPartsParallel "__processPlanetXmlPart"
+ # Consolidate partitions into main tables
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "SET app.max_threads = '${MAX_THREADS}';" \
+  -f "${POSTGRES_42_CONSOLIDATE_PARTITIONS}"
+
+ # Move data from sync tables to main tables
+ __logi "Moving data from sync tables to main tables"
+ __moveSyncToMain
+
+ __logi "Planet notes processing with parallel processing completed"
  __log_finish
 }
 
@@ -594,17 +647,21 @@ function main() {
   fi
  fi
  if [[ "${PROCESS_TYPE}" == "" ]]; then
-  __downloadPlanetNotes          # sync
-  __validatePlanetNotesXMLFile   # sync
-  __convertPlanetNotesToFlatFile # sync
+  __downloadPlanetNotes        # sync
+  __validatePlanetNotesXMLFile # sync
+  # Count notes in XML file
+  __countXmlNotesPlanet "${PLANET_NOTES_FILE}.xml"
+  # Split XML into parts and process in parallel if there are notes to process
+  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+   __processPlanetNotesWithParallel
+  else
+   __logi "No notes found in XML file, skipping processing."
+  fi
  fi
  __createFunctionToGetCountry # base & sync
  __createProcedures           # all
  if [[ "${PROCESS_TYPE}" == "" ]]; then
-  __loadSyncNotes    # sync
-  __removeDuplicates # sync
-  __loadTextComments # sync
-  __dropSyncTables   # sync
+  __dropSyncTables # sync
   set +E
   export RET_FUNC=0
   __organizeAreas # sync

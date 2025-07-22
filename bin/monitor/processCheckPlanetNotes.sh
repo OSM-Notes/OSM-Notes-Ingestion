@@ -35,8 +35,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-16
-declare -r VERSION="2025-07-16"
+# Version: 2025-07-21
+declare -r VERSION="2025-07-21"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -107,7 +107,6 @@ declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 source "${FUNCTIONS_FILE}"
 # __downloadPlanetNotes
 # __validatePlanetNotesXMLFile
-# __convertPlanetNotesToFlatFile
 
 # Shows the help information.
 function __show_help {
@@ -227,7 +226,6 @@ function main() {
  __createCheckTables
  __downloadPlanetNotes 2>&1
  __validatePlanetNotesXMLFile
- __convertPlanetNotesToFlatFile
  __loadCheckNotes
  __analyzeAndVacuum
  __cleanNotesFiles

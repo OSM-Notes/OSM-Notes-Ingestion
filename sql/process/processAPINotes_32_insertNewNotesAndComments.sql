@@ -30,19 +30,29 @@ $$
   
   -- Get range for parallel processing if process_id contains chunk info
   IF m_process_id LIKE '%_%' THEN
-   m_current_chunk := SPLIT_PART(m_process_id, '_', 2)::INTEGER;
-   m_chunk_size := (SELECT COUNT(1) FROM notes_api) / 4; -- Using MAX_THREADS (4)
-   m_min_note_id := (m_current_chunk - 1) * m_chunk_size + 1;
-   m_max_note_id := m_current_chunk * m_chunk_size;
+   -- Validate that the second part is a valid integer
+   IF SPLIT_PART(m_process_id, '_', 2) ~ '^[0-9]+$' THEN
+    m_current_chunk := SPLIT_PART(m_process_id, '_', 2)::INTEGER;
+    m_chunk_size := (SELECT COUNT(1) FROM notes_api) / 4; -- Using MAX_THREADS (4)
+    m_min_note_id := (m_current_chunk - 1) * m_chunk_size + 1;
+    m_max_note_id := m_current_chunk * m_chunk_size;
+   ELSE
+    -- Fall back to sequential processing if chunk info is invalid
+    m_current_chunk := 0;
+    m_chunk_size := 0;
+    m_min_note_id := 0;
+    m_max_note_id := 0;
+   END IF;
    
-   -- Process only notes in this chunk range
-   FOR r IN
-    SELECT /* Notes-processAPI */ note_id, latitude, longitude, created_at,
-      closed_at, status
-    FROM notes_api
-    WHERE note_id BETWEEN m_min_note_id AND m_max_note_id
-    ORDER BY created_at
-   LOOP
+   -- Process only notes in this chunk range (if valid chunk info)
+   IF m_current_chunk > 0 THEN
+    FOR r IN
+     SELECT /* Notes-processAPI */ note_id, latitude, longitude, created_at,
+       closed_at, status
+     FROM notes_api
+     WHERE note_id BETWEEN m_min_note_id AND m_max_note_id
+     ORDER BY created_at
+    LOOP
     m_closed_time := QUOTE_NULLABLE(r.closed_at);
 
     INSERT INTO logs (message) VALUES (r.note_id || ' - created:'
@@ -53,8 +63,29 @@ $$
       || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
     --RAISE NOTICE 'Note % (%) %.', r.note_id, m_stmt;
     EXECUTE m_stmt;
-    INSERT INTO logs (message) VALUES (r.note_id || ' - Note inserted.');
-   END LOOP;
+         INSERT INTO logs (message) VALUES (r.note_id || ' - Note inserted.');
+    END LOOP;
+   ELSE
+    -- Sequential processing for this chunk (fallback)
+    FOR r IN
+     SELECT /* Notes-processAPI */ note_id, latitude, longitude, created_at,
+       closed_at, status
+     FROM notes_api
+     ORDER BY created_at
+    LOOP
+     m_closed_time := QUOTE_NULLABLE(r.closed_at);
+
+     INSERT INTO logs (message) VALUES (r.note_id || ' - created:'
+      || r.created_at || ',closed:' || m_closed_time || '.');
+
+     m_stmt := 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
+       || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at
+       || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
+     --RAISE NOTICE 'Note % (%) %.', r.note_id, m_stmt;
+     EXECUTE m_stmt;
+     INSERT INTO logs (message) VALUES (r.note_id || ' - Note inserted.');
+    END LOOP;
+   END IF;
    
   ELSE
    -- Sequential processing for single process
