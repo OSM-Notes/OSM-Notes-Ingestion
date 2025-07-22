@@ -92,19 +92,19 @@ declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
 
 # PostgreSQL files.
 # Check base tables.
-declare -r POSTGRES_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
+declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
 # Drop generic objects.
-declare -r POSTGRES_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
+declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
 # Create get country function.
-declare -r POSTGRES_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
+declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
 # Create insert note procedure.
-declare -r POSTGRES_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
+declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
 # Create insert note comment procedure.
-declare -r POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
+declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
 # Organize areas.
-declare -r POSTGRES_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
+declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
 # Upload note locations.
-declare -r POSTGRES_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
+declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
 
 # Directory for Lock when inserting in the database
 declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
@@ -830,8 +830,8 @@ EOF
   __loge "ERROR: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_UPLOAD_NOTE_LOCATION}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_UPLOAD_NOTE_LOCATION}."
+ if [[ ! -r "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_32_UPLOAD_NOTE_LOCATION}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${XSLT_NOTES_FILE}" ]]; then
@@ -909,28 +909,28 @@ EOF
 function __checkPrereqs_functions {
  __log_start
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CHECK_BASE_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CHECK_BASE_TABLES}."
+ if [[ ! -r "${POSTGRES_11_CHECK_BASE_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_11_CHECK_BASE_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}."
+ if [[ ! -r "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CREATE_PROC_INSERT_NOTE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_PROC_INSERT_NOTE}."
+ if [[ ! -r "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_PROC_INSERT_NOTE}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}."
+ if [[ ! -r "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_ORGANIZE_AREAS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_ORGANIZE_AREAS}."
+ if [[ ! -r "${POSTGRES_31_ORGANIZE_AREAS}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_31_ORGANIZE_AREAS}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -940,7 +940,7 @@ function __checkPrereqs_functions {
 function __checkBaseTables {
  __log_start
  set +e
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CHECK_BASE_TABLES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}"
  RET=${?}
  set -e
  RET_FUNC="${RET}"
@@ -951,7 +951,7 @@ function __checkBaseTables {
 function __dropGenericObjects {
  __log_start
  __logi "Droping generic objects."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_GENERIC_OBJECTS}"
+ psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_GENERIC_OBJECTS}"
  __log_finish
 }
 
@@ -1004,7 +1004,7 @@ function __createFunctionToGetCountry {
  # * 25 - 65: Middle East, East Africa and Russia.
  # * 65 - 180: Southeast Asia and Oceania.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_CREATE_FUNCTION_GET_COUNTRY}"
+  -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
  __log_finish
 }
 
@@ -1013,11 +1013,11 @@ function __createProcedures {
  __log_start
  # Creates a procedure that inserts a note.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_CREATE_PROC_INSERT_NOTE}"
+  -f "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}"
 
  # Creates a procedure that inserts a note comment.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_CREATE_PROC_INSERT_NOTE_COMMENT}"
+  -f "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}"
  __log_finish
 }
 
@@ -1026,7 +1026,7 @@ function __organizeAreas {
  __log_start
  set +e
  # Insert values for representative countries in each area.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_ORGANIZE_AREAS}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_ORGANIZE_AREAS}"
  RET=${?}
  set -e
  RET_FUNC="${RET}"
@@ -1432,7 +1432,7 @@ function __getLocationNotes {
   # shellcheck disable=SC2016
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
    -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
-    < "${POSTGRES_UPLOAD_NOTE_LOCATION}" || true)"
+    < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
  fi
 
  # Retrieves the max note for already location processed notes (from file.)
