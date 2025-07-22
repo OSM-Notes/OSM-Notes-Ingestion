@@ -23,7 +23,7 @@ WITH (FORMAT csv, DELIMITER ',', QUOTE '"', ENCODING 'UTF8');
 UPDATE note_comments_sync_part_${PART_ID} SET part_id = ${PART_ID} WHERE part_id IS NULL;
 
 -- Load text comments into partitioned table
-COPY note_comments_text_sync_part_${PART_ID} (note_id, body, part_id) 
+COPY note_comments_text_sync_part_${PART_ID} (note_id, sequence_action, body, part_id) 
 FROM '${OUTPUT_TEXT_PART}' 
 WITH (FORMAT csv, DELIMITER ',', QUOTE '"', ENCODING 'UTF8');
 

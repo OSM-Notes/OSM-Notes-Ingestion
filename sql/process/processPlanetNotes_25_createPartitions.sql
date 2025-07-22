@@ -57,7 +57,9 @@ BEGIN
     partition_name := 'note_comments_text_sync_part_' || i;
     
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I (
+      id SERIAL,
       note_id INTEGER NOT NULL,
+      sequence_action INTEGER,
       body TEXT,
       part_id INTEGER DEFAULT %s
     )', partition_name, i);

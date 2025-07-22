@@ -51,9 +51,9 @@ BEGIN
       GET DIAGNOSTICS total_comments = ROW_COUNT;
       
       -- Insert text comments from partition
-      EXECUTE format('INSERT INTO note_comments_text_sync 
-        SELECT note_id, body 
-        FROM note_comments_text_sync_part_%s WHERE part_id = %s', i, i);
+      EXECUTE format('INSERT INTO note_comments_text_sync
+  SELECT nextval(''note_comments_text_sync_id_seq''), note_id, sequence_action, body
+  FROM note_comments_text_sync_part_%s WHERE part_id = %s', i, i);
       
       -- Count inserted text comments
       GET DIAGNOSTICS total_text_comments = ROW_COUNT;

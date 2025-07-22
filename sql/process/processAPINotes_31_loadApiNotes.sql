@@ -62,7 +62,7 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading text comments from API partition ' || current_setting('app.part_id', true) AS Text;
 
 -- Load text comments into specific partition
-COPY note_comments_text_api (note_id, body, part_id)
+COPY note_comments_text_api (note_id, sequence_action, body, part_id)
 FROM '${OUTPUT_TEXT_PART}' csv DELIMITER ',' QUOTE '''';
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,

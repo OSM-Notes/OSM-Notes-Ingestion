@@ -1,7 +1,5 @@
-He procurado que los archivos SQL tengan como parte del nombre un número que indica el orden de ejecución.
-Además, ese número lo indico en el nombre de la variable que lo usa. Sin embargo, en algunos casos no cambie el nombre de la variable. Podrías corregir eso.
 
-Estoy viendo que la tabla note_comment_text_sync no está siendo usada de la misma forma que note_sync y note_comment_sync. Es normal?
+Me parece  que la tabla note_comment_text_sync no está siendo usada de la misma forma que note_sync y note_comment_sync. Es normal?
 Recuerda que las tablas sync es para capturar solo las diferencias con las tablas base. Pareciera que esto no se hace para los textos de los comentarios de las notas. Me puedes confirmar
 
 

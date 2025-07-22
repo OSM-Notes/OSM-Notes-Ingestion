@@ -60,9 +60,13 @@ FROM note_comments_sync;
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Moving text comments from sync to main tables' AS Text;
 
-INSERT INTO note_comments_text (id, note_id, body)
-SELECT nextval('note_comments_text_id_seq'), note_id, body
-FROM note_comments_text_sync;
+INSERT INTO note_comments_text (id, note_id, sequence_action, body)
+SELECT id, note_id, sequence_action, body
+FROM note_comments_text_sync
+ON CONFLICT (id) DO UPDATE SET
+ note_id = EXCLUDED.note_id,
+ sequence_action = EXCLUDED.sequence_action,
+ body = EXCLUDED.body;
 
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  COUNT(1) AS Qty,

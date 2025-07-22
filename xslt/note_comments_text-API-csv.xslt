@@ -43,6 +43,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
    </xsl:variable>
    <xsl:for-each select="comments/comment">
     <xsl:copy-of select="$note_id" />
+    <xsl:text>,</xsl:text>
+    <xsl:value-of select="position()"/>
     <xsl:text>,'</xsl:text>
     <xsl:call-template name='escape-quotes'>
      <xsl:with-param name='text' select='text'/>
