@@ -1,0 +1,76 @@
+# Docker Compose for OSM-Notes-profile Test Environment
+# Author: Andres Gomez (AngocA)
+# Version: 2025-07-20
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: osm_notes_postgres
+    environment:
+      POSTGRES_DB: osm_notes_test
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application Container
+  app:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile
+    container_name: osm_notes_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TEST_DBNAME: osm_notes_test
+      TEST_DBUSER: testuser
+      TEST_DBPASSWORD: testpass
+      TEST_DBHOST: postgres
+      TEST_DBPORT: 5432
+      LOG_LEVEL: INFO
+      MAX_THREADS: 2
+      PGPASSWORD: testpass
+      PGHOST: postgres
+      PGUSER: testuser
+      PGDATABASE: osm_notes_test
+    volumes:
+      - ../../:/app
+      - ./mock_data:/app/mock_data
+    working_dir: /app
+    command: ["/bin/bash", "-c", "sleep infinity"]
+    networks:
+      - default
+
+  # Mock API Server
+  mock_api:
+    image: python:3.9-slim
+    container_name: osm_notes_mock_api
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./mock_api:/app/mock_api
+      - ./mock_data:/app/mock_data
+    working_dir: /app/mock_api
+    command: ["python3", "mock_osm_api.py"]
+    depends_on:
+      - postgres
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  postgres_data: 
