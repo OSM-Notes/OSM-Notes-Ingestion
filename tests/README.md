@@ -97,6 +97,20 @@ brew install pgtap
 ./tests/run_tests.sh --pgtap-only
 ```
 
+#### Run enhanced testability tests
+```bash
+# Run all enhanced tests
+./tests/run_tests.sh --enhanced-only
+
+# Run specific enhanced test suites
+bats tests/unit/bash/functionsProcess_enhanced.test.bats
+bats tests/unit/bash/prerequisites_enhanced.test.bats
+bats tests/unit/bash/xml_processing_enhanced.test.bats
+
+# Run with verbose output
+bats --verbose tests/unit/bash/functionsProcess_enhanced.test.bats
+```
+
 #### Keep test database
 ```bash
 ./tests/run_tests.sh --no-cleanup
@@ -225,17 +239,24 @@ export DOCKER_DBNAME="osm_notes_test"
 ## Current Test Status
 
 ### ✅ **Successful Tests**
-- **Unit Tests (BATS)**: 53 tests passing
+- **Unit Tests (BATS)**: 128+ tests passing
 - **pgTAP Tests**: 2 tests passing (Docker only)
 - **Integration Tests**: 5 tests passing (Docker only)
 - **Performance Tests**: 1 test passing
-- **Total**: 61 tests passing
+- **Total**: 136+ tests passing
 
 ### 🚀 **Advanced Tests (Phase 3)**
 - **Coverage Tests**: kcov + lcov + Codecov
 - **Security Tests**: Bandit + ShellCheck + Safety + Trivy
 - **Quality Tests**: SonarQube + CodeClimate + ESLint + Black
 - **Performance Tests**: JMeter + Gatling + TestContainers
+
+### 🔧 **Enhanced Testability Tests (Phase 4)**
+- **Enhanced Functions Tests**: 30 tests for improved XML functions
+- **Prerequisites Tests**: 25 tests for robust tool validation
+- **XML Processing Tests**: 20 tests for parallel processing
+- **Error Handling Tests**: Comprehensive error scenario coverage
+- **Mock Integration Tests**: Dependency injection and mocking
 
 ### 🔧 **Resolved Configuration**
 - ✅ Docker containers configured correctly
