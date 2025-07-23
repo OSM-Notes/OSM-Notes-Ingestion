@@ -46,14 +46,14 @@ if ! docker info &> /dev/null; then
     if sudo docker info &> /dev/null; then
         log_warning "Docker requires sudo access"
         DOCKER_CMD="sudo docker"
-        DOCKER_COMPOSE_CMD="sudo docker-compose"
+        DOCKER_COMPOSE_CMD="sudo docker compose"
     else
         log_error "Docker daemon is not running"
         exit 1
     fi
 else
     DOCKER_CMD="docker"
-    DOCKER_COMPOSE_CMD="docker-compose"
+    DOCKER_COMPOSE_CMD="docker compose"
 fi
 log_success "Docker is running"
 
@@ -130,8 +130,8 @@ echo "=========================================="
 echo "Debug Summary"
 echo "=========================================="
 echo "If PostgreSQL is not working, try:"
-echo "1. docker-compose down -v"
-echo "2. docker-compose up -d postgres"
+echo "1. docker compose down -v"
+echo "2. docker compose up -d postgres"
 echo "3. Wait 30 seconds for initialization"
 echo "4. Run this script again"
 echo 

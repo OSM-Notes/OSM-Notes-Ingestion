@@ -48,14 +48,14 @@ cleanup_containers() {
     if ! docker info &> /dev/null; then
         if sudo docker info &> /dev/null; then
             DOCKER_CMD="sudo docker"
-            DOCKER_COMPOSE_CMD="sudo docker-compose"
+            DOCKER_COMPOSE_CMD="sudo docker compose"
         else
             log_error "Docker is not accessible"
             return 1
         fi
     else
         DOCKER_CMD="docker"
-        DOCKER_COMPOSE_CMD="docker-compose"
+        DOCKER_COMPOSE_CMD="docker compose"
     fi
     
     # Stop containers
@@ -75,14 +75,14 @@ cleanup_volumes() {
     if ! docker info &> /dev/null; then
         if sudo docker info &> /dev/null; then
             DOCKER_CMD="sudo docker"
-            DOCKER_COMPOSE_CMD="sudo docker-compose"
+            DOCKER_COMPOSE_CMD="sudo docker compose"
         else
             log_error "Docker is not accessible"
             return 1
         fi
     else
         DOCKER_CMD="docker"
-        DOCKER_COMPOSE_CMD="docker-compose"
+        DOCKER_COMPOSE_CMD="docker compose"
     fi
     
     # Remove PostgreSQL data volume
@@ -104,14 +104,14 @@ rebuild_images() {
     if ! docker info &> /dev/null; then
         if sudo docker info &> /dev/null; then
             DOCKER_CMD="sudo docker"
-            DOCKER_COMPOSE_CMD="sudo docker-compose"
+            DOCKER_COMPOSE_CMD="sudo docker compose"
         else
             log_error "Docker is not accessible"
             return 1
         fi
     else
         DOCKER_CMD="docker"
-        DOCKER_COMPOSE_CMD="docker-compose"
+        DOCKER_COMPOSE_CMD="docker compose"
     fi
     
     # Build images with no cache
@@ -130,14 +130,14 @@ start_services() {
     if ! docker info &> /dev/null; then
         if sudo docker info &> /dev/null; then
             DOCKER_CMD="sudo docker"
-            DOCKER_COMPOSE_CMD="sudo docker-compose"
+            DOCKER_COMPOSE_CMD="sudo docker compose"
         else
             log_error "Docker is not accessible"
             return 1
         fi
     else
         DOCKER_CMD="docker"
-        DOCKER_COMPOSE_CMD="docker-compose"
+        DOCKER_COMPOSE_CMD="docker compose"
     fi
     
     # Start all services
@@ -154,14 +154,14 @@ wait_for_services() {
     if ! docker info &> /dev/null; then
         if sudo docker info &> /dev/null; then
             DOCKER_CMD="sudo docker"
-            DOCKER_COMPOSE_CMD="sudo docker-compose"
+            DOCKER_COMPOSE_CMD="sudo docker compose"
         else
             log_error "Docker is not accessible"
             return 1
         fi
     else
         DOCKER_CMD="docker"
-        DOCKER_COMPOSE_CMD="docker-compose"
+        DOCKER_COMPOSE_CMD="docker compose"
     fi
     
     # Wait for PostgreSQL
@@ -211,14 +211,14 @@ verify_services() {
     if ! docker info &> /dev/null; then
         if sudo docker info &> /dev/null; then
             DOCKER_CMD="sudo docker"
-            DOCKER_COMPOSE_CMD="sudo docker-compose"
+            DOCKER_COMPOSE_CMD="sudo docker compose"
         else
             log_error "Docker is not accessible"
             return 1
         fi
     else
         DOCKER_CMD="docker"
-        DOCKER_COMPOSE_CMD="docker-compose"
+        DOCKER_COMPOSE_CMD="docker compose"
     fi
     
     # Check PostgreSQL

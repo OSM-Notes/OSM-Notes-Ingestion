@@ -49,9 +49,15 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check if Docker Compose is installed
-    if ! command -v docker-compose &> /dev/null; then
-        log_error "Docker Compose is not installed"
+    # Check if Docker is installed
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker is not installed"
+        exit 1
+    fi
+    
+    # Check if Docker Compose v2 is available
+    if ! docker compose version &> /dev/null; then
+        log_error "Docker Compose v2 is not available"
         exit 1
     fi
     
@@ -61,14 +67,14 @@ check_prerequisites() {
         if sudo docker info &> /dev/null; then
             log_warning "Docker requires sudo access"
             DOCKER_CMD="sudo docker"
-            DOCKER_COMPOSE_CMD="sudo docker-compose"
+            DOCKER_COMPOSE_CMD="sudo docker compose"
         else
             log_error "Docker daemon is not running"
             exit 1
         fi
     else
         DOCKER_CMD="docker"
-        DOCKER_COMPOSE_CMD="docker-compose"
+        DOCKER_COMPOSE_CMD="docker compose"
     fi
     
     log_success "Prerequisites check completed"

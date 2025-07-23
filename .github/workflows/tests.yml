@@ -95,23 +95,23 @@ jobs:
     - name: Build and start containers
       run: |
         cd tests/docker
-        docker-compose up -d --build
+        docker compose up -d --build
 
     - name: Wait for services to be ready
       run: |
         cd tests/docker
-        docker-compose exec -T postgres pg_isready -U testuser -d osm_notes_test
+        docker compose exec -T postgres pg_isready -U testuser -d osm_notes_test
 
     - name: Run integration tests
       run: |
         cd tests/docker
-        docker-compose exec -T app bash -c "cd /app && ./tests/run_tests.sh --integration-only"
+        docker compose exec -T app bash -c "cd /app && ./tests/run_tests.sh --integration-only"
 
     - name: Stop containers
       if: always()
       run: |
         cd tests/docker
-        docker-compose down
+        docker compose down
 
     - name: Upload integration test results
       uses: actions/upload-artifact@v4
