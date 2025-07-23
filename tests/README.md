@@ -108,6 +108,33 @@ brew install pgtap
 ./tests/docker/run_integration_tests.sh
 ```
 
+### 🚀 **Advanced Tests (Phase 3)**
+
+#### Run all advanced tests
+```bash
+./tests/scripts/run_advanced_tests.sh
+```
+
+#### Run only coverage tests
+```bash
+./tests/scripts/run_advanced_tests.sh --coverage-only
+```
+
+#### Run only security tests
+```bash
+./tests/scripts/run_advanced_tests.sh --security-only
+```
+
+#### Run only quality tests
+```bash
+./tests/scripts/run_advanced_tests.sh --quality-only
+```
+
+#### Run only performance tests
+```bash
+./tests/scripts/run_advanced_tests.sh --performance-only
+```
+
 #### Start Docker services only
 ```bash
 ./tests/docker/run_integration_tests.sh --start-only
@@ -135,6 +162,21 @@ brew install pgtap
 ./tests/run_tests.sh --performance-only
 ```
 
+#### Coverage tests
+```bash
+./tests/advanced/coverage/coverage_report.sh --all
+```
+
+#### Security tests
+```bash
+./tests/advanced/security/security_scan.sh --scan-type all
+```
+
+#### Quality tests
+```bash
+./tests/scripts/run_advanced_tests.sh --quality-only
+```
+
 #### Integration tests (without Docker)
 ```bash
 ./tests/run_tests.sh --integration-only
@@ -151,6 +193,7 @@ brew install pgtap
 ```bash
 ./tests/run_tests.sh --help
 ./tests/docker/run_integration_tests.sh --help
+./tests/scripts/run_advanced_tests.sh --help
 ```
 
 #### Custom environment variables
@@ -187,6 +230,12 @@ export DOCKER_DBNAME="osm_notes_test"
 - **Performance Tests**: 1 test passing
 - **Total**: 31 tests passing
 
+### 🚀 **Advanced Tests (Phase 3)**
+- **Coverage Tests**: kcov + lcov + Codecov
+- **Security Tests**: Bandit + ShellCheck + Safety + Trivy
+- **Quality Tests**: SonarQube + CodeClimate + ESLint + Black
+- **Performance Tests**: JMeter + Gatling + TestContainers
+
 ### 🔧 **Resolved Configuration**
 - ✅ Docker containers configured correctly
 - ✅ PostgreSQL database working
@@ -202,12 +251,20 @@ export DOCKER_DBNAME="osm_notes_test"
 - ✅ **pgTAP Tests**: Skipped (require real PostgreSQL)
 - ✅ **Integration Tests**: Skipped (require Docker)
 - ✅ **Performance Tests**: 1 test passing
+- ✅ **Coverage Tests**: kcov + lcov (local analysis)
+- ✅ **Security Tests**: Bandit + ShellCheck (local analysis)
+- ✅ **Quality Tests**: SonarQube + CodeClimate (if available)
+- ✅ **Performance Tests**: JMeter + Gatling (if available)
 
 #### **Docker Environment (CI/CD)**
 - ✅ **BATS Tests**: 23 tests passing (real database)
 - ✅ **pgTAP Tests**: 2 tests passing (real database)
 - ✅ **Integration Tests**: 5 tests passing (real environment)
 - ✅ **Performance Tests**: 1 test passing
+- ✅ **Coverage Tests**: kcov + lcov + Codecov (CI/CD integration)
+- ✅ **Security Tests**: Bandit + ShellCheck + Safety + Trivy (full scan)
+- ✅ **Quality Tests**: SonarQube + CodeClimate (full analysis)
+- ✅ **Performance Tests**: JMeter + Gatling + TestContainers (full load testing)
 
 ## Troubleshooting
 
@@ -335,6 +392,21 @@ bats tests/integration/end_to_end.test.bats -f "API notes"
 
 # Monitor resource usage
 sudo docker stats osm_notes_app
+```
+
+### 4. **Advanced Testing (Phase 3)**
+```bash
+# Run all advanced tests
+./tests/scripts/run_advanced_tests.sh
+
+# Run specific advanced tests
+./tests/scripts/run_advanced_tests.sh --coverage-only
+./tests/scripts/run_advanced_tests.sh --security-only
+./tests/scripts/run_advanced_tests.sh --quality-only
+./tests/scripts/run_advanced_tests.sh --performance-only
+
+# Run with custom configuration
+COVERAGE_THRESHOLD=90 SECURITY_FAIL_ON_HIGH=true ./tests/scripts/run_advanced_tests.sh
 ```
 
 ## CI/CD Integration
@@ -477,6 +549,150 @@ sudo docker logs -f osm_notes_postgres
 
 ---
 
-**Last Updated**: 2025-07-20  
-**Version**: 2.0.0  
+**Last Updated**: 2025-07-23  
+**Version**: 3.0.0  
 **Author**: Andres Gomez (AngocA) 
+
+# Pruebas Avanzadas (Fase 3)
+
+Las pruebas avanzadas incluyen cobertura de código, análisis de seguridad, pruebas de calidad y rendimiento.
+
+## Comandos de Pruebas Avanzadas
+
+### Ejecutar todas las pruebas avanzadas
+```bash
+# Ejecutar todas las pruebas
+./tests/scripts/run_advanced_tests.sh
+
+# Ejecutar con opciones específicas
+./tests/scripts/run_advanced_tests.sh --clean --verbose --parallel
+```
+
+### Pruebas específicas
+```bash
+# Solo cobertura de código
+./tests/scripts/run_advanced_tests.sh --coverage-only
+
+# Solo pruebas de seguridad
+./tests/scripts/run_advanced_tests.sh --security-only
+
+# Solo pruebas de calidad
+./tests/scripts/run_advanced_tests.sh --quality-only
+
+# Solo pruebas de rendimiento
+./tests/scripts/run_advanced_tests.sh --performance-only
+```
+
+### Configuración avanzada
+```bash
+# Especificar directorio de salida
+./tests/scripts/run_advanced_tests.sh --output-dir /tmp/advanced_reports
+
+# Fallar en vulnerabilidades altas
+./tests/scripts/run_advanced_tests.sh --security-only --fail-on-high
+
+# Configurar umbral de cobertura
+COVERAGE_THRESHOLD=90 ./tests/scripts/run_advanced_tests.sh --coverage-only
+```
+
+## Herramientas de Pruebas Avanzadas
+
+### Cobertura de Código
+- **kcov**: Generación de reportes de cobertura para scripts bash
+- **Umbral configurable**: Por defecto 80%
+
+### Seguridad
+- **ShellCheck**: Análisis estático de scripts bash
+- **Trivy**: Escaneo de vulnerabilidades en dependencias y archivos
+- **Bandit**: Análisis de seguridad para archivos Python (solo mock files)
+
+### Calidad
+- **shfmt**: Verificación de formato de scripts bash
+- **ShellCheck**: Linting de scripts bash
+- **Buenas prácticas**: Verificación de estándares de código
+
+### Rendimiento
+- **Tiempo de ejecución**: Medición de performance de scripts principales
+- **Análisis de recursos**: Monitoreo de uso de CPU y memoria
+- **Optimización**: Identificación de cuellos de botella
+
+## Reportes Generados
+
+Los reportes se guardan en el directorio especificado (por defecto `./advanced_reports`):
+
+```
+advanced_reports/
+├── coverage/
+│   ├── coverage_report.html
+│   └── coverage_summary.md
+├── security/
+│   ├── shellcheck_report.txt
+│   ├── trivy_report.txt
+│   └── security_scan_summary.md
+├── quality/
+│   └── quality_summary.md
+├── performance/
+│   └── performance_summary.md
+└── advanced_tests_summary.md
+```
+
+## Integración con CI/CD
+
+### GitHub Actions
+```yaml
+- name: Run Advanced Tests
+  run: |
+    ./tests/scripts/run_advanced_tests.sh --clean --verbose
+    # Upload reports as artifacts
+```
+
+### Variables de Entorno
+```bash
+# Configuración de pruebas avanzadas
+ADVANCED_OUTPUT_DIR="./reports"
+COVERAGE_THRESHOLD=85
+SECURITY_FAIL_ON_HIGH=true
+QUALITY_MIN_RATING=A
+PERFORMANCE_TIMEOUT=600
+```
+
+## Troubleshooting
+
+### Problemas Comunes
+
+1. **kcov no encontrado**
+   ```bash
+   # Instalar kcov
+   sudo apt-get install kcov
+   ```
+
+2. **ShellCheck no encontrado**
+   ```bash
+   # Instalar ShellCheck
+   sudo apt-get install shellcheck
+   ```
+
+3. **shfmt no encontrado**
+   ```bash
+   # Instalar shfmt
+   go install mvdan.cc/sh/v3/cmd/shfmt@latest
+   ```
+
+4. **Trivy no encontrado**
+   ```bash
+   # Instalar Trivy
+   curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+   ```
+
+### Logs y Debugging
+
+```bash
+# Modo verbose para más información
+./tests/scripts/run_advanced_tests.sh --verbose
+
+# Verificar prerequisitos
+./tests/scripts/run_advanced_tests.sh --help
+
+# Limpiar reportes anteriores
+./tests/scripts/run_advanced_tests.sh --clean
+``` 

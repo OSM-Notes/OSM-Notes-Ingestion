@@ -1,6 +1,6 @@
 # GitHub Actions Workflow for OSM-Notes-profile Tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 name: Tests
 
@@ -71,7 +71,7 @@ jobs:
         ./tests/run_tests.sh --bats-only
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: unit-test-results
@@ -114,7 +114,7 @@ jobs:
         docker-compose down
 
     - name: Upload integration test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-test-results
@@ -168,7 +168,7 @@ jobs:
         python -m pytest tests/performance/ -v --benchmark-only
 
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-test-results
@@ -196,7 +196,7 @@ jobs:
         find . -name "*.sh" -exec shellcheck {} \; || true
 
     - name: Upload security results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-test-results
@@ -204,16 +204,59 @@ jobs:
           bandit-report.json
           shellcheck-results.txt
 
+  # Advanced Tests (Fase 3)
+  advanced-tests:
+    name: Advanced Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          shellcheck \
+          bats \
+          cmake \
+          build-essential \
+          libcurl4-openssl-dev \
+          libelf-dev \
+          libdw-dev
+
+    - name: Install kcov
+      run: |
+        git clone https://github.com/SimonKagstrom/kcov.git
+        cd kcov && mkdir build && cd build
+        cmake .. && make && sudo make install
+
+    - name: Run advanced tests
+      run: |
+        chmod +x tests/scripts/run_advanced_tests.sh
+        ./tests/scripts/run_advanced_tests.sh --clean --verbose
+
+    - name: Upload advanced test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: advanced-test-results
+        path: |
+          ./advanced_reports/
+          ./coverage/
+          ./security_reports/
+
   # Test Summary
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, performance-tests, security-tests]
+    needs: [unit-tests, integration-tests, performance-tests, security-tests, advanced-tests]
     if: always()
 
     steps:
     - name: Download all test results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: test-results
 
@@ -232,10 +275,13 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Security Tests" >> $GITHUB_STEP_SUMMARY
         echo "- Status: ${{ needs.security-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Advanced Tests" >> $GITHUB_STEP_SUMMARY
+        echo "- Status: ${{ needs.advanced-tests.result }}" >> $GITHUB_STEP_SUMMARY
 
     - name: Comment on PR
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');

@@ -1,3 +1,24 @@
 test/xslt/*actual*
 test/command/extra/mockPlanetDump.osn.bz2*
 .vscode/
+
+# Coverage reports
+coverage/
+advanced_reports/
+test_coverage/
+kcov/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Log files
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Backup files
+*.bak
+*.backup
