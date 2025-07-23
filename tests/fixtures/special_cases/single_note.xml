@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <note lon="-3.7038" lat="40.4168">
+    <id>123456</id>
+    <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
+    <reopen_url>https://api.openstreetmap.org/api/0.6/notes/123456/reopen.xml</reopen_url>
+    <date_created>2025-01-15 10:30:00 UTC</date_created>
+    <status>closed</status>
+    <date_closed>2025-01-15 11:30:00 UTC</date_closed>
+    <comments>
+      <comment>
+        <date>2025-01-15 10:30:00 UTC</date>
+        <uid>123</uid>
+        <user>testuser</user>
+        <user_url>https://www.openstreetmap.org/user/testuser</user_url>
+        <action>opened</action>
+        <text>Nota de prueba única</text>
+        <html>&lt;p&gt;Nota de prueba única&lt;/p&gt;</html>
+      </comment>
+      <comment>
+        <date>2025-01-15 11:30:00 UTC</date>
+        <uid>456</uid>
+        <user>testuser2</user>
+        <user_url>https://www.openstreetmap.org/user/testuser2</user_url>
+        <action>closed</action>
+        <text>Cerrando nota de prueba</text>
+        <html>&lt;p&gt;Cerrando nota de prueba&lt;/p&gt;</html>
+      </comment>
+    </comments>
+  </note>
+</osm> 

@@ -1,17 +1,4 @@
 
-
-
-
-Por ejemplo:
-Cuando el llamado del api, no contiene notas.
-Cuando solo tiene 1 notas
-Cuando tiene menos notas que la cantidad de hilos (7 en este caso)
-Cuando la cantidad de nota es la misma cantidad de nucleos
-Cuando tiene muchos más que la cantidad de nucleos.
-En cada caso me gustaría que se borraran los elementos de la DB y poder enteder el proceso
-Se debe utilizar los script de mock que se tienen bajo test/command
-Debe haber un archivo XML con cada uno de los escenarios
-
 Quiero que revises los comentarios de todo el código.
 Revises sintaxis y gramática en inglés. Si es necesario, mejora el texto para mayor claridad.
 

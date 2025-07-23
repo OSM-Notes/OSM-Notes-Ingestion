@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <!-- Caso especial: Nota cerrada dos veces consecutivas -->
+  <!-- Error del API que a veces ocurre -->
+  
+  <note id="400001" lat="40.4168" lon="-3.7038" created_at="2025-01-15T10:00:00Z" closed_at="2025-01-15T11:00:00Z">
+    <comment id="1" uid="123" user="user1" user_url="https://www.openstreetmap.org/user/user1" created_at="2025-01-15T10:00:00Z">
+      <text>Creando nota con error de doble cierre</text>
+    </comment>
+    <comment id="2" uid="456" user="user2" user_url="https://www.openstreetmap.org/user/user2" created_at="2025-01-15T11:00:00Z">
+      <text>Primer cierre de la nota</text>
+    </comment>
+    <comment id="3" uid="789" user="user3" user_url="https://www.openstreetmap.org/user/user3" created_at="2025-01-15T11:01:00Z">
+      <text>Segundo cierre de la nota (error del API)</text>
+    </comment>
+  </note>
+</osm> 

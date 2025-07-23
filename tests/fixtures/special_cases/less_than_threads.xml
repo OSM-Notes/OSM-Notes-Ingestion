@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <!-- Caso especial: 5 notas (menos que 7 hilos) -->
+  <!-- Útil para probar el manejo cuando hay menos trabajo que hilos disponibles -->
+  
+  <note id="100001" lat="40.4168" lon="-3.7038" created_at="2025-01-15T10:00:00Z" closed_at="2025-01-15T11:00:00Z">
+    <comment id="1" uid="123" user="user1" user_url="https://www.openstreetmap.org/user/user1" created_at="2025-01-15T10:00:00Z">
+      <text>Primera nota de prueba</text>
+    </comment>
+    <comment id="2" uid="456" user="user2" user_url="https://www.openstreetmap.org/user/user2" created_at="2025-01-15T11:00:00Z">
+      <text>Cerrando primera nota</text>
+    </comment>
+  </note>
+  
+  <note id="100002" lat="40.4169" lon="-3.7039" created_at="2025-01-15T10:05:00Z" closed_at="2025-01-15T11:05:00Z">
+    <comment id="3" uid="789" user="user3" user_url="https://www.openstreetmap.org/user/user3" created_at="2025-01-15T10:05:00Z">
+      <text>Segunda nota de prueba</text>
+    </comment>
+    <comment id="4" uid="012" user="user4" user_url="https://www.openstreetmap.org/user/user4" created_at="2025-01-15T11:05:00Z">
+      <text>Cerrando segunda nota</text>
+    </comment>
+  </note>
+  
+  <note id="100003" lat="40.4170" lon="-3.7040" created_at="2025-01-15T10:10:00Z" closed_at="2025-01-15T11:10:00Z">
+    <comment id="5" uid="345" user="user5" user_url="https://www.openstreetmap.org/user/user5" created_at="2025-01-15T10:10:00Z">
+      <text>Tercera nota de prueba</text>
+    </comment>
+    <comment id="6" uid="678" user="user6" user_url="https://www.openstreetmap.org/user/user6" created_at="2025-01-15T11:10:00Z">
+      <text>Cerrando tercera nota</text>
+    </comment>
+  </note>
+  
+  <note id="100004" lat="40.4171" lon="-3.7041" created_at="2025-01-15T10:15:00Z" closed_at="2025-01-15T11:15:00Z">
+    <comment id="7" uid="901" user="user7" user_url="https://www.openstreetmap.org/user/user7" created_at="2025-01-15T10:15:00Z">
+      <text>Cuarta nota de prueba</text>
+    </comment>
+    <comment id="8" uid="234" user="user8" user_url="https://www.openstreetmap.org/user/user8" created_at="2025-01-15T11:15:00Z">
+      <text>Cerrando cuarta nota</text>
+    </comment>
+  </note>
+  
+  <note id="100005" lat="40.4172" lon="-3.7042" created_at="2025-01-15T10:20:00Z" closed_at="2025-01-15T11:20:00Z">
+    <comment id="9" uid="567" user="user9" user_url="https://www.openstreetmap.org/user/user9" created_at="2025-01-15T10:20:00Z">
+      <text>Quinta nota de prueba</text>
+    </comment>
+    <comment id="10" uid="890" user="user10" user_url="https://www.openstreetmap.org/user/user10" created_at="2025-01-15T11:20:00Z">
+      <text>Cerrando quinta nota</text>
+    </comment>
+  </note>
+</osm> 

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <!-- Caso especial: 12 notas (igual a la cantidad de núcleos) -->
+  <!-- Útil para probar que todos los hilos en paralelo se activan -->
+  
+  <note id="200001" lat="40.4168" lon="-3.7038" created_at="2025-01-15T10:00:00Z" closed_at="2025-01-15T11:00:00Z">
+    <comment id="1" uid="123" user="user1" user_url="https://www.openstreetmap.org/user/user1" created_at="2025-01-15T10:00:00Z">
+      <text>Nota 1 - Núcleo 1</text>
+    </comment>
+    <comment id="2" uid="456" user="user2" user_url="https://www.openstreetmap.org/user/user2" created_at="2025-01-15T11:00:00Z">
+      <text>Cerrando nota 1</text>
+    </comment>
+  </note>
+  
+  <note id="200002" lat="40.4169" lon="-3.7039" created_at="2025-01-15T10:05:00Z" closed_at="2025-01-15T11:05:00Z">
+    <comment id="3" uid="789" user="user3" user_url="https://www.openstreetmap.org/user/user3" created_at="2025-01-15T10:05:00Z">
+      <text>Nota 2 - Núcleo 2</text>
+    </comment>
+    <comment id="4" uid="012" user="user4" user_url="https://www.openstreetmap.org/user/user4" created_at="2025-01-15T11:05:00Z">
+      <text>Cerrando nota 2</text>
+    </comment>
+  </note>
+  
+  <note id="200003" lat="40.4170" lon="-3.7040" created_at="2025-01-15T10:10:00Z" closed_at="2025-01-15T11:10:00Z">
+    <comment id="5" uid="345" user="user5" user_url="https://www.openstreetmap.org/user/user5" created_at="2025-01-15T10:10:00Z">
+      <text>Nota 3 - Núcleo 3</text>
+    </comment>
+    <comment id="6" uid="678" user="user6" user_url="https://www.openstreetmap.org/user/user6" created_at="2025-01-15T11:10:00Z">
+      <text>Cerrando nota 3</text>
+    </comment>
+  </note>
+  
+  <note id="200004" lat="40.4171" lon="-3.7041" created_at="2025-01-15T10:15:00Z" closed_at="2025-01-15T11:15:00Z">
+    <comment id="7" uid="901" user="user7" user_url="https://www.openstreetmap.org/user/user7" created_at="2025-01-15T10:15:00Z">
+      <text>Nota 4 - Núcleo 4</text>
+    </comment>
+    <comment id="8" uid="234" user="user8" user_url="https://www.openstreetmap.org/user/user8" created_at="2025-01-15T11:15:00Z">
+      <text>Cerrando nota 4</text>
+    </comment>
+  </note>
+  
+  <note id="200005" lat="40.4172" lon="-3.7042" created_at="2025-01-15T10:20:00Z" closed_at="2025-01-15T11:20:00Z">
+    <comment id="9" uid="567" user="user9" user_url="https://www.openstreetmap.org/user/user9" created_at="2025-01-15T10:20:00Z">
+      <text>Nota 5 - Núcleo 5</text>
+    </comment>
+    <comment id="10" uid="890" user="user10" user_url="https://www.openstreetmap.org/user/user10" created_at="2025-01-15T11:20:00Z">
+      <text>Cerrando nota 5</text>
+    </comment>
+  </note>
+  
+  <note id="200006" lat="40.4173" lon="-3.7043" created_at="2025-01-15T10:25:00Z" closed_at="2025-01-15T11:25:00Z">
+    <comment id="11" uid="123" user="user11" user_url="https://www.openstreetmap.org/user/user11" created_at="2025-01-15T10:25:00Z">
+      <text>Nota 6 - Núcleo 6</text>
+    </comment>
+    <comment id="12" uid="456" user="user12" user_url="https://www.openstreetmap.org/user/user12" created_at="2025-01-15T11:25:00Z">
+      <text>Cerrando nota 6</text>
+    </comment>
+  </note>
+  
+  <note id="200007" lat="40.4174" lon="-3.7044" created_at="2025-01-15T10:30:00Z" closed_at="2025-01-15T11:30:00Z">
+    <comment id="13" uid="789" user="user13" user_url="https://www.openstreetmap.org/user/user13" created_at="2025-01-15T10:30:00Z">
+      <text>Nota 7 - Núcleo 7</text>
+    </comment>
+    <comment id="14" uid="012" user="user14" user_url="https://www.openstreetmap.org/user/user14" created_at="2025-01-15T11:30:00Z">
+      <text>Cerrando nota 7</text>
+    </comment>
+  </note>
+  
+  <note id="200008" lat="40.4175" lon="-3.7045" created_at="2025-01-15T10:35:00Z" closed_at="2025-01-15T11:35:00Z">
+    <comment id="15" uid="345" user="user15" user_url="https://www.openstreetmap.org/user/user15" created_at="2025-01-15T10:35:00Z">
+      <text>Nota 8 - Núcleo 8</text>
+    </comment>
+    <comment id="16" uid="678" user="user16" user_url="https://www.openstreetmap.org/user/user16" created_at="2025-01-15T11:35:00Z">
+      <text>Cerrando nota 8</text>
+    </comment>
+  </note>
+  
+  <note id="200009" lat="40.4176" lon="-3.7046" created_at="2025-01-15T10:40:00Z" closed_at="2025-01-15T11:40:00Z">
+    <comment id="17" uid="901" user="user17" user_url="https://www.openstreetmap.org/user/user17" created_at="2025-01-15T10:40:00Z">
+      <text>Nota 9 - Núcleo 9</text>
+    </comment>
+    <comment id="18" uid="234" user="user18" user_url="https://www.openstreetmap.org/user/user18" created_at="2025-01-15T11:40:00Z">
+      <text>Cerrando nota 9</text>
+    </comment>
+  </note>
+  
+  <note id="200010" lat="40.4177" lon="-3.7047" created_at="2025-01-15T10:45:00Z" closed_at="2025-01-15T11:45:00Z">
+    <comment id="19" uid="567" user="user19" user_url="https://www.openstreetmap.org/user/user19" created_at="2025-01-15T10:45:00Z">
+      <text>Nota 10 - Núcleo 10</text>
+    </comment>
+    <comment id="20" uid="890" user="user20" user_url="https://www.openstreetmap.org/user/user20" created_at="2025-01-15T11:45:00Z">
+      <text>Cerrando nota 10</text>
+    </comment>
+  </note>
+  
+  <note id="200011" lat="40.4178" lon="-3.7048" created_at="2025-01-15T10:50:00Z" closed_at="2025-01-15T11:50:00Z">
+    <comment id="21" uid="123" user="user21" user_url="https://www.openstreetmap.org/user/user21" created_at="2025-01-15T10:50:00Z">
+      <text>Nota 11 - Núcleo 11</text>
+    </comment>
+    <comment id="22" uid="456" user="user22" user_url="https://www.openstreetmap.org/user/user22" created_at="2025-01-15T11:50:00Z">
+      <text>Cerrando nota 11</text>
+    </comment>
+  </note>
+  
+  <note id="200012" lat="40.4179" lon="-3.7049" created_at="2025-01-15T10:55:00Z" closed_at="2025-01-15T11:55:00Z">
+    <comment id="23" uid="789" user="user23" user_url="https://www.openstreetmap.org/user/user23" created_at="2025-01-15T10:55:00Z">
+      <text>Nota 12 - Núcleo 12</text>
+    </comment>
+    <comment id="24" uid="012" user="user24" user_url="https://www.openstreetmap.org/user/user24" created_at="2025-01-15T11:55:00Z">
+      <text>Cerrando nota 12</text>
+    </comment>
+  </note>
+</osm> 

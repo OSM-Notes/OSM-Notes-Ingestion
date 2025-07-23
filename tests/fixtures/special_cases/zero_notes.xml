@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <!-- Caso especial: 0 notas -->
+  <!-- Este archivo simula una respuesta del API cuando no hay notas disponibles -->
+  <!-- Útil para probar el manejo de casos vacíos -->
+</osm> 

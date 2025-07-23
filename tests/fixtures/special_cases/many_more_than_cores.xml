@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <!-- Caso especial: 25 notas (muchas más que 7 núcleos) -->
+  <!-- Útil para probar el procesamiento en lotes y la gestión de memoria -->
+  
+  <note id="300001" lat="40.4168" lon="-3.7038" created_at="2025-01-15T10:00:00Z" closed_at="2025-01-15T11:00:00Z">
+    <comment id="1" uid="123" user="user1" user_url="https://www.openstreetmap.org/user/user1" created_at="2025-01-15T10:00:00Z">
+      <text>Nota 1 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="2" uid="456" user="user2" user_url="https://www.openstreetmap.org/user/user2" created_at="2025-01-15T11:00:00Z">
+      <text>Cerrando nota 1</text>
+    </comment>
+  </note>
+  
+  <note id="300002" lat="40.4169" lon="-3.7039" created_at="2025-01-15T10:05:00Z" closed_at="2025-01-15T11:05:00Z">
+    <comment id="3" uid="789" user="user3" user_url="https://www.openstreetmap.org/user/user3" created_at="2025-01-15T10:05:00Z">
+      <text>Nota 2 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="4" uid="012" user="user4" user_url="https://www.openstreetmap.org/user/user4" created_at="2025-01-15T11:05:00Z">
+      <text>Cerrando nota 2</text>
+    </comment>
+  </note>
+  
+  <note id="300003" lat="40.4170" lon="-3.7040" created_at="2025-01-15T10:10:00Z" closed_at="2025-01-15T11:10:00Z">
+    <comment id="5" uid="345" user="user5" user_url="https://www.openstreetmap.org/user/user5" created_at="2025-01-15T10:10:00Z">
+      <text>Nota 3 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="6" uid="678" user="user6" user_url="https://www.openstreetmap.org/user/user6" created_at="2025-01-15T11:10:00Z">
+      <text>Cerrando nota 3</text>
+    </comment>
+  </note>
+  
+  <note id="300004" lat="40.4171" lon="-3.7041" created_at="2025-01-15T10:15:00Z" closed_at="2025-01-15T11:15:00Z">
+    <comment id="7" uid="901" user="user7" user_url="https://www.openstreetmap.org/user/user7" created_at="2025-01-15T10:15:00Z">
+      <text>Nota 4 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="8" uid="234" user="user8" user_url="https://www.openstreetmap.org/user/user8" created_at="2025-01-15T11:15:00Z">
+      <text>Cerrando nota 4</text>
+    </comment>
+  </note>
+  
+  <note id="300005" lat="40.4172" lon="-3.7042" created_at="2025-01-15T10:20:00Z" closed_at="2025-01-15T11:20:00Z">
+    <comment id="9" uid="567" user="user9" user_url="https://www.openstreetmap.org/user/user9" created_at="2025-01-15T10:20:00Z">
+      <text>Nota 5 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="10" uid="890" user="user10" user_url="https://www.openstreetmap.org/user/user10" created_at="2025-01-15T11:20:00Z">
+      <text>Cerrando nota 5</text>
+    </comment>
+  </note>
+  
+  <note id="300006" lat="40.4173" lon="-3.7043" created_at="2025-01-15T10:25:00Z" closed_at="2025-01-15T11:25:00Z">
+    <comment id="11" uid="123" user="user11" user_url="https://www.openstreetmap.org/user/user11" created_at="2025-01-15T10:25:00Z">
+      <text>Nota 6 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="12" uid="456" user="user12" user_url="https://www.openstreetmap.org/user/user12" created_at="2025-01-15T11:25:00Z">
+      <text>Cerrando nota 6</text>
+    </comment>
+  </note>
+  
+  <note id="300007" lat="40.4174" lon="-3.7044" created_at="2025-01-15T10:30:00Z" closed_at="2025-01-15T11:30:00Z">
+    <comment id="13" uid="789" user="user13" user_url="https://www.openstreetmap.org/user/user13" created_at="2025-01-15T10:30:00Z">
+      <text>Nota 7 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="14" uid="012" user="user14" user_url="https://www.openstreetmap.org/user/user14" created_at="2025-01-15T11:30:00Z">
+      <text>Cerrando nota 7</text>
+    </comment>
+  </note>
+  
+  <note id="300008" lat="40.4175" lon="-3.7045" created_at="2025-01-15T10:35:00Z" closed_at="2025-01-15T11:35:00Z">
+    <comment id="15" uid="345" user="user15" user_url="https://www.openstreetmap.org/user/user15" created_at="2025-01-15T10:35:00Z">
+      <text>Nota 8 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="16" uid="678" user="user16" user_url="https://www.openstreetmap.org/user/user16" created_at="2025-01-15T11:35:00Z">
+      <text>Cerrando nota 8</text>
+    </comment>
+  </note>
+  
+  <note id="300009" lat="40.4176" lon="-3.7046" created_at="2025-01-15T10:40:00Z" closed_at="2025-01-15T11:40:00Z">
+    <comment id="17" uid="901" user="user17" user_url="https://www.openstreetmap.org/user/user17" created_at="2025-01-15T10:40:00Z">
+      <text>Nota 9 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="18" uid="234" user="user18" user_url="https://www.openstreetmap.org/user/user18" created_at="2025-01-15T11:40:00Z">
+      <text>Cerrando nota 9</text>
+    </comment>
+  </note>
+  
+  <note id="300010" lat="40.4177" lon="-3.7047" created_at="2025-01-15T10:45:00Z" closed_at="2025-01-15T11:45:00Z">
+    <comment id="19" uid="567" user="user19" user_url="https://www.openstreetmap.org/user/user19" created_at="2025-01-15T10:45:00Z">
+      <text>Nota 10 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="20" uid="890" user="user20" user_url="https://www.openstreetmap.org/user/user20" created_at="2025-01-15T11:45:00Z">
+      <text>Cerrando nota 10</text>
+    </comment>
+  </note>
+  
+  <!-- Continuando con las notas 11-25 para completar el caso de prueba -->
+  <note id="300011" lat="40.4178" lon="-3.7048" created_at="2025-01-15T10:50:00Z" closed_at="2025-01-15T11:50:00Z">
+    <comment id="21" uid="123" user="user21" user_url="https://www.openstreetmap.org/user/user21" created_at="2025-01-15T10:50:00Z">
+      <text>Nota 11 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="22" uid="456" user="user22" user_url="https://www.openstreetmap.org/user/user22" created_at="2025-01-15T11:50:00Z">
+      <text>Cerrando nota 11</text>
+    </comment>
+  </note>
+  
+  <note id="300012" lat="40.4179" lon="-3.7049" created_at="2025-01-15T10:55:00Z" closed_at="2025-01-15T11:55:00Z">
+    <comment id="23" uid="789" user="user23" user_url="https://www.openstreetmap.org/user/user23" created_at="2025-01-15T10:55:00Z">
+      <text>Nota 12 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="24" uid="012" user="user24" user_url="https://www.openstreetmap.org/user/user24" created_at="2025-01-15T11:55:00Z">
+      <text>Cerrando nota 12</text>
+    </comment>
+  </note>
+  
+  <note id="300013" lat="40.4180" lon="-3.7050" created_at="2025-01-15T11:00:00Z" closed_at="2025-01-15T12:00:00Z">
+    <comment id="25" uid="345" user="user25" user_url="https://www.openstreetmap.org/user/user25" created_at="2025-01-15T11:00:00Z">
+      <text>Nota 13 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="26" uid="678" user="user26" user_url="https://www.openstreetmap.org/user/user26" created_at="2025-01-15T12:00:00Z">
+      <text>Cerrando nota 13</text>
+    </comment>
+  </note>
+  
+  <note id="300014" lat="40.4181" lon="-3.7051" created_at="2025-01-15T11:05:00Z" closed_at="2025-01-15T12:05:00Z">
+    <comment id="27" uid="901" user="user27" user_url="https://www.openstreetmap.org/user/user27" created_at="2025-01-15T11:05:00Z">
+      <text>Nota 14 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="28" uid="234" user="user28" user_url="https://www.openstreetmap.org/user/user28" created_at="2025-01-15T12:05:00Z">
+      <text>Cerrando nota 14</text>
+    </comment>
+  </note>
+  
+  <note id="300015" lat="40.4182" lon="-3.7052" created_at="2025-01-15T11:10:00Z" closed_at="2025-01-15T12:10:00Z">
+    <comment id="29" uid="567" user="user29" user_url="https://www.openstreetmap.org/user/user29" created_at="2025-01-15T11:10:00Z">
+      <text>Nota 15 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="30" uid="890" user="user30" user_url="https://www.openstreetmap.org/user/user30" created_at="2025-01-15T12:10:00Z">
+      <text>Cerrando nota 15</text>
+    </comment>
+  </note>
+  
+  <note id="300016" lat="40.4183" lon="-3.7053" created_at="2025-01-15T11:15:00Z" closed_at="2025-01-15T12:15:00Z">
+    <comment id="31" uid="123" user="user31" user_url="https://www.openstreetmap.org/user/user31" created_at="2025-01-15T11:15:00Z">
+      <text>Nota 16 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="32" uid="456" user="user32" user_url="https://www.openstreetmap.org/user/user32" created_at="2025-01-15T12:15:00Z">
+      <text>Cerrando nota 16</text>
+    </comment>
+  </note>
+  
+  <note id="300017" lat="40.4184" lon="-3.7054" created_at="2025-01-15T11:20:00Z" closed_at="2025-01-15T12:20:00Z">
+    <comment id="33" uid="789" user="user33" user_url="https://www.openstreetmap.org/user/user33" created_at="2025-01-15T11:20:00Z">
+      <text>Nota 17 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="34" uid="012" user="user34" user_url="https://www.openstreetmap.org/user/user34" created_at="2025-01-15T12:20:00Z">
+      <text>Cerrando nota 17</text>
+    </comment>
+  </note>
+  
+  <note id="300018" lat="40.4185" lon="-3.7055" created_at="2025-01-15T11:25:00Z" closed_at="2025-01-15T12:25:00Z">
+    <comment id="35" uid="345" user="user35" user_url="https://www.openstreetmap.org/user/user35" created_at="2025-01-15T11:25:00Z">
+      <text>Nota 18 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="36" uid="678" user="user36" user_url="https://www.openstreetmap.org/user/user36" created_at="2025-01-15T12:25:00Z">
+      <text>Cerrando nota 18</text>
+    </comment>
+  </note>
+  
+  <note id="300019" lat="40.4186" lon="-3.7056" created_at="2025-01-15T11:30:00Z" closed_at="2025-01-15T12:30:00Z">
+    <comment id="37" uid="901" user="user37" user_url="https://www.openstreetmap.org/user/user37" created_at="2025-01-15T11:30:00Z">
+      <text>Nota 19 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="38" uid="234" user="user38" user_url="https://www.openstreetmap.org/user/user38" created_at="2025-01-15T12:30:00Z">
+      <text>Cerrando nota 19</text>
+    </comment>
+  </note>
+  
+  <note id="300020" lat="40.4187" lon="-3.7057" created_at="2025-01-15T11:35:00Z" closed_at="2025-01-15T12:35:00Z">
+    <comment id="39" uid="567" user="user39" user_url="https://www.openstreetmap.org/user/user39" created_at="2025-01-15T11:35:00Z">
+      <text>Nota 20 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="40" uid="890" user="user40" user_url="https://www.openstreetmap.org/user/user40" created_at="2025-01-15T12:35:00Z">
+      <text>Cerrando nota 20</text>
+    </comment>
+  </note>
+  
+  <note id="300021" lat="40.4188" lon="-3.7058" created_at="2025-01-15T11:40:00Z" closed_at="2025-01-15T12:40:00Z">
+    <comment id="41" uid="123" user="user41" user_url="https://www.openstreetmap.org/user/user41" created_at="2025-01-15T11:40:00Z">
+      <text>Nota 21 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="42" uid="456" user="user42" user_url="https://www.openstreetmap.org/user/user42" created_at="2025-01-15T12:40:00Z">
+      <text>Cerrando nota 21</text>
+    </comment>
+  </note>
+  
+  <note id="300022" lat="40.4189" lon="-3.7059" created_at="2025-01-15T11:45:00Z" closed_at="2025-01-15T12:45:00Z">
+    <comment id="43" uid="789" user="user43" user_url="https://www.openstreetmap.org/user/user43" created_at="2025-01-15T11:45:00Z">
+      <text>Nota 22 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="44" uid="012" user="user44" user_url="https://www.openstreetmap.org/user/user44" created_at="2025-01-15T12:45:00Z">
+      <text>Cerrando nota 22</text>
+    </comment>
+  </note>
+  
+  <note id="300023" lat="40.4190" lon="-3.7060" created_at="2025-01-15T11:50:00Z" closed_at="2025-01-15T12:50:00Z">
+    <comment id="45" uid="345" user="user45" user_url="https://www.openstreetmap.org/user/user45" created_at="2025-01-15T11:50:00Z">
+      <text>Nota 23 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="46" uid="678" user="user46" user_url="https://www.openstreetmap.org/user/user46" created_at="2025-01-15T12:50:00Z">
+      <text>Cerrando nota 23</text>
+    </comment>
+  </note>
+  
+  <note id="300024" lat="40.4191" lon="-3.7061" created_at="2025-01-15T11:55:00Z" closed_at="2025-01-15T12:55:00Z">
+    <comment id="47" uid="901" user="user47" user_url="https://www.openstreetmap.org/user/user47" created_at="2025-01-15T11:55:00Z">
+      <text>Nota 24 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="48" uid="234" user="user48" user_url="https://www.openstreetmap.org/user/user48" created_at="2025-01-15T12:55:00Z">
+      <text>Cerrando nota 24</text>
+    </comment>
+  </note>
+  
+  <note id="300025" lat="40.4192" lon="-3.7062" created_at="2025-01-15T12:00:00Z" closed_at="2025-01-15T13:00:00Z">
+    <comment id="49" uid="567" user="user49" user_url="https://www.openstreetmap.org/user/user49" created_at="2025-01-15T12:00:00Z">
+      <text>Nota 25 de 25 - Procesamiento masivo</text>
+    </comment>
+    <comment id="50" uid="890" user="user50" user_url="https://www.openstreetmap.org/user/user50" created_at="2025-01-15T13:00:00Z">
+      <text>Cerrando nota 25</text>
+    </comment>
+  </note>
+</osm> 

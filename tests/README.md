@@ -9,6 +9,7 @@ tests/
 ├── unit/
 │   ├── bash/                    # Unit tests for bash scripts
 │   │   ├── functionsProcess.test.bats
+│   │   ├── processAPINotes.test.bats
 │   │   └── processPlanetNotes.test.bats
 │   └── sql/                     # Unit tests for SQL
 │       ├── functions.test.sql
@@ -224,11 +225,11 @@ export DOCKER_DBNAME="osm_notes_test"
 ## Current Test Status
 
 ### ✅ **Successful Tests**
-- **Unit Tests (BATS)**: 23 tests passing
+- **Unit Tests (BATS)**: 53 tests passing
 - **pgTAP Tests**: 2 tests passing (Docker only)
 - **Integration Tests**: 5 tests passing (Docker only)
 - **Performance Tests**: 1 test passing
-- **Total**: 31 tests passing
+- **Total**: 61 tests passing
 
 ### 🚀 **Advanced Tests (Phase 3)**
 - **Coverage Tests**: kcov + lcov + Codecov
@@ -424,6 +425,48 @@ The project includes a complete CI/CD pipeline that runs:
 sudo docker-compose -f tests/docker/docker-compose.yml up -d
 ./tests/run_tests.sh
 sudo docker-compose -f tests/docker/docker-compose.yml down
+```
+
+## Special Cases Testing
+
+### processAPINotes Unit Tests
+The `processAPINotes.test.bats` file includes comprehensive tests for the API processing functionality:
+
+#### Test Categories
+1. **Basic Script Tests**: Existence, executability, parameter handling
+2. **File Validation**: SQL, XSLT, and XML schema files
+3. **Special Cases**: All 12 special case scenarios
+4. **XML Validation**: Schema validation for all test cases
+5. **Note Counting**: Verification of note counts in XML files
+6. **Database Tests**: Table creation and database operations
+7. **Function Tests**: Integration with `functionsProcess.sh`
+8. **Error Cases**: API error scenarios and edge cases
+
+#### Special Cases Covered
+- **Zero Notes**: Empty API response
+- **Single Note**: One note processing
+- **Less Than Threads**: 5 notes (fewer than available threads)
+- **Equal to Cores**: 12 notes (matching CPU cores)
+- **Many More Than Cores**: 25 notes (stress testing)
+- **Double Close**: API error handling
+- **Double Reopen**: API error handling
+- **Create and Close**: Simultaneous events
+- **Close and Reopen**: Simultaneous events
+- **Open-Close-Reopen**: Complex state changes
+- **Open-Close-Reopen Cycle**: Multiple state changes
+- **Comment and Close**: Comment before closure
+
+#### Running processAPINotes Tests
+```bash
+# Run all processAPINotes tests
+bats tests/unit/bash/processAPINotes.test.bats
+
+# Run with verbose output
+bats --verbose tests/unit/bash/processAPINotes.test.bats
+
+# Run specific test categories
+bats --filter "XML" tests/unit/bash/processAPINotes.test.bats
+bats --filter "database" tests/unit/bash/processAPINotes.test.bats
 ```
 
 ## Contributing
