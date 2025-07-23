@@ -1,11 +1,5 @@
 
 
-Haz la segunda fase de pruebas de integración, configurando docker, mocks para el api de osm, pruebas end-to-end y automatizando CI/CD.
-
-Ya que has hecho las dos fases anteriors, ahora has pruebas avanzadas que incluya
-Cobertura de código, pruebas de integración, pruebas de seguridad y monitoreo de calidad.
-
-
 
 
 Por ejemplo:
