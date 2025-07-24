@@ -11,6 +11,7 @@ kcov/
 # Temporary files
 *.tmp
 *.temp
+tests/tmp/
 
 # Log files
 *.log
