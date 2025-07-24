@@ -12,8 +12,11 @@ Generate database designs and scripts that align with best practices for scalabi
   - Bash variables should be in capitals.
   - Bash functions should start with double underscore and be in lower case.
   - SQL reserved words should be in capitals. Everything else in lower case.
+- Try to use 80 character at maximum per line.
 - Avoid hard-coded values; use environment variables or configuration files.
-- Each time a file is modified, put the current date as part of version.
+- Format the whole file to have a good identation.
+- Each time a file is modified, put the current date as part of version. Like 2025-07-23. In fact, the version of the file is the current date.
+- Perform formating, variable correction, correct English grammar to the whole file, whenever a file is modified.
 
 ---
   
@@ -23,6 +26,9 @@ Generate database designs and scripts that align with best practices for scalabi
 - Use `shellcheck` to lint scripts and improve quality with these validations: shellcheck -x -o all 
 - All Bash code should have the formating shfmt -w -i 1 -sr -bn
 - All variables, file names and functions should have a descriptive name.
+  - If a variable is local, it should be defined as it.
+  - A similar situation for global variables.
+  - In both cases put the conditions in the declaration: integer, read only, etc.
 - The code should not have repetitve components, instead be modular to be reused.
 - Avoid hardcoding values, and try to use values from properties file.
 - Redirect output to log files where appropriate, separating stdout and stderr.
@@ -36,13 +42,14 @@ Generate database designs and scripts that align with best practices for scalabi
 - Write meaningful unit, integration, and acceptance tests.
 - Document solutions thoroughly in markdown.
 - Use diagrams to describe high-level architecture and workflows.
-- Each time an error is discovere, a new test should be added or correct an existing one.
+- Each time an error is discovered, a new test should be added or correct an existing one.
   
 ---
   
 ### Collaboration and Communication
   
 - Use Git for version control with a clear branching strategy.
+- Each time a new feature is started, please create a git branch.
 - Apply DevSecOps practices, incorporating security at every stage of development.
 - Collaborate through well-defined tasks in tools like GitHub issues.
 
@@ -60,6 +67,6 @@ Generate database designs and scripts that align with best practices for scalabi
 
 ## User Rules
 
-- Always respond in Spanish
-- Commit messages should be in English
+- Always respond the chat in Spanish.
+- Commit messages should be in English.
   
