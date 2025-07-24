@@ -4,13 +4,13 @@
 # Tests that partition tables are created correctly with the right number of threads
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testPartitionCreation"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testPartitionCreation"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -30,7 +30,7 @@ function test_sql_syntax() {
  log_info "Testing SQL syntax for partition creation with MAX_THREADS=${MAX_THREADS}"
  
  # Create a temporary file with the SQL content
- local TEMP_SQL="${TMP_DIR}/test_partition.sql"
+ declare TEMP_SQL="${TMP_DIR}/test_partition.sql"
  
  # Create the SQL content with the variable set
  cat > "${TEMP_SQL}" << EOF
@@ -230,3 +230,4 @@ function main() {
 
 # Execute main function
 main "$@"
+

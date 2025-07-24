@@ -4,13 +4,13 @@
 # Tests that the parallel processing workflow works correctly
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testProcessPlanetNotesWithParallel"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testProcessPlanetNotesWithParallel"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -78,7 +78,7 @@ function verify_workflow() {
  local ALL_EXIST=true
 
  for table in "${TABLES[@]}"; do
-  local EXISTS
+  declare -i EXISTS
   EXISTS=$(psql -d "${DBNAME}" -t -c "
   SELECT COUNT(*) FROM information_schema.tables 
   WHERE table_name = '${table}';
@@ -93,7 +93,7 @@ function verify_workflow() {
  done
 
  # Check that partition tables were cleaned up
- local PARTITION_COUNT
+ declare -i PARTITION_COUNT
  PARTITION_COUNT=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM information_schema.tables 
  WHERE table_name LIKE '%_part_%';
@@ -122,13 +122,13 @@ function verify_consolidation() {
  log_info "Verifying consolidation results"
 
  # Check if there's any data in the main tables
- local NOTES_COUNT
+ declare -i NOTES_COUNT
  NOTES_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM notes_sync;" | tr -d ' ')
 
- local COMMENTS_COUNT
+ declare -i COMMENTS_COUNT
  COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_sync;" | tr -d ' ')
 
- local TEXT_COMMENTS_COUNT
+ declare -i TEXT_COMMENTS_COUNT
  TEXT_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text_sync;" | tr -d ' ')
 
  log_info "Consolidation results:"
@@ -275,3 +275,5 @@ function main() {
 
 # Execute main function
 main "$@"
+
+

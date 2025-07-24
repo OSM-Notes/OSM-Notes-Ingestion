@@ -4,7 +4,7 @@
 # Tests that partition tables are created correctly with proper verification
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
@@ -70,8 +70,8 @@ function verify_partition_tables() {
 
  for table_type in "${TABLE_TYPES[@]}"; do
   for i in $(seq 1 "${MAX_THREADS}"); do
-   local partition_name="${table_type}_part_${i}"
-   local EXISTS
+   declare partition_name="${table_type}_part_${i}"
+   declare -i EXISTS
    EXISTS=$(psql -d "${DBNAME}" -t -c "
    SELECT COUNT(*) FROM information_schema.tables 
    WHERE table_name = '${partition_name}';
@@ -87,7 +87,7 @@ function verify_partition_tables() {
   done
  done
 
- local EXPECTED_PARTITIONS=$((MAX_THREADS * 3)) # 3 types of tables
+ declare -i EXPECTED_PARTITIONS=$((MAX_THREADS * 3)) # 3 types of tables
  log_info "Found ${TOTAL_PARTITIONS} partition tables (expected: ${EXPECTED_PARTITIONS})"
 
  if [[ "${ALL_EXIST}" == true ]] && [[ "${TOTAL_PARTITIONS}" -eq "${EXPECTED_PARTITIONS}" ]]; then
@@ -107,10 +107,10 @@ function verify_partition_structure() {
  log_info "Verifying partition table structure"
 
  # Check structure of first partition of each type
- local TABLE_TYPES=("notes_sync" "note_comments_sync" "note_comments_text_sync")
+ declare TABLE_TYPES=("notes_sync" "note_comments_sync" "note_comments_text_sync")
 
  for table_type in "${TABLE_TYPES[@]}"; do
-  local partition_name="${table_type}_part_1"
+  declare partition_name="${table_type}_part_1"
   log_info "Checking ${partition_name} structure:"
   psql -d "${DBNAME}" -c "
   SELECT column_name, data_type, is_nullable 
@@ -147,13 +147,13 @@ function test_partition_data() {
  "
 
  # Verify data was inserted
- local NOTES_COUNT
+ declare -i NOTES_COUNT
  NOTES_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM notes_sync_part_1;" | tr -d ' ')
 
- local COMMENTS_COUNT
+ declare -i COMMENTS_COUNT
  COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_sync_part_1;" | tr -d ' ')
 
- local TEXT_COMMENTS_COUNT
+ declare -i TEXT_COMMENTS_COUNT
  TEXT_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text_sync_part_1;" | tr -d ' ')
 
  log_info "Sample data inserted into partitions:"
@@ -284,3 +284,4 @@ function main() {
 
 # Execute main function
 main "$@"
+

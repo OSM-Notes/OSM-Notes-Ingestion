@@ -4,13 +4,13 @@
 # Tests that partition tables are properly dropped during cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testPartitionCleanup"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testPartitionCleanup"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -90,11 +90,11 @@ function create_test_partitions() {
 function verify_partitions_exist() {
  local DBNAME="${1}"
  local MAX_THREADS="${2}"
- local EXPECTED_COUNT=$((MAX_THREADS * 3))
+ declare -i EXPECTED_COUNT=$((MAX_THREADS * 3))
 
  log_info "Verifying that ${EXPECTED_COUNT} partition tables exist"
 
- local ACTUAL_COUNT
+ declare -i ACTUAL_COUNT
  ACTUAL_COUNT=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM information_schema.tables 
  WHERE table_name LIKE '%_part_%' 
@@ -138,7 +138,7 @@ function verify_partitions_dropped() {
 
  log_info "Verifying that all partition tables have been dropped"
 
- local REMAINING_COUNT
+ declare -i REMAINING_COUNT
  REMAINING_COUNT=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM information_schema.tables 
  WHERE table_name LIKE '%_part_%' 
@@ -244,3 +244,5 @@ function main() {
 
 # Execute main function
 main "$@"
+
+

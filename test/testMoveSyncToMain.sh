@@ -4,13 +4,13 @@
 # Tests that data is correctly moved from sync to main tables
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testMoveSyncToMain"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testMoveSyncToMain"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -120,24 +120,24 @@ function verify_data_movement() {
  log_info "Verifying data movement from sync to main tables"
 
  # Check notes count
- local SYNC_NOTES_COUNT
+ declare -i SYNC_NOTES_COUNT
  SYNC_NOTES_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM notes_sync;" | tr -d ' ')
 
- local MAIN_NOTES_COUNT
+ declare -i MAIN_NOTES_COUNT
  MAIN_NOTES_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | tr -d ' ')
 
  # Check comments count
- local SYNC_COMMENTS_COUNT
+ declare -i SYNC_COMMENTS_COUNT
  SYNC_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_sync;" | tr -d ' ')
 
- local MAIN_COMMENTS_COUNT
+ declare -i MAIN_COMMENTS_COUNT
  MAIN_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | tr -d ' ')
 
  # Check text comments count
- local SYNC_TEXT_COMMENTS_COUNT
+ declare -i SYNC_TEXT_COMMENTS_COUNT
  SYNC_TEXT_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text_sync;" | tr -d ' ')
 
- local MAIN_TEXT_COMMENTS_COUNT
+ declare -i MAIN_TEXT_COMMENTS_COUNT
  MAIN_TEXT_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text;" | tr -d ' ')
 
  log_info "Data movement results:"
@@ -167,29 +167,29 @@ function verify_data_integrity() {
  log_info "Verifying data integrity"
 
  # Check specific note data
- local NOTE_123_EXISTS
+ declare -i NOTE_123_EXISTS
  NOTE_123_EXISTS=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM notes WHERE note_id = 123;
  " | tr -d ' ')
 
- local NOTE_456_EXISTS
+ declare -i NOTE_456_EXISTS
  NOTE_456_EXISTS=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM notes WHERE note_id = 456;
  " | tr -d ' ')
 
- local NOTE_789_EXISTS
+ declare -i NOTE_789_EXISTS
  NOTE_789_EXISTS=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM notes WHERE note_id = 789;
  " | tr -d ' ')
 
  # Check specific comment data
- local COMMENT_1_EXISTS
+ declare -i COMMENT_1_EXISTS
  COMMENT_1_EXISTS=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM note_comments WHERE id = 1;
  " | tr -d ' ')
 
  # Check specific text comment data
- local TEXT_COMMENT_123_EXISTS
+ declare -i TEXT_COMMENT_123_EXISTS
  TEXT_COMMENT_123_EXISTS=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM note_comments_text WHERE note_id = 123;
  " | tr -d ' ')
@@ -343,3 +343,5 @@ function main() {
 
 # Execute main function
 main "$@"
+
+

@@ -4,13 +4,13 @@
 # Tests the selective HTML entity replacement in XML structure vs text content
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testXmlEncodingFix"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testXmlEncodingFix"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -34,7 +34,7 @@ function test_xml_encoding_fix() {
  log_info "Testing XML encoding fix with input: ${INPUT_FILE}"
 
  # Create a temporary file for the fix
- local TEMP_FILE="${OUTPUT_FILE}.temp"
+ declare TEMP_FILE="${OUTPUT_FILE}.temp"
 
  # Use the same logic as in the main function
  awk '
@@ -221,3 +221,4 @@ function main() {
 
 # Execute main function
 main "$@"
+

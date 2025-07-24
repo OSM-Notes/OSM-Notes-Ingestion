@@ -4,8 +4,8 @@
 # This script demonstrates that the parallel processing works correctly
 # and maintains the same structure as API processing.
 
-# Version: 2025-01-27
-declare -r VERSION="2025-01-27"
+# Version: 2025-07-23
+declare -r VERSION="2025-07-23"
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
@@ -103,14 +103,14 @@ test_planet_parallel_processing() {
  __splitXmlForParallelPlanet "${TEST_PLANET_XML}"
 
  # Verify parts were created
- local part_count
- part_count=$(find "${TMP_DIR}" -name "part_*.xml" | wc -l)
- __logi "Created ${part_count} parts"
+ declare -i PART_COUNT
+ PART_COUNT=$(find "${TMP_DIR}" -name "part_*.xml" | wc -l)
+ __logi "Created ${PART_COUNT} parts"
 
- if [[ "${part_count}" -eq 2 ]]; then
+ if [[ "${PART_COUNT}" -eq 2 ]]; then
   __logi "✓ Planet parallel splitting test PASSED"
  else
-  __loge "✗ Planet parallel splitting test FAILED: expected 2 parts, got ${part_count}"
+  __loge "✗ Planet parallel splitting test FAILED: expected 2 parts, got ${PART_COUNT}"
   return 1
  fi
 
@@ -172,3 +172,4 @@ main() {
 # Start logger and run main function
 __start_logger
 main
+

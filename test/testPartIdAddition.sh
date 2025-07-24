@@ -4,13 +4,13 @@
 # Tests that part_id is correctly added to the end of each CSV line
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testPartIdAddition"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testPartIdAddition"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -67,7 +67,7 @@ function verify_part_id_addition() {
 
  # Check each line to ensure part_id is added correctly
  local LINE_NUM=0
- local ALL_CORRECT=true
+ declare ALL_CORRECT=true
 
  while IFS= read -r line; do
   LINE_NUM=$((LINE_NUM + 1))
@@ -82,9 +82,9 @@ function verify_part_id_addition() {
   fi
 
   # Count commas to ensure we have the right number of fields
-  local COMMA_COUNT
+  declare -i COMMA_COUNT
   COMMA_COUNT=$(echo "${line}" | tr -cd ',' | wc -c)
-  local EXPECTED_COMMAS=7 # 7 commas for 8 fields: note_id,lat,lon,created_at,status,closed_at,id_country,part_id
+  declare -i EXPECTED_COMMAS=7 # 7 commas for 8 fields: note_id,lat,lon,created_at,status,closed_at,id_country,part_id
 
   if [[ ${COMMA_COUNT} -eq ${EXPECTED_COMMAS} ]]; then
    log_info "Line ${LINE_NUM}: ✓ Has correct number of fields (${EXPECTED_COMMAS} commas)"
@@ -115,7 +115,7 @@ function test_sql_copy_simulation() {
  # Parse the CSV and show what would be inserted
  log_info "Simulated INSERT statements:"
 
- local LINE_NUM=0
+ declare -i LINE_NUM=0
  while IFS= read -r line; do
   LINE_NUM=$((LINE_NUM + 1))
 
@@ -123,14 +123,14 @@ function test_sql_copy_simulation() {
   IFS=',' read -ra FIELDS <<< "${line}"
 
      if [[ ${#FIELDS[@]} -eq 8 ]]; then
-   local NOTE_ID="${FIELDS[0]}"
-   local LAT="${FIELDS[1]}"
-   local LON="${FIELDS[2]}"
-   local CREATED_AT="${FIELDS[3]//\"/}"
-   local STATUS="${FIELDS[4]//\"/}"
-   local CLOSED_AT="${FIELDS[5]//\"/}"
-   local ID_COUNTRY="${FIELDS[6]}"
-       local ACTUAL_PART_ID="${FIELDS[7]}"
+   declare NOTE_ID="${FIELDS[0]}"
+   declare LAT="${FIELDS[1]}"
+   declare LON="${FIELDS[2]}"
+   declare CREATED_AT="${FIELDS[3]//\"/}"
+   declare STATUS="${FIELDS[4]//\"/}"
+   declare CLOSED_AT="${FIELDS[5]//\"/}"
+   declare ID_COUNTRY="${FIELDS[6]}"
+       declare ACTUAL_PART_ID="${FIELDS[7]}"
 
    log_info "Line ${LINE_NUM}: INSERT INTO notes_sync_part_${PART_ID} (...) VALUES (${NOTE_ID}, ${LAT}, ${LON}, '${CREATED_AT}', '${STATUS}', ${CLOSED_AT:+"'${CLOSED_AT}'"}, ${ID_COUNTRY:+"'${ID_COUNTRY}'"}, ${ACTUAL_PART_ID});"
 
@@ -227,3 +227,5 @@ function main() {
 
 # Execute main function
 main "$@"
+
+

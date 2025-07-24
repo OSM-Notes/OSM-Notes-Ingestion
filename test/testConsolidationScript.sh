@@ -4,13 +4,13 @@
 # Tests that the consolidation script correctly merges partition data
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testConsolidationScript"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testConsolidationScript"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -142,9 +142,9 @@ function verify_consolidation() {
  log_info "Verifying consolidation results"
 
  # Check notes_sync
- local NOTES_COUNT
+ declare -i NOTES_COUNT
  NOTES_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM notes_sync;" | tr -d ' ')
- local EXPECTED_NOTES=$((MAX_THREADS * 2)) # 2 notes per partition
+ declare -i EXPECTED_NOTES=$((MAX_THREADS * 2)) # 2 notes per partition
 
  log_info "Notes_sync: ${NOTES_COUNT} records (expected: ${EXPECTED_NOTES})"
 
@@ -156,9 +156,9 @@ function verify_consolidation() {
  fi
 
  # Check note_comments_sync
- local COMMENTS_COUNT
+ declare -i COMMENTS_COUNT
  COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_sync;" | tr -d ' ')
- local EXPECTED_COMMENTS=$((MAX_THREADS * 2)) # 2 comments per partition
+ declare -i EXPECTED_COMMENTS=$((MAX_THREADS * 2)) # 2 comments per partition
 
  log_info "Note_comments_sync: ${COMMENTS_COUNT} records (expected: ${EXPECTED_COMMENTS})"
 
@@ -170,9 +170,9 @@ function verify_consolidation() {
  fi
 
  # Check note_comments_text_sync
- local TEXT_COMMENTS_COUNT
+ declare -i TEXT_COMMENTS_COUNT
  TEXT_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text_sync;" | tr -d ' ')
- local EXPECTED_TEXT_COMMENTS=$((MAX_THREADS * 2)) # 2 text comments per partition
+ declare -i EXPECTED_TEXT_COMMENTS=$((MAX_THREADS * 2)) # 2 text comments per partition
 
  log_info "Note_comments_text_sync: ${TEXT_COMMENTS_COUNT} records (expected: ${EXPECTED_TEXT_COMMENTS})"
 
@@ -184,7 +184,7 @@ function verify_consolidation() {
  fi
 
  # Check that partition tables are cleaned up
- local PARTITION_COUNT
+ declare -i PARTITION_COUNT
  PARTITION_COUNT=$(psql -d "${DBNAME}" -t -c "
  SELECT COUNT(*) FROM information_schema.tables 
  WHERE table_name LIKE '%_part_%';
@@ -275,3 +275,5 @@ function main() {
 
 # Execute main function
 main "$@"
+
+

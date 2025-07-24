@@ -4,13 +4,13 @@
 # Tests that all sync tables are created correctly
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testSyncTablesCreation"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testSyncTablesCreation"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -47,11 +47,11 @@ function verify_sync_tables() {
  log_info "Verifying that all sync tables exist"
 
  # Check each table
- local TABLES=("notes_sync" "note_comments_sync" "note_comments_text_sync")
- local ALL_EXIST=true
+ declare TABLES=("notes_sync" "note_comments_sync" "note_comments_text_sync")
+ declare ALL_EXIST=true
 
  for table in "${TABLES[@]}"; do
-  local EXISTS
+  declare -i EXISTS
   EXISTS=$(psql -d "${DBNAME}" -t -c "
   SELECT COUNT(*) FROM information_schema.tables 
   WHERE table_name = '${table}';
@@ -138,13 +138,13 @@ function test_sample_data() {
  "
 
  # Verify data was inserted
- local NOTES_COUNT
+ declare -i NOTES_COUNT
  NOTES_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM notes_sync;" | tr -d ' ')
 
- local COMMENTS_COUNT
+ declare -i COMMENTS_COUNT
  COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_sync;" | tr -d ' ')
 
- local TEXT_COMMENTS_COUNT
+ declare -i TEXT_COMMENTS_COUNT
  TEXT_COMMENTS_COUNT=$(psql -d "${DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text_sync;" | tr -d ' ')
 
  log_info "Sample data inserted:"
@@ -241,3 +241,5 @@ function main() {
 
 # Execute main function
 main "$@"
+
+

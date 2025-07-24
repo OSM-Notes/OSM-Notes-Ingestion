@@ -4,8 +4,8 @@
 # This script demonstrates that the parallel XML splitting works correctly
 # and avoids file access conflicts when multiple processes read the same XML file.
 
-# Version: 2025-01-27
-declare -r VERSION="2025-01-27"
+# Version: 2025-07-23
+declare -r VERSION="2025-07-23"
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
@@ -146,14 +146,14 @@ test_api_parallel() {
  __splitXmlForParallelAPI "${TEST_API_XML}"
 
  # Verify results
- local part_count
- part_count=$(find "${TMP_DIR}" -name "part_*.xml" | wc -l)
- __logi "Created ${part_count} parts"
+ declare -i PART_COUNT
+ PART_COUNT=$(find "${TMP_DIR}" -name "part_*.xml" | wc -l)
+ __logi "Created ${PART_COUNT} parts"
 
- if [[ "${part_count}" -eq 2 ]]; then
+ if [[ "${PART_COUNT}" -eq 2 ]]; then
   __logi "✓ API parallel splitting test PASSED"
  else
-  __loge "✗ API parallel splitting test FAILED: expected 2 parts, got ${part_count}"
+  __loge "✗ API parallel splitting test FAILED: expected 2 parts, got ${PART_COUNT}"
   return 1
  fi
 
@@ -179,14 +179,14 @@ test_planet_parallel() {
  __splitXmlForParallelPlanet "${TEST_PLANET_XML}"
 
  # Verify results
- local part_count
- part_count=$(find "${TMP_DIR}" -name "part_*.xml" | wc -l)
- __logi "Created ${part_count} parts"
+ declare -i PART_COUNT
+ PART_COUNT=$(find "${TMP_DIR}" -name "part_*.xml" | wc -l)
+ __logi "Created ${PART_COUNT} parts"
 
- if [[ "${part_count}" -eq 2 ]]; then
+ if [[ "${PART_COUNT}" -eq 2 ]]; then
   __logi "✓ Planet parallel splitting test PASSED"
  else
-  __loge "✗ Planet parallel splitting test FAILED: expected 2 parts, got ${part_count}"
+  __loge "✗ Planet parallel splitting test FAILED: expected 2 parts, got ${PART_COUNT}"
   return 1
  fi
 
@@ -231,3 +231,4 @@ main() {
 # Start logger and run main function
 __start_logger
 main
+

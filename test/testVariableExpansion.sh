@@ -4,13 +4,13 @@
 # Tests that PART_ID and other variables are properly expanded
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
 # Define required variables
-BASENAME="testVariableExpansion"
-TMP_DIR="/tmp/${BASENAME}_$$"
+declare BASENAME="testVariableExpansion"
+declare TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
@@ -39,7 +39,7 @@ function test_variable_expansion() {
  export OUTPUT_TEXT_PART
 
  # Create a temporary file with expanded content
- local EXPANDED_SQL="${TMP_DIR}/expanded_${PART_ID}.sql"
+ declare EXPANDED_SQL="${TMP_DIR}/expanded_${PART_ID}.sql"
 
  # Use envsubst to expand variables
  envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' < "${SQL_FILE}" > "${EXPANDED_SQL}"
@@ -163,3 +163,4 @@ function main() {
 
 # Execute main function
 main "$@"
+
