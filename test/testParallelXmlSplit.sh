@@ -5,7 +5,6 @@
 # and avoids file access conflicts when multiple processes read the same XML file.
 
 # Version: 2025-07-23
-declare -r VERSION="2025-07-23"
 
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
