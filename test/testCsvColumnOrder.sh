@@ -85,11 +85,11 @@ function check_csv_column_order() {
  log_info "CSV content:"
  cat "${CSV_FILE}" | sed 's/^/  /'
 
-   # Check that we have the expected number of columns (8: note_id, lat, lon, created_at, status, closed_at, id_country, part_id)
-  declare -i LINE_COUNT
-  LINE_COUNT=$(wc -l < "${CSV_FILE}")
-  
-  log_info "CSV has ${LINE_COUNT} lines"
+ # Check that we have the expected number of columns (8: note_id, lat, lon, created_at, status, closed_at, id_country, part_id)
+ declare -i LINE_COUNT
+ LINE_COUNT=$(wc -l < "${CSV_FILE}")
+
+ log_info "CSV has ${LINE_COUNT} lines"
 
  # Check first line (should be the closed note)
  declare FIRST_LINE
@@ -102,9 +102,9 @@ function check_csv_column_order() {
  log_info "Second line (open note): ${SECOND_LINE}"
 
  # Verify the structure
-   # Expected format: note_id,lat,lon,"created_at","status","closed_at",id_country,part_id
-  # For closed note: 123,40.7128,-74.0060,"2013-04-28T02:39:27Z","close","2013-04-29T10:15:30Z",,1
-  # For open note: 456,34.0522,-118.2437,"2013-04-30T15:20:45Z","open",,,1
+ # Expected format: note_id,lat,lon,"created_at","status","closed_at",id_country,part_id
+ # For closed note: 123,40.7128,-74.0060,"2013-04-28T02:39:27Z","close","2013-04-29T10:15:30Z",,1
+ # For open note: 456,34.0522,-118.2437,"2013-04-30T15:20:45Z","open",,,1
 
  if [[ "${FIRST_LINE}" == *"\"close\""* ]] && [[ "${FIRST_LINE}" == *"\"2013-04-29T10:15:30Z\""* ]]; then
   log_info "SUCCESS: Closed note has correct status and closed_at values"
@@ -113,14 +113,14 @@ function check_csv_column_order() {
   return 1
  fi
 
-   if [[ "${SECOND_LINE}" == *"\"open\""* ]] && [[ "${SECOND_LINE}" == *",,," ]]; then
-   log_info "SUCCESS: Open note has correct status and empty fields"
-  elif [[ "${SECOND_LINE}" == *"\"open\",," ]]; then
-   log_info "SUCCESS: Open note has correct status and empty fields (ends with commas)"
-  else
-   log_error "FAILED: Open note format is incorrect"
-   return 1
-  fi
+ if [[ "${SECOND_LINE}" == *"\"open\""* ]] && [[ "${SECOND_LINE}" == *",,," ]]; then
+  log_info "SUCCESS: Open note has correct status and empty fields"
+ elif [[ "${SECOND_LINE}" == *"\"open\",," ]]; then
+  log_info "SUCCESS: Open note has correct status and empty fields (ends with commas)"
+ else
+  log_error "FAILED: Open note format is incorrect"
+  return 1
+ fi
 
  log_info "SUCCESS: CSV column order is correct"
  return 0
@@ -139,39 +139,39 @@ function test_sql_copy_simulation() {
  while IFS= read -r line; do
   LINE_NUM=$((LINE_NUM + 1))
 
-     # Parse CSV line (simple parsing, assumes no commas in quoted fields)
-   IFS=',' read -ra FIELDS <<< "${line}"
-   
-   # Handle empty fields at the end
-   declare -i FIELD_COUNT=${#FIELDS[@]}
-   if [[ ${FIELD_COUNT} -eq 5 ]]; then
-    # Add empty fields for closed_at, id_country, part_id
-    FIELDS[5]=""
-    FIELDS[6]=""
-    FIELDS[7]=""
-    FIELD_COUNT=8
-   elif [[ ${FIELD_COUNT} -eq 6 ]]; then
-    # Add empty fields for id_country, part_id
-    FIELDS[6]=""
-    FIELDS[7]=""
-    FIELD_COUNT=8
-   elif [[ ${FIELD_COUNT} -eq 7 ]]; then
-    # Add empty field for part_id
-    FIELDS[7]=""
-    FIELD_COUNT=8
-   fi
-   
-   if [[ ${FIELD_COUNT} -eq 8 ]]; then
+  # Parse CSV line (simple parsing, assumes no commas in quoted fields)
+  IFS=',' read -ra FIELDS <<< "${line}"
+
+  # Handle empty fields at the end
+  declare -i FIELD_COUNT=${#FIELDS[@]}
+  if [[ ${FIELD_COUNT} -eq 5 ]]; then
+   # Add empty fields for closed_at, id_country, part_id
+   FIELDS[5]=""
+   FIELDS[6]=""
+   FIELDS[7]=""
+   FIELD_COUNT=8
+  elif [[ ${FIELD_COUNT} -eq 6 ]]; then
+   # Add empty fields for id_country, part_id
+   FIELDS[6]=""
+   FIELDS[7]=""
+   FIELD_COUNT=8
+  elif [[ ${FIELD_COUNT} -eq 7 ]]; then
+   # Add empty field for part_id
+   FIELDS[7]=""
+   FIELD_COUNT=8
+  fi
+
+  if [[ ${FIELD_COUNT} -eq 8 ]]; then
    declare NOTE_ID="${FIELDS[0]}"
    declare LAT="${FIELDS[1]}"
    declare LON="${FIELDS[2]}"
-       declare CREATED_AT="${FIELDS[3]//\"/}"
-    declare STATUS="${FIELDS[4]//\"/}"
-    declare CLOSED_AT="${FIELDS[5]//\"/}"
-    declare ID_COUNTRY="${FIELDS[6]}"
-    declare PART_ID="${FIELDS[7]}"
-    
-    log_info "Line ${LINE_NUM}: INSERT INTO notes_sync_part_X (note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id) VALUES (${NOTE_ID}, ${LAT}, ${LON}, '${CREATED_AT}', '${STATUS}', ${CLOSED_AT:+"'${CLOSED_AT}'"}, ${ID_COUNTRY:+"'${ID_COUNTRY}'"}, ${PART_ID:+"'${PART_ID}'"});"
+   declare CREATED_AT="${FIELDS[3]//\"/}"
+   declare STATUS="${FIELDS[4]//\"/}"
+   declare CLOSED_AT="${FIELDS[5]//\"/}"
+   declare ID_COUNTRY="${FIELDS[6]}"
+   declare PART_ID="${FIELDS[7]}"
+
+   log_info "Line ${LINE_NUM}: INSERT INTO notes_sync_part_X (note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id) VALUES (${NOTE_ID}, ${LAT}, ${LON}, '${CREATED_AT}', '${STATUS}', ${CLOSED_AT:+"'${CLOSED_AT}'"}, ${ID_COUNTRY:+"'${ID_COUNTRY}'"}, ${PART_ID:+"'${PART_ID}'"});"
 
    # Check if status is valid enum
    if [[ "${STATUS}" == "open" || "${STATUS}" == "close" ]]; then
@@ -180,10 +180,10 @@ function test_sql_copy_simulation() {
     log_error "  ✗ Status '${STATUS}' is invalid (should be 'open' or 'close')"
     return 1
    fi
-     else
-    log_error "Line ${LINE_NUM} has ${FIELD_COUNT} fields, expected 8"
-    return 1
-   fi
+  else
+   log_error "Line ${LINE_NUM} has ${FIELD_COUNT} fields, expected 8"
+   return 1
+  fi
  done < "${CSV_FILE}"
 
  log_info "SUCCESS: All lines would insert correctly into database"
@@ -265,5 +265,3 @@ function main() {
 
 # Execute main function
 main "$@"
-
-

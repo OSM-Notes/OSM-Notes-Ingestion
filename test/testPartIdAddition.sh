@@ -122,7 +122,7 @@ function test_sql_copy_simulation() {
   # Parse CSV line (simple parsing, assumes no commas in quoted fields)
   IFS=',' read -ra FIELDS <<< "${line}"
 
-     if [[ ${#FIELDS[@]} -eq 8 ]]; then
+  if [[ ${#FIELDS[@]} -eq 8 ]]; then
    declare NOTE_ID="${FIELDS[0]}"
    declare LAT="${FIELDS[1]}"
    declare LON="${FIELDS[2]}"
@@ -130,7 +130,7 @@ function test_sql_copy_simulation() {
    declare STATUS="${FIELDS[4]//\"/}"
    declare CLOSED_AT="${FIELDS[5]//\"/}"
    declare ID_COUNTRY="${FIELDS[6]}"
-       declare ACTUAL_PART_ID="${FIELDS[7]}"
+   declare ACTUAL_PART_ID="${FIELDS[7]}"
 
    log_info "Line ${LINE_NUM}: INSERT INTO notes_sync_part_${PART_ID} (...) VALUES (${NOTE_ID}, ${LAT}, ${LON}, '${CREATED_AT}', '${STATUS}', ${CLOSED_AT:+"'${CLOSED_AT}'"}, ${ID_COUNTRY:+"'${ID_COUNTRY}'"}, ${ACTUAL_PART_ID});"
 
@@ -141,10 +141,10 @@ function test_sql_copy_simulation() {
     log_error "  ✗ Part_id '${ACTUAL_PART_ID}' does not match expected '${PART_ID}'"
     return 1
    fi
-     else
-    log_error "Line ${LINE_NUM} has ${#FIELDS[@]} fields, expected 8"
-    return 1
-   fi
+  else
+   log_error "Line ${LINE_NUM} has ${#FIELDS[@]} fields, expected 8"
+   return 1
+  fi
  done < "${CSV_FILE}"
 
  log_info "SUCCESS: All lines would insert correctly into database with correct part_id"
@@ -227,5 +227,3 @@ function main() {
 
 # Execute main function
 main "$@"
-
-

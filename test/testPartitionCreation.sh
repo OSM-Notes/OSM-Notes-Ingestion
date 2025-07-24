@@ -26,12 +26,12 @@ function log_error() {
 function test_sql_syntax() {
  local SQL_FILE="${1}"
  local MAX_THREADS="${2}"
- 
+
  log_info "Testing SQL syntax for partition creation with MAX_THREADS=${MAX_THREADS}"
- 
+
  # Create a temporary file with the SQL content
  declare TEMP_SQL="${TMP_DIR}/test_partition.sql"
- 
+
  # Create the SQL content with the variable set
  cat > "${TEMP_SQL}" << EOF
 SET app.max_threads = '${MAX_THREADS}';
@@ -100,7 +100,7 @@ EOF
  log_info "Generated SQL file: ${TEMP_SQL}"
  log_info "SQL content (first 20 lines):"
  head -20 "${TEMP_SQL}" | sed 's/^/  /'
- 
+
  # Check if the SQL file was created successfully
  if [[ -f "${TEMP_SQL}" ]]; then
   log_info "SUCCESS: SQL file created successfully"
@@ -114,14 +114,14 @@ EOF
 # Test function to check variable expansion
 function test_variable_expansion() {
  local MAX_THREADS="${1}"
- 
+
  log_info "Testing variable expansion with MAX_THREADS=${MAX_THREADS}"
- 
+
  # Check if the SQL would create the right number of partitions
  local EXPECTED_PARTITIONS=$((MAX_THREADS * 3))
- 
+
  log_info "Expected partitions: ${EXPECTED_PARTITIONS} (${MAX_THREADS} threads × 3 table types)"
- 
+
  # Show what partition names would be created
  log_info "Partition names that would be created:"
  for i in $(seq 1 "${MAX_THREADS}"); do
@@ -129,7 +129,7 @@ function test_variable_expansion() {
   echo "  - note_comments_sync_part_${i}"
   echo "  - note_comments_text_sync_part_${i}"
  done
- 
+
  log_info "SUCCESS: Variable expansion test completed"
  return 0
 }
@@ -138,30 +138,30 @@ function test_variable_expansion() {
 function test_actual_sql_file() {
  local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
  local SQL_FILE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createPartitions.sql"
- 
+
  log_info "Testing actual SQL file: ${SQL_FILE}"
- 
+
  if [[ ! -f "${SQL_FILE}" ]]; then
   log_error "FAILED: SQL file does not exist: ${SQL_FILE}"
   return 1
  fi
- 
+
  log_info "SUCCESS: SQL file exists"
- 
+
  # Show the content of the actual SQL file
  log_info "SQL file content (first 30 lines):"
  head -30 "${SQL_FILE}" | sed 's/^/  /'
- 
+
  return 0
 }
 
 # Run tests
 function run_tests() {
  local MAX_THREADS="${1:-5}"
- 
+
  log_info "Starting partition creation tests"
  log_info "Max threads: ${MAX_THREADS}"
- 
+
  # Test 1: Check actual SQL file
  log_info "Test 1: Checking actual SQL file"
  if test_actual_sql_file; then
@@ -170,7 +170,7 @@ function run_tests() {
   log_error "Test 1 FAILED"
   return 1
  fi
- 
+
  # Test 2: Test SQL syntax
  log_info "Test 2: Testing SQL syntax"
  if test_sql_syntax "dummy" "${MAX_THREADS}"; then
@@ -179,7 +179,7 @@ function run_tests() {
   log_error "Test 2 FAILED"
   return 1
  fi
- 
+
  # Test 3: Test variable expansion
  log_info "Test 3: Testing variable expansion"
  if test_variable_expansion "${MAX_THREADS}"; then
@@ -188,7 +188,7 @@ function run_tests() {
   log_error "Test 3 FAILED"
   return 1
  fi
- 
+
  # Test 4: Check specific partition that was failing
  log_info "Test 4: Checking specific partition notes_sync_part_5"
  if [[ "${MAX_THREADS}" -ge 5 ]]; then
@@ -197,7 +197,7 @@ function run_tests() {
   log_error "FAILED: MAX_THREADS=${MAX_THREADS} would NOT create notes_sync_part_5"
   return 1
  fi
- 
+
  log_info "All partition creation tests completed successfully"
 }
 
@@ -211,13 +211,13 @@ function cleanup() {
 # Main execution
 function main() {
  log_info "Starting partition creation tests"
- 
+
  # Set up cleanup trap
  trap cleanup EXIT
- 
+
  # Get MAX_THREADS from command line or use default
  local MAX_THREADS="${1:-5}"
- 
+
  # Run tests
  if run_tests "${MAX_THREADS}"; then
   log_info "All partition creation tests PASSED"
@@ -230,4 +230,3 @@ function main() {
 
 # Execute main function
 main "$@"
-

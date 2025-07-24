@@ -44,4 +44,3 @@ TYPE="Planet"
 test
 TYPE="API"
 test
-

@@ -25,7 +25,7 @@
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -45,22 +45,22 @@ DBNAME=notes
 
 echo "CALL insert_note (${NOTE_ID}, ${LATITUDE}, ${LONGITUDE},
   '${CREATED_AT}')" \
-  | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
 echo "CALL insert_note_comment(${NOTE_ID}, '${STATUS_COMMENT}',
   '${CREATED_AT}', ${USER_ID}, '${USERNAME}')" \
-  | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
 CREATED_AT="2000-12-14 19:53:25 UTC"
 STATUS_COMMENT="commented"
 
 echo "CALL insert_note_comment(${NOTE_ID}, '${STATUS_COMMENT}',
   '${CREATED_AT}', ${USER_ID}, '${USERNAME}')" \
-  | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
 CREATED_AT="2000-12-14 19:53:26 UTC"
 STATUS_COMMENT="closed"
 
 echo "CALL insert_note_comment(${NOTE_ID}, '${STATUS_COMMENT}', '${CREATED_AT}',
   ${USER_ID}, '${USERNAME}')" \
-  | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ | psql -d "${DBNAME}" -v ON_ERROR_STOP=1

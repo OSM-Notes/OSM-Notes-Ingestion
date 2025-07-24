@@ -230,4 +230,3 @@ main() {
 # Start logger and run main function
 __start_logger
 main
-
