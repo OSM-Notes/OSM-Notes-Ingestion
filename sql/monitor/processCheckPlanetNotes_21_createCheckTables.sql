@@ -50,3 +50,20 @@ COMMENT ON COLUMN note_comments_check.id_user IS
   'OSM id of the user who performed the action';
 COMMENT ON COLUMN note_comments_check.username IS
   'OSM username at the moment of the dump';
+
+CREATE TABLE note_comments_text_check (
+ id SERIAL,
+ note_id INTEGER NOT NULL,
+ sequence_action INTEGER,
+ body TEXT
+);
+COMMENT ON TABLE note_comments_text_check IS
+  'Stores all text comments to check against base table';
+COMMENT ON COLUMN note_comments_text_check.id IS
+  'Generated ID to keep track of the text comments order';
+COMMENT ON COLUMN note_comments_text_check.note_id IS
+  'OSM Note Id associated to this comment';
+COMMENT ON COLUMN note_comments_text_check.sequence_action IS
+  'Comment sequence generated';
+COMMENT ON COLUMN note_comments_text_check.body IS
+  'Text content of the comment';

@@ -203,6 +203,55 @@ COPY
 
 DROP TABLE IF EXISTS temp_diff_note_comments;
 
+-- Text comment differences between the retrieved from API and the Planet.
+DROP TABLE IF EXISTS temp_diff_text_comments;
+
+CREATE TABLE temp_diff_text_comments (
+ note_id INTEGER
+);
+COMMENT ON TABLE temp_diff_text_comments IS
+  'Temporal table for differences in text comments';
+COMMENT ON COLUMN temp_diff_text_comments.note_id IS 'OSM note id';
+
+INSERT INTO temp_diff_text_comments
+ SELECT /* Notes-check */ note_id
+ FROM (
+  SELECT /* Notes-check */ note_id, sequence_action, body
+  FROM note_comments_text_check
+  EXCEPT
+  SELECT /* Notes-check */ note_id, sequence_action, body
+  FROM note_comments_text
+  WHERE processing_time < NOW()::DATE
+ ) AS t
+ ORDER BY note_id, sequence_action
+;
+
+COPY
+ (
+  SELECT /* Notes-check */ *
+  FROM (
+   SELECT /* Notes-check */ 'Planet' AS source, note_id, sequence_action, body
+   FROM note_comments_text_check
+   WHERE note_id IN (
+    SELECT /* Notes-check */ note_id
+    FROM temp_diff_text_comments
+   )
+   UNION
+   SELECT /* Notes-check */ 'API   ' AS source, note_id, sequence_action, body
+   FROM note_comments_text
+   WHERE note_id IN (
+    SELECT /* Notes-check */ note_id
+    FROM temp_diff_text_comments
+   )
+   AND processing_time < NOW()::DATE
+  ) AS T
+  ORDER BY note_id, sequence_action, source
+ )
+ TO '${DIFFERENT_TEXT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
+;
+
+DROP TABLE IF EXISTS temp_diff_text_comments;
+
 -- Differences between comments and text
 COPY (
  SELECT /* Notes-check */ *
