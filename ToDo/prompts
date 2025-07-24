@@ -1,0 +1,6 @@
+
+Podrías crear un archive README.md en inlgés en todos los subdirectorios de primer nivel, indicando qué contiene ese directorio, y en qué componentes del software son usados esos archivos.
+Actualmente hay muchos subdirectorios, y para una persona que está comenzando a contribuir puede ser complicado entender la lógica.
+
+
+El archivo CONTRIBUTING es un poco simple, podría dar más instrucciones de cómo contribuir, basado en el código existente (nombres de archivos, directorios, variables, etc). También en dónde ubicar las instrucciones de las pruebas para asegurarse que siempre se incluyen pruebas con las neuvas funcionalidades.
