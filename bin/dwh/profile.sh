@@ -32,7 +32,7 @@
 # 242) Invalid argument for script invocation.
 # 243) Logger utility is not available.
 #
-# For contributing, please execute these commands before subimitting:
+# For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all profile.sh
 # * shfmt -w -i 1 -sr -bn profile.sh
 #
@@ -43,13 +43,13 @@ declare -r VERSION="2024-03-31"
 #set -xv
 # Fails when a variable is not initialized.
 set -u
-# Fails with an non-zero return code.
+# Fails with a non-zero return code.
 set -e
 # Fails if the commands of a pipe return non-zero.
 set -o pipefail
 # Fails if an internal function fails.
 set -E
-# Fails parent it child fails.
+# Fails parent if child fails.
 shopt -s inherit_errexit
 
 # If all files should be deleted. In case of an error, this could be disabled.
@@ -72,12 +72,12 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
-# Temporal directory for all files.
+# Temporary directory for all files.
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 chmod 777 "${TMP_DIR}"
-# Lof file for output.
+# Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILENAME
@@ -95,7 +95,7 @@ declare -i DIMENSION_USER_ID
 declare COUNTRY_NAME
 # Name of the user or the country in Spanish.
 declare PAIS_NAME
-# Country_id of the contry.
+# Country_id of the country.
 declare -i COUNTRY_ID
 
 # Location of the common functions.

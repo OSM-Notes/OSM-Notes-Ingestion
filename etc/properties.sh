@@ -25,7 +25,7 @@ declare -r OSM_API="https://api.openstreetmap.org/api/0.6"
 # shellcheck disable=SC2034
 declare -r PLANET="https://planet.openstreetmap.org"
 
-# Overpass interpreter. Used to download the contries and maritimes boundaries.
+# Overpass interpreter. Used to download the countries and maritime boundaries.
 # shellcheck disable=SC2034
 declare -r OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
 

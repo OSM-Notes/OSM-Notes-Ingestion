@@ -21,7 +21,7 @@ functionalities.
 * `bin/functionsProcess.sh` share functions across several scripts.
 
 * `bin/dwh/ETL.sh` loads the data warehouse from the main notes tables.
-* `bin/dwh/profiles.sh` shows a user or country profile.
+* `bin/dwh/profile.sh` shows a user or country profile.
 
 * `bin/monitor/processCheckPlanetNotes.sh` is a script that allows to check the
   notes in the database with a new download from planet.

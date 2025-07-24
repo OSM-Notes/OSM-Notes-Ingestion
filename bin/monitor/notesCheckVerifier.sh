@@ -27,7 +27,7 @@
 # * shellcheck -x -o all notesCheckVerifier.sh
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
-# Autor: Andres Gomez Casanova - AngocA
+# Author: Andres Gomez Casanova - AngocA
 # Version: 2025-07-08
 declare -r VERSION="2025-07-08"
 
@@ -64,7 +64,7 @@ umask 0000
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
-# Temporal directory for all files.
+# Temporary directory for all files.
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR

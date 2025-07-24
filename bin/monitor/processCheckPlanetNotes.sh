@@ -30,7 +30,7 @@
 # 243) Logger utility is not available.
 # 247) Error downloading planet notes file.
 #
-# For contributing, please execute these commands before subimitting:
+# For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all processCheckPlanetNotes.sh
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
@@ -41,7 +41,7 @@ declare -r VERSION="2025-07-21"
 #set -xv
 # Fails when a variable is not initialized.
 set -u
-# Fails with an non-zero return code.
+# Fails with a non-zero return code.
 set -e
 # Fails if the commands of a pipe return non-zero.
 set -o pipefail
@@ -64,12 +64,12 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
-# Temporal directory for all files.
+# Temporary directory for all files.
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 chmod 777 "${TMP_DIR}"
-# Lof file for output.
+# Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILENAME
@@ -84,7 +84,7 @@ declare -r PROCESS_TYPE=${1:-}
 
 # Name of the file to download.
 declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
-# Filename fot the OSM Notes from Planet.
+# Filename for the OSM Notes from Planet.
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
 
 # PostgreSQL files.

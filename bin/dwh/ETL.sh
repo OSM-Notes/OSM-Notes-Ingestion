@@ -15,7 +15,7 @@
 # 242) Invalid argument for script invocation.
 # 243) Logger utility is not available.
 #
-# For contributing, please execute these commands before subimitting:
+# For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all ETL.sh
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
@@ -26,7 +26,7 @@ declare -r VERSION="2025-07-18"
 #set -xv
 # Fails when a variable is not initialized.
 set -u
-# Fails with an non-zero return code.
+# Fails with a non-zero return code.
 set -e
 # Fails if the commands of a pipe return non-zero.
 set -o pipefail
@@ -34,7 +34,7 @@ set -o pipefail
 set -E
 
 # If all files should be deleted. In case of an error, this could be disabled.
-# You can defined when calling: export CLEAN=false
+# You can define when calling: export CLEAN=false
 declare -r CLEAN="${CLEAN:-true}"
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
@@ -53,12 +53,12 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
-# Temporal directory for all files.
+# Temporary directory for all files.
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 chmod 777 "${TMP_DIR}"
-# Lof file for output.
+# Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILENAME
@@ -71,11 +71,11 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Name of the SQL script that check the existance of base tables.
+# Name of the SQL script that checks the existence of base tables.
 declare -r POSTGRES_11_CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_11_checkDWHTables.sql"
-# Name of the SQL script that contains existing ETL object form the DB.
+# Name of the SQL script that contains existing ETL objects from the DB.
 declare -r POSTGRES_12_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_12_removeDatamartObjects.sql"
-# Name of the SQL script that contains existing ETL object form the DB.
+# Name of the SQL script that contains existing ETL objects from the DB.
 declare -r POSTGRES_13_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql"
 
 # Name of the SQL script that contains the objects to create in the DB.

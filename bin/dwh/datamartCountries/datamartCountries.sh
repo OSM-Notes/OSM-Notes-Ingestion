@@ -22,7 +22,7 @@ declare -r VERSION="2025-07-14"
 #set -xv
 # Fails when a variable is not initialized.
 set -u
-# Fails with an non-zero return code.
+# Fails with a non-zero return code.
 set -e
 # Fails if the commands of a pipe return non-zero.
 set -o pipefail
@@ -30,7 +30,7 @@ set -o pipefail
 set -E
 
 # If all files should be deleted. In case of an error, this could be disabled.
-# You can defined when calling: export CLEAN=false
+# You can define when calling: export CLEAN=false
 declare -r CLEAN="${CLEAN:-true}"
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
@@ -49,12 +49,12 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
-# Temporal directory for all files.
+# Temporary directory for all files.
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 chmod 777 "${TMP_DIR}"
-# Lof file for output.
+# Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILENAME
@@ -82,7 +82,7 @@ declare -r ADD_YEARS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/
 # Name of the SQL script that contains the ETL process.
 declare -r POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_31_populateDatamartCountriesTable.sql"
 
-# Last year activites script.
+# Last year activities script.
 declare -r LAST_YEAR_ACTITIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamarts_lastYearActivities.sql"
 
 # Location of the common functions.
@@ -97,7 +97,7 @@ source "${FUNCTIONS_FILE}"
 # Shows the help information.
 function __show_help {
  echo "${0} version ${VERSION}"
- echo "This scripts populates the datamart to visualize country's data."
+ echo "This script populates the datamart to visualize country's data."
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
