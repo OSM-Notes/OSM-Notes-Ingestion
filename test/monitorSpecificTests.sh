@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Test script for the monitoring system to validate both success and failure scenarios.
-# This script creates test scenarios to verify that the monitoring system correctly
-# identifies when there are differences between API and Planet data.
+# Specific test script for monitoring system to validate different types of problems.
+# This script creates specific test scenarios to verify that the monitoring system
+# correctly identifies different types of data inconsistencies.
 #
-# Test scenarios:
-# 1. Success case: DB contains all data from API and matches Planet dump
-# 2. Failure case: Missing notes in DB that should be present
-# 3. Failure case: Missing comments in DB that should be present
-# 4. Failure case: Missing text comments in DB that should be present
+# Specific test scenarios:
+# 1. Missing notes only
+# 2. Missing comments only
+# 3. Missing text comments only
+# 4. Data corruption (different values)
+# 5. Mixed problems (multiple issues)
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-27
@@ -73,7 +74,7 @@ LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILENAME
 
 # Test database name for isolated testing.
-declare -r TEST_DBNAME="notes_test"
+declare -r TEST_DBNAME="notes_test_specific"
 declare -r ORIGINAL_DBNAME="${DBNAME}"
 
 # Location of the common functions.
@@ -81,7 +82,6 @@ declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 # Monitoring scripts.
 declare -r MONITOR_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh"
-declare -r PROCESS_CHECK_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
 
 ###########
 # FUNCTIONS
@@ -92,19 +92,20 @@ source "${FUNCTIONS_FILE}"
 # Shows the help information.
 function __show_help {
  echo "${BASENAME} version ${VERSION}"
- echo "Test script for the monitoring system to validate both success and failure scenarios."
+ echo "Specific test script for monitoring system to validate different types of problems."
  echo
  echo "Usage:"
  echo "  ${0} [--help|-h]"
  echo
- echo "This script creates test scenarios to verify that the monitoring system correctly"
- echo "identifies when there are differences between API and Planet data."
+ echo "This script creates specific test scenarios to verify that the monitoring system"
+ echo "correctly identifies different types of data inconsistencies."
  echo
- echo "Test scenarios:"
- echo "  1. Success case: DB contains all data from API and matches Planet dump"
- echo "  2. Failure case: Missing notes in DB that should be present"
- echo "  3. Failure case: Missing comments in DB that should be present"
- echo "  4. Failure case: Missing text comments in DB that should be present"
+ echo "Specific test scenarios:"
+ echo "  1. Missing notes only"
+ echo "  2. Missing comments only"
+ echo "  3. Missing text comments only"
+ echo "  4. Data corruption (different values)"
+ echo "  5. Mixed problems (multiple issues)"
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
@@ -133,16 +134,12 @@ function __checkPrereqs {
   __loge "ERROR: Monitor script is missing at ${MONITOR_SCRIPT}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${PROCESS_CHECK_SCRIPT}" ]]; then
-  __loge "ERROR: Process check script is missing at ${PROCESS_CHECK_SCRIPT}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  __checkPrereqs_functions
  __log_finish
  set -e
 }
 
-# Creates test database and loads sample data.
+# Creates test database and loads base structure.
 function __setupTestDatabase {
  __log_start
  __logi "Setting up test database: ${TEST_DBNAME}"
@@ -166,40 +163,12 @@ function __setupTestDatabase {
  __log_finish
 }
 
-# Loads sample data for success scenario (complete data).
-function __loadSuccessScenario {
+# Test 1: Missing notes only
+function __testMissingNotes {
  __log_start
- __logi "Loading success scenario data"
+ __logi "=== Test 1: Missing Notes Only ==="
 
- # Insert sample notes (complete data)
- psql -d "${TEST_DBNAME}" -c "
- INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
- (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
- (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
- (1003, 51.5074, -0.1278, '2025-01-01 12:00:00', 'open', 2);
- "
-
- # Insert sample comments
- psql -d "${TEST_DBNAME}" -c "
- INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
- (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
- (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
- (1002, 1, 'opened', '2025-01-01 11:00:00', 12345),
- (1002, 2, 'closed', '2025-01-01 11:30:00', 67890),
- (1003, 1, 'opened', '2025-01-01 12:00:00', 12345);
- "
-
- # Insert sample text comments
- psql -d "${TEST_DBNAME}" -c "
- INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
- (1001, 1, 'Note opened for testing'),
- (1001, 2, 'This is a test comment'),
- (1002, 1, 'Another test note'),
- (1002, 2, 'Note closed'),
- (1003, 1, 'Third test note');
- "
-
- # Insert same data into check tables (simulating Planet data)
+ # Load complete data into check tables (Planet data)
  psql -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
@@ -207,87 +176,189 @@ function __loadSuccessScenario {
  (1003, 51.5074, -0.1278, '2025-01-01 12:00:00', 'open', 2);
  "
 
- psql -d "${TEST_DBNAME}" -c "
- INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
- (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
- (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
- (1002, 1, 'opened', '2025-01-01 11:00:00', 12345),
- (1002, 2, 'closed', '2025-01-01 11:30:00', 67890),
- (1003, 1, 'opened', '2025-01-01 12:00:00', 12345);
- "
-
- psql -d "${TEST_DBNAME}" -c "
- INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
- (1001, 1, 'Note opened for testing'),
- (1001, 2, 'This is a test comment'),
- (1002, 1, 'Another test note'),
- (1002, 2, 'Note closed'),
- (1003, 1, 'Third test note');
- "
-
- __log_finish
-}
-
-# Loads sample data for failure scenario (missing data).
-function __loadFailureScenario {
- __log_start
- __logi "Loading failure scenario data"
-
- # Insert sample notes (missing some data)
+ # Load incomplete data into base tables (API data - missing note 1003)
  psql -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
- -- Note 1003 is missing from API data
  "
 
- # Insert sample comments (missing some data)
- psql -d "${TEST_DBNAME}" -c "
- INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
- (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
- (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
- (1002, 1, 'opened', '2025-01-01 11:00:00', 12345);
- -- Comment for note 1002 sequence 2 is missing from API data
- "
+ __runMonitoringTest "missing_notes_only" 1
+ __log_finish
+}
 
- # Insert sample text comments (missing some data)
- psql -d "${TEST_DBNAME}" -c "
- INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
- (1001, 1, 'Note opened for testing'),
- (1001, 2, 'This is a test comment');
- -- Text comments for note 1002 are missing from API data
- "
+# Test 2: Missing comments only
+function __testMissingComments {
+ __log_start
+ __logi "=== Test 2: Missing Comments Only ==="
 
- # Insert complete data into check tables (simulating Planet data)
+ # Load complete data into check tables (Planet data)
  psql -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
- (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
- (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
- (1003, 51.5074, -0.1278, '2025-01-01 12:00:00', 'open', 2);
+ (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
  "
 
  psql -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
- (1002, 1, 'opened', '2025-01-01 11:00:00', 12345),
- (1002, 2, 'closed', '2025-01-01 11:30:00', 67890),
- (1003, 1, 'opened', '2025-01-01 12:00:00', 12345);
+ (1001, 3, 'closed', '2025-01-01 11:00:00', 12345);
+ "
+
+ # Load incomplete data into base tables (API data - missing comment sequence 2)
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+ (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
+ (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
+ (1001, 3, 'closed', '2025-01-01 11:00:00', 12345);
+ "
+
+ __runMonitoringTest "missing_comments_only" 1
+ __log_finish
+}
+
+# Test 3: Missing text comments only
+function __testMissingTextComments {
+ __log_start
+ __logi "=== Test 3: Missing Text Comments Only ==="
+
+ # Load complete data into check tables (Planet data)
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
+ (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
+ (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
+ (1001, 2, 'commented', '2025-01-01 10:30:00', 67890);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
+ (1001, 1, 'Note opened for testing'),
+ (1001, 2, 'This is a test comment');
+ "
+
+ # Load incomplete data into base tables (API data - missing text comment for sequence 2)
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+ (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
+ (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
+ (1001, 2, 'commented', '2025-01-01 10:30:00', 67890);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
+ (1001, 1, 'Note opened for testing');
+ -- Missing text comment for sequence 2
+ "
+
+ __runMonitoringTest "missing_text_comments_only" 1
+ __log_finish
+}
+
+# Test 4: Data corruption (different values)
+function __testDataCorruption {
+ __log_start
+ __logi "=== Test 4: Data Corruption (Different Values) ==="
+
+ # Load data into check tables (Planet data)
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
+ (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
+ (1001, 1, 'opened', '2025-01-01 10:00:00', 12345);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
+ (1001, 1, 'Note opened for testing');
+ "
+
+ # Load corrupted data into base tables (API data - different values)
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+ (1001, 40.7129, -74.0061, '2025-01-01 10:00:00', 'open', 1);
+ -- Different coordinates
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
+ (1001, 1, 'opened', '2025-01-01 10:00:00', 12345);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
+ (1001, 1, 'Note opened for testing with different text');
+ -- Different text content
+ "
+
+ __runMonitoringTest "data_corruption" 1
+ __log_finish
+}
+
+# Test 5: Mixed problems (multiple issues)
+function __testMixedProblems {
+ __log_start
+ __logi "=== Test 5: Mixed Problems (Multiple Issues) ==="
+
+ # Load complete data into check tables (Planet data)
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
+ (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+ (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
+ (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
+ (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
+ (1002, 1, 'opened', '2025-01-01 11:00:00', 12345);
  "
 
  psql -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing'),
  (1001, 2, 'This is a test comment'),
- (1002, 1, 'Another test note'),
- (1002, 2, 'Note closed'),
- (1003, 1, 'Third test note');
+ (1002, 1, 'Another test note');
  "
 
+ # Load incomplete/corrupted data into base tables (API data)
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+ (1001, 40.7129, -74.0061, '2025-01-01 10:00:00', 'open', 1);
+ -- Missing note 1002, different coordinates for 1001
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
+ (1001, 1, 'opened', '2025-01-01 10:00:00', 12345);
+ -- Missing comment sequence 2 for note 1001, missing all comments for note 1002
+ "
+
+ psql -d "${TEST_DBNAME}" -c "
+ INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
+ (1001, 1, 'Note opened for testing with different text');
+ -- Missing text comment for sequence 2, different text for sequence 1
+ "
+
+ __runMonitoringTest "mixed_problems" 1
  __log_finish
 }
 
-# Runs the monitoring script and captures output.
+# Runs the monitoring script and validates results.
 function __runMonitoringTest {
  __log_start
  local SCENARIO_NAME="${1}"
@@ -311,9 +382,27 @@ function __runMonitoringTest {
   DIFFERENCES_FOUND=1
  fi
 
+ # Extract specific counts if available
+ local MISSING_NOTES=0
+ local MISSING_COMMENTS=0
+ local MISSING_TEXT_COMMENTS=0
+
+ if grep -q "Missing notes:" "${MONITOR_OUTPUT}"; then
+  MISSING_NOTES=$(grep "Missing notes:" "${MONITOR_OUTPUT}" | sed 's/.*Missing notes: \([0-9]*\).*/\1/')
+ fi
+ if grep -q "Missing comments:" "${MONITOR_OUTPUT}"; then
+  MISSING_COMMENTS=$(grep "Missing comments:" "${MONITOR_OUTPUT}" | sed 's/.*Missing comments: \([0-9]*\).*/\1/')
+ fi
+ if grep -q "Missing text comments:" "${MONITOR_OUTPUT}"; then
+  MISSING_TEXT_COMMENTS=$(grep "Missing text comments:" "${MONITOR_OUTPUT}" | sed 's/.*Missing text comments: \([0-9]*\).*/\1/')
+ fi
+
  # Validate results
  if [[ "${EXPECTED_DIFFERENCES}" -eq 1 ]] && [[ "${DIFFERENCES_FOUND}" -eq 1 ]]; then
   __logi "✓ SUCCESS: ${SCENARIO_NAME} - Differences correctly detected"
+  __logi "  - Missing notes: ${MISSING_NOTES}"
+  __logi "  - Missing comments: ${MISSING_COMMENTS}"
+  __logi "  - Missing text comments: ${MISSING_TEXT_COMMENTS}"
  elif [[ "${EXPECTED_DIFFERENCES}" -eq 0 ]] && [[ "${DIFFERENCES_FOUND}" -eq 0 ]]; then
   __logi "✓ SUCCESS: ${SCENARIO_NAME} - No differences correctly detected"
  else
@@ -338,27 +427,37 @@ function __cleanupTestDatabase {
  __log_finish
 }
 
-# Runs all test scenarios.
-function __runAllTests {
+# Runs all specific test scenarios.
+function __runAllSpecificTests {
  __log_start
- __logi "Starting monitoring system tests"
+ __logi "Starting specific monitoring system tests"
 
- # Test 1: Success scenario (no differences)
- __logi "=== Test 1: Success Scenario ==="
+ # Test 1: Missing notes only
  __setupTestDatabase
- __loadSuccessScenario
- __runMonitoringTest "success_scenario" 0
-
- # Test 2: Failure scenario (missing data)
- __logi "=== Test 2: Failure Scenario ==="
- __setupTestDatabase
- __loadFailureScenario
- __runMonitoringTest "failure_scenario" 1
-
- # Cleanup
+ __testMissingNotes
  __cleanupTestDatabase
 
- __logi "All monitoring tests completed"
+ # Test 2: Missing comments only
+ __setupTestDatabase
+ __testMissingComments
+ __cleanupTestDatabase
+
+ # Test 3: Missing text comments only
+ __setupTestDatabase
+ __testMissingTextComments
+ __cleanupTestDatabase
+
+ # Test 4: Data corruption
+ __setupTestDatabase
+ __testDataCorruption
+ __cleanupTestDatabase
+
+ # Test 5: Mixed problems
+ __setupTestDatabase
+ __testMixedProblems
+ __cleanupTestDatabase
+
+ __logi "All specific monitoring tests completed"
  __log_finish
 }
 
@@ -375,14 +474,14 @@ function main() {
  fi
 
  __checkPrereqs
- __logw "Starting monitoring tests."
+ __logw "Starting specific monitoring tests."
 
  # Sets the trap in case of any signal.
  # __trapOn
 
- __runAllTests
+ __runAllSpecificTests
 
- __logw "Monitoring tests finished."
+ __logw "Specific monitoring tests finished."
  __log_finish
 }
 
