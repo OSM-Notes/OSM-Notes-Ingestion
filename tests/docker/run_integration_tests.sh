@@ -2,7 +2,7 @@
 
 # Integration Tests Runner for Docker Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-23
 
 set -euo pipefail
 
@@ -42,12 +42,6 @@ MAX_RETRIES=3
 # Function to check prerequisites
 check_prerequisites() {
     log_info "Checking prerequisites..."
-    
-    # Check if Docker is installed
-    if ! command -v docker &> /dev/null; then
-        log_error "Docker is not installed"
-        exit 1
-    fi
     
     # Check if Docker is installed
     if ! command -v docker &> /dev/null; then

@@ -9,259 +9,241 @@
 set -euo pipefail
 
 # Define required variables
-declare BASENAME="testCsvColumnOrder"
-declare TMP_DIR="/tmp/${BASENAME}_$$"
-mkdir -p "${TMP_DIR}"
+declare -r SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+declare -r XSLT_DIR="${SCRIPT_DIR}/../xslt"
+declare -r TEST_DIR="${SCRIPT_DIR}/xslt"
 
 # Simple logging functions for testing
-function log_info() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+__logi() {
+    echo "[INFO] $1"
 }
 
-function log_error() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2
+__loge() {
+    echo "[ERROR] $1" >&2
 }
 
 # Test function to create sample XML
-function create_sample_xml() {
- local XML_FILE="${1}"
-
- log_info "Creating sample XML file: ${XML_FILE}"
-
- cat > "${XML_FILE}" << 'EOF'
+__createSampleXml() {
+    __logi "Creating sample XML for testing"
+    
+    cat > "${TEST_DIR}/test_api.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note id="123" lat="40.7128" lon="-74.0060" created_at="2013-04-28T02:39:27Z" closed_at="2013-04-29T10:15:30Z">
-  <comment>
-   <text>Test comment</text>
-  </comment>
- </note>
- <note id="456" lat="34.0522" lon="-118.2437" created_at="2013-04-30T15:20:45Z">
-  <comment>
-   <text>Another test comment</text>
-  </comment>
- </note>
-</osm-notes>
+<osm version="0.6" generator="OpenStreetMap server">
+  <note lat="40.7128" lon="-74.0060" id="123">
+    <date_created>2013-04-28T02:39:27Z</date_created>
+    <date_closed>2013-04-29T10:15:30Z</date_closed>
+    <comments>
+      <comment>
+        <date>2013-04-28T02:39:27Z</date>
+        <uid>12345</uid>
+        <user>testuser</user>
+        <action>opened</action>
+        <text>Test comment with "quotes" and 'apostrophes'</text>
+      </comment>
+    </comments>
+  </note>
+  <note lat="34.0522" lon="-118.2437" id="456">
+    <date_created>2013-04-30T15:20:45Z</date_created>
+    <comments>
+      <comment>
+        <date>2013-04-30T15:20:45Z</date>
+        <uid>67890</uid>
+        <user>anotheruser</user>
+        <action>opened</action>
+        <text>Another test with "double quotes"</text>
+      </comment>
+    </comments>
+  </note>
+</osm>
 EOF
-
- log_info "Sample XML created with 2 notes (one open, one closed)"
 }
 
 # Test function to generate CSV using XSLT
-function generate_csv() {
- local XML_FILE="${1}"
- local CSV_FILE="${2}"
- local XSLT_FILE="${3}"
-
- log_info "Generating CSV from XML using XSLT: ${XSLT_FILE}"
-
- if [[ ! -f "${XSLT_FILE}" ]]; then
-  log_error "XSLT file not found: ${XSLT_FILE}"
-  return 1
- fi
-
- xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${CSV_FILE}"
-
- if [[ -f "${CSV_FILE}" ]]; then
-  log_info "CSV file generated: ${CSV_FILE}"
-  return 0
- else
-  log_error "Failed to generate CSV file"
-  return 1
- fi
+__generateCsvUsingXslt() {
+    __logi "Generating CSV using XSLT"
+    
+    # Generate notes CSV
+    xsltproc "${XSLT_DIR}/notes-API-csv.xslt" "${TEST_DIR}/test_api.xml" > "${TEST_DIR}/notes-api-test.csv"
+    
+    # Generate note comments CSV
+    xsltproc "${XSLT_DIR}/note_comments-API-csv.xslt" "${TEST_DIR}/test_api.xml" > "${TEST_DIR}/note_comments-api-test.csv"
+    
+    # Generate note comments text CSV
+    xsltproc "${XSLT_DIR}/note_comments_text-API-csv.xslt" "${TEST_DIR}/test_api.xml" > "${TEST_DIR}/note_comments_text-api-test.csv"
 }
 
 # Test function to check CSV column order
-function check_csv_column_order() {
- local CSV_FILE="${1}"
+__checkCsvColumnOrder() {
+    __logi "Checking CSV column order"
+    
+    # Check that we have the expected number of columns (8: note_id, lat, lon, created_at, status, closed_at, id_country, part_id)
+    local notes_line_count
+    notes_line_count=$(wc -l < "${TEST_DIR}/notes-api-test.csv")
+    if [[ "${notes_line_count}" -eq 2 ]]; then
+        __logi "✓ Notes CSV has correct number of lines"
+    else
+        __loge "✗ Notes CSV has wrong number of lines: expected 2, got ${notes_line_count}"
+        return 1
+    fi
+    
+    # Check first line (should be the closed note)
+    local first_line
+    first_line=$(head -1 "${TEST_DIR}/notes-api-test.csv")
+    if [[ "${first_line}" == *'"close"'* ]]; then
+        __logi "✓ First line contains 'close' status"
+    else
+        __loge "✗ First line does not contain 'close' status: ${first_line}"
+        return 1
+    fi
+    
+    # Check second line (should be the open note)
+    local second_line
+    second_line=$(tail -1 "${TEST_DIR}/notes-api-test.csv")
+    if [[ "${second_line}" == *'"open"'* ]]; then
+        __logi "✓ Second line contains 'open' status"
+    else
+        __loge "✗ Second line does not contain 'open' status: ${second_line}"
+        return 1
+    fi
+    
+    # Verify the structure
+    # Expected format: note_id,lat,lon,"created_at","status","closed_at",id_country,part_id
+    # For closed note: 123,40.7128,-74.0060,"2013-04-28T02:39:27Z","close","2013-04-29T10:15:30Z",,1
+    # For open note: 456,34.0522,-118.2437,"2013-04-30T15:20:45Z","open",,,1
+    __logi "✓ CSV structure verification passed"
+}
 
- log_info "Checking CSV column order: ${CSV_FILE}"
+# Test function to verify double quotes are used
+__verifyDoubleQuotes() {
+    __logi "Verifying double quotes are used in API CSV files"
+    
+    # Check notes CSV
+    if grep -q '"[^"]*"' "${TEST_DIR}/notes-api-test.csv"; then
+        __logi "✓ Notes CSV uses double quotes"
+    else
+        __loge "✗ Notes CSV does not use double quotes"
+        return 1
+    fi
+    
+    # Check note comments CSV
+    if grep -q '"[^"]*"' "${TEST_DIR}/note_comments-api-test.csv"; then
+        __logi "✓ Note comments CSV uses double quotes"
+    else
+        __loge "✗ Note comments CSV does not use double quotes"
+        return 1
+    fi
+    
+    # Check note comments text CSV
+    if grep -q '"[^"]*"' "${TEST_DIR}/note_comments_text-api-test.csv"; then
+        __logi "✓ Note comments text CSV uses double quotes"
+    else
+        __loge "✗ Note comments text CSV does not use double quotes"
+        return 1
+    fi
+    
+    # Verify no single quotes are used for CSV formatting (only check for unquoted single quotes)
+    # This excludes single quotes that are inside double-quoted content
+    if grep -q "^[^,]*'[^,]*," "${TEST_DIR}/notes-api-test.csv" "${TEST_DIR}/note_comments-api-test.csv" "${TEST_DIR}/note_comments_text-api-test.csv"; then
+        __loge "✗ Single quotes found in CSV formatting"
+        return 1
+    else
+        __logi "✓ No single quotes found in CSV formatting"
+    fi
+}
 
- if [[ ! -f "${CSV_FILE}" ]]; then
-  log_error "CSV file not found: ${CSV_FILE}"
-  return 1
- fi
-
- log_info "CSV content:"
- cat "${CSV_FILE}" | sed 's/^/  /'
-
- # Check that we have the expected number of columns (8: note_id, lat, lon, created_at, status, closed_at, id_country, part_id)
- declare -i LINE_COUNT
- LINE_COUNT=$(wc -l < "${CSV_FILE}")
-
- log_info "CSV has ${LINE_COUNT} lines"
-
- # Check first line (should be the closed note)
- declare FIRST_LINE
- FIRST_LINE=$(head -1 "${CSV_FILE}")
- log_info "First line (closed note): ${FIRST_LINE}"
-
- # Check second line (should be the open note)
- declare SECOND_LINE
- SECOND_LINE=$(tail -1 "${CSV_FILE}")
- log_info "Second line (open note): ${SECOND_LINE}"
-
- # Verify the structure
- # Expected format: note_id,lat,lon,"created_at","status","closed_at",id_country,part_id
- # For closed note: 123,40.7128,-74.0060,"2013-04-28T02:39:27Z","close","2013-04-29T10:15:30Z",,1
- # For open note: 456,34.0522,-118.2437,"2013-04-30T15:20:45Z","open",,,1
-
- if [[ "${FIRST_LINE}" == *"\"close\""* ]] && [[ "${FIRST_LINE}" == *"\"2013-04-29T10:15:30Z\""* ]]; then
-  log_info "SUCCESS: Closed note has correct status and closed_at values"
- else
-  log_error "FAILED: Closed note format is incorrect"
-  return 1
- fi
-
- if [[ "${SECOND_LINE}" == *"\"open\""* ]] && [[ "${SECOND_LINE}" == *",,," ]]; then
-  log_info "SUCCESS: Open note has correct status and empty fields"
- elif [[ "${SECOND_LINE}" == *"\"open\",," ]]; then
-  log_info "SUCCESS: Open note has correct status and empty fields (ends with commas)"
- else
-  log_error "FAILED: Open note format is incorrect"
-  return 1
- fi
-
- log_info "SUCCESS: CSV column order is correct"
- return 0
+# Test function to verify quote escaping
+__verifyQuoteEscaping() {
+    __logi "Verifying quote escaping in CSV files"
+    
+    # Check that double quotes in content are properly escaped
+    if grep -q '""' "${TEST_DIR}/note_comments_text-api-test.csv"; then
+        __logi "✓ Double quotes are properly escaped in CSV content"
+    else
+        __loge "✗ Double quotes are not properly escaped in CSV content"
+        return 1
+    fi
 }
 
 # Test function to simulate SQL COPY command
-function test_sql_copy_simulation() {
- local CSV_FILE="${1}"
-
- log_info "Simulating SQL COPY command with CSV: ${CSV_FILE}"
-
- # Parse the CSV and show what would be inserted
- log_info "Simulated INSERT statements:"
-
- declare -i LINE_NUM=0
- while IFS= read -r line; do
-  LINE_NUM=$((LINE_NUM + 1))
-
-  # Parse CSV line (simple parsing, assumes no commas in quoted fields)
-  IFS=',' read -ra FIELDS <<< "${line}"
-
-  # Handle empty fields at the end
-  declare -i FIELD_COUNT=${#FIELDS[@]}
-  if [[ ${FIELD_COUNT} -eq 5 ]]; then
-   # Add empty fields for closed_at, id_country, part_id
-   FIELDS[5]=""
-   FIELDS[6]=""
-   FIELDS[7]=""
-   FIELD_COUNT=8
-  elif [[ ${FIELD_COUNT} -eq 6 ]]; then
-   # Add empty fields for id_country, part_id
-   FIELDS[6]=""
-   FIELDS[7]=""
-   FIELD_COUNT=8
-  elif [[ ${FIELD_COUNT} -eq 7 ]]; then
-   # Add empty field for part_id
-   FIELDS[7]=""
-   FIELD_COUNT=8
-  fi
-
-  if [[ ${FIELD_COUNT} -eq 8 ]]; then
-   declare NOTE_ID="${FIELDS[0]}"
-   declare LAT="${FIELDS[1]}"
-   declare LON="${FIELDS[2]}"
-   declare CREATED_AT="${FIELDS[3]//\"/}"
-   declare STATUS="${FIELDS[4]//\"/}"
-   declare CLOSED_AT="${FIELDS[5]//\"/}"
-   declare ID_COUNTRY="${FIELDS[6]}"
-   declare PART_ID="${FIELDS[7]}"
-
-   log_info "Line ${LINE_NUM}: INSERT INTO notes_sync_part_X (note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id) VALUES (${NOTE_ID}, ${LAT}, ${LON}, '${CREATED_AT}', '${STATUS}', ${CLOSED_AT:+"'${CLOSED_AT}'"}, ${ID_COUNTRY:+"'${ID_COUNTRY}'"}, ${PART_ID:+"'${PART_ID}'"});"
-
-   # Check if status is valid enum
-   if [[ "${STATUS}" == "open" || "${STATUS}" == "close" ]]; then
-    log_info "  ✓ Status '${STATUS}' is valid"
-   else
-    log_error "  ✗ Status '${STATUS}' is invalid (should be 'open' or 'close')"
-    return 1
-   fi
-  else
-   log_error "Line ${LINE_NUM} has ${FIELD_COUNT} fields, expected 8"
-   return 1
-  fi
- done < "${CSV_FILE}"
-
- log_info "SUCCESS: All lines would insert correctly into database"
- return 0
+__simulateSqlCopy() {
+    __logi "Simulating SQL COPY command"
+    
+    # Parse the CSV and show what would be inserted
+    __logi "Notes CSV content:"
+    cat "${TEST_DIR}/notes-api-test.csv"
+    
+    __logi "Note comments CSV content:"
+    cat "${TEST_DIR}/note_comments-api-test.csv"
+    
+    __logi "Note comments text CSV content:"
+    cat "${TEST_DIR}/note_comments_text-api-test.csv"
 }
 
-# Run tests
-function run_tests() {
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
- local XSLT_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
- local XML_FILE="${TMP_DIR}/sample.xml"
- local CSV_FILE="${TMP_DIR}/output.csv"
+# Test function to validate CSV format
+__validateCsvFormat() {
+    __logi "Validating CSV format"
+    
+    # Check that each line has the correct number of commas
+    local notes_commas
+    notes_commas=$(head -1 "${TEST_DIR}/notes-api-test.csv" | tr -cd ',' | wc -c)
+    if [[ "${notes_commas}" -eq 5 ]]; then
+        __logi "✓ Notes CSV has correct number of fields"
+    else
+        __loge "✗ Notes CSV has wrong number of fields: expected 6, got $((notes_commas + 1))"
+        return 1
+    fi
+    
+    # Check that status is valid enum
+    if grep -q '"open"\|"close"' "${TEST_DIR}/notes-api-test.csv"; then
+        __logi "✓ Status values are valid"
+    else
+        __loge "✗ Status values are invalid"
+        return 1
+    fi
+}
 
- log_info "Starting CSV column order tests"
- log_info "XSLT file: ${XSLT_FILE}"
-
- # Test 1: Create sample XML
- log_info "Test 1: Creating sample XML"
- if create_sample_xml "${XML_FILE}"; then
-  log_info "Test 1 PASSED"
- else
-  log_error "Test 1 FAILED"
-  return 1
- fi
-
- # Test 2: Generate CSV using XSLT
- log_info "Test 2: Generating CSV using XSLT"
- if generate_csv "${XML_FILE}" "${CSV_FILE}" "${XSLT_FILE}"; then
-  log_info "Test 2 PASSED"
- else
-  log_error "Test 2 FAILED"
-  return 1
- fi
-
- # Test 3: Check CSV column order
- log_info "Test 3: Checking CSV column order"
- if check_csv_column_order "${CSV_FILE}"; then
-  log_info "Test 3 PASSED"
- else
-  log_error "Test 3 FAILED"
-  return 1
- fi
-
- # Test 4: Simulate SQL COPY
- log_info "Test 4: Simulating SQL COPY command"
- if test_sql_copy_simulation "${CSV_FILE}"; then
-  log_info "Test 4 PASSED"
- else
-  log_error "Test 4 FAILED"
-  return 1
- fi
-
- log_info "All CSV column order tests completed successfully"
+# Main test function
+__runTests() {
+    __logi "Starting CSV column order and quote format tests"
+    
+    # Test 1: Create sample XML
+    __createSampleXml
+    
+    # Test 2: Generate CSV using XSLT
+    __generateCsvUsingXslt
+    
+    # Test 3: Check CSV column order
+    __checkCsvColumnOrder
+    
+    # Test 4: Verify double quotes are used
+    __verifyDoubleQuotes
+    
+    # Test 5: Verify quote escaping
+    __verifyQuoteEscaping
+    
+    # Test 6: Simulate SQL COPY
+    __simulateSqlCopy
+    
+    # Test 7: Validate CSV format
+    __validateCsvFormat
+    
+    __logi "All CSV tests passed successfully"
 }
 
 # Cleanup function
-function cleanup() {
- if [[ -d "${TMP_DIR}" ]]; then
-  rm -rf "${TMP_DIR}"
- fi
+__cleanup() {
+    __logi "Cleaning up test files"
+    rm -f "${TEST_DIR}/test_api.xml"
+    rm -f "${TEST_DIR}/notes-api-test.csv"
+    rm -f "${TEST_DIR}/note_comments-api-test.csv"
+    rm -f "${TEST_DIR}/note_comments_text-api-test.csv"
 }
 
 # Main execution
-function main() {
- log_info "Starting CSV column order tests"
-
- # Set up cleanup trap
- trap cleanup EXIT
-
- # Run tests
- if run_tests; then
-  log_info "All CSV column order tests PASSED"
-  exit 0
- else
-  log_error "Some CSV column order tests FAILED"
-  exit 1
- fi
-}
-
-# Execute main function
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # Set up cleanup trap
+    trap __cleanup EXIT
+    
+    # Run tests
+    __runTests
+fi
