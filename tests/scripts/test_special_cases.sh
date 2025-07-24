@@ -1,12 +1,12 @@
 #!/bin/bash
 # =============================================================================
-# Script para ejecutar pruebas de casos especiales
+# Script to run special case tests
 # =============================================================================
 
 set -euo pipefail
 
 # =============================================================================
-# Variables de configuración
+# Configuration variables
 # =============================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../" && pwd)"
@@ -16,7 +16,7 @@ PARALLEL="${PARALLEL:-false}"
 FAIL_FAST="${FAIL_FAST:-false}"
 
 # =============================================================================
-# Colores para output
+# Colors for output
 # =============================================================================
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -25,7 +25,7 @@ readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
 # =============================================================================
-# Funciones de logging
+# Logging functions
 # =============================================================================
 __log_info() {
     echo -e "${BLUE}[INFO]${NC} $*"
@@ -50,25 +50,25 @@ __log_debug() {
 }
 
 # =============================================================================
-# Función de ayuda
+# Help function
 # =============================================================================
 __show_help() {
     cat << EOF
-Uso: $0 [OPTIONS]
+Usage: $0 [OPTIONS]
 
-Opciones:
-  --help, -h     Mostrar esta ayuda
-  --verbose      Modo verbose
-  --parallel     Ejecutar pruebas en paralelo
-  --fail-fast    Detener en el primer fallo
-  --case CASE    Ejecutar solo un caso específico
+Options:
+  --help, -h     Show this help
+  --verbose      Verbose mode
+  --parallel     Run tests in parallel
+  --fail-fast    Stop on first failure
+  --case CASE    Run only a specific case
 
-Variables de entorno:
-  VERBOSE        Modo verbose
-  PARALLEL       Ejecutar en paralelo
-  FAIL_FAST      Detener en el primer fallo
+Environment variables:
+  VERBOSE        Verbose mode
+  PARALLEL       Run in parallel
+  FAIL_FAST      Stop on first failure
 
-Ejemplos:
+Examples:
   $0 --verbose
   $0 --parallel --fail-fast
   $0 --case zero_notes
@@ -76,71 +76,71 @@ EOF
 }
 
 # =============================================================================
-# Función para verificar prerequisitos
+# Function to check prerequisites
 # =============================================================================
 __check_prerequisites() {
-    __log_info "Verificando prerequisitos..."
+    __log_info "Checking prerequisites..."
     
-    # Verificar que existe el directorio de casos especiales
+    # Check that the special cases directory exists
     if [[ ! -d "$SPECIAL_CASES_DIR" ]]; then
-        __log_error "Directorio de casos especiales no encontrado: $SPECIAL_CASES_DIR"
+        __log_error "Special cases directory not found: $SPECIAL_CASES_DIR"
         return 1
     fi
     
-    # Verificar que existe el script de procesamiento
+    # Check that the processing script exists
     if [[ ! -f "$PROJECT_ROOT/bin/process/processAPINotes.sh" ]]; then
-        __log_error "Script de procesamiento no encontrado: $PROJECT_ROOT/bin/process/processAPINotes.sh"
+        __log_error "Processing script not found: $PROJECT_ROOT/bin/process/processAPINotes.sh"
         return 1
     fi
     
-    __log_success "Prerequisitos verificados"
+    __log_success "Prerequisites verified"
     return 0
 }
 
 # =============================================================================
-# Función para ejecutar un caso de prueba
+# Function to execute a test case
 # =============================================================================
 __run_test_case() {
     local xml_file="$1"
     local case_name=$(basename "$xml_file" .xml)
     
-    __log_info "Ejecutando caso: $case_name"
-    __log_debug "Archivo: $xml_file"
+    __log_info "Executing case: $case_name"
+    __log_debug "File: $xml_file"
     
-    # Ejecutar el script de procesamiento
+    # Execute the processing script
     if "$PROJECT_ROOT/bin/process/processAPINotes.sh" "$xml_file" >/dev/null 2>&1; then
-        __log_success "Caso $case_name completado exitosamente"
+        __log_success "Case $case_name completed successfully"
         return 0
     else
-        __log_error "Caso $case_name falló"
+        __log_error "Case $case_name failed"
         return 1
     fi
 }
 
 # =============================================================================
-# Función para ejecutar todos los casos
+# Function to execute all cases
 # =============================================================================
 __run_all_cases() {
-    __log_info "Ejecutando todos los casos especiales..."
+    __log_info "Executing all special cases..."
     
     local success_count=0
     local total_count=0
     local failed_cases=()
     
-    # Encontrar todos los archivos XML
+    # Find all XML files
     local xml_files=()
     while IFS= read -r -d '' file; do
         xml_files+=("$file")
     done < <(find "$SPECIAL_CASES_DIR" -name "*.xml" -type f -print0)
     
     if [[ ${#xml_files[@]} -eq 0 ]]; then
-        __log_warning "No se encontraron archivos XML para probar"
+        __log_warning "No XML files found to test"
         return 0
     fi
     
-    __log_info "Encontrados ${#xml_files[@]} casos para probar"
+    __log_info "Found ${#xml_files[@]} cases to test"
     
-    # Ejecutar casos
+    # Execute cases
     for xml_file in "${xml_files[@]}"; do
         local case_name=$(basename "$xml_file" .xml)
         ((total_count++))
@@ -150,37 +150,37 @@ __run_all_cases() {
         else
             failed_cases+=("$case_name")
             if [[ "$FAIL_FAST" == "true" ]]; then
-                __log_error "Deteniendo en el primer fallo: $case_name"
+                __log_error "Stopping on first failure: $case_name"
                 break
             fi
         fi
     done
     
-    # Mostrar resumen
-    __log_info "Resumen de pruebas:"
+    # Show summary
+    __log_info "Test summary:"
     __log_info "  Total: $total_count"
-    __log_info "  Exitosos: $success_count"
-    __log_info "  Fallidos: $((total_count - success_count))"
+    __log_info "  Successful: $success_count"
+    __log_info "  Failed: $((total_count - success_count))"
     
     if [[ ${#failed_cases[@]} -gt 0 ]]; then
-        __log_warning "Casos fallidos: ${failed_cases[*]}"
+        __log_warning "Failed cases: ${failed_cases[*]}"
         return 1
     else
-        __log_success "Todos los casos completados exitosamente"
+        __log_success "All cases completed successfully"
         return 0
     fi
 }
 
 # =============================================================================
-# Función para ejecutar un caso específico
+# Function to execute a specific case
 # =============================================================================
 __run_specific_case() {
     local case_name="$1"
     local xml_file="$SPECIAL_CASES_DIR/${case_name}.xml"
     
     if [[ ! -f "$xml_file" ]]; then
-        __log_error "Caso no encontrado: $case_name"
-        __log_info "Casos disponibles:"
+        __log_error "Case not found: $case_name"
+        __log_info "Available cases:"
         find "$SPECIAL_CASES_DIR" -name "*.xml" -exec basename {} .xml \; | sort
         return 1
     fi
@@ -189,7 +189,7 @@ __run_specific_case() {
 }
 
 # =============================================================================
-# Procesamiento de argumentos
+# Argument processing
 # =============================================================================
 SPECIFIC_CASE=""
 
@@ -216,7 +216,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         *)
-            __log_error "Opción desconocida: $1"
+            __log_error "Unknown option: $1"
             __show_help
             exit 1
             ;;
@@ -224,24 +224,24 @@ while [[ $# -gt 0 ]]; do
 done
 
 # =============================================================================
-# Función principal
+# Main function
 # =============================================================================
 __main() {
-    __log_info "Iniciando pruebas de casos especiales..."
+    __log_info "Starting special case tests..."
     
-    # Verificar prerequisitos
+    # Check prerequisites
     if ! __check_prerequisites; then
         exit 1
     fi
     
-    # Ejecutar caso específico o todos los casos
+    # Execute specific case or all cases
     if [[ -n "$SPECIFIC_CASE" ]]; then
-        __log_info "Ejecutando caso específico: $SPECIFIC_CASE"
+        __log_info "Executing specific case: $SPECIFIC_CASE"
         if __run_specific_case "$SPECIFIC_CASE"; then
-            __log_success "Caso específico completado exitosamente"
+            __log_success "Specific case completed successfully"
             exit 0
         else
-            __log_error "Caso específico falló"
+            __log_error "Specific case failed"
             exit 1
         fi
     else
@@ -249,5 +249,5 @@ __main() {
     fi
 }
 
-# Ejecutar función principal
+# Execute main function
 __main "$@" 

@@ -17,7 +17,7 @@
 # For example:
 # * --user AngocA
 # * --country Colombia
-# * --country "Estados Unidos de América"
+# * --country "United States of America"
 # * --pais Alemania
 # * --country Germany
 # The name should match the name on the database in English or Spanish,
@@ -124,7 +124,7 @@ function __show_help {
  echo "For example:"
  echo "* --user AngocA"
  echo "* --country Colombia"
- echo "* --country \"Estados Unidos de América\""
+ echo "* --country \"United States of America\""
  echo "The name should match the name on the database."
  echo
  echo "Written by: Andres Gomez (AngocA)"
@@ -457,7 +457,7 @@ function __showWorkingWeek {
 # Shows the activity as GitHub tiles.
 function __printActivity {
  ACTIVITY="${1}"
- # TODO profile - no está teniendo el día actual, y siempre está comenzando en Sunday
+ # TODO profile - not getting the current day, and always starting on Sunday
 
  declare SUN="Sunday:    "
  declare MON="Monday:    "
@@ -514,7 +514,7 @@ function __processUserProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # Quantity of days creating notes. (TODO profile - Puede que haya dejado de abrir o cerrar notas)
+ # Quantity of days creating notes. (TODO profile - May have stopped opening or closing notes)
  declare -i QTY_DAYS_OPEN
  QTY_DAYS_OPEN=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT CURRENT_DATE - date_starting_creating_notes
@@ -915,14 +915,14 @@ function __processUserProfile {
  #     WHERE dimension_user_id = ${DIMENSION_USER_ID}
  #     " \
  #    -v ON_ERROR_STOP=1 )
- # ToDo profile - Abrir más de 100 notas en un día
- # ToDo profile - Abrir más de 300 notas en un día
- # ToDo profile - Abrir más de 1000 notas en un día
- # ToDo profile - Resolver más de 100 notas en un día
- # ToDo profile - Resolver más de 300 notas en un día
- # ToDo profile - Resolver más de 1000 notas en un día
+ # ToDo profile - Open more than 100 notes in a day
+ # ToDo profile - Open more than 300 notes in a day
+ # ToDo profile - Open more than 1000 notes in a day
+ # ToDo profile - Resolve more than 100 notes in a day
+ # ToDo profile - Resolve more than 300 notes in a day
+ # ToDo profile - Resolve more than 1000 notes in a day
 
- # TODO profile - si cero, ocultar
+ # TODO profile - if zero, hide
  echo "User name: ${USERNAME} (id: ${OSM_USER_ID})."
  echo "Note solver type: ${CONTRIBUTOR_TYPE}."
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}, since ${DATE_FIRST_OPEN}."
@@ -936,7 +936,7 @@ function __processUserProfile {
  echo "The date when the most notes were closed:"
  echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "Hashtags used: ${HASHTAGS}" # TODO profile -
- echo "Working hours:"             # TODO profile - Por años pasados
+ echo "Working hours:"             # TODO profile - For past years
  set +E
  echo "  Opening:"
  __showWorkingWeek "${WORKING_HOURS_OPENING}"
@@ -1378,7 +1378,7 @@ function __processCountryProfile {
      " \
   -v ON_ERROR_STOP=1)
 
- # TODO profile - si cero, ocultar
+ # TODO profile - if zero, hide
  echo "COUNTRY name: ${COUNTRY_NAME} (id: ${COUNTRY_OSM_ID})"
  echo "Quantity of days creating notes: ${QTY_DAYS_OPEN}, since ${DATE_FIRST_OPEN}."
  echo "Quantity of days solving notes: ${QTY_DAYS_CLOSE}, since ${DATE_FIRST_CLOSE}"
@@ -1386,13 +1386,13 @@ function __processCountryProfile {
  echo "Last actions:  https://www.openstreetmap.org/note/${LAST_OPEN_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_COMMENTED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_CLOSED_NOTE_ID}  https://www.openstreetmap.org/note/${LAST_REOPENED_NOTE_ID}"
  echo "Last activity year:"
  __printActivity "${LAST_ACTIVITY_YEAR}"
- # TODO profile - La actividad está poniendo 0000009 en la última semana
+ # TODO profile - Activity is putting 0000009 in the last week
  echo "The date when the most notes were opened:"
  echo "${DATES_MOST_OPEN}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "The date when the most notes were closed:"
  echo "${DATES_MOST_CLOSED}" | sed 's/}, {"date" : "/\n/g' | sed 's/", "quantity" : / - /g' | sed 's/\[{"date" : "//' | sed 's/}\]//'
  echo "Hashtags used: ${HASHTAGS}" # TODO
- echo "Working hours:"             # TODO profile - Por año
+ echo "Working hours:"             # TODO profile - By year
  set +E
  echo "  Opening:"
  __showWorkingWeek "${WORKING_HOURS_OF_WEEK_OPENING}"
@@ -1401,8 +1401,8 @@ function __processCountryProfile {
  echo "  Closing:"
  __showWorkingWeek "${WORKING_HOURS_OF_WEEK_CLOSING}"
  set -E
- # TODO profile - Mostrar la cantidad de notas actualmente en estado abierto
- # TODO profile - Mostrar la cantidad de notas actualmente en estado cerrado
+ # TODO profile - Show the quantity of notes currently in open status
+ # TODO profile - Show the quantity of notes currently in closed status
  echo
  echo "Actions:"
  #                       1234567890 1234567890 1234567890 1234567890 1234567890
@@ -1416,8 +1416,8 @@ function __processCountryProfile {
  while [[ "${I}" -le "${CURRENT_YEAR}" ]]; do
   __showActivityYearCountries "${I}"
   I=$((I + 1))
-  # TODO Top 10 Notas con más comentarios por año.
-  # TODO Top 10 Notas con más reopening por año.
+  # TODO Top 10 Notes with most comments per year.
+  # TODO Top 10 Notes with most reopening per year.
  done
  echo "Historically:"
  echo "Users creating notes:"
@@ -1440,8 +1440,8 @@ function __processCountryProfile {
  echo "Ranking users closing notes in the current day:"
  __printRanking "${USERS_CLOSING_CURRENT_DAY}"
  # TODO Badges
- # TODO Cantidad de días con 0 notas (a media noche UTC)
- # TODO CAntidad de new UTC years eve con 0 notas
+ # TODO Quantity of days with 0 notes (at midnight UTC)
+ # TODO Quantity of new UTC years eve with 0 notes
 }
 
 # Shows general stats about notes.
@@ -1461,26 +1461,26 @@ function __generalNoteStats {
  echo "ToDo working hours for opening notes"
  echo "ToDo working hours for closing notes"
  echo "ToDo Top 10 Notes with most comments"
- echo "ToDo Top 10 Notes with most comments por cada año desde 2013"
- echo "ToDo Top 10 Notes with most reopenings (guerra)"
- echo "ToDo Top 10 Notes with most reopenings por cada año desde 2013 (guerra)"
- echo "ToDo Nota más vieja disponible (no oculta)"
- echo "ToDo Nota más recientemente abierta"
- echo "ToDo Notas creadas hoy"
- echo "ToDo Notas creadas este mes"
- echo "ToDo Notas creadas este año"
- echo "ToDo Promedio de creación de notas diario para cada año"
- echo "ToDo Promedio de cerrado de notas diario para cada año"
- echo "ToDo Promedio de creación de notas mensual para cada año"
- echo "ToDo Promedio de cerrado de notas mensual para cada año"
- echo "ToDo Promedio de creación de notas anual para cada año"
- echo "ToDo Promedio de cerrado de notas anual para cada año"
- echo "ToDo Top 10 usuarios haciendo auto guerra de abrir y cerrar"
- echo "ToDo Top 10 usuarios participando en guerra de notas"
- echo "ToDo Top 10 usuarios participando en guerra de notas por año"
- echo "ToDo Usuarios que han abierto más de 1000 notas en un día"
- echo "ToDo Usuarios que han cerrado más de 1000 notas en un día"
- # TODO Distribucion de contribuciones por usuario
+ echo "ToDo Top 10 Notes with most comments for each year since 2013"
+ echo "ToDo Top 10 Notes with most reopenings (war)"
+ echo "ToDo Top 10 Notes with most reopenings for each year since 2013 (war)"
+ echo "ToDo Oldest available note (not hidden)"
+ echo "ToDo Most recently opened note"
+ echo "ToDo Notes created today"
+ echo "ToDo Notes created this month"
+ echo "ToDo Notes created this year"
+ echo "ToDo Average daily note creation for each year"
+ echo "ToDo Average daily note closing for each year"
+ echo "ToDo Average monthly note creation for each year"
+ echo "ToDo Average monthly note closing for each year"
+ echo "ToDo Average annual note creation for each year"
+ echo "ToDo Average annual note closing for each year"
+ echo "ToDo Top 10 users doing self war of opening and closing"
+ echo "ToDo Top 10 users participating in note war"
+ echo "ToDo Top 10 users participating in note war per year"
+ echo "ToDo Users who have opened more than 1000 notes in a day"
+ echo "ToDo Users who have closed more than 1000 notes in a day"
+ # TODO Distribution of contributions per user
  # select t.qty, count(1)
  # from (
  #  select count(1) qty, f.action_dimension_id_user user_notes
