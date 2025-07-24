@@ -1,12 +1,4 @@
 
-Quiero que verifiques los nombres de variables, constantes y parámetros. Si lo consideras, modifícalos para que sean más claros.
+Me podrías describir qué hace el processPlanet y para que hay tablas base y sync.
 
-EN los archivos BASH, revisa que las variables están en mayúsculas.
-Tienen declaración local o declare, y si es posible con el tipo de dato
-u otra opción. Deja una línea en blanco al final de cada archivo.
-
-En los archivos SQL, las palabras reservadas deben estar en mayúsculas.
-Revisa que todos los componentes tengan un comentario.
-Que los comentarios sean claros en inglés.
-
-Podríamos cambiar los csv de api para que sean con comilla doble en vez de simple.
+Me podrías dar una descripción completa de los principales scripts en bash.
