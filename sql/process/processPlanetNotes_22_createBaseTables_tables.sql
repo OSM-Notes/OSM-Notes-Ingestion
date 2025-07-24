@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS note_comments (
 COMMENT ON TABLE note_comments IS 'Stores all comments associated to notes';
 COMMENT ON COLUMN note_comments.id IS
   'Generated ID to keep track of the comments order';
-  -- Multiples actions at the same time.
+  -- Multiple actions at the same time.
 COMMENT ON COLUMN note_comments.note_id IS
   'OSM Note Id associated to this comment';
 COMMENT ON COLUMN note_comments.sequence_action IS

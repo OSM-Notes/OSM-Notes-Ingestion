@@ -14,7 +14,7 @@ ALTER TABLE notes
 -- The API does not provide an identifier for the comments, therefore, this
 -- project implemented another column for the id. However, the execution cannot
 -- be parallelized. With the sequence, the order the comments were inserted can
--- identified.
+-- be identified.
 ALTER TABLE note_comments
  ADD CONSTRAINT pk_note_comments
  PRIMARY KEY (id);
@@ -50,7 +50,7 @@ CREATE INDEX IF NOT EXISTS note_comments_id ON note_comments (note_id);
 COMMENT ON INDEX note_comments_id IS 'To query by the associated note';
 CREATE INDEX IF NOT EXISTS note_comments_users ON note_comments (id_user);
 COMMENT ON INDEX note_comments_users IS
-  'To query by the user who perfomed the action';
+  'To query by the user who performed the action';
 CREATE INDEX IF NOT EXISTS note_comments_created ON note_comments (created_at);
 COMMENT ON INDEX note_comments_created IS 'To query by the time of the action';
 CREATE INDEX IF NOT EXISTS note_comments_id_event ON note_comments (note_id, event);

@@ -1,4 +1,4 @@
--- Chech data warehouse tables.
+-- Check data warehouse tables.
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2024-01-02

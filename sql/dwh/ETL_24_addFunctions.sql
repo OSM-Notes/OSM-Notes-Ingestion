@@ -3,7 +3,7 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-07-11
 
--- Primrary keys
+-- Primary keys
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating primary keys' AS Task;
 

@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS dwh.facts (
  closed_dimension_id_hour_of_week SMALLINT,
  closed_dimension_id_user INTEGER,
  dimension_application_creation INTEGER,
- recent_opened_dimension_id_date INTEGER, -- Later converted to not null
+ recent_opened_dimension_id_date INTEGER, -- Later converted to NOT NULL
  days_to_resolution INTEGER,
  days_to_resolution_active INTEGER,
  days_to_resolution_from_reopen INTEGER,
