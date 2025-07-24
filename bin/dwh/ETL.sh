@@ -71,49 +71,49 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Name of the SQL script that checks the existence of base tables.
-declare -r POSTGRES_11_CHECK_BASE_TABLES_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_11_checkDWHTables.sql"
-# Name of the SQL script that contains existing ETL objects from the DB.
-declare -r POSTGRES_12_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_12_removeDatamartObjects.sql"
-# Name of the SQL script that contains existing ETL objects from the DB.
-declare -r POSTGRES_13_DROP_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql"
+# PostgreSQL SQL script files.
+# Check base tables.
+declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_11_checkDWHTables.sql"
+# Drop datamart objects.
+declare -r POSTGRES_12_DROP_DATAMART_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_12_removeDatamartObjects.sql"
+# Drop DWH objects.
+declare -r POSTGRES_13_DROP_DWH_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql"
 
-# Name of the SQL script that contains the objects to create in the DB.
-declare -r POSTGRES_22_CREATE_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_22_createDWHTables.sql"
+# Create DWH tables.
+declare -r POSTGRES_22_CREATE_DWH_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_22_createDWHTables.sql"
 # Populates regions per country.
-declare -r POSTGRES_23_REGIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_23_getWorldRegion.sql"
-# Name of the SQL script that contains the alter statements and PK.
-declare -r POSTGRES_24_ADD_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_24_addFunctions.sql"
-# Create staging procedures.
-declare -r POSTGRES_25_POPULATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_25_populateDimensionTables.sql"
-# Name of the SQL script that updates the dimensions.
-declare -r POSTGRES_26_UDPATE_DIMENSIONS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_26_updateDimensionTables.sql"
+declare -r POSTGRES_23_GET_WORLD_REGIONS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_23_getWorldRegion.sql"
+# Add functions.
+declare -r POSTGRES_24_ADD_FUNCTIONS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_24_addFunctions.sql"
+# Populate dimension tables.
+declare -r POSTGRES_25_POPULATE_DIMENSIONS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_25_populateDimensionTables.sql"
+# Update dimension tables.
+declare -r POSTGRES_26_UPDATE_DIMENSIONS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_26_updateDimensionTables.sql"
 
+# Staging SQL script files.
 # Create base staging objects.
-declare -r POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_31_createBaseStagingObjects.sql"
-# Create staging objets.
-declare -r POSTGRES_32_CREATE_STAGING_OBJS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_32_createStagingObjects.sql"
-# Script to do the initial load - create. One-time execution.
-declare -r POSTGRES_33_FACTS_BASE_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_33_initialFactsBaseObjects.sql"
-# Script to do the initial load - create. One-time execution.
-declare -r POSTGRES_34_FACTS_YEAR_CREATE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_34_initialFactsLoadCreate.sql"
-# Script to do the initial load - execute.
-declare -r POSTGRES_35_FACTS_YEAR_EXECUTE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_35_initialFactsLoadExecute.sql"
-# Script to do the initial load - drop.
-declare -r POSTGRES_36_FACTS_YEAR_DROP="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_36_initialFactsLoadDrop.sql"
-# Name of the SQL script that contains the alter statements.
-declare -r POSTGRES_41_ADD_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_41_addConstraintsIndexesTriggers.sql"
-# Script to do the initial load - execute.
-declare -r POSTGRES_51_FACTS_UNIFY="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_51_unify.sql"
+declare -r POSTGRES_31_CREATE_BASE_STAGING_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_31_createBaseStagingObjects.sql"
+# Create staging objects.
+declare -r POSTGRES_32_CREATE_STAGING_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_32_createStagingObjects.sql"
+# Create initial facts base objects.
+declare -r POSTGRES_33_CREATE_FACTS_BASE_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_33_initialFactsBaseObjects.sql"
+# Create initial facts load.
+declare -r POSTGRES_34_CREATE_FACTS_YEAR_LOAD="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_34_initialFactsLoadCreate.sql"
+# Execute initial facts load.
+declare -r POSTGRES_35_EXECUTE_FACTS_YEAR_LOAD="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_35_initialFactsLoadExecute.sql"
+# Drop initial facts load.
+declare -r POSTGRES_36_DROP_FACTS_YEAR_LOAD="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_36_initialFactsLoadDrop.sql"
+# Add constraints, indexes and triggers.
+declare -r POSTGRES_41_ADD_CONSTRAINTS_INDEXES_TRIGGERS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_41_addConstraintsIndexesTriggers.sql"
+# Unify facts.
+declare -r POSTGRES_51_UNIFY_FACTS="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_51_unify.sql"
 
-# Create staging procedures.
-declare -r POSTGRES_61_LOAD_NOTES_STAGING_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_61_loadNotes.sql"
+# Load notes staging.
+declare -r POSTGRES_61_LOAD_NOTES_STAGING="${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_61_loadNotes.sql"
 
-# Location of the datamart user script.
-declare -r DATAMART_COUNTRIES_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
-
-# Location of the datamart user script.
-declare -r DATAMART_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
+# Datamart script files.
+declare -r DATAMART_COUNTRIES_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
+declare -r DATAMART_USERS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -152,80 +152,80 @@ function __checkPrereqs {
  __checkPrereqsCommands
 
  ## Check files
- if [[ ! -r "${DATAMART_COUNTRIES_FILE}" ]]; then
+ if [[ ! -r "${DATAMART_COUNTRIES_SCRIPT}" ]]; then
   __loge "ERROR: File datamartCountries.sh was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${DATAMART_USERS_FILE}" ]]; then
+ if [[ ! -r "${DATAMART_USERS_SCRIPT}" ]]; then
   __loge "ERROR: File datamartUsers.sh was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_11_CHECK_BASE_TABLES_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_11_CHECK_BASE_TABLES_FILE} was not found."
+ if [[ ! -r "${POSTGRES_11_CHECK_BASE_TABLES}" ]]; then
+  __loge "ERROR: File ${POSTGRES_11_CHECK_BASE_TABLES} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_12_DROP_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_12_DROP_OBJECTS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_12_DROP_DATAMART_OBJECTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_12_DROP_DATAMART_OBJECTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_13_DROP_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_13_DROP_OBJECTS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_13_DROP_DWH_OBJECTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_13_DROP_DWH_OBJECTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_22_CREATE_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_22_CREATE_OBJECTS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_22_CREATE_DWH_TABLES}" ]]; then
+  __loge "ERROR: File ${POSTGRES_22_CREATE_DWH_TABLES} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_23_REGIONS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_23_REGIONS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_23_GET_WORLD_REGIONS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_23_GET_WORLD_REGIONS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_24_ADD_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_24_ADD_OBJECTS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_24_ADD_FUNCTIONS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_24_ADD_FUNCTIONS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_25_POPULATE_DIMENSIONS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_25_POPULATE_DIMENSIONS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_25_POPULATE_DIMENSIONS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_25_POPULATE_DIMENSIONS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_26_UDPATE_DIMENSIONS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_26_UPDATE_DIMENSIONS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_26_UPDATE_DIMENSIONS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_31_CREATE_BASE_STAGING_OBJECTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_31_CREATE_BASE_STAGING_OBJECTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_32_CREATE_STAGING_OBJS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_32_CREATE_STAGING_OBJS_FILE} was not found."
+ if [[ ! -r "${POSTGRES_32_CREATE_STAGING_OBJECTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_32_CREATE_STAGING_OBJECTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_33_FACTS_BASE_CREATE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_33_FACTS_BASE_CREATE} was not found."
+ if [[ ! -r "${POSTGRES_33_CREATE_FACTS_BASE_OBJECTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_33_CREATE_FACTS_BASE_OBJECTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_34_FACTS_YEAR_CREATE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_34_FACTS_YEAR_CREATE} was not found."
+ if [[ ! -r "${POSTGRES_34_CREATE_FACTS_YEAR_LOAD}" ]]; then
+  __loge "ERROR: File ${POSTGRES_34_CREATE_FACTS_YEAR_LOAD} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_35_FACTS_YEAR_EXECUTE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_35_FACTS_YEAR_EXECUTE} was not found."
+ if [[ ! -r "${POSTGRES_35_EXECUTE_FACTS_YEAR_LOAD}" ]]; then
+  __loge "ERROR: File ${POSTGRES_35_EXECUTE_FACTS_YEAR_LOAD} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_36_FACTS_YEAR_DROP}" ]]; then
-  __loge "ERROR: File ${POSTGRES_36_FACTS_YEAR_DROP} was not found."
+ if [[ ! -r "${POSTGRES_36_DROP_FACTS_YEAR_LOAD}" ]]; then
+  __loge "ERROR: File ${POSTGRES_36_DROP_FACTS_YEAR_LOAD} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_41_ADD_CONSTRAINTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_41_ADD_CONSTRAINTS} was not found."
+ if [[ ! -r "${POSTGRES_41_ADD_CONSTRAINTS_INDEXES_TRIGGERS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_41_ADD_CONSTRAINTS_INDEXES_TRIGGERS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_51_FACTS_UNIFY}" ]]; then
-  __loge "ERROR: File ${POSTGRES_51_FACTS_UNIFY} was not found."
+ if [[ ! -r "${POSTGRES_51_UNIFY_FACTS}" ]]; then
+  __loge "ERROR: File ${POSTGRES_51_UNIFY_FACTS} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_61_LOAD_NOTES_STAGING_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_61_LOAD_NOTES_STAGING_FILE} was not found."
+ if [[ ! -r "${POSTGRES_61_LOAD_NOTES_STAGING}" ]]; then
+  __loge "ERROR: File ${POSTGRES_61_LOAD_NOTES_STAGING} was not found."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -273,13 +273,13 @@ function __initialFacts {
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_33_FACTS_BASE_CREATE}" || true)"
+    -c "$(envsubst '$YEAR' < "${POSTGRES_33_CREATE_FACTS_BASE_OBJECTS}" || true)"
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_34_FACTS_YEAR_CREATE}" || true)"
+    -c "$(envsubst '$YEAR' < "${POSTGRES_34_CREATE_FACTS_YEAR_LOAD}" || true)"
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_35_FACTS_YEAR_EXECUTE}" || true)" \
+    -c "$(envsubst '$YEAR' < "${POSTGRES_35_EXECUTE_FACTS_YEAR_LOAD}" || true)" \
     >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finishing ${YEAR} - ${BASHPID}."
   ) &
@@ -328,7 +328,7 @@ function __initialFacts {
    export YEAR
    # shellcheck disable=SC2016
    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$YEAR' < "${POSTGRES_36_FACTS_YEAR_DROP}" || true)" 2>&1
+    -c "$(envsubst '$YEAR' < "${POSTGRES_36_DROP_FACTS_YEAR_LOAD}" || true)" 2>&1
   fi
 
   YEAR=$((YEAR + 1))
@@ -336,10 +336,10 @@ function __initialFacts {
 
  # Assign all constraints to the fact table.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_41_ADD_CONSTRAINTS}" 2>&1
+  -f "${POSTGRES_41_ADD_CONSTRAINTS_INDEXES_TRIGGERS}" 2>&1
 
  # Unifies the facts, by computing dates between years.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_FACTS_UNIFY}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_UNIFY_FACTS}" 2>&1
 
  __log_finish
 }
@@ -348,33 +348,33 @@ function __initialFacts {
 function __createBaseTables {
  __log_start
  __logi "Droping any ETL object if any exist."
- psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_OBJECTS_FILE}" 2>&1
- psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_OBJECTS_FILE}" 2>&1
+ psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_DATAMART_OBJECTS}" 2>&1
+ psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_DWH_OBJECTS}" 2>&1
 
  __logi "Creating tables for star model if they do not exist."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_22_CREATE_OBJECTS_FILE}" 2>&1
+  -f "${POSTGRES_22_CREATE_DWH_TABLES}" 2>&1
  __logi "Regions for countries."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_REGIONS_FILE}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_GET_WORLD_REGIONS}" 2>&1
  __logi "Adding relation, indexes AND triggers."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_24_ADD_OBJECTS_FILE}" 2>&1
+  -f "${POSTGRES_24_ADD_FUNCTIONS}" 2>&1
 
  __logi "Initial dimension population."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_25_POPULATE_DIMENSIONS_FILE}" 2>&1
+  -f "${POSTGRES_25_POPULATE_DIMENSIONS}" 2>&1
 
  __logi "Initial user dimension population."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
+  -f "${POSTGRES_26_UPDATE_DIMENSIONS}" 2>&1
 
  __logi "Creating base staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE}" 2>&1
+  -f "${POSTGRES_31_CREATE_BASE_STAGING_OBJECTS}" 2>&1
 
  __logi "Creating staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_32_CREATE_STAGING_OBJS_FILE}" 2>&1
+  -f "${POSTGRES_32_CREATE_STAGING_OBJECTS}" 2>&1
 
  echo "INSERT INTO dwh.properties VALUES ('initial load', 'true')" \
   | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 2>&1
@@ -389,7 +389,7 @@ function __checkBaseTables {
  __log_start
  set +e
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_11_CHECK_BASE_TABLES_FILE}" 2>&1
+  -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -398,11 +398,11 @@ function __checkBaseTables {
 
  __logi "Recreating base staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_31_CREATE_BASE_STAGING_OBJS_FILE}" 2>&1
+  -f "${POSTGRES_31_CREATE_BASE_STAGING_OBJECTS}" 2>&1
 
  __logi "Recreating staging objects."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_32_CREATE_STAGING_OBJS_FILE}" 2>&1
+  -f "${POSTGRES_32_CREATE_STAGING_OBJECTS}" 2>&1
 
  __log_finish
 }
@@ -411,10 +411,10 @@ function __checkBaseTables {
 function __processNotesETL {
  __log_start
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_26_UDPATE_DIMENSIONS_FILE}" 2>&1
+  -f "${POSTGRES_26_UPDATE_DIMENSIONS}" 2>&1
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_61_LOAD_NOTES_STAGING_FILE}" 2>&1
+  -f "${POSTGRES_61_LOAD_NOTES_STAGING}" 2>&1
  __log_finish
 }
 
@@ -448,10 +448,10 @@ function main() {
  __processNotesETL
 
  # Updates the datamart for countries.
- "${DATAMART_COUNTRIES_FILE}"
+ "${DATAMART_COUNTRIES_SCRIPT}"
 
  # Updates the datamart for users.
- "${DATAMART_USERS_FILE}"
+ "${DATAMART_USERS_SCRIPT}"
 
  __logw "Ending process."
  __log_finish

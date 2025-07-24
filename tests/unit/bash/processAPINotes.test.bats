@@ -27,16 +27,16 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
 
 @test "processAPINotes should exit with error for invalid parameters" {
   # Test that script exits with error for invalid parameters
-  run bash "bin/process/processAPINotes.sh" --invalid
+  run bash "${TEST_BASE_DIR}/bin/process/processAPINotes.sh" --invalid
   [ "$status" -ne 0 ]
 }
 
 @test "processAPINotes should exit with error for help parameters" {
   # Test that script exits with error for help parameters
-  run bash "bin/process/processAPINotes.sh" -h
+  run bash "${TEST_BASE_DIR}/bin/process/processAPINotes.sh" -h
   [ "$status" -eq 1 ]
   
-  run bash "bin/process/processAPINotes.sh" --help
+  run bash "${TEST_BASE_DIR}/bin/process/processAPINotes.sh" --help
   [ "$status" -eq 1 ]
 }
 

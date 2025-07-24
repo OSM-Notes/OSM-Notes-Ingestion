@@ -211,22 +211,21 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Total notes.
+# Total notes count.
 declare -i TOTAL_NOTES=-1
 
-# Name of the file to download.
-declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
-# Filename for the OSM Notes from Planet.
-declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
+# Planet notes file configuration.
+declare -r PLANET_NOTES_FILENAME="planet-notes-latest.osn"
+declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_FILENAME}"
 
-# PostgreSQL files.
+# PostgreSQL SQL script files.
 # Drop sync tables.
 declare -r POSTGRES_11_DROP_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"
-# Drop api tables.
+# Drop API tables.
 declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_12_dropApiTables.sql"
 # Drop base tables.
 declare -r POSTGRES_13_DROP_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
-# Drop current country tables.
+# Drop country tables.
 declare -r POSTGRES_14_DROP_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_14_dropCountryTables.sql"
 # Create enums.
 declare -r POSTGRES_21_CREATE_ENUMS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
@@ -248,16 +247,16 @@ declare -r POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql
 declare -r POSTGRES_42_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_consolidatePartitions.sql"
 # Remove duplicates.
 declare -r POSTGRES_43_REMOVE_DUPLICATES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_removeDuplicates.sql"
-# Assign sequence for comments
+# Assign sequence for comments.
 declare -r POSTGRES_44_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_commentsSequence.sql"
 # Load text comments.
 declare -r POSTGRES_45_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
-# Load text comments.
+# Load text comments objects.
 declare -r POSTGRES_46_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
 # Move sync to main tables.
 declare -r POSTGRES_43_MOVE_SYNC_TO_MAIN="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_moveSyncToMain.sql"
 
-# Variable to define that the process should update the location of notes.
+# Flag to define that the process should update the location of notes.
 declare -r UPDATE_NOTE_LOCATION=false
 
 # Location of the common functions.
@@ -464,7 +463,7 @@ function __loadSyncNotes {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
-   < "${POSTGRES_41_LOAD_SYNC_NOTES}" || true)"
+   < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" || true)"
  __log_finish
 }
 
@@ -479,14 +478,14 @@ function __removeDuplicates {
  export PROCESS_ID
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_42_REMOVE_DUPLICATES}" || true)"
+  -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_43_REMOVE_DUPLICATES}" || true)"
 
  echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" \
   -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
  __logi "Lock removed ${PROCESS_ID}"
 
- psql -d "${DBNAME}" -f "${POSTGRES_43_COMMENTS_SEQUENCE}"
+ psql -d "${DBNAME}" -f "${POSTGRES_44_COMMENTS_SEQUENCE}"
  __log_finish
 }
 
@@ -498,9 +497,9 @@ function __loadTextComments {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
-   < "${POSTGRES_44_LOAD_TEXT_COMMENTS}" || true)"
+   < "${POSTGRES_45_LOAD_TEXT_COMMENTS}" || true)"
  # Some objects could already exist.
- psql -d "${DBNAME}" -f "${POSTGRES_45_OBJECTS_TEXT_COMMENTS}"
+ psql -d "${DBNAME}" -f "${POSTGRES_46_OBJECTS_TEXT_COMMENTS}"
  __log_finish
 }
 

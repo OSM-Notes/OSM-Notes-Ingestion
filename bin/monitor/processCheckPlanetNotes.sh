@@ -82,20 +82,19 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Name of the file to download.
-declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
-# Filename for the OSM Notes from Planet.
-declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_NAME}"
+# Planet notes file configuration.
+declare -r PLANET_NOTES_FILENAME="planet-notes-latest.osn"
+declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_FILENAME}"
 
-# PostgreSQL files.
+# PostgreSQL SQL script files.
 # Drop check tables.
-declare -r POSTGRES_DROP_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql"
+declare -r POSTGRES_11_DROP_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql"
 # Create check tables.
-declare -r POSTGRES_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
+declare -r POSTGRES_21_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
 # Load check notes.
-declare -r POSTGRES_LOAD_CHECK_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_31_loadCheckNotes.sql"
+declare -r POSTGRES_31_LOAD_CHECK_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_31_loadCheckNotes.sql"
 # Analyze and vacuum.
-declare -r POSTGRES_ANALYZE_AND_VACUUM="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_41_analyzeAndVacuum.sql"
+declare -r POSTGRES_41_ANALYZE_AND_VACUUM="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_41_analyzeAndVacuum.sql"
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -134,20 +133,20 @@ function __checkPrereqs {
  __checkPrereqsCommands
 
  ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_DROP_CHECK_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_DROP_CHECK_TABLES}."
+ if [[ ! -r "${POSTGRES_11_DROP_CHECK_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_11_DROP_CHECK_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_CREATE_CHECK_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_CREATE_CHECK_TABLES}."
+ if [[ ! -r "${POSTGRES_21_CREATE_CHECK_TABLES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_CHECK_TABLES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_LOAD_CHECK_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_LOAD_CHECK_NOTES}."
+ if [[ ! -r "${POSTGRES_31_LOAD_CHECK_NOTES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_31_LOAD_CHECK_NOTES}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_ANALYZE_AND_VACUUM}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_ANALYZE_AND_VACUUM}."
+ if [[ ! -r "${POSTGRES_41_ANALYZE_AND_VACUUM}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_41_ANALYZE_AND_VACUUM}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -158,7 +157,7 @@ function __checkPrereqs {
 function __dropCheckTables {
  __log_start
  __logi "Droping check tables."
- psql -d "${DBNAME}" -f "${POSTGRES_DROP_CHECK_TABLES}" 2>&1
+ psql -d "${DBNAME}" -f "${POSTGRES_11_DROP_CHECK_TABLES}" 2>&1
  __log_finish
 }
 
@@ -166,7 +165,7 @@ function __dropCheckTables {
 function __createCheckTables {
  __log_start
  __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_CREATE_CHECK_TABLES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_CHECK_TABLES}"
  __log_finish
 }
 
@@ -179,14 +178,14 @@ function __loadCheckNotes {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
-   < "${POSTGRES_LOAD_CHECK_NOTES}" || true)"
+   < "${POSTGRES_31_LOAD_CHECK_NOTES}" || true)"
  __log_finish
 }
 
 # Calculates statistics on all tables and vacuum.
 function __analyzeAndVacuum {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_ANALYZE_AND_VACUUM}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_41_ANALYZE_AND_VACUUM}"
  __log_finish
 }
 

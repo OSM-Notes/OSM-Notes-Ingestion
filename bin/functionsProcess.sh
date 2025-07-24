@@ -18,7 +18,7 @@
 declare -r ERROR_HELP_MESSAGE=1
 # 238: Previous execution failed.
 declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
-# 239: Library or utility missing.
+# 239: Error creating report.
 declare -r ERROR_CREATING_REPORT=239
 # 241: Library or utility missing.
 declare -r ERROR_MISSING_LIBRARY=241
@@ -27,8 +27,8 @@ declare -r ERROR_MISSING_LIBRARY=241
 declare -r ERROR_INVALID_ARGUMENT=242
 # 243: Logger utility is not available.
 declare -r ERROR_LOGGER_UTILITY=243
-# 244: The list of ids for boundary geometries cannot be downloaded.
-declare -r ERROR_DOWNLOADING_ID_LIST=244
+# 244: The list of IDs for boundary geometries cannot be downloaded.
+declare -r ERROR_DOWNLOADING_BOUNDARY_ID_LIST=244
 # 245: No last update.
 declare -r ERROR_NO_LAST_UPDATE=245
 # 246: Planet process is currently running.
@@ -40,57 +40,52 @@ declare -r ERROR_EXECUTING_PLANET_DUMP=248
 # 249: Error downloading boundary.
 declare -r ERROR_DOWNLOADING_BOUNDARY=249
 # 250: Error converting OSM JSON to GeoJSON.
-declare -r ERROR_GEOJSON=250
+declare -r ERROR_GEOJSON_CONVERSION=250
 # 251: Internet issue.
 declare -r ERROR_INTERNET_ISSUE=251
 # 255: General error.
 declare -r ERROR_GENERAL=255
 
-# Generates file for failed execution.
+# Flag to generate file for failed execution.
 declare GENERATE_FAILED_FILE=true
-# Previous execution failed.
+# Previous execution failed file path.
 # shellcheck disable=SC2154
 declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"
 
 # Flag to track if prerequisites have been checked in current execution
 declare PREREQS_CHECKED=false
 
-# File that contains the ids of the boundaries for countries.
+# File that contains the IDs of the boundaries for countries.
 # shellcheck disable=SC2154
-declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
-# File that contains the ids of the boundaries of the maritime areas.
+declare -r COUNTRIES_BOUNDARY_IDS_FILE="${TMP_DIR}/countries"
+# File that contains the IDs of the boundaries of the maritime areas.
 # shellcheck disable=SC2154
-declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
+declare -r MARITIME_BOUNDARY_IDS_FILE="${TMP_DIR}/maritimes"
 # File for the Overpass query.
-declare QUERY_FILE="${TMP_DIR}/query"
+declare OVERPASS_QUERY_FILE="${TMP_DIR}/query"
 
 # Logger framework.
 # Taken from https://github.com/DushyanthJyothi/bash-logger.
 # shellcheck disable=SC2154
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
 
-# Name of the file of the XSLT transformation for notes.
-declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
-# Name of the file of the XSLT transformation for note comments.
-declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
-# Name of the file of the XSLT transformation for text comments.
-declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
+# XSLT transformation files for Planet format.
+declare -r XSLT_NOTES_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+declare -r XSLT_NOTE_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
+declare -r XSLT_TEXT_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
 # XML Schema of the Planet notes file.
 declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
 
-# JSON schema for Overpass files.
+# JSON schema files for validation.
 declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"
-# JSON schema for GeoJSON files.
 declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"
 
-# Filename for the flat file for notes.
-declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes.csv"
-# Filename for the flat file for comment notes.
-declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/output-note_comments.csv"
-# Filename for the flat file for text comment notes.
-declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/output-text_comments.csv"
+# Output CSV files for processed data.
+declare -r OUTPUT_NOTES_CSV_FILE="${TMP_DIR}/output-notes.csv"
+declare -r OUTPUT_NOTE_COMMENTS_CSV_FILE="${TMP_DIR}/output-note_comments.csv"
+declare -r OUTPUT_TEXT_COMMENTS_CSV_FILE="${TMP_DIR}/output-text_comments.csv"
 
-# PostgreSQL files.
+# PostgreSQL SQL script files.
 # Check base tables.
 declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
 # Drop generic objects.
@@ -1086,7 +1081,7 @@ function __processBoundary {
  set -e
  if [[ "${RET}" -ne 0 ]]; then
   __loge "The GeoJSON file ${JSON_FILE} is invalid; failing."
-  exit "${ERROR_GEOJSON}"
+  exit "${ERROR_GEOJSON_CONVERSION}"
  fi
 
  set +o pipefail
@@ -1240,17 +1235,17 @@ function __processCountries {
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
  set +e
- wget -O "${COUNTRIES_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
+ wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
   "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: Country list could not be downloaded."
-  exit "${ERROR_DOWNLOADING_ID_LIST}"
+  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
 
- tail -n +2 "${COUNTRIES_FILE}" > "${COUNTRIES_FILE}.tmp"
- mv "${COUNTRIES_FILE}.tmp" "${COUNTRIES_FILE}"
+ tail -n +2 "${COUNTRIES_BOUNDARY_IDS_FILE}" > "${COUNTRIES_BOUNDARY_IDS_FILE}.tmp"
+ mv "${COUNTRIES_BOUNDARY_IDS_FILE}.tmp" "${COUNTRIES_BOUNDARY_IDS_FILE}"
 
  # Areas not at country level.
  {
@@ -1278,12 +1273,12 @@ function __processCountries {
   echo "3245621" # Queen Maud Land
   echo "2955118" # Peter I Island
   echo "2186646" # Antarctica continent
- } >> "${COUNTRIES_FILE}"
+ } >> "${COUNTRIES_BOUNDARY_IDS_FILE}"
 
- TOTAL_LINES=$(wc -l < "${COUNTRIES_FILE}")
+ TOTAL_LINES=$(wc -l < "${COUNTRIES_BOUNDARY_IDS_FILE}")
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
- split -l"${SIZE}" "${COUNTRIES_FILE}" "${TMP_DIR}/part_country_"
+ split -l"${SIZE}" "${COUNTRIES_BOUNDARY_IDS_FILE}" "${TMP_DIR}/part_country_"
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
   rm -f "${LOCK_OGR2OGR}/pid"
   rmdir "${LOCK_OGR2OGR}"
@@ -1345,22 +1340,22 @@ function __processMaritimes {
  # Extracts ids of all EEZ relations into a JSON.
  __logi "Obtaining the eez ids."
  set +e
- wget -O "${MARITIMES_FILE}" --post-file="${OVERPASS_MARITIMES}" \
+ wget -O "${MARITIME_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_MARITIMES}" \
   "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: Maritime border list could not be downloaded."
-  exit "${ERROR_DOWNLOADING_ID_LIST}"
+  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
 
- tail -n +2 "${MARITIMES_FILE}" > "${MARITIMES_FILE}.tmp"
- mv "${MARITIMES_FILE}.tmp" "${MARITIMES_FILE}"
+ tail -n +2 "${MARITIME_BOUNDARY_IDS_FILE}" > "${MARITIME_BOUNDARY_IDS_FILE}.tmp"
+ mv "${MARITIME_BOUNDARY_IDS_FILE}.tmp" "${MARITIME_BOUNDARY_IDS_FILE}"
 
- TOTAL_LINES=$(wc -l < "${MARITIMES_FILE}")
+ TOTAL_LINES=$(wc -l < "${MARITIME_BOUNDARY_IDS_FILE}")
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
- split -l"${SIZE}" "${MARITIMES_FILE}" "${TMP_DIR}/part_maritime_"
+ split -l"${SIZE}" "${MARITIME_BOUNDARY_IDS_FILE}" "${TMP_DIR}/part_maritime_"
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
   rm -f "${LOCK_OGR2OGR}/pid"
   rmdir "${LOCK_OGR2OGR}"

@@ -84,33 +84,31 @@ readonly LOCK
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
-# Total notes.
+# Total notes count.
 declare -i TOTAL_NOTES=-1
 
 # XML Schema of the API notes file.
 declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
-# Name of the file of the XSLT transformation for notes from API.
+# XSLT transformation files for API format.
 declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
-# Name of the file of the XSLT transformation for note comments from API.
 declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
-# Name of the file of the XSLT transformation for text comments from API.
 declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
 
-# Name of the script to process notes from Planet.
+# Script to process notes from Planet.
 declare -r PROCESS_PLANET_NOTES_SCRIPT="processPlanetNotes.sh"
 # Script to synchronize the notes with the Planet.
 declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/${PROCESS_PLANET_NOTES_SCRIPT}"
 
-# PostgreSQL files.
+# PostgreSQL SQL script files.
 # Drop API tables.
 declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_12_dropApiTables.sql"
 # Create API tables.
 declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
 # Create partitions dynamically.
 declare -r POSTGRES_22_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"
-# Create properties file.
+# Create properties table.
 declare -r POSTGRES_23_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
-# Load notes.
+# Load API notes.
 declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 # Insert new notes and comments.
 declare -r POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
@@ -121,7 +119,7 @@ declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/
 # Consolidate partitions.
 declare -r POSTGRES_35_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_35_consolidatePartitions.sql"
 
-# Temporal file that contains the downloaded notes from the API.
+# Temporary file that contains the downloaded notes from the API.
 declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 
 # Location of the common functions.

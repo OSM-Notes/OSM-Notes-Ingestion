@@ -18,16 +18,16 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 @test "processPlanetNotes should exit with error for invalid parameters" {
   # Test that script exits with error for invalid parameters
-  run bash "bin/process/processPlanetNotes.sh" --invalid
+  run bash "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh" --invalid
   [ "$status" -ne 0 ]
 }
 
 @test "processPlanetNotes should exit with error for help parameters" {
   # Test that script exits with error for help parameters
-  run bash "bin/process/processPlanetNotes.sh" -h
+  run bash "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh" -h
   [ "$status" -eq 1 ]
   
-  run bash "bin/process/processPlanetNotes.sh" --help
+  run bash "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh" --help
   [ "$status" -eq 1 ]
 }
 
