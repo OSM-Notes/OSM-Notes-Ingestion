@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# This is a script for sourcing from another scripts. It contains functions
-# used in different scripts
+# This script is designed to be sourced from other scripts. It contains functions
+# used across different scripts in the project.
 #
-# This scripts uses the constant ERROR_LOGGER_UTILITY.
+# This script uses the constant ERROR_LOGGER_UTILITY.
 #
-# For contributing, please execute these commands before subimitting:
+# For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all functionsProcess.sh
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
@@ -16,7 +16,7 @@
 # 1: Help message.
 # shellcheck disable=SC2034
 declare -r ERROR_HELP_MESSAGE=1
-# 238: Preivous execution failed.
+# 238: Previous execution failed.
 declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
 # 239: Library or utility missing.
 declare -r ERROR_CREATING_REPORT=239
@@ -46,7 +46,7 @@ declare -r ERROR_INTERNET_ISSUE=251
 # 255: General error.
 declare -r ERROR_GENERAL=255
 
-# Generates file for failed exeuction.
+# Generates file for failed execution.
 declare GENERATE_FAILED_FILE=true
 # Previous execution failed.
 # shellcheck disable=SC2154
@@ -58,7 +58,7 @@ declare PREREQS_CHECKED=false
 # File that contains the ids of the boundaries for countries.
 # shellcheck disable=SC2154
 declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
-# File taht contains the ids of the boundaries of the maritimes areas.
+# File that contains the ids of the boundaries of the maritime areas.
 # shellcheck disable=SC2154
 declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 # File for the Overpass query.
@@ -165,7 +165,7 @@ function __validation {
   echo " There is another process already in execution"
  else
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
-   __logw "Generating file for failed exeuction."
+   __logw "Generating file for failed execution."
    touch "${FAILED_EXECUTION_FILE}"
   else
    __logi "Do not generate file for failed execution."
@@ -186,7 +186,7 @@ function __trapOn() {
 
 # Counts notes in XML file (API format)
 # Parameters:
-#   $1: Input XML file
+#   $1: Input XML file path
 # Returns:
 #   TOTAL_NOTES: Number of notes found (exported variable)
 function __countXmlNotesAPI() {
@@ -195,7 +195,7 @@ function __countXmlNotesAPI() {
  __log_start
  __logi "Counting notes in XML file (API format) ${XML_FILE}"
 
- # Get total number of notes for API format
+ # Get total number of notes for API format using xmlstarlet
  TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
@@ -209,7 +209,7 @@ function __countXmlNotesAPI() {
 
 # Counts notes in XML file (Planet format)
 # Parameters:
-#   $1: Input XML file
+#   $1: Input XML file path
 # Returns:
 #   TOTAL_NOTES: Number of notes found (exported variable)
 function __countXmlNotesPlanet() {
@@ -218,7 +218,7 @@ function __countXmlNotesPlanet() {
  __log_start
  __logi "Counting notes in XML file (Planet format) ${XML_FILE}"
 
- # Get total number of notes for Planet format
+ # Get total number of notes for Planet format using xmlstarlet
  TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm-notes/note)" "${XML_FILE}" 2> /dev/null)
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
@@ -268,7 +268,7 @@ function __splitXmlForParallelSafe() {
   return
  fi
 
- # Calculate notes per part (round up)
+ # Calculate notes per part (round up to ensure all notes are processed)
  local NOTES_PER_PART
  NOTES_PER_PART=$(((TOTAL_NOTES_TO_SPLIT + PARTS - 1) / PARTS))
 
@@ -284,7 +284,7 @@ function __splitXmlForParallelSafe() {
 
   __logi "Creating part ${PART}: notes ${START}-${END} -> ${OUTPUT_FILE}"
 
-  # Use different XPath based on format
+  # Use different XPath selector based on format
   local XPATH_SELECTOR
   if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
    XPATH_SELECTOR="/osm/note[position() >= ${START} and position() <= ${END}]"
@@ -507,7 +507,7 @@ function __processXmlPartsParallel() {
  QTY_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | wc -l)
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
-  __logw "Some thread generated an error."
+  __logw "Some threads generated errors."
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
@@ -717,6 +717,7 @@ function __processPlanetXmlPart() {
 }
 
 # Checks prerequisites commands to run the script.
+# Validates that all required tools and libraries are available.
 function __checkPrereqsCommands {
  __log_start
  # Check if prerequisites have already been verified in this execution.
@@ -787,10 +788,10 @@ EOF
   __loge "ERROR: flock is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## Mutt.
+ ## Mutt
  __logd "Checking mutt."
  if ! mutt -v > /dev/null 2>&1; then
-  __loge "Falta instalar mutt."
+  __loge "ERROR: mutt is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Block-sorting file compressor
@@ -950,7 +951,7 @@ function __checkBaseTables {
 # Drop generic objects.
 function __dropGenericObjects {
  __log_start
- __logi "Droping generic objects."
+ __logi "Dropping generic objects."
  psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_GENERIC_OBJECTS}"
  __log_finish
 }
@@ -995,14 +996,13 @@ function __validatePlanetNotesXMLFile {
  __log_finish
 }
 
-# Creates a function to get the country or maritime area from coordinates.
+# Creates a function that performs basic triage according to longitude:
+# * -180 - -30: Americas.
+# * -30 - 25: West Europe and West Africa.
+# * 25 - 65: Middle East, East Africa and Russia.
+# * 65 - 180: Southeast Asia and Oceania.
 function __createFunctionToGetCountry {
  __log_start
- # Creates a function that performs a basic triage according to its longitude:
- # * -180 - -30: Americas.
- # * -30 - 25: West Europe and West Africa.
- # * 25 - 65: Middle East, East Africa and Russia.
- # * 65 - 180: Southeast Asia and Oceania.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
  __log_finish
@@ -1033,7 +1033,7 @@ function __organizeAreas {
  __log_finish
 }
 
-# Processes a specific boundary id.
+# Processes a specific boundary ID.
 function __processBoundary {
  __log_start
  PROCESS="${BASHPID}"
@@ -1076,8 +1076,8 @@ function __processBoundary {
  rm -f "${OUTPUT_OVERPASS}"
  set -e
 
- # Validate the geojson with a json schema
- __logi "Converting into geoJSON."
+ # Validate the GeoJSON with a JSON schema
+ __logi "Converting into GeoJSON."
  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
  set +e
  ajv validate -s "${JSON_SCHEMA_GEOJSON}" -d "${JSON_FILE}" \
@@ -1124,10 +1124,10 @@ function __processBoundary {
   set -e
  done
  echo "${PROCESS}" > "${LOCK_OGR2OGR}"/pid
- __logi "I took the lock ${PROCESS} - ${ID}."
+ __logi "Acquired lock ${PROCESS} - ${ID}."
  ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
   "${GEOJSON_FILE}" -nln import -overwrite
- # If an error like this appear:
+ # If an error like this appears:
  # ERROR:  column "name:xx-XX" specified more than once
  # It means two of the objects of the country has a name for the same
  # language, but with different case. The current solution is to open
@@ -1193,20 +1193,20 @@ function __processBoundary {
  unset NAME_ES
  unset NAME_EN
 
- __logi "I release the lock ${PROCESS} - ${ID}."
+ __logi "Released lock ${PROCESS} - ${ID}."
  rm -f "${LOCK_OGR2OGR}/pid"
  rmdir "${LOCK_OGR2OGR}/"
 
  __log_finish
 }
 
-# Processes the list of countries or maritimes areas in the given file.
+# Processes the list of countries or maritime areas in the given file.
 function __processList {
  __log_start
 
  BOUNDARIES_FILE="${1}"
  QUERY_FILE="${QUERY_FILE}.${BASHPID}"
- __logi "Retrieving the countriy or maritime boundaries."
+ __logi "Retrieving the country or maritime boundaries."
  while read -r LINE; do
   ID=$(echo "${LINE}" | awk '{print $1}')
   JSON_FILE="${TMP_DIR}/${ID}.json"
@@ -1258,7 +1258,7 @@ function __processCountries {
   echo "1703814"
   # Adds Judea and Samaria.
   echo "1803010"
-  # Adds the Buthan - China dispute.
+  # Adds the Bhutan - China dispute.
   echo "12931402"
   # Adds Ilemi Triangle
   echo "192797"
@@ -1327,7 +1327,7 @@ function __processCountries {
  QTY_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | wc -l)
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
-  __logw "Some thread generated an error."
+  __logw "Some threads generated errors."
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
@@ -1350,7 +1350,7 @@ function __processMaritimes {
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: Maritimes border list could not be downloaded."
+  __loge "ERROR: Maritime border list could not be downloaded."
   exit "${ERROR_DOWNLOADING_ID_LIST}"
  fi
 
@@ -1403,7 +1403,7 @@ function __processMaritimes {
  QTY_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | wc -l)
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
-  __logw "Some thread generated an error."
+  __logw "Some threads generated errors."
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
@@ -1461,7 +1461,7 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    # TODO could it be removed?
+    # TODO: Could this be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -1482,7 +1482,7 @@ function __getLocationNotes {
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
 
-    # TODO could it be removed?
+    # TODO: Could this be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -1495,7 +1495,7 @@ function __getLocationNotes {
       AND id_country IS NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
    done
-   __logi "Finishing ${J}."
+   __logi "Finished ${J}."
   ) &
   __logi "Check log per thread for more information."
  done
@@ -1517,7 +1517,7 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    # TODO could it be removed?
+    # TODO: Could this be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
@@ -1538,7 +1538,7 @@ function __getLocationNotes {
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
 
-    # TODO could it be removed?
+    # TODO: Could this be removed?
     #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
     #  FROM notes
     #  WHERE ${MIN_LOOP} <= note_id AND note_id < ${MAX_LOOP}
@@ -1551,7 +1551,7 @@ function __getLocationNotes {
       AND id_country IS NULL"
     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
    done
-   __logi "Finishing ${J}."
+   __logi "Finished ${J}."
   ) &
   __logi "Check log per thread for more information."
  done

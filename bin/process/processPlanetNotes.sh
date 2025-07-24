@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# This script prepares a database for note analysis, and loads the notes from
-# the planet, completely or the missing ones. Depending on the invokation it
-# performs some tasks.
+# This script prepares a database for note analysis and loads the notes from
+# the planet, either completely or just the missing ones. Depending on the invocation,
+# it performs different tasks.
 # The script structure is:
 # * Creates the database structure.
-# * Downloads the list of country ids (overpass).
+# * Downloads the list of country IDs (overpass).
 # * Downloads the country boundaries (overpass).
-# * Downloads the list of maritime area ids (overpass).
+# * Downloads the list of maritime area IDs (overpass).
 # * Downloads the maritime area boundaries (overpass).
-# * Imports the boundaries into the db.
+# * Imports the boundaries into the database.
 # * Downloads the planet notes.
 # * Converts the notes into flat CSV files.
-# * Imports the notes into the db.
+# * Imports the notes into the database.
 # * Sets the order for countries by zones.
 # * Creates a function to get the country of a position using the order by
 #   zones.
@@ -21,7 +21,7 @@
 # There are these workflows:
 #
 # * base > sync (This workflow is called from processApiNotes).
-# * boundaries (Processes the countries and maritimes areas only).
+# * boundaries (Processes the countries and maritime areas only).
 #
 # These are some examples to call this script:
 #
@@ -31,14 +31,14 @@
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
 #
-# Known errors:
+# Known issues:
 # * Austria has an issue to be imported with ogr2ogr for a particular thing in
 #   the geometry. A simplification is done to upload it. However, there is a
 #   missing part not being imported.
 # * Taiwan has an issue to be imported with ogr2ogr for a very long row. Some
 #   fields are removed.
 # * The Gaza Strip is not at the same level as a country. The ID is hardcoded.
-# * Not all countries have defined the maritimes borders. Also, not all
+# * Not all countries have defined the maritime borders. Also, not all
 #   countries have signed the Covemar.
 #
 # When running under MacOS or zsh, it is better to invoke bash:
@@ -147,10 +147,10 @@
 # 241) Library or utility missing.
 # 242) Invalid argument for script invocation.
 # 243) Logger utility is not available.
-# 244) Ids list cannot be downloaded.
+# 244) IDs list cannot be downloaded.
 # 249) Error downloading boundary.
 #
-# For contributing, please execute these commands before subimitting:
+# For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all processPlanetNotes.sh
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
@@ -161,7 +161,7 @@ declare -r VERSION="2025-07-16"
 #set -xv
 # Fails when a variable is not initialized.
 set -u
-# Fails with an non-zero return code.
+# Fails with a non-zero return code.
 set -e
 # Fails if the commands of a pipe return non-zero.
 set -o pipefail
@@ -169,7 +169,7 @@ set -o pipefail
 set -E
 
 # If all files should be deleted. In case of an error, this could be disabled.
-# You can defined when calling: export CLEAN=false
+# You can define when calling: export CLEAN=false
 declare -r CLEAN=${CLEAN:-true}
 # If the boundary rows are retrieved from backup table.
 declare -r BACKUP_COUNTRIES=${BACKUP_COUNTRIES:-false}
@@ -293,7 +293,7 @@ function __show_help {
  echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
  echo "   backup tables."
  echo " * CLEAN could be set to false, to left all created files."
- echo " * LOG_LEVEL specifies the logger leves. Possible values are:"
+ echo " * LOG_LEVEL specifies the logger levels. Possible values are:"
  echo "   DEBUG, INFO, WARN, ERROR"
  echo
  echo "Written by: Andres Gomez (AngocA)"
@@ -379,7 +379,7 @@ function __checkPrereqs {
 # Drop sync tables.
 function __dropSyncTables {
  __log_start
- __logi "Droping sync tables."
+ __logi "Dropping sync tables."
  psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_11_DROP_SYNC_TABLES}"
  __log_finish
 }
@@ -387,7 +387,7 @@ function __dropSyncTables {
 # Drop tables for notes from API.
 function __dropApiTables {
  __log_start
- __logi "Droping api tables."
+ __logi "Dropping API tables."
  psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_12_DROP_API_TABLES}"
  __log_finish
 }
@@ -395,7 +395,7 @@ function __dropApiTables {
 # Drop existing base tables.
 function __dropBaseTables {
  __log_start
- __logi "Droping base tables."
+ __logi "Dropping base tables."
  psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_BASE_TABLES}"
  __log_finish
 }
@@ -403,7 +403,7 @@ function __dropBaseTables {
 # Drop existing base tables.
 function __dropCountryTables {
  __log_start
- __logi "Droping country tables."
+ __logi "Dropping country tables."
  psql -d "${DBNAME}" -f "${POSTGRES_14_DROP_COUNTRY_TABLES}"
  __log_finish
 }
@@ -576,7 +576,7 @@ function main() {
  __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."
- __logi "Process Id: ${$}"
+ __logi "Process ID: ${$}"
  __logi "Processing: '${PROCESS_TYPE}'."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
@@ -690,7 +690,7 @@ function main() {
  __log_finish
 }
 
-# Allows to other user read the directory.
+# Allows other users to read the directory.
 chmod go+x "${TMP_DIR}"
 
 __start_logger

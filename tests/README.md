@@ -1,6 +1,6 @@
 # Testing System - OSM-Notes-profile
 
-This directory contains the unit and integration testing system for the OSM-Notes-profile project.
+This directory contains the comprehensive unit and integration testing system for the OSM-Notes-profile project.
 
 ## Directory Structure
 
@@ -16,7 +16,7 @@ tests/
 │       └── tables.test.sql
 ├── integration/                  # End-to-end integration tests
 │   └── end_to_end.test.bats
-├── fixtures/                    # Test data
+├── fixtures/                    # Test data and sample files
 ├── docker/                      # Docker configuration for integration
 │   ├── docker-compose.yml
 │   ├── Dockerfile
@@ -49,14 +49,14 @@ tests/
 
 ### Ubuntu/Debian
 ```bash
-# Install BATS
+# Install BATS testing framework
 sudo apt-get update
 sudo apt-get install bats
 
-# Install pgTAP
+# Install pgTAP for PostgreSQL testing
 sudo apt-get install postgresql-15-pgtap
 
-# Install Docker (if not installed)
+# Install Docker for containerized testing
 sudo apt-get install docker.io docker-compose
 
 # Verify installation
@@ -71,10 +71,10 @@ docker-compose --version
 # Install BATS with Homebrew
 brew install bats-core
 
-# Install pgTAP
+# Install pgTAP for PostgreSQL testing
 brew install pgtap
 
-# Install Docker Desktop
+# Install Docker Desktop for containerized testing
 # Download from: https://www.docker.com/products/docker-desktop
 ```
 

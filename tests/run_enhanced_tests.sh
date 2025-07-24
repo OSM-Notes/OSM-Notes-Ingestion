@@ -1,30 +1,31 @@
 #!/bin/bash
 
 # Enhanced Testability Test Runner
+# Executes comprehensive tests for improved code testability and robustness
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-15
 
 set -euo pipefail
 
-# Colors for output
+# Colors for output formatting
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
-# Script directory
+# Script directory and base paths
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly TEST_BASE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Test files
+# Test files to be executed
 readonly ENHANCED_TESTS=(
     "tests/unit/bash/functionsProcess_enhanced.test.bats"
     "tests/unit/bash/prerequisites_enhanced.test.bats"
     "tests/unit/bash/xml_processing_enhanced.test.bats"
 )
 
-# Default options
+# Default options for test execution
 VERBOSE=false
 PARALLEL=false
 FAIL_FAST=false
@@ -90,13 +91,13 @@ EOF
 check_prerequisites() {
     print_info "Checking prerequisites..."
     
-    # Check if BATS is available
+    # Check if BATS testing framework is available
     if ! command -v bats &> /dev/null; then
         print_error "BATS is not installed. Please install it first."
         exit 1
     fi
     
-    # Check if test files exist
+    # Check if all test files exist
     for test_file in "${ENHANCED_TESTS[@]}"; do
         if [[ ! -f "${TEST_BASE_DIR}/${test_file}" ]]; then
             print_error "Test file not found: ${test_file}"

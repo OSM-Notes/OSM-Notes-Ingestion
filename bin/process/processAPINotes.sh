@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# This scripts processes the most recents notes (creation or modification) from
+# This script processes the most recent notes (creation or modification) from
 # the OpenStreetMap API.
 # * It downloads the notes via an HTTP call.
 # * Then with an XSLT transformation converts the data into flat files.
-# * It uploads the data into temp tables on a PostreSQL database.
+# * It uploads the data into temp tables on a PostgreSQL database.
 # * Finally, it synchronizes the master tables.
 #
 # These are some examples to call this script:
@@ -24,7 +24,7 @@
 # 246) Planet process is currently running.
 # 248) Error executing the Planet dump.
 #
-# For contributing, please execute these commands before subimitting:
+# For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all processAPINotes.sh
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
@@ -35,7 +35,7 @@ declare -r VERSION="2025-07-19"
 #set -xv
 # Fails when a variable is not initialized.
 set -u
-# Fails with an non-zero return code.
+# Fails with a non-zero return code.
 set -e
 # Fails if the commands of a pipe return non-zero.
 set -o pipefail
@@ -44,7 +44,7 @@ set -E
 
 # If all generated files should be deleted. In case of an error, this could be
 # disabled.
-# You can defined when calling: export CLEAN=false
+# You can define when calling: export CLEAN=false
 declare -r CLEAN="${CLEAN:-true}"
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
@@ -66,7 +66,7 @@ umask 0000
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
-# Temporal directory for all files.
+# Temporary directory for all files.
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
@@ -121,7 +121,7 @@ declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/
 # Consolidate partitions.
 declare -r POSTGRES_35_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_35_consolidatePartitions.sql"
 
-# Temporal file that contiains the downloaded notes from the API.
+# Temporal file that contains the downloaded notes from the API.
 declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 
 # Location of the common functions.
@@ -226,12 +226,12 @@ function __checkPrereqs {
 # Drop tables for notes from API.
 function __dropApiTables {
  __log_start
- __logi "Droping tables."
+ __logi "Dropping tables."
  psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
  __log_finish
 }
 
-# Checks that no processPlanetNotes is runnning
+# Checks that no processPlanetNotes is running
 function __checkNoProcessPlanet {
  __log_start
  local QTY
@@ -413,7 +413,7 @@ function __insertNewNotesAndComments {
  __log_finish
 }
 
-# Inserts the net text comments.
+# Inserts the new text comments.
 function __loadApiTextComments {
  __log_start
  export OUTPUT_TEXT_COMMENTS_FILE
@@ -457,7 +457,7 @@ function main() {
  __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."
- __logi "Process Id: ${$}"
+ __logi "Process ID: ${$}"
  __logi "Processing: '${PROCESS_TYPE}'."
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then

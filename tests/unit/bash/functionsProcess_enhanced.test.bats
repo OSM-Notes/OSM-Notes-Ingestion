@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 # Enhanced unit tests for functionsProcess.sh with improved testability
+# Tests XML counting functions, validation, error handling, and performance
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-15
 
@@ -11,9 +12,9 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 # =============================================================================
 
 setup() {
-    # Create test XML files
+    # Create test XML files for different scenarios
     create_test_xml_files
-    # Source the functions
+    # Source the functions to be tested
     source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
     # Set up logging function if not available
     if ! declare -f log_info >/dev/null; then
@@ -25,7 +26,7 @@ setup() {
 }
 
 teardown() {
-    # Clean up test files
+    # Clean up test files to avoid interference between tests
     rm -f "${TEST_BASE_DIR}/tests/tmp/test_*.xml"
 }
 
@@ -37,7 +38,7 @@ create_test_xml_files() {
     local test_dir="${TEST_BASE_DIR}/tests/tmp"
     mkdir -p "${test_dir}"
     
-    # Create test API XML
+    # Create test API XML with multiple notes for comprehensive testing
     cat > "${test_dir}/test_api.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
@@ -76,7 +77,7 @@ create_test_xml_files() {
 </osm>
 EOF
 
-    # Create test Planet XML
+    # Create test Planet XML with single note for format-specific testing
     cat > "${test_dir}/test_planet.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm-notes version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
