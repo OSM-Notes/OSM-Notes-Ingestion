@@ -1,7 +1,7 @@
 -- Remove duplicates for notes and note comments, when syncing from the Planet.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-05-11
+-- Version: 2025-07-24
 
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
   'Counting notes sync' AS Text;
@@ -62,7 +62,10 @@ $$
 DECLARE
  r RECORD;
  m_qty INT;
+ m_process_id INTEGER;
 BEGIN
+  -- Get process ID for parallel processing
+  m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
  SELECT /* Notes-processPlanet */ COUNT(1)
   INTO m_qty
  FROM properties
@@ -95,7 +98,7 @@ BEGIN
   LOOP
    EXECUTE 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
      || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at || ''', '
-     ||'''YYYY-MM-DD HH24:MI:SS'')' || ', $PROCESS_ID' || ')';
+     ||'''YYYY-MM-DD HH24:MI:SS'')' || ', ' || m_process_id || ')';
   END LOOP;
  END IF;
 END;
@@ -164,7 +167,10 @@ DECLARE
  r RECORD;
  m_created_time VARCHAR(100);
  m_qty INT;
+ m_process_id INTEGER;
 BEGIN
+  -- Get process ID for parallel processing
+  m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
  SELECT /* Notes-processPlanet */ COUNT(1)
   INTO m_qty
  FROM properties
@@ -208,7 +214,7 @@ BEGIN
      || '''' || r.event || '''::note_event_enum, '
      || COALESCE(m_created_time, 'NULL') || ', '
      || COALESCE(r.id_user || '', 'NULL') || ', '
-     || QUOTE_NULLABLE(r.username) || ', $PROCESS_ID' || ')';
+     || QUOTE_NULLABLE(r.username) || ', ' || m_process_id || ')';
   END LOOP;
  END IF;
 END
