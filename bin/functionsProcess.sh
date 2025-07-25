@@ -602,6 +602,7 @@ function __processApiXmlPart() {
  export OUTPUT_TEXT_PART
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
+ # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
   -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
@@ -703,6 +704,7 @@ function __processPlanetXmlPart() {
  export OUTPUT_TEXT_PART
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
+ # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
   -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
