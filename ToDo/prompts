@@ -1,74 +1,18 @@
 
 
+Al correr en github action
 
-por qué algunas pruebas generan archivos csv en la raiz del proyecto?
-Si es necesario se deben borrar al termina las pruebas.
-Pero sería mejor generarlos en otro directorio, no en la raiz.
-
-
-Cuando se ejecutaaron los Github actions, salió esto:
 
 0s
 Run cd tests/docker
-time="2025-07-26T19:21:57Z" level=warning msg="/home/runner/work/OSM-Notes-profile/OSM-Notes-profile/tests/docker/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
 [INFO] Checking prerequisites...
-[ERROR] PostgreSQL is not running or not accessible
-[ERROR] Please start PostgreSQL and ensure it's accessible
+[SUCCESS] Prerequisites check completed
+[INFO] Setting up test database...
+[INFO] Dropping database notes with user notes on postgres:5432
+[INFO] Creating database notes with user notes on postgres:5432
+[ERROR] Failed to create test database notes
 
 Error: Process completed with exit code 1.
-
-y me recomienda hacer esto, por lo que quiero que lo implementes
-
-Ensure PostgreSQL Service Starts Correctly in Docker Compose:
-
-    Check your tests/docker/docker-compose.yml file and verify that you have a PostgreSQL service defined and configured to start.
-    Make sure your dependent services wait for PostgreSQL to be healthy before proceeding. You can add a depends_on with condition: service_healthy or a healthcheck.
-
-Example snippet for docker-compose.yml:
-YAML
-
-services:
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: testuser
-      POSTGRES_PASSWORD: testpass
-      POSTGRES_DB: testdb
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U testuser"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-Remove the version Attribute from docker-compose.yml:
-
-    The warning says the version attribute is obsolete. Remove the version: line from your tests/docker/docker-compose.yml.
-
-Add a Wait Script or Use Docker Compose Healthchecks:
-
-    Ensure your test runner waits until PostgreSQL is ready. If you don't already have a wait-for-it or similar script, add one to your workflow before running tests.
-
-Example for a shell script step:
-bash
-
-    until pg_isready -h localhost -p 5432 -U testuser; do
-      echo "Waiting for PostgreSQL..."
-      sleep 2
-    done
-
-    Double-check Database Connection Settings:
-        Ensure your application or test code is using the correct host (localhost or service name), port, user, and password.
-
-Summary of Actions:
-
-    Fix your docker-compose.yml to ensure PostgreSQL starts and is healthy.
-    Remove the obsolete version line.
-    Make sure your test step waits for the database to be ready before proceeding.
-    Double-check your database connection settings.
-
-
 
 
 
@@ -76,6 +20,5 @@ En el directorio docs está la documentación detallada del proyecto.
 Consideras que hay información redundante? o podrías hacer referencias de un archivo a otro al lector?
 Igualmente, podrías traducir al inglés lo que esté en español.
 
-En las pruebas, hay valores por defecto en varias variables. Podrías estandarizar esto para que tengan los mismos valores.
 
 Cuando se procesan las notas por API y por planet, creo que hay un paso que les asigna el secuence number en la DB, pero viendo los xslt, al parecer se puede incorporar en la transformación al CSV. Si es así, podrías simplificar el código con esto.

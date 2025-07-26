@@ -33,6 +33,7 @@ log_error() {
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck disable=SC2034
 DOCKER_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
 
 # Test configuration - using test properties only
@@ -60,6 +61,7 @@ check_prerequisites() {
   # Try with sudo
   if sudo docker info &> /dev/null; then
    log_warning "Docker requires sudo access"
+   # shellcheck disable=SC2034
    DOCKER_CMD="sudo docker"
    DOCKER_COMPOSE_CMD="sudo docker compose"
   else
@@ -67,6 +69,7 @@ check_prerequisites() {
    exit 1
   fi
  else
+  # shellcheck disable=SC2034
   DOCKER_CMD="docker"
   DOCKER_COMPOSE_CMD="docker compose"
  fi
@@ -97,18 +100,18 @@ start_services() {
  # Wait for mock API to be ready
  log_info "Waiting for mock API to be ready..."
  retries=0
- while [ $retries -lt $MAX_RETRIES ]; do
+ while [ "${retries}" -lt "${MAX_RETRIES}" ]; do
   if curl -s http://localhost:8001/api/0.6/notes &> /dev/null; then
    log_success "Mock API is ready"
    break
   else
    retries=$((retries + 1))
-   log_warning "Mock API not ready, retrying... ($retries/$MAX_RETRIES)"
+   log_warning "Mock API not ready, retrying... (${retries}/${MAX_RETRIES})"
    sleep 5
   fi
  done
 
- if [ $retries -eq $MAX_RETRIES ]; then
+ if [ "${retries}" -eq "${MAX_RETRIES}" ]; then
   log_error "Mock API failed to start"
   exit 1
  fi

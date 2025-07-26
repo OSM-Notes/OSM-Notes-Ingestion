@@ -8,6 +8,7 @@
 set -e
 
 # Load test properties only
+# shellcheck disable=SC1091
 if [[ -f "/app/tests/properties.sh" ]]; then
  source "/app/tests/properties.sh"
 elif [[ -f "$(dirname "${BASH_SOURCE[0]}")/../properties.sh" ]]; then

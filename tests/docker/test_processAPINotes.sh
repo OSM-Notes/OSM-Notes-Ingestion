@@ -12,6 +12,7 @@ export BASENAME="test_processAPINotes"
 export TMP_DIR="/tmp/test_$$"
 export LOG_FILENAME="/tmp/test.log"
 export LOCK="/tmp/test.lock"
+# shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 # Test configuration

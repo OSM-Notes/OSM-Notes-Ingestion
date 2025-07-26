@@ -64,8 +64,10 @@ load_base_structure() {
  # Database settings
  DBNAME="osm_notes_test"
  DBUSER="testuser"
+ # shellcheck disable=SC2034
  DBPASSWORD="testpass"
  DBHOST="postgres"
+ # shellcheck disable=SC2034
  DBPORT="5432"
 
  # Load base structure
@@ -157,31 +159,7 @@ rebuild_images() {
  log_success "Images rebuilt"
 }
 
-# Function to rebuild images
-rebuild_images() {
- log_info "Rebuilding Docker images..."
 
- cd "${SCRIPT_DIR}"
-
- # Determine Docker commands
- if ! docker info &> /dev/null; then
-  if sudo docker info &> /dev/null; then
-   DOCKER_CMD="sudo docker"
-   DOCKER_COMPOSE_CMD="sudo docker compose"
-  else
-   log_error "Docker is not accessible"
-   return 1
-  fi
- else
-  DOCKER_CMD="docker"
-  DOCKER_COMPOSE_CMD="docker compose"
- fi
-
- # Build images with no cache
- ${DOCKER_COMPOSE_CMD} -f "${DOCKER_COMPOSE_FILE}" build --no-cache
-
- log_success "Images rebuilt"
-}
 
 # Function to start services
 start_services() {
