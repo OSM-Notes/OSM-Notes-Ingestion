@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-19
-declare -r VERSION="2025-07-19"
+# Version: 2025-07-25
+declare -r VERSION="2025-07-25"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -57,7 +57,7 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
-# shellcheck source=../../etc/properties.sh
+# shellcheck source=etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 # Mask for the files and directories.
@@ -125,10 +125,31 @@ declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
+# Error codes (defined here to avoid shellcheck warnings)
+declare -r ERROR_HELP_MESSAGE=1
+declare -r ERROR_INVALID_ARGUMENT=242
+declare -r ERROR_MISSING_LIBRARY=241
+declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
+declare -r ERROR_NO_LAST_UPDATE=245
+declare -r ERROR_INTERNET_ISSUE=251
+declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
+declare -r ERROR_EXECUTING_PLANET_DUMP=248
+
+# Output files for processing
+declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"
+declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"
+declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"
+declare -r FAILED_EXECUTION_FILE="${TMP_DIR}/failed_execution"
+
+# Control variables for functionsProcess.sh
+export GENERATE_FAILED_FILE=true
+export ONLY_EXECUTION="no"
+
 ###########
 # FUNCTIONS
 
-# shellcheck source=../functionsProcess.sh
+# shellcheck source=functionsProcess.sh
+# shellcheck disable=SC1091
 source "${FUNCTIONS_FILE}"
 
 # Shows the help information.
@@ -259,7 +280,7 @@ function __createPartitions {
 
  export MAX_THREADS
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$MAX_THREADS' < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
+  -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
  __log_finish
 }
 
@@ -385,7 +406,7 @@ function __insertNewNotesAndComments {
 
     export PROCESS_ID
     psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
+     -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
 
     echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
@@ -403,7 +424,7 @@ function __insertNewNotesAndComments {
 
   export PROCESS_ID
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
+   -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
 
   echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
  fi
@@ -417,7 +438,7 @@ function __loadApiTextComments {
  export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
+  -c "$(envsubst "\$OUTPUT_TEXT_COMMENTS_FILE" \
    < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)"
  __log_finish
 }

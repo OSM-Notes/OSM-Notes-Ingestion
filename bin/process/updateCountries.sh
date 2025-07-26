@@ -11,8 +11,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-16
-declare -r VERSION="2025-07-16"
+# Version: 2025-07-25
+declare -r VERSION="2025-07-25"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -38,10 +38,11 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
 readonly SCRIPT_BASE_DIRECTORY
 
 # Variable to define that the process should update the location of notes.
-declare -r UPDATE_NOTE_LOCATION=true
+# This variable is used in functionsProcess.sh
+export UPDATE_NOTE_LOCATION=true
 
 # Loads the global properties.
-# shellcheck source=../../etc/properties.sh
+# shellcheck source=etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 # Mask for the files and directories.
@@ -71,10 +72,21 @@ declare -r PROCESS_TYPE=${1:-}
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
+# Error codes and file variables (defined here to avoid shellcheck warnings)
+declare -r ERROR_INVALID_ARGUMENT=242
+declare -r ERROR_HELP_MESSAGE=1
+declare -r QUERY_FILE="${TMP_DIR}/query"
+declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
+declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
+
+# Control variables for functionsProcess.sh
+export ONLY_EXECUTION="no"
+
 ###########
 # FUNCTIONS
 
-# shellcheck source=../functionsProcess.sh
+# shellcheck source=functionsProcess.sh
+# shellcheck disable=SC1091
 source "${FUNCTIONS_FILE}"
 
 # Shows the help information.

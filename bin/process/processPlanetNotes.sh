@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-16
-declare -r VERSION="2025-07-16"
+# Version: 2025-07-25
+declare -r VERSION="2025-07-25"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -184,7 +184,7 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
-# shellcheck source=../../etc/properties.sh
+# shellcheck source=etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 # Mask for the files and directories.
@@ -257,15 +257,29 @@ declare -r POSTGRES_46_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/proce
 declare -r POSTGRES_43_MOVE_SYNC_TO_MAIN="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_moveSyncToMain.sql"
 
 # Flag to define that the process should update the location of notes.
-declare -r UPDATE_NOTE_LOCATION=false
+# This variable is used in functionsProcess.sh
+export UPDATE_NOTE_LOCATION=false
+
+# Files for countries and maritimes processing.
+declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
+declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
+
+# Error codes (defined here to avoid shellcheck warnings)
+declare -r ERROR_HELP_MESSAGE=1
+declare -r ERROR_INVALID_ARGUMENT=242
+declare -r ERROR_MISSING_LIBRARY=241
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
+# Control variables for functionsProcess.sh
+export ONLY_EXECUTION="no"
+
 ###########
 # FUNCTIONS
 
-# shellcheck source=../functionsProcess.sh
+# shellcheck source=functionsProcess.sh
+# shellcheck disable=SC1091
 source "${FUNCTIONS_FILE}"
 # __start_logger
 # __trapOn
