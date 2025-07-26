@@ -3,10 +3,13 @@
 
 
 
-
 Veo muchos archivos de testXXX.sh bajo el directorio test (los que dices como legacy), pero parece que no están integrados con el sistema de pruebas.
 Podrías revisar si se pueden integrar con el sistema de pruebas; de lo contrario, podrías borrarlos.
 
 En el directorio docs está la documentación detallada del proyecto.
 Consideras que hay información redundante? o podrías dirigir de un archivo a otro.
 podrías traducir al inglés lo que esté en español.
+
+En las pruebas, hay valores por defecto en varias variables. Podrías estandarizar esto para que tengan los mismos valores.
+
+Cuando se procesan las notas por API y por planet, creo que hay un paso que les asigna el secuence number en la DB, pero viendo los xslt, al parecer se puede incorporar en la transformación al CSV. Si es así, podrías simplificar el código con esto.
