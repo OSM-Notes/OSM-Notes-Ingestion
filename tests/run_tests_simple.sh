@@ -34,14 +34,16 @@ log_error() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Test configuration
-TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
-TEST_DBUSER="${TEST_DBUSER:-$(whoami)}"
-TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
-TEST_DBHOST="${TEST_DBHOST:-localhost}"
-TEST_DBPORT="${TEST_DBPORT:-5432}"
-LOG_LEVEL="${LOG_LEVEL:-INFO}"
+# Load test properties
+# shellcheck disable=SC1091
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/properties.sh" ]]; then
+ source "$(dirname "${BASH_SOURCE[0]}")/properties.sh"
+fi
+
+# Test configuration with standardized defaults
 MAX_THREADS="${MAX_THREADS:-2}"
+TEST_TIMEOUT="${TEST_TIMEOUT:-300}"
+TEST_RETRIES="${TEST_RETRIES:-3}"
 
 # Test counters
 TOTAL_TESTS=0

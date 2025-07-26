@@ -16,10 +16,10 @@ function test() {
  echo "Testing ${TEST} for ${TYPE}."
  # Create test output directory if it doesn't exist
  mkdir -p "${TEST_OUTPUT_DIR}"
- 
+
  # Generate actual CSV file in test output directory
  xsltproc "${XSLT_DIR}/${TEST}-${TYPE}-csv.xslt" "osm-notes-${TYPE}.xml" > "${TEST_OUTPUT_DIR}/${TEST}-${TYPE}-actual.csv"
- 
+
  # Compare with expected file
  if [[ -f "${TEST}-${TYPE}-expected.csv" ]]; then
   diff "${TEST_OUTPUT_DIR}/${TEST}-${TYPE}-actual.csv" "${TEST}-${TYPE}-expected.csv"

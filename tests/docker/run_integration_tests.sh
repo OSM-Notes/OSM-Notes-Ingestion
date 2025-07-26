@@ -35,9 +35,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DOCKER_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
 
-# Test configuration
-TEST_TIMEOUT=300 # 5 minutes
-MAX_RETRIES=3
+# Test configuration - using test properties only
+TEST_TIMEOUT="${TEST_TIMEOUT:-300}" # 5 minutes
+MAX_RETRIES="${MAX_RETRIES:-3}"
 
 # Function to check prerequisites
 check_prerequisites() {
@@ -85,7 +85,7 @@ start_services() {
 
  # Wait for PostgreSQL to be ready
  log_info "Waiting for PostgreSQL to be ready..."
- 
+
  # Use the wait script inside the app container
  if ${DOCKER_COMPOSE_CMD} exec -T app bash -c "cd /app/tests/docker && ./wait_for_postgres.sh"; then
   log_success "PostgreSQL is ready"

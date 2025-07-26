@@ -21,6 +21,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC2155,SC2250
 TEST_BASE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Load test properties
+# shellcheck disable=SC1091
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/properties.sh" ]]; then
+ source "$(dirname "${BASH_SOURCE[0]}")/properties.sh"
+fi
+
+# Test configuration with standardized defaults
+PARALLEL="${PARALLEL:-false}"
+MAX_THREADS="${MAX_THREADS:-2}"
+TEST_TIMEOUT="${TEST_TIMEOUT:-300}"
+TEST_PERFORMANCE_TIMEOUT="${TEST_PERFORMANCE_TIMEOUT:-60}"
+
 # Test files to be executed
 readonly ENHANCED_TESTS=(
  "tests/unit/bash/functionsProcess_enhanced.test.bats"
@@ -30,7 +42,6 @@ readonly ENHANCED_TESTS=(
 
 # Default options for test execution
 VERBOSE=false
-PARALLEL=false
 FAIL_FAST=false
 COVERAGE=false
 MOCK_ONLY=false

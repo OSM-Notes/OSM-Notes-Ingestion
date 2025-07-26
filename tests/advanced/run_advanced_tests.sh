@@ -12,16 +12,24 @@ readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
-# Default values
+# Load test properties
+# shellcheck disable=SC1091
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../properties.sh" ]]; then
+ source "$(dirname "${BASH_SOURCE[0]}")/../properties.sh"
+fi
+
+# Test configuration with standardized defaults
+VERBOSE="${VERBOSE:-false}"
+CLEAN="${CLEAN:-false}"
+PARALLEL="${PARALLEL:-false}"
+TEST_PERFORMANCE_TIMEOUT="${TEST_PERFORMANCE_TIMEOUT:-60}"
+
+# Output configuration
 OUTPUT_DIR="${ADVANCED_OUTPUT_DIR:-./advanced_reports}"
 COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-80}"
 SECURITY_FAIL_ON_HIGH="${SECURITY_FAIL_ON_HIGH:-false}"
 QUALITY_MIN_RATING="${QUALITY_MIN_RATING:-A}"
-PERFORMANCE_TIMEOUT="${PERFORMANCE_TIMEOUT:-300}"
-CLEAN=false
-VERBOSE=false
-PARALLEL=false
-FAIL_FAST=false
+FAIL_FAST="${FAIL_FAST:-false}"
 
 # Test types
 RUN_COVERAGE=false
@@ -343,7 +351,7 @@ EOF
 
    local start_time
    start_time=$(date +%s.%N)
-   if timeout "${PERFORMANCE_TIMEOUT}" bash "${script}" --help > /dev/null 2>&1; then
+   if timeout "${TEST_PERFORMANCE_TIMEOUT}" bash "${script}" --help > /dev/null 2>&1; then
     local end_time
     end_time=$(date +%s.%N)
     local execution_time
@@ -392,7 +400,7 @@ Generated: $(date)
 
 ### Performance Tests
 - Status: $(if [[ "${RUN_PERFORMANCE}" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
-- Timeout: ${PERFORMANCE_TIMEOUT}s
+- Timeout: ${TEST_PERFORMANCE_TIMEOUT}s
 
 ## Reports Generated
 EOF
