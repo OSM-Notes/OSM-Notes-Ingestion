@@ -4,10 +4,6 @@
 
 
 
-Puedes poner comentarios detallados en los xslt para entender qué hace cada campo, para genear el csv.
-Esto puede implicar dividir tags actuales en múltiples xsl:text.
-
-
 Veo muchos archivos de testXXX.sh bajo el directorio test (los que dices como legacy), pero parece que no están integrados con el sistema de pruebas.
 Podrías revisar si se pueden integrar con el sistema de pruebas; de lo contrario, podrías borrarlos.
 
