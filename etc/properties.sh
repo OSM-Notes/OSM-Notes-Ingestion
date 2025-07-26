@@ -4,7 +4,7 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-07-17
+# Version: 2025-07-26
 
 # Database configuration.
 # shellcheck disable=SC2034
@@ -45,4 +45,14 @@ declare -r MAX_NOTES="10000"
 # It should be less than the number of cores of the server.
 # shellcheck disable=SC2034
 declare MAX_THREADS="4"
-MAX_THREADS=$(nproc)
+
+# Set MAX_THREADS based on available cores, with limits
+if command -v nproc > /dev/null 2>&1; then
+ MAX_THREADS=$(nproc)
+ # Limit to reasonable values for production
+ if [[ "${MAX_THREADS}" -gt 16 ]]; then
+  MAX_THREADS=16
+ fi
+else
+ MAX_THREADS=4
+fi

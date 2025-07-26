@@ -66,7 +66,7 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
-# shellcheck source=../../etc/properties.sh
+# shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 declare BASENAME
@@ -104,7 +104,7 @@ declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 ###########
 # FUNCTIONS
 
-# shellcheck source=../functionsProcess.sh
+# shellcheck disable=SC1090
 source "${FUNCTIONS_FILE}"
 
 # Shows the help information.

@@ -57,7 +57,7 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
-# shellcheck source=etc/properties.sh
+# shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 # Mask for the files and directories.
@@ -312,6 +312,7 @@ function __getNewNotesFromApi {
  fi
 
  # Gets the values from OSM API.
+ # shellcheck disable=SC2153
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
  __logt "${REQUEST}"
  __logw "Retrieving notes from API."

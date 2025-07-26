@@ -42,7 +42,7 @@ readonly SCRIPT_BASE_DIRECTORY
 export UPDATE_NOTE_LOCATION=true
 
 # Loads the global properties.
-# shellcheck source=etc/properties.sh
+# shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 # Mask for the files and directories.

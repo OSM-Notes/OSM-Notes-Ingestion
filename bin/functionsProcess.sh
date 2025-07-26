@@ -143,7 +143,7 @@ function __start_logger() {
  if [[ -f "${LOGGER_UTILITY}" ]]; then
   # Starts the logger mechanism.
   set +e
-  # shellcheck source=../lib/bash_logger.sh
+  # shellcheck disable=SC1090
   source "${LOGGER_UTILITY}"
   local -i RET=${?}
   set -e
