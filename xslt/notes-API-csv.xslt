@@ -3,7 +3,7 @@
 XML transformation to convert notes from an API call to a CSV file.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-07
+Version: 2025-07-25
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -30,6 +30,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
      <xsl:text>,"open"</xsl:text>
     </xsl:otherwise>
    </xsl:choose>
+   <xsl:text>,</xsl:text>
+   <xsl:text>1</xsl:text>
+   <xsl:text>,</xsl:text>
+   <xsl:text>1</xsl:text>
    <xsl:text>&#10;</xsl:text>
   </xsl:for-each>
  </xsl:template>

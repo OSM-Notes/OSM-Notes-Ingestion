@@ -4,7 +4,7 @@ XML transformation to convert note comment's text from a Planet dump to a CSV
 file.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-07
+Version: 2025-07-25
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -39,7 +39,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <xsl:template match="/">
   <xsl:for-each select="osm-notes/note">
    <xsl:variable name="note_id">
-    <xsl:value-of select="@id"/>
+    <xsl:value-of select="id"/>
    </xsl:variable>
    <xsl:for-each select="comment">
     <xsl:copy-of select="$note_id"/>

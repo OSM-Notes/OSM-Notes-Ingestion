@@ -3,7 +3,7 @@
 XML transformation to convert note comments from an API call to a CSV file.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-23
+Version: 2025-07-25
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -44,7 +44,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:choose>
      <xsl:when test="uid != ''">
       <xsl:copy-of select="$note_id" />
-      <xsl:text>,"</xsl:text>
+      <xsl:text>,1,"</xsl:text>
       <xsl:value-of select="action" />
       <xsl:text>","</xsl:text>
       <xsl:value-of select="date"/>
@@ -54,15 +54,15 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
       <xsl:call-template name='escape-quotes'>
        <xsl:with-param name='text' select='user'/>
       </xsl:call-template>
-      <xsl:text>"</xsl:text>
+      <xsl:text>",1</xsl:text>
      </xsl:when>
      <xsl:otherwise>
       <xsl:copy-of select="$note_id" />
-      <xsl:text>,"</xsl:text>
+      <xsl:text>,1,"</xsl:text>
       <xsl:value-of select="action" />
       <xsl:text>","</xsl:text>
       <xsl:value-of select="date"/>
-      <xsl:text>",,</xsl:text>
+      <xsl:text>",,1</xsl:text>
      </xsl:otherwise>
     </xsl:choose>
     <xsl:text>&#10;</xsl:text>

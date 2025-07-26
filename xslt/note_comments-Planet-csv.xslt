@@ -3,12 +3,15 @@
 XML transformation to convert note comments from a Planet dump to a CSV file.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-07
+Version: 2025-07-26
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <xsl:strip-space elements="*"/>
  <xsl:output method="text" />
+
+ <!-- Dynamic timestamp parameter with fallback -->
+ <xsl:param name="default-timestamp" select="'2025-01-27T00:00:00Z'"/>
 
  <xsl:param name="quote">"</xsl:param>
  <xsl:param name="escaped-quote">""</xsl:param>
@@ -38,7 +41,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <xsl:template match="/">
   <xsl:for-each select="osm-notes/note">
    <xsl:variable name="note_id">
-    <xsl:value-of select="@id"/>
+    <xsl:value-of select="id"/>
    </xsl:variable>
    <xsl:for-each select="comment">
     <xsl:choose>
@@ -47,7 +50,14 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
       <xsl:text>,"</xsl:text>
       <xsl:value-of select="@action" />
       <xsl:text>","</xsl:text>
-      <xsl:value-of select="@timestamp"/>
+      <xsl:choose>
+       <xsl:when test="@timestamp != ''">
+        <xsl:value-of select="@timestamp"/>
+       </xsl:when>
+       <xsl:otherwise>
+        <xsl:value-of select="$default-timestamp"/>
+       </xsl:otherwise>
+      </xsl:choose>
       <xsl:text>",</xsl:text>
       <xsl:value-of select="@uid"/>
       <xsl:text>,"</xsl:text>
@@ -61,7 +71,14 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
       <xsl:text>,"</xsl:text>
       <xsl:value-of select="@action" />
       <xsl:text>","</xsl:text>
-      <xsl:value-of select="@timestamp"/>
+      <xsl:choose>
+       <xsl:when test="@timestamp != ''">
+        <xsl:value-of select="@timestamp"/>
+       </xsl:when>
+       <xsl:otherwise>
+        <xsl:value-of select="$default-timestamp"/>
+       </xsl:otherwise>
+      </xsl:choose>
       <xsl:text>",,</xsl:text>
      </xsl:otherwise>
     </xsl:choose>
