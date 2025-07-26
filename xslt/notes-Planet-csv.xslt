@@ -30,7 +30,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <xsl:template match="/">
   <xsl:for-each select="osm-notes/note">
    <!-- Extract note ID - unique identifier for the note -->
-   <xsl:value-of select="id"/>
+   <xsl:value-of select="@id"/>
    <xsl:text>,</xsl:text>
    
    <!-- Extract latitude coordinate from note attributes -->

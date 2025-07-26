@@ -57,7 +57,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:for-each select="osm-notes/note">
    <!-- Store note ID for use in all comments of this note -->
    <xsl:variable name="note_id">
-    <xsl:value-of select="id"/>
+    <xsl:value-of select="@id"/>
    </xsl:variable>
    
    <!-- Process each comment for the current note -->
