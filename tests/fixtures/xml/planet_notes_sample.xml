@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+  <note lat="40.7128" lon="-74.0060">
+    <id>123</id>
+    <url>https://www.openstreetmap.org/api/0.6/notes/123</url>
+    <comment_url>https://www.openstreetmap.org/api/0.6/notes/123/comment</comment_url>
+    <close_url>https://www.openstreetmap.org/api/0.6/notes/123/close</close_url>
+    <date_created>2013-04-28T02:39:27Z</date_created>
+    <status>open</status>
+    <comment uid="123" user="user1" action="opened" timestamp="2013-04-28T02:39:27Z">Test comment 1</comment>
+  </note>
+  <note lat="34.0522" lon="-118.2437">
+    <id>456</id>
+    <url>https://www.openstreetmap.org/api/0.6/notes/456</url>
+    <comment_url>https://www.openstreetmap.org/api/0.6/notes/456/comment</comment_url>
+    <close_url>https://www.openstreetmap.org/api/0.6/notes/456/close</close_url>
+    <date_created>2013-04-30T15:20:45Z</date_created>
+    <status>close</status>
+    <comment uid="456" user="user2" action="opened" timestamp="2013-04-30T15:20:45Z">Test comment 2</comment>
+    <comment uid="789" user="user3" action="closed" timestamp="2013-05-01T10:15:30Z">Closing this note</comment>
+  </note>
+  <note lat="51.5074" lon="-0.1278">
+    <id>789</id>
+    <url>https://www.openstreetmap.org/api/0.6/notes/789</url>
+    <comment_url>https://www.openstreetmap.org/api/0.6/notes/789/comment</comment_url>
+    <close_url>https://www.openstreetmap.org/api/0.6/notes/789/close</close_url>
+    <date_created>2013-05-02T08:30:15Z</date_created>
+    <status>open</status>
+    <comment uid="789" user="user4" action="opened" timestamp="2013-05-02T08:30:15Z">Another test comment</comment>
+  </note>
+</osm-notes> 
