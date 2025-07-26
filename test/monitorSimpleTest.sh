@@ -94,18 +94,18 @@ export DBNAME="${TEST_DBNAME}"
 
 # Run monitoring script
 if bash /app/bin/monitor/notesCheckVerifier.sh > /tmp/monitor_output.log 2> /tmp/monitor_error.log; then
-  echo "✓ SUCCESS: Monitoring script executed successfully"
-  
-  # Check if differences were found
-  if grep -q "Summary of differences:" /tmp/monitor_output.log; then
-    echo "✗ FAILURE: Differences detected when none expected"
-    cat /tmp/monitor_output.log
-  else
-    echo "✓ SUCCESS: No differences detected (expected)"
-  fi
+ echo "✓ SUCCESS: Monitoring script executed successfully"
+
+ # Check if differences were found
+ if grep -q "Summary of differences:" /tmp/monitor_output.log; then
+  echo "✗ FAILURE: Differences detected when none expected"
+  cat /tmp/monitor_output.log
+ else
+  echo "✓ SUCCESS: No differences detected (expected)"
+ fi
 else
-  echo "✗ FAILURE: Monitoring script failed"
-  cat /tmp/monitor_error.log
+ echo "✗ FAILURE: Monitoring script failed"
+ cat /tmp/monitor_error.log
 fi
 
 # Restore original database
@@ -114,4 +114,4 @@ export DBNAME="osm_notes_test"
 # Cleanup
 # psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" || true
 
-echo "=== Test completed ===" 
+echo "=== Test completed ==="

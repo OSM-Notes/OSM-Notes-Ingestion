@@ -23,34 +23,34 @@ VERBOSE=false
 # Tool paths
 SHELLCHECK_PATH="${SHELLCHECK_PATH:-shellcheck}"
 TRIVY_PATH="${TRIVY_PATH:-trivy}"
-BANDIT_PATH="${BANDIT_PATH:-bandit}"  # Only for the mock Python file
+BANDIT_PATH="${BANDIT_PATH:-bandit}" # Only for the mock Python file
 
 # Logging function
 __log() {
-    local level="$1"
-    shift
-    local message="$*"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    
-    case "$level" in
-        "INFO")
-            echo -e "${BLUE}[INFO]${NC} $message"
-            ;;
-        "SUCCESS")
-            echo -e "${GREEN}[SUCCESS]${NC} $message"
-            ;;
-        "WARNING")
-            echo -e "${YELLOW}[WARNING]${NC} $message"
-            ;;
-        "ERROR")
-            echo -e "${RED}[ERROR]${NC} $message"
-            ;;
-    esac
+ local level="$1"
+ shift
+ local message="$*"
+ local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+ case "$level" in
+ "INFO")
+  echo -e "${BLUE}[INFO]${NC} $message"
+  ;;
+ "SUCCESS")
+  echo -e "${GREEN}[SUCCESS]${NC} $message"
+  ;;
+ "WARNING")
+  echo -e "${YELLOW}[WARNING]${NC} $message"
+  ;;
+ "ERROR")
+  echo -e "${RED}[ERROR]${NC} $message"
+  ;;
+ esac
 }
 
 # Help function
 __show_help() {
-    cat << EOF
+ cat << EOF
 Uso: $0 [OPTIONS]
 
 Opciones:
@@ -79,236 +79,236 @@ EOF
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        --help|-h)
-            __show_help
-            exit 0
-            ;;
-        --output-dir)
-            OUTPUT_DIR="$2"
-            shift 2
-            ;;
-        --scan-type)
-            SCAN_TYPE="$2"
-            shift 2
-            ;;
-        --fail-on-high)
-            FAIL_ON_HIGH=true
-            shift
-            ;;
-        --fail-on-critical)
-            FAIL_ON_CRITICAL=true
-            shift
-            ;;
-        --clean)
-            CLEAN=true
-            shift
-            ;;
-        --verbose)
-            VERBOSE=true
-            shift
-            ;;
-        *)
-            __log "ERROR" "Opción desconocida: $1"
-            __show_help
-            exit 1
-            ;;
-    esac
+ case $1 in
+ --help | -h)
+  __show_help
+  exit 0
+  ;;
+ --output-dir)
+  OUTPUT_DIR="$2"
+  shift 2
+  ;;
+ --scan-type)
+  SCAN_TYPE="$2"
+  shift 2
+  ;;
+ --fail-on-high)
+  FAIL_ON_HIGH=true
+  shift
+  ;;
+ --fail-on-critical)
+  FAIL_ON_CRITICAL=true
+  shift
+  ;;
+ --clean)
+  CLEAN=true
+  shift
+  ;;
+ --verbose)
+  VERBOSE=true
+  shift
+  ;;
+ *)
+  __log "ERROR" "Opción desconocida: $1"
+  __show_help
+  exit 1
+  ;;
+ esac
 done
 
 # Check prerequisites
 __check_prerequisites() {
-    __log "INFO" "Verificando prerequisitos..."
-    
-    local missing_tools=()
-    
-    # Check shellcheck
-    if ! command -v "$SHELLCHECK_PATH" >/dev/null 2>&1; then
-        missing_tools+=("shellcheck")
-    fi
-    
-    # Check trivy
-    if ! command -v "$TRIVY_PATH" >/dev/null 2>&1; then
-        missing_tools+=("trivy")
-    fi
-    
-    # Check bandit (only if scanning Python files)
-    if [[ "$SCAN_TYPE" == "all" || "$SCAN_TYPE" == "bandit" ]]; then
-        if ! command -v "$BANDIT_PATH" >/dev/null 2>&1; then
-            missing_tools+=("bandit")
-        fi
-    fi
-    
-    if [[ ${#missing_tools[@]} -gt 0 ]]; then
-        __log "ERROR" "Herramientas faltantes: ${missing_tools[*]}"
-        __log "INFO" "Instale las herramientas faltantes:"
-        for tool in "${missing_tools[@]}"; do
-            case "$tool" in
-                "shellcheck")
-                    echo "  - shellcheck: sudo apt-get install shellcheck"
-                    ;;
-                "trivy")
-                    echo "  - trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/"
-                    ;;
-                "bandit")
-                    echo "  - bandit: pip install bandit"
-                    ;;
-            esac
-        done
-        exit 1
-    fi
-    
-    __log "SUCCESS" "Prerequisitos verificados"
+ __log "INFO" "Verificando prerequisitos..."
+
+ local missing_tools=()
+
+ # Check shellcheck
+ if ! command -v "$SHELLCHECK_PATH" > /dev/null 2>&1; then
+  missing_tools+=("shellcheck")
+ fi
+
+ # Check trivy
+ if ! command -v "$TRIVY_PATH" > /dev/null 2>&1; then
+  missing_tools+=("trivy")
+ fi
+
+ # Check bandit (only if scanning Python files)
+ if [[ "$SCAN_TYPE" == "all" || "$SCAN_TYPE" == "bandit" ]]; then
+  if ! command -v "$BANDIT_PATH" > /dev/null 2>&1; then
+   missing_tools+=("bandit")
+  fi
+ fi
+
+ if [[ ${#missing_tools[@]} -gt 0 ]]; then
+  __log "ERROR" "Herramientas faltantes: ${missing_tools[*]}"
+  __log "INFO" "Instale las herramientas faltantes:"
+  for tool in "${missing_tools[@]}"; do
+   case "$tool" in
+   "shellcheck")
+    echo "  - shellcheck: sudo apt-get install shellcheck"
+    ;;
+   "trivy")
+    echo "  - trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/"
+    ;;
+   "bandit")
+    echo "  - bandit: pip install bandit"
+    ;;
+   esac
+  done
+  exit 1
+ fi
+
+ __log "SUCCESS" "Prerequisitos verificados"
 }
 
 # Clean previous reports
 __clean_reports() {
-    if [[ "$CLEAN" == "true" ]]; then
-        __log "INFO" "Limpiando reportes anteriores..."
-        rm -rf "$OUTPUT_DIR"
-    fi
+ if [[ "$CLEAN" == "true" ]]; then
+  __log "INFO" "Limpiando reportes anteriores..."
+  rm -rf "$OUTPUT_DIR"
+ fi
 }
 
 # Create output directory
 __create_output_dir() {
-    mkdir -p "$OUTPUT_DIR"
-    __log "INFO" "Directorio de salida creado: $OUTPUT_DIR"
+ mkdir -p "$OUTPUT_DIR"
+ __log "INFO" "Directorio de salida creado: $OUTPUT_DIR"
 }
 
 # Run shellcheck scan
 __run_shellcheck() {
-    __log "INFO" "Ejecutando ShellCheck..."
-    
-    local shellcheck_output="$OUTPUT_DIR/shellcheck_report.txt"
-    local shellcheck_json="$OUTPUT_DIR/shellcheck_report.json"
-    
-    # Find all shell scripts
-    local shell_files=($(find . -name "*.sh" -type f))
-    
-    if [[ ${#shell_files[@]} -eq 0 ]]; then
-        __log "WARNING" "No se encontraron archivos .sh para analizar"
-        return 0
-    fi
-    
-    # Run shellcheck with different outputs
-    if "$SHELLCHECK_PATH" --version >/dev/null 2>&1; then
-        # Text output
-        "$SHELLCHECK_PATH" --color=never "${shell_files[@]}" > "$shellcheck_output" 2>&1 || true
-        
-        # JSON output (if supported)
-        if "$SHELLCHECK_PATH" --format=json "${shell_files[@]}" > "$shellcheck_json" 2>&1; then
-            __log "SUCCESS" "ShellCheck completado - Reporte guardado en: $shellcheck_output"
-        else
-            __log "WARNING" "ShellCheck completado (solo texto) - Reporte guardado en: $shellcheck_output"
-        fi
-        
-        # Check for high/critical issues
-        local error_count=$(grep -c "SC[0-9]" "$shellcheck_output" || echo "0")
-        if [[ "$error_count" -gt 0 ]]; then
-            __log "WARNING" "ShellCheck encontró $error_count problemas"
-            if [[ "$FAIL_ON_HIGH" == "true" ]]; then
-                __log "ERROR" "Fallo configurado para problemas altos"
-                return 1
-            fi
-        fi
-    else
-        __log "ERROR" "ShellCheck no está disponible"
-        return 1
-    fi
+ __log "INFO" "Ejecutando ShellCheck..."
+
+ local shellcheck_output="$OUTPUT_DIR/shellcheck_report.txt"
+ local shellcheck_json="$OUTPUT_DIR/shellcheck_report.json"
+
+ # Find all shell scripts
+ local shell_files=($(find . -name "*.sh" -type f))
+
+ if [[ ${#shell_files[@]} -eq 0 ]]; then
+  __log "WARNING" "No se encontraron archivos .sh para analizar"
+  return 0
+ fi
+
+ # Run shellcheck with different outputs
+ if "$SHELLCHECK_PATH" --version > /dev/null 2>&1; then
+  # Text output
+  "$SHELLCHECK_PATH" --color=never "${shell_files[@]}" > "$shellcheck_output" 2>&1 || true
+
+  # JSON output (if supported)
+  if "$SHELLCHECK_PATH" --format=json "${shell_files[@]}" > "$shellcheck_json" 2>&1; then
+   __log "SUCCESS" "ShellCheck completado - Reporte guardado en: $shellcheck_output"
+  else
+   __log "WARNING" "ShellCheck completado (solo texto) - Reporte guardado en: $shellcheck_output"
+  fi
+
+  # Check for high/critical issues
+  local error_count=$(grep -c "SC[0-9]" "$shellcheck_output" || echo "0")
+  if [[ "$error_count" -gt 0 ]]; then
+   __log "WARNING" "ShellCheck encontró $error_count problemas"
+   if [[ "$FAIL_ON_HIGH" == "true" ]]; then
+    __log "ERROR" "Fallo configurado para problemas altos"
+    return 1
+   fi
+  fi
+ else
+  __log "ERROR" "ShellCheck no está disponible"
+  return 1
+ fi
 }
 
 # Run trivy scan
 __run_trivy() {
-    __log "INFO" "Ejecutando Trivy..."
-    
-    local trivy_output="$OUTPUT_DIR/trivy_report.txt"
-    local trivy_json="$OUTPUT_DIR/trivy_report.json"
-    
-    # Scan for vulnerabilities in dependencies and files
-    if "$TRIVY_PATH" --version >/dev/null 2>&1; then
-        # Scan filesystem
-        "$TRIVY_PATH" fs --format table . > "$trivy_output" 2>&1 || true
-        
-        # JSON output
-        "$TRIVY_PATH" fs --format json . > "$trivy_json" 2>&1 || true
-        
-        __log "SUCCESS" "Trivy completado - Reporte guardado en: $trivy_output"
-        
-        # Check for high/critical vulnerabilities
-        local high_count=$(grep -c "HIGH" "$trivy_output" || echo "0")
-        local critical_count=$(grep -c "CRITICAL" "$trivy_output" || echo "0")
-        
-        if [[ "$critical_count" -gt 0 ]]; then
-            __log "ERROR" "Trivy encontró $critical_count vulnerabilidades críticas"
-            if [[ "$FAIL_ON_CRITICAL" == "true" ]]; then
-                return 1
-            fi
-        fi
-        
-        if [[ "$high_count" -gt 0 ]]; then
-            __log "WARNING" "Trivy encontró $high_count vulnerabilidades altas"
-            if [[ "$FAIL_ON_HIGH" == "true" ]]; then
-                return 1
-            fi
-        fi
-    else
-        __log "ERROR" "Trivy no está disponible"
-        return 1
-    fi
+ __log "INFO" "Ejecutando Trivy..."
+
+ local trivy_output="$OUTPUT_DIR/trivy_report.txt"
+ local trivy_json="$OUTPUT_DIR/trivy_report.json"
+
+ # Scan for vulnerabilities in dependencies and files
+ if "$TRIVY_PATH" --version > /dev/null 2>&1; then
+  # Scan filesystem
+  "$TRIVY_PATH" fs --format table . > "$trivy_output" 2>&1 || true
+
+  # JSON output
+  "$TRIVY_PATH" fs --format json . > "$trivy_json" 2>&1 || true
+
+  __log "SUCCESS" "Trivy completado - Reporte guardado en: $trivy_output"
+
+  # Check for high/critical vulnerabilities
+  local high_count=$(grep -c "HIGH" "$trivy_output" || echo "0")
+  local critical_count=$(grep -c "CRITICAL" "$trivy_output" || echo "0")
+
+  if [[ "$critical_count" -gt 0 ]]; then
+   __log "ERROR" "Trivy encontró $critical_count vulnerabilidades críticas"
+   if [[ "$FAIL_ON_CRITICAL" == "true" ]]; then
+    return 1
+   fi
+  fi
+
+  if [[ "$high_count" -gt 0 ]]; then
+   __log "WARNING" "Trivy encontró $high_count vulnerabilidades altas"
+   if [[ "$FAIL_ON_HIGH" == "true" ]]; then
+    return 1
+   fi
+  fi
+ else
+  __log "ERROR" "Trivy no está disponible"
+  return 1
+ fi
 }
 
 # Run bandit scan (only for Python files)
 __run_bandit() {
-    __log "INFO" "Ejecutando Bandit (solo para archivos Python)..."
-    
-    local bandit_output="$OUTPUT_DIR/bandit_report.txt"
-    local bandit_json="$OUTPUT_DIR/bandit_report.json"
-    
-    # Find Python files
-    local python_files=($(find . -name "*.py" -type f))
-    
-    if [[ ${#python_files[@]} -eq 0 ]]; then
-        __log "INFO" "No se encontraron archivos Python para analizar"
-        return 0
-    fi
-    
-    if "$BANDIT_PATH" --version >/dev/null 2>&1; then
-        # Run bandit
-        "$BANDIT_PATH" -r . -f txt -o "$bandit_output" || true
-        "$BANDIT_PATH" -r . -f json -o "$bandit_json" || true
-        
-        __log "SUCCESS" "Bandit completado - Reporte guardado en: $bandit_output"
-        
-        # Check for high/critical issues
-        local high_count=$(grep -c "HIGH" "$bandit_output" || echo "0")
-        local critical_count=$(grep -c "CRITICAL" "$bandit_output" || echo "0")
-        
-        if [[ "$critical_count" -gt 0 ]]; then
-            __log "ERROR" "Bandit encontró $critical_count vulnerabilidades críticas"
-            if [[ "$FAIL_ON_CRITICAL" == "true" ]]; then
-                return 1
-            fi
-        fi
-        
-        if [[ "$high_count" -gt 0 ]]; then
-            __log "WARNING" "Bandit encontró $high_count vulnerabilidades altas"
-            if [[ "$FAIL_ON_HIGH" == "true" ]]; then
-                return 1
-            fi
-        fi
-    else
-        __log "ERROR" "Bandit no está disponible"
-        return 1
-    fi
+ __log "INFO" "Ejecutando Bandit (solo para archivos Python)..."
+
+ local bandit_output="$OUTPUT_DIR/bandit_report.txt"
+ local bandit_json="$OUTPUT_DIR/bandit_report.json"
+
+ # Find Python files
+ local python_files=($(find . -name "*.py" -type f))
+
+ if [[ ${#python_files[@]} -eq 0 ]]; then
+  __log "INFO" "No se encontraron archivos Python para analizar"
+  return 0
+ fi
+
+ if "$BANDIT_PATH" --version > /dev/null 2>&1; then
+  # Run bandit
+  "$BANDIT_PATH" -r . -f txt -o "$bandit_output" || true
+  "$BANDIT_PATH" -r . -f json -o "$bandit_json" || true
+
+  __log "SUCCESS" "Bandit completado - Reporte guardado en: $bandit_output"
+
+  # Check for high/critical issues
+  local high_count=$(grep -c "HIGH" "$bandit_output" || echo "0")
+  local critical_count=$(grep -c "CRITICAL" "$bandit_output" || echo "0")
+
+  if [[ "$critical_count" -gt 0 ]]; then
+   __log "ERROR" "Bandit encontró $critical_count vulnerabilidades críticas"
+   if [[ "$FAIL_ON_CRITICAL" == "true" ]]; then
+    return 1
+   fi
+  fi
+
+  if [[ "$high_count" -gt 0 ]]; then
+   __log "WARNING" "Bandit encontró $high_count vulnerabilidades altas"
+   if [[ "$FAIL_ON_HIGH" == "true" ]]; then
+    return 1
+   fi
+  fi
+ else
+  __log "ERROR" "Bandit no está disponible"
+  return 1
+ fi
 }
 
 # Generate consolidated report
 __generate_consolidated_report() {
-    __log "INFO" "Generando reporte consolidado..."
-    
-    local consolidated_report="$OUTPUT_DIR/security_scan_summary.md"
-    
-    cat > "$consolidated_report" << EOF
+ __log "INFO" "Generando reporte consolidado..."
+
+ local consolidated_report="$OUTPUT_DIR/security_scan_summary.md"
+
+ cat > "$consolidated_report" << EOF
 # Security Scan Summary
 Generated: $(date)
 
@@ -322,64 +322,64 @@ This report contains the results of security scanning for the OSM Notes Profile 
 
 ## Reports Generated
 EOF
-    
-    # List generated reports
-    for report in "$OUTPUT_DIR"/*.txt "$OUTPUT_DIR"/*.json; do
-        if [[ -f "$report" ]]; then
-            echo "- $(basename "$report")" >> "$consolidated_report"
-        fi
-    done
-    
-    echo "" >> "$consolidated_report"
-    echo "## Recommendations" >> "$consolidated_report"
-    echo "1. Review all ShellCheck warnings and errors" >> "$consolidated_report"
-    echo "2. Address any high or critical vulnerabilities found by Trivy" >> "$consolidated_report"
-    echo "3. Fix any security issues identified by Bandit in Python files" >> "$consolidated_report"
-    echo "4. Regularly update dependencies to patch known vulnerabilities" >> "$consolidated_report"
-    
-    __log "SUCCESS" "Reporte consolidado generado: $consolidated_report"
+
+ # List generated reports
+ for report in "$OUTPUT_DIR"/*.txt "$OUTPUT_DIR"/*.json; do
+  if [[ -f "$report" ]]; then
+   echo "- $(basename "$report")" >> "$consolidated_report"
+  fi
+ done
+
+ echo "" >> "$consolidated_report"
+ echo "## Recommendations" >> "$consolidated_report"
+ echo "1. Review all ShellCheck warnings and errors" >> "$consolidated_report"
+ echo "2. Address any high or critical vulnerabilities found by Trivy" >> "$consolidated_report"
+ echo "3. Fix any security issues identified by Bandit in Python files" >> "$consolidated_report"
+ echo "4. Regularly update dependencies to patch known vulnerabilities" >> "$consolidated_report"
+
+ __log "SUCCESS" "Reporte consolidado generado: $consolidated_report"
 }
 
 # Main function
 main() {
-    __log "INFO" "Iniciando escaneo de seguridad..."
-    
-    # Check prerequisites
-    __check_prerequisites
-    
-    # Clean previous reports if requested
-    __clean_reports
-    
-    # Create output directory
-    __create_output_dir
-    
-    # Run scans based on type
-    case "$SCAN_TYPE" in
-        "shellcheck")
-            __run_shellcheck
-            ;;
-        "trivy")
-            __run_trivy
-            ;;
-        "bandit")
-            __run_bandit
-            ;;
-        "all")
-            __run_shellcheck
-            __run_trivy
-            __run_bandit
-            ;;
-        *)
-            __log "ERROR" "Tipo de escaneo no válido: $SCAN_TYPE"
-            exit 1
-            ;;
-    esac
-    
-    # Generate consolidated report
-    __generate_consolidated_report
-    
-    __log "SUCCESS" "Escaneo de seguridad completado. Reportes guardados en: $OUTPUT_DIR"
+ __log "INFO" "Iniciando escaneo de seguridad..."
+
+ # Check prerequisites
+ __check_prerequisites
+
+ # Clean previous reports if requested
+ __clean_reports
+
+ # Create output directory
+ __create_output_dir
+
+ # Run scans based on type
+ case "$SCAN_TYPE" in
+ "shellcheck")
+  __run_shellcheck
+  ;;
+ "trivy")
+  __run_trivy
+  ;;
+ "bandit")
+  __run_bandit
+  ;;
+ "all")
+  __run_shellcheck
+  __run_trivy
+  __run_bandit
+  ;;
+ *)
+  __log "ERROR" "Tipo de escaneo no válido: $SCAN_TYPE"
+  exit 1
+  ;;
+ esac
+
+ # Generate consolidated report
+ __generate_consolidated_report
+
+ __log "SUCCESS" "Escaneo de seguridad completado. Reportes guardados en: $OUTPUT_DIR"
 }
 
 # Run main function
-main "$@" 
+main "$@"

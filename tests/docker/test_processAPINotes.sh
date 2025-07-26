@@ -55,18 +55,18 @@ if [[ -n "${API_NOTES_FILE:-}" ]] && [[ -f "${API_NOTES_FILE}" ]]; then
  csv_file="/tmp/api_notes.csv"
  xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt" "${API_NOTES_FILE}" > "${csv_file}"
 
-   # Load data into API tables
-  psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status, id_country, part_id) FROM '${csv_file}' WITH (FORMAT csv);"
+ # Load data into API tables
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status, id_country, part_id) FROM '${csv_file}' WITH (FORMAT csv);"
 
-   # Process comments
-  comments_csv="/tmp/api_comments.csv"
-  xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt" "${API_NOTES_FILE}" > "${comments_csv}"
-  psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments_api (note_id, sequence_action, event, created_at, id_user, username, part_id) FROM '${comments_csv}' WITH (FORMAT csv);"
+ # Process comments
+ comments_csv="/tmp/api_comments.csv"
+ xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt" "${API_NOTES_FILE}" > "${comments_csv}"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments_api (note_id, sequence_action, event, created_at, id_user, username, part_id) FROM '${comments_csv}' WITH (FORMAT csv);"
 
-   # Process text comments
-  text_csv="/tmp/api_text_comments.csv"
-  xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt" "${API_NOTES_FILE}" > "${text_csv}"
-  psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments_text_api (note_id, sequence_action, body, part_id) FROM '${text_csv}' WITH (FORMAT csv);"
+ # Process text comments
+ text_csv="/tmp/api_text_comments.csv"
+ xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt" "${API_NOTES_FILE}" > "${text_csv}"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments_text_api (note_id, sequence_action, body, part_id) FROM '${text_csv}' WITH (FORMAT csv);"
 
  # Insert new notes and comments
  psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
