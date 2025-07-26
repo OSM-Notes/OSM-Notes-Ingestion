@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2025-07-25
 
 # Error codes.
 # 1: Help message.
@@ -190,14 +190,44 @@ function __countXmlNotesAPI() {
  __log_start
  __logi "Counting notes in XML file (API format) ${XML_FILE}"
 
+ # Check if xmlstarlet is available
+ if ! command -v xmlstarlet &> /dev/null; then
+  __loge "xmlstarlet is not available"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
+
+ # Check if file exists
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "File not found: ${XML_FILE}"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
+
  # Get total number of notes for API format using xmlstarlet
  TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
+ local xmlstarlet_status=$?
+
+ if [[ ${xmlstarlet_status} -ne 0 ]]; then
+  __loge "Error processing XML file: ${XML_FILE}"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
  else
   __logi "Total notes found: ${TOTAL_NOTES}"
  fi
+
+ # Export the variable so it's available to calling scripts
+ export TOTAL_NOTES
 
  __log_finish
 }
@@ -213,14 +243,44 @@ function __countXmlNotesPlanet() {
  __log_start
  __logi "Counting notes in XML file (Planet format) ${XML_FILE}"
 
+ # Check if xmlstarlet is available
+ if ! command -v xmlstarlet &> /dev/null; then
+  __loge "xmlstarlet is not available"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
+
+ # Check if file exists
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "File not found: ${XML_FILE}"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
+
  # Get total number of notes for Planet format using xmlstarlet
  TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm-notes/note)" "${XML_FILE}" 2> /dev/null)
+ local xmlstarlet_status=$?
+
+ if [[ ${xmlstarlet_status} -ne 0 ]]; then
+  __loge "Error processing XML file: ${XML_FILE}"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
  else
   __logi "Total notes found: ${TOTAL_NOTES}"
  fi
+
+ # Export the variable so it's available to calling scripts
+ export TOTAL_NOTES
 
  __log_finish
 }
@@ -256,6 +316,27 @@ function __splitXmlForParallelSafe() {
 
  __log_start
  __logi "Splitting XML file (${XML_FORMAT} format) ${XML_FILE} into ${PARTS} parts using parallel processing"
+
+ # Check if input file exists
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: Input XML file does not exist: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if input file is readable
+ if [[ ! -r "${XML_FILE}" ]]; then
+  __loge "ERROR: Input XML file is not readable: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Validate XML structure
+ if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Invalid XML format in file: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
 
  if [[ "${TOTAL_NOTES_TO_SPLIT}" -eq 0 ]]; then
   __logi "No notes to split, skipping XML division"
