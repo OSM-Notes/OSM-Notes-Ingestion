@@ -1,59 +1,16 @@
--- Adds the sequence for comments and change the table properties to validate
--- this.
+-- Adds constraints and triggers for comments sequence validation
+-- Sequence numbers are already generated in XSLT transformation
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-07-26
 
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
- 'Assign sequence to comments' AS Text;
+ 'Setting up sequence constraints and triggers' AS Text;
 
--- This only works for the first time. 
--- This process could take a long time, and sometimes if a remote connection is
--- used, it could disconnect.
-DO /* Notes-processPlanet-assignSequence */
-$$
-DECLARE
-  m_current_note_id INTEGER;
-  m_previous_note_id INTEGER;
-  m_sequence_value INTEGER;
-  m_rec_note_comment RECORD;
-  m_note_comments_cursor CURSOR  FOR
-   SELECT /* Notes-processPlanet */ note_id
-   FROM note_comments
-   ORDER BY note_id, id
-   FOR UPDATE;
-
- BEGIN
-  OPEN m_note_comments_cursor;
-
-  LOOP
-   FETCH m_note_comments_cursor INTO m_rec_note_comment;
-   -- Exit when no more rows to fetch.
-   EXIT WHEN NOT FOUND;
-
-   m_current_note_id := m_rec_note_comment.note_id;
-   IF (m_previous_note_id = m_current_note_id) THEN
-    m_sequence_value := m_sequence_value + 1;
-   ELSE
-    m_sequence_value := 1;
-    m_previous_note_id := m_current_note_id;
-   END IF;
-
-   UPDATE note_comments
-    SET sequence_action = m_sequence_value
-    WHERE CURRENT OF m_note_comments_cursor;
-  END LOOP;
-
-  CLOSE m_note_comments_cursor;
-
-END
-$$;
-
-SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
- 'Changing sequence comment - adding foreign key and trigger' AS Text;
-
+-- Make sequence_action NOT NULL since it's always provided by XSLT
 ALTER TABLE note_comments ALTER COLUMN sequence_action SET NOT NULL;
 
+-- Create unique index to ensure no duplicate sequences per note
 CREATE UNIQUE INDEX IF NOT EXISTS unique_comment_note
  ON note_comments
  (note_id, sequence_action);
@@ -62,29 +19,33 @@ ALTER TABLE note_comments
  ADD CONSTRAINT unique_comment_note
  UNIQUE USING INDEX unique_comment_note;
 
+-- Create trigger function for new comments (when not from XSLT)
 CREATE OR REPLACE FUNCTION put_seq_on_comment()
   RETURNS TRIGGER AS
  $$
  DECLARE
   max_value INTEGER;
  BEGIN
-   SELECT /* Notes-processPlanet */ MAX(sequence_action)
-    INTO max_value
-   FROM note_comments
-   WHERE note_id = NEW.note_id;
-   IF (max_value IS NULL) THEN
-    max_value := 1;
-   ELSE
-    max_value := max_value + 1;
+   -- Only assign sequence if not already provided (from XSLT)
+   IF NEW.sequence_action IS NULL THEN
+     SELECT /* Notes-processPlanet */ MAX(sequence_action)
+      INTO max_value
+     FROM note_comments
+     WHERE note_id = NEW.note_id;
+     IF (max_value IS NULL) THEN
+      max_value := 1;
+     ELSE
+      max_value := max_value + 1;
+     END IF;
+     NEW.sequence_action := max_value;
    END IF;
-   NEW.sequence_action := max_value;
 
    RETURN NEW;
  END;
  $$ LANGUAGE plpgsql
 ;
 COMMENT ON FUNCTION put_seq_on_comment IS
-  'Assigns the sequence value for the comments on the same note';
+  'Assigns the sequence value for new comments (only if not provided by XSLT)';
 
 CREATE OR REPLACE TRIGGER put_seq_on_comment_trigger
   BEFORE INSERT ON note_comments
@@ -92,8 +53,8 @@ CREATE OR REPLACE TRIGGER put_seq_on_comment_trigger
   EXECUTE FUNCTION put_seq_on_comment()
 ;
 COMMENT ON TRIGGER put_seq_on_comment_trigger ON note_comments IS
-  'Trigger to assign the sequence value';
+  'Trigger to assign sequence value only when not provided by XSLT';
 
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
- 'Sequence changed comment' AS Text;
+ 'Sequence constraints and triggers configured' AS Text;
 
