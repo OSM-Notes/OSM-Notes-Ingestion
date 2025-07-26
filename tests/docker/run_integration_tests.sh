@@ -85,19 +85,11 @@ start_services() {
 
  # Wait for PostgreSQL to be ready
  log_info "Waiting for PostgreSQL to be ready..."
- local retries=0
- while [ $retries -lt $MAX_RETRIES ]; do
-  if ${DOCKER_COMPOSE_CMD} exec -T postgres pg_isready -U testuser -d osm_notes_test; then
-   log_success "PostgreSQL is ready"
-   break
-  else
-   retries=$((retries + 1))
-   log_warning "PostgreSQL not ready, retrying... ($retries/$MAX_RETRIES)"
-   sleep 10
-  fi
- done
-
- if [ $retries -eq $MAX_RETRIES ]; then
+ 
+ # Use the wait script inside the app container
+ if ${DOCKER_COMPOSE_CMD} exec -T app bash -c "cd /app/tests/docker && ./wait_for_postgres.sh"; then
+  log_success "PostgreSQL is ready"
+ else
   log_error "PostgreSQL failed to start"
   exit 1
  fi

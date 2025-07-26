@@ -272,6 +272,11 @@ declare -r ERROR_MISSING_LIBRARY=241
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
+# XSLT transformation files for Planet format (used by parallel processing).
+declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
+declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
+
 # Control variables for functionsProcess.sh
 export ONLY_EXECUTION="no"
 

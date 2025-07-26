@@ -1,12 +1,12 @@
-# Docker Compose for OSM-Notes-profile Test Environment
+# Docker Compose for OSM-Notes-profile CI/CD Environment
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-26
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database for CI/CD
   postgres:
     image: postgres:15
-    container_name: osm_notes_postgres
+    container_name: osm_notes_postgres_ci
     environment:
       POSTGRES_DB: osm_notes_test
       POSTGRES_USER: testuser
@@ -16,54 +16,61 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_test -h localhost"]
-      interval: 5s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
 
-  # Application Container
+  # Application Container for CI/CD
   app:
     build:
       context: ../..
       dockerfile: tests/docker/Dockerfile
-    container_name: osm_notes_app
+    container_name: osm_notes_app_ci
     depends_on:
       postgres:
         condition: service_healthy
     environment:
+      # Test database configuration
       TEST_DBNAME: osm_notes_test
       TEST_DBUSER: testuser
       TEST_DBPASSWORD: testpass
       TEST_DBHOST: postgres
       TEST_DBPORT: 5432
-      LOG_LEVEL: INFO
-      MAX_THREADS: 2
-      PGPASSWORD: testpass
-      PGHOST: postgres
-      PGUSER: testuser
-      PGDATABASE: osm_notes_test
-      # Database connection for tests
+      
+      # Application database configuration
       DBNAME: osm_notes_test
       DB_USER: testuser
       DB_PASSWORD: testpass
       DB_HOST: postgres
       DB_PORT: 5432
+      
+      # PostgreSQL client configuration
+      PGPASSWORD: testpass
+      PGHOST: postgres
+      PGUSER: testuser
+      PGDATABASE: osm_notes_test
+      
+      # Application settings
+      LOG_LEVEL: INFO
+      MAX_THREADS: 2
+      
+      # CI/CD specific settings
+      CI: true
+      GITHUB_ACTIONS: true
     volumes:
       - ../../:/app
       - ./mock_data:/app/mock_data
     working_dir: /app
     command: ["/bin/bash", "-c", "sleep infinity"]
-    networks:
-      - default
 
-  # Mock API Server
+  # Mock API Server for CI/CD
   mock_api:
     image: python:3.9-slim
-    container_name: osm_notes_mock_api
+    container_name: osm_notes_mock_api_ci
     ports:
       - "8001:8000"
     volumes:
@@ -76,7 +83,4 @@ services:
 
 networks:
   default:
-    driver: bridge
-
-volumes:
-  postgres_data: 
+    driver: bridge 
