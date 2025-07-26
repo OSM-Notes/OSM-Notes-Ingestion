@@ -31,9 +31,9 @@ echo ""
 echo "🔄 Test 1: API Notes Processing"
 echo "================================"
 echo "📋 Resetting test environment..."
-bash tests/docker/reset_environment.sh
+bash reset_environment.sh
 echo "📋 Testing API notes processing..."
-bash tests/docker/test_processAPINotes.sh
+bash test_processAPINotes.sh
 echo "📋 Verifying API notes results..."
 NOTES_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | xargs)
 COMMENTS_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | xargs)
@@ -53,9 +53,9 @@ echo ""
 echo "🔄 Test 2: Planet Notes Processing"
 echo "==================================="
 echo "📋 Resetting test environment..."
-bash tests/docker/reset_environment.sh
+bash reset_environment.sh
 echo "📋 Testing Planet notes processing..."
-bash tests/docker/test_processPlanetNotes.sh
+bash test_processPlanetNotes.sh
 echo "📋 Verifying Planet notes results..."
 NOTES_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | xargs)
 COMMENTS_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | xargs)
@@ -75,9 +75,9 @@ echo ""
 echo "🔄 Test 3: Large File Processing"
 echo "================================="
 echo "📋 Resetting test environment..."
-bash tests/docker/reset_environment.sh
+bash reset_environment.sh
 echo "📋 Testing large file processing..."
-PLANET_NOTES_FILE="/app/tests/fixtures/xml/large_planet_notes.xml" bash tests/docker/test_processPlanetNotes.sh
+PLANET_NOTES_FILE="/app/tests/fixtures/xml/large_planet_notes.xml" bash test_processPlanetNotes.sh
 echo "📋 Verifying large file results..."
 NOTES_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | xargs)
 COMMENTS_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | xargs)
@@ -97,10 +97,10 @@ echo ""
 echo "🔄 Test 4: Sequential Processing"
 echo "================================"
 echo "📋 Resetting test environment..."
-bash tests/docker/reset_environment.sh
+bash reset_environment.sh
 echo "📋 Testing sequential processing..."
-bash tests/docker/test_processAPINotes.sh
-bash tests/docker/test_processPlanetNotes.sh
+bash test_processAPINotes.sh
+bash test_processPlanetNotes.sh
 echo "📋 Verifying combined results..."
 NOTES_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | xargs)
 COMMENTS_COUNT=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | xargs)

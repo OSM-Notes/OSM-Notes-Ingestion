@@ -270,17 +270,46 @@ run_pgtap_tests() {
 run_monitoring_tests() {
  log_info "Running monitoring tests..."
 
- # Detect if running in Docker or host
+ # Run BATS monitoring tests (modern framework)
+ local monitoring_bats_tests=(
+  "${PROJECT_ROOT}/tests/unit/bash/monitoring.test.bats"
+ )
+
+ for test_file in "${monitoring_bats_tests[@]}"; do
+  if [[ -f "${test_file}" ]]; then
+   log_info "Running $(basename "${test_file}")..."
+
+   # Set test environment variables
+   export TEST_DBNAME="${TEST_DBNAME}"
+   export TEST_DBUSER="${TEST_DBUSER}"
+   export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
+   export TEST_DBHOST="${TEST_DBHOST}"
+   export TEST_DBPORT="${TEST_DBPORT}"
+
+   if bats "${test_file}"; then
+    log_success "$(basename "${test_file}") passed"
+    ((PASSED_TESTS++))
+   else
+    log_error "$(basename "${test_file}") failed"
+    ((FAILED_TESTS++))
+   fi
+   ((TOTAL_TESTS++))
+  else
+   log_warning "Test file not found: ${test_file}"
+  fi
+ done
+
+ # Legacy monitoring tests (for backward compatibility)
  if [[ -f "/app/bin/functionsProcess.sh" ]]; then
-  # Running in Docker - run monitoring tests
-  local monitoring_tests=(
+  # Running in Docker - run legacy monitoring tests
+  local legacy_monitoring_tests=(
    "${PROJECT_ROOT}/test/monitorPlanet.sh"
    "${PROJECT_ROOT}/test/monitorSpecificTests.sh"
   )
 
-  for test_file in "${monitoring_tests[@]}"; do
+  for test_file in "${legacy_monitoring_tests[@]}"; do
    if [[ -f "${test_file}" ]]; then
-    log_info "Running $(basename "${test_file}")..."
+    log_info "Running legacy $(basename "${test_file}")..."
 
     # Set test environment variables
     export TEST_DBNAME="${TEST_DBNAME}"
@@ -298,12 +327,12 @@ run_monitoring_tests() {
     fi
     ((TOTAL_TESTS++))
    else
-    log_warning "Test file not found: ${test_file}"
+    log_warning "Legacy test file not found: ${test_file}"
    fi
   done
  else
-  # Running on host - skip monitoring tests
-  log_warning "Running on host - monitoring tests skipped (require real PostgreSQL)"
+  # Running on host - skip legacy monitoring tests
+  log_warning "Running on host - legacy monitoring tests skipped (require real PostgreSQL)"
  fi
 }
 

@@ -39,7 +39,46 @@ echo "Docker Environment Reset Script"
 echo "=========================================="
 echo
 
-# Function to stop and remove containers
+# Function to reset database (for container execution)
+reset_database() {
+ log_info "Resetting database..."
+
+ # Database settings
+ DBNAME="osm_notes_test"
+ DBUSER="testuser"
+ DBPASSWORD="testpass"
+ DBHOST="postgres"
+ DBPORT="5432"
+
+ # Drop and recreate database
+ psql -h "${DBHOST}" -U "${DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${DBNAME};" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d postgres -c "CREATE DATABASE ${DBNAME};" 2> /dev/null || true
+
+ log_success "Database reset completed"
+}
+
+# Function to load base structure (for container execution)
+load_base_structure() {
+ log_info "Loading base database structure..."
+
+ # Database settings
+ DBNAME="osm_notes_test"
+ DBUSER="testuser"
+ DBPASSWORD="testpass"
+ DBHOST="postgres"
+ DBPORT="5432"
+
+ # Load base structure
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || true
+
+ log_success "Base structure loaded"
+}
+
+# Function to stop and remove containers (for host execution)
 cleanup_containers() {
  log_info "Stopping and removing containers..."
  cd "${SCRIPT_DIR}"
@@ -67,7 +106,7 @@ cleanup_containers() {
  log_success "Containers stopped and removed"
 }
 
-# Function to remove volumes
+# Function to remove volumes (for host execution)
 cleanup_volumes() {
  log_info "Removing volumes..."
 
@@ -92,6 +131,30 @@ cleanup_volumes() {
  ${DOCKER_CMD} volume prune -f
 
  log_success "Volumes removed"
+}
+
+# Function to rebuild images (for host execution)
+rebuild_images() {
+ log_info "Rebuilding Docker images..."
+
+ # Determine Docker commands
+ if ! docker info &> /dev/null; then
+  if sudo docker info &> /dev/null; then
+   DOCKER_CMD="sudo docker"
+   DOCKER_COMPOSE_CMD="sudo docker compose"
+  else
+   log_error "Docker is not accessible"
+   return 1
+  fi
+ else
+  DOCKER_CMD="docker"
+  DOCKER_COMPOSE_CMD="docker compose"
+ fi
+
+ # Build images
+ ${DOCKER_COMPOSE_CMD} -f "${DOCKER_COMPOSE_FILE}" build --no-cache
+
+ log_success "Images rebuilt"
 }
 
 # Function to rebuild images
@@ -244,49 +307,59 @@ verify_services() {
 
 # Main function
 main() {
- case "${1:-}" in
- --help | -h)
-  echo "Usage: $0 [OPTIONS]"
-  echo
-  echo "Options:"
-  echo "  --help, -h           Show this help message"
-  echo "  --cleanup-only       Only cleanup containers and volumes"
-  echo "  --rebuild-only       Only rebuild images"
-  echo "  --start-only         Only start services"
-  echo "  --verify-only        Only verify services"
-  echo "  --full-reset         Full reset (cleanup + rebuild + start)"
-  echo
-  exit 0
-  ;;
- --cleanup-only)
-  cleanup_containers
-  cleanup_volumes
-  ;;
- --rebuild-only)
-  rebuild_images
-  ;;
- --start-only)
-  start_services
-  wait_for_services
-  ;;
- --verify-only)
-  verify_services
-  ;;
- --full-reset | "")
-  log_info "Performing full reset..."
-  cleanup_containers
-  cleanup_volumes
-  rebuild_images
-  start_services
-  wait_for_services
-  verify_services
-  ;;
- *)
-  log_error "Unknown option: $1"
-  log_error "Use --help for usage information"
-  exit 1
-  ;;
- esac
+ # Check if we're running inside a container
+ if [[ -f "/app/bin/functionsProcess.sh" ]]; then
+  # We're inside the container - perform database reset
+  log_info "Performing database reset..."
+  reset_database
+  load_base_structure
+  log_success "Database reset completed successfully"
+ else
+  # We're on the host - use original Docker commands
+  case "${1:-}" in
+  --help | -h)
+   echo "Usage: $0 [OPTIONS]"
+   echo
+   echo "Options:"
+   echo "  --help, -h           Show this help message"
+   echo "  --cleanup-only       Only cleanup containers and volumes"
+   echo "  --rebuild-only       Only rebuild images"
+   echo "  --start-only         Only start services"
+   echo "  --verify-only        Only verify services"
+   echo "  --full-reset         Full reset (cleanup + rebuild + start)"
+   echo
+   exit 0
+   ;;
+  --cleanup-only)
+   cleanup_containers
+   cleanup_volumes
+   ;;
+  --rebuild-only)
+   rebuild_images
+   ;;
+  --start-only)
+   start_services
+   wait_for_services
+   ;;
+  --verify-only)
+   verify_services
+   ;;
+  --full-reset | "")
+   log_info "Performing full reset..."
+   cleanup_containers
+   cleanup_volumes
+   rebuild_images
+   start_services
+   wait_for_services
+   verify_services
+   ;;
+  *)
+   log_error "Unknown option: $1"
+   log_error "Use --help for usage information"
+   exit 1
+   ;;
+  esac
+ fi
 
  log_success "Reset completed successfully!"
 }
