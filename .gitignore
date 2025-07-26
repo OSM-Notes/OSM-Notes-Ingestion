@@ -1,4 +1,6 @@
+# Test generated files
 test/xslt/*actual*
+test/xslt/test_output/
 test/command/extra/mockPlanetDump.osn.bz2*
 .vscode/
 
@@ -12,6 +14,9 @@ kcov/
 *.tmp
 *.temp
 tests/tmp/
+
+# Generated CSV files from tests (only actual files, keep expected files)
+*-actual.csv
 
 # Log files
 *.log
