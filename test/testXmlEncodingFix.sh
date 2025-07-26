@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2312,SC2310
 
 # Test script for XML encoding fix functionality
 # Tests the selective HTML entity replacement in XML structure vs text content
@@ -22,6 +23,7 @@ function log_error() {
  echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2
 }
 
+# shellcheck disable=SC2317
 function log_warn() {
  echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*"
 }
@@ -193,6 +195,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

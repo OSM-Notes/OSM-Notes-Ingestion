@@ -63,7 +63,7 @@ function verify_part_id_addition() {
  fi
 
  log_info "CSV content after part_id addition:"
- cat "${CSV_FILE}" | sed 's/^/  /'
+ sed 's/^/  /' < "${CSV_FILE}"
 
  # Check each line to ensure part_id is added correctly
  local LINE_NUM=0
@@ -199,6 +199,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

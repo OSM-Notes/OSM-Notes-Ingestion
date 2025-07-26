@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2312,SC2155,SC2310
 
 # Test script for sync tables creation
 # Tests that all sync tables are created correctly
@@ -208,6 +209,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

@@ -118,7 +118,8 @@ function create_sample_partitions() {
 function run_consolidation() {
  local DBNAME="${1}"
  local MAX_THREADS="${2}"
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
  local CONSOLIDATION_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_consolidatePartitions.sql"
 
  log_info "Running consolidation script: ${CONSOLIDATION_SCRIPT}"
@@ -240,6 +241,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

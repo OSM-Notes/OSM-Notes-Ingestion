@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2312,SC2155,SC2310
 
 # Test script for Planet notes processing with parallel processing function
 # Tests that the parallel processing workflow works correctly
@@ -240,6 +241,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

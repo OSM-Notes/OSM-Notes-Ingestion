@@ -15,11 +15,11 @@ mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
 function log_info() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
 }
 
 function log_error() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2 || true
 }
 
 # Test function to check SQL syntax
@@ -136,7 +136,8 @@ function test_variable_expansion() {
 
 # Test function to check the actual SQL file
 function test_actual_sql_file() {
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
  local SQL_FILE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createPartitions.sql"
 
  log_info "Testing actual SQL file: ${SQL_FILE}"
@@ -202,6 +203,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

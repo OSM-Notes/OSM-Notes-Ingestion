@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1091,SC2312
 
 # Test script for parallel XML splitting functionality
 # This script demonstrates that the parallel XML splitting works correctly

@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2034
 
 # Simple test script for the monitoring system
 # Author: Andres Gomez (AngocA)

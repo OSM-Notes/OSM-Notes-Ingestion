@@ -25,7 +25,8 @@ function log_error() {
 # Test function to create main tables
 function create_main_tables() {
  local DBNAME="${1}"
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
  log_info "Creating main tables"
 
@@ -44,7 +45,8 @@ function create_main_tables() {
 # Test function to create sync tables
 function create_sync_tables() {
  local DBNAME="${1}"
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
  log_info "Creating sync tables"
 
@@ -97,7 +99,8 @@ function insert_sample_sync_data() {
 # Test function to move data from sync to main
 function move_sync_to_main() {
  local DBNAME="${1}"
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
  log_info "Moving data from sync tables to main tables"
 
@@ -309,6 +312,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1091,SC2312
 
 # Test script for parallel Planet processing functionality
 # This script demonstrates that the parallel processing works correctly

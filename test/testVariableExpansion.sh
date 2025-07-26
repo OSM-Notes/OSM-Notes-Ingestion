@@ -15,11 +15,11 @@ mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
 function log_info() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
 }
 
 function log_error() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2 || true
 }
 
 # Test function to check variable expansion
@@ -42,7 +42,7 @@ function test_variable_expansion() {
  declare EXPANDED_SQL="${TMP_DIR}/expanded_${PART_ID}.sql"
 
  # Use envsubst to expand variables
- envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' < "${SQL_FILE}" > "${EXPANDED_SQL}"
+ envsubst "${OUTPUT_NOTES_PART},${OUTPUT_COMMENTS_PART},${OUTPUT_TEXT_PART},${PART_ID}" < "${SQL_FILE}" > "${EXPANDED_SQL}"
 
  # Check if expansion was successful
  if grep -q "notes_sync_part_${PART_ID}" "${EXPANDED_SQL}"; then
@@ -61,13 +61,13 @@ function check_unexpanded_variables() {
  log_info "Checking for unexpanded variables in SQL"
 
  # Check for any remaining ${PART_ID} patterns
- if grep -q '\${PART_ID}' "${EXPANDED_SQL}"; then
+ if grep -q "\${PART_ID}" "${EXPANDED_SQL}"; then
   log_error "FAILED: Found unexpanded \${PART_ID} in SQL"
   return 1
  fi
 
  # Check for any remaining ${OUTPUT_*_PART} patterns
- if grep -q '\${OUTPUT_.*_PART}' "${EXPANDED_SQL}"; then
+ if grep -q "\${OUTPUT_.*_PART}" "${EXPANDED_SQL}"; then
   log_error "FAILED: Found unexpanded \${OUTPUT_*_PART} in SQL"
   return 1
  fi
@@ -78,7 +78,8 @@ function check_unexpanded_variables() {
 
 # Run tests
 function run_tests() {
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
  log_info "Starting variable expansion tests"
 
@@ -138,6 +139,7 @@ function run_tests() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"

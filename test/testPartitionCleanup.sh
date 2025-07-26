@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2317,SC2310
 
 # Test script for partition cleanup functionality
 # Tests that partition tables are properly dropped during cleanup
@@ -15,15 +16,15 @@ mkdir -p "${TMP_DIR}"
 
 # Simple logging functions for testing
 function log_info() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
 }
 
 function log_error() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2 || true
 }
 
 function log_warn() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*"
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*" || true
 }
 
 # Test function to create partition tables
@@ -123,7 +124,7 @@ function run_cleanup_script() {
 
  psql -d "${DBNAME}" -f "${SCRIPT_FILE}"
 
- if [[ ${?} -eq 0 ]]; then
+ if psql -d "${DBNAME}" -f "${SCRIPT_FILE}"; then
   log_info "SUCCESS: Cleanup script executed successfully"
   return 0
  else
@@ -162,7 +163,8 @@ function verify_partitions_dropped() {
 function run_tests() {
  local DBNAME="${1:-osm_notes_test}"
  local MAX_THREADS="${2:-4}"
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
  log_info "Starting partition cleanup tests"
  log_info "Database: ${DBNAME}"
