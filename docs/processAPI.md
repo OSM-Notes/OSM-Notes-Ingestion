@@ -1,205 +1,194 @@
-# Descripción Completa de processAPINotes.sh
+# Complete Description of processAPINotes.sh
 
-## Propósito General
+> **Note:** For a general system overview, see [Documentation.md](./Documentation.md).
+> For project motivation and background, see [Rationale.md](./Rationale.md).
 
-El script `processAPINotes.sh` es el componente de sincronización incremental del sistema de procesamiento de notas de OpenStreetMap. Su función principal es descargar las notas más recientes desde la API de OSM y sincronizarlas con la base de datos local que mantiene el historial completo.
+## General Purpose
 
-## Características Principales
+The `processAPINotes.sh` script is the incremental synchronization component of the OpenStreetMap notes processing system. Its main function is to download the most recent notes from the OSM API and synchronize them with the local database that maintains the complete history.
 
-- **Procesamiento Incremental**: Solo descarga y procesa notas nuevas o modificadas
-- **Sincronización Inteligente**: Determina automáticamente cuándo hacer sincronización completa desde Planet
-- **Procesamiento Paralelo**: Utiliza particionamiento para procesar grandes volúmenes eficientemente
-- **Integración con Planet**: Se integra con `processPlanetNotes.sh` cuando es necesario
+## Main Features
 
-## Argumentos de Entrada
+- **Incremental Processing**: Only downloads and processes new or modified notes
+- **Intelligent Synchronization**: Automatically determines when to perform complete synchronization from Planet
+- **Parallel Processing**: Uses partitioning to efficiently process large volumes
+- **Planet Integration**: Integrates with `processPlanetNotes.sh` when necessary
 
-El script **NO acepta argumentos** para su ejecución normal. Solo acepta:
+## Input Arguments
+
+The script **does NOT accept arguments** for normal execution. It only accepts:
 
 ```bash
 ./processAPINotes.sh --help
-# o
+# or
 ./processAPINotes.sh -h
 ```
 
-**¿Por qué no acepta argumentos?**
-- Está diseñado para ejecutarse automáticamente (cron job)
-- La lógica de decisión es interna basada en el estado de la base de datos
-- La configuración se hace mediante variables de entorno
+**Why doesn't it accept arguments?**
+- It is designed to run automatically (cron job)
+- The decision logic is internal based on database state
+- Configuration is done through environment variables
 
-## Arquitectura de Tablas
+## Table Architecture
 
-### Tablas API (Temporales)
-Las tablas API almacenan temporalmente los datos descargados de la API:
+### API Tables (Temporary)
+API tables temporarily store data downloaded from the API:
 
-- **`notes_api`**: Notas descargadas de la API
-  - `note_id`: ID único de la nota OSM
-  - `latitude/longitude`: Coordenadas geográficas
-  - `created_at`: Fecha de creación
-  - `status`: Estado (abierta/cerrada)
-  - `closed_at`: Fecha de cierre (si aplica)
-  - `id_country`: ID del país donde se ubica
-  - `part_id`: ID de partición para procesamiento paralelo
+- **`notes_api`**: Notes downloaded from the API
+  - `note_id`: Unique OSM note ID
+  - `latitude/longitude`: Geographic coordinates
+  - `created_at`: Creation date
+  - `status`: Status (open/closed)
+  - `closed_at`: Closing date (if applicable)
+  - `id_country`: ID of the country where it is located
+  - `part_id`: Partition ID for parallel processing
 
-- **`note_comments_api`**: Comentarios descargados de la API
-  - `id`: ID secuencial generado
-  - `note_id`: Referencia a la nota
-  - `sequence_action`: Orden del comentario
-  - `event`: Tipo de acción (abrir, comentar, cerrar, etc.)
-  - `created_at`: Fecha del comentario
-  - `id_user`: ID del usuario OSM
-  - `username`: Nombre del usuario OSM
-  - `part_id`: ID de partición para procesamiento paralelo
+- **`note_comments_api`**: Comments downloaded from the API
+  - `id`: Generated sequential ID
+  - `note_id`: Reference to the note
+  - `sequence_action`: Comment order
+  - `event`: Action type (open, comment, close, etc.)
+  - `created_at`: Comment date
+  - `id_user`: OSM user ID
+  - `username`: OSM username
+  - `part_id`: Partition ID for parallel processing
 
-- **`note_comments_text_api`**: Texto de comentarios descargados de la API
-  - `id`: ID del comentario
-  - `note_id`: Referencia a la nota
-  - `sequence_action`: Orden del comentario
-  - `body`: Contenido textual del comentario
-  - `part_id`: ID de partición para procesamiento paralelo
+- **`note_comments_text_api`**: Comment text downloaded from the API
+  - `id`: Comment ID
+  - `note_id`: Reference to the note
+  - `sequence_action`: Comment order
+  - `body`: Textual content of the comment
+  - `part_id`: Partition ID for parallel processing
 
-### Tablas Base (Permanentes)
-Utiliza las mismas tablas base que `processPlanetNotes.sh`:
+### Base Tables (Permanent)
+Uses the same base tables as `processPlanetNotes.sh`:
 - `notes`, `note_comments`, `note_comments_text`
 
-## Flujo de Procesamiento
+## Processing Flow
 
-### 1. Verificación de Prerrequisitos
-- Verifica que no esté ejecutándose `processPlanetNotes.sh`
-- Comprueba existencia de tablas base
-- Valida archivos SQL y XSLT necesarios
+### 1. Prerequisites Verification
+- Verifies that `processPlanetNotes.sh` is not running
+- Checks existence of base tables
+- Validates necessary SQL and XSLT files
 
-### 2. Gestión de Tablas API
-- Elimina tablas API existentes
-- Crea nuevas tablas API con particionamiento
-- Crea tabla de propiedades para seguimiento
+### 2. API Table Management
+- Removes existing API tables
+- Creates new API tables with partitioning
+- Creates properties table for tracking
 
-### 3. Descarga de Datos
-- Obtiene timestamp de última actualización desde la base de datos
-- Construye URL de API con parámetros de filtrado
-- Descarga notas nuevas/modificadas desde la API de OSM
-- Valida estructura XML descargada
+### 3. Data Download
+- Gets last update timestamp from database
+- Builds API URL with filtering parameters
+- Downloads new/modified notes from OSM API
+- Validates downloaded XML structure
 
-### 4. Decisión de Procesamiento
-**Si las notas descargadas >= MAX_NOTES (configurable)**:
-- Ejecuta sincronización completa desde Planet
-- Llama a `processPlanetNotes.sh`
+### 4. Processing Decision
+**If downloaded notes >= MAX_NOTES (configurable)**:
+- Executes complete synchronization from Planet
+- Calls `processPlanetNotes.sh`
 
-**Si las notas descargadas < MAX_NOTES**:
-- Procesa las notas descargadas localmente
-- Utiliza procesamiento paralelo con particionamiento
+**If downloaded notes < MAX_NOTES**:
+- Processes downloaded notes locally
+- Uses parallel processing with partitioning
 
-### 5. Procesamiento Paralelo
-- Divide el archivo XML en partes
-- Procesa cada parte en paralelo usando XSLT
-- Consolida resultados de todas las particiones
+### 5. Parallel Processing
+- Divides XML file into parts
+- Processes each part in parallel using XSLT
+- Consolidates results from all partitions
 
-### 6. Integración de Datos
-- Inserta nuevas notas y comentarios en tablas base
-- Procesa en chunks si hay muchos datos (>1000 notas)
-- Actualiza timestamp de última actualización
-- Limpia archivos temporales
+### 6. Data Integration
+- Inserts new notes and comments into base tables
+- Processes in chunks if there is much data (>1000 notes)
+- Updates last update timestamp
+- Cleans temporary files
 
-## Lógica de Sincronización Inteligente
+## Integration with Planet Processing
 
-### Criterios para Sincronización Completa
-- Número de notas descargadas >= MAX_NOTES
-- Problemas de conectividad con la API
-- Errores en el procesamiento incremental
+### When Complete Synchronization is Required
 
-### Ventajas de la Sincronización Inteligente
-1. **Eficiencia**: Evita descargas innecesarias del archivo planet completo
-2. **Velocidad**: Procesamiento incremental es mucho más rápido
-3. **Recursos**: Menor uso de ancho de banda y almacenamiento
-4. **Confiabilidad**: Fallback automático a sincronización completa
+When the number of notes downloaded from the API exceeds the configured threshold (MAX_NOTES), the script triggers a complete synchronization from Planet:
 
-## Procesamiento Paralelo
+1. **Stops API Processing**: Halts current API processing
+2. **Calls Planet Script**: Executes `processPlanetNotes.sh --base`
+3. **Resets API State**: Clears API processing state
+4. **Resumes API Processing**: Continues with incremental updates
 
-### Particionamiento Dinámico
-- Crea particiones basadas en `MAX_THREADS`
-- Cada partición procesa una porción del archivo XML
-- Consolidación automática de resultados
+### Benefits of This Approach
 
-### Inserción Paralela
-- Para grandes volúmenes (>1000 notas): inserción en chunks paralelos
-- Para volúmenes pequeños: inserción secuencial
-- Control de concurrencia mediante locks de base de datos
+- **Data Consistency**: Ensures complete data synchronization
+- **Performance**: Avoids processing large API datasets
+- **Reliability**: Uses proven Planet processing pipeline
+- **Efficiency**: Leverages existing Planet infrastructure
 
-## Variables de Entorno Importantes
+## Configuration
 
-- **`LOG_LEVEL`**: Nivel de logging (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
-- **`CLEAN`**: Si eliminar archivos temporales (true/false)
-- **`MAX_NOTES`**: Umbral para decidir sincronización completa
-- **`MAX_THREADS`**: Número de hilos para procesamiento paralelo
-- **`OSM_API`**: URL base de la API de OSM
+### Environment Variables
 
-## Casos de Uso Típicos
+The script uses several environment variables for configuration:
 
-### Ejecución Manual
-```bash
-export LOG_LEVEL=DEBUG
-./processAPINotes.sh
-```
+- **`MAX_NOTES`**: Threshold for triggering Planet synchronization
+- **`API_TIMEOUT`**: Timeout for API requests
+- **`PARALLEL_THREADS`**: Number of parallel processing threads
+- **`CHUNK_SIZE`**: Size of data chunks for processing
 
-### Configuración en Cron
-```bash
-# Ejecutar cada hora
-0 * * * * /path/to/processAPINotes.sh >> /var/log/osm-notes.log 2>&1
-```
+### Database Configuration
 
-### Monitoreo del Progreso
-```bash
-tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
-```
+- **`DBNAME`**: Database name for notes storage
+- **`DB_USER`**: Database user for connections
+- **`DB_PASSWORD`**: Database password for authentication
+- **`DB_HOST`**: Database host address
+- **`DB_PORT`**: Database port number
 
-## Consultas Útiles
+## Error Handling
 
-```sql
--- Verificar última actualización
-SELECT timestamp FROM max_note_timestamp;
+### Common Error Scenarios
 
--- Verificar notas descargadas de API
-SELECT COUNT(*) FROM notes_api;
+1. **API Unavailable**: Retries with exponential backoff
+2. **Database Connection Issues**: Logs error and exits gracefully
+3. **XML Parsing Errors**: Validates structure before processing
+4. **Disk Space Issues**: Checks available space before processing
 
--- Verificar procesamiento paralelo
-SELECT table_name, COUNT(*) FROM information_schema.tables 
-WHERE table_name LIKE '%_api%' GROUP BY table_name;
+### Recovery Mechanisms
 
--- Verificar sincronización reciente
-SELECT COUNT(*) as new_notes, 
-       MIN(created_at) as earliest_note,
-       MAX(created_at) as latest_note
-FROM notes 
-WHERE created_at > (SELECT timestamp FROM max_note_timestamp);
-```
+- **Automatic Retry**: Implements retry logic for transient failures
+- **Graceful Degradation**: Continues processing with available data
+- **Error Logging**: Comprehensive error logging for debugging
+- **State Preservation**: Maintains processing state for recovery
 
-## Integración con processPlanetNotes.sh
+## Performance Considerations
 
-### Llamadas Automáticas
-- Cuando se detecta que se necesita sincronización completa
-- Cuando las tablas base no existen
-- Cuando hay errores en el procesamiento incremental
+### Optimization Strategies
 
-### Coordinación
-- Verifica que `processPlanetNotes.sh` no esté ejecutándose
-- Espera a que termine antes de continuar
-- Maneja errores de sincronización completa
+- **Parallel Processing**: Uses multiple threads for data processing
+- **Partitioning**: Divides large datasets into manageable chunks
+- **Memory Management**: Efficient memory usage for large XML files
+- **Database Optimization**: Uses optimized queries and indexes
 
-## Consideraciones Técnicas
+### Monitoring Points
 
-### Limitaciones de la API
-- Rate limiting de la API de OSM
-- Tamaño máximo de respuesta
-- Disponibilidad de la API
+- **Processing Time**: Tracks time for each processing phase
+- **Memory Usage**: Monitors memory consumption during processing
+- **Database Performance**: Tracks database query performance
+- **API Response Times**: Monitors API request response times
 
-### Optimizaciones
-- Procesamiento paralelo para grandes volúmenes
-- Inserción en chunks para evitar timeouts
-- Limpieza automática de archivos temporales
+## Maintenance
 
-### Requisitos del Sistema
-- PostgreSQL con extensiones necesarias
-- Herramientas: wget, xsltproc, psql
-- Conexión a internet para API de OSM
-- Espacio suficiente para archivos temporales
+### Regular Tasks
 
-Esta arquitectura proporciona un sistema robusto de sincronización incremental que maximiza la eficiencia mientras mantiene la integridad de los datos.
+- **Log Rotation**: Manages log file sizes and rotation
+- **Temporary File Cleanup**: Removes temporary files after processing
+- **Database Maintenance**: Performs database optimization tasks
+- **Configuration Updates**: Updates configuration as needed
+
+### Troubleshooting
+
+- **Log Analysis**: Reviews logs for error patterns
+- **Performance Tuning**: Adjusts parameters based on performance data
+- **Database Optimization**: Optimizes database queries and indexes
+- **System Monitoring**: Monitors system resources and performance
+
+## Related Documentation
+
+- **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
+- **Planet Processing**: See [processPlanet.md](./processPlanet.md) for Planet data processing details
+- **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals

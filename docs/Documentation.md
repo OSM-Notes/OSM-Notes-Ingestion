@@ -1,100 +1,162 @@
-This explanation was written to start using AI and speed and improve the
-development of this project.
+# OSM Notes Profile - System Documentation
 
-En OpenStreetMap hay una funcionalidad que se llaman notas
-(https://wiki.openstreetmap.org/wiki/Notes) y buscan hacer reportes,
-principalmente en terreno donde se describe una incongruencia entre lo que
-existe y lo que está mapeado en el mapa. De hecho hay una documentación de cómo
-crear notas - https://learnosm.org/en/beginner/notes/.
+## Overview
 
-Las notas puedes crearse de manera anónima, o autenticado en OSM. Y para
-resolverlas, los mapeadores las leen, analizan el texto, y de acuerdo al
-contenido de la nota, como a lo que está ya en el mapa, deciden o no si
-se requiere realizar un cambio en el mapa.
+This document provides comprehensive technical documentation for the OSM-Notes-profile system, including system architecture, data flow, and implementation details.
 
-Muchas notas puede que no requieran cambios en el mapa. Otras notas pueden
-tener información falsa o incompleta. Por lo tanto, resolver una nota es una
-tarea que puede ser fácil o complicado.
+> **Note:** For project motivation and background, see [Rationale.md](./Rationale.md).
 
-También, hay notas que han sido creadas desde el computador, por ejemplo para
-reportar elementos faltantes en el mapa, como un río que no está mapeado. Este
-tipo de notas puede tomar bastante en hacer el cambio en el mapa.
+## System Architecture
 
-La funcionalidad de mapas se incorporó en OSM como una extensión de la API v0.6
-en el 2013. Antes había un proyecto paralelo que se llamaba OpenStreetBugs que
-ofrecía una funcionalidad similar, pero se integró en OSM.
+### Core Components
 
-La situación actual es que la actividad de resolver notas no es muy promovida
-dentro de la comunidad OSM, y hay notas muy viejas. Para algunos mapeadores,
-esas notas ya no ofrecen mucho valor, y deberían ser cerradas. Por otro lado,
-algunos mapeadores consideran que para resolver las notas se debe verificar los
-datos; sin embargo, esto puede ser una tarea imposible ya que no hay datos
-alternos disponibles, y desplazarse a la ubicación de las notas no es práctico.
+The OSM-Notes-profile system consists of several key components:
 
-Debido a todo esto, las comunidades de los diferentes países, y los mapeadores
-tienen diferentes puntos de vista y diferentes alcances con respecto a la
-resolución de notas. Pero este trabajo es difícilmente identificable, ya que
-hay pocas estadísticas.
+1. **Data Collection Layer**
+   - API Integration: Real-time data from OSM API
+   - Planet Processing: Historical data from OSM Planet dumps
+   - Geographic Boundaries: Country and maritime boundaries via Overpass
 
-El único lugar que indica el desempeño con respecto al procesamiento de notas
-es la página ResultMaps de Neis Pascal:
-https://resultmaps.neis-one.org/osm-notes donde se pueden ver las notas
-abiertas de todos los países, el desempeño de notas en los últimos días.
-Ya en la página de cada país se puede ver el listado de las últimas 1000
-notas, además de un link hacia las 10 mil notas abiertas. Acceder a esta
-página es una de las estrategias para resolver notas masivamente.
+2. **Data Processing Layer**
+   - ETL Processes: Data transformation and loading
+   - Parallel Processing: Partitioned data processing for large volumes
+   - Data Validation: XML structure validation and data integrity checks
 
-Por otro lado, en la sección de board del mismo sitio web:
-https://osmstats.neis-one.org/?item=boards se puede ver el top 100 de
-usuarios que más han abierto notas y que más han cerrado (en la sección Notes).
+3. **Data Storage Layer**
+   - PostgreSQL Database: Primary data storage
+   - PostGIS Extension: Spatial data handling
+   - Data Warehouse: Star schema for analytics
+   - Data Marts: Pre-calculated analytics for users and countries
 
-Además, este sitio web ofrece un perfil de contribución en OpenStreetMapp, que
-se llama How Did You Contribute - HDYC, y dicho perfil permite obtener
-información detallada del mapeador. Esta es una página del usuario AngocA:
-https://hdyc.neis-one.org/?AngocA
+4. **Analytics Layer**
+   - User Profiles: Individual contributor analytics
+   - Country Profiles: Geographic community analytics
+   - Hashtag Analysis: Campaign and initiative tracking
+   - Application Usage: Tool adoption metrics
 
-Ahí se puede identificar desde cuándo creó la cuenta, cuántos días ha mapeado,
-el desempeño por país, qué tipos de elementos ha creado/modificado/borrado,
-las etiquetas utilizadas, entre otros elementos. También tiene un pequeño
-apartado de cuántas notas ha abierto, y cuántas ha cerrado.
+## Data Flow
 
-La página de HDYC puede considerarse como el único perfil de contribución por
-usuario, y uno de los pocos por país, sin embargo la información de notas
-es muy limitada.
+### 1. Geographic Data Collection
+- **Source**: Overpass API queries for country and maritime boundaries
+- **Process**: Download boundary relations with specific tags
+- **Output**: PostgreSQL geometry objects for spatial queries
 
-Este proyecto busca ofrecer un perfil como el de HDYC, mostrando información
-sobre las actividades alrededor de las notas: apertura, comentario, resolución,
-reapertura. Esto por país (que viene a ser cada una de las comunidades de OSM)
-y por usuario. Tener una especie de Tiles, como los GitHub Tiles verdes que
-muestren su actividad en el último año, días importantes como el que más notas
-cerró, cantidad de notas abiertas y cerradas por cada año, etc. Con esto, el
-mapeador puede medir su trabajo.
+### 2. Historical Data Processing
+- **Source**: OSM Planet daily dumps (notes since 2013)
+- **Process**: XML parsing and transformation to CSV
+- **Output**: Base database with complete note history
 
-También debe mostrarse el desempeño de las notas por hashtags, indicando la
-fecha en que comenzó, cuántas notas se han creado, y cerrado, y otras
-estadísticas. Actualmente, no hay herramientas que aprovechen los hashtags
-de las notas, sin embargo, han comenzado a ser usados cada vez más.
+### 3. Incremental Data Synchronization
+- **Source**: OSM API (recent changes, limited to 10,000 notes)
+- **Process**: Real-time synchronization every 15 minutes
+- **Output**: Updated database with latest changes
 
-Otra opción es ver el desempeño por aplicación, e identificar cómo están
-siendo usadas con respecto a las notas.
+### 4. Data Warehouse Population
+- **Source**: Processed note data
+- **Process**: ETL transformation to star schema
+- **Output**: Analytics-ready data structures
 
-----
+### 5. Profile Generation
+- **Source**: Data warehouse
+- **Process**: Pre-calculated aggregations
+- **Output**: User and country profiles
 
-Con respecto al código inicial, se ha escrito principalmente en Bash para las
-interacciones con el API de OSM para traer las nuevas notas, y por medio del
-Planet de OSM para descargar el archivo histórico de notas.
+## Database Schema
 
-Por otro lado, se ha usado Overpass para descargar los países y otras regiones
-en el mundo, y con esta información poder asociar una nota con un territorio.
+### Core Tables
+- **`notes`**: All OSM notes with geographic and temporal data
+- **`note_comments`**: Comment metadata and user information
+- **`note_comments_text`**: Actual comment content
+- **`countries`**: Geographic boundaries for spatial analysis
 
-Es necesario aclarar que el documento XML del Planet para notas no tiene la
-misma estructura del XML recuperado a través del API. Ambas estructuras de XML
-están en el directorio xsd para validarlos de manera independiente.
+### Processing Tables
+- **API Tables**: Temporary storage for API data (`notes_api`, `note_comments_api`, `note_comments_text_api`)
+- **Sync Tables**: Temporary storage for Planet processing (`notes_sync`, `note_comments_sync`, `note_comments_text_sync`)
 
-Con toda esta información, se ha diseñado un data warehouse, que está compuesto
-por un conjunto de tablas en modelo estrella, una ETL que carga los datos
-históricos en dichas tablas, usando unas tablas de staging.
+### Analytics Tables
+- **Fact Tables**: Time-series data for analytics
+- **Dimension Tables**: Reference data for analysis
+- **Data Marts**: Pre-calculated user and country metrics
 
-Posteriormente, se crea unos datamart para usuarios y para países, para que los
-cálculos de los datos ya estén precalculados al momento de consultar los
-perfiles.
+## Technical Implementation
+
+### Processing Scripts
+- **`processAPINotes.sh`**: Incremental synchronization from OSM API
+- **`processPlanetNotes.sh`**: Historical data processing from Planet dumps
+- **`updateCountries.sh`**: Geographic boundary updates
+
+### Data Transformation
+- **XSLT Templates**: XML to CSV transformation
+- **Parallel Processing**: Partitioned data processing
+- **Data Validation**: Schema validation and integrity checks
+
+### Performance Optimization
+- **Partitioning**: Large table partitioning for parallel processing
+- **Indexing**: Optimized database indexes for spatial and temporal queries
+- **Caching**: Pre-calculated analytics in data marts
+
+## Integration Points
+
+### External APIs
+- **OSM API**: Real-time note data
+- **Overpass API**: Geographic boundary data
+- **Planet Dumps**: Historical data archives
+
+### Data Formats
+- **XML**: Input format from OSM APIs and Planet dumps
+- **CSV**: Intermediate format for data processing
+- **PostgreSQL**: Final storage format with spatial extensions
+
+## Monitoring and Maintenance
+
+### System Health
+- **Database Monitoring**: Connection and performance metrics
+- **Processing Monitoring**: ETL job status and completion
+- **Data Quality**: Validation and integrity checks
+
+### Maintenance Tasks
+- **Regular Synchronization**: 15-minute API updates
+- **Daily Planet Processing**: Historical data updates
+- **Weekly Boundary Updates**: Geographic data refresh
+- **Monthly Analytics**: Data mart population
+
+## Usage Guidelines
+
+### For System Administrators
+- Monitor system health and performance
+- Manage database maintenance and backups
+- Configure processing schedules and timeouts
+
+### For Developers
+- Understand data flow and transformation processes
+- Modify processing scripts and ETL procedures
+- Extend analytics and reporting capabilities
+
+### For Data Analysts
+- Query data warehouse for custom analytics
+- Create new data marts for specific use cases
+- Generate reports and visualizations
+
+### For End Users
+- Access user and country profiles
+- View note activity and contribution metrics
+- Analyze hashtag and campaign performance
+
+## Dependencies
+
+### Software Requirements
+- **PostgreSQL**: Database server with PostGIS extension
+- **Bash**: Scripting environment for processing
+- **XSLT**: XML transformation tools
+- **Overpass**: Geographic data API
+
+### Data Dependencies
+- **OSM API**: Real-time note data
+- **Planet Dumps**: Historical data archives
+- **Geographic Boundaries**: Country and maritime data
+
+## Related Documentation
+
+- **System Architecture**: This document provides the high-level overview
+- **Processing Details**: See [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for specific implementation details
+- **Project Motivation**: See [Rationale.md](./Rationale.md) for background and goals

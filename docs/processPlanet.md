@@ -1,187 +1,225 @@
-# Descripción Completa de processPlanetNotes.sh
+# Complete Description of processPlanetNotes.sh
 
-## Propósito General
+> **Note:** For a general system overview, see [Documentation.md](./Documentation.md).
+> For project motivation and background, see [Rationale.md](./Rationale.md).
 
-El script `processPlanetNotes.sh` es el componente central del sistema de procesamiento de notas de OpenStreetMap. Su función principal es descargar, procesar y cargar en una base de datos PostgreSQL todas las notas del planeta OSM, ya sea desde cero o solo las nuevas notas.
+## General Purpose
 
-## Argumentos de Entrada
+The `processPlanetNotes.sh` script is the central component of the OpenStreetMap notes processing system. Its main function is to download, process, and load into a PostgreSQL database all notes from the OSM planet, either from scratch or only new notes.
 
-El script acepta tres tipos de argumentos:
+## Input Arguments
 
-### 1. Sin argumento (procesamiento incremental)
+The script accepts three types of arguments:
+
+### 1. No argument (incremental processing)
 ```bash
 ./processPlanetNotes.sh
 ```
-- **Propósito**: Procesa solo las notas nuevas del archivo planet
-- **Comportamiento**: 
-  - Descarga el archivo planet más reciente
-  - Compara con las notas existentes en la base de datos
-  - Inserta solo las notas que no existen
-  - Actualiza comentarios y textos de comentarios
+- **Purpose**: Processes only new notes from the planet file
+- **Behavior**: 
+  - Downloads the most recent planet file
+  - Compares with existing notes in the database
+  - Inserts only notes that don't exist
+  - Updates comments and comment texts
 
-### 2. Argumento `--base` (procesamiento completo)
+### 2. `--base` argument (complete processing)
 ```bash
 ./processPlanetNotes.sh --base
 ```
-- **Propósito**: Procesa todas las notas desde cero
-- **Comportamiento**:
-  - Elimina todas las tablas existentes
-  - Descarga y procesa límites de países y áreas marítimas
-  - Descarga el archivo planet completo
-  - Procesa todas las notas del planeta
-  - Crea la estructura completa de la base de datos
+- **Purpose**: Processes all notes from scratch
+- **Behavior**:
+  - Removes all existing tables
+  - Downloads and processes country and maritime boundaries
+  - Downloads the complete planet file
+  - Processes all notes from the planet
+  - Creates the complete database structure
 
-### 3. Argumento `--boundaries` (solo límites)
+### 3. `--boundaries` argument (boundaries only)
 ```bash
 ./processPlanetNotes.sh --boundaries
 ```
-- **Propósito**: Procesa únicamente los límites geográficos
-- **Comportamiento**:
-  - Descarga límites de países y áreas marítimas
-  - Procesa y organiza las áreas geográficas
-  - No procesa notas del planeta
+- **Purpose**: Processes only geographic boundaries
+- **Behavior**:
+  - Downloads country and maritime boundaries
+  - Processes and organizes geographic areas
+  - Does not process planet notes
 
-## Arquitectura de Tablas
+## Table Architecture
 
-### Tablas Base (Permanentes)
-Las tablas base almacenan el historial completo de todas las notas:
+### Base Tables (Permanent)
+Base tables store the complete history of all notes:
 
-- **`notes`**: Almacena todas las notas del planeta
-  - `note_id`: ID único de la nota OSM
-  - `latitude/longitude`: Coordenadas geográficas
-  - `created_at`: Fecha de creación
-  - `status`: Estado (abierta/cerrada)
-  - `closed_at`: Fecha de cierre (si aplica)
-  - `id_country`: ID del país donde se ubica
+- **`notes`**: Stores all notes from the planet
+  - `note_id`: Unique OSM note ID
+  - `latitude/longitude`: Geographic coordinates
+  - `created_at`: Creation date
+  - `status`: Status (open/closed)
+  - `closed_at`: Closing date (if applicable)
+  - `id_country`: ID of the country where it is located
 
-- **`note_comments`**: Comentarios asociados a las notas
-  - `id`: ID secuencial generado
-  - `note_id`: Referencia a la nota
-  - `sequence_action`: Orden del comentario
-  - `event`: Tipo de acción (abrir, comentar, cerrar, etc.)
-  - `created_at`: Fecha del comentario
-  - `id_user`: ID del usuario OSM
+- **`note_comments`**: Comments associated with notes
+  - `id`: Generated sequential ID
+  - `note_id`: Reference to the note
+  - `sequence_action`: Comment order
+  - `event`: Action type (open, comment, close, etc.)
+  - `created_at`: Comment date
+  - `id_user`: OSM user ID
 
-- **`note_comments_text`**: Texto de los comentarios
-  - `id`: ID del comentario
-  - `note_id`: Referencia a la nota
-  - `sequence_action`: Orden del comentario
-  - `body`: Contenido textual del comentario
+- **`note_comments_text`**: Comment text
+  - `id`: Comment ID
+  - `note_id`: Reference to the note
+  - `sequence_action`: Comment order
+  - `body`: Textual content of the comment
 
-### Tablas Sync (Temporales)
-Las tablas sync son temporales y se usan para el procesamiento incremental:
+### Sync Tables (Temporary)
+Sync tables are temporary and used for incremental processing:
 
-- **`notes_sync`**: Versión temporal de `notes`
-- **`note_comments_sync`**: Versión temporal de `note_comments`
-- **`note_comments_text_sync`**: Versión temporal de `note_comments_text`
+- **`notes_sync`**: Temporary version of `notes`
+- **`note_comments_sync`**: Temporary version of `note_comments`
+- **`note_comments_text_sync`**: Temporary version of `note_comments_text`
 
-**¿Por qué existen las tablas sync?**
-1. **Procesamiento Paralelo**: Permiten procesar grandes volúmenes de datos en paralelo
-2. **Validación**: Permiten verificar la integridad antes de mover a las tablas principales
-3. **Rollback**: En caso de error, es más fácil revertir cambios en tablas temporales
-4. **Deduplicación**: Permiten eliminar duplicados antes de la inserción final
+**Why do sync tables exist?**
+1. **Parallel Processing**: Allow processing large volumes of data in parallel
+2. **Validation**: Allow verifying integrity before moving to main tables
+3. **Rollback**: In case of error, it's easier to revert changes in temporary tables
+4. **Deduplication**: Allow removing duplicates before final insertion
 
-## Flujo de Procesamiento
+## Processing Flow
 
-### 1. Preparación del Entorno
-- Verificación de prerrequisitos (PostgreSQL, herramientas)
-- Creación de directorios temporales
-- Configuración de logging
+### 1. Environment Preparation
+- Prerequisites verification (PostgreSQL, tools)
+- Creation of temporary directories
+- Logging configuration
 
-### 2. Gestión de Tablas
-**Para `--base`**:
-- Elimina todas las tablas existentes
-- Crea tablas base desde cero
+### 2. Table Management
+**For `--base`**:
+- Removes all existing tables
+- Creates base tables from scratch
 
-**Para procesamiento incremental**:
-- Elimina tablas sync
-- Verifica existencia de tablas base
-- Crea tablas sync para nuevo procesamiento
+**For incremental processing**:
+- Removes sync tables
+- Verifies existence of base tables
+- Creates sync tables for new processing
 
-### 3. Procesamiento de Límites Geográficos
-- Descarga IDs de países y áreas marítimas desde Overpass
-- Descarga geometrías de límites
-- Importa límites a la base de datos
-- Organiza áreas por zonas geográficas
+### 3. Geographic Data Processing
+- Downloads country and maritime boundaries via Overpass
+- Processes boundary relations with specific tags
+- Converts to PostgreSQL geometry objects
+- Organizes areas for spatial queries
 
-### 4. Procesamiento de Notas
-- Descarga archivo planet de OSM
-- Valida estructura XML
-- Transforma XML a CSV usando XSLT
-- Procesa en paralelo usando particiones
-- Consolida resultados en tablas sync
+### 4. Planet File Download
+- Downloads the most recent planet file
+- Validates file integrity and size
+- Extracts notes XML from the planet file
 
-### 5. Integración de Datos
-- Elimina duplicados entre datos nuevos y existentes
-- Asigna países a notas basado en coordenadas
-- Mueve datos de tablas sync a tablas base
-- Actualiza estadísticas y optimiza base de datos
+### 5. XML Processing
+- Validates XML structure against XSD schema
+- Transforms XML to CSV using XSLT templates
+- Processes in parallel using partitioning
+- Consolidates results from all partitions
 
-## Procesamiento Paralelo
+### 6. Data Loading
+- Loads processed data into sync tables
+- Validates data integrity and constraints
+- Moves data from sync to base tables
+- Removes duplicates and ensures consistency
 
-El script implementa procesamiento paralelo para manejar grandes volúmenes de datos:
+### 7. Country Association
+- Associates each note with its corresponding country
+- Uses spatial queries to determine note location
+- Updates country information in notes table
 
-1. **Particionamiento**: Divide el archivo XML en partes
-2. **Procesamiento Concurrente**: Procesa cada parte en paralelo
-3. **Consolidación**: Combina resultados en tablas principales
+### 8. Cleanup and Optimization
+- Removes temporary files and sync tables
+- Optimizes database indexes
+- Updates statistics for query optimization
+- Logs processing results and statistics
 
-## Variables de Entorno Importantes
+## Parallel Processing
 
-- **`LOG_LEVEL`**: Nivel de logging (DEBUG, INFO, WARN, ERROR)
-- **`CLEAN`**: Si eliminar archivos temporales (true/false)
-- **`BACKUP_COUNTRIES`**: Usar datos de respaldo para límites
-- **`MAX_THREADS`**: Número de hilos para procesamiento paralelo
+### Partitioning Strategy
+- Divides large XML files into manageable parts
+- Processes each partition in parallel
+- Uses multiple threads for concurrent processing
+- Consolidates results from all partitions
 
-## Casos de Uso Típicos
+### Performance Optimization
+- **Memory Management**: Efficient handling of large XML files
+- **Database Optimization**: Optimized queries and indexes
+- **Disk I/O**: Minimizes disk operations through buffering
+- **Network**: Efficient download and processing of planet files
 
-### Primera Ejecución
-```bash
-export LOG_LEVEL=DEBUG
-./processPlanetNotes.sh --base
-```
+## Error Handling
 
-### Actualización Diaria
-```bash
-export LOG_LEVEL=INFO
-./processPlanetNotes.sh
-```
+### Common Error Scenarios
+1. **Download Failures**: Retries with exponential backoff
+2. **XML Parsing Errors**: Validates structure before processing
+3. **Database Connection Issues**: Graceful handling of connection problems
+4. **Disk Space Issues**: Checks available space before processing
 
-### Solo Actualizar Límites
-```bash
-./processPlanetNotes.sh --boundaries
-```
+### Recovery Mechanisms
+- **Automatic Retry**: Implements retry logic for transient failures
+- **State Preservation**: Maintains processing state for recovery
+- **Error Logging**: Comprehensive error logging for debugging
+- **Graceful Degradation**: Continues processing with available data
 
-## Monitoreo y Debugging
+## Configuration
 
-### Seguimiento del Progreso
-```bash
-tail -40f $(ls -1rtd /tmp/processPlanetNotes_* | tail -1)/processPlanetNotes.log
-```
+### Environment Variables
+- **`LOG_LEVEL`**: Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+- **`CLEAN`**: Whether to remove temporary files (true/false)
+- **`MAX_THREADS`**: Number of threads for parallel processing
+- **`PLANET_URL`**: URL for planet file download
 
-### Consultas Útiles
-```sql
--- Verificar notas por país
-SELECT country_name_en, COUNT(*) FROM notes n 
-JOIN countries c ON n.id_country = c.country_id 
-GROUP BY country_name_en ORDER BY COUNT(*) DESC;
+### Database Configuration
+- **`DBNAME`**: Database name for notes storage
+- **`DB_USER`**: Database user for connections
+- **`DB_PASSWORD`**: Database password for authentication
+- **`DB_HOST`**: Database host address
+- **`DB_PORT`**: Database port number
 
--- Verificar procesamiento paralelo
-SELECT table_name, COUNT(*) FROM information_schema.tables 
-WHERE table_name LIKE '%_part_%' GROUP BY table_name;
-```
+## Performance Considerations
 
-## Consideraciones Técnicas
+### Optimization Strategies
+- **Parallel Processing**: Uses multiple threads for data processing
+- **Partitioning**: Divides large datasets into manageable chunks
+- **Memory Management**: Efficient memory usage for large XML files
+- **Database Optimization**: Uses optimized queries and indexes
 
-### Limitaciones Conocidas
-- Austria: Problemas de geometría con ogr2ogr
-- Taiwan: Filas muy largas que requieren truncamiento
-- Gaza Strip: No está al mismo nivel que países (ID hardcodeado)
-- No todos los países tienen límites marítimos definidos
+### Monitoring Points
+- **Processing Time**: Tracks time for each processing phase
+- **Memory Usage**: Monitors memory consumption during processing
+- **Database Performance**: Tracks database query performance
+- **Network Performance**: Monitors download speeds and reliability
 
-### Requisitos del Sistema
-- PostgreSQL con extensiones PostGIS y btree_gist
-- Herramientas: wget, xsltproc, ogr2ogr, psql
-- Espacio suficiente para archivos temporales
-- Conexión a internet para descargas
+## Maintenance
 
-Esta arquitectura permite procesar eficientemente millones de notas de OSM manteniendo la integridad de los datos y proporcionando flexibilidad para diferentes tipos de procesamiento.
+### Regular Tasks
+- **Log Rotation**: Manages log file sizes and rotation
+- **Temporary File Cleanup**: Removes temporary files after processing
+- **Database Maintenance**: Performs database optimization tasks
+- **Configuration Updates**: Updates configuration as needed
+
+### Troubleshooting
+- **Log Analysis**: Reviews logs for error patterns
+- **Performance Tuning**: Adjusts parameters based on performance data
+- **Database Optimization**: Optimizes database queries and indexes
+- **System Monitoring**: Monitors system resources and performance
+
+## Integration with Other Components
+
+### API Processing Integration
+- Provides base data for incremental API processing
+- Ensures data consistency between Planet and API sources
+- Coordinates processing to avoid conflicts
+
+### ETL Integration
+- Provides raw data for data warehouse ETL processes
+- Ensures data quality and integrity for analytics
+- Supports data mart population
+
+## Related Documentation
+
+- **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
+- **API Processing**: See [processAPI.md](./processAPI.md) for API data processing details
+- **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
