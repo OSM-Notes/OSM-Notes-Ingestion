@@ -8,9 +8,10 @@ different XML structure than API responses, with comment data as attributes.
 
 CSV Output Format:
 - note_id: ID of the note this comment belongs to
-- action: Type of action (opened, commented, closed, reopened)
-- timestamp: When the comment/action occurred
-- user_id: ID of the user who made the comment (empty if anonymous)
+- sequence_action: Sequential number of the comment (1, 2, 3...)
+- event: Type of action (opened, commented, closed, reopened)
+- created_at: When the comment/action occurred
+- id_user: ID of the user who made the comment (empty if anonymous)
 - username: Name of the user who made the comment (escaped for CSV)
 
 Author: Andres Gomez (AngocA)
@@ -41,7 +42,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:if test="string-length($rest) &gt; 0">
      <xsl:call-template name="escape-quotes">
       <xsl:with-param name="text" select="$rest"/>
-      </xsl:call-template>
+     </xsl:call-template>
     </xsl:if>
    </xsl:when>
    <!-- If no quotes, output text as-is -->
@@ -61,11 +62,16 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
    
    <!-- Process each comment for the current note -->
    <xsl:for-each select="comment">
+    <xsl:variable name="sequence_number" select="position()"/>
     <xsl:choose>
      <!-- Handle comments with user information -->
      <xsl:when test="@uid != ''">
       <!-- Extract note ID - links comment to the parent note -->
       <xsl:copy-of select="$note_id" />
+      <xsl:text>,</xsl:text>
+      
+      <!-- Extract sequence number - sequential order of the comment -->
+      <xsl:value-of select="$sequence_number"/>
       <xsl:text>,"</xsl:text>
       
       <!-- Extract action type - what the user did (opened, commented, closed, reopened) -->
@@ -100,6 +106,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
      <xsl:otherwise>
       <!-- Extract note ID - links comment to the parent note -->
       <xsl:copy-of select="$note_id" />
+      <xsl:text>,</xsl:text>
+      
+      <!-- Extract sequence number - sequential order of the comment -->
+      <xsl:value-of select="$sequence_number"/>
       <xsl:text>,"</xsl:text>
       
       <!-- Extract action type - what was done (opened, commented, closed, reopened) -->
