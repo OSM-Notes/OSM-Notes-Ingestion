@@ -199,7 +199,7 @@ function __sendMail {
  QTY_NOTES=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" | wc -l | cut -f 1 -d' ')
  QTY_COMMENTS=$(tail -n +2 "${DIFFERENT_COMMENT_IDS_FILE}" | wc -l | cut -f 1 -d' ')
  QTY_TEXT_COMMENTS=$(tail -n +2 "${DIFFERENT_TEXT_COMMENTS_FILE}" | wc -l | cut -f 1 -d' ')
- 
+
  if [[ "${QTY_NOTES}" -ne 0 ]] || [[ "${QTY_COMMENTS}" -ne 0 ]] || [[ "${QTY_TEXT_COMMENTS}" -ne 0 ]]; then
   __logi "Sending mail."
   {
