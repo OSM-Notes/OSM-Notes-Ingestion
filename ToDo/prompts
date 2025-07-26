@@ -1,6 +1,26 @@
 
-Podrías crear un archive README.md en inlgés en todos los subdirectorios de primer nivel, indicando qué contiene ese directorio, y en qué componentes del software son usados esos archivos.
+
+
+Es realmente neceario tener un directorio lib bajo tests, siendo que esa libreria de logger esta bajo /lib
+
+
+en la pestaña problems, veo que hay muchos reportes de shellcheck, y que hay muchos archivos que no pasan la verificación. Podrías revisar si se necesitan esas variables. Y procurar corregir los errores.
+
+
+Podrías crear un archivo README.md en inlgés en todos los subdirectorios de primer nivel, indicando qué contiene ese directorio, y en qué componentes del software son usados sobre esos archivos. Esto con el fin de asociar archivos a procesos.
 Actualmente hay muchos subdirectorios, y para una persona que está comenzando a contribuir puede ser complicado entender la lógica.
 
 
-El archivo CONTRIBUTING es un poco simple, podría dar más instrucciones de cómo contribuir, basado en el código existente (nombres de archivos, directorios, variables, etc). También en dónde ubicar las instrucciones de las pruebas para asegurarse que siempre se incluyen pruebas con las neuvas funcionalidades.
+El archivo CONTRIBUTING es un poco simple, podrías dar más instrucciones de cómo contribuir, basado en el código existente (nombres de archivos, directorios, variables, etc). También en dónde ubicar las instrucciones de las pruebas para asegurarse que siempre se incluyen pruebas con las neuvas funcionalidades. En general, indicar todas las cosas que se deben hacer para contribuir y que hasta el momento hemos estandarizado.
+
+
+Puedes poner comentarios detallados en los xslt para entender qué hace cada campo, para genear el csv.
+Esto puede implicar dividir tags actuales en múltiples xsl:text.
+
+
+Veo muchos archivos de testXXX.sh bajo el directorio test, pero parece que no están integrados con el sistema de pruebas.
+Podrías revisar si se pueden integrar con el sistema de pruebas; de lo contrario, podrías borrarlos.
+
+✅ CORREGIDO: Referencia a properties_test.sh inexistente en tests/test_helper.bash
+- RESUELTO: Eliminada referencia al archivo properties_test.sh que no existe
+- El código ahora carga directamente tests/properties.sh sin intentar cargar el archivo inexistente

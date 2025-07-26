@@ -46,10 +46,7 @@ if [[ -f "/app/bin/functionsProcess.sh" ]]; then
  fi
 else
  # Running on host - use test-specific properties
- if [[ -f "${TEST_BASE_DIR}/tests/properties_test.sh" ]]; then
-  # shellcheck source=properties_test.sh
-  source "${TEST_BASE_DIR}/tests/properties_test.sh"
- elif [[ -f "${TEST_BASE_DIR}/tests/properties.sh" ]]; then
+ if [[ -f "${TEST_BASE_DIR}/tests/properties.sh" ]]; then
   source "${TEST_BASE_DIR}/tests/properties.sh"
  else
   echo "Warning: tests/properties.sh not found, using default test values"
