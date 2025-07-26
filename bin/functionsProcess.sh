@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-25
+# Version: 2025-07-26
 
 # Error codes.
 # 1: Help message.
@@ -547,7 +547,7 @@ function __processXmlPartsParallel() {
  for XML_PART in $(find "${PARTS_DIR}" -name "${PART_PREFIX}_*.xml" | sort); do
   (
    __logi "Starting processing ${XML_PART} - ${BASHPID}."
-   "${PROCESS_FUNCTION}" "${XML_PART}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   "${PROCESS_FUNCTION}" "${XML_PART}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1 || true
    __logi "Finished processing ${XML_PART} - ${BASHPID}."
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${BASHPID}"
@@ -612,7 +612,7 @@ function __processApiXmlPart() {
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
- PART_NUM=$(echo "${BASENAME_PART}" | sed 's/part_//')
+ PART_NUM="${BASENAME_PART//part_/}"
 
  # Debug: Show extraction process
  __logd "Extracting part number from: ${XML_PART}"
@@ -678,9 +678,9 @@ function __processApiXmlPart() {
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files for part ${PART_NUM}:"
- __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)"
- __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)"
- __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)"
+ __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)" || true
+ __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)" || true
+ __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)" || true
 
  # Load into database with partition ID and MAX_THREADS
  export OUTPUT_NOTES_PART
@@ -719,7 +719,7 @@ function __processPlanetXmlPart() {
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
- PART_NUM=$(echo "${BASENAME_PART}" | sed 's/part_//')
+ PART_NUM="${BASENAME_PART//part_/}"
 
  # Debug: Show extraction process
  __logd "Extracting part number from: ${XML_PART}"

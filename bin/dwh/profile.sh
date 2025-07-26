@@ -906,7 +906,7 @@ function __processUserProfile {
   -v ON_ERROR_STOP=1)
 
  # Badges. TODO profile - asignar
- declare BADGES
+ # declare BADGES
  # BADGES=$(psql -d "${DBNAME}" -Atq \
  #    -c "SELECT b.badge_name, p.date_awarded
  #     FROM dwh.badges_per_users p

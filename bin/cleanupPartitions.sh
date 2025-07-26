@@ -4,7 +4,7 @@
 # This script removes all partition tables that might have been left behind
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-07-26
 
 set -euo pipefail
 
@@ -15,15 +15,15 @@ mkdir -p "${TMP_DIR}"
 
 # Simple logging functions
 function log_info() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*"
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
 }
 
 function log_error() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2 || true
 }
 
 function log_warn() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*"
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*" || true
 }
 
 # Function to check if database exists
@@ -59,7 +59,8 @@ function list_partition_tables() {
 # Function to drop all partition tables
 function drop_all_partitions() {
  local DBNAME="${1}"
- local SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ local SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
  local DROP_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropAllPartitions.sql"
 
  log_info "Dropping all partition tables using script: ${DROP_SCRIPT}"
@@ -135,6 +136,7 @@ function cleanup_partitions() {
 }
 
 # Cleanup function
+# shellcheck disable=SC2317
 function cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
