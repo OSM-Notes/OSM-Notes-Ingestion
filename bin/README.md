@@ -1,30 +1,51 @@
-Under this directory, you can find all shell scripts to run the main
-functionalities.
+# Bin Directory
 
-# Directories
+## Overview
+The `bin` directory contains all the executable scripts and processing components of the OSM-Notes-profile system. This is the core operational directory where the main processing logic resides.
 
-* `bin` In this script resides shared functions across many scripts.
-* `bin/dwh` Scripts to load and sync the data warehouse.
-* `bin/dwh/datamart*` Scripts to group the data by user or by country.
-* `bin/monitor` Script to monitor the daily load compared with the Planet
-  notes.
-* `bin/process` Main scripts, that load notes from API and Planet.
+## Directory Structure
 
-# Files
+### `/bin/process/`
+Contains the main data processing scripts:
+- **`processPlanetNotes.sh`**: Processes OSM notes from Planet files
+- **`processAPINotes.sh`**: Processes OSM notes from API endpoints
+- **`updateCountries.sh`**: Updates country data and associations
 
-* `bin/process/processAPINotes.sh` is the main script that processes the notes
-  from the API.
-* `bin/process/processPlanetNotes.sh` is the base script to process notes from
-  Planet file.
-  This script is called internally from `processAPINotes.sh`.
+### `/bin/dwh/`
+Data Warehouse components:
+- **`ETL.sh`**: Main ETL (Extract, Transform, Load) process
+- **`profile.sh`**: Generates data profiles and statistics
+- **`datamartUsers/`**: User-related data mart processing
+- **`datamartCountries/`**: Country-related data mart processing
 
-* `bin/functionsProcess.sh` share functions across several scripts.
+### `/bin/monitor/`
+Monitoring and verification scripts:
+- **`processCheckPlanetNotes.sh`**: Verifies Planet notes processing
+- **`notesCheckVerifier.sh`**: Validates note data integrity
 
-* `bin/dwh/ETL.sh` loads the data warehouse from the main notes tables.
-* `bin/dwh/profile.sh` shows a user or country profile.
+### `/bin/cleanupPartitions.sh`
+Database maintenance script for cleaning up partition tables
 
-* `bin/monitor/processCheckPlanetNotes.sh` is a script that allows to check the
-  notes in the database with a new download from planet.
-  This allow to identify unprocessed notes or errors in the other scripts.
-* `bin/monitor/notesCheckVerifier.sh` sends an email if there are old
-  differences.
+## Software Components
+
+### Data Processing Pipeline
+- **Planet Processing**: `bin/process/processPlanetNotes.sh` handles large OSM Planet files
+- **API Processing**: `bin/process/processAPINotes.sh` processes real-time API data
+- **ETL Pipeline**: `bin/dwh/ETL.sh` orchestrates the complete data transformation
+
+### Data Warehouse
+- **Data Marts**: `bin/dwh/datamartUsers/` and `bin/dwh/datamartCountries/` create specialized data views
+- **Profiling**: `bin/dwh/profile.sh` generates analytics and reports
+
+### Monitoring & Maintenance
+- **Verification**: `bin/monitor/` scripts ensure data quality
+- **Cleanup**: `bin/cleanupPartitions.sh` maintains database performance
+
+## Usage
+All scripts in this directory are designed to be run from the project root and require proper database configuration and dependencies to be installed.
+
+## Dependencies
+- PostgreSQL with PostGIS extension
+- XML processing tools (xmlstarlet, xsltproc)
+- Bash scripting environment
+- Required data files and schemas
