@@ -21,12 +21,12 @@ declare -r TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
 declare -r TEST_DBHOST="${TEST_DBHOST:-test-db}"
 declare -r TEST_DBPORT="${TEST_DBPORT:-5432}"
 
-# Override database settings for testing
-DBNAME="${TEST_DBNAME}"
-DB_USER="${TEST_DBUSER}"
-DB_PASSWORD="${TEST_DBPASSWORD}"
-DB_HOST="${TEST_DBHOST}"
-DB_PORT="${TEST_DBPORT}"
+# Export database settings for external functions
+export DBNAME="${TEST_DBNAME}"
+export DB_USER="${TEST_DBUSER}"
+export DB_PASSWORD="${TEST_DBPASSWORD}"
+export DB_HOST="${TEST_DBHOST}"
+export DB_PORT="${TEST_DBPORT}"
 
 # Create test database if it doesn't exist
 psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
