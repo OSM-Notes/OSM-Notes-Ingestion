@@ -86,7 +86,7 @@ declare -r PROCESS_CHECK_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/monitor/processChe
 ###########
 # FUNCTIONS
 
-# shellcheck source=../functionsProcess.sh
+# shellcheck source=../bin/functionsProcess.sh
 source "${FUNCTIONS_FILE}"
 
 # Shows the help information.
@@ -148,20 +148,20 @@ function __setupTestDatabase {
  __logi "Setting up test database: ${TEST_DBNAME}"
 
  # Create test database
- psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
- psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
  # Skip PostGIS extensions for test environment
- # psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION postgis;"
- # psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION btree_gist;"
+ # psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION postgis;"
+ # psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION btree_gist;"
 
  # Create base tables structure
- psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
- psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
  # Skip PostGIS constraints for test environment
- # psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ # psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
 
  # Create check tables
- psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
 
  __log_finish
 }
@@ -172,7 +172,7 @@ function __loadSuccessScenario {
  __logi "Loading success scenario data"
 
  # Insert sample notes (complete data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
@@ -180,7 +180,7 @@ function __loadSuccessScenario {
  "
 
  # Insert sample comments
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
@@ -190,7 +190,7 @@ function __loadSuccessScenario {
  "
 
  # Insert sample text comments
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing'),
  (1001, 2, 'This is a test comment'),
@@ -200,14 +200,14 @@ function __loadSuccessScenario {
  "
 
  # Insert same data into check tables (simulating Planet data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
  (1003, 51.5074, -0.1278, '2025-01-01 12:00:00', 'open', 2);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
@@ -216,7 +216,7 @@ function __loadSuccessScenario {
  (1003, 1, 'opened', '2025-01-01 12:00:00', 12345);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing'),
  (1001, 2, 'This is a test comment'),
@@ -234,7 +234,7 @@ function __loadFailureScenario {
  __logi "Loading failure scenario data"
 
  # Insert sample notes (missing some data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
@@ -242,7 +242,7 @@ function __loadFailureScenario {
  "
 
  # Insert sample comments (missing some data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
@@ -251,7 +251,7 @@ function __loadFailureScenario {
  "
 
  # Insert sample text comments (missing some data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing'),
  (1001, 2, 'This is a test comment');
@@ -259,14 +259,14 @@ function __loadFailureScenario {
  "
 
  # Insert complete data into check tables (simulating Planet data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
  (1003, 51.5074, -0.1278, '2025-01-01 12:00:00', 'open', 2);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
@@ -275,7 +275,7 @@ function __loadFailureScenario {
  (1003, 1, 'opened', '2025-01-01 12:00:00', 12345);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing'),
  (1001, 2, 'This is a test comment'),
@@ -333,7 +333,7 @@ function __cleanupTestDatabase {
  __logi "Cleaning up test database: ${TEST_DBNAME}"
 
  # Drop test database
- psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
 
  __log_finish
 }

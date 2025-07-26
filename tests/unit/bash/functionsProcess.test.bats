@@ -99,6 +99,26 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
   [ "$status" -eq 0 ]
 }
 
+@test "debug database connection" {
+  # Enable verbose debugging
+  set -xv
+  
+  # Show current environment variables
+  echo "TEST_DBNAME: ${TEST_DBNAME}"
+  echo "TEST_DBUSER: ${TEST_DBUSER}"
+  echo "TEST_DBHOST: ${TEST_DBHOST}"
+  echo "TEST_DBPORT: ${TEST_DBPORT}"
+  echo "PGPASSWORD: ${PGPASSWORD}"
+  
+  # Test direct psql connection
+  run psql -U "${TEST_DBUSER}" -h "${TEST_DBHOST}" -d postgres -c "SELECT current_user, current_database();"
+  echo "psql output: $output"
+  echo "psql status: $status"
+  
+  # Disable verbose debugging
+  set +xv
+}
+
 @test "helper functions should be available" {
   # Check if helper functions are available
   run declare -f create_test_database

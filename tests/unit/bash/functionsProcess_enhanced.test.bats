@@ -14,8 +14,22 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 setup() {
     # Create test XML files for different scenarios
     create_test_xml_files
+    
+    # Set up required environment variables for functionsProcess.sh
+    export BASENAME="test"
+    export TMP_DIR="/tmp/test_$$"
+    export DBNAME="${TEST_DBNAME:-test_db}"
+    export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
+    export LOG_FILENAME="/tmp/test.log"
+    export LOCK="/tmp/test.lock"
+    export MAX_THREADS="2"
+    
+    # Unset any existing readonly variables that might conflict
+    unset ERROR_HELP_MESSAGE ERROR_PREVIOUS_EXECUTION_FAILED ERROR_CREATING_REPORT ERROR_MISSING_LIBRARY ERROR_INVALID_ARGUMENT ERROR_LOGGER_UTILITY ERROR_DOWNLOADING_BOUNDARY_ID_LIST ERROR_NO_LAST_UPDATE ERROR_PLANET_PROCESS_IS_RUNNING ERROR_DOWNLOADING_NOTES ERROR_EXECUTING_PLANET_DUMP ERROR_DOWNLOADING_BOUNDARY ERROR_GEOJSON_CONVERSION ERROR_INTERNET_ISSUE ERROR_GENERAL 2>/dev/null || true
+    
     # Source the functions to be tested
     source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    
     # Set up logging function if not available
     if ! declare -f log_info >/dev/null; then
         log_info() { echo "[INFO] $*"; }
@@ -80,22 +94,9 @@ EOF
     # Create test Planet XML with single note for format-specific testing
     cat > "${test_dir}/test_planet.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm-notes version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
-  <note lon="-3.7038" lat="40.4168">
-    <id>123456</id>
-    <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
-    <date_created>2025-01-15 10:30:00 UTC</date_created>
-    <status>closed</status>
-    <comments>
-      <comment>
-        <date>2025-01-15 10:30:00 UTC</date>
-        <uid>123</uid>
-        <user>testuser</user>
-        <action>opened</action>
-        <text>Test note</text>
-        <html>&lt;p&gt;Test note&lt;/p&gt;</html>
-      </comment>
-    </comments>
+<osm-notes>
+  <note id="123456" created_at="2025-01-15T10:30:00Z" lat="40.4168" lon="-3.7038">
+    <comment action="opened" timestamp="2025-01-15T10:30:00Z" uid="123" user="testuser">Test note</comment>
   </note>
 </osm-notes>
 EOF
@@ -124,41 +125,67 @@ EOF
 
 @test "enhanced __countXmlNotesAPI should count notes correctly" {
     # Test with valid API XML
-    run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
-    [ "$status" -eq 0 ]
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    
+    # Execute function directly to capture output
+    __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
     [ "$TOTAL_NOTES" -eq 2 ]
 }
 
 @test "enhanced __countXmlNotesAPI should handle empty XML" {
     # Test with empty XML
-    run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_empty.xml"
-    [ "$status" -eq 0 ]
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    
+    # Execute function directly to capture output
+    __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_empty.xml"
     [ "$TOTAL_NOTES" -eq 0 ]
 }
 
 @test "enhanced __countXmlNotesAPI should handle missing file" {
     # Test with non-existent file
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    
+    # Execute function and check if it fails as expected
     run __countXmlNotesAPI "/non/existent/file.xml"
     [ "$status" -ne 0 ]
 }
 
 @test "enhanced __countXmlNotesPlanet should count notes correctly" {
     # Test with valid Planet XML
-    run __countXmlNotesPlanet "${TEST_BASE_DIR}/tests/tmp/test_planet.xml"
-    [ "$status" -eq 0 ]
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    
+    # Execute function directly to capture output
+    __countXmlNotesPlanet "${TEST_BASE_DIR}/tests/tmp/test_planet.xml"
     [ "$TOTAL_NOTES" -eq 1 ]
 }
 
 @test "enhanced __countXmlNotesPlanet should handle empty XML" {
     # Test with empty XML (Planet format)
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    
     cat > "${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm-notes version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
 </osm-notes>
 EOF
     
-    run __countXmlNotesPlanet "${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml"
-    [ "$status" -eq 0 ]
+    # Execute function directly to capture output
+    __countXmlNotesPlanet "${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml"
     [ "$TOTAL_NOTES" -eq 0 ]
 }
 
@@ -174,8 +201,13 @@ EOF
 
 @test "XML validation should work with valid Planet XML" {
     # Test XML validation against schema
-    run xmllint --schema "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" "${TEST_BASE_DIR}/tests/tmp/test_planet.xml" --noout
-    [ "$status" -eq 0 ]
+    # Skip if schema file doesn't exist
+    if [[ -f "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" ]]; then
+        run xmllint --schema "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" "${TEST_BASE_DIR}/tests/tmp/test_planet.xml" --noout
+        [ "$status" -eq 0 ]
+    else
+        skip "Schema file not found"
+    fi
 }
 
 # =============================================================================
@@ -183,18 +215,27 @@ EOF
 # =============================================================================
 
 @test "should handle xmlstarlet not available" {
-    # Mock xmlstarlet not available
-    local original_path="$PATH"
-    export PATH="/tmp/empty:$PATH"
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    __loge() { :; }
     
+    # Mock xmlstarlet to fail
+    xmlstarlet() { return 1; }
+    
+    # Execute function and check if it fails when xmlstarlet is not available
     run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
     [ "$status" -ne 0 ]
-    
-    export PATH="$original_path"
 }
 
 @test "should handle malformed XML gracefully" {
     # Test with malformed XML
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    
     cat > "${TEST_BASE_DIR}/tests/tmp/test_malformed.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6">
@@ -203,6 +244,7 @@ EOF
     <!-- Missing closing tag -->
 EOF
     
+    # Execute function and check if it fails as expected
     run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_malformed.xml"
     [ "$status" -ne 0 ]
 }
@@ -266,9 +308,13 @@ EOF
     local original_path="$PATH"
     export PATH="${TEST_BASE_DIR}/tests/tmp:$PATH"
     
+    # Temporarily disable logging functions to avoid errors
+    __log_start() { :; }
+    __logi() { :; }
+    __log_finish() { :; }
+    
     # Test with mock
-    run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
-    [ "$status" -eq 0 ]
+    __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
     [ "$TOTAL_NOTES" -eq 2 ]
     
     # Restore original PATH

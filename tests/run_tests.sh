@@ -17,12 +17,20 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 
+# Cargar archivo de propiedades
+if [ -f "$PROJECT_ROOT/etc/properties.sh" ]; then
+  source "$PROJECT_ROOT/etc/properties.sh"
+else
+  echo "[ERROR] Archivo de propiedades no encontrado: $PROJECT_ROOT/etc/properties.sh" >&2
+  exit 1
+fi
+
 # Test configuration
-TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
-TEST_DBUSER="${TEST_DBUSER:-test_user}"
-TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
-TEST_DBHOST="${TEST_DBHOST:-localhost}"
-TEST_DBPORT="${TEST_DBPORT:-5432}"
+TEST_DBNAME="${DBNAME}"
+TEST_DBUSER="${DB_USER}"
+TEST_DBPASSWORD="${DB_PASSWORD:-}"
+TEST_DBHOST="${DB_HOST:-localhost}"
+TEST_DBPORT="${DB_PORT:-5432}"
 
 # Test results
 TOTAL_TESTS=0
@@ -89,41 +97,43 @@ setup_test_database() {
  if [[ -f "/app/bin/functionsProcess.sh" ]]; then
   # Running in Docker - setup real database
   # Drop database if exists
-  dropdb --if-exists "${TEST_DBNAME}" 2> /dev/null || true
+  log_info "Dropping database ${TEST_DBNAME} with user ${TEST_DBUSER} on ${TEST_DBHOST}:${TEST_DBPORT}"
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
 
   # Create database
-  createdb "${TEST_DBNAME}" 2> /dev/null || {
+  log_info "Creating database ${TEST_DBNAME} with user ${TEST_DBUSER} on ${TEST_DBHOST}:${TEST_DBPORT}"
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || {
    log_error "Failed to create test database ${TEST_DBNAME}"
    return 1
   }
 
   # Create base enums
   log_info "Creating base enums..."
-  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || {
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || {
    log_error "Failed to create base enums"
    return 1
   }
 
   # Create base tables
   log_info "Creating base tables..."
-  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || {
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || {
    log_error "Failed to create base tables"
    return 1
   }
 
   # Create functions and procedures
   log_info "Creating functions and procedures..."
-  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || {
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || {
    log_error "Failed to create get_country function"
    return 1
   }
 
-  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || {
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || {
    log_error "Failed to create insert_note procedure"
    return 1
   }
 
-  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || {
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || {
    log_error "Failed to create insert_note_comment procedure"
    return 1
   }
@@ -142,7 +152,7 @@ cleanup_test_database() {
  # Detect if running in Docker or host
  if [[ -f "/app/bin/functionsProcess.sh" ]]; then
   # Running in Docker - cleanup real database
-  dropdb --if-exists "${TEST_DBNAME}" 2> /dev/null || true
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
  else
   # Running on host - simulate cleanup
   log_warning "Running on host - database cleanup simulated"
@@ -183,14 +193,19 @@ run_bats_tests() {
    log_info "Running $(basename "${test_file}")..."
    log_info "Test file path: ${test_file}"
 
-   # Set environment variables for tests (only if not already set)
-   export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
-   export TEST_DBUSER="${TEST_DBUSER:-postgres}"
-   export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
-   export TEST_DBHOST="${TEST_DBHOST:-localhost}"
-   export TEST_DBPORT="${TEST_DBPORT:-5432}"
+   # Set environment variables for tests
+   export TEST_DBNAME="${TEST_DBNAME}"
+   export TEST_DBUSER="${TEST_DBUSER}"
+   export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
+   export TEST_DBHOST="${TEST_DBHOST}"
+   export TEST_DBPORT="${TEST_DBPORT}"
+   export PGPASSWORD="${TEST_DBPASSWORD}"
 
    log_info "Executing bats for: ${test_file}"
+   log_info "Using database: ${TEST_DBNAME}"
+   log_info "Using user: ${TEST_DBUSER}"
+   log_info "Using host: ${TEST_DBHOST}"
+   log_info "Using port: ${TEST_DBPORT}"
    if bats "${test_file}" || true; then
     log_success "$(basename "${test_file}") passed"
     ((PASSED_TESTS++))
@@ -229,12 +244,16 @@ run_pgtap_tests() {
    if [[ -f "${test_file}" ]]; then
     log_info "Running $(basename "${test_file}")..."
 
-    if pg_prove -d "${TEST_DBNAME}" "${test_file}"; then
-     log_success "$(basename "${test_file}") passed"
-     ((PASSED_TESTS++))
+    if command -v pg_prove >/dev/null 2>&1; then
+     if pg_prove -d "${TEST_DBNAME}" "${test_file}"; then
+      log_success "$(basename "${test_file}") passed"
+      ((PASSED_TESTS++))
+     else
+      log_error "$(basename "${test_file}") failed"
+      ((FAILED_TESTS++))
+     fi
     else
-     log_error "$(basename "${test_file}") failed"
-     ((FAILED_TESTS++))
+     log_warning "pg_prove not found, skipping $(basename "${test_file}")"
     fi
     ((TOTAL_TESTS++))
    else

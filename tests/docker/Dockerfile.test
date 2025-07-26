@@ -1,0 +1,59 @@
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    curl \
+    wget \
+    unzip \
+    git \
+    bats \
+    shellcheck \
+    shfmt \
+    xsltproc \
+    xmlstarlet \
+    libxml2-utils \
+    mutt \
+    make \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install BATS-core if not available
+RUN if ! command -v bats > /dev/null; then \
+        git clone https://github.com/bats-core/bats-core.git /tmp/bats-core && \
+        cd /tmp/bats-core && \
+        ./install.sh /usr/local && \
+        rm -rf /tmp/bats-core; \
+    fi
+
+# Install pgTAP (simplified)
+RUN wget -O pgtap.tar.gz https://github.com/theory/pgtap/archive/refs/tags/v1.2.0.tar.gz && \
+    tar -xzf pgtap.tar.gz && \
+    cd pgtap-1.2.0 && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf pgtap-1.2.0 pgtap.tar.gz
+
+# Set working directory
+WORKDIR /app
+
+# Copy test scripts
+COPY tests/ /app/tests/
+COPY bin/ /app/bin/
+COPY sql/ /app/sql/
+COPY xslt/ /app/xslt/
+COPY etc/ /app/etc/
+COPY xsd/ /app/xsd/
+
+# Make scripts executable
+RUN find /app/bin -name "*.sh" -exec chmod +x {} \;
+RUN find /app/tests -name "*.sh" -exec chmod +x {} \;
+
+# Set default command
+CMD ["./tests/run_tests.sh"] 

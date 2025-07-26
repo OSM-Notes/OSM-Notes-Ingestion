@@ -86,7 +86,7 @@ declare -r MONITOR_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifi
 ###########
 # FUNCTIONS
 
-# shellcheck source=../functionsProcess.sh
+# shellcheck source=../bin/functionsProcess.sh
 source "${FUNCTIONS_FILE}"
 
 # Shows the help information.
@@ -145,20 +145,20 @@ function __setupTestDatabase {
  __logi "Setting up test database: ${TEST_DBNAME}"
 
  # Create test database
- psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
- psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
  # Skip PostGIS extensions for test environment
- # psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION postgis;"
- # psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION btree_gist;"
+ # psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION postgis;"
+ # psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION btree_gist;"
 
  # Create base tables structure
- psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
- psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
  # Skip PostGIS constraints for test environment
- # psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ # psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
 
  # Create check tables
- psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
 
  __log_finish
 }
@@ -169,7 +169,7 @@ function __testMissingNotes {
  __logi "=== Test 1: Missing Notes Only ==="
 
  # Load complete data into check tables (Planet data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
@@ -177,7 +177,7 @@ function __testMissingNotes {
  "
 
  # Load incomplete data into base tables (API data - missing note 1003)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
@@ -193,12 +193,12 @@ function __testMissingComments {
  __logi "=== Test 2: Missing Comments Only ==="
 
  # Load complete data into check tables (Planet data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
@@ -206,12 +206,12 @@ function __testMissingComments {
  "
 
  # Load incomplete data into base tables (API data - missing comment sequence 2)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 3, 'closed', '2025-01-01 11:00:00', 12345);
@@ -227,36 +227,36 @@ function __testMissingTextComments {
  __logi "=== Test 3: Missing Text Comments Only ==="
 
  # Load complete data into check tables (Planet data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing'),
  (1001, 2, 'This is a test comment');
  "
 
  # Load incomplete data into base tables (API data - missing text comment for sequence 2)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing');
  -- Missing text comment for sequence 2
@@ -272,34 +272,34 @@ function __testDataCorruption {
  __logi "=== Test 4: Data Corruption (Different Values) ==="
 
  # Load data into check tables (Planet data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing');
  "
 
  # Load corrupted data into base tables (API data - different values)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7129, -74.0061, '2025-01-01 10:00:00', 'open', 1);
  -- Different coordinates
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing with different text');
  -- Different text content
@@ -315,20 +315,20 @@ function __testMixedProblems {
  __logi "=== Test 5: Mixed Problems (Multiple Issues) ==="
 
  # Load complete data into check tables (Planet data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
  (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_check (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345),
  (1001, 2, 'commented', '2025-01-01 10:30:00', 67890),
  (1002, 1, 'opened', '2025-01-01 11:00:00', 12345);
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text_check (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing'),
  (1001, 2, 'This is a test comment'),
@@ -336,19 +336,19 @@ function __testMixedProblems {
  "
 
  # Load incomplete/corrupted data into base tables (API data)
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
  (1001, 40.7129, -74.0061, '2025-01-01 10:00:00', 'open', 1);
  -- Missing note 1002, different coordinates for 1001
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
  (1001, 1, 'opened', '2025-01-01 10:00:00', 12345);
  -- Missing comment sequence 2 for note 1001, missing all comments for note 1002
  "
 
- psql -d "${TEST_DBNAME}" -c "
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
  INSERT INTO note_comments_text (note_id, sequence_action, body) VALUES
  (1001, 1, 'Note opened for testing with different text');
  -- Missing text comment for sequence 2, different text for sequence 1
@@ -422,7 +422,7 @@ function __cleanupTestDatabase {
  __logi "Cleaning up test database: ${TEST_DBNAME}"
 
  # Drop test database
- psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
+ psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};"
 
  __log_finish
 }

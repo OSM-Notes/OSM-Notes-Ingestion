@@ -9,9 +9,9 @@
 if [[ -f "/app/bin/functionsProcess.sh" ]]; then
     # Running in Docker container
     export TEST_DBNAME="osm_notes_test"
-    export TEST_DBUSER="testuser"
-    export TEST_DBPASSWORD="testpass"
-    export TEST_DBHOST="postgres"
+    export TEST_DBUSER="test_user"
+    export TEST_DBPASSWORD="test_pass"
+    export TEST_DBHOST="test-db"
     export TEST_DBPORT="5432"
 else
     # Running on host - use local PostgreSQL
