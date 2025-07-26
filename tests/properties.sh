@@ -7,9 +7,18 @@
 # Version: 2025-07-26
 
 # Database configuration for tests
-# Detect if running in Docker or host
-if [[ -f "/app/bin/functionsProcess.sh" ]]; then
+# Detect if running in CI/CD environment
+if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+ # Running in GitHub Actions CI
+ echo "DEBUG: Detected CI environment" >&2
+ export TEST_DBNAME="osm_notes_test"
+ export TEST_DBUSER="testuser"
+ export TEST_DBPASSWORD="testpass"
+ export TEST_DBHOST="localhost"
+ export TEST_DBPORT="5432"
+elif [[ -f "/app/bin/functionsProcess.sh" ]]; then
  # Running in Docker container
+ echo "DEBUG: Detected Docker environment" >&2
  export TEST_DBNAME="osm_notes_test"
  export TEST_DBUSER="testuser"
  export TEST_DBPASSWORD="testpass"
@@ -17,12 +26,21 @@ if [[ -f "/app/bin/functionsProcess.sh" ]]; then
  export TEST_DBPORT="5432"
 else
  # Running on host - use local PostgreSQL with current user
+ echo "DEBUG: Detected host environment" >&2
  export TEST_DBNAME="osm_notes_test"
- TEST_DBUSER="$(whoami)"
- export TEST_DBUSER
+ export TEST_DBUSER="$(whoami)"
  export TEST_DBPASSWORD=""
  export TEST_DBHOST="localhost"
  export TEST_DBPORT="5432"
+fi
+
+# Force override if variables are already set
+if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+ unset TEST_DBUSER TEST_DBPASSWORD 2>/dev/null || true
+ TEST_DBUSER="testuser"
+ export TEST_DBUSER
+ TEST_DBPASSWORD="testpass"
+ export TEST_DBPASSWORD
 fi
 
 # Test application configuration

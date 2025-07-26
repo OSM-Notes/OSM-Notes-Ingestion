@@ -17,20 +17,20 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 
-# Cargar archivo de propiedades
-if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
- source "${PROJECT_ROOT}/etc/properties.sh"
+# Cargar archivo de propiedades de tests
+if [[ -f "${SCRIPT_DIR}/properties.sh" ]]; then
+ source "${SCRIPT_DIR}/properties.sh"
 else
- echo "[ERROR] Archivo de propiedades no encontrado: ${PROJECT_ROOT}/etc/properties.sh" >&2
+ echo "[ERROR] Archivo de propiedades de tests no encontrado: ${SCRIPT_DIR}/properties.sh" >&2
  exit 1
 fi
 
-# Test configuration
-TEST_DBNAME="${DBNAME}"
-TEST_DBUSER="${DB_USER}"
-TEST_DBPASSWORD="${DB_PASSWORD:-}"
-TEST_DBHOST="${DB_HOST:-localhost}"
-TEST_DBPORT="${DB_PORT:-5432}"
+# Test configuration - usar variables de tests
+TEST_DBNAME="${TEST_DBNAME}"
+TEST_DBUSER="${TEST_DBUSER}"
+TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
+TEST_DBHOST="${TEST_DBHOST:-localhost}"
+TEST_DBPORT="${TEST_DBPORT:-5432}"
 
 # Test results
 TOTAL_TESTS=0
