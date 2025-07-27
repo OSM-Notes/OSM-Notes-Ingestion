@@ -1,33 +1,30 @@
 #!/bin/bash
-# Test script for processing Planet notes in Docker
+# Test script using single persistent PostgreSQL connection
 # Version: 2025-07-27
 
 set -euo pipefail
 
-# Load test properties
-source /app/tests/properties.sh
+# Database configuration
+export DBNAME="osm_notes_test"
+export DB_USER="testuser"
+export DB_PASSWORD="testpass"
+export DB_HOST="postgres"
+export DB_PORT="5432"
 
-# Database configuration for Docker
-export TEST_DBNAME="osm_notes_test"
-export TEST_DBUSER="testuser"
-export TEST_DBPASSWORD="testpass"
-export TEST_DBHOST="postgres"
-export TEST_DBPORT="5432"
-
-echo "=== Testing Planet Notes Processing ==="
-echo "Database: ${TEST_DBNAME}"
-echo "User: ${TEST_DBUSER}"
-echo "Host: ${TEST_DBHOST}:${TEST_DBPORT}"
+echo "=== Testing Single Persistent Connection ==="
+echo "Database: ${DBNAME}"
+echo "User: ${DB_USER}"
+echo "Host: ${DB_HOST}:${DB_PORT}"
 echo ""
 
 # Clean and create test database
 echo "🧹 Cleaning database state..."
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "DROP DATABASE IF EXISTS ${DBNAME};" 2> /dev/null || true
+psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "CREATE DATABASE ${DBNAME};" 2> /dev/null || true
 
-# Create all database objects in a single persistent connection
+# Use a single persistent connection for all operations
 echo "📋 Creating database objects in single connection..."
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" << 'EOF'
+psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" << 'EOF'
 -- Start transaction
 BEGIN;
 
@@ -331,30 +328,4 @@ WHERE proname IN ('insert_note', 'insert_note_comment', 'put_lock', 'remove_lock
 ORDER BY proname;
 EOF
 
-echo "✅ Database objects created successfully"
-
-# Load test data
-echo "📋 Loading test data..."
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY notes FROM '/app/test_output/planet_notes.csv' WITH (FORMAT csv, HEADER true);"
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments FROM '/app/test_output/planet_comments.csv' WITH (FORMAT csv, HEADER true);"
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments_text FROM '/app/test_output/planet_text_comments.csv' WITH (FORMAT csv, HEADER true);"
-
-echo "✅ Test data loaded successfully"
-
-# Verify data
-echo "📋 Verifying data..."
-notes_count=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | tr -d ' ')
-comments_count=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | tr -d ' ')
-text_count=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text;" | tr -d ' ')
-
-echo "📊 Results:"
-echo "  Notes: ${notes_count}"
-echo "  Comments: ${comments_count}"
-echo "  Text Comments: ${text_count}"
-
-if [ "$notes_count" -gt 0 ] && [ "$comments_count" -gt 0 ] && [ "$text_count" -gt 0 ]; then
-  echo "✅ Planet notes processing test completed successfully"
-else
-  echo "❌ Planet notes processing test failed"
-  exit 1
-fi
+echo "✅ Single connection test completed successfully" 

@@ -26,8 +26,6 @@ else
 fi
 
 # Test configuration - usar variables de tests
-TEST_DBNAME="${TEST_DBNAME}"
-TEST_DBUSER="${TEST_DBUSER}"
 TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
 TEST_DBHOST="${TEST_DBHOST:-localhost}"
 TEST_DBPORT="${TEST_DBPORT:-5432}"

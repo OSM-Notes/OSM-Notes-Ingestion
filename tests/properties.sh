@@ -28,7 +28,8 @@ else
  # Running on host - use local PostgreSQL with current user
  echo "DEBUG: Detected host environment" >&2
  export TEST_DBNAME="osm_notes_test"
- export TEST_DBUSER="$(whoami)"
+ TEST_DBUSER="$(whoami)"
+ export TEST_DBUSER
  export TEST_DBPASSWORD=""
  export TEST_DBHOST="localhost"
  export TEST_DBPORT="5432"

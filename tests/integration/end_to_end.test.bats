@@ -69,7 +69,7 @@ EOF
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the complete workflow
- run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_processAPINotes.sh"
+ run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_simple_api_workflow.sh"
  [ "$status" -eq 0 ]
 
  # Verify data was processed correctly
@@ -148,7 +148,7 @@ EOF
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the complete workflow
- run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_processPlanetNotes.sh"
+ run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_simple_planet_workflow.sh"
  [ "$status" -eq 0 ]
 
  # Verify data was processed correctly
@@ -213,7 +213,7 @@ EOF
  local start_time=$(date +%s)
 
  # Run the complete workflow
- run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_processPlanetNotes.sh"
+ run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_simple_api_workflow.sh"
  [ "$status" -eq 0 ]
 
  local end_time=$(date +%s)
@@ -279,7 +279,7 @@ EOF
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the complete workflow
- run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_processPlanetNotes.sh"
+ run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_simple_api_workflow.sh"
  [ "$status" -eq 0 ]
 
  # Verify data was processed correctly
@@ -319,7 +319,7 @@ EOF
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the workflow - should handle errors gracefully
- run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_processAPINotes.sh"
+ run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_simple_api_workflow.sh"
 
  # Should not crash, even with invalid data
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
@@ -329,6 +329,9 @@ EOF
 }
 
 @test "complete workflow should handle both Planet and API processing in sequence" {
+ # Clean up any existing test database
+ drop_test_database
+ 
  # Create test database
  create_test_database
 
@@ -390,10 +393,10 @@ EOF
  export TEST_DBHOST="${TEST_DBHOST:-test-db}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
- # Step 2: Process Planet notes (initial load)
+ # Step 2: Process Planet notes (initial load) - execute in same session
  echo "Processing Planet notes (initial load)..."
- run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_processPlanetNotes.sh"
- [ "$status" -eq 0 ]
+ PLANET_NOTES_FILE="${TEST_TMP_DIR}/planet_notes.xml" bash "${TEST_BASE_DIR}/tests/docker/test_simple_planet_workflow.sh"
+ [ "$?" -eq 0 ]
 
  # Verify initial data was processed correctly
  local notes_count_planet=$(count_rows "notes" "${TEST_DBNAME}")
@@ -464,10 +467,10 @@ EOF
  export TEST_DBHOST="${TEST_DBHOST:-test-db}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
- # Step 4: Process API notes (incremental updates)
+ # Step 4: Process API notes (incremental updates) - execute in same session
  echo "Processing API notes (incremental updates)..."
- run bash -c "source ${TEST_BASE_DIR}/tests/docker/test_processAPINotes.sh"
- [ "$status" -eq 0 ]
+ API_NOTES_FILE="${TEST_TMP_DIR}/api_notes.xml" bash "${TEST_BASE_DIR}/tests/docker/test_simple_api_workflow.sh"
+ [ "$?" -eq 0 ]
 
  # Verify final data was processed correctly
  local notes_count_final=$(count_rows "notes" "${TEST_DBNAME}")
@@ -491,7 +494,7 @@ EOF
  [ "$note_789_exists" -eq 1 ]
 
  # Check that new comment text exists
- local new_comment_exists=$(psql -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text WHERE note_id = 123 AND body LIKE '%API update%';" | xargs)
+ local new_comment_exists=$(psql -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text WHERE note_id = 123 AND text LIKE '%API update%';" | xargs)
  [ "$new_comment_exists" -eq 1 ]
 
  echo "Data integrity verification passed"

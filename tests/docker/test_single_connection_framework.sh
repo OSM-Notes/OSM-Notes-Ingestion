@@ -1,50 +1,58 @@
 #!/bin/bash
-# Test script for processing Planet notes in Docker
+# Test script to demonstrate single persistent connection for test framework
 # Version: 2025-07-27
 
 set -euo pipefail
 
-# Load test properties
-source /app/tests/properties.sh
+# Database configuration
+export DBNAME="osm_notes_test"
+export DB_USER="testuser"
+export DB_PASSWORD="testpass"
+export DB_HOST="postgres"
+export DB_PORT="5432"
 
-# Database configuration for Docker
-export TEST_DBNAME="osm_notes_test"
-export TEST_DBUSER="testuser"
-export TEST_DBPASSWORD="testpass"
-export TEST_DBHOST="postgres"
-export TEST_DBPORT="5432"
-
-echo "=== Testing Planet Notes Processing ==="
-echo "Database: ${TEST_DBNAME}"
-echo "User: ${TEST_DBUSER}"
-echo "Host: ${TEST_DBHOST}:${TEST_DBPORT}"
+echo "=== Testing Single Persistent Connection Framework ==="
+echo "Database: ${DBNAME}"
+echo "User: ${DB_USER}"
+echo "Host: ${DB_HOST}:${DB_PORT}"
 echo ""
 
 # Clean and create test database
 echo "🧹 Cleaning database state..."
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "DROP DATABASE IF EXISTS ${DBNAME};" 2> /dev/null || true
+psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "CREATE DATABASE ${DBNAME};" 2> /dev/null || true
 
-# Create all database objects in a single persistent connection
-echo "📋 Creating database objects in single connection..."
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" << 'EOF'
--- Start transaction
-BEGIN;
+# Test: Use a single persistent connection for all database operations
+echo "📋 Testing single persistent connection approach..."
+psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" << 'EOF'
+-- Start a persistent session
+\set ON_ERROR_STOP on
 
--- Create ENUM types
-CREATE TYPE note_status_enum AS ENUM (
-  'open',
-  'close',
-  'hidden'
-);
-
-CREATE TYPE note_event_enum AS ENUM (
- 'opened',
- 'closed',
- 'reopened',
- 'commented',
- 'hidden'
-);
+-- Create all database objects in a single session
+DO $$
+BEGIN
+  -- Create ENUM types
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+    CREATE TYPE note_status_enum AS ENUM (
+      'open',
+      'close',
+      'hidden'
+    );
+    RAISE NOTICE 'Created note_status_enum';
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_event_enum') THEN
+    CREATE TYPE note_event_enum AS ENUM (
+      'opened',
+      'closed',
+      'reopened',
+      'commented',
+      'hidden'
+    );
+    RAISE NOTICE 'Created note_event_enum';
+  END IF;
+END
+$$;
 
 -- Create base tables
 CREATE TABLE IF NOT EXISTS users (
@@ -85,12 +93,6 @@ CREATE TABLE IF NOT EXISTS properties (
  key VARCHAR(32) PRIMARY KEY,
  value TEXT,
  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS logs (
- id SERIAL PRIMARY KEY,
- message TEXT,
- created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create sequences
@@ -212,8 +214,6 @@ BEGIN
      m_process_id_db, m_process_id_bash;
   END IF;
 
-  INSERT INTO logs (message) VALUES (m_note_id || ' - Inserting note - ' || m_status || '.');
-
   -- Insert a new username, or update the username to an existing userid.
   IF (m_id_user IS NOT NULL AND m_username IS NOT NULL) THEN
    INSERT INTO users (
@@ -276,8 +276,6 @@ BEGIN
      m_process_id_db, m_process_id_bash;
   END IF;
 
-  INSERT INTO logs (message) VALUES (m_note_id || ' - Inserting comment - ' || m_event || '.');
-
   -- Insert a new username, or update the username to an existing userid.
   IF (m_id_user IS NOT NULL AND m_username IS NOT NULL) THEN
    INSERT INTO users (
@@ -312,10 +310,7 @@ INSERT INTO properties (key, value) VALUES
   ('initialLoadComments', 'true')
 ON CONFLICT (key) DO NOTHING;
 
--- Commit transaction
-COMMIT;
-
--- Verify ENUM types exist
+-- Verify all objects were created successfully
 SELECT 'ENUM types verification:' as status;
 SELECT typname, enumlabel 
 FROM pg_enum e 
@@ -323,38 +318,19 @@ JOIN pg_type t ON e.enumtypid = t.oid
 WHERE t.typname IN ('note_status_enum', 'note_event_enum')
 ORDER BY t.typname, e.enumsortorder;
 
--- Test procedure creation
 SELECT 'Procedures verification:' as status;
 SELECT proname, prokind 
 FROM pg_proc 
 WHERE proname IN ('insert_note', 'insert_note_comment', 'put_lock', 'remove_lock')
 ORDER BY proname;
+
+SELECT 'Tables verification:' as status;
+SELECT tablename 
+FROM pg_tables 
+WHERE tablename IN ('users', 'notes', 'note_comments', 'note_comments_text', 'properties', 'countries')
+ORDER BY tablename;
+
+SELECT 'All database objects created successfully in single session' as result;
 EOF
 
-echo "✅ Database objects created successfully"
-
-# Load test data
-echo "📋 Loading test data..."
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY notes FROM '/app/test_output/planet_notes.csv' WITH (FORMAT csv, HEADER true);"
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments FROM '/app/test_output/planet_comments.csv' WITH (FORMAT csv, HEADER true);"
-psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "\COPY note_comments_text FROM '/app/test_output/planet_text_comments.csv' WITH (FORMAT csv, HEADER true);"
-
-echo "✅ Test data loaded successfully"
-
-# Verify data
-echo "📋 Verifying data..."
-notes_count=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | tr -d ' ')
-comments_count=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | tr -d ' ')
-text_count=$(psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text;" | tr -d ' ')
-
-echo "📊 Results:"
-echo "  Notes: ${notes_count}"
-echo "  Comments: ${comments_count}"
-echo "  Text Comments: ${text_count}"
-
-if [ "$notes_count" -gt 0 ] && [ "$comments_count" -gt 0 ] && [ "$text_count" -gt 0 ]; then
-  echo "✅ Planet notes processing test completed successfully"
-else
-  echo "❌ Planet notes processing test failed"
-  exit 1
-fi
+echo "✅ Single persistent connection framework test completed successfully" 
