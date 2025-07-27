@@ -8,9 +8,9 @@
 
 # Database configuration.
 # shellcheck disable=SC2034
-declare -r DBNAME="notes"
+declare -r DBNAME="${DBNAME:-notes}"
 # shellcheck disable=SC2034
-declare -r DB_USER="notes"
+declare -r DB_USER="${DB_USER:-notes}"
 
 # Email configuration for reports.
 declare -r EMAILS="username@domain.com"

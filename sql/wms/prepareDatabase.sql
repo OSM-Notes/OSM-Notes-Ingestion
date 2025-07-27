@@ -119,3 +119,4 @@ CREATE OR REPLACE TRIGGER update_notes
 ;
 COMMENT ON TRIGGER update_notes ON notes IS
   'Replicates the update of a note in the WMS when closed';
+

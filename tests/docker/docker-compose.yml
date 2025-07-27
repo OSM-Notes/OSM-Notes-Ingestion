@@ -1,11 +1,11 @@
 # Docker Compose for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-26
+# Version: 2025-07-27
 
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:15
+    image: postgis/postgis:15-3.3
     container_name: osm_notes_postgres
     environment:
       POSTGRES_DB: osm_notes_test
@@ -57,6 +57,39 @@ services:
       - ./mock_data:/app/mock_data
     working_dir: /app
     command: ["/bin/bash", "-c", "sleep infinity"]
+    networks:
+      - default
+
+  # WMS Test Container
+  wms_test:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile
+    container_name: osm_notes_wms_test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TEST_DBNAME: osm_notes_wms_test
+      TEST_DBUSER: testuser
+      TEST_DBPASSWORD: testpass
+      TEST_DBHOST: postgres
+      TEST_DBPORT: 5432
+      LOG_LEVEL: INFO
+      PGPASSWORD: testpass
+      PGHOST: postgres
+      PGUSER: testuser
+      PGDATABASE: osm_notes_wms_test
+      # Database connection for WMS tests
+      DBNAME: osm_notes_wms_test
+      DBUSER: testuser
+      DBPASSWORD: testpass
+      DBHOST: postgres
+      DBPORT: 5432
+    volumes:
+      - ../../:/app
+    working_dir: /app
+    command: ["/app/tests/docker/wms_integration_docker.sh"]
     networks:
       - default
 
