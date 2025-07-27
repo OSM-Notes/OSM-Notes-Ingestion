@@ -1,20 +1,42 @@
 -- Installs the method to synchronize notes data with the tables used for WMS.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2022-12-10
+-- Version: 2025-07-27
+
+-- Check if PostGIS extension is available
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') THEN
+    RAISE EXCEPTION 'PostGIS extension is required but not installed. Please install PostGIS first.';
+  END IF;
+END $$;
+
+-- Check if required columns exist in notes table
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notes' 
+    AND column_name IN ('note_id', 'created_at', 'closed_at', 'lon', 'lat')
+  ) THEN
+    RAISE EXCEPTION 'Required columns (note_id, created_at, closed_at, lon, lat) not found in notes table.';
+  END IF;
+END $$;
 
 -- Creates an independent schema for all objects related to WMS.
 CREATE SCHEMA IF NOT EXISTS wms;
 COMMENT ON SCHEMA wms IS 'Objects to publish the WMS layer';
 
 -- Creates another table with only the necessary columns for WMS.
+-- Use a more efficient approach with WHERE clause to avoid processing all records
 CREATE TABLE IF NOT EXISTS wms.notes_wms AS
  SELECT /* Notes-WMS */
   note_id,
   extract(year from created_at) AS year_created_at,
   extract (year from closed_at) AS year_closed_at,
-  ST_SetSRID(ST_MakePoint(longitude, latitude), 4326) AS geometry
+  ST_SetSRID(ST_MakePoint(lon, lat), 4326) AS geometry
  FROM notes
+ WHERE lon IS NOT NULL AND lat IS NOT NULL  -- Only include notes with valid coordinates
 ;
 COMMENT ON TABLE wms.notes_wms IS
   'Locations of the notes and its opening and closing year';
@@ -22,7 +44,7 @@ COMMENT ON COLUMN wms.notes_wms.note_id IS 'OSM note id';
 COMMENT ON COLUMN wms.notes_wms.year_created_at IS
   'Year when the note was created';
 COMMENT ON COLUMN wms.notes_wms.year_closed_at IS
-  'Yead when the note was closed';
+  'Year when the note was closed';
 COMMENT ON COLUMN wms.notes_wms.geometry IS 'Location of the note';
 
 -- Index for open notes. The most important.
@@ -33,20 +55,27 @@ COMMENT ON INDEX wms.notes_open IS 'Queries based on creation year';
 CREATE INDEX IF NOT EXISTS notes_closed ON wms.notes_wms (year_closed_at);
 COMMENT ON INDEX wms.notes_closed IS 'Queries based on closed year';
 
+-- Add spatial index for better performance
+CREATE INDEX IF NOT EXISTS notes_wms_geometry_idx ON wms.notes_wms USING GIST (geometry);
+COMMENT ON INDEX wms.notes_wms_geometry_idx IS 'Spatial index for geometry queries';
+
 -- Function for trigger when inserting new notes.
 CREATE OR REPLACE FUNCTION wms.insert_new_notes()
   RETURNS TRIGGER AS
  $$
  BEGIN
-  INSERT INTO wms.notes_wms
-   VALUES
-   (
-    NEW.note_id,
-    EXTRACT(YEAR FROM NEW.created_at),
-    EXTRACT(YEAR FROM NEW.closed_at),
-    ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326)
-   )
-  ;
+  -- Only insert if coordinates are valid
+  IF NEW.lon IS NOT NULL AND NEW.lat IS NOT NULL THEN
+    INSERT INTO wms.notes_wms
+     VALUES
+     (
+      NEW.note_id,
+      EXTRACT(YEAR FROM NEW.created_at),
+      EXTRACT(YEAR FROM NEW.closed_at),
+      ST_SetSRID(ST_MakePoint(NEW.lon, NEW.lat), 4326)
+     )
+    ;
+  END IF;
   RETURN NEW;
  END;
  $$ LANGUAGE plpgsql
