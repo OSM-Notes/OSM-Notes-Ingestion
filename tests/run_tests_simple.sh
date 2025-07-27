@@ -232,50 +232,50 @@ main() {
 
 # Handle script arguments
 case "${1:-}" in
---help | -h)
- echo "Usage: $0 [OPTIONS]"
- echo
- echo "Options:"
- echo "  --help, -h           Show this help message"
- echo "  --bats-only          Run only BATS tests"
- echo "  --e2e-only           Run only end-to-end tests"
- echo "  --no-cleanup         Don't cleanup test database after tests"
- echo
- echo "Environment variables:"
- echo "  TEST_DBNAME     Test database name (default: osm_notes_test)"
- echo "  TEST_DBUSER     Test database user (default: testuser)"
- echo "  TEST_DBPASSWORD Test database password (default: testpass)"
- echo "  TEST_DBHOST     Test database host (default: localhost)"
- echo "  TEST_DBPORT     Test database port (default: 5432)"
- exit 0
- ;;
---bats-only)
- check_prerequisites
- setup_test_database
- run_bats_tests
- cleanup_test_database
- print_summary
- ;;
---e2e-only)
- check_prerequisites
- setup_test_database
- run_e2e_tests
- cleanup_test_database
- print_summary
- ;;
---no-cleanup)
- check_prerequisites
- setup_test_database
- run_bats_tests
- run_e2e_tests
- print_summary
- ;;
-"")
- main
- ;;
-*)
- log_error "Unknown option: $1"
- log_error "Use --help for usage information"
- exit 1
- ;;
+ --help | -h)
+  echo "Usage: $0 [OPTIONS]"
+  echo
+  echo "Options:"
+  echo "  --help, -h           Show this help message"
+  echo "  --bats-only          Run only BATS tests"
+  echo "  --e2e-only           Run only end-to-end tests"
+  echo "  --no-cleanup         Don't cleanup test database after tests"
+  echo
+  echo "Environment variables:"
+  echo "  TEST_DBNAME     Test database name (default: osm_notes_test)"
+  echo "  TEST_DBUSER     Test database user (default: testuser)"
+  echo "  TEST_DBPASSWORD Test database password (default: testpass)"
+  echo "  TEST_DBHOST     Test database host (default: localhost)"
+  echo "  TEST_DBPORT     Test database port (default: 5432)"
+  exit 0
+  ;;
+ --bats-only)
+  check_prerequisites
+  setup_test_database
+  run_bats_tests
+  cleanup_test_database
+  print_summary
+  ;;
+ --e2e-only)
+  check_prerequisites
+  setup_test_database
+  run_e2e_tests
+  cleanup_test_database
+  print_summary
+  ;;
+ --no-cleanup)
+  check_prerequisites
+  setup_test_database
+  run_bats_tests
+  run_e2e_tests
+  print_summary
+  ;;
+ "")
+  main
+  ;;
+ *)
+  log_error "Unknown option: $1"
+  log_error "Use --help for usage information"
+  exit 1
+  ;;
 esac

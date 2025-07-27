@@ -93,6 +93,39 @@ services:
     networks:
       - default
 
+  # Advanced WMS Test Container
+  wms_advanced_test:
+    build:
+      context: ../..
+      dockerfile: tests/docker/Dockerfile
+    container_name: osm_notes_wms_advanced_test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TEST_DBNAME: osm_notes_wms_test
+      TEST_DBUSER: testuser
+      TEST_DBPASSWORD: testpass
+      TEST_DBHOST: postgres
+      TEST_DBPORT: 5432
+      LOG_LEVEL: INFO
+      PGPASSWORD: testpass
+      PGHOST: postgres
+      PGUSER: testuser
+      PGDATABASE: osm_notes_wms_test
+      # Database connection for WMS tests
+      DBNAME: osm_notes_wms_test
+      DBUSER: testuser
+      DBPASSWORD: testpass
+      DBHOST: postgres
+      DBPORT: 5432
+    volumes:
+      - ../../:/app
+    working_dir: /app
+    command: ["/app/tests/docker/advanced_wms_integration.sh"]
+    networks:
+      - default
+
   # Mock API Server
   mock_api:
     image: python:3.9-slim

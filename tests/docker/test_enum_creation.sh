@@ -53,4 +53,4 @@ END
 \$\$;
 "
 
-echo "✅ ENUM types test completed successfully" 
+echo "✅ ENUM types test completed successfully"

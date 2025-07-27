@@ -18,4 +18,4 @@ echo "📋 Dropping and recreating database..."
 psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "DROP DATABASE IF EXISTS ${DBNAME};" 2> /dev/null || true
 psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "CREATE DATABASE ${DBNAME};" 2> /dev/null || true
 
-echo "✅ Database cleaned successfully" 
+echo "✅ Database cleaned successfully"

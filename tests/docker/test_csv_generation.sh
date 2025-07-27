@@ -67,4 +67,4 @@ else
  echo "SUCCESS: All note_id values are properly set in planet comments CSV"
 fi
 
-echo "CSV generation test completed successfully." 
+echo "CSV generation test completed successfully."

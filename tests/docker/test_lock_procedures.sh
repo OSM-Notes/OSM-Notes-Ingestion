@@ -77,4 +77,4 @@ BEGIN
 END \$\$;
 "
 
-echo "✅ Lock procedures test completed successfully" 
+echo "✅ Lock procedures test completed successfully"

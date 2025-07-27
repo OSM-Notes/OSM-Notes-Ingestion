@@ -197,31 +197,31 @@ SPECIFIC_CASE=""
 
 while [[ $# -gt 0 ]]; do
  case $1 in
- --help | -h)
-  __show_help
-  exit 0
-  ;;
- --verbose)
-  VERBOSE="true"
-  shift
-  ;;
- --parallel)
-  PARALLEL="true"
-  shift
-  ;;
- --fail-fast)
-  FAIL_FAST="true"
-  shift
-  ;;
- --case)
-  SPECIFIC_CASE="$2"
-  shift 2
-  ;;
- *)
-  __log_error "Unknown option: $1"
-  __show_help
-  exit 1
-  ;;
+  --help | -h)
+   __show_help
+   exit 0
+   ;;
+  --verbose)
+   VERBOSE="true"
+   shift
+   ;;
+  --parallel)
+   PARALLEL="true"
+   shift
+   ;;
+  --fail-fast)
+   FAIL_FAST="true"
+   shift
+   ;;
+  --case)
+   SPECIFIC_CASE="$2"
+   shift 2
+   ;;
+  *)
+   __log_error "Unknown option: $1"
+   __show_help
+   exit 1
+   ;;
  esac
 done
 

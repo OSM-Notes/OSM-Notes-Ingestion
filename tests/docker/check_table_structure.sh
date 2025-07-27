@@ -56,4 +56,4 @@ WHERE table_name = 'properties'
 ORDER BY ordinal_position;
 EOF
 
-echo "✅ Table structure check completed" 
+echo "✅ Table structure check completed"

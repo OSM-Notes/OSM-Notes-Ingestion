@@ -72,4 +72,4 @@ WHERE t.typname = 'test_enum'
 ORDER BY e.enumsortorder;
 "
 
-echo "✅ Connection isolation diagnostic completed" 
+echo "✅ Connection isolation diagnostic completed"

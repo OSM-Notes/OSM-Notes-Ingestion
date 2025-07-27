@@ -132,4 +132,4 @@ SELECT 'Procedure creation test:' as status;
 SELECT 'Procedure created successfully with ENUM types' as result;
 EOF
 
-echo "✅ CREATE TYPE IF NOT EXISTS test completed successfully" 
+echo "✅ CREATE TYPE IF NOT EXISTS test completed successfully"

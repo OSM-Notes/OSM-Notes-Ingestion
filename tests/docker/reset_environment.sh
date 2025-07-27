@@ -159,8 +159,6 @@ rebuild_images() {
  log_success "Images rebuilt"
 }
 
-
-
 # Function to start services
 start_services() {
  log_info "Starting services..."
@@ -295,47 +293,47 @@ main() {
  else
   # We're on the host - use original Docker commands
   case "${1:-}" in
-  --help | -h)
-   echo "Usage: $0 [OPTIONS]"
-   echo
-   echo "Options:"
-   echo "  --help, -h           Show this help message"
-   echo "  --cleanup-only       Only cleanup containers and volumes"
-   echo "  --rebuild-only       Only rebuild images"
-   echo "  --start-only         Only start services"
-   echo "  --verify-only        Only verify services"
-   echo "  --full-reset         Full reset (cleanup + rebuild + start)"
-   echo
-   exit 0
-   ;;
-  --cleanup-only)
-   cleanup_containers
-   cleanup_volumes
-   ;;
-  --rebuild-only)
-   rebuild_images
-   ;;
-  --start-only)
-   start_services
-   wait_for_services
-   ;;
-  --verify-only)
-   verify_services
-   ;;
-  --full-reset | "")
-   log_info "Performing full reset..."
-   cleanup_containers
-   cleanup_volumes
-   rebuild_images
-   start_services
-   wait_for_services
-   verify_services
-   ;;
-  *)
-   log_error "Unknown option: $1"
-   log_error "Use --help for usage information"
-   exit 1
-   ;;
+   --help | -h)
+    echo "Usage: $0 [OPTIONS]"
+    echo
+    echo "Options:"
+    echo "  --help, -h           Show this help message"
+    echo "  --cleanup-only       Only cleanup containers and volumes"
+    echo "  --rebuild-only       Only rebuild images"
+    echo "  --start-only         Only start services"
+    echo "  --verify-only        Only verify services"
+    echo "  --full-reset         Full reset (cleanup + rebuild + start)"
+    echo
+    exit 0
+    ;;
+   --cleanup-only)
+    cleanup_containers
+    cleanup_volumes
+    ;;
+   --rebuild-only)
+    rebuild_images
+    ;;
+   --start-only)
+    start_services
+    wait_for_services
+    ;;
+   --verify-only)
+    verify_services
+    ;;
+   --full-reset | "")
+    log_info "Performing full reset..."
+    cleanup_containers
+    cleanup_volumes
+    rebuild_images
+    start_services
+    wait_for_services
+    verify_services
+    ;;
+   *)
+    log_error "Unknown option: $1"
+    log_error "Use --help for usage information"
+    exit 1
+    ;;
   esac
  fi
 

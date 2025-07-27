@@ -174,4 +174,4 @@ WHERE t.typname IN ('note_status_enum', 'note_event_enum')
 ORDER BY t.typname, e.enumsortorder;
 EOF
 
-echo "✅ Connection pooling tests completed successfully" 
+echo "✅ Connection pooling tests completed successfully"

@@ -328,4 +328,4 @@ WHERE proname IN ('insert_note', 'insert_note_comment', 'put_lock', 'remove_lock
 ORDER BY proname;
 EOF
 
-echo "✅ Single connection test completed successfully" 
+echo "✅ Single connection test completed successfully"

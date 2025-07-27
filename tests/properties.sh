@@ -37,7 +37,7 @@ fi
 
 # Force override if variables are already set
 if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
- unset TEST_DBUSER TEST_DBPASSWORD 2>/dev/null || true
+ unset TEST_DBUSER TEST_DBPASSWORD 2> /dev/null || true
  TEST_DBUSER="testuser"
  export TEST_DBUSER
  TEST_DBPASSWORD="testpass"

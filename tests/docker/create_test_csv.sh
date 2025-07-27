@@ -72,4 +72,4 @@ cat test_output/planet_notes.csv
 echo "=== Planet Comments ==="
 cat test_output/planet_comments.csv
 
-echo "Test CSV files creation completed." 
+echo "Test CSV files creation completed."

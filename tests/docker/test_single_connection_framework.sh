@@ -333,4 +333,4 @@ ORDER BY tablename;
 SELECT 'All database objects created successfully in single session' as result;
 EOF
 
-echo "✅ Single persistent connection framework test completed successfully" 
+echo "✅ Single persistent connection framework test completed successfully"

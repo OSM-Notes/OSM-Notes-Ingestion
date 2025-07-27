@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     nodejs \
     npm \
     gdal-bin \
+    bc \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools

@@ -308,39 +308,39 @@ main() {
  # Parse command line arguments
  while [[ $# -gt 0 ]]; do
   case $1 in
-  -h | --help)
-   show_help
-   exit 0
-   ;;
-  -v | --verbose)
-   VERBOSE=true
-   shift
-   ;;
-  -p | --parallel)
-   PARALLEL=true
-   shift
-   ;;
-  -f | --fail-fast)
-   FAIL_FAST=true
-   shift
-   ;;
-  -c | --coverage)
-   COVERAGE=true
-   shift
-   ;;
-  -m | --mock-only)
-   MOCK_ONLY=true
-   shift
-   ;;
-  -a | --all)
-   # Default behavior
-   shift
-   ;;
-  *)
-   print_error "Unknown option: $1"
-   show_help
-   exit 1
-   ;;
+   -h | --help)
+    show_help
+    exit 0
+    ;;
+   -v | --verbose)
+    VERBOSE=true
+    shift
+    ;;
+   -p | --parallel)
+    PARALLEL=true
+    shift
+    ;;
+   -f | --fail-fast)
+    FAIL_FAST=true
+    shift
+    ;;
+   -c | --coverage)
+    COVERAGE=true
+    shift
+    ;;
+   -m | --mock-only)
+    MOCK_ONLY=true
+    shift
+    ;;
+   -a | --all)
+    # Default behavior
+    shift
+    ;;
+   *)
+    print_error "Unknown option: $1"
+    show_help
+    exit 1
+    ;;
   esac
  done
 

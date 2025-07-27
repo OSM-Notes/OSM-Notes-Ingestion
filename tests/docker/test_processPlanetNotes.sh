@@ -353,8 +353,8 @@ echo "  Comments: ${comments_count}"
 echo "  Text Comments: ${text_count}"
 
 if [ "$notes_count" -gt 0 ] && [ "$comments_count" -gt 0 ] && [ "$text_count" -gt 0 ]; then
-  echo "✅ Planet notes processing test completed successfully"
+ echo "✅ Planet notes processing test completed successfully"
 else
-  echo "❌ Planet notes processing test failed"
-  exit 1
+ echo "❌ Planet notes processing test failed"
+ exit 1
 fi
