@@ -27,6 +27,39 @@ When open notes, the older the darker the note, meaning it has less value than
 recently open notes.
 When closed notes, the lighter the older, meaning it was processed long before.
 
+# Installation
+
+## Automated Installation (Recommended)
+
+Use the WMS manager script for easy installation and management:
+
+```bash
+# Install WMS components
+~/OSM-Notes-profile/bin/wms/wmsManager.sh install
+
+# Check installation status
+~/OSM-Notes-profile/bin/wms/wmsManager.sh status
+
+# Remove WMS components
+~/OSM-Notes-profile/bin/wms/wmsManager.sh deinstall
+
+# Show help
+~/OSM-Notes-profile/bin/wms/wmsManager.sh help
+```
+
+The WMS manager script includes:
+- ✅ Automatic validation of prerequisites (PostgreSQL, PostGIS)
+- ✅ Database connection testing
+- ✅ Installation status checking
+- ✅ Safe installation with conflict detection
+- ✅ Force reinstallation option
+- ✅ Dry-run mode for testing
+- ✅ Comprehensive error handling
+
+## Manual Installation
+
+For manual installation, follow these steps:
+
 # Database configuration
 
 * Provide a password to the database user.

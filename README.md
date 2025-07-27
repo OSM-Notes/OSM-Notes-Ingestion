@@ -341,7 +341,29 @@ as much information as possible.
 This is the way to create the objects for the WMS layer.
 More information is in the `README.md` file under the `sql/wms` directory.
 
+### Automated Installation (Recommended)
+
+Use the WMS manager script for easy installation and management:
+
+```bash
+# Install WMS components
+~/OSM-Notes-profile/bin/wms/wmsManager.sh install
+
+# Check installation status
+~/OSM-Notes-profile/bin/wms/wmsManager.sh status
+
+# Remove WMS components
+~/OSM-Notes-profile/bin/wms/wmsManager.sh deinstall
+
+# Show help
+~/OSM-Notes-profile/bin/wms/wmsManager.sh help
 ```
+
+### Manual Installation
+
+For manual installation, execute the SQL directly:
+
+```bash
 psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-profile/sql/wms/prepareDatabase.sql
 ```
 
@@ -376,7 +398,7 @@ These are external libraries:
 You can use the following script to remove components from this tool.
 This is useful if you have to recreate some parts, but the rest is working fine.
 
-```
+```bash
 # ETL part.
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartCountries/datamartCountries_dropDatamartObjects.sql ;
 psql -d notes -f ~/OSM-Notes-profile/sql/dwh/datamartUsers/datamartUsers_dropDatamartObjects.sql ;
