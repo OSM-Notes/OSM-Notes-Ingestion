@@ -1,7 +1,7 @@
 -- Create procedure for staging tables for year ${YEAR}.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2027-07-11
+-- Version: 2027-07-26
 
 SELECT /* Notes-staging */ clock_timestamp() AS Processing,
  'Creating staging procedure for year' AS Task;
@@ -15,7 +15,8 @@ SELECT /* Notes-staging */ clock_timestamp() AS Processing,
 CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   max_processed_timestamp TIMESTAMP,
   INOUT m_count INTEGER,
-  m_equals BOOLEAN
+  m_equals BOOLEAN,
+  m_process_id_bash INTEGER DEFAULT NULL
  )
  LANGUAGE plpgsql
  AS $proc$
@@ -42,8 +43,22 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date_${YEAR} (
   m_hashtag_name TEXT;
   rec_note_action RECORD;
   notes_on_day REFCURSOR;
+  m_process_id_db INTEGER;
 
  BEGIN
+  -- Check the DB lock to validate it is from the same process (if process_id provided)
+  IF (m_process_id_bash IS NOT NULL) THEN
+   SELECT /* Notes-staging */ value
+     INTO m_process_id_db
+   FROM properties
+   WHERE key = 'lock';
+   IF (m_process_id_db IS NULL) THEN
+    RAISE EXCEPTION 'This call does not have a lock.';
+   ELSIF (m_process_id_bash <> m_process_id_db) THEN
+    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%).',
+      m_process_id_db, m_process_id_bash;
+   END IF;
+  END IF;
 --  RAISE NOTICE 'Day % started.', max_processed_timestamp;
 
 --RAISE NOTICE 'Flag 1: %', CLOCK_TIMESTAMP();

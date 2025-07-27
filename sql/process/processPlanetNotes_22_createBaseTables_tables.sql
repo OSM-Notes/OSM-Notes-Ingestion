@@ -4,7 +4,7 @@
 -- Version: 2024-02-20
 
 CREATE TABLE IF NOT EXISTS users (
- user_id INTEGER NOT NULL,
+ user_id INTEGER NOT NULL PRIMARY KEY,
  username VARCHAR(256) NOT NULL
 );
 COMMENT ON TABLE users IS 'OSM user id';
@@ -88,8 +88,9 @@ COMMENT ON COLUMN logs.timestamp IS 'Timestamp when the event was recorded';
 COMMENT ON COLUMN logs.message IS 'Text of the event';
 
 CREATE TABLE IF NOT EXISTS properties (
- key VARCHAR(32),
- value VARCHAR(32)
+ key VARCHAR(32) PRIMARY KEY,
+ value VARCHAR(32),
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 COMMENT ON TABLE properties IS 'Properties table for base load';
 COMMENT ON COLUMN properties.key IS 'Property name';
@@ -100,6 +101,23 @@ INSERT INTO properties (key, value) VALUES
   ('initialLoadNotes', 'true'),
   ('initialLoadComments', 'true');
 
+-- Create trigger to update timestamp on properties table
+CREATE OR REPLACE FUNCTION update_properties_timestamp()
+  RETURNS TRIGGER AS
+ $$
+ BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+ END;
+ $$ LANGUAGE plpgsql
+;
+
+CREATE OR REPLACE TRIGGER update_properties_timestamp_trigger
+  BEFORE UPDATE ON properties
+  FOR EACH ROW
+  EXECUTE FUNCTION update_properties_timestamp()
+;
+
 CREATE OR REPLACE PROCEDURE put_lock (
   m_id VARCHAR(32)
  )
@@ -107,20 +125,48 @@ CREATE OR REPLACE PROCEDURE put_lock (
  AS $proc$
  DECLARE
   m_qty SMALLINT;
+  m_current_lock VARCHAR(32);
+  m_lock_timeout INTEGER := 300; -- 5 minutes timeout
+  m_start_time TIMESTAMP := NOW();
  BEGIN
-  SELECT /* Notes-base */ COUNT (1)
+  -- Check if there's already a lock
+  SELECT /* Notes-base */ COUNT(1)
    INTO m_qty
   FROM properties
   WHERE key = 'lock';
+  
   IF (m_qty = 0) THEN
-   INSERT INTO properties VALUES ('lock', m_id);
-   RAISE NOTICE 'Lock inserted %.', m_id;
+   -- No lock exists, try to insert one
+   BEGIN
+    INSERT INTO properties VALUES ('lock', m_id);
+    RAISE NOTICE 'Lock inserted %.', m_id;
+   EXCEPTION
+    WHEN unique_violation THEN
+     -- Another process inserted the lock first
+     SELECT value INTO m_current_lock
+     FROM properties
+     WHERE key = 'lock';
+     RAISE EXCEPTION 'Lock was acquired by another process: %.', m_current_lock;
+   END;
   ELSE
-   SELECT value
-    INTO m_id
+   -- Lock exists, check if it's stale (older than timeout)
+   SELECT value INTO m_current_lock
    FROM properties
    WHERE key = 'lock';
-   RAISE EXCEPTION 'There is a lock on the table. Shell id %.', m_id;
+   
+   -- Check if lock is older than timeout
+   IF EXISTS (
+    SELECT 1 FROM properties 
+    WHERE key = 'lock' 
+    AND updated_at < (NOW() - INTERVAL '5 minutes')
+   ) THEN
+    -- Remove stale lock and try to acquire new one
+    DELETE FROM properties WHERE key = 'lock';
+    INSERT INTO properties VALUES ('lock', m_id);
+    RAISE NOTICE 'Stale lock removed and new lock inserted %.', m_id;
+   ELSE
+    RAISE EXCEPTION 'There is an active lock on the table. Shell id %.', m_current_lock;
+   END IF;
   END IF;
  END
 $proc$
