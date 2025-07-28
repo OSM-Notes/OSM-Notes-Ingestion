@@ -21,9 +21,9 @@ Generate database designs and scripts that align with best practices for scalabi
 ---
   
 ### Bash Scripting
-    
+
 - All Bash functions should have a header description, with the accepted parameters.
-- Use `shellcheck` to lint scripts and improve quality with these validations: shellcheck -x -o all 
+- Use `shellcheck` to lint scripts and improve quality with these validations: shellcheck -x -o all
 - All Bash code should have the formating shfmt -w -i 1 -sr -bn
 - All variables, file names and functions should have a descriptive name.
   - If a variable is local, it should be defined as it.
