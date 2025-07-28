@@ -30,7 +30,7 @@ There are several third-party alternatives, but each has limitations:
 
 ### What Are Notes?
 
-OpenStreetMap has a feature called notes (https://wiki.openstreetmap.org/wiki/Notes), which are used to report, mainly in the field, any discrepancies between what exists in reality and what is mapped. There is also documentation on how to create notes: https://learnosm.org/en/beginner/notes/.
+OpenStreetMap has a feature called notes (<https://wiki.openstreetmap.org/wiki/Notes>), which are used to report, mainly in the field, any discrepancies between what exists in reality and what is mapped. There is also documentation on how to create notes: <https://learnosm.org/en/beginner/notes/>.
 
 Notes can be created anonymously or authenticated in OSM. To resolve them, mappers read them, analyze the text, and according to the note content and what is already on the map, they decide whether or not a change in the map is required.
 
@@ -52,11 +52,11 @@ Due to all this, the communities of different countries and mappers have differe
 
 ### Current Statistics Limitations
 
-The only place that indicates performance regarding note processing is the ResultMaps page by Pascal Neis: https://resultmaps.neis-one.org/osm-notes where you can see open notes from all countries and note performance in recent days. On each country's page, you can see the list of the latest 1000 notes, plus a link to the 10,000 open notes. Accessing this page is one of the strategies to resolve notes massively.
+The only place that indicates performance regarding note processing is the ResultMaps page by Pascal Neis: <https://resultmaps.neis-one.org/osm-notes> where you can see open notes from all countries and note performance in recent days. On each country's page, you can see the list of the latest 1000 notes, plus a link to the 10,000 open notes. Accessing this page is one of the strategies to resolve notes massively.
 
-On the other hand, in the board section of the same website: https://osmstats.neis-one.org/?item=boards you can see the top 100 users who have opened the most notes and who have closed the most (in the Notes section).
+On the other hand, in the board section of the same website: <https://osmstats.neis-one.org/?item=boards> you can see the top 100 users who have opened the most notes and who have closed the most (in the Notes section).
 
-Additionally, this website offers a contribution profile in OpenStreetMap, called How Did You Contribute - HDYC, and this profile allows obtaining detailed information about the mapper. This is a page for user AngocA: https://hdyc.neis-one.org/?AngocA
+Additionally, this website offers a contribution profile in OpenStreetMap, called How Did You Contribute - HDYC, and this profile allows obtaining detailed information about the mapper. This is a page for user AngocA: <https://hdyc.neis-one.org/?AngocA>
 
 There you can identify since when the account was created, how many days they have mapped, performance by country, what types of elements they have created/modified/deleted, the tags used, among other elements. It also has a small section on how many notes they have opened and how many they have closed.
 
@@ -87,17 +87,21 @@ In other words, this project uses these three sources of data to keep the databa
 ## Data Processing Strategy
 
 ### 1. Geographic Data Collection
+
 First, it queries Overpass to get the IDs of the country and maritime boundaries, and then it downloads each of them individually. After, it converts this data into a Postgres geometry and builds the country's table.
 
 ### 2. Historical Data Processing
+
 Second, it takes the daily dump from the Planet and builds the base of the note's database. Then, based on the location of the notes, it calculates to which country each note belongs.
 
 ### 3. Incremental Synchronization
+
 Third, the program downloads the recent notes from the whole world and populates the tables with this information. Then, it also calculates the country of these new notes. This step is periodic, which means it should be triggered regularly, like every 15 minutes to have recent information. The shorter the time, the more near real-time information this will provide; however, it needs a faster server to process the information.
 
 ## Technical Implementation
 
 ### Initial Code Structure
+
 With respect to the initial code, it has been written mainly in Bash for interactions with the OSM API to bring new notes, and through the OSM Planet to download the historical notes file.
 
 On the other hand, Overpass has been used to download countries and other regions in the world, and with this information, we can associate a note with a territory.
@@ -105,6 +109,7 @@ On the other hand, Overpass has been used to download countries and other region
 It is necessary to clarify that the XML document of the Planet for notes does not have the same structure as the XML retrieved through the API. Both XML structures are in the xsd directory to validate them independently.
 
 ### Data Warehouse Design
+
 With all this information, a data warehouse has been designed, which is composed of a set of tables in star schema, an ETL that loads the historical data into these tables, using staging tables.
 
 Subsequently, data marts are created for users and for countries, so that the data calculations are already pre-calculated at the time of querying the profiles.
@@ -120,6 +125,5 @@ As part of the data warehouse, the ETL converts the note's data into a star sche
 
 ## Related Documentation
 
-- **System Architecture**: See [Documentation.md](./Documentation.md) for technical implementation details
-- **Processing Details**: See [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for specific implementation details
-
+* **System Architecture**: See [Documentation.md](./Documentation.md) for technical implementation details
+* **Processing Details**: See [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for specific implementation details

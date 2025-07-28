@@ -5,9 +5,9 @@
 
 ## General Purpose
 
-The `processAPINotes.sh` script is the incremental synchronization component of the 
-OpenStreetMap notes processing system. Its main function is to download the most 
-recent notes from the OSM API and synchronize them with the local database that 
+The `processAPINotes.sh` script is the incremental synchronization component of the
+OpenStreetMap notes processing system. Its main function is to download the most
+recent notes from the OSM API and synchronize them with the local database that
 maintains the complete history.
 
 ## Main Features
@@ -28,6 +28,7 @@ The script **does NOT accept arguments** for normal execution. It only accepts:
 ```
 
 **Why doesn't it accept arguments?**
+
 - It is designed to run automatically (cron job)
 - The decision logic is internal based on database state
 - Configuration is done through environment variables
@@ -35,6 +36,7 @@ The script **does NOT accept arguments** for normal execution. It only accepts:
 ## Table Architecture
 
 ### API Tables (Temporary)
+
 API tables temporarily store data downloaded from the API:
 
 - **`notes_api`**: Notes downloaded from the API
@@ -64,42 +66,52 @@ API tables temporarily store data downloaded from the API:
   - `part_id`: Partition ID for parallel processing
 
 ### Base Tables (Permanent)
+
 Uses the same base tables as `processPlanetNotes.sh`:
+
 - `notes`, `note_comments`, `note_comments_text`
 
 ## Processing Flow
 
 ### 1. Prerequisites Verification
+
 - Verifies that `processPlanetNotes.sh` is not running
 - Checks existence of base tables
 - Validates necessary SQL and XSLT files
 
 ### 2. API Table Management
+
 - Removes existing API tables
 - Creates new API tables with partitioning
 - Creates properties table for tracking
 
 ### 3. Data Download
+
 - Gets last update timestamp from database
 - Builds API URL with filtering parameters
 - Downloads new/modified notes from OSM API
 - Validates downloaded XML structure
 
 ### 4. Processing Decision
+
 **If downloaded notes >= MAX_NOTES (configurable)**:
+
 - Executes complete synchronization from Planet
 - Calls `processPlanetNotes.sh`
 
 **If downloaded notes < MAX_NOTES**:
+
 - Processes downloaded notes locally
 - Uses parallel processing with partitioning
 
 ### 5. Parallel Processing
+
 - Divides XML file into parts
 - Processes each part in parallel using XSLT
 - Consolidates results from all partitions
 
 ### 6. Data Integration
+
 - Inserts new notes and comments into base tables
 - Processes in chunks if there is much data (>1000 notes)
 - Updates last update timestamp
@@ -195,4 +207,3 @@ The script uses several environment variables for configuration:
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
 - **Planet Processing**: See [processPlanet.md](./processPlanet.md) for Planet data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
-

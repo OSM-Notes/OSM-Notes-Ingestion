@@ -46,11 +46,13 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
 ### Test Environments
 
 #### Host Environment
+
 - Runs on the local development machine
 - Uses system-installed tools and dependencies
 - Simulates production-like conditions
 
 #### Docker Environment
+
 - Isolated containerized testing
 - Consistent environment across different platforms
 - Includes all necessary tools and dependencies
@@ -58,31 +60,37 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
 ## Test Categories
 
 ### 1. Unit Tests (BATS)
+
 - **Location**: `tests/unit/bash/`
 - **Purpose**: Test individual functions and scripts
 - **Coverage**: Core functionality, error handling, prerequisites
 
 **Test Files**:
+
 - `functionsProcess.test.bats` - Tests common functions
 - `processPlanetNotes.test.bats` - Tests Planet processing script
 - `processAPINotes.test.bats` - Tests API processing script
 - `wmsManager.test.bats` - Tests WMS management script
 
 ### 2. Integration Tests
+
 - **Location**: `tests/integration/`
 - **Purpose**: Test complete workflows and data processing
 - **Coverage**: End-to-end scenarios, database operations
 
 **Test Files**:
+
 - `end_to_end.test.bats` - Complete workflow testing
 - `wms_integration.test.bats` - WMS integration testing
 
 ### 3. Advanced Tests
+
 - **Location**: `tests/advanced/`
 - **Purpose**: Code coverage, security, quality analysis
 - **Coverage**: Comprehensive metrics and reporting
 
 **Categories**:
+
 - **Coverage**: Code coverage analysis with kcov
 - **Security**: Security scanning with ShellCheck
 - **Quality**: Code quality metrics and static analysis
@@ -91,6 +99,7 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
 ## CI/CD Scripts
 
 ### Main Test Runner
+
 - **File**: `tests/run_ci_tests.sh`
 - **Purpose**: Orchestrates all test execution
 - **Features**:
@@ -121,6 +130,7 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
 ## Docker Configuration
 
 ### Test Environment
+
 - **Base Image**: Ubuntu 22.04
 - **Tools Included**:
   - PostgreSQL client
@@ -131,6 +141,7 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
   - Node.js tools (ajv-cli, osmtogeojson)
 
 ### Docker Compose Setup
+
 - **File**: `tests/docker/docker-compose.yml`
 - **Services**:
   - `postgres`: PostgreSQL database with PostGIS
@@ -154,8 +165,8 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
    - Measures test coverage percentage
 
 3. **ShellCheck**
-        - Security analysis for shell scripts
-     - Identifies shell script vulnerabilities
+   - Security analysis for shell scripts
+   - Identifies shell script vulnerabilities
    - Generates security reports
 
 ### Code Formatting
@@ -173,6 +184,7 @@ shellcheck -x -o all
 ## Environment Variables
 
 ### Test Configuration
+
 ```bash
 TEST_DBNAME=osm_notes_test      # Test database name
 TEST_DBUSER=testuser            # Test database user
@@ -184,6 +196,7 @@ MAX_THREADS=2                  # Maximum parallel threads
 ```
 
 ### CI/CD Configuration
+
 ```bash
 CI_MODE=true                   # CI environment flag
 GITHUB_TOKEN                   # GitHub API token
@@ -192,11 +205,13 @@ GITHUB_TOKEN                   # GitHub API token
 ## Reporting and Artifacts
 
 ### Test Results
+
 - **Location**: `./ci_results/`
 - **Format**: JSON, HTML, Markdown
 - **Content**: Test summaries, coverage reports, security scans
 
 ### GitHub Actions Artifacts
+
 - Unit test results
 - Integration test results
 - Performance benchmarks
@@ -206,11 +221,13 @@ GITHUB_TOKEN                   # GitHub API token
 ## Monitoring and Alerts
 
 ### Test Status
+
 - Automatic status updates on pull requests
 - Detailed failure reporting
 - Performance regression detection
 
 ### Quality Gates
+
 - Minimum code coverage requirements
 - Security vulnerability thresholds
 - Performance benchmarks
@@ -218,6 +235,7 @@ GITHUB_TOKEN                   # GitHub API token
 ## Best Practices
 
 ### Development Workflow
+
 1. Write tests for new functionality
 2. Ensure all tests pass locally
 3. Push changes to trigger CI/CD
@@ -225,12 +243,14 @@ GITHUB_TOKEN                   # GitHub API token
 5. Address any issues before merging
 
 ### Test Writing Guidelines
+
 - Use descriptive test names
 - Follow BATS testing conventions
 - Include both positive and negative test cases
 - Test error conditions and edge cases
 
 ### CI/CD Maintenance
+
 - Regular updates to dependencies
 - Monitoring test execution time
 - Optimizing test parallelization
@@ -274,6 +294,7 @@ psql -h localhost -U testuser -d osm_notes_test
 ## Future Enhancements
 
 ### Planned Improvements
+
 1. **Automated Deployment**
    - Staging environment deployment
    - Production deployment automation
@@ -301,5 +322,4 @@ OSM-Notes-profile project. It ensures code quality, security, and reliability
 through automated testing across multiple environments and scenarios.
 
 The system is designed to be maintainable, scalable, and provides clear feedback
-to developers about the state of their changes. 
-
+to developers about the state of their changes.

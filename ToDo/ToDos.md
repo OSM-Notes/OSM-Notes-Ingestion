@@ -93,12 +93,12 @@ All good.
   * Podría generar un archivo JSON, y que el archivo sea usado para por el
     generador de código HTML estático.
 * Mostrar de manera diferente la cuenta
-  https://www.openstreetmap.org/user/ContributionReviewer
+  <https://www.openstreetmap.org/user/ContributionReviewer>
 * Mostrar resultados con link a OSM y al API. El API ofrece detalles de horas,
   pero no mapa.
 * Mostrar la hora actual del servidor de DB.
 * Mostrar la hora del procesamiento.
-* Github tiles de https://github.com/sallar/github-contributions-canvas
+* Github tiles de <https://github.com/sallar/github-contributions-canvas>
 
 ## Other
 
@@ -129,4 +129,3 @@ from (
 
 * revisar que BACKUP solo es para la descarga de paises. Ya que la ubicacion
 de notas es por defecto
-

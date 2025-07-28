@@ -28,9 +28,7 @@ When open notes, the older the darker the note, meaning it has less value than
 recently open notes.
 When closed notes, the lighter the older, meaning it was processed long before.
 
-
 # Installation
-
 
 ## Automated Installation (Recommended)
 
@@ -55,6 +53,7 @@ Use the WMS manager script for easy installation and management:
 ```
 
 The WMS manager script includes:
+
 - ✅ Automatic validation of prerequisites (PostgreSQL, PostGIS)
 - ✅ Database connection testing
 - ✅ Installation status checking
@@ -63,23 +62,21 @@ The WMS manager script includes:
 - ✅ Dry-run mode for testing
 - ✅ Comprehensive error handling
 
-
 ## Manual Installation
 
 For manual installation, follow these steps:
 
-
 # Database configuration
 
-* Provide a password to the database user.
+- Provide a password to the database user.
 
 ```
 ALTER USER myuser WITH PASSWORD 'mypassword';
 ```
 
-* Change the database configuration to allow remote connections.
+- Change the database configuration to allow remote connections.
 This link could be useful:
-https://www.bigbinary.com/blog/configure-postgresql-to-allow-remote-connection
+<https://www.bigbinary.com/blog/configure-postgresql-to-allow-remote-connection>
 Also, you can find the configuration file with this:
 
 ```
@@ -109,7 +106,7 @@ host    all             all              0.0.0.0/0                       md5
 host    all             all              ::/0                            md5
 ```
 
-* Execute the necessary SQLs to adapt the database to synchronize with this
+- Execute the necessary SQLs to adapt the database to synchronize with this
 service.
 Let's suppose the Postgres database is called `notes`.
 
@@ -117,98 +114,86 @@ Let's suppose the Postgres database is called `notes`.
 psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
 ```
 
-
 # Geoserver configuration
 
 Configure the GeoServer to publish the layer from the database, following
 these instructions.
 
-
 ## Contact Information
-
 
 ### Organization
 
-* Organization: OSM LatAm
-* Online Resource: https://osmlatam.org
-* Welcome: Set of layers provided by OpenStreetMap LatAm.
-
+- Organization: OSM LatAm
+- Online Resource: <https://osmlatam.org>
+- Welcome: Set of layers provided by OpenStreetMap LatAm.
 
 ### Primary Contact
 
-* Contact: Andres Gomez Casanova - AngocA
-* Position: Volunteer
-* Email: angoca @ osm.lat
-
+- Contact: Andres Gomez Casanova - AngocA
+- Position: Volunteer
+- Email: angoca @ osm.lat
 
 ### Address
 
-* City: Bogota
-* State: D.C.
-* Country: Colombia
-
+- City: Bogota
+- State: D.C.
+- Country: Colombia
 
 ## Workspaces
 
-* Name: OSM_Notes
-* Namespace URI: OSM_Notes
-
+- Name: OSM_Notes
+- Namespace URI: OSM_Notes
 
 ## Stores
-
 
 ### Basic Store Info
 
 PostGIS
 
-* Workspace: OSM_Notes
-* Data Source Name: OSM Notes DS
-* Description: Data for OSM Notes
-
+- Workspace: OSM_Notes
+- Data Source Name: OSM Notes DS
+- Description: Data for OSM Notes
 
 ### Connection Parameters
 
-* Host:
-* Port:
-* Database: notes
-* User:
-* Passwd:
-
+- Host:
+- Port:
+- Database: notes
+- User:
+- Passwd:
 
 ## Styles
-
 
 ### Syle Data
 
 SLD files are under the `sld` directory.
 
-* Name: Open notes style
-* Workspace: OSM_Notes
-* Upload a style line
-  * Choose File: OpenNotes.sld
-  * Upload...
-* Legend: Add legend
+- Name: Open notes style
+- Workspace: OSM_Notes
+- Upload a style line
+  - Choose File: OpenNotes.sld
+  - Upload...
+- Legend: Add legend
 
-* Name: Closed notes style
-* Workspace: OSM_Notes
-* Upload a style line
-  * Choose File: ClosedNotes.sld
-  * Upload...
-* Legend: Add legend
-
+- Name: Closed notes style
+- Workspace: OSM_Notes
+- Upload a style line
+  - Choose File: ClosedNotes.sld
+  - Upload...
+- Legend: Add legend
 
 ## Layers
 
 __Open Notes__
 
-**On Data tab:**
+__On Data tab:__
 
 Add layer from OSM_Notes:OSM_Notes_DS.
 
 Configure new SQL view...
 
-* View Name: Open OSM Notes layer
-* SQL Statement:
+- View Name: Open OSM Notes layer
+- SQL Statement:
 
 ```
 SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry
@@ -217,65 +202,57 @@ WHERE year_closed_at IS NULL
 ORDER BY year_created_at DESC
 ```
 
-
 ## Styles
 
 For each layer.
 
-
 ### Publishing
 
-* Default
-
+- Default
 
 ### Basic Resource Info
 
-* Abstract: This layer shows the location of the currently open notes.
+- Abstract: This layer shows the location of the currently open notes.
 The color intensity shows the age of the creation time.
-
 
 ### Coordinate Reference Systems
 
-* Declared SRS: EPSG:4326
-
+- Declared SRS: EPSG:4326
 
 ### Bounding Boxes
 
-* Compute from SRS bounds
-* Compute from native bounds
+- Compute from SRS bounds
+- Compute from native bounds
 
-**On the Publishing tab:**
-
+__On the Publishing tab:__
 
 ### WMS Settings - Layers Settings
 
-* Additional Styles: OSM_Notes:OpenNotes
-
+- Additional Styles: OSM_Notes:OpenNotes
 
 ### WMS Attribution
 
-* Attribution Text: OpenStreetMap contributors
-* Attribution Link: https://www.openstreetmap.org/copyright
+- Attribution Text: OpenStreetMap contributors
+- Attribution Link: <https://www.openstreetmap.org/copyright>
 
-**On the Tile Caching tab:**
-
+__On the Tile Caching tab:__
 
 ### Tile cache configuration
 
-* Uncheck image/jpeg
-* (Optional) Put 3600 for Expire Server cache after n seconds.
-* Styles: Default Style: OSM_Notes:ClosedNotes (and check it).
-* Gridset:
-  * Published zoom levels: 0 - 8
+- Uncheck image/jpeg
+- (Optional) Put 3600 for Expire Server cache after n seconds.
+- Styles: Default Style: OSM_Notes:ClosedNotes (and check it).
+- Gridset:
+  - Published zoom levels: 0 - 8
 
 __Closed Notes__
 
-**On the Data tab:**
+__On the Data tab:__
 
 Layer from OSM_Notes:OSM_Notes_DS.
 
-* View Name: Closed OSM Notes layer
-* SQL Statement:
+- View Name: Closed OSM Notes layer
+- SQL Statement:
 
 ```
 SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry
@@ -284,71 +261,60 @@ WHERE year_closed_at IS NOT NULL
 ORDER BY year_created_at DESC
 ```
 
-
 ### Basic Resource Info
 
-* Abstract: This layer shows the location of the closed notes.
+- Abstract: This layer shows the location of the closed notes.
 The color intensity shows the age of the creation time.
 
-**On the Publishing tab:**
-
+__On the Publishing tab:__
 
 ### WMS Settings - Layers Settings
 
-* Additional Styles: OSM_Notes:CloseNotes
+- Additional Styles: OSM_Notes:CloseNotes
 
 The other options the same as for open notes.
 
-
 ## Disk Quota
 
-* Enable disk quota
-* Maximum tile cache size: 5 GB
-
+- Enable disk quota
+- Maximum tile cache size: 5 GB
 
 ## BlobStores
 
-* Add new:
-* Type of BlobStore: File BlobStore
-* Identifier: OSM Notes
-* Enabled.
-* Default.
-* Base Directory: A location with more than 50 GB space.
-
+- Add new:
+- Type of BlobStore: File BlobStore
+- Identifier: OSM Notes
+- Enabled.
+- Default.
+- Base Directory: A location with more than 50 GB space.
 
 ## Tile Layers
 
-* Choose each layer, and click on Seed/Truncate.
-
+- Choose each layer, and click on Seed/Truncate.
 
 ## Passwords
 
-* Change active master provider.
-
+- Change active master provider.
 
 ## Users, Groups, Roles
 
-* Change admin password.
-
+- Change admin password.
 
 ## Additionally
 
-* Activate BlobStores.
-
+- Activate BlobStores.
 
 # Files
 
 Under `sld`:
 
-* `ClosedNotes.sld` QGIS generated file for WMS style on closed notes.
-* `CountriesAndMaritimes.sld` QGIS generated file for WMS style on countries
+- `ClosedNotes.sld` QGIS generated file for WMS style on closed notes.
+- `CountriesAndMaritimes.sld` QGIS generated file for WMS style on countries
   and maritimes areas.
-* `OpenNotes.sld` QGIS generated file for WMS style on open notes.
+- `OpenNotes.sld` QGIS generated file for WMS style on open notes.
 
 Under `sql/wms`
 
-* `prepareDatabase.sql` All the necessary scripts to synchronize the OSM
+- `prepareDatabase.sql` All the necessary scripts to synchronize the OSM
   Notes profile mechanism with this Notes WMS layer service.
-* `removeFromDatabase.sql` Removes the Notes WMS part from the database.
-
-
+- `removeFromDatabase.sql` Removes the Notes WMS part from the database.

@@ -39,6 +39,7 @@ WMS (Web Map Service) is an OGC (Open Geospatial Consortium) standard that provi
 Before installing WMS, ensure you have:
 
 1. **PostgreSQL with PostGIS**
+
    ```bash
    # Ubuntu/Debian
    sudo apt-get install postgresql postgis
@@ -48,6 +49,7 @@ Before installing WMS, ensure you have:
    ```
 
 2. **GeoServer**
+
    ```bash
    # Download from https://geoserver.org/download/
    # Or use Docker
@@ -55,6 +57,7 @@ Before installing WMS, ensure you have:
    ```
 
 3. **Java Runtime Environment**
+
    ```bash
    # Required for GeoServer
    java -version
@@ -122,6 +125,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
 #### Key Configuration Sections
 
 1. **Database Configuration**
+
    ```bash
    WMS_DBNAME="osm_notes"
    WMS_DBUSER="postgres"
@@ -130,6 +134,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
    ```
 
 2. **GeoServer Configuration**
+
    ```bash
    GEOSERVER_URL="http://localhost:8080/geoserver"
    GEOSERVER_USER="admin"
@@ -137,6 +142,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
    ```
 
 3. **Service Configuration**
+
    ```bash
    WMS_SERVICE_TITLE="OSM Notes WMS Service"
    WMS_LAYER_SRS="EPSG:4326"
@@ -147,6 +153,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
 #### Customization Examples
 
 **Regional Configuration (Europe)**
+
 ```bash
 export WMS_BBOX_MINX="-10"
 export WMS_BBOX_MAXX="40"
@@ -156,6 +163,7 @@ export WMS_SERVICE_TITLE="European OSM Notes WMS Service"
 ```
 
 **Custom Database**
+
 ```bash
 export WMS_DBNAME="my_osm_notes"
 export WMS_DBUSER="myuser"
@@ -164,6 +172,7 @@ export WMS_DBHOST="my-db-server.com"
 ```
 
 **Custom GeoServer**
+
 ```bash
 export GEOSERVER_URL="https://my-geoserver.com/geoserver"
 export GEOSERVER_USER="admin"
@@ -233,11 +242,13 @@ export WMS_STYLE_CLOSED_FILE="/path/to/my/custom_closed.sld"
 #### Color Coding
 
 **Open Notes:**
+
 - **Dark Red**: Recently opened notes (high priority)
 - **Medium Red**: Notes open for a few days
 - **Light Red**: Notes open for weeks/months
 
 **Closed Notes:**
+
 - **Dark Green**: Recently closed notes
 - **Medium Green**: Notes closed some time ago
 - **Light Green**: Notes closed long ago
@@ -272,10 +283,12 @@ export WMS_STYLE_CLOSED_FILE="/path/to/my/custom_closed.sld"
 #### 1. WMS Service Not Accessible
 
 **Symptoms:**
+
 - 404 errors when accessing WMS URLs
 - GeoServer not responding
 
 **Solutions:**
+
 ```bash
 # Check GeoServer status
 ./bin/wms/geoserverConfig.sh status
@@ -290,10 +303,12 @@ tail -f /opt/geoserver/logs/geoserver.log
 #### 2. Database Connection Issues
 
 **Symptoms:**
+
 - WMS layers not loading
 - Database connection errors
 
 **Solutions:**
+
 ```bash
 # Test database connection
 ./bin/wms/wmsConfigExample.sh test-connection
@@ -308,10 +323,12 @@ psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 #### 3. Empty or Missing Data
 
 **Symptoms:**
+
 - WMS layers show no data
 - Empty map tiles
 
 **Solutions:**
+
 ```bash
 # Check if notes data exists
 psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
@@ -326,11 +343,13 @@ psql -d osm_notes -c "SELECT * FROM information_schema.triggers WHERE trigger_na
 #### 4. Performance Issues
 
 **Symptoms:**
+
 - Slow WMS responses
 - Timeout errors
 - High memory usage
 
 **Solutions:**
+
 ```bash
 # Check GeoServer memory
 ps aux | grep geoserver
@@ -491,4 +510,3 @@ export WMS_CORS_ALLOW_ORIGIN="https://myapp.com"
 - **GeoServer Version**: 2.24+
 - **PostGIS Version**: 3.0+
 - **Last Updated**: 2025-07-27
-

@@ -6,6 +6,7 @@ the OSM Notes Profile project.
 ## Configuration
 
 ### WMS Properties (`etc/wms.properties.sh`)
+
 The WMS system uses a dedicated properties file for easy customization:
 
 ```bash
@@ -18,6 +19,7 @@ export GEOSERVER_URL="https://my-geoserver.com/geoserver"
 ```
 
 **Key Configuration Sections:**
+
 - **Database Configuration**: Connection settings for PostgreSQL
 - **GeoServer Configuration**: GeoServer access and workspace settings
 - **WMS Service Configuration**: Service metadata and layer settings
@@ -52,6 +54,7 @@ Use this script to explore and validate WMS configuration:
 Manages the installation and deinstallation of WMS components in the database.
 
 **Usage:**
+
 ```bash
 # Install WMS components
 ./bin/wms/wmsManager.sh install
@@ -72,12 +75,14 @@ Automates GeoServer setup for WMS layers. This script configures GeoServer to
 serve OSM notes as WMS layers.
 
 **Prerequisites:**
+
 - GeoServer installed and running
 - PostgreSQL with PostGIS extension
 - WMS components installed in database
 - curl and jq installed
 
 **Usage:**
+
 ```bash
 # Install and configure GeoServer
 ./bin/wms/geoserverConfig.sh install
@@ -96,6 +101,7 @@ serve OSM notes as WMS layers.
 ```
 
 **Options:**
+
 - `--force`: Force configuration even if already configured
 - `--dry-run`: Show what would be done without executing
 - `--verbose`: Show detailed output
@@ -105,6 +111,7 @@ serve OSM notes as WMS layers.
 
 **Configuration:**
 The script automatically uses WMS properties from `etc/wms.properties.sh`:
+
 - Database connection settings
 - GeoServer access configuration
 - WMS service metadata
@@ -113,16 +120,19 @@ The script automatically uses WMS properties from `etc/wms.properties.sh`:
 ## Complete WMS Setup Workflow
 
 1. **Install WMS database components:**
+
    ```bash
    ./bin/wms/wmsManager.sh install
    ```
 
 2. **Configure GeoServer:**
+
    ```bash
    ./bin/wms/geoserverConfig.sh install
    ```
 
 3. **Verify configuration:**
+
    ```bash
    ./bin/wms/wmsManager.sh status
    ./bin/wms/geoserverConfig.sh status
@@ -162,7 +172,7 @@ The script automatically uses WMS properties from `etc/wms.properties.sh`:
 1. **GeoServer not accessible:**
    - Ensure GeoServer is running
    - Check credentials (default: admin/geoserver)
-   - Verify URL (default: http://localhost:8080/geoserver)
+   - Verify URL (default: <http://localhost:8080/geoserver>)
 
 2. **Database connection failed:**
    - Verify PostgreSQL is running
@@ -180,11 +190,13 @@ The script automatically uses WMS properties from `etc/wms.properties.sh`:
 ### Logs and Debugging
 
 Enable verbose output for detailed information:
+
 ```bash
 ./bin/wms/geoserverConfig.sh install --verbose
 ```
 
 Check GeoServer logs for detailed error information:
+
 ```bash
 tail -f /opt/geoserver/logs/geoserver.log
 ```
@@ -204,4 +216,3 @@ Both scripts are designed to work with the CI/CD pipeline:
 - Consider using environment variables for sensitive data
 - Regularly update GeoServer and PostgreSQL
 - Monitor access logs for suspicious activity
-

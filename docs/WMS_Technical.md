@@ -160,11 +160,11 @@ COMMENT ON INDEX notes_wms_geometry_idx IS 'Spatial index for geometry queries';
 
 ```sql
 -- Composite index for temporal-spatial queries
-CREATE INDEX notes_wms_temporal_spatial ON wms.notes_wms (year_created_at, year_closed_at) 
+CREATE INDEX notes_wms_temporal_spatial ON wms.notes_wms (year_created_at, year_closed_at)
 WHERE geometry IS NOT NULL;
 
 -- Index for specific year ranges
-CREATE INDEX notes_wms_recent ON wms.notes_wms (year_created_at) 
+CREATE INDEX notes_wms_recent ON wms.notes_wms (year_created_at)
 WHERE year_created_at >= extract(year from current_date) - 1;
 ```
 
@@ -235,6 +235,7 @@ WHERE lon IS NOT NULL AND lat IS NOT NULL;
 #### Incremental Updates
 
 The triggers automatically handle:
+
 - New note insertions
 - Note status changes (open → closed, closed → reopened)
 - Coordinate updates
@@ -471,11 +472,11 @@ The triggers automatically handle:
 
 ```sql
 -- Optimize spatial queries
-CREATE INDEX CONCURRENTLY notes_wms_geometry_gist 
+CREATE INDEX CONCURRENTLY notes_wms_geometry_gist
 ON wms.notes_wms USING GIST (geometry);
 
 -- Optimize temporal queries
-CREATE INDEX CONCURRENTLY notes_wms_temporal 
+CREATE INDEX CONCURRENTLY notes_wms_temporal
 ON wms.notes_wms (year_created_at, year_closed_at);
 
 -- Partition by year for large datasets
@@ -603,13 +604,13 @@ $$ LANGUAGE plpgsql;
 
 ```sql
 -- Query performance
-SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del 
-FROM pg_stat_user_tables 
+SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del
+FROM pg_stat_user_tables
 WHERE schemaname = 'wms';
 
 -- Index usage
 SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read, idx_tup_fetch
-FROM pg_stat_user_indexes 
+FROM pg_stat_user_indexes
 WHERE schemaname = 'wms';
 ```
 
@@ -618,7 +619,7 @@ WHERE schemaname = 'wms';
 ```sql
 -- Table sizes
 SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename))
-FROM pg_tables 
+FROM pg_tables
 WHERE schemaname = 'wms';
 ```
 
@@ -673,7 +674,7 @@ curl -u admin:geoserver "http://localhost:8080/geoserver/rest/about/status"
 ```sql
 -- Check slow queries
 SELECT query, calls, total_time, mean_time
-FROM pg_stat_statements 
+FROM pg_stat_statements
 WHERE query LIKE '%wms%'
 ORDER BY mean_time DESC;
 ```
@@ -714,5 +715,4 @@ curl -s "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=G
 - **WMS Guide**: See `docs/WMS_Guide.md`
 - **API Reference**: See `docs/WMS_API_Reference.md`
 - **Administration Guide**: See `docs/WMS_Administration.md`
-- **User Guide**: See `docs/WMS_User_Guide.md` 
-
+- **User Guide**: See `docs/WMS_User_Guide.md`

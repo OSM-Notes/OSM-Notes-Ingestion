@@ -1105,5 +1105,4 @@ pipeline {
 - **Technical Specifications**: See `docs/WMS_Technical.md`
 - **Development Guide**: See `docs/WMS_Development.md`
 - **API Reference**: See `docs/WMS_API_Reference.md`
-- **Administration Guide**: See `docs/WMS_Administration.md` 
-
+- **Administration Guide**: See `docs/WMS_Administration.md`

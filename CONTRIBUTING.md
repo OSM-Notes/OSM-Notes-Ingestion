@@ -22,6 +22,7 @@ OpenStreetMap notes analysis system.
 All bash scripts must follow these standards:
 
 #### Required Header Structure
+
 ```bash
 #!/bin/bash
 
@@ -49,6 +50,7 @@ declare -r VERSION="[YYYY-MM-DD]"
 ```
 
 #### Required Script Settings
+
 ```bash
 #set -xv
 # Fails when a variable is not initialized.
@@ -74,6 +76,7 @@ set -E
 - **All functions must start with double underscore**: `__function_name`
 - **Use descriptive names**: `__download_planet_notes`, `__validate_xml_file`
 - **Include function documentation**:
+
 ```bash
 # Downloads the planet notes file from OSM servers.
 # Parameters: None
@@ -86,6 +89,7 @@ function __download_planet_notes {
 #### Error Handling
 
 - **Define error codes at the top**:
+
 ```bash
 # Error codes.
 # 1: Help message.
@@ -106,6 +110,7 @@ declare -r ERROR_INVALID_ARGUMENT=242
 - **Drop files**: `processAPINotes_12_dropApiTables.sql`
 
 #### SQL Code Standards
+
 - **Keywords in UPPERCASE**: `SELECT`, `INSERT`, `UPDATE`, `DELETE`
 - **Identifiers in lowercase**: `table_name`, `column_name`
 - **Use proper indentation**: 2 spaces
@@ -149,6 +154,7 @@ Familiarize yourself with the project structure:
 ### 3. Development Process
 
 1. **Create a feature branch**:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -160,6 +166,7 @@ Familiarize yourself with the project structure:
    - Use the established variable naming
 
 3. **Test your changes**:
+
    ```bash
    # Run basic tests
    ./tests/run_tests_simple.sh
@@ -178,21 +185,25 @@ Familiarize yourself with the project structure:
 **Every contribution must include appropriate tests:**
 
 #### For Bash Scripts
+
 - **Unit tests**: Create tests in `tests/unit/bash/`
 - **Integration tests**: Test with real data scenarios
 - **Error handling tests**: Test error conditions and edge cases
 
 #### For SQL Scripts
+
 - **Schema tests**: Verify table creation and constraints
 - **Function tests**: Test database functions and procedures
 - **Data validation tests**: Ensure data integrity
 
 #### Test File Naming
+
 - **Bash tests**: `[component].test.bats`
 - **SQL tests**: `[component].test.sql`
 - **Integration tests**: `[feature]_integration.test.bats`
 
 #### Test Structure
+
 ```bash
 #!/usr/bin/env bats
 
@@ -251,16 +262,19 @@ project/
 ### File Naming Conventions
 
 #### Script Files
+
 - **Main scripts**: `processAPINotes.sh`, `processPlanetNotes.sh`
 - **Utility scripts**: `updateCountries.sh`, `cleanupPartitions.sh`
 - **Test scripts**: `test_[component].sh`
 
 #### SQL Files
+
 - **Creation scripts**: `[component]_21_create[Object].sql`
 - **Drop scripts**: `[component]_11_drop[Object].sql`
 - **Data scripts**: `[component]_31_load[Data].sql`
 
 #### Test Files
+
 - **Unit tests**: `[component].test.bats`
 - **Integration tests**: `[feature]_integration.test.bats`
 - **SQL tests**: `[component].test.sql`
@@ -268,17 +282,20 @@ project/
 ## Naming Conventions
 
 ### Variables
+
 - **Global variables**: `UPPERCASE_WITH_UNDERSCORES`
 - **Local variables**: `lowercase_with_underscores`
 - **Constants**: `UPPERCASE_WITH_UNDERSCORES`
 - **Environment variables**: `UPPERCASE_WITH_UNDERSCORES`
 
 ### Functions
+
 - **All functions**: `__function_name_with_underscores`
 - **Private functions**: `__private_function_name`
 - **Public functions**: `__public_function_name`
 
 ### Database Objects
+
 - **Tables**: `lowercase_with_underscores`
 - **Columns**: `lowercase_with_underscores`
 - **Functions**: `function_name_with_underscores`
@@ -297,6 +314,7 @@ project/
 ### Documentation Standards
 
 #### Script Documentation
+
 ```bash
 # Brief description of what the script does
 #
@@ -319,6 +337,7 @@ project/
 ```
 
 #### Function Documentation
+
 ```bash
 # Brief description of what the function does
 # Parameters: [list of parameters]
@@ -347,6 +366,7 @@ Before submitting your contribution, ensure:
 ### Code Quality Tools
 
 #### Required Tools
+
 ```bash
 # Format bash scripts
 shfmt -w -i 1 -sr -bn script.sh
@@ -362,6 +382,7 @@ shellcheck -x -o all script.sh
 ```
 
 #### Quality Standards
+
 - **ShellCheck**: No warnings or errors
 - **shfmt**: Consistent formatting
 - **Test Coverage**: Minimum 80% coverage
@@ -381,12 +402,14 @@ shellcheck -x -o all script.sh
 ### 2. Submission
 
 1. **Commit your changes**:
+
    ```bash
    git add .
    git commit -m "feat: add new feature description"
    ```
 
 2. **Push to your fork**:
+
    ```bash
    git push origin feature/your-feature
    ```
@@ -418,6 +441,7 @@ type(scope): description
 ```
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -427,6 +451,7 @@ type(scope): description
 - `chore`: Maintenance tasks
 
 **Examples**:
+
 ```
 feat(process): add parallel processing for large datasets
 fix(sql): correct country boundary import for Austria
@@ -485,4 +510,3 @@ For local development, consider using Docker:
 
 Your contributions help make OpenStreetMap notes analysis more accessible and
 powerful for the community.
-

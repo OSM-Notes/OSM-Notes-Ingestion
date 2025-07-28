@@ -21,6 +21,7 @@ The WMS layer shows OSM notes as colored dots on the map:
 - **Green Dots**: Closed notes (issues that have been resolved)
 
 The color intensity tells you how old the note is:
+
 - **Darker colors**: Older notes
 - **Lighter colors**: Newer notes
 
@@ -119,17 +120,20 @@ Before you can use the WMS layer, you need:
 ### Interpreting Note Density
 
 #### High Density Areas (>10 notes per km²)
+
 - **Urban centers**: Complex areas with many features
 - **Transportation hubs**: Stations, airports, major intersections
 - **Tourist areas**: Hotels, restaurants, attractions
 - **Construction zones**: Areas with ongoing development
 
 #### Medium Density Areas (2-10 notes per km²)
+
 - **Suburban areas**: Residential neighborhoods
 - **Commercial districts**: Shopping areas
 - **Industrial zones**: Factories, warehouses
 
 #### Low Density Areas (<2 notes per km²)
+
 - **Rural areas**: Farmland, forests
 - **Parks and recreation**: Natural areas
 - **Well-mapped areas**: Already completed mapping
@@ -139,12 +143,14 @@ Before you can use the WMS layer, you need:
 ### When to Use WMS
 
 #### Good Times to Check WMS
+
 - **Before starting mapping work** in a new area
 - **When planning mapping sessions** to prioritize areas
 - **After completing work** to see if you missed anything
 - **When coordinating with other mappers** to avoid duplication
 
 #### How to Use WMS Effectively
+
 1. **Start with a wide view** to see overall patterns
 2. **Zoom in** to specific areas of interest
 3. **Combine with other data sources** (satellite imagery, existing OSM data)
@@ -154,12 +160,14 @@ Before you can use the WMS layer, you need:
 ### Layer Management
 
 #### Transparency Settings
+
 - **0-30%**: Good for seeing underlying map features
 - **30-50%**: Balanced view of notes and map
 - **50-70%**: Emphasizes notes over map
 - **70-100%**: Notes only (use with other imagery)
 
 #### Zoom Levels
+
 - **Zoom 0-8**: Overview of large areas
 - **Zoom 9-12**: City/regional level
 - **Zoom 13-15**: Neighborhood level
@@ -168,6 +176,7 @@ Before you can use the WMS layer, you need:
 ### Combining with Other Data
 
 #### Recommended Layer Combinations
+
 1. **WMS + Satellite Imagery**: See notes against real-world features
 2. **WMS + OSM Data**: Compare notes with existing mapping
 3. **WMS + GPS Tracks**: Plan efficient mapping routes
@@ -180,6 +189,7 @@ Before you can use the WMS layer, you need:
 **Situation**: You want to map a new neighborhood
 
 **Steps**:
+
 1. **Check WMS layer** for the area
 2. **Look for red dots** (open notes)
 3. **Prioritize areas** with many recent notes
@@ -191,6 +201,7 @@ Before you can use the WMS layer, you need:
 **Situation**: You've completed mapping an area
 
 **Steps**:
+
 1. **Enable WMS layer** to see notes
 2. **Look for any red dots** in your mapped area
 3. **Investigate notes** that seem relevant to your work
@@ -202,6 +213,7 @@ Before you can use the WMS layer, you need:
 **Situation**: Working with a mapping team
 
 **Steps**:
+
 1. **Share WMS layer** with team members
 2. **Identify areas** with many notes
 3. **Divide work** based on note density
@@ -215,11 +227,13 @@ Before you can use the WMS layer, you need:
 #### WMS Layer Not Loading
 
 **Symptoms**:
+
 - Layer appears but shows no data
 - Error messages about connection
 - Blank or gray tiles
 
 **Solutions**:
+
 1. **Check internet connection**
 2. **Verify WMS URL** is correct
 3. **Try refreshing** the layer
@@ -228,11 +242,13 @@ Before you can use the WMS layer, you need:
 #### Performance Issues
 
 **Symptoms**:
+
 - Slow loading of tiles
 - Application becomes unresponsive
 - High memory usage
 
 **Solutions**:
+
 1. **Reduce zoom level** (don't zoom in too far)
 2. **Adjust transparency** to reduce rendering load
 3. **Close other applications** to free memory
@@ -241,11 +257,13 @@ Before you can use the WMS layer, you need:
 #### Color Confusion
 
 **Symptoms**:
+
 - Can't distinguish between note types
 - Colors seem wrong
 - Hard to see against background
 
 **Solutions**:
+
 1. **Adjust transparency** for better contrast
 2. **Use different background** (satellite vs. map)
 3. **Zoom in/out** to see different detail levels
@@ -254,12 +272,14 @@ Before you can use the WMS layer, you need:
 ### Getting Help
 
 #### When to Ask for Help
+
 - **WMS service unavailable** for extended periods
 - **Incorrect data** showing in your area
 - **Performance problems** that don't resolve
 - **Questions about interpretation** of patterns
 
 #### How to Get Help
+
 1. **Check documentation** first
 2. **Ask your mapping community** (local groups, forums)
 3. **Contact your administrator** for technical issues
@@ -270,11 +290,13 @@ Before you can use the WMS layer, you need:
 ### Custom Filters
 
 #### By Note Age
+
 - **Recent notes**: Focus on last 30 days
 - **Older notes**: Look for long-standing issues
 - **Historical patterns**: See trends over time
 
 #### By Geographic Area
+
 - **City limits**: Focus on urban areas
 - **Administrative boundaries**: Work within jurisdictions
 - **Custom polygons**: Define your own areas of interest
@@ -282,11 +304,13 @@ Before you can use the WMS layer, you need:
 ### Integration with Other Tools
 
 #### JOSM Plugins
+
 - **WMS Layer Manager**: Enhanced WMS control
 - **Note Tool**: Direct note editing
 - **Measurement Tool**: Distance calculations
 
 #### Vespucci Features
+
 - **Layer management**: Multiple WMS layers
 - **Offline support**: Cache WMS data
 - **GPS integration**: Navigate to notes
@@ -344,16 +368,19 @@ Before you can use the WMS layer, you need:
 ## Support and Resources
 
 ### Documentation
+
 - **Technical Guide**: See `docs/WMS_Guide.md`
 - **API Reference**: See `docs/WMS_API_Reference.md`
 - **Administration Guide**: See `docs/WMS_Administration.md`
 
 ### Community Support
+
 - **OSM Forums**: Ask questions about mapping
 - **Local Mapping Groups**: Connect with nearby mappers
 - **Social Media**: Follow OSM communities
 
 ### Training Resources
+
 - **OSM Wiki**: Comprehensive mapping guides
 - **Video Tutorials**: Visual learning resources
 - **Workshops**: Hands-on training sessions
@@ -377,5 +404,4 @@ We welcome your feedback to improve this guide:
 
 *This guide is designed to help you make the most of the WMS layer for OSM notes.
 Remember, the goal is to make mapping more efficient and collaborative by
-visualizing where attention is needed.* 
-
+visualizing where attention is needed.*

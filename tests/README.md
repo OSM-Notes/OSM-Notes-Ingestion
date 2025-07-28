@@ -1,6 +1,7 @@
 # Tests Directory
 
 ## Overview
+
 The `tests` directory contains comprehensive testing infrastructure for the
 OSM-Notes-profile system. It includes unit tests, integration tests,
 performance tests, and quality assurance tools to ensure the reliability and
@@ -91,32 +92,34 @@ Tests can be run individually or as part of the complete test suite:
 - PostgreSQL test database
 - Various testing tools (shellcheck, shfmt, etc.)
 
-# Test Configuration and Standardized Values
+## Test Configuration and Standardized Values
 
-## Overview
+### Overview
 
 This document describes the standardized configuration values used across all test
 environments in the OSM-Notes-profile project. **Test properties are completely
 separate from production properties** to maintain clear boundaries between
 environments.
 
-## Test Properties vs Production Properties
+### Test Properties vs Production Properties
 
-### Test Properties (`tests/properties.sh`)
+#### Test Properties (`tests/properties.sh`)
+
 - **Purpose**: Configuration for all test environments
 - **Scope**: Unit tests, integration tests, CI/CD tests
 - **Values**: Conservative, safe defaults for testing
 - **Independence**: Completely separate from production
 
-### Production Properties (`etc/properties.sh`)
+#### Production Properties (`etc/properties.sh`)
+
 - **Purpose**: Configuration for production environments
 - **Scope**: Live data processing, production deployments
 - **Values**: Optimized for performance and reliability
 - **Independence**: No test-specific values
 
-## Test Properties Configuration
+### Test Properties Configuration
 
-### Database Configuration
+#### Database Configuration
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
@@ -126,7 +129,7 @@ environments.
 | `TEST_DBHOST` | `postgres` (Docker) / `localhost` (Host) | Database host |
 | `TEST_DBPORT` | `5432` | Database port |
 
-### Timeout Configuration
+#### Timeout Configuration
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
@@ -137,7 +140,7 @@ environments.
 | `DOCKER_TIMEOUT` | `300` (5 minutes) | Docker operations timeout |
 | `VALIDATION_TIMEOUT` | `60` (1 minute) | Validation test timeout |
 
-### Retry Configuration
+#### Retry Configuration
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
@@ -148,7 +151,7 @@ environments.
 | `DOCKER_MAX_RETRIES` | `10` | Docker-specific retries |
 | `VALIDATION_RETRIES` | `3` | Validation retries |
 
-### Threading Configuration
+#### Threading Configuration
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
@@ -157,35 +160,38 @@ environments.
 | `PARALLEL_THREADS` | `2` | Conservative parallel processing |
 | `PARALLEL_ENABLED` | `false` | Enable parallel processing |
 
-### Memory Configuration
+#### Memory Configuration
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
 | `MEMORY_LIMIT_MB` | `100` | Memory limit for tests |
 
-## Environment-Specific Configuration
+### Environment-Specific Configuration
 
-### Docker Environment
+#### Docker Environment
+
 - Uses `testuser`/`testpass` credentials
 - Connects to `postgres` host
 - Conservative threading (2 threads)
 - Extended timeouts for container startup
 
-### Host Environment
+#### Host Environment
+
 - Uses `postgres` user with no password
 - Connects to `localhost`
 - Conservative threading (2 threads)
 - Standard timeouts
 
-### CI/CD Environment
+#### CI/CD Environment
+
 - Extended timeouts (10 minutes)
 - More retries (20 attempts)
 - Conservative threading (2 threads)
 - Enhanced logging and error reporting
 
-## Usage
+### Usage
 
-### Loading Test Properties
+#### Loading Test Properties
 
 All test scripts automatically load the test properties:
 
@@ -196,7 +202,7 @@ if [[ -f "$(dirname "${BASH_SOURCE[0]}")/properties.sh" ]]; then
 fi
 ```
 
-### Overriding Test Values
+#### Overriding Test Values
 
 You can override any test value by setting environment variables:
 
@@ -210,7 +216,7 @@ export MAX_THREADS=4
 bash tests/run_enhanced_tests.sh --parallel
 ```
 
-### Production vs Test Values
+#### Production vs Test Values
 
 The system uses different default values for production and test environments:
 
@@ -221,7 +227,7 @@ The system uses different default values for production and test environments:
 | `TEST_TIMEOUT` | `600` | `300` |
 | `MAX_RETRIES` | `30` | `30` |
 
-## Benefits of Separation
+### Benefits of Separation
 
 1. **Clear Boundaries**: Test and production configurations are completely separate
 2. **Safety**: Test values cannot accidentally affect production
@@ -229,11 +235,10 @@ The system uses different default values for production and test environments:
 4. **Reliability**: Predictable behavior in each environment
 5. **Flexibility**: Easy to customize each environment independently
 
-## Version History
+### Version History
 
 - **2025-07-26**: Separated test properties from production properties
 - Removed test-specific values from production configuration
 - Created independent test property file
 - Updated all test scripts to use test properties only
 - Improved documentation and usage examples
-

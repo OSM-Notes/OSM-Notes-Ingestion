@@ -1,4 +1,5 @@
 # OSM-Notes-profile
+
 Mechanism to show a user and country profile about the work on OSM notes.
 Also, it allows publishing a layer with the location of the opened and
 closed notes.
@@ -436,5 +437,3 @@ Andres Gomez (@AngocA) was the main developer of this idea.
 He thanks Jose Luis Ceron Sarria for all his help designing the
 architecture, defining the data modeling and implementing the infrastructure
 on the cloud.
-
-

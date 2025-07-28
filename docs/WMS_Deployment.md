@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides comprehensive deployment procedures for the WMS (Web Map 
+This guide provides comprehensive deployment procedures for the WMS (Web Map
 Service) component across different environments, from development to production.
 
 ### Target Audience
@@ -768,5 +768,4 @@ export GEOSERVER_LOG_LOCATION="/var/log/geoserver"
 - **Technical Specifications**: See `docs/WMS_Technical.md`
 - **Development Guide**: See `docs/WMS_Development.md`
 - **Testing Guide**: See `docs/WMS_Testing.md`
-- **API Reference**: See `docs/WMS_API_Reference.md` 
-
+- **API Reference**: See `docs/WMS_API_Reference.md`

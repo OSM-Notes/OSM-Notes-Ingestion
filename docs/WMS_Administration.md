@@ -2,8 +2,8 @@
 
 ## Overview
 
-This guide provides comprehensive administration procedures for the WMS (Web Map Service) 
-component of the OSM-Notes-profile project. It covers installation, configuration, 
+This guide provides comprehensive administration procedures for the WMS (Web Map Service)
+component of the OSM-Notes-profile project. It covers installation, configuration,
 monitoring, maintenance, and troubleshooting for system administrators.
 
 ### Target Audience
@@ -168,6 +168,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
 #### Key Configuration Sections
 
 1. **Database Configuration**
+
    ```bash
    # Database connection
    WMS_DBNAME="osm_notes"
@@ -180,6 +181,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
    ```
 
 2. **GeoServer Configuration**
+
    ```bash
    # GeoServer settings
    GEOSERVER_URL="http://localhost:8080/geoserver"
@@ -191,6 +193,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
    ```
 
 3. **Service Configuration**
+
    ```bash
    # WMS service settings
    WMS_SERVICE_TITLE="OSM Notes WMS Service"
@@ -202,6 +205,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
 #### Environment-Specific Configurations
 
 **Development Environment**
+
 ```bash
 export WMS_DEV_MODE="true"
 export WMS_DEBUG_ENABLED="true"
@@ -210,6 +214,7 @@ export WMS_DBNAME="osm_notes_dev"
 ```
 
 **Production Environment**
+
 ```bash
 export WMS_DEV_MODE="false"
 export WMS_DEBUG_ENABLED="false"
@@ -219,6 +224,7 @@ export WMS_CACHE_TTL="3600"
 ```
 
 **Testing Environment**
+
 ```bash
 export WMS_DBNAME="osm_notes_test"
 export WMS_TEST_MODE="true"
@@ -547,6 +553,7 @@ echo "GeoServer backup completed: $BACKUP_DIR/geoserver_${DATE}.tar.gz"
 #### Recovery Procedures
 
 **Database Recovery**
+
 ```bash
 # Restore from backup
 psql -h localhost -U postgres -d osm_notes < /backup/database/osm_notes_20250101_120000.sql
@@ -556,6 +563,7 @@ psql -h localhost -U postgres -d osm_notes < /backup/database/wms_schema_2025010
 ```
 
 **GeoServer Recovery**
+
 ```bash
 # Stop GeoServer
 systemctl stop geoserver
@@ -602,11 +610,13 @@ export GEOSERVER_OPTS="-Xms4g -Xmx8g -XX:+UseG1GC -XX:+UseStringDeduplication"
 #### Database Connection Issues
 
 **Symptoms:**
+
 - WMS layers not loading
 - Database connection errors in logs
 - GeoServer unable to connect to PostgreSQL
 
 **Diagnosis:**
+
 ```bash
 # Test database connection
 psql -h localhost -U postgres -d osm_notes -c "SELECT 1;"
@@ -619,6 +629,7 @@ grep -E "(host|port|database)" /opt/geoserver/data_dir/workspaces/osm_notes/note
 ```
 
 **Solutions:**
+
 ```bash
 # Restart PostgreSQL
 sudo systemctl restart postgresql
@@ -633,11 +644,13 @@ psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 #### GeoServer Issues
 
 **Symptoms:**
+
 - GeoServer not responding
 - 404 errors for WMS requests
 - Memory errors in logs
 
 **Diagnosis:**
+
 ```bash
 # Check GeoServer status
 systemctl status geoserver
@@ -650,6 +663,7 @@ tail -f /opt/geoserver/logs/geoserver.log
 ```
 
 **Solutions:**
+
 ```bash
 # Restart GeoServer
 sudo systemctl restart geoserver
@@ -665,11 +679,13 @@ df -h /opt/geoserver
 #### Performance Issues
 
 **Symptoms:**
+
 - Slow WMS responses
 - Timeout errors
 - High CPU/memory usage
 
 **Diagnosis:**
+
 ```bash
 # Check system resources
 top
@@ -683,6 +699,7 @@ psql -d osm_notes -c "SELECT query, calls, total_time, mean_time \
 ```
 
 **Solutions:**
+
 ```bash
 # Optimize database
 psql -d osm_notes -c "VACUUM ANALYZE wms.notes_wms;"
@@ -930,6 +947,7 @@ sudo apt-get install prometheus-node-exporter
 #### Grafana Dashboard
 
 Create WMS dashboard configuration for Grafana to visualize:
+
 - Database performance metrics
 - GeoServer response times
 - WMS request statistics
@@ -948,5 +966,4 @@ Create WMS dashboard configuration for Grafana to visualize:
 - **WMS Guide**: See `docs/WMS_Guide.md`
 - **Technical Specifications**: See `docs/WMS_Technical.md`
 - **API Reference**: See `docs/WMS_API_Reference.md`
-- **User Guide**: See `docs/WMS_User_Guide.md` 
-
+- **User Guide**: See `docs/WMS_User_Guide.md`
