@@ -2,7 +2,9 @@
 
 ## Overview
 
-This guide provides comprehensive administration procedures for the WMS (Web Map Service) component of the OSM-Notes-profile project. It covers installation, configuration, monitoring, maintenance, and troubleshooting for system administrators.
+This guide provides comprehensive administration procedures for the WMS (Web Map Service) 
+component of the OSM-Notes-profile project. It covers installation, configuration, 
+monitoring, maintenance, and troubleshooting for system administrators.
 
 ### Target Audience
 
@@ -270,10 +272,10 @@ SELECT pg_reload_conf();
 
 ```sql
 -- Create indexes for performance
-CREATE INDEX CONCURRENTLY notes_wms_geometry_gist 
+CREATE INDEX CONCURRENTLY notes_wms_geometry_gist
 ON wms.notes_wms USING GIST (geometry);
 
-CREATE INDEX CONCURRENTLY notes_wms_temporal 
+CREATE INDEX CONCURRENTLY notes_wms_temporal
 ON wms.notes_wms (year_created_at, year_closed_at);
 
 -- Update statistics
@@ -297,7 +299,8 @@ ALERT_EMAIL="admin@yourdomain.com"
 
 # Check database connection
 check_database() {
-    psql -h localhost -U postgres -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;" >/dev/null 2>&1
+    psql -h localhost -U postgres -d osm_notes -c \
+      "SELECT COUNT(*) FROM wms.notes_wms;" >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "$(date): Database connection OK" >> $LOG_FILE
         return 0
@@ -321,7 +324,8 @@ check_geoserver() {
 
 # Check WMS service
 check_wms_service() {
-    curl -s "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities" >/dev/null
+    curl -s "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities" \
+      >/dev/null
     if [ $? -eq 0 ]; then
         echo "$(date): WMS service OK" >> $LOG_FILE
         return 0
@@ -370,19 +374,19 @@ main
 ```sql
 -- Monitor query performance
 SELECT query, calls, total_time, mean_time
-FROM pg_stat_statements 
+FROM pg_stat_statements
 WHERE query LIKE '%wms%'
 ORDER BY mean_time DESC
 LIMIT 10;
 
 -- Monitor table statistics
-SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del 
-FROM pg_stat_user_tables 
+SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del
+FROM pg_stat_user_tables
 WHERE schemaname = 'wms';
 
 -- Monitor index usage
 SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read
-FROM pg_stat_user_indexes 
+FROM pg_stat_user_indexes
 WHERE schemaname = 'wms';
 ```
 
@@ -576,8 +580,8 @@ ALTER TABLE wms.notes_wms ALTER COLUMN year_created_at SET STATISTICS 1000;
 ALTER TABLE wms.notes_wms ALTER COLUMN year_closed_at SET STATISTICS 1000;
 
 -- Create additional indexes if needed
-CREATE INDEX CONCURRENTLY IF NOT EXISTS notes_wms_recent 
-ON wms.notes_wms (year_created_at) 
+CREATE INDEX CONCURRENTLY IF NOT EXISTS notes_wms_recent
+ON wms.notes_wms (year_created_at)
 WHERE year_created_at >= extract(year from current_date) - 1;
 ```
 
@@ -673,7 +677,9 @@ iostat -x 1 5
 free -h
 
 # Check slow queries
-psql -d osm_notes -c "SELECT query, calls, total_time, mean_time FROM pg_stat_statements WHERE query LIKE '%wms%' ORDER BY mean_time DESC LIMIT 5;"
+psql -d osm_notes -c "SELECT query, calls, total_time, mean_time \
+  FROM pg_stat_statements WHERE query LIKE '%wms%' \
+  ORDER BY mean_time DESC LIMIT 5;"
 ```
 
 **Solutions:**
@@ -682,7 +688,8 @@ psql -d osm_notes -c "SELECT query, calls, total_time, mean_time FROM pg_stat_st
 psql -d osm_notes -c "VACUUM ANALYZE wms.notes_wms;"
 
 # Add indexes if needed
-psql -d osm_notes -c "CREATE INDEX CONCURRENTLY IF NOT EXISTS notes_wms_geometry_gist ON wms.notes_wms USING GIST (geometry);"
+psql -d osm_notes -c "CREATE INDEX CONCURRENTLY IF NOT EXISTS notes_wms_geometry_gist \
+  ON wms.notes_wms USING GIST (geometry);"
 
 # Restart services
 sudo systemctl restart postgresql geoserver
@@ -711,7 +718,8 @@ echo
 echo "=== Database Status ==="
 if systemctl is-active --quiet postgresql; then
     echo "PostgreSQL: RUNNING"
-    echo "WMS Records: $(psql -t -c "SELECT COUNT(*) FROM wms.notes_wms;" osm_notes 2>/dev/null || echo "ERROR")"
+    echo "WMS Records: $(psql -t -c "SELECT COUNT(*) FROM wms.notes_wms;" \
+      osm_notes 2>/dev/null || echo "ERROR")"
 else
     echo "PostgreSQL: STOPPED"
 fi
@@ -748,14 +756,14 @@ LOG_FILE="/var/log/wms-performance.log"
 # Database performance
 echo "$(date): Database Performance" >> $LOG_FILE
 psql -d osm_notes -c "
-SELECT 
-    schemaname, 
-    tablename, 
-    n_tup_ins, 
-    n_tup_upd, 
+SELECT
+    schemaname,
+    tablename,
+    n_tup_ins,
+    n_tup_upd,
     n_tup_del,
     pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
-FROM pg_stat_user_tables 
+FROM pg_stat_user_tables
 WHERE schemaname = 'wms';" >> $LOG_FILE
 
 # GeoServer performance
@@ -765,7 +773,8 @@ ps aux | grep geoserver >> $LOG_FILE
 # WMS response time
 echo "$(date): WMS Response Time" >> $LOG_FILE
 curl -w "Time: %{time_total}s\n" -o /dev/null -s \
-  "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=osm_notes:notes_wms_layer&STYLES=&CRS=EPSG:4326&BBOX=-180,-90,180,90&WIDTH=256&HEIGHT=256&FORMAT=image/png" >> $LOG_FILE
+  "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=osm_notes:notes_wms_layer&STYLES=&CRS=EPSG:4326&BBOX=-180,-90,180,90&WIDTH=256&HEIGHT=256&FORMAT=image/png" \
+    >> $LOG_FILE
 ```
 
 ## Security Considerations

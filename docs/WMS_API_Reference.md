@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document provides a comprehensive reference for the WMS (Web Map Service) API used in the OSM-Notes-profile project. The WMS service follows the OGC WMS 1.3.0 specification and provides access to OSM notes as map layers.
+This document provides a comprehensive reference for the WMS (Web Map Service) API used in 
+the OSM-Notes-profile project. The WMS service follows the OGC WMS 1.3.0 specification 
+and provides access to OSM notes as map layers.
 
 ### Base URL
 
@@ -318,13 +320,13 @@ SELECT * FROM wms.notes_wms WHERE year_closed_at IS NOT NULL
 
 **Recent Notes (Last Year)**
 ```sql
-SELECT * FROM wms.notes_wms 
+SELECT * FROM wms.notes_wms
 WHERE year_created_at >= extract(year from current_date) - 1
 ```
 
 **Historical Notes (Older than 1 Year)**
 ```sql
-SELECT * FROM wms.notes_wms 
+SELECT * FROM wms.notes_wms
 WHERE year_created_at < extract(year from current_date) - 1
 ```
 
