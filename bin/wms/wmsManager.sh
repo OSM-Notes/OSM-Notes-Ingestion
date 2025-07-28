@@ -21,7 +21,12 @@ if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/properties.sh"
 fi
 
-# WMS specific variables
+# Load WMS specific properties
+if [[ -f "${PROJECT_ROOT}/etc/wms.properties.sh" ]]; then
+ source "${PROJECT_ROOT}/etc/wms.properties.sh"
+fi
+
+# WMS specific variables (using properties)
 WMS_SQL_DIR="${PROJECT_ROOT}/sql/wms"
 WMS_PREPARE_SQL="${WMS_SQL_DIR}/prepareDatabase.sql"
 WMS_REMOVE_SQL="${WMS_SQL_DIR}/removeFromDatabase.sql"
