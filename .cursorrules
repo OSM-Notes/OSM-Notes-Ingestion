@@ -43,6 +43,7 @@ Generate database designs and scripts that align with best practices for scalabi
 - Document solutions thoroughly in markdown.
 - Use diagrams to describe high-level architecture and workflows.
 - Each time an error is discovered, a new test should be added or correct an existing one.
+- For Markdown documents, execute markdownlint or equivalent.
   
 ---
   
