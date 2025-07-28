@@ -2,7 +2,9 @@
 
 ## Overview
 
-This guide provides comprehensive information for developers working with the WMS (Web Map Service) component of the OSM-Notes-profile project. It covers architecture, database design, GeoServer integration, and extension development.
+This guide provides comprehensive information for developers working with the
+WMS (Web Map Service) component of the OSM-Notes-profile project. It covers
+architecture, database design, GeoServer integration, and extension development.
 
 ### Target Audience
 
@@ -100,7 +102,8 @@ CREATE TABLE wms.notes_wms (
     geometry GEOMETRY(POINT, 4326)
 );
 
-COMMENT ON TABLE wms.notes_wms IS 'Locations of the notes and its opening and closing year';
+COMMENT ON TABLE wms.notes_wms IS
+  'Locations of the notes and its opening and closing year';
 COMMENT ON COLUMN wms.notes_wms.note_id IS 'OSM note id';
 COMMENT ON COLUMN wms.notes_wms.year_created_at IS 'Year when the note was created';
 COMMENT ON COLUMN wms.notes_wms.year_closed_at IS 'Year when the note was closed';
@@ -126,7 +129,8 @@ CREATE INDEX notes_wms_created_year ON wms.notes_wms (year_created_at);
 CREATE INDEX notes_wms_closed_year ON wms.notes_wms (year_closed_at);
 
 -- Composite index for common queries
-CREATE INDEX notes_wms_temporal_spatial ON wms.notes_wms (year_created_at, year_closed_at) 
+CREATE INDEX notes_wms_temporal_spatial ON wms.notes_wms (year_created_at,
+  year_closed_at) 
 WHERE geometry IS NOT NULL;
 
 -- Partial index for open notes (most common query)
@@ -219,7 +223,8 @@ CREATE TRIGGER delete_notes
 #### Data Validation
 
 ```sql
-CREATE OR REPLACE FUNCTION wms.validate_coordinates(lon double precision, lat double precision)
+CREATE OR REPLACE FUNCTION wms.validate_coordinates(lon double precision,
+  lat double precision)
 RETURNS boolean AS $$
 BEGIN
     RETURN lon BETWEEN -180 AND 180 AND lat BETWEEN -90 AND 90;
@@ -252,7 +257,8 @@ BEGIN
         COUNT(*) as total_notes,
         COUNT(*) FILTER (WHERE year_closed_at IS NULL) as open_notes,
         COUNT(*) FILTER (WHERE year_closed_at IS NOT NULL) as closed_notes,
-        COUNT(*) FILTER (WHERE year_created_at >= EXTRACT(YEAR FROM CURRENT_DATE) - 1) as recent_notes,
+        COUNT(*) FILTER (WHERE year_created_at >= 
+         EXTRACT(YEAR FROM CURRENT_DATE) - 1) as recent_notes,
         MIN(year_created_at) as oldest_year,
         MAX(year_created_at) as newest_year
     FROM wms.notes_wms;
@@ -545,7 +551,8 @@ public class NotesStatisticsResponse implements WMSResponse {
     }
     
     @Override
-    public void write(WMSRequest request, java.io.OutputStream out) throws Exception {
+    public void write(WMSRequest request, java.io.OutputStream out) throws
+      Exception {
         // Implementation for note statistics
         String stats = generateStatistics(request);
         out.write(stats.getBytes());
@@ -738,7 +745,8 @@ BASE_URL="http://localhost:8080/geoserver/wms"
 # Test GetCapabilities
 echo "Testing GetCapabilities..."
 curl -s "${BASE_URL}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities" | \
-  grep -q "WMS_Capabilities" && echo "✓ GetCapabilities OK" || echo "✗ GetCapabilities FAILED"
+  grep -q "WMS_Capabilities" && echo "✓ GetCapabilities OK" \
+  || echo "✗ GetCapabilities FAILED"
 
 # Test GetMap
 echo "Testing GetMap..."

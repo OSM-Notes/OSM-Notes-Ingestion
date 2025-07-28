@@ -28,9 +28,9 @@ When open notes, the older the darker the note, meaning it has less value than
 recently open notes.
 When closed notes, the lighter the older, meaning it was processed long before.
 
-# Installation
+## Installation
 
-## Automated Installation (Recommended)
+### Automated Installation (Recommended)
 
 Use the WMS manager script for easy installation and management:
 
@@ -62,11 +62,11 @@ The WMS manager script includes:
 - ✅ Dry-run mode for testing
 - ✅ Comprehensive error handling
 
-## Manual Installation
+### Manual Installation
 
 For manual installation, follow these steps:
 
-# Database configuration
+## Database configuration
 
 - Provide a password to the database user.
 
@@ -114,39 +114,39 @@ Let's suppose the Postgres database is called `notes`.
 psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
 ```
 
-# Geoserver configuration
+## Geoserver configuration
 
 Configure the GeoServer to publish the layer from the database, following
 these instructions.
 
-## Contact Information
+### Contact Information
 
-### Organization
+#### Organization
 
 - Organization: OSM LatAm
 - Online Resource: <https://osmlatam.org>
 - Welcome: Set of layers provided by OpenStreetMap LatAm.
 
-### Primary Contact
+#### Primary Contact
 
 - Contact: Andres Gomez Casanova - AngocA
 - Position: Volunteer
 - Email: angoca @ osm.lat
 
-### Address
+#### Address
 
 - City: Bogota
 - State: D.C.
 - Country: Colombia
 
-## Workspaces
+### Workspaces
 
 - Name: OSM_Notes
 - Namespace URI: OSM_Notes
 
-## Stores
+### Stores
 
-### Basic Store Info
+#### Basic Store Info
 
 PostGIS
 
@@ -154,7 +154,7 @@ PostGIS
 - Data Source Name: OSM Notes DS
 - Description: Data for OSM Notes
 
-### Connection Parameters
+#### Connection Parameters
 
 - Host:
 - Port:
@@ -162,9 +162,9 @@ PostGIS
 - User:
 - Passwd:
 
-## Styles
+### Styles
 
-### Syle Data
+#### Syle Data
 
 SLD files are under the `sld` directory.
 
@@ -182,7 +182,7 @@ SLD files are under the `sld` directory.
   - Upload...
 - Legend: Add legend
 
-## Layers
+### Layers
 
 __Open Notes__
 
@@ -202,42 +202,42 @@ WHERE year_closed_at IS NULL
 ORDER BY year_created_at DESC
 ```
 
-## Styles
+### Styles
 
 For each layer.
 
-### Publishing
+#### Publishing
 
 - Default
 
-### Basic Resource Info
+#### Basic Resource Info
 
 - Abstract: This layer shows the location of the currently open notes.
 The color intensity shows the age of the creation time.
 
-### Coordinate Reference Systems
+#### Coordinate Reference Systems
 
 - Declared SRS: EPSG:4326
 
-### Bounding Boxes
+#### Bounding Boxes
 
 - Compute from SRS bounds
 - Compute from native bounds
 
 __On the Publishing tab:__
 
-### WMS Settings - Layers Settings
+#### WMS Settings - Layers Settings
 
 - Additional Styles: OSM_Notes:OpenNotes
 
-### WMS Attribution
+#### WMS Attribution
 
 - Attribution Text: OpenStreetMap contributors
 - Attribution Link: <https://www.openstreetmap.org/copyright>
 
 __On the Tile Caching tab:__
 
-### Tile cache configuration
+#### Tile cache configuration
 
 - Uncheck image/jpeg
 - (Optional) Put 3600 for Expire Server cache after n seconds.
@@ -261,25 +261,25 @@ WHERE year_closed_at IS NOT NULL
 ORDER BY year_created_at DESC
 ```
 
-### Basic Resource Info
+#### Basic Resource Info
 
 - Abstract: This layer shows the location of the closed notes.
 The color intensity shows the age of the creation time.
 
 __On the Publishing tab:__
 
-### WMS Settings - Layers Settings
+#### WMS Settings - Layers Settings
 
 - Additional Styles: OSM_Notes:CloseNotes
 
 The other options the same as for open notes.
 
-## Disk Quota
+### Disk Quota
 
 - Enable disk quota
 - Maximum tile cache size: 5 GB
 
-## BlobStores
+### BlobStores
 
 - Add new:
 - Type of BlobStore: File BlobStore
@@ -288,23 +288,23 @@ The other options the same as for open notes.
 - Default.
 - Base Directory: A location with more than 50 GB space.
 
-## Tile Layers
+### Tile Layers
 
 - Choose each layer, and click on Seed/Truncate.
 
-## Passwords
+### Passwords
 
 - Change active master provider.
 
-## Users, Groups, Roles
+### Users, Groups, Roles
 
 - Change admin password.
 
-## Additionally
+### Additionally
 
 - Activate BlobStores.
 
-# Files
+## Files
 
 Under `sld`:
 

@@ -2,9 +2,10 @@
 
 ## Overview
 
-This guide provides comprehensive administration procedures for the WMS (Web Map Service)
-component of the OSM-Notes-profile project. It covers installation, configuration,
-monitoring, maintenance, and troubleshooting for system administrators.
+This guide provides comprehensive administration procedures for the WMS (Web
+Map Service) component of the OSM-Notes-profile project. It covers
+installation, configuration, monitoring, maintenance, and troubleshooting for
+system administrators.
 
 ### Target Audience
 
@@ -351,7 +352,8 @@ main() {
     
     if [ $failed -eq 1 ]; then
         echo "$(date): WMS health check FAILED" >> $LOG_FILE
-        echo "WMS health check failed. Check logs at $LOG_FILE" | mail -s "WMS Alert" $ALERT_EMAIL
+        echo "WMS health check failed. Check logs at $LOG_FILE" | mail -s \
+          "WMS Alert" $ALERT_EMAIL
         return 1
     else
         echo "$(date): WMS health check PASSED" >> $LOG_FILE
@@ -705,7 +707,8 @@ psql -d osm_notes -c "SELECT query, calls, total_time, mean_time \
 psql -d osm_notes -c "VACUUM ANALYZE wms.notes_wms;"
 
 # Add indexes if needed
-psql -d osm_notes -c "CREATE INDEX CONCURRENTLY IF NOT EXISTS notes_wms_geometry_gist \
+psql -d osm_notes -c \
+  "CREATE INDEX CONCURRENTLY IF NOT EXISTS notes_wms_geometry_gist \
   ON wms.notes_wms USING GIST (geometry);"
 
 # Restart services

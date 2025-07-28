@@ -44,6 +44,7 @@ Generate database designs and scripts that align with best practices for scalabi
 - Use diagrams to describe high-level architecture and workflows.
 - Each time an error is discovered, a new test should be added or correct an existing one.
 - For Markdown documents, execute markdownlint or equivalent.
+- For markdown headings, try to put different text for siblings. We need to prevent this:  Some Markdown parsers generate anchors for headings based on the heading name; headings with the same content can cause problems with that.
   
 ---
   

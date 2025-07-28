@@ -2,11 +2,16 @@
 
 ## Overview
 
-The WMS (Web Map Service) component of the OSM-Notes-profile project provides a map service that displays the location of open and closed OSM notes. This service allows mappers to visualize note activity geographically, helping identify areas that need attention or have been recently processed.
+The WMS (Web Map Service) component of the OSM-Notes-profile project provides a
+map service that displays the location of open and closed OSM notes. This
+service allows mappers to visualize note activity geographically, helping
+identify areas that need attention or have been recently processed.
 
 ### What is WMS?
 
-WMS (Web Map Service) is an OGC (Open Geospatial Consortium) standard that provides map images over the internet. In our context, it serves OSM notes as map layers that can be viewed in mapping applications like JOSM or Vespucci.
+WMS (Web Map Service) is an OGC (Open Geospatial Consortium) standard that
+provides map images over the internet. In our context, it serves OSM notes as
+map layers that can be viewed in mapping applications like JOSM or Vespucci.
 
 ### Key Features
 
@@ -337,7 +342,8 @@ psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
 psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
 # Check triggers
-psql -d osm_notes -c "SELECT * FROM information_schema.triggers WHERE trigger_name LIKE '%wms%';"
+psql -d osm_notes -c "SELECT * FROM information_schema.triggers
+  WHERE trigger_name LIKE '%wms%';"
 ```
 
 #### 4. Performance Issues
@@ -358,7 +364,8 @@ ps aux | grep geoserver
 psql -d osm_notes -c "VACUUM ANALYZE wms.notes_wms;"
 
 # Check indexes
-psql -d osm_notes -c "SELECT schemaname, tablename, indexname FROM pg_indexes WHERE schemaname = 'wms';"
+psql -d osm_notes -c "SELECT schemaname, tablename, indexname FROM pg_indexes
+  WHERE schemaname = 'wms';"
 ```
 
 ### Diagnostic Commands
@@ -376,7 +383,9 @@ psql -d osm_notes -c "SELECT schemaname, tablename, indexname FROM pg_indexes WH
 
 ```bash
 # Check database performance
-psql -d osm_notes -c "SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del FROM pg_stat_user_tables WHERE schemaname = 'wms';"
+psql -d osm_notes -c \
+  "SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del 
+  FROM pg_stat_user_tables WHERE schemaname = 'wms';"
 
 # Check GeoServer performance
 curl -s "http://localhost:8080/geoserver/rest/about/status" | jq .
@@ -416,7 +425,10 @@ journalctl -u geoserver -f
 psql -d osm_notes -f sql/wms/prepareDatabase.sql
 
 # Repopulate WMS data
-psql -d osm_notes -c "INSERT INTO wms.notes_wms SELECT note_id, extract(year from created_at), extract(year from closed_at), ST_SetSRID(ST_MakePoint(lon, lat), 4326) FROM notes WHERE lon IS NOT NULL AND lat IS NOT NULL;"
+psql -d osm_notes -c "INSERT INTO wms.notes_wms 
+  SELECT note_id, extract(year from created_at), extract(year from closed_at),
+    ST_SetSRID(ST_MakePoint(lon, lat), 4326) FROM notes 
+    WHERE lon IS NOT NULL AND lat IS NOT NULL;"
 ```
 
 ## Advanced Configuration
@@ -443,7 +455,8 @@ WHERE year_closed_at IS NULL
 CREATE INDEX IF NOT EXISTS notes_wms_geometry_gist ON wms.notes_wms USING GIST (geometry);
 
 -- Add temporal index
-CREATE INDEX IF NOT EXISTS notes_wms_temporal ON wms.notes_wms (year_created_at, year_closed_at);
+CREATE INDEX IF NOT EXISTS notes_wms_temporal ON wms.notes_wms (year_created_at,
+  year_closed_at);
 
 -- Analyze table
 ANALYZE wms.notes_wms;

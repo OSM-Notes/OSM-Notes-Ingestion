@@ -4,20 +4,20 @@ Mechanism to show a user and country profile about the work on OSM notes.
 Also, it allows publishing a layer with the location of the opened and
 closed notes.
 
-# tl;dr - 5 minutes configuration
+## tl;dr - 5 minutes configuration
 
 You just need to download or clone this project in a Linux server and configure
 the crontab to invoke the notes pulling.
 This example is for polling every 15 minutes:
 
-```
+```text
 */15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh
 ```
 
 The configuration file contains the properties needed to configure this tool,
 especially the database properties.
 
-# Main functions
+## Main functions
 
 These are the main functions of this project.
 
@@ -40,7 +40,7 @@ These are the main functions of this project.
 * View the user or country's profile.
   This is a basic version of the report, to test from the command line.
 
-# Timing
+## Timing
 
 The whole process takes several hours, even days to complete before the
 profile can be used for any user.
@@ -84,11 +84,11 @@ less than 2 minutes to complete.
   have contributed with only one note.
   TODO ETL - parallelize
 
-# Install prerequisites on Ubuntu
+## Install prerequisites on Ubuntu
 
 This is a simplified version of what you need to execute to run this project on Ubuntu.
 
-```
+```text
 # Configure the PostgreSQL database.
 sudo apt -y install postgresql
 sudo systemctl start postgresql.service
@@ -141,12 +141,12 @@ sudo apt-get -y install gdal-bin
 If you do not configure the prerequisites, each script validates the necessary
 components to work.
 
-# Cron scheduling
+## Cron scheduling
 
 To run the notes database synchronization and the data warehouse process, you
 could configure the crontab like (`crontab -e`):
 
-```
+```text
 # Runs the API extraction each 15 minutes.
 # Normal execution for Planet and API process and then data warehouse population.
 */15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh
@@ -159,7 +159,7 @@ could configure the crontab like (`crontab -e`):
 0 12 1 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh
 ```
 
-```
+```text
 # Runs the API extraction in debug mode, keeping all the generated files.
 #*/15 * * * * export LOG_LEVEL=DEBUG ; export CLEAN=false ;~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
 ```
@@ -168,9 +168,9 @@ You can also configure the ETL at different times from the notes' processing.
 However, the notes' processing should be more frequent than the ETL, otherwise
 the ETL does not have data to process.
 
-# Components description
+## Components description
 
-## Configuration file
+### Configuration file
 
 Before everything, you need to configure the database access and other
 properties under the next file:
@@ -182,7 +182,7 @@ You specify the database name and the user to access it.
 Other properties are related to improving the parallelism to process the note's
 location, or to use other URLs for Overpass or the API.
 
-## Downloading notes
+### Downloading notes
 
 There are two ways to download OSM notes:
 
@@ -229,11 +229,11 @@ That's why it is recommended to perform frequent API calls.
 You can run `processAPINotes.sh` from a crontab every 15 minutes, to process
 notes almost in real-time.
 
-## Logger
+### Logger
 
 You can export the `LOG_LEVEL` variable, and then call the scripts normally.
 
-```
+```text
 export LOG_LEVEL=DEBUG
 ./processAPINotes.sh
 ```
@@ -247,7 +247,7 @@ The levels are (case-sensitive):
 * ERROR
 * FATAL
 
-## Database
+### Database
 
 These are the table types on the database:
 
@@ -271,7 +271,7 @@ The star schema is composed of the fact and dimensions tables.
   between the normal behavior with API and the notes on the last day of the
   Planet.
 
-## Directories
+### Directories
 
 Some directories have their own README file to explain their content.
 These files include details about how to run or troubleshoot the scripts.
@@ -318,7 +318,7 @@ These files include details about how to run or troubleshoot the scripts.
   Planet dump and API calls.
   They are used from `processAPINotes.sh` and `processPlanetNotes.sh`.
 
-## Monitoring
+### Monitoring
 
 Periodically, you can run the following script to monitor and validate that
 executions are correct, and also that notes processing have not had errors:
@@ -337,12 +337,12 @@ with the `processPlanetNotes.sh` script.
 It is also recommended to create an issue in this GitHub repository, providing
 as much information as possible.
 
-## WMS layer
+### WMS layer
 
 This is the way to create the objects for the WMS layer.
 More information is in the `README.md` file under the `sql/wms` directory.
 
-### Automated Installation (Recommended)
+#### Automated Installation (Recommended)
 
 Use the WMS manager script for easy installation and management:
 
@@ -360,7 +360,7 @@ Use the WMS manager script for easy installation and management:
 ~/OSM-Notes-profile/bin/wms/wmsManager.sh help
 ```
 
-### Manual Installation
+#### Manual Installation
 
 For manual installation, execute the SQL directly:
 
@@ -368,7 +368,7 @@ For manual installation, execute the SQL directly:
 psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-profile/sql/wms/prepareDatabase.sql
 ```
 
-# Dependencies and libraries
+## Dependencies and libraries
 
 These are the external dependencies to make it work.
 
@@ -394,7 +394,7 @@ These are external libraries:
 * Linux and its commands, because it is developed in Bash, which uses a lot
   of command line instructions.
 
-# Remove
+## Remove
 
 You can use the following script to remove components from this tool.
 This is useful if you have to recreate some parts, but the rest is working fine.
@@ -423,7 +423,7 @@ rm -rf /tmp/process*
 
 You can also use the ```cleanAll.sh``` script under the ```test``` directory.
 
-# Help
+## Help
 
 You can start looking for help by reading the README.md files.
 Also, you run the scripts with -h or --help.
@@ -431,7 +431,7 @@ There are few Github wiki pages with interesting information.
 You can even take a look at the code, which is highly documented.
 Finally, you can create an issue or contact the author.
 
-# Acknowledgments
+## Acknowledgments
 
 Andres Gomez (@AngocA) was the main developer of this idea.
 He thanks Jose Luis Ceron Sarria for all his help designing the

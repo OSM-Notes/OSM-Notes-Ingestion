@@ -98,7 +98,8 @@ The WMS system consists of several interconnected components:
 
 ### WMS Schema Overview
 
-The WMS system uses a dedicated schema (`wms`) to optimize performance and maintain separation of concerns.
+The WMS system uses a dedicated schema (`wms`) to optimize performance and
+maintain separation of concerns.
 
 #### Schema Structure
 
@@ -122,7 +123,8 @@ CREATE TABLE wms.notes_wms (
     geometry GEOMETRY(POINT, 4326)
 );
 
-COMMENT ON TABLE wms.notes_wms IS 'Locations of the notes and its opening and closing year';
+COMMENT ON TABLE wms.notes_wms IS
+  'Locations of the notes and its opening and closing year';
 COMMENT ON COLUMN wms.notes_wms.note_id IS 'OSM note id';
 COMMENT ON COLUMN wms.notes_wms.year_created_at IS 'Year when the note was created';
 COMMENT ON COLUMN wms.notes_wms.year_closed_at IS 'Year when the note was closed';
@@ -580,7 +582,8 @@ export WMS_CORS_ALLOW_HEADERS="Content-Type, Authorization"
 
 ```sql
 -- Validate coordinates
-CREATE OR REPLACE FUNCTION wms.validate_coordinates(lon double precision, lat double precision)
+CREATE OR REPLACE FUNCTION wms.validate_coordinates(lon double precision,
+  lat double precision)
 RETURNS boolean AS $$
 BEGIN
     RETURN lon BETWEEN -180 AND 180 AND lat BETWEEN -90 AND 90;
@@ -632,7 +635,8 @@ WHERE schemaname = 'wms';
 curl -s "http://localhost:8080/geoserver/rest/about/status" | jq .
 
 # Layer statistics
-curl -s "http://localhost:8080/geoserver/rest/layers/osm_notes:notes_wms_layer" | jq .
+curl -s "http://localhost:8080/geoserver/rest/layers/osm_notes:notes_wms_layer" \
+  | jq .
 ```
 
 #### Performance Monitoring
@@ -691,11 +695,13 @@ echo "=== WMS Health Check ==="
 
 # Database connection
 echo "Database connection:"
-psql -h localhost -U postgres -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;" 2>/dev/null || echo "FAILED"
+psql -h localhost -U postgres -d osm_notes \
+  -c "SELECT COUNT(*) FROM wms.notes_wms;" 2>/dev/null || echo "FAILED"
 
 # GeoServer status
 echo "GeoServer status:"
-curl -s "http://localhost:8080/geoserver/rest/about/status" >/dev/null && echo "OK" || echo "FAILED"
+curl -s "http://localhost:8080/geoserver/rest/about/status" >/dev/null \
+  && echo "OK" || echo "FAILED"
 
 # WMS service
 echo "WMS service:"
