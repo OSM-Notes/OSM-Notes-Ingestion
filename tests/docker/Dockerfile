@@ -44,8 +44,7 @@ RUN pip3 install \
     requests \
     pytest \
     pytest-mock \
-    psutil \
-    # Removed bandit - not needed for mock Python files
+    psutil
 
 # Install Node.js tools
 RUN npm install -g ajv-cli osmtogeojson
