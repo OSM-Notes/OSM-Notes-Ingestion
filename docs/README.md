@@ -13,21 +13,32 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 - **`processAPI.md`**: API processing documentation and incremental synchronization
 - **`processPlanet.md`**: Planet file processing documentation and historical data handling
 
+### WMS (Web Map Service)
+- **`WMS_Guide.md`**: Complete WMS guide with installation, configuration, and usage
+- **`WMS_Technical.md`**: Technical specifications and architecture details
+- **`WMS_User_Guide.md`**: User guide for mappers and end users
+- **`WMS_Administration.md`**: Administration guide for system administrators
+- **`WMS_API_Reference.md`**: Complete API reference and examples
+
 ## Quick Navigation
 
 ### For New Users
 1. Start with **[Rationale.md](./Rationale.md)** to understand the project's purpose and motivation
 2. Read **[Documentation.md](./Documentation.md)** for system architecture and overview
 3. Review **[processAPI.md](./processAPI.md)** and **[processPlanet.md](./processPlanet.md)** for technical implementation details
+4. Check **[WMS_User_Guide.md](./WMS_User_Guide.md)** for WMS usage instructions
 
 ### For Developers
 1. Review **[Documentation.md](./Documentation.md)** for system architecture
 2. Study **[processAPI.md](./processAPI.md)** for API integration details
 3. Examine **[processPlanet.md](./processPlanet.md)** for data processing workflows
+4. Consult **[WMS_Technical.md](./WMS_Technical.md)** and **[WMS_API_Reference.md](./WMS_API_Reference.md)** for WMS development
 
 ### For System Administrators
 1. Read **[Documentation.md](./Documentation.md)** for deployment and maintenance guidelines
 2. Review **[processAPI.md](./processAPI.md)** and **[processPlanet.md](./processPlanet.md)** for operational procedures
+3. Follow **[WMS_Administration.md](./WMS_Administration.md)** for WMS system administration
+4. Use **[WMS_Guide.md](./WMS_Guide.md)** for WMS installation and configuration
 
 ## Documentation Cross-References
 
@@ -56,6 +67,13 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
   - [Documentation.md](./Documentation.md) for system architecture
   - [Rationale.md](./Rationale.md) for project background
   - [processAPI.md](./processAPI.md) for related processing workflows
+
+### WMS Documentation
+- **WMS_Guide.md**: Complete WMS guide with installation and configuration
+- **WMS_Technical.md**: Technical specifications and architecture
+- **WMS_User_Guide.md**: User guide for mappers and end users
+- **WMS_Administration.md**: Administration guide for system administrators
+- **WMS_API_Reference.md**: Complete API reference and examples
 
 ## Software Components
 

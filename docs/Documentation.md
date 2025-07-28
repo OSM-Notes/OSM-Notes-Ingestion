@@ -34,6 +34,12 @@ The OSM-Notes-profile system consists of several key components:
    - Hashtag Analysis: Campaign and initiative tracking
    - Application Usage: Tool adoption metrics
 
+5. **WMS (Web Map Service) Layer**
+   - Geographic Visualization: Map-based note display
+   - Real-time Updates: Synchronized with main database
+   - Style Management: Different styles for open/closed notes
+   - Client Integration: JOSM, Vespucci, and web applications
+
 ## Data Flow
 
 ### 1. Geographic Data Collection
@@ -61,6 +67,11 @@ The OSM-Notes-profile system consists of several key components:
 - **Process**: Pre-calculated aggregations
 - **Output**: User and country profiles
 
+### 6. WMS Service Delivery
+- **Source**: WMS schema in database
+- **Process**: GeoServer rendering with styles
+- **Output**: Map tiles and feature information via WMS protocol
+
 ## Database Schema
 
 ### Core Tables
@@ -78,12 +89,22 @@ The OSM-Notes-profile system consists of several key components:
 - **Dimension Tables**: Reference data for analysis
 - **Data Marts**: Pre-calculated user and country metrics
 
+### WMS Tables
+- **`wms.notes_wms`**: Optimized note data for map visualization
+- **Triggers**: Automatic synchronization from main tables
+- **Indexes**: Spatial and temporal indexes for performance
+
 ## Technical Implementation
 
 ### Processing Scripts
 - **`processAPINotes.sh`**: Incremental synchronization from OSM API
 - **`processPlanetNotes.sh`**: Historical data processing from Planet dumps
 - **`updateCountries.sh`**: Geographic boundary updates
+
+### WMS Scripts
+- **`wmsManager.sh`**: WMS database component management
+- **`geoserverConfig.sh`**: GeoServer configuration automation
+- **`wmsConfigExample.sh`**: Configuration examples and validation
 
 ### Data Transformation
 - **XSLT Templates**: XML to CSV transformation
@@ -101,6 +122,11 @@ The OSM-Notes-profile system consists of several key components:
 - **OSM API**: Real-time note data
 - **Overpass API**: Geographic boundary data
 - **Planet Dumps**: Historical data archives
+
+### WMS Service
+- **GeoServer**: WMS service provider
+- **PostGIS**: Spatial data storage and processing
+- **OGC Standards**: WMS 1.3.0 compliance
 
 ### Data Formats
 - **XML**: Input format from OSM APIs and Planet dumps
@@ -141,6 +167,8 @@ The OSM-Notes-profile system consists of several key components:
 - Access user and country profiles
 - View note activity and contribution metrics
 - Analyze hashtag and campaign performance
+- Use WMS layers in mapping applications (JOSM, Vespucci)
+- Visualize note patterns geographically
 
 ## Dependencies
 
@@ -149,6 +177,8 @@ The OSM-Notes-profile system consists of several key components:
 - **Bash**: Scripting environment for processing
 - **XSLT**: XML transformation tools
 - **Overpass**: Geographic data API
+- **GeoServer**: WMS service provider
+- **Java**: Runtime environment for GeoServer
 
 ### Data Dependencies
 - **OSM API**: Real-time note data
@@ -160,3 +190,4 @@ The OSM-Notes-profile system consists of several key components:
 - **System Architecture**: This document provides the high-level overview
 - **Processing Details**: See [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for specific implementation details
 - **Project Motivation**: See [Rationale.md](./Rationale.md) for background and goals
+- **WMS Documentation**: See [WMS_Guide.md](./WMS_Guide.md), [WMS_Technical.md](./WMS_Technical.md), [WMS_User_Guide.md](./WMS_User_Guide.md), [WMS_Administration.md](./WMS_Administration.md), and [WMS_API_Reference.md](./WMS_API_Reference.md) for WMS-specific documentation
