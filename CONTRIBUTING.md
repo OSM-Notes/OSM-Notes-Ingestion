@@ -26,7 +26,7 @@ All bash scripts must follow these standards:
 #!/bin/bash
 
 # Brief description of the script functionality
-# 
+#
 # This script [describe what it does]
 # * [key feature 1]
 # * [key feature 2]
@@ -299,7 +299,7 @@ project/
 #### Script Documentation
 ```bash
 # Brief description of what the script does
-# 
+#
 # Detailed explanation of functionality
 # * Key feature 1
 # * Key feature 2
@@ -483,6 +483,6 @@ For local development, consider using Docker:
 
 **Thank you for contributing to OSM-Notes-profile!**
 
-Your contributions help make OpenStreetMap notes analysis more accessible and 
+Your contributions help make OpenStreetMap notes analysis more accessible and
 powerful for the community.
 

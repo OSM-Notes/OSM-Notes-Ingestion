@@ -411,7 +411,7 @@ Create custom SQL views for specific note types:
 CREATE VIEW wms.high_priority_notes AS
 SELECT note_id, year_created_at, year_closed_at, geometry
 FROM wms.notes_wms
-WHERE year_closed_at IS NULL 
+WHERE year_closed_at IS NULL
   AND year_created_at >= extract(year from current_date) - 1;
 ```
 
@@ -490,5 +490,5 @@ export WMS_CORS_ALLOW_ORIGIN="https://myapp.com"
 - **WMS Version**: 1.3.0
 - **GeoServer Version**: 2.24+
 - **PostGIS Version**: 3.0+
-- **Last Updated**: 2025-07-27 
+- **Last Updated**: 2025-07-27
 

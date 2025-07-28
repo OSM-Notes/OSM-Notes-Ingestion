@@ -1,6 +1,7 @@
 # Bin Directory
 
 ## Overview
+
 The `bin` directory contains all the executable scripts and processing components
 of the OSM-Notes-profile system. This is the core operational directory where
 the main processing logic resides.
@@ -32,6 +33,7 @@ Monitoring and verification scripts:
 - **`notesCheckVerifier.sh`**: Validates note data integrity
 
 ### `/bin/cleanupPartitions.sh`
+
 Database maintenance script for cleaning up partition tables
 
 ## Software Components
@@ -54,6 +56,7 @@ Database maintenance script for cleaning up partition tables
 - **Cleanup**: `bin/cleanupPartitions.sh` maintains database performance
 
 ## Usage
+
 All scripts in this directory are designed to be run from the project root and
 require proper database configuration and dependencies to be installed.
 
@@ -63,4 +66,3 @@ require proper database configuration and dependencies to be installed.
 - XML processing tools (xmlstarlet, xsltproc)
 - Bash scripting environment
 - Required data files and schemas
-

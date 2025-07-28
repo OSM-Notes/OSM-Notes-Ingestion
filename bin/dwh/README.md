@@ -1,6 +1,8 @@
+# Star-model
+
 This is the star-model of the data warehouse.
 
-# Fact table
+## Fact table
 
 * fact_id
   * Surrogated id.
@@ -27,15 +29,15 @@ This is the star-model of the data warehouse.
 * opened_dimension_id_user
   * The username of who created the note, it is not anonymous.
 * closed_dimension_id_date
-  * Timestamp when the note was closed. This value is only filled when the 
+  * Timestamp when the note was closed. This value is only filled when the
     comment is a closing one.
 * closed_dimension_id_hour_of_week
   * Hour of the day when the note was closed.
 * closed_dimension_id_user
   * Username who closed the node. Only when this
-                              comment is a closing one.
+    comment is a closing one.
 
-# Dimension: users
+## Dimension: users
 
 * dimension_user_id
   * Surrogated id.
@@ -46,7 +48,7 @@ This is the star-model of the data warehouse.
 * modified
   * If the user has performed actions after the last datamart load.
 
-# Dimension: countries
+## Dimension: countries
 
 * dimension_country_id
   * Surrogated id.
@@ -61,14 +63,14 @@ This is the star-model of the data warehouse.
 * modified
   * If the country has a modified note after the last datamart load.
 
-# Dimension: days
+## Dimension: days
 
 * dimension_day_id
   * Surrogate id.
 * date_id
   * Date.
 
-# Dimension: hours_of_week
+## Dimension: hours_of_week
 
 * dimension_how_id
   * Surrogate id.
@@ -77,16 +79,15 @@ This is the star-model of the data warehouse.
 * hour_of_day
   * Hour of the day.
 
-# Datamart tables
+## Datamart tables
 
 There is also a set of tables for each datamart with the already computed data
 for common queries.
 
-# Files
+## Files
 
 * `ETL.sh` reads the new changes from the notes database and inserts them into
   the facts.
   Also, some dimensions could be changed.
 * `profile.sh` generates the profile for a country or a user.
   It is a command line tester for the datamart.
-

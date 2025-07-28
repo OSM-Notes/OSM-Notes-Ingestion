@@ -1,3 +1,4 @@
+
 # Configure Notes WMS
 
 Notes WMS is a layer service that locates the open and closed notes on a map.
@@ -27,21 +28,27 @@ When open notes, the older the darker the note, meaning it has less value than
 recently open notes.
 When closed notes, the lighter the older, meaning it was processed long before.
 
+
 # Installation
+
 
 ## Automated Installation (Recommended)
 
 Use the WMS manager script for easy installation and management:
 
 ```bash
+
 # Install WMS components
 ~/OSM-Notes-profile/bin/wms/wmsManager.sh install
+
 
 # Check installation status
 ~/OSM-Notes-profile/bin/wms/wmsManager.sh status
 
+
 # Remove WMS components
 ~/OSM-Notes-profile/bin/wms/wmsManager.sh deinstall
+
 
 # Show help
 ~/OSM-Notes-profile/bin/wms/wmsManager.sh help
@@ -56,9 +63,11 @@ The WMS manager script includes:
 - ✅ Dry-run mode for testing
 - ✅ Comprehensive error handling
 
+
 ## Manual Installation
 
 For manual installation, follow these steps:
+
 
 # Database configuration
 
@@ -69,7 +78,7 @@ ALTER USER myuser WITH PASSWORD 'mypassword';
 ```
 
 * Change the database configuration to allow remote connections.
-This link could be useful: 
+This link could be useful:
 https://www.bigbinary.com/blog/configure-postgresql-to-allow-remote-connection
 Also, you can find the configuration file with this:
 
@@ -108,12 +117,15 @@ Let's suppose the Postgres database is called `notes`.
 psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
 ```
 
+
 # Geoserver configuration
 
 Configure the GeoServer to publish the layer from the database, following
 these instructions.
 
+
 ## Contact Information
+
 
 ### Organization
 
@@ -121,11 +133,13 @@ these instructions.
 * Online Resource: https://osmlatam.org
 * Welcome: Set of layers provided by OpenStreetMap LatAm.
 
+
 ### Primary Contact
 
 * Contact: Andres Gomez Casanova - AngocA
 * Position: Volunteer
 * Email: angoca @ osm.lat
+
 
 ### Address
 
@@ -133,12 +147,15 @@ these instructions.
 * State: D.C.
 * Country: Colombia
 
+
 ## Workspaces
 
 * Name: OSM_Notes
 * Namespace URI: OSM_Notes
 
+
 ## Stores
+
 
 ### Basic Store Info
 
@@ -148,6 +165,7 @@ PostGIS
 * Data Source Name: OSM Notes DS
 * Description: Data for OSM Notes
 
+
 ### Connection Parameters
 
 * Host:
@@ -156,7 +174,9 @@ PostGIS
 * User:
 * Passwd:
 
+
 ## Styles
+
 
 ### Syle Data
 
@@ -175,6 +195,7 @@ SLD files are under the `sld` directory.
   * Choose File: ClosedNotes.sld
   * Upload...
 * Legend: Add legend
+
 
 ## Layers
 
@@ -196,22 +217,27 @@ WHERE year_closed_at IS NULL
 ORDER BY year_created_at DESC
 ```
 
+
 ## Styles
 
 For each layer.
 
+
 ### Publishing
 
 * Default
+
 
 ### Basic Resource Info
 
 * Abstract: This layer shows the location of the currently open notes.
 The color intensity shows the age of the creation time.
 
+
 ### Coordinate Reference Systems
 
 * Declared SRS: EPSG:4326
+
 
 ### Bounding Boxes
 
@@ -220,9 +246,11 @@ The color intensity shows the age of the creation time.
 
 **On the Publishing tab:**
 
+
 ### WMS Settings - Layers Settings
 
 * Additional Styles: OSM_Notes:OpenNotes
+
 
 ### WMS Attribution
 
@@ -230,6 +258,7 @@ The color intensity shows the age of the creation time.
 * Attribution Link: https://www.openstreetmap.org/copyright
 
 **On the Tile Caching tab:**
+
 
 ### Tile cache configuration
 
@@ -255,6 +284,7 @@ WHERE year_closed_at IS NOT NULL
 ORDER BY year_created_at DESC
 ```
 
+
 ### Basic Resource Info
 
 * Abstract: This layer shows the location of the closed notes.
@@ -262,16 +292,19 @@ The color intensity shows the age of the creation time.
 
 **On the Publishing tab:**
 
+
 ### WMS Settings - Layers Settings
 
 * Additional Styles: OSM_Notes:CloseNotes
 
 The other options the same as for open notes.
 
+
 ## Disk Quota
 
 * Enable disk quota
 * Maximum tile cache size: 5 GB
+
 
 ## BlobStores
 
@@ -282,21 +315,26 @@ The other options the same as for open notes.
 * Default.
 * Base Directory: A location with more than 50 GB space.
 
+
 ## Tile Layers
 
 * Choose each layer, and click on Seed/Truncate.
+
 
 ## Passwords
 
 * Change active master provider.
 
+
 ## Users, Groups, Roles
 
 * Change admin password.
 
+
 ## Additionally
 
 * Activate BlobStores.
+
 
 # Files
 

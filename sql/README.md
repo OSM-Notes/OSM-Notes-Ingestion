@@ -75,5 +75,5 @@ in the `bin/` directory.
 
 - PostgreSQL 11+ with PostGIS extension
 - Proper database permissions
-- Required extensions (btree_gist, etc.) 
+- Required extensions (btree_gist, etc.)
 

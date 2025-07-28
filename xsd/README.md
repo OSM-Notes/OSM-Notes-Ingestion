@@ -1,9 +1,9 @@
 # XML Schema Definitions Directory
 
 ## Overview
-The `xsd` directory contains XML Schema Definition (XSD) files that define the 
-structure and validation rules for OSM notes XML data. These schemas ensure data 
-integrity and provide documentation for the expected XML formats from different 
+The `xsd` directory contains XML Schema Definition (XSD) files that define the
+structure and validation rules for OSM notes XML data. These schemas ensure data
+integrity and provide documentation for the expected XML formats from different
 OSM data sources.
 
 ## Directory Structure
@@ -44,5 +44,5 @@ These XSD files are used for:
 - XML Schema processor
 - XML validation tools
 - Proper XML namespace handling
-- UTF-8 encoding support 
+- UTF-8 encoding support
 

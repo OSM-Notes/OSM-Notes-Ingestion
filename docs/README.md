@@ -44,7 +44,7 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 
 ### Rationale.md
 - **Purpose**: Project motivation and background
-- **References**: 
+- **References**:
   - [Documentation.md](./Documentation.md) for technical details
   - [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for implementation specifics
 
@@ -132,5 +132,5 @@ When updating documentation:
 1. **Maintain Cross-References**: Update related document references
 2. **Keep Language Consistent**: All documentation is now in English
 3. **Update Version Information**: Include current date in document headers
-4. **Test Links**: Verify all internal links work correctly 
+4. **Test Links**: Verify all internal links work correctly
 

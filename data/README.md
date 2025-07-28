@@ -52,5 +52,5 @@ This directory provides:
 
 - Data processing tools for CSV and compressed files
 - Geographic data handling capabilities
-- Data validation and format checking tools 
+- Data validation and format checking tools
 

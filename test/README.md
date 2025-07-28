@@ -1,8 +1,8 @@
 # Test Directory
 
 ## Overview
-The `test` directory contains legacy test files and testing utilities for the 
-OSM-Notes-profile system. This directory includes older test scripts and 
+The `test` directory contains legacy test files and testing utilities for the
+OSM-Notes-profile system. This directory includes older test scripts and
 utilities that may still be useful for specific testing scenarios.
 
 ## Directory Structure

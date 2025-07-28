@@ -1,8 +1,8 @@
 # JSON Data Directory
 
 ## Overview
-The `json` directory contains JSON (JavaScript Object Notation) files that provide 
-structured data for the OSM-Notes-profile system. These files include schema 
+The `json` directory contains JSON (JavaScript Object Notation) files that provide
+structured data for the OSM-Notes-profile system. These files include schema
 definitions, sample data, and configuration files in JSON format.
 
 ## Directory Structure
@@ -44,5 +44,5 @@ These JSON files support:
 - JSON processing libraries
 - Geographic data handling tools
 - Web development frameworks
-- JSON schema validation tools 
+- JSON schema validation tools
 

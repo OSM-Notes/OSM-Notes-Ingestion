@@ -170,5 +170,5 @@ All WMS scripts automatically load these properties:
 2. **Secure Credentials**: Use environment variables for sensitive data
 3. **Validation**: Always validate properties before use
 4. **Documentation**: Document custom configurations
-5. **Version Control**: Keep property files in version control (excluding secrets) 
+5. **Version Control**: Keep property files in version control (excluding secrets)
 

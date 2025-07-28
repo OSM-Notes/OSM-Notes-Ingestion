@@ -41,5 +41,5 @@ This directory supports:
 ## Dependencies
 - Markdown rendering for documentation
 - Project management tools and workflows
-- Team collaboration and communication tools 
+- Team collaboration and communication tools
 

@@ -28,6 +28,7 @@ export GEOSERVER_URL="https://my-geoserver.com/geoserver"
 - **Development Configuration**: Debug and development mode settings
 
 ### Configuration Examples (`bin/wms/wmsConfigExample.sh`)
+
 Use this script to explore and validate WMS configuration:
 
 ```bash
@@ -47,6 +48,7 @@ Use this script to explore and validate WMS configuration:
 ## Scripts
 
 ### 1. wmsManager.sh
+
 Manages the installation and deinstallation of WMS components in the database.
 
 **Usage:**
@@ -65,6 +67,7 @@ Manages the installation and deinstallation of WMS components in the database.
 ```
 
 ### 2. geoserverConfig.sh
+
 Automates GeoServer setup for WMS layers. This script configures GeoServer to
 serve OSM notes as WMS layers.
 
@@ -132,6 +135,7 @@ The script automatically uses WMS properties from `etc/wms.properties.sh`:
 ## Features
 
 ### WMS Manager
+
 - ✅ Automatic validation of prerequisites (PostgreSQL, PostGIS)
 - ✅ Database connection testing
 - ✅ Installation status checking
@@ -141,6 +145,7 @@ The script automatically uses WMS properties from `etc/wms.properties.sh`:
 - ✅ Comprehensive error handling
 
 ### GeoServer Config
+
 - ✅ Automated GeoServer workspace creation
 - ✅ PostGIS datastore configuration
 - ✅ WMS layer setup
@@ -198,5 +203,5 @@ Both scripts are designed to work with the CI/CD pipeline:
 - Configure database user with minimal required permissions
 - Consider using environment variables for sensitive data
 - Regularly update GeoServer and PostgreSQL
-- Monitor access logs for suspicious activity 
+- Monitor access logs for suspicious activity
 

@@ -89,15 +89,15 @@ Tests can be run individually or as part of the complete test suite:
 - BATS testing framework
 - Docker and docker-compose
 - PostgreSQL test database
-- Various testing tools (shellcheck, shfmt, etc.) 
+- Various testing tools (shellcheck, shfmt, etc.)
 
 # Test Configuration and Standardized Values
 
 ## Overview
 
-This document describes the standardized configuration values used across all test 
-environments in the OSM-Notes-profile project. **Test properties are completely 
-separate from production properties** to maintain clear boundaries between 
+This document describes the standardized configuration values used across all test
+environments in the OSM-Notes-profile project. **Test properties are completely
+separate from production properties** to maintain clear boundaries between
 environments.
 
 ## Test Properties vs Production Properties
@@ -235,5 +235,5 @@ The system uses different default values for production and test environments:
 - Removed test-specific values from production configuration
 - Created independent test property file
 - Updated all test scripts to use test properties only
-- Improved documentation and usage examples 
+- Improved documentation and usage examples
 

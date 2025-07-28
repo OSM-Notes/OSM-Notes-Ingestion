@@ -152,7 +152,7 @@ could configure the crontab like (`crontab -e`):
 
 # Download a new Planet version, and checks if the executions have been successful.
 # Planet used to be published around 5 am (https://planet.openstreetmap.org/notes/)
-0 6 * * * ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh ; ~/OSM-Notes-profile/bin/monitor/notesCheckVerifier.sh 
+0 6 * * * ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh ; ~/OSM-Notes-profile/bin/monitor/notesCheckVerifier.sh
 
 # Runs the boundaries update. Once a month.
 0 12 1 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh

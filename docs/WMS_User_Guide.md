@@ -2,8 +2,8 @@
 
 ## What is WMS?
 
-WMS (Web Map Service) is a way to view OSM notes on a map. Think of it as a 
-special layer that shows you where people have left notes about mapping issues, 
+WMS (Web Map Service) is a way to view OSM notes on a map. Think of it as a
+special layer that shows you where people have left notes about mapping issues,
 just like you might leave a sticky note on a map.
 
 ### Why Use WMS?
@@ -375,7 +375,7 @@ We welcome your feedback to improve this guide:
 
 ---
 
-*This guide is designed to help you make the most of the WMS layer for OSM notes. 
-Remember, the goal is to make mapping more efficient and collaborative by 
+*This guide is designed to help you make the most of the WMS layer for OSM notes.
+Remember, the goal is to make mapping more efficient and collaborative by
 visualizing where attention is needed.* 
 
