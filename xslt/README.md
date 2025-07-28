@@ -47,3 +47,4 @@ database. The transformations ensure data consistency and proper formatting.
 - XML input files from OSM API or Planet
 - Proper XML schema validation
 - UTF-8 encoding support 
+

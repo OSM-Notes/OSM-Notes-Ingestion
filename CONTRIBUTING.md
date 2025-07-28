@@ -481,3 +481,4 @@ For local development, consider using Docker:
 
 Your contributions help make OpenStreetMap notes analysis more accessible and 
 powerful for the community.
+

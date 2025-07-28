@@ -491,3 +491,4 @@ export WMS_CORS_ALLOW_ORIGIN="https://myapp.com"
 - **GeoServer Version**: 2.24+
 - **PostGIS Version**: 3.0+
 - **Last Updated**: 2025-07-27 
+

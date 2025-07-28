@@ -42,3 +42,4 @@ This directory supports:
 - Markdown rendering for documentation
 - Project management tools and workflows
 - Team collaboration and communication tools 
+

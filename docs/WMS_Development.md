@@ -1186,3 +1186,4 @@ WHERE schemaname = 'wms';
 - **API Reference**: See `docs/WMS_API_Reference.md`
 - **Administration Guide**: See `docs/WMS_Administration.md`
 - **User Guide**: See `docs/WMS_User_Guide.md` 
+

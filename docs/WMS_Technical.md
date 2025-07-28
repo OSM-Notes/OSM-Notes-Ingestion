@@ -715,3 +715,4 @@ curl -s "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=G
 - **API Reference**: See `docs/WMS_API_Reference.md`
 - **Administration Guide**: See `docs/WMS_Administration.md`
 - **User Guide**: See `docs/WMS_User_Guide.md` 
+

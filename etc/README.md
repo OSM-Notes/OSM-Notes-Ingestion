@@ -171,3 +171,4 @@ All WMS scripts automatically load these properties:
 3. **Validation**: Always validate properties before use
 4. **Documentation**: Document custom configurations
 5. **Version Control**: Keep property files in version control (excluding secrets) 
+
