@@ -62,6 +62,7 @@ set -E
 ```
 
 #### Variable Declaration Standards
+
 - **Global variables**: Use `declare -r` for readonly variables
 - **Local variables**: Use `local` declaration
 - **Integer variables**: Use `declare -i`
@@ -69,6 +70,7 @@ set -E
 - **All variables must be braced**: `${VAR}` instead of `$VAR`
 
 #### Function Naming Convention
+
 - **All functions must start with double underscore**: `__function_name`
 - **Use descriptive names**: `__download_planet_notes`, `__validate_xml_file`
 - **Include function documentation**:
@@ -82,6 +84,7 @@ function __download_planet_notes {
 ```
 
 #### Error Handling
+
 - **Define error codes at the top**:
 ```bash
 # Error codes.
@@ -96,6 +99,7 @@ declare -r ERROR_INVALID_ARGUMENT=242
 ### SQL Standards
 
 #### File Naming Convention
+
 - **Process files**: `processAPINotes_21_createApiTables.sql`
 - **ETL files**: `ETL_11_checkDWHTables.sql`
 - **Function files**: `functionsProcess_21_createFunctionToGetCountry.sql`

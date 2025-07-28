@@ -8,20 +8,26 @@ the main processing logic resides.
 ## Directory Structure
 
 ### `/bin/process/`
+
 Contains the main data processing scripts:
+
 - **`processPlanetNotes.sh`**: Processes OSM notes from Planet files
 - **`processAPINotes.sh`**: Processes OSM notes from API endpoints
 - **`updateCountries.sh`**: Updates country data and associations
 
 ### `/bin/dwh/`
+
 Data Warehouse components:
+
 - **`ETL.sh`**: Main ETL (Extract, Transform, Load) process
 - **`profile.sh`**: Generates data profiles and statistics
 - **`datamartUsers/`**: User-related data mart processing
 - **`datamartCountries/`**: Country-related data mart processing
 
 ### `/bin/monitor/`
+
 Monitoring and verification scripts:
+
 - **`processCheckPlanetNotes.sh`**: Verifies Planet notes processing
 - **`notesCheckVerifier.sh`**: Validates note data integrity
 
@@ -31,16 +37,19 @@ Database maintenance script for cleaning up partition tables
 ## Software Components
 
 ### Data Processing Pipeline
+
 - **Planet Processing**: `bin/process/processPlanetNotes.sh` handles large OSM Planet files
 - **API Processing**: `bin/process/processAPINotes.sh` processes real-time API data
 - **ETL Pipeline**: `bin/dwh/ETL.sh` orchestrates the complete data transformation
 
 ### Data Warehouse
+
 - **Data Marts**: `bin/dwh/datamartUsers/` and `bin/dwh/datamartCountries/` 
   create specialized data views
 - **Profiling**: `bin/dwh/profile.sh` generates analytics and reports
 
 ### Monitoring & Maintenance
+
 - **Verification**: `bin/monitor/` scripts ensure data quality
 - **Cleanup**: `bin/cleanupPartitions.sh` maintains database performance
 
@@ -49,6 +58,7 @@ All scripts in this directory are designed to be run from the project root and
 require proper database configuration and dependencies to be installed.
 
 ## Dependencies
+
 - PostgreSQL with PostGIS extension
 - XML processing tools (xmlstarlet, xsltproc)
 - Bash scripting environment
