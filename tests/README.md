@@ -1,9 +1,9 @@
 # Tests Directory
 
 ## Overview
-The `tests` directory contains comprehensive testing infrastructure for the 
-OSM-Notes-profile system. It includes unit tests, integration tests, 
-performance tests, and quality assurance tools to ensure the reliability and 
+The `tests` directory contains comprehensive testing infrastructure for the
+OSM-Notes-profile system. It includes unit tests, integration tests,
+performance tests, and quality assurance tools to ensure the reliability and
 correctness of the entire system.
 
 ## Directory Structure

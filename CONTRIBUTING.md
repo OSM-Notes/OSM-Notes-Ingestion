@@ -1,7 +1,7 @@
 # Contributing to OSM-Notes-profile
 
-Thank you for your interest in contributing to the OSM-Notes-profile project! 
-This document provides comprehensive guidelines for contributing to this 
+Thank you for your interest in contributing to the OSM-Notes-profile project!
+This document provides comprehensive guidelines for contributing to this
 OpenStreetMap notes analysis system.
 
 ## Table of Contents

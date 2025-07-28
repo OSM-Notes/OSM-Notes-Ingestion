@@ -1,8 +1,8 @@
 # SQL Directory
 
 ## Overview
-The `sql` directory contains all database-related scripts, including table 
-creation, data loading, and maintenance operations. This directory is essential 
+The `sql` directory contains all database-related scripts, including table
+creation, data loading, and maintenance operations. This directory is essential
 for setting up and maintaining the PostgreSQL database that stores OSM notes data.
 
 ## Directory Structure
@@ -67,8 +67,8 @@ Web Map Service related scripts:
 - **Validation**: Ensure data quality and consistency
 
 ## Usage
-These scripts should be executed in the correct order as defined by the processing 
-pipeline. Most scripts are automatically called by the bash processing scripts 
+These scripts should be executed in the correct order as defined by the processing
+pipeline. Most scripts are automatically called by the bash processing scripts
 in the `bin/` directory.
 
 ## Dependencies
