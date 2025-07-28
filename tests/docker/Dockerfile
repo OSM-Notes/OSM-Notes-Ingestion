@@ -32,6 +32,11 @@ RUN apt-get update && apt-get install -y \
     npm \
     gdal-bin \
     bc \
+    shellcheck \
+    cmake \
+    libcurl4-openssl-dev \
+    libelf-dev \
+    libdw-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools
@@ -39,10 +44,17 @@ RUN pip3 install \
     requests \
     pytest \
     pytest-mock \
-    psutil
+    psutil \
+    # Removed bandit - not needed for mock Python files
 
 # Install Node.js tools
 RUN npm install -g ajv-cli osmtogeojson
+
+# Install kcov for code coverage
+RUN git clone https://github.com/SimonKagstrom/kcov.git && \
+    cd kcov && mkdir build && cd build && \
+    cmake .. && make && make install && \
+    cd / && rm -rf /kcov
 
 # Create test user
 RUN useradd -m -s /bin/bash testuser && \

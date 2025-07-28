@@ -2,6 +2,10 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-23
 
+# This workflow runs comprehensive tests for the OSM-Notes-profile project
+# including unit tests, integration tests, performance tests, security scans,
+# and advanced functionality tests (coverage, quality, performance).
+
 name: Tests
 
 on:
@@ -184,11 +188,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Run Bandit security scanner
-      run: |
-        pip install bandit
-        bandit -r . -f json -o bandit-report.json || true
-
     - name: Run ShellCheck
       run: |
         sudo apt-get update
@@ -201,7 +200,6 @@ jobs:
       with:
         name: security-test-results
         path: |
-          bandit-report.json
           shellcheck-results.txt
 
   # Advanced Tests (Fase 3)
@@ -209,6 +207,21 @@ jobs:
     name: Advanced Tests
     runs-on: ubuntu-latest
     needs: unit-tests
+
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: osm_notes_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
     - name: Checkout code
@@ -224,13 +237,34 @@ jobs:
           build-essential \
           libcurl4-openssl-dev \
           libelf-dev \
-          libdw-dev
+          libdw-dev \
+          postgresql-client
 
     - name: Install kcov
       run: |
         git clone https://github.com/SimonKagstrom/kcov.git
         cd kcov && mkdir build && cd build
         cmake .. && make && sudo make install
+
+    - name: Install Python dependencies
+      run: |
+        # Python dependencies for testing only
+
+    - name: Set up test environment
+      run: |
+        export TEST_DBNAME=osm_notes_test
+        export TEST_DBUSER=testuser
+        export TEST_DBPASSWORD=testpass
+        export TEST_DBHOST=localhost
+        export TEST_DBPORT=5432
+        export LOG_LEVEL=INFO
+        export MAX_THREADS=2
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U testuser; do
+          sleep 1
+        done
 
     - name: Run advanced tests
       run: |

@@ -23,7 +23,7 @@ VERBOSE=false
 # Tool paths
 SHELLCHECK_PATH="${SHELLCHECK_PATH:-shellcheck}"
 TRIVY_PATH="${TRIVY_PATH:-trivy}"
-BANDIT_PATH="${BANDIT_PATH:-bandit}" # Only for the mock Python file
+# Removed bandit - not needed for mock Python files
 
 # Logging function
 __log() {
@@ -56,7 +56,7 @@ Uso: $0 [OPTIONS]
 Opciones:
   --help, -h           Mostrar esta ayuda
   --output-dir DIR     Directorio de salida (default: ./security_reports)
-  --scan-type TYPE     Tipo de escaneo (shellcheck, trivy, bandit, all)
+  --scan-type TYPE     Tipo de escaneo (shellcheck, trivy, all)
   --fail-on-high       Fallar si se encuentran vulnerabilidades altas
   --fail-on-critical   Fallar si se encuentran vulnerabilidades críticas
   --clean              Limpiar reportes anteriores
@@ -68,7 +68,7 @@ Variables de entorno:
   FAIL_ON_CRITICAL     Fallar en vulnerabilidades críticas
   SHELLCHECK_PATH      Ruta al ejecutable shellcheck
   TRIVY_PATH           Ruta al ejecutable trivy
-  BANDIT_PATH          Ruta al ejecutable bandit
+  # Removed BANDIT_PATH - not needed
 
 Ejemplos:
   $0 --scan-type shellcheck --fail-on-high
@@ -132,12 +132,7 @@ __check_prerequisites() {
   missing_tools+=("trivy")
  fi
 
- # Check bandit (only if scanning Python files)
- if [[ "$SCAN_TYPE" == "all" || "$SCAN_TYPE" == "bandit" ]]; then
-  if ! command -v "$BANDIT_PATH" > /dev/null 2>&1; then
-   missing_tools+=("bandit")
-  fi
- fi
+ # Removed bandit check - not needed for mock Python files
 
  if [[ ${#missing_tools[@]} -gt 0 ]]; then
   __log "ERROR" "Herramientas faltantes: ${missing_tools[*]}"
@@ -147,12 +142,9 @@ __check_prerequisites() {
     "shellcheck")
      echo "  - shellcheck: sudo apt-get install shellcheck"
      ;;
-    "trivy")
-     echo "  - trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/"
-     ;;
-    "bandit")
-     echo "  - bandit: pip install bandit"
-     ;;
+         "trivy")
+      echo "  - trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/"
+      ;;
    esac
   done
   exit 1
@@ -257,50 +249,7 @@ __run_trivy() {
  fi
 }
 
-# Run bandit scan (only for Python files)
-__run_bandit() {
- __log "INFO" "Ejecutando Bandit (solo para archivos Python)..."
-
- local bandit_output="$OUTPUT_DIR/bandit_report.txt"
- local bandit_json="$OUTPUT_DIR/bandit_report.json"
-
- # Find Python files
- local python_files=($(find . -name "*.py" -type f))
-
- if [[ ${#python_files[@]} -eq 0 ]]; then
-  __log "INFO" "No se encontraron archivos Python para analizar"
-  return 0
- fi
-
- if "$BANDIT_PATH" --version > /dev/null 2>&1; then
-  # Run bandit
-  "$BANDIT_PATH" -r . -f txt -o "$bandit_output" || true
-  "$BANDIT_PATH" -r . -f json -o "$bandit_json" || true
-
-  __log "SUCCESS" "Bandit completado - Reporte guardado en: $bandit_output"
-
-  # Check for high/critical issues
-  local high_count=$(grep -c "HIGH" "$bandit_output" || echo "0")
-  local critical_count=$(grep -c "CRITICAL" "$bandit_output" || echo "0")
-
-  if [[ "$critical_count" -gt 0 ]]; then
-   __log "ERROR" "Bandit encontró $critical_count vulnerabilidades críticas"
-   if [[ "$FAIL_ON_CRITICAL" == "true" ]]; then
-    return 1
-   fi
-  fi
-
-  if [[ "$high_count" -gt 0 ]]; then
-   __log "WARNING" "Bandit encontró $high_count vulnerabilidades altas"
-   if [[ "$FAIL_ON_HIGH" == "true" ]]; then
-    return 1
-   fi
-  fi
- else
-  __log "ERROR" "Bandit no está disponible"
-  return 1
- fi
-}
+# Removed bandit function - not needed for mock Python files
 
 # Generate consolidated report
 __generate_consolidated_report() {
@@ -318,7 +267,7 @@ This report contains the results of security scanning for the OSM Notes Profile 
 ## Tools Used
 - ShellCheck: Static analysis for shell scripts
 - Trivy: Vulnerability scanner for dependencies and filesystem
-- Bandit: Security linter for Python code (only for mock files)
+- Removed Bandit - not needed for mock Python files
 
 ## Reports Generated
 EOF
@@ -334,7 +283,7 @@ EOF
  echo "## Recommendations" >> "$consolidated_report"
  echo "1. Review all ShellCheck warnings and errors" >> "$consolidated_report"
  echo "2. Address any high or critical vulnerabilities found by Trivy" >> "$consolidated_report"
- echo "3. Fix any security issues identified by Bandit in Python files" >> "$consolidated_report"
+ echo "3. Review and address any security issues found in shell scripts" >> "$consolidated_report"
  echo "4. Regularly update dependencies to patch known vulnerabilities" >> "$consolidated_report"
 
  __log "SUCCESS" "Reporte consolidado generado: $consolidated_report"
@@ -358,16 +307,12 @@ main() {
   "shellcheck")
    __run_shellcheck
    ;;
-  "trivy")
-   __run_trivy
-   ;;
-  "bandit")
-   __run_bandit
-   ;;
+       "trivy")
+      __run_trivy
+      ;;
   "all")
-   __run_shellcheck
-   __run_trivy
-   __run_bandit
+        __run_shellcheck
+     __run_trivy
    ;;
   *)
    __log "ERROR" "Tipo de escaneo no válido: $SCAN_TYPE"
