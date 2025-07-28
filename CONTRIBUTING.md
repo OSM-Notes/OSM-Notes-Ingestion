@@ -1,6 +1,8 @@
 # Contributing to OSM-Notes-profile
 
-Thank you for your interest in contributing to the OSM-Notes-profile project! This document provides comprehensive guidelines for contributing to this OpenStreetMap notes analysis system.
+Thank you for your interest in contributing to the OSM-Notes-profile project! 
+This document provides comprehensive guidelines for contributing to this 
+OpenStreetMap notes analysis system.
 
 ## Table of Contents
 
@@ -477,4 +479,5 @@ For local development, consider using Docker:
 
 **Thank you for contributing to OSM-Notes-profile!**
 
-Your contributions help make OpenStreetMap notes analysis more accessible and powerful for the community.
+Your contributions help make OpenStreetMap notes analysis more accessible and 
+powerful for the community.

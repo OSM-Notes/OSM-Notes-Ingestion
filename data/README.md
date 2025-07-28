@@ -1,7 +1,10 @@
 # Data Directory
 
 ## Overview
-The `data` directory contains sample data files and datasets used for testing, development, and demonstration purposes. This directory provides reference data and examples that help users understand the system's data format and processing capabilities.
+The `data` directory contains sample data files and datasets used for testing, 
+development, and demonstration purposes. This directory provides reference data 
+and examples that help users understand the system's data format and processing 
+capabilities.
 
 ## Directory Structure
 
@@ -42,3 +45,4 @@ This directory provides:
 - Data processing tools for CSV and compressed files
 - Geographic data handling capabilities
 - Data validation and format checking tools 
+

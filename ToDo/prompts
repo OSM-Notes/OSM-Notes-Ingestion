@@ -1,3 +1,11 @@
+Ahora quiero que actúes como un especialista de bodegas de datos, inclusive como científico de datos, teniendo presente lo mejor para generar un data warehouse óptimo, con un par datamarts.
+Quiero que me analices el script de ETL. 
+Se definió un modelo estrella, o inclusive copo de nieve para el data warehouse.
+Quiero que me analices las dimensiones que se tienen. Están bien definidas? Qué otras podríamos incluir?
+Con respecto a la tabla de hechos, están bien seleccionados? Qué otros podrían ser interesantes? sobra alguno?
+Cómo serían los casos de actualización de datos? qué estrategia recomiendas para mantener la consistencia, y que sea fácil el proceso, sobretodo en términos de desempeño.
+
+
 ## **Problemas Visibles y Áreas de Mejora**
 
 ### 🔴 **Problemas Críticos**
@@ -68,9 +76,40 @@
 2. Añadir monitoreo y métricas
 3. Crear sistema de CI/CD
 
+
+----
+
+### Planned Improvements
+1. **Automated Deployment**
+   - Staging environment deployment
+   - Production deployment automation
+   - Rollback mechanisms
+
+2. **Enhanced Monitoring**
+   - Real-time test execution monitoring
+   - Performance trend analysis
+   - Automated alerting
+
+3. **Advanced Testing**
+   - Load testing for database operations
+   - Chaos engineering for resilience testing
+   - Mutation testing for test quality
+
+4. **Security Enhancements**
+   - Container vulnerability scanning
+   - Dependency vulnerability monitoring
+   - Automated security patching
+
+
+📋 Pendiente: Monitoreo y alertas automáticas
+
 ---
 
 ## Pending Validations (Future Work)
+
+Quiero que generes una notificación por correo electrónico cuando el proceso falla. Solo cuando falla, o en la siguiente ejecución después del fallo; pero no enviar correo por cada ejecución.
+
+
 
 Cuando se procesan las notas por API y por planet, creo que hay un paso que les asigna el secuence number en la DB, pero viendo los xslt, al parecer se puede incorporar en la transformación al CSV. Si es así, podrías simplificar el código con esto.
 

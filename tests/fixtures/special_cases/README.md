@@ -1,6 +1,8 @@
 # Casos Especiales de Pruebas Unitarias
 
-Este directorio contiene archivos XML de prueba para casos especiales que pueden ocurrir cuando el API devuelve datos. Estos casos están diseñados para probar la robustez del sistema de procesamiento de notas.
+Este directorio contiene archivos XML de prueba para casos especiales que pueden 
+ocurrir cuando el API devuelve datos. Estos casos están diseñados para probar 
+la robustez del sistema de procesamiento de notas.
 
 ## Casos de Prueba
 
@@ -158,3 +160,4 @@ Estos casos especiales se pueden integrar en el pipeline de CI/CD:
 - Actualizar este README cuando se agreguen nuevos casos
 - Verificar que todos los casos funcionen con cambios en el código
 - Mantener la consistencia en el formato XML 
+

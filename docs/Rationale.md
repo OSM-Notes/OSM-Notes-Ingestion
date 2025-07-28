@@ -122,3 +122,4 @@ As part of the data warehouse, the ETL converts the note's data into a star sche
 
 - **System Architecture**: See [Documentation.md](./Documentation.md) for technical implementation details
 - **Processing Details**: See [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for specific implementation details
+

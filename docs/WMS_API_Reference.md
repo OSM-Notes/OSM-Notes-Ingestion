@@ -710,3 +710,4 @@ curl "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetF
 - **Technical Specifications**: See `docs/WMS_Technical.md`
 - **Administration Guide**: See `docs/WMS_Administration.md`
 - **User Guide**: See `docs/WMS_User_Guide.md` 
+

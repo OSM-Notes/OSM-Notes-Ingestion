@@ -1,7 +1,10 @@
 # Tests Directory
 
 ## Overview
-The `tests` directory contains comprehensive testing infrastructure for the OSM-Notes-profile system. It includes unit tests, integration tests, performance tests, and quality assurance tools to ensure the reliability and correctness of the entire system.
+The `tests` directory contains comprehensive testing infrastructure for the 
+OSM-Notes-profile system. It includes unit tests, integration tests, 
+performance tests, and quality assurance tools to ensure the reliability and 
+correctness of the entire system.
 
 ## Directory Structure
 
@@ -74,7 +77,10 @@ Tests can be run individually or as part of the complete test suite:
 
 ## Overview
 
-This document describes the standardized configuration values used across all test environments in the OSM-Notes-profile project. **Test properties are completely separate from production properties** to maintain clear boundaries between environments.
+This document describes the standardized configuration values used across all test 
+environments in the OSM-Notes-profile project. **Test properties are completely 
+separate from production properties** to maintain clear boundaries between 
+environments.
 
 ## Test Properties vs Production Properties
 
@@ -212,3 +218,4 @@ The system uses different default values for production and test environments:
 - Created independent test property file
 - Updated all test scripts to use test properties only
 - Improved documentation and usage examples 
+

@@ -223,3 +223,4 @@ Sync tables are temporary and used for incremental processing:
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
 - **API Processing**: See [processAPI.md](./processAPI.md) for API data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
+

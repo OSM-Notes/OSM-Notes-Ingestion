@@ -1,6 +1,7 @@
 # WMS Manager Scripts
 
-This directory contains scripts for managing WMS (Web Map Service) components for the OSM Notes Profile project.
+This directory contains scripts for managing WMS (Web Map Service) components for 
+the OSM Notes Profile project.
 
 ## Configuration
 
@@ -64,7 +65,8 @@ Manages the installation and deinstallation of WMS components in the database.
 ```
 
 ### 2. geoserverConfig.sh
-Automates GeoServer setup for WMS layers. This script configures GeoServer to serve OSM notes as WMS layers.
+Automates GeoServer setup for WMS layers. This script configures GeoServer to 
+serve OSM notes as WMS layers.
 
 **Prerequisites:**
 - GeoServer installed and running
@@ -197,3 +199,4 @@ Both scripts are designed to work with the CI/CD pipeline:
 - Consider using environment variables for sensitive data
 - Regularly update GeoServer and PostgreSQL
 - Monitor access logs for suspicious activity 
+

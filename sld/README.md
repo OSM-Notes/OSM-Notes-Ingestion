@@ -1,7 +1,10 @@
 # Styled Layer Descriptors Directory
 
 ## Overview
-The `sld` directory contains Styled Layer Descriptor (SLD) files that define the visual styling and cartographic representation of OSM notes data in web mapping applications. These files control how notes are displayed on maps with different visual styles for different note states.
+The `sld` directory contains Styled Layer Descriptor (SLD) files that define the 
+visual styling and cartographic representation of OSM notes data in web mapping 
+applications. These files control how notes are displayed on maps with different 
+visual styles for different note states.
 
 ## Directory Structure
 

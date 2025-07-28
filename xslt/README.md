@@ -1,7 +1,10 @@
 # XSLT Transformations Directory
 
 ## Overview
-The `xslt` directory contains XSLT (Extensible Stylesheet Language Transformations) files that convert OSM notes XML data into structured formats for database loading and analysis. These transformations are essential for processing the raw XML data from OSM API and Planet files.
+The `xslt` directory contains XSLT (Extensible Stylesheet Language 
+Transformations) files that convert OSM notes XML data into structured formats 
+for database loading and analysis. These transformations are essential for 
+processing the raw XML data from OSM API and Planet files.
 
 ## Directory Structure
 
@@ -35,7 +38,9 @@ XSLT transformation files:
 - **Encoding**: UTF-8 encoding for international character support
 
 ## Usage
-These XSLT files are used by the processing scripts (`bin/process/`) to transform raw XML data into structured formats that can be loaded into the PostgreSQL database. The transformations ensure data consistency and proper formatting.
+These XSLT files are used by the processing scripts (`bin/process/`) to transform 
+raw XML data into structured formats that can be loaded into the PostgreSQL 
+database. The transformations ensure data consistency and proper formatting.
 
 ## Dependencies
 - XSLT processor (xsltproc, saxon, etc.)

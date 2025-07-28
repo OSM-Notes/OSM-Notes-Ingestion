@@ -5,7 +5,10 @@
 
 ## General Purpose
 
-The `processAPINotes.sh` script is the incremental synchronization component of the OpenStreetMap notes processing system. Its main function is to download the most recent notes from the OSM API and synchronize them with the local database that maintains the complete history.
+The `processAPINotes.sh` script is the incremental synchronization component of the 
+OpenStreetMap notes processing system. Its main function is to download the most 
+recent notes from the OSM API and synchronize them with the local database that 
+maintains the complete history.
 
 ## Main Features
 
@@ -192,3 +195,4 @@ The script uses several environment variables for configuration:
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
 - **Planet Processing**: See [processPlanet.md](./processPlanet.md) for Planet data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
+

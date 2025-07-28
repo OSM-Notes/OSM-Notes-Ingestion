@@ -27,7 +27,8 @@ This is the star-model of the data warehouse.
 * opened_dimension_id_user
   * The username of who created the note, it is not anonymous.
 * closed_dimension_id_date
-  * Timestamp when the note was closed. This value is only filled when the comment is a closing one.
+  * Timestamp when the note was closed. This value is only filled when the 
+    comment is a closing one.
 * closed_dimension_id_hour_of_week
   * Hour of the day when the note was closed.
 * closed_dimension_id_user
@@ -88,3 +89,4 @@ for common queries.
   Also, some dimensions could be changed.
 * `profile.sh` generates the profile for a country or a user.
   It is a command line tester for the datamart.
+

@@ -2,13 +2,15 @@
 
 ## Overview
 
-This document describes the comprehensive CI/CD (Continuous Integration/Continuous Deployment) integration implemented for the OSM-Notes-profile project.
+This document describes the comprehensive CI/CD (Continuous Integration/Continuous 
+Deployment) integration implemented for the OSM-Notes-profile project.
 
 ## Architecture
 
 ### GitHub Actions Workflow
 
-The project uses GitHub Actions for automated testing and quality assurance. The workflow is defined in `.github/workflows/tests.yml` and includes:
+The project uses GitHub Actions for automated testing and quality assurance. 
+The workflow is defined in `.github/workflows/tests.yml` and includes:
 
 #### Jobs
 
@@ -294,6 +296,10 @@ psql -h localhost -U testuser -d osm_notes_test
 
 ## Conclusion
 
-The CI/CD integration provides comprehensive testing and quality assurance for the OSM-Notes-profile project. It ensures code quality, security, and reliability through automated testing across multiple environments and scenarios.
+The CI/CD integration provides comprehensive testing and quality assurance for the 
+OSM-Notes-profile project. It ensures code quality, security, and reliability 
+through automated testing across multiple environments and scenarios.
 
-The system is designed to be maintainable, scalable, and provides clear feedback to developers about the state of their changes. 
+The system is designed to be maintainable, scalable, and provides clear feedback 
+to developers about the state of their changes. 
+

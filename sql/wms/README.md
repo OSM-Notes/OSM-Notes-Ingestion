@@ -69,7 +69,8 @@ ALTER USER myuser WITH PASSWORD 'mypassword';
 ```
 
 * Change the database configuration to allow remote connections.
-This link could be useful: https://www.bigbinary.com/blog/configure-postgresql-to-allow-remote-connection
+This link could be useful: 
+https://www.bigbinary.com/blog/configure-postgresql-to-allow-remote-connection
 Also, you can find the configuration file with this:
 
 ```
@@ -311,4 +312,5 @@ Under `sql/wms`
 * `prepareDatabase.sql` All the necessary scripts to synchronize the OSM
   Notes profile mechanism with this Notes WMS layer service.
 * `removeFromDatabase.sql` Removes the Notes WMS part from the database.
+
 

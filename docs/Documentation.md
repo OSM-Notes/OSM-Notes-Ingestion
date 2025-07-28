@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document provides comprehensive technical documentation for the OSM-Notes-profile system, including system architecture, data flow, and implementation details.
+This document provides comprehensive technical documentation for the 
+OSM-Notes-profile system, including system architecture, data flow, and 
+implementation details.
 
 > **Note:** For project motivation and background, see [Rationale.md](./Rationale.md).
 
@@ -81,8 +83,10 @@ The OSM-Notes-profile system consists of several key components:
 - **`countries`**: Geographic boundaries for spatial analysis
 
 ### Processing Tables
-- **API Tables**: Temporary storage for API data (`notes_api`, `note_comments_api`, `note_comments_text_api`)
-- **Sync Tables**: Temporary storage for Planet processing (`notes_sync`, `note_comments_sync`, `note_comments_text_sync`)
+- **API Tables**: Temporary storage for API data (`notes_api`, `note_comments_api`, 
+  `note_comments_text_api`)
+- **Sync Tables**: Temporary storage for Planet processing (`notes_sync`, 
+  `note_comments_sync`, `note_comments_text_sync`)
 
 ### Analytics Tables
 - **Fact Tables**: Time-series data for analytics
@@ -188,6 +192,10 @@ The OSM-Notes-profile system consists of several key components:
 ## Related Documentation
 
 - **System Architecture**: This document provides the high-level overview
-- **Processing Details**: See [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for specific implementation details
+- **Processing Details**: See [processAPI.md](./processAPI.md) and 
+  [processPlanet.md](./processPlanet.md) for specific implementation details
 - **Project Motivation**: See [Rationale.md](./Rationale.md) for background and goals
-- **WMS Documentation**: See [WMS_Guide.md](./WMS_Guide.md), [WMS_Technical.md](./WMS_Technical.md), [WMS_User_Guide.md](./WMS_User_Guide.md), [WMS_Administration.md](./WMS_Administration.md), and [WMS_API_Reference.md](./WMS_API_Reference.md) for WMS-specific documentation
+- **WMS Documentation**: See [WMS_Guide.md](./WMS_Guide.md), 
+  [WMS_Technical.md](./WMS_Technical.md), [WMS_User_Guide.md](./WMS_User_Guide.md), 
+  [WMS_Administration.md](./WMS_Administration.md), and 
+  [WMS_API_Reference.md](./WMS_API_Reference.md) for WMS-specific documentation

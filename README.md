@@ -437,3 +437,4 @@ He thanks Jose Luis Ceron Sarria for all his help designing the
 architecture, defining the data modeling and implementing the infrastructure
 on the cloud.
 
+

@@ -1,7 +1,9 @@
 # Bin Directory
 
 ## Overview
-The `bin` directory contains all the executable scripts and processing components of the OSM-Notes-profile system. This is the core operational directory where the main processing logic resides.
+The `bin` directory contains all the executable scripts and processing components 
+of the OSM-Notes-profile system. This is the core operational directory where 
+the main processing logic resides.
 
 ## Directory Structure
 
@@ -34,7 +36,8 @@ Database maintenance script for cleaning up partition tables
 - **ETL Pipeline**: `bin/dwh/ETL.sh` orchestrates the complete data transformation
 
 ### Data Warehouse
-- **Data Marts**: `bin/dwh/datamartUsers/` and `bin/dwh/datamartCountries/` create specialized data views
+- **Data Marts**: `bin/dwh/datamartUsers/` and `bin/dwh/datamartCountries/` 
+  create specialized data views
 - **Profiling**: `bin/dwh/profile.sh` generates analytics and reports
 
 ### Monitoring & Maintenance
@@ -42,10 +45,12 @@ Database maintenance script for cleaning up partition tables
 - **Cleanup**: `bin/cleanupPartitions.sh` maintains database performance
 
 ## Usage
-All scripts in this directory are designed to be run from the project root and require proper database configuration and dependencies to be installed.
+All scripts in this directory are designed to be run from the project root and 
+require proper database configuration and dependencies to be installed.
 
 ## Dependencies
 - PostgreSQL with PostGIS extension
 - XML processing tools (xmlstarlet, xsltproc)
 - Bash scripting environment
 - Required data files and schemas
+
