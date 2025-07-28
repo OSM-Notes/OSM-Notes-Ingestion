@@ -18,7 +18,7 @@ WMS (Web Map Service) is an OGC (Open Geospatial Consortium) standard that provi
 
 ### Architecture Overview
 
-```
+```text
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │   OSM Notes     │     │   PostgreSQL     │     │    GeoServer    │
 │   Database      │───▶│   WMS Schema     │───▶│   WMS Service   │

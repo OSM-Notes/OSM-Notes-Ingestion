@@ -8,7 +8,7 @@ and provides access to OSM notes as map layers.
 
 ### Base URL
 
-```
+```text
 http://localhost:8080/geoserver/wms
 ```
 
@@ -28,7 +28,7 @@ Returns service metadata and available layers.
 
 #### Request
 
-```
+```text
 GET /wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities
 ```
 
@@ -118,7 +118,7 @@ Returns a map image for the specified parameters.
 
 #### Request
 
-```
+```text
 GET /wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=osm_notes:notes_wms_layer&STYLES=&CRS=EPSG:4326&BBOX=-180,-90,180,90&WIDTH=256&HEIGHT=256&FORMAT=image/png
 ```
 
@@ -177,7 +177,7 @@ Returns feature information for a specific pixel location.
 
 #### Request
 
-```
+```text
 GET /wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&LAYERS=osm_notes:notes_wms_layer&QUERY_LAYERS=osm_notes:notes_wms_layer&INFO_FORMAT=text/html&I=128&J=128&WIDTH=256&HEIGHT=256&CRS=EPSG:4326&BBOX=-180,-90,180,90
 ```
 
@@ -426,25 +426,25 @@ curl "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetM
 
 #### Global View
 
-```
+```text
 BBOX=-180,-90,180,90
 ```
 
 #### Continental View (North America)
 
-```
+```text
 BBOX=-180,15,-50,75
 ```
 
 #### Regional View (New York City)
 
-```
+```text
 BBOX=-74.1,40.7,-73.9,40.8
 ```
 
 #### Local View (Manhattan)
 
-```
+```text
 BBOX=-74.05,40.75,-73.95,40.8
 ```
 

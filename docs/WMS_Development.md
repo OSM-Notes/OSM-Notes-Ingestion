@@ -28,7 +28,7 @@ Before developing with the WMS system, ensure you have:
 
 The WMS system follows a layered architecture pattern:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Client Layer                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
@@ -1002,7 +1002,7 @@ jobs:
 
 #### Project Structure
 
-```
+```text
 OSM-Notes-profile/
 ├── bin/wms/
 │   ├── wmsManager.sh          # WMS database management

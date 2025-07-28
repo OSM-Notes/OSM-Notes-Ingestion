@@ -70,7 +70,7 @@ For manual installation, follow these steps:
 
 - Provide a password to the database user.
 
-```
+```text
 ALTER USER myuser WITH PASSWORD 'mypassword';
 ```
 
@@ -79,13 +79,13 @@ This link could be useful:
 <https://www.bigbinary.com/blog/configure-postgresql-to-allow-remote-connection>
 Also, you can find the configuration file with this:
 
-```
+```text
 find / -name "postgresql.conf" 2> /dev/null
 ```
 
 And modify the file to make Postgres listen from any address:
 
-```
+```text
 vi /etc/postgresql/14/main/postgresql.conf
 
 listen_addresses = '*'
@@ -93,13 +93,13 @@ listen_addresses = '*'
 
 Restart the service:
 
-```
+```text
 sudo systemctl restart postgresql.service
 ```
 
 Allow users to connect remotely:
 
-```
+```text
 find / -name "pg_hba.conf" 2> /dev/null
 vi /etc/postgresql/14/main/pg_hba.conf
 host    all             all              0.0.0.0/0                       md5
@@ -110,7 +110,7 @@ host    all             all              ::/0                            md5
 service.
 Let's suppose the Postgres database is called `notes`.
 
-```
+```text
 psql -d "notes" -v ON_ERROR_STOP=1 -f "prepareDatabase.sql"
 ```
 
@@ -195,7 +195,7 @@ Configure new SQL view...
 - View Name: Open OSM Notes layer
 - SQL Statement:
 
-```
+```text
 SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NULL
@@ -254,7 +254,7 @@ Layer from OSM_Notes:OSM_Notes_DS.
 - View Name: Closed OSM Notes layer
 - SQL Statement:
 
-```
+```text
 SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NOT NULL

@@ -416,7 +416,7 @@ curl -w "@curl-format.txt" -o /dev/null -s \
 
 Create logrotate configuration: `/etc/logrotate.d/wms`
 
-```
+```text
 /var/log/wms*.log {
     daily
     missingok

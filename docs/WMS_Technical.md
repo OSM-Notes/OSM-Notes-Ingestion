@@ -6,7 +6,7 @@
 
 The WMS system consists of several interconnected components:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    OSM-Notes-profile WMS                        │
 ├─────────────────────────────────────────────────────────────────┤
