@@ -976,11 +976,11 @@ jobs:
     - name: Run database tests
       run: |
         psql -h localhost -U postgres -d osm_notes_test -f sql/wms/prepareDatabase.sql
-        python -m pytest tests/wms/test_database.py
+        # Note: Create test scripts in tests/ directory as needed
     
     - name: Run API tests
       run: |
-        python -m pytest tests/wms/test_api.py
+        # Note: Create test scripts in tests/ directory as needed
 
   deploy:
     needs: test
@@ -1003,39 +1003,34 @@ jobs:
 #### Project Structure
 
 ```
-wms/
-├── database/
-│   ├── schema/
-│   │   ├── tables.sql
-│   │   ├── triggers.sql
-│   │   └── functions.sql
-│   ├── indexes/
-│   │   └── performance.sql
-│   └── data/
-│       └── sample_data.sql
-├── geoserver/
-│   ├── config/
-│   │   ├── workspace.json
-│   │   ├── datastore.json
-│   │   └── layer.json
-│   ├── styles/
-│   │   ├── OpenNotes.sld
-│   │   └── ClosedNotes.sld
-│   └── scripts/
-│       ├── deploy.sh
-│       └── configure.sh
-├── api/
-│   ├── controllers/
-│   ├── services/
-│   └── models/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── performance/
-└── docs/
-    ├── api/
-    ├── deployment/
-    └── development/
+OSM-Notes-profile/
+├── bin/wms/
+│   ├── wmsManager.sh          # WMS database management
+│   ├── geoserverConfig.sh     # GeoServer configuration
+│   ├── wmsConfigExample.sh    # Configuration examples
+│   └── README.md              # WMS scripts documentation
+├── sql/wms/
+│   ├── prepareDatabase.sql    # WMS database setup
+│   ├── removeFromDatabase.sql # WMS database cleanup
+│   └── README.md              # WMS SQL documentation
+├── etc/
+│   ├── wms.properties.sh      # WMS configuration
+│   └── properties.sh          # Main configuration
+├── sld/
+│   ├── OpenNotes.sld          # Open notes style
+│   ├── ClosedNotes.sld        # Closed notes style
+│   └── CountriesAndMaritimes.sld
+├── docs/
+│   ├── WMS_Guide.md           # Complete WMS guide
+│   ├── WMS_Technical.md       # Technical specifications
+│   ├── WMS_User_Guide.md      # User guide
+│   ├── WMS_Administration.md  # Administration guide
+│   ├── WMS_API_Reference.md   # API reference
+│   ├── WMS_Development.md     # Development guide
+│   ├── WMS_Testing.md         # Testing guide
+│   └── WMS_Deployment.md      # Deployment guide
+└── tests/
+    └── docker/                # Docker testing environment
 ```
 
 ### Development Workflow

@@ -153,7 +153,8 @@ For automated deployment, use the provided scripts:
 ./bin/wms/geoserverConfig.sh install --auto
 
 # Or use the combined script
-./bin/wms/setupWMS.sh
+# Note: Use wmsManager.sh and geoserverConfig.sh instead
+./bin/wms/wmsManager.sh install && ./bin/wms/geoserverConfig.sh install
 ```
 
 ## Configuration Management
@@ -476,7 +477,8 @@ pg_dump osm_notes > /backup/osm_notes_$(date +%Y%m).sql
 cp -r /opt/geoserver/data_dir /backup/geoserver_$(date +%Y%m)
 
 # Performance review
-./bin/wms/wmsManager.sh performance-report
+# Note: Performance monitoring can be implemented as needed
+echo "Performance monitoring not yet implemented"
 ```
 
 ### Backup and Recovery
