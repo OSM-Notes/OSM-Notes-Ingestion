@@ -1,8 +1,8 @@
 -- Database initialization script for OSM-Notes-profile tests
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-27
+-- Version: 2025-07-28
 
--- Create test databases
+-- Create test databases only if they don't exist
 SELECT 'CREATE DATABASE osm_notes_test' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'osm_notes_test')\gexec
 SELECT 'CREATE DATABASE osm_notes_wms_test' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'osm_notes_wms_test')\gexec
 
@@ -49,13 +49,10 @@ INSERT INTO test_comments (note_id, user_id, username, action, text) VALUES
 (456, 789, 'user3', 'closed', 'Closing this note')
 ON CONFLICT DO NOTHING;
 
--- Connect to WMS test database and set up PostGIS
+-- Connect to WMS test database and set up basic tables (without PostGIS for basic tests)
 \c osm_notes_wms_test;
 
--- Enable PostGIS extension
-CREATE EXTENSION IF NOT EXISTS postgis;
-
--- Create notes table for WMS testing
+-- Create notes table for WMS testing (without PostGIS extension)
 CREATE TABLE IF NOT EXISTS notes (
     note_id INTEGER PRIMARY KEY,
     created_at TIMESTAMP,

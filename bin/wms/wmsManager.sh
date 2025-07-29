@@ -21,10 +21,21 @@ if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/properties.sh"
 fi
 
-# Load WMS specific properties
-if [[ -f "${PROJECT_ROOT}/etc/wms.properties.sh" ]]; then
+# Load WMS specific properties only if not in test mode
+if [[ -z "${TEST_DBNAME:-}" ]] && [[ -f "${PROJECT_ROOT}/etc/wms.properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/wms.properties.sh"
 fi
+
+# Set database variables with priority: WMS_* > TEST_* > default
+WMS_DB_NAME="${WMS_DBNAME:-${TEST_DBNAME:-osm_notes}}"
+WMS_DB_USER="${WMS_DBUSER:-${TEST_DBUSER:-postgres}}"
+WMS_DB_PASSWORD="${WMS_DBPASSWORD:-${TEST_DBPASSWORD:-}}"
+WMS_DB_HOST="${WMS_DBHOST:-${TEST_DBHOST:-}}"
+WMS_DB_PORT="${WMS_DBPORT:-${TEST_DBPORT:-}}"
+
+# Export for psql commands
+export WMS_DB_NAME WMS_DB_USER WMS_DB_PASSWORD WMS_DB_HOST WMS_DB_PORT
+export PGPASSWORD="${WMS_DB_PASSWORD}"
 
 # WMS specific variables (using properties)
 WMS_SQL_DIR="${PROJECT_ROOT}/sql/wms"
@@ -91,7 +102,15 @@ validate_prerequisites() {
  fi
 
  # Check if PostGIS extension is available
- if ! psql -h "${DBHOST:-localhost}" -U "${DBUSER:-postgres}" -d "${DBNAME:-osm_notes}" -c "SELECT PostGIS_Version();" &> /dev/null; then
+ local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]]; then
+  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ fi
+ if [[ -n "${WMS_DB_PORT}" ]]; then
+  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+ fi
+
+ if ! eval "${psql_cmd} -c \"SELECT PostGIS_Version();\"" &> /dev/null; then
   print_status "${RED}" "❌ ERROR: PostGIS extension is not installed or not accessible"
   exit 1
  fi
@@ -112,7 +131,15 @@ validate_prerequisites() {
 
 # Function to check if WMS is installed
 is_wms_installed() {
- psql -h "${DBHOST:-localhost}" -U "${DBUSER:-postgres}" -d "${DBNAME:-osm_notes}" -t -c "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');" | tr -d ' ' | grep -q 't'
+ local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]]; then
+  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ fi
+ if [[ -n "${WMS_DB_PORT}" ]]; then
+  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+ fi
+
+ eval "${psql_cmd} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | tr -d ' ' | grep -q 't'
 }
 
 # Function to install WMS
@@ -133,8 +160,17 @@ install_wms() {
   return 0
  fi
 
+ # Build psql command
+ local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]]; then
+  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ fi
+ if [[ -n "${WMS_DB_PORT}" ]]; then
+  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+ fi
+
  # Execute installation SQL
- if psql -h "${DBHOST:-localhost}" -U "${DBUSER:-postgres}" -d "${DBNAME:-osm_notes}" -f "${WMS_PREPARE_SQL}"; then
+ if eval "${psql_cmd} -f \"${WMS_PREPARE_SQL}\""; then
   print_status "${GREEN}" "✅ WMS installation completed successfully"
   show_installation_summary
  else
@@ -158,8 +194,17 @@ deinstall_wms() {
   return 0
  fi
 
+ # Build psql command
+ local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]]; then
+  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ fi
+ if [[ -n "${WMS_DB_PORT}" ]]; then
+  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+ fi
+
  # Execute removal SQL
- if psql -h "${DBHOST:-localhost}" -U "${DBUSER:-postgres}" -d "${DBNAME:-osm_notes}" -f "${WMS_REMOVE_SQL}"; then
+ if eval "${psql_cmd} -f \"${WMS_REMOVE_SQL}\""; then
   print_status "${GREEN}" "✅ WMS removal completed successfully"
  else
   print_status "${RED}" "❌ ERROR: WMS removal failed"
@@ -174,16 +219,25 @@ show_status() {
  if is_wms_installed; then
   print_status "${GREEN}" "✅ WMS is installed"
 
+  # Build psql command
+  local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  if [[ -n "${WMS_DB_HOST}" ]]; then
+   psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  fi
+  if [[ -n "${WMS_DB_PORT}" ]]; then
+   psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+  fi
+
   # Show basic statistics
   local note_count
-  note_count=$(psql -h "${DBHOST:-localhost}" -U "${DBUSER:-postgres}" -d "${DBNAME:-osm_notes}" -t -c "SELECT COUNT(*) FROM wms.notes_wms;" | tr -d ' ')
+  note_count=$(eval "${psql_cmd} -t -c \"SELECT COUNT(*) FROM wms.notes_wms;\"" | tr -d ' ')
 
   print_status "${BLUE}" "📈 WMS Statistics:"
   print_status "${BLUE}" "   - Total notes in WMS: ${note_count}"
 
   # Show trigger information
   local trigger_count
-  trigger_count=$(psql -h "${DBHOST:-localhost}" -U "${DBUSER:-postgres}" -d "${DBNAME:-osm_notes}" -t -c "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');" | tr -d ' ')
+  trigger_count=$(eval "${psql_cmd} -t -c \"SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');\"" | tr -d ' ')
 
   print_status "${BLUE}" "   - Active triggers: ${trigger_count}"
 
@@ -239,21 +293,25 @@ main() {
 
  # Set global variables
  FORCE="${force}"
-DRY_RUN="${dry_run}"
-
- # Validate prerequisites
- validate_prerequisites
+ DRY_RUN="${dry_run}"
 
  # Execute command
  case "${command}" in
-  install)
-   install_wms
-   ;;
-  deinstall)
-   deinstall_wms
-   ;;
-  status)
-   show_status
+  install | deinstall | status)
+   # Validate prerequisites only for commands that need database access
+   validate_prerequisites
+   
+   case "${command}" in
+    install)
+     install_wms
+     ;;
+    deinstall)
+     deinstall_wms
+     ;;
+    status)
+     show_status
+     ;;
+   esac
    ;;
   help)
    show_help

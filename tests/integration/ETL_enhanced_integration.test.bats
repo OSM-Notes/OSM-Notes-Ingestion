@@ -8,6 +8,10 @@ setup() {
  # Create temporary test directory
  TEST_DIR=$(mktemp -d)
  export TEST_DIR
+ 
+ # Detect project root directory dynamically
+ PROJECT_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
+ export PROJECT_ROOT
 }
 
 teardown() {
@@ -20,9 +24,9 @@ teardown() {
  # Execute command directly and check exit status
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   LOG_LEVEL=INFO ./bin/dwh/ETL.sh --dry-run
@@ -37,9 +41,9 @@ teardown() {
  # Execute command directly and check exit status
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   LOG_LEVEL=INFO ./bin/dwh/ETL.sh --validate
@@ -55,9 +59,9 @@ teardown() {
  # Execute command directly and check exit status
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   ./bin/dwh/ETL.sh --help
@@ -72,9 +76,9 @@ teardown() {
  # Execute command directly and check exit status
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   ./bin/dwh/ETL.sh --invalid-param
@@ -87,7 +91,7 @@ teardown() {
 
 @test "ETL configuration file loading" {
  # Test that ETL configuration file is loaded correctly
- local config_file="./etc/etl.properties"
+ local config_file="${PROJECT_ROOT}/etc/etl.properties"
  
  # Verify config file exists
  [[ -f "${config_file}" ]]
@@ -123,9 +127,9 @@ teardown() {
  # Run ETL in background with timeout
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   timeout 30s ./bin/dwh/ETL.sh --create
@@ -152,9 +156,9 @@ teardown() {
  # Run ETL with resource monitoring
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   timeout 10s bash -c 'LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --create'
@@ -172,9 +176,9 @@ teardown() {
  # Run ETL with short timeout
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   timeout 10s bash -c 'LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --create'
@@ -194,9 +198,9 @@ teardown() {
  # Run validation mode
  local exit_code
  bash -c "
-  cd /home/angoca/github/OSM-Notes-profile
+  cd \"\${PROJECT_ROOT}\"
   source tests/properties.sh
-  export SCRIPT_BASE_DIRECTORY=\$(cd /home/angoca/github/OSM-Notes-profile && pwd)
+  export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
   LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --validate
@@ -226,7 +230,7 @@ teardown() {
 
 @test "ETL configuration validation" {
  # Test that configuration values are valid
- local config_file="./etc/etl.properties"
+ local config_file="${PROJECT_ROOT}/etc/etl.properties"
  
  # shellcheck disable=SC1090
  source "${config_file}"

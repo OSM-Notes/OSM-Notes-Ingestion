@@ -58,14 +58,19 @@ check_prerequisites() {
 
  # Check if Docker daemon is running
  if ! docker info &> /dev/null; then
-  # Try with sudo
+  # Try with sudo only if necessary
   if sudo docker info &> /dev/null; then
    log_warning "Docker requires sudo access"
+   log_info "Consider adding your user to the docker group:"
+   log_info "  sudo usermod -aG docker $USER"
+   log_info "  Then log out and log back in"
    # shellcheck disable=SC2034
    DOCKER_CMD="sudo docker"
    DOCKER_COMPOSE_CMD="sudo docker compose"
   else
    log_error "Docker daemon is not running"
+   log_info "Please start Docker service:"
+   log_info "  sudo systemctl start docker"
    exit 1
   fi
  else

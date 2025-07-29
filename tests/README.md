@@ -7,6 +7,45 @@ OSM-Notes-profile system. It includes unit tests, integration tests,
 performance tests, and quality assurance tools to ensure the reliability and
 correctness of the entire system.
 
+## Quick Start (No sudo required)
+
+To run tests without sudo privileges:
+
+1. **Install dependencies**:
+
+   ```bash
+   ./tests/install_dependencies.sh
+   ```
+
+2. **Setup test database**:
+
+   ```bash
+   ./tests/setup_test_db.sh
+   ```
+
+3. **Run tests**:
+
+   ```bash
+   ./tests/run_tests_simple.sh
+   ```
+
+## Docker Setup (Alternative)
+
+If you prefer to use Docker and have sudo access:
+
+1. **Setup Docker environment**:
+
+   ```bash
+   cd tests/docker
+   docker compose up -d
+   ```
+
+2. **Run tests in Docker**:
+
+   ```bash
+   ./tests/docker/run_integration_tests.sh
+   ```
+
 ## Directory Structure
 
 ### `/tests/unit/`
@@ -80,15 +119,33 @@ Test data and sample files:
 
 Tests can be run individually or as part of the complete test suite:
 
-- `./tests/run_tests_simple.sh`: Basic test suite
+- `./tests/run_tests_simple.sh`: Basic test suite (no sudo required)
 - `./tests/run_enhanced_tests.sh`: Enhanced test suite
 - `./tests/run_tests.sh`: Complete test suite
 - `./tests/advanced/run_advanced_tests.sh`: Advanced quality tests
 
+## Troubleshooting
+
+### Common Issues
+
+1. **PostgreSQL access denied**:
+   - Ensure PostgreSQL is running: `sudo systemctl start postgresql`
+   - Configure local access in `pg_hba.conf`
+   - Or use Docker: `cd tests/docker && docker compose up -d`
+
+2. **Docker requires sudo**:
+   - Add user to docker group: `sudo usermod -aG docker $USER`
+   - Log out and log back in
+   - Or use the non-Docker tests: `./tests/run_tests_simple.sh`
+
+3. **Missing dependencies**:
+   - Run: `./tests/install_dependencies.sh`
+   - Or install manually: `sudo apt-get install postgresql-client bats`
+
 ## Dependencies
 
 - BATS testing framework
-- Docker and docker-compose
+- Docker and docker-compose (optional)
 - PostgreSQL test database
 - Various testing tools (shellcheck, shfmt, etc.)
 

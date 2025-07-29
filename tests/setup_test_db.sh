@@ -32,10 +32,10 @@ log_error() {
 
 # Test database configuration
 TEST_DBNAME="osm_notes_test"
-TEST_DBUSER="notes"
-TEST_DBPASSWORD="testpass"
-TEST_DBHOST="localhost"
-TEST_DBPORT="5432"
+TEST_DBUSER="$(whoami)"
+TEST_DBPASSWORD=""
+TEST_DBHOST=""
+TEST_DBPORT=""
 
 # Export variables for tests
 export TEST_DBNAME
@@ -47,21 +47,21 @@ export PGPASSWORD="${TEST_DBPASSWORD}"
 
 log_info "Setting up test database environment..."
 
-# Test connection as notes user (using local connection)
+# Test connection as current user
 log_info "Testing database connection..."
-if sudo -u notes psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+if psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
  log_success "Database connection successful"
 else
  log_error "Database connection failed"
- log_info "Please check PostgreSQL configuration"
+ log_info "Please check PostgreSQL configuration and ensure you have access"
  exit 1
 fi
 
 # Create test database if it doesn't exist
 log_info "Creating test database if it doesn't exist..."
-if ! sudo -u notes psql -d "${TEST_DBNAME}" -c "SELECT 1;" >/dev/null 2>&1; then
+if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" >/dev/null 2>&1; then
  log_info "Creating database ${TEST_DBNAME}..."
- sudo -u notes createdb "${TEST_DBNAME}"
+ createdb "${TEST_DBNAME}"
  log_success "Database ${TEST_DBNAME} created"
 else
  log_success "Database ${TEST_DBNAME} already exists"
@@ -69,8 +69,8 @@ fi
 
 # Install required extensions
 log_info "Installing required extensions..."
-sudo -u notes psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" >/dev/null 2>&1 || log_warning "PostGIS extension installation failed"
-sudo -u notes psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" >/dev/null 2>&1 || log_warning "btree_gist extension installation failed"
+psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" >/dev/null 2>&1 || log_warning "PostGIS extension installation failed"
+psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" >/dev/null 2>&1 || log_warning "btree_gist extension installation failed"
 
 log_success "Test database setup completed"
 log_info "Environment variables set:"

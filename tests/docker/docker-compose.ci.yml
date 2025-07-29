@@ -1,6 +1,6 @@
 # Docker Compose for OSM-Notes-profile CI/CD Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-26
+# Version: 2025-07-28
 
 services:
   # PostgreSQL Database for CI/CD
@@ -59,8 +59,8 @@ services:
       MAX_THREADS: 2
       
       # CI/CD specific settings
-      CI: true
-      GITHUB_ACTIONS: true
+      CI: "true"
+      GITHUB_ACTIONS: "true"
     volumes:
       - ../../:/app
       - ./mock_data:/app/mock_data
