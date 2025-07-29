@@ -15,7 +15,8 @@ if [[ -f "/app/bin/functionsProcess.sh" ]]; then
  export TEST_BASE_DIR="/app"
 else
  # Running on host - detect project root
- export TEST_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ TEST_BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ export TEST_BASE_DIR
 fi
 export TEST_TMP_DIR="/tmp/bats_test_$$"
 

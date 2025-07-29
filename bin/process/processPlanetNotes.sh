@@ -387,6 +387,22 @@ function __checkPrereqs {
   __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ 
+ # Validate XSLT files
+ __logi "Validating XSLT files..."
+ if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
+  __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+  
+  # Validate dates in XML files if they exist
+  __logi "Validating dates in XML files..."
+  if [[ -f "${PLANET_NOTES_FILE}" ]]; then
+   if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
+    __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
+    exit "${ERROR_MISSING_LIBRARY}"
+   fi
+  fi
 
  ## Validate JSON schema files
  __logi "Validating JSON schema files..."

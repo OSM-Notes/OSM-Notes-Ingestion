@@ -227,6 +227,15 @@ function __checkPrereqs {
   fi
  done
 
+ # Validate dates in API notes file if it exists
+ __logi "Validating dates in API notes file..."
+ if [[ -f "${API_NOTES_FILE}" ]]; then
+  if ! __validate_xml_dates "${API_NOTES_FILE}"; then
+   __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ fi
+
  __checkPrereqs_functions
  #__log_finish
  set -e

@@ -2193,3 +2193,182 @@ function __getLocationNotes {
 
  __log_finish
 }
+
+# Function to validate ISO 8601 date format
+# Parameters:
+#   $1: Date string to validate
+#   $2: Expected format (optional, defaults to ISO 8601)
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_iso8601_date() {
+ local date_string="${1}"
+ local expected_format="${2:-ISO 8601}"
+ local validation_errors=()
+
+ # Check if date string is provided
+ if [[ -z "${date_string}" ]]; then
+  echo "ERROR: Date string is empty" >&2
+  return 1
+ fi
+
+ # Check for basic ISO 8601 format patterns
+ # Pattern 1: YYYY-MM-DDTHH:MM:SSZ (UTC) - Year 2020-2023
+ # Pattern 2: YYYY-MM-DDTHH:MM:SS+HH:MM (with timezone offset) - Year 2020-2023
+ # Pattern 3: YYYY-MM-DDTHH:MM:SS-HH:MM (with timezone offset) - Year 2020-2023
+ # Pattern 4: YYYY-MM-DD HH:MM:SS UTC (API format) - Year 2020-2023
+ 
+ local iso_pattern1="^20(2[0-3])-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z$"
+ local iso_pattern2="^20(2[0-3])-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9][+-][0-2][0-9]:[0-5][0-9]$"
+ local iso_pattern3="^20(2[0-3])-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC$"
+ 
+ # Check if date matches any ISO 8601 pattern
+ if ! echo "${date_string}" | grep -qE "${iso_pattern1}|${iso_pattern2}|${iso_pattern3}"; then
+  validation_errors+=("Date does not match ISO 8601 format: ${date_string}")
+ fi
+
+ # Additional validation using date command if available
+ if command -v date &> /dev/null; then
+  # Try to parse the date with date command
+  local parsed_date
+  parsed_date=$(date -d "${date_string}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)
+  if [[ $? -ne 0 ]]; then
+   validation_errors+=("Date is not a valid date/time: ${date_string}")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: ${expected_format} date validation failed:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: ${expected_format} date validation passed: ${date_string}" >&2
+ return 0
+}
+
+# Function to validate dates in XML files
+# Parameters:
+#   $1: XML file path
+#   $2: XPath expression for date elements (optional)
+# Returns:
+#   0 if all dates are valid, 1 if any invalid
+function __validate_xml_dates() {
+ local xml_file="${1}"
+ local xpath_expression="${2:-//@created_at|//@closed_at|//@timestamp|//date}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${xml_file}" "XML file"; then
+  return 1
+ fi
+
+ # Check if xmlstarlet is available
+ if ! command -v xmlstarlet &> /dev/null; then
+  echo "WARNING: xmlstarlet not available, skipping XML date validation" >&2
+  return 0
+ fi
+
+ # Extract dates using xmlstarlet
+ local dates
+ dates=$(xmlstarlet sel -t -v "${xpath_expression}" "${xml_file}" 2>/dev/null | grep -v '^$')
+
+ if [[ -z "${dates}" ]]; then
+  echo "WARNING: No dates found in XML file with xpath: ${xpath_expression}" >&2
+  return 0
+ fi
+
+ # Validate each date
+ local line_number=0
+ while IFS= read -r date_value; do
+  ((line_number++))
+  if ! __validate_iso8601_date "${date_value}" "ISO 8601"; then
+   validation_errors+=("Line ${line_number}: Invalid date '${date_value}'")
+  fi
+ done <<< "${dates}"
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: XML date validation failed for ${xml_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: XML date validation passed: ${xml_file}" >&2
+ return 0
+}
+
+# Function to validate dates in CSV files
+# Parameters:
+#   $1: CSV file path
+#   $2: Column number containing dates (optional, defaults to auto-detect)
+# Returns:
+#   0 if all dates are valid, 1 if any invalid
+function __validate_csv_dates() {
+ local csv_file="${1}"
+ local date_column="${2:-}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${csv_file}" "CSV file"; then
+  return 1
+ fi
+
+ # Auto-detect date column if not specified
+ if [[ -z "${date_column}" ]]; then
+  local header_line
+  header_line=$(head -1 "${csv_file}")
+  local column_number=1
+  local found_date_column=false
+  
+  while IFS=',' read -ra columns; do
+   for column in "${columns[@]}"; do
+    if [[ "${column}" =~ (date|created|updated|timestamp|closed) ]]; then
+     date_column="${column_number}"
+     found_date_column=true
+     break 2
+    fi
+    ((column_number++))
+   done
+  done <<< "${header_line}"
+  
+  if [[ "${found_date_column}" == "false" ]]; then
+   echo "WARNING: No date column found in CSV header" >&2
+   return 0
+  fi
+ fi
+
+ # Extract dates from the specified column
+ local dates
+ dates=$(tail -n +2 "${csv_file}" | cut -d',' -f"${date_column}" | grep -v '^$')
+
+ if [[ -z "${dates}" ]]; then
+  echo "WARNING: No dates found in CSV column ${date_column}" >&2
+  return 0
+ fi
+
+ # Validate each date
+ local line_number=1
+ while IFS= read -r date_value; do
+  ((line_number++))
+  if ! __validate_iso8601_date "${date_value}" "ISO 8601"; then
+   validation_errors+=("Line ${line_number}: Invalid date '${date_value}'")
+  fi
+ done <<< "${dates}"
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: CSV date validation failed for ${csv_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: CSV date validation passed: ${csv_file}" >&2
+ return 0
+}

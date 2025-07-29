@@ -22,138 +22,83 @@ A centralized set of validation functions has been implemented in `bin/functions
 - **Multiple validation types** for different file formats
 - **Easy integration** into existing scripts
 
-## Available Functions
+## Available Validation Functions
 
-### 1. `__validate_input_file()`
+The following validation functions are available in `bin/functionsProcess.sh`:
 
-Validates basic file properties (existence, readability, type).
+### Basic File Validation
 
-**Parameters:**
+- **`__validate_input_file(file_path, description, expected_type)`**
+  - Validates file existence, readability, and type
+  - Supports `file`, `dir`, and `executable` types
+  - Returns 0 if valid, 1 if invalid
 
-- `$1`: File path to validate
-- `$2`: Description of the file (optional)
-- `$3`: Expected file type (optional: "file", "dir", "executable")
+- **`__validate_input_files(file_paths...)`**
+  - Validates multiple input files
+  - Returns 0 if all valid, 1 if any invalid
 
-**Returns:**
+### Structure Validation
 
-- `0` if valid, `1` if invalid
+- **`__validate_xml_structure(xml_file, expected_root)`**
+  - Validates XML syntax and structure
+  - Checks for expected root element
+  - Uses `xmllint` and `xmlstarlet`
 
-**Example:**
+- **`__validate_csv_structure(csv_file, expected_columns)`**
+  - Validates CSV structure and content
+  - Checks for expected number of columns
+  - Validates file is not empty
 
-```bash
-if ! __validate_input_file "/path/to/file.sql" "SQL script"; then
-  echo "ERROR: File validation failed"
-  exit 1
-fi
-```
+- **`__validate_sql_structure(sql_file)`**
+  - Validates SQL file existence and readability
+  - Checks file is not empty
 
-### 2. `__validate_input_files()`
+- **`__validate_config_file(config_file)`**
+  - Validates configuration file structure
+  - Checks for valid variable declarations
 
-Validates multiple files at once.
+- **`__validate_json_structure(json_file, expected_root)`**
+  - Validates JSON syntax and structure
+  - Checks for expected root element
+  - Uses `jq` if available, with fallback to `grep`
 
-**Parameters:**
+### Date Validation
 
-- `$@`: List of file paths to validate
+- **`__validate_iso8601_date(date_string, expected_format)`**
+  - Validates ISO 8601 date format
+  - Supports multiple formats:
+    - `YYYY-MM-DDTHH:MM:SSZ` (UTC)
+    - `YYYY-MM-DDTHH:MM:SS±HH:MM` (with timezone offset)
+    - `YYYY-MM-DD HH:MM:SS UTC` (API format)
+  - Restricts years to 2020-2023 (based on project requirements)
+  - Uses `date` command for additional validation
 
-**Returns:**
+- **`__validate_xml_dates(xml_file, xpath_expression)`**
+  - Validates dates in XML files
+  - Extracts dates using XPath expressions
+  - Default XPath: `//@created_at|//@closed_at|//@timestamp|//date`
+  - Requires `xmlstarlet` for XPath processing
 
-- `0` if all valid, `1` if any invalid
+- **`__validate_csv_dates(csv_file, date_column)`**
+  - Validates dates in CSV files
+  - Auto-detects date columns by name
+  - Supports manual column specification
+  - Validates all dates in the specified column
 
-**Example:**
+### Database Validation
 
-```bash
-files=("file1.sql" "file2.xml" "file3.csv")
-if ! __validate_input_files "${files[@]}"; then
-  echo "ERROR: Some files are invalid"
-  exit 1
-fi
-```
+- **`__validate_database_connection(db_name, db_user, db_host, db_port)`**
+  - Validates database connection parameters
+  - Tests actual connection to PostgreSQL
+  - Checks for required extensions (PostGIS)
 
-### 3. `__validate_sql_structure()`
+- **`__validate_database_tables(db_name, db_user, db_host, db_port, required_tables...)`**
+  - Validates existence of required database tables
+  - Uses `information_schema.tables`
 
-Validates SQL files for basic structure and content.
-
-**Parameters:**
-
-- `$1`: SQL file path
-
-**Returns:**
-
-- `0` if valid, `1` if invalid
-
-**Example:**
-
-```bash
-if ! __validate_sql_structure "database_setup.sql"; then
-  echo "ERROR: SQL file is invalid"
-  exit 1
-fi
-```
-
-### 4. `__validate_xml_structure()`
-
-Validates XML files for syntax and optional root element.
-
-**Parameters:**
-
-- `$1`: XML file path
-- `$2`: Expected root element (optional)
-
-**Returns:**
-
-- `0` if valid, `1` if invalid
-
-**Example:**
-
-```bash
-if ! __validate_xml_structure "notes.xml" "osm-notes"; then
-  echo "ERROR: XML file is invalid"
-  exit 1
-fi
-```
-
-### 5. `__validate_csv_structure()`
-
-Validates CSV files for structure and optional column count.
-
-**Parameters:**
-
-- `$1`: CSV file path
-- `$2`: Expected number of columns (optional)
-
-**Returns:**
-
-- `0` if valid, `1` if invalid
-
-**Example:**
-
-```bash
-if ! __validate_csv_structure "data.csv" "5"; then
-  echo "ERROR: CSV file is invalid"
-  exit 1
-fi
-```
-
-### 6. `__validate_config_file()`
-
-Validates configuration files for proper format.
-
-**Parameters:**
-
-- `$1`: Config file path
-
-**Returns:**
-
-- `0` if valid, `1` if invalid
-
-**Example:**
-
-```bash
-if ! __validate_config_file "config.properties"; then
-  echo "ERROR: Configuration file is invalid"
-  exit 1
-fi
-```
+- **`__validate_database_extensions(db_name, db_user, db_host, db_port, required_extensions...)`**
+  - Validates existence of required database extensions
+  - Uses `pg_extension` catalog
 
 ## Integration Examples
 
@@ -220,7 +165,44 @@ function __checkPrereqs {
     __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
     exit "${ERROR_MISSING_LIBRARY}"
   fi
+  
+  # Validate dates in XML files if they exist
+  __logi "Validating dates in XML files..."
+  if [[ -f "${PLANET_NOTES_FILE}" ]]; then
+    if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
+      __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
+      exit "${ERROR_MISSING_LIBRARY}"
+    fi
+  fi
 }
+```
+
+### Date Validation Examples
+
+```bash
+# Validate individual ISO 8601 dates
+if ! __validate_iso8601_date "2023-01-15T10:30:00Z"; then
+  echo "ERROR: Invalid date format"
+  exit 1
+fi
+
+# Validate dates in XML files
+if ! __validate_xml_dates "notes.xml"; then
+  echo "ERROR: XML contains invalid dates"
+  exit 1
+fi
+
+# Validate dates in CSV files
+if ! __validate_csv_dates "notes.csv"; then
+  echo "ERROR: CSV contains invalid dates"
+  exit 1
+fi
+
+# Validate dates with custom XPath
+if ! __validate_xml_dates "api_notes.xml" "//@created_at|//@closed_at"; then
+  echo "ERROR: API notes contain invalid dates"
+  exit 1
+fi
 ```
 
 ## Benefits
@@ -269,9 +251,17 @@ The validation functions are demonstrated in the comprehensive test suite at `te
 ## Version History
 
 - **2025-07-27**: Initial implementation of centralized validation functions
-- Added support for SQL, XML, CSV, and configuration file validation
-- Created comprehensive test suite
-- Updated ETL and process scripts to use new validation functions
+  - Added support for SQL, XML, CSV, and configuration file validation
+  - Created comprehensive test suite
+  - Updated ETL and process scripts to use new validation functions
+  - **Added date validation functions**:
+    - `__validate_iso8601_date()` - Validates ISO 8601 date formats
+    - `__validate_xml_dates()` - Validates dates in XML files
+    - `__validate_csv_dates()` - Validates dates in CSV files
+  - **Integrated date validation** in process scripts:
+    - `processPlanetNotes.sh` - Validates dates in planet XML files
+    - `processAPINotes.sh` - Validates dates in API XML files
+  - **Created comprehensive test suite** for date validation functions
 
 ## Contributing
 
