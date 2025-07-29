@@ -234,7 +234,7 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 ### Directory Structure Standards
 
-```
+```text
 project/
 ├── bin/                    # Executable scripts
 │   ├── process/           # Data processing scripts
@@ -432,7 +432,7 @@ shellcheck -x -o all script.sh
 
 Use conventional commit messages:
 
-```
+```text
 type(scope): description
 
 [optional body]
@@ -452,7 +452,7 @@ type(scope): description
 
 **Examples**:
 
-```
+```text
 feat(process): add parallel processing for large datasets
 fix(sql): correct country boundary import for Austria
 docs(readme): update installation instructions
