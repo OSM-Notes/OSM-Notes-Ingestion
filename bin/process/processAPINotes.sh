@@ -236,6 +236,9 @@ function __checkPrereqs {
   fi
  fi
 
+ # CSV files are generated during processing, no need to validate them here
+ # as they will be created by __processApiXmlPart function
+
  __checkPrereqs_functions
  #__log_finish
  set -e

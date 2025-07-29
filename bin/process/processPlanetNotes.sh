@@ -404,6 +404,9 @@ function __checkPrereqs {
    fi
   fi
 
+  # CSV files are generated during processing, no need to validate them here
+  # as they will be created by __processPlanetXmlPart function
+
  ## Validate JSON schema files
  __logi "Validating JSON schema files..."
  if ! __validate_input_file "${JSON_SCHEMA_OVERPASS}" "JSON schema file"; then

@@ -1595,10 +1595,15 @@ function __downloadPlanetNotes {
  # shellcheck disable=SC2154
  wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
   "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
- # Validates the download with the hash value md5.
- diff <(md5sum "${PLANET_NOTES_FILE}.bz2" | cut -d' ' -f 1 || true) \
-  <(cut -d' ' -f 1 "${PLANET_NOTES_FILE}.bz2.md5" || true)
- # If there is a difference, if will return non-zero value and fail the script.
+ 
+ # Validate the download with the hash value md5 using centralized function
+ __logi "Validating downloaded file integrity..."
+ if ! __validate_file_checksum_from_file "${PLANET_NOTES_FILE}.bz2" "${PLANET_NOTES_FILE}.bz2.md5" "md5"; then
+  __loge "ERROR: Planet file integrity check failed"
+  rm -f "${PLANET_NOTES_FILE}.bz2.md5"
+  # shellcheck disable=SC2154
+  exit "${ERROR_DOWNLOADING_NOTES}"
+ fi
 
  rm "${PLANET_NOTES_FILE}.bz2.md5"
 
@@ -2370,5 +2375,267 @@ function __validate_csv_dates() {
  fi
 
  echo "DEBUG: CSV date validation passed: ${csv_file}" >&2
+ return 0
+}
+
+# Function to validate file checksum
+# Parameters:
+#   $1: File path to validate
+#   $2: Expected checksum
+#   $3: Algorithm (optional, defaults to md5)
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_file_checksum() {
+ local file_path="${1}"
+ local expected_checksum="${2}"
+ local algorithm="${3:-md5}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${file_path}" "File for checksum validation"; then
+  return 1
+ fi
+
+ # Check if expected checksum is provided
+ if [[ -z "${expected_checksum}" ]]; then
+  echo "ERROR: Expected checksum is empty" >&2
+  return 1
+ fi
+
+ # Validate algorithm
+ local valid_algorithms=("md5" "sha1" "sha256" "sha512")
+ local valid_algorithm=false
+ for algo in "${valid_algorithms[@]}"; do
+  if [[ "${algorithm}" == "${algo}" ]]; then
+   valid_algorithm=true
+   break
+  fi
+ done
+
+ if [[ "${valid_algorithm}" == "false" ]]; then
+  echo "ERROR: ${algorithm} checksum validation failed:" >&2
+  echo "  - Invalid algorithm: ${algorithm}. Supported: ${valid_algorithms[*]}" >&2
+  return 1
+ fi
+
+ # Calculate actual checksum
+ local actual_checksum
+ case "${algorithm}" in
+  "md5")
+   actual_checksum=$(md5sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
+   ;;
+  "sha1")
+   actual_checksum=$(sha1sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
+   ;;
+  "sha256")
+   actual_checksum=$(sha256sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
+   ;;
+  "sha512")
+   actual_checksum=$(sha512sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
+   ;;
+  *)
+   echo "ERROR: ${algorithm} checksum validation failed:" >&2
+   echo "  - Unsupported algorithm: ${algorithm}" >&2
+   return 1
+   ;;
+ esac
+
+ if [[ $? -ne 0 ]] || [[ -z "${actual_checksum}" ]]; then
+  echo "ERROR: ${algorithm} checksum validation failed:" >&2
+  echo "  - Failed to calculate ${algorithm} checksum for file: ${file_path}" >&2
+  return 1
+ fi
+
+ # Compare checksums
+ if [[ "${actual_checksum}" != "${expected_checksum}" ]]; then
+  echo "ERROR: ${algorithm} checksum validation failed:" >&2
+  echo "  - Checksum mismatch for ${file_path}:" >&2
+  echo "    Expected: ${expected_checksum}" >&2
+  echo "    Actual:   ${actual_checksum}" >&2
+  return 1
+ fi
+
+ echo "DEBUG: ${algorithm} checksum validation passed: ${file_path}" >&2
+ return 0
+}
+
+# Function to validate checksum from a checksum file
+# Parameters:
+#   $1: File path to validate
+#   $2: Checksum file path
+#   $3: Algorithm (optional, defaults to md5)
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_file_checksum_from_file() {
+ local file_path="${1}"
+ local checksum_file="${2}"
+ local algorithm="${3:-md5}"
+ local validation_errors=()
+
+ # Check if checksum file exists and is readable
+ if ! __validate_input_file "${checksum_file}" "Checksum file"; then
+  return 1
+ fi
+
+ # Extract expected checksum from file
+ local expected_checksum
+ case "${algorithm}" in
+  "md5")
+   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
+   ;;
+  "sha1")
+   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
+   ;;
+  "sha256")
+   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
+   ;;
+  "sha512")
+   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
+   ;;
+  *)
+   echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
+   return 1
+   ;;
+ esac
+
+ if [[ -z "${expected_checksum}" ]]; then
+  echo "ERROR: Could not extract checksum from file: ${checksum_file}" >&2
+  return 1
+ fi
+
+ # Validate the file using the extracted checksum
+ __validate_file_checksum "${file_path}" "${expected_checksum}" "${algorithm}"
+}
+
+# Function to generate checksum for a file
+# Parameters:
+#   $1: File path
+#   $2: Algorithm (optional, defaults to md5)
+#   $3: Output file (optional, if not provided prints to stdout)
+# Returns:
+#   0 if successful, 1 if failed
+function __generate_file_checksum() {
+ local file_path="${1}"
+ local algorithm="${2:-md5}"
+ local output_file="${3:-}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${file_path}" "File for checksum generation"; then
+  return 1
+ fi
+
+ # Validate algorithm
+ local valid_algorithms=("md5" "sha1" "sha256" "sha512")
+ local valid_algorithm=false
+ for algo in "${valid_algorithms[@]}"; do
+  if [[ "${algorithm}" == "${algo}" ]]; then
+   valid_algorithm=true
+   break
+  fi
+ done
+
+ if [[ "${valid_algorithm}" == "false" ]]; then
+  echo "ERROR: Invalid algorithm: ${algorithm}. Supported: ${valid_algorithms[*]}" >&2
+  return 1
+ fi
+
+ # Generate checksum
+ local checksum
+ case "${algorithm}" in
+  "md5")
+   checksum=$(md5sum "${file_path}" 2>/dev/null)
+   ;;
+  "sha1")
+   checksum=$(sha1sum "${file_path}" 2>/dev/null)
+   ;;
+  "sha256")
+   checksum=$(sha256sum "${file_path}" 2>/dev/null)
+   ;;
+  "sha512")
+   checksum=$(sha512sum "${file_path}" 2>/dev/null)
+   ;;
+  *)
+   echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
+   return 1
+   ;;
+ esac
+
+ if [[ $? -ne 0 ]]; then
+  echo "ERROR: Failed to generate ${algorithm} checksum for file: ${file_path}" >&2
+  return 1
+ fi
+
+ # Output checksum
+ if [[ -n "${output_file}" ]]; then
+  echo "${checksum}" > "${output_file}"
+  echo "DEBUG: ${algorithm} checksum saved to: ${output_file}" >&2
+ else
+  echo "${checksum}"
+ fi
+
+ return 0
+}
+
+# Function to validate multiple files using checksum files
+# Parameters:
+#   $1: Directory containing files to validate
+#   $2: Checksum file path
+#   $3: Algorithm (optional, defaults to md5)
+# Returns:
+#   0 if all valid, 1 if any invalid
+function __validate_directory_checksums() {
+ local directory="${1}"
+ local checksum_file="${2}"
+ local algorithm="${3:-md5}"
+ local validation_errors=()
+
+ # Check if directory exists
+ if ! __validate_input_file "${directory}" "Directory" "dir"; then
+  return 1
+ fi
+
+ # Check if checksum file exists
+ if ! __validate_input_file "${checksum_file}" "Checksum file"; then
+  return 1
+ fi
+
+ # Read checksum file and validate each file
+ while IFS= read -r line; do
+  # Skip empty lines and comments
+  if [[ -z "${line}" ]] || [[ "${line}" =~ ^[[:space:]]*# ]]; then
+   continue
+  fi
+
+  # Parse checksum and filename
+  local checksum filename
+  case "${algorithm}" in
+   "md5"|"sha1"|"sha256"|"sha512")
+    checksum=$(echo "${line}" | cut -d' ' -f 1)
+    filename=$(echo "${line}" | sed 's/^[^ ]*  *//' | xargs basename)
+    ;;
+   *)
+    echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
+    return 1
+    ;;
+  esac
+
+  # Validate file
+  local file_path="${directory}/${filename}"
+  if ! __validate_file_checksum "${file_path}" "${checksum}" "${algorithm}"; then
+   validation_errors+=("Failed to validate: ${filename}")
+  fi
+ done < "${checksum_file}"
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: Directory checksum validation failed:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Directory checksum validation passed: ${directory}" >&2
  return 0
 }
