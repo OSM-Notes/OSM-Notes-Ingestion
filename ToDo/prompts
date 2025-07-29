@@ -1,10 +1,54 @@
+HECHO
 Ahora quiero que actúes como un especialista de bodegas de datos, inclusive como científico de datos, teniendo presente lo mejor para generar un data warehouse óptimo, con un par datamarts.
 Quiero que me analices el script de ETL. 
 Se definió un modelo estrella, o inclusive copo de nieve para el data warehouse.
 Quiero que me analices las dimensiones que se tienen. Están bien definidas? Qué otras podríamos incluir?
 Con respecto a la tabla de hechos, están bien seleccionados? Qué otros podrían ser interesantes? sobra alguno?
 Cómo serían los casos de actualización de datos? qué estrategia recomiendas para mantener la consistencia, y que sea fácil el proceso, sobretodo en términos de desempeño.
+-----
 
+Desarrollar la idea de una nota mecánica/automática o si fue creada por un humano.
+Esto puede ser basado en el comentario (si es igual a otros), la ubicación (si son cercanas o eventualmente muy alejadas), creadas por el mismo usuario, creadas en un corto tiempo.
+Que la AI proponga una forma de identificarlas.
+Esto sería otra dimensión para el modelo estrella
+
+
+Generar un nivel de experiencia del usuario, y de pronto actualizar la dimensión usuarios
+Basado en uno o varios criterios, poder determinar si un usuario teiene experiencia
+
+
+Llevar la cantidad de comentarios y acciones sobre la nota (a veces es diferenete, ya que cerrar no implica comentario.)
+
+
+Cantidad de reaperturas y cerraduras de nota lleva
+
+
+Cantidad de días que ha estado abierta. ESto permite identificar notas que ha sido reabiertas
+
+
+Nota cerrada por creador. O por otro usuario.
+
+Cantidad de notas abiertas/cerradas en un mismo país (acumulado)
+
+Cantidad de notas con un hashtag específico.
+
+Cantidad de notas con un hashtag específico en la apertura
+
+Cantidad de notas con un hashtag específico en el comentario
+
+Cantidad de notas con un hashtag específico en la apertura
+
+Cantidad de notas con un hashtag específico en la resolución
+
+Cuando se identifique un cambio, por ejemplo el país de una nota por cuestiones de cambio de país, poner un flag (modified) para que solo se recalcules esas notas.
+
+4. Recomendaciones adicionales
+Auditoría y logs: Mantener logs de cambios y errores para trazabilidad.
+Pruebas de integridad: Validar que los procesos de actualización no dejen datos huérfanos o inconsistentes.
+Documentación: Mantener actualizada la documentación de los procesos y el modelo.
+Monitoreo de desempeño: Revisar periódicamente los tiempos de carga y consulta, ajustando particiones e índices según crecimiento.
+
+------
 
 ## **Problemas Visibles y Áreas de Mejora**
 
