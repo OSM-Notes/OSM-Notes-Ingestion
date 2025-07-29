@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-25
-declare -r VERSION="2025-07-25"
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -194,49 +194,39 @@ function __checkPrereqs {
  # Checks prereqs.
  __checkPrereqsCommands
 
- ## Checks required files.
- if [[ ! -r "${NOTES_SYNC_SCRIPT}" ]]; then
-  __loge "ERROR: File is missing at ${NOTES_SYNC_SCRIPT}."
+ ## Validate required files using centralized validation
+ __logi "Validating required files..."
+
+ # Validate sync script
+ if ! __validate_input_file "${NOTES_SYNC_SCRIPT}" "Notes sync script"; then
+  __loge "ERROR: Notes sync script validation failed: ${NOTES_SYNC_SCRIPT}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_12_DROP_API_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_12_DROP_API_TABLES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_21_CREATE_API_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_API_TABLES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_22_CREATE_PARTITIONS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_PARTITIONS}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_23_CREATE_PROPERTIES_TABLE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_23_CREATE_PROPERTIES_TABLE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_31_LOAD_API_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_31_LOAD_API_NOTES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_34_UPDATE_LAST_VALUES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_34_UPDATE_LAST_VALUES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_35_CONSOLIDATE_PARTITIONS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_35_CONSOLIDATE_PARTITIONS}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ ## Validate SQL script files using centralized validation
+ __logi "Validating SQL script files..."
+
+ # Create array of SQL files to validate
+ local sql_files=(
+  "${POSTGRES_12_DROP_API_TABLES}"
+  "${POSTGRES_21_CREATE_API_TABLES}"
+  "${POSTGRES_22_CREATE_PARTITIONS}"
+  "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+  "${POSTGRES_31_LOAD_API_NOTES}"
+  "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}"
+  "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}"
+  "${POSTGRES_34_UPDATE_LAST_VALUES}"
+  "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
+ )
+
+ # Validate each SQL file
+ for sql_file in "${sql_files[@]}"; do
+  if ! __validate_sql_structure "${sql_file}"; then
+   __loge "ERROR: SQL file validation failed: ${sql_file}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ done
+
  __checkPrereqs_functions
  #__log_finish
  set -e

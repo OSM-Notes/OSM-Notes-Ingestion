@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-23
-declare -r VERSION="2025-07-23"
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -347,103 +347,69 @@ function __check_timeout {
 function __checkPrereqs {
  __log_start
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--create" ]] \
-  && [[ "${PROCESS_TYPE}" != "--help" ]] \
-  && [[ "${PROCESS_TYPE}" != "-h" ]] \
   && [[ "${PROCESS_TYPE}" != "--incremental" ]] \
   && [[ "${PROCESS_TYPE}" != "--validate" ]] \
   && [[ "${PROCESS_TYPE}" != "--resume" ]] \
-  && [[ "${PROCESS_TYPE}" != "--dry-run" ]]; then
+  && [[ "${PROCESS_TYPE}" != "--dry-run" ]] \
+  && [[ "${PROCESS_TYPE}" != "--help" ]] \
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
-  echo " * Empty string (nothing)."
+  echo " * Empty string, nothing."
   echo " * --create"
   echo " * --incremental"
   echo " * --validate"
   echo " * --resume"
   echo " * --dry-run"
   echo " * --help"
-  __loge "ERROR: Invalid parameter."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
+ # Checks prereqs.
  __checkPrereqsCommands
 
- ## Check files
- if [[ ! -r "${DATAMART_COUNTRIES_SCRIPT}" ]]; then
-  __loge "ERROR: File datamartCountries.sh was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
+ ## Validate SQL script files using centralized validation
+ __logi "Validating SQL script files..."
+
+ # Create array of SQL files to validate
+ local sql_files=(
+  "${DATAMART_COUNTRIES_SCRIPT}"
+  "${DATAMART_USERS_SCRIPT}"
+  "${POSTGRES_11_CHECK_DWH_BASE_TABLES}"
+  "${POSTGRES_12_DROP_DATAMART_OBJECTS}"
+  "${POSTGRES_13_DROP_DWH_OBJECTS}"
+  "${POSTGRES_22_CREATE_DWH_TABLES}"
+  "${POSTGRES_23_GET_WORLD_REGIONS}"
+  "${POSTGRES_24_ADD_FUNCTIONS}"
+  "${POSTGRES_25_POPULATE_DIMENSIONS}"
+  "${POSTGRES_26_UPDATE_DIMENSIONS}"
+  "${POSTGRES_31_CREATE_BASE_STAGING_OBJECTS}"
+  "${POSTGRES_32_CREATE_STAGING_OBJECTS}"
+  "${POSTGRES_33_CREATE_FACTS_BASE_OBJECTS}"
+  "${POSTGRES_34_CREATE_FACTS_YEAR_LOAD}"
+  "${POSTGRES_35_EXECUTE_FACTS_YEAR_LOAD}"
+  "${POSTGRES_36_DROP_FACTS_YEAR_LOAD}"
+  "${POSTGRES_41_ADD_CONSTRAINTS_INDEXES_TRIGGERS}"
+  "${POSTGRES_51_UNIFY_FACTS}"
+  "${POSTGRES_61_LOAD_NOTES_STAGING}"
+ )
+
+ # Validate each SQL file
+ for sql_file in "${sql_files[@]}"; do
+  if ! __validate_sql_structure "${sql_file}"; then
+   __loge "ERROR: SQL file validation failed: ${sql_file}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ done
+
+ ## Validate configuration file if it exists
+ if [[ -f "${ETL_CONFIG_FILE}" ]]; then
+  __logi "Validating ETL configuration file..."
+  if ! __validate_config_file "${ETL_CONFIG_FILE}"; then
+   __loge "ERROR: ETL configuration file validation failed: ${ETL_CONFIG_FILE}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
- if [[ ! -r "${DATAMART_USERS_SCRIPT}" ]]; then
-  __loge "ERROR: File datamartUsers.sh was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_11_CHECK_DWH_BASE_TABLES}" ]]; then
-  __loge "ERROR: File ${POSTGRES_11_CHECK_DWH_BASE_TABLES} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_12_DROP_DATAMART_OBJECTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_12_DROP_DATAMART_OBJECTS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_13_DROP_DWH_OBJECTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_13_DROP_DWH_OBJECTS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_22_CREATE_DWH_TABLES}" ]]; then
-  __loge "ERROR: File ${POSTGRES_22_CREATE_DWH_TABLES} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_23_GET_WORLD_REGIONS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_23_GET_WORLD_REGIONS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_24_ADD_FUNCTIONS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_24_ADD_FUNCTIONS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_25_POPULATE_DIMENSIONS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_25_POPULATE_DIMENSIONS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_26_UPDATE_DIMENSIONS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_26_UPDATE_DIMENSIONS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_31_CREATE_BASE_STAGING_OBJECTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_31_CREATE_BASE_STAGING_OBJECTS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_32_CREATE_STAGING_OBJECTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_32_CREATE_STAGING_OBJECTS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_33_CREATE_FACTS_BASE_OBJECTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_33_CREATE_FACTS_BASE_OBJECTS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_34_CREATE_FACTS_YEAR_LOAD}" ]]; then
-  __loge "ERROR: File ${POSTGRES_34_CREATE_FACTS_YEAR_LOAD} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_35_EXECUTE_FACTS_YEAR_LOAD}" ]]; then
-  __loge "ERROR: File ${POSTGRES_35_EXECUTE_FACTS_YEAR_LOAD} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_36_DROP_FACTS_YEAR_LOAD}" ]]; then
-  __loge "ERROR: File ${POSTGRES_36_DROP_FACTS_YEAR_LOAD} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_41_ADD_CONSTRAINTS_INDEXES_TRIGGERS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_41_ADD_CONSTRAINTS_INDEXES_TRIGGERS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_51_UNIFY_FACTS}" ]]; then
-  __loge "ERROR: File ${POSTGRES_51_UNIFY_FACTS} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_61_LOAD_NOTES_STAGING}" ]]; then
-  __loge "ERROR: File ${POSTGRES_61_LOAD_NOTES_STAGING} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+
  __log_finish
  set -e
 }

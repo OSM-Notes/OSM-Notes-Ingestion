@@ -11,8 +11,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-25
-declare -r VERSION="2025-07-25"
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.

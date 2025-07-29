@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-25
-declare -r VERSION="2025-07-25"
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -336,59 +336,93 @@ function __checkPrereqs {
  # Checks prereqs.
  __checkPrereqsCommands
 
- ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_11_DROP_SYNC_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_11_DROP_SYNC_TABLES}."
+ ## Validate SQL script files using centralized validation
+ __logi "Validating SQL script files..."
+ 
+ # Create array of SQL files to validate
+ local sql_files=(
+  "${POSTGRES_11_DROP_SYNC_TABLES}"
+  "${POSTGRES_12_DROP_API_TABLES}"
+  "${POSTGRES_13_DROP_BASE_TABLES}"
+  "${POSTGRES_14_DROP_COUNTRY_TABLES}"
+  "${POSTGRES_21_CREATE_ENUMS}"
+  "${POSTGRES_22_CREATE_BASE_TABLES}"
+  "${POSTGRES_23_CREATE_CONSTRAINTS}"
+  "${POSTGRES_24_CREATE_SYNC_TABLES}"
+  "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
+  "${POSTGRES_31_VACUUM_AND_ANALYZE}"
+  "${POSTGRES_25_CREATE_PARTITIONS}"
+  "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
+  "${POSTGRES_42_CONSOLIDATE_PARTITIONS}"
+ )
+
+ # Validate each SQL file
+ for sql_file in "${sql_files[@]}"; do
+  if ! __validate_sql_structure "${sql_file}"; then
+   __loge "ERROR: SQL file validation failed: ${sql_file}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ done
+
+ ## Validate XSLT files
+ __logi "Validating XSLT files..."
+ if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
+  __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_12_DROP_API_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_12_DROP_API_TABLES}."
+
+ if ! __validate_input_file "${XSLT_NOTE_COMMENTS_PLANET_FILE}" "XSLT comments file"; then
+  __loge "ERROR: XSLT comments file validation failed: ${XSLT_NOTE_COMMENTS_PLANET_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_13_DROP_BASE_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_13_DROP_BASE_TABLES}."
+
+ if ! __validate_input_file "${XSLT_TEXT_COMMENTS_PLANET_FILE}" "XSLT text comments file"; then
+  __loge "ERROR: XSLT text comments file validation failed: ${XSLT_TEXT_COMMENTS_PLANET_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_14_DROP_COUNTRY_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_14_DROP_COUNTRY_TABLES}."
+
+ ## Validate XML schema files
+ __logi "Validating XML schema files..."
+ if ! __validate_xml_structure "${XMLSCHEMA_PLANET_NOTES}" "osm-notes"; then
+  __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_21_CREATE_ENUMS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_ENUMS}."
+
+ ## Validate JSON schema files
+ __logi "Validating JSON schema files..."
+ if ! __validate_input_file "${JSON_SCHEMA_OVERPASS}" "JSON schema file"; then
+  __loge "ERROR: JSON schema file validation failed: ${JSON_SCHEMA_OVERPASS}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_22_CREATE_BASE_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_BASE_TABLES}."
+
+ if ! __validate_input_file "${JSON_SCHEMA_GEOJSON}" "GeoJSON schema file"; then
+  __loge "ERROR: GeoJSON schema file validation failed: ${JSON_SCHEMA_GEOJSON}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_23_CREATE_CONSTRAINTS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_23_CREATE_CONSTRAINTS}."
+
+ ## Validate test files
+ __logi "Validating test files..."
+ if ! __validate_input_file "${GEOJSON_TEST}" "GeoJSON test file"; then
+  __loge "ERROR: GeoJSON test file validation failed: ${GEOJSON_TEST}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${POSTGRES_24_CREATE_SYNC_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_24_CREATE_SYNC_TABLES}."
-  exit "${ERROR_MISSING_LIBRARY}"
+
+ ## Validate backup files if they exist
+ if [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
+  __logi "Validating backup files..."
+  if ! __validate_input_file "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" "Backup file"; then
+   __loge "ERROR: Backup file validation failed: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
- if [[ ! -r "${POSTGRES_26_CREATE_COUNTRY_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_26_CREATE_COUNTRY_TABLES}."
-  exit "${ERROR_MISSING_LIBRARY}"
+
+ if [[ -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
+  if ! __validate_sql_structure "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"; then
+   __loge "ERROR: Upload SQL file validation failed: ${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
- if [[ ! -r "${POSTGRES_31_VACUUM_AND_ANALYZE}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_31_VACUUM_AND_ANALYZE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_25_CREATE_PARTITIONS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_25_CREATE_PARTITIONS}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_42_CONSOLIDATE_PARTITIONS}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_42_CONSOLIDATE_PARTITIONS}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+
  __checkPrereqs_functions
  __log_finish
  set -e

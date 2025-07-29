@@ -4,7 +4,8 @@
 # This script removes all partition tables that might have been left behind
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-26
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 set -euo pipefail
 
@@ -65,8 +66,9 @@ function drop_all_partitions() {
 
  log_info "Dropping all partition tables using script: ${DROP_SCRIPT}"
 
- if [[ ! -f "${DROP_SCRIPT}" ]]; then
-  log_error "Drop script not found: ${DROP_SCRIPT}"
+ # Validate SQL script using centralized validation
+ if ! __validate_sql_structure "${DROP_SCRIPT}"; then
+  log_error "ERROR: Drop script validation failed: ${DROP_SCRIPT}"
   return 1
  fi
 

@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-18
-declare -r VERSION="2025-07-18"
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -120,35 +120,28 @@ function __checkPrereqs {
 
  __checkPrereqsCommands
 
- ## Check files
- if [[ ! -r "${POSTGRES_11_CHECK_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_11_CHECK_OBJECTS_FILE} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_12_CREATE_TABLES_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_12_CREATE_TABLES_FILE} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_13_CREATE_PROCEDURES_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_13_CREATE_PROCEDURES_FILE} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT}" ]]; then
-  __loge "ERROR: File ${POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_21_ADD_YEARS_SCRIPT}" ]]; then
-  __loge "ERROR: File ${POSTGRES_21_ADD_YEARS_SCRIPT} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_31_POPULATE_OLD_USERS_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_31_POPULATE_OLD_USERS_FILE} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_32_POPULATE_FILE}" ]]; then
-  __loge "ERROR: File ${POSTGRES_32_POPULATE_FILE} was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ ## Validate SQL script files using centralized validation
+ __logi "Validating SQL script files..."
+
+ # Create array of SQL files to validate
+ local sql_files=(
+  "${POSTGRES_11_CHECK_OBJECTS_FILE}"
+  "${POSTGRES_12_CREATE_TABLES_FILE}"
+  "${POSTGRES_13_CREATE_PROCEDURES_FILE}"
+  "${POSTGRES_14_LAST_YEAR_ACTITIES_SCRIPT}"
+  "${POSTGRES_21_ADD_YEARS_SCRIPT}"
+  "${POSTGRES_31_POPULATE_OLD_USERS_FILE}"
+  "${POSTGRES_32_POPULATE_FILE}"
+ )
+
+ # Validate each SQL file
+ for sql_file in "${sql_files[@]}"; do
+  if ! __validate_sql_structure "${sql_file}"; then
+   __loge "ERROR: SQL file validation failed: ${sql_file}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ done
+
  __log_finish
 }
 

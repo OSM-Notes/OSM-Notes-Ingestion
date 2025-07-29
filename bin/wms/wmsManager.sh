@@ -93,15 +93,18 @@ EOF
 
 # Function to validate prerequisites
 validate_prerequisites() {
- print_status "${BLUE}" "🔍 Validating prerequisites..."
-
- # Check if PostgreSQL is available
- if ! command -v psql &> /dev/null; then
-  print_status "${RED}" "❌ ERROR: PostgreSQL client (psql) is not installed"
+ # Check if required SQL files exist using centralized validation
+ if ! __validate_sql_structure "${WMS_PREPARE_SQL}"; then
+  print_status "${RED}" "❌ ERROR: WMS prepare SQL file validation failed: ${WMS_PREPARE_SQL}"
   exit 1
  fi
 
- # Check if PostGIS extension is available
+ if ! __validate_sql_structure "${WMS_REMOVE_SQL}"; then
+  print_status "${RED}" "❌ ERROR: WMS remove SQL file validation failed: ${WMS_REMOVE_SQL}"
+  exit 1
+ fi
+
+ # Check database connection and PostGIS
  local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  if [[ -n "${WMS_DB_HOST}" ]]; then
   psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
@@ -112,17 +115,6 @@ validate_prerequisites() {
 
  if ! eval "${psql_cmd} -c \"SELECT PostGIS_Version();\"" &> /dev/null; then
   print_status "${RED}" "❌ ERROR: PostGIS extension is not installed or not accessible"
-  exit 1
- fi
-
- # Check if required SQL files exist
- if [[ ! -f "${WMS_PREPARE_SQL}" ]]; then
-  print_status "${RED}" "❌ ERROR: WMS prepare SQL file not found: ${WMS_PREPARE_SQL}"
-  exit 1
- fi
-
- if [[ ! -f "${WMS_REMOVE_SQL}" ]]; then
-  print_status "${RED}" "❌ ERROR: WMS remove SQL file not found: ${WMS_REMOVE_SQL}"
   exit 1
  fi
 

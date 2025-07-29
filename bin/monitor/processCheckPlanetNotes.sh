@@ -35,8 +35,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-21
-declare -r VERSION="2025-07-21"
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -132,23 +132,25 @@ function __checkPrereqs {
  # Checks prereqs.
  __checkPrereqsCommands
 
- ## Checks postgres scripts.
- if [[ ! -r "${POSTGRES_11_DROP_CHECK_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_11_DROP_CHECK_TABLES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_21_CREATE_CHECK_TABLES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_CHECK_TABLES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_31_LOAD_CHECK_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_31_LOAD_CHECK_NOTES}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POSTGRES_41_ANALYZE_AND_VACUUM}" ]]; then
-  __loge "ERROR: File is missing at ${POSTGRES_41_ANALYZE_AND_VACUUM}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ ## Validate SQL script files using centralized validation
+ __logi "Validating SQL script files..."
+
+ # Create array of SQL files to validate
+ local sql_files=(
+  "${POSTGRES_11_DROP_CHECK_TABLES}"
+  "${POSTGRES_21_CREATE_CHECK_TABLES}"
+  "${POSTGRES_31_LOAD_CHECK_NOTES}"
+  "${POSTGRES_41_ANALYZE_AND_VACUUM}"
+ )
+
+ # Validate each SQL file
+ for sql_file in "${sql_files[@]}"; do
+  if ! __validate_sql_structure "${sql_file}"; then
+   __loge "ERROR: SQL file validation failed: ${sql_file}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ done
+
  __log_finish
  set -e
 }

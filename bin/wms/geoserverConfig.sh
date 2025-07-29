@@ -264,15 +264,14 @@ create_feature_type() {
  fi
 }
 
-# Function to upload SLD style
+# Function to upload style
 upload_style() {
- print_status "${BLUE}" "🎨 Uploading SLD style..."
-
  local sld_file="${WMS_STYLE_FILE}"
  local style_name="${WMS_STYLE_NAME}"
 
- if [[ ! -f "${sld_file}" ]]; then
-  print_status "${YELLOW}" "⚠️  SLD file not found: ${sld_file}"
+ # Validate SLD file using centralized validation
+ if ! __validate_input_file "${sld_file}" "SLD style file"; then
+  print_status "${YELLOW}" "⚠️  SLD file validation failed: ${sld_file}"
   return 0
  fi
 

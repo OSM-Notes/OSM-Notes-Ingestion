@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-14
-declare -r VERSION="2025-07-14"
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -117,31 +117,27 @@ function __checkPrereqs {
 
  __checkPrereqsCommands
 
- ## Check files
- if [[ ! -r "${CHECK_OBJECTS_FILE}" ]]; then
-  __loge "ERROR: File datamartCountries-checkDatamartCountriesTables.sql was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${CREATE_TABLES_FILE}" ]]; then
-  __loge "ERROR: File datamartCountries-createDatamartCountriesTable.sql was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${CREATE_PROCEDURES_FILE}" ]]; then
-  __loge "ERROR: File datamartCountries-createProcedure.sql was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${POPULATE_FILE}" ]]; then
-  __loge "ERROR: File datamartCountries-populateDatamartCountriesTable.sql was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${ADD_YEARS_SCRIPT}" ]]; then
-  __loge "ERROR: File datamartCountries-alterTableAddYears.sql was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${LAST_YEAR_ACTITIES_SCRIPT}" ]]; then
-  __loge "ERROR: File datamart-lastYearActivities.sql was not found."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+ ## Validate SQL script files using centralized validation
+ __logi "Validating SQL script files..."
+
+ # Create array of SQL files to validate
+ local sql_files=(
+  "${CHECK_OBJECTS_FILE}"
+  "${CREATE_TABLES_FILE}"
+  "${CREATE_PROCEDURES_FILE}"
+  "${POPULATE_FILE}"
+  "${ADD_YEARS_SCRIPT}"
+  "${LAST_YEAR_ACTITIES_SCRIPT}"
+ )
+
+ # Validate each SQL file
+ for sql_file in "${sql_files[@]}"; do
+  if ! __validate_sql_structure "${sql_file}"; then
+   __loge "ERROR: SQL file validation failed: ${sql_file}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ done
+
  __log_finish
 }
 

@@ -27,9 +27,9 @@
 # * shellcheck -x -o all notesCheckVerifier.sh
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
-# Author: Andres Gomez Casanova - AngocA
-# Version: 2025-07-24
-declare -r VERSION="2025-07-24"
+# Author: Andres Gomez (AngocA)
+# Version: 2025-07-27
+declare -r VERSION="2025-07-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -131,11 +131,21 @@ function __checkPrereqs {
  set +e
  # Checks prereqs.
  __checkPrereqsCommands
- ## Checks if the process file exists.
- if [[ "${PROCESS_FILE}" != "" ]] && [[ ! -r "${PROCESS_FILE}" ]]; then
-  __loge "The file to get the ids cannot be found: ${PROCESS_FILE}."
-  exit "${ERROR_INVALID_ARGUMENT}"
+
+ ## Validate process file if provided
+ if [[ "${PROCESS_FILE}" != "" ]]; then
+  if ! __validate_input_file "${PROCESS_FILE}" "Process file"; then
+   __loge "ERROR: Process file validation failed: ${PROCESS_FILE}"
+   exit "${ERROR_INVALID_ARGUMENT}"
+  fi
  fi
+
+ ## Validate SQL report file
+ if ! __validate_sql_structure "${SQL_REPORT}"; then
+  __loge "ERROR: SQL report file validation failed: ${SQL_REPORT}"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
  __log_finish
  set -e
 }

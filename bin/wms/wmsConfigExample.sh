@@ -121,8 +121,8 @@ validate_properties() {
  fi
 
  # Additional validations
- if [[ ! -f "${WMS_STYLE_FILE}" ]]; then
-  print_status "${YELLOW}" "⚠️  Style file not found: ${WMS_STYLE_FILE}"
+ if ! __validate_input_file "${WMS_STYLE_FILE}" "WMS style file"; then
+  print_status "${YELLOW}" "⚠️  Style file validation failed: ${WMS_STYLE_FILE}"
   ((errors++))
  fi
 

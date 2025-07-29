@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-26
+# Version: 2025-07-27
 
 # Error codes.
 # 1: Help message.
@@ -808,6 +808,268 @@ function __processPlanetXmlPart() {
    < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" || true)"
 
  __logi "Completed processing Planet part ${PART_NUM}"
+}
+
+# Function to validate input files and directories
+# Parameters:
+#   $1: File path to validate
+#   $2: Description of the file (optional)
+#   $3: Expected file type (optional: "file", "dir", "executable")
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_input_file() {
+ local file_path="${1}"
+ local description="${2:-File}"
+ local expected_type="${3:-file}"
+ local validation_errors=()
+
+ # Check if file path is provided
+ if [[ -z "${file_path}" ]]; then
+  echo "ERROR: ${description} path is empty" >&2
+  return 1
+ fi
+
+ # Check if file exists
+ if [[ ! -e "${file_path}" ]]; then
+  validation_errors+=("File does not exist: ${file_path}")
+ fi
+
+ # Check if file is readable (for files)
+ if [[ "${expected_type}" == "file" ]] && [[ -e "${file_path}" ]]; then
+  if [[ ! -r "${file_path}" ]]; then
+   validation_errors+=("File is not readable: ${file_path}")
+  fi
+ fi
+
+ # Check if directory is accessible (for directories)
+ if [[ "${expected_type}" == "dir" ]] && [[ -e "${file_path}" ]]; then
+  if [[ ! -d "${file_path}" ]]; then
+   validation_errors+=("Path is not a directory: ${file_path}")
+  elif [[ ! -r "${file_path}" ]]; then
+   validation_errors+=("Directory is not readable: ${file_path}")
+  fi
+ fi
+
+ # Check if executable is executable
+ if [[ "${expected_type}" == "executable" ]] && [[ -e "${file_path}" ]]; then
+  if [[ ! -x "${file_path}" ]]; then
+   validation_errors+=("File is not executable: ${file_path}")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: ${description} validation failed:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: ${description} validation passed: ${file_path}" >&2
+ return 0
+}
+
+# Function to validate multiple input files
+# Parameters:
+#   $@: List of file paths to validate
+# Returns:
+#   0 if all valid, 1 if any invalid
+function __validate_input_files() {
+ local all_valid=true
+ local file_path
+
+ echo "DEBUG: Validating input files..." >&2
+
+ for file_path in "$@"; do
+  if ! __validate_input_file "${file_path}" "Input file"; then
+   all_valid=false
+  fi
+ done
+
+ if [[ "${all_valid}" == "true" ]]; then
+  echo "DEBUG: All input files validation passed" >&2
+  return 0
+ else
+  echo "ERROR: Some input files validation failed" >&2
+  return 1
+ fi
+}
+
+# Function to validate XML file structure
+# Parameters:
+#   $1: XML file path
+#   $2: Expected root element (optional)
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_xml_structure() {
+ local xml_file="${1}"
+ local expected_root="${2:-}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${xml_file}" "XML file"; then
+  return 1
+ fi
+
+ # Check if file is not empty
+ if [[ ! -s "${xml_file}" ]]; then
+  echo "ERROR: XML file is empty: ${xml_file}" >&2
+  return 1
+ fi
+
+ # Validate XML syntax
+ if ! xmllint --noout "${xml_file}" 2> /dev/null; then
+  validation_errors+=("Invalid XML syntax")
+ fi
+
+ # Check expected root element if provided
+ if [[ -n "${expected_root}" ]]; then
+  local actual_root
+  actual_root=$(xmlstarlet sel -t -n -v "name(/*)" "${xml_file}" 2> /dev/null | tr -d ' ')
+  if [[ "${actual_root}" != "${expected_root}" ]]; then
+   validation_errors+=("Expected root element '${expected_root}', got '${actual_root}'")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: XML structure validation failed for ${xml_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: XML structure validation passed: ${xml_file}" >&2
+ return 0
+}
+
+# Function to validate CSV file structure
+# Parameters:
+#   $1: CSV file path
+#   $2: Expected number of columns (optional)
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_csv_structure() {
+ local csv_file="${1}"
+ local expected_columns="${2:-}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${csv_file}" "CSV file"; then
+  return 1
+ fi
+
+ # Check if file is not empty
+ if [[ ! -s "${csv_file}" ]]; then
+  echo "ERROR: CSV file is empty: ${csv_file}" >&2
+  return 1
+ fi
+
+ # Check if file has at least one line
+ local line_count
+ line_count=$(wc -l < "${csv_file}")
+ if [[ "${line_count}" -eq 0 ]]; then
+  validation_errors+=("CSV file has no lines")
+ fi
+
+ # Check expected number of columns if provided
+ if [[ -n "${expected_columns}" ]]; then
+  local actual_columns
+  actual_columns=$(head -1 "${csv_file}" | tr ',' '\n' | wc -l)
+  if [[ "${actual_columns}" -ne "${expected_columns}" ]]; then
+   validation_errors+=("Expected ${expected_columns} columns, got ${actual_columns}")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: CSV structure validation failed for ${csv_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: CSV structure validation passed: ${csv_file}" >&2
+ return 0
+}
+
+# Function to validate SQL file structure
+# Parameters:
+#   $1: SQL file path
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_sql_structure() {
+ local sql_file="${1}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${sql_file}" "SQL file"; then
+  return 1
+ fi
+
+ # Check if file is not empty
+ if [[ ! -s "${sql_file}" ]]; then
+  echo "ERROR: SQL file is empty: ${sql_file}" >&2
+  return 1
+ fi
+
+ # Check for basic SQL syntax (simple validation)
+ if ! grep -q -E "(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|BEGIN|COMMIT)" "${sql_file}"; then
+  validation_errors+=("No SQL statements found")
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: SQL structure validation failed for ${sql_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: SQL structure validation passed: ${sql_file}" >&2
+ return 0
+}
+
+# Function to validate configuration file
+# Parameters:
+#   $1: Config file path
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_config_file() {
+ local config_file="${1}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${config_file}" "Configuration file"; then
+  return 1
+ fi
+
+ # Check if file is not empty
+ if [[ ! -s "${config_file}" ]]; then
+  echo "ERROR: Configuration file is empty: ${config_file}" >&2
+  return 1
+ fi
+
+ # Check for basic configuration format (more flexible)
+ if ! grep -q -E "^[A-Z_][A-Z0-9_]*=" "${config_file}" && ! grep -q -E "^declare.*=" "${config_file}"; then
+  validation_errors+=("No valid configuration variables found")
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: Configuration file validation failed for ${config_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Configuration file validation passed: ${config_file}" >&2
+ return 0
 }
 
 # Checks prerequisites commands to run the script.
