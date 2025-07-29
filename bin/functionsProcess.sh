@@ -928,7 +928,7 @@ function __validate_xml_structure() {
  # Check expected root element if provided
  if [[ -n "${expected_root}" ]]; then
   local actual_root
-  actual_root=$(xmlstarlet sel -t -n -v "name(/*)" "${xml_file}" 2> /dev/null | tr -d ' ')
+  actual_root=$(xmlstarlet sel -t -n -v "name(/*)" "${xml_file}" 2> /dev/null | tr -d ' ' | tr -d '\n')
   if [[ "${actual_root}" != "${expected_root}" ]]; then
    validation_errors+=("Expected root element '${expected_root}', got '${actual_root}'")
   fi
