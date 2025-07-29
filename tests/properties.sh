@@ -4,7 +4,7 @@
 # Independent test configuration - separate from production properties
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-26
+# Version: 2025-07-28
 
 # Database configuration for tests
 # Detect if running in CI/CD environment
@@ -24,6 +24,14 @@ elif [[ -f "/app/bin/functionsProcess.sh" ]]; then
  export TEST_DBPASSWORD="testpass"
  export TEST_DBHOST="postgres"
  export TEST_DBPORT="5432"
+elif [[ "$(whoami)" == "notes" ]]; then
+ # Running as notes user - use local connection
+ echo "DEBUG: Detected notes user environment" >&2
+ export TEST_DBNAME="osm_notes_test"
+ export TEST_DBUSER="notes"
+ export TEST_DBPASSWORD=""
+ export TEST_DBHOST=""
+ export TEST_DBPORT=""
 else
  # Running on host - use local PostgreSQL with current user
  echo "DEBUG: Detected host environment" >&2
