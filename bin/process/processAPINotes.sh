@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
-declare -r VERSION="2025-07-27"
+# Version: 2025-07-29
+declare -r VERSION="2025-07-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -132,6 +132,7 @@ declare -r ERROR_MISSING_LIBRARY=241
 declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
 declare -r ERROR_NO_LAST_UPDATE=245
 declare -r ERROR_INTERNET_ISSUE=251
+declare -r ERROR_DATA_VALIDATION=252
 declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
 declare -r ERROR_EXECUTING_PLANET_DUMP=248
 
@@ -348,6 +349,45 @@ function __validateApiNotesXMLFile {
  __log_finish
 }
 
+# Validates API notes XML file completely (structure, dates, coordinates)
+# Parameters:
+#   None (uses global API_NOTES_FILE variable)
+# Returns:
+#   0 if all validations pass, exits with ERROR_DATA_VALIDATION if any validation fails
+function __validateApiNotesXMLFileComplete {
+ __log_start
+
+ # Check if file exists
+ if [[ ! -f "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file not found: ${API_NOTES_FILE}"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ # Validate XML structure against schema
+ __logi "Validating XML structure against schema..."
+ if ! xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" 2>/dev/null; then
+  __loge "ERROR: XML structure validation failed: ${API_NOTES_FILE}"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ # Validate dates in XML file
+ __logi "Validating dates in XML file..."
+ if ! __validate_xml_dates "${API_NOTES_FILE}"; then
+  __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ # Validate coordinates in XML file
+ __logi "Validating coordinates in XML file..."
+ if ! __validate_xml_coordinates "${API_NOTES_FILE}"; then
+  __loge "ERROR: XML coordinate validation failed: ${API_NOTES_FILE}"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ __logi "All API notes XML validations passed successfully"
+ __log_finish
+}
+
 # Creates the XSLT files and process the XML files with them.
 # The CSV file structure for notes is:
 # 3451247,29.6141093,-98.4844977,"2022-11-22 02:13:03 UTC",,"open"
@@ -534,7 +574,7 @@ function main() {
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
  if [[ "${RESULT}" -ne 0 ]]; then
-  __validateApiNotesXMLFile
+  __validateApiNotesXMLFileComplete
   __countXmlNotesAPI "${API_NOTES_FILE}"
   __processXMLorPlanet
   __consolidatePartitions

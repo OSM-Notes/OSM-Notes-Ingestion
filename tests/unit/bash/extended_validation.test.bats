@@ -237,3 +237,251 @@ EOF
  [ "$status" -eq 0 ]
  [[ "$output" == *"DEBUG: JSON file validation passed"* ]]
 }
+
+# Test JSON Schema validation
+@test "JSON Schema validation should work with valid JSON and schema" {
+    # Create a simple JSON schema
+    cat > "${TEST_DIR}/test_schema.json" << 'EOF'
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        },
+        "age": {
+            "type": "number"
+        }
+    },
+    "required": ["name"]
+}
+EOF
+
+    # Create a valid JSON file
+    cat > "${TEST_DIR}/valid_for_schema.json" << 'EOF'
+{
+    "name": "John Doe",
+    "age": 30
+}
+EOF
+
+    # Test with a simple schema first
+    run __validate_json_schema "${TEST_DIR}/valid_for_schema.json" "${TEST_DIR}/test_schema.json"
+    [ "$status" -eq 0 ]
+}
+
+@test "JSON Schema validation should work with existing schemas" {
+    # Test with the existing GeoJSON schema
+    cat > "${TEST_DIR}/valid_geojson.json" << 'EOF'
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [0, 0]
+            },
+            "properties": {
+                "name": "Test Point"
+            }
+        }
+    ]
+}
+EOF
+
+    run __validate_json_schema "${TEST_DIR}/valid_geojson.json" "${TEST_BASE_DIR}/json/geojsonschema.json"
+    [ "$status" -eq 0 ]
+}
+
+@test "JSON Schema validation should fail with invalid JSON" {
+    # Create a simple JSON schema
+    cat > "${TEST_DIR}/test_schema.json" << 'EOF'
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string"
+        }
+    },
+    "required": ["name"]
+}
+EOF
+
+    # Create an invalid JSON file (missing required field)
+    cat > "${TEST_DIR}/invalid_for_schema.json" << 'EOF'
+{
+    "age": 30
+}
+EOF
+
+    run __validate_json_schema "${TEST_DIR}/invalid_for_schema.json" "${TEST_DIR}/test_schema.json"
+    [ "$status" -eq 1 ]
+}
+
+@test "JSON Schema validation should handle missing ajv" {
+    # Mock ajv not available
+    local original_path="$PATH"
+    export PATH="/tmp/empty:$PATH"
+    
+    run __validate_json_schema "${TEST_DIR}/valid.json" "${TEST_DIR}/test_schema.json"
+    [ "$status" -eq 1 ]
+    
+    export PATH="$original_path"
+}
+
+@test "JSON Schema validation should handle missing schema file" {
+    run __validate_json_schema "${TEST_DIR}/valid.json" "/non/existent/schema.json"
+    [ "$status" -eq 1 ]
+}
+
+@test "JSON Schema validation should handle missing JSON file" {
+    # Create a simple JSON schema
+    cat > "${TEST_DIR}/test_schema.json" << 'EOF'
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object"
+}
+EOF
+
+    run __validate_json_schema "/non/existent/file.json" "${TEST_DIR}/test_schema.json"
+    [ "$status" -eq 1 ]
+}
+
+# Test coordinate validation
+@test "coordinate validation should work with valid coordinates" {
+    run __validate_coordinates "40.7128" "-74.0060"
+    [ "$status" -eq 0 ]
+}
+
+@test "coordinate validation should fail with invalid latitude" {
+    run __validate_coordinates "100.0" "-74.0060"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"outside valid range"* ]]
+}
+
+@test "coordinate validation should fail with invalid longitude" {
+    run __validate_coordinates "40.7128" "200.0"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"outside valid range"* ]]
+}
+
+@test "coordinate validation should fail with non-numeric values" {
+    run __validate_coordinates "abc" "def"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"not a valid number"* ]]
+}
+
+@test "coordinate validation should check precision" {
+    run __validate_coordinates "40.7128000" "-74.0060000"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"too many decimal places"* ]]
+}
+
+# Test numeric range validation
+@test "numeric range validation should work with valid values" {
+    run __validate_numeric_range "50" "0" "100" "Test value"
+    [ "$status" -eq 0 ]
+}
+
+@test "numeric range validation should fail with value below minimum" {
+    run __validate_numeric_range "-10" "0" "100" "Test value"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"below minimum"* ]]
+}
+
+@test "numeric range validation should fail with value above maximum" {
+    run __validate_numeric_range "150" "0" "100" "Test value"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"above maximum"* ]]
+}
+
+@test "numeric range validation should fail with non-numeric value" {
+    run __validate_numeric_range "abc" "0" "100" "Test value"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"not a valid number"* ]]
+}
+
+# Test string pattern validation
+@test "string pattern validation should work with valid patterns" {
+    run __validate_string_pattern "test@example.com" "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" "Email"
+    [ "$status" -eq 0 ]
+}
+
+@test "string pattern validation should fail with invalid patterns" {
+    run __validate_string_pattern "invalid-email" "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" "Email"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"does not match required pattern"* ]]
+}
+
+# Test XML coordinate validation
+@test "XML coordinate validation should work with valid coordinates" {
+    # Create a test XML file with coordinates
+    cat > "${TEST_DIR}/test_coordinates.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+    <note id="1" lat="40.7128" lon="-74.0060">
+        <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test comment</comment>
+    </note>
+    <note id="2" lat="34.0522" lon="-118.2437">
+        <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test comment</comment>
+    </note>
+</osm-notes>
+EOF
+
+    run __validate_xml_coordinates "${TEST_DIR}/test_coordinates.xml"
+    [ "$status" -eq 0 ]
+}
+
+@test "XML coordinate validation should fail with invalid coordinates" {
+    # Create a test XML file with invalid coordinates
+    cat > "${TEST_DIR}/test_invalid_coordinates.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+    <note id="1" lat="100.0" lon="-74.0060">
+        <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test comment</comment>
+    </note>
+</osm-notes>
+EOF
+
+    run __validate_xml_coordinates "${TEST_DIR}/test_invalid_coordinates.xml"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid coordinates"* ]]
+}
+
+# Test CSV coordinate validation
+@test "CSV coordinate validation should work with valid coordinates" {
+    # Create a test CSV file with coordinates
+    cat > "${TEST_DIR}/test_coordinates.csv" << 'EOF'
+note_id,latitude,longitude,created_at,status
+1,40.7128,-74.0060,2023-01-01 00:00:00 UTC,open
+2,34.0522,-118.2437,2023-01-01 00:00:00 UTC,open
+EOF
+
+    run __validate_csv_coordinates "${TEST_DIR}/test_coordinates.csv"
+    [ "$status" -eq 0 ]
+}
+
+@test "CSV coordinate validation should fail with invalid coordinates" {
+    # Create a test CSV file with invalid coordinates
+    cat > "${TEST_DIR}/test_invalid_coordinates.csv" << 'EOF'
+note_id,latitude,longitude,created_at,status
+1,100.0,-74.0060,2023-01-01 00:00:00 UTC,open
+EOF
+
+    run __validate_csv_coordinates "${TEST_DIR}/test_invalid_coordinates.csv"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Invalid coordinates"* ]]
+}
+
+@test "CSV coordinate validation should auto-detect coordinate columns" {
+    # Create a test CSV file with different column names
+    cat > "${TEST_DIR}/test_coordinates_auto.csv" << 'EOF'
+id,lat,lon,date,status
+1,40.7128,-74.0060,2023-01-01,open
+EOF
+
+    run __validate_csv_coordinates "${TEST_DIR}/test_coordinates_auto.csv"
+    [ "$status" -eq 0 ]
+}

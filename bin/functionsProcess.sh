@@ -10,7 +10,7 @@
 # * shfmt -w -i 1 -sr -bn functionsProcess.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-07-29
 
 # Error codes.
 # 1: Help message.
@@ -43,6 +43,8 @@ declare -r ERROR_DOWNLOADING_BOUNDARY=249
 declare -r ERROR_GEOJSON_CONVERSION=250
 # 251: Internet issue.
 declare -r ERROR_INTERNET_ISSUE=251
+# 252: Error validating data content.
+declare -r ERROR_DATA_VALIDATION=252
 # 255: General error.
 declare -r ERROR_GENERAL=255
 
@@ -2637,5 +2639,322 @@ function __validate_directory_checksums() {
  fi
 
  echo "DEBUG: Directory checksum validation passed: ${directory}" >&2
+ return 0
+}
+
+# Validates JSON file against a JSON Schema
+# Parameters:
+#   $1: JSON file path to validate
+#   $2: JSON Schema file path
+#   $3: Schema specification (optional, defaults to draft2020)
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_json_schema() {
+ local json_file="${1}"
+ local schema_file="${2}"
+ local spec="${3:-draft2020}"
+ local validation_errors=()
+
+ # Check if ajv is available
+ if ! command -v ajv &> /dev/null; then
+  echo "ERROR: ajv command not available for JSON Schema validation" >&2
+  return 1
+ fi
+
+ # Check if JSON file exists and is readable
+ if ! __validate_input_file "${json_file}" "JSON file"; then
+  return 1
+ fi
+
+ # Check if schema file exists and is readable
+ if ! __validate_input_file "${schema_file}" "JSON Schema file"; then
+  return 1
+ fi
+
+ # Validate JSON against schema using ajv
+ set +e
+ ajv validate -s "${schema_file}" -d "${json_file}" --spec="${spec}" 2> /dev/null
+ local ajv_status=$?
+ set -e
+
+ if [[ ${ajv_status} -eq 0 ]]; then
+  echo "DEBUG: JSON Schema validation passed: ${json_file}" >&2
+  return 0
+ else
+  echo "ERROR: JSON Schema validation failed: ${json_file}" >&2
+  return 1
+ fi
+}
+
+# Validates geographic coordinates
+# Parameters:
+#   $1: Latitude value
+#   $2: Longitude value
+#   $3: Precision (optional, defaults to 7 decimal places)
+# Returns:
+#   0 if coordinates are valid, 1 if invalid
+function __validate_coordinates() {
+ local latitude="${1}"
+ local longitude="${2}"
+ local precision="${3:-7}"
+ local validation_errors=()
+
+ # Check if values are numeric
+ if ! [[ "${latitude}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  validation_errors+=("Latitude '${latitude}' is not a valid number")
+ fi
+
+ if ! [[ "${longitude}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  validation_errors+=("Longitude '${longitude}' is not a valid number")
+ fi
+
+ # Check latitude range (-90 to 90)
+ if [[ "${latitude}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  if (( $(echo "${latitude} < -90" | bc -l) )) || (( $(echo "${latitude} > 90" | bc -l) )); then
+   validation_errors+=("Latitude '${latitude}' is outside valid range (-90 to 90)")
+  fi
+ fi
+
+ # Check longitude range (-180 to 180)
+ if [[ "${longitude}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  if (( $(echo "${longitude} < -180" | bc -l) )) || (( $(echo "${longitude} > 180" | bc -l) )); then
+   validation_errors+=("Longitude '${longitude}' is outside valid range (-180 to 180)")
+  fi
+ fi
+
+ # Check precision
+ if [[ "${latitude}" =~ ^-?[0-9]+\.[0-9]{${precision},}$ ]]; then
+  validation_errors+=("Latitude '${latitude}' has too many decimal places (max ${precision})")
+ fi
+
+ if [[ "${longitude}" =~ ^-?[0-9]+\.[0-9]{${precision},}$ ]]; then
+  validation_errors+=("Longitude '${longitude}' has too many decimal places (max ${precision})")
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: Coordinate validation failed:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Coordinate validation passed: lat=${latitude}, lon=${longitude}" >&2
+ return 0
+}
+
+# Validates numeric values within specified ranges
+# Parameters:
+#   $1: Value to validate
+#   $2: Minimum value (optional)
+#   $3: Maximum value (optional)
+#   $4: Description for error messages (optional)
+# Returns:
+#   0 if value is valid, 1 if invalid
+function __validate_numeric_range() {
+ local value="${1}"
+ local min_value="${2:-}"
+ local max_value="${3:-}"
+ local description="${4:-Value}"
+ local validation_errors=()
+
+ # Check if value is numeric
+ if ! [[ "${value}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  echo "ERROR: ${description} '${value}' is not a valid number" >&2
+  return 1
+ fi
+
+ # Check minimum value
+ if [[ -n "${min_value}" ]]; then
+  if (( $(echo "${value} < ${min_value}" | bc -l) )); then
+   validation_errors+=("${description} '${value}' is below minimum (${min_value})")
+  fi
+ fi
+
+ # Check maximum value
+ if [[ -n "${max_value}" ]]; then
+  if (( $(echo "${value} > ${max_value}" | bc -l) )); then
+   validation_errors+=("${description} '${value}' is above maximum (${max_value})")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: Numeric range validation failed:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Numeric range validation passed: ${description}=${value}" >&2
+ return 0
+}
+
+# Validates string values against patterns
+# Parameters:
+#   $1: Value to validate
+#   $2: Regular expression pattern
+#   $3: Description for error messages (optional)
+# Returns:
+#   0 if value matches pattern, 1 if invalid
+function __validate_string_pattern() {
+ local value="${1}"
+ local pattern="${2}"
+ local description="${3:-String value}"
+ local validation_errors=()
+
+ # Check if value matches pattern
+ if ! [[ "${value}" =~ ${pattern} ]]; then
+  echo "ERROR: ${description} '${value}' does not match required pattern" >&2
+  return 1
+ fi
+
+ echo "DEBUG: String pattern validation passed: ${description}=${value}" >&2
+ return 0
+}
+
+# Validates XML content for coordinate attributes
+# Parameters:
+#   $1: XML file path
+#   $2: XPath expression for latitude (optional, defaults to //@lat)
+#   $3: XPath expression for longitude (optional, defaults to //@lon)
+# Returns:
+#   0 if all coordinates are valid, 1 if any invalid
+function __validate_xml_coordinates() {
+ local xml_file="${1}"
+ local lat_xpath="${2:-//@lat}"
+ local lon_xpath="${3:-//@lon}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${xml_file}" "XML file"; then
+  return 1
+ fi
+
+ # Check if xmlstarlet is available
+ if ! command -v xmlstarlet &> /dev/null; then
+  echo "WARNING: xmlstarlet not available, skipping XML coordinate validation" >&2
+  return 0
+ fi
+
+ # Extract coordinates using xmlstarlet
+ local latitudes
+ local longitudes
+ latitudes=$(xmlstarlet sel -t -v "${lat_xpath}" "${xml_file}" 2>/dev/null | grep -v '^$')
+ longitudes=$(xmlstarlet sel -t -v "${lon_xpath}" "${xml_file}" 2>/dev/null | grep -v '^$')
+
+ if [[ -z "${latitudes}" ]] || [[ -z "${longitudes}" ]]; then
+  echo "WARNING: No coordinates found in XML file" >&2
+  return 0
+ fi
+
+ # Validate each coordinate pair
+ local line_number=0
+ while IFS= read -r lat_value; do
+  ((line_number++))
+  lon_value=$(echo "${longitudes}" | sed -n "${line_number}p")
+  
+  if [[ -n "${lon_value}" ]]; then
+   if ! __validate_coordinates "${lat_value}" "${lon_value}"; then
+    validation_errors+=("Line ${line_number}: Invalid coordinates lat=${lat_value}, lon=${lon_value}")
+   fi
+  fi
+ done <<< "${latitudes}"
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: XML coordinate validation failed for ${xml_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: XML coordinate validation passed: ${xml_file}" >&2
+ return 0
+}
+
+# Validates CSV content for coordinate columns
+# Parameters:
+#   $1: CSV file path
+#   $2: Latitude column number (optional, defaults to auto-detect)
+#   $3: Longitude column number (optional, defaults to auto-detect)
+# Returns:
+#   0 if all coordinates are valid, 1 if any invalid
+function __validate_csv_coordinates() {
+ local csv_file="${1}"
+ local lat_column="${2:-}"
+ local lon_column="${3:-}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${csv_file}" "CSV file"; then
+  return 1
+ fi
+
+ # Auto-detect coordinate columns if not specified
+ if [[ -z "${lat_column}" ]] || [[ -z "${lon_column}" ]]; then
+  local header_line
+  header_line=$(head -1 "${csv_file}")
+  local column_number=1
+  local found_lat=false
+  local found_lon=false
+  
+  while IFS=',' read -ra columns; do
+   for column in "${columns[@]}"; do
+    if [[ "${column}" =~ (lat|latitude) ]]; then
+     lat_column="${column_number}"
+     found_lat=true
+    elif [[ "${column}" =~ (lon|longitude) ]]; then
+     lon_column="${column_number}"
+     found_lon=true
+    fi
+    ((column_number++))
+   done
+  done <<< "${header_line}"
+  
+  if [[ "${found_lat}" == "false" ]] || [[ "${found_lon}" == "false" ]]; then
+   echo "WARNING: Coordinate columns not found in CSV header" >&2
+   return 0
+  fi
+ fi
+
+ # Extract coordinates from the specified columns
+ local coordinates
+ coordinates=$(tail -n +2 "${csv_file}" | cut -d',' -f"${lat_column},${lon_column}" | grep -v '^$')
+
+ if [[ -z "${coordinates}" ]]; then
+  echo "WARNING: No coordinates found in CSV columns" >&2
+  return 0
+ fi
+
+ # Validate each coordinate pair
+ local line_number=1
+ while IFS= read -r coordinate_line; do
+  ((line_number++))
+  local lat_value
+  local lon_value
+  lat_value=$(echo "${coordinate_line}" | cut -d',' -f1)
+  lon_value=$(echo "${coordinate_line}" | cut -d',' -f2)
+  
+  if [[ -n "${lat_value}" ]] && [[ -n "${lon_value}" ]]; then
+   if ! __validate_coordinates "${lat_value}" "${lon_value}"; then
+    validation_errors+=("Line ${line_number}: Invalid coordinates lat=${lat_value}, lon=${lon_value}")
+   fi
+  fi
+ done <<< "${coordinates}"
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: CSV coordinate validation failed for ${csv_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: CSV coordinate validation passed: ${csv_file}" >&2
  return 0
 }

@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
-declare -r VERSION="2025-07-27"
+# Version: 2025-01-27
+declare -r VERSION="2025-01-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -268,6 +268,7 @@ declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 declare -r ERROR_HELP_MESSAGE=1
 declare -r ERROR_INVALID_ARGUMENT=242
 declare -r ERROR_MISSING_LIBRARY=241
+declare -r ERROR_DATA_VALIDATION=252
 
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -640,6 +641,56 @@ function __cleanNotesFiles {
  __log_finish
 }
 
+# Validates the XML file to be sure everything will work fine.
+function __validatePlanetNotesXMLFile {
+ __log_start
+
+ # shellcheck disable=SC2154
+ xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
+  "${PLANET_NOTES_FILE}.xml" 2>&1
+
+ __log_finish
+}
+
+# Validates Planet notes XML file completely (structure, dates, coordinates)
+# Parameters:
+#   None (uses global PLANET_NOTES_FILE variable)
+# Returns:
+#   0 if all validations pass, exits with ERROR_DATA_VALIDATION if any validation fails
+function __validatePlanetNotesXMLFileComplete {
+ __log_start
+
+ # Check if file exists
+ if [[ ! -f "${PLANET_NOTES_FILE}.xml" ]]; then
+  __loge "ERROR: Planet notes file not found: ${PLANET_NOTES_FILE}.xml"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ # Validate XML structure against schema
+ __logi "Validating XML structure against schema..."
+ if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml" 2>/dev/null; then
+  __loge "ERROR: XML structure validation failed: ${PLANET_NOTES_FILE}.xml"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ # Validate dates in XML file
+ __logi "Validating dates in XML file..."
+ if ! __validate_xml_dates "${PLANET_NOTES_FILE}.xml"; then
+  __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}.xml"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ # Validate coordinates in XML file
+ __logi "Validating coordinates in XML file..."
+ if ! __validate_xml_coordinates "${PLANET_NOTES_FILE}.xml"; then
+  __loge "ERROR: XML coordinate validation failed: ${PLANET_NOTES_FILE}.xml"
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+
+ __logi "All Planet notes XML validations passed successfully"
+ __log_finish
+}
+
 ######
 # MAIN
 
@@ -719,7 +770,7 @@ function main() {
  fi
  if [[ "${PROCESS_TYPE}" == "" ]]; then
   __downloadPlanetNotes        # sync
-  __validatePlanetNotesXMLFile # sync
+  __validatePlanetNotesXMLFileComplete # sync
   # Count notes in XML file
   __countXmlNotesPlanet "${PLANET_NOTES_FILE}.xml"
   # Split XML into parts and process in parallel if there are notes to process
