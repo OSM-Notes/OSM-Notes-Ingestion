@@ -154,6 +154,24 @@ mock_psql() {
  else
   # Running on host - simulate psql
   echo "Mock psql called with: $*"
+  
+  # Check if this is a connection test with invalid parameters
+  if [[ "$*" == *"-h localhost"* ]] && [[ "$*" == *"-p 5434"* ]]; then
+   # Simulate connection failure for invalid port
+   echo "psql: error: falló la conexión al servidor en «localhost» (::1), puerto 5434: Conexión rehusada" >&2
+   echo "¿Está el servidor en ejecución en ese host y aceptando conexiones TCP/IP?" >&2
+   return 2
+  fi
+  
+  # Check if this is a connection test with invalid database/user
+  if [[ "$*" == *"test_db"* ]] || [[ "$*" == *"test_user"* ]]; then
+   # Simulate connection failure for invalid database/user
+   echo "psql: error: falló la conexión al servidor en «localhost» (::1), puerto 5434: Conexión rehusada" >&2
+   echo "¿Está el servidor en ejecución en ese host y aceptando conexiones TCP/IP?" >&2
+   return 2
+  fi
+  
+  # For other cases, simulate success
   return 0
  fi
 }

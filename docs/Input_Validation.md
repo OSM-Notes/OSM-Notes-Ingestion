@@ -264,7 +264,7 @@ To migrate existing scripts to use the new validation functions:
 
 ## Example Script
 
-See `bin/examples/input_validation_example.sh` for a complete demonstration of all validation functions.
+The validation functions are demonstrated in the comprehensive test suite at `tests/unit/bash/input_validation.test.bats`.
 
 ## Version History
 

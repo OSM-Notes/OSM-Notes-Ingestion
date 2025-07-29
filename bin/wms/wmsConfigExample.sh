@@ -44,9 +44,6 @@ COMMANDS:
   customize       Show customization examples
   help            Show this help message
 
-OPTIONS:
-  --verbose       Show detailed output
-
 EXAMPLES:
   $0 show-config              # Show current configuration
   $0 validate                 # Validate properties
@@ -284,14 +281,8 @@ EOF
 
 # Function to parse command line arguments
 parse_arguments() {
- VERBOSE="false"
-
  while [[ $# -gt 0 ]]; do
   case $1 in
-   --verbose)
-    VERBOSE="true"
-    shift
-    ;;
    --help|-h)
     show_help
     exit 0

@@ -5,7 +5,6 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-27
-declare -r VERSION="2025-07-27"
 
 set -euo pipefail
 

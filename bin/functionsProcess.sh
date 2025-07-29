@@ -1072,6 +1072,278 @@ function __validate_config_file() {
  return 0
 }
 
+# Validates JSON file structure and syntax
+# Parameters:
+#   $1: JSON file path
+#   $2: Optional expected root element name (e.g., "osm-notes")
+# Returns:
+#   0 if valid, 1 if invalid
+function __validate_json_structure() {
+ local json_file="${1}"
+ local expected_root="${2:-}"
+ local validation_errors=()
+
+ # Check if file exists and is readable
+ if ! __validate_input_file "${json_file}" "JSON file"; then
+  return 1
+ fi
+
+ # Check if file is not empty
+ if [[ ! -s "${json_file}" ]]; then
+  echo "ERROR: JSON file is empty: ${json_file}" >&2
+  return 1
+ fi
+
+ # Check JSON syntax using jq
+ if ! command -v jq &> /dev/null; then
+  echo "WARNING: jq not available, skipping JSON syntax validation" >&2
+ else
+  if ! jq empty "${json_file}" 2> /dev/null; then
+   validation_errors+=("Invalid JSON syntax")
+  fi
+ fi
+
+ # Check if file contains valid JSON structure (basic check without jq)
+ if ! grep -q -E '^[[:space:]]*\{' "${json_file}" && ! grep -q -E '^[[:space:]]*\[' "${json_file}"; then
+  validation_errors+=("File does not appear to contain valid JSON structure")
+ fi
+
+ # Check for expected root element if specified
+ if [[ -n "${expected_root}" ]]; then
+  if command -v jq &> /dev/null; then
+   local actual_root
+   actual_root=$(jq -r 'keys[0] // empty' "${json_file}" 2> /dev/null | head -1)
+   if [[ "${actual_root}" != "${expected_root}" ]]; then
+    validation_errors+=("Expected root element '${expected_root}', got '${actual_root}'")
+   fi
+  else
+   # Fallback check using grep
+   if ! grep -q "\"${expected_root}\"" "${json_file}"; then
+    validation_errors+=("Expected root element '${expected_root}' not found")
+   fi
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: JSON file validation failed for ${json_file}:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: JSON file validation passed: ${json_file}" >&2
+ return 0
+}
+
+# Validates database connection and basic functionality
+# Parameters:
+#   $1: Database name (optional, uses DBNAME if not provided)
+#   $2: Database user (optional, uses DBUSER if not provided)
+#   $3: Database host (optional, uses DBHOST if not provided)
+#   $4: Database port (optional, uses DBPORT if not provided)
+# Returns:
+#   0 if connection successful, 1 if failed
+function __validate_database_connection() {
+ local db_name="${1:-${DBNAME:-}}"
+ local db_user="${2:-${DBUSER:-}}"
+ local db_host="${3:-${DBHOST:-}}"
+ local db_port="${4:-${DBPORT:-}}"
+ local validation_errors=()
+
+ # Check if database parameters are provided
+ if [[ -z "${db_name}" ]]; then
+  echo "ERROR: Database name not provided and DBNAME not set" >&2
+  return 1
+ fi
+
+ if [[ -z "${db_user}" ]]; then
+  echo "ERROR: Database user not provided and DBUSER not set" >&2
+  return 1
+ fi
+
+ # Check if psql is available
+ if ! command -v psql &> /dev/null; then
+  echo "ERROR: psql command not available" >&2
+  return 1
+ fi
+
+ # Build psql command
+ local psql_cmd="psql"
+ if [[ -n "${db_host}" ]]; then
+  psql_cmd="${psql_cmd} -h ${db_host}"
+ fi
+ if [[ -n "${db_port}" ]]; then
+  psql_cmd="${psql_cmd} -p ${db_port}"
+ fi
+ psql_cmd="${psql_cmd} -U ${db_user} -d ${db_name}"
+
+ # Test basic connection
+ if ! ${psql_cmd} -c "SELECT 1;" > /dev/null 2>&1; then
+  validation_errors+=("Cannot connect to database ${db_name} as user ${db_user}")
+ fi
+
+ # Test if database exists and is accessible
+ if ! ${psql_cmd} -c "SELECT current_database();" > /dev/null 2>&1; then
+  validation_errors+=("Database ${db_name} does not exist or is not accessible")
+ fi
+
+ # Test if user has basic permissions
+ if ! ${psql_cmd} -c "SELECT current_user;" > /dev/null 2>&1; then
+  validation_errors+=("User ${db_user} does not have basic permissions")
+ fi
+
+ # Test if PostGIS extension is available (if needed)
+ if [[ "${POSTGIS_REQUIRED:-true}" = true ]]; then
+  if ! ${psql_cmd} -c "SELECT PostGIS_version();" > /dev/null 2>&1; then
+   validation_errors+=("PostGIS extension is not available")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: Database connection validation failed:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Database connection validation passed for ${db_name}" >&2
+ return 0
+}
+
+# Validates database table existence and structure
+# Parameters:
+#   $1: Database name (optional, uses DBNAME if not provided)
+#   $2: Database user (optional, uses DBUSER if not provided)
+#   $3: Database host (optional, uses DBHOST if not provided)
+#   $4: Database port (optional, uses DBPORT if not provided)
+#   $5+: List of required table names
+# Returns:
+#   0 if all tables exist, 1 if any missing
+function __validate_database_tables() {
+ local db_name="${1:-${DBNAME:-}}"
+ local db_user="${2:-${DBUSER:-}}"
+ local db_host="${3:-${DBHOST:-}}"
+ local db_port="${4:-${DBPORT:-}}"
+ shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
+ local required_tables=("$@")
+ local missing_tables=()
+
+ # Check if database parameters are provided
+ if [[ -z "${db_name}" ]]; then
+  echo "ERROR: Database name not provided and DBNAME not set" >&2
+  return 1
+ fi
+
+ if [[ -z "${db_user}" ]]; then
+  echo "ERROR: Database user not provided and DBUSER not set" >&2
+  return 1
+ fi
+
+ # Check if psql is available
+ if ! command -v psql &> /dev/null; then
+  echo "ERROR: psql command not available" >&2
+  return 1
+ fi
+
+ # Build psql command
+ local psql_cmd="psql"
+ if [[ -n "${db_host}" ]]; then
+  psql_cmd="${psql_cmd} -h ${db_host}"
+ fi
+ if [[ -n "${db_port}" ]]; then
+  psql_cmd="${psql_cmd} -p ${db_port}"
+ fi
+ psql_cmd="${psql_cmd} -U ${db_user} -d ${db_name}"
+
+ # Check each required table
+ for table in "${required_tables[@]}"; do
+  if ! ${psql_cmd} -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${table}';" | grep -q "1"; then
+   missing_tables+=("${table}")
+  fi
+ done
+
+ # Report missing tables
+ if [[ ${#missing_tables[@]} -gt 0 ]]; then
+  echo "ERROR: Missing required database tables:" >&2
+  for table in "${missing_tables[@]}"; do
+   echo "  - ${table}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Database tables validation passed for ${db_name}" >&2
+ return 0
+}
+
+# Validates database schema and extensions
+# Parameters:
+#   $1: Database name (optional, uses DBNAME if not provided)
+#   $2: Database user (optional, uses DBUSER if not provided)
+#   $3: Database host (optional, uses DBHOST if not provided)
+#   $4: Database port (optional, uses DBPORT if not provided)
+#   $5+: List of required extensions
+# Returns:
+#   0 if all extensions exist, 1 if any missing
+function __validate_database_extensions() {
+ local db_name="${1:-${DBNAME:-}}"
+ local db_user="${2:-${DBUSER:-}}"
+ local db_host="${3:-${DBHOST:-}}"
+ local db_port="${4:-${DBPORT:-}}"
+ shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
+ local required_extensions=("$@")
+ local missing_extensions=()
+
+ # Check if database parameters are provided
+ if [[ -z "${db_name}" ]]; then
+  echo "ERROR: Database name not provided and DBNAME not set" >&2
+  return 1
+ fi
+
+ if [[ -z "${db_user}" ]]; then
+  echo "ERROR: Database user not provided and DBUSER not set" >&2
+  return 1
+ fi
+
+ # Check if psql is available
+ if ! command -v psql &> /dev/null; then
+  echo "ERROR: psql command not available" >&2
+  return 1
+ fi
+
+ # Build psql command
+ local psql_cmd="psql"
+ if [[ -n "${db_host}" ]]; then
+  psql_cmd="${psql_cmd} -h ${db_host}"
+ fi
+ if [[ -n "${db_port}" ]]; then
+  psql_cmd="${psql_cmd} -p ${db_port}"
+ fi
+ psql_cmd="${psql_cmd} -U ${db_user} -d ${db_name}"
+
+ # Check each required extension
+ for extension in "${required_extensions[@]}"; do
+  if ! ${psql_cmd} -c "SELECT 1 FROM pg_extension WHERE extname = '${extension}';" | grep -q "1"; then
+   missing_extensions+=("${extension}")
+  fi
+ done
+
+ # Report missing extensions
+ if [[ ${#missing_extensions[@]} -gt 0 ]]; then
+  echo "ERROR: Missing required database extensions:" >&2
+  for extension in "${missing_extensions[@]}"; do
+   echo "  - ${extension}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Database extensions validation passed for ${db_name}" >&2
+ return 0
+}
+
 # Checks prerequisites commands to run the script.
 # Validates that all required tools and libraries are available.
 function __checkPrereqsCommands {
