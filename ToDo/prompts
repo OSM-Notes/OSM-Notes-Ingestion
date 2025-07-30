@@ -1,11 +1,16 @@
 
-Las conexiones a la base datos, deberían utilizar conexión peer para que no pida contraseña
-o mejor indicando el host, así sea localhost? esto debido a que hemos tenido muchísimos problemas con la conexión peer cuando se generan las pruebas.
+
+El archivo functionsProcess inicialmente estaba pensando para factorizar el código común
+entre processAPI y processPlanet. Ahora veo que el archivo está muy largo.
+Sería bueno dividirlo para aumentar la cohesión?
+Hay funciones que solo se llaman de un script, podríamos enviarlas a los archivos que las invocan?
+Para funciones más genéricas, o sea, no solo de processAPI y processPlanet, sino que se usen 
+por otros scripts, o inclusive por todos los scripts, podrías crear otro archivo.
 
 
 
-Qué opinas de usar una conexión persistente en el proyecto, para evitar usar tanto psql, que
-se conecta y desconecta. Algo como pgbouncer? 
+Veo que el nuevo código generado no está cumpliendo con el estándar de variables y constantes en bash en mayúsculas.
+
 
 
 HECHO
@@ -64,10 +69,6 @@ Monitoreo de desempeño: Revisar periódicamente los tiempos de carga y consulta
 
 ### 🔴 **Problemas Críticos**
 
-1. **Falta de Validación de Entrada**
-   - No hay validación de archivos de entrada
-   - Ausencia de checksums para verificar integridad de datos
-   - Sin validación de esquemas XML/JSON
 
 2. **Manejo de Errores Insuficiente**
    - No hay manejo robusto de fallos de red
