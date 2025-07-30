@@ -1,7 +1,7 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-07-29
 
 -- Shows the information of the latest note, which should be recent.
 COPY
@@ -30,8 +30,7 @@ COPY
 ;
 
 -- Note ids that are not in the API DB, but are in the Planet.
--- If there are notes from the same date, it is probably that the sync script
--- had failed that day.
+-- Exclude notes created in the last 30 minutes to avoid false positives due to temporal gaps
 DROP TABLE IF EXISTS temp_diff_notes_id;
 
 CREATE TABLE temp_diff_notes_id (
@@ -44,9 +43,11 @@ COMMENT ON COLUMN notes_check.note_id IS 'OSM note id';
 INSERT INTO temp_diff_notes_id
  SELECT /* Notes-check */ note_id
  FROM notes_check
+ WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
  EXCEPT
  SELECT /* Notes-check */ note_id
  FROM notes
+ WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
 ;
 
 COPY
@@ -65,8 +66,7 @@ COPY
 DROP TABLE IF EXISTS temp_diff_notes_id;
 
 -- Comment notes id that are not in the API DB, but are in the Planet.
--- If there are comment from the same date, it is probably that the sync script
--- had failed that day.
+-- Exclude comments created in the last 30 minutes to avoid false positives due to temporal gaps
 DROP TABLE IF EXISTS temp_diff_comments_id;
 
 CREATE TABLE temp_diff_comments_id (
@@ -79,9 +79,11 @@ COMMENT ON COLUMN temp_diff_comments_id.note_id IS 'OSM note id';
 INSERT INTO temp_diff_comments_id
  SELECT /* Notes-check */ note_id
  FROM note_comments_check
+ WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
  EXCEPT
  SELECT /* Notes-check */ note_id
  FROM note_comments
+ WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
 ;
 
 COPY
@@ -116,10 +118,12 @@ INSERT INTO temp_diff_notes
   -- considered.
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes_check
+  WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
   EXCEPT
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes
-  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE) -- TODO no entiendo esto
+  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE)  -- TODO no entiendo esto
+    AND created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
  ) AS t
  ORDER BY note_id
 ;
@@ -167,10 +171,12 @@ INSERT INTO temp_diff_note_comments
  FROM (
   SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
   FROM note_comments_check
+  WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
   EXCEPT
   SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
   FROM note_comments
   WHERE created_at < NOW()::DATE
+    AND created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
  ) AS t
  ORDER BY note_id, sequence_action
 ;
