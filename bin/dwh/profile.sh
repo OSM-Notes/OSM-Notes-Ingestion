@@ -98,14 +98,20 @@ declare PAIS_NAME
 # Country_id of the country.
 declare -i COUNTRY_ID
 
-# Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-
 ###########
 # FUNCTIONS
 
-# shellcheck disable=SC1090
-source "${FUNCTIONS_FILE}"
+# Load common functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
+# Load validation functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+
+# Load error handling functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 
 # Shows the help information.
 function __show_help {

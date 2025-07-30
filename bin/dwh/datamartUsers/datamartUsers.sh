@@ -88,14 +88,20 @@ declare -r POSTGRES_31_POPULATE_OLD_USERS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh
 # Name of the SQL script that contains the ETL process.
 declare -r POSTGRES_32_POPULATE_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_32_populateDatamartUsersTable.sql"
 
-# Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-
 ###########
 # FUNCTIONS
 
-# shellcheck disable=SC1090
-source "${FUNCTIONS_FILE}"
+# Load common functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
+# Load validation functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+
+# Load error handling functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 
 # Shows the help information.
 function __show_help {

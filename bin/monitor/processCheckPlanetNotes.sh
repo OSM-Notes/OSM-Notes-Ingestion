@@ -96,14 +96,20 @@ declare -r POSTGRES_31_LOAD_CHECK_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/pr
 # Analyze and vacuum.
 declare -r POSTGRES_41_ANALYZE_AND_VACUUM="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_41_analyzeAndVacuum.sql"
 
-# Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-
 ###########
 # FUNCTIONS
 
-# shellcheck disable=SC1090
-source "${FUNCTIONS_FILE}"
+# Load common functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
+# Load validation functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+
+# Load error handling functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 # __downloadPlanetNotes
 # __validatePlanetNotesXMLFile
 

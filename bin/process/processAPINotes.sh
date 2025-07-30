@@ -120,7 +120,7 @@ declare -r POSTGRES_35_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/proc
 declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 
 # Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
 
 # Error codes are already defined in functionsProcess.sh
 
@@ -137,9 +137,21 @@ export ONLY_EXECUTION="no"
 ###########
 # FUNCTIONS
 
-# shellcheck source=functionsProcess.sh
+# Load common functions
 # shellcheck disable=SC1091
-source "${FUNCTIONS_FILE}"
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
+# Load API-specific functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
+
+# Load validation functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+
+# Load error handling functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 
 # Shows the help information.
 function __show_help {

@@ -70,9 +70,6 @@ readonly LOCK
 declare -r PROCESS_TYPE=${1:-}
 
 # Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-
-# Error codes are already defined in functionsProcess.sh
 declare -r QUERY_FILE="${TMP_DIR}/query"
 declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
 declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
@@ -83,9 +80,17 @@ export ONLY_EXECUTION="no"
 ###########
 # FUNCTIONS
 
-# shellcheck source=functionsProcess.sh
+# Load common functions
 # shellcheck disable=SC1091
-source "${FUNCTIONS_FILE}"
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
+# Load validation functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+
+# Load error handling functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 
 # Shows the help information.
 function __show_help {

@@ -267,7 +267,7 @@ declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 # Error codes are already defined in functionsProcess.sh
 
 # Location of the common functions.
-declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
 
 # XSLT transformation files for Planet format (used by parallel processing).
 declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
@@ -280,9 +280,21 @@ export ONLY_EXECUTION="no"
 ###########
 # FUNCTIONS
 
-# shellcheck source=functionsProcess.sh
+# Load common functions
 # shellcheck disable=SC1091
-source "${FUNCTIONS_FILE}"
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
+# Load Planet-specific functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+
+# Load validation functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+
+# Load error handling functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 # __start_logger
 # __trapOn
 # __checkBaseTables
