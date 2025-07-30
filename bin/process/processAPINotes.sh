@@ -88,7 +88,7 @@ declare -r PROCESS_TYPE=${1:-}
 declare -i TOTAL_NOTES=-1
 
 # XML Schema of the API notes file.
-declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
+# (Declared in processAPIFunctions.sh)
 # XSLT transformation files are already defined in functionsProcess.sh
 
 # Script to process notes from Planet.
@@ -97,36 +97,17 @@ declare -r PROCESS_PLANET_NOTES_SCRIPT="processPlanetNotes.sh"
 declare -r NOTES_SYNC_SCRIPT="${SCRIPT_BASE_DIRECTORY}/bin/process/${PROCESS_PLANET_NOTES_SCRIPT}"
 
 # PostgreSQL SQL script files.
-# Drop API tables.
-declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_12_dropApiTables.sql"
-# Create API tables.
-declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
-# Create partitions dynamically.
-declare -r POSTGRES_22_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"
-# Create properties table.
-declare -r POSTGRES_23_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
-# Load API notes.
-declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
-# Insert new notes and comments.
-declare -r POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
-# Insert new text comments.
-declare -r POSTGRES_33_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_33_loadNewTextComments.sql"
-# Update last values.
-declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_34_updateLastValues.sql"
-# Consolidate partitions.
-declare -r POSTGRES_35_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_35_consolidatePartitions.sql"
+# (Declared in processAPIFunctions.sh)
 
 # Temporary file that contains the downloaded notes from the API.
-declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
+# (Declared in processAPIFunctions.sh)
 
 # Location of the common functions.
 
 # Error codes are already defined in functionsProcess.sh
 
 # Output files for processing
-declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"
-declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"
-declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"
+# (Declared in processAPIFunctions.sh)
 # FAILED_EXECUTION_FILE is already defined in functionsProcess.sh
 
 # Control variables for functionsProcess.sh

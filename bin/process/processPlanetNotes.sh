@@ -215,63 +215,24 @@ declare -r PROCESS_TYPE=${1:-}
 declare -i TOTAL_NOTES=-1
 
 # Planet notes file configuration.
-declare -r PLANET_NOTES_FILENAME="planet-notes-latest.osn"
-declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_FILENAME}"
+# (Declared in processPlanetFunctions.sh)
 
 # PostgreSQL SQL script files.
-# Drop sync tables.
-declare -r POSTGRES_11_DROP_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"
-# Drop API tables.
-declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_12_dropApiTables.sql"
-# Drop base tables.
-declare -r POSTGRES_13_DROP_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
-# Drop country tables.
-declare -r POSTGRES_14_DROP_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_14_dropCountryTables.sql"
-# Create enums.
-declare -r POSTGRES_21_CREATE_ENUMS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
-# Create base tables.
-declare -r POSTGRES_22_CREATE_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
-# Create constraints for base tables.
-declare -r POSTGRES_23_CREATE_CONSTRAINTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
-# Create sync tables.
-declare -r POSTGRES_24_CREATE_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
-# Create partitions for parallel processing.
-declare -r POSTGRES_25_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createPartitions.sql"
-# Create country tables.
-declare -r POSTGRES_26_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
-# Vacuum and analyze.
-declare -r POSTGRES_31_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_31_analyzeVacuum.sql"
-# Load partitioned sync notes.
-declare -r POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
-# Consolidate partitions.
-declare -r POSTGRES_42_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_consolidatePartitions.sql"
-# Remove duplicates.
-declare -r POSTGRES_43_REMOVE_DUPLICATES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_removeDuplicates.sql"
-# Assign sequence for comments.
-declare -r POSTGRES_44_COMMENTS_SEQUENCE="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_commentsSequence.sql"
-# Load text comments.
-declare -r POSTGRES_45_LOAD_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_44_loadTextComments.sql"
-# Load text comments objects.
-declare -r POSTGRES_46_OBJECTS_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_45_objectsTextComments.sql"
-# Move sync to main tables.
-declare -r POSTGRES_43_MOVE_SYNC_TO_MAIN="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_moveSyncToMain.sql"
+# (Declared in processPlanetFunctions.sh)
 
 # Flag to define that the process should update the location of notes.
 # This variable is used in functionsProcess.sh
 export UPDATE_NOTE_LOCATION=false
 
 # Files for countries and maritimes processing.
-declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
-declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
+# (Declared in processPlanetFunctions.sh)
 
 # Error codes are already defined in functionsProcess.sh
 
 # Location of the common functions.
 
 # XSLT transformation files for Planet format (used by parallel processing).
-declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
-declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
-declare -r XSLT_TEXT_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
+# (Declared in processPlanetFunctions.sh)
 
 # Control variables for functionsProcess.sh
 export ONLY_EXECUTION="no"
