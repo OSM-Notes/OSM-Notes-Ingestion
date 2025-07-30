@@ -6,23 +6,27 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-30
 
-# shellcheck disable=SC2317,SC2155
+# shellcheck disable=SC2317,SC2155,SC2034
 
 # API-specific variables
+# shellcheck disable=SC2034
 declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"
 declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"
 
 # XSLT transformation files for API format
+# shellcheck disable=SC2034
 declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
 declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
 declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
 
 # XML Schema of the API notes file
+# shellcheck disable=SC2034
 declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
 
 # PostgreSQL SQL script files for API
+# shellcheck disable=SC2034
 declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_12_dropApiTables.sql"
 declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
 declare -r POSTGRES_22_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"

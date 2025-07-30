@@ -6,23 +6,27 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-30
 
-# shellcheck disable=SC2317,SC2155
+# shellcheck disable=SC2317,SC2155,SC2034
 
 # Planet-specific variables
+# shellcheck disable=SC2034
 declare -r PLANET_NOTES_FILE="${TMP_DIR}/OSM-notes-planet.xml"
 declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
 declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 declare OVERPASS_QUERY_FILE="${TMP_DIR}/query"
 
 # XSLT transformation files for Planet format
+# shellcheck disable=SC2034
 declare -r XSLT_NOTES_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
 declare -r XSLT_NOTE_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
 declare -r XSLT_TEXT_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
 
 # XML Schema of the Planet notes file
+# shellcheck disable=SC2034
 declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
 
 # PostgreSQL SQL script files for Planet
+# shellcheck disable=SC2034
 declare -r POSTGRES_11_DROP_SYNC_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"
 declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropApiTables.sql"
 declare -r POSTGRES_13_DROP_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"

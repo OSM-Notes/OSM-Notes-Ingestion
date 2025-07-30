@@ -6,9 +6,10 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-30
 
-# shellcheck disable=SC2317,SC2155
+# shellcheck disable=SC2317,SC2155,SC2034
 
 # Error codes (common across all scripts)
+# shellcheck disable=SC2034
 declare -r ERROR_HELP_MESSAGE=1
 declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
 declare -r ERROR_CREATING_REPORT=239
@@ -27,11 +28,13 @@ declare -r ERROR_DATA_VALIDATION=252
 declare -r ERROR_GENERAL=255
 
 # Common variables
+# shellcheck disable=SC2034
 declare GENERATE_FAILED_FILE=true
 declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"
 declare PREREQS_CHECKED=false
 
 # Logger framework
+# shellcheck disable=SC2034
 declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
 
 # Logger functions

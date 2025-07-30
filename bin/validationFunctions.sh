@@ -6,9 +6,10 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-30
 
-# shellcheck disable=SC2317,SC2155
+# shellcheck disable=SC2317,SC2155,SC2034
 
 # JSON schema files for validation
+# shellcheck disable=SC2034
 declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"
 declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"
 
