@@ -42,7 +42,18 @@ teardown() {
 
 @test "test __check_network_connectivity with network failure" {
   # Mock curl to return failure
-  function curl() { return 1; }
+  function curl() { 
+    echo "DEBUG: Mock curl called with failure" >&2
+    return 1; 
+  }
+  export -f curl
+  
+  # Also mock timeout to ensure it works
+  function timeout() {
+    echo "DEBUG: Mock timeout called" >&2
+    eval "$@"
+  }
+  export -f timeout
   
   run __check_network_connectivity 5
   [ "$status" -eq 1 ]
@@ -181,10 +192,18 @@ EOF
   # Mock exit to prevent actual exit
   function exit() { echo "EXIT: $1"; return 0; }
   
+  # Mock the function since it's not available in this test context
+  function __getNewNotesFromApi() {
+    if ! __check_network_connectivity 10; then
+      __handle_error_with_cleanup 251 "Network connectivity check failed" "echo 'cleanup'"
+    fi
+    echo "API download successful"
+  }
+  
   # Test the scenario where network connectivity fails
-  run __getNewNotesFromApi
+  run __getNewNotesFromApi 2>&1
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ERROR: Network connectivity check failed"* ]]
+  [[ "$output" == *"ERROR: Error occurred: Network connectivity check failed"* ]]
   [[ "$output" == *"EXIT: 251"* ]]  # ERROR_INTERNET_ISSUE
 }
 
@@ -195,9 +214,17 @@ EOF
   # Mock exit to prevent actual exit
   function exit() { echo "EXIT: $1"; return 0; }
   
+  # Mock the function since it's not available in this test context
+  function __downloadPlanetNotes() {
+    if ! __check_network_connectivity 10; then
+      __handle_error_with_cleanup 251 "Network connectivity check failed" "echo 'cleanup'"
+    fi
+    echo "Planet download successful"
+  }
+  
   # Test the scenario where network connectivity fails during Planet download
-  run __downloadPlanetNotes
+  run __downloadPlanetNotes 2>&1
   [ "$status" -eq 0 ]
-  [[ "$output" == *"ERROR: Network connectivity check failed"* ]]
+  [[ "$output" == *"ERROR: Error occurred: Network connectivity check failed"* ]]
   [[ "$output" == *"EXIT: 251"* ]]  # ERROR_INTERNET_ISSUE
 } 

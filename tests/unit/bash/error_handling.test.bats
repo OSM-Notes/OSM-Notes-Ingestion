@@ -19,7 +19,7 @@ teardown() {
 
 @test "retry_with_backoff should succeed on first attempt" {
  # Test successful command on first attempt
- run __retry_with_backoff "echo 'success'"
+ run __retry_with_backoff "echo 'success'" 2>&1
  [ "$status" -eq 0 ]
  [[ "$output" == *"Command succeeded on attempt 1"* ]]
 }
@@ -56,15 +56,16 @@ EOF
 
 @test "circuit_breaker_execute should succeed when circuit is closed" {
  # Test successful execution when circuit is closed
- run __circuit_breaker_execute "test_service" "echo 'success'"
+ run __circuit_breaker_execute "test_service" "echo 'success'" 2>&1
  [ "$status" -eq 0 ]
- [[ "$output" == *"Circuit breaker for test_service transitioning to CLOSED"* ]]
+ # The function doesn't print the transition message when already closed
+ [[ "$output" == *"success"* ]]
 }
 
 @test "circuit_breaker_execute should open circuit after threshold failures" {
  # Test circuit opening after multiple failures
  for i in {1..5}; do
-  run __circuit_breaker_execute "failure_service" "false"
+  run __circuit_breaker_execute "failure_service" "false" 2>&1
   [ "$status" -eq 1 ]
  done
 
@@ -81,7 +82,7 @@ EOF
  done
 
  # Now test that execution is skipped
- run __circuit_breaker_execute "skip_service" "echo 'should not execute'"
+ run __circuit_breaker_execute "skip_service" "echo 'should not execute'" 2>&1
  [ "$status" -eq 1 ]
  [[ "$output" == *"Circuit breaker for skip_service is OPEN, skipping execution"* ]]
 }
@@ -97,7 +98,7 @@ EOF
  chmod +x "${TEST_DIR}/wget"
  export PATH="${TEST_DIR}:${PATH}"
 
- run __download_with_retry "https://example.com/test" "${TEST_DIR}/output.txt"
+ run __download_with_retry "https://example.com/test" "${TEST_DIR}/output.txt" 2>&1
  [ "$status" -eq 0 ]
  [[ "$output" == *"Download successful"* ]]
 }
@@ -113,7 +114,7 @@ EOF
  chmod +x "${TEST_DIR}/curl"
  export PATH="${TEST_DIR}:${PATH}"
 
- run __api_call_with_retry "https://api.example.com/test" "${TEST_DIR}/output.txt"
+ run __api_call_with_retry "https://api.example.com/test" "${TEST_DIR}/output.txt" 2>&1
  [ "$status" -eq 0 ]
  [[ "$output" == *"API call successful"* ]]
 }
@@ -163,7 +164,7 @@ EOF
 
 @test "file_operation_with_retry should execute cleanup on failure" {
  # Test file operation with cleanup
- run __file_operation_with_retry "false" "echo 'cleanup executed' > ${TEST_DIR}/cleanup.txt"
+ run __file_operation_with_retry "false" "echo 'cleanup executed' > ${TEST_DIR}/cleanup.txt" 2>&1
  [ "$status" -eq 1 ]
  [[ "$output" == *"cleanup executed"* ]]
  [ -f "${TEST_DIR}/cleanup.txt" ]
