@@ -1,17 +1,6 @@
 
 
-El archivo functionsProcess inicialmente estaba pensando para factorizar el código común
-entre processAPI y processPlanet. Ahora veo que el archivo está muy largo.
-Sería bueno dividirlo para aumentar la cohesión?
-Hay funciones que solo se llaman de un script, podríamos enviarlas a los archivos que las invocan?
-Para funciones más genéricas, o sea, no solo de processAPI y processPlanet, sino que se usen 
-por otros scripts, o inclusive por todos los scripts, podrías crear otro archivo.
-
-
-
-
-En el trapon, no estás agregando el directorio de ejecución. Esto es bueno para identificar los archivos.
-El trapon esetá devolviendo código de error? ERROR_GENERAL?
+Con las nueva estructura de scripts
 
 
 Veo que el nuevo código generado no está cumpliendo con el estándar de variables y constantes en bash en mayúsculas.
