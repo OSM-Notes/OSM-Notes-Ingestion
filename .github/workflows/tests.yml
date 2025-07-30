@@ -1,6 +1,6 @@
 # GitHub Actions Workflow for OSM-Notes-profile Tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-23
+# Version: 2025-07-29
 
 # This workflow runs comprehensive tests for the OSM-Notes-profile project
 # including unit tests, integration tests, performance tests, security scans,
@@ -53,7 +53,8 @@ jobs:
           pgtap \
           libxml2-dev \
           libxslt1-dev \
-          xsltproc
+          xsltproc \
+          shellcheck
 
     - name: Install Python dependencies
       run: |
@@ -69,10 +70,18 @@ jobs:
         export LOG_LEVEL=INFO
         export MAX_THREADS=2
 
+    - name: Create results directory
+      run: |
+        mkdir -p tests/results
+
     - name: Run unit tests
       run: |
-        chmod +x tests/run_tests.sh
-        ./tests/run_tests.sh --bats-only
+        chmod +x tests/run_ci_tests_simple.sh
+        ./tests/run_ci_tests_simple.sh 2>&1 | tee tests/results/unit-tests.log
+
+    - name: Run ShellCheck
+      run: |
+        find . -name "*.sh" -exec shellcheck {} \; > shellcheck-results.txt 2>&1 || true
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -81,7 +90,7 @@ jobs:
         name: unit-test-results
         path: |
           tests/results/
-          *.log
+          shellcheck-results.txt
 
   # Integration Tests
   integration-tests:
@@ -96,6 +105,10 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
+    - name: Create logs directory
+      run: |
+        mkdir -p tests/docker/logs
+
     - name: Build and start containers
       run: |
         cd tests/docker
@@ -109,7 +122,7 @@ jobs:
     - name: Run integration tests
       run: |
         cd tests/docker
-        docker compose exec -T app bash -c "cd /app && ./tests/run_tests.sh --integration-only"
+        docker compose exec -T app bash -c "cd /app && ./tests/run_tests.sh --integration-only" 2>&1 | tee ../logs/integration-tests.log
 
     - name: Stop containers
       if: always()
@@ -162,6 +175,10 @@ jobs:
           sleep 1
         done
 
+    - name: Create benchmarks directory
+      run: |
+        mkdir -p .benchmarks
+
     - name: Run performance tests
       run: |
         export TEST_DBNAME=osm_notes_test
@@ -169,7 +186,7 @@ jobs:
         export TEST_DBPASSWORD=testpass
         export TEST_DBHOST=localhost
         export TEST_DBPORT=5432
-        python -m pytest tests/performance/ -v --benchmark-only
+        python -m pytest tests/performance/ -v --benchmark-only --benchmark-autosave
 
     - name: Upload performance results
       uses: actions/upload-artifact@v4
@@ -192,15 +209,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y shellcheck
-        find . -name "*.sh" -exec shellcheck {} \; || true
+        find . -name "*.sh" -exec shellcheck {} \; > shellcheck-results.txt 2>&1 || true
 
     - name: Upload security results
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-test-results
-        path: |
-          shellcheck-results.txt
+        path: shellcheck-results.txt
 
   # Advanced Tests (Fase 3)
   advanced-tests:
@@ -248,7 +264,7 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        # Python dependencies for testing only
+        pip install requests pytest pytest-mock
 
     - name: Set up test environment
       run: |
@@ -260,6 +276,12 @@ jobs:
         export LOG_LEVEL=INFO
         export MAX_THREADS=2
 
+    - name: Create advanced reports directories
+      run: |
+        mkdir -p advanced_reports
+        mkdir -p coverage
+        mkdir -p security_reports
+
     - name: Wait for PostgreSQL
       run: |
         until pg_isready -h localhost -p 5432 -U testuser; do
@@ -269,7 +291,7 @@ jobs:
     - name: Run advanced tests
       run: |
         chmod +x tests/scripts/run_advanced_tests.sh
-        ./tests/scripts/run_advanced_tests.sh --clean --verbose
+        ./tests/scripts/run_advanced_tests.sh --clean --verbose 2>&1 | tee advanced_reports/advanced-tests.log
 
     - name: Upload advanced test results
       uses: actions/upload-artifact@v4
@@ -277,9 +299,9 @@ jobs:
       with:
         name: advanced-test-results
         path: |
-          ./advanced_reports/
-          ./coverage/
-          ./security_reports/
+          advanced_reports/
+          coverage/
+          security_reports/
 
   # Test Summary
   test-summary:

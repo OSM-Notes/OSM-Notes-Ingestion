@@ -12,6 +12,8 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-29
 
+# shellcheck disable=SC2317,SC2155
+
 # Error codes.
 # 1: Help message.
 # shellcheck disable=SC2034
@@ -2253,8 +2255,7 @@ function __validate_iso8601_date() {
  if command -v date &> /dev/null; then
   # Try to parse the date with date command
   local parsed_date
-  parsed_date=$(date -d "${date_string}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)
-  if [[ $? -ne 0 ]]; then
+  if ! parsed_date=$(date -d "${date_string}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null); then
    validation_errors+=("Date is not a valid date/time: ${date_string}")
   fi
  fi
@@ -2458,7 +2459,7 @@ function __validate_file_checksum() {
    ;;
  esac
 
- if [[ $? -ne 0 ]] || [[ -z "${actual_checksum}" ]]; then
+ if [[ -z "${actual_checksum}" ]]; then
   echo "ERROR: ${algorithm} checksum validation failed:" >&2
   echo "  - Failed to calculate ${algorithm} checksum for file: ${file_path}" >&2
   return 1
@@ -2579,7 +2580,7 @@ function __generate_file_checksum() {
    ;;
  esac
 
- if [[ $? -ne 0 ]]; then
+ if [[ -z "${checksum}" ]]; then
   echo "ERROR: Failed to generate ${algorithm} checksum for file: ${file_path}" >&2
   return 1
  fi
