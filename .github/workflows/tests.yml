@@ -125,11 +125,11 @@ jobs:
       run: |
         cd tests/docker
         # Create test files to ensure artifacts are generated
-        echo "Integration tests started" > ../logs/integration-tests.log
-        echo "Running basic integration tests..." >> ../logs/integration-tests.log
-        echo "Integration tests completed" >> ../logs/integration-tests.log
+        echo "Integration tests started" > logs/integration-tests.log
+        echo "Running basic integration tests..." >> logs/integration-tests.log
+        echo "Integration tests completed" >> logs/integration-tests.log
         # Try to run actual tests if possible
-        docker compose exec -T app bash -c "cd /app && ./tests/run_ci_tests_simple.sh" 2>&1 >> ../logs/integration-tests.log || true
+        docker compose exec -T app bash -c "cd /app && ./tests/run_ci_tests_simple.sh" 2>&1 >> logs/integration-tests.log || true
 
     - name: Stop containers
       if: always()
