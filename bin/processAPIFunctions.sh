@@ -4,7 +4,7 @@
 # This file contains functions specific to processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-07-30
 
 # shellcheck disable=SC2317,SC2155
 
@@ -46,7 +46,7 @@ function __countXmlNotesAPI() {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- count=$(xmllint --xpath "count(//note)" "${xml_file}" 2>/dev/null || echo "0")
+ count=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
  __logi "Found ${count} notes in API XML file."
  __log_finish
  echo "${count}"
@@ -71,7 +71,7 @@ function __splitXmlForParallelAPI() {
 
  # Count total notes
  local total_notes
- total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2>/dev/null || echo "0")
+ total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
 
  if [[ "${total_notes}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
@@ -88,28 +88,28 @@ function __splitXmlForParallelAPI() {
  __logi "Splitting ${total_notes} notes into ${num_parts} parts (${notes_per_part} notes per part)."
 
  # Split XML file
- for ((i=0; i<num_parts; i++)); do
+ for ((i = 0; i < num_parts; i++)); do
   local start_pos=$((i * notes_per_part + 1))
   local end_pos=$(((i + 1) * notes_per_part))
-  
+
   if [[ "${end_pos}" -gt "${total_notes}" ]]; then
    end_pos="${total_notes}"
   fi
 
   if [[ "${start_pos}" -le "${total_notes}" ]]; then
    local output_file="${output_dir}/api_part_${i}.xml"
-   
+
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${output_file}"
    echo '<osm-notes>' >> "${output_file}"
-   
+
    # Extract notes for this part
-   for ((j=start_pos; j<=end_pos; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2>/dev/null >> "${output_file}" || true
+   for ((j = start_pos; j <= end_pos; j++)); do
+    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${output_file}" || true
    done
-   
+
    echo '</osm-notes>' >> "${output_file}"
-   
+
    __logd "Created part ${i}: ${output_file} (notes ${start_pos}-${end_pos})"
   fi
  done
@@ -145,7 +145,7 @@ function __processApiXmlPart() {
 
  # Process XML with XSLT
  __logd "Processing XML with XSLT: ${xml_file} -> ${output_file}"
- if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2>/dev/null; then
+ if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2> /dev/null; then
   __logi "Successfully processed API XML part: ${xml_file}"
   __log_finish
   return 0
@@ -192,4 +192,4 @@ function __getNewNotesFromApi() {
   __log_finish
   return 1
  fi
-} 
+}

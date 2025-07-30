@@ -4,7 +4,7 @@
 # This file contains functions specific to processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-07-30
 
 # shellcheck disable=SC2317,SC2155
 
@@ -50,7 +50,7 @@ function __countXmlNotesPlanet() {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- count=$(xmllint --xpath "count(//note)" "${xml_file}" 2>/dev/null || echo "0")
+ count=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
  __logi "Found ${count} notes in Planet XML file."
  __log_finish
  echo "${count}"
@@ -75,7 +75,7 @@ function __splitXmlForParallelPlanet() {
 
  # Count total notes
  local total_notes
- total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2>/dev/null || echo "0")
+ total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
 
  if [[ "${total_notes}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
@@ -92,28 +92,28 @@ function __splitXmlForParallelPlanet() {
  __logi "Splitting ${total_notes} notes into ${num_parts} parts (${notes_per_part} notes per part)."
 
  # Split XML file
- for ((i=0; i<num_parts; i++)); do
+ for ((i = 0; i < num_parts; i++)); do
   local start_pos=$((i * notes_per_part + 1))
   local end_pos=$(((i + 1) * notes_per_part))
-  
+
   if [[ "${end_pos}" -gt "${total_notes}" ]]; then
    end_pos="${total_notes}"
   fi
 
   if [[ "${start_pos}" -le "${total_notes}" ]]; then
    local output_file="${output_dir}/planet_part_${i}.xml"
-   
+
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${output_file}"
    echo '<osm-notes>' >> "${output_file}"
-   
+
    # Extract notes for this part
-   for ((j=start_pos; j<=end_pos; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2>/dev/null >> "${output_file}" || true
+   for ((j = start_pos; j <= end_pos; j++)); do
+    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${output_file}" || true
    done
-   
+
    echo '</osm-notes>' >> "${output_file}"
-   
+
    __logd "Created part ${i}: ${output_file} (notes ${start_pos}-${end_pos})"
   fi
  done
@@ -141,7 +141,7 @@ function __splitXmlForParallelSafe() {
 
  # Count total notes
  local total_notes
- total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2>/dev/null || echo "0")
+ total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
 
  if [[ "${total_notes}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
@@ -158,28 +158,28 @@ function __splitXmlForParallelSafe() {
  __logi "Splitting ${total_notes} notes into ${num_parts} parts (${notes_per_part} notes per part)."
 
  # Split XML file safely
- for ((i=0; i<num_parts; i++)); do
+ for ((i = 0; i < num_parts; i++)); do
   local start_pos=$((i * notes_per_part + 1))
   local end_pos=$(((i + 1) * notes_per_part))
-  
+
   if [[ "${end_pos}" -gt "${total_notes}" ]]; then
    end_pos="${total_notes}"
   fi
 
   if [[ "${start_pos}" -le "${total_notes}" ]]; then
    local output_file="${output_dir}/safe_part_${i}.xml"
-   
+
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${output_file}"
    echo '<osm-notes>' >> "${output_file}"
-   
+
    # Extract notes for this part safely
-   for ((j=start_pos; j<=end_pos; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2>/dev/null >> "${output_file}" || true
+   for ((j = start_pos; j <= end_pos; j++)); do
+    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${output_file}" || true
    done
-   
+
    echo '</osm-notes>' >> "${output_file}"
-   
+
    __logd "Created safe part ${i}: ${output_file} (notes ${start_pos}-${end_pos})"
   fi
  done
@@ -232,7 +232,7 @@ function __processXmlPartsParallel() {
   local output_file="${output_dir}/${base_name}.csv"
 
   # Process XML file
-  if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2>/dev/null; then
+  if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2> /dev/null; then
    __logd "Successfully processed: ${xml_file} -> ${output_file}"
    ((processed++))
   else
@@ -282,7 +282,7 @@ function __processPlanetXmlPart() {
 
  # Process XML with XSLT
  __logd "Processing XML with XSLT: ${xml_file} -> ${output_file}"
- if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2>/dev/null; then
+ if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2> /dev/null; then
   __logi "Successfully processed Planet XML part: ${xml_file}"
   __log_finish
   return 0
@@ -314,7 +314,7 @@ function __downloadPlanetNotes() {
  if wget -q -O "${temp_file}" "https://planet.openstreetmap.org/notes/notes-latest.osn.bz2"; then
   if [[ -s "${temp_file}" ]]; then
    # Decompress and move
-   if bunzip2 -c "${temp_file}" > "${PLANET_NOTES_FILE}" 2>/dev/null; then
+   if bunzip2 -c "${temp_file}" > "${PLANET_NOTES_FILE}" 2> /dev/null; then
     rm -f "${temp_file}"
     __logi "Successfully downloaded and decompressed Planet notes: ${PLANET_NOTES_FILE}"
     __log_finish
@@ -357,7 +357,7 @@ function __validatePlanetNotesXMLFile() {
 
  # Validate against schema if available
  if [[ -f "${XMLSCHEMA_PLANET_NOTES}" ]]; then
-  if xmllint --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}" >/dev/null 2>&1; then
+  if xmllint --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}" > /dev/null 2>&1; then
    __logi "XML schema validation passed"
   else
    __logw "WARNING: XML schema validation failed, but continuing"
@@ -385,7 +385,7 @@ function __processBoundary() {
  __logd "Importing boundary: ${boundary_file} -> ${table_name}"
  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${boundary_file}" \
   -nln "${table_name}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-  -lco GEOMETRY_NAME=geom -lco FID=id --config PG_USE_COPY YES 2>/dev/null; then
+  -lco GEOMETRY_NAME=geom -lco FID=id --config PG_USE_COPY YES 2> /dev/null; then
   __logi "Successfully imported boundary: ${table_name}"
   __log_finish
   return 0
@@ -413,7 +413,7 @@ function __processList() {
  __logd "Importing list: ${list_file} -> ${table_name}"
  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${list_file}" \
   -nln "${table_name}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-  -lco GEOMETRY_NAME=geom -lco FID=id --config PG_USE_COPY YES 2>/dev/null; then
+  -lco GEOMETRY_NAME=geom -lco FID=id --config PG_USE_COPY YES 2> /dev/null; then
   __logi "Successfully imported list: ${table_name}"
   __log_finish
   return 0
@@ -435,7 +435,7 @@ function __processCountries() {
   if [[ -s "${COUNTRIES_FILE}.json" ]]; then
    # Convert to GeoJSON
    if jq -c '.features[] | {type: "Feature", properties: {name: .properties.name, id: .properties.id}, geometry: .geometry}' \
-    "${COUNTRIES_FILE}.json" > "${COUNTRIES_FILE}.geojson" 2>/dev/null; then
+    "${COUNTRIES_FILE}.json" > "${COUNTRIES_FILE}.geojson" 2> /dev/null; then
     # Import to database
     if __processBoundary "${COUNTRIES_FILE}.geojson" "countries"; then
      __logi "Successfully processed countries boundary"
@@ -474,7 +474,7 @@ function __processMaritimes() {
   if [[ -s "${MARITIMES_FILE}.json" ]]; then
    # Convert to GeoJSON
    if jq -c '.features[] | {type: "Feature", properties: {name: .properties.name, id: .properties.id}, geometry: .geometry}' \
-    "${MARITIMES_FILE}.json" > "${MARITIMES_FILE}.geojson" 2>/dev/null; then
+    "${MARITIMES_FILE}.json" > "${MARITIMES_FILE}.geojson" 2> /dev/null; then
     # Import to database
     if __processBoundary "${MARITIMES_FILE}.geojson" "maritimes"; then
      __logi "Successfully processed maritime boundaries"
@@ -500,4 +500,4 @@ function __processMaritimes() {
   __log_finish
   return 1
  fi
-} 
+}

@@ -4,7 +4,7 @@
 # This file contains error handling and retry functions used across different scripts.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-07-30
 
 # shellcheck disable=SC2317,SC2155
 
@@ -30,25 +30,25 @@ function __retry_with_backoff() {
 
  while [[ "${attempt}" -le "${max_attempts}" ]]; do
   __logd "Attempt ${attempt}/${max_attempts}: ${command}"
-  
+
   if eval "${command}"; then
    __logi "Command succeeded on attempt ${attempt}"
    return 0
   else
    local exit_code=$?
    __logw "Command failed on attempt ${attempt} with exit code ${exit_code}"
-   
+
    if [[ "${attempt}" -eq "${max_attempts}" ]]; then
     __loge "ERROR: Command failed after ${max_attempts} attempts"
     return "${exit_code}"
    fi
-   
+
    # Calculate delay with exponential backoff
    delay=$((delay * 2))
    if [[ "${delay}" -gt "${max_delay}" ]]; then
     delay="${max_delay}"
    fi
-   
+
    __logd "Waiting ${delay} seconds before retry"
    sleep "${delay}"
    ((attempt++))
@@ -82,7 +82,7 @@ function __circuit_breaker_execute() {
  if [[ "${state}" == "OPEN" ]]; then
   local time_since_last_failure
   time_since_last_failure=$((current_time - last_failure_time))
-  
+
   if [[ "${time_since_last_failure}" -ge "${reset_timeout}" ]]; then
    __logi "Circuit breaker for ${operation_name} resetting to HALF_OPEN"
    CIRCUIT_BREAKER_STATE[${operation_name}]="HALF_OPEN"
@@ -103,23 +103,21 @@ function __circuit_breaker_execute() {
 
  # Update circuit breaker state based on result
  if [[ "${exit_code}" -eq 0 ]]; then
-  # Success
-  if [[ "${state}" == "HALF_OPEN" ]]; then
-   __logi "Circuit breaker for ${operation_name} closing after successful execution"
-   CIRCUIT_BREAKER_STATE[${operation_name}]="CLOSED"
-  fi
+  # Success - close circuit breaker
+  CIRCUIT_BREAKER_STATE[${operation_name}]="CLOSED"
   CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]=0
+  __logd "Circuit breaker for ${operation_name} is CLOSED"
   return 0
  else
-  # Failure
-  ((CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]++))
-  CIRCUIT_BREAKER_LAST_FAILURE_TIME[${operation_name}]=${current_time}
-  
+  # Failure - update failure count and potentially open circuit breaker
+  CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]=$((failure_count + 1))
+  CIRCUIT_BREAKER_LAST_FAILURE_TIME[${operation_name}]="${current_time}"
+
   if [[ "${CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]}" -ge "${failure_threshold}" ]]; then
-   __logw "Circuit breaker for ${operation_name} opening after ${failure_threshold} failures"
    CIRCUIT_BREAKER_STATE[${operation_name}]="OPEN"
+   __logw "Circuit breaker for ${operation_name} is now OPEN"
   fi
-  
+
   return "${exit_code}"
  fi
 }
@@ -189,27 +187,27 @@ function __file_operation_with_retry() {
 
  local command
  case "${operation}" in
-  copy)
-   if [[ -z "${destination}" ]]; then
-    __loge "ERROR: Destination is required for copy operation"
-    return 1
-   fi
-   command="cp '${source}' '${destination}'"
-   ;;
-  move)
-   if [[ -z "${destination}" ]]; then
-    __loge "ERROR: Destination is required for move operation"
-    return 1
-   fi
-   command="mv '${source}' '${destination}'"
-   ;;
-  delete)
-   command="rm -f '${source}'"
-   ;;
-  *)
-   __loge "ERROR: Unsupported operation: ${operation}"
+ copy)
+  if [[ -z "${destination}" ]]; then
+   __loge "ERROR: Destination is required for copy operation"
    return 1
-   ;;
+  fi
+  command="cp '${source}' '${destination}'"
+  ;;
+ move)
+  if [[ -z "${destination}" ]]; then
+   __loge "ERROR: Destination is required for move operation"
+   return 1
+  fi
+  command="mv '${source}' '${destination}'"
+  ;;
+ delete)
+  command="rm -f '${source}'"
+  ;;
+ *)
+  __loge "ERROR: Unsupported operation: ${operation}"
+  return 1
+  ;;
  esac
 
  __circuit_breaker_execute "file_operation_${operation}_${source}" "${command}" 3 30 120
@@ -222,7 +220,7 @@ function __check_network_connectivity() {
 
  __logd "Checking network connectivity to ${test_url} with timeout ${timeout}s"
 
- if timeout "${timeout}" curl -s --max-time "${timeout}" "${test_url}" >/dev/null 2>&1; then
+ if timeout "${timeout}" curl -s --max-time "${timeout}" "${test_url}" > /dev/null 2>&1; then
   __logi "Network connectivity confirmed"
   return 0
  else
@@ -309,42 +307,42 @@ function __retry_file_operation() {
 
  while [[ "${attempt}" -le "${max_attempts}" ]]; do
   __logd "File operation attempt ${attempt}/${max_attempts}: ${operation} ${source}"
-  
+
   case "${operation}" in
-   copy)
-    if [[ -z "${destination}" ]]; then
-     __loge "ERROR: Destination is required for copy operation"
-     return 1
-    fi
-    if cp "${source}" "${destination}" 2>/dev/null; then
-     __logi "File copy succeeded on attempt ${attempt}"
-     return 0
-    fi
-    ;;
-   move)
-    if [[ -z "${destination}" ]]; then
-     __loge "ERROR: Destination is required for move operation"
-     return 1
-    fi
-    if mv "${source}" "${destination}" 2>/dev/null; then
-     __logi "File move succeeded on attempt ${attempt}"
-     return 0
-    fi
-    ;;
-   delete)
-    if rm -f "${source}" 2>/dev/null; then
-     __logi "File deletion succeeded on attempt ${attempt}"
-     return 0
-    fi
-    ;;
-   *)
-    __loge "ERROR: Unsupported operation: ${operation}"
+  copy)
+   if [[ -z "${destination}" ]]; then
+    __loge "ERROR: Destination is required for copy operation"
     return 1
-    ;;
+   fi
+   if cp "${source}" "${destination}" 2> /dev/null; then
+    __logi "File copy succeeded on attempt ${attempt}"
+    return 0
+   fi
+   ;;
+  move)
+   if [[ -z "${destination}" ]]; then
+    __loge "ERROR: Destination is required for move operation"
+    return 1
+   fi
+   if mv "${source}" "${destination}" 2> /dev/null; then
+    __logi "File move succeeded on attempt ${attempt}"
+    return 0
+   fi
+   ;;
+  delete)
+   if rm -f "${source}" 2> /dev/null; then
+    __logi "File deletion succeeded on attempt ${attempt}"
+    return 0
+   fi
+   ;;
+  *)
+   __loge "ERROR: Unsupported operation: ${operation}"
+   return 1
+   ;;
   esac
-  
+
   __logw "File operation failed on attempt ${attempt}"
-  
+
   if [[ "${attempt}" -eq "${max_attempts}" ]]; then
    __loge "ERROR: File operation failed after ${max_attempts} attempts"
    if [[ -n "${cleanup_command}" ]]; then
@@ -353,17 +351,17 @@ function __retry_file_operation() {
    fi
    return 1
   fi
-  
+
   # Exponential backoff
   delay=$((delay * 2))
   if [[ "${delay}" -gt 60 ]]; then
    delay=60
   fi
-  
+
   __logd "Waiting ${delay} seconds before retry"
   sleep "${delay}"
   ((attempt++))
  done
 
  return 1
-} 
+}

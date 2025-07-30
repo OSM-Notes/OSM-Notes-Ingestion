@@ -4,7 +4,7 @@
 # This file contains validation functions used across different scripts.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-07-30
 
 # shellcheck disable=SC2317,SC2155
 
@@ -59,13 +59,13 @@ function __validate_xml_structure() {
  fi
 
  # Check if file is valid XML
- if ! xmllint --noout "${xml_file}" 2>/dev/null; then
+ if ! xmllint --noout "${xml_file}" 2> /dev/null; then
   __loge "ERROR: Invalid XML structure: ${xml_file}"
   return 1
  fi
 
  # Check for required root element
- if ! xmllint --xpath "//osm-notes" "${xml_file}" >/dev/null 2>&1; then
+ if ! xmllint --xpath "//osm-notes" "${xml_file}" > /dev/null 2>&1; then
   __loge "ERROR: Missing osm-notes root element: ${xml_file}"
   return 1
  fi
@@ -91,7 +91,7 @@ function __validate_csv_structure() {
 
  # Check if file has header
  local first_line
- first_line=$(head -n 1 "${csv_file}" 2>/dev/null)
+ first_line=$(head -n 1 "${csv_file}" 2> /dev/null)
  if [[ -z "${first_line}" ]]; then
   __loge "ERROR: CSV file has no header: ${csv_file}"
   return 1
@@ -99,17 +99,13 @@ function __validate_csv_structure() {
 
  # Validate expected columns if provided
  if [[ -n "${expected_columns}" ]]; then
-  local missing_columns=()
-  IFS=',' read -ra expected_cols <<< "${expected_columns}"
-  
-  for col in "${expected_cols[@]}"; do
-   if ! echo "${first_line}" | grep -q "${col}"; then
-    missing_columns+=("${col}")
-   fi
-  done
-  
-  if [[ ${#missing_columns[@]} -gt 0 ]]; then
-   __loge "ERROR: Missing expected columns in CSV: ${missing_columns[*]}"
+  local column_count
+  column_count=$(echo "${first_line}" | tr ',' '\n' | wc -l)
+  local expected_count
+  expected_count=$(echo "${expected_columns}" | tr ',' '\n' | wc -l)
+
+  if [[ "${column_count}" -ne "${expected_count}" ]]; then
+   __loge "ERROR: CSV column count mismatch. Expected: ${expected_count}, Found: ${column_count}"
    return 1
   fi
  fi
@@ -137,7 +133,7 @@ function __validate_sql_structure() {
  local close_parens
  open_parens=$(grep -o '(' "${sql_file}" | wc -l)
  close_parens=$(grep -o ')' "${sql_file}" | wc -l)
- 
+
  if [[ "${open_parens}" -ne "${close_parens}" ]]; then
   __loge "ERROR: Unbalanced parentheses in SQL file: ${sql_file}"
   return 1
@@ -181,14 +177,14 @@ function __validate_json_structure() {
  fi
 
  # Check if file is valid JSON
- if ! jq empty "${json_file}" 2>/dev/null; then
+ if ! jq empty "${json_file}" 2> /dev/null; then
   __loge "ERROR: Invalid JSON structure: ${json_file}"
   return 1
  fi
 
  # Validate against schema if provided
  if [[ -n "${schema_file}" ]] && [[ -f "${schema_file}" ]]; then
-  if command -v ajv >/dev/null 2>&1; then
+  if command -v ajv > /dev/null 2>&1; then
    if ! ajv validate -s "${schema_file}" -d "${json_file}"; then
     __loge "ERROR: JSON validation against schema failed: ${json_file}"
     return 1
@@ -210,13 +206,13 @@ function __validate_database_connection() {
  local dbport="${4:-${DB_PORT}}"
 
  # Check if PostgreSQL client is available
- if ! command -v psql >/dev/null 2>&1; then
+ if ! command -v psql > /dev/null 2>&1; then
   __loge "ERROR: PostgreSQL client (psql) not available"
   return 1
  fi
 
  # Test database connection
- if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${dbhost}" -p "${dbport}" -U "${dbuser}" -d "${dbname}" -c "SELECT 1;" >/dev/null 2>&1; then
+ if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${dbhost}" -p "${dbport}" -U "${dbuser}" -d "${dbname}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Database connection failed"
   return 1
  fi
@@ -240,7 +236,7 @@ function __validate_database_tables() {
 
  # Check if tables exist
  for table in "${tables[@]}"; do
-  if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${dbhost}" -p "${dbport}" -U "${dbuser}" -d "${dbname}" -c "SELECT 1 FROM ${table} LIMIT 1;" >/dev/null 2>&1; then
+  if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${dbhost}" -p "${dbport}" -U "${dbuser}" -d "${dbname}" -c "SELECT 1 FROM ${table} LIMIT 1;" > /dev/null 2>&1; then
    __loge "ERROR: Table does not exist: ${table}"
    return 1
   fi
@@ -256,7 +252,7 @@ function __validate_database_extensions() {
  local dbuser="${2:-${DB_USER}}"
  local dbhost="${3:-${DB_HOST}}"
  local dbport="${4:-${DB_PORT}}"
-   local extensions=("${@:5}")
+ local extensions=("${@:5}")
 
  # Validate database connection first
  if ! __validate_database_connection "${dbname}" "${dbuser}" "${dbhost}" "${dbport}"; then
@@ -358,8 +354,8 @@ function __validate_xml_dates() {
 
  for query in "${xpath_queries[@]}"; do
   local dates
-  mapfile -t dates < <(xmllint --xpath "${query}" "${xml_file}" 2>/dev/null | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}Z' || true)
-  
+  mapfile -t dates < <(xmllint --xpath "${query}" "${xml_file}" 2> /dev/null | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}Z' || true)
+
   for date in "${dates[@]}"; do
    if [[ -n "${date}" ]]; then
     if ! __validate_iso8601_date "${date}" "XML date"; then
@@ -392,7 +388,7 @@ function __validate_csv_dates() {
   local header
   header=$(head -n 1 "${csv_file}")
   IFS=',' read -ra columns <<< "${header}"
-  
+
   for col in "${columns[@]}"; do
    if [[ "${col}" =~ (date|time|created|updated|timestamp) ]]; then
     date_columns+=("${col}")
@@ -405,11 +401,11 @@ function __validate_csv_dates() {
  for col in "${date_columns[@]}"; do
   local col_index
   col_index=$(head -n 1 "${csv_file}" | tr ',' '\n' | grep -n "^${col}$" | cut -d: -f1)
-  
+
   if [[ -n "${col_index}" ]]; then
    local dates
    mapfile -t dates < <(tail -n +2 "${csv_file}" | cut -d',' -f"${col_index}" | grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z' || true)
-   
+
    for date in "${dates[@]}"; do
     if [[ -n "${date}" ]]; then
      if ! __validate_iso8601_date "${date}" "CSV date"; then
@@ -442,19 +438,19 @@ function __validate_file_checksum() {
  # Calculate actual checksum
  local actual_checksum
  case "${algorithm}" in
-  md5)
-   actual_checksum=$(md5sum "${file_path}" | cut -d' ' -f1)
-   ;;
-  sha1)
-   actual_checksum=$(sha1sum "${file_path}" | cut -d' ' -f1)
-   ;;
-  sha256)
-   actual_checksum=$(sha256sum "${file_path}" | cut -d' ' -f1)
-   ;;
-  *)
-   __loge "ERROR: Unsupported checksum algorithm: ${algorithm}"
-   return 1
-   ;;
+ md5)
+  actual_checksum=$(md5sum "${file_path}" | cut -d' ' -f1)
+  ;;
+ sha1)
+  actual_checksum=$(sha1sum "${file_path}" | cut -d' ' -f1)
+  ;;
+ sha256)
+  actual_checksum=$(sha256sum "${file_path}" | cut -d' ' -f1)
+  ;;
+ *)
+  __loge "ERROR: Unsupported checksum algorithm: ${algorithm}"
+  return 1
+  ;;
  esac
 
  # Compare checksums
@@ -513,19 +509,19 @@ function __generate_file_checksum() {
 
  local checksum
  case "${algorithm}" in
-  md5)
-   checksum=$(md5sum "${file_path}" | cut -d' ' -f1)
-   ;;
-  sha1)
-   checksum=$(sha1sum "${file_path}" | cut -d' ' -f1)
-   ;;
-  sha256)
-   checksum=$(sha256sum "${file_path}" | cut -d' ' -f1)
-   ;;
-  *)
-   __loge "ERROR: Unsupported checksum algorithm: ${algorithm}"
-   return 1
-   ;;
+ md5)
+  checksum=$(md5sum "${file_path}" | cut -d' ' -f1)
+  ;;
+ sha1)
+  checksum=$(sha1sum "${file_path}" | cut -d' ' -f1)
+  ;;
+ sha256)
+  checksum=$(sha256sum "${file_path}" | cut -d' ' -f1)
+  ;;
+ *)
+  __loge "ERROR: Unsupported checksum algorithm: ${algorithm}"
+  return 1
+  ;;
  esac
 
  echo "${checksum}"
@@ -549,12 +545,12 @@ function __validate_directory_checksums() {
 
  local failed=0
  local files
- mapfile -t files < <(find "${directory}" -type f -name "*.xml" -o -name "*.csv" -o -name "*.json" 2>/dev/null)
+ mapfile -t files < <(find "${directory}" -type f -name "*.xml" -o -name "*.csv" -o -name "*.json" 2> /dev/null)
 
  for file in "${files[@]}"; do
   local relative_path
   relative_path=$(realpath --relative-to="${directory}" "${file}")
-  
+
   if ! __validate_file_checksum_from_file "${file}" "${checksum_file}" "${algorithm}"; then
    __loge "ERROR: Checksum validation failed for ${relative_path}"
    failed=1
@@ -584,7 +580,7 @@ function __validate_json_schema() {
  fi
 
  # Check if ajv is available
- if ! command -v ajv >/dev/null 2>&1; then
+ if ! command -v ajv > /dev/null 2>&1; then
   __loge "ERROR: ajv (JSON schema validator) not available"
   return 1
  fi
@@ -611,13 +607,13 @@ function __validate_coordinates() {
  fi
 
  # Validate latitude range (-90 to 90)
- if (( $(echo "${lat} < -90" | bc -l) )) || (( $(echo "${lat} > 90" | bc -l) )); then
+ if (($(echo "${lat} < -90" | bc -l))) || (($(echo "${lat} > 90" | bc -l))); then
   __loge "ERROR: Latitude out of range (-90 to 90): ${lat}"
   return 1
  fi
 
  # Validate longitude range (-180 to 180)
- if (( $(echo "${lon} < -180" | bc -l) )) || (( $(echo "${lon} > 180" | bc -l) )); then
+ if (($(echo "${lon} < -180" | bc -l))) || (($(echo "${lon} > 180" | bc -l))); then
   __loge "ERROR: Longitude out of range (-180 to 180): ${lon}"
   return 1
  fi
@@ -640,7 +636,7 @@ function __validate_numeric_range() {
  fi
 
  # Validate range
- if (( $(echo "${value} < ${min}" | bc -l) )) || (( $(echo "${value} > ${max}" | bc -l) )); then
+ if (($(echo "${value} < ${min}" | bc -l))) || (($(echo "${value} > ${max}" | bc -l))); then
   __loge "ERROR: ${description} out of range (${min} to ${max}): ${value}"
   return 1
  fi
@@ -676,13 +672,13 @@ function __validate_xml_coordinates() {
 
  local failed=0
  local coordinates
- mapfile -t coordinates < <(xmllint --xpath "${lat_xpath} | ${lon_xpath}" "${xml_file}" 2>/dev/null | grep -o '[0-9.-]*' || true)
+ mapfile -t coordinates < <(xmllint --xpath "${lat_xpath} | ${lon_xpath}" "${xml_file}" 2> /dev/null | grep -o '[0-9.-]*' || true)
 
  # Process coordinates in pairs (lat, lon)
- for ((i=0; i<${#coordinates[@]}; i+=2)); do
+ for ((i = 0; i < ${#coordinates[@]}; i += 2)); do
   local lat="${coordinates[i]}"
-  local lon="${coordinates[i+1]}"
-  
+  local lon="${coordinates[i + 1]}"
+
   if [[ -n "${lat}" ]] && [[ -n "${lon}" ]]; then
    if ! __validate_coordinates "${lat}" "${lon}"; then
     failed=1
@@ -725,9 +721,9 @@ function __validate_csv_coordinates() {
 
  # Read coordinates from CSV
  while IFS=',' read -r -a fields; do
-  local lat="${fields[lat_index-1]}"
-  local lon="${fields[lon_index-1]}"
-  
+  local lat="${fields[lat_index - 1]}"
+  local lon="${fields[lon_index - 1]}"
+
   if [[ -n "${lat}" ]] && [[ -n "${lon}" ]]; then
    if ! __validate_coordinates "${lat}" "${lon}"; then
     failed=1
@@ -762,4 +758,4 @@ function __validate_database_variables() {
 
  __logd "Database variables validation passed"
  return 0
-} 
+}

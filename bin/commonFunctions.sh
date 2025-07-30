@@ -4,7 +4,7 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-07-30
 
 # shellcheck disable=SC2317,SC2155
 
@@ -76,26 +76,26 @@ function __checkPrereqsCommands {
 
  # Check basic commands
  for cmd in bash curl wget psql; do
-  if ! command -v "${cmd}" >/dev/null 2>&1; then
+  if ! command -v "${cmd}" > /dev/null 2>&1; then
    missing_commands+=("${cmd}")
   fi
  done
 
  # Check XML processing commands
  for cmd in xmllint xsltproc; do
-  if ! command -v "${cmd}" >/dev/null 2>&1; then
+  if ! command -v "${cmd}" > /dev/null 2>&1; then
    missing_commands+=("${cmd}")
   fi
  done
 
  # Check JSON processing commands
- if ! command -v jq >/dev/null 2>&1; then
+ if ! command -v jq > /dev/null 2>&1; then
   missing_commands+=("jq")
  fi
 
  # Check geospatial processing commands
  for cmd in ogr2ogr gdalinfo; do
-  if ! command -v "${cmd}" >/dev/null 2>&1; then
+  if ! command -v "${cmd}" > /dev/null 2>&1; then
    missing_commands+=("${cmd}")
   fi
  done
@@ -120,7 +120,7 @@ function __checkPrereqs_functions {
 
  # Check logger functions
  for func in __log __logi __loge; do
-  if ! declare -f "${func}" >/dev/null 2>&1; then
+  if ! declare -f "${func}" > /dev/null 2>&1; then
    missing_functions+=("${func}")
   fi
  done
@@ -182,4 +182,4 @@ function __getLocationNotes {
  __logd "Getting location notes."
  psql -d "${DBNAME}" -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
  __log_finish
-} 
+}
