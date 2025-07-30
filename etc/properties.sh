@@ -4,13 +4,17 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-07-26
+# Version: 2025-07-29
 
 # Database configuration.
 # shellcheck disable=SC2034
 declare -r DBNAME="${DBNAME:-notes}"
 # shellcheck disable=SC2034
 declare -r DB_USER="${DB_USER:-notes}"
+
+# Legacy support - maintain backward compatibility
+# shellcheck disable=SC2034
+declare -r DBUSER="${DB_USER}"
 
 # Email configuration for reports.
 declare -r EMAILS="username@domain.com"

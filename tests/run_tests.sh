@@ -172,13 +172,16 @@ run_bats_tests() {
   bats_tests=(
    "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
    "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
+   "${SCRIPT_DIR}/unit/bash/ETL_enhanced.test.bats"
    "${SCRIPT_DIR}/integration/end_to_end.test.bats"
+   "${SCRIPT_DIR}/integration/ETL_enhanced_integration.test.bats"
   )
  else
   # Running on host - only unit tests
   bats_tests=(
    "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
    "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
+   "${SCRIPT_DIR}/unit/bash/ETL_enhanced.test.bats"
   )
  fi
 

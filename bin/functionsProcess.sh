@@ -1142,14 +1142,14 @@ function __validate_json_structure() {
 # Validates database connection and basic functionality
 # Parameters:
 #   $1: Database name (optional, uses DBNAME if not provided)
-#   $2: Database user (optional, uses DBUSER if not provided)
+#   $2: Database user (optional, uses DB_USER if not provided)
 #   $3: Database host (optional, uses DBHOST if not provided)
 #   $4: Database port (optional, uses DBPORT if not provided)
 # Returns:
 #   0 if connection successful, 1 if failed
 function __validate_database_connection() {
  local db_name="${1:-${DBNAME:-}}"
- local db_user="${2:-${DBUSER:-}}"
+ local db_user="${2:-${DB_USER:-}}"
  local db_host="${3:-${DBHOST:-}}"
  local db_port="${4:-${DBPORT:-}}"
  local validation_errors=()
@@ -1161,7 +1161,7 @@ function __validate_database_connection() {
  fi
 
  if [[ -z "${db_user}" ]]; then
-  echo "ERROR: Database user not provided and DBUSER not set" >&2
+  echo "ERROR: Database user not provided and DB_USER not set" >&2
   return 1
  fi
 
@@ -1219,7 +1219,7 @@ function __validate_database_connection() {
 # Validates database table existence and structure
 # Parameters:
 #   $1: Database name (optional, uses DBNAME if not provided)
-#   $2: Database user (optional, uses DBUSER if not provided)
+#   $2: Database user (optional, uses DB_USER if not provided)
 #   $3: Database host (optional, uses DBHOST if not provided)
 #   $4: Database port (optional, uses DBPORT if not provided)
 #   $5+: List of required table names
@@ -1227,7 +1227,7 @@ function __validate_database_connection() {
 #   0 if all tables exist, 1 if any missing
 function __validate_database_tables() {
  local db_name="${1:-${DBNAME:-}}"
- local db_user="${2:-${DBUSER:-}}"
+ local db_user="${2:-${DB_USER:-}}"
  local db_host="${3:-${DBHOST:-}}"
  local db_port="${4:-${DBPORT:-}}"
  shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
@@ -1241,7 +1241,7 @@ function __validate_database_tables() {
  fi
 
  if [[ -z "${db_user}" ]]; then
-  echo "ERROR: Database user not provided and DBUSER not set" >&2
+  echo "ERROR: Database user not provided and DB_USER not set" >&2
   return 1
  fi
 
@@ -1284,7 +1284,7 @@ function __validate_database_tables() {
 # Validates database schema and extensions
 # Parameters:
 #   $1: Database name (optional, uses DBNAME if not provided)
-#   $2: Database user (optional, uses DBUSER if not provided)
+#   $2: Database user (optional, uses DB_USER if not provided)
 #   $3: Database host (optional, uses DBHOST if not provided)
 #   $4: Database port (optional, uses DBPORT if not provided)
 #   $5+: List of required extensions
@@ -1292,7 +1292,7 @@ function __validate_database_tables() {
 #   0 if all extensions exist, 1 if any missing
 function __validate_database_extensions() {
  local db_name="${1:-${DBNAME:-}}"
- local db_user="${2:-${DBUSER:-}}"
+ local db_user="${2:-${DB_USER:-}}"
  local db_host="${3:-${DBHOST:-}}"
  local db_port="${4:-${DBPORT:-}}"
  shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
@@ -1306,7 +1306,7 @@ function __validate_database_extensions() {
  fi
 
  if [[ -z "${db_user}" ]]; then
-  echo "ERROR: Database user not provided and DBUSER not set" >&2
+  echo "ERROR: Database user not provided and DB_USER not set" >&2
   return 1
  fi
 
