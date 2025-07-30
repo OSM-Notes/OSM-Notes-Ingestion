@@ -9,6 +9,13 @@
 
 # shellcheck disable=SC2317,SC2155
 
+# Define script base directory
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Define common variables
+BASENAME="$(basename "${BASH_SOURCE[0]}" .sh)"
+TMP_DIR="/tmp/${BASENAME}_$$"
+
 # Load all refactored function files
 # This ensures backward compatibility while improving code organization
 
@@ -278,9 +285,9 @@ function __validation {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Directory "${TMP_DIR:-}" - Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__validation)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__validation)"; exit ${ERROR_GENERAL};}' \
   ERR
- trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated.\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
  __log_finish
 }
