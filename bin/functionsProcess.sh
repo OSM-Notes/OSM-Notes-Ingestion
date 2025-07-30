@@ -202,102 +202,10 @@ function __splitXmlForParallelSafe() {
  __log_finish
 }
 
-# Error codes.
-# 1: Help message.
-# shellcheck disable=SC2034
-declare -r ERROR_HELP_MESSAGE=1
-# 238: Previous execution failed.
-declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
-# 239: Error creating report.
-declare -r ERROR_CREATING_REPORT=239
-# 241: Library or utility missing.
-declare -r ERROR_MISSING_LIBRARY=241
-# 242: Invalid argument for script invocation.
-# shellcheck disable=SC2034
-declare -r ERROR_INVALID_ARGUMENT=242
-# 243: Logger utility is not available.
-declare -r ERROR_LOGGER_UTILITY=243
-# 244: The list of IDs for boundary geometries cannot be downloaded.
-declare -r ERROR_DOWNLOADING_BOUNDARY_ID_LIST=244
-# 245: No last update.
-declare -r ERROR_NO_LAST_UPDATE=245
-# 246: Planet process is currently running.
-declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
-# 247: Error downloading planet notes file.
-declare -r ERROR_DOWNLOADING_NOTES=247
-# 248: Error executing the Planet dump.
-declare -r ERROR_EXECUTING_PLANET_DUMP=248
-# 249: Error downloading boundary.
-declare -r ERROR_DOWNLOADING_BOUNDARY=249
-# 250: Error converting OSM JSON to GeoJSON.
-declare -r ERROR_GEOJSON_CONVERSION=250
-# 251: Internet issue.
-declare -r ERROR_INTERNET_ISSUE=251
-# 252: Error validating data content.
-declare -r ERROR_DATA_VALIDATION=252
-# 255: General error.
-declare -r ERROR_GENERAL=255
+# Error codes are defined in commonFunctions.sh
 
-# Flag to generate file for failed execution.
-declare GENERATE_FAILED_FILE=true
-# Previous execution failed file path.
-# shellcheck disable=SC2154
-declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"
-
-# Flag to track if prerequisites have been checked in current execution
-declare PREREQS_CHECKED=false
-
-# File that contains the IDs of the boundaries for countries.
-# shellcheck disable=SC2154
-declare -r COUNTRIES_BOUNDARY_IDS_FILE="${TMP_DIR}/countries"
-# File that contains the IDs of the boundaries of the maritime areas.
-# shellcheck disable=SC2154
-declare -r MARITIME_BOUNDARY_IDS_FILE="${TMP_DIR}/maritimes"
-# File for the Overpass query.
-declare OVERPASS_QUERY_FILE="${TMP_DIR}/query"
-
-# Logger framework.
-# Taken from https://github.com/DushyanthJyothi/bash-logger.
-# shellcheck disable=SC2154
-declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
-
-# XSLT transformation files for Planet format.
-declare -r XSLT_NOTES_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
-declare -r XSLT_NOTE_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
-declare -r XSLT_TEXT_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
-
-# XSLT transformation files for API format.
-declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
-declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
-declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
-
-# XML Schema of the Planet notes file.
-declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
-
-# JSON schema files for validation.
-declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"
-declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"
-
-# Output CSV files for processed data.
-declare -r OUTPUT_NOTES_CSV_FILE="${TMP_DIR}/output-notes.csv"
-declare -r OUTPUT_NOTE_COMMENTS_CSV_FILE="${TMP_DIR}/output-note_comments.csv"
-declare -r OUTPUT_TEXT_COMMENTS_CSV_FILE="${TMP_DIR}/output-text_comments.csv"
-
-# PostgreSQL SQL script files.
-# Check base tables.
-declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
-# Drop generic objects.
-declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
-# Create get country function.
-declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
-# Create insert note procedure.
-declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
-# Create insert note comment procedure.
-declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
-# Organize areas.
-declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
-# Upload note locations.
-declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
+# Common variables are defined in commonFunctions.sh
+# Additional variables specific to functionsProcess.sh
 
 # Directory for Lock when inserting in the database
 declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
