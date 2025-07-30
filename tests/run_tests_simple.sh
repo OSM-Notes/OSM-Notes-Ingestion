@@ -121,6 +121,7 @@ run_bats_tests() {
   "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
   "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
   "${SCRIPT_DIR}/unit/bash/cleanupAll.test.bats"
+  "${SCRIPT_DIR}/unit/bash/variable_duplication.test.bats"
  )
 
  log_info "Total BATS tests to run: ${#bats_tests[@]}"

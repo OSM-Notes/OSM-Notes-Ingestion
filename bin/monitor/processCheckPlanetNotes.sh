@@ -83,8 +83,7 @@ readonly LOCK
 declare -r PROCESS_TYPE=${1:-}
 
 # Planet notes file configuration.
-declare -r PLANET_NOTES_FILENAME="planet-notes-latest.osn"
-declare -r PLANET_NOTES_FILE="${TMP_DIR}/${PLANET_NOTES_FILENAME}"
+# (Declared in processPlanetFunctions.sh)
 
 # PostgreSQL SQL script files.
 # Drop check tables.
