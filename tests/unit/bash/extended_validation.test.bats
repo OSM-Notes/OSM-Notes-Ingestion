@@ -122,7 +122,7 @@ EOF
 
 @test "validate_database_tables with missing parameters" {
  # Unset any existing database variables
- unset DBNAME DBUSER DBHOST DBPORT
+ unset DBNAME DB_USER DBHOST DBPORT
   
  run __validate_database_tables
  [ "$status" -eq 1 ]
@@ -131,7 +131,7 @@ EOF
 
 @test "validate_database_tables with missing tables" {
  # Unset any existing database variables
- unset DBNAME DBUSER DBHOST DBPORT
+ unset DBNAME DB_USER DBHOST DBPORT
   
  run __validate_database_tables "testdb" "testuser" "localhost" "5432"
  [ "$status" -eq 0 ]
@@ -140,7 +140,7 @@ EOF
 
 @test "validate_database_extensions with missing parameters" {
  # Unset any existing database variables
- unset DBNAME DBUSER DBHOST DBPORT
+ unset DBNAME DB_USER DBHOST DBPORT
   
  run __validate_database_extensions
  [ "$status" -eq 1 ]
@@ -149,7 +149,7 @@ EOF
 
 @test "validate_database_extensions with missing extensions" {
  # Unset any existing database variables
- unset DBNAME DBUSER DBHOST DBPORT
+ unset DBNAME DB_USER DBHOST DBPORT
   
  run __validate_database_extensions "testdb" "testuser" "localhost" "5432"
  [ "$status" -eq 0 ]

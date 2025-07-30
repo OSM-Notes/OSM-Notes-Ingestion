@@ -133,7 +133,7 @@ The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
 
    ```bash
    WMS_DBNAME="osm_notes"
-   WMS_DBUSER="postgres"
+   WMS_DBUSER="postgres"    # WMS-specific database user
    WMS_DBHOST="localhost"
    WMS_DBPORT="5432"
    ```
@@ -171,7 +171,7 @@ export WMS_SERVICE_TITLE="European OSM Notes WMS Service"
 
 ```bash
 export WMS_DBNAME="my_osm_notes"
-export WMS_DBUSER="myuser"
+export WMS_DBUSER="myuser"    # WMS-specific database user
 export WMS_DBPASSWORD="mypassword"
 export WMS_DBHOST="my-db-server.com"
 ```

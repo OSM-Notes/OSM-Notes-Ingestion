@@ -72,7 +72,7 @@ EOF
   # Create valid config file
   cat > "${VALID_CONFIG_FILE}" << 'EOF'
 DBNAME=test_db
-DBUSER=test_user
+ DB_USER=test_user
 DBPASSWORD=test_pass
 MAX_THREADS=4
 EOF

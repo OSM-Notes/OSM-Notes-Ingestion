@@ -181,7 +181,7 @@ environments.
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
 | `TEST_DBNAME` | `osm_notes_test` | Test database name |
-| `TEST_DBUSER` | `testuser` (Docker) / `postgres` (Host) | Database user |
+| `TEST_DBUSER` | `testuser` (Docker) / `postgres` (Host) | Test-specific database user |
 | `TEST_DBPASSWORD` | `testpass` (Docker) / `` (Host) | Database password |
 | `TEST_DBHOST` | `postgres` (Docker) / `localhost` (Host) | Database host |
 | `TEST_DBPORT` | `5432` | Database port |

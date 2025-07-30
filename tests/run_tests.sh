@@ -173,6 +173,7 @@ run_bats_tests() {
    "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
    "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
    "${SCRIPT_DIR}/unit/bash/ETL_enhanced.test.bats"
+   "${SCRIPT_DIR}/unit/bash/database_variables.test.bats"
    "${SCRIPT_DIR}/integration/end_to_end.test.bats"
    "${SCRIPT_DIR}/integration/ETL_enhanced_integration.test.bats"
   )
@@ -182,6 +183,7 @@ run_bats_tests() {
    "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
    "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
    "${SCRIPT_DIR}/unit/bash/ETL_enhanced.test.bats"
+   "${SCRIPT_DIR}/unit/bash/database_variables.test.bats"
   )
  fi
 

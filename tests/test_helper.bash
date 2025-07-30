@@ -96,6 +96,13 @@ else
  echo "Warning: functionsProcess.sh not found"
 fi
 
+# Load test variables validation functions
+if [[ -f "${TEST_BASE_DIR}/tests/test_variables.sh" ]]; then
+ source "${TEST_BASE_DIR}/tests/test_variables.sh"
+else
+ echo "Warning: test_variables.sh not found"
+fi
+
 # Set additional environment variables for Docker container
 export PGHOST="${TEST_DBHOST}"
 export PGUSER="${TEST_DBUSER}"

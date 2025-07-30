@@ -2958,3 +2958,32 @@ function __validate_csv_coordinates() {
  echo "DEBUG: CSV coordinate validation passed: ${csv_file}" >&2
  return 0
 }
+
+# Validates production database variables
+# This function ensures that production database variables are properly set
+# Parameters: None
+# Returns: 0 if validation passes, 1 if validation fails
+function __validate_database_variables() {
+ local validation_errors=()
+
+ # Check primary database variables
+ if [[ -z "${DBNAME:-}" ]]; then
+  validation_errors+=("DBNAME is not set")
+ fi
+
+ if [[ -z "${DB_USER:-}" ]]; then
+  validation_errors+=("DB_USER is not set")
+ fi
+
+ # Report validation errors
+ if [[ ${#validation_errors[@]} -gt 0 ]]; then
+  echo "ERROR: Database variable validation failed:" >&2
+  for error in "${validation_errors[@]}"; do
+   echo "  - ${error}" >&2
+  done
+  return 1
+ fi
+
+ echo "DEBUG: Database variable validation passed" >&2
+ return 0
+}
