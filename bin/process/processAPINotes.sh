@@ -89,10 +89,7 @@ declare -i TOTAL_NOTES=-1
 
 # XML Schema of the API notes file.
 declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
-# XSLT transformation files for API format.
-declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
-declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
-declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
+# XSLT transformation files are already defined in functionsProcess.sh
 
 # Script to process notes from Planet.
 declare -r PROCESS_PLANET_NOTES_SCRIPT="processPlanetNotes.sh"
@@ -125,22 +122,13 @@ declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
-# Error codes (defined here to avoid shellcheck warnings)
-declare -r ERROR_HELP_MESSAGE=1
-declare -r ERROR_INVALID_ARGUMENT=242
-declare -r ERROR_MISSING_LIBRARY=241
-declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
-declare -r ERROR_NO_LAST_UPDATE=245
-declare -r ERROR_INTERNET_ISSUE=251
-declare -r ERROR_DATA_VALIDATION=252
-declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
-declare -r ERROR_EXECUTING_PLANET_DUMP=248
+# Error codes are already defined in functionsProcess.sh
 
 # Output files for processing
 declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"
 declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"
 declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"
-declare -r FAILED_EXECUTION_FILE="${TMP_DIR}/failed_execution"
+# FAILED_EXECUTION_FILE is already defined in functionsProcess.sh
 
 # Control variables for functionsProcess.sh
 export GENERATE_FAILED_FILE=true

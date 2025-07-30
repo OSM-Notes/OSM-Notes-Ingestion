@@ -72,9 +72,7 @@ declare -r PROCESS_TYPE=${1:-}
 # Location of the common functions.
 declare -r FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
-# Error codes and file variables (defined here to avoid shellcheck warnings)
-declare -r ERROR_INVALID_ARGUMENT=242
-declare -r ERROR_HELP_MESSAGE=1
+# Error codes are already defined in functionsProcess.sh
 declare -r QUERY_FILE="${TMP_DIR}/query"
 declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
 declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
