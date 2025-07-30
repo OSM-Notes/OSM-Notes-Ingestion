@@ -24,12 +24,12 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
-# shellcheck source=../etc/properties.sh
+# shellcheck source=../../etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 echo "====" >> "${LOG}"
 date >> "${LOG}"
-echo "Parameters: ${@}" >> "${LOG}"
+echo "Parameters: ${*}" >> "${LOG}"
 # No params
 if [[ -z "${1:-}" ]]; then
  echo "This is a mock aria2c command."

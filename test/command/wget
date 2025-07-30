@@ -34,17 +34,17 @@ TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 
 # Loads the global properties.
-# shellcheck source=../etc/properties.sh
+# shellcheck source=../../etc/properties.sh
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 # Location of the common functions.
 FUNCTIONS_FILE="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-# shellcheck source=../functionsProcess.sh
+# shellcheck source=../../bin/functionsProcess.sh
 source "${FUNCTIONS_FILE}"
 
 echo "====" >> "${LOG}"
 date >> "${LOG}"
-echo "Parameters: ${@}" >> "${LOG}"
+echo "Parameters: ${*}" >> "${LOG}"
 # No params
 if [[ -z "${1:-}" ]]; then
  echo "This is a mock wget command."
