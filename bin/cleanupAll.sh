@@ -16,6 +16,10 @@ mkdir -p "${TMP_DIR}"
 # Define script base directory
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Load global properties
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+
 # Load common functions first (for logging)
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" ]]; then
  # shellcheck source=commonFunctions.sh
@@ -49,7 +53,7 @@ function log_warn() {
 
 # Function to check if database exists
 function check_database() {
- local DBNAME="${1}"
+ local DBNAME="${1:-${DBNAME}}"
 
  log_info "Checking if database exists: ${DBNAME}"
 
@@ -76,7 +80,22 @@ function execute_sql_script() {
   return 1
  fi
 
- if psql -d "${DBNAME}" -f "${SCRIPT_PATH}"; then
+ # Use properties for database connection
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+ if [[ -n "${DB_PASSWORD:-}" ]]; then
+  export PGPASSWORD="${DB_PASSWORD}"
+ fi
+ if [[ -n "${DB_HOST:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST}"
+ fi
+ if [[ -n "${DB_PORT:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT}"
+ fi
+
+ if ${PSQL_CMD} -d "${DBNAME}" -f "${SCRIPT_PATH}"; then
   log_info "SUCCESS: ${SCRIPT_NAME} completed"
   return 0
  else
@@ -143,7 +162,22 @@ function cleanup_api_tables() {
  DROP TABLE IF EXISTS notes_api_part_4 CASCADE;
  "
 
- if psql -d "${DBNAME}" -c "${API_DROP_SQL}"; then
+ # Use properties for database connection
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+ if [[ -n "${DB_PASSWORD:-}" ]]; then
+  export PGPASSWORD="${DB_PASSWORD}"
+ fi
+ if [[ -n "${DB_HOST:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST}"
+ fi
+ if [[ -n "${DB_PORT:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT}"
+ fi
+
+ if ${PSQL_CMD} -d "${DBNAME}" -c "${API_DROP_SQL}"; then
   log_info "SUCCESS: API tables dropped"
   return 0
  else
@@ -230,15 +264,22 @@ function cleanup() {
 
 # Show help
 function show_help() {
- echo "Usage: $0 <database_name>"
+ echo "Usage: $0 [database_name]"
  echo ""
  echo "This script removes all components from the OSM-Notes-profile database."
  echo "This includes ETL components, WMS components, base tables, and temporary files."
  echo ""
  echo "Examples:"
- echo "  $0 notes"
- echo "  $0 osm_notes_test"
- echo "  $0 osm_notes_prod"
+ echo "  $0                    # Uses default database from properties"
+ echo "  $0 notes              # Uses specified database"
+ echo "  $0 osm_notes_test     # Uses test database"
+ echo "  $0 osm_notes_prod     # Uses production database"
+ echo ""
+ echo "Database connection uses properties from etc/properties.sh:"
+ echo "  Default database: ${DBNAME:-not set}"
+ echo "  Database user: ${DB_USER:-not set}"
+ echo "  Database host: ${DB_HOST:-localhost}"
+ echo "  Database port: ${DB_PORT:-5432}"
  echo ""
  echo "The script will:"
  echo "  1. Check if the database exists"
@@ -256,20 +297,23 @@ function main() {
  trap cleanup EXIT
 
  # Check if database name is provided
- local DBNAME="${1:-}"
- if [[ -z "${DBNAME}" ]]; then
-  log_error "Database name is required"
-  show_help
-  exit 1
- fi
+ local DBNAME_PARAM="${1:-}"
 
  # Check for help flag
- if [[ "${DBNAME}" == "-h" || "${DBNAME}" == "--help" ]]; then
+ if [[ "${DBNAME_PARAM}" == "-h" || "${DBNAME_PARAM}" == "--help" ]]; then
   show_help
   exit 0
  fi
 
- log_info "Starting comprehensive cleanup"
+ # Use parameter or default from properties
+ local DBNAME="${DBNAME_PARAM:-${DBNAME:-}}"
+ if [[ -z "${DBNAME}" ]]; then
+  log_error "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
+  show_help
+  exit 1
+ fi
+
+ log_info "Starting comprehensive cleanup for database: ${DBNAME}"
 
  # Run cleanup
  if cleanup_all "${DBNAME}"; then

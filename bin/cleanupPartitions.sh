@@ -16,6 +16,10 @@ mkdir -p "${TMP_DIR}"
 # Define script base directory
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Load global properties
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+
 # Load validation functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
  # shellcheck source=validationFunctions.sh
@@ -40,7 +44,7 @@ function log_warn() {
 
 # Function to check if database exists
 function check_database() {
- local DBNAME="${1}"
+ local DBNAME="${1:-${DBNAME}}"
 
  log_info "Checking if database exists: ${DBNAME}"
 
@@ -59,7 +63,22 @@ function list_partition_tables() {
 
  log_info "Listing existing partition tables in database: ${DBNAME}"
 
- psql -d "${DBNAME}" -c "
+ # Use properties for database connection
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+ if [[ -n "${DB_PASSWORD:-}" ]]; then
+  export PGPASSWORD="${DB_PASSWORD}"
+ fi
+ if [[ -n "${DB_HOST:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST}"
+ fi
+ if [[ -n "${DB_PORT:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT}"
+ fi
+
+ ${PSQL_CMD} -d "${DBNAME}" -c "
  SELECT table_name, COUNT(*) as count
  FROM information_schema.tables 
  WHERE table_name LIKE '%_part_%' 
@@ -83,7 +102,22 @@ function drop_all_partitions() {
   return 1
  fi
 
- psql -d "${DBNAME}" -f "${DROP_SCRIPT}"
+ # Use properties for database connection
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+ if [[ -n "${DB_PASSWORD:-}" ]]; then
+  export PGPASSWORD="${DB_PASSWORD}"
+ fi
+ if [[ -n "${DB_HOST:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST}"
+ fi
+ if [[ -n "${DB_PORT:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT}"
+ fi
+
+ ${PSQL_CMD} -d "${DBNAME}" -f "${DROP_SCRIPT}"
 
  log_info "Partition tables cleanup completed"
 }
@@ -94,8 +128,23 @@ function verify_cleanup() {
 
  log_info "Verifying that all partition tables have been removed"
 
+ # Use properties for database connection
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+ if [[ -n "${DB_PASSWORD:-}" ]]; then
+  export PGPASSWORD="${DB_PASSWORD}"
+ fi
+ if [[ -n "${DB_HOST:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST}"
+ fi
+ if [[ -n "${DB_PORT:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT}"
+ fi
+
  local REMAINING_COUNT
- REMAINING_COUNT=$(psql -d "${DBNAME}" -t -c "
+ REMAINING_COUNT=$(${PSQL_CMD} -d "${DBNAME}" -t -c "
  SELECT COUNT(*) 
  FROM information_schema.tables 
  WHERE table_name LIKE '%_part_%';
@@ -106,7 +155,7 @@ function verify_cleanup() {
   return 0
  else
   log_warn "WARNING: ${REMAINING_COUNT} partition tables still exist"
-  psql -d "${DBNAME}" -c "
+  ${PSQL_CMD} -d "${DBNAME}" -c "
   SELECT table_name 
   FROM information_schema.tables 
   WHERE table_name LIKE '%_part_%' 
@@ -158,14 +207,21 @@ function cleanup() {
 
 # Show help
 function show_help() {
- echo "Usage: $0 <database_name>"
+ echo "Usage: $0 [database_name]"
  echo ""
  echo "This script removes all partition tables that might have been left behind"
  echo "after a cancelled or failed parallel processing operation."
  echo ""
  echo "Examples:"
- echo "  $0 osm_notes_test"
- echo "  $0 osm_notes_prod"
+ echo "  $0                    # Uses default database from properties"
+ echo "  $0 osm_notes_test     # Uses test database"
+ echo "  $0 osm_notes_prod     # Uses production database"
+ echo ""
+ echo "Database connection uses properties from etc/properties.sh:"
+ echo "  Default database: ${DBNAME:-not set}"
+ echo "  Database user: ${DB_USER:-not set}"
+ echo "  Database host: ${DB_HOST:-localhost}"
+ echo "  Database port: ${DB_PORT:-5432}"
  echo ""
  echo "The script will:"
  echo "  1. Check if the database exists"
@@ -180,20 +236,23 @@ function main() {
  trap cleanup EXIT
 
  # Check if database name is provided
- local DBNAME="${1:-}"
- if [[ -z "${DBNAME}" ]]; then
-  log_error "Database name is required"
-  show_help
-  exit 1
- fi
+ local DBNAME_PARAM="${1:-}"
 
  # Check for help flag
- if [[ "${DBNAME}" == "-h" || "${DBNAME}" == "--help" ]]; then
+ if [[ "${DBNAME_PARAM}" == "-h" || "${DBNAME_PARAM}" == "--help" ]]; then
   show_help
   exit 0
  fi
 
- log_info "Starting partition tables cleanup"
+ # Use parameter or default from properties
+ local DBNAME="${DBNAME_PARAM:-${DBNAME:-}}"
+ if [[ -z "${DBNAME}" ]]; then
+  log_error "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
+  show_help
+  exit 1
+ fi
+
+ log_info "Starting partition tables cleanup for database: ${DBNAME}"
 
  # Run cleanup
  if cleanup_partitions "${DBNAME}"; then
