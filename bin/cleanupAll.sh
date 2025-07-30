@@ -1,0 +1,285 @@
+#!/bin/bash
+
+# Comprehensive cleanup script for OSM-Notes-profile
+# This script removes all components from the database
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2025-07-27
+
+set -euo pipefail
+
+# Define required variables
+BASENAME="cleanupAll"
+TMP_DIR="/tmp/${BASENAME}_$$"
+mkdir -p "${TMP_DIR}"
+
+# Define script base directory
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Load common functions first (for logging)
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" ]]; then
+ # shellcheck source=commonFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+else
+ echo "ERROR: commonFunctions.sh not found"
+ exit 1
+fi
+
+# Load validation functions
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
+ # shellcheck source=validationFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+else
+ echo "ERROR: validationFunctions.sh not found"
+ exit 1
+fi
+
+# Simple logging functions
+function log_info() {
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
+}
+
+function log_error() {
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2 || true
+}
+
+function log_warn() {
+ echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*" || true
+}
+
+# Function to check if database exists
+function check_database() {
+ local DBNAME="${1}"
+
+ log_info "Checking if database exists: ${DBNAME}"
+
+ if psql -lqt | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
+  log_info "Database ${DBNAME} exists"
+  return 0
+ else
+  log_error "Database ${DBNAME} does not exist"
+  return 1
+ fi
+}
+
+# Function to execute SQL script with validation
+function execute_sql_script() {
+ local DBNAME="${1}"
+ local SCRIPT_PATH="${2}"
+ local SCRIPT_NAME="${3}"
+
+ log_info "Executing ${SCRIPT_NAME}: ${SCRIPT_PATH}"
+
+ # Validate SQL script using centralized validation
+ if ! __validate_sql_structure "${SCRIPT_PATH}"; then
+  log_error "ERROR: SQL script validation failed: ${SCRIPT_PATH}"
+  return 1
+ fi
+
+ if psql -d "${DBNAME}" -f "${SCRIPT_PATH}"; then
+  log_info "SUCCESS: ${SCRIPT_NAME} completed"
+  return 0
+ else
+  log_error "FAILED: ${SCRIPT_NAME} failed"
+  return 1
+ fi
+}
+
+# Function to cleanup ETL components
+function cleanup_etl() {
+ local DBNAME="${1}"
+
+ log_info "Cleaning up ETL components"
+
+ local ETL_SCRIPTS=(
+  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_dropDatamartObjects.sql:Countries Datamart"
+  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_dropDatamartObjects.sql:Users Datamart"
+  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_removeStagingObjects.sql:Staging Objects"
+  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_12_removeDatamartObjects.sql:Datamart Objects"
+  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql:DWH Objects"
+ )
+
+ for script_info in "${ETL_SCRIPTS[@]}"; do
+  IFS=':' read -r script_path script_name <<< "${script_info}"
+  if [[ -f "${script_path}" ]]; then
+   execute_sql_script "${DBNAME}" "${script_path}" "${script_name}"
+  else
+   log_warn "Script not found: ${script_path}"
+  fi
+ done
+}
+
+# Function to cleanup WMS components
+function cleanup_wms() {
+ local DBNAME="${1}"
+
+ log_info "Cleaning up WMS components"
+
+ local WMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/wms/removeFromDatabase.sql"
+ if [[ -f "${WMS_SCRIPT}" ]]; then
+  execute_sql_script "${DBNAME}" "${WMS_SCRIPT}" "WMS Components"
+ else
+  log_warn "WMS cleanup script not found: ${WMS_SCRIPT}"
+ fi
+}
+
+# Function to cleanup API tables first (to resolve enum dependencies)
+function cleanup_api_tables() {
+ local DBNAME="${1}"
+
+ log_info "Cleaning up API tables (to resolve enum dependencies)"
+
+ # Drop API tables directly with CASCADE to handle dependencies
+ local API_DROP_SQL="
+ DROP TABLE IF EXISTS note_comments_api CASCADE;
+ DROP TABLE IF EXISTS note_comments_api_part_1 CASCADE;
+ DROP TABLE IF EXISTS note_comments_api_part_2 CASCADE;
+ DROP TABLE IF EXISTS note_comments_api_part_3 CASCADE;
+ DROP TABLE IF EXISTS note_comments_api_part_4 CASCADE;
+ DROP TABLE IF EXISTS notes_api CASCADE;
+ DROP TABLE IF EXISTS notes_api_part_1 CASCADE;
+ DROP TABLE IF EXISTS notes_api_part_2 CASCADE;
+ DROP TABLE IF EXISTS notes_api_part_3 CASCADE;
+ DROP TABLE IF EXISTS notes_api_part_4 CASCADE;
+ "
+
+ if psql -d "${DBNAME}" -c "${API_DROP_SQL}"; then
+  log_info "SUCCESS: API tables dropped"
+  return 0
+ else
+  log_warn "WARNING: Some API tables may not have been dropped"
+  return 1
+ fi
+}
+
+# Function to cleanup base components
+function cleanup_base() {
+ local DBNAME="${1}"
+
+ log_info "Cleaning up base components"
+
+ # First clean up API tables to resolve enum dependencies
+ cleanup_api_tables "${DBNAME}"
+
+ local BASE_SCRIPTS=(
+  "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql:Check Tables"
+  "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql:Sync Tables"
+  "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql:Base Tables"
+  "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_14_dropCountryTables.sql:Country Tables"
+  "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql:Generic Objects"
+ )
+
+ for script_info in "${BASE_SCRIPTS[@]}"; do
+  IFS=':' read -r script_path script_name <<< "${script_info}"
+  if [[ -f "${script_path}" ]]; then
+   execute_sql_script "${DBNAME}" "${script_path}" "${script_name}"
+  else
+   log_warn "Script not found: ${script_path}"
+  fi
+ done
+}
+
+# Function to cleanup temporary files
+function cleanup_temp_files() {
+ log_info "Cleaning up temporary files"
+
+ # Remove process temporary directories
+ if [[ -d "/tmp" ]]; then
+  find /tmp -maxdepth 1 -name "process*" -type d -exec rm -rf {} + 2> /dev/null || true
+  log_info "Temporary process directories cleaned"
+ fi
+}
+
+# Main cleanup function
+function cleanup_all() {
+ local DBNAME="${1}"
+
+ log_info "Starting comprehensive cleanup for database: ${DBNAME}"
+
+ # Step 1: Check if database exists
+ if ! check_database "${DBNAME}"; then
+  return 1
+ fi
+
+ # Step 2: Cleanup ETL components
+ log_info "Step 1: Cleaning up ETL components"
+ cleanup_etl "${DBNAME}"
+
+ # Step 3: Cleanup WMS components
+ log_info "Step 2: Cleaning up WMS components"
+ cleanup_wms "${DBNAME}"
+
+ # Step 4: Cleanup base components
+ log_info "Step 3: Cleaning up base components"
+ cleanup_base "${DBNAME}"
+
+ # Step 5: Cleanup temporary files
+ log_info "Step 4: Cleaning up temporary files"
+ cleanup_temp_files
+
+ log_info "Comprehensive cleanup completed successfully"
+}
+
+# Cleanup function
+# shellcheck disable=SC2317
+function cleanup() {
+ if [[ -d "${TMP_DIR}" ]]; then
+  rm -rf "${TMP_DIR}"
+ fi
+}
+
+# Show help
+function show_help() {
+ echo "Usage: $0 <database_name>"
+ echo ""
+ echo "This script removes all components from the OSM-Notes-profile database."
+ echo "This includes ETL components, WMS components, base tables, and temporary files."
+ echo ""
+ echo "Examples:"
+ echo "  $0 notes"
+ echo "  $0 osm_notes_test"
+ echo "  $0 osm_notes_prod"
+ echo ""
+ echo "The script will:"
+ echo "  1. Check if the database exists"
+ echo "  2. Remove ETL components (datamarts, staging, DWH objects)"
+ echo "  3. Remove WMS components"
+ echo "  4. Remove base components (tables, functions, procedures)"
+ echo "  5. Clean up temporary files"
+ echo ""
+ echo "WARNING: This will permanently remove all data and components!"
+}
+
+# Main execution
+function main() {
+ # Set up cleanup trap
+ trap cleanup EXIT
+
+ # Check if database name is provided
+ local DBNAME="${1:-}"
+ if [[ -z "${DBNAME}" ]]; then
+  log_error "Database name is required"
+  show_help
+  exit 1
+ fi
+
+ # Check for help flag
+ if [[ "${DBNAME}" == "-h" || "${DBNAME}" == "--help" ]]; then
+  show_help
+  exit 0
+ fi
+
+ log_info "Starting comprehensive cleanup"
+
+ # Run cleanup
+ if cleanup_all "${DBNAME}"; then
+  log_info "Comprehensive cleanup completed successfully"
+  exit 0
+ else
+  log_error "Comprehensive cleanup failed"
+  exit 1
+ fi
+}
+
+# Execute main function
+main "$@"

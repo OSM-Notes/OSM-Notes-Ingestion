@@ -13,6 +13,18 @@ BASENAME="cleanupPartitions"
 TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 
+# Define script base directory
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Load validation functions
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
+ # shellcheck source=validationFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+else
+ echo "ERROR: validationFunctions.sh not found"
+ exit 1
+fi
+
 # Simple logging functions
 function log_info() {
  echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
