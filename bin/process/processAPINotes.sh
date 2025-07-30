@@ -296,48 +296,78 @@ function __createPropertiesTable {
  __log_finish
 }
 
-# Gets the new notes
 function __getNewNotesFromApi {
  __log_start
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
- # Gets the most recent value on the database.
- psql -d "${DBNAME}" -Atq \
-  -c "SELECT /* Notes-processAPI */ \
-      TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')
-     FROM max_note_timestamp" \
-  -v ON_ERROR_STOP=1 > "${TEMP_FILE}" 2> /dev/null
+ 
+ # Check network connectivity before proceeding
+ __logi "Checking network connectivity..."
+ if ! __check_network_connectivity 10; then
+  __loge "Network connectivity check failed"
+  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
+   "rm -f ${TEMP_FILE} 2>/dev/null || true"
+  return "${ERROR_INTERNET_ISSUE}"
+ fi
+ 
+ # Gets the most recent value on the database with retry logic
+ __logi "Retrieving last update from database..."
+ local db_operation="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
+ local cleanup_operation="rm -f ${TEMP_FILE} 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${db_operation}" 3 2 "${cleanup_operation}"; then
+  __loge "Failed to retrieve last update from database after retries"
+  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
+   "rm -f ${TEMP_FILE} 2>/dev/null || true"
+  return "${ERROR_NO_LAST_UPDATE}"
+ fi
+ 
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  rm "${TEMP_FILE}"
  __logw "Last update: ${LAST_UPDATE}."
  if [[ "${LAST_UPDATE}" == "" ]]; then
   __loge "No last update. Please load notes first."
-  exit "${ERROR_NO_LAST_UPDATE}"
+  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
+   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+  return "${ERROR_NO_LAST_UPDATE}"
  fi
 
- # Gets the values from OSM API.
+ # Gets the values from OSM API with enhanced error handling
  # shellcheck disable=SC2153
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
  __logt "${REQUEST}"
  __logw "Retrieving notes from API."
  local OUTPUT_WGET="${TMP_DIR}/${BASENAME}.wget.log"
- set +e
- wget -O "${API_NOTES_FILE}" "${REQUEST}" > "${OUTPUT_WGET}" 2>&1
- RET="${?}"
- set -e
+ 
+ # Use retry logic for API download
+ local download_operation="wget -O ${API_NOTES_FILE} ${REQUEST} > ${OUTPUT_WGET} 2>&1"
+ local download_cleanup="rm -f ${OUTPUT_WGET} 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${download_operation}" 3 5 "${download_cleanup}"; then
+  __loge "Failed to download API notes after retries"
+  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
+   "rm -f ${API_NOTES_FILE} ${OUTPUT_WGET} 2>/dev/null || true"
+  return "${ERROR_INTERNET_ISSUE}"
+ fi
+ 
+ # Check for specific network errors
  local HOST_API
  HOST_API="$(echo "${OSM_API}" | awk -F/ '{print $3}')"
  local QTY
  set +e
- QTY=$(grep -c "unable to resolve host address ‘${HOST_API}’" "${OUTPUT_WGET}")
+ QTY=$(grep -c "unable to resolve host address '${HOST_API}'" "${OUTPUT_WGET}")
  set -e
  rm "${OUTPUT_WGET}"
+ 
  if [[ "${QTY}" -eq 1 ]]; then
   __loge "API unreachable. Probably there are Internet issues."
   GENERATE_FAILED_FILE=false
-  RET="${ERROR_INTERNET_ISSUE}"
+  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API host resolution failed" \
+   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+  return "${ERROR_INTERNET_ISSUE}"
  fi
+ 
  __log_finish
- return "${RET}"
+ return 0
 }
 
 # Validates the XML file to be sure everything will work fine.

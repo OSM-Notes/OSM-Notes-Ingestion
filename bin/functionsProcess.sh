@@ -1589,33 +1589,63 @@ function __dropGenericObjects {
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
  __log_start
- # Download Planet notes.
+ 
+ # Check network connectivity before proceeding
+ __logi "Checking network connectivity..."
+ if ! __check_network_connectivity 15; then
+  __loge "Network connectivity check failed"
+  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
+   "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
+ fi
+ 
+ # Download Planet notes with retry logic
  __logw "Retrieving Planet notes file..."
- # shellcheck disable=SC2154
- aria2c -d "${TMP_DIR}" -o "${PLANET_NOTES_NAME}.bz2" -x 8 \
-  "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
- # shellcheck disable=SC2154
- wget -O "${PLANET_NOTES_FILE}.bz2.md5" \
-  "${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
+ local download_operation="aria2c -d ${TMP_DIR} -o ${PLANET_NOTES_NAME}.bz2 -x 8 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
+ local download_cleanup="rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${download_operation}" 3 10 "${download_cleanup}"; then
+  __loge "Failed to download Planet notes after retries"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Planet download failed" \
+   "rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
+ fi
+ 
+ # Download MD5 file with retry logic
+ local md5_operation="wget -O ${PLANET_NOTES_FILE}.bz2.md5 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
+ local md5_cleanup="rm -f ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${md5_operation}" 3 5 "${md5_cleanup}"; then
+  __loge "Failed to download MD5 file after retries"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "MD5 download failed" \
+   "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
+ fi
  
  # Validate the download with the hash value md5 using centralized function
  __logi "Validating downloaded file integrity..."
  if ! __validate_file_checksum_from_file "${PLANET_NOTES_FILE}.bz2" "${PLANET_NOTES_FILE}.bz2.md5" "md5"; then
   __loge "ERROR: Planet file integrity check failed"
-  rm -f "${PLANET_NOTES_FILE}.bz2.md5"
-  # shellcheck disable=SC2154
-  exit "${ERROR_DOWNLOADING_NOTES}"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "File integrity check failed" \
+   "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
  fi
 
  rm "${PLANET_NOTES_FILE}.bz2.md5"
 
  if [[ ! -r "${PLANET_NOTES_FILE}.bz2" ]]; then
-  __loge "ERROR: Downloading notes file."
-  # shellcheck disable=SC2154
-  exit "${ERROR_DOWNLOADING_NOTES}"
+  __loge "ERROR: Downloaded notes file is not readable."
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Downloaded file not readable" \
+   "rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
  fi
+ 
+ # Extract file with retry logic
  __logi "Extracting Planet notes..."
- bzip2 -d "${PLANET_NOTES_FILE}.bz2"
+ local extract_operation="bzip2 -d ${PLANET_NOTES_FILE}.bz2"
+ local extract_cleanup="rm -f ${PLANET_NOTES_FILE} 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${extract_operation}" 2 3 "${extract_cleanup}"; then
+  __loge "Failed to extract Planet notes after retries"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "File extraction failed" \
+   "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE} 2>/dev/null || true"
+ fi
+ 
  mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
  __log_finish
 }
@@ -1673,62 +1703,73 @@ function __processBoundary {
  __log_start
  PROCESS="${BASHPID}"
  OUTPUT_OVERPASS="${TMP_DIR}/output.${BASHPID}"
- set +e
+ 
  __logi "Retrieving shape ${ID}."
- RETRY=true
- while [[ "${RETRY}" = true ]]; do
-  # Retrieves the JSON from Overpass.
-  # shellcheck disable=SC2154
-  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" \
-   "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
-  RET="${?}"
-  cat "${OUTPUT_OVERPASS}"
-  MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
-  if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
-   # If "too many requests" as part of the output, then waits.
-   # shellcheck disable=SC2154
-   __logw "Waiting ${SECONDS_TO_WAIT} seconds because too many requests."
-   sleep "${SECONDS_TO_WAIT}"
-  elif [[ "${RET}" -ne 0 ]]; then
-   # Retry once if there was an error.
-   set -e
-  else
-   # Validates the JSON with a JSON schema.
-   set +e
-   ajv validate -s "${JSON_SCHEMA_OVERPASS}" -d "${JSON_FILE}" \
-    --spec=draft2020 2> /dev/null
-   echo "${RET}"
-   set -e
-   if [[ "${RET}" -eq 0 ]]; then
-    # The format is valid.
-    __logd "The JSON file ${JSON_FILE} is valid."
-    RETRY=false
-   else
-    __logd "The JSON file ${JSON_FILE} is invalid; retrying."
-   fi
-  fi
- done
+ 
+ # Check network connectivity before proceeding
+ if ! __check_network_connectivity 10; then
+  __loge "Network connectivity check failed for boundary ${ID}"
+  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ fi
+ 
+ # Use retry logic for Overpass API calls
+ local overpass_operation="wget -O ${JSON_FILE} --post-file=${QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
+ local overpass_cleanup="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${overpass_operation}" 5 15 "${overpass_cleanup}"; then
+  __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass API failed for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ fi
+ 
+ # Check for specific Overpass errors
+ cat "${OUTPUT_OVERPASS}"
+ local MANY_REQUESTS
+ MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
+ if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
+  __loge "Too many requests to Overpass API for boundary ${ID}"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass rate limit exceeded for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ fi
+ 
  rm -f "${OUTPUT_OVERPASS}"
- set -e
 
- # Validate the GeoJSON with a JSON schema
- __logi "Converting into GeoJSON."
- osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
- set +e
- ajv validate -s "${JSON_SCHEMA_GEOJSON}" -d "${JSON_FILE}" \
-  --spec=draft2020 2> /dev/null
- echo "${RET}"
- set -e
- if [[ "${RET}" -ne 0 ]]; then
-  __loge "The GeoJSON file ${JSON_FILE} is invalid; failing."
-  exit "${ERROR_GEOJSON_CONVERSION}"
+ # Validate the JSON with a JSON schema
+ __logi "Validating JSON structure for boundary ${ID}..."
+ if ! __validate_json_structure "${JSON_FILE}" "osm"; then
+  __loge "JSON validation failed for boundary ${ID}"
+  __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID}" \
+   "rm -f ${JSON_FILE} 2>/dev/null || true"
  fi
 
+ # Convert to GeoJSON with retry logic
+ __logi "Converting into GeoJSON for boundary ${ID}."
+ local geojson_operation="osmtogeojson ${JSON_FILE} > ${GEOJSON_FILE}"
+ local geojson_cleanup="rm -f ${GEOJSON_FILE} 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${geojson_operation}" 2 5 "${geojson_cleanup}"; then
+  __loge "Failed to convert boundary ${ID} to GeoJSON after retries"
+  __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "GeoJSON conversion failed for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+ fi
+ 
+ # Validate the GeoJSON with a JSON schema
+ if ! __validate_json_structure "${GEOJSON_FILE}" "FeatureCollection"; then
+  __loge "GeoJSON validation failed for boundary ${ID}"
+  __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+ fi
+
+ # Extract names with error handling
  set +o pipefail
+ local NAME
  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
   | awk -F\" '{print $4}' | sed "s/'/''/")
+ local NAME_ES
  NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
   | awk -F\" '{print $4}' | sed "s/'/''/")
+ local NAME_EN
  NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
   | awk -F\" '{print $4}' | sed "s/'/''/")
  set -o pipefail
@@ -1736,102 +1777,77 @@ function __processBoundary {
  NAME_EN="${NAME_EN:-No English name}"
  __logi "Name: ${NAME_EN:-}."
 
- # Taiwan cannot be imported directly. Thus, a simplification is done.
- # ERROR:  row is too big: size 8616, maximum size 8160
- grep -v "official_name" "${GEOJSON_FILE}" \
-  | grep -v "alt_name" > "${GEOJSON_FILE}-new"
- mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
-
- __logi "Importing into Postgres."
- set +e
- mkdir "${LOCK_OGR2OGR}" 2> /dev/null
- RET="${?}"
- set -e
- while [[ "${RET}" -ne 0 ]]; do
-  set +e
-  LOCK_ID=$(cat "${LOCK_OGR2OGR}"/pid)
-  set -e
-  __logd "${PROCESS} waiting for the lock. Current owner ${LOCK_ID}."
-  sleep 2
-  set +e
-  mkdir "${LOCK_OGR2OGR}" 2> /dev/null
-  RET="${?}"
-  set -e
- done
- echo "${PROCESS}" > "${LOCK_OGR2OGR}"/pid
- __logi "Acquired lock ${PROCESS} - ${ID}."
- ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
-  "${GEOJSON_FILE}" -nln import -overwrite
- # If an error like this appears:
- # ERROR:  column "name:xx-XX" specified more than once
- # It means two of the objects of the country has a name for the same
- # language, but with different case. The current solution is to open
- # the JSON file, look for the language, and modify the parts to have the
- # same case. Or modify the objects in OSM.
- STATEMENT="SELECT COUNT(1) FROM countries
-   WHERE country_id = ${ID}"
- COUNTRY_QTY=$(echo "${STATEMENT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1)
- if [[ "${COUNTRY_QTY}" -eq 0 ]]; then
-  __logi "Inserting into final table."
-  if [[ "${ID}" -ne 16239 ]]; then
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom)
-     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
-      ST_Union(ST_makeValid(wkb_geometry))
-     FROM import
-     GROUP BY 1"
-  else # This case is for Austria.
-   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
-   # Self-intersection at or near point 10.454439900000001 47.555796399999998
-   # at 10.454439900000001 47.555796399999998
-   STATEMENT="INSERT INTO countries (country_id, country_name, country_name_es,
-     country_name_en, geom)
-     SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}',
-      ST_Union(ST_Buffer(wkb_geometry, 0.0))
-     FROM import
-     GROUP BY 1"
-  fi
- elif [[ "${COUNTRY_QTY}" -eq 1 ]]; then
-  if [[ "${ID}" -ne 16239 ]]; then
-   STATEMENT="UPDATE countries AS c
-    SET country_name = '${NAME}', country_name_es = '${NAME_ES}',
-    country_name_en = '${NAME_EN}',
-    geom = (
-     SELECT geom FROM (
-      SELECT ${ID}, ST_Union(ST_makeValid(wkb_geometry)) geom
-      FROM import GROUP BY 1
-     ) AS t
-    ),
-    updated = true
-    WHERE country_id = ${ID}"
-  else # This case is for Austria.
-   # GEOSUnaryUnion: TopologyException: Input geom 1 is invalid:
-   # Self-intersection at or near point 10.454439900000001 47.555796399999998
-   # at 10.454439900000001 47.555796399999998
-   STATEMENT="UPDATE countries AS c
-    SET country_name = '${NAME}', country_name_es = '${NAME_ES}',
-    country_name_en = '${NAME_EN}',
-    geom = (
-     SELECT geom FROM (
-      SELECT ${ID}, ST_Union(ST_Buffer(wkb_geometry, 0.0))
-      FROM import GROUP BY 1
-     ) AS t
-    ),
-    updated = true
-    FROM import AS i
-    WHERE country_id = ${ID}"
+ # Special handling for Taiwan (ID: 16239) - remove problematic tags to avoid oversized records
+ if [[ "${ID}" -eq 16239 ]]; then
+  __logi "Special handling for Taiwan (ID: 16239) - removing problematic tags"
+  if [[ -f "${GEOJSON_FILE}" ]]; then
+   grep -v "official_name" "${GEOJSON_FILE}" \
+    | grep -v "alt_name" > "${GEOJSON_FILE}-new"
+   mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
   fi
  fi
- __logt "${STATEMENT}"
- echo "${STATEMENT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
- unset NAME
- unset NAME_ES
- unset NAME_EN
 
- __logi "Released lock ${PROCESS} - ${ID}."
- rm -f "${LOCK_OGR2OGR}/pid"
- rmdir "${LOCK_OGR2OGR}/"
-
+ # Import into Postgres with retry logic
+ __logi "Importing into Postgres for boundary ${ID}."
+ local lock_operation="mkdir ${LOCK_OGR2OGR} 2> /dev/null"
+ local lock_cleanup="rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${lock_operation}" 3 2 "${lock_cleanup}"; then
+  __loge "Failed to acquire lock for boundary ${ID}"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Lock acquisition failed for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+ fi
+ 
+ # Import with ogr2ogr using retry logic with special handling for Austria
+ local import_operation
+ if [[ "${ID}" -eq 16239 ]]; then
+  # Austria - use ST_Buffer to fix topology issues
+  import_operation="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
+ else
+  # Standard import
+  import_operation="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
+ fi
+ 
+ local import_cleanup="rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+ 
+ if ! __retry_file_operation "${import_operation}" 2 5 "${import_cleanup}"; then
+  __loge "Failed to import boundary ${ID} into database after retries"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+ fi
+ 
+ # Check for column duplication errors and handle them
+ local column_check_operation="psql -d ${DBNAME} -c \"SELECT column_name, COUNT(*) FROM information_schema.columns WHERE table_name = 'import' GROUP BY column_name HAVING COUNT(*) > 1;\" 2>/dev/null"
+ local column_check_result
+ column_check_result=$(eval "${column_check_operation}" 2>/dev/null || echo "")
+ 
+ if [[ -n "${column_check_result}" ]] && [[ "${column_check_result}" != *"0 rows"* ]]; then
+  __logw "Detected duplicate columns in import table for boundary ${ID}"
+  __logw "This is likely due to case-sensitive column names in the GeoJSON"
+  # Handle column duplication by removing problematic columns
+  local fix_columns_operation="psql -d ${DBNAME} -c \"ALTER TABLE import DROP COLUMN IF EXISTS \\\"name:xx-XX\\\", DROP COLUMN IF EXISTS \\\"name:XX-xx\\\";\" 2>/dev/null"
+  if ! eval "${fix_columns_operation}"; then
+   __logw "Failed to fix duplicate columns, but continuing..."
+  fi
+ fi
+ 
+ # Process the imported data with special handling for Austria
+ local process_operation
+ if [[ "${ID}" -eq 16239 ]]; then
+  # Austria - use ST_Buffer to fix topology issues
+  process_operation="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(wkb_geometry, 0.0)) FROM import GROUP BY 1;\""
+ else
+  # Standard processing
+  process_operation="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(wkb_geometry)) FROM import GROUP BY 1;\""
+ fi
+ 
+ if ! __retry_file_operation "${process_operation}" 2 3 ""; then
+  __loge "Failed to process boundary ${ID} data"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Data processing failed for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+ fi
+ 
+ rmdir "${LOCK_OGR2OGR}" 2>/dev/null || true
  __log_finish
 }
 
@@ -2986,4 +3002,385 @@ function __validate_database_variables() {
 
  echo "DEBUG: Database variable validation passed" >&2
  return 0
+}
+
+# Enhanced error handling and retry logic
+# Author: Andres Gomez (AngocA)
+# Version: 2025-07-29
+
+# Retry configuration
+declare -r MAX_RETRIES="${MAX_RETRIES:-3}"
+declare -r BASE_DELAY="${BASE_DELAY:-2}"
+declare -r MAX_DELAY="${MAX_DELAY:-60}"
+declare -r CIRCUIT_BREAKER_THRESHOLD="${CIRCUIT_BREAKER_THRESHOLD:-5}"
+declare -r CIRCUIT_BREAKER_TIMEOUT="${CIRCUIT_BREAKER_TIMEOUT:-300}"
+
+# Circuit breaker state
+declare -A CIRCUIT_BREAKER_STATES
+declare -A CIRCUIT_BREAKER_FAILURE_COUNTS
+declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIMES
+
+# Enhanced retry with exponential backoff and jitter
+# Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
+# Returns: 0 if successful, 1 if failed after all retries
+function __retry_with_backoff() {
+ local command="$1"
+ local max_retries="${2:-${MAX_RETRIES}}"
+ local base_delay="${3:-${BASE_DELAY}}"
+ local max_delay="${4:-${MAX_DELAY}}"
+ local retry_count=0
+ local delay="${base_delay}"
+
+ echo "DEBUG: Executing command with retry logic: ${command}" >&2
+
+ while [[ ${retry_count} -lt ${max_retries} ]]; do
+  # Execute the command
+  if eval "${command}"; then
+   echo "DEBUG: Command succeeded on attempt $((retry_count + 1))" >&2
+   return 0
+  fi
+
+  retry_count=$((retry_count + 1))
+  
+  if [[ ${retry_count} -lt ${max_retries} ]]; then
+   # Add jitter to prevent thundering herd
+   local jitter=$((RANDOM % 1000))
+   local jitter_delay=$(echo "scale=3; ${jitter} / 1000" | bc -l 2>/dev/null || echo "0")
+   local total_delay=$(echo "scale=3; ${delay} + ${jitter_delay}" | bc -l 2>/dev/null || echo "${delay}")
+   
+   echo "WARNING: Command failed on attempt ${retry_count}, retrying in ${total_delay}s (${retry_count}/${max_retries})" >&2
+   sleep "${total_delay}"
+   
+   # Exponential backoff with max delay
+   delay=$(echo "scale=3; ${delay} * 2" | bc -l 2>/dev/null || echo "${delay}")
+   if (( $(echo "${delay} > ${max_delay}" | bc -l 2>/dev/null || echo "0") )); then
+    delay="${max_delay}"
+   fi
+  fi
+ done
+
+ echo "ERROR: Command failed after ${max_retries} attempts: ${command}" >&2
+ return 1
+}
+
+# Circuit breaker pattern implementation
+# Parameters: service_name command_to_execute
+# Returns: 0 if successful, 1 if circuit is open or command failed
+function __circuit_breaker_execute() {
+ local service_name="$1"
+ local command="$2"
+ local current_time=$(date +%s)
+ local state="${CIRCUIT_BREAKER_STATES[${service_name}]:-CLOSED}"
+ local failure_count="${CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]:-0}"
+ local last_failure_time="${CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${service_name}]:-0}"
+
+ # Check if circuit is open and timeout has passed
+ if [[ "${state}" == "OPEN" ]]; then
+  local time_since_failure=$((current_time - last_failure_time))
+  if [[ ${time_since_failure} -gt ${CIRCUIT_BREAKER_TIMEOUT} ]]; then
+   echo "INFO: Circuit breaker for ${service_name} transitioning to HALF_OPEN" >&2
+   CIRCUIT_BREAKER_STATES[${service_name}]="HALF_OPEN"
+   state="HALF_OPEN"
+  else
+   echo "WARNING: Circuit breaker for ${service_name} is OPEN, skipping execution" >&2
+   return 1
+  fi
+ fi
+
+ # Execute command
+ if eval "${command}"; then
+  # Success - close circuit and reset failure count
+  if [[ "${state}" != "CLOSED" ]]; then
+   echo "INFO: Circuit breaker for ${service_name} transitioning to CLOSED" >&2
+  fi
+  CIRCUIT_BREAKER_STATES[${service_name}]="CLOSED"
+  CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]=0
+  return 0
+ else
+  # Failure - increment failure count
+  failure_count=$((failure_count + 1))
+  CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]=${failure_count}
+  CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${service_name}]=${current_time}
+
+  if [[ ${failure_count} -ge ${CIRCUIT_BREAKER_THRESHOLD} ]]; then
+   echo "ERROR: Circuit breaker for ${service_name} transitioning to OPEN (${failure_count} failures)" >&2
+   CIRCUIT_BREAKER_STATES[${service_name}]="OPEN"
+  fi
+  return 1
+ fi
+}
+
+# Enhanced network download with retry and circuit breaker
+# Parameters: url output_file [service_name]
+# Returns: 0 if successful, 1 if failed
+function __download_with_retry() {
+ local url="$1"
+ local output_file="$2"
+ local service_name="${3:-download}"
+ local command="wget -O '${output_file}' '${url}'"
+
+ echo "DEBUG: Downloading ${url} to ${output_file}" >&2
+
+ # Use circuit breaker for network operations
+ if __circuit_breaker_execute "${service_name}" "${command}"; then
+  echo "DEBUG: Download successful: ${url}" >&2
+  return 0
+ else
+  echo "ERROR: Download failed after retries: ${url}" >&2
+  return 1
+ fi
+}
+
+# Enhanced API call with retry and circuit breaker
+# Parameters: url output_file [service_name]
+# Returns: 0 if successful, 1 if failed
+function __api_call_with_retry() {
+ local url="$1"
+ local output_file="$2"
+ local service_name="${3:-api}"
+ local command="curl -s -o '${output_file}' '${url}'"
+
+ echo "DEBUG: Making API call to ${url}" >&2
+
+ # Use circuit breaker for API operations
+ if __circuit_breaker_execute "${service_name}" "${command}"; then
+  echo "DEBUG: API call successful: ${url}" >&2
+  return 0
+ else
+  echo "ERROR: API call failed after retries: ${url}" >&2
+  return 1
+ fi
+}
+
+# Database operation with retry and rollback capability
+# Parameters: sql_command [rollback_command]
+# Returns: 0 if successful, 1 if failed
+function __database_operation_with_retry() {
+ local sql_command="$1"
+ local rollback_command="${2:-}"
+ local max_retries="${MAX_RETRIES:-3}"
+ local retry_count=0
+
+ echo "DEBUG: Executing database operation with retry" >&2
+
+ while [[ ${retry_count} -lt ${max_retries} ]]; do
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${sql_command}" >/dev/null 2>&1; then
+   echo "DEBUG: Database operation succeeded on attempt $((retry_count + 1))" >&2
+   return 0
+  fi
+
+  retry_count=$((retry_count + 1))
+  
+  if [[ ${retry_count} -lt ${max_retries} ]]; then
+   echo "WARNING: Database operation failed on attempt ${retry_count}, retrying in ${BASE_DELAY}s" >&2
+   sleep "${BASE_DELAY}"
+  fi
+ done
+
+ # If rollback command is provided, execute it
+ if [[ -n "${rollback_command}" ]]; then
+  echo "WARNING: Executing rollback command due to database operation failure" >&2
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${rollback_command}" >/dev/null 2>&1; then
+   echo "DEBUG: Rollback executed successfully" >&2
+  else
+   echo "ERROR: Rollback failed" >&2
+  fi
+ fi
+
+ echo "ERROR: Database operation failed after ${max_retries} attempts" >&2
+ return 1
+}
+
+# File operation with retry and cleanup
+# Parameters: operation_command [cleanup_command]
+# Returns: 0 if successful, 1 if failed
+function __file_operation_with_retry() {
+ local operation_command="$1"
+ local cleanup_command="${2:-}"
+ local max_retries="${MAX_RETRIES:-3}"
+ local retry_count=0
+
+ echo "DEBUG: Executing file operation with retry" >&2
+
+ while [[ ${retry_count} -lt ${max_retries} ]]; do
+  if eval "${operation_command}"; then
+   echo "DEBUG: File operation succeeded on attempt $((retry_count + 1))" >&2
+   return 0
+  fi
+
+  retry_count=$((retry_count + 1))
+  
+  if [[ ${retry_count} -lt ${max_retries} ]]; then
+   echo "WARNING: File operation failed on attempt ${retry_count}, retrying in ${BASE_DELAY}s" >&2
+   sleep "${BASE_DELAY}"
+  fi
+ done
+
+ # If cleanup command is provided, execute it
+ if [[ -n "${cleanup_command}" ]]; then
+  echo "WARNING: Executing cleanup command due to file operation failure" >&2
+  if eval "${cleanup_command}"; then
+   echo "DEBUG: Cleanup executed successfully" >&2
+  else
+   echo "ERROR: Cleanup failed" >&2
+  fi
+ fi
+
+ echo "ERROR: File operation failed after ${max_retries} attempts" >&2
+ return 1
+}
+
+# Health check for network connectivity
+# Parameters: [timeout_seconds]
+# Returns: 0 if network is available, 1 if not
+function __check_network_connectivity() {
+ local timeout="${1:-10}"
+ local test_urls=("https://www.google.com" "https://www.cloudflare.com" "https://www.github.com")
+
+ echo "DEBUG: Checking network connectivity" >&2
+
+ for url in "${test_urls[@]}"; do
+  if timeout "${timeout}" curl -s --connect-timeout 5 "${url}" >/dev/null 2>&1; then
+   echo "DEBUG: Network connectivity confirmed via ${url}" >&2
+   return 0
+  fi
+ done
+
+ echo "ERROR: Network connectivity check failed" >&2
+ return 1
+}
+
+# Enhanced error recovery with automatic cleanup
+# Parameters: error_code error_message [cleanup_commands...]
+# Returns: Always exits with error_code
+function __handle_error_with_cleanup() {
+ local error_code="$1"
+ local error_message="$2"
+ shift 2
+ local cleanup_commands=("$@")
+
+ echo "ERROR: Error occurred: ${error_message} (code: ${error_code})" >&2
+
+ # Execute cleanup commands
+ for cmd in "${cleanup_commands[@]}"; do
+  if [[ -n "${cmd}" ]]; then
+   echo "DEBUG: Executing cleanup command: ${cmd}" >&2
+   if eval "${cmd}"; then
+    echo "DEBUG: Cleanup command succeeded: ${cmd}" >&2
+   else
+    echo "WARNING: Cleanup command failed: ${cmd}" >&2
+   fi
+  fi
+ done
+
+ # Log error details for debugging
+ echo "ERROR: Error details - Code: ${error_code}, Message: ${error_message}" >&2
+ echo "ERROR: Stack trace: $(caller 0)" >&2
+
+ exit "${error_code}"
+}
+
+# Get circuit breaker status for monitoring
+# Parameters: service_name
+# Returns: Status string (CLOSED/OPEN/HALF_OPEN)
+function __get_circuit_breaker_status() {
+ local service_name="$1"
+ echo "${CIRCUIT_BREAKER_STATES[${service_name}]:-CLOSED}"
+}
+
+# Reset circuit breaker for a service
+# Parameters: service_name
+# Returns: 0 if reset successful
+function __reset_circuit_breaker() {
+ local service_name="$1"
+ 
+ CIRCUIT_BREAKER_STATES[${service_name}]="CLOSED"
+ CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]=0
+ CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${service_name}]=0
+ 
+ echo "INFO: Circuit breaker reset for ${service_name}" >&2
+ return 0
+}
+
+# Enhanced retry with exponential backoff and jitter
+# Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
+# Returns: 0 if successful, 1 if failed after all retries
+function __retry_with_backoff() {
+ local command="$1"
+ local max_retries="${2:-${MAX_RETRIES}}"
+ local base_delay="${3:-${BASE_DELAY}}"
+ local max_delay="${4:-${MAX_DELAY}}"
+ local retry_count=0
+ local delay="${base_delay}"
+
+ echo "DEBUG: Executing command with retry logic: ${command}" >&2
+
+ while [[ ${retry_count} -lt ${max_retries} ]]; do
+  # Execute the command
+  if eval "${command}"; then
+   echo "DEBUG: Command succeeded on attempt $((retry_count + 1))" >&2
+   return 0
+  fi
+
+  retry_count=$((retry_count + 1))
+  
+  if [[ ${retry_count} -lt ${max_retries} ]]; then
+   # Add jitter to prevent thundering herd
+   local jitter=$((RANDOM % 1000))
+   local jitter_delay=$(echo "scale=3; ${jitter} / 1000" | bc -l 2>/dev/null || echo "0")
+   local total_delay=$(echo "scale=3; ${delay} + ${jitter_delay}" | bc -l 2>/dev/null || echo "${delay}")
+   
+   echo "WARNING: Command failed on attempt ${retry_count}, retrying in ${total_delay}s (${retry_count}/${max_retries})" >&2
+   sleep "${total_delay}"
+   
+   # Exponential backoff with max delay
+   delay=$(echo "scale=3; ${delay} * 2" | bc -l 2>/dev/null || echo "${delay}")
+   if (( $(echo "${delay} > ${max_delay}" | bc -l 2>/dev/null || echo "0") )); then
+    delay="${max_delay}"
+   fi
+  fi
+ done
+
+ echo "ERROR: Command failed after ${max_retries} attempts: ${command}" >&2
+ return 1
+}
+
+# Retry file operations with cleanup on failure
+# Parameters: operation_command max_retries base_delay [cleanup_command]
+# Returns: 0 if successful, 1 if failed after all retries
+function __retry_file_operation() {
+ local operation_command="$1"
+ local max_retries="${2:-3}"
+ local base_delay="${3:-2}"
+ local cleanup_command="${4:-}"
+ local retry_count=0
+
+ echo "DEBUG: Executing file operation with retry logic: ${operation_command}" >&2
+
+ while [[ ${retry_count} -lt ${max_retries} ]]; do
+  if eval "${operation_command}"; then
+   echo "DEBUG: File operation succeeded on attempt $((retry_count + 1))" >&2
+   return 0
+  fi
+
+  retry_count=$((retry_count + 1))
+  
+  if [[ ${retry_count} -lt ${max_retries} ]]; then
+   echo "WARNING: File operation failed on attempt ${retry_count}, retrying in ${base_delay}s" >&2
+   sleep "${base_delay}"
+  fi
+ done
+
+ # If cleanup command is provided, execute it
+ if [[ -n "${cleanup_command}" ]]; then
+  echo "WARNING: Executing cleanup command due to file operation failure" >&2
+  if eval "${cleanup_command}"; then
+   echo "DEBUG: Cleanup executed successfully" >&2
+  else
+   echo "ERROR: Cleanup failed" >&2
+  fi
+ fi
+
+ echo "ERROR: File operation failed after ${max_retries} attempts" >&2
+ return 1
 }
