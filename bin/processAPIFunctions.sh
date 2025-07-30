@@ -74,47 +74,47 @@ function __splitXmlForParallelAPI() {
  mkdir -p "${output_dir}"
 
  # Count total notes
- local total_notes
- total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
+ local TOTAL_NOTES
+ TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
 
- if [[ "${total_notes}" -eq 0 ]]; then
+ if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
   return 0
  fi
 
  # Calculate notes per part
- local notes_per_part
- notes_per_part=$((total_notes / num_parts))
- if [[ $((total_notes % num_parts)) -gt 0 ]]; then
-  notes_per_part=$((notes_per_part + 1))
+ local NOTES_PER_PART
+ NOTES_PER_PART=$((TOTAL_NOTES / num_parts))
+ if [[ $((TOTAL_NOTES % num_parts)) -gt 0 ]]; then
+  NOTES_PER_PART=$((NOTES_PER_PART + 1))
  fi
 
- __logi "Splitting ${total_notes} notes into ${num_parts} parts (${notes_per_part} notes per part)."
+ __logi "Splitting ${TOTAL_NOTES} notes into ${num_parts} parts (${NOTES_PER_PART} notes per part)."
 
  # Split XML file
  for ((i = 0; i < num_parts; i++)); do
-  local start_pos=$((i * notes_per_part + 1))
-  local end_pos=$(((i + 1) * notes_per_part))
+  local START_POS=$((i * NOTES_PER_PART + 1))
+  local END_POS=$(((i + 1) * NOTES_PER_PART))
 
-  if [[ "${end_pos}" -gt "${total_notes}" ]]; then
-   end_pos="${total_notes}"
+  if [[ "${END_POS}" -gt "${TOTAL_NOTES}" ]]; then
+   END_POS="${TOTAL_NOTES}"
   fi
 
-  if [[ "${start_pos}" -le "${total_notes}" ]]; then
-   local output_file="${output_dir}/api_part_${i}.xml"
+  if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
+   local OUTPUT_FILE="${output_dir}/api_part_${i}.xml"
 
    # Create XML wrapper
-   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${output_file}"
-   echo '<osm-notes>' >> "${output_file}"
+   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
+   echo '<osm-notes>' >> "${OUTPUT_FILE}"
 
    # Extract notes for this part
-   for ((j = start_pos; j <= end_pos; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${output_file}" || true
+   for ((j = START_POS; j <= END_POS; j++)); do
+    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${OUTPUT_FILE}" || true
    done
 
-   echo '</osm-notes>' >> "${output_file}"
+   echo '</osm-notes>' >> "${OUTPUT_FILE}"
 
-   __logd "Created part ${i}: ${output_file} (notes ${start_pos}-${end_pos})"
+   __logd "Created part ${i}: ${OUTPUT_FILE} (notes ${START_POS}-${END_POS})"
   fi
  done
 

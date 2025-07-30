@@ -91,22 +91,22 @@ function __validate_csv_structure() {
  fi
 
  # Check if file has header
- local first_line
- first_line=$(head -n 1 "${csv_file}" 2> /dev/null)
- if [[ -z "${first_line}" ]]; then
+ local FIRST_LINE
+ FIRST_LINE=$(head -n 1 "${csv_file}" 2> /dev/null)
+ if [[ -z "${FIRST_LINE}" ]]; then
   __loge "ERROR: CSV file has no header: ${csv_file}"
   return 1
  fi
 
  # Validate expected columns if provided
  if [[ -n "${expected_columns}" ]]; then
-  local column_count
-  column_count=$(echo "${first_line}" | tr ',' '\n' | wc -l)
-  local expected_count
-  expected_count=$(echo "${expected_columns}" | tr ',' '\n' | wc -l)
+  local COLUMN_COUNT
+  COLUMN_COUNT=$(echo "${FIRST_LINE}" | tr ',' '\n' | wc -l)
+  local EXPECTED_COUNT
+  EXPECTED_COUNT=$(echo "${expected_columns}" | tr ',' '\n' | wc -l)
 
-  if [[ "${column_count}" -ne "${expected_count}" ]]; then
-   __loge "ERROR: CSV column count mismatch. Expected: ${expected_count}, Found: ${column_count}"
+  if [[ "${COLUMN_COUNT}" -ne "${EXPECTED_COUNT}" ]]; then
+   __loge "ERROR: CSV column count mismatch. Expected: ${EXPECTED_COUNT}, Found: ${COLUMN_COUNT}"
    return 1
   fi
  fi

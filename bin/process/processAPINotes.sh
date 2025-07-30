@@ -121,7 +121,6 @@ declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
 
 # Location of the common functions.
 
-
 # Error codes are already defined in functionsProcess.sh
 
 # Output files for processing
@@ -299,7 +298,7 @@ function __createPropertiesTable {
 function __getNewNotesFromApi {
  __log_start
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
- 
+
  # Check network connectivity before proceeding
  __logi "Checking network connectivity..."
  if ! __check_network_connectivity 10; then
@@ -308,19 +307,19 @@ function __getNewNotesFromApi {
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
   return "${ERROR_INTERNET_ISSUE}"
  fi
- 
+
  # Gets the most recent value on the database with retry logic
  __logi "Retrieving last update from database..."
  local db_operation="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
  local cleanup_operation="rm -f ${TEMP_FILE} 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${db_operation}" 3 2 "${cleanup_operation}"; then
   __loge "Failed to retrieve last update from database after retries"
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
   return "${ERROR_NO_LAST_UPDATE}"
  fi
- 
+
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  rm "${TEMP_FILE}"
  __logw "Last update: ${LAST_UPDATE}."
@@ -337,18 +336,18 @@ function __getNewNotesFromApi {
  __logt "${REQUEST}"
  __logw "Retrieving notes from API."
  local OUTPUT_WGET="${TMP_DIR}/${BASENAME}.wget.log"
- 
+
  # Use retry logic for API download
  local download_operation="wget -O ${API_NOTES_FILE} ${REQUEST} > ${OUTPUT_WGET} 2>&1"
  local download_cleanup="rm -f ${OUTPUT_WGET} 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${download_operation}" 3 5 "${download_cleanup}"; then
   __loge "Failed to download API notes after retries"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
    "rm -f ${API_NOTES_FILE} ${OUTPUT_WGET} 2>/dev/null || true"
   return "${ERROR_INTERNET_ISSUE}"
  fi
- 
+
  # Check for specific network errors
  local HOST_API
  HOST_API="$(echo "${OSM_API}" | awk -F/ '{print $3}')"
@@ -357,7 +356,7 @@ function __getNewNotesFromApi {
  QTY=$(grep -c "unable to resolve host address '${HOST_API}'" "${OUTPUT_WGET}")
  set -e
  rm "${OUTPUT_WGET}"
- 
+
  if [[ "${QTY}" -eq 1 ]]; then
   __loge "API unreachable. Probably there are Internet issues."
   GENERATE_FAILED_FILE=false
@@ -365,7 +364,7 @@ function __getNewNotesFromApi {
    "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
   return "${ERROR_INTERNET_ISSUE}"
  fi
- 
+
  __log_finish
  return 0
 }
@@ -395,7 +394,7 @@ function __validateApiNotesXMLFileComplete {
 
  # Validate XML structure against schema
  __logi "Validating XML structure against schema..."
- if ! xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" 2>/dev/null; then
+ if ! xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" 2> /dev/null; then
   __loge "ERROR: XML structure validation failed: ${API_NOTES_FILE}"
   exit "${ERROR_DATA_VALIDATION}"
  fi

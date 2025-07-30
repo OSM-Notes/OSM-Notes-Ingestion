@@ -150,10 +150,10 @@ create_workspace() {
  }"
 
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -X POST \
-   -H "Content-Type: application/json" \
-   -d "${workspace_data}" \
-   "${GEOSERVER_URL}/rest/workspaces" &> /dev/null; then
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d "${workspace_data}" \
+  "${GEOSERVER_URL}/rest/workspaces" &> /dev/null; then
   print_status "${GREEN}" "✅ Workspace '${GEOSERVER_WORKSPACE}' created"
  else
   print_status "${YELLOW}" "⚠️  Workspace may already exist or creation failed"
@@ -173,10 +173,10 @@ create_namespace() {
  }"
 
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -X POST \
-   -H "Content-Type: application/json" \
-   -d "${namespace_data}" \
-   "${GEOSERVER_URL}/rest/namespaces" &> /dev/null; then
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d "${namespace_data}" \
+  "${GEOSERVER_URL}/rest/namespaces" &> /dev/null; then
   print_status "${GREEN}" "✅ Namespace '${GEOSERVER_WORKSPACE}' created"
  else
   print_status "${YELLOW}" "⚠️  Namespace may already exist or creation failed"
@@ -210,10 +210,10 @@ create_datastore() {
  local datastore_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores"
 
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -X POST \
-   -H "Content-Type: application/json" \
-   -d "${datastore_data}" \
-   "${datastore_url}" &> /dev/null; then
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d "${datastore_data}" \
+  "${datastore_url}" &> /dev/null; then
   print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' created"
  else
   print_status "${RED}" "❌ ERROR: Failed to create datastore"
@@ -253,10 +253,10 @@ create_feature_type() {
  local feature_type_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes"
 
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -X POST \
-   -H "Content-Type: application/json" \
-   -d "${feature_type_data}" \
-   "${feature_type_url}" &> /dev/null; then
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d "${feature_type_data}" \
+  "${feature_type_url}" &> /dev/null; then
   print_status "${GREEN}" "✅ Feature type '${GEOSERVER_LAYER}' created"
  else
   print_status "${RED}" "❌ ERROR: Failed to create feature type"
@@ -277,10 +277,10 @@ upload_style() {
 
  # Upload SLD file
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -X POST \
-   -H "Content-Type: application/vnd.ogc.sld+xml" \
-   -d "@${sld_file}" \
-   "${GEOSERVER_URL}/rest/styles" &> /dev/null; then
+  -X POST \
+  -H "Content-Type: application/vnd.ogc.sld+xml" \
+  -d "@${sld_file}" \
+  "${GEOSERVER_URL}/rest/styles" &> /dev/null; then
   print_status "${GREEN}" "✅ Style '${style_name}' uploaded"
  else
   print_status "${YELLOW}" "⚠️  Style upload failed or already exists"
@@ -296,10 +296,10 @@ upload_style() {
  }"
 
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -X PUT \
-   -H "Content-Type: application/json" \
-   -d "${layer_style_data}" \
-   "${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}" &> /dev/null; then
+  -X PUT \
+  -H "Content-Type: application/json" \
+  -d "${layer_style_data}" \
+  "${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}" &> /dev/null; then
   print_status "${GREEN}" "✅ Style assigned to layer"
  else
   print_status "${YELLOW}" "⚠️  Style assignment failed"
@@ -378,7 +378,7 @@ show_status() {
  local layer_url="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${layer_url}" &> /dev/null; then
   print_status "${GREEN}" "✅ Layer '${GEOSERVER_LAYER}' exists"
-  
+
   # Show WMS URL
   local wms_url="${GEOSERVER_URL}/wms"
   print_status "${BLUE}" "🌐 WMS Service URL: ${wms_url}"
@@ -452,42 +452,42 @@ parse_arguments() {
 
  while [[ $# -gt 0 ]]; do
   case $1 in
-   --force)
-    FORCE="true"
-    shift
-    ;;
-   --dry-run)
-    DRY_RUN="true"
-    shift
-    ;;
-   --verbose)
-    VERBOSE="true"
-    shift
-    ;;
-   --geoserver-home)
-    GEOSERVER_HOME="$2"
-    shift 2
-    ;;
-   --geoserver-url)
-    GEOSERVER_URL="$2"
-    shift 2
-    ;;
-   --geoserver-user)
-    GEOSERVER_USER="$2"
-    shift 2
-    ;;
-   --geoserver-pass)
-    GEOSERVER_PASSWORD="$2"
-    shift 2
-    ;;
-   --help|-h)
-    show_help
-    exit 0
-    ;;
-   *)
-    COMMAND="$1"
-    shift
-    ;;
+  --force)
+   FORCE="true"
+   shift
+   ;;
+  --dry-run)
+   DRY_RUN="true"
+   shift
+   ;;
+  --verbose)
+   VERBOSE="true"
+   shift
+   ;;
+  --geoserver-home)
+   GEOSERVER_HOME="$2"
+   shift 2
+   ;;
+  --geoserver-url)
+   GEOSERVER_URL="$2"
+   shift 2
+   ;;
+  --geoserver-user)
+   GEOSERVER_USER="$2"
+   shift 2
+   ;;
+  --geoserver-pass)
+   GEOSERVER_PASSWORD="$2"
+   shift 2
+   ;;
+  --help | -h)
+   show_help
+   exit 0
+   ;;
+  *)
+   COMMAND="$1"
+   shift
+   ;;
   esac
  done
 }
@@ -503,27 +503,27 @@ main() {
  fi
 
  case "${COMMAND:-}" in
-  install)
-   validate_prerequisites
-   install_geoserver_config
-   ;;
-  configure)
-   configure_geoserver
-   ;;
-  status)
-   show_status
-   ;;
-  remove)
-   remove_geoserver_config
-   ;;
-  help)
-   show_help
-   ;;
-  *)
-   print_status "${RED}" "❌ ERROR: Unknown command '${COMMAND:-}'"
-   print_status "${YELLOW}" "💡 Use '$0 help' for usage information"
-   exit 1
-   ;;
+ install)
+  validate_prerequisites
+  install_geoserver_config
+  ;;
+ configure)
+  configure_geoserver
+  ;;
+ status)
+  show_status
+  ;;
+ remove)
+  remove_geoserver_config
+  ;;
+ help)
+  show_help
+  ;;
+ *)
+  print_status "${RED}" "❌ ERROR: Unknown command '${COMMAND:-}'"
+  print_status "${YELLOW}" "💡 Use '$0 help' for usage information"
+  exit 1
+  ;;
  esac
 }
 
@@ -531,4 +531,3 @@ main() {
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  main "$@"
 fi
-

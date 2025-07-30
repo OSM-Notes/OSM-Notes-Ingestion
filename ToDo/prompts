@@ -9,6 +9,11 @@ por otros scripts, o inclusive por todos los scripts, podrías crear otro archiv
 
 
 
+
+En el trapon, no estás agregando el directorio de ejecución. Esto es bueno para identificar los archivos.
+El trapon esetá devolviendo código de error? ERROR_GENERAL?
+
+
 Veo que el nuevo código generado no está cumpliendo con el estándar de variables y constantes en bash en mayúsculas.
 
 

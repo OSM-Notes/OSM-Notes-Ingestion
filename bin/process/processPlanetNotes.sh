@@ -268,7 +268,6 @@ declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 
 # Location of the common functions.
 
-
 # XSLT transformation files for Planet format (used by parallel processing).
 declare -r XSLT_NOTES_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
 declare -r XSLT_NOTE_COMMENTS_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
@@ -347,7 +346,7 @@ function __checkPrereqs {
 
  ## Validate SQL script files using centralized validation
  __logi "Validating SQL script files..."
- 
+
  # Create array of SQL files to validate
  local sql_files=(
   "${POSTGRES_11_DROP_SYNC_TABLES}"
@@ -396,25 +395,25 @@ function __checkPrereqs {
   __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate XSLT files
  __logi "Validating XSLT files..."
  if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
   __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
-  
-  # Validate dates in XML files if they exist
-  __logi "Validating dates in XML files..."
-  if [[ -f "${PLANET_NOTES_FILE}" ]]; then
-   if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
-    __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
-    exit "${ERROR_MISSING_LIBRARY}"
-   fi
-  fi
 
-  # CSV files are generated during processing, no need to validate them here
-  # as they will be created by __processPlanetXmlPart function
+ # Validate dates in XML files if they exist
+ __logi "Validating dates in XML files..."
+ if [[ -f "${PLANET_NOTES_FILE}" ]]; then
+  if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
+   __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+ fi
+
+ # CSV files are generated during processing, no need to validate them here
+ # as they will be created by __processPlanetXmlPart function
 
  ## Validate JSON schema files
  __logi "Validating JSON schema files..."
@@ -676,7 +675,7 @@ function __validatePlanetNotesXMLFileComplete {
 
  # Validate XML structure against schema
  __logi "Validating XML structure against schema..."
- if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml" 2>/dev/null; then
+ if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml" 2> /dev/null; then
   __loge "ERROR: XML structure validation failed: ${PLANET_NOTES_FILE}.xml"
   exit "${ERROR_DATA_VALIDATION}"
  fi
@@ -777,7 +776,7 @@ function main() {
   fi
  fi
  if [[ "${PROCESS_TYPE}" == "" ]]; then
-  __downloadPlanetNotes        # sync
+  __downloadPlanetNotes                # sync
   __validatePlanetNotesXMLFileComplete # sync
   # Count notes in XML file
   __countXmlNotesPlanet "${PLANET_NOTES_FILE}.xml"

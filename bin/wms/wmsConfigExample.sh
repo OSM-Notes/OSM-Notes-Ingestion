@@ -283,14 +283,14 @@ EOF
 parse_arguments() {
  while [[ $# -gt 0 ]]; do
   case $1 in
-   --help|-h)
-    show_help
-    exit 0
-    ;;
-   *)
-    COMMAND="$1"
-    shift
-    ;;
+  --help | -h)
+   show_help
+   exit 0
+   ;;
+  *)
+   COMMAND="$1"
+   shift
+   ;;
   esac
  done
 }
@@ -301,30 +301,30 @@ main() {
  parse_arguments "$@"
 
  case "${COMMAND:-}" in
-  show-config)
-   show_current_config
-   ;;
-  validate)
-   validate_properties
-   ;;
-  test-connection)
-   test_connections
-   ;;
-  customize)
-   show_customization_examples
-   ;;
-  help)
-   show_help
-   ;;
-  *)
-   print_status "${RED}" "❌ ERROR: Unknown command '${COMMAND:-}'"
-   print_status "${YELLOW}" "💡 Use '$0 help' for usage information"
-   exit 1
-   ;;
+ show-config)
+  show_current_config
+  ;;
+ validate)
+  validate_properties
+  ;;
+ test-connection)
+  test_connections
+  ;;
+ customize)
+  show_customization_examples
+  ;;
+ help)
+  show_help
+  ;;
+ *)
+  print_status "${RED}" "❌ ERROR: Unknown command '${COMMAND:-}'"
+  print_status "${YELLOW}" "💡 Use '$0 help' for usage information"
+  exit 1
+  ;;
  esac
 }
 
 # Run main function if script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  main "$@"
-fi 
+fi

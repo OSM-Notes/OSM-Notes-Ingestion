@@ -108,13 +108,13 @@ function __processXmlPartsParallel() {
  local processed=0
 
  for xml_file in "${xml_files[@]}"; do
-  local base_name
-  base_name=$(basename "${xml_file}" .xml)
-  local output_file="${output_dir}/${base_name}.csv"
+  local BASE_NAME
+  BASE_NAME=$(basename "${xml_file}" .xml)
+  local OUTPUT_FILE="${output_dir}/${BASE_NAME}.csv"
 
   # Process XML file
-  if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2>/dev/null; then
-   __logd "Successfully processed: ${xml_file} -> ${output_file}"
+  if xsltproc "${xslt_file}" "${xml_file}" > "${OUTPUT_FILE}" 2> /dev/null; then
+   __logd "Successfully processed: ${xml_file} -> ${OUTPUT_FILE}"
    ((processed++))
   else
    __loge "ERROR: Failed to process: ${xml_file}"
@@ -154,47 +154,47 @@ function __splitXmlForParallelSafe() {
  mkdir -p "${output_dir}"
 
  # Count total notes
- local total_notes
- total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2>/dev/null || echo "0")
+ local TOTAL_NOTES
+ TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
 
- if [[ "${total_notes}" -eq 0 ]]; then
+ if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
   return 0
  fi
 
  # Calculate notes per part
- local notes_per_part
- notes_per_part=$((total_notes / num_parts))
- if [[ $((total_notes % num_parts)) -gt 0 ]]; then
-  notes_per_part=$((notes_per_part + 1))
+ local NOTES_PER_PART
+ NOTES_PER_PART=$((TOTAL_NOTES / num_parts))
+ if [[ $((TOTAL_NOTES % num_parts)) -gt 0 ]]; then
+  NOTES_PER_PART=$((NOTES_PER_PART + 1))
  fi
 
- __logi "Splitting ${total_notes} notes into ${num_parts} parts (${notes_per_part} notes per part)."
+ __logi "Splitting ${TOTAL_NOTES} notes into ${num_parts} parts (${NOTES_PER_PART} notes per part)."
 
  # Split XML file safely
- for ((i=0; i<num_parts; i++)); do
-  local start_pos=$((i * notes_per_part + 1))
-  local end_pos=$(((i + 1) * notes_per_part))
-  
-  if [[ "${end_pos}" -gt "${total_notes}" ]]; then
-   end_pos="${total_notes}"
+ for ((i = 0; i < num_parts; i++)); do
+  local START_POS=$((i * NOTES_PER_PART + 1))
+  local END_POS=$(((i + 1) * NOTES_PER_PART))
+
+  if [[ "${END_POS}" -gt "${TOTAL_NOTES}" ]]; then
+   END_POS="${TOTAL_NOTES}"
   fi
 
-  if [[ "${start_pos}" -le "${total_notes}" ]]; then
-   local output_file="${output_dir}/safe_part_${i}.xml"
-   
+  if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
+   local OUTPUT_FILE="${output_dir}/safe_part_${i}.xml"
+
    # Create XML wrapper
-   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${output_file}"
-   echo '<osm-notes>' >> "${output_file}"
-   
+   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
+   echo '<osm-notes>' >> "${OUTPUT_FILE}"
+
    # Extract notes for this part safely
-   for ((j=start_pos; j<=end_pos; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2>/dev/null >> "${output_file}" || true
+   for ((j = START_POS; j <= END_POS; j++)); do
+    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${OUTPUT_FILE}" || true
    done
-   
-   echo '</osm-notes>' >> "${output_file}"
-   
-   __logd "Created safe part ${i}: ${output_file} (notes ${start_pos}-${end_pos})"
+
+   echo '</osm-notes>' >> "${OUTPUT_FILE}"
+
+   __logd "Created safe part ${i}: ${OUTPUT_FILE} (notes ${START_POS}-${END_POS})"
   fi
  done
 
@@ -1779,7 +1779,7 @@ function __dropGenericObjects {
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
  __log_start
- 
+
  # Check network connectivity before proceeding
  __logi "Checking network connectivity..."
  if ! __check_network_connectivity 15; then
@@ -1787,28 +1787,28 @@ function __downloadPlanetNotes {
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
    "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
  fi
- 
+
  # Download Planet notes with retry logic
  __logw "Retrieving Planet notes file..."
  local download_operation="aria2c -d ${TMP_DIR} -o ${PLANET_NOTES_NAME}.bz2 -x 8 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
  local download_cleanup="rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${download_operation}" 3 10 "${download_cleanup}"; then
   __loge "Failed to download Planet notes after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Planet download failed" \
    "rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
  fi
- 
+
  # Download MD5 file with retry logic
  local md5_operation="wget -O ${PLANET_NOTES_FILE}.bz2.md5 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
  local md5_cleanup="rm -f ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${md5_operation}" 3 5 "${md5_cleanup}"; then
   __loge "Failed to download MD5 file after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "MD5 download failed" \
    "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
  fi
- 
+
  # Validate the download with the hash value md5 using centralized function
  __logi "Validating downloaded file integrity..."
  if ! __validate_file_checksum_from_file "${PLANET_NOTES_FILE}.bz2" "${PLANET_NOTES_FILE}.bz2.md5" "md5"; then
@@ -1824,18 +1824,18 @@ function __downloadPlanetNotes {
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Downloaded file not readable" \
    "rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
  fi
- 
+
  # Extract file with retry logic
  __logi "Extracting Planet notes..."
  local extract_operation="bzip2 -d ${PLANET_NOTES_FILE}.bz2"
  local extract_cleanup="rm -f ${PLANET_NOTES_FILE} 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${extract_operation}" 2 3 "${extract_cleanup}"; then
   __loge "Failed to extract Planet notes after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "File extraction failed" \
    "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE} 2>/dev/null || true"
  fi
- 
+
  mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
  __log_finish
 }
@@ -1893,26 +1893,26 @@ function __processBoundary {
  __log_start
  PROCESS="${BASHPID}"
  OUTPUT_OVERPASS="${TMP_DIR}/output.${BASHPID}"
- 
+
  __logi "Retrieving shape ${ID}."
- 
+
  # Check network connectivity before proceeding
  if ! __check_network_connectivity 10; then
   __loge "Network connectivity check failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
  fi
- 
+
  # Use retry logic for Overpass API calls
  local overpass_operation="wget -O ${JSON_FILE} --post-file=${QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
  local overpass_cleanup="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${overpass_operation}" 5 15 "${overpass_cleanup}"; then
   __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass API failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
  fi
- 
+
  # Check for specific Overpass errors
  cat "${OUTPUT_OVERPASS}"
  local MANY_REQUESTS
@@ -1922,7 +1922,7 @@ function __processBoundary {
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass rate limit exceeded for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
  fi
- 
+
  rm -f "${OUTPUT_OVERPASS}"
 
  # Validate the JSON with a JSON schema
@@ -1937,13 +1937,13 @@ function __processBoundary {
  __logi "Converting into GeoJSON for boundary ${ID}."
  local geojson_operation="osmtogeojson ${JSON_FILE} > ${GEOJSON_FILE}"
  local geojson_cleanup="rm -f ${GEOJSON_FILE} 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${geojson_operation}" 2 5 "${geojson_cleanup}"; then
   __loge "Failed to convert boundary ${ID} to GeoJSON after retries"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "GeoJSON conversion failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
  fi
- 
+
  # Validate the GeoJSON with a JSON schema
  if ! __validate_json_structure "${GEOJSON_FILE}" "FeatureCollection"; then
   __loge "GeoJSON validation failed for boundary ${ID}"
@@ -1981,13 +1981,13 @@ function __processBoundary {
  __logi "Importing into Postgres for boundary ${ID}."
  local lock_operation="mkdir ${LOCK_OGR2OGR} 2> /dev/null"
  local lock_cleanup="rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${lock_operation}" 3 2 "${lock_cleanup}"; then
   __loge "Failed to acquire lock for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Lock acquisition failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
  fi
- 
+
  # Import with ogr2ogr using retry logic with special handling for Austria
  local import_operation
  if [[ "${ID}" -eq 16239 ]]; then
@@ -1997,20 +1997,20 @@ function __processBoundary {
   # Standard import
   import_operation="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
  fi
- 
+
  local import_cleanup="rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
- 
+
  if ! __retry_file_operation "${import_operation}" 2 5 "${import_cleanup}"; then
   __loge "Failed to import boundary ${ID} into database after retries"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
  fi
- 
+
  # Check for column duplication errors and handle them
  local column_check_operation="psql -d ${DBNAME} -c \"SELECT column_name, COUNT(*) FROM information_schema.columns WHERE table_name = 'import' GROUP BY column_name HAVING COUNT(*) > 1;\" 2>/dev/null"
  local column_check_result
- column_check_result=$(eval "${column_check_operation}" 2>/dev/null || echo "")
- 
+ column_check_result=$(eval "${column_check_operation}" 2> /dev/null || echo "")
+
  if [[ -n "${column_check_result}" ]] && [[ "${column_check_result}" != *"0 rows"* ]]; then
   __logw "Detected duplicate columns in import table for boundary ${ID}"
   __logw "This is likely due to case-sensitive column names in the GeoJSON"
@@ -2020,7 +2020,7 @@ function __processBoundary {
    __logw "Failed to fix duplicate columns, but continuing..."
   fi
  fi
- 
+
  # Process the imported data with special handling for Austria
  local process_operation
  if [[ "${ID}" -eq 16239 ]]; then
@@ -2030,14 +2030,14 @@ function __processBoundary {
   # Standard processing
   process_operation="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(wkb_geometry)) FROM import GROUP BY 1;\""
  fi
- 
+
  if ! __retry_file_operation "${process_operation}" 2 3 ""; then
   __loge "Failed to process boundary ${ID} data"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Data processing failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
  fi
- 
- rmdir "${LOCK_OGR2OGR}" 2>/dev/null || true
+
+ rmdir "${LOCK_OGR2OGR}" 2> /dev/null || true
  __log_finish
 }
 
@@ -2429,11 +2429,11 @@ function __validate_iso8601_date() {
  # Pattern 2: YYYY-MM-DDTHH:MM:SS+HH:MM (with timezone offset) - Year 2020-2023
  # Pattern 3: YYYY-MM-DDTHH:MM:SS-HH:MM (with timezone offset) - Year 2020-2023
  # Pattern 4: YYYY-MM-DD HH:MM:SS UTC (API format) - Year 2020-2023
- 
+
  local iso_pattern1="^20(2[0-3])-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z$"
  local iso_pattern2="^20(2[0-3])-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9][+-][0-2][0-9]:[0-5][0-9]$"
  local iso_pattern3="^20(2[0-3])-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC$"
- 
+
  # Check if date matches any ISO 8601 pattern
  if ! echo "${date_string}" | grep -qE "${iso_pattern1}|${iso_pattern2}|${iso_pattern3}"; then
   validation_errors+=("Date does not match ISO 8601 format: ${date_string}")
@@ -2443,7 +2443,7 @@ function __validate_iso8601_date() {
  if command -v date &> /dev/null; then
   # Try to parse the date with date command
   local parsed_date
-  if ! parsed_date=$(date -d "${date_string}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null); then
+  if ! parsed_date=$(date -d "${date_string}" +%Y-%m-%dT%H:%M:%SZ 2> /dev/null); then
    validation_errors+=("Date is not a valid date/time: ${date_string}")
   fi
  fi
@@ -2485,7 +2485,7 @@ function __validate_xml_dates() {
 
  # Extract dates using xmlstarlet
  local dates
- dates=$(xmlstarlet sel -t -v "${xpath_expression}" "${xml_file}" 2>/dev/null | grep -v '^$')
+ dates=$(xmlstarlet sel -t -v "${xpath_expression}" "${xml_file}" 2> /dev/null | grep -v '^$')
 
  if [[ -z "${dates}" ]]; then
   echo "WARNING: No dates found in XML file with xpath: ${xpath_expression}" >&2
@@ -2536,7 +2536,7 @@ function __validate_csv_dates() {
   header_line=$(head -1 "${csv_file}")
   local column_number=1
   local found_date_column=false
-  
+
   while IFS=',' read -ra columns; do
    for column in "${columns[@]}"; do
     if [[ "${column}" =~ (date|created|updated|timestamp|closed) ]]; then
@@ -2547,7 +2547,7 @@ function __validate_csv_dates() {
     ((column_number++))
    done
   done <<< "${header_line}"
-  
+
   if [[ "${found_date_column}" == "false" ]]; then
    echo "WARNING: No date column found in CSV header" >&2
    return 0
@@ -2628,23 +2628,23 @@ function __validate_file_checksum() {
  # Calculate actual checksum
  local actual_checksum
  case "${algorithm}" in
-  "md5")
-   actual_checksum=$(md5sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
-   ;;
-  "sha1")
-   actual_checksum=$(sha1sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
-   ;;
-  "sha256")
-   actual_checksum=$(sha256sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
-   ;;
-  "sha512")
-   actual_checksum=$(sha512sum "${file_path}" | cut -d' ' -f 1 2>/dev/null)
-   ;;
-  *)
-   echo "ERROR: ${algorithm} checksum validation failed:" >&2
-   echo "  - Unsupported algorithm: ${algorithm}" >&2
-   return 1
-   ;;
+ "md5")
+  actual_checksum=$(md5sum "${file_path}" | cut -d' ' -f 1 2> /dev/null)
+  ;;
+ "sha1")
+  actual_checksum=$(sha1sum "${file_path}" | cut -d' ' -f 1 2> /dev/null)
+  ;;
+ "sha256")
+  actual_checksum=$(sha256sum "${file_path}" | cut -d' ' -f 1 2> /dev/null)
+  ;;
+ "sha512")
+  actual_checksum=$(sha512sum "${file_path}" | cut -d' ' -f 1 2> /dev/null)
+  ;;
+ *)
+  echo "ERROR: ${algorithm} checksum validation failed:" >&2
+  echo "  - Unsupported algorithm: ${algorithm}" >&2
+  return 1
+  ;;
  esac
 
  if [[ -z "${actual_checksum}" ]]; then
@@ -2687,22 +2687,22 @@ function __validate_file_checksum_from_file() {
  # Extract expected checksum from file
  local expected_checksum
  case "${algorithm}" in
-  "md5")
-   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
-   ;;
-  "sha1")
-   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
-   ;;
-  "sha256")
-   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
-   ;;
-  "sha512")
-   expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2>/dev/null)
-   ;;
-  *)
-   echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
-   return 1
-   ;;
+ "md5")
+  expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2> /dev/null)
+  ;;
+ "sha1")
+  expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2> /dev/null)
+  ;;
+ "sha256")
+  expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2> /dev/null)
+  ;;
+ "sha512")
+  expected_checksum=$(cut -d' ' -f 1 "${checksum_file}" 2> /dev/null)
+  ;;
+ *)
+  echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
+  return 1
+  ;;
  esac
 
  if [[ -z "${expected_checksum}" ]]; then
@@ -2750,22 +2750,22 @@ function __generate_file_checksum() {
  # Generate checksum
  local checksum
  case "${algorithm}" in
-  "md5")
-   checksum=$(md5sum "${file_path}" 2>/dev/null)
-   ;;
-  "sha1")
-   checksum=$(sha1sum "${file_path}" 2>/dev/null)
-   ;;
-  "sha256")
-   checksum=$(sha256sum "${file_path}" 2>/dev/null)
-   ;;
-  "sha512")
-   checksum=$(sha512sum "${file_path}" 2>/dev/null)
-   ;;
-  *)
-   echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
-   return 1
-   ;;
+ "md5")
+  checksum=$(md5sum "${file_path}" 2> /dev/null)
+  ;;
+ "sha1")
+  checksum=$(sha1sum "${file_path}" 2> /dev/null)
+  ;;
+ "sha256")
+  checksum=$(sha256sum "${file_path}" 2> /dev/null)
+  ;;
+ "sha512")
+  checksum=$(sha512sum "${file_path}" 2> /dev/null)
+  ;;
+ *)
+  echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
+  return 1
+  ;;
  esac
 
  if [[ -z "${checksum}" ]]; then
@@ -2817,14 +2817,14 @@ function __validate_directory_checksums() {
   # Parse checksum and filename
   local checksum filename
   case "${algorithm}" in
-   "md5"|"sha1"|"sha256"|"sha512")
-    checksum=$(echo "${line}" | cut -d' ' -f 1)
-    filename=$(echo "${line}" | sed 's/^[^ ]*  *//' | xargs basename)
-    ;;
-   *)
-    echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
-    return 1
-    ;;
+  "md5" | "sha1" | "sha256" | "sha512")
+   checksum=$(echo "${line}" | cut -d' ' -f 1)
+   filename=$(echo "${line}" | sed 's/^[^ ]*  *//' | xargs basename)
+   ;;
+  *)
+   echo "ERROR: Unsupported algorithm: ${algorithm}" >&2
+   return 1
+   ;;
   esac
 
   # Validate file
@@ -2915,14 +2915,14 @@ function __validate_coordinates() {
 
  # Check latitude range (-90 to 90)
  if [[ "${latitude}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  if (( $(echo "${latitude} < -90" | bc -l) )) || (( $(echo "${latitude} > 90" | bc -l) )); then
+  if (($(echo "${latitude} < -90" | bc -l))) || (($(echo "${latitude} > 90" | bc -l))); then
    validation_errors+=("Latitude '${latitude}' is outside valid range (-90 to 90)")
   fi
  fi
 
  # Check longitude range (-180 to 180)
  if [[ "${longitude}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  if (( $(echo "${longitude} < -180" | bc -l) )) || (( $(echo "${longitude} > 180" | bc -l) )); then
+  if (($(echo "${longitude} < -180" | bc -l))) || (($(echo "${longitude} > 180" | bc -l))); then
    validation_errors+=("Longitude '${longitude}' is outside valid range (-180 to 180)")
   fi
  fi
@@ -2972,14 +2972,14 @@ function __validate_numeric_range() {
 
  # Check minimum value
  if [[ -n "${min_value}" ]]; then
-  if (( $(echo "${value} < ${min_value}" | bc -l) )); then
+  if (($(echo "${value} < ${min_value}" | bc -l))); then
    validation_errors+=("${description} '${value}' is below minimum (${min_value})")
   fi
  fi
 
  # Check maximum value
  if [[ -n "${max_value}" ]]; then
-  if (( $(echo "${value} > ${max_value}" | bc -l) )); then
+  if (($(echo "${value} > ${max_value}" | bc -l))); then
    validation_errors+=("${description} '${value}' is above maximum (${max_value})")
   fi
  fi
@@ -3047,8 +3047,8 @@ function __validate_xml_coordinates() {
  # Extract coordinates using xmlstarlet
  local latitudes
  local longitudes
- latitudes=$(xmlstarlet sel -t -v "${lat_xpath}" "${xml_file}" 2>/dev/null | grep -v '^$')
- longitudes=$(xmlstarlet sel -t -v "${lon_xpath}" "${xml_file}" 2>/dev/null | grep -v '^$')
+ latitudes=$(xmlstarlet sel -t -v "${lat_xpath}" "${xml_file}" 2> /dev/null | grep -v '^$')
+ longitudes=$(xmlstarlet sel -t -v "${lon_xpath}" "${xml_file}" 2> /dev/null | grep -v '^$')
 
  if [[ -z "${latitudes}" ]] || [[ -z "${longitudes}" ]]; then
   echo "WARNING: No coordinates found in XML file" >&2
@@ -3060,7 +3060,7 @@ function __validate_xml_coordinates() {
  while IFS= read -r lat_value; do
   ((line_number++))
   lon_value=$(echo "${longitudes}" | sed -n "${line_number}p")
-  
+
   if [[ -n "${lon_value}" ]]; then
    if ! __validate_coordinates "${lat_value}" "${lon_value}"; then
     validation_errors+=("Line ${line_number}: Invalid coordinates lat=${lat_value}, lon=${lon_value}")
@@ -3106,7 +3106,7 @@ function __validate_csv_coordinates() {
   local column_number=1
   local found_lat=false
   local found_lon=false
-  
+
   while IFS=',' read -ra columns; do
    for column in "${columns[@]}"; do
     if [[ "${column}" =~ (lat|latitude) ]]; then
@@ -3119,7 +3119,7 @@ function __validate_csv_coordinates() {
     ((column_number++))
    done
   done <<< "${header_line}"
-  
+
   if [[ "${found_lat}" == "false" ]] || [[ "${found_lon}" == "false" ]]; then
    echo "WARNING: Coordinate columns not found in CSV header" >&2
    return 0
@@ -3143,7 +3143,7 @@ function __validate_csv_coordinates() {
   local lon_value
   lat_value=$(echo "${coordinate_line}" | cut -d',' -f1)
   lon_value=$(echo "${coordinate_line}" | cut -d',' -f2)
-  
+
   if [[ -n "${lat_value}" ]] && [[ -n "${lon_value}" ]]; then
    if ! __validate_coordinates "${lat_value}" "${lon_value}"; then
     validation_errors+=("Line ${line_number}: Invalid coordinates lat=${lat_value}, lon=${lon_value}")
@@ -3230,19 +3230,19 @@ function __retry_with_backoff() {
   fi
 
   retry_count=$((retry_count + 1))
-  
+
   if [[ ${retry_count} -lt ${max_retries} ]]; then
    # Add jitter to prevent thundering herd
    local jitter=$((RANDOM % 1000))
-   local jitter_delay=$(echo "scale=3; ${jitter} / 1000" | bc -l 2>/dev/null || echo "0")
-   local total_delay=$(echo "scale=3; ${delay} + ${jitter_delay}" | bc -l 2>/dev/null || echo "${delay}")
-   
+   local jitter_delay=$(echo "scale=3; ${jitter} / 1000" | bc -l 2> /dev/null || echo "0")
+   local total_delay=$(echo "scale=3; ${delay} + ${jitter_delay}" | bc -l 2> /dev/null || echo "${delay}")
+
    echo "WARNING: Command failed on attempt ${retry_count}, retrying in ${total_delay}s (${retry_count}/${max_retries})" >&2
    sleep "${total_delay}"
-   
+
    # Exponential backoff with max delay
-   delay=$(echo "scale=3; ${delay} * 2" | bc -l 2>/dev/null || echo "${delay}")
-   if (( $(echo "${delay} > ${max_delay}" | bc -l 2>/dev/null || echo "0") )); then
+   delay=$(echo "scale=3; ${delay} * 2" | bc -l 2> /dev/null || echo "${delay}")
+   if (($(echo "${delay} > ${max_delay}" | bc -l 2> /dev/null || echo "0"))); then
     delay="${max_delay}"
    fi
   fi
@@ -3353,13 +3353,13 @@ function __database_operation_with_retry() {
  echo "DEBUG: Executing database operation with retry" >&2
 
  while [[ ${retry_count} -lt ${max_retries} ]]; do
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${sql_command}" >/dev/null 2>&1; then
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${sql_command}" > /dev/null 2>&1; then
    echo "DEBUG: Database operation succeeded on attempt $((retry_count + 1))" >&2
    return 0
   fi
 
   retry_count=$((retry_count + 1))
-  
+
   if [[ ${retry_count} -lt ${max_retries} ]]; then
    echo "WARNING: Database operation failed on attempt ${retry_count}, retrying in ${BASE_DELAY}s" >&2
    sleep "${BASE_DELAY}"
@@ -3369,7 +3369,7 @@ function __database_operation_with_retry() {
  # If rollback command is provided, execute it
  if [[ -n "${rollback_command}" ]]; then
   echo "WARNING: Executing rollback command due to database operation failure" >&2
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${rollback_command}" >/dev/null 2>&1; then
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${rollback_command}" > /dev/null 2>&1; then
    echo "DEBUG: Rollback executed successfully" >&2
   else
    echo "ERROR: Rollback failed" >&2
@@ -3398,7 +3398,7 @@ function __file_operation_with_retry() {
   fi
 
   retry_count=$((retry_count + 1))
-  
+
   if [[ ${retry_count} -lt ${max_retries} ]]; then
    echo "WARNING: File operation failed on attempt ${retry_count}, retrying in ${BASE_DELAY}s" >&2
    sleep "${BASE_DELAY}"
@@ -3429,7 +3429,7 @@ function __check_network_connectivity() {
  echo "DEBUG: Checking network connectivity" >&2
 
  for url in "${test_urls[@]}"; do
-  if timeout "${timeout}" curl -s --connect-timeout 5 "${url}" >/dev/null 2>&1; then
+  if timeout "${timeout}" curl -s --connect-timeout 5 "${url}" > /dev/null 2>&1; then
    echo "DEBUG: Network connectivity confirmed via ${url}" >&2
    return 0
   fi
@@ -3482,11 +3482,11 @@ function __get_circuit_breaker_status() {
 # Returns: 0 if reset successful
 function __reset_circuit_breaker() {
  local service_name="$1"
- 
+
  CIRCUIT_BREAKER_STATES[${service_name}]="CLOSED"
  CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]=0
  CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${service_name}]=0
- 
+
  echo "INFO: Circuit breaker reset for ${service_name}" >&2
  return 0
 }
@@ -3512,19 +3512,19 @@ function __retry_with_backoff() {
   fi
 
   retry_count=$((retry_count + 1))
-  
+
   if [[ ${retry_count} -lt ${max_retries} ]]; then
    # Add jitter to prevent thundering herd
    local jitter=$((RANDOM % 1000))
-   local jitter_delay=$(echo "scale=3; ${jitter} / 1000" | bc -l 2>/dev/null || echo "0")
-   local total_delay=$(echo "scale=3; ${delay} + ${jitter_delay}" | bc -l 2>/dev/null || echo "${delay}")
-   
+   local jitter_delay=$(echo "scale=3; ${jitter} / 1000" | bc -l 2> /dev/null || echo "0")
+   local total_delay=$(echo "scale=3; ${delay} + ${jitter_delay}" | bc -l 2> /dev/null || echo "${delay}")
+
    echo "WARNING: Command failed on attempt ${retry_count}, retrying in ${total_delay}s (${retry_count}/${max_retries})" >&2
    sleep "${total_delay}"
-   
+
    # Exponential backoff with max delay
-   delay=$(echo "scale=3; ${delay} * 2" | bc -l 2>/dev/null || echo "${delay}")
-   if (( $(echo "${delay} > ${max_delay}" | bc -l 2>/dev/null || echo "0") )); then
+   delay=$(echo "scale=3; ${delay} * 2" | bc -l 2> /dev/null || echo "${delay}")
+   if (($(echo "${delay} > ${max_delay}" | bc -l 2> /dev/null || echo "0"))); then
     delay="${max_delay}"
    fi
   fi
@@ -3553,7 +3553,7 @@ function __retry_file_operation() {
   fi
 
   retry_count=$((retry_count + 1))
-  
+
   if [[ ${retry_count} -lt ${max_retries} ]]; then
    echo "WARNING: File operation failed on attempt ${retry_count}, retrying in ${base_delay}s" >&2
    sleep "${base_delay}"

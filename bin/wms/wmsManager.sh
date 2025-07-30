@@ -138,14 +138,14 @@ is_wms_installed() {
 install_wms() {
  print_status "${BLUE}" "🚀 Installing WMS components..."
 
-     # Check if WMS is already installed
-  # Check if WMS is installed
-  if is_wms_installed; then
-    if [[ "${FORCE}" != "true" ]]; then
-      print_status "${YELLOW}" "⚠️  WMS is already installed. Use --force to reinstall."
-      return 0
-    fi
+ # Check if WMS is already installed
+ # Check if WMS is installed
+ if is_wms_installed; then
+  if [[ "${FORCE}" != "true" ]]; then
+   print_status "${YELLOW}" "⚠️  WMS is already installed. Use --force to reinstall."
+   return 0
   fi
+ fi
 
  if [[ "${DRY_RUN}" == "true" ]]; then
   print_status "${YELLOW}" "DRY RUN: Would install WMS components"
@@ -175,11 +175,11 @@ install_wms() {
 deinstall_wms() {
  print_status "${BLUE}" "🗑️  Removing WMS components..."
 
-   # Check if WMS is installed
-  if ! is_wms_installed; then
-    print_status "${YELLOW}" "⚠️  WMS is not installed"
-    return 0
-  fi
+ # Check if WMS is installed
+ if ! is_wms_installed; then
+  print_status "${YELLOW}" "⚠️  WMS is not installed"
+  return 0
+ fi
 
  if [[ "${DRY_RUN}" == "true" ]]; then
   print_status "${YELLOW}" "DRY RUN: Would remove WMS components"
@@ -242,10 +242,10 @@ show_status() {
 show_installation_summary() {
  print_status "${BLUE}" "📋 Installation Summary:"
  print_status "${BLUE}" "   - Schema 'wms' created"
-print_status "${BLUE}" "   - Table 'wms.notes_wms' created"
-print_status "${BLUE}" "   - Indexes created for performance"
-print_status "${BLUE}" "   - Triggers configured for synchronization"
-print_status "${BLUE}" "   - Functions created for data management"
+ print_status "${BLUE}" "   - Table 'wms.notes_wms' created"
+ print_status "${BLUE}" "   - Indexes created for performance"
+ print_status "${BLUE}" "   - Triggers configured for synchronization"
+ print_status "${BLUE}" "   - Functions created for data management"
 }
 
 # Main function
@@ -254,32 +254,31 @@ main() {
  local command=""
  local force=false
  local dry_run=false
- 
 
  while [[ $# -gt 0 ]]; do
   case $1 in
-   install | deinstall | status | help)
-    command="$1"
-    shift
-    ;;
-   --force)
-    force=true
-    shift
-    ;;
-   --dry-run)
-    dry_run=true
-    shift
-    ;;
-   
-   -h | --help)
-    show_help
-    exit 0
-    ;;
-   *)
-    print_status "${RED}" "❌ ERROR: Unknown option: $1"
-    show_help
-    exit 1
-    ;;
+  install | deinstall | status | help)
+   command="$1"
+   shift
+   ;;
+  --force)
+   force=true
+   shift
+   ;;
+  --dry-run)
+   dry_run=true
+   shift
+   ;;
+
+  -h | --help)
+   show_help
+   exit 0
+   ;;
+  *)
+   print_status "${RED}" "❌ ERROR: Unknown option: $1"
+   show_help
+   exit 1
+   ;;
   esac
  done
 
@@ -289,35 +288,35 @@ main() {
 
  # Execute command
  case "${command}" in
-  install | deinstall | status)
-   # Validate prerequisites only for commands that need database access
-   validate_prerequisites
-   
-   case "${command}" in
-    install)
-     install_wms
-     ;;
-    deinstall)
-     deinstall_wms
-     ;;
-    status)
-     show_status
-     ;;
-   esac
+ install | deinstall | status)
+  # Validate prerequisites only for commands that need database access
+  validate_prerequisites
+
+  case "${command}" in
+  install)
+   install_wms
    ;;
-  help)
-   show_help
+  deinstall)
+   deinstall_wms
    ;;
-  "")
-   print_status "${RED}" "❌ ERROR: No command specified"
-   show_help
-   exit 1
+  status)
+   show_status
    ;;
-  *)
-   print_status "${RED}" "❌ ERROR: Unknown command: ${command}"
-   show_help
-   exit 1
-   ;;
+  esac
+  ;;
+ help)
+  show_help
+  ;;
+ "")
+  print_status "${RED}" "❌ ERROR: No command specified"
+  show_help
+  exit 1
+  ;;
+ *)
+  print_status "${RED}" "❌ ERROR: Unknown command: ${command}"
+  show_help
+  exit 1
+  ;;
  esac
 }
 
