@@ -1,18 +1,206 @@
 #!/bin/bash
 
-# This script is designed to be sourced from other scripts. It contains functions
-# used across different scripts in the project.
-#
-# This script uses the constant ERROR_LOGGER_UTILITY.
-#
-# For contributing, please execute these commands before submitting:
-# * shellcheck -x -o all functionsProcess.sh
-# * shfmt -w -i 1 -sr -bn functionsProcess.sh
+# OSM-Notes-profile - Common Functions
+# This file serves as the main entry point for all common functions.
+# It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-29
 
 # shellcheck disable=SC2317,SC2155
+
+# Load all refactored function files
+# This ensures backward compatibility while improving code organization
+
+# Load common functions (error codes, logger, prerequisites, etc.)
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" ]]; then
+ # shellcheck source=commonFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+else
+ echo "ERROR: commonFunctions.sh not found"
+ exit 1
+fi
+
+# Load validation functions
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
+ # shellcheck source=validationFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+else
+ echo "ERROR: validationFunctions.sh not found"
+ exit 1
+fi
+
+# Load error handling functions
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh" ]]; then
+ # shellcheck source=errorHandlingFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+else
+ echo "ERROR: errorHandlingFunctions.sh not found"
+ exit 1
+fi
+
+# Load API-specific functions if needed
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" ]]; then
+ # shellcheck source=processAPIFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
+fi
+
+# Load Planet-specific functions if needed
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
+ # shellcheck source=processPlanetFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+fi
+
+# Legacy functions that remain in this file for backward compatibility
+# These functions are used by multiple scripts and haven't been moved yet
+
+# Output CSV files for processed data
+declare -r OUTPUT_NOTES_CSV_FILE="${TMP_DIR}/output-notes.csv"
+declare -r OUTPUT_NOTE_COMMENTS_CSV_FILE="${TMP_DIR}/output-note_comments.csv"
+declare -r OUTPUT_TEXT_COMMENTS_CSV_FILE="${TMP_DIR}/output-text_comments.csv"
+
+# PostgreSQL SQL script files
+# Check base tables.
+declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
+declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
+declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
+declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
+declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
+declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
+declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
+
+# Legacy function: Process XML parts in parallel (kept for backward compatibility)
+function __processXmlPartsParallel() {
+ __log_start
+ __logd "Processing XML parts in parallel."
+
+ local input_dir="${1}"
+ local xslt_file="${2}"
+ local output_dir="${3}"
+ local max_workers="${4:-4}"
+
+ if [[ ! -d "${input_dir}" ]]; then
+  __loge "ERROR: Input directory not found: ${input_dir}"
+  return 1
+ fi
+
+ if [[ ! -f "${xslt_file}" ]]; then
+  __loge "ERROR: XSLT file not found: ${xslt_file}"
+  return 1
+ fi
+
+ # Create output directory
+ mkdir -p "${output_dir}"
+
+ # Find all XML parts
+ local xml_files
+ mapfile -t xml_files < <(find "${input_dir}" -name "*.xml" -type f)
+
+ if [[ ${#xml_files[@]} -eq 0 ]]; then
+  __logw "WARNING: No XML files found in ${input_dir}"
+  return 0
+ fi
+
+ __logi "Processing ${#xml_files[@]} XML parts with max ${max_workers} workers."
+
+ # Process files in parallel
+ local pids=()
+ local processed=0
+
+ for xml_file in "${xml_files[@]}"; do
+  local base_name
+  base_name=$(basename "${xml_file}" .xml)
+  local output_file="${output_dir}/${base_name}.csv"
+
+  # Process XML file
+  if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2>/dev/null; then
+   __logd "Successfully processed: ${xml_file} -> ${output_file}"
+   ((processed++))
+  else
+   __loge "ERROR: Failed to process: ${xml_file}"
+  fi
+
+  # Limit concurrent processes
+  if [[ ${#pids[@]} -ge ${max_workers} ]]; then
+   wait "${pids[0]}"
+   pids=("${pids[@]:1}")
+  fi
+ done
+
+ # Wait for remaining processes
+ for pid in "${pids[@]}"; do
+  wait "${pid}"
+ done
+
+ __logi "Parallel processing completed. Processed ${processed}/${#xml_files[@]} files."
+ __log_finish
+}
+
+# Legacy function: Split XML for parallel processing (safe version)
+function __splitXmlForParallelSafe() {
+ __log_start
+ __logd "Splitting XML for parallel processing (safe version)."
+
+ local xml_file="${1}"
+ local num_parts="${2:-4}"
+ local output_dir="${3:-${TMP_DIR}}"
+
+ if [[ ! -f "${xml_file}" ]]; then
+  __loge "ERROR: XML file not found: ${xml_file}"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ # Create output directory
+ mkdir -p "${output_dir}"
+
+ # Count total notes
+ local total_notes
+ total_notes=$(xmllint --xpath "count(//note)" "${xml_file}" 2>/dev/null || echo "0")
+
+ if [[ "${total_notes}" -eq 0 ]]; then
+  __logw "WARNING: No notes found in XML file."
+  return 0
+ fi
+
+ # Calculate notes per part
+ local notes_per_part
+ notes_per_part=$((total_notes / num_parts))
+ if [[ $((total_notes % num_parts)) -gt 0 ]]; then
+  notes_per_part=$((notes_per_part + 1))
+ fi
+
+ __logi "Splitting ${total_notes} notes into ${num_parts} parts (${notes_per_part} notes per part)."
+
+ # Split XML file safely
+ for ((i=0; i<num_parts; i++)); do
+  local start_pos=$((i * notes_per_part + 1))
+  local end_pos=$(((i + 1) * notes_per_part))
+  
+  if [[ "${end_pos}" -gt "${total_notes}" ]]; then
+   end_pos="${total_notes}"
+  fi
+
+  if [[ "${start_pos}" -le "${total_notes}" ]]; then
+   local output_file="${output_dir}/safe_part_${i}.xml"
+   
+   # Create XML wrapper
+   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${output_file}"
+   echo '<osm-notes>' >> "${output_file}"
+   
+   # Extract notes for this part safely
+   for ((j=start_pos; j<=end_pos; j++)); do
+    xmllint --xpath "//note[${j}]" "${xml_file}" 2>/dev/null >> "${output_file}" || true
+   done
+   
+   echo '</osm-notes>' >> "${output_file}"
+   
+   __logd "Created safe part ${i}: ${output_file} (notes ${start_pos}-${end_pos})"
+  fi
+ done
+
+ __logi "XML splitting completed safely. Created ${num_parts} parts."
+ __log_finish
+}
 
 # Error codes.
 # 1: Help message.
