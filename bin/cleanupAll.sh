@@ -16,52 +16,37 @@ mkdir -p "${TMP_DIR}"
 # Define script base directory
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Load common functions (includes logging)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
 # Load global properties
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
-# Load common functions first (for logging)
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" ]]; then
- # shellcheck source=commonFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
-else
- echo "ERROR: commonFunctions.sh not found"
- exit 1
-fi
+# Start logger
+__start_logger
 
 # Load validation functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
  # shellcheck source=validationFunctions.sh
  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
 else
- echo "ERROR: validationFunctions.sh not found"
+ __loge "ERROR: validationFunctions.sh not found"
  exit 1
 fi
-
-# Simple logging functions
-function log_info() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
-}
-
-function log_error() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2 || true
-}
-
-function log_warn() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*" || true
-}
 
 # Function to check if database exists
 function check_database() {
  local DBNAME="${1:-${DBNAME}}"
 
- log_info "Checking if database exists: ${DBNAME}"
+ __logi "Checking if database exists: ${DBNAME}"
 
  if psql -lqt | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
-  log_info "Database ${DBNAME} exists"
+  __logi "Database ${DBNAME} exists"
   return 0
  else
-  log_error "Database ${DBNAME} does not exist"
+  __loge "Database ${DBNAME} does not exist"
   return 1
  fi
 }
@@ -72,11 +57,11 @@ function execute_sql_script() {
  local SCRIPT_PATH="${2}"
  local SCRIPT_NAME="${3}"
 
- log_info "Executing ${SCRIPT_NAME}: ${SCRIPT_PATH}"
+ __logi "Executing ${SCRIPT_NAME}: ${SCRIPT_PATH}"
 
  # Validate SQL script using centralized validation
  if ! __validate_sql_structure "${SCRIPT_PATH}"; then
-  log_error "ERROR: SQL script validation failed: ${SCRIPT_PATH}"
+  __loge "ERROR: SQL script validation failed: ${SCRIPT_PATH}"
   return 1
  fi
 
@@ -96,10 +81,10 @@ function execute_sql_script() {
  fi
 
  if ${PSQL_CMD} -d "${DBNAME}" -f "${SCRIPT_PATH}"; then
-  log_info "SUCCESS: ${SCRIPT_NAME} completed"
+  __logi "SUCCESS: ${SCRIPT_NAME} completed"
   return 0
  else
-  log_error "FAILED: ${SCRIPT_NAME} failed"
+  __loge "FAILED: ${SCRIPT_NAME} failed"
   return 1
  fi
 }
@@ -108,7 +93,7 @@ function execute_sql_script() {
 function cleanup_etl() {
  local DBNAME="${1}"
 
- log_info "Cleaning up ETL components"
+ __logi "Cleaning up ETL components"
 
  local ETL_SCRIPTS=(
   "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_dropDatamartObjects.sql:Countries Datamart"
@@ -123,7 +108,7 @@ function cleanup_etl() {
   if [[ -f "${script_path}" ]]; then
    execute_sql_script "${DBNAME}" "${script_path}" "${script_name}"
   else
-   log_warn "Script not found: ${script_path}"
+   __logw "Script not found: ${script_path}"
   fi
  done
 }
@@ -132,13 +117,13 @@ function cleanup_etl() {
 function cleanup_wms() {
  local DBNAME="${1}"
 
- log_info "Cleaning up WMS components"
+ __logi "Cleaning up WMS components"
 
  local WMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/wms/removeFromDatabase.sql"
  if [[ -f "${WMS_SCRIPT}" ]]; then
   execute_sql_script "${DBNAME}" "${WMS_SCRIPT}" "WMS Components"
  else
-  log_warn "WMS cleanup script not found: ${WMS_SCRIPT}"
+  __logw "WMS cleanup script not found: ${WMS_SCRIPT}"
  fi
 }
 
@@ -146,7 +131,7 @@ function cleanup_wms() {
 function cleanup_api_tables() {
  local DBNAME="${1}"
 
- log_info "Cleaning up API tables (to resolve enum dependencies)"
+ __logi "Cleaning up API tables (to resolve enum dependencies)"
 
  # Drop API tables directly with CASCADE to handle dependencies
  local API_DROP_SQL="
@@ -178,10 +163,10 @@ function cleanup_api_tables() {
  fi
 
  if ${PSQL_CMD} -d "${DBNAME}" -c "${API_DROP_SQL}"; then
-  log_info "SUCCESS: API tables dropped"
+  __logi "SUCCESS: API tables dropped"
   return 0
  else
-  log_warn "WARNING: Some API tables may not have been dropped"
+  __logw "WARNING: Some API tables may not have been dropped"
   return 1
  fi
 }
@@ -190,7 +175,7 @@ function cleanup_api_tables() {
 function cleanup_base() {
  local DBNAME="${1}"
 
- log_info "Cleaning up base components"
+ __logi "Cleaning up base components"
 
  # First clean up API tables to resolve enum dependencies
  cleanup_api_tables "${DBNAME}"
@@ -208,19 +193,19 @@ function cleanup_base() {
   if [[ -f "${script_path}" ]]; then
    execute_sql_script "${DBNAME}" "${script_path}" "${script_name}"
   else
-   log_warn "Script not found: ${script_path}"
+   __logw "Script not found: ${script_path}"
   fi
  done
 }
 
 # Function to cleanup temporary files
 function cleanup_temp_files() {
- log_info "Cleaning up temporary files"
+ __logi "Cleaning up temporary files"
 
  # Remove process temporary directories
  if [[ -d "/tmp" ]]; then
   find /tmp -maxdepth 1 -name "process*" -type d -exec rm -rf {} + 2> /dev/null || true
-  log_info "Temporary process directories cleaned"
+  __logi "Temporary process directories cleaned"
  fi
 }
 
@@ -228,7 +213,7 @@ function cleanup_temp_files() {
 function cleanup_all() {
  local DBNAME="${1}"
 
- log_info "Starting comprehensive cleanup for database: ${DBNAME}"
+ __logi "Starting comprehensive cleanup for database: ${DBNAME}"
 
  # Step 1: Check if database exists
  if ! check_database "${DBNAME}"; then
@@ -236,22 +221,22 @@ function cleanup_all() {
  fi
 
  # Step 2: Cleanup ETL components
- log_info "Step 1: Cleaning up ETL components"
+ __logi "Step 1: Cleaning up ETL components"
  cleanup_etl "${DBNAME}"
 
  # Step 3: Cleanup WMS components
- log_info "Step 2: Cleaning up WMS components"
+ __logi "Step 2: Cleaning up WMS components"
  cleanup_wms "${DBNAME}"
 
  # Step 4: Cleanup base components
- log_info "Step 3: Cleaning up base components"
+ __logi "Step 3: Cleaning up base components"
  cleanup_base "${DBNAME}"
 
  # Step 5: Cleanup temporary files
- log_info "Step 4: Cleaning up temporary files"
+ __logi "Step 4: Cleaning up temporary files"
  cleanup_temp_files
 
- log_info "Comprehensive cleanup completed successfully"
+ __logi "Comprehensive cleanup completed successfully"
 }
 
 # Cleanup function
@@ -306,21 +291,21 @@ function main() {
  fi
 
  # Use parameter or default from properties
- local DBNAME="${DBNAME_PARAM:-${DBNAME:-}}"
- if [[ -z "${DBNAME}" ]]; then
-  log_error "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
+ local TARGET_DB="${DBNAME_PARAM:-${DBNAME:-}}"
+ if [[ -z "${TARGET_DB}" ]]; then
+  __loge "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
   show_help
   exit 1
  fi
 
- log_info "Starting comprehensive cleanup for database: ${DBNAME}"
+ __logi "Starting comprehensive cleanup for database: ${TARGET_DB}"
 
  # Run cleanup
- if cleanup_all "${DBNAME}"; then
-  log_info "Comprehensive cleanup completed successfully"
+ if cleanup_all "${TARGET_DB}"; then
+  __logi "Comprehensive cleanup completed successfully"
   exit 0
  else
-  log_error "Comprehensive cleanup failed"
+  __loge "Comprehensive cleanup failed"
   exit 1
  fi
 }

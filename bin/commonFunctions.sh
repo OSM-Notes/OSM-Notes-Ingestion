@@ -52,6 +52,8 @@ function __start_logger() {
  source "${LOGGER_UTILITY}"
  # shellcheck disable=SC2034
  LOG_LEVEL="${LOG_LEVEL:-INFO}"
+ # Set the log level in bash_logger
+ __set_log_level "${LOG_LEVEL}"
 }
 
 # Validation function

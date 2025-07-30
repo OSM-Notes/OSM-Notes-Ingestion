@@ -16,43 +16,37 @@ mkdir -p "${TMP_DIR}"
 # Define script base directory
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Load common functions (includes logging)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
 # Load global properties
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+
+# Start logger
+__start_logger
 
 # Load validation functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
  # shellcheck source=validationFunctions.sh
  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
 else
- echo "ERROR: validationFunctions.sh not found"
+ __loge "ERROR: validationFunctions.sh not found"
  exit 1
 fi
-
-# Simple logging functions
-function log_info() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO - $*" || true
-}
-
-function log_error() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR - $*" >&2 || true
-}
-
-function log_warn() {
- echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN - $*" || true
-}
 
 # Function to check if database exists
 function check_database() {
  local DBNAME="${1:-${DBNAME}}"
 
- log_info "Checking if database exists: ${DBNAME}"
+ __logi "Checking if database exists: ${DBNAME}"
 
  if psql -lqt | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
-  log_info "Database ${DBNAME} exists"
+  __logi "Database ${DBNAME} exists"
   return 0
  else
-  log_error "Database ${DBNAME} does not exist"
+  __loge "Database ${DBNAME} does not exist"
   return 1
  fi
 }
@@ -61,7 +55,7 @@ function check_database() {
 function list_partition_tables() {
  local DBNAME="${1}"
 
- log_info "Listing existing partition tables in database: ${DBNAME}"
+ __logi "Listing existing partition tables in database: ${DBNAME}"
 
  # Use properties for database connection
  local PSQL_CMD="psql"
@@ -94,11 +88,11 @@ function drop_all_partitions() {
  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
  local DROP_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropAllPartitions.sql"
 
- log_info "Dropping all partition tables using script: ${DROP_SCRIPT}"
+ __logi "Dropping all partition tables using script: ${DROP_SCRIPT}"
 
  # Validate SQL script using centralized validation
  if ! __validate_sql_structure "${DROP_SCRIPT}"; then
-  log_error "ERROR: Drop script validation failed: ${DROP_SCRIPT}"
+  __loge "ERROR: Drop script validation failed: ${DROP_SCRIPT}"
   return 1
  fi
 
@@ -119,14 +113,14 @@ function drop_all_partitions() {
 
  ${PSQL_CMD} -d "${DBNAME}" -f "${DROP_SCRIPT}"
 
- log_info "Partition tables cleanup completed"
+ __logi "Partition tables cleanup completed"
 }
 
 # Function to verify cleanup
 function verify_cleanup() {
  local DBNAME="${1}"
 
- log_info "Verifying that all partition tables have been removed"
+ __logi "Verifying that all partition tables have been removed"
 
  # Use properties for database connection
  local PSQL_CMD="psql"
@@ -151,10 +145,10 @@ function verify_cleanup() {
  " | tr -d ' ')
 
  if [[ "${REMAINING_COUNT}" -eq 0 ]]; then
-  log_info "SUCCESS: All partition tables have been removed"
+  __logi "SUCCESS: All partition tables have been removed"
   return 0
  else
-  log_warn "WARNING: ${REMAINING_COUNT} partition tables still exist"
+  __logw "WARNING: ${REMAINING_COUNT} partition tables still exist"
   ${PSQL_CMD} -d "${DBNAME}" -c "
   SELECT table_name 
   FROM information_schema.tables 
@@ -169,7 +163,7 @@ function verify_cleanup() {
 function cleanup_partitions() {
  local DBNAME="${1}"
 
- log_info "Starting partition tables cleanup for database: ${DBNAME}"
+ __logi "Starting partition tables cleanup for database: ${DBNAME}"
 
  # Step 1: Check if database exists
  if ! check_database "${DBNAME}"; then
@@ -177,24 +171,24 @@ function cleanup_partitions() {
  fi
 
  # Step 2: List existing partition tables
- log_info "Step 1: Listing existing partition tables"
+ __logi "Step 1: Listing existing partition tables"
  list_partition_tables "${DBNAME}"
 
  # Step 3: Drop all partition tables
- log_info "Step 2: Dropping all partition tables"
+ __logi "Step 2: Dropping all partition tables"
  if ! drop_all_partitions "${DBNAME}"; then
-  log_error "Failed to drop partition tables"
+  __loge "Failed to drop partition tables"
   return 1
  fi
 
  # Step 4: Verify cleanup
- log_info "Step 3: Verifying cleanup"
+ __logi "Step 3: Verifying cleanup"
  if ! verify_cleanup "${DBNAME}"; then
-  log_warn "Some partition tables may still exist"
+  __logw "Some partition tables may still exist"
   return 1
  fi
 
- log_info "Partition tables cleanup completed successfully"
+ __logi "Partition tables cleanup completed successfully"
 }
 
 # Cleanup function
@@ -245,21 +239,21 @@ function main() {
  fi
 
  # Use parameter or default from properties
- local DBNAME="${DBNAME_PARAM:-${DBNAME:-}}"
- if [[ -z "${DBNAME}" ]]; then
-  log_error "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
+ local TARGET_DB="${DBNAME_PARAM:-${DBNAME:-}}"
+ if [[ -z "${TARGET_DB}" ]]; then
+  __loge "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
   show_help
   exit 1
  fi
 
- log_info "Starting partition tables cleanup for database: ${DBNAME}"
+ __logi "Starting partition tables cleanup for database: ${TARGET_DB}"
 
  # Run cleanup
- if cleanup_partitions "${DBNAME}"; then
-  log_info "Partition tables cleanup completed successfully"
+ if cleanup_partitions "${TARGET_DB}"; then
+  __logi "Partition tables cleanup completed successfully"
   exit 0
  else
-  log_error "Partition tables cleanup failed"
+  __loge "Partition tables cleanup failed"
   exit 1
  fi
 }

@@ -8,6 +8,9 @@
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
+# Note: This file expects to be sourced after commonFunctions.sh which provides logging functions
+# If sourced directly, ensure commonFunctions.sh is loaded first
+
 # JSON schema files for validation
 # shellcheck disable=SC2034
 declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"
@@ -124,7 +127,7 @@ function __validate_sql_structure() {
  fi
 
  # Check for basic SQL syntax
- if ! grep -q -E "(CREATE|INSERT|UPDATE|DELETE|SELECT|DROP|ALTER)" "${sql_file}"; then
+ if ! grep -q -E "(CREATE|INSERT|UPDATE|DELETE|SELECT|DROP|ALTER|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE)" "${sql_file}"; then
   __loge "ERROR: No valid SQL statements found: ${sql_file}"
   return 1
  fi
