@@ -302,4 +302,158 @@ teardown() {
     [[ "$output" =~ "notes_check" ]]
     [[ "$output" =~ "note_comments_check" ]]
     [[ "$output" =~ "note_comments_text_check" ]]
+}
+
+# New specific monitoring tests for different scenarios
+
+@test "monitoring should detect equal notes count for historical data" {
+    # Skip this test if running on host (using mocks)
+    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+        skip "Skipping on host environment (using mocks)"
+    fi
+    
+    # Load historical data (yesterday and before) into both tables with equal counts
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
+    (1003, 51.5074, -0.1278, '2025-01-02 12:00:00', 'open', 2);
+    "
+    
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
+    (1003, 51.5074, -0.1278, '2025-01-02 12:00:00', 'open', 2);
+    "
+    
+    # Run monitoring check with historical filter (should find no differences)
+    run psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    SELECT COUNT(*) as differences FROM (
+        SELECT note_id FROM notes_check
+        WHERE DATE(created_at) < CURRENT_DATE
+        EXCEPT
+        SELECT note_id FROM notes
+        WHERE DATE(created_at) < CURRENT_DATE
+    ) t;
+    "
+    
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "0" ]] # Should find 0 differences for historical data
+}
+
+@test "monitoring should detect missing notes from yesterday" {
+    # Skip this test if running on host (using mocks)
+    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+        skip "Skipping on host environment (using mocks)"
+    fi
+    
+    # Load complete historical data into check tables (Planet data)
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
+    (1003, 51.5074, -0.1278, '2025-01-02 12:00:00', 'open', 2);
+    "
+    
+    # Load incomplete historical data into base tables (API data - missing note 1003 from yesterday)
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
+    -- Missing note 1003 from yesterday
+    "
+    
+    # Run monitoring check (should find differences for yesterday's data)
+    run psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    SELECT COUNT(*) as differences FROM (
+        SELECT note_id FROM notes_check
+        WHERE DATE(created_at) < CURRENT_DATE
+        EXCEPT
+        SELECT note_id FROM notes
+        WHERE DATE(created_at) < CURRENT_DATE
+    ) t;
+    "
+    
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "1" ]] # Should find 1 difference (missing note from yesterday)
+}
+
+@test "monitoring should ignore missing notes from today" {
+    # Skip this test if running on host (using mocks)
+    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+        skip "Skipping on host environment (using mocks)"
+    fi
+    
+    # Load data including today's notes into check tables (Planet data)
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
+    (1003, 51.5074, -0.1278, CURRENT_DATE + INTERVAL '2 hours', 'open', 2);
+    "
+    
+    # Load incomplete data into base tables (API data - missing today's note 1003)
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
+    -- Missing note 1003 from today (should be ignored)
+    "
+    
+    # Run monitoring check (should find no differences for historical data)
+    run psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    SELECT COUNT(*) as differences FROM (
+        SELECT note_id FROM notes_check
+        WHERE DATE(created_at) < CURRENT_DATE
+        EXCEPT
+        SELECT note_id FROM notes
+        WHERE DATE(created_at) < CURRENT_DATE
+    ) t;
+    "
+    
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "0" ]] # Should find 0 differences (today's missing note ignored)
+}
+
+@test "monitoring should detect missing notes from last week" {
+    # Skip this test if running on host (using mocks)
+    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+        skip "Skipping on host environment (using mocks)"
+    fi
+    
+    # Load complete historical data including last week into check tables (Planet data)
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1),
+    (1003, 51.5074, -0.1278, '2025-01-02 12:00:00', 'open', 2),
+    (1004, 48.8566, 2.3522, '2025-01-03 13:00:00', 'open', 3),
+    (1005, 35.6762, 139.6503, '2025-01-04 14:00:00', 'close', 4),
+    (1006, -33.8688, 151.2093, '2025-01-05 15:00:00', 'open', 5),
+    (1007, 55.7558, 37.6176, '2025-01-06 16:00:00', 'open', 6),
+    (1008, 19.4326, -99.1332, '2025-01-07 17:00:00', 'close', 7);
+    "
+    
+    # Load incomplete historical data into base tables (API data - missing notes from last week)
+    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, id_country) VALUES
+    (1001, 40.7128, -74.0060, '2025-01-01 10:00:00', 'open', 1),
+    (1002, 34.0522, -118.2437, '2025-01-01 11:00:00', 'close', 1);
+    -- Missing notes 1003-1008 from last week
+    "
+    
+    # Run monitoring check (should find differences for last week's data)
+    run psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    SELECT COUNT(*) as differences FROM (
+        SELECT note_id FROM notes_check
+        WHERE DATE(created_at) < CURRENT_DATE
+        EXCEPT
+        SELECT note_id FROM notes
+        WHERE DATE(created_at) < CURRENT_DATE
+    ) t;
+    "
+    
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "6" ]] # Should find 6 differences (missing notes from last week)
 } 

@@ -30,24 +30,21 @@ COPY
 ;
 
 -- Note ids that are not in the API DB, but are in the Planet.
--- Exclude notes created in the last 30 minutes to avoid false positives due to temporal gaps
+-- Compare all historical data (excluding today) between API and Planet
 DROP TABLE IF EXISTS temp_diff_notes_id;
 
 CREATE TABLE temp_diff_notes_id (
  note_id INTEGER
 );
-COMMENT ON TABLE temp_diff_notes_id IS
-  'Temporal table for differences in note''s ids';
-COMMENT ON COLUMN notes_check.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_notes_id
  SELECT /* Notes-check */ note_id
  FROM notes_check
- WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
  EXCEPT
  SELECT /* Notes-check */ note_id
  FROM notes
- WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
 ;
 
 COPY
@@ -65,36 +62,33 @@ COPY
 
 DROP TABLE IF EXISTS temp_diff_notes_id;
 
--- Comment notes id that are not in the API DB, but are in the Planet.
--- Exclude comments created in the last 30 minutes to avoid false positives due to temporal gaps
+-- Comment ids that are not in the API DB, but are in the Planet.
+-- Compare all historical comments (excluding today) between API and Planet
 DROP TABLE IF EXISTS temp_diff_comments_id;
 
 CREATE TABLE temp_diff_comments_id (
- note_id INTEGER
+ comment_id INTEGER
 );
-COMMENT ON TABLE temp_diff_comments_id IS
-  'Temporal table for differences in comment''s ids';
-COMMENT ON COLUMN temp_diff_comments_id.note_id IS 'OSM note id';
 
 INSERT INTO temp_diff_comments_id
- SELECT /* Notes-check */ note_id
+ SELECT /* Comments-check */ comment_id
  FROM note_comments_check
- WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
  EXCEPT
- SELECT /* Notes-check */ note_id
+ SELECT /* Comments-check */ comment_id
  FROM note_comments
- WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
 ;
 
 COPY
  (
   SELECT /* Notes-check */ note_comments_check.*
   FROM note_comments_check
-  WHERE note_id IN (
-   SELECT /* Notes-check */ note_id
+  WHERE comment_id IN (
+   SELECT /* Notes-check */ comment_id
    FROM temp_diff_comments_id
   )
-  ORDER BY note_id, created_at
+  ORDER BY comment_id, created_at
  )
  TO '${DIFFERENT_COMMENT_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
@@ -118,142 +112,79 @@ INSERT INTO temp_diff_notes
   -- considered.
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes_check
-  WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
   EXCEPT
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes
-  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE)  -- TODO no entiendo esto
-    AND created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent notes
+  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE) -- TODO no entiendo esto
  ) AS t
  ORDER BY note_id
 ;
 
-COPY
- (
-  SELECT /* Notes-check */ *
-  FROM (
-   -- closed_at, the API could close it before closing the comment.
-   SELECT /* Notes-check */ 'Planet' AS source, note_id, latitude, longitude,
-    created_at, status
-   FROM notes_check
-   WHERE note_id IN (
-    SELECT /* Notes-check */ note_id
-    FROM temp_diff_notes
-   )
-   UNION
-   SELECT /* Notes-check */ 'API   ' AS source, note_id, latitude, longitude,
-    created_at, status
-   FROM notes
-   WHERE note_id IN (
-    SELECT /* Notes-check */ note_id
-    FROM temp_diff_notes
-   )
-  ) AS T
-  ORDER BY note_id, source
+-- Note differences between the retrieved from API and the Planet.
+-- Compare complete note details for all history (excluding today)
+\copy (
+ SELECT /* Notes-check */ notes_check.*
+ FROM notes_check
+ WHERE note_id IN (
+  SELECT /* Notes-check */ note_id
+  FROM temp_diff_notes_id
  )
- TO '${DIRRERENT_NOTES_FILE}' WITH DELIMITER ',' CSV HEADER
+ AND DATE(created_at) < CURRENT_DATE  -- All history except today
+ ORDER BY note_id, created_at
+)
+TO '${DIFFERENT_NOTES_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_notes;
 
 -- Comment differences between the retrieved from API and the Planet.
-DROP TABLE IF EXISTS temp_diff_note_comments;
-
-CREATE TABLE temp_diff_note_comments (
- note_id INTEGER
-);
-COMMENT ON TABLE temp_diff_note_comments IS
-  'Temporal table for differences in comments';
-COMMENT ON COLUMN temp_diff_note_comments.note_id IS 'OSM note id';
-
-INSERT INTO temp_diff_note_comments
- SELECT /* Notes-check */ note_id
- FROM (
-  SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
-  FROM note_comments_check
-  WHERE created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
-  EXCEPT
-  SELECT /* Notes-check */ note_id, sequence_action, event, created_at, id_user
-  FROM note_comments
-  WHERE created_at < NOW()::DATE
-    AND created_at < (NOW() - INTERVAL '30 minutes')  -- Exclude recent comments
- ) AS t
- ORDER BY note_id, sequence_action
-;
-
-COPY
- (
-  SELECT /* Notes-check */ *
-  FROM (
-   SELECT /* Notes-check */ 'Planet' AS source, note_id, event, sequence_action,
-    created_at, id_user
-   FROM note_comments_check
-   WHERE note_id IN (
-    SELECT /* Notes-check */ note_id
-    FROM temp_diff_note_comments
-   )
-   UNION
-   SELECT /* Notes-check */ 'API   ' AS source, note_id, event, sequence_action,
-    created_at, id_user
-   FROM note_comments
-   WHERE note_id IN (
-    SELECT /* Notes-check */ note_id
-    FROM temp_diff_note_comments
-   )
-   AND created_at < NOW()::DATE
-  ) AS T
-  ORDER BY note_id, sequence_action, source
+-- Compare complete comment details for all history (excluding today)
+\copy (
+ SELECT /* Comments-check */ note_comments_check.*
+ FROM note_comments_check
+ WHERE comment_id IN (
+  SELECT /* Comments-check */ comment_id
+  FROM temp_diff_comments_id
  )
- TO '${DIRRERENT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
+ AND DATE(created_at) < CURRENT_DATE  -- All history except today
+ ORDER BY comment_id, created_at
+)
+TO '${DIFFERENT_COMMENT_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_note_comments;
+
+-- Text comment ids that are not in the API DB, but are in the Planet.
+-- Compare all historical text comments (excluding today) between API and Planet
+DROP TABLE IF EXISTS temp_diff_text_comments_id;
+
+CREATE TABLE temp_diff_text_comments_id (
+ text_comment_id INTEGER
+);
+
+INSERT INTO temp_diff_text_comments_id
+ SELECT /* Text-comments-check */ text_comment_id
+ FROM note_comments_text_check
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+ EXCEPT
+ SELECT /* Text-comments-check */ text_comment_id
+ FROM note_comments_text
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+;
 
 -- Text comment differences between the retrieved from API and the Planet.
-DROP TABLE IF EXISTS temp_diff_text_comments;
-
-CREATE TABLE temp_diff_text_comments (
- note_id INTEGER
-);
-COMMENT ON TABLE temp_diff_text_comments IS
-  'Temporal table for differences in text comments';
-COMMENT ON COLUMN temp_diff_text_comments.note_id IS 'OSM note id';
-
-INSERT INTO temp_diff_text_comments
- SELECT /* Notes-check */ note_id
- FROM (
-  SELECT /* Notes-check */ note_id, sequence_action, body
-  FROM note_comments_text_check
-  EXCEPT
-  SELECT /* Notes-check */ note_id, sequence_action, body
-  FROM note_comments_text
-  WHERE processing_time < NOW()::DATE
- ) AS t
- ORDER BY note_id, sequence_action
-;
-
-COPY
- (
-  SELECT /* Notes-check */ *
-  FROM (
-   SELECT /* Notes-check */ 'Planet' AS source, note_id, sequence_action, body
-   FROM note_comments_text_check
-   WHERE note_id IN (
-    SELECT /* Notes-check */ note_id
-    FROM temp_diff_text_comments
-   )
-   UNION
-   SELECT /* Notes-check */ 'API   ' AS source, note_id, sequence_action, body
-   FROM note_comments_text
-   WHERE note_id IN (
-    SELECT /* Notes-check */ note_id
-    FROM temp_diff_text_comments
-   )
-   AND processing_time < NOW()::DATE
-  ) AS T
-  ORDER BY note_id, sequence_action, source
+-- Compare complete text comment details for all history (excluding today)
+\copy (
+ SELECT /* Text-comments-check */ note_comments_text_check.*
+ FROM note_comments_text_check
+ WHERE text_comment_id IN (
+  SELECT /* Text-comments-check */ text_comment_id
+  FROM temp_diff_text_comments_id
  )
- TO '${DIFFERENT_TEXT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
+ AND DATE(created_at) < CURRENT_DATE  -- All history except today
+ ORDER BY text_comment_id, created_at
+)
+TO '${DIFFERENT_TEXT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_text_comments;
