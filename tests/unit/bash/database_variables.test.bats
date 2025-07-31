@@ -174,4 +174,65 @@ teardown() {
  [ "$status" -eq 1 ]
  [[ "$output" == *"ERROR: Test database variable validation failed"* ]]
  [[ "$output" == *"TEST_DBNAME is not set"* ]]
+}
+
+@test "validate_postgres_variables with all variables set" {
+ # Set all required POSTGRES variables
+ export POSTGRES_11_CHECK_BASE_TABLES="/tmp/test_check.sql"
+ export POSTGRES_12_DROP_GENERIC_OBJECTS="/tmp/test_drop.sql"
+ export POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="/tmp/test_function.sql"
+ export POSTGRES_22_CREATE_PROC_INSERT_NOTE="/tmp/test_proc_note.sql"
+ export POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="/tmp/test_proc_comment.sql"
+ export POSTGRES_31_ORGANIZE_AREAS="/tmp/test_organize.sql"
+ export POSTGRES_32_UPLOAD_NOTE_LOCATION="/tmp/test_location.sql"
+
+ # Create test SQL files
+ echo "SELECT 1;" > "/tmp/test_check.sql"
+ echo "DROP TABLE IF EXISTS test;" > "/tmp/test_drop.sql"
+ echo "CREATE FUNCTION test();" > "/tmp/test_function.sql"
+ echo "CREATE PROCEDURE test();" > "/tmp/test_proc_note.sql"
+ echo "CREATE PROCEDURE test_comment();" > "/tmp/test_proc_comment.sql"
+ echo "SELECT 1;" > "/tmp/test_organize.sql"
+ echo "SELECT 1;" > "/tmp/test_location.sql"
+
+ run __validate_postgres_variables
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"DEBUG: PostgreSQL variable validation passed"* ]]
+
+ # Clean up test files
+ rm -f /tmp/test_*.sql
+}
+
+@test "validate_postgres_variables with missing POSTGRES_11_CHECK_BASE_TABLES" {
+ # Set variables except POSTGRES_11_CHECK_BASE_TABLES
+ export POSTGRES_12_DROP_GENERIC_OBJECTS="/tmp/test_drop.sql"
+ export POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="/tmp/test_function.sql"
+ export POSTGRES_22_CREATE_PROC_INSERT_NOTE="/tmp/test_proc_note.sql"
+ export POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="/tmp/test_proc_comment.sql"
+ export POSTGRES_31_ORGANIZE_AREAS="/tmp/test_organize.sql"
+ export POSTGRES_32_UPLOAD_NOTE_LOCATION="/tmp/test_location.sql"
+
+ # Unset POSTGRES_11_CHECK_BASE_TABLES
+ unset POSTGRES_11_CHECK_BASE_TABLES
+
+ run __validate_postgres_variables
+ [ "$status" -eq 1 ]
+ [[ "$output" == *"ERROR: PostgreSQL variable validation failed"* ]]
+ [[ "$output" == *"POSTGRES_11_CHECK_BASE_TABLES is not set"* ]]
+}
+
+@test "validate_postgres_variables with missing SQL files" {
+ # Set all required POSTGRES variables
+ export POSTGRES_11_CHECK_BASE_TABLES="/tmp/nonexistent_check.sql"
+ export POSTGRES_12_DROP_GENERIC_OBJECTS="/tmp/nonexistent_drop.sql"
+ export POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="/tmp/nonexistent_function.sql"
+ export POSTGRES_22_CREATE_PROC_INSERT_NOTE="/tmp/nonexistent_proc_note.sql"
+ export POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="/tmp/nonexistent_proc_comment.sql"
+ export POSTGRES_31_ORGANIZE_AREAS="/tmp/nonexistent_organize.sql"
+ export POSTGRES_32_UPLOAD_NOTE_LOCATION="/tmp/nonexistent_location.sql"
+
+ run __validate_postgres_variables
+ [ "$status" -eq 1 ]
+ [[ "$output" == *"ERROR: PostgreSQL variable validation failed"* ]]
+ [[ "$output" == *"SQL file not found"* ]]
 } 

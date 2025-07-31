@@ -228,3 +228,30 @@ EOF
   [[ "$output" == *"ERROR: Error occurred: Network connectivity check failed"* ]]
   [[ "$output" == *"EXIT: 251"* ]]  # ERROR_INTERNET_ISSUE
 } 
+
+@test "processAPINotes.sh should not have unbound variable errors" {
+ # Test that processAPINotes.sh loads without unbound variable errors
+ # We'll just check the sourcing part without running the full script
+ run bash -c "cd /home/angoca/github/OSM-Notes-profile && bash -n bin/process/processAPINotes.sh"
+ [ "$status" -eq 0 ]
+ 
+ # Also test that the script can be sourced without unbound variable errors
+ run bash -c "cd /home/angoca/github/OSM-Notes-profile && timeout 5 bash -c 'source bin/process/processAPINotes.sh' 2>&1 || true"
+ [[ "$output" != *"unbound variable"* ]]
+ [[ "$output" != *"POSTGRES_11_CHECK_BASE_TABLES: unbound variable"* ]]
+}
+
+@test "commonFunctions.sh should validate POSTGRES variables before use" {
+ # Test that POSTGRES variables are defined in functionsProcess.sh
+ run bash -c "cd /home/angoca/github/OSM-Notes-profile && source bin/functionsProcess.sh && echo \"POSTGRES_11_CHECK_BASE_TABLES: \${POSTGRES_11_CHECK_BASE_TABLES:-NOT_SET}\""
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"POSTGRES_11_CHECK_BASE_TABLES:"* ]]
+ [[ "$output" != *"NOT_SET"* ]]
+}
+
+@test "commonFunctions.sh should validate SQL file existence" {
+ # Test that SQL files exist
+ run bash -c "cd /home/angoca/github/OSM-Notes-profile && source bin/functionsProcess.sh && ls -la \${POSTGRES_11_CHECK_BASE_TABLES}"
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"functionsProcess_11_checkBaseTables.sql"* ]]
+} 
