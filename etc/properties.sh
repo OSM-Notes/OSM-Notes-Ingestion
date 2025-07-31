@@ -4,13 +4,13 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-07-29
+# Version: 2025-07-30
 
 # Database configuration.
 # shellcheck disable=SC2034
-declare -r DBNAME="${DBNAME:-notes}"
+declare -r DBNAME="${DBNAME:-osm_notes}"
 # shellcheck disable=SC2034
-declare -r DB_USER="${DB_USER:-notes}"
+declare -r DB_USER="${DB_USER:-myuser}"
 
 # Email configuration for reports.
 declare -r EMAILS="username@domain.com"

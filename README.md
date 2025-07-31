@@ -399,10 +399,9 @@ These are external libraries:
 You can use the following script to remove components from this tool.
 This is useful if you have to recreate some parts, but the rest is working fine.
 
-
 ```bash
-# Remove all components from the database
-~/OSM-Notes-profile/bin/cleanupAll.sh notes
+# Remove all components from the database (uses default from properties: osm_notes)
+~/OSM-Notes-profile/bin/cleanupAll.sh
 
 # For test database
 ~/OSM-Notes-profile/bin/cleanupAll.sh osm_notes_test
@@ -420,6 +419,53 @@ Also, you run the scripts with -h or --help.
 There are few Github wiki pages with interesting information.
 You can even take a look at the code, which is highly documented.
 Finally, you can create an issue or contact the author.
+
+## Database Configuration
+
+The project uses PostgreSQL for data storage. Before running the scripts, ensure proper database configuration:
+
+### Development Environment Setup
+
+1. **Install PostgreSQL:**
+
+   ```bash
+   sudo apt-get update && sudo apt-get install postgresql postgresql-contrib
+   ```
+
+2. **Configure authentication (choose one option):**
+
+   **Option A: Trust authentication (recommended for development)**
+
+   ```bash
+   sudo nano /etc/postgresql/15/main/pg_hba.conf
+   # Change 'peer' to 'trust' for local connections
+   sudo systemctl restart postgresql
+   ```
+
+   **Option B: Password authentication**
+
+   ```bash
+   echo "localhost:5432:osm_notes:myuser:your_password" > ~/.pgpass
+   chmod 600 ~/.pgpass
+   ```
+
+3. **Test connection:**
+
+   ```bash
+   psql -U myuser -d osm_notes -c "SELECT 1;"
+   ```
+
+### Database Configuration
+
+The project is configured to use:
+
+* **Database:** `osm_notes`
+* **User:** `myuser`
+* **Authentication:** peer (uses system user)
+
+Configuration is stored in `etc/properties.sh`.
+
+For troubleshooting, check the PostgreSQL logs and ensure proper authentication configuration.
 
 ## Acknowledgments
 

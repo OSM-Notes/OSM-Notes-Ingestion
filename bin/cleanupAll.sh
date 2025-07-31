@@ -38,22 +38,22 @@ fi
 
 # Function to check if database exists
 function check_database() {
- local DBNAME="${1:-${DBNAME}}"
+ local TARGET_DB="${1:-${DBNAME}}"
 
- __logi "Checking if database exists: ${DBNAME}"
+ __logi "Checking if database exists: ${TARGET_DB}"
 
- if psql -lqt | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
-  __logi "Database ${DBNAME} exists"
+ if psql -lqt | cut -d \| -f 1 | grep -qw "${TARGET_DB}"; then
+  __logi "Database ${TARGET_DB} exists"
   return 0
  else
-  __loge "Database ${DBNAME} does not exist"
+  __loge "Database ${TARGET_DB} does not exist"
   return 1
  fi
 }
 
 # Function to execute SQL script with validation
 function execute_sql_script() {
- local DBNAME="${1}"
+ local TARGET_DB="${1}"
  local SCRIPT_PATH="${2}"
  local SCRIPT_NAME="${3}"
 
@@ -71,7 +71,7 @@ function execute_sql_script() {
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
 
- if ${PSQL_CMD} -d "${DBNAME}" -f "${SCRIPT_PATH}"; then
+ if ${PSQL_CMD} -d "${TARGET_DB}" -f "${SCRIPT_PATH}"; then
   __logi "SUCCESS: ${SCRIPT_NAME} completed"
   return 0
  else
@@ -82,7 +82,7 @@ function execute_sql_script() {
 
 # Function to cleanup ETL components
 function cleanup_etl() {
- local DBNAME="${1}"
+ local TARGET_DB="${1}"
 
  __logi "Cleaning up ETL components"
 
@@ -97,7 +97,7 @@ function cleanup_etl() {
  for script_info in "${ETL_SCRIPTS[@]}"; do
   IFS=':' read -r script_path script_name <<< "${script_info}"
   if [[ -f "${script_path}" ]]; then
-   execute_sql_script "${DBNAME}" "${script_path}" "${script_name}"
+   execute_sql_script "${TARGET_DB}" "${script_path}" "${script_name}"
   else
    __logw "Script not found: ${script_path}"
   fi
@@ -106,13 +106,13 @@ function cleanup_etl() {
 
 # Function to cleanup WMS components
 function cleanup_wms() {
- local DBNAME="${1}"
+ local TARGET_DB="${1}"
 
  __logi "Cleaning up WMS components"
 
  local WMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/wms/removeFromDatabase.sql"
  if [[ -f "${WMS_SCRIPT}" ]]; then
-  execute_sql_script "${DBNAME}" "${WMS_SCRIPT}" "WMS Components"
+  execute_sql_script "${TARGET_DB}" "${WMS_SCRIPT}" "WMS Components"
  else
   __logw "WMS cleanup script not found: ${WMS_SCRIPT}"
  fi
@@ -120,7 +120,7 @@ function cleanup_wms() {
 
 # Function to cleanup API tables first (to resolve enum dependencies)
 function cleanup_api_tables() {
- local DBNAME="${1}"
+ local TARGET_DB="${1}"
 
  __logi "Cleaning up API tables (to resolve enum dependencies)"
 
@@ -144,7 +144,7 @@ function cleanup_api_tables() {
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
 
- if ${PSQL_CMD} -d "${DBNAME}" -c "${API_DROP_SQL}"; then
+ if ${PSQL_CMD} -d "${TARGET_DB}" -c "${API_DROP_SQL}"; then
   __logi "SUCCESS: API tables dropped"
   return 0
  else
@@ -155,12 +155,12 @@ function cleanup_api_tables() {
 
 # Function to cleanup base components
 function cleanup_base() {
- local DBNAME="${1}"
+ local TARGET_DB="${1}"
 
  __logi "Cleaning up base components"
 
  # First clean up API tables to resolve enum dependencies
- cleanup_api_tables "${DBNAME}"
+ cleanup_api_tables "${TARGET_DB}"
 
  local BASE_SCRIPTS=(
   "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql:Check Tables"
@@ -173,7 +173,7 @@ function cleanup_base() {
  for script_info in "${BASE_SCRIPTS[@]}"; do
   IFS=':' read -r script_path script_name <<< "${script_info}"
   if [[ -f "${script_path}" ]]; then
-   execute_sql_script "${DBNAME}" "${script_path}" "${script_name}"
+   execute_sql_script "${TARGET_DB}" "${script_path}" "${script_name}"
   else
    __logw "Script not found: ${script_path}"
   fi
@@ -193,26 +193,26 @@ function cleanup_temp_files() {
 
 # Main cleanup function
 function cleanup_all() {
- local DBNAME="${1}"
+ local TARGET_DB="${1}"
 
- __logi "Starting comprehensive cleanup for database: ${DBNAME}"
+ __logi "Starting comprehensive cleanup for database: ${TARGET_DB}"
 
  # Step 1: Check if database exists
- if ! check_database "${DBNAME}"; then
+ if ! check_database "${TARGET_DB}"; then
   return 1
  fi
 
  # Step 2: Cleanup ETL components
  __logi "Step 1: Cleaning up ETL components"
- cleanup_etl "${DBNAME}"
+ cleanup_etl "${TARGET_DB}"
 
  # Step 3: Cleanup WMS components
  __logi "Step 2: Cleaning up WMS components"
- cleanup_wms "${DBNAME}"
+ cleanup_wms "${TARGET_DB}"
 
  # Step 4: Cleanup base components
  __logi "Step 3: Cleaning up base components"
- cleanup_base "${DBNAME}"
+ cleanup_base "${TARGET_DB}"
 
  # Step 5: Cleanup temporary files
  __logi "Step 4: Cleaning up temporary files"
@@ -237,13 +237,13 @@ function show_help() {
  echo "This includes ETL components, WMS components, base tables, and temporary files."
  echo ""
  echo "Examples:"
- echo "  $0                    # Uses default database from properties"
+ echo "  $0                    # Uses default database from properties (osm_notes)"
  echo "  $0 notes              # Uses specified database"
  echo "  $0 osm_notes_test     # Uses test database"
  echo "  $0 osm_notes_prod     # Uses production database"
  echo ""
  echo "Database connection uses properties from etc/properties.sh:"
- echo "  Default database: ${DBNAME:-not set}"
+ echo "  Default database: osm_notes"
  echo "  Database user: ${DB_USER:-not set}"
  echo "  Authentication: peer (uses system user)"
  echo ""
@@ -272,17 +272,17 @@ function main() {
  fi
 
  # Use parameter or default from properties
- local DBNAME="${DBNAME_PARAM:-${DBNAME:-}}"
- if [[ -z "${DBNAME}" ]]; then
+ local TARGET_DB="${DBNAME_PARAM:-${DBNAME:-}}"
+ if [[ -z "${TARGET_DB}" ]]; then
   __loge "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
   show_help
   exit 1
  fi
 
- __logi "Starting comprehensive cleanup for database: ${DBNAME}"
+ __logi "Starting comprehensive cleanup for database: ${TARGET_DB}"
 
  # Run cleanup
- if cleanup_all "${DBNAME}"; then
+ if cleanup_all "${TARGET_DB}"; then
   __logi "Comprehensive cleanup completed successfully"
   exit 0
  else
