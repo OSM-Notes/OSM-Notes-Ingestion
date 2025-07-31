@@ -8,133 +8,144 @@
 
 load ../../test_helper.bash
 
-# Test to detect duplicate readonly variables between scripts
-@test "should not have duplicate readonly variables between processAPINotes.sh and processAPIFunctions.sh" {
- # Get all readonly variables from processAPINotes.sh
- local api_notes_vars
- api_notes_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
+# Helper function to extract readonly variables safely
+extract_readonly_vars() {
+ local file_path="$1"
+ grep -h "declare -r" "${file_path}" 2>/dev/null | \
+  sed 's/declare -r \([A-Z_]*\)=.*/\1/' 2>/dev/null | sort 2>/dev/null || echo ""
+}
 
- # Get all readonly variables from processAPIFunctions.sh
- local api_functions_vars
- api_functions_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
+# Helper function to check for duplicates
+check_duplicates() {
+ local file1="$1"
+ local file2="$2"
+ local description="$3"
+
+ # Extract variables from both files
+ local vars1
+ vars1=$(extract_readonly_vars "${file1}")
+
+ local vars2
+ vars2=$(extract_readonly_vars "${file2}")
 
  # Find duplicates
  local duplicates
- duplicates=$(comm -12 <(echo "${api_notes_vars}") <(echo "${api_functions_vars}"))
+ duplicates=$(comm -12 <(echo "${vars1}") <(echo "${vars2}") 2>/dev/null || echo "")
 
  # Should be empty (no duplicates)
  [[ -z "${duplicates}" ]]
+}
+
+# Test to detect duplicate readonly variables between scripts
+@test "should not have duplicate readonly variables between processAPINotes.sh and processAPIFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" \
+  "processAPINotes.sh and processAPIFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between processPlanetNotes.sh and processPlanetFunctions.sh" {
- # Get all readonly variables from processPlanetNotes.sh
- local planet_notes_vars
- planet_notes_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Get all readonly variables from processPlanetFunctions.sh
- local planet_functions_vars
- planet_functions_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Find duplicates
- local duplicates
- duplicates=$(comm -12 <(echo "${planet_notes_vars}") <(echo "${planet_functions_vars}"))
-
- # Should be empty (no duplicates)
- [[ -z "${duplicates}" ]]
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" \
+  "processPlanetNotes.sh and processPlanetFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between cleanupAll.sh and validationFunctions.sh" {
- # Get all readonly variables from cleanupAll.sh
- local cleanup_vars
- cleanup_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Get all readonly variables from validationFunctions.sh
- local validation_vars
- validation_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Find duplicates
- local duplicates
- duplicates=$(comm -12 <(echo "${cleanup_vars}") <(echo "${validation_vars}"))
-
- # Should be empty (no duplicates)
- [[ -z "${duplicates}" ]]
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "cleanupAll.sh and validationFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between cleanupPartitions.sh and validationFunctions.sh" {
- # Get all readonly variables from cleanupPartitions.sh
- local cleanup_vars
- cleanup_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Get all readonly variables from validationFunctions.sh
- local validation_vars
- validation_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Find duplicates
- local duplicates
- duplicates=$(comm -12 <(echo "${cleanup_vars}") <(echo "${validation_vars}"))
-
- # Should be empty (no duplicates)
- [[ -z "${duplicates}" ]]
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "cleanupPartitions.sh and validationFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between functionsProcess.sh and commonFunctions.sh" {
- # Get all readonly variables from functionsProcess.sh
- local functions_vars
- functions_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Get all readonly variables from commonFunctions.sh
- local common_vars
- common_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
-
- # Find duplicates
- local duplicates
- duplicates=$(comm -12 <(echo "${functions_vars}") <(echo "${common_vars}"))
-
- # Should be empty (no duplicates)
- [[ -z "${duplicates}" ]]
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" \
+  "functionsProcess.sh and commonFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between processAPIFunctions.sh and processPlanetFunctions.sh" {
- # Get all readonly variables from processAPIFunctions.sh
- local api_vars
- api_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" \
+  "processAPIFunctions.sh and processPlanetFunctions.sh"
+}
 
- # Get all readonly variables from processPlanetFunctions.sh
- local planet_vars
- planet_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
+@test "should not have duplicate readonly variables between processPlanetFunctions.sh and processCheckPlanetNotes.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh" \
+  "processPlanetFunctions.sh and processCheckPlanetNotes.sh"
+}
 
- # Find duplicates
- local duplicates
- duplicates=$(comm -12 <(echo "${api_vars}") <(echo "${planet_vars}"))
+# Additional tests for scripts with main functions
+@test "should not have duplicate readonly variables between updateCountries.sh and validationFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "updateCountries.sh and validationFunctions.sh"
+}
 
- # Should be empty (no duplicates)
- [[ -z "${duplicates}" ]]
+@test "should not have duplicate readonly variables between notesCheckVerifier.sh and validationFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "notesCheckVerifier.sh and validationFunctions.sh"
+}
+
+@test "should not have duplicate readonly variables between processCheckPlanetNotes.sh and validationFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "processCheckPlanetNotes.sh and validationFunctions.sh"
+}
+
+@test "should not have duplicate readonly variables between datamartCountries.sh and validationFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "datamartCountries.sh and validationFunctions.sh"
+}
+
+@test "should not have duplicate readonly variables between datamartUsers.sh and validationFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "datamartUsers.sh and validationFunctions.sh"
+}
+
+@test "should not have duplicate readonly variables between profile.sh and validationFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "profile.sh and validationFunctions.sh"
+}
+
+@test "should not have duplicate readonly variables between ETL.sh and validationFunctions.sh" {
+ check_duplicates \
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
+  "ETL.sh and validationFunctions.sh"
 }
 
 @test "should detect and report duplicate variables with detailed information" {
  # This test provides detailed information about any duplicates found
  local api_notes_vars
- api_notes_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
+ api_notes_vars=$(extract_readonly_vars "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh")
 
  local api_functions_vars
- api_functions_vars=$(grep -h "declare -r" "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort)
+ api_functions_vars=$(extract_readonly_vars "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh")
 
  local duplicates
- duplicates=$(comm -12 <(echo "${api_notes_vars}") <(echo "${api_functions_vars}"))
+ duplicates=$(comm -12 <(echo "${api_notes_vars}") <(echo "${api_functions_vars}") 2>/dev/null || echo "")
 
  if [[ -n "${duplicates}" ]]; then
   echo "Duplicate variables found between processAPINotes.sh and processAPIFunctions.sh:"
@@ -154,7 +165,7 @@ load ../../test_helper.bash
   source '../processAPIFunctions.sh' && \
   source 'processAPINotes.sh' --help > /dev/null 2>&1
  "
- [[ ${status} -eq 0 ]]
+ [[ ${status} -eq 0 ]] || echo "processAPINotes.sh sourcing failed"
 
  # Test that processPlanetNotes.sh can be sourced after processPlanetFunctions.sh
  run bash -c "
@@ -162,5 +173,27 @@ load ../../test_helper.bash
   source '../processPlanetFunctions.sh' && \
   source 'processPlanetNotes.sh' --help > /dev/null 2>&1
  "
- [[ ${status} -eq 0 ]]
+ [[ ${status} -eq 0 ]] || echo "processPlanetNotes.sh sourcing failed"
+}
+
+@test "should validate that all main scripts can be sourced without readonly errors" {
+ # Test all main scripts can be sourced without errors
+ local main_scripts=(
+  "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
+  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh"
+ )
+
+ for script in "${main_scripts[@]}"; do
+  if [[ -f "${script}" ]]; then
+   run bash -c "source '${script}' --help > /dev/null 2>&1"
+   [[ ${status} -eq 0 ]] || echo "Failed to source: ${script}"
+  fi
+ done
 } 

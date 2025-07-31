@@ -4,7 +4,7 @@
 # This script removes all components from the database
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-07-30
 
 set -euo pipefail
 
@@ -65,19 +65,10 @@ function execute_sql_script() {
   return 1
  fi
 
- # Use properties for database connection
+ # Use peer authentication (no host, port, or password needed)
  local PSQL_CMD="psql"
  if [[ -n "${DB_USER:-}" ]]; then
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
- fi
- if [[ -n "${DB_PASSWORD:-}" ]]; then
-  export PGPASSWORD="${DB_PASSWORD}"
- fi
- if [[ -n "${DB_HOST:-}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST}"
- fi
- if [[ -n "${DB_PORT:-}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT}"
  fi
 
  if ${PSQL_CMD} -d "${DBNAME}" -f "${SCRIPT_PATH}"; then
@@ -147,19 +138,10 @@ function cleanup_api_tables() {
  DROP TABLE IF EXISTS notes_api_part_4 CASCADE;
  "
 
- # Use properties for database connection
+ # Use peer authentication (no host, port, or password needed)
  local PSQL_CMD="psql"
  if [[ -n "${DB_USER:-}" ]]; then
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
- fi
- if [[ -n "${DB_PASSWORD:-}" ]]; then
-  export PGPASSWORD="${DB_PASSWORD}"
- fi
- if [[ -n "${DB_HOST:-}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST}"
- fi
- if [[ -n "${DB_PORT:-}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT}"
  fi
 
  if ${PSQL_CMD} -d "${DBNAME}" -c "${API_DROP_SQL}"; then
@@ -263,8 +245,7 @@ function show_help() {
  echo "Database connection uses properties from etc/properties.sh:"
  echo "  Default database: ${DBNAME:-not set}"
  echo "  Database user: ${DB_USER:-not set}"
- echo "  Database host: ${DB_HOST:-localhost}"
- echo "  Database port: ${DB_PORT:-5432}"
+ echo "  Authentication: peer (uses system user)"
  echo ""
  echo "The script will:"
  echo "  1. Check if the database exists"
@@ -291,17 +272,17 @@ function main() {
  fi
 
  # Use parameter or default from properties
- local TARGET_DB="${DBNAME_PARAM:-${DBNAME:-}}"
- if [[ -z "${TARGET_DB}" ]]; then
+ local DBNAME="${DBNAME_PARAM:-${DBNAME:-}}"
+ if [[ -z "${DBNAME}" ]]; then
   __loge "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
   show_help
   exit 1
  fi
 
- __logi "Starting comprehensive cleanup for database: ${TARGET_DB}"
+ __logi "Starting comprehensive cleanup for database: ${DBNAME}"
 
  # Run cleanup
- if cleanup_all "${TARGET_DB}"; then
+ if cleanup_all "${DBNAME}"; then
   __logi "Comprehensive cleanup completed successfully"
   exit 0
  else

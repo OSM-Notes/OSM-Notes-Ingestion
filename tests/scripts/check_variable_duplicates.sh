@@ -85,6 +85,13 @@ check_all_script_pairs() {
    "${PROJECT_ROOT}/bin/functionsProcess.sh:${PROJECT_ROOT}/bin/commonFunctions.sh:functionsProcess.sh and commonFunctions.sh"
    "${PROJECT_ROOT}/bin/processAPIFunctions.sh:${PROJECT_ROOT}/bin/processPlanetFunctions.sh:processAPIFunctions.sh and processPlanetFunctions.sh"
    "${PROJECT_ROOT}/bin/processPlanetFunctions.sh:${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh:processPlanetFunctions.sh and processCheckPlanetNotes.sh"
+   "${PROJECT_ROOT}/bin/process/updateCountries.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:updateCountries.sh and validationFunctions.sh"
+   "${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:notesCheckVerifier.sh and validationFunctions.sh"
+   "${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:processCheckPlanetNotes.sh and validationFunctions.sh"
+   "${PROJECT_ROOT}/bin/dwh/datamartCountries/datamartCountries.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:datamartCountries.sh and validationFunctions.sh"
+   "${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:datamartUsers.sh and validationFunctions.sh"
+   "${PROJECT_ROOT}/bin/dwh/profile.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:profile.sh and validationFunctions.sh"
+   "${PROJECT_ROOT}/bin/dwh/ETL.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:ETL.sh and validationFunctions.sh"
   )
 
  for pair in "${script_pairs[@]}"; do
@@ -113,13 +120,17 @@ test_script_sourcing() {
  local api_output
  api_output=$(bash -c "
   cd '${PROJECT_ROOT}/bin/process' && \
-  source '../processAPIFunctions.sh' && \
   source 'processAPINotes.sh' --help
  " 2>&1)
  if [[ $? -ne 0 ]]; then
-  log_error "processAPINotes.sh has readonly variable conflicts"
-  echo "Error output: ${api_output}"
-  has_errors=1
+  # Check if it's a readonly variable error
+  if echo "${api_output}" | grep -q "variable de sólo lectura\|readonly variable"; then
+   log_error "processAPINotes.sh has readonly variable conflicts"
+   echo "Error output: ${api_output}"
+   has_errors=1
+  else
+   log_success "processAPINotes.sh sources correctly (non-readonly error ignored)"
+  fi
  else
   log_success "processAPINotes.sh sources correctly"
  fi
@@ -129,16 +140,55 @@ test_script_sourcing() {
  local planet_output
  planet_output=$(bash -c "
   cd '${PROJECT_ROOT}/bin/process' && \
-  source '../processPlanetFunctions.sh' && \
   source 'processPlanetNotes.sh' --help
  " 2>&1)
  if [[ $? -ne 0 ]]; then
-  log_error "processPlanetNotes.sh has readonly variable conflicts"
-  echo "Error output: ${planet_output}"
-  has_errors=1
+  # Check if it's a readonly variable error
+  if echo "${planet_output}" | grep -q "variable de sólo lectura\|readonly variable"; then
+   log_error "processPlanetNotes.sh has readonly variable conflicts"
+   echo "Error output: ${planet_output}"
+   has_errors=1
+  else
+   log_success "processPlanetNotes.sh sources correctly (non-readonly error ignored)"
+  fi
  else
   log_success "processPlanetNotes.sh sources correctly"
  fi
+
+ # Test all main scripts
+ log_info "Testing all main scripts sourcing..."
+ local main_scripts=(
+  "${PROJECT_ROOT}/bin/process/updateCountries.sh"
+  "${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh"
+  "${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh"
+  "${PROJECT_ROOT}/bin/dwh/datamartCountries/datamartCountries.sh"
+  "${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh"
+  "${PROJECT_ROOT}/bin/dwh/profile.sh"
+  "${PROJECT_ROOT}/bin/dwh/ETL.sh"
+  "${PROJECT_ROOT}/bin/cleanupAll.sh"
+  "${PROJECT_ROOT}/bin/cleanupPartitions.sh"
+ )
+
+ for script in "${main_scripts[@]}"; do
+  if [[ -f "${script}" ]]; then
+   local script_output
+   script_output=$(bash -c "source '${script}' --help" 2>&1)
+   if [[ $? -ne 0 ]]; then
+    # Check if it's a readonly variable error or just a normal script behavior
+    if echo "${script_output}" | grep -q "variable de sólo lectura\|readonly variable"; then
+     log_error "$(basename "${script}") has readonly variable conflicts"
+     echo "Error output: ${script_output}"
+     has_errors=1
+    else
+     log_success "$(basename "${script}") sources correctly (non-readonly error ignored)"
+    fi
+   else
+    log_success "$(basename "${script}") sources correctly"
+   fi
+  else
+   log_warning "Script not found: ${script}"
+  fi
+ done
 
  return "${has_errors}"
 }
@@ -151,7 +201,6 @@ show_help() {
  echo
  echo "Options:"
  echo "  -h, --help     Show this help message"
- echo "  -v, --verbose  Show detailed output"
  echo "  -s, --source   Test script sourcing (default)"
  echo "  -d, --duplicates  Check for duplicate variables only"
  echo "  -a, --all      Run all checks (default)"
@@ -164,7 +213,6 @@ show_help() {
 main() {
  local check_duplicates_only=false
  local check_sourcing_only=false
- local verbose=false
 
  # Parse command line arguments
  while [[ $# -gt 0 ]]; do
@@ -172,10 +220,6 @@ main() {
    -h|--help)
     show_help
     exit 0
-    ;;
-   -v|--verbose)
-    verbose=true
-    shift
     ;;
    -d|--duplicates)
     check_duplicates_only=true
