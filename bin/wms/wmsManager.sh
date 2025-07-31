@@ -282,10 +282,6 @@ main() {
   esac
  done
 
- # Set global variables
- FORCE="${FORCE}"
- DRY_RUN="${DRY_RUN}"
-
  # Execute command
  case "${COMMAND}" in
  install | deinstall | status)
