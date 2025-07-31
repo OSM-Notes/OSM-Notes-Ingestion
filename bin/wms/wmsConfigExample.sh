@@ -3,7 +3,7 @@
 # Shows how to use WMS properties for customization
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-07-30
 
 set -euo pipefail
 
@@ -25,9 +25,9 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
- local color=$1
- local message=$2
- echo -e "${color}${message}${NC}"
+ local COLOR=$1
+ local MESSAGE=$2
+ echo -e "${COLOR}${MESSAGE}${NC}"
 }
 
 # Function to show help
@@ -107,46 +107,46 @@ show_current_config() {
 validate_properties() {
  print_status "${BLUE}" "🔍 Validating WMS Properties..."
 
- local errors=0
+ local ERRORS=0
 
  # Call the validation function from wms.properties.sh
  if __validate_wms_properties; then
   print_status "${GREEN}" "✅ All WMS properties are valid"
  else
   print_status "${RED}" "❌ WMS properties validation failed"
-  errors=1
+  ERRORS=1
  fi
 
  # Additional validations
  if ! __validate_input_file "${WMS_STYLE_FILE}" "WMS style file"; then
   print_status "${YELLOW}" "⚠️  Style file validation failed: ${WMS_STYLE_FILE}"
-  ((errors++))
+  ((ERRORS++))
  fi
 
  if [[ "${WMS_BBOX_MINX}" -ge "${WMS_BBOX_MAXX}" ]]; then
   print_status "${RED}" "❌ Invalid bounding box: minx >= maxx"
-  ((errors++))
+  ((ERRORS++))
  fi
 
  if [[ "${WMS_BBOX_MINY}" -ge "${WMS_BBOX_MAXY}" ]]; then
   print_status "${RED}" "❌ Invalid bounding box: miny >= maxy"
-  ((errors++))
+  ((ERRORS++))
  fi
 
  if [[ "${WMS_DB_POOL_SIZE}" -lt 1 ]]; then
   print_status "${RED}" "❌ Invalid DB pool size: ${WMS_DB_POOL_SIZE}"
-  ((errors++))
+  ((ERRORS++))
  fi
 
  if [[ "${WMS_CACHE_TTL}" -lt 0 ]]; then
   print_status "${RED}" "❌ Invalid cache TTL: ${WMS_CACHE_TTL}"
-  ((errors++))
+  ((ERRORS++))
  fi
 
- if [[ $errors -eq 0 ]]; then
+ if [[ $ERRORS -eq 0 ]]; then
   print_status "${GREEN}" "✅ All validations passed"
  else
-  print_status "${RED}" "❌ Found $errors validation errors"
+  print_status "${RED}" "❌ Found $ERRORS validation errors"
   exit 1
  fi
 }

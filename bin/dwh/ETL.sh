@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
-declare -r VERSION="2025-07-27"
+# Version: 2025-07-30
+declare -r VERSION="2025-07-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -197,21 +197,21 @@ function __show_help {
 
 # Saves the current progress for recovery.
 function __save_progress {
- local step_name="${1}"
- local status="${2}"
- local timestamp
- timestamp=$(date +%s)
+ local STEP_NAME="${1}"
+ local STATUS="${2}"
+ local TIMESTAMP
+ TIMESTAMP=$(date +%s)
 
  if [[ "${ETL_RECOVERY_ENABLED}" == "true" ]]; then
   cat > "${ETL_RECOVERY_FILE}" << EOF
 {
-    "last_step": "${step_name}",
-    "status": "${status}",
-    "timestamp": "${timestamp}",
+    "last_step": "${STEP_NAME}",
+    "status": "${STATUS}",
+    "timestamp": "${TIMESTAMP}",
     "etl_start_time": "${ETL_START_TIME}"
 }
 EOF
-  __logd "Progress saved: ${step_name} - ${status}"
+  __logd "Progress saved: ${STEP_NAME} - ${STATUS}"
  fi
 }
 
@@ -223,16 +223,16 @@ function __resume_from_last_step {
 
  if [[ -f "${ETL_RECOVERY_FILE}" ]]; then
   if command -v jq &> /dev/null; then
-   local last_step
-   local status
-   last_step=$(jq -r '.last_step' "${ETL_RECOVERY_FILE}" 2> /dev/null)
-   status=$(jq -r '.status' "${ETL_RECOVERY_FILE}" 2> /dev/null)
+   local LAST_STEP
+   local STATUS
+   LAST_STEP=$(jq -r '.last_step' "${ETL_RECOVERY_FILE}" 2> /dev/null)
+   STATUS=$(jq -r '.status' "${ETL_RECOVERY_FILE}" 2> /dev/null)
 
-   if [[ "${status}" == "completed" ]] && [[ -n "${last_step}" ]]; then
-    __logi "Resuming from step after: ${last_step}"
+   if [[ "${STATUS}" == "completed" ]] && [[ -n "${LAST_STEP}" ]]; then
+    __logi "Resuming from step after: ${LAST_STEP}"
     return 0
    else
-    __logw "Last execution failed at step: ${last_step}"
+    __logw "Last execution failed at step: ${LAST_STEP}"
     return 1
    fi
   else
@@ -259,8 +259,8 @@ function __validate_data_integrity {
  if [[ "${ETL_VALIDATE_DIMENSIONS}" == "true" ]]; then
   __logi "Validating dimensions..."
 
-  local dimension_counts
-  if ! dimension_counts=$(psql -d "${DBNAME}" -t -A -c "
+  local DIMENSION_COUNTS
+  if ! DIMENSION_COUNTS=$(psql -d "${DBNAME}" -t -A -c "
    SELECT 
     'dimension_users' as table_name, COUNT(*) as count FROM dwh.dimension_users
    UNION ALL
@@ -279,7 +279,7 @@ function __validate_data_integrity {
    return 1
   fi
 
-  echo "${dimension_counts}" | while IFS='|' read -r table count; do
+  echo "${DIMENSION_COUNTS}" | while IFS='|' read -r table count; do
    if [[ "${count}" -eq 0 ]]; then
     __loge "ERROR: Table ${table} is empty"
     __log_finish
@@ -293,8 +293,8 @@ function __validate_data_integrity {
  if [[ "${ETL_VALIDATE_FACTS}" == "true" ]]; then
   __logi "Validating fact table references..."
 
-  local orphaned_facts
-  if ! orphaned_facts=$(psql -d "${DBNAME}" -t -A -c "
+  local ORPHANED_FACTS
+  if ! ORPHANED_FACTS=$(psql -d "${DBNAME}" -t -A -c "
    SELECT COUNT(*) FROM dwh.facts f
    LEFT JOIN dwh.dimension_countries c ON f.dimension_id_country = c.dimension_country_id
    WHERE c.dimension_country_id IS NULL
@@ -304,8 +304,8 @@ function __validate_data_integrity {
    return 1
   fi
 
-  if [[ "${orphaned_facts}" -gt 0 ]]; then
-   __loge "ERROR: Found ${orphaned_facts} facts with invalid country references"
+  if [[ "${ORPHANED_FACTS}" -gt 0 ]]; then
+   __loge "ERROR: Found ${ORPHANED_FACTS} facts with invalid country references"
    __log_finish
    return 1
   fi
@@ -323,29 +323,29 @@ function __monitor_resources {
   return 0
  fi
 
- local memory_usage
- local disk_usage
- memory_usage=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}')
- disk_usage=$(df /tmp | tail -1 | awk '{print $5}' | sed 's/%//')
+   local MEMORY_USAGE
+  local DISK_USAGE
+   MEMORY_USAGE=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}')
+  DISK_USAGE=$(df /tmp | tail -1 | awk '{print $5}' | sed 's/%//')
 
- if [[ "${memory_usage}" -gt "${MAX_MEMORY_USAGE}" ]]; then
-  __logw "High memory usage: ${memory_usage}%"
+ if [[ "${MEMORY_USAGE}" -gt "${MAX_MEMORY_USAGE}" ]]; then
+  __logw "High memory usage: ${MEMORY_USAGE}%"
   sleep "${ETL_MONITOR_INTERVAL}"
  fi
 
- if [[ "${disk_usage}" -gt "${MAX_DISK_USAGE}" ]]; then
-  __loge "ERROR: High disk usage: ${disk_usage}%"
+ if [[ "${DISK_USAGE}" -gt "${MAX_DISK_USAGE}" ]]; then
+  __loge "ERROR: High disk usage: ${DISK_USAGE}%"
   return 1
  fi
 }
 
 # Checks if ETL execution has exceeded timeout.
 function __check_timeout {
- local current_time
- current_time=$(date +%s)
- local elapsed_time=$((current_time - ETL_START_TIME))
+ local CURRENT_TIME
+ CURRENT_TIME=$(date +%s)
+ local ELAPSED_TIME=$((CURRENT_TIME - ETL_START_TIME))
 
- if [[ ${elapsed_time} -gt ${ETL_TIMEOUT} ]]; then
+ if [[ ${ELAPSED_TIME} -gt ${ETL_TIMEOUT} ]]; then
   __loge "ERROR: ETL timeout reached (${ETL_TIMEOUT}s)"
   return 1
  fi
@@ -379,7 +379,7 @@ function __checkPrereqs {
  __logi "Validating SQL script files..."
 
  # Create array of SQL files to validate
- local sql_files=(
+ local SQL_FILES=(
   "${DATAMART_COUNTRIES_SCRIPT}"
   "${DATAMART_USERS_SCRIPT}"
   "${POSTGRES_11_CHECK_DWH_BASE_TABLES}"
@@ -402,9 +402,9 @@ function __checkPrereqs {
  )
 
  # Validate each SQL file
- for sql_file in "${sql_files[@]}"; do
-  if ! __validate_sql_structure "${sql_file}"; then
-   __loge "ERROR: SQL file validation failed: ${sql_file}"
+ for SQL_FILE in "${SQL_FILES[@]}"; do
+  if ! __validate_sql_structure "${SQL_FILE}"; then
+   __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  done
@@ -428,23 +428,23 @@ function __waitForJobs {
 
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
- local available_threads
+ local AVAILABLE_THREADS
  if [[ "${MAX_THREADS}" -gt 6 ]]; then
-  available_threads=$((MAX_THREADS - 2))
+  AVAILABLE_THREADS=$((MAX_THREADS - 2))
  elif [[ "${MAX_THREADS}" -gt 1 ]]; then
-  available_threads=$((MAX_THREADS - 1))
+  AVAILABLE_THREADS=$((MAX_THREADS - 1))
  else
-  available_threads=1
+  AVAILABLE_THREADS=1
  fi
 
- local current_jobs
- current_jobs=$(jobs -p | wc -l)
- __logd "Current jobs: ${current_jobs}, Available threads: ${available_threads}"
+ local CURRENT_JOBS
+ CURRENT_JOBS=$(jobs -p | wc -l)
+ __logd "Current jobs: ${CURRENT_JOBS}, Available threads: ${AVAILABLE_THREADS}"
 
- while [[ "${current_jobs}" -ge ${available_threads} ]]; do
-  __logi "Waiting for job completion... (${current_jobs}/${available_threads})"
+ while [[ "${CURRENT_JOBS}" -ge ${AVAILABLE_THREADS} ]]; do
+  __logi "Waiting for job completion... (${CURRENT_JOBS}/${AVAILABLE_THREADS})"
   wait -n
-  current_jobs=$(jobs -p | wc -l)
+  CURRENT_JOBS=$(jobs -p | wc -l)
 
   # Monitor resources while waiting
   __monitor_resources
@@ -713,10 +713,10 @@ function main() {
  # Handle resume mode
  if [[ "${PROCESS_TYPE}" == "--resume" ]]; then
   __logi "RESUME MODE - Attempting to resume from last successful step"
-  local resume_result
+  local RESUME_RESULT
   __resume_from_last_step
-  resume_result=$?
-  if [[ ${resume_result} -ne 0 ]]; then
+  RESUME_RESULT=$?
+  if [[ ${RESUME_RESULT} -ne 0 ]]; then
    __loge "ERROR: Cannot resume from last step, starting fresh"
   fi
  fi

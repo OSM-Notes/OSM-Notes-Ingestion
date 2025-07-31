@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-07-30
 
 # shellcheck disable=SC2317,SC2155
 
@@ -81,65 +81,65 @@ function __processXmlPartsParallel() {
  __log_start
  __logd "Processing XML parts in parallel."
 
- local input_dir="${1}"
- local xslt_file="${2}"
- local output_dir="${3}"
- local max_workers="${4:-4}"
+ local INPUT_DIR="${1}"
+ local XSLT_FILE="${2}"
+ local OUTPUT_DIR="${3}"
+ local MAX_WORKERS="${4:-4}"
 
- if [[ ! -d "${input_dir}" ]]; then
-  __loge "ERROR: Input directory not found: ${input_dir}"
+ if [[ ! -d "${INPUT_DIR}" ]]; then
+  __loge "ERROR: Input directory not found: ${INPUT_DIR}"
   return 1
  fi
 
- if [[ ! -f "${xslt_file}" ]]; then
-  __loge "ERROR: XSLT file not found: ${xslt_file}"
+ if [[ ! -f "${XSLT_FILE}" ]]; then
+  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
   return 1
  fi
 
  # Create output directory
- mkdir -p "${output_dir}"
+ mkdir -p "${OUTPUT_DIR}"
 
  # Find all XML parts
- local xml_files
- mapfile -t xml_files < <(find "${input_dir}" -name "*.xml" -type f)
+ local XML_FILES
+ mapfile -t XML_FILES < <(find "${INPUT_DIR}" -name "*.xml" -type f)
 
- if [[ ${#xml_files[@]} -eq 0 ]]; then
-  __logw "WARNING: No XML files found in ${input_dir}"
+ if [[ ${#XML_FILES[@]} -eq 0 ]]; then
+  __logw "WARNING: No XML files found in ${INPUT_DIR}"
   return 0
  fi
 
- __logi "Processing ${#xml_files[@]} XML parts with max ${max_workers} workers."
+ __logi "Processing ${#XML_FILES[@]} XML parts with max ${MAX_WORKERS} workers."
 
  # Process files in parallel
- local pids=()
- local processed=0
+ local PIDS=()
+ local PROCESSED=0
 
- for xml_file in "${xml_files[@]}"; do
+ for XML_FILE in "${XML_FILES[@]}"; do
   local BASE_NAME
-  BASE_NAME=$(basename "${xml_file}" .xml)
-  local OUTPUT_FILE="${output_dir}/${BASE_NAME}.csv"
+  BASE_NAME=$(basename "${XML_FILE}" .xml)
+  local OUTPUT_FILE="${OUTPUT_DIR}/${BASE_NAME}.csv"
 
   # Process XML file
-  if xsltproc "${xslt_file}" "${xml_file}" > "${OUTPUT_FILE}" 2> /dev/null; then
-   __logd "Successfully processed: ${xml_file} -> ${OUTPUT_FILE}"
-   ((processed++))
+  if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
+   __logd "Successfully processed: ${XML_FILE} -> ${OUTPUT_FILE}"
+   ((PROCESSED++))
   else
-   __loge "ERROR: Failed to process: ${xml_file}"
+   __loge "ERROR: Failed to process: ${XML_FILE}"
   fi
 
   # Limit concurrent processes
-  if [[ ${#pids[@]} -ge ${max_workers} ]]; then
-   wait "${pids[0]}"
-   pids=("${pids[@]:1}")
+  if [[ ${#PIDS[@]} -ge ${MAX_WORKERS} ]]; then
+   wait "${PIDS[0]}"
+   PIDS=("${PIDS[@]:1}")
   fi
  done
 
  # Wait for remaining processes
- for pid in "${pids[@]}"; do
-  wait "${pid}"
+ for PID in "${PIDS[@]}"; do
+  wait "${PID}"
  done
 
- __logi "Parallel processing completed. Processed ${processed}/${#xml_files[@]} files."
+ __logi "Parallel processing completed. Processed ${PROCESSED}/${#XML_FILES[@]} files."
  __log_finish
 }
 
@@ -148,21 +148,21 @@ function __splitXmlForParallelSafe() {
  __log_start
  __logd "Splitting XML for parallel processing (safe version)."
 
- local xml_file="${1}"
- local num_parts="${2:-4}"
- local output_dir="${3:-${TMP_DIR}}"
+ local XML_FILE="${1}"
+ local NUM_PARTS="${2:-4}"
+ local OUTPUT_DIR="${3:-${TMP_DIR}}"
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Create output directory
- mkdir -p "${output_dir}"
+ mkdir -p "${OUTPUT_DIR}"
 
  # Count total notes
  local TOTAL_NOTES
- TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
+ TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
@@ -171,15 +171,15 @@ function __splitXmlForParallelSafe() {
 
  # Calculate notes per part
  local NOTES_PER_PART
- NOTES_PER_PART=$((TOTAL_NOTES / num_parts))
- if [[ $((TOTAL_NOTES % num_parts)) -gt 0 ]]; then
+ NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
+ if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
   NOTES_PER_PART=$((NOTES_PER_PART + 1))
  fi
 
- __logi "Splitting ${TOTAL_NOTES} notes into ${num_parts} parts (${NOTES_PER_PART} notes per part)."
+ __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
 
  # Split XML file safely
- for ((i = 0; i < num_parts; i++)); do
+ for ((i = 0; i < NUM_PARTS; i++)); do
   local START_POS=$((i * NOTES_PER_PART + 1))
   local END_POS=$(((i + 1) * NOTES_PER_PART))
 
@@ -188,7 +188,7 @@ function __splitXmlForParallelSafe() {
   fi
 
   if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
-   local OUTPUT_FILE="${output_dir}/safe_part_${i}.xml"
+   local OUTPUT_FILE="${OUTPUT_DIR}/safe_part_${i}.xml"
 
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
@@ -196,7 +196,7 @@ function __splitXmlForParallelSafe() {
 
    # Extract notes for this part safely
    for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${OUTPUT_FILE}" || true
+    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
    done
 
    echo '</osm-notes>' >> "${OUTPUT_FILE}"
@@ -205,7 +205,7 @@ function __splitXmlForParallelSafe() {
   fi
  done
 
- __logi "XML splitting completed safely. Created ${num_parts} parts."
+ __logi "XML splitting completed safely. Created ${NUM_PARTS} parts."
  __log_finish
 }
 
@@ -925,55 +925,55 @@ function __processPlanetXmlPart() {
 # Returns:
 #   0 if valid, 1 if invalid
 function __validate_input_file() {
- local file_path="${1}"
- local description="${2:-File}"
- local expected_type="${3:-file}"
- local validation_errors=()
+ local FILE_PATH="${1}"
+ local DESCRIPTION="${2:-File}"
+ local EXPECTED_TYPE="${3:-file}"
+ local VALIDATION_ERRORS=()
 
  # Check if file path is provided
- if [[ -z "${file_path}" ]]; then
-  echo "ERROR: ${description} path is empty" >&2
+ if [[ -z "${FILE_PATH}" ]]; then
+  echo "ERROR: ${DESCRIPTION} path is empty" >&2
   return 1
  fi
 
  # Check if file exists
- if [[ ! -e "${file_path}" ]]; then
-  validation_errors+=("File does not exist: ${file_path}")
+ if [[ ! -e "${FILE_PATH}" ]]; then
+  VALIDATION_ERRORS+=("File does not exist: ${FILE_PATH}")
  fi
 
  # Check if file is readable (for files)
- if [[ "${expected_type}" == "file" ]] && [[ -e "${file_path}" ]]; then
-  if [[ ! -r "${file_path}" ]]; then
-   validation_errors+=("File is not readable: ${file_path}")
+ if [[ "${EXPECTED_TYPE}" == "file" ]] && [[ -e "${FILE_PATH}" ]]; then
+  if [[ ! -r "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("File is not readable: ${FILE_PATH}")
   fi
  fi
 
  # Check if directory is accessible (for directories)
- if [[ "${expected_type}" == "dir" ]] && [[ -e "${file_path}" ]]; then
-  if [[ ! -d "${file_path}" ]]; then
-   validation_errors+=("Path is not a directory: ${file_path}")
-  elif [[ ! -r "${file_path}" ]]; then
-   validation_errors+=("Directory is not readable: ${file_path}")
+ if [[ "${EXPECTED_TYPE}" == "dir" ]] && [[ -e "${FILE_PATH}" ]]; then
+  if [[ ! -d "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("Path is not a directory: ${FILE_PATH}")
+  elif [[ ! -r "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("Directory is not readable: ${FILE_PATH}")
   fi
  fi
 
  # Check if executable is executable
- if [[ "${expected_type}" == "executable" ]] && [[ -e "${file_path}" ]]; then
-  if [[ ! -x "${file_path}" ]]; then
-   validation_errors+=("File is not executable: ${file_path}")
+ if [[ "${EXPECTED_TYPE}" == "executable" ]] && [[ -e "${FILE_PATH}" ]]; then
+  if [[ ! -x "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("File is not executable: ${FILE_PATH}")
   fi
  fi
 
  # Report validation errors
- if [[ ${#validation_errors[@]} -gt 0 ]]; then
-  echo "ERROR: ${description} validation failed:" >&2
-  for error in "${validation_errors[@]}"; do
-   echo "  - ${error}" >&2
+ if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
+  echo "ERROR: ${DESCRIPTION} validation failed:" >&2
+  for ERROR in "${VALIDATION_ERRORS[@]}"; do
+   echo "  - ${ERROR}" >&2
   done
   return 1
  fi
 
- echo "DEBUG: ${description} validation passed: ${file_path}" >&2
+ echo "DEBUG: ${DESCRIPTION} validation passed: ${FILE_PATH}" >&2
  return 0
 }
 
@@ -983,18 +983,18 @@ function __validate_input_file() {
 # Returns:
 #   0 if all valid, 1 if any invalid
 function __validate_input_files() {
- local all_valid=true
- local file_path
+ local ALL_VALID=true
+ local FILE_PATH
 
  echo "DEBUG: Validating input files..." >&2
 
- for file_path in "$@"; do
-  if ! __validate_input_file "${file_path}" "Input file"; then
-   all_valid=false
+ for FILE_PATH in "$@"; do
+  if ! __validate_input_file "${FILE_PATH}" "Input file"; then
+   ALL_VALID=false
   fi
  done
 
- if [[ "${all_valid}" == "true" ]]; then
+ if [[ "${ALL_VALID}" == "true" ]]; then
   echo "DEBUG: All input files validation passed" >&2
   return 0
  else
@@ -1010,45 +1010,45 @@ function __validate_input_files() {
 # Returns:
 #   0 if valid, 1 if invalid
 function __validate_xml_structure() {
- local xml_file="${1}"
- local expected_root="${2:-}"
- local validation_errors=()
+ local XML_FILE="${1}"
+ local EXPECTED_ROOT="${2:-}"
+ local VALIDATION_ERRORS=()
 
  # Check if file exists and is readable
- if ! __validate_input_file "${xml_file}" "XML file"; then
+ if ! __validate_input_file "${XML_FILE}" "XML file"; then
   return 1
  fi
 
  # Check if file is not empty
- if [[ ! -s "${xml_file}" ]]; then
-  echo "ERROR: XML file is empty: ${xml_file}" >&2
+ if [[ ! -s "${XML_FILE}" ]]; then
+  echo "ERROR: XML file is empty: ${XML_FILE}" >&2
   return 1
  fi
 
  # Validate XML syntax
- if ! xmllint --noout "${xml_file}" 2> /dev/null; then
-  validation_errors+=("Invalid XML syntax")
+ if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
+  VALIDATION_ERRORS+=("Invalid XML syntax")
  fi
 
  # Check expected root element if provided
- if [[ -n "${expected_root}" ]]; then
-  local actual_root
-  actual_root=$(xmlstarlet sel -t -n -v "name(/*)" "${xml_file}" 2> /dev/null | tr -d ' ' | tr -d '\n')
-  if [[ "${actual_root}" != "${expected_root}" ]]; then
-   validation_errors+=("Expected root element '${expected_root}', got '${actual_root}'")
+ if [[ -n "${EXPECTED_ROOT}" ]]; then
+  local ACTUAL_ROOT
+  ACTUAL_ROOT=$(xmlstarlet sel -t -n -v "name(/*)" "${XML_FILE}" 2> /dev/null | tr -d ' ' | tr -d '\n')
+  if [[ "${ACTUAL_ROOT}" != "${EXPECTED_ROOT}" ]]; then
+   VALIDATION_ERRORS+=("Expected root element '${EXPECTED_ROOT}', got '${ACTUAL_ROOT}'")
   fi
  fi
 
  # Report validation errors
- if [[ ${#validation_errors[@]} -gt 0 ]]; then
-  echo "ERROR: XML structure validation failed for ${xml_file}:" >&2
-  for error in "${validation_errors[@]}"; do
-   echo "  - ${error}" >&2
+ if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
+  echo "ERROR: XML structure validation failed for ${XML_FILE}:" >&2
+  for ERROR in "${VALIDATION_ERRORS[@]}"; do
+   echo "  - ${ERROR}" >&2
   done
   return 1
  fi
 
- echo "DEBUG: XML structure validation passed: ${xml_file}" >&2
+ echo "DEBUG: XML structure validation passed: ${XML_FILE}" >&2
  return 0
 }
 
@@ -1059,47 +1059,47 @@ function __validate_xml_structure() {
 # Returns:
 #   0 if valid, 1 if invalid
 function __validate_csv_structure() {
- local csv_file="${1}"
- local expected_columns="${2:-}"
- local validation_errors=()
+ local CSV_FILE="${1}"
+ local EXPECTED_COLUMNS="${2:-}"
+ local VALIDATION_ERRORS=()
 
  # Check if file exists and is readable
- if ! __validate_input_file "${csv_file}" "CSV file"; then
+ if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
   return 1
  fi
 
  # Check if file is not empty
- if [[ ! -s "${csv_file}" ]]; then
-  echo "ERROR: CSV file is empty: ${csv_file}" >&2
+ if [[ ! -s "${CSV_FILE}" ]]; then
+  echo "ERROR: CSV file is empty: ${CSV_FILE}" >&2
   return 1
  fi
 
  # Check if file has at least one line
- local line_count
- line_count=$(wc -l < "${csv_file}")
- if [[ "${line_count}" -eq 0 ]]; then
-  validation_errors+=("CSV file has no lines")
+ local LINE_COUNT
+ LINE_COUNT=$(wc -l < "${CSV_FILE}")
+ if [[ "${LINE_COUNT}" -eq 0 ]]; then
+  VALIDATION_ERRORS+=("CSV file has no lines")
  fi
 
  # Check expected number of columns if provided
- if [[ -n "${expected_columns}" ]]; then
-  local actual_columns
-  actual_columns=$(head -1 "${csv_file}" | tr ',' '\n' | wc -l)
-  if [[ "${actual_columns}" -ne "${expected_columns}" ]]; then
-   validation_errors+=("Expected ${expected_columns} columns, got ${actual_columns}")
+ if [[ -n "${EXPECTED_COLUMNS}" ]]; then
+  local ACTUAL_COLUMNS
+  ACTUAL_COLUMNS=$(head -1 "${CSV_FILE}" | tr ',' '\n' | wc -l)
+  if [[ "${ACTUAL_COLUMNS}" -ne "${EXPECTED_COLUMNS}" ]]; then
+   VALIDATION_ERRORS+=("Expected ${EXPECTED_COLUMNS} columns, got ${ACTUAL_COLUMNS}")
   fi
  fi
 
  # Report validation errors
- if [[ ${#validation_errors[@]} -gt 0 ]]; then
-  echo "ERROR: CSV structure validation failed for ${csv_file}:" >&2
-  for error in "${validation_errors[@]}"; do
-   echo "  - ${error}" >&2
+ if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
+  echo "ERROR: CSV structure validation failed for ${CSV_FILE}:" >&2
+  for ERROR in "${VALIDATION_ERRORS[@]}"; do
+   echo "  - ${ERROR}" >&2
   done
   return 1
  fi
 
- echo "DEBUG: CSV structure validation passed: ${csv_file}" >&2
+ echo "DEBUG: CSV structure validation passed: ${CSV_FILE}" >&2
  return 0
 }
 
@@ -1253,19 +1253,19 @@ function __validate_json_structure() {
 # Returns:
 #   0 if connection successful, 1 if failed
 function __validate_database_connection() {
- local db_name="${1:-${DBNAME:-}}"
- local db_user="${2:-${DB_USER:-}}"
- local db_host="${3:-${DBHOST:-}}"
- local db_port="${4:-${DBPORT:-}}"
- local validation_errors=()
+ local DB_NAME_PARAM="${1:-${DBNAME:-}}"
+ local DB_USER_PARAM="${2:-${DB_USER:-}}"
+ local DB_HOST_PARAM="${3:-${DBHOST:-}}"
+ local DB_PORT_PARAM="${4:-${DBPORT:-}}"
+ local VALIDATION_ERRORS=()
 
  # Check if database parameters are provided
- if [[ -z "${db_name}" ]]; then
+ if [[ -z "${DB_NAME_PARAM}" ]]; then
   echo "ERROR: Database name not provided and DBNAME not set" >&2
   return 1
  fi
 
- if [[ -z "${db_user}" ]]; then
+ if [[ -z "${DB_USER_PARAM}" ]]; then
   echo "ERROR: Database user not provided and DB_USER not set" >&2
   return 1
  fi
@@ -1277,47 +1277,47 @@ function __validate_database_connection() {
  fi
 
  # Build psql command
- local psql_cmd="psql"
- if [[ -n "${db_host}" ]]; then
-  psql_cmd="${psql_cmd} -h ${db_host}"
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_HOST_PARAM}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST_PARAM}"
  fi
- if [[ -n "${db_port}" ]]; then
-  psql_cmd="${psql_cmd} -p ${db_port}"
+ if [[ -n "${DB_PORT_PARAM}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT_PARAM}"
  fi
- psql_cmd="${psql_cmd} -U ${db_user} -d ${db_name}"
+ PSQL_CMD="${PSQL_CMD} -U ${DB_USER_PARAM} -d ${DB_NAME_PARAM}"
 
  # Test basic connection
- if ! ${psql_cmd} -c "SELECT 1;" > /dev/null 2>&1; then
-  validation_errors+=("Cannot connect to database ${db_name} as user ${db_user}")
+ if ! ${PSQL_CMD} -c "SELECT 1;" > /dev/null 2>&1; then
+  VALIDATION_ERRORS+=("Cannot connect to database ${DB_NAME_PARAM} as user ${DB_USER_PARAM}")
  fi
 
  # Test if database exists and is accessible
- if ! ${psql_cmd} -c "SELECT current_database();" > /dev/null 2>&1; then
-  validation_errors+=("Database ${db_name} does not exist or is not accessible")
+ if ! ${PSQL_CMD} -c "SELECT current_database();" > /dev/null 2>&1; then
+  VALIDATION_ERRORS+=("Database ${DB_NAME_PARAM} does not exist or is not accessible")
  fi
 
  # Test if user has basic permissions
- if ! ${psql_cmd} -c "SELECT current_user;" > /dev/null 2>&1; then
-  validation_errors+=("User ${db_user} does not have basic permissions")
+ if ! ${PSQL_CMD} -c "SELECT current_user;" > /dev/null 2>&1; then
+  VALIDATION_ERRORS+=("User ${DB_USER_PARAM} does not have basic permissions")
  fi
 
  # Test if PostGIS extension is available (if needed)
  if [[ "${POSTGIS_REQUIRED:-true}" = true ]]; then
-  if ! ${psql_cmd} -c "SELECT PostGIS_version();" > /dev/null 2>&1; then
-   validation_errors+=("PostGIS extension is not available")
+  if ! ${PSQL_CMD} -c "SELECT PostGIS_version();" > /dev/null 2>&1; then
+   VALIDATION_ERRORS+=("PostGIS extension is not available")
   fi
  fi
 
  # Report validation errors
- if [[ ${#validation_errors[@]} -gt 0 ]]; then
+ if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
   echo "ERROR: Database connection validation failed:" >&2
-  for error in "${validation_errors[@]}"; do
-   echo "  - ${error}" >&2
+  for ERROR in "${VALIDATION_ERRORS[@]}"; do
+   echo "  - ${ERROR}" >&2
   done
   return 1
  fi
 
- echo "DEBUG: Database connection validation passed for ${db_name}" >&2
+ echo "DEBUG: Database connection validation passed for ${DB_NAME_PARAM}" >&2
  return 0
 }
 
@@ -1331,21 +1331,21 @@ function __validate_database_connection() {
 # Returns:
 #   0 if all tables exist, 1 if any missing
 function __validate_database_tables() {
- local db_name="${1:-${DBNAME:-}}"
- local db_user="${2:-${DB_USER:-}}"
- local db_host="${3:-${DBHOST:-}}"
- local db_port="${4:-${DBPORT:-}}"
+ local DB_NAME_PARAM="${1:-${DBNAME:-}}"
+ local DB_USER_PARAM="${2:-${DB_USER:-}}"
+ local DB_HOST_PARAM="${3:-${DBHOST:-}}"
+ local DB_PORT_PARAM="${4:-${DBPORT:-}}"
  shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
- local required_tables=("$@")
- local missing_tables=()
+ local REQUIRED_TABLES=("$@")
+ local MISSING_TABLES=()
 
  # Check if database parameters are provided
- if [[ -z "${db_name}" ]]; then
+ if [[ -z "${DB_NAME_PARAM}" ]]; then
   echo "ERROR: Database name not provided and DBNAME not set" >&2
   return 1
  fi
 
- if [[ -z "${db_user}" ]]; then
+ if [[ -z "${DB_USER_PARAM}" ]]; then
   echo "ERROR: Database user not provided and DB_USER not set" >&2
   return 1
  fi
@@ -1357,32 +1357,32 @@ function __validate_database_tables() {
  fi
 
  # Build psql command
- local psql_cmd="psql"
- if [[ -n "${db_host}" ]]; then
-  psql_cmd="${psql_cmd} -h ${db_host}"
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_HOST_PARAM}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST_PARAM}"
  fi
- if [[ -n "${db_port}" ]]; then
-  psql_cmd="${psql_cmd} -p ${db_port}"
+ if [[ -n "${DB_PORT_PARAM}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT_PARAM}"
  fi
- psql_cmd="${psql_cmd} -U ${db_user} -d ${db_name}"
+ PSQL_CMD="${PSQL_CMD} -U ${DB_USER_PARAM} -d ${DB_NAME_PARAM}"
 
  # Check each required table
- for table in "${required_tables[@]}"; do
-  if ! ${psql_cmd} -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${table}';" | grep -q "1"; then
-   missing_tables+=("${table}")
+ for TABLE in "${REQUIRED_TABLES[@]}"; do
+  if ! ${PSQL_CMD} -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${TABLE}';" | grep -q "1"; then
+   MISSING_TABLES+=("${TABLE}")
   fi
  done
 
  # Report missing tables
- if [[ ${#missing_tables[@]} -gt 0 ]]; then
+ if [[ ${#MISSING_TABLES[@]} -gt 0 ]]; then
   echo "ERROR: Missing required database tables:" >&2
-  for table in "${missing_tables[@]}"; do
-   echo "  - ${table}" >&2
+  for TABLE in "${MISSING_TABLES[@]}"; do
+   echo "  - ${TABLE}" >&2
   done
   return 1
  fi
 
- echo "DEBUG: Database tables validation passed for ${db_name}" >&2
+ echo "DEBUG: Database tables validation passed for ${DB_NAME_PARAM}" >&2
  return 0
 }
 
@@ -1396,21 +1396,21 @@ function __validate_database_tables() {
 # Returns:
 #   0 if all extensions exist, 1 if any missing
 function __validate_database_extensions() {
- local db_name="${1:-${DBNAME:-}}"
- local db_user="${2:-${DB_USER:-}}"
- local db_host="${3:-${DBHOST:-}}"
- local db_port="${4:-${DBPORT:-}}"
+ local DB_NAME_PARAM="${1:-${DBNAME:-}}"
+ local DB_USER_PARAM="${2:-${DB_USER:-}}"
+ local DB_HOST_PARAM="${3:-${DBHOST:-}}"
+ local DB_PORT_PARAM="${4:-${DBPORT:-}}"
  shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
- local required_extensions=("$@")
- local missing_extensions=()
+ local REQUIRED_EXTENSIONS=("$@")
+ local MISSING_EXTENSIONS=()
 
  # Check if database parameters are provided
- if [[ -z "${db_name}" ]]; then
+ if [[ -z "${DB_NAME_PARAM}" ]]; then
   echo "ERROR: Database name not provided and DBNAME not set" >&2
   return 1
  fi
 
- if [[ -z "${db_user}" ]]; then
+ if [[ -z "${DB_USER_PARAM}" ]]; then
   echo "ERROR: Database user not provided and DB_USER not set" >&2
   return 1
  fi
@@ -1422,32 +1422,32 @@ function __validate_database_extensions() {
  fi
 
  # Build psql command
- local psql_cmd="psql"
- if [[ -n "${db_host}" ]]; then
-  psql_cmd="${psql_cmd} -h ${db_host}"
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_HOST_PARAM}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST_PARAM}"
  fi
- if [[ -n "${db_port}" ]]; then
-  psql_cmd="${psql_cmd} -p ${db_port}"
+ if [[ -n "${DB_PORT_PARAM}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT_PARAM}"
  fi
- psql_cmd="${psql_cmd} -U ${db_user} -d ${db_name}"
+ PSQL_CMD="${PSQL_CMD} -U ${DB_USER_PARAM} -d ${DB_NAME_PARAM}"
 
  # Check each required extension
- for extension in "${required_extensions[@]}"; do
-  if ! ${psql_cmd} -c "SELECT 1 FROM pg_extension WHERE extname = '${extension}';" | grep -q "1"; then
-   missing_extensions+=("${extension}")
+ for EXTENSION in "${REQUIRED_EXTENSIONS[@]}"; do
+  if ! ${PSQL_CMD} -c "SELECT 1 FROM pg_extension WHERE extname = '${EXTENSION}';" | grep -q "1"; then
+   MISSING_EXTENSIONS+=("${EXTENSION}")
   fi
  done
 
  # Report missing extensions
- if [[ ${#missing_extensions[@]} -gt 0 ]]; then
+ if [[ ${#MISSING_EXTENSIONS[@]} -gt 0 ]]; then
   echo "ERROR: Missing required database extensions:" >&2
-  for extension in "${missing_extensions[@]}"; do
-   echo "  - ${extension}" >&2
+  for EXTENSION in "${MISSING_EXTENSIONS[@]}"; do
+   echo "  - ${EXTENSION}" >&2
   done
   return 1
  fi
 
- echo "DEBUG: Database extensions validation passed for ${db_name}" >&2
+ echo "DEBUG: Database extensions validation passed for ${DB_NAME_PARAM}" >&2
  return 0
 }
 

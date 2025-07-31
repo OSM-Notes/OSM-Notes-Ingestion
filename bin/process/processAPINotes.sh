@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
-declare -r VERSION="2025-07-29"
+# Version: 2025-07-30
+declare -r VERSION="2025-07-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -188,7 +188,7 @@ function __checkPrereqs {
  __logi "Validating SQL script files..."
 
  # Create array of SQL files to validate
- local sql_files=(
+ local SQL_FILES=(
   "${POSTGRES_12_DROP_API_TABLES}"
   "${POSTGRES_21_CREATE_API_TABLES}"
   "${POSTGRES_22_CREATE_PARTITIONS}"
@@ -201,9 +201,9 @@ function __checkPrereqs {
  )
 
  # Validate each SQL file
- for sql_file in "${sql_files[@]}"; do
-  if ! __validate_sql_structure "${sql_file}"; then
-   __loge "ERROR: SQL file validation failed: ${sql_file}"
+ for SQL_FILE in "${SQL_FILES[@]}"; do
+  if ! __validate_sql_structure "${SQL_FILE}"; then
+   __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  done
@@ -291,10 +291,10 @@ function __getNewNotesFromApi {
 
  # Gets the most recent value on the database with retry logic
  __logi "Retrieving last update from database..."
- local db_operation="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
- local cleanup_operation="rm -f ${TEMP_FILE} 2>/dev/null || true"
+ local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
+ local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
 
- if ! __retry_file_operation "${db_operation}" 3 2 "${cleanup_operation}"; then
+ if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
   __loge "Failed to retrieve last update from database after retries"
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
@@ -319,10 +319,10 @@ function __getNewNotesFromApi {
  local OUTPUT_WGET="${TMP_DIR}/${BASENAME}.wget.log"
 
  # Use retry logic for API download
- local download_operation="wget -O ${API_NOTES_FILE} ${REQUEST} > ${OUTPUT_WGET} 2>&1"
- local download_cleanup="rm -f ${OUTPUT_WGET} 2>/dev/null || true"
+ local DOWNLOAD_OPERATION="wget -O ${API_NOTES_FILE} ${REQUEST} > ${OUTPUT_WGET} 2>&1"
+ local DOWNLOAD_CLEANUP="rm -f ${OUTPUT_WGET} 2>/dev/null || true"
 
- if ! __retry_file_operation "${download_operation}" 3 5 "${download_cleanup}"; then
+ if ! __retry_file_operation "${DOWNLOAD_OPERATION}" 3 5 "${DOWNLOAD_CLEANUP}"; then
   __loge "Failed to download API notes after retries"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
    "rm -f ${API_NOTES_FILE} ${OUTPUT_WGET} 2>/dev/null || true"

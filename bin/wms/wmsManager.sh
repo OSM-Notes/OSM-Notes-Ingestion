@@ -3,7 +3,7 @@
 # Manages the installation and deinstallation of WMS components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-07-30
 
 set -euo pipefail
 
@@ -51,9 +51,9 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
- local color=$1
- local message=$2
- echo -e "${color}${message}${NC}"
+ local COLOR=$1
+ local MESSAGE=$2
+ echo -e "${COLOR}${MESSAGE}${NC}"
 }
 
 # Function to show help
@@ -105,15 +105,15 @@ validate_prerequisites() {
  fi
 
  # Check database connection and PostGIS
- local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  if [[ -n "${WMS_DB_HOST}" ]]; then
-  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
-  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+  PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
  fi
 
- if ! eval "${psql_cmd} -c \"SELECT PostGIS_Version();\"" &> /dev/null; then
+ if ! eval "${PSQL_CMD} -c \"SELECT PostGIS_Version();\"" &> /dev/null; then
   print_status "${RED}" "❌ ERROR: PostGIS extension is not installed or not accessible"
   exit 1
  fi
@@ -123,15 +123,15 @@ validate_prerequisites() {
 
 # Function to check if WMS is installed
 is_wms_installed() {
- local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  if [[ -n "${WMS_DB_HOST}" ]]; then
-  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
-  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+  PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
  fi
 
- eval "${psql_cmd} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | tr -d ' ' | grep -q 't'
+ eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | tr -d ' ' | grep -q 't'
 }
 
 # Function to install WMS
@@ -153,16 +153,16 @@ install_wms() {
  fi
 
  # Build psql command
- local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  if [[ -n "${WMS_DB_HOST}" ]]; then
-  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
-  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+  PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
  fi
 
  # Execute installation SQL
- if eval "${psql_cmd} -f \"${WMS_PREPARE_SQL}\""; then
+ if eval "${PSQL_CMD} -f \"${WMS_PREPARE_SQL}\""; then
   print_status "${GREEN}" "✅ WMS installation completed successfully"
   show_installation_summary
  else
@@ -187,16 +187,16 @@ deinstall_wms() {
  fi
 
  # Build psql command
- local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  if [[ -n "${WMS_DB_HOST}" ]]; then
-  psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
-  psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+  PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
  fi
 
  # Execute removal SQL
- if eval "${psql_cmd} -f \"${WMS_REMOVE_SQL}\""; then
+ if eval "${PSQL_CMD} -f \"${WMS_REMOVE_SQL}\""; then
   print_status "${GREEN}" "✅ WMS removal completed successfully"
  else
   print_status "${RED}" "❌ ERROR: WMS removal failed"
@@ -221,17 +221,17 @@ show_status() {
   fi
 
   # Show basic statistics
-  local note_count
-  note_count=$(eval "${psql_cmd} -t -c \"SELECT COUNT(*) FROM wms.notes_wms;\"" | tr -d ' ')
+   local NOTE_COUNT
+ NOTE_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM wms.notes_wms;\"" | tr -d ' ')
 
   print_status "${BLUE}" "📈 WMS Statistics:"
-  print_status "${BLUE}" "   - Total notes in WMS: ${note_count}"
+  print_status "${BLUE}" "   - Total notes in WMS: ${NOTE_COUNT}"
 
   # Show trigger information
-  local trigger_count
-  trigger_count=$(eval "${psql_cmd} -t -c \"SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');\"" | tr -d ' ')
+   local TRIGGER_COUNT
+ TRIGGER_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');\"" | tr -d ' ')
 
-  print_status "${BLUE}" "   - Active triggers: ${trigger_count}"
+  print_status "${BLUE}" "   - Active triggers: ${TRIGGER_COUNT}"
 
  else
   print_status "${YELLOW}" "⚠️  WMS is not installed"
@@ -251,22 +251,22 @@ show_installation_summary() {
 # Main function
 main() {
  # Parse command line arguments
- local command=""
- local force=false
- local dry_run=false
+ local COMMAND=""
+ local FORCE=false
+ local DRY_RUN=false
 
  while [[ $# -gt 0 ]]; do
   case $1 in
   install | deinstall | status | help)
-   command="$1"
+   COMMAND="$1"
    shift
    ;;
   --force)
-   force=true
+   FORCE=true
    shift
    ;;
   --dry-run)
-   dry_run=true
+   DRY_RUN=true
    shift
    ;;
 
@@ -283,16 +283,16 @@ main() {
  done
 
  # Set global variables
- FORCE="${force}"
- DRY_RUN="${dry_run}"
+ FORCE="${FORCE}"
+ DRY_RUN="${DRY_RUN}"
 
  # Execute command
- case "${command}" in
+ case "${COMMAND}" in
  install | deinstall | status)
   # Validate prerequisites only for commands that need database access
   validate_prerequisites
 
-  case "${command}" in
+  case "${COMMAND}" in
   install)
    install_wms
    ;;
@@ -313,7 +313,7 @@ main() {
   exit 1
   ;;
  *)
-  print_status "${RED}" "❌ ERROR: Unknown command: ${command}"
+  print_status "${RED}" "❌ ERROR: Unknown command: ${COMMAND}"
   show_help
   exit 1
   ;;

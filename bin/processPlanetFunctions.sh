@@ -46,18 +46,18 @@ function __countXmlNotesPlanet() {
  __log_start
  __logd "Counting XML notes for Planet."
 
- local xml_file="${1}"
- local count
+ local XML_FILE="${1}"
+ local COUNT
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- count=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
- __logi "Found ${count} notes in Planet XML file."
+ COUNT=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
+ __logi "Found ${COUNT} notes in Planet XML file."
  __log_finish
- echo "${count}"
+ echo "${COUNT}"
 }
 
 # Split XML for parallel Planet processing
@@ -65,21 +65,21 @@ function __splitXmlForParallelPlanet() {
  __log_start
  __logd "Splitting XML for parallel Planet processing."
 
- local xml_file="${1}"
- local num_parts="${2:-4}"
- local output_dir="${3:-${TMP_DIR}}"
+ local XML_FILE="${1}"
+ local NUM_PARTS="${2:-4}"
+ local OUTPUT_DIR="${3:-${TMP_DIR}}"
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Create output directory
- mkdir -p "${output_dir}"
+ mkdir -p "${OUTPUT_DIR}"
 
  # Count total notes
  local TOTAL_NOTES
- TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
+ TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
@@ -88,15 +88,15 @@ function __splitXmlForParallelPlanet() {
 
  # Calculate notes per part
  local NOTES_PER_PART
- NOTES_PER_PART=$((TOTAL_NOTES / num_parts))
- if [[ $((TOTAL_NOTES % num_parts)) -gt 0 ]]; then
+ NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
+ if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
   NOTES_PER_PART=$((NOTES_PER_PART + 1))
  fi
 
- __logi "Splitting ${TOTAL_NOTES} notes into ${num_parts} parts (${NOTES_PER_PART} notes per part)."
+ __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
 
  # Split XML file
- for ((i = 0; i < num_parts; i++)); do
+ for ((i = 0; i < NUM_PARTS; i++)); do
   local START_POS=$((i * NOTES_PER_PART + 1))
   local END_POS=$(((i + 1) * NOTES_PER_PART))
 
@@ -105,7 +105,7 @@ function __splitXmlForParallelPlanet() {
   fi
 
   if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
-   local OUTPUT_FILE="${output_dir}/planet_part_${i}.xml"
+   local OUTPUT_FILE="${OUTPUT_DIR}/planet_part_${i}.xml"
 
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
@@ -113,7 +113,7 @@ function __splitXmlForParallelPlanet() {
 
    # Extract notes for this part
    for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${OUTPUT_FILE}" || true
+    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
    done
 
    echo '</osm-notes>' >> "${OUTPUT_FILE}"
@@ -122,7 +122,7 @@ function __splitXmlForParallelPlanet() {
   fi
  done
 
- __logi "XML splitting completed. Created ${num_parts} parts."
+ __logi "XML splitting completed. Created ${NUM_PARTS} parts."
  __log_finish
 }
 
@@ -131,21 +131,21 @@ function __splitXmlForParallelSafe() {
  __log_start
  __logd "Splitting XML for parallel processing (safe version)."
 
- local xml_file="${1}"
- local num_parts="${2:-4}"
- local output_dir="${3:-${TMP_DIR}}"
+ local XML_FILE="${1}"
+ local NUM_PARTS="${2:-4}"
+ local OUTPUT_DIR="${3:-${TMP_DIR}}"
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Create output directory
- mkdir -p "${output_dir}"
+ mkdir -p "${OUTPUT_DIR}"
 
  # Count total notes
  local TOTAL_NOTES
- TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
+ TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
@@ -154,15 +154,15 @@ function __splitXmlForParallelSafe() {
 
  # Calculate notes per part
  local NOTES_PER_PART
- NOTES_PER_PART=$((TOTAL_NOTES / num_parts))
- if [[ $((TOTAL_NOTES % num_parts)) -gt 0 ]]; then
+ NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
+ if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
   NOTES_PER_PART=$((NOTES_PER_PART + 1))
  fi
 
- __logi "Splitting ${TOTAL_NOTES} notes into ${num_parts} parts (${NOTES_PER_PART} notes per part)."
+ __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
 
  # Split XML file safely
- for ((i = 0; i < num_parts; i++)); do
+ for ((i = 0; i < NUM_PARTS; i++)); do
   local START_POS=$((i * NOTES_PER_PART + 1))
   local END_POS=$(((i + 1) * NOTES_PER_PART))
 
@@ -171,7 +171,7 @@ function __splitXmlForParallelSafe() {
   fi
 
   if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
-   local OUTPUT_FILE="${output_dir}/safe_part_${i}.xml"
+   local OUTPUT_FILE="${OUTPUT_DIR}/safe_part_${i}.xml"
 
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
@@ -179,7 +179,7 @@ function __splitXmlForParallelSafe() {
 
    # Extract notes for this part safely
    for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${OUTPUT_FILE}" || true
+    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
    done
 
    echo '</osm-notes>' >> "${OUTPUT_FILE}"
@@ -188,7 +188,7 @@ function __splitXmlForParallelSafe() {
   fi
  done
 
- __logi "XML splitting completed safely. Created ${num_parts} parts."
+ __logi "XML splitting completed safely. Created ${NUM_PARTS} parts."
  __log_finish
 }
 
@@ -197,65 +197,68 @@ function __processXmlPartsParallel() {
  __log_start
  __logd "Processing XML parts in parallel."
 
- local input_dir="${1}"
- local xslt_file="${2}"
- local output_dir="${3}"
- local max_workers="${4:-4}"
+ local INPUT_DIR="${1}"
+ local XSLT_FILE="${2}"
+ local OUTPUT_DIR="${3}"
+ local MAX_WORKERS="${4:-4}"
 
- if [[ ! -d "${input_dir}" ]]; then
-  __loge "ERROR: Input directory not found: ${input_dir}"
+ if [[ ! -d "${INPUT_DIR}" ]]; then
+  __loge "ERROR: Input directory not found: ${INPUT_DIR}"
   return 1
  fi
 
- if [[ ! -f "${xslt_file}" ]]; then
-  __loge "ERROR: XSLT file not found: ${xslt_file}"
+ if [[ ! -f "${XSLT_FILE}" ]]; then
+  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
   return 1
  fi
 
  # Create output directory
- mkdir -p "${output_dir}"
+ mkdir -p "${OUTPUT_DIR}"
 
  # Find all XML parts
  local XML_FILES
- mapfile -t XML_FILES < <(find "${input_dir}" -name "*.xml" -type f)
+ XML_FILES=$(find "${INPUT_DIR}" -name "*.xml" -type f | sort)
 
- if [[ ${#XML_FILES[@]} -eq 0 ]]; then
-  __logw "WARNING: No XML files found in ${input_dir}"
-  return 0
+ if [[ -z "${XML_FILES}" ]]; then
+  __loge "ERROR: No XML files found in ${INPUT_DIR}"
+  return 1
  fi
-
- __logi "Processing ${#XML_FILES[@]} XML parts with max ${max_workers} workers."
 
  # Process files in parallel
  local PIDS=()
  local PROCESSED=0
 
- for xml_file in "${XML_FILES[@]}"; do
+ for XML_FILE in ${XML_FILES}; do
   local BASE_NAME
-  BASE_NAME=$(basename "${xml_file}" .xml)
-  local OUTPUT_FILE="${output_dir}/${BASE_NAME}.csv"
+  BASE_NAME=$(basename "${XML_FILE}" .xml)
+  local OUTPUT_FILE="${OUTPUT_DIR}/${BASE_NAME}.csv"
 
-  # Process XML file
-  if xsltproc "${xslt_file}" "${xml_file}" > "${OUTPUT_FILE}" 2> /dev/null; then
-   __logd "Successfully processed: ${xml_file} -> ${OUTPUT_FILE}"
-   ((PROCESSED++))
-  else
-   __loge "ERROR: Failed to process: ${xml_file}"
-  fi
+  # Process XML file in background
+  (
+   if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
+    __logd "Successfully processed: ${XML_FILE}"
+   else
+    __loge "ERROR: Failed to process: ${XML_FILE}"
+    rm -f "${OUTPUT_FILE}"
+   fi
+  ) &
+  PIDS+=($!)
 
   # Limit concurrent processes
-  if [[ ${#PIDS[@]} -ge ${max_workers} ]]; then
+  if [[ ${#PIDS[@]} -ge "${MAX_WORKERS}" ]]; then
    wait "${PIDS[0]}"
    PIDS=("${PIDS[@]:1}")
   fi
+
+  PROCESSED=$((PROCESSED + 1))
  done
 
  # Wait for remaining processes
- for pid in "${PIDS[@]}"; do
-  wait "${pid}"
+ for PID in "${PIDS[@]}"; do
+  wait "${PID}"
  done
 
- __logi "Parallel processing completed. Processed ${PROCESSED}/${#XML_FILES[@]} files."
+ __logi "Parallel processing completed. Processed ${PROCESSED} files."
  __log_finish
 }
 
@@ -264,34 +267,34 @@ function __processPlanetXmlPart() {
  __log_start
  __logd "Processing Planet XML part."
 
- local xml_file="${1}"
- local xslt_file="${2:-${XSLT_NOTES_PLANET_FILE}}"
- local output_file="${3:-${OUTPUT_NOTES_CSV_FILE}}"
+ local XML_FILE="${1}"
+ local XSLT_FILE="${2:-${XSLT_NOTES_PLANET_FILE}}"
+ local OUTPUT_FILE="${3:-${OUTPUT_NOTES_CSV_FILE}}"
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
   return 1
  fi
 
- if [[ ! -f "${xslt_file}" ]]; then
-  __loge "ERROR: XSLT file not found: ${xslt_file}"
+ if [[ ! -f "${XSLT_FILE}" ]]; then
+  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
   return 1
  fi
 
  # Validate XML structure
- if ! __validate_xml_structure "${xml_file}"; then
-  __loge "ERROR: XML validation failed for ${xml_file}"
+ if ! __validate_xml_structure "${XML_FILE}"; then
+  __loge "ERROR: XML validation failed for ${XML_FILE}"
   return 1
  fi
 
  # Process XML with XSLT
- __logd "Processing XML with XSLT: ${xml_file} -> ${output_file}"
- if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2> /dev/null; then
-  __logi "Successfully processed Planet XML part: ${xml_file}"
+ __logd "Processing XML with XSLT: ${XML_FILE} -> ${OUTPUT_FILE}"
+ if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
+  __logi "Successfully processed Planet XML part: ${XML_FILE}"
   __log_finish
   return 0
  else
-  __loge "ERROR: Failed to process Planet XML part: ${xml_file}"
+  __loge "ERROR: Failed to process Planet XML part: ${XML_FILE}"
   __log_finish
   return 1
  fi
@@ -302,8 +305,8 @@ function __downloadPlanetNotes() {
  __log_start
  __logd "Downloading Planet notes."
 
- local temp_file
- temp_file=$(mktemp)
+ local TEMP_FILE
+ TEMP_FILE=$(mktemp)
 
  # Check network connectivity
  if ! __check_network_connectivity 10; then
@@ -315,29 +318,29 @@ function __downloadPlanetNotes() {
 
  # Download Planet notes
  __logi "Downloading Planet notes from OSM..."
- if wget -q -O "${temp_file}" "https://planet.openstreetmap.org/notes/notes-latest.osn.bz2"; then
-  if [[ -s "${temp_file}" ]]; then
+ if wget -q -O "${TEMP_FILE}" "https://planet.openstreetmap.org/notes/notes-latest.osn.bz2"; then
+  if [[ -s "${TEMP_FILE}" ]]; then
    # Decompress and move
-   if bunzip2 -c "${temp_file}" > "${PLANET_NOTES_FILE}" 2> /dev/null; then
-    rm -f "${temp_file}"
+   if bunzip2 -c "${TEMP_FILE}" > "${PLANET_NOTES_FILE}" 2> /dev/null; then
+    rm -f "${TEMP_FILE}"
     __logi "Successfully downloaded and decompressed Planet notes: ${PLANET_NOTES_FILE}"
     __log_finish
     return 0
    else
     __loge "ERROR: Failed to decompress Planet notes"
-    rm -f "${temp_file}"
+    rm -f "${TEMP_FILE}"
     __log_finish
     return 1
    fi
   else
    __loge "ERROR: Downloaded file is empty"
-   rm -f "${temp_file}"
+   rm -f "${TEMP_FILE}"
    __log_finish
    return 1
   fi
  else
   __loge "ERROR: Failed to download Planet notes"
-  rm -f "${temp_file}"
+  rm -f "${TEMP_FILE}"
   __log_finish
   return 1
  fi
@@ -377,24 +380,24 @@ function __processBoundary() {
  __log_start
  __logd "Processing boundary."
 
- local boundary_file="${1}"
- local table_name="${2}"
+ local BOUNDARY_FILE="${1}"
+ local TABLE_NAME="${2}"
 
- if [[ ! -f "${boundary_file}" ]]; then
-  __loge "ERROR: Boundary file not found: ${boundary_file}"
+ if [[ ! -f "${BOUNDARY_FILE}" ]]; then
+  __loge "ERROR: Boundary file not found: ${BOUNDARY_FILE}"
   return 1
  fi
 
  # Import boundary using ogr2ogr
- __logd "Importing boundary: ${boundary_file} -> ${table_name}"
- if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${boundary_file}" \
-  -nln "${table_name}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+ __logd "Importing boundary: ${BOUNDARY_FILE} -> ${TABLE_NAME}"
+ if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${BOUNDARY_FILE}" \
+  -nln "${TABLE_NAME}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
   -lco GEOMETRY_NAME=geom -lco FID=id --config PG_USE_COPY YES 2> /dev/null; then
-  __logi "Successfully imported boundary: ${table_name}"
+  __logi "Successfully imported boundary: ${TABLE_NAME}"
   __log_finish
   return 0
  else
-  __loge "ERROR: Failed to import boundary: ${table_name}"
+  __loge "ERROR: Failed to import boundary: ${TABLE_NAME}"
   __log_finish
   return 1
  fi
@@ -405,24 +408,24 @@ function __processList() {
  __log_start
  __logd "Processing list."
 
- local list_file="${1}"
- local table_name="${2}"
+ local LIST_FILE="${1}"
+ local TABLE_NAME="${2}"
 
- if [[ ! -f "${list_file}" ]]; then
-  __loge "ERROR: List file not found: ${list_file}"
+ if [[ ! -f "${LIST_FILE}" ]]; then
+  __loge "ERROR: List file not found: ${LIST_FILE}"
   return 1
  fi
 
  # Import list using ogr2ogr
- __logd "Importing list: ${list_file} -> ${table_name}"
- if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${list_file}" \
-  -nln "${table_name}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+ __logd "Importing list: ${LIST_FILE} -> ${TABLE_NAME}"
+ if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${LIST_FILE}" \
+  -nln "${TABLE_NAME}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
   -lco GEOMETRY_NAME=geom -lco FID=id --config PG_USE_COPY YES 2> /dev/null; then
-  __logi "Successfully imported list: ${table_name}"
+  __logi "Successfully imported list: ${TABLE_NAME}"
   __log_finish
   return 0
  else
-  __loge "ERROR: Failed to import list: ${table_name}"
+  __loge "ERROR: Failed to import list: ${TABLE_NAME}"
   __log_finish
   return 1
  fi

@@ -18,179 +18,179 @@ declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json
 
 # Validate input file
 function __validate_input_file() {
- local file_path="${1}"
- local description="${2:-Input file}"
+ local FILE_PATH="${1}"
+ local DESCRIPTION="${2:-Input file}"
 
- if [[ ! -f "${file_path}" ]]; then
-  __loge "ERROR: ${description} not found: ${file_path}"
+ if [[ ! -f "${FILE_PATH}" ]]; then
+  __loge "ERROR: ${DESCRIPTION} not found: ${FILE_PATH}"
   return 1
  fi
 
- if [[ ! -r "${file_path}" ]]; then
-  __loge "ERROR: ${description} not readable: ${file_path}"
+ if [[ ! -r "${FILE_PATH}" ]]; then
+  __loge "ERROR: ${DESCRIPTION} not readable: ${FILE_PATH}"
   return 1
  fi
 
- if [[ ! -s "${file_path}" ]]; then
-  __loge "ERROR: ${description} is empty: ${file_path}"
+ if [[ ! -s "${FILE_PATH}" ]]; then
+  __loge "ERROR: ${DESCRIPTION} is empty: ${FILE_PATH}"
   return 1
  fi
 
- __logd "${description} validation passed: ${file_path}"
+ __logd "${DESCRIPTION} validation passed: ${FILE_PATH}"
  return 0
 }
 
 # Validate input files
 function __validate_input_files() {
- local files=("$@")
- local failed=0
+ local FILES=("$@")
+ local FAILED=0
 
- for file in "${files[@]}"; do
-  if ! __validate_input_file "${file}" "Input file"; then
-   failed=1
+ for FILE in "${FILES[@]}"; do
+  if ! __validate_input_file "${FILE}" "Input file"; then
+   FAILED=1
   fi
  done
 
- return "${failed}"
+ return "${FAILED}"
 }
 
 # Validate XML structure
 function __validate_xml_structure() {
- local xml_file="${1}"
+ local XML_FILE="${1}"
 
- if ! __validate_input_file "${xml_file}" "XML file"; then
+ if ! __validate_input_file "${XML_FILE}" "XML file"; then
   return 1
  fi
 
  # Check if file is valid XML
- if ! xmllint --noout "${xml_file}" 2> /dev/null; then
-  __loge "ERROR: Invalid XML structure: ${xml_file}"
+ if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Invalid XML structure: ${XML_FILE}"
   return 1
  fi
 
  # Check for required root element
- if ! xmllint --xpath "//osm-notes" "${xml_file}" > /dev/null 2>&1; then
-  __loge "ERROR: Missing osm-notes root element: ${xml_file}"
+ if ! xmllint --xpath "//osm-notes" "${XML_FILE}" > /dev/null 2>&1; then
+  __loge "ERROR: Missing osm-notes root element: ${XML_FILE}"
   return 1
  fi
 
- __logd "XML structure validation passed: ${xml_file}"
+ __logd "XML structure validation passed: ${XML_FILE}"
  return 0
 }
 
 # Validate CSV structure
 function __validate_csv_structure() {
- local csv_file="${1}"
- local expected_columns="${2:-}"
+ local CSV_FILE="${1}"
+ local EXPECTED_COLUMNS="${2:-}"
 
- if ! __validate_input_file "${csv_file}" "CSV file"; then
+ if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
   return 1
  fi
 
  # Check if file has content
- if [[ ! -s "${csv_file}" ]]; then
-  __loge "ERROR: CSV file is empty: ${csv_file}"
+ if [[ ! -s "${CSV_FILE}" ]]; then
+  __loge "ERROR: CSV file is empty: ${CSV_FILE}"
   return 1
  fi
 
  # Check if file has header
  local FIRST_LINE
- FIRST_LINE=$(head -n 1 "${csv_file}" 2> /dev/null)
+ FIRST_LINE=$(head -n 1 "${CSV_FILE}" 2> /dev/null)
  if [[ -z "${FIRST_LINE}" ]]; then
-  __loge "ERROR: CSV file has no header: ${csv_file}"
+  __loge "ERROR: CSV file has no header: ${CSV_FILE}"
   return 1
  fi
 
- # Validate expected columns if provided
- if [[ -n "${expected_columns}" ]]; then
+ # Check column count if expected columns provided
+ if [[ -n "${EXPECTED_COLUMNS}" ]]; then
   local COLUMN_COUNT
   COLUMN_COUNT=$(echo "${FIRST_LINE}" | tr ',' '\n' | wc -l)
   local EXPECTED_COUNT
-  EXPECTED_COUNT=$(echo "${expected_columns}" | tr ',' '\n' | wc -l)
+  EXPECTED_COUNT=$(echo "${EXPECTED_COLUMNS}" | tr ',' '\n' | wc -l)
 
   if [[ "${COLUMN_COUNT}" -ne "${EXPECTED_COUNT}" ]]; then
-   __loge "ERROR: CSV column count mismatch. Expected: ${EXPECTED_COUNT}, Found: ${COLUMN_COUNT}"
+   __loge "ERROR: CSV file has ${COLUMN_COUNT} columns, expected ${EXPECTED_COUNT}: ${CSV_FILE}"
    return 1
   fi
  fi
 
- __logd "CSV structure validation passed: ${csv_file}"
+ __logd "CSV structure validation passed: ${CSV_FILE}"
  return 0
 }
 
 # Validate SQL structure
 function __validate_sql_structure() {
- local sql_file="${1}"
+ local SQL_FILE="${1}"
 
- if ! __validate_input_file "${sql_file}" "SQL file"; then
+ if ! __validate_input_file "${SQL_FILE}" "SQL file"; then
   return 1
  fi
 
  # Check for basic SQL syntax
- if ! grep -q -E "(CREATE|INSERT|UPDATE|DELETE|SELECT|DROP|ALTER|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE)" "${sql_file}"; then
-  __loge "ERROR: No valid SQL statements found: ${sql_file}"
+ if ! grep -q -E "(CREATE|INSERT|UPDATE|DELETE|SELECT|DROP|ALTER|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE)" "${SQL_FILE}"; then
+  __loge "ERROR: No valid SQL statements found: ${SQL_FILE}"
   return 1
  fi
 
  # Check for balanced parentheses
- local open_parens
- local close_parens
- open_parens=$(grep -o '(' "${sql_file}" | wc -l)
- close_parens=$(grep -o ')' "${sql_file}" | wc -l)
+ local OPEN_PARENS
+ local CLOSE_PARENS
+ OPEN_PARENS=$(grep -o '(' "${SQL_FILE}" | wc -l)
+ CLOSE_PARENS=$(grep -o ')' "${SQL_FILE}" | wc -l)
 
- if [[ "${open_parens}" -ne "${close_parens}" ]]; then
-  __loge "ERROR: Unbalanced parentheses in SQL file: ${sql_file}"
+ if [[ "${OPEN_PARENS}" -ne "${CLOSE_PARENS}" ]]; then
+  __loge "ERROR: Unbalanced parentheses in SQL file: ${SQL_FILE}"
   return 1
  fi
 
- __logd "SQL structure validation passed: ${sql_file}"
+ __logd "SQL structure validation passed: ${SQL_FILE}"
  return 0
 }
 
 # Validate config file
 function __validate_config_file() {
- local config_file="${1}"
+ local CONFIG_FILE="${1}"
 
- if ! __validate_input_file "${config_file}" "Config file"; then
+ if ! __validate_input_file "${CONFIG_FILE}" "Config file"; then
   return 1
  fi
 
  # Check for key-value pairs
- if ! grep -q '=' "${config_file}"; then
-  __loge "ERROR: No key-value pairs found in config file: ${config_file}"
+ if ! grep -q '=' "${CONFIG_FILE}"; then
+  __loge "ERROR: No key-value pairs found in config file: ${CONFIG_FILE}"
   return 1
  fi
 
  # Check for valid variable names
- if grep -q -E '^[^A-Za-z_][^=]*=' "${config_file}"; then
-  __loge "ERROR: Invalid variable names in config file: ${config_file}"
+ if grep -q -E '^[^A-Za-z_][^=]*=' "${CONFIG_FILE}"; then
+  __loge "ERROR: Invalid variable names in config file: ${CONFIG_FILE}"
   return 1
  fi
 
- __logd "Config file validation passed: ${config_file}"
+ __logd "Config file validation passed: ${CONFIG_FILE}"
  return 0
 }
 
 # Validate JSON structure
 function __validate_json_structure() {
- local json_file="${1}"
- local schema_file="${2:-}"
+ local JSON_FILE="${1}"
+ local SCHEMA_FILE="${2:-}"
 
- if ! __validate_input_file "${json_file}" "JSON file"; then
+ if ! __validate_input_file "${JSON_FILE}" "JSON file"; then
   return 1
  fi
 
  # Check if file is valid JSON
- if ! jq empty "${json_file}" 2> /dev/null; then
-  __loge "ERROR: Invalid JSON structure: ${json_file}"
+ if ! jq empty "${JSON_FILE}" 2> /dev/null; then
+  __loge "ERROR: Invalid JSON structure: ${JSON_FILE}"
   return 1
  fi
 
  # Validate against schema if provided
- if [[ -n "${schema_file}" ]] && [[ -f "${schema_file}" ]]; then
+ if [[ -n "${SCHEMA_FILE}" ]] && [[ -f "${SCHEMA_FILE}" ]]; then
   if command -v ajv > /dev/null 2>&1; then
-   if ! ajv validate -s "${schema_file}" -d "${json_file}"; then
-    __loge "ERROR: JSON validation against schema failed: ${json_file}"
+   if ! ajv validate -s "${SCHEMA_FILE}" -d "${JSON_FILE}"; then
+    __loge "ERROR: JSON validation against schema failed: ${JSON_FILE}"
     return 1
    fi
   else
@@ -198,16 +198,20 @@ function __validate_json_structure() {
   fi
  fi
 
- __logd "JSON structure validation passed: ${json_file}"
+ __logd "JSON structure validation passed: ${JSON_FILE}"
  return 0
 }
 
 # Validate database connection
+# Nota:
+# Por defecto, la conexión a PostgreSQL se realiza usando peer (local, sin usuario/contraseña).
+# Los parámetros DBHOST, DBPORT y DBUSER solo son necesarios para pruebas en Docker, CI/CD
+# o entornos donde no se use peer.
 function __validate_database_connection() {
- local dbname="${1:-${DBNAME}}"
- local dbuser="${2:-${DB_USER}}"
- local dbhost="${3:-${DB_HOST}}"
- local dbport="${4:-${DB_PORT}}"
+ local DBNAME_PARAM="${1:-${DBNAME}}"
+ local DBUSER_PARAM="${2:-${DB_USER}}"
+ local DBHOST_PARAM="${3:-${DB_HOST}}"
+ local DBPORT_PARAM="${4:-${DB_PORT}}"
 
  # Check if PostgreSQL client is available
  if ! command -v psql > /dev/null 2>&1; then
@@ -216,9 +220,18 @@ function __validate_database_connection() {
  fi
 
  # Test database connection
- if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${dbhost}" -p "${dbport}" -U "${dbuser}" -d "${dbname}" -c "SELECT 1;" > /dev/null 2>&1; then
-  __loge "ERROR: Database connection failed"
-  return 1
+ if [[ -n "${DBHOST_PARAM}" ]] || [[ -n "${DBPORT_PARAM}" ]] || [[ -n "${DBUSER_PARAM}" ]]; then
+  # Usar parámetros personalizados (por ejemplo, en Docker o CI/CD)
+  if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${DBHOST_PARAM}" -p "${DBPORT_PARAM}" -U "${DBUSER_PARAM}" -d "${DBNAME_PARAM}" -c "SELECT 1;" > /dev/null 2>&1; then
+   __loge "ERROR: Database connection failed (host/port/user)"
+   return 1
+  fi
+ else
+  # Usar peer (local, sin usuario/contraseña)
+  if ! psql -d "${DBNAME_PARAM}" -c "SELECT 1;" > /dev/null 2>&1; then
+   __loge "ERROR: Database connection failed (peer)"
+   return 1
+  fi
  fi
 
  __logd "Database connection validation passed"
@@ -226,23 +239,32 @@ function __validate_database_connection() {
 }
 
 # Validate database tables
+# Nota:
+# Por defecto, la conexión a PostgreSQL se realiza usando peer (local, sin usuario/contraseña).
+# Los parámetros DBHOST, DBPORT y DBUSER solo son necesarios para pruebas en Docker, CI/CD
+# o entornos donde no se use peer.
 function __validate_database_tables() {
- local dbname="${1:-${DBNAME}}"
- local dbuser="${2:-${DB_USER}}"
- local dbhost="${3:-${DB_HOST}}"
- local dbport="${4:-${DB_PORT}}"
- local tables=("${@:5}")
+ local DBNAME_PARAM="${1:-${DBNAME}}"
+ local DBUSER_PARAM="${2:-${DB_USER}}"
+ local DBHOST_PARAM="${3:-${DB_HOST}}"
+ local DBPORT_PARAM="${4:-${DB_PORT}}"
+ local TABLES=("${@:5}")
 
- # Validate database connection first
- if ! __validate_database_connection "${dbname}" "${dbuser}" "${dbhost}" "${dbport}"; then
+ if ! __validate_database_connection "${DBNAME_PARAM}" "${DBUSER_PARAM}" "${DBHOST_PARAM}" "${DBPORT_PARAM}"; then
   return 1
  fi
 
- # Check if tables exist
- for table in "${tables[@]}"; do
-  if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${dbhost}" -p "${dbport}" -U "${dbuser}" -d "${dbname}" -c "SELECT 1 FROM ${table} LIMIT 1;" > /dev/null 2>&1; then
-   __loge "ERROR: Table does not exist: ${table}"
-   return 1
+ for TABLE in "${TABLES[@]}"; do
+  if [[ -n "${DBHOST_PARAM}" ]] || [[ -n "${DBPORT_PARAM}" ]] || [[ -n "${DBUSER_PARAM}" ]]; then
+   if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${DBHOST_PARAM}" -p "${DBPORT_PARAM}" -U "${DBUSER_PARAM}" -d "${DBNAME_PARAM}" -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${TABLE}';" | grep -q "1"; then
+    __loge "ERROR: Table ${TABLE} does not exist in database ${DBNAME_PARAM} (host/port/user)"
+    return 1
+   fi
+  else
+   if ! psql -d "${DBNAME_PARAM}" -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${TABLE}';" | grep -q "1"; then
+    __loge "ERROR: Table ${TABLE} does not exist in database ${DBNAME_PARAM} (peer)"
+    return 1
+   fi
   fi
  done
 
@@ -251,23 +273,32 @@ function __validate_database_tables() {
 }
 
 # Validate database extensions
+# Nota:
+# Por defecto, la conexión a PostgreSQL se realiza usando peer (local, sin usuario/contraseña).
+# Los parámetros DBHOST, DBPORT y DBUSER solo son necesarios para pruebas en Docker, CI/CD
+# o entornos donde no se use peer.
 function __validate_database_extensions() {
- local dbname="${1:-${DBNAME}}"
- local dbuser="${2:-${DB_USER}}"
- local dbhost="${3:-${DB_HOST}}"
- local dbport="${4:-${DB_PORT}}"
- local extensions=("${@:5}")
+ local DBNAME_PARAM="${1:-${DBNAME}}"
+ local DBUSER_PARAM="${2:-${DB_USER}}"
+ local DBHOST_PARAM="${3:-${DB_HOST}}"
+ local DBPORT_PARAM="${4:-${DB_PORT}}"
+ local EXTENSIONS=("${@:5}")
 
- # Validate database connection first
- if ! __validate_database_connection "${dbname}" "${dbuser}" "${dbhost}" "${dbport}"; then
+ if ! __validate_database_connection "${DBNAME_PARAM}" "${DBUSER_PARAM}" "${DBHOST_PARAM}" "${DBPORT_PARAM}"; then
   return 1
  fi
 
- # Check if extensions are available
- for ext in "${extensions[@]}"; do
-  if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${dbhost}" -p "${dbport}" -U "${dbuser}" -d "${dbname}" -c "SELECT 1 FROM pg_extension WHERE extname = '${ext}';" | grep -q "1"; then
-   __loge "ERROR: Extension not available: ${ext}"
-   return 1
+ for EXTENSION in "${EXTENSIONS[@]}"; do
+  if [[ -n "${DBHOST_PARAM}" ]] || [[ -n "${DBPORT_PARAM}" ]] || [[ -n "${DBUSER_PARAM}" ]]; then
+   if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${DBHOST_PARAM}" -p "${DBPORT_PARAM}" -U "${DBUSER_PARAM}" -d "${DBNAME_PARAM}" -c "SELECT 1 FROM pg_extension WHERE extname = '${EXTENSION}';" | grep -q "1"; then
+    __loge "ERROR: Extension ${EXTENSION} is not installed in database ${DBNAME_PARAM} (host/port/user)"
+    return 1
+   fi
+  else
+   if ! psql -d "${DBNAME_PARAM}" -c "SELECT 1 FROM pg_extension WHERE extname = '${EXTENSION}';" | grep -q "1"; then
+    __loge "ERROR: Extension ${EXTENSION} is not installed in database ${DBNAME_PARAM} (peer)"
+    return 1
+   fi
   fi
  done
 
@@ -338,94 +369,83 @@ function __validate_iso8601_date() {
 
 # Validate XML dates
 function __validate_xml_dates() {
- local xml_file="${1}"
- local xpath_queries=("${@:2}")
+ local XML_FILE="${1}"
+ local XPATH_QUERIES=("${@:2}")
 
- if ! __validate_input_file "${xml_file}" "XML file"; then
+ if ! __validate_xml_structure "${XML_FILE}"; then
   return 1
  fi
 
- # If no specific queries provided, use common date attributes
- if [[ ${#xpath_queries[@]} -eq 0 ]]; then
-  xpath_queries=(
-   "//note/@created_at"
-   "//note/@closed_at"
-   "//comment/@timestamp"
-  )
- fi
+ local FAILED=0
 
- local failed=0
+ # Validate dates in XML
+ for XPATH_QUERY in "${XPATH_QUERIES[@]}"; do
+  local DATES
+  DATES=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}Z' || true)
 
- for query in "${xpath_queries[@]}"; do
-  local dates
-  mapfile -t dates < <(xmllint --xpath "${query}" "${xml_file}" 2> /dev/null | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}Z' || true)
-
-  for date in "${dates[@]}"; do
-   if [[ -n "${date}" ]]; then
-    if ! __validate_iso8601_date "${date}" "XML date"; then
-     failed=1
+  if [[ -n "${DATES}" ]]; then
+   while IFS= read -r DATE; do
+    if ! __validate_date_format "${DATE}" "XML date"; then
+     __loge "ERROR: Invalid date found in XML: ${DATE}"
+     FAILED=1
     fi
-   fi
-  done
+   done <<< "${DATES}"
+  fi
  done
 
- if [[ "${failed}" -eq 1 ]]; then
-  __loge "ERROR: XML date validation failed"
+ if [[ "${FAILED}" -eq 1 ]]; then
   return 1
  fi
 
- __logd "XML date validation passed: ${xml_file}"
+ __logd "XML dates validation passed: ${XML_FILE}"
  return 0
 }
 
 # Validate CSV dates
 function __validate_csv_dates() {
- local csv_file="${1}"
- local date_columns=("${@:2}")
+ local CSV_FILE="${1}"
+ local DATE_COLUMNS=("${@:2}")
 
- if ! __validate_input_file "${csv_file}" "CSV file"; then
+ if ! __validate_csv_structure "${CSV_FILE}"; then
   return 1
  fi
 
- # If no specific columns provided, look for common date column names
- if [[ ${#date_columns[@]} -eq 0 ]]; then
-  local header
-  header=$(head -n 1 "${csv_file}")
-  IFS=',' read -ra columns <<< "${header}"
+ # Get header line
+ local HEADER
+ HEADER=$(head -n 1 "${CSV_FILE}")
 
-  for col in "${columns[@]}"; do
-   if [[ "${col}" =~ (date|time|created|updated|timestamp) ]]; then
-    date_columns+=("${col}")
-   fi
-  done
- fi
+ local FAILED=0
 
- local failed=0
+ # Validate dates in CSV
+ for DATE_COLUMN in "${DATE_COLUMNS[@]}"; do
+  local COL_INDEX
+  COL_INDEX=$(echo "${HEADER}" | tr ',' '\n' | grep -n "^${DATE_COLUMN}$" | cut -d: -f1)
 
- for col in "${date_columns[@]}"; do
-  local col_index
-  col_index=$(head -n 1 "${csv_file}" | tr ',' '\n' | grep -n "^${col}$" | cut -d: -f1)
+  if [[ -z "${COL_INDEX}" ]]; then
+   __loge "ERROR: Date column not found: ${DATE_COLUMN}"
+   FAILED=1
+   continue
+  fi
 
-  if [[ -n "${col_index}" ]]; then
-   local dates
-   mapfile -t dates < <(tail -n +2 "${csv_file}" | cut -d',' -f"${col_index}" | grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z' || true)
+  # Skip header and validate dates
+  local DATES
+  DATES=$(tail -n +2 "${CSV_FILE}" | cut -d',' -f"${COL_INDEX}" | grep -E '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z' || true)
 
-   for date in "${dates[@]}"; do
-    if [[ -n "${date}" ]]; then
-     if ! __validate_iso8601_date "${date}" "CSV date"; then
-      failed=1
-     fi
+  if [[ -n "${DATES}" ]]; then
+   while IFS= read -r DATE; do
+    if ! __validate_date_format "${DATE}" "CSV date"; then
+     __loge "ERROR: Invalid date found in CSV: ${DATE}"
+     FAILED=1
     fi
-   done
+   done <<< "${DATES}"
   fi
  done
 
- if [[ "${failed}" -eq 1 ]]; then
-  __loge "ERROR: CSV date validation failed"
+ if [[ "${FAILED}" -eq 1 ]]; then
   return 1
  fi
 
- __logd "CSV date validation passed: ${csv_file}"
+ __logd "CSV dates validation passed: ${CSV_FILE}"
  return 0
 }
 
@@ -761,5 +781,65 @@ function __validate_database_variables() {
  fi
 
  __logd "Database variables validation passed"
+ return 0
+}
+
+# Validate date format
+function __validate_date_format() {
+ local DATE_STRING="${1}"
+ local DESCRIPTION="${2:-Date}"
+
+ if [[ -z "${DATE_STRING}" ]]; then
+  __loge "ERROR: ${DESCRIPTION} is empty"
+  return 1
+ fi
+
+ # Check if date string matches ISO 8601 format
+ if ! [[ "${DATE_STRING}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+  __loge "ERROR: ${DESCRIPTION} does not match ISO 8601 format: ${DATE_STRING}"
+  return 1
+ fi
+
+ # Validate date components
+ local YEAR MONTH DAY HOUR MINUTE SECOND
+ IFS='T:Z' read -r YEAR MONTH DAY HOUR MINUTE SECOND <<< "${DATE_STRING}"
+
+ # Check year range
+ if [[ "${YEAR}" -lt 1900 ]] || [[ "${YEAR}" -gt 2100 ]]; then
+  __loge "ERROR: ${DESCRIPTION} year out of range: ${YEAR}"
+  return 1
+ fi
+
+ # Check month range
+ if [[ "${MONTH}" -lt 1 ]] || [[ "${MONTH}" -gt 12 ]]; then
+  __loge "ERROR: ${DESCRIPTION} month out of range: ${MONTH}"
+  return 1
+ fi
+
+ # Check day range
+ if [[ "${DAY}" -lt 1 ]] || [[ "${DAY}" -gt 31 ]]; then
+  __loge "ERROR: ${DESCRIPTION} day out of range: ${DAY}"
+  return 1
+ fi
+
+ # Check hour range
+ if [[ "${HOUR}" -lt 0 ]] || [[ "${HOUR}" -gt 23 ]]; then
+  __loge "ERROR: ${DESCRIPTION} hour out of range: ${HOUR}"
+  return 1
+ fi
+
+ # Check minute range
+ if [[ "${MINUTE}" -lt 0 ]] || [[ "${MINUTE}" -gt 59 ]]; then
+  __loge "ERROR: ${DESCRIPTION} minute out of range: ${MINUTE}"
+  return 1
+ fi
+
+ # Check second range
+ if [[ "${SECOND}" -lt 0 ]] || [[ "${SECOND}" -gt 59 ]]; then
+  __loge "ERROR: ${DESCRIPTION} second out of range: ${SECOND}"
+  return 1
+ fi
+
+ __logd "${DESCRIPTION} validation passed: ${DATE_STRING}"
  return 0
 }

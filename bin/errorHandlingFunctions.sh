@@ -13,234 +13,229 @@ declare -A CIRCUIT_BREAKER_STATE
 declare -A CIRCUIT_BREAKER_FAILURE_COUNT
 declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIME
 
-# Retry with backoff
-function __retry_with_backoff() {
- local max_attempts="${1:-3}"
- local base_delay="${2:-1}"
- local max_delay="${3:-60}"
- local command="${4:-}"
+# Retry operation with exponential backoff
+function __retry_operation() {
+ local MAX_ATTEMPTS="${1:-3}"
+ local BASE_DELAY="${2:-1}"
+ local MAX_DELAY="${3:-60}"
+ local COMMAND="${4:-}"
 
- if [[ -z "${command}" ]]; then
-  __loge "ERROR: No command provided for retry"
+ if [[ -z "${COMMAND}" ]]; then
+  __loge "ERROR: No command provided for retry operation"
   return 1
  fi
 
- local attempt=1
- local delay="${base_delay}"
+ local ATTEMPT=1
+ local DELAY="${BASE_DELAY}"
 
- while [[ "${attempt}" -le "${max_attempts}" ]]; do
-  __logd "Attempt ${attempt}/${max_attempts}: ${command}"
+ while [[ "${ATTEMPT}" -le "${MAX_ATTEMPTS}" ]]; do
+  __logd "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${COMMAND}"
 
-  if eval "${command}"; then
-   __logi "Command succeeded on attempt ${attempt}"
+  if eval "${COMMAND}"; then
+   __logi "Operation succeeded on attempt ${ATTEMPT}"
    return 0
-  else
-   local exit_code=$?
-   __logw "Command failed on attempt ${attempt} with exit code ${exit_code}"
+  fi
 
-   if [[ "${attempt}" -eq "${max_attempts}" ]]; then
-    __loge "ERROR: Command failed after ${max_attempts} attempts"
-    return "${exit_code}"
-   fi
+  local EXIT_CODE=$?
 
-   # Calculate delay with exponential backoff
-   delay=$((delay * 2))
-   if [[ "${delay}" -gt "${max_delay}" ]]; then
-    delay="${max_delay}"
-   fi
+  if [[ "${ATTEMPT}" -eq "${MAX_ATTEMPTS}" ]]; then
+   __loge "ERROR: Operation failed after ${MAX_ATTEMPTS} attempts. Exit code: ${EXIT_CODE}"
+   return "${EXIT_CODE}"
+  fi
 
-   __logd "Waiting ${delay} seconds before retry"
-   sleep "${delay}"
-   ((attempt++))
+  __logw "WARNING: Operation failed on attempt ${ATTEMPT}. Retrying in ${DELAY} seconds..."
+  sleep "${DELAY}"
+
+  ATTEMPT=$((ATTEMPT + 1))
+  DELAY=$((DELAY * 2))
+  if [[ "${DELAY}" -gt "${MAX_DELAY}" ]]; then
+   DELAY="${MAX_DELAY}"
   fi
  done
-
- return 1
 }
 
-# Circuit breaker execute
+# Circuit breaker pattern implementation
 function __circuit_breaker_execute() {
- local operation_name="${1}"
- local command="${2}"
- local failure_threshold="${3:-5}"
- local timeout="${4:-30}"
- local reset_timeout="${5:-60}"
+ local OPERATION_NAME="${1}"
+ local COMMAND="${2}"
+ local FAILURE_THRESHOLD="${3:-5}"
+ local TIMEOUT="${4:-30}"
+ local RESET_TIMEOUT="${5:-60}"
 
- if [[ -z "${operation_name}" ]] || [[ -z "${command}" ]]; then
+ if [[ -z "${OPERATION_NAME}" ]] || [[ -z "${COMMAND}" ]]; then
   __loge "ERROR: Operation name and command are required"
   return 1
  fi
 
- # Check circuit breaker state
- local current_time
- current_time=$(date +%s)
- local last_failure_time="${CIRCUIT_BREAKER_LAST_FAILURE_TIME[${operation_name}]:-0}"
- local failure_count="${CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]:-0}"
- local state="${CIRCUIT_BREAKER_STATE[${operation_name}]:-CLOSED}"
+ local CURRENT_TIME
+ CURRENT_TIME=$(date +%s)
 
- # Check if circuit breaker is open and should be reset
- if [[ "${state}" == "OPEN" ]]; then
-  local time_since_last_failure
-  time_since_last_failure=$((current_time - last_failure_time))
+ local LAST_FAILURE_TIME="${CIRCUIT_BREAKER_LAST_FAILURE_TIME[${OPERATION_NAME}]:-0}"
+ local FAILURE_COUNT="${CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]:-0}"
+ local STATE="${CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]:-CLOSED}"
 
-  if [[ "${time_since_last_failure}" -ge "${reset_timeout}" ]]; then
-   __logi "Circuit breaker for ${operation_name} resetting to HALF_OPEN"
-   CIRCUIT_BREAKER_STATE[${operation_name}]="HALF_OPEN"
-   state="HALF_OPEN"
-  else
-   __logw "Circuit breaker for ${operation_name} is OPEN, skipping execution"
+ # Check if circuit breaker is open
+ if [[ "${STATE}" == "OPEN" ]]; then
+  local TIME_SINCE_LAST_FAILURE
+  TIME_SINCE_LAST_FAILURE=$((CURRENT_TIME - LAST_FAILURE_TIME))
+
+  if [[ "${TIME_SINCE_LAST_FAILURE}" -lt "${RESET_TIMEOUT}" ]]; then
+   __logw "WARNING: Circuit breaker is OPEN for ${OPERATION_NAME}. Skipping operation."
    return 1
+  else
+   __logi "Circuit breaker reset to HALF_OPEN for ${OPERATION_NAME}"
+   CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="HALF_OPEN"
+   STATE="HALF_OPEN"
   fi
  fi
 
  # Execute command with timeout
- local exit_code
- if timeout "${timeout}" bash -c "${command}"; then
-  exit_code=0
- else
-  exit_code=$?
- fi
-
- # Update circuit breaker state based on result
- if [[ "${exit_code}" -eq 0 ]]; then
-  # Success - close circuit breaker
-  CIRCUIT_BREAKER_STATE[${operation_name}]="CLOSED"
-  CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]=0
-  __logd "Circuit breaker for ${operation_name} is CLOSED"
+ local EXIT_CODE
+ if timeout "${TIMEOUT}" bash -c "${COMMAND}"; then
+  __logi "Operation ${OPERATION_NAME} succeeded"
+  
+  # Reset failure count on success
+  CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]=0
+  CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="CLOSED"
+  
   return 0
  else
-  # Failure - update failure count and potentially open circuit breaker
-  CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]=$((failure_count + 1))
-  CIRCUIT_BREAKER_LAST_FAILURE_TIME[${operation_name}]="${current_time}"
-
-  if [[ "${CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]}" -ge "${failure_threshold}" ]]; then
-   CIRCUIT_BREAKER_STATE[${operation_name}]="OPEN"
-   __logw "Circuit breaker for ${operation_name} is now OPEN"
+  EXIT_CODE=$?
+  __loge "ERROR: Operation ${OPERATION_NAME} failed with exit code ${EXIT_CODE}"
+  
+  # Update failure tracking
+  CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]=$((FAILURE_COUNT + 1))
+  CIRCUIT_BREAKER_LAST_FAILURE_TIME[${OPERATION_NAME}]=${CURRENT_TIME}
+  
+  # Check if threshold exceeded
+  if [[ "${CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]}" -ge "${FAILURE_THRESHOLD}" ]]; then
+   __logw "WARNING: Circuit breaker opened for ${OPERATION_NAME}"
+   CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="OPEN"
   fi
-
-  return "${exit_code}"
+  
+  return "${EXIT_CODE}"
  fi
 }
 
 # Download with retry
 function __download_with_retry() {
- local url="${1}"
- local output_file="${2}"
- local max_attempts="${3:-3}"
- local timeout="${4:-30}"
+ local URL="${1}"
+ local OUTPUT_FILE="${2}"
+ local MAX_ATTEMPTS="${3:-3}"
+ local TIMEOUT="${4:-30}"
 
- if [[ -z "${url}" ]] || [[ -z "${output_file}" ]]; then
+ if [[ -z "${URL}" ]] || [[ -z "${OUTPUT_FILE}" ]]; then
   __loge "ERROR: URL and output file are required"
   return 1
  fi
 
- local command="curl -s -o '${output_file}' '${url}'"
- __circuit_breaker_execute "download_${url}" "${command}" 3 "${timeout}" 120
+ local COMMAND="curl -s -o '${OUTPUT_FILE}' '${URL}'"
+ __circuit_breaker_execute "download_${URL}" "${COMMAND}" 3 "${TIMEOUT}" 120
 }
 
 # API call with retry
 function __api_call_with_retry() {
- local url="${1}"
- local output_file="${2}"
- local max_attempts="${3:-3}"
- local timeout="${4:-30}"
+ local URL="${1}"
+ local OUTPUT_FILE="${2}"
+ local MAX_ATTEMPTS="${3:-3}"
+ local TIMEOUT="${4:-30}"
 
- if [[ -z "${url}" ]] || [[ -z "${output_file}" ]]; then
+ if [[ -z "${URL}" ]] || [[ -z "${OUTPUT_FILE}" ]]; then
   __loge "ERROR: URL and output file are required"
   return 1
  fi
 
- local command="curl -s -o '${output_file}' '${url}'"
- __circuit_breaker_execute "api_call_${url}" "${command}" 3 "${timeout}" 120
+ local COMMAND="curl -s -o '${OUTPUT_FILE}' '${URL}'"
+ __circuit_breaker_execute "api_call_${URL}" "${COMMAND}" 3 "${TIMEOUT}" 120
 }
 
 # Database operation with retry
 function __database_operation_with_retry() {
- local sql_file="${1}"
- local max_attempts="${2:-3}"
- local timeout="${3:-60}"
+ local SQL_FILE="${1}"
+ local MAX_ATTEMPTS="${2:-3}"
+ local TIMEOUT="${3:-60}"
 
- if [[ -z "${sql_file}" ]]; then
+ if [[ -z "${SQL_FILE}" ]]; then
   __loge "ERROR: SQL file is required"
   return 1
  fi
 
- if ! __validate_input_file "${sql_file}" "SQL file"; then
+ if ! __validate_input_file "${SQL_FILE}" "SQL file"; then
   return 1
  fi
 
- local command="PGPASSWORD='${DB_PASSWORD}' psql -h '${DB_HOST}' -p '${DB_PORT}' -U '${DB_USER}' -d '${DBNAME}' -f '${sql_file}'"
- __circuit_breaker_execute "database_operation_${sql_file}" "${command}" 3 "${timeout}" 300
+ local COMMAND="PGPASSWORD='${DB_PASSWORD}' psql -h '${DB_HOST}' -p '${DB_PORT}' -U '${DB_USER}' -d '${DBNAME}' -f '${SQL_FILE}'"
+ __circuit_breaker_execute "database_operation_${SQL_FILE}" "${COMMAND}" 3 "${TIMEOUT}" 300
 }
 
 # File operation with retry
 function __file_operation_with_retry() {
- local operation="${1}"
- local source="${2}"
- local destination="${3}"
- local max_attempts="${4:-3}"
+ local OPERATION="${1}"
+ local SOURCE="${2}"
+ local DESTINATION="${3}"
+ local MAX_ATTEMPTS="${4:-3}"
 
- if [[ -z "${operation}" ]] || [[ -z "${source}" ]]; then
+ if [[ -z "${OPERATION}" ]] || [[ -z "${SOURCE}" ]]; then
   __loge "ERROR: Operation and source are required"
   return 1
  fi
 
- local command
- case "${operation}" in
+ local COMMAND
+ case "${OPERATION}" in
  copy)
-  if [[ -z "${destination}" ]]; then
+  if [[ -z "${DESTINATION}" ]]; then
    __loge "ERROR: Destination is required for copy operation"
    return 1
   fi
-  command="cp '${source}' '${destination}'"
+  COMMAND="cp '${SOURCE}' '${DESTINATION}'"
   ;;
  move)
-  if [[ -z "${destination}" ]]; then
+  if [[ -z "${DESTINATION}" ]]; then
    __loge "ERROR: Destination is required for move operation"
    return 1
   fi
-  command="mv '${source}' '${destination}'"
+  COMMAND="mv '${SOURCE}' '${DESTINATION}'"
   ;;
  delete)
-  command="rm -f '${source}'"
+  COMMAND="rm -f '${SOURCE}'"
   ;;
  *)
-  __loge "ERROR: Unsupported operation: ${operation}"
+  __loge "ERROR: Unsupported operation: ${OPERATION}"
   return 1
   ;;
  esac
 
- __circuit_breaker_execute "file_operation_${operation}_${source}" "${command}" 3 30 120
+ __circuit_breaker_execute "file_operation_${OPERATION}_${SOURCE}" "${COMMAND}" 3 30 120
 }
 
 # Check network connectivity
 function __check_network_connectivity() {
- local timeout="${1:-10}"
- local test_url="${2:-https://www.google.com}"
+ local TIMEOUT="${1:-10}"
+ local TEST_URL="${2:-https://www.google.com}"
 
- __logd "Checking network connectivity to ${test_url} with timeout ${timeout}s"
+ __logd "Checking network connectivity to ${TEST_URL} with timeout ${TIMEOUT}s"
 
- if timeout "${timeout}" curl -s --max-time "${timeout}" "${test_url}" > /dev/null 2>&1; then
+ if timeout "${TIMEOUT}" curl -s --max-time "${TIMEOUT}" "${TEST_URL}" > /dev/null 2>&1; then
   __logi "Network connectivity confirmed"
   return 0
  else
-  __loge "ERROR: Network connectivity check failed"
+  __loge "ERROR: Network connectivity failed"
   return 1
  fi
 }
 
 # Handle error with cleanup
 function __handle_error_with_cleanup() {
- local error_code="${1}"
- local error_message="${2}"
- local cleanup_command="${3:-}"
+ local ERROR_CODE="${1}"
+ local ERROR_MESSAGE="${2}"
+ local CLEANUP_COMMAND="${3:-}"
 
- __loge "ERROR: Error occurred: ${error_message}"
+ __loge "ERROR: Error occurred: ${ERROR_MESSAGE}"
 
  # Execute cleanup command if provided
- if [[ -n "${cleanup_command}" ]]; then
-  __logd "Executing cleanup command: ${cleanup_command}"
-  if eval "${cleanup_command}"; then
+ if [[ -n "${CLEANUP_COMMAND}" ]]; then
+  __logd "Executing cleanup command: ${CLEANUP_COMMAND}"
+  if eval "${CLEANUP_COMMAND}"; then
    __logd "Cleanup command executed successfully"
   else
    __logw "WARNING: Cleanup command failed"
@@ -249,118 +244,119 @@ function __handle_error_with_cleanup() {
 
  # Generate failed execution file if enabled
  if [[ "${GENERATE_FAILED_FILE}" == "true" ]]; then
-  echo "$(date): ${error_message}" >> "${FAILED_EXECUTION_FILE}"
+  echo "$(date): ${ERROR_MESSAGE}" >> "${FAILED_EXECUTION_FILE}"
  fi
 
- return "${error_code}"
+ return "${ERROR_CODE}"
 }
 
 # Get circuit breaker status
 function __get_circuit_breaker_status() {
- local operation_name="${1}"
+ local OPERATION_NAME="${1}"
 
- if [[ -z "${operation_name}" ]]; then
+ if [[ -z "${OPERATION_NAME}" ]]; then
   __loge "ERROR: Operation name is required"
   return 1
  fi
 
- local state="${CIRCUIT_BREAKER_STATE[${operation_name}]:-CLOSED}"
- local failure_count="${CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]:-0}"
- local last_failure_time="${CIRCUIT_BREAKER_LAST_FAILURE_TIME[${operation_name}]:-0}"
+ local STATE="${CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]:-CLOSED}"
+ local FAILURE_COUNT="${CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]:-0}"
+ local LAST_FAILURE_TIME="${CIRCUIT_BREAKER_LAST_FAILURE_TIME[${OPERATION_NAME}]:-0}"
 
- echo "Operation: ${operation_name}"
- echo "State: ${state}"
- echo "Failure Count: ${failure_count}"
- echo "Last Failure Time: ${last_failure_time}"
+ echo "Operation: ${OPERATION_NAME}"
+ echo "State: ${STATE}"
+ echo "Failure Count: ${FAILURE_COUNT}"
+ echo "Last Failure Time: ${LAST_FAILURE_TIME}"
 }
 
 # Reset circuit breaker
 function __reset_circuit_breaker() {
- local operation_name="${1}"
+ local OPERATION_NAME="${1}"
 
- if [[ -z "${operation_name}" ]]; then
+ if [[ -z "${OPERATION_NAME}" ]]; then
   __loge "ERROR: Operation name is required"
   return 1
  fi
 
- __logi "Resetting circuit breaker for ${operation_name}"
- CIRCUIT_BREAKER_STATE[${operation_name}]="CLOSED"
- CIRCUIT_BREAKER_FAILURE_COUNT[${operation_name}]=0
- CIRCUIT_BREAKER_LAST_FAILURE_TIME[${operation_name}]=0
+ __logi "Resetting circuit breaker for ${OPERATION_NAME}"
+ CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="CLOSED"
+ CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]=0
+ CIRCUIT_BREAKER_LAST_FAILURE_TIME[${OPERATION_NAME}]=0
 }
 
 # Retry file operation
 function __retry_file_operation() {
- local operation="${1}"
- local source="${2}"
- local destination="${3:-}"
- local max_attempts="${4:-3}"
- local cleanup_command="${5:-}"
+ local OPERATION="${1}"
+ local SOURCE="${2}"
+ local DESTINATION="${3:-}"
+ local MAX_ATTEMPTS="${4:-3}"
+ local CLEANUP_COMMAND="${5:-}"
 
- if [[ -z "${operation}" ]] || [[ -z "${source}" ]]; then
+ if [[ -z "${OPERATION}" ]] || [[ -z "${SOURCE}" ]]; then
   __loge "ERROR: Operation and source are required"
   return 1
  fi
 
- local attempt=1
- local delay=1
+ local ATTEMPT=1
+ local DELAY=1
 
- while [[ "${attempt}" -le "${max_attempts}" ]]; do
-  __logd "File operation attempt ${attempt}/${max_attempts}: ${operation} ${source}"
+ while [[ "${ATTEMPT}" -le "${MAX_ATTEMPTS}" ]]; do
+  __logd "File operation attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${OPERATION} ${SOURCE}"
 
-  case "${operation}" in
+  case "${OPERATION}" in
   copy)
-   if [[ -z "${destination}" ]]; then
+   if [[ -z "${DESTINATION}" ]]; then
     __loge "ERROR: Destination is required for copy operation"
     return 1
    fi
-   if cp "${source}" "${destination}" 2> /dev/null; then
-    __logi "File copy succeeded on attempt ${attempt}"
+   if cp "${SOURCE}" "${DESTINATION}" 2> /dev/null; then
+    __logi "File copy succeeded on attempt ${ATTEMPT}"
     return 0
    fi
    ;;
   move)
-   if [[ -z "${destination}" ]]; then
+   if [[ -z "${DESTINATION}" ]]; then
     __loge "ERROR: Destination is required for move operation"
     return 1
    fi
-   if mv "${source}" "${destination}" 2> /dev/null; then
-    __logi "File move succeeded on attempt ${attempt}"
+   if mv "${SOURCE}" "${DESTINATION}" 2> /dev/null; then
+    __logi "File move succeeded on attempt ${ATTEMPT}"
     return 0
    fi
    ;;
   delete)
-   if rm -f "${source}" 2> /dev/null; then
-    __logi "File deletion succeeded on attempt ${attempt}"
+   if rm -f "${SOURCE}" 2> /dev/null; then
+    __logi "File delete succeeded on attempt ${ATTEMPT}"
     return 0
    fi
    ;;
   *)
-   __loge "ERROR: Unsupported operation: ${operation}"
+   __loge "ERROR: Unsupported operation: ${OPERATION}"
    return 1
    ;;
   esac
 
-  __logw "File operation failed on attempt ${attempt}"
+  __logw "WARNING: File operation failed on attempt ${ATTEMPT}"
 
-  if [[ "${attempt}" -eq "${max_attempts}" ]]; then
-   __loge "ERROR: File operation failed after ${max_attempts} attempts"
-   if [[ -n "${cleanup_command}" ]]; then
-    __logd "Executing cleanup command: ${cleanup_command}"
-    eval "${cleanup_command}" || true
-   fi
+  # Execute cleanup command if provided
+  if [[ -n "${CLEANUP_COMMAND}" ]]; then
+   __logd "Executing cleanup command: ${CLEANUP_COMMAND}"
+   eval "${CLEANUP_COMMAND}" || true
+  fi
+
+  if [[ "${ATTEMPT}" -eq "${MAX_ATTEMPTS}" ]]; then
+   __loge "ERROR: File operation failed after ${MAX_ATTEMPTS} attempts"
    return 1
   fi
 
-  # Exponential backoff
-  delay=$((delay * 2))
-  if [[ "${delay}" -gt 60 ]]; then
-   delay=60
-  fi
+  __logd "Waiting ${DELAY} seconds before retry"
+  sleep "${DELAY}"
 
-  __logd "Waiting ${delay} seconds before retry"
-  sleep "${delay}"
-  ((attempt++))
+  ATTEMPT=$((ATTEMPT + 1))
+  DELAY=$((DELAY * 2))
+  if [[ "${DELAY}" -gt 60 ]]; then
+   DELAY=60
+  fi
  done
 
  return 1

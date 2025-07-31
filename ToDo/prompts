@@ -1,6 +1,14 @@
 
 
-Veo que el nuevo código generado no está cumpliendo con el estándar de variables y constantes en bash en mayúsculas.
+Me gustaría que integraras una prueba en bats que revise el código y se asegure que las variables y constantes están declaradas en mayúsculas.
+Also así:
+@test "Variables deben estar en mayúsculas" {
+  run awk '/^[[:space:]]*[a-z_]+\=/{print $0}' script.sh
+  [ "$output" = "" ]
+}
+
+
+Con respecto al proceso de ETL, podrías comenzar la documentación del proceso de poblado del modelo estrella. Indica qué columnas tiene la fact table y qué representan. También la documentación sobre las dimensiones, con al menos un ejemplo de cada registro por dimensión.
 
 
 

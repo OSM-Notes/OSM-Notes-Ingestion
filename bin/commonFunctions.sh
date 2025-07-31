@@ -77,37 +77,30 @@ function __checkPrereqsCommands {
  __logd "Checking prerequisites commands."
 
  # Check if required commands are available
- local missing_commands=()
+ local MISSING_COMMANDS=()
 
  # Check basic commands
- for cmd in bash curl wget psql; do
+ for cmd in psql xmllint xsltproc curl wget; do
   if ! command -v "${cmd}" > /dev/null 2>&1; then
-   missing_commands+=("${cmd}")
-  fi
- done
-
- # Check XML processing commands
- for cmd in xmllint xsltproc; do
-  if ! command -v "${cmd}" > /dev/null 2>&1; then
-   missing_commands+=("${cmd}")
+   MISSING_COMMANDS+=("${cmd}")
   fi
  done
 
  # Check JSON processing commands
  if ! command -v jq > /dev/null 2>&1; then
-  missing_commands+=("jq")
+  MISSING_COMMANDS+=("jq")
  fi
 
  # Check geospatial processing commands
  for cmd in ogr2ogr gdalinfo; do
   if ! command -v "${cmd}" > /dev/null 2>&1; then
-   missing_commands+=("${cmd}")
+   MISSING_COMMANDS+=("${cmd}")
   fi
  done
 
  # Report missing commands
- if [[ ${#missing_commands[@]} -gt 0 ]]; then
-  __loge "ERROR: Missing required commands: ${missing_commands[*]}"
+ if [[ ${#MISSING_COMMANDS[@]} -gt 0 ]]; then
+  __loge "ERROR: Missing required commands: ${MISSING_COMMANDS[*]}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -121,18 +114,18 @@ function __checkPrereqs_functions {
  __logd "Checking prerequisites functions."
 
  # Check if required functions are available
- local missing_functions=()
+ local MISSING_FUNCTIONS=()
 
  # Check logger functions
  for func in __log __logi __loge; do
   if ! declare -f "${func}" > /dev/null 2>&1; then
-   missing_functions+=("${func}")
+   MISSING_FUNCTIONS+=("${func}")
   fi
  done
 
  # Report missing functions
- if [[ ${#missing_functions[@]} -gt 0 ]]; then
-  __loge "ERROR: Missing required functions: ${missing_functions[*]}"
+ if [[ ${#MISSING_FUNCTIONS[@]} -gt 0 ]]; then
+  __loge "ERROR: Missing required functions: ${MISSING_FUNCTIONS[*]}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 

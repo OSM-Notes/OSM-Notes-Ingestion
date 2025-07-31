@@ -42,18 +42,18 @@ function __countXmlNotesAPI() {
  __log_start
  __logd "Counting XML notes for API."
 
- local xml_file="${1}"
- local count
+ local XML_FILE="${1}"
+ local COUNT
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- count=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
- __logi "Found ${count} notes in API XML file."
+ COUNT=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
+ __logi "Found ${COUNT} notes in API XML file."
  __log_finish
- echo "${count}"
+ echo "${COUNT}"
 }
 
 # Split XML for parallel API processing
@@ -61,21 +61,21 @@ function __splitXmlForParallelAPI() {
  __log_start
  __logd "Splitting XML for parallel API processing."
 
- local xml_file="${1}"
- local num_parts="${2:-4}"
- local output_dir="${3:-${TMP_DIR}}"
+ local XML_FILE="${1}"
+ local NUM_PARTS="${2:-4}"
+ local OUTPUT_DIR="${3:-${TMP_DIR}}"
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Create output directory
- mkdir -p "${output_dir}"
+ mkdir -p "${OUTPUT_DIR}"
 
  # Count total notes
  local TOTAL_NOTES
- TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${xml_file}" 2> /dev/null || echo "0")
+ TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
@@ -84,15 +84,15 @@ function __splitXmlForParallelAPI() {
 
  # Calculate notes per part
  local NOTES_PER_PART
- NOTES_PER_PART=$((TOTAL_NOTES / num_parts))
- if [[ $((TOTAL_NOTES % num_parts)) -gt 0 ]]; then
+ NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
+ if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
   NOTES_PER_PART=$((NOTES_PER_PART + 1))
  fi
 
- __logi "Splitting ${TOTAL_NOTES} notes into ${num_parts} parts (${NOTES_PER_PART} notes per part)."
+ __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
 
  # Split XML file
- for ((i = 0; i < num_parts; i++)); do
+ for ((i = 0; i < NUM_PARTS; i++)); do
   local START_POS=$((i * NOTES_PER_PART + 1))
   local END_POS=$(((i + 1) * NOTES_PER_PART))
 
@@ -101,7 +101,7 @@ function __splitXmlForParallelAPI() {
   fi
 
   if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
-   local OUTPUT_FILE="${output_dir}/api_part_${i}.xml"
+   local OUTPUT_FILE="${OUTPUT_DIR}/api_part_${i}.xml"
 
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
@@ -109,7 +109,7 @@ function __splitXmlForParallelAPI() {
 
    # Extract notes for this part
    for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${xml_file}" 2> /dev/null >> "${OUTPUT_FILE}" || true
+    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
    done
 
    echo '</osm-notes>' >> "${OUTPUT_FILE}"
@@ -118,43 +118,39 @@ function __splitXmlForParallelAPI() {
   fi
  done
 
- __logi "XML splitting completed. Created ${num_parts} parts."
+ __logi "XML splitting completed. Created ${NUM_PARTS} parts."
  __log_finish
 }
 
-# Process API XML part
-function __processApiXmlPart() {
+# Process XML with XSLT for API
+function __processXmlWithXsltAPI() {
  __log_start
- __logd "Processing API XML part."
+ __logd "Processing XML with XSLT for API."
 
- local xml_file="${1}"
- local xslt_file="${2:-${XSLT_NOTES_API_FILE}}"
- local output_file="${3:-${OUTPUT_NOTES_FILE}}"
+ local XML_FILE="${1}"
+ local XSLT_FILE="${2:-${XSLT_NOTES_API_FILE}}"
+ local OUTPUT_FILE="${3:-${OUTPUT_NOTES_FILE}}"
 
- if [[ ! -f "${xml_file}" ]]; then
-  __loge "ERROR: XML file not found: ${xml_file}"
-  return 1
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- if [[ ! -f "${xslt_file}" ]]; then
-  __loge "ERROR: XSLT file not found: ${xslt_file}"
-  return 1
+ if [[ ! -f "${XSLT_FILE}" ]]; then
+  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- # Validate XML structure
- if ! __validate_xml_structure "${xml_file}"; then
-  __loge "ERROR: XML validation failed for ${xml_file}"
-  return 1
- fi
+ # Create output directory
+ mkdir -p "$(dirname "${OUTPUT_FILE}")"
 
  # Process XML with XSLT
- __logd "Processing XML with XSLT: ${xml_file} -> ${output_file}"
- if xsltproc "${xslt_file}" "${xml_file}" > "${output_file}" 2> /dev/null; then
-  __logi "Successfully processed API XML part: ${xml_file}"
+ if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
+  __logi "XSLT processing completed successfully."
   __log_finish
   return 0
  else
-  __loge "ERROR: Failed to process API XML part: ${xml_file}"
+  __loge "ERROR: XSLT processing failed."
   __log_finish
   return 1
  fi
@@ -165,34 +161,34 @@ function __getNewNotesFromApi() {
  __log_start
  __logd "Getting new notes from API."
 
- local temp_file
- temp_file=$(mktemp)
+ local TEMP_FILE
+ TEMP_FILE=$(mktemp)
 
  # Check network connectivity
  if ! __check_network_connectivity 10; then
   __loge "Network connectivity check failed"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
-   "rm -f ${temp_file} 2>/dev/null || true"
+   "rm -f ${TEMP_FILE} 2>/dev/null || true"
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
  # Download notes from API
  __logi "Downloading notes from OSM API..."
- if curl -s -o "${temp_file}" "https://api.openstreetmap.org/api/0.6/notes?limit=10000"; then
-  if [[ -s "${temp_file}" ]]; then
-   mv "${temp_file}" "${API_NOTES_FILE}"
+ if curl -s -o "${TEMP_FILE}" "https://api.openstreetmap.org/api/0.6/notes?limit=10000"; then
+  if [[ -s "${TEMP_FILE}" ]]; then
+   mv "${TEMP_FILE}" "${API_NOTES_FILE}"
    __logi "Successfully downloaded notes from API: ${API_NOTES_FILE}"
    __log_finish
    return 0
   else
    __loge "ERROR: Downloaded file is empty"
-   rm -f "${temp_file}"
+   rm -f "${TEMP_FILE}"
    __log_finish
    return 1
   fi
  else
   __loge "ERROR: Failed to download notes from API"
-  rm -f "${temp_file}"
+  rm -f "${TEMP_FILE}"
   __log_finish
   return 1
  fi
