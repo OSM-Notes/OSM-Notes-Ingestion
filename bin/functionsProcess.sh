@@ -3171,44 +3171,44 @@ function __retry_with_backoff() {
 # Parameters: service_name command_to_execute
 # Returns: 0 if successful, 1 if circuit is open or command failed
 function __circuit_breaker_execute() {
- local service_name="$1"
- local command="$2"
- local current_time=$(date +%s)
- local state="${CIRCUIT_BREAKER_STATES[${service_name}]:-CLOSED}"
- local failure_count="${CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]:-0}"
- local last_failure_time="${CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${service_name}]:-0}"
+ local SERVICE_NAME="$1"
+ local COMMAND="$2"
+ local CURRENT_TIME=$(date +%s)
+ local STATE="${CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]:-CLOSED}"
+ local FAILURE_COUNT="${CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]:-0}"
+ local LAST_FAILURE_TIME="${CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]:-0}"
 
  # Check if circuit is open and timeout has passed
- if [[ "${state}" == "OPEN" ]]; then
-  local time_since_failure=$((current_time - last_failure_time))
-  if [[ ${time_since_failure} -gt ${CIRCUIT_BREAKER_TIMEOUT} ]]; then
-   echo "INFO: Circuit breaker for ${service_name} transitioning to HALF_OPEN" >&2
-   CIRCUIT_BREAKER_STATES[${service_name}]="HALF_OPEN"
-   state="HALF_OPEN"
+ if [[ "${STATE}" == "OPEN" ]]; then
+  local TIME_SINCE_FAILURE=$((CURRENT_TIME - LAST_FAILURE_TIME))
+  if [[ ${TIME_SINCE_FAILURE} -gt ${CIRCUIT_BREAKER_TIMEOUT} ]]; then
+   echo "INFO: Circuit breaker for ${SERVICE_NAME} transitioning to HALF_OPEN" >&2
+   CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="HALF_OPEN"
+   STATE="HALF_OPEN"
   else
-   echo "WARNING: Circuit breaker for ${service_name} is OPEN, skipping execution" >&2
+   echo "WARNING: Circuit breaker for ${SERVICE_NAME} is OPEN, skipping execution" >&2
    return 1
   fi
  fi
 
  # Execute command
- if eval "${command}"; then
+ if eval "${COMMAND}"; then
   # Success - close circuit and reset failure count
-  if [[ "${state}" != "CLOSED" ]]; then
-   echo "INFO: Circuit breaker for ${service_name} transitioning to CLOSED" >&2
+  if [[ "${STATE}" != "CLOSED" ]]; then
+   echo "INFO: Circuit breaker for ${SERVICE_NAME} transitioning to CLOSED" >&2
   fi
-  CIRCUIT_BREAKER_STATES[${service_name}]="CLOSED"
-  CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]=0
+  CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="CLOSED"
+  CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]=0
   return 0
  else
   # Failure - increment failure count
-  failure_count=$((failure_count + 1))
-  CIRCUIT_BREAKER_FAILURE_COUNTS[${service_name}]=${failure_count}
-  CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${service_name}]=${current_time}
+  FAILURE_COUNT=$((FAILURE_COUNT + 1))
+  CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]=${FAILURE_COUNT}
+  CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]=${CURRENT_TIME}
 
-  if [[ ${failure_count} -ge ${CIRCUIT_BREAKER_THRESHOLD} ]]; then
-   echo "ERROR: Circuit breaker for ${service_name} transitioning to OPEN (${failure_count} failures)" >&2
-   CIRCUIT_BREAKER_STATES[${service_name}]="OPEN"
+  if [[ ${FAILURE_COUNT} -ge ${CIRCUIT_BREAKER_THRESHOLD} ]]; then
+   echo "ERROR: Circuit breaker for ${SERVICE_NAME} transitioning to OPEN (${FAILURE_COUNT} failures)" >&2
+   CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="OPEN"
   fi
   return 1
  fi
@@ -3218,19 +3218,19 @@ function __circuit_breaker_execute() {
 # Parameters: url output_file [service_name]
 # Returns: 0 if successful, 1 if failed
 function __download_with_retry() {
- local url="$1"
- local output_file="$2"
- local service_name="${3:-download}"
- local command="wget -O '${output_file}' '${url}'"
+ local URL="$1"
+ local OUTPUT_FILE="$2"
+ local SERVICE_NAME="${3:-download}"
+ local COMMAND="wget -O '${OUTPUT_FILE}' '${URL}'"
 
- echo "DEBUG: Downloading ${url} to ${output_file}" >&2
+ echo "DEBUG: Downloading ${URL} to ${OUTPUT_FILE}" >&2
 
  # Use circuit breaker for network operations
- if __circuit_breaker_execute "${service_name}" "${command}"; then
-  echo "DEBUG: Download successful: ${url}" >&2
+ if __circuit_breaker_execute "${SERVICE_NAME}" "${COMMAND}"; then
+  echo "DEBUG: Download successful: ${URL}" >&2
   return 0
  else
-  echo "ERROR: Download failed after retries: ${url}" >&2
+  echo "ERROR: Download failed after retries: ${URL}" >&2
   return 1
  fi
 }
@@ -3239,19 +3239,19 @@ function __download_with_retry() {
 # Parameters: url output_file [service_name]
 # Returns: 0 if successful, 1 if failed
 function __api_call_with_retry() {
- local url="$1"
- local output_file="$2"
- local service_name="${3:-api}"
- local command="curl -s -o '${output_file}' '${url}'"
+ local URL="$1"
+ local OUTPUT_FILE="$2"
+ local SERVICE_NAME="${3:-api}"
+ local COMMAND="curl -s -o '${OUTPUT_FILE}' '${URL}'"
 
- echo "DEBUG: Making API call to ${url}" >&2
+ echo "DEBUG: Making API call to ${URL}" >&2
 
  # Use circuit breaker for API operations
- if __circuit_breaker_execute "${service_name}" "${command}"; then
-  echo "DEBUG: API call successful: ${url}" >&2
+ if __circuit_breaker_execute "${SERVICE_NAME}" "${COMMAND}"; then
+  echo "DEBUG: API call successful: ${URL}" >&2
   return 0
  else
-  echo "ERROR: API call failed after retries: ${url}" >&2
+  echo "ERROR: API call failed after retries: ${URL}" >&2
   return 1
  fi
 }
@@ -3260,38 +3260,38 @@ function __api_call_with_retry() {
 # Parameters: sql_command [rollback_command]
 # Returns: 0 if successful, 1 if failed
 function __database_operation_with_retry() {
- local sql_command="$1"
- local rollback_command="${2:-}"
- local max_retries="${MAX_RETRIES:-3}"
- local retry_count=0
+ local SQL_COMMAND="$1"
+ local ROLLBACK_COMMAND="${2:-}"
+ local MAX_RETRIES_PARAM="${MAX_RETRIES:-3}"
+ local RETRY_COUNT=0
 
  echo "DEBUG: Executing database operation with retry" >&2
 
- while [[ ${retry_count} -lt ${max_retries} ]]; do
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${sql_command}" > /dev/null 2>&1; then
-   echo "DEBUG: Database operation succeeded on attempt $((retry_count + 1))" >&2
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; do
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${SQL_COMMAND}" > /dev/null 2>&1; then
+   echo "DEBUG: Database operation succeeded on attempt $((RETRY_COUNT + 1))" >&2
    return 0
   fi
 
-  retry_count=$((retry_count + 1))
+  RETRY_COUNT=$((RETRY_COUNT + 1))
 
-  if [[ ${retry_count} -lt ${max_retries} ]]; then
-   echo "WARNING: Database operation failed on attempt ${retry_count}, retrying in ${BASE_DELAY}s" >&2
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; then
+   echo "WARNING: Database operation failed on attempt ${RETRY_COUNT}, retrying in ${BASE_DELAY}s" >&2
    sleep "${BASE_DELAY}"
   fi
  done
 
  # If rollback command is provided, execute it
- if [[ -n "${rollback_command}" ]]; then
+ if [[ -n "${ROLLBACK_COMMAND}" ]]; then
   echo "WARNING: Executing rollback command due to database operation failure" >&2
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${rollback_command}" > /dev/null 2>&1; then
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${ROLLBACK_COMMAND}" > /dev/null 2>&1; then
    echo "DEBUG: Rollback executed successfully" >&2
   else
    echo "ERROR: Rollback failed" >&2
   fi
  fi
 
- echo "ERROR: Database operation failed after ${max_retries} attempts" >&2
+ echo "ERROR: Database operation failed after ${MAX_RETRIES_PARAM} attempts" >&2
  return 1
 }
 
@@ -3299,38 +3299,38 @@ function __database_operation_with_retry() {
 # Parameters: operation_command [cleanup_command]
 # Returns: 0 if successful, 1 if failed
 function __file_operation_with_retry() {
- local operation_command="$1"
- local cleanup_command="${2:-}"
- local max_retries="${MAX_RETRIES:-3}"
- local retry_count=0
+ local OPERATION_COMMAND="$1"
+ local CLEANUP_COMMAND="${2:-}"
+ local MAX_RETRIES_PARAM="${MAX_RETRIES:-3}"
+ local RETRY_COUNT=0
 
  echo "DEBUG: Executing file operation with retry" >&2
 
- while [[ ${retry_count} -lt ${max_retries} ]]; do
-  if eval "${operation_command}"; then
-   echo "DEBUG: File operation succeeded on attempt $((retry_count + 1))" >&2
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; do
+  if eval "${OPERATION_COMMAND}"; then
+   echo "DEBUG: File operation succeeded on attempt $((RETRY_COUNT + 1))" >&2
    return 0
   fi
 
-  retry_count=$((retry_count + 1))
+  RETRY_COUNT=$((RETRY_COUNT + 1))
 
-  if [[ ${retry_count} -lt ${max_retries} ]]; then
-   echo "WARNING: File operation failed on attempt ${retry_count}, retrying in ${BASE_DELAY}s" >&2
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; then
+   echo "WARNING: File operation failed on attempt ${RETRY_COUNT}, retrying in ${BASE_DELAY}s" >&2
    sleep "${BASE_DELAY}"
   fi
  done
 
  # If cleanup command is provided, execute it
- if [[ -n "${cleanup_command}" ]]; then
+ if [[ -n "${CLEANUP_COMMAND}" ]]; then
   echo "WARNING: Executing cleanup command due to file operation failure" >&2
-  if eval "${cleanup_command}"; then
+  if eval "${CLEANUP_COMMAND}"; then
    echo "DEBUG: Cleanup executed successfully" >&2
   else
    echo "ERROR: Cleanup failed" >&2
   fi
  fi
 
- echo "ERROR: File operation failed after ${max_retries} attempts" >&2
+ echo "ERROR: File operation failed after ${MAX_RETRIES_PARAM} attempts" >&2
  return 1
 }
 
@@ -3358,8 +3358,8 @@ function __check_network_connectivity() {
 # Parameters: error_code error_message [cleanup_commands...]
 # Returns: Always exits with error_code
 function __handle_error_with_cleanup() {
- local error_code="$1"
- local error_message="$2"
+ local ERROR_CODE="$1"
+ local ERROR_MESSAGE="$2"
  shift 2
  local cleanup_commands=("$@")
 

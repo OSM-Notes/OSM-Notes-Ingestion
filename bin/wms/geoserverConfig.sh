@@ -43,9 +43,9 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
- local color=$1
- local message=$2
- echo -e "${color}${message}${NC}"
+ local COLOR=$1
+ local MESSAGE=$2
+ echo -e "${COLOR}${MESSAGE}${NC}"
 }
 
 # Function to show help
@@ -134,15 +134,15 @@ validate_prerequisites() {
 
 # Function to check if GeoServer is configured
 is_geoserver_configured() {
- local workspace_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${workspace_url}" &> /dev/null
+ local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
+ curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${WORKSPACE_URL}" &> /dev/null
 }
 
 # Function to create workspace
 create_workspace() {
  print_status "${BLUE}" "🏗️  Creating GeoServer workspace..."
 
- local workspace_data="{
+ local WORKSPACE_DATA="{
    \"workspace\": {
      \"name\": \"${GEOSERVER_WORKSPACE}\",
      \"isolated\": false
@@ -152,7 +152,7 @@ create_workspace() {
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -X POST \
   -H "Content-Type: application/json" \
-  -d "${workspace_data}" \
+  -d "${WORKSPACE_DATA}" \
   "${GEOSERVER_URL}/rest/workspaces" &> /dev/null; then
   print_status "${GREEN}" "✅ Workspace '${GEOSERVER_WORKSPACE}' created"
  else
@@ -164,7 +164,7 @@ create_workspace() {
 create_namespace() {
  print_status "${BLUE}" "🏷️  Creating GeoServer namespace..."
 
- local namespace_data="{
+ local NAMESPACE_DATA="{
    \"namespace\": {
      \"prefix\": \"${GEOSERVER_WORKSPACE}\",
      \"uri\": \"${GEOSERVER_NAMESPACE}\",
@@ -175,7 +175,7 @@ create_namespace() {
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -X POST \
   -H "Content-Type: application/json" \
-  -d "${namespace_data}" \
+  -d "${NAMESPACE_DATA}" \
   "${GEOSERVER_URL}/rest/namespaces" &> /dev/null; then
   print_status "${GREEN}" "✅ Namespace '${GEOSERVER_WORKSPACE}' created"
  else
@@ -187,7 +187,7 @@ create_namespace() {
 create_datastore() {
  print_status "${BLUE}" "🗄️  Creating GeoServer datastore..."
 
- local datastore_data="{
+ local DATASTORE_DATA="{
    \"dataStore\": {
      \"name\": \"${GEOSERVER_STORE}\",
      \"type\": \"PostGIS\",
@@ -207,13 +207,13 @@ create_datastore() {
    }
  }"
 
- local datastore_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores"
+ local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores"
 
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -X POST \
   -H "Content-Type: application/json" \
-  -d "${datastore_data}" \
-  "${datastore_url}" &> /dev/null; then
+  -d "${DATASTORE_DATA}" \
+  "${DATASTORE_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' created"
  else
   print_status "${RED}" "❌ ERROR: Failed to create datastore"
@@ -225,7 +225,7 @@ create_datastore() {
 create_feature_type() {
  print_status "${BLUE}" "🗺️  Creating GeoServer feature type..."
 
- local feature_type_data="{
+ local FEATURE_TYPE_DATA="{
    \"featureType\": {
      \"name\": \"${GEOSERVER_LAYER}\",
      \"nativeName\": \"${WMS_TABLE}\",
@@ -250,13 +250,13 @@ create_feature_type() {
    }
  }"
 
- local feature_type_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes"
+ local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes"
 
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -X POST \
   -H "Content-Type: application/json" \
-  -d "${feature_type_data}" \
-  "${feature_type_url}" &> /dev/null; then
+  -d "${FEATURE_TYPE_DATA}" \
+  "${FEATURE_TYPE_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Feature type '${GEOSERVER_LAYER}' created"
  else
   print_status "${RED}" "❌ ERROR: Failed to create feature type"
@@ -266,12 +266,12 @@ create_feature_type() {
 
 # Function to upload style
 upload_style() {
- local sld_file="${WMS_STYLE_FILE}"
- local style_name="${WMS_STYLE_NAME}"
+ local SLD_FILE="${WMS_STYLE_FILE}"
+ local STYLE_NAME="${WMS_STYLE_NAME}"
 
  # Validate SLD file using centralized validation
- if ! __validate_input_file "${sld_file}" "SLD style file"; then
-  print_status "${YELLOW}" "⚠️  SLD file validation failed: ${sld_file}"
+ if ! __validate_input_file "${SLD_FILE}" "SLD style file"; then
+  print_status "${YELLOW}" "⚠️  SLD file validation failed: ${SLD_FILE}"
   return 0
  fi
 
@@ -279,18 +279,18 @@ upload_style() {
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -X POST \
   -H "Content-Type: application/vnd.ogc.sld+xml" \
-  -d "@${sld_file}" \
+  -d "@${SLD_FILE}" \
   "${GEOSERVER_URL}/rest/styles" &> /dev/null; then
-  print_status "${GREEN}" "✅ Style '${style_name}' uploaded"
+  print_status "${GREEN}" "✅ Style '${STYLE_NAME}' uploaded"
  else
   print_status "${YELLOW}" "⚠️  Style upload failed or already exists"
  fi
 
  # Assign style to layer
- local layer_style_data="{
+ local LAYER_STYLE_DATA="{
    \"layer\": {
      \"defaultStyle\": {
-       \"name\": \"${style_name}\"
+       \"name\": \"${STYLE_NAME}\"
      }
    }
  }"
@@ -298,7 +298,7 @@ upload_style() {
  if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -X PUT \
   -H "Content-Type: application/json" \
-  -d "${layer_style_data}" \
+  -d "${LAYER_STYLE_DATA}" \
   "${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}" &> /dev/null; then
   print_status "${GREEN}" "✅ Style assigned to layer"
  else
@@ -359,29 +359,29 @@ show_status() {
  fi
 
  # Check workspace
- local workspace_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${workspace_url}" &> /dev/null; then
+ local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${WORKSPACE_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Workspace '${GEOSERVER_WORKSPACE}' exists"
  else
   print_status "${YELLOW}" "⚠️  Workspace '${GEOSERVER_WORKSPACE}' not found"
  fi
 
  # Check datastore
- local datastore_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${datastore_url}" &> /dev/null; then
+ local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${DATASTORE_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' exists"
  else
   print_status "${YELLOW}" "⚠️  Datastore '${GEOSERVER_STORE}' not found"
  fi
 
  # Check layer
- local layer_url="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${layer_url}" &> /dev/null; then
+ local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Layer '${GEOSERVER_LAYER}' exists"
 
   # Show WMS URL
-  local wms_url="${GEOSERVER_URL}/wms"
-  print_status "${BLUE}" "🌐 WMS Service URL: ${wms_url}"
+  local WMS_URL="${GEOSERVER_URL}/wms"
+  print_status "${BLUE}" "🌐 WMS Service URL: ${WMS_URL}"
   print_status "${BLUE}" "📋 Layer Name: ${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
  else
   print_status "${YELLOW}" "⚠️  Layer '${GEOSERVER_LAYER}' not found"
@@ -398,32 +398,32 @@ remove_geoserver_config() {
  fi
 
  # Remove layer
- local layer_url="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${layer_url}" &> /dev/null; then
+ local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${LAYER_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Layer removed"
  else
   print_status "${YELLOW}" "⚠️  Layer removal failed or not found"
  fi
 
  # Remove feature type
- local feature_type_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes/${GEOSERVER_LAYER}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${feature_type_url}" &> /dev/null; then
+ local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes/${GEOSERVER_LAYER}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${FEATURE_TYPE_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Feature type removed"
  else
   print_status "${YELLOW}" "⚠️  Feature type removal failed or not found"
  fi
 
  # Remove datastore
- local datastore_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${datastore_url}" &> /dev/null; then
+ local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${DATASTORE_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Datastore removed"
  else
   print_status "${YELLOW}" "⚠️  Datastore removal failed or not found"
  fi
 
  # Remove workspace
- local workspace_url="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${workspace_url}" &> /dev/null; then
+ local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${WORKSPACE_URL}" &> /dev/null; then
   print_status "${GREEN}" "✅ Workspace removed"
  else
   print_status "${YELLOW}" "⚠️  Workspace removal failed or not found"

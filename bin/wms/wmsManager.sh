@@ -212,12 +212,12 @@ show_status() {
   print_status "${GREEN}" "✅ WMS is installed"
 
   # Build psql command
-  local psql_cmd="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
   if [[ -n "${WMS_DB_HOST}" ]]; then
-   psql_cmd="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+   PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
   fi
   if [[ -n "${WMS_DB_PORT}" ]]; then
-   psql_cmd="${psql_cmd} -p \"${WMS_DB_PORT}\""
+   PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
   fi
 
   # Show basic statistics

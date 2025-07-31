@@ -567,21 +567,21 @@ function __validate_directory_checksums() {
   return 1
  fi
 
- local failed=0
- local files
- mapfile -t files < <(find "${directory}" -type f -name "*.xml" -o -name "*.csv" -o -name "*.json" 2> /dev/null)
+ local FAILED=0
+ local FILES
+ mapfile -t FILES < <(find "${directory}" -type f -name "*.xml" -o -name "*.csv" -o -name "*.json" 2> /dev/null)
 
- for file in "${files[@]}"; do
-  local relative_path
-  relative_path=$(realpath --relative-to="${directory}" "${file}")
+ for FILE in "${FILES[@]}"; do
+  local RELATIVE_PATH
+  RELATIVE_PATH=$(realpath --relative-to="${directory}" "${FILE}")
 
-  if ! __validate_file_checksum_from_file "${file}" "${checksum_file}" "${algorithm}"; then
-   __loge "ERROR: Checksum validation failed for ${relative_path}"
-   failed=1
+  if ! __validate_file_checksum_from_file "${FILE}" "${checksum_file}" "${algorithm}"; then
+   __loge "ERROR: Checksum validation failed for ${RELATIVE_PATH}"
+   FAILED=1
   fi
  done
 
- if [[ "${failed}" -eq 1 ]]; then
+ if [[ "${FAILED}" -eq 1 ]]; then
   __loge "ERROR: Directory checksum validation failed"
   return 1
  fi
@@ -766,17 +766,17 @@ function __validate_csv_coordinates() {
 
 # Validate database variables
 function __validate_database_variables() {
- local required_vars=("DBNAME" "DB_USER" "DB_PASSWORD" "DB_HOST" "DB_PORT")
- local missing_vars=()
+ local REQUIRED_VARS=("DBNAME" "DB_USER" "DB_PASSWORD" "DB_HOST" "DB_PORT")
+ local MISSING_VARS=()
 
- for var in "${required_vars[@]}"; do
-  if [[ -z "${!var}" ]]; then
-   missing_vars+=("${var}")
+ for VAR in "${REQUIRED_VARS[@]}"; do
+  if [[ -z "${!VAR}" ]]; then
+   MISSING_VARS+=("${VAR}")
   fi
  done
 
- if [[ ${#missing_vars[@]} -gt 0 ]]; then
-  __loge "ERROR: Missing required database variables: ${missing_vars[*]}"
+ if [[ ${#MISSING_VARS[@]} -gt 0 ]]; then
+  __loge "ERROR: Missing required database variables: ${MISSING_VARS[*]}"
   return 1
  fi
 
