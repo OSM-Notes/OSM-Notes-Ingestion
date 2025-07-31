@@ -31,6 +31,8 @@
 # Version: 2025-07-27
 declare -r VERSION="2025-07-27"
 
+
+
 #set -xv
 # Fails when a variable is not initialized.
 set -u
@@ -79,6 +81,22 @@ declare LOCK
 LOCK="/tmp/${BASENAME}.lock"
 readonly LOCK
 
+# Load common functions (after defining BASENAME and TMP_DIR)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+
+# Start logger
+__start_logger
+
+# Load validation functions
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
+ # shellcheck source=../../bin/validationFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+else
+ __loge "ERROR: validationFunctions.sh not found"
+ exit 1
+fi
+
 # Type of process to run in the script.
 declare -r PROCESS_TYPE=${1:-}
 
@@ -100,14 +118,6 @@ declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-r
 
 ###########
 # FUNCTIONS
-
-# Load common functions
-# shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
-
-# Load validation functions
-# shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
 
 # Load error handling functions
 # shellcheck disable=SC1091
