@@ -1,15 +1,5 @@
 
 
-
-Crea las siguientes pruebas para asegurar que el código sigue los lineamientos:
-@test "Script pasa shellcheck sin errores" {
-  run shellcheck script.sh
-  [ "$status" -eq 0 ]
-}
-@test "Script está correctamente formateado con shfmt" {
-  run shfmt -d script.sh
-  [ "$output" = "" ]
-}
 Revisa por qué falla esto?
 2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:145 - #-- STARTED __CHECKBASETABLES --#
 2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:146 - DEBUG - Checking base tables.
