@@ -467,6 +467,27 @@ Configuration is stored in `etc/properties.sh`.
 
 For troubleshooting, check the PostgreSQL logs and ensure proper authentication configuration.
 
+### Local Development Setup
+
+To avoid accidentally committing local configuration changes, you can configure Git to ignore changes to the properties files:
+
+```bash
+# Tell Git to ignore changes to properties files (local development only)
+git update-index --assume-unchanged etc/properties.sh
+git update-index --assume-unchanged etc/etl.properties
+git update-index --assume-unchanged etc/wms.properties.sh
+
+# Verify that the files are now ignored
+git ls-files -v | grep '^[[:lower:]]'
+
+# To re-enable tracking (if needed)
+git update-index --no-assume-unchanged etc/properties.sh
+git update-index --no-assume-unchanged etc/etl.properties
+git update-index --no-assume-unchanged etc/wms.properties.sh
+```
+
+**Note:** This is useful for development environments where you need to customize database settings, user names, ETL configurations, or WMS settings without affecting the repository.
+
 ## Acknowledgments
 
 Andres Gomez (@AngocA) was the main developer of this idea.

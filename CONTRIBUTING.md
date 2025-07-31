@@ -486,6 +486,27 @@ For local development, consider using Docker:
 ./tests/docker/debug_postgres.sh
 ```
 
+### Local Configuration
+
+To avoid accidentally committing local configuration changes:
+
+```bash
+# Tell Git to ignore changes to properties files (local development only)
+git update-index --assume-unchanged etc/properties.sh
+git update-index --assume-unchanged etc/etl.properties
+git update-index --assume-unchanged etc/wms.properties.sh
+
+# Verify that the files are now ignored
+git ls-files -v | grep '^[[:lower:]]'
+
+# To re-enable tracking (if needed)
+git update-index --no-assume-unchanged etc/properties.sh
+git update-index --no-assume-unchanged etc/etl.properties
+git update-index --no-assume-unchanged etc/wms.properties.sh
+```
+
+This allows you to customize database settings, user names, ETL configurations, or WMS settings without affecting the repository.
+
 ## Version Control
 
 ### Branch Strategy
