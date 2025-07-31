@@ -79,6 +79,12 @@ jobs:
         chmod +x tests/run_ci_tests_simple.sh
         ./tests/run_ci_tests_simple.sh 2>&1 | tee tests/results/unit-tests.log
 
+    - name: Check Bash variable naming convention
+      run: bats tests/unit/bash/variable_naming_convention.test.bats
+
+    - name: Check Bash formatting and linting
+      run: bats tests/unit/bash/format_and_lint.test.bats
+
     - name: Run ShellCheck
       run: |
         find . -name "*.sh" -exec shellcheck {} \; > shellcheck-results.txt 2>&1 || true

@@ -1,0 +1,7 @@
+# ShellCheck configuration for OSM-Notes-profile
+# Author: Andres Gomez (AngocA)
+# Version: 2025-07-30
+
+# Disable SC1091 for files that source project-specific files
+# This is expected behavior for our project structure
+disable=SC1091 
