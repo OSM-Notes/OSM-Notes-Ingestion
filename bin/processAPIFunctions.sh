@@ -172,7 +172,7 @@ function __getNewNotesFromApi() {
  if ! __check_network_connectivity 10; then
   __loge "Network connectivity check failed"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
-   "rm -f ${TEMP_FILE} 2>/dev/null || true"
+   "rm -f ${temp_file} 2>/dev/null || true"
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
