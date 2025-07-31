@@ -91,6 +91,7 @@ jobs:
         path: |
           tests/results/
           shellcheck-results.txt
+        if-no-files-found: warn
 
   # Integration Tests
   integration-tests:
@@ -145,6 +146,7 @@ jobs:
         path: |
           tests/docker/logs/
           tests/results/
+        if-no-files-found: warn
 
   # Performance Tests
   performance-tests:
@@ -193,12 +195,24 @@ jobs:
         echo "Performance test completed successfully" >> .benchmarks/performance.log
         echo "Benchmark results saved" >> .benchmarks/performance.log
 
+    - name: Check if benchmarks directory exists
+      run: |
+        if [ -d ".benchmarks" ]; then
+          echo "Benchmarks directory exists"
+          ls -la .benchmarks/
+        else
+          echo "Benchmarks directory does not exist, creating it"
+          mkdir -p .benchmarks
+          echo "Benchmarks directory created" > .benchmarks/benchmark-info.log
+        fi
+
     - name: Upload performance results
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-test-results
         path: .benchmarks/
+        if-no-files-found: warn
 
   # Security Tests
   security-tests:
@@ -222,6 +236,7 @@ jobs:
       with:
         name: security-test-results
         path: shellcheck-results.txt
+        if-no-files-found: warn
 
   # Advanced Tests (Fase 3)
   advanced-tests:
@@ -310,6 +325,7 @@ jobs:
           advanced_reports/
           coverage/
           security_reports/
+        if-no-files-found: warn
 
   # Test Summary
   test-summary:

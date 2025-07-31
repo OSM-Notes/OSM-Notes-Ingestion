@@ -10,6 +10,9 @@ advanced_reports/
 test_coverage/
 kcov/
 
+# Performance benchmarks
+.benchmarks/
+
 # Temporary files
 *.tmp
 *.temp
