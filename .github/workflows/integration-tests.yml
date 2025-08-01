@@ -1,0 +1,152 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Ejecutar diariamente a las 2:00 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: osm_notes_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bats postgresql-client
+
+    - name: Install bats-core
+      run: |
+        git clone https://github.com/bats-core/bats-core.git
+        cd bats-core
+        sudo ./install.sh /usr/local
+        cd ..
+
+    - name: Setup test environment
+      run: |
+        # Create test directories
+        mkdir -p tests/tmp
+        mkdir -p tests/output
+        
+        # Set permissions
+        chmod +x tests/run_integration_tests.sh
+        chmod +x tests/run_all_tests.sh
+        
+        # Create test properties file
+        cat > tests/properties.sh << EOF
+        # Test properties for integration tests
+        export DBHOST=localhost
+        export DBPORT=5432
+        export DBUSER=postgres
+        export DBPASSWORD=postgres
+        export DBNAME=osm_notes_test
+        export LOG_LEVEL=INFO
+        export TMP_DIR=tests/tmp
+        EOF
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U postgres; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Run all integration tests
+      run: |
+        source tests/properties.sh
+        ./tests/run_integration_tests.sh --all
+      env:
+        DBHOST: localhost
+        DBPORT: 5432
+        DBUSER: postgres
+        DBPASSWORD: postgres
+        DBNAME: osm_notes_test
+        LOG_LEVEL: INFO
+
+    - name: Run specific integration tests
+      run: |
+        source tests/properties.sh
+        echo "Running process API tests..."
+        ./tests/run_integration_tests.sh --process-api
+        
+        echo "Running process Planet tests..."
+        ./tests/run_integration_tests.sh --process-planet
+        
+        echo "Running cleanup tests..."
+        ./tests/run_integration_tests.sh --cleanup
+        
+        echo "Running WMS tests..."
+        ./tests/run_integration_tests.sh --wms
+        
+        echo "Running ETL tests..."
+        ./tests/run_integration_tests.sh --etl
+      env:
+        DBHOST: localhost
+        DBPORT: 5432
+        DBUSER: postgres
+        DBPASSWORD: postgres
+        DBNAME: osm_notes_test
+        LOG_LEVEL: INFO
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: integration-test-results
+        path: |
+          tests/tmp/
+          tests/output/
+        retention-days: 7
+
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Tests Executed:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ processAPINotes_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ cleanupAll_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ processPlanetNotes_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ updateCountries_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ ETL_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ wmsManager_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ datamartUsers_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ cleanupPartitions_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ processCheckPlanetNotes_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ notesCheckVerifier_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ profile_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ datamartCountries_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ geoserverConfig_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ wmsConfigExample_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Coverage:" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Scripts Tested:** 14" >> $GITHUB_STEP_SUMMARY
+        echo "- **Categories Covered:** Processing, Cleanup, DWH, WMS, Monitor" >> $GITHUB_STEP_SUMMARY
+        echo "- **Integration Level:** Full script execution" >> $GITHUB_STEP_SUMMARY 

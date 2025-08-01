@@ -1,23 +1,13 @@
 
+Hicimos una prueba de ambiente híbrido, donde solo la descarga de archivoos externos se prueba, o sea wget y aria2c, y usa una copia de datos reales que se tienen dentro del repositorio.
+Me podrías mostrar esta prueba y cuál es
 
-Revisa por qué falla esto?
-2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:145 - #-- STARTED __CHECKBASETABLES --#
-2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:146 - DEBUG - Checking base tables.
-2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:150 - ERROR - ERROR: POSTGRES_11_CHECK_BASE_TABLES variable is not defined
-2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:150 - ERROR - Execution call stack:
-   /home/notes/OSM-Notes-profile/bin/process/processAPINotes.sh:559 __checkBaseTables(..)
-   /home/notes/OSM-Notes-profile/bin/process/processAPINotes.sh:610 main(..)
-    /home/notes/OSM-Notes-profile/bin/process/processAPINotes.sh:0 main(..)
-2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:151 - ERROR - ERROR: This variable should be defined in the calling script
-2025-07-31 02:45:02 - commonFunctions.sh:__checkBaseTables:151 - ERROR - Execution call stack:
-   /home/notes/OSM-Notes-profile/bin/process/processAPINotes.sh:559 __checkBaseTables(..)
-   /home/notes/OSM-Notes-profile/bin/process/processAPINotes.sh:610 main(..)
-    /home/notes/OSM-Notes-profile/bin/process/processAPINotes.sh:0 main(..)
-O confírmame si ya está solucionado.
 
 
 Con respecto al proceso de ETL, podrías comenzar la documentación del proceso de poblado del modelo estrella. Indica qué columnas tiene la fact table y qué representan. También la documentación sobre las dimensiones, con al menos un ejemplo de cada registro por dimensión.
 
+
+Realmente se necesita la dimensión regiones? o puede ser combinada con la dimensión países?
 
 
 HECHO
