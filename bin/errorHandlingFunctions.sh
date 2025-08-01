@@ -213,13 +213,16 @@ function __check_network_connectivity() {
  local TIMEOUT="${1:-10}"
  local TEST_URL="${2:-https://www.google.com}"
 
- __logd "Checking network connectivity to ${TEST_URL} with timeout ${TIMEOUT}s"
+ __logi "=== CHECKING NETWORK CONNECTIVITY ==="
+ __logd "Testing connectivity to ${TEST_URL} with timeout ${TIMEOUT}s"
 
  if timeout "${TIMEOUT}" curl -s --max-time "${TIMEOUT}" "${TEST_URL}" > /dev/null 2>&1; then
   __logi "Network connectivity confirmed"
+  __logi "=== NETWORK CONNECTIVITY CHECK COMPLETED SUCCESSFULLY ==="
   return 0
  else
   __loge "ERROR: Network connectivity failed"
+  __logi "=== NETWORK CONNECTIVITY CHECK FAILED ==="
   return 1
  fi
 }
@@ -230,6 +233,7 @@ function __handle_error_with_cleanup() {
  local ERROR_MESSAGE="${2}"
  local CLEANUP_COMMAND="${3:-}"
 
+ __loge "=== ERROR HANDLING WITH CLEANUP ==="
  __loge "ERROR: Error occurred: ${ERROR_MESSAGE}"
 
  # Execute cleanup command if provided

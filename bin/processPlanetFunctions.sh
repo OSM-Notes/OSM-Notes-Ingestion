@@ -311,6 +311,7 @@ function __processPlanetXmlPart() {
 # Download Planet notes
 function __downloadPlanetNotes() {
  __log_start
+ __logi "=== STARTING PLANET NOTES DOWNLOAD ==="
  __logd "Downloading Planet notes."
 
  local TEMP_FILE
@@ -332,6 +333,7 @@ function __downloadPlanetNotes() {
    if bunzip2 -c "${TEMP_FILE}" > "${PLANET_NOTES_FILE}" 2> /dev/null; then
     rm -f "${TEMP_FILE}"
     __logi "Successfully downloaded and decompressed Planet notes: ${PLANET_NOTES_FILE}"
+    __logi "=== PLANET NOTES DOWNLOAD COMPLETED SUCCESSFULLY ==="
     __log_finish
     return 0
    else
@@ -357,6 +359,7 @@ function __downloadPlanetNotes() {
 # Validate Planet notes XML file
 function __validatePlanetNotesXMLFile() {
  __log_start
+ __logi "=== STARTING PLANET NOTES XML VALIDATION ==="
  __logd "Validating Planet notes XML file."
 
  if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
@@ -380,6 +383,7 @@ function __validatePlanetNotesXMLFile() {
  fi
 
  __logi "Planet notes XML file validation completed successfully."
+ __logi "=== PLANET NOTES XML VALIDATION COMPLETED SUCCESSFULLY ==="
  __log_finish
 }
 

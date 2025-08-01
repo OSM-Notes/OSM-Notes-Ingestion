@@ -354,6 +354,7 @@ function __check_timeout {
 # Checks prerequisites to run the script.
 function __checkPrereqs {
  __log_start
+ __logi "=== STARTING ETL PREREQUISITES CHECK ==="
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--create" ]] \
   && [[ "${PROCESS_TYPE}" != "--incremental" ]] \
   && [[ "${PROCESS_TYPE}" != "--validate" ]] \
@@ -418,6 +419,7 @@ function __checkPrereqs {
   fi
  fi
 
+ __logi "=== ETL PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
  __log_finish
  set -e
 }
@@ -547,7 +549,8 @@ function __initialFacts {
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- __logi "Droping any ETL object if any exist."
+ __logi "=== CREATING BASE TABLES ==="
+ __logi "Dropping any ETL object if any exist."
  psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_DATAMART_OBJECTS}" 2>&1
  psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_DWH_OBJECTS}" 2>&1
 
@@ -581,12 +584,14 @@ function __createBaseTables {
 
  __initialFacts
 
+ __logi "=== BASE TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Checks the base tables if exist.
 function __checkBaseTables {
  __log_start
+ __logi "=== CHECKING BASE TABLES ==="
  set +e
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_11_CHECK_DWH_BASE_TABLES}" 2>&1
@@ -604,23 +609,27 @@ function __checkBaseTables {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_32_CREATE_STAGING_OBJECTS}" 2>&1
 
+ __logi "=== BASE TABLES CHECK COMPLETED ==="
  __log_finish
 }
 
 # Processes the notes and comments.
 function __processNotesETL {
  __log_start
+ __logi "=== PROCESSING NOTES ETL ==="
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_26_UPDATE_DIMENSIONS}" 2>&1
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_61_LOAD_NOTES_STAGING}" 2>&1
+ __logi "=== NOTES ETL PROCESSING COMPLETED ==="
  __log_finish
 }
 
 # Performs database maintenance after data load.
 function __perform_database_maintenance {
  __log_start
+ __logi "=== PERFORMING DATABASE MAINTENANCE ==="
 
  if [[ "${ETL_VACUUM_AFTER_LOAD}" == "true" ]]; then
   __logi "Running VACUUM ANALYZE on fact table"

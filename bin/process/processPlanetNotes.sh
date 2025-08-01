@@ -298,6 +298,7 @@ function __show_help {
 # Checks prerequisites to run the script.
 function __checkPrereqs {
  __log_start
+ __logi "=== STARTING PLANET PREREQUISITES CHECK ==="
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
   && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
   && [[ "${PROCESS_TYPE}" != "--help" ]] \
@@ -420,6 +421,7 @@ function __checkPrereqs {
  fi
 
  __checkPrereqs_functions
+ __logi "=== PLANET PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
  __log_finish
  set -e
 }
@@ -427,44 +429,57 @@ function __checkPrereqs {
 # Drop sync tables.
 function __dropSyncTables {
  __log_start
- __logi "Dropping sync tables."
+ __logi "=== DROPPING SYNC TABLES ==="
+ __logd "Executing SQL file: ${POSTGRES_11_DROP_SYNC_TABLES}"
  psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_11_DROP_SYNC_TABLES}"
+ __logi "=== SYNC TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Drop tables for notes from API.
 function __dropApiTables {
  __log_start
- __logi "Dropping API tables."
+ __logi "=== DROPPING API TABLES ==="
+ __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
  psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_12_DROP_API_TABLES}"
+ __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Drop existing base tables.
 function __dropBaseTables {
  __log_start
- __logi "Dropping base tables."
+ __logi "=== DROPPING BASE TABLES ==="
+ __logd "Executing SQL file: ${POSTGRES_13_DROP_BASE_TABLES}"
  psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_BASE_TABLES}"
+ __logi "=== BASE TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Drop existing base tables.
 function __dropCountryTables {
  __log_start
- __logi "Dropping country tables."
+ __logi "=== DROPPING COUNTRY TABLES ==="
+ __logd "Executing SQL file: ${POSTGRES_14_DROP_COUNTRY_TABLES}"
  psql -d "${DBNAME}" -f "${POSTGRES_14_DROP_COUNTRY_TABLES}"
+ __logi "=== COUNTRY TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
- __logi "Creating tables."
+ __logi "=== CREATING BASE TABLES ==="
+ __logd "Executing SQL files:"
+ __logd "  Enums: ${POSTGRES_21_CREATE_ENUMS}"
+ __logd "  Base tables: ${POSTGRES_22_CREATE_BASE_TABLES}"
+ __logd "  Constraints: ${POSTGRES_23_CREATE_CONSTRAINTS}"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_ENUMS}"
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_22_CREATE_BASE_TABLES}"
 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_CREATE_CONSTRAINTS}"
+ __logi "=== BASE TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
 

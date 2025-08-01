@@ -31,6 +31,10 @@ function __validate_input_file() {
  local FILE_PATH="${1}"
  local DESCRIPTION="${2:-Input file}"
 
+ __logd "=== VALIDATING INPUT FILE ==="
+ __logd "File: ${FILE_PATH}"
+ __logd "Description: ${DESCRIPTION}"
+
  if [[ ! -f "${FILE_PATH}" ]]; then
   __loge "ERROR: ${DESCRIPTION} not found: ${FILE_PATH}"
   return 1
@@ -47,6 +51,7 @@ function __validate_input_file() {
  fi
 
  __logd "${DESCRIPTION} validation passed: ${FILE_PATH}"
+ __logd "=== INPUT FILE VALIDATION COMPLETED ==="
  return 0
 }
 
@@ -68,6 +73,9 @@ function __validate_input_files() {
 function __validate_xml_structure() {
  local XML_FILE="${1}"
 
+ __logi "=== VALIDATING XML STRUCTURE ==="
+ __logd "XML file: ${XML_FILE}"
+
  if ! __validate_input_file "${XML_FILE}" "XML file"; then
   return 1
  fi
@@ -85,6 +93,7 @@ function __validate_xml_structure() {
  fi
 
  __logd "XML structure validation passed: ${XML_FILE}"
+ __logi "=== XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY ==="
  return 0
 }
 

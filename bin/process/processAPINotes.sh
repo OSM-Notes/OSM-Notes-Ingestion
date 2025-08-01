@@ -165,7 +165,8 @@ function __show_help {
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
- #__log_start
+ __log_start
+ __logi "=== STARTING PREREQUISITES CHECK ==="
  __logd "Checking process type."
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
   && [[ "${PROCESS_TYPE}" != "-h" ]]; then
@@ -225,63 +226,77 @@ function __checkPrereqs {
  # as they will be created by __processApiXmlPart function
 
  __checkPrereqs_functions
- #__log_finish
+ __logi "=== PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
+ __log_finish
  set -e
 }
 
 # Drop tables for notes from API.
 function __dropApiTables {
  __log_start
- __logi "Dropping tables."
+ __logi "=== DROPPING API TABLES ==="
+ __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
  psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
+ __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Checks that no processPlanetNotes is running
 function __checkNoProcessPlanet {
  __log_start
+ __logi "=== CHECKING FOR RUNNING PLANET PROCESSES ==="
  local QTY
  set +e
  QTY="$(pgrep "${PROCESS_PLANET_NOTES_SCRIPT:0:15}" | wc -l)"
  set -e
+ __logd "Found ${QTY} running planet processes"
  if [[ "${QTY}" -ne "0" ]]; then
   __loge "${BASENAME} is currently running."
   __logw "It is better to wait for it to finish."
   exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
  fi
+ __logi "=== NO CONFLICTING PROCESSES FOUND ==="
  __log_finish
 }
 
 # Creates tables for notes from API.
 function __createApiTables {
  __log_start
- __logi "Creating tables."
+ __logi "=== CREATING API TABLES ==="
+ __logd "Executing SQL file: ${POSTGRES_21_CREATE_API_TABLES}"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
+ __logi "=== API TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Creates partitions dynamically based on MAX_THREADS.
 function __createPartitions {
  __log_start
- __logi "Creating partitions dynamically based on MAX_THREADS."
+ __logi "=== CREATING PARTITIONS ==="
+ __logd "Using MAX_THREADS: ${MAX_THREADS}"
+ __logd "Executing SQL file: ${POSTGRES_22_CREATE_PARTITIONS}"
 
  export MAX_THREADS
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
+ __logi "=== PARTITIONS CREATED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Creates table properties during the execution.
 function __createPropertiesTable {
  __log_start
- __logi "Creating properties table."
+ __logi "=== CREATING PROPERTIES TABLE ==="
+ __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+ __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
  __log_finish
 }
 
 function __getNewNotesFromApi {
  __log_start
+ __logi "=== STARTING API NOTES RETRIEVAL ==="
  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
 
  # Check network connectivity before proceeding
@@ -296,6 +311,7 @@ function __getNewNotesFromApi {
 
  # Gets the most recent value on the database with retry logic
  __logi "Retrieving last update from database..."
+ __logd "Database: ${DBNAME}"
  local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
  local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
 
@@ -309,7 +325,7 @@ function __getNewNotesFromApi {
 
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  rm "${TEMP_FILE}"
- __logw "Last update: ${LAST_UPDATE}."
+ __logi "Last update retrieved: ${LAST_UPDATE}"
  if [[ "${LAST_UPDATE}" == "" ]]; then
   __loge "No last update. Please load notes first."
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
@@ -321,8 +337,9 @@ function __getNewNotesFromApi {
  # Gets the values from OSM API with enhanced error handling
  # shellcheck disable=SC2153
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
- __logt "${REQUEST}"
- __logw "Retrieving notes from API."
+ __logi "API Request URL: ${REQUEST}"
+ __logd "Max notes limit: ${MAX_NOTES}"
+ __logi "Retrieving notes from API..."
  local OUTPUT_WGET="${TMP_DIR}/${BASENAME}.wget.log"
 
  # Use retry logic for API download
@@ -355,6 +372,7 @@ function __getNewNotesFromApi {
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
+ __logi "=== API NOTES RETRIEVAL COMPLETED SUCCESSFULLY ==="
  __log_finish
  return 0
 }
@@ -362,9 +380,13 @@ function __getNewNotesFromApi {
 # Validates the XML file to be sure everything will work fine.
 function __validateApiNotesXMLFile {
  __log_start
+ __logi "=== VALIDATING API NOTES XML FILE ==="
+ __logd "Schema file: ${XMLSCHEMA_API_NOTES}"
+ __logd "Notes file: ${API_NOTES_FILE}"
 
  xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}"
 
+ __logi "=== XML VALIDATION COMPLETED SUCCESSFULLY ==="
  __log_finish
 }
 
@@ -375,6 +397,7 @@ function __validateApiNotesXMLFile {
 #   0 if all validations pass, exits with ERROR_DATA_VALIDATION if any validation fails
 function __validateApiNotesXMLFileComplete {
  __log_start
+ __logi "=== COMPLETE API NOTES XML VALIDATION ==="
 
  # Check if file exists
  if [[ ! -f "${API_NOTES_FILE}" ]]; then

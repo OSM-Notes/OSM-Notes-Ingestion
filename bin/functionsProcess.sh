@@ -795,6 +795,13 @@ function __processApiXmlPart() {
  local PART_NUM
  local BASENAME_PART
 
+ __logi "=== STARTING API XML PART PROCESSING ==="
+ __logd "Input XML part: ${XML_PART}"
+ __logd "XSLT files:"
+ __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
+ __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
+ __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
+
  # Debug: Show environment variables
  __logd "Environment check in subshell:"
  __logd "  XML_PART: '${XML_PART}'"
@@ -873,6 +880,11 @@ function __processApiXmlPart() {
  __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)" || true
  __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)" || true
 
+ __logi "=== LOADING PART ${PART_NUM} INTO DATABASE ==="
+ __logd "Database: ${DBNAME}"
+ __logd "Part ID: ${PART_NUM}"
+ __logd "Max threads: ${MAX_THREADS}"
+
  # Load into database with partition ID and MAX_THREADS
  export OUTPUT_NOTES_PART
  export OUTPUT_COMMENTS_PART
@@ -885,7 +897,7 @@ function __processApiXmlPart() {
   -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
    < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
- __logi "Completed processing API part ${PART_NUM}"
+ __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
 }
 
 # Processes a single XML part for Planet notes
@@ -901,6 +913,13 @@ function __processPlanetXmlPart() {
  local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_FILE}}"
  local PART_NUM
  local BASENAME_PART
+
+ __logi "=== STARTING PLANET XML PART PROCESSING ==="
+ __logd "Input XML part: ${XML_PART}"
+ __logd "XSLT files:"
+ __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
+ __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
+ __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
 
  # Debug: Show environment variables
  __logd "Environment check in subshell:"
@@ -992,7 +1011,7 @@ function __processPlanetXmlPart() {
   -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
    < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" || true)"
 
- __logi "Completed processing Planet part ${PART_NUM}"
+ __logi "=== PLANET XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
 }
 
 # Function to validate input files and directories
@@ -1895,6 +1914,7 @@ function __processBoundary {
   __loge "Network connectivity check failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+  return 1
  fi
 
  # Use retry logic for Overpass API calls
@@ -1905,6 +1925,7 @@ function __processBoundary {
   __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass API failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+  return 1
  fi
 
  # Check for specific Overpass errors
@@ -1915,6 +1936,7 @@ function __processBoundary {
   __loge "Too many requests to Overpass API for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass rate limit exceeded for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+  return 1
  fi
 
  rm -f "${OUTPUT_OVERPASS}"
@@ -1925,6 +1947,7 @@ function __processBoundary {
   __loge "JSON validation failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID}" \
    "rm -f ${JSON_FILE} 2>/dev/null || true"
+  return 1
  fi
 
  # Convert to GeoJSON with retry logic
@@ -1936,6 +1959,7 @@ function __processBoundary {
   __loge "Failed to convert boundary ${ID} to GeoJSON after retries"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "GeoJSON conversion failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+  return 1
  fi
 
  # Validate the GeoJSON with a JSON schema
@@ -1943,6 +1967,7 @@ function __processBoundary {
   __loge "GeoJSON validation failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+  return 1
  fi
 
  # Extract names with error handling
@@ -1980,6 +2005,7 @@ function __processBoundary {
   __loge "Failed to acquire lock for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Lock acquisition failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+  return 1
  fi
 
  # Import with ogr2ogr using retry logic with special handling for Austria
@@ -1998,6 +2024,7 @@ function __processBoundary {
   __loge "Failed to import boundary ${ID} into database after retries"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+  return 1
  fi
 
  # Check for column duplication errors and handle them
@@ -2029,6 +2056,7 @@ function __processBoundary {
   __loge "Failed to process boundary ${ID} data"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Data processing failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+  return 1
  fi
 
  rmdir "${LOCK_OGR2OGR}" 2> /dev/null || true
@@ -2124,11 +2152,20 @@ function __processCountries {
   rmdir "${LOCK_OGR2OGR}"
  fi
  __logw "Starting background process to process country boundaries..."
+ 
+ # Create a file to track job status
+ local JOB_STATUS_FILE="${TMP_DIR}/job_status.txt"
+ rm -f "${JOB_STATUS_FILE}"
+ 
  for I in "${TMP_DIR}"/part_country_??; do
   (
    __logi "Starting list ${I} - ${BASHPID}."
    # shellcheck disable=SC2154
-   __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
+   if __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1; then
+    echo "SUCCESS:${BASHPID}:${I}" >> "${JOB_STATUS_FILE}"
+   else
+    echo "FAILED:${BASHPID}:${I}" >> "${JOB_STATUS_FILE}"
+   fi
    __logi "Finished list ${I} - ${BASHPID}."
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${BASHPID}"
@@ -2141,6 +2178,7 @@ function __processCountries {
  done
 
  FAIL=0
+ local FAILED_JOBS=()
  for JOB in $(jobs -p); do
   echo "${JOB}"
   set +e
@@ -2149,11 +2187,35 @@ function __processCountries {
   set -e
   if [[ "${RET}" -ne 0 ]]; then
    FAIL=$((FAIL + 1))
+   FAILED_JOBS+=("${JOB}")
   fi
  done
  __logw "Waited for all jobs, restarting in main thread - countries."
+ 
+ # Check job status file for more detailed error information
+ if [[ -f "${JOB_STATUS_FILE}" ]]; then
+  local FAILED_COUNT=0
+  local SUCCESS_COUNT=0
+  while IFS=':' read -r status pid file; do
+   if [[ "$status" == "FAILED" ]]; then
+    FAILED_COUNT=$((FAILED_COUNT + 1))
+    __loge "Job ${pid} failed processing file: ${file}"
+   elif [[ "$status" == "SUCCESS" ]]; then
+    SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+   fi
+  done < "${JOB_STATUS_FILE}"
+  
+  __logi "Job summary: ${SUCCESS_COUNT} successful, ${FAILED_COUNT} failed"
+ fi
+ 
  if [[ "${FAIL}" -ne 0 ]]; then
-  echo "FAIL! (${FAIL})"
+  __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}"
+  __loge "Check individual log files for detailed error information:"
+  for job_pid in "${FAILED_JOBS[@]}"; do
+   if [[ -f "${LOG_FILENAME}.${job_pid}" ]]; then
+    __loge "Log file for job ${job_pid}: ${LOG_FILENAME}.${job_pid}"
+   fi
+  done
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
@@ -2163,6 +2225,10 @@ function __processCountries {
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some threads generated errors."
+  __loge "Found ${QTY_LOGS} error log files. Check them for details:"
+  find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | while read -r log_file; do
+   __loge "Error log: ${log_file}"
+  done
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
