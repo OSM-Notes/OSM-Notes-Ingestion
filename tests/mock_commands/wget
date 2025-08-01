@@ -1,0 +1,115 @@
+#!/bin/bash
+
+# Mock wget command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-01
+
+# Function to create mock files
+create_mock_file() {
+ local url="$1"
+ local output_file="$2"
+ 
+ # Extract filename from URL if no output file specified
+ if [[ -z "$output_file" ]]; then
+   output_file=$(basename "$url")
+ fi
+ 
+ # Create mock content based on URL
+ if [[ "$url" == *".xml" ]]; then
+   cat > "$output_file" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note id="123" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note</comment>
+ </note>
+</osm-notes>
+EOF
+ elif [[ "$url" == *".json" ]]; then
+   cat > "$output_file" << 'EOF'
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {"name": "Test Country"},
+   "geometry": {"type": "Polygon", "coordinates": [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
+  }
+ ]
+}
+EOF
+ elif [[ "$url" == *".bz2" ]]; then
+   # Create a small bzip2 file
+   echo "Mock bzip2 content" | bzip2 > "$output_file" 2>/dev/null || echo "Mock bzip2 content" > "$output_file"
+ elif [[ "$url" == *".md5" ]]; then
+   echo "d41d8cd98f00b204e9800998ecf8427e" > "$output_file"
+ else
+   echo "Mock content for $url" > "$output_file"
+ fi
+ 
+ echo "Mock file created: $output_file"
+}
+
+# Parse arguments
+ARGS=()
+OUTPUT_FILE=""
+QUIET=false
+TIMEOUT=""
+POST_FILE=""
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -O)
+   OUTPUT_FILE="$2"
+   shift 2
+   ;;
+  -q)
+   QUIET=true
+   shift
+   ;;
+  --timeout=*)
+   TIMEOUT="${1#*=}"
+   shift
+   ;;
+  --post-file=*)
+   POST_FILE="${1#*=}"
+   shift
+   ;;
+  --version)
+   echo "GNU Wget 1.21.3"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Get URL from arguments
+URL="${ARGS[0]:-}"
+
+if [[ -z "$URL" ]]; then
+ echo "Usage: wget [OPTIONS] URL" >&2
+ exit 1
+fi
+
+# Create mock file
+if [[ -n "$OUTPUT_FILE" ]]; then
+ create_mock_file "$URL" "$OUTPUT_FILE"
+else
+ create_mock_file "$URL"
+fi
+
+# Simulate HTTP response
+if [[ "$QUIET" != true ]]; then
+ echo "HTTP/1.1 200 OK"
+ echo "Content-Type: application/octet-stream"
+ echo "Content-Length: $(wc -c < "${OUTPUT_FILE:-$(basename "$URL")}" 2>/dev/null || echo "0")"
+ echo ""
+fi
+
+exit 0 

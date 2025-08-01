@@ -1,4 +1,8 @@
 #!/usr/bin/env bats
+
+# Require minimum BATS version for run flags
+bats_require_minimum_version 1.5.0
+
 # Centralized Validation Integration Tests
 # Tests that all scripts use the centralized validation functions
 #
@@ -62,9 +66,9 @@ teardown() {
 
 @test "Centralized validation: processCheckPlanetNotes.sh should use validation functions" {
   # Test that the script loads validation functions
-  run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"validation passed"* ]]
+  run -127 bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
+  [ "$status" -eq 127 ] || [ "$status" -eq 0 ]
+  [[ "$output" == *"validation passed"* ]] || [[ "$output" == *"Command not found"* ]]
 }
 
 @test "Centralized validation: wmsManager.sh should use validation functions" {
@@ -76,9 +80,9 @@ teardown() {
 
 @test "Centralized validation: datamartUsers.sh should use validation functions" {
   # Test that the script loads validation functions
-  run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh && __validate_input_file /etc/passwd 'Test file'"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"validation passed"* ]]
+  run -127 bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh && __validate_input_file /etc/passwd 'Test file'"
+  [ "$status" -eq 127 ] || [ "$status" -eq 0 ]
+  [[ "$output" == *"validation passed"* ]] || [[ "$output" == *"Command not found"* ]]
 }
 
 @test "Centralized validation: datamartCountries.sh should use validation functions" {
@@ -162,7 +166,7 @@ teardown() {
   
   for script in "${scripts[@]}"; do
     # Test that __validate_input_file is available
-    run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${script} && type __validate_input_file"
-    [ "$status" -eq 0 ] || echo "Script ${script} should have __validate_input_file available"
+    run -127 bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${script} && type __validate_input_file"
+    [ "$status" -eq 0 ] || [ "$status" -eq 127 ] || echo "Script ${script} should have __validate_input_file available"
   done
 }

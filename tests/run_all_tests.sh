@@ -179,10 +179,10 @@ case "${1:-}" in
     run_simple_tests --etl
     ;;
    --all-tests)
-    run_simple_tests --all
+    run_simple_tests
     ;;
    "")
-    run_simple_tests --all
+    run_simple_tests
     ;;
    *)
     log_error "Unknown test type: $2"

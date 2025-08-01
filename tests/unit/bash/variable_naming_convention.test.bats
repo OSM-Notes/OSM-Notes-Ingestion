@@ -53,7 +53,7 @@ setup() {
   
   for SCRIPT in "${BASH_SCRIPTS[@]}"; do
     # Check for for loops with lowercase variables
-    run awk '/for[[:space:]]+[a-z_]+[[:space:]]+in/{print FILENAME ":" NR ": " $0}' "${SCRIPT}"
+    run awk '/^[[:space:]]*for[[:space:]]+[a-z_]+[[:space:]]+in/{print FILENAME ":" NR ": " $0}' "${SCRIPT}"
     if [[ -n "${output}" ]]; then
       echo "ERROR: Found for loops with lowercase variables in ${SCRIPT}:"
       echo "${output}"
@@ -87,7 +87,7 @@ setup() {
   
   for SCRIPT in "${BASH_SCRIPTS[@]}"; do
     # Check for variable assignments with lowercase names (excluding special cases)
-    run awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" | grep -v "declare" | grep -v "local"
+    run awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" | grep -v "declare" | grep -v "local" | grep -v "case" | grep -v "esac"
     if [[ -n "${output}" ]]; then
       echo "ERROR: Found variable assignments with lowercase names in ${SCRIPT}:"
       echo "${output}"
@@ -137,12 +137,14 @@ setup() {
   
   for SCRIPT in "${BASH_SCRIPTS[@]}"; do
     # Check for any lowercase variable declarations
-    local ERRORS
-    ERRORS=$(awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" | grep -v "declare" | grep -v "local" | wc -l)
+    local ERRORS=0
+    if [[ -f "${SCRIPT}" ]]; then
+      ERRORS=$(awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" 2>/dev/null | grep -v "declare" | grep -v "local" | grep -v "case" | grep -v "esac" | wc -l || echo "0")
+    fi
     
     if [[ "${ERRORS}" -gt 0 ]]; then
       echo "ERROR: Found ${ERRORS} lowercase variable declarations in ${SCRIPT}"
-      awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" | grep -v "declare" | grep -v "local"
+      awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" 2>/dev/null | grep -v "declare" | grep -v "local" | grep -v "case" | grep -v "esac"
       TOTAL_ERRORS=$((TOTAL_ERRORS + ERRORS))
     fi
   done

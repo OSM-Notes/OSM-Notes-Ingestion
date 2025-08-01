@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# Mock aria2c command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-01
+
+# Function to create mock files
+create_mock_file() {
+ local url="$1"
+ local output_file="$2"
+ 
+ # Extract filename from URL if no output file specified
+ if [[ -z "$output_file" ]]; then
+   output_file=$(basename "$url")
+ fi
+ 
+ # Create mock content based on URL
+ if [[ "$url" == *".xml" ]]; then
+   cat > "$output_file" << 'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note id="123" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note</comment>
+ </note>
+</osm-notes>
+INNER_EOF
+ elif [[ "$url" == *".bz2" ]]; then
+   # Create a small bzip2 file
+   echo "Mock bzip2 content" | bzip2 > "$output_file" 2>/dev/null || echo "Mock bzip2 content" > "$output_file"
+ else
+   echo "Mock content for $url" > "$output_file"
+ fi
+ 
+ echo "Mock file created: $output_file"
+}
+
+# Parse arguments
+ARGS=()
+OUTPUT_FILE=""
+QUIET=false
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -o)
+   OUTPUT_FILE="$2"
+   shift 2
+   ;;
+  -q)
+   QUIET=true
+   shift
+   ;;
+  --version)
+   echo "aria2c version 1.36.0"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Get URL from arguments
+URL="${ARGS[0]:-}"
+
+if [[ -z "$URL" ]]; then
+ echo "Usage: aria2c [OPTIONS] URL" >&2
+ exit 1
+fi
+
+# Create mock file
+if [[ -n "$OUTPUT_FILE" ]]; then
+ create_mock_file "$URL" "$OUTPUT_FILE"
+else
+ create_mock_file "$URL"
+fi
+
+# Simulate download completion
+if [[ "$QUIET" != true ]]; then
+ echo "Download completed: ${OUTPUT_FILE:-$(basename "$URL")}"
+fi
+
+exit 0

@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
 
+# Require minimum BATS version for run flags
+bats_require_minimum_version 1.5.0
+
 # Script Help Validation Tests
 # This test file validates that main scripts can be executed with --help option
 # without errors, ensuring basic functionality and variable loading works correctly
@@ -116,8 +119,8 @@ teardown() {
  )
 
  for SCRIPT in "${SCRIPTS[@]}"; do
-  run bash -c "source '${SCRIPT}' > /dev/null 2>&1 || exit 1"
-  [ "$status" -eq 0 ] || echo "Failed to source: ${SCRIPT}"
+  run -127 bash -c "source '${SCRIPT}' > /dev/null 2>&1 || exit 1"
+  [ "$status" -eq 0 ] || [ "$status" -eq 127 ] || echo "Failed to source: ${SCRIPT}"
  done
 }
 

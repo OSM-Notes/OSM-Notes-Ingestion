@@ -1,0 +1,131 @@
+#!/bin/bash
+
+# Mock psql command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-01
+
+# Function to simulate database operations
+mock_database_operation() {
+ local operation="$1"
+ local args="$2"
+ 
+ case "$operation" in
+  -d)
+   # Database connection
+   echo "Connected to database: $args"
+   ;;
+  -c)
+   # SQL command
+   if [[ "$args" == *"SELECT"* ]]; then
+     if [[ "$args" == *"COUNT"* ]]; then
+       echo "100"
+     elif [[ "$args" == *"TABLE_NAME"* ]]; then
+       echo "notes"
+       echo "note_comments"
+       echo "countries"
+       echo "logs"
+       echo "tries"
+     else
+       echo "1|test|2023-01-01"
+     fi
+   elif [[ "$args" == *"CREATE"* ]]; then
+     echo "CREATE TABLE"
+   elif [[ "$args" == *"INSERT"* ]]; then
+     echo "INSERT 0 1"
+   elif [[ "$args" == *"UPDATE"* ]]; then
+     echo "UPDATE 1"
+   elif [[ "$args" == *"DELETE"* ]]; then
+     echo "DELETE 1"
+   elif [[ "$args" == *"DROP"* ]]; then
+     echo "DROP TABLE"
+   elif [[ "$args" == *"VACUUM"* ]]; then
+     echo "VACUUM"
+   elif [[ "$args" == *"ANALYZE"* ]]; then
+     echo "ANALYZE"
+   else
+     echo "OK"
+   fi
+   ;;
+  -f)
+   # SQL file
+   if [[ -f "$args" ]]; then
+     echo "Executing SQL file: $args"
+     echo "OK"
+   else
+     echo "ERROR: File not found: $args" >&2
+     exit 1
+   fi
+   ;;
+  -v)
+   # Variable assignment
+   echo "Variable set: $args"
+   ;;
+  --version)
+   echo "psql (PostgreSQL) 15.1"
+   exit 0
+   ;;
+  *)
+   echo "Unknown operation: $operation $args"
+   ;;
+ esac
+}
+
+# Parse arguments
+ARGS=()
+DATABASE=""
+COMMAND=""
+FILE=""
+VARIABLES=()
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -d)
+   DATABASE="$2"
+   shift 2
+   ;;
+  -c)
+   COMMAND="$2"
+   shift 2
+   ;;
+  -f)
+   FILE="$2"
+   shift 2
+   ;;
+  -v)
+   VARIABLES+=("$2")
+   shift 2
+   ;;
+  --version)
+   echo "psql (PostgreSQL) 15.1"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Process variables first
+for var in "${VARIABLES[@]}"; do
+ mock_database_operation "-v" "$var"
+done
+
+# Process main operation
+if [[ -n "$DATABASE" ]]; then
+ mock_database_operation "-d" "$DATABASE"
+fi
+
+if [[ -n "$COMMAND" ]]; then
+ mock_database_operation "-c" "$COMMAND"
+fi
+
+if [[ -n "$FILE" ]]; then
+ mock_database_operation "-f" "$FILE"
+fi
+
+exit 0 

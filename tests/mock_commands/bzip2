@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Mock bzip2 command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-01
+
+# Parse arguments
+ARGS=()
+DECOMPRESS=false
+COMPRESS=false
+FORCE=false
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -d)
+   DECOMPRESS=true
+   shift
+   ;;
+  -c)
+   COMPRESS=true
+   shift
+   ;;
+  -f)
+   FORCE=true
+   shift
+   ;;
+  --version)
+   echo "bzip2, a block-sorting file compressor.  Version 1.0.8, 13-Jul-2019."
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Get file from arguments
+FILE="${ARGS[0]:-}"
+
+if [[ -z "$FILE" ]]; then
+ echo "Usage: bzip2 [OPTIONS] FILE" >&2
+ exit 1
+fi
+
+# Simulate bzip2 operations
+if [[ "$DECOMPRESS" == true ]]; then
+ # Decompress
+ if [[ -f "$FILE" ]]; then
+   echo "Mock decompressed: $FILE"
+   # Create a mock decompressed file
+   echo "Mock decompressed content" > "${FILE%.bz2}"
+ else
+   echo "ERROR: File not found: $FILE" >&2
+   exit 1
+ fi
+elif [[ "$COMPRESS" == true ]]; then
+ # Compress to stdout
+ echo "Mock compressed content" | bzip2 2>/dev/null || echo "Mock compressed content"
+else
+ # Default compression
+ if [[ -f "$FILE" ]]; then
+   echo "Mock compressed: $FILE"
+   # Create a mock compressed file
+   echo "Mock compressed content" | bzip2 > "${FILE}.bz2" 2>/dev/null || echo "Mock compressed content" > "${FILE}.bz2"
+ else
+   echo "ERROR: File not found: $FILE" >&2
+   exit 1
+ fi
+fi
+
+exit 0

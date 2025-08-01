@@ -1,0 +1,117 @@
+#!/bin/bash
+
+# Mock xmllint command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-01
+
+# Function to simulate XML validation
+mock_xml_validation() {
+ local file="$1"
+ local schema="$2"
+ 
+ # Check if file exists
+ if [[ ! -f "$file" ]]; then
+   echo "ERROR: File not found: $file" >&2
+   return 1
+ fi
+ 
+ # Simulate validation based on file content
+ if grep -q "osm-notes" "$file" 2>/dev/null; then
+   echo "XML validation passed: $file"
+   return 0
+ elif grep -q "xs:schema" "$file" 2>/dev/null; then
+   echo "XML Schema validation passed: $file"
+   return 0
+ else
+   echo "ERROR: Invalid XML structure: $file" >&2
+   return 1
+ fi
+}
+
+# Function to simulate XPath queries
+mock_xpath_query() {
+ local file="$1"
+ local xpath="$2"
+ 
+ # Check if file exists
+ if [[ ! -f "$file" ]]; then
+   echo "ERROR: File not found: $file" >&2
+   return 1
+ fi
+ 
+ # Simulate XPath results
+ case "$xpath" in
+  "count(//note)")
+   echo "5"
+   ;;
+  "//osm-notes")
+   echo "<osm-notes>"
+   echo "  <note id=\"123\" lat=\"40.7128\" lon=\"-74.0060\">"
+   echo "    <comment action=\"opened\" timestamp=\"2023-01-01T00:00:00Z\">Test note</comment>"
+   echo "  </note>"
+   echo "</osm-notes>"
+   ;;
+  *)
+   echo "Mock XPath result for: $xpath"
+   ;;
+ esac
+}
+
+# Parse arguments
+ARGS=()
+NOOUT=false
+SCHEMA=""
+XPATH=""
+QUIET=false
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  --noout)
+   NOOUT=true
+   shift
+   ;;
+  --schema)
+   SCHEMA="$2"
+   shift 2
+   ;;
+  --xpath)
+   XPATH="$2"
+   shift 2
+   ;;
+  -q)
+   QUIET=true
+   shift
+   ;;
+  --version)
+   echo "xmllint: using libxml version 20900"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Get file from arguments
+FILE="${ARGS[0]:-}"
+
+if [[ -z "$FILE" ]]; then
+ echo "Usage: xmllint [OPTIONS] FILE" >&2
+ exit 1
+fi
+
+# Process based on options
+if [[ -n "$XPATH" ]]; then
+ mock_xpath_query "$FILE" "$XPATH"
+elif [[ -n "$SCHEMA" ]]; then
+ mock_xml_validation "$FILE" "$SCHEMA"
+else
+ mock_xml_validation "$FILE"
+fi
+
+exit $? 
