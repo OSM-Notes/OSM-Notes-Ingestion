@@ -23,6 +23,11 @@ if [[ -z "${TMP_DIR:-}" ]]; then
  TMP_DIR="/tmp/${BASENAME}_$$"
 fi
 
+# Define query file variable (only if not already defined)
+if [[ -z "${QUERY_FILE:-}" ]]; then
+ QUERY_FILE="${TMP_DIR}/query.op"
+fi
+
 # Load all refactored function files
 # This ensures backward compatibility while improving code organization
 
@@ -1903,22 +1908,36 @@ function __organizeAreas {
 }
 
 # Processes a specific boundary ID.
+# Parameters:
+#   $1: Query file path (optional, uses global QUERY_FILE if not provided)
 function __processBoundary {
  __log_start
+ __logi "=== STARTING BOUNDARY PROCESSING ==="
+ # Use provided query file or fall back to global
+ local QUERY_FILE_TO_USE="${1:-${QUERY_FILE}}"
+ 
+ __logd "Boundary ID: ${ID}"
+ __logd "Process ID: ${BASHPID}"
+ __logd "JSON file: ${JSON_FILE}"
+ __logd "GeoJSON file: ${GEOJSON_FILE}"
+ __logd "Query file: ${QUERY_FILE_TO_USE}"
  OUTPUT_OVERPASS="${TMP_DIR}/output.${BASHPID}"
 
  __logi "Retrieving shape ${ID}."
 
  # Check network connectivity before proceeding
+ __logd "Checking network connectivity for boundary ${ID}..."
  if ! __check_network_connectivity 10; then
   __loge "Network connectivity check failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
   return 1
  fi
+ __logd "Network connectivity confirmed for boundary ${ID}"
 
  # Use retry logic for Overpass API calls
- local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
+ __logd "Downloading boundary ${ID} from Overpass API..."
+ local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
  local OVERPASS_CLEANUP="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
 
  if ! __retry_file_operation "${OVERPASS_OPERATION}" 5 15 "${OVERPASS_CLEANUP}"; then
@@ -1927,8 +1946,10 @@ function __processBoundary {
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
   return 1
  fi
+ __logd "Successfully downloaded boundary ${ID} from Overpass API"
 
  # Check for specific Overpass errors
+ __logd "Checking Overpass API response for errors..."
  cat "${OUTPUT_OVERPASS}"
  local MANY_REQUESTS
  MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
@@ -1939,6 +1960,7 @@ function __processBoundary {
   return 1
  fi
 
+ __logd "No Overpass API errors detected for boundary ${ID}"
  rm -f "${OUTPUT_OVERPASS}"
 
  # Validate the JSON with a JSON schema
@@ -1949,6 +1971,7 @@ function __processBoundary {
    "rm -f ${JSON_FILE} 2>/dev/null || true"
   return 1
  fi
+ __logd "JSON validation passed for boundary ${ID}"
 
  # Convert to GeoJSON with retry logic
  __logi "Converting into GeoJSON for boundary ${ID}."
@@ -1961,16 +1984,20 @@ function __processBoundary {
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
   return 1
  fi
+ __logd "GeoJSON conversion completed for boundary ${ID}"
 
  # Validate the GeoJSON with a JSON schema
+ __logd "Validating GeoJSON structure for boundary ${ID}..."
  if ! __validate_json_structure "${GEOJSON_FILE}" "FeatureCollection"; then
   __loge "GeoJSON validation failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
   return 1
  fi
+ __logd "GeoJSON validation passed for boundary ${ID}"
 
  # Extract names with error handling
+ __logd "Extracting names for boundary ${ID}..."
  set +o pipefail
  local NAME
  NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
@@ -1985,6 +2012,10 @@ function __processBoundary {
  set -e
  NAME_EN="${NAME_EN:-No English name}"
  __logi "Name: ${NAME_EN:-}."
+ __logd "Extracted names for boundary ${ID}:"
+ __logd "  Name: ${NAME:-N/A}"
+ __logd "  Name ES: ${NAME_ES:-N/A}"
+ __logd "  Name EN: ${NAME_EN:-N/A}"
 
  # Special handling for Taiwan (ID: 16239) - remove problematic tags to avoid oversized records
  if [[ "${ID}" -eq 16239 ]]; then
@@ -1998,6 +2029,7 @@ function __processBoundary {
 
  # Import into Postgres with retry logic
  __logi "Importing into Postgres for boundary ${ID}."
+ __logd "Acquiring lock for boundary ${ID}..."
  local LOCK_OPERATION="mkdir ${LOCK_OGR2OGR} 2> /dev/null"
  local LOCK_CLEANUP="rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
 
@@ -2007,14 +2039,18 @@ function __processBoundary {
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
   return 1
  fi
+ __logd "Lock acquired for boundary ${ID}"
 
  # Import with ogr2ogr using retry logic with special handling for Austria
+ __logd "Importing boundary ${ID} into database..."
  local IMPORT_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
+  __logd "Using special handling for Austria (ID: 16239)"
   IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
  else
   # Standard import
+  __logd "Using standard import for boundary ${ID}"
   IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
  fi
 
@@ -2026,8 +2062,10 @@ function __processBoundary {
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
   return 1
  fi
+ __logd "Database import completed for boundary ${ID}"
 
  # Check for column duplication errors and handle them
+ __logd "Checking for duplicate columns in import table for boundary ${ID}..."
  local COLUMN_CHECK_OPERATION="psql -d ${DBNAME} -c \"SELECT column_name, COUNT(*) FROM information_schema.columns WHERE table_name = 'import' GROUP BY column_name HAVING COUNT(*) > 1;\" 2>/dev/null"
  local COLUMN_CHECK_RESULT
  COLUMN_CHECK_RESULT=$(eval "${COLUMN_CHECK_OPERATION}" 2> /dev/null || echo "")
@@ -2035,20 +2073,28 @@ function __processBoundary {
  if [[ -n "${COLUMN_CHECK_RESULT}" ]] && [[ "${COLUMN_CHECK_RESULT}" != *"0 rows"* ]]; then
   __logw "Detected duplicate columns in import table for boundary ${ID}"
   __logw "This is likely due to case-sensitive column names in the GeoJSON"
+  __logd "Attempting to fix duplicate columns..."
   # Handle column duplication by removing problematic columns
   local FIX_COLUMNS_OPERATION="psql -d ${DBNAME} -c \"ALTER TABLE import DROP COLUMN IF EXISTS \\\"name:xx-XX\\\", DROP COLUMN IF EXISTS \\\"name:XX-xx\\\";\" 2>/dev/null"
   if ! eval "${FIX_COLUMNS_OPERATION}"; then
    __logw "Failed to fix duplicate columns, but continuing..."
+  else
+   __logd "Duplicate columns fixed for boundary ${ID}"
   fi
+ else
+  __logd "No duplicate columns detected for boundary ${ID}"
  fi
 
  # Process the imported data with special handling for Austria
+ __logd "Processing imported data for boundary ${ID}..."
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
+  __logd "Using special processing for Austria (ID: 16239)"
   PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(wkb_geometry, 0.0)) FROM import GROUP BY 1;\""
  else
   # Standard processing
+  __logd "Using standard processing for boundary ${ID}"
   PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(wkb_geometry)) FROM import GROUP BY 1;\""
  fi
 
@@ -2058,40 +2104,64 @@ function __processBoundary {
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
   return 1
  fi
+ __logd "Data processing completed for boundary ${ID}"
 
  rmdir "${LOCK_OGR2OGR}" 2> /dev/null || true
+ __logi "=== BOUNDARY PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
 }
 
 # Processes the list of countries or maritime areas in the given file.
 function __processList {
  __log_start
+ __logi "=== STARTING LIST PROCESSING ==="
+ __logd "Process ID: ${BASHPID}"
+ __logd "Boundaries file: ${1}"
 
  BOUNDARIES_FILE="${1}"
- QUERY_FILE="${QUERY_FILE}.${BASHPID}"
+ # Create a unique query file for this process
+ local QUERY_FILE_LOCAL="${TMP_DIR}/query.${BASHPID}.op"
  __logi "Retrieving the country or maritime boundaries."
+ local PROCESSED_COUNT=0
+ local FAILED_COUNT=0
+ local TOTAL_LINES
+ TOTAL_LINES=$(wc -l < "${BOUNDARIES_FILE}")
+ __logd "Total boundaries to process: ${TOTAL_LINES}"
+
  while read -r LINE; do
   ID=$(echo "${LINE}" | awk '{print $1}')
   JSON_FILE="${TMP_DIR}/${ID}.json"
   GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  __logi "ID: ${ID}."
-  cat << EOF > "${QUERY_FILE}"
+  __logi "Processing boundary ID: ${ID} (${PROCESSED_COUNT}/${TOTAL_LINES})"
+  __logd "Creating query file for boundary ${ID}..."
+  cat << EOF > "${QUERY_FILE_LOCAL}"
    [out:json];
    rel(${ID});
    (._;>;);
    out;
 EOF
 
-  __processBoundary
+  if __processBoundary "${QUERY_FILE_LOCAL}"; then
+   PROCESSED_COUNT=$((PROCESSED_COUNT + 1))
+   __logd "Successfully processed boundary ${ID}"
+  else
+   FAILED_COUNT=$((FAILED_COUNT + 1))
+   __loge "Failed to process boundary ${ID}"
+  fi
 
   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-   rm -f "${JSON_FILE}" "${GEOJSON_FILE}" "${QUERY_FILE}"
+   rm -f "${JSON_FILE}" "${GEOJSON_FILE}" "${QUERY_FILE_LOCAL}"
   else
    mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old"
    mv "${GEOJSON_FILE}" "${TMP_DIR}/${ID}.geojson.old"
   fi
  done < "${BOUNDARIES_FILE}"
 
+ __logi "List processing completed:"
+ __logi "  Total boundaries: ${TOTAL_LINES}"
+ __logi "  Successfully processed: ${PROCESSED_COUNT}"
+ __logi "  Failed: ${FAILED_COUNT}"
+ __logi "=== LIST PROCESSING COMPLETED ==="
  __log_finish
 }
 
@@ -2100,6 +2170,7 @@ EOF
 # country into the Postgres database with ogr2ogr.
 function __processCountries {
  __log_start
+ __logi "=== STARTING COUNTRIES PROCESSING ==="
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
  set +e
@@ -2146,6 +2217,9 @@ function __processCountries {
  TOTAL_LINES=$(wc -l < "${COUNTRIES_BOUNDARY_IDS_FILE}")
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
+ __logd "Total countries: ${TOTAL_LINES}"
+ __logd "Max threads: ${MAX_THREADS}"
+ __logd "Size per part: ${SIZE}"
  split -l"${SIZE}" "${COUNTRIES_BOUNDARY_IDS_FILE}" "${TMP_DIR}/part_country_"
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
   rm -f "${LOCK_OGR2OGR}/pid"
@@ -2216,8 +2290,11 @@ function __processCountries {
     __loge "Log file for job ${job_pid}: ${LOG_FILENAME}.${job_pid}"
    fi
   done
+  __loge "=== COUNTRIES PROCESSING FAILED ==="
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
+
+ __logi "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ==="
 
  # If some of the threads generated an error.
  set +e
