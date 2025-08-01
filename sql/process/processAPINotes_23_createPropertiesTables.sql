@@ -52,7 +52,9 @@ BEGIN
      SET timestamp = new_last_update;
   END IF;
  ELSE
-  RAISE EXCEPTION 'Notes are not yet on the database.';
+  -- Tables are empty, insert a default timestamp
+  INSERT INTO max_note_timestamp (timestamp) VALUES (CURRENT_TIMESTAMP)
+   ON CONFLICT DO NOTHING;
  END IF;
 END;
 $$;

@@ -4,7 +4,7 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-31
+# Version: 2025-08-01
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -35,16 +35,19 @@ if [[ -z "${PREREQS_CHECKED:-}" ]]; then declare PREREQS_CHECKED=false; fi
 
 # Logger framework
 # shellcheck disable=SC2034
+if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &> /dev/null && pwd)"
+fi
 if [[ -z "${LOGGER_UTILITY:-}" ]]; then declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"; fi
 
-# Logger functions
-function __log() { log "${@}"; }
-function __logt() { log_trace "${@}"; }
-function __logd() { log_debug "${@}"; }
-function __logi() { log_info "${@}"; }
-function __logw() { log_warn "${@}"; }
-function __loge() { log_error "${@}"; }
-function __logf() { log_fatal "${@}"; }
+# Logger functions - These are aliases for the bash_logger functions
+function __log() { command __log "${@}"; }
+function __log_trace() { command __logt "${@}"; }
+function __log_debug() { command __logd "${@}"; }
+function __log_info() { command __logi "${@}"; }
+function __log_warn() { command __logw "${@}"; }
+function __log_error() { command __loge "${@}"; }
+function __log_fatal() { command __logf "${@}"; }
 
 # Start logger function
 function __start_logger() {
@@ -55,6 +58,11 @@ function __start_logger() {
  # Set the log level in bash_logger
  __set_log_level "${LOG_LEVEL}"
 }
+
+# Initialize logger if not already done
+if [[ -z "${__log_level:-}" ]]; then
+ __start_logger
+fi
 
 # Validation function
 function __validation {

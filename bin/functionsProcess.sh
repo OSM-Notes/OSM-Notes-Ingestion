@@ -315,13 +315,13 @@ declare -r GEOJSON_TEST="${SCRIPT_BASE_DIRECTORY}/json/map.geojson"
 
 # Loads the logger (log4j like) tool.
 # It has the following functions.
-function __log() { log "${@}"; }
-function __logt() { log_trace "${@}"; }
-function __logd() { log_debug "${@}"; }
-function __logi() { log_info "${@}"; }
-function __logw() { log_warn "${@}"; }
-function __loge() { log_error "${@}"; }
-function __logf() { log_fatal "${@}"; }
+function __log() { command __log "${@}"; }
+function __logt() { command __logt "${@}"; }
+function __logd() { command __logd "${@}"; }
+function __logi() { command __logi "${@}"; }
+function __logw() { command __logw "${@}"; }
+function __loge() { command __loge "${@}"; }
+function __logf() { command __logf "${@}"; }
 
 # Starts the logger utility.
 function __start_logger() {
@@ -363,7 +363,7 @@ function __validation {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d%s.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}" "$(__validation)"; exit ${ERROR_GENERAL};}' \
+ trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}"; if [[ "${GENERATE_FAILED_FILE}" = true ]]; then touch "${FAILED_EXECUTION_FILE}"; fi; exit ${ERROR_GENERAL};}' \
   ERR
  trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
   SIGINT SIGTERM
