@@ -1202,7 +1202,7 @@ function __validate_sql_structure() {
  fi
 
  # Check for basic SQL syntax (simple validation)
- if ! grep -q -E "(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|BEGIN|COMMIT)" "${SQL_FILE}"; then
+ if ! grep -q -E "(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|BEGIN|COMMIT|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE|GRANT|REVOKE|SAVEPOINT|ROLLBACK)" "${SQL_FILE}"; then
   VALIDATION_ERRORS+=("No SQL statements found")
  fi
 

@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
-declare -r VERSION="2025-07-30"
+# Version: 2025-07-31
+declare -r VERSION="2025-07-31"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -255,6 +255,14 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
 # Load error handling functions
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+
+# Load API-specific functions (includes POSTGRES_12_DROP_API_TABLES)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
+
+# Load process functions (includes GEOJSON_TEST and other variables)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 # __start_logger
 # __trapOn
 # __checkBaseTables
@@ -352,7 +360,7 @@ function __checkPrereqs {
 
  ## Validate XML schema files
  __logi "Validating XML schema files..."
- if ! __validate_xml_structure "${XMLSCHEMA_PLANET_NOTES}" "osm-notes"; then
+ if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
   __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi

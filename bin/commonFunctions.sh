@@ -151,8 +151,14 @@ function __checkBaseTables {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- psql -d "${DBNAME}" -f "${POSTGRES_11_CHECK_BASE_TABLES}"
+ if ! psql -d "${DBNAME}" -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2> /dev/null; then
+  __logw "Base tables are missing. They will be created."
+  __log_finish
+  return 1
+ fi
+ __logi "Base tables exist."
  __log_finish
+ return 0
 }
 
 # Drop generic objects

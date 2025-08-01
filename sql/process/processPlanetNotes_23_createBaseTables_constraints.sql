@@ -3,9 +3,10 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-07-11
 
-ALTER TABLE users
- ADD CONSTRAINT pk_users
- PRIMARY KEY (user_id);
+-- Users table already has PRIMARY KEY defined in CREATE TABLE
+-- ALTER TABLE users
+--  ADD CONSTRAINT pk_users
+--  PRIMARY KEY (user_id);
 
 ALTER TABLE notes
  ADD CONSTRAINT pk_notes
