@@ -4,12 +4,22 @@
 # This file contains validation functions used across different scripts.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-31
+# Version: 2025-08-01
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
 # Note: This file expects to be sourced after commonFunctions.sh which provides logging functions
 # If sourced directly, ensure commonFunctions.sh is loaded first
+
+# Load common functions if not already loaded
+if [[ -z "${__COMMON_FUNCTIONS_LOADED:-}" ]]; then
+ # shellcheck disable=SC1091
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+ elif [[ -f "$(dirname "${BASH_SOURCE[0]}")/commonFunctions.sh" ]]; then
+  source "$(dirname "${BASH_SOURCE[0]}")/commonFunctions.sh"
+ fi
+fi
 
 # JSON schema files for validation
 # shellcheck disable=SC2034
@@ -631,13 +641,13 @@ function __validate_coordinates() {
  fi
 
  # Validate latitude range (-90 to 90)
- if (($(echo "${LAT} < -90" | bc -l))) || (($(echo "${LAT} > 90" | bc -l))); then
+ if (( $(echo "${LAT} < -90" | bc -l 2>/dev/null || echo "0") )) || (( $(echo "${LAT} > 90" | bc -l 2>/dev/null || echo "0") )); then
   __loge "ERROR: Latitude out of range (-90 to 90): ${LAT}"
   return 1
  fi
 
  # Validate longitude range (-180 to 180)
- if (($(echo "${LON} < -180" | bc -l))) || (($(echo "${LON} > 180" | bc -l))); then
+ if (( $(echo "${LON} < -180" | bc -l 2>/dev/null || echo "0") )) || (( $(echo "${LON} > 180" | bc -l 2>/dev/null || echo "0") )); then
   __loge "ERROR: Longitude out of range (-180 to 180): ${LON}"
   return 1
  fi
@@ -660,7 +670,7 @@ function __validate_numeric_range() {
  fi
 
  # Validate range
- if (($(echo "${VALUE} < ${MIN}" | bc -l))) || (($(echo "${VALUE} > ${MAX}" | bc -l))); then
+ if (( $(echo "${VALUE} < ${MIN}" | bc -l 2>/dev/null || echo "0") )) || (( $(echo "${VALUE} > ${MAX}" | bc -l 2>/dev/null || echo "0") )); then
   __loge "ERROR: ${DESCRIPTION} out of range (${MIN} to ${MAX}): ${VALUE}"
   return 1
  fi

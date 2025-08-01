@@ -290,6 +290,7 @@ function __getNewNotesFromApi {
   __loge "Network connectivity check failed"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
+  # shellcheck disable=SC2317
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
@@ -302,6 +303,7 @@ function __getNewNotesFromApi {
   __loge "Failed to retrieve last update from database after retries"
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
+  # shellcheck disable=SC2317
   return "${ERROR_NO_LAST_UPDATE}"
  fi
 
@@ -312,6 +314,7 @@ function __getNewNotesFromApi {
   __loge "No last update. Please load notes first."
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
    "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+  # shellcheck disable=SC2317
   return "${ERROR_NO_LAST_UPDATE}"
  fi
 
@@ -330,6 +333,7 @@ function __getNewNotesFromApi {
   __loge "Failed to download API notes after retries"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
    "rm -f ${API_NOTES_FILE} ${OUTPUT_WGET} 2>/dev/null || true"
+  # shellcheck disable=SC2317
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
@@ -347,6 +351,7 @@ function __getNewNotesFromApi {
   GENERATE_FAILED_FILE=false
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API host resolution failed" \
    "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+  # shellcheck disable=SC2317
   return "${ERROR_INTERNET_ISSUE}"
  fi
 

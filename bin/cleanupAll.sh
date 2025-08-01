@@ -210,11 +210,11 @@ function cleanup_all() {
  if ! check_database "${TARGET_DB}"; then
   __logw "Database ${TARGET_DB} does not exist. Skipping database cleanup operations."
   __logi "Continuing with temporary file cleanup only."
-  
+
   # Step 5: Cleanup temporary files
   __logi "Step 1: Cleaning up temporary files"
   cleanup_temp_files
-  
+
   __logi "Cleanup completed (database operations skipped)"
   return 0
  fi

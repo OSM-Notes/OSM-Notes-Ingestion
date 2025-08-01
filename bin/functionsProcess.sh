@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-31
+# Version: 2025-08-01
 
 # shellcheck disable=SC2317,SC2155
 
@@ -2478,7 +2478,7 @@ function __validate_xml_dates() {
 
  # Extract dates using xmlstarlet
  local dates
- dates=$(xmlstarlet sel -t -v "${XPATH_EXPRESSION}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
+  DATES=$(xmlstarlet sel -t -v "${XPATH_EXPRESSION}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
 
  if [[ -z "${DATES}" ]]; then
   echo "WARNING: No dates found in XML file with xpath: ${XPATH_EXPRESSION}" >&2
@@ -2525,8 +2525,8 @@ function __validate_csv_dates() {
 
  # Auto-detect date column if not specified
  if [[ -z "${DATE_COLUMN}" ]]; then
-  local header_line
-  header_line=$(head -1 "${CSV_FILE}")
+  local HEADER_LINE
+  HEADER_LINE=$(head -1 "${CSV_FILE}")
   local COLUMN_NUMBER=1
   local FOUND_DATE_COLUMN=false
 
@@ -2539,7 +2539,7 @@ function __validate_csv_dates() {
     fi
     ((COLUMN_NUMBER++))
    done
-  done <<< "${header_line}"
+  done <<< "${HEADER_LINE}"
 
   if [[ "${FOUND_DATE_COLUMN}" == "false" ]]; then
    echo "WARNING: No date column found in CSV header" >&2
@@ -2548,10 +2548,10 @@ function __validate_csv_dates() {
  fi
 
  # Extract dates from the specified column
- local dates
- dates=$(tail -n +2 "${CSV_FILE}" | cut -d',' -f"${DATE_COLUMN}" | grep -v '^$')
+ local DATES
+ DATES=$(tail -n +2 "${CSV_FILE}" | cut -d',' -f"${DATE_COLUMN}" | grep -v '^$')
 
- if [[ -z "${dates}" ]]; then
+ if [[ -z "${DATES}" ]]; then
   echo "WARNING: No dates found in CSV column ${DATE_COLUMN}" >&2
   return 0
  fi
@@ -2563,7 +2563,7 @@ function __validate_csv_dates() {
   if ! __validate_iso8601_date "${DATE_VALUE}" "ISO 8601"; then
    VALIDATION_ERRORS+=("Line ${LINE_NUMBER}: Invalid date '${DATE_VALUE}'")
   fi
- done <<< "${dates}"
+ done <<< "${DATES}"
 
  # Report validation errors
  if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
@@ -3038,12 +3038,12 @@ function __validate_xml_coordinates() {
  fi
 
  # Extract coordinates using xmlstarlet
- local latitudes
- local longitudes
- latitudes=$(xmlstarlet sel -t -v "${LAT_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
- longitudes=$(xmlstarlet sel -t -v "${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
+ local LATITUDES
+ local LONGITUDES
+ LATITUDES=$(xmlstarlet sel -t -v "${LAT_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
+ LONGITUDES=$(xmlstarlet sel -t -v "${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
 
- if [[ -z "${latitudes}" ]] || [[ -z "${longitudes}" ]]; then
+ if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
   echo "WARNING: No coordinates found in XML file" >&2
   return 0
  fi
@@ -3052,14 +3052,14 @@ function __validate_xml_coordinates() {
  local LINE_NUMBER=0
  while IFS= read -r LAT_VALUE; do
   ((LINE_NUMBER++))
-  LON_VALUE=$(echo "${longitudes}" | sed -n "${LINE_NUMBER}p")
+  LON_VALUE=$(echo "${LONGITUDES}" | sed -n "${LINE_NUMBER}p")
 
   if [[ -n "${LON_VALUE}" ]]; then
    if ! __validate_coordinates "${LAT_VALUE}" "${LON_VALUE}"; then
     VALIDATION_ERRORS+=("Line ${LINE_NUMBER}: Invalid coordinates lat=${LAT_VALUE}, lon=${LON_VALUE}")
    fi
   fi
- done <<< "${latitudes}"
+ done <<< "${LATITUDES}"
 
  # Report validation errors
  if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
@@ -3094,8 +3094,8 @@ function __validate_csv_coordinates() {
 
  # Auto-detect coordinate columns if not specified
  if [[ -z "${LAT_COLUMN}" ]] || [[ -z "${LON_COLUMN}" ]]; then
-  local header_line
-  header_line=$(head -1 "${CSV_FILE}")
+  local HEADER_LINE
+  HEADER_LINE=$(head -1 "${CSV_FILE}")
   local COLUMN_NUMBER=1
   local FOUND_LAT=false
   local FOUND_LON=false
@@ -3111,7 +3111,7 @@ function __validate_csv_coordinates() {
     fi
     ((COLUMN_NUMBER++))
    done
-  done <<< "${header_line}"
+  done <<< "${HEADER_LINE}"
 
   if [[ "${FOUND_LAT}" == "false" ]] || [[ "${FOUND_LON}" == "false" ]]; then
    echo "WARNING: Coordinate columns not found in CSV header" >&2
@@ -3120,10 +3120,10 @@ function __validate_csv_coordinates() {
  fi
 
  # Extract coordinates from the specified columns
- local coordinates
- coordinates=$(tail -n +2 "${CSV_FILE}" | cut -d',' -f"${LAT_COLUMN},${LON_COLUMN}" | grep -v '^$')
+ local COORDINATES
+ COORDINATES=$(tail -n +2 "${CSV_FILE}" | cut -d',' -f"${LAT_COLUMN},${LON_COLUMN}" | grep -v '^$')
 
- if [[ -z "${coordinates}" ]]; then
+ if [[ -z "${COORDINATES}" ]]; then
   echo "WARNING: No coordinates found in CSV columns" >&2
   return 0
  fi
@@ -3142,7 +3142,7 @@ function __validate_csv_coordinates() {
     VALIDATION_ERRORS+=("Line ${LINE_NUMBER}: Invalid coordinates lat=${LAT_VALUE}, lon=${LON_VALUE}")
    fi
   fi
- done <<< "${coordinates}"
+ done <<< "${COORDINATES}"
 
  # Report validation errors
  if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
