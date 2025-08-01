@@ -8,7 +8,7 @@ load "${BATS_TEST_DIRNAME}/../../test_helper.bash"
 
 setup() {
   # Set up test environment
-  export SCRIPT_BASE_DIRECTORY="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+  export SCRIPT_BASE_DIRECTORY="$(cd "${BATS_TEST_DIRNAME}/../../.." && pwd)"
   export BASENAME="test_script"
   export TMP_DIR=$(mktemp -d)
   export LOG_FILENAME="${TMP_DIR}/test.log"

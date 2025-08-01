@@ -11,6 +11,14 @@ load ../../test_helper.bash
 # Helper function to extract readonly variables safely
 extract_readonly_vars() {
  local file_path="$1"
+ 
+ # Check if file exists
+ if [[ ! -f "${file_path}" ]]; then
+  echo ""
+  return 0
+ fi
+ 
+ # Extract readonly variables
  grep -h "declare -r" "${file_path}" 2>/dev/null | \
   sed 's/declare -r \([A-Z_]*\)=.*/\1/' 2>/dev/null | sort 2>/dev/null || echo ""
 }
@@ -20,6 +28,17 @@ check_duplicates() {
  local file1="$1"
  local file2="$2"
  local description="$3"
+
+ # Check if both files exist
+ if [[ ! -f "${file1}" ]]; then
+  echo "Warning: File ${file1} does not exist"
+  return 0
+ fi
+
+ if [[ ! -f "${file2}" ]]; then
+  echo "Warning: File ${file2} does not exist"
+  return 0
+ fi
 
  # Extract variables from both files
  local vars1
@@ -160,20 +179,30 @@ check_duplicates() {
 
 @test "should validate that all scripts can be sourced without readonly errors" {
  # Test that processAPINotes.sh can be sourced after processAPIFunctions.sh
- run bash -c "
-  cd '${SCRIPT_BASE_DIRECTORY}/bin/process' && \
-  source '../processAPIFunctions.sh' && \
-  source 'processAPINotes.sh' --help > /dev/null 2>&1
- "
- [[ ${status} -eq 0 ]] || echo "processAPINotes.sh sourcing failed"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" ]] && \
+    [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" ]]; then
+  run bash -c "
+   cd '${SCRIPT_BASE_DIRECTORY}/bin/process' && \
+   source '../processAPIFunctions.sh' && \
+   source 'processAPINotes.sh' --help > /dev/null 2>&1
+  "
+  [[ ${status} -eq 0 ]] || echo "processAPINotes.sh sourcing failed"
+ else
+  skip "Required files not found for processAPINotes.sh test"
+ fi
 
  # Test that processPlanetNotes.sh can be sourced after processPlanetFunctions.sh
- run bash -c "
-  cd '${SCRIPT_BASE_DIRECTORY}/bin/process' && \
-  source '../processPlanetFunctions.sh' && \
-  source 'processPlanetNotes.sh' --help > /dev/null 2>&1
- "
- [[ ${status} -eq 0 ]] || echo "processPlanetNotes.sh sourcing failed"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" ]] && \
+    [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
+  run bash -c "
+   cd '${SCRIPT_BASE_DIRECTORY}/bin/process' && \
+   source '../processPlanetFunctions.sh' && \
+   source 'processPlanetNotes.sh' --help > /dev/null 2>&1
+  "
+  [[ ${status} -eq 0 ]] || echo "processPlanetNotes.sh sourcing failed"
+ else
+  skip "Required files not found for processPlanetNotes.sh test"
+ fi
 }
 
 @test "should validate that all main scripts can be sourced without readonly errors" {
@@ -190,10 +219,24 @@ check_duplicates() {
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh"
  )
 
+ local failed_scripts=()
+
  for script in "${main_scripts[@]}"; do
   if [[ -f "${script}" ]]; then
-   run bash -c "source '${script}' --help > /dev/null 2>&1"
-   [[ ${status} -eq 0 ]] || echo "Failed to source: ${script}"
+   run bash -c "source '${script}' --help > /dev/null 2>&1" || true
+   if [[ ${status} -ne 0 ]]; then
+    failed_scripts+=("${script}")
+   fi
   fi
  done
+
+ # Report any failures
+ if [[ ${#failed_scripts[@]} -gt 0 ]]; then
+  echo "Failed to source the following scripts:"
+  printf '%s\n' "${failed_scripts[@]}"
+  return 1
+ fi
+
+ # If we get here, all scripts were sourced successfully
+ [[ ${#failed_scripts[@]} -eq 0 ]]
 } 

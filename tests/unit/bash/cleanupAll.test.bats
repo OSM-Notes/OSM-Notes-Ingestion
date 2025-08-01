@@ -54,7 +54,7 @@ SCRIPT_PATH="$(cd "${BATS_TEST_DIRNAME}/../../.." && pwd)/bin/cleanupAll.sh"
 
 # Test 9: Script should have logging functions
 @test "cleanupAll script should have logging functions" {
- run grep -c "log_" "${SCRIPT_PATH}"
+ run grep -c "__log" "${SCRIPT_PATH}"
  [[ "${output}" -gt 0 ]]
 }
 

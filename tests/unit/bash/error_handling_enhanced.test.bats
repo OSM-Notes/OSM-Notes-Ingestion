@@ -14,6 +14,11 @@ setup() {
   export TMP_DIR="$(mktemp -d)"
   export BASENAME="test_error_handling"
   
+  # Ensure TMP_DIR exists and is writable
+  if [[ ! -d "${TMP_DIR}" ]]; then
+    mkdir -p "${TMP_DIR}"
+  fi
+  
   # Source the functions
   source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
   
