@@ -93,26 +93,26 @@ function __circuit_breaker_execute() {
  local EXIT_CODE
  if timeout "${TIMEOUT}" bash -c "${COMMAND}"; then
   __logi "Operation ${OPERATION_NAME} succeeded"
-  
+
   # Reset failure count on success
   CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]=0
   CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="CLOSED"
-  
+
   return 0
  else
   EXIT_CODE=$?
   __loge "ERROR: Operation ${OPERATION_NAME} failed with exit code ${EXIT_CODE}"
-  
+
   # Update failure tracking
   CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]=$((FAILURE_COUNT + 1))
   CIRCUIT_BREAKER_LAST_FAILURE_TIME[${OPERATION_NAME}]=${CURRENT_TIME}
-  
+
   # Check if threshold exceeded
   if [[ "${CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]}" -ge "${FAILURE_THRESHOLD}" ]]; then
    __logw "WARNING: Circuit breaker opened for ${OPERATION_NAME}"
    CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="OPEN"
   fi
-  
+
   return "${EXIT_CODE}"
  fi
 }

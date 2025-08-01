@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
-declare -r VERSION="2025-07-27"
+# Version: 2025-07-30
+declare -r VERSION="2025-07-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -127,7 +127,7 @@ function __checkPrereqs {
  __logi "Validating SQL script files..."
 
  # Create array of SQL files to validate
- local sql_files=(
+ local SQL_FILES=(
   "${CHECK_OBJECTS_FILE}"
   "${CREATE_TABLES_FILE}"
   "${CREATE_PROCEDURES_FILE}"
@@ -137,9 +137,9 @@ function __checkPrereqs {
  )
 
  # Validate each SQL file
- for sql_file in "${sql_files[@]}"; do
-  if ! __validate_sql_structure "${sql_file}"; then
-   __loge "ERROR: SQL file validation failed: ${sql_file}"
+ for SQL_FILE in "${SQL_FILES[@]}"; do
+  if ! __validate_sql_structure "${SQL_FILE}"; then
+   __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  done

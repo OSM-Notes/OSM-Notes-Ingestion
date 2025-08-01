@@ -4,7 +4,7 @@
 # This file contains validation functions used across different scripts.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
+# Version: 2025-07-31
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -13,8 +13,8 @@
 
 # JSON schema files for validation
 # shellcheck disable=SC2034
-declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"
-declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"
+if [[ -z "${JSON_SCHEMA_OVERPASS:-}" ]]; then declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"; fi
+if [[ -z "${JSON_SCHEMA_GEOJSON:-}" ]]; then declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"; fi
 
 # Validate input file
 function __validate_input_file() {
@@ -308,62 +308,62 @@ function __validate_database_extensions() {
 
 # Validate ISO8601 date format
 function __validate_iso8601_date() {
- local date_string="${1}"
- local description="${2:-Date}"
+ local DATE_STRING="${1}"
+ local DESCRIPTION="${2:-Date}"
 
  # Check if date string is not empty
- if [[ -z "${date_string}" ]]; then
-  __loge "ERROR: ${description} is empty"
+ if [[ -z "${DATE_STRING}" ]]; then
+  __loge "ERROR: ${DESCRIPTION} is empty"
   return 1
  fi
 
  # Validate ISO8601 format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS+HH:MM)
- if ! echo "${date_string}" | grep -q -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$'; then
-  __loge "ERROR: Invalid ISO8601 date format: ${date_string}"
+ if ! echo "${DATE_STRING}" | grep -q -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$'; then
+  __loge "ERROR: Invalid ISO8601 date format: ${DATE_STRING}"
   return 1
  fi
 
  # Validate date components
- local year month day hour minute second
- year=$(echo "${date_string}" | cut -d'T' -f1 | cut -d'-' -f1)
- month=$(echo "${date_string}" | cut -d'T' -f1 | cut -d'-' -f2)
- day=$(echo "${date_string}" | cut -d'T' -f1 | cut -d'-' -f3)
- hour=$(echo "${date_string}" | cut -d'T' -f2 | cut -d':' -f1)
- minute=$(echo "${date_string}" | cut -d'T' -f2 | cut -d':' -f2)
- second=$(echo "${date_string}" | cut -d'T' -f2 | cut -d':' -f3 | cut -d'Z' -f1 | cut -d'+' -f1 | cut -d'-' -f1)
+ local YEAR MONTH DAY HOUR MINUTE SECOND
+ YEAR=$(echo "${DATE_STRING}" | cut -d'T' -f1 | cut -d'-' -f1)
+ MONTH=$(echo "${DATE_STRING}" | cut -d'T' -f1 | cut -d'-' -f2)
+ DAY=$(echo "${DATE_STRING}" | cut -d'T' -f1 | cut -d'-' -f3)
+ HOUR=$(echo "${DATE_STRING}" | cut -d'T' -f2 | cut -d':' -f1)
+ MINUTE=$(echo "${DATE_STRING}" | cut -d'T' -f2 | cut -d':' -f2)
+ SECOND=$(echo "${DATE_STRING}" | cut -d'T' -f2 | cut -d':' -f3 | cut -d'Z' -f1 | cut -d'+' -f1 | cut -d'-' -f1)
 
  # Validate ranges
- if [[ "${year}" -lt 1900 ]] || [[ "${year}" -gt 2100 ]]; then
-  __loge "ERROR: Invalid year: ${year}"
+ if [[ "${YEAR}" -lt 1900 ]] || [[ "${YEAR}" -gt 2100 ]]; then
+  __loge "ERROR: Invalid year: ${YEAR}"
   return 1
  fi
 
- if [[ "${month}" -lt 1 ]] || [[ "${month}" -gt 12 ]]; then
-  __loge "ERROR: Invalid month: ${month}"
+ if [[ "${MONTH}" -lt 1 ]] || [[ "${MONTH}" -gt 12 ]]; then
+  __loge "ERROR: Invalid month: ${MONTH}"
   return 1
  fi
 
- if [[ "${day}" -lt 1 ]] || [[ "${day}" -gt 31 ]]; then
-  __loge "ERROR: Invalid day: ${day}"
+ if [[ "${DAY}" -lt 1 ]] || [[ "${DAY}" -gt 31 ]]; then
+  __loge "ERROR: Invalid day: ${DAY}"
   return 1
  fi
 
- if [[ "${hour}" -lt 0 ]] || [[ "${hour}" -gt 23 ]]; then
-  __loge "ERROR: Invalid hour: ${hour}"
+ if [[ "${HOUR}" -lt 0 ]] || [[ "${HOUR}" -gt 23 ]]; then
+  __loge "ERROR: Invalid hour: ${HOUR}"
   return 1
  fi
 
- if [[ "${minute}" -lt 0 ]] || [[ "${minute}" -gt 59 ]]; then
-  __loge "ERROR: Invalid minute: ${minute}"
+ if [[ "${MINUTE}" -lt 0 ]] || [[ "${MINUTE}" -gt 59 ]]; then
+  __loge "ERROR: Invalid minute: ${MINUTE}"
   return 1
  fi
 
- if [[ "${second}" -lt 0 ]] || [[ "${second}" -gt 59 ]]; then
-  __loge "ERROR: Invalid second: ${second}"
+ if [[ "${SECOND}" -lt 0 ]] || [[ "${SECOND}" -gt 59 ]]; then
+  __loge "ERROR: Invalid second: ${SECOND}"
   return 1
  fi
 
- __logd "ISO8601 date validation passed: ${date_string}"
+ __logd "ISO8601 date validation passed: ${DATE_STRING}"
  return 0
 }
 
@@ -451,71 +451,71 @@ function __validate_csv_dates() {
 
 # Validate file checksum
 function __validate_file_checksum() {
- local file_path="${1}"
- local expected_checksum="${2}"
- local algorithm="${3:-sha256}"
+ local FILE_PATH="${1}"
+ local EXPECTED_CHECKSUM="${2}"
+ local ALGORITHM="${3:-sha256}"
 
- if ! __validate_input_file "${file_path}" "File"; then
+ if ! __validate_input_file "${FILE_PATH}" "File"; then
   return 1
  fi
 
  # Calculate actual checksum
- local actual_checksum
- case "${algorithm}" in
+ local ACTUAL_CHECKSUM
+ case "${ALGORITHM}" in
  md5)
-  actual_checksum=$(md5sum "${file_path}" | cut -d' ' -f1)
+  ACTUAL_CHECKSUM=$(md5sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  sha1)
-  actual_checksum=$(sha1sum "${file_path}" | cut -d' ' -f1)
+  ACTUAL_CHECKSUM=$(sha1sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  sha256)
-  actual_checksum=$(sha256sum "${file_path}" | cut -d' ' -f1)
+  ACTUAL_CHECKSUM=$(sha256sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  *)
-  __loge "ERROR: Unsupported checksum algorithm: ${algorithm}"
+  __loge "ERROR: Unsupported checksum algorithm: ${ALGORITHM}"
   return 1
   ;;
  esac
 
  # Compare checksums
- if [[ "${actual_checksum}" != "${expected_checksum}" ]]; then
-  __loge "ERROR: Checksum mismatch for ${file_path}"
-  __loge "Expected: ${expected_checksum}"
-  __loge "Actual: ${actual_checksum}"
+ if [[ "${ACTUAL_CHECKSUM}" != "${EXPECTED_CHECKSUM}" ]]; then
+  __loge "ERROR: Checksum mismatch for ${FILE_PATH}"
+  __loge "Expected: ${EXPECTED_CHECKSUM}"
+  __loge "Actual: ${ACTUAL_CHECKSUM}"
   return 1
  fi
 
- __logd "File checksum validation passed: ${file_path}"
+ __logd "File checksum validation passed: ${FILE_PATH}"
  return 0
 }
 
 # Validate file checksum from file
 function __validate_file_checksum_from_file() {
- local file_path="${1}"
- local checksum_file="${2}"
- local algorithm="${3:-sha256}"
+ local FILE_PATH="${1}"
+ local CHECKSUM_FILE="${2}"
+ local ALGORITHM="${3:-sha256}"
 
- if ! __validate_input_file "${file_path}" "File"; then
+ if ! __validate_input_file "${FILE_PATH}" "File"; then
   return 1
  fi
 
- if ! __validate_input_file "${checksum_file}" "Checksum file"; then
+ if ! __validate_input_file "${CHECKSUM_FILE}" "Checksum file"; then
   return 1
  fi
 
  # Extract expected checksum from checksum file
- local expected_checksum
- local filename
- filename=$(basename "${file_path}")
- expected_checksum=$(grep "${filename}" "${checksum_file}" | cut -d' ' -f1)
+ local EXPECTED_CHECKSUM
+ local FILENAME
+ FILENAME=$(basename "${FILE_PATH}")
+ EXPECTED_CHECKSUM=$(grep "${FILENAME}" "${CHECKSUM_FILE}" | cut -d' ' -f1)
 
- if [[ -z "${expected_checksum}" ]]; then
-  __loge "ERROR: No checksum found for ${filename} in ${checksum_file}"
+ if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
+  __loge "ERROR: No checksum found for ${FILENAME} in ${CHECKSUM_FILE}"
   return 1
  fi
 
  # Validate checksum
- if ! __validate_file_checksum "${file_path}" "${expected_checksum}" "${algorithm}"; then
+ if ! __validate_file_checksum "${FILE_PATH}" "${EXPECTED_CHECKSUM}" "${ALGORITHM}"; then
   return 1
  fi
 
@@ -524,58 +524,58 @@ function __validate_file_checksum_from_file() {
 
 # Generate file checksum
 function __generate_file_checksum() {
- local file_path="${1}"
- local algorithm="${2:-sha256}"
+ local FILE_PATH="${1}"
+ local ALGORITHM="${2:-sha256}"
 
- if ! __validate_input_file "${file_path}" "File"; then
+ if ! __validate_input_file "${FILE_PATH}" "File"; then
   return 1
  fi
 
- local checksum
- case "${algorithm}" in
+ local CHECKSUM
+ case "${ALGORITHM}" in
  md5)
-  checksum=$(md5sum "${file_path}" | cut -d' ' -f1)
+  CHECKSUM=$(md5sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  sha1)
-  checksum=$(sha1sum "${file_path}" | cut -d' ' -f1)
+  CHECKSUM=$(sha1sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  sha256)
-  checksum=$(sha256sum "${file_path}" | cut -d' ' -f1)
+  CHECKSUM=$(sha256sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  *)
-  __loge "ERROR: Unsupported checksum algorithm: ${algorithm}"
+  __loge "ERROR: Unsupported checksum algorithm: ${ALGORITHM}"
   return 1
   ;;
  esac
 
- echo "${checksum}"
+ echo "${CHECKSUM}"
  return 0
 }
 
 # Validate directory checksums
 function __validate_directory_checksums() {
- local directory="${1}"
- local checksum_file="${2}"
- local algorithm="${3:-sha256}"
+ local DIRECTORY="${1}"
+ local CHECKSUM_FILE="${2}"
+ local ALGORITHM="${3:-sha256}"
 
- if [[ ! -d "${directory}" ]]; then
-  __loge "ERROR: Directory not found: ${directory}"
+ if [[ ! -d "${DIRECTORY}" ]]; then
+  __loge "ERROR: Directory not found: ${DIRECTORY}"
   return 1
  fi
 
- if ! __validate_input_file "${checksum_file}" "Checksum file"; then
+ if ! __validate_input_file "${CHECKSUM_FILE}" "Checksum file"; then
   return 1
  fi
 
  local FAILED=0
  local FILES
- mapfile -t FILES < <(find "${directory}" -type f -name "*.xml" -o -name "*.csv" -o -name "*.json" 2> /dev/null)
+ mapfile -t FILES < <(find "${DIRECTORY}" -type f -name "*.xml" -o -name "*.csv" -o -name "*.json" 2> /dev/null)
 
  for FILE in "${FILES[@]}"; do
   local RELATIVE_PATH
-  RELATIVE_PATH=$(realpath --relative-to="${directory}" "${FILE}")
+  RELATIVE_PATH=$(realpath --relative-to="${DIRECTORY}" "${FILE}")
 
-  if ! __validate_file_checksum_from_file "${FILE}" "${checksum_file}" "${algorithm}"; then
+  if ! __validate_file_checksum_from_file "${FILE}" "${CHECKSUM_FILE}" "${ALGORITHM}"; then
    __loge "ERROR: Checksum validation failed for ${RELATIVE_PATH}"
    FAILED=1
   fi
@@ -586,20 +586,20 @@ function __validate_directory_checksums() {
   return 1
  fi
 
- __logd "Directory checksum validation passed: ${directory}"
+ __logd "Directory checksum validation passed: ${DIRECTORY}"
  return 0
 }
 
 # Validate JSON schema
 function __validate_json_schema() {
- local json_file="${1}"
- local schema_file="${2}"
+ local JSON_FILE="${1}"
+ local SCHEMA_FILE="${2}"
 
- if ! __validate_input_file "${json_file}" "JSON file"; then
+ if ! __validate_input_file "${JSON_FILE}" "JSON file"; then
   return 1
  fi
 
- if ! __validate_input_file "${schema_file}" "JSON schema file"; then
+ if ! __validate_input_file "${SCHEMA_FILE}" "JSON schema file"; then
   return 1
  fi
 
@@ -610,157 +610,157 @@ function __validate_json_schema() {
  fi
 
  # Validate JSON against schema
- if ! ajv validate -s "${schema_file}" -d "${json_file}"; then
-  __loge "ERROR: JSON schema validation failed: ${json_file}"
+ if ! ajv validate -s "${SCHEMA_FILE}" -d "${JSON_FILE}"; then
+  __loge "ERROR: JSON schema validation failed: ${JSON_FILE}"
   return 1
  fi
 
- __logd "JSON schema validation passed: ${json_file}"
+ __logd "JSON schema validation passed: ${JSON_FILE}"
  return 0
 }
 
 # Validate coordinates
 function __validate_coordinates() {
- local lat="${1}"
- local lon="${2}"
+ local LAT="${1}"
+ local LON="${2}"
 
  # Check if coordinates are numeric
- if ! [[ "${lat}" =~ ^-?[0-9]+\.?[0-9]*$ ]] || ! [[ "${lon}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  __loge "ERROR: Invalid coordinate format: lat=${lat}, lon=${lon}"
+ if ! [[ "${LAT}" =~ ^-?[0-9]+\.?[0-9]*$ ]] || ! [[ "${LON}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  __loge "ERROR: Invalid coordinate format: lat=${LAT}, lon=${LON}"
   return 1
  fi
 
  # Validate latitude range (-90 to 90)
- if (($(echo "${lat} < -90" | bc -l))) || (($(echo "${lat} > 90" | bc -l))); then
-  __loge "ERROR: Latitude out of range (-90 to 90): ${lat}"
+ if (($(echo "${LAT} < -90" | bc -l))) || (($(echo "${LAT} > 90" | bc -l))); then
+  __loge "ERROR: Latitude out of range (-90 to 90): ${LAT}"
   return 1
  fi
 
  # Validate longitude range (-180 to 180)
- if (($(echo "${lon} < -180" | bc -l))) || (($(echo "${lon} > 180" | bc -l))); then
-  __loge "ERROR: Longitude out of range (-180 to 180): ${lon}"
+ if (($(echo "${LON} < -180" | bc -l))) || (($(echo "${LON} > 180" | bc -l))); then
+  __loge "ERROR: Longitude out of range (-180 to 180): ${LON}"
   return 1
  fi
 
- __logd "Coordinate validation passed: lat=${lat}, lon=${lon}"
+ __logd "Coordinate validation passed: lat=${LAT}, lon=${LON}"
  return 0
 }
 
 # Validate numeric range
 function __validate_numeric_range() {
- local value="${1}"
- local min="${2}"
- local max="${3}"
- local description="${4:-Value}"
+ local VALUE="${1}"
+ local MIN="${2}"
+ local MAX="${3}"
+ local DESCRIPTION="${4:-Value}"
 
  # Check if value is numeric
- if ! [[ "${value}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  __loge "ERROR: Invalid numeric format: ${value}"
+ if ! [[ "${VALUE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  __loge "ERROR: Invalid numeric format: ${VALUE}"
   return 1
  fi
 
  # Validate range
- if (($(echo "${value} < ${min}" | bc -l))) || (($(echo "${value} > ${max}" | bc -l))); then
-  __loge "ERROR: ${description} out of range (${min} to ${max}): ${value}"
+ if (($(echo "${VALUE} < ${MIN}" | bc -l))) || (($(echo "${VALUE} > ${MAX}" | bc -l))); then
+  __loge "ERROR: ${DESCRIPTION} out of range (${MIN} to ${MAX}): ${VALUE}"
   return 1
  fi
 
- __logd "Numeric range validation passed: ${value}"
+ __logd "Numeric range validation passed: ${VALUE}"
  return 0
 }
 
 # Validate string pattern
 function __validate_string_pattern() {
- local string="${1}"
- local pattern="${2}"
- local description="${3:-String}"
+ local STRING="${1}"
+ local PATTERN="${2}"
+ local DESCRIPTION="${3:-String}"
 
- if [[ ! "${string}" =~ ${pattern} ]]; then
-  __loge "ERROR: ${description} does not match pattern: ${string}"
+ if [[ ! "${STRING}" =~ ${PATTERN} ]]; then
+  __loge "ERROR: ${DESCRIPTION} does not match pattern: ${STRING}"
   return 1
  fi
 
- __logd "String pattern validation passed: ${string}"
+ __logd "String pattern validation passed: ${STRING}"
  return 0
 }
 
 # Validate XML coordinates
 function __validate_xml_coordinates() {
- local xml_file="${1}"
- local lat_xpath="${2:-//note/@lat}"
- local lon_xpath="${3:-//note/@lon}"
+ local XML_FILE="${1}"
+ local LAT_XPATH="${2:-//note/@lat}"
+ local LON_XPATH="${3:-//note/@lon}"
 
- if ! __validate_input_file "${xml_file}" "XML file"; then
+ if ! __validate_input_file "${XML_FILE}" "XML file"; then
   return 1
  fi
 
- local failed=0
- local coordinates
- mapfile -t coordinates < <(xmllint --xpath "${lat_xpath} | ${lon_xpath}" "${xml_file}" 2> /dev/null | grep -o '[0-9.-]*' || true)
+ local FAILED=0
+ local COORDINATES
+ mapfile -t COORDINATES < <(xmllint --xpath "${LAT_XPATH} | ${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -o '[0-9.-]*' || true)
 
  # Process coordinates in pairs (lat, lon)
- for ((i = 0; i < ${#coordinates[@]}; i += 2)); do
-  local lat="${coordinates[i]}"
-  local lon="${coordinates[i + 1]}"
+ for ((i = 0; i < ${#COORDINATES[@]}; i += 2)); do
+  local LAT="${COORDINATES[i]}"
+  local LON="${COORDINATES[i + 1]}"
 
-  if [[ -n "${lat}" ]] && [[ -n "${lon}" ]]; then
-   if ! __validate_coordinates "${lat}" "${lon}"; then
-    failed=1
+  if [[ -n "${LAT}" ]] && [[ -n "${LON}" ]]; then
+   if ! __validate_coordinates "${LAT}" "${LON}"; then
+    FAILED=1
    fi
   fi
  done
 
- if [[ "${failed}" -eq 1 ]]; then
+ if [[ "${FAILED}" -eq 1 ]]; then
   __loge "ERROR: XML coordinate validation failed"
   return 1
  fi
 
- __logd "XML coordinate validation passed: ${xml_file}"
+ __logd "XML coordinate validation passed: ${XML_FILE}"
  return 0
 }
 
 # Validate CSV coordinates
 function __validate_csv_coordinates() {
- local csv_file="${1}"
- local lat_column="${2:-lat}"
- local lon_column="${3:-lon}"
+ local CSV_FILE="${1}"
+ local LAT_COLUMN="${2:-lat}"
+ local LON_COLUMN="${3:-lon}"
 
- if ! __validate_input_file "${csv_file}" "CSV file"; then
+ if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
   return 1
  fi
 
  # Find column indices
- local header
- header=$(head -n 1 "${csv_file}")
- local lat_index lon_index
- lat_index=$(echo "${header}" | tr ',' '\n' | grep -n "^${lat_column}$" | cut -d: -f1)
- lon_index=$(echo "${header}" | tr ',' '\n' | grep -n "^${lon_column}$" | cut -d: -f1)
+ local HEADER
+ HEADER=$(head -n 1 "${CSV_FILE}")
+ local LAT_INDEX LON_INDEX
+ LAT_INDEX=$(echo "${HEADER}" | tr ',' '\n' | grep -n "^${LAT_COLUMN}$" | cut -d: -f1)
+ LON_INDEX=$(echo "${HEADER}" | tr ',' '\n' | grep -n "^${LON_COLUMN}$" | cut -d: -f1)
 
- if [[ -z "${lat_index}" ]] || [[ -z "${lon_index}" ]]; then
-  __loge "ERROR: Coordinate columns not found: ${lat_column}, ${lon_column}"
+ if [[ -z "${LAT_INDEX}" ]] || [[ -z "${LON_INDEX}" ]]; then
+  __loge "ERROR: Coordinate columns not found: ${LAT_COLUMN}, ${LON_COLUMN}"
   return 1
  fi
 
- local failed=0
+ local FAILED=0
 
  # Read coordinates from CSV
- while IFS=',' read -r -a fields; do
-  local lat="${fields[lat_index - 1]}"
-  local lon="${fields[lon_index - 1]}"
+ while IFS=',' read -r -a FIELDS; do
+  local LAT="${FIELDS[LAT_INDEX - 1]}"
+  local LON="${FIELDS[LON_INDEX - 1]}"
 
-  if [[ -n "${lat}" ]] && [[ -n "${lon}" ]]; then
-   if ! __validate_coordinates "${lat}" "${lon}"; then
-    failed=1
+  if [[ -n "${LAT}" ]] && [[ -n "${LON}" ]]; then
+   if ! __validate_coordinates "${LAT}" "${LON}"; then
+    FAILED=1
    fi
   fi
- done < <(tail -n +2 "${csv_file}")
+ done < <(tail -n +2 "${CSV_FILE}")
 
- if [[ "${failed}" -eq 1 ]]; then
+ if [[ "${FAILED}" -eq 1 ]]; then
   __loge "ERROR: CSV coordinate validation failed"
   return 1
  fi
 
- __logd "CSV coordinate validation passed: ${csv_file}"
+ __logd "CSV coordinate validation passed: ${CSV_FILE}"
  return 0
 }
 

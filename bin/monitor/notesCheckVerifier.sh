@@ -31,8 +31,6 @@
 # Version: 2025-07-27
 declare -r VERSION="2025-07-27"
 
-
-
 #set -xv
 # Fails when a variable is not initialized.
 set -u

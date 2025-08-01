@@ -25,8 +25,8 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
- local COLOR=$1
- local MESSAGE=$2
+ local COLOR="$1"
+ local MESSAGE="$2"
  echo -e "${COLOR}${MESSAGE}${NC}"
 }
 
@@ -318,7 +318,7 @@ main() {
   ;;
  *)
   print_status "${RED}" "❌ ERROR: Unknown command '${COMMAND:-}'"
-  print_status "${YELLOW}" "💡 Use '$0 help' for usage information"
+  print_status "${YELLOW}" "💡 Use '${0}' help' for usage information"
   exit 1
   ;;
  esac

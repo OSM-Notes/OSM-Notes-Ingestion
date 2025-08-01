@@ -4,38 +4,38 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
+# Version: 2025-07-31
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
 # Error codes (common across all scripts)
 # shellcheck disable=SC2034
-declare -r ERROR_HELP_MESSAGE=1
-declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238
-declare -r ERROR_CREATING_REPORT=239
-declare -r ERROR_MISSING_LIBRARY=241
-declare -r ERROR_INVALID_ARGUMENT=242
-declare -r ERROR_LOGGER_UTILITY=243
-declare -r ERROR_DOWNLOADING_BOUNDARY_ID_LIST=244
-declare -r ERROR_NO_LAST_UPDATE=245
-declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246
-declare -r ERROR_DOWNLOADING_NOTES=247
-declare -r ERROR_EXECUTING_PLANET_DUMP=248
-declare -r ERROR_DOWNLOADING_BOUNDARY=249
-declare -r ERROR_GEOJSON_CONVERSION=250
-declare -r ERROR_INTERNET_ISSUE=251
-declare -r ERROR_DATA_VALIDATION=252
-declare -r ERROR_GENERAL=255
+if [[ -z "${ERROR_HELP_MESSAGE:-}" ]]; then declare -r ERROR_HELP_MESSAGE=1; fi
+if [[ -z "${ERROR_PREVIOUS_EXECUTION_FAILED:-}" ]]; then declare -r ERROR_PREVIOUS_EXECUTION_FAILED=238; fi
+if [[ -z "${ERROR_CREATING_REPORT:-}" ]]; then declare -r ERROR_CREATING_REPORT=239; fi
+if [[ -z "${ERROR_MISSING_LIBRARY:-}" ]]; then declare -r ERROR_MISSING_LIBRARY=241; fi
+if [[ -z "${ERROR_INVALID_ARGUMENT:-}" ]]; then declare -r ERROR_INVALID_ARGUMENT=242; fi
+if [[ -z "${ERROR_LOGGER_UTILITY:-}" ]]; then declare -r ERROR_LOGGER_UTILITY=243; fi
+if [[ -z "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST:-}" ]]; then declare -r ERROR_DOWNLOADING_BOUNDARY_ID_LIST=244; fi
+if [[ -z "${ERROR_NO_LAST_UPDATE:-}" ]]; then declare -r ERROR_NO_LAST_UPDATE=245; fi
+if [[ -z "${ERROR_PLANET_PROCESS_IS_RUNNING:-}" ]]; then declare -r ERROR_PLANET_PROCESS_IS_RUNNING=246; fi
+if [[ -z "${ERROR_DOWNLOADING_NOTES:-}" ]]; then declare -r ERROR_DOWNLOADING_NOTES=247; fi
+if [[ -z "${ERROR_EXECUTING_PLANET_DUMP:-}" ]]; then declare -r ERROR_EXECUTING_PLANET_DUMP=248; fi
+if [[ -z "${ERROR_DOWNLOADING_BOUNDARY:-}" ]]; then declare -r ERROR_DOWNLOADING_BOUNDARY=249; fi
+if [[ -z "${ERROR_GEOJSON_CONVERSION:-}" ]]; then declare -r ERROR_GEOJSON_CONVERSION=250; fi
+if [[ -z "${ERROR_INTERNET_ISSUE:-}" ]]; then declare -r ERROR_INTERNET_ISSUE=251; fi
+if [[ -z "${ERROR_DATA_VALIDATION:-}" ]]; then declare -r ERROR_DATA_VALIDATION=252; fi
+if [[ -z "${ERROR_GENERAL:-}" ]]; then declare -r ERROR_GENERAL=255; fi
 
 # Common variables
 # shellcheck disable=SC2034
-declare GENERATE_FAILED_FILE=true
-declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"
-declare PREREQS_CHECKED=false
+if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then declare GENERATE_FAILED_FILE=true; fi
+if [[ -z "${FAILED_EXECUTION_FILE:-}" ]]; then declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"; fi
+if [[ -z "${PREREQS_CHECKED:-}" ]]; then declare PREREQS_CHECKED=false; fi
 
 # Logger framework
 # shellcheck disable=SC2034
-declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+if [[ -z "${LOGGER_UTILITY:-}" ]]; then declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"; fi
 
 # Logger functions
 function __log() { log "${@}"; }
@@ -80,9 +80,9 @@ function __checkPrereqsCommands {
  local MISSING_COMMANDS=()
 
  # Check basic commands
- for cmd in psql xmllint xsltproc curl wget; do
-  if ! command -v "${cmd}" > /dev/null 2>&1; then
-   MISSING_COMMANDS+=("${cmd}")
+ for CMD in psql xmllint xsltproc curl wget; do
+  if ! command -v "${CMD}" > /dev/null 2>&1; then
+   MISSING_COMMANDS+=("${CMD}")
   fi
  done
 
@@ -92,9 +92,9 @@ function __checkPrereqsCommands {
  fi
 
  # Check geospatial processing commands
- for cmd in ogr2ogr gdalinfo; do
-  if ! command -v "${cmd}" > /dev/null 2>&1; then
-   MISSING_COMMANDS+=("${cmd}")
+ for CMD in ogr2ogr gdalinfo; do
+  if ! command -v "${CMD}" > /dev/null 2>&1; then
+   MISSING_COMMANDS+=("${CMD}")
   fi
  done
 
@@ -117,9 +117,9 @@ function __checkPrereqs_functions {
  local MISSING_FUNCTIONS=()
 
  # Check logger functions
- for func in __log __logi __loge; do
-  if ! declare -f "${func}" > /dev/null 2>&1; then
-   MISSING_FUNCTIONS+=("${func}")
+ for FUNC in __log __logi __loge; do
+  if ! declare -f "${FUNC}" > /dev/null 2>&1; then
+   MISSING_FUNCTIONS+=("${FUNC}")
   fi
  done
 
@@ -137,20 +137,20 @@ function __checkPrereqs_functions {
 function __checkBaseTables {
  __log_start
  __logd "Checking base tables."
- 
+
  # Validate that POSTGRES_11_CHECK_BASE_TABLES is defined
  if [[ -z "${POSTGRES_11_CHECK_BASE_TABLES:-}" ]]; then
   __loge "ERROR: POSTGRES_11_CHECK_BASE_TABLES variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate that the SQL file exists
  if [[ ! -f "${POSTGRES_11_CHECK_BASE_TABLES}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_11_CHECK_BASE_TABLES}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  psql -d "${DBNAME}" -f "${POSTGRES_11_CHECK_BASE_TABLES}"
  __log_finish
 }
@@ -159,20 +159,20 @@ function __checkBaseTables {
 function __dropGenericObjects {
  __log_start
  __logd "Dropping generic objects."
- 
+
  # Validate that POSTGRES_12_DROP_GENERIC_OBJECTS is defined
  if [[ -z "${POSTGRES_12_DROP_GENERIC_OBJECTS:-}" ]]; then
   __loge "ERROR: POSTGRES_12_DROP_GENERIC_OBJECTS variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate that the SQL file exists
  if [[ ! -f "${POSTGRES_12_DROP_GENERIC_OBJECTS}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_12_DROP_GENERIC_OBJECTS}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_GENERIC_OBJECTS}"
  __log_finish
 }
@@ -181,20 +181,20 @@ function __dropGenericObjects {
 function __createFunctionToGetCountry {
  __log_start
  __logd "Creating function to get country."
- 
+
  # Validate that POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY is defined
  if [[ -z "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY:-}" ]]; then
   __loge "ERROR: POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate that the SQL file exists
  if [[ ! -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  psql -d "${DBNAME}" -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
  __log_finish
 }
@@ -203,32 +203,32 @@ function __createFunctionToGetCountry {
 function __createProcedures {
  __log_start
  __logd "Creating procedures."
- 
+
  # Validate that POSTGRES_22_CREATE_PROC_INSERT_NOTE is defined
  if [[ -z "${POSTGRES_22_CREATE_PROC_INSERT_NOTE:-}" ]]; then
   __loge "ERROR: POSTGRES_22_CREATE_PROC_INSERT_NOTE variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate that POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT is defined
  if [[ -z "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT:-}" ]]; then
   __loge "ERROR: POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate that the SQL files exist
  if [[ ! -f "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_22_CREATE_PROC_INSERT_NOTE}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  if [[ ! -f "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  psql -d "${DBNAME}" -f "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}"
  psql -d "${DBNAME}" -f "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}"
  __log_finish
@@ -238,20 +238,20 @@ function __createProcedures {
 function __organizeAreas {
  __log_start
  __logd "Organizing areas."
- 
+
  # Validate that POSTGRES_31_ORGANIZE_AREAS is defined
  if [[ -z "${POSTGRES_31_ORGANIZE_AREAS:-}" ]]; then
   __loge "ERROR: POSTGRES_31_ORGANIZE_AREAS variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate that the SQL file exists
  if [[ ! -f "${POSTGRES_31_ORGANIZE_AREAS}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_31_ORGANIZE_AREAS}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  psql -d "${DBNAME}" -f "${POSTGRES_31_ORGANIZE_AREAS}"
  __log_finish
 }
@@ -260,20 +260,20 @@ function __organizeAreas {
 function __getLocationNotes {
  __log_start
  __logd "Getting location notes."
- 
+
  # Validate that POSTGRES_32_UPLOAD_NOTE_LOCATION is defined
  if [[ -z "${POSTGRES_32_UPLOAD_NOTE_LOCATION:-}" ]]; then
   __loge "ERROR: POSTGRES_32_UPLOAD_NOTE_LOCATION variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  # Validate that the SQL file exists
  if [[ ! -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- 
+
  psql -d "${DBNAME}" -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
  __log_finish
 }

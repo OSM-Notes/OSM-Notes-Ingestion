@@ -38,7 +38,16 @@ fi
 
 # Function to check if database exists
 function check_database() {
- local TARGET_DB="${1:-${DBNAME}}"
+ local TARGET_DB="${1:-}"
+
+ # Use provided database name or default from properties
+ if [[ -z "${TARGET_DB}" ]]; then
+  if [[ -n "${DBNAME:-}" ]]; then
+   TARGET_DB="${DBNAME}"
+  else
+   TARGET_DB="osm_notes"
+  fi
+ fi
 
  __logi "Checking if database exists: ${TARGET_DB}"
 
@@ -94,12 +103,12 @@ function cleanup_etl() {
   "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql:DWH Objects"
  )
 
- for script_info in "${ETL_SCRIPTS[@]}"; do
-  IFS=':' read -r script_path script_name <<< "${script_info}"
-  if [[ -f "${script_path}" ]]; then
-   execute_sql_script "${TARGET_DB}" "${script_path}" "${script_name}"
+ for SCRIPT_INFO in "${ETL_SCRIPTS[@]}"; do
+  IFS=':' read -r SCRIPT_PATH SCRIPT_NAME <<< "${SCRIPT_INFO}"
+  if [[ -f "${SCRIPT_PATH}" ]]; then
+   execute_sql_script "${TARGET_DB}" "${SCRIPT_PATH}" "${SCRIPT_NAME}"
   else
-   __logw "Script not found: ${script_path}"
+   __logw "Script not found: ${SCRIPT_PATH}"
   fi
  done
 }
@@ -170,12 +179,12 @@ function cleanup_base() {
   "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql:Generic Objects"
  )
 
- for script_info in "${BASE_SCRIPTS[@]}"; do
-  IFS=':' read -r script_path script_name <<< "${script_info}"
-  if [[ -f "${script_path}" ]]; then
-   execute_sql_script "${TARGET_DB}" "${script_path}" "${script_name}"
+ for SCRIPT_INFO in "${BASE_SCRIPTS[@]}"; do
+  IFS=':' read -r SCRIPT_PATH SCRIPT_NAME <<< "${SCRIPT_INFO}"
+  if [[ -f "${SCRIPT_PATH}" ]]; then
+   execute_sql_script "${TARGET_DB}" "${SCRIPT_PATH}" "${SCRIPT_NAME}"
   else
-   __logw "Script not found: ${script_path}"
+   __logw "Script not found: ${SCRIPT_PATH}"
   fi
  done
 }
@@ -199,7 +208,15 @@ function cleanup_all() {
 
  # Step 1: Check if database exists
  if ! check_database "${TARGET_DB}"; then
-  return 1
+  __logw "Database ${TARGET_DB} does not exist. Skipping database cleanup operations."
+  __logi "Continuing with temporary file cleanup only."
+  
+  # Step 5: Cleanup temporary files
+  __logi "Step 1: Cleaning up temporary files"
+  cleanup_temp_files
+  
+  __logi "Cleanup completed (database operations skipped)"
+  return 0
  fi
 
  # Step 2: Cleanup ETL components
@@ -272,11 +289,13 @@ function main() {
  fi
 
  # Use parameter or default from properties
- local TARGET_DB="${DBNAME_PARAM:-${DBNAME:-}}"
+ local TARGET_DB="${DBNAME_PARAM:-}"
  if [[ -z "${TARGET_DB}" ]]; then
-  __loge "Database name is required. Please provide a database name or set DBNAME in etc/properties.sh"
-  show_help
-  exit 1
+  if [[ -n "${DBNAME:-}" ]]; then
+   TARGET_DB="${DBNAME}"
+  else
+   TARGET_DB="osm_notes"
+  fi
  fi
 
  __logi "Starting comprehensive cleanup for database: ${TARGET_DB}"

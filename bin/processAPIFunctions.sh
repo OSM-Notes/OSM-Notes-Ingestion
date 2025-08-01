@@ -4,38 +4,38 @@
 # This file contains functions specific to processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
+# Version: 2025-07-31
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
 # API-specific variables
 # shellcheck disable=SC2034
-declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
-declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"
-declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"
-declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"
+if [[ -z "${API_NOTES_FILE:-}" ]]; then declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"; fi
+if [[ -z "${OUTPUT_NOTES_FILE:-}" ]]; then declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"; fi
+if [[ -z "${OUTPUT_NOTE_COMMENTS_FILE:-}" ]]; then declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"; fi
+if [[ -z "${OUTPUT_TEXT_COMMENTS_FILE:-}" ]]; then declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"; fi
 
 # XSLT transformation files for API format
 # shellcheck disable=SC2034
-declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
-declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"
-declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"
+if [[ -z "${XSLT_NOTES_API_FILE:-}" ]]; then declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"; fi
+if [[ -z "${XSLT_NOTE_COMMENTS_API_FILE:-}" ]]; then declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"; fi
+if [[ -z "${XSLT_TEXT_COMMENTS_API_FILE:-}" ]]; then declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"; fi
 
 # XML Schema of the API notes file
 # shellcheck disable=SC2034
-declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
+if [[ -z "${XMLSCHEMA_API_NOTES:-}" ]]; then declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"; fi
 
 # PostgreSQL SQL script files for API
 # shellcheck disable=SC2034
-declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_12_dropApiTables.sql"
-declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
-declare -r POSTGRES_22_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"
-declare -r POSTGRES_23_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
-declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
-declare -r POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
-declare -r POSTGRES_33_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_33_loadNewTextComments.sql"
-declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_34_updateLastValues.sql"
-declare -r POSTGRES_35_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_35_consolidatePartitions.sql"
+if [[ -z "${POSTGRES_12_DROP_API_TABLES:-}" ]]; then declare -r POSTGRES_12_DROP_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_12_dropApiTables.sql"; fi
+if [[ -z "${POSTGRES_21_CREATE_API_TABLES:-}" ]]; then declare -r POSTGRES_21_CREATE_API_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"; fi
+if [[ -z "${POSTGRES_22_CREATE_PARTITIONS:-}" ]]; then declare -r POSTGRES_22_CREATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"; fi
+if [[ -z "${POSTGRES_23_CREATE_PROPERTIES_TABLE:-}" ]]; then declare -r POSTGRES_23_CREATE_PROPERTIES_TABLE="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"; fi
+if [[ -z "${POSTGRES_31_LOAD_API_NOTES:-}" ]]; then declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"; fi
+if [[ -z "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS:-}" ]]; then declare -r POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"; fi
+if [[ -z "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS:-}" ]]; then declare -r POSTGRES_33_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_33_loadNewTextComments.sql"; fi
+if [[ -z "${POSTGRES_34_UPDATE_LAST_VALUES:-}" ]]; then declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_34_updateLastValues.sql"; fi
+if [[ -z "${POSTGRES_35_CONSOLIDATE_PARTITIONS:-}" ]]; then declare -r POSTGRES_35_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_35_consolidatePartitions.sql"; fi
 
 # Count XML notes for API
 function __countXmlNotesAPI() {

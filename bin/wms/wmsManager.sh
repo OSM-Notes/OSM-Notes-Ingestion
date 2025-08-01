@@ -16,6 +16,11 @@ export BASENAME="wmsManager"
 export TMP_DIR="/tmp"
 export LOG_LEVEL="INFO"
 
+# Load validation functions
+if [[ -f "${PROJECT_ROOT}/bin/validationFunctions.sh" ]]; then
+ source "${PROJECT_ROOT}/bin/validationFunctions.sh"
+fi
+
 # Load properties
 if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/properties.sh"
@@ -221,15 +226,15 @@ show_status() {
   fi
 
   # Show basic statistics
-   local NOTE_COUNT
- NOTE_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM wms.notes_wms;\"" | tr -d ' ')
+  local NOTE_COUNT
+  NOTE_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM wms.notes_wms;\"" | tr -d ' ')
 
   print_status "${BLUE}" "📈 WMS Statistics:"
   print_status "${BLUE}" "   - Total notes in WMS: ${NOTE_COUNT}"
 
   # Show trigger information
-   local TRIGGER_COUNT
- TRIGGER_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');\"" | tr -d ' ')
+  local TRIGGER_COUNT
+  TRIGGER_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');\"" | tr -d ' ')
 
   print_status "${BLUE}" "   - Active triggers: ${TRIGGER_COUNT}"
 

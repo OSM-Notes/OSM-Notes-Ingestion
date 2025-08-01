@@ -133,6 +133,10 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 
+# Load process functions (includes PostgreSQL variables)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
 # Shows the help information.
 function __show_help {
  echo "${0} version ${VERSION}."

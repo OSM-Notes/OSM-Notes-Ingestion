@@ -323,10 +323,10 @@ function __monitor_resources {
   return 0
  fi
 
-   local MEMORY_USAGE
-  local DISK_USAGE
-   MEMORY_USAGE=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}')
-  DISK_USAGE=$(df /tmp | tail -1 | awk '{print $5}' | sed 's/%//')
+ local MEMORY_USAGE
+ local DISK_USAGE
+ MEMORY_USAGE=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}')
+ DISK_USAGE=$(df /tmp | tail -1 | awk '{print $5}' | sed 's/%//')
 
  if [[ "${MEMORY_USAGE}" -gt "${MAX_MEMORY_USAGE}" ]]; then
   __logw "High memory usage: ${MEMORY_USAGE}%"
