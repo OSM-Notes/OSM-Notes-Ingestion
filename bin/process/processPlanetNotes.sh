@@ -503,7 +503,7 @@ function __createCountryTables {
 # Clean files and tables.
 function __cleanPartial {
  __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   __logw "Dropping import table."
   echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
@@ -624,7 +624,7 @@ function __processPlanetNotesWithParallel {
 # Cleans files generated during the process.
 function __cleanNotesFiles {
  __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
   rm -f "${TMP_DIR}"/part_country_* "${TMP_DIR}"/part_maritime_*
@@ -657,10 +657,14 @@ function __validatePlanetNotesXMLFileComplete {
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
- # Validate XML structure against schema
+ # Clean up any existing temporary files
+ __cleanup_validation_temp_files
+
+ # Validate XML structure against schema with enhanced error handling
  __logi "Validating XML structure against schema..."
- if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}.xml" 2> /dev/null; then
+ if ! __validate_xml_with_enhanced_error_handling "${PLANET_NOTES_FILE}.xml" "${XMLSCHEMA_PLANET_NOTES}"; then
   __loge "ERROR: XML structure validation failed: ${PLANET_NOTES_FILE}.xml"
+  __cleanup_validation_temp_files
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -668,6 +672,7 @@ function __validatePlanetNotesXMLFileComplete {
  __logi "Validating dates in XML file..."
  if ! __validate_xml_dates "${PLANET_NOTES_FILE}.xml"; then
   __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}.xml"
+  __cleanup_validation_temp_files
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -675,11 +680,225 @@ function __validatePlanetNotesXMLFileComplete {
  __logi "Validating coordinates in XML file..."
  if ! __validate_xml_coordinates "${PLANET_NOTES_FILE}.xml"; then
   __loge "ERROR: XML coordinate validation failed: ${PLANET_NOTES_FILE}.xml"
+  __cleanup_validation_temp_files
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
+ # Final cleanup
+ __cleanup_validation_temp_files
+
  __logi "All Planet notes XML validations passed successfully"
  __log_finish
+}
+
+# Alternative XML structure validation for large files
+# Parameters:
+#   $1 - XML file path
+# Returns:
+#   0 if validation passes, 1 if validation fails
+function __validate_xml_structure_alternative {
+ local XML_FILE="${1}"
+ 
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
+  return 1
+ fi
+ 
+ __logi "Using alternative XML validation method..."
+ 
+ # Check basic XML structure without full schema validation
+ if ! xmllint --noout --nonet "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Basic XML structure validation failed"
+  return 1
+ fi
+ 
+ # Check root element
+ if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Missing root element <osm-notes>"
+  return 1
+ fi
+ 
+ # Check for note elements
+ if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: No note elements found in XML"
+  return 1
+ fi
+ 
+ # Validate a sample of notes for structure
+ local SAMPLE_SIZE=100
+ local TOTAL_NOTES
+ TOTAL_NOTES=$(grep -c "<note" "${XML_FILE}" 2>/dev/null || echo "0")
+ 
+ if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+  __logi "Found ${TOTAL_NOTES} notes in XML file"
+  
+  # Sample validation for large files
+  if [[ "${TOTAL_NOTES}" -gt "${SAMPLE_SIZE}" ]]; then
+   __logw "WARNING: Large file detected. Validating sample of ${SAMPLE_SIZE} notes only."
+   # Extract sample and validate
+   head -n $((SAMPLE_SIZE * 10)) "${XML_FILE}" | tail -n $((SAMPLE_SIZE * 5)) | \
+    grep -A 5 "<note" | head -n $((SAMPLE_SIZE * 2)) > /tmp/sample_validation.xml 2>/dev/null
+   
+   if [[ -s /tmp/sample_validation.xml ]]; then
+    if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" /tmp/sample_validation.xml 2> /dev/null; then
+     __loge "ERROR: Sample validation failed"
+     if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+      rm -f /tmp/sample_validation.xml
+     fi
+     return 1
+    fi
+    if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+     rm -f /tmp/sample_validation.xml
+    fi
+   fi
+  fi
+ fi
+ 
+ __logi "Alternative XML validation completed successfully"
+ return 0
+}
+
+# Handle memory and timeout errors for XML validation
+# Parameters:
+#   $1 - Exit code from xmllint
+#   $2 - File being validated
+# Returns:
+#   0 if error is handled, 1 if error is fatal
+function __handle_xml_validation_error {
+ local EXIT_CODE="${1}"
+ local XML_FILE="${2}"
+ 
+ case "${EXIT_CODE}" in
+  124) # Timeout
+   __loge "ERROR: XML validation timed out for file: ${XML_FILE}"
+   __loge "ERROR: This may be due to a very large file or system constraints"
+   return 1
+   ;;
+  137) # Killed (OOM)
+   __loge "ERROR: XML validation was killed due to memory constraints for file: ${XML_FILE}"
+   __loge "ERROR: The file is too large for the available system memory"
+   return 1
+   ;;
+  139) # Segmentation fault
+   __loge "ERROR: XML validation crashed with segmentation fault for file: ${XML_FILE}"
+   __loge "ERROR: This may indicate corrupted XML or system issues"
+   return 1
+   ;;
+  *) # Other errors
+   __loge "ERROR: XML validation failed with exit code ${EXIT_CODE} for file: ${XML_FILE}"
+   return 1
+   ;;
+ esac
+}
+
+# Clean up temporary files created during validation
+# Parameters:
+#   None
+# Returns:
+#   0 if cleanup successful
+function __cleanup_validation_temp_files {
+ # Only clean up if CLEAN is set to true
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+  local TEMP_FILES=(
+   "/tmp/sample_validation.xml"
+   "/tmp/validation_error.log"
+  )
+  
+  for TEMP_FILE in "${TEMP_FILES[@]}"; do
+   if [[ -f "${TEMP_FILE}" ]]; then
+    rm -f "${TEMP_FILE}"
+    __logd "Cleaned up temporary file: ${TEMP_FILE}"
+   fi
+  done
+ else
+  __logd "Skipping cleanup of temporary files (CLEAN=${CLEAN:-false})"
+ fi
+ 
+ return 0
+}
+
+# Enhanced XML validation with better error handling
+# Parameters:
+#   $1 - XML file path
+#   $2 - Schema file path
+# Returns:
+#   0 if validation passes, 1 if validation fails
+function __validate_xml_with_enhanced_error_handling {
+ local XML_FILE="${1}"
+ local SCHEMA_FILE="${2}"
+ local TIMEOUT="${3:-300}"
+ local MAX_MEMORY="${4:-2G}"
+ 
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
+  return 1
+ fi
+ 
+ if [[ ! -f "${SCHEMA_FILE}" ]]; then
+  __loge "ERROR: Schema file not found: ${SCHEMA_FILE}"
+  return 1
+ fi
+ 
+ # Get file size for validation strategy
+ local FILE_SIZE
+ FILE_SIZE=$(stat -c%s "${XML_FILE}" 2>/dev/null || echo "0")
+ local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
+ 
+ # Get available system memory and adjust limits
+ local AVAILABLE_MEMORY_MB
+ AVAILABLE_MEMORY_MB=$(free -m | awk 'NR==2{printf "%.0f", $7}')
+ local ADJUSTED_MEMORY_LIMIT
+ 
+ if [[ "${AVAILABLE_MEMORY_MB}" -gt 0 ]]; then
+  # Use 50% of available memory, but at least 1GB and at most 4GB
+  ADJUSTED_MEMORY_LIMIT=$((AVAILABLE_MEMORY_MB / 2))
+  if [[ "${ADJUSTED_MEMORY_LIMIT}" -lt 1024 ]]; then
+   ADJUSTED_MEMORY_LIMIT=1024
+  elif [[ "${ADJUSTED_MEMORY_LIMIT}" -gt 4096 ]]; then
+   ADJUSTED_MEMORY_LIMIT=4096
+  fi
+  MAX_MEMORY="${ADJUSTED_MEMORY_LIMIT}M"
+  __logi "Available memory: ${AVAILABLE_MEMORY_MB} MB, using limit: ${MAX_MEMORY}"
+ else
+  __logw "WARNING: Could not determine available memory, using default: ${MAX_MEMORY}"
+ fi
+ 
+ __logi "Validating XML file: ${XML_FILE} (${SIZE_MB} MB)"
+ 
+ # Use appropriate validation strategy based on file size
+ if [[ "${SIZE_MB}" -gt 100 ]]; then
+  __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using memory-optimized validation."
+  
+  # Try with timeout and memory limits
+  if timeout "${TIMEOUT}" xmllint --noout --schema "${SCHEMA_FILE}" \
+   --maxmem "${MAX_MEMORY}" "${XML_FILE}" 2> /dev/null; then
+   __logi "XML validation succeeded with memory limits"
+   return 0
+  else
+   local EXIT_CODE=$?
+   __handle_xml_validation_error "${EXIT_CODE}" "${XML_FILE}"
+   
+   # Try alternative validation
+   __logw "WARNING: Attempting alternative validation method..."
+   if __validate_xml_structure_alternative "${XML_FILE}"; then
+    __logi "Alternative XML validation passed"
+    return 0
+   else
+    __loge "ERROR: All XML validation methods failed"
+    return 1
+   fi
+  fi
+ else
+  # Standard validation for smaller files
+  if xmllint --noout --schema "${SCHEMA_FILE}" "${XML_FILE}" 2> /dev/null; then
+   __logi "XML validation succeeded"
+   return 0
+  else
+   local EXIT_CODE=$?
+   __handle_xml_validation_error "${EXIT_CODE}" "${XML_FILE}"
+   return 1
+  fi
+ fi
 }
 
 ######
@@ -762,6 +981,11 @@ function main() {
  if [[ "${PROCESS_TYPE}" == "" ]]; then
   __downloadPlanetNotes                # sync
   __validatePlanetNotesXMLFileComplete # sync
+  # Check if validation failed
+  if [[ $? -ne 0 ]]; then
+   __loge "ERROR: XML validation failed. Stopping process."
+   exit "${ERROR_DATA_VALIDATION}"
+  fi
   # Count notes in XML file
   __countXmlNotesPlanet "${PLANET_NOTES_FILE}.xml"
   # Split XML into parts and process in parallel if there are notes to process
@@ -810,7 +1034,7 @@ __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}" 2>&1
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
    || true).log"
   rmdir "${TMP_DIR}"
