@@ -2030,8 +2030,11 @@ function __processBoundary {
  # Import into Postgres with retry logic
  __logi "Importing into Postgres for boundary ${ID}."
  __logd "Acquiring lock for boundary ${ID}..."
- local LOCK_OPERATION="mkdir ${LOCK_OGR2OGR} 2> /dev/null"
- local LOCK_CLEANUP="rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+ 
+ # Create a unique lock directory for this process
+ local PROCESS_LOCK="${LOCK_OGR2OGR}.${BASHPID}"
+ local LOCK_OPERATION="mkdir ${PROCESS_LOCK} 2> /dev/null"
+ local LOCK_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
  if ! __retry_file_operation "${LOCK_OPERATION}" 3 2 "${LOCK_CLEANUP}"; then
   __loge "Failed to acquire lock for boundary ${ID}"
@@ -2054,12 +2057,12 @@ function __processBoundary {
   IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
  fi
 
- local IMPORT_CLEANUP="rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+ local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
  if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
   __loge "Failed to import boundary ${ID} into database after retries"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
   return 1
  fi
  __logd "Database import completed for boundary ${ID}"
@@ -2101,12 +2104,12 @@ function __processBoundary {
  if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
   __loge "Failed to process boundary ${ID} data"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Data processing failed for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${LOCK_OGR2OGR} 2>/dev/null || true"
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
   return 1
  fi
  __logd "Data processing completed for boundary ${ID}"
 
- rmdir "${LOCK_OGR2OGR}" 2> /dev/null || true
+ rmdir "${PROCESS_LOCK}" 2> /dev/null || true
  __logi "=== BOUNDARY PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
 }
