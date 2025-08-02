@@ -400,11 +400,12 @@ function __validate_xml_dates() {
  # Validate dates in XML
  for XPATH_QUERY in "${XPATH_QUERIES[@]}"; do
   local DATES
-  DATES=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}Z' || true)
+  # Updated regex to match format: YYYY-MM-DD HH:MM:SS UTC
+  DATES=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\} UTC' || true)
 
   if [[ -n "${DATES}" ]]; then
    while IFS= read -r DATE; do
-    if ! __validate_date_format "${DATE}" "XML date"; then
+    if ! __validate_date_format_utc "${DATE}" "XML date"; then
      __loge "ERROR: Invalid date found in XML: ${DATE}"
      FAILED=1
     fi
@@ -824,37 +825,107 @@ function __validate_date_format() {
  IFS='T:Z' read -r YEAR MONTH DAY HOUR MINUTE SECOND <<< "${DATE_STRING}"
 
  # Check year range
- if [[ "${YEAR}" -lt 1900 ]] || [[ "${YEAR}" -gt 2100 ]]; then
+ if [[ $((10#${YEAR})) -lt 1900 ]] || [[ $((10#${YEAR})) -gt 2100 ]]; then
   __loge "ERROR: ${DESCRIPTION} year out of range: ${YEAR}"
   return 1
  fi
 
  # Check month range
- if [[ "${MONTH}" -lt 1 ]] || [[ "${MONTH}" -gt 12 ]]; then
+ if [[ $((10#${MONTH})) -lt 1 ]] || [[ $((10#${MONTH})) -gt 12 ]]; then
   __loge "ERROR: ${DESCRIPTION} month out of range: ${MONTH}"
   return 1
  fi
 
  # Check day range
- if [[ "${DAY}" -lt 1 ]] || [[ "${DAY}" -gt 31 ]]; then
+ if [[ $((10#${DAY})) -lt 1 ]] || [[ $((10#${DAY})) -gt 31 ]]; then
   __loge "ERROR: ${DESCRIPTION} day out of range: ${DAY}"
   return 1
  fi
 
  # Check hour range
- if [[ "${HOUR}" -lt 0 ]] || [[ "${HOUR}" -gt 23 ]]; then
+ if [[ $((10#${HOUR})) -lt 0 ]] || [[ $((10#${HOUR})) -gt 23 ]]; then
   __loge "ERROR: ${DESCRIPTION} hour out of range: ${HOUR}"
   return 1
  fi
 
  # Check minute range
- if [[ "${MINUTE}" -lt 0 ]] || [[ "${MINUTE}" -gt 59 ]]; then
+ if [[ $((10#${MINUTE})) -lt 0 ]] || [[ $((10#${MINUTE})) -gt 59 ]]; then
   __loge "ERROR: ${DESCRIPTION} minute out of range: ${MINUTE}"
   return 1
  fi
 
  # Check second range
- if [[ "${SECOND}" -lt 0 ]] || [[ "${SECOND}" -gt 59 ]]; then
+ if [[ $((10#${SECOND})) -lt 0 ]] || [[ $((10#${SECOND})) -gt 59 ]]; then
+  __loge "ERROR: ${DESCRIPTION} second out of range: ${SECOND}"
+  return 1
+ fi
+
+ __logd "${DESCRIPTION} validation passed: ${DATE_STRING}"
+ return 0
+}
+
+# Validate date format with UTC timezone
+function __validate_date_format_utc() {
+ local DATE_STRING="${1}"
+ local DESCRIPTION="${2:-Date}"
+
+ if [[ -z "${DATE_STRING}" ]]; then
+  __loge "ERROR: ${DESCRIPTION} is empty"
+  return 1
+ fi
+
+ # Check if date string matches format: YYYY-MM-DD HH:MM:SS UTC
+ if ! [[ "${DATE_STRING}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC$ ]]; then
+  __loge "ERROR: ${DESCRIPTION} does not match UTC format: ${DATE_STRING}"
+  return 1
+ fi
+
+ # Extract date and time components using regex
+ local YEAR MONTH DAY HOUR MINUTE SECOND
+ if [[ "${DATE_STRING}" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})[[:space:]]([0-9]{2}):([0-9]{2}):([0-9]{2})[[:space:]]UTC$ ]]; then
+  YEAR="${BASH_REMATCH[1]}"
+  MONTH="${BASH_REMATCH[2]}"
+  DAY="${BASH_REMATCH[3]}"
+  HOUR="${BASH_REMATCH[4]}"
+  MINUTE="${BASH_REMATCH[5]}"
+  SECOND="${BASH_REMATCH[6]}"
+ else
+  __loge "ERROR: ${DESCRIPTION} format parsing failed: ${DATE_STRING}"
+  return 1
+ fi
+
+ # Check year range
+ if [[ $((10#${YEAR})) -lt 1900 ]] || [[ $((10#${YEAR})) -gt 2100 ]]; then
+  __loge "ERROR: ${DESCRIPTION} year out of range: ${YEAR}"
+  return 1
+ fi
+
+ # Check month range
+ if [[ $((10#${MONTH})) -lt 1 ]] || [[ $((10#${MONTH})) -gt 12 ]]; then
+  __loge "ERROR: ${DESCRIPTION} month out of range: ${MONTH}"
+  return 1
+ fi
+
+ # Check day range
+ if [[ $((10#${DAY})) -lt 1 ]] || [[ $((10#${DAY})) -gt 31 ]]; then
+  __loge "ERROR: ${DESCRIPTION} day out of range: ${DAY}"
+  return 1
+ fi
+
+ # Check hour range
+ if [[ $((10#${HOUR})) -lt 0 ]] || [[ $((10#${HOUR})) -gt 23 ]]; then
+  __loge "ERROR: ${DESCRIPTION} hour out of range: ${HOUR}"
+  return 1
+ fi
+
+ # Check minute range
+ if [[ $((10#${MINUTE})) -lt 0 ]] || [[ $((10#${MINUTE})) -gt 59 ]]; then
+  __loge "ERROR: ${DESCRIPTION} minute out of range: ${MINUTE}"
+  return 1
+ fi
+
+ # Check second range
+ if [[ $((10#${SECOND})) -lt 0 ]] || [[ $((10#${SECOND})) -gt 59 ]]; then
   __loge "ERROR: ${DESCRIPTION} second out of range: ${SECOND}"
   return 1
  fi

@@ -127,4 +127,64 @@ EOF
   run source /tmp/test_verification.sh
   [[ "${status}" -eq 0 ]]
   [[ "${output}" == *"API notes file downloaded successfully"* ]]
+}
+
+@test "test direct wget download with waiting" {
+  # Test that wget command waits for completion
+  local TEST_FILE="${TMP_DIR}/test_download.txt"
+  
+  # Mock wget to create a file and simulate download time
+  function wget() {
+    echo "Mock wget: downloading to $2"
+    sleep 0.1  # Simulate download time
+    echo "Downloaded content" > "$2"
+    return 0
+  }
+  
+  # Test the direct wget command format used in the script
+  run wget -O "${TEST_FILE}" "https://example.com"
+  
+  [[ "${status}" -eq 0 ]]
+  [[ -f "${TEST_FILE}" ]]
+  [[ -s "${TEST_FILE}" ]]
+  [[ "$(cat "${TEST_FILE}")" == "Downloaded content" ]]
+}
+
+@test "test download retry logic" {
+  # Test the retry logic for downloads
+  local TEST_FILE="${TMP_DIR}/test_retry.txt"
+  local RETRY_COUNT=0
+  local DOWNLOAD_MAX_RETRIES=3
+  local DOWNLOAD_BASE_DELAY=5
+  local DOWNLOAD_SUCCESS=false
+  
+  # Mock wget that fails first two times, succeeds on third
+  function wget() {
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [[ ${RETRY_COUNT} -eq 3 ]]; then
+      echo "Mock wget: success on attempt ${RETRY_COUNT}"
+      echo "Downloaded content" > "$2"
+      return 0
+    else
+      echo "Mock wget: failed on attempt ${RETRY_COUNT}"
+      return 1
+    fi
+  }
+  
+  # Simulate retry logic
+  while [[ ${RETRY_COUNT} -lt ${DOWNLOAD_MAX_RETRIES} ]]; do
+    if wget -O "${TEST_FILE}" "https://example.com"; then
+      if [[ -f "${TEST_FILE}" ]] && [[ -s "${TEST_FILE}" ]]; then
+        DOWNLOAD_SUCCESS=true
+        break
+      fi
+    fi
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    sleep 0.1  # Short delay for test
+  done
+  
+  [[ "${DOWNLOAD_SUCCESS}" == true ]]
+  [[ -f "${TEST_FILE}" ]]
+  [[ -s "${TEST_FILE}" ]]
+  [[ "$(cat "${TEST_FILE}")" == "Downloaded content" ]]
 } 

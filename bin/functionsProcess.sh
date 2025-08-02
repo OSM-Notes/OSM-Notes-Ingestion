@@ -2664,19 +2664,19 @@ function __validate_xml_dates() {
  fi
 
  # Extract dates using xmlstarlet
- local dates
-  DATES=$(xmlstarlet sel -t -v "${XPATH_EXPRESSION}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
+ local DATES
+ DATES=$(xmlstarlet sel -t -v "${XPATH_EXPRESSION}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
 
  if [[ -z "${DATES}" ]]; then
   echo "WARNING: No dates found in XML file with xpath: ${XPATH_EXPRESSION}" >&2
   return 0
  fi
 
- # Validate each date
+ # Validate each date using UTC format validation
  local LINE_NUMBER=0
  while IFS= read -r DATE_VALUE; do
   ((LINE_NUMBER++))
-  if ! __validate_iso8601_date "${DATE_VALUE}" "ISO 8601"; then
+  if ! __validate_date_format_utc "${DATE_VALUE}" "XML date"; then
    VALIDATION_ERRORS+=("Line ${LINE_NUMBER}: Invalid date '${DATE_VALUE}'")
   fi
  done <<< "${DATES}"

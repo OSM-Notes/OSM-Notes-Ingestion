@@ -343,11 +343,42 @@ function __getNewNotesFromApi {
  local OUTPUT_WGET="${TMP_DIR}/${BASENAME}.wget.log"
 
  # Use retry logic for API download
- local DOWNLOAD_OPERATION="wget -O ${API_NOTES_FILE} ${REQUEST} > ${OUTPUT_WGET} 2>&1"
+ local DOWNLOAD_OPERATION="wget -O ${API_NOTES_FILE} ${REQUEST}"
  local DOWNLOAD_CLEANUP="rm -f ${OUTPUT_WGET} 2>/dev/null || true"
 
- if ! __retry_file_operation "${DOWNLOAD_OPERATION}" 3 5 "${DOWNLOAD_CLEANUP}"; then
-  __loge "Failed to download API notes after retries"
+ # Execute download with proper waiting
+ local DOWNLOAD_SUCCESS=false
+ local RETRY_COUNT=0
+ local DOWNLOAD_MAX_RETRIES=3
+ local DOWNLOAD_BASE_DELAY=5
+
+ while [[ ${RETRY_COUNT} -lt ${DOWNLOAD_MAX_RETRIES} ]]; do
+  __logd "Download attempt $((RETRY_COUNT + 1))/${DOWNLOAD_MAX_RETRIES}"
+  
+  # Execute wget and wait for it to complete
+  if wget -O "${API_NOTES_FILE}" "${REQUEST}"; then
+   # Check if file exists and has content
+   if [[ -f "${API_NOTES_FILE}" ]] && [[ -s "${API_NOTES_FILE}" ]]; then
+    DOWNLOAD_SUCCESS=true
+    __logd "Download completed successfully"
+    break
+   else
+    __logw "Download completed but file is missing or empty"
+   fi
+  else
+   __logw "Download failed on attempt $((RETRY_COUNT + 1))"
+  fi
+
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  
+  if [[ ${RETRY_COUNT} -lt ${DOWNLOAD_MAX_RETRIES} ]]; then
+   __logd "Waiting ${DOWNLOAD_BASE_DELAY}s before retry"
+   sleep "${DOWNLOAD_BASE_DELAY}"
+  fi
+ done
+
+ if [[ "${DOWNLOAD_SUCCESS}" == false ]]; then
+  __loge "Failed to download API notes after ${DOWNLOAD_MAX_RETRIES} attempts"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
    "rm -f ${API_NOTES_FILE} ${OUTPUT_WGET} 2>/dev/null || true"
   # shellcheck disable=SC2317
@@ -357,16 +388,12 @@ function __getNewNotesFromApi {
  # Check for specific network errors
  local HOST_API
  HOST_API="$(echo "${OSM_API}" | awk -F/ '{print $3}')"
- local QTY
- set +e
- QTY=$(grep -c "unable to resolve host address '${HOST_API}'" "${OUTPUT_WGET}")
- set -e
- rm "${OUTPUT_WGET}"
-
- if [[ "${QTY}" -eq 1 ]]; then
-  __loge "API unreachable. Probably there are Internet issues."
+ 
+ # Since we're not capturing wget output to a file, we'll check the downloaded file
+ if [[ ! -f "${API_NOTES_FILE}" ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
+  __loge "API unreachable or download failed. Probably there are Internet issues."
   GENERATE_FAILED_FILE=false
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API host resolution failed" \
+  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
    "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
   # shellcheck disable=SC2317
   return "${ERROR_INTERNET_ISSUE}"
@@ -487,13 +514,27 @@ function __insertNewNotesAndComments {
     __logi "Processing insertion part ${PART}"
 
     PROCESS_ID="${$}_${PART}"
-    echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    
+    # Set lock with error handling
+    if ! echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+     __loge "Failed to acquire lock for part ${PART}"
+     exit 1
+    fi
 
     export PROCESS_ID
-    psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
+    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+     -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
+     __loge "Failed to process insertion part ${PART}"
+     # Remove lock even on failure
+     echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+     exit 1
+    fi
 
-    echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    # Remove lock on success
+    if ! echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+     __loge "Failed to remove lock for part ${PART}"
+     exit 1
+    fi
 
     __logi "Completed insertion part ${PART}"
    ) &
@@ -502,16 +543,36 @@ function __insertNewNotesAndComments {
   # Wait for all insertion jobs to complete
   wait
 
+  # Check if any background jobs failed
+  if [[ $? -ne 0 ]]; then
+   __loge "One or more insertion parts failed"
+   exit 1
+  fi
+
  else
   # For small datasets, use single connection
   PROCESS_ID="${$}"
-  echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  
+  # Set lock with error handling
+  if ! echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+   __loge "Failed to acquire lock for single process"
+   exit 1
+  fi
 
   export PROCESS_ID
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"
+  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
+   __loge "Failed to process insertion"
+   # Remove lock even on failure
+   echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+   exit 1
+  fi
 
-  echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  # Remove lock on success
+  if ! echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+   __loge "Failed to remove lock for single process"
+   exit 1
+  fi
  fi
 
  __log_finish

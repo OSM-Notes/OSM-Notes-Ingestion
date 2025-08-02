@@ -28,7 +28,7 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading notes from API partition ' || current_setting('app.part_id', true) AS Text;
 
 -- Load notes into specific partition
-COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status, part_id)
+COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status, id_country, part_id)
 FROM '${OUTPUT_NOTES_PART}' csv;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
