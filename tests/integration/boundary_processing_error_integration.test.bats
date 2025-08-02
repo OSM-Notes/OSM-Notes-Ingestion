@@ -464,4 +464,42 @@ EOF
   # Should have at least one Austria import and one standard import
   [[ $austria_imports -gt 0 ]]
   [[ $standard_imports -gt 0 ]]
+}
+
+# Test that validates Planet notes download functionality
+@test "should validate Planet notes download functionality" {
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  
+  # Test that PLANET_NOTES_NAME is correctly set
+  run grep -q "PLANET_NOTES_NAME.*planet-notes-latest.osn" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that the download operation uses aria2c
+  run grep -q "aria2c.*PLANET_NOTES_NAME.*bz2" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that the file is moved to the expected location
+  run grep -q "mv.*PLANET_NOTES_NAME.*PLANET_NOTES_FILE" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that the MD5 download uses wget
+  run grep -q "wget.*PLANET_NOTES_NAME.*bz2.md5" "$functions_file"
+  [ "$status" -eq 0 ]
+}
+
+# Test that validates file name consistency in Planet download
+@test "should validate file name consistency in Planet download" {
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  
+  # Test that the download and validation use consistent file names
+  local download_operations=$(grep -c "PLANET_NOTES_NAME.*bz2" "$functions_file")
+  local validation_operations=$(grep -c "PLANET_NOTES_FILE.*bz2" "$functions_file")
+  
+  # Should have both download and validation operations
+  [[ $download_operations -gt 0 ]]
+  [[ $validation_operations -gt 0 ]]
+  
+  # Test that the file move operation is present
+  run grep -q "mv.*PLANET_NOTES_NAME.*PLANET_NOTES_FILE" "$functions_file"
+  [ "$status" -eq 0 ]
 } 
