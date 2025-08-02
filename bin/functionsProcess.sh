@@ -1965,7 +1965,7 @@ function __processBoundary {
 
  # Validate the JSON with a JSON schema
  __logi "Validating JSON structure for boundary ${ID}..."
- if ! __validate_json_structure "${JSON_FILE}" "osm"; then
+ if ! __validate_json_structure "${JSON_FILE}" "elements"; then
   __loge "JSON validation failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID}" \
    "rm -f ${JSON_FILE} 2>/dev/null || true"
@@ -1988,7 +1988,7 @@ function __processBoundary {
 
  # Validate the GeoJSON with a JSON schema
  __logd "Validating GeoJSON structure for boundary ${ID}..."
- if ! __validate_json_structure "${GEOJSON_FILE}" "FeatureCollection"; then
+ if ! __validate_json_structure "${GEOJSON_FILE}" "features"; then
   __loge "GeoJSON validation failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
@@ -3632,14 +3632,14 @@ function __reset_circuit_breaker() {
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_file_operation() {
  local OPERATION_COMMAND="$1"
- local MAX_RETRIES="${2:-3}"
- local BASE_DELAY="${3:-2}"
+ local MAX_RETRIES_LOCAL="${2:-3}"
+ local BASE_DELAY_LOCAL="${3:-2}"
  local CLEANUP_COMMAND="${4:-}"
  local RETRY_COUNT=0
 
  echo "DEBUG: Executing file operation with retry logic: ${OPERATION_COMMAND}" >&2
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
   if eval "${OPERATION_COMMAND}"; then
    echo "DEBUG: File operation succeeded on attempt $((RETRY_COUNT + 1))" >&2
    return 0
@@ -3647,9 +3647,9 @@ function __retry_file_operation() {
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
 
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
-   echo "WARNING: File operation failed on attempt ${RETRY_COUNT}, retrying in ${BASE_DELAY}s" >&2
-   sleep "${BASE_DELAY}"
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
+   echo "WARNING: File operation failed on attempt ${RETRY_COUNT}, retrying in ${BASE_DELAY_LOCAL}s" >&2
+   sleep "${BASE_DELAY_LOCAL}"
   fi
  done
 
@@ -3663,6 +3663,6 @@ function __retry_file_operation() {
   fi
  fi
 
- echo "ERROR: File operation failed after ${MAX_RETRIES} attempts" >&2
+ echo "ERROR: File operation failed after ${MAX_RETRIES_LOCAL} attempts" >&2
  return 1
 }
