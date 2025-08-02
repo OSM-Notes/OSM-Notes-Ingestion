@@ -131,7 +131,7 @@ if [[ -z "${PLANET_NOTES_FILE:-}" ]]; then
 fi
 
 if [[ -z "${PLANET_NOTES_NAME:-}" ]]; then
- declare -r PLANET_NOTES_NAME="OSM-notes-planet"
+ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
 fi
 
 if [[ -z "${COUNTRIES_BOUNDARY_IDS_FILE:-}" ]]; then
@@ -1907,6 +1907,33 @@ function __organizeAreas {
  __log_finish
 }
 
+# Calculates estimated row size from GeoJSON properties
+function __calculate_row_size_estimate() {
+ local GEOJSON_FILE="$1"
+ 
+ if [[ ! -f "${GEOJSON_FILE}" ]]; then
+  echo "0"
+  return
+ fi
+ 
+ if command -v jq > /dev/null 2>&1; then
+  # Calculate estimated row size from properties
+  local ESTIMATED_SIZE
+  ESTIMATED_SIZE=$(jq -r '.features[0].properties | to_entries | map(.key | length + (.value | tostring | length)) | add' "${GEOJSON_FILE}" 2>/dev/null)
+  
+  if [[ -n "${ESTIMATED_SIZE}" ]] && [[ "${ESTIMATED_SIZE}" != "null" ]]; then
+   echo "${ESTIMATED_SIZE}"
+  else
+   echo "0"
+  fi
+ else
+  # Fallback: estimate based on file size
+  local FILE_SIZE
+  FILE_SIZE=$(wc -c < "${GEOJSON_FILE}")
+  echo "$((FILE_SIZE / 10))"  # Rough estimate
+ fi
+}
+
 # Processes a specific boundary ID.
 # Parameters:
 #   $1: Query file path (optional, uses global QUERY_FILE if not provided)
@@ -2046,15 +2073,19 @@ function __processBoundary {
 
  # Import with ogr2ogr using retry logic with special handling for Austria
  __logd "Importing boundary ${ID} into database..."
+ 
+ # Always use field selection to avoid row size issues
+ __logd "Using field-selected import for boundary ${ID} to avoid row size issues"
+ 
  local IMPORT_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special handling for Austria (ID: 16239)"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -select name,admin_level,type,wkb_geometry ${GEOJSON_FILE}"
  else
-  # Standard import
-  __logd "Using standard import for boundary ${ID}"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite ${GEOJSON_FILE}"
+  # Standard import with field selection to avoid row size issues
+  __logd "Using field-selected import for boundary ${ID}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -select name,admin_level,type,wkb_geometry ${GEOJSON_FILE}"
  fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"

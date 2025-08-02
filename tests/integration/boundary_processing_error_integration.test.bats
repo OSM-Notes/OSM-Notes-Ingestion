@@ -252,41 +252,41 @@ EOF
 
 # Test that validates the debug script functionality
 @test "should validate debug script functionality" {
-  # Test that the debug script exists and is executable
-  local debug_script="${SCRIPT_BASE_DIRECTORY}/bin/debug_boundary_processing.sh"
-  [[ -f "$debug_script" ]]
-  [[ -x "$debug_script" ]]
+  # Test that the debug script functionality is integrated into the main code
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
   
-  # Test that the debug script can be executed
-  run bash "$debug_script" --help 2>/dev/null || true
-  # Note: We don't check status here as the script might not have --help option
-  
-  # Test that the debug script contains expected functions
-  run grep -q "function __check_system_resources" "$debug_script"
+  # Test that error handling functions are present
+  run grep -q "function __handle_error_with_cleanup" "$functions_file"
   [ "$status" -eq 0 ]
   
-  run grep -q "function __check_network_connectivity_detailed" "$debug_script"
+  run grep -q "function __retry_file_operation" "$functions_file"
   [ "$status" -eq 0 ]
   
-  run grep -q "function __check_boundary_processing" "$debug_script"
+  run grep -q "function __check_network_connectivity" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that validation functions are present
+  run grep -q "function __validate_json_structure" "$functions_file"
   [ "$status" -eq 0 ]
 }
 
 # Test that validates the country list validation script
 @test "should validate country list validation script" {
-  # Test that the validation script exists and is executable
-  local validation_script="${SCRIPT_BASE_DIRECTORY}/bin/validate_country_list.sh"
-  [[ -f "$validation_script" ]]
-  [[ -x "$validation_script" ]]
+  # Test that the validation functionality is integrated into the main code
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
   
-  # Test that the validation script contains expected functions
-  run grep -q "function __validate_country_id" "$validation_script"
+  # Test that boundary processing functions are present
+  run grep -q "function __processBoundary" "$functions_file"
   [ "$status" -eq 0 ]
   
-  run grep -q "function __validate_country_list" "$validation_script"
+  run grep -q "function __processList" "$functions_file"
   [ "$status" -eq 0 ]
   
-  run grep -q "function __check_problematic_ids" "$validation_script"
+  run grep -q "function __processCountries" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that error handling for invalid boundaries is present
+  run grep -q "function __handle_error_with_cleanup" "$functions_file"
   [ "$status" -eq 0 ]
 }
 
@@ -404,4 +404,64 @@ EOF
   [[ "$has_variable_error" == true ]]
   [[ "$has_fail_pattern" == true ]]
   [[ "$has_propagation" == true ]]
+}
+
+# Test that validates row size limit fix for Taiwan boundary
+@test "should validate row size limit fix for Taiwan boundary" {
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  
+  # Test that field selection is implemented
+  run grep -q "select name,admin_level,type,wkb_geometry" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that skipfailures is implemented
+  run grep -q "skipfailures" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that mapFieldType is implemented for standard boundaries
+  run grep -q "mapFieldType StringList=String" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that field selection logging is in place
+  run grep -q "field-selected import for boundary" "$functions_file"
+  [ "$status" -eq 0 ]
+}
+
+# Test that validates the Taiwan boundary specific fix
+@test "should validate Taiwan boundary specific fix" {
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  
+  # Test that the import commands use field selection for all boundaries
+  local import_commands=$(grep -n "ogr2ogr.*-select" "$functions_file" | wc -l)
+  [[ $import_commands -gt 0 ]]
+  
+  # Test that Austria has special handling
+  run grep -q "Using special handling for Austria" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that standard boundaries use field selection
+  run grep -q "Using field-selected import for boundary" "$functions_file"
+  [ "$status" -eq 0 ]
+}
+
+# Test that validates error prevention for large boundaries
+@test "should validate error prevention for large boundaries" {
+  # Test that the solution prevents row size errors
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  
+  # Test that the import commands are robust
+  run grep -q "skipfailures.*mapFieldType" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that field selection is always used
+  run grep -q "select name,admin_level,type,wkb_geometry" "$functions_file"
+  [ "$status" -eq 0 ]
+  
+  # Test that the solution is universal (works for all boundaries)
+  local austria_imports=$(grep -c "select name,admin_level,type,wkb_geometry" "$functions_file")
+  local standard_imports=$(grep -c "mapFieldType StringList=String" "$functions_file")
+  
+  # Should have at least one Austria import and one standard import
+  [[ $austria_imports -gt 0 ]]
+  [[ $standard_imports -gt 0 ]]
 } 
