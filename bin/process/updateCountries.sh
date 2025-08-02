@@ -119,7 +119,7 @@ function __checkPrereqs {
 # Clean files and tables.
 function __cleanPartial {
  __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${QUERY_FILE}.*" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
  fi

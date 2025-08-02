@@ -2193,7 +2193,7 @@ EOF
    __loge "Failed to process boundary ${ID}"
   fi
 
-  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
    rm -f "${JSON_FILE}" "${GEOJSON_FILE}" "${QUERY_FILE_LOCAL}"
   else
    mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old"
@@ -2285,7 +2285,7 @@ function __processCountries {
     echo "FAILED:${BASHPID}:${I}" >> "${JOB_STATUS_FILE}"
    fi
    __logi "Finished list ${I} - ${BASHPID}."
-   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+   if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${BASHPID}"
    else
     mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"
@@ -2393,7 +2393,7 @@ function __processMaritimes {
    __logi "Starting list ${I} - ${BASHPID}."
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finished list ${I} - ${BASHPID}."
-   if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+   if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${BASHPID}"
    else
     mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"

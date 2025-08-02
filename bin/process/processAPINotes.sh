@@ -547,7 +547,7 @@ function __updateLastValue {
 # Clean files generated during the process.
 function __cleanNotesFiles {
  __log_start
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  fi
@@ -640,7 +640,7 @@ __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"
  main >> "${LOG_FILENAME}" 2>&1
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  fi
