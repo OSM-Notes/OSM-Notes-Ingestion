@@ -613,6 +613,21 @@ function main() {
  set +E
  __getNewNotesFromApi
  set -E
+ 
+ # Verify that the API notes file was downloaded successfully
+ if [[ ! -f "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+ 
+ # Check if the file has content (not empty)
+ if [[ ! -s "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+ 
+ __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
+ 
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
  if [[ "${RESULT}" -ne 0 ]]; then
