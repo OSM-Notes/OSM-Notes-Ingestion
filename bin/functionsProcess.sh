@@ -1809,12 +1809,22 @@ function __downloadPlanetNotes {
  # Download Planet notes with retry logic
  __logw "Retrieving Planet notes file..."
  local DOWNLOAD_OPERATION="aria2c -d ${TMP_DIR} -o ${PLANET_NOTES_NAME}.bz2 -x 8 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
- local DOWNLOAD_CLEANUP="rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
+ local DOWNLOAD_CLEANUP="rm -f ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2 2>/dev/null || true"
 
  if ! __retry_file_operation "${DOWNLOAD_OPERATION}" 3 10 "${DOWNLOAD_CLEANUP}"; then
   __loge "Failed to download Planet notes after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Planet download failed" \
-   "rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
+   "rm -f ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2 2>/dev/null || true"
+ fi
+
+ # Move downloaded file to expected location
+ if [[ -f "${TMP_DIR}/${PLANET_NOTES_NAME}.bz2" ]]; then
+  mv "${TMP_DIR}/${PLANET_NOTES_NAME}.bz2" "${PLANET_NOTES_FILE}.bz2"
+  __logi "Moved downloaded file to expected location: ${PLANET_NOTES_FILE}.bz2"
+ else
+  __loge "ERROR: Downloaded file not found at expected location"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Downloaded file not found" \
+   "rm -f ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2 2>/dev/null || true"
  fi
 
  # Download MD5 file with retry logic
