@@ -31,3 +31,5 @@ tests/tmp/
 # Backup files
 *.bak
 *.backup
+
+prod/
