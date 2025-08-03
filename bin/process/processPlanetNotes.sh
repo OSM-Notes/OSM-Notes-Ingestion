@@ -724,34 +724,90 @@ function __validate_xml_structure_alternative {
   return 1
  fi
 
- # Validate a sample of notes for structure
- local SAMPLE_SIZE=100
+ # Count total notes
  local TOTAL_NOTES
  TOTAL_NOTES=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "Found ${TOTAL_NOTES} notes in XML file"
 
+  # For very large files, use more conservative sampling
+  local SAMPLE_SIZE="${ETL_XML_SAMPLE_SIZE:-50}"
+  if [[ "${TOTAL_NOTES}" -gt 10000 ]]; then
+   SAMPLE_SIZE=25
+  elif [[ "${TOTAL_NOTES}" -gt 100000 ]]; then
+   SAMPLE_SIZE=10
+  fi
+
   # Sample validation for large files
   if [[ "${TOTAL_NOTES}" -gt "${SAMPLE_SIZE}" ]]; then
    __logw "WARNING: Large file detected. Validating sample of ${SAMPLE_SIZE} notes only."
-   # Extract sample and validate
-   head -n $((SAMPLE_SIZE * 10)) "${XML_FILE}" | tail -n $((SAMPLE_SIZE * 5)) \
-    | grep -A 5 "<note" | head -n $((SAMPLE_SIZE * 2)) > /tmp/sample_validation.xml 2> /dev/null
+   
+   # Create a more robust sample extraction
+   local SAMPLE_FILE
+   SAMPLE_FILE=$(mktemp "${TMP_DIR}/sample_validation_XXXXXX.xml" 2> /dev/null)
+   
+   if [[ -n "${SAMPLE_FILE}" ]]; then
+    # Extract sample with proper XML structure
+    {
+     echo '<?xml version="1.0"?>'
+     echo '<osm-notes>'
+     # Get random sample of notes
+     awk -v sample_size="${SAMPLE_SIZE}" -v total="${TOTAL_NOTES}" '
+      /<note/ { 
+       count++; 
+       if (count <= sample_size || (rand() < sample_size / total && count > sample_size)) {
+        in_note = 1; 
+        print; 
+        next 
+       }
+      }
+      in_note { print }
+      /<\/note>/ { 
+       if (in_note) { 
+        in_note = 0; 
+        print 
+       }
+      }
+     ' "${XML_FILE}" | head -n $((SAMPLE_SIZE * 20))
+     echo '</osm-notes>'
+    } > "${SAMPLE_FILE}" 2> /dev/null
 
-   if [[ -s /tmp/sample_validation.xml ]]; then
-    if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" /tmp/sample_validation.xml 2> /dev/null; then
-     __loge "ERROR: Sample validation failed"
+    if [[ -s "${SAMPLE_FILE}" ]]; then
+     # Validate sample against schema with timeout
+     if timeout 60 xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${SAMPLE_FILE}" 2> /dev/null; then
+      __logi "Sample validation passed"
+      if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+       rm -f "${SAMPLE_FILE}"
+      fi
+     else
+      __loge "ERROR: Sample validation failed"
+      if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+       rm -f "${SAMPLE_FILE}"
+      fi
+      return 1
+     fi
+    else
+     __loge "ERROR: Could not create valid sample file"
      if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-      rm -f /tmp/sample_validation.xml
+      rm -f "${SAMPLE_FILE}"
      fi
      return 1
     fi
-    if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-     rm -f /tmp/sample_validation.xml
-    fi
+   else
+    __loge "ERROR: Could not create sample file"
+    return 1
+   fi
+  else
+   # For smaller files, validate the entire file
+   if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" "${XML_FILE}" 2> /dev/null; then
+    __loge "ERROR: Full validation failed"
+    return 1
    fi
   fi
+ else
+  __loge "ERROR: No notes found in XML file"
+  return 1
  fi
 
  __logi "Alternative XML validation completed successfully"
@@ -826,8 +882,8 @@ function __cleanup_validation_temp_files {
 function __validate_xml_with_enhanced_error_handling {
  local XML_FILE="${1}"
  local SCHEMA_FILE="${2}"
- local TIMEOUT="${3:-300}"
- local MAX_MEMORY="${4:-2G}"
+ local TIMEOUT="${3:-${ETL_XML_VALIDATION_TIMEOUT:-300}}"
+ local MAX_MEMORY="${4:-${ETL_XML_MEMORY_LIMIT_MB:-2048}M}"
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
@@ -866,8 +922,21 @@ function __validate_xml_with_enhanced_error_handling {
  __logi "Validating XML file: ${XML_FILE} (${SIZE_MB} MB)"
 
  # Use appropriate validation strategy based on file size
+ local LARGE_FILE_THRESHOLD="${ETL_LARGE_FILE_THRESHOLD_MB:-500}"
  if [[ "${SIZE_MB}" -gt 100 ]]; then
   __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using memory-optimized validation."
+
+  # For very large files, use batch validation instead of full validation
+  if [[ "${SIZE_MB}" -gt "${LARGE_FILE_THRESHOLD}" ]]; then
+   __logw "WARNING: Very large file detected (${SIZE_MB} MB). Using batch validation method."
+   if __validate_xml_in_batches "${XML_FILE}" "${SCHEMA_FILE}"; then
+    __logi "Batch XML validation succeeded"
+    return 0
+   else
+    __loge "ERROR: Batch XML validation failed"
+    return 1
+   fi
+  fi
 
   # Try with timeout and memory limits
   if timeout "${TIMEOUT}" xmllint --noout --schema "${SCHEMA_FILE}" \
@@ -899,6 +968,113 @@ function __validate_xml_with_enhanced_error_handling {
    return 1
   fi
  fi
+}
+
+# Validate XML file in batches to handle very large files
+# Parameters:
+#   $1 - XML file path
+#   $2 - Schema file path
+# Returns:
+#   0 if validation passes, 1 if validation fails
+function __validate_xml_in_batches {
+ local XML_FILE="${1}"
+ local SCHEMA_FILE="${2}"
+ local BATCH_SIZE="${3:-${ETL_XML_BATCH_SIZE:-1000}}"
+ local MAX_BATCHES="${4:-${ETL_XML_MAX_BATCHES:-10}}"
+
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
+  return 1
+ fi
+
+ __logi "Starting batch validation for large XML file..."
+
+ # First, validate basic XML structure
+ if ! xmllint --noout --nonet "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Basic XML structure validation failed"
+  return 1
+ fi
+
+ # Check root element
+ if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Missing root element <osm-notes>"
+  return 1
+ fi
+
+ # Count total notes
+ local TOTAL_NOTES
+ TOTAL_NOTES=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
+ __logi "Found ${TOTAL_NOTES} notes in XML file"
+
+ if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
+  __loge "ERROR: No notes found in XML file"
+  return 1
+ fi
+
+ # Calculate batch size based on total notes
+ local ACTUAL_BATCH_SIZE=$((TOTAL_NOTES / MAX_BATCHES))
+ if [[ "${ACTUAL_BATCH_SIZE}" -lt "${BATCH_SIZE}" ]]; then
+  ACTUAL_BATCH_SIZE="${BATCH_SIZE}"
+ fi
+
+ __logi "Validating ${MAX_BATCHES} batches of approximately ${ACTUAL_BATCH_SIZE} notes each"
+
+ # Create temporary directory for batch files
+ local BATCH_DIR
+ BATCH_DIR=$(mktemp -d "${TMP_DIR}/xml_batch_XXXXXX" 2> /dev/null)
+ if [[ ! -d "${BATCH_DIR}" ]]; then
+  __loge "ERROR: Could not create batch directory"
+  return 1
+ fi
+
+ # Extract and validate batches
+ local BATCH_COUNT=0
+ local SUCCESS_COUNT=0
+ local LINE_NUMBER=1
+
+ while [[ "${BATCH_COUNT}" -lt "${MAX_BATCHES}" ]]; do
+  local BATCH_FILE="${BATCH_DIR}/batch_${BATCH_COUNT}.xml"
+  
+  # Create batch XML with proper structure
+  {
+   echo '<?xml version="1.0"?>'
+   echo '<osm-notes>'
+   # Extract notes for this batch
+   awk -v start="${LINE_NUMBER}" -v batch_size="${ACTUAL_BATCH_SIZE}" '
+    /<note/ { count++; if (count >= start && count < start + batch_size) { in_note = 1; print; next } }
+    in_note { print }
+    /<\/note>/ { if (in_note) { in_note = 0; print } }
+   ' "${XML_FILE}" | head -n $((ACTUAL_BATCH_SIZE * 10))
+   echo '</osm-notes>'
+  } > "${BATCH_FILE}" 2> /dev/null
+
+  if [[ -s "${BATCH_FILE}" ]]; then
+   # Validate batch against schema
+   if xmllint --noout --schema "${SCHEMA_FILE}" "${BATCH_FILE}" 2> /dev/null; then
+    __logd "Batch ${BATCH_COUNT} validation passed"
+    ((SUCCESS_COUNT++))
+   else
+    __loge "ERROR: Batch ${BATCH_COUNT} validation failed"
+    if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+     rm -rf "${BATCH_DIR}"
+    fi
+    return 1
+   fi
+  else
+   __logw "WARNING: Batch ${BATCH_COUNT} is empty, skipping"
+  fi
+
+  ((BATCH_COUNT++))
+  LINE_NUMBER=$((LINE_NUMBER + ACTUAL_BATCH_SIZE))
+ done
+
+ # Cleanup
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+  rm -rf "${BATCH_DIR}"
+ fi
+
+ __logi "Batch validation completed: ${SUCCESS_COUNT}/${BATCH_COUNT} batches passed"
+ return 0
 }
 
 ######
