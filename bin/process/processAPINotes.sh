@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
-declare -r VERSION="2025-08-02"
+# Version: 2025-01-27
+declare -r VERSION="2025-01-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -479,17 +479,90 @@ function __processXMLorPlanet {
   "${NOTES_SYNC_SCRIPT}"
   __logw "Finished full synchronization from Planet."
  else
-  # Split XML into parts and process in parallel if there are notes to process
+  # Check if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-   __splitXmlForParallelAPI "${API_NOTES_FILE}"
-   # Export XSLT variables for parallel processing
-   export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
-   __processXmlPartsParallel "__processApiXmlPart"
+   # Check if we have enough notes to justify parallel processing
+   if [[ "${TOTAL_NOTES}" -ge "${MIN_NOTES_FOR_PARALLEL}" ]]; then
+    __logi "Processing ${TOTAL_NOTES} notes with parallel processing (threshold: ${MIN_NOTES_FOR_PARALLEL})"
+    __splitXmlForParallelAPI "${API_NOTES_FILE}"
+    # Export XSLT variables for parallel processing
+    export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
+    __processXmlPartsParallel "__processApiXmlPart"
+   else
+    __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
+    __processApiXmlSequential "${API_NOTES_FILE}"
+   fi
   else
    __logi "No notes found in XML file, skipping processing."
   fi
  fi
 
+ __log_finish
+}
+
+# Processes API XML file sequentially for small datasets
+# Parameters:
+#   $1: XML file path
+function __processApiXmlSequential {
+ __log_start
+ __logi "=== PROCESSING API XML SEQUENTIALLY ==="
+
+ local XML_FILE="${1}"
+ local OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes-sequential.csv"
+ local OUTPUT_COMMENTS_FILE="${TMP_DIR}/output-comments-sequential.csv"
+ local OUTPUT_TEXT_FILE="${TMP_DIR}/output-text-sequential.csv"
+
+ # Generate current timestamp for XSLT processing
+ local CURRENT_TIMESTAMP
+ CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+ __logd "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
+
+ # Process notes
+ __logd "Processing notes with xsltproc: ${XSLT_NOTES_API_FILE} -> ${OUTPUT_NOTES_FILE}"
+ xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" "${XML_FILE}"
+ if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
+  __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
+  return 1
+ fi
+
+ # Process comments
+ __logd "Processing comments with xsltproc: ${XSLT_NOTE_COMMENTS_API_FILE} -> ${OUTPUT_COMMENTS_FILE}"
+ xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_FILE}"
+ if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
+  __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
+  return 1
+ fi
+
+ # Process text comments
+ __logd "Processing text comments with xsltproc: ${XSLT_TEXT_COMMENTS_API_FILE} -> ${OUTPUT_TEXT_FILE}"
+ xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_FILE}"
+ if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
+  __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_FILE}"
+  return 1
+ fi
+
+ # Debug: Show generated CSV files and their sizes
+ __logd "Generated CSV files:"
+ __logd "  Notes: ${OUTPUT_NOTES_FILE} ($(wc -l < "${OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
+ __logd "  Comments: ${OUTPUT_COMMENTS_FILE} ($(wc -l < "${OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
+ __logd "  Text: ${OUTPUT_TEXT_FILE} ($(wc -l < "${OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
+
+ __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
+ __logd "Database: ${DBNAME}"
+
+ # Load into database with single thread (no partitioning)
+ export OUTPUT_NOTES_FILE
+ export OUTPUT_COMMENTS_FILE
+ export OUTPUT_TEXT_FILE
+ export PART_ID="1"
+ export MAX_THREADS="1"
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "SET app.part_id = '1'; SET app.max_threads = '1';" \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_COMMENTS_FILE,$OUTPUT_TEXT_FILE,$PART_ID' \
+   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+
+ __logi "=== SEQUENTIAL API XML PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
 }
 

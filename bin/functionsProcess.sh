@@ -144,7 +144,11 @@ fi
 
 # Configuration variables (if not already defined)
 if [[ -z "${MAX_NOTES:-}" ]]; then
+ # shellcheck disable=SC2034
  declare -r MAX_NOTES="10000"
+elif [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
+ __loge "ERROR: MAX_NOTES must be a positive integer, got: ${MAX_NOTES}"
+ exit 1
 fi
 
 if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then
