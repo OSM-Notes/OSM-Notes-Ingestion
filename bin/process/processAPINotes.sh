@@ -354,7 +354,7 @@ function __getNewNotesFromApi {
 
  while [[ ${RETRY_COUNT} -lt ${DOWNLOAD_MAX_RETRIES} ]]; do
   __logd "Download attempt $((RETRY_COUNT + 1))/${DOWNLOAD_MAX_RETRIES}"
-  
+
   # Execute wget and wait for it to complete
   if wget -O "${API_NOTES_FILE}" "${REQUEST}"; then
    # Check if file exists and has content
@@ -370,7 +370,7 @@ function __getNewNotesFromApi {
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
-  
+
   if [[ ${RETRY_COUNT} -lt ${DOWNLOAD_MAX_RETRIES} ]]; then
    __logd "Waiting ${DOWNLOAD_BASE_DELAY}s before retry"
    sleep "${DOWNLOAD_BASE_DELAY}"
@@ -385,10 +385,6 @@ function __getNewNotesFromApi {
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
- # Check for specific network errors
- local HOST_API
- HOST_API="$(echo "${OSM_API}" | awk -F/ '{print $3}')"
- 
  # Since we're not capturing wget output to a file, we'll check the downloaded file
  if [[ ! -f "${API_NOTES_FILE}" ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
   __loge "API unreachable or download failed. Probably there are Internet issues."
@@ -515,7 +511,7 @@ function __insertNewNotesAndComments {
 
     # Generate unique process ID with timestamp to avoid conflicts
     PROCESS_ID="${$}_$(date +%s)_${RANDOM}_${PART}"
-    
+
     # Set lock with retry logic and better error handling
     local LOCK_RETRY_COUNT=0
     local LOCK_MAX_RETRIES=3
@@ -528,7 +524,7 @@ function __insertNewNotesAndComments {
      else
       LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
       __logw "Lock acquisition failed for part ${PART}, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
-      
+
       if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
        sleep "${LOCK_RETRY_DELAY}"
       fi
@@ -565,7 +561,7 @@ function __insertNewNotesAndComments {
   wait
 
   # Check if any background jobs failed
-  if [[ $? -ne 0 ]]; then
+  if ! wait; then
    __loge "One or more insertion parts failed"
    __handle_error_with_cleanup "${ERROR_GENERAL}" "One or more insertion parts failed"
   fi
@@ -574,7 +570,7 @@ function __insertNewNotesAndComments {
   # For small datasets, use single connection
   # Generate unique process ID with timestamp to avoid conflicts
   PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
-  
+
   # Set lock with retry logic and better error handling
   local LOCK_RETRY_COUNT=0
   local LOCK_MAX_RETRIES=3
@@ -587,7 +583,7 @@ function __insertNewNotesAndComments {
    else
     LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
     __logw "Lock acquisition failed, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
-    
+
     if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
      sleep "${LOCK_RETRY_DELAY}"
     fi
@@ -716,21 +712,21 @@ function main() {
  set +E
  __getNewNotesFromApi
  set -E
- 
+
  # Verify that the API notes file was downloaded successfully
  if [[ ! -f "${API_NOTES_FILE}" ]]; then
   __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
   exit "${ERROR_INTERNET_ISSUE}"
  fi
- 
+
  # Check if the file has content (not empty)
  if [[ ! -s "${API_NOTES_FILE}" ]]; then
   __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
   exit "${ERROR_INTERNET_ISSUE}"
  fi
- 
+
  __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
- 
+
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
  if [[ "${RESULT}" -ne 0 ]]; then

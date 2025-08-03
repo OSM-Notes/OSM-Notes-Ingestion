@@ -36,7 +36,13 @@ if [[ -z "${PREREQS_CHECKED:-}" ]]; then declare PREREQS_CHECKED=false; fi
 # Logger framework
 # shellcheck disable=SC2034
 if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
- SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &> /dev/null && pwd)"
+ # Try to find the project root by looking for the project directory
+ current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ if [[ "${current_dir}" == */bin ]]; then
+  SCRIPT_BASE_DIRECTORY="$(cd "${current_dir}/.." && pwd)"
+ else
+  SCRIPT_BASE_DIRECTORY="$(cd "${current_dir}/../.." && pwd)"
+ fi
 fi
 if [[ -z "${LOGGER_UTILITY:-}" ]]; then declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"; fi
 

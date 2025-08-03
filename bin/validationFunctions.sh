@@ -12,10 +12,27 @@
 # If sourced directly, ensure commonFunctions.sh is loaded first
 
 # Load common functions if not already loaded
+# Set SCRIPT_BASE_DIRECTORY if not already set
+if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+
+# Set LOGGER_UTILITY if not already set
+if [[ -z "${LOGGER_UTILITY:-}" ]]; then
+ LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+fi
+
 if [[ -z "${__COMMON_FUNCTIONS_LOADED:-}" ]]; then
  # shellcheck disable=SC1091
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" ]]; then
+  # Preserve SCRIPT_BASE_DIRECTORY before loading commonFunctions.sh
+  SAVED_SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY}"
   source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+  # Restore SCRIPT_BASE_DIRECTORY if it was changed
+  if [[ "${SCRIPT_BASE_DIRECTORY}" != "${SAVED_SCRIPT_BASE_DIRECTORY}" ]]; then
+   SCRIPT_BASE_DIRECTORY="${SAVED_SCRIPT_BASE_DIRECTORY}"
+   LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+  fi
  elif [[ -f "$(dirname "${BASH_SOURCE[0]}")/commonFunctions.sh" ]]; then
   source "$(dirname "${BASH_SOURCE[0]}")/commonFunctions.sh"
  fi
@@ -654,13 +671,13 @@ function __validate_coordinates() {
  fi
 
  # Validate latitude range (-90 to 90)
- if (( $(echo "${LAT} < -90" | bc -l 2>/dev/null || echo "0") )) || (( $(echo "${LAT} > 90" | bc -l 2>/dev/null || echo "0") )); then
+ if (($(echo "${LAT} < -90" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${LAT} > 90" | bc -l 2> /dev/null || echo "0"))); then
   __loge "ERROR: Latitude out of range (-90 to 90): ${LAT}"
   return 1
  fi
 
  # Validate longitude range (-180 to 180)
- if (( $(echo "${LON} < -180" | bc -l 2>/dev/null || echo "0") )) || (( $(echo "${LON} > 180" | bc -l 2>/dev/null || echo "0") )); then
+ if (($(echo "${LON} < -180" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${LON} > 180" | bc -l 2> /dev/null || echo "0"))); then
   __loge "ERROR: Longitude out of range (-180 to 180): ${LON}"
   return 1
  fi
@@ -686,7 +703,7 @@ function __validate_numeric_range() {
  fi
 
  # Validate range
- if (( $(echo "${VALUE} < ${MIN}" | bc -l 2>/dev/null || echo "0") )) || (( $(echo "${VALUE} > ${MAX}" | bc -l 2>/dev/null || echo "0") )); then
+ if (($(echo "${VALUE} < ${MIN}" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${VALUE} > ${MAX}" | bc -l 2> /dev/null || echo "0"))); then
   __loge "ERROR: ${DESCRIPTION} out of range (${MIN} to ${MAX}): ${VALUE}"
   return 1
  fi

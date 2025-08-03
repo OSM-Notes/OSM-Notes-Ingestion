@@ -1920,17 +1920,17 @@ function __organizeAreas {
 # Calculates estimated row size from GeoJSON properties
 function __calculate_row_size_estimate() {
  local GEOJSON_FILE="$1"
- 
+
  if [[ ! -f "${GEOJSON_FILE}" ]]; then
   echo "0"
   return
  fi
- 
+
  if command -v jq > /dev/null 2>&1; then
   # Calculate estimated row size from properties
   local ESTIMATED_SIZE
-  ESTIMATED_SIZE=$(jq -r '.features[0].properties | to_entries | map(.key | length + (.value | tostring | length)) | add' "${GEOJSON_FILE}" 2>/dev/null)
-  
+  ESTIMATED_SIZE=$(jq -r '.features[0].properties | to_entries | map(.key | length + (.value | tostring | length)) | add' "${GEOJSON_FILE}" 2> /dev/null)
+
   if [[ -n "${ESTIMATED_SIZE}" ]] && [[ "${ESTIMATED_SIZE}" != "null" ]]; then
    echo "${ESTIMATED_SIZE}"
   else
@@ -1940,7 +1940,7 @@ function __calculate_row_size_estimate() {
   # Fallback: estimate based on file size
   local FILE_SIZE
   FILE_SIZE=$(wc -c < "${GEOJSON_FILE}")
-  echo "$((FILE_SIZE / 10))"  # Rough estimate
+  echo "$((FILE_SIZE / 10))" # Rough estimate
  fi
 }
 
@@ -1952,7 +1952,7 @@ function __processBoundary {
  __logi "=== STARTING BOUNDARY PROCESSING ==="
  # Use provided query file or fall back to global
  local QUERY_FILE_TO_USE="${1:-${QUERY_FILE}}"
- 
+
  __logd "Boundary ID: ${ID}"
  __logd "Process ID: ${BASHPID}"
  __logd "JSON file: ${JSON_FILE}"
@@ -2067,7 +2067,7 @@ function __processBoundary {
  # Import into Postgres with retry logic
  __logi "Importing into Postgres for boundary ${ID}."
  __logd "Acquiring lock for boundary ${ID}..."
- 
+
  # Create a unique lock directory for this process
  local PROCESS_LOCK="${LOCK_OGR2OGR}.${BASHPID}"
  local LOCK_OPERATION="mkdir ${PROCESS_LOCK} 2> /dev/null"
@@ -2083,10 +2083,10 @@ function __processBoundary {
 
  # Import with ogr2ogr using retry logic with special handling for Austria
  __logd "Importing boundary ${ID} into database..."
- 
+
  # Always use field selection to avoid row size issues
  __logd "Using field-selected import for boundary ${ID} to avoid row size issues"
- 
+
  local IMPORT_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
@@ -2270,11 +2270,11 @@ function __processCountries {
   rmdir "${LOCK_OGR2OGR}"
  fi
  __logw "Starting background process to process country boundaries..."
- 
+
  # Create a file to track job status
  local JOB_STATUS_FILE="${TMP_DIR}/job_status.txt"
  rm -f "${JOB_STATUS_FILE}"
- 
+
  for I in "${TMP_DIR}"/part_country_??; do
   (
    __logi "Starting list ${I} - ${BASHPID}."
@@ -2309,7 +2309,7 @@ function __processCountries {
   fi
  done
  __logw "Waited for all jobs, restarting in main thread - countries."
- 
+
  # Check job status file for more detailed error information
  if [[ -f "${JOB_STATUS_FILE}" ]]; then
   local FAILED_COUNT=0
@@ -2322,10 +2322,10 @@ function __processCountries {
     SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
    fi
   done < "${JOB_STATUS_FILE}"
-  
+
   __logi "Job summary: ${SUCCESS_COUNT} successful, ${FAILED_COUNT} failed"
  fi
- 
+
  if [[ "${FAIL}" -ne 0 ]]; then
   __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}"
   __loge "Check individual log files for detailed error information:"
