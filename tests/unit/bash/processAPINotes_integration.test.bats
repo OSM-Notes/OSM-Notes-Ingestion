@@ -35,17 +35,14 @@ teardown() {
 # Test that processAPINotes.sh can be sourced without errors
 @test "processAPINotes.sh should be sourceable without errors" {
  # Test that the script can be sourced without logging errors
- run -127 bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh > /dev/null 2>&1"
- [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
+ run bash -c "source bin/process/processAPINotes.sh > /dev/null 2>&1"
+ [ "$status" -eq 0 ]
 }
 
 # Test that processAPINotes.sh functions can be called without logging errors
 @test "processAPINotes.sh functions should work without logging errors" {
- # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
- 
  # Test that logging functions work
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh && __log_info 'Test message'"
+ run bash -c "source bin/process/processAPINotes.sh && __log_info 'Test message'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test message"* ]] || [[ "$output" == *"Command not found"* ]]
 }
@@ -57,7 +54,7 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Test that the properties table script works with empty database
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "sql/process/processAPINotes_23_createPropertiesTables.sql"
  [ "$status" -eq 0 ]
  
  # Verify that the table was created
@@ -69,16 +66,14 @@ teardown() {
 # Test that processAPINotes.sh can run in dry-run mode
 @test "processAPINotes.sh should work in dry-run mode" {
  # Test that the script can run without actually processing data
- run timeout 30s bash "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" --help
+ run timeout 30s bash "bin/process/processAPINotes.sh" --help
  [ "$status" -eq 1 ] # Help should exit with code 1
- [[ "$output" == *"processAPINotes.sh version"* ]]
+ [[ "$output" == *"version"* ]]
+ [[ "$output" == *"2025-08-02"* ]]
 }
 
 # Test that all required functions are available after sourcing
 @test "processAPINotes.sh should have all required functions available" {
- # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
- 
  # Test that key functions are available
  local REQUIRED_FUNCTIONS=(
    "__createApiTables"
@@ -92,18 +87,15 @@ teardown() {
  )
  
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh && declare -f ${FUNC}"
+   run bash -c "source bin/process/processAPINotes.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
 
 # Test that logging functions work correctly
 @test "processAPINotes.sh logging functions should work correctly" {
- # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
- 
  # Test that logging functions don't produce errors
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh && __log_info 'Test info' && __log_error 'Test error'"
+ run bash -c "source bin/process/processAPINotes.sh && __log_info 'Test info' && __log_error 'Test error'"
  [ "$status" -eq 0 ]
  [[ "$output" != *"orden no encontrada"* ]]
  [[ "$output" != *"command not found"* ]]

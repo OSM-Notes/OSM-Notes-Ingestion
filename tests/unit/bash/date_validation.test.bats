@@ -11,16 +11,16 @@ setup() {
   TEST_XML_FILE=$(mktemp)
   TEST_CSV_FILE=$(mktemp)
   
-  # Create test XML with valid ISO 8601 dates
+  # Create test XML with valid UTC format dates
   cat > "${TEST_XML_FILE}" << 'EOF'
 <?xml version="1.0"?>
 <osm-notes>
-  <note id="123" lat="40.7128" lon="-74.0060" created_at="2023-01-15T10:30:00Z" closed_at="2023-01-20T14:45:00Z">
-    <comment action="opened" timestamp="2023-01-15T10:30:00Z" uid="456" user="testuser">Test comment</comment>
-    <comment action="closed" timestamp="2023-01-20T14:45:00Z" uid="456" user="testuser">Closing comment</comment>
+  <note id="123" lat="40.7128" lon="-74.0060" created_at="2023-01-15 10:30:00 UTC" closed_at="2023-01-20 14:45:00 UTC">
+    <comment action="opened" timestamp="2023-01-15 10:30:00 UTC" uid="456" user="testuser">Test comment</comment>
+    <comment action="closed" timestamp="2023-01-20 14:45:00 UTC" uid="456" user="testuser">Closing comment</comment>
   </note>
-  <note id="124" lat="40.7128" lon="-74.0060" created_at="2023-02-15T10:30:00Z">
-    <comment action="opened" timestamp="2023-02-15T10:30:00Z" uid="457" user="testuser2">Another comment</comment>
+  <note id="124" lat="40.7128" lon="-74.0060" created_at="2023-02-15 10:30:00 UTC">
+    <comment action="opened" timestamp="2023-02-15 10:30:00 UTC" uid="457" user="testuser2">Another comment</comment>
   </note>
 </osm-notes>
 EOF
