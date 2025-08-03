@@ -13,9 +13,6 @@ BEGIN
   -- Get process ID for parallel processing
   m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
   
-  -- Set lock for this process
-  CALL put_lock(m_process_id::VARCHAR(32));
-  
   -- Set the process ID for use in procedures
   PERFORM set_config('app.process_id', m_process_id::TEXT, false);
 END $$;
@@ -189,14 +186,4 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'current comments - after' AS Qty
 FROM note_comments;
 
--- Remove process lock
-DO $$
-DECLARE
-  m_process_id INTEGER;
-BEGIN
-  -- Get process ID for parallel processing
-  m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
-  
-      -- Remove lock for this process
-    CALL remove_lock(m_process_id::VARCHAR(32));
-END $$;
+-- Process lock is handled by the calling script

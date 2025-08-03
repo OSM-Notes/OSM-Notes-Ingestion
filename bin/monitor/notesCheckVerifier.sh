@@ -109,7 +109,7 @@ declare -r REPORT_ZIP=${TMP_DIR}/report.zip
 # Location of the common functions.
 
 # Script to process notes from Planet.
-declare -r SCRIPT_PROCESS_PLANET="${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
+declare -r SCRIPT_PROCESS_PLANET="processCheckPlanetNotes.sh"
 
 # SQL report file.
 declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-report.sql"

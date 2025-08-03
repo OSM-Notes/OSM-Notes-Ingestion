@@ -547,13 +547,14 @@ function __insertNewNotesAndComments {
      __loge "Failed to process insertion part ${PART}"
      # Remove lock even on failure
      echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
-     exit 1
+     __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed for part ${PART}" \
+      "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
     fi
 
     # Remove lock on success
     if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
      __loge "Failed to remove lock for part ${PART}"
-     exit 1
+     __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for part ${PART}"
     fi
 
     __logi "Completed insertion part ${PART}"
@@ -566,7 +567,7 @@ function __insertNewNotesAndComments {
   # Check if any background jobs failed
   if [[ $? -ne 0 ]]; then
    __loge "One or more insertion parts failed"
-   exit 1
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "One or more insertion parts failed"
   fi
 
  else
@@ -605,13 +606,14 @@ function __insertNewNotesAndComments {
    __loge "Failed to process insertion"
    # Remove lock even on failure
    echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
-   exit 1
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed" \
+    "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
   fi
 
   # Remove lock on success
   if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
    __loge "Failed to remove lock for single process"
-   exit 1
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for single process"
   fi
  fi
 

@@ -3639,6 +3639,14 @@ function __handle_error_with_cleanup() {
 
  echo "ERROR: Error occurred: ${ERROR_MESSAGE} (code: ${ERROR_CODE})" >&2
 
+ # Create failed execution file to prevent re-execution
+ if [[ -n "${FAILED_EXECUTION_FILE:-}" ]]; then
+  echo "ERROR: Creating failed execution file: ${FAILED_EXECUTION_FILE}" >&2
+  echo "Error occurred at $(date): ${ERROR_MESSAGE} (code: ${ERROR_CODE})" > "${FAILED_EXECUTION_FILE}"
+  echo "Stack trace: $(caller 0)" >> "${FAILED_EXECUTION_FILE}"
+  echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"
+ fi
+
  # Execute cleanup commands
  for CMD in "${CLEANUP_COMMANDS[@]}"; do
   if [[ -n "${CMD}" ]]; then
@@ -3654,6 +3662,7 @@ function __handle_error_with_cleanup() {
  # Log error details for debugging
  echo "ERROR: Error details - Code: ${ERROR_CODE}, Message: ${ERROR_MESSAGE}" >&2
  echo "ERROR: Stack trace: $(caller 0)" >&2
+ echo "ERROR: Failed execution file created: ${FAILED_EXECUTION_FILE:-none}" >&2
 
  exit "${ERROR_CODE}"
 }

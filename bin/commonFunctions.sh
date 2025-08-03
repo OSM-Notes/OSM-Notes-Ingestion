@@ -74,7 +74,7 @@ function __validation {
 
 # Trap function for cleanup
 function __trapOn() {
- trap 'echo "ERROR: Command failed at line $LINENO in ${BASH_SOURCE[0]}" >&2; echo "ERROR: Last command: $BASH_COMMAND" >&2; echo "ERROR: Exit code: $?" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "ERROR: Temporary directory: ${TMP_DIR}" >&2; fi' ERR
+ trap 'echo "ERROR: Command failed at line $LINENO in ${BASH_SOURCE[0]}" >&2; echo "ERROR: Last command: $BASH_COMMAND" >&2; echo "ERROR: Exit code: $?" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "ERROR: Temporary directory: ${TMP_DIR}" >&2; fi; if [[ -n "${FAILED_EXECUTION_FILE:-}" ]]; then echo "ERROR: Creating failed execution file: ${FAILED_EXECUTION_FILE}" >&2; echo "Error occurred at $(date): Command failed at line $LINENO in ${BASH_SOURCE[0]}" > "${FAILED_EXECUTION_FILE}"; echo "Last command: $BASH_COMMAND" >> "${FAILED_EXECUTION_FILE}"; echo "Exit code: $?" >> "${FAILED_EXECUTION_FILE}"; echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"; fi' ERR
  trap 'echo "INFO: Script interrupted at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' INT
  trap 'echo "INFO: Script terminated at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' TERM
 }
