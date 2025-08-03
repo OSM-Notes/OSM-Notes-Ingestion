@@ -59,10 +59,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
    
    <!-- Default country ID (1) - will be updated by spatial processing -->
    <xsl:text>1</xsl:text>
-   <xsl:text>,</xsl:text>
-   
-   <!-- Default user ID (1) - placeholder for user association -->
-   <xsl:text>1</xsl:text>
    
    <!-- End of line for CSV record -->
    <xsl:text>&#10;</xsl:text>

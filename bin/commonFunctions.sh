@@ -4,7 +4,7 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-08-02
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -74,9 +74,9 @@ function __validation {
 
 # Trap function for cleanup
 function __trapOn() {
- trap 'echo "ERROR: Command failed at line $LINENO"' ERR
- trap 'echo "INFO: Script interrupted at line $LINENO"' INT
- trap 'echo "INFO: Script terminated at line $LINENO"' TERM
+ trap 'echo "ERROR: Command failed at line $LINENO in ${BASH_SOURCE[0]}" >&2; echo "ERROR: Last command: $BASH_COMMAND" >&2; echo "ERROR: Exit code: $?" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "ERROR: Temporary directory: ${TMP_DIR}" >&2; fi' ERR
+ trap 'echo "INFO: Script interrupted at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' INT
+ trap 'echo "INFO: Script terminated at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' TERM
 }
 
 # Check prerequisites commands

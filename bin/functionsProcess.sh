@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-08-02
 
 # shellcheck disable=SC2317,SC2155
 
@@ -3125,7 +3125,10 @@ function __validate_coordinates() {
   return 1
  fi
 
- echo "DEBUG: Coordinate validation passed: lat=${LATITUDE}, lon=${LONGITUDE}" >&2
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  echo "DEBUG: Coordinate validation passed: lat=${LATITUDE}, lon=${LONGITUDE}" >&2
+ fi
  return 0
 }
 
@@ -3257,7 +3260,10 @@ function __validate_xml_coordinates() {
   return 1
  fi
 
- echo "DEBUG: XML coordinate validation passed: ${XML_FILE}" >&2
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  echo "DEBUG: XML coordinate validation passed: ${XML_FILE}" >&2
+ fi
  return 0
 }
 
@@ -3340,7 +3346,10 @@ function __validate_csv_coordinates() {
   return 1
  fi
 
- echo "DEBUG: CSV coordinate validation passed: ${CSV_FILE}" >&2
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  echo "DEBUG: CSV coordinate validation passed: ${CSV_FILE}" >&2
+ fi
  return 0
 }
 

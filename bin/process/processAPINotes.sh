@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
-declare -r VERSION="2025-07-30"
+# Version: 2025-08-02
+declare -r VERSION="2025-08-02"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -513,12 +513,32 @@ function __insertNewNotesAndComments {
    (
     __logi "Processing insertion part ${PART}"
 
-    PROCESS_ID="${$}_${PART}"
+    # Generate unique process ID with timestamp to avoid conflicts
+    PROCESS_ID="${$}_$(date +%s)_${RANDOM}_${PART}"
     
-    # Set lock with error handling
-    if ! echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-     __loge "Failed to acquire lock for part ${PART}"
-     exit 1
+    # Set lock with retry logic and better error handling
+    local LOCK_RETRY_COUNT=0
+    local LOCK_MAX_RETRIES=3
+    local LOCK_RETRY_DELAY=2
+
+    while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
+     if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+      __logd "Lock acquired successfully for part ${PART}: ${PROCESS_ID}"
+      break
+     else
+      LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
+      __logw "Lock acquisition failed for part ${PART}, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
+      
+      if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
+       sleep "${LOCK_RETRY_DELAY}"
+      fi
+     fi
+    done
+
+    if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
+     __loge "Failed to acquire lock for part ${PART} after ${LOCK_MAX_RETRIES} attempts"
+     # Force error to trigger trap
+     false
     fi
 
     export PROCESS_ID
@@ -526,12 +546,12 @@ function __insertNewNotesAndComments {
      -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
      __loge "Failed to process insertion part ${PART}"
      # Remove lock even on failure
-     echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+     echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
      exit 1
     fi
 
     # Remove lock on success
-    if ! echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+    if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
      __loge "Failed to remove lock for part ${PART}"
      exit 1
     fi
@@ -551,12 +571,32 @@ function __insertNewNotesAndComments {
 
  else
   # For small datasets, use single connection
-  PROCESS_ID="${$}"
+  # Generate unique process ID with timestamp to avoid conflicts
+  PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
   
-  # Set lock with error handling
-  if ! echo "CALL put_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-   __loge "Failed to acquire lock for single process"
-   exit 1
+  # Set lock with retry logic and better error handling
+  local LOCK_RETRY_COUNT=0
+  local LOCK_MAX_RETRIES=3
+  local LOCK_RETRY_DELAY=2
+
+  while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
+   if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+    __logd "Lock acquired successfully: ${PROCESS_ID}"
+    break
+   else
+    LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
+    __logw "Lock acquisition failed, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
+    
+    if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
+     sleep "${LOCK_RETRY_DELAY}"
+    fi
+   fi
+  done
+
+  if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
+   __loge "Failed to acquire lock after ${LOCK_MAX_RETRIES} attempts"
+   # Force error to trigger trap
+   false
   fi
 
   export PROCESS_ID
@@ -564,12 +604,12 @@ function __insertNewNotesAndComments {
    -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
    __loge "Failed to process insertion"
    # Remove lock even on failure
-   echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
    exit 1
   fi
 
   # Remove lock on success
-  if ! echo "CALL remove_lock(${PROCESS_ID}::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+  if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
    __loge "Failed to remove lock for single process"
    exit 1
   fi

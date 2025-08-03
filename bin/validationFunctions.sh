@@ -4,7 +4,7 @@
 # This file contains validation functions used across different scripts.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-08-02
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -417,7 +417,10 @@ function __validate_xml_dates() {
   return 1
  fi
 
- __logd "XML dates validation passed: ${XML_FILE}"
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  __logd "XML dates validation passed: ${XML_FILE}"
+ fi
  return 0
 }
 
@@ -662,7 +665,10 @@ function __validate_coordinates() {
   return 1
  fi
 
- __logd "Coordinate validation passed: lat=${LAT}, lon=${LON}"
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  __logd "Coordinate validation passed: lat=${LAT}, lon=${LON}"
+ fi
  return 0
 }
 
@@ -685,7 +691,10 @@ function __validate_numeric_range() {
   return 1
  fi
 
- __logd "Numeric range validation passed: ${VALUE}"
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  __logd "Numeric range validation passed: ${VALUE}"
+ fi
  return 0
 }
 
@@ -700,7 +709,10 @@ function __validate_string_pattern() {
   return 1
  fi
 
- __logd "String pattern validation passed: ${STRING}"
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  __logd "String pattern validation passed: ${STRING}"
+ fi
  return 0
 }
 
@@ -735,7 +747,10 @@ function __validate_xml_coordinates() {
   return 1
  fi
 
- __logd "XML coordinate validation passed: ${XML_FILE}"
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  __logd "XML coordinate validation passed: ${XML_FILE}"
+ fi
  return 0
 }
 
@@ -780,7 +795,10 @@ function __validate_csv_coordinates() {
   return 1
  fi
 
- __logd "CSV coordinate validation passed: ${CSV_FILE}"
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  __logd "CSV coordinate validation passed: ${CSV_FILE}"
+ fi
  return 0
 }
 
@@ -860,7 +878,10 @@ function __validate_date_format() {
   return 1
  fi
 
- __logd "${DESCRIPTION} validation passed: ${DATE_STRING}"
+ # Only log in trace mode to reduce verbosity
+ if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
+  __logd "${DESCRIPTION} validation passed: ${DATE_STRING}"
+ fi
  return 0
 }
 
@@ -930,6 +951,6 @@ function __validate_date_format_utc() {
   return 1
  fi
 
- __logd "${DESCRIPTION} validation passed: ${DATE_STRING}"
+ __logt "${DESCRIPTION} validation passed: ${DATE_STRING}"
  return 0
 }

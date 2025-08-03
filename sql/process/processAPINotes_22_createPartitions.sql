@@ -1,7 +1,7 @@
 -- Creates partitions dynamically based on MAX_THREADS.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-18
+-- Version: 2025-08-02
 
 -- This script creates partitions dynamically based on the MAX_THREADS environment variable
 -- It should be called after creating the partitioned tables
@@ -14,8 +14,8 @@ DECLARE
   start_value INTEGER;
   end_value INTEGER;
 BEGIN
-  -- Get MAX_THREADS from environment variable, default to 4 if not set
-  max_threads := COALESCE(current_setting('app.max_threads', true)::INTEGER, 4);
+  -- Get MAX_THREADS from environment variable substitution, default to 4 if not set
+  max_threads := $MAX_THREADS;
   
   -- Validate MAX_THREADS
   IF max_threads < 1 OR max_threads > 100 THEN
