@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Mock zip command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-02
+
+# Function to create mock zip file
+create_mock_zip() {
+ local zip_file="$1"
+ shift
+ local files=("$@")
+ 
+ # Create a mock zip file (just a text file with list of files)
+ echo "Mock ZIP file: $zip_file" > "$zip_file"
+ echo "Files included:" >> "$zip_file"
+ for file in "${files[@]}"; do
+   echo "  - $file" >> "$zip_file"
+ done
+ 
+ echo "Mock: Created zip file: $zip_file"
+}
+
+# Parse arguments
+ZIP_FILE=""
+FILES=()
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  --help|-h)
+   echo "Usage: zip [OPTIONS] archive file1 file2 ..."
+   echo "Create a zip archive"
+   exit 0
+   ;;
+  --version)
+   echo "Zip 3.0 (July 5th 2008)"
+   exit 0
+   ;;
+  -*)
+   # Skip options
+   shift
+   ;;
+  *)
+   if [[ -z "$ZIP_FILE" ]]; then
+     ZIP_FILE="$1"
+   else
+     FILES+=("$1")
+   fi
+   shift
+   ;;
+ esac
+done
+
+# Create mock zip file
+if [[ -n "$ZIP_FILE" ]] && [[ ${#FILES[@]} -gt 0 ]]; then
+ create_mock_zip "$ZIP_FILE" "${FILES[@]}"
+else
+ echo "Usage: zip archive file1 file2 ..." >&2
+ exit 1
+fi 

@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Mock envsubst command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-02
+
+# Function to substitute environment variables
+mock_envsubst() {
+ local input="$1"
+ 
+ # Replace common variables used in notesCheckVerifier
+ echo "$input" | sed 's/\$LAST_NOTE/\/tmp\/lastNote.csv/g' \
+                   | sed 's/\$LAST_COMMENT/\/tmp\/lastCommentNote.csv/g' \
+                   | sed 's/\$DIFFERENT_NOTE_IDS_FILE/\/tmp\/differentNoteIds.csv/g' \
+                   | sed 's/\$DIFFERENT_COMMENT_IDS_FILE/\/tmp\/differentNoteCommentIds.csv/g' \
+                   | sed 's/\$DIRRERENT_NOTES_FILE/\/tmp\/differentNotes.csv/g' \
+                   | sed 's/\$DIRRERENT_COMMENTS_FILE/\/tmp\/differentNoteComments.csv/g' \
+                   | sed 's/\$DIFFERENT_TEXT_COMMENTS_FILE/\/tmp\/differentTextComments.csv/g' \
+                   | sed 's/\$DIFFERENCES_TEXT_COMMENT/\/tmp\/textComments.csv/g'
+}
+
+# Parse arguments
+ARGS=()
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  --help|-h)
+   echo "Usage: envsubst [OPTIONS] [VARIABLE...]"
+   echo "Substitutes environment variables in stdin"
+   exit 0
+   ;;
+  --version)
+   echo "envsubst (GNU gettext-runtime) 0.21"
+   exit 0
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Read from stdin and process
+if [[ -t 0 ]]; then
+ # No stdin, show help
+ echo "Usage: envsubst [OPTIONS] [VARIABLE...]" >&2
+ exit 1
+else
+ # Process stdin
+ mock_envsubst "$(cat)"
+fi 

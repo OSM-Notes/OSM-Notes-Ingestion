@@ -42,6 +42,12 @@ mock_database_operation() {
      echo "VACUUM"
    elif [[ "$args" == *"ANALYZE"* ]]; then
      echo "ANALYZE"
+   elif [[ "$args" == *"COPY"* ]]; then
+     # Handle COPY commands for notesCheckVerifier
+     echo "COPY 1"
+   elif [[ "$args" == *"\\copy"* ]]; then
+     # Handle \copy commands
+     echo "COPY 1"
    else
      echo "OK"
    fi

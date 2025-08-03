@@ -1,6 +1,12 @@
 
+Se podría definir una cantidad mínima de notas para hacer paralelismo en processApi
+A veces, con tan poca cantidad de notas, es más costoso paralelisar compeltamente, y
+sería más beneficios al menos procesar 10 notas por hilo.
+
+
 Hicimos una prueba de ambiente híbrido, donde solo la descarga de archivoos externos se prueba, o sea wget y aria2c, y usa una copia de datos reales que se tienen dentro del repositorio.
-Me podrías mostrar esta prueba y cuál es
+Me podrías mostrar esta prueba y cuáles son los archivos que usa?
+Es que me gustaría a futuro integrarle más notas al XML de prueba del planet dump.
 
 
 
