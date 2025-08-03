@@ -1,3 +1,6 @@
+Podríamos integrar los script cleanupall y cleanpartitions?
+No veo en qué caso se usaría solo cleanpartitions
+
 
 Hicimos una prueba de ambiente híbrido, donde solo la descarga de archivoos externos se prueba, o sea wget y aria2c, y usa una copia de datos reales que se tienen dentro del repositorio.
 Me podrías mostrar esta prueba y cuáles son los archivos que usa?
