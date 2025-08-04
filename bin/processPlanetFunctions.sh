@@ -4,7 +4,7 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-08-04
 
 # Show help function
 function __show_help() {
@@ -28,7 +28,7 @@ function __show_help() {
  echo "  __objectsTextComments      - Objects text comments"
  echo
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: 2025-08-02"
+ echo "Version: 2025-08-04"
  exit 1
 }
 
@@ -47,6 +47,7 @@ fi
 if [[ -z "${MARITIMES_FILE:-}" ]]; then
  declare -r MARITIMES_FILE="${TMP_DIR}/maritimes"
 fi
+# shellcheck disable=SC2034
 declare OVERPASS_QUERY_FILE="${TMP_DIR}/query"
 
 # XSLT transformation files for Planet format

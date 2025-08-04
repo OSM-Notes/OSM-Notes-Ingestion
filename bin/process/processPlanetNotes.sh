@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-31
-declare -r VERSION="2025-07-31"
+# Version: 2025-08-04
+declare -r VERSION="2025-08-04"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -744,11 +744,11 @@ function __validate_xml_structure_alternative {
   # Sample validation for large files
   if [[ "${TOTAL_NOTES}" -gt "${SAMPLE_SIZE}" ]]; then
    __logw "WARNING: Large file detected. Validating sample of ${SAMPLE_SIZE} notes only."
-   
+
    # Create a more robust sample extraction
    local SAMPLE_FILE
    SAMPLE_FILE=$(mktemp "${TMP_DIR}/sample_validation_XXXXXX.xml" 2> /dev/null)
-   
+
    if [[ -n "${SAMPLE_FILE}" ]]; then
     # Extract sample with proper XML structure
     {
@@ -926,10 +926,10 @@ function __validate_xml_with_enhanced_error_handling {
  # Use appropriate validation strategy based on file size
  local LARGE_FILE_THRESHOLD="${ETL_LARGE_FILE_THRESHOLD_MB:-500}"
  local VERY_LARGE_FILE_THRESHOLD="${ETL_VERY_LARGE_FILE_THRESHOLD_MB:-1000}"
- 
+
  if [[ "${SIZE_MB}" -gt "${VERY_LARGE_FILE_THRESHOLD}" ]]; then
   __logw "WARNING: Very large XML file detected (${SIZE_MB} MB). Using structure-only validation."
-  
+
   # For very large files, skip schema validation entirely and use structure validation
   if __validate_xml_structure_only "${XML_FILE}"; then
    __logi "Structure-only validation succeeded for very large file"
@@ -1009,23 +1009,23 @@ function __validate_xml_structure_only {
 
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "Found ${TOTAL_NOTES} notes in XML file"
-  
+
   # Check for proper note structure (opening and closing tags)
   local OPENING_TAGS
   local CLOSING_TAGS
   OPENING_TAGS=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
   CLOSING_TAGS=$(grep -c "</note>" "${XML_FILE}" 2> /dev/null || echo "0")
-  
+
   if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
    __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
    return 1
   fi
-  
+
   # Validate a small sample for structure integrity
   local SAMPLE_SIZE=5
   local SAMPLE_FILE
   SAMPLE_FILE=$(mktemp "${TMP_DIR}/structure_sample_XXXXXX.xml" 2> /dev/null)
-  
+
   if [[ -n "${SAMPLE_FILE}" ]]; then
    # Extract first few notes for structure validation
    {
@@ -1148,7 +1148,7 @@ function __validate_xml_in_batches {
 
  while [[ "${BATCH_COUNT}" -lt "${MAX_BATCHES}" ]]; do
   local BATCH_FILE="${BATCH_DIR}/batch_${BATCH_COUNT}.xml"
-  
+
   # Create batch XML with proper structure
   {
    echo '<?xml version="1.0"?>'
