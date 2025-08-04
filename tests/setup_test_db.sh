@@ -45,6 +45,10 @@ export TEST_DBHOST
 export TEST_DBPORT
 export PGPASSWORD="${TEST_DBPASSWORD}"
 
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 log_info "Setting up test database environment..."
 
 # Test connection as current user
@@ -71,6 +75,34 @@ fi
 log_info "Installing required extensions..."
 psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" >/dev/null 2>&1 || log_warning "PostGIS extension installation failed"
 psql -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" >/dev/null 2>&1 || log_warning "btree_gist extension installation failed"
+
+# Create enums
+log_info "Creating enums..."
+psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" >/dev/null 2>&1 || log_warning "Enum creation failed"
+
+# Create base tables
+log_info "Creating base tables..."
+psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" >/dev/null 2>&1 || log_warning "Base tables creation failed"
+
+# Create API tables
+log_info "Creating API tables..."
+psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processAPINotes_21_createApiTables.sql" >/dev/null 2>&1 || log_warning "API tables creation failed"
+
+# Create constraints and indexes
+log_info "Creating constraints and indexes..."
+psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql" >/dev/null 2>&1 || log_warning "Constraints creation failed"
+
+# Verify tables exist
+log_info "Verifying tables exist..."
+TABLES=("notes" "note_comments" "note_comments_text" "users" "logs" "properties" "notes_api" "note_comments_api" "note_comments_text_api")
+
+for table in "${TABLES[@]}"; do
+ if psql -d "${TEST_DBNAME}" -c "SELECT 1 FROM ${table} LIMIT 1;" >/dev/null 2>&1; then
+  log_success "Table ${table} exists"
+ else
+  log_warning "Table ${table} does not exist or is not accessible"
+ fi
+done
 
 log_success "Test database setup completed"
 log_info "Environment variables set:"

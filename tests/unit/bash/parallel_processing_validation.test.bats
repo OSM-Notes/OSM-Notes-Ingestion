@@ -156,8 +156,20 @@ EOF
  
  # Test JSON validation
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
-   __validate_json_structure '$mock_json' 'FeatureCollection'
+   # Set up environment variables
+   export SCRIPT_BASE_DIRECTORY='${SCRIPT_BASE_DIRECTORY}'
+   export TMP_DIR='${TMP_DIR}'
+   # Source validation functions first
+   set +e
+   source '${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh' 2>/dev/null
+   # Test JSON validation function
+   if declare -f __validate_json_structure >/dev/null; then
+     __validate_json_structure '$mock_json' 'FeatureCollection'
+     exit \$?
+   else
+     echo 'JSON validation function not available'
+     exit 1
+   fi
  "
  [ "$status" -eq 0 ]
 }
@@ -237,10 +249,15 @@ EOF
    echo "Mock log for process $pid" > "${mock_log_dir}/processPlanetNotes.log.${pid}"
  done
  
- # Test that log files exist
- run find "$mock_log_dir" -name "*.log.*" | wc -l
- [ "$status" -eq 0 ]
- [[ "${output:-0}" == "3" ]]
+ # Test that log files exist by counting them directly
+ local file_count=0
+ for file in "${mock_log_dir}"/*.log.*; do
+   if [[ -f "$file" ]]; then
+     file_count=$((file_count + 1))
+   fi
+ done
+ 
+ [[ "$file_count" -eq 3 ]]
 }
 
 # Test that cleanup functions work correctly

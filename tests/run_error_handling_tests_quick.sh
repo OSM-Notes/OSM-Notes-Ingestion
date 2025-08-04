@@ -1,56 +1,36 @@
 #!/bin/bash
 
-# Quick Error Handling Tests for OSM-Notes-profile
+# Quick error handling tests for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-03
+# Version: 2025-08-04
+
+set -e
+
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "=== RUNNING QUICK ERROR HANDLING TESTS ==="
+echo "Testing error handling functionality (quick version)..."
 
-# Test 1: Check if error handling files exist
-echo "1. Testing error handling files existence..."
-if [[ -f "bin/errorHandlingFunctions.sh" ]] && [[ -f "bin/validationFunctions.sh" ]]; then
-    echo "✓ Error handling files exist"
-else
-    echo "✗ Error handling files missing"
-    exit 1
-fi
+# Basic error handling tests (fast)
+echo "1. Testing basic error handling..."
+bats tests/unit/bash/error_handling.test.bats
+bats tests/unit/bash/error_handling_simple.test.bats
 
-# Test 2: Check if files are valid bash
-echo "2. Testing bash syntax..."
-if bash -n bin/errorHandlingFunctions.sh && bash -n bin/validationFunctions.sh; then
-    echo "✓ Bash syntax is valid"
-else
-    echo "✗ Bash syntax errors found"
-    exit 1
-fi
+# Enhanced error handling tests (fast)
+echo "2. Testing enhanced error handling..."
+bats tests/unit/bash/error_handling_enhanced.test.bats
 
-# Test 3: Check if functions exist
-echo "3. Testing function existence..."
-if grep -q "__handle_error" bin/errorHandlingFunctions.sh && grep -q "__validate_input" bin/validationFunctions.sh; then
-    echo "✓ Required functions exist"
-else
-    echo "✗ Required functions missing"
-    exit 1
-fi
+# Process error handling tests (fast)
+echo "3. Testing process error handling..."
+bats tests/unit/bash/processAPINotes_error_handling_improved.test.bats
 
-# Test 4: Check if error codes are defined
-echo "4. Testing error codes..."
-if grep -q "ERROR_" bin/errorHandlingFunctions.sh; then
-    echo "✓ Error codes are defined"
-else
-    echo "✗ Error codes missing"
-    exit 1
-fi
+# Edge cases tests (fast)
+echo "4. Testing edge cases..."
+bats tests/unit/bash/edge_cases_integration.test.bats
 
-# Test 5: Check if trap functions exist
-echo "5. Testing trap functions..."
-if grep -q "trap" bin/errorHandlingFunctions.sh; then
-    echo "✓ Trap functions exist"
-else
-    echo "✗ Trap functions missing"
-    exit 1
-fi
+# Quick performance tests (fast)
+echo "5. Testing quick performance edge cases..."
+bats tests/unit/bash/performance_edge_cases_quick.test.bats
 
 echo "=== QUICK ERROR HANDLING TESTS COMPLETED ==="
-echo "All quick error handling tests passed! 🎉"
-exit 0 
+echo "Note: Full performance tests skipped for speed. Run run_error_handling_tests.sh for full suite." 

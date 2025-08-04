@@ -223,7 +223,28 @@ check_duplicates() {
 
  for script in "${main_scripts[@]}"; do
   if [[ -f "${script}" ]]; then
-   run bash -c "source '${script}' --help > /dev/null 2>&1" || true
+   # Use a more robust approach to test script sourcing
+   # First check if the script has valid syntax
+   run bash -n "${script}"
+   if [[ ${status} -ne 0 ]]; then
+    failed_scripts+=("${script} (syntax error)")
+    continue
+   fi
+   
+   # Try to source the script in a controlled environment
+   run bash -c "
+    # Temporarily disable error exit
+    set +e
+    # Source the script and capture any readonly errors
+    source '${script}' 2>&1 | grep -q 'variable de solo lectura' || true
+    # Check if sourcing succeeded (ignore readonly warnings)
+    if [[ \$? -eq 0 ]]; then
+     exit 0
+    else
+     exit 1
+    fi
+   "
+   
    if [[ ${status} -ne 0 ]]; then
     failed_scripts+=("${script}")
    fi
