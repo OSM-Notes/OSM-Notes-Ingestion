@@ -4,9 +4,9 @@
 # Tests the minimum notes threshold for parallel processing
 
 # Define the properties directly in the test to avoid conflicts
-declare -r MIN_NOTES_FOR_PARALLEL="10"
-declare -r MAX_NOTES="10000"
-declare -r MAX_THREADS="4"
+MIN_NOTES_FOR_PARALLEL="10"
+MAX_NOTES="10000"
+MAX_THREADS="4"
 
 setup() {
  # Create temporary directory for tests
