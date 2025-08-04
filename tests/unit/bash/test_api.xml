@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server">
+ <note id="123" lat="40.4168" lon="-3.7038" created_at="2025-07-14T13:39:25Z">
+  <comments>
+   <comment uid="456" user="testuser" action="opened" date="2025-07-14T13:39:25Z">
+    Test comment
+   </comment>
+   <comment user="Anonymous comment" action="commented" date="2025-07-14T13:45:00Z">
+    Anonymous comment
+   </comment>
+   <comment uid="789" user="halibutwig" action="closed" date="2025-07-14T14:30:00Z">
+    Closing comment
+   </comment>
+  </comments>
+ </note>
+</osm>
