@@ -85,15 +85,21 @@ setup() {
   local BASH_SCRIPTS
   mapfile -t BASH_SCRIPTS < <(find bin/ -name "*.sh" -type f)
   
+  local TOTAL_ERRORS=0
+  
   for SCRIPT in "${BASH_SCRIPTS[@]}"; do
     # Check for variable assignments with lowercase names (excluding special cases)
-    run awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" | grep -v "declare" | grep -v "local" | grep -v "case" | grep -v "esac"
-    if [[ -n "${output}" ]]; then
+    local SCRIPT_ERRORS
+    SCRIPT_ERRORS=$(awk '/^[[:space:]]*[a-z_]+=/{print FILENAME ":" NR ": " $0}' "${SCRIPT}" 2>/dev/null | grep -v "declare" | grep -v "local" | grep -v "case" | grep -v "esac" || true)
+    
+    if [[ -n "${SCRIPT_ERRORS}" ]]; then
       echo "ERROR: Found variable assignments with lowercase names in ${SCRIPT}:"
-      echo "${output}"
-      return 1
+      echo "${SCRIPT_ERRORS}"
+      TOTAL_ERRORS=$((TOTAL_ERRORS + $(echo "${SCRIPT_ERRORS}" | wc -l)))
     fi
   done
+  
+  [ "${TOTAL_ERRORS}" -eq 0 ]
 }
 
 # Test specific files that should follow the convention

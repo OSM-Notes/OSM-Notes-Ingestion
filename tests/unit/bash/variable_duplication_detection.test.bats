@@ -47,9 +47,9 @@ teardown() {
 
  for script in "${scripts[@]}"; do
    if [[ -f "${SCRIPT_BASE_DIRECTORY}/${script}" ]]; then
-     # Source the script and capture any variable conflicts
-     run -127 bash -c "source '${SCRIPT_BASE_DIRECTORY}/${script}' > /dev/null 2>&1 || exit 1"
-     [ "$status" -eq 0 ] || [ "$status" -eq 127 ] || echo "Failed to source: ${script}"
+     # Source the script with SKIP_MAIN to prevent main function execution
+     run bash -c "SKIP_MAIN=true source '${SCRIPT_BASE_DIRECTORY}/${script}' > /dev/null 2>&1 || exit 1"
+     [ "$status" -eq 0 ] || echo "Failed to source: ${script}"
    fi
  done
 }

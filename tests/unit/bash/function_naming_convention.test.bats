@@ -122,9 +122,9 @@ teardown() {
  local TOTAL_ERRORS=0
  
  for SCRIPT in "${BASH_SCRIPTS[@]}"; do
-   # Find helper functions that don't start with __
+   # Find helper functions that don't start with __ (excluding main functions and __ functions)
    local SCRIPT_ERRORS
-   SCRIPT_ERRORS=$(grep -n "^function [a-z_][a-z0-9_]*()" "${SCRIPT}" 2>/dev/null | grep -v "^function __" || true)
+   SCRIPT_ERRORS=$(grep -n "^function [a-z][a-z0-9_]*()" "${SCRIPT}" 2>/dev/null | grep -v "function main()" | grep -v "function __" || true)
    
    if [[ -n "${SCRIPT_ERRORS}" ]]; then
      echo "ERROR: Found helper functions not following __ convention in ${SCRIPT}:"
