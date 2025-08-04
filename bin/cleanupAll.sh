@@ -37,7 +37,7 @@ else
 fi
 
 # Function to check if database exists
-function check_database() {
+function __check_database() {
  local TARGET_DB="${1:-}"
 
  # Use provided database name or default from properties
@@ -61,7 +61,7 @@ function check_database() {
 }
 
 # Function to execute SQL script with validation
-function execute_sql_script() {
+function __execute_sql_script() {
  local TARGET_DB="${1}"
  local SCRIPT_PATH="${2}"
  local SCRIPT_NAME="${3}"
@@ -90,7 +90,7 @@ function execute_sql_script() {
 }
 
 # Function to cleanup ETL components
-function cleanup_etl() {
+function __cleanup_etl() {
  local TARGET_DB="${1}"
 
  __logi "Cleaning up ETL components"
@@ -114,7 +114,7 @@ function cleanup_etl() {
 }
 
 # Function to cleanup WMS components
-function cleanup_wms() {
+function __cleanup_wms() {
  local TARGET_DB="${1}"
 
  __logi "Cleaning up WMS components"
@@ -128,7 +128,7 @@ function cleanup_wms() {
 }
 
 # Function to cleanup API tables first (to resolve enum dependencies)
-function cleanup_api_tables() {
+function __cleanup_api_tables() {
  local TARGET_DB="${1}"
 
  __logi "Cleaning up API tables (to resolve enum dependencies)"
@@ -163,7 +163,7 @@ function cleanup_api_tables() {
 }
 
 # Function to cleanup base components
-function cleanup_base() {
+function __cleanup_base() {
  local TARGET_DB="${1}"
 
  __logi "Cleaning up base components"
@@ -190,7 +190,7 @@ function cleanup_base() {
 }
 
 # Function to cleanup temporary files
-function cleanup_temp_files() {
+function __cleanup_temp_files() {
  __logi "Cleaning up temporary files"
 
  # Remove process temporary directories
@@ -201,7 +201,7 @@ function cleanup_temp_files() {
 }
 
 # Main cleanup function
-function cleanup_all() {
+function __cleanup_all() {
  local TARGET_DB="${1}"
 
  __logi "Starting comprehensive cleanup for database: ${TARGET_DB}"
@@ -240,14 +240,14 @@ function cleanup_all() {
 
 # Cleanup function
 # shellcheck disable=SC2317
-function cleanup() {
+function __cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
 }
 
 # Show help
-function show_help() {
+function __show_help() {
  echo "Usage: $0 [database_name]"
  echo ""
  echo "This script removes all components from the OSM-Notes-profile database."

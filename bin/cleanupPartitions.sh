@@ -37,7 +37,7 @@ else
 fi
 
 # Function to check if database exists
-function check_database() {
+function __check_database() {
  local DBNAME="${1:-${DBNAME}}"
 
  __logi "Checking if database exists: ${DBNAME}"
@@ -52,7 +52,7 @@ function check_database() {
 }
 
 # Function to list existing partition tables
-function list_partition_tables() {
+function __list_partition_tables() {
  local DBNAME="${1}"
 
  __logi "Listing existing partition tables in database: ${DBNAME}"
@@ -82,7 +82,7 @@ function list_partition_tables() {
 }
 
 # Function to drop all partition tables
-function drop_all_partitions() {
+function __drop_all_partitions() {
  local DBNAME="${1}"
  local SCRIPT_BASE_DIRECTORY
  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -117,7 +117,7 @@ function drop_all_partitions() {
 }
 
 # Function to verify cleanup
-function verify_cleanup() {
+function __verify_cleanup() {
  local DBNAME="${1}"
 
  __logi "Verifying that all partition tables have been removed"
@@ -160,7 +160,7 @@ function verify_cleanup() {
 }
 
 # Main cleanup function
-function cleanup_partitions() {
+function __cleanup_partitions() {
  local DBNAME="${1}"
 
  __logi "Starting partition tables cleanup for database: ${DBNAME}"
@@ -193,14 +193,14 @@ function cleanup_partitions() {
 
 # Cleanup function
 # shellcheck disable=SC2317
-function cleanup() {
+function __cleanup() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
 }
 
 # Show help
-function show_help() {
+function __show_help() {
  echo "Usage: $0 [database_name]"
  echo ""
  echo "This script removes all partition tables that might have been left behind"
