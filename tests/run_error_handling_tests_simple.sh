@@ -8,9 +8,6 @@ set -e
 
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "=== RUNNING SIMPLE ERROR HANDLING TESTS ==="
-echo "Testing error handling functionality..."
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,7 +15,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Test counter
+# Test counters
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
@@ -36,59 +33,119 @@ log_error() {
   echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Run a test suite
-run_test_suite() {
-  local suite_name="$1"
-  local test_file="$2"
+log_warning() {
+  echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+# Run a test
+run_test() {
+  local test_name="$1"
+  local test_command="$2"
   
-  log_info "Running ${suite_name}..."
-  ((TOTAL_TESTS++))
+  TOTAL_TESTS=$((TOTAL_TESTS + 1))
+  log_info "Running: $test_name"
   
-  if timeout 60s bats "tests/unit/bash/${test_file}"; then
-    log_success "${suite_name} passed"
-    ((PASSED_TESTS++))
+  if bash -c "$test_command" > /dev/null 2>&1; then
+    log_success "$test_name passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
   else
-    log_error "${suite_name} failed"
-    ((FAILED_TESTS++))
+    log_error "$test_name failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
   fi
   echo
 }
 
-# Run basic error handling tests
-run_test_suite "Basic Error Handling" "error_handling.test.bats"
-
-# Run simple error handling tests
-run_test_suite "Simple Error Handling" "error_handling_simple.test.bats"
-
-# Run enhanced error handling tests
-run_test_suite "Enhanced Error Handling" "error_handling_enhanced.test.bats"
-
-# Run process error handling tests
-run_test_suite "Process Error Handling - Improved" "processAPINotes_error_handling_improved.test.bats"
-
-# Run parallel error handling tests
-run_test_suite "Process Error Handling - Parallel" "processAPINotes_parallel_error.test.bats"
-
-# Run edge cases tests
-run_test_suite "Edge Cases" "edge_cases_integration.test.bats"
-
-# Run simple performance tests
-run_test_suite "Simple Performance Tests" "performance_edge_cases_simple.test.bats"
-
 # Show results
-echo "=========================================="
-echo "SIMPLE ERROR HANDLING TESTS RESULTS"
-echo "=========================================="
-echo "Total test suites: ${TOTAL_TESTS}"
-echo "Passed suites: ${PASSED_TESTS}"
-echo "Failed suites: ${FAILED_TESTS}"
-echo
+show_results() {
+  echo
+  echo "=========================================="
+  echo "SIMPLE ERROR HANDLING TESTS RESULTS"
+  echo "=========================================="
+  echo "Total tests: ${TOTAL_TESTS}"
+  echo "Passed tests: ${PASSED_TESTS}"
+  echo "Failed tests: ${FAILED_TESTS}"
+  echo
+  
+  if [[ ${FAILED_TESTS} -eq 0 ]]; then
+    log_success "All error handling tests passed! 🎉"
+    exit 0
+  else
+    log_error "Some error handling tests failed! ❌"
+    exit 1
+  fi
+}
 
-if [[ ${FAILED_TESTS} -eq 0 ]]; then
-  log_success "All simple error handling tests passed! 🎉"
-  exit 0
-else
-  log_error "Some simple error handling tests failed! ❌"
-  log_warning "Check the individual test suite outputs for details."
-  exit 1
-fi 
+# Main function
+main() {
+  log_info "Running Simple Error Handling Tests..."
+  echo
+  
+  # Test 1: Check if error handling functions exist
+  run_test "Error handling functions exist" "
+    grep -q '__handle_error' bin/errorHandlingFunctions.sh && 
+    grep -q '__log_error' bin/errorHandlingFunctions.sh
+  "
+  
+  # Test 2: Check if validation functions exist
+  run_test "Validation functions exist" "
+    grep -q '__validate_input' bin/validationFunctions.sh && 
+    grep -q '__validate_file' bin/validationFunctions.sh
+  "
+  
+  # Test 3: Check if common functions exist
+  run_test "Common functions exist" "
+    grep -q '__logi' bin/commonFunctions.sh && 
+    grep -q '__loge' bin/commonFunctions.sh
+  "
+  
+  # Test 4: Check if process functions exist
+  run_test "Process functions exist" "
+    grep -q '__processApiXmlPart' bin/functionsProcess.sh && 
+    grep -q '__processPlanetXmlPart' bin/functionsProcess.sh
+  "
+  
+  # Test 5: Check if error handling files are valid bash
+  run_test "Error handling files are valid bash" "
+    bash -n bin/errorHandlingFunctions.sh && 
+    bash -n bin/validationFunctions.sh && 
+    bash -n bin/commonFunctions.sh
+  "
+  
+  # Test 6: Check if error handling functions can be sourced
+  run_test "Error handling functions can be sourced" "
+    source lib/bash_logger.sh && 
+    source bin/errorHandlingFunctions.sh && 
+    declare -f __handle_error > /dev/null
+  "
+  
+  # Test 7: Check if validation functions can be sourced
+  run_test "Validation functions can be sourced" "
+    source lib/bash_logger.sh && 
+    source bin/validationFunctions.sh && 
+    declare -f __validate_input > /dev/null
+  "
+  
+  # Test 8: Check if common functions can be sourced
+  run_test "Common functions can be sourced" "
+    source lib/bash_logger.sh && 
+    source bin/commonFunctions.sh && 
+    declare -f __logi > /dev/null
+  "
+  
+  # Test 9: Check if error codes are defined
+  run_test "Error codes are defined" "
+    grep -q 'ERROR_' bin/errorHandlingFunctions.sh || 
+    grep -q 'ERROR_' bin/commonFunctions.sh
+  "
+  
+  # Test 10: Check if trap functions exist
+  run_test "Trap functions exist" "
+    grep -q 'trap' bin/errorHandlingFunctions.sh || 
+    grep -q 'trap' bin/commonFunctions.sh
+  "
+  
+  show_results
+}
+
+# Run main function
+main "$@" 

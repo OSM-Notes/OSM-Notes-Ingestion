@@ -41,6 +41,9 @@
  local xml_file="/tmp/test_api.xml"
  local output_file="/tmp/test_output.csv"
 
+ # Verify XSLT file exists
+ [ -f "${xslt_file}" ]
+
  # Create test XML file
  cat > "${xml_file}" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -53,13 +56,23 @@
 </osm>
 EOF
 
- # Run transformation
- run xsltproc "${xslt_file}" "${xml_file}" > "${output_file}"
- [ "$status" -eq 0 ]
+ # Verify XML file was created
+ [ -f "${xml_file}" ]
+
+ # Run transformation without run to avoid BATS redirection issues
+ xsltproc "${xslt_file}" "${xml_file}" > "${output_file}"
+ local xslt_status=$?
+
+ # Check if transformation succeeded
+ [ "$xslt_status" -eq 0 ]
  [ -f "${output_file}" ]
 
- # Verify output has content
- run wc -c < "${output_file}"
+ # Verify output has content by checking file size
+ [ -s "${output_file}" ]
+
+ # Verify output has expected content
+ run grep -c "123" "${output_file}"
+ [ "$status" -eq 0 ]
  [ "$output" -gt 0 ]
 
  # Clean up

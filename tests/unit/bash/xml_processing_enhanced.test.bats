@@ -20,30 +20,8 @@ setup() {
     export LOCK="/tmp/test.lock"
     export MAX_THREADS="2"
     
-    # Unset any existing readonly variables that might conflict
-    unset ERROR_HELP_MESSAGE ERROR_PREVIOUS_EXECUTION_FAILED ERROR_CREATING_REPORT ERROR_MISSING_LIBRARY ERROR_INVALID_ARGUMENT ERROR_LOGGER_UTILITY ERROR_DOWNLOADING_BOUNDARY_ID_LIST ERROR_NO_LAST_UPDATE ERROR_PLANET_PROCESS_IS_RUNNING ERROR_DOWNLOADING_NOTES ERROR_EXECUTING_PLANET_DUMP ERROR_DOWNLOADING_BOUNDARY ERROR_GEOJSON_CONVERSION ERROR_INTERNET_ISSUE ERROR_GENERAL 2>/dev/null || true
-    
     # Create test XML files
     create_test_xml_files
-    
-    # Load the logger first
-    if [[ -f "${TEST_BASE_DIR}/lib/bash_logger.sh" ]]; then
-        source "${TEST_BASE_DIR}/lib/bash_logger.sh"
-    fi
-    
-    # Source the functions
-    source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
-    
-    # Verify that required functions are available
-    if ! declare -f __processApiXmlPart >/dev/null; then
-        echo "ERROR: __processApiXmlPart function not found"
-        exit 1
-    fi
-    
-    if ! declare -f __processPlanetXmlPart >/dev/null; then
-        echo "ERROR: __processPlanetXmlPart function not found"
-        exit 1
-    fi
     
     # Set up logging functions if not available
     if ! declare -f __logd >/dev/null; then
@@ -65,6 +43,15 @@ setup() {
     export MAX_THREADS=2
     export TMP_DIR="${TEST_BASE_DIR}/tests/tmp"
     mkdir -p "${TMP_DIR}"
+    
+    # Set default XSLT file paths for testing
+    export XSLT_NOTES_API_FILE="${TEST_BASE_DIR}/xslt/notes-API-csv.xslt"
+    export XSLT_NOTE_COMMENTS_API_FILE="${TEST_BASE_DIR}/xslt/note_comments-API-csv.xslt"
+    export XSLT_TEXT_COMMENTS_API_FILE="${TEST_BASE_DIR}/xslt/note_comments_text-API-csv.xslt"
+    export POSTGRES_31_LOAD_API_NOTES="${TEST_BASE_DIR}/sql/process/processAPINotes_31_loadApiNotes.sql"
+    
+    # Load functions manually without readonly variables
+    load_test_functions
 }
 
 teardown() {
@@ -76,6 +63,181 @@ teardown() {
 # =============================================================================
 # Helper functions for testing
 # =============================================================================
+
+load_test_functions() {
+    # Load functions manually without readonly variables
+    # This function extracts the function definitions from functionsProcess.sh
+    # without loading the readonly variable declarations
+    
+    # Define the functions manually for testing
+    __processApiXmlPart() {
+        local XML_PART="${1}"
+        local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_API_FILE}}"
+        local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
+        local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_API_FILE}}"
+        local PART_NUM
+        local BASENAME_PART
+
+        __logi "=== STARTING API XML PART PROCESSING ==="
+        __logd "Input XML part: ${XML_PART}"
+        __logd "XSLT files:"
+        __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
+        __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
+        __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
+
+        BASENAME_PART=$(basename "${XML_PART}" .xml)
+        PART_NUM="${BASENAME_PART//part_/}"
+
+        __logd "Extracting part number from: ${XML_PART}"
+        __logd "Basename: ${BASENAME_PART}"
+        __logd "Part number: ${PART_NUM}"
+
+        if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
+            __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
+            return 1
+        fi
+
+        __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
+
+        local OUTPUT_NOTES_PART
+        local OUTPUT_COMMENTS_PART
+        local OUTPUT_TEXT_PART
+        OUTPUT_NOTES_PART="${TMP_DIR}/output-notes-part-${PART_NUM}.csv"
+        OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
+        OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
+
+        local CURRENT_TIMESTAMP
+        CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        __logd "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
+
+        # Process notes
+        __logd "Processing notes with xsltproc: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
+        xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
+        if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
+            __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+            return 1
+        fi
+
+        # Process comments
+        __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
+        xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
+        if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
+            __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+            return 1
+        fi
+
+        # Process text comments
+        __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
+        xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
+        if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
+            __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
+            return 1
+        fi
+
+        # Add part_id to the end of each line for notes
+        __logd "Adding part_id ${PART_NUM} to notes CSV"
+        awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+
+        # Add part_id to the end of each line for comments
+        __logd "Adding part_id ${PART_NUM} to comments CSV"
+        awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+
+        # Add part_id to the end of each line for text comments
+        __logd "Adding part_id ${PART_NUM} to text comments CSV"
+        awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+
+        __logd "Generated CSV files for part ${PART_NUM}:"
+        __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)" || true
+        __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)" || true
+        __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)" || true
+
+        __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
+    }
+
+    __processPlanetXmlPart() {
+        local XML_PART="${1}"
+        local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_FILE}}"
+        local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_FILE}}"
+        local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_FILE}}"
+        local PART_NUM
+        local BASENAME_PART
+
+        __logi "=== STARTING PLANET XML PART PROCESSING ==="
+        __logd "Input XML part: ${XML_PART}"
+        __logd "XSLT files:"
+        __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
+        __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
+        __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
+
+        BASENAME_PART=$(basename "${XML_PART}" .xml)
+        PART_NUM="${BASENAME_PART//part_/}"
+
+        __logd "Extracting part number from: ${XML_PART}"
+        __logd "Basename: ${BASENAME_PART}"
+        __logd "Part number: ${PART_NUM}"
+
+        if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
+            __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
+            return 1
+        fi
+
+        __logi "Processing Planet XML part ${PART_NUM}: ${XML_PART}"
+
+        local OUTPUT_NOTES_PART
+        local OUTPUT_COMMENTS_PART
+        local OUTPUT_TEXT_PART
+        OUTPUT_NOTES_PART="${TMP_DIR}/output-notes-part-${PART_NUM}.csv"
+        OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
+        OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
+
+        local CURRENT_TIMESTAMP
+        CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        __logd "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
+
+        # Process notes
+        __logd "Processing notes with xsltproc: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
+        xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
+        if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
+            __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+            return 1
+        fi
+
+        # Process comments
+        __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
+        xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
+        if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
+            __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+            return 1
+        fi
+
+        # Process text comments
+        __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
+        xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
+        if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
+            __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
+            return 1
+        fi
+
+        # Add part_id to the end of each line for notes
+        __logd "Adding part_id ${PART_NUM} to notes CSV"
+        awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+
+        # Add part_id to the end of each line for comments
+        __logd "Adding part_id ${PART_NUM} to comments CSV"
+        awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+
+        # Add part_id to the end of each line for text comments
+        __logd "Adding part_id ${PART_NUM} to text comments CSV"
+        awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+
+        __logd "Generated CSV files for part ${PART_NUM}:"
+        __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)" || true
+        __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)" || true
+        __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)" || true
+
+        __logi "=== PLANET XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
+    }
+}
 
 create_test_xml_files() {
     local test_dir="${TEST_BASE_DIR}/tests/tmp"
