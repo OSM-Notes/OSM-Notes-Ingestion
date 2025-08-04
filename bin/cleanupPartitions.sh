@@ -4,7 +4,7 @@
 # This script removes all partition tables that might have been left behind
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-08-04
 
 set -euo pipefail
 
@@ -258,4 +258,6 @@ function main() {
 }
 
 # Execute main function
-main "$@"
+if [[ "${SKIP_MAIN:-}" != "true" ]]; then
+ main "$@"
+fi
