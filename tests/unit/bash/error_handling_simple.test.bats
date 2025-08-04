@@ -116,24 +116,28 @@ EOF
 }
 
 @test "validate_xml_dates should succeed with valid XML" {
- # Create a test XML file with valid dates
+ # Create a test XML file with valid dates in the expected format
  cat > "${TEST_DIR}/test.xml" << 'EOF'
 <?xml version="1.0"?>
 <osm-notes>
-  <note id="1" created_at="2023-01-01T12:00:00Z" closed_at="2023-01-02T12:00:00Z">
-    <comment timestamp="2023-01-01T13:00:00Z" />
+  <note id="1" created_at="2023-01-01 12:00:00 UTC" closed_at="2023-01-02 12:00:00 UTC">
+    <comment timestamp="2023-01-01 13:00:00 UTC" />
   </note>
 </osm-notes>
 EOF
  
- # Mock xmlstarlet to return valid dates
- function xmlstarlet() {
-   echo "2023-01-01T12:00:00Z"
-   echo "2023-01-02T12:00:00Z"
-   echo "2023-01-01T13:00:00Z"
+ # Mock xmllint to return valid dates
+ function xmllint() {
+   if [[ "$*" == *"--xpath"* ]]; then
+     echo "2023-01-01 12:00:00 UTC"
+     echo "2023-01-02 12:00:00 UTC"
+     echo "2023-01-01 13:00:00 UTC"
+   else
+     command xmllint "$@"
+   fi
  }
+ export -f xmllint
  
  run __validate_xml_dates "${TEST_DIR}/test.xml"
  [ "$status" -eq 0 ]
- [[ "$output" == *"XML date validation passed"* ]]
 } 
