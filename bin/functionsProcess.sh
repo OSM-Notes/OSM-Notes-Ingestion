@@ -2421,9 +2421,9 @@ function __processCountries {
  if [[ "${FAIL}" -ne 0 ]]; then
   __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}"
   __loge "Check individual log files for detailed error information:"
-  for job_pid in "${FAILED_JOBS[@]}"; do
-   if [[ -f "${LOG_FILENAME}.${job_pid}" ]]; then
-    __loge "Log file for job ${job_pid}: ${LOG_FILENAME}.${job_pid}"
+  for JOB_PID in "${FAILED_JOBS[@]}"; do
+   if [[ -f "${LOG_FILENAME}.${JOB_PID}" ]]; then
+    __loge "Log file for job ${JOB_PID}: ${LOG_FILENAME}.${JOB_PID}"
    fi
   done
   __loge "=== COUNTRIES PROCESSING FAILED ==="

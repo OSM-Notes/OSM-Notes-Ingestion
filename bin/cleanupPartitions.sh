@@ -226,14 +226,14 @@ function __show_help() {
 # Main execution
 function main() {
  # Set up cleanup trap
- trap cleanup EXIT
+ trap __cleanup EXIT
 
  # Check if database name is provided
  local DBNAME_PARAM="${1:-}"
 
  # Check for help flag
  if [[ "${DBNAME_PARAM}" == "-h" || "${DBNAME_PARAM}" == "--help" ]]; then
-  show_help
+  __show_help
   exit 0
  fi
 

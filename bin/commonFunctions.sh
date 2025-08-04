@@ -4,7 +4,7 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-08-04
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -55,11 +55,11 @@ if [[ -z "${PREREQS_CHECKED:-}" ]]; then declare PREREQS_CHECKED=false; fi
 # shellcheck disable=SC2034
 if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
  # Try to find the project root by looking for the project directory
- current_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
- if [[ "${current_dir}" == */bin ]]; then
-  SCRIPT_BASE_DIRECTORY="$(cd "${current_dir}/.." && pwd)"
+ CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ if [[ "${CURRENT_DIR}" == */bin ]]; then
+  SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/.." && pwd)"
  else
-  SCRIPT_BASE_DIRECTORY="$(cd "${current_dir}/../.." && pwd)"
+  SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/../.." && pwd)"
  fi
 fi
 if [[ -z "${LOGGER_UTILITY:-}" ]]; then declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"; fi
