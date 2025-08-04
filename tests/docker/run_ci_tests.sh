@@ -94,6 +94,15 @@ run_ci_tests() {
 
  cd "${SCRIPT_DIR}"
 
+ # Setup test database for Docker
+ log_info "Setting up test database for Docker..."
+ if docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app bash -c "cd /app/tests/docker && ./setup_test_db_docker.sh"; then
+  log_success "Test database setup completed"
+ else
+  log_error "Test database setup failed"
+  return 1
+ fi
+
  # Run basic functionality tests
  log_info "Running basic functionality tests..."
  if docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app bash -c "cd /app && bash tests/run_tests_simple.sh"; then

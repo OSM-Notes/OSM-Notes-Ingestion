@@ -36,7 +36,7 @@ echo ""
 for i in $(seq 1 "${MAX_RETRIES}"); do
  echo "⏳ Attempt ${i}/${MAX_RETRIES}: Checking PostgreSQL connection..."
 
- if pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" > /dev/null 2>&1; then
+ if pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" > /dev/null 2>&1; then
   echo "✅ PostgreSQL is ready!"
   echo "   Connection successful to ${DB_HOST}:${DB_PORT}/${DB_NAME}"
   exit 0

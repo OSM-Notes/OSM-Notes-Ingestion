@@ -5,7 +5,7 @@
 services:
   # PostgreSQL Database for CI/CD
   postgres:
-    image: postgres:15
+    image: postgis/postgis:15-3.3
     container_name: osm_notes_postgres_ci
     environment:
       POSTGRES_DB: osm_notes_test
