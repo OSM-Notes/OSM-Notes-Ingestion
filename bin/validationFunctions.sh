@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Validation Functions for OSM-Notes-profile
-# This file contains validation functions used across different scripts.
+# This file contains validation functions for various data types.
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-02
@@ -42,6 +42,37 @@ fi
 # shellcheck disable=SC2034
 if [[ -z "${JSON_SCHEMA_OVERPASS:-}" ]]; then declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"; fi
 if [[ -z "${JSON_SCHEMA_GEOJSON:-}" ]]; then declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"; fi
+
+# Show help function
+function __show_help() {
+ echo "Validation Functions for OSM-Notes-profile"
+ echo "This file contains validation functions for various data types."
+ echo
+ echo "Usage: source bin/validationFunctions.sh"
+ echo
+ echo "Available functions:"
+ echo "  __validate_input_file      - Validate input file"
+ echo "  __validate_input_files     - Validate multiple input files"
+ echo "  __validate_xml_structure   - Validate XML structure"
+ echo "  __validate_csv_structure   - Validate CSV structure"
+ echo "  __validate_sql_structure   - Validate SQL structure"
+ echo "  __validate_config_file     - Validate config file"
+ echo "  __validate_json_structure  - Validate JSON structure"
+ echo "  __validate_database_connection - Validate database connection"
+ echo "  __validate_database_tables - Validate database tables"
+ echo "  __validate_database_extensions - Validate database extensions"
+ echo "  __validate_iso8601_date    - Validate ISO8601 date"
+ echo "  __validate_xml_dates       - Validate XML dates"
+ echo "  __validate_csv_dates       - Validate CSV dates"
+ echo "  __validate_file_checksum   - Validate file checksum"
+ echo "  __validate_coordinates     - Validate coordinates"
+ echo "  __validate_numeric_range   - Validate numeric range"
+ echo "  __validate_string_pattern  - Validate string pattern"
+ echo
+ echo "Author: Andres Gomez (AngocA)"
+ echo "Version: 2025-08-02"
+ exit 1
+}
 
 # Validate input file
 function __validate_input_file() {

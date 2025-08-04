@@ -1,10 +1,36 @@
 #!/bin/bash
 
 # Process Planet Functions for OSM-Notes-profile
-# This file contains functions specific to processPlanetNotes.sh
+# This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-31
+# Version: 2025-08-02
+
+# Show help function
+function __show_help() {
+ echo "Process Planet Functions for OSM-Notes-profile"
+ echo "This file contains functions for processing Planet data."
+ echo
+ echo "Usage: source bin/processPlanetFunctions.sh"
+ echo
+ echo "Available functions:"
+ echo "  __downloadPlanetNotes      - Download Planet notes"
+ echo "  __processPlanetXmlPart     - Process Planet XML part"
+ echo "  __createBaseTables         - Create base tables"
+ echo "  __createSyncTables         - Create sync tables"
+ echo "  __createCountryTables      - Create country tables"
+ echo "  __createPartitions         - Create partitions"
+ echo "  __loadPartitionedSyncNotes - Load partitioned sync notes"
+ echo "  __consolidatePartitions    - Consolidate partitions"
+ echo "  __moveSyncToMain           - Move sync to main"
+ echo "  __removeDuplicates         - Remove duplicates"
+ echo "  __loadTextComments         - Load text comments"
+ echo "  __objectsTextComments      - Objects text comments"
+ echo
+ echo "Author: Andres Gomez (AngocA)"
+ echo "Version: 2025-08-02"
+ exit 1
+}
 
 # shellcheck disable=SC2317,SC2155,SC2034
 

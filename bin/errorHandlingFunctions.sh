@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Error Handling Functions for OSM-Notes-profile
-# This file contains error handling and retry functions used across different scripts.
+# This file contains error handling and retry functions.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
+# Version: 2025-08-02
 
 # shellcheck disable=SC2317,SC2155
 
@@ -12,6 +12,28 @@
 declare -A CIRCUIT_BREAKER_STATE
 declare -A CIRCUIT_BREAKER_FAILURE_COUNT
 declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIME
+
+# Show help function
+function __show_help() {
+ echo "Error Handling Functions for OSM-Notes-profile"
+ echo "This file contains error handling and retry functions."
+ echo
+ echo "Usage: source bin/errorHandlingFunctions.sh"
+ echo
+ echo "Available functions:"
+ echo "  __retry_operation           - Retry operations with backoff"
+ echo "  __circuit_breaker_execute   - Circuit breaker pattern"
+ echo "  __download_with_retry       - Download with retry logic"
+ echo "  __api_call_with_retry       - API calls with retry"
+ echo "  __database_operation_with_retry - Database operations with retry"
+ echo "  __file_operation_with_retry - File operations with retry"
+ echo "  __check_network_connectivity - Network connectivity check"
+ echo "  __handle_error_with_cleanup - Error handling with cleanup"
+ echo
+ echo "Author: Andres Gomez (AngocA)"
+ echo "Version: 2025-08-02"
+ exit 1
+}
 
 # Retry operation with exponential backoff
 function __retry_operation() {

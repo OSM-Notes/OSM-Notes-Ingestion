@@ -1,10 +1,35 @@
 #!/bin/bash
 
 # Process API Functions for OSM-Notes-profile
-# This file contains functions specific to processAPINotes.sh
+# This file contains functions for processing API data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-31
+# Version: 2025-08-02
+
+# Show help function
+function __show_help() {
+ echo "Process API Functions for OSM-Notes-profile"
+ echo "This file contains functions for processing API data."
+ echo
+ echo "Usage: source bin/processAPIFunctions.sh"
+ echo
+ echo "Available functions:"
+ echo "  __getNewNotesFromApi     - Download new notes from API"
+ echo "  __processApiXmlPart       - Process API XML part"
+ echo "  __createApiTables         - Create API tables"
+ echo "  __createPartitions        - Create partitions"
+ echo "  __createPropertiesTable   - Create properties table"
+ echo "  __createProcedures        - Create procedures"
+ echo "  __loadApiNotes            - Load API notes"
+ echo "  __insertNewNotesAndComments - Insert new notes and comments"
+ echo "  __loadApiTextComments     - Load API text comments"
+ echo "  __updateLastValue         - Update last value"
+ echo "  __consolidatePartitions   - Consolidate partitions"
+ echo
+ echo "Author: Andres Gomez (AngocA)"
+ echo "Version: 2025-08-02"
+ exit 1
+}
 
 # shellcheck disable=SC2317,SC2155,SC2034
 

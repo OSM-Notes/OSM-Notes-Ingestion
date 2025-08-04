@@ -3902,3 +3902,29 @@ function __validate_csv_for_enum_compatibility {
  __logd "CSV enum validation passed for ${CSV_FILE}"
  return 0
 }
+
+# Show help function
+function __show_help() {
+ echo "OSM-Notes-profile - Common Functions"
+ echo "This file serves as the main entry point for all common functions."
+ echo
+ echo "Usage: source bin/functionsProcess.sh"
+ echo
+ echo "This file loads the following function modules:"
+ echo "  - commonFunctions.sh      - Common functions and error codes"
+ echo "  - validationFunctions.sh  - Validation functions"
+ echo "  - errorHandlingFunctions.sh - Error handling and retry functions"
+ echo "  - processAPIFunctions.sh  - API processing functions"
+ echo "  - processPlanetFunctions.sh - Planet processing functions"
+ echo
+ echo "Available legacy functions:"
+ echo "  - __checkPrereqsCommands  - Check prerequisites"
+ echo "  - __createFunctionToGetCountry - Create country function"
+ echo "  - __createProcedures      - Create procedures"
+ echo "  - __organizeAreas         - Organize areas"
+ echo "  - __getLocationNotes      - Get location notes"
+ echo
+ echo "Author: Andres Gomez (AngocA)"
+ echo "Version: 2025-08-03"
+ exit 1
+}

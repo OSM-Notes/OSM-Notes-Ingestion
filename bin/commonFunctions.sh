@@ -27,6 +27,24 @@ if [[ -z "${ERROR_INTERNET_ISSUE:-}" ]]; then declare -r ERROR_INTERNET_ISSUE=25
 if [[ -z "${ERROR_DATA_VALIDATION:-}" ]]; then declare -r ERROR_DATA_VALIDATION=252; fi
 if [[ -z "${ERROR_GENERAL:-}" ]]; then declare -r ERROR_GENERAL=255; fi
 
+# Show help function
+function __show_help() {
+ echo "Common Functions for OSM-Notes-profile"
+ echo "This file contains functions used across all scripts in the project."
+ echo
+ echo "Usage: source bin/commonFunctions.sh"
+ echo
+ echo "Available functions:"
+ echo "  __log*          - Logging functions"
+ echo "  __validation    - Input validation"
+ echo "  __trapOn        - Error handling setup"
+ echo "  __checkPrereqsCommands - Prerequisites check"
+ echo
+ echo "Author: Andres Gomez (AngocA)"
+ echo "Version: 2025-08-02"
+ exit "${ERROR_HELP_MESSAGE}"
+}
+
 # Common variables
 # shellcheck disable=SC2034
 if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then declare GENERATE_FAILED_FILE=true; fi
