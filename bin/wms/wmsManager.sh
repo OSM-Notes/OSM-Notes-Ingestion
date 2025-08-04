@@ -3,7 +3,7 @@
 # Manages the installation and deinstallation of WMS components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
+# Version: 2025-08-04
 
 set -euo pipefail
 
@@ -322,4 +322,6 @@ main() {
 }
 
 # Execute main function with all arguments
-main "$@"
+if [[ "${SKIP_MAIN:-}" != "true" ]]; then
+ main "$@"
+fi

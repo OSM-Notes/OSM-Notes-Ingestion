@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
-declare -r VERSION="2025-07-30"
+# Version: 2025-08-04
+declare -r VERSION="2025-08-04"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -236,14 +236,16 @@ function main() {
 chmod go+x "${TMP_DIR}"
 
 __start_logger
-if [[ ! -t 1 ]]; then
- __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}"
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
-   || true).log"
-  rmdir "${TMP_DIR}"
+if [[ "${SKIP_MAIN:-}" != "true" ]]; then
+ if [[ ! -t 1 ]]; then
+  __set_log_file "${LOG_FILENAME}"
+  main >> "${LOG_FILENAME}"
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
+    || true).log"
+   rmdir "${TMP_DIR}"
+  fi
+ else
+  main
  fi
-else
- main
 fi
