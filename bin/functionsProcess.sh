@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-08-03
 
 # shellcheck disable=SC2317,SC2155
 
@@ -739,6 +739,7 @@ function __processXmlPartsParallel() {
  local PROCESS_FUNCTION="${1}"
  local PARTS_DIR="${TMP_DIR}"
  local PART_PREFIX="part"
+ local FAILED_JOBS=()
 
  __log_start
  __logi "Processing XML parts in ${PARTS_DIR} with ${MAX_THREADS} background jobs"
@@ -747,7 +748,33 @@ function __processXmlPartsParallel() {
  for XML_PART in $(find "${PARTS_DIR}" -name "${PART_PREFIX}_*.xml" | sort); do
   (
    __logi "Starting processing ${XML_PART} - ${BASHPID}."
-   "${PROCESS_FUNCTION}" "${XML_PART}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1 || true
+   if ! "${PROCESS_FUNCTION}" "${XML_PART}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1; then
+    # Create failed file for this specific job
+    local FAILED_JOB_FILE="${TMP_DIR}/failed_job_${BASHPID}.log"
+    echo "ERROR: Job ${BASHPID} failed processing ${XML_PART}" > "${FAILED_JOB_FILE}"
+    echo "Error occurred at $(date)" >> "${FAILED_JOB_FILE}"
+    echo "Job PID: ${BASHPID}" >> "${FAILED_JOB_FILE}"
+    echo "XML Part: ${XML_PART}" >> "${FAILED_JOB_FILE}"
+    echo "Log file: ${LOG_FILENAME}.${BASHPID}" >> "${FAILED_JOB_FILE}"
+    echo "Exit code: $?" >> "${FAILED_JOB_FILE}"
+    echo "Temporary directory: ${TMP_DIR}" >> "${FAILED_JOB_FILE}"
+    
+    # Also create main failed file if GENERATE_FAILED_FILE is true
+    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+     echo "ERROR: Job ${BASHPID} failed processing ${XML_PART}" >> "${FAILED_EXECUTION_FILE}"
+     echo "Error occurred at $(date)" >> "${FAILED_EXECUTION_FILE}"
+     echo "Job PID: ${BASHPID}" >> "${FAILED_EXECUTION_FILE}"
+     echo "XML Part: ${XML_PART}" >> "${FAILED_EXECUTION_FILE}"
+     echo "Log file: ${LOG_FILENAME}.${BASHPID}" >> "${FAILED_EXECUTION_FILE}"
+     echo "Exit code: $?" >> "${FAILED_EXECUTION_FILE}"
+     echo "Temporary directory: ${TMP_DIR}" >> "${FAILED_EXECUTION_FILE}"
+     echo "---" >> "${FAILED_EXECUTION_FILE}"
+    fi
+    
+    # Signal failure by creating a marker file
+    touch "${TMP_DIR}/job_failed_${BASHPID}"
+    exit 1
+   fi
    __logi "Finished processing ${XML_PART} - ${BASHPID}."
    if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${BASHPID}"
@@ -770,11 +797,51 @@ function __processXmlPartsParallel() {
   set -e
   if [[ "${RET}" -ne 0 ]]; then
    FAIL=$((FAIL + 1))
+   FAILED_JOBS+=("${JOB}")
   fi
  done
  __logw "Waited for all jobs, restarting in main thread - XML processing."
- if [[ "${FAIL}" -ne 0 ]]; then
-  echo "FAIL! (${FAIL})"
+ 
+ # Check for failed job markers
+ local FAILED_MARKERS
+ FAILED_MARKERS=$(find "${TMP_DIR}" -name "job_failed_*" 2>/dev/null | wc -l)
+ 
+ if [[ "${FAIL}" -ne 0 ]] || [[ "${FAILED_MARKERS}" -gt 0 ]]; then
+  __loge "ERROR: ${FAIL} jobs failed during parallel processing"
+  
+  # List all failed job files
+  local FAILED_JOB_FILES
+  FAILED_JOB_FILES=$(find "${TMP_DIR}" -name "failed_job_*.log" 2>/dev/null)
+  if [[ -n "${FAILED_JOB_FILES}" ]]; then
+   __loge "Failed job details:"
+   while IFS= read -r failed_file; do
+    __loge "  ${failed_file}:"
+    cat "${failed_file}" | while IFS= read -r line; do
+     __loge "    ${line}"
+    done
+   done <<< "${FAILED_JOB_FILES}"
+  fi
+  
+  # Create comprehensive failed execution file
+  if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+   echo "ERROR: Parallel processing failed" > "${FAILED_EXECUTION_FILE}"
+   echo "Error occurred at $(date)" >> "${FAILED_EXECUTION_FILE}"
+   echo "Failed jobs: ${FAIL}" >> "${FAILED_EXECUTION_FILE}"
+   echo "Failed markers found: ${FAILED_MARKERS}" >> "${FAILED_EXECUTION_FILE}"
+   echo "Temporary directory: ${TMP_DIR}" >> "${FAILED_EXECUTION_FILE}"
+   echo "---" >> "${FAILED_EXECUTION_FILE}"
+   
+   # Append failed job details
+   if [[ -n "${FAILED_JOB_FILES}" ]]; then
+    echo "Failed job details:" >> "${FAILED_EXECUTION_FILE}"
+    while IFS= read -r failed_file; do
+     echo "  ${failed_file}:" >> "${FAILED_EXECUTION_FILE}"
+     cat "${failed_file}" >> "${FAILED_EXECUTION_FILE}"
+     echo "---" >> "${FAILED_EXECUTION_FILE}"
+    done <<< "${FAILED_JOB_FILES}"
+   fi
+  fi
+  
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
@@ -888,6 +955,18 @@ function __processApiXmlPart() {
  __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)" || true
  __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)" || true
  __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)" || true
+
+ # Validate CSV files for enum compatibility before loading
+ __logd "Validating CSV files for enum compatibility..."
+ if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
+  __loge "ERROR: Notes CSV validation failed for part ${PART_NUM}"
+  return 1
+ fi
+
+ if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_PART}" "comments"; then
+  __loge "ERROR: Comments CSV validation failed for part ${PART_NUM}"
+  return 1
+ fi
 
  __logi "=== LOADING PART ${PART_NUM} INTO DATABASE ==="
  __logd "Database: ${DBNAME}"
@@ -3731,4 +3810,95 @@ function __retry_file_operation() {
 
  echo "ERROR: File operation failed after ${MAX_RETRIES_LOCAL} attempts" >&2
  return 1
+}
+
+# Validate CSV file for enum compatibility before database loading
+# Parameters:
+#   $1 - CSV file path
+#   $2 - File type (notes, comments, text)
+# Returns:
+#   0 if validation passes, 1 if validation fails
+function __validate_csv_for_enum_compatibility {
+ local CSV_FILE="${1}"
+ local FILE_TYPE="${2}"
+ 
+ if [[ ! -f "${CSV_FILE}" ]]; then
+  __loge "ERROR: CSV file not found: ${CSV_FILE}"
+  return 1
+ fi
+ 
+ __logd "Validating CSV file for enum compatibility: ${CSV_FILE} (${FILE_TYPE})"
+ 
+ case "${FILE_TYPE}" in
+  "comments")
+   # Validate comment events against note_event_enum
+   local INVALID_LINES=0
+   local LINE_NUMBER=0
+   
+   while IFS= read -r line; do
+    ((LINE_NUMBER++))
+    
+    # Skip empty lines
+    if [[ -z "${line}" ]]; then
+     continue
+    fi
+    
+    # Extract event value (3rd field)
+    local EVENT
+    EVENT=$(echo "${line}" | cut -d',' -f3 | tr -d '"' 2> /dev/null)
+    
+    # Check if event is empty or invalid
+    if [[ -z "${EVENT}" ]]; then
+     __logw "WARNING: Empty event value found in line ${LINE_NUMBER}: ${line}"
+     ((INVALID_LINES++))
+    elif [[ ! "${EVENT}" =~ ^(opened|closed|reopened|commented|hidden)$ ]]; then
+     __logw "WARNING: Invalid event value '${EVENT}' found in line ${LINE_NUMBER}: ${line}"
+     ((INVALID_LINES++))
+    fi
+   done < "${CSV_FILE}"
+   
+   if [[ "${INVALID_LINES}" -gt 0 ]]; then
+    __loge "ERROR: Found ${INVALID_LINES} lines with invalid event values in ${CSV_FILE}"
+    return 1
+   fi
+   ;;
+   
+  "notes")
+   # Validate note status against note_status_enum
+   local INVALID_LINES=0
+   local LINE_NUMBER=0
+   
+   while IFS= read -r line; do
+    ((LINE_NUMBER++))
+    
+    # Skip empty lines
+    if [[ -z "${line}" ]]; then
+     continue
+    fi
+    
+    # Extract status value (6th field)
+    local STATUS
+    STATUS=$(echo "${line}" | cut -d',' -f6 | tr -d '"' 2> /dev/null)
+    
+    # Check if status is empty or invalid (status can be empty for open notes)
+    if [[ -n "${STATUS}" ]] && [[ ! "${STATUS}" =~ ^(open|close|hidden)$ ]]; then
+     __logw "WARNING: Invalid status value '${STATUS}' found in line ${LINE_NUMBER}: ${line}"
+     ((INVALID_LINES++))
+    fi
+   done < "${CSV_FILE}"
+   
+   if [[ "${INVALID_LINES}" -gt 0 ]]; then
+    __loge "ERROR: Found ${INVALID_LINES} lines with invalid status values in ${CSV_FILE}"
+    return 1
+   fi
+   ;;
+   
+  *)
+   __logw "WARNING: Unknown file type '${FILE_TYPE}', skipping enum validation"
+   return 0
+   ;;
+ esac
+ 
+ __logd "CSV enum validation passed for ${CSV_FILE}"
+ return 0
 }
