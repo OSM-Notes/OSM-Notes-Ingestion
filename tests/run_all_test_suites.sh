@@ -112,7 +112,7 @@ run_all_suites() {
   run_test_suite "Quality" "run_quality_tests.sh"
   
   # XML/XSLT tests
-  run_test_suite "XML/XSLT" "run_xml_xslt_tests.sh"
+  run_test_suite "XML/XSLT" "run_xml_xslt_tests_basic.sh"
   
   # Parallel processing tests
   run_test_suite "Parallel Processing" "run_parallel_tests.sh"

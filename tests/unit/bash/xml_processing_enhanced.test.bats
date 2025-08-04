@@ -26,10 +26,33 @@ setup() {
     # Create test XML files
     create_test_xml_files
     
+    # Load the logger first
+    if [[ -f "${TEST_BASE_DIR}/lib/bash_logger.sh" ]]; then
+        source "${TEST_BASE_DIR}/lib/bash_logger.sh"
+    fi
+    
     # Source the functions
     source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
     
-    # Set up logging function if not available
+    # Verify that required functions are available
+    if ! declare -f __processApiXmlPart >/dev/null; then
+        echo "ERROR: __processApiXmlPart function not found"
+        exit 1
+    fi
+    
+    if ! declare -f __processPlanetXmlPart >/dev/null; then
+        echo "ERROR: __processPlanetXmlPart function not found"
+        exit 1
+    fi
+    
+    # Set up logging functions if not available
+    if ! declare -f __logd >/dev/null; then
+        __logd() { echo "[DEBUG] $*"; }
+        __logi() { echo "[INFO] $*"; }
+        __logw() { echo "[WARN] $*"; }
+        __loge() { echo "[ERROR] $*"; }
+    fi
+    
     if ! declare -f log_info >/dev/null; then
         log_info() { echo "[INFO] $*"; }
         log_error() { echo "[ERROR] $*"; }
@@ -273,10 +296,43 @@ EOF
     export XSLT_TEXT_COMMENTS_API_FILE="/tmp/mock_text.xslt"
     export POSTGRES_31_LOAD_API_NOTES="/tmp/mock_load.sql"
     
-    # Create mock files
-    touch "/tmp/mock_notes.xslt"
-    touch "/tmp/mock_comments.xslt"
-    touch "/tmp/mock_text.xslt"
+    # Create mock XSLT files with valid content
+    cat > "/tmp/mock_notes.xslt" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:output method="text" encoding="UTF-8"/>
+<xsl:template match="/">
+<xsl:for-each select="//note">
+<xsl:value-of select="id"/>,<xsl:value-of select="@lon"/>,<xsl:value-of select="@lat"/>,<xsl:value-of select="date_created"/>,<xsl:value-of select="status"/>,<xsl:value-of select="url"/>
+</xsl:for-each>
+</xsl:template>
+</xsl:stylesheet>
+EOF
+
+    cat > "/tmp/mock_comments.xslt" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:output method="text" encoding="UTF-8"/>
+<xsl:template match="/">
+<xsl:for-each select="//comment">
+<xsl:value-of select="../id"/>,<xsl:value-of select="date"/>,<xsl:value-of select="uid"/>,<xsl:value-of select="user"/>,<xsl:value-of select="action"/>,<xsl:value-of select="text"/>
+</xsl:for-each>
+</xsl:template>
+</xsl:stylesheet>
+EOF
+
+    cat > "/tmp/mock_text.xslt" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:output method="text" encoding="UTF-8"/>
+<xsl:template match="/">
+<xsl:for-each select="//comment">
+<xsl:value-of select="../id"/>,<xsl:value-of select="text"/>
+</xsl:for-each>
+</xsl:template>
+</xsl:stylesheet>
+EOF
+
     touch "/tmp/mock_load.sql"
     
     # Create a test part file with correct naming
@@ -303,7 +359,7 @@ EOF
 EOF
     
     # Test API XML processing
-    run __processApiXmlPart "${TMP_DIR}/part_1.xml" "1"
+    run __processApiXmlPart "${TMP_DIR}/part_1.xml"
     [ "$status" -eq 0 ]
     
     # Check that output files were created
@@ -388,7 +444,7 @@ EOF
 EOF
     
     # Test Planet XML processing
-    run __processPlanetXmlPart "${TMP_DIR}/part_1.xml" "1"
+    run __processPlanetXmlPart "${TMP_DIR}/part_1.xml"
     [ "$status" -eq 0 ]
     
     # Check that output files were created

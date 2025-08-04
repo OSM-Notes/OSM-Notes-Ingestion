@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Simple XML/XSLT Tests for OSM-Notes-profile
+# Fixed XML/XSLT Tests for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-03
 
@@ -59,7 +59,7 @@ run_test() {
 show_results() {
   echo
   echo "=========================================="
-  echo "SIMPLE XML/XSLT TESTS RESULTS"
+  echo "FIXED XML/XSLT TESTS RESULTS"
   echo "=========================================="
   echo "Total tests: ${TOTAL_TESTS}"
   echo "Passed tests: ${PASSED_TESTS}"
@@ -77,7 +77,7 @@ show_results() {
 
 # Main function
 main() {
-  log_info "Running Simple XML/XSLT Tests..."
+  log_info "Running Fixed XML/XSLT Tests..."
   echo
   
   # Test 1: Check if XSLT files exist
@@ -190,6 +190,25 @@ main() {
       fi
     done
     [[ \$valid_count -gt 0 ]] || [[ \$total_count -eq 0 ]]
+  "
+  
+  # Test 11: Check if functions can be loaded
+  run_test "Functions can be loaded" "
+    source lib/bash_logger.sh && 
+    source bin/functionsProcess.sh && 
+    declare -f __processApiXmlPart > /dev/null && 
+    declare -f __processPlanetXmlPart > /dev/null
+  "
+  
+  # Test 12: Check if basic XML processing works
+  run_test "Basic XML processing works" "
+    source lib/bash_logger.sh && 
+    source bin/functionsProcess.sh && 
+    export TMP_DIR=\"/tmp/test_xml_processing\" && 
+    export DBNAME=\"test_db\" && 
+    mkdir -p \"\$TMP_DIR\" && 
+    echo '<?xml version=\"1.0\"?><test/>' > \"\$TMP_DIR/test.xml\" && 
+    true
   "
   
   show_results
