@@ -66,12 +66,12 @@ if [[ -z "${LOGGER_UTILITY:-}" ]]; then declare -r LOGGER_UTILITY="${SCRIPT_BASE
 
 # Logger functions - These are aliases for the bash_logger functions
 function __log() { command __log "${@}"; }
-function __log_trace() { command __logt "${@}"; }
-function __log_debug() { command __logd "${@}"; }
-function __log_info() { command __logi "${@}"; }
-function __log_warn() { command __logw "${@}"; }
-function __log_error() { command __loge "${@}"; }
-function __log_fatal() { command __logf "${@}"; }
+function __logt() { command __logt "${@}"; }
+function __logd() { command __logd "${@}"; }
+function __logi() { command __logi "${@}"; }
+function __logw() { command __logw "${@}"; }
+function __loge() { command __loge "${@}"; }
+function __logf() { command __logf "${@}"; }
 
 # Start logger function
 function __start_logger() {

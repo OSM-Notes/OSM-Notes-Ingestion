@@ -413,27 +413,27 @@ function main() {
 
  while [[ $# -gt 0 ]]; do
   case $1 in
-   -p|--partitions-only)
-    CLEANUP_MODE="partitions"
-    shift
-    ;;
-   -a|--all)
-    CLEANUP_MODE="all"
-    shift
-    ;;
-   -h|--help)
-    __show_help
-    exit 0
-    ;;
-   -*)
-    __loge "Unknown option: $1"
-    __show_help
-    exit 1
-    ;;
-   *)
-    DBNAME_PARAM="$1"
-    shift
-    ;;
+  -p | --partitions-only)
+   CLEANUP_MODE="partitions"
+   shift
+   ;;
+  -a | --all)
+   CLEANUP_MODE="all"
+   shift
+   ;;
+  -h | --help)
+   __show_help
+   exit 0
+   ;;
+  -*)
+   __loge "Unknown option: $1"
+   __show_help
+   exit 1
+   ;;
+  *)
+   DBNAME_PARAM="$1"
+   shift
+   ;;
   esac
  done
 
@@ -451,28 +451,28 @@ function main() {
 
  # Run cleanup based on mode
  case "${CLEANUP_MODE}" in
-  "partitions")
-   if __cleanup_partitions_only "${TARGET_DB}"; then
-    __logi "Partition cleanup completed successfully"
-    exit 0
-   else
-    __loge "Partition cleanup failed"
-    exit 1
-   fi
-   ;;
-  "all")
-   if __cleanup_all "${TARGET_DB}"; then
-    __logi "Comprehensive cleanup completed successfully"
-    exit 0
-   else
-    __loge "Comprehensive cleanup failed"
-    exit 1
-   fi
-   ;;
-  *)
-   __loge "Unknown cleanup mode: ${CLEANUP_MODE}"
+ "partitions")
+  if __cleanup_partitions_only "${TARGET_DB}"; then
+   __logi "Partition cleanup completed successfully"
+   exit 0
+  else
+   __loge "Partition cleanup failed"
    exit 1
-   ;;
+  fi
+  ;;
+ "all")
+  if __cleanup_all "${TARGET_DB}"; then
+   __logi "Comprehensive cleanup completed successfully"
+   exit 0
+  else
+   __loge "Comprehensive cleanup failed"
+   exit 1
+  fi
+  ;;
+ *)
+  __loge "Unknown cleanup mode: ${CLEANUP_MODE}"
+  exit 1
+  ;;
  esac
 }
 
