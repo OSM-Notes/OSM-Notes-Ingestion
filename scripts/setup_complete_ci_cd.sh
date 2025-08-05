@@ -223,7 +223,7 @@ generate_initial_reports() {
     echo "- scripts/activate_github_actions.sh"
     echo "- scripts/setup_quality_monitoring.sh"
     echo "- tests/unit/bash/edge_cases_integration.test.bats"
-    echo "- tests/unit/bash/performance_edge_cases.test.bats"
+    echo "- tests/unit/bash/bios.test.bats"
     echo "- docs/Testing_Guide.md"
     echo "- docs/CI_CD_Setup_Guide.md"
     echo "- sonar-project.properties"
