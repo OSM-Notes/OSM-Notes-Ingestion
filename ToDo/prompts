@@ -2,10 +2,6 @@
 Consideras que tenemos código legacy en el proyecto que podamos borrar?
 
 
-Hicimos una prueba de ambiente híbrido, donde solo la descarga de archivoos externos se prueba, o sea wget y aria2c, y usa una copia de datos reales que se tienen dentro del repositorio.
-Me podrías mostrar esta prueba y cuáles son los archivos que usa?
-Es que me gustaría a futuro integrarle más notas al XML de prueba del planet dump.
-
 
 
 Con respecto al proceso de ETL, podrías comenzar la documentación del proceso de poblado del modelo estrella. Indica qué columnas tiene la fact table y qué representan. También la documentación sobre las dimensiones, con al menos un ejemplo de cada registro por dimensión.

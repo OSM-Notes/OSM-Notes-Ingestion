@@ -61,7 +61,7 @@ readonly LOG_FILENAME
 
 # Lock file for single execution.
 declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
+LOCK="${TMP_DIR}/${BASENAME}.lock"
 readonly LOCK
 
 # Type of process to run in the script.

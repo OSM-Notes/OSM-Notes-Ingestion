@@ -65,7 +65,7 @@ readonly LOG_FILENAME
 
 # Lock file for single execution.
 declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
+LOCK="${TMP_DIR}/${BASENAME}.lock"
 readonly LOCK
 
 # Type of process to run in the script.
@@ -158,7 +158,7 @@ declare -r MAX_MEMORY_USAGE="${MAX_MEMORY_USAGE:-80}"
 declare -r MAX_DISK_USAGE="${MAX_DISK_USAGE:-90}"
 declare -r ETL_TIMEOUT="${ETL_TIMEOUT:-7200}"
 declare -r ETL_RECOVERY_ENABLED="${ETL_RECOVERY_ENABLED:-true}"
-declare -r ETL_RECOVERY_FILE="${ETL_RECOVERY_FILE:-/tmp/ETL_recovery.json}"
+declare -r ETL_RECOVERY_FILE="${ETL_RECOVERY_FILE:-${TMP_DIR}/ETL_recovery.json}"
 declare -r ETL_VALIDATE_INTEGRITY="${ETL_VALIDATE_INTEGRITY:-true}"
 declare -r ETL_VALIDATE_DIMENSIONS="${ETL_VALIDATE_DIMENSIONS:-true}"
 declare -r ETL_VALIDATE_FACTS="${ETL_VALIDATE_FACTS:-true}"
@@ -203,7 +203,8 @@ function __save_progress {
  TIMESTAMP=$(date +%s)
 
  if [[ "${ETL_RECOVERY_ENABLED}" == "true" ]]; then
-  cat > "${ETL_RECOVERY_FILE}" << EOF
+  local RECOVERY_FILE="${ETL_RECOVERY_FILE:-${TMP_DIR}/ETL_recovery.json}"
+  cat > "${RECOVERY_FILE}" << EOF
 {
     "last_step": "${STEP_NAME}",
     "status": "${STATUS}",
@@ -221,12 +222,13 @@ function __resume_from_last_step {
   return 0
  fi
 
- if [[ -f "${ETL_RECOVERY_FILE}" ]]; then
+ local RECOVERY_FILE="${ETL_RECOVERY_FILE:-${TMP_DIR}/ETL_recovery.json}"
+ if [[ -f "${RECOVERY_FILE}" ]]; then
   if command -v jq &> /dev/null; then
    local LAST_STEP
    local STATUS
-   LAST_STEP=$(jq -r '.last_step' "${ETL_RECOVERY_FILE}" 2> /dev/null)
-   STATUS=$(jq -r '.status' "${ETL_RECOVERY_FILE}" 2> /dev/null)
+   LAST_STEP=$(jq -r '.last_step' "${RECOVERY_FILE}" 2> /dev/null)
+   STATUS=$(jq -r '.status' "${RECOVERY_FILE}" 2> /dev/null)
 
    if [[ "${STATUS}" == "completed" ]] && [[ -n "${LAST_STEP}" ]]; then
     __logi "Resuming from step after: ${LAST_STEP}"
@@ -381,8 +383,6 @@ function __checkPrereqs {
 
  # Create array of SQL files to validate
  local SQL_FILES=(
-  "${DATAMART_COUNTRIES_SCRIPT}"
-  "${DATAMART_USERS_SCRIPT}"
   "${POSTGRES_11_CHECK_DWH_BASE_TABLES}"
   "${POSTGRES_12_DROP_DATAMART_OBJECTS}"
   "${POSTGRES_13_DROP_DWH_OBJECTS}"

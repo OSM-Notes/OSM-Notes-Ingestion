@@ -92,6 +92,12 @@ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processAPINotes_21_crea
 log_info "Creating constraints and indexes..."
 psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql" >/dev/null 2>&1 || log_warning "Constraints creation failed"
 
+# Create functions and procedures
+log_info "Creating functions and procedures..."
+psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" >/dev/null 2>&1 || log_warning "Function get_country creation failed"
+psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" >/dev/null 2>&1 || log_warning "Procedure insertNote creation failed"
+psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" >/dev/null 2>&1 || log_warning "Procedure insertNoteComment creation failed"
+
 # Verify tables exist
 log_info "Verifying tables exist..."
 TABLES=("notes" "note_comments" "note_comments_text" "users" "logs" "properties" "notes_api" "note_comments_api" "note_comments_text_api")

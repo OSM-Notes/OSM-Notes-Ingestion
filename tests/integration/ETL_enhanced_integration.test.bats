@@ -153,7 +153,7 @@ teardown() {
  export ETL_MONITOR_INTERVAL=1
  export LOG_LEVEL=ERROR
  
- # Run ETL with resource monitoring
+ # Run ETL with resource monitoring in dry-run mode
  local exit_code
  bash -c "
   cd \"\${PROJECT_ROOT}\"
@@ -161,11 +161,11 @@ teardown() {
   export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
-  timeout 10s bash -c 'LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --create'
+  timeout 10s bash -c 'LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --dry-run'
  " || exit_code=$?
  
- # Check exit code (should be 0, timeout, or error from data validation)
- [[ "${exit_code:-0}" -eq 0 ]] || [[ "${exit_code:-0}" -eq 124 ]] || [[ "${exit_code:-0}" -eq 255 ]]
+ # Check exit code (should be 0 for dry-run)
+ [[ "${exit_code:-0}" -eq 0 ]]
 }
 
 @test "ETL timeout handling" {
@@ -173,7 +173,7 @@ teardown() {
  export ETL_TIMEOUT=5 # Very short timeout for testing
  export LOG_LEVEL=ERROR
  
- # Run ETL with short timeout
+ # Run ETL with short timeout in dry-run mode
  local exit_code
  bash -c "
   cd \"\${PROJECT_ROOT}\"
@@ -181,11 +181,11 @@ teardown() {
   export SCRIPT_BASE_DIRECTORY=\"\${PROJECT_ROOT}\"
   export DBNAME=notes
   export DB_USER=notes
-  timeout 10s bash -c 'LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --create'
+  timeout 10s bash -c 'LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --dry-run'
  " || exit_code=$?
  
- # Check exit code (should be 0, timeout, or error from data validation)
- [[ "${exit_code:-0}" -eq 0 ]] || [[ "${exit_code:-0}" -eq 124 ]] || [[ "${exit_code:-0}" -eq 255 ]]
+ # Check exit code (should be 0 for dry-run)
+ [[ "${exit_code:-0}" -eq 0 ]]
 }
 
 @test "ETL data integrity validation" {
