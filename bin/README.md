@@ -32,9 +32,11 @@ Monitoring and verification scripts:
 - **`processCheckPlanetNotes.sh`**: Verifies Planet notes processing
 - **`notesCheckVerifier.sh`**: Validates note data integrity
 
-### `/bin/cleanupPartitions.sh`
+### `/bin/cleanupAll.sh`
 
-Database maintenance script for cleaning up partition tables
+Database maintenance script for comprehensive cleanup operations:
+- **Full cleanup**: Removes all components (ETL, WMS, base tables, temporary files)
+- **Partition-only cleanup**: Removes only partition tables (use `-p` or `--partitions-only` flag)
 
 ## Software Components
 
@@ -53,7 +55,7 @@ Database maintenance script for cleaning up partition tables
 ### Monitoring & Maintenance
 
 - **Verification**: `bin/monitor/` scripts ensure data quality
-- **Cleanup**: `bin/cleanupPartitions.sh` maintains database performance
+- **Cleanup**: `bin/cleanupAll.sh` maintains database performance and cleanup operations
 
 ## Usage
 

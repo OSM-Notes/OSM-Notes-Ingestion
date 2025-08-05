@@ -264,7 +264,7 @@ project/
 #### Script Files
 
 - **Main scripts**: `processAPINotes.sh`, `processPlanetNotes.sh`
-- **Utility scripts**: `updateCountries.sh`, `cleanupPartitions.sh`
+- **Utility scripts**: `updateCountries.sh`, `cleanupAll.sh`
 - **Test scripts**: `test_[component].sh`
 
 #### SQL Files

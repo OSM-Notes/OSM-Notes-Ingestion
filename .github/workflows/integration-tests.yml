@@ -138,7 +138,7 @@ jobs:
         echo "- ✅ ETL_integration.test.bats" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ wmsManager_integration.test.bats" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ datamartUsers_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ cleanupPartitions_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ cleanupAll_integration.test.bats (includes partition cleanup functionality)" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ processCheckPlanetNotes_integration.test.bats" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ notesCheckVerifier_integration.test.bats" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ profile_integration.test.bats" >> $GITHUB_STEP_SUMMARY
