@@ -16,6 +16,13 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 - **`processAPI.md`**: API processing documentation and incremental synchronization
 - **`processPlanet.md`**: Planet file processing documentation and historical data handling
 
+### Testing Documentation
+
+- **`Testing_Guide.md`**: Complete testing guide with integration tests, troubleshooting, and best practices
+- **`Testing_Workflows_Overview.md`**: Overview of GitHub Actions workflows and how to interpret results
+- **`Input_Validation.md`**: Input validation and error handling documentation
+- **`XML_Validation_Improvements.md`**: XML processing and validation improvements
+
 ### WMS (Web Map Service)
 
 - **`WMS_Guide.md`**: Complete WMS guide with installation, configuration, and usage
@@ -39,6 +46,7 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 2. Study **[processAPI.md](./processAPI.md)** for API integration details
 3. Examine **[processPlanet.md](./processPlanet.md)** for data processing workflows
 4. Consult **[WMS_Technical.md](./WMS_Technical.md)** and **[WMS_API_Reference.md](./WMS_API_Reference.md)** for WMS development
+5. Read **[Testing_Guide.md](./Testing_Guide.md)** and **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** for testing procedures
 
 ### For System Administrators
 
@@ -46,6 +54,14 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 2. Review **[processAPI.md](./processAPI.md)** and **[processPlanet.md](./processPlanet.md)** for operational procedures
 3. Follow **[WMS_Administration.md](./WMS_Administration.md)** for WMS system administration
 4. Use **[WMS_Guide.md](./WMS_Guide.md)** for WMS installation and configuration
+5. Check **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** for CI/CD pipeline understanding
+
+### For Testers and QA
+
+1. Start with **[Testing_Guide.md](./Testing_Guide.md)** for comprehensive testing procedures
+2. Read **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** to understand GitHub Actions workflows
+3. Review **[Input_Validation.md](./Input_Validation.md)** for validation testing guidelines
+4. Study **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)** for XML testing procedures
 
 ## Documentation Cross-References
 
@@ -63,6 +79,13 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
   - [Rationale.md](./Rationale.md) for project motivation
   - [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for detailed implementation
 
+### Testing Documentation
+
+- **Testing_Guide.md**: Complete testing guide with integration tests and troubleshooting
+- **Testing_Workflows_Overview.md**: GitHub Actions workflows explanation and interpretation
+- **Input_Validation.md**: Input validation and error handling procedures
+- **XML_Validation_Improvements.md**: XML processing and validation testing
+
 ### processAPI.md
 
 - **Purpose**: API processing and incremental synchronization
@@ -70,6 +93,7 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
   - [Documentation.md](./Documentation.md) for system architecture
   - [Rationale.md](./Rationale.md) for project background
   - [processPlanet.md](./processPlanet.md) for related processing workflows
+  - [Testing_Guide.md](./Testing_Guide.md) for testing procedures
 
 ### processPlanet.md
 
@@ -78,6 +102,7 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
   - [Documentation.md](./Documentation.md) for system architecture
   - [Rationale.md](./Rationale.md) for project background
   - [processAPI.md](./processAPI.md) for related processing workflows
+  - [Testing_Guide.md](./Testing_Guide.md) for testing procedures
 
 ### WMS Documentation
 

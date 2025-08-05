@@ -1,297 +1,342 @@
-# Guía de Testing - OSM-Notes-profile
+# Testing Guide - OSM-Notes-profile
 
-## Resumen
+## Summary
 
-Esta guía proporciona información completa sobre las pruebas de integración implementadas, casos de uso y troubleshooting para el proyecto OSM-Notes-profile.
+This guide provides comprehensive information about the implemented integration tests, use cases, and troubleshooting for the OSM-Notes-profile project.
 
-## Tipos de Pruebas
+## GitHub Actions Workflows
 
-### 1. Pruebas de Integración
+The project uses three main GitHub Actions workflows that run automatically on each push or pull request:
 
-Las pruebas de integración ejecutan realmente los scripts para detectar problemas reales como:
+### 1. Tests (tests.yml)
+**Purpose:** Runs the main battery of unit and integration tests.
+**What it validates:**
+- Bash functions and scripts work correctly in isolation
+- System components interact correctly with each other
+- Main data processing flows, XML validation, error handling, and parallelism work as expected
+- Includes tests with real data, mock tests, and hybrid tests
+
+### 2. Quality Tests (quality-tests.yml)
+**Purpose:** Ensures source code quality and compliance with best practices.
+**What it validates:**
+- Bash and SQL scripts comply with defined format and style standards
+- No duplicate variables, syntax errors, or permission issues in scripts
+- Documentation and configuration files are present and properly formatted
+
+### 3. Integration Tests (integration-tests.yml)
+**Purpose:** Validates system module integration, especially in environments that simulate real infrastructure.
+**What it validates:**
+- Scripts can interact correctly with PostgreSQL databases and external services
+- ETL flows, note processing, and WMS administration work end-to-end
+- Integration with external tools (Docker, PostGIS, etc.) is successful
+
+## Testing Scripts Summary Table
+
+| Script / Workflow                      | Location                                 | Main Purpose                                                                 |
+|----------------------------------------|-------------------------------------------|-------------------------------------------------------------------------------|
+| `run_all_tests.sh`                     | tests/                                    | Runs all main tests (unit, integration, mock, etc.)                           |
+| `run_integration_tests.sh`             | tests/                                    | Runs complete integration tests                                                |
+| `run_quality_tests.sh`                 | tests/                                    | Validates code quality, format, and conventions                               |
+| `run_mock_tests.sh`                    | tests/                                    | Runs tests using mocks and simulated environments                             |
+| `run_enhanced_tests.sh`                | tests/                                    | Advanced testability and robustness tests                                     |
+| `run_real_data_tests.sh`               | tests/                                    | Tests with real data and special cases                                        |
+| `run_parallel_tests.sh`                | tests/                                    | Validates parallel processing and concurrency                                 |
+| `run_xml_xslt_tests.sh`                | tests/                                    | XML/XSLT validation and transformation tests                                  |
+| `run_error_handling_tests.sh`          | tests/                                    | Error handling and edge case validation tests                                 |
+| `run_ci_tests.sh`                      | tests/docker/                             | CI/CD tests in Docker environment                                             |
+| `run_integration_tests.sh`             | tests/docker/                             | Integration tests in Docker environment                                       |
+| `quality-tests.yml`                    | .github/workflows/                        | GitHub Actions workflow for quality tests                                     |
+| `integration-tests.yml`                | .github/workflows/                        | GitHub Actions workflow for integration tests                                 |
+| `tests.yml`                            | .github/workflows/                        | GitHub Actions workflow for main unit and integration tests                   |
+
+## Types of Tests
+
+### 1. Integration Tests
+
+Integration tests actually run the scripts to detect real problems like:
 
 - `log_info: orden no encontrada`
 - `Notes are not yet on the database`
 - `FAIL! (1) - __validation error`
 
-#### Scripts Cubiertos:
+#### Covered Scripts:
 
-**Scripts de Procesamiento:**
-- `processAPINotes.sh` - Procesamiento de notas API
-- `processPlanetNotes.sh` - Procesamiento de notas Planet
-- `updateCountries.sh` - Actualización de países
+**Processing Scripts:**
+- `processAPINotes.sh` - API note processing
+- `processPlanetNotes.sh` - Planet note processing
+- `updateCountries.sh` - Country updates
 
-**Scripts de Limpieza:**
-- `cleanupAll.sh` - Limpieza completa
-- `cleanupPartitions.sh` - Limpieza de particiones
+**Cleanup Scripts:**
+- `cleanupAll.sh` - Full cleanup
+- `cleanupPartitions.sh` - Partition cleanup
 
-**Scripts de DWH (Data Warehouse):**
-- `ETL.sh` - Proceso ETL completo
-- `profile.sh` - Perfil de datos
-- `datamartUsers/datamartUsers.sh` - Datamart de usuarios
-- `datamartCountries/datamartCountries.sh` - Datamart de países
+**DWH (Data Warehouse) Scripts:**
+- `ETL.sh` - Full ETL process
+- `profile.sh` - Data profile
+- `datamartUsers/datamartUsers.sh` - User datamart
+- `datamartCountries/datamartCountries.sh` - Country datamart
 
-**Scripts de WMS (Web Map Service):**
-- `wmsManager.sh` - Gestor WMS
-- `geoserverConfig.sh` - Configuración GeoServer
-- `wmsConfigExample.sh` - Ejemplo de configuración
+**WMS (Web Map Service) Scripts:**
+- `wmsManager.sh` - WMS Manager
+- `geoserverConfig.sh` - GeoServer configuration
+- `wmsConfigExample.sh` - Example configuration
 
-**Scripts de Monitor:**
-- `processCheckPlanetNotes.sh` - Verificación de notas
-- `notesCheckVerifier.sh` - Verificador de notas
+**Monitor Scripts:**
+- `processCheckPlanetNotes.sh` - Note verification
+- `notesCheckVerifier.sh` - Note verifier
 
-### 2. Pruebas de Casos Edge
+### 2. Edge Cases Tests
 
-Las pruebas de casos edge cubren situaciones límite:
+Edge cases tests cover boundary situations:
 
-- Archivos XML muy grandes
-- Archivos XML malformados
-- Base de datos vacía
-- Base de datos corrupta
-- Problemas de conectividad de red
-- Espacio insuficiente en disco
-- Problemas de permisos
-- Acceso concurrente
-- Restricciones de memoria
-- Configuración inválida
-- Dependencias faltantes
-- Escenarios de timeout
-- Corrupción de datos
-- Valores extremos
+- Very large XML files
+- Malformed XML files
+- Empty database
+- Corrupted database
+- Network connectivity issues
+- Insufficient disk space
+- Permission issues
+- Concurrent access
+- Memory restrictions
+- Invalid configuration
+- Missing dependencies
+- Timeout scenarios
+- Data corruption
+- Extreme values
 
-## Casos de Uso
+## Use Cases
 
-### Caso de Uso 1: Desarrollo Local
+### Use Case 1: Local Development
 
-**Objetivo:** Verificar que los cambios funcionan correctamente antes de hacer commit.
+**Objective:** Verify that changes work correctly before committing.
 
-**Pasos:**
-1. Ejecutar pruebas de integración locales:
+**Steps:**
+1. Run integration tests locally:
    ```bash
    ./tests/run_integration_tests.sh --all
    ```
 
-2. Ejecutar pruebas específicas:
+2. Run specific tests:
    ```bash
    ./tests/run_integration_tests.sh --process-api
    ./tests/run_integration_tests.sh --process-planet
    ```
 
-3. Ejecutar pruebas de casos edge:
+3. Run edge case tests:
    ```bash
    bats tests/unit/bash/edge_cases_integration.test.bats
    ```
 
-**Resultado Esperado:** Todas las pruebas pasan sin errores.
+**Expected Result:** All tests pass without errors.
 
-### Caso de Uso 2: CI/CD Pipeline
+### Use Case 2: CI/CD Pipeline
 
-**Objetivo:** Verificar automáticamente la calidad del código en cada commit.
+**Objective:** Automatically verify code quality on each commit.
 
-**Pasos:**
-1. El workflow de GitHub Actions se ejecuta automáticamente
-2. Se ejecutan todas las pruebas de integración
-3. Se ejecutan pruebas de calidad y seguridad
-4. Se generan reportes automáticos
+**Steps:**
+1. The GitHub Actions workflow runs automatically
+2. All integration tests run
+3. Quality and security tests run
+4. Automatic reports are generated
 
-**Resultado Esperado:** Pipeline exitoso con todas las pruebas pasando.
+**Expected Result:** Successful pipeline with all tests passing.
 
-### Caso de Uso 3: Debugging de Problemas
+### Use Case 3: Debugging Problems
 
-**Objetivo:** Identificar y resolver problemas específicos.
+**Objective:** Identify and resolve specific problems.
 
-**Pasos:**
-1. Ejecutar pruebas específicas que fallan:
+**Steps:**
+1. Run specific tests that fail:
    ```bash
    bats tests/unit/bash/processAPINotes_integration.test.bats
    ```
 
-2. Revisar logs detallados:
+2. Review detailed logs:
    ```bash
    ./tests/run_integration_tests.sh --process-api --verbose
    ```
 
-3. Ejecutar pruebas de casos edge para identificar problemas:
+3. Run edge case tests to identify problems:
    ```bash
    bats tests/unit/bash/edge_cases_integration.test.bats
    ```
 
-**Resultado Esperado:** Identificación del problema específico.
+**Expected Result:** Identification of the specific problem.
 
-### Caso de Uso 4: Validación de Configuración
+### Use Case 4: Configuration Validation
 
-**Objetivo:** Verificar que la configuración del sistema es correcta.
+**Objective:** Verify that the system configuration is correct.
 
-**Pasos:**
-1. Verificar conectividad a base de datos:
+**Steps:**
+1. Verify database connectivity:
    ```bash
    psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "SELECT 1;"
    ```
 
-2. Verificar herramientas requeridas:
+2. Verify required tools:
    ```bash
    command -v bats && echo "BATS OK"
    command -v psql && echo "PostgreSQL OK"
    command -v xmllint && echo "XML tools OK"
    ```
 
-3. Ejecutar pruebas de configuración:
+3. Run configuration tests:
    ```bash
    ./tests/run_integration_tests.sh --all
    ```
 
-**Resultado Esperado:** Todas las verificaciones pasan.
+**Expected Result:** All verifications pass.
 
 ## Troubleshooting
 
-### Problema 1: "log_info: orden no encontrada"
+### Problem 1: "log_info: orden no encontrada"
 
-**Síntomas:**
-- Error de logging al ejecutar scripts
-- Funciones de logging no disponibles
+**Symptoms:**
+- Logging errors when running scripts
+- Logging functions not available
 
-**Causas:**
-- Logger no inicializado correctamente
-- Funciones de logging no definidas
-- Problemas de sourcing de scripts
+**Causes:**
+- Logger not initialized correctly
+- Logging functions not defined
+- Script sourcing issues
 
-**Soluciones:**
-1. Verificar que `bash_logger.sh` está disponible:
+**Solutions:**
+1. Verify that `bash_logger.sh` is available:
    ```bash
    ls -la lib/bash_logger.sh
    ```
 
-2. Verificar inicialización del logger:
+2. Verify logger initialization:
    ```bash
    source bin/commonFunctions.sh
    __start_logger
    ```
 
-3. Verificar funciones de logging:
+3. Verify logging functions:
    ```bash
    declare -f __log_info
    declare -f __log_error
    ```
 
-### Problema 2: "Notes are not yet on the database"
+### Problem 2: "Notes are not yet on the database"
 
-**Síntomas:**
-- Error al ejecutar scripts SQL
-- Tablas no encontradas
+**Symptoms:**
+- SQL script execution errors
+- Tables not found
 
-**Causas:**
-- Base de datos vacía
-- Tablas no creadas
-- Scripts SQL con errores
+**Causes:**
+- Empty database
+- Tables not created
+- SQL scripts with errors
 
-**Soluciones:**
-1. Verificar que las tablas existen:
+**Solutions:**
+1. Verify that tables exist:
    ```bash
    psql -d osm_notes_test -c "SELECT COUNT(*) FROM information_schema.tables;"
    ```
 
-2. Crear tablas si no existen:
+2. Create tables if they don't exist:
    ```bash
    psql -d osm_notes_test -f sql/process/processPlanetNotes_22_createBaseTables_tables.sql
    ```
 
-3. Verificar scripts SQL:
+3. Verify SQL scripts:
    ```bash
    psql -d osm_notes_test -f sql/process/processAPINotes_23_createPropertiesTables.sql
    ```
 
-### Problema 3: "FAIL! (1) - __validation error"
+### Problem 3: "FAIL! (1) - __validation error"
 
-**Síntomas:**
-- Error en funciones de validación
-- Bucles infinitos en traps
+**Symptoms:**
+- Validation function errors
+- Infinite loops in traps
 
-**Causas:**
-- Funciones de validación no definidas
-- Problemas en traps de error
-- Recursión en funciones
+**Causes:**
+- Validation functions not defined
+- Error traps issues
+- Recursion in functions
 
-**Soluciones:**
-1. Verificar funciones de validación:
+**Solutions:**
+1. Verify validation functions:
    ```bash
    declare -f __validation
    ```
 
-2. Verificar traps:
+2. Verify traps:
    ```bash
    trap -p
    ```
 
-3. Revisar funciones recursivas:
+3. Review recursive functions:
    ```bash
    grep -r "function __" bin/
    ```
 
-### Problema 4: Scripts no se pueden cargar (código 127)
+### Problem 4: Scripts cannot be loaded (code 127)
 
-**Síntomas:**
-- Error al sourcear scripts
-- Comandos no encontrados
+**Symptoms:**
+- Script sourcing errors
+- Commands not found
 
-**Causas:**
-- Dependencias faltantes
-- Problemas de permisos
-- Scripts malformados
+**Causes:**
+- Missing dependencies
+- Permission issues
+- Malformed scripts
 
-**Soluciones:**
-1. Verificar dependencias:
+**Solutions:**
+1. Verify dependencies:
    ```bash
    command -v psql
    command -v xmllint
    command -v bats
    ```
 
-2. Verificar permisos:
+2. Verify permissions:
    ```bash
    ls -la bin/*.sh
    chmod +x bin/*.sh
    ```
 
-3. Verificar sintaxis:
+3. Verify syntax:
    ```bash
    bash -n bin/process/processAPINotes.sh
    ```
 
-### Problema 5: Pruebas de integración fallan
+### Problem 5: Integration tests fail
 
-**Síntomas:**
-- Pruebas de integración no pasan
-- Errores en CI/CD
+**Symptoms:**
+- Integration tests do not pass
+- Errors in CI/CD
 
-**Causas:**
-- Configuración incorrecta
-- Dependencias faltantes
-- Problemas de red
+**Causes:**
+- Incorrect configuration
+- Missing dependencies
+- Network issues
 
-**Soluciones:**
-1. Verificar configuración de pruebas:
+**Solutions:**
+1. Verify test configuration:
    ```bash
    cat tests/properties.sh
    ```
 
-2. Ejecutar pruebas con verbose:
+2. Run tests with verbose:
    ```bash
    ./tests/run_integration_tests.sh --all --verbose
    ```
 
-3. Verificar conectividad:
+3. Verify connectivity:
    ```bash
    pg_isready -h localhost -p 5432
    ```
 
-## Comandos Útiles
+## Useful Commands
 
-### Ejecutar Todas las Pruebas
+### Run All Tests
 ```bash
 ./tests/run_integration_tests.sh --all
 ```
 
-### Ejecutar Pruebas Específicas
+### Run Specific Tests
 ```bash
 ./tests/run_integration_tests.sh --process-api
 ./tests/run_integration_tests.sh --process-planet
@@ -300,67 +345,67 @@ Las pruebas de casos edge cubren situaciones límite:
 ./tests/run_integration_tests.sh --etl
 ```
 
-### Ejecutar Pruebas Individuales
+### Run Individual Tests
 ```bash
 bats tests/unit/bash/processAPINotes_integration.test.bats
 bats tests/unit/bash/edge_cases_integration.test.bats
 ```
 
-### Verificar Configuración
+### Verify Configuration
 ```bash
-# Verificar base de datos
+# Verify database
 psql -d osm_notes_test -c "SELECT version();"
 
-# Verificar herramientas
+# Verify tools
 command -v bats && echo "BATS OK"
 command -v psql && echo "PostgreSQL OK"
 
-# Verificar archivos
+# Verify files
 ls -la bin/*.sh
 ls -la sql/process/*.sql
 ```
 
 ### Debugging
 ```bash
-# Ejecutar con verbose
+# Run with verbose
 ./tests/run_integration_tests.sh --all --verbose
 
-# Ejecutar con debug
+# Run with debug
 LOG_LEVEL=DEBUG ./tests/run_integration_tests.sh --all
 
-# Ver logs detallados
+# Review detailed logs
 tail -f tests/tmp/*.log
 ```
 
-## Mejores Prácticas
+## Best Practices
 
-### 1. Desarrollo
-- Ejecutar pruebas antes de cada commit
-- Usar pruebas específicas para debugging
-- Mantener pruebas actualizadas
+### 1. Development
+- Run tests before each commit
+- Use specific tests for debugging
+- Keep tests updated
 
 ### 2. CI/CD
-- Integrar pruebas en pipeline automático
-- Generar reportes de cobertura
-- Notificar fallos inmediatamente
+- Integrate tests into automated pipeline
+- Generate coverage reports
+- Notify failures immediately
 
-### 3. Monitoreo
-- Ejecutar pruebas regularmente
-- Revisar logs de errores
-- Mantener documentación actualizada
+### 3. Monitoring
+- Run tests regularly
+- Review error logs
+- Keep documentation updated
 
-### 4. Mantenimiento
-- Actualizar pruebas cuando cambie el código
-- Agregar nuevos casos edge
-- Optimizar tiempo de ejecución
+### 4. Maintenance
+- Update tests when code changes
+- Add new edge cases
+- Optimize execution time
 
-## Conclusión
+## Conclusion
 
-Las pruebas de integración son esenciales para detectar problemas reales antes de que lleguen a producción. Esta guía proporciona las herramientas y conocimientos necesarios para:
+Integration tests are essential to detect real problems before they reach production. This guide provides the tools and knowledge needed to:
 
-- ✅ **Ejecutar pruebas efectivamente**
-- ✅ **Debuggear problemas rápidamente**
-- ✅ **Mantener calidad del código**
-- ✅ **Integrar con CI/CD**
+- ✅ **Run tests effectively**
+- ✅ **Debug problems quickly**
+- ✅ **Maintain code quality**
+- ✅ **Integrate with CI/CD**
 
-**Recomendación:** Usar esta guía como referencia para mantener la calidad y confiabilidad del proyecto OSM-Notes-profile. 
+**Recommendation:** Use this guide as a reference to maintain the quality and reliability of the OSM-Notes-profile project. 
