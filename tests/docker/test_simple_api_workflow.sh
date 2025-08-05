@@ -5,7 +5,13 @@
 set -euo pipefail
 
 # Load test properties
-source /app/tests/properties.sh
+if [[ -f "/app/tests/properties.sh" ]]; then
+  source /app/tests/properties.sh
+elif [[ -f "${TEST_BASE_DIR}/tests/properties.sh" ]]; then
+  source "${TEST_BASE_DIR}/tests/properties.sh"
+else
+  echo "Warning: properties.sh not found, using defaults"
+fi
 
 # Database configuration for Docker
 export TEST_DBNAME="osm_notes_test"

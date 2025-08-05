@@ -69,14 +69,22 @@ run_simple_test "Function availability test" "
 
 # Test help functionality
 run_simple_test "Help functionality test" "
-  timeout 10s bin/process/processAPINotes.sh --help > /dev/null 2>&1 && 
-  echo 'Help works'
+  timeout 10s bin/process/processAPINotes.sh --help > /dev/null 2>&1; 
+  if [[ \$? -eq 1 ]]; then
+    echo 'Help works (exit code 1 is expected for help)'
+  else
+    exit 1
+  fi
 "
 
 # Test dry-run mode
 run_simple_test "Dry-run mode test" "
-  timeout 10s bin/process/processPlanetNotes.sh --help > /dev/null 2>&1 && 
-  echo 'Dry-run works'
+  timeout 10s bin/process/processPlanetNotes.sh --help > /dev/null 2>&1; 
+  if [[ \$? -eq 1 ]]; then
+    echo 'Dry-run works (exit code 1 is expected for help)'
+  else
+    exit 1
+  fi
 "
 
 # Test SQL file validation

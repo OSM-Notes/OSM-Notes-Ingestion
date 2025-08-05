@@ -68,8 +68,8 @@ teardown() {
  [[ "$output" == *"Usage:"* ]] || [[ "$output" == *"WMS"* ]]
 }
 
-# Test that cleanupAll.sh works with --help
-@test "cleanupAll.sh should work with --help option" {
+# Test that cleanupAll.sh works with --help (partition functionality)
+@test "cleanupAll.sh should work with --help option and show partition info" {
  run bash "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" --help
  [ "$status" -eq 0 ]
  [[ "$output" == *"Usage:"* ]]

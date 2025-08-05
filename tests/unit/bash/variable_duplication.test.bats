@@ -77,13 +77,6 @@ check_duplicates() {
   "cleanupAll.sh and validationFunctions.sh"
 }
 
-@test "should not have duplicate readonly variables between cleanupAll.sh and validationFunctions.sh" {
- check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" \
-  "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
-  "cleanupAll.sh and validationFunctions.sh"
-}
-
 @test "should not have duplicate readonly variables between functionsProcess.sh and commonFunctions.sh" {
  check_duplicates \
   "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" \

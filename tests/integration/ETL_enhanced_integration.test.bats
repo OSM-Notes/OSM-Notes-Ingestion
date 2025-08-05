@@ -224,7 +224,7 @@ teardown() {
  [[ "${MAX_THREADS}" = "4" ]]
  
  # Test dry-run with parallel processing
- run bash -c "LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --dry-run"
+ run bash -c "cd \"\${PROJECT_ROOT}\" && LOG_LEVEL=ERROR ./bin/dwh/ETL.sh --dry-run"
  [[ "${status}" -eq 0 ]]
 }
 
