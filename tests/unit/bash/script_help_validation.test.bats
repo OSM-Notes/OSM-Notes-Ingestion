@@ -68,12 +68,12 @@ teardown() {
  [[ "$output" == *"Usage:"* ]] || [[ "$output" == *"WMS"* ]]
 }
 
-# Test that cleanupPartitions.sh works with --help
-@test "cleanupPartitions.sh should work with --help option" {
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh" --help
+# Test that cleanupAll.sh works with --help
+@test "cleanupAll.sh should work with --help option" {
+ run bash "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" --help
  [ "$status" -eq 0 ]
  [[ "$output" == *"Usage:"* ]]
- [[ "$output" == *"cleanupPartitions.sh"* ]]
+ [[ "$output" == *"cleanupAll.sh"* ]]
  [[ "$output" == *"partition"* ]]
 }
 
@@ -111,7 +111,7 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh"
+  # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
@@ -151,7 +151,7 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh"
+  # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
@@ -174,7 +174,7 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh"
+  # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"

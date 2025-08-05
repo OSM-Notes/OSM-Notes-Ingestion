@@ -68,7 +68,7 @@ Integration tests actually run the scripts to detect real problems like:
 
 **Cleanup Scripts:**
 - `cleanupAll.sh` - Full cleanup
-- `cleanupPartitions.sh` - Partition cleanup
+- `cleanupAll.sh` - Comprehensive cleanup (full or partition-only)
 
 **DWH (Data Warehouse) Scripts:**
 - `ETL.sh` - Full ETL process

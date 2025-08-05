@@ -99,9 +99,9 @@ teardown() {
   [[ "$output" == *"validation passed"* ]]
 }
 
-@test "Centralized validation: cleanupPartitions.sh should use validation functions" {
+@test "Centralized validation: cleanupAll.sh should use validation functions" {
   # Test that the script loads validation functions
-  run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/cleanupPartitions.sh && __validate_sql_structure ${VALID_SQL_FILE}"
+  run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/cleanupAll.sh && __validate_sql_structure ${VALID_SQL_FILE}"
   [ "$status" -eq 0 ]
   [[ "$output" == *"SQL structure validation passed"* ]]
 }
@@ -145,7 +145,7 @@ teardown() {
     "${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh"
     "${PROJECT_ROOT}/bin/dwh/datamartCountries/datamartCountries.sh"
     "${PROJECT_ROOT}/bin/wms/wmsManager.sh"
-    "${PROJECT_ROOT}/bin/cleanupPartitions.sh"
+    "${PROJECT_ROOT}/bin/cleanupAll.sh"
   )
   
   for script in "${scripts[@]}"; do

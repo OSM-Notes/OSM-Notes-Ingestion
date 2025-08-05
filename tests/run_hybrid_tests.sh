@@ -194,7 +194,7 @@ test_all_scripts_hybrid() {
    "bin/dwh/ETL.sh"
    "bin/dwh/profile.sh"
    "bin/wms/wmsManager.sh"
-   "bin/cleanupPartitions.sh"
+   "bin/cleanupAll.sh"
    "bin/process/updateCountries.sh"
    "bin/dwh/datamartCountries/datamartCountries.sh"
    "bin/dwh/datamartUsers/datamartUsers.sh"

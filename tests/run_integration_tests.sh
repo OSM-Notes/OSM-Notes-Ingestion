@@ -34,6 +34,7 @@ bats tests/unit/bash/geoserverConfig_integration.test.bats
 # Cleanup integration tests
 echo "5. Testing cleanup integration..."
 bats tests/unit/bash/cleanupAll_integration.test.bats
-bats tests/unit/bash/cleanupPartitions_integration.test.bats
+echo "5. Testing cleanup integration..."
+bats tests/unit/bash/cleanupAll_integration.test.bats
 
 echo "=== INTEGRATION TESTS COMPLETED ===" 

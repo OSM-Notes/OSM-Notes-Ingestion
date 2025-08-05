@@ -77,11 +77,11 @@ check_duplicates() {
   "cleanupAll.sh and validationFunctions.sh"
 }
 
-@test "should not have duplicate readonly variables between cleanupPartitions.sh and validationFunctions.sh" {
+@test "should not have duplicate readonly variables between cleanupAll.sh and validationFunctions.sh" {
  check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" \
   "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" \
-  "cleanupPartitions.sh and validationFunctions.sh"
+  "cleanupAll.sh and validationFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between functionsProcess.sh and commonFunctions.sh" {
@@ -216,7 +216,7 @@ check_duplicates() {
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/cleanupPartitions.sh"
+  # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
  )
 
  local failed_scripts=()

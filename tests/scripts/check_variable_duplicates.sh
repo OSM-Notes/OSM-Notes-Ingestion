@@ -81,7 +81,7 @@ check_all_script_pairs() {
    "${PROJECT_ROOT}/bin/process/processAPINotes.sh:${PROJECT_ROOT}/bin/processAPIFunctions.sh:processAPINotes.sh and processAPIFunctions.sh"
    "${PROJECT_ROOT}/bin/process/processPlanetNotes.sh:${PROJECT_ROOT}/bin/processPlanetFunctions.sh:processPlanetNotes.sh and processPlanetFunctions.sh"
    "${PROJECT_ROOT}/bin/cleanupAll.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:cleanupAll.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/cleanupPartitions.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:cleanupPartitions.sh and validationFunctions.sh"
+   "${PROJECT_ROOT}/bin/cleanupAll.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:cleanupAll.sh and validationFunctions.sh"
    "${PROJECT_ROOT}/bin/functionsProcess.sh:${PROJECT_ROOT}/bin/commonFunctions.sh:functionsProcess.sh and commonFunctions.sh"
    "${PROJECT_ROOT}/bin/processAPIFunctions.sh:${PROJECT_ROOT}/bin/processPlanetFunctions.sh:processAPIFunctions.sh and processPlanetFunctions.sh"
    "${PROJECT_ROOT}/bin/processPlanetFunctions.sh:${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh:processPlanetFunctions.sh and processCheckPlanetNotes.sh"
@@ -166,7 +166,7 @@ test_script_sourcing() {
   "${PROJECT_ROOT}/bin/dwh/profile.sh"
   "${PROJECT_ROOT}/bin/dwh/ETL.sh"
   "${PROJECT_ROOT}/bin/cleanupAll.sh"
-  "${PROJECT_ROOT}/bin/cleanupPartitions.sh"
+  # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
  )
 
  for script in "${main_scripts[@]}"; do
