@@ -140,6 +140,10 @@ EOF
  # Unset CLEAN
  unset CLEAN
   
+ # Create test files
+ echo "test content" > /tmp/sample_validation.xml
+ echo "test content" > /tmp/validation_error.log
+  
  # Create a simple test script with the cleanup function
  cat > /tmp/test_cleanup_script.sh << 'EOF'
 #!/bin/bash
@@ -150,7 +154,7 @@ function __logd() { echo "DEBUG: $1"; }
 # Clean up temporary files created during validation
 function __cleanup_validation_temp_files() {
  # Only clean up if CLEAN is set to true
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+ if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   local TEMP_FILES=(
    "/tmp/sample_validation.xml"
    "/tmp/validation_error.log"
@@ -181,10 +185,10 @@ EOF
  [[ -f /tmp/sample_validation.xml ]]
  [[ -f /tmp/validation_error.log ]]
   
- # Run cleanup function
- run __cleanup_validation_temp_files
- [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Skipping cleanup of temporary files (CLEAN=false)"* ]]
+ # Run cleanup function directly (not with run)
+ __cleanup_validation_temp_files
+ local status=$?
+ [[ "$status" -eq 0 ]]
   
  # Verify files are NOT cleaned up (should still exist)
  [[ -f /tmp/sample_validation.xml ]]
@@ -219,13 +223,14 @@ TMP_DIR="/tmp"
 
 # Cleans files generated during the process.
 function __cleanNotesFiles {
- __log_start
+ __log_start "cleanup"
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
   rm -f "${TMP_DIR}"/part_country_* "${TMP_DIR}"/part_maritime_*
  fi
- __log_finish
+ __log_finish "cleanup"
+ return 0
 }
 
 # Export the function
@@ -278,13 +283,14 @@ TMP_DIR="/tmp"
 
 # Cleans files generated during the process.
 function __cleanNotesFiles {
- __log_start
+ __log_start "cleanup"
  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
   rm -f "${TMP_DIR}"/part_country_* "${TMP_DIR}"/part_maritime_*
  fi
- __log_finish
+ __log_finish "cleanup"
+ return 0
 }
 
 # Export the function

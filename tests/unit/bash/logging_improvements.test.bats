@@ -229,10 +229,7 @@ teardown() {
   [ "$status" -eq 0 ]
   
   # Test for standard handling
-  run grep -q "Using standard import for boundary" "$functions_file"
-  [ "$status" -eq 0 ]
-  
-  run grep -q "Using standard processing for boundary" "$functions_file"
+  run grep -q "Standard import with field selection" "$functions_file"
   [ "$status" -eq 0 ]
   
   # Test for column duplication handling

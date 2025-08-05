@@ -327,6 +327,15 @@ activate_hybrid_mock_environment() {
  export DB_USER="${DB_USER:-postgres}"
  export DB_PASSWORD="${DB_PASSWORD:-}"
  
+ # Ensure variables are exported for BATS environment
+ # Use a different approach to ensure variables are available
+ echo "export HYBRID_MOCK_MODE=true" >> /tmp/hybrid_env.sh
+ echo "export TEST_MODE=true" >> /tmp/hybrid_env.sh
+ echo "export DBNAME=osm_notes" >> /tmp/hybrid_env.sh
+ echo "export DB_USER=${DB_USER:-postgres}" >> /tmp/hybrid_env.sh
+ echo "export DB_PASSWORD=${DB_PASSWORD:-}" >> /tmp/hybrid_env.sh
+ echo "export PATH=${MOCK_COMMANDS_DIR}:${PATH}" >> /tmp/hybrid_env.sh
+ 
  log_success "Hybrid mock environment activated"
 }
 

@@ -7,7 +7,7 @@
 # Version: 2025-08-04
 
 # Load test helper
-load test_helper
+load ../../test_helper.bash
 
 # Test that cleanupAll.sh can be sourced without errors
 @test "cleanupAll.sh should be sourceable without errors" {
