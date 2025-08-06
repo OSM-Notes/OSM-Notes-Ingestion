@@ -10,8 +10,8 @@
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
 # Test configuration
-XSLT_DIR="${SCRIPT_BASE_DIRECTORY}/xslt"
-TEST_OUTPUT_DIR="${TEST_TMP_DIR}/xslt_integration_output"
+export XSLT_DIR="${SCRIPT_BASE_DIRECTORY}/xslt"
+export TEST_OUTPUT_DIR="${TEST_TMP_DIR}/xslt_integration_output"
 
 setup() {
  # Create test output directory
@@ -19,8 +19,8 @@ setup() {
  
  # Set up test environment
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
- export TEST_DBUSER="${TEST_DBUSER:-test_user}"
- export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
+ export TEST_DBUSER="${TEST_DBUSER:-angoca}"
+ export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
  export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 }
@@ -62,24 +62,45 @@ EOF
  local notes_xslt="${XSLT_DIR}/notes-API-csv.xslt"
  local notes_output="${TEST_OUTPUT_DIR}/notes_api.csv"
  
- run xsltproc "${notes_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml" > "${notes_output}"
+ echo "DEBUG: XSLT_DIR=${XSLT_DIR}"
+ echo "DEBUG: notes_xslt=${notes_xslt}"
+ echo "DEBUG: notes_output=${notes_output}"
+ echo "DEBUG: XML file exists: $([ -f "${BATS_TEST_TMPDIR}/api_notes.xml" ] && echo "yes" || echo "no")"
+ 
+ # Run xsltproc without redirection first to check status
+ run xsltproc "${notes_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml"
+ echo "DEBUG: xsltproc status: $status"
+ echo "DEBUG: xsltproc output: $output"
  [ "$status" -eq 0 ]
+ 
+ # Now redirect output to file
+ xsltproc "${notes_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml" > "${notes_output}"
+ echo "DEBUG: Output file exists: $([ -f "${notes_output}" ] && echo "yes" || echo "no")"
+ echo "DEBUG: Output file size: $(ls -la "${notes_output}" 2>/dev/null | awk '{print $5}' || echo "file not found")"
  [ -f "${notes_output}" ]
 
  # Test XSLT transformation for comments
  local comments_xslt="${XSLT_DIR}/note_comments-API-csv.xslt"
  local comments_output="${TEST_OUTPUT_DIR}/comments_api.csv"
  
- run xsltproc "${comments_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml" > "${comments_output}"
+ # Run xsltproc without redirection first to check status
+ run xsltproc "${comments_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml"
  [ "$status" -eq 0 ]
+ 
+ # Now redirect output to file
+ xsltproc "${comments_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml" > "${comments_output}"
  [ -f "${comments_output}" ]
 
  # Test XSLT transformation for text comments
  local text_xslt="${XSLT_DIR}/note_comments_text-API-csv.xslt"
  local text_output="${TEST_OUTPUT_DIR}/text_api.csv"
  
- run xsltproc "${text_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml" > "${text_output}"
+ # Run xsltproc without redirection first to check status
+ run xsltproc "${text_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml"
  [ "$status" -eq 0 ]
+ 
+ # Now redirect output to file
+ xsltproc "${text_xslt}" "${BATS_TEST_TMPDIR}/api_notes.xml" > "${text_output}"
  [ -f "${text_output}" ]
 
  # Verify CSV files have expected content

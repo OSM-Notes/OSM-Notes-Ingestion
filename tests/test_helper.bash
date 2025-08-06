@@ -124,12 +124,12 @@ export PGDATABASE="${TEST_DBNAME}"
 __start_logger
 
 # Use mock psql when running on host
-if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
- # Create a mock psql function that will be used instead of real psql
- psql() {
-  mock_psql "$@"
- }
-fi
+# if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+#  # Create a mock psql function that will be used instead of real psql
+#  psql() {
+#   mock_psql "$@"
+#  }
+# fi
 
 # Setup function - runs before each test
 setup() {
@@ -201,21 +201,22 @@ create_test_database() {
  local dbname="${1:-${TEST_DBNAME}}"
  echo "DEBUG: dbname = ${dbname}"
  
- if [[ -f "/app/bin/functionsProcess.sh" ]]; then
-  echo "DEBUG: Docker detected"
+ # Check if PostgreSQL is available
+ if psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  echo "DEBUG: PostgreSQL available, using real database"
   
   # Try to connect to the specified database first
-  if psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${dbname}" -c "SELECT 1;" >/dev/null 2>&1; then
+  if psql -d "${dbname}" -c "SELECT 1;" >/dev/null 2>&1; then
    echo "Test database ${dbname} already exists and is accessible"
   else
    echo "Test database ${dbname} does not exist, creating it..."
-   psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "postgres" -c "CREATE DATABASE ${dbname};"
+   createdb "${dbname}" 2>/dev/null || true
    echo "Test database ${dbname} created successfully"
   fi
    
   # Create all database objects in a single persistent connection
   echo "Creating database objects in single connection..."
-  psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${dbname}" << 'EOF'
+  psql -d "${dbname}" << 'EOF'
 -- Create all database objects in a single session to avoid connection isolation issues
 DO $$
 BEGIN
@@ -295,12 +296,12 @@ CREATE SEQUENCE IF NOT EXISTS note_comments_text_id_seq;
 
 -- Create simplified countries table
 CREATE TABLE IF NOT EXISTS countries (
-  country_id INTEGER PRIMARY KEY,
-  name VARCHAR(100),
-  americas BOOLEAN DEFAULT FALSE,
-  europe BOOLEAN DEFAULT FALSE,
-  russia_middle_east BOOLEAN DEFAULT FALSE,
-  asia_oceania BOOLEAN DEFAULT FALSE
+ country_id INTEGER PRIMARY KEY,
+ name VARCHAR(256) NOT NULL,
+ americas BOOLEAN DEFAULT FALSE,
+ europe BOOLEAN DEFAULT FALSE,
+ russia_middle_east BOOLEAN DEFAULT FALSE,
+ asia_oceania BOOLEAN DEFAULT FALSE
 );
 
 -- Insert test countries
@@ -503,20 +504,11 @@ BEGIN
   );
 END
 $proc$;
-
--- Insert initial properties
-INSERT INTO properties (key, value) VALUES
-  ('initialLoadNotes', 'true'),
-  ('initialLoadComments', 'true')
-ON CONFLICT (key) DO NOTHING;
-
--- Verify all objects were created successfully
-SELECT 'Database objects created successfully in single session' as result;
 EOF
    
   return 0
  else
-  echo "DEBUG: Host detected"
+  echo "DEBUG: PostgreSQL not available, using simulated database"
   echo "Test database ${dbname} created (simulated)"
  fi
 }

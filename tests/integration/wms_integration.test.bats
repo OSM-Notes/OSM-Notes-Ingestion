@@ -9,10 +9,10 @@ setup() {
   # Load test helper functions
   load "${BATS_TEST_DIRNAME}/../test_helper.bash"
   
-  # Set up test environment - use postgres host for Docker
+  # Set up test environment - use current user for local database
   export TEST_DBNAME="osm_notes_wms_test"
-  export TEST_DBUSER="testuser"
-  export TEST_DBPASSWORD="testpass"
+  export TEST_DBUSER="angoca"
+  export TEST_DBPASSWORD=""
   export TEST_DBHOST="localhost"
   export TEST_DBPORT="5432"
   
@@ -32,48 +32,41 @@ teardown() {
 create_wms_test_database() {
   echo "Creating WMS test database..."
   
-  # Check if PostgreSQL is available without password prompts
-  if ! PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
-    echo "Mock psql called with: -h ${TEST_DBHOST} -U ${TEST_DBUSER} -d postgres -c SELECT 1;"
+  # Check if PostgreSQL is available
+  if ! psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
     echo "PostgreSQL not available, using mock commands"
     export MOCK_MODE=1
     return 0
   fi
   
-  # Create database
-  PGPASSWORD="${TEST_DBPASSWORD}" createdb -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" "${TEST_DBNAME}" 2>/dev/null || true
-  
-  # Enable PostGIS extension
-  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" 2>/dev/null || true
-  
-  # Create basic notes table structure
-  if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-    echo "Mock psql called with: -h ${TEST_DBHOST} -U ${TEST_DBUSER} -d ${TEST_DBNAME} -c CREATE TABLE notes"
-  else
-    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
-      DROP TABLE IF EXISTS notes;
-      CREATE TABLE notes (
-        note_id INTEGER PRIMARY KEY,
-        created_at TIMESTAMP,
-        closed_at TIMESTAMP,
-        lon DOUBLE PRECISION,
-        lat DOUBLE PRECISION
-      );
-    " 2>/dev/null || true
+  # Check if database exists, if not create it
+  if ! psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT 1;" >/dev/null 2>&1; then
+    createdb -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" "${TEST_DBNAME}" 2>/dev/null || true
   fi
+  
+  # Enable PostGIS extension if not already enabled
+  psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" 2>/dev/null || true
+  
+  # Create basic notes table structure if it doesn't exist
+  psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    DROP TABLE IF EXISTS notes;
+    CREATE TABLE notes (
+      note_id INTEGER PRIMARY KEY,
+      created_at TIMESTAMP,
+      closed_at TIMESTAMP,
+      lon DOUBLE PRECISION,
+      lat DOUBLE PRECISION
+    );
+  " 2>/dev/null || true
   
   # Insert test data
-  if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-    echo "Mock psql called with: -h ${TEST_DBHOST} -U ${TEST_DBUSER} -d ${TEST_DBNAME} -c INSERT INTO notes"
-  else
-    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
-      INSERT INTO notes (note_id, created_at, closed_at, lon, lat) VALUES
-      (1, '2023-01-01 10:00:00', NULL, -74.006, 40.7128),
-      (2, '2023-02-01 11:00:00', '2023-02-15 12:00:00', -118.2437, 34.0522),
-      (3, '2023-03-01 09:00:00', NULL, 2.3522, 48.8566)
-      ON CONFLICT (note_id) DO NOTHING;
-    " 2>/dev/null || true
-  fi
+  psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    INSERT INTO notes (note_id, created_at, closed_at, lon, lat) VALUES
+    (1, '2023-01-01 10:00:00', NULL, -74.006, 40.7128),
+    (2, '2023-02-01 11:00:00', '2023-02-15 12:00:00', -118.2437, 34.0522),
+    (3, '2023-03-01 09:00:00', NULL, 2.3522, 48.8566)
+    ON CONFLICT (note_id) DO NOTHING;
+  " 2>/dev/null || true
 }
 
 # Function to drop WMS test database
@@ -82,7 +75,7 @@ drop_wms_test_database() {
   if [[ "${MOCK_MODE:-0}" == "1" ]]; then
     echo "Mock dropdb called with: -h ${TEST_DBHOST} -U ${TEST_DBUSER} ${TEST_DBNAME}"
   else
-    PGPASSWORD="${TEST_DBPASSWORD}" dropdb -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" "${TEST_DBNAME}" 2>/dev/null || true
+    dropdb -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" "${TEST_DBNAME}" 2>/dev/null || true
   fi
 }
 
@@ -108,7 +101,7 @@ run_psql() {
       *) echo "1" ;;
     esac
   else
-    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "${sql_command}" | tr -d ' '
+    psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "${sql_command}" | tr -d ' '
   fi
 }
 
@@ -272,7 +265,7 @@ run_psql() {
   if [[ "${MOCK_MODE:-0}" == "1" ]]; then
     echo "Mock psql: DROP EXTENSION IF EXISTS postgis"
   else
-    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "DROP EXTENSION IF EXISTS postgis;" 2>/dev/null || true
+    psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "DROP EXTENSION IF EXISTS postgis;" 2>/dev/null || true
   fi
   
   # Try to install WMS
@@ -284,7 +277,7 @@ run_psql() {
   if [[ "${MOCK_MODE:-0}" == "1" ]]; then
     echo "Mock psql: CREATE EXTENSION IF NOT EXISTS postgis"
   else
-    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" 2>/dev/null || true
+    psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" 2>/dev/null || true
   fi
 }
 
@@ -318,7 +311,7 @@ run_psql() {
   if [[ "${MOCK_MODE:-0}" == "1" ]]; then
     echo "Mock psql: DROP TABLE IF EXISTS notes"
   else
-    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "DROP TABLE IF EXISTS notes;" 2>/dev/null || true
+    psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "DROP TABLE IF EXISTS notes;" 2>/dev/null || true
   fi
   
   # Try to install WMS - note: current script doesn't fail properly
