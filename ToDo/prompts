@@ -1,6 +1,15 @@
 
 
 Corre de nuevo esto y verifica que no tengan errores:
+processCheckPlanetNotes_integration.test.bats
+profile_integration.test.bats
+real_data_integration.test.bats
+updateCountries_integration.test.bats
+/home/angoca/github/OSM-Notes-profile/tests/integration/end_to_end.test.bats
+/home/angoca/github/OSM-Notes-profile/tests/integration/wms_integration.test.bats
+/home/angoca/github/OSM-Notes-profile/tests/integration/xslt_integration.test.bats
+
+
 centralized_validation.test.bats
 cleanup_behavior.test.bats
 date_validation_integration.test.bats
