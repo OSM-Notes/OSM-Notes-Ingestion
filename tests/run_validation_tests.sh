@@ -7,9 +7,13 @@
 set -e
 
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TESTS_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== RUNNING VALIDATION TESTS ==="
 echo "Testing validation functionality..."
+
+# Change to tests directory for proper relative paths
+cd "${TESTS_DIRECTORY}"
 
 # Input validation tests
 echo "1. Testing input validation..."

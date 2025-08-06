@@ -80,7 +80,7 @@ run_test_suite() {
   
   log_info "Running ${suite_name} tests..."
   
-  if ./"${script_name}"; then
+  if "${SCRIPT_BASE_DIRECTORY}/tests/${script_name}"; then
     log_success "${suite_name} tests passed"
     ((PASSED_SUITES++))
   else

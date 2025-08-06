@@ -69,7 +69,7 @@ teardown() {
 # Test that processAPINotes.sh can run in dry-run mode
 @test "processAPINotes.sh should work in dry-run mode" {
  # Test that the script can run without actually processing data
- run bash "bin/process/processAPINotes.sh" --help
+ run bash "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" --help
  [ "$status" -eq 1 ] # Help should exit with code 1
 }
 

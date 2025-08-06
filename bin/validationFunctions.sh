@@ -280,6 +280,12 @@ function __validate_database_connection() {
  local DBHOST_PARAM="${3:-${DB_HOST}}"
  local DBPORT_PARAM="${4:-${DB_PORT}}"
 
+ # Check if database name is provided
+ if [[ -z "${DBNAME_PARAM}" ]]; then
+  __loge "ERROR: Database name is required"
+  return 1
+ fi
+
  # Check if PostgreSQL client is available
  if ! command -v psql > /dev/null 2>&1; then
   __loge "ERROR: PostgreSQL client (psql) not available"
@@ -317,6 +323,18 @@ function __validate_database_tables() {
  local DBPORT_PARAM="${4:-${DB_PORT}}"
  local TABLES=("${@:5}")
 
+ # Check if database name is provided
+ if [[ -z "${DBNAME_PARAM}" ]]; then
+  __loge "ERROR: Database name is required for table validation"
+  return 1
+ fi
+
+ # Check if tables are provided for validation
+ if [[ ${#TABLES[@]} -eq 0 ]]; then
+  __loge "ERROR: No tables specified for validation"
+  return 1
+ fi
+
  if ! __validate_database_connection "${DBNAME_PARAM}" "${DBUSER_PARAM}" "${DBHOST_PARAM}" "${DBPORT_PARAM}"; then
   return 1
  fi
@@ -350,6 +368,18 @@ function __validate_database_extensions() {
  local DBHOST_PARAM="${3:-${DB_HOST}}"
  local DBPORT_PARAM="${4:-${DB_PORT}}"
  local EXTENSIONS=("${@:5}")
+
+ # Check if database name is provided
+ if [[ -z "${DBNAME_PARAM}" ]]; then
+  __loge "ERROR: Database name is required for extension validation"
+  return 1
+ fi
+
+ # Check if extensions are provided for validation
+ if [[ ${#EXTENSIONS[@]} -eq 0 ]]; then
+  __loge "ERROR: No extensions specified for validation"
+  return 1
+ fi
 
  if ! __validate_database_connection "${DBNAME_PARAM}" "${DBUSER_PARAM}" "${DBHOST_PARAM}" "${DBPORT_PARAM}"; then
   return 1

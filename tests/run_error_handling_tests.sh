@@ -7,9 +7,13 @@
 set -e
 
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TESTS_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== RUNNING ERROR HANDLING TESTS ==="
 echo "Testing error handling functionality..."
+
+# Change to tests directory for proper relative paths
+cd "${TESTS_DIRECTORY}"
 
 # Basic error handling tests
 echo "1. Testing basic error handling..."

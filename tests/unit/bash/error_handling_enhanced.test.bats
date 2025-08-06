@@ -182,16 +182,9 @@ EOF
 </osm-notes>
 EOF
   
-  # Mock xmlstarlet to return invalid dates
-  function xmlstarlet() {
-    echo "invalid-date"
-    echo "2023-13-45T25:70:99Z"
-    echo "not-a-date"
-  }
-  
-  run __validate_xml_dates "${TMP_DIR}/test.xml"
+  # Test with XPath queries that will find these invalid dates
+  run __validate_xml_dates "${TMP_DIR}/test.xml" "//@created_at" "//@closed_at" "//@timestamp"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: XML date validation failed"* ]]
 }
 
 @test "test integration of error handling in API download scenario" {

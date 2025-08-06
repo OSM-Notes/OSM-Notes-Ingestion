@@ -7,9 +7,13 @@
 set -e
 
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TESTS_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== RUNNING CORE TESTS ==="
 echo "Testing basic functionality..."
+
+# Change to tests directory for proper relative paths
+cd "${TESTS_DIRECTORY}"
 
 # Core function tests
 echo "1. Testing core functions..."
