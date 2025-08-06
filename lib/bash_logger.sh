@@ -21,7 +21,7 @@ set -ueo pipefail
 declare -gA __bl_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO [WARN]=WARN [ERROR]=ERROR [FATAL]=FATAL)
 declare -gA __bl_run_times
 
-__log_level=
+__log_level="INFO"
 __log_fd=
 __bl_script_start_time=$(date +%s)
 __bl_function_start_time=$(date +%s)
@@ -65,10 +65,10 @@ function __set_log_file() {
 # Default log : INFO
 function __log() {
 
- __bl_script_name="${BASH_SOURCE[1]}"
+ __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
  __bl_script_name="${__bl_script_name##*/}"
 
- __bl_function_name="${FUNCNAME[1]}"
+ __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
  __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -91,10 +91,10 @@ function __logt() {
  if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
   __bl_log_message_type="TRACE"
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -150,10 +150,10 @@ function __logd() {
  if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
   __bl_log_message_type="DEBUG"
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -176,10 +176,10 @@ function __logi() {
  if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
   __bl_log_message_type="INFO"
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -202,10 +202,10 @@ function __logw() {
  if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
   __bl_log_message_type="WARN"
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -228,10 +228,10 @@ function __loge() {
  if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
   __bl_log_message_type="ERROR"
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -286,10 +286,10 @@ function __logf() {
  if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
   __bl_log_message_type="FATAL"
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -345,10 +345,10 @@ function __log_start() {
   __bl_log_message_type="INFO"
   __bl_function_start_time=$(date +%s)
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
@@ -374,10 +374,10 @@ function __log_finish() {
  if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
   __bl_log_message_type="INFO"
 
-  __bl_script_name="${BASH_SOURCE[1]}"
+  __bl_script_name="${${BASH_SOURCE[1]:-"unknown"}}"
   __bl_script_name="${__bl_script_name##*/}"
 
-  __bl_function_name="${FUNCNAME[1]}"
+  __bl_function_name="${${FUNCNAME[1]:-"main"}}"
 
   __bl_called_line_number="${BASH_LINENO[0]}"
 
