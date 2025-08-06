@@ -448,8 +448,8 @@ function __validate_xml_dates() {
  # Validate dates in XML
  for XPATH_QUERY in "${XPATH_QUERIES[@]}"; do
   local DATES
-  # Updated regex to match format: YYYY-MM-DD HH:MM:SS UTC
-  DATES=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\} UTC' || true)
+  # Extract dates using xmllint and grep for both ISO 8601 and UTC formats
+  DATES=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z|[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC' || true)
 
   if [[ -n "${DATES}" ]]; then
    while IFS= read -r DATE; do

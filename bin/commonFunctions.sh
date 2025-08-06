@@ -4,7 +4,7 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
+# Version: 2025-08-05
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -64,14 +64,14 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
 fi
 if [[ -z "${LOGGER_UTILITY:-}" ]]; then declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"; fi
 
-# Logger functions - These are aliases for the bash_logger functions
-function __log() { command __log "${@}"; }
-function __logt() { command __logt "${@}"; }
-function __logd() { command __logd "${@}"; }
-function __logi() { command __logi "${@}"; }
-function __logw() { command __logw "${@}"; }
-function __loge() { command __loge "${@}"; }
-function __logf() { command __logf "${@}"; }
+# Logger functions - Simple fallback implementations
+function __log() { echo "LOG: $*"; }
+function __logt() { echo "TRACE: $*"; }
+function __logd() { echo "DEBUG: $*"; }
+function __logi() { echo "INFO: $*"; }
+function __logw() { echo "WARN: $*"; }
+function __loge() { echo "ERROR: $*" >&2; }
+function __logf() { echo "FATAL: $*" >&2; }
 
 # Start logger function
 function __start_logger() {

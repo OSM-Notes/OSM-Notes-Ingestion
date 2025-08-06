@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
+# Version: 2025-08-05
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -2678,112 +2678,6 @@ function __getLocationNotes {
    WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
  __log_finish
-}
-
-# Function to validate ISO 8601 date format
-# Parameters:
-#   $1: Date string to validate
-#   $2: Expected format (optional, defaults to ISO 8601)
-# Returns:
-#   0 if valid, 1 if invalid
-function __validate_iso8601_date() {
- local DATE_STRING="${1}"
- local EXPECTED_FORMAT="${2:-ISO 8601}"
- local VALIDATION_ERRORS=()
-
- # Check if date string is provided
- if [[ -z "${DATE_STRING}" ]]; then
-  echo "ERROR: Date string is empty" >&2
-  return 1
- fi
-
- # Check for basic ISO 8601 format patterns
- # Pattern 1: YYYY-MM-DDTHH:MM:SSZ (UTC) - Year 2020-2023
- # Pattern 2: YYYY-MM-DDTHH:MM:SS+HH:MM (with timezone offset) - Year 2020-2023
- # Pattern 3: YYYY-MM-DDTHH:MM:SS-HH:MM (with timezone offset) - Year 2020-2023
- # Pattern 4: YYYY-MM-DD HH:MM:SS UTC (API format) - Year 2020-2023
-
- local ISO_PATTERN1="^20(2[0-3])-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z$"
- local ISO_PATTERN2="^20(2[0-3])-[0-1][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9][+-][0-2][0-9]:[0-5][0-9]$"
- local ISO_PATTERN3="^20(2[0-3])-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-5][0-9]:[0-5][0-9] UTC$"
-
- # Check if date matches any ISO 8601 pattern
- if ! echo "${DATE_STRING}" | grep -qE "${ISO_PATTERN1}|${ISO_PATTERN2}|${ISO_PATTERN3}"; then
-  VALIDATION_ERRORS+=("Date does not match ISO 8601 format: ${DATE_STRING}")
- fi
-
- # Additional validation using date command if available
- if command -v date &> /dev/null; then
-  # Try to parse the date with date command
-  if ! date -d "${DATE_STRING}" +%Y-%m-%dT%H:%M:%SZ > /dev/null 2>&1; then
-   VALIDATION_ERRORS+=("Date is not a valid date/time: ${DATE_STRING}")
-  fi
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: ${EXPECTED_FORMAT} date validation failed:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: ${EXPECTED_FORMAT} date validation passed: ${DATE_STRING}" >&2
- return 0
-}
-
-# Function to validate dates in XML files
-# Parameters:
-#   $1: XML file path
-#   $2: XPath expression for date elements (optional)
-# Returns:
-#   0 if all dates are valid, 1 if any invalid
-function __validate_xml_dates() {
- local XML_FILE="${1}"
- local XPATH_EXPRESSION="${2:-//@created_at|//@closed_at|//@timestamp|//date}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${XML_FILE}" "XML file"; then
-  return 1
- fi
-
- # Check if xmlstarlet is available
- if ! command -v xmlstarlet &> /dev/null; then
-  echo "WARNING: xmlstarlet not available, skipping XML date validation" >&2
-  return 0
- fi
-
- # Extract dates using xmlstarlet
- local DATES
- DATES=$(xmlstarlet sel -t -v "${XPATH_EXPRESSION}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
-
- if [[ -z "${DATES}" ]]; then
-  echo "WARNING: No dates found in XML file with xpath: ${XPATH_EXPRESSION}" >&2
-  return 0
- fi
-
- # Validate each date using UTC format validation
- local LINE_NUMBER=0
- while IFS= read -r DATE_VALUE; do
-  ((LINE_NUMBER++))
-  if ! __validate_date_format_utc "${DATE_VALUE}" "XML date"; then
-   VALIDATION_ERRORS+=("Line ${LINE_NUMBER}: Invalid date '${DATE_VALUE}'")
-  fi
- done <<< "${DATES}"
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: XML date validation failed for ${XML_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: XML date validation passed: ${XML_FILE}" >&2
- return 0
 }
 
 # Function to validate dates in CSV files
