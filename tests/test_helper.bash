@@ -680,11 +680,12 @@ count_rows() {
  local table_name="${1}"
  local dbname="${2:-${TEST_DBNAME}}"
 
- # Detect if running in Docker or host
- if [[ -f "/app/bin/functionsProcess.sh" ]]; then
-  # Running in Docker - try to connect to real database
-  local result
-  result=$(psql -d "${dbname}" -t -c "SELECT COUNT(*) FROM ${table_name};" 2> /dev/null || echo "0")
+ # Try to connect to real database first (both Docker and host)
+ local result
+ result=$(psql -U "${TEST_DBUSER:-$(whoami)}" -d "${dbname}" -t -c "SELECT COUNT(*) FROM ${table_name};" 2> /dev/null)
+ 
+ if [[ -n "${result}" ]] && [[ "${result}" =~ ^[0-9]+$ ]]; then
+  # Successfully connected to real database
   echo "${result// /}"
  else
   # Running on host - simulate count based on table and context
