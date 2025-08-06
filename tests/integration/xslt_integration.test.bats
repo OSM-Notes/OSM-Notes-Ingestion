@@ -164,13 +164,12 @@ EOF
    local notes_xslt="${XSLT_DIR}/notes-API-csv.xslt"
    local notes_output="${TEST_OUTPUT_DIR}/real_notes_api.csv"
    
-   run xsltproc "${notes_xslt}" "${api_xml}" > "${notes_output}"
-   [ "$status" -eq 0 ]
+   xsltproc "${notes_xslt}" "${api_xml}" > "${notes_output}"
    [ -f "${notes_output}" ]
    
    # Verify output has content
-   run wc -l < "${notes_output}"
-   [ "$output" -gt 0 ]
+   local line_count=$(wc -l < "${notes_output}")
+   [ "$line_count" -gt 0 ]
   fi
   
   if [[ -f "${planet_xml}" ]]; then
@@ -331,7 +330,7 @@ EOF
 EOF
 
  # Test with non-existent XSLT file
- run xsltproc "${non_existent_xslt}" "${test_xml}" > "${output}" 2>&1
+ run xsltproc "${non_existent_xslt}" "${test_xml}"
  [ "$status" -ne 0 ]
 
  # Test with malformed XML
@@ -346,7 +345,7 @@ EOF
     <!-- Missing closing tag -->
 EOF
 
- run xsltproc "${valid_xslt}" "${malformed_xml}" > "${output}" 2>&1
+ run xsltproc "${valid_xslt}" "${malformed_xml}"
  [ "$status" -ne 0 ]
 }
 
