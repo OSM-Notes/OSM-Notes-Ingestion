@@ -602,6 +602,9 @@ function __validate_file_checksum() {
  sha256)
   ACTUAL_CHECKSUM=$(sha256sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
+ sha512)
+  ACTUAL_CHECKSUM=$(sha512sum "${FILE_PATH}" | cut -d' ' -f1)
+  ;;
  *)
   __loge "ERROR: ${ALGORITHM} checksum validation failed"
   __loge "ERROR: Invalid algorithm"
@@ -618,7 +621,7 @@ function __validate_file_checksum() {
   return 1
  fi
 
- __logd "DEBUG: ${ALGORITHM} checksum validation passed"
+ __logd "${ALGORITHM} checksum validation passed"
  return 0
 }
 
@@ -632,7 +635,14 @@ function __validate_file_checksum_from_file() {
   return 1
  fi
 
- if ! __validate_input_file "${CHECKSUM_FILE}" "Checksum file"; then
+ # Check if checksum file exists and is readable, but allow empty files
+ if [[ ! -f "${CHECKSUM_FILE}" ]]; then
+  __loge "ERROR: Checksum file not found: ${CHECKSUM_FILE}"
+  return 1
+ fi
+
+ if [[ ! -r "${CHECKSUM_FILE}" ]]; then
+  __loge "ERROR: Checksum file not readable: ${CHECKSUM_FILE}"
   return 1
  fi
 
@@ -643,7 +653,7 @@ function __validate_file_checksum_from_file() {
  EXPECTED_CHECKSUM=$(grep "${FILENAME}" "${CHECKSUM_FILE}" | cut -d' ' -f1)
 
  if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
-  __loge "ERROR: Could not extract checksum from file"
+  __loge "ERROR: Could not extract checksum from file: ${CHECKSUM_FILE}"
   return 1
  fi
 
@@ -676,16 +686,36 @@ function __generate_file_checksum() {
  sha256)
   CHECKSUM=$(sha256sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
+ sha512)
+  CHECKSUM=$(sha512sum "${FILE_PATH}" | cut -d' ' -f1)
+  ;;
  *)
-  __loge "ERROR: Invalid algorithm"
+  __loge "ERROR: Invalid algorithm: ${ALGORITHM}"
   return 1
   ;;
  esac
 
  # If output file is specified, save checksum to file
  if [[ -n "${OUTPUT_FILE}" ]]; then
-  echo "${CHECKSUM}  $(basename "${FILE_PATH}")" > "${OUTPUT_FILE}"
-  __logd "DEBUG: ${ALGORITHM} checksum saved to ${OUTPUT_FILE}"
+  # Generate checksum in the same format as md5sum/sha256sum (checksum + spaces + filename)
+  case "${ALGORITHM}" in
+  md5)
+   md5sum "${FILE_PATH}" > "${OUTPUT_FILE}"
+   ;;
+  sha1)
+   sha1sum "${FILE_PATH}" > "${OUTPUT_FILE}"
+   ;;
+  sha256)
+   sha256sum "${FILE_PATH}" > "${OUTPUT_FILE}"
+   ;;
+  sha512)
+   sha512sum "${FILE_PATH}" > "${OUTPUT_FILE}"
+   ;;
+  *)
+   echo "${CHECKSUM}  $(basename "${FILE_PATH}")" > "${OUTPUT_FILE}"
+   ;;
+  esac
+  __logd "${ALGORITHM} checksum saved to ${OUTPUT_FILE}"
  fi
 
  echo "${CHECKSUM}"
@@ -709,7 +739,7 @@ function __validate_directory_checksums() {
 
  local FAILED=0
  local FILES
- mapfile -t FILES < <(find "${DIRECTORY}" -type f -name "*.xml" -o -name "*.csv" -o -name "*.json" 2> /dev/null)
+ mapfile -t FILES < <(find "${DIRECTORY}" -type f 2> /dev/null)
 
  for FILE in "${FILES[@]}"; do
   local RELATIVE_PATH
@@ -726,7 +756,7 @@ function __validate_directory_checksums() {
   return 1
  fi
 
- __logd "DEBUG: Directory checksum validation passed"
+ __logd "Directory checksum validation passed"
  return 0
 }
 
