@@ -67,7 +67,13 @@ readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh" ]] && [[ "${BATS_TEST_NAME:-}" != "" ]]; then
+ # Use test properties when running in test environment
+ source "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh"
+else
+ # Use production properties
+ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+fi
 
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
@@ -1531,14 +1537,17 @@ function main() {
 # Allows to other user read the directory.
 chmod go+x "${TMP_DIR}"
 
-__start_logger
-if [[ ! -t 1 ]]; then
- __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}"
- if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-  rmdir "${TMP_DIR}"
+# Only execute main if this script is being run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+ __start_logger
+ if [[ ! -t 1 ]]; then
+  __set_log_file "${LOG_FILENAME}"
+  main >> "${LOG_FILENAME}"
+  if [[ -n "${CLEAN}" ]] && [[ "${CLEAN}" = true ]]; then
+   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+   rmdir "${TMP_DIR}"
+  fi
+ else
+  main
  fi
-else
- main
 fi

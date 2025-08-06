@@ -43,7 +43,13 @@ export UPDATE_NOTE_LOCATION=true
 
 # Loads the global properties.
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh" ]] && [[ "${BATS_TEST_NAME:-}" != "" ]]; then
+ # Use test properties when running in test environment
+ source "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh"
+else
+ # Use production properties
+ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+fi
 
 # Mask for the files and directories.
 umask 0000
@@ -163,10 +169,13 @@ function main() {
  __log_finish
 }
 
-__start_logger
-if [[ ! -t 1 ]]; then
- __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}" 2>&1
-else
- main
+# Only execute main if this script is being run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+ __start_logger
+ if [[ ! -t 1 ]]; then
+  __set_log_file "${LOG_FILENAME}"
+  main >> "${LOG_FILENAME}" 2>&1
+ else
+  main
+ fi
 fi

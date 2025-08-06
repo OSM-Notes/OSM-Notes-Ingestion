@@ -11,7 +11,7 @@ load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
 # Test configuration
 XSLT_DIR="${SCRIPT_BASE_DIRECTORY}/xslt"
-TEST_OUTPUT_DIR="${BATS_TEST_TMPDIR}/xslt_integration_output"
+TEST_OUTPUT_DIR="${TEST_TMP_DIR}/xslt_integration_output"
 
 setup() {
  # Create test output directory
