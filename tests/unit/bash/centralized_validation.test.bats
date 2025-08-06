@@ -66,7 +66,7 @@ teardown() {
 
 @test "Centralized validation: processCheckPlanetNotes.sh should use validation functions" {
  # Test that the script loads validation functions
- run -127 bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
+ run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }

@@ -87,7 +87,7 @@ teardown() {
 
 @test "date validation works with planet XML format" {
   # Source functions and test with planet XML
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
   
   run __validate_xml_dates "${TEST_PLANET_XML}" "//@created_at|//@closed_at|//@timestamp"
   [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
@@ -95,7 +95,7 @@ teardown() {
 
 @test "date validation works with API XML format" {
   # Source functions and test with API XML
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
   
   run __validate_xml_dates "${TEST_API_XML}" "//date"
   [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
@@ -114,9 +114,9 @@ teardown() {
 EOF
   
   # Source functions and test with invalid XML
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
   
-  run __validate_xml_dates "${invalid_xml}"
+  run __validate_xml_dates "${invalid_xml}" "//@created_at|//@closed_at|//@timestamp"
   [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
   
   rm -f "${invalid_xml}"
