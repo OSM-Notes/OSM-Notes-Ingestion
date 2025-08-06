@@ -13,28 +13,28 @@ echo "Testing code quality..."
 
 # Format and lint tests
 echo "1. Testing code formatting and linting..."
-bats tests/unit/bash/format_and_lint.test.bats
+bats unit/bash/format_and_lint.test.bats
 
 # Function naming convention tests
 echo "2. Testing function naming conventions..."
-bats tests/unit/bash/function_naming_convention.test.bats
+bats unit/bash/function_naming_convention.test.bats
 
 # Variable naming convention tests
 echo "3. Testing variable naming conventions..."
-bats tests/unit/bash/variable_naming_convention.test.bats
+bats unit/bash/variable_naming_convention.test.bats
 
 # Variable duplication tests
 echo "4. Testing variable duplication detection..."
-bats tests/unit/bash/variable_duplication.test.bats
-bats tests/unit/bash/variable_duplication_detection.test.bats
+bats unit/bash/variable_duplication.test.bats
+bats unit/bash/variable_duplication_detection.test.bats
 
 # Script help validation tests
 echo "5. Testing script help validation..."
-bats tests/unit/bash/script_help_validation.test.bats
+bats unit/bash/script_help_validation.test.bats
 
 # SQL validation tests
 echo "6. Testing SQL validation..."
-bats tests/unit/bash/sql_validation_integration.test.bats
-bats tests/unit/bash/sql_constraints_validation.test.bats
+bats unit/bash/sql_validation_integration.test.bats
+bats unit/bash/sql_constraints_validation.test.bats
 
 echo "=== QUALITY TESTS COMPLETED ===" 

@@ -13,24 +13,24 @@ echo "Testing error handling functionality..."
 
 # Basic error handling tests
 echo "1. Testing basic error handling..."
-bats tests/unit/bash/error_handling.test.bats
-bats tests/unit/bash/error_handling_simple.test.bats
+bats unit/bash/error_handling.test.bats
+bats unit/bash/error_handling_simple.test.bats
 
 # Enhanced error handling tests
 echo "2. Testing enhanced error handling..."
-bats tests/unit/bash/error_handling_enhanced.test.bats
+bats unit/bash/error_handling_enhanced.test.bats
 
 # Process error handling tests
 echo "3. Testing process error handling..."
-bats tests/unit/bash/processAPINotes_error_handling_improved.test.bats
-bats tests/unit/bash/processAPINotes_parallel_error.test.bats
+bats unit/bash/processAPINotes_error_handling_improved.test.bats
+bats unit/bash/processAPINotes_parallel_error.test.bats
 
 # Edge cases tests
 echo "4. Testing edge cases..."
-bats tests/unit/bash/edge_cases_integration.test.bats
+bats unit/bash/edge_cases_integration.test.bats
 
 # Performance edge cases
 echo "5. Testing performance edge cases..."
-bats tests/unit/bash/performance_edge_cases.test.bats
+bats unit/bash/performance_edge_cases.test.bats
 
 echo "=== ERROR HANDLING TESTS COMPLETED ===" 

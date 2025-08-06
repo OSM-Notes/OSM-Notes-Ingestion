@@ -54,46 +54,56 @@ else
  fi
 fi
 
-# Load the logger first
-if [[ -f "${TEST_BASE_DIR}/lib/bash_logger.sh" ]]; then
- source "${TEST_BASE_DIR}/lib/bash_logger.sh"
-else
- # Create a simple logger if not available
- __start_logger() {
-  echo "Logger started"
- }
- 
- # Create basic logging functions
- __logd() {
-  echo "[DEBUG] $*"
- }
- 
- __logi() {
-  echo "[INFO] $*"
- }
- 
- __logw() {
-  echo "[WARN] $*"
- }
- 
- __loge() {
-  echo "[ERROR] $*"
- }
- 
- __log_start() {
-  __logi "Starting function"
- }
- 
- __log_finish() {
-  __logi "Function completed"
- }
-fi
+# Create a simple logger for tests
+__start_logger() {
+ echo "Logger started"
+}
+
+# Create basic logging functions that always print
+__logd() {
+ echo "DEBUG: $*"
+}
+
+__logi() {
+ echo "INFO: $*"
+}
+
+__logw() {
+ echo "WARN: $*"
+}
+
+__loge() {
+ echo "ERROR: $*" >&2
+}
+
+__logf() {
+ echo "FATAL: $*" >&2
+}
+
+__logt() {
+ echo "TRACE: $*"
+}
+
+__log_start() {
+ __logi "Starting function"
+}
+
+__log_finish() {
+ __logi "Function completed"
+}
 
 # Load the functions to test
 if [[ -f "${TEST_BASE_DIR}/bin/functionsProcess.sh" ]]; then
  source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
 else
  echo "Warning: functionsProcess.sh not found"
+fi
+
+# Load validation functions after defining simple logging
+if [[ -f "${TEST_BASE_DIR}/bin/validationFunctions.sh" ]]; then
+ source "${TEST_BASE_DIR}/bin/validationFunctions.sh"
+else
+ echo "Warning: validationFunctions.sh not found"
 fi
 
 # Load test variables validation functions

@@ -80,7 +80,7 @@ run_test_suite() {
   
   log_info "Running ${suite_name} tests..."
   
-  if ./tests/"${script_name}"; then
+  if ./"${script_name}"; then
     log_success "${suite_name} tests passed"
     ((PASSED_SUITES++))
   else
@@ -112,7 +112,7 @@ run_all_suites() {
   run_test_suite "Quality" "run_quality_tests.sh"
   
   # XML/XSLT tests
-  run_test_suite "XML/XSLT" "run_xml_xslt_tests_basic.sh"
+  run_test_suite "XML/XSLT" "run_xml_xslt_tests.sh"
   
   # Parallel processing tests
   run_test_suite "Parallel Processing" "run_parallel_tests.sh"

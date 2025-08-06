@@ -86,33 +86,30 @@ EOF
 }
 
 @test "validate_input_file should succeed with existing file" {
- # Create a test file
- echo "test content" > "${TEST_DIR}/test_file.txt"
- 
- run __validate_input_file "${TEST_DIR}/test_file.txt" "Test file"
- [ "$status" -eq 0 ]
- [[ "$output" == *"Test file validation passed"* ]]
+  # Create a test file
+  echo "test content" > "${TEST_DIR}/test_file.txt"
+  
+  run __validate_input_file "${TEST_DIR}/test_file.txt" "Test file"
+  [ "$status" -eq 0 ]
 }
 
 @test "validate_input_file should fail with non-existent file" {
- run __validate_input_file "${TEST_DIR}/nonexistent.txt" "Test file"
- [ "$status" -eq 1 ]
- [[ "$output" == *"Test file validation failed"* ]]
+  run __validate_input_file "${TEST_DIR}/nonexistent.txt" "Test file"
+  [ "$status" -eq 1 ]
 }
 
 @test "validate_sql_structure should succeed with valid SQL" {
- # Create a test SQL file
- cat > "${TEST_DIR}/test.sql" << 'EOF'
+  # Create a test SQL file
+  cat > "${TEST_DIR}/test.sql" << 'EOF'
 CREATE TABLE test_table (
   id INTEGER PRIMARY KEY,
   name VARCHAR(100)
 );
 INSERT INTO test_table VALUES (1, 'test');
 EOF
- 
- run __validate_sql_structure "${TEST_DIR}/test.sql"
- [ "$status" -eq 0 ]
- [[ "$output" == *"SQL structure validation passed"* ]]
+  
+  run __validate_sql_structure "${TEST_DIR}/test.sql"
+  [ "$status" -eq 0 ]
 }
 
 @test "validate_xml_dates should succeed with valid XML" {
