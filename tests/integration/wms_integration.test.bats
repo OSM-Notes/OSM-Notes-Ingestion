@@ -13,7 +13,7 @@ setup() {
   export TEST_DBNAME="osm_notes_wms_test"
   export TEST_DBUSER="testuser"
   export TEST_DBPASSWORD="testpass"
-  export TEST_DBHOST="postgres"
+  export TEST_DBHOST="localhost"
   export TEST_DBPORT="5432"
   
   # WMS script path

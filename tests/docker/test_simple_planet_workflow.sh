@@ -17,7 +17,7 @@ fi
 export TEST_DBNAME="osm_notes_test"
 export TEST_DBUSER="testuser"
 export TEST_DBPASSWORD="testpass"
-export TEST_DBHOST="postgres"
+export TEST_DBHOST="${TEST_DBHOST:-localhost}"
 export TEST_DBPORT="5432"
 
 echo "=== Testing Simplified Planet Workflow ==="
@@ -26,13 +26,19 @@ echo "User: ${TEST_DBUSER}"
 echo "Host: ${TEST_DBHOST}:${TEST_DBPORT}"
 echo ""
 
+# Check if required commands are available
+if ! command -v xmlstarlet >/dev/null 2>&1; then
+ echo "Warning: xmlstarlet not found, skipping XML processing"
+ exit 0
+fi
+
 # Check if XML file exists
 if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
  echo "📋 Processing XML file: ${PLANET_NOTES_FILE}"
 
  # Extract notes from XML and insert them
  # This is a simplified version - in real implementation would use XSLT
- xmlstarlet sel -t -m "//note" -v "@lat" -o "," -v "@lon" -o "," -v "id" -o "," -v "status" -o "," -v "date_created" -n "${PLANET_NOTES_FILE}" | while IFS=',' read -r lat lon note_id status created_at; do
+ xmlstarlet sel -t -m "//note" -v "@lat" -o "," -v "@lon" -o "," -v "id" -o "," -v "status" -o "," -v "@created_at" -n "${PLANET_NOTES_FILE}" 2>/dev/null | while IFS=',' read -r lat lon note_id status created_at; do
   if [[ -n "$lat" && -n "$lon" && -n "$note_id" ]]; then
    echo "Processing note ${note_id} at (${lat}, ${lon})"
 
@@ -52,7 +58,7 @@ if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
  done
 
  # Process comments from XML
- xmlstarlet sel -t -m "//comment" -v "ancestor::note/id" -o "," -v "date" -o "," -v "uid" -o "," -v "action" -o "," -v "text" -n "${PLANET_NOTES_FILE}" | while IFS=',' read -r note_id date uid action text; do
+ xmlstarlet sel -t -m "//comment" -v "ancestor::note/id" -o "," -v "@timestamp" -o "," -v "@uid" -o "," -v "@action" -o "," -v "text" -n "${PLANET_NOTES_FILE}" 2>/dev/null | while IFS=',' read -r note_id date uid action text; do
   if [[ -n "$note_id" && -n "$date" && -n "$uid" && -n "$action" ]]; then
    echo "Processing comment for note ${note_id}: ${action}"
 

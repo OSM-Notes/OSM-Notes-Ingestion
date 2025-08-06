@@ -65,7 +65,7 @@ EOF
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-test_user}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
- export TEST_DBHOST="${TEST_DBHOST:-test-db}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the complete workflow
@@ -144,7 +144,7 @@ EOF
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-test_user}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
- export TEST_DBHOST="${TEST_DBHOST:-test-db}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the complete workflow
@@ -206,7 +206,7 @@ EOF
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-test_user}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
- export TEST_DBHOST="${TEST_DBHOST:-test-db}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Measure execution time
@@ -275,7 +275,7 @@ EOF
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-test_user}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
- export TEST_DBHOST="${TEST_DBHOST:-test-db}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the complete workflow
@@ -315,7 +315,7 @@ EOF
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-test_user}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
- export TEST_DBHOST="${TEST_DBHOST:-test-db}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Run the workflow - should handle errors gracefully
@@ -390,7 +390,7 @@ EOF
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-test_user}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
- export TEST_DBHOST="${TEST_DBHOST:-test-db}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Step 2: Process Planet notes (initial load) - execute in same session
@@ -464,7 +464,7 @@ EOF
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-test_user}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-test_pass}"
- export TEST_DBHOST="${TEST_DBHOST:-test-db}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
  export TEST_DBPORT="${TEST_DBPORT:-5432}"
 
  # Step 4: Process API notes (incremental updates) - execute in same session
