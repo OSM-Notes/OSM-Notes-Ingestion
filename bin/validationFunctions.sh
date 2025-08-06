@@ -526,7 +526,13 @@ function __validate_file_checksum() {
  local EXPECTED_CHECKSUM="${2}"
  local ALGORITHM="${3:-sha256}"
 
- if ! __validate_input_file "${FILE_PATH}" "File"; then
+ # Check for empty checksum
+ if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
+  __loge "ERROR: Expected checksum is empty"
+  return 1
+ fi
+
+ if ! __validate_input_file "${FILE_PATH}" "File for checksum validation"; then
   return 1
  fi
 
@@ -543,20 +549,22 @@ function __validate_file_checksum() {
   ACTUAL_CHECKSUM=$(sha256sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  *)
-  __loge "ERROR: Unsupported checksum algorithm: ${ALGORITHM}"
+  __loge "ERROR: ${ALGORITHM} checksum validation failed"
+  __loge "ERROR: Invalid algorithm"
   return 1
   ;;
  esac
 
  # Compare checksums
  if [[ "${ACTUAL_CHECKSUM}" != "${EXPECTED_CHECKSUM}" ]]; then
+  __loge "ERROR: ${ALGORITHM} checksum validation failed"
   __loge "ERROR: Checksum mismatch for ${FILE_PATH}"
   __loge "Expected: ${EXPECTED_CHECKSUM}"
   __loge "Actual: ${ACTUAL_CHECKSUM}"
   return 1
  fi
 
- __logd "File checksum validation passed: ${FILE_PATH}"
+ __logd "DEBUG: ${ALGORITHM} checksum validation passed"
  return 0
 }
 
@@ -581,7 +589,7 @@ function __validate_file_checksum_from_file() {
  EXPECTED_CHECKSUM=$(grep "${FILENAME}" "${CHECKSUM_FILE}" | cut -d' ' -f1)
 
  if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
-  __loge "ERROR: No checksum found for ${FILENAME} in ${CHECKSUM_FILE}"
+  __loge "ERROR: Could not extract checksum from file"
   return 1
  fi
 
@@ -597,8 +605,9 @@ function __validate_file_checksum_from_file() {
 function __generate_file_checksum() {
  local FILE_PATH="${1}"
  local ALGORITHM="${2:-sha256}"
+ local OUTPUT_FILE="${3:-}"
 
- if ! __validate_input_file "${FILE_PATH}" "File"; then
+ if ! __validate_input_file "${FILE_PATH}" "File for checksum generation"; then
   return 1
  fi
 
@@ -614,10 +623,16 @@ function __generate_file_checksum() {
   CHECKSUM=$(sha256sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  *)
-  __loge "ERROR: Unsupported checksum algorithm: ${ALGORITHM}"
+  __loge "ERROR: Invalid algorithm"
   return 1
   ;;
  esac
+
+ # If output file is specified, save checksum to file
+ if [[ -n "${OUTPUT_FILE}" ]]; then
+  echo "${CHECKSUM}  $(basename "${FILE_PATH}")" > "${OUTPUT_FILE}"
+  __logd "DEBUG: ${ALGORITHM} checksum saved to ${OUTPUT_FILE}"
+ fi
 
  echo "${CHECKSUM}"
  return 0
@@ -630,7 +645,7 @@ function __validate_directory_checksums() {
  local ALGORITHM="${3:-sha256}"
 
  if [[ ! -d "${DIRECTORY}" ]]; then
-  __loge "ERROR: Directory not found: ${DIRECTORY}"
+  __loge "ERROR: Directory validation failed"
   return 1
  fi
 
@@ -657,7 +672,7 @@ function __validate_directory_checksums() {
   return 1
  fi
 
- __logd "Directory checksum validation passed: ${DIRECTORY}"
+ __logd "DEBUG: Directory checksum validation passed"
  return 0
 }
 
