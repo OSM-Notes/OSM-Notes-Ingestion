@@ -118,6 +118,12 @@ validate_prerequisites() {
   PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
  fi
 
+ # Test database connection first
+ if ! eval "${PSQL_CMD} -c \"SELECT 1;\"" &> /dev/null; then
+  print_status "${RED}" "❌ ERROR: Cannot connect to database: ${WMS_DB_NAME}@${WMS_DB_HOST:-localhost}:${WMS_DB_PORT:-5432}"
+  exit 1
+ fi
+
  if ! eval "${PSQL_CMD} -c \"SELECT PostGIS_Version();\"" &> /dev/null; then
   print_status "${RED}" "❌ ERROR: PostGIS extension is not installed or not accessible"
   exit 1
@@ -136,7 +142,12 @@ is_wms_installed() {
   PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
  fi
 
- eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | tr -d ' ' | grep -q 't'
+ # Test database connection first
+ if ! eval "${PSQL_CMD} -c \"SELECT 1;\"" &> /dev/null; then
+  return 1
+ fi
+ 
+ eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2>/dev/null | tr -d ' ' | grep -q 't'
 }
 
 # Function to install WMS
