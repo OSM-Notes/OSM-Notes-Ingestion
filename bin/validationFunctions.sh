@@ -134,9 +134,9 @@ function __validate_xml_structure() {
   return 1
  fi
 
- # Check for required root element
- if ! xmllint --xpath "//osm-notes" "${XML_FILE}" > /dev/null 2>&1; then
-  __loge "ERROR: Missing osm-notes root element: ${XML_FILE}"
+ # Check for required root element (osm-notes for planet, osm for API)
+ if ! (xmllint --xpath "//osm-notes" "${XML_FILE}" > /dev/null 2>&1 || xmllint --xpath "//osm" "${XML_FILE}" > /dev/null 2>&1); then
+  __loge "ERROR: Missing osm-notes or osm root element: ${XML_FILE}"
   return 1
  fi
 
@@ -447,17 +447,41 @@ function __validate_xml_dates() {
 
  # Validate dates in XML
  for XPATH_QUERY in "${XPATH_QUERIES[@]}"; do
-  local DATES
-  # Extract dates using xmllint and grep for both ISO 8601 and UTC formats
-  DATES=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z|[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC' || true)
+  local ALL_DATES_RAW
+  # Extract all date values using xmllint (including potentially invalid ones)
+  ALL_DATES_RAW=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null || true)
 
-  if [[ -n "${DATES}" ]]; then
-   while IFS= read -r DATE; do
-    if ! __validate_date_format_utc "${DATE}" "XML date"; then
-     __loge "ERROR: Invalid date found in XML: ${DATE}"
-     FAILED=1
-    fi
-   done <<< "${DATES}"
+  if [[ -n "${ALL_DATES_RAW}" ]]; then
+   # Extract date values from attributes and elements
+   local EXTRACTED_DATES
+   EXTRACTED_DATES=$(echo "${ALL_DATES_RAW}" | grep -oE '="[^"]*"' | sed 's/="//g' | sed 's/"//g' || true)
+   if [[ -z "${EXTRACTED_DATES}" ]]; then
+    # If no attributes found, try to extract element text content
+    EXTRACTED_DATES=$(echo "${ALL_DATES_RAW}" | grep -oE '>[^<]*<' | sed 's/>//g' | sed 's/<//g' || true)
+   fi
+
+   if [[ -n "${EXTRACTED_DATES}" ]]; then
+    while IFS= read -r DATE; do
+     [[ -z "${DATE}" ]] && continue
+
+     # Validate ISO 8601 dates (YYYY-MM-DDTHH:MM:SSZ)
+     if [[ "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+      if ! __validate_iso8601_date "${DATE}" "XML date"; then
+       __loge "ERROR: Invalid ISO8601 date found in XML: ${DATE}"
+       FAILED=1
+      fi
+     # Validate UTC dates (YYYY-MM-DD HH:MM:SS UTC)
+     elif [[ "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC$ ]]; then
+      if ! __validate_date_format_utc "${DATE}" "XML date"; then
+       __loge "ERROR: Invalid UTC date found in XML: ${DATE}"
+       FAILED=1
+      fi
+     else
+      __loge "ERROR: Invalid date format found in XML: ${DATE}"
+      FAILED=1
+     fi
+    done <<< "${EXTRACTED_DATES}"
+   fi
   fi
  done
 

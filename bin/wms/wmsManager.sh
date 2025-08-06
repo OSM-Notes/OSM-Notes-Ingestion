@@ -146,8 +146,8 @@ is_wms_installed() {
  if ! eval "${PSQL_CMD} -c \"SELECT 1;\"" &> /dev/null; then
   return 1
  fi
- 
- eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2>/dev/null | tr -d ' ' | grep -q 't'
+
+ eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2> /dev/null | tr -d ' ' | grep -q 't'
 }
 
 # Function to install WMS

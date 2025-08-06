@@ -115,6 +115,10 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
 # Load error handling functions
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+
+# Load process functions (includes validation functions)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 # __downloadPlanetNotes
 # __validatePlanetNotesXMLFile
 
