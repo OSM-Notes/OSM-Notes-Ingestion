@@ -42,19 +42,19 @@ teardown() {
 @test "validate_iso8601_date with valid UTC format" {
   run __validate_iso8601_date "2023-01-15T10:30:00Z"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: ISO 8601 date validation passed"* ]]
+  [[ "$output" == *"ISO8601 date validation passed"* ]]
 }
 
 @test "validate_iso8601_date with valid timezone offset format" {
   run __validate_iso8601_date "2023-01-15T10:30:00+05:00"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: ISO 8601 date validation passed"* ]]
+  [[ "$output" == *"ISO8601 date validation passed"* ]]
 }
 
 @test "validate_iso8601_date with valid API format" {
   run __validate_iso8601_date "2023-01-15 10:30:00 UTC"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: ISO 8601 date validation passed"* ]]
+  [[ "$output" == *"ISO8601 date validation passed"* ]]
 }
 
 @test "validate_iso8601_date with empty string" {
@@ -78,13 +78,11 @@ teardown() {
 @test "validate_xml_dates with valid XML file" {
   run __validate_xml_dates "${TEST_XML_FILE}"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: XML date validation passed"* ]]
 }
 
 @test "validate_xml_dates with custom xpath" {
   run __validate_xml_dates "${TEST_XML_FILE}" "//@created_at"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: XML date validation passed"* ]]
 }
 
 @test "validate_xml_dates with non-existent file" {

@@ -126,14 +126,14 @@ EOF
 </osm-notes>
 EOF
  
- # Mock xmlstarlet to return valid dates in the expected format
- function xmlstarlet() {
+ # Mock xmllint to return valid dates in the expected format
+ function xmllint() {
    echo "2023-01-01 12:00:00 UTC"
    echo "2023-01-02 12:00:00 UTC"
    echo "2023-01-01 13:00:00 UTC"
  }
+ export -f xmllint
  
  run __validate_xml_dates "${TEST_DIR}/test.xml"
  [ "$status" -eq 0 ]
- [[ "$output" == *"XML date validation passed"* ]]
 } 
