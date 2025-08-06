@@ -1,4 +1,19 @@
 
+
+Corre de nuevo esto y verifica que no tengan errores:
+centralized_validation.test.bats
+cleanup_behavior.test.bats
+date_validation_integration.test.bats
+cleanupAll_integration.test.bats
+csv_enum_validation.test.bats
+format_and_lint.test.bats
+hybrid_integration.test.bats
+logging_improvements.test.bats
+logging_improvements.test.bats
+
+No corras performance_edge_cases.test.bats
+Se bloquea la máquina
+
 Consideras que tenemos código legacy en el proyecto que podamos borrar?
 
 

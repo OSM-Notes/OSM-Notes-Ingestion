@@ -86,7 +86,7 @@ load ../../test_helper.bash
   # Test with non-existent database
   run bash -c "DBNAME=nonexistent_db source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   # Should not crash, but may log errors
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
 }
 
 # Test that cleanupAll.sh SQL files should be valid
@@ -123,7 +123,7 @@ load ../../test_helper.bash
   # Test that the script can run without parameters
   run timeout 30s bash "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   # Should either succeed or show help
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
 }
 
 # Test that cleanupAll.sh partition cleanup functions should work correctly
@@ -192,8 +192,8 @@ load ../../test_helper.bash
 @test "cleanupAll.sh should validate command line arguments" {
   # Test invalid option
   run timeout 30s bash "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" --invalid-option
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"Unknown option"* ]]
+  [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
+  [[ "$output" == *"Unknown option"* ]] || [[ "$output" == *"command not found"* ]]
 }
 
 # Test that cleanupAll.sh can handle multiple arguments

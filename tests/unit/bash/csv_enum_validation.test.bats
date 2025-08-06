@@ -163,13 +163,13 @@ EOF
 @test "Enum validation fails for comments CSV with empty event" {
  run __validate_csv_for_enum_compatibility "${TEST_DIR}/invalid_comments_empty.csv" "comments"
  [ "${status}" -eq 1 ]
- [[ "${output}" =~ "WARN] WARNING: Empty event value found" ]]
+ [[ "${output}" =~ "WARNING: Empty event value found" ]]
 }
 
 @test "Enum validation fails for comments CSV with invalid event" {
  run __validate_csv_for_enum_compatibility "${TEST_DIR}/invalid_comments_bad_event.csv" "comments"
  [ "${status}" -eq 1 ]
- [[ "${output}" =~ "WARN] WARNING: Invalid event value" ]]
+ [[ "${output}" =~ "WARNING: Invalid event value" ]]
 }
 
 @test "Enum validation passes for valid notes CSV" {
@@ -180,19 +180,19 @@ EOF
 @test "Enum validation fails for notes CSV with invalid status" {
  run __validate_csv_for_enum_compatibility "${TEST_DIR}/invalid_notes_bad_status.csv" "notes"
  [ "${status}" -eq 1 ]
- [[ "${output}" =~ "WARN] WARNING: Invalid status value" ]]
+ [[ "${output}" =~ "WARNING: Invalid status value" ]]
 }
 
 @test "Enum validation handles missing files gracefully" {
  run __validate_csv_for_enum_compatibility "/nonexistent/file.csv" "comments"
  [ "${status}" -eq 1 ]
- [[ "${output}" =~ "ERROR] ERROR: CSV file not found" ]]
+ [[ "${output}" =~ "ERROR: CSV file not found" ]]
 }
 
 @test "Enum validation handles unknown file types" {
  run __validate_csv_for_enum_compatibility "${TEST_DIR}/valid_comments.csv" "unknown"
  [ "${status}" -eq 0 ]
- [[ "${output}" =~ "WARN] WARNING: Unknown file type" ]]
+ [[ "${output}" =~ "WARNING: Unknown file type" ]]
 }
 
 @test "Enum validation handles empty files" {
@@ -214,5 +214,5 @@ EOF
 
  run __validate_csv_for_enum_compatibility "${TEST_DIR}/multiple_invalid.csv" "comments"
  [ "${status}" -eq 1 ]
- [[ "${output}" =~ "ERROR] ERROR: Found" ]]
+ [[ "${output}" =~ "ERROR: Found" ]]
 } 
