@@ -22,6 +22,7 @@ export TEST_TMP_DIR="/tmp/bats_test_$$"
 
 # Test environment variables
 export LOG_LEVEL="DEBUG"
+export __log_level="DEBUG"
 export CLEAN="false"
 export MAX_THREADS="2"
 export TEST_MAX_NOTES="100"
