@@ -218,6 +218,11 @@ create_test_database() {
   echo "Creating database objects in single connection..."
   psql -d "${dbname}" << 'EOF'
 -- Create all database objects in a single session to avoid connection isolation issues
+
+-- Install required extensions
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 DO $$
 BEGIN
   -- Create ENUM types

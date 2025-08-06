@@ -43,7 +43,7 @@ teardown() {
 # Test that processPlanetNotes.sh functions can be called without logging errors
 @test "processPlanetNotes.sh functions should work without logging errors" {
  # Test that basic functions work
- run bash -c "source bin/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test message"* ]]
 }
@@ -51,7 +51,7 @@ teardown() {
 # Test that processPlanetNotes.sh can run in dry-run mode
 @test "processPlanetNotes.sh should work in dry-run mode" {
  # Test that the script can run without actually processing data
- run bash "bin/process/processPlanetNotes.sh" --help
+ run bash "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" --help
  [ "$status" -eq 1 ] # Help should exit with code 1
 }
 
@@ -77,7 +77,7 @@ teardown() {
  )
  
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-   run bash -c "source bin/functionsProcess.sh && declare -f ${FUNC}"
+   run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
@@ -85,7 +85,7 @@ teardown() {
 # Test that logging functions work correctly
 @test "processPlanetNotes.sh logging functions should work correctly" {
  # Test that basic functions work
- run bash -c "source bin/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test info"* ]]
  [[ "$output" == *"Test error"* ]]

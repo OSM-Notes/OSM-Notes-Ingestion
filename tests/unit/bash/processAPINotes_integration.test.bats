@@ -36,14 +36,14 @@ teardown() {
 @test "processAPINotes.sh should be sourceable without errors" {
  # Test that the script can be sourced without logging errors
  # We need to prevent the main function from executing
- run bash -c "source bin/functionsProcess.sh > /dev/null 2>&1; echo 'Script loaded successfully'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh > /dev/null 2>&1; echo 'Script loaded successfully'"
  [ "$status" -eq 0 ]
 }
 
 # Test that processAPINotes.sh functions can be called without logging errors
 @test "processAPINotes.sh functions should work without logging errors" {
  # Test that basic functions work
- run bash -c "source bin/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test message"* ]]
 }
@@ -55,11 +55,11 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create base tables first
- run psql -d "${TEST_DBNAME}" -f "sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Test that the properties table script works with empty database
- run psql -d "${TEST_DBNAME}" -f "sql/process/processAPINotes_23_createPropertiesTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
  [ "$status" -eq 0 ]
  
  # Verify that the script executed successfully
@@ -88,7 +88,7 @@ teardown() {
  )
  
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-   run bash -c "source bin/functionsProcess.sh && declare -f ${FUNC}"
+   run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
@@ -96,7 +96,7 @@ teardown() {
 # Test that logging functions work correctly
 @test "processAPINotes.sh logging functions should work correctly" {
  # Test that basic functions work
- run bash -c "source bin/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test info"* ]]
  [[ "$output" == *"Test error"* ]]
