@@ -4,8 +4,6 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-03
 
-set -e
-
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "=== RUNNING SIMPLE QUALITY TESTS ==="

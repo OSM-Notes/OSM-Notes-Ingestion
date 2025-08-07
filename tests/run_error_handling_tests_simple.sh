@@ -82,14 +82,14 @@ main() {
   
   # Test 1: Check if error handling functions exist
   run_test "Error handling functions exist" "
-    grep -q '__handle_error' bin/errorHandlingFunctions.sh && 
-    grep -q '__log_error' bin/errorHandlingFunctions.sh
+    grep -q '__handle_error_with_cleanup' bin/errorHandlingFunctions.sh && 
+    grep -q '__loge' bin/errorHandlingFunctions.sh
   "
   
   # Test 2: Check if validation functions exist
   run_test "Validation functions exist" "
-    grep -q '__validate_input' bin/validationFunctions.sh && 
-    grep -q '__validate_file' bin/validationFunctions.sh
+    grep -q '__validate_input_file' bin/validationFunctions.sh && 
+    grep -q '__validate_file_checksum' bin/validationFunctions.sh
   "
   
   # Test 3: Check if common functions exist
@@ -113,16 +113,14 @@ main() {
   
   # Test 6: Check if error handling functions can be sourced
   run_test "Error handling functions can be sourced" "
-    source lib/bash_logger.sh && 
-    source bin/errorHandlingFunctions.sh && 
-    declare -f __handle_error > /dev/null
+    source bin/errorHandlingFunctions.sh 2>/dev/null && 
+    declare -f __handle_error_with_cleanup > /dev/null
   "
   
   # Test 7: Check if validation functions can be sourced
   run_test "Validation functions can be sourced" "
-    source lib/bash_logger.sh && 
-    source bin/validationFunctions.sh && 
-    declare -f __validate_input > /dev/null
+    source bin/validationFunctions.sh 2>/dev/null && 
+    declare -f __validate_input_file > /dev/null
   "
   
   # Test 8: Check if common functions can be sourced
