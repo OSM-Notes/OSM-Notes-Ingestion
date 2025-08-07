@@ -984,7 +984,7 @@ function __validate_database_variables() {
   fi
  fi
 
- __logd "Database variables validation passed"
+ __logd "Database variable validation passed"
  return 0
 }
 

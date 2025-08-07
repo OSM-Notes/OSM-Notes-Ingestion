@@ -5,10 +5,12 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-27
 
-set -e
-
 echo "=== RUNNING WORKING TESTS ==="
 echo "Testing functionality that is known to work..."
+
+# Get the base directory
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TESTS_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -56,6 +58,9 @@ run_test_suite() {
   fi
   echo
 }
+
+# Change to tests directory for proper relative paths
+cd "${TESTS_DIRECTORY}"
 
 # Unit Tests - Core Functions
 run_test_suite "Core Functions Tests" "bats unit/bash/functionsProcess.test.bats"

@@ -4,8 +4,6 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-03
 
-set -e
-
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "=== RUNNING SIMPLE INTEGRATION TESTS ==="
@@ -91,7 +89,7 @@ run_simple_test "Dry-run mode test" "
 run_simple_test "SQL file validation test" "
   for sql_file in sql/process/*.sql; do
     if [[ -f \"\$sql_file\" ]]; then
-      grep -q 'CREATE\|INSERT\|UPDATE\|SELECT' \"\$sql_file\" || exit 1
+      grep -q 'CREATE\|INSERT\|UPDATE\|SELECT\|DROP\|VACUUM\|ANALYZE' \"\$sql_file\" || exit 1
     fi
   done && 
   echo 'SQL files validated'

@@ -3364,7 +3364,7 @@ function __validate_database_variables() {
   return 1
  fi
 
- echo "DEBUG: Database variable validation passed" >&2
+ __logd "Database variable validation passed"
  return 0
 }
 
