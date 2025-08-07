@@ -17,11 +17,12 @@ setup() {
   export TEST_DBPORT="5432"
   
   # WMS script path
-  WMS_SCRIPT="${BATS_TEST_DIRNAME}/../../bin/wms/wmsManager.sh"
-  
-  # Create mock WMS script if in mock mode
   if [[ "${MOCK_MODE:-0}" == "1" ]]; then
+    # Create mock WMS script and use it
     create_mock_wms_script
+    WMS_SCRIPT="${BATS_TEST_DIRNAME}/mock_wmsManager.sh"
+  else
+    WMS_SCRIPT="${BATS_TEST_DIRNAME}/../../bin/wms/wmsManager.sh"
   fi
   
   # Create test database with required extensions
@@ -336,7 +337,8 @@ EOF
   export PGPASSWORD="${TEST_DBPASSWORD}"
   
   # Install WMS first
-  "$WMS_SCRIPT" install > /dev/null
+  run "$WMS_SCRIPT" install
+  [ "$status" -eq 0 ]
   
   # Check status
   run "$WMS_SCRIPT" status
@@ -366,7 +368,8 @@ EOF
   export PGPASSWORD="${TEST_DBPASSWORD}"
   
   # Install WMS first
-  "$WMS_SCRIPT" install > /dev/null
+  run "$WMS_SCRIPT" install
+  [ "$status" -eq 0 ]
   
   # Try to install again
   run "$WMS_SCRIPT" install
@@ -385,7 +388,8 @@ EOF
   export PGPASSWORD="${TEST_DBPASSWORD}"
   
   # Install WMS first
-  "$WMS_SCRIPT" install > /dev/null
+  run "$WMS_SCRIPT" install
+  [ "$status" -eq 0 ]
   
   # Force reinstall
   run "$WMS_SCRIPT" install --force
@@ -403,7 +407,8 @@ EOF
   export PGPASSWORD="${TEST_DBPASSWORD}"
   
   # Install WMS first
-  "$WMS_SCRIPT" install > /dev/null
+  run "$WMS_SCRIPT" install
+  [ "$status" -eq 0 ]
   
   # Deinstall WMS
   run "$WMS_SCRIPT" deinstall
