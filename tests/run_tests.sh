@@ -210,21 +210,21 @@ run_docker_tests() {
   # Run tests
   case "$test_type" in
     "all")
-      docker compose exec -T app bats /app/tests/unit/bash/*.bats /app/tests/integration/*.bats
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/*.bats integration/*.bats"
       ;;
     "unit")
-      docker compose exec -T app bats /app/tests/unit/bash/*.bats
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/*.bats"
       ;;
     "integration")
-      docker compose exec -T app bats /app/tests/integration/*.bats
+      docker compose exec -T app bash -c "cd /app/tests && bats integration/*.bats"
       ;;
     "quality")
-      docker compose exec -T app bats /app/tests/unit/bash/format_and_lint.test.bats
-      docker compose exec -T app bats /app/tests/unit/bash/function_naming_convention.test.bats
-      docker compose exec -T app bats /app/tests/unit/bash/variable_naming_convention.test.bats
-      docker compose exec -T app bats /app/tests/unit/bash/variable_duplication.test.bats
-      docker compose exec -T app bats /app/tests/unit/bash/variable_duplication_detection.test.bats
-      docker compose exec -T app bats /app/tests/unit/bash/script_help_validation.test.bats
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/format_and_lint.test.bats"
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/function_naming_convention.test.bats"
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/variable_naming_convention.test.bats"
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/variable_duplication.test.bats"
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/variable_duplication_detection.test.bats"
+      docker compose exec -T app bash -c "cd /app/tests && bats unit/bash/script_help_validation.test.bats"
       ;;
     *)
       log_error "Unknown test type: $test_type"
@@ -274,21 +274,21 @@ run_ci_tests() {
   # Run tests with CI timeout
   case "$test_type" in
     "all")
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/*.bats /app/tests/integration/*.bats
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/*.bats integration/*.bats"
       ;;
     "unit")
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/*.bats
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/*.bats"
       ;;
     "integration")
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/integration/*.bats
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats integration/*.bats"
       ;;
     "quality")
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/format_and_lint.test.bats
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/function_naming_convention.test.bats
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/variable_naming_convention.test.bats
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/variable_duplication.test.bats
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/variable_duplication_detection.test.bats
-      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bats /app/tests/unit/bash/script_help_validation.test.bats
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/format_and_lint.test.bats"
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/function_naming_convention.test.bats"
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/variable_naming_convention.test.bats"
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/variable_duplication.test.bats"
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/variable_duplication_detection.test.bats"
+      timeout 600s docker compose -f "${docker_compose_file}" exec -T app bash -c "cd /app/tests && bats unit/bash/script_help_validation.test.bats"
       ;;
     *)
       log_error "Unknown test type: $test_type"
