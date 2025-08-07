@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
-declare -r VERSION="2025-08-04"
+# Version: 2025-08-07
+declare -r VERSION="2025-08-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -707,8 +707,11 @@ function __validate_xml_structure_alternative {
  __logi "Using alternative XML validation method..."
 
  # Check basic XML structure without full schema validation
- if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2> /dev/null; then
+ local XMLLINT_OUTPUT
+ XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
+ if [[ $? -ne 0 ]]; then
   __loge "ERROR: Basic XML structure validation failed"
+  __loge "xmllint output: ${XMLLINT_OUTPUT}"
   return 1
  fi
 
@@ -959,11 +962,15 @@ function __validate_xml_with_enhanced_error_handling {
   fi
  else
   # Standard validation for smaller files
-  if timeout "${TIMEOUT}" xmllint --noout --schema "${SCHEMA_FILE}" "${XML_FILE}" 2> /dev/null; then
+  local XMLLINT_OUTPUT
+  XMLLINT_OUTPUT=$(timeout "${TIMEOUT}" xmllint --noout --schema "${SCHEMA_FILE}" "${XML_FILE}" 2>&1)
+  local EXIT_CODE=$?
+  if [[ $EXIT_CODE -eq 0 ]]; then
    __logi "XML validation succeeded"
    return 0
   else
-   local EXIT_CODE=$?
+   __loge "ERROR: XML schema validation failed"
+   __loge "xmllint output: ${XMLLINT_OUTPUT}"
    __handle_xml_validation_error "${EXIT_CODE}" "${XML_FILE}"
    return 1
   fi
@@ -983,23 +990,23 @@ function __validate_xml_structure_only {
   return 1
  fi
 
- __logi "Performing structure-only validation for very large file..."
+ __logi "Performing structure-only validation for very large file: ${XML_FILE}"
 
  # Check basic XML structure without schema validation
  if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: Basic XML structure validation failed"
+  __loge "ERROR: Basic XML structure validation failed for ${XML_FILE}"
   return 1
  fi
 
  # Check root element
  if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: Missing root element <osm-notes>"
+  __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
   return 1
  fi
 
  # Check for note elements
  if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: No note elements found in XML"
+  __loge "ERROR: No note elements found in XML file ${XML_FILE}"
   return 1
  fi
 
@@ -1104,8 +1111,11 @@ function __validate_xml_in_batches {
  __logi "Starting batch validation for large XML file..."
 
  # First, validate basic XML structure
- if ! xmllint --noout --nonet "${XML_FILE}" 2> /dev/null; then
+ local XMLLINT_OUTPUT
+ XMLLINT_OUTPUT=$(xmllint --noout --nonet "${XML_FILE}" 2>&1)
+ if [[ $? -ne 0 ]]; then
   __loge "ERROR: Basic XML structure validation failed"
+  __loge "xmllint output: ${XMLLINT_OUTPUT}"
   return 1
  fi
 
