@@ -30,7 +30,7 @@ log_error() {
  echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Test database configuration
+# Test database configuration for peer authentication
 TEST_DBNAME="osm_notes_test"
 TEST_DBUSER="$(whoami)"
 TEST_DBPASSWORD=""
@@ -43,7 +43,13 @@ export TEST_DBUSER
 export TEST_DBPASSWORD
 export TEST_DBHOST
 export TEST_DBPORT
-export PGPASSWORD="${TEST_DBPASSWORD}"
+
+# For peer authentication, unset PGPASSWORD and database connection variables
+unset PGPASSWORD 2>/dev/null || true
+unset DB_HOST 2>/dev/null || true
+unset DB_PORT 2>/dev/null || true
+unset DB_USER 2>/dev/null || true
+unset DB_PASSWORD 2>/dev/null || true
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -116,4 +122,4 @@ log_info "  TEST_DBNAME=${TEST_DBNAME}"
 log_info "  TEST_DBUSER=${TEST_DBUSER}"
 log_info "  TEST_DBHOST=${TEST_DBHOST}"
 log_info "  TEST_DBPORT=${TEST_DBPORT}"
-log_info "  PGPASSWORD=***"
+log_info "  Authentication: peer (no password required)"

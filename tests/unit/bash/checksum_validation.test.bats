@@ -7,6 +7,13 @@
 load "${BATS_TEST_DIRNAME}/../../test_helper.bash"
 
 setup() {
+  # Disable enhanced logger for tests - use simple logger
+  export LOGGER_UTILITY=""
+  
+  # Define simple logging functions for tests
+  function __logd() { echo "DEBUG: $*"; }
+  function __loge() { echo "ERROR: $*" >&2; }
+  
   # Create temporary test files
   TEST_FILE=$(mktemp)
   TEST_CHECKSUM_FILE=$(mktemp)
@@ -49,7 +56,7 @@ teardown() {
 @test "validate_file_checksum with non-existent file" {
   run __validate_file_checksum "/non/existent/file" "dummy" "md5"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: File for checksum validation validation failed"* ]]
+  [[ "$output" == *"ERROR: File for checksum validation not found"* ]]
 }
 
 @test "validate_file_checksum with invalid algorithm" {
@@ -68,7 +75,7 @@ teardown() {
 @test "validate_file_checksum_from_file with non-existent checksum file" {
   run __validate_file_checksum_from_file "${TEST_FILE}" "/non/existent/checksum" "md5"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: Checksum file validation failed"* ]]
+  [[ "$output" == *"ERROR: Checksum file not found"* ]]
 }
 
 @test "validate_file_checksum_from_file with empty checksum file" {
@@ -112,7 +119,7 @@ teardown() {
 @test "generate_file_checksum with non-existent file" {
   run __generate_file_checksum "/non/existent/file" "md5"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: File for checksum generation validation failed"* ]]
+  [[ "$output" == *"ERROR: File for checksum generation not found"* ]]
 }
 
 @test "generate_file_checksum with invalid algorithm" {

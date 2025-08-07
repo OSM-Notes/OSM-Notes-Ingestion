@@ -8,6 +8,13 @@ load "${BATS_TEST_DIRNAME}/../../test_helper"
 source "${BATS_TEST_DIRNAME}/../../test_variables.sh"
 
 setup() {
+ # Disable enhanced logger for tests - use simple logger
+ export LOGGER_UTILITY=""
+ 
+ # Define simple logging functions for tests
+ function __logd() { echo "DEBUG: $*"; }
+ function __loge() { echo "ERROR: $*" >&2; }
+ 
  # Create temporary test directory
  TEST_DIR=$(mktemp -d)
  export TEST_DIR

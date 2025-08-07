@@ -18,25 +18,26 @@ setup() {
     else
         export PROJECT_ROOT="${current_dir}"
     fi
+    # Use peer authentication for host environment
     export TEST_DBNAME="notes_test_monitoring"
-    export TEST_DBUSER="testuser"
-    export TEST_DBPASSWORD="testpass"
-    export TEST_DBHOST="localhost"
-    export TEST_DBPORT="5432"
+    export TEST_DBUSER="$(whoami)"
+    export TEST_DBPASSWORD=""
+    export TEST_DBHOST=""
+    export TEST_DBPORT=""
     
-    # Create test database
-    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
-    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2>/dev/null || true
+    # Create test database using peer authentication
+    dropdb "${TEST_DBNAME}" 2>/dev/null || true
+    createdb "${TEST_DBNAME}" 2>/dev/null || true
     
     # Load base structure
-    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2>/dev/null || true
-    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2>/dev/null || true
-    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql" 2>/dev/null || true
+    psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2>/dev/null || true
+    psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2>/dev/null || true
+    psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql" 2>/dev/null || true
 }
 
 teardown() {
-    # Clean up test database
-    psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
+    # Clean up test database using peer authentication
+    dropdb "${TEST_DBNAME}" 2>/dev/null || true
 }
 
 @test "monitoring system should detect no differences in success scenario" {

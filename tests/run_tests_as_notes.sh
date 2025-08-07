@@ -35,32 +35,33 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Setup test environment
-log_info "Setting up test environment for notes user..."
+log_info "Setting up test environment for current user..."
 
-# Create temporary directory for notes user
-sudo mkdir -p /tmp/notes_test
-sudo chown notes:notes /tmp/notes_test
+# Create temporary directory for current user
+TEST_DIR="${HOME}/tmp/notes_test"
+mkdir -p "${TEST_DIR}"
+chmod 755 "${TEST_DIR}"
 
 # Clean up any existing lock files
-sudo rm -f /tmp/ETL.lock
-sudo rm -f /tmp/ETL_recovery.json
+rm -f /tmp/ETL.lock
+rm -f /tmp/ETL_recovery.json
 
 # Setup database
 log_info "Setting up test database..."
 "${SCRIPT_DIR}/setup_test_db.sh"
 
-# Function to run tests as notes user
-run_tests_as_notes() {
+# Function to run tests as current user
+run_tests_as_current_user() {
  local test_files="${1:-}"
  
- log_info "Running tests as notes user..."
+ log_info "Running tests as current user..."
  
- # Export environment variables for notes user
- export TEST_TMP_DIR="/tmp/notes_test"
- export TMPDIR="/tmp/notes_test"
+ # Export environment variables for current user
+ export TEST_TMP_DIR="${TEST_DIR}"
+ export TMPDIR="${TEST_DIR}"
  
  # Run tests with proper environment
- sudo -u notes bash -c "
+ bash -c "
   cd '${PROJECT_ROOT}'
   source tests/properties.sh
   export TEST_TMP_DIR='${TEST_TMP_DIR}'
@@ -73,19 +74,19 @@ run_tests_as_notes() {
 case "${1:-}" in
  --unit)
   log_info "Running unit tests..."
-  run_tests_as_notes "tests/unit/bash/"
+  run_tests_as_current_user "tests/unit/bash/"
   ;;
  --integration)
   log_info "Running integration tests..."
-  run_tests_as_notes "tests/integration/"
+  run_tests_as_current_user "tests/integration/"
   ;;
  --etl)
   log_info "Running ETL tests..."
-  run_tests_as_notes "tests/unit/bash/ETL_enhanced.test.bats tests/integration/ETL_enhanced_integration.test.bats"
+  run_tests_as_current_user "tests/unit/bash/ETL_enhanced.test.bats tests/integration/ETL_enhanced_integration.test.bats"
   ;;
  --all)
   log_info "Running all tests..."
-  run_tests_as_notes "tests/unit/bash/ tests/integration/"
+  run_tests_as_current_user "tests/unit/bash/ tests/integration/"
   ;;
  --help | -h)
   echo "Usage: $0 [OPTIONS]"
@@ -100,7 +101,7 @@ case "${1:-}" in
   ;;
  "")
   log_info "Running all tests..."
-  run_tests_as_notes "tests/unit/bash/ tests/integration/"
+  run_tests_as_current_user "tests/unit/bash/ tests/integration/"
   ;;
  *)
   log_error "Unknown option: $1"
