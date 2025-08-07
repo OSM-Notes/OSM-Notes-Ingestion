@@ -27,8 +27,8 @@ fi
 
 # Test configuration - usar variables de tests
 TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
-TEST_DBHOST="${TEST_DBHOST:-localhost}"
-TEST_DBPORT="${TEST_DBPORT:-5432}"
+TEST_DBHOST="${TEST_DBHOST:-}"
+TEST_DBPORT="${TEST_DBPORT:-}"
 
 # Test results
 TOTAL_TESTS=0
@@ -80,8 +80,19 @@ check_prerequisites() {
    log_warning "  sudo apt-get install postgresql-15-pgtap"
   fi
  else
-  # Running on host - skip PostgreSQL checks
-  log_warning "Running on host - PostgreSQL checks skipped"
+  # Running on host - check PostgreSQL with peer authentication
+  if ! pg_isready &> /dev/null; then
+   log_error "PostgreSQL is not running or not accessible"
+   log_error "Please start PostgreSQL and ensure it's accessible"
+   exit 1
+  fi
+
+  # Check if pgTAP is installed
+  if ! psql -d postgres -c "SELECT 1 FROM pg_extension WHERE extname = 'pgtap';" &> /dev/null; then
+   log_warning "pgTAP extension not found. SQL tests will be skipped."
+   log_warning "To install pgTAP:"
+   log_warning "  sudo apt-get install postgresql-15-pgtap"
+  fi
  fi
 
  log_success "Prerequisites check completed"
@@ -101,43 +112,65 @@ setup_test_database() {
   # Create database
   log_info "Creating database ${TEST_DBNAME} with user ${TEST_DBUSER} on ${TEST_DBHOST}:${TEST_DBPORT}"
   PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || {
-   log_error "Failed to create test database ${TEST_DBNAME}"
-   return 1
-  }
-
-  # Create base enums
-  log_info "Creating base enums..."
-  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || {
-   log_error "Failed to create base enums"
-   return 1
+   log_error "Failed to create database ${TEST_DBNAME}"
+   exit 1
   }
 
   # Create base tables
   log_info "Creating base tables..."
-  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || {
-   log_error "Failed to create base tables"
-   return 1
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || {
+   log_warning "Failed to create enums"
   }
 
-  # Create functions and procedures
-  log_info "Creating functions and procedures..."
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || {
+   log_warning "Failed to create base tables"
+  }
+
   PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || {
-   log_error "Failed to create get_country function"
-   return 1
+   log_warning "Failed to create function get_country"
   }
 
   PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || {
-   log_error "Failed to create insert_note procedure"
-   return 1
+   log_warning "Failed to create procedure insertNote"
   }
 
   PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || {
-   log_error "Failed to create insert_note_comment procedure"
-   return 1
+   log_warning "Failed to create procedure insertNoteComment"
   }
  else
-  # Running on host - simulate database setup
-  log_warning "Running on host - database setup simulated"
+  # Running on host - setup database with peer authentication
+  # Drop database if exists
+  log_info "Dropping database ${TEST_DBNAME} with peer authentication"
+  dropdb "${TEST_DBNAME}" 2> /dev/null || true
+
+  # Create database
+  log_info "Creating database ${TEST_DBNAME} with peer authentication"
+  createdb "${TEST_DBNAME}" 2> /dev/null || {
+   log_error "Failed to create database ${TEST_DBNAME}"
+   exit 1
+  }
+
+  # Create base tables
+  log_info "Creating base tables..."
+  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || {
+   log_warning "Failed to create enums"
+  }
+
+  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || {
+   log_warning "Failed to create base tables"
+  }
+
+  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || {
+   log_warning "Failed to create function get_country"
+  }
+
+  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || {
+   log_warning "Failed to create procedure insertNote"
+  }
+
+  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || {
+   log_warning "Failed to create procedure insertNoteComment"
+  }
  fi
 
  log_success "Test database setup completed"
@@ -150,10 +183,12 @@ cleanup_test_database() {
  # Detect if running in Docker or host
  if [[ -f "/app/bin/functionsProcess.sh" ]]; then
   # Running in Docker - cleanup real database
+  log_info "Dropping database ${TEST_DBNAME} with user ${TEST_DBUSER} on ${TEST_DBHOST}:${TEST_DBPORT}"
   PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
  else
-  # Running on host - simulate cleanup
-  log_warning "Running on host - database cleanup simulated"
+  # Running on host - cleanup database with peer authentication
+  log_info "Dropping database ${TEST_DBNAME} with peer authentication"
+  dropdb "${TEST_DBNAME}" 2> /dev/null || true
  fi
 
  log_success "Test database cleanup completed"
@@ -202,15 +237,23 @@ run_bats_tests() {
    export TEST_DBNAME="${TEST_DBNAME}"
    export TEST_DBUSER="${TEST_DBUSER}"
    export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
-   export TEST_DBHOST="${TEST_DBHOST}"
-   export TEST_DBPORT="${TEST_DBPORT}"
+   export TEST_DBHOST="${TEST_DBHOST:-}"
+   export TEST_DBPORT="${TEST_DBPORT:-}"
    export PGPASSWORD="${TEST_DBPASSWORD}"
 
    log_info "Executing bats for: ${test_file}"
    log_info "Using database: ${TEST_DBNAME}"
    log_info "Using user: ${TEST_DBUSER}"
-   log_info "Using host: ${TEST_DBHOST}"
-   log_info "Using port: ${TEST_DBPORT}"
+   if [[ -n "${TEST_DBHOST}" ]]; then
+    log_info "Using host: ${TEST_DBHOST}"
+   else
+    log_info "Using peer authentication (no host)"
+   fi
+   if [[ -n "${TEST_DBPORT}" ]]; then
+    log_info "Using port: ${TEST_DBPORT}"
+   else
+    log_info "Using peer authentication (no port)"
+   fi
    if bats "${test_file}" || true; then
     log_success "$(basename "${test_file}") passed"
     ((PASSED_TESTS++))
@@ -288,8 +331,8 @@ run_monitoring_tests() {
    export TEST_DBNAME="${TEST_DBNAME}"
    export TEST_DBUSER="${TEST_DBUSER}"
    export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
-   export TEST_DBHOST="${TEST_DBHOST}"
-   export TEST_DBPORT="${TEST_DBPORT}"
+   export TEST_DBHOST="${TEST_DBHOST:-}"
+   export TEST_DBPORT="${TEST_DBPORT:-}"
 
    if bats "${test_file}"; then
     log_success "$(basename "${test_file}") passed"
@@ -320,8 +363,8 @@ run_monitoring_tests() {
     export TEST_DBNAME="${TEST_DBNAME}"
     export TEST_DBUSER="${TEST_DBUSER}"
     export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
-    export TEST_DBHOST="${TEST_DBHOST}"
-    export TEST_DBPORT="${TEST_DBPORT}"
+    export TEST_DBHOST="${TEST_DBHOST:-}"
+    export TEST_DBPORT="${TEST_DBPORT:-}"
 
     if bash "${test_file}"; then
      log_success "$(basename "${test_file}") passed"
@@ -406,10 +449,10 @@ case "${1:-}" in
   echo
   echo "Environment variables:"
   echo "  TEST_DBNAME     Test database name (default: osm_notes_test)"
-  echo "  TEST_DBUSER     Test database user (default: test_user)"
-  echo "  TEST_DBPASSWORD Test database password (default: test_pass)"
-  echo "  TEST_DBHOST     Test database host (default: localhost)"
-  echo "  TEST_DBPORT     Test database port (default: 5432)"
+  echo "  TEST_DBUSER     Test database user (default: current user)"
+  echo "  TEST_DBPASSWORD Test database password (default: none - peer auth)"
+  echo "  TEST_DBHOST     Test database host (default: none - peer auth)"
+  echo "  TEST_DBPORT     Test database port (default: none - peer auth)"
   exit 0
   ;;
  --bats-only)

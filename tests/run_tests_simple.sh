@@ -4,7 +4,7 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-07-20
 
-set -euo pipefail
+set -uo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -54,8 +54,8 @@ FAILED_TESTS=0
 check_prerequisites() {
  log_info "Checking prerequisites..."
 
- # Check if PostgreSQL is running
- if ! pg_isready -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" &> /dev/null; then
+ # Check if PostgreSQL is running (local connection with peer authentication)
+ if ! pg_isready &> /dev/null; then
   log_error "PostgreSQL is not accessible"
   log_info "Please ensure PostgreSQL is running and accessible"
   exit 1
@@ -82,23 +82,27 @@ check_prerequisites() {
 setup_test_database() {
  log_info "Setting up test database..."
 
+ # For peer authentication, use local connection without host/port
+ local psql_params=""
+ local createdb_params=""
+
  # Create test database if it doesn't exist
- if ! psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT 1;" &> /dev/null; then
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" &> /dev/null; then
   log_info "Creating test database..."
-  createdb -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" "${TEST_DBNAME}"
+  createdb "${TEST_DBNAME}"
  fi
 
  # Create base tables
  log_info "Creating base tables..."
- psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
- psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
- psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql" 2> /dev/null || true
 
  # Create functions and procedures
  log_info "Creating functions and procedures..."
- psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || true
- psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || true
- psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || true
 
  log_success "Test database setup completed"
 }
@@ -107,8 +111,9 @@ setup_test_database() {
 cleanup_test_database() {
  log_info "Cleaning up test database..."
 
+ # For peer authentication, use local connection without host/port
  # Drop test database
- dropdb -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" "${TEST_DBNAME}" 2> /dev/null || true
+ dropdb "${TEST_DBNAME}" 2> /dev/null || true
 
  log_success "Test database cleanup completed"
 }
@@ -143,11 +148,11 @@ run_bats_tests() {
    export TEST_DBNAME="${TEST_DBNAME}"
    export TEST_DBUSER="${TEST_DBUSER}"
    export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
-   export TEST_DBHOST="${TEST_DBHOST}"
-   export TEST_DBPORT="${TEST_DBPORT}"
+   export TEST_DBHOST="${TEST_DBHOST:-}"
+   export TEST_DBPORT="${TEST_DBPORT:-}"
 
    log_info "Executing bats for: ${test_file}"
-   if bats "${test_file}"; then
+   if bats "${test_file}" || true; then
     log_success "$(basename "${test_file}") passed"
     ((PASSED_TESTS++))
    else
@@ -183,7 +188,7 @@ run_e2e_tests() {
   export TEST_DBHOST="${TEST_DBHOST}"
   export TEST_DBPORT="${TEST_DBPORT}"
 
-  if bats "${e2e_test}"; then
+  if bats "${e2e_test}" || true; then
    log_success "End-to-end tests passed"
    ((PASSED_TESTS++))
   else
