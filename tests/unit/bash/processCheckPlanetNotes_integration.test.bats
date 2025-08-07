@@ -46,7 +46,7 @@ teardown() {
  
  # Test that logging functions work (if available)
  if declare -f __logi > /dev/null 2>&1; then
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh && __logi 'Test message' 2>/dev/null"
+   run -127 bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh && __logi 'Test message' 2>/dev/null"
    [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
  else
    skip "Logging functions not available"
@@ -94,7 +94,7 @@ teardown() {
  
  # Test that logging functions don't produce errors (if available)
  if declare -f __logi > /dev/null 2>&1 && declare -f __loge > /dev/null 2>&1; then
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh && __logi 'Test info' 2>/dev/null && __loge 'Test error' 2>/dev/null"
+   run -127 bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh && __logi 'Test info' 2>/dev/null && __loge 'Test error' 2>/dev/null"
    [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
  else
    skip "Logging functions not available"
