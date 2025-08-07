@@ -10,6 +10,71 @@ This document provides a comprehensive reference of all BATS testing suites in t
 - **Integration Suites**: 6
 - **Unit Bash Suites**: 68
 - **Unit SQL Suites**: 2
+- **Consolidated Test Runners**: 9 (reduced from 36)
+
+## 🚀 Consolidated Test Runners (9 scripts)
+
+The project has been simplified from 36 redundant test runners to 9 consolidated scripts:
+
+### Primary Test Runners
+
+#### 1. `run_tests.sh` - Master Test Runner
+
+- **Purpose**: Consolidated master test runner with multiple modes
+- **Modes**: host, mock, docker, ci
+- **Test Types**: all, unit, integration, quality
+- **Usage**: `./run_tests.sh --mode host --type all`
+
+#### 2. `run_tests_simple.sh` - Simple Test Runner
+
+- **Purpose**: Simplified test runner for host system
+- **Features**: No Docker required, basic validation
+- **Usage**: `./run_tests_simple.sh`
+
+#### 3. `run_quality_tests.sh` - Quality Tests Runner
+
+- **Purpose**: Consolidated quality testing with multiple modes
+- **Modes**: basic, enhanced, all
+- **Features**: Format, naming, validation tests
+- **Usage**: `./run_quality_tests.sh --mode enhanced`
+
+### Specialized Test Runners
+
+#### 4. `run_all_tests.sh` - Legacy All Tests Runner
+
+- **Purpose**: Legacy runner for backward compatibility
+- **Features**: Runs all test suites
+- **Usage**: `./run_all_tests.sh`
+
+#### 5. `run_integration_tests.sh` - Integration Tests
+
+- **Purpose**: Focused integration testing
+- **Features**: End-to-end workflows
+- **Usage**: `./run_integration_tests.sh`
+
+#### 6. `run_mock_tests.sh` - Mock Environment Tests
+
+- **Purpose**: Tests without real database
+- **Features**: Mock commands and environment
+- **Usage**: `./run_mock_tests.sh`
+
+#### 7. `run_error_handling_tests.sh` - Error Handling Tests
+
+- **Purpose**: Focused error handling validation
+- **Features**: Edge cases and error scenarios
+- **Usage**: `./run_error_handling_tests.sh`
+
+#### 8. `run_xml_xslt_tests.sh` - XML/XSLT Tests
+
+- **Purpose**: XML processing and XSLT transformation tests
+- **Features**: Data transformation validation
+- **Usage**: `./run_xml_xslt_tests.sh`
+
+#### 9. `run_manual_tests.sh` - Manual Tests
+
+- **Purpose**: Manual testing scenarios
+- **Features**: Interactive testing
+- **Usage**: `./run_manual_tests.sh`
 
 ## 🔗 Integration Test Suites (6 suites)
 
@@ -228,6 +293,29 @@ Integration tests validate complete workflows and system interactions:
 
 ## 🚀 Usage Guidelines
 
+### Running Tests with Consolidated Runners
+
+```bash
+# Master test runner with different modes
+./tests/run_tests.sh --mode host --type all                    # Host system
+./tests/run_tests.sh --mode mock --type unit                   # Mock environment
+./tests/run_tests.sh --mode docker --type integration          # Docker environment
+./tests/run_tests.sh --mode ci --type all                      # CI/CD environment
+
+# Quality tests with different modes
+./tests/run_quality_tests.sh --mode basic                      # Basic quality checks
+./tests/run_quality_tests.sh --mode enhanced                   # Enhanced quality checks
+./tests/run_quality_tests.sh --format-only                     # Only formatting tests
+./tests/run_quality_tests.sh --naming-only                     # Only naming tests
+
+# Specialized test runners
+./tests/run_tests_simple.sh                                    # Simple tests (no Docker)
+./tests/run_integration_tests.sh                               # Integration tests
+./tests/run_mock_tests.sh                                      # Mock environment tests
+./tests/run_error_handling_tests.sh                            # Error handling tests
+./tests/run_xml_xslt_tests.sh                                  # XML/XSLT tests
+```
+
 ### Running Specific Test Categories
 
 ```bash
@@ -242,22 +330,6 @@ find tests/unit/bash -name "*performance*.bats" -exec bats {} \;
 
 # Run all error handling tests
 find tests/unit/bash -name "*error*.bats" -exec bats {} \;
-```
-
-### Running Complete Test Suites
-
-```bash
-# Run all tests
-./tests/run_all_tests.sh
-
-# Run integration tests only
-./tests/run_integration_tests.sh
-
-# Run quality tests
-./tests/run_quality_tests.sh
-
-# Run mock tests
-./tests/run_mock_tests.sh
 ```
 
 ### Test Environment Setup
@@ -282,6 +354,7 @@ find tests/unit/bash -name "*error*.bats" -exec bats {} \;
 - **Integration Points**: 6 major workflows
 - **Error Scenarios**: 50+ edge cases
 - **Performance Tests**: 20+ scenarios
+- **Consolidated Runners**: 9 (reduced from 36)
 
 ### Success Criteria
 
@@ -319,3 +392,4 @@ find tests/unit/bash -name "*error*.bats" -exec bats {} \;
 
 *Last updated: 2025-01-27*
 *Total suites documented: 74*
+*Consolidated runners: 9 (reduced from 36)*
