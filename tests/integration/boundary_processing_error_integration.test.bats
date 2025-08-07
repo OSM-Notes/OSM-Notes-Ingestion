@@ -86,7 +86,7 @@ __processList() {
   
   # Simulate the QUERY_FILE error
   if [[ -z "${QUERY_FILE:-}" ]]; then
-    echo "/home/angoca/github/OSM-Notes-profile/bin/functionsProcess.sh: línea 2112: QUERY_FILE: variable sin asignar"
+    echo "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh: línea 2112: QUERY_FILE: variable sin asignar"
     return 1
   fi
   
@@ -133,6 +133,9 @@ EOF
     local mock_query="${TMP_DIR}/query_${id}.op"
     local mock_json="${TMP_DIR}/${id}.json"
     
+    # Ensure TMP_DIR exists
+    mkdir -p "${TMP_DIR}"
+    
     cat > "$mock_query" << EOF
 [out:json];
 rel(${id});
@@ -155,6 +158,9 @@ EOF
   for id in "${valid_ids[@]}"; do
     local mock_query="${TMP_DIR}/query_${id}.op"
     local mock_json="${TMP_DIR}/${id}.json"
+    
+    # Ensure TMP_DIR exists
+    mkdir -p "${TMP_DIR}"
     
     cat > "$mock_query" << EOF
 [out:json];
