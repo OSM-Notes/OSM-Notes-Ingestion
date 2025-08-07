@@ -9,6 +9,7 @@ This document explains the GitHub Actions workflows used in the OSM-Notes-profil
 When you make a push or pull request, you see three different "workflow runs" because the project has several independent workflows configured in `.github/workflows/`. Each one is designed to run a specific type of test.
 
 **Advantages of this configuration:**
+
 - ✅ **Parallelization:** Tests run simultaneously, getting results faster
 - ✅ **Specialization:** Each workflow focuses on a specific aspect (quality, integration, functionality)
 - ✅ **Independence:** If one type of test fails, it doesn't stop the others
@@ -21,6 +22,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 **Purpose:** Runs the main battery of unit and integration tests for the project's Bash and SQL scripts.
 
 **What it validates:**
+
 - Bash functions and scripts work correctly in isolation (unit tests)
 - Different system components interact correctly with each other (integration tests)
 - Main data processing flows, XML validation, error handling, and parallelism work as expected
@@ -29,6 +31,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 **When it runs:** On each push or pull request to the main branch (`main`), or when manually requested.
 
 **Main test files:**
+
 - `tests/run_all_tests.sh`
 - `tests/run_integration_tests.sh`
 - `tests/run_enhanced_tests.sh`
@@ -41,6 +44,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 **Purpose:** Focuses on ensuring source code quality and compliance with best practices.
 
 **What it validates:**
+
 - Bash and SQL scripts comply with defined format and style standards (shellcheck, shfmt, markdownlint)
 - No duplicate variables, syntax errors, or permission issues in scripts
 - Documentation and configuration files are present and properly formatted
@@ -49,6 +53,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 **When it runs:** On each push or pull request to the main branch (`main`), or when manually requested.
 
 **Main test files:**
+
 - `tests/run_quality_tests.sh`
 - `tests/run_quality_tests_simple.sh`
 - `tests/scripts/check_variable_duplicates.sh`
@@ -60,6 +65,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 **Purpose:** Validates the integration of different system modules, especially in environments that simulate real infrastructure (using Docker).
 
 **What it validates:**
+
 - Scripts can interact correctly with PostgreSQL databases and simulated external services (mock API)
 - ETL flows, note processing, and WMS administration work end-to-end
 - Integration with external tools (Docker, PostGIS, etc.) is successful
@@ -68,6 +74,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 **When it runs:** On each push or pull request to the main branch (`main`), or when manually requested.
 
 **Main test files:**
+
 - `tests/docker/run_ci_tests.sh`
 - `tests/docker/run_integration_tests.sh`
 - `tests/run_integration_tests.sh`
@@ -136,6 +143,7 @@ The workflows are defined in the `.github/workflows/` folder:
 - `.github/workflows/integration-tests.yml` - Integration tests
 
 Each YAML file contains:
+
 - **Triggers:** When the workflow runs (push, pull_request, etc.)
 - **Jobs:** Specific tasks to execute
 - **Steps:** Detailed steps within each job
@@ -144,12 +152,14 @@ Each YAML file contains:
 ## Best Practices
 
 ### For Developers
+
 - ✅ Run tests locally before pushing
 - ✅ Review GitHub Actions logs after each push
 - ✅ Fix problems quickly to keep the pipeline green
 - ✅ Use specific tests for debugging
 
 ### For Maintenance
+
 - ✅ Keep tests updated when code changes
 - ✅ Add new tests for new functionality
 - ✅ Optimize test execution time
@@ -167,4 +177,4 @@ This configuration allows quick problem detection and maintains the quality of t
 
 ---
 
-*Last updated: 2025-08-04* 
+*Last updated: 2025-08-04*

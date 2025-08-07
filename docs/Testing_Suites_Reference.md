@@ -16,15 +16,17 @@ This document provides a comprehensive reference of all BATS testing suites in t
 Integration tests validate complete workflows and system interactions:
 
 ### 1. boundary_processing_error_integration.test.bats
+
 - **Purpose**: Tests error handling in boundary processing workflows
 - **Coverage**: Geographic boundary processing, error scenarios, Taiwan boundary fixes
-- **Key Tests**: 
+- **Key Tests**:
   - QUERY_FILE variable validation
   - Invalid boundary ID detection
   - Error message patterns
   - Complete error handling chain
 
 ### 2. end_to_end.test.bats
+
 - **Purpose**: Complete workflow testing from data ingestion to output
 - **Coverage**: Full system integration, data processing pipelines
 - **Key Tests**:
@@ -34,6 +36,7 @@ Integration tests validate complete workflows and system interactions:
   - Parallel processing validation
 
 ### 3. ETL_enhanced_integration.test.bats
+
 - **Purpose**: Enhanced ETL process integration testing
 - **Coverage**: Data warehouse operations, ETL workflows
 - **Key Tests**:
@@ -43,6 +46,7 @@ Integration tests validate complete workflows and system interactions:
   - Resource monitoring
 
 ### 4. processAPINotes_parallel_error_integration.test.bats
+
 - **Purpose**: Parallel processing error scenarios in API processing
 - **Coverage**: Error propagation, job failure detection
 - **Key Tests**:
@@ -52,6 +56,7 @@ Integration tests validate complete workflows and system interactions:
   - Error message formats
 
 ### 5. wms_integration.test.bats
+
 - **Purpose**: WMS (Web Map Service) integration testing
 - **Coverage**: WMS installation, configuration, service management
 - **Key Tests**:
@@ -61,6 +66,7 @@ Integration tests validate complete workflows and system interactions:
   - Error handling
 
 ### 6. xslt_integration.test.bats
+
 - **Purpose**: XSLT transformation integration testing
 - **Coverage**: XML processing, CSV transformation, database loading
 - **Key Tests**:
@@ -74,6 +80,7 @@ Integration tests validate complete workflows and system interactions:
 ### 📋 Validation and Verification (15 suites)
 
 #### Data Validation
+
 - **api_download_verification.test.bats** - API download verification and validation
 - **boundary_validation.test.bats** - Geographic boundary validation
 - **centralized_validation.test.bats** - Centralized validation functions
@@ -81,21 +88,25 @@ Integration tests validate complete workflows and system interactions:
 - **input_validation.test.bats** - Input data validation
 
 #### Date and Time Validation
+
 - **date_validation.test.bats** - Date format validation
 - **date_validation_integration.test.bats** - Date validation integration
 - **date_validation_utc.test.bats** - UTC date validation
 
 #### SQL and Database Validation
+
 - **sql_constraints_validation.test.bats** - SQL constraint validation
 - **sql_validation_integration.test.bats** - SQL validation integration
 
 #### XML Validation
+
 - **xml_validation_enhanced.test.bats** - Enhanced XML validation
 - **xml_validation_functions.test.bats** - XML validation functions
 - **xml_validation_large_files.test.bats** - Large file XML validation
 - **xml_validation_simple.test.bats** - Simple XML validation
 
 #### Extended Validation
+
 - **extended_validation.test.bats** - Extended validation scenarios
 
 ### 🔄 Processing and Transformation (5 suites)
@@ -307,4 +318,4 @@ find tests/unit/bash -name "*error*.bats" -exec bats {} \;
 ---
 
 *Last updated: 2025-01-27*
-*Total suites documented: 74* 
+*Total suites documented: 74*
