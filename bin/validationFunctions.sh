@@ -971,13 +971,13 @@ function __validate_database_variables() {
  if [[ -n "${DB_HOST:-}" && "${DB_HOST}" != "localhost" && "${DB_HOST}" != "" ]]; then
   local REMOTE_VARS=("DB_PASSWORD" "DB_HOST" "DB_PORT")
   local MISSING_REMOTE=()
-  
+
   for VAR in "${REMOTE_VARS[@]}"; do
    if [[ -z "${!VAR}" ]]; then
     MISSING_REMOTE+=("${VAR}")
    fi
   done
-  
+
   if [[ ${#MISSING_REMOTE[@]} -gt 0 ]]; then
    __loge "ERROR: Missing required remote database variables: ${MISSING_REMOTE[*]}"
    return 1
