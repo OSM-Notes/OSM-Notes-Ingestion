@@ -220,6 +220,8 @@ The OSM-Notes-profile system consists of several key components:
 - **Processing Details**: See [processAPI.md](./processAPI.md) and
   [processPlanet.md](./processPlanet.md) for specific implementation details
 - **Project Motivation**: See [Rationale.md](./Rationale.md) for background and goals
+- **Testing Suites**: See [Testing_Suites_Reference.md](./Testing_Suites_Reference.md) for comprehensive testing suite documentation
+- **Testing Guide**: See [Testing_Guide.md](./Testing_Guide.md) for testing guidelines and workflows
 - **WMS Documentation**: See [WMS_Guide.md](./WMS_Guide.md),
   [WMS_Technical.md](./WMS_Technical.md), [WMS_User_Guide.md](./WMS_User_Guide.md),
   [WMS_Administration.md](./WMS_Administration.md), and
