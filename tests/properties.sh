@@ -25,14 +25,20 @@ elif [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
  export TEST_DBHOST="postgres"
  export TEST_DBPORT="5432"
 else
- # Running on host - use local PostgreSQL with current user
+ # Running on host - use local PostgreSQL with peer authentication
  echo "DEBUG: Detected host environment" >&2
- export TEST_DBNAME="osm_notes_test"
- TEST_DBUSER="$(whoami)"
- export TEST_DBUSER
- export TEST_DBPASSWORD=""
- export TEST_DBHOST=""
- export TEST_DBPORT=""
+ export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
+ export TEST_DBUSER="${TEST_DBUSER:-$(whoami)}"
+ export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
+ export TEST_DBHOST="${TEST_DBHOST:-}"
+ export TEST_DBPORT="${TEST_DBPORT:-}"
+ 
+ # For peer authentication, ensure these variables are not set
+ unset PGPASSWORD 2>/dev/null || true
+ unset DB_HOST 2>/dev/null || true
+ unset DB_PORT 2>/dev/null || true
+ unset DB_USER 2>/dev/null || true
+ unset DB_PASSWORD 2>/dev/null || true
 fi
 
 # Force override if variables are already set

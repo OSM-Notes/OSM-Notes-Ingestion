@@ -951,18 +951,37 @@ function __validate_csv_coordinates() {
 
 # Validate database variables
 function __validate_database_variables() {
- local REQUIRED_VARS=("DBNAME" "DB_USER" "DB_PASSWORD" "DB_HOST" "DB_PORT")
- local MISSING_VARS=()
+ # Check for minimal required variables (for peer authentication)
+ local MINIMAL_VARS=("DBNAME" "DB_USER")
+ local MISSING_MINIMAL=()
 
- for VAR in "${REQUIRED_VARS[@]}"; do
+ for VAR in "${MINIMAL_VARS[@]}"; do
   if [[ -z "${!VAR}" ]]; then
-   MISSING_VARS+=("${VAR}")
+   MISSING_MINIMAL+=("${VAR}")
   fi
  done
 
- if [[ ${#MISSING_VARS[@]} -gt 0 ]]; then
-  __loge "ERROR: Missing required database variables: ${MISSING_VARS[*]}"
+ if [[ ${#MISSING_MINIMAL[@]} -gt 0 ]]; then
+  __loge "ERROR: Missing required database variables: ${MISSING_MINIMAL[*]}"
   return 1
+ fi
+
+ # For peer authentication (localhost), DB_PASSWORD, DB_HOST, DB_PORT are optional
+ # For remote connections, all variables are required
+ if [[ -n "${DB_HOST:-}" && "${DB_HOST}" != "localhost" && "${DB_HOST}" != "" ]]; then
+  local REMOTE_VARS=("DB_PASSWORD" "DB_HOST" "DB_PORT")
+  local MISSING_REMOTE=()
+  
+  for VAR in "${REMOTE_VARS[@]}"; do
+   if [[ -z "${!VAR}" ]]; then
+    MISSING_REMOTE+=("${VAR}")
+   fi
+  done
+  
+  if [[ ${#MISSING_REMOTE[@]} -gt 0 ]]; then
+   __loge "ERROR: Missing required remote database variables: ${MISSING_REMOTE[*]}"
+   return 1
+  fi
  fi
 
  __logd "Database variables validation passed"
