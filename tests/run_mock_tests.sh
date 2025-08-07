@@ -62,26 +62,30 @@ run_mock_tests() {
  mkdir -p "${TEST_TMP_DIR}"
  
  # Run tests with mock environment
- bats ${test_files}
+ if [[ -d "${test_files}" ]]; then
+  bats "${PROJECT_ROOT}/${test_files}"/*.bats
+ else
+  bats ${test_files}
+ fi
 }
 
 # Main execution
 case "${1:-}" in
  --unit)
   log_info "Running unit tests with mock environment..."
-  run_mock_tests "tests/unit/bash/"
+  run_mock_tests "${PROJECT_ROOT}/tests/unit/bash/"
   ;;
  --integration)
   log_info "Running integration tests with mock environment..."
-  run_mock_tests "tests/integration/"
+  run_mock_tests "${PROJECT_ROOT}/tests/integration/"
   ;;
  --etl)
   log_info "Running ETL tests with mock environment..."
-  run_mock_tests "tests/unit/bash/ETL_enhanced.test.bats tests/integration/ETL_enhanced_integration.test.bats"
+  run_mock_tests "${PROJECT_ROOT}/tests/unit/bash/ETL_enhanced.test.bats ${PROJECT_ROOT}/tests/integration/ETL_enhanced_integration.test.bats"
   ;;
  --all)
   log_info "Running all tests with mock environment..."
-  run_mock_tests "tests/unit/bash/ tests/integration/"
+  run_mock_tests "${PROJECT_ROOT}/tests/unit/bash/ ${PROJECT_ROOT}/tests/integration/"
   ;;
  --help | -h)
   echo "Usage: $0 [OPTIONS]"
@@ -96,7 +100,7 @@ case "${1:-}" in
   ;;
  "")
   log_info "Running all tests with mock environment..."
-  run_mock_tests "tests/unit/bash/ tests/integration/"
+  run_mock_tests "${PROJECT_ROOT}/tests/unit/bash/ ${PROJECT_ROOT}/tests/integration/"
   ;;
  *)
   log_error "Unknown option: $1"

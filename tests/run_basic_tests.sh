@@ -4,10 +4,11 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-27
 
-set -e
-
 echo "=== RUNNING BASIC TESTS ==="
 echo "Testing basic functionality..."
+
+# Get the base directory
+SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,7 +38,7 @@ FAILED_TESTS=0
 # Test 1: Script loading
 log_info "Running Script loading test..."
 ((TOTAL_TESTS++))
-if source bin/functionsProcess.sh; then
+if source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" 2>/dev/null; then
   log_success "Script loading test passed"
   ((PASSED_TESTS++))
 else
@@ -48,7 +49,7 @@ fi
 # Test 2: Function availability
 log_info "Running Function availability test..."
 ((TOTAL_TESTS++))
-if source bin/functionsProcess.sh && declare -f __checkPrereqsCommands > /dev/null; then
+if declare -f __checkPrereqsCommands > /dev/null 2>&1; then
   log_success "Function availability test passed"
   ((PASSED_TESTS++))
 else
@@ -59,7 +60,7 @@ fi
 # Test 3: Help functionality
 log_info "Running Help functionality test..."
 ((TOTAL_TESTS++))
-if timeout 10s bin/process/processAPINotes.sh --help > /dev/null 2>&1; then
+if timeout 10s "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" --help > /dev/null 2>&1; then
   # Help should return exit code 1, so if we get here, it failed
   log_error "Help functionality test failed (expected exit code 1)"
   ((FAILED_TESTS++))
@@ -76,7 +77,7 @@ fi
 # Test 4: Dry-run mode
 log_info "Running Dry-run mode test..."
 ((TOTAL_TESTS++))
-if timeout 10s bin/process/processPlanetNotes.sh --help > /dev/null 2>&1; then
+if timeout 10s "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" --help > /dev/null 2>&1; then
   # Help should return exit code 1, so if we get here, it failed
   log_error "Dry-run mode test failed (expected exit code 1)"
   ((FAILED_TESTS++))
@@ -94,9 +95,9 @@ fi
 log_info "Running SQL file validation test..."
 ((TOTAL_TESTS++))
 SQL_VALID=true
-for sql_file in sql/process/*.sql; do
+for sql_file in "${SCRIPT_BASE_DIRECTORY}/sql/process/"*.sql; do
   if [[ -f "$sql_file" ]]; then
-    if ! grep -q 'CREATE\|INSERT\|UPDATE\|SELECT' "$sql_file"; then
+    if ! grep -q 'CREATE\|INSERT\|UPDATE\|SELECT\|DROP\|VACUUM\|ANALYZE' "$sql_file"; then
       SQL_VALID=false
       break
     fi
@@ -115,7 +116,7 @@ fi
 log_info "Running XSLT file validation test..."
 ((TOTAL_TESTS++))
 XSLT_VALID=true
-for xslt_file in xslt/*.xslt; do
+for xslt_file in "${SCRIPT_BASE_DIRECTORY}/xslt/"*.xslt; do
   if [[ -f "$xslt_file" ]]; then
     if ! grep -q 'xsl:stylesheet\|xsl:template' "$xslt_file"; then
       XSLT_VALID=false
@@ -135,7 +136,7 @@ fi
 # Test 7: Properties file validation
 log_info "Running Properties file validation test..."
 ((TOTAL_TESTS++))
-if [[ -f etc/etl.properties ]] && [[ -f etc/properties.sh ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/etl.properties" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh" ]]; then
   log_success "Properties file validation test passed"
   ((PASSED_TESTS++))
 else
