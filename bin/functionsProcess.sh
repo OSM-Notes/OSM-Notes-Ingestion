@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-05
+# Version: 2025-08-07
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -1956,7 +1956,14 @@ function __downloadPlanetNotes {
    "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE} 2>/dev/null || true"
  fi
 
- mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
+ # Rename the extracted file to .xml only if it doesn't already have the extension
+ if [[ -f "${PLANET_NOTES_FILE}" ]] && [[ ! -f "${PLANET_NOTES_FILE}.xml" ]]; then
+  mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
+ elif [[ -f "${PLANET_NOTES_FILE}" ]] && [[ -f "${PLANET_NOTES_FILE}.xml" ]]; then
+  # If both files exist, remove the one without extension and keep the .xml one
+  rm -f "${PLANET_NOTES_FILE}"
+ fi
+
  __log_finish
 }
 
