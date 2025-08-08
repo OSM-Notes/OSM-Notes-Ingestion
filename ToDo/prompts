@@ -1,17 +1,7 @@
 
 
 
-Problemas en tests de GitHub Actions
-0s
-Run chmod +x tests/run_ci_tests_simple.sh
-chmod: cannot access 'tests/run_ci_tests_simple.sh': No such file or directory
-Error: Process completed with exit code 1.
 
-
-
-
-
-Consideras que tenemos código legacy en el proyecto que podamos borrar?
 
 
 
@@ -188,3 +178,9 @@ Podrías hacer una validación de los archivos XSLT antes de usarlos, esto con e
 Podrías validar que hay tamaño suficiente en disco para descargar el archivo planet  y expandirlo. Además, después se generan archivos CSV gigantes basados en esta info. También asegurar el espacio en disco para descargar todos los boundaries que son basantes.
 
 Podrías validar que el formato de fechas en el XML sean con formato IS 8601.
+
+
+**IMPORTANTE: Protocolo de Commits**
+- NUNCA hacer commits automáticos sin confirmación del usuario
+- SIEMPRE mostrar cambios con git diff y esperar confirmación
+- El usuario debe aprobar explícitamente antes de cualquier commit
