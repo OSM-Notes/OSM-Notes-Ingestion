@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
-# Enhanced unit tests for XML processing functions
+# Enhanced unit tests for XML processing functions with resource limits
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-15
+# Version: 2025-08-07
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -906,4 +906,41 @@ EOF
     
     # Clean up mock files
     rm -f "/tmp/mock_notes.xslt" "/tmp/mock_comments.xslt" "/tmp/mock_text.xslt" "/tmp/mock_load.sql"
+}
+
+# =============================================================================
+# Test XML validation with resource limits
+# =============================================================================
+
+@test "test_run_xmllint_with_limits_function_exists" {
+    # Load the processPlanetNotes.sh script functions
+    source "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh"
+    
+    # Verify function exists
+    type __run_xmllint_with_limits
+}
+
+@test "test_run_xmllint_with_limits_with_valid_xml" {
+    # Load the processPlanetNotes.sh script functions
+    source "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh"
+    
+    # Create a small valid XML file for testing
+    local test_xml="${TMP_DIR}/test_small.xml"
+    cat > "${test_xml}" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+    <note id="1" lat="40.7128" lon="-74.0060">
+        <date_created>2023-01-01T00:00:00Z</date_created>
+        <status>open</status>
+    </note>
+</osm-notes>
+EOF
+    
+    # Test the function with a small timeout and valid XML
+    run __run_xmllint_with_limits 30 "--noout --nonet" "${test_xml}"
+    
+    echo "Exit code: $status"
+    echo "Output: $output"
+    
+    [ "$status" -eq 0 ]
 } 

@@ -977,6 +977,159 @@ function __validate_xml_with_enhanced_error_handling {
  fi
 }
 
+# Monitor xmllint resource usage in the background
+# Parameters:
+#   $1 - PID of the xmllint process
+#   $2 - monitoring interval in seconds
+#   $3 - log file for resource monitoring
+function __monitor_xmllint_resources {
+ local XMLLINT_PID="${1}"
+ local INTERVAL="${2:-5}"
+ local MONITOR_LOG="${3:-${TMP_DIR}/xmllint_resources.log}"
+ 
+ __logi "Starting resource monitoring for xmllint PID: ${XMLLINT_PID}"
+ 
+ {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting resource monitoring for PID ${XMLLINT_PID}"
+  
+  while kill -0 "${XMLLINT_PID}" 2>/dev/null; do
+   if ps -p "${XMLLINT_PID}" >/dev/null 2>&1; then
+    local CPU_USAGE
+    local MEM_USAGE
+    local RSS_KB
+    CPU_USAGE=$(ps -p "${XMLLINT_PID}" -o %cpu --no-headers 2>/dev/null | tr -d ' ')
+    MEM_USAGE=$(ps -p "${XMLLINT_PID}" -o %mem --no-headers 2>/dev/null | tr -d ' ')
+    RSS_KB=$(ps -p "${XMLLINT_PID}" -o rss --no-headers 2>/dev/null | tr -d ' ')
+    
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - PID: ${XMLLINT_PID}, CPU: ${CPU_USAGE}%, Memory: ${MEM_USAGE}%, RSS: ${RSS_KB}KB"
+    
+    # Check if memory usage is too high
+    if [[ -n "${RSS_KB}" ]] && [[ "${RSS_KB}" -gt 2097152 ]]; then # 2GB in KB
+     echo "$(date '+%Y-%m-%d %H:%M:%S') - WARNING: Memory usage exceeds 2GB (${RSS_KB}KB)"
+    fi
+   fi
+   sleep "${INTERVAL}"
+  done
+  
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - Process ${XMLLINT_PID} finished or terminated"
+ } >> "${MONITOR_LOG}" 2>&1 &
+ 
+ local MONITOR_PID=$!
+ echo "${MONITOR_PID}"
+}
+
+# Run xmllint with resource limitations to prevent system overload
+# Parameters:
+#   $1 - timeout in seconds
+#   $2 - xmllint command arguments
+#   $3 - XML file path
+# Returns:
+#   0 if validation passes, 1 if validation fails
+function __run_xmllint_with_limits {
+ local TIMEOUT_SECS="${1}"
+ local XMLLINT_ARGS="${2}"
+ local XML_FILE="${3}"
+ 
+ # CPU limit: 25% of one core, Memory limit: 2GB
+ local CPU_LIMIT="25"
+ local MEMORY_LIMIT="2000000" # 2GB in KB
+ local MONITOR_LOG="${TMP_DIR}/xmllint_resources.log"
+ 
+ __logi "Running xmllint with resource limits: CPU ${CPU_LIMIT}%, Memory ${MEMORY_LIMIT}KB"
+ 
+ # Create a temporary script to run xmllint with resource limits
+ local TEMP_SCRIPT
+ TEMP_SCRIPT=$(mktemp)
+ cat > "${TEMP_SCRIPT}" << EOF
+#!/bin/bash
+# Set memory limit
+ulimit -v ${MEMORY_LIMIT}
+# Run xmllint with timeout
+timeout ${TIMEOUT_SECS} xmllint ${XMLLINT_ARGS} "${XML_FILE}" &
+XMLLINT_PID=\$!
+echo \$XMLLINT_PID > "${TMP_DIR}/xmllint.pid"
+wait \$XMLLINT_PID
+EOF
+ 
+ chmod +x "${TEMP_SCRIPT}"
+ 
+ # Run with cpulimit if available, otherwise just run the script
+ local RESULT=0
+ local MONITOR_PID=""
+ 
+ if command -v cpulimit >/dev/null 2>&1; then
+  # Start the process with cpulimit
+  cpulimit --limit=${CPU_LIMIT} "${TEMP_SCRIPT}" &
+  local MAIN_PID=$!
+  
+  # Wait a bit for xmllint to start, then get its PID
+  sleep 2
+  if [[ -f "${TMP_DIR}/xmllint.pid" ]]; then
+   local XMLLINT_PID
+   XMLLINT_PID=$(cat "${TMP_DIR}/xmllint.pid" 2>/dev/null)
+   if [[ -n "${XMLLINT_PID}" ]]; then
+    MONITOR_PID=$(__monitor_xmllint_resources "${XMLLINT_PID}" 5 "${MONITOR_LOG}")
+   fi
+  fi
+  
+  # Wait for the main process to complete
+  wait "${MAIN_PID}"
+  RESULT=$?
+ else
+  __logw "WARNING: cpulimit not available, running without CPU limits"
+  
+  # Start the process normally
+  "${TEMP_SCRIPT}" &
+  local MAIN_PID=$!
+  
+  # Wait a bit for xmllint to start, then get its PID
+  sleep 2
+  if [[ -f "${TMP_DIR}/xmllint.pid" ]]; then
+   local XMLLINT_PID
+   XMLLINT_PID=$(cat "${TMP_DIR}/xmllint.pid" 2>/dev/null)
+   if [[ -n "${XMLLINT_PID}" ]]; then
+    MONITOR_PID=$(__monitor_xmllint_resources "${XMLLINT_PID}" 5 "${MONITOR_LOG}")
+   fi
+  fi
+  
+  # Wait for the main process to complete
+  wait "${MAIN_PID}"
+  RESULT=$?
+ fi
+ 
+ # Stop monitoring if it's running
+ if [[ -n "${MONITOR_PID}" ]]; then
+  kill "${MONITOR_PID}" 2>/dev/null || true
+ fi
+ 
+ # Clean up
+ rm -f "${TEMP_SCRIPT}" "${TMP_DIR}/xmllint.pid"
+ 
+ # Show resource monitoring summary if available
+ if [[ -f "${MONITOR_LOG}" ]]; then
+  __logi "Resource monitoring log available at: ${MONITOR_LOG}"
+  local MAX_CPU
+  local MAX_MEM
+  MAX_CPU=$(grep "CPU:" "${MONITOR_LOG}" | sed 's/.*CPU: \([0-9.]*\)%.*/\1/' | sort -n | tail -1)
+  MAX_MEM=$(grep "RSS:" "${MONITOR_LOG}" | sed 's/.*RSS: \([0-9]*\)KB.*/\1/' | sort -n | tail -1)
+  if [[ -n "${MAX_CPU}" ]] && [[ -n "${MAX_MEM}" ]]; then
+   __logi "Peak resource usage - CPU: ${MAX_CPU}%, Memory: ${MAX_MEM}KB"
+  fi
+ fi
+ 
+ # Log output if there was an error
+ if [[ $RESULT -ne 0 ]]; then
+  __loge "xmllint validation failed with exit code: ${RESULT}"
+  if [[ $RESULT -eq 124 ]]; then
+   __loge "Process was terminated due to timeout (${TIMEOUT_SECS}s)"
+  elif [[ $RESULT -eq 137 ]]; then
+   __loge "Process was killed (likely due to memory limits)"
+  fi
+ fi
+ 
+ return $RESULT
+}
+
 # Validate XML structure only (no schema validation) for very large files
 # Parameters:
 #   $1 - XML file path
@@ -992,8 +1145,8 @@ function __validate_xml_structure_only {
 
  __logi "Performing structure-only validation for very large file: ${XML_FILE}"
 
- # Check basic XML structure without schema validation
- if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2> /dev/null; then
+ # Check basic XML structure without schema validation using resource limits
+ if ! __run_xmllint_with_limits 300 "--noout --nonet" "${XML_FILE}"; then
   __loge "ERROR: Basic XML structure validation failed for ${XML_FILE}"
   return 1
  fi

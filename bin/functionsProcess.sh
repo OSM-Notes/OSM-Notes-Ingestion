@@ -1956,13 +1956,12 @@ function __downloadPlanetNotes {
    "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE} 2>/dev/null || true"
  fi
 
- # Rename the extracted file to .xml only if it doesn't already have the extension
- if [[ -f "${PLANET_NOTES_FILE}" ]] && [[ ! -f "${PLANET_NOTES_FILE}.xml" ]]; then
-  mv "${PLANET_NOTES_FILE}" "${PLANET_NOTES_FILE}.xml"
- elif [[ -f "${PLANET_NOTES_FILE}" ]] && [[ -f "${PLANET_NOTES_FILE}.xml" ]]; then
-  # If both files exist, remove the one without extension and keep the .xml one
-  rm -f "${PLANET_NOTES_FILE}"
- fi
+ # After bzip2 extraction, the file should already have the correct name
+# PLANET_NOTES_FILE already includes .xml extension, so no renaming needed
+if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
+ __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
+ return 1
+fi
 
  __log_finish
 }
