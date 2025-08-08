@@ -2,7 +2,7 @@
 
 # Master Test Runner for OSM-Notes-profile (Consolidated)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2025-08-08
 
 set -euo pipefail
 
@@ -49,7 +49,7 @@ Usage: $0 [OPTIONS] [TEST_TYPE]
 Options:
   -h, --help              Show this help message
   --mode MODE             Test mode (host|mock|docker|ci)
-  --type TYPE             Test type (all|unit|integration|quality)
+  --type TYPE             Test type (all|unit|integration|quality|dwh)
 
 Modes:
   host                    Run tests on host system (default)
@@ -62,12 +62,14 @@ Test Types:
   unit                    Run only unit tests
   integration             Run only integration tests
   quality                 Run only quality tests
+  dwh                     Run only DWH enhanced tests
 
 Examples:
   $0 --mode host --type all                    # Run all tests on host
   $0 --mode mock --type unit                   # Run unit tests with mock
   $0 --mode docker --type integration          # Run integration tests in Docker
   $0 --mode ci --type all                      # Run all tests in CI
+  $0 --mode host --type dwh                    # Run DWH enhanced tests
   $0                                         # Run all tests on host (default)
 
 EOF
@@ -95,7 +97,7 @@ run_host_tests() {
   
   case "$test_type" in
     "all")
-      bats tests/unit/bash/*.bats tests/integration/*.bats
+      bats tests/unit/bash/*.bats tests/integration/*.bats tests/unit/sql/*.sql
       ;;
     "unit")
       bats tests/unit/bash/*.bats
@@ -104,15 +106,25 @@ run_host_tests() {
       bats tests/integration/*.bats
       ;;
     "quality")
-      bats tests/unit/bash/format_and_lint.test.bats
-      bats tests/unit/bash/function_naming_convention.test.bats
-      bats tests/unit/bash/variable_naming_convention.test.bats
-      bats tests/unit/bash/variable_duplication.test.bats
-      bats tests/unit/bash/variable_duplication_detection.test.bats
-      bats tests/unit/bash/script_help_validation.test.bats
+      bats tests/advanced/quality/*.bats
+      ;;
+    "dwh")
+      log_info "Running DWH enhanced tests..."
+      # Run SQL unit tests for DWH
+      if command -v psql &> /dev/null; then
+        log_info "Running DWH SQL unit tests..."
+        psql -d "${DBNAME:-notes}" -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
+        psql -d "${DBNAME:-notes}" -f tests/unit/sql/dwh_functions_enhanced.test.sql
+      else
+        log_warning "psql not found, skipping DWH SQL tests"
+      fi
+      # Run DWH integration tests
+      bats tests/integration/ETL_enhanced_integration.test.bats
+      bats tests/integration/datamart_enhanced_integration.test.bats
       ;;
     *)
       log_error "Unknown test type: $test_type"
+      show_help
       exit 1
       ;;
   esac
