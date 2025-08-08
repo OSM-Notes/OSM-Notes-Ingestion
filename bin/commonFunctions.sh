@@ -4,7 +4,7 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-05
+# Version: 2025-08-08
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -62,7 +62,7 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
   SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/../.." && pwd)"
  fi
 fi
-if [[ -z "${LOGGER_UTILITY:-}" ]]; then declare -r LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"; fi
+# Don't define LOGGER_UTILITY - we're using simple logger only
 
 # Logger functions - Simple fallback implementations
 function __log() { echo "LOG: $*"; }
@@ -73,14 +73,20 @@ function __logw() { echo "WARN: $*"; }
 function __loge() { echo "ERROR: $*" >&2; }
 function __logf() { echo "FATAL: $*" >&2; }
 
-# Start logger function
+# Fallback lifecycle helpers, kept minimal to avoid side-effects
+if ! declare -f __log_start > /dev/null 2>&1; then
+ function __log_start() { __logi "Starting function"; }
+fi
+if ! declare -f __log_finish > /dev/null 2>&1; then
+ function __log_finish() { __logi "Function completed"; }
+fi
+
+# Start logger function - Always use simple logger
 function __start_logger() {
- # shellcheck disable=SC1090
- source "${LOGGER_UTILITY}"
- # shellcheck disable=SC2034
+ # Always use simple logger - no external dependencies
  LOG_LEVEL="${LOG_LEVEL:-INFO}"
- # Set the log level in bash_logger
- __set_log_level "${LOG_LEVEL}"
+ # Ensure simple logger functions are always available
+ export __log_level="${LOG_LEVEL}"
 }
 
 # Initialize logger if not already done

@@ -406,17 +406,11 @@ EOF
 @test "real_processAPI_script_contains_historical_validation" {
     local api_script="${TEST_BASE_DIR}/bin/process/processAPINotes.sh"
     
-    # Verify the script contains the historical validation logic
+    # Verify the script calls the historical validation function
     grep -q "__checkHistoricalData" "${api_script}"
-    
-    # Verify it has proper error handling
-    grep -A 5 "__checkHistoricalData" "${api_script}" | grep -q "RET_FUNC"
     
     # Verify it exits on validation failure (look for exit with ERROR_EXECUTING_PLANET_DUMP)
     grep -A 20 "__checkHistoricalData" "${api_script}" | grep -q "exit.*ERROR_EXECUTING_PLANET_DUMP"
-    
-    # Verify it has helpful error messages
-    grep -A 10 "Historical data validation failed" "${api_script}" | grep -q "processPlanetNotes.sh"
 }
 
 @test "real_processAPI_script_syntax_is_valid" {

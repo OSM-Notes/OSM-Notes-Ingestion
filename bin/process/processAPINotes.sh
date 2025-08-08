@@ -778,23 +778,11 @@ function main() {
  else
   # Base tables exist, now check if they contain historical data
   __logi "Base tables found. Validating historical data..."
-  # Temporarily enable error detection for historical data validation
-  set -E
   __checkHistoricalData
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __loge "CRITICAL: Historical data validation failed!"
-   __loge "ProcessAPI cannot continue without historical data from Planet."
-   __loge "The system needs historical context to properly process incremental updates."
-   __loge ""
-   __loge "Required action: Run processPlanetNotes.sh first to load historical data:"
-   __loge "  ${NOTES_SYNC_SCRIPT}"
-   __loge ""
-   __loge "This will load the complete historical dataset from OpenStreetMap Planet dump."
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logi "Historical data validation passed. ProcessAPI can continue safely."
-  # Restore error detection state
-  set +E
  fi
 
  set -E

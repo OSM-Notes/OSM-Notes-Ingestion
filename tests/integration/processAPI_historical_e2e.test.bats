@@ -54,8 +54,9 @@ teardown() {
             action VARCHAR(20)
         );
         
-        -- Test the historical validation SQL directly
-        DO \\\$\\\$
+        -- Test the historical validation SQL directly using external script
+        -- For tests tables, reuse the official script by mapping names or keep a minimal inline DO with correct delimiters
+        DO $$
         DECLARE
          qty INT;
         BEGIN
@@ -64,7 +65,7 @@ teardown() {
           RAISE EXCEPTION 'Historical data validation failed: notes table is empty';
          END IF;
         END;
-        \\\$\\\$;
+        $$;
 EOSQL
     "
     
@@ -109,7 +110,7 @@ EOSQL
         (3, 3, CURRENT_DATE - INTERVAL '3 days', 'opened');
         
         -- Test the historical validation logic
-        DO \\\$\\\$
+        DO $$
         DECLARE
          qty INT;
          oldest_note_date DATE;
@@ -127,7 +128,7 @@ EOSQL
            oldest_note_date, min_historical_days;
          END IF;
         END;
-        \\\$\\\$;
+        $$;
 EOSQL
     "
     
@@ -176,7 +177,7 @@ EOSQL
         (5, 5, CURRENT_DATE - INTERVAL '1 day', 'opened');
         
         -- Test the historical validation logic
-        DO \\\$\\\$
+        DO $$
         DECLARE
          qty INT;
          oldest_note_date DATE;
@@ -207,7 +208,7 @@ EOSQL
          RAISE NOTICE 'Historical data validation passed: Found notes from % and comments from %',
           oldest_note_date, oldest_comment_date;
         END;
-        \\\$\\\$;
+        $$;
 EOSQL
     "
     

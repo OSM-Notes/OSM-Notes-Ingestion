@@ -17,10 +17,8 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
 
-# Set LOGGER_UTILITY if not already set
-if [[ -z "${LOGGER_UTILITY:-}" ]]; then
- LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
-fi
+# Don't set LOGGER_UTILITY here - let commonFunctions.sh handle it
+# This prevents conflicts with the simple logger implementation
 
 if [[ -z "${__COMMON_FUNCTIONS_LOADED:-}" ]]; then
  # shellcheck disable=SC1091
@@ -31,7 +29,6 @@ if [[ -z "${__COMMON_FUNCTIONS_LOADED:-}" ]]; then
   # Restore SCRIPT_BASE_DIRECTORY if it was changed
   if [[ "${SCRIPT_BASE_DIRECTORY}" != "${SAVED_SCRIPT_BASE_DIRECTORY}" ]]; then
    SCRIPT_BASE_DIRECTORY="${SAVED_SCRIPT_BASE_DIRECTORY}"
-   LOGGER_UTILITY="${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
   fi
  elif [[ -f "$(dirname "${BASH_SOURCE[0]}")/commonFunctions.sh" ]]; then
   source "$(dirname "${BASH_SOURCE[0]}")/commonFunctions.sh"

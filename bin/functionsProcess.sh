@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-07
+# Version: 2025-08-08
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -322,37 +322,6 @@ declare -r GEOJSON_TEST="${SCRIPT_BASE_DIRECTORY}/json/map.geojson"
 # FUNCTIONS
 
 ### Logger
-
-# Loads the logger (log4j like) tool.
-# It has the following functions.
-function __log() { command __log "${@}"; }
-function __logt() { command __logt "${@}"; }
-function __logd() { command __logd "${@}"; }
-function __logi() { command __logi "${@}"; }
-function __logw() { command __logw "${@}"; }
-function __loge() { command __loge "${@}"; }
-function __logf() { command __logf "${@}"; }
-
-# Starts the logger utility.
-function __start_logger() {
- if [[ -f "${LOGGER_UTILITY}" ]]; then
-  # Starts the logger mechanism.
-  set +e
-  # shellcheck disable=SC1090
-  source "${LOGGER_UTILITY}"
-  local -i RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]]; then
-   printf "\nERROR: Invalid logger framework file.\n"
-   exit "${ERROR_LOGGER_UTILITY}"
-  fi
-  # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR.
-  # shellcheck disable=SC2154
-  __set_log_level "${LOG_LEVEL}"
- else
-  printf "\nLogger was not found.\n"
- fi
-}
 
 # Shows if there is another executing process.
 function __validation {
@@ -1885,19 +1854,65 @@ function __checkBaseTables {
 function __checkHistoricalData {
  __log_start
  __logi "Validating historical data in base tables..."
- 
- # Remove set +e/set -e to ensure error propagation
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}"
- local RET=${?}
- 
+
+ # Make this block resilient even when caller has 'set -e' enabled
+ local ERREXIT_WAS_ON=false
+ if [[ $- == *e* ]]; then
+  ERREXIT_WAS_ON=true
+  set +e
+ fi
+
+ local RET
+ local _hist_out_file
+ _hist_out_file="${TMP_DIR:-/tmp}/hist_check_$$.log"
+ # Ensure directory exists
+ mkdir -p "${TMP_DIR:-/tmp}" 2>/dev/null || true
+
+ # Execute and capture output and exit code safely
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" >"${_hist_out_file}" 2>&1
+ RET=$?
+
+ # Restore errexit if it was previously on
+ if [[ "${ERREXIT_WAS_ON}" == true ]]; then
+  set -e
+ fi
+
+ # Read captured output
+ local _hist_out=""
+ if [[ -s "${_hist_out_file}" ]]; then
+  _hist_out="$(cat "${_hist_out_file}")"
+ fi
+ rm -f "${_hist_out_file}" 2>/dev/null || true
+
+ # If exit code is zero but output contains ERROR, treat as failure to be safe
+ if [[ "${RET}" -eq 0 ]] && echo "${_hist_out}" | grep -q "ERROR:"; then
+  RET=1
+ fi
+
+ # Print psql output to current logger context with appropriate levels
+ if [[ -n "${_hist_out}" ]]; then
+  while IFS= read -r _line; do
+   if [[ "${_line}" == *"ERROR:"* ]]; then
+    __loge "${_line}"
+   else
+    __logd "${_line}"
+   fi
+  done <<< "${_hist_out}"
+ fi
+
  if [[ "${RET}" -eq 0 ]]; then
   __logi "Historical data validation passed"
  else
-  __loge "Historical data validation failed"
-  __loge "ProcessAPI requires historical data to work correctly"
-  __loge "Please run processPlanetNotes.sh first to load historical data"
+  __loge "CRITICAL: Historical data validation failed!"
+  __loge "ProcessAPI cannot continue without historical data from Planet."
+  __loge "The system needs historical context to properly process incremental updates."
+  __loge ""
+  __loge "Required action: Run processPlanetNotes.sh first to load historical data:"
+  __loge "  ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
+  __loge ""
+  __loge "This will load the complete historical dataset from OpenStreetMap Planet dump."
  fi
- 
+
  # shellcheck disable=SC2034
  RET_FUNC="${RET}"
  __log_finish

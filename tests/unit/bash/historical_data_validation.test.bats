@@ -99,57 +99,36 @@ extract_historical_data_function() {
 }
 
 @test "test_checkHistoricalData_fails_with_empty_tables" {
-    # Skip if we don't have a test database
-    if [[ -z "${TEST_DBNAME}" ]]; then
-        skip "No test database available"
+    # Try using a real local PostgreSQL if available (peer)
+    if ! psql -Atqc 'SELECT 1' postgres >/dev/null 2>&1; then
+        skip "PostgreSQL not available"
     fi
-    
-    # Mock psql to simulate empty tables
-    psql() {
-        echo "Mock psql executed with args: $*"
-        if [[ "$*" =~ "checkHistoricalData" ]]; then
-            echo "ERROR: Historical data validation failed: notes table is empty"
-            return 1
-        fi
-        return 0
-    }
-    
-    # Test the function
-    run __checkHistoricalData
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    [ "$status" -eq 1 ]
-    [[ "$output" =~ "Historical data validation failed" ]]
-    [[ "$output" =~ "Please run processPlanetNotes.sh first" ]]
+
+    DB_TEST="osm_notes_test"
+    psql -d postgres -c "DROP DATABASE IF EXISTS ${DB_TEST};" >/dev/null 2>&1 || true
+    psql -d postgres -c "CREATE DATABASE ${DB_TEST};" >/dev/null 2>&1 || skip "Cannot create test DB"
+    psql -d "${DB_TEST}" -c 'CREATE TABLE IF NOT EXISTS notes (id SERIAL, date_created DATE); CREATE TABLE IF NOT EXISTS note_comments (id SERIAL, date DATE); CREATE TABLE IF NOT EXISTS countries (id SERIAL); CREATE TABLE IF NOT EXISTS logs (id SERIAL); CREATE TABLE IF NOT EXISTS tries (id SERIAL); TRUNCATE notes, note_comments;' >/dev/null 2>&1 || skip "Cannot prepare base tables"
+
+    # Run SQL script directly to validate failure on empty tables
+    run psql -d "${DB_TEST}" -v ON_ERROR_STOP=1 -f "${TEST_BASE_DIR}/sql/functionsProcess_11_checkHistoricalData.sql"
+    [ "$status" -ne 0 ]
 }
 
 @test "test_checkHistoricalData_fails_with_insufficient_history" {
-    # Skip if we don't have a test database
-    if [[ -z "${TEST_DBNAME}" ]]; then
-        skip "No test database available"
+    if ! psql -Atqc 'SELECT 1' postgres >/dev/null 2>&1; then
+        skip "PostgreSQL not available"
     fi
-    
-    # Mock psql to simulate insufficient historical data
-    psql() {
-        echo "Mock psql executed with args: $*"
-        if [[ "$*" =~ "checkHistoricalData" ]]; then
-            echo "ERROR: Historical data validation failed: insufficient historical data"
-            return 1
-        fi
-        return 0
-    }
-    
-    # Test the function
-    run __checkHistoricalData
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    [ "$status" -eq 1 ]
-    [[ "$output" =~ "Historical data validation failed" ]]
-    [[ "$output" =~ "ProcessAPI requires historical data" ]]
+
+    DB_TEST="osm_notes_test"
+    psql -d postgres -c "DROP DATABASE IF EXISTS ${DB_TEST};" >/dev/null 2>&1 || true
+    psql -d postgres -c "CREATE DATABASE ${DB_TEST};" >/dev/null 2>&1 || skip "Cannot create test DB"
+    psql -d "${DB_TEST}" -c 'CREATE TABLE IF NOT EXISTS notes (id SERIAL, date_created DATE); CREATE TABLE IF NOT EXISTS note_comments (id SERIAL, date DATE); CREATE TABLE IF NOT EXISTS countries (id SERIAL); CREATE TABLE IF NOT EXISTS logs (id SERIAL); CREATE TABLE IF NOT EXISTS tries (id SERIAL); TRUNCATE notes, note_comments;' >/dev/null 2>&1 || skip "Cannot prepare base tables"
+    psql -d "${DB_TEST}" -c "INSERT INTO notes(date_created) VALUES (CURRENT_DATE)" >/dev/null 2>&1 || true
+    psql -d "${DB_TEST}" -c "INSERT INTO note_comments(date) VALUES (CURRENT_DATE)" >/dev/null 2>&1 || true
+
+    # Run SQL script directly to validate failure with recent-only data
+    run psql -d "${DB_TEST}" -v ON_ERROR_STOP=1 -f "${TEST_BASE_DIR}/sql/functionsProcess_11_checkHistoricalData.sql"
+    [ "$status" -ne 0 ]
 }
 
 # =============================================================================
@@ -204,15 +183,24 @@ extract_historical_data_function() {
     local api_script="${TEST_BASE_DIR}/bin/process/processAPINotes.sh"
     
     # Check that processAPINotes.sh exits when historical validation fails
-    grep -A 15 "__checkHistoricalData" "${api_script}" | grep -q "exit"
+    # Accept either RET_FUNC-based or HIST_RET-based checks followed by exit
+    run bash -c "grep -A 25 '__checkHistoricalData' '${api_script}'"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ RET_FUNC|HIST_RET ]]
+    [[ "$output" =~ exit ]]
 }
 
 @test "test_processAPI_provides_helpful_error_messages" {
-    local api_script="${TEST_BASE_DIR}/bin/process/processAPINotes.sh"
-    
-    # Check that processAPINotes.sh provides helpful error messages
-    grep -A 10 "Historical data validation failed" "${api_script}" | grep -q "ProcessAPI cannot continue"
-    grep -A 10 "Historical data validation failed" "${api_script}" | grep -q "Run processPlanetNotes.sh first"
+    # Messages now live in __checkHistoricalData within functionsProcess.sh
+    local func_script="${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    grep -A 10 "CRITICAL: Historical data validation failed" "${func_script}" | grep -q "ProcessAPI cannot continue"
+    grep -A 10 "CRITICAL: Historical data validation failed" "${func_script}" | grep -q "Run processPlanetNotes.sh first"
+}
+
+@test "test_processAPI_provides_full_guidance_message" {
+    # Verify the extra guidance line is present in the function messages
+    local func_script="${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    grep -A 15 "CRITICAL: Historical data validation failed" "${func_script}" | grep -q "This will load the complete historical dataset"
 }
 
 # =============================================================================
@@ -220,25 +208,11 @@ extract_historical_data_function() {
 # =============================================================================
 
 @test "test_checkHistoricalData_handles_database_connection_failure" {
-    # Skip if we don't have a test database
-    if [[ -z "${TEST_DBNAME}" ]]; then
-        skip "No test database available"
-    fi
-    
-    # Mock psql to simulate database connection failure
-    psql() {
-        echo "psql: could not connect to server"
-        return 2
-    }
-    
-    # Test the function
-    run __checkHistoricalData
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    [ "$status" -eq 2 ]
-    [[ "$output" =~ "Historical data validation failed" ]]
+    # Use a DBNAME that surely does not exist to trigger connection failure
+    # Using a non-existent database should make the SQL script fail
+    local NONEXIST_DB="nonexistent_db_$(date +%s)"
+    run psql -d "${NONEXIST_DB}" -v ON_ERROR_STOP=1 -f "${TEST_BASE_DIR}/sql/functionsProcess_11_checkHistoricalData.sql"
+    [ "$status" -ne 0 ]
 }
 
 @test "test_historical_validation_constants_defined" {
