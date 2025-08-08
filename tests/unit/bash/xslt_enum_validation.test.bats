@@ -228,7 +228,8 @@ EOF
   # Check that action field is properly quoted
   local ACTION_FIELD
   ACTION_FIELD=$(echo "$line" | cut -d',' -f3)
-  [[ "${ACTION_FIELD}" =~ ^\"[^\"]+\"$ ]]
+  # Check that action field is NOT quoted (PostgreSQL enum compatibility fix)
+  [[ "${ACTION_FIELD}" =~ ^[^\"]+$ ]]
  done < "${TEST_DIR}/format.csv"
 }
 
