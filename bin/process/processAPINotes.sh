@@ -778,6 +778,8 @@ function main() {
  else
   # Base tables exist, now check if they contain historical data
   __logi "Base tables found. Validating historical data..."
+  # Temporarily enable error detection for historical data validation
+  set -E
   __checkHistoricalData
   if [[ "${RET_FUNC}" -ne 0 ]]; then
    __loge "CRITICAL: Historical data validation failed!"
@@ -791,6 +793,8 @@ function main() {
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logi "Historical data validation passed. ProcessAPI can continue safely."
+  # Restore error detection state
+  set +E
  fi
 
  set -E

@@ -1886,10 +1886,9 @@ function __checkHistoricalData {
  __log_start
  __logi "Validating historical data in base tables..."
  
- set +e
+ # Remove set +e/set -e to ensure error propagation
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}"
  local RET=${?}
- set -e
  
  if [[ "${RET}" -eq 0 ]]; then
   __logi "Historical data validation passed"
