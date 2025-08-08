@@ -22,7 +22,6 @@
 # Based on: Dushyanth Jyothi's bash-logger
 
 # === CONSTANTS AND CONFIGURATION ===
-declare -r LOGGER_VERSION="2025-08-05"
 # Declare log levels array (not read-only to avoid BATS conflicts)
 if [[ -z "${LOG_LEVELS_ORDER+x}" ]]; then
   declare -ga LOG_LEVELS_ORDER=("TRACE" "DEBUG" "INFO" "WARN" "ERROR" "FATAL")
