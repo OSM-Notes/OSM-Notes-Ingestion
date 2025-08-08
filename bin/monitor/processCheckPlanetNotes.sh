@@ -243,7 +243,7 @@ function main() {
  __dropCheckTables
  __createCheckTables
  __downloadPlanetNotes 2>&1
- __validatePlanetNotesXMLFile
+ __validatePlanetNotesXMLFileComplete
  __loadCheckNotes
  __analyzeAndVacuum
  __cleanNotesFiles

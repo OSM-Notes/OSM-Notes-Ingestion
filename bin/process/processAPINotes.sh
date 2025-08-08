@@ -400,19 +400,6 @@ function __getNewNotesFromApi {
  return 0
 }
 
-# Validates the XML file to be sure everything will work fine.
-function __validateApiNotesXMLFile {
- __log_start
- __logi "=== VALIDATING API NOTES XML FILE ==="
- __logd "Schema file: ${XMLSCHEMA_API_NOTES}"
- __logd "Notes file: ${API_NOTES_FILE}"
-
- xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}"
-
- __logi "=== XML VALIDATION COMPLETED SUCCESSFULLY ==="
- __log_finish
-}
-
 # Validates API notes XML file completely (structure, dates, coordinates)
 # Parameters:
 #   None (uses global API_NOTES_FILE variable)
@@ -428,9 +415,9 @@ function __validateApiNotesXMLFileComplete {
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
- # Validate XML structure against schema
+ # Validate XML structure against schema with enhanced error handling
  __logi "Validating XML structure against schema..."
- if ! xmllint --noout --schema "${XMLSCHEMA_API_NOTES}" "${API_NOTES_FILE}" 2> /dev/null; then
+ if ! __validate_xml_with_enhanced_error_handling "${API_NOTES_FILE}" "${XMLSCHEMA_API_NOTES}"; then
   __loge "ERROR: XML structure validation failed: ${API_NOTES_FILE}"
   exit "${ERROR_DATA_VALIDATION}"
  fi

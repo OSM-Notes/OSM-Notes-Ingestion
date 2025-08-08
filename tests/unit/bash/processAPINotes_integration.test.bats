@@ -184,3 +184,31 @@ teardown() {
    [ "$status" -eq 0 ] || echo "SQL file ${SQL_FILE} should contain valid SQL"
  done
 } 
+
+# Test that XML processing functions work correctly
+@test "processAPINotes.sh XML processing functions should work correctly" {
+ # Test that XML counting function works without sourcing the main script
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __countXmlNotesApi ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
+ [ "$status" -eq 0 ] || echo "XML counting function should work"
+}
+
+# Test that XML validation functions work correctly
+@test "processAPINotes.sh XML validation functions should work correctly" {
+ # Test that enhanced XML validation function works
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_with_enhanced_error_handling ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml ${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
+ [ "$status" -eq 0 ] || echo "Enhanced XML validation function should work"
+}
+
+# Test that XML structure validation works correctly
+@test "processAPINotes.sh XML structure validation should work correctly" {
+ # Test that structure-only validation works for large files
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_structure_only ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
+ [ "$status" -eq 0 ] || echo "Structure-only XML validation should work"
+}
+
+# Test that XML basic validation works correctly
+@test "processAPINotes.sh XML basic validation should work correctly" {
+ # Test that basic validation works
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_basic ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
+ [ "$status" -eq 0 ] || echo "Basic XML validation should work"
+} 

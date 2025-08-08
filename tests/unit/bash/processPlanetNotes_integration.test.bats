@@ -155,6 +155,27 @@ teardown() {
  [ "$status" -eq 0 ] || echo "XML counting function should work"
 }
 
+# Test that XML validation functions work correctly
+@test "processPlanetNotes.sh XML validation functions should work correctly" {
+ # Test that enhanced XML validation function works
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_with_enhanced_error_handling ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml ${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
+ [ "$status" -eq 0 ] || echo "Enhanced XML validation function should work"
+}
+
+# Test that XML structure validation works correctly
+@test "processPlanetNotes.sh XML structure validation should work correctly" {
+ # Test that structure-only validation works for large files
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_structure_only ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
+ [ "$status" -eq 0 ] || echo "Structure-only XML validation should work"
+}
+
+# Test that XML basic validation works correctly
+@test "processPlanetNotes.sh XML basic validation should work correctly" {
+ # Test that basic validation works
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_basic ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
+ [ "$status" -eq 0 ] || echo "Basic XML validation should work"
+}
+
 # Test that parallel processing functions work correctly
 @test "processPlanetNotes.sh parallel processing functions should work correctly" {
  # Test that parallel processing functions are available

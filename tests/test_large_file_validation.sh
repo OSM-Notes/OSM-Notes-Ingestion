@@ -83,11 +83,11 @@ echo "📋 Testing schema validation with memory limits..."
 # Load functions to get schema path
 source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
-if timeout "${TEST_TIMEOUT}" xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
- --maxmem "${TEST_MEMORY_LIMIT}M" "${TEST_XML_FILE}" 2> /dev/null; then
- echo "   ✅ Schema validation with memory limits passed"
+# Test the enhanced validation function instead of direct xmllint
+if __validate_xml_with_enhanced_error_handling "${TEST_XML_FILE}" "${XMLSCHEMA_PLANET_NOTES}" "${TEST_TIMEOUT}"; then
+ echo "   ✅ Enhanced validation with memory limits passed"
 else
- echo "   ⚠️  Schema validation with memory limits failed (expected for very large files)"
+ echo "   ⚠️  Enhanced validation with memory limits failed (expected for very large files)"
 fi
 
 # Test 4: Alternative validation method
@@ -95,7 +95,7 @@ echo "🔄 Testing alternative validation method..."
 source "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
 
 # Test the enhanced validation function
-if __validate_xml_with_enhanced_error_handling "${TEST_XML_FILE}" "${XMLSCHEMA_PLANET_NOTES}" "${TEST_TIMEOUT}" "${TEST_MEMORY_LIMIT}M"; then
+if __validate_xml_with_enhanced_error_handling "${TEST_XML_FILE}" "${XMLSCHEMA_PLANET_NOTES}" "${TEST_TIMEOUT}"; then
  echo "   ✅ Enhanced validation passed"
 else
  echo "   ⚠️  Enhanced validation failed (this may be expected for very large files)"

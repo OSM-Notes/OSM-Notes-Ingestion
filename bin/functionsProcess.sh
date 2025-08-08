@@ -2007,17 +2007,6 @@ fi
  __log_finish
 }
 
-# Validates the XML file to be sure everything will work fine.
-function __validatePlanetNotesXMLFile {
- __log_start
-
- # shellcheck disable=SC2154
- xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
-  "${PLANET_NOTES_FILE}" 2>&1
-
- __log_finish
-}
-
 # Creates a function that performs basic triage according to longitude:
 # * -180 - -30: Americas.
 # * -30 - 25: West Europe and West Africa.

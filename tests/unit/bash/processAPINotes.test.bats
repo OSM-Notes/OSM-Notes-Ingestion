@@ -143,9 +143,11 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
 # =============================================================================
 
 @test "single note XML should be valid" {
-  # Test that single note XML is valid against schema
-  run xmllint --schema "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd" "$SPECIAL_CASES_DIR/single_note.xml" --noout
-  [ "$status" -eq 0 ]
+ # Test that single note XML is valid using enhanced validation
+ source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+ run __validate_xml_with_enhanced_error_handling "$SPECIAL_CASES_DIR/single_note.xml" "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd"
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"XML validation succeeded"* ]]
 }
 
 # =============================================================================

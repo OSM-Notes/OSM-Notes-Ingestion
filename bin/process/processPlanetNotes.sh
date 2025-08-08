@@ -632,17 +632,6 @@ function __cleanNotesFiles {
  __log_finish
 }
 
-# Validates the XML file to be sure everything will work fine.
-function __validatePlanetNotesXMLFile {
- __log_start
-
- # shellcheck disable=SC2154
- xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
-  "${PLANET_NOTES_FILE}" 2>&1
-
- __log_finish
-}
-
 # Validates Planet notes XML file completely (structure, dates, coordinates)
 # Parameters:
 #   None (uses global PLANET_NOTES_FILE variable)

@@ -394,19 +394,10 @@ function __validatePlanetNotesXMLFile() {
   return 1
  fi
 
- # Validate XML structure
- if ! __validate_xml_structure "${PLANET_NOTES_FILE}"; then
-  __loge "ERROR: XML structure validation failed"
+ # Use enhanced validation function
+ if ! __validate_xml_with_enhanced_error_handling "${PLANET_NOTES_FILE}" "${XMLSCHEMA_PLANET_NOTES}"; then
+  __loge "ERROR: XML validation failed"
   return 1
- fi
-
- # Validate against schema if available
- if [[ -f "${XMLSCHEMA_PLANET_NOTES}" ]]; then
-  if xmllint --schema "${XMLSCHEMA_PLANET_NOTES}" "${PLANET_NOTES_FILE}" > /dev/null 2>&1; then
-   __logi "XML schema validation passed"
-  else
-   __logw "WARNING: XML schema validation failed, but continuing"
-  fi
  fi
 
  __logi "Planet notes XML file validation completed successfully."

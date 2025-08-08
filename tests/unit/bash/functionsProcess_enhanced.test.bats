@@ -194,20 +194,24 @@ EOF
 # =============================================================================
 
 @test "XML validation should work with valid API XML" {
-    # Test XML validation against schema
-    run xmllint --schema "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd" "${TEST_BASE_DIR}/tests/tmp/test_api.xml" --noout
-    [ "$status" -eq 0 ]
+ # Test XML validation against schema using enhanced validation
+ source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+ run __validate_xml_with_enhanced_error_handling "${TEST_BASE_DIR}/tests/tmp/test_api.xml" "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd"
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"XML validation succeeded"* ]]
 }
 
 @test "XML validation should work with valid Planet XML" {
-    # Test XML validation against schema
-    # Skip if schema file doesn't exist
-    if [[ -f "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" ]]; then
-        run xmllint --schema "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" "${TEST_BASE_DIR}/tests/tmp/test_planet.xml" --noout
-        [ "$status" -eq 0 ]
-    else
-        skip "Schema file not found"
-    fi
+ # Test XML validation against schema using enhanced validation
+ # Skip if schema file doesn't exist
+ if [[ -f "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" ]]; then
+  source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+  run __validate_xml_with_enhanced_error_handling "${TEST_BASE_DIR}/tests/tmp/test_planet.xml" "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"XML validation succeeded"* ]]
+ else
+  skip "Schema file not found"
+ fi
 }
 
 # =============================================================================

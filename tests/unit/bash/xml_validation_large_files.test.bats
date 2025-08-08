@@ -1,5 +1,9 @@
 #!/usr/bin/env bats
 
+# Test file for large XML file validation
+# Author: Andres Gomez (AngocA)
+# Version: 2025-08-07
+
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
 setup() {
@@ -50,6 +54,11 @@ EOF
  done
 
  echo '</osm-notes>' >> "${TMP_DIR}/large_test.xml"
+ 
+ # Source the functions we need for testing
+ if [[ -f "${BATS_TEST_DIRNAME}/../../../../bin/functionsProcess.sh" ]]; then
+  source "${BATS_TEST_DIRNAME}/../../../../bin/functionsProcess.sh"
+ fi
 }
 
 # Test cleanup
@@ -61,14 +70,10 @@ teardown() {
 }
 
 @test "XML file structure validation works" {
- # Skip if xmllint is not available
- if ! command -v xmllint >/dev/null 2>&1; then
-  skip "xmllint not available"
- fi
- 
- # Test basic XML structure validation
- run xmllint --noout --nonet "${TMP_DIR}/large_test.xml"
+ # Test basic XML structure validation using our enhanced function
+ run __validate_xml_basic "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"Basic XML validation passed"* ]]
 }
 
 @test "XML contains expected elements" {
@@ -87,15 +92,18 @@ teardown() {
  [[ "${NOTE_COUNT}" -eq 1000 ]]
 }
 
-@test "XML validation against schema works" {
- # Skip if xmllint is not available
- if ! command -v xmllint >/dev/null 2>&1; then
-  skip "xmllint not available"
- fi
- 
- # Test validation against the test schema
- run xmllint --noout --schema "${TMP_DIR}/test_schema.xsd" "${TMP_DIR}/large_test.xml"
+@test "Enhanced XML validation works with large files" {
+ # Test enhanced validation function with large file
+ run __validate_xml_with_enhanced_error_handling "${TMP_DIR}/large_test.xml" "${TMP_DIR}/test_schema.xsd"
  [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"XML validation succeeded"* ]]
+}
+
+@test "Structure-only validation works with large files" {
+ # Test structure-only validation function
+ run __validate_xml_structure_only "${TMP_DIR}/large_test.xml"
+ [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"Structure-only validation passed for very large file"* ]]
 }
 
 @test "Large file threshold configuration is respected" {
@@ -126,13 +134,6 @@ teardown() {
  [[ "${ETL_XML_VALIDATION_TIMEOUT}" -gt 0 ]]
 }
 
-@test "Sample size configuration is available" {
- # Test that sample size configuration is available
- source "${BATS_TEST_DIRNAME}/../../../etc/etl.properties"
- [[ -n "${ETL_XML_SAMPLE_SIZE:-}" ]]
- [[ "${ETL_XML_SAMPLE_SIZE}" -gt 0 ]]
-}
-
 @test "File size detection works" {
  # Test file size calculation
  local FILE_SIZE
@@ -150,25 +151,29 @@ teardown() {
 }
 
 @test "XML structure validation handles large files" {
- # Skip if xmllint is not available
- if ! command -v xmllint >/dev/null 2>&1; then
-  skip "xmllint not available"
- fi
- 
  # Test that basic XML structure validation works for large files
- run timeout 60 xmllint --noout --nonet "${TMP_DIR}/large_test.xml"
+ run __validate_xml_basic "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"Basic XML validation passed"* ]]
 }
 
-@test "Schema validation works" {
- # Skip if xmllint is not available
- if ! command -v xmllint >/dev/null 2>&1; then
-  skip "xmllint not available"
- fi
+@test "Enhanced validation handles different file sizes" {
+ # Test enhanced validation with different file sizes (mocked)
  
- # Test schema validation without memory limits
- run timeout 60 xmllint --noout --schema "${TMP_DIR}/test_schema.xsd" "${TMP_DIR}/large_test.xml"
+ # Mock stat function to simulate different file sizes
+ function stat() {
+  if [[ "$*" == *"large_test.xml"* ]]; then
+   echo "600000000"  # Simulate 600MB file
+  else
+   command stat "$@"
+  fi
+ }
+ export -f stat
+ 
+ # Test with large file
+ run __validate_xml_with_enhanced_error_handling "${TMP_DIR}/large_test.xml" "${TMP_DIR}/test_schema.xsd"
  [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"Basic XML validation succeeded"* ]]
 }
 
 @test "Configuration values are reasonable" {

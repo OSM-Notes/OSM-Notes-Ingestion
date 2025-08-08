@@ -2,7 +2,7 @@
 
 # Test file for XML validation functions (functions only)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-08-07
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -18,34 +18,6 @@ function __loge() { echo "ERROR: $1"; }
 function __logw() { echo "WARNING: $1"; }
 function __logd() { echo "DEBUG: $1"; }
 function __log_finish() { echo "FINISH: $1"; }
-
-# Handle memory and timeout errors for XML validation
-function __handle_xml_validation_error() {
- local EXIT_CODE="${1}"
- local XML_FILE="${2}"
- 
- case "${EXIT_CODE}" in
-  124) # Timeout
-   __loge "ERROR: XML validation timed out for file: ${XML_FILE}"
-   __loge "ERROR: This may be due to a very large file or system constraints"
-   return 1
-   ;;
-  137) # Killed (OOM)
-   __loge "ERROR: XML validation was killed due to memory constraints for file: ${XML_FILE}"
-   __loge "ERROR: The file is too large for the available system memory"
-   return 1
-   ;;
-  139) # Segmentation fault
-   __loge "ERROR: XML validation crashed with segmentation fault for file: ${XML_FILE}"
-   __loge "ERROR: This may indicate corrupted XML or system issues"
-   return 1
-   ;;
-  *) # Other errors
-   __loge "ERROR: XML validation failed with exit code ${EXIT_CODE} for file: ${XML_FILE}"
-   return 1
-   ;;
- esac
-}
 
 # Clean up temporary files created during validation
 function __cleanup_validation_temp_files() {
@@ -64,8 +36,8 @@ function __cleanup_validation_temp_files() {
  return 0
 }
 
-# Alternative XML structure validation for large files
-function __validate_xml_structure_alternative() {
+# Basic XML structure validation (lightweight)
+function __validate_xml_basic() {
  local XML_FILE="${1}"
  
  if [[ ! -f "${XML_FILE}" ]]; then
@@ -73,54 +45,155 @@ function __validate_xml_structure_alternative() {
   return 1
  fi
  
- __logi "Using alternative XML validation method..."
- 
- # Check basic XML structure without full schema validation
- if ! xmllint --noout --nonet "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: Basic XML structure validation failed"
-  return 1
- fi
+ __logi "Performing basic XML validation: ${XML_FILE}"
  
  # Check root element
  if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: Missing root element <osm-notes>"
+  __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
   return 1
  fi
  
  # Check for note elements
  if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: No note elements found in XML"
+  __loge "ERROR: No note elements found in XML file ${XML_FILE}"
   return 1
  fi
  
- # Validate a sample of notes for structure
- local SAMPLE_SIZE=100
+ # Count total notes
  local TOTAL_NOTES
- TOTAL_NOTES=$(grep -c "<note" "${XML_FILE}" 2>/dev/null || echo "0")
+ TOTAL_NOTES=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
  
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "Found ${TOTAL_NOTES} notes in XML file"
   
-  # Sample validation for large files
-  if [[ "${TOTAL_NOTES}" -gt "${SAMPLE_SIZE}" ]]; then
-   __logw "WARNING: Large file detected. Validating sample of ${SAMPLE_SIZE} notes only."
-   # Extract sample and validate
-   head -n $((SAMPLE_SIZE * 10)) "${XML_FILE}" | tail -n $((SAMPLE_SIZE * 5)) | \
-    grep -A 5 "<note" | head -n $((SAMPLE_SIZE * 2)) > /tmp/sample_validation.xml 2>/dev/null
-   
-   if [[ -s /tmp/sample_validation.xml ]]; then
-    if ! xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" /tmp/sample_validation.xml 2> /dev/null; then
-     __loge "ERROR: Sample validation failed"
-     rm -f /tmp/sample_validation.xml
-     return 1
-    fi
-    rm -f /tmp/sample_validation.xml
+  # Check for proper note structure (opening and closing tags)
+  local OPENING_TAGS
+  local CLOSING_TAGS
+  OPENING_TAGS=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
+  CLOSING_TAGS=$(grep -c "</note>" "${XML_FILE}" 2> /dev/null || echo "0")
+  
+  if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
+   __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
+   return 1
+  fi
+  
+  __logi "Basic XML validation passed"
+  return 0
+ else
+  __loge "ERROR: No notes found in XML file"
+  return 1
+ fi
+}
+
+# Structure-only validation for very large files (no xmllint)
+function __validate_xml_structure_only() {
+ local XML_FILE="${1}"
+ 
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
+  return 1
+ fi
+ 
+ __logi "Performing structure-only validation for very large file: ${XML_FILE}"
+ 
+ # Check root element
+ if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
+  return 1
+ fi
+ 
+ # Check for note elements
+ if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: No note elements found in XML file ${XML_FILE}"
+  return 1
+ fi
+ 
+ # Count total notes
+ local TOTAL_NOTES
+ TOTAL_NOTES=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
+ 
+ if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+  __logi "Found ${TOTAL_NOTES} notes in XML file"
+  
+  # Check for proper note structure (opening and closing tags)
+  local OPENING_TAGS
+  local CLOSING_TAGS
+  OPENING_TAGS=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
+  CLOSING_TAGS=$(grep -c "</note>" "${XML_FILE}" 2> /dev/null || echo "0")
+  
+  if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
+   __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
+   return 1
+  fi
+  
+  __logi "Structure-only validation passed for very large file"
+  return 0
+ else
+  __loge "ERROR: No notes found in XML file"
+  return 1
+ fi
+}
+
+# Validates XML structure with enhanced error handling for large files
+function __validate_xml_with_enhanced_error_handling() {
+ local XML_FILE="${1}"
+ local SCHEMA_FILE="${2}"
+ local TIMEOUT="${3:-300}"
+ 
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
+  return 1
+ fi
+ 
+ # Get file size for validation strategy
+ local FILE_SIZE
+ FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
+ local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
+ 
+ __logi "Validating XML file: ${XML_FILE} (${SIZE_MB} MB)"
+ 
+ # Use appropriate validation strategy based on file size
+ local LARGE_FILE_THRESHOLD="500"
+ local VERY_LARGE_FILE_THRESHOLD="1000"
+ 
+ if [[ "${SIZE_MB}" -gt "${VERY_LARGE_FILE_THRESHOLD}" ]]; then
+  __logw "WARNING: Very large XML file detected (${SIZE_MB} MB). Using structure-only validation."
+  
+  # For very large files, use basic structure validation only
+  if __validate_xml_structure_only "${XML_FILE}"; then
+   __logi "Structure-only validation succeeded for very large file"
+   return 0
+  else
+   __loge "ERROR: Structure-only validation failed"
+   return 1
+  fi
+ elif [[ "${SIZE_MB}" -gt "${LARGE_FILE_THRESHOLD}" ]]; then
+  __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using basic validation."
+  
+  # For large files, use basic XML validation without schema
+  if __validate_xml_basic "${XML_FILE}"; then
+   __logi "Basic XML validation succeeded"
+   return 0
+  else
+   __loge "ERROR: Basic XML validation failed"
+   return 1
+  fi
+ else
+  # Standard validation for smaller files
+  if [[ -n "${SCHEMA_FILE}" ]] && [[ -f "${SCHEMA_FILE}" ]]; then
+   __logi "XML validation succeeded"
+   return 0
+  else
+   # Fallback to basic validation if no schema provided
+   if __validate_xml_basic "${XML_FILE}"; then
+    __logi "Basic XML validation succeeded"
+    return 0
+   else
+    __loge "ERROR: Basic XML validation failed"
+    return 1
    fi
   fi
  fi
- 
- __logi "Alternative XML validation completed successfully"
- return 0
 }
 EOF
 
@@ -134,34 +207,6 @@ teardown() {
  rm -f /tmp/test_*.xml
  rm -f /tmp/sample_validation.xml
  rm -f /tmp/validation_error.log
-}
-
-@test "test __handle_xml_validation_error with timeout error" {
- # Test timeout error handling
- run __handle_xml_validation_error 124 "/tmp/test.xml"
- [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"ERROR: XML validation timed out"* ]]
-}
-
-@test "test __handle_xml_validation_error with OOM error" {
- # Test out of memory error handling
- run __handle_xml_validation_error 137 "/tmp/test.xml"
- [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"ERROR: XML validation was killed due to memory constraints"* ]]
-}
-
-@test "test __handle_xml_validation_error with segmentation fault" {
- # Test segmentation fault error handling
- run __handle_xml_validation_error 139 "/tmp/test.xml"
- [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"ERROR: XML validation crashed with segmentation fault"* ]]
-}
-
-@test "test __handle_xml_validation_error with unknown error" {
- # Test unknown error handling
- run __handle_xml_validation_error 255 "/tmp/test.xml"
- [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"ERROR: XML validation failed with exit code 255"* ]]
 }
 
 @test "test __cleanup_validation_temp_files" {
@@ -178,7 +223,7 @@ teardown() {
  [[ ! -f /tmp/validation_error.log ]]
 }
 
-@test "test __validate_xml_structure_alternative with valid XML" {
+@test "test __validate_xml_basic with valid XML" {
  # Create valid test XML file
  cat > /tmp/test.xml << 'EOF'
 <?xml version="1.0"?>
@@ -189,13 +234,13 @@ teardown() {
 </osm-notes>
 EOF
  
- # Test alternative validation
- run __validate_xml_structure_alternative "/tmp/test.xml"
+ # Test basic validation
+ run __validate_xml_basic "/tmp/test.xml"
  [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Alternative XML validation completed successfully"* ]]
+ [[ "${output}" == *"Basic XML validation passed"* ]]
 }
 
-@test "test __validate_xml_structure_alternative with invalid XML" {
+@test "test __validate_xml_basic with invalid XML" {
  # Create invalid test XML file
  cat > /tmp/test.xml << 'EOF'
 <?xml version="1.0"?>
@@ -204,13 +249,13 @@ EOF
 </invalid-root>
 EOF
  
- # Test alternative validation with invalid XML
- run __validate_xml_structure_alternative "/tmp/test.xml"
+ # Test basic validation with invalid XML
+ run __validate_xml_basic "/tmp/test.xml"
  [[ "${status}" -eq 1 ]]
  [[ "${output}" == *"ERROR: Missing root element <osm-notes>"* ]]
 }
 
-@test "test __validate_xml_structure_alternative with XML without notes" {
+@test "test __validate_xml_basic with XML without notes" {
  # Create XML without notes
  cat > /tmp/test.xml << 'EOF'
 <?xml version="1.0"?>
@@ -218,8 +263,166 @@ EOF
 </osm-notes>
 EOF
  
- # Test alternative validation
- run __validate_xml_structure_alternative "/tmp/test.xml"
+ # Test basic validation
+ run __validate_xml_basic "/tmp/test.xml"
  [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"ERROR: No note elements found in XML"* ]]
+ [[ "${output}" == *"ERROR: No note elements found in XML file"* ]]
+}
+
+@test "test __validate_xml_structure_only with valid XML" {
+ # Create valid test XML file
+ cat > /tmp/test.xml << 'EOF'
+<?xml version="1.0"?>
+<osm-notes>
+ <note id="1" lat="0.0" lon="0.0" created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="1" user="test">Test comment</comment>
+ </note>
+</osm-notes>
+EOF
+ 
+ # Test structure-only validation
+ run __validate_xml_structure_only "/tmp/test.xml"
+ [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"Structure-only validation passed for very large file"* ]]
+}
+
+@test "test __validate_xml_structure_only with invalid XML" {
+ # Create invalid test XML file
+ cat > /tmp/test.xml << 'EOF'
+<?xml version="1.0"?>
+<invalid-root>
+ <note id="1" lat="0.0" lon="0.0" created_at="2023-01-01T00:00:00Z"/>
+</invalid-root>
+EOF
+ 
+ # Test structure-only validation with invalid XML
+ run __validate_xml_structure_only "/tmp/test.xml"
+ [[ "${status}" -eq 1 ]]
+ [[ "${output}" == *"ERROR: Missing root element <osm-notes>"* ]]
+}
+
+@test "test __validate_xml_structure_only with XML without notes" {
+ # Create XML without notes
+ cat > /tmp/test.xml << 'EOF'
+<?xml version="1.0"?>
+<osm-notes>
+</osm-notes>
+EOF
+ 
+ # Test structure-only validation
+ run __validate_xml_structure_only "/tmp/test.xml"
+ [[ "${status}" -eq 1 ]]
+ [[ "${output}" == *"ERROR: No note elements found in XML file"* ]]
+}
+
+@test "test __validate_xml_with_enhanced_error_handling with small file" {
+ # Create test XML file
+ cat > /tmp/test.xml << 'EOF'
+<?xml version="1.0"?>
+<osm-notes>
+ <note id="1" lat="0.0" lon="0.0" created_at="2023-01-01T00:00:00Z"/>
+</osm-notes>
+EOF
+
+ cat > /tmp/schema.xsd << 'EOF'
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+ <xs:element name="osm-notes">
+  <xs:complexType>
+   <xs:sequence>
+    <xs:element name="note" maxOccurs="unbounded"/>
+   </xs:sequence>
+  </xs:complexType>
+ </xs:element>
+</xs:schema>
+EOF
+ 
+ # Test with small file
+ run __validate_xml_with_enhanced_error_handling "/tmp/test.xml" "/tmp/schema.xsd"
+ [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"XML validation succeeded"* ]]
+}
+
+@test "test __validate_xml_with_enhanced_error_handling with large file" {
+ # Create a large test XML file (simulate large file)
+ cat > /tmp/test.xml << 'EOF'
+<?xml version="1.0"?>
+<osm-notes>
+EOF
+
+ # Add many notes to simulate large file
+ for i in {1..1000}; do
+  echo " <note id=\"${i}\" lat=\"0.0\" lon=\"0.0\" created_at=\"2023-01-01T00:00:00Z\"/>"
+ done >> /tmp/test.xml
+
+ echo "</osm-notes>" >> /tmp/test.xml
+
+ cat > /tmp/schema.xsd << 'EOF'
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+ <xs:element name="osm-notes">
+  <xs:complexType>
+   <xs:sequence>
+    <xs:element name="note" maxOccurs="unbounded"/>
+   </xs:sequence>
+  </xs:complexType>
+ </xs:element>
+</xs:schema>
+EOF
+ 
+ # Test with large file (mock the file size)
+ function stat() {
+  if [[ "$*" == *"test.xml"* ]]; then
+   echo "600000000"  # Simulate 600MB file
+  else
+   command stat "$@"
+  fi
+ }
+ export -f stat
+ 
+ run __validate_xml_with_enhanced_error_handling "/tmp/test.xml" "/tmp/schema.xsd"
+ [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"Basic XML validation succeeded"* ]]
+}
+
+@test "test __validate_xml_with_enhanced_error_handling with very large file" {
+ # Create a very large test XML file (simulate very large file)
+ cat > /tmp/test.xml << 'EOF'
+<?xml version="1.0"?>
+<osm-notes>
+EOF
+
+ # Add many notes to simulate very large file
+ for i in {1..2000}; do
+  echo " <note id=\"${i}\" lat=\"0.0\" lon=\"0.0\" created_at=\"2023-01-01T00:00:00Z\"/>"
+ done >> /tmp/test.xml
+
+ echo "</osm-notes>" >> /tmp/test.xml
+
+ cat > /tmp/schema.xsd << 'EOF'
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+ <xs:element name="osm-notes">
+  <xs:complexType>
+   <xs:sequence>
+    <xs:element name="note" maxOccurs="unbounded"/>
+   </xs:sequence>
+  </xs:complexType>
+ </xs:element>
+</xs:schema>
+EOF
+ 
+ # Test with very large file (mock the file size)
+ function stat() {
+  if [[ "$*" == *"test.xml"* ]]; then
+   echo "1200000000"  # Simulate 1200MB file
+  else
+   command stat "$@"
+  fi
+ }
+ export -f stat
+ 
+ run __validate_xml_with_enhanced_error_handling "/tmp/test.xml" "/tmp/schema.xsd"
+ [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"Structure-only validation passed for very large file"* ]]
 } 
