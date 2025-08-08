@@ -1191,7 +1191,7 @@ function __validate_xml_structure_only {
    {
     echo '<?xml version="1.0"?>'
     echo '<osm-notes>'
-    # Get first few notes
+    # Get first few notes with proper AWK logic
     awk '
      /<note/ { 
       count++; 
@@ -1199,15 +1199,16 @@ function __validate_xml_structure_only {
        in_note = 1; 
        print; 
        next 
+      } else {
+       next
       }
+     }
+     in_note && /<\/note>/ { 
+      print; 
+      in_note = 0; 
+      next 
      }
      in_note { print }
-     /<\/note>/ { 
-      if (in_note) { 
-       in_note = 0; 
-       print 
-      }
-     }
     ' "${XML_FILE}"
     echo '</osm-notes>'
    } > "${SAMPLE_FILE}" 2> /dev/null
