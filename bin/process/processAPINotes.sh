@@ -762,7 +762,7 @@ function main() {
  export RET_FUNC=0
  __checkBaseTables
  if [[ "${RET_FUNC}" -ne 0 ]]; then
-  __logw "Creating base tables. It will take half an hour approximately."
+  __logw "Base tables missing. Creating base tables. It will take half an hour approximately."
   "${NOTES_SYNC_SCRIPT}" --base
   __logw "Base tables created."
   __logi "This could take several minutes."
@@ -775,6 +775,22 @@ function main() {
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logw "Finished full synchronization from Planet."
+ else
+  # Base tables exist, now check if they contain historical data
+  __logi "Base tables found. Validating historical data..."
+  __checkHistoricalData
+  if [[ "${RET_FUNC}" -ne 0 ]]; then
+   __loge "CRITICAL: Historical data validation failed!"
+   __loge "ProcessAPI cannot continue without historical data from Planet."
+   __loge "The system needs historical context to properly process incremental updates."
+   __loge ""
+   __loge "Required action: Run processPlanetNotes.sh first to load historical data:"
+   __loge "  ${NOTES_SYNC_SCRIPT}"
+   __loge ""
+   __loge "This will load the complete historical dataset from OpenStreetMap Planet dump."
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  fi
+  __logi "Historical data validation passed. ProcessAPI can continue safely."
  fi
 
  set -E

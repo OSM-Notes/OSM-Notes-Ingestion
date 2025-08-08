@@ -84,6 +84,7 @@ declare -r OUTPUT_TEXT_COMMENTS_CSV_FILE="${TMP_DIR}/output-text_comments.csv"
 # PostgreSQL SQL script files
 # Check base tables.
 declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
+declare -r POSTGRES_11_CHECK_HISTORICAL_DATA="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkHistoricalData.sql"
 declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
 declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
 declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
@@ -1876,6 +1877,32 @@ function __checkBaseTables {
  # shellcheck disable=SC2034
  RET_FUNC="${RET}"
  __log_finish
+}
+
+# Verifies if the base tables contain historical data.
+# This is critical for processAPI to ensure it doesn't run without historical context.
+# Returns: 0 if historical data exists, non-zero if validation fails
+function __checkHistoricalData {
+ __log_start
+ __logi "Validating historical data in base tables..."
+ 
+ set +e
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}"
+ local RET=${?}
+ set -e
+ 
+ if [[ "${RET}" -eq 0 ]]; then
+  __logi "Historical data validation passed"
+ else
+  __loge "Historical data validation failed"
+  __loge "ProcessAPI requires historical data to work correctly"
+  __loge "Please run processPlanetNotes.sh first to load historical data"
+ fi
+ 
+ # shellcheck disable=SC2034
+ RET_FUNC="${RET}"
+ __log_finish
+ return "${RET}"
 }
 
 # Drop generic objects.

@@ -54,6 +54,8 @@ Unit tests for individual components:
 
 - **`bash/`**: BATS (Bash Automated Testing System) tests for shell scripts
   - **`resource_limits.test.bats`**: Tests for XML processing resource limitations and monitoring
+  - **`historical_data_validation.test.bats`**: Tests for historical data validation in processAPI
+  - **`processAPI_historical_integration.test.bats`**: Integration tests for processAPI historical validation
   - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing tests
   - **Other `.test.bats` files**: Component-specific unit tests
 - **`sql/`**: Database function and table tests
@@ -63,6 +65,7 @@ Unit tests for individual components:
 End-to-end integration tests:
 
 - **`end_to_end.test.bats`**: Complete workflow testing from data ingestion to output
+- **`processAPI_historical_e2e.test.bats`**: End-to-end tests for processAPI historical validation with real database scenarios
 
 ### `/tests/docker/`
 
@@ -112,6 +115,7 @@ Test data and sample files:
 - **Security Tests**: Vulnerability scanning
 - **Quality Tests**: Code quality and style validation
 - **Resource Limit Tests**: XML processing resource monitoring and limits validation
+- **Historical Data Validation Tests**: ProcessAPI prerequisite validation for historical data integrity
 
 ### Test Data
 
@@ -131,6 +135,8 @@ Tests can be run individually or as part of the complete test suite:
 ### Running Specific Test Categories
 
 - **Resource Limit Tests**: `cd tests/unit/bash && bats resource_limits.test.bats`
+- **Historical Data Validation Tests**: `cd tests/unit/bash && bats historical_data_validation.test.bats`
+- **ProcessAPI Integration Tests**: `cd tests/unit/bash && bats processAPI_historical_integration.test.bats`
 - **XML Processing Tests**: `cd tests/unit/bash && bats xml_processing_enhanced.test.bats`
 - **Individual Test**: `cd tests/unit/bash && bats resource_limits.test.bats -f "test_name"`
 
@@ -168,6 +174,68 @@ $ cd tests/unit/bash && bats resource_limits.test.bats
 ✓ test_run_xmllint_with_limits_with_invalid_xml
 ✓ test_cpulimit_availability_warning
 ✓ test_validate_xml_structure_only_function_exists
+```
+
+## Historical Data Validation Features
+
+### ProcessAPI Data Integrity Protection
+
+The system now includes critical validation to ensure ProcessAPI doesn't run without proper historical context:
+
+- **Historical Data Requirement**: ProcessAPI now requires at least 30 days of historical data
+- **Automatic Detection**: Validates both `notes` and `note_comments` tables for sufficient historical coverage
+- **Graceful Failure**: Provides clear error messages and actionable guidance when historical data is missing
+- **Database Integrity**: Ensures ProcessAPI only processes incremental updates with proper historical context
+
+### Testing the Historical Data Validation
+
+The `historical_data_validation.test.bats` file contains comprehensive tests for:
+
+1. **Function Existence**: Verifies `__checkHistoricalData` function is available
+2. **Empty Table Validation**: Tests behavior when tables exist but are empty
+3. **Insufficient Data Validation**: Tests when data exists but lacks sufficient history (< 30 days)
+4. **Successful Validation**: Tests when sufficient historical data exists
+5. **Database Connection Issues**: Tests graceful handling of database connectivity problems
+6. **SQL Script Validation**: Tests the actual SQL validation logic
+7. **Integration Testing**: Tests ProcessAPI script integration
+
+### Integration Test Examples
+
+The `processAPI_historical_integration.test.bats` provides scenario-based tests:
+
+```bash
+# Test normal operation with historical data
+✓ processAPI_should_continue_when_base_tables_and_historical_data_exist
+
+# Test critical failure without historical data  
+✓ processAPI_should_exit_when_historical_data_missing
+
+# Test automatic planet sync when base tables missing
+✓ processAPI_should_run_planet_sync_when_base_tables_missing
+```
+
+### End-to-End Database Tests
+
+The `processAPI_historical_e2e.test.bats` provides real database scenario testing:
+
+- **Empty Database Scenario**: Tests validation with empty base tables
+- **Recent Data Only**: Tests insufficient historical data (< 30 days)
+- **Sufficient Historical Data**: Tests successful validation with adequate history
+- **Actual SQL Script Testing**: Tests the real SQL validation scripts
+
+### Example Error Messages
+
+When historical validation fails, ProcessAPI now shows:
+
+```
+CRITICAL: Historical data validation failed!
+ProcessAPI cannot continue without historical data from Planet.
+The system needs historical context to properly process incremental updates.
+
+Required action: Run processPlanetNotes.sh first to load historical data:
+  /path/to/processPlanetNotes.sh
+
+This will load the complete historical dataset from OpenStreetMap Planet dump.
 ```
 
 ## Troubleshooting

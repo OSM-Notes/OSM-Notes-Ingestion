@@ -7,9 +7,45 @@ This directory contains BATS (Bash Automated Testing System) unit tests for shel
 ### Core Testing Files
 
 - **`resource_limits.test.bats`**: Tests for XML processing resource limitations and monitoring
+- **`historical_data_validation.test.bats`**: Tests for historical data validation in processAPI
+- **`processAPI_historical_integration.test.bats`**: Integration tests for processAPI historical validation
 - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing and validation tests
 - **`processPlanetNotes.test.bats`**: Tests for Planet Notes processing functionality
 - **`processAPINotes.test.bats`**: Tests for API Notes processing functionality
+
+### Historical Data Validation Testing
+
+The `historical_data_validation.test.bats` file specifically tests the critical data integrity features:
+
+#### Functions Tested
+
+1. **`__checkHistoricalData()`**
+   - Validates sufficient historical data exists (minimum 30 days)
+   - Checks both `notes` and `note_comments` tables
+   - Handles database connection failures gracefully
+   - Provides clear error messages
+
+#### Test Categories
+
+- **Function Existence**: Verifies all historical validation functions are available
+- **Empty Table Handling**: Tests behavior when base tables exist but are empty
+- **Insufficient History**: Tests when data exists but lacks sufficient historical depth
+- **Successful Validation**: Tests normal operation with adequate historical data
+- **Error Scenarios**: Tests database connectivity issues and edge cases
+- **SQL Script Validation**: Tests the actual SQL validation logic
+- **ProcessAPI Integration**: Tests integration with the main processAPI script
+
+### ProcessAPI Integration Testing
+
+The `processAPI_historical_integration.test.bats` provides comprehensive scenario testing:
+
+#### Scenarios Tested
+
+1. **Normal Operation**: Base tables exist with sufficient historical data
+2. **Critical Failure**: Base tables exist but historical data is missing or insufficient
+3. **Fresh Installation**: Base tables don't exist (triggers planet sync)
+4. **Database Issues**: Connection failures and error handling
+5. **Script Integration**: Real processAPI script validation
 
 ### Resource Limitation Testing
 
@@ -63,6 +99,27 @@ bats resource_limits.test.bats -f "test_run_xmllint_with_limits_with_valid_xml"
 ```bash
 cd tests/unit/bash
 bats xml_processing_enhanced.test.bats
+```
+
+### Historical Data Validation Tests
+
+```bash
+cd tests/unit/bash
+bats historical_data_validation.test.bats
+```
+
+### ProcessAPI Integration Tests
+
+```bash
+cd tests/unit/bash
+bats processAPI_historical_integration.test.bats
+```
+
+### All Historical Validation Tests
+
+```bash
+cd tests/unit/bash
+bats historical_data_validation.test.bats processAPI_historical_integration.test.bats
 ```
 
 ### All Bash Unit Tests
