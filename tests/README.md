@@ -60,6 +60,10 @@ Unit tests for individual components:
   - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing tests
   - **Other `.test.bats` files**: Component-specific unit tests
 - **`sql/`**: Database function and table tests
+  - **`dwh_dimensions_enhanced.test.sql`**: Unit tests for enhanced DWH dimensions
+  - **`dwh_functions_enhanced.test.sql`**: Unit tests for enhanced DWH functions
+  - **`tables_final_fixed.test.sql`**: Database table structure tests
+  - **`functions_final_corrected.test.sql`**: Database function tests
 
 ### `/tests/integration/`
 
@@ -67,6 +71,8 @@ End-to-end integration tests:
 
 - **`end_to_end.test.bats`**: Complete workflow testing from data ingestion to output
 - **`processAPI_historical_e2e.test.bats`**: End-to-end tests for processAPI historical validation with real database scenarios
+- **`ETL_enhanced_integration.test.bats`**: Integration tests for enhanced ETL functionality
+- **`datamart_enhanced_integration.test.bats`**: Integration tests for enhanced datamart functionality
 
 ### `/tests/docker/`
 
@@ -118,6 +124,7 @@ Test data and sample files:
 - **Resource Limit Tests**: XML processing resource monitoring and limits validation
 - **Historical Data Validation Tests**: ProcessAPI prerequisite validation for historical data integrity
 - **XSLT Enum Format Tests**: PostgreSQL enum compatibility validation for CSV output
+- **DWH Enhanced Tests**: Data warehouse enhanced functionality testing
 
 ### Test Data
 
@@ -132,6 +139,7 @@ Tests can be run individually or as part of the complete test suite:
 - `./tests/run_tests_simple.sh`: Basic test suite (no sudo required)
 - `./tests/run_enhanced_tests.sh`: Enhanced test suite
 - `./tests/run_tests.sh`: Complete test suite
+- `./tests/run_dwh_tests.sh`: DWH enhanced tests only
 - `./tests/advanced/run_advanced_tests.sh`: Advanced quality tests
 
 ### Running Specific Test Categories
@@ -141,7 +149,224 @@ Tests can be run individually or as part of the complete test suite:
 - **ProcessAPI Integration Tests**: `cd tests/unit/bash && bats processAPI_historical_integration.test.bats`
 - **XSLT Enum Format Tests**: `cd tests/unit/bash && bats xslt_enum_format.test.bats`
 - **XML Processing Tests**: `cd tests/unit/bash && bats xml_processing_enhanced.test.bats`
+- **DWH Enhanced Tests**: `./tests/run_dwh_tests.sh`
 - **Individual Test**: `cd tests/unit/bash && bats resource_limits.test.bats -f "test_name"`
+
+## DWH Enhanced Testing Features
+
+### Overview
+
+The DWH (Data Warehouse) enhanced testing suite validates all the improvements made to the star schema, including new dimensions, enhanced functions, and improved ETL processes.
+
+### New Dimensions Testing
+
+#### Enhanced Dimensions
+
+- **`dimension_timezones`**: Timezone support for local time calculations
+- **`dimension_seasons`**: Seasonal analysis based on date and latitude
+- **`dimension_continents`**: Continental grouping for geographical analysis
+- **`dimension_application_versions`**: Application version tracking
+- **`fact_hashtags`**: Bridge table for many-to-many hashtag relationships
+
+#### Improved Dimensions
+
+- **`dimension_time_of_week`**: Renamed from `dimension_hours_of_week` with enhanced attributes
+- **`dimension_users`**: SCD2 implementation for username changes
+- **`dimension_countries`**: ISO codes (alpha2, alpha3) support
+- **`dimension_days`**: Enhanced date attributes (ISO week, quarter, names)
+- **`dimension_applications`**: Enhanced attributes (pattern_type, vendor, category)
+
+### Enhanced Functions Testing
+
+#### New Functions
+
+- **`get_timezone_id_by_lonlat(lon, lat)`**: Timezone calculation from coordinates
+- **`get_season_id(ts, lat)`**: Season calculation from date and latitude
+- **`get_application_version_id(app_id, version)`**: Application version management
+- **`get_local_date_id(ts, tz_id)`**: Local date calculation
+- **`get_local_hour_of_week_id(ts, tz_id)`**: Local hour calculation
+
+#### Improved Functions
+
+- **`get_date_id(date)`**: Enhanced with ISO week, quarter, names
+- **`get_time_of_week_id(timestamp)`**: Enhanced with hour_of_week, period_of_day
+
+### ETL Enhanced Testing
+
+#### Staging Procedures
+
+- **New columns**: `action_timezone_id`, `local_action_dimension_id_date`, `action_dimension_id_season`
+- **SCD2 support**: User dimension with `valid_from`, `valid_to`, `is_current`
+- **Bridge table**: `fact_hashtags` for hashtag relationships
+- **Application versions**: Parsing and storing application versions
+
+#### Datamart Compatibility
+
+- **Updated references**: All datamarts updated for `dimension_time_of_week`
+- **SCD2 integration**: Datamarts handle current vs historical user records
+- **New dimensions**: Datamarts can reference new dimensions (continents, seasons, timezones)
+
+### Running DWH Tests
+
+#### Complete DWH Test Suite
+
+```bash
+# Run all DWH enhanced tests
+./tests/run_dwh_tests.sh
+
+# Run with specific database
+./tests/run_dwh_tests.sh --db-name testdb --db-user testuser
+
+# Dry run (show what would be executed)
+./tests/run_dwh_tests.sh --dry-run
+```
+
+#### Individual Test Categories
+
+```bash
+# SQL unit tests only
+./tests/run_dwh_tests.sh --skip-integration
+
+# Integration tests only
+./tests/run_dwh_tests.sh --skip-sql
+
+# Specific SQL test
+psql -d notes -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
+
+# Specific integration test
+bats tests/integration/ETL_enhanced_integration.test.bats
+```
+
+#### From Main Test Runner
+
+```bash
+# Run DWH tests from main runner
+./tests/run_tests.sh --type dwh
+
+# Run all tests including DWH
+./tests/run_tests.sh --type all
+```
+
+### DWH Test Coverage
+
+#### Unit Tests (`tests/unit/sql/`)
+
+**`dwh_dimensions_enhanced.test.sql`**:
+
+- ✅ New dimension tables existence
+- ✅ Renamed dimension validation
+- ✅ New columns in existing dimensions
+- ✅ SCD2 columns in users dimension
+- ✅ Bridge table structure
+- ✅ Dimension population validation
+
+**`dwh_functions_enhanced.test.sql`**:
+
+- ✅ New function existence and functionality
+- ✅ Enhanced function attributes
+- ✅ SCD2 user dimension functionality
+- ✅ Bridge table functionality
+- ✅ Dimension population validation
+
+#### Integration Tests (`tests/integration/`)
+
+**`ETL_enhanced_integration.test.bats`**:
+
+- ✅ Enhanced dimensions validation
+- ✅ SCD2 implementation validation
+- ✅ New functions validation
+- ✅ Staging procedures validation
+- ✅ Datamart compatibility
+- ✅ Enhanced functions integration
+- ✅ Bridge table implementation
+- ✅ Documentation consistency
+
+**`datamart_enhanced_integration.test.bats`**:
+
+- ✅ DatamartUsers enhanced functionality
+- ✅ DatamartCountries enhanced functionality
+- ✅ Script validation
+- ✅ Enhanced dimensions integration
+- ✅ SCD2 integration
+- ✅ Bridge table integration
+- ✅ Application version integration
+- ✅ Season integration
+- ✅ Script execution
+- ✅ Enhanced columns validation
+- ✅ Documentation consistency
+
+### Example DWH Test Output
+
+```bash
+$ ./tests/run_dwh_tests.sh
+[INFO] Starting DWH enhanced tests...
+[INFO] Checking prerequisites...
+[SUCCESS] Prerequisites check completed
+[INFO] Running DWH SQL unit tests...
+[INFO] Testing enhanced dimensions...
+[SUCCESS] Enhanced dimensions tests passed
+[INFO] Testing enhanced functions...
+[SUCCESS] Enhanced functions tests passed
+[INFO] Running DWH integration tests...
+[INFO] Testing ETL enhanced integration...
+✓ ETL enhanced dimensions validation
+✓ ETL SCD2 implementation validation
+✓ ETL new functions validation
+✓ ETL staging procedures validation
+✓ ETL datamart compatibility
+[INFO] Testing datamart enhanced integration...
+✓ DatamartUsers enhanced functionality
+✓ DatamartCountries enhanced functionality
+✓ Datamart script validation
+✓ Datamart enhanced dimensions integration
+[INFO] Test summary:
+[INFO]   Total tests: 4
+[INFO]   Passed: 4
+[INFO]   Failed: 0
+[SUCCESS] All DWH enhanced tests passed!
+```
+
+### DWH Test Prerequisites
+
+#### Database Requirements
+
+- PostgreSQL database with DWH schema
+- Enhanced dimensions and functions installed
+- Sample data for testing
+
+#### Environment Variables
+
+```bash
+# Database configuration
+export DBNAME=notes
+export DBUSER=notes
+
+# Test configuration
+export SKIP_SQL=false
+export SKIP_INTEGRATION=false
+```
+
+#### Installation Steps
+
+1. **Install DWH schema**:
+
+   ```bash
+   psql -d notes -f sql/dwh/ETL_22_createDWHTables.sql
+   psql -d notes -f sql/dwh/ETL_24_addFunctions.sql
+   psql -d notes -f sql/dwh/ETL_25_populateDimensionTables.sql
+   ```
+
+2. **Verify installation**:
+
+   ```bash
+   ./tests/run_dwh_tests.sh --dry-run
+   ```
+
+3. **Run tests**:
+
+   ```bash
+   ./tests/run_dwh_tests.sh
+   ```
 
 ## Resource Limitation Features
 
@@ -341,6 +566,11 @@ The `xslt_enum_format.test.bats` file provides comprehensive validation:
    - Run: `./tests/install_dependencies.sh`
    - Or install manually: `sudo apt-get install postgresql-client bats`
 
+4. **DWH tests failing**:
+   - Ensure DWH schema is installed: `psql -d notes -f sql/dwh/ETL_22_createDWHTables.sql`
+   - Check database connection: `psql -d notes -c "SELECT 1;"`
+   - Verify enhanced functions: `psql -d notes -c "SELECT proname FROM pg_proc WHERE proname LIKE 'get_%';"`
+
 ## Dependencies
 
 - BATS testing framework
@@ -491,10 +721,3 @@ The system uses different default values for production and test environments:
 4. **Reliability**: Predictable behavior in each environment
 5. **Flexibility**: Easy to customize each environment independently
 
-### Version History
-
-- **2025-07-26**: Separated test properties from production properties
-- Removed test-specific values from production configuration
-- Created independent test property file
-- Updated all test scripts to use test properties only
-- Improved documentation and usage examples
