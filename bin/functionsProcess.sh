@@ -2013,7 +2013,7 @@ function __validatePlanetNotesXMLFile {
 
  # shellcheck disable=SC2154
  xmllint --noout --schema "${XMLSCHEMA_PLANET_NOTES}" \
-  "${PLANET_NOTES_FILE}.xml" 2>&1
+  "${PLANET_NOTES_FILE}" 2>&1
 
  __log_finish
 }

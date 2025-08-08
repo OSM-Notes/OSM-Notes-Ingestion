@@ -209,7 +209,7 @@ function __analyzeAndVacuum {
 # Cleans files generated during the process.
 function __cleanNotesFiles {
  __log_start
- rm -f "${PLANET_NOTES_FILE}.xml" "${OUTPUT_NOTES_FILE}" \
+ rm -f "${PLANET_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
   "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  __log_finish
 }
