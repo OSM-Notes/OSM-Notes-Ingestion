@@ -53,6 +53,9 @@ If you prefer to use Docker and have sudo access:
 Unit tests for individual components:
 
 - **`bash/`**: BATS (Bash Automated Testing System) tests for shell scripts
+  - **`resource_limits.test.bats`**: Tests for XML processing resource limitations and monitoring
+  - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing tests
+  - **Other `.test.bats` files**: Component-specific unit tests
 - **`sql/`**: Database function and table tests
 
 ### `/tests/integration/`
@@ -108,6 +111,7 @@ Test data and sample files:
 - **Performance Tests**: System performance validation
 - **Security Tests**: Vulnerability scanning
 - **Quality Tests**: Code quality and style validation
+- **Resource Limit Tests**: XML processing resource monitoring and limits validation
 
 ### Test Data
 
@@ -123,6 +127,48 @@ Tests can be run individually or as part of the complete test suite:
 - `./tests/run_enhanced_tests.sh`: Enhanced test suite
 - `./tests/run_tests.sh`: Complete test suite
 - `./tests/advanced/run_advanced_tests.sh`: Advanced quality tests
+
+### Running Specific Test Categories
+
+- **Resource Limit Tests**: `cd tests/unit/bash && bats resource_limits.test.bats`
+- **XML Processing Tests**: `cd tests/unit/bash && bats xml_processing_enhanced.test.bats`
+- **Individual Test**: `cd tests/unit/bash && bats resource_limits.test.bats -f "test_name"`
+
+## Resource Limitation Features
+
+### XML Processing Resource Limits
+
+The system now includes advanced resource management for XML processing to prevent system overload:
+
+- **CPU Limitation**: Restricts xmllint to 25% of one CPU core using `cpulimit`
+- **Memory Limitation**: Restricts memory usage to 2GB using `ulimit -v`
+- **Process Monitoring**: Real-time monitoring of CPU and memory usage
+- **Timeout Protection**: Extended timeout (300s) for large files with early termination if needed
+- **Resource Logging**: Detailed logs of resource usage stored in `${TMP_DIR}/xmllint_resources.log`
+
+### Testing the Resource Limits
+
+The `resource_limits.test.bats` file contains comprehensive tests for:
+
+1. **Function Existence**: Verifies all resource limit functions are available
+2. **Valid XML Processing**: Tests processing with resource limits on valid XML files
+3. **Invalid XML Handling**: Tests error handling with malformed XML files
+4. **Resource Monitoring**: Tests the background resource monitoring functionality
+5. **CPU Limit Detection**: Tests behavior when `cpulimit` is not available
+6. **Memory Limit Enforcement**: Tests memory restriction functionality
+
+### Example Test Output
+
+```bash
+$ cd tests/unit/bash && bats resource_limits.test.bats
+✓ test_monitor_xmllint_resources_function_exists
+✓ test_monitor_xmllint_resources_with_short_process  
+✓ test_run_xmllint_with_limits_function_exists
+✓ test_run_xmllint_with_limits_with_valid_xml
+✓ test_run_xmllint_with_limits_with_invalid_xml
+✓ test_cpulimit_availability_warning
+✓ test_validate_xml_structure_only_function_exists
+```
 
 ## Troubleshooting
 
