@@ -42,23 +42,39 @@ create_test_xml() {
  cat > "${XML_FILE}" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenStreetMap server">
- <note id="4855089" lat="40.4168" lon="-3.7038" created_at="2025-07-14T13:39:25Z" closed_at="2025-07-14T14:30:00Z">
+ <note lat="40.4168" lon="-3.7038">
+  <id>4855089</id>
   <comments>
-   <comment uid="11843692" user="halibutwig" action="opened" date="2025-07-14T13:39:25Z">
-    Test comment with quotes "inside"
+   <comment>
+    <date>2025-07-14T13:39:25Z</date>
+    <uid>11843692</uid>
+    <user>halibutwig</user>
+    <action>opened</action>
+    <text>Test comment with quotes "inside"</text>
    </comment>
-   <comment action="commented" date="2025-07-14T13:45:00Z">
-    Anonymous comment
+   <comment>
+    <date>2025-07-14T13:45:00Z</date>
+    <action>commented</action>
+    <text>Anonymous comment</text>
    </comment>
-   <comment uid="123456" user="testuser" action="closed" date="2025-07-14T14:30:00Z">
-    Closing comment
+   <comment>
+    <date>2025-07-14T14:30:00Z</date>
+    <uid>123456</uid>
+    <user>testuser</user>
+    <action>closed</action>
+    <text>Closing comment</text>
    </comment>
   </comments>
  </note>
- <note id="4855090" lat="40.4169" lon="-3.7039" created_at="2025-07-14T15:00:00Z">
+ <note lat="40.4169" lon="-3.7039">
+  <id>4855090</id>
   <comments>
-   <comment uid="654321" user="anotheruser" action="opened" date="2025-07-14T15:00:00Z">
-    Another test comment
+   <comment>
+    <date>2025-07-14T15:00:00Z</date>
+    <uid>654321</uid>
+    <user>anotheruser</user>
+    <action>opened</action>
+    <text>Another test comment</text>
    </comment>
   </comments>
  </note>
@@ -69,6 +85,11 @@ EOF
 }
 
 @test "XSLT generates correct CSV format for API comments" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_XML_FILE}" > "${TEST_DIR}/comments.csv"
  
@@ -82,11 +103,17 @@ EOF
  while IFS= read -r line; do
   local COMMA_COUNT
   COMMA_COUNT=$(echo "$line" | tr -cd ',' | wc -c)
-  [ "${COMMA_COUNT}" -eq 4 ]
+  # Accept either 4 (anonymous) or 5 (with user) commas
+  [[ "${COMMA_COUNT}" -eq 4 || "${COMMA_COUNT}" -eq 5 ]]
  done < "${TEST_DIR}/comments.csv"
 }
 
 @test "CSV format matches expected structure" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_XML_FILE}" > "${TEST_DIR}/comments.csv"
  
@@ -99,10 +126,16 @@ EOF
  FIRST_LINE=$(head -n 1 "${TEST_DIR}/comments.csv")
  
  # Should contain note_id, sequence_action, event, timestamp
- [[ "${FIRST_LINE}" =~ ^[0-9]+,1,\"[a-z]+\",\"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\",$ ]]
+ # Updated format: enum values WITHOUT quotes (fixed PostgreSQL compatibility issue)
+ [[ "${FIRST_LINE}" =~ ^[0-9]+,1,[a-z]+,\"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\",[0-9]+,\"[^\"]*\"$ ]]
 }
 
 @test "Anonymous comments are handled correctly" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_XML_FILE}" > "${TEST_DIR}/comments.csv"
  
@@ -114,12 +147,17 @@ EOF
  local ANONYMOUS_LINE
  ANONYMOUS_LINE=$(grep "commented" "${TEST_DIR}/comments.csv" | head -n 1 || true)
  
- # Current XSLT output format: note_id,sequence_action,event,timestamp
- # For anonymous comments: no user_id field is generated
- [[ "${ANONYMOUS_LINE}" =~ ^[0-9]+,1,\"commented\",\"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\",$ ]]
+ # Updated format: enum values WITHOUT quotes (PostgreSQL compatibility fix)
+ # For anonymous comments: note_id,sequence,event,"timestamp", (note the trailing comma)
+ [[ "${ANONYMOUS_LINE}" =~ ^[0-9]+,1,commented,\"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\",$ ]]
 }
 
 @test "Quotes in usernames are escaped correctly" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_XML_FILE}" > "${TEST_DIR}/comments.csv"
  
@@ -131,12 +169,17 @@ EOF
  local QUOTED_LINE
  QUOTED_LINE=$(grep "closed" "${TEST_DIR}/comments.csv" || true)
  
- # Should contain the event properly formatted
- # Current XSLT output format: note_id,sequence_action,event,timestamp
+ # Should contain the event properly formatted (without quotes around enum)
+ # Updated format: enum values WITHOUT quotes
  [[ "${QUOTED_LINE}" =~ closed ]]
 }
 
 @test "CSV can be loaded into database format" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_XML_FILE}" > "${TEST_DIR}/comments.csv"
  
@@ -152,11 +195,17 @@ EOF
   # Count commas to verify 6 columns (5 commas = 6 fields)
   local COMMA_COUNT
   COMMA_COUNT=$(echo "$line" | tr -cd ',' | wc -c)
-  [ "${COMMA_COUNT}" -eq 5 ]
+  # After adding part_id: should be 5 (anonymous) or 6 (with user) commas  
+  [[ "${COMMA_COUNT}" -eq 5 || "${COMMA_COUNT}" -eq 6 ]]
  done < "${TEST_DIR}/comments_with_part.csv"
 }
 
 @test "XSLT handles special characters correctly" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Create XML with special characters (properly escaped)
  local SPECIAL_XML="${TEST_DIR}/special_chars.xml"
  cat > "${SPECIAL_XML}" << 'EOF'

@@ -61,6 +61,11 @@ teardown() {
 }
 
 @test "XML file structure validation works" {
+ # Skip if xmllint is not available
+ if ! command -v xmllint >/dev/null 2>&1; then
+  skip "xmllint not available"
+ fi
+ 
  # Test basic XML structure validation
  run xmllint --noout --nonet "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
@@ -83,6 +88,11 @@ teardown() {
 }
 
 @test "XML validation against schema works" {
+ # Skip if xmllint is not available
+ if ! command -v xmllint >/dev/null 2>&1; then
+  skip "xmllint not available"
+ fi
+ 
  # Test validation against the test schema
  run xmllint --noout --schema "${TMP_DIR}/test_schema.xsd" "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
@@ -140,12 +150,22 @@ teardown() {
 }
 
 @test "XML structure validation handles large files" {
+ # Skip if xmllint is not available
+ if ! command -v xmllint >/dev/null 2>&1; then
+  skip "xmllint not available"
+ fi
+ 
  # Test that basic XML structure validation works for large files
  run timeout 60 xmllint --noout --nonet "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
 }
 
 @test "Schema validation works" {
+ # Skip if xmllint is not available
+ if ! command -v xmllint >/dev/null 2>&1; then
+  skip "xmllint not available"
+ fi
+ 
  # Test schema validation without memory limits
  run timeout 60 xmllint --noout --schema "${TMP_DIR}/test_schema.xsd" "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]

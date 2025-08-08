@@ -101,6 +101,11 @@ EOF
 }
 
 @test "XSLT handles normal comments correctly" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_DIR}/normal.xml" > "${TEST_DIR}/normal.csv"
  
@@ -123,6 +128,11 @@ EOF
 }
 
 @test "XSLT handles missing action attribute" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_DIR}/missing_action.xml" > "${TEST_DIR}/missing_action.csv"
  
@@ -143,6 +153,11 @@ EOF
 }
 
 @test "XSLT handles empty action attribute" {
+ # Skip if xsltproc is not available
+ if ! command -v xsltproc >/dev/null 2>&1; then
+  skip "xsltproc not available"
+ fi
+ 
  # Process XML with XSLT
  xsltproc "${XSLT_FILE}" "${TEST_DIR}/empty_action.xml" > "${TEST_DIR}/empty_action.csv"
  
