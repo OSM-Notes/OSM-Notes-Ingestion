@@ -1167,53 +1167,64 @@ function __validate_input_files() {
  fi
 }
 
-# Function to validate XML file structure
+# Validate XML structure (delegates to validationFunctions.sh)
 # Parameters:
 #   $1: XML file path
 #   $2: Expected root element (optional)
 # Returns:
 #   0 if valid, 1 if invalid
 function __validate_xml_structure() {
- local XML_FILE="${1}"
- local EXPECTED_ROOT="${2:-}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${XML_FILE}" "XML file"; then
-  return 1
- fi
-
- # Check if file is not empty
- if [[ ! -s "${XML_FILE}" ]]; then
-  echo "ERROR: XML file is empty: ${XML_FILE}" >&2
-  return 1
- fi
-
- # Validate XML syntax
- if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
-  VALIDATION_ERRORS+=("Invalid XML syntax")
- fi
-
- # Check expected root element if provided
- if [[ -n "${EXPECTED_ROOT}" ]]; then
-  local ACTUAL_ROOT
-  ACTUAL_ROOT=$(xmlstarlet sel -t -n -v "name(/*)" "${XML_FILE}" 2> /dev/null | tr -d ' ' | tr -d '\n')
-  if [[ "${ACTUAL_ROOT}" != "${EXPECTED_ROOT}" ]]; then
-   VALIDATION_ERRORS+=("Expected root element '${EXPECTED_ROOT}', got '${ACTUAL_ROOT}'")
+ # Delegate to validationFunctions.sh implementation
+ if declare -f __validate_xml_structure_impl > /dev/null 2>&1; then
+  __validate_xml_structure_impl "$@"
+ else
+  # Fallback implementation for backward compatibility
+  local XML_FILE="${1}"
+  local EXPECTED_ROOT="${2:-}"
+  
+  # Check if file exists and is readable
+  if [[ ! -f "${XML_FILE}" ]] || [[ ! -r "${XML_FILE}" ]]; then
+   echo "ERROR: XML file not found or not readable: ${XML_FILE}" >&2
+   return 1
   fi
+  
+  # Check if file is not empty
+  if [[ ! -s "${XML_FILE}" ]]; then
+   echo "ERROR: XML file is empty: ${XML_FILE}" >&2
+   return 1
+  fi
+  
+  # For large files, use lightweight validation
+  local FILE_SIZE
+  FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
+  local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
+  
+  if [[ "${SIZE_MB}" -gt 500 ]]; then
+   # Use lightweight validation for large files
+   if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
+    echo "ERROR: Missing expected root element in large XML file: ${XML_FILE}" >&2
+    return 1
+   fi
+   return 0
+  else
+   # Use standard validation for smaller files
+   if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
+    echo "ERROR: Invalid XML syntax: ${XML_FILE}" >&2
+    return 1
+   fi
+   
+   # Check expected root element if provided
+   if [[ -n "${EXPECTED_ROOT}" ]]; then
+    if ! grep -q "<${EXPECTED_ROOT}" "${XML_FILE}" 2> /dev/null; then
+     echo "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}" >&2
+     return 1
+    fi
+   fi
+  fi
+  
+  echo "DEBUG: XML structure validation passed: ${XML_FILE}" >&2
+  return 0
  fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: XML structure validation failed for ${XML_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: XML structure validation passed: ${XML_FILE}" >&2
- return 0
 }
 
 # Function to validate CSV file structure

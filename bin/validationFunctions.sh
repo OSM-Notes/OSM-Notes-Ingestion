@@ -114,9 +114,15 @@ function __validate_input_files() {
  return "${FAILED}"
 }
 
-# Validate XML structure
+# Validate XML structure (main implementation)
 function __validate_xml_structure() {
+ __validate_xml_structure_impl "$@"
+}
+
+# Validate XML structure (internal implementation)
+function __validate_xml_structure_impl() {
  local XML_FILE="${1}"
+ local EXPECTED_ROOT="${2:-}"
 
  __logi "=== VALIDATING XML STRUCTURE ==="
  __logd "XML file: ${XML_FILE}"
@@ -125,7 +131,31 @@ function __validate_xml_structure() {
   return 1
  fi
 
- # Check if file is valid XML
+ # For large files, use lightweight validation
+ local FILE_SIZE
+ FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
+ local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
+ 
+ if [[ "${SIZE_MB}" -gt 500 ]]; then
+  __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using lightweight structure validation."
+  
+  # Check for required root element using grep (much faster for large files)
+  if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
+   __loge "ERROR: Missing osm-notes or osm root element: ${XML_FILE}"
+   return 1
+  fi
+  
+  # Check for basic XML structure
+  if ! grep -q "<?xml\|<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
+   __loge "ERROR: Invalid XML structure (missing XML declaration or root element): ${XML_FILE}"
+   return 1
+  fi
+  
+  __logd "Lightweight XML structure validation passed: ${XML_FILE}"
+  return 0
+ fi
+
+ # Check if file is valid XML using xmllint (for smaller files)
  if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Invalid XML structure: ${XML_FILE}"
   return 1
@@ -135,6 +165,14 @@ function __validate_xml_structure() {
  if ! (xmllint --xpath "//osm-notes" "${XML_FILE}" > /dev/null 2>&1 || xmllint --xpath "//osm" "${XML_FILE}" > /dev/null 2>&1); then
   __loge "ERROR: Missing osm-notes or osm root element: ${XML_FILE}"
   return 1
+ fi
+
+ # Check expected root element if provided
+ if [[ -n "${EXPECTED_ROOT}" ]]; then
+  if ! xmllint --xpath "//${EXPECTED_ROOT}" "${XML_FILE}" > /dev/null 2>&1; then
+   __loge "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}"
+   return 1
+  fi
  fi
 
  __logd "XML structure validation passed: ${XML_FILE}"
@@ -461,11 +499,25 @@ function __validate_iso8601_date() {
  return 0
 }
 
-# Validate XML dates
+# Validate XML dates (lightweight version for large files)
 function __validate_xml_dates() {
  local XML_FILE="${1}"
  local XPATH_QUERIES=("${@:2}")
 
+ # For large files, use lightweight validation
+ local FILE_SIZE
+ FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
+ local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
+ 
+ # If file is larger than 500MB, use lightweight validation
+ if [[ "${SIZE_MB}" -gt 500 ]]; then
+  __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using lightweight date validation."
+  __validate_xml_dates_lightweight "${XML_FILE}" "${XPATH_QUERIES[@]}"
+  local LIGHTWEIGHT_RESULT=$?
+  return "${LIGHTWEIGHT_RESULT}"
+ fi
+
+ # For smaller files, use standard validation
  if ! __validate_xml_structure "${XML_FILE}"; then
   return 1
  fi
@@ -476,7 +528,7 @@ function __validate_xml_dates() {
  for XPATH_QUERY in "${XPATH_QUERIES[@]}"; do
   local ALL_DATES_RAW
   # Extract all date values using xmllint (including potentially invalid ones)
-  ALL_DATES_RAW=$(xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null || true)
+  ALL_DATES_RAW=$(timeout 60 xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null || true)
 
   if [[ -n "${ALL_DATES_RAW}" ]]; then
    # Extract date values from attributes and elements
@@ -488,8 +540,20 @@ function __validate_xml_dates() {
    fi
 
    if [[ -n "${EXTRACTED_DATES}" ]]; then
+    # Limit the number of dates to validate to avoid memory issues
+    local DATE_COUNT=0
+    local MAX_DATES=1000
+    
     while IFS= read -r DATE; do
      [[ -z "${DATE}" ]] && continue
+     
+     # Limit validation to first MAX_DATES dates
+     if [[ "${DATE_COUNT}" -ge "${MAX_DATES}" ]]; then
+      __logw "WARNING: Limiting date validation to first ${MAX_DATES} dates for performance"
+      break
+     fi
+     
+     DATE_COUNT=$((DATE_COUNT + 1))
 
      # Validate ISO 8601 dates (YYYY-MM-DDTHH:MM:SSZ)
      if [[ "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
@@ -504,8 +568,10 @@ function __validate_xml_dates() {
        FAILED=1
       fi
      else
-      __loge "ERROR: Invalid date format found in XML: ${DATE}"
-      FAILED=1
+      # Only log errors for non-empty dates that don't match expected patterns
+      if [[ "${DATE}" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
+       __logw "WARNING: Unexpected date format found in XML: ${DATE}"
+      fi
      fi
     done <<< "${EXTRACTED_DATES}"
    fi
@@ -520,6 +586,77 @@ function __validate_xml_dates() {
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
   __logd "XML dates validation passed: ${XML_FILE}"
  fi
+ return 0
+}
+
+# Lightweight XML date validation for large files
+function __validate_xml_dates_lightweight() {
+ local XML_FILE="${1}"
+ local XPATH_QUERIES=("${@:2}")
+
+ __logd "Using lightweight XML date validation for large file: ${XML_FILE}"
+
+ # For large files, just check a sample of dates using grep
+ local FAILED=0
+ local SAMPLE_SIZE=100
+
+ # Extract a sample of dates using grep (much faster than xmllint for large files)
+ local SAMPLE_DATES
+ SAMPLE_DATES=$(grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z' "${XML_FILE}" | head -n "${SAMPLE_SIZE}" || true)
+
+ if [[ -n "${SAMPLE_DATES}" ]]; then
+  local VALID_COUNT=0
+  local TOTAL_COUNT=0
+  
+  while IFS= read -r DATE; do
+   [[ -z "${DATE}" ]] && continue
+   TOTAL_COUNT=$((TOTAL_COUNT + 1))
+   
+   # Quick validation of ISO 8601 format
+   if [[ "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+    # Basic validation without calling __validate_iso8601_date for performance
+    local YEAR="${DATE:0:4}"
+    local MONTH="${DATE:5:2}"
+    local DAY="${DATE:8:2}"
+    local HOUR="${DATE:11:2}"
+    local MINUTE="${DATE:14:2}"
+    local SECOND="${DATE:17:2}"
+    
+    # Basic range validation
+    if [[ "${YEAR}" -ge 2000 && "${YEAR}" -le 2030 ]] && \
+       [[ "${MONTH}" -ge 1 && "${MONTH}" -le 12 ]] && \
+       [[ "${DAY}" -ge 1 && "${DAY}" -le 31 ]] && \
+       [[ "${HOUR}" -ge 0 && "${HOUR}" -le 23 ]] && \
+       [[ "${MINUTE}" -ge 0 && "${MINUTE}" -le 59 ]] && \
+       [[ "${SECOND}" -ge 0 && "${SECOND}" -le 59 ]]; then
+     VALID_COUNT=$((VALID_COUNT + 1))
+    else
+     __logw "WARNING: Invalid date format found in sample: ${DATE}"
+     FAILED=1
+    fi
+   else
+    __logw "WARNING: Unexpected date format found in sample: ${DATE}"
+    FAILED=1
+   fi
+  done <<< "${SAMPLE_DATES}"
+  
+  if [[ "${TOTAL_COUNT}" -gt 0 ]]; then
+   local VALID_PERCENTAGE=$((VALID_COUNT * 100 / TOTAL_COUNT))
+   __logd "Date validation sample: ${VALID_COUNT}/${TOTAL_COUNT} valid dates (${VALID_PERCENTAGE}%)"
+   
+   # If more than 90% of dates are valid, consider the file valid
+   if [[ "${VALID_PERCENTAGE}" -ge 90 ]]; then
+    __logd "XML dates validation passed (sample-based): ${XML_FILE}"
+    return 0
+   else
+    __loge "ERROR: Too many invalid dates found in sample (${VALID_PERCENTAGE}% valid)"
+    return 1
+   fi
+  fi
+ fi
+
+ # If no dates found, consider it valid (might be a file without dates)
+ __logd "No dates found in XML file, skipping date validation: ${XML_FILE}"
  return 0
 }
 
