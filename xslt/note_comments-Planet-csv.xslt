@@ -15,7 +15,7 @@ CSV Output Format:
 - username: Name of the user who made the comment (escaped for CSV)
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-26
+Version: 2025-08-07
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -72,11 +72,12 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
       
       <!-- Extract sequence number - sequential order of the comment -->
       <xsl:value-of select="$sequence_number"/>
-      <xsl:text>,"</xsl:text>
+      <xsl:text>,</xsl:text>
       
       <!-- Extract action type - what the user did (opened, commented, closed, reopened) -->
+      <!-- Note: No quotes around enum values for PostgreSQL enum types -->
       <xsl:value-of select="@action" />
-      <xsl:text>","</xsl:text>
+      <xsl:text>,"</xsl:text>
       
       <!-- Extract timestamp with fallback for missing timestamps -->
       <xsl:choose>
@@ -110,11 +111,12 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
       
       <!-- Extract sequence number - sequential order of the comment -->
       <xsl:value-of select="$sequence_number"/>
-      <xsl:text>,"</xsl:text>
+      <xsl:text>,</xsl:text>
       
       <!-- Extract action type - what was done (opened, commented, closed, reopened) -->
+      <!-- Note: No quotes around enum values for PostgreSQL enum types -->
       <xsl:value-of select="@action" />
-      <xsl:text>","</xsl:text>
+      <xsl:text>,"</xsl:text>
       
       <!-- Extract timestamp with fallback for missing timestamps -->
       <xsl:choose>

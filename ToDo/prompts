@@ -1,39 +1,5 @@
 
 
-Está saliendo este error al cargar las notas del API
-DO
-          processing           |                text                
--------------------------------+------------------------------------
- 2025-08-07 19:31:31.909886-05 | Loading notes from API partition 9
-(1 fila)
-
-COPY 42
-          processing          |                   text                   
-------------------------------+------------------------------------------
- 2025-08-07 19:31:31.91024-05 | Statistics on notes from API partition 9
-(1 fila)
-
-ANALYZE
-          processing           |                text                 
--------------------------------+-------------------------------------
- 2025-08-07 19:31:31.911028-05 | Counting notes from API partition 9
-(1 fila)
-
-          processing           | qty |              text              
--------------------------------+-----+--------------------------------
- 2025-08-07 19:31:31.911239-05 |  42 | Uploaded new notes partition 9
-(1 fila)
-
-          processing           |                 text                  
--------------------------------+---------------------------------------
- 2025-08-07 19:31:31.911248-05 | Loading comments from API partition 9
-(1 fila)
-
-ERROR:  la sintaxis de entrada no es válida para el enum note_event_enum: «"opened"»
-CONTEXTO:  COPY note_comments_api, línea 1, columna event: «"opened"»
-
-
-
 
 Problemas en tests de GitHub Actions
 

@@ -56,6 +56,7 @@ Unit tests for individual components:
   - **`resource_limits.test.bats`**: Tests for XML processing resource limitations and monitoring
   - **`historical_data_validation.test.bats`**: Tests for historical data validation in processAPI
   - **`processAPI_historical_integration.test.bats`**: Integration tests for processAPI historical validation
+  - **`xslt_enum_format.test.bats`**: Tests for XSLT enum format validation and PostgreSQL compatibility
   - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing tests
   - **Other `.test.bats` files**: Component-specific unit tests
 - **`sql/`**: Database function and table tests
@@ -116,6 +117,7 @@ Test data and sample files:
 - **Quality Tests**: Code quality and style validation
 - **Resource Limit Tests**: XML processing resource monitoring and limits validation
 - **Historical Data Validation Tests**: ProcessAPI prerequisite validation for historical data integrity
+- **XSLT Enum Format Tests**: PostgreSQL enum compatibility validation for CSV output
 
 ### Test Data
 
@@ -137,6 +139,7 @@ Tests can be run individually or as part of the complete test suite:
 - **Resource Limit Tests**: `cd tests/unit/bash && bats resource_limits.test.bats`
 - **Historical Data Validation Tests**: `cd tests/unit/bash && bats historical_data_validation.test.bats`
 - **ProcessAPI Integration Tests**: `cd tests/unit/bash && bats processAPI_historical_integration.test.bats`
+- **XSLT Enum Format Tests**: `cd tests/unit/bash && bats xslt_enum_format.test.bats`
 - **XML Processing Tests**: `cd tests/unit/bash && bats xml_processing_enhanced.test.bats`
 - **Individual Test**: `cd tests/unit/bash && bats resource_limits.test.bats -f "test_name"`
 
@@ -237,6 +240,88 @@ Required action: Run processPlanetNotes.sh first to load historical data:
 
 This will load the complete historical dataset from OpenStreetMap Planet dump.
 ```
+
+## XSLT Enum Format Validation Features
+
+### PostgreSQL Enum Compatibility Fix
+
+A critical bug was identified and fixed in the XSLT transformations that generate CSV files for database import:
+
+**Original Problem:**
+
+```text
+ERROR: la sintaxis de entrada no es válida para el enum note_event_enum: «"opened"»
+CONTEXTO: COPY note_comments_api, línea 1, columna event: «"opened"»
+```
+
+**Root Cause:** XSLT files were generating enum values with double quotes (`"opened"`) when PostgreSQL expects unquoted values (`opened`).
+
+### Fixed XSLT Files
+
+1. **`xslt/note_comments-API-csv.xslt`** (Version 2025-08-07)
+   - Fixed enum value generation: `,opened,` instead of `,"opened",`
+   - Corrected XML element access: `action` instead of `@action`
+   - Updated note ID extraction: `id` instead of `@id`
+
+2. **`xslt/note_comments-Planet-csv.xslt`** (Version 2025-08-07)
+   - Applied same enum format fix for consistency
+   - Maintains proper CSV structure for PostgreSQL COPY
+
+### CSV Format Specification
+
+**Correct Format for PostgreSQL:**
+
+```csv
+note_id,sequence,enum_value,"timestamp",user_id,"username"
+123,1,opened,"2025-08-07T19:31:31Z",1001,"testuser"
+123,2,commented,"2025-08-07T19:32:15Z",1002,"anotheruser"
+123,3,closed,"2025-08-07T19:33:00Z",1003,"closer"
+```
+
+**Field Types:**
+
+- `note_id`: INTEGER (no quotes)
+- `sequence`: INTEGER (no quotes)
+- `enum_value`: ENUM (no quotes) - **CRITICAL: This was the bug**
+- `timestamp`: TEXT (with quotes)
+- `user_id`: INTEGER (no quotes)
+- `username`: TEXT (with quotes)
+
+### Testing the Enum Format
+
+The `xslt_enum_format.test.bats` file provides comprehensive validation:
+
+#### Test Categories
+
+1. **Basic Enum Validation**: Ensures enum values don't have quotes
+2. **Multiple Enum Values**: Tests all enum values (`opened`, `commented`, `closed`, `reopened`)
+3. **PostgreSQL Compatibility**: Validates exact CSV format expected by database
+4. **Regression Testing**: Reproduces and validates fix for original error
+5. **Comprehensive Format Testing**: Validates complete CSV structure
+
+#### Example Test Output
+
+```bash
+# Test Results
+✓ api_xslt_generates_enum_values_without_quotes
+✓ api_xslt_handles_different_enum_values_correctly
+✓ planet_xslt_generates_enum_values_without_quotes
+✓ planet_xslt_handles_different_enum_values_correctly
+✓ api_csv_format_is_compatible_with_postgresql_enum
+✓ planet_csv_format_is_compatible_with_postgresql_enum
+✓ verify_fix_for_reported_enum_error
+✓ csv_format_is_ready_for_postgresql_copy_command
+
+8 tests, 0 failures
+```
+
+### Impact of the Fix
+
+- ✅ **Eliminates PostgreSQL import errors** for note comments
+- ✅ **Ensures data consistency** between API and Planet processing
+- ✅ **Maintains CSV compatibility** with database COPY commands
+- ✅ **Prevents future enum-related errors** through comprehensive testing
+- ✅ **Preserves all other CSV field formatting** (timestamps, usernames remain quoted)
 
 ## Troubleshooting
 

@@ -15,7 +15,7 @@ CSV Output Format:
 - username: Name of the user who made the comment (escaped for CSV)
 
 Author: Andres Gomez (AngocA)
-Version: 2025-07-25
+Version: 2025-08-07
 -->
 <xsl:stylesheet version="1.0"
 xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -54,7 +54,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:for-each select="osm/note">
    <!-- Store note ID for use in all comments of this note -->
    <xsl:variable name="note_id">
-    <xsl:value-of select="@id"/>
+    <xsl:value-of select="id"/>
    </xsl:variable>
    
    <!-- Process each comment for the current note -->
@@ -64,30 +64,31 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
      <xsl:when test="uid != ''">
       <!-- Extract note ID - links comment to the parent note -->
       <xsl:copy-of select="$note_id" />
-      <xsl:text>,1,"</xsl:text>
+      <xsl:text>,1,</xsl:text>
       
       <!-- Extract action type - what the user did (opened, commented, closed, reopened) -->
+      <!-- Note: No quotes around enum values for PostgreSQL enum types -->
       <xsl:choose>
-       <xsl:when test="@action != ''">
-        <xsl:value-of select="@action" />
+       <xsl:when test="action != ''">
+        <xsl:value-of select="action" />
        </xsl:when>
        <xsl:otherwise>
         <xsl:text>opened</xsl:text>
        </xsl:otherwise>
       </xsl:choose>
-      <xsl:text>","</xsl:text>
+      <xsl:text>,"</xsl:text>
       
       <!-- Extract timestamp - when the action occurred -->
-      <xsl:value-of select="@date"/>
+      <xsl:value-of select="date"/>
       <xsl:text>",</xsl:text>
       
       <!-- Extract user ID - unique identifier of the user -->
-      <xsl:value-of select="@uid"/>
+      <xsl:value-of select="uid"/>
       <xsl:text>,"</xsl:text>
       
       <!-- Extract username with quote escaping for CSV compatibility -->
       <xsl:call-template name='escape-quotes'>
-       <xsl:with-param name='text' select='@user'/>
+       <xsl:with-param name='text' select='user'/>
       </xsl:call-template>
       <xsl:text>"</xsl:text>
      </xsl:when>
@@ -96,21 +97,22 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
      <xsl:otherwise>
       <!-- Extract note ID - links comment to the parent note -->
       <xsl:copy-of select="$note_id" />
-      <xsl:text>,1,"</xsl:text>
+      <xsl:text>,1,</xsl:text>
       
       <!-- Extract action type - what was done (opened, commented, closed, reopened) -->
+      <!-- Note: No quotes around enum values for PostgreSQL enum types -->
       <xsl:choose>
-       <xsl:when test="@action != ''">
-        <xsl:value-of select="@action" />
+       <xsl:when test="action != ''">
+        <xsl:value-of select="action" />
        </xsl:when>
        <xsl:otherwise>
         <xsl:text>opened</xsl:text>
        </xsl:otherwise>
       </xsl:choose>
-      <xsl:text>","</xsl:text>
+      <xsl:text>,"</xsl:text>
       
       <!-- Extract timestamp - when the action occurred -->
-      <xsl:value-of select="@date"/>
+      <xsl:value-of select="date"/>
       <xsl:text>",</xsl:text>
      </xsl:otherwise>
     </xsl:choose>
