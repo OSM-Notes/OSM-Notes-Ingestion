@@ -1,3 +1,19 @@
+-- Check DWH tables structure (extended)
+-- Version: 2025-08-08
+
+SELECT 'Checking DWH tables' AS step;
+
+-- Basic presence checks
+SELECT to_regclass('dwh.facts') AS facts_exists;
+SELECT to_regclass('dwh.dimension_days') AS dim_days_exists;
+SELECT to_regclass('dwh.dimension_time_of_week') AS dim_tow_exists;
+SELECT to_regclass('dwh.dimension_users') AS dim_users_exists;
+SELECT to_regclass('dwh.dimension_countries') AS dim_countries_exists;
+SELECT to_regclass('dwh.dimension_regions') AS dim_regions_exists;
+SELECT to_regclass('dwh.dimension_continents') AS dim_continents_exists;
+SELECT to_regclass('dwh.dimension_timezones') AS dim_timezones_exists;
+SELECT to_regclass('dwh.dimension_seasons') AS dim_seasons_exists;
+SELECT to_regclass('dwh.fact_hashtags') AS fact_hashtags_exists;
 -- Check data warehouse tables.
 --
 -- Author: Andres Gomez (AngocA)
@@ -69,10 +85,10 @@
    FROM INFORMATION_SCHEMA.TABLES
    WHERE TABLE_SCHEMA LIKE 'dwh'
    AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'dimension_hours_of_week'
+    AND TABLE_NAME = 'dimension_time_of_week'
    ;
    IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Tables are missing: dwh.dimension_hours_of_week.';
+    RAISE EXCEPTION 'Tables are missing: dwh.dimension_time_of_week.';
    END IF;
 
    SELECT /* Notes-ETL */ COUNT(TABLE_NAME)

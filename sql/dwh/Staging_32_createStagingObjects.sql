@@ -16,7 +16,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
  )
  LANGUAGE plpgsql
  AS $proc$
- DECLARE
+  DECLARE
   m_dimension_country_id INTEGER;
   m_dimension_user_open INTEGER;
   m_dimension_user_close INTEGER;
@@ -27,7 +27,8 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_closed_id_hour_of_week INTEGER;
   m_action_id_date INTEGER;
   m_action_id_hour_of_week INTEGER;
-  m_application INTEGER;
+   m_application INTEGER;
+   m_application_version INTEGER;
   m_recent_opened_dimension_id_date INTEGER;
   m_hashtag_id_1 INTEGER;
   m_hashtag_id_2 INTEGER;
@@ -37,6 +38,13 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
   m_hashtag_number INTEGER;
   m_text_comment TEXT;
   m_hashtag_name TEXT;
+   m_timezone_id INTEGER;
+   m_local_action_id_date INTEGER;
+   m_local_action_id_hour_of_week INTEGER;
+   m_season_id SMALLINT;
+   m_fact_id INTEGER;
+   m_latitude DECIMAL;
+   m_longitude DECIMAL;
   rec_note_action RECORD;
   notes_on_day REFCURSOR;
 
@@ -110,7 +118,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    SELECT /* Notes-staging */ dimension_user_id
     INTO m_dimension_user_open
    FROM dwh.dimension_users
-   WHERE user_id = rec_note_action.created_id_user;
+    WHERE user_id = rec_note_action.created_id_user AND is_current;
 --RAISE NOTICE 'Flag 4: %', CLOCK_TIMESTAMP();
 
    -- Gets the user who performed the action (if action is opened, then it
@@ -118,7 +126,7 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    SELECT /* Notes-staging */ dimension_user_id
     INTO m_dimension_user_action
    FROM dwh.dimension_users
-   WHERE user_id = rec_note_action.action_id_user;
+    WHERE user_id = rec_note_action.action_id_user AND is_current;
 --RAISE NOTICE 'Flag 5: %', CLOCK_TIMESTAMP();
 
    -- Gets the days of the actions
@@ -146,10 +154,18 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
     WHERE note_id = rec_note_action.id_note
      AND sequence_action = rec_note_action.seq; -- Sequence should be 1.
 --RAISE NOTICE 'Flag 8: %', CLOCK_TIMESTAMP();
-    m_application := staging.get_application(m_text_comment);
+     m_application := staging.get_application(m_text_comment);
+     -- Try to parse version simple pattern N.N or N.N.N
+     IF (m_text_comment ~* '\\d+\\.\\d+(\\.\\d+)?') THEN
+       m_application_version := dwh.get_application_version_id(
+         m_application,
+         (SELECT regexp_match(m_text_comment, '(\\d+\\.\\d+(?:\\.\\d+)?)')::text)
+       );
+     END IF;
 --RAISE NOTICE 'Flag 9: %', CLOCK_TIMESTAMP();
    ELSE
-    m_application := NULL;
+     m_application := NULL;
+     m_application_version := NULL;
    END IF;
 
    -- Gets the most recent opening action: creation or reopening.
@@ -221,6 +237,14 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
    END IF;
 --RAISE NOTICE 'Flag 22: %', CLOCK_TIMESTAMP();
 
+   -- Prepare local/timezone/season using note position
+   SELECT n.latitude, n.longitude INTO m_latitude, m_longitude
+   FROM notes n WHERE n.note_id = rec_note_action.id_note;
+   m_timezone_id := dwh.get_timezone_id_by_lonlat(m_longitude, m_latitude);
+   m_local_action_id_date := dwh.get_local_date_id(rec_note_action.action_at, m_timezone_id);
+   m_local_action_id_hour_of_week := dwh.get_local_hour_of_week_id(rec_note_action.action_at, m_timezone_id);
+   m_season_id := dwh.get_season_id(rec_note_action.action_at, m_latitude);
+
    -- Insert the fact.
    INSERT INTO dwh.facts (
      id_note, dimension_id_country,
@@ -229,20 +253,48 @@ CREATE OR REPLACE PROCEDURE staging.process_notes_at_date (
      opened_dimension_id_date, opened_dimension_id_hour_of_week,
      opened_dimension_id_user,
      closed_dimension_id_date, closed_dimension_id_hour_of_week,
-     closed_dimension_id_user, dimension_application_creation,
-     recent_opened_dimension_id_date, hashtag_1, hashtag_2, hashtag_3,
-     hashtag_4, hashtag_5, hashtag_number
-   ) VALUES (
+      closed_dimension_id_user, dimension_application_creation,
+      dimension_application_version,
+      recent_opened_dimension_id_date, hashtag_1, hashtag_2, hashtag_3,
+      hashtag_4, hashtag_5, hashtag_number,
+      action_timezone_id, local_action_dimension_id_date,
+      local_action_dimension_id_hour_of_week, action_dimension_id_season
+    ) VALUES (
      rec_note_action.id_note, m_dimension_country_id,
      rec_note_action.action_at, rec_note_action.action_comment,
      m_action_id_date, m_action_id_hour_of_week, m_dimension_user_action,
      m_opened_id_date, m_opened_id_hour_of_week, m_dimension_user_open,
-     m_closed_id_date, m_closed_id_hour_of_week, m_dimension_user_close,
-     m_application, m_recent_opened_dimension_id_date, m_hashtag_id_1,
+      m_closed_id_date, m_closed_id_hour_of_week, m_dimension_user_close,
+      m_application, m_application_version,
+      m_recent_opened_dimension_id_date, m_hashtag_id_1,
      m_hashtag_id_2, m_hashtag_id_3, m_hashtag_id_4, m_hashtag_id_5,
-     m_hashtag_number
-   );
+      m_hashtag_number,
+      m_timezone_id, m_local_action_id_date, m_local_action_id_hour_of_week,
+      m_season_id
+    ) RETURNING fact_id INTO m_fact_id;
 --RAISE NOTICE 'Flag 23: %', CLOCK_TIMESTAMP();
+
+   -- Populate bridge table for hashtags
+   IF (m_hashtag_id_1 IS NOT NULL) THEN
+     INSERT INTO dwh.fact_hashtags (fact_id, dimension_hashtag_id, position)
+     VALUES (m_fact_id, m_hashtag_id_1, 1);
+   END IF;
+   IF (m_hashtag_id_2 IS NOT NULL) THEN
+     INSERT INTO dwh.fact_hashtags (fact_id, dimension_hashtag_id, position)
+     VALUES (m_fact_id, m_hashtag_id_2, 2);
+   END IF;
+   IF (m_hashtag_id_3 IS NOT NULL) THEN
+     INSERT INTO dwh.fact_hashtags (fact_id, dimension_hashtag_id, position)
+     VALUES (m_fact_id, m_hashtag_id_3, 3);
+   END IF;
+   IF (m_hashtag_id_4 IS NOT NULL) THEN
+     INSERT INTO dwh.fact_hashtags (fact_id, dimension_hashtag_id, position)
+     VALUES (m_fact_id, m_hashtag_id_4, 4);
+   END IF;
+   IF (m_hashtag_id_5 IS NOT NULL) THEN
+     INSERT INTO dwh.fact_hashtags (fact_id, dimension_hashtag_id, position)
+     VALUES (m_fact_id, m_hashtag_id_5, 5);
+   END IF;
 
    -- Modifies the dimension user and country for the datamart to identify it.
    UPDATE /* Notes-ETL */ dwh.dimension_users

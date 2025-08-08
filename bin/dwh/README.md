@@ -72,7 +72,7 @@ Columns:
 Relationships and indexes (non-exhaustive):
 
 - PK: `fact_id`.
-- FKs to `dimension_countries`, `dimension_days`, `dimension_hours_of_week`,
+- FKs to `dimension_countries`, `dimension_days`, `dimension_time_of_week`,
   `dimension_users`, and `dimension_applications`.
 - Indexes on timestamps, user/date/action combinations, country/action, and
   reopen/recent fields for common analytics queries (see
@@ -150,17 +150,20 @@ Example:
 - { dimension_day_id: 20240511, date_id: "2024-05-11",
   year: 2024, month: 5, day: 11 }
 
-#### Hours of week: dwh.dimension_hours_of_week
+#### Time of week: dwh.dimension_time_of_week
 
 Columns:
 
-- dimension_how_id: Surrogate key (PK). Encodes day-of-week and hour.
-- day_of_week: 1..7.
-- hour_of_day: 1..24.
+- dimension_tow_id: Surrogate key (PK). Encodes day-of-week and hour.
+- day_of_week: 1..7 (ISO).
+- hour_of_day: 0..23.
+- hour_of_week: 0..167.
+- period_of_day: Night/Morning/Afternoon/Evening.
 
 Example:
 
-- { dimension_how_id: 110, day_of_week: 4, hour_of_day: 14 }
+- { dimension_tow_id: 114, day_of_week: 4, hour_of_day: 14, hour_of_week: 86,
+  period_of_day: "Afternoon" }
 
 #### Applications: dwh.dimension_applications
 

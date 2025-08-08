@@ -1,7 +1,7 @@
 -- Creates data warehouse relations.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-08-08
 
 -- Primrary keys
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
@@ -28,7 +28,7 @@ ALTER TABLE dwh.facts
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_hour_of_week_action
  FOREIGN KEY (action_dimension_id_hour_of_week)
- REFERENCES dwh.dimension_hours_of_week (dimension_how_id);
+  REFERENCES dwh.dimension_time_of_week (dimension_tow_id);
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_users_action
@@ -43,7 +43,7 @@ ALTER TABLE dwh.facts
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_time_opened
  FOREIGN KEY (opened_dimension_id_hour_of_week)
- REFERENCES dwh.dimension_hours_of_week (dimension_how_id);
+  REFERENCES dwh.dimension_time_of_week (dimension_tow_id);
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_users_opened
@@ -58,7 +58,7 @@ ALTER TABLE dwh.facts
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_time_closed
  FOREIGN KEY (closed_dimension_id_hour_of_week)
- REFERENCES dwh.dimension_hours_of_week (dimension_how_id);
+  REFERENCES dwh.dimension_time_of_week (dimension_tow_id);
 
 ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_users_closed
@@ -69,6 +69,31 @@ ALTER TABLE dwh.facts
  ADD CONSTRAINT fk_application_created
  FOREIGN KEY (dimension_application_creation)
  REFERENCES dwh.dimension_applications (dimension_application_id);
+
+ALTER TABLE dwh.facts
+ ADD CONSTRAINT fk_application_version
+ FOREIGN KEY (dimension_application_version)
+ REFERENCES dwh.dimension_application_versions (dimension_application_version_id);
+
+ALTER TABLE dwh.facts
+ ADD CONSTRAINT fk_timezone_action
+ FOREIGN KEY (action_timezone_id)
+ REFERENCES dwh.dimension_timezones (dimension_timezone_id);
+
+ALTER TABLE dwh.facts
+ ADD CONSTRAINT fk_local_day_action
+ FOREIGN KEY (local_action_dimension_id_date)
+ REFERENCES dwh.dimension_days (dimension_day_id);
+
+ALTER TABLE dwh.facts
+ ADD CONSTRAINT fk_local_hour_action
+ FOREIGN KEY (local_action_dimension_id_hour_of_week)
+ REFERENCES dwh.dimension_time_of_week (dimension_tow_id);
+
+ALTER TABLE dwh.facts
+ ADD CONSTRAINT fk_season_action
+ FOREIGN KEY (action_dimension_id_season)
+ REFERENCES dwh.dimension_seasons (dimension_season_id);
 
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Creating indexes' AS Task;
@@ -195,6 +220,16 @@ COMMENT ON INDEX dwh.note_sequence_idx IS 'Improves queries to get notes and seq
 
 CREATE INDEX note_action_at_idx
  ON dwh.facts (action_at);
+
+-- New indexes for local analysis and seasons
+CREATE INDEX IF NOT EXISTS local_action_idx
+ ON dwh.facts (action_timezone_id, local_action_dimension_id_date,
+  local_action_dimension_id_hour_of_week);
+COMMENT ON INDEX dwh.local_action_idx IS 'Queries by local tz/date/hour';
+
+CREATE INDEX IF NOT EXISTS season_action_idx
+ ON dwh.facts (action_dimension_id_season, action_dimension_id_date);
+COMMENT ON INDEX dwh.season_action_idx IS 'Queries by season and date';
 COMMENT ON INDEX dwh.note_action_at_idx IS 'Improves queries with action_at';
 
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,

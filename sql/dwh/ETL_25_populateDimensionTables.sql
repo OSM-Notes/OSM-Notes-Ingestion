@@ -1,7 +1,7 @@
 -- Populates the dimensions tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-08-08
 
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Inserting Regions' AS Task;
@@ -28,6 +28,38 @@ INSERT INTO dwh.dimension_regions (region_name_es, region_name_en) VALUES
    'Pacific Islands (Melanesia, Micronesia and Polynesia)'),
  ('Australia', 'Australia'),
  ('Antártida','Antarctica');
+
+SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
+ 'Inserting Continents' AS Task;
+
+INSERT INTO dwh.dimension_continents (continent_name_es, continent_name_en) VALUES
+  ('África', 'Africa'),
+  ('América', 'Americas'),
+  ('Antártida', 'Antarctica'),
+  ('Asia', 'Asia'),
+  ('Europa', 'Europe'),
+  ('Oceanía', 'Oceania')
+ON CONFLICT DO NOTHING;
+
+-- Optional mapping Regions -> Continents (coarse, can be refined later)
+UPDATE dwh.dimension_regions SET continent_id = (
+  SELECT dimension_continent_id FROM dwh.dimension_continents WHERE continent_name_en = 'Americas'
+) WHERE region_name_en IN ('North America','Central America','Antilles','South America');
+UPDATE dwh.dimension_regions SET continent_id = (
+  SELECT dimension_continent_id FROM dwh.dimension_continents WHERE continent_name_en = 'Europe'
+) WHERE region_name_en IN ('Western Europe','Eastern Europe','Caucasus','Siberia');
+UPDATE dwh.dimension_regions SET continent_id = (
+  SELECT dimension_continent_id FROM dwh.dimension_continents WHERE continent_name_en = 'Asia'
+) WHERE region_name_en IN ('Central Asia','East Asia','Middle East','Indian subcontinent','Mainland Southeast Asia','Malay Archipelago');
+UPDATE dwh.dimension_regions SET continent_id = (
+  SELECT dimension_continent_id FROM dwh.dimension_continents WHERE continent_name_en = 'Africa'
+) WHERE region_name_en IN ('North Africa','Sub-Saharan Africa');
+UPDATE dwh.dimension_regions SET continent_id = (
+  SELECT dimension_continent_id FROM dwh.dimension_continents WHERE continent_name_en = 'Oceania'
+) WHERE region_name_en IN ('Pacific Islands (Melanesia, Micronesia and Polynesia)','Australia');
+UPDATE dwh.dimension_regions SET continent_id = (
+  SELECT dimension_continent_id FROM dwh.dimension_continents WHERE continent_name_en = 'Antarctica'
+) WHERE region_name_en IN ('Antarctica');
 
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Inserting dimension countries' AS Task;
@@ -106,3 +138,53 @@ INSERT INTO dwh.dimension_applications (application_name, pattern, platform) VAL
 
 SELECT /* Notes-ETL */ clock_timestamp() AS Processing,
  'Dimensions populated' AS Task;
+
+-- Timezones
+INSERT INTO dwh.dimension_timezones (tz_name, utc_offset_minutes) VALUES
+ ('UTC', 0),
+ ('UTC-12', -720), ('UTC-11', -660), ('UTC-10', -600), ('UTC-9', -540),
+ ('UTC-8', -480), ('UTC-7', -420), ('UTC-6', -360), ('UTC-5', -300),
+ ('UTC-4', -240), ('UTC-3', -180), ('UTC-2', -120), ('UTC-1', -60),
+ ('UTC+1', 60), ('UTC+2', 120), ('UTC+3', 180), ('UTC+4', 240),
+ ('UTC+5', 300), ('UTC+6', 360), ('UTC+7', 420), ('UTC+8', 480),
+ ('UTC+9', 540), ('UTC+10', 600), ('UTC+11', 660), ('UTC+12', 720),
+ ('UTC+13', 780), ('UTC+14', 840)
+ON CONFLICT DO NOTHING;
+
+-- Common IANA-like zones with standard offsets (DST not modeled here)
+INSERT INTO dwh.dimension_timezones (tz_name, utc_offset_minutes) VALUES
+ ('Europe/London', 0),
+ ('Europe/Berlin', 60),
+ ('Europe/Madrid', 60),
+ ('Europe/Paris', 60),
+ ('America/New_York', -300),
+ ('America/Chicago', -360),
+ ('America/Denver', -420),
+ ('America/Los_Angeles', -480),
+ ('America/Bogota', -300),
+ ('America/Lima', -300),
+ ('America/Mexico_City', -360),
+ ('America/Sao_Paulo', -180),
+ ('America/Buenos_Aires', -180),
+ ('Africa/Cairo', 120),
+ ('Africa/Johannesburg', 120),
+ ('Asia/Tokyo', 540),
+ ('Asia/Shanghai', 480),
+ ('Asia/Kolkata', 330),
+ ('Australia/Sydney', 600),
+ ('Pacific/Auckland', 720)
+ON CONFLICT DO NOTHING;
+
+-- Seasons
+INSERT INTO dwh.dimension_seasons (dimension_season_id, season_name_en, season_name_es) VALUES
+ (0, 'No season', 'Sin estación'),
+ (1, 'Spring', 'Primavera'),
+ (2, 'Summer', 'Verano'),
+ (3, 'Autumn', 'Otoño'),
+ (4, 'Winter', 'Invierno')
+ON CONFLICT DO NOTHING;
+
+-- Anonymous user member (SCD2 current)
+INSERT INTO dwh.dimension_users (user_id, username, modified, valid_from, is_current)
+VALUES (-1, 'Anonymous', FALSE, NOW(), TRUE)
+ON CONFLICT DO NOTHING;

@@ -608,7 +608,7 @@ AS $proc$
   WITH hours AS (
    SELECT /* Notes-datamartCountries */ day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
-    JOIN dwh.dimension_hours_of_week t
+    JOIN dwh.dimension_time_of_week t
     ON f.opened_dimension_id_hour_of_week = t.dimension_how_id
    WHERE f.dimension_id_country = m_dimension_id_country
     AND f.action_comment = 'opened'
@@ -623,7 +623,7 @@ AS $proc$
   WITH hours AS (
    SELECT /* Notes-datamartCountries */ day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
-    JOIN dwh.dimension_hours_of_week t
+    JOIN dwh.dimension_time_of_week t
     ON f.action_dimension_id_hour_of_week = t.dimension_how_id
    WHERE f.dimension_id_country = m_dimension_id_country
     AND f.action_comment = 'commented'
@@ -638,7 +638,7 @@ AS $proc$
   WITH hours AS (
    SELECT /* Notes-datamartCountries */ day_of_week, hour_of_day, COUNT(1)
    FROM dwh.facts f
-    JOIN dwh.dimension_hours_of_week t
+    JOIN dwh.dimension_time_of_week t
     ON f.closed_dimension_id_hour_of_week = t.dimension_how_id
    WHERE f.dimension_id_country = m_dimension_id_country
    GROUP BY day_of_week, hour_of_day

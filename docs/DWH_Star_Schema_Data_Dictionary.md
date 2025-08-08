@@ -96,14 +96,26 @@ Notes:
 | year             | SMALLINT | Y    |         |     | Year component |
 | month            | SMALLINT | Y    |         |     | Month component |
 | day              | SMALLINT | Y    |         |     | Day component |
+| iso_year         | SMALLINT | Y    |         |     | ISO year |
+| iso_week         | SMALLINT | Y    |         |     | ISO week (1..53) |
+| day_of_year      | SMALLINT | Y    |         |     | Day of year (1..366) |
+| quarter          | SMALLINT | Y    |         |     | Quarter (1..4) |
+| month_name       | VARCHAR(16) | Y |         |     | Month name (en) |
+| day_name         | VARCHAR(16) | Y |         |     | Day name (en, ISO) |
+| is_weekend       | BOOLEAN  | Y    |         |     | Weekend flag (ISO) |
+| is_month_end     | BOOLEAN  | Y    |         |     | Month-end flag |
+| is_quarter_end   | BOOLEAN  | Y    |         |     | Quarter-end flag |
+| is_year_end      | BOOLEAN  | Y    |         |     | Year-end flag |
 
-## Table: dwh.dimension_hours_of_week
+## Table: dwh.dimension_time_of_week
 
 | Column            | Type     | Null | Default | Key | Description |
 |-------------------|----------|------|---------|-----|-------------|
-| dimension_how_id  | SMALLINT | Y    |         | PK  | Encodes day-of-week and hour |
-| day_of_week       | SMALLINT | Y    |         |     | 1..7 |
-| hour_of_day       | SMALLINT | Y    |         |     | 1..24 |
+| dimension_tow_id  | SMALLINT | Y    |         | PK  | Encodes day-of-week and hour |
+| day_of_week       | SMALLINT | Y    |         |     | 1..7 (ISO) |
+| hour_of_day       | SMALLINT | Y    |         |     | 0..23 |
+| hour_of_week      | SMALLINT | Y    |         |     | 0..167 |
+| period_of_day     | VARCHAR(16) | Y |         |     | Night/Morning/Afternoon/Evening |
 
 ## Table: dwh.dimension_applications
 
@@ -112,7 +124,11 @@ Notes:
 | dimension_application_id | SERIAL       | N    | auto    | PK  | Surrogate key |
 | application_name         | VARCHAR(64)  | N    |         |     | Application name |
 | pattern                  | VARCHAR(64)  | Y    |         |     | Pattern used to detect the app in text |
+| pattern_type             | VARCHAR(16)  | Y    |         |     | SIMILAR/LIKE/REGEXP |
 | platform                 | VARCHAR(16)  | Y    |         |     | Optional platform |
+| vendor                   | VARCHAR(32)  | Y    |         |     | Vendor/author |
+| category                 | VARCHAR(32)  | Y    |         |     | Category/type |
+| active                   | BOOLEAN      | Y    |         |     | Active flag |
 
 ## Table: dwh.dimension_hashtags
 
@@ -122,6 +138,72 @@ Notes:
 | description          | TEXT | Y   |         |     | Hashtag text |
 
 ## Operational table: dwh.properties
+
+## Table: dwh.dimension_timezones
+
+| Column               | Type        | Null | Default | Key | Description |
+|----------------------|-------------|------|---------|-----|-------------|
+| dimension_timezone_id| SERIAL      | N    | auto    | PK  | Surrogate key |
+| tz_name              | VARCHAR(64) | N    |         |     | IANA timezone name or UTC±N band |
+| utc_offset_minutes   | SMALLINT    | Y    |         |     | UTC offset in minutes |
+
+## Table: dwh.dimension_seasons
+
+| Column               | Type        | Null | Default | Key | Description |
+|----------------------|-------------|------|---------|-----|-------------|
+| dimension_season_id  | SMALLINT    | N    |         | PK  | Season id |
+| season_name_en       | VARCHAR(16) | Y    |         |     | Season name (en) |
+| season_name_es       | VARCHAR(16) | Y    |         |     | Season name (es) |
+
+## Table: dwh.dimension_continents
+
+| Column                 | Type         | Null | Default | Key | Description |
+|------------------------|--------------|------|---------|-----|-------------|
+| dimension_continent_id | SERIAL       | N    | auto    | PK  | Surrogate key |
+| continent_name_es      | VARCHAR(32)  | Y    |         |     | Continent (es) |
+| continent_name_en      | VARCHAR(32)  | Y    |         |     | Continent (en) |
+
+## Updates to existing tables
+
+### dwh.dimension_countries (added columns)
+
+| Column      | Type         | Description |
+|-------------|--------------|-------------|
+| iso_alpha2  | VARCHAR(2)   | ISO 3166-1 alpha-2 |
+| iso_alpha3  | VARCHAR(3)   | ISO 3166-1 alpha-3 |
+
+### dwh.dimension_users (SCD2 columns)
+
+| Column     | Type       | Description |
+|------------|------------|-------------|
+| valid_from | TIMESTAMP  | Validity start |
+| valid_to   | TIMESTAMP  | Validity end |
+| is_current | BOOLEAN    | Current row flag |
+
+### dwh.facts (added columns)
+
+| Column                              | Type      | Description |
+|-------------------------------------|-----------|-------------|
+| action_timezone_id                  | INTEGER   | FK to timezone |
+| local_action_dimension_id_date      | INTEGER   | Local date id |
+| local_action_dimension_id_hour_of_week | SMALLINT | Local time-of-week id |
+| action_dimension_id_season          | SMALLINT  | Season id |
+| dimension_application_version       | INTEGER   | FK to app version |
+
+## Bridge table: dwh.fact_hashtags
+## Table: dwh.dimension_application_versions
+
+| Column                          | Type        | Null | Default | Key | Description |
+|---------------------------------|-------------|------|---------|-----|-------------|
+| dimension_application_version_id| SERIAL      | N    | auto    | PK  | Surrogate key |
+| dimension_application_id        | INTEGER     | N    |         | FK  | Application |
+| version                         | VARCHAR(32) | N    |         |     | Version string |
+
+| Column              | Type     | Description |
+|---------------------|----------|-------------|
+| fact_id             | INTEGER  | FK to facts |
+| dimension_hashtag_id| INTEGER  | FK to hashtags |
+| position            | SMALLINT | Positional order in text |
 
 Used internally by ETL orchestration.
 

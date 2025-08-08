@@ -270,7 +270,7 @@ function __validate_data_integrity {
    UNION ALL
    SELECT 'dimension_days', COUNT(*) FROM dwh.dimension_days
    UNION ALL
-   SELECT 'dimension_hours_of_week', COUNT(*) FROM dwh.dimension_hours_of_week
+  SELECT 'dimension_time_of_week', COUNT(*) FROM dwh.dimension_time_of_week
    UNION ALL
    SELECT 'dimension_applications', COUNT(*) FROM dwh.dimension_applications
    UNION ALL
@@ -641,7 +641,7 @@ function __perform_database_maintenance {
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_users;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_countries;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_days;" 2>&1
-  psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_hours_of_week;" 2>&1
+ psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_time_of_week;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_applications;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_applications;" 2>&1
  fi
