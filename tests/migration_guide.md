@@ -77,27 +77,27 @@ The following scripts were removed due to redundancy:
 
 ### Specialized Test Runners
 
-4. **`run_all_tests.sh`** - Legacy All Tests Runner
+1. **`run_all_tests.sh`** - Legacy All Tests Runner
    - **Purpose**: Backward compatibility
    - **Usage**: `./run_all_tests.sh`
 
-5. **`run_integration_tests.sh`** - Integration Tests
+2. **`run_integration_tests.sh`** - Integration Tests
    - **Purpose**: Focused integration testing
    - **Usage**: `./run_integration_tests.sh`
 
-6. **`run_mock_tests.sh`** - Mock Environment Tests
+3. **`run_mock_tests.sh`** - Mock Environment Tests
    - **Purpose**: Tests without real database
    - **Usage**: `./run_mock_tests.sh`
 
-7. **`run_error_handling_tests.sh`** - Error Handling Tests
+4. **`run_error_handling_tests.sh`** - Error Handling Tests
    - **Purpose**: Focused error handling validation
    - **Usage**: `./run_error_handling_tests.sh`
 
-8. **`run_xml_xslt_tests.sh`** - XML/XSLT Tests
+5. **`run_xml_xslt_tests.sh`** - XML/XSLT Tests
    - **Purpose**: XML processing and XSLT transformation tests
    - **Usage**: `./run_xml_xslt_tests.sh`
 
-9. **`run_manual_tests.sh`** - Manual Tests
+6. **`run_manual_tests.sh`** - Manual Tests
    - **Purpose**: Manual testing scenarios
    - **Usage**: `./run_manual_tests.sh`
 

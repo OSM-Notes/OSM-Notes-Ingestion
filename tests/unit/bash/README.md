@@ -76,7 +76,7 @@ bats *.test.bats
 
 ### Successful Resource Limits Test Run
 
-```
+```text
 ✓ test_monitor_xmllint_resources_function_exists
 ✓ test_monitor_xmllint_resources_with_short_process  
 ✓ test_run_xmllint_with_limits_function_exists
@@ -99,7 +99,7 @@ bats *.test.bats
 
 When tests run, they generate resource monitoring logs showing:
 
-```
+```text
 2025-08-07 19:12:07 - Starting resource monitoring for PID 12345
 2025-08-07 19:12:07 - PID: 12345, CPU: 15.2%, Memory: 1.5%, RSS: 245760KB
 2025-08-07 19:12:12 - PID: 12345, CPU: 22.1%, Memory: 2.1%, RSS: 335872KB
