@@ -2,19 +2,19 @@
 
 ## Overview
 
-This document provides a comprehensive reference of all BATS testing suites in the OSM-Notes-profile project. The project contains **74 total testing suites** organized into different categories for comprehensive coverage of all system components.
+This document provides a comprehensive reference of all BATS testing suites in the OSM-Notes-profile project. The project contains **78 total testing suites** organized into different categories for comprehensive coverage of all system components, including the new DWH enhanced features.
 
 ## 📊 Testing Suites Statistics
 
-- **Total BATS Suites**: 74
-- **Integration Suites**: 6
+- **Total BATS Suites**: 78
+- **Integration Suites**: 8
 - **Unit Bash Suites**: 68
-- **Unit SQL Suites**: 2
-- **Consolidated Test Runners**: 9 (reduced from 36)
+- **Unit SQL Suites**: 4 (including DWH enhanced)
+- **Consolidated Test Runners**: 10 (including DWH enhanced)
 
-## 🚀 Consolidated Test Runners (9 scripts)
+## 🚀 Consolidated Test Runners (10 scripts)
 
-The project has been simplified from 36 redundant test runners to 9 consolidated scripts:
+The project has been simplified from 36 redundant test runners to 10 consolidated scripts:
 
 ### Primary Test Runners
 
@@ -22,7 +22,7 @@ The project has been simplified from 36 redundant test runners to 9 consolidated
 
 - **Purpose**: Consolidated master test runner with multiple modes
 - **Modes**: host, mock, docker, ci
-- **Test Types**: all, unit, integration, quality
+- **Test Types**: all, unit, integration, quality, dwh
 - **Usage**: `./run_tests.sh --mode host --type all`
 
 #### 2. `run_tests_simple.sh` - Simple Test Runner
@@ -38,45 +38,52 @@ The project has been simplified from 36 redundant test runners to 9 consolidated
 - **Features**: Format, naming, validation tests
 - **Usage**: `./run_quality_tests.sh --mode enhanced`
 
+#### 4. `run_dwh_tests.sh` - DWH Enhanced Tests Runner
+
+- **Purpose**: Dedicated DWH enhanced testing
+- **Features**: New dimensions, functions, ETL improvements
+- **Test Types**: SQL unit tests, integration tests
+- **Usage**: `./run_dwh_tests.sh`
+
 ### Specialized Test Runners
 
-#### 4. `run_all_tests.sh` - Legacy All Tests Runner
+#### 5. `run_all_tests.sh` - Legacy All Tests Runner
 
 - **Purpose**: Legacy runner for backward compatibility
-- **Features**: Runs all test suites
+- **Features**: Runs all test suites including DWH enhanced
 - **Usage**: `./run_all_tests.sh`
 
-#### 5. `run_integration_tests.sh` - Integration Tests
+#### 6. `run_integration_tests.sh` - Integration Tests
 
 - **Purpose**: Focused integration testing
-- **Features**: End-to-end workflows
+- **Features**: End-to-end workflows, DWH enhanced integration
 - **Usage**: `./run_integration_tests.sh`
 
-#### 6. `run_mock_tests.sh` - Mock Environment Tests
+#### 7. `run_mock_tests.sh` - Mock Environment Tests
 
 - **Purpose**: Tests without real database
 - **Features**: Mock commands and environment
 - **Usage**: `./run_mock_tests.sh`
 
-#### 7. `run_error_handling_tests.sh` - Error Handling Tests
+#### 8. `run_error_handling_tests.sh` - Error Handling Tests
 
 - **Purpose**: Focused error handling validation
 - **Features**: Edge cases and error scenarios
 - **Usage**: `./run_error_handling_tests.sh`
 
-#### 8. `run_xml_xslt_tests.sh` - XML/XSLT Tests
+#### 9. `run_xml_xslt_tests.sh` - XML/XSLT Tests
 
 - **Purpose**: XML processing and XSLT transformation tests
 - **Features**: Data transformation validation
 - **Usage**: `./run_xml_xslt_tests.sh`
 
-#### 9. `run_manual_tests.sh` - Manual Tests
+#### 10. `run_manual_tests.sh` - Manual Tests
 
 - **Purpose**: Manual testing scenarios
 - **Features**: Interactive testing
 - **Usage**: `./run_manual_tests.sh`
 
-## 🔗 Integration Test Suites (6 suites)
+## 🔗 Integration Test Suites (8 suites)
 
 Integration tests validate complete workflows and system interactions:
 
@@ -98,47 +105,35 @@ Integration tests validate complete workflows and system interactions:
   - API notes processing workflow
   - Planet notes processing workflow
   - Large XML file handling
-  - Parallel processing validation
 
 ### 3. ETL_enhanced_integration.test.bats
 
-- **Purpose**: Enhanced ETL process integration testing
-- **Coverage**: Data warehouse operations, ETL workflows
+- **Purpose**: DWH enhanced ETL functionality testing
+- **Coverage**: New dimensions, functions, SCD2, bridge tables
 - **Key Tests**:
-  - ETL dry-run mode
-  - Configuration validation
-  - Recovery file creation
-  - Resource monitoring
+  - Enhanced dimensions validation
+  - SCD2 implementation validation
+  - New functions validation
+  - Staging procedures validation
+  - Datamart compatibility
+  - Bridge table implementation
+  - Documentation consistency
 
-### 4. processAPINotes_parallel_error_integration.test.bats
+### 4. datamart_enhanced_integration.test.bats
 
-- **Purpose**: Parallel processing error scenarios in API processing
-- **Coverage**: Error propagation, job failure detection
+- **Purpose**: Datamart enhanced functionality testing
+- **Coverage**: Datamart compatibility with new dimensions
 - **Key Tests**:
-  - Real parallel processing error scenarios
-  - Error detection in actual execution
-  - Temporary directory patterns
-  - Error message formats
-
-### 5. wms_integration.test.bats
-
-- **Purpose**: WMS (Web Map Service) integration testing
-- **Coverage**: WMS installation, configuration, service management
-- **Key Tests**:
-  - WMS component installation
-  - Service status verification
-  - Configuration validation
-  - Error handling
-
-### 6. xslt_integration.test.bats
-
-- **Purpose**: XSLT transformation integration testing
-- **Coverage**: XML processing, CSV transformation, database loading
-- **Key Tests**:
-  - API notes processing workflow
-  - Planet notes processing workflow
-  - Real data processing
-  - Database loading workflow
+  - DatamartUsers enhanced functionality
+  - DatamartCountries enhanced functionality
+  - Enhanced dimensions integration
+  - SCD2 integration
+  - Bridge table integration
+  - Application version integration
+  - Season integration
+  - Script execution validation
+  - Enhanced columns validation
+  - Documentation consistency
 
 ## ⚡ Unit Test Suites - Bash (68 suites)
 

@@ -19,26 +19,32 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
    - Tests basic functionality and script availability
    - Uses PostgreSQL service container
 
-2. **Integration Tests** (`integration-tests`)
+2. **DWH Enhanced Tests** (`dwh-enhanced-tests`)
+   - Runs DWH enhanced functionality tests
+   - Tests new dimensions, functions, ETL improvements
+   - Uses PostgreSQL service container with PostGIS
+   - Includes SQL unit tests and integration tests
+
+3. **Integration Tests** (`integration-tests`)
    - Runs end-to-end tests using Docker containers
    - Tests complete workflows and data processing
    - Uses Docker Compose for multi-container testing
 
-3. **Performance Tests** (`performance-tests`)
+4. **Performance Tests** (`performance-tests`)
    - Benchmarks processing performance
    - Tests with large datasets
    - Measures execution time and resource usage
 
-4. **Security Tests** (`security-tests`)
+5. **Security Tests** (`security-tests`)
    - Runs ShellCheck for shell script analysis
    - Identifies potential security vulnerabilities
 
-5. **Advanced Tests** (`advanced-tests`)
+6. **Advanced Tests** (`advanced-tests`)
    - Code coverage analysis with kcov
    - Quality metrics and static analysis
    - Comprehensive reporting
 
-6. **Test Summary** (`test-summary`)
+7. **Test Summary** (`test-summary`)
    - Consolidates results from all test jobs
    - Generates comprehensive reports
    - Posts results to pull requests

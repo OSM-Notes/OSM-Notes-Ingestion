@@ -10,6 +10,8 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 
 - **`Documentation.md`**: Comprehensive system documentation and architecture overview
 - **`Rationale.md`**: Project motivation, background, and design decisions
+- **`DWH_Star_Schema_Data_Dictionary.md`**: Complete data dictionary for DWH star schema
+- **`DWH_Star_Schema_ERD.md`**: Entity-Relationship Diagram for DWH star schema
 
 ### Technical Implementation
 
@@ -127,6 +129,7 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 - **Planet Processing**: Large-scale data processing from Planet files
 - **ETL Processes**: Data transformation and loading procedures
 - **Data Marts**: Analytics and reporting data structures
+- **DWH Enhanced Features**: New dimensions, functions, and enhanced ETL capabilities
 
 ### Technical Specifications
 
@@ -157,6 +160,9 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-prof
 - Create new data marts for specific use cases
 - Generate reports and visualizations
 - Review [Documentation.md](./Documentation.md) for data structure information
+- Explore DWH enhanced features: timezones, seasons, continents, application versions
+- Analyze seasonal patterns and local time-based metrics
+- Study application usage patterns and version adoption
 
 ### For End Users
 

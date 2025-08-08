@@ -271,6 +271,47 @@ The star schema is composed of the fact and dimensions tables.
   between the normal behavior with API and the notes on the last day of the
   Planet.
 
+#### Data Warehouse (DWH) Enhanced Features
+
+The DWH has been significantly enhanced with new dimensions and capabilities:
+
+**New Dimensions:**
+
+* **`dimension_timezones`**: Timezone support for local time calculations
+* **`dimension_seasons`**: Seasonal analysis based on date and latitude
+* **`dimension_continents`**: Continental grouping for geographical analysis
+* **`dimension_application_versions`**: Application version tracking
+* **`fact_hashtags`**: Bridge table for many-to-many hashtag relationships
+
+**Enhanced Dimensions:**
+
+* **`dimension_time_of_week`**: Renamed from `dimension_hours_of_week` with enhanced attributes (hour_of_week, period_of_day)
+* **`dimension_users`**: SCD2 implementation for username changes (valid_from, valid_to, is_current)
+* **`dimension_countries`**: ISO codes support (iso_alpha2, iso_alpha3)
+* **`dimension_days`**: Enhanced date attributes (ISO week, quarter, names, flags)
+* **`dimension_applications`**: Enhanced attributes (pattern_type, vendor, category)
+
+**New Functions:**
+
+* **`get_timezone_id_by_lonlat(lon, lat)`**: Timezone calculation from coordinates
+* **`get_season_id(ts, lat)`**: Season calculation from date and latitude
+* **`get_application_version_id(app_id, version)`**: Application version management
+* **`get_local_date_id(ts, tz_id)`**: Local date calculation
+* **`get_local_hour_of_week_id(ts, tz_id)`**: Local hour calculation
+
+**Enhanced ETL:**
+
+* New columns in facts: `action_timezone_id`, `local_action_dimension_id_date`, `action_dimension_id_season`
+* SCD2 support for user dimension
+* Bridge table for hashtag relationships
+* Application version parsing and storage
+
+For detailed documentation, see:
+
+* [DWH Star Schema Documentation](bin/dwh/README.md)
+* [DWH Data Dictionary](docs/DWH_Star_Schema_Data_Dictionary.md)
+* [DWH ERD](docs/DWH_Star_Schema_ERD.md)
+
 ### Directories
 
 Some directories have their own README file to explain their content.
@@ -422,7 +463,7 @@ Finally, you can create an issue or contact the author.
 
 ## Testing
 
-The project includes comprehensive testing infrastructure with **74 BATS testing suites** covering all system components.
+The project includes comprehensive testing infrastructure with **78 BATS testing suites** covering all system components, including the new DWH enhanced features.
 
 ### Quick Testing
 
@@ -438,15 +479,19 @@ The project includes comprehensive testing infrastructure with **74 BATS testing
 
 # Run quality tests
 ./tests/run_quality_tests.sh
+
+# Run DWH enhanced tests
+./tests/run_dwh_tests.sh
 ```
 
 ### Test Categories
 
-* **Unit Tests**: 68 bash suites + 2 SQL suites
-* **Integration Tests**: 6 end-to-end workflow suites
+* **Unit Tests**: 68 bash suites + 4 SQL suites (including DWH enhanced)
+* **Integration Tests**: 8 end-to-end workflow suites (including DWH enhanced)
 * **Validation Tests**: Data validation, XML processing, error handling
 * **Performance Tests**: Parallel processing, edge cases, optimization
 * **Quality Tests**: Code quality, conventions, formatting
+* **DWH Enhanced Tests**: New dimensions, functions, ETL improvements
 
 ### Test Coverage
 
@@ -454,12 +499,36 @@ The project includes comprehensive testing infrastructure with **74 BATS testing
 * ✅ **System Integration**: Database operations, API integration, WMS services
 * ✅ **Quality Assurance**: Code quality, error handling, edge cases
 * ✅ **Infrastructure**: Monitoring, configuration, tools and utilities
+* ✅ **DWH Enhanced**: New dimensions (timezones, seasons, continents), enhanced functions, SCD2, bridge tables
+
+### DWH Enhanced Testing
+
+The DWH enhanced features include comprehensive testing:
+
+**Unit Tests:**
+
+* `dwh_dimensions_enhanced.test.sql`: Tests for new dimensions and enhanced attributes
+* `dwh_functions_enhanced.test.sql`: Tests for new and enhanced functions
+
+**Integration Tests:**
+
+* `ETL_enhanced_integration.test.bats`: ETL enhanced functionality testing
+* `datamart_enhanced_integration.test.bats`: Datamart enhanced functionality testing
+
+**Test Coverage:**
+
+* ✅ New dimensions (timezones, seasons, continents, application versions)
+* ✅ Enhanced dimensions (SCD2 users, ISO countries, enhanced dates)
+* ✅ New functions (timezone, season, application version)
+* ✅ Enhanced ETL (staging procedures, bridge tables)
+* ✅ Datamart compatibility (integration with new dimensions)
 
 ### Documentation
 
-* [Testing Suites Reference](./docs/Testing_Suites_Reference.md) - Complete list of all 74 testing suites
+* [Testing Suites Reference](./docs/Testing_Suites_Reference.md) - Complete list of all 78 testing suites
 * [Testing Guide](./docs/Testing_Guide.md) - Testing guidelines and workflows
 * [Testing Workflows Overview](./docs/Testing_Workflows_Overview.md) - CI/CD testing workflows
+* [DWH Testing Documentation](./tests/README.md#dwh-enhanced-testing-features) - DWH enhanced testing details
 
 For detailed testing information, see the [Testing Suites Reference](./docs/Testing_Suites_Reference.md) documentation.
 

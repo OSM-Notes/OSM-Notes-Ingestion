@@ -2,11 +2,46 @@
 
 ## Overview
 
-The ETL script has been enhanced with several new features to improve reliability, performance, and maintainability. This document describes the new capabilities and how to use them.
+The ETL script has been enhanced with several new features to improve reliability, performance, and maintainability. This document describes the new capabilities and how to use them, including the comprehensive DWH enhanced features.
 
 ## New Features
 
-### 1. Configuration Management
+### 1. DWH Enhanced Dimensions and Functions
+
+The ETL now supports enhanced data warehouse capabilities:
+
+#### New Dimensions
+
+- **`dimension_timezones`**: Timezone support for local time calculations
+- **`dimension_seasons`**: Seasonal analysis based on date and latitude
+- **`dimension_continents`**: Continental grouping for geographical analysis
+- **`dimension_application_versions`**: Application version tracking
+- **`fact_hashtags`**: Bridge table for many-to-many hashtag relationships
+
+#### Enhanced Dimensions
+
+- **`dimension_time_of_week`**: Renamed from `dimension_hours_of_week` with enhanced attributes (hour_of_week, period_of_day)
+- **`dimension_users`**: SCD2 implementation for username changes (valid_from, valid_to, is_current)
+- **`dimension_countries`**: ISO codes support (iso_alpha2, iso_alpha3)
+- **`dimension_days`**: Enhanced date attributes (ISO week, quarter, names, flags)
+- **`dimension_applications`**: Enhanced attributes (pattern_type, vendor, category)
+
+#### New Functions
+
+- **`get_timezone_id_by_lonlat(lon, lat)`**: Timezone calculation from coordinates
+- **`get_season_id(ts, lat)`**: Season calculation from date and latitude
+- **`get_application_version_id(app_id, version)`**: Application version management
+- **`get_local_date_id(ts, tz_id)`**: Local date calculation
+- **`get_local_hour_of_week_id(ts, tz_id)`**: Local hour calculation
+
+#### Enhanced ETL
+
+- New columns in facts: `action_timezone_id`, `local_action_dimension_id_date`, `action_dimension_id_season`
+- SCD2 support for user dimension
+- Bridge table for hashtag relationships
+- Application version parsing and storage
+
+### 2. Configuration Management
 
 The ETL now uses a dedicated configuration file (`etc/etl.properties`) that allows fine-tuning of various parameters without modifying the script.
 
@@ -46,7 +81,7 @@ The ETL now uses a dedicated configuration file (`etc/etl.properties`) that allo
 - `ETL_MONITOR_RESOURCES`: Enable resource monitoring (default: true)
 - `ETL_MONITOR_INTERVAL`: Monitoring interval in seconds (default: 30)
 
-### 2. Execution Modes
+### 3. Execution Modes
 
 The ETL script now supports multiple execution modes:
 
@@ -74,7 +109,7 @@ Shows what would be executed without making actual changes. Useful for testing.
 
 Shows help information and available options.
 
-### 3. Recovery System
+### 4. Recovery System
 
 The ETL now includes a robust recovery system that tracks progress and allows resuming from the last successful step.
 
@@ -100,7 +135,7 @@ The recovery file (`/tmp/ETL_recovery.json`) contains:
 5. **update_datamart_users**: Updates user datamart
 6. **final_validation**: Validates data integrity
 
-### 4. Data Integrity Validation
+### 5. Data Integrity Validation
 
 The ETL includes comprehensive data integrity validation:
 
@@ -131,7 +166,7 @@ LEFT JOIN dwh.dimension_countries c ON f.dimension_id_country = c.dimension_coun
 WHERE c.dimension_country_id IS NULL
 ```
 
-### 5. Resource Monitoring
+### 6. Resource Monitoring
 
 The ETL includes real-time resource monitoring:
 
@@ -153,7 +188,7 @@ The ETL includes real-time resource monitoring:
 - Stops processing if timeout is reached
 - Prevents runaway processes
 
-### 6. Database Maintenance
+### 7. Database Maintenance
 
 The ETL now includes automatic database maintenance:
 

@@ -321,3 +321,36 @@ function __getLocationNotes {
  psql -d "${DBNAME}" -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
  __log_finish
 }
+
+# Set log file for output redirection
+# Parameters:
+#   $1 - Log file path
+# Returns:
+#   0 if successful, 1 if failed
+function __set_log_file() {
+ local LOG_FILE="${1}"
+ 
+ if [[ -z "${LOG_FILE}" ]]; then
+  __loge "ERROR: Log file path not provided"
+  return 1
+ fi
+ 
+ # Create directory if it doesn't exist
+ local LOG_DIR
+ LOG_DIR=$(dirname "${LOG_FILE}")
+ if [[ ! -d "${LOG_DIR}" ]]; then
+  mkdir -p "${LOG_DIR}" 2>/dev/null || {
+   __loge "ERROR: Cannot create log directory: ${LOG_DIR}"
+   return 1
+  }
+ fi
+ 
+ # Ensure the log file is writable
+ touch "${LOG_FILE}" 2>/dev/null || {
+  __loge "ERROR: Cannot create or write to log file: ${LOG_FILE}"
+  return 1
+ }
+ 
+ __logd "Log file set to: ${LOG_FILE}"
+ return 0
+}

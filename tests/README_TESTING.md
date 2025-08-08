@@ -1,393 +1,248 @@
-# Testing Configuration for OSM-Notes-profile
+# Testing Guide
 
-## 📊 **Resumen de Configuración de Pruebas**
+## Overview
 
-### ✅ **Estado Final: ÉXITO TOTAL**
+This document provides comprehensive guidance for testing the OSM-Notes-profile project. The testing framework includes unit tests, integration tests, and performance tests to ensure code quality and reliability.
 
-| **Categoría** | **Total** | **Exitosas** | **Fallidas** | **Porcentaje Éxito** |
-|---------------|-----------|--------------|--------------|---------------------|
-| **Unitarias ETL** | 12 | 12 | 0 | **100%** |
-| **Integración ETL** | 11 | 11 | 0 | **100%** |
-| **DWH Enhanced** | 4 | 4 | 0 | **100%** |
-| **TOTAL** | **27** | **27** | **0** | **100%** |
+## Test Structure
 
-## 🎯 **Logros Completados**
+### Unit Tests (`tests/unit/`)
 
-### ✅ **1. Configuración de Base de Datos**
+Unit tests are organized by language and functionality:
 
-- **Usuario `notes`** configurado con permisos CREATEDB
-- **Base de datos** `osm_notes_test` creada y funcionando
-- **Extensiones** PostGIS y btree_gist instaladas
-- **Conexión local** funcionando con autenticación peer
+- **Bash tests** (`tests/unit/bash/`): Test bash scripts and functions
+- **SQL tests** (`tests/unit/sql/`): Test database functions and procedures
 
-### ✅ **2. Scripts de Automatización**
+### Integration Tests (`tests/integration/`)
 
-- **`tests/setup_test_db.sh`** - Configura la base de datos de pruebas
-- **`tests/run_tests_as_notes.sh`** - Ejecuta pruebas como usuario `notes`
-- **`tests/run_mock_tests.sh`** - Ejecuta pruebas con entorno mock
-- **`tests/run_all_tests.sh`** - Script maestro para todos los tipos de pruebas
-- **`tests/run_dwh_tests.sh`** - Script específico para pruebas DWH mejorado
+Integration tests verify that different components work together correctly.
 
-### ✅ **3. Corrección de Pruebas**
+### Performance Tests (`tests/advanced/performance/`)
 
-- **Problemas de redirección** solucionados
-- **Variables de entorno** configuradas correctamente
-- **Sintaxis BATS** corregida
-- **Códigos de salida** ajustados para diferentes escenarios
+Performance tests measure system performance under various conditions.
 
-### ✅ **4. Entorno Mock**
+## XML Validation Testing
 
-- **Logger mock** creado para pruebas sin base de datos
-- **Variables mock** configuradas
-- **Pruebas independientes** de base de datos real
+### Enhanced XML Validation Functions
 
-### ✅ **5. Pruebas DWH Mejorado**
+The project now uses enhanced XML validation functions that handle large files more efficiently:
 
-- **Nuevas dimensiones** (timezones, seasons, continents, application versions)
-- **Funciones mejoradas** (timezone, season, application version functions)
-- **ETL mejorado** (SCD2, bridge tables, staging procedures)
-- **Datamarts compatibles** (integración con nuevas dimensiones)
+#### `__validate_xml_with_enhanced_error_handling`
 
-## 🛠️ **Scripts Disponibles**
+This is the main validation function that automatically chooses the appropriate validation strategy based on file size:
 
-### **Scripts Principales**
+- **Small files** (< 500MB): Standard validation with schema
+- **Large files** (500MB - 1GB): Basic validation without schema
+- **Very large files** (> 1GB): Structure-only validation
 
-#### **1. `tests/run_all_tests.sh` - Script Maestro**
+#### `__validate_xml_basic`
 
-```bash
-# Ejecutar todas las pruebas con base de datos
-./tests/run_all_tests.sh --db --etl
+Performs basic XML structure validation without schema validation:
+- Checks for root element `<osm-notes>`
+- Verifies note elements exist
+- Counts total notes
+- Validates tag matching
 
-# Ejecutar pruebas con entorno mock
-./tests/run_all_tests.sh --mock --etl
+#### `__validate_xml_structure_only`
 
-# Ejecutar todas las pruebas en todos los modos
-./tests/run_all_tests.sh --all --all-tests
+Performs lightweight structure validation for very large files:
+- Same as basic validation but optimized for very large files
+- No schema validation to avoid memory issues
 
-# Ejecutar pruebas DWH mejorado
-./tests/run_all_tests.sh --dwh
-```
+### Testing XML Validation
 
-#### **2. `tests/run_tests_as_notes.sh` - Pruebas con Base de Datos**
+#### Unit Tests
 
-```bash
-# Ejecutar pruebas ETL con base de datos real
-./tests/run_tests_as_notes.sh --etl
+1. **`xml_validation_enhanced.test.bats`**: Tests the enhanced validation functions
+2. **`xml_validation_functions.test.bats`**: Tests individual validation functions
+3. **`xml_validation_large_files.test.bats`**: Tests large file handling
 
-# Ejecutar todas las pruebas
-./tests/run_tests_as_notes.sh --all
+#### Integration Tests
 
-# Ejecutar pruebas DWH mejorado
-./tests/run_tests_as_notes.sh --dwh
-```
+1. **`processPlanetNotes_integration.test.bats`**: Tests Planet notes validation
+2. **`processAPINotes_integration.test.bats`**: Tests API notes validation
 
-#### **3. `tests/run_mock_tests.sh` - Pruebas Mock**
+#### Key Test Scenarios
+
+- **Small files**: Standard validation with schema
+- **Large files**: Basic validation without schema
+- **Very large files**: Structure-only validation
+- **Invalid XML**: Error handling and reporting
+- **Missing files**: Proper error messages
+- **Memory constraints**: Graceful degradation
+
+### Running XML Validation Tests
 
 ```bash
-# Ejecutar pruebas ETL con entorno mock
-./tests/run_mock_tests.sh --etl
+# Run all XML validation tests
+./tests/run_xml_xslt_tests.sh
 
-# Ejecutar todas las pruebas mock
-./tests/run_mock_tests.sh --all
+# Run specific XML validation tests
+bats tests/unit/bash/xml_validation_enhanced.test.bats
+bats tests/unit/bash/xml_validation_functions.test.bats
+bats tests/unit/bash/xml_validation_large_files.test.bats
 
-# Ejecutar pruebas DWH mejorado (mock)
-./tests/run_mock_tests.sh --dwh
+# Run integration tests
+bats tests/unit/bash/processPlanetNotes_integration.test.bats
+bats tests/unit/bash/processAPINotes_integration.test.bats
 ```
 
-#### **4. `tests/setup_test_db.sh` - Configuración de Base de Datos**
+## Test Categories
+
+### 1. Unit Tests
+
+Unit tests focus on individual functions and components:
 
 ```bash
-# Configurar base de datos de pruebas
-./tests/setup_test_db.sh
+# Run all unit tests
+./tests/run_tests.sh
+
+# Run specific unit test categories
+./tests/run_tests_simple.sh
+./tests/run_mock_tests.sh
 ```
 
-#### **5. `tests/run_dwh_tests.sh` - Pruebas DWH Mejorado**
+### 2. Integration Tests
+
+Integration tests verify component interactions:
 
 ```bash
-# Ejecutar todas las pruebas DWH mejorado
-./tests/run_dwh_tests.sh
+# Run integration tests
+./tests/run_integration_tests.sh
 
-# Ejecutar con base de datos específica
-./tests/run_dwh_tests.sh --db-name testdb --db-user testuser
-
-# Ejecutar solo pruebas SQL
-./tests/run_dwh_tests.sh --skip-integration
-
-# Ejecutar solo pruebas de integración
-./tests/run_dwh_tests.sh --skip-sql
-
-# Ver qué se ejecutaría (dry-run)
-./tests/run_dwh_tests.sh --dry-run
+# Run specific integration tests
+bats tests/integration/end_to_end.test.bats
+bats tests/integration/processAPI_historical_e2e.test.bats
 ```
 
-## 📋 **Comandos de Ejecución**
+### 3. Performance Tests
 
-### **Pruebas con Base de Datos Real**
+Performance tests measure system performance:
 
 ```bash
-# Configurar base de datos
-./tests/setup_test_db.sh
-
-# Ejecutar pruebas ETL
-./tests/run_tests_as_notes.sh --etl
-
-# Ejecutar todas las pruebas
-./tests/run_tests_as_notes.sh --all
-
-# Ejecutar pruebas DWH mejorado
-./tests/run_dwh_tests.sh
+# Run performance tests
+./tests/advanced/performance/run_performance_tests.sh
 ```
 
-### **Pruebas con Entorno Mock**
+## Test Environment Setup
+
+### Prerequisites
+
+1. **BATS**: Install BATS testing framework
+2. **PostgreSQL**: Set up test database
+3. **Dependencies**: Install required tools and libraries
+
+### Environment Configuration
+
+1. **Test Database**: Configure test database connection
+2. **Mock Commands**: Set up mock commands for testing
+3. **Test Data**: Prepare test data and fixtures
+
+## Running Tests
+
+### Quick Start
 
 ```bash
-# Ejecutar pruebas ETL con mock
-./tests/run_mock_tests.sh --etl
+# Run all tests
+./tests/run_all_tests.sh
 
-# Ejecutar todas las pruebas mock
-./tests/run_mock_tests.sh --all
-
-# Ejecutar pruebas DWH mejorado con mock
-./tests/run_mock_tests.sh --dwh
+# Run specific test categories
+./tests/run_tests_simple.sh
+./tests/run_integration_tests.sh
+./tests/run_quality_tests.sh
 ```
 
-## 🗄️ **Pruebas DWH Mejorado**
+### Test Execution Options
 
-### **Nuevas Dimensiones**
+- **Verbose mode**: `bats --verbose`
+- **Parallel execution**: `bats --jobs 4`
+- **Specific tests**: `bats --filter "test_name"`
+- **Output format**: `bats --formatter tap`
 
-#### **Dimensiones Creadas**
+## Test Data Management
 
-- **`dimension_timezones`**: Soporte para cálculos de hora local
-- **`dimension_seasons`**: Análisis estacional basado en fecha y latitud
-- **`dimension_continents`**: Agrupación continental para análisis geográfico
-- **`dimension_application_versions`**: Seguimiento de versiones de aplicaciones
-- **`fact_hashtags`**: Tabla puente para relaciones muchos-a-muchos de hashtags
+### Fixtures
 
-#### **Dimensiones Mejoradas**
+Test fixtures are stored in `tests/fixtures/`:
 
-- **`dimension_time_of_week`**: Renombrada de `dimension_hours_of_week` con atributos mejorados
-- **`dimension_users`**: Implementación SCD2 para cambios de nombre de usuario
-- **`dimension_countries`**: Soporte para códigos ISO (alpha2, alpha3)
-- **`dimension_days`**: Atributos de fecha mejorados (semana ISO, trimestre, nombres)
-- **`dimension_applications`**: Atributos mejorados (pattern_type, vendor, category)
+- **XML files**: Sample XML data for testing
+- **SQL scripts**: Database setup and teardown scripts
+- **Configuration**: Test configuration files
 
-### **Funciones Mejoradas**
+### Mock Data
 
-#### **Nuevas Funciones**
+Mock data is generated for testing:
 
-- **`get_timezone_id_by_lonlat(lon, lat)`**: Cálculo de timezone desde coordenadas
-- **`get_season_id(ts, lat)`**: Cálculo de estación desde fecha y latitud
-- **`get_application_version_id(app_id, version)`**: Gestión de versiones de aplicaciones
-- **`get_local_date_id(ts, tz_id)`**: Cálculo de fecha local
-- **`get_local_hour_of_week_id(ts, tz_id)`**: Cálculo de hora local
+- **Large files**: Generated XML files for performance testing
+- **Edge cases**: Special XML structures for validation testing
+- **Error scenarios**: Malformed data for error handling tests
 
-#### **Funciones Mejoradas**
+## Continuous Integration
 
-- **`get_date_id(date)`**: Mejorada con semana ISO, trimestre, nombres
-- **`get_time_of_week_id(timestamp)`**: Mejorada con hour_of_week, period_of_day
+### GitHub Actions
 
-### **ETL Mejorado**
+Tests are automatically run in GitHub Actions:
 
-#### **Procedimientos de Staging**
+- **Unit tests**: Run on every push
+- **Integration tests**: Run on pull requests
+- **Performance tests**: Run on schedule
 
-- **Nuevas columnas**: `action_timezone_id`, `local_action_dimension_id_date`, `action_dimension_id_season`
-- **Soporte SCD2**: Dimensión de usuarios con `valid_from`, `valid_to`, `is_current`
-- **Tabla puente**: `fact_hashtags` para relaciones de hashtags
-- **Versiones de aplicaciones**: Parsing y almacenamiento de versiones
+### Local CI
 
-#### **Compatibilidad de Datamarts**
-
-- **Referencias actualizadas**: Todos los datamarts actualizados para `dimension_time_of_week`
-- **Integración SCD2**: Los datamarts manejan registros de usuarios actuales vs históricos
-- **Nuevas dimensiones**: Los datamarts pueden referenciar nuevas dimensiones (continentes, estaciones, timezones)
-
-### **Cobertura de Pruebas DWH**
-
-#### **Pruebas Unitarias SQL**
-
-**`tests/unit/sql/dwh_dimensions_enhanced.test.sql`**:
-- ✅ Existencia de nuevas tablas de dimensiones
-- ✅ Validación de dimensión renombrada
-- ✅ Nuevas columnas en dimensiones existentes
-- ✅ Columnas SCD2 en dimensión de usuarios
-- ✅ Estructura de tabla puente
-- ✅ Validación de población de dimensiones
-
-**`tests/unit/sql/dwh_functions_enhanced.test.sql`**:
-- ✅ Existencia y funcionalidad de nuevas funciones
-- ✅ Atributos de funciones mejoradas
-- ✅ Funcionalidad SCD2 de dimensión de usuarios
-- ✅ Funcionalidad de tabla puente
-- ✅ Validación de población de dimensiones
-
-#### **Pruebas de Integración**
-
-**`tests/integration/ETL_enhanced_integration.test.bats`**:
-- ✅ Validación de dimensiones mejoradas
-- ✅ Validación de implementación SCD2
-- ✅ Validación de nuevas funciones
-- ✅ Validación de procedimientos de staging
-- ✅ Compatibilidad de datamarts
-- ✅ Integración de funciones mejoradas
-- ✅ Implementación de tabla puente
-- ✅ Consistencia de documentación
-
-**`tests/integration/datamart_enhanced_integration.test.bats`**:
-- ✅ Funcionalidad mejorada de DatamartUsers
-- ✅ Funcionalidad mejorada de DatamartCountries
-- ✅ Validación de scripts
-- ✅ Integración de dimensiones mejoradas
-- ✅ Integración SCD2
-- ✅ Integración de tabla puente
-- ✅ Integración de versiones de aplicaciones
-- ✅ Integración de estaciones
-- ✅ Ejecución de scripts
-- ✅ Validación de columnas mejoradas
-- ✅ Consistencia de documentación
-
-### **Ejemplo de Salida de Pruebas DWH**
+Run CI tests locally:
 
 ```bash
-$ ./tests/run_dwh_tests.sh
-[INFO] Starting DWH enhanced tests...
-[INFO] Checking prerequisites...
-[SUCCESS] Prerequisites check completed
-[INFO] Running DWH SQL unit tests...
-[INFO] Testing enhanced dimensions...
-[SUCCESS] Enhanced dimensions tests passed
-[INFO] Testing enhanced functions...
-[SUCCESS] Enhanced functions tests passed
-[INFO] Running DWH integration tests...
-[INFO] Testing ETL enhanced integration...
-✓ ETL enhanced dimensions validation
-✓ ETL SCD2 implementation validation
-✓ ETL new functions validation
-✓ ETL staging procedures validation
-✓ ETL datamart compatibility
-[INFO] Testing datamart enhanced integration...
-✓ DatamartUsers enhanced functionality
-✓ DatamartCountries enhanced functionality
-✓ Datamart script validation
-✓ Datamart enhanced dimensions integration
-[INFO] Test summary:
-[INFO]   Total tests: 4
-[INFO]   Passed: 4
-[INFO]   Failed: 0
-[SUCCESS] All DWH enhanced tests passed!
+# Run CI tests
+./tests/run_ci_tests.sh
+
+# Run quality checks
+./tests/run_quality_tests.sh
 ```
 
-### **Requisitos de Pruebas DWH**
+## Troubleshooting
 
-#### **Requisitos de Base de Datos**
+### Common Issues
 
-- Base de datos PostgreSQL con esquema DWH
-- Dimensiones y funciones mejoradas instaladas
-- Datos de muestra para pruebas
+1. **Test failures**: Check test environment setup
+2. **Database issues**: Verify PostgreSQL connection
+3. **Memory issues**: Adjust test configuration
+4. **Timeout issues**: Increase timeout values
 
-#### **Variables de Entorno**
+### Debugging
 
-```bash
-# Configuración de base de datos
-export DBNAME=notes
-export DBUSER=notes
+1. **Verbose output**: Use `--verbose` flag
+2. **Log files**: Check test log files
+3. **Environment**: Verify environment variables
+4. **Dependencies**: Check required tools
 
-# Configuración de pruebas
-export SKIP_SQL=false
-export SKIP_INTEGRATION=false
-```
+## Best Practices
 
-#### **Pasos de Instalación**
+### Test Writing
 
-1. **Instalar esquema DWH**:
+1. **Descriptive names**: Use clear test names
+2. **Isolation**: Tests should be independent
+3. **Cleanup**: Always clean up test data
+4. **Documentation**: Document complex test scenarios
 
-   ```bash
-   psql -d notes -f sql/dwh/ETL_22_createDWHTables.sql
-   psql -d notes -f sql/dwh/ETL_24_addFunctions.sql
-   psql -d notes -f sql/dwh/ETL_25_populateDimensionTables.sql
-   ```
+### Test Maintenance
 
-2. **Verificar instalación**:
+1. **Regular updates**: Keep tests up to date
+2. **Refactoring**: Update tests when code changes
+3. **Performance**: Monitor test execution time
+4. **Coverage**: Maintain good test coverage
 
-   ```bash
-   ./tests/run_dwh_tests.sh --dry-run
-   ```
+## Contributing
 
-3. **Ejecutar pruebas**:
+### Adding New Tests
 
-   ```bash
-   ./tests/run_dwh_tests.sh
-   ```
+1. **Follow conventions**: Use existing test patterns
+2. **Documentation**: Update this guide
+3. **Review**: Submit for code review
+4. **Integration**: Ensure tests pass in CI
 
-## 🔧 **Solución de Problemas**
+### Test Standards
 
-### **Problemas Comunes**
-
-1. **Acceso PostgreSQL denegado**:
-   - Asegurar que PostgreSQL esté ejecutándose: `sudo systemctl start postgresql`
-   - Configurar acceso local en `pg_hba.conf`
-   - O usar Docker: `cd tests/docker && docker compose up -d`
-
-2. **Docker requiere sudo**:
-   - Agregar usuario al grupo docker: `sudo usermod -aG docker $USER`
-   - Cerrar sesión y volver a iniciar
-   - O usar las pruebas sin Docker: `./tests/run_tests_simple.sh`
-
-3. **Dependencias faltantes**:
-   - Ejecutar: `./tests/install_dependencies.sh`
-   - O instalar manualmente: `sudo apt-get install postgresql-client bats`
-
-4. **Pruebas DWH fallando**:
-   - Asegurar que el esquema DWH esté instalado: `psql -d notes -f sql/dwh/ETL_22_createDWHTables.sql`
-   - Verificar conexión de base de datos: `psql -d notes -c "SELECT 1;"`
-   - Verificar funciones mejoradas: `psql -d notes -c "SELECT proname FROM pg_proc WHERE proname LIKE 'get_%';"`
-
-## 📊 **Métricas de Pruebas**
-
-### **Cobertura de Pruebas**
-
-| **Componente** | **Pruebas Unitarias** | **Pruebas de Integración** | **Total** |
-|----------------|----------------------|---------------------------|-----------|
-| **ETL** | 12 | 11 | 23 |
-| **DWH Enhanced** | 2 | 2 | 4 |
-| **Datamarts** | 0 | 1 | 1 |
-| **TOTAL** | **14** | **14** | **28** |
-
-### **Tiempos de Ejecución**
-
-| **Tipo de Prueba** | **Tiempo Promedio** | **Tiempo Máximo** |
-|-------------------|-------------------|------------------|
-| **Unitarias** | 30s | 60s |
-| **Integración** | 120s | 300s |
-| **DWH Enhanced** | 45s | 90s |
-| **Completas** | 300s | 600s |
-
-## 🎯 **Próximos Pasos**
-
-### **Mejoras Planificadas**
-
-1. **Cobertura de Pruebas**:
-   - Aumentar cobertura de pruebas unitarias
-   - Agregar pruebas de rendimiento
-   - Implementar pruebas de seguridad
-
-2. **Automatización**:
-   - Integrar con CI/CD
-   - Automatizar ejecución de pruebas
-   - Reportes automáticos
-
-3. **Documentación**:
-   - Actualizar documentación de pruebas
-   - Agregar ejemplos de uso
-   - Mejorar guías de solución de problemas
-
-### **Mantenimiento**
-
-1. **Revisión Regular**:
-   - Revisar pruebas mensualmente
-   - Actualizar dependencias
-   - Verificar compatibilidad
-
-2. **Mejoras Continuas**:
-   - Optimizar tiempos de ejecución
-   - Mejorar cobertura de pruebas
-   - Agregar nuevas funcionalidades
+1. **Code quality**: Follow project coding standards
+2. **Performance**: Tests should run efficiently
+3. **Reliability**: Tests should be stable
+4. **Maintainability**: Tests should be easy to maintain

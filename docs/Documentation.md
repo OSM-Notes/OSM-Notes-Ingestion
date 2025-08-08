@@ -98,9 +98,42 @@ The OSM-Notes-profile system consists of several key components:
 
 ### Analytics Tables
 
-- **Fact Tables**: Time-series data for analytics
-- **Dimension Tables**: Reference data for analysis
-- **Data Marts**: Pre-calculated user and country metrics
+#### Data Warehouse (DWH) Schema
+
+The data warehouse uses a star schema design with enhanced dimensions:
+
+**Fact Table:**
+
+- **`dwh.facts`**: Central fact table with note actions and metrics
+
+**Core Dimensions:**
+
+- **`dwh.dimension_users`**: User information with SCD2 support
+- **`dwh.dimension_countries`**: Country information with ISO codes
+- **`dwh.dimension_days`**: Date dimension with enhanced attributes
+- **`dwh.dimension_time_of_week`**: Time dimension with enhanced attributes
+- **`dwh.dimension_applications`**: Application information with enhanced attributes
+
+**New Dimensions:**
+
+- **`dwh.dimension_timezones`**: Timezone support for local time calculations
+- **`dwh.dimension_seasons`**: Seasonal analysis based on date and latitude
+- **`dwh.dimension_continents`**: Continental grouping for geographical analysis
+- **`dwh.dimension_application_versions`**: Application version tracking
+- **`dwh.fact_hashtags`**: Bridge table for many-to-many hashtag relationships
+
+**Enhanced Features:**
+
+- **SCD2 Support**: User dimension with historical tracking
+- **Local Time Support**: Timezone-aware date and time calculations
+- **Seasonal Analysis**: Season-based analytics for temporal patterns
+- **Application Versions**: Version tracking for application usage analysis
+- **Bridge Tables**: Many-to-many relationships for hashtags
+
+#### Data Marts
+
+- **`dwh.datamartUsers`**: Pre-calculated user profiles and analytics
+- **`dwh.datamartCountries`**: Pre-calculated country profiles and analytics
 
 ### WMS Tables
 

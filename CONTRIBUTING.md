@@ -180,55 +180,147 @@ Familiarize yourself with the project structure:
 
 ## Testing Requirements
 
-### Mandatory Testing
+### Overview
 
-**Every contribution must include appropriate tests:**
-
-#### For Bash Scripts
-
-- **Unit tests**: Create tests in `tests/unit/bash/`
-- **Integration tests**: Test with real data scenarios
-- **Error handling tests**: Test error conditions and edge cases
-
-#### For SQL Scripts
-
-- **Schema tests**: Verify table creation and constraints
-- **Function tests**: Test database functions and procedures
-- **Data validation tests**: Ensure data integrity
-
-#### Test File Naming
-
-- **Bash tests**: `[component].test.bats`
-- **SQL tests**: `[component].test.sql`
-- **Integration tests**: `[feature]_integration.test.bats`
-
-#### Test Structure
-
-```bash
-#!/usr/bin/env bats
-
-load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
-
-@test "function should work correctly" {
-  # Arrange
-  local expected="expected result"
-  
-  # Act
-  run some_function
-  
-  # Assert
-  [ "$status" -eq 0 ]
-  [ "$output" = "$expected" ]
-}
-```
+All contributions must include comprehensive testing. The project uses **78 BATS testing suites** covering all system components, including the new DWH enhanced features.
 
 ### Test Categories
 
-1. **Unit Tests**: Test individual functions and components
-2. **Integration Tests**: Test complete workflows
-3. **Performance Tests**: Test system performance
-4. **Security Tests**: Test for vulnerabilities
-5. **Quality Tests**: Test code quality and standards
+#### Unit Tests (72 suites)
+
+- **Bash Scripts**: 68 BATS test suites for shell scripts
+- **SQL Functions**: 4 SQL test suites (including DWH enhanced)
+
+#### Integration Tests (8 suites)
+
+- **End-to-End Workflows**: Complete system integration testing
+- **DWH Enhanced**: ETL and datamart enhanced functionality testing
+
+#### Validation Tests
+
+- **Data Validation**: XML/CSV processing, ETL workflows
+- **Error Handling**: Edge cases, error conditions
+- **Performance**: Parallel processing, optimization
+
+#### Quality Tests
+
+- **Code Quality**: Linting, formatting, conventions
+- **Security**: Vulnerability scanning, best practices
+
+### DWH Enhanced Testing Requirements
+
+When contributing to DWH features, you must include tests for:
+
+#### New Dimensions
+
+- **`dimension_timezones`**: Timezone support testing
+- **`dimension_seasons`**: Seasonal analysis testing
+- **`dimension_continents`**: Continental grouping testing
+- **`dimension_application_versions`**: Application version testing
+- **`fact_hashtags`**: Bridge table testing
+
+#### Enhanced Dimensions
+
+- **`dimension_time_of_week`**: Renamed dimension with enhanced attributes
+- **`dimension_users`**: SCD2 implementation testing
+- **`dimension_countries`**: ISO codes testing
+- **`dimension_days`**: Enhanced date attributes testing
+- **`dimension_applications`**: Enhanced attributes testing
+
+#### New Functions
+
+- **`get_timezone_id_by_lonlat()`**: Timezone calculation testing
+- **`get_season_id()`**: Season calculation testing
+- **`get_application_version_id()`**: Application version management testing
+- **`get_local_date_id()`**: Local date calculation testing
+- **`get_local_hour_of_week_id()`**: Local hour calculation testing
+
+#### Enhanced ETL
+
+- **Staging Procedures**: New columns, SCD2, bridge tables
+- **Datamart Compatibility**: Integration with new dimensions
+- **Documentation**: Consistency with implementation
+
+### Running Tests
+
+#### Complete Test Suite
+
+```bash
+# Run all tests (recommended)
+./tests/run_all_tests.sh
+
+# Run DWH enhanced tests only
+./tests/run_dwh_tests.sh
+
+# Run specific test categories
+./tests/run_tests.sh --type dwh
+```
+
+#### Individual Test Categories
+
+```bash
+# Unit tests
+bats tests/unit/bash/*.bats
+bats tests/unit/sql/*.sql
+
+# Integration tests
+bats tests/integration/*.bats
+
+# DWH enhanced tests
+./tests/run_dwh_tests.sh --skip-integration  # SQL only
+./tests/run_dwh_tests.sh --skip-sql          # Integration only
+```
+
+#### Test Validation
+
+```bash
+# Validate test structure
+./tests/run_dwh_tests.sh --dry-run
+
+# Check test coverage
+./tests/run_tests.sh --type all
+```
+
+### Test Documentation
+
+All new tests must be documented in:
+
+- [Testing Suites Reference](./docs/Testing_Suites_Reference.md)
+- [Testing Guide](./docs/Testing_Guide.md)
+- [DWH Testing Documentation](./tests/README.md#dwh-enhanced-testing-features)
+
+### CI/CD Integration
+
+Tests are automatically run in GitHub Actions:
+
+- **Unit Tests**: Basic functionality and code quality
+- **DWH Enhanced Tests**: New dimensions, functions, ETL improvements
+- **Integration Tests**: End-to-end workflow validation
+- **Performance Tests**: System performance validation
+- **Security Tests**: Vulnerability scanning
+- **Advanced Tests**: Coverage, quality, advanced functionality
+
+### Test Quality Standards
+
+#### Code Coverage
+
+- **Minimum 85%** code coverage for new features
+- **100% coverage** for critical functions
+- **Integration testing** for all workflows
+
+#### Test Quality
+
+- **Descriptive test names** that explain the scenario
+- **Comprehensive assertions** that validate all aspects
+- **Error case testing** for edge cases and failures
+- **Performance testing** for time-sensitive operations
+
+#### Documentation
+
+- **Test descriptions** that explain the purpose
+- **Setup instructions** for test environment
+- **Expected results** clearly documented
+- **Troubleshooting guides** for common issues
 
 ## File Organization
 

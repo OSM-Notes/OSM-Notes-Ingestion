@@ -1,10 +1,10 @@
 # GitHub Actions Workflow for OSM-Notes-profile Tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-08-08
 
 # This workflow runs comprehensive tests for the OSM-Notes-profile project
 # including unit tests, integration tests, performance tests, security scans,
-# and advanced functionality tests (coverage, quality, performance).
+# advanced functionality tests (coverage, quality, performance), and DWH enhanced tests.
 
 name: Tests
 
@@ -97,6 +97,82 @@ jobs:
         path: |
           tests/results/
           shellcheck-results.txt
+        if-no-files-found: warn
+
+  # DWH Enhanced Tests
+  dwh-enhanced-tests:
+    name: DWH Enhanced Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: osm_notes_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          postgresql-client \
+          bats \
+          shellcheck
+
+    - name: Set up test environment
+      run: |
+        export DBNAME=osm_notes_test
+        export DBUSER=testuser
+        export DBPASSWORD=testpass
+        export DBHOST=localhost
+        export DBPORT=5432
+        export LOG_LEVEL=INFO
+        export MAX_THREADS=2
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U testuser; do
+          sleep 1
+        done
+
+    - name: Install DWH schema
+      run: |
+        psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_22_createDWHTables.sql
+        psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_24_addFunctions.sql
+        psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_25_populateDimensionTables.sql
+
+    - name: Run DWH enhanced tests
+      run: |
+        chmod +x tests/run_dwh_tests.sh
+        ./tests/run_dwh_tests.sh --skip-integration 2>&1 | tee tests/results/dwh-enhanced-tests.log
+
+    - name: Run DWH integration tests
+      run: |
+        bats tests/integration/ETL_enhanced_integration.test.bats 2>&1 | tee tests/results/dwh-integration-tests.log
+        bats tests/integration/datamart_enhanced_integration.test.bats 2>&1 | tee tests/results/datamart-integration-tests.log
+
+    - name: Upload DWH test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: dwh-enhanced-test-results
+        path: |
+          tests/results/dwh-enhanced-tests.log
+          tests/results/dwh-integration-tests.log
+          tests/results/datamart-integration-tests.log
         if-no-files-found: warn
 
   # Integration Tests
@@ -198,8 +274,6 @@ jobs:
         export TEST_DBPORT=5432
         # Simple performance test
         echo "Running simple performance test..." > .benchmarks/performance.log
-        echo "Performance test completed successfully" >> .benchmarks/performance.log
-        echo "Benchmark results saved" >> .benchmarks/performance.log
 
     - name: Check if benchmarks directory exists
       run: |
@@ -337,7 +411,7 @@ jobs:
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, performance-tests, security-tests, advanced-tests]
+    needs: [unit-tests, dwh-enhanced-tests, integration-tests, performance-tests, security-tests, advanced-tests]
     if: always()
 
     steps:
@@ -352,6 +426,9 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Unit Tests" >> $GITHUB_STEP_SUMMARY
         echo "- Status: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### DWH Enhanced Tests" >> $GITHUB_STEP_SUMMARY
+        echo "- Status: ${{ needs.dwh-enhanced-tests.result }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Integration Tests" >> $GITHUB_STEP_SUMMARY
         echo "- Status: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY

@@ -49,6 +49,7 @@ The project uses three main GitHub Actions workflows that run automatically on e
 | `run_parallel_tests.sh`                | tests/                                    | Validates parallel processing and concurrency                                 |
 | `run_xml_xslt_tests.sh`                | tests/                                    | XML/XSLT validation and transformation tests                                  |
 | `run_error_handling_tests.sh`          | tests/                                    | Error handling and edge case validation tests                                 |
+| `run_dwh_tests.sh`                     | tests/                                    | DWH enhanced testing (new dimensions, functions, ETL)                         |
 | `run_ci_tests.sh`                      | tests/docker/                             | CI/CD tests in Docker environment                                             |
 | `run_integration_tests.sh`             | tests/docker/                             | Integration tests in Docker environment                                       |
 | `quality-tests.yml`                    | .github/workflows/                        | GitHub Actions workflow for quality tests                                     |
