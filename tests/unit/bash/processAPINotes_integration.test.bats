@@ -28,8 +28,10 @@ setup() {
 teardown() {
  # Cleanup
  rm -rf "${TMP_DIR}"
- # Drop test database if it exists
- psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
+ # Drop test database if it exists and PostgreSQL is accessible
+ if command -v psql >/dev/null 2>&1 && psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
+ fi
 }
 
 # Test that processAPINotes.sh can be sourced without errors
@@ -50,11 +52,25 @@ teardown() {
 
 # Test that SQL scripts can be executed without database errors
 @test "processAPINotes SQL scripts should work with empty database" {
+ # Skip if PostgreSQL is not available
+ if ! command -v psql >/dev/null 2>&1; then
+  skip "PostgreSQL not available"
+ fi
+ 
+ # Test if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  skip "PostgreSQL not accessible"
+ fi
+ 
  # Create test database
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
  [ "$status" -eq 0 ]
  
- # Create base tables first
+ # Create required enums first (dependency for API tables)
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Create base tables 
  run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
  [ "$status" -eq 0 ]
  
@@ -104,16 +120,32 @@ teardown() {
 
 # Test that database operations work with mock data
 @test "processAPINotes.sh database operations should work with mock data" {
+ # Skip if PostgreSQL is not available
+ if ! command -v psql >/dev/null 2>&1; then
+  skip "PostgreSQL not available"
+ fi
+ 
+ # Test if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  skip "PostgreSQL not accessible"
+ fi
+ 
  # Create test database
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ [ "$status" -eq 0 ]
+ 
+ # Create required enums first (dependency for API tables)
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create base tables
  run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
  [ "$status" -eq 0 ]
  
- # Create partitions
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql"
+ # Create partitions with environment variable substitution
+ local partition_script="${TMP_DIR}/createPartitions_test.sql"
+ sed "s/\$MAX_THREADS/2/g" "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql" > "${partition_script}"
+ run psql -d "${TEST_DBNAME}" -f "${partition_script}"
  [ "$status" -eq 0 ]
  
  # Create properties table
