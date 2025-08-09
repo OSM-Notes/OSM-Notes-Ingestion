@@ -18,7 +18,7 @@
 # - Test-friendly design
 #
 # Author: Andres Gomez (AngocA) - Enhanced version
-# Version: 2025-08-05
+# Version: 2025-01-23
 # Based on: Dushyanth Jyothi's bash-logger
 
 # === CONSTANTS AND CONFIGURATION ===
@@ -89,7 +89,16 @@ __format_log_message() {
  local timestamp
  
  timestamp=$(__get_timestamp)
- echo "${timestamp} - ${caller_info} - ${level} - ${message}"
+ if [[ "$level" == "INFO" && "$message" == \#--* ]]; then
+   # Special format for __log_start messages
+   echo "${timestamp} - ${caller_info} - ${message}"
+ elif [[ "$level" == "INFO" && "$message" == \|--* ]]; then
+   # Special format for __log_finish messages  
+   echo "${timestamp} - ${caller_info} - ${message}"
+ else
+   # Standard format with level
+   echo "${timestamp} - ${caller_info} - ${level} - ${message}"
+ fi
 }
 
 # === CORE LOGGING FUNCTIONS ===
@@ -119,27 +128,26 @@ __set_log_level() {
 
 # Set log file with validation
 __set_log_file() {
- local log_file="${1:-}"
+ local -r LOG_FILE="${1}"
  
- if [[ -z "$log_file" ]]; then
+ if [[ -z "${LOG_FILE}" ]]; then
    echo "Log file not defined."
    return 1
+ else
+   if ! touch "${LOG_FILE}"; then
+     echo "It is not possible to create this file: ${LOG_FILE}."
+     return 1
+   else
+     if [[ ! -w "${LOG_FILE}" ]]; then
+       echo "It is not possible to write in this file: ${LOG_FILE}."
+       return 1
+     else
+       __log_fd="${LOG_FILE}"
+       exec {__log_fd}<> "${LOG_FILE}"
+       return 0
+     fi
+   fi
  fi
- 
- # Test file creation
- if ! touch "$log_file" 2>/dev/null; then
-   echo "It is not possible to create this file: $log_file"
-   return 1
- fi
- 
- # Test file writing
- if [[ ! -w "$log_file" ]]; then
-   echo "It is not possible to write to this file: $log_file"
-   return 1
- fi
- 
- __log_fd="$log_file"
- return 0
 }
 
 # Output log message to appropriate destination
@@ -147,8 +155,8 @@ __output_log() {
  local message="$1"
  local to_stderr="${2:-false}"
  
- if [[ -n "$__log_fd" && -w "$__log_fd" ]]; then
-   echo "$message" >> "$__log_fd"
+ if [[ -n "$__log_fd" ]]; then
+   echo "$message" >&${__log_fd}
  else
    if [[ "$to_stderr" == "true" ]]; then
      echo "$message" >&2
@@ -158,25 +166,122 @@ __output_log() {
  fi
 }
 
-# Generate call stack for TRACE and ERROR levels
+# Generate call stack for TRACE levels
 __generate_call_stack() {
- local functions_length="${#FUNCNAME[@]}"
- local caller_info
+ local __bl_functions_length="${#FUNCNAME[@]}"
+ local __bl_script_name="${BASH_SOURCE[2]}"
+ local __bl_function_name="${FUNCNAME[2]}"
+ local __bl_called_line_number="${BASH_LINENO[1]}"
+ local __bl_time_and_date
  
- caller_info=$(__get_caller_info)
- __output_log "$(__format_log_message "STACK" "Execution call stack:" "$caller_info")"
+ __bl_script_name="${__bl_script_name##*/}"
+ __bl_time_and_date="$(date '+%Y-%m-%d %H:%M:%S')"
  
- for ((i = 2; i < functions_length; i++)); do
-   local script="${BASH_SOURCE[$i]:-unknown}"
-   local func="${FUNCNAME[$i]:-main}" 
-   local line="${BASH_LINENO[$((i-1))]:-0}"
-   
-   # Clean script path
-   script="${script##*/}"
-   script="${script//.\//}"
-   
-   if [[ "$script" != *"bash_logger"* ]]; then
-     __output_log "   ${script}:${line} ${func}(..)"
+ # First, log the stack header
+ local LOG="${__bl_time_and_date} - ${__bl_script_name}:${__bl_function_name}:${__bl_called_line_number} - TRACE - Execution call stack:"
+ if [[ -z "${__log_fd}" ]]; then
+   echo "${LOG}"
+ else
+   echo "${LOG}" >&${__log_fd}
+ fi
+ 
+ for ((i = 0; i < __bl_functions_length; i++)); do
+   if (($i != $((__bl_functions_length - 1)))); then
+     if [[ "${BASH_SOURCE[$i]}" != *"bash_logger"* ]]; then
+       LOG="   ${BASH_SOURCE[$i + 1]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+       if [[ -z "${__log_fd}" ]]; then
+         echo "${LOG}"
+       else
+         echo "${LOG}" >&${__log_fd}
+       fi
+     fi
+   else
+     LOG="    ${BASH_SOURCE[$i]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+     if [[ -z "${__log_fd}" ]]; then
+       echo "${LOG}"
+     else
+       echo "${LOG}" >&${__log_fd}
+     fi
+   fi
+ done
+}
+
+# Generate call stack for ERROR levels
+__generate_call_stack_error() {
+ local __bl_functions_length="${#FUNCNAME[@]}"
+ local __bl_script_name="${BASH_SOURCE[2]}"
+ local __bl_function_name="${FUNCNAME[2]}"
+ local __bl_called_line_number="${BASH_LINENO[1]}"
+ local __bl_time_and_date
+ 
+ __bl_script_name="${__bl_script_name##*/}"
+ __bl_time_and_date="$(date '+%Y-%m-%d %H:%M:%S')"
+ 
+ # First, log the stack header
+ local LOG="${__bl_time_and_date} - ${__bl_script_name}:${__bl_function_name}:${__bl_called_line_number} - ERROR - Execution call stack:"
+ if [[ -z "${__log_fd}" ]]; then
+   echo "${LOG}" >&2
+ else
+   echo "${LOG}" >&${__log_fd}
+ fi
+ 
+ for ((i = 0; i < __bl_functions_length; i++)); do
+   if (($i != $((__bl_functions_length - 1)))); then
+     if [[ "${BASH_SOURCE[$i]}" != *"bash_logger"* ]]; then
+       LOG="   ${BASH_SOURCE[$i + 1]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+       if [[ -z "${__log_fd}" ]]; then
+         echo "${LOG}" >&2
+       else
+         echo "${LOG}" >&${__log_fd}
+       fi
+     fi
+   else
+     LOG="    ${BASH_SOURCE[$i]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+     if [[ -z "${__log_fd}" ]]; then
+       echo "${LOG}" >&2
+     else
+       echo "${LOG}" >&${__log_fd}
+     fi
+   fi
+ done
+}
+
+# Generate call stack for FATAL levels
+__generate_call_stack_fatal() {
+ local __bl_functions_length="${#FUNCNAME[@]}"
+ local __bl_script_name="${BASH_SOURCE[2]}"
+ local __bl_function_name="${FUNCNAME[2]}"
+ local __bl_called_line_number="${BASH_LINENO[1]}"
+ local __bl_time_and_date
+ 
+ __bl_script_name="${__bl_script_name##*/}"
+ __bl_time_and_date="$(date '+%Y-%m-%d %H:%M:%S')"
+ 
+ # First, log the stack header
+ local LOG="${__bl_time_and_date} - ${__bl_script_name}:${__bl_function_name}:${__bl_called_line_number} - FATAL - Execution call stack:"
+ if [[ -z "${__log_fd}" ]]; then
+   echo "${LOG}" >&2
+ else
+   echo "${LOG}" >&${__log_fd}
+ fi
+ 
+ for ((i = 0; i < __bl_functions_length; i++)); do
+   if (($i != $((__bl_functions_length - 1)))); then
+     if [[ "${BASH_SOURCE[$i]}" != *"bash_logger"* ]]; then
+       LOG="   ${BASH_SOURCE[$i + 1]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+       if [[ -z "${__log_fd}" ]]; then
+         echo "${LOG}" >&2
+       else
+         echo "${LOG}" >&${__log_fd}
+       fi
+     fi
+   else
+     LOG="    ${BASH_SOURCE[$i]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+     if [[ -z "${__log_fd}" ]]; then
+       echo "${LOG}" >&2
+     else
+       echo "${LOG}" >&${__log_fd}
+     fi
    fi
  done
 }
@@ -250,41 +355,41 @@ __logw() {
 
 # ERROR: Error messages with call stack
 __loge() {
- if ! __should_log_message "ERROR"; then
-   return 0
- fi
- 
- local caller_info
- local formatted_message
- 
- caller_info=$(__get_caller_info)
- formatted_message=$(__format_log_message "ERROR" "$*" "$caller_info")
- 
- __output_log "$formatted_message" "true"
- 
- # Show call stack for ERROR
- if [[ "${#FUNCNAME[@]}" -gt 3 ]]; then
-   __generate_call_stack
+ declare -A __bl_allowed_log_levels
+ __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO [WARN]=WARN [ERROR]=ERROR)
+ if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
+   local caller_info
+   local formatted_message
+   
+   caller_info=$(__get_caller_info)
+   formatted_message=$(__format_log_message "ERROR" "$*" "$caller_info")
+   
+   __output_log "$formatted_message" "true"
+   
+   # Show call stack for ERROR
+   if ((${#FUNCNAME[@]} > 2)); then
+     __generate_call_stack_error
+   fi
  fi
 }
 
 # FATAL: Fatal error messages
 __logf() {
- if ! __should_log_message "FATAL"; then
-   return 0
- fi
- 
- local caller_info
- local formatted_message
- 
- caller_info=$(__get_caller_info)
- formatted_message=$(__format_log_message "FATAL" "$*" "$caller_info")
- 
- __output_log "$formatted_message" "true"
- 
- # Show call stack for FATAL
- if [[ "${#FUNCNAME[@]}" -gt 3 ]]; then
-   __generate_call_stack
+ declare -A __bl_allowed_log_levels
+ __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO [WARN]=WARN [ERROR]=ERROR [FATAL]=FATAL)
+ if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
+   local caller_info
+   local formatted_message
+   
+   caller_info=$(__get_caller_info)
+   formatted_message=$(__format_log_message "FATAL" "$*" "$caller_info")
+   
+   __output_log "$formatted_message" "true"
+   
+   # Show call stack for FATAL
+   if ((${#FUNCNAME[@]} > 2)); then
+     __generate_call_stack_fatal
+   fi
  fi
 }
 
@@ -292,63 +397,93 @@ __logf() {
 
 # Start timing a function
 __log_start() {
- local caller_info
- local function_name="${FUNCNAME[1]:-main}"
- local script_name="${BASH_SOURCE[1]:-unknown}"
- 
- # Clean names
- script_name="${script_name##*/}"
- 
- # Store start time
- __logger_function_start_time=$(date +%s)
- __logger_run_times["${script_name}:${function_name}"]="$__logger_function_start_time"
- 
- if __should_log_message "INFO"; then
+ declare -A __bl_allowed_log_levels
+ __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO)
+ if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
+   local caller_info
+   local function_name="${FUNCNAME[1]:-main}"
+   local script_name="${BASH_SOURCE[1]:-unknown}"
+   
+   # Clean names
+   script_name="${script_name##*/}"
+   
+   # Store start time
+   __logger_function_start_time=$(date +%s)
+   __logger_run_times["${script_name}:${function_name}"]="$__logger_function_start_time"
+   
    caller_info=$(__get_caller_info)
-   __output_log "$(__format_log_message "INFO" "#-- STARTED ${function_name^^} --#" "$caller_info")"
-   __output_log ""
+   if [[ -n "$__log_fd" ]]; then
+     echo "" >&${__log_fd}
+     echo "$(__format_log_message "INFO" "#-- STARTED ${function_name^^} --#" "$caller_info")" >&${__log_fd}
+   else
+     echo ""
+     echo "$(__format_log_message "INFO" "#-- STARTED ${function_name^^} --#" "$caller_info")"
+   fi
  fi
 }
 
 # Finish timing a function
 __log_finish() {
- local caller_info
- local function_name="${FUNCNAME[1]:-main}"
- local script_name="${BASH_SOURCE[1]:-unknown}"
- local start_time
- local end_time
- local run_time
- local hours
- local minutes
- local seconds
- 
- # Clean names
- script_name="${script_name##*/}"
- 
- # Calculate timing
- end_time=$(date +%s)
- 
- if [[ "$function_name" == "main" || "$function_name" == "MAIN" ]]; then
-   start_time="$__logger_script_start_time"
- else
-   start_time="${__logger_run_times["${script_name}:${function_name}"]:-$__logger_script_start_time}"
- fi
- 
- run_time=$((end_time - start_time))
- hours=$((run_time / 3600))
- minutes=$(((run_time % 3600) / 60))
- seconds=$(((run_time % 3600) % 60))
- 
- if __should_log_message "INFO"; then
+ declare -A __bl_allowed_log_levels
+ __bl_allowed_log_levels=([TRACE]=TRACE [DEBUG]=DEBUG [INFO]=INFO)
+ if [[ "${__bl_allowed_log_levels[${__log_level}]+isset}" ]]; then
+   local caller_info
+   local function_name="${FUNCNAME[1]:-main}"
+   local script_name="${BASH_SOURCE[1]:-unknown}"
+   local start_time
+   local end_time
+   local run_time
+   local hours
+   local minutes
+   local seconds
+   
+   # Clean names
+   script_name="${script_name##*/}"
+   
+   # Calculate timing
+   end_time=$(date +%s)
+   
+   if [[ "${function_name^^}" == "MAIN" ]]; then
+     start_time="$__logger_script_start_time"
+   else
+     start_time="${__logger_run_times["${script_name}:${function_name}"]:-$__logger_script_start_time}"
+   fi
+   
+   run_time=$((end_time - start_time))
+   hours=$((run_time / 3600))
+   minutes=$(((run_time % 3600) / 60))
+   seconds=$(((run_time % 3600) % 60))
+   
    caller_info=$(__get_caller_info)
-   __output_log "$(__format_log_message "INFO" "|-- FINISHED ${function_name^^} - Took: ${hours}h:${minutes}m:${seconds}s --|" "$caller_info")"
-   __output_log ""
+   if [[ -n "$__log_fd" ]]; then
+     echo "$(__format_log_message "INFO" "|-- FINISHED ${function_name^^} - Took: ${hours}h:${minutes}m:${seconds}s --|" "$caller_info")" >&${__log_fd}
+     echo "" >&${__log_fd}
+   else
+     echo "$(__format_log_message "INFO" "|-- FINISHED ${function_name^^} - Took: ${hours}h:${minutes}m:${seconds}s --|" "$caller_info")"
+     echo ""
+   fi
  fi
 }
 
-# Default log function (for compatibility)
+# Default log function (original behavior)
 __log() {
- __logi "$@"
+ local __bl_script_name="${BASH_SOURCE[1]}"
+ __bl_script_name="${__bl_script_name##*/}"
+ 
+ local __bl_function_name="${FUNCNAME[1]}"
+ local __bl_called_line_number="${BASH_LINENO[0]}"
+ local __bl_log_message="$*"
+ local __bl_time_and_date
+ 
+ __bl_time_and_date="$(date '+%Y-%m-%d %H:%M:%S')"
+ 
+ local LOG="${__bl_time_and_date} - ${__bl_script_name}:${__bl_function_name}:${__bl_called_line_number} - ${__bl_log_message}"
+ 
+ if [[ -z "${__log_fd}" ]]; then
+   echo "${LOG}"
+ else
+   echo "${LOG}" >&${__log_fd}
+ fi
 }
 
 # === EXPORTS FOR GLOBAL AVAILABILITY ===
@@ -374,6 +509,8 @@ export -f __set_log_level
 export -f __set_log_file
 export -f __output_log
 export -f __generate_call_stack
+export -f __generate_call_stack_error
+export -f __generate_call_stack_fatal
 export -f __logt
 export -f __logd
 export -f __logi

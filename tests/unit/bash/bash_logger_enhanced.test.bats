@@ -3,7 +3,7 @@
 # Unit tests for Enhanced Bash Logger 
 # Test file: bash_logger_enhanced.test.bats
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-05
+# Version: 2025-01-23
 
 load "../../test_helper.bash"
 
@@ -173,4 +173,76 @@ teardown() {
   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh 2>/dev/null && echo 'Integration test passed'"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Integration test passed"* ]]
+}
+
+@test "Enhanced Logger: Date format is included in all messages" {
+  local current_date
+  current_date=$(date '+%Y-%m-%d')
+  
+  run __logi "Date test message"
+  [[ "$output" == *"$current_date"* ]]
+  
+  run __logw "Date test warning"
+  [[ "$output" == *"$current_date"* ]]
+  
+  run __loge "Date test error"
+  [[ "$output" == *"$current_date"* ]]
+}
+
+@test "Enhanced Logger: Log start and finish include empty lines" {
+  test_function_timing() {
+    __log_start
+    __log_finish
+  }
+  
+  run test_function_timing
+  # Check that output contains the expected format with empty lines
+  [[ "$output" == *"STARTED TEST_FUNCTION_TIMING"* ]]
+  [[ "$output" == *"FINISHED TEST_FUNCTION_TIMING"* ]]
+  # The timing output should show time taken
+  [[ "$output" == *"Took: 0h:0m:0s"* ]]
+}
+
+@test "Enhanced Logger: Original __log function works without level" {
+  run __log "Message without explicit level"
+  # Should show timestamp and location but no explicit level like INFO/DEBUG
+  [[ "$output" == *"Message without explicit level"* ]]
+  [[ "$output" == *"$(date '+%Y-%m-%d')"* ]]
+  # Should NOT contain "INFO -" or other level markers
+  [[ "$output" != *"INFO -"* ]]
+  [[ "$output" != *"DEBUG -"* ]]
+}
+
+@test "Enhanced Logger: Call stack is shown for TRACE level" {
+  __set_log_level "TRACE"
+  
+  outer_function() {
+    inner_function
+  }
+  
+  inner_function() {
+    __logt "Trace message with stack"
+  }
+  
+  run outer_function
+  [[ "$output" == *"TRACE"* ]]
+  [[ "$output" == *"Trace message with stack"* ]]
+  [[ "$output" == *"Execution call stack:"* ]]
+}
+
+@test "Enhanced Logger: File descriptor syntax works correctly" {
+  __set_log_file "$TEST_LOG_FILE"
+  
+  # Test that the log file descriptor is set (should be a number)
+  [[ -n "$__log_fd" ]]
+  [[ "$__log_fd" =~ ^[0-9]+$ ]]
+  
+  # Test that messages are written to file using file descriptor syntax
+  __logi "Test file descriptor message"
+  
+  [[ -f "$TEST_LOG_FILE" ]]
+  local content
+  content=$(cat "$TEST_LOG_FILE")
+  [[ "$content" == *"Test file descriptor message"* ]]
+  [[ "$content" == *"INFO"* ]]
 }
