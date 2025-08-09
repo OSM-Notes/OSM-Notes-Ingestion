@@ -57,7 +57,7 @@ teardown() {
  [[ -f "${datamart_users_dir}/datamartUsers_32_populateDatamartUsersTable.sql" ]]
  
  [[ -f "${datamart_countries_dir}/datamartCountries_11_checkDatamartCountriesTables.sql" ]]
- [[ -f "${datamart_countries_dir}/datamartCountries_12_createDatamartCountriesTable.sql" ]]
+ [[ -f "${datamart_countries_dir}/datamartCountries_12_createDatamarCountriesTable.sql" ]]
  [[ -f "${datamart_countries_dir}/datamartCountries_13_createProcedure.sql" ]]
  [[ -f "${datamart_countries_dir}/datamartCountries_31_populateDatamartCountriesTable.sql" ]]
 }
@@ -140,7 +140,7 @@ teardown() {
  grep -q "hour_of_week\|period_of_day" "${datamart_users_dir}/datamartUsers_12_createDatamartUsersTable.sql" || skip "datamartUsers missing enhanced time columns"
  
  # Check for enhanced country columns in datamartCountries
- grep -q "iso_alpha2\|iso_alpha3" "${datamart_countries_dir}/datamartCountries_12_createDatamartCountriesTable.sql" || skip "datamartCountries missing enhanced country columns"
+ grep -q "iso_alpha2\|iso_alpha3" "${datamart_countries_dir}/datamartCountries_12_createDatamarCountriesTable.sql" || skip "datamartCountries missing enhanced country columns"
 }
 
 @test "Datamart documentation consistency" {

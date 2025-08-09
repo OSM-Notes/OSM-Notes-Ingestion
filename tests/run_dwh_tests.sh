@@ -74,12 +74,16 @@ check_prerequisites() {
     exit 1
   fi
   
-  # Check if psql is available (for SQL tests)
-  if ! command -v psql &> /dev/null; then
-    log_warning "psql not found, SQL tests will be skipped"
-    SKIP_SQL=true
+  # Check if psql is available (for SQL tests) - only if not already skipped
+  if [[ "${SKIP_SQL:-false}" != "true" ]]; then
+    if ! command -v psql &> /dev/null; then
+      log_warning "psql not found, SQL tests will be skipped"
+      SKIP_SQL=true
+    else
+      SKIP_SQL=false
+    fi
   else
-    SKIP_SQL=false
+    log_info "SQL tests already marked for skipping"
   fi
   
   log_success "Prerequisites check completed"
