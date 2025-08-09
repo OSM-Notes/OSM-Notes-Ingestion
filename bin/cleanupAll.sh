@@ -5,7 +5,7 @@
 # Can be used for full cleanup or partition-only cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
+# Version: 2025-01-23
 
 set -euo pipefail
 
@@ -291,9 +291,9 @@ function __cleanup_base() {
  local BASE_SCRIPTS=(
   "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql:Check Tables"
   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql:Sync Tables"
+  "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql:Generic Objects"
   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql:Base Tables"
   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_14_dropCountryTables.sql:Country Tables"
-  "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql:Generic Objects"
  )
 
  for SCRIPT_INFO in "${BASE_SCRIPTS[@]}"; do

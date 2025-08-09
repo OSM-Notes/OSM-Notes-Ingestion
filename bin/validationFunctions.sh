@@ -4,7 +4,7 @@
 # This file contains validation functions for various data types.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-08
+# Version: 2025-01-23
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -34,6 +34,7 @@ if [[ -z "${__COMMON_FUNCTIONS_LOADED:-}" ]]; then
   source "$(dirname "${BASH_SOURCE[0]}")/commonFunctions.sh"
  fi
 fi
+
 
 # JSON schema files for validation
 # shellcheck disable=SC2034
@@ -71,32 +72,61 @@ function __show_help() {
  exit 1
 }
 
-# Validate input file
+# Validate input file (enhanced version with support for files, directories, and executables)
 function __validate_input_file() {
  local FILE_PATH="${1}"
- local DESCRIPTION="${2:-Input file}"
+ local DESCRIPTION="${2:-File}"
+ local EXPECTED_TYPE="${3:-file}"
+ local VALIDATION_ERRORS=()
 
- __logd "=== VALIDATING INPUT FILE ==="
- __logd "File: ${FILE_PATH}"
- __logd "Description: ${DESCRIPTION}"
-
- if [[ ! -f "${FILE_PATH}" ]]; then
-  __loge "ERROR: ${DESCRIPTION} not found: ${FILE_PATH}"
+ # Check if file path is provided
+ if [[ -z "${FILE_PATH}" ]]; then
+  __loge "ERROR: ${DESCRIPTION} path is empty"
   return 1
  fi
 
- if [[ ! -r "${FILE_PATH}" ]]; then
-  __loge "ERROR: ${DESCRIPTION} not readable: ${FILE_PATH}"
-  return 1
+ # Check if file exists
+ if [[ ! -e "${FILE_PATH}" ]]; then
+  VALIDATION_ERRORS+=("File does not exist: ${FILE_PATH}")
  fi
 
- if [[ ! -s "${FILE_PATH}" ]]; then
-  __loge "ERROR: ${DESCRIPTION} is empty: ${FILE_PATH}"
+ # Check if file is readable (for files)
+ if [[ "${EXPECTED_TYPE}" == "file" ]] && [[ -e "${FILE_PATH}" ]]; then
+  if [[ ! -f "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("Path is not a file: ${FILE_PATH}")
+  elif [[ ! -r "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("File is not readable: ${FILE_PATH}")
+  elif [[ ! -s "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("File is empty: ${FILE_PATH}")
+  fi
+ fi
+
+ # Check if directory is accessible (for directories)
+ if [[ "${EXPECTED_TYPE}" == "dir" ]] && [[ -e "${FILE_PATH}" ]]; then
+  if [[ ! -d "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("Path is not a directory: ${FILE_PATH}")
+  elif [[ ! -r "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("Directory is not readable: ${FILE_PATH}")
+  fi
+ fi
+
+ # Check if executable is executable
+ if [[ "${EXPECTED_TYPE}" == "executable" ]] && [[ -e "${FILE_PATH}" ]]; then
+  if [[ ! -x "${FILE_PATH}" ]]; then
+   VALIDATION_ERRORS+=("File is not executable: ${FILE_PATH}")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
+  __loge "ERROR: ${DESCRIPTION} validation failed:"
+  for ERROR in "${VALIDATION_ERRORS[@]}"; do
+   __loge "  - ${ERROR}"
+  done
   return 1
  fi
 
  __logd "${DESCRIPTION} validation passed: ${FILE_PATH}"
- __logd "=== INPUT FILE VALIDATION COMPLETED ==="
  return 0
 }
 
@@ -138,6 +168,28 @@ function __validate_xml_structure_impl() {
  
  if [[ "${SIZE_MB}" -gt 500 ]]; then
   __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using lightweight structure validation."
+  
+  # Use lightweight validation for large files
+  if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
+   __loge "ERROR: Missing expected root element in large XML file: ${XML_FILE}"
+   return 1
+  fi
+  __logd "Large XML file validation passed: ${XML_FILE}"
+  return 0
+ fi
+
+ # Use standard validation for smaller files
+ if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: Invalid XML syntax: ${XML_FILE}"
+  return 1
+ fi
+ 
+ # Check expected root element if provided
+ if [[ -n "${EXPECTED_ROOT}" ]]; then
+  if ! grep -q "<${EXPECTED_ROOT}" "${XML_FILE}" 2> /dev/null; then
+   __loge "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}"
+   return 1
+  fi
   
   # Check for required root element using grep (much faster for large files)
   if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
@@ -821,7 +873,15 @@ function __validate_file_checksum_from_file() {
  local EXPECTED_CHECKSUM
  local FILENAME
  FILENAME=$(basename "${FILE_PATH}")
- EXPECTED_CHECKSUM=$(grep "${FILENAME}" "${CHECKSUM_FILE}" | cut -d' ' -f1)
+ 
+ # First try to find checksum by filename
+ EXPECTED_CHECKSUM=$(grep "${FILENAME}" "${CHECKSUM_FILE}" | awk '{print $1}' 2>/dev/null)
+ 
+ # If not found by filename, assume single-line checksum file and take first field
+ if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
+  __logw "Checksum not found by filename, trying to extract from single-line file"
+  EXPECTED_CHECKSUM=$(head -1 "${CHECKSUM_FILE}" | awk '{print $1}' 2>/dev/null)
+ fi
 
  if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
   __loge "ERROR: Could not extract checksum from file: ${CHECKSUM_FILE}"
@@ -960,32 +1020,59 @@ function __validate_json_schema() {
  return 0
 }
 
-# Validate coordinates
+# Validate coordinates (enhanced version with precision control and better error reporting)
 function __validate_coordinates() {
- local LAT="${1}"
- local LON="${2}"
+ local LATITUDE="${1}"
+ local LONGITUDE="${2}"
+ local PRECISION="${3:-7}"
+ local VALIDATION_ERRORS=()
 
- # Check if coordinates are numeric
- if ! [[ "${LAT}" =~ ^-?[0-9]+\.?[0-9]*$ ]] || ! [[ "${LON}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  __loge "ERROR: Invalid coordinate format: lat=${LAT}, lon=${LON}"
-  return 1
+ # Check if values are numeric
+ if ! [[ "${LATITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  VALIDATION_ERRORS+=("Latitude '${LATITUDE}' is not a valid number")
  fi
 
- # Validate latitude range (-90 to 90)
- if (($(echo "${LAT} < -90" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${LAT} > 90" | bc -l 2> /dev/null || echo "0"))); then
-  __loge "ERROR: Latitude out of range (-90 to 90): ${LAT}"
-  return 1
+ if ! [[ "${LONGITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' is not a valid number")
  fi
 
- # Validate longitude range (-180 to 180)
- if (($(echo "${LON} < -180" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${LON} > 180" | bc -l 2> /dev/null || echo "0"))); then
-  __loge "ERROR: Longitude out of range (-180 to 180): ${LON}"
+ # Check latitude range (-90 to 90)
+ if [[ "${LATITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  if (($(echo "${LATITUDE} < -90" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${LATITUDE} > 90" | bc -l 2> /dev/null || echo "0"))); then
+   VALIDATION_ERRORS+=("Latitude '${LATITUDE}' is outside valid range (-90 to 90)")
+  fi
+ fi
+
+ # Check longitude range (-180 to 180)
+ if [[ "${LONGITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
+  if (($(echo "${LONGITUDE} < -180" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${LONGITUDE} > 180" | bc -l 2> /dev/null || echo "0"))); then
+   VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' is outside valid range (-180 to 180)")
+  fi
+ fi
+
+ # Check precision if bc is available (only if precision is explicitly specified and < 7)
+ if command -v bc > /dev/null 2>&1 && [[ "${3:-}" != "" ]] && [[ "${PRECISION}" -lt 7 ]]; then
+  if [[ "${LATITUDE}" =~ \.[0-9]{$((PRECISION+1)),} ]]; then
+   VALIDATION_ERRORS+=("Latitude '${LATITUDE}' has too many decimal places (max ${PRECISION})")
+  fi
+
+  if [[ "${LONGITUDE}" =~ \.[0-9]{$((PRECISION+1)),} ]]; then
+   VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' has too many decimal places (max ${PRECISION})")
+  fi
+ fi
+
+ # Report validation errors
+ if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
+  __loge "ERROR: Coordinate validation failed:"
+  for ERROR in "${VALIDATION_ERRORS[@]}"; do
+   __loge "  - ${ERROR}"
+  done
   return 1
  fi
 
  # Only log in trace mode to reduce verbosity
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
-  __logd "Coordinate validation passed: lat=${LAT}, lon=${LON}"
+  __logd "Coordinate validation passed: lat=${LATITUDE}, lon=${LONGITUDE}"
  fi
  return 0
 }
@@ -1034,43 +1121,9 @@ function __validate_string_pattern() {
  return 0
 }
 
-# Validate XML coordinates
-function __validate_xml_coordinates() {
- local XML_FILE="${1}"
- local LAT_XPATH="${2:-//note/@lat}"
- local LON_XPATH="${3:-//note/@lon}"
-
- if ! __validate_input_file "${XML_FILE}" "XML file"; then
-  return 1
- fi
-
- local FAILED=0
- local COORDINATES
- mapfile -t COORDINATES < <(xmllint --xpath "${LAT_XPATH} | ${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -o '[0-9.-]*' || true)
-
- # Process coordinates in pairs (lat, lon)
- for ((i = 0; i < ${#COORDINATES[@]}; i += 2)); do
-  local LAT="${COORDINATES[i]}"
-  local LON="${COORDINATES[i + 1]}"
-
-  if [[ -n "${LAT}" ]] && [[ -n "${LON}" ]]; then
-   if ! __validate_coordinates "${LAT}" "${LON}"; then
-    FAILED=1
-   fi
-  fi
- done
-
- if [[ "${FAILED}" -eq 1 ]]; then
-  __loge "ERROR: XML coordinate validation failed"
-  return 1
- fi
-
- # Only log in trace mode to reduce verbosity
- if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
-  __logd "XML coordinate validation passed: ${XML_FILE}"
- fi
- return 0
-}
+# Validate XML coordinates - This function has been moved to functionsProcess.sh
+# to avoid duplication and use the more advanced implementation.
+# Use the function from functionsProcess.sh instead.
 
 # Validate CSV coordinates
 function __validate_csv_coordinates() {

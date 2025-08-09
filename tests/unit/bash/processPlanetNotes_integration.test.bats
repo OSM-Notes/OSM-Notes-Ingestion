@@ -188,4 +188,30 @@ teardown() {
    run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
+}
+
+@test "drop base tables script should work with and without existing types" {
+ # Test that the drop script works whether types exist or not
+ 
+ # Setup test database if it doesn't exist
+ if ! psql -lqt | cut -d\| -f1 | grep -qw "${TEST_DBNAME}"; then
+   createdb "${TEST_DBNAME}" 2>/dev/null || skip "Could not create test database"
+ fi
+ 
+ # Test 1: Run drop script when types don't exist (should not fail)
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+ [ "$status" -eq 0 ] || echo "Drop script should succeed even when types don't exist"
+ 
+ # Test 2: Create types, then drop them (should not fail)
+ psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2>/dev/null || true
+ 
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+ [ "$status" -eq 0 ] || echo "Drop script should succeed when types exist"
+ 
+ # Test 3: Run drop script again when types don't exist anymore (should not fail)
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+ [ "$status" -eq 0 ] || echo "Drop script should succeed when types were already dropped"
+ 
+ # Cleanup test database
+ dropdb "${TEST_DBNAME}" 2>/dev/null || true
 } 

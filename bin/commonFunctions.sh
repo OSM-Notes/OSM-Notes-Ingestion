@@ -4,7 +4,7 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-08
+# Version: 2025-01-23
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -62,16 +62,20 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
   SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/../.." && pwd)"
  fi
 fi
-# Don't define LOGGER_UTILITY - we're using simple logger only
-
-# Logger functions - Simple fallback implementations
-function __log() { echo "LOG: $*"; }
-function __logt() { echo "TRACE: $*"; }
-function __logd() { echo "DEBUG: $*"; }
-function __logi() { echo "INFO: $*"; }
-function __logw() { echo "WARN: $*"; }
-function __loge() { echo "ERROR: $*" >&2; }
-function __logf() { echo "FATAL: $*" >&2; }
+# Load bash logger functions instead of simple fallbacks
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh" ]]; then
+ # shellcheck source=../lib/bash_logger.sh
+ source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+else
+ # Fallback implementations if bash_logger.sh is not available
+ function __log() { echo "$(date '+%Y-%m-%d %H:%M:%S') - LOG: $*"; }
+ function __logt() { echo "$(date '+%Y-%m-%d %H:%M:%S') - TRACE: $*"; }
+ function __logd() { echo "$(date '+%Y-%m-%d %H:%M:%S') - DEBUG: $*"; }
+ function __logi() { echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO: $*"; }
+ function __logw() { echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN: $*"; }
+ function __loge() { echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: $*" >&2; }
+ function __logf() { echo "$(date '+%Y-%m-%d %H:%M:%S') - FATAL: $*" >&2; }
+fi
 
 # Fallback lifecycle helpers, kept minimal to avoid side-effects
 if ! declare -f __log_start > /dev/null 2>&1; then

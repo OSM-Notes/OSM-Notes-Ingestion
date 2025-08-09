@@ -258,14 +258,16 @@ function __handle_error_with_cleanup() {
  __loge "=== ERROR HANDLING WITH CLEANUP ==="
  __loge "ERROR: Error occurred: ${ERROR_MESSAGE}"
 
- # Execute cleanup command if provided
- if [[ -n "${CLEANUP_COMMAND}" ]]; then
+ # Execute cleanup command if provided and CLEAN is true
+ if [[ -n "${CLEANUP_COMMAND}" ]] && [[ "${CLEAN:-true}" == "true" ]]; then
   __logd "Executing cleanup command: ${CLEANUP_COMMAND}"
   if eval "${CLEANUP_COMMAND}"; then
    __logd "Cleanup command executed successfully"
   else
    __logw "WARNING: Cleanup command failed"
   fi
+ elif [[ -n "${CLEANUP_COMMAND}" ]]; then
+  __logd "Skipping cleanup command due to CLEAN=false: ${CLEANUP_COMMAND}"
  fi
 
  # Generate failed execution file if enabled

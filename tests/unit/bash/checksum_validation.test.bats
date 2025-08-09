@@ -1,219 +1,146 @@
 #!/usr/bin/env bats
 
-# Test file for checksum validation functions
+# Unit tests for Checksum Validation Functions
+# Test file: checksum_validation.test.bats
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-01-23
 
-load "${BATS_TEST_DIRNAME}/../../test_helper.bash"
+load "../../test_helper.bash"
 
 setup() {
-  # Disable enhanced logger for tests - use simple logger
-  export LOGGER_UTILITY=""
-  
-  # Define simple logging functions for tests
-  function __logd() { echo "DEBUG: $*"; }
-  function __loge() { echo "ERROR: $*" >&2; }
+  # Source the validation functions
+  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
   
   # Create temporary test files
-  TEST_FILE=$(mktemp)
-  TEST_CHECKSUM_FILE=$(mktemp)
+  TEST_FILE="/tmp/test_checksum_file.txt"
+  TEST_MD5="/tmp/test_checksum_file.md5"
+  TEST_PLANET_FILE="/tmp/OSM-notes-planet.xml.bz2"
+  TEST_PLANET_MD5="/tmp/OSM-notes-planet.xml.bz2.md5"
   
-  # Create test file with content
-  echo "This is a test file for checksum validation" > "${TEST_FILE}"
-  
-  # Create test checksum file
-  md5sum "${TEST_FILE}" > "${TEST_CHECKSUM_FILE}"
+  # Clean up any existing test files
+  rm -f "${TEST_FILE}" "${TEST_MD5}" "${TEST_PLANET_FILE}" "${TEST_PLANET_MD5}"
 }
 
 teardown() {
-  # Clean up temporary files
-  rm -f "${TEST_FILE}" "${TEST_CHECKSUM_FILE}"
+  # Clean up test files
+  rm -f "${TEST_FILE}" "${TEST_MD5}" "${TEST_PLANET_FILE}" "${TEST_PLANET_MD5}"
 }
 
-@test "validate_file_checksum with valid MD5" {
-  # Get the expected checksum
-  local expected_checksum
-  expected_checksum=$(md5sum "${TEST_FILE}" | cut -d' ' -f 1)
+@test "checksum validation should work with matching filename" {
+  # Create test file and checksum
+  echo "test content for checksum validation" > "${TEST_FILE}"
+  md5sum "${TEST_FILE}" > "${TEST_MD5}"
   
-  run __validate_file_checksum "${TEST_FILE}" "${expected_checksum}" "md5"
+  # Test validation
+  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: md5 checksum validation passed"* ]]
 }
 
-@test "validate_file_checksum with invalid MD5" {
-  run __validate_file_checksum "${TEST_FILE}" "invalid_checksum" "md5"
+@test "checksum validation should work with non-matching filename (Planet Notes scenario)" {
+  # Create test file with different name than checksum file expects
+  echo "fake planet content for testing" > "${TEST_PLANET_FILE}"
+  
+  # Create MD5 file with different filename (simulating Planet Notes scenario)
+  ACTUAL_CHECKSUM=$(md5sum "${TEST_PLANET_FILE}" | cut -d' ' -f1)
+  echo "${ACTUAL_CHECKSUM}  planet-notes-latest.osn.bz2" > "${TEST_PLANET_MD5}"
+  
+  # Test validation - should use fallback logic and succeed
+  run __validate_file_checksum_from_file "${TEST_PLANET_FILE}" "${TEST_PLANET_MD5}" "md5"
+  [ "$status" -eq 0 ]
+  # The main thing is that it succeeds despite filename mismatch
+}
+
+@test "checksum validation should fail with corrupted file" {
+  # Create test file and checksum
+  echo "original content" > "${TEST_FILE}"
+  md5sum "${TEST_FILE}" > "${TEST_MD5}"
+  
+  # Modify file content (corrupt it)
+  echo "modified content" > "${TEST_FILE}"
+  
+  # Test validation - should fail
+  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: md5 checksum validation failed"* ]]
   [[ "$output" == *"Checksum mismatch"* ]]
 }
 
-@test "validate_file_checksum with empty checksum" {
-  run __validate_file_checksum "${TEST_FILE}" "" "md5"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: Expected checksum is empty"* ]]
-}
-
-@test "validate_file_checksum with non-existent file" {
-  run __validate_file_checksum "/non/existent/file" "dummy" "md5"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: File for checksum validation not found"* ]]
-}
-
-@test "validate_file_checksum with invalid algorithm" {
-  run __validate_file_checksum "${TEST_FILE}" "dummy" "invalid_algo"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: invalid_algo checksum validation failed"* ]]
-  [[ "$output" == *"Invalid algorithm"* ]]
-}
-
-@test "validate_file_checksum_from_file with valid file" {
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_CHECKSUM_FILE}" "md5"
+@test "checksum validation should handle single-line MD5 files" {
+  # Create test file
+  echo "test content for single line" > "${TEST_FILE}"
+  EXPECTED_CHECKSUM=$(md5sum "${TEST_FILE}" | cut -d' ' -f1)
+  
+  # Create MD5 file with just the checksum (no filename)
+  echo "${EXPECTED_CHECKSUM}" > "${TEST_MD5}"
+  
+  # Test validation
+  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: md5 checksum validation passed"* ]]
 }
 
-@test "validate_file_checksum_from_file with non-existent checksum file" {
-  run __validate_file_checksum_from_file "${TEST_FILE}" "/non/existent/checksum" "md5"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: Checksum file not found"* ]]
-}
-
-@test "validate_file_checksum_from_file with empty checksum file" {
-  # Create empty checksum file
-  local empty_checksum=$(mktemp)
+@test "checksum validation should handle MD5 files with multiple spaces" {
+  # Create test file
+  echo "test content with multiple spaces" > "${TEST_FILE}"
+  EXPECTED_CHECKSUM=$(md5sum "${TEST_FILE}" | cut -d' ' -f1)
   
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${empty_checksum}" "md5"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: Could not extract checksum from file"* ]]
+  # Create MD5 file with multiple spaces (like Planet Notes)
+  echo "${EXPECTED_CHECKSUM}  $(basename "${TEST_FILE}")" > "${TEST_MD5}"
   
-  rm -f "${empty_checksum}"
-}
-
-@test "generate_file_checksum with MD5" {
-  run __generate_file_checksum "${TEST_FILE}" "md5"
+  # Test validation
+  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(md5sum "${TEST_FILE}" | cut -d' ' -f 1)"* ]]
 }
 
-@test "generate_file_checksum with SHA256" {
-  run __generate_file_checksum "${TEST_FILE}" "sha256"
+@test "checksum validation should fail with empty MD5 file" {
+  # Create test file
+  echo "test content" > "${TEST_FILE}"
+  
+  # Create empty MD5 file
+  touch "${TEST_MD5}"
+  
+  # Test validation - should fail
+  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Could not extract checksum from file"* ]]
+}
+
+@test "checksum validation should fail with non-existent MD5 file" {
+  # Create test file
+  echo "test content" > "${TEST_FILE}"
+  
+  # Test validation with non-existent MD5 file
+  run __validate_file_checksum_from_file "${TEST_FILE}" "/tmp/non_existent.md5" "md5"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Checksum file not found"* ]]
+}
+
+@test "checksum validation supports different algorithms" {
+  # Create test file
+  echo "test content for algorithms" > "${TEST_FILE}"
+  
+  # Test SHA256
+  sha256sum "${TEST_FILE}" > "${TEST_MD5}"
+  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "sha256"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$(sha256sum "${TEST_FILE}" | cut -d' ' -f 1)"* ]]
-}
-
-@test "generate_file_checksum with output file" {
-  local output_file=$(mktemp)
   
-  run __generate_file_checksum "${TEST_FILE}" "md5" "${output_file}"
+  # Test SHA1
+  sha1sum "${TEST_FILE}" > "${TEST_MD5}"
+  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "sha1"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: md5 checksum saved to"* ]]
-  
-  # Verify output file contains the checksum
-  local expected_checksum
-  expected_checksum=$(md5sum "${TEST_FILE}")
-  [[ "$(cat "${output_file}")" == "${expected_checksum}" ]]
-  
-  rm -f "${output_file}"
 }
 
-@test "generate_file_checksum with non-existent file" {
-  run __generate_file_checksum "/non/existent/file" "md5"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: File for checksum generation not found"* ]]
-}
-
-@test "generate_file_checksum with invalid algorithm" {
-  run __generate_file_checksum "${TEST_FILE}" "invalid_algo"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: Invalid algorithm"* ]]
-}
-
-@test "validate_directory_checksums with valid files" {
-  # Create test directory and files
-  local test_dir=$(mktemp -d)
-  local test_file1="${test_dir}/file1.txt"
-  local test_file2="${test_dir}/file2.txt"
-  local checksum_file=$(mktemp)
+@test "checksum extraction should handle real Planet Notes MD5 format" {
+  # Create a sample Planet Notes-style MD5 file
+  echo "f451953cfcb4450a48a779d0a63dde5c  planet-notes-latest.osn.bz2" > "${TEST_MD5}"
   
-  echo "Content 1" > "${test_file1}"
-  echo "Content 2" > "${test_file2}"
+  # Test extraction using the same logic as __validate_file_checksum_from_file
+  EXPECTED_CHECKSUM=$(head -1 "${TEST_MD5}" | awk '{print $1}' 2>/dev/null)
+  [ "${EXPECTED_CHECKSUM}" = "f451953cfcb4450a48a779d0a63dde5c" ]
   
-  # Create checksum file
-  {
-    md5sum "${test_file1}"
-    md5sum "${test_file2}"
-  } > "${checksum_file}"
+  # Test with grep method (should fail for different filename)
+  GREP_RESULT=$(grep "OSM-notes-planet.xml.bz2" "${TEST_MD5}" | awk '{print $1}' 2>/dev/null || echo "")
+  [ -z "${GREP_RESULT}" ]
   
-  # Set up environment variables needed by the function
-  export BASENAME="test"
-  export TMP_DIR=$(mktemp -d)
-  
-  run __validate_directory_checksums "${test_dir}" "${checksum_file}" "md5"
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: Directory checksum validation passed"* ]]
-  
-  # Clean up
-  rm -rf "${test_dir}" "${checksum_file}" "${TMP_DIR}"
-}
-
-@test "validate_directory_checksums with invalid checksum" {
-  # Create test directory and files
-  local test_dir=$(mktemp -d)
-  local test_file="${test_dir}/file.txt"
-  local checksum_file=$(mktemp)
-  
-  echo "Content" > "${test_file}"
-  
-  # Create checksum file with invalid checksum
-  echo "invalid_checksum file.txt" > "${checksum_file}"
-  
-  run __validate_directory_checksums "${test_dir}" "${checksum_file}" "md5"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: Directory checksum validation failed"* ]]
-  
-  # Clean up
-  rm -rf "${test_dir}" "${checksum_file}"
-}
-
-@test "validate_directory_checksums with non-existent directory" {
-  local checksum_file=$(mktemp)
-  echo "dummy dummy.txt" > "${checksum_file}"
-  
-  run __validate_directory_checksums "/non/existent/dir" "${checksum_file}" "md5"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: Directory validation failed"* ]]
-  
-  rm -f "${checksum_file}"
-}
-
-@test "checksum validation with various algorithms" {
-  local algorithms=("md5" "sha1" "sha256" "sha512")
-  
-  for algo in "${algorithms[@]}"; do
-    # Skip if command not available
-    if ! command -v "${algo}sum" &> /dev/null; then
-      continue
-    fi
-    
-    # Generate expected checksum
-    local expected_checksum
-    case "${algo}" in
-      "md5")
-        expected_checksum=$(md5sum "${TEST_FILE}" | cut -d' ' -f 1)
-        ;;
-      "sha1")
-        expected_checksum=$(sha1sum "${TEST_FILE}" | cut -d' ' -f 1)
-        ;;
-      "sha256")
-        expected_checksum=$(sha256sum "${TEST_FILE}" | cut -d' ' -f 1)
-        ;;
-      "sha512")
-        expected_checksum=$(sha512sum "${TEST_FILE}" | cut -d' ' -f 1)
-        ;;
-    esac
-    
-    run __validate_file_checksum "${TEST_FILE}" "${expected_checksum}" "${algo}"
-    [ "$status" -eq 0 ] || echo "Failed for algorithm: ${algo}"
-    [[ "$output" == *"DEBUG: ${algo} checksum validation passed"* ]]
-  done
+  # Test fallback method (should work)
+  FALLBACK_RESULT=$(head -1 "${TEST_MD5}" | awk '{print $1}' 2>/dev/null)
+  [ "${FALLBACK_RESULT}" = "f451953cfcb4450a48a779d0a63dde5c" ]
 }

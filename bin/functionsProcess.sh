@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-08
+# Version: 2025-01-23
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -735,7 +735,7 @@ function __processXmlPartsParallel() {
     local FAILED_JOB_FILE="${TMP_DIR}/failed_job_${BASHPID}.log"
     local EXIT_CODE="${?}"
     {
-     echo "ERROR: Job ${BASHPID} failed processing ${XML_PART}"
+     __loge "Job ${BASHPID} failed processing ${XML_PART}"
      echo "Error occurred at $(date)"
      echo "Job PID: ${BASHPID}"
      echo "XML Part: ${XML_PART}"
@@ -747,7 +747,7 @@ function __processXmlPartsParallel() {
     # Also create main failed file if GENERATE_FAILED_FILE is true
     if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
      {
-      echo "ERROR: Job ${BASHPID} failed processing ${XML_PART}"
+      __loge "Job ${BASHPID} failed processing ${XML_PART}"
       echo "Error occurred at $(date)"
       echo "Job PID: ${BASHPID}"
       echo "XML Part: ${XML_PART}"
@@ -812,7 +812,7 @@ function __processXmlPartsParallel() {
   # Create comprehensive failed execution file
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
    {
-    echo "ERROR: Parallel processing failed"
+    __loge "Parallel processing failed"
     echo "Error occurred at $(date)"
     echo "Failed jobs: ${FAIL}"
     echo "Failed markers found: ${FAILED_MARKERS}"
@@ -1094,90 +1094,12 @@ function __processPlanetXmlPart() {
 }
 
 # Function to validate input files and directories
-# Parameters:
-#   $1: File path to validate
-#   $2: Description of the file (optional)
-#   $3: Expected file type (optional: "file", "dir", "executable")
-# Returns:
-#   0 if valid, 1 if invalid
-function __validate_input_file() {
- local FILE_PATH="${1}"
- local DESCRIPTION="${2:-File}"
- local EXPECTED_TYPE="${3:-file}"
- local VALIDATION_ERRORS=()
-
- # Check if file path is provided
- if [[ -z "${FILE_PATH}" ]]; then
-  echo "ERROR: ${DESCRIPTION} path is empty" >&2
-  return 1
- fi
-
- # Check if file exists
- if [[ ! -e "${FILE_PATH}" ]]; then
-  VALIDATION_ERRORS+=("File does not exist: ${FILE_PATH}")
- fi
-
- # Check if file is readable (for files)
- if [[ "${EXPECTED_TYPE}" == "file" ]] && [[ -e "${FILE_PATH}" ]]; then
-  if [[ ! -r "${FILE_PATH}" ]]; then
-   VALIDATION_ERRORS+=("File is not readable: ${FILE_PATH}")
-  fi
- fi
-
- # Check if directory is accessible (for directories)
- if [[ "${EXPECTED_TYPE}" == "dir" ]] && [[ -e "${FILE_PATH}" ]]; then
-  if [[ ! -d "${FILE_PATH}" ]]; then
-   VALIDATION_ERRORS+=("Path is not a directory: ${FILE_PATH}")
-  elif [[ ! -r "${FILE_PATH}" ]]; then
-   VALIDATION_ERRORS+=("Directory is not readable: ${FILE_PATH}")
-  fi
- fi
-
- # Check if executable is executable
- if [[ "${EXPECTED_TYPE}" == "executable" ]] && [[ -e "${FILE_PATH}" ]]; then
-  if [[ ! -x "${FILE_PATH}" ]]; then
-   VALIDATION_ERRORS+=("File is not executable: ${FILE_PATH}")
-  fi
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: ${DESCRIPTION} validation failed:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: ${DESCRIPTION} validation passed: ${FILE_PATH}" >&2
- return 0
-}
 
 # Function to validate multiple input files
 # Parameters:
 #   $@: List of file paths to validate
 # Returns:
 #   0 if all valid, 1 if any invalid
-function __validate_input_files() {
- local ALL_VALID=true
- local FILE_PATH
-
- echo "DEBUG: Validating input files..." >&2
-
- for FILE_PATH in "$@"; do
-  if ! __validate_input_file "${FILE_PATH}" "Input file"; then
-   ALL_VALID=false
-  fi
- done
-
- if [[ "${ALL_VALID}" == "true" ]]; then
-  echo "DEBUG: All input files validation passed" >&2
-  return 0
- else
-  echo "ERROR: Some input files validation failed" >&2
-  return 1
- fi
-}
 
 # Validate XML structure (delegates to validationFunctions.sh)
 # Parameters:
@@ -1185,59 +1107,6 @@ function __validate_input_files() {
 #   $2: Expected root element (optional)
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_xml_structure() {
- # Delegate to validationFunctions.sh implementation
- if declare -f __validate_xml_structure_impl > /dev/null 2>&1; then
-  __validate_xml_structure_impl "$@"
- else
-  # Fallback implementation for backward compatibility
-  local XML_FILE="${1}"
-  local EXPECTED_ROOT="${2:-}"
-  
-  # Check if file exists and is readable
-  if [[ ! -f "${XML_FILE}" ]] || [[ ! -r "${XML_FILE}" ]]; then
-   echo "ERROR: XML file not found or not readable: ${XML_FILE}" >&2
-   return 1
-  fi
-  
-  # Check if file is not empty
-  if [[ ! -s "${XML_FILE}" ]]; then
-   echo "ERROR: XML file is empty: ${XML_FILE}" >&2
-   return 1
-  fi
-  
-  # For large files, use lightweight validation
-  local FILE_SIZE
-  FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
-  local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
-  
-  if [[ "${SIZE_MB}" -gt 500 ]]; then
-   # Use lightweight validation for large files
-   if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
-    echo "ERROR: Missing expected root element in large XML file: ${XML_FILE}" >&2
-    return 1
-   fi
-   return 0
-  else
-   # Use standard validation for smaller files
-   if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
-    echo "ERROR: Invalid XML syntax: ${XML_FILE}" >&2
-    return 1
-   fi
-   
-   # Check expected root element if provided
-   if [[ -n "${EXPECTED_ROOT}" ]]; then
-    if ! grep -q "<${EXPECTED_ROOT}" "${XML_FILE}" 2> /dev/null; then
-     echo "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}" >&2
-     return 1
-    fi
-   fi
-  fi
-  
-  echo "DEBUG: XML structure validation passed: ${XML_FILE}" >&2
-  return 0
- fi
-}
 
 # Function to validate CSV file structure
 # Parameters:
@@ -1245,126 +1114,18 @@ function __validate_xml_structure() {
 #   $2: Expected number of columns (optional)
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_csv_structure() {
- local CSV_FILE="${1}"
- local EXPECTED_COLUMNS="${2:-}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
-  return 1
- fi
-
- # Check if file is not empty
- if [[ ! -s "${CSV_FILE}" ]]; then
-  echo "ERROR: CSV file is empty: ${CSV_FILE}" >&2
-  return 1
- fi
-
- # Check if file has at least one line
- local LINE_COUNT
- LINE_COUNT=$(wc -l < "${CSV_FILE}")
- if [[ "${LINE_COUNT}" -eq 0 ]]; then
-  VALIDATION_ERRORS+=("CSV file has no lines")
- fi
-
- # Check expected number of columns if provided
- if [[ -n "${EXPECTED_COLUMNS}" ]]; then
-  local ACTUAL_COLUMNS
-  ACTUAL_COLUMNS=$(head -1 "${CSV_FILE}" | tr ',' '\n' | wc -l)
-  if [[ "${ACTUAL_COLUMNS}" -ne "${EXPECTED_COLUMNS}" ]]; then
-   VALIDATION_ERRORS+=("Expected ${EXPECTED_COLUMNS} columns, got ${ACTUAL_COLUMNS}")
-  fi
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: CSV structure validation failed for ${CSV_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: CSV structure validation passed: ${CSV_FILE}" >&2
- return 0
-}
 
 # Function to validate SQL file structure
 # Parameters:
 #   $1: SQL file path
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_sql_structure() {
- local SQL_FILE="${1}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${SQL_FILE}" "SQL file"; then
-  return 1
- fi
-
- # Check if file is not empty
- if [[ ! -s "${SQL_FILE}" ]]; then
-  echo "ERROR: SQL file is empty: ${SQL_FILE}" >&2
-  return 1
- fi
-
- # Check for basic SQL syntax (simple validation)
- if ! grep -q -E "(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|BEGIN|COMMIT|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE|GRANT|REVOKE|SAVEPOINT|ROLLBACK)" "${SQL_FILE}"; then
-  VALIDATION_ERRORS+=("No SQL statements found")
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: SQL structure validation failed for ${SQL_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: SQL structure validation passed: ${SQL_FILE}" >&2
- return 0
-}
 
 # Function to validate configuration file
 # Parameters:
 #   $1: Config file path
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_config_file() {
- local CONFIG_FILE="${1}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${CONFIG_FILE}" "Configuration file"; then
-  return 1
- fi
-
- # Check if file is not empty
- if [[ ! -s "${CONFIG_FILE}" ]]; then
-  echo "ERROR: Configuration file is empty: ${CONFIG_FILE}" >&2
-  return 1
- fi
-
- # Check for basic configuration format (more flexible)
- if ! grep -q -E "^[A-Z_][A-Z0-9_]*=" "${CONFIG_FILE}" && ! grep -q -E "^declare.*=" "${CONFIG_FILE}"; then
-  VALIDATION_ERRORS+=("No valid configuration variables found")
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: Configuration file validation failed for ${CONFIG_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: Configuration file validation passed: ${CONFIG_FILE}" >&2
- return 0
-}
 
 # Validates JSON file structure and syntax
 # Parameters:
@@ -1372,64 +1133,6 @@ function __validate_config_file() {
 #   $2: Optional expected root element name (e.g., "osm-notes")
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_json_structure() {
- local JSON_FILE="${1}"
- local EXPECTED_ROOT="${2:-}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${JSON_FILE}" "JSON file"; then
-  return 1
- fi
-
- # Check if file is not empty
- if [[ ! -s "${JSON_FILE}" ]]; then
-  echo "ERROR: JSON file is empty: ${JSON_FILE}" >&2
-  return 1
- fi
-
- # Check JSON syntax using jq
- if ! command -v jq &> /dev/null; then
-  echo "WARNING: jq not available, skipping JSON syntax validation" >&2
- else
-  if ! jq empty "${JSON_FILE}" 2> /dev/null; then
-   VALIDATION_ERRORS+=("Invalid JSON syntax")
-  fi
- fi
-
- # Check if file contains valid JSON structure (basic check without jq)
- if ! grep -q -E '^[[:space:]]*\{' "${JSON_FILE}" && ! grep -q -E '^[[:space:]]*\[' "${JSON_FILE}"; then
-  VALIDATION_ERRORS+=("File does not appear to contain valid JSON structure")
- fi
-
- # Check for expected root element if specified
- if [[ -n "${EXPECTED_ROOT}" ]]; then
-  if command -v jq &> /dev/null; then
-   local ACTUAL_ROOT
-   ACTUAL_ROOT=$(jq -r 'keys[0] // empty' "${JSON_FILE}" 2> /dev/null | head -1)
-   if [[ "${ACTUAL_ROOT}" != "${EXPECTED_ROOT}" ]]; then
-    VALIDATION_ERRORS+=("Expected root element '${EXPECTED_ROOT}', got '${ACTUAL_ROOT}'")
-   fi
-  else
-   # Fallback check using grep
-   if ! grep -q "\"${EXPECTED_ROOT}\"" "${JSON_FILE}"; then
-    VALIDATION_ERRORS+=("Expected root element '${EXPECTED_ROOT}' not found")
-   fi
-  fi
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: JSON file validation failed for ${JSON_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: JSON file validation passed: ${JSON_FILE}" >&2
- return 0
-}
 
 # Validates database connection and basic functionality
 # Parameters:
@@ -1439,74 +1142,6 @@ function __validate_json_structure() {
 #   $4: Database port (optional, uses DBPORT if not provided)
 # Returns:
 #   0 if connection successful, 1 if failed
-function __validate_database_connection() {
- local DB_NAME_PARAM="${1:-${DBNAME:-}}"
- local DB_USER_PARAM="${2:-${DB_USER:-}}"
- local DB_HOST_PARAM="${3:-${DBHOST:-}}"
- local DB_PORT_PARAM="${4:-${DBPORT:-}}"
- local VALIDATION_ERRORS=()
-
- # Check if database parameters are provided
- if [[ -z "${DB_NAME_PARAM}" ]]; then
-  echo "ERROR: Database name not provided and DBNAME not set" >&2
-  return 1
- fi
-
- if [[ -z "${DB_USER_PARAM}" ]]; then
-  echo "ERROR: Database user not provided and DB_USER not set" >&2
-  return 1
- fi
-
- # Check if psql is available
- if ! command -v psql &> /dev/null; then
-  echo "ERROR: psql command not available" >&2
-  return 1
- fi
-
- # Build psql command
- local PSQL_CMD="psql"
- if [[ -n "${DB_HOST_PARAM}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST_PARAM}"
- fi
- if [[ -n "${DB_PORT_PARAM}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT_PARAM}"
- fi
- PSQL_CMD="${PSQL_CMD} -U ${DB_USER_PARAM} -d ${DB_NAME_PARAM}"
-
- # Test basic connection
- if ! ${PSQL_CMD} -c "SELECT 1;" > /dev/null 2>&1; then
-  VALIDATION_ERRORS+=("Cannot connect to database ${DB_NAME_PARAM} as user ${DB_USER_PARAM}")
- fi
-
- # Test if database exists and is accessible
- if ! ${PSQL_CMD} -c "SELECT current_database();" > /dev/null 2>&1; then
-  VALIDATION_ERRORS+=("Database ${DB_NAME_PARAM} does not exist or is not accessible")
- fi
-
- # Test if user has basic permissions
- if ! ${PSQL_CMD} -c "SELECT current_user;" > /dev/null 2>&1; then
-  VALIDATION_ERRORS+=("User ${DB_USER_PARAM} does not have basic permissions")
- fi
-
- # Test if PostGIS extension is available (if needed)
- if [[ "${POSTGIS_REQUIRED:-true}" = true ]]; then
-  if ! ${PSQL_CMD} -c "SELECT PostGIS_version();" > /dev/null 2>&1; then
-   VALIDATION_ERRORS+=("PostGIS extension is not available")
-  fi
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: Database connection validation failed:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: Database connection validation passed for ${DB_NAME_PARAM}" >&2
- return 0
-}
 
 # Validates database table existence and structure
 # Parameters:
@@ -1517,61 +1152,6 @@ function __validate_database_connection() {
 #   $5+: List of required table names
 # Returns:
 #   0 if all tables exist, 1 if any missing
-function __validate_database_tables() {
- local DB_NAME_PARAM="${1:-${DBNAME:-}}"
- local DB_USER_PARAM="${2:-${DB_USER:-}}"
- local DB_HOST_PARAM="${3:-${DBHOST:-}}"
- local DB_PORT_PARAM="${4:-${DBPORT:-}}"
- shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
- local REQUIRED_TABLES=("$@")
- local MISSING_TABLES=()
-
- # Check if database parameters are provided
- if [[ -z "${DB_NAME_PARAM}" ]]; then
-  echo "ERROR: Database name not provided and DBNAME not set" >&2
-  return 1
- fi
-
- if [[ -z "${DB_USER_PARAM}" ]]; then
-  echo "ERROR: Database user not provided and DB_USER not set" >&2
-  return 1
- fi
-
- # Check if psql is available
- if ! command -v psql &> /dev/null; then
-  echo "ERROR: psql command not available" >&2
-  return 1
- fi
-
- # Build psql command
- local PSQL_CMD="psql"
- if [[ -n "${DB_HOST_PARAM}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST_PARAM}"
- fi
- if [[ -n "${DB_PORT_PARAM}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT_PARAM}"
- fi
- PSQL_CMD="${PSQL_CMD} -U ${DB_USER_PARAM} -d ${DB_NAME_PARAM}"
-
- # Check each required table
- for TABLE in "${REQUIRED_TABLES[@]}"; do
-  if ! ${PSQL_CMD} -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${TABLE}';" | grep -q "1"; then
-   MISSING_TABLES+=("${TABLE}")
-  fi
- done
-
- # Report missing tables
- if [[ ${#MISSING_TABLES[@]} -gt 0 ]]; then
-  echo "ERROR: Missing required database tables:" >&2
-  for TABLE in "${MISSING_TABLES[@]}"; do
-   echo "  - ${TABLE}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: Database tables validation passed for ${DB_NAME_PARAM}" >&2
- return 0
-}
 
 # Validates database schema and extensions
 # Parameters:
@@ -1582,61 +1162,6 @@ function __validate_database_tables() {
 #   $5+: List of required extensions
 # Returns:
 #   0 if all extensions exist, 1 if any missing
-function __validate_database_extensions() {
- local DB_NAME_PARAM="${1:-${DBNAME:-}}"
- local DB_USER_PARAM="${2:-${DB_USER:-}}"
- local DB_HOST_PARAM="${3:-${DBHOST:-}}"
- local DB_PORT_PARAM="${4:-${DBPORT:-}}"
- shift 4 || shift $((4 - $#)) # Remove first 4 parameters, handle case where less than 4
- local REQUIRED_EXTENSIONS=("$@")
- local MISSING_EXTENSIONS=()
-
- # Check if database parameters are provided
- if [[ -z "${DB_NAME_PARAM}" ]]; then
-  echo "ERROR: Database name not provided and DBNAME not set" >&2
-  return 1
- fi
-
- if [[ -z "${DB_USER_PARAM}" ]]; then
-  echo "ERROR: Database user not provided and DB_USER not set" >&2
-  return 1
- fi
-
- # Check if psql is available
- if ! command -v psql &> /dev/null; then
-  echo "ERROR: psql command not available" >&2
-  return 1
- fi
-
- # Build psql command
- local PSQL_CMD="psql"
- if [[ -n "${DB_HOST_PARAM}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -h ${DB_HOST_PARAM}"
- fi
- if [[ -n "${DB_PORT_PARAM}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -p ${DB_PORT_PARAM}"
- fi
- PSQL_CMD="${PSQL_CMD} -U ${DB_USER_PARAM} -d ${DB_NAME_PARAM}"
-
- # Check each required extension
- for EXTENSION in "${REQUIRED_EXTENSIONS[@]}"; do
-  if ! ${PSQL_CMD} -c "SELECT 1 FROM pg_extension WHERE extname = '${EXTENSION}';" | grep -q "1"; then
-   MISSING_EXTENSIONS+=("${EXTENSION}")
-  fi
- done
-
- # Report missing extensions
- if [[ ${#MISSING_EXTENSIONS[@]} -gt 0 ]]; then
-  echo "ERROR: Missing required database extensions:" >&2
-  for EXTENSION in "${MISSING_EXTENSIONS[@]}"; do
-   echo "  - ${EXTENSION}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: Database extensions validation passed for ${DB_NAME_PARAM}" >&2
- return 0
-}
 
 # Checks prerequisites commands to run the script.
 # Validates that all required tools and libraries are available.
@@ -2745,70 +2270,6 @@ function __getLocationNotes {
 #   $2: Column number containing dates (optional, defaults to auto-detect)
 # Returns:
 #   0 if all dates are valid, 1 if any invalid
-function __validate_csv_dates() {
- local CSV_FILE="${1}"
- local DATE_COLUMN="${2:-}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
-  return 1
- fi
-
- # Auto-detect date column if not specified
- if [[ -z "${DATE_COLUMN}" ]]; then
-  local HEADER_LINE
-  HEADER_LINE=$(head -1 "${CSV_FILE}")
-  local COLUMN_NUMBER=1
-  local FOUND_DATE_COLUMN=false
-
-  while IFS=',' read -ra COLUMNS; do
-   for COLUMN in "${COLUMNS[@]}"; do
-    if [[ "${COLUMN}" =~ (date|created|updated|timestamp|closed) ]]; then
-     DATE_COLUMN="${COLUMN_NUMBER}"
-     FOUND_DATE_COLUMN=true
-     break 2
-    fi
-    ((COLUMN_NUMBER++))
-   done
-  done <<< "${HEADER_LINE}"
-
-  if [[ "${FOUND_DATE_COLUMN}" == "false" ]]; then
-   echo "WARNING: No date column found in CSV header" >&2
-   return 0
-  fi
- fi
-
- # Extract dates from the specified column
- local DATES
- DATES=$(tail -n +2 "${CSV_FILE}" | cut -d',' -f"${DATE_COLUMN}" | grep -v '^$')
-
- if [[ -z "${DATES}" ]]; then
-  echo "WARNING: No dates found in CSV column ${DATE_COLUMN}" >&2
-  return 0
- fi
-
- # Validate each date
- local LINE_NUMBER=1
- while IFS= read -r DATE_VALUE; do
-  ((LINE_NUMBER++))
-  if ! __validate_iso8601_date "${DATE_VALUE}" "ISO 8601"; then
-   VALIDATION_ERRORS+=("Line ${LINE_NUMBER}: Invalid date '${DATE_VALUE}'")
-  fi
- done <<< "${DATES}"
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: CSV date validation failed for ${CSV_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: CSV date validation passed: ${CSV_FILE}" >&2
- return 0
-}
 
 # Function to validate file checksum
 # Parameters:
@@ -2817,79 +2278,6 @@ function __validate_csv_dates() {
 #   $3: Algorithm (optional, defaults to md5)
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_file_checksum() {
- local FILE_PATH="${1}"
- local EXPECTED_CHECKSUM="${2}"
- local ALGORITHM="${3:-md5}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${FILE_PATH}" "File for checksum validation"; then
-  return 1
- fi
-
- # Check if expected checksum is provided
- if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
-  echo "ERROR: Expected checksum is empty" >&2
-  return 1
- fi
-
- # Validate algorithm
- local VALID_ALGORITHMS=("md5" "sha1" "sha256" "sha512")
- local VALID_ALGORITHM=false
- for ALGO in "${VALID_ALGORITHMS[@]}"; do
-  if [[ "${ALGORITHM}" == "${ALGO}" ]]; then
-   VALID_ALGORITHM=true
-   break
-  fi
- done
-
- if [[ "${VALID_ALGORITHM}" == "false" ]]; then
-  echo "ERROR: ${ALGORITHM} checksum validation failed:" >&2
-  echo "  - Invalid algorithm: ${ALGORITHM}. Supported: ${VALID_ALGORITHMS[*]}" >&2
-  return 1
- fi
-
- # Calculate actual checksum
- local ACTUAL_CHECKSUM
- case "${ALGORITHM}" in
- "md5")
-  ACTUAL_CHECKSUM=$(md5sum "${FILE_PATH}" | cut -d' ' -f 1 2> /dev/null)
-  ;;
- "sha1")
-  ACTUAL_CHECKSUM=$(sha1sum "${FILE_PATH}" | cut -d' ' -f 1 2> /dev/null)
-  ;;
- "sha256")
-  ACTUAL_CHECKSUM=$(sha256sum "${FILE_PATH}" | cut -d' ' -f 1 2> /dev/null)
-  ;;
- "sha512")
-  ACTUAL_CHECKSUM=$(sha512sum "${FILE_PATH}" | cut -d' ' -f 1 2> /dev/null)
-  ;;
- *)
-  echo "ERROR: ${ALGORITHM} checksum validation failed:" >&2
-  echo "  - Unsupported algorithm: ${ALGORITHM}" >&2
-  return 1
-  ;;
- esac
-
- if [[ -z "${ACTUAL_CHECKSUM}" ]]; then
-  echo "ERROR: ${ALGORITHM} checksum validation failed:" >&2
-  echo "  - Failed to calculate ${ALGORITHM} checksum for file: ${FILE_PATH}" >&2
-  return 1
- fi
-
- # Compare checksums
- if [[ "${ACTUAL_CHECKSUM}" != "${EXPECTED_CHECKSUM}" ]]; then
-  echo "ERROR: ${ALGORITHM} checksum validation failed:" >&2
-  echo "  - Checksum mismatch for ${FILE_PATH}:" >&2
-  echo "    Expected: ${EXPECTED_CHECKSUM}" >&2
-  echo "    Actual:   ${ACTUAL_CHECKSUM}" >&2
-  return 1
- fi
-
- echo "DEBUG: ${ALGORITHM} checksum validation passed: ${FILE_PATH}" >&2
- return 0
-}
 
 # Function to validate checksum from a checksum file
 # Parameters:
@@ -2898,46 +2286,6 @@ function __validate_file_checksum() {
 #   $3: Algorithm (optional, defaults to md5)
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_file_checksum_from_file() {
- local FILE_PATH="${1}"
- local CHECKSUM_FILE="${2}"
- local ALGORITHM="${3:-md5}"
- local VALIDATION_ERRORS=()
-
- # Check if checksum file exists and is readable
- if ! __validate_input_file "${CHECKSUM_FILE}" "Checksum file"; then
-  return 1
- fi
-
- # Extract expected checksum from file
- local EXPECTED_CHECKSUM
- case "${ALGORITHM}" in
- "md5")
-  EXPECTED_CHECKSUM=$(cut -d' ' -f 1 "${CHECKSUM_FILE}" 2> /dev/null)
-  ;;
- "sha1")
-  EXPECTED_CHECKSUM=$(cut -d' ' -f 1 "${CHECKSUM_FILE}" 2> /dev/null)
-  ;;
- "sha256")
-  EXPECTED_CHECKSUM=$(cut -d' ' -f 1 "${CHECKSUM_FILE}" 2> /dev/null)
-  ;;
- "sha512")
-  EXPECTED_CHECKSUM=$(cut -d' ' -f 1 "${CHECKSUM_FILE}" 2> /dev/null)
-  ;;
- *)
-  echo "ERROR: Unsupported algorithm: ${ALGORITHM}" >&2
-  return 1
-  ;;
- esac
-
- if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
-  echo "ERROR: Could not extract checksum from file: ${CHECKSUM_FILE}" >&2
-  return 1
- fi
-
- # Validate the file using the extracted checksum
- __validate_file_checksum "${FILE_PATH}" "${EXPECTED_CHECKSUM}" "${ALGORITHM}"
-}
 
 # Function to generate checksum for a file
 # Parameters:
@@ -2968,7 +2316,7 @@ function __generate_file_checksum() {
  done
 
  if [[ "${VALID_ALGORITHM}" == "false" ]]; then
-  echo "ERROR: Invalid algorithm: ${ALGORITHM}. Supported: ${VALID_ALGORITHMS[*]}" >&2
+  __loge "Invalid algorithm: ${ALGORITHM}. Supported: ${VALID_ALGORITHMS[*]}"
   return 1
  fi
 
@@ -2988,20 +2336,20 @@ function __generate_file_checksum() {
   CHECKSUM=$(sha512sum "${FILE_PATH}" 2> /dev/null)
   ;;
  *)
-  echo "ERROR: Unsupported algorithm: ${ALGORITHM}" >&2
+  __loge "Unsupported algorithm: ${ALGORITHM}"
   return 1
   ;;
  esac
 
  if [[ -z "${CHECKSUM}" ]]; then
-  echo "ERROR: Failed to generate ${ALGORITHM} checksum for file: ${FILE_PATH}" >&2
+  __loge "Failed to generate ${ALGORITHM} checksum for file: ${FILE_PATH}"
   return 1
  fi
 
  # Output checksum
  if [[ -n "${OUTPUT_FILE}" ]]; then
   echo "${CHECKSUM}" > "${OUTPUT_FILE}"
-  echo "DEBUG: ${ALGORITHM} checksum saved to: ${OUTPUT_FILE}" >&2
+  __logd "${ALGORITHM} checksum saved to: ${OUTPUT_FILE}"
  else
   echo "${CHECKSUM}"
  fi
@@ -3016,61 +2364,6 @@ function __generate_file_checksum() {
 #   $3: Algorithm (optional, defaults to md5)
 # Returns:
 #   0 if all valid, 1 if any invalid
-function __validate_directory_checksums() {
- local DIRECTORY="${1}"
- local CHECKSUM_FILE="${2}"
- local ALGORITHM="${3:-md5}"
- local VALIDATION_ERRORS=()
-
- # Check if directory exists
- if ! __validate_input_file "${DIRECTORY}" "Directory" "dir"; then
-  return 1
- fi
-
- # Check if checksum file exists
- if ! __validate_input_file "${CHECKSUM_FILE}" "Checksum file"; then
-  return 1
- fi
-
- # Read checksum file and validate each file
- while IFS= read -r LINE; do
-  # Skip empty lines and comments
-  if [[ -z "${LINE}" ]] || [[ "${LINE}" =~ ^[[:space:]]*# ]]; then
-   continue
-  fi
-
-  # Parse checksum and filename
-  local CHECKSUM FILENAME
-  case "${ALGORITHM}" in
-  "md5" | "sha1" | "sha256" | "sha512")
-   CHECKSUM=$(echo "${LINE}" | cut -d' ' -f 1)
-   FILENAME=$(echo "${LINE}" | sed 's/^[^ ]*  *//' | xargs basename)
-   ;;
-  *)
-   echo "ERROR: Unsupported algorithm: ${ALGORITHM}" >&2
-   return 1
-   ;;
-  esac
-
-  # Validate file
-  local FILE_PATH="${DIRECTORY}/${FILENAME}"
-  if ! __validate_file_checksum "${FILE_PATH}" "${CHECKSUM}" "${ALGORITHM}"; then
-   VALIDATION_ERRORS+=("Failed to validate: ${FILENAME}")
-  fi
- done < "${CHECKSUM_FILE}"
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: Directory checksum validation failed:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: Directory checksum validation passed: ${DIRECTORY}" >&2
- return 0
-}
 
 # Validates JSON file against a JSON Schema
 # Parameters:
@@ -3079,42 +2372,6 @@ function __validate_directory_checksums() {
 #   $3: Schema specification (optional, defaults to draft2020)
 # Returns:
 #   0 if valid, 1 if invalid
-function __validate_json_schema() {
- local JSON_FILE="${1}"
- local SCHEMA_FILE="${2}"
- local SPEC="${3:-draft2020}"
- local VALIDATION_ERRORS=()
-
- # Check if ajv is available
- if ! command -v ajv &> /dev/null; then
-  echo "ERROR: ajv command not available for JSON Schema validation" >&2
-  return 1
- fi
-
- # Check if JSON file exists and is readable
- if ! __validate_input_file "${JSON_FILE}" "JSON file"; then
-  return 1
- fi
-
- # Check if schema file exists and is readable
- if ! __validate_input_file "${SCHEMA_FILE}" "JSON Schema file"; then
-  return 1
- fi
-
- # Validate JSON against schema using ajv
- set +e
- ajv validate -s "${SCHEMA_FILE}" -d "${JSON_FILE}" --spec="${SPEC}" 2> /dev/null
- local AJV_STATUS=$?
- set -e
-
- if [[ ${AJV_STATUS} -eq 0 ]]; then
-  echo "DEBUG: JSON Schema validation passed: ${JSON_FILE}" >&2
-  return 0
- else
-  echo "ERROR: JSON Schema validation failed: ${JSON_FILE}" >&2
-  return 1
- fi
-}
 
 # Validates geographic coordinates
 # Parameters:
@@ -3123,59 +2380,6 @@ function __validate_json_schema() {
 #   $3: Precision (optional, defaults to 7 decimal places)
 # Returns:
 #   0 if coordinates are valid, 1 if invalid
-function __validate_coordinates() {
- local LATITUDE="${1}"
- local LONGITUDE="${2}"
- local PRECISION="${3:-7}"
- local VALIDATION_ERRORS=()
-
- # Check if values are numeric
- if ! [[ "${LATITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  VALIDATION_ERRORS+=("Latitude '${LATITUDE}' is not a valid number")
- fi
-
- if ! [[ "${LONGITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' is not a valid number")
- fi
-
- # Check latitude range (-90 to 90)
- if [[ "${LATITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  if (($(echo "${LATITUDE} < -90" | bc -l))) || (($(echo "${LATITUDE} > 90" | bc -l))); then
-   VALIDATION_ERRORS+=("Latitude '${LATITUDE}' is outside valid range (-90 to 90)")
-  fi
- fi
-
- # Check longitude range (-180 to 180)
- if [[ "${LONGITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  if (($(echo "${LONGITUDE} < -180" | bc -l))) || (($(echo "${LONGITUDE} > 180" | bc -l))); then
-   VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' is outside valid range (-180 to 180)")
-  fi
- fi
-
- # Check precision
- if [[ "${LATITUDE}" =~ ^-?[0-9]+\.[0-9]{${PRECISION},}$ ]]; then
-  VALIDATION_ERRORS+=("Latitude '${LATITUDE}' has too many decimal places (max ${PRECISION})")
- fi
-
- if [[ "${LONGITUDE}" =~ ^-?[0-9]+\.[0-9]{${PRECISION},}$ ]]; then
-  VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' has too many decimal places (max ${PRECISION})")
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: Coordinate validation failed:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- # Only log in trace mode to reduce verbosity
- if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
-  echo "DEBUG: Coordinate validation passed: lat=${LATITUDE}, lon=${LONGITUDE}" >&2
- fi
- return 0
-}
 
 # Validates numeric values within specified ranges
 # Parameters:
@@ -3185,45 +2389,6 @@ function __validate_coordinates() {
 #   $4: Description for error messages (optional)
 # Returns:
 #   0 if value is valid, 1 if invalid
-function __validate_numeric_range() {
- local VALUE="${1}"
- local MIN_VALUE="${2:-}"
- local MAX_VALUE="${3:-}"
- local DESCRIPTION="${4:-Value}"
- local VALIDATION_ERRORS=()
-
- # Check if value is numeric
- if ! [[ "${VALUE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  echo "ERROR: ${DESCRIPTION} '${VALUE}' is not a valid number" >&2
-  return 1
- fi
-
- # Check minimum value
- if [[ -n "${MIN_VALUE}" ]]; then
-  if (($(echo "${VALUE} < ${MIN_VALUE}" | bc -l))); then
-   VALIDATION_ERRORS+=("${DESCRIPTION} '${VALUE}' is below minimum (${MIN_VALUE})")
-  fi
- fi
-
- # Check maximum value
- if [[ -n "${MAX_VALUE}" ]]; then
-  if (($(echo "${VALUE} > ${MAX_VALUE}" | bc -l))); then
-   VALIDATION_ERRORS+=("${DESCRIPTION} '${VALUE}' is above maximum (${MAX_VALUE})")
-  fi
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: Numeric range validation failed:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- echo "DEBUG: Numeric range validation passed: ${DESCRIPTION}=${VALUE}" >&2
- return 0
-}
 
 # Validates string values against patterns
 # Parameters:
@@ -3232,29 +2397,22 @@ function __validate_numeric_range() {
 #   $3: Description for error messages (optional)
 # Returns:
 #   0 if value matches pattern, 1 if invalid
-function __validate_string_pattern() {
- local VALUE="${1}"
- local PATTERN="${2}"
- local DESCRIPTION="${3:-String value}"
- local VALIDATION_ERRORS=()
 
- # Check if value matches pattern
- if ! [[ "${VALUE}" =~ ${PATTERN} ]]; then
-  echo "ERROR: ${DESCRIPTION} '${VALUE}' does not match required pattern" >&2
-  return 1
- fi
-
- echo "DEBUG: String pattern validation passed: ${DESCRIPTION}=${VALUE}" >&2
- return 0
-}
-
-# Validates XML content for coordinate attributes
+# Validates XML content for coordinate attributes using XPath
+# This is the unified implementation for both API and Planet XML coordinate validation.
+# Supports auto-detection of XML format (Planet vs API) and uses xmlstarlet for robust parsing.
+# 
 # Parameters:
 #   $1: XML file path
-#   $2: XPath expression for latitude (optional, defaults to //@lat)
-#   $3: XPath expression for longitude (optional, defaults to //@lon)
+#   $2: Latitude XPath expression (optional, auto-detects based on XML structure)
+#   $3: Longitude XPath expression (optional, auto-detects based on XML structure)
 # Returns:
 #   0 if all coordinates are valid, 1 if any invalid
+# 
+# XML Format Support:
+#   - Planet XML: /osm-notes/note/@lat and /osm-notes/note/@lon
+#   - API XML: //@lat and //@lon (generic)
+#   - Custom XPath: Can be specified via parameters 2 and 3
 function __validate_xml_coordinates() {
  local XML_FILE="${1}"
  local LAT_XPATH="${2:-}"
@@ -3311,7 +2469,7 @@ function __validate_xml_coordinates() {
 
  # Report validation errors
  if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: XML coordinate validation failed for ${XML_FILE}:" >&2
+  __loge "XML coordinate validation failed for ${XML_FILE}:"
   for ERROR in "${VALIDATION_ERRORS[@]}"; do
    echo "  - ${ERROR}" >&2
   done
@@ -3320,7 +2478,7 @@ function __validate_xml_coordinates() {
 
  # Only log in trace mode to reduce verbosity
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
-  echo "DEBUG: XML coordinate validation passed: ${XML_FILE}" >&2
+  __logd "XML coordinate validation passed: ${XML_FILE}"
  fi
  return 0
 }
@@ -3332,113 +2490,11 @@ function __validate_xml_coordinates() {
 #   $3: Longitude column number (optional, defaults to auto-detect)
 # Returns:
 #   0 if all coordinates are valid, 1 if any invalid
-function __validate_csv_coordinates() {
- local CSV_FILE="${1}"
- local LAT_COLUMN="${2:-}"
- local LON_COLUMN="${3:-}"
- local VALIDATION_ERRORS=()
-
- # Check if file exists and is readable
- if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
-  return 1
- fi
-
- # Auto-detect coordinate columns if not specified
- if [[ -z "${LAT_COLUMN}" ]] || [[ -z "${LON_COLUMN}" ]]; then
-  local HEADER_LINE
-  HEADER_LINE=$(head -1 "${CSV_FILE}")
-  local COLUMN_NUMBER=1
-  local FOUND_LAT=false
-  local FOUND_LON=false
-
-  while IFS=',' read -ra COLUMNS; do
-   for COLUMN in "${COLUMNS[@]}"; do
-    if [[ "${COLUMN}" =~ (lat|latitude) ]]; then
-     LAT_COLUMN="${COLUMN_NUMBER}"
-     FOUND_LAT=true
-    elif [[ "${COLUMN}" =~ (lon|longitude) ]]; then
-     LON_COLUMN="${COLUMN_NUMBER}"
-     FOUND_LON=true
-    fi
-    ((COLUMN_NUMBER++))
-   done
-  done <<< "${HEADER_LINE}"
-
-  if [[ "${FOUND_LAT}" == "false" ]] || [[ "${FOUND_LON}" == "false" ]]; then
-   echo "WARNING: Coordinate columns not found in CSV header" >&2
-   return 0
-  fi
- fi
-
- # Extract coordinates from the specified columns
- local COORDINATES
- COORDINATES=$(tail -n +2 "${CSV_FILE}" | cut -d',' -f"${LAT_COLUMN},${LON_COLUMN}" | grep -v '^$')
-
- if [[ -z "${COORDINATES}" ]]; then
-  echo "WARNING: No coordinates found in CSV columns" >&2
-  return 0
- fi
-
- # Validate each coordinate pair
- local LINE_NUMBER=1
- while IFS= read -r COORDINATE_LINE; do
-  ((LINE_NUMBER++))
-  local LAT_VALUE
-  local LON_VALUE
-  LAT_VALUE=$(echo "${COORDINATE_LINE}" | cut -d',' -f1)
-  LON_VALUE=$(echo "${COORDINATE_LINE}" | cut -d',' -f2)
-
-  if [[ -n "${LAT_VALUE}" ]] && [[ -n "${LON_VALUE}" ]]; then
-   if ! __validate_coordinates "${LAT_VALUE}" "${LON_VALUE}"; then
-    VALIDATION_ERRORS+=("Line ${LINE_NUMBER}: Invalid coordinates lat=${LAT_VALUE}, lon=${LON_VALUE}")
-   fi
-  fi
- done <<< "${COORDINATES}"
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: CSV coordinate validation failed for ${CSV_FILE}:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- # Only log in trace mode to reduce verbosity
- if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
-  echo "DEBUG: CSV coordinate validation passed: ${CSV_FILE}" >&2
- fi
- return 0
-}
 
 # Validates production database variables
 # This function ensures that production database variables are properly set
 # Parameters: None
 # Returns: 0 if validation passes, 1 if validation fails
-function __validate_database_variables() {
- local VALIDATION_ERRORS=()
-
- # Check primary database variables
- if [[ -z "${DBNAME:-}" ]]; then
-  VALIDATION_ERRORS+=("DBNAME is not set")
- fi
-
- if [[ -z "${DB_USER:-}" ]]; then
-  VALIDATION_ERRORS+=("DB_USER is not set")
- fi
-
- # Report validation errors
- if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
-  echo "ERROR: Database variable validation failed:" >&2
-  for ERROR in "${VALIDATION_ERRORS[@]}"; do
-   echo "  - ${ERROR}" >&2
-  done
-  return 1
- fi
-
- __logd "Database variable validation passed"
- return 0
-}
 
 # Enhanced error handling and retry logic
 # Author: Andres Gomez (AngocA)
@@ -3467,12 +2523,12 @@ function __retry_with_backoff() {
  local RETRY_COUNT=0
  local DELAY="${BASE_DELAY_PARAM}"
 
- echo "DEBUG: Executing command with retry logic: ${COMMAND}" >&2
+ __logd "Executing command with retry logic: ${COMMAND}"
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; do
   # Execute the command
   if eval "${COMMAND}"; then
-   echo "DEBUG: Command succeeded on attempt $((RETRY_COUNT + 1))" >&2
+   __logd "Command succeeded on attempt $((RETRY_COUNT + 1))"
    return 0
   fi
 
@@ -3495,7 +2551,7 @@ function __retry_with_backoff() {
   fi
  done
 
- echo "ERROR: Command failed after ${MAX_RETRIES_PARAM} attempts: ${COMMAND}" >&2
+ __loge "Command failed after ${MAX_RETRIES_PARAM} attempts: ${COMMAND}"
  return 1
 }
 
@@ -3539,7 +2595,7 @@ function __circuit_breaker_execute() {
   CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]=${CURRENT_TIME}
 
   if [[ ${FAILURE_COUNT} -ge ${CIRCUIT_BREAKER_THRESHOLD} ]]; then
-   echo "ERROR: Circuit breaker for ${SERVICE_NAME} transitioning to OPEN (${FAILURE_COUNT} failures)" >&2
+   __loge "Circuit breaker for ${SERVICE_NAME} transitioning to OPEN (${FAILURE_COUNT} failures)"
    CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="OPEN"
   fi
   return 1
@@ -3555,14 +2611,14 @@ function __download_with_retry() {
  local SERVICE_NAME="${3:-download}"
  local COMMAND="wget -O '${OUTPUT_FILE}' '${URL}'"
 
- echo "DEBUG: Downloading ${URL} to ${OUTPUT_FILE}" >&2
+ __logd "Downloading ${URL} to ${OUTPUT_FILE}"
 
  # Use circuit breaker for network operations
  if __circuit_breaker_execute "${SERVICE_NAME}" "${COMMAND}"; then
-  echo "DEBUG: Download successful: ${URL}" >&2
+  __logd "Download successful: ${URL}"
   return 0
  else
-  echo "ERROR: Download failed after retries: ${URL}" >&2
+  __loge "Download failed after retries: ${URL}"
   return 1
  fi
 }
@@ -3576,14 +2632,14 @@ function __api_call_with_retry() {
  local SERVICE_NAME="${3:-api}"
  local COMMAND="curl -s -o '${OUTPUT_FILE}' '${URL}'"
 
- echo "DEBUG: Making API call to ${URL}" >&2
+ __logd "Making API call to ${URL}"
 
  # Use circuit breaker for API operations
  if __circuit_breaker_execute "${SERVICE_NAME}" "${COMMAND}"; then
-  echo "DEBUG: API call successful: ${URL}" >&2
+  __logd "API call successful: ${URL}"
   return 0
  else
-  echo "ERROR: API call failed after retries: ${URL}" >&2
+  __loge "API call failed after retries: ${URL}"
   return 1
  fi
 }
@@ -3597,11 +2653,11 @@ function __database_operation_with_retry() {
  local MAX_RETRIES_PARAM="${MAX_RETRIES:-3}"
  local RETRY_COUNT=0
 
- echo "DEBUG: Executing database operation with retry" >&2
+ __logd "Executing database operation with retry"
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; do
   if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${SQL_COMMAND}" > /dev/null 2>&1; then
-   echo "DEBUG: Database operation succeeded on attempt $((RETRY_COUNT + 1))" >&2
+   __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
    return 0
   fi
 
@@ -3617,13 +2673,13 @@ function __database_operation_with_retry() {
  if [[ -n "${ROLLBACK_COMMAND}" ]]; then
   echo "WARNING: Executing rollback command due to database operation failure" >&2
   if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${ROLLBACK_COMMAND}" > /dev/null 2>&1; then
-   echo "DEBUG: Rollback executed successfully" >&2
+   __logd "Rollback executed successfully"
   else
-   echo "ERROR: Rollback failed" >&2
+   __loge "Rollback failed"
   fi
  fi
 
- echo "ERROR: Database operation failed after ${MAX_RETRIES_PARAM} attempts" >&2
+ __loge "Database operation failed after ${MAX_RETRIES_PARAM} attempts"
  return 1
 }
 
@@ -3636,11 +2692,11 @@ function __file_operation_with_retry() {
  local MAX_RETRIES_PARAM="${MAX_RETRIES:-3}"
  local RETRY_COUNT=0
 
- echo "DEBUG: Executing file operation with retry" >&2
+ __logd "Executing file operation with retry"
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; do
   if eval "${OPERATION_COMMAND}"; then
-   echo "DEBUG: File operation succeeded on attempt $((RETRY_COUNT + 1))" >&2
+   __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
    return 0
   fi
 
@@ -3656,13 +2712,13 @@ function __file_operation_with_retry() {
  if [[ -n "${CLEANUP_COMMAND}" ]]; then
   echo "WARNING: Executing cleanup command due to file operation failure" >&2
   if eval "${CLEANUP_COMMAND}"; then
-   echo "DEBUG: Cleanup executed successfully" >&2
+   __logd "Cleanup executed successfully"
   else
-   echo "ERROR: Cleanup failed" >&2
+   __loge "Cleanup failed"
   fi
  fi
 
- echo "ERROR: File operation failed after ${MAX_RETRIES_PARAM} attempts" >&2
+ __loge "File operation failed after ${MAX_RETRIES_PARAM} attempts"
  return 1
 }
 
@@ -3673,16 +2729,16 @@ function __check_network_connectivity() {
  local TIMEOUT="${1:-10}"
  local TEST_URLS=("https://www.google.com" "https://www.cloudflare.com" "https://www.github.com")
 
- echo "DEBUG: Checking network connectivity" >&2
+ __logd "Checking network connectivity"
 
  for URL in "${TEST_URLS[@]}"; do
   if timeout "${TIMEOUT}" curl -s --connect-timeout 5 "${URL}" > /dev/null 2>&1; then
-   echo "DEBUG: Network connectivity confirmed via ${URL}" >&2
+   __logd "Network connectivity confirmed via ${URL}"
    return 0
   fi
  done
 
- echo "ERROR: Network connectivity check failed" >&2
+ __loge "Network connectivity check failed"
  return 1
 }
 
@@ -3695,32 +2751,36 @@ function __handle_error_with_cleanup() {
  shift 2
  local CLEANUP_COMMANDS=("$@")
 
- echo "ERROR: Error occurred: ${ERROR_MESSAGE} (code: ${ERROR_CODE})" >&2
+ __loge "Error occurred: ${ERROR_MESSAGE} (code: ${ERROR_CODE})"
 
  # Create failed execution file to prevent re-execution
  if [[ -n "${FAILED_EXECUTION_FILE:-}" ]]; then
-  echo "ERROR: Creating failed execution file: ${FAILED_EXECUTION_FILE}" >&2
+  __loge "Creating failed execution file: ${FAILED_EXECUTION_FILE}"
   echo "Error occurred at $(date): ${ERROR_MESSAGE} (code: ${ERROR_CODE})" > "${FAILED_EXECUTION_FILE}"
   echo "Stack trace: $(caller 0)" >> "${FAILED_EXECUTION_FILE}"
   echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"
  fi
 
- # Execute cleanup commands
- for CMD in "${CLEANUP_COMMANDS[@]}"; do
-  if [[ -n "${CMD}" ]]; then
-   echo "DEBUG: Executing cleanup command: ${CMD}" >&2
-   if eval "${CMD}"; then
-    echo "DEBUG: Cleanup command succeeded: ${CMD}" >&2
+ # Execute cleanup commands only if CLEAN is true
+ if [[ "${CLEAN:-true}" == "true" ]]; then
+  for CMD in "${CLEANUP_COMMANDS[@]}"; do
+   if [[ -n "${CMD}" ]]; then
+    __logd "Executing cleanup command: ${CMD}"
+    if eval "${CMD}"; then
+    __logd "Cleanup command succeeded: ${CMD}"
    else
     echo "WARNING: Cleanup command failed: ${CMD}" >&2
    fi
   fi
  done
+else
+ __logd "Skipping cleanup commands due to CLEAN=false"
+fi
 
  # Log error details for debugging
- echo "ERROR: Error details - Code: ${ERROR_CODE}, Message: ${ERROR_MESSAGE}" >&2
- echo "ERROR: Stack trace: $(caller 0)" >&2
- echo "ERROR: Failed execution file created: ${FAILED_EXECUTION_FILE:-none}" >&2
+ __loge "Error details - Code: ${ERROR_CODE}, Message: ${ERROR_MESSAGE}"
+ __loge "Stack trace: $(caller 0)"
+ __loge "Failed execution file created: ${FAILED_EXECUTION_FILE:-none}"
 
  exit "${ERROR_CODE}"
 }
@@ -3757,11 +2817,11 @@ function __retry_file_operation() {
  local CLEANUP_COMMAND="${4:-}"
  local RETRY_COUNT=0
 
- echo "DEBUG: Executing file operation with retry logic: ${OPERATION_COMMAND}" >&2
+ __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
   if eval "${OPERATION_COMMAND}"; then
-   echo "DEBUG: File operation succeeded on attempt $((RETRY_COUNT + 1))" >&2
+   __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
    return 0
   fi
 
@@ -3777,13 +2837,13 @@ function __retry_file_operation() {
  if [[ -n "${CLEANUP_COMMAND}" ]]; then
   echo "WARNING: Executing cleanup command due to file operation failure" >&2
   if eval "${CLEANUP_COMMAND}"; then
-   echo "DEBUG: Cleanup executed successfully" >&2
+   __logd "Cleanup executed successfully"
   else
-   echo "ERROR: Cleanup failed" >&2
+   __loge "Cleanup failed"
   fi
  fi
 
- echo "ERROR: File operation failed after ${MAX_RETRIES_LOCAL} attempts" >&2
+ __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
  return 1
 }
 
