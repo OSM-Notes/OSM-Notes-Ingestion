@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-07
-declare -r VERSION="2025-08-07"
+# Version: 2025-08-08
+declare -r VERSION="2025-08-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -223,6 +223,12 @@ declare -i TOTAL_NOTES=-1
 # Flag to define that the process should update the location of notes.
 # This variable is used in functionsProcess.sh
 export UPDATE_NOTE_LOCATION=false
+
+# Enable failed execution file generation
+export GENERATE_FAILED_FILE=true
+
+# Failed execution file
+declare -r FAILED_EXECUTION_FILE="${TMP_DIR}/failed_execution.log"
 
 # Files for countries and maritimes processing.
 # (Declared in processPlanetFunctions.sh)
@@ -703,7 +709,14 @@ function __validate_xml_with_enhanced_error_handling {
 
  __logi "Validating XML file: ${XML_FILE} (${SIZE_MB} MB)"
 
- # Use appropriate validation strategy based on file size
+ # Check if this is a planet XML file (contains "planet" in filename or path)
+ local IS_PLANET_FILE=false
+ if [[ "${XML_FILE}" =~ [Pp]lanet ]]; then
+  IS_PLANET_FILE=true
+  __logi "Planet XML file detected. Using basic validation to avoid memory issues."
+ fi
+
+ # Use appropriate validation strategy based on file size or file type
  local LARGE_FILE_THRESHOLD="${ETL_LARGE_FILE_THRESHOLD_MB:-500}"
  local VERY_LARGE_FILE_THRESHOLD="${ETL_VERY_LARGE_FILE_THRESHOLD_MB:-1000}"
 
@@ -718,10 +731,10 @@ function __validate_xml_with_enhanced_error_handling {
    __loge "ERROR: Structure-only validation failed"
    return 1
   fi
- elif [[ "${SIZE_MB}" -gt "${LARGE_FILE_THRESHOLD}" ]]; then
-  __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using basic validation."
+ elif [[ "${SIZE_MB}" -gt "${LARGE_FILE_THRESHOLD}" ]] || [[ "${IS_PLANET_FILE}" == true ]]; then
+  __logw "WARNING: Large XML file or Planet file detected (${SIZE_MB} MB). Using basic validation."
   
-  # For large files, use basic XML validation without schema
+  # For large files or planet files, use basic XML validation without schema
   if __validate_xml_basic "${XML_FILE}"; then
    __logi "Basic XML validation succeeded"
    return 0
@@ -730,7 +743,7 @@ function __validate_xml_with_enhanced_error_handling {
    return 1
   fi
  else
-  # Standard validation for smaller files
+  # Standard validation for smaller files (non-planet)
   if [[ -n "${SCHEMA_FILE}" ]] && [[ -f "${SCHEMA_FILE}" ]]; then
    local XMLLINT_OUTPUT
    XMLLINT_OUTPUT=$(timeout "${TIMEOUT}" xmllint --noout --schema "${SCHEMA_FILE}" "${XML_FILE}" 2>&1)

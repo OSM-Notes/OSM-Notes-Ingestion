@@ -443,6 +443,18 @@ function __countXmlNotesPlanet() {
   return 1
  fi
 
+ # Ensure TOTAL_NOTES is treated as a decimal number and is valid
+ if [[ -z "${TOTAL_NOTES}" ]] || [[ ! "${TOTAL_NOTES}" =~ ^[0-9]+$ ]]; then
+  __loge "Invalid or empty note count returned by xmlstarlet: '${TOTAL_NOTES}'"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
+
+ # Convert to integer to ensure proper numeric handling
+ TOTAL_NOTES=$((10#${TOTAL_NOTES}))
+
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
  else
@@ -3119,34 +3131,34 @@ function __validate_coordinates() {
 
  # Check if values are numeric
  if ! [[ "${LATITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  validation_errors+=("Latitude '${LATITUDE}' is not a valid number")
+  VALIDATION_ERRORS+=("Latitude '${LATITUDE}' is not a valid number")
  fi
 
  if ! [[ "${LONGITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
-  validation_errors+=("Longitude '${LONGITUDE}' is not a valid number")
+  VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' is not a valid number")
  fi
 
  # Check latitude range (-90 to 90)
  if [[ "${LATITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
   if (($(echo "${LATITUDE} < -90" | bc -l))) || (($(echo "${LATITUDE} > 90" | bc -l))); then
-   validation_errors+=("Latitude '${LATITUDE}' is outside valid range (-90 to 90)")
+   VALIDATION_ERRORS+=("Latitude '${LATITUDE}' is outside valid range (-90 to 90)")
   fi
  fi
 
  # Check longitude range (-180 to 180)
  if [[ "${LONGITUDE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
   if (($(echo "${LONGITUDE} < -180" | bc -l))) || (($(echo "${LONGITUDE} > 180" | bc -l))); then
-   validation_errors+=("Longitude '${LONGITUDE}' is outside valid range (-180 to 180)")
+   VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' is outside valid range (-180 to 180)")
   fi
  fi
 
  # Check precision
  if [[ "${LATITUDE}" =~ ^-?[0-9]+\.[0-9]{${PRECISION},}$ ]]; then
-  validation_errors+=("Latitude '${LATITUDE}' has too many decimal places (max ${PRECISION})")
+  VALIDATION_ERRORS+=("Latitude '${LATITUDE}' has too many decimal places (max ${PRECISION})")
  fi
 
  if [[ "${LONGITUDE}" =~ ^-?[0-9]+\.[0-9]{${PRECISION},}$ ]]; then
-  validation_errors+=("Longitude '${LONGITUDE}' has too many decimal places (max ${PRECISION})")
+  VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' has too many decimal places (max ${PRECISION})")
  fi
 
  # Report validation errors
@@ -3245,8 +3257,8 @@ function __validate_string_pattern() {
 #   0 if all coordinates are valid, 1 if any invalid
 function __validate_xml_coordinates() {
  local XML_FILE="${1}"
- local LAT_XPATH="${2:-//@lat}"
- local LON_XPATH="${3:-//@lon}"
+ local LAT_XPATH="${2:-}"
+ local LON_XPATH="${3:-}"
  local VALIDATION_ERRORS=()
 
  # Check if file exists and is readable
@@ -3260,6 +3272,19 @@ function __validate_xml_coordinates() {
   return 0
  fi
 
+ # Auto-detect XPath based on XML structure if not provided
+ if [[ -z "${LAT_XPATH}" ]] || [[ -z "${LON_XPATH}" ]]; then
+  # Check if it's a Planet format XML (has /osm-notes/note structure)
+  if xmlstarlet sel -t -v "count(/osm-notes/note)" "${XML_FILE}" &> /dev/null; then
+   LAT_XPATH="/osm-notes/note/@lat"
+   LON_XPATH="/osm-notes/note/@lon"
+  else
+   # Default to generic XPath for other formats
+   LAT_XPATH="//@lat"
+   LON_XPATH="//@lon"
+  fi
+ fi
+
  # Extract coordinates using xmlstarlet
  local LATITUDES
  local LONGITUDES
@@ -3267,7 +3292,7 @@ function __validate_xml_coordinates() {
  LONGITUDES=$(xmlstarlet sel -t -v "${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
 
  if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
-  echo "WARNING: No coordinates found in XML file" >&2
+  echo "WARNING: No coordinates found in XML file using XPath: ${LAT_XPATH}, ${LON_XPATH}" >&2
   return 0
  fi
 

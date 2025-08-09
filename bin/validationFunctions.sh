@@ -4,7 +4,7 @@
 # This file contains validation functions for various data types.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-08-08
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -464,6 +464,14 @@ function __validate_iso8601_date() {
  MINUTE=$(echo "${DATE_STRING}" | cut -d'T' -f2 | cut -d':' -f2)
  SECOND=$(echo "${DATE_STRING}" | cut -d'T' -f2 | cut -d':' -f3 | cut -d'Z' -f1 | cut -d'+' -f1 | cut -d'-' -f1)
 
+ # Convert to base 10 to handle leading zeros properly
+ YEAR=$((10#${YEAR}))
+ MONTH=$((10#${MONTH}))
+ DAY=$((10#${DAY}))
+ HOUR=$((10#${HOUR}))
+ MINUTE=$((10#${MINUTE}))
+ SECOND=$((10#${SECOND}))
+
  # Validate ranges
  if [[ "${YEAR}" -lt 1900 ]] || [[ "${YEAR}" -gt 2100 ]]; then
   __loge "ERROR: Invalid year: ${YEAR}"
@@ -604,6 +612,19 @@ function __validate_xml_dates_lightweight() {
  local SAMPLE_DATES
  SAMPLE_DATES=$(grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z' "${XML_FILE}" | head -n "${SAMPLE_SIZE}" || true)
 
+ # Also check for malformed dates that might cause issues (dates with letters or invalid characters)
+local MALFORMED_DATES
+MALFORMED_DATES=$(grep -oE '[0-9]{4}-[0-9]*[a-zA-Z][0-9a-zA-Z]*-[0-9]*[a-zA-Z][0-9a-zA-Z]*T[0-9]*[a-zA-Z][0-9a-zA-Z]*:[0-9]*[a-zA-Z][0-9a-zA-Z]*:[0-9]*[a-zA-Z][0-9a-zA-Z]*Z' "${XML_FILE}" | head -n "${SAMPLE_SIZE}" || true)
+
+ if [[ -n "${MALFORMED_DATES}" ]]; then
+  __loge "ERROR: Malformed dates found in XML (contains invalid characters):"
+  while IFS= read -r DATE; do
+   [[ -z "${DATE}" ]] && continue
+   __loge "  - ${DATE}"
+   FAILED=1
+  done <<< "${MALFORMED_DATES}"
+ fi
+
  if [[ -n "${SAMPLE_DATES}" ]]; then
   local VALID_COUNT=0
   local TOTAL_COUNT=0
@@ -621,6 +642,14 @@ function __validate_xml_dates_lightweight() {
     local HOUR="${DATE:11:2}"
     local MINUTE="${DATE:14:2}"
     local SECOND="${DATE:17:2}"
+    
+    # Convert to base 10 to handle leading zeros properly
+    YEAR=$((10#${YEAR}))
+    MONTH=$((10#${MONTH}))
+    DAY=$((10#${DAY}))
+    HOUR=$((10#${HOUR}))
+    MINUTE=$((10#${MINUTE}))
+    SECOND=$((10#${SECOND}))
     
     # Basic range validation
     if [[ "${YEAR}" -ge 2000 && "${YEAR}" -le 2030 ]] && \
@@ -647,6 +676,10 @@ function __validate_xml_dates_lightweight() {
    # If more than 90% of dates are valid, consider the file valid
    if [[ "${VALID_PERCENTAGE}" -ge 90 ]]; then
     __logd "XML dates validation passed (sample-based): ${XML_FILE}"
+    # Still check if there were malformed dates
+    if [[ "${FAILED}" -eq 1 ]]; then
+     return 1
+    fi
     return 0
    else
     __loge "ERROR: Too many invalid dates found in sample (${VALID_PERCENTAGE}% valid)"
@@ -657,6 +690,10 @@ function __validate_xml_dates_lightweight() {
 
  # If no dates found, consider it valid (might be a file without dates)
  __logd "No dates found in XML file, skipping date validation: ${XML_FILE}"
+ # Still check if there were malformed dates
+ if [[ "${FAILED}" -eq 1 ]]; then
+  return 1
+ fi
  return 0
 }
 

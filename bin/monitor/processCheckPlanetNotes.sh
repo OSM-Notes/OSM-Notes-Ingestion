@@ -119,8 +119,13 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 # Load process functions (includes validation functions)
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
+# Load planet-specific functions for validation
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
 # __downloadPlanetNotes
 # __validatePlanetNotesXMLFile
+# __validatePlanetNotesXMLFileComplete
 
 # Shows the help information.
 function __show_help {
