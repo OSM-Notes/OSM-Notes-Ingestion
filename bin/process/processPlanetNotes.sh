@@ -155,7 +155,7 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-08
+# Version: 2025-01-23
 declare -r VERSION="2025-08-08"
 
 #set -xv
@@ -269,6 +269,28 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
 # Load process functions (includes GEOJSON_TEST and other variables)
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
+# Function to handle cleanup on exit respecting CLEAN flag
+function __cleanup_on_exit() {
+ local EXIT_CODE=$?
+ 
+ # Only clean if CLEAN is true and this is an error exit (non-zero)
+ if [[ "${CLEAN}" == "true" ]] && [[ $EXIT_CODE -ne 0 ]] && [[ -n "${TMP_DIR:-}" ]]; then
+  __logw "Error detected (exit code: $EXIT_CODE), cleaning up temporary directory: ${TMP_DIR}"
+  if [[ -d "${TMP_DIR}" ]]; then
+   rm -rf "${TMP_DIR}" 2>/dev/null || true
+   __logi "Temporary directory cleaned up: ${TMP_DIR}"
+  fi
+ elif [[ "${CLEAN}" == "false" ]] && [[ $EXIT_CODE -ne 0 ]]; then
+  __logw "Error detected (exit code: $EXIT_CODE), but CLEAN=false - preserving temporary files in: ${TMP_DIR:-}"
+ fi
+ 
+ exit $EXIT_CODE
+}
+
+# Set trap to handle cleanup on any exit (after loading logging functions)
+trap '__cleanup_on_exit' EXIT
+
 # __start_logger
 # __trapOn
 # __checkBaseTables

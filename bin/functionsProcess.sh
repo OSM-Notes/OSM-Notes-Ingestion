@@ -2010,8 +2010,9 @@ function __processCountries {
     __loge "Log file for job ${JOB_PID}: ${LOG_FILENAME}.${JOB_PID}"
    fi
   done
-  __loge "=== COUNTRIES PROCESSING FAILED ==="
-  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+   __loge "=== COUNTRIES PROCESSING FAILED ==="
+ __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
+  "echo 'Countries processing cleanup called'"
  fi
 
  __logi "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ==="
