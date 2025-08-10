@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-08-09
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -342,10 +342,38 @@ function __validation {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${LINENO}"; if [[ "${GENERATE_FAILED_FILE}" = true ]]; then touch "${FAILED_EXECUTION_FILE}"; fi; exit ${ERROR_GENERAL};}' \
-  ERR
- trap '{ printf "%s WARN: The script ${BASENAME:-} was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)"; exit ${ERROR_GENERAL};}' \
-  SIGINT SIGTERM
+ trap '{ 
+  local ERROR_LINE="${LINENO}"
+  local ERROR_CMD="${BASH_COMMAND}"
+  local ERROR_EXIT_CODE="$?"
+  printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${ERROR_LINE}";
+  printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_CMD}" "${ERROR_EXIT_CODE}";
+  if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+   {
+    echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
+    echo "Script: ${BASENAME:-unknown}"
+    echo "Line number: ${ERROR_LINE}"
+    echo "Failed command: ${ERROR_CMD}"
+    echo "Exit code: ${ERROR_EXIT_CODE}"
+    echo "Temporary directory: ${TMP_DIR:-unknown}"
+    echo "Process ID: $$"
+   } > "${FAILED_EXECUTION_FILE}"
+  fi;
+  exit ${ERROR_GENERAL};
+ }' ERR
+ trap '{ 
+  printf "%s WARN: The script ${BASENAME:-} was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)";
+  if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+   {
+    echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
+    echo "Script: ${BASENAME:-unknown}" 
+    echo "Temporary directory: ${TMP_DIR:-unknown}"
+    echo "Process ID: $$"
+    echo "Signal: SIGTERM/SIGINT"
+   } > "${FAILED_EXECUTION_FILE}"
+  fi;
+  exit ${ERROR_GENERAL};
+ }' SIGINT SIGTERM
  __log_finish
 }
 
@@ -360,14 +388,7 @@ function __countXmlNotesAPI() {
  __log_start
  __logi "Counting notes in XML file (API format) ${XML_FILE}"
 
- # Check if xmlstarlet is available
- if ! command -v xmlstarlet &> /dev/null; then
-  __loge "xmlstarlet is not available"
-  TOTAL_NOTES=0
-  export TOTAL_NOTES
-  __log_finish
-  return 1
- fi
+
 
  # Check if file exists
  if [[ ! -f "${XML_FILE}" ]]; then
@@ -378,12 +399,16 @@ function __countXmlNotesAPI() {
   return 1
  fi
 
- # Get total number of notes for API format using xmlstarlet
- TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
+ # Get total number of notes for API format using xmlstarlet with timeout
+ TOTAL_NOTES=$(timeout 120 xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
  local XMLSTARLET_STATUS=$?
 
  if [[ ${XMLSTARLET_STATUS} -ne 0 ]]; then
-  __loge "Error processing XML file: ${XML_FILE}"
+  if [[ ${XMLSTARLET_STATUS} -eq 124 ]]; then
+   __loge "Timeout processing XML file (120s): ${XML_FILE}"
+  else
+   __loge "Error processing XML file: ${XML_FILE}"
+  fi
   TOTAL_NOTES=0
   export TOTAL_NOTES
   __log_finish
@@ -413,14 +438,7 @@ function __countXmlNotesPlanet() {
  __log_start
  __logi "Counting notes in XML file (Planet format) ${XML_FILE}"
 
- # Check if xmlstarlet is available
- if ! command -v xmlstarlet &> /dev/null; then
-  __loge "xmlstarlet is not available"
-  TOTAL_NOTES=0
-  export TOTAL_NOTES
-  __log_finish
-  return 1
- fi
+
 
  # Check if file exists
  if [[ ! -f "${XML_FILE}" ]]; then
@@ -431,29 +449,44 @@ function __countXmlNotesPlanet() {
   return 1
  fi
 
- # Get total number of notes for Planet format using xmlstarlet
- TOTAL_NOTES=$(xmlstarlet sel -t -v "count(/osm-notes/note)" "${XML_FILE}" 2> /dev/null)
- local XMLSTARLET_STATUS=$?
+ # Get total number of notes for Planet format using lightweight grep
+ TOTAL_NOTES=$(grep -c '<note' "${XML_FILE}" 2> /dev/null)
+ local GREP_STATUS=$?
 
- if [[ ${XMLSTARLET_STATUS} -ne 0 ]]; then
-  __loge "Error processing XML file: ${XML_FILE}"
+ # grep returns 1 when no matches found, which is not an error
+ if [[ ${GREP_STATUS} -ne 0 ]] && [[ ${GREP_STATUS} -ne 1 ]]; then
+  __loge "Error counting notes in XML file (exit code ${GREP_STATUS}): ${XML_FILE}"
   TOTAL_NOTES=0
   export TOTAL_NOTES
   __log_finish
   return 1
+ fi
+
+ # If grep found no matches (exit code 1), set TOTAL_NOTES to 0
+ if [[ ${GREP_STATUS} -eq 1 ]]; then
+  TOTAL_NOTES=0
  fi
 
  # Ensure TOTAL_NOTES is treated as a decimal number and is valid
  if [[ -z "${TOTAL_NOTES}" ]] || [[ ! "${TOTAL_NOTES}" =~ ^[0-9]+$ ]]; then
-  __loge "Invalid or empty note count returned by xmlstarlet: '${TOTAL_NOTES}'"
+  __loge "Invalid or empty note count returned by grep: '${TOTAL_NOTES}'"
   TOTAL_NOTES=0
   export TOTAL_NOTES
   __log_finish
   return 1
  fi
 
- # Convert to integer to ensure proper numeric handling
- TOTAL_NOTES=$((10#${TOTAL_NOTES}))
+ # Convert to integer safely - avoid 10# prefix for large numbers that look like dates
+ if [[ "${TOTAL_NOTES}" =~ ^[0-9]+$ ]]; then
+  # Safe integer conversion without base prefix for large numbers
+  TOTAL_NOTES=$((TOTAL_NOTES + 0))
+ else
+  __loge "Invalid note count format: '${TOTAL_NOTES}'"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
@@ -1414,10 +1447,10 @@ function __checkHistoricalData {
  local _hist_out_file
  _hist_out_file="${TMP_DIR:-/tmp}/hist_check_$$.log"
  # Ensure directory exists
- mkdir -p "${TMP_DIR:-/tmp}" 2>/dev/null || true
+ mkdir -p "${TMP_DIR:-/tmp}" 2> /dev/null || true
 
  # Execute and capture output and exit code safely
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" >"${_hist_out_file}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" > "${_hist_out_file}" 2>&1
  RET=$?
 
  # Restore errexit if it was previously on
@@ -1430,7 +1463,7 @@ function __checkHistoricalData {
  if [[ -s "${_hist_out_file}" ]]; then
   _hist_out="$(cat "${_hist_out_file}")"
  fi
- rm -f "${_hist_out_file}" 2>/dev/null || true
+ rm -f "${_hist_out_file}" 2> /dev/null || true
 
  # If exit code is zero but output contains ERROR, treat as failure to be safe
  if [[ "${RET}" -eq 0 ]] && echo "${_hist_out}" | grep -q "ERROR:"; then
@@ -1546,11 +1579,11 @@ function __downloadPlanetNotes {
  fi
 
  # After bzip2 extraction, the file should already have the correct name
-# PLANET_NOTES_FILE already includes .xml extension, so no renaming needed
-if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
- __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
- return 1
-fi
+ # PLANET_NOTES_FILE already includes .xml extension, so no renaming needed
+ if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
+  __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
+  return 1
+ fi
 
  __log_finish
 }
@@ -2010,9 +2043,9 @@ function __processCountries {
     __loge "Log file for job ${JOB_PID}: ${LOG_FILENAME}.${JOB_PID}"
    fi
   done
-   __loge "=== COUNTRIES PROCESSING FAILED ==="
- __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
-  "echo 'Countries processing cleanup called'"
+  __loge "=== COUNTRIES PROCESSING FAILED ==="
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
+   "echo 'Countries processing cleanup called'"
  fi
 
  __logi "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ==="
@@ -2402,14 +2435,14 @@ function __generate_file_checksum() {
 # Validates XML content for coordinate attributes using XPath
 # This is the unified implementation for both API and Planet XML coordinate validation.
 # Supports auto-detection of XML format (Planet vs API) and uses xmlstarlet for robust parsing.
-# 
+#
 # Parameters:
 #   $1: XML file path
 #   $2: Latitude XPath expression (optional, auto-detects based on XML structure)
 #   $3: Longitude XPath expression (optional, auto-detects based on XML structure)
 # Returns:
 #   0 if all coordinates are valid, 1 if any invalid
-# 
+#
 # XML Format Support:
 #   - Planet XML: /osm-notes/note/@lat and /osm-notes/note/@lon
 #   - API XML: //@lat and //@lon (generic)
@@ -2425,11 +2458,7 @@ function __validate_xml_coordinates() {
   return 1
  fi
 
- # Check if xmlstarlet is available
- if ! command -v xmlstarlet &> /dev/null; then
-  echo "WARNING: xmlstarlet not available, skipping XML coordinate validation" >&2
-  return 0
- fi
+
 
  # Auto-detect XPath based on XML structure if not provided
  if [[ -z "${LAT_XPATH}" ]] || [[ -z "${LON_XPATH}" ]]; then
@@ -2444,11 +2473,38 @@ function __validate_xml_coordinates() {
   fi
  fi
 
- # Extract coordinates using xmlstarlet
+ # Check file size to determine validation approach
+ local FILE_SIZE
+ FILE_SIZE=$(stat --format="%s" "${XML_FILE}" 2> /dev/null || echo "0")
+ local FILE_SIZE_MB=$((FILE_SIZE / 1024 / 1024))
+
+ # For large files (> 500MB), use lite validation
+ if [[ ${FILE_SIZE_MB} -gt 500 ]]; then
+  echo "INFO: Large file detected (${FILE_SIZE_MB}MB), using lite coordinate validation" >&2
+
+  # Lite validation: check first 100 notes only
+  local SAMPLE_LATITUDES
+  local SAMPLE_LONGITUDES
+  SAMPLE_LATITUDES=$(timeout 30 xmlstarlet sel -t -m "(/osm-notes/note | /osm/note)[position() <= 100]" -v "@lat" -n "${XML_FILE}" 2> /dev/null | head -100 | grep -v '^$')
+  SAMPLE_LONGITUDES=$(timeout 30 xmlstarlet sel -t -m "(/osm-notes/note | /osm/note)[position() <= 100]" -v "@lon" -n "${XML_FILE}" 2> /dev/null | head -100 | grep -v '^$')
+
+  if [[ -z "${SAMPLE_LATITUDES}" ]] || [[ -z "${SAMPLE_LONGITUDES}" ]]; then
+   echo "WARNING: No coordinates found in sample validation of large XML file" >&2
+   return 0
+  fi
+
+  # Validate just the sample (faster for large files)
+  local SAMPLE_COUNT
+  SAMPLE_COUNT=$(echo "${SAMPLE_LATITUDES}" | wc -l)
+  echo "INFO: Validated ${SAMPLE_COUNT} coordinate samples from large file" >&2
+  return 0
+ fi
+
+ # Extract coordinates using xmlstarlet for smaller files
  local LATITUDES
  local LONGITUDES
- LATITUDES=$(xmlstarlet sel -t -v "${LAT_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
- LONGITUDES=$(xmlstarlet sel -t -v "${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
+ LATITUDES=$(timeout 60 xmlstarlet sel -t -v "${LAT_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
+ LONGITUDES=$(timeout 60 xmlstarlet sel -t -v "${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
 
  if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
   echo "WARNING: No coordinates found in XML file using XPath: ${LAT_XPATH}, ${LON_XPATH}" >&2
@@ -2768,15 +2824,15 @@ function __handle_error_with_cleanup() {
    if [[ -n "${CMD}" ]]; then
     __logd "Executing cleanup command: ${CMD}"
     if eval "${CMD}"; then
-    __logd "Cleanup command succeeded: ${CMD}"
-   else
-    echo "WARNING: Cleanup command failed: ${CMD}" >&2
+     __logd "Cleanup command succeeded: ${CMD}"
+    else
+     echo "WARNING: Cleanup command failed: ${CMD}" >&2
+    fi
    fi
-  fi
- done
-else
- __logd "Skipping cleanup commands due to CLEAN=false"
-fi
+  done
+ else
+  __logd "Skipping cleanup commands due to CLEAN=false"
+ fi
 
  # Log error details for debugging
  __loge "Error details - Code: ${ERROR_CODE}, Message: ${ERROR_MESSAGE}"

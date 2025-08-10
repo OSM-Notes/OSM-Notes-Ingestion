@@ -167,3 +167,5 @@ teardown() {
   # Should mention CLEAN in help or show_help function
   [[ "$output" == *"CLEAN"* ]] || [[ "$output" == *"left all created files"* ]]
 }
+
+

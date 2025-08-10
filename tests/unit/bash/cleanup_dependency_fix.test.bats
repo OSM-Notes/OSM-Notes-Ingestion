@@ -49,3 +49,5 @@ load "../../test_helper.bash"
   # Solution 2: CASCADE handles remaining dependencies automatically
   grep -q "CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
 }
+
+

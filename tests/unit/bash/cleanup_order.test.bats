@@ -91,3 +91,5 @@ setup() {
   # Solution 2: CASCADE option
   grep -q "DROP TYPE.*note_event_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
 }
+
+
