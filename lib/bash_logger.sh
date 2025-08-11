@@ -18,7 +18,8 @@
 # - Test-friendly design
 #
 # Author: Andres Gomez (AngocA) - Enhanced version
-# Version: 2025-01-23
+# Version: 2025-08-10
+VERSION="2025-08-10"
 # Based on: Dushyanth Jyothi's bash-logger
 
 # === CONSTANTS AND CONFIGURATION ===
@@ -169,9 +170,9 @@ __output_log() {
 # Generate call stack for TRACE levels
 __generate_call_stack() {
  local __bl_functions_length="${#FUNCNAME[@]}"
- local __bl_script_name="${BASH_SOURCE[2]}"
- local __bl_function_name="${FUNCNAME[2]}"
- local __bl_called_line_number="${BASH_LINENO[1]}"
+ local __bl_script_name="${BASH_SOURCE[0]}"
+ local __bl_function_name="${FUNCNAME[0]}"
+ local __bl_called_line_number="${BASH_LINENO[0]}"
  local __bl_time_and_date
  
  __bl_script_name="${__bl_script_name##*/}"
@@ -188,7 +189,7 @@ __generate_call_stack() {
  for ((i = 0; i < __bl_functions_length; i++)); do
    if (($i != $((__bl_functions_length - 1)))); then
      if [[ "${BASH_SOURCE[$i]}" != *"bash_logger"* ]]; then
-       LOG="   ${BASH_SOURCE[$i + 1]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+       LOG="   ${BASH_SOURCE[$i]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
        if [[ -z "${__log_fd}" ]]; then
          echo "${LOG}"
        else
@@ -209,9 +210,9 @@ __generate_call_stack() {
 # Generate call stack for ERROR levels
 __generate_call_stack_error() {
  local __bl_functions_length="${#FUNCNAME[@]}"
- local __bl_script_name="${BASH_SOURCE[2]}"
- local __bl_function_name="${FUNCNAME[2]}"
- local __bl_called_line_number="${BASH_LINENO[1]}"
+ local __bl_script_name="${BASH_SOURCE[0]}"
+ local __bl_function_name="${FUNCNAME[0]}"
+ local __bl_called_line_number="${BASH_LINENO[0]}"
  local __bl_time_and_date
  
  __bl_script_name="${__bl_script_name##*/}"
@@ -228,7 +229,7 @@ __generate_call_stack_error() {
  for ((i = 0; i < __bl_functions_length; i++)); do
    if (($i != $((__bl_functions_length - 1)))); then
      if [[ "${BASH_SOURCE[$i]}" != *"bash_logger"* ]]; then
-       LOG="   ${BASH_SOURCE[$i + 1]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+       LOG="   ${BASH_SOURCE[$i]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
        if [[ -z "${__log_fd}" ]]; then
          echo "${LOG}" >&2
        else
@@ -249,9 +250,9 @@ __generate_call_stack_error() {
 # Generate call stack for FATAL levels
 __generate_call_stack_fatal() {
  local __bl_functions_length="${#FUNCNAME[@]}"
- local __bl_script_name="${BASH_SOURCE[2]}"
- local __bl_function_name="${FUNCNAME[2]}"
- local __bl_called_line_number="${BASH_LINENO[1]}"
+ local __bl_script_name="${BASH_SOURCE[0]}"
+ local __bl_function_name="${FUNCNAME[0]}"
+ local __bl_called_line_number="${BASH_LINENO[0]}"
  local __bl_time_and_date
  
  __bl_script_name="${__bl_script_name##*/}"
@@ -268,7 +269,7 @@ __generate_call_stack_fatal() {
  for ((i = 0; i < __bl_functions_length; i++)); do
    if (($i != $((__bl_functions_length - 1)))); then
      if [[ "${BASH_SOURCE[$i]}" != *"bash_logger"* ]]; then
-       LOG="   ${BASH_SOURCE[$i + 1]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
+       LOG="   ${BASH_SOURCE[$i]//.\//}:${BASH_LINENO[$i]} ${FUNCNAME[$i]}(..)"
        if [[ -z "${__log_fd}" ]]; then
          echo "${LOG}" >&2
        else
@@ -303,7 +304,7 @@ __logt() {
  __output_log "$formatted_message"
  
  # Show call stack for TRACE
- if [[ "${#FUNCNAME[@]}" -gt 3 ]]; then
+ if [[ "${#FUNCNAME[@]}" -gt 1 ]]; then
    __generate_call_stack
  fi
 }
@@ -367,7 +368,7 @@ __loge() {
    __output_log "$formatted_message" "true"
    
    # Show call stack for ERROR
-   if ((${#FUNCNAME[@]} > 2)); then
+   if [[ "${#FUNCNAME[@]}" -gt 1 ]]; then
      __generate_call_stack_error
    fi
  fi
@@ -387,7 +388,7 @@ __logf() {
    __output_log "$formatted_message" "true"
    
    # Show call stack for FATAL
-   if ((${#FUNCNAME[@]} > 2)); then
+   if [[ "${#FUNCNAME[@]}" -gt 1 ]]; then
      __generate_call_stack_fatal
    fi
  fi

@@ -4,7 +4,8 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-09
+# Version: 2025-08-10
+VERSION="2025-08-10"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -41,7 +42,7 @@ function __show_help() {
  echo "  __checkPrereqsCommands - Prerequisites check"
  echo
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: 2025-08-02"
+ echo "Version: ${VERSION}"
  exit "${ERROR_HELP_MESSAGE}"
 }
 
@@ -62,12 +63,18 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
   SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/../.." && pwd)"
  fi
 fi
-# Load bash logger functions instead of simple fallbacks
+
+# Load bash logger functions - this provides all logging functionality
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh" ]]; then
  # shellcheck source=../lib/bash_logger.sh
  source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+ # Set log level from environment if not already set
+ if [[ -n "${LOG_LEVEL:-}" && -z "${__log_level:-}" ]]; then
+   __set_log_level "$LOG_LEVEL"
+ fi
 else
  # Fallback implementations if bash_logger.sh is not available
+ # These are minimal and should not interfere with the main logger
  function __log() { echo "$(date '+%Y-%m-%d %H:%M:%S') - LOG: $*"; }
  function __logt() { echo "$(date '+%Y-%m-%d %H:%M:%S') - TRACE: $*"; }
  function __logd() { echo "$(date '+%Y-%m-%d %H:%M:%S') - DEBUG: $*"; }
@@ -75,28 +82,18 @@ else
  function __logw() { echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN: $*"; }
  function __loge() { echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: $*" >&2; }
  function __logf() { echo "$(date '+%Y-%m-%d %H:%M:%S') - FATAL: $*" >&2; }
+ 
+ # Fallback lifecycle helpers for fallback mode only
+ if ! declare -f __log_start > /dev/null 2>&1; then
+   function __log_start() { __logi "Starting function"; }
+ fi
+ if ! declare -f __log_finish > /dev/null 2>&1; then
+   function __log_finish() { __logi "Function completed"; }
+ fi
 fi
 
-# Fallback lifecycle helpers, kept minimal to avoid side-effects
-if ! declare -f __log_start > /dev/null 2>&1; then
- function __log_start() { __logi "Starting function"; }
-fi
-if ! declare -f __log_finish > /dev/null 2>&1; then
- function __log_finish() { __logi "Function completed"; }
-fi
-
-# Start logger function - Always use simple logger
-function __start_logger() {
- # Always use simple logger - no external dependencies
- LOG_LEVEL="${LOG_LEVEL:-INFO}"
- # Ensure simple logger functions are always available
- export __log_level="${LOG_LEVEL}"
-}
-
-# Initialize logger if not already done
-if [[ -z "${__log_level:-}" ]]; then
- __start_logger
-fi
+# Remove the conflicting __start_logger function and initialization
+# The bash_logger.sh handles all initialization automatically
 
 # Validation function
 function __validation {
