@@ -25,8 +25,8 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
-# Start logger
-__start_logger
+# Start logger (using available logging functions)
+__logi "Starting cleanupAll.sh script"
 
 # Load validation functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
