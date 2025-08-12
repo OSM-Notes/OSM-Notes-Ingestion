@@ -46,7 +46,7 @@ All bash scripts must follow these standards:
 #
 # Author: Andres Gomez (AngocA)
 # Version: [YYYY-MM-DD]
-declare -r VERSION="[YYYY-MM-DD]"
+VERSION="[YYYY-MM-DD]"
 ```
 
 #### Required Script Settings

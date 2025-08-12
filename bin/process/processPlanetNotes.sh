@@ -291,14 +291,6 @@ function __cleanup_on_exit() {
 # Set trap to handle cleanup on any exit (after loading logging functions)
 trap '__cleanup_on_exit' EXIT
 
-# __start_logger
-# __trapOn
-# __checkBaseTables
-# __downloadPlanetNotes
-# __validatePlanetNotesXMLFile
-# __createFunctionToGetCountry
-# __createProcedures
-
 # Shows the help information.
 function __show_help {
  echo "${BASENAME} version ${VERSION}"
