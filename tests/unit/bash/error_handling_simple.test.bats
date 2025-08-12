@@ -2,7 +2,7 @@
 
 # Simplified tests for error handling functions
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-08-12
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -36,12 +36,36 @@ EOF
 
 @test "handle_error_with_cleanup should execute cleanup commands" {
  # Test error handling with cleanup
- run __handle_error_with_cleanup 255 "Test error" "echo 'cleanup1' > ${TEST_DIR}/cleanup1.txt" "echo 'cleanup2' > ${TEST_DIR}/cleanup2.txt"
+ # Use absolute paths to ensure cleanup commands work in function context
+ local CLEANUP1="${TEST_DIR}/cleanup1.txt"
+ local CLEANUP2="${TEST_DIR}/cleanup2.txt"
+ 
+ # Ensure TEST_MODE is set for this test
+ export TEST_MODE="true"
+ 
+ # Set BATS environment variables explicitly
+ export BATS_TEST_DIRNAME="test"
+ export BATS_ROOT="test"
+ export BATS_VERSION="test"
+ 
+ # Ensure CLEAN is set to true for this test
+ export CLEAN="true"
+ 
+ # Debug: show what we're testing
+ echo "Testing cleanup with files: ${CLEANUP1} and ${CLEANUP2}"
+ echo "TEST_DIR: ${TEST_DIR}"
+ echo "Current working directory: $(pwd)"
+ echo "CLEAN: ${CLEAN}"
+ 
+ run __handle_error_with_cleanup 255 "Test error" "echo 'cleanup1' > '${CLEANUP1}'" "echo 'cleanup2' > '${CLEANUP2}'"
+ echo "Function exit code: ${status}"
+ echo "Function output: ${output}"
+ 
  [ "$status" -eq 255 ]
- [ -f "${TEST_DIR}/cleanup1.txt" ]
- [ -f "${TEST_DIR}/cleanup2.txt" ]
- [[ "$(cat ${TEST_DIR}/cleanup1.txt)" == "cleanup1" ]]
- [[ "$(cat ${TEST_DIR}/cleanup2.txt)" == "cleanup2" ]]
+ [ -f "${CLEANUP1}" ]
+ [ -f "${CLEANUP2}" ]
+ [[ "$(cat "${CLEANUP1}")" == "cleanup1" ]]
+ [[ "$(cat "${CLEANUP2}")" == "cleanup2" ]]
 }
 
 @test "error handling functions should be available" {

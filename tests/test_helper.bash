@@ -26,6 +26,7 @@ export __log_level="DEBUG"
 export CLEAN="false"
 export MAX_THREADS="2"
 export TEST_MAX_NOTES="100"
+export TEST_MODE="true"
 
 # Set required variables for functionsProcess.sh BEFORE loading scripts
 export BASENAME="test"
