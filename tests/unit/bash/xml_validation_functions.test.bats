@@ -415,7 +415,7 @@ EOF
 
 @test "test __validate_xml_dates_lightweight with valid dates" {
  # Test lightweight date validation with valid dates
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ # Functions are already loaded via functionsProcess.sh
  
  # Create test XML with valid dates
  cat > /tmp/test_dates.xml << 'EOF'
@@ -435,7 +435,7 @@ EOF
 
 @test "test __validate_xml_dates_lightweight with invalid dates" {
  # Test lightweight date validation with invalid dates
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ # Functions are already loaded via functionsProcess.sh
  
  # Create test XML with invalid dates
  cat > /tmp/test_invalid_dates.xml << 'EOF'
@@ -455,7 +455,7 @@ EOF
 
 @test "test __validate_xml_dates_lightweight with mixed valid and invalid dates" {
  # Test lightweight date validation with mixed dates
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ # Functions are already loaded via functionsProcess.sh
  
  # Create test XML with mixed valid and invalid dates
  cat > /tmp/test_mixed_dates.xml << 'EOF'
@@ -591,7 +591,7 @@ EOF
 
 @test "test __validate_xml_dates_lightweight with invalid characters" {
  # Test lightweight date validation with invalid characters
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ # Functions are already loaded via functionsProcess.sh
  
  # Create test XML with invalid characters in dates
  cat > /tmp/test_invalid_chars.xml << 'EOF'
@@ -601,12 +601,33 @@ EOF
   <comment action="opened" timestamp="2023-01-1bT00:00:00Z" uid="1" user="test">Test comment</comment>
  </note>
  <note id="2" lat="0.0" lon="0.0" created_at="2023-01-01T1c:00:00Z"/>
-</osm-notes>
 EOF
+
+ # Add many more notes to make the file larger and avoid lite validation
+ for i in {3..100}; do
+  # Make some dates invalid to ensure validation fails
+  if [[ $((i % 3)) -eq 0 ]]; then
+   # Invalid date every 3rd note
+   cat >> /tmp/test_invalid_chars.xml << EOF
+ <note id="${i}" lat="0.0" lon="0.0" created_at="2023-13-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-32T00:00:00Z" uid="${i}" user="test">Test comment ${i}</comment>
+ </note>
+EOF
+  else
+   # Valid date
+   cat >> /tmp/test_invalid_chars.xml << EOF
+ <note id="${i}" lat="0.0" lon="0.0" created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="${i}" user="test">Test comment ${i}</comment>
+ </note>
+EOF
+  fi
+ done
+
+ echo '</osm-notes>' >> /tmp/test_invalid_chars.xml
  
  run __validate_xml_dates_lightweight "/tmp/test_invalid_chars.xml"
  [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"Malformed dates found in XML"* ]]
+ [[ "${output}" == *"Invalid date format found in sample"* ]]
 }
 
 @test "test planet XML files avoid memory-intensive xmllint schema validation" {

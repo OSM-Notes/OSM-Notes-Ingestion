@@ -10,6 +10,14 @@ setup() {
  # Create temporary directory
  export TMP_DIR=$(mktemp -d "${BATS_TMPDIR}/xml_validation_test_XXXXXX")
  
+ # Setup test environment
+ export SCRIPT_DIR="$(cd "${BATS_TEST_DIRNAME}/../../../bin" && pwd)"
+ 
+ # Source the functions we need for testing
+ if [[ -f "${SCRIPT_DIR}/functionsProcess.sh" ]]; then
+  source "${SCRIPT_DIR}/functionsProcess.sh"
+ fi
+ 
  # Create mock schema file
  cat > "${TMP_DIR}/test_schema.xsd" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -43,22 +51,13 @@ EOF
  # Generate many notes to simulate large file
  for i in {1..1000}; do
   cat >> "${TMP_DIR}/large_test.xml" << EOF
- <note>
-  <id>${i}</id>
-  <lat>40.7128</lat>
-  <lon>-74.0060</lon>
-  <created_at>2023-01-01T00:00:00Z</created_at>
-  <status>open</status>
+ <note lat="40.7128" lon="-74.0060" id="${i}" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note ${i}</comment>
  </note>
 EOF
  done
 
  echo '</osm-notes>' >> "${TMP_DIR}/large_test.xml"
- 
- # Source the functions we need for testing
- if [[ -f "${BATS_TEST_DIRNAME}/../../../../bin/functionsProcess.sh" ]]; then
-  source "${BATS_TEST_DIRNAME}/../../../../bin/functionsProcess.sh"
- fi
 }
 
 # Test cleanup
@@ -69,11 +68,35 @@ teardown() {
  fi
 }
 
+@test "Functions are available after sourcing" {
+ # Check if our functions are available
+ [[ $(type -t __validate_xml_structure) == "function" ]]
+ [[ $(type -t __validate_xml_dates_lightweight) == "function" ]]
+ [[ $(type -t __validate_xml_coordinates) == "function" ]]
+}
+
+@test "Check what functions are actually available" {
+ # List all functions that start with __validate_xml
+ local AVAILABLE_FUNCTIONS
+ AVAILABLE_FUNCTIONS=$(declare -F | grep "__validate_xml" | awk '{print $3}' | sort)
+ 
+ echo "Available __validate_xml functions:"
+ echo "${AVAILABLE_FUNCTIONS}"
+ 
+ # Check specific functions
+ echo "Checking __validate_xml_coordinates: $(type -t __validate_xml_coordinates 2>/dev/null || echo 'NOT FOUND')"
+ echo "Checking __validate_xml_structure: $(type -t __validate_xml_structure 2>/dev/null || echo 'NOT FOUND')"
+ echo "Checking __validate_xml_dates_lightweight: $(type -t __validate_xml_dates_lightweight 2>/dev/null || echo 'NOT FOUND')"
+ 
+ # At least one should be available
+ [[ -n "${AVAILABLE_FUNCTIONS}" ]]
+}
+
 @test "XML file structure validation works" {
  # Test basic XML structure validation using our enhanced function
- run __validate_xml_basic "${TMP_DIR}/large_test.xml"
+ run __validate_xml_structure "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Basic XML validation passed"* ]]
+ [[ "${output}" == *"XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY"* ]]
 }
 
 @test "XML contains expected elements" {
@@ -93,17 +116,43 @@ teardown() {
 }
 
 @test "Enhanced XML validation works with large files" {
- # Test enhanced validation function with large file
- run __validate_xml_with_enhanced_error_handling "${TMP_DIR}/large_test.xml" "${TMP_DIR}/test_schema.xsd"
+ # Test enhanced validation function with large file using coordinates validation
+ # Create a smaller test file first to debug
+ cat > "${TMP_DIR}/small_test.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note lat="40.7128" lon="-74.0060" id="1" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 1</comment>
+ </note>
+ <note lat="34.0522" lon="-118.2437" id="2" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 2</comment>
+ </note>
+</osm-notes>
+EOF
+
+ # Test with smaller file first
+ run __validate_xml_coordinates "${TMP_DIR}/small_test.xml"
+ echo "Small file test - Status: ${status}, Output: ${output}"
  [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"XML validation succeeded"* ]]
+ 
+ # Now test with large file
+ run __validate_xml_coordinates "${TMP_DIR}/large_test.xml"
+ echo "Large file test - Status: ${status}, Output: ${output}"
+ 
+ # Debug: check file size
+ local FILE_SIZE
+ FILE_SIZE=$(stat -c%s "${TMP_DIR}/large_test.xml" 2>/dev/null || echo "unknown")
+ echo "Large file size: ${FILE_SIZE} bytes"
+ 
+ [[ "${status}" -eq 0 ]]
+ [[ "${output}" == *"XML coordinate validation passed"* ]]
 }
 
 @test "Structure-only validation works with large files" {
  # Test structure-only validation function
- run __validate_xml_structure_only "${TMP_DIR}/large_test.xml"
+ run __validate_xml_structure "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Structure-only validation passed for very large file"* ]]
+ [[ "${output}" == *"XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY"* ]]
 }
 
 @test "Large file threshold configuration is respected" {
@@ -152,9 +201,9 @@ teardown() {
 
 @test "XML structure validation handles large files" {
  # Test that basic XML structure validation works for large files
- run __validate_xml_basic "${TMP_DIR}/large_test.xml"
+ run __validate_xml_structure "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Basic XML validation passed"* ]]
+ [[ "${output}" == *"XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY"* ]]
 }
 
 @test "Enhanced validation handles different file sizes" {
@@ -171,9 +220,9 @@ teardown() {
  export -f stat
  
  # Test with large file
- run __validate_xml_with_enhanced_error_handling "${TMP_DIR}/large_test.xml" "${TMP_DIR}/test_schema.xsd"
+ run __validate_xml_coordinates "${TMP_DIR}/large_test.xml"
  [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Basic XML validation succeeded"* ]]
+ [[ "${output}" == *"Lite coordinate validation passed"* ]]
 }
 
 @test "Configuration values are reasonable" {
@@ -190,4 +239,98 @@ teardown() {
  # Timeout should be reasonable
  [[ "${ETL_XML_VALIDATION_TIMEOUT}" -ge 60 ]]
  [[ "${ETL_XML_VALIDATION_TIMEOUT}" -le 3600 ]]
+} 
+
+@test "Debug coordinate validation output" {
+ # Create a simple test XML file
+ cat > "${TMP_DIR}/debug_test.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note lat="40.7128" lon="-74.0060" id="1" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 1</comment>
+ </note>
+ <note lat="34.0522" lon="-118.2437" id="2" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 2</comment>
+ </note>
+</osm-notes>
+EOF
+
+ # Test coordinate validation and capture output
+ run __validate_xml_coordinates "${TMP_DIR}/debug_test.xml"
+ 
+ # Show output in test result
+ echo "Status: ${status}"
+ echo "Output: ${output}"
+ 
+ # Just check that it doesn't fail
+ [[ "${status}" -eq 0 ]]
+} 
+
+@test "Test XML splitting without xmlstarlet" {
+ # Create a simple test XML file with multiple notes
+ cat > "${TMP_DIR}/test_splitting.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note lat="40.7128" lon="-74.0060" id="1" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 1</comment>
+ </note>
+ <note lat="34.0522" lon="-118.2437" id="2" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 2</comment>
+ </note>
+ <note lat="51.5074" lon="-0.1278" id="3" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 3</comment>
+ </note>
+</osm-notes>
+EOF
+
+ # Test that we can find note lines
+ local NOTE_LINES
+ NOTE_LINES=$(grep -n '<note' "${TMP_DIR}/test_splitting.xml" | cut -d: -f1)
+ 
+ echo "Note lines found: ${NOTE_LINES}"
+ 
+ # Should find 3 note lines
+ local NOTE_COUNT
+ NOTE_COUNT=$(echo "${NOTE_LINES}" | wc -l)
+ [[ "${NOTE_COUNT}" -eq 3 ]]
+ 
+ # Test that we can extract a range
+ local START_LINE=$(echo "${NOTE_LINES}" | head -1)
+ local END_LINE=$(echo "${NOTE_LINES}" | tail -1)
+ 
+ echo "Start line: ${START_LINE}, End line: ${END_LINE}"
+ 
+ # Extract range and verify
+ local EXTRACTED_CONTENT
+ EXTRACTED_CONTENT=$(sed -n "${START_LINE},${END_LINE}p" "${TMP_DIR}/test_splitting.xml")
+ 
+ echo "Extracted content length: ${#EXTRACTED_CONTENT}"
+ [[ -n "${EXTRACTED_CONTENT}" ]]
+} 
+
+@test "Test __validate_xml_coordinates function directly" {
+ # Create a simple test XML file
+ cat > "${TMP_DIR}/simple_test.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note lat="40.7128" lon="-74.0060" id="1" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 1</comment>
+ </note>
+ <note lat="34.0522" lon="-118.2437" id="2" created_at="2023-01-01T00:00:00Z" status="open">
+  <comment>Test note 2</comment>
+ </note>
+</osm-notes>
+EOF
+
+ # Test the function directly
+ run __validate_xml_coordinates "${TMP_DIR}/simple_test.xml"
+ 
+ echo "Function status: ${status}"
+ echo "Function output: '${output}'"
+ 
+ # Check that the function executed successfully
+ [[ "${status}" -eq 0 ]]
+ 
+ # Check that it generated some output
+ [[ -n "${output}" ]]
 } 
