@@ -546,13 +546,33 @@ function __splitXmlForParallelSafe() {
   local END_LINE
 
   if [[ "${END}" -ge "${#NOTE_LINE_ARRAY[@]}" ]]; then
-   # Last part - go to end of file
+   # Last part - go to end of file, but exclude the closing tag
    END_LINE=$(wc -l < "${XML_FILE}")
+   # Find the line with the closing tag and stop before it
+   local CLOSING_TAG_LINE
+   if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
+    CLOSING_TAG_LINE=$(grep -n '</osm>' "${XML_FILE}" | head -1 | cut -d: -f1)
+   else
+    CLOSING_TAG_LINE=$(grep -n '</osm-notes>' "${XML_FILE}" | head -1 | cut -d: -f1)
+   fi
+   if [[ -n "${CLOSING_TAG_LINE}" ]]; then
+    END_LINE=$((CLOSING_TAG_LINE - 1))
+   fi
   else
    # Get the line number of the next note (or end of file)
    END_LINE="${NOTE_LINE_ARRAY[${END}]}"
    if [[ -z "${END_LINE}" ]]; then
     END_LINE=$(wc -l < "${XML_FILE}")
+    # Exclude the closing tag
+    local CLOSING_TAG_LINE
+    if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
+     CLOSING_TAG_LINE=$(grep -n '</osm>' "${XML_FILE}" | head -1 | cut -d: -f1)
+    else
+     CLOSING_TAG_LINE=$(grep -n '</osm-notes>' "${XML_FILE}" | head -1 | cut -d: -f1)
+    fi
+    if [[ -n "${CLOSING_TAG_LINE}" ]]; then
+     END_LINE=$((CLOSING_TAG_LINE - 1))
+    fi
    fi
   fi
 
