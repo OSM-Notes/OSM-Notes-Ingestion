@@ -155,8 +155,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-11
-VERSION="2025-08-11"
+# Version: 2025-08-12
+VERSION="2025-08-12"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -275,17 +275,17 @@ function __cleanup_on_exit() {
  local EXIT_CODE=$?
 
  # Only clean if CLEAN is true and this is an error exit (non-zero)
- if [[ "${CLEAN}" == "true" ]] && [[ $EXIT_CODE -ne 0 ]] && [[ -n "${TMP_DIR:-}" ]]; then
-  __logw "Error detected (exit code: $EXIT_CODE), cleaning up temporary directory: ${TMP_DIR}"
+ if [[ "${CLEAN}" == "true" ]] && [[ ${EXIT_CODE} -ne 0 ]] && [[ -n "${TMP_DIR:-}" ]]; then
+  __logw "Error detected (exit code: ${EXIT_CODE}), cleaning up temporary directory: ${TMP_DIR}"
   if [[ -d "${TMP_DIR}" ]]; then
    rm -rf "${TMP_DIR}" 2> /dev/null || true
    __logi "Temporary directory cleaned up: ${TMP_DIR}"
   fi
- elif [[ "${CLEAN}" == "false" ]] && [[ $EXIT_CODE -ne 0 ]]; then
-  __logw "Error detected (exit code: $EXIT_CODE), but CLEAN=false - preserving temporary files in: ${TMP_DIR:-}"
+ elif [[ "${CLEAN}" == "false" ]] && [[ ${EXIT_CODE} -ne 0 ]]; then
+  __logw "Error detected (exit code: ${EXIT_CODE}), but CLEAN=false - preserving temporary files in: ${TMP_DIR:-}"
  fi
 
- exit $EXIT_CODE
+ exit "${EXIT_CODE}"
 }
 
 # Set trap to handle cleanup on any exit (after loading logging functions)
@@ -762,7 +762,7 @@ function __validate_xml_with_enhanced_error_handling {
    local XMLLINT_OUTPUT
    XMLLINT_OUTPUT=$(timeout "${TIMEOUT}" xmllint --noout --schema "${SCHEMA_FILE}" "${XML_FILE}" 2>&1)
    local EXIT_CODE=$?
-   if [[ $EXIT_CODE -eq 0 ]]; then
+   if [[ ${EXIT_CODE} -eq 0 ]]; then
     __logi "XML validation succeeded"
     return 0
    else
@@ -799,8 +799,8 @@ function __validate_xml_basic {
 
  # Check basic XML structure using xmllint without schema
  local XMLLINT_OUTPUT
- XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
- if [[ $? -ne 0 ]]; then
+ if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1; then
+  XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
   __loge "ERROR: Basic XML structure validation failed - xmllint output: ${XMLLINT_OUTPUT}"
   return 1
  fi
@@ -994,7 +994,7 @@ EOF
 
  if command -v cpulimit > /dev/null 2>&1; then
   # Start the process with cpulimit
-  cpulimit --limit=${CPU_LIMIT} "${TEMP_SCRIPT}" &
+  cpulimit --limit="${CPU_LIMIT}" "${TEMP_SCRIPT}" &
   local MAIN_PID=$!
 
   # Wait a bit for xmllint to start, then get its PID
@@ -1053,16 +1053,16 @@ EOF
  fi
 
  # Log output if there was an error
- if [[ $RESULT -ne 0 ]]; then
+ if [[ ${RESULT} -ne 0 ]]; then
   __loge "xmllint validation failed with exit code: ${RESULT}"
-  if [[ $RESULT -eq 124 ]]; then
+  if [[ ${RESULT} -eq 124 ]]; then
    __loge "Process was terminated due to timeout (${TIMEOUT_SECS}s)"
-  elif [[ $RESULT -eq 137 ]]; then
+  elif [[ ${RESULT} -eq 137 ]]; then
    __loge "Process was killed (likely due to memory limits)"
   fi
  fi
 
- return $RESULT
+ return "${RESULT}"
 }
 
 # Clean up temporary files created during validation
@@ -1096,7 +1096,7 @@ function __trapOn() {
  __log_start
  trap '{ 
   local ERROR_LINE="${LINENO}"
-  local ERROR_CMD="${BASH_COMMAND}"
+  local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
   
   # Only report actual errors, not successful returns
@@ -1106,13 +1106,13 @@ function __trapOn() {
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
    
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
-   printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_CMD}" "${ERROR_EXIT_CODE}";
+   printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
     {
      echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
      echo "Script: ${MAIN_SCRIPT_NAME}"
      echo "Line number: ${ERROR_LINE}"
-     echo "Failed command: ${ERROR_CMD}"
+     echo "Failed command: ${ERROR_COMMAND}"
      echo "Exit code: ${ERROR_EXIT_CODE}"
      echo "Temporary directory: ${TMP_DIR:-unknown}"
      echo "Process ID: $$"

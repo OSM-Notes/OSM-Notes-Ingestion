@@ -258,7 +258,7 @@ function __trapOn() {
  __log_start
  trap '{ 
   local ERROR_LINE="${LINENO}"
-  local ERROR_CMD="${BASH_COMMAND}"
+  local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
   
   # Only report actual errors, not successful returns
@@ -268,13 +268,13 @@ function __trapOn() {
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
    
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
-   printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_CMD}" "${ERROR_EXIT_CODE}";
+   printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
     {
      echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
      echo "Script: ${MAIN_SCRIPT_NAME}"
      echo "Line number: ${ERROR_LINE}"
-     echo "Failed command: ${ERROR_CMD}"
+     echo "Failed command: ${ERROR_COMMAND}"
      echo "Exit code: ${ERROR_EXIT_CODE}"
      echo "Temporary directory: ${TMP_DIR:-unknown}"
      echo "Process ID: $$"
