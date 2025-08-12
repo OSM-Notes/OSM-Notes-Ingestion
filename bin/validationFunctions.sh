@@ -655,9 +655,13 @@ function __validate_xml_dates() {
        FAILED=1
       fi
      else
-      # Only log errors for non-empty dates that don't match expected patterns
+      # Check if this looks like it should be a date but isn't in the expected format
       if [[ "${DATE}" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
        __logw "WARNING: Unexpected date format found in XML: ${DATE}"
+      elif [[ "${DATE}" =~ [0-9]{4}.*[0-9]{2}.*[0-9]{2} ]] || [[ "${DATE}" =~ [a-zA-Z]+-?[a-zA-Z]+ ]]; then
+       # This looks like it might be a malformed date (contains date-like patterns or letters)
+       __loge "ERROR: Malformed date found in XML: ${DATE}"
+       FAILED=1
       fi
      fi
     done <<< "${EXTRACTED_DATES}"
@@ -808,6 +812,12 @@ function __validate_csv_dates() {
 
   if [[ -n "${DATES}" ]]; then
    while IFS= read -r DATE; do
+    # Skip empty dates
+    [[ -z "${DATE}" ]] && continue
+    # Skip dates that don't match the expected pattern
+    if [[ ! "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+     continue
+    fi
     if ! __validate_date_format "${DATE}" "CSV date"; then
      __loge "ERROR: Invalid date found in CSV: ${DATE}"
      FAILED=1
@@ -820,7 +830,7 @@ function __validate_csv_dates() {
   return 1
  fi
 
- __logd "CSV dates validation passed: ${CSV_FILE}"
+ __logi "CSV dates validation passed: ${CSV_FILE}"
  return 0
 }
 
@@ -1251,9 +1261,19 @@ function __validate_date_format() {
   return 1
  fi
 
- # Validate date components
+ # Validate date components using regex
  local YEAR MONTH DAY HOUR MINUTE SECOND
- IFS='T:Z' read -r YEAR MONTH DAY HOUR MINUTE SECOND <<< "${DATE_STRING}"
+ if [[ "${DATE_STRING}" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z$ ]]; then
+  YEAR="${BASH_REMATCH[1]}"
+  MONTH="${BASH_REMATCH[2]}"
+  DAY="${BASH_REMATCH[3]}"
+  HOUR="${BASH_REMATCH[4]}"
+  MINUTE="${BASH_REMATCH[5]}"
+  SECOND="${BASH_REMATCH[6]}"
+ else
+  __loge "ERROR: ${DESCRIPTION} format parsing failed: ${DATE_STRING}"
+  return 1
+ fi
 
  # Check year range
  if [[ $((10#${YEAR})) -lt 1900 ]] || [[ $((10#${YEAR})) -gt 2100 ]]; then

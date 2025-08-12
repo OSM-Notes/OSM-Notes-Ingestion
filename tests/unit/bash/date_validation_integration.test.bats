@@ -2,7 +2,7 @@
 
 # Integration test file for date validation functions
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-08-12
 
 load "${BATS_TEST_DIRNAME}/../../test_helper.bash"
 
@@ -132,11 +132,11 @@ note_id,created_at,closed_at,status
 EOF
   
   # Source functions and test CSV validation
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
   
-  run __validate_csv_dates "${test_csv}"
+  run __validate_csv_dates "${test_csv}" "created_at" "closed_at"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"DEBUG: CSV date validation passed"* ]]
+  [[ "$output" == *"CSV dates validation passed"* ]]
   
   rm -f "${test_csv}"
 }
