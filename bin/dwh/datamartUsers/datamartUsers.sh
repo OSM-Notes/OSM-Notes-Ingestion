@@ -16,8 +16,8 @@
 # * shfmt -w -i 1 -sr -bn datamartUsers.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
-declare -r VERSION="2025-08-04"
+# Version: 2025-08-11
+VERSION="2025-08-11"
 
 #set -xv
 # Fails when a variable is not initialized.
