@@ -339,43 +339,6 @@ function __validation {
  __log_finish
 }
 
-# Function that activates the error trap.
-function __trapOn() {
- __log_start
- trap '{ 
-  local ERROR_LINE="${LINENO}"
-  local ERROR_CMD="${BASH_COMMAND}"
-  local ERROR_EXIT_CODE="$?"
-  printf "%s ERROR: The script ${BASENAME:-} did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${ERROR_LINE}";
-  printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_CMD}" "${ERROR_EXIT_CODE}";
-  if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
-   {
-    echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
-    echo "Script: ${BASENAME:-unknown}"
-    echo "Line number: ${ERROR_LINE}"
-    echo "Failed command: ${ERROR_CMD}"
-    echo "Exit code: ${ERROR_EXIT_CODE}"
-    echo "Temporary directory: ${TMP_DIR:-unknown}"
-    echo "Process ID: $$"
-   } > "${FAILED_EXECUTION_FILE}"
-  fi;
-  exit ${ERROR_GENERAL};
- }' ERR
- trap '{ 
-  printf "%s WARN: The script ${BASENAME:-} was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)";
-  if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
-   {
-    echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
-    echo "Script: ${BASENAME:-unknown}" 
-    echo "Temporary directory: ${TMP_DIR:-unknown}"
-    echo "Process ID: $$"
-    echo "Signal: SIGTERM/SIGINT"
-   } > "${FAILED_EXECUTION_FILE}"
-  fi;
-  exit ${ERROR_GENERAL};
- }' SIGINT SIGTERM
- __log_finish
-}
 
 # Counts notes in XML file (API format)
 # Parameters:

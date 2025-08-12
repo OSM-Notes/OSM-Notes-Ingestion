@@ -38,8 +38,8 @@ function __show_help() {
  echo "Available functions:"
  echo "  __log*          - Logging functions"
  echo "  __validation    - Input validation"
- echo "  __trapOn        - Error handling setup"
  echo "  __checkPrereqsCommands - Prerequisites check"
+ echo "  Note: __trapOn is now only available in executable scripts, not in this library"
  echo
  echo "Author: Andres Gomez (AngocA)"
  echo "Version: ${VERSION}"
@@ -132,23 +132,6 @@ function __validation {
  fi
 }
 
-# Trap function for cleanup
-function __trapOn() {
- trap 'echo "ERROR: Command failed at line $LINENO in ${BASH_SOURCE[0]}" >&2; echo "ERROR: Last command: $BASH_COMMAND" >&2; echo "ERROR: Exit code: $?" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "ERROR: Temporary directory: ${TMP_DIR}" >&2; fi; if [[ -n "${FAILED_EXECUTION_FILE:-}" ]]; then 
- echo "ERROR: Creating failed execution file: ${FAILED_EXECUTION_FILE}" >&2
- echo "=== EXECUTION FAILURE REPORT ===" > "${FAILED_EXECUTION_FILE}"
- echo "Script: ${BASH_SOURCE[0]:-unknown}" >> "${FAILED_EXECUTION_FILE}"
- echo "Timestamp: $(date)" >> "${FAILED_EXECUTION_FILE}"
- echo "Error occurred at line: $LINENO" >> "${FAILED_EXECUTION_FILE}"
- echo "Last command: $BASH_COMMAND" >> "${FAILED_EXECUTION_FILE}"
- echo "Exit code: $?" >> "${FAILED_EXECUTION_FILE}"
- echo "Process ID: $$" >> "${FAILED_EXECUTION_FILE}"
- echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"
- echo "================================" >> "${FAILED_EXECUTION_FILE}"
-fi' ERR
- trap 'echo "INFO: Script interrupted at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' INT
- trap 'echo "INFO: Script terminated at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' TERM
-}
 
 # Check prerequisites commands
 function __checkPrereqsCommands {
