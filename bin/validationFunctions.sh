@@ -276,12 +276,40 @@ function __validate_csv_structure() {
 function __validate_sql_structure() {
  local SQL_FILE="${1}"
 
- if ! __validate_input_file "${SQL_FILE}" "SQL file"; then
+ # Basic file validation (but allow empty files for specific SQL validation)
+ if [[ ! -f "${SQL_FILE}" ]]; then
+  __loge "ERROR: SQL file does not exist: ${SQL_FILE}"
   return 1
  fi
 
- # Check for basic SQL syntax
- if ! grep -q -E "(CREATE|INSERT|UPDATE|DELETE|SELECT|DROP|ALTER|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE)" "${SQL_FILE}"; then
+ if [[ ! -r "${SQL_FILE}" ]]; then
+  __loge "ERROR: SQL file is not readable: ${SQL_FILE}"
+  return 1
+ fi
+
+ # Check if file is empty
+ if [[ ! -s "${SQL_FILE}" ]]; then
+  __loge "ERROR: SQL file is empty: ${SQL_FILE}"
+  return 1
+ fi
+
+ # Check if file contains only comments (lines starting with -- or /* */)
+ # Create a temporary file with non-comment, non-empty lines
+ local TEMP_FILE
+ TEMP_FILE=$(mktemp)
+ grep -v '^[[:space:]]*--' "${SQL_FILE}" | grep -v '^[[:space:]]*$' > "${TEMP_FILE}"
+ 
+ # If temp file is empty, the original file contains only comments
+ if [[ ! -s "${TEMP_FILE}" ]]; then
+  rm -f "${TEMP_FILE}"
+  __loge "ERROR: No valid SQL statements found: ${SQL_FILE}"
+  return 1
+ fi
+ 
+ rm -f "${TEMP_FILE}"
+
+ # Check for basic SQL syntax (expanded list of SQL keywords)
+ if ! grep -q -E "(CREATE|INSERT|UPDATE|DELETE|SELECT|DROP|ALTER|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|GRANT|REVOKE|EXPLAIN|COPY|IMPORT|EXPORT|LOCK|UNLOCK|SET|RESET|SHOW|DESCRIBE|USE|CONNECT|DISCONNECT)" "${SQL_FILE}"; then
   __loge "ERROR: No valid SQL statements found: ${SQL_FILE}"
   return 1
  fi
