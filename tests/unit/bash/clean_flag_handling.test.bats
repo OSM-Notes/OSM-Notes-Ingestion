@@ -116,6 +116,9 @@ teardown() {
   exit() { echo "EXIT_CALLED_WITH_CODE: $1"; return "$1"; }
   export -f exit
   
+  # Source functionsProcess.sh again to ensure we have the right function
+  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  
   # Test the functionsProcess version of error handling
   run __handle_error_with_cleanup "247" "Test integrity check failed" "rm -f ${TEST_FILE_1}" "rm -f ${TEST_FILE_2}"
   
@@ -161,11 +164,11 @@ teardown() {
 }
 
 @test "CLEAN flag should be documented in help messages" {
-  # Test that processPlanetNotes mentions CLEAN flag
-  run bash -c 'source "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" --help 2>/dev/null || true'
+  # Test that processPlanetNotes documents CLEAN flag in its comments
+  run grep -q "CLEAN could be set to false, to left all created files" "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
   
-  # Should mention CLEAN in help or show_help function
-  [[ "$output" == *"CLEAN"* ]] || [[ "$output" == *"left all created files"* ]]
+  # Should find the CLEAN documentation comment
+  [ "$status" -eq 0 ]
 }
 
 

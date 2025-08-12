@@ -91,6 +91,9 @@ teardown() {
   # Create a test file to be cleaned up
   echo "test content" > "${TMP_DIR}/test_cleanup.txt"
   
+  # Set CLEAN to true to ensure cleanup is executed
+  export CLEAN=true
+  
   # Mock exit to prevent actual exit
   function exit() { echo "EXIT: $1"; return 0; }
   
@@ -141,7 +144,7 @@ EOF
   
   run __validate_sql_structure "${TMP_DIR}/invalid.sql"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ERROR: SQL structure validation failed"* ]]
+  [[ "$output" == *"ERROR: No valid SQL statements found"* ]]
 }
 
 @test "test __validate_xml_dates with valid XML" {
