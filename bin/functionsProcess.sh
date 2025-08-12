@@ -407,8 +407,8 @@ function __countXmlNotesPlanet() {
  TOTAL_NOTES=$(grep -c '<note' "${XML_FILE}" 2> /dev/null)
  local GREP_STATUS=$?
 
- # grep returns 1 when no matches found, which is not an error
- if [[ ${GREP_STATUS} -ne 0 ]] && [[ ${GREP_STATUS} -ne 1 ]]; then
+ # grep returns 0 when no matches found, which is not an error
+ if [[ ${GREP_STATUS} -ne 0 ]]; then
   __loge "Error counting notes in XML file (exit code ${GREP_STATUS}): ${XML_FILE}"
   TOTAL_NOTES=0
   export TOTAL_NOTES
@@ -416,12 +416,11 @@ function __countXmlNotesPlanet() {
   return 1
  fi
 
- # If grep found no matches (exit code 1), set TOTAL_NOTES to 0
- if [[ ${GREP_STATUS} -eq 1 ]]; then
-  TOTAL_NOTES=0
- fi
+ # grep returns "0" when no matches found, which is valid
+ # No need to handle special exit codes
 
  # Ensure TOTAL_NOTES is treated as a decimal number and is valid
+ # Note: grep returns "0" when no matches found, which is valid
  if [[ -z "${TOTAL_NOTES}" ]] || [[ ! "${TOTAL_NOTES}" =~ ^[0-9]+$ ]]; then
   __loge "Invalid or empty note count returned by grep: '${TOTAL_NOTES}'"
   TOTAL_NOTES=0

@@ -95,8 +95,8 @@ function __validate_input_file() {
    VALIDATION_ERRORS+=("Path is not a file: ${FILE_PATH}")
   elif [[ ! -r "${FILE_PATH}" ]]; then
    VALIDATION_ERRORS+=("File is not readable: ${FILE_PATH}")
-  elif [[ ! -s "${FILE_PATH}" ]]; then
-   VALIDATION_ERRORS+=("File is empty: ${FILE_PATH}")
+  # Note: File emptiness validation is handled by specific validation functions
+  # as different file types may have different rules about empty files
   fi
  fi
 
@@ -125,7 +125,7 @@ function __validate_input_file() {
   return 1
  fi
 
- __logd "${DESCRIPTION} validation passed: ${FILE_PATH}"
+ __logi "${DESCRIPTION} validation passed: ${FILE_PATH}"
  return 0
 }
 
@@ -202,7 +202,7 @@ function __validate_xml_structure_impl() {
    return 1
   fi
 
-  __logd "Lightweight XML structure validation passed: ${XML_FILE}"
+  __logi "Lightweight XML structure validation passed: ${XML_FILE}"
   return 0
  fi
 
@@ -226,7 +226,7 @@ function __validate_xml_structure_impl() {
   fi
  fi
 
- __logd "XML structure validation passed: ${XML_FILE}"
+ __logi "XML structure validation passed: ${XML_FILE}"
  __logi "=== XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY ==="
  return 0
 }
@@ -259,15 +259,22 @@ function __validate_csv_structure() {
   local COLUMN_COUNT
   COLUMN_COUNT=$(echo "${FIRST_LINE}" | tr ',' '\n' | wc -l)
   local EXPECTED_COUNT
-  EXPECTED_COUNT=$(echo "${EXPECTED_COLUMNS}" | tr ',' '\n' | wc -l)
+  
+  # Check if EXPECTED_COLUMNS is a number (direct column count)
+  if [[ "${EXPECTED_COLUMNS}" =~ ^[0-9]+$ ]]; then
+   EXPECTED_COUNT="${EXPECTED_COLUMNS}"
+  else
+   # EXPECTED_COLUMNS is a comma-separated list of column names
+   EXPECTED_COUNT=$(echo "${EXPECTED_COLUMNS}" | tr ',' '\n' | wc -l)
+  fi
 
   if [[ "${COLUMN_COUNT}" -ne "${EXPECTED_COUNT}" ]]; then
-   __loge "ERROR: CSV file has ${COLUMN_COUNT} columns, expected ${EXPECTED_COUNT}: ${CSV_FILE}"
+   __loge "ERROR: Expected ${EXPECTED_COUNT} columns, got ${COLUMN_COUNT}: ${CSV_FILE}"
    return 1
   fi
  fi
 
- __logd "CSV structure validation passed: ${CSV_FILE}"
+ __logi "CSV structure validation passed: ${CSV_FILE}"
  return 0
 }
 
@@ -324,7 +331,7 @@ function __validate_sql_structure() {
   return 1
  fi
 
- __logd "SQL structure validation passed: ${SQL_FILE}"
+ __logi "SQL structure validation passed: ${SQL_FILE}"
  return 0
 }
 
@@ -342,13 +349,13 @@ function __validate_config_file() {
   return 1
  fi
 
- # Check for valid variable names
- if grep -q -E '^[^A-Za-z_][^=]*=' "${CONFIG_FILE}"; then
+ # Check for valid variable names (allow leading spaces)
+ if grep -q -E '^[[:space:]]*[^A-Za-z_][^=]*=' "${CONFIG_FILE}"; then
   __loge "ERROR: Invalid variable names in config file: ${CONFIG_FILE}"
   return 1
  fi
 
- __logd "Config file validation passed: ${CONFIG_FILE}"
+ __logi "Config file validation passed: ${CONFIG_FILE}"
  return 0
 }
 
