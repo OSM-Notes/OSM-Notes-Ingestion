@@ -101,7 +101,6 @@ fi
 # Parameters: None
 # Returns: None
 function __start_logger {
- __log_start
  __logd "Initializing logger system"
 
  # Set log level from environment if not already set
@@ -117,7 +116,6 @@ function __start_logger {
  fi
 
  __logi "Logger system initialized successfully"
- __log_finish
 }
 
 # Validation function
