@@ -156,9 +156,6 @@ if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then
  declare -r GENERATE_FAILED_FILE="false"
 fi
 
-if [[ -z "${FAILED_EXECUTION_FILE:-}" ]]; then
- declare -r FAILED_EXECUTION_FILE="${TMP_DIR}/failed_execution.log"
-fi
 
 if [[ -z "${LOG_FILENAME:-}" ]]; then
  declare -r LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
