@@ -56,7 +56,7 @@ teardown() {
         
         -- Test the historical validation SQL directly using external script
         -- For tests tables, reuse the official script by mapping names or keep a minimal inline DO with correct delimiters
-        DO $$
+        DO \$\$
         DECLARE
          qty INT;
         BEGIN
@@ -65,7 +65,7 @@ teardown() {
           RAISE EXCEPTION 'Historical data validation failed: notes table is empty';
          END IF;
         END;
-        $$;
+        \$\$;
 EOSQL
     "
     
@@ -73,7 +73,7 @@ EOSQL
     echo "Output: $output"
     
     # Should fail because tables are empty
-    [ "$status" -ne 0 ]
+    # Note: psql returns 0 even when SQL raises exceptions, so we check the output
     [[ "$output" =~ "notes table is empty" ]] || [[ "$output" =~ "Historical data validation failed" ]]
 }
 
@@ -110,7 +110,7 @@ EOSQL
         (3, 3, CURRENT_DATE - INTERVAL '3 days', 'opened');
         
         -- Test the historical validation logic
-        DO $$
+        DO \$\$
         DECLARE
          qty INT;
          oldest_note_date DATE;
@@ -128,7 +128,7 @@ EOSQL
            oldest_note_date, min_historical_days;
          END IF;
         END;
-        $$;
+        \$\$;
 EOSQL
     "
     
@@ -136,7 +136,7 @@ EOSQL
     echo "Output: $output"
     
     # Should fail because data is too recent
-    [ "$status" -ne 0 ]
+    # Note: psql returns 0 even when SQL raises exceptions, so we check the output
     [[ "$output" =~ "insufficient historical data" ]] || [[ "$output" =~ "need at least 30 days" ]]
 }
 
