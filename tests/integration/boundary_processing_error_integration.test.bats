@@ -272,7 +272,8 @@ EOF
   [ "$status" -eq 0 ]
   
   # Test that validation functions are present
-  run grep -q "function __validate_json_structure" "$functions_file"
+  # Note: __validate_json_structure is in validationFunctions.sh which is sourced by functionsProcess.sh
+  run grep -q "function __validate_json_structure" "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
   [ "$status" -eq 0 ]
 }
 
@@ -417,7 +418,7 @@ EOF
   local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
   
   # Test that field selection is implemented
-  run grep -q "select name,admin_level,type,wkb_geometry" "$functions_file"
+  run grep -q "select name,admin_level,type,geometry" "$functions_file"
   [ "$status" -eq 0 ]
   
   # Test that skipfailures is implemented
@@ -460,11 +461,11 @@ EOF
   [ "$status" -eq 0 ]
   
   # Test that field selection is always used
-  run grep -q "select name,admin_level,type,wkb_geometry" "$functions_file"
+  run grep -q "select name,admin_level,type,geometry" "$functions_file"
   [ "$status" -eq 0 ]
   
   # Test that the solution is universal (works for all boundaries)
-  local austria_imports=$(grep -c "select name,admin_level,type,wkb_geometry" "$functions_file")
+  local austria_imports=$(grep -c "select name,admin_level,type,geometry" "$functions_file")
   local standard_imports=$(grep -c "mapFieldType StringList=String" "$functions_file")
   
   # Should have at least one Austria import and one standard import
