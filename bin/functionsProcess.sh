@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-11
+# Version: 2025-08-12
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -155,7 +155,6 @@ fi
 if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then
  declare -r GENERATE_FAILED_FILE="false"
 fi
-
 
 if [[ -z "${LOG_FILENAME:-}" ]]; then
  declare -r LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -2003,13 +2002,13 @@ function __processCountries {
  fi
 
  if [[ "${FAIL}" -ne 0 ]]; then
-     local FAILED_JOBS_INFO=""
+  local FAILED_JOBS_INFO=""
   for JOB_PID in "${FAILED_JOBS[@]}"; do
    if [[ -f "${LOG_FILENAME}.${JOB_PID}" ]]; then
-         FAILED_JOBS_INFO="${FAILED_JOBS_INFO} ${JOB_PID}:${LOG_FILENAME}.${JOB_PID}"
+    FAILED_JOBS_INFO="${FAILED_JOBS_INFO} ${JOB_PID}:${LOG_FILENAME}.${JOB_PID}"
    fi
   done
-     __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}. Check individual log files for detailed error information:${FAILED_JOBS_INFO}"
+  __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}. Check individual log files for detailed error information:${FAILED_JOBS_INFO}"
   __loge "=== COUNTRIES PROCESSING FAILED ==="
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
    "echo 'Countries processing cleanup called'"
@@ -2023,8 +2022,8 @@ function __processCountries {
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some threads generated errors."
-     local ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
-   __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
+  local ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
+  __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
@@ -2560,7 +2559,7 @@ function __validate_xml_coordinates() {
 
 # Enhanced error handling and retry logic
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-10
+# Version: 2025-08-12
 
 # Retry configuration
 declare -r MAX_RETRIES="${MAX_RETRIES:-3}"
@@ -2850,6 +2849,7 @@ function __handle_error_with_cleanup() {
  if [[ "${CLEAN:-true}" == "true" ]]; then
   for CMD in "${CLEANUP_COMMANDS[@]}"; do
    if [[ -n "${CMD}" ]]; then
+    echo "Executing cleanup command: ${CMD}"
     __logd "Executing cleanup command: ${CMD}"
     if eval "${CMD}"; then
      __logd "Cleanup command succeeded: ${CMD}"
@@ -2859,6 +2859,7 @@ function __handle_error_with_cleanup() {
    fi
   done
  else
+  echo "Skipping cleanup commands due to CLEAN=false"
   __logd "Skipping cleanup commands due to CLEAN=false"
  fi
 
@@ -3059,6 +3060,6 @@ function __show_help() {
  echo "  - __getLocationNotes      - Get location notes"
  echo
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: 2025-08-03"
+ echo "Version: 2025-08-12"
  exit 1
 }
