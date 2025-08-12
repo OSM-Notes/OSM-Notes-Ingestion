@@ -4,8 +4,8 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-10
-VERSION="2025-08-10"
+# Version: 2025-08-11
+VERSION="2025-08-11"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -49,7 +49,11 @@ function __show_help() {
 # Common variables
 # shellcheck disable=SC2034
 if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then declare GENERATE_FAILED_FILE=true; fi
-if [[ -z "${FAILED_EXECUTION_FILE:-}" ]]; then declare -r FAILED_EXECUTION_FILE="/tmp/${BASENAME}_failed"; fi
+# Create a unique failed execution file name based on script name
+if [[ -z "${FAILED_EXECUTION_FILE:-}" ]]; then
+ SCRIPT_NAME=$(basename "${BASH_SOURCE[0]:-unknown_script}" .sh)
+ declare -r FAILED_EXECUTION_FILE="/tmp/${SCRIPT_NAME}_failed_execution"
+fi
 if [[ -z "${PREREQS_CHECKED:-}" ]]; then declare PREREQS_CHECKED=false; fi
 
 # Logger framework
@@ -70,7 +74,7 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh" ]]; then
  source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
  # Set log level from environment if not already set
  if [[ -n "${LOG_LEVEL:-}" && -z "${__log_level:-}" ]]; then
-   __set_log_level "$LOG_LEVEL"
+  __set_log_level "${LOG_LEVEL}"
  fi
 else
  # Fallback implementations if bash_logger.sh is not available
@@ -82,18 +86,43 @@ else
  function __logw() { echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN: $*"; }
  function __loge() { echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: $*" >&2; }
  function __logf() { echo "$(date '+%Y-%m-%d %H:%M:%S') - FATAL: $*" >&2; }
- 
+
  # Fallback lifecycle helpers for fallback mode only
  if ! declare -f __log_start > /dev/null 2>&1; then
-   function __log_start() { __logi "Starting function"; }
+  function __log_start() { __logi "Starting function"; }
  fi
  if ! declare -f __log_finish > /dev/null 2>&1; then
-   function __log_finish() { __logi "Function completed"; }
+  function __log_finish() { __logi "Function completed"; }
  fi
 fi
 
-# Remove the conflicting __start_logger function and initialization
-# The bash_logger.sh handles all initialization automatically
+# Logger initialization function
+# This function initializes the logger system and sets up logging
+# Parameters: None
+# Returns: None
+function __start_logger {
+ __log_start
+ __logd "Initializing logger system"
+
+ # Set log level from environment if not already set
+ if [[ -n "${LOG_LEVEL:-}" ]]; then
+  __set_log_level "${LOG_LEVEL}"
+  __logi "Logger level set to: ${LOG_LEVEL}"
+ fi
+
+ # Set log file if LOG_FILE environment variable is set
+ if [[ -n "${LOG_FILE:-}" ]]; then
+  __set_log_file "${LOG_FILE}"
+  __logi "Logger file set to: ${LOG_FILE}"
+ fi
+
+ # Initialize timing
+ __logger_script_start_time=$(date +%s)
+ __logger_function_start_time=$(date +%s)
+
+ __logi "Logger system initialized successfully"
+ __log_finish
+}
 
 # Validation function
 function __validation {
@@ -105,7 +134,18 @@ function __validation {
 
 # Trap function for cleanup
 function __trapOn() {
- trap 'echo "ERROR: Command failed at line $LINENO in ${BASH_SOURCE[0]}" >&2; echo "ERROR: Last command: $BASH_COMMAND" >&2; echo "ERROR: Exit code: $?" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "ERROR: Temporary directory: ${TMP_DIR}" >&2; fi; if [[ -n "${FAILED_EXECUTION_FILE:-}" ]]; then echo "ERROR: Creating failed execution file: ${FAILED_EXECUTION_FILE}" >&2; echo "Error occurred at $(date): Command failed at line $LINENO in ${BASH_SOURCE[0]}" > "${FAILED_EXECUTION_FILE}"; echo "Last command: $BASH_COMMAND" >> "${FAILED_EXECUTION_FILE}"; echo "Exit code: $?" >> "${FAILED_EXECUTION_FILE}"; echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"; fi' ERR
+ trap 'echo "ERROR: Command failed at line $LINENO in ${BASH_SOURCE[0]}" >&2; echo "ERROR: Last command: $BASH_COMMAND" >&2; echo "ERROR: Exit code: $?" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "ERROR: Temporary directory: ${TMP_DIR}" >&2; fi; if [[ -n "${FAILED_EXECUTION_FILE:-}" ]]; then 
+ echo "ERROR: Creating failed execution file: ${FAILED_EXECUTION_FILE}" >&2
+ echo "=== EXECUTION FAILURE REPORT ===" > "${FAILED_EXECUTION_FILE}"
+ echo "Script: ${BASH_SOURCE[0]:-unknown}" >> "${FAILED_EXECUTION_FILE}"
+ echo "Timestamp: $(date)" >> "${FAILED_EXECUTION_FILE}"
+ echo "Error occurred at line: $LINENO" >> "${FAILED_EXECUTION_FILE}"
+ echo "Last command: $BASH_COMMAND" >> "${FAILED_EXECUTION_FILE}"
+ echo "Exit code: $?" >> "${FAILED_EXECUTION_FILE}"
+ echo "Process ID: $$" >> "${FAILED_EXECUTION_FILE}"
+ echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"
+ echo "================================" >> "${FAILED_EXECUTION_FILE}"
+fi' ERR
  trap 'echo "INFO: Script interrupted at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' INT
  trap 'echo "INFO: Script terminated at line $LINENO in ${BASH_SOURCE[0]}" >&2; if [[ -n "${TMP_DIR:-}" ]]; then echo "INFO: Temporary directory: ${TMP_DIR}" >&2; fi' TERM
 }
@@ -335,28 +375,28 @@ function __getLocationNotes {
 #   0 if successful, 1 if failed
 function __set_log_file() {
  local LOG_FILE="${1}"
- 
+
  if [[ -z "${LOG_FILE}" ]]; then
   __loge "ERROR: Log file path not provided"
   return 1
  fi
- 
+
  # Create directory if it doesn't exist
  local LOG_DIR
  LOG_DIR=$(dirname "${LOG_FILE}")
  if [[ ! -d "${LOG_DIR}" ]]; then
-  mkdir -p "${LOG_DIR}" 2>/dev/null || {
+  mkdir -p "${LOG_DIR}" 2> /dev/null || {
    __loge "ERROR: Cannot create log directory: ${LOG_DIR}"
    return 1
   }
  fi
- 
+
  # Ensure the log file is writable
- touch "${LOG_FILE}" 2>/dev/null || {
+ touch "${LOG_FILE}" 2> /dev/null || {
   __loge "ERROR: Cannot create or write to log file: ${LOG_FILE}"
   return 1
  }
- 
+
  __logd "Log file set to: ${LOG_FILE}"
  return 0
 }
