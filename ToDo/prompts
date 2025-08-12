@@ -1,15 +1,30 @@
 
 
 
+En algunos scripts, veo que en los mensajes de ayuda muestra la versión, que es la fecha de la última modificación de ese archivo, pero en algunos no usas la variable version, sino hardcodeada, podrías usar la variable que se debe definir justo después del header.
+
+
+
+Recomendaciones de Limpieza
+Inmediatas (Seguras):
+Eliminar directorio test/ - No se usa en el flujo principal
+Eliminar funciones no utilizadas - __calculate_row_size_estimate(), __retry_operation(), __retry_with_backoff()
+Consolidar funciones duplicadas - Mover a archivos específicos y eliminar duplicados
+Medio Plazo (Requieren Análisis):
+Revisar archivos SQL no utilizados - Verificar si realmente no se usan
+Eliminar código comentado con TODO - Después de verificar que no es necesario
+Refactorizar funciones legacy - Migrar a nuevas implementaciones
+Largo Plazo (Refactoring):
+Consolidar funciones de ayuda - Crear un archivo centralizado para __show_help()
+Reorganizar validaciones - Consolidar todas las funciones de validación en un solo lugar
+Eliminar funciones legacy - Una vez que se confirme que no se necesitan
+¿Te gustaría que proceda con alguna de estas limpiezas específicas?
 
 
 
 
 
-Con respecto al proceso de ETL, podrías comenzar la documentación del proceso de poblado del modelo estrella. Indica qué columnas tiene la fact table y qué representan. También la documentación sobre las dimensiones, con al menos un ejemplo de cada registro por dimensión.
 
-
-Realmente se necesita la dimensión regiones? o puede ser combinada con la dimensión países?
 
 
 HECHO
