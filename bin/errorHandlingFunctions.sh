@@ -4,7 +4,7 @@
 # This file contains error handling and retry functions.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-08-12
 
 # shellcheck disable=SC2317,SC2155
 
@@ -31,7 +31,7 @@ function __show_help() {
  echo "  __handle_error_with_cleanup - Error handling with cleanup"
  echo
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: 2025-08-02"
+ echo "Version: 2025-08-12"
  exit 1
 }
 
@@ -259,6 +259,7 @@ function __handle_error_with_cleanup() {
 
  # Execute cleanup command if provided and CLEAN is true
  if [[ -n "${CLEANUP_COMMAND}" ]] && [[ "${CLEAN:-true}" == "true" ]]; then
+  echo "Executing cleanup command: ${CLEANUP_COMMAND}"
   __logd "Executing cleanup command: ${CLEANUP_COMMAND}"
   if eval "${CLEANUP_COMMAND}"; then
    __logd "Cleanup command executed successfully"
@@ -266,6 +267,7 @@ function __handle_error_with_cleanup() {
    __logw "WARNING: Cleanup command failed"
   fi
  elif [[ -n "${CLEANUP_COMMAND}" ]]; then
+  echo "Skipping cleanup command due to CLEAN=false: ${CLEANUP_COMMAND}"
   __logd "Skipping cleanup command due to CLEAN=false: ${CLEANUP_COMMAND}"
  fi
 
