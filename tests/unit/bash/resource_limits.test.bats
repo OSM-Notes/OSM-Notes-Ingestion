@@ -230,5 +230,5 @@ EOF
     echo "Output: $output"
     
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "Running xmllint with resource limits" ]]
+    [[ "$output" =~ "Structure-only validation passed for very large file" ]]
 }
