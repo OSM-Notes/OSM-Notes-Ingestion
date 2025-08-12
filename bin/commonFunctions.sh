@@ -116,10 +116,6 @@ function __start_logger {
   __logi "Logger file set to: ${LOG_FILE}"
  fi
 
- # Initialize timing
- __logger_script_start_time=$(date +%s)
- __logger_function_start_time=$(date +%s)
-
  __logi "Logger system initialized successfully"
  __log_finish
 }

@@ -1416,13 +1416,13 @@ function __checkHistoricalData {
  fi
 
  local RET
- local _hist_out_file
- _hist_out_file="${TMP_DIR:-/tmp}/hist_check_$$.log"
+ local HIST_OUT_FILE
+ HIST_OUT_FILE="${TMP_DIR:-/tmp}/hist_check_$$.log"
  # Ensure directory exists
  mkdir -p "${TMP_DIR:-/tmp}" 2> /dev/null || true
 
  # Execute and capture output and exit code safely
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" > "${_hist_out_file}" 2>&1
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" > "${HIST_OUT_FILE}" 2>&1
  RET=$?
 
  # Restore errexit if it was previously on
@@ -1431,34 +1431,34 @@ function __checkHistoricalData {
  fi
 
  # Read captured output
- local _hist_out=""
- if [[ -s "${_hist_out_file}" ]]; then
-  _hist_out="$(cat "${_hist_out_file}")"
+ local HIST_OUT=""
+ if [[ -s "${HIST_OUT_FILE}" ]]; then
+  HIST_OUT="$(cat "${HIST_OUT_FILE}")"
  fi
- rm -f "${_hist_out_file}" 2> /dev/null || true
+ rm -f "${HIST_OUT_FILE}" 2> /dev/null || true
 
  # If exit code is zero but output contains ERROR, treat as failure to be safe
- if [[ "${RET}" -eq 0 ]] && echo "${_hist_out}" | grep -q "ERROR:"; then
+ if [[ "${RET}" -eq 0 ]] && echo "${HIST_OUT}" | grep -q "ERROR:"; then
   RET=1
  fi
 
  # Print psql output to current logger context with appropriate levels
- if [[ -n "${_hist_out}" ]]; then
-  while IFS= read -r _line; do
-   if [[ "${_line}" == *"ERROR:"* ]]; then
-    __loge "${_line}"
+ if [[ -n "${HIST_OUT}" ]]; then
+  while IFS= read -r LINE; do
+   if [[ "${LINE}" == *"ERROR:"* ]]; then
+    __loge "${LINE}"
    else
-    __logd "${_line}"
+    __logd "${LINE}"
    fi
-  done <<< "${_hist_out}"
+  done <<< "${HIST_OUT}"
  fi
 
  if [[ "${RET}" -eq 0 ]]; then
   __logi "Historical data validation passed"
  else
   # Consolidate error messages into a single, clear error log
-  local error_message="CRITICAL: Historical data validation failed! ProcessAPI cannot continue without historical data from Planet. The system needs historical context to properly process incremental updates. Required action: Run processPlanetNotes.sh first to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh. This will load the complete historical dataset from OpenStreetMap Planet dump."
-  __loge "${error_message}"
+  local ERROR_MESSAGE="CRITICAL: Historical data validation failed! ProcessAPI cannot continue without historical data from Planet. The system needs historical context to properly process incremental updates. Required action: Run processPlanetNotes.sh first to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh. This will load the complete historical dataset from OpenStreetMap Planet dump."
+  __loge "${ERROR_MESSAGE}"
  fi
 
  # shellcheck disable=SC2034
@@ -2006,13 +2006,13 @@ function __processCountries {
  fi
 
  if [[ "${FAIL}" -ne 0 ]]; then
-  local failed_jobs_info=""
+     local FAILED_JOBS_INFO=""
   for JOB_PID in "${FAILED_JOBS[@]}"; do
    if [[ -f "${LOG_FILENAME}.${JOB_PID}" ]]; then
-    failed_jobs_info="${failed_jobs_info} ${JOB_PID}:${LOG_FILENAME}.${JOB_PID}"
+         FAILED_JOBS_INFO="${FAILED_JOBS_INFO} ${JOB_PID}:${LOG_FILENAME}.${JOB_PID}"
    fi
   done
-  __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}. Check individual log files for detailed error information:${failed_jobs_info}"
+     __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}. Check individual log files for detailed error information:${FAILED_JOBS_INFO}"
   __loge "=== COUNTRIES PROCESSING FAILED ==="
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
    "echo 'Countries processing cleanup called'"
@@ -2026,8 +2026,8 @@ function __processCountries {
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some threads generated errors."
-  local error_logs=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
-  __loge "Found ${QTY_LOGS} error log files. Check them for details: ${error_logs}"
+     local ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
+   __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
