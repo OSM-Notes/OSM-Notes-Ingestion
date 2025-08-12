@@ -35,7 +35,6 @@ if [[ -z "${__COMMON_FUNCTIONS_LOADED:-}" ]]; then
  fi
 fi
 
-
 # JSON schema files for validation
 # shellcheck disable=SC2034
 if [[ -z "${JSON_SCHEMA_OVERPASS:-}" ]]; then declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"; fi
@@ -165,10 +164,10 @@ function __validate_xml_structure_impl() {
  local FILE_SIZE
  FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
  local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
- 
+
  if [[ "${SIZE_MB}" -gt 500 ]]; then
   __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using lightweight structure validation."
-  
+
   # Use lightweight validation for large files
   if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Missing expected root element in large XML file: ${XML_FILE}"
@@ -183,26 +182,26 @@ function __validate_xml_structure_impl() {
   __loge "ERROR: Invalid XML syntax: ${XML_FILE}"
   return 1
  fi
- 
+
  # Check expected root element if provided
  if [[ -n "${EXPECTED_ROOT}" ]]; then
   if ! grep -q "<${EXPECTED_ROOT}" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}"
    return 1
   fi
-  
+
   # Check for required root element using grep (much faster for large files)
   if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Missing osm-notes or osm root element: ${XML_FILE}"
    return 1
   fi
-  
+
   # Check for basic XML structure
   if ! grep -q "<?xml\|<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Invalid XML structure (missing XML declaration or root element): ${XML_FILE}"
    return 1
   fi
-  
+
   __logd "Lightweight XML structure validation passed: ${XML_FILE}"
   return 0
  fi
@@ -298,14 +297,14 @@ function __validate_sql_structure() {
  local TEMP_FILE
  TEMP_FILE=$(mktemp)
  grep -v '^[[:space:]]*--' "${SQL_FILE}" | grep -v '^[[:space:]]*$' > "${TEMP_FILE}"
- 
+
  # If temp file is empty, the original file contains only comments
  if [[ ! -s "${TEMP_FILE}" ]]; then
   rm -f "${TEMP_FILE}"
   __loge "ERROR: No valid SQL statements found: ${SQL_FILE}"
   return 1
  fi
- 
+
  rm -f "${TEMP_FILE}"
 
  # Check for basic SQL syntax (expanded list of SQL keywords)
@@ -596,7 +595,7 @@ function __validate_xml_dates() {
  local FILE_SIZE
  FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
  local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
- 
+
  # If file is larger than 500MB, use lightweight validation
  if [[ "${SIZE_MB}" -gt 500 ]]; then
   __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using lightweight date validation."
@@ -631,16 +630,16 @@ function __validate_xml_dates() {
     # Limit the number of dates to validate to avoid memory issues
     local DATE_COUNT=0
     local MAX_DATES=1000
-    
+
     while IFS= read -r DATE; do
      [[ -z "${DATE}" ]] && continue
-     
+
      # Limit validation to first MAX_DATES dates
      if [[ "${DATE_COUNT}" -ge "${MAX_DATES}" ]]; then
       __logw "WARNING: Limiting date validation to first ${MAX_DATES} dates for performance"
       break
      fi
-     
+
      DATE_COUNT=$((DATE_COUNT + 1))
 
      # Validate ISO 8601 dates (YYYY-MM-DDTHH:MM:SSZ)
@@ -693,8 +692,8 @@ function __validate_xml_dates_lightweight() {
  SAMPLE_DATES=$(grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z' "${XML_FILE}" | head -n "${SAMPLE_SIZE}" || true)
 
  # Also check for malformed dates that might cause issues (dates with letters or invalid characters)
-local MALFORMED_DATES
-MALFORMED_DATES=$(grep -oE '[0-9]{4}-[0-9]*[a-zA-Z][0-9a-zA-Z]*-[0-9]*[a-zA-Z][0-9a-zA-Z]*T[0-9]*[a-zA-Z][0-9a-zA-Z]*:[0-9]*[a-zA-Z][0-9a-zA-Z]*:[0-9]*[a-zA-Z][0-9a-zA-Z]*Z' "${XML_FILE}" | head -n "${SAMPLE_SIZE}" || true)
+ local MALFORMED_DATES
+ MALFORMED_DATES=$(grep -oE '[0-9]{4}-[0-9]*[a-zA-Z][0-9a-zA-Z]*-[0-9]*[a-zA-Z][0-9a-zA-Z]*T[0-9]*[a-zA-Z][0-9a-zA-Z]*:[0-9]*[a-zA-Z][0-9a-zA-Z]*:[0-9]*[a-zA-Z][0-9a-zA-Z]*Z' "${XML_FILE}" | head -n "${SAMPLE_SIZE}" || true)
 
  if [[ -n "${MALFORMED_DATES}" ]]; then
   __loge "ERROR: Malformed dates found in XML (contains invalid characters):"
@@ -708,11 +707,11 @@ MALFORMED_DATES=$(grep -oE '[0-9]{4}-[0-9]*[a-zA-Z][0-9a-zA-Z]*-[0-9]*[a-zA-Z][0
  if [[ -n "${SAMPLE_DATES}" ]]; then
   local VALID_COUNT=0
   local TOTAL_COUNT=0
-  
+
   while IFS= read -r DATE; do
    [[ -z "${DATE}" ]] && continue
    TOTAL_COUNT=$((TOTAL_COUNT + 1))
-   
+
    # Quick validation of ISO 8601 format
    if [[ "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
     # Basic validation without calling __validate_iso8601_date for performance
@@ -722,7 +721,7 @@ MALFORMED_DATES=$(grep -oE '[0-9]{4}-[0-9]*[a-zA-Z][0-9a-zA-Z]*-[0-9]*[a-zA-Z][0
     local HOUR="${DATE:11:2}"
     local MINUTE="${DATE:14:2}"
     local SECOND="${DATE:17:2}"
-    
+
     # Convert to base 10 to handle leading zeros properly
     YEAR=$((10#${YEAR}))
     MONTH=$((10#${MONTH}))
@@ -730,14 +729,14 @@ MALFORMED_DATES=$(grep -oE '[0-9]{4}-[0-9]*[a-zA-Z][0-9a-zA-Z]*-[0-9]*[a-zA-Z][0
     HOUR=$((10#${HOUR}))
     MINUTE=$((10#${MINUTE}))
     SECOND=$((10#${SECOND}))
-    
+
     # Basic range validation
-    if [[ "${YEAR}" -ge 2000 && "${YEAR}" -le 2030 ]] && \
-       [[ "${MONTH}" -ge 1 && "${MONTH}" -le 12 ]] && \
-       [[ "${DAY}" -ge 1 && "${DAY}" -le 31 ]] && \
-       [[ "${HOUR}" -ge 0 && "${HOUR}" -le 23 ]] && \
-       [[ "${MINUTE}" -ge 0 && "${MINUTE}" -le 59 ]] && \
-       [[ "${SECOND}" -ge 0 && "${SECOND}" -le 59 ]]; then
+    if [[ "${YEAR}" -ge 2000 && "${YEAR}" -le 2030 ]] \
+     && [[ "${MONTH}" -ge 1 && "${MONTH}" -le 12 ]] \
+     && [[ "${DAY}" -ge 1 && "${DAY}" -le 31 ]] \
+     && [[ "${HOUR}" -ge 0 && "${HOUR}" -le 23 ]] \
+     && [[ "${MINUTE}" -ge 0 && "${MINUTE}" -le 59 ]] \
+     && [[ "${SECOND}" -ge 0 && "${SECOND}" -le 59 ]]; then
      VALID_COUNT=$((VALID_COUNT + 1))
     else
      __logw "WARNING: Invalid date format found in sample: ${DATE}"
@@ -748,11 +747,11 @@ MALFORMED_DATES=$(grep -oE '[0-9]{4}-[0-9]*[a-zA-Z][0-9a-zA-Z]*-[0-9]*[a-zA-Z][0
     FAILED=1
    fi
   done <<< "${SAMPLE_DATES}"
-  
+
   if [[ "${TOTAL_COUNT}" -gt 0 ]]; then
    local VALID_PERCENTAGE=$((VALID_COUNT * 100 / TOTAL_COUNT))
    __logd "Date validation sample: ${VALID_COUNT}/${TOTAL_COUNT} valid dates (${VALID_PERCENTAGE}%)"
-   
+
    # If more than 90% of dates are valid, consider the file valid
    if [[ "${VALID_PERCENTAGE}" -ge 90 ]]; then
     __logd "XML dates validation passed (sample-based): ${XML_FILE}"
@@ -857,18 +856,14 @@ function __validate_file_checksum() {
   ACTUAL_CHECKSUM=$(sha512sum "${FILE_PATH}" | cut -d' ' -f1)
   ;;
  *)
-  __loge "ERROR: ${ALGORITHM} checksum validation failed"
-  __loge "ERROR: Invalid algorithm"
+  __loge "ERROR: ${ALGORITHM} checksum validation failed - Invalid algorithm"
   return 1
   ;;
  esac
 
  # Compare checksums
  if [[ "${ACTUAL_CHECKSUM}" != "${EXPECTED_CHECKSUM}" ]]; then
-  __loge "ERROR: ${ALGORITHM} checksum validation failed"
-  __loge "ERROR: Checksum mismatch for ${FILE_PATH}"
-  __loge "Expected: ${EXPECTED_CHECKSUM}"
-  __loge "Actual: ${ACTUAL_CHECKSUM}"
+  __loge "ERROR: ${ALGORITHM} checksum validation failed - Checksum mismatch for ${FILE_PATH}. Expected: ${EXPECTED_CHECKSUM}, Actual: ${ACTUAL_CHECKSUM}"
   return 1
  fi
 
@@ -901,14 +896,14 @@ function __validate_file_checksum_from_file() {
  local EXPECTED_CHECKSUM
  local FILENAME
  FILENAME=$(basename "${FILE_PATH}")
- 
+
  # First try to find checksum by filename
- EXPECTED_CHECKSUM=$(grep "${FILENAME}" "${CHECKSUM_FILE}" | awk '{print $1}' 2>/dev/null)
- 
+ EXPECTED_CHECKSUM=$(grep "${FILENAME}" "${CHECKSUM_FILE}" | awk '{print $1}' 2> /dev/null)
+
  # If not found by filename, assume single-line checksum file and take first field
  if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
   __logw "Checksum not found by filename, trying to extract from single-line file"
-  EXPECTED_CHECKSUM=$(head -1 "${CHECKSUM_FILE}" | awk '{print $1}' 2>/dev/null)
+  EXPECTED_CHECKSUM=$(head -1 "${CHECKSUM_FILE}" | awk '{print $1}' 2> /dev/null)
  fi
 
  if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
@@ -1080,11 +1075,11 @@ function __validate_coordinates() {
 
  # Check precision if bc is available (only if precision is explicitly specified and < 7)
  if command -v bc > /dev/null 2>&1 && [[ "${3:-}" != "" ]] && [[ "${PRECISION}" -lt 7 ]]; then
-  if [[ "${LATITUDE}" =~ \.[0-9]{$((PRECISION+1)),} ]]; then
+  if [[ "${LATITUDE}" =~ \.[0-9]{$((PRECISION + 1)),} ]]; then
    VALIDATION_ERRORS+=("Latitude '${LATITUDE}' has too many decimal places (max ${PRECISION})")
   fi
 
-  if [[ "${LONGITUDE}" =~ \.[0-9]{$((PRECISION+1)),} ]]; then
+  if [[ "${LONGITUDE}" =~ \.[0-9]{$((PRECISION + 1)),} ]]; then
    VALIDATION_ERRORS+=("Longitude '${LONGITUDE}' has too many decimal places (max ${PRECISION})")
   fi
  fi

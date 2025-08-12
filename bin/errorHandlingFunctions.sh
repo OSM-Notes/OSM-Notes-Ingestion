@@ -255,8 +255,7 @@ function __handle_error_with_cleanup() {
  local ERROR_MESSAGE="${2}"
  local CLEANUP_COMMAND="${3:-}"
 
- __loge "=== ERROR HANDLING WITH CLEANUP ==="
- __loge "ERROR: Error occurred: ${ERROR_MESSAGE}"
+ __loge "=== ERROR HANDLING WITH CLEANUP === Error occurred: ${ERROR_MESSAGE}"
 
  # Execute cleanup command if provided and CLEAN is true
  if [[ -n "${CLEANUP_COMMAND}" ]] && [[ "${CLEAN:-true}" == "true" ]]; then

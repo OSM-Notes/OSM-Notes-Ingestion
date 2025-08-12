@@ -132,7 +132,6 @@ function __validation {
  fi
 }
 
-
 # Check prerequisites commands
 function __checkPrereqsCommands {
  __log_start
@@ -207,8 +206,7 @@ function __checkBaseTables {
 
  # Validate that POSTGRES_11_CHECK_BASE_TABLES is defined
  if [[ -z "${POSTGRES_11_CHECK_BASE_TABLES:-}" ]]; then
-  __loge "ERROR: POSTGRES_11_CHECK_BASE_TABLES variable is not defined"
-  __loge "ERROR: This variable should be defined in the calling script"
+  __loge "ERROR: POSTGRES_11_CHECK_BASE_TABLES variable is not defined. This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -235,8 +233,7 @@ function __dropGenericObjects {
 
  # Validate that POSTGRES_12_DROP_GENERIC_OBJECTS is defined
  if [[ -z "${POSTGRES_12_DROP_GENERIC_OBJECTS:-}" ]]; then
-  __loge "ERROR: POSTGRES_12_DROP_GENERIC_OBJECTS variable is not defined"
-  __loge "ERROR: This variable should be defined in the calling script"
+  __loge "ERROR: POSTGRES_12_DROP_GENERIC_OBJECTS variable is not defined. This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -257,8 +254,7 @@ function __createFunctionToGetCountry {
 
  # Validate that POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY is defined
  if [[ -z "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY:-}" ]]; then
-  __loge "ERROR: POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY variable is not defined"
-  __loge "ERROR: This variable should be defined in the calling script"
+  __loge "ERROR: POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY variable is not defined. This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -279,15 +275,13 @@ function __createProcedures {
 
  # Validate that POSTGRES_22_CREATE_PROC_INSERT_NOTE is defined
  if [[ -z "${POSTGRES_22_CREATE_PROC_INSERT_NOTE:-}" ]]; then
-  __loge "ERROR: POSTGRES_22_CREATE_PROC_INSERT_NOTE variable is not defined"
-  __loge "ERROR: This variable should be defined in the calling script"
+  __loge "ERROR: POSTGRES_22_CREATE_PROC_INSERT_NOTE variable is not defined. This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Validate that POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT is defined
  if [[ -z "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT:-}" ]]; then
-  __loge "ERROR: POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT variable is not defined"
-  __loge "ERROR: This variable should be defined in the calling script"
+  __loge "ERROR: POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT variable is not defined. This variable should be defined in the calling script"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 

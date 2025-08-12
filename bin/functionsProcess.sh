@@ -339,7 +339,6 @@ function __validation {
  __log_finish
 }
 
-
 # Counts notes in XML file (API format)
 # Parameters:
 #   $1: Input XML file path
@@ -1457,14 +1456,9 @@ function __checkHistoricalData {
  if [[ "${RET}" -eq 0 ]]; then
   __logi "Historical data validation passed"
  else
-  __loge "CRITICAL: Historical data validation failed!"
-  __loge "ProcessAPI cannot continue without historical data from Planet."
-  __loge "The system needs historical context to properly process incremental updates."
-  __loge ""
-  __loge "Required action: Run processPlanetNotes.sh first to load historical data:"
-  __loge "  ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-  __loge ""
-  __loge "This will load the complete historical dataset from OpenStreetMap Planet dump."
+  # Consolidate error messages into a single, clear error log
+  local error_message="CRITICAL: Historical data validation failed! ProcessAPI cannot continue without historical data from Planet. The system needs historical context to properly process incremental updates. Required action: Run processPlanetNotes.sh first to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh. This will load the complete historical dataset from OpenStreetMap Planet dump."
+  __loge "${error_message}"
  fi
 
  # shellcheck disable=SC2034
@@ -2012,13 +2006,13 @@ function __processCountries {
  fi
 
  if [[ "${FAIL}" -ne 0 ]]; then
-  __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}"
-  __loge "Check individual log files for detailed error information:"
+  local failed_jobs_info=""
   for JOB_PID in "${FAILED_JOBS[@]}"; do
    if [[ -f "${LOG_FILENAME}.${JOB_PID}" ]]; then
-    __loge "Log file for job ${JOB_PID}: ${LOG_FILENAME}.${JOB_PID}"
+    failed_jobs_info="${failed_jobs_info} ${JOB_PID}:${LOG_FILENAME}.${JOB_PID}"
    fi
   done
+  __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}. Check individual log files for detailed error information:${failed_jobs_info}"
   __loge "=== COUNTRIES PROCESSING FAILED ==="
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
    "echo 'Countries processing cleanup called'"
@@ -2032,10 +2026,8 @@ function __processCountries {
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some threads generated errors."
-  __loge "Found ${QTY_LOGS} error log files. Check them for details:"
-  find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | while read -r log_file; do
-   __loge "Error log: ${log_file}"
-  done
+  local error_logs=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
+  __loge "Found ${QTY_LOGS} error log files. Check them for details: ${error_logs}"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then

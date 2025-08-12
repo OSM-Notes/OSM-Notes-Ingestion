@@ -641,7 +641,7 @@ function __perform_database_maintenance {
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_users;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_countries;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_days;" 2>&1
- psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_time_of_week;" 2>&1
+  psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_time_of_week;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_applications;" 2>&1
   psql -d "${DBNAME}" -c "ANALYZE dwh.dimension_applications;" 2>&1
  fi
