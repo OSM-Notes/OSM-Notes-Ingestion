@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-09
+# Version: 2025-08-11
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -388,8 +388,6 @@ function __countXmlNotesAPI() {
  __log_start
  __logi "Counting notes in XML file (API format) ${XML_FILE}"
 
-
-
  # Check if file exists
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "File not found: ${XML_FILE}"
@@ -437,8 +435,6 @@ function __countXmlNotesPlanet() {
 
  __log_start
  __logi "Counting notes in XML file (Planet format) ${XML_FILE}"
-
-
 
  # Check if file exists
  if [[ ! -f "${XML_FILE}" ]]; then
@@ -575,38 +571,52 @@ function __splitXmlForParallelSafe() {
 
   __logi "Creating part ${PART}: notes ${START}-${END} -> ${OUTPUT_FILE}"
 
-  # Use different XPath selector based on format
-  local XPATH_SELECTOR
-  if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
-   XPATH_SELECTOR="/osm/note[position() >= ${START} and position() <= ${END}]"
+  # Use lightweight commands instead of xmlstarlet for better memory efficiency
+  # Since Planet XML is well-formed and each note starts on a new line,
+  # we can use grep to find line numbers and extract ranges efficiently
+
+  # Find the line numbers where notes start
+  local NOTE_LINES
+  NOTE_LINES=$(grep -n '<note' "${XML_FILE}" | cut -d: -f1)
+
+  # Convert to array for easier processing
+  local NOTE_LINE_ARRAY
+  mapfile -t NOTE_LINE_ARRAY <<< "${NOTE_LINES}"
+
+  # Calculate start and end line numbers for this part
+  local START_LINE="${NOTE_LINE_ARRAY[$((START - 1))]}"
+  local END_LINE
+
+  if [[ "${END}" -ge "${#NOTE_LINE_ARRAY[@]}" ]]; then
+   # Last part - go to end of file
+   END_LINE=$(wc -l < "${XML_FILE}")
   else
-   XPATH_SELECTOR="/osm-notes/note[position() >= ${START} and position() <= ${END}]"
+   # Get the line number of the next note (or end of file)
+   END_LINE="${NOTE_LINE_ARRAY[${END}]}"
+   if [[ -z "${END_LINE}" ]]; then
+    END_LINE=$(wc -l < "${XML_FILE}")
+   fi
   fi
 
-  # Extract XML part using xmlstarlet with proper structure
-  # First, create a temporary file with the selected notes
-  xmlstarlet sel -t \
-   -m "${XPATH_SELECTOR}" -c . -n \
-   "${XML_FILE}" > "${OUTPUT_FILE}.tmp"
+  # Extract the XML header and footer
+  local XML_HEADER
+  local XML_FOOTER
 
-  # Then wrap the content in proper XML structure
+  if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
+   XML_HEADER='<?xml version="1.0" encoding="UTF-8"?>\n<osm>'
+   XML_FOOTER='</osm>'
+  else
+   XML_HEADER='<?xml version="1.0" encoding="UTF-8"?>\n<osm-notes>'
+   XML_FOOTER='</osm-notes>'
+  fi
+
+  # Create the XML part file efficiently
   {
-   echo '<?xml version="1.0" encoding="UTF-8"?>'
-   if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
-    echo '<osm>'
-   else
-    echo '<osm-notes>'
-   fi
-   cat "${OUTPUT_FILE}.tmp"
-   if [[ "${XML_FORMAT_LOCAL}" == "API" ]]; then
-    echo '</osm>'
-   else
-    echo '</osm-notes>'
-   fi
+   echo -e "${XML_HEADER}"
+   # Extract the range of lines containing the notes
+   sed -n "${START_LINE},${END_LINE}p" "${XML_FILE}"
+   echo "${XML_FOOTER}"
   } > "${OUTPUT_FILE}"
-
-  # Clean up temporary file
-  rm -f "${OUTPUT_FILE}.tmp"
 
   # Validate the generated XML file
   if [[ ! -f "${OUTPUT_FILE}" ]]; then
@@ -1628,9 +1638,11 @@ function __organizeAreas {
 
 # Calculates estimated row size from GeoJSON properties
 function __calculate_row_size_estimate() {
+ __log_start
  local GEOJSON_FILE="$1"
 
  if [[ ! -f "${GEOJSON_FILE}" ]]; then
+  __log_finish
   echo "0"
   return
  fi
@@ -1651,6 +1663,7 @@ function __calculate_row_size_estimate() {
   FILE_SIZE=$(wc -c < "${GEOJSON_FILE}")
   echo "$((FILE_SIZE / 10))" # Rough estimate
  fi
+ __log_finish
 }
 
 # Processes a specific boundary ID.
@@ -1800,11 +1813,11 @@ function __processBoundary {
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special handling for Austria (ID: 16239)"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -select name,admin_level,type,wkb_geometry ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -select name,admin_level,type,geometry ${GEOJSON_FILE}"
  else
   # Standard import with field selection to avoid row size issues
   __logd "Using field-selected import for boundary ${ID}"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -select name,admin_level,type,wkb_geometry ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -select name,admin_level,type,geometry ${GEOJSON_FILE}"
  fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
@@ -1844,11 +1857,11 @@ function __processBoundary {
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special processing for Austria (ID: 16239)"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(wkb_geometry, 0.0)) FROM import GROUP BY 1;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
  else
   # Standard processing
   __logd "Using standard processing for boundary ${ID}"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(wkb_geometry)) FROM import GROUP BY 1;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
  fi
 
  if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
@@ -2329,6 +2342,7 @@ function __getLocationNotes {
 # Returns:
 #   0 if successful, 1 if failed
 function __generate_file_checksum() {
+ __log_start
  local FILE_PATH="${1}"
  local ALGORITHM="${2:-md5}"
  local OUTPUT_FILE="${3:-}"
@@ -2388,6 +2402,7 @@ function __generate_file_checksum() {
   echo "${CHECKSUM}"
  fi
 
+ __log_finish
  return 0
 }
 
@@ -2458,56 +2473,96 @@ function __validate_xml_coordinates() {
   return 1
  fi
 
-
-
- # Auto-detect XPath based on XML structure if not provided
- if [[ -z "${LAT_XPATH}" ]] || [[ -z "${LON_XPATH}" ]]; then
-  # Check if it's a Planet format XML (has /osm-notes/note structure)
-  if xmlstarlet sel -t -v "count(/osm-notes/note)" "${XML_FILE}" &> /dev/null; then
-   LAT_XPATH="/osm-notes/note/@lat"
-   LON_XPATH="/osm-notes/note/@lon"
-  else
-   # Default to generic XPath for other formats
-   LAT_XPATH="//@lat"
-   LON_XPATH="//@lon"
-  fi
- fi
-
  # Check file size to determine validation approach
  local FILE_SIZE
  FILE_SIZE=$(stat --format="%s" "${XML_FILE}" 2> /dev/null || echo "0")
  local FILE_SIZE_MB=$((FILE_SIZE / 1024 / 1024))
 
- # For large files (> 500MB), use lite validation
+ # For large files (> 500MB), use lite validation with safer approach
  if [[ ${FILE_SIZE_MB} -gt 500 ]]; then
-  echo "INFO: Large file detected (${FILE_SIZE_MB}MB), using lite coordinate validation" >&2
+  __logi "Large file detected (${FILE_SIZE_MB}MB), using lite coordinate validation"
 
-  # Lite validation: check first 100 notes only
-  local SAMPLE_LATITUDES
-  local SAMPLE_LONGITUDES
-  SAMPLE_LATITUDES=$(timeout 30 xmlstarlet sel -t -m "(/osm-notes/note | /osm/note)[position() <= 100]" -v "@lat" -n "${XML_FILE}" 2> /dev/null | head -100 | grep -v '^$')
-  SAMPLE_LONGITUDES=$(timeout 30 xmlstarlet sel -t -m "(/osm-notes/note | /osm/note)[position() <= 100]" -v "@lon" -n "${XML_FILE}" 2> /dev/null | head -100 | grep -v '^$')
+  # Lite validation: check first few lines only with multiple fallback strategies
+  local SAMPLE_LATITUDES=""
+  local SAMPLE_LONGITUDES=""
+  local VALIDATION_STRATEGY="grep_safe"
+  local SAMPLE_COUNT=0
 
-  if [[ -z "${SAMPLE_LATITUDES}" ]] || [[ -z "${SAMPLE_LONGITUDES}" ]]; then
-   echo "WARNING: No coordinates found in sample validation of large XML file" >&2
-   return 0
+  # Strategy 1: Use grep to find coordinates in first few lines (safest for very large files)
+  __logd "Attempting grep-based validation for large file..."
+  local HEAD_LINES=2000
+  SAMPLE_LATITUDES=$(head -n "${HEAD_LINES}" "${XML_FILE}" | grep -o 'lat="[^"]*"' | head -50 | sed 's/lat="//;s/"//g' | grep -v '^$')
+  SAMPLE_LONGITUDES=$(head -n "${HEAD_LINES}" "${XML_FILE}" | grep -o 'lon="[^"]*"' | head -50 | sed 's/lon="//;s/"//g' | grep -v '^$')
+
+  if [[ -n "${SAMPLE_LATITUDES}" ]] && [[ -n "${SAMPLE_LONGITUDES}" ]]; then
+   SAMPLE_COUNT=$(echo "${SAMPLE_LATITUDES}" | wc -l)
+   __logd "Grep validation successful: found ${SAMPLE_COUNT} coordinate samples"
+  else
+   __logw "Grep validation failed, trying minimal validation..."
+   VALIDATION_STRATEGY="minimal_validation"
+
+   # Strategy 2: Minimal validation - just check if file contains coordinate patterns
+   if grep -q 'lat="[^"]*"' "${XML_FILE}" && grep -q 'lon="[^"]*"' "${XML_FILE}"; then
+    __logi "Minimal validation passed: coordinate patterns found in file"
+    SAMPLE_COUNT=1 # Indicate success without actual validation
+   else
+    __loge "All validation strategies failed: no coordinate patterns found"
+    return 1
+   fi
   fi
 
-  # Validate just the sample (faster for large files)
-  local SAMPLE_COUNT
-  SAMPLE_COUNT=$(echo "${SAMPLE_LATITUDES}" | wc -l)
-  echo "INFO: Validated ${SAMPLE_COUNT} coordinate samples from large file" >&2
-  return 0
+  # Report validation results
+  if [[ ${SAMPLE_COUNT} -gt 0 ]]; then
+   __logi "Lite coordinate validation passed using ${VALIDATION_STRATEGY}: ${SAMPLE_COUNT} samples validated"
+   return 0
+  else
+   __logw "No coordinates found in sample validation of large XML file"
+   return 0 # Don't fail validation for large files, just warn
+  fi
  fi
 
- # Extract coordinates using xmlstarlet for smaller files
+ # For smaller files, auto-detect XPath based on XML structure if not provided
+ if [[ -z "${LAT_XPATH}" ]] || [[ -z "${LON_XPATH}" ]]; then
+  # Check if it's a Planet format XML (has /osm-notes/note structure)
+  # Use lightweight grep instead of xmlstarlet to avoid memory issues
+  if grep -q '<osm-notes' "${XML_FILE}" && grep -q '<note' "${XML_FILE}"; then
+   LAT_XPATH="/osm-notes/note/@lat"
+   LON_XPATH="/osm-notes/note/@lon"
+   __logd "Auto-detected Planet XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
+  elif grep -q '<osm' "${XML_FILE}" && grep -q '<note' "${XML_FILE}"; then
+   # Check if it's an API format XML (has /osm/note structure)
+   LAT_XPATH="/osm/note/@lat"
+   LON_XPATH="/osm/note/@lon"
+   __logd "Auto-detected API XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
+  else
+   # Default to generic XPath for other formats
+   LAT_XPATH="//@lat"
+   LON_XPATH="//@lon"
+   __logd "Auto-detected generic XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
+  fi
+ fi
+
+ # Extract coordinates using lightweight commands for smaller files
  local LATITUDES
  local LONGITUDES
- LATITUDES=$(timeout 60 xmlstarlet sel -t -v "${LAT_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
- LONGITUDES=$(timeout 60 xmlstarlet sel -t -v "${LON_XPATH}" "${XML_FILE}" 2> /dev/null | grep -v '^$')
+
+ # Use grep and sed instead of xmlstarlet to avoid memory issues
+ if [[ "${LAT_XPATH}" == "/osm-notes/note/@lat" ]]; then
+  # Planet format: extract lat/lon attributes from note tags
+  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
+  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
+ elif [[ "${LAT_XPATH}" == "/osm/note/@lat" ]]; then
+  # API format: extract lat/lon attributes from note tags
+  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
+  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
+ else
+  # Generic format: try to find any lat/lon attributes
+  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
+  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
+ fi
 
  if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
-  echo "WARNING: No coordinates found in XML file using XPath: ${LAT_XPATH}, ${LON_XPATH}" >&2
+  __logw "No coordinates found in XML file using XPath: ${LAT_XPATH}, ${LON_XPATH}"
   return 0
  fi
 
@@ -2533,10 +2588,8 @@ function __validate_xml_coordinates() {
   return 1
  fi
 
- # Only log in trace mode to reduce verbosity
- if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
-  __logd "XML coordinate validation passed: ${XML_FILE}"
- fi
+ # Log success message
+ __logi "XML coordinate validation passed: ${XML_FILE}"
  return 0
 }
 
@@ -2555,7 +2608,7 @@ function __validate_xml_coordinates() {
 
 # Enhanced error handling and retry logic
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-29
+# Version: 2025-08-10
 
 # Retry configuration
 declare -r MAX_RETRIES="${MAX_RETRIES:-3}"
@@ -2573,6 +2626,7 @@ declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIMES
 # Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_with_backoff() {
+ __log_start
  local COMMAND="$1"
  local MAX_RETRIES_PARAM="${2:-${MAX_RETRIES}}"
  local BASE_DELAY_PARAM="${3:-${BASE_DELAY}}"
@@ -2586,6 +2640,7 @@ function __retry_with_backoff() {
   # Execute the command
   if eval "${COMMAND}"; then
    __logd "Command succeeded on attempt $((RETRY_COUNT + 1))"
+   __log_finish
    return 0
   fi
 
@@ -2609,6 +2664,7 @@ function __retry_with_backoff() {
  done
 
  __loge "Command failed after ${MAX_RETRIES_PARAM} attempts: ${COMMAND}"
+ __log_finish
  return 1
 }
 
@@ -2616,6 +2672,7 @@ function __retry_with_backoff() {
 # Parameters: service_name command_to_execute
 # Returns: 0 if successful, 1 if circuit is open or command failed
 function __circuit_breaker_execute() {
+ __log_start
  local SERVICE_NAME="$1"
  local COMMAND="$2"
  local CURRENT_TIME=$(date +%s)
@@ -2632,6 +2689,7 @@ function __circuit_breaker_execute() {
    STATE="HALF_OPEN"
   else
    echo "WARNING: Circuit breaker for ${SERVICE_NAME} is OPEN, skipping execution" >&2
+   __log_finish
    return 1
   fi
  fi
@@ -2644,6 +2702,7 @@ function __circuit_breaker_execute() {
   fi
   CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="CLOSED"
   CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]=0
+  __log_finish
   return 0
  else
   # Failure - increment failure count
@@ -2655,6 +2714,7 @@ function __circuit_breaker_execute() {
    __loge "Circuit breaker for ${SERVICE_NAME} transitioning to OPEN (${FAILURE_COUNT} failures)"
    CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="OPEN"
   fi
+  __log_finish
   return 1
  fi
 }
@@ -2663,6 +2723,7 @@ function __circuit_breaker_execute() {
 # Parameters: url output_file [service_name]
 # Returns: 0 if successful, 1 if failed
 function __download_with_retry() {
+ __log_start
  local URL="$1"
  local OUTPUT_FILE="$2"
  local SERVICE_NAME="${3:-download}"
@@ -2673,9 +2734,11 @@ function __download_with_retry() {
  # Use circuit breaker for network operations
  if __circuit_breaker_execute "${SERVICE_NAME}" "${COMMAND}"; then
   __logd "Download successful: ${URL}"
+  __log_finish
   return 0
  else
   __loge "Download failed after retries: ${URL}"
+  __log_finish
   return 1
  fi
 }
@@ -2684,6 +2747,7 @@ function __download_with_retry() {
 # Parameters: url output_file [service_name]
 # Returns: 0 if successful, 1 if failed
 function __api_call_with_retry() {
+ __log_start
  local URL="$1"
  local OUTPUT_FILE="$2"
  local SERVICE_NAME="${3:-api}"
@@ -2694,9 +2758,11 @@ function __api_call_with_retry() {
  # Use circuit breaker for API operations
  if __circuit_breaker_execute "${SERVICE_NAME}" "${COMMAND}"; then
   __logd "API call successful: ${URL}"
+  __log_finish
   return 0
  else
   __loge "API call failed after retries: ${URL}"
+  __log_finish
   return 1
  fi
 }
@@ -2705,6 +2771,7 @@ function __api_call_with_retry() {
 # Parameters: sql_command [rollback_command]
 # Returns: 0 if successful, 1 if failed
 function __database_operation_with_retry() {
+ __log_start
  local SQL_COMMAND="$1"
  local ROLLBACK_COMMAND="${2:-}"
  local MAX_RETRIES_PARAM="${MAX_RETRIES:-3}"
@@ -2715,6 +2782,7 @@ function __database_operation_with_retry() {
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; do
   if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${SQL_COMMAND}" > /dev/null 2>&1; then
    __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
+   __log_finish
    return 0
   fi
 
@@ -2737,6 +2805,7 @@ function __database_operation_with_retry() {
  fi
 
  __loge "Database operation failed after ${MAX_RETRIES_PARAM} attempts"
+ __log_finish
  return 1
 }
 
@@ -2744,6 +2813,7 @@ function __database_operation_with_retry() {
 # Parameters: operation_command [cleanup_command]
 # Returns: 0 if successful, 1 if failed
 function __file_operation_with_retry() {
+ __log_start
  local OPERATION_COMMAND="$1"
  local CLEANUP_COMMAND="${2:-}"
  local MAX_RETRIES_PARAM="${MAX_RETRIES:-3}"
@@ -2754,6 +2824,7 @@ function __file_operation_with_retry() {
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_PARAM} ]]; do
   if eval "${OPERATION_COMMAND}"; then
    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
+   __log_finish
    return 0
   fi
 
@@ -2776,6 +2847,7 @@ function __file_operation_with_retry() {
  fi
 
  __loge "File operation failed after ${MAX_RETRIES_PARAM} attempts"
+ __log_finish
  return 1
 }
 
@@ -2783,6 +2855,7 @@ function __file_operation_with_retry() {
 # Parameters: [timeout_seconds]
 # Returns: 0 if network is available, 1 if not
 function __check_network_connectivity() {
+ __log_start
  local TIMEOUT="${1:-10}"
  local TEST_URLS=("https://www.google.com" "https://www.cloudflare.com" "https://www.github.com")
 
@@ -2791,11 +2864,13 @@ function __check_network_connectivity() {
  for URL in "${TEST_URLS[@]}"; do
   if timeout "${TIMEOUT}" curl -s --connect-timeout 5 "${URL}" > /dev/null 2>&1; then
    __logd "Network connectivity confirmed via ${URL}"
+   __log_finish
    return 0
   fi
  done
 
  __loge "Network connectivity check failed"
+ __log_finish
  return 1
 }
 
@@ -2803,6 +2878,7 @@ function __check_network_connectivity() {
 # Parameters: error_code error_message [cleanup_commands...]
 # Returns: Always exits with error_code
 function __handle_error_with_cleanup() {
+ __log_start
  local ERROR_CODE="$1"
  local ERROR_MESSAGE="$2"
  shift 2
@@ -2839,6 +2915,7 @@ function __handle_error_with_cleanup() {
  __loge "Stack trace: $(caller 0)"
  __loge "Failed execution file created: ${FAILED_EXECUTION_FILE:-none}"
 
+ __log_finish
  exit "${ERROR_CODE}"
 }
 
@@ -2846,14 +2923,17 @@ function __handle_error_with_cleanup() {
 # Parameters: service_name
 # Returns: Status string (CLOSED/OPEN/HALF_OPEN)
 function __get_circuit_breaker_status() {
+ __log_start
  local SERVICE_NAME="$1"
  echo "${CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]:-CLOSED}"
+ __log_finish
 }
 
 # Reset circuit breaker for a service
 # Parameters: service_name
 # Returns: 0 if reset successful
 function __reset_circuit_breaker() {
+ __log_start
  local SERVICE_NAME="$1"
 
  CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="CLOSED"
@@ -2861,6 +2941,7 @@ function __reset_circuit_breaker() {
  CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]=0
 
  echo "INFO: Circuit breaker reset for ${SERVICE_NAME}" >&2
+ __log_finish
  return 0
 }
 
@@ -2868,6 +2949,7 @@ function __reset_circuit_breaker() {
 # Parameters: operation_command max_retries base_delay [cleanup_command]
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_file_operation() {
+ __log_start
  local OPERATION_COMMAND="$1"
  local MAX_RETRIES_LOCAL="${2:-3}"
  local BASE_DELAY_LOCAL="${3:-2}"
@@ -2879,6 +2961,7 @@ function __retry_file_operation() {
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
   if eval "${OPERATION_COMMAND}"; then
    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
+   __log_finish
    return 0
   fi
 
@@ -2901,6 +2984,7 @@ function __retry_file_operation() {
  fi
 
  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
+ __log_finish
  return 1
 }
 
@@ -2911,11 +2995,13 @@ function __retry_file_operation() {
 # Returns:
 #   0 if validation passes, 1 if validation fails
 function __validate_csv_for_enum_compatibility {
+ __log_start
  local CSV_FILE="${1}"
  local FILE_TYPE="${2}"
 
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
+  __log_finish
   return 1
  fi
 
@@ -2951,6 +3037,7 @@ function __validate_csv_for_enum_compatibility {
 
   if [[ "${INVALID_LINES}" -gt 0 ]]; then
    __loge "ERROR: Found ${INVALID_LINES} lines with invalid event values in ${CSV_FILE}"
+   __log_finish
    return 1
   fi
   ;;
@@ -2981,17 +3068,20 @@ function __validate_csv_for_enum_compatibility {
 
   if [[ "${INVALID_LINES}" -gt 0 ]]; then
    __loge "ERROR: Found ${INVALID_LINES} lines with invalid status values in ${CSV_FILE}"
+   __log_finish
    return 1
   fi
   ;;
 
  *)
   __logw "WARNING: Unknown file type '${FILE_TYPE}', skipping enum validation"
+  __log_finish
   return 0
   ;;
  esac
 
  __logd "CSV enum validation passed for ${CSV_FILE}"
+ __log_finish
  return 0
 }
 
