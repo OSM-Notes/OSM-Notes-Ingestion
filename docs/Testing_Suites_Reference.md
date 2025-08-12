@@ -226,7 +226,7 @@ Integration tests validate complete workflows and system interactions:
 - **edge_cases_integration.test.bats** - Edge cases integration
 - **error_handling.test.bats** - Error handling functionality
 - **error_handling_enhanced.test.bats** - Enhanced error handling
-- **error_handling_simple.test.bats** - Simple error handling
+- **error_handling.test.bats** - Consolidated error handling tests
 - **format_and_lint.test.bats** - Code formatting and linting
 - **hybrid_integration.test.bats** - Hybrid environment integration
 - **logging_improvements.test.bats** - Logging improvements

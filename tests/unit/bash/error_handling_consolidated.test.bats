@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Simplified tests for error handling functions
+# Consolidated tests for error handling functions
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-12
 
@@ -39,14 +39,6 @@ EOF
  # Use absolute paths to ensure cleanup commands work in function context
  local CLEANUP1="${TEST_DIR}/cleanup1.txt"
  local CLEANUP2="${TEST_DIR}/cleanup2.txt"
- 
- # Ensure TEST_MODE is set for this test
- export TEST_MODE="true"
- 
- # Set BATS environment variables explicitly
- export BATS_TEST_DIRNAME="test"
- export BATS_ROOT="test"
- export BATS_VERSION="test"
  
  # Ensure CLEAN is set to true for this test
  export CLEAN="true"
@@ -137,7 +129,7 @@ EOF
 }
 
 @test "validate_xml_dates should succeed with valid XML" {
- # Create a test XML file with valid dates in the expected format
+ # Create a test XML file with valid dates
  cat > "${TEST_DIR}/test.xml" << 'EOF'
 <?xml version="1.0"?>
 <osm-notes>
@@ -147,7 +139,7 @@ EOF
 </osm-notes>
 EOF
  
- # Mock xmllint to return valid dates
+ # Mock xmllint to return valid dates (using the more robust version)
  function xmllint() {
    if [[ "$*" == *"--xpath"* ]]; then
      echo "2023-01-01 12:00:00 UTC"
@@ -161,4 +153,4 @@ EOF
  
  run __validate_xml_dates "${TEST_DIR}/test.xml"
  [ "$status" -eq 0 ]
-} 
+}

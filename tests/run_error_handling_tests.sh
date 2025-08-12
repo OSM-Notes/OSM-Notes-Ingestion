@@ -18,7 +18,7 @@ cd "${TESTS_DIRECTORY}"
 # Basic error handling tests
 echo "1. Testing basic error handling..."
 bats unit/bash/error_handling.test.bats
-bats unit/bash/error_handling_simple.test.bats
+bats unit/bash/error_handling.test.bats
 
 # Enhanced error handling tests
 echo "2. Testing enhanced error handling..."
