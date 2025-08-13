@@ -66,6 +66,15 @@ Integration tests actually run the scripts to detect real problems like:
 - `Notes are not yet on the database`
 - `FAIL! (1) - __validation error`
 
+### 2. Consolidated Functions Testing
+
+The project includes specialized tests for consolidated functions that eliminate code duplication:
+
+- **Parallel Processing Functions**: Tests for `bin/parallelProcessingFunctions.sh` ensure XML processing functions work correctly across different formats (API vs Planet)
+- **Validation Functions**: Tests for `bin/consolidatedValidationFunctions.sh` validate XML, CSV, coordinate, and database validation functions
+- **Legacy Compatibility**: Tests ensure that existing scripts continue to work while using the new consolidated implementations
+- **Fallback Mechanisms**: Tests verify that scripts gracefully handle missing consolidated function files
+
 #### Covered Scripts
 
 **Processing Scripts:**

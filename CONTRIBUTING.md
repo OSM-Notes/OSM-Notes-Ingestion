@@ -332,7 +332,9 @@ project/
 │   ├── process/           # Data processing scripts
 │   ├── dwh/              # Data warehouse scripts
 │   ├── monitor/          # Monitoring scripts
-│   └── functionsProcess.sh # Shared functions
+│   ├── functionsProcess.sh # Shared functions
+│   ├── parallelProcessingFunctions.sh # Consolidated parallel processing functions
+│   └── consolidatedValidationFunctions.sh # Consolidated validation functions
 ├── sql/                   # Database scripts
 │   ├── process/          # Processing SQL scripts
 │   ├── dwh/             # Data warehouse SQL
@@ -393,6 +395,32 @@ project/
 - **Functions**: `function_name_with_underscores`
 - **Procedures**: `procedure_name_with_underscores`
 
+## Consolidated Functions
+
+### Function Consolidation Strategy
+
+The project uses a consolidation strategy to eliminate code duplication and improve maintainability:
+
+#### 1. Parallel Processing Functions (`bin/parallelProcessingFunctions.sh`)
+
+- **Purpose**: Centralizes all XML parallel processing functions
+- **Functions**: `__processXmlPartsParallel`, `__splitXmlForParallelSafe`, `__processApiXmlPart`, `__processPlanetXmlPart`
+- **Usage**: All scripts that need parallel processing should source this file
+- **Fallback**: Legacy scripts maintain compatibility through wrapper functions
+
+#### 2. Validation Functions (`bin/consolidatedValidationFunctions.sh`)
+
+- **Purpose**: Centralizes all validation functions for XML, CSV, coordinates, and databases
+- **Functions**: `__validate_xml_with_enhanced_error_handling`, `__validate_csv_structure`, `__validate_coordinates`
+- **Usage**: All validation operations should use these consolidated functions
+- **Fallback**: Legacy scripts maintain compatibility through wrapper functions
+
+#### 3. Implementation Guidelines
+
+- **New Functions**: Add to appropriate consolidated file rather than duplicating across scripts
+- **Legacy Support**: Always provide fallback mechanisms for backward compatibility
+- **Testing**: Include tests for both consolidated functions and legacy compatibility
+
 ## Documentation
 
 ### Required Documentation
@@ -402,6 +430,7 @@ project/
 3. **README Files**: Each directory should have a README.md
 4. **API Documentation**: Document any new APIs or interfaces
 5. **Configuration Documentation**: Document configuration options
+6. **Consolidated Functions**: Document any new consolidated function files
 
 ### Documentation Standards
 

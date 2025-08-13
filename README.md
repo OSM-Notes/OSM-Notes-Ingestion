@@ -40,6 +40,14 @@ These are the main functions of this project.
 * View the user or country's profile.
   This is a basic version of the report, to test from the command line.
 
+## Consolidated Functions
+
+The project has been refactored to eliminate code duplication and improve maintainability:
+
+* **Parallel Processing Functions** (`bin/parallelProcessingFunctions.sh`): Centralized functions for XML parallel processing, eliminating duplication across multiple scripts.
+* **Validation Functions** (`bin/consolidatedValidationFunctions.sh`): Consolidated validation functions for XML, CSV, coordinates, and database operations.
+* **Legacy Function Support**: All existing scripts maintain backward compatibility while using the new consolidated implementations.
+
 ## Timing
 
 The whole process takes several hours, even days to complete before the

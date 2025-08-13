@@ -706,80 +706,18 @@ function __validatePlanetNotesXMLFileComplete {
 #   $2 - Schema file path (optional for very large files)
 # Returns:
 #   0 if validation passes, 1 if validation fails
+# Enhanced XML validation with error handling
+# Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_with_enhanced_error_handling {
- local XML_FILE="${1}"
- local SCHEMA_FILE="${2}"
- local TIMEOUT="${3:-${ETL_XML_VALIDATION_TIMEOUT:-300}}"
-
- if [[ ! -f "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file not found: ${XML_FILE}"
-  return 1
- fi
-
- # Get file size for validation strategy
- local FILE_SIZE
- FILE_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || echo "0")
- local SIZE_MB=$((FILE_SIZE / 1024 / 1024))
-
- __logi "Validating XML file: ${XML_FILE} (${SIZE_MB} MB)"
-
- # Check if this is a planet XML file (contains "planet" in filename or path)
- local IS_PLANET_FILE=false
- if [[ "${XML_FILE}" =~ [Pp]lanet ]]; then
-  IS_PLANET_FILE=true
-  __logi "Planet XML file detected. Using basic validation to avoid memory issues."
- fi
-
- # Use appropriate validation strategy based on file size or file type
- local LARGE_FILE_THRESHOLD="${ETL_LARGE_FILE_THRESHOLD_MB:-500}"
- local VERY_LARGE_FILE_THRESHOLD="${ETL_VERY_LARGE_FILE_THRESHOLD_MB:-1000}"
-
- if [[ "${SIZE_MB}" -gt "${VERY_LARGE_FILE_THRESHOLD}" ]]; then
-  __logw "WARNING: Very large XML file detected (${SIZE_MB} MB). Using structure-only validation."
-
-  # For very large files, use basic structure validation only
-  if __validate_xml_structure_only "${XML_FILE}"; then
-   __logi "Structure-only validation succeeded for very large file"
-   return 0
-  else
-   __loge "ERROR: Structure-only validation failed"
-   return 1
-  fi
- elif [[ "${SIZE_MB}" -gt "${LARGE_FILE_THRESHOLD}" ]] || [[ "${IS_PLANET_FILE}" == true ]]; then
-  __logw "WARNING: Large XML file or Planet file detected (${SIZE_MB} MB). Using basic validation."
-
-  # For large files or planet files, use basic XML validation without schema
-  if __validate_xml_basic "${XML_FILE}"; then
-   __logi "Basic XML validation succeeded"
-   return 0
-  else
-   __loge "ERROR: Basic XML validation failed"
-   return 1
-  fi
- else
-  # Standard validation for smaller files (non-planet)
-  if [[ -n "${SCHEMA_FILE}" ]] && [[ -f "${SCHEMA_FILE}" ]]; then
-   local XMLLINT_OUTPUT
-   XMLLINT_OUTPUT=$(timeout "${TIMEOUT}" xmllint --noout --schema "${SCHEMA_FILE}" "${XML_FILE}" 2>&1)
-   local EXIT_CODE=$?
-   if [[ ${EXIT_CODE} -eq 0 ]]; then
-    __logi "XML validation succeeded"
-    return 0
-   else
-    __loge "ERROR: XML schema validation failed - xmllint output: ${XMLLINT_OUTPUT}"
-    return 1
-   fi
-  else
-   # Fallback to basic validation if no schema provided
-   if __validate_xml_basic "${XML_FILE}"; then
-    __logi "Basic XML validation succeeded"
-    return 0
-   else
-    __loge "ERROR: Basic XML validation failed"
-    return 1
-   fi
-  fi
- fi
+    # Source the consolidated validation functions
+    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
+        source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+        __validate_xml_with_enhanced_error_handling "$@"
+    else
+        # Fallback if consolidated functions are not available
+        __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+        return 1
+    fi
 }
 
 # Basic XML structure validation (lightweight)
