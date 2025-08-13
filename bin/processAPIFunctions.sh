@@ -4,7 +4,10 @@
 # This file contains functions for processing API data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-08-13
+
+# Define version variable
+VERSION="2025-08-13"
 
 # Show help function
 function __show_help() {
@@ -27,7 +30,7 @@ function __show_help() {
  echo "  __consolidatePartitions   - Consolidate partitions"
  echo
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: 2025-08-02"
+ echo "Version: ${VERSION}"
  exit 1
 }
 

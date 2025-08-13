@@ -4,7 +4,10 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
+# Version: 2025-08-13
+
+# Define version variable
+VERSION="2025-08-13"
 
 # Show help function
 function __show_help() {
@@ -28,7 +31,7 @@ function __show_help() {
  echo "  __objectsTextComments      - Objects text comments"
  echo
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: 2025-08-04"
+ echo "Version: ${VERSION}"
  exit 1
 }
 

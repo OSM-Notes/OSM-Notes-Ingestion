@@ -4,7 +4,10 @@
 # This file contains error handling and retry functions.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-12
+# Version: 2025-08-13
+
+# Define version variable
+VERSION="2025-08-13"
 
 # shellcheck disable=SC2317,SC2155
 
@@ -31,7 +34,7 @@ function __show_help() {
  echo "  __handle_error_with_cleanup - Error handling with cleanup"
  echo
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: 2025-08-12"
+ echo "Version: ${VERSION}"
  exit 1
 }
 

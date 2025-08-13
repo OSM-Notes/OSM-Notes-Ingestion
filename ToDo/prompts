@@ -1,47 +1,6 @@
 
 
-error_handling.test.bats
 
-
-
-
-error_handling.test.bats
-
-
-
-
-
-functionsProcess_enhanced.test.bats
-
-
-
-
-
-input_validation.test.bats
-
-
-
-
-
-parallel_failed_file.test.bats
-
-
-
-
-
-
-
-xml_processing_enhanced.test.bats
-
-
-
-
-
-
-
-
-
-En algunos scripts, veo que en los mensajes de ayuda muestra la versión, que es la fecha de la última modificación de ese archivo, pero en algunos no usas la variable version, sino hardcodeada, podrías usar la variable que se debe definir justo después del header.
 
 
 
