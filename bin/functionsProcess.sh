@@ -74,7 +74,7 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
 fi
 
 # Legacy functions that remain in this file for backward compatibility
-# These functions are used by multiple scripts and haven't been moved yet
+# These functions now source consolidated implementations from parallelProcessingFunctions.sh
 
 # Output CSV files for processed data
 # shellcheck disable=SC2034
@@ -163,137 +163,32 @@ if [[ -z "${LOG_FILENAME:-}" ]]; then
  declare -r LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 fi
 
-# Legacy function: Process XML parts in parallel (kept for backward compatibility)
+# Legacy function: Process XML parts in parallel (consolidated implementation)
+# Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
 function __processXmlPartsParallel() {
- __log_start
- __logd "Processing XML parts in parallel."
-
- local INPUT_DIR="${1}"
- local XSLT_FILE="${2}"
- local OUTPUT_DIR="${3}"
- local MAX_WORKERS="${4:-4}"
-
- if [[ ! -d "${INPUT_DIR}" ]]; then
-  __loge "ERROR: Input directory not found: ${INPUT_DIR}"
-  return 1
- fi
-
- if [[ ! -f "${XSLT_FILE}" ]]; then
-  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
-  return 1
- fi
-
- # Create output directory
- mkdir -p "${OUTPUT_DIR}"
-
- # Find all XML parts
- local XML_FILES
- mapfile -t XML_FILES < <(find "${INPUT_DIR}" -name "*.xml" -type f)
-
- if [[ ${#XML_FILES[@]} -eq 0 ]]; then
-  __logw "WARNING: No XML files found in ${INPUT_DIR}"
-  return 0
- fi
-
- __logi "Processing ${#XML_FILES[@]} XML parts with max ${MAX_WORKERS} workers."
-
- # Process files in parallel
- local PIDS=()
- local PROCESSED=0
-
- for XML_FILE in "${XML_FILES[@]}"; do
-  local BASE_NAME
-  BASE_NAME=$(basename "${XML_FILE}" .xml)
-  local OUTPUT_FILE="${OUTPUT_DIR}/${BASE_NAME}.csv"
-
-  # Process XML file
-  if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
-   __logd "Successfully processed: ${XML_FILE} -> ${OUTPUT_FILE}"
-   ((PROCESSED++))
-  else
-   __loge "ERROR: Failed to process: ${XML_FILE}"
-  fi
-
-  # Limit concurrent processes
-  if [[ ${#PIDS[@]} -ge ${MAX_WORKERS} ]]; then
-   wait "${PIDS[0]}"
-   PIDS=("${PIDS[@]:1}")
-  fi
- done
-
- # Wait for remaining processes
- for PID in "${PIDS[@]}"; do
-  wait "${PID}"
- done
-
- __logi "Parallel processing completed. Processed ${PROCESSED}/${#XML_FILES[@]} files."
- __log_finish
+    # Source the consolidated parallel processing functions
+    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+        __processXmlPartsParallel "$@"
+    else
+        # Fallback if consolidated functions are not available
+        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+        return 1
+    fi
 }
 
-# Legacy function: Split XML for parallel processing (safe version)
+# Legacy function: Split XML for parallel processing (consolidated implementation)
+# Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
 function __splitXmlForParallelSafe() {
- __log_start
- __logd "Splitting XML for parallel processing (safe version)."
-
- local XML_FILE="${1}"
- local NUM_PARTS="${2:-4}"
- local OUTPUT_DIR="${3:-${TMP_DIR}}"
-
- if [[ ! -f "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file not found: ${XML_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
-
- # Create output directory
- mkdir -p "${OUTPUT_DIR}"
-
- # Count total notes
- local TOTAL_NOTES
- TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
-
- if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
-  __logw "WARNING: No notes found in XML file."
-  return 0
- fi
-
- # Calculate notes per part
- local NOTES_PER_PART
- NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
- if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
-  NOTES_PER_PART=$((NOTES_PER_PART + 1))
- fi
-
- __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
-
- # Split XML file safely
- for ((i = 0; i < NUM_PARTS; i++)); do
-  local START_POS=$((i * NOTES_PER_PART + 1))
-  local END_POS=$(((i + 1) * NOTES_PER_PART))
-
-  if [[ "${END_POS}" -gt "${TOTAL_NOTES}" ]]; then
-   END_POS="${TOTAL_NOTES}"
-  fi
-
-  if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
-   local OUTPUT_FILE="${OUTPUT_DIR}/safe_part_${i}.xml"
-
-   # Create XML wrapper
-   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
-   echo '<osm-notes>' >> "${OUTPUT_FILE}"
-
-   # Extract notes for this part safely
-   for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
-   done
-
-   echo '</osm-notes>' >> "${OUTPUT_FILE}"
-
-   __logd "Created safe part ${i}: ${OUTPUT_FILE} (notes ${START_POS}-${END_POS})"
-  fi
- done
-
- __logi "XML splitting completed safely. Created ${NUM_PARTS} parts."
- __log_finish
+    # Source the consolidated parallel processing functions
+    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+        __splitXmlForParallelSafe "$@"
+    else
+        # Fallback if consolidated functions are not available
+        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+        return 1
+    fi
 }
 
 # Error codes are defined in commonFunctions.sh
@@ -458,19 +353,31 @@ function __countXmlNotesPlanet() {
 }
 
 # Wrapper function for API format that uses parallel processing
-# Parameters:
-#   $1: XML file path
-#   $2: Number of notes to split (optional, uses TOTAL_NOTES if not provided)
+# Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelAPI() {
- __splitXmlForParallelSafe "${1}" "API" "${2:-}"
+    # Source the consolidated parallel processing functions
+    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+        __splitXmlForParallelAPI "$@"
+    else
+        # Fallback if consolidated functions are not available
+        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+        return 1
+    fi
 }
 
 # Wrapper function for Planet format that uses parallel processing
-# Parameters:
-#   $1: XML file path
-#   $2: Number of notes to split (optional, uses TOTAL_NOTES if not provided)
+# Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelPlanet() {
- __splitXmlForParallelSafe "${1}" "Planet" "${2:-}"
+    # Source the consolidated parallel processing functions
+    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+        __splitXmlForParallelPlanet "$@"
+    else
+        # Fallback if consolidated functions are not available
+        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+        return 1
+    fi
 }
 
 # Processes a single XML part for API notes

@@ -85,69 +85,17 @@ function __countXmlNotesAPI() {
 }
 
 # Split XML for parallel API processing
+# Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelAPI() {
- __log_start
- __logd "Splitting XML for parallel API processing."
-
- local XML_FILE="${1}"
- local NUM_PARTS="${2:-4}"
- local OUTPUT_DIR="${3:-${TMP_DIR}}"
-
- if [[ ! -f "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file not found: ${XML_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
-
- # Create output directory
- mkdir -p "${OUTPUT_DIR}"
-
- # Count total notes
- local TOTAL_NOTES
- TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
-
- if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
-  __logw "WARNING: No notes found in XML file."
-  return 0
- fi
-
- # Calculate notes per part
- local NOTES_PER_PART
- NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
- if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
-  NOTES_PER_PART=$((NOTES_PER_PART + 1))
- fi
-
- __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
-
- # Split XML file
- for ((i = 0; i < NUM_PARTS; i++)); do
-  local START_POS=$((i * NOTES_PER_PART + 1))
-  local END_POS=$(((i + 1) * NOTES_PER_PART))
-
-  if [[ "${END_POS}" -gt "${TOTAL_NOTES}" ]]; then
-   END_POS="${TOTAL_NOTES}"
-  fi
-
-  if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
-   local OUTPUT_FILE="${OUTPUT_DIR}/api_part_${i}.xml"
-
-   # Create XML wrapper
-   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
-   echo '<osm-notes>' >> "${OUTPUT_FILE}"
-
-   # Extract notes for this part
-   for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
-   done
-
-   echo '</osm-notes>' >> "${OUTPUT_FILE}"
-
-   __logd "Created part ${i}: ${OUTPUT_FILE} (notes ${START_POS}-${END_POS})"
-  fi
- done
-
- __logi "XML splitting completed. Created ${NUM_PARTS} parts."
- __log_finish
+    # Source the consolidated parallel processing functions
+    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+        __splitXmlForParallelAPI "$@"
+    else
+        # Fallback if consolidated functions are not available
+        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+        return 1
+    fi
 }
 
 # Process XML with XSLT for API
