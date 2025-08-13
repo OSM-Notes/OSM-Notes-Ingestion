@@ -168,19 +168,20 @@ cleanup_test_database() {
 run_bats_tests() {
  log_info "Running BATS tests..."
 
- # Define tests that are safe for CI environment
+  # Define tests that are safe for CI environment
  local bats_tests=(
-  "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
-  "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
-  "${SCRIPT_DIR}/unit/bash/cleanupAll.test.bats"
-  "${SCRIPT_DIR}/unit/bash/variable_duplication.test.bats"
-  "${SCRIPT_DIR}/unit/bash/script_help_validation.test.bats"
-  "${SCRIPT_DIR}/unit/bash/variable_duplication_detection.test.bats"
-  "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats"
-  "${SCRIPT_DIR}/unit/bash/sql_validation_integration.test.bats"
-  "${SCRIPT_DIR}/unit/bash/sql_constraints_validation.test.bats"
-  "${SCRIPT_DIR}/unit/bash/parallel_processing_validation.test.bats"
- )
+   "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
+   "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
+   "${SCRIPT_DIR}/unit/bash/processPlanetNotes_integration_fixed.test.bats"
+   "${SCRIPT_DIR}/unit/bash/cleanupAll.test.bats"
+   "${SCRIPT_DIR}/unit/bash/variable_duplication.test.bats"
+   "${SCRIPT_DIR}/unit/bash/script_help_validation.test.bats"
+   "${SCRIPT_DIR}/unit/bash/variable_duplication_detection.test.bats"
+   "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats"
+   "${SCRIPT_DIR}/unit/bash/sql_validation_integration.test.bats"
+   "${SCRIPT_DIR}/unit/bash/sql_constraints_validation.test.bats"
+   "${SCRIPT_DIR}/unit/bash/parallel_processing_validation.test.bats"
+  )
 
  log_info "Total BATS tests to run: ${#bats_tests[@]}"
  log_info "BATS tests: ${bats_tests[*]}"
