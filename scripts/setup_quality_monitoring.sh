@@ -15,24 +15,24 @@ readonly NC='\033[0m' # No Color
 
 # Logging functions
 log_info() {
-  echo -e "${BLUE}[INFO]${NC} $*"
+ echo -e "${BLUE}[INFO]${NC} $*"
 }
 
 log_success() {
-  echo -e "${GREEN}[SUCCESS]${NC} $*"
+ echo -e "${GREEN}[SUCCESS]${NC} $*"
 }
 
 log_warning() {
-  echo -e "${YELLOW}[WARNING]${NC} $*"
+ echo -e "${YELLOW}[WARNING]${NC} $*"
 }
 
 log_error() {
-  echo -e "${RED}[ERROR]${NC} $*"
+ echo -e "${RED}[ERROR]${NC} $*"
 }
 
 # Show help
 show_help() {
-  cat << EOF
+ cat << EOF
 Script para configurar herramientas de monitoreo de calidad
 
 Usage: $0 [OPTIONS]
@@ -58,64 +58,64 @@ EOF
 
 # Install quality monitoring tools
 install_tools() {
-  log_info "Installing quality monitoring tools..."
-  
-  # Check if we're on Ubuntu/Debian
-  if command -v apt-get &> /dev/null; then
-    log_info "Installing tools via apt..."
-    
-    # Install basic tools
-    sudo apt-get update
-    sudo apt-get install -y \
-      shellcheck \
-      shfmt \
-      bats \
-      jq \
-      yamllint \
-      python3-pip \
-      python3-yaml \
-      python3-requests
-    
-    # Install Python tools
-    pip3 install --user \
-      coverage \
-      pytest \
-      pytest-cov \
-      bandit \
-      safety \
-      black \
-      flake8
-    
-  elif command -v yum &> /dev/null; then
-    log_info "Installing tools via yum..."
-    sudo yum install -y \
-      shellcheck \
-      jq \
-      python3-pip
-    
-  elif command -v brew &> /dev/null; then
-    log_info "Installing tools via brew..."
-    brew install \
-      shellcheck \
-      shfmt \
-      bats-core \
-      jq \
-      yamllint
-    
-  else
-    log_warning "Package manager not detected, manual installation required"
-    log_info "Please install: shellcheck, shfmt, bats, jq, yamllint"
-  fi
-  
-  log_success "Quality monitoring tools installed"
+ log_info "Installing quality monitoring tools..."
+
+ # Check if we're on Ubuntu/Debian
+ if command -v apt-get &> /dev/null; then
+  log_info "Installing tools via apt..."
+
+  # Install basic tools
+  sudo apt-get update
+  sudo apt-get install -y \
+   shellcheck \
+   shfmt \
+   bats \
+   jq \
+   yamllint \
+   python3-pip \
+   python3-yaml \
+   python3-requests
+
+  # Install Python tools
+  pip3 install --user \
+   coverage \
+   pytest \
+   pytest-cov \
+   bandit \
+   safety \
+   black \
+   flake8
+
+ elif command -v yum &> /dev/null; then
+  log_info "Installing tools via yum..."
+  sudo yum install -y \
+   shellcheck \
+   jq \
+   python3-pip
+
+ elif command -v brew &> /dev/null; then
+  log_info "Installing tools via brew..."
+  brew install \
+   shellcheck \
+   shfmt \
+   bats-core \
+   jq \
+   yamllint
+
+ else
+  log_warning "Package manager not detected, manual installation required"
+  log_info "Please install: shellcheck, shfmt, bats, jq, yamllint"
+ fi
+
+ log_success "Quality monitoring tools installed"
 }
 
 # Setup SonarQube configuration
 setup_sonarqube() {
-  log_info "Setting up SonarQube configuration..."
-  
-  # Create sonar-project.properties
-  cat > sonar-project.properties << 'EOF'
+ log_info "Setting up SonarQube configuration..."
+
+ # Create sonar-project.properties
+ cat > sonar-project.properties << 'EOF'
 # SonarQube Configuration for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-01
@@ -160,8 +160,8 @@ sonar.shellcheck.reportPaths=shellcheck-report.json
 sonar.shfmt.reportPaths=shfmt-report.json
 EOF
 
-  # Create SonarQube workflow
-  cat > .github/workflows/sonarqube.yml << 'EOF'
+ # Create SonarQube workflow
+ cat > .github/workflows/sonarqube.yml << 'EOF'
 name: SonarQube Analysis
 
 on:
@@ -221,19 +221,19 @@ jobs:
           -Dsonar.shfmt.reportPaths=shfmt-report.json
 EOF
 
-  log_success "SonarQube configuration created"
-  log_info "Next steps:"
-  log_info "1. Set up SonarQube server"
-  log_info "2. Add SONAR_TOKEN to GitHub secrets"
-  log_info "3. Configure quality gates"
+ log_success "SonarQube configuration created"
+ log_info "Next steps:"
+ log_info "1. Set up SonarQube server"
+ log_info "2. Add SONAR_TOKEN to GitHub secrets"
+ log_info "3. Configure quality gates"
 }
 
 # Setup Codecov configuration
 setup_codecov() {
-  log_info "Setting up Codecov configuration..."
-  
-  # Create codecov.yml
-  cat > codecov.yml << 'EOF'
+ log_info "Setting up Codecov configuration..."
+
+ # Create codecov.yml
+ cat > codecov.yml << 'EOF'
 # Codecov Configuration for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-01
@@ -279,8 +279,8 @@ ignore:
   - "*.json"
 EOF
 
-  # Create Codecov workflow
-  cat > .github/workflows/codecov.yml << 'EOF'
+ # Create Codecov workflow
+ cat > .github/workflows/codecov.yml << 'EOF'
 name: Codecov
 
 on:
@@ -328,19 +328,19 @@ jobs:
         verbose: true
 EOF
 
-  log_success "Codecov configuration created"
-  log_info "Next steps:"
-  log_info "1. Connect repository to Codecov"
-  log_info "2. Add CODECOV_TOKEN to GitHub secrets"
-  log_info "3. Configure coverage thresholds"
+ log_success "Codecov configuration created"
+ log_info "Next steps:"
+ log_info "1. Connect repository to Codecov"
+ log_info "2. Add CODECOV_TOKEN to GitHub secrets"
+ log_info "3. Configure coverage thresholds"
 }
 
 # Setup security scanning
 setup_security() {
-  log_info "Setting up security scanning..."
-  
-  # Create security workflow
-  cat > .github/workflows/security.yml << 'EOF'
+ log_info "Setting up security scanning..."
+
+ # Create security workflow
+ cat > .github/workflows/security.yml << 'EOF'
 name: Security Scan
 
 on:
@@ -421,192 +421,192 @@ jobs:
         echo "- Check artifacts for detailed results" >> $GITHUB_STEP_SUMMARY
 EOF
 
-  log_success "Security scanning configuration created"
-  log_info "Security tools configured:"
-  log_info "- Bandit (Python security)"
-  log_info "- Safety (dependency vulnerabilities)"
-  log_info "- Shellcheck (shell security)"
-  log_info "- Secret detection"
+ log_success "Security scanning configuration created"
+ log_info "Security tools configured:"
+ log_info "- Bandit (Python security)"
+ log_info "- Safety (dependency vulnerabilities)"
+ log_info "- Shellcheck (shell security)"
+ log_info "- Secret detection"
 }
 
 # Generate quality reports
 generate_reports() {
-  log_info "Generating quality reports..."
-  
-  # Create reports directory
-  mkdir -p reports
-  
-  # Generate shellcheck report
-  log_info "Running shellcheck..."
-  shellcheck -x -o all bin/*.sh scripts/*.sh > reports/shellcheck-report.txt 2>&1 || true
-  
-  # Generate shfmt report
-  log_info "Running shfmt..."
-  shfmt -d bin/ scripts/ > reports/shfmt-report.txt 2>&1 || true
-  
-  # Generate test coverage report
-  log_info "Running test coverage..."
-  if command -v bats &> /dev/null; then
-    bats tests/unit/bash/ > reports/bats-report.txt 2>&1 || true
-  fi
-  
-  # Generate dependency report
-  log_info "Generating dependency report..."
-  {
-    echo "=== DEPENDENCY REPORT ==="
-    echo "Date: $(date)"
-    echo ""
-    echo "=== REQUIRED TOOLS ==="
-    echo "BATS: $(command -v bats || echo 'NOT FOUND')"
-    echo "Shellcheck: $(command -v shellcheck || echo 'NOT FOUND')"
-    echo "Shfmt: $(command -v shfmt || echo 'NOT FOUND')"
-    echo "PostgreSQL: $(command -v psql || echo 'NOT FOUND')"
-    echo "XML tools: $(command -v xmllint || echo 'NOT FOUND')"
-    echo ""
-    echo "=== PYTHON DEPENDENCIES ==="
-    pip list 2>/dev/null || echo "pip not available"
-    echo ""
-    echo "=== SYSTEM INFO ==="
-    echo "OS: $(uname -a)"
-    echo "Shell: $SHELL"
-    echo "Bash version: $(bash --version | head -1)"
-  } > reports/dependency-report.txt
-  
-  # Generate summary report
-  log_info "Generating summary report..."
-  {
-    echo "# Quality Report - OSM-Notes-profile"
-    echo "Generated: $(date)"
-    echo ""
-    echo "## Summary"
-    echo "- Shellcheck issues: $(grep -c "SC" reports/shellcheck-report.txt 2>/dev/null || echo "0")"
-    echo "- Shfmt issues: $(grep -c "diff" reports/shfmt-report.txt 2>/dev/null || echo "0")"
-    echo "- Test results: See bats-report.txt"
-    echo "- Dependencies: See dependency-report.txt"
-    echo ""
-    echo "## Files Analyzed"
-    echo "- Shell scripts: $(find bin scripts -name "*.sh" | wc -l)"
-    echo "- Test files: $(find tests -name "*.bats" | wc -l)"
-    echo "- SQL files: $(find sql -name "*.sql" | wc -l)"
-    echo ""
-    echo "## Recommendations"
-    echo "1. Fix shellcheck issues"
-    echo "2. Format code with shfmt"
-    echo "3. Ensure all tests pass"
-    echo "4. Update dependencies regularly"
-  } > reports/quality-summary.md
-  
-  log_success "Quality reports generated in reports/ directory"
-  log_info "Reports created:"
-  log_info "- shellcheck-report.txt"
-  log_info "- shfmt-report.txt"
-  log_info "- bats-report.txt"
-  log_info "- dependency-report.txt"
-  log_info "- quality-summary.md"
+ log_info "Generating quality reports..."
+
+ # Create reports directory
+ mkdir -p reports
+
+ # Generate shellcheck report
+ log_info "Running shellcheck..."
+ shellcheck -x -o all bin/*.sh scripts/*.sh > reports/shellcheck-report.txt 2>&1 || true
+
+ # Generate shfmt report
+ log_info "Running shfmt..."
+ shfmt -d bin/ scripts/ > reports/shfmt-report.txt 2>&1 || true
+
+ # Generate test coverage report
+ log_info "Running test coverage..."
+ if command -v bats &> /dev/null; then
+  bats tests/unit/bash/ > reports/bats-report.txt 2>&1 || true
+ fi
+
+ # Generate dependency report
+ log_info "Generating dependency report..."
+ {
+  echo "=== DEPENDENCY REPORT ==="
+  echo "Date: $(date)"
+  echo ""
+  echo "=== REQUIRED TOOLS ==="
+  echo "BATS: $(command -v bats || echo 'NOT FOUND')"
+  echo "Shellcheck: $(command -v shellcheck || echo 'NOT FOUND')"
+  echo "Shfmt: $(command -v shfmt || echo 'NOT FOUND')"
+  echo "PostgreSQL: $(command -v psql || echo 'NOT FOUND')"
+  echo "XML tools: $(command -v xmllint || echo 'NOT FOUND')"
+  echo ""
+  echo "=== PYTHON DEPENDENCIES ==="
+  pip list 2> /dev/null || echo "pip not available"
+  echo ""
+  echo "=== SYSTEM INFO ==="
+  echo "OS: $(uname -a)"
+  echo "Shell: $SHELL"
+  echo "Bash version: $(bash --version | head -1)"
+ } > reports/dependency-report.txt
+
+ # Generate summary report
+ log_info "Generating summary report..."
+ {
+  echo "# Quality Report - OSM-Notes-profile"
+  echo "Generated: $(date)"
+  echo ""
+  echo "## Summary"
+  echo "- Shellcheck issues: $(grep -c "SC" reports/shellcheck-report.txt 2> /dev/null || echo "0")"
+  echo "- Shfmt issues: $(grep -c "diff" reports/shfmt-report.txt 2> /dev/null || echo "0")"
+  echo "- Test results: See bats-report.txt"
+  echo "- Dependencies: See dependency-report.txt"
+  echo ""
+  echo "## Files Analyzed"
+  echo "- Shell scripts: $(find bin scripts -name "*.sh" | wc -l)"
+  echo "- Test files: $(find tests -name "*.bats" | wc -l)"
+  echo "- SQL files: $(find sql -name "*.sql" | wc -l)"
+  echo ""
+  echo "## Recommendations"
+  echo "1. Fix shellcheck issues"
+  echo "2. Format code with shfmt"
+  echo "3. Ensure all tests pass"
+  echo "4. Update dependencies regularly"
+ } > reports/quality-summary.md
+
+ log_success "Quality reports generated in reports/ directory"
+ log_info "Reports created:"
+ log_info "- shellcheck-report.txt"
+ log_info "- shfmt-report.txt"
+ log_info "- bats-report.txt"
+ log_info "- dependency-report.txt"
+ log_info "- quality-summary.md"
 }
 
 # Main function
 main() {
-  local install_tools_flag=false
-  local setup_sonarqube_flag=false
-  local setup_codecov_flag=false
-  local setup_security_flag=false
-  local generate_reports_flag=false
-  local run_all=false
-  
-  # Parse command line arguments
-  while [[ $# -gt 0 ]]; do
-    case $1 in
-      -h|--help)
-        show_help
-        exit 0
-        ;;
-      -v|--verbose)
-        set -x
-        shift
-        ;;
-      --install-tools)
-        install_tools_flag=true
-        shift
-        ;;
-      --setup-sonarqube)
-        setup_sonarqube_flag=true
-        shift
-        ;;
-      --setup-codecov)
-        setup_codecov_flag=true
-        shift
-        ;;
-      --setup-security)
-        setup_security_flag=true
-        shift
-        ;;
-      --generate-reports)
-        generate_reports_flag=true
-        shift
-        ;;
-      --all)
-        run_all=true
-        shift
-        ;;
-      *)
-        log_error "Unknown option: $1"
-        show_help
-        exit 1
-        ;;
-    esac
-  done
-  
-  # Run all steps if requested
-  if [[ "${run_all}" == true ]]; then
-    install_tools_flag=true
-    setup_sonarqube_flag=true
-    setup_codecov_flag=true
-    setup_security_flag=true
-    generate_reports_flag=true
-  fi
-  
-  # Execute requested actions
-  if [[ "${install_tools_flag}" == true ]]; then
-    install_tools
-  fi
-  
-  if [[ "${setup_sonarqube_flag}" == true ]]; then
-    setup_sonarqube
-  fi
-  
-  if [[ "${setup_codecov_flag}" == true ]]; then
-    setup_codecov
-  fi
-  
-  if [[ "${setup_security_flag}" == true ]]; then
-    setup_security
-  fi
-  
-  if [[ "${generate_reports_flag}" == true ]]; then
-    generate_reports
-  fi
-  
-  # Show summary
-  echo
-  echo "=========================================="
-  echo "Quality Monitoring Setup Summary"
-  echo "=========================================="
-  echo "✅ Tools installed/configured"
-  echo "✅ SonarQube configuration created"
-  echo "✅ Codecov configuration created"
-  echo "✅ Security scanning configured"
-  echo "✅ Quality reports generated"
-  echo ""
-  echo "📋 Next steps:"
-  echo "   1. Configure SonarQube server"
-  echo "   2. Connect to Codecov"
-  echo "   3. Review security reports"
-  echo "   4. Set up quality gates"
-  echo "   5. Monitor quality metrics"
-  echo
-  log_success "Quality monitoring setup completed!"
+ local install_tools_flag=false
+ local setup_sonarqube_flag=false
+ local setup_codecov_flag=false
+ local setup_security_flag=false
+ local generate_reports_flag=false
+ local run_all=false
+
+ # Parse command line arguments
+ while [[ $# -gt 0 ]]; do
+  case $1 in
+  -h | --help)
+   show_help
+   exit 0
+   ;;
+  -v | --verbose)
+   set -x
+   shift
+   ;;
+  --install-tools)
+   install_tools_flag=true
+   shift
+   ;;
+  --setup-sonarqube)
+   setup_sonarqube_flag=true
+   shift
+   ;;
+  --setup-codecov)
+   setup_codecov_flag=true
+   shift
+   ;;
+  --setup-security)
+   setup_security_flag=true
+   shift
+   ;;
+  --generate-reports)
+   generate_reports_flag=true
+   shift
+   ;;
+  --all)
+   run_all=true
+   shift
+   ;;
+  *)
+   log_error "Unknown option: $1"
+   show_help
+   exit 1
+   ;;
+  esac
+ done
+
+ # Run all steps if requested
+ if [[ "${run_all}" == true ]]; then
+  install_tools_flag=true
+  setup_sonarqube_flag=true
+  setup_codecov_flag=true
+  setup_security_flag=true
+  generate_reports_flag=true
+ fi
+
+ # Execute requested actions
+ if [[ "${install_tools_flag}" == true ]]; then
+  install_tools
+ fi
+
+ if [[ "${setup_sonarqube_flag}" == true ]]; then
+  setup_sonarqube
+ fi
+
+ if [[ "${setup_codecov_flag}" == true ]]; then
+  setup_codecov
+ fi
+
+ if [[ "${setup_security_flag}" == true ]]; then
+  setup_security
+ fi
+
+ if [[ "${generate_reports_flag}" == true ]]; then
+  generate_reports
+ fi
+
+ # Show summary
+ echo
+ echo "=========================================="
+ echo "Quality Monitoring Setup Summary"
+ echo "=========================================="
+ echo "✅ Tools installed/configured"
+ echo "✅ SonarQube configuration created"
+ echo "✅ Codecov configuration created"
+ echo "✅ Security scanning configured"
+ echo "✅ Quality reports generated"
+ echo ""
+ echo "📋 Next steps:"
+ echo "   1. Configure SonarQube server"
+ echo "   2. Connect to Codecov"
+ echo "   3. Review security reports"
+ echo "   4. Set up quality gates"
+ echo "   5. Monitor quality metrics"
+ echo
+ log_success "Quality monitoring setup completed!"
 }
 
 # Run main function
-main "$@" 
+main "$@"

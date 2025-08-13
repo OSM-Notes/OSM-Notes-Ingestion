@@ -53,7 +53,7 @@ log_info "Setting up test database environment for Docker..."
 
 # Test connection
 log_info "Testing database connection..."
-if PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+if PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
  log_success "Database connection successful"
 else
  log_error "Database connection failed"
@@ -63,7 +63,7 @@ fi
 
 # Create test database if it doesn't exist
 log_info "Creating test database if it doesn't exist..."
-if ! PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT 1;" >/dev/null 2>&1; then
+if ! PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
  log_info "Creating database ${TEST_DBNAME}..."
  PGPASSWORD="${TEST_DBPASSWORD}" createdb -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" "${TEST_DBNAME}"
  log_success "Database ${TEST_DBNAME} created"
@@ -73,31 +73,31 @@ fi
 
 # Install required extensions
 log_info "Installing required extensions..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" >/dev/null 2>&1 || log_warning "PostGIS extension installation failed"
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" >/dev/null 2>&1 || log_warning "btree_gist extension installation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || log_warning "PostGIS extension installation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" > /dev/null 2>&1 || log_warning "btree_gist extension installation failed"
 
 # Create enums
 log_info "Creating enums..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" >/dev/null 2>&1 || log_warning "Enum creation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" > /dev/null 2>&1 || log_warning "Enum creation failed"
 
 # Create base tables
 log_info "Creating base tables..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" >/dev/null 2>&1 || log_warning "Base tables creation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" > /dev/null 2>&1 || log_warning "Base tables creation failed"
 
 # Create API tables
 log_info "Creating API tables..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processAPINotes_21_createApiTables.sql" >/dev/null 2>&1 || log_warning "API tables creation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processAPINotes_21_createApiTables.sql" > /dev/null 2>&1 || log_warning "API tables creation failed"
 
 # Create constraints and indexes (using Docker-specific script)
 log_info "Creating constraints and indexes (Docker version)..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_DIR}/createBaseTables_constraints_docker.sql" >/dev/null 2>&1 || log_warning "Constraints creation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_DIR}/createBaseTables_constraints_docker.sql" > /dev/null 2>&1 || log_warning "Constraints creation failed"
 
 # Verify tables exist
 log_info "Verifying tables exist..."
 TABLES=("notes" "note_comments" "note_comments_text" "users" "logs" "properties" "notes_api" "note_comments_api" "note_comments_text_api")
 
 for table in "${TABLES[@]}"; do
- if PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT 1 FROM ${table} LIMIT 1;" >/dev/null 2>&1; then
+ if PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT 1 FROM ${table} LIMIT 1;" > /dev/null 2>&1; then
   log_success "Table ${table} exists"
  else
   log_warning "Table ${table} does not exist or is not accessible"
@@ -110,4 +110,4 @@ log_info "  TEST_DBNAME=${TEST_DBNAME}"
 log_info "  TEST_DBUSER=${TEST_DBUSER}"
 log_info "  TEST_DBHOST=${TEST_DBHOST}"
 log_info "  TEST_DBPORT=${TEST_DBPORT}"
-log_info "  PGPASSWORD=***" 
+log_info "  PGPASSWORD=***"

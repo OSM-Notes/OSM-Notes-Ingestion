@@ -34,7 +34,7 @@ log_error() {
 check_shfmt() {
  if command -v shfmt &> /dev/null; then
   local version
-  version=$(shfmt --version 2>/dev/null || echo "unknown")
+  version=$(shfmt --version 2> /dev/null || echo "unknown")
   log_success "shfmt is already installed (version: ${version})"
   return 0
  fi
@@ -79,10 +79,10 @@ install_from_github() {
  # Detect architecture
  local arch
  case "$(uname -m)" in
-  x86_64) arch="amd64" ;;
-  aarch64) arch="arm64" ;;
-  armv7l) arch="arm" ;;
-  *) arch="amd64" ;;
+ x86_64) arch="amd64" ;;
+ aarch64) arch="arm64" ;;
+ armv7l) arch="arm" ;;
+ *) arch="amd64" ;;
  esac
 
  log_info "Detected architecture: ${arch}"
@@ -93,7 +93,7 @@ install_from_github() {
  cd "${temp_dir}"
 
  # Download latest release
- local version="v3.6.0"  # Latest stable version as of 2025-08-13
+ local version="v3.6.0" # Latest stable version as of 2025-08-13
  local download_url="https://github.com/mvdan/sh/releases/download/${version}/shfmt_${version}_linux_${arch}"
 
  log_info "Downloading shfmt ${version} for ${arch}..."

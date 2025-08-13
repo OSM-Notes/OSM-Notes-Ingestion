@@ -28,7 +28,7 @@ echo "🤖 **Comandos Mock (Simulados):**"
 echo "   Ubicación: ${MOCK_COMMANDS_DIR}/"
 echo
 ls -la "${MOCK_COMMANDS_DIR}/" | while read line; do
-  echo "   $line"
+ echo "   $line"
 done
 echo
 
@@ -36,7 +36,7 @@ echo "📊 **Datos Reales Disponibles:**"
 echo "   Ubicación: ${FIXTURES_DIR}/xml/"
 echo
 ls -la "${FIXTURES_DIR}/xml/" | while read line; do
-  echo "   $line"
+ echo "   $line"
 done
 echo
 
@@ -172,18 +172,18 @@ echo
 
 # Count notes in real XML file
 if [[ -f "${FIXTURES_DIR}/xml/planet_notes_real.xml" ]]; then
-  note_count=$(xmllint --xpath "count(//note)" "${FIXTURES_DIR}/xml/planet_notes_real.xml" 2>/dev/null || echo "0")
-  echo "   - Notas en planet_notes_real.xml: ${note_count}"
+ note_count=$(xmllint --xpath "count(//note)" "${FIXTURES_DIR}/xml/planet_notes_real.xml" 2> /dev/null || echo "0")
+ echo "   - Notas en planet_notes_real.xml: ${note_count}"
 fi
 
 # Count lines in XML files
 for xml_file in "${FIXTURES_DIR}/xml/"*.xml; do
-  if [[ -f "$xml_file" ]]; then
-    line_count=$(wc -l < "$xml_file" 2>/dev/null || echo "0")
-    file_size=$(ls -lh "$xml_file" | awk '{print $5}')
-    echo "   - $(basename "$xml_file"): ${line_count} líneas, ${file_size}"
-  fi
+ if [[ -f "$xml_file" ]]; then
+  line_count=$(wc -l < "$xml_file" 2> /dev/null || echo "0")
+  file_size=$(ls -lh "$xml_file" | awk '{print $5}')
+  echo "   - $(basename "$xml_file"): ${line_count} líneas, ${file_size}"
+ fi
 done
 
 echo
-echo "✅ **Ambiente híbrido listo para usar!**" 
+echo "✅ **Ambiente híbrido listo para usar!**"

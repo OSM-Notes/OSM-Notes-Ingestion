@@ -38,10 +38,10 @@ MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
 # Function to setup mock environment
 setup_mock_environment() {
  log_info "Setting up mock test environment..."
- 
+
  # Create mock commands directory if it doesn't exist
  mkdir -p "${MOCK_COMMANDS_DIR}"
- 
+
  # Create mock commands
  create_mock_wget
  create_mock_psql
@@ -49,18 +49,18 @@ setup_mock_environment() {
  create_mock_aria2c
  create_mock_bzip2
  create_mock_osmtogeojson
- 
+
  # Make all mock commands executable
  chmod +x "${MOCK_COMMANDS_DIR}"/*
- 
+
  log_success "Mock environment setup completed"
 }
 
 # Function to create mock wget
 create_mock_wget() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
-   log_info "Creating mock wget..."
-   cat > "${MOCK_COMMANDS_DIR}/wget" << 'EOF'
+  log_info "Creating mock wget..."
+  cat > "${MOCK_COMMANDS_DIR}/wget" << 'EOF'
 #!/bin/bash
 
 # Mock wget command for testing
@@ -183,8 +183,8 @@ EOF
 # Function to create mock psql
 create_mock_psql() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/psql" ]]; then
-   log_info "Creating mock psql..."
-   cat > "${MOCK_COMMANDS_DIR}/psql" << 'EOF'
+  log_info "Creating mock psql..."
+  cat > "${MOCK_COMMANDS_DIR}/psql" << 'EOF'
 #!/bin/bash
 
 # Mock psql command for testing
@@ -323,8 +323,8 @@ EOF
 # Function to create mock xmllint
 create_mock_xmllint() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/xmllint" ]]; then
-   log_info "Creating mock xmllint..."
-   cat > "${MOCK_COMMANDS_DIR}/xmllint" << 'EOF'
+  log_info "Creating mock xmllint..."
+  cat > "${MOCK_COMMANDS_DIR}/xmllint" << 'EOF'
 #!/bin/bash
 
 # Mock xmllint command for testing
@@ -449,8 +449,8 @@ EOF
 # Function to create mock aria2c
 create_mock_aria2c() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-   log_info "Creating mock aria2c..."
-   cat > "${MOCK_COMMANDS_DIR}/aria2c" << 'EOF'
+  log_info "Creating mock aria2c..."
+  cat > "${MOCK_COMMANDS_DIR}/aria2c" << 'EOF'
 #!/bin/bash
 
 # Mock aria2c command for testing
@@ -545,8 +545,8 @@ EOF
 # Function to create mock bzip2
 create_mock_bzip2() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/bzip2" ]]; then
-   log_info "Creating mock bzip2..."
-   cat > "${MOCK_COMMANDS_DIR}/bzip2" << 'EOF'
+  log_info "Creating mock bzip2..."
+  cat > "${MOCK_COMMANDS_DIR}/bzip2" << 'EOF'
 #!/bin/bash
 
 # Mock bzip2 command for testing
@@ -630,8 +630,8 @@ EOF
 # Function to create mock osmtogeojson
 create_mock_osmtogeojson() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/osmtogeojson" ]]; then
-   log_info "Creating mock osmtogeojson..."
-   cat > "${MOCK_COMMANDS_DIR}/osmtogeojson" << 'EOF'
+  log_info "Creating mock osmtogeojson..."
+  cat > "${MOCK_COMMANDS_DIR}/osmtogeojson" << 'EOF'
 #!/bin/bash
 
 # Mock osmtogeojson command for testing
@@ -701,69 +701,69 @@ EOF
 # Function to activate mock environment
 activate_mock_environment() {
  log_info "Activating mock environment..."
- 
+
  # Add mock commands to PATH
  export PATH="${MOCK_COMMANDS_DIR}:${PATH}"
- 
+
  # Set mock environment variables
  export MOCK_MODE=true
  export TEST_MODE=true
  export DBNAME="mock_db"
  export DB_USER="mock_user"
  export DB_PASSWORD="mock_password"
- 
+
  log_success "Mock environment activated"
 }
 
 # Function to deactivate mock environment
 deactivate_mock_environment() {
  log_info "Deactivating mock environment..."
- 
+
  # Remove mock commands from PATH
  export PATH=$(echo "$PATH" | sed "s|${MOCK_COMMANDS_DIR}:||g")
- 
+
  # Unset mock environment variables
  unset MOCK_MODE
  unset TEST_MODE
  unset DBNAME
  unset DB_USER
  unset DB_PASSWORD
- 
+
  log_success "Mock environment deactivated"
 }
 
 # Main execution
 case "${1:-}" in
- setup)
-  setup_mock_environment
-  ;;
- activate)
-  activate_mock_environment
-  ;;
- deactivate)
-  deactivate_mock_environment
-  ;;
- test)
-  setup_mock_environment
-  activate_mock_environment
-  log_info "Running tests with mock environment..."
-  # Add your test commands here
-  deactivate_mock_environment
-  ;;
- --help | -h)
-  echo "Usage: $0 [COMMAND]"
-  echo
-  echo "Commands:"
-  echo "  setup      Setup mock environment (create mock commands)"
-  echo "  activate   Activate mock environment (set PATH and variables)"
-  echo "  deactivate Deactivate mock environment (restore original PATH)"
-  echo "  test       Setup, activate, run tests, and deactivate"
-  echo "  --help     Show this help"
-  exit 0
-  ;;
- *)
-  log_error "Unknown command: ${1:-}"
-  log_error "Use --help for usage information"
-  exit 1
-  ;;
-esac 
+setup)
+ setup_mock_environment
+ ;;
+activate)
+ activate_mock_environment
+ ;;
+deactivate)
+ deactivate_mock_environment
+ ;;
+test)
+ setup_mock_environment
+ activate_mock_environment
+ log_info "Running tests with mock environment..."
+ # Add your test commands here
+ deactivate_mock_environment
+ ;;
+--help | -h)
+ echo "Usage: $0 [COMMAND]"
+ echo
+ echo "Commands:"
+ echo "  setup      Setup mock environment (create mock commands)"
+ echo "  activate   Activate mock environment (set PATH and variables)"
+ echo "  deactivate Deactivate mock environment (restore original PATH)"
+ echo "  test       Setup, activate, run tests, and deactivate"
+ echo "  --help     Show this help"
+ exit 0
+ ;;
+*)
+ log_error "Unknown command: ${1:-}"
+ log_error "Use --help for usage information"
+ exit 1
+ ;;
+esac

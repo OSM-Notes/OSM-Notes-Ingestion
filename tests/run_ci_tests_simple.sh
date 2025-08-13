@@ -89,7 +89,7 @@ install_ci_dependencies() {
 
  # Verify critical tools are available
  local missing_tools=()
- 
+
  for tool in xsltproc xmllint shfmt shellcheck; do
   if ! command -v "$tool" &> /dev/null; then
    missing_tools+=("$tool")
@@ -168,20 +168,20 @@ cleanup_test_database() {
 run_bats_tests() {
  log_info "Running BATS tests..."
 
-  # Define tests that are safe for CI environment
+ # Define tests that are safe for CI environment
  local bats_tests=(
-   "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
-   "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
-   "${SCRIPT_DIR}/unit/bash/processPlanetNotes_integration_fixed.test.bats"
-   "${SCRIPT_DIR}/unit/bash/cleanupAll.test.bats"
-   "${SCRIPT_DIR}/unit/bash/variable_duplication.test.bats"
-   "${SCRIPT_DIR}/unit/bash/script_help_validation.test.bats"
-   "${SCRIPT_DIR}/unit/bash/variable_duplication_detection.test.bats"
-   "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats"
-   "${SCRIPT_DIR}/unit/bash/sql_validation_integration.test.bats"
-   "${SCRIPT_DIR}/unit/bash/sql_constraints_validation.test.bats"
-   "${SCRIPT_DIR}/unit/bash/parallel_processing_validation.test.bats"
-  )
+  "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats"
+  "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats"
+  "${SCRIPT_DIR}/unit/bash/processPlanetNotes_integration_fixed.test.bats"
+  "${SCRIPT_DIR}/unit/bash/cleanupAll.test.bats"
+  "${SCRIPT_DIR}/unit/bash/variable_duplication.test.bats"
+  "${SCRIPT_DIR}/unit/bash/script_help_validation.test.bats"
+  "${SCRIPT_DIR}/unit/bash/variable_duplication_detection.test.bats"
+  "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats"
+  "${SCRIPT_DIR}/unit/bash/sql_validation_integration.test.bats"
+  "${SCRIPT_DIR}/unit/bash/sql_constraints_validation.test.bats"
+  "${SCRIPT_DIR}/unit/bash/parallel_processing_validation.test.bats"
+ )
 
  log_info "Total BATS tests to run: ${#bats_tests[@]}"
  log_info "BATS tests: ${bats_tests[*]}"
@@ -332,53 +332,53 @@ main() {
 
 # Handle script arguments
 case "${1:-}" in
- --help | -h)
-  echo "Usage: $0 [OPTIONS]"
-  echo
-  echo "Options:"
-  echo "  --help, -h           Show this help message"
-  echo "  --bats-only          Run only BATS tests"
-  echo "  --xslt-only          Run only XSLT tests"
-  echo "  --format-only        Run only format tests"
-  echo "  --no-cleanup         Don't cleanup test database after tests"
-  echo
-  echo "Environment variables:"
-  echo "  TEST_DBNAME     Test database name (default: osm_notes_test)"
-  echo "  TEST_DBUSER     Test database user (default: testuser)"
-  echo "  TEST_DBPASSWORD Test database password (default: testpass)"
-  echo "  TEST_DBHOST     Test database host (default: localhost)"
-  echo "  TEST_DBPORT     Test database port (default: 5432)"
-  exit 0
-  ;;
- --bats-only)
-  check_prerequisites
-  setup_test_database
-  run_bats_tests
-  cleanup_test_database
-  print_summary
-  ;;
- --xslt-only)
-  run_xslt_tests
-  print_summary
-  ;;
- --format-only)
-  run_format_tests
-  print_summary
-  ;;
- --no-cleanup)
-  check_prerequisites
-  setup_test_database
-  run_bats_tests
-  run_xslt_tests
-  run_format_tests
-  print_summary
-  ;;
- "")
-  main
-  ;;
- *)
-  log_error "Unknown option: $1"
-  log_error "Use --help for usage information"
-  exit 1
-  ;;
+--help | -h)
+ echo "Usage: $0 [OPTIONS]"
+ echo
+ echo "Options:"
+ echo "  --help, -h           Show this help message"
+ echo "  --bats-only          Run only BATS tests"
+ echo "  --xslt-only          Run only XSLT tests"
+ echo "  --format-only        Run only format tests"
+ echo "  --no-cleanup         Don't cleanup test database after tests"
+ echo
+ echo "Environment variables:"
+ echo "  TEST_DBNAME     Test database name (default: osm_notes_test)"
+ echo "  TEST_DBUSER     Test database user (default: testuser)"
+ echo "  TEST_DBPASSWORD Test database password (default: testpass)"
+ echo "  TEST_DBHOST     Test database host (default: localhost)"
+ echo "  TEST_DBPORT     Test database port (default: 5432)"
+ exit 0
+ ;;
+--bats-only)
+ check_prerequisites
+ setup_test_database
+ run_bats_tests
+ cleanup_test_database
+ print_summary
+ ;;
+--xslt-only)
+ run_xslt_tests
+ print_summary
+ ;;
+--format-only)
+ run_format_tests
+ print_summary
+ ;;
+--no-cleanup)
+ check_prerequisites
+ setup_test_database
+ run_bats_tests
+ run_xslt_tests
+ run_format_tests
+ print_summary
+ ;;
+"")
+ main
+ ;;
+*)
+ log_error "Unknown option: $1"
+ log_error "Use --help for usage information"
+ exit 1
+ ;;
 esac

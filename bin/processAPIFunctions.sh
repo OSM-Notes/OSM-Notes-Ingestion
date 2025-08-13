@@ -87,15 +87,15 @@ function __countXmlNotesAPI() {
 # Split XML for parallel API processing
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelAPI() {
-    # Source the consolidated parallel processing functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-        __splitXmlForParallelAPI "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated parallel processing functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __splitXmlForParallelAPI "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Process XML with XSLT for API

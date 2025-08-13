@@ -262,7 +262,7 @@ function __validate_csv_structure() {
   local COLUMN_COUNT
   COLUMN_COUNT=$(echo "${FIRST_LINE}" | tr ',' '\n' | wc -l)
   local EXPECTED_COUNT
-  
+
   # Check if EXPECTED_COLUMNS is a number (direct column count)
   if [[ "${EXPECTED_COLUMNS}" =~ ^[0-9]+$ ]]; then
    EXPECTED_COUNT="${EXPECTED_COLUMNS}"

@@ -37,4 +37,4 @@ bats unit/bash/edge_cases_integration.test.bats
 echo "5. Testing performance edge cases..."
 bats unit/bash/performance_edge_cases.test.bats
 
-echo "=== ERROR HANDLING TESTS COMPLETED ===" 
+echo "=== ERROR HANDLING TESTS COMPLETED ==="

@@ -709,15 +709,15 @@ function __validatePlanetNotesXMLFileComplete {
 # Enhanced XML validation with error handling
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_with_enhanced_error_handling {
-    # Source the consolidated validation functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
-        __validate_xml_with_enhanced_error_handling "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated validation functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+  __validate_xml_with_enhanced_error_handling "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Basic XML structure validation (lightweight)

@@ -17,40 +17,40 @@ declare -r VALIDATION_SCRIPT="${SCRIPT_BASE_DIRECTORY}/tests/scripts/validate_lo
 
 # Main execution
 function main() {
-    __log_start
-    
-    __logi "Running Logging Pattern Validation"
-    __logi "This will check all bash functions in the project"
-    
-    # Check if validation script exists
-    if [[ ! -f "${VALIDATION_SCRIPT}" ]]; then
-        __loge "ERROR: Validation script not found: ${VALIDATION_SCRIPT}"
-        __log_finish
-        exit 1
-    fi
-    
-    # Check if validation script is executable
-    if [[ ! -x "${VALIDATION_SCRIPT}" ]]; then
-        __loge "ERROR: Validation script is not executable: ${VALIDATION_SCRIPT}"
-        __log_finish
-        exit 1
-    fi
-    
-    __logi "Executing validation script: ${VALIDATION_SCRIPT}"
-    
-    # Run validation
-    if "${VALIDATION_SCRIPT}"; then
-        __logi "Validation completed successfully"
-        __log_finish
-        exit 0
-    else
-        __loge "Validation completed with errors"
-        __log_finish
-        exit 1
-    fi
+ __log_start
+
+ __logi "Running Logging Pattern Validation"
+ __logi "This will check all bash functions in the project"
+
+ # Check if validation script exists
+ if [[ ! -f "${VALIDATION_SCRIPT}" ]]; then
+  __loge "ERROR: Validation script not found: ${VALIDATION_SCRIPT}"
+  __log_finish
+  exit 1
+ fi
+
+ # Check if validation script is executable
+ if [[ ! -x "${VALIDATION_SCRIPT}" ]]; then
+  __loge "ERROR: Validation script is not executable: ${VALIDATION_SCRIPT}"
+  __log_finish
+  exit 1
+ fi
+
+ __logi "Executing validation script: ${VALIDATION_SCRIPT}"
+
+ # Run validation
+ if "${VALIDATION_SCRIPT}"; then
+  __logi "Validation completed successfully"
+  __log_finish
+  exit 0
+ else
+  __loge "Validation completed with errors"
+  __log_finish
+  exit 1
+ fi
 }
 
 # Run main function if script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
+ main "$@"
 fi

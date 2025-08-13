@@ -44,21 +44,21 @@ __log() {
  local message="$*"
 
  case "${level}" in
-  "INFO")
-   echo -e "${BLUE}[INFO]${NC} ${message}"
-   ;;
-  "SUCCESS")
-   echo -e "${GREEN}[SUCCESS]${NC} ${message}"
-   ;;
-  "WARNING")
-   echo -e "${YELLOW}[WARNING]${NC} ${message}"
-   ;;
-  "ERROR")
-   echo -e "${RED}[ERROR]${NC} ${message}"
-   ;;
-  *)
-   echo -e "${RED}[ERROR]${NC} Unknown log level: ${level}"
-   ;;
+ "INFO")
+  echo -e "${BLUE}[INFO]${NC} ${message}"
+  ;;
+ "SUCCESS")
+  echo -e "${GREEN}[SUCCESS]${NC} ${message}"
+  ;;
+ "WARNING")
+  echo -e "${YELLOW}[WARNING]${NC} ${message}"
+  ;;
+ "ERROR")
+  echo -e "${RED}[ERROR]${NC} ${message}"
+  ;;
+ *)
+  echo -e "${RED}[ERROR]${NC} Unknown log level: ${level}"
+  ;;
  esac
 }
 
@@ -97,51 +97,51 @@ EOF
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
  case $1 in
-  --help | -h)
-   __show_help
-   exit 0
-   ;;
-  --coverage-only)
-   RUN_COVERAGE=true
-   shift
-   ;;
-  --security-only)
-   RUN_SECURITY=true
-   shift
-   ;;
-  --quality-only)
-   RUN_QUALITY=true
-   shift
-   ;;
-  --performance-only)
-   RUN_PERFORMANCE=true
-   shift
-   ;;
-  --output-dir)
-   OUTPUT_DIR="$2"
-   shift 2
-   ;;
-  --clean)
-   CLEAN=true
-   shift
-   ;;
-  --verbose)
-   export VERBOSE=true
-   shift
-   ;;
-  --parallel)
-   export PARALLEL=true
-   shift
-   ;;
-  --fail-fast)
-   FAIL_FAST=true
-   shift
-   ;;
-  *)
-   __log "ERROR" "Opción desconocida: $1"
-   __show_help
-   exit 1
-   ;;
+ --help | -h)
+  __show_help
+  exit 0
+  ;;
+ --coverage-only)
+  RUN_COVERAGE=true
+  shift
+  ;;
+ --security-only)
+  RUN_SECURITY=true
+  shift
+  ;;
+ --quality-only)
+  RUN_QUALITY=true
+  shift
+  ;;
+ --performance-only)
+  RUN_PERFORMANCE=true
+  shift
+  ;;
+ --output-dir)
+  OUTPUT_DIR="$2"
+  shift 2
+  ;;
+ --clean)
+  CLEAN=true
+  shift
+  ;;
+ --verbose)
+  export VERBOSE=true
+  shift
+  ;;
+ --parallel)
+  export PARALLEL=true
+  shift
+  ;;
+ --fail-fast)
+  FAIL_FAST=true
+  shift
+  ;;
+ *)
+  __log "ERROR" "Opción desconocida: $1"
+  __show_help
+  exit 1
+  ;;
  esac
 done
 

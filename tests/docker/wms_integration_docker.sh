@@ -132,22 +132,22 @@ verify_wms_objects() {
  local expected_count="$2"
 
  case "$object_type" in
-  "schema")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = 'wms';" | tr -d ' ')
-   ;;
-  "table")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'wms' AND table_name = 'notes_wms';" | tr -d ' ')
-   ;;
-  "triggers")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');" | tr -d ' ')
-   ;;
-  "notes")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM wms.notes_wms;" | tr -d ' ')
-   ;;
+ "schema")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = 'wms';" | tr -d ' ')
+  ;;
+ "table")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'wms' AND table_name = 'notes_wms';" | tr -d ' ')
+  ;;
+ "triggers")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');" | tr -d ' ')
+  ;;
+ "notes")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM wms.notes_wms;" | tr -d ' ')
+  ;;
  esac
 
  if [ "$count" -eq "$expected_count" ]; then

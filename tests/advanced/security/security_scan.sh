@@ -33,18 +33,18 @@ __log() {
  local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
 
  case "$level" in
-  "INFO")
-   echo -e "${BLUE}[INFO]${NC} $message"
-   ;;
-  "SUCCESS")
-   echo -e "${GREEN}[SUCCESS]${NC} $message"
-   ;;
-  "WARNING")
-   echo -e "${YELLOW}[WARNING]${NC} $message"
-   ;;
-  "ERROR")
-   echo -e "${RED}[ERROR]${NC} $message"
-   ;;
+ "INFO")
+  echo -e "${BLUE}[INFO]${NC} $message"
+  ;;
+ "SUCCESS")
+  echo -e "${GREEN}[SUCCESS]${NC} $message"
+  ;;
+ "WARNING")
+  echo -e "${YELLOW}[WARNING]${NC} $message"
+  ;;
+ "ERROR")
+  echo -e "${RED}[ERROR]${NC} $message"
+  ;;
  esac
 }
 
@@ -80,39 +80,39 @@ EOF
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
  case $1 in
-  --help | -h)
-   __show_help
-   exit 0
-   ;;
-  --output-dir)
-   OUTPUT_DIR="$2"
-   shift 2
-   ;;
-  --scan-type)
-   SCAN_TYPE="$2"
-   shift 2
-   ;;
-  --fail-on-high)
-   FAIL_ON_HIGH=true
-   shift
-   ;;
-  --fail-on-critical)
-   FAIL_ON_CRITICAL=true
-   shift
-   ;;
-  --clean)
-   CLEAN=true
-   shift
-   ;;
-  --verbose)
-   VERBOSE=true
-   shift
-   ;;
-  *)
-   __log "ERROR" "Opción desconocida: $1"
-   __show_help
-   exit 1
-   ;;
+ --help | -h)
+  __show_help
+  exit 0
+  ;;
+ --output-dir)
+  OUTPUT_DIR="$2"
+  shift 2
+  ;;
+ --scan-type)
+  SCAN_TYPE="$2"
+  shift 2
+  ;;
+ --fail-on-high)
+  FAIL_ON_HIGH=true
+  shift
+  ;;
+ --fail-on-critical)
+  FAIL_ON_CRITICAL=true
+  shift
+  ;;
+ --clean)
+  CLEAN=true
+  shift
+  ;;
+ --verbose)
+  VERBOSE=true
+  shift
+  ;;
+ *)
+  __log "ERROR" "Opción desconocida: $1"
+  __show_help
+  exit 1
+  ;;
  esac
 done
 
@@ -139,12 +139,12 @@ __check_prerequisites() {
   __log "INFO" "Instale las herramientas faltantes:"
   for tool in "${missing_tools[@]}"; do
    case "$tool" in
-    "shellcheck")
-     echo "  - shellcheck: sudo apt-get install shellcheck"
-     ;;
-         "trivy")
-      echo "  - trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/"
-      ;;
+   "shellcheck")
+    echo "  - shellcheck: sudo apt-get install shellcheck"
+    ;;
+   "trivy")
+    echo "  - trivy: https://aquasecurity.github.io/trivy/latest/getting-started/installation/"
+    ;;
    esac
   done
   exit 1
@@ -304,20 +304,20 @@ main() {
 
  # Run scans based on type
  case "$SCAN_TYPE" in
-  "shellcheck")
-   __run_shellcheck
-   ;;
-       "trivy")
-      __run_trivy
-      ;;
-  "all")
-        __run_shellcheck
-     __run_trivy
-   ;;
-  *)
-   __log "ERROR" "Tipo de escaneo no válido: $SCAN_TYPE"
-   exit 1
-   ;;
+ "shellcheck")
+  __run_shellcheck
+  ;;
+ "trivy")
+  __run_trivy
+  ;;
+ "all")
+  __run_shellcheck
+  __run_trivy
+  ;;
+ *)
+  __log "ERROR" "Tipo de escaneo no válido: $SCAN_TYPE"
+  exit 1
+  ;;
  esac
 
  # Generate consolidated report

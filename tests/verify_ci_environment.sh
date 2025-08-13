@@ -46,7 +46,7 @@ test_tool() {
 
  if [[ -n "${tool_path}" ]] && command -v "${tool_path}" &> /dev/null; then
   log_info "Testing ${tool_name} (${description})..."
-  
+
   if eval "${test_command}" &> /dev/null; then
    log_success "✓ ${tool_name} is available and working"
    ((AVAILABLE_TOOLS++))
@@ -94,7 +94,7 @@ EOF
 
  # Test xsltproc
  if command -v xsltproc &> /dev/null; then
-  if xsltproc /tmp/test.xslt /tmp/test.xml > /tmp/test_output.csv 2>/dev/null; then
+  if xsltproc /tmp/test.xslt /tmp/test.xml > /tmp/test_output.csv 2> /dev/null; then
    log_success "✓ xsltproc transformation successful"
    cat /tmp/test_output.csv
   else
@@ -106,7 +106,7 @@ EOF
 
  # Test xmllint
  if command -v xmllint &> /dev/null; then
-  if xmllint --noout /tmp/test.xml 2>/dev/null; then
+  if xmllint --noout /tmp/test.xml 2> /dev/null; then
    log_success "✓ xmllint validation successful"
   else
    log_warning "⚠ xmllint validation failed"
@@ -179,9 +179,9 @@ test_bats_framework() {
 
  if command -v bats &> /dev/null; then
   local bats_version
-  bats_version=$(bats --version 2>/dev/null || echo "unknown")
+  bats_version=$(bats --version 2> /dev/null || echo "unknown")
   log_success "✓ BATS is available (version: ${bats_version})"
-  
+
   # Test BATS with a simple test
   cat > /tmp/test_bats.bats << 'EOF'
 #!/usr/bin/env bats

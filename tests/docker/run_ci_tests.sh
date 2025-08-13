@@ -232,39 +232,39 @@ main() {
  # Parse command line arguments
  while [[ $# -gt 0 ]]; do
   case $1 in
-   --help | -h)
-    show_help
-    exit 0
-    ;;
-   --start-only)
-    start_only=true
-    shift
-    ;;
-   --stop-only)
-    stop_only=true
-    shift
-    ;;
-   --logs)
-    show_logs=true
-    shift
-    ;;
-   --cleanup)
-    cleanup_only=true
-    shift
-    ;;
-   --db-tests-only)
-    db_tests_only=true
-    shift
-    ;;
-   --basic-tests-only)
-    basic_tests_only=true
-    shift
-    ;;
-   *)
-    log_error "Unknown option: $1"
-    show_help
-    exit 1
-    ;;
+  --help | -h)
+   show_help
+   exit 0
+   ;;
+  --start-only)
+   start_only=true
+   shift
+   ;;
+  --stop-only)
+   stop_only=true
+   shift
+   ;;
+  --logs)
+   show_logs=true
+   shift
+   ;;
+  --cleanup)
+   cleanup_only=true
+   shift
+   ;;
+  --db-tests-only)
+   db_tests_only=true
+   shift
+   ;;
+  --basic-tests-only)
+   basic_tests_only=true
+   shift
+   ;;
+  *)
+   log_error "Unknown option: $1"
+   show_help
+   exit 1
+   ;;
   esac
  done
 

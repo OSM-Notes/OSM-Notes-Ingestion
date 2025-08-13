@@ -51,7 +51,7 @@ log_info "Starting manual test execution..."
 
 for test_file in "${TEST_FILES[@]}"; do
  log_info "Running: ${test_file}"
- 
+
  if bats "${test_file}"; then
   log_success "${test_file} passed"
   ((PASSED_TESTS++))
@@ -76,4 +76,4 @@ if [[ ${FAILED_TESTS} -eq 0 ]]; then
 else
  log_error "Some tests failed! ❌"
  exit 1
-fi 
+fi

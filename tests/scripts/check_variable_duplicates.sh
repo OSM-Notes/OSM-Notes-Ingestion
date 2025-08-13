@@ -39,8 +39,8 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # Function to extract readonly variables from a file
 extract_readonly_vars() {
  local file_path="$1"
- grep -h "declare -r" "${file_path}" 2>/dev/null | \
-  sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort
+ grep -h "declare -r" "${file_path}" 2> /dev/null \
+  | sed 's/declare -r \([A-Z_]*\)=.*/\1/' | sort
 }
 
 # Function to check for duplicates between two files
@@ -76,27 +76,27 @@ check_duplicates() {
 check_all_script_pairs() {
  local has_errors=0
 
-   # Define script pairs to check
-  local script_pairs=(
-   "${PROJECT_ROOT}/bin/process/processAPINotes.sh:${PROJECT_ROOT}/bin/processAPIFunctions.sh:processAPINotes.sh and processAPIFunctions.sh"
-   "${PROJECT_ROOT}/bin/process/processPlanetNotes.sh:${PROJECT_ROOT}/bin/processPlanetFunctions.sh:processPlanetNotes.sh and processPlanetFunctions.sh"
-   "${PROJECT_ROOT}/bin/cleanupAll.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:cleanupAll.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/cleanupAll.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:cleanupAll.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/functionsProcess.sh:${PROJECT_ROOT}/bin/commonFunctions.sh:functionsProcess.sh and commonFunctions.sh"
-   "${PROJECT_ROOT}/bin/processAPIFunctions.sh:${PROJECT_ROOT}/bin/processPlanetFunctions.sh:processAPIFunctions.sh and processPlanetFunctions.sh"
-   "${PROJECT_ROOT}/bin/processPlanetFunctions.sh:${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh:processPlanetFunctions.sh and processCheckPlanetNotes.sh"
-   "${PROJECT_ROOT}/bin/process/updateCountries.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:updateCountries.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:notesCheckVerifier.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:processCheckPlanetNotes.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/dwh/datamartCountries/datamartCountries.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:datamartCountries.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:datamartUsers.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/dwh/profile.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:profile.sh and validationFunctions.sh"
-   "${PROJECT_ROOT}/bin/dwh/ETL.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:ETL.sh and validationFunctions.sh"
-  )
+ # Define script pairs to check
+ local script_pairs=(
+  "${PROJECT_ROOT}/bin/process/processAPINotes.sh:${PROJECT_ROOT}/bin/processAPIFunctions.sh:processAPINotes.sh and processAPIFunctions.sh"
+  "${PROJECT_ROOT}/bin/process/processPlanetNotes.sh:${PROJECT_ROOT}/bin/processPlanetFunctions.sh:processPlanetNotes.sh and processPlanetFunctions.sh"
+  "${PROJECT_ROOT}/bin/cleanupAll.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:cleanupAll.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/cleanupAll.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:cleanupAll.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/functionsProcess.sh:${PROJECT_ROOT}/bin/commonFunctions.sh:functionsProcess.sh and commonFunctions.sh"
+  "${PROJECT_ROOT}/bin/processAPIFunctions.sh:${PROJECT_ROOT}/bin/processPlanetFunctions.sh:processAPIFunctions.sh and processPlanetFunctions.sh"
+  "${PROJECT_ROOT}/bin/processPlanetFunctions.sh:${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh:processPlanetFunctions.sh and processCheckPlanetNotes.sh"
+  "${PROJECT_ROOT}/bin/process/updateCountries.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:updateCountries.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:notesCheckVerifier.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:processCheckPlanetNotes.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/dwh/datamartCountries/datamartCountries.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:datamartCountries.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:datamartUsers.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/dwh/profile.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:profile.sh and validationFunctions.sh"
+  "${PROJECT_ROOT}/bin/dwh/ETL.sh:${PROJECT_ROOT}/bin/validationFunctions.sh:ETL.sh and validationFunctions.sh"
+ )
 
  for pair in "${script_pairs[@]}"; do
   IFS=':' read -r file1 file2 description <<< "${pair}"
-  
+
   if [[ -f "${file1}" && -f "${file2}" ]]; then
    if ! check_duplicates "${file1}" "${file2}" "${description}"; then
     has_errors=1
@@ -217,28 +217,28 @@ main() {
  # Parse command line arguments
  while [[ $# -gt 0 ]]; do
   case $1 in
-   -h|--help)
-    show_help
-    exit 0
-    ;;
-   -d|--duplicates)
-    check_duplicates_only=true
-    shift
-    ;;
-   -s|--source)
-    check_sourcing_only=true
-    shift
-    ;;
-   -a|--all)
-    check_duplicates_only=false
-    check_sourcing_only=false
-    shift
-    ;;
-   *)
-    log_error "Unknown option: $1"
-    show_help
-    exit 1
-    ;;
+  -h | --help)
+   show_help
+   exit 0
+   ;;
+  -d | --duplicates)
+   check_duplicates_only=true
+   shift
+   ;;
+  -s | --source)
+   check_sourcing_only=true
+   shift
+   ;;
+  -a | --all)
+   check_duplicates_only=false
+   check_sourcing_only=false
+   shift
+   ;;
+  *)
+   log_error "Unknown option: $1"
+   show_help
+   exit 1
+   ;;
   esac
  done
 
@@ -278,4 +278,4 @@ main() {
 }
 
 # Run main function
-main "$@" 
+main "$@"

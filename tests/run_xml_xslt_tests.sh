@@ -31,4 +31,4 @@ bats unit/bash/xslt_enum_validation.test.bats
 echo "4. Testing large file validation..."
 bats unit/bash/xml_validation_large_files.test.bats
 
-echo "=== XML AND XSLT TESTS COMPLETED ===" 
+echo "=== XML AND XSLT TESTS COMPLETED ==="

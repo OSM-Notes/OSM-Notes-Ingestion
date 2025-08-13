@@ -40,9 +40,9 @@ echo "📝 Creating large test XML file..."
 create_large_test_xml() {
  local XML_FILE="${TEST_DIR}/large_test.xml"
  local NOTE_COUNT=5000
- 
+
  echo "   Creating ${NOTE_COUNT} test notes..."
- 
+
  # Create XML header
  cat > "${XML_FILE}" << 'EOF'
 <?xml version="1.0"?>
@@ -57,13 +57,13 @@ EOF
   </note>
 EOF
  done
- 
+
  # Close XML
  echo '</osm-notes>' >> "${XML_FILE}"
- 
+
  echo "   ✅ Created ${XML_FILE} ($(stat -c%s "${XML_FILE}" | numfmt --to=iec) bytes)"
  echo "   📊 File contains $(grep -c "<note" "${XML_FILE}") notes"
- 
+
  export TEST_XML_FILE="${XML_FILE}"
 }
 
@@ -110,7 +110,7 @@ echo "   📦 Batch size: ${ETL_XML_BATCH_SIZE:-1000}"
 echo "   📊 Sample size: ${ETL_XML_SAMPLE_SIZE:-50}"
 
 # Test 6: File size analysis
-FILE_SIZE_MB=$(( $(stat -c%s "${TEST_XML_FILE}") / 1024 / 1024 ))
+FILE_SIZE_MB=$(($(stat -c%s "${TEST_XML_FILE}") / 1024 / 1024))
 echo "📏 File size analysis:"
 echo "   📁 Test file: ${FILE_SIZE_MB}MB"
 echo "   🎯 Threshold: ${ETL_LARGE_FILE_THRESHOLD_MB:-500}MB"
@@ -143,4 +143,4 @@ echo "💡 Recommendations for production:"
 echo "   - Set ETL_LARGE_FILE_THRESHOLD_MB based on your typical file sizes"
 echo "   - Adjust ETL_XML_MEMORY_LIMIT_MB based on available system memory"
 echo "   - Configure ETL_XML_VALIDATION_TIMEOUT based on your processing requirements"
-echo "   - Monitor memory usage during validation to optimize settings" 
+echo "   - Monitor memory usage during validation to optimize settings"

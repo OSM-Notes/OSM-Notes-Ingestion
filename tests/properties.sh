@@ -32,13 +32,13 @@ else
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
  export TEST_DBHOST="${TEST_DBHOST:-}"
  export TEST_DBPORT="${TEST_DBPORT:-}"
- 
+
  # For peer authentication, ensure these variables are not set
- unset PGPASSWORD 2>/dev/null || true
- unset DB_HOST 2>/dev/null || true
- unset DB_PORT 2>/dev/null || true
- unset DB_USER 2>/dev/null || true
- unset DB_PASSWORD 2>/dev/null || true
+ unset PGPASSWORD 2> /dev/null || true
+ unset DB_HOST 2> /dev/null || true
+ unset DB_PORT 2> /dev/null || true
+ unset DB_USER 2> /dev/null || true
+ unset DB_PASSWORD 2> /dev/null || true
 fi
 
 # Force override if variables are already set

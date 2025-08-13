@@ -40,7 +40,7 @@ show_test_stats() {
  local passed_tests="$2"
  local failed_tests="$3"
  local percentage=$((passed_tests * 100 / total_tests))
- 
+
  echo
  echo "📊 Test Results Summary:"
  echo "========================="
@@ -54,7 +54,7 @@ show_test_stats() {
 # Function to run tests with database
 run_db_tests() {
  log_info "Running tests with real database..."
- 
+
  if [[ -f "${SCRIPT_DIR}/run_tests_as_notes.sh" ]]; then
   "${SCRIPT_DIR}/run_tests_as_notes.sh" "$@"
  else
@@ -66,7 +66,7 @@ run_db_tests() {
 # Function to run mock tests
 run_mock_tests() {
  log_info "Running tests with mock environment..."
- 
+
  if [[ -f "${SCRIPT_DIR}/run_mock_tests.sh" ]]; then
   "${SCRIPT_DIR}/run_mock_tests.sh" "$@"
  else
@@ -78,7 +78,7 @@ run_mock_tests() {
 # Function to run simple tests
 run_simple_tests() {
  log_info "Running simple tests..."
- 
+
  if [[ -f "${SCRIPT_DIR}/run_tests_simple.sh" ]]; then
   "${SCRIPT_DIR}/run_tests_simple.sh" "$@"
  else
@@ -119,104 +119,104 @@ show_help() {
 
 # Main execution
 case "${1:-}" in
- --db)
-  case "${2:-}" in
-   --unit)
-    run_db_tests --unit
-    ;;
-   --integration)
-    run_db_tests --integration
-    ;;
-   --etl)
-    run_db_tests --etl
-    ;;
-   --all-tests)
-    run_db_tests --all
-    ;;
-   "")
-    run_db_tests --all
-    ;;
-   *)
-    log_error "Unknown test type: $2"
-    show_help
-    exit 1
-    ;;
-  esac
+--db)
+ case "${2:-}" in
+ --unit)
+  run_db_tests --unit
   ;;
- --mock)
-  case "${2:-}" in
-   --unit)
-    run_mock_tests --unit
-    ;;
-   --integration)
-    run_mock_tests --integration
-    ;;
-   --etl)
-    run_mock_tests --etl
-    ;;
-   --all-tests)
-    run_mock_tests --all
-    ;;
-   "")
-    run_mock_tests --all
-    ;;
-   *)
-    log_error "Unknown test type: $2"
-    show_help
-    exit 1
-    ;;
-  esac
+ --integration)
+  run_db_tests --integration
   ;;
- --simple)
-  case "${2:-}" in
-   --unit)
-    run_simple_tests --unit
-    ;;
-   --integration)
-    run_simple_tests --integration
-    ;;
-   --etl)
-    run_simple_tests --etl
-    ;;
-   --all-tests)
-    run_simple_tests
-    ;;
-   "")
-    run_simple_tests
-    ;;
-   *)
-    log_error "Unknown test type: $2"
-    show_help
-    exit 1
-    ;;
-  esac
+ --etl)
+  run_db_tests --etl
   ;;
- --all)
-  log_info "Running all test modes..."
-  echo
-  echo "🔧 Database Tests:"
-  run_db_tests --etl || log_warning "Database tests failed"
-  echo
-  echo "🎭 Mock Tests:"
-  run_mock_tests --etl || log_warning "Mock tests failed"
-  echo
-  echo "📋 Simple Tests:"
-  run_simple_tests --etl || log_warning "Simple tests failed"
-  ;;
- --help | -h)
-  show_help
-  exit 0
+ --all-tests)
+  run_db_tests --all
   ;;
  "")
-  log_info "No mode specified, showing help..."
-  show_help
-  exit 0
+  run_db_tests --all
   ;;
  *)
-  log_error "Unknown mode: $1"
+  log_error "Unknown test type: $2"
   show_help
   exit 1
   ;;
+ esac
+ ;;
+--mock)
+ case "${2:-}" in
+ --unit)
+  run_mock_tests --unit
+  ;;
+ --integration)
+  run_mock_tests --integration
+  ;;
+ --etl)
+  run_mock_tests --etl
+  ;;
+ --all-tests)
+  run_mock_tests --all
+  ;;
+ "")
+  run_mock_tests --all
+  ;;
+ *)
+  log_error "Unknown test type: $2"
+  show_help
+  exit 1
+  ;;
+ esac
+ ;;
+--simple)
+ case "${2:-}" in
+ --unit)
+  run_simple_tests --unit
+  ;;
+ --integration)
+  run_simple_tests --integration
+  ;;
+ --etl)
+  run_simple_tests --etl
+  ;;
+ --all-tests)
+  run_simple_tests
+  ;;
+ "")
+  run_simple_tests
+  ;;
+ *)
+  log_error "Unknown test type: $2"
+  show_help
+  exit 1
+  ;;
+ esac
+ ;;
+--all)
+ log_info "Running all test modes..."
+ echo
+ echo "🔧 Database Tests:"
+ run_db_tests --etl || log_warning "Database tests failed"
+ echo
+ echo "🎭 Mock Tests:"
+ run_mock_tests --etl || log_warning "Mock tests failed"
+ echo
+ echo "📋 Simple Tests:"
+ run_simple_tests --etl || log_warning "Simple tests failed"
+ ;;
+--help | -h)
+ show_help
+ exit 0
+ ;;
+"")
+ log_info "No mode specified, showing help..."
+ show_help
+ exit 0
+ ;;
+*)
+ log_error "Unknown mode: $1"
+ show_help
+ exit 1
+ ;;
 esac
 
 log_success "Test execution completed"

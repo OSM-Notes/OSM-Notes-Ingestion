@@ -166,29 +166,29 @@ fi
 # Legacy function: Process XML parts in parallel (consolidated implementation)
 # Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
 function __processXmlPartsParallel() {
-    # Source the consolidated parallel processing functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-        __processXmlPartsParallel "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated parallel processing functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __processXmlPartsParallel "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Legacy function: Split XML for parallel processing (consolidated implementation)
 # Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
 function __splitXmlForParallelSafe() {
-    # Source the consolidated parallel processing functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-        __splitXmlForParallelSafe "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated parallel processing functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __splitXmlForParallelSafe "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Error codes are defined in commonFunctions.sh
@@ -355,29 +355,29 @@ function __countXmlNotesPlanet() {
 # Wrapper function for API format that uses parallel processing
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelAPI() {
-    # Source the consolidated parallel processing functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-        __splitXmlForParallelAPI "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated parallel processing functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __splitXmlForParallelAPI "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Wrapper function for Planet format that uses parallel processing
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelPlanet() {
-    # Source the consolidated parallel processing functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-        __splitXmlForParallelPlanet "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated parallel processing functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __splitXmlForParallelPlanet "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Processes a single XML part for API notes
@@ -1120,8 +1120,6 @@ function __organizeAreas {
  __log_finish
 }
 
-
-
 # Processes a specific boundary ID.
 # Parameters:
 #   $1: Query file path (optional, uses global QUERY_FILE if not provided)
@@ -1525,7 +1523,8 @@ function __processCountries {
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some threads generated errors."
-  local ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
+  local ERROR_LOGS
+  ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
   __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
   exit "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
@@ -1762,8 +1761,6 @@ function __getLocationNotes {
 # Returns:
 #   0 if valid, 1 if invalid
 
-
-
 # Function to validate multiple files using checksum files
 # Parameters:
 #   $1: Directory containing files to validate
@@ -1983,7 +1980,6 @@ declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIMES
 # Enhanced retry with exponential backoff and jitter
 # Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
 
-
 # Circuit breaker pattern implementation
 # Parameters: service_name command_to_execute
 # Returns: 0 if successful, 1 if circuit is open or command failed
@@ -1991,7 +1987,8 @@ function __circuit_breaker_execute() {
  __log_start
  local SERVICE_NAME="$1"
  local COMMAND="$2"
- local CURRENT_TIME=$(date +%s)
+ local CURRENT_TIME
+ CURRENT_TIME=$(date +%s)
  local STATE="${CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]:-CLOSED}"
  local FAILURE_COUNT="${CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]:-0}"
  local LAST_FAILURE_TIME="${CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]:-0}"
@@ -2034,8 +2031,6 @@ function __circuit_breaker_execute() {
   return 1
  fi
 }
-
-
 
 # Health check for network connectivity
 # Parameters: [timeout_seconds]
@@ -2109,8 +2104,6 @@ function __handle_error_with_cleanup() {
  # TODO: Implement proper environment detection
  return "${ERROR_CODE}"
 }
-
-
 
 # Retry file operations with cleanup on failure
 # Parameters: operation_command max_retries base_delay [cleanup_command]
@@ -2281,43 +2274,41 @@ function __show_help() {
 # Enhanced XML validation with error handling
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_with_enhanced_error_handling() {
-    # Source the consolidated validation functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
-        __validate_xml_with_enhanced_error_handling "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated validation functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+  __validate_xml_with_enhanced_error_handling "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Basic XML structure validation (lightweight)
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_basic() {
-    # Source the consolidated validation functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
-        __validate_xml_basic "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated validation functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+  __validate_xml_basic "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+  return 1
+ fi
 }
 
 # XML structure-only validation (very lightweight)
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_structure_only() {
-    # Source the consolidated validation functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
-        __validate_xml_structure_only "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated validation functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+  __validate_xml_structure_only "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+  return 1
+ fi
 }
-
-

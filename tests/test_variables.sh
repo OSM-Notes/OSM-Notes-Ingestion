@@ -183,4 +183,4 @@ function __validate_postgres_variables() {
 
  echo "DEBUG: PostgreSQL variable validation passed" >&2
  return 0
-} 
+}

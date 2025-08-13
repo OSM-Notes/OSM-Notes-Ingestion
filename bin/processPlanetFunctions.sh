@@ -167,29 +167,29 @@ function __splitXmlForParallelPlanet() {
 # Split XML for parallel processing (safe version)
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelSafe() {
-    # Source the consolidated parallel processing functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-        __splitXmlForParallelSafe "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated parallel processing functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __splitXmlForParallelSafe "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Process XML parts in parallel
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __processXmlPartsParallel() {
-    # Source the consolidated parallel processing functions
-    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-        source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-        __processXmlPartsParallel "$@"
-    else
-        # Fallback if consolidated functions are not available
-        __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
-        return 1
-    fi
+ # Source the consolidated parallel processing functions
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __processXmlPartsParallel "$@"
+ else
+  # Fallback if consolidated functions are not available
+  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+  return 1
+ fi
 }
 
 # Process Planet XML part

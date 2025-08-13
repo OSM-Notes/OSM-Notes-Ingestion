@@ -162,26 +162,26 @@ verify_wms_objects() {
  ((TOTAL_TESTS++))
 
  case "$object_type" in
-  "schema")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = 'wms';" | tr -d ' ')
-   ;;
-  "table")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'wms' AND table_name = 'notes_wms';" | tr -d ' ')
-   ;;
-  "triggers")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');" | tr -d ' ')
-   ;;
-  "notes")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM wms.notes_wms;" | tr -d ' ')
-   ;;
-  "functions")
-   local count
-   count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.routines WHERE routine_schema = 'wms' AND routine_name IN ('insert_new_notes', 'update_notes');" | tr -d ' ')
-   ;;
+ "schema")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = 'wms';" | tr -d ' ')
+  ;;
+ "table")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'wms' AND table_name = 'notes_wms';" | tr -d ' ')
+  ;;
+ "triggers")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');" | tr -d ' ')
+  ;;
+ "notes")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM wms.notes_wms;" | tr -d ' ')
+  ;;
+ "functions")
+  local count
+  count=$(psql -h "$TEST_DBHOST" -U "$TEST_DBUSER" -d "$TEST_DBNAME" -t -c "SELECT COUNT(*) FROM information_schema.routines WHERE routine_schema = 'wms' AND routine_name IN ('insert_new_notes', 'update_notes');" | tr -d ' ')
+  ;;
  esac
 
  if [ "$count" -eq "$expected_count" ]; then
@@ -219,15 +219,15 @@ test_performance() {
  start_time=$(date +%s.%N)
 
  case "$operation" in
-  "install")
-   "$WMS_SCRIPT" install > /dev/null 2>&1
-   ;;
-  "status")
-   "$WMS_SCRIPT" status > /dev/null 2>&1
-   ;;
-  "deinstall")
-   "$WMS_SCRIPT" deinstall > /dev/null 2>&1
-   ;;
+ "install")
+  "$WMS_SCRIPT" install > /dev/null 2>&1
+  ;;
+ "status")
+  "$WMS_SCRIPT" status > /dev/null 2>&1
+  ;;
+ "deinstall")
+  "$WMS_SCRIPT" deinstall > /dev/null 2>&1
+  ;;
  esac
 
  end_time=$(date +%s.%N)

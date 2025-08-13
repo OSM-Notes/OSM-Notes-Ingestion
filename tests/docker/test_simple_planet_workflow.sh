@@ -6,11 +6,11 @@ set -euo pipefail
 
 # Load test properties
 if [[ -f "/app/tests/properties.sh" ]]; then
-  source /app/tests/properties.sh
+ source /app/tests/properties.sh
 elif [[ -f "${TEST_BASE_DIR}/tests/properties.sh" ]]; then
-  source "${TEST_BASE_DIR}/tests/properties.sh"
+ source "${TEST_BASE_DIR}/tests/properties.sh"
 else
-  echo "Warning: properties.sh not found, using defaults"
+ echo "Warning: properties.sh not found, using defaults"
 fi
 
 # Database configuration for Docker
@@ -27,13 +27,13 @@ echo "Host: ${TEST_DBHOST}:${TEST_DBPORT}"
 echo ""
 
 # Check if PostgreSQL is available without password prompts
-if ! PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
-  echo "PostgreSQL not available, using mock mode"
-  export MOCK_MODE=1
+if ! PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+ echo "PostgreSQL not available, using mock mode"
+ export MOCK_MODE=1
 fi
 
 # Check if required commands are available
-if ! command -v xmlstarlet >/dev/null 2>&1; then
+if ! command -v xmlstarlet > /dev/null 2>&1; then
  echo "Warning: xmlstarlet not found, skipping XML processing"
  exit 0
 fi
@@ -44,15 +44,15 @@ if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
 
  # Extract notes from XML and insert them
  # This is a simplified version - in real implementation would use XSLT
- xmlstarlet sel -t -m "//note" -v "@lat" -o "," -v "@lon" -o "," -v "id" -o "," -v "status" -o "," -v "@created_at" -n "${PLANET_NOTES_FILE}" 2>/dev/null | while IFS=',' read -r lat lon note_id status created_at; do
+ xmlstarlet sel -t -m "//note" -v "@lat" -o "," -v "@lon" -o "," -v "id" -o "," -v "status" -o "," -v "@created_at" -n "${PLANET_NOTES_FILE}" 2> /dev/null | while IFS=',' read -r lat lon note_id status created_at; do
   if [[ -n "$lat" && -n "$lon" && -n "$note_id" ]]; then
    echo "Processing note ${note_id} at (${lat}, ${lon})"
 
    # Insert note
    if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-     echo "Mock psql: INSERT INTO notes VALUES (${note_id}, ${note_id}, ${lat}, ${lon}, ...)"
+    echo "Mock psql: INSERT INTO notes VALUES (${note_id}, ${note_id}, ${lat}, ${lon}, ...)"
    else
-     PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
           INSERT INTO notes (id, note_id, lat, lon, status, created_at, closed_at, id_user, id_country) 
           VALUES (${note_id}, ${note_id}, ${lat}, ${lon}, '${status}', '${created_at}', NULL, ${note_id}, 1);
         "
@@ -60,9 +60,9 @@ if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
 
    # Insert user
    if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-     echo "Mock psql: INSERT INTO users VALUES (${note_id}, 'user${note_id}')"
+    echo "Mock psql: INSERT INTO users VALUES (${note_id}, 'user${note_id}')"
    else
-     PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
           INSERT INTO users (user_id, username) 
           VALUES (${note_id}, 'user${note_id}')
           ON CONFLICT (user_id) DO NOTHING;
@@ -72,32 +72,32 @@ if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
  done
 
  # Process comments from XML
- xmlstarlet sel -t -m "//comment" -v "ancestor::note/id" -o "," -v "@timestamp" -o "," -v "@uid" -o "," -v "@action" -o "," -v "text" -n "${PLANET_NOTES_FILE}" 2>/dev/null | while IFS=',' read -r note_id date uid action text; do
+ xmlstarlet sel -t -m "//comment" -v "ancestor::note/id" -o "," -v "@timestamp" -o "," -v "@uid" -o "," -v "@action" -o "," -v "text" -n "${PLANET_NOTES_FILE}" 2> /dev/null | while IFS=',' read -r note_id date uid action text; do
   if [[ -n "$note_id" && -n "$date" && -n "$uid" && -n "$action" ]]; then
    echo "Processing comment for note ${note_id}: ${action}"
 
    # Insert comment only if it doesn't exist
    if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-     echo "Mock psql: SELECT COUNT FROM note_comments for note ${note_id}"
-     existing_comment=0
+    echo "Mock psql: SELECT COUNT FROM note_comments for note ${note_id}"
+    existing_comment=0
    else
-     existing_comment=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments WHERE note_id = ${note_id} AND event = '${action}' AND created_at = '${date}' AND id_user = ${uid};" | tr -d ' ')
+    existing_comment=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments WHERE note_id = ${note_id} AND event = '${action}' AND created_at = '${date}' AND id_user = ${uid};" | tr -d ' ')
    fi
-   
+
    if [[ "$existing_comment" -eq 0 ]]; then
     if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-      echo "Mock psql: INSERT INTO note_comments VALUES (${note_id}, '${action}', ...)"
+     echo "Mock psql: INSERT INTO note_comments VALUES (${note_id}, '${action}', ...)"
     else
-      PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+     PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
             INSERT INTO note_comments (id, note_id, event, created_at, id_user) 
             VALUES (nextval('note_comments_id_seq'), ${note_id}, '${action}', '${date}', ${uid});
           "
     fi
 
     if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-      echo "Mock psql: INSERT INTO note_comments_text VALUES (${note_id}, '${text}', ...)"
+     echo "Mock psql: INSERT INTO note_comments_text VALUES (${note_id}, '${text}', ...)"
     else
-      PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+     PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
             INSERT INTO note_comments_text (id, note_id, event, created_at, id_user, text) 
             VALUES (nextval('note_comments_text_id_seq'), ${note_id}, '${action}', '${date}', ${uid}, '${text}');
           "
@@ -106,9 +106,9 @@ if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
 
    # Insert user
    if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-     echo "Mock psql: INSERT INTO users VALUES (${uid}, 'user${uid}')"
+    echo "Mock psql: INSERT INTO users VALUES (${uid}, 'user${uid}')"
    else
-     PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
+    PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
           INSERT INTO users (user_id, username) 
           VALUES (${uid}, 'user${uid}')
           ON CONFLICT (user_id) DO NOTHING;
@@ -121,9 +121,9 @@ if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
 else
  echo "📋 Creating test data (no XML file provided)..."
  if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-   echo "Mock psql: Creating test data with multiple INSERT statements"
+  echo "Mock psql: Creating test data with multiple INSERT statements"
  else
-   PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" << 'EOF'
+  PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" << 'EOF'
 -- Insert test notes
 INSERT INTO notes (id, note_id, lat, lon, status, created_at, closed_at, id_user, id_country) VALUES
   (123, 123, 40.7128, -74.0060, 'open', '2013-04-28T02:39:27Z', NULL, 123, 1),
@@ -155,14 +155,14 @@ fi
 # Verify data
 echo "📋 Verifying data..."
 if [[ "${MOCK_MODE:-0}" == "1" ]]; then
-  echo "Mock psql: SELECT COUNT(*) FROM notes, note_comments, note_comments_text"
-  notes_count=2
-  comments_count=3
-  text_count=3
+ echo "Mock psql: SELECT COUNT(*) FROM notes, note_comments, note_comments_text"
+ notes_count=2
+ comments_count=3
+ text_count=3
 else
-  notes_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | tr -d ' ')
-  comments_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | tr -d ' ')
-  text_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text;" | tr -d ' ')
+ notes_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | tr -d ' ')
+ comments_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | tr -d ' ')
+ text_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text;" | tr -d ' ')
 fi
 
 echo "📊 Results:"

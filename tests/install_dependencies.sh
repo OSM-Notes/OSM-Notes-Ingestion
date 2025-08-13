@@ -32,18 +32,18 @@ log_error() {
 
 # Function to check if command exists
 command_exists() {
- command -v "$1" >/dev/null 2>&1
+ command -v "$1" > /dev/null 2>&1
 }
 
 # Function to install package manager dependencies
 install_system_deps() {
  log_info "Installing system dependencies..."
- 
+
  # Detect package manager
  if command_exists apt-get; then
   # Ubuntu/Debian
   log_info "Using apt-get package manager"
-  
+
   # Try without sudo first
   if apt-get update &> /dev/null; then
    log_info "Installing packages without sudo..."
@@ -77,7 +77,7 @@ install_system_deps() {
 # Function to install Python dependencies
 install_python_deps() {
  log_info "Installing Python dependencies..."
- 
+
  if command_exists pip3; then
   pip3 install requests pytest pytest-mock
  elif command_exists pip; then
@@ -90,7 +90,7 @@ install_python_deps() {
 # Function to setup Docker without sudo
 setup_docker() {
  log_info "Setting up Docker access..."
- 
+
  if command_exists docker; then
   # Check if user is in docker group
   if groups | grep -q docker; then
@@ -110,7 +110,7 @@ setup_docker() {
 # Function to setup PostgreSQL access
 setup_postgresql() {
  log_info "Setting up PostgreSQL access..."
- 
+
  if command_exists psql; then
   log_success "PostgreSQL client is available"
  else
@@ -118,9 +118,9 @@ setup_postgresql() {
   log_info "Please install postgresql-client package"
   exit 1
  fi
- 
+
  # Test PostgreSQL connection
- if psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+ if psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
   log_success "PostgreSQL connection successful"
  else
   log_warning "PostgreSQL connection failed"
@@ -132,12 +132,12 @@ setup_postgresql() {
 # Main execution
 main() {
  log_info "Installing dependencies for OSM-Notes-profile tests..."
- 
+
  install_system_deps
  install_python_deps
  setup_docker
  setup_postgresql
- 
+
  log_success "Dependency installation completed"
  log_info "You can now run tests without sudo in most cases"
 }

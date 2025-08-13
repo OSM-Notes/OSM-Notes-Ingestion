@@ -49,33 +49,33 @@ __mockDatabaseOperations() {
 # Main function
 main() {
  echo "Mock: processCheckPlanetNotes.sh started"
- 
+
  # Parse arguments
  while [[ $# -gt 0 ]]; do
-   case $1 in
-     --help|-h)
-       echo "Mock processCheckPlanetNotes.sh - Help"
-       echo "Usage: $0 [OPTIONS]"
-       echo "Options:"
-       echo "  --help, -h    Show this help message"
-       echo "  --dry-run      Run in dry-run mode"
-       exit 0
-       ;;
-     --dry-run)
-       echo "Mock: Running in dry-run mode"
-       ;;
-     *)
-       echo "Mock: Unknown option: $1"
-       ;;
-   esac
-   shift
+  case $1 in
+  --help | -h)
+   echo "Mock processCheckPlanetNotes.sh - Help"
+   echo "Usage: $0 [OPTIONS]"
+   echo "Options:"
+   echo "  --help, -h    Show this help message"
+   echo "  --dry-run      Run in dry-run mode"
+   exit 0
+   ;;
+  --dry-run)
+   echo "Mock: Running in dry-run mode"
+   ;;
+  *)
+   echo "Mock: Unknown option: $1"
+   ;;
+  esac
+  shift
  done
- 
+
  # Execute mock functions
  __downloadPlanetNotes
  __processPlanetNotes
  __mockDatabaseOperations
- 
+
  echo "Mock: processCheckPlanetNotes.sh completed successfully"
  exit 0
 }
@@ -83,4 +83,4 @@ main() {
 # Run main function if script is executed directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  main "$@"
-fi 
+fi
