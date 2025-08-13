@@ -29,6 +29,48 @@ To run tests without sudo privileges:
    ./tests/run_tests_simple.sh
    ```
 
+## CI/CD Environment
+
+For GitHub Actions and other CI environments:
+
+1. **Verify CI environment**:
+
+   ```bash
+   ./tests/verify_ci_environment.sh
+   ```
+
+2. **Install missing tools** (if needed):
+
+   ```bash
+   ./tests/install_shfmt.sh
+   ```
+
+3. **Run CI-optimized tests**:
+
+   ```bash
+   ./tests/run_ci_tests_simple.sh
+   ```
+
+**Note**: The CI workflow automatically handles dependency installation and environment verification.
+
+## Troubleshooting
+
+### Common CI Issues
+
+If you encounter issues in GitHub Actions or other CI environments:
+
+1. **Missing tools**: Check the [CI Troubleshooting Guide](../docs/CI_Troubleshooting.md)
+2. **Environment verification**: Run `./tests/verify_ci_environment.sh`
+3. **Manual tool installation**: Use `./tests/install_shfmt.sh` for missing formatters
+
+### Local Environment Issues
+
+For local testing problems:
+
+1. **Dependencies**: Ensure all required packages are installed
+2. **Database**: Verify PostgreSQL is running and accessible
+3. **Permissions**: Check file permissions and database access rights
+
 ## Docker Setup (Alternative)
 
 If you prefer to use Docker and have sudo access:
@@ -97,6 +139,15 @@ Test automation scripts:
 
 - **`test_special_cases.sh`**: Tests for edge cases and special scenarios
 - **`run_advanced_tests.sh`**: Advanced test orchestration
+
+### CI and Environment Scripts
+
+CI-specific and environment management scripts:
+
+- **`run_ci_tests_simple.sh`**: CI-optimized test runner with automatic dependency installation
+- **`install_shfmt.sh`**: Automatic installation script for shfmt shell formatter
+- **`verify_ci_environment.sh`**: Comprehensive environment verification for CI/CD
+- **`install_dependencies.sh`**: General dependency installation script
 
 ### `/tests/fixtures/`
 
