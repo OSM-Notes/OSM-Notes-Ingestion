@@ -188,7 +188,7 @@ teardown() {
 # Test that XML processing functions work correctly
 @test "processAPINotes.sh XML processing functions should work correctly" {
  # Test that XML counting function works without sourcing the main script
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __countXmlNotesApi ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __countXmlNotesAPI ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
  [ "$status" -eq 0 ] || echo "XML counting function should work"
 }
 
