@@ -3,7 +3,7 @@
 # Logging Pattern Validation Runner
 # Script: run_logging_validation.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-08-13
 # Description: Runs the logging pattern validation tool
 
 set -euo pipefail

@@ -3,7 +3,7 @@
 # Logging Pattern Validation Script
 # Script: validate_logging_patterns.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-08-13
 # Description: Validates that all bash functions follow the logging pattern:
 #             - __log_start at the beginning
 #             - __log_finish before each return and at the end

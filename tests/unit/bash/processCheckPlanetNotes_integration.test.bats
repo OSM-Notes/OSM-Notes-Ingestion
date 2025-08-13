@@ -5,7 +5,7 @@ bats_require_minimum_version 1.5.0
 
 # Integration tests for processCheckPlanetNotes.sh
 # Tests that actually execute the script to detect real errors
-# Version: 2025-01-23
+# Version: 2025-08-13
 
 setup() {
  # Setup test environment

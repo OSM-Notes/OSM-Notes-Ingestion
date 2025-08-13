@@ -4,7 +4,7 @@
 # Tests the specific logging enhancements added to handle boundary processing errors
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-08-13
 
 load ../../test_helper
 

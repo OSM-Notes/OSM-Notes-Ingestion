@@ -3,7 +3,7 @@
 # Simple test for cleanup dependency fix
 # Test file: cleanup_dependency_fix.test.bats
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-08-13
 
 load "../../test_helper.bash"
 

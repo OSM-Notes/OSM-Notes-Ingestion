@@ -3,7 +3,7 @@
 # Simple Logging Pattern Validation Script
 # Script: validate_logging_patterns_simple.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-08-13
 # Description: Simple validation that all bash functions follow the logging pattern
 
 set -euo pipefail

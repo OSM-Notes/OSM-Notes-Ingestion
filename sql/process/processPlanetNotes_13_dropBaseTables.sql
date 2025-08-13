@@ -1,7 +1,7 @@
 -- Drop base tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-23
+-- Version: 2025-08-13
 
 DROP TRIGGER IF EXISTS update_note ON note_comments;
 DROP FUNCTION IF EXISTS update_note;

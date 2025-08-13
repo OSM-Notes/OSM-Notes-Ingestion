@@ -3,7 +3,7 @@
 # Unit tests for CLEAN flag handling with exit trap
 # Test file: clean_flag_exit_trap.test.bats
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-08-13
 
 load "../../test_helper.bash"
 
