@@ -40,7 +40,13 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y bats postgresql-client
+        sudo apt-get install -y \
+          bats \
+          postgresql-client \
+          libxml2-utils \
+          xsltproc \
+          shellcheck \
+          curl
 
     - name: Install bats-core
       run: |
@@ -48,6 +54,26 @@ jobs:
         cd bats-core
         sudo ./install.sh /usr/local
         cd ..
+
+    - name: Install shfmt (if not available)
+      run: |
+        if ! command -v shfmt; then
+          echo "shfmt not found, installing from GitHub..."
+          chmod +x tests/install_shfmt.sh
+          ./tests/install_shfmt.sh
+        else
+          echo "shfmt already available"
+        fi
+
+    - name: Verify tools availability
+      run: |
+        echo "Verifying required tools are available..."
+        command -v xsltproc && echo "✓ xsltproc available"
+        command -v xmllint && echo "✓ xmllint available"
+        command -v shfmt && echo "✓ shfmt available"
+        command -v shellcheck && echo "✓ shellcheck available"
+        command -v bats && echo "✓ bats available"
+        command -v psql && echo "✓ psql available"
 
     - name: Setup test environment
       run: |
