@@ -24,7 +24,7 @@ function __show_help() {
  echo "Usage: source bin/errorHandlingFunctions.sh"
  echo
  echo "Available functions:"
- echo "  __retry_operation           - Retry operations with backoff"
+
  echo "  __circuit_breaker_execute   - Circuit breaker pattern"
  echo "  __download_with_retry       - Download with retry logic"
  echo "  __api_call_with_retry       - API calls with retry"
@@ -36,47 +36,6 @@ function __show_help() {
  echo "Author: Andres Gomez (AngocA)"
  echo "Version: ${VERSION}"
  exit 1
-}
-
-# Retry operation with exponential backoff
-function __retry_operation() {
- local MAX_ATTEMPTS="${1:-3}"
- local BASE_DELAY="${2:-1}"
- local MAX_DELAY="${3:-60}"
- local COMMAND="${4:-}"
-
- if [[ -z "${COMMAND}" ]]; then
-  __loge "ERROR: No command provided for retry operation"
-  return 1
- fi
-
- local ATTEMPT=1
- local DELAY="${BASE_DELAY}"
-
- while [[ "${ATTEMPT}" -le "${MAX_ATTEMPTS}" ]]; do
-  __logd "Attempt ${ATTEMPT}/${MAX_ATTEMPTS}: ${COMMAND}"
-
-  if eval "${COMMAND}"; then
-   __logi "Operation succeeded on attempt ${ATTEMPT}"
-   return 0
-  fi
-
-  local EXIT_CODE=$?
-
-  if [[ "${ATTEMPT}" -eq "${MAX_ATTEMPTS}" ]]; then
-   __loge "ERROR: Operation failed after ${MAX_ATTEMPTS} attempts. Exit code: ${EXIT_CODE}"
-   return "${EXIT_CODE}"
-  fi
-
-  __logw "WARNING: Operation failed on attempt ${ATTEMPT}. Retrying in ${DELAY} seconds..."
-  sleep "${DELAY}"
-
-  ATTEMPT=$((ATTEMPT + 1))
-  DELAY=$((DELAY * 2))
-  if [[ "${DELAY}" -gt "${MAX_DELAY}" ]]; then
-   DELAY="${MAX_DELAY}"
-  fi
- done
 }
 
 # Circuit breaker pattern implementation
