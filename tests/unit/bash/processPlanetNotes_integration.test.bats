@@ -23,6 +23,11 @@ setup() {
  
  # Set up test database
  export TEST_DBNAME="test_osm_notes_${BASENAME}"
+ 
+ # Define logging function for tests
+ log_info() {
+   echo "[INFO] $1" >&2
+ }
 }
 
 teardown() {
@@ -93,26 +98,54 @@ teardown() {
 
 # Test that database operations work with mock data
 @test "processPlanetNotes.sh database operations should work with mock data" {
- # Create test database
- run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
- [ "$status" -eq 0 ]
- 
- # Create base tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
- [ "$status" -eq 0 ]
- 
- # Create sync tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
- [ "$status" -eq 0 ]
- 
- # Create country tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
- [ "$status" -eq 0 ]
- 
- # Verify tables exist
- run psql -d "${TEST_DBNAME}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('notes', 'note_comments', 'note_comments_text', 'users', 'countries', 'maritimes');"
- [ "$status" -eq 0 ]
- [[ "$output" =~ ^[0-9]+$ ]] || echo "Expected numeric count, got: $output"
+ # Check if we're in CI environment and use existing database
+ if [[ -n "${CI:-}" ]] && [[ -n "${TEST_DBNAME:-}" ]] && [[ -n "${TEST_DBUSER:-}" ]]; then
+   # In CI, use the existing test database
+   log_info "Using existing CI database: ${TEST_DBNAME}"
+   
+   # Test connection to existing database
+   run psql -h "${TEST_DBHOST:-localhost}" -p "${TEST_DBPORT:-5432}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT 1;"
+   [ "$status" -eq 0 ] || skip "CI database not accessible"
+   
+   # Create base tables in existing database
+   run psql -h "${TEST_DBHOST:-localhost}" -p "${TEST_DBPORT:-5432}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
+   [ "$status" -eq 0 ]
+   
+   # Create sync tables
+   run psql -h "${TEST_DBHOST:-localhost}" -p "${TEST_DBPORT:-5432}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
+   [ "$status" -eq 0 ]
+   
+   # Create country tables
+   run psql -h "${TEST_DBHOST:-localhost}" -p "${TEST_DBPORT:-5432}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
+   [ "$status" -eq 0 ]
+   
+   # Verify tables exist
+   run psql -h "${TEST_DBHOST:-localhost}" -p "${TEST_DBPORT:-5432}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('notes', 'note_comments', 'note_comments_text', 'users', 'countries', 'maritimes');"
+   [ "$status" -eq 0 ]
+   [[ "$output" =~ ^[0-9]+$ ]] || echo "Expected numeric count, got: $output"
+ else
+   # Local environment - create new test database
+   # Create test database
+   run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+   [ "$status" -eq 0 ]
+   
+   # Create base tables
+   run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
+   [ "$status" -eq 0 ]
+   
+   # Create sync tables
+   run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
+   [ "$status" -eq 0 ]
+   
+   # Create country tables
+   run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
+   [ "$status" -eq 0 ]
+   
+   # Verify tables exist
+   run psql -d "${TEST_DBNAME}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('notes', 'note_comments', 'note_comments_text', 'users', 'countries', 'maritimes');"
+   [ "$status" -eq 0 ]
+   [[ "$output" =~ ^[0-9]+$ ]] || echo "Expected numeric count, got: $output"
+ fi
 }
 
 # Test that error handling works correctly
