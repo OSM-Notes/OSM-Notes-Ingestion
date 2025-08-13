@@ -408,7 +408,8 @@ function __countXmlNotesPlanet() {
  local GREP_STATUS=$?
 
  # grep returns 0 when no matches found, which is not an error
- if [[ ${GREP_STATUS} -ne 0 ]]; then
+ # grep returns 1 when no matches found in some versions, which is also not an error
+ if [[ ${GREP_STATUS} -ne 0 ]] && [[ ${GREP_STATUS} -ne 1 ]]; then
   __loge "Error counting notes in XML file (exit code ${GREP_STATUS}): ${XML_FILE}"
   TOTAL_NOTES=0
   export TOTAL_NOTES

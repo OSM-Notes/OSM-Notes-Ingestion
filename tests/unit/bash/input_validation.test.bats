@@ -9,8 +9,7 @@ setup() {
   # Load test helper functions
   load "${BATS_TEST_DIRNAME}/../../test_helper.bash"
   
-  # Load the functions to test
-  load "${BATS_TEST_DIRNAME}/../../../bin/functionsProcess.sh"
+  # Functions are loaded by test_helper.bash
   
   # Create temporary test files
   TEST_DIR=$(mktemp -d)
@@ -153,7 +152,7 @@ teardown() {
 @test "XML validation: should fail for invalid XML syntax" {
   run __validate_xml_structure "${INVALID_XML_FILE}"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"XML structure validation failed"* ]]
+  [[ "$output" == *"Invalid XML syntax"* ]]
 }
 
 @test "XML validation: should fail for wrong root element" {

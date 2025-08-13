@@ -3,7 +3,7 @@
 # Enhanced unit tests for functionsProcess.sh with improved testability
 # Tests XML counting functions, validation, error handling, and performance
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-15
+# Version: 2025-08-12
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -29,6 +29,12 @@ setup() {
     
     # Source the functions to be tested
     source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    
+    # Verify that functions are available
+    if ! declare -f __countXmlNotesPlanet >/dev/null; then
+        echo "ERROR: __countXmlNotesPlanet function not found after sourcing functionsProcess.sh"
+        exit 1
+    fi
     
     # Set up logging function if not available
     if ! declare -f log_info >/dev/null; then
@@ -101,11 +107,18 @@ EOF
 </osm-notes>
 EOF
 
-    # Create empty XML
+    # Create empty XML (API format)
     cat > "${test_dir}/test_empty.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
 </osm>
+EOF
+
+    # Create empty XML (Planet format)
+    cat > "${test_dir}/test_empty_planet.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+</osm-notes>
 EOF
 
     # Create invalid XML
@@ -173,19 +186,15 @@ EOF
 
 @test "enhanced __countXmlNotesPlanet should handle empty XML" {
     # Test with empty XML (Planet format)
-    # Temporarily disable logging functions to avoid errors
-    __log_start() { :; }
-    __logi() { :; }
-    __log_finish() { :; }
+    # Use the empty XML file created in setup
+    # Execute function directly to capture output and set TOTAL_NOTES
+    echo "Before function call: TOTAL_NOTES=${TOTAL_NOTES:-undefined}"
+    echo "XML file: ${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml"
+    echo "XML file exists: $([ -f "${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml" ] && echo "yes" || echo "no")"
     
-    cat > "${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
-</osm-notes>
-EOF
-    
-    # Execute function directly to capture output
     __countXmlNotesPlanet "${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml"
+    
+    echo "After function call: TOTAL_NOTES=${TOTAL_NOTES:-undefined}"
     [ "$TOTAL_NOTES" -eq 0 ]
 }
 
@@ -225,11 +234,26 @@ EOF
     __log_finish() { :; }
     __loge() { :; }
     
-    # Mock xmlstarlet to fail
-    xmlstarlet() { return 1; }
+    # Create a mock xmlstarlet that always fails
+    local mock_xmlstarlet="${TEST_BASE_DIR}/tests/tmp/mock_xmlstarlet_fail"
+    cat > "$mock_xmlstarlet" << 'EOF'
+#!/bin/bash
+echo "Mock xmlstarlet called with: $*" >&2
+exit 1
+EOF
+    chmod +x "$mock_xmlstarlet"
+    
+    # Temporarily replace xmlstarlet with mock
+    local original_path="$PATH"
+    export PATH="${TEST_BASE_DIR}/tests/tmp:$PATH"
     
     # Execute function and check if it fails when xmlstarlet is not available
     run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
+    
+    # Restore original PATH
+    export PATH="$original_path"
+    rm -f "$mock_xmlstarlet"
+    
     [ "$status" -ne 0 ]
 }
 
