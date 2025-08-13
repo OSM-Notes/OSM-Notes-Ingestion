@@ -8,23 +8,23 @@
 
 # Common help function for library files
 function __show_help_library() {
- local script_name="${1:-Unknown Script}"
- local description="${2:-No description available}"
- local functions_list="${3:-}"
- local version="${4:-${VERSION:-Unknown}}"
+ local SCRIPT_NAME="${1:-Unknown Script}"
+ local DESCRIPTION="${2:-No description available}"
+ local FUNCTIONS_LIST="${3:-}"
+ local VERSION="${4:-${VERSION:-Unknown}}"
 
- echo "${script_name}"
- echo "${description}"
+ echo "${SCRIPT_NAME}"
+ echo "${DESCRIPTION}"
  echo
  echo "Usage: source bin/$(basename "${BASH_SOURCE[0]}")"
  echo
- if [[ -n "${functions_list}" ]]; then
+ if [[ -n "${FUNCTIONS_LIST}" ]]; then
   echo "Available functions:"
-  echo -e "${functions_list}"
+  echo -e "${FUNCTIONS_LIST}"
   echo
  fi
  echo "Author: Andres Gomez (AngocA)"
- echo "Version: ${version}"
+ echo "Version: ${VERSION}"
  exit "${ERROR_HELP_MESSAGE:-1}"
 }
 
@@ -414,15 +414,15 @@ function __validate_input_file() {
 #   $@: List of file paths to validate
 # Returns: 0 if all validations pass, 1 if any fail
 function __validate_input_files() {
- local all_valid=true
+ local ALL_VALID=true
 
- for file_path in "$@"; do
-  if ! __validate_input_file "${file_path}"; then
-   all_valid=false
+ for FILE_PATH in "$@"; do
+  if ! __validate_input_file "${FILE_PATH}"; then
+   ALL_VALID=false
   fi
  done
 
- if [[ "${all_valid}" == true ]]; then
+ if [[ "${ALL_VALID}" == true ]]; then
   __logi "All input files validation passed"
   return 0
  else
