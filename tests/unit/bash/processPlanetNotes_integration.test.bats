@@ -164,7 +164,7 @@ teardown() {
    "sql/process/processPlanetNotes_24_createSyncTables.sql"
    "sql/process/processPlanetNotes_25_createCountryTables.sql"
    "sql/process/processPlanetNotes_25_createPartitions.sql"
-   "sql/process/processPlanetNotes_31_analyzeVacuum.sql"
+   "sql/consolidated_cleanup.sql"
    "sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
    "sql/process/processPlanetNotes_42_consolidatePartitions.sql"
    "sql/process/processPlanetNotes_43_moveSyncToMain.sql"

@@ -29,7 +29,7 @@ load "../../test_helper.bash"
 
 @test "insert_note_comment procedure should be dropped in Generic Objects" {
   # Verify the dependent procedure is dropped
-  grep -q "DROP PROCEDURE IF EXISTS insert_note_comment" "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
+  grep -q "DROP PROCEDURE IF EXISTS insert_note_comment" "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
 }
 
 @test "dependency error scenario should be resolved" {

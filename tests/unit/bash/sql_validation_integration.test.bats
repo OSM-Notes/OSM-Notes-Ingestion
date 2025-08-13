@@ -166,8 +166,8 @@ EOF
 }
 
 # Test that the specific problematic file is now valid
-@test "processPlanetNotes_31_analyzeVacuum.sql should be valid" {
- local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_31_analyzeVacuum.sql"
+@test "consolidated_cleanup.sql should be valid" {
+  local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
  
  # Check if file exists
  if [[ ! -f "$sql_file" ]]; then

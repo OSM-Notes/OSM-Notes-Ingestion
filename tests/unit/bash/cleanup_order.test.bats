@@ -32,13 +32,13 @@ setup() {
 
 @test "dropGenericObjects script should drop insert_note_comment procedure" {
   # Check that the script drops the procedure that depends on the enum
-  grep -q "DROP PROCEDURE.*insert_note_comment" "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
+  grep -q "DROP PROCEDURE.*insert_note_comment" "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
 }
 
 @test "cleanup scripts should exist and be readable" {
   # Verify all cleanup scripts exist
-  [ -f "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql" ]
-  [ -r "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql" ]
+  [ -f "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql" ]
+  [ -r "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql" ]
   
   [ -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql" ]
   [ -r "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql" ]
@@ -49,7 +49,7 @@ setup() {
   source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
   
   # Validate Generic Objects script
-  run __validate_sql_structure "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
+  run __validate_sql_structure "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
   [ "$status" -eq 0 ]
   
   # Validate Base Tables script

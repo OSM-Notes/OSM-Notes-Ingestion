@@ -88,7 +88,7 @@ declare -r OUTPUT_TEXT_COMMENTS_CSV_FILE="${TMP_DIR}/output-text_comments.csv"
 # Check base tables.
 declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
 declare -r POSTGRES_11_CHECK_HISTORICAL_DATA="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkHistoricalData.sql"
-declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
+declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
 declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
 declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
 declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
@@ -1753,12 +1753,6 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    # TODO: Could this be removed?
-    #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-    #  FROM notes
-    #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-    #  AND id_country IS NULL"
-    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
 
     if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
      __logd "Updating incorrectly located notes."
@@ -1773,13 +1767,6 @@ function __getLocationNotes {
      __logt "${STMT}"
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
-
-    # TODO: Could this be removed?
-    #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-    #  FROM notes
-    #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-    #  AND id_country IS NULL"
-    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
 
     STMT="UPDATE notes /* Notes-base thread old */
       SET id_country = get_country(longitude, latitude, note_id)
@@ -1809,12 +1796,6 @@ function __getLocationNotes {
     MIN_LOOP=$((I - LOOP_SIZE))
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-    # TODO: Could this be removed?
-    #STMT="SELECT COUNT(1), 'Notes without country - before - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-    #  FROM notes
-    #  WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-    #  AND id_country IS NULL"
-    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
 
     if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
      __logd "Updating incorrectly located notes."
@@ -1829,13 +1810,6 @@ function __getLocationNotes {
      __logt "${STMT}"
      echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
     fi
-
-    # TODO: Could this be removed?
-    #STMT="SELECT COUNT(1), 'Notes without country - after - ${J}: ${MIN_LOOP}-${MAX_LOOP}'
-    #  FROM notes
-    #  WHERE ${MIN_LOOP} <= note_id AND note_id < ${MAX_LOOP}
-    #  AND id_country IS NULL"
-    #echo "${STMT}" | psql -d "${DBNAME}" -t -v ON_ERROR_STOP=1
 
     STMT="UPDATE notes /* Notes-base thread old */
       SET id_country = get_country(longitude, latitude, note_id)

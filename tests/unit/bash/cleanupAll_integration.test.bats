@@ -106,8 +106,8 @@ load ../../test_helper.bash
     "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_14_dropCountryTables.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_12_dropGenericObjects.sql"
+    "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
+    "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
   )
   
   for SQL_FILE in "${SQL_FILES[@]}"; do
