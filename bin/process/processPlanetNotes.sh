@@ -418,7 +418,7 @@ function __checkPrereqs {
  fi
 
  ## Validate test files
- __logi "Validating test files..."
+ __logi "Validating JSON schema files..."
  if ! __validate_input_file "${GEOJSON_TEST}" "GeoJSON test file"; then
   __loge "ERROR: GeoJSON test file validation failed: ${GEOJSON_TEST}"
   exit "${ERROR_MISSING_LIBRARY}"

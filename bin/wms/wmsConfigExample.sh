@@ -110,6 +110,7 @@ validate_properties() {
  local ERRORS=0
 
  # Call the validation function from wms.properties.sh
+ # Call the validation function from wms.properties.sh
  if __validate_wms_properties; then
   print_status "${GREEN}" "✅ All WMS properties are valid"
  else
@@ -143,10 +144,10 @@ validate_properties() {
   ((ERRORS++))
  fi
 
- if [[ $ERRORS -eq 0 ]]; then
+ if [[ ${ERRORS} -eq 0 ]]; then
   print_status "${GREEN}" "✅ All validations passed"
  else
-  print_status "${RED}" "❌ Found $ERRORS validation errors"
+  print_status "${RED}" "❌ Found ${ERRORS} validation errors"
   exit 1
  fi
 }

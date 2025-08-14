@@ -25,19 +25,110 @@ jobs:
 
   bats-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: osm_notes_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install bats
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y bats
+        sudo apt-get install -y \
+          bats \
+          postgresql-client \
+          libxml2-utils \
+          xsltproc \
+          shellcheck \
+          curl
 
-    - name: Run unit tests
+    - name: Install shfmt (if not available)
       run: |
-        echo "Running unit tests..."
-        bats tests/unit/bash/
+        if ! command -v shfmt; then
+          echo "shfmt not found, installing from GitHub..."
+          chmod +x tests/install_shfmt.sh
+          ./tests/install_shfmt.sh
+        else
+          echo "shfmt already available"
+        fi
+
+    - name: Setup test environment
+      run: |
+        mkdir -p tests/tmp
+        mkdir -p tests/results
+        chmod +x tests/run_integration_tests.sh
+
+    - name: Verify tools availability
+      run: |
+        echo "Verifying required tools are available..."
+        command -v xsltproc && echo "✓ xsltproc available"
+        command -v xmllint && echo "✓ xmllint available"
+        command -v shfmt && echo "✓ shfmt available"
+        command -v shellcheck && echo "✓ shellcheck available"
+        command -v bats && echo "✓ bats available"
+        command -v psql && echo "✓ psql available"
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U postgres; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Set up test environment variables
+      run: |
+        export TEST_DBNAME=osm_notes_test
+        export TEST_DBUSER=postgres
+        export TEST_DBPASSWORD=postgres
+        export TEST_DBHOST=localhost
+        export TEST_DBPORT=5432
+        export LOG_LEVEL=INFO
+        export MAX_THREADS=2
+        # Set legacy variables for backward compatibility
+        export DBNAME=osm_notes_test
+        export DB_USER=postgres
+        export DBPASSWORD=postgres
+        export DBHOST=localhost
+        export DBPORT=5432
+
+    - name: Run quick integration tests
+      run: |
+        # Run only the most critical integration tests
+        echo "Running critical integration tests..."
+        bats tests/unit/bash/processAPINotes_integration.test.bats
+        bats tests/unit/bash/cleanupAll_integration.test.bats
+        # Use the corrected version that works in CI
+        if [[ -f "tests/unit/bash/processPlanetNotes_integration_fixed.test.bats" ]]; then
+          bats tests/unit/bash/processPlanetNotes_integration_fixed.test.bats
+        else
+          echo "Warning: processPlanetNotes_integration_fixed.test.bats not found, skipping"
+        fi
+      env:
+        TEST_DBNAME: osm_notes_test
+        TEST_DBUSER: postgres
+        TEST_DBPASSWORD: postgres
+        TEST_DBHOST: localhost
+        TEST_DBPORT: 5432
+        DBNAME: osm_notes_test
+        DB_USER: postgres
+        DBPASSWORD: postgres
+        DBHOST: localhost
+        DBPORT: 5432
+        LOG_LEVEL: INFO
+        MAX_THREADS: 2
 
   integration-tests-quick:
     runs-on: ubuntu-latest
@@ -84,6 +175,7 @@ jobs:
     - name: Setup test environment
       run: |
         mkdir -p tests/tmp
+        mkdir -p tests/results
         chmod +x tests/run_integration_tests.sh
 
     - name: Verify tools availability
@@ -103,6 +195,22 @@ jobs:
           sleep 2
         done
 
+    - name: Set up test environment variables
+      run: |
+        export TEST_DBNAME=osm_notes_test
+        export TEST_DBUSER=postgres
+        export TEST_DBPASSWORD=postgres
+        export TEST_DBHOST=localhost
+        export TEST_DBPORT=5432
+        export LOG_LEVEL=INFO
+        export MAX_THREADS=2
+        # Set legacy variables for backward compatibility
+        export DBNAME=osm_notes_test
+        export DB_USER=postgres
+        export DBPASSWORD=postgres
+        export DBHOST=localhost
+        export DBPORT=5432
+
     - name: Run quick integration tests
       run: |
         # Run only the most critical integration tests
@@ -116,11 +224,18 @@ jobs:
           echo "Warning: processPlanetNotes_integration_fixed.test.bats not found, skipping"
         fi
       env:
+        TEST_DBNAME: osm_notes_test
+        TEST_DBUSER: postgres
+        TEST_DBPASSWORD: postgres
+        TEST_DBHOST: localhost
+        TEST_DBPORT: 5432
+        DBNAME: osm_notes_test
+        DB_USER: postgres
+        DBPASSWORD: postgres
         DBHOST: localhost
         DBPORT: 5432
-        DBUSER: postgres
-        DBPASSWORD: postgres
-        DBNAME: osm_notes_test
+        LOG_LEVEL: INFO
+        MAX_THREADS: 2
 
   security-scan:
     runs-on: ubuntu-latest

@@ -310,6 +310,7 @@ upload_style() {
 install_geoserver_config() {
  print_status "${BLUE}" "🚀 Installing GeoServer configuration..."
 
+ # Check if GeoServer is already configured
  if is_geoserver_configured; then
   if [[ "${FORCE:-false}" != "true" ]]; then
    print_status "${YELLOW}" "⚠️  GeoServer is already configured. Use --force to reconfigure."

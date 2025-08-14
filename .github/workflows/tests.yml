@@ -1,6 +1,6 @@
 # GitHub Actions Workflow for OSM-Notes-profile Tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-08-14
 
 # This workflow runs comprehensive tests for the OSM-Notes-profile project
 # including unit tests, integration tests, performance tests, security scans,
@@ -96,70 +96,37 @@ jobs:
         export TEST_DBPORT=5432
         export LOG_LEVEL=INFO
         export MAX_THREADS=2
+        # Set legacy variables for backward compatibility
+        export DBNAME=osm_notes_test
+        export DB_USER=testuser
+        export DBPASSWORD=testpass
+        export DBHOST=localhost
+        export DBPORT=5432
 
     - name: Create results directory
       run: |
         mkdir -p tests/results
+        mkdir -p tests/output
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U testuser; do
+          sleep 1
+        done
 
     - name: Run unit tests
       run: |
-        chmod +x tests/run_ci_tests_simple.sh
-        ./tests/run_ci_tests_simple.sh 2>&1 | tee tests/results/unit-tests.log
+        echo "Running unit tests..."
+        bats tests/unit/bash/ 2>&1 | tee tests/results/unit-tests.log
 
-    - name: Check Bash variable naming convention
-      run: |
-        if command -v bats; then
-          bats tests/unit/bash/variable_naming_convention.test.bats
-        else
-          echo "BATS not available, skipping variable naming tests"
-        fi
-
-    - name: Check Bash formatting and linting
-      run: |
-        if command -v shfmt && command -v shellcheck; then
-          bats tests/unit/bash/format_and_lint.test.bats
-        else
-          echo "Formatting tools not available, skipping format tests"
-        fi
-
-    - name: Run XSLT tests
-      run: |
-        if command -v xsltproc && command -v xmllint; then
-          bats tests/unit/bash/xslt_simple.test.bats
-          bats tests/unit/bash/xslt_enum_validation.test.bats
-        else
-          echo "XSLT tools not available, skipping XSLT tests"
-        fi
-
-    - name: Run integration tests (if tools available)
-      run: |
-        if command -v xsltproc && command -v xmllint; then
-          echo "Running integration tests with XSLT support..."
-          bats tests/unit/bash/edge_cases_integration.test.bats || echo "Edge cases integration tests failed"
-          bats tests/unit/bash/hybrid_integration.test.bats || echo "Hybrid integration tests failed"
-          bats tests/unit/bash/real_data_integration.test.bats || echo "Real data integration tests failed"
-          bats tests/unit/bash/resource_limits.test.bats || echo "Resource limits tests failed"
-        else
-          echo "XSLT tools not available, skipping integration tests that require XSLT"
-        fi
-
-    - name: Run ShellCheck
-      run: |
-        if command -v shellcheck; then
-          find . -name "*.sh" -exec shellcheck {} \; > shellcheck-results.txt 2>&1 || true
-        else
-          echo "ShellCheck not available, skipping shell script analysis"
-          echo "ShellCheck not available" > shellcheck-results.txt
-        fi
-
-    - name: Upload test results
+    - name: Upload unit test results
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: unit-test-results
         path: |
           tests/results/
-          shellcheck-results.txt
+          tests/output/
         if-no-files-found: warn
 
   # DWH Enhanced Tests
@@ -170,7 +137,7 @@ jobs:
     
     services:
       postgres:
-        image: postgis/postgis:15-3.3
+        image: postgres:15
         env:
           POSTGRES_DB: osm_notes_test
           POSTGRES_USER: testuser
@@ -190,20 +157,23 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          postgresql-client \
-          bats \
-          shellcheck
+        sudo apt-get install -y postgresql-client
 
     - name: Set up test environment
       run: |
+        export TEST_DBNAME=osm_notes_test
+        export TEST_DBUSER=testuser
+        export TEST_DBPASSWORD=testpass
+        export TEST_DBHOST=localhost
+        export TEST_DBPORT=5432
+        export LOG_LEVEL=INFO
+        export MAX_THREADS=2
+        # Set legacy variables for backward compatibility
         export DBNAME=osm_notes_test
-        export DBUSER=testuser
+        export DB_USER=testuser
         export DBPASSWORD=testpass
         export DBHOST=localhost
         export DBPORT=5432
-        export LOG_LEVEL=INFO
-        export MAX_THREADS=2
 
     - name: Wait for PostgreSQL
       run: |
@@ -211,8 +181,16 @@ jobs:
           sleep 1
         done
 
+    - name: Install base schema (enums and base tables)
+      run: |
+        echo "Installing base schema..."
+        psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_21_createBaseTables_enum.sql
+        psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_22_createBaseTables_tables.sql
+        psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_23_createBaseTables_constraints.sql
+
     - name: Install DWH schema
       run: |
+        echo "Installing DWH schema..."
         psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_22_createDWHTables.sql
         psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_24_addFunctions.sql
         psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_25_populateDimensionTables.sql

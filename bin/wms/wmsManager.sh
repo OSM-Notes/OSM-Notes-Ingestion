@@ -155,7 +155,6 @@ install_wms() {
  print_status "${BLUE}" "🚀 Installing WMS components..."
 
  # Check if WMS is already installed
- # Check if WMS is installed
  if is_wms_installed; then
   if [[ "${FORCE}" != "true" ]]; then
    print_status "${YELLOW}" "⚠️  WMS is already installed. Use --force to reinstall."
@@ -313,6 +312,10 @@ main() {
    ;;
   status)
    show_status
+   ;;
+  *)
+   print_status "${RED}" "❌ ERROR: Unknown subcommand: ${COMMAND}"
+   exit 1
    ;;
   esac
   ;;
