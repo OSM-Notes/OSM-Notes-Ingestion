@@ -293,29 +293,7 @@ function __cleanup_on_exit() {
 # Set trap to handle cleanup on any exit (after loading logging functions)
 trap '__cleanup_on_exit' EXIT
 
-# Shows the help information.
-function __show_help {
- echo "${BASENAME} version ${VERSION}"
- echo "This is a script that downloads the OSM notes from the Planet,"
- echo "processes them with a XSLT transformation, to create a flat file,"
- echo "and finally it uploads them into a PostgreSQL database."
- echo
- echo "It could receive one of these parameters:"
- echo " * --base : to starts from scratch from Planet notes file, including the"
- echo "     boundaries."
- echo " * --boundaries : processes the countries and maritimes areas only."
- echo " * Without parameter, it processes the new notes from Planet notes file."
- echo
- echo "Environment variable:"
- echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
- echo "   backup tables."
- echo " * CLEAN could be set to false, to left all created files."
- echo " * LOG_LEVEL specifies the logger levels. Possible values are:"
- echo "   DEBUG, INFO, WARN, ERROR"
- echo
- echo "Written by: Andres Gomez (AngocA)"
- echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
-}
+
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
@@ -1118,7 +1096,6 @@ function main() {
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
-  exit "${ERROR_HELP_MESSAGE}"
  else
   if [[ "${PROCESS_TYPE}" == "" ]]; then
    __logi "Process: Imports new notes from Planet."
@@ -1232,6 +1209,31 @@ function main() {
 
 # Allows other users to read the directory.
 chmod go+x "${TMP_DIR}"
+
+# Shows the help information.
+function __show_help {
+ echo "${BASENAME} version ${VERSION}"
+ echo "This is a script that downloads the OSM notes from the Planet,"
+ echo "processes them with a XSLT transformation, to create a flat file,"
+ echo "and finally it uploads them into a PostgreSQL database."
+ echo
+ echo "It could receive one of these parameters:"
+ echo " * --base : to starts from scratch from Planet notes file, including the"
+ echo "     boundaries."
+ echo " * --boundaries : processes the countries and maritimes areas only."
+ echo " * Without parameter, it processes the new notes from Planet notes file."
+ echo
+ echo "Environment variable:"
+ echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
+ echo "   backup tables."
+ echo " * CLEAN could be set to false, to left all created files."
+ echo " * LOG_LEVEL specifies the logger levels. Possible values are:"
+ echo "   DEBUG, INFO, WARN, ERROR"
+ echo
+ echo "Written by: Andres Gomez (AngocA)"
+ echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+ exit "${ERROR_HELP_MESSAGE}"
+}
 
 __start_logger
 if [[ ! -t 1 ]]; then
