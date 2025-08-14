@@ -606,9 +606,9 @@ function __processPlanetXmlPart() {
  # Process comments
  __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
- __log_finish
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+  __log_finish
   return 1
  fi
 
@@ -618,10 +618,10 @@ function __processPlanetXmlPart() {
 
  # Process text comments
  __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- __log_finish
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
+  __log_finish
   return 1
  fi
 
@@ -729,6 +729,7 @@ function __checkPrereqsCommands {
  if [[ "${PREREQS_CHECKED}" = true ]]; then
   __logd "Prerequisites already checked in this execution, skipping verification."
   __log_finish
+  return 0
  fi
  set +e
  ## PostgreSQL
@@ -1102,7 +1103,7 @@ function __downloadPlanetNotes {
  # PLANET_NOTES_FILE already includes .xml extension, so no renaming needed
  if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
   __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -1568,7 +1569,6 @@ function __processCountries {
   rm -f "${LOCK_OGR2OGR}/pid"
   rmdir "${LOCK_OGR2OGR}"
  fi
- __log_finish
 }
 
 # Download the list of maritimes areas, then it downloads each area
