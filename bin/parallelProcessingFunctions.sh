@@ -101,12 +101,12 @@ function __processXmlPartsParallel() {
  __log_finish
 }
 
-# Split XML for parallel processing (consolidated safe version)
+# Split XML file for parallel processing (consolidated safe version)
 # Parameters:
 #   $1: XML file path
 #   $2: Number of parts to split into (optional, default: 4)
 #   $3: Output directory (optional, default: TMP_DIR)
-#   $4: Format type (optional, "API" or "Planet", default: "API")
+#   $4: Format type (optional, default: API)
 # Returns: 0 on success, 1 on failure
 function __splitXmlForParallelSafe() {
  __log_start
@@ -119,7 +119,7 @@ function __splitXmlForParallelSafe() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Create output directory

@@ -12,8 +12,8 @@ load "../../test_helper.bash"
   CLEANUP_SECTION=$(grep -A 10 "local BASE_SCRIPTS=" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh")
   
   # Find line numbers for each script
-  GENERIC_LINE=$(echo "$CLEANUP_SECTION" | grep -n "functionsProcess_12_dropGenericObjects" | cut -d: -f1)
-  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_13_dropBaseTables" | cut -d: -f1)
+  GENERIC_LINE=$(echo "$CLEANUP_SECTION" | grep -n "consolidated_cleanup.sql:Generic Objects" | cut -d: -f1)
+  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_13_dropBaseTables.sql:Base Tables" | cut -d: -f1)
   
   # Generic Objects should come before Base Tables
   [ ! -z "$GENERIC_LINE" ]
@@ -38,12 +38,12 @@ load "../../test_helper.bash"
   
   # Solution 1: Correct execution order
   CLEANUP_SECTION=$(grep -A 10 "local BASE_SCRIPTS=" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh")
-  echo "$CLEANUP_SECTION" | grep -B1 -A1 "functionsProcess_12_dropGenericObjects"
-  echo "$CLEANUP_SECTION" | grep -B1 -A1 "processPlanetNotes_13_dropBaseTables"
+  echo "$CLEANUP_SECTION" | grep -B1 -A1 "consolidated_cleanup.sql:Generic Objects"
+  echo "$CLEANUP_SECTION" | grep -B1 -A1 "processPlanetNotes_13_dropBaseTables.sql:Base Tables"
   
   # Verify Generic Objects comes before Base Tables
-  GENERIC_LINE=$(echo "$CLEANUP_SECTION" | grep -n "functionsProcess_12_dropGenericObjects" | cut -d: -f1)
-  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_13_dropBaseTables" | cut -d: -f1)
+  GENERIC_LINE=$(echo "$CLEANUP_SECTION" | grep -n "consolidated_cleanup.sql:Generic Objects" | cut -d: -f1)
+  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_13_dropBaseTables.sql:Base Tables" | cut -d: -f1)
   [ "$GENERIC_LINE" -lt "$BASE_LINE" ]
   
   # Solution 2: CASCADE handles remaining dependencies automatically
