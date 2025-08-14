@@ -76,6 +76,7 @@ function __show_help() {
 
 # Validate input file (enhanced version with support for files, directories, and executables)
 function __validate_input_file() {
+ __log_start
  local FILE_PATH="${1}"
  local DESCRIPTION="${2:-File}"
  local EXPECTED_TYPE="${3:-file}"
@@ -84,6 +85,7 @@ function __validate_input_file() {
  # Check if file path is provided
  if [[ -z "${FILE_PATH}" ]]; then
   __loge "ERROR: ${DESCRIPTION} path is empty"
+ __log_finish
   return 1
  fi
 
@@ -125,15 +127,18 @@ function __validate_input_file() {
   for ERROR in "${VALIDATION_ERRORS[@]}"; do
    __loge "  - ${ERROR}"
   done
+ __log_finish
   return 1
  fi
 
  __logi "${DESCRIPTION} validation passed: ${FILE_PATH}"
+ __log_finish
  return 0
 }
 
 # Validate input files
 function __validate_input_files() {
+ __log_start
  local FILES=("$@")
  local FAILED=0
 
@@ -143,6 +148,7 @@ function __validate_input_files() {
   fi
  done
 
+ __log_finish
  return "${FAILED}"
 }
 
@@ -153,6 +159,7 @@ function __validate_xml_structure() {
 
 # Validate XML structure (internal implementation)
 function __validate_xml_structure_impl() {
+ __log_start
  local XML_FILE="${1}"
  local EXPECTED_ROOT="${2:-}"
 
@@ -160,6 +167,7 @@ function __validate_xml_structure_impl() {
  __logd "XML file: ${XML_FILE}"
 
  if ! __validate_input_file "${XML_FILE}" "XML file"; then
+ __log_finish
   return 1
  fi
 
@@ -174,15 +182,18 @@ function __validate_xml_structure_impl() {
   # Use lightweight validation for large files
   if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Missing expected root element in large XML file: ${XML_FILE}"
+ __log_finish
    return 1
   fi
   __logd "Large XML file validation passed: ${XML_FILE}"
+ __log_finish
   return 0
  fi
 
  # Use standard validation for smaller files
  if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Invalid XML syntax: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -190,34 +201,40 @@ function __validate_xml_structure_impl() {
  if [[ -n "${EXPECTED_ROOT}" ]]; then
   if ! grep -q "<${EXPECTED_ROOT}" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}"
+ __log_finish
    return 1
   fi
 
   # Check for required root element using grep (much faster for large files)
   if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Missing osm-notes or osm root element: ${XML_FILE}"
+ __log_finish
    return 1
   fi
 
   # Check for basic XML structure
   if ! grep -q "<?xml\|<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Invalid XML structure (missing XML declaration or root element): ${XML_FILE}"
+ __log_finish
    return 1
   fi
 
   __logi "Lightweight XML structure validation passed: ${XML_FILE}"
+ __log_finish
   return 0
  fi
 
  # Check if file is valid XML using xmllint (for smaller files)
  if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Invalid XML structure: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
  # Check for required root element (osm-notes for planet, osm for API)
  if ! (xmllint --xpath "//osm-notes" "${XML_FILE}" > /dev/null 2>&1 || xmllint --xpath "//osm" "${XML_FILE}" > /dev/null 2>&1); then
   __loge "ERROR: Missing osm-notes or osm root element: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -225,27 +242,32 @@ function __validate_xml_structure_impl() {
  if [[ -n "${EXPECTED_ROOT}" ]]; then
   if ! xmllint --xpath "//${EXPECTED_ROOT}" "${XML_FILE}" > /dev/null 2>&1; then
    __loge "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}"
+ __log_finish
    return 1
   fi
  fi
 
  __logi "XML structure validation passed: ${XML_FILE}"
  __logi "=== XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY ==="
+ __log_finish
  return 0
 }
 
 # Validate CSV structure
 function __validate_csv_structure() {
+ __log_start
  local CSV_FILE="${1}"
  local EXPECTED_COLUMNS="${2:-}"
 
  if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
+ __log_finish
   return 1
  fi
 
  # Check if file has content
  if [[ ! -s "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file is empty: ${CSV_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -254,6 +276,7 @@ function __validate_csv_structure() {
  FIRST_LINE=$(head -n 1 "${CSV_FILE}" 2> /dev/null)
  if [[ -z "${FIRST_LINE}" ]]; then
   __loge "ERROR: CSV file has no header: ${CSV_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -273,32 +296,38 @@ function __validate_csv_structure() {
 
   if [[ "${COLUMN_COUNT}" -ne "${EXPECTED_COUNT}" ]]; then
    __loge "ERROR: Expected ${EXPECTED_COUNT} columns, got ${COLUMN_COUNT}: ${CSV_FILE}"
+ __log_finish
    return 1
   fi
  fi
 
  __logi "CSV structure validation passed: ${CSV_FILE}"
+ __log_finish
  return 0
 }
 
 # Validate SQL structure
 function __validate_sql_structure() {
+ __log_start
  local SQL_FILE="${1}"
 
  # Basic file validation (but allow empty files for specific SQL validation)
  if [[ ! -f "${SQL_FILE}" ]]; then
   __loge "ERROR: SQL file does not exist: ${SQL_FILE}"
+ __log_finish
   return 1
  fi
 
  if [[ ! -r "${SQL_FILE}" ]]; then
   __loge "ERROR: SQL file is not readable: ${SQL_FILE}"
+ __log_finish
   return 1
  fi
 
  # Check if file is empty
  if [[ ! -s "${SQL_FILE}" ]]; then
   __loge "ERROR: SQL file is empty: ${SQL_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -312,6 +341,7 @@ function __validate_sql_structure() {
  if [[ ! -s "${TEMP_FILE}" ]]; then
   rm -f "${TEMP_FILE}"
   __loge "ERROR: No valid SQL statements found: ${SQL_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -320,6 +350,7 @@ function __validate_sql_structure() {
  # Check for basic SQL syntax (expanded list of SQL keywords)
  if ! grep -q -E "(CREATE|INSERT|UPDATE|DELETE|SELECT|DROP|ALTER|VACUUM|ANALYZE|REINDEX|CLUSTER|TRUNCATE|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|GRANT|REVOKE|EXPLAIN|COPY|IMPORT|EXPORT|LOCK|UNLOCK|SET|RESET|SHOW|DESCRIBE|USE|CONNECT|DISCONNECT)" "${SQL_FILE}"; then
   __loge "ERROR: No valid SQL statements found: ${SQL_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -331,49 +362,59 @@ function __validate_sql_structure() {
 
  if [[ "${OPEN_PARENS}" -ne "${CLOSE_PARENS}" ]]; then
   __loge "ERROR: Unbalanced parentheses in SQL file: ${SQL_FILE}"
+ __log_finish
   return 1
  fi
 
  __logi "SQL structure validation passed: ${SQL_FILE}"
+ __log_finish
  return 0
 }
 
 # Validate config file
 function __validate_config_file() {
+ __log_start 
  local CONFIG_FILE="${1}"
 
  if ! __validate_input_file "${CONFIG_FILE}" "Config file"; then
+ __log_finish
   return 1
  fi
 
  # Check for key-value pairs
  if ! grep -q '=' "${CONFIG_FILE}"; then
   __loge "ERROR: No key-value pairs found in config file: ${CONFIG_FILE}"
+ __log_finish
   return 1
  fi
 
  # Check for valid variable names (allow leading spaces)
  if grep -q -E '^[[:space:]]*[^A-Za-z_][^=]*=' "${CONFIG_FILE}"; then
   __loge "ERROR: Invalid variable names in config file: ${CONFIG_FILE}"
+ __log_finish
   return 1
  fi
 
  __logi "Config file validation passed: ${CONFIG_FILE}"
+ __log_finish
  return 0
 }
 
 # Validate JSON structure
 function __validate_json_structure() {
+ __log_start
  local JSON_FILE="${1}"
  local SCHEMA_FILE="${2:-}"
 
  if ! __validate_input_file "${JSON_FILE}" "JSON file"; then
+ __log_finish
   return 1
  fi
 
  # Check if file is valid JSON
  if ! jq empty "${JSON_FILE}" 2> /dev/null; then
   __loge "ERROR: Invalid JSON structure: ${JSON_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -382,6 +423,7 @@ function __validate_json_structure() {
   if command -v ajv > /dev/null 2>&1; then
    if ! ajv validate -s "${SCHEMA_FILE}" -d "${JSON_FILE}"; then
     __loge "ERROR: JSON validation against schema failed: ${JSON_FILE}"
+ __log_finish
     return 1
    fi
   else
@@ -390,6 +432,7 @@ function __validate_json_structure() {
  fi
 
  __logd "JSON structure validation passed: ${JSON_FILE}"
+ __log_finish
  return 0
 }
 
@@ -399,6 +442,7 @@ function __validate_json_structure() {
 # Los parámetros DBHOST, DBPORT y DBUSER solo son necesarios para pruebas en Docker, CI/CD
 # o entornos donde no se use peer.
 function __validate_database_connection() {
+ __log_start
  local DBNAME_PARAM="${1:-${DBNAME}}"
  local DBUSER_PARAM="${2:-${DB_USER}}"
  local DBHOST_PARAM="${3:-${DB_HOST}}"
@@ -407,31 +451,37 @@ function __validate_database_connection() {
  # Check if database name is provided
  if [[ -z "${DBNAME_PARAM}" ]]; then
   __loge "ERROR: Database name is required"
+ __log_finish
   return 1
  fi
 
  # Check if PostgreSQL client is available
  if ! command -v psql > /dev/null 2>&1; then
   __loge "ERROR: PostgreSQL client (psql) not available"
+ __log_finish
   return 1
  fi
 
  # Test database connection
  if [[ -n "${DBHOST_PARAM}" ]] || [[ -n "${DBPORT_PARAM}" ]] || [[ -n "${DBUSER_PARAM}" ]]; then
+ __log_finish
   # Usar parámetros personalizados (por ejemplo, en Docker o CI/CD)
   if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${DBHOST_PARAM}" -p "${DBPORT_PARAM}" -U "${DBUSER_PARAM}" -d "${DBNAME_PARAM}" -c "SELECT 1;" > /dev/null 2>&1; then
    __loge "ERROR: Database connection failed (host/port/user)"
+ __log_finish
    return 1
   fi
  else
   # Usar peer (local, sin usuario/contraseña)
   if ! psql -d "${DBNAME_PARAM}" -c "SELECT 1;" > /dev/null 2>&1; then
    __loge "ERROR: Database connection failed (peer)"
+ __log_finish
    return 1
   fi
  fi
 
  __logd "Database connection validation passed"
+ __log_finish
  return 0
 }
 
@@ -441,6 +491,7 @@ function __validate_database_connection() {
 # Los parámetros DBHOST, DBPORT y DBUSER solo son necesarios para pruebas en Docker, CI/CD
 # o entornos donde no se use peer.
 function __validate_database_tables() {
+ __log_start
  local DBNAME_PARAM="${1:-${DBNAME}}"
  local DBUSER_PARAM="${2:-${DB_USER}}"
  local DBHOST_PARAM="${3:-${DB_HOST}}"
@@ -450,16 +501,19 @@ function __validate_database_tables() {
  # Check if database name is provided
  if [[ -z "${DBNAME_PARAM}" ]]; then
   __loge "ERROR: Database name is required for table validation"
+ __log_finish
   return 1
  fi
 
  # Check if tables are provided for validation
  if [[ ${#TABLES[@]} -eq 0 ]]; then
   __loge "ERROR: No tables specified for validation"
+ __log_finish
   return 1
  fi
 
  if ! __validate_database_connection "${DBNAME_PARAM}" "${DBUSER_PARAM}" "${DBHOST_PARAM}" "${DBPORT_PARAM}"; then
+ __log_finish
   return 1
  fi
 
@@ -467,17 +521,20 @@ function __validate_database_tables() {
   if [[ -n "${DBHOST_PARAM}" ]] || [[ -n "${DBPORT_PARAM}" ]] || [[ -n "${DBUSER_PARAM}" ]]; then
    if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${DBHOST_PARAM}" -p "${DBPORT_PARAM}" -U "${DBUSER_PARAM}" -d "${DBNAME_PARAM}" -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${TABLE}';" | grep -q "1"; then
     __loge "ERROR: Table ${TABLE} does not exist in database ${DBNAME_PARAM} (host/port/user)"
+ __log_finish
     return 1
    fi
   else
    if ! psql -d "${DBNAME_PARAM}" -c "SELECT 1 FROM information_schema.tables WHERE table_name = '${TABLE}';" | grep -q "1"; then
     __loge "ERROR: Table ${TABLE} does not exist in database ${DBNAME_PARAM} (peer)"
+ __log_finish
     return 1
    fi
   fi
  done
 
  __logd "Database tables validation passed"
+ __log_finish
  return 0
 }
 
@@ -487,6 +544,7 @@ function __validate_database_tables() {
 # Los parámetros DBHOST, DBPORT y DBUSER solo son necesarios para pruebas en Docker, CI/CD
 # o entornos donde no se use peer.
 function __validate_database_extensions() {
+ __log_start
  local DBNAME_PARAM="${1:-${DBNAME}}"
  local DBUSER_PARAM="${2:-${DB_USER}}"
  local DBHOST_PARAM="${3:-${DB_HOST}}"
@@ -496,16 +554,19 @@ function __validate_database_extensions() {
  # Check if database name is provided
  if [[ -z "${DBNAME_PARAM}" ]]; then
   __loge "ERROR: Database name is required for extension validation"
+ __log_finish
   return 1
  fi
 
  # Check if extensions are provided for validation
  if [[ ${#EXTENSIONS[@]} -eq 0 ]]; then
   __loge "ERROR: No extensions specified for validation"
+ __log_finish
   return 1
  fi
 
  if ! __validate_database_connection "${DBNAME_PARAM}" "${DBUSER_PARAM}" "${DBHOST_PARAM}" "${DBPORT_PARAM}"; then
+ __log_finish
   return 1
  fi
 
@@ -513,34 +574,40 @@ function __validate_database_extensions() {
   if [[ -n "${DBHOST_PARAM}" ]] || [[ -n "${DBPORT_PARAM}" ]] || [[ -n "${DBUSER_PARAM}" ]]; then
    if ! PGPASSWORD="${DB_PASSWORD}" psql -h "${DBHOST_PARAM}" -p "${DBPORT_PARAM}" -U "${DBUSER_PARAM}" -d "${DBNAME_PARAM}" -c "SELECT 1 FROM pg_extension WHERE extname = '${EXTENSION}';" | grep -q "1"; then
     __loge "ERROR: Extension ${EXTENSION} is not installed in database ${DBNAME_PARAM} (host/port/user)"
+ __log_finish
     return 1
    fi
   else
    if ! psql -d "${DBNAME_PARAM}" -c "SELECT 1 FROM pg_extension WHERE extname = '${EXTENSION}';" | grep -q "1"; then
     __loge "ERROR: Extension ${EXTENSION} is not installed in database ${DBNAME_PARAM} (peer)"
+ __log_finish
     return 1
    fi
   fi
  done
 
  __logd "Database extensions validation passed"
+ __log_finish
  return 0
 }
 
 # Validate ISO8601 date format
 function __validate_iso8601_date() {
+ __log_start
  local DATE_STRING="${1}"
  local DESCRIPTION="${2:-Date}"
 
  # Check if date string is not empty
  if [[ -z "${DATE_STRING}" ]]; then
   __loge "ERROR: ${DESCRIPTION} is empty"
+ __log_finish
   return 1
  fi
 
  # Validate ISO8601 format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS+HH:MM)
  if ! echo "${DATE_STRING}" | grep -q -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$'; then
   __loge "ERROR: Invalid ISO8601 date format: ${DATE_STRING}"
+ __log_finish
   return 1
  fi
 
@@ -564,40 +631,47 @@ function __validate_iso8601_date() {
  # Validate ranges
  if [[ "${YEAR}" -lt 1900 ]] || [[ "${YEAR}" -gt 2100 ]]; then
   __loge "ERROR: Invalid year: ${YEAR}"
+ __log_finish
   return 1
  fi
 
  if [[ "${MONTH}" -lt 1 ]] || [[ "${MONTH}" -gt 12 ]]; then
   __loge "ERROR: Invalid month: ${MONTH}"
+ __log_finish
   return 1
  fi
 
  if [[ "${DAY}" -lt 1 ]] || [[ "${DAY}" -gt 31 ]]; then
   __loge "ERROR: Invalid day: ${DAY}"
+ __log_finish
   return 1
  fi
 
  if [[ "${HOUR}" -lt 0 ]] || [[ "${HOUR}" -gt 23 ]]; then
   __loge "ERROR: Invalid hour: ${HOUR}"
+ __log_finish
   return 1
  fi
 
  if [[ "${MINUTE}" -lt 0 ]] || [[ "${MINUTE}" -gt 59 ]]; then
   __loge "ERROR: Invalid minute: ${MINUTE}"
+ __log_finish
   return 1
  fi
 
  if [[ "${SECOND}" -lt 0 ]] || [[ "${SECOND}" -gt 59 ]]; then
   __loge "ERROR: Invalid second: ${SECOND}"
+ __log_finish
   return 1
  fi
-
  __logd "ISO8601 date validation passed: ${DATE_STRING}"
+ __log_finish
  return 0
 }
 
 # Validate XML dates (lightweight version for large files)
 function __validate_xml_dates() {
+ __log_start
  local XML_FILE="${1}"
  local XPATH_QUERIES=("${@:2}")
 
@@ -611,11 +685,13 @@ function __validate_xml_dates() {
   __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using lightweight date validation."
   __validate_xml_dates_lightweight "${XML_FILE}" "${XPATH_QUERIES[@]}"
   local LIGHTWEIGHT_RESULT=$?
+ __log_finish
   return "${LIGHTWEIGHT_RESULT}"
  fi
 
  # For smaller files, use standard validation
  if ! __validate_xml_structure "${XML_FILE}"; then
+ __log_finish
   return 1
  fi
 
@@ -680,6 +756,7 @@ function __validate_xml_dates() {
  done
 
  if [[ "${FAILED}" -eq 1 ]]; then
+ __log_finish
   return 1
  fi
 
@@ -687,13 +764,16 @@ function __validate_xml_dates() {
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
   __logd "XML dates validation passed: ${XML_FILE}"
  fi
+ __log_finish
  return 0
 }
 
 # Lightweight XML date validation for large files
 function __validate_xml_dates_lightweight() {
+ __log_start
  local XML_FILE="${1}"
  local XPATH_QUERIES=("${@:2}")
+
 
  __logd "Using lightweight XML date validation for large file: ${XML_FILE}"
 
@@ -771,11 +851,14 @@ function __validate_xml_dates_lightweight() {
     __logd "XML dates validation passed (sample-based): ${XML_FILE}"
     # Still check if there were malformed dates
     if [[ "${FAILED}" -eq 1 ]]; then
+     __log_finish
      return 1
     fi
+    __log_finish
     return 0
    else
     __loge "ERROR: Too many invalid dates found in sample (${VALID_PERCENTAGE}% valid)"
+ __log_finish
     return 1
    fi
   fi
@@ -785,8 +868,10 @@ function __validate_xml_dates_lightweight() {
  __logd "No dates found in XML file, skipping date validation: ${XML_FILE}"
  # Still check if there were malformed dates
  if [[ "${FAILED}" -eq 1 ]]; then
+  __log_finish
   return 1
  fi
+ __log_finish
  return 0
 }
 
@@ -796,6 +881,7 @@ function __validate_csv_dates() {
  local DATE_COLUMNS=("${@:2}")
 
  if ! __validate_csv_structure "${CSV_FILE}"; then
+ __log_finish
   return 1
  fi
 
@@ -837,15 +923,18 @@ function __validate_csv_dates() {
  done
 
  if [[ "${FAILED}" -eq 1 ]]; then
+  __log_finish
   return 1
  fi
 
  __logi "CSV dates validation passed: ${CSV_FILE}"
+ __log_finish
  return 0
 }
 
 # Validate file checksum
 function __validate_file_checksum() {
+ __log_start
  local FILE_PATH="${1}"
  local EXPECTED_CHECKSUM="${2}"
  local ALGORITHM="${3:-sha256}"
@@ -853,10 +942,12 @@ function __validate_file_checksum() {
  # Check for empty checksum
  if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
   __loge "ERROR: Expected checksum is empty"
+ __log_finish
   return 1
  fi
 
  if ! __validate_input_file "${FILE_PATH}" "File for checksum validation"; then
+ __log_finish
   return 1
  fi
 
@@ -877,6 +968,7 @@ function __validate_file_checksum() {
   ;;
  *)
   __loge "ERROR: ${ALGORITHM} checksum validation failed - Invalid algorithm"
+ __log_finish
   return 1
   ;;
  esac
@@ -884,31 +976,37 @@ function __validate_file_checksum() {
  # Compare checksums
  if [[ "${ACTUAL_CHECKSUM}" != "${EXPECTED_CHECKSUM}" ]]; then
   __loge "ERROR: ${ALGORITHM} checksum validation failed - Checksum mismatch for ${FILE_PATH}. Expected: ${EXPECTED_CHECKSUM}, Actual: ${ACTUAL_CHECKSUM}"
+ __log_finish
   return 1
  fi
 
  __logd "${ALGORITHM} checksum validation passed"
+ __log_finish
  return 0
 }
 
 # Validate file checksum from file
 function __validate_file_checksum_from_file() {
+ __log_start
  local FILE_PATH="${1}"
  local CHECKSUM_FILE="${2}"
  local ALGORITHM="${3:-sha256}"
 
  if ! __validate_input_file "${FILE_PATH}" "File"; then
+ __log_finish
   return 1
  fi
 
  # Check if checksum file exists and is readable, but allow empty files
  if [[ ! -f "${CHECKSUM_FILE}" ]]; then
   __loge "ERROR: Checksum file not found: ${CHECKSUM_FILE}"
+ __log_finish
   return 1
  fi
 
  if [[ ! -r "${CHECKSUM_FILE}" ]]; then
   __loge "ERROR: Checksum file not readable: ${CHECKSUM_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -928,11 +1026,13 @@ function __validate_file_checksum_from_file() {
 
  if [[ -z "${EXPECTED_CHECKSUM}" ]]; then
   __loge "ERROR: Could not extract checksum from file: ${CHECKSUM_FILE}"
+ __log_finish
   return 1
  fi
 
  # Validate checksum
  if ! __validate_file_checksum "${FILE_PATH}" "${EXPECTED_CHECKSUM}" "${ALGORITHM}"; then
+ __log_finish
   return 1
  fi
 
@@ -941,11 +1041,13 @@ function __validate_file_checksum_from_file() {
 
 # Generate file checksum
 function __generate_file_checksum() {
+ __log_start
  local FILE_PATH="${1}"
  local ALGORITHM="${2:-sha256}"
  local OUTPUT_FILE="${3:-}"
 
  if ! __validate_input_file "${FILE_PATH}" "File for checksum generation"; then
+ __log_finish
   return 1
  fi
 
@@ -965,6 +1067,7 @@ function __generate_file_checksum() {
   ;;
  *)
   __loge "ERROR: Invalid algorithm: ${ALGORITHM}"
+ __log_finish
   return 1
   ;;
  esac
@@ -993,21 +1096,25 @@ function __generate_file_checksum() {
  fi
 
  echo "${CHECKSUM}"
+ __log_finish
  return 0
 }
 
 # Validate directory checksums
 function __validate_directory_checksums() {
+ __log_start
  local DIRECTORY="${1}"
  local CHECKSUM_FILE="${2}"
  local ALGORITHM="${3:-sha256}"
 
  if [[ ! -d "${DIRECTORY}" ]]; then
   __loge "ERROR: Directory validation failed"
+ __log_finish
   return 1
  fi
 
  if ! __validate_input_file "${CHECKSUM_FILE}" "Checksum file"; then
+ __log_finish
   return 1
  fi
 
@@ -1027,44 +1134,53 @@ function __validate_directory_checksums() {
 
  if [[ "${FAILED}" -eq 1 ]]; then
   __loge "ERROR: Directory checksum validation failed"
+ __log_finish
   return 1
  fi
 
  __logd "Directory checksum validation passed"
+ __log_finish
  return 0
 }
 
 # Validate JSON schema
 function __validate_json_schema() {
+ __log_start
  local JSON_FILE="${1}"
  local SCHEMA_FILE="${2}"
 
  if ! __validate_input_file "${JSON_FILE}" "JSON file"; then
+ __log_finish
   return 1
  fi
 
  if ! __validate_input_file "${SCHEMA_FILE}" "JSON schema file"; then
+ __log_finish
   return 1
  fi
 
  # Check if ajv is available
  if ! command -v ajv > /dev/null 2>&1; then
   __loge "ERROR: ajv (JSON schema validator) not available"
+ __log_finish
   return 1
  fi
 
  # Validate JSON against schema
  if ! ajv validate -s "${SCHEMA_FILE}" -d "${JSON_FILE}"; then
   __loge "ERROR: JSON schema validation failed: ${JSON_FILE}"
+ __log_finish
   return 1
  fi
 
  __logd "JSON schema validation passed: ${JSON_FILE}"
+ __log_finish
  return 0
 }
 
 # Validate coordinates (enhanced version with precision control and better error reporting)
 function __validate_coordinates() {
+ __log_start
  local LATITUDE="${1}"
  local LONGITUDE="${2}"
  local PRECISION="${3:-7}"
@@ -1110,6 +1226,7 @@ function __validate_coordinates() {
   for ERROR in "${VALIDATION_ERRORS[@]}"; do
    __loge "  - ${ERROR}"
   done
+ __log_finish
   return 1
  fi
 
@@ -1117,11 +1234,13 @@ function __validate_coordinates() {
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
   __logd "Coordinate validation passed: lat=${LATITUDE}, lon=${LONGITUDE}"
  fi
+ __log_finish
  return 0
 }
 
 # Validate numeric range
 function __validate_numeric_range() {
+ __log_start
  local VALUE="${1}"
  local MIN="${2}"
  local MAX="${3}"
@@ -1130,12 +1249,14 @@ function __validate_numeric_range() {
  # Check if value is numeric
  if ! [[ "${VALUE}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
   __loge "ERROR: Invalid numeric format: ${VALUE}"
+ __log_finish
   return 1
  fi
 
  # Validate range
  if (($(echo "${VALUE} < ${MIN}" | bc -l 2> /dev/null || echo "0"))) || (($(echo "${VALUE} > ${MAX}" | bc -l 2> /dev/null || echo "0"))); then
   __loge "ERROR: ${DESCRIPTION} out of range (${MIN} to ${MAX}): ${VALUE}"
+ __log_finish
   return 1
  fi
 
@@ -1143,17 +1264,20 @@ function __validate_numeric_range() {
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
   __logd "Numeric range validation passed: ${VALUE}"
  fi
+ __log_finish
  return 0
 }
 
 # Validate string pattern
 function __validate_string_pattern() {
+ __log_start
  local STRING="${1}"
  local PATTERN="${2}"
  local DESCRIPTION="${3:-String}"
 
  if [[ ! "${STRING}" =~ ${PATTERN} ]]; then
   __loge "ERROR: ${DESCRIPTION} does not match pattern: ${STRING}"
+ __log_finish
   return 1
  fi
 
@@ -1161,6 +1285,7 @@ function __validate_string_pattern() {
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
   __logd "String pattern validation passed: ${STRING}"
  fi
+ __log_finish
  return 0
 }
 
@@ -1170,11 +1295,13 @@ function __validate_string_pattern() {
 
 # Validate CSV coordinates
 function __validate_csv_coordinates() {
+ __log_start
  local CSV_FILE="${1}"
  local LAT_COLUMN="${2:-lat}"
  local LON_COLUMN="${3:-lon}"
 
  if ! __validate_input_file "${CSV_FILE}" "CSV file"; then
+ __log_finish
   return 1
  fi
 
@@ -1187,6 +1314,7 @@ function __validate_csv_coordinates() {
 
  if [[ -z "${LAT_INDEX}" ]] || [[ -z "${LON_INDEX}" ]]; then
   __loge "ERROR: Coordinate columns not found: ${LAT_COLUMN}, ${LON_COLUMN}"
+ __log_finish
   return 1
  fi
 
@@ -1206,6 +1334,7 @@ function __validate_csv_coordinates() {
 
  if [[ "${FAILED}" -eq 1 ]]; then
   __loge "ERROR: CSV coordinate validation failed"
+ __log_finish
   return 1
  fi
 
@@ -1213,11 +1342,13 @@ function __validate_csv_coordinates() {
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
   __logd "CSV coordinate validation passed: ${CSV_FILE}"
  fi
+ __log_finish
  return 0
 }
 
 # Validate database variables
 function __validate_database_variables() {
+ __log_start
  # Check for minimal required variables (for peer authentication)
  local MINIMAL_VARS=("DBNAME" "DB_USER")
  local MISSING_MINIMAL=()
@@ -1230,6 +1361,7 @@ function __validate_database_variables() {
 
  if [[ ${#MISSING_MINIMAL[@]} -gt 0 ]]; then
   __loge "ERROR: Missing required database variables: ${MISSING_MINIMAL[*]}"
+ __log_finish
   return 1
  fi
 
@@ -1247,9 +1379,11 @@ function __validate_database_variables() {
 
   if [[ ${#MISSING_REMOTE[@]} -gt 0 ]]; then
    __loge "ERROR: Missing required remote database variables: ${MISSING_REMOTE[*]}"
+ __log_finish
    return 1
   fi
  fi
+ __log_finish
 
  __logd "Database variable validation passed"
  return 0
@@ -1257,17 +1391,20 @@ function __validate_database_variables() {
 
 # Validate date format
 function __validate_date_format() {
+ __log_start
  local DATE_STRING="${1}"
  local DESCRIPTION="${2:-Date}"
 
  if [[ -z "${DATE_STRING}" ]]; then
   __loge "ERROR: ${DESCRIPTION} is empty"
+ __log_finish
   return 1
  fi
 
  # Check if date string matches ISO 8601 format
  if ! [[ "${DATE_STRING}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
   __loge "ERROR: ${DESCRIPTION} does not match ISO 8601 format: ${DATE_STRING}"
+ __log_finish
   return 1
  fi
 
@@ -1282,42 +1419,49 @@ function __validate_date_format() {
   SECOND="${BASH_REMATCH[6]}"
  else
   __loge "ERROR: ${DESCRIPTION} format parsing failed: ${DATE_STRING}"
+ __log_finish
   return 1
  fi
 
  # Check year range
  if [[ $((10#${YEAR})) -lt 1900 ]] || [[ $((10#${YEAR})) -gt 2100 ]]; then
   __loge "ERROR: ${DESCRIPTION} year out of range: ${YEAR}"
+ __log_finish
   return 1
  fi
 
  # Check month range
  if [[ $((10#${MONTH})) -lt 1 ]] || [[ $((10#${MONTH})) -gt 12 ]]; then
   __loge "ERROR: ${DESCRIPTION} month out of range: ${MONTH}"
+ __log_finish
   return 1
  fi
 
  # Check day range
  if [[ $((10#${DAY})) -lt 1 ]] || [[ $((10#${DAY})) -gt 31 ]]; then
   __loge "ERROR: ${DESCRIPTION} day out of range: ${DAY}"
+ __log_finish
   return 1
  fi
 
  # Check hour range
  if [[ $((10#${HOUR})) -lt 0 ]] || [[ $((10#${HOUR})) -gt 23 ]]; then
   __loge "ERROR: ${DESCRIPTION} hour out of range: ${HOUR}"
+ __log_finish
   return 1
  fi
 
  # Check minute range
  if [[ $((10#${MINUTE})) -lt 0 ]] || [[ $((10#${MINUTE})) -gt 59 ]]; then
   __loge "ERROR: ${DESCRIPTION} minute out of range: ${MINUTE}"
+ __log_finish
   return 1
  fi
 
  # Check second range
  if [[ $((10#${SECOND})) -lt 0 ]] || [[ $((10#${SECOND})) -gt 59 ]]; then
   __loge "ERROR: ${DESCRIPTION} second out of range: ${SECOND}"
+ __log_finish
   return 1
  fi
 
@@ -1325,22 +1469,26 @@ function __validate_date_format() {
  if [[ "${LOG_LEVEL:-}" == "TRACE" ]]; then
   __logd "${DESCRIPTION} validation passed: ${DATE_STRING}"
  fi
+ __log_finish
  return 0
 }
 
 # Validate date format with UTC timezone
 function __validate_date_format_utc() {
+ __log_start
  local DATE_STRING="${1}"
  local DESCRIPTION="${2:-Date}"
 
  if [[ -z "${DATE_STRING}" ]]; then
   __loge "ERROR: ${DESCRIPTION} is empty"
+ __log_finish
   return 1
  fi
 
  # Check if date string matches format: YYYY-MM-DD HH:MM:SS UTC
  if ! [[ "${DATE_STRING}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC$ ]]; then
   __loge "ERROR: ${DESCRIPTION} does not match UTC format: ${DATE_STRING}"
+ __log_finish
   return 1
  fi
 
@@ -1355,45 +1503,53 @@ function __validate_date_format_utc() {
   SECOND="${BASH_REMATCH[6]}"
  else
   __loge "ERROR: ${DESCRIPTION} format parsing failed: ${DATE_STRING}"
+ __log_finish
   return 1
  fi
 
  # Check year range
  if [[ $((10#${YEAR})) -lt 1900 ]] || [[ $((10#${YEAR})) -gt 2100 ]]; then
   __loge "ERROR: ${DESCRIPTION} year out of range: ${YEAR}"
+ __log_finish
   return 1
  fi
 
  # Check month range
  if [[ $((10#${MONTH})) -lt 1 ]] || [[ $((10#${MONTH})) -gt 12 ]]; then
   __loge "ERROR: ${DESCRIPTION} month out of range: ${MONTH}"
+ __log_finish
   return 1
  fi
 
  # Check day range
  if [[ $((10#${DAY})) -lt 1 ]] || [[ $((10#${DAY})) -gt 31 ]]; then
   __loge "ERROR: ${DESCRIPTION} day out of range: ${DAY}"
+ __log_finish
   return 1
  fi
 
  # Check hour range
  if [[ $((10#${HOUR})) -lt 0 ]] || [[ $((10#${HOUR})) -gt 23 ]]; then
   __loge "ERROR: ${DESCRIPTION} hour out of range: ${HOUR}"
+ __log_finish
   return 1
  fi
 
  # Check minute range
  if [[ $((10#${MINUTE})) -lt 0 ]] || [[ $((10#${MINUTE})) -gt 59 ]]; then
   __loge "ERROR: ${DESCRIPTION} minute out of range: ${MINUTE}"
+ __log_finish
   return 1
  fi
 
  # Check second range
  if [[ $((10#${SECOND})) -lt 0 ]] || [[ $((10#${SECOND})) -gt 59 ]]; then
   __loge "ERROR: ${DESCRIPTION} second out of range: ${SECOND}"
+ __log_finish
   return 1
  fi
 
  __logt "${DESCRIPTION} validation passed: ${DATE_STRING}"
+ __log_finish
  return 0
 }

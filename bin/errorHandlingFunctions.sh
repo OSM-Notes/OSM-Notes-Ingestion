@@ -40,6 +40,7 @@ function __show_help() {
 
 # Circuit breaker pattern implementation
 function __circuit_breaker_execute() {
+ __log_start
  local OPERATION_NAME="${1}"
  local COMMAND="${2}"
  local FAILURE_THRESHOLD="${3:-5}"
@@ -48,6 +49,7 @@ function __circuit_breaker_execute() {
 
  if [[ -z "${OPERATION_NAME}" ]] || [[ -z "${COMMAND}" ]]; then
   __loge "ERROR: Operation name and command are required"
+ __log_finish
   return 1
  fi
 
@@ -65,6 +67,7 @@ function __circuit_breaker_execute() {
 
   if [[ "${TIME_SINCE_LAST_FAILURE}" -lt "${RESET_TIMEOUT}" ]]; then
    __logw "WARNING: Circuit breaker is OPEN for ${OPERATION_NAME}. Skipping operation."
+ __log_finish
    return 1
   else
    __logi "Circuit breaker reset to HALF_OPEN for ${OPERATION_NAME}"
@@ -82,6 +85,7 @@ function __circuit_breaker_execute() {
   CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]=0
   CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="CLOSED"
 
+ __log_finish
   return 0
  else
   EXIT_CODE=$?
@@ -97,12 +101,15 @@ function __circuit_breaker_execute() {
    CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="OPEN"
   fi
 
+ __log_finish
   return "${EXIT_CODE}"
  fi
+ __log_finish
 }
 
 # Download with retry
 function __download_with_retry() {
+ __log_start
  local URL="${1}"
  local OUTPUT_FILE="${2}"
  local MAX_ATTEMPTS="${3:-3}"
@@ -110,15 +117,18 @@ function __download_with_retry() {
 
  if [[ -z "${URL}" ]] || [[ -z "${OUTPUT_FILE}" ]]; then
   __loge "ERROR: URL and output file are required"
+ __log_finish
   return 1
  fi
 
  local COMMAND="curl -s -o '${OUTPUT_FILE}' '${URL}'"
  __circuit_breaker_execute "download_${URL}" "${COMMAND}" 3 "${TIMEOUT}" 120
+ __log_finish
 }
 
 # API call with retry
 function __api_call_with_retry() {
+ __log_start
  local URL="${1}"
  local OUTPUT_FILE="${2}"
  local MAX_ATTEMPTS="${3:-3}"
@@ -126,34 +136,41 @@ function __api_call_with_retry() {
 
  if [[ -z "${URL}" ]] || [[ -z "${OUTPUT_FILE}" ]]; then
   __loge "ERROR: URL and output file are required"
+ __log_finish
   return 1
  fi
 
  local COMMAND="curl -s -o '${OUTPUT_FILE}' '${URL}'"
  __circuit_breaker_execute "api_call_${URL}" "${COMMAND}" 3 "${TIMEOUT}" 120
+ __log_finish
 }
 
 # Database operation with retry
 function __database_operation_with_retry() {
+ __log_start
  local SQL_FILE="${1}"
  local MAX_ATTEMPTS="${2:-3}"
  local TIMEOUT="${3:-60}"
 
  if [[ -z "${SQL_FILE}" ]]; then
   __loge "ERROR: SQL file is required"
+ __log_finish
   return 1
  fi
 
  if ! __validate_input_file "${SQL_FILE}" "SQL file"; then
+ __log_finish
   return 1
  fi
 
  local COMMAND="PGPASSWORD='${DB_PASSWORD}' psql -h '${DB_HOST}' -p '${DB_PORT}' -U '${DB_USER}' -d '${DBNAME}' -f '${SQL_FILE}'"
  __circuit_breaker_execute "database_operation_${SQL_FILE}" "${COMMAND}" 3 "${TIMEOUT}" 300
+ __log_finish
 }
 
 # File operation with retry
 function __file_operation_with_retry() {
+ __log_start
  local OPERATION="${1}"
  local SOURCE="${2}"
  local DESTINATION="${3}"
@@ -161,6 +178,7 @@ function __file_operation_with_retry() {
 
  if [[ -z "${OPERATION}" ]] || [[ -z "${SOURCE}" ]]; then
   __loge "ERROR: Operation and source are required"
+ __log_finish
   return 1
  fi
 
@@ -169,6 +187,7 @@ function __file_operation_with_retry() {
  copy)
   if [[ -z "${DESTINATION}" ]]; then
    __loge "ERROR: Destination is required for copy operation"
+ __log_finish
    return 1
   fi
   COMMAND="cp '${SOURCE}' '${DESTINATION}'"
@@ -176,6 +195,7 @@ function __file_operation_with_retry() {
  move)
   if [[ -z "${DESTINATION}" ]]; then
    __loge "ERROR: Destination is required for move operation"
+ __log_finish
    return 1
   fi
   COMMAND="mv '${SOURCE}' '${DESTINATION}'"
@@ -185,15 +205,18 @@ function __file_operation_with_retry() {
   ;;
  *)
   __loge "ERROR: Unsupported operation: ${OPERATION}"
+ __log_finish
   return 1
   ;;
  esac
 
  __circuit_breaker_execute "file_operation_${OPERATION}_${SOURCE}" "${COMMAND}" 3 30 120
+ __log_finish
 }
 
 # Check network connectivity
 function __check_network_connectivity() {
+ __log_start
  local TIMEOUT="${1:-10}"
  local TEST_URL="${2:-https://www.google.com}"
 
@@ -203,16 +226,20 @@ function __check_network_connectivity() {
  if timeout "${TIMEOUT}" curl -s --max-time "${TIMEOUT}" "${TEST_URL}" > /dev/null 2>&1; then
   __logi "Network connectivity confirmed"
   __logi "=== NETWORK CONNECTIVITY CHECK COMPLETED SUCCESSFULLY ==="
+ __log_finish
   return 0
  else
   __loge "ERROR: Network connectivity failed"
   __logi "=== NETWORK CONNECTIVITY CHECK FAILED ==="
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Handle error with cleanup
 function __handle_error_with_cleanup() {
+ __log_start
  local ERROR_CODE="${1}"
  local ERROR_MESSAGE="${2}"
  local CLEANUP_COMMAND="${3:-}"
@@ -238,15 +265,18 @@ function __handle_error_with_cleanup() {
   echo "$(date): ${ERROR_MESSAGE}" >> "${FAILED_EXECUTION_FILE}"
  fi
 
+ __log_finish
  return "${ERROR_CODE}"
 }
 
 # Get circuit breaker status
 function __get_circuit_breaker_status() {
+ __log_start
  local OPERATION_NAME="${1}"
 
  if [[ -z "${OPERATION_NAME}" ]]; then
   __loge "ERROR: Operation name is required"
+ __log_finish
   return 1
  fi
 
@@ -258,14 +288,17 @@ function __get_circuit_breaker_status() {
  echo "State: ${STATE}"
  echo "Failure Count: ${FAILURE_COUNT}"
  echo "Last Failure Time: ${LAST_FAILURE_TIME}"
+ __log_finish
 }
 
 # Reset circuit breaker
 function __reset_circuit_breaker() {
  local OPERATION_NAME="${1}"
+ __log_start
 
  if [[ -z "${OPERATION_NAME}" ]]; then
   __loge "ERROR: Operation name is required"
+ __log_finish
   return 1
  fi
 
@@ -273,10 +306,12 @@ function __reset_circuit_breaker() {
  CIRCUIT_BREAKER_STATE[${OPERATION_NAME}]="CLOSED"
  CIRCUIT_BREAKER_FAILURE_COUNT[${OPERATION_NAME}]=0
  CIRCUIT_BREAKER_LAST_FAILURE_TIME[${OPERATION_NAME}]=0
+ __log_finish
 }
 
 # Retry file operation
 function __retry_file_operation() {
+ __log_start
  local OPERATION="${1}"
  local SOURCE="${2}"
  local DESTINATION="${3:-}"
@@ -285,6 +320,7 @@ function __retry_file_operation() {
 
  if [[ -z "${OPERATION}" ]] || [[ -z "${SOURCE}" ]]; then
   __loge "ERROR: Operation and source are required"
+ __log_finish
   return 1
  fi
 
@@ -298,31 +334,37 @@ function __retry_file_operation() {
   copy)
    if [[ -z "${DESTINATION}" ]]; then
     __loge "ERROR: Destination is required for copy operation"
+ __log_finish
     return 1
    fi
    if cp "${SOURCE}" "${DESTINATION}" 2> /dev/null; then
     __logi "File copy succeeded on attempt ${ATTEMPT}"
+ __log_finish
     return 0
    fi
    ;;
   move)
    if [[ -z "${DESTINATION}" ]]; then
     __loge "ERROR: Destination is required for move operation"
+ __log_finish
     return 1
    fi
    if mv "${SOURCE}" "${DESTINATION}" 2> /dev/null; then
     __logi "File move succeeded on attempt ${ATTEMPT}"
+ __log_finish
     return 0
    fi
    ;;
   delete)
    if rm -f "${SOURCE}" 2> /dev/null; then
     __logi "File delete succeeded on attempt ${ATTEMPT}"
+ __log_finish
     return 0
    fi
    ;;
   *)
    __loge "ERROR: Unsupported operation: ${OPERATION}"
+ __log_finish
    return 1
    ;;
   esac
@@ -337,6 +379,7 @@ function __retry_file_operation() {
 
   if [[ "${ATTEMPT}" -eq "${MAX_ATTEMPTS}" ]]; then
    __loge "ERROR: File operation failed after ${MAX_ATTEMPTS} attempts"
+ __log_finish
    return 1
   fi
 
@@ -350,5 +393,6 @@ function __retry_file_operation() {
   fi
  done
 
+ __log_finish
  return 1
 }

@@ -227,8 +227,8 @@ function __checkPrereqs {
 
  __checkPrereqs_functions
  __logi "=== PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
- __log_finish
  set -e
+ __log_finish
 }
 
 # Drop tables for notes from API.
@@ -306,6 +306,7 @@ function __getNewNotesFromApi {
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
   # shellcheck disable=SC2317
+ __log_finish
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
@@ -320,6 +321,7 @@ function __getNewNotesFromApi {
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
   # shellcheck disable=SC2317
+ __log_finish
   return "${ERROR_NO_LAST_UPDATE}"
  fi
 
@@ -331,6 +333,7 @@ function __getNewNotesFromApi {
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
    "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
   # shellcheck disable=SC2317
+ __log_finish
   return "${ERROR_NO_LAST_UPDATE}"
  fi
 
@@ -382,6 +385,7 @@ function __getNewNotesFromApi {
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
    "rm -f ${API_NOTES_FILE} ${OUTPUT_WGET} 2>/dev/null || true"
   # shellcheck disable=SC2317
+ __log_finish
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
@@ -392,6 +396,7 @@ function __getNewNotesFromApi {
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
    "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
   # shellcheck disable=SC2317
+ __log_finish
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
@@ -509,6 +514,7 @@ function __processApiXmlSequential {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" "${XML_FILE}"
  if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -517,6 +523,7 @@ function __processApiXmlSequential {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_FILE}"
  if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -525,6 +532,7 @@ function __processApiXmlSequential {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_FILE}"
  if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_FILE}"
+ __log_finish
   return 1
  fi
 

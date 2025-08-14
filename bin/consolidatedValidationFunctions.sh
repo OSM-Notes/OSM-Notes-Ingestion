@@ -39,6 +39,7 @@ function __show_help_library() {
 #   $3: Timeout in seconds (optional, default: 300)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_xml_with_enhanced_error_handling() {
+ __log_start
  local XML_FILE="${1}"
  local SCHEMA_FILE="${2:-}"
  local TIMEOUT="${3:-300}"
@@ -49,6 +50,7 @@ function __validate_xml_with_enhanced_error_handling() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -72,9 +74,11 @@ function __validate_xml_with_enhanced_error_handling() {
 
   if __validate_xml_structure_only "${XML_FILE}"; then
    __logi "Structure-only validation succeeded for very large file"
+   __log_finish
    return 0
   else
    __loge "ERROR: Structure-only validation failed"
+ __log_finish
    return 1
   fi
  elif [[ "${SIZE_MB}" -gt "${LARGE_FILE_THRESHOLD}" ]] || [[ "${IS_PLANET_FILE}" == true ]]; then
@@ -83,9 +87,11 @@ function __validate_xml_with_enhanced_error_handling() {
   # For large files or planet files, use basic XML validation without schema
   if __validate_xml_basic "${XML_FILE}"; then
    __logi "Basic XML validation succeeded"
+ __log_finish
    return 0
   else
    __loge "ERROR: Basic XML validation failed"
+ __log_finish
    return 1
   fi
  else
@@ -96,18 +102,22 @@ function __validate_xml_with_enhanced_error_handling() {
    local EXIT_CODE=$?
    if [[ ${EXIT_CODE} -eq 0 ]]; then
     __logi "XML validation succeeded"
+ __log_finish
     return 0
    else
     __loge "ERROR: XML schema validation failed - xmllint output: ${XMLLINT_OUTPUT}"
+ __log_finish
     return 1
    fi
   else
    # Fallback to basic validation if no schema provided
    if __validate_xml_basic "${XML_FILE}"; then
     __logi "Basic XML validation succeeded"
+ __log_finish
     return 0
    else
     __loge "ERROR: Basic XML validation failed"
+ __log_finish
     return 1
    fi
   fi
@@ -119,10 +129,12 @@ function __validate_xml_with_enhanced_error_handling() {
 #   $1: XML file path
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_xml_basic() {
+ __log_start
  local XML_FILE="${1}"
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -133,10 +145,12 @@ function __validate_xml_basic() {
  if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1; then
   XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
   __loge "ERROR: Basic XML structure validation failed - xmllint output: ${XMLLINT_OUTPUT}"
+ __log_finish
   return 1
  fi
 
  __logi "Basic XML validation succeeded"
+ __log_finish
  return 0
 }
 
@@ -145,10 +159,12 @@ function __validate_xml_basic() {
 #   $1: XML file path
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_xml_structure_only() {
+ __log_start
  local XML_FILE="${1}"
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -157,9 +173,11 @@ function __validate_xml_structure_only() {
  # Check if file contains basic XML structure markers
  if grep -q '<?xml' "${XML_FILE}" && grep -q '<osm' "${XML_FILE}"; then
   __logi "Structure-only XML validation succeeded"
+ __log_finish
   return 0
  else
   __loge "ERROR: Structure-only XML validation failed - missing XML structure markers"
+ __log_finish
   return 1
  fi
 }
@@ -169,7 +187,9 @@ function __validate_xml_structure_only() {
 #   $1: XML file path
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_xml_structure() {
+ __log_start
  __validate_xml_basic "${1}"
+ __log_finish
 }
 
 # Validate XML structure implementation (alias for compatibility)
@@ -177,7 +197,9 @@ function __validate_xml_structure() {
 #   $1: XML file path
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_xml_structure_impl() {
+ __log_start
  __validate_xml_basic "${1}"
+ __log_finish
 }
 
 # =====================================================
@@ -190,11 +212,13 @@ function __validate_xml_structure_impl() {
 #   $2: Column index to validate (optional, default: 0)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_csv_for_enum_compatibility() {
+ __log_start
  local CSV_FILE="${1}"
  local COLUMN_INDEX="${2:-0}"
 
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -203,6 +227,7 @@ function __validate_csv_for_enum_compatibility() {
  # Check if CSV has content
  if [[ ! -s "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file is empty: ${CSV_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -214,10 +239,12 @@ function __validate_csv_for_enum_compatibility() {
 
  if [[ "${COLUMN_INDEX}" -ge "${COLUMN_COUNT}" ]]; then
   __loge "ERROR: Column index ${COLUMN_INDEX} is out of range (0-${COLUMN_COUNT})"
+ __log_finish
   return 1
  fi
 
  __logi "CSV enum compatibility validation succeeded"
+ __log_finish
  return 0
 }
 
@@ -227,11 +254,13 @@ function __validate_csv_for_enum_compatibility() {
 #   $2: Expected column count (optional)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_csv_structure() {
+ __log_start
  local CSV_FILE="${1}"
  local EXPECTED_COLUMNS="${2:-}"
 
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -240,6 +269,7 @@ function __validate_csv_structure() {
  # Check if CSV has content
  if [[ ! -s "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file is empty: ${CSV_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -255,11 +285,13 @@ function __validate_csv_structure() {
  if [[ -n "${EXPECTED_COLUMNS}" ]]; then
   if [[ "${ACTUAL_COLUMNS}" -ne "${EXPECTED_COLUMNS}" ]]; then
    __loge "ERROR: Expected ${EXPECTED_COLUMNS} columns, got ${ACTUAL_COLUMNS}"
+ __log_finish
    return 1
   fi
  fi
 
  __logi "CSV structure validation succeeded"
+ __log_finish
  return 0
 }
 
@@ -272,10 +304,12 @@ function __validate_csv_structure() {
 #   $1: XML file path
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_xml_coordinates() {
+ __log_start
  local XML_FILE="${1}"
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -284,9 +318,11 @@ function __validate_xml_coordinates() {
  # Check for coordinate patterns in XML
  if grep -q 'lat=' "${XML_FILE}" && grep -q 'lon=' "${XML_FILE}"; then
   __logi "XML coordinate validation succeeded"
+ __log_finish
   return 0
  else
   __loge "ERROR: XML coordinate validation failed - missing lat/lon attributes"
+ __log_finish
   return 1
  fi
 }
@@ -296,6 +332,7 @@ function __validate_xml_coordinates() {
 #   $1: Coordinate string or file path
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_coordinates() {
+ __log_start
  local COORD_INPUT="${1}"
 
  if [[ -f "${COORD_INPUT}" ]]; then
@@ -305,12 +342,15 @@ function __validate_coordinates() {
   # If it's a string, validate coordinate format
   if [[ "${COORD_INPUT}" =~ ^-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*$ ]]; then
    __logi "Coordinate string validation succeeded: ${COORD_INPUT}"
+ __log_finish
    return 0
   else
    __loge "ERROR: Invalid coordinate format: ${COORD_INPUT}"
+ __log_finish
    return 1
   fi
  fi
+ __log_finish
 }
 
 # Validate CSV coordinates
@@ -320,12 +360,14 @@ function __validate_coordinates() {
 #   $3: Longitude column index (optional, default: 1)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_csv_coordinates() {
+ __log_start
  local CSV_FILE="${1}"
  local LAT_COL="${2:-0}"
  local LON_COL="${3:-1}"
 
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -333,6 +375,7 @@ function __validate_csv_coordinates() {
 
  # Validate CSV structure first
  if ! __validate_csv_structure "${CSV_FILE}"; then
+ __log_finish
   return 1
  fi
 
@@ -342,6 +385,7 @@ function __validate_csv_coordinates() {
 
  if [[ -z "${FIRST_DATA_LINE}" ]]; then
   __loge "ERROR: CSV file has no data rows"
+ __log_finish
   return 1
  fi
 
@@ -354,21 +398,25 @@ function __validate_csv_coordinates() {
  # Validate coordinate values
  if [[ ! "${LAT_VAL}" =~ ^-?[0-9]+\.?[0-9]*$ ]] || [[ ! "${LON_VAL}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
   __loge "ERROR: Invalid coordinate values: lat=${LAT_VAL}, lon=${LON_VAL}"
+ __log_finish
   return 1
  fi
 
  # Check coordinate ranges
  if (($(echo "${LAT_VAL} < -90 || ${LAT_VAL} > 90" | bc -l))); then
   __loge "ERROR: Latitude out of range (-90 to 90): ${LAT_VAL}"
+ __log_finish
   return 1
  fi
 
  if (($(echo "${LON_VAL} < -180 || ${LON_VAL} > 180" | bc -l))); then
   __loge "ERROR: Longitude out of range (-180 to 180): ${LON_VAL}"
+ __log_finish
   return 1
  fi
 
  __logi "CSV coordinate validation succeeded"
+ __log_finish
  return 0
 }
 
@@ -382,30 +430,36 @@ function __validate_csv_coordinates() {
 #   $2: File type (optional, for better error messages)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_input_file() {
+ __log_start
  local FILE_PATH="${1}"
  local FILE_TYPE="${2:-file}"
 
  if [[ -z "${FILE_PATH}" ]]; then
   __loge "ERROR: File path is empty"
+ __log_finish
   return 1
  fi
 
  if [[ ! -f "${FILE_PATH}" ]]; then
   __loge "ERROR: ${FILE_TYPE} not found: ${FILE_PATH}"
+ __log_finish
   return 1
  fi
 
  if [[ ! -r "${FILE_PATH}" ]]; then
   __loge "ERROR: ${FILE_TYPE} is not readable: ${FILE_PATH}"
+ __log_finish
   return 1
  fi
 
  if [[ ! -s "${FILE_PATH}" ]]; then
   __loge "ERROR: ${FILE_TYPE} is empty: ${FILE_PATH}"
+ __log_finish
   return 1
  fi
 
  __logd "${FILE_TYPE} validation passed: ${FILE_PATH}"
+ __log_finish
  return 0
 }
 
@@ -415,6 +469,7 @@ function __validate_input_file() {
 # Returns: 0 if all validations pass, 1 if any fail
 function __validate_input_files() {
  local ALL_VALID=true
+ __log_start
 
  for FILE_PATH in "$@"; do
   if ! __validate_input_file "${FILE_PATH}"; then
@@ -424,9 +479,11 @@ function __validate_input_files() {
 
  if [[ "${ALL_VALID}" == true ]]; then
   __logi "All input files validation passed"
+ __log_finish
   return 0
  else
   __loge "Some input files validation failed"
+ __log_finish
   return 1
  fi
 }
@@ -440,10 +497,12 @@ function __validate_input_files() {
 #   $1: Database name (optional, uses DBNAME if not provided)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_database_connection() {
+ __log_start
  local DB_NAME="${1:-${DBNAME}}"
 
  if [[ -z "${DB_NAME}" ]]; then
   __loge "ERROR: Database name not specified"
+ __log_finish
   return 1
  fi
 
@@ -452,10 +511,12 @@ function __validate_database_connection() {
  # Test database connection
  if ! psql -d "${DB_NAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database: ${DB_NAME}"
+ __log_finish
   return 1
  fi
 
  __logi "Database connection validation succeeded"
+ __log_finish
  return 0
 }
 
@@ -466,12 +527,14 @@ function __validate_database_connection() {
 #   $3: Table name pattern (optional, default: all tables)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_database_tables() {
+ __log_start
  local DB_NAME="${1:-${DBNAME}}"
  local SCHEMA_NAME="${2:-public}"
  local TABLE_PATTERN="${3:-%}"
 
  if [[ -z "${DB_NAME}" ]]; then
   __loge "ERROR: Database name not specified"
+ __log_finish
   return 1
  fi
 
@@ -483,10 +546,12 @@ function __validate_database_tables() {
 
  if [[ "${TABLE_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No tables found matching pattern: ${SCHEMA_NAME}.${TABLE_PATTERN}"
+ __log_finish
   return 1
  fi
 
  __logi "Database tables validation succeeded: ${TABLE_COUNT} tables found"
+ __log_finish
  return 0
 }
 
@@ -499,19 +564,23 @@ function __validate_database_tables() {
 #   $1: Date string to validate
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_iso8601_date() {
+ __log_start
  local DATE_STRING="${1}"
 
  if [[ -z "${DATE_STRING}" ]]; then
   __loge "ERROR: Date string is empty"
+ __log_finish
   return 1
  fi
 
  # Check ISO8601 format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DD)
  if [[ "${DATE_STRING}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}Z?)?$ ]]; then
   __logd "ISO8601 date validation passed: ${DATE_STRING}"
+ __log_finish
   return 0
  else
   __loge "ERROR: Invalid ISO8601 date format: ${DATE_STRING}"
+ __log_finish
   return 1
  fi
 }
@@ -522,6 +591,7 @@ function __validate_iso8601_date() {
 #   $2: Expected format (optional, default: ISO8601)
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_date_format() {
+ __log_start
  local DATE_STRING="${1}"
  local EXPECTED_FORMAT="${2:-ISO8601}"
 
@@ -531,9 +601,11 @@ function __validate_date_format() {
   ;;
  *)
   __loge "ERROR: Unsupported date format: ${EXPECTED_FORMAT}"
+ __log_finish
   return 1
   ;;
  esac
+ __log_finish
 }
 
 # Validate date format UTC
@@ -541,19 +613,23 @@ function __validate_date_format() {
 #   $1: Date string to validate
 # Returns: 0 if validation passes, 1 if validation fails
 function __validate_date_format_utc() {
+ __log_start
  local DATE_STRING="${1}"
 
  # First validate ISO8601 format
  if ! __validate_iso8601_date "${DATE_STRING}"; then
+ __log_finish
   return 1
  fi
 
  # Check if it ends with Z (UTC indicator)
  if [[ "${DATE_STRING}" =~ Z$ ]]; then
   __logd "UTC date validation passed: ${DATE_STRING}"
+ __log_finish
   return 0
  else
   __loge "ERROR: Date is not in UTC format (missing Z suffix): ${DATE_STRING}"
+ __log_finish
   return 1
  fi
 }

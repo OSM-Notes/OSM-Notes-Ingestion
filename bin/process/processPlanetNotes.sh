@@ -272,6 +272,7 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 # Function to handle cleanup on exit respecting CLEAN flag
 function __cleanup_on_exit() {
+ __log_start
  local EXIT_CODE=$?
 
  # Only clean if CLEAN is true and this is an error exit (non-zero)
@@ -285,6 +286,7 @@ function __cleanup_on_exit() {
   __logw "Error detected (exit code: ${EXIT_CODE}), but CLEAN=false - preserving temporary files in: ${TMP_DIR:-}"
  fi
 
+ __log_finish
  exit "${EXIT_CODE}"
 }
 
@@ -442,8 +444,8 @@ function __checkPrereqs {
 
  __checkPrereqs_functions
  __logi "=== PLANET PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
- __log_finish
  set -e
+ __log_finish
 }
 
 # Drop sync tables.
@@ -709,6 +711,7 @@ function __validatePlanetNotesXMLFileComplete {
 # Enhanced XML validation with error handling
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_with_enhanced_error_handling {
+ __log_start
  # Source the consolidated validation functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
@@ -716,8 +719,10 @@ function __validate_xml_with_enhanced_error_handling {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Basic XML structure validation (lightweight)
@@ -726,10 +731,12 @@ function __validate_xml_with_enhanced_error_handling {
 # Returns:
 #   0 if validation passes, 1 if validation fails
 function __validate_xml_basic {
+ __log_start
  local XML_FILE="${1}"
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -740,18 +747,21 @@ function __validate_xml_basic {
  if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1; then
   XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
   __loge "ERROR: Basic XML structure validation failed - xmllint output: ${XMLLINT_OUTPUT}"
+ __log_finish
   return 1
  fi
 
  # Check root element
  if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
  # Check for note elements
  if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: No note elements found in XML file ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -770,13 +780,16 @@ function __validate_xml_basic {
 
   if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
    __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
+ __log_finish
    return 1
   fi
 
   __logi "Basic XML validation passed"
+ __log_finish
   return 0
  else
   __loge "ERROR: No notes found in XML file"
+ __log_finish
   return 1
  fi
 }
@@ -787,10 +800,12 @@ function __validate_xml_basic {
 # Returns:
 #   0 if validation passes, 1 if validation fails
 function __validate_xml_structure_only {
+ __log_start
  local XML_FILE="${1}"
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -799,12 +814,14 @@ function __validate_xml_structure_only {
  # Check root element
  if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
  # Check for note elements
  if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: No note elements found in XML file ${XML_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -823,6 +840,7 @@ function __validate_xml_structure_only {
 
   if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
    __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
+ __log_finish
    return 1
   fi
 
@@ -843,9 +861,11 @@ function __validate_xml_structure_only {
   fi
 
   __logi "Structure-only validation passed for very large file"
+ __log_finish
   return 0
  else
   __loge "ERROR: No notes found in XML file"
+ __log_finish
   return 1
  fi
 }
@@ -856,6 +876,7 @@ function __validate_xml_structure_only {
 #   $2 - monitoring interval in seconds
 #   $3 - log file for resource monitoring
 function __monitor_xmllint_resources {
+ __log_start
  local XMLLINT_PID="${1}"
  local INTERVAL="${2:-5}"
  local MONITOR_LOG="${3:-${TMP_DIR}/xmllint_resources.log}"
@@ -889,6 +910,7 @@ function __monitor_xmllint_resources {
 
  local MONITOR_PID=$!
  echo "${MONITOR_PID}"
+ __log_finish
 }
 
 # Run xmllint with resource limitations to prevent system overload
@@ -899,6 +921,7 @@ function __monitor_xmllint_resources {
 # Returns:
 #   0 if validation passes, 1 if validation fails
 function __run_xmllint_with_limits {
+ __log_start
  local TIMEOUT_SECS="${1}"
  local XMLLINT_ARGS="${2}"
  local XML_FILE="${3}"
@@ -1000,6 +1023,7 @@ EOF
   fi
  fi
 
+ __log_finish
  return "${RESULT}"
 }
 
@@ -1009,6 +1033,7 @@ EOF
 # Returns:
 #   0 if cleanup successful
 function __cleanup_validation_temp_files {
+ __log_start
  # Only clean up if CLEAN is set to true
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   local TEMP_FILES=(
@@ -1026,6 +1051,7 @@ function __cleanup_validation_temp_files {
   __logd "Skipping cleanup of temporary files (CLEAN=${CLEAN:-false})"
  fi
 
+ __log_finish
  return 0
 }
 

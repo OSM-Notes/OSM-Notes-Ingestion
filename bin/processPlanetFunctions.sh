@@ -121,6 +121,7 @@ function __splitXmlForParallelPlanet() {
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
+ __log_finish
   return 0
  fi
 
@@ -167,6 +168,7 @@ function __splitXmlForParallelPlanet() {
 # Split XML for parallel processing (safe version)
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelSafe() {
+ __log_start
  # Source the consolidated parallel processing functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
@@ -174,8 +176,10 @@ function __splitXmlForParallelSafe() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Process XML parts in parallel

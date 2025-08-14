@@ -190,6 +190,7 @@ function __checkPrereqs {
 
 # Retrives the dimension_user_id from a username.
 function __getUserId {
+ __log_start
  DIMENSION_USER_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT dimension_user_id FROM dwh.datamartUsers
   WHERE username = '${USERNAME}'")
@@ -198,10 +199,12 @@ function __getUserId {
   __loge "ERROR: The username \"${USERNAME}\" does not exist."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
+ __log_finish
 }
 
 # Retrives the country_id from a country name.
 function __getCountryId {
+ __log_start
  if [[ "${PROCESS_TYPE}" == "--country" ]]; then
   COUNTRY_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
    <<< "SELECT dimension_country_id FROM dwh.datamartCountries
@@ -216,10 +219,12 @@ function __getCountryId {
   __loge "ERROR: The country name \"${COUNTRY_NAME}${PAIS_NAME}\" does not exist."
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
+ __log_finish
 }
 
 # Shows the user activity for all years after 2013.
 function __showActivityYearUsers {
+ __log_start
  YEAR="${1}"
 
  declare -i HISTORY_YEAR_OPEN
@@ -263,10 +268,12 @@ function __showActivityYearUsers {
   -v ON_ERROR_STOP=1)
 
  printf "${YEAR}:          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
+ __log_finish
 }
 
 # Shows the country activity for all years after 2013.
 function __showActivityYearCountries {
+ __log_start
  YEAR="${1}"
 
  declare -i HISTORY_YEAR_OPEN
@@ -310,17 +317,21 @@ function __showActivityYearCountries {
   -v ON_ERROR_STOP=1)
 
  printf "${YEAR}:          %9d  %9d  %9d  %9d  %9d\n" "${HISTORY_YEAR_OPEN}" "${HISTORY_YEAR_COMMENTED}" "${HISTORY_YEAR_CLOSED}" "${HISTORY_YEAR_CLOSED_WITH_COMMENT}" "${HISTORY_YEAR_REOPENED}"
+ __log_finish
 }
 
 # Prints a given ranking in a better way.
 function __printRanking {
+ __log_start
  RANKING=${1}
 
  echo "${RANKING}" | sed 's/}, {/\n/g' | sed 's/^\[{//' | sed 's/}\]//' | sed 's/"rank" ://g' | sed 's/, "country_name" : "/ - /g' | sed 's/, "username" : "/ - /g' | sed 's/", "quantity" :/:/g'
+ __log_finish
 }
 
 # Shows the historic yearly rankings when the user has contributed the most.
 function __showRankingYearUsers {
+ __log_start
  YEAR="${1}"
 
  declare RANKING_OPENING
@@ -344,10 +355,12 @@ function __showRankingYearUsers {
  __printRanking "${RANKING_OPENING}"
  echo "Countries for closed notes on ${YEAR}:"
  __printRanking "${RANKING_CLOSING}"
+ __log_finish
 }
 
 # Shows the historic yearly rankings on which users have been contributed the most.
 function __showRankingYearCountries {
+ __log_start
  YEAR="${1}"
 
  declare RANKING_OPENING
@@ -371,19 +384,23 @@ function __showRankingYearCountries {
  __printRanking "${RANKING_OPENING}"
  echo "Users closing notes on ${YEAR}:"
  __printRanking "${RANKING_CLOSING}"
+ __log_finish
 }
 
 # Prints the hour the hour of the week.
 function __processHourWeek {
+ __log_start
  HOUR=${1}
  DOW=${2}
  NUMBER=$(echo "${WEEK}" | grep "\"day_of_week\":${DOW},\"hour_of_day\":${HOUR}," \
   | awk -F: '{print $4}' | sed 's/}, //' | sed 's/}\]//')
  printf "%5d" "${NUMBER}"
+ __log_finish
 }
 
 # Shows the week hours in a better fashion.
 function __showWorkingWeek {
+ __log_start
  WEEK=${1}
  declare HOUR_0=" 0h"
  declare HOUR_1=" 1h"
@@ -464,10 +481,12 @@ function __showWorkingWeek {
  echo "${HOUR_21}"
  echo "${HOUR_22}"
  echo "${HOUR_23}"
+ __log_finish
 }
 
 # Shows the activity as GitHub tiles.
 function __printActivity {
+ __log_start
  ACTIVITY="${1}"
  # TODO profile - not getting the current day, and always starting on Sunday
 
@@ -514,10 +533,12 @@ function __printActivity {
  echo "${THU}"
  echo "${FRI}"
  echo "${SAT}"
+ __log_finish
 }
 
 # Shows the user profile.
 function __processUserProfile {
+ __log_start
  declare -i OSM_USER_ID
  OSM_USER_ID=$(psql -d "${DBNAME}" -Atq \
   -c "SELECT user_id
@@ -997,10 +1018,12 @@ function __processUserProfile {
  # echo "Rankings last 30 days   ${RANKING_MONTH_OPEN} ${RANKING_MONTH_COMMENTED} ${RANKING_MONTH_CLOSED} ${RANKING_MONTH_REOPENED}"
  # echo "Rankings today          ${RANKING_DAY_OPEN} ${RANKING_DAY_COMMENTED} ${RANKING_DAY_CLOSED} ${RANKING_DAY_REOPENED}"
  # echo "Badges: ${BADGES}" #TODO profile -
+ __log_finish
 }
 
 # Shows the note statistics for a given country.
 function __processCountryProfile {
+ __log_start
  # Country OSM Id
  declare -i COUNTRY_OSM_ID
  COUNTRY_OSM_ID=$(psql -d "${DBNAME}" -Atq \
@@ -1454,10 +1477,12 @@ function __processCountryProfile {
  # TODO Badges
  # TODO Quantity of days with 0 notes (at midnight UTC)
  # TODO Quantity of new UTC years eve with 0 notes
+ __log_finish
 }
 
 # Shows general stats about notes.
 function __generalNoteStats {
+ __log_start
  echo "ToDo Number of notes"
  echo "ToDo Number of currently open notes"
  echo "ToDo Number of currently closed notes"
@@ -1501,6 +1526,7 @@ function __generalNoteStats {
  # ) AS t
  # group by qty
  # order by qty desc
+ __log_finish
 }
 
 # Function that activates the error trap.

@@ -197,6 +197,7 @@ function __show_help {
 
 # Saves the current progress for recovery.
 function __save_progress {
+ __log_start
  local STEP_NAME="${1}"
  local STATUS="${2}"
  local TIMESTAMP
@@ -214,11 +215,15 @@ function __save_progress {
 EOF
   __logd "Progress saved: ${STEP_NAME} - ${STATUS}"
  fi
+ __log_finish
 }
 
 # Resumes from the last successful step.
 function __resume_from_last_step {
+ __log_start
  if [[ "${ETL_RECOVERY_ENABLED}" != "true" ]]; then
+  __logi "Recovery disabled, skipping resume"
+  __log_finish
   return 0
  fi
 
@@ -232,16 +237,20 @@ function __resume_from_last_step {
 
    if [[ "${STATUS}" == "completed" ]] && [[ -n "${LAST_STEP}" ]]; then
     __logi "Resuming from step after: ${LAST_STEP}"
+    __log_finish
     return 0
    else
     __logw "Last execution failed at step: ${LAST_STEP}"
+    __log_finish
     return 1
    fi
   else
    __logw "jq not available, cannot parse recovery file"
+   __log_finish
    return 1
   fi
  fi
+ __log_finish
  return 0
 }
 
@@ -321,7 +330,9 @@ function __validate_data_integrity {
 
 # Monitors system resources during execution.
 function __monitor_resources {
+ __log_start
  if [[ "${ETL_MONITOR_RESOURCES}" != "true" ]]; then
+ __log_finish
   return 0
  fi
 
@@ -337,20 +348,25 @@ function __monitor_resources {
 
  if [[ "${DISK_USAGE}" -gt "${MAX_DISK_USAGE}" ]]; then
   __loge "ERROR: High disk usage: ${DISK_USAGE}%"
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Checks if ETL execution has exceeded timeout.
 function __check_timeout {
+ __log_start
  local CURRENT_TIME
  CURRENT_TIME=$(date +%s)
  local ELAPSED_TIME=$((CURRENT_TIME - ETL_START_TIME))
 
  if [[ ${ELAPSED_TIME} -gt ${ETL_TIMEOUT} ]]; then
   __loge "ERROR: ETL timeout reached (${ETL_TIMEOUT}s)"
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Checks prerequisites to run the script.
@@ -420,8 +436,8 @@ function __checkPrereqs {
  fi
 
  __logi "=== ETL PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
- __log_finish
  set -e
+ __log_finish
 }
 
 # Improved wait for jobs with resource monitoring.

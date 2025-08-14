@@ -166,6 +166,7 @@ fi
 # Legacy function: Process XML parts in parallel (consolidated implementation)
 # Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
 function __processXmlPartsParallel() {
+ __log_start
  # Source the consolidated parallel processing functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
@@ -173,13 +174,16 @@ function __processXmlPartsParallel() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Legacy function: Split XML for parallel processing (consolidated implementation)
 # Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
 function __splitXmlForParallelSafe() {
+ __log_start
  # Source the consolidated parallel processing functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
@@ -187,8 +191,10 @@ function __splitXmlForParallelSafe() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Error codes are defined in commonFunctions.sh
@@ -355,6 +361,7 @@ function __countXmlNotesPlanet() {
 # Wrapper function for API format that uses parallel processing
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelAPI() {
+ __log_start
  # Source the consolidated parallel processing functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
@@ -362,13 +369,16 @@ function __splitXmlForParallelAPI() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Wrapper function for Planet format that uses parallel processing
 # Now uses consolidated functions from parallelProcessingFunctions.sh
 function __splitXmlForParallelPlanet() {
+ __log_start
  # Source the consolidated parallel processing functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
@@ -376,8 +386,10 @@ function __splitXmlForParallelPlanet() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Processes a single XML part for API notes
@@ -387,6 +399,7 @@ function __splitXmlForParallelPlanet() {
 #   $3: XSLT comments file (optional, uses global if not provided)
 #   $4: XSLT text comments file (optional, uses global if not provided)
 function __processApiXmlPart() {
+ __log_start
  local XML_PART="${1}"
  local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_API_FILE}}"
  local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
@@ -419,6 +432,7 @@ function __processApiXmlPart() {
  # Validate part number
  if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
   __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
+ __log_finish
   return 1
  fi
 
@@ -442,6 +456,7 @@ function __processApiXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+ __log_finish
   return 1
  fi
 
@@ -450,6 +465,7 @@ function __processApiXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+ __log_finish
   return 1
  fi
 
@@ -458,6 +474,7 @@ function __processApiXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
+ __log_finish
   return 1
  fi
 
@@ -483,6 +500,7 @@ function __processApiXmlPart() {
  __logd "Validating CSV files for enum compatibility..."
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
   __loge "ERROR: Notes CSV validation failed for part ${PART_NUM}"
+ __log_finish
   return 1
  fi
 
@@ -509,6 +527,8 @@ function __processApiXmlPart() {
    < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
  __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
+ __log_finish
+ __log_finish
 }
 
 # Processes a single XML part for Planet notes
@@ -518,6 +538,7 @@ function __processApiXmlPart() {
 #   $3: XSLT comments file (optional, uses global if not provided)
 #   $4: XSLT text comments file (optional, uses global if not provided)
 function __processPlanetXmlPart() {
+ __log_start
  local XML_PART="${1}"
  local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_FILE}}"
  local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_FILE}}"
@@ -550,6 +571,7 @@ function __processPlanetXmlPart() {
  # Validate part number
  if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
   __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
+ __log_finish
   return 1
  fi
 
@@ -573,6 +595,7 @@ function __processPlanetXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+ __log_finish
   return 1
  fi
 
@@ -583,6 +606,7 @@ function __processPlanetXmlPart() {
  # Process comments
  __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
+ __log_finish
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   return 1
@@ -594,6 +618,7 @@ function __processPlanetXmlPart() {
 
  # Process text comments
  __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
+ __log_finish
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
@@ -623,6 +648,7 @@ function __processPlanetXmlPart() {
    < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" || true)"
 
  __logi "=== PLANET XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
+ __log_finish
 }
 
 # Function to validate input files and directories
@@ -1076,6 +1102,7 @@ function __downloadPlanetNotes {
  # PLANET_NOTES_FILE already includes .xml extension, so no renaming needed
  if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
   __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
+ __log_finish
   return 1
  fi
 
@@ -1144,6 +1171,7 @@ function __processBoundary {
   __loge "Network connectivity check failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "Network connectivity confirmed for boundary ${ID}"
@@ -1157,6 +1185,7 @@ function __processBoundary {
   __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass API failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "Successfully downloaded boundary ${ID} from Overpass API"
@@ -1170,6 +1199,7 @@ function __processBoundary {
   __loge "Too many requests to Overpass API for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass rate limit exceeded for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
 
@@ -1182,6 +1212,7 @@ function __processBoundary {
   __loge "JSON validation failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID}" \
    "rm -f ${JSON_FILE} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "JSON validation passed for boundary ${ID}"
@@ -1195,6 +1226,7 @@ function __processBoundary {
   __loge "Failed to convert boundary ${ID} to GeoJSON after retries"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "GeoJSON conversion failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "GeoJSON conversion completed for boundary ${ID}"
@@ -1205,6 +1237,7 @@ function __processBoundary {
   __loge "GeoJSON validation failed for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "GeoJSON validation passed for boundary ${ID}"
@@ -1253,6 +1286,7 @@ function __processBoundary {
   __loge "Failed to acquire lock for boundary ${ID}"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Lock acquisition failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "Lock acquired for boundary ${ID}"
@@ -1280,6 +1314,7 @@ function __processBoundary {
   __loge "Failed to import boundary ${ID} into database after retries"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "Database import completed for boundary ${ID}"
@@ -1322,6 +1357,7 @@ function __processBoundary {
   __loge "Failed to process boundary ${ID} data"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Data processing failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+ __log_finish
   return 1
  fi
  __logd "Data processing completed for boundary ${ID}"
@@ -1738,70 +1774,6 @@ function __getLocationNotes {
  __log_finish
 }
 
-# Function to validate dates in CSV files
-# Parameters:
-#   $1: CSV file path
-#   $2: Column number containing dates (optional, defaults to auto-detect)
-# Returns:
-#   0 if all dates are valid, 1 if any invalid
-
-# Function to validate file checksum
-# Parameters:
-#   $1: File path to validate
-#   $2: Expected checksum
-#   $3: Algorithm (optional, defaults to md5)
-# Returns:
-#   0 if valid, 1 if invalid
-
-# Function to validate checksum from a checksum file
-# Parameters:
-#   $1: File path to validate
-#   $2: Checksum file path
-#   $3: Algorithm (optional, defaults to md5)
-# Returns:
-#   0 if valid, 1 if invalid
-
-# Function to validate multiple files using checksum files
-# Parameters:
-#   $1: Directory containing files to validate
-#   $2: Checksum file path
-#   $3: Algorithm (optional, defaults to md5)
-# Returns:
-#   0 if all valid, 1 if any invalid
-
-# Validates JSON file against a JSON Schema
-# Parameters:
-#   $1: JSON file path to validate
-#   $2: JSON Schema file path
-#   $3: Schema specification (optional, defaults to draft2020)
-# Returns:
-#   0 if valid, 1 if invalid
-
-# Validates geographic coordinates
-# Parameters:
-#   $1: Latitude value
-#   $2: Longitude value
-#   $3: Precision (optional, defaults to 7 decimal places)
-# Returns:
-#   0 if coordinates are valid, 1 if invalid
-
-# Validates numeric values within specified ranges
-# Parameters:
-#   $1: Value to validate
-#   $2: Minimum value (optional)
-#   $3: Maximum value (optional)
-#   $4: Description for error messages (optional)
-# Returns:
-#   0 if value is valid, 1 if invalid
-
-# Validates string values against patterns
-# Parameters:
-#   $1: Value to validate
-#   $2: Regular expression pattern
-#   $3: Description for error messages (optional)
-# Returns:
-#   0 if value matches pattern, 1 if invalid
-
 # Validates XML content for coordinate attributes using XPath
 # This is the unified implementation for both API and Planet XML coordinate validation.
 # Supports auto-detection of XML format (Planet vs API) and uses xmlstarlet for robust parsing.
@@ -1818,6 +1790,7 @@ function __getLocationNotes {
 #   - API XML: //@lat and //@lon (generic)
 #   - Custom XPath: Can be specified via parameters 2 and 3
 function __validate_xml_coordinates() {
+ __log_start
  local XML_FILE="${1}"
  local LAT_XPATH="${2:-}"
  local LON_XPATH="${3:-}"
@@ -1825,6 +1798,7 @@ function __validate_xml_coordinates() {
 
  # Check if file exists and is readable
  if ! __validate_input_file "${XML_FILE}" "XML file"; then
+ __log_finish
   return 1
  fi
 
@@ -1862,6 +1836,7 @@ function __validate_xml_coordinates() {
     SAMPLE_COUNT=1 # Indicate success without actual validation
    else
     __loge "All validation strategies failed: no coordinate patterns found"
+ __log_finish
     return 1
    fi
   fi
@@ -1869,9 +1844,11 @@ function __validate_xml_coordinates() {
   # Report validation results
   if [[ ${SAMPLE_COUNT} -gt 0 ]]; then
    __logi "Lite coordinate validation passed using ${VALIDATION_STRATEGY}: ${SAMPLE_COUNT} samples validated"
+ __log_finish
    return 0
   else
    __logw "No coordinates found in sample validation of large XML file"
+ __log_finish
    return 0 # Don't fail validation for large files, just warn
   fi
  fi
@@ -1918,6 +1895,7 @@ function __validate_xml_coordinates() {
 
  if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
   __logw "No coordinates found in XML file using XPath: ${LAT_XPATH}, ${LON_XPATH}"
+ __log_finish
   return 0
  fi
 
@@ -1940,11 +1918,13 @@ function __validate_xml_coordinates() {
   for ERROR in "${VALIDATION_ERRORS[@]}"; do
    echo "  - ${ERROR}" >&2
   done
+ __log_finish
   return 1
  fi
 
  # Log success message
  __logi "XML coordinate validation passed: ${XML_FILE}"
+ __log_finish
  return 0
 }
 
@@ -2274,6 +2254,7 @@ function __show_help() {
 # Enhanced XML validation with error handling
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_with_enhanced_error_handling() {
+ __log_start
  # Source the consolidated validation functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
@@ -2281,13 +2262,16 @@ function __validate_xml_with_enhanced_error_handling() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # Basic XML structure validation (lightweight)
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_basic() {
+ __log_start
  # Source the consolidated validation functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
@@ -2295,13 +2279,16 @@ function __validate_xml_basic() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
 
 # XML structure-only validation (very lightweight)
 # Now uses consolidated functions from consolidatedValidationFunctions.sh
 function __validate_xml_structure_only() {
+ __log_start
  # Source the consolidated validation functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
@@ -2309,6 +2296,8 @@ function __validate_xml_structure_only() {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
+ __log_finish
   return 1
  fi
+ __log_finish
 }
