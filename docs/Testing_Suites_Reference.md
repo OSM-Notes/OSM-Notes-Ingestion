@@ -38,6 +38,13 @@ The project has been simplified from 36 redundant test runners to 10 consolidate
 - **Features**: Format, naming, validation tests
 - **Usage**: `./run_quality_tests.sh --mode enhanced`
 
+#### 4. `run_logging_validation_tests.sh` - Logging Pattern Validation Tests
+
+- **Purpose**: Dedicated logging pattern compliance validation
+- **Modes**: unit, integration, all
+- **Features**: Logging pattern validation, script validation, BATS tests
+- **Usage**: `./tests/run_logging_validation_tests.sh --mode all`
+
 #### 4. `run_dwh_tests.sh` - DWH Enhanced Tests Runner
 
 - **Purpose**: Dedicated DWH enhanced testing
@@ -83,7 +90,7 @@ The project has been simplified from 36 redundant test runners to 10 consolidate
 - **Features**: Interactive testing
 - **Usage**: `./run_manual_tests.sh`
 
-## 🔗 Integration Test Suites (8 suites)
+## 🔗 Integration Test Suites (9 suites)
 
 Integration tests validate complete workflows and system interactions:
 
@@ -240,6 +247,10 @@ Integration tests validate complete workflows and system interactions:
 - **wmsConfigExample_integration.test.bats** - WMS configuration examples
 - **wmsManager.test.bats** - WMS manager functionality
 - **wmsManager_integration.test.bats** - WMS manager integration
+
+### 📝 Logging Pattern Validation (1 suite)
+
+- **logging_pattern_validation_integration.test.bats** - Logging pattern validation integration
 
 ### 📊 Variables and Configuration (4 suites)
 

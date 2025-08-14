@@ -144,4 +144,10 @@ if [[ "$RUN_ALL" == "true" || "$RUN_CLEANUP" == "true" ]]; then
  run_test_file "unit/bash/cleanupAll_integration.test.bats" "cleanupAll integration tests"
 fi
 
+# Logging pattern validation integration tests
+if [[ "$RUN_ALL" == "true" ]]; then
+ echo "7. Testing logging pattern validation integration..."
+ run_test_file "integration/logging_pattern_validation_integration.test.bats" "logging pattern validation integration tests"
+fi
+
 echo "=== INTEGRATION TESTS COMPLETED ==="

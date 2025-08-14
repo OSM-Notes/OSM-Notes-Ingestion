@@ -197,6 +197,9 @@ run_basic_quality_tests() {
       fi
     done
   "
+
+ # Test 11: Check for logging pattern validation
+ run_test_suite "Logging pattern validation" "logging_pattern_validation_integration.test.bats"
 }
 
 # Run enhanced quality tests
@@ -245,6 +248,7 @@ run_validation_tests() {
  run_test_suite "Script help validation" "script_help_validation.test.bats"
  run_test_suite "SQL validation integration" "sql_validation_integration.test.bats"
  run_test_suite "SQL constraints validation" "sql_constraints_validation.test.bats"
+ run_test_suite "Logging pattern validation" "logging_pattern_validation_integration.test.bats"
 }
 
 # Show results

@@ -488,6 +488,9 @@ The project includes comprehensive testing infrastructure with **78 BATS testing
 # Run quality tests
 ./tests/run_quality_tests.sh
 
+# Run logging pattern validation tests
+./tests/run_logging_validation_tests.sh
+
 # Run DWH enhanced tests
 ./tests/run_dwh_tests.sh
 ```
@@ -495,10 +498,11 @@ The project includes comprehensive testing infrastructure with **78 BATS testing
 ### Test Categories
 
 * **Unit Tests**: 68 bash suites + 4 SQL suites (including DWH enhanced)
-* **Integration Tests**: 8 end-to-end workflow suites (including DWH enhanced)
+* **Integration Tests**: 9 end-to-end workflow suites (including DWH enhanced)
 * **Validation Tests**: Data validation, XML processing, error handling
 * **Performance Tests**: Parallel processing, edge cases, optimization
 * **Quality Tests**: Code quality, conventions, formatting
+* **Logging Pattern Tests**: Logging pattern validation and compliance
 * **DWH Enhanced Tests**: New dimensions, functions, ETL improvements
 
 ### Test Coverage
@@ -507,6 +511,7 @@ The project includes comprehensive testing infrastructure with **78 BATS testing
 * ✅ **System Integration**: Database operations, API integration, WMS services
 * ✅ **Quality Assurance**: Code quality, error handling, edge cases
 * ✅ **Infrastructure**: Monitoring, configuration, tools and utilities
+* ✅ **Logging Patterns**: Logging pattern validation and compliance across all scripts
 * ✅ **DWH Enhanced**: New dimensions (timezones, seasons, continents), enhanced functions, SCD2, bridge tables
 
 ### DWH Enhanced Testing

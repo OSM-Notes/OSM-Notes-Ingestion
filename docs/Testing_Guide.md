@@ -43,6 +43,7 @@ The project uses three main GitHub Actions workflows that run automatically on e
 | `run_all_tests.sh`                     | tests/                                    | Runs all main tests (unit, integration, mock, etc.)                           |
 | `run_integration_tests.sh`             | tests/                                    | Runs complete integration tests                                                |
 | `run_quality_tests.sh`                 | tests/                                    | Validates code quality, format, and conventions                               |
+| `run_logging_validation_tests.sh`      | tests/                                    | Validates logging pattern compliance across all bash scripts                  |
 | `run_mock_tests.sh`                    | tests/                                    | Runs tests using mocks and simulated environments                             |
 | `run_enhanced_tests.sh`                | tests/                                    | Advanced testability and robustness tests                                     |
 | `run_real_data_tests.sh`               | tests/                                    | Tests with real data and special cases                                        |
@@ -106,7 +107,41 @@ The project includes specialized tests for consolidated functions that eliminate
 - `processCheckPlanetNotes.sh` - Note verification
 - `notesCheckVerifier.sh` - Note verifier
 
-### 2. Edge Cases Tests
+### 3. Logging Pattern Validation Tests
+
+Logging pattern validation tests ensure that all bash functions follow the established logging conventions:
+
+- **`__log_start`**: Every function must start with this call
+- **`__log_finish`**: Every function must end with this call and have it before each `return` statement
+- **Consistent logging**: All functions use the same logging pattern for traceability
+
+**Available Tests:**
+
+- **Unit Tests**: `tests/unit/bash/logging_pattern_validation.test.bats` - Tests individual logging patterns
+- **Integration Tests**: `tests/integration/logging_pattern_validation_integration.test.bats` - Tests validation scripts
+- **Validation Scripts**: 
+  - `tests/scripts/validate_logging_patterns.sh` - Comprehensive validation
+  - `tests/scripts/validate_logging_patterns_simple.sh` - Simple validation
+- **Test Runner**: `tests/run_logging_validation_tests.sh` - Dedicated logging validation test runner
+
+**Run Logging Validation:**
+
+```bash
+# Run all logging pattern tests
+./tests/run_logging_validation_tests.sh
+
+# Run only validation scripts
+./tests/run_logging_validation_tests.sh --validate-only
+
+# Run only BATS tests
+./tests/run_logging_validation_tests.sh --bats-only
+
+# Run specific test types
+./tests/run_logging_validation_tests.sh --mode unit
+./tests/run_logging_validation_tests.sh --mode integration
+```
+
+### 4. Edge Cases Tests
 
 Edge cases tests cover boundary situations:
 
