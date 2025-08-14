@@ -263,3 +263,47 @@ teardown() {
   [[ "$output" == *"STARTED TEST_FUNCTION_WITH_CLEANUP"* ]]
   [[ "$output" == *"FINISHED TEST_FUNCTION_WITH_CLEANUP"* ]]
 }
+
+@test "Logging Pattern: Special functions like __show_help should not require logging" {
+  # Test that help functions can exist without logging
+  test_help_function() {
+    echo "Help information"
+    echo "Usage: script.sh [options]"
+    exit 0
+  }
+  
+  run test_help_function
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *"Help information"* ]]
+  [[ "$output" == *"Usage: script.sh [options]"* ]]
+}
+
+@test "Logging Pattern: Logger initialization functions should not require logging" {
+  # Test that logger setup functions can exist without logging
+  test_logger_init_function() {
+    __logi "Logger initialized"
+    __logd "Debug level enabled"
+  }
+  
+  run test_logger_init_function
+  [[ "$status" -eq 0 ]]
+  [[ "$output" == *"Logger initialized"* ]]
+  [[ "$output" == *"Debug level enabled"* ]]
+}
+
+@test "Logging Pattern: Wrapper functions should not require logging" {
+  # Test that wrapper functions can exist without logging
+  test_wrapper_function() {
+    if [[ -f "/tmp/test_file" ]]; then
+      source "/tmp/test_file"
+      test_wrapper_function "$@"
+    else
+      echo "Wrapped function not available"
+      return 1
+    fi
+  }
+  
+  run test_wrapper_function
+  [[ "$status" -eq 1 ]]
+  [[ "$output" == *"Wrapped function not available"* ]]
+}

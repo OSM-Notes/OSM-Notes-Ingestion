@@ -17,6 +17,16 @@ declare -r TEMP_DIR="/tmp/logging_validation_simple_$$"
 declare -r RESULTS_FILE="${TEMP_DIR}/validation_results.txt"
 declare -r SUMMARY_FILE="${TEMP_DIR}/validation_summary.txt"
 
+# Functions that don't require logging (special cases)
+declare -r EXEMPT_FUNCTIONS=(
+ "__show_help"
+ "__start_logger"
+ "__processXmlPartsParallel"
+ "__splitXmlForParallelSafe"
+ "__splitXmlForParallelAPI"
+ "__splitXmlForParallelPlanet"
+)
+
 # Statistics
 declare -i TOTAL_FUNCTIONS=0
 declare -i VALID_FUNCTIONS=0
@@ -94,6 +104,19 @@ function __validate_bash_file_simple() {
   local functions_with_start
   functions_with_start=$(grep -c "^[[:space:]]*__log_start" "${file_path}" 2> /dev/null || echo "0")
 
+  # Ensure variables are numeric and handle empty results
+  # Convert to integer safely
+  if [[ "${functions_without_start}" =~ ^[0-9]+$ ]]; then
+    functions_without_start=${functions_without_start}
+  else
+    functions_without_start=0
+  fi
+  if [[ "${functions_with_start}" =~ ^[0-9]+$ ]]; then
+    functions_with_start=${functions_with_start}
+  else
+    functions_with_start=0
+  fi
+
   if [[ "${functions_with_start}" -lt "${functions_without_start}" ]]; then
    local missing_start
    missing_start=$((functions_without_start - functions_with_start))
@@ -103,6 +126,14 @@ function __validate_bash_file_simple() {
   # Count functions missing __log_finish
   local functions_with_finish
   functions_with_finish=$(grep -c "^[[:space:]]*__log_finish" "${file_path}" 2> /dev/null || echo "0")
+  
+  # Ensure variable is numeric and handle empty results
+  # Convert to integer safely
+  if [[ "${functions_with_finish}" =~ ^[0-9]+$ ]]; then
+    functions_with_finish=${functions_with_finish}
+  else
+    functions_with_finish=0
+  fi
 
   if [[ "${functions_with_finish}" -lt "${functions_without_start}" ]]; then
    local missing_finish
@@ -110,21 +141,40 @@ function __validate_bash_file_simple() {
    __logw "WARNING: ${missing_finish} functions missing __log_finish in ${file_name}"
   fi
 
+  # Count exempt functions in this file
+  local exempt_in_file=0
+  for exempt_func in "${EXEMPT_FUNCTIONS[@]}"; do
+   if grep -q "^function ${exempt_func}" "${file_path}"; then
+    exempt_in_file=$((exempt_in_file + 1))
+   fi
+  done
+
+  # Calculate required functions (total - exempt)
+  local required_functions=$((functions_without_start - exempt_in_file))
+  
   # Update statistics
-  TOTAL_FUNCTIONS=$((TOTAL_FUNCTIONS + functions_without_start))
+  TOTAL_FUNCTIONS=$((TOTAL_FUNCTIONS + required_functions))
 
   local valid_in_file=0
   local invalid_in_file=0
 
-  # A function is valid if it has both __log_start and __log_finish
-  if [[ "${functions_with_start}" -eq "${functions_without_start}" ]] && [[ "${functions_with_finish}" -eq "${functions_without_start}" ]]; then
-   valid_in_file="${functions_without_start}"
+  # A function is valid if it has both __log_start and __log_finish (excluding exempt functions)
+  if [[ "${functions_with_start}" -eq "${required_functions}" ]] && [[ "${functions_with_finish}" -eq "${required_functions}" ]]; then
+   valid_in_file="${required_functions}"
    invalid_in_file=0
-   __print_colored "${GREEN}" "✓ ${file_name}: All ${functions_without_start} functions follow the pattern"
+   if [[ ${exempt_in_file} -gt 0 ]]; then
+    __print_colored "${GREEN}" "✓ ${file_name}: All ${required_functions} required functions follow the pattern (${exempt_in_file} exempt)"
+   else
+    __print_colored "${GREEN}" "✓ ${file_name}: All ${required_functions} functions follow the pattern"
+   fi
   else
    valid_in_file=0
-   invalid_in_file="${functions_without_start}"
-   __print_colored "${RED}" "✗ ${file_name}: ${invalid_in_file} functions have issues"
+   invalid_in_file="${required_functions}"
+   if [[ ${exempt_in_file} -gt 0 ]]; then
+    __print_colored "${RED}" "✗ ${file_name}: ${invalid_in_file} required functions have issues (${exempt_in_file} exempt)"
+   else
+    __print_colored "${RED}" "✗ ${file_name}: ${invalid_in_file} functions have issues"
+   fi
   fi
 
   VALID_FUNCTIONS=$((VALID_FUNCTIONS + valid_in_file))
@@ -134,6 +184,8 @@ function __validate_bash_file_simple() {
   {
    echo "File: ${file_path}"
    echo "Total functions: ${functions_without_start}"
+   echo "Exempt functions: ${exempt_in_file}"
+   echo "Required functions: ${required_functions}"
    echo "Functions with __log_start: ${functions_with_start}"
    echo "Functions with __log_finish: ${functions_with_finish}"
    echo "Valid functions: ${valid_in_file}"

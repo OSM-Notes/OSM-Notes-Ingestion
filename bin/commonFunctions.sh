@@ -4,8 +4,8 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-11
-VERSION="2025-08-11"
+# Version: 2025-08-13
+VERSION="2025-08-13"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -120,10 +120,13 @@ function __start_logger {
 
 # Validation function
 function __validation {
+ __log_start
  if [[ "${1}" == "" ]]; then
   echo "ERROR: ${2}"
+  __log_finish
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
+ __log_finish
 }
 
 # Check prerequisites commands
@@ -345,10 +348,12 @@ function __getLocationNotes {
 # Returns:
 #   0 if successful, 1 if failed
 function __set_log_file() {
+ __log_start
  local LOG_FILE="${1}"
 
  if [[ -z "${LOG_FILE}" ]]; then
   __loge "ERROR: Log file path not provided"
+  __log_finish
   return 1
  fi
 
@@ -358,6 +363,7 @@ function __set_log_file() {
  if [[ ! -d "${LOG_DIR}" ]]; then
   mkdir -p "${LOG_DIR}" 2> /dev/null || {
    __loge "ERROR: Cannot create log directory: ${LOG_DIR}"
+   __log_finish
    return 1
   }
  fi
@@ -365,9 +371,11 @@ function __set_log_file() {
  # Ensure the log file is writable
  touch "${LOG_FILE}" 2> /dev/null || {
   __loge "ERROR: Cannot create or write to log file: ${LOG_FILE}"
+  __log_finish
   return 1
  }
 
  __logd "Log file set to: ${LOG_FILE}"
+ __log_finish
  return 0
 }
