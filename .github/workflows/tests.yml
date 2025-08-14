@@ -157,7 +157,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y postgresql-client
+        sudo apt-get install -y postgresql-client postgresql-15-postgis-3
 
     - name: Set up test environment
       run: |
@@ -181,12 +181,37 @@ jobs:
           sleep 1
         done
 
+    - name: Enable PostGIS extension
+      run: |
+        echo "Enabling PostGIS extension..."
+        psql -h localhost -U testuser -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+        echo "PostGIS extension enabled successfully"
+
+    - name: Verify PostGIS installation
+      run: |
+        echo "Verifying PostGIS installation..."
+        psql -h localhost -U testuser -d osm_notes_test -c "SELECT PostGIS_Version();"
+        echo "PostGIS verification completed successfully"
+
     - name: Install base schema (enums and base tables)
       run: |
         echo "Installing base schema..."
-        psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_21_createBaseTables_enum.sql
-        psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_22_createBaseTables_tables.sql
-        psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_23_createBaseTables_constraints.sql
+        echo "Creating enums..."
+        if ! psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_21_createBaseTables_enum.sql; then
+          echo "ERROR: Failed to create enums"
+          exit 1
+        fi
+        echo "Creating base tables..."
+        if ! psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_22_createBaseTables_tables.sql; then
+          echo "ERROR: Failed to create base tables"
+          exit 1
+        fi
+        echo "Creating constraints..."
+        if ! psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_23_createBaseTables_constraints.sql; then
+          echo "ERROR: Failed to create constraints"
+          exit 1
+        fi
+        echo "Base schema installation completed successfully"
 
     - name: Install DWH schema
       run: |
