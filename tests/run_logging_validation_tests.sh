@@ -4,8 +4,6 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-27
 
-set -euo pipefail
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -95,14 +93,14 @@ check_prerequisites() {
 # Run unit tests
 run_unit_tests() {
  log_info "Running logging pattern unit tests..."
- ((TOTAL_TESTS++))
+ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
- if timeout 60s bats "unit/bash/logging_pattern_validation.test.bats" 2> /dev/null; then
+ if bats "unit/bash/logging_pattern_validation.test.bats"; then
   log_success "Unit tests passed"
-  ((PASSED_TESTS++))
+  PASSED_TESTS=$((PASSED_TESTS + 1))
  else
   log_error "Unit tests failed"
-  ((FAILED_TESTS++))
+  FAILED_TESTS=$((FAILED_TESTS + 1))
  fi
  echo
 }
@@ -110,14 +108,14 @@ run_unit_tests() {
 # Run integration tests
 run_integration_tests() {
  log_info "Running logging pattern integration tests..."
- ((TOTAL_TESTS++))
+ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
- if timeout 120s bats "integration/logging_pattern_validation_integration.test.bats" 2> /dev/null; then
+ if bats "integration/logging_pattern_validation_integration.test.bats"; then
   log_success "Integration tests passed"
-  ((PASSED_TESTS++))
+  PASSED_TESTS=$((PASSED_TESTS + 1))
  else
   log_error "Integration tests failed"
-  ((FAILED_TESTS++))
+  FAILED_TESTS=$((FAILED_TESTS + 1))
  fi
  echo
 }
@@ -125,14 +123,14 @@ run_integration_tests() {
 # Run validation script
 run_validation_script() {
  log_info "Running logging pattern validation script..."
- ((TOTAL_TESTS++))
+ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
  # Create temporary directory for validation results
  local temp_dir="/tmp/logging_validation_$$"
  mkdir -p "${temp_dir}"
 
  # Run the validation script
- if timeout 300s bash "${SCRIPT_DIR}/scripts/validate_logging_patterns.sh" "${temp_dir}" > /dev/null 2>&1; then
+ if bash "${SCRIPT_DIR}/scripts/validate_logging_patterns.sh" "${temp_dir}" > /dev/null 2>&1; then
   log_success "Validation script executed successfully"
   
   # Check if results were generated
@@ -146,14 +144,14 @@ run_validation_script() {
     echo "=========================="
    fi
    
-   ((PASSED_TESTS++))
+   PASSED_TESTS=$((PASSED_TESTS + 1))
   else
    log_warning "Validation script ran but no results generated"
-   ((FAILED_TESTS++))
+   FAILED_TESTS=$((FAILED_TESTS + 1))
   fi
  else
   log_error "Validation script failed"
-  ((FAILED_TESTS++))
+  FAILED_TESTS=$((FAILED_TESTS + 1))
  fi
 
  # Clean up
@@ -164,14 +162,14 @@ run_validation_script() {
 # Run simple validation script
 run_simple_validation_script() {
  log_info "Running simple logging pattern validation script..."
- ((TOTAL_TESTS++))
+ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
  # Create temporary directory for validation results
  local temp_dir="/tmp/simple_logging_validation_$$"
  mkdir -p "${temp_dir}"
 
  # Run the simple validation script
- if timeout 300s bash "${SCRIPT_DIR}/scripts/validate_logging_patterns_simple.sh" "${temp_dir}" > /dev/null 2>&1; then
+ if bash "${SCRIPT_DIR}/scripts/validate_logging_patterns_simple.sh" "${temp_dir}" > /dev/null 2>&1; then
   log_success "Simple validation script executed successfully"
   
   # Check if results were generated
@@ -185,14 +183,14 @@ run_simple_validation_script() {
     echo "================================="
    fi
    
-   ((PASSED_TESTS++))
+   PASSED_TESTS=$((PASSED_TESTS + 1))
   else
    log_warning "Simple validation script ran but no results generated"
-   ((FAILED_TESTS++))
+   FAILED_TESTS=$((FAILED_TESTS + 1))
   fi
  else
   log_error "Simple validation script failed"
-  ((FAILED_TESTS++))
+  FAILED_TESTS=$((FAILED_TESTS + 1))
  fi
 
  # Clean up
