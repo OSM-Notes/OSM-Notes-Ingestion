@@ -275,6 +275,14 @@ function __cleanup_on_exit() {
  __log_start
  local EXIT_CODE=$?
 
+ # Skip cleanup if we're just showing help
+ if [[ "${SHOWING_HELP:-false}" == "true" ]]; then
+  __logd "Help mode detected, skipping cleanup"
+  __log_finish
+  # Use the correct exit code for help
+  exit "${ERROR_HELP_MESSAGE}"
+ fi
+
  # Only clean if CLEAN is true and this is an error exit (non-zero)
  if [[ "${CLEAN}" == "true" ]] && [[ ${EXIT_CODE} -ne 0 ]] && [[ -n "${TMP_DIR:-}" ]]; then
   __logw "Error detected (exit code: ${EXIT_CODE}), cleaning up temporary directory: ${TMP_DIR}"
@@ -289,6 +297,9 @@ function __cleanup_on_exit() {
  __log_finish
  exit "${EXIT_CODE}"
 }
+
+# Set trap to handle cleanup on any exit (after loading logging functions)
+trap '__cleanup_on_exit' EXIT
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
@@ -692,7 +703,7 @@ function __validate_xml_with_enhanced_error_handling {
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
- __log_finish
+  __log_finish
   return 1
  fi
  __log_finish
@@ -709,7 +720,7 @@ function __validate_xml_basic {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -720,21 +731,21 @@ function __validate_xml_basic {
  if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1; then
   XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
   __loge "ERROR: Basic XML structure validation failed - xmllint output: ${XMLLINT_OUTPUT}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  # Check root element
  if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  # Check for note elements
  if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: No note elements found in XML file ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -753,16 +764,16 @@ function __validate_xml_basic {
 
   if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
    __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
- __log_finish
+   __log_finish
    return 1
   fi
 
   __logi "Basic XML validation passed"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "ERROR: No notes found in XML file"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -778,7 +789,7 @@ function __validate_xml_structure_only {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -787,14 +798,14 @@ function __validate_xml_structure_only {
  # Check root element
  if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  # Check for note elements
  if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: No note elements found in XML file ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -813,7 +824,7 @@ function __validate_xml_structure_only {
 
   if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
    __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
- __log_finish
+   __log_finish
    return 1
   fi
 
@@ -834,11 +845,11 @@ function __validate_xml_structure_only {
   fi
 
   __logi "Structure-only validation passed for very large file"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "ERROR: No notes found in XML file"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -1090,6 +1101,7 @@ function main() {
 
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  SHOWING_HELP="true"
   __show_help
  else
   if [[ "${PROCESS_TYPE}" == "" ]]; then
@@ -1207,6 +1219,9 @@ chmod go+x "${TMP_DIR}"
 
 # Shows the help information.
 function __show_help {
+ # Set flag to indicate we're showing help (prevents cleanup interference)
+ export SHOWING_HELP="true"
+
  echo "${BASENAME} version ${VERSION}"
  echo "This is a script that downloads the OSM notes from the Planet,"
  echo "processes them with a XSLT transformation, to create a flat file,"
