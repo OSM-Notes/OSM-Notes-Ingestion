@@ -294,7 +294,6 @@ function __cleanup_on_exit() {
 trap '__cleanup_on_exit' EXIT
 
 
-
 # Checks prerequisites to run the script.
 function __checkPrereqs {
  __log_start
