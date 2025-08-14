@@ -18,13 +18,9 @@ declare -r RESULTS_FILE="${TEMP_DIR}/validation_results.txt"
 declare -r SUMMARY_FILE="${TEMP_DIR}/validation_summary.txt"
 
 # Functions that don't require logging (special cases)
+# NOTE: Actually, ALL functions should have logging for consistency
+# These are kept for reference but will be treated as requiring logging
 declare -r EXEMPT_FUNCTIONS=(
- "__show_help"
- "__start_logger"
- "__processXmlPartsParallel"
- "__splitXmlForParallelSafe"
- "__splitXmlForParallelAPI"
- "__splitXmlForParallelPlanet"
 )
 
 # Statistics
