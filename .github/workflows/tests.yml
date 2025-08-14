@@ -102,6 +102,8 @@ jobs:
         export DBPASSWORD=testpass
         export DBHOST=localhost
         export DBPORT=5432
+        # Set PGPASSWORD for psql authentication
+        export PGPASSWORD=testpass
 
     - name: Create results directory
       run: |
@@ -110,6 +112,7 @@ jobs:
 
     - name: Wait for PostgreSQL
       run: |
+        export PGPASSWORD=testpass
         until pg_isready -h localhost -p 5432 -U testuser; do
           sleep 1
         done
@@ -192,6 +195,7 @@ jobs:
 
     - name: Enable PostGIS extension
       run: |
+        export PGPASSWORD=testpass
         echo "Enabling PostGIS extension..."
         # Try to enable PostGIS extension
         if psql -h localhost -U testuser -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" 2>/dev/null; then
@@ -210,6 +214,7 @@ jobs:
 
     - name: Verify PostGIS installation
       run: |
+        export PGPASSWORD=testpass
         echo "Verifying PostGIS installation..."
         if psql -h localhost -U testuser -d osm_notes_test -c "SELECT PostGIS_Version();" 2>/dev/null; then
           echo "PostGIS verification completed successfully"
@@ -220,6 +225,7 @@ jobs:
 
     - name: Install base schema (enums and base tables)
       run: |
+        export PGPASSWORD=testpass
         echo "Installing base schema..."
         echo "Creating enums..."
         if ! psql -h localhost -U testuser -d osm_notes_test -f sql/process/processPlanetNotes_21_createBaseTables_enum.sql; then
@@ -240,6 +246,7 @@ jobs:
 
     - name: Install DWH schema
       run: |
+        export PGPASSWORD=testpass
         echo "Installing DWH schema..."
         psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_22_createDWHTables.sql
         psql -h localhost -U testuser -d osm_notes_test -f sql/dwh/ETL_24_addFunctions.sql
