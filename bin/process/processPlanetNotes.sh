@@ -290,10 +290,6 @@ function __cleanup_on_exit() {
  exit "${EXIT_CODE}"
 }
 
-# Set trap to handle cleanup on any exit (after loading logging functions)
-trap '__cleanup_on_exit' EXIT
-
-
 # Checks prerequisites to run the script.
 function __checkPrereqs {
  __log_start
