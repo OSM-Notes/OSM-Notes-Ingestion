@@ -293,6 +293,10 @@ function __cleanup_on_exit() {
 # Set trap to handle cleanup on any exit (after loading logging functions)
 trap '__cleanup_on_exit' EXIT
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> d0c383f4 (Refactor help function in processPlanetNotes.sh for improved clarity)
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {

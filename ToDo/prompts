@@ -2,30 +2,6 @@
 
 
 
-
-
-Recomendaciones de Limpieza
-Inmediatas (Seguras):
-Eliminar directorio test/ - No se usa en el flujo principal
-Eliminar funciones no utilizadas - __calculate_row_size_estimate(), __retry_operation(), __retry_with_backoff()
-Consolidar funciones duplicadas - Mover a archivos específicos y eliminar duplicados
-Medio Plazo (Requieren Análisis):
-Revisar archivos SQL no utilizados - Verificar si realmente no se usan
-Eliminar código comentado con TODO - Después de verificar que no es necesario
-Refactorizar funciones legacy - Migrar a nuevas implementaciones
-Largo Plazo (Refactoring):
-Consolidar funciones de ayuda - Crear un archivo centralizado para __show_help()
-Reorganizar validaciones - Consolidar todas las funciones de validación en un solo lugar
-Eliminar funciones legacy - Una vez que se confirme que no se necesitan
-¿Te gustaría que proceda con alguna de estas limpiezas específicas?
-
-
-
-
-
-
-
-
 HECHO
 Ahora quiero que actúes como un especialista de bodegas de datos, inclusive como científico de datos, teniendo presente lo mejor para generar un data warehouse óptimo, con un par datamarts.
 Quiero que me analices el script de ETL. 
@@ -192,9 +168,3 @@ Podrías hacer una validación de los archivos XSLT antes de usarlos, esto con e
 Podrías validar que hay tamaño suficiente en disco para descargar el archivo planet  y expandirlo. Además, después se generan archivos CSV gigantes basados en esta info. También asegurar el espacio en disco para descargar todos los boundaries que son basantes.
 
 Podrías validar que el formato de fechas en el XML sean con formato IS 8601.
-
-
-**IMPORTANTE: Protocolo de Commits**
-- NUNCA hacer commits automáticos sin confirmación del usuario
-- SIEMPRE mostrar cambios con git diff y esperar confirmación
-- El usuario debe aprobar explícitamente antes de cualquier commit
