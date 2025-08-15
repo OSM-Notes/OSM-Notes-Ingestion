@@ -330,7 +330,7 @@ function __checkPrereqs {
  fi
  set -e
  # Checks prereqs.
- __checkPrereqsCommandsExtended
+ __checkPrereqsCommands
 
  ## Validate SQL script files using centralized validation
  __logi "Validating SQL script files..."
