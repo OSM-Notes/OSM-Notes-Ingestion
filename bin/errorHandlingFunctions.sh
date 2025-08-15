@@ -104,7 +104,6 @@ function __circuit_breaker_execute() {
  __log_finish
   return "${EXIT_CODE}"
  fi
- __log_finish
 }
 
 # Download with retry
@@ -234,7 +233,6 @@ function __check_network_connectivity() {
  __log_finish
   return 1
  fi
- __log_finish
 }
 
 # Handle error with cleanup
