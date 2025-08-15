@@ -1,11 +1,11 @@
 # Docker Compose for OSM-Notes-profile CI/CD Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-28
+# Version: 2025-08-14
 
 services:
   # PostgreSQL Database for CI/CD
   postgres:
-    image: postgis/postgis:15-3.3
+    image: postgis/postgis:16-3.4
     container_name: osm_notes_postgres_ci
     environment:
       POSTGRES_DB: osm_notes_test
@@ -14,15 +14,16 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
       POSTGRES_INITDB_ARGS: "--auth-host=trust"
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_test -h localhost"]
-      interval: 3s
-      timeout: 5s
-      retries: 15
-      start_period: 10s
+      test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_test"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
 
   # Application Container for CI/CD
   app:
@@ -66,6 +67,7 @@ services:
       - ./mock_data:/app/mock_data
     working_dir: /app
     command: ["/bin/bash", "-c", "sleep infinity"]
+    restart: unless-stopped
 
   # Mock API Server for CI/CD
   mock_api:
@@ -80,6 +82,7 @@ services:
     command: ["python3", "mock_osm_api.py"]
     depends_on:
       - postgres
+    restart: unless-stopped
 
 networks:
   default:

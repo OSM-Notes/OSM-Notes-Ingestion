@@ -27,6 +27,7 @@ jobs:
           POSTGRES_DB: osm_notes_test
           POSTGRES_USER: testuser
           POSTGRES_PASSWORD: testpass
+          POSTGRES_HOST_AUTH_METHOD: trust
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -89,33 +90,8 @@ jobs:
 
     - name: Set up test environment
       run: |
-        export TEST_DBNAME=osm_notes_test
-        export TEST_DBUSER=testuser
-        export TEST_DBPASSWORD=testpass
-        export TEST_DBHOST=localhost
-        export TEST_DBPORT=5432
-        export LOG_LEVEL=INFO
-        export MAX_THREADS=2
-        # Set legacy variables for backward compatibility
-        export DBNAME=osm_notes_test
-        export DB_USER=testuser
-        export DBPASSWORD=testpass
-        export DBHOST=localhost
-        export DBPORT=5432
-        # Set PGPASSWORD for psql authentication
-        export PGPASSWORD=testpass
-
-    - name: Create results directory
-      run: |
-        mkdir -p tests/results
-        mkdir -p tests/output
-
-    - name: Wait for PostgreSQL
-      run: |
-        export PGPASSWORD=testpass
-        until pg_isready -h localhost -p 5432 -U testuser; do
-          sleep 1
-        done
+        chmod +x tests/setup_ci_environment.sh
+        source tests/setup_ci_environment.sh
 
     - name: Run unit tests
       run: |
@@ -140,11 +116,12 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_DB: osm_notes_test
           POSTGRES_USER: testuser
           POSTGRES_PASSWORD: testpass
+          POSTGRES_HOST_AUTH_METHOD: trust
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -160,16 +137,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        # Try to install PostGIS from Ubuntu repositories first
-        if sudo apt-get install -y postgresql-client postgresql-16-postgis-3 2>/dev/null; then
-          echo "PostGIS installed from Ubuntu repositories"
-        else
-          echo "PostGIS not available in Ubuntu repositories, trying alternative approach..."
-          # Install PostgreSQL client and try to get PostGIS from PostgreSQL official repo
-          sudo apt-get install -y postgresql-client
-          # Try to install PostGIS extension directly in the database
-          echo "PostGIS will be installed as extension in the database"
-        fi
+        sudo apt-get install -y postgresql-client
 
     - name: Set up test environment
       run: |
@@ -186,31 +154,28 @@ jobs:
         export DBPASSWORD=testpass
         export DBHOST=localhost
         export DBPORT=5432
+        # Set PGPASSWORD for psql authentication
+        export PGPASSWORD=testpass
 
     - name: Wait for PostgreSQL
       run: |
         until pg_isready -h localhost -p 5432 -U testuser; do
-          sleep 1
+          echo "Waiting for PostgreSQL to be ready..."
+          sleep 2
         done
+        echo "PostgreSQL is ready!"
+
+    - name: Test database connection
+      run: |
+        export PGPASSWORD=testpass
+        psql -h localhost -U testuser -d osm_notes_test -c "SELECT version();" || exit 1
 
     - name: Enable PostGIS extension
       run: |
         export PGPASSWORD=testpass
         echo "Enabling PostGIS extension..."
-        # Try to enable PostGIS extension
-        if psql -h localhost -U testuser -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" 2>/dev/null; then
-          echo "PostGIS extension enabled successfully"
-        else
-          echo "PostGIS extension not available, trying to install it..."
-          # If PostGIS extension is not available, try to install it from the system
-          if command -v apt-get >/dev/null 2>&1; then
-            echo "Attempting to install PostGIS from system packages..."
-            sudo apt-get update
-            sudo apt-get install -y postgresql-16-postgis-3 || echo "PostGIS installation failed, continuing without it"
-          fi
-          # Try again to enable the extension
-          psql -h localhost -U testuser -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "PostGIS extension could not be enabled"
-        fi
+        psql -h localhost -U testuser -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || exit 1
+        psql -h localhost -U testuser -d osm_notes_test -c "SELECT PostGIS_Version();" || exit 1
 
     - name: Verify PostGIS installation
       run: |
@@ -334,6 +299,22 @@ jobs:
     runs-on: ubuntu-latest
     needs: unit-tests
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: osm_notes_test
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -343,20 +324,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y postgresql-client
 
-    - name: Start PostgreSQL
+    - name: Set up test environment
       run: |
-        docker run -d --name postgres-test \
-          -e POSTGRES_DB=osm_notes_test \
-          -e POSTGRES_USER=testuser \
-          -e POSTGRES_PASSWORD=testpass \
-          -p 5432:5432 \
-          postgres:16
-
-    - name: Wait for PostgreSQL
-      run: |
-        until pg_isready -h localhost -p 5432 -U testuser; do
-          sleep 1
-        done
+        chmod +x tests/setup_ci_environment.sh
+        source tests/setup_ci_environment.sh
 
     - name: Create benchmarks directory
       run: |
@@ -365,11 +336,6 @@ jobs:
 
     - name: Run performance tests
       run: |
-        export TEST_DBNAME=osm_notes_test
-        export TEST_DBUSER=testuser
-        export TEST_DBPASSWORD=testpass
-        export TEST_DBHOST=localhost
-        export TEST_DBPORT=5432
         # Simple performance test
         echo "Running simple performance test..." > .benchmarks/performance.log
 
