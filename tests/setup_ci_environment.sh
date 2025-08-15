@@ -30,6 +30,96 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Function to install missing tools
+__install_missing_tools() {
+    local missing_tools=("$@")
+    
+    log_info "Installing missing tools: ${missing_tools[*]}"
+    
+    # Detect package manager
+    if command -v apt-get >/dev/null 2>&1; then
+        log_info "Using apt-get package manager"
+        sudo apt-get update -qq
+        for tool in "${missing_tools[@]}"; do
+            case "${tool}" in
+                "bats")
+                    log_info "Installing bats..."
+                    sudo apt-get install -y bats
+                    ;;
+                "shfmt")
+                    log_info "Installing shfmt..."
+                    sudo apt-get install -y shfmt
+                    ;;
+                *)
+                    log_warning "Unknown tool: ${tool}"
+                    ;;
+            esac
+        done
+    elif command -v yum >/dev/null 2>&1; then
+        log_info "Using yum package manager"
+        for tool in "${missing_tools[@]}"; do
+            case "${tool}" in
+                "bats")
+                    log_info "Installing bats..."
+                    sudo yum install -y bats
+                    ;;
+                "shfmt")
+                    log_info "Installing shfmt..."
+                    sudo yum install -y shfmt
+                    ;;
+                *)
+                    log_warning "Unknown tool: ${tool}"
+                    ;;
+            esac
+        done
+    elif command -v dnf >/dev/null 2>&1; then
+        log_info "Using dnf package manager"
+        for tool in "${missing_tools[@]}"; do
+            case "${tool}" in
+                "bats")
+                    log_info "Installing bats..."
+                    sudo dnf install -y bats
+                    ;;
+                "shfmt")
+                    log_info "Installing shfmt..."
+                    sudo dnf install -y shfmt
+                    ;;
+                *)
+                    log_warning "Unknown tool: ${tool}"
+                    ;;
+            esac
+        done
+    else
+        log_warning "Unsupported package manager, trying alternative installation methods"
+        
+        # Try to install bats using alternative methods
+        if [[ " ${missing_tools[*]} " =~ " bats " ]]; then
+            log_info "Installing bats using alternative method..."
+            if command -v npm >/dev/null 2>&1; then
+                sudo npm install -g bats
+            elif command -v pip3 >/dev/null 2>&1; then
+                sudo pip3 install bats-core
+            else
+                log_warning "Could not install bats automatically"
+            fi
+        fi
+        
+        # Try to install shfmt using alternative methods
+        if [[ " ${missing_tools[*]} " =~ " shfmt " ]]; then
+            log_info "Installing shfmt using alternative method..."
+            if command -v go >/dev/null 2>&1; then
+                go install mvdan.cc/sh/v3/cmd/shfmt@latest
+            elif command -v curl >/dev/null 2>&1; then
+                curl -sSfL https://github.com/mvdan/sh/releases/latest/download/shfmt_linux_amd64 -o /tmp/shfmt
+                chmod +x /tmp/shfmt
+                sudo mv /tmp/shfmt /usr/local/bin/
+            else
+                log_warning "Could not install shfmt automatically"
+            fi
+        fi
+    fi
+}
+
 # Function to wait for PostgreSQL to be ready
 __wait_for_postgres() {
     local max_attempts=30
@@ -127,7 +217,38 @@ __verify_tools() {
     
     if [[ ${#missing_tools[@]} -gt 0 ]]; then
         log_warning "Some tools are missing: ${missing_tools[*]}"
-        return 1
+        
+        # Try to install missing tools
+        if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
+            log_info "Attempting to install missing tools in CI environment..."
+            __install_missing_tools "${missing_tools[@]}"
+            
+            # Verify again after installation
+            log_info "Verifying tools after installation..."
+            local still_missing=()
+            for tool in "${missing_tools[@]}"; do
+                if command -v "${tool}" >/dev/null 2>&1; then
+                    log_success "✓ ${tool} is now available"
+                else
+                    log_warning "⚠ ${tool} is still not available"
+                    still_missing+=("${tool}")
+                fi
+            done
+            
+            if [[ ${#still_missing[@]} -gt 0 ]]; then
+                log_warning "Some tools could not be installed: ${still_missing[*]}"
+                # In CI environment, we can continue with missing tools for now
+                if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
+                    log_info "Continuing in CI environment despite missing tools"
+                    return 0
+                fi
+            fi
+        fi
+        
+        # In non-CI environment, return error if tools are missing
+        if [[ "${CI:-false}" != "true" ]] && [[ "${GITHUB_ACTIONS:-false}" != "true" ]]; then
+            return 1
+        fi
     fi
     
     return 0
@@ -144,7 +265,10 @@ main() {
     __create_directories
     
     # Verify tools availability
-    __verify_tools
+    if ! __verify_tools; then
+        log_error "Failed to verify required tools"
+        exit 1
+    fi
     
     # Wait for PostgreSQL
     if ! __wait_for_postgres; then

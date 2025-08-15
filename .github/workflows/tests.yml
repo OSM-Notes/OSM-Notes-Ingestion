@@ -79,11 +79,6 @@ jobs:
         command -v bats && echo "✓ bats available"
         command -v psql && echo "✓ psql available"
 
-    - name: Verify CI environment
-      run: |
-        chmod +x tests/verify_ci_environment.sh
-        ./tests/verify_ci_environment.sh
-
     - name: Install Python dependencies
       run: |
         pip install requests pytest pytest-mock
@@ -91,7 +86,12 @@ jobs:
     - name: Set up test environment
       run: |
         chmod +x tests/setup_ci_environment.sh
-        source tests/setup_ci_environment.sh
+        ./tests/setup_ci_environment.sh
+
+    - name: Verify CI environment
+      run: |
+        chmod +x tests/verify_ci_environment.sh
+        ./tests/verify_ci_environment.sh
 
     - name: Run unit tests
       run: |
@@ -327,7 +327,7 @@ jobs:
     - name: Set up test environment
       run: |
         chmod +x tests/setup_ci_environment.sh
-        source tests/setup_ci_environment.sh
+        ./tests/setup_ci_environment.sh
 
     - name: Create benchmarks directory
       run: |
