@@ -332,7 +332,7 @@ function __validate_data_integrity {
 function __monitor_resources {
  __log_start
  if [[ "${ETL_MONITOR_RESOURCES}" != "true" ]]; then
- __log_finish
+  __log_finish
   return 0
  fi
 
@@ -348,7 +348,7 @@ function __monitor_resources {
 
  if [[ "${DISK_USAGE}" -gt "${MAX_DISK_USAGE}" ]]; then
   __loge "ERROR: High disk usage: ${DISK_USAGE}%"
- __log_finish
+  __log_finish
   return 1
  fi
  __log_finish
@@ -363,7 +363,7 @@ function __check_timeout {
 
  if [[ ${ELAPSED_TIME} -gt ${ETL_TIMEOUT} ]]; then
   __loge "ERROR: ETL timeout reached (${ETL_TIMEOUT}s)"
- __log_finish
+  __log_finish
   return 1
  fi
  __log_finish

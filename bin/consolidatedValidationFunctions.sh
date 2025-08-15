@@ -50,7 +50,7 @@ function __validate_xml_with_enhanced_error_handling() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -78,7 +78,7 @@ function __validate_xml_with_enhanced_error_handling() {
    return 0
   else
    __loge "ERROR: Structure-only validation failed"
- __log_finish
+   __log_finish
    return 1
   fi
  elif [[ "${SIZE_MB}" -gt "${LARGE_FILE_THRESHOLD}" ]] || [[ "${IS_PLANET_FILE}" == true ]]; then
@@ -87,11 +87,11 @@ function __validate_xml_with_enhanced_error_handling() {
   # For large files or planet files, use basic XML validation without schema
   if __validate_xml_basic "${XML_FILE}"; then
    __logi "Basic XML validation succeeded"
- __log_finish
+   __log_finish
    return 0
   else
    __loge "ERROR: Basic XML validation failed"
- __log_finish
+   __log_finish
    return 1
   fi
  else
@@ -102,22 +102,22 @@ function __validate_xml_with_enhanced_error_handling() {
    local EXIT_CODE=$?
    if [[ ${EXIT_CODE} -eq 0 ]]; then
     __logi "XML validation succeeded"
- __log_finish
+    __log_finish
     return 0
    else
     __loge "ERROR: XML schema validation failed - xmllint output: ${XMLLINT_OUTPUT}"
- __log_finish
+    __log_finish
     return 1
    fi
   else
    # Fallback to basic validation if no schema provided
    if __validate_xml_basic "${XML_FILE}"; then
     __logi "Basic XML validation succeeded"
- __log_finish
+    __log_finish
     return 0
    else
     __loge "ERROR: Basic XML validation failed"
- __log_finish
+    __log_finish
     return 1
    fi
   fi
@@ -134,7 +134,7 @@ function __validate_xml_basic() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -145,7 +145,7 @@ function __validate_xml_basic() {
  if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1; then
   XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
   __loge "ERROR: Basic XML structure validation failed - xmllint output: ${XMLLINT_OUTPUT}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -164,7 +164,7 @@ function __validate_xml_structure_only() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -173,11 +173,11 @@ function __validate_xml_structure_only() {
  # Check if file contains basic XML structure markers
  if grep -q '<?xml' "${XML_FILE}" && grep -q '<osm' "${XML_FILE}"; then
   __logi "Structure-only XML validation succeeded"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "ERROR: Structure-only XML validation failed - missing XML structure markers"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -218,7 +218,7 @@ function __validate_csv_for_enum_compatibility() {
 
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -227,7 +227,7 @@ function __validate_csv_for_enum_compatibility() {
  # Check if CSV has content
  if [[ ! -s "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file is empty: ${CSV_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -239,7 +239,7 @@ function __validate_csv_for_enum_compatibility() {
 
  if [[ "${COLUMN_INDEX}" -ge "${COLUMN_COUNT}" ]]; then
   __loge "ERROR: Column index ${COLUMN_INDEX} is out of range (0-${COLUMN_COUNT})"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -260,7 +260,7 @@ function __validate_csv_structure() {
 
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -269,7 +269,7 @@ function __validate_csv_structure() {
  # Check if CSV has content
  if [[ ! -s "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file is empty: ${CSV_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -285,7 +285,7 @@ function __validate_csv_structure() {
  if [[ -n "${EXPECTED_COLUMNS}" ]]; then
   if [[ "${ACTUAL_COLUMNS}" -ne "${EXPECTED_COLUMNS}" ]]; then
    __loge "ERROR: Expected ${EXPECTED_COLUMNS} columns, got ${ACTUAL_COLUMNS}"
- __log_finish
+   __log_finish
    return 1
   fi
  fi
@@ -309,7 +309,7 @@ function __validate_xml_coordinates() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -318,11 +318,11 @@ function __validate_xml_coordinates() {
  # Check for coordinate patterns in XML
  if grep -q 'lat=' "${XML_FILE}" && grep -q 'lon=' "${XML_FILE}"; then
   __logi "XML coordinate validation succeeded"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "ERROR: XML coordinate validation failed - missing lat/lon attributes"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -342,11 +342,11 @@ function __validate_coordinates() {
   # If it's a string, validate coordinate format
   if [[ "${COORD_INPUT}" =~ ^-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*$ ]]; then
    __logi "Coordinate string validation succeeded: ${COORD_INPUT}"
- __log_finish
+   __log_finish
    return 0
   else
    __loge "ERROR: Invalid coordinate format: ${COORD_INPUT}"
- __log_finish
+   __log_finish
    return 1
   fi
  fi
@@ -367,7 +367,7 @@ function __validate_csv_coordinates() {
 
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -375,7 +375,7 @@ function __validate_csv_coordinates() {
 
  # Validate CSV structure first
  if ! __validate_csv_structure "${CSV_FILE}"; then
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -385,7 +385,7 @@ function __validate_csv_coordinates() {
 
  if [[ -z "${FIRST_DATA_LINE}" ]]; then
   __loge "ERROR: CSV file has no data rows"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -398,20 +398,20 @@ function __validate_csv_coordinates() {
  # Validate coordinate values
  if [[ ! "${LAT_VAL}" =~ ^-?[0-9]+\.?[0-9]*$ ]] || [[ ! "${LON_VAL}" =~ ^-?[0-9]+\.?[0-9]*$ ]]; then
   __loge "ERROR: Invalid coordinate values: lat=${LAT_VAL}, lon=${LON_VAL}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  # Check coordinate ranges
  if (($(echo "${LAT_VAL} < -90 || ${LAT_VAL} > 90" | bc -l))); then
   __loge "ERROR: Latitude out of range (-90 to 90): ${LAT_VAL}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  if (($(echo "${LON_VAL} < -180 || ${LON_VAL} > 180" | bc -l))); then
   __loge "ERROR: Longitude out of range (-180 to 180): ${LON_VAL}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -436,25 +436,25 @@ function __validate_input_file() {
 
  if [[ -z "${FILE_PATH}" ]]; then
   __loge "ERROR: File path is empty"
- __log_finish
+  __log_finish
   return 1
  fi
 
  if [[ ! -f "${FILE_PATH}" ]]; then
   __loge "ERROR: ${FILE_TYPE} not found: ${FILE_PATH}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  if [[ ! -r "${FILE_PATH}" ]]; then
   __loge "ERROR: ${FILE_TYPE} is not readable: ${FILE_PATH}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  if [[ ! -s "${FILE_PATH}" ]]; then
   __loge "ERROR: ${FILE_TYPE} is empty: ${FILE_PATH}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -479,11 +479,11 @@ function __validate_input_files() {
 
  if [[ "${ALL_VALID}" == true ]]; then
   __logi "All input files validation passed"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "Some input files validation failed"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -502,7 +502,7 @@ function __validate_database_connection() {
 
  if [[ -z "${DB_NAME}" ]]; then
   __loge "ERROR: Database name not specified"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -511,7 +511,7 @@ function __validate_database_connection() {
  # Test database connection
  if ! psql -d "${DB_NAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database: ${DB_NAME}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -534,7 +534,7 @@ function __validate_database_tables() {
 
  if [[ -z "${DB_NAME}" ]]; then
   __loge "ERROR: Database name not specified"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -546,7 +546,7 @@ function __validate_database_tables() {
 
  if [[ "${TABLE_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No tables found matching pattern: ${SCHEMA_NAME}.${TABLE_PATTERN}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -569,18 +569,18 @@ function __validate_iso8601_date() {
 
  if [[ -z "${DATE_STRING}" ]]; then
   __loge "ERROR: Date string is empty"
- __log_finish
+  __log_finish
   return 1
  fi
 
  # Check ISO8601 format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DD)
  if [[ "${DATE_STRING}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}:[0-9]{2}Z?)?$ ]]; then
   __logd "ISO8601 date validation passed: ${DATE_STRING}"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "ERROR: Invalid ISO8601 date format: ${DATE_STRING}"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -601,7 +601,7 @@ function __validate_date_format() {
   ;;
  *)
   __loge "ERROR: Unsupported date format: ${EXPECTED_FORMAT}"
- __log_finish
+  __log_finish
   return 1
   ;;
  esac
@@ -618,18 +618,18 @@ function __validate_date_format_utc() {
 
  # First validate ISO8601 format
  if ! __validate_iso8601_date "${DATE_STRING}"; then
- __log_finish
+  __log_finish
   return 1
  fi
 
  # Check if it ends with Z (UTC indicator)
  if [[ "${DATE_STRING}" =~ Z$ ]]; then
   __logd "UTC date validation passed: ${DATE_STRING}"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "ERROR: Date is not in UTC format (missing Z suffix): ${DATE_STRING}"
- __log_finish
+  __log_finish
   return 1
  fi
 }

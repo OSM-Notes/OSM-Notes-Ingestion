@@ -55,11 +55,11 @@ function __check_database() {
 
  if psql -lqt | cut -d \| -f 1 | grep -qw "${TARGET_DB}"; then
   __logi "Database ${TARGET_DB} exists"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "Database ${TARGET_DB} does not exist"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -76,7 +76,7 @@ function __execute_sql_script() {
  # Validate SQL script using centralized validation
  if ! __validate_sql_structure "${SCRIPT_PATH}"; then
   __loge "ERROR: SQL script validation failed: ${SCRIPT_PATH}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -88,11 +88,11 @@ function __execute_sql_script() {
 
  if ${PSQL_CMD} -d "${TARGET_DB}" -f "${SCRIPT_PATH}"; then
   __logi "SUCCESS: ${SCRIPT_NAME} completed"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "FAILED: ${SCRIPT_NAME} failed"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -131,7 +131,7 @@ function __drop_all_partitions() {
  # Validate SQL script using centralized validation
  if ! __validate_sql_structure "${DROP_SCRIPT}"; then
   __loge "ERROR: Drop script validation failed: ${DROP_SCRIPT}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -143,7 +143,7 @@ function __drop_all_partitions() {
 
  if ${PSQL_CMD} -d "${TARGET_DB}" -f "${DROP_SCRIPT}"; then
   __logi "SUCCESS: Partition tables dropped"
- __log_finish
+  __log_finish
   return 0
  else
   __loge "FAILED: Partition tables drop failed"
@@ -174,7 +174,7 @@ function __verify_partition_cleanup() {
 
  if [[ "${REMAINING_COUNT}" -eq 0 ]]; then
   __logi "SUCCESS: All partition tables have been removed"
- __log_finish
+  __log_finish
   return 0
  else
   __logw "WARNING: ${REMAINING_COUNT} partition tables still exist"
@@ -199,7 +199,7 @@ function __cleanup_partitions_only() {
  # Step 1: Check if database exists
  if ! __check_database "${TARGET_DB}"; then
   __loge "Database ${TARGET_DB} does not exist. Cannot proceed with partition cleanup."
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -211,7 +211,7 @@ function __cleanup_partitions_only() {
  __logi "Step 2: Dropping all partition tables"
  if ! __drop_all_partitions "${TARGET_DB}"; then
   __loge "Failed to drop partition tables"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -219,7 +219,7 @@ function __cleanup_partitions_only() {
  __logi "Step 3: Verifying cleanup"
  if ! __verify_partition_cleanup "${TARGET_DB}"; then
   __logw "Some partition tables may still exist"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -298,11 +298,11 @@ function __cleanup_api_tables() {
 
  if ${PSQL_CMD} -d "${TARGET_DB}" -c "${API_DROP_SQL}"; then
   __logi "SUCCESS: API tables dropped"
- __log_finish
+  __log_finish
   return 0
  else
   __logw "WARNING: Some API tables may not have been dropped"
- __log_finish
+  __log_finish
   return 1
  fi
 }
@@ -366,7 +366,7 @@ function __cleanup_all() {
   __cleanup_temp_files
 
   __logi "Cleanup completed (database operations skipped)"
- __log_finish
+  __log_finish
   return 0
  fi
 

@@ -46,13 +46,13 @@ function __processXmlPartsParallel() {
 
  if [[ ! -d "${INPUT_DIR}" ]]; then
   __loge "ERROR: Input directory not found: ${INPUT_DIR}"
- __log_finish
+  __log_finish
   return 1
  fi
 
  if [[ ! -f "${XSLT_FILE}" ]]; then
   __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -65,7 +65,7 @@ function __processXmlPartsParallel() {
 
  if [[ ${#XML_FILES[@]} -eq 0 ]]; then
   __logw "WARNING: No XML files found in ${INPUT_DIR}"
- __log_finish
+  __log_finish
   return 0
  fi
 
@@ -122,7 +122,7 @@ function __splitXmlForParallelSafe() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
- __log_finish
+  __log_finish
   return "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -135,7 +135,7 @@ function __splitXmlForParallelSafe() {
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
- __log_finish
+  __log_finish
   return 0
  fi
 
@@ -230,7 +230,7 @@ function __processApiXmlPart() {
  # Validate part number
  if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
   __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -254,7 +254,7 @@ function __processApiXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -263,7 +263,7 @@ function __processApiXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -272,7 +272,7 @@ function __processApiXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -325,7 +325,7 @@ function __processPlanetXmlPart() {
  # Validate part number
  if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
   __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -349,7 +349,7 @@ function __processPlanetXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -358,7 +358,7 @@ function __processPlanetXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
@@ -367,7 +367,7 @@ function __processPlanetXmlPart() {
  xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
- __log_finish
+  __log_finish
   return 1
  fi
 
