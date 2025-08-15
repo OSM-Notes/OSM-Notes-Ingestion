@@ -243,6 +243,9 @@ declare -r FAILED_EXECUTION_FILE="${TMP_DIR}/failed_execution.log"
 # Control variables for functionsProcess.sh
 export ONLY_EXECUTION="no"
 
+# Global exit code variable for trap functions
+export SCRIPT_EXIT_CODE=0
+
 ###########
 # FUNCTIONS
 
@@ -273,7 +276,7 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 # Function to handle cleanup on exit respecting CLEAN flag
 function __cleanup_on_exit() {
  __log_start
- local EXIT_CODE=$?
+ local EXIT_CODE="${SCRIPT_EXIT_CODE:-$?}"
 
  # Skip cleanup if we're just showing help
  if [[ "${SHOWING_HELP:-false}" == "true" ]]; then
@@ -281,6 +284,13 @@ function __cleanup_on_exit() {
   __log_finish
   # Use the correct exit code for help
   exit "${ERROR_HELP_MESSAGE}"
+ fi
+
+ # Skip cleanup for parameter validation errors (they should exit immediately)
+ if [[ "${EXIT_CODE}" == "${ERROR_INVALID_ARGUMENT}" ]]; then
+  __logd "Parameter validation error detected, exiting immediately with code ${EXIT_CODE}"
+  __log_finish
+  exit "${EXIT_CODE}"
  fi
 
  # Only clean if CLEAN is true and this is an error exit (non-zero)
@@ -298,7 +308,7 @@ function __cleanup_on_exit() {
  exit "${EXIT_CODE}"
 }
 
-# Set trap to handle cleanup on any exit (after loading logging functions)
+# Set trap to handle cleanup on script exit only (not function exit)
 trap '__cleanup_on_exit' EXIT
 
 # Checks prerequisites to run the script.
@@ -314,11 +324,13 @@ function __checkPrereqs {
   echo " * --base"
   echo " * --boundaries"
   echo " * --help"
-  exit "${ERROR_INVALID_ARGUMENT}"
+  __log_finish
+  export SCRIPT_EXIT_CODE="${ERROR_INVALID_ARGUMENT}"
+  return "${ERROR_INVALID_ARGUMENT}"
  fi
- set +e
+ set -e
  # Checks prereqs.
- __checkPrereqsCommands
+ __checkPrereqsCommandsExtended
 
  ## Validate SQL script files using centralized validation
  __logi "Validating SQL script files..."
@@ -344,7 +356,9 @@ function __checkPrereqs {
  for SQL_FILE in "${SQL_FILES[@]}"; do
   if ! __validate_sql_structure "${SQL_FILE}"; then
    __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
-   exit "${ERROR_MISSING_LIBRARY}"
+   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+   __log_finish
+   return "${ERROR_MISSING_LIBRARY}"
   fi
  done
 
@@ -352,31 +366,41 @@ function __checkPrereqs {
  __logi "Validating XSLT files..."
  if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
   __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  if ! __validate_input_file "${XSLT_NOTE_COMMENTS_PLANET_FILE}" "XSLT comments file"; then
   __loge "ERROR: XSLT comments file validation failed: ${XSLT_NOTE_COMMENTS_PLANET_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  if ! __validate_input_file "${XSLT_TEXT_COMMENTS_PLANET_FILE}" "XSLT text comments file"; then
   __loge "ERROR: XSLT text comments file validation failed: ${XSLT_TEXT_COMMENTS_PLANET_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  ## Validate XML schema files
  __logi "Validating XML schema files..."
  if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
   __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Validate XSLT files
  __logi "Validating XSLT files..."
  if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
   __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Validate dates in XML files if they exist
@@ -384,7 +408,9 @@ function __checkPrereqs {
  if [[ -f "${PLANET_NOTES_FILE}" ]]; then
   if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
    __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
-   exit "${ERROR_MISSING_LIBRARY}"
+   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+   __log_finish
+   return "${ERROR_MISSING_LIBRARY}"
   fi
  fi
 
@@ -395,19 +421,25 @@ function __checkPrereqs {
  __logi "Validating JSON schema files..."
  if ! __validate_input_file "${JSON_SCHEMA_OVERPASS}" "JSON schema file"; then
   __loge "ERROR: JSON schema file validation failed: ${JSON_SCHEMA_OVERPASS}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  if ! __validate_input_file "${JSON_SCHEMA_GEOJSON}" "GeoJSON schema file"; then
   __loge "ERROR: GeoJSON schema file validation failed: ${JSON_SCHEMA_GEOJSON}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  ## Validate test files
  __logi "Validating JSON schema files..."
  if ! __validate_input_file "${GEOJSON_TEST}" "GeoJSON test file"; then
   __loge "ERROR: GeoJSON test file validation failed: ${GEOJSON_TEST}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  ## Validate backup files if they exist
@@ -415,14 +447,18 @@ function __checkPrereqs {
   __logi "Validating backup files..."
   if ! __validate_input_file "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" "Backup file"; then
    __loge "ERROR: Backup file validation failed: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
-   exit "${ERROR_MISSING_LIBRARY}"
+   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+   __log_finish
+   return "${ERROR_MISSING_LIBRARY}"
   fi
  fi
 
  if [[ -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
   if ! __validate_sql_structure "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"; then
    __loge "ERROR: Upload SQL file validation failed: ${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
-   exit "${ERROR_MISSING_LIBRARY}"
+   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+   __log_finish
+   return "${ERROR_MISSING_LIBRARY}"
   fi
  fi
 
@@ -1114,6 +1150,9 @@ function main() {
  fi
  # Checks the prerequisities. It could terminate the process.
  __checkPrereqs
+ if [[ "${?}" -ne 0 ]]; then
+  exit "${?}"
+ fi
 
  __logw "Starting process."
 
