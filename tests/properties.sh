@@ -32,6 +32,12 @@ else
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
  export TEST_DBHOST="${TEST_DBHOST:-}"
  export TEST_DBPORT="${TEST_DBPORT:-}"
+ 
+ # Ensure host and port are empty for local connection
+ unset TEST_DBHOST TEST_DBPORT
+ 
+ # Ensure user is current user for local connection
+ unset TEST_DBUSER
 
  # For peer authentication, ensure these variables are not set
  unset PGPASSWORD 2> /dev/null || true
