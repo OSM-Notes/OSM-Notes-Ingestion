@@ -187,7 +187,9 @@ function __splitXmlForParallelSafe() {
 function __splitXmlForParallelAPI() {
  __log_start
  __splitXmlForParallelSafe "${1}" "${2:-}" "${3:-}" "API"
+ local return_code=$?
  __log_finish
+ return "${return_code}"
 }
 
 # Wrapper function for Planet format that uses parallel processing
@@ -198,7 +200,9 @@ function __splitXmlForParallelAPI() {
 function __splitXmlForParallelPlanet() {
  __log_start
  __splitXmlForParallelSafe "${1}" "${2:-}" "${3:-}" "Planet"
+ local return_code=$?
  __log_finish
+ return "${return_code}"
 }
 
 # Process API XML part (consolidated version)

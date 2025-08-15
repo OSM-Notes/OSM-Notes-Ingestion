@@ -365,14 +365,17 @@ function __splitXmlForParallelAPI() {
  # Source the consolidated parallel processing functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  __splitXmlForParallelAPI "$@"
+  # Call the function from parallelProcessingFunctions.sh, not recursively
+  __splitXmlForParallelSafe "$@"
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
   __log_finish
   return 1
  fi
+ local return_code=$?
  __log_finish
+ return "${return_code}"
 }
 
 # Wrapper function for Planet format that uses parallel processing
@@ -382,14 +385,17 @@ function __splitXmlForParallelPlanet() {
  # Source the consolidated parallel processing functions
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  __splitXmlForParallelPlanet "$@"
+  # Call the function from parallelProcessingFunctions.sh, not recursively
+  __splitXmlForParallelSafe "$@"
  else
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
   __log_finish
   return 1
  fi
+ local return_code=$?
  __log_finish
+ return "${return_code}"
 }
 
 # Processes a single XML part for API notes
