@@ -50,8 +50,16 @@ function __show_help() {
 # shellcheck disable=SC2034
 if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then declare GENERATE_FAILED_FILE=true; fi
 # Create a unique failed execution file name based on script name
+# Only define if not already set by the calling script
 if [[ -z "${FAILED_EXECUTION_FILE:-}" ]]; then
- SCRIPT_NAME=$(basename "${BASH_SOURCE[0]:-unknown_script}" .sh)
+ # Try to get the calling script name from BASH_SOURCE
+ if [[ ${#BASH_SOURCE[@]} -gt 1 ]]; then
+  # Get the calling script (index 1) instead of this script (index 0)
+  SCRIPT_NAME=$(basename "${BASH_SOURCE[1]:-unknown_script}" .sh)
+ else
+  # Fallback to current script if no calling context
+  SCRIPT_NAME=$(basename "${BASH_SOURCE[0]:-unknown_script}" .sh)
+ fi
  declare -r FAILED_EXECUTION_FILE="/tmp/${SCRIPT_NAME}_failed_execution"
 fi
 if [[ -z "${PREREQS_CHECKED:-}" ]]; then declare PREREQS_CHECKED=false; fi
