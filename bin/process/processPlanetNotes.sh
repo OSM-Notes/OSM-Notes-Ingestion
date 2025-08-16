@@ -624,11 +624,18 @@ function __processPlanetNotesWithParallel {
  # Create partitions for parallel processing
  __createPartitionTables
 
- __splitXmlForParallelPlanet "${PLANET_NOTES_FILE}"
+ # Use the consolidated function from parallelProcessingFunctions.sh
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  __splitXmlForParallelSafe "${PLANET_NOTES_FILE}" "${MAX_THREADS}" "${TMP_DIR}" "Planet"
+ else
+  __loge "ERROR: parallelProcessingFunctions.sh not found"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  # Export XSLT variables for parallel processing
  export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
  # Process XML parts in parallel using the directory where parts were created
- __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}"
+ __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"
  # Consolidate partitions into main tables
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.max_threads = '${MAX_THREADS}';" \

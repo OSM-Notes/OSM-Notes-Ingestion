@@ -54,6 +54,7 @@ function __show_help_library() {
 #   $2: XSLT file for processing
 #   $3: Output directory for CSV files
 #   $4: Maximum number of workers (optional, default: 4)
+#   $5: Processing type (optional, default: generic)
 # Returns: 0 on success, 1 on failure
 function __processXmlPartsParallel() {
  __log_start
@@ -63,6 +64,7 @@ function __processXmlPartsParallel() {
  local XSLT_FILE="${2}"
  local OUTPUT_DIR="${3}"
  local MAX_WORKERS="${4:-${MAX_THREADS:-4}}"
+ local PROCESSING_TYPE="${5:-generic}"
 
  if [[ ! -d "${INPUT_DIR}" ]]; then
   __loge "ERROR: Input directory not found: ${INPUT_DIR}"
@@ -98,14 +100,33 @@ function __processXmlPartsParallel() {
  for XML_FILE in "${XML_FILES[@]}"; do
   local BASE_NAME
   BASE_NAME=$(basename "${XML_FILE}" .xml)
-  local OUTPUT_FILE="${OUTPUT_DIR}/${BASE_NAME}.csv"
-
-  # Process XML file
-  if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
-   __logd "Successfully processed: ${XML_FILE} -> ${OUTPUT_FILE}"
-   ((PROCESSED++))
+  
+  # Determine processing method based on file type and processing type
+  if [[ "${PROCESSING_TYPE}" == "Planet" ]] && [[ "${BASE_NAME}" =~ ^planet_part_ ]]; then
+   # Use Planet-specific processing
+   if __processPlanetXmlPart "${XML_FILE}"; then
+    __logd "Successfully processed Planet XML part: ${XML_FILE}"
+    ((PROCESSED++))
+   else
+    __loge "ERROR: Failed to process Planet XML part: ${XML_FILE}"
+   fi
+  elif [[ "${PROCESSING_TYPE}" == "API" ]] && [[ "${BASE_NAME}" =~ ^api_part_ ]]; then
+   # Use API-specific processing
+   if __processApiXmlPart "${XML_FILE}"; then
+    __logd "Successfully processed API XML part: ${XML_FILE}"
+    ((PROCESSED++))
+   else
+    __loge "ERROR: Failed to process API XML part: ${XML_FILE}"
+   fi
   else
-   __loge "ERROR: Failed to process: ${XML_FILE}"
+   # Generic processing for unknown types
+   local OUTPUT_FILE="${OUTPUT_DIR}/${BASE_NAME}.csv"
+   if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
+    __logd "Successfully processed generic XML: ${XML_FILE} -> ${OUTPUT_FILE}"
+    ((PROCESSED++))
+   else
+    __loge "ERROR: Failed to process generic XML: ${XML_FILE}"
+   fi
   fi
 
   # Limit concurrent processes
