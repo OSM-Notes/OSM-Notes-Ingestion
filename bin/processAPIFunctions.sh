@@ -78,7 +78,8 @@ function __countXmlNotesAPI() {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- COUNT=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
+ # Use grep for faster counting of large files
+ COUNT=$(grep -c '<note' "${XML_FILE}" 2> /dev/null || echo "0")
  __logi "Found ${COUNT} notes in API XML file."
  __log_finish
  echo "${COUNT}"

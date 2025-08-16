@@ -131,7 +131,7 @@ function __splitXmlForParallelSafe() {
 
  # Count total notes
  local TOTAL_NOTES
- TOTAL_NOTES=$(xmllint --xpath "count(//note)" "${XML_FILE}" 2> /dev/null || echo "0")
+ TOTAL_NOTES=$(grep -c '<note' "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logw "WARNING: No notes found in XML file."
