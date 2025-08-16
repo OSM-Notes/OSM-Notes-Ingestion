@@ -479,7 +479,8 @@ function __processXMLorPlanet {
     __splitXmlForParallelAPI "${API_NOTES_FILE}"
     # Export XSLT variables for parallel processing
     export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
-    __processXmlPartsParallel "__processApiXmlPart"
+    # Process XML parts in parallel using the directory where parts were created
+    __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_API_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}"
    else
     __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
     __processApiXmlSequential "${API_NOTES_FILE}"

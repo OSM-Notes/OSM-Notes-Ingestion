@@ -78,6 +78,7 @@ if [[ -z "${POSTGRES_26_CREATE_COUNTRY_TABLES:-}" ]]; then declare -r POSTGRES_2
 if [[ -z "${POSTGRES_31_VACUUM_AND_ANALYZE:-}" ]]; then declare -r POSTGRES_31_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"; fi
 if [[ -z "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES:-}" ]]; then declare -r POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"; fi
 if [[ -z "${POSTGRES_42_CONSOLIDATE_PARTITIONS:-}" ]]; then declare -r POSTGRES_42_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_consolidatePartitions.sql"; fi
+if [[ -z "${POSTGRES_43_MOVE_SYNC_TO_MAIN:-}" ]]; then declare -r POSTGRES_43_MOVE_SYNC_TO_MAIN="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_moveSyncToMain.sql"; fi
 
 # Count XML notes for Planet
 function __countXmlNotesPlanet() {

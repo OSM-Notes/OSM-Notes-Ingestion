@@ -7,11 +7,24 @@
 # Description: Centralized parallel processing functions for better maintainability
 
 # Load properties if not already loaded
-if [[ -z "${MAX_THREADS:-}" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/etc/properties.sh" ]]; then
- source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
-elif [[ -z "${MAX_THREADS:-}" ]] && [[ -f "./etc/properties.sh" ]]; then
- source "./etc/properties.sh"
+if [[ -z "${MAX_THREADS:-}" ]]; then
+ if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/etc/properties.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+ elif [[ -f "./etc/properties.sh" ]]; then
+  source "./etc/properties.sh"
+ fi
 fi
+
+# Load common functions if not already loaded
+if [[ -z "${__log_start:-}" ]]; then
+ if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/bin/commonFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+ elif [[ -f "./bin/commonFunctions.sh" ]]; then
+  source "./bin/commonFunctions.sh"
+ fi
+fi
+
+
 
 # Common help function for library files
 function __show_help_library() {

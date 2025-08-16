@@ -320,27 +320,8 @@ function __organizeAreas {
  __log_finish
 }
 
-# Get location notes
-function __getLocationNotes {
- __log_start
- __logd "Getting location notes."
-
- # Validate that POSTGRES_32_UPLOAD_NOTE_LOCATION is defined
- if [[ -z "${POSTGRES_32_UPLOAD_NOTE_LOCATION:-}" ]]; then
-  __loge "ERROR: POSTGRES_32_UPLOAD_NOTE_LOCATION variable is not defined"
-  __loge "ERROR: This variable should be defined in the calling script"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
-
- # Validate that the SQL file exists
- if [[ ! -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
-  __loge "ERROR: SQL file not found: ${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
-
- psql -d "${DBNAME}" -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
- __log_finish
-}
+# Get location notes - Function moved to functionsProcess.sh to avoid duplication
+# The correct implementation is in functionsProcess.sh which handles CSV decompression
 
 # Set log file for output redirection
 # Parameters:
