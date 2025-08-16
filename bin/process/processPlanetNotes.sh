@@ -124,10 +124,6 @@
 # __checkBaseTables                    x
 # __createBaseTables                   x
 # __createSyncTables                   x
-# __dropCountryTables                          x        x
-# __createCountryTables                        x        x
-# __processCountries                           x        x
-# __processMaritimes                           x        x
 # __cleanPartial                               x        x
 # __downloadPlanetNotes                x
 # __validatePlanetNotesXMLFile         x
@@ -316,13 +312,11 @@ function __checkPrereqs {
  __log_start
  __logi "=== STARTING PLANET PREREQUISITES CHECK ==="
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
-  && [[ "${PROCESS_TYPE}" != "--boundaries" ]] \
   && [[ "${PROCESS_TYPE}" != "--help" ]] \
   && [[ "${PROCESS_TYPE}" != "-h" ]]; then
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --base"
-  echo " * --boundaries"
   echo " * --help"
   __log_finish
   export SCRIPT_EXIT_CODE="${ERROR_INVALID_ARGUMENT}"
@@ -340,12 +334,10 @@ function __checkPrereqs {
   "${POSTGRES_11_DROP_SYNC_TABLES}"
   "${POSTGRES_12_DROP_API_TABLES}"
   "${POSTGRES_13_DROP_BASE_TABLES}"
-  "${POSTGRES_14_DROP_COUNTRY_TABLES}"
   "${POSTGRES_21_CREATE_ENUMS}"
   "${POSTGRES_22_CREATE_BASE_TABLES}"
   "${POSTGRES_23_CREATE_CONSTRAINTS}"
   "${POSTGRES_24_CREATE_SYNC_TABLES}"
-  "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
   "${POSTGRES_31_VACUUM_AND_ANALYZE}"
   "${POSTGRES_25_CREATE_PARTITIONS}"
   "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
@@ -394,15 +386,6 @@ function __checkPrereqs {
   return "${ERROR_MISSING_LIBRARY}"
  fi
 
- # Validate XSLT files
- __logi "Validating XSLT files..."
- if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
-  __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
- fi
-
  # Validate dates in XML files if they exist
  __logi "Validating dates in XML files..."
  if [[ -f "${PLANET_NOTES_FILE}" ]]; then
@@ -412,6 +395,15 @@ function __checkPrereqs {
    __log_finish
    return "${ERROR_MISSING_LIBRARY}"
   fi
+ fi
+ 
+ ## Validate updateCountries.sh script availability
+ __logi "Validating updateCountries.sh script availability..."
+ if ! __validate_input_file "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" "updateCountries script"; then
+  __loge "ERROR: updateCountries.sh script validation failed"
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  # CSV files are generated during processing, no need to validate them here
@@ -498,15 +490,7 @@ function __dropBaseTables {
  __log_finish
 }
 
-# Drop existing base tables.
-function __dropCountryTables {
- __log_start
- __logi "=== DROPPING COUNTRY TABLES ==="
- __logd "Executing SQL file: ${POSTGRES_14_DROP_COUNTRY_TABLES}"
- psql -d "${DBNAME}" -f "${POSTGRES_14_DROP_COUNTRY_TABLES}"
- __logi "=== COUNTRY TABLES DROPPED SUCCESSFULLY ==="
- __log_finish
-}
+
 
 # Creates base tables that hold the whole history.
 function __createBaseTables {
@@ -534,13 +518,7 @@ function __createSyncTables {
  __log_finish
 }
 
-# Creates base tables that hold the whole history.
-function __createCountryTables {
- __log_start
- __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
- __log_finish
-}
+
 
 # Clean files and tables.
 function __cleanPartial {
@@ -648,8 +626,9 @@ function __processPlanetNotesWithParallel {
 
  __splitXmlForParallelPlanet "${PLANET_NOTES_FILE}"
  # Export XSLT variables for parallel processing
- export XSLT_NOTES_FILE XSLT_NOTE_COMMENTS_FILE XSLT_TEXT_COMMENTS_FILE
- __processXmlPartsParallel "__processPlanetXmlPart"
+ export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
+ # Process XML parts in parallel using the directory where parts were created
+ __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}"
  # Consolidate partitions into main tables
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.max_threads = '${MAX_THREADS}';" \
@@ -1125,6 +1104,35 @@ function __trapOn() {
  __log_finish
 }
 
+
+# Process geographic data and location notes
+# This function handles the logic for checking countries/maritimes data
+# and delegating to updateCountries.sh if needed
+function __processGeographicData {
+ __log_start
+ __logi "Processing geographic data and location notes..."
+ 
+ # Check if countries and maritimes data exist
+ local COUNTRIES_COUNT
+ local MARITIMES_COUNT
+ 
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2>/dev/null || echo "0")
+ MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM maritimes;" 2>/dev/null || echo "0")
+ 
+ if [[ "${COUNTRIES_COUNT}" -gt 0 ]] && [[ "${MARITIMES_COUNT}" -gt 0 ]]; then
+  __logi "Countries (${COUNTRIES_COUNT}) and maritimes (${MARITIMES_COUNT}) data found. Processing location notes..."
+  __getLocationNotes # sync
+ else
+  __logw "No countries (${COUNTRIES_COUNT}) or maritimes (${MARITIMES_COUNT}) data found."
+  __loge "ERROR: Geographic data required but not available."
+  __loge "Please run updateCountries.sh --base first to load initial geographic data."
+  __loge "This script only processes notes and requires geographic data to be pre-loaded."
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
+ 
+ __log_finish
+}
+
 ######
 # MAIN
 
@@ -1144,8 +1152,7 @@ function main() {
    __logi "Process: Imports new notes from Planet."
   elif [[ "${PROCESS_TYPE}" == "--base" ]]; then
    __logi "Process: From scratch."
-  elif [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
-   __logi "Process: Downloads the countries and maritimes areas only."
+
   fi
  fi
  # Checks the prerequisities. It could terminate the process.
@@ -1165,12 +1172,29 @@ function main() {
  ONLY_EXECUTION="yes"
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
+  __logi "Running in base mode - creating complete structure and processing initial data"
   __dropSyncTables     # base
   __dropApiTables      # base
   __dropGenericObjects # base
   __dropBaseTables     # base
   __createBaseTables   # base
+  __createSyncTables   # base
+  __downloadPlanetNotes # base
+  # Check if validation failed
+  if ! __validatePlanetNotesXMLFileComplete; then
+   __loge "ERROR: XML validation failed. Stopping process."
+   exit "${ERROR_DATA_VALIDATION}"
+  fi
+  # Count notes in XML file
+  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+  # Split XML into parts and process in parallel if there are notes to process
+  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+   __processPlanetNotesWithParallel
+  else
+   __logi "No notes found in XML file, skipping processing."
+  fi
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
+  __logi "Running in sync mode - processing new notes only"
   __dropSyncTables # sync
   set +E
   export RET_FUNC=0
@@ -1180,32 +1204,6 @@ function main() {
   fi
   set -E
   __createSyncTables # sync
- fi
- if [[ "${PROCESS_TYPE}" == "--base" ]] \
-  || [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
-  __dropCountryTables   # base and boundaries
-  __createCountryTables # base and boundaries
-
-  # Downloads the areas. It could terminate the execution if an error appears.
-  if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
-   echo "Please copy the rows from the backup table:"
-   echo "   INSERT INTO countries "
-   echo "     SELECT * FROM backup_countries ;"
-   read -r
-  else
-   set +E
-   __processCountries # base and boundaries
-   __processMaritimes # base and boundaries
-   set -E
-  fi
-
-  __cleanPartial # base and boundaries
-  if [[ "${PROCESS_TYPE}" == "--boundaries" ]]; then
-   __logw "Ending process."
-   exit 0
-  fi
- fi
- if [[ "${PROCESS_TYPE}" == "" ]]; then
   __downloadPlanetNotes # sync
   # Check if validation failed
   if ! __validatePlanetNotesXMLFileComplete; then
@@ -1223,27 +1221,33 @@ function main() {
  fi
  __createFunctionToGetCountry # base & sync
  __createProcedures           # all
- if [[ "${PROCESS_TYPE}" == "" ]]; then
+
+ # Process areas and geographic data for both base and sync modes
+ if [[ "${PROCESS_TYPE}" == "--base" ]]; then
+  __logi "Processing areas and geographic data in base mode..."
+  set +E
+  export RET_FUNC=0
+  __organizeAreas # base
+  set -E
+  if [[ "${RET_FUNC}" -ne 0 ]]; then
+   __logw "Areas organization failed, but continuing with geographic data processing..."
+  fi
+  
+  # Process geographic data and location notes
+  __processGeographicData
+ elif [[ "${PROCESS_TYPE}" == "" ]]; then
+  __logi "Processing areas and geographic data in sync mode..."
   __dropSyncTables # sync
   set +E
   export RET_FUNC=0
   __organizeAreas # sync
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __createCountryTables # sync
-   if [[ -n "${BACKUP_COUNTRIES}" && "${BACKUP_COUNTRIES}" = true ]]; then
-    echo "Please copy the rows from the backup table:"
-    echo "   INSERT INTO countries "
-    echo "     SELECT * FROM backup_countries ;"
-    read -r
-   else
-    __processCountries # sync
-    __processMaritimes # sync
-   fi
-   __cleanPartial # sync
-   __organizeAreas
+   __logw "Areas organization failed, but continuing with geographic data processing..."
   fi
-  __getLocationNotes # sync
+  
+  # Process geographic data and location notes
+  __processGeographicData
  fi
  __cleanNotesFiles  # base & sync
  __analyzeAndVacuum # base & sync
@@ -1255,7 +1259,6 @@ function main() {
 
 # Allows other users to read the directory.
 chmod go+x "${TMP_DIR}"
-
 # Shows the help information.
 function __show_help {
  # Set flag to indicate we're showing help (prevents cleanup interference)
@@ -1267,10 +1270,11 @@ function __show_help {
  echo "and finally it uploads them into a PostgreSQL database."
  echo
  echo "It could receive one of these parameters:"
- echo " * --base : to starts from scratch from Planet notes file, including the"
- echo "     boundaries."
- echo " * --boundaries : processes the countries and maritimes areas only."
+ echo " * --base : to starts from scratch from Planet notes file (complete setup)."
  echo " * Without parameter, it processes the new notes from Planet notes file."
+ echo
+ echo "Note: This script focuses only on notes processing and database structure."
+ echo "      Geographic data (countries and maritimes) must be loaded separately using updateCountries.sh"
  echo
  echo "Environment variable:"
  echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"

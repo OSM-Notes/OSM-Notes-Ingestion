@@ -101,7 +101,12 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
 # Shows the help information.
 function __show_help {
  echo "${BASENAME} version ${VERSION}"
- echo "Updates the conutry and maritime boundaries."
+ echo "Updates the country and maritime boundaries."
+ echo
+ echo "This script handles the complete lifecycle of countries and maritimes:"
+ echo "  - Creates and manages table structures (--base mode drops and recreates)"
+ echo "  - Downloads and processes geographic data"
+ echo "  - Updates boundaries and verifies note locations"
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
@@ -182,6 +187,24 @@ function __trapOn() {
  __log_finish
 }
 
+# Drop existing country tables
+function __dropCountryTables {
+ __log_start
+ __logi "=== DROPPING COUNTRY TABLES ==="
+ __logd "Executing SQL file: ${POSTGRES_14_DROP_COUNTRY_TABLES}"
+ psql -d "${DBNAME}" -f "${POSTGRES_14_DROP_COUNTRY_TABLES}"
+ __logi "=== COUNTRY TABLES DROPPED SUCCESSFULLY ==="
+ __log_finish
+}
+
+# Creates country tables
+function __createCountryTables {
+ __log_start
+ __logi "Creating country and maritime tables."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
+ __log_finish
+}
+
 ######
 # MAIN
 
@@ -208,7 +231,24 @@ function main() {
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
   exit "${ERROR_HELP_MESSAGE}"
+ elif [[ "${PROCESS_TYPE}" == "--base" ]]; then
+  __logi "Running in base mode - dropping and recreating tables for consistency"
+  
+  # Drop and recreate country tables for consistency with processPlanetNotes.sh
+  __logi "Dropping existing country and maritime tables..."
+  __dropCountryTables
+   
+  __logi "Creating country and maritime tables..."
+  __createCountryTables
+   
+  # Process countries and maritimes data
+  __logi "Processing countries and maritimes data..."
+  __processCountries
+  __processMaritimes
+  __cleanPartial
+  __getLocationNotes
  else
+  __logi "Running in update mode - processing existing data only"
   STMT="UPDATE countries SET updated = TRUE"
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
   __processCountries
