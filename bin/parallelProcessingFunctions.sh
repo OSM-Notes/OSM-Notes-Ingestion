@@ -6,6 +6,13 @@
 # Version: 2025-01-27
 # Description: Centralized parallel processing functions for better maintainability
 
+# Load properties if not already loaded
+if [[ -z "${MAX_THREADS:-}" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/etc/properties.sh" ]]; then
+ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+elif [[ -z "${MAX_THREADS:-}" ]] && [[ -f "./etc/properties.sh" ]]; then
+ source "./etc/properties.sh"
+fi
+
 # Common help function for library files
 function __show_help_library() {
  local SCRIPT_NAME="${1:-Unknown Script}"
@@ -42,7 +49,7 @@ function __processXmlPartsParallel() {
  local INPUT_DIR="${1}"
  local XSLT_FILE="${2}"
  local OUTPUT_DIR="${3}"
- local MAX_WORKERS="${4:-4}"
+ local MAX_WORKERS="${4:-${MAX_THREADS:-4}}"
 
  if [[ ! -d "${INPUT_DIR}" ]]; then
   __loge "ERROR: Input directory not found: ${INPUT_DIR}"
@@ -116,7 +123,7 @@ function __splitXmlForParallelSafe() {
  __logd "Splitting XML for parallel processing (consolidated safe version)."
 
  local XML_FILE="${1}"
- local NUM_PARTS="${2:-4}"
+ local NUM_PARTS="${2:-${MAX_THREADS:-4}}"
  local OUTPUT_DIR="${3:-${TMP_DIR}}"
  local FORMAT_TYPE="${4:-API}"
 
