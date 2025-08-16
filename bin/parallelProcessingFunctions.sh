@@ -148,30 +148,69 @@ function __splitXmlForParallelSafe() {
 
  __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
 
- # Split XML file safely
+ # Split XML file safely using awk (memory efficient)
+ __logi "Starting memory-efficient XML splitting with awk..."
+ 
+ # Get line numbers where notes start
+ local NOTE_LINES
+ NOTE_LINES=$(awk '/<note[^>]*>/ {print NR}' "${XML_FILE}" 2> /dev/null)
+ 
+ if [[ -z "${NOTE_LINES}" ]]; then
+  __loge "ERROR: No note start tags found in XML file"
+  __log_finish
+  return 1
+ fi
+ 
+ # Convert to array
+ mapfile -t NOTE_LINE_ARRAY <<< "${NOTE_LINES}"
+ local TOTAL_NOTE_LINES=${#NOTE_LINE_ARRAY[@]}
+ 
+ __logi "Found ${TOTAL_NOTE_LINES} note start positions"
+ 
+ # Calculate notes per part
+ local NOTES_PER_PART
+ NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
+ if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
+  NOTES_PER_PART=$((NOTES_PER_PART + 1))
+ fi
+ 
  for ((i = 0; i < NUM_PARTS; i++)); do
-  local START_POS=$((i * NOTES_PER_PART + 1))
-  local END_POS=$(((i + 1) * NOTES_PER_PART))
-
-  if [[ "${END_POS}" -gt "${TOTAL_NOTES}" ]]; then
-   END_POS="${TOTAL_NOTES}"
+  local START_INDEX=$((i * NOTES_PER_PART))
+  local END_INDEX=$(((i + 1) * NOTES_PER_PART - 1))
+  
+  if [[ "${END_INDEX}" -ge "${TOTAL_NOTE_LINES}" ]]; then
+   END_INDEX=$((TOTAL_NOTE_LINES - 1))
   fi
-
-  if [[ "${START_POS}" -le "${TOTAL_NOTES}" ]]; then
+  
+  if [[ "${START_INDEX}" -lt "${TOTAL_NOTE_LINES}" ]]; then
    local OUTPUT_FILE="${OUTPUT_DIR}/${FORMAT_TYPE,,}_part_${i}.xml"
-
+   local START_LINE=${NOTE_LINE_ARRAY[START_INDEX]}
+   local END_LINE
+   
+   if [[ "${END_INDEX}" -lt $((TOTAL_NOTE_LINES - 1)) ]]; then
+    # Find the next note start line or end of file
+    local NEXT_INDEX=$((END_INDEX + 1))
+    END_LINE=${NOTE_LINE_ARRAY[NEXT_INDEX]}
+    if [[ -z "${END_LINE}" ]]; then
+     END_LINE=$(wc -l < "${XML_FILE}")
+    fi
+   else
+    # Last part - go to end of file
+    END_LINE=$(wc -l < "${XML_FILE}")
+   fi
+   
+   __logd "Creating part ${i}: lines ${START_LINE}-${END_LINE}"
+   
    # Create XML wrapper
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
    echo '<osm-notes>' >> "${OUTPUT_FILE}"
-
-   # Extract notes for this part safely
-   for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
-   done
-
+   
+   # Extract lines using sed (memory efficient)
+   sed -n "${START_LINE},${END_LINE}p" "${XML_FILE}" >> "${OUTPUT_FILE}"
+   
    echo '</osm-notes>' >> "${OUTPUT_FILE}"
-
-   __logd "Created ${FORMAT_TYPE,,} part ${i}: ${OUTPUT_FILE} (notes ${START_POS}-${END_POS})"
+   
+   __logd "Created ${FORMAT_TYPE,,} part ${i}: ${OUTPUT_FILE} (lines ${START_LINE}-${END_LINE})"
   fi
  done
 
