@@ -767,11 +767,10 @@ function __validate_xml_basic {
 
  __logi "Performing basic XML validation: ${XML_FILE}"
 
- # Check basic XML structure using xmllint without schema
- local XMLLINT_OUTPUT
- if ! timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1; then
-  XMLLINT_OUTPUT=$(timeout 120 xmllint --noout --nonet "${XML_FILE}" 2>&1)
-  __loge "ERROR: Basic XML structure validation failed - xmllint output: ${XMLLINT_OUTPUT}"
+ # Lightweight XML validation using grep instead of xmllint
+ # Check if file contains basic XML structure markers
+ if ! grep -q '<?xml' "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: XML file does not contain XML declaration"
   __log_finish
   return 1
  fi

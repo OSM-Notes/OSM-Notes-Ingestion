@@ -1,10 +1,23 @@
+commit 962556d3
 
 
 
 
 
 
-Veo que xsltproc es muy intenso en CPU, entonces quiero que el archivo original XML del planet lo dividas en la cantidad de MAX THREAD multiplicado por 10, de manera que si son 12 MAX THREAS, el archivo original lo dividas en 120 partes. De esta forma se activan 120 hilos, máximo 12 en paralelo, y a medida que terminan se dispara otro.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -177,3 +190,113 @@ Podrías hacer una validación de los archivos XSLT antes de usarlos, esto con e
 Podrías validar que hay tamaño suficiente en disco para descargar el archivo planet  y expandirlo. Además, después se generan archivos CSV gigantes basados en esta info. También asegurar el espacio en disco para descargar todos los boundaries que son basantes.
 
 Podrías validar que el formato de fechas en el XML sean con formato IS 8601.
+
+
+
+==== revisiones iterativas, cada cierto tiempo
+
+# Flujos
+
+Podrías revisar el código, de manera que solo tenga estos puntos de entrada y opciones:
+* ProcessAPINotes
+* CheckNotes
+* UpdateCountries
+* ETL
+* profile
+
+Además, processPlanetNotes es una excepción a esta regla, y es simplemente para dividir 2 grandes procesos: procesamiento por API y procesamiento por archivo Planet.
+
+# Variables de entorno
+
+* processAPINotes puede tener como variables de entorno: CLEAN y el nivel de Logs
+* checknotes  puede tener como variables de entorno: CLEAN y el nivel de Logs
+* UpdateCountries puede tener como variables de entorno: CLEAN y el nivel de Logs
+* ETL puede tener como variables de entorno: CLEAN y el nivel de Logs
+* profile puede tener como variables de entorno: CLEAN y el nivel de Logs
+
+# parámetros
+
+* processAPINotes No tiene, solo hay una forma de invocarlo.
+* checknotes  No tiene, solo hay una forma de invocarlo.
+* UpdateCountries No tiene, solo hay una forma de invocarlo.
+* ETL  No tiene, solo hay una forma de invocarlo.
+* profile tiene el tipo de perfil (usuaio, país) y el nombre de este
+
+# cron
+
+* processAPINotes se ejecuca con alta recurrencia, cada 15 minutos
+* checknotes se ejecuta cada día a las 5 UTC, para comparar el planet de "ayer" con lo que se cargó a partir del api.
+* UpdateCountries se ejecuta el primer día de cada mes, ya que el cambio de límites poco afecta las notas, además de ser un proceso costoso por requerir analizar todas las notas
+* ETL se puede ejecutar cada 15 minutos, pero una ejecución de ETL puede llegar a tomar más de 15 minutos, por lo que se saltaría gracias a que solo se permite una ejecución de este script.
+* profile se ejecuta por demanda, cuando se solicita un perfil específico.
+
+# Generales
+
+## Sin uso
+
+Todas las variables que se definan deben ser usadas, de lo contrario debe analizarse si no se usan y borrarse
+
+Las funciones no deben aceptar **opciones** (argumentos, variables de entorno) diferentes a las de los flujos definidos. Puede haber funciones que reciban más parámetros, pero se deben simplificar para que solo se incluya lo que está definido con estos flujos.
+Quita opciones en funciones como ENABLE_PROFILING y la lógica interna asociada para simplificar el código.
+
+Revisa el código para que todas las funciones se usen como parte de los flujos especificados. No puede haber funciones para otras cosas que no se usen.
+
+Todos los archivos del proyecto deben ser usados de cierta forma por los flujos definidos, o por las suites de tests. A parte de los archivos de documentación, no puede haber archivos húerfanos, de cualquier tipo de archivo.
+
+## Formato
+
+Revisa los errores de shellcheck
+
+Todas las variables son en mayúsculas
+
+Todas las funciones comienzan con doble undersore y ser completamente en minúsculas
+
+Procura que solo hay un return por función
+
+Los nombres de los scripts deben ser lo más claro posibles.
+
+La ubicación de los archivos debe ser la más apropiada para quse entienda su funcionamiento. Los scripts de apoyo, que vienen a ser como librerías deben estar agrupados.
+
+## Pruebas
+
+Todos los archivos bajo tests deben estar asociados a una suite de tests. Si no están, agrúpalos en la que mejor suite que se ajusten o bórralos.
+
+Revisa que no haya suites de pruebas redundantes. Cada prueba debe hacer algo diferente.
+
+Las posibles ejecución de pruebas deben estar documentadas en una matriz que indentifique a qué tipo (all, unit, integraion, quality, dwh) y modo (host, mock, ci, docker) pertenecen, y cuántos scripts se corren.
+
+La documentación de pruebas debe reflejar la características de las pruebas en código, o sea esté sincronizada la documentación.
+
+## Documentación
+
+Todas las funciones deben tener un encabezado de documentación, que incluya qué hace, describa los parámetros que recibe, y si devuelve algo. También, si tiene algún exit y qué códigos arroja.
+
+La documentación README principal y de los otros directorios debe reflejar el código actual. Revisa que estén bien estructurada y que incluya la funcionalidad u opciones.
+
+La documentación de pruebas, debe mostrar el conjunto de pruebas, y qué hacen.
+
+Revisa los comentarios del código, para asegurar que corresponden al código, están bien posicionados y aportan información.
+
+La documentación debe ser clara y no redundante en cada archivo, sino que vaya profundizando ciertos aspectos.
+
+## Logging
+
+Revisa los mensajes de logs, para ver si son útiles o simplemente hacen ruido.
+
+Revisa el nivel de log, para asegurarnos que está en el nivel adecuado: ERROR los mensajes de error y muy importantes, INFO los de información y seguimiento de la ejecución, DEBUG los de detalle de la ejecución, TRACE de bajo nivel.
+
+Las ejecuciones en paralelo deben generar su propio archivo de logs, para poder revisarlos de manera independiente.
+
+## Otros
+
+Todos los archivos se deben crear bajo el directorio TMP_DIR. No puede haber archivos temporales en otro directorio. Esto permite agrupar todo en un solo lugar.
+
+Los códigos de EXIT que se manejen, deben estar declarados como constantes en un solo lugar para saber qué códigos arroja el código.
+
+Todo comando que se use debe ser validado por checkPrereqs al principio, de manera que si falta, falle al principio de la ejecución y no más adelante.
+
+No debe haber funciones wrapper que solo hagan llamar a otra función. Se deben quitar y redireccionar el llamado a quien realmente hace el proceso.
+
+No debe haber funciones legacy, ni compatibilidad hacia atrás. No se ha generado aún la primera verisón, y este proyecto es un todo, no por partes.
+De igual manera para la documentación.
+
