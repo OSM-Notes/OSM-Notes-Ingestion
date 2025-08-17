@@ -233,14 +233,14 @@ function main() {
   exit "${ERROR_HELP_MESSAGE}"
  elif [[ "${PROCESS_TYPE}" == "--base" ]]; then
   __logi "Running in base mode - dropping and recreating tables for consistency"
-  
+
   # Drop and recreate country tables for consistency with processPlanetNotes.sh
   __logi "Dropping existing country and maritime tables..."
   __dropCountryTables
-   
+
   __logi "Creating country and maritime tables..."
   __createCountryTables
-   
+
   # Process countries and maritimes data
   __logi "Processing countries and maritimes data..."
   __processCountries

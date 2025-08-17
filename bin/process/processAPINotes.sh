@@ -479,8 +479,8 @@ function __processXMLorPlanet {
     __splitXmlForParallelAPI "${API_NOTES_FILE}"
     # Export XSLT variables for parallel processing
     export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
-       # Process XML parts in parallel using the directory where parts were created
-   __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_API_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "API"
+    # Process XML parts in parallel using the directory where parts were created
+    __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_API_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "API"
    else
     __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
     __processApiXmlSequential "${API_NOTES_FILE}"
@@ -810,21 +810,19 @@ function main() {
  if [[ "${RET_FUNC}" -ne 0 ]]; then
   __logw "Base tables missing. Creating base structure and geographic data."
   __logi "This will take approximately 1-2 hours for complete setup."
-  
+
   # Step 1: Create base structure (tables only)
   __logi "Step 1/3: Creating base database structure..."
-  "${NOTES_SYNC_SCRIPT}" --base
-  if [[ $? -ne 0 ]]; then
+  if ! "${NOTES_SYNC_SCRIPT}" --base; then
    __loge "ERROR: Failed to create base structure. Stopping process."
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logw "Base structure created successfully."
-  
+
   # Step 2: Load initial geographic data
   __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
   if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
-   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base
-   if [[ $? -ne 0 ]]; then
+   if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
     __loge "ERROR: Failed to load geographic data. Stopping process."
     exit "${ERROR_EXECUTING_PLANET_DUMP}"
    fi
@@ -833,7 +831,7 @@ function main() {
    __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
    exit "${ERROR_MISSING_LIBRARY}"
   fi
-  
+
   # Step 3: Process planet notes (now with geographic data available)
   __logi "Step 3/3: Processing planet notes with geographic data..."
   set +e

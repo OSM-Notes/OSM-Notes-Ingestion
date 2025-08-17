@@ -1167,9 +1167,8 @@ function main() {
   fi
  fi
  # Checks the prerequisities. It could terminate the process.
- __checkPrereqs
- if [[ "${?}" -ne 0 ]]; then
-  exit "${?}"
+ if ! __checkPrereqs; then
+  exit 1
  fi
 
  __logw "Starting process."

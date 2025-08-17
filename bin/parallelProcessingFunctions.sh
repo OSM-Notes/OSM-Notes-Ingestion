@@ -163,8 +163,8 @@ function __adjust_workers_for_resources() {
 # Adjust process delay based on system resources
 # Returns: Adjusted delay in seconds
 function __adjust_process_delay() {
- # Redirect logging to stderr to avoid interfering with stdout
- __log_start >&2
+ # Use warning level logging to ensure output goes to stderr
+ __logw "Starting process delay adjustment"
  # Use a different variable name to avoid readonly conflicts
  local ADJUSTED_DELAY="${PARALLEL_PROCESS_DELAY}"
  local MEMORY_PERCENT
@@ -199,8 +199,8 @@ function __adjust_process_delay() {
   __logw "Capped process delay at 10s for reasonable performance" >&2
  fi
 
- __logd "Adjusted process delay from ${PARALLEL_PROCESS_DELAY}s to ${ADJUSTED_DELAY}s" >&2
- __log_finish >&2
+ __logw "Adjusted process delay from ${PARALLEL_PROCESS_DELAY}s to ${ADJUSTED_DELAY}s"
+ __logw "Finished process delay adjustment"
  # Output only the numeric result to stdout
  printf "%d\n" "${ADJUSTED_DELAY}"
 }
@@ -854,7 +854,7 @@ __divide_xml_file() {
  END_TIME=$(date +%s)
  local TOTAL_PROCESSING_TIME
  TOTAL_PROCESSING_TIME=$((END_TIME - START_TIME))
- 
+
  # Avoid division by zero for very fast processing
  local PROCESSING_SPEED_MBPS
  local PROCESSING_SPEED_NOTES_PER_SEC
