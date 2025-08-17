@@ -176,20 +176,21 @@ function __processXmlPartsParallel() {
  return "${return_code}"
 }
 
-# Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
+# Legacy function: Split XML for parallel processing (consolidated implementation)
+# Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __splitXmlForParallelSafe() {
  __log_start
- # Source the consolidated parallel processing functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  __splitXmlForParallelSafe "$@"
- else
-  # Fallback if consolidated functions are not available
-  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ # Check if the consolidated function is available
+ if ! declare -f __splitXmlForParallelSafeConsolidated > /dev/null 2>&1; then
+  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
   __log_finish
   return 1
  fi
+ # Call the consolidated function
+ __splitXmlForParallelSafeConsolidated "$@"
+ local return_code=$?
  __log_finish
+ return "${return_code}"
 }
 
 # Error codes are defined in commonFunctions.sh
@@ -354,40 +355,34 @@ function __countXmlNotesPlanet() {
 }
 
 # Wrapper function for API format that uses parallel processing
-# Now uses consolidated functions from parallelProcessingFunctions.sh
+# Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __splitXmlForParallelAPI() {
  __log_start
- # Source the consolidated parallel processing functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  # Call the function from parallelProcessingFunctions.sh, not recursively
-  __splitXmlForParallelSafe "$@"
- else
-  # Fallback if consolidated functions are not available
-  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ # Check if the consolidated function is available
+ if ! declare -f __splitXmlForParallelSafeConsolidated > /dev/null 2>&1; then
+  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
   __log_finish
   return 1
  fi
+ # Call the consolidated function
+ __splitXmlForParallelSafeConsolidated "$@"
  local return_code=$?
  __log_finish
  return "${return_code}"
 }
 
 # Wrapper function for Planet format that uses parallel processing
-# Now uses consolidated functions from parallelProcessingFunctions.sh
+# Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __splitXmlForParallelPlanet() {
  __log_start
- # Source the consolidated parallel processing functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  # Call the function from parallelProcessingFunctions.sh, not recursively
-  __splitXmlForParallelSafe "$@"
- else
-  # Fallback if consolidated functions are not available
-  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ # Check if the consolidated function is available
+ if ! declare -f __splitXmlForParallelSafeConsolidated > /dev/null 2>&1; then
+  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
   __log_finish
   return 1
  fi
+ # Call the consolidated function
+ __splitXmlForParallelSafeConsolidated "$@"
  local return_code=$?
  __log_finish
  return "${return_code}"

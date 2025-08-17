@@ -396,7 +396,7 @@ function __checkPrereqs {
    return "${ERROR_MISSING_LIBRARY}"
   fi
  fi
- 
+
  ## Validate updateCountries.sh script availability
  __logi "Validating updateCountries.sh script availability..."
  if ! __validate_input_file "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" "updateCountries script"; then
@@ -490,8 +490,6 @@ function __dropBaseTables {
  __log_finish
 }
 
-
-
 # Creates base tables that hold the whole history.
 function __createBaseTables {
  __log_start
@@ -517,8 +515,6 @@ function __createSyncTables {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
  __log_finish
 }
-
-
 
 # Clean files and tables.
 function __cleanPartial {
@@ -634,10 +630,10 @@ function __processPlanetNotesWithParallel {
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
-  
+
  # Export XSLT variables for parallel processing
  export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
-  
+
  # Use intelligent XML processing that automatically chooses the best method
  __logi "Using intelligent XML processing for Planet notes"
  if ! __processXmlIntelligently "${PLANET_NOTES_FILE}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"; then
@@ -1120,21 +1116,20 @@ function __trapOn() {
  __log_finish
 }
 
-
 # Process geographic data and location notes
 # This function handles the logic for checking countries/maritimes data
 # and delegating to updateCountries.sh if needed
 function __processGeographicData {
  __log_start
  __logi "Processing geographic data and location notes..."
- 
+
  # Check if countries and maritimes data exist
  local COUNTRIES_COUNT
  local MARITIMES_COUNT
- 
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2>/dev/null || echo "0")
- MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM maritimes;" 2>/dev/null || echo "0")
- 
+
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+ MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM maritimes;" 2> /dev/null || echo "0")
+
  if [[ "${COUNTRIES_COUNT}" -gt 0 ]] && [[ "${MARITIMES_COUNT}" -gt 0 ]]; then
   __logi "Countries (${COUNTRIES_COUNT}) and maritimes (${MARITIMES_COUNT}) data found. Processing location notes..."
   __getLocationNotes # sync
@@ -1145,7 +1140,7 @@ function __processGeographicData {
   __loge "This script only processes notes and requires geographic data to be pre-loaded."
   exit "${ERROR_DATA_VALIDATION}"
  fi
- 
+
  __log_finish
 }
 
@@ -1189,12 +1184,12 @@ function main() {
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
   __logi "Running in base mode - creating complete structure and processing initial data"
-  __dropSyncTables     # base
-  __dropApiTables      # base
-  __dropGenericObjects # base
-  __dropBaseTables     # base
-  __createBaseTables   # base
-  __createSyncTables   # base
+  __dropSyncTables      # base
+  __dropApiTables       # base
+  __dropGenericObjects  # base
+  __dropBaseTables      # base
+  __createBaseTables    # base
+  __createSyncTables    # base
   __downloadPlanetNotes # base
   # Check if validation failed
   if ! __validatePlanetNotesXMLFileComplete; then
@@ -1219,7 +1214,7 @@ function main() {
    __createBaseTables # sync
   fi
   set -E
-  __createSyncTables # sync
+  __createSyncTables    # sync
   __downloadPlanetNotes # sync
   # Check if validation failed
   if ! __validatePlanetNotesXMLFileComplete; then
@@ -1243,7 +1238,7 @@ function main() {
   __logi "Processing geographic data in base mode..."
   # Process geographic data and location notes first
   __processGeographicData
-  
+
   # Now organize areas after geographic data is loaded
   __logi "Organizing areas after geographic data is loaded..."
   set +E
@@ -1258,7 +1253,7 @@ function main() {
   __dropSyncTables # sync
   # Process geographic data and location notes first
   __processGeographicData
-  
+
   # Now organize areas after geographic data is loaded
   __logi "Organizing areas after geographic data is loaded..."
   set +E
