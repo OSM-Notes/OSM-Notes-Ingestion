@@ -18,7 +18,7 @@
 # - Test-friendly design
 #
 # Author: Andres Gomez (AngocA) - Enhanced version
-# Version: 2025-08-11
+# Version: 2025-08-17
 # Based on: Dushyanth Jyothi's bash-logger
 
 # === CONSTANTS AND CONFIGURATION ===
@@ -69,7 +69,7 @@ __get_caller_info() {
  # Get caller information with proper index handling
  local caller_index=1
  local max_index="${#BASH_SOURCE[@]}"
- 
+
  # Find the first caller that's not bash_logger itself
  while [[ ${caller_index} -lt ${max_index} ]]; do
   if [[ "${BASH_SOURCE[${caller_index}]:-}" != *"bash_logger"* ]]; then
@@ -81,7 +81,7 @@ __get_caller_info() {
   fi
   ((caller_index++))
  done
- 
+
  # Fallback if no valid caller found
  echo "unknown:unknown:0"
 }
@@ -152,7 +152,7 @@ __set_log_file() {
     echo "It is not possible to write in this file: ${LOG_FILE}."
     return 1
    else
-    __log_fd="${LOG_FILE}"
+    # Create a new file descriptor and assign it to __log_fd
     exec {__log_fd}<> "${LOG_FILE}"
     return 0
    fi
@@ -410,17 +410,17 @@ __log_start() {
  local function_name="${FUNCNAME[1]:-unknown}"
  local script_name="${BASH_SOURCE[1]:-unknown}"
  script_name="${script_name##*/}"
- 
+
  # Store start time for this function
  __logger_function_start_time=$(date +%s)
- 
+
  # Log the start with special format
  local message="#-- STARTED ${function_name^^} IN ${script_name^^}"
  local caller_info
  caller_info=$(__get_caller_info)
  local formatted_message
  formatted_message=$(__format_log_message "INFO" "$message" "$caller_info")
- 
+
  __output_log "$formatted_message"
  # Add empty line after start message as expected by tests
  __output_log ""
@@ -431,29 +431,29 @@ __log_finish() {
  local function_name="${FUNCNAME[1]:-unknown}"
  local script_name="${BASH_SOURCE[1]:-unknown}"
  script_name="${script_name##*/}"
- 
+
  # Calculate execution time
  local current_time
  current_time=$(date +%s)
  local execution_time
  execution_time=$((current_time - __logger_function_start_time))
- 
+
  # Store run time for this function
  __logger_run_times["${function_name}"]="${execution_time}"
- 
+
  # Log the finish with special format and timing
  local message="|-- FINISHED ${function_name^^} IN ${script_name^^}"
  local caller_info
  caller_info=$(__get_caller_info)
  local formatted_message
  formatted_message=$(__format_log_message "INFO" "$message" "$caller_info")
- 
+
  __output_log "$formatted_message"
- 
+
  # Add timing information in the format expected by tests
  local timing_message="|-- Took: 0h:0m:${execution_time}s"
  __output_log "$timing_message"
- 
+
  # Add empty line after finish message as expected by tests
  __output_log ""
 }
