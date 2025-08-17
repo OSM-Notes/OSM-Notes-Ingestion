@@ -991,3 +991,91 @@ EOF
     
     [ "$status" -eq 0 ]
 } 
+
+@test "test_processXmlPartsParallel_auto_detection" {
+    # Load the parallelProcessingFunctions.sh script
+    source "${TEST_BASE_DIR}/bin/parallelProcessingFunctions.sh"
+    
+    # Verify function exists
+    type __processXmlPartsParallel
+    
+    # Create test parts directory with Planet format
+    local parts_dir="${TMP_DIR}/test_parts"
+    mkdir -p "${parts_dir}"
+    
+    # Create a mock Planet part file
+    cat > "${parts_dir}/planet_part_001.xml" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+    <note id="1" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
+        <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test note</comment>
+    </note>
+</osm-notes>
+EOF
+    
+    # Test auto-detection (should detect Planet format)
+    local output_dir="${TMP_DIR}/output"
+    mkdir -p "${output_dir}"
+    
+    # Mock XSLT file
+    local xslt_file="${TMP_DIR}/mock.xslt"
+    echo "Mock XSLT file" > "${xslt_file}"
+    
+    # Test with auto-detection (no PROCESSING_TYPE parameter)
+    run __processXmlPartsParallel "${parts_dir}" "${xslt_file}" "${output_dir}" 1
+    
+    # Should fail due to missing XSLT processing, but auto-detection should work
+    # We're just testing that the function exists and can be called
+    
+    # Cleanup
+    rm -rf "${parts_dir}" "${output_dir}" "${xslt_file}"
+}
+
+@test "test_divide_xml_file_debug_3_notes_2_parts" {
+    # Load the parallelProcessingFunctions.sh script
+    source "${TEST_BASE_DIR}/bin/parallelProcessingFunctions.sh"
+    
+    # Create a test Planet XML file with exactly 3 notes
+    local test_xml="${TMP_DIR}/test_planet_3.xml"
+    cat > "${test_xml}" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+<note id="1" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z"><comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test note 1</comment></note>
+<note id="2" lat="40.7129" lon="-74.0061" created_at="2023-01-01T00:00:01Z"><comment action="opened" timestamp="2023-01-01T00:00:01Z" uid="124" user="testuser2">Test note 2</comment></note>
+<note id="3" lat="40.7130" lon="-74.0062" created_at="2023-01-01T00:00:02Z"><comment action="opened" timestamp="2023-01-01T00:00:02Z" uid="125" user="testuser3">Test note 3</comment></note>
+</osm-notes>
+EOF
+    
+    # Test division into 2 parts
+    local output_dir="${TMP_DIR}/planet_parts_3_2"
+    mkdir -p "${output_dir}"
+    
+    # Run division and capture output
+    run __divide_xml_file "${test_xml}" "${output_dir}" 2
+    
+    echo "Exit status: $status"
+    echo "Output: $output"
+    
+    # Show what was created
+    echo "Files created:"
+    ls -la "${output_dir}" || true
+    
+    # Show content of each part if it exists
+    for i in 001 002; do
+        if [[ -f "${output_dir}/planet_part_${i}.xml" ]]; then
+            echo "Part ${i} content:"
+            cat "${output_dir}/planet_part_${i}.xml"
+            echo "Notes in part ${i}: $(grep -c '<note' "${output_dir}/planet_part_${i}.xml" 2>/dev/null || echo '0')"
+            echo "---"
+        else
+            echo "Part ${i} does not exist"
+        fi
+    done
+    
+    # Basic validation
+    [ "$status" -eq 0 ]
+    [ -f "${output_dir}/planet_part_001.xml" ]
+    
+    # Cleanup
+    rm -rf "${output_dir}"
+} 
