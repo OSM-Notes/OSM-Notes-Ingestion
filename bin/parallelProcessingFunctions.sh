@@ -6,8 +6,8 @@
 # Version: 2025-08-16
 # Description: Centralized parallel processing functions with resource management and retry logic
 
-# Load properties if not already loaded
-if [[ -z "${MAX_THREADS:-}" ]]; then
+# Load properties only if essential variables are not defined
+if [[ -z "${MAX_THREADS:-}" ]] || [[ -z "${MAX_NOTES:-}" ]]; then
  if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/etc/properties.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
  elif [[ -f "./etc/properties.sh" ]]; then
@@ -324,7 +324,42 @@ function __process_xml_with_xslt_robust() {
     __logd "Profiling enabled, profile will be saved to: ${PROFILE_FILE}"
     __logd "ENABLE_PROFILING value: '${ENABLE_PROFILING}'"
     
-    if timeout "${TIMEOUT}" xsltproc --profile ${XSLT_PARAMS:+"${XSLT_PARAMS}"} -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
+    if [[ -n "${XSLT_PARAMS}" ]]; then
+     if timeout "${TIMEOUT}" xsltproc --profile "${XSLT_PARAMS}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
+      if [[ -f "${OUTPUT_FILE}" ]]; then
+       SUCCESS=true
+       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
+      else
+       __loge "XSLT processing completed but output file not created"
+      fi
+     else
+      local EXIT_CODE=$?
+      if [[ ${EXIT_CODE} -eq 124 ]]; then
+       __loge "XSLT processing timed out after ${TIMEOUT}s"
+      else
+       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
+      fi
+     fi
+    else
+     if timeout "${TIMEOUT}" xsltproc --profile -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
+      if [[ -f "${OUTPUT_FILE}" ]]; then
+       SUCCESS=true
+       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
+      else
+       __loge "XSLT processing completed but output file not created"
+      fi
+     else
+      local EXIT_CODE=$?
+      if [[ ${EXIT_CODE} -eq 124 ]]; then
+       __loge "XSLT processing timed out after ${TIMEOUT}s"
+      else
+       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
+      fi
+     fi
+    fi
+  else
+   if [[ -n "${XSLT_PARAMS}" ]]; then
+    if timeout "${TIMEOUT}" xsltproc "${XSLT_PARAMS}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> /dev/null; then
      if [[ -f "${OUTPUT_FILE}" ]]; then
       SUCCESS=true
       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
@@ -340,7 +375,7 @@ function __process_xml_with_xslt_robust() {
      fi
     fi
    else
-    if timeout "${TIMEOUT}" xsltproc ${XSLT_PARAMS:+"${XSLT_PARAMS}"} -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> /dev/null; then
+    if timeout "${TIMEOUT}" xsltproc -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> /dev/null; then
      if [[ -f "${OUTPUT_FILE}" ]]; then
       SUCCESS=true
       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
@@ -356,6 +391,7 @@ function __process_xml_with_xslt_robust() {
      fi
     fi
    fi
+  fi
 
   if [[ "${SUCCESS}" == "false" ]]; then
    ((RETRY_COUNT++))
@@ -384,13 +420,329 @@ function __process_xml_with_xslt_robust() {
  fi
 }
 
+# Enhanced XML file division function
+# Divides XML file into parts with size-aware splitting
+# Automatically detects Planet vs API format and uses appropriate root tag
+# Parameters:
+#   $1: Input XML file path
+#   $2: Output directory for parts
+#   $3: Target number of parts (optional, default: MAX_THREADS * 10)
+#   $4: Target part size in MB (optional, default: 5)
+# Returns: 0 on success, 1 on failure
+function __divide_xml_file() {
+ __log_start
+ local INPUT_XML="${1}"
+ local OUTPUT_DIR="${2}"
+ local NUM_PARTS="${3:-$((MAX_THREADS * 10))}"
+ local TARGET_PART_SIZE_MB="${4:-5}"
+
+ if [[ ! -f "${INPUT_XML}" ]]; then
+  __loge "ERROR: Input XML file not found: ${INPUT_XML}"
+  __log_finish
+  return 1
+ fi
+
+ if [[ ! -d "${OUTPUT_DIR}" ]]; then
+  mkdir -p "${OUTPUT_DIR}"
+  __logd "Created output directory: ${OUTPUT_DIR}"
+ fi
+
+ # Clean up any existing parts
+ find "${OUTPUT_DIR}" -name "planet_part_*.xml" -delete 2>/dev/null || true
+ find "${OUTPUT_DIR}" -name "api_part_*.xml" -delete 2>/dev/null || true
+ __logd "Cleaned up existing parts"
+
+ # Detect XML format (Planet vs API)
+ local XML_FORMAT=""
+ local ROOT_TAG=""
+ local PART_PREFIX=""
+ 
+ if grep -q "<osm-notes" "${INPUT_XML}" 2>/dev/null; then
+  XML_FORMAT="Planet"
+  ROOT_TAG="osm-notes"
+  PART_PREFIX="planet_part"
+  __logd "Detected Planet XML format (osm-notes)"
+ elif grep -q "<osm[[:space:]]" "${INPUT_XML}" 2>/dev/null; then
+  XML_FORMAT="API"
+  ROOT_TAG="osm"
+  PART_PREFIX="api_part"
+  __logd "Detected API XML format (osm)"
+ else
+  __loge "ERROR: Unknown XML format. Expected <osm-notes> (Planet) or <osm> (API)"
+  __log_finish
+  return 1
+ fi
+
+ # Get file size and total notes
+ local FILE_SIZE_BYTES
+ FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2>/dev/null || echo "0")
+ local TOTAL_NOTES
+ TOTAL_NOTES=$(grep -c "<note" "${INPUT_XML}" 2>/dev/null || echo "0")
+ 
+ if [[ "${TOTAL_NOTES}" -eq "0" ]]; then
+  __loge "ERROR: No notes found in XML file or file is not valid"
+  __log_finish
+  return 1
+ fi
+
+ if [[ "${FILE_SIZE_BYTES}" -eq "0" ]]; then
+  __loge "ERROR: Cannot determine file size"
+  __log_finish
+  return 1
+ fi
+
+ # Calculate optimal parts based on target size
+ local FILE_SIZE_MB
+ FILE_SIZE_MB=$((FILE_SIZE_BYTES / 1024 / 1024))
+ local SIZE_BASED_PARTS
+ SIZE_BASED_PARTS=$((FILE_SIZE_MB / TARGET_PART_SIZE_MB))
+ 
+ # Use the larger of the two approaches for better granularity
+ if [[ ${SIZE_BASED_PARTS} -gt ${NUM_PARTS} ]]; then
+  NUM_PARTS=${SIZE_BASED_PARTS}
+  __logd "Adjusted parts to ${NUM_PARTS} based on target size (${TARGET_PART_SIZE_MB} MB)"
+ fi
+
+ # Ensure reasonable limits
+ if [[ ${NUM_PARTS} -lt ${MAX_THREADS} ]]; then
+  NUM_PARTS=${MAX_THREADS}
+  __logd "Adjusted parts to minimum: ${NUM_PARTS} (MAX_THREADS)"
+ fi
+ if [[ ${NUM_PARTS} -gt 1000 ]]; then
+  NUM_PARTS=1000
+  __logw "Limited parts to maximum: ${NUM_PARTS} to avoid too many tiny files"
+ fi
+
+ __logi "Dividing ${XML_FORMAT} XML file: ${FILE_SIZE_MB} MB, ${TOTAL_NOTES} notes into ${NUM_PARTS} parts"
+ __logd "Target part size: ~${TARGET_PART_SIZE_MB} MB each"
+ __logd "Root tag: <${ROOT_TAG}>, Part prefix: ${PART_PREFIX}"
+
+ # Calculate notes per part
+ local NOTES_PER_PART
+ NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
+ 
+ # Only adjust if it's absolutely necessary
+ if [[ ${NOTES_PER_PART} -eq 0 ]]; then
+  NOTES_PER_PART=1
+  NUM_PARTS=${TOTAL_NOTES}
+  __logw "Adjusted to ${NUM_PARTS} parts with 1 note per part (no other option)"
+ elif [[ ${NOTES_PER_PART} -eq 1 ]] && [[ ${TOTAL_NOTES} -gt ${NUM_PARTS} ]] && [[ $((TOTAL_NOTES - NUM_PARTS)) -gt 2 ]]; then
+  # Only adjust if the difference is significant (more than 2)
+  NUM_PARTS=${TOTAL_NOTES}
+  __logw "Adjusted to ${NUM_PARTS} parts with 1 note per part (difference too large)"
+ else
+  # Keep the requested number of parts
+  __logd "Using requested ${NUM_PARTS} parts with ${NOTES_PER_PART} notes per part"
+ fi
+
+ # Ensure we have at least 1 note per part
+ if [[ ${NOTES_PER_PART} -lt 1 ]]; then
+  NOTES_PER_PART=1
+ fi
+
+ __logd "Final: Notes per part: ${NOTES_PER_PART}, Target parts: ${NUM_PARTS}"
+
+ # Use bash for XML splitting (more reliable than awk for file operations)
+ local PART_NUM=1
+ local CURRENT_NOTES=0
+ local PART_FILE=""
+ local IN_NOTE=false
+ local SKIP_HEADER=true
+ local CURRENT_PART_SIZE=0
+ local NOTES_PROCESSED=0
+
+ # Create first part file
+ PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" ${PART_NUM}).xml"
+ echo '<?xml version="1.0" encoding="UTF-8"?>' > "${PART_FILE}"
+ echo "<${ROOT_TAG}>" >> "${PART_FILE}"
+ CURRENT_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+
+ # Process XML line by line
+ while IFS= read -r LINE; do
+  # Skip XML header and root tags
+  if [[ "${SKIP_HEADER}" == "true" ]]; then
+   if [[ "${LINE}" =~ \<note ]]; then
+    SKIP_HEADER=false
+   else
+    continue
+   fi
+  fi
+
+  # Check if we're starting a new note
+  if [[ "${LINE}" =~ \<note ]]; then
+   IN_NOTE=true
+   ((CURRENT_NOTES++))
+   ((NOTES_PROCESSED++))
+  fi
+
+  # Write line to current part
+  echo "${LINE}" >> "${PART_FILE}"
+  
+  # Update current part size
+  CURRENT_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+
+  # Check if we're ending a note
+  if [[ "${LINE}" =~ \</note\> ]]; then
+   IN_NOTE=false
+   
+   # Check if current part is complete (by notes count or size)
+   local CURRENT_PART_SIZE_MB
+   CURRENT_PART_SIZE_MB=$((CURRENT_PART_SIZE / 1024 / 1024))
+   local SHOULD_SPLIT=false
+   
+   # Only split if we have enough notes AND we haven't reached the total AND we haven't reached the part limit
+   if [[ ${CURRENT_NOTES} -ge ${NOTES_PER_PART} ]] && [[ ${NOTES_PROCESSED} -lt ${TOTAL_NOTES} ]] && [[ ${PART_NUM} -lt ${NUM_PARTS} ]]; then
+    SHOULD_SPLIT=true
+    __logd "Splitting part ${PART_NUM} by note count: ${CURRENT_NOTES} >= ${NOTES_PER_PART} (processed: ${NOTES_PROCESSED}/${TOTAL_NOTES}, parts: ${PART_NUM}/${NUM_PARTS})"
+   elif [[ ${CURRENT_PART_SIZE_MB} -ge ${TARGET_PART_SIZE_MB} ]] && [[ ${NOTES_PROCESSED} -lt ${TOTAL_NOTES} ]] && [[ ${PART_NUM} -lt ${NUM_PARTS} ]]; then
+    SHOULD_SPLIT=true
+    __logd "Splitting part ${PART_NUM} by size: ${CURRENT_PART_SIZE_MB} MB >= ${TARGET_PART_SIZE_MB} MB (processed: ${NOTES_PROCESSED}/${TOTAL_NOTES}, parts: ${PART_NUM}/${NUM_PARTS})"
+   fi
+   
+   if [[ "${SHOULD_SPLIT}" == "true" ]]; then
+    # Close current part
+    echo "</${ROOT_TAG}>" >> "${PART_FILE}"
+    __logd "Created part ${PART_NUM}: ${PART_FILE} (${CURRENT_NOTES} notes, ${CURRENT_PART_SIZE_MB} MB)"
+    
+    # Start new part
+    ((PART_NUM++))
+    PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" ${PART_NUM}).xml"
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${PART_FILE}"
+    echo "<${ROOT_TAG}>" >> "${PART_FILE}"
+    CURRENT_NOTES=0
+    CURRENT_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+   fi
+  fi
+ done < "${INPUT_XML}"
+
+ # Close last part
+ if [[ -n "${PART_FILE}" ]] && [[ -f "${PART_FILE}" ]]; then
+  echo "</${ROOT_TAG}>" >> "${PART_FILE}"
+  local FINAL_PART_SIZE
+  FINAL_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+  local FINAL_PART_SIZE_MB
+  FINAL_PART_SIZE_MB=$((FINAL_PART_SIZE / 1024 / 1024))
+  __logd "Created final part: ${PART_FILE} (${CURRENT_NOTES} notes, ${FINAL_PART_SIZE_MB} MB)"
+ fi
+
+ # Count actual parts created and show statistics
+ local ACTUAL_PARTS
+ ACTUAL_PARTS=$(find "${OUTPUT_DIR}" -name "${PART_PREFIX}_*.xml" | wc -l)
+
+ if [[ ${ACTUAL_PARTS} -eq 0 ]]; then
+  __loge "ERROR: Failed to create XML parts"
+  __log_finish
+  return 1
+ fi
+
+ __logi "Successfully created ${ACTUAL_PARTS} ${XML_FORMAT} XML parts in ${OUTPUT_DIR}"
+ 
+ # Show detailed statistics
+ local TOTAL_SIZE=0
+ local MIN_SIZE=999999999
+ local MAX_SIZE=0
+ local AVG_SIZE=0
+ 
+ for PART_FILE in "${OUTPUT_DIR}"/${PART_PREFIX}_*.xml; do
+  if [[ -f "${PART_FILE}" ]]; then
+   local PART_SIZE
+   PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+   local PART_SIZE_MB
+   PART_SIZE_MB=$((PART_SIZE / 1024 / 1024))
+   local PART_NOTES
+   PART_NOTES=$(grep -c "<note" "${PART_FILE}" 2>/dev/null || echo "0")
+   
+   __logd "Part ${PART_FILE}: ${PART_NOTES} notes, ${PART_SIZE_MB} MB"
+   
+   TOTAL_SIZE=$((TOTAL_SIZE + PART_SIZE))
+   if [[ ${PART_SIZE} -lt ${MIN_SIZE} ]]; then
+    MIN_SIZE=${PART_SIZE}
+   fi
+   if [[ ${PART_SIZE} -gt ${MAX_SIZE} ]]; then
+    MAX_SIZE=${PART_SIZE}
+   fi
+  fi
+ done
+ 
+ if [[ ${ACTUAL_PARTS} -gt 0 ]]; then
+  AVG_SIZE=$((TOTAL_SIZE / ACTUAL_PARTS))
+  local TOTAL_SIZE_MB
+  TOTAL_SIZE_MB=$((TOTAL_SIZE / 1024 / 1024))
+  local MIN_SIZE_MB
+  MIN_SIZE_MB=$((MIN_SIZE / 1024 / 1024))
+  local MAX_SIZE_MB
+  MAX_SIZE_MB=$((MAX_SIZE / 1024 / 1024))
+  local AVG_SIZE_MB
+  AVG_SIZE_MB=$((AVG_SIZE / 1024 / 1024))
+  
+  __logi "Part size statistics: Min=${MIN_SIZE_MB} MB, Max=${MAX_SIZE_MB} MB, Avg=${AVG_SIZE_MB} MB, Total=${TOTAL_SIZE_MB} MB"
+ fi
+
+ __log_finish
+ return 0
+}
+
+# Process large XML file by dividing into parts and processing in parallel
+# Parameters:
+#   $1: Input XML file path
+#   $2: XSLT file for processing
+#   $3: Output directory for CSV files
+#   $4: Maximum number of workers (optional, default: MAX_THREADS)
+#   $5: Number of parts to create (optional, default: MAX_THREADS * 10)
+# Returns: 0 on success, 1 on failure
+function __processLargeXmlFile() {
+ __log_start
+ local INPUT_XML="${1}"
+ local XSLT_FILE="${2}"
+ local OUTPUT_DIR="${3}"
+ local MAX_WORKERS="${4:-${MAX_THREADS}}"
+ local NUM_PARTS="${5:-$((MAX_THREADS * 10))}"
+
+ __logi "Processing large XML file with parallel processing"
+ __logd "Input: ${INPUT_XML}"
+ __logd "XSLT: ${XSLT_FILE}"
+ __logd "Output: ${OUTPUT_DIR}"
+ __logd "Max workers: ${MAX_WORKERS}"
+ __logd "Parts to create: ${NUM_PARTS}"
+
+ # Create temporary directory for parts
+ local PARTS_DIR
+ PARTS_DIR=$(mktemp -d)
+ __logd "Created temporary parts directory: ${PARTS_DIR}"
+
+ # Divide XML file into parts
+ if ! __divide_xml_file "${INPUT_XML}" "${PARTS_DIR}" "${NUM_PARTS}"; then
+  __loge "ERROR: Failed to divide XML file"
+  rm -rf "${PARTS_DIR}"
+  __log_finish
+  return 1
+ fi
+
+ # Process parts in parallel
+ if ! __processXmlPartsParallel "${PARTS_DIR}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "Planet"; then
+  __loge "ERROR: Failed to process XML parts in parallel"
+  rm -rf "${PARTS_DIR}"
+  __log_finish
+  return 1
+ fi
+
+ # Clean up temporary parts
+ rm -rf "${PARTS_DIR}"
+ __logd "Cleaned up temporary parts directory"
+
+ __logi "Successfully processed large XML file with parallel processing"
+ __log_finish
+ return 0
+}
+
 # Process XML parts in parallel (consolidated version)
+# Automatically detects Planet vs API format based on generated file names
 # Parameters:
 #   $1: Input directory containing XML parts
 #   $2: XSLT file for processing
 #   $3: Output directory for CSV files
 #   $4: Maximum number of workers (optional, default: 4)
-#   $5: Processing type (optional, default: generic)
+#   $5: Processing type (optional, auto-detected if not provided)
 # Returns: 0 on success, 1 on failure
 function __processXmlPartsParallel() {
  __log_start
@@ -400,7 +752,7 @@ function __processXmlPartsParallel() {
  local XSLT_FILE="${2}"
  local OUTPUT_DIR="${3}"
  local MAX_WORKERS="${4:-${MAX_THREADS:-4}}"
- local PROCESSING_TYPE="${5:-generic}"
+ local PROCESSING_TYPE="${5:-}"
 
  # Configure system limits to prevent process killing
  __logd "Configuring system limits for parallel processing..."
@@ -420,6 +772,21 @@ function __processXmlPartsParallel() {
 
  # Create output directory
  mkdir -p "${OUTPUT_DIR}"
+
+ # Auto-detect processing type if not provided
+ if [[ -z "${PROCESSING_TYPE}" ]]; then
+  if find "${INPUT_DIR}" -name "planet_part_*.xml" -type f | grep -q .; then
+   PROCESSING_TYPE="Planet"
+   __logd "Auto-detected Planet format from file names"
+  elif find "${INPUT_DIR}" -name "api_part_*.xml" -type f | grep -q .; then
+   PROCESSING_TYPE="API"
+   __logd "Auto-detected API format from file names"
+  else
+   __loge "ERROR: Cannot auto-detect processing type. No planet_part_*.xml or api_part_*.xml files found"
+   __log_finish
+   return 1
+  fi
+ fi
 
  # Find only XML parts (exclude the original file)
  local XML_FILES
@@ -441,7 +808,7 @@ function __processXmlPartsParallel() {
 
  # Adjust workers based on system resources
  MAX_WORKERS=$(__adjust_workers_for_resources "${MAX_WORKERS}")
- __logi "Processing ${#XML_FILES[@]} XML parts with max ${MAX_WORKERS} workers (adjusted for resources)."
+ __logi "Processing ${#XML_FILES[@]} ${PROCESSING_TYPE} XML parts with max ${MAX_WORKERS} workers (adjusted for resources)."
 
  # Process files in parallel with resource management
  local PIDS=()
@@ -467,7 +834,7 @@ function __processXmlPartsParallel() {
   # Launch processing in background based on processing type
   if [[ "${PROCESSING_TYPE}" == "Planet" ]]; then
    # Launch Planet processing in background
-   __processPlanetXmlPart "${XML_FILE}" &
+   __processPlanetXmlPart "${XML_FILE}" "${XSLT_FILE}" "${OUTPUT_DIR}" &
    local PID=$!
    PIDS+=("${PID}")
    __logd "Launched Planet XML part processing in background: ${XML_FILE} (PID: ${PID})"
@@ -536,12 +903,13 @@ function __processXmlPartsParallel() {
 
    # Retry processing
    if [[ "${PROCESSING_TYPE}" == "Planet" ]]; then
-    __processPlanetXmlPart "${XML_FILE}"
+    __processPlanetXmlPart "${XML_FILE}" "${XSLT_FILE}" "${OUTPUT_DIR}"
    elif [[ "${PROCESSING_TYPE}" == "API" ]]; then
     __processApiXmlPart "${XML_FILE}"
    fi
 
-   if __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\""; then
+   local EXIT_CODE=$?
+   if [[ ${EXIT_CODE} -eq 0 ]]; then
     ((PROCESSED++))
     __logd "Retry successful for ${BASE_NAME}"
    else
@@ -552,28 +920,19 @@ function __processXmlPartsParallel() {
   done
  fi
 
- __logi "Parallel processing completed. Processed ${PROCESSED}/${#XML_FILES[@]} files, Failed: ${FAILED}"
-
- # Log delay statistics
- local TOTAL_DELAY_TIME
- TOTAL_DELAY_TIME=$(((${#XML_FILES[@]} - 1) * PARALLEL_PROCESS_DELAY))
- __logd "Total delay time between processes: ${TOTAL_DELAY_TIME}s"
-
- if [[ ${#FAILED_FILES[@]} -gt 0 ]]; then
+ # Final statistics
+ __logi "Parallel processing completed: ${PROCESSED} successful, ${FAILED} failed"
+ if [[ ${FAILED} -gt 0 ]]; then
   __logw "Failed files:"
   for FAILED_FILE in "${FAILED_FILES[@]}"; do
-   __logw "  - ${FAILED_FILE}"
+   __logw "  ${FAILED_FILE}"
   done
- fi
-
- # Check if any files were processed successfully
- if [[ ${PROCESSED} -eq 0 ]]; then
-  __loge "ERROR: No files were processed successfully. All processing failed."
   __log_finish
   return 1
  fi
 
  __log_finish
+ return 0
 }
 
 # Split XML file for parallel processing (consolidated safe version)
@@ -822,15 +1181,15 @@ function __processApiXmlPart() {
 # Parameters:
 #   $1: XML part file path
 #   $2: XSLT notes file (optional, uses global if not provided)
-#   $3: XSLT comments file (optional, uses global if not provided)
-#   $4: XSLT text comments file (optional, uses global if not provided)
+#   $3: Output directory for CSV files
 # Returns: 0 on success, 1 on failure
 function __processPlanetXmlPart() {
  __log_start
  local XML_PART="${1}"
  local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_PLANET_FILE}}"
- local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_PLANET_FILE}}"
- local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_PLANET_FILE}}"
+ local OUTPUT_DIR="${3}"
+ local XSLT_COMMENTS_FILE_LOCAL="${XSLT_NOTE_COMMENTS_PLANET_FILE}"
+ local XSLT_TEXT_FILE_LOCAL="${XSLT_TEXT_COMMENTS_PLANET_FILE}"
  local PART_NUM
  local BASENAME_PART
 
@@ -842,11 +1201,11 @@ function __processPlanetXmlPart() {
  __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
- # Extract part number from planet_part_X.xml
+ # Extract part number from planet_part_XXX.xml
  if [[ "${BASENAME_PART}" =~ ^planet_part_([0-9]+)$ ]]; then
   PART_NUM="${BASH_REMATCH[1]}"
  else
-  __loge "Invalid filename format: '${BASENAME_PART}'. Expected: planet_part_X.xml"
+  __loge "Invalid filename format: '${BASENAME_PART}'. Expected: planet_part_XXX.xml"
   __log_finish
   return 1
  fi
@@ -864,9 +1223,9 @@ function __processPlanetXmlPart() {
  local OUTPUT_NOTES_PART
  local OUTPUT_COMMENTS_PART
  local OUTPUT_TEXT_PART
- OUTPUT_NOTES_PART="${TMP_DIR}/output-notes-part-${PART_NUM}.csv"
- OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
- OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
+ OUTPUT_NOTES_PART="${OUTPUT_DIR}/output-notes-part-${PART_NUM}.csv"
+ OUTPUT_COMMENTS_PART="${OUTPUT_DIR}/output-comments-part-${PART_NUM}.csv"
+ OUTPUT_TEXT_PART="${OUTPUT_DIR}/output-text-part-${PART_NUM}.csv"
 
  # Generate current timestamp for XSLT processing
  local CURRENT_TIMESTAMP
@@ -875,7 +1234,7 @@ function __processPlanetXmlPart() {
 
  # Process notes
  __logd "Processing notes with robust XSLT processor: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING:-false}"; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
@@ -883,7 +1242,7 @@ function __processPlanetXmlPart() {
 
  # Process comments
  __logd "Processing comments with robust XSLT processor: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING:-false}"; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
@@ -891,7 +1250,7 @@ function __processPlanetXmlPart() {
 
  # Process text comments
  __logd "Processing text comments with robust XSLT processor: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING:-false}"; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
   __log_finish
   return 1
@@ -915,6 +1274,7 @@ function __processPlanetXmlPart() {
  __logd "  Comments: ${OUTPUT_COMMENTS_PART}"
  __logd "  Text: ${OUTPUT_TEXT_PART}"
  __log_finish
+ return 0
 }
 
 # Analyze XSLT performance profile for optimization insights
@@ -1052,6 +1412,145 @@ function __generate_performance_report() {
   done
  fi
 
+ __log_finish
+ return 0
+}
+
+# Intelligent XML processing decision function
+# Automatically chooses between traditional and enhanced division methods
+# Parameters:
+#   $1: Input XML file path
+#   $2: XSLT file path
+#   $3: Output directory
+#   $4: Maximum workers (optional, default: MAX_THREADS)
+#   $5: Processing type (optional, default: Planet)
+# Returns: 0 on success, 1 on failure
+function __processXmlIntelligently() {
+ __log_start
+ local INPUT_XML="${1}"
+ local XSLT_FILE="${2}"
+ local OUTPUT_DIR="${3}"
+ local MAX_WORKERS="${4:-${MAX_THREADS}}"
+ local PROCESSING_TYPE="${5:-Planet}"
+
+ __logi "Intelligent XML processing decision"
+ __logd "Input: ${INPUT_XML}"
+ __logd "XSLT: ${XSLT_FILE}"
+ __logd "Output: ${OUTPUT_DIR}"
+ __logd "Max workers: ${MAX_WORKERS}"
+ __logd "Processing type: ${PROCESSING_TYPE}"
+
+ # Check if input file exists
+ if [[ ! -f "${INPUT_XML}" ]]; then
+  __loge "ERROR: Input XML file not found: ${INPUT_XML}"
+  __log_finish
+  return 1
+ fi
+
+ # Get file size in bytes
+ local FILE_SIZE_BYTES
+ FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2>/dev/null || echo "0")
+ 
+ if [[ "${FILE_SIZE_BYTES}" -eq "0" ]]; then
+  __loge "ERROR: Cannot determine file size or file is empty"
+  __log_finish
+  return 1
+ fi
+
+ # Convert to MB for easier comparison
+ local FILE_SIZE_MB
+ FILE_SIZE_MB=$((FILE_SIZE_BYTES / 1024 / 1024))
+ 
+ __logd "File size: ${FILE_SIZE_MB} MB (${FILE_SIZE_BYTES} bytes)"
+
+ # Decision logic: Use enhanced method if file is large (> 100 MB)
+ if [[ "${FILE_SIZE_MB}" -gt 100 ]]; then
+  __logi "Large file detected (${FILE_SIZE_MB} MB > 100 MB), using enhanced division method"
+  
+  # Calculate optimal number of parts to keep each part ≤ 5 MB
+  local TARGET_PART_SIZE_MB=5
+  local OPTIMAL_PARTS
+  OPTIMAL_PARTS=$((FILE_SIZE_MB / TARGET_PART_SIZE_MB))
+  
+  # Ensure minimum parts for parallel processing
+  if [[ ${OPTIMAL_PARTS} -lt ${MAX_WORKERS} ]]; then
+   OPTIMAL_PARTS=${MAX_WORKERS}
+  fi
+  # Ensure maximum reasonable parts (avoid too many tiny files)
+  if [[ ${OPTIMAL_PARTS} -gt 1000 ]]; then
+   OPTIMAL_PARTS=1000
+   __logw "Limited parts to 1000 to avoid too many tiny files"
+  fi
+  
+  __logd "Calculated optimal parts: ${OPTIMAL_PARTS} (target: ≤${TARGET_PART_SIZE_MB} MB each)"
+  
+  # Use enhanced method with calculated parts
+  if ! __processLargeXmlFile "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${OPTIMAL_PARTS}"; then
+   __loge "ERROR: Enhanced XML processing failed, falling back to traditional method"
+   __logw "Falling back to traditional XML processing method"
+   if ! __processXmlWithTraditionalMethod "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
+    __loge "ERROR: Both processing methods failed"
+    __log_finish
+    return 1
+   fi
+  fi
+ else
+  __logi "Standard file size (${FILE_SIZE_MB} MB ≤ 100 MB), using traditional method"
+  
+  # Use traditional method
+  if ! __processXmlWithTraditionalMethod "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
+   __loge "ERROR: Traditional XML processing failed"
+   __log_finish
+   return 1
+  fi
+ fi
+
+ __logi "Intelligent XML processing completed successfully"
+ __log_finish
+ return 0
+}
+
+# Traditional XML processing method (existing flow)
+# Parameters:
+#   $1: Input XML file path
+#   $2: XSLT file path
+#   $3: Output directory
+#   $4: Maximum workers (optional, default: MAX_THREADS)
+#   $5: Processing type (optional, default: Planet)
+# Returns: 0 on success, 1 on failure
+function __processXmlWithTraditionalMethod() {
+ __log_start
+ local INPUT_XML="${1}"
+ local XSLT_FILE="${2}"
+ local OUTPUT_DIR="${3}"
+ local MAX_WORKERS="${4:-${MAX_THREADS}}"
+ local PROCESSING_TYPE="${5:-Planet}"
+
+ __logi "Processing XML with traditional method"
+ __logd "Input: ${INPUT_XML}"
+ __logd "XSLT: ${XSLT_FILE}"
+ __logd "Output: ${OUTPUT_DIR}"
+ __logd "Max workers: ${MAX_WORKERS}"
+ __logd "Processing type: ${PROCESSING_TYPE}"
+
+ # Create output directory
+ mkdir -p "${OUTPUT_DIR}"
+
+ # Use traditional division method
+ if ! __splitXmlForParallelSafe "${INPUT_XML}" "${MAX_WORKERS}" "${OUTPUT_DIR}" "${PROCESSING_TYPE}"; then
+  __loge "ERROR: Traditional XML division failed"
+  __log_finish
+  return 1
+ fi
+
+ # Process parts in parallel
+ if ! __processXmlPartsParallel "${OUTPUT_DIR}" "${XSLT_FILE}" "${OUTPUT_DIR}/output" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
+  __loge "ERROR: Traditional parallel processing failed"
+  __log_finish
+  return 1
+ fi
+
+ __logi "Traditional XML processing completed successfully"
  __log_finish
  return 0
 }

@@ -627,18 +627,21 @@ function __processPlanetNotesWithParallel {
  # Use the consolidated function from parallelProcessingFunctions.sh
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  __splitXmlForParallelSafe "${PLANET_NOTES_FILE}" "${MAX_THREADS}" "${TMP_DIR}" "Planet"
+  
+  # Export XSLT variables for parallel processing
+  export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
+  
+  # Use intelligent XML processing that automatically chooses the best method
+  __logi "Using intelligent XML processing for Planet notes"
+  if ! __processXmlIntelligently "${PLANET_NOTES_FILE}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"; then
+   __loge "ERROR: Intelligent XML processing failed. Stopping process."
+   exit "${ERROR_DATA_VALIDATION}"
+  fi
  else
   __loge "ERROR: parallelProcessingFunctions.sh not found"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- # Export XSLT variables for parallel processing
- export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
- # Process XML parts in parallel using the directory where parts were created
- if ! __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"; then
-  __loge "ERROR: Parallel XML processing failed. Stopping process."
-  exit "${ERROR_DATA_VALIDATION}"
- fi
+
  # Consolidate partitions into main tables
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.max_threads = '${MAX_THREADS}';" \
