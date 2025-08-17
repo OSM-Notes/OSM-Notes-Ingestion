@@ -5,22 +5,25 @@
 # Version: 2025-08-16
 # Description: Tests for delay between parallel process launches
 
-# Load test helper
-load test_helper
-
-# Load the parallel processing functions
-setup() {
- # Source the parallel processing functions
- source "${BATS_TEST_DIRNAME}/../../../../bin/parallelProcessingFunctions.sh"
+ # Load test helper
+ load "../../test_helper"
  
- # Set up test environment
- export TMP_DIR="${BATS_TEST_DIRNAME}/tmp"
- export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/../../../../"
- export MAX_THREADS=2
- # Note: PARALLEL_PROCESS_DELAY is readonly, so we can't override it
- 
- # Create temporary directory
- mkdir -p "${TMP_DIR}"
+ # Load the parallel processing functions
+ setup() {
+  # Set up test environment first
+  export TMP_DIR="${BATS_TEST_DIRNAME}/tmp"
+  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/../../../"
+  export MAX_THREADS=2
+  # Note: PARALLEL_PROCESS_DELAY is readonly, so we can't override it
+  
+  # Create temporary directory
+  mkdir -p "${TMP_DIR}"
+  
+  # Source the properties file first
+  source "${BATS_TEST_DIRNAME}/../../../etc/properties.sh"
+  
+     # Source the parallel processing functions
+   source "${BATS_TEST_DIRNAME}/../../../bin/parallelProcessingFunctions.sh"
 }
 
 teardown() {
@@ -36,7 +39,7 @@ teardown() {
 
 @test "Adjust process delay function works correctly" {
  # Test that the function returns a valid delay
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
  [ -n "$output" ]
  [ "$output" -ge 1 ]
@@ -60,7 +63,7 @@ EOF
  export PATH="${TMP_DIR}:${PATH}"
  
  # Test delay adjustment
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
  [ "$output" -gt "${PARALLEL_PROCESS_DELAY}" ]
  
@@ -84,7 +87,7 @@ EOF
  export PATH="${TMP_DIR}:${PATH}"
  
  # Test delay adjustment
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
  [ "$output" -gt "${PARALLEL_PROCESS_DELAY}" ]
  
@@ -97,7 +100,7 @@ EOF
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
  
  # Test that delay adjustment respects capping
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
  [ "$output" -le 10 ]
  [ "$output" -gt 0 ]
@@ -109,7 +112,7 @@ EOF
  export PATH="/nonexistent"
  
  # Test that function still works
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
  [ "$output" = "${PARALLEL_PROCESS_DELAY}" ]
  
@@ -133,7 +136,7 @@ EOF
 
 @test "Delay function logs appropriate messages" {
  # Capture log output
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
  
  # The function should log the adjustment
@@ -143,7 +146,7 @@ EOF
 @test "Delay adjustment respects system state" {
  # Test with current system state
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
  [ "$output" -ge "${CURRENT_DELAY}" ]
  [ "$output" -le 10 ]

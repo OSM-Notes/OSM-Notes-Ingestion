@@ -20,8 +20,9 @@ setup() {
  fi
  
  # Setup hybrid mock environment
- "${SCRIPT_BASE_DIRECTORY}/tests/setup_hybrid_mock_environment.sh" setup
- "${SCRIPT_BASE_DIRECTORY}/tests/setup_hybrid_mock_environment.sh" activate
+ source "${SCRIPT_BASE_DIRECTORY}/tests/setup_hybrid_mock_environment.sh"
+ setup_hybrid_mock_environment
+ activate_hybrid_mock_environment
  
  # Source the environment file if it exists
  if [[ -f "/tmp/hybrid_env.sh" ]]; then
@@ -41,7 +42,7 @@ setup() {
 
 teardown() {
  # Deactivate hybrid mock environment
- "${SCRIPT_BASE_DIRECTORY}/tests/setup_hybrid_mock_environment.sh" deactivate
+ deactivate_hybrid_mock_environment
  # Cleanup
  rm -rf "${TMP_DIR}"
 }
