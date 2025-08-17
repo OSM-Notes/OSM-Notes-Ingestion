@@ -58,11 +58,14 @@ teardown() {
 
 @test "Process delay adjustment works correctly" {
  # Test delay adjustment function
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
- [ -n "$output" ]
- [ "$output" -ge 1 ]
- [ "$output" -le 10 ]
+ # Extract only the numeric output (last line)
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(echo "${output}" | tail -n1)
+ [ -n "${NUMERIC_OUTPUT}" ]
+ [ "${NUMERIC_OUTPUT}" -ge 1 ]
+ [ "${NUMERIC_OUTPUT}" -le 10 ]
 }
 
 # Parallel Processing Core Tests
@@ -78,11 +81,25 @@ teardown() {
 
 @test "Worker adjustment function works correctly" {
  # Test worker adjustment
- run __adjust_workers_for_resources 4
+ run __adjust_workers_for_resources 4 2>/dev/null
  [ "$status" -eq 0 ]
- [ -n "$output" ]
- [ "$output" -ge 1 ]
- [ "$output" -le 4 ]
+ # Extract only the numeric output (last line)
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(echo "${output}" | tail -n1)
+ [ -n "${NUMERIC_OUTPUT}" ]
+ [ "${NUMERIC_OUTPUT}" -ge 1 ]
+ [ "${NUMERIC_OUTPUT}" -le 4 ]
+}
+
+@test "Worker adjustment function works correctly with XML type" {
+ # Test worker adjustment for XML processing (should reduce by 2)
+ run __adjust_workers_for_resources 8 "XML" 2>/dev/null
+ [ "$status" -eq 0 ]
+ # Extract only the numeric output (last line)
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(echo "${output}" | tail -n1)
+ [ -n "${NUMERIC_OUTPUT}" ]
+ [ "${NUMERIC_OUTPUT}" -eq 6 ]
 }
 
 # XSLT Processing Tests
@@ -134,7 +151,7 @@ teardown() {
  # Test that delay system works
  local BASE_DELAY="${PARALLEL_PROCESS_DELAY}"
  local ADJUSTED_DELAY
- ADJUSTED_DELAY=$(__adjust_process_delay)
+ ADJUSTED_DELAY=$(__adjust_process_delay 2>/dev/null | tail -n1)
  
  # Delay should be at least base delay
  [ "${ADJUSTED_DELAY}" -ge "${BASE_DELAY}" ]
@@ -154,9 +171,12 @@ teardown() {
  export PATH="/nonexistent"
  
  # Functions should still work
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
- [ "$output" = "${PARALLEL_PROCESS_DELAY}" ]
+ # Extract only the numeric output (last line)
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(echo "${output}" | tail -n1)
+ [ "${NUMERIC_OUTPUT}" = "${PARALLEL_PROCESS_DELAY}" ]
  
  # Restore PATH
  export PATH="${ORIGINAL_PATH}"
@@ -165,14 +185,18 @@ teardown() {
 @test "Functions handle edge cases correctly" {
  # Test that current delay value is handled correctly
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
- [ "$output" = "${CURRENT_DELAY}" ]
+ # Extract only the numeric output (last line)
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(echo "${output}" | tail -n1)
+ [ "${NUMERIC_OUTPUT}" = "${CURRENT_DELAY}" ]
  
  # Test that delay adjustment respects capping
- run __adjust_process_delay
+ run __adjust_process_delay 2>/dev/null
  [ "$status" -eq 0 ]
- [ "$output" -le 10 ]
+ NUMERIC_OUTPUT=$(echo "${output}" | tail -n1)
+ [ "${NUMERIC_OUTPUT}" -le 10 ]
 }
 
 # Configuration Tests

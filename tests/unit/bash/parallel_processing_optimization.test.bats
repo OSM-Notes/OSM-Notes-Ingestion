@@ -4,7 +4,7 @@
 # Description: Test parallel processing optimization functions
 
 # Load test helper
-load test_helper
+load "../../test_helper"
 
 # Test parallel processing optimization functions
 @test "test parallel processing optimization functions" {
@@ -176,3 +176,4 @@ EOF
   # Cleanup
   rm -rf "${TEST_DIR}"
 }
+
