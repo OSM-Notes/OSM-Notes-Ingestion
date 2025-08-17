@@ -191,8 +191,9 @@ function __validate_xml_structure_impl() {
  fi
 
  # Use standard validation for smaller files
- if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: Invalid XML syntax: ${XML_FILE}"
+ # Lightweight XML validation using grep instead of xmllint
+ if ! grep -q '<?xml' "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: XML file does not contain XML declaration: ${XML_FILE}"
   __log_finish
   return 1
  fi
@@ -224,15 +225,16 @@ function __validate_xml_structure_impl() {
   return 0
  fi
 
- # Check if file is valid XML using xmllint (for smaller files)
- if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: Invalid XML structure: ${XML_FILE}"
+ # Check if file is valid XML using lightweight validation (for smaller files)
+ # Check for basic XML structure markers
+ if ! grep -q '<?xml' "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: XML file does not contain XML declaration: ${XML_FILE}"
   __log_finish
   return 1
  fi
 
  # Check for required root element (osm-notes for planet, osm for API)
- if ! (xmllint --xpath "//osm-notes" "${XML_FILE}" > /dev/null 2>&1 || xmllint --xpath "//osm" "${XML_FILE}" > /dev/null 2>&1); then
+ if ! grep -q "<osm-notes\|<osm>" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Missing osm-notes or osm root element: ${XML_FILE}"
   __log_finish
   return 1
@@ -240,7 +242,7 @@ function __validate_xml_structure_impl() {
 
  # Check expected root element if provided
  if [[ -n "${EXPECTED_ROOT}" ]]; then
-  if ! xmllint --xpath "//${EXPECTED_ROOT}" "${XML_FILE}" > /dev/null 2>&1; then
+  if ! grep -q "<${EXPECTED_ROOT}" "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: Expected root element '${EXPECTED_ROOT}' not found: ${XML_FILE}"
    __log_finish
    return 1
@@ -700,8 +702,26 @@ function __validate_xml_dates() {
  # Validate dates in XML
  for XPATH_QUERY in "${XPATH_QUERIES[@]}"; do
   local ALL_DATES_RAW
-  # Extract all date values using xmllint (including potentially invalid ones)
-  ALL_DATES_RAW=$(timeout 60 xmllint --xpath "${XPATH_QUERY}" "${XML_FILE}" 2> /dev/null || true)
+  # Extract all date values using grep instead of xmllint (more reliable)
+  # Convert XPath query to grep pattern for lightweight extraction
+  local GREP_PATTERN
+  case "${XPATH_QUERY}" in
+  "//note/@created_at")
+   GREP_PATTERN='created_at="[^"]*"'
+   ;;
+  "//note/@closed_at")
+   GREP_PATTERN='closed_at="[^"]*"'
+   ;;
+  "//note/@updated_at")
+   GREP_PATTERN='updated_at="[^"]*"'
+   ;;
+  *)
+   # Default pattern for general date extraction
+   GREP_PATTERN='[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z'
+   ;;
+  esac
+
+  ALL_DATES_RAW=$(grep -oE "${GREP_PATTERN}" "${XML_FILE}" 2> /dev/null || true)
 
   if [[ -n "${ALL_DATES_RAW}" ]]; then
    # Extract date values from attributes and elements

@@ -3,16 +3,15 @@
 # This file consolidates all parallel processing functions to eliminate duplication
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-16
+# Version: 2025-08-17
 # Description: Centralized parallel processing functions with resource management and retry logic
 
-# Load properties only if essential variables are not defined
-if [[ -z "${MAX_THREADS:-}" ]] || [[ -z "${MAX_NOTES:-}" ]]; then
- if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/etc/properties.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
- elif [[ -f "./etc/properties.sh" ]]; then
-  source "./etc/properties.sh"
- fi
+# Load properties to ensure all required variables are available
+# Only load production properties if we're not in a test environment
+if [[ -z "${BATS_TEST_DIRNAME:-}" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/etc/properties.sh" ]]; then
+ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+elif [[ -z "${BATS_TEST_DIRNAME:-}" ]] && [[ -f "./etc/properties.sh" ]]; then
+ source "./etc/properties.sh"
 fi
 
 # Load common functions if not already loaded
@@ -25,11 +24,22 @@ if [[ -z "${__log_start:-}" ]]; then
 fi
 
 # Resource management constants
-declare -r MAX_MEMORY_PERCENT=80
-declare -r MAX_LOAD_AVERAGE=2.0
-declare -r PROCESS_TIMEOUT=300
+if [[ -z "${MAX_MEMORY_PERCENT:-}" ]]; then
+ declare -r MAX_MEMORY_PERCENT=80
+fi
+if [[ -z "${MAX_LOAD_AVERAGE:-}" ]]; then
+ declare -r MAX_LOAD_AVERAGE=2.0
+fi
+if [[ -z "${PROCESS_TIMEOUT:-}" ]]; then
+ declare -r PROCESS_TIMEOUT=300
+fi
 # MAX_RETRIES is already declared in functionsProcess.sh
-declare -r RETRY_DELAY=5
+if [[ -z "${MAX_RETRIES:-}" ]]; then
+ declare -r MAX_RETRIES=3
+fi
+if [[ -z "${RETRY_DELAY:-}" ]]; then
+ declare -r RETRY_DELAY=5
+fi
 
 # Parallel processing constants
 # Note: PARALLEL_PROCESS_DELAY is already declared as readonly in properties.sh
@@ -311,12 +321,119 @@ function __process_xml_with_xslt_robust() {
   return 1
  fi
 
- __logd "File validation passed: XML='${XML_FILE}', XSLT='${XSLT_FILE}'"
+ # Lightweight XML validation using grep instead of xmllint
+ __logd "Performing lightweight XML validation before XSLT processing..."
+
+ # Check if XML file contains expected content
+ if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: XML file does not contain expected note elements: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XSLT file contains expected content
+ if ! grep -q "xsl:stylesheet" "${XSLT_FILE}" 2> /dev/null; then
+  __loge "ERROR: XSLT file does not contain expected stylesheet elements: ${XSLT_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XML file is not empty
+ if [[ ! -s "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file is empty: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XSLT file is not empty
+ if [[ ! -s "${XSLT_FILE}" ]]; then
+  __loge "ERROR: XSLT file is empty: ${XSLT_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XML file has minimum size (at least 100 bytes)
+ local XML_SIZE
+ XML_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || stat -f%z "${XML_FILE}" 2>&1 || echo "0")
+ if [[ "${XML_SIZE}" -lt 100 ]]; then
+  __loge "ERROR: XML file is too small (${XML_SIZE} bytes), expected at least 100 bytes: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XSLT file has minimum size (at least 50 bytes)
+ local XSLT_SIZE
+ XSLT_SIZE=$(stat -c%s "${XSLT_FILE}" 2> /dev/null || stat -f%z "${XSLT_FILE}" 2>&1 || echo "0")
+ if [[ "${XSLT_SIZE}" -lt 50 ]]; then
+  __loge "ERROR: XSLT file is too small (${XSLT_SIZE} bytes), expected at least 50 bytes: ${XSLT_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XML file has correct format (contains XML declaration and root element)
+ if ! head -n 5 "${XML_FILE}" | grep -q "<?xml" 2> /dev/null; then
+  __loge "ERROR: XML file does not contain XML declaration: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XSLT file has correct format (contains stylesheet declaration)
+ if ! head -n 10 "${XSLT_FILE}" | grep -q "xsl:stylesheet" 2> /dev/null; then
+  __loge "ERROR: XSLT file does not contain stylesheet declaration: ${XSLT_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XML file contains expected root element
+ if ! grep -q "<osm-notes\|<osm" "${XML_FILE}" 2> /dev/null; then
+  __loge "ERROR: XML file does not contain expected root element (<osm-notes> or <osm>): ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XSLT file contains expected template
+ if ! grep -q "xsl:template" "${XSLT_FILE}" 2> /dev/null; then
+  __loge "ERROR: XSLT file does not contain expected template elements: ${XSLT_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XSLT file contains expected output method
+ if ! grep -q "method=\"text\"" "${XSLT_FILE}" 2> /dev/null; then
+  __loge "ERROR: XSLT file does not contain expected output method (text): ${XSLT_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XSLT file contains expected parameter
+ if ! grep -q "xsl:param.*default-timestamp" "${XSLT_FILE}" 2> /dev/null; then
+  __loge "ERROR: XSLT file does not contain expected parameter (default-timestamp): ${XSLT_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Check if XML file contains at least one note element
+ local NOTE_COUNT
+ NOTE_COUNT=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
+ if [[ "${NOTE_COUNT}" -eq 0 ]]; then
+  __loge "ERROR: XML file does not contain any note elements: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ __logd "File validation passed: XML='${XML_FILE}', XSLT='${XSLT_FILE}' (${NOTE_COUNT} notes found)"
 
  # Create output directory if it doesn't exist
  local OUTPUT_DIR
  OUTPUT_DIR=$(dirname "${OUTPUT_FILE}")
  mkdir -p "${OUTPUT_DIR}"
+
+ # Verify output directory is writable
+ if [[ ! -w "${OUTPUT_DIR}" ]]; then
+  __loge "ERROR: Output directory is not writable: ${OUTPUT_DIR}"
+  __log_finish
+  return 1
+ fi
 
  __logd "Processing XML with XSLT: ${XML_FILE} -> ${OUTPUT_FILE}"
  __logd "Timeout: ${TIMEOUT}s, Max retries: ${MAX_RETRIES}"
@@ -355,7 +472,10 @@ function __process_xml_with_xslt_robust() {
    __logd "ENABLE_PROFILING value: '${ENABLE_PROFILING}'"
 
    if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
-    if timeout "${TIMEOUT}" xsltproc --profile "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
+    local XSLT_ERROR_OUTPUT
+    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc --profile "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}")
+    local EXIT_CODE=$?
+    if [[ ${EXIT_CODE} -eq 0 ]]; then
      if [[ -f "${OUTPUT_FILE}" ]]; then
       SUCCESS=true
       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
@@ -363,15 +483,18 @@ function __process_xml_with_xslt_robust() {
       __loge "XSLT processing completed but output file not created"
      fi
     else
-     local EXIT_CODE=$?
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
+      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
      fi
     fi
    else
-    if timeout "${TIMEOUT}" xsltproc --profile -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
+    local XSLT_ERROR_OUTPUT
+    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc --profile -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}")
+    local EXIT_CODE=$?
+    if [[ ${EXIT_CODE} -eq 0 ]]; then
      if [[ -f "${OUTPUT_FILE}" ]]; then
       SUCCESS=true
       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
@@ -379,17 +502,20 @@ function __process_xml_with_xslt_robust() {
       __loge "XSLT processing completed but output file not created"
      fi
     else
-     local EXIT_CODE=$?
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
+      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
      fi
     fi
    fi
   else
    if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
-    if timeout "${TIMEOUT}" xsltproc "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> /dev/null; then
+    local XSLT_ERROR_OUTPUT
+    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2>&1)
+    local EXIT_CODE=$?
+    if [[ ${EXIT_CODE} -eq 0 ]]; then
      if [[ -f "${OUTPUT_FILE}" ]]; then
       SUCCESS=true
       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
@@ -397,15 +523,18 @@ function __process_xml_with_xslt_robust() {
       __loge "XSLT processing completed but output file not created"
      fi
     else
-     local EXIT_CODE=$?
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
+      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
      fi
     fi
    else
-    if timeout "${TIMEOUT}" xsltproc -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> /dev/null; then
+    local XSLT_ERROR_OUTPUT
+    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2>&1)
+    local EXIT_CODE=$?
+    if [[ ${EXIT_CODE} -eq 0 ]]; then
      if [[ -f "${OUTPUT_FILE}" ]]; then
       SUCCESS=true
       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
@@ -413,11 +542,11 @@ function __process_xml_with_xslt_robust() {
       __loge "XSLT processing completed but output file not created"
      fi
     else
-     local EXIT_CODE=$?
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
+      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
      fi
     fi
    fi

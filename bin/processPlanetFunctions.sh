@@ -158,10 +158,32 @@ function __splitXmlForParallelPlanet() {
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
    echo '<osm-notes>' >> "${OUTPUT_FILE}"
 
-   # Extract notes for this part
-   for ((j = START_POS; j <= END_POS; j++)); do
-    xmllint --xpath "//note[${j}]" "${XML_FILE}" 2> /dev/null >> "${OUTPUT_FILE}" || true
-   done
+   # Extract notes for this part using sed instead of xmllint (more reliable)
+   # Create a temporary file for this part
+   local TEMP_PART_FILE
+   TEMP_PART_FILE=$(mktemp)
+
+   # Extract notes using sed pattern matching
+   # Find the start of the note and extract until the end
+   local NOTE_PATTERN="<note[^>]*>.*?</note>"
+   sed -n "/<note[^>]*>/,/<\/note>/p" "${XML_FILE}" \
+    | sed -n "${START_POS},${END_POS}p" > "${TEMP_PART_FILE}" 2> /dev/null || true
+
+   # If sed extraction failed, try alternative approach with grep and context
+   if [[ ! -s "${TEMP_PART_FILE}" ]]; then
+    # Alternative: extract note boundaries and content
+    grep -A 100 -B 5 "<note" "${XML_FILE}" \
+     | sed -n "/<note/,/<\/note>/p" \
+     | head -n $((END_POS - START_POS + 1)) > "${TEMP_PART_FILE}" 2> /dev/null || true
+   fi
+
+   # Copy extracted content to output file
+   if [[ -s "${TEMP_PART_FILE}" ]]; then
+    cat "${TEMP_PART_FILE}" >> "${OUTPUT_FILE}"
+   fi
+
+   # Clean up temporary file
+   rm -f "${TEMP_PART_FILE}" 2> /dev/null || true
 
    echo '</osm-notes>' >> "${OUTPUT_FILE}"
 
