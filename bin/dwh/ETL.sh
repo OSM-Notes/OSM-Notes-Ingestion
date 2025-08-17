@@ -20,8 +20,8 @@
 # * shfmt -w -i 1 -sr -bn ETL.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-12
-VERSION="2025-08-12"
+# Version: 2025-08-17
+VERSION="2025-08-17"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -168,6 +168,9 @@ declare -r ETL_PARALLEL_ENABLED="${ETL_PARALLEL_ENABLED:-true}"
 declare -r ETL_MAX_PARALLEL_JOBS="${ETL_MAX_PARALLEL_JOBS:-4}"
 declare -r ETL_MONITOR_RESOURCES="${ETL_MONITOR_RESOURCES:-true}"
 declare -r ETL_MONITOR_INTERVAL="${ETL_MONITOR_INTERVAL:-30}"
+
+# Set default value for CLEAN if not defined
+declare CLEAN="${CLEAN:-true}"
 
 # Shows the help information.
 function __show_help {
