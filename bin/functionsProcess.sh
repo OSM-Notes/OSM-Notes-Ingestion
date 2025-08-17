@@ -176,7 +176,7 @@ function __processXmlPartsParallel() {
  return "${RETURN_CODE}"
 }
 
-# Legacy function: Split XML for parallel processing (consolidated implementation)
+# Wrapper function: Split XML for parallel processing (consolidated implementation)
 # Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __splitXmlForParallelSafe() {
  __log_start
@@ -2235,7 +2235,7 @@ function __show_help() {
  echo "  - processAPIFunctions.sh  - API processing functions"
  echo "  - processPlanetFunctions.sh - Planet processing functions"
  echo
- echo "Available legacy functions:"
+ echo "Available wrapper functions:"
  echo "  - __checkPrereqsCommands  - Check prerequisites"
  echo "  - __createFunctionToGetCountry - Create country function"
  echo "  - __createProcedures      - Create procedures"

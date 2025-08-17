@@ -46,7 +46,7 @@ The project has been refactored to eliminate code duplication and improve mainta
 
 * **Parallel Processing Functions** (`bin/parallelProcessingFunctions.sh`): Centralized functions for XML parallel processing, eliminating duplication across multiple scripts.
 * **Validation Functions** (`bin/consolidatedValidationFunctions.sh`): Consolidated validation functions for XML, CSV, coordinates, and database operations.
-* **Legacy Function Support**: All existing scripts maintain backward compatibility while using the new consolidated implementations.
+* **Backward Compatibility**: All existing scripts maintain compatibility while using the new consolidated implementations.
 
 ## Timing
 
