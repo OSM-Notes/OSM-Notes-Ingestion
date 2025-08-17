@@ -625,21 +625,24 @@ function __processPlanetNotesWithParallel {
  __createPartitionTables
 
  # Use the consolidated function from parallelProcessingFunctions.sh
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  
-  # Export XSLT variables for parallel processing
-  export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
-  
-  # Use intelligent XML processing that automatically chooses the best method
-  __logi "Using intelligent XML processing for Planet notes"
-  if ! __processXmlIntelligently "${PLANET_NOTES_FILE}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"; then
-   __loge "ERROR: Intelligent XML processing failed. Stopping process."
-   exit "${ERROR_DATA_VALIDATION}"
+ # Check if functions are already available (loaded from functionsProcess.sh)
+ if ! declare -f __processXmlIntelligently > /dev/null 2>&1; then
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  else
+   __loge "ERROR: parallelProcessingFunctions.sh not found"
+   exit "${ERROR_MISSING_LIBRARY}"
   fi
- else
-  __loge "ERROR: parallelProcessingFunctions.sh not found"
-  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+  
+ # Export XSLT variables for parallel processing
+ export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
+  
+ # Use intelligent XML processing that automatically chooses the best method
+ __logi "Using intelligent XML processing for Planet notes"
+ if ! __processXmlIntelligently "${PLANET_NOTES_FILE}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"; then
+  __loge "ERROR: Intelligent XML processing failed. Stopping process."
+  exit "${ERROR_DATA_VALIDATION}"
  fi
 
  # Consolidate partitions into main tables

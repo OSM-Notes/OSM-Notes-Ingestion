@@ -73,9 +73,6 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
  source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
 fi
 
-# Legacy functions that remain in this file for backward compatibility
-# These functions now source consolidated implementations from parallelProcessingFunctions.sh
-
 # Output CSV files for processed data
 # shellcheck disable=SC2034
 declare -r OUTPUT_NOTES_CSV_FILE="${TMP_DIR}/output-notes.csv"
@@ -163,24 +160,22 @@ if [[ -z "${LOG_FILENAME:-}" ]]; then
  declare -r LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 fi
 
-# Legacy function: Process XML parts in parallel (consolidated implementation)
-# Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
+# Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __processXmlPartsParallel() {
  __log_start
- # Source the consolidated parallel processing functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  __processXmlPartsParallel "$@"
- else
-  # Fallback if consolidated functions are not available
-  __loge "ERROR: Consolidated parallel processing functions not found. Please ensure parallelProcessingFunctions.sh is available."
+ # Check if the consolidated function is available
+ if ! declare -f __processXmlPartsParallelConsolidated > /dev/null 2>&1; then
+  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
   __log_finish
   return 1
  fi
+ # Call the consolidated function
+ __processXmlPartsParallelConsolidated "$@"
+ local return_code=$?
  __log_finish
+ return "${return_code}"
 }
 
-# Legacy function: Split XML for parallel processing (consolidated implementation)
 # Sources consolidated functions from parallelProcessingFunctions.sh for better maintainability
 function __splitXmlForParallelSafe() {
  __log_start
