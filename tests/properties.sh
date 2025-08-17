@@ -10,7 +10,9 @@
 # Detect if running in CI/CD environment
 if [[ -f "/app/bin/functionsProcess.sh" ]]; then
  # Running in Docker container
- echo "DEBUG: Detected Docker environment" >&2
+ if [[ "${TEST_DEBUG:-}" == "true" ]]; then
+  echo "DEBUG: Detected Docker environment" >&2
+ fi
  export TEST_DBNAME="osm_notes_test"
  export TEST_DBUSER="testuser"
  export TEST_DBPASSWORD="testpass"
@@ -18,7 +20,9 @@ if [[ -f "/app/bin/functionsProcess.sh" ]]; then
  export TEST_DBPORT="5432"
 elif [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
  # Running in GitHub Actions CI
- echo "DEBUG: Detected CI environment" >&2
+ if [[ "${TEST_DEBUG:-}" == "true" ]]; then
+  echo "DEBUG: Detected CI environment" >&2
+ fi
  export TEST_DBNAME="osm_notes_test"
  export TEST_DBUSER="testuser"
  export TEST_DBPASSWORD="testpass"
@@ -26,7 +30,9 @@ elif [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
  export TEST_DBPORT="5432"
 else
  # Running on host - use local PostgreSQL with peer authentication
- echo "DEBUG: Detected host environment" >&2
+ if [[ "${TEST_DEBUG:-}" == "true" ]]; then
+  echo "DEBUG: Detected host environment" >&2
+ fi
  export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
  export TEST_DBUSER="${TEST_DBUSER:-$(whoami)}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
