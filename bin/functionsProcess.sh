@@ -171,9 +171,9 @@ function __processXmlPartsParallel() {
  fi
  # Call the consolidated function
  __processXmlPartsParallelConsolidated "$@"
- local return_code=$?
+ local RETURN_CODE=$?
  __log_finish
- return "${return_code}"
+ return "${RETURN_CODE}"
 }
 
 # Legacy function: Split XML for parallel processing (consolidated implementation)
@@ -188,9 +188,9 @@ function __splitXmlForParallelSafe() {
  fi
  # Call the consolidated function
  __splitXmlForParallelSafeConsolidated "$@"
- local return_code=$?
+ local RETURN_CODE=$?
  __log_finish
- return "${return_code}"
+ return "${RETURN_CODE}"
 }
 
 # Error codes are defined in commonFunctions.sh
@@ -366,9 +366,9 @@ function __splitXmlForParallelAPI() {
  fi
  # Call the consolidated function
  __splitXmlForParallelSafeConsolidated "$@"
- local return_code=$?
+ local RETURN_CODE=$?
  __log_finish
- return "${return_code}"
+ return "${RETURN_CODE}"
 }
 
 # Wrapper function for Planet format that uses parallel processing
@@ -383,9 +383,9 @@ function __splitXmlForParallelPlanet() {
  fi
  # Call the consolidated function
  __splitXmlForParallelSafeConsolidated "$@"
- local return_code=$?
+ local RETURN_CODE=$?
  __log_finish
- return "${return_code}"
+ return "${RETURN_CODE}"
 }
 
 # Processes a single XML part for API notes
@@ -1939,11 +1939,11 @@ function __validate_xml_coordinates() {
 
 # Enhanced error handling and retry logic
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-12
+# Version: 2025-08-17
 
 # Retry configuration
 declare -r MAX_RETRIES="${MAX_RETRIES:-3}"
-declare -r BASE_DELAY="${BASE_DELAY:-2}"
+declare -r RETRY_BASE_DELAY="2"
 declare -r MAX_DELAY="${MAX_DELAY:-60}"
 declare -r CIRCUIT_BREAKER_THRESHOLD="${CIRCUIT_BREAKER_THRESHOLD:-5}"
 declare -r CIRCUIT_BREAKER_TIMEOUT="${CIRCUIT_BREAKER_TIMEOUT:-300}"

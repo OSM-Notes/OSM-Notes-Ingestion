@@ -28,7 +28,7 @@ fi
 declare -r MAX_MEMORY_PERCENT=80
 declare -r MAX_LOAD_AVERAGE=2.0
 declare -r PROCESS_TIMEOUT=300
-declare -r MAX_RETRIES=3
+# MAX_RETRIES is already declared in functionsProcess.sh
 declare -r RETRY_DELAY=5
 
 # Parallel processing constants
@@ -77,7 +77,7 @@ function __check_system_resources() {
  if command -v uptime > /dev/null 2>&1; then
   CURRENT_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//' || true)
   if [[ -n "${CURRENT_LOAD}" ]] && [[ "${CURRENT_LOAD}" != "0.00" ]]; then
-   if [[ $(echo "${CURRENT_LOAD} > ${MAX_LOAD_AVERAGE}" | bc -l 2>/dev/null || echo "0") == "1" ]]; then
+   if [[ $(echo "${CURRENT_LOAD} > ${MAX_LOAD_AVERAGE}" | bc -l 2> /dev/null || echo "0") == "1" ]]; then
     __logw "WARNING: High system load (${CURRENT_LOAD}), waiting for resources..."
     __log_finish
     return 1
@@ -121,22 +121,31 @@ function __wait_for_resources() {
 # Adjust number of workers based on system resources
 # Parameters:
 #   $1: Requested number of workers
+#   $2: Processing type (optional, for XML-specific adjustments)
 # Returns: Adjusted number of workers
 function __adjust_workers_for_resources() {
- __log_start
+ # Redirect logging to stderr to avoid interfering with stdout
+ __log_start >&2
  local REQUESTED_WORKERS="${1:-4}"
+ local PROCESSING_TYPE="${2:-}"
  local ADJUSTED_WORKERS="${REQUESTED_WORKERS}"
  local MEMORY_PERCENT
+
+ # XML-specific adjustment: reduce by 2 threads for XML processing to prevent system overload
+ if [[ "${PROCESSING_TYPE}" == "XML" ]] && [[ ${REQUESTED_WORKERS} -gt 2 ]]; then
+  ADJUSTED_WORKERS=$((REQUESTED_WORKERS - 2))
+  __logw "Reducing XML processing workers from ${REQUESTED_WORKERS} to ${ADJUSTED_WORKERS} to prevent system overload" >&2
+ fi
 
  # Check memory and reduce workers if needed
  if command -v free > /dev/null 2>&1; then
   MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || true)
   if [[ "${MEMORY_PERCENT}" -gt 70 ]]; then
    ADJUSTED_WORKERS=$((ADJUSTED_WORKERS / 2))
-   __logw "Reducing workers to ${ADJUSTED_WORKERS} due to high memory usage (${MEMORY_PERCENT}%)"
+   __logw "Reducing workers to ${ADJUSTED_WORKERS} due to high memory usage (${MEMORY_PERCENT}%)" >&2
   elif [[ "${MEMORY_PERCENT}" -gt 50 ]]; then
    ADJUSTED_WORKERS=$((ADJUSTED_WORKERS * 3 / 4))
-   __logw "Reducing workers to ${ADJUSTED_WORKERS} due to moderate memory usage (${MEMORY_PERCENT}%)"
+   __logw "Reducing workers to ${ADJUSTED_WORKERS} due to moderate memory usage (${MEMORY_PERCENT}%)" >&2
   fi
  fi
 
@@ -145,17 +154,19 @@ function __adjust_workers_for_resources() {
   ADJUSTED_WORKERS=1
  fi
 
- __logd "Adjusted workers from ${REQUESTED_WORKERS} to ${ADJUSTED_WORKERS}"
- __log_finish
- echo "${ADJUSTED_WORKERS}"
+ __logd "Adjusted workers from ${REQUESTED_WORKERS} to ${ADJUSTED_WORKERS}" >&2
+ __log_finish >&2
+ # Output only the numeric result to stdout
+ printf "%d\n" "${ADJUSTED_WORKERS}"
 }
 
 # Adjust process delay based on system resources
 # Returns: Adjusted delay in seconds
 function __adjust_process_delay() {
- __log_start
- local BASE_DELAY="${PARALLEL_PROCESS_DELAY}"
- local ADJUSTED_DELAY="${BASE_DELAY}"
+ # Redirect logging to stderr to avoid interfering with stdout
+ __log_start >&2
+ # Use a different variable name to avoid readonly conflicts
+ local ADJUSTED_DELAY="${PARALLEL_PROCESS_DELAY}"
  local MEMORY_PERCENT
 
  # Check memory and increase delay if needed
@@ -163,10 +174,10 @@ function __adjust_process_delay() {
   MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || true)
   if [[ "${MEMORY_PERCENT}" -gt 70 ]]; then
    ADJUSTED_DELAY=$((ADJUSTED_DELAY * 3))
-   __logw "Increased process delay to ${ADJUSTED_DELAY}s due to high memory usage (${MEMORY_PERCENT}%)"
+   __logw "Increased process delay to ${ADJUSTED_DELAY}s due to high memory usage (${MEMORY_PERCENT}%)" >&2
   elif [[ "${MEMORY_PERCENT}" -gt 50 ]]; then
    ADJUSTED_DELAY=$((ADJUSTED_DELAY * 2))
-   __logw "Increased process delay to ${ADJUSTED_DELAY}s due to moderate memory usage (${MEMORY_PERCENT}%)"
+   __logw "Increased process delay to ${ADJUSTED_DELAY}s due to moderate memory usage (${MEMORY_PERCENT}%)" >&2
   fi
  fi
 
@@ -175,9 +186,9 @@ function __adjust_process_delay() {
   local CURRENT_LOAD
   CURRENT_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//' || true)
   if [[ -n "${CURRENT_LOAD}" ]] && [[ "${CURRENT_LOAD}" != "0.00" ]]; then
-   if (($(echo "${CURRENT_LOAD} > ${MAX_LOAD_AVERAGE}" | bc -l || true))); then
+   if [[ $(echo "${CURRENT_LOAD} > ${MAX_LOAD_AVERAGE}" | bc -l 2> /dev/null || echo "0") == "1" ]]; then
     ADJUSTED_DELAY=$((ADJUSTED_DELAY * 2))
-    __logw "Increased process delay to ${ADJUSTED_DELAY}s due to high system load (${CURRENT_LOAD})"
+    __logw "Increased process delay to ${ADJUSTED_DELAY}s due to high system load (${CURRENT_LOAD})" >&2
    fi
   fi
  fi
@@ -185,12 +196,13 @@ function __adjust_process_delay() {
  # Ensure reasonable delay limits
  if [[ ${ADJUSTED_DELAY} -gt 10 ]]; then
   ADJUSTED_DELAY=10
-  __logw "Capped process delay at 10s for reasonable performance"
+  __logw "Capped process delay at 10s for reasonable performance" >&2
  fi
 
- __logd "Adjusted process delay from ${BASE_DELAY}s to ${ADJUSTED_DELAY}s"
- __log_finish
- echo "${ADJUSTED_DELAY}"
+ __logd "Adjusted process delay from ${PARALLEL_PROCESS_DELAY}s to ${ADJUSTED_DELAY}s" >&2
+ __log_finish >&2
+ # Output only the numeric result to stdout
+ printf "%d\n" "${ADJUSTED_DELAY}"
 }
 
 # Configure system limits to prevent process killing
@@ -252,28 +264,39 @@ function __configure_system_limits() {
  fi
 }
 
-# Process XML with XSLT using timeout, retry logic, and performance profiling
+# Process XML with XSLT using robust error handling and retry logic
 # Parameters:
 #   $1: XML file path
 #   $2: XSLT file path
 #   $3: Output file path
-#   $4: Additional XSLT parameters (optional)
-#   $5: Timeout in seconds (optional, default: PROCESS_TIMEOUT)
-#   $6: Enable profiling (optional, default: false)
+#   $4: XSLT parameter type (e.g., "--stringparam")
+#   $5: XSLT parameter name (e.g., "default-timestamp")
+#   $6: XSLT parameter value (e.g., timestamp string)
+#   $7: Enable profiling (optional, default: false)
 # Returns: 0 on success, 1 on failure
 function __process_xml_with_xslt_robust() {
  __log_start
- __logd "Function called with $# parameters: '$1' '$2' '$3' '$4' '$5' '$6'"
+ __logd "Function called with $# parameters: '$1' '$2' '$3' '$4' '$5' '$6' '$7'"
  local XML_FILE="${1}"
  local XSLT_FILE="${2}"
  local OUTPUT_FILE="${3}"
- local XSLT_PARAMS="${4:-}"
- local TIMEOUT="${5:-${PROCESS_TIMEOUT}}"
- local ENABLE_PROFILING="${6:-false}"
+ local XSLT_PARAM_TYPE="${4:-}"
+ local XSLT_PARAM_NAME="${5:-}"
+ local XSLT_PARAM_VALUE="${6:-}"
+ local ENABLE_PROFILING="${7:-false}"
+ local TIMEOUT="${PROCESS_TIMEOUT:-300}"
  __logd "ENABLE_PROFILING parameter received: '${ENABLE_PROFILING}'"
- __logd "All parameters received: XML='${1}', XSLT='${2}', OUTPUT='${3}', PARAMS='${4}', TIMEOUT='${5}', PROFILING='${6}'"
+ __logd "All parameters received: XML='${1}', XSLT='${2}', OUTPUT='${3}', PARAM_TYPE='${4}', PARAM_NAME='${5}', PARAM_VALUE='${6}', PROFILING='${7}'"
+ __logd "Using default timeout: ${TIMEOUT}s"
  local RETRY_COUNT=0
  local SUCCESS=false
+
+ # Build XSLT parameters array
+ local XSLT_ARGS=()
+ if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
+  XSLT_ARGS=("${XSLT_PARAM_TYPE}" "${XSLT_PARAM_NAME}" "${XSLT_PARAM_VALUE}")
+  __logd "Built XSLT parameters: ${XSLT_ARGS[*]}"
+ fi
 
  # Validate inputs
  if [[ ! -f "${XML_FILE}" ]]; then
@@ -316,50 +339,57 @@ function __process_xml_with_xslt_robust() {
   fi
 
   # Process with timeout and optional profiling
-  __logd "About to check ENABLE_PROFILING: '${ENABLE_PROFILING}' (type: $(declare -p ENABLE_PROFILING 2>/dev/null || echo 'not declared'))"
-  __logd "ENABLE_PROFILING comparison: '${ENABLE_PROFILING}' == 'true' -> $([[ "${ENABLE_PROFILING}" == "true" ]] && echo 'true' || echo 'false')"
+  __logd "About to check ENABLE_PROFILING: '${ENABLE_PROFILING}' (type: $(declare -p ENABLE_PROFILING 2> /dev/null || echo 'not declared'))"
+
+  # Simplified logging to avoid syntax issues
   if [[ "${ENABLE_PROFILING}" == "true" ]]; then
-    local PROFILE_FILE
-    PROFILE_FILE="${OUTPUT_FILE}.profile"
-    __logd "Profiling enabled, profile will be saved to: ${PROFILE_FILE}"
-    __logd "ENABLE_PROFILING value: '${ENABLE_PROFILING}'"
-    
-    if [[ -n "${XSLT_PARAMS}" ]]; then
-     if timeout "${TIMEOUT}" xsltproc --profile "${XSLT_PARAMS}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
-      if [[ -f "${OUTPUT_FILE}" ]]; then
-       SUCCESS=true
-       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
-      else
-       __loge "XSLT processing completed but output file not created"
-      fi
+   __logd "ENABLE_PROFILING is enabled"
+  else
+   __logd "ENABLE_PROFILING is disabled"
+  fi
+
+  if [[ "${ENABLE_PROFILING}" == "true" ]]; then
+   local PROFILE_FILE
+   PROFILE_FILE="${OUTPUT_FILE}.profile"
+   __logd "Profiling enabled, profile will be saved to: ${PROFILE_FILE}"
+   __logd "ENABLE_PROFILING value: '${ENABLE_PROFILING}'"
+
+   if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
+    if timeout "${TIMEOUT}" xsltproc --profile "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
+     if [[ -f "${OUTPUT_FILE}" ]]; then
+      SUCCESS=true
+      __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
      else
-      local EXIT_CODE=$?
-      if [[ ${EXIT_CODE} -eq 124 ]]; then
-       __loge "XSLT processing timed out after ${TIMEOUT}s"
-      else
-       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
-      fi
+      __loge "XSLT processing completed but output file not created"
      fi
     else
-     if timeout "${TIMEOUT}" xsltproc --profile -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
-      if [[ -f "${OUTPUT_FILE}" ]]; then
-       SUCCESS=true
-       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
-      else
-       __loge "XSLT processing completed but output file not created"
-      fi
+     local EXIT_CODE=$?
+     if [[ ${EXIT_CODE} -eq 124 ]]; then
+      __loge "XSLT processing timed out after ${TIMEOUT}s"
      else
-      local EXIT_CODE=$?
-      if [[ ${EXIT_CODE} -eq 124 ]]; then
-       __loge "XSLT processing timed out after ${TIMEOUT}s"
-      else
-       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
-      fi
+      __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
      fi
     fi
+   else
+    if timeout "${TIMEOUT}" xsltproc --profile -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}"; then
+     if [[ -f "${OUTPUT_FILE}" ]]; then
+      SUCCESS=true
+      __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
+     else
+      __loge "XSLT processing completed but output file not created"
+     fi
+    else
+     local EXIT_CODE=$?
+     if [[ ${EXIT_CODE} -eq 124 ]]; then
+      __loge "XSLT processing timed out after ${TIMEOUT}s"
+     else
+      __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
+     fi
+    fi
+   fi
   else
-   if [[ -n "${XSLT_PARAMS}" ]]; then
-    if timeout "${TIMEOUT}" xsltproc "${XSLT_PARAMS}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> /dev/null; then
+   if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
+    if timeout "${TIMEOUT}" xsltproc "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> /dev/null; then
      if [[ -f "${OUTPUT_FILE}" ]]; then
       SUCCESS=true
       __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
@@ -420,49 +450,61 @@ function __process_xml_with_xslt_robust() {
  fi
 }
 
-# Enhanced XML file division function
-# Divides XML file into parts with size-aware splitting
-# Automatically detects Planet vs API format and uses appropriate root tag
-# Parameters:
-#   $1: Input XML file path
-#   $2: Output directory for parts
-#   $3: Target number of parts (optional, default: MAX_THREADS * 10)
-#   $4: Target part size in MB (optional, default: 5)
-# Returns: 0 on success, 1 on failure
-function __divide_xml_file() {
- __log_start
+# Optimized XML file division function
+# Version: 2025-08-17
+__divide_xml_file() {
+ # Function: Divides a large XML file into smaller parts for parallel processing
+ # Parameters:
+ #   $1: Input XML file path
+ #   $2: Output directory for parts
+ #   $3: Target part size in MB (default: 100)
+ #   $4: Maximum number of parts (default: 50)
+ #   $5: Maximum threads for parallel processing (default: 8)
+ # Returns: 0 on success, 1 on failure
+
  local INPUT_XML="${1}"
  local OUTPUT_DIR="${2}"
- local NUM_PARTS="${3:-$((MAX_THREADS * 10))}"
- local TARGET_PART_SIZE_MB="${4:-5}"
+ local TARGET_PART_SIZE_MB="${3:-100}"
+ local NUM_PARTS="${4:-50}"
+ local MAX_THREADS="${5:-8}"
+
+ # Validate inputs
+ if [[ -z "${INPUT_XML}" ]] || [[ -z "${OUTPUT_DIR}" ]]; then
+  __loge "ERROR: Input XML file and output directory are required"
+  return 1
+ fi
 
  if [[ ! -f "${INPUT_XML}" ]]; then
-  __loge "ERROR: Input XML file not found: ${INPUT_XML}"
-  __log_finish
+  __loge "ERROR: Input XML file does not exist: ${INPUT_XML}"
   return 1
  fi
 
  if [[ ! -d "${OUTPUT_DIR}" ]]; then
-  mkdir -p "${OUTPUT_DIR}"
-  __logd "Created output directory: ${OUTPUT_DIR}"
+  __loge "ERROR: Output directory does not exist: ${OUTPUT_DIR}"
+  return 1
  fi
 
+ # Start logging and timing
+ __log_start "Dividing XML file: ${INPUT_XML}"
+ local START_TIME
+ START_TIME=$(date +%s)
+
  # Clean up any existing parts
- find "${OUTPUT_DIR}" -name "planet_part_*.xml" -delete 2>/dev/null || true
- find "${OUTPUT_DIR}" -name "api_part_*.xml" -delete 2>/dev/null || true
+ find "${OUTPUT_DIR}" -name "planet_part_*.xml" -delete 2> /dev/null || true
+ find "${OUTPUT_DIR}" -name "api_part_*.xml" -delete 2> /dev/null || true
  __logd "Cleaned up existing parts"
 
  # Detect XML format (Planet vs API)
  local XML_FORMAT=""
  local ROOT_TAG=""
  local PART_PREFIX=""
- 
- if grep -q "<osm-notes" "${INPUT_XML}" 2>/dev/null; then
+
+ if grep -q "<osm-notes" "${INPUT_XML}" 2> /dev/null; then
   XML_FORMAT="Planet"
   ROOT_TAG="osm-notes"
   PART_PREFIX="planet_part"
   __logd "Detected Planet XML format (osm-notes)"
- elif grep -q "<osm[[:space:]]" "${INPUT_XML}" 2>/dev/null; then
+ elif grep -q "<osm[[:space:]]" "${INPUT_XML}" 2> /dev/null; then
   XML_FORMAT="API"
   ROOT_TAG="osm"
   PART_PREFIX="api_part"
@@ -475,10 +517,10 @@ function __divide_xml_file() {
 
  # Get file size and total notes
  local FILE_SIZE_BYTES
- FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2>/dev/null || echo "0")
+ FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2> /dev/null || echo "0")
  local TOTAL_NOTES
- TOTAL_NOTES=$(grep -c "<note" "${INPUT_XML}" 2>/dev/null || echo "0")
- 
+ TOTAL_NOTES=$(grep -c "<note" "${INPUT_XML}" 2> /dev/null || echo "0")
+
  if [[ "${TOTAL_NOTES}" -eq "0" ]]; then
   __loge "ERROR: No notes found in XML file or file is not valid"
   __log_finish
@@ -491,36 +533,67 @@ function __divide_xml_file() {
   return 1
  fi
 
- # Calculate optimal parts based on target size
+ # Calculate optimal parts based on target size and performance considerations
  local FILE_SIZE_MB
  FILE_SIZE_MB=$((FILE_SIZE_BYTES / 1024 / 1024))
  local SIZE_BASED_PARTS
  SIZE_BASED_PARTS=$((FILE_SIZE_MB / TARGET_PART_SIZE_MB))
- 
- # Use the larger of the two approaches for better granularity
- if [[ ${SIZE_BASED_PARTS} -gt ${NUM_PARTS} ]]; then
-  NUM_PARTS=${SIZE_BASED_PARTS}
-  __logd "Adjusted parts to ${NUM_PARTS} based on target size (${TARGET_PART_SIZE_MB} MB)"
+
+ # Calculate performance-optimized number of parts
+ # For large files, we want fewer, larger parts to improve processing speed
+ local PERFORMANCE_OPTIMIZED_PARTS
+ if [[ ${FILE_SIZE_MB} -gt 5000 ]]; then
+  # For files > 5GB, use very large parts (very few parts)
+  PERFORMANCE_OPTIMIZED_PARTS=$((FILE_SIZE_MB / 500)) # ~500MB per part
+  __logd "Extremely large file detected (${FILE_SIZE_MB} MB), optimizing for maximum performance with ~500MB parts"
+ elif [[ ${FILE_SIZE_MB} -gt 1000 ]]; then
+  # For files > 1GB, use larger parts (fewer parts)
+  PERFORMANCE_OPTIMIZED_PARTS=$((FILE_SIZE_MB / 200)) # ~200MB per part
+  __logd "Large file detected (${FILE_SIZE_MB} MB), optimizing for performance with ~200MB parts"
+ elif [[ ${FILE_SIZE_MB} -gt 100 ]]; then
+  # For files > 100MB, use medium parts
+  PERFORMANCE_OPTIMIZED_PARTS=$((FILE_SIZE_MB / 100)) # ~100MB per part
+  __logd "Medium file detected (${FILE_SIZE_MB} MB), using ~100MB parts"
+ else
+  # For smaller files, use requested size
+  PERFORMANCE_OPTIMIZED_PARTS=${SIZE_BASED_PARTS}
  fi
 
- # Ensure reasonable limits
+ # Use the performance-optimized approach, but respect user limits
+ # For large files, prefer performance optimization over user-specified parts
+ if [[ ${FILE_SIZE_MB} -gt 1000 ]] && [[ ${PERFORMANCE_OPTIMIZED_PARTS} -lt ${NUM_PARTS} ]]; then
+  # For large files, use performance-optimized parts if they result in fewer parts
+  NUM_PARTS=${PERFORMANCE_OPTIMIZED_PARTS}
+  __logd "Adjusted parts to ${NUM_PARTS} based on performance optimization for large file"
+ elif [[ ${PERFORMANCE_OPTIMIZED_PARTS} -gt ${NUM_PARTS} ]]; then
+  # For smaller files, use performance optimization if it results in more parts
+  NUM_PARTS=${PERFORMANCE_OPTIMIZED_PARTS}
+  __logd "Adjusted parts to ${NUM_PARTS} based on performance optimization"
+ fi
+
+ # Ensure reasonable limits for performance
  if [[ ${NUM_PARTS} -lt ${MAX_THREADS} ]]; then
   NUM_PARTS=${MAX_THREADS}
   __logd "Adjusted parts to minimum: ${NUM_PARTS} (MAX_THREADS)"
  fi
- if [[ ${NUM_PARTS} -gt 1000 ]]; then
-  NUM_PARTS=1000
-  __logw "Limited parts to maximum: ${NUM_PARTS} to avoid too many tiny files"
+ if [[ ${NUM_PARTS} -gt 50 ]]; then
+  NUM_PARTS=50
+  __logw "Limited parts to maximum: ${NUM_PARTS} for optimal performance"
  fi
 
- __logi "Dividing ${XML_FORMAT} XML file: ${FILE_SIZE_MB} MB, ${TOTAL_NOTES} notes into ${NUM_PARTS} parts"
- __logd "Target part size: ~${TARGET_PART_SIZE_MB} MB each"
+ # Calculate actual target part size based on final number of parts
+ local ACTUAL_TARGET_PART_SIZE_MB
+ ACTUAL_TARGET_PART_SIZE_MB=$((FILE_SIZE_MB / NUM_PARTS))
+
+ __logi "Dividing ${XML_FORMAT} XML file: ${FILE_SIZE_MB} MB, ${TOTAL_NOTES} notes (max ${NUM_PARTS} parts)"
+ __logd "Target part size: ~${ACTUAL_TARGET_PART_SIZE_MB} MB each (${FILE_SIZE_MB} MB ÷ ${NUM_PARTS} parts)"
  __logd "Root tag: <${ROOT_TAG}>, Part prefix: ${PART_PREFIX}"
+ __logd "Note: Actual number of parts may be less than ${NUM_PARTS} depending on file size and content distribution"
 
  # Calculate notes per part
  local NOTES_PER_PART
  NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
- 
+
  # Only adjust if it's absolutely necessary
  if [[ ${NOTES_PER_PART} -eq 0 ]]; then
   NOTES_PER_PART=1
@@ -532,7 +605,7 @@ function __divide_xml_file() {
   __logw "Adjusted to ${NUM_PARTS} parts with 1 note per part (difference too large)"
  else
   # Keep the requested number of parts
-  __logd "Using requested ${NUM_PARTS} parts with ${NOTES_PER_PART} notes per part"
+  __logd "Maximum parts set to ${NUM_PARTS} with ~${NOTES_PER_PART} notes per part (actual parts may vary)"
  fi
 
  # Ensure we have at least 1 note per part
@@ -540,86 +613,227 @@ function __divide_xml_file() {
   NOTES_PER_PART=1
  fi
 
- __logd "Final: Notes per part: ${NOTES_PER_PART}, Target parts: ${NUM_PARTS}"
+ __logd "Final: Notes per part: ${NOTES_PER_PART}, Maximum parts: ${NUM_PARTS}"
 
- # Use bash for XML splitting (more reliable than awk for file operations)
+ # Use optimized approach: choose between line-by-line and block-based processing
  local PART_NUM=1
  local CURRENT_NOTES=0
  local PART_FILE=""
  local IN_NOTE=false
  local SKIP_HEADER=true
- local CURRENT_PART_SIZE=0
  local NOTES_PROCESSED=0
+ # Buffer size for optimized processing (currently unused but reserved for future enhancements)
+
+ # For very large files, use block-based processing for better performance
+ local USE_BLOCK_PROCESSING=false
+ local USE_POSITION_BASED=false
+
+ if [[ ${FILE_SIZE_MB} -gt 5000 ]] && [[ ${TOTAL_NOTES} -gt 500000 ]]; then
+  USE_POSITION_BASED=true
+  __logd "Extremely large file detected (${FILE_SIZE_MB} MB, ${TOTAL_NOTES} notes), using position-based processing for maximum performance"
+ elif [[ ${FILE_SIZE_MB} -gt 2000 ]] && [[ ${TOTAL_NOTES} -gt 100000 ]]; then
+  USE_BLOCK_PROCESSING=true
+  __logd "Very large file detected, using block-based processing for optimal performance"
+ fi
 
  # Create first part file
  PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" ${PART_NUM}).xml"
  echo '<?xml version="1.0" encoding="UTF-8"?>' > "${PART_FILE}"
  echo "<${ROOT_TAG}>" >> "${PART_FILE}"
- CURRENT_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
 
- # Process XML line by line
- while IFS= read -r LINE; do
-  # Skip XML header and root tags
-  if [[ "${SKIP_HEADER}" == "true" ]]; then
-   if [[ "${LINE}" =~ \<note ]]; then
-    SKIP_HEADER=false
+ # Process XML using optimized method based on file size
+ if [[ "${USE_POSITION_BASED}" == "true" ]]; then
+  # Position-based processing for extremely large files (maximum performance)
+  __logd "Using position-based processing for maximum performance"
+
+  # Pre-calculate note positions for efficient splitting
+  __logd "Pre-calculating note positions..."
+  local NOTE_POSITIONS_FILE="${OUTPUT_DIR}/note_positions.txt"
+
+  # Find all note start positions using grep and save to file
+  grep -n "<note" "${INPUT_XML}" | cut -d: -f1 > "${NOTE_POSITIONS_FILE}"
+
+  # Calculate optimal split points
+  local NOTES_PER_PART_OPTIMIZED
+  NOTES_PER_PART_OPTIMIZED=$((TOTAL_NOTES / NUM_PARTS))
+
+  __logd "Splitting into ${NUM_PARTS} parts with ~${NOTES_PER_PART_OPTIMIZED} notes per part"
+
+  # Process each part using pre-calculated positions
+  local START_TIME
+  START_TIME=$(date +%s)
+
+  for ((PART_NUM = 1; PART_NUM <= NUM_PARTS; PART_NUM++)); do
+   local PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" ${PART_NUM}).xml"
+   local START_LINE=1
+   local END_LINE=${TOTAL_NOTES}
+
+   # Calculate start and end positions for this part
+   if [[ ${PART_NUM} -eq 1 ]]; then
+    START_LINE=1
    else
-    continue
+    START_LINE=$(((PART_NUM - 1) * NOTES_PER_PART_OPTIMIZED + 1))
    fi
+
+   if [[ ${PART_NUM} -eq ${NUM_PARTS} ]]; then
+    END_LINE=${TOTAL_NOTES}
+   else
+    END_LINE=$((PART_NUM * NOTES_PER_PART_OPTIMIZED))
+   fi
+
+   # Get actual line numbers from positions file
+   local START_POS
+   START_POS=$(sed -n "${START_LINE}p" "${NOTE_POSITIONS_FILE}" 2> /dev/null || echo "1")
+   local END_POS
+   END_POS=$(sed -n "${END_LINE}p" "${NOTE_POSITIONS_FILE}" 2> /dev/null || echo "1")
+
+   # Create part file
+   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${PART_FILE}"
+   echo "<${ROOT_TAG}>" >> "${PART_FILE}"
+
+   # Extract content between positions
+   sed -n "${START_POS},${END_POS}p" "${INPUT_XML}" >> "${PART_FILE}"
+
+   # Close part
+   echo "</${ROOT_TAG}>" >> "${PART_FILE}"
+
+   # Count actual notes in this part
+   local PART_NOTES
+   PART_NOTES=$(grep -c "<note" "${PART_FILE}" 2> /dev/null || echo "0")
+
+   # Calculate and display progress
+   local PROGRESS_PCT
+   PROGRESS_PCT=$((PART_NUM * 100 / NUM_PARTS))
+   local ELAPSED_TIME
+   ELAPSED_TIME=$(($(date +%s) - START_TIME))
+   local ESTIMATED_TOTAL
+   ESTIMATED_TOTAL=$((ELAPSED_TIME * NUM_PARTS / PART_NUM))
+   local REMAINING_TIME
+   REMAINING_TIME=$((ESTIMATED_TOTAL - ELAPSED_TIME))
+
+   __logd "Created position-based part ${PART_NUM}/${NUM_PARTS} (${PROGRESS_PCT}%): ${PART_FILE} (~${PART_NOTES} notes, lines ${START_POS}-${END_POS}) - ETA: ${REMAINING_TIME}s"
+  done
+
+  # Clean up positions file
+  rm -f "${NOTE_POSITIONS_FILE}"
+
+ elif [[ "${USE_BLOCK_PROCESSING}" == "true" ]]; then
+  # Block-based processing for very large files
+  __logd "Using block-based processing for optimal performance"
+
+  # Calculate block size based on target part size
+  local BLOCK_SIZE_BYTES
+  BLOCK_SIZE_BYTES=$((TARGET_PART_SIZE_MB * 1024 * 1024))
+
+  # Use dd to split file into blocks, then process each block
+  # Block number counter (currently unused but reserved for future enhancements)
+  local OFFSET=0
+  local HEADER_SIZE=0
+
+  # Find the start of the first note (skip header)
+  HEADER_SIZE=$(grep -n "<note" "${INPUT_XML}" | head -1 | cut -d: -f1)
+  if [[ -z "${HEADER_SIZE}" ]] || [[ "${HEADER_SIZE}" -eq "0" ]]; then
+   HEADER_SIZE=0
   fi
 
-  # Check if we're starting a new note
-  if [[ "${LINE}" =~ \<note ]]; then
-   IN_NOTE=true
-   ((CURRENT_NOTES++))
-   ((NOTES_PROCESSED++))
-  fi
+  # Extract header content
+  head -n $((HEADER_SIZE - 1)) "${INPUT_XML}" > "${OUTPUT_DIR}/header.xml"
 
-  # Write line to current part
-  echo "${LINE}" >> "${PART_FILE}"
-  
-  # Update current part size
-  CURRENT_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+  while [[ ${OFFSET} -lt ${FILE_SIZE_BYTES} ]]; do
+   local PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" ${PART_NUM}).xml"
 
-  # Check if we're ending a note
-  if [[ "${LINE}" =~ \</note\> ]]; then
-   IN_NOTE=false
-   
-   # Check if current part is complete (by notes count or size)
-   local CURRENT_PART_SIZE_MB
-   CURRENT_PART_SIZE_MB=$((CURRENT_PART_SIZE / 1024 / 1024))
-   local SHOULD_SPLIT=false
-   
-   # Only split if we have enough notes AND we haven't reached the total AND we haven't reached the part limit
-   if [[ ${CURRENT_NOTES} -ge ${NOTES_PER_PART} ]] && [[ ${NOTES_PROCESSED} -lt ${TOTAL_NOTES} ]] && [[ ${PART_NUM} -lt ${NUM_PARTS} ]]; then
-    SHOULD_SPLIT=true
-    __logd "Splitting part ${PART_NUM} by note count: ${CURRENT_NOTES} >= ${NOTES_PER_PART} (processed: ${NOTES_PROCESSED}/${TOTAL_NOTES}, parts: ${PART_NUM}/${NUM_PARTS})"
-   elif [[ ${CURRENT_PART_SIZE_MB} -ge ${TARGET_PART_SIZE_MB} ]] && [[ ${NOTES_PROCESSED} -lt ${TOTAL_NOTES} ]] && [[ ${PART_NUM} -lt ${NUM_PARTS} ]]; then
-    SHOULD_SPLIT=true
-    __logd "Splitting part ${PART_NUM} by size: ${CURRENT_PART_SIZE_MB} MB >= ${TARGET_PART_SIZE_MB} MB (processed: ${NOTES_PROCESSED}/${TOTAL_NOTES}, parts: ${PART_NUM}/${NUM_PARTS})"
+   # Create part with header
+   cat "${OUTPUT_DIR}/header.xml" > "${PART_FILE}"
+
+   # Extract block and append to part
+   dd if="${INPUT_XML}" of="${PART_FILE}" bs=1M skip=$((OFFSET / 1024 / 1024)) count=$((BLOCK_SIZE_BYTES / 1024 / 1024)) 2> /dev/null
+
+   # Close part
+   echo "</${ROOT_TAG}>" >> "${PART_FILE}"
+
+   # Count notes in this part
+   local PART_NOTES
+   PART_NOTES=$(grep -c "<note" "${PART_FILE}" 2> /dev/null || echo "0")
+
+   __logd "Created block part ${PART_NUM}: ${PART_FILE} (~${PART_NOTES} notes, ~${TARGET_PART_SIZE_MB} MB)"
+
+   ((PART_NUM++))
+   OFFSET=$((OFFSET + BLOCK_SIZE_BYTES))
+
+   # Stop if we've reached the part limit
+   if [[ ${PART_NUM} -gt ${NUM_PARTS} ]]; then
+    break
    fi
-   
-   if [[ "${SHOULD_SPLIT}" == "true" ]]; then
-    # Close current part
-    echo "</${ROOT_TAG}>" >> "${PART_FILE}"
-    __logd "Created part ${PART_NUM}: ${PART_FILE} (${CURRENT_NOTES} notes, ${CURRENT_PART_SIZE_MB} MB)"
-    
-    # Start new part
-    ((PART_NUM++))
-    PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" ${PART_NUM}).xml"
-    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${PART_FILE}"
-    echo "<${ROOT_TAG}>" >> "${PART_FILE}"
-    CURRENT_NOTES=0
-    CURRENT_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
-   fi
-  fi
- done < "${INPUT_XML}"
+  done
 
- # Close last part
- if [[ -n "${PART_FILE}" ]] && [[ -f "${PART_FILE}" ]]; then
+  # Clean up header file
+  rm -f "${OUTPUT_DIR}/header.xml"
+
+ else
+  # Line-by-line processing for smaller files (original optimized approach)
+  __logd "Using line-by-line processing"
+
+  while IFS= read -r LINE; do
+   # Skip XML header and root tags
+   if [[ "${SKIP_HEADER}" == "true" ]]; then
+    if [[ "${LINE}" =~ \<note ]]; then
+     SKIP_HEADER=false
+    else
+     continue
+    fi
+   fi
+
+   # Check if we're starting a new note
+   if [[ "${LINE}" =~ \<note ]]; then
+    IN_NOTE=true
+    ((CURRENT_NOTES++))
+    ((NOTES_PROCESSED++))
+   fi
+
+   # Write line to current part
+   echo "${LINE}" >> "${PART_FILE}"
+
+   # Check if we're ending a note
+   if [[ "${LINE}" =~ \</note\> ]]; then
+    # Note processing state (currently unused in block processing but reserved for future enhancements)
+
+    # Check if current part is complete (by notes count only - size check removed for performance)
+    local SHOULD_SPLIT=false
+
+    # Only split if we have enough notes AND we haven't reached the total AND we haven't reached the part limit
+    if [[ ${CURRENT_NOTES} -ge ${NOTES_PER_PART} ]] && [[ ${NOTES_PROCESSED} -lt ${TOTAL_NOTES} ]] && [[ ${PART_NUM} -lt ${NUM_PARTS} ]]; then
+     SHOULD_SPLIT=true
+     __logd "Splitting part ${PART_NUM} by note count: ${CURRENT_NOTES} >= ${NOTES_PER_PART} (processed: ${NOTES_PROCESSED}/${TOTAL_NOTES}, parts: ${PART_NUM}/${NUM_PARTS})"
+    fi
+
+    if [[ "${SHOULD_SPLIT}" == "true" ]]; then
+     # Close current part
+     echo "</${ROOT_TAG}>" >> "${PART_FILE}"
+
+     # Get file size for logging (only when needed)
+     local CURRENT_PART_SIZE
+     CURRENT_PART_SIZE=$(stat -c%s "${PART_FILE}" 2> /dev/null || echo "0")
+     local CURRENT_PART_SIZE_MB
+     CURRENT_PART_SIZE_MB=$((CURRENT_PART_SIZE / 1024 / 1024))
+
+     __logd "Created part ${PART_NUM}: ${PART_FILE} (${CURRENT_NOTES} notes, ${CURRENT_PART_SIZE_MB} MB)"
+
+     # Start new part
+     ((PART_NUM++))
+     PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" ${PART_NUM}).xml"
+     echo '<?xml version="1.0" encoding="UTF-8"?>' > "${PART_FILE}"
+     echo "<${ROOT_TAG}>" >> "${PART_FILE}"
+     CURRENT_NOTES=0
+    fi
+   fi
+  done < "${INPUT_XML}"
+ fi
+
+ # Close last part (only needed for line-by-line processing)
+ if [[ "${USE_BLOCK_PROCESSING}" == "false" ]] && [[ -n "${PART_FILE}" ]] && [[ -f "${PART_FILE}" ]]; then
   echo "</${ROOT_TAG}>" >> "${PART_FILE}"
   local FINAL_PART_SIZE
-  FINAL_PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+  FINAL_PART_SIZE=$(stat -c%s "${PART_FILE}" 2> /dev/null || echo "0")
   local FINAL_PART_SIZE_MB
   FINAL_PART_SIZE_MB=$((FINAL_PART_SIZE / 1024 / 1024))
   __logd "Created final part: ${PART_FILE} (${CURRENT_NOTES} notes, ${FINAL_PART_SIZE_MB} MB)"
@@ -635,25 +849,47 @@ function __divide_xml_file() {
   return 1
  fi
 
- __logi "Successfully created ${ACTUAL_PARTS} ${XML_FORMAT} XML parts in ${OUTPUT_DIR}"
+ # Calculate processing time and performance metrics
+ local END_TIME
+ END_TIME=$(date +%s)
+ local TOTAL_PROCESSING_TIME
+ TOTAL_PROCESSING_TIME=$((END_TIME - START_TIME))
  
+ # Avoid division by zero for very fast processing
+ local PROCESSING_SPEED_MBPS
+ local PROCESSING_SPEED_NOTES_PER_SEC
+ if [[ ${TOTAL_PROCESSING_TIME} -gt 0 ]]; then
+  PROCESSING_SPEED_MBPS=$((FILE_SIZE_MB / TOTAL_PROCESSING_TIME))
+  PROCESSING_SPEED_NOTES_PER_SEC=$((TOTAL_NOTES / TOTAL_PROCESSING_TIME))
+ else
+  PROCESSING_SPEED_MBPS="N/A"
+  PROCESSING_SPEED_NOTES_PER_SEC="N/A"
+ fi
+
+ __logi "Successfully created ${ACTUAL_PARTS} ${XML_FORMAT} XML parts in ${OUTPUT_DIR}"
+ if [[ ${TOTAL_PROCESSING_TIME} -gt 0 ]]; then
+  __logi "Performance: ${TOTAL_PROCESSING_TIME}s total, ${PROCESSING_SPEED_MBPS} MB/s, ${PROCESSING_SPEED_NOTES_PER_SEC} notes/s"
+ else
+  __logi "Performance: ${TOTAL_PROCESSING_TIME}s total (too fast to measure), speed: N/A"
+ fi
+
  # Show detailed statistics
  local TOTAL_SIZE=0
  local MIN_SIZE=999999999
  local MAX_SIZE=0
  local AVG_SIZE=0
- 
+
  for PART_FILE in "${OUTPUT_DIR}"/${PART_PREFIX}_*.xml; do
   if [[ -f "${PART_FILE}" ]]; then
    local PART_SIZE
-   PART_SIZE=$(stat -c%s "${PART_FILE}" 2>/dev/null || echo "0")
+   PART_SIZE=$(stat -c%s "${PART_FILE}" 2> /dev/null || echo "0")
    local PART_SIZE_MB
    PART_SIZE_MB=$((PART_SIZE / 1024 / 1024))
    local PART_NOTES
-   PART_NOTES=$(grep -c "<note" "${PART_FILE}" 2>/dev/null || echo "0")
-   
+   PART_NOTES=$(grep -c "<note" "${PART_FILE}" 2> /dev/null || echo "0")
+
    __logd "Part ${PART_FILE}: ${PART_NOTES} notes, ${PART_SIZE_MB} MB"
-   
+
    TOTAL_SIZE=$((TOTAL_SIZE + PART_SIZE))
    if [[ ${PART_SIZE} -lt ${MIN_SIZE} ]]; then
     MIN_SIZE=${PART_SIZE}
@@ -663,7 +899,7 @@ function __divide_xml_file() {
    fi
   fi
  done
- 
+
  if [[ ${ACTUAL_PARTS} -gt 0 ]]; then
   AVG_SIZE=$((TOTAL_SIZE / ACTUAL_PARTS))
   local TOTAL_SIZE_MB
@@ -674,7 +910,7 @@ function __divide_xml_file() {
   MAX_SIZE_MB=$((MAX_SIZE / 1024 / 1024))
   local AVG_SIZE_MB
   AVG_SIZE_MB=$((AVG_SIZE / 1024 / 1024))
-  
+
   __logi "Part size statistics: Min=${MIN_SIZE_MB} MB, Max=${MAX_SIZE_MB} MB, Avg=${AVG_SIZE_MB} MB, Total=${TOTAL_SIZE_MB} MB"
  fi
 
@@ -689,6 +925,14 @@ function __divide_xml_file() {
 #   $3: Output directory for CSV files
 #   $4: Maximum number of workers (optional, default: MAX_THREADS)
 #   $5: Number of parts to create (optional, default: MAX_THREADS * 10)
+
+# Process large XML files with intelligent parallel processing
+# Automatically determines optimal number of parts based on file size and performance
+# Parameters:
+#   $1: Input XML file path
+#   $2: XSLT file path
+#   $3: Output directory
+#   $4: Maximum workers (optional, default: MAX_THREADS)
 # Returns: 0 on success, 1 on failure
 function __processLargeXmlFile() {
  __log_start
@@ -696,24 +940,32 @@ function __processLargeXmlFile() {
  local XSLT_FILE="${2}"
  local OUTPUT_DIR="${3}"
  local MAX_WORKERS="${4:-${MAX_THREADS}}"
- local NUM_PARTS="${5:-$((MAX_THREADS * 10))}"
 
- __logi "Processing large XML file with parallel processing"
+ __logi "Processing large XML file with intelligent parallel processing"
  __logd "Input: ${INPUT_XML}"
  __logd "XSLT: ${XSLT_FILE}"
  __logd "Output: ${OUTPUT_DIR}"
  __logd "Max workers: ${MAX_WORKERS}"
- __logd "Parts to create: ${NUM_PARTS}"
+ __logd "Parts calculation: Delegated to __divide_xml_file for optimal performance"
 
- # Create temporary directory for parts
+ # Use TMP_DIR from parent script if available, otherwise create temporary directory
  local PARTS_DIR
- PARTS_DIR=$(mktemp -d)
- __logd "Created temporary parts directory: ${PARTS_DIR}"
+ if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
+  PARTS_DIR="${TMP_DIR}/xml_parts"
+  mkdir -p "${PARTS_DIR}"
+  __logd "Using TMP_DIR from parent script: ${PARTS_DIR}"
+ else
+  PARTS_DIR=$(mktemp -d)
+  __logd "Created temporary parts directory: ${PARTS_DIR}"
+ fi
 
- # Divide XML file into parts
- if ! __divide_xml_file "${INPUT_XML}" "${PARTS_DIR}" "${NUM_PARTS}"; then
+ # Divide XML file into parts - let __divide_xml_file calculate optimal parts
+ if ! __divide_xml_file "${INPUT_XML}" "${PARTS_DIR}"; then
   __loge "ERROR: Failed to divide XML file"
-  rm -rf "${PARTS_DIR}"
+  # Only clean up if we created the directory (not if using TMP_DIR)
+  if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
+   rm -rf "${PARTS_DIR}"
+  fi
   __log_finish
   return 1
  fi
@@ -721,16 +973,23 @@ function __processLargeXmlFile() {
  # Process parts in parallel
  if ! __processXmlPartsParallel "${PARTS_DIR}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "Planet"; then
   __loge "ERROR: Failed to process XML parts in parallel"
-  rm -rf "${PARTS_DIR}"
+  # Only clean up if we created the directory (not if using TMP_DIR)
+  if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
+   rm -rf "${PARTS_DIR}"
+  fi
   __log_finish
   return 1
  fi
 
- # Clean up temporary parts
- rm -rf "${PARTS_DIR}"
- __logd "Cleaned up temporary parts directory"
+ # Clean up temporary parts only if we created the directory
+ if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
+  rm -rf "${PARTS_DIR}"
+  __logd "Cleaned up temporary parts directory"
+ else
+  __logd "Parts directory preserved in TMP_DIR: ${PARTS_DIR}"
+ fi
 
- __logi "Successfully processed large XML file with parallel processing"
+ __logi "Successfully processed large XML file with intelligent parallel processing"
  __log_finish
  return 0
 }
@@ -807,7 +1066,7 @@ function __processXmlPartsParallel() {
  fi
 
  # Adjust workers based on system resources
- MAX_WORKERS=$(__adjust_workers_for_resources "${MAX_WORKERS}")
+ MAX_WORKERS=$(__adjust_workers_for_resources "${MAX_WORKERS}" "XML")
  __logi "Processing ${#XML_FILES[@]} ${PROCESSING_TYPE} XML parts with max ${MAX_WORKERS} workers (adjusted for resources)."
 
  # Process files in parallel with resource management
@@ -922,6 +1181,10 @@ function __processXmlPartsParallel() {
 
  # Final statistics
  __logi "Parallel processing completed: ${PROCESSED} successful, ${FAILED} failed"
+
+ # Consolidate part logs for better traceability
+ __consolidate_part_logs "${OUTPUT_DIR:-${TMP_DIR}}" "${PROCESSING_TYPE:-Unknown}"
+
  if [[ ${FAILED} -gt 0 ]]; then
   __logw "Failed files:"
   for FAILED_FILE in "${FAILED_FILES[@]}"; do
@@ -933,6 +1196,67 @@ function __processXmlPartsParallel() {
 
  __log_finish
  return 0
+}
+
+# Consolidate part logs for better traceability
+# Parameters:
+#   $1: Output directory containing part logs
+#   $2: Processing type (Planet or API)
+# Returns: 0 on success, 1 on failure
+function __consolidate_part_logs() {
+ local OUTPUT_DIR="${1}"
+ local PROCESSING_TYPE="${2}"
+ local CONSOLIDATED_LOG="${OUTPUT_DIR}/consolidated_${PROCESSING_TYPE,,}_processing.log"
+
+ if [[ ! -d "${OUTPUT_DIR}" ]]; then
+  return 1
+ fi
+
+ __logd "Consolidating part logs from ${OUTPUT_DIR} into ${CONSOLIDATED_LOG}"
+
+ # Find all part log files
+ local PART_LOGS
+ if [[ "${PROCESSING_TYPE}" == "Planet" ]]; then
+  mapfile -t PART_LOGS < <(find "${OUTPUT_DIR}" -name "planet_part_*.log" -type f | sort -V 2> /dev/null || true)
+ else
+  mapfile -t PART_LOGS < <(find "${OUTPUT_DIR}" -name "api_part_*.log" -type f | sort -V 2> /dev/null || true)
+ fi
+
+ if [[ ${#PART_LOGS[@]} -eq 0 ]]; then
+  __logw "No part logs found to consolidate"
+  return 0
+ fi
+
+ # Create consolidated log header
+ {
+  echo "=== CONSOLIDATED ${PROCESSING_TYPE^^} PROCESSING LOG ==="
+  echo "Generated: $(date)"
+  echo "Total parts processed: ${#PART_LOGS[@]}"
+  echo "Output directory: ${OUTPUT_DIR}"
+  echo "================================================"
+  echo ""
+ } > "${CONSOLIDATED_LOG}"
+
+ # Append each part log with clear separators
+ for PART_LOG in "${PART_LOGS[@]}"; do
+  local PART_NAME
+  PART_NAME=$(basename "${PART_LOG}" .log)
+
+  {
+   echo ""
+   echo "--- ${PART_NAME} LOG START ---"
+   echo "File: ${PART_LOG}"
+   echo "Size: $(stat -c%s "${PART_LOG}" 2> /dev/null || echo "unknown") bytes"
+   echo "----------------------------------------"
+   cat "${PART_LOG}" 2> /dev/null || echo "ERROR: Could not read part log"
+   echo "----------------------------------------"
+   echo "--- ${PART_NAME} LOG END ---"
+   echo ""
+  } >> "${CONSOLIDATED_LOG}"
+ done
+
+ __logi "Part logs consolidated into: ${CONSOLIDATED_LOG}"
+ __logd "Consolidated log contains ${#PART_LOGS[@]} part logs for ${PROCESSING_TYPE} processing"
 }
 
 # Split XML file for parallel processing (consolidated safe version)
@@ -1060,9 +1384,9 @@ function __splitXmlForParallelSafe() {
 function __splitXmlForParallelAPI() {
  __log_start
  __splitXmlForParallelSafe "${1}" "${2:-}" "${3:-}" "API"
- local return_code=$?
+ local RETURN_CODE=$?
  __log_finish
- return "${return_code}"
+ return "${RETURN_CODE}"
 }
 
 # Wrapper function for Planet format that uses parallel processing
@@ -1073,9 +1397,9 @@ function __splitXmlForParallelAPI() {
 function __splitXmlForParallelPlanet() {
  __log_start
  __splitXmlForParallelSafe "${1}" "${2:-}" "${3:-}" "Planet"
- local return_code=$?
+ local RETURN_CODE=$?
  __log_finish
- return "${return_code}"
+ return "${RETURN_CODE}"
 }
 
 # Process API XML part (consolidated version)
@@ -1086,7 +1410,6 @@ function __splitXmlForParallelPlanet() {
 #   $4: XSLT text comments file (optional, uses global if not provided)
 # Returns: 0 on success, 1 on failure
 function __processApiXmlPart() {
- __log_start
  local XML_PART="${1}"
  local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_API_FILE}}"
  local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
@@ -1094,29 +1417,44 @@ function __processApiXmlPart() {
  local PART_NUM
  local BASENAME_PART
 
- __logi "=== STARTING API XML PART PROCESSING ==="
- __logd "Input XML part: ${XML_PART}"
- __logd "XSLT files:"
- __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
-
- BASENAME_PART=$(basename "${XML_PART}" .xml)
  # Extract part number from api_part_X.xml
+ BASENAME_PART=$(basename "${XML_PART}" .xml)
  if [[ "${BASENAME_PART}" =~ ^api_part_([0-9]+)$ ]]; then
   PART_NUM="${BASH_REMATCH[1]}"
  else
-  __loge "Invalid filename format: '${BASENAME_PART}'. Expected: api_part_X.xml"
-  __log_finish
+  echo "ERROR: Invalid filename format: '${BASENAME_PART}'. Expected: api_part_X.xml" >&2
   return 1
  fi
 
  # Validate part number
  if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
-  __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
-  __log_finish
+  echo "ERROR: Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}" >&2
   return 1
  fi
+
+ # Create part-specific log file
+ local PART_LOG_FILE="${TMP_DIR}/api_part_${PART_NUM}.log"
+ local PART_LOG_DIR
+ PART_LOG_DIR=$(dirname "${PART_LOG_FILE}")
+ mkdir -p "${PART_LOG_DIR}"
+
+ # Configure logging for this specific part
+ if command -v __set_log_file > /dev/null 2>&1; then
+  __set_log_file "${PART_LOG_FILE}"
+ else
+  # Fallback: redirect all output to the part log file
+  exec 1> "${PART_LOG_FILE}" 2>&1
+ fi
+
+ # Start logging for this part
+ __log_start
+ __logi "=== STARTING API XML PART ${PART_NUM} PROCESSING ==="
+ __logd "Input XML part: ${XML_PART}"
+ __logd "XSLT files:"
+ __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
+ __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
+ __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
+ __logd "Part log file: ${PART_LOG_FILE}"
 
  __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
 
@@ -1135,7 +1473,7 @@ function __processApiXmlPart() {
 
  # Process notes
  __logd "Processing notes with robust XSLT processor: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING}"; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
@@ -1143,7 +1481,7 @@ function __processApiXmlPart() {
 
  # Process comments
  __logd "Processing comments with robust XSLT processor: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING}"; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
@@ -1151,7 +1489,7 @@ function __processApiXmlPart() {
 
  # Process text comments
  __logd "Processing text comments with robust XSLT processor: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING}"; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
   __log_finish
   return 1
@@ -1184,7 +1522,6 @@ function __processApiXmlPart() {
 #   $3: Output directory for CSV files
 # Returns: 0 on success, 1 on failure
 function __processPlanetXmlPart() {
- __log_start
  local XML_PART="${1}"
  local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_PLANET_FILE}}"
  local OUTPUT_DIR="${3}"
@@ -1193,29 +1530,44 @@ function __processPlanetXmlPart() {
  local PART_NUM
  local BASENAME_PART
 
- __logi "=== STARTING PLANET XML PART PROCESSING ==="
- __logd "Input XML part: ${XML_PART}"
- __logd "XSLT files:"
- __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
-
- BASENAME_PART=$(basename "${XML_PART}" .xml)
  # Extract part number from planet_part_XXX.xml
+ BASENAME_PART=$(basename "${XML_PART}" .xml)
  if [[ "${BASENAME_PART}" =~ ^planet_part_([0-9]+)$ ]]; then
   PART_NUM="${BASH_REMATCH[1]}"
  else
-  __loge "Invalid filename format: '${BASENAME_PART}'. Expected: planet_part_XXX.xml"
-  __log_finish
+  echo "ERROR: Invalid filename format: '${BASENAME_PART}'. Expected: planet_part_XXX.xml" >&2
   return 1
  fi
 
  # Validate part number
  if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
-  __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
-  __log_finish
+  echo "ERROR: Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}" >&2
   return 1
  fi
+
+ # Create part-specific log file
+ local PART_LOG_FILE="${OUTPUT_DIR}/planet_part_${PART_NUM}.log"
+ local PART_LOG_DIR
+ PART_LOG_DIR=$(dirname "${PART_LOG_FILE}")
+ mkdir -p "${PART_LOG_DIR}"
+
+ # Configure logging for this specific part
+ if command -v __set_log_file > /dev/null 2>&1; then
+  __set_log_file "${PART_LOG_FILE}"
+ else
+  # Fallback: redirect all output to the part log file
+  exec 1> "${PART_LOG_FILE}" 2>&1
+ fi
+
+ # Start logging for this part
+ __log_start
+ __logi "=== STARTING PLANET XML PART ${PART_NUM} PROCESSING ==="
+ __logd "Input XML part: ${XML_PART}"
+ __logd "XSLT files:"
+ __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
+ __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
+ __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
+ __logd "Part log file: ${PART_LOG_FILE}"
 
  __logi "Processing Planet XML part ${PART_NUM}: ${XML_PART}"
 
@@ -1234,7 +1586,7 @@ function __processPlanetXmlPart() {
 
  # Process notes
  __logd "Processing notes with robust XSLT processor: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING:-false}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING:-false}"; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
@@ -1242,7 +1594,7 @@ function __processPlanetXmlPart() {
 
  # Process comments
  __logd "Processing comments with robust XSLT processor: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING:-false}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING:-false}"; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
@@ -1250,7 +1602,7 @@ function __processPlanetXmlPart() {
 
  # Process text comments
  __logd "Processing text comments with robust XSLT processor: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam default-timestamp \"${CURRENT_TIMESTAMP}\"" "" "${ENABLE_XSLT_PROFILING:-false}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING:-false}"; then
   __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_PART}"
   __log_finish
   return 1
@@ -1449,8 +1801,8 @@ function __processXmlIntelligently() {
 
  # Get file size in bytes
  local FILE_SIZE_BYTES
- FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2>/dev/null || echo "0")
- 
+ FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2> /dev/null || echo "0")
+
  if [[ "${FILE_SIZE_BYTES}" -eq "0" ]]; then
   __loge "ERROR: Cannot determine file size or file is empty"
   __log_finish
@@ -1460,32 +1812,16 @@ function __processXmlIntelligently() {
  # Convert to MB for easier comparison
  local FILE_SIZE_MB
  FILE_SIZE_MB=$((FILE_SIZE_BYTES / 1024 / 1024))
- 
+
  __logd "File size: ${FILE_SIZE_MB} MB (${FILE_SIZE_BYTES} bytes)"
 
  # Decision logic: Use enhanced method if file is large (> 100 MB)
  if [[ "${FILE_SIZE_MB}" -gt 100 ]]; then
   __logi "Large file detected (${FILE_SIZE_MB} MB > 100 MB), using enhanced division method"
-  
-  # Calculate optimal number of parts to keep each part ≤ 5 MB
-  local TARGET_PART_SIZE_MB=5
-  local OPTIMAL_PARTS
-  OPTIMAL_PARTS=$((FILE_SIZE_MB / TARGET_PART_SIZE_MB))
-  
-  # Ensure minimum parts for parallel processing
-  if [[ ${OPTIMAL_PARTS} -lt ${MAX_WORKERS} ]]; then
-   OPTIMAL_PARTS=${MAX_WORKERS}
-  fi
-  # Ensure maximum reasonable parts (avoid too many tiny files)
-  if [[ ${OPTIMAL_PARTS} -gt 1000 ]]; then
-   OPTIMAL_PARTS=1000
-   __logw "Limited parts to 1000 to avoid too many tiny files"
-  fi
-  
-  __logd "Calculated optimal parts: ${OPTIMAL_PARTS} (target: ≤${TARGET_PART_SIZE_MB} MB each)"
-  
-  # Use enhanced method with calculated parts
-  if ! __processLargeXmlFile "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${OPTIMAL_PARTS}"; then
+
+  # Delegate part calculation to __divide_xml_file for optimal performance
+  # No need to calculate parts here - let the specialized function handle it
+  if ! __processLargeXmlFile "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}"; then
    __loge "ERROR: Enhanced XML processing failed, falling back to traditional method"
    __logw "Falling back to traditional XML processing method"
    if ! __processXmlWithTraditionalMethod "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
@@ -1496,7 +1832,7 @@ function __processXmlIntelligently() {
   fi
  else
   __logi "Standard file size (${FILE_SIZE_MB} MB ≤ 100 MB), using traditional method"
-  
+
   # Use traditional method
   if ! __processXmlWithTraditionalMethod "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
    __loge "ERROR: Traditional XML processing failed"

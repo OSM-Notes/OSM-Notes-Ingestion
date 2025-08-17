@@ -4,8 +4,8 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-16
-VERSION="2025-08-16"
+# Version: 2025-08-17
+VERSION="2025-08-17"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -80,28 +80,12 @@ fi
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh" ]]; then
  # shellcheck source=../lib/bash_logger.sh
  source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
- # Set log level from environment if not already set
- if [[ -n "${LOG_LEVEL:-}" && -z "${__log_level:-}" ]]; then
-  __set_log_level "${LOG_LEVEL}"
- fi
 else
- # Fallback implementations if bash_logger.sh is not available
- # These are minimal and should not interfere with the main logger
- function __log() { echo "$(date '+%Y-%m-%d %H:%M:%S') - LOG: $*"; }
- function __logt() { echo "$(date '+%Y-%m-%d %H:%M:%S') - TRACE: $*"; }
- function __logd() { echo "$(date '+%Y-%m-%d %H:%M:%S') - DEBUG: $*"; }
- function __logi() { echo "$(date '+%Y-%m-%d %H:%M:%S') - INFO: $*"; }
- function __logw() { echo "$(date '+%Y-%m-%d %H:%M:%S') - WARN: $*"; }
- function __loge() { echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: $*" >&2; }
- function __logf() { echo "$(date '+%Y-%m-%d %H:%M:%S') - FATAL: $*" >&2; }
-
- # Fallback lifecycle helpers for fallback mode only
- if ! declare -f __log_start > /dev/null 2>&1; then
-  function __log_start() { __logi "Starting function"; }
- fi
- if ! declare -f __log_finish > /dev/null 2>&1; then
-  function __log_finish() { __logi "Function completed"; }
- fi
+ # If bash_logger.sh is not available, this is a critical error
+ # We should fail fast rather than provide fallback implementations
+ echo "ERROR: Required logging library not found: ${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh" >&2
+ echo "ERROR: This library is essential for proper operation" >&2
+ exit "${ERROR_LOGGER_UTILITY}"
 fi
 
 # Logger initialization function
@@ -114,7 +98,7 @@ function __start_logger {
  # Set log level from environment if not already set
  if [[ -n "${LOG_LEVEL:-}" ]]; then
   __set_log_level "${LOG_LEVEL}"
-  __logi "Logger level set to: ${LOG_LEVEL}"
+  __logd "Logger level set to: ${LOG_LEVEL}"
  fi
 
  # Set log file if LOG_FILE environment variable is set
@@ -123,7 +107,7 @@ function __start_logger {
   __logi "Logger file set to: ${LOG_FILE}"
  fi
 
- __logi "Logger system initialized successfully"
+ __logd "Logger system initialized successfully"
 }
 
 # Validation function

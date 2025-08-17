@@ -179,9 +179,9 @@ function __splitXmlForParallelSafe() {
  fi
  # Call the consolidated function
  __splitXmlForParallelSafeConsolidated "$@"
- local return_code=$?
+ local RETURN_CODE=$?
  __log_finish
- return "${return_code}"
+ return "${RETURN_CODE}"
 }
 
 # Process XML parts in parallel
