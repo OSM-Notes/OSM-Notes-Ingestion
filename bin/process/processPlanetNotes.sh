@@ -635,7 +635,10 @@ function __processPlanetNotesWithParallel {
  # Export XSLT variables for parallel processing
  export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
  # Process XML parts in parallel using the directory where parts were created
- __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"
+ if ! __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"; then
+  __loge "ERROR: Parallel XML processing failed. Stopping process."
+  exit "${ERROR_DATA_VALIDATION}"
+ fi
  # Consolidate partitions into main tables
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.max_threads = '${MAX_THREADS}';" \
@@ -1229,32 +1232,36 @@ function main() {
  __createFunctionToGetCountry # base & sync
  __createProcedures           # all
 
- # Process areas and geographic data for both base and sync modes
+ # Process geographic data and location notes for both base and sync modes
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __logi "Processing areas and geographic data in base mode..."
+  __logi "Processing geographic data in base mode..."
+  # Process geographic data and location notes first
+  __processGeographicData
+  
+  # Now organize areas after geographic data is loaded
+  __logi "Organizing areas after geographic data is loaded..."
   set +E
   export RET_FUNC=0
   __organizeAreas # base
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __logw "Areas organization failed, but continuing with geographic data processing..."
+   __logw "Areas organization failed, but continuing with process..."
   fi
-  
-  # Process geographic data and location notes
-  __processGeographicData
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
-  __logi "Processing areas and geographic data in sync mode..."
+  __logi "Processing geographic data in sync mode..."
   __dropSyncTables # sync
+  # Process geographic data and location notes first
+  __processGeographicData
+  
+  # Now organize areas after geographic data is loaded
+  __logi "Organizing areas after geographic data is loaded..."
   set +E
   export RET_FUNC=0
   __organizeAreas # sync
   set -E
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __logw "Areas organization failed, but continuing with geographic data processing..."
+   __logw "Areas organization failed, but continuing with process..."
   fi
-  
-  # Process geographic data and location notes
-  __processGeographicData
  fi
  __cleanNotesFiles  # base & sync
  __analyzeAndVacuum # base & sync

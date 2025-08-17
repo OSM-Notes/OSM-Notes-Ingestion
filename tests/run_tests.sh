@@ -100,9 +100,26 @@ run_host_tests() {
   bats tests/unit/bash/*.bats tests/integration/*.bats tests/unit/sql/*.sql
   ;;
  "unit")
+  log_info "Running unit tests..."
+  # Core functionality tests (run first for early failure detection)
+  log_info "Running comprehensive parallel processing test suite..."
+  bats tests/parallel_processing_test_suite.bats
+
+  log_info "Running parallel processing robust tests..."
+  bats tests/unit/bash/parallel_processing_robust.test.bats
+  log_info "Running parallel delay tests..."
+  bats tests/unit/bash/parallel_delay_test.bats
+  # All other unit tests
+  log_info "Running remaining unit tests..."
   bats tests/unit/bash/*.bats
   ;;
  "integration")
+  log_info "Running integration tests..."
+  # Parallel processing integration tests (run first)
+  log_info "Running parallel processing integration tests..."
+  bats tests/integration/processAPINotes_parallel_error_integration.test.bats
+  # All other integration tests
+  log_info "Running remaining integration tests..."
   bats tests/integration/*.bats
   ;;
  "quality")

@@ -4,8 +4,8 @@
 # This file contains functions used across all scripts in the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
-VERSION="2025-08-13"
+# Version: 2025-08-16
+VERSION="2025-08-16"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -147,6 +147,13 @@ function __checkPrereqsCommands {
 
  # Check basic commands
  for CMD in psql xmllint xsltproc curl wget grep; do
+  if ! command -v "${CMD}" > /dev/null 2>&1; then
+   MISSING_COMMANDS+=("${CMD}")
+  fi
+ done
+
+ # Check parallel processing commands
+ for CMD in free uptime ulimit prlimit bc timeout; do
   if ! command -v "${CMD}" > /dev/null 2>&1; then
    MISSING_COMMANDS+=("${CMD}")
   fi
