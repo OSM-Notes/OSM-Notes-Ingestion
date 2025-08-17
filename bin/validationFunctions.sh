@@ -676,6 +676,7 @@ function __validate_xml_dates() {
  __log_start
  local XML_FILE="${1}"
  local XPATH_QUERIES=("${@:2}")
+ local STRICT_MODE="${STRICT_MODE:-false}"  # New parameter for strict validation
 
  # For large files, use lightweight validation
  local FILE_SIZE
@@ -685,7 +686,7 @@ function __validate_xml_dates() {
  # If file is larger than 500MB, use lightweight validation
  if [[ "${SIZE_MB}" -gt 500 ]]; then
   __logw "WARNING: Large XML file detected (${SIZE_MB} MB). Using lightweight date validation."
-  __validate_xml_dates_lightweight "${XML_FILE}" "${XPATH_QUERIES[@]}"
+  __validate_xml_dates_lightweight "${XML_FILE}" "${XPATH_QUERIES[@]}" "${STRICT_MODE}"
   local LIGHTWEIGHT_RESULT=$?
   __log_finish
   return "${LIGHTWEIGHT_RESULT}"
@@ -753,12 +754,22 @@ function __validate_xml_dates() {
       if ! __validate_iso8601_date "${DATE}" "XML date"; then
        __loge "ERROR: Invalid ISO8601 date found in XML: ${DATE}"
        FAILED=1
+       # In strict mode, fail immediately
+       if [[ "${STRICT_MODE}" == "true" ]]; then
+        __log_finish
+        return 1
+       fi
       fi
      # Validate UTC dates (YYYY-MM-DD HH:MM:SS UTC)
      elif [[ "${DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}[[:space:]]UTC$ ]]; then
       if ! __validate_date_format_utc "${DATE}" "XML date"; then
        __loge "ERROR: Invalid UTC date found in XML: ${DATE}"
        FAILED=1
+       # In strict mode, fail immediately
+       if [[ "${STRICT_MODE}" == "true" ]]; then
+        __log_finish
+        return 1
+       fi
       fi
      else
       # Check if this looks like it should be a date but isn't in the expected format
@@ -768,10 +779,36 @@ function __validate_xml_dates() {
        # This looks like it might be a malformed date (contains date-like patterns or letters)
        __loge "ERROR: Malformed date found in XML: ${DATE}"
        FAILED=1
+       # In strict mode, fail immediately
+       if [[ "${STRICT_MODE}" == "true" ]]; then
+        __log_finish
+        return 1
+       fi
       fi
      fi
     done <<< "${EXTRACTED_DATES}"
    fi
+  fi
+
+  # In strict mode, also check for invalid date patterns that might not match the grep pattern
+  if [[ "${STRICT_MODE}" == "true" ]]; then
+   # Look for any attribute that looks like it should be a date but isn't
+   local INVALID_DATE_PATTERNS=(
+     'created_at="[^"]*[a-zA-Z][^"]*"'
+     'closed_at="[^"]*[a-zA-Z][^"]*"'
+     'timestamp="[^"]*[a-zA-Z][^"]*"'
+   )
+   
+   for PATTERN in "${INVALID_DATE_PATTERNS[@]}"; do
+    local INVALID_DATES
+    INVALID_DATES=$(grep -oE "${PATTERN}" "${XML_FILE}" 2> /dev/null || true)
+    
+    if [[ -n "${INVALID_DATES}" ]]; then
+     __loge "ERROR: Invalid date patterns found in strict mode: ${INVALID_DATES}"
+     __log_finish
+     return 1
+    fi
+   done
   fi
  done
 
@@ -793,6 +830,7 @@ function __validate_xml_dates_lightweight() {
  __log_start
  local XML_FILE="${1}"
  local XPATH_QUERIES=("${@:2}")
+ local STRICT_MODE="${3:-false}" # Get STRICT_MODE from __validate_xml_dates
 
  __logd "Using lightweight XML date validation for large file: ${XML_FILE}"
 
@@ -814,6 +852,11 @@ function __validate_xml_dates_lightweight() {
    [[ -z "${DATE}" ]] && continue
    __loge "  - ${DATE}"
    FAILED=1
+   # In strict mode, fail immediately
+   if [[ "${STRICT_MODE}" == "true" ]]; then
+    __log_finish
+    return 1
+   fi
   done <<< "${MALFORMED_DATES}"
  fi
 
@@ -854,10 +897,20 @@ function __validate_xml_dates_lightweight() {
     else
      __logw "WARNING: Invalid date format found in sample: ${DATE}"
      FAILED=1
+     # In strict mode, fail immediately
+     if [[ "${STRICT_MODE}" == "true" ]]; then
+      __log_finish
+      return 1
+     fi
     fi
    else
     __logw "WARNING: Unexpected date format found in sample: ${DATE}"
     FAILED=1
+    # In strict mode, fail immediately
+    if [[ "${STRICT_MODE}" == "true" ]]; then
+     __log_finish
+     return 1
+    fi
    fi
   done <<< "${SAMPLE_DATES}"
 
