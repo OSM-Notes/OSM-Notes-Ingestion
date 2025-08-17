@@ -520,7 +520,7 @@ __divide_xml_file() {
  FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2> /dev/null || echo "0")
  local TOTAL_NOTES
  TOTAL_NOTES=$(grep -c "<note" "${INPUT_XML}" 2> /dev/null || echo "0")
- 
+
  # Ensure TOTAL_NOTES is a valid number
  if [[ ! "${TOTAL_NOTES}" =~ ^[0-9]+$ ]]; then
   TOTAL_NOTES=0
@@ -536,7 +536,7 @@ __divide_xml_file() {
  if [[ ! "${FILE_SIZE_BYTES}" =~ ^[0-9]+$ ]]; then
   FILE_SIZE_BYTES=0
  fi
- 
+
  if [[ "${FILE_SIZE_BYTES}" -eq 0 ]]; then
   __loge "ERROR: Cannot determine file size"
   __log_finish

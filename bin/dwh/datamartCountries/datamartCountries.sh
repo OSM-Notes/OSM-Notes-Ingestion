@@ -31,7 +31,7 @@ set -E
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can define when calling: export CLEAN=false
-declare -r CLEAN="${CLEAN:-true}"
+# CLEAN is now defined in etc/properties.sh, no need to declare it here
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -65,7 +65,9 @@ LOCK="${TMP_DIR}/${BASENAME}.lock"
 readonly LOCK
 
 # Type of process to run in the script.
-declare -r PROCESS_TYPE=${1:-}
+if [[ -z "${PROCESS_TYPE:-}" ]]; then
+ declare -r PROCESS_TYPE=${1:-}
+fi
 
 # Name of the SQL script that contains the objects to create in the DB.
 declare -r CHECK_OBJECTS_FILE="${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_11_checkDatamartCountriesTables.sql"

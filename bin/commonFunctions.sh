@@ -60,7 +60,9 @@ if [[ -z "${FAILED_EXECUTION_FILE:-}" ]]; then
   # Fallback to current script if no calling context
   SCRIPT_NAME=$(basename "${BASH_SOURCE[0]:-unknown_script}" .sh)
  fi
- declare -r FAILED_EXECUTION_FILE="/tmp/${SCRIPT_NAME}_failed_execution"
+ if [[ -z "${FAILED_EXECUTION_FILE:-}" ]]; then
+  declare -r FAILED_EXECUTION_FILE="/tmp/${SCRIPT_NAME}_failed_execution"
+ fi
 fi
 if [[ -z "${PREREQS_CHECKED:-}" ]]; then declare PREREQS_CHECKED=false; fi
 

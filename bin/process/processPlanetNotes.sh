@@ -166,7 +166,7 @@ set -E
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can define when calling: export CLEAN=false
-declare -r CLEAN=${CLEAN:-true}
+# CLEAN is now defined in etc/properties.sh to avoid duplication
 # If the boundary rows are retrieved from backup table.
 declare -r BACKUP_COUNTRIES=${BACKUP_COUNTRIES:-false}
 
@@ -186,26 +186,38 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 # Mask for the files and directories.
 umask 0000
 
-declare BASENAME
-BASENAME=$(basename -s .sh "${0}")
-readonly BASENAME
+# Only set BASENAME if not already defined (e.g., in test environment)
+if [[ -z "${BASENAME:-}" ]]; then
+ declare BASENAME
+ BASENAME=$(basename -s .sh "${0}")
+ readonly BASENAME
+fi
 # Temporal directory for all files.
-declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
-readonly TMP_DIR
-chmod 777 "${TMP_DIR}"
+if [[ -z "${TMP_DIR:-}" ]]; then
+ declare TMP_DIR
+ TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
+ readonly TMP_DIR
+ chmod 777 "${TMP_DIR}"
+fi
+
 # Log file for output.
-declare LOG_FILENAME
-LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILENAME
+if [[ -z "${LOG_FILENAME:-}" ]]; then
+ declare LOG_FILENAME
+ LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+ readonly LOG_FILENAME
+fi
 
 # Lock file for single execution.
-declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
-readonly LOCK
+if [[ -z "${LOCK:-}" ]]; then
+ declare LOCK
+ LOCK="/tmp/${BASENAME}.lock"
+ readonly LOCK
+fi
 
 # Type of process to run in the script.
-declare -r PROCESS_TYPE=${1:-}
+if [[ -z "${PROCESS_TYPE:-}" ]]; then
+ declare -r PROCESS_TYPE=${1:-}
+fi
 
 # Total notes count.
 declare -i TOTAL_NOTES=-1
@@ -224,7 +236,9 @@ export UPDATE_NOTE_LOCATION=false
 export GENERATE_FAILED_FILE=true
 
 # Failed execution file
-declare -r FAILED_EXECUTION_FILE="${TMP_DIR}/failed_execution.log"
+# This variable is now defined in bin/commonFunctions.sh to avoid duplication
+
+# CLEAN is now defined in etc/properties.sh, no need to declare it here
 
 # Files for countries and maritimes processing.
 # (Declared in processPlanetFunctions.sh)

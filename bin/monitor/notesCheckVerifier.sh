@@ -96,7 +96,9 @@ else
 fi
 
 # Type of process to run in the script.
-declare -r PROCESS_TYPE=${1:-}
+if [[ -z "${PROCESS_TYPE:-}" ]]; then
+ declare -r PROCESS_TYPE=${1:-}
+fi
 
 # File that contains the ids or query to get the ids.
 declare -r PROCESS_FILE=${PROCESS_TYPE}

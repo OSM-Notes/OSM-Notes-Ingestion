@@ -45,7 +45,7 @@ set -E
 # If all generated files should be deleted. In case of an error, this could be
 # disabled.
 # You can define when calling: export CLEAN=false
-declare -r CLEAN="${CLEAN:-true}"
+# CLEAN is now defined in etc/properties.sh, no need to declare it here
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -82,7 +82,9 @@ LOCK="/tmp/${BASENAME}.lock"
 readonly LOCK
 
 # Type of process to run in the script.
-declare -r PROCESS_TYPE=${1:-}
+if [[ -z "${PROCESS_TYPE:-}" ]]; then
+ declare -r PROCESS_TYPE=${1:-}
+fi
 
 # Total notes count.
 declare -i TOTAL_NOTES=-1

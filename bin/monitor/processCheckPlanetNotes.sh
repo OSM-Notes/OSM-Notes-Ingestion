@@ -52,10 +52,13 @@ set -E
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Base directory for the project.
-declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
- &> /dev/null && pwd)"
-readonly SCRIPT_BASE_DIRECTORY
+# Only set SCRIPT_BASE_DIRECTORY if not already defined (e.g., in test environment)
+if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+ declare SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+  &> /dev/null && pwd)"
+ readonly SCRIPT_BASE_DIRECTORY
+fi
 
 # Loads the global properties.
 # shellcheck disable=SC1091
@@ -86,7 +89,9 @@ LOCK="/tmp/${BASENAME}.lock"
 readonly LOCK
 
 # Type of process to run in the script.
-declare -r PROCESS_TYPE=${1:-}
+if [[ -z "${PROCESS_TYPE:-}" ]]; then
+ declare -r PROCESS_TYPE=${1:-}
+fi
 
 # Planet notes file configuration.
 # (Declared in processPlanetFunctions.sh)

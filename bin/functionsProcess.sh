@@ -92,49 +92,6 @@ declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}
 declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
 declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
 
-# Additional PostgreSQL script files (only if not already defined)
-if [[ -z "${POSTGRES_31_LOAD_API_NOTES:-}" ]]; then
- declare -r POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
-fi
-
-if [[ -z "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES:-}" ]]; then
- declare -r POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
-fi
-
-# XSLT and Schema files (only if not already defined)
-if [[ -z "${XSLT_NOTES_PLANET_FILE:-}" ]]; then
- declare -r XSLT_NOTES_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
-fi
-
-if [[ -z "${XSLT_NOTE_COMMENTS_PLANET_FILE:-}" ]]; then
- declare -r XSLT_NOTE_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
-fi
-
-if [[ -z "${XSLT_TEXT_COMMENTS_PLANET_FILE:-}" ]]; then
- declare -r XSLT_TEXT_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
-fi
-
-if [[ -z "${XMLSCHEMA_PLANET_NOTES:-}" ]]; then
- declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
-fi
-
-if [[ -z "${JSON_SCHEMA_OVERPASS:-}" ]]; then
- declare -r JSON_SCHEMA_OVERPASS="${SCRIPT_BASE_DIRECTORY}/json/osm-jsonschema.json"
-fi
-
-if [[ -z "${JSON_SCHEMA_GEOJSON:-}" ]]; then
- declare -r JSON_SCHEMA_GEOJSON="${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"
-fi
-
-# Planet and Overpass configuration (only if not already defined)
-if [[ -z "${PLANET_NOTES_FILE:-}" ]]; then
- declare -r PLANET_NOTES_FILE="${TMP_DIR}/OSM-notes-planet.xml"
-fi
-
-if [[ -z "${PLANET_NOTES_NAME:-}" ]]; then
- declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
-fi
-
 if [[ -z "${COUNTRIES_BOUNDARY_IDS_FILE:-}" ]]; then
  declare -r COUNTRIES_BOUNDARY_IDS_FILE="${TMP_DIR}/countries_boundary_ids.csv"
 fi
@@ -144,12 +101,14 @@ if [[ -z "${MARITIME_BOUNDARY_IDS_FILE:-}" ]]; then
 fi
 
 # Configuration variables (if not already defined)
-if [[ -z "${MAX_NOTES:-}" ]]; then
- # shellcheck disable=SC2034
- declare -r MAX_NOTES="10000"
-elif [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
+# MAX_NOTES is now defined in etc/properties.sh, no need to declare it here
+# Just validate if it's set (only if it's defined)
+if [[ -n "${MAX_NOTES:-}" ]] && [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
  __loge "ERROR: MAX_NOTES must be a positive integer, got: ${MAX_NOTES}"
- exit 1
+ # Don't exit in test environment, just log the error
+ if [[ -z "${BATS_TEST_NAME:-}" ]]; then
+  exit 1
+ fi
 fi
 
 if [[ -z "${GENERATE_FAILED_FILE:-}" ]]; then
