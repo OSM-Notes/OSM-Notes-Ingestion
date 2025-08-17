@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+<note id="1" lat="1.0" lon="1.0">
+  <comment><![CDATA[Test note 1]]></comment>
+</note>
+<note id="2" lat="2.0" lon="2.0">
+  <comment><![CDATA[Test note 2]]></comment>
+</note>
+</osm-notes>
