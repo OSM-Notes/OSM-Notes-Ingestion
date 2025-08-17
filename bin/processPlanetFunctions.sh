@@ -43,6 +43,12 @@ if [[ -z "${PLANET_NOTES_FILE:-}" ]]; then
  declare -r PLANET_NOTES_FILE="${TMP_DIR}/OSM-notes-planet.xml"
 fi
 
+# Planet notes filename for download (without extension)
+# shellcheck disable=SC2034
+if [[ -z "${PLANET_NOTES_NAME:-}" ]]; then
+ declare -r PLANET_NOTES_NAME="planet-notes-latest.osn"
+fi
+
 if [[ -z "${COUNTRIES_FILE:-}" ]]; then
  declare -r COUNTRIES_FILE="${TMP_DIR}/countries"
 fi
