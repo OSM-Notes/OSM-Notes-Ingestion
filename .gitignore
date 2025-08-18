@@ -25,8 +25,22 @@ kcov/
 *.temp
 tests/tmp/
 
+# Parallel processing temporary files
+tests/**/parallel_parts/
+tests/**/parallel_sim/
+tests/**/workflow/
+tests/**/parts/
+tests/**/processed/
+
 # Generated CSV files from tests (only actual files, keep expected files)
 *-actual.csv
+
+# Generated mock files from tests
+tests/**/mock_*.csv
+tests/**/mock_*.xml
+tests/**/mock_*.txt
+tests/**/mock_*.log
+tests/**/mock_workflow_report.txt
 
 # Log files
 *.log
@@ -39,4 +53,29 @@ tests/tmp/
 *.bak
 *.backup
 
+# XML recovery and backup files
+tests/**/*.corrupted.*
+tests/**/*.recovery
+tests/**/corrupted_xml_backup/
+tests/**/backup/
+
 prod/
+
+# =====================================================
+# Test Artifacts and Generated Files
+# =====================================================
+# The following patterns ensure that test output files,
+# generated mock data, and temporary processing files
+# are not committed to the repository while preserving
+# the actual test fixtures and source code.
+#
+# Test fixtures (KEEP):
+# - tests/fixtures/xml/mockPlanetDump.osn.xml
+# - tests/fixtures/sample_data.sql
+# - tests/fixtures/special_cases/*.xml
+#
+# Generated files (IGNORE):
+# - tests/output/mock_*.csv
+# - tests/output/parallel_parts/
+# - tests/output/workflow/
+# - Any file with .corrupted.* or .recovery suffix
