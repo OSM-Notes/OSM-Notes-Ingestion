@@ -342,26 +342,12 @@ function __process_xml_with_xslt_robust() {
   return 1
  fi
 
- # Lightweight XML validation using grep instead of xmllint
- __logd "Performing lightweight XML validation before XSLT processing..."
+ # Enhanced XML validation with corruption detection and recovery
+ __logd "Performing enhanced XML validation before XSLT processing..."
 
- # Check if XML file contains expected content
- if ! grep -q "<note" "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: XML file does not contain expected note elements: ${XML_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XSLT file contains expected content
- if ! grep -q "xsl:stylesheet" "${XSLT_FILE}" 2> /dev/null; then
-  __loge "ERROR: XSLT file does not contain expected stylesheet elements: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XML file is not empty
- if [[ ! -s "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file is empty: ${XML_FILE}"
+ # Validate XML file integrity with recovery attempts
+ if ! __validate_xml_integrity "${XML_FILE}" "true"; then
+  __loge "ERROR: XML file validation failed and recovery attempts unsuccessful: ${XML_FILE}"
   __log_finish
   return 1
  fi
@@ -369,15 +355,6 @@ function __process_xml_with_xslt_robust() {
  # Check if XSLT file is not empty
  if [[ ! -s "${XSLT_FILE}" ]]; then
   __loge "ERROR: XSLT file is empty: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XML file has minimum size (at least 100 bytes)
- local XML_SIZE
- XML_SIZE=$(stat -c%s "${XML_FILE}" 2> /dev/null || stat -f%z "${XML_FILE}" 2>&1 || echo "0")
- if [[ "${XML_SIZE}" -lt 100 ]]; then
-  __loge "ERROR: XML file is too small (${XML_SIZE} bytes), expected at least 100 bytes: ${XML_FILE}"
   __log_finish
   return 1
  fi
@@ -391,23 +368,9 @@ function __process_xml_with_xslt_robust() {
   return 1
  fi
 
- # Check if XML file has correct format (contains XML declaration and root element)
- if ! head -n 5 "${XML_FILE}" | grep -q "<?xml" 2> /dev/null; then
-  __loge "ERROR: XML file does not contain XML declaration: ${XML_FILE}"
-  __log_finish
-  return 1
- fi
-
  # Check if XSLT file has correct format (contains stylesheet declaration)
  if ! grep -q "xsl:stylesheet" "${XSLT_FILE}" 2> /dev/null; then
-  __loge "ERROR: XSLT file does not contain stylesheet declaration: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XML file contains expected root element
- if ! grep -q "<osm-notes\|<osm" "${XML_FILE}" 2> /dev/null; then
-  __loge "ERROR: XML file does not contain expected root element (<osm-notes> or <osm>): ${XML_FILE}"
+  __loge "ERROR: XSLT file does not contain expected stylesheet elements: ${XSLT_FILE}"
   __log_finish
   return 1
  fi
@@ -433,16 +396,11 @@ function __process_xml_with_xslt_robust() {
   return 1
  fi
 
- # Check if XML file contains at least one note element
+ # Get note count for logging
  local NOTE_COUNT
  NOTE_COUNT=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
- if [[ "${NOTE_COUNT}" -eq 0 ]]; then
-  __loge "ERROR: XML file does not contain any note elements: ${XML_FILE}"
-  __log_finish
-  return 1
- fi
 
- __logd "File validation passed: XML='${XML_FILE}', XSLT='${XSLT_FILE}' (${NOTE_COUNT} notes found)"
+ __logd "Enhanced file validation passed: XML='${XML_FILE}', XSLT='${XSLT_FILE}' (${NOTE_COUNT} notes found)"
 
  # Create output directory if it doesn't exist
  local OUTPUT_DIR
@@ -2931,6 +2889,246 @@ function __divide_xml_file_binary() {
   __logi "Part size statistics: Min=${MIN_SIZE_MB} MB, Max=${MAX_SIZE_MB} MB, Avg=${AVG_SIZE_MB} MB, Total=${TOTAL_SIZE_MB} MB"
  fi
 
+ __log_finish
+ return 0
+}
+
+# Function to handle corrupted XML files and attempt recovery
+# Author: Andres Gomez
+# Version: 2025-08-18
+# Parameters:
+#   $1: XML file path
+#   $2: Backup directory for corrupted files
+# Returns: 0 on successful recovery, 1 on failure
+function __handle_corrupted_xml_file() {
+ __log_start
+ __logd "Function called with $# parameters: '$1' '$2'"
+ 
+ local XML_FILE="${1}"
+ local BACKUP_DIR="${2:-/tmp/corrupted_xml_backup}"
+ local XML_FILENAME
+ XML_FILENAME=$(basename "${XML_FILE}")
+ local BACKUP_FILE
+ BACKUP_FILE="${BACKUP_DIR}/${XML_FILENAME}.corrupted.$(date +%Y%m%d_%H%M%S)"
+ 
+ __logd "Handling corrupted XML file: ${XML_FILE}"
+ 
+ # Create backup directory if it doesn't exist
+ mkdir -p "${BACKUP_DIR}"
+ 
+ # Backup the corrupted file
+ if cp "${XML_FILE}" "${BACKUP_FILE}"; then
+  __logw "Corrupted XML file backed up to: ${BACKUP_FILE}"
+ else
+  __loge "Failed to backup corrupted XML file: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Attempt to identify the type of corruption
+ __logd "Analyzing corruption type..."
+ 
+ local CORRUPTION_TYPE="unknown"
+ local CORRUPTION_DETAILS=""
+ 
+ # Check for common corruption patterns
+ if grep -q "Extra content at the end of the document" "${XML_FILE}" 2>/dev/null; then
+  CORRUPTION_TYPE="extra_content"
+  CORRUPTION_DETAILS="Extra content after closing tags detected"
+ elif grep -q "unable to parse" "${XML_FILE}" 2>/dev/null; then
+  CORRUPTION_TYPE="parse_error"
+  CORRUPTION_DETAILS="General parsing error detected"
+ elif grep -q "parser error" "${XML_FILE}" 2>/dev/null; then
+  CORRUPTION_TYPE="parser_error"
+  CORRUPTION_DETAILS="XML parser error detected"
+ elif ! grep -q "</osm-notes\|</osm" "${XML_FILE}" 2>/dev/null; then
+  CORRUPTION_TYPE="missing_closing_tag"
+  CORRUPTION_DETAILS="Missing closing tag for root element"
+ elif ! grep -q "<?xml" "${XML_FILE}" 2>/dev/null; then
+  CORRUPTION_TYPE="missing_xml_declaration"
+  CORRUPTION_DETAILS="Missing XML declaration"
+ fi
+ 
+ __logw "Corruption type identified: ${CORRUPTION_TYPE} - ${CORRUPTION_DETAILS}"
+ 
+ # Attempt recovery based on corruption type
+ case "${CORRUPTION_TYPE}" in
+  "extra_content")
+   __logd "Attempting to recover from extra content corruption..."
+   # Try to find the last valid closing tag and truncate
+   local LAST_VALID_LINE
+   LAST_VALID_LINE=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" | tail -1 | cut -d: -f1)
+   if [[ -n "${LAST_VALID_LINE}" ]]; then
+    local TEMP_RECOVERY_FILE
+    TEMP_RECOVERY_FILE="${XML_FILE}.recovery"
+    if head -n "${LAST_VALID_LINE}" "${XML_FILE}" > "${TEMP_RECOVERY_FILE}" 2>/dev/null; then
+     if mv "${TEMP_RECOVERY_FILE}" "${XML_FILE}"; then
+      __logi "Successfully recovered XML file by truncating at line ${LAST_VALID_LINE}"
+      __log_finish
+      return 0
+     fi
+    fi
+    rm -f "${TEMP_RECOVERY_FILE}"
+   fi
+   ;;
+   
+  "missing_closing_tag")
+   __logd "Attempting to recover from missing closing tag..."
+   # Try to add missing closing tag
+   local ROOT_ELEMENT
+   ROOT_ELEMENT=$(grep -o "<osm-notes\|<osm" "${XML_FILE}" | head -1)
+   if [[ -n "${ROOT_ELEMENT}" ]]; then
+    local CLOSING_TAG
+    CLOSING_TAG="${ROOT_ELEMENT#<}</${ROOT_ELEMENT#<}"
+    if echo "${CLOSING_TAG}" >> "${XML_FILE}" 2>/dev/null; then
+     __logi "Successfully recovered XML file by adding missing closing tag: ${CLOSING_TAG}"
+     __log_finish
+     return 0
+    fi
+   fi
+   ;;
+   
+  "missing_xml_declaration")
+   __logd "Attempting to recover from missing XML declaration..."
+   # Try to add XML declaration at the beginning
+   local TEMP_RECOVERY_FILE
+   TEMP_RECOVERY_FILE="${XML_FILE}.recovery"
+   if (echo '<?xml version="1.0" encoding="UTF-8"?>' && cat "${XML_FILE}") > "${TEMP_RECOVERY_FILE}" 2>/dev/null; then
+    if mv "${TEMP_RECOVERY_FILE}" "${XML_FILE}"; then
+     __logi "Successfully recovered XML file by adding XML declaration"
+     __log_finish
+     return 0
+    fi
+   fi
+   rm -f "${TEMP_RECOVERY_FILE}"
+   ;;
+   
+  *)
+   __logw "No automatic recovery strategy available for corruption type: ${CORRUPTION_TYPE}"
+   ;;
+ esac
+ 
+ # If recovery failed, log the failure and return error
+ __loge "Failed to recover corrupted XML file: ${XML_FILE}"
+ __loge "Corruption type: ${CORRUPTION_TYPE}"
+ __loge "Corruption details: ${CORRUPTION_DETAILS}"
+ __loge "File backed up to: ${BACKUP_FILE}"
+ 
+ __log_finish
+ return 1
+}
+
+# Function to validate XML file integrity and attempt recovery if needed
+# Author: Andres Gomez
+# Version: 2025-08-18
+# Parameters:
+#   $1: XML file path
+#   $2: Enable recovery attempts (default: true)
+# Returns: 0 on success, 1 on failure
+function __validate_xml_integrity() {
+ __log_start
+ __logd "Function called with $# parameters: '$1' '$2'"
+ 
+ local XML_FILE="${1}"
+ local ENABLE_RECOVERY="${2:-true}"
+ 
+ __logd "Validating XML file integrity: ${XML_FILE}"
+ 
+ # Check if file exists
+ if [[ ! -f "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file not found: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Basic file checks
+ if [[ ! -s "${XML_FILE}" ]]; then
+  __loge "ERROR: XML file is empty: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Check for XML declaration
+ if ! head -n 5 "${XML_FILE}" | grep -q "<?xml" 2>/dev/null; then
+  __logw "WARNING: XML file missing declaration: ${XML_FILE}"
+  if [[ "${ENABLE_RECOVERY}" == "true" ]]; then
+   __logd "Attempting to recover missing XML declaration..."
+   if __handle_corrupted_xml_file "${XML_FILE}"; then
+    __logd "XML declaration recovery successful"
+   else
+    __loge "XML declaration recovery failed"
+    __log_finish
+    return 1
+   fi
+  else
+   __log_finish
+   return 1
+  fi
+ fi
+ 
+ # Check for root element
+ if ! grep -q "<osm-notes\|<osm" "${XML_FILE}" 2>/dev/null; then
+  __loge "ERROR: XML file missing root element: ${XML_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Check for proper closing tags
+ local OPEN_TAGS CLOSE_TAGS
+ OPEN_TAGS=$(grep -c "<osm-notes\|<osm" "${XML_FILE}" 2>/dev/null || echo "0")
+ CLOSE_TAGS=$(grep -c "</osm-notes\|</osm" "${XML_FILE}" 2>/dev/null || echo "0")
+ 
+ if [[ "${OPEN_TAGS}" -ne "${CLOSE_TAGS}" ]]; then
+  __logw "WARNING: XML structure imbalance detected: ${OPEN_TAGS} open, ${CLOSE_TAGS} close"
+  if [[ "${ENABLE_RECOVERY}" == "true" ]]; then
+   __logd "Attempting to recover from structure imbalance..."
+   if __handle_corrupted_xml_file "${XML_FILE}"; then
+    __logd "Structure recovery successful"
+   else
+    __loge "Structure recovery failed"
+    __log_finish
+    return 1
+   fi
+  else
+   __log_finish
+    return 1
+  fi
+ fi
+ 
+ # Final validation with xmllint if available
+ if command -v xmllint >/dev/null 2>&1; then
+  __logd "Performing final XML validation with xmllint..."
+  if ! xmllint --noout "${XML_FILE}" 2>/dev/null; then
+   __loge "ERROR: XML file failed final validation: ${XML_FILE}"
+   if [[ "${ENABLE_RECOVERY}" == "true" ]]; then
+    __logd "Attempting final recovery..."
+    if __handle_corrupted_xml_file "${XML_FILE}"; then
+     # Re-validate after recovery
+     if xmllint --noout "${XML_FILE}" 2>/dev/null; then
+      __logi "XML file successfully recovered and validated"
+      __log_finish
+      return 0
+     else
+      __loge "XML file still invalid after recovery attempts"
+      __log_finish
+      return 1
+     fi
+    else
+     __loge "Final recovery attempt failed"
+     __log_finish
+     return 1
+    fi
+   else
+    __log_finish
+    return 1
+   fi
+  fi
+  __logd "XML validation passed"
+ else
+  __logd "xmllint not available, skipping final validation"
+ fi
+ 
+ __logd "XML file integrity validation completed successfully"
  __log_finish
  return 0
 }
