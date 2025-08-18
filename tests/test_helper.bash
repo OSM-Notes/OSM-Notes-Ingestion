@@ -744,3 +744,13 @@ count_rows() {
   fi
  fi
 }
+
+# Helper function to assert directory exists
+assert_dir_exists() {
+  local dir_path="$1"
+  if [[ ! -d "${dir_path}" ]]; then
+    echo "Directory does not exist: ${dir_path}" >&2
+    return 1
+  fi
+  return 0
+}

@@ -175,7 +175,7 @@ teardown() {
  
  # Transform with real xsltproc if XSLT file exists
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" ]]; then
-   run xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${TMP_DIR}/planet_notes.xml"
+   run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${TMP_DIR}/planet_notes.xml"
    [ "$status" -eq 0 ]
    [[ "$output" == *","* ]]  # Should contain CSV format
  fi
@@ -238,7 +238,7 @@ teardown() {
  
  # Transform to CSV if XSLT is available
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" ]]; then
-   run xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
+   run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
    [ "$status" -eq 0 ]
    [ -f "${TMP_DIR}/notes.csv" ]
    

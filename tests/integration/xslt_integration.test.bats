@@ -121,7 +121,7 @@ EOF
  local notes_xslt="${XSLT_DIR}/notes-Planet-csv.xslt"
  local notes_output="${TEST_OUTPUT_DIR}/notes_planet.csv"
  
- xsltproc "${notes_xslt}" "${BATS_TEST_TMPDIR}/planet_notes.xml" > "${notes_output}"
+ xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${notes_xslt}" "${BATS_TEST_TMPDIR}/planet_notes.xml" > "${notes_output}"
  [ "$?" -eq 0 ]
  [ -f "${notes_output}" ]
 
@@ -129,7 +129,7 @@ EOF
  local comments_xslt="${XSLT_DIR}/note_comments-Planet-csv.xslt"
  local comments_output="${TEST_OUTPUT_DIR}/comments_planet.csv"
  
- xsltproc "${comments_xslt}" "${BATS_TEST_TMPDIR}/planet_notes.xml" > "${comments_output}"
+ xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${comments_xslt}" "${BATS_TEST_TMPDIR}/planet_notes.xml" > "${comments_output}"
  [ "$?" -eq 0 ]
  [ -f "${comments_output}" ]
 
@@ -137,7 +137,7 @@ EOF
  local text_xslt="${XSLT_DIR}/note_comments_text-Planet-csv.xslt"
  local text_output="${TEST_OUTPUT_DIR}/text_planet.csv"
  
- xsltproc "${text_xslt}" "${BATS_TEST_TMPDIR}/planet_notes.xml" > "${text_output}"
+ xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${text_xslt}" "${BATS_TEST_TMPDIR}/planet_notes.xml" > "${text_output}"
  [ "$?" -eq 0 ]
  [ -f "${text_output}" ]
 
