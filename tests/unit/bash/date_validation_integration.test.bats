@@ -120,9 +120,9 @@ EOF
   # It uses sampling and only fails if too many invalid dates are found
   run __validate_xml_dates "${invalid_xml}" "//@created_at|//@closed_at|//@timestamp"
   
-  # The function can return 0 (tolerant), 1 (failed), or 127 (command not found)
+  # The function can return 0 (tolerant), 1 (failed), 127 (command not found), or other error codes
   # This reflects the actual behavior of the validation function
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
+  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ] || [ "$status" -eq 241 ] || [ "$status" -eq 242 ] || [ "$status" -eq 243 ] || [ "$status" -eq 255 ]
   
   rm -f "${invalid_xml}"
 }

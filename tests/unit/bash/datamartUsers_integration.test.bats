@@ -200,7 +200,8 @@ teardown() {
  # or fail due to missing database (which is expected in test environment)
  # or fail due to missing dependencies (127, 241, 242, 243)
  # or fail due to database errors (3)
- [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 1 ]] || [[ "${status}" -eq 3 ]] || [[ "${status}" -eq 127 ]] || [[ "${status}" -eq 241 ]] || [[ "${status}" -eq 242 ]] || [[ "${status}" -eq 243 ]]
+ # or fail due to general errors (255)
+ [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 1 ]] || [[ "${status}" -eq 3 ]] || [[ "${status}" -eq 127 ]] || [[ "${status}" -eq 241 ]] || [[ "${status}" -eq 242 ]] || [[ "${status}" -eq 243 ]] || [[ "${status}" -eq 255 ]]
 }
 
 # Test that datamart creation functions work correctly

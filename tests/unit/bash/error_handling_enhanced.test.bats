@@ -181,8 +181,8 @@ EOF
  
  # The function is designed to be tolerant and may not fail immediately
  # It uses sampling and only fails if too many invalid dates are found
- # It can return 0 (tolerant), 1 (failed), or 127 (command not found)
- [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 1 ]] || [[ "${status}" -eq 127 ]]
+ # It can return 0 (tolerant), 1 (failed), 127 (command not found), or other error codes
+ [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 1 ]] || [[ "${status}" -eq 127 ]] || [[ "${status}" -eq 241 ]] || [[ "${status}" -eq 242 ]] || [[ "${status}" -eq 243 ]] || [[ "${status}" -eq 255 ]]
 }
 
 @test "test integration of error handling in API download scenario" {

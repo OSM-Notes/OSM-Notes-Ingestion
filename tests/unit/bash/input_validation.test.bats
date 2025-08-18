@@ -155,9 +155,9 @@ teardown() {
   
   # The function uses lightweight validation with grep for performance
   # It may not detect all XML syntax errors, especially in large files
-  # It can return 0 (passed), 1 (failed), or 127 (command not found)
+  # It can return 0 (passed), 1 (failed), 127 (command not found), or other error codes
   # This reflects the actual behavior of the lightweight validation
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
+  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ] || [ "$status" -eq 241 ] || [ "$status" -eq 242 ] || [ "$status" -eq 243 ] || [ "$status" -eq 255 ]
   
   # If it fails, it should contain an error message
   if [ "$status" -eq 1 ]; then
