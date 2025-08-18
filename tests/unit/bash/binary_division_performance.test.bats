@@ -72,26 +72,50 @@ EOF
 
 # Source binary functions
 source_bin_functions() {
-  # Source common functions
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  local project_root
-  project_root="$(cd "${script_dir}/../.." && pwd)"
+  # Source common functions using PROJECT_ROOT from test environment
+  if [[ -z "${PROJECT_ROOT:-}" ]]; then
+    # Fallback: try to determine project root from current working directory
+    local current_dir
+    current_dir="$(pwd)"
+    if [[ "${current_dir}" == */OSM-Notes-profile ]]; then
+      export PROJECT_ROOT="${current_dir}"
+    elif [[ "${current_dir}" == */OSM-Notes-profile/* ]]; then
+      export PROJECT_ROOT="${current_dir%/*}"
+    else
+      echo "ERROR: Cannot determine PROJECT_ROOT" >&2
+      return 1
+    fi
+  fi
   
-  source "${project_root}/bin/commonFunctions.sh"
-  source "${project_root}/bin/parallelProcessingFunctions.sh"
+  echo "Using PROJECT_ROOT: ${PROJECT_ROOT}" >&2
+  
+  if [[ -f "${PROJECT_ROOT}/bin/commonFunctions.sh" ]]; then
+    source "${PROJECT_ROOT}/bin/commonFunctions.sh"
+  else
+    echo "ERROR: commonFunctions.sh not found at ${PROJECT_ROOT}/bin/commonFunctions.sh" >&2
+    return 1
+  fi
+  
+  if [[ -f "${PROJECT_ROOT}/bin/parallelProcessingFunctions.sh" ]]; then
+    source "${PROJECT_ROOT}/bin/parallelProcessingFunctions.sh"
+  else
+    echo "ERROR: parallelProcessingFunctions.sh not found at ${PROJECT_ROOT}/bin/parallelProcessingFunctions.sh" >&2
+    return 1
+  fi
 }
 
 # Test binary division function exists
 @test "binary division function exists" {
   # Check if binary division function is available
-  assert function_exists __divide_xml_file_binary
+  function_exists __divide_xml_file_binary
+  [ $? -eq 0 ]
 }
 
 # Test traditional division function exists
 @test "traditional division function exists" {
   # Check if traditional division function is available
-  assert function_exists __divide_xml_file
+  function_exists __divide_xml_file
+  [ $? -eq 0 ]
 }
 
 # Test binary division with small file
@@ -103,7 +127,7 @@ source_bin_functions() {
   run __divide_xml_file_binary "${input_file}" "${output_dir}" 10 5 2
   
   # Check success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Check output directory exists
   assert_dir_exists "${output_dir}"
@@ -123,7 +147,7 @@ source_bin_functions() {
   run __divide_xml_file "${input_file}" "${output_dir}" 10 5 2
   
   # Check success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Check output directory exists
   assert_dir_exists "${output_dir}"
@@ -143,7 +167,7 @@ source_bin_functions() {
   run __divide_xml_file_binary "${input_file}" "${output_dir}" 50 10 4
   
   # Check success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Check output directory exists
   assert_dir_exists "${output_dir}"
@@ -163,7 +187,7 @@ source_bin_functions() {
   run __divide_xml_file "${input_file}" "${output_dir}" 50 10 4
   
   # Check success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Check output directory exists
   assert_dir_exists "${output_dir}"
@@ -183,7 +207,7 @@ source_bin_functions() {
   run __divide_xml_file_binary "${input_file}" "${output_dir}" 100 20 8
   
   # Check success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Check output directory exists
   assert_dir_exists "${output_dir}"
@@ -203,7 +227,7 @@ source_bin_functions() {
   run __divide_xml_file "${input_file}" "${output_dir}" 100 20 8
   
   # Check success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Check output directory exists
   assert_dir_exists "${output_dir}"
@@ -230,7 +254,7 @@ source_bin_functions() {
   binary_time=$((binary_end - binary_start))
   
   # Check binary division success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Test traditional division performance
   local traditional_start
@@ -242,7 +266,7 @@ source_bin_functions() {
   traditional_time=$((traditional_end - traditional_start))
   
   # Check traditional division success
-  assert_success
+  [ "$status" -eq 0 ]
   
   # Log performance results
   echo "Binary division time: ${binary_time}s"
@@ -262,7 +286,7 @@ source_bin_functions() {
   run __divide_xml_file_binary "${invalid_file}" "${output_dir}" 100 50 4
   
   # Should fail
-  assert_failure
+  [ "$status" -ne 0 ]
 }
 
 # Test error handling with invalid output directory
@@ -274,7 +298,7 @@ source_bin_functions() {
   run __divide_xml_file_binary "${input_file}" "${invalid_dir}" 100 50 4
   
   # Should fail
-  assert_failure
+  [ "$status" -ne 0 ]
 }
 
 # Test edge case with empty file
@@ -310,7 +334,7 @@ EOF
     run __divide_xml_file_binary "${input_file}" "${output_dir}_${threads}" 50 10 "${threads}"
     
     # Check success
-    assert_success
+    [ "$status" -eq 0 ]
     
     # Check output directory exists
     assert_dir_exists "${output_dir}_${threads}"
