@@ -4,6 +4,13 @@ test/xslt/test_output/
 test/command/extra/mockPlanetDump.osn.bz2*
 .vscode/
 
+# Test output directories
+tests/output/
+tests/results/
+tests/tmp/
+tests/docker/test_output/
+tests/docker/logs/
+
 # Coverage reports
 coverage/
 advanced_reports/
