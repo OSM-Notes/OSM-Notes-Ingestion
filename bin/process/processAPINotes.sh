@@ -514,7 +514,7 @@ function __processApiXmlSequential {
 
  # Process notes
  __logd "Processing notes with xsltproc: ${XSLT_NOTES_API_FILE} -> ${OUTPUT_NOTES_FILE}"
- xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" "${XML_FILE}"
+ xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" "${XML_FILE}"
  if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
   __log_finish
@@ -523,7 +523,7 @@ function __processApiXmlSequential {
 
  # Process comments
  __logd "Processing comments with xsltproc: ${XSLT_NOTE_COMMENTS_API_FILE} -> ${OUTPUT_COMMENTS_FILE}"
- xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_FILE}"
+ xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_FILE}"
  if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
   __log_finish
@@ -532,11 +532,10 @@ function __processApiXmlSequential {
 
  # Process text comments
  __logd "Processing text comments with xsltproc: ${XSLT_TEXT_COMMENTS_API_FILE} -> ${OUTPUT_TEXT_FILE}"
- xsltproc --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_FILE}"
+ xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_FILE}"
  if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
-  __loge "Text comments CSV file was not created: ${OUTPUT_TEXT_FILE}"
-  __log_finish
-  return 1
+  __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_FILE}"
+  : > "${OUTPUT_TEXT_FILE}"
  fi
 
  # Debug: Show generated CSV files and their sizes

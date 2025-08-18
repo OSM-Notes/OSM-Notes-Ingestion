@@ -120,7 +120,7 @@ function __processXmlWithXsltAPI() {
  mkdir -p "$(dirname "${OUTPUT_FILE}")"
 
  # Process XML with XSLT
- if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
+ if xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
   __logi "XSLT processing completed successfully."
   __log_finish
   return 0

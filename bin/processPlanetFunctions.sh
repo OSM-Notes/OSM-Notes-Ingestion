@@ -251,7 +251,7 @@ function __processPlanetXmlPart() {
 
  # Process XML with XSLT
  __logd "Processing XML with XSLT: ${XML_FILE} -> ${OUTPUT_FILE}"
- if xsltproc "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
+ if xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
   __logi "Successfully processed Planet XML part: ${XML_FILE}"
   __log_finish
   return 0
