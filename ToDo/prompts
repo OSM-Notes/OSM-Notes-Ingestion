@@ -1,25 +1,16 @@
 commit 962556d3
+Se borraron archivos de notas reales que pueden servir para validar casos más cercanos
 
 
 
 
+puedes analizar el código, y contarme lo que hace internamente processPlanetNotes, indicándome los diferentes pasos, las estrategias en cada paso. Necesito algo detallado, principalmente del funcionamiento en el paralelismo.
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Por qué en el note comments text planet csv xslt hay esta fecha por defecto: 2025-01-27T00:00:00Z
+Por qué esa? por qué no en 2013 que es la fecha más vieja?
 
 
 

@@ -3,7 +3,7 @@
 # This file consolidates all parallel processing functions to eliminate duplication
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-17
+# Version: 2025-10-10
 # Description: Centralized parallel processing functions with resource management and retry logic
 
 # Load properties to ensure all required variables are available
@@ -165,24 +165,40 @@ function __adjust_workers_for_resources() {
  # Check memory and reduce workers if needed
  if command -v free > /dev/null 2>&1; then
   MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || true)
-  if [[ "${MEMORY_PERCENT}" -gt 70 ]]; then
-   ADJUSTED_WORKERS=$((ADJUSTED_WORKERS / 2))
-   __logw "Reducing workers to ${ADJUSTED_WORKERS} due to high memory usage (${MEMORY_PERCENT}%)" >&2
-  elif [[ "${MEMORY_PERCENT}" -gt 50 ]]; then
-   ADJUSTED_WORKERS=$((ADJUSTED_WORKERS * 3 / 4))
-   __logw "Reducing workers to ${ADJUSTED_WORKERS} due to moderate memory usage (${MEMORY_PERCENT}%)" >&2
+  
+  # More aggressive reduction for XML processing (XSLT is memory-intensive)
+  if [[ "${PROCESSING_TYPE}" == "XML" ]]; then
+   if [[ "${MEMORY_PERCENT}" -gt 75 ]]; then
+    ADJUSTED_WORKERS=1
+    __logw "Reducing XML workers to ${ADJUSTED_WORKERS} due to very high memory usage (${MEMORY_PERCENT}%) - XSLT allocation risk" >&2
+   elif [[ "${MEMORY_PERCENT}" -gt 65 ]]; then
+    ADJUSTED_WORKERS=$((ADJUSTED_WORKERS / 2))
+    if [[ ${ADJUSTED_WORKERS} -lt 1 ]]; then
+     ADJUSTED_WORKERS=1
+    fi
+    __logw "Reducing XML workers to ${ADJUSTED_WORKERS} due to high memory usage (${MEMORY_PERCENT}%)" >&2
+   elif [[ "${MEMORY_PERCENT}" -gt 50 ]]; then
+    ADJUSTED_WORKERS=$((ADJUSTED_WORKERS * 2 / 3))
+    __logw "Reducing XML workers to ${ADJUSTED_WORKERS} due to moderate memory usage (${MEMORY_PERCENT}%)" >&2
+   fi
+  else
+   # Standard reduction for non-XML processing
+   if [[ "${MEMORY_PERCENT}" -gt 85 ]]; then
+    ADJUSTED_WORKERS=$((ADJUSTED_WORKERS / 2))
+    __logw "Reducing workers to ${ADJUSTED_WORKERS} due to very high memory usage (${MEMORY_PERCENT}%)" >&2
+   elif [[ "${MEMORY_PERCENT}" -gt 70 ]]; then
+    ADJUSTED_WORKERS=$((ADJUSTED_WORKERS / 2))
+    __logw "Reducing workers to ${ADJUSTED_WORKERS} due to high memory usage (${MEMORY_PERCENT}%)" >&2
+   elif [[ "${MEMORY_PERCENT}" -gt 50 ]]; then
+    ADJUSTED_WORKERS=$((ADJUSTED_WORKERS * 3 / 4))
+    __logw "Reducing workers to ${ADJUSTED_WORKERS} due to moderate memory usage (${MEMORY_PERCENT}%)" >&2
+   fi
   fi
  fi
 
  # Ensure minimum workers
  if [[ ${ADJUSTED_WORKERS} -lt 1 ]]; then
   ADJUSTED_WORKERS=1
- fi
-
- # Additional reduction for very low memory situations
- if [[ "${MEMORY_PERCENT}" -gt 85 ]]; then
-  ADJUSTED_WORKERS=$((ADJUSTED_WORKERS / 2))
-  __logw "Further reducing workers to ${ADJUSTED_WORKERS} due to very high memory usage (${MEMORY_PERCENT}%)" >&2
  fi
 
  __logd "Adjusted workers from ${REQUESTED_WORKERS} to ${ADJUSTED_WORKERS}" >&2
@@ -307,7 +323,7 @@ function __configure_system_limits() {
 # Returns: 0 on success, 1 on failure
 function __process_xml_with_xslt_robust() {
  __log_start
- __logd "Function called with $# parameters: '$1' '$2' '$3' '$4' '$5' '$6' '$7'"
+ __logd "Function called with $# parameters: '$1' '$2' '$3' '${4:-}' '${5:-}' '${6:-}' '${7:-}'"
  local XML_FILE="${1}"
  local XSLT_FILE="${2}"
  local OUTPUT_FILE="${3}"
@@ -317,7 +333,7 @@ function __process_xml_with_xslt_robust() {
  local ENABLE_PROFILING="${7:-false}"
  local TIMEOUT="${PROCESS_TIMEOUT:-300}"
  __logd "ENABLE_PROFILING parameter received: '${ENABLE_PROFILING}'"
- __logd "All parameters received: XML='${1}', XSLT='${2}', OUTPUT='${3}', PARAM_TYPE='${4}', PARAM_NAME='${5}', PARAM_VALUE='${6}', PROFILING='${7}'"
+ __logd "All parameters received: XML='${1}', XSLT='${2}', OUTPUT='${3}', PARAM_TYPE='${4:-}', PARAM_NAME='${5:-}', PARAM_VALUE='${6:-}', PROFILING='${7:-}'"
  __logd "Using default timeout: ${TIMEOUT}s"
  local RETRY_COUNT=0
  local SUCCESS=false
@@ -346,7 +362,8 @@ function __process_xml_with_xslt_robust() {
  __logd "Performing enhanced XML validation before XSLT processing..."
 
  # Validate XML file integrity with recovery attempts
- if ! __validate_xml_integrity "${XML_FILE}" "true"; then
+ # Use "divided" mode for XML parts since they are well-formed except at boundaries
+ if ! __validate_xml_integrity "${XML_FILE}" "true" "divided"; then
   __loge "ERROR: XML file validation failed and recovery attempts unsuccessful: ${XML_FILE}"
   __log_finish
   return 1
@@ -468,6 +485,14 @@ function __process_xml_with_xslt_robust() {
     else
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
+     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
+      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
+      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
+      __logw "Waiting for system to free memory before retry..."
+      # Wait longer for memory to be freed
+      if ! __wait_for_resources 120; then
+       __loge "Insufficient memory after 120s wait"
+      fi
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
       __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
@@ -487,6 +512,14 @@ function __process_xml_with_xslt_robust() {
     else
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
+     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
+      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
+      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
+      __logw "Waiting for system to free memory before retry..."
+      # Wait longer for memory to be freed
+      if ! __wait_for_resources 120; then
+       __loge "Insufficient memory after 120s wait"
+      fi
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
       __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
@@ -508,6 +541,14 @@ function __process_xml_with_xslt_robust() {
     else
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
+     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
+      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
+      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
+      __logw "Waiting for system to free memory before retry..."
+      # Wait longer for memory to be freed
+      if ! __wait_for_resources 120; then
+       __loge "Insufficient memory after 120s wait"
+      fi
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
       __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
@@ -527,6 +568,14 @@ function __process_xml_with_xslt_robust() {
     else
      if [[ ${EXIT_CODE} -eq 124 ]]; then
       __loge "XSLT processing timed out after ${TIMEOUT}s"
+     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
+      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
+      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
+      __logw "Waiting for system to free memory before retry..."
+      # Wait longer for memory to be freed
+      if ! __wait_for_resources 120; then
+       __loge "Insufficient memory after 120s wait"
+      fi
      else
       __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
       __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
@@ -1235,10 +1284,11 @@ function __processLargeXmlFile() {
  # Process parts in parallel
  if ! __processXmlPartsParallel "${PARTS_DIR}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "Planet"; then
   __loge "ERROR: Failed to process XML parts in parallel"
-  # Only clean up if we created the directory (not if using TMP_DIR)
+  # Clean up parts directory on failure
   if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
    rm -rf "${PARTS_DIR}"
   fi
+  __logd "Cleaned up temporary parts directory after failure"
   __log_finish
   return 1
  fi
@@ -2902,7 +2952,7 @@ function __divide_xml_file_binary() {
 # Returns: 0 on successful recovery, 1 on failure
 function __handle_corrupted_xml_file() {
  __log_start
- __logd "Function called with $# parameters: '$1' '$2'"
+ __logd "Function called with $# parameters: '$1' '${2:-}'"
  
  local XML_FILE="${1}"
  local BACKUP_DIR="${2:-/tmp/corrupted_xml_backup}"
@@ -2932,21 +2982,51 @@ function __handle_corrupted_xml_file() {
  local CORRUPTION_DETAILS=""
  
  # Check for common corruption patterns
- if grep -q "Extra content at the end of the document" "${XML_FILE}" 2>/dev/null; then
-  CORRUPTION_TYPE="extra_content"
-  CORRUPTION_DETAILS="Extra content after closing tags detected"
- elif grep -q "unable to parse" "${XML_FILE}" 2>/dev/null; then
-  CORRUPTION_TYPE="parse_error"
-  CORRUPTION_DETAILS="General parsing error detected"
- elif grep -q "parser error" "${XML_FILE}" 2>/dev/null; then
-  CORRUPTION_TYPE="parser_error"
-  CORRUPTION_DETAILS="XML parser error detected"
- elif ! grep -q "</osm-notes\|</osm" "${XML_FILE}" 2>/dev/null; then
-  CORRUPTION_TYPE="missing_closing_tag"
-  CORRUPTION_DETAILS="Missing closing tag for root element"
- elif ! grep -q "<?xml" "${XML_FILE}" 2>/dev/null; then
-  CORRUPTION_TYPE="missing_xml_declaration"
-  CORRUPTION_DETAILS="Missing XML declaration"
+ # Check for extra content after closing tags (common in split XML files)
+ local LAST_CLOSING_TAG_LINE
+ LAST_CLOSING_TAG_LINE=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" | tail -1 | cut -d: -f1)
+ if [[ -n "${LAST_CLOSING_TAG_LINE}" ]]; then
+  local TOTAL_LINES
+  TOTAL_LINES=$(wc -l < "${XML_FILE}" 2>/dev/null || echo "0")
+  
+  # Check if there are lines after the closing tag
+  if [[ "${TOTAL_LINES}" -gt "${LAST_CLOSING_TAG_LINE}" ]]; then
+   CORRUPTION_TYPE="extra_content"
+   CORRUPTION_DETAILS="Extra content after closing tags detected (${TOTAL_LINES} total lines, closing tag at line ${LAST_CLOSING_TAG_LINE})"
+  else
+   # Check if the closing tag line itself contains extra content
+   local CLOSING_TAG_LINE_CONTENT
+   CLOSING_TAG_LINE_CONTENT=$(sed -n "${LAST_CLOSING_TAG_LINE}p" "${XML_FILE}" 2>/dev/null)
+   # Check if line contains only closing tag (with optional whitespace)
+   if echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm-notes>[[:space:]]*$" 2>/dev/null || echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm>[[:space:]]*$" 2>/dev/null; then
+    # Line contains only the closing tag, no extra content
+    :
+   else
+    # Line contains closing tag plus extra content
+    CORRUPTION_TYPE="extra_content"
+    CORRUPTION_DETAILS="Extra content on same line as closing tag detected (line ${LAST_CLOSING_TAG_LINE})"
+   fi
+  fi
+ fi
+ 
+ # Check for error messages in the file
+ if [[ "${CORRUPTION_TYPE}" == "unknown" ]]; then
+  if grep -q "Extra content at the end of the document" "${XML_FILE}" 2>/dev/null; then
+   CORRUPTION_TYPE="extra_content"
+   CORRUPTION_DETAILS="Extra content after closing tags detected (error message found)"
+  elif grep -q "unable to parse" "${XML_FILE}" 2>/dev/null; then
+   CORRUPTION_TYPE="parse_error"
+   CORRUPTION_DETAILS="General parsing error detected"
+  elif grep -q "parser error" "${XML_FILE}" 2>/dev/null; then
+   CORRUPTION_TYPE="parser_error"
+   CORRUPTION_DETAILS="XML parser error detected"
+  elif ! grep -q "</osm-notes\|</osm" "${XML_FILE}" 2>/dev/null; then
+   CORRUPTION_TYPE="missing_closing_tag"
+   CORRUPTION_DETAILS="Missing closing tag for root element"
+  elif ! grep -q "<?xml" "${XML_FILE}" 2>/dev/null; then
+   CORRUPTION_TYPE="missing_xml_declaration"
+   CORRUPTION_DETAILS="Missing XML declaration"
+  fi
  fi
  
  __logw "Corruption type identified: ${CORRUPTION_TYPE} - ${CORRUPTION_DETAILS}"
@@ -3024,6 +3104,7 @@ function __handle_corrupted_xml_file() {
 # Parameters:
 #   $1: XML file path
 #   $2: Enable recovery attempts (default: true)
+#   $3: Validation mode: "full" (default) or "divided" (for split XML parts)
 # Returns: 0 on success, 1 on failure
 function __validate_xml_integrity() {
  __log_start
@@ -3031,8 +3112,9 @@ function __validate_xml_integrity() {
  
  local XML_FILE="${1}"
  local ENABLE_RECOVERY="${2:-true}"
+ local VALIDATION_MODE="${3:-full}"
  
- __logd "Validating XML file integrity: ${XML_FILE}"
+ __logd "Validating XML file integrity: ${XML_FILE} (mode: ${VALIDATION_MODE})"
  
  # Check if file exists
  if [[ ! -f "${XML_FILE}" ]]; then
@@ -3046,6 +3128,36 @@ function __validate_xml_integrity() {
   __loge "ERROR: XML file is empty: ${XML_FILE}"
   __log_finish
   return 1
+ fi
+ 
+ # For divided XML files, only validate structure at beginning and end
+ if [[ "${VALIDATION_MODE}" == "divided" ]]; then
+  __logd "Using divided XML validation mode - checking only structure boundaries"
+  
+  # Check XML declaration at beginning
+  if ! head -n 1 "${XML_FILE}" | grep -q "<?xml" 2>/dev/null; then
+   __loge "ERROR: Divided XML file missing declaration at beginning: ${XML_FILE}"
+   __log_finish
+   return 1
+  fi
+  
+  # Check root element opening at beginning
+  if ! head -n 5 "${XML_FILE}" | grep -q "<osm-notes\|<osm" 2>/dev/null; then
+   __loge "ERROR: Divided XML file missing root element opening: ${XML_FILE}"
+   __log_finish
+   return 1
+  fi
+  
+  # Check root element closing at end
+  if ! tail -n 5 "${XML_FILE}" | grep -q "</osm-notes\|</osm" 2>/dev/null; then
+   __loge "ERROR: Divided XML file missing root element closing: ${XML_FILE}"
+   __log_finish
+   return 1
+  fi
+  
+  __logd "Divided XML validation passed - structure boundaries are correct"
+  __log_finish
+  return 0
  fi
  
  # Check for XML declaration

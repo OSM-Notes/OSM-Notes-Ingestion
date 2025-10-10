@@ -122,9 +122,18 @@ source_bin_functions() {
 @test "binary division with small file" {
   local input_file="${TEST_DIR}/small.xml"
   local output_dir="${TEST_DIR}/small_binary"
+  # Create output directory
+  mkdir -p "${output_dir}"
+  
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Run binary division
   run __divide_xml_file_binary "${input_file}" "${output_dir}" 10 5 2
+  
+  # Debug output
+  echo "Status: $status" >&2
+  echo "Output: $output" >&2
   
   # Check success
   [ "$status" -eq 0 ]
@@ -135,13 +144,15 @@ source_bin_functions() {
   # Check parts were created
   local part_count
   part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
-  assert [ "${part_count}" -gt 0 ]
+  [ "${part_count}" -gt 0 ]
 }
 
 # Test traditional division with small file
 @test "traditional division with small file" {
   local input_file="${TEST_DIR}/small.xml"
   local output_dir="${TEST_DIR}/small_traditional"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Run traditional division
   run __divide_xml_file "${input_file}" "${output_dir}" 10 5 2
@@ -155,13 +166,15 @@ source_bin_functions() {
   # Check parts were created
   local part_count
   part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
-  assert [ "${part_count}" -gt 0 ]
+  [ "${part_count}" -gt 0 ]
 }
 
 # Test binary division with medium file
 @test "binary division with medium file" {
   local input_file="${TEST_DIR}/medium.xml"
   local output_dir="${TEST_DIR}/medium_binary"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Run binary division
   run __divide_xml_file_binary "${input_file}" "${output_dir}" 50 10 4
@@ -175,13 +188,15 @@ source_bin_functions() {
   # Check parts were created
   local part_count
   part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
-  assert [ "${part_count}" -gt 0 ]
+  [ "${part_count}" -gt 0 ]
 }
 
 # Test traditional division with medium file
 @test "traditional division with medium file" {
   local input_file="${TEST_DIR}/medium.xml"
   local output_dir="${TEST_DIR}/medium_traditional"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Run traditional division
   run __divide_xml_file "${input_file}" "${output_dir}" 50 10 4
@@ -195,13 +210,15 @@ source_bin_functions() {
   # Check parts were created
   local part_count
   part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
-  assert [ "${part_count}" -gt 0 ]
+  [ "${part_count}" -gt 0 ]
 }
 
 # Test binary division with large file
 @test "binary division with large file" {
   local input_file="${TEST_DIR}/large.xml"
   local output_dir="${TEST_DIR}/large_binary"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Run binary division
   run __divide_xml_file_binary "${input_file}" "${output_dir}" 100 20 8
@@ -215,13 +232,15 @@ source_bin_functions() {
   # Check parts were created
   local part_count
   part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
-  assert [ "${part_count}" -gt 0 ]
+  [ "${part_count}" -gt 0 ]
 }
 
 # Test traditional division with large file
 @test "traditional division with large file" {
   local input_file="${TEST_DIR}/large.xml"
   local output_dir="${TEST_DIR}/large_traditional"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Run traditional division
   run __divide_xml_file "${input_file}" "${output_dir}" 100 20 8
@@ -235,7 +254,7 @@ source_bin_functions() {
   # Check parts were created
   local part_count
   part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
-  assert [ "${part_count}" -gt 0 ]
+  [ "${part_count}" -gt 0 ]
 }
 
 # Test performance comparison between methods
@@ -273,14 +292,16 @@ source_bin_functions() {
   echo "Traditional division time: ${traditional_time}s"
   
   # Both methods should complete successfully
-  assert [ "${binary_time}" -ge 0 ]
-  assert [ "${traditional_time}" -ge 0 ]
+  [ "${binary_time}" -ge 0 ]
+  [ "${traditional_time}" -ge 0 ]
 }
 
 # Test error handling with invalid input
 @test "binary division error handling with invalid input" {
   local invalid_file="/nonexistent/file.xml"
   local output_dir="${TEST_DIR}/error_test"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Run binary division with invalid file
   run __divide_xml_file_binary "${invalid_file}" "${output_dir}" 100 50 4
@@ -305,6 +326,8 @@ source_bin_functions() {
 @test "binary division edge case with empty file" {
   local empty_file="${TEST_DIR}/empty.xml"
   local output_dir="${TEST_DIR}/empty_test"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Create empty XML file
   cat > "${empty_file}" << 'EOF'
@@ -318,13 +341,15 @@ EOF
   
   # Should handle gracefully (success or failure depending on implementation)
   # Just check that it doesn't crash
-  assert [ "${status}" -ge 0 ]
+  [ "${status}" -ge 0 ]
 }
 
 # Test parallel processing configuration
 @test "binary division parallel processing configuration" {
   local input_file="${TEST_DIR}/medium.xml"
   local output_dir="${TEST_DIR}/parallel_test"
+  # Create output directory
+  mkdir -p "${output_dir}"
   
   # Test with different thread counts
   for threads in 1 2 4; do
@@ -362,7 +387,7 @@ EOF
   echo "Large file: ${large_size_mb} MB"
   
   # Both files should exist and have reasonable sizes
-  assert [ "${small_size_mb}" -gt 0 ]
-  assert [ "${large_size_mb}" -gt 0 ]
-  assert [ "${large_size_mb}" -gt "${small_size_mb}" ]
+  [ "${small_size_mb}" -gt 0 ]
+  [ "${large_size_mb}" -gt 0 ]
+  [ "${large_size_mb}" -gt "${small_size_mb}" ]
 }

@@ -50,13 +50,16 @@ teardown() {
  [ -n "${NUMERIC_OUTPUT}" ]
  [ "${NUMERIC_OUTPUT}" -le 8 ]
  
- # Test XML-specific adjustment (should reduce by 2)
+ # Test XML-specific adjustment (should reduce based on memory)
  run __adjust_workers_for_resources 8 "XML" 2>/dev/null
  [ "$status" -eq 0 ]
  # Extract only the numeric output (last line)
  NUMERIC_OUTPUT=$(echo "${output}" | tail -n1)
  [ -n "${NUMERIC_OUTPUT}" ]
- [ "${NUMERIC_OUTPUT}" -eq 6 ]
+ # Should reduce workers (exact number depends on system memory)
+ # At minimum reduces by 2, but may reduce more if memory is high
+ [ "${NUMERIC_OUTPUT}" -le 6 ]
+ [ "${NUMERIC_OUTPUT}" -ge 1 ]
 }
 
 @test "Configure system limits function works" {
