@@ -23,7 +23,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
  <xsl:output method="text" />
 
  <!-- Dynamic timestamp parameter with fallback for missing timestamps -->
- <xsl:param name="default-timestamp" select="'2025-01-27T00:00:00Z'"/>
+ <!-- Using 2013-01-01 as OSM Notes started in 2013 (see README: "since 2013") -->
+ <xsl:param name="default-timestamp" select="'2013-01-01T00:00:00Z'"/>
 
  <!-- Parameters for CSV quote escaping -->
  <xsl:param name="quote">"</xsl:param>
