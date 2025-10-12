@@ -216,6 +216,14 @@ function __adjust_process_delay() {
  local ADJUSTED_DELAY="${PARALLEL_PROCESS_DELAY}"
  local MEMORY_PERCENT
 
+ # If delay is 0 or very low, don't adjust it - respect user's intention for minimal/no delay
+ if [[ "${PARALLEL_PROCESS_DELAY}" -le 2 ]]; then
+  __logw "Delay is ${PARALLEL_PROCESS_DELAY}s, no adjustment needed"
+  __logw "Finished process delay adjustment"
+  printf "%d\n" "${ADJUSTED_DELAY}"
+  return 0
+ fi
+
  # Check memory and increase delay if needed
  if command -v free > /dev/null 2>&1; then
   MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || true)
