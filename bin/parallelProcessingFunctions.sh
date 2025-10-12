@@ -3,7 +3,7 @@
 # This file consolidates all parallel processing functions to eliminate duplication
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-10
+# Version: 2025-10-12
 # Description: Centralized parallel processing functions with resource management and retry logic
 
 # Load properties to ensure all required variables are available
@@ -165,7 +165,7 @@ function __adjust_workers_for_resources() {
  # Check memory and reduce workers if needed
  if command -v free > /dev/null 2>&1; then
   MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || true)
-  
+
   # More aggressive reduction for XML processing (XSLT is memory-intensive)
   if [[ "${PROCESSING_TYPE}" == "XML" ]]; then
    if [[ "${MEMORY_PERCENT}" -gt 75 ]]; then
@@ -2478,7 +2478,7 @@ function __divide_xml_file_binary() {
   local IN_NOTE=false
   local NOTE_BUFFER=""
   local PART_NOTES=0
-  
+
   # Read the input file line by line to avoid memory issues
   while IFS= read -r line; do
    # Check if we're entering a note
@@ -2489,22 +2489,22 @@ function __divide_xml_file_binary() {
    elif [[ "${IN_NOTE}" == "true" ]]; then
     # We're inside a note, add line to buffer
     NOTE_BUFFER+=$'\n'"${line}"
-    
+
     # Check if we're exiting a note
     if echo "${line}" | grep -q "^[[:space:]]*</note>"; then
      IN_NOTE=false
-     
+
      # If this note is in our target range, add it to output
      if [[ ${CURRENT_NOTE} -gt ${START_NOTE} ]] && [[ ${CURRENT_NOTE} -le ${END_NOTE} ]]; then
       echo "${NOTE_BUFFER}" >> "${OUTPUT_FILE}"
       ((PART_NOTES++))
      fi
-     
+
      # Clear buffer
-      NOTE_BUFFER=""
+     NOTE_BUFFER=""
     fi
    fi
-   
+
    # Stop if we've processed all notes we need
    if [[ ${CURRENT_NOTE} -gt ${END_NOTE} ]]; then
     break
@@ -2520,7 +2520,7 @@ function __divide_xml_file_binary() {
    echo "0"
    return 1
   fi
-  
+
   echo "${PART_NOTES}"
  }
 
@@ -2537,9 +2537,9 @@ function __divide_xml_file_binary() {
   echo "<${ROOT_TAG_LOCAL}>" >> "${OUTPUT_FILE}"
 
   # Extract content using dd (very fast for large files)
-  dd if="${INPUT_XML}" bs=1M skip=$((START_BYTE / 1024 / 1024)) count=$(((END_BYTE - START_BYTE) / 1024 / 1024 + 1)) 2> /dev/null | \
-   tail -c +$((START_BYTE % (1024 * 1024) + 1)) | \
-   head -c $((END_BYTE - START_BYTE)) >> "${OUTPUT_FILE}" 2> /dev/null || true
+  dd if="${INPUT_XML}" bs=1M skip=$((START_BYTE / 1024 / 1024)) count=$(((END_BYTE - START_BYTE) / 1024 / 1024 + 1)) 2> /dev/null \
+   | tail -c +$((START_BYTE % (1024 * 1024) + 1)) \
+   | head -c $((END_BYTE - START_BYTE)) >> "${OUTPUT_FILE}" 2> /dev/null || true
 
   # Close XML tag
   echo "</${ROOT_TAG_LOCAL}>" >> "${OUTPUT_FILE}"
@@ -2547,7 +2547,7 @@ function __divide_xml_file_binary() {
   # Validate that we have complete notes (find last complete note)
   local LAST_COMPLETE_NOTE
   LAST_COMPLETE_NOTE=$(grep -n "</note>" "${OUTPUT_FILE}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
-  
+
   if [[ "${LAST_COMPLETE_NOTE}" -gt 0 ]]; then
    # Truncate file to last complete note
    head -n "${LAST_COMPLETE_NOTE}" "${OUTPUT_FILE}" >> "${OUTPUT_FILE}.tmp"
@@ -2558,7 +2558,7 @@ function __divide_xml_file_binary() {
   # Count notes in this part
   local PART_NOTES
   PART_NOTES=$(grep -c "<note" "${OUTPUT_FILE}" 2> /dev/null || echo "0")
-  
+
   echo "${PART_NOTES}"
  }
 
@@ -2577,20 +2577,20 @@ function __divide_xml_file_binary() {
   for PART_RANGE in "${PARTS_ARRAY[@]}"; do
    local START_NOTE END_NOTE
    IFS=':' read -r START_NOTE END_NOTE <<< "${PART_RANGE}"
-   
+
    local PART_NOTES=$((END_NOTE - START_NOTE))
 
    # If part has more notes than target and we haven't reached part limit, split it
    if [[ ${PART_NOTES} -gt ${TARGET_NOTES_PER_PART} ]] && [[ ${CURRENT_PARTS} -lt ${NUM_PARTS} ]]; then
     local MID_NOTE=$(((START_NOTE + END_NOTE) / 2))
-    
+
     # Add both halves to new array
     NEW_PARTS_ARRAY+=("${START_NOTE}:${MID_NOTE}")
     NEW_PARTS_ARRAY+=("${MID_NOTE}:${END_NOTE}")
-    
+
     SPLIT_OCCURRED=true
     ((CURRENT_PARTS++))
-    
+
     __logd "Split part at note ${MID_NOTE} (${PART_NOTES} notes -> ~$((PART_NOTES / 2)) notes each)"
    else
     # Keep part as is
@@ -2628,11 +2628,11 @@ function __divide_xml_file_binary() {
   local AVAILABLE_MEMORY_MB
   AVAILABLE_MEMORY_MB=$(free | grep Mem | awk '{printf "%.0f", $7/1024}' || echo "0")
   local ESTIMATED_MEMORY_PER_THREAD=100 # Estimate 100MB per thread for XML processing
-  
+
   if [[ ${AVAILABLE_MEMORY_MB} -gt 0 ]]; then
    local MEMORY_BASED_THREADS
    MEMORY_BASED_THREADS=$((AVAILABLE_MEMORY_MB / ESTIMATED_MEMORY_PER_THREAD))
-   
+
    if [[ ${MEMORY_BASED_THREADS} -lt ${MAX_THREADS} ]]; then
     __logd "Memory-based thread limiting: ${AVAILABLE_MEMORY_MB} MB available, limiting to ${MEMORY_BASED_THREADS} threads (${ESTIMATED_MEMORY_PER_THREAD} MB per thread)"
     MAX_THREADS=${MEMORY_BASED_THREADS}
@@ -2655,18 +2655,18 @@ function __divide_xml_file_binary() {
  for PART_RANGE in "${PARTS_ARRAY[@]}"; do
   local START_NOTE END_NOTE
   IFS=':' read -r START_NOTE END_NOTE <<< "${PART_RANGE}"
-  
+
   local PART_NUM
   PART_NUM=$(printf "%03d" "${PART_COUNTER}")
   local OUTPUT_FILE="${OUTPUT_DIR}/${PART_PREFIX}_${PART_NUM}.xml"
-  
+
   # Wait if we've reached the maximum number of concurrent threads
   local WAIT_COUNTER=0
   while [[ ${ACTIVE_JOBS} -ge ${MAX_THREADS} ]]; do
    if [[ $((WAIT_COUNTER % 10)) -eq 0 ]]; then
     __logd "Max threads (${MAX_THREADS}) reached, waiting for a job to complete... (wait count: ${WAIT_COUNTER})"
    fi
-   
+
    # Check for completed jobs with better detection
    local COMPLETED_PID=""
    local i=0
@@ -2691,7 +2691,7 @@ function __divide_xml_file_binary() {
     fi
     ((i++))
    done
-   
+
    # If no jobs completed, wait longer before checking again
    if [[ ${ACTIVE_JOBS} -ge ${MAX_THREADS} ]]; then
     if [[ $((WAIT_COUNTER % 5)) -eq 0 ]]; then
@@ -2701,33 +2701,33 @@ function __divide_xml_file_binary() {
     ((WAIT_COUNTER++))
    fi
   done
-  
+
   # Check system resources before launching new job
   if ! __check_system_resources "minimal"; then
    __logd "System resources low, waiting before launching part ${PART_COUNTER}..."
    __wait_for_resources 30
   fi
-  
+
   # Launch part creation in background
   __logd "Launching part ${PART_COUNTER} creation (active jobs: ${ACTIVE_JOBS}/${MAX_THREADS}) for notes ${START_NOTE}-${END_NOTE}"
-  
+
   # Create a temporary log file for this part creation
   local PART_LOG_FILE="${OUTPUT_DIR}/part_${PART_COUNTER}_creation.log"
-  
+
   # Launch part creation in background with logging
   (__create_xml_part_by_notes "${PART_COUNTER}" "${START_NOTE}" "${END_NOTE}" "${OUTPUT_FILE}" "${ROOT_TAG}" > "${PART_LOG_FILE}" 2>&1) &
   local PID=$!
   PIDS+=("${PID}")
   PART_INFO+=("${PART_COUNTER}:${OUTPUT_FILE}:${PID}:${PART_LOG_FILE}")
   ((ACTIVE_JOBS++))
-  
+
   __logd "Launched part ${PART_COUNTER} creation (PID: ${PID}), active jobs: ${ACTIVE_JOBS}/${MAX_THREADS}"
-  
+
   # Show progress every 10 parts or when threads are busy
   if [[ $((PART_COUNTER % 10)) -eq 0 ]] || [[ ${ACTIVE_JOBS} -eq ${MAX_THREADS} ]]; then
    local PROGRESS_PCT
    PROGRESS_PCT=$((PART_COUNTER * 100 / ${#PARTS_ARRAY[@]}))
-   
+
    # Show memory status if available
    local MEMORY_STATUS=""
    if command -v free > /dev/null 2>&1; then
@@ -2735,17 +2735,17 @@ function __divide_xml_file_binary() {
     MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || echo "0")
     MEMORY_STATUS=", Memory: ${MEMORY_PERCENT}%"
    fi
-   
+
    __logi "Progress: ${PART_COUNTER}/${#PARTS_ARRAY[@]} parts (${PROGRESS_PCT}%) - Active threads: ${ACTIVE_JOBS}/${MAX_THREADS}${MEMORY_STATUS}"
-   
+
    # Show some debug info about the parts being created
    if [[ ${PART_COUNTER} -le 5 ]] || [[ $((PART_COUNTER % 50)) -eq 0 ]]; then
     __logd "Debug: Part ${PART_COUNTER} will process notes ${START_NOTE}-${END_NOTE} (${#PARTS_ARRAY[@]} total parts planned)"
    fi
   fi
-  
+
   ((PART_COUNTER++))
-  
+
   # Small delay to prevent overwhelming the system
   if [[ ${ACTIVE_JOBS} -gt 0 ]]; then
    sleep 0.5
@@ -2758,14 +2758,14 @@ function __divide_xml_file_binary() {
  local WAIT_START_TIME
  WAIT_START_TIME=$(date +%s)
  local FINAL_WAIT_COUNTER=0
- 
+
  while [[ ${ACTIVE_JOBS} -gt 0 ]]; do
   # Check timeout
   local CURRENT_TIME
   CURRENT_TIME=$(date +%s)
   local ELAPSED_TIME
   ELAPSED_TIME=$((CURRENT_TIME - WAIT_START_TIME))
-  
+
   if [[ ${ELAPSED_TIME} -gt ${WAIT_TIMEOUT} ]]; then
    __logw "WARNING: Timeout waiting for remaining jobs after ${WAIT_TIMEOUT}s, killing remaining processes..."
    for PID in "${PIDS[@]}"; do
@@ -2779,7 +2779,7 @@ function __divide_xml_file_binary() {
    done
    break
   fi
-  
+
   # Check for completed jobs with better detection
   local COMPLETED_PID=""
   local i=0
@@ -2803,7 +2803,7 @@ function __divide_xml_file_binary() {
    fi
    ((i++))
   done
-   
+
   # If no jobs completed, wait longer before checking again
   if [[ ${ACTIVE_JOBS} -gt 0 ]]; then
    if [[ $((FINAL_WAIT_COUNTER % 10)) -eq 0 ]]; then
@@ -2822,7 +2822,7 @@ function __divide_xml_file_binary() {
  for PART_INFO_ENTRY in "${PART_INFO[@]}"; do
   local PART_NUM OUTPUT_FILE PID PART_LOG_FILE
   IFS=':' read -r PART_NUM OUTPUT_FILE PID PART_LOG_FILE <<< "${PART_INFO_ENTRY}"
-  
+
   if [[ -f "${OUTPUT_FILE}" ]]; then
    local PART_NOTES
    PART_NOTES=$(grep -c "<note" "${OUTPUT_FILE}" 2> /dev/null || echo "0")
@@ -2830,7 +2830,7 @@ function __divide_xml_file_binary() {
    PART_SIZE_BYTES=$(stat -c%s "${OUTPUT_FILE}" 2> /dev/null || echo "0")
    local PART_SIZE_MB
    PART_SIZE_MB=$((PART_SIZE_BYTES / 1024 / 1024))
-   
+
    if [[ ${PART_NOTES} -gt 0 ]]; then
     ((VALID_PARTS++))
     TOTAL_NOTES_PROCESSED=$((TOTAL_NOTES_PROCESSED + PART_NOTES))
@@ -2953,19 +2953,19 @@ function __divide_xml_file_binary() {
 function __handle_corrupted_xml_file() {
  __log_start
  __logd "Function called with $# parameters: '$1' '${2:-}'"
- 
+
  local XML_FILE="${1}"
  local BACKUP_DIR="${2:-/tmp/corrupted_xml_backup}"
  local XML_FILENAME
  XML_FILENAME=$(basename "${XML_FILE}")
  local BACKUP_FILE
  BACKUP_FILE="${BACKUP_DIR}/${XML_FILENAME}.corrupted.$(date +%Y%m%d_%H%M%S)"
- 
+
  __logd "Handling corrupted XML file: ${XML_FILE}"
- 
+
  # Create backup directory if it doesn't exist
  mkdir -p "${BACKUP_DIR}"
- 
+
  # Backup the corrupted file
  if cp "${XML_FILE}" "${BACKUP_FILE}"; then
   __logw "Corrupted XML file backed up to: ${BACKUP_FILE}"
@@ -2974,21 +2974,21 @@ function __handle_corrupted_xml_file() {
   __log_finish
   return 1
  fi
- 
+
  # Attempt to identify the type of corruption
  __logd "Analyzing corruption type..."
- 
+
  local CORRUPTION_TYPE="unknown"
  local CORRUPTION_DETAILS=""
- 
+
  # Check for common corruption patterns
  # Check for extra content after closing tags (common in split XML files)
  local LAST_CLOSING_TAG_LINE
  LAST_CLOSING_TAG_LINE=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" | tail -1 | cut -d: -f1)
  if [[ -n "${LAST_CLOSING_TAG_LINE}" ]]; then
   local TOTAL_LINES
-  TOTAL_LINES=$(wc -l < "${XML_FILE}" 2>/dev/null || echo "0")
-  
+  TOTAL_LINES=$(wc -l < "${XML_FILE}" 2> /dev/null || echo "0")
+
   # Check if there are lines after the closing tag
   if [[ "${TOTAL_LINES}" -gt "${LAST_CLOSING_TAG_LINE}" ]]; then
    CORRUPTION_TYPE="extra_content"
@@ -2996,9 +2996,9 @@ function __handle_corrupted_xml_file() {
   else
    # Check if the closing tag line itself contains extra content
    local CLOSING_TAG_LINE_CONTENT
-   CLOSING_TAG_LINE_CONTENT=$(sed -n "${LAST_CLOSING_TAG_LINE}p" "${XML_FILE}" 2>/dev/null)
+   CLOSING_TAG_LINE_CONTENT=$(sed -n "${LAST_CLOSING_TAG_LINE}p" "${XML_FILE}" 2> /dev/null)
    # Check if line contains only closing tag (with optional whitespace)
-   if echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm-notes>[[:space:]]*$" 2>/dev/null || echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm>[[:space:]]*$" 2>/dev/null; then
+   if echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm-notes>[[:space:]]*$" 2> /dev/null || echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm>[[:space:]]*$" 2> /dev/null; then
     # Line contains only the closing tag, no extra content
     :
    else
@@ -3008,92 +3008,92 @@ function __handle_corrupted_xml_file() {
    fi
   fi
  fi
- 
+
  # Check for error messages in the file
  if [[ "${CORRUPTION_TYPE}" == "unknown" ]]; then
-  if grep -q "Extra content at the end of the document" "${XML_FILE}" 2>/dev/null; then
+  if grep -q "Extra content at the end of the document" "${XML_FILE}" 2> /dev/null; then
    CORRUPTION_TYPE="extra_content"
    CORRUPTION_DETAILS="Extra content after closing tags detected (error message found)"
-  elif grep -q "unable to parse" "${XML_FILE}" 2>/dev/null; then
+  elif grep -q "unable to parse" "${XML_FILE}" 2> /dev/null; then
    CORRUPTION_TYPE="parse_error"
    CORRUPTION_DETAILS="General parsing error detected"
-  elif grep -q "parser error" "${XML_FILE}" 2>/dev/null; then
+  elif grep -q "parser error" "${XML_FILE}" 2> /dev/null; then
    CORRUPTION_TYPE="parser_error"
    CORRUPTION_DETAILS="XML parser error detected"
-  elif ! grep -q "</osm-notes\|</osm" "${XML_FILE}" 2>/dev/null; then
+  elif ! grep -q "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null; then
    CORRUPTION_TYPE="missing_closing_tag"
    CORRUPTION_DETAILS="Missing closing tag for root element"
-  elif ! grep -q "<?xml" "${XML_FILE}" 2>/dev/null; then
+  elif ! grep -q "<?xml" "${XML_FILE}" 2> /dev/null; then
    CORRUPTION_TYPE="missing_xml_declaration"
    CORRUPTION_DETAILS="Missing XML declaration"
   fi
  fi
- 
+
  __logw "Corruption type identified: ${CORRUPTION_TYPE} - ${CORRUPTION_DETAILS}"
- 
+
  # Attempt recovery based on corruption type
  case "${CORRUPTION_TYPE}" in
-  "extra_content")
-   __logd "Attempting to recover from extra content corruption..."
-   # Try to find the last valid closing tag and truncate
-   local LAST_VALID_LINE
-   LAST_VALID_LINE=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" | tail -1 | cut -d: -f1)
-   if [[ -n "${LAST_VALID_LINE}" ]]; then
-    local TEMP_RECOVERY_FILE
-    TEMP_RECOVERY_FILE="${XML_FILE}.recovery"
-    if head -n "${LAST_VALID_LINE}" "${XML_FILE}" > "${TEMP_RECOVERY_FILE}" 2>/dev/null; then
-     if mv "${TEMP_RECOVERY_FILE}" "${XML_FILE}"; then
-      __logi "Successfully recovered XML file by truncating at line ${LAST_VALID_LINE}"
-      __log_finish
-      return 0
-     fi
-    fi
-    rm -f "${TEMP_RECOVERY_FILE}"
-   fi
-   ;;
-   
-  "missing_closing_tag")
-   __logd "Attempting to recover from missing closing tag..."
-   # Try to add missing closing tag
-   local ROOT_ELEMENT
-   ROOT_ELEMENT=$(grep -o "<osm-notes\|<osm" "${XML_FILE}" | head -1)
-   if [[ -n "${ROOT_ELEMENT}" ]]; then
-    local CLOSING_TAG
-    CLOSING_TAG="${ROOT_ELEMENT#<}</${ROOT_ELEMENT#<}"
-    if echo "${CLOSING_TAG}" >> "${XML_FILE}" 2>/dev/null; then
-     __logi "Successfully recovered XML file by adding missing closing tag: ${CLOSING_TAG}"
-     __log_finish
-     return 0
-    fi
-   fi
-   ;;
-   
-  "missing_xml_declaration")
-   __logd "Attempting to recover from missing XML declaration..."
-   # Try to add XML declaration at the beginning
+ "extra_content")
+  __logd "Attempting to recover from extra content corruption..."
+  # Try to find the last valid closing tag and truncate
+  local LAST_VALID_LINE
+  LAST_VALID_LINE=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" | tail -1 | cut -d: -f1)
+  if [[ -n "${LAST_VALID_LINE}" ]]; then
    local TEMP_RECOVERY_FILE
    TEMP_RECOVERY_FILE="${XML_FILE}.recovery"
-   if (echo '<?xml version="1.0" encoding="UTF-8"?>' && cat "${XML_FILE}") > "${TEMP_RECOVERY_FILE}" 2>/dev/null; then
+   if head -n "${LAST_VALID_LINE}" "${XML_FILE}" > "${TEMP_RECOVERY_FILE}" 2> /dev/null; then
     if mv "${TEMP_RECOVERY_FILE}" "${XML_FILE}"; then
-     __logi "Successfully recovered XML file by adding XML declaration"
+     __logi "Successfully recovered XML file by truncating at line ${LAST_VALID_LINE}"
      __log_finish
      return 0
     fi
    fi
    rm -f "${TEMP_RECOVERY_FILE}"
-   ;;
-   
-  *)
-   __logw "No automatic recovery strategy available for corruption type: ${CORRUPTION_TYPE}"
-   ;;
+  fi
+  ;;
+
+ "missing_closing_tag")
+  __logd "Attempting to recover from missing closing tag..."
+  # Try to add missing closing tag
+  local ROOT_ELEMENT
+  ROOT_ELEMENT=$(grep -o "<osm-notes\|<osm" "${XML_FILE}" | head -1)
+  if [[ -n "${ROOT_ELEMENT}" ]]; then
+   local CLOSING_TAG
+   CLOSING_TAG="</${ROOT_ELEMENT#<}>"
+   if echo "${CLOSING_TAG}" >> "${XML_FILE}" 2> /dev/null; then
+    __logi "Successfully recovered XML file by adding missing closing tag: ${CLOSING_TAG}"
+    __log_finish
+    return 0
+   fi
+  fi
+  ;;
+
+ "missing_xml_declaration")
+  __logd "Attempting to recover from missing XML declaration..."
+  # Try to add XML declaration at the beginning
+  local TEMP_RECOVERY_FILE
+  TEMP_RECOVERY_FILE="${XML_FILE}.recovery"
+  if (echo '<?xml version="1.0" encoding="UTF-8"?>' && cat "${XML_FILE}") > "${TEMP_RECOVERY_FILE}" 2> /dev/null; then
+   if mv "${TEMP_RECOVERY_FILE}" "${XML_FILE}"; then
+    __logi "Successfully recovered XML file by adding XML declaration"
+    __log_finish
+    return 0
+   fi
+  fi
+  rm -f "${TEMP_RECOVERY_FILE}"
+  ;;
+
+ *)
+  __logw "No automatic recovery strategy available for corruption type: ${CORRUPTION_TYPE}"
+  ;;
  esac
- 
+
  # If recovery failed, log the failure and return error
  __loge "Failed to recover corrupted XML file: ${XML_FILE}"
  __loge "Corruption type: ${CORRUPTION_TYPE}"
  __loge "Corruption details: ${CORRUPTION_DETAILS}"
  __loge "File backed up to: ${BACKUP_FILE}"
- 
+
  __log_finish
  return 1
 }
@@ -3109,64 +3109,66 @@ function __handle_corrupted_xml_file() {
 function __validate_xml_integrity() {
  __log_start
  __logd "Function called with $# parameters: '$1' '$2'"
- 
+
  local XML_FILE="${1}"
  local ENABLE_RECOVERY="${2:-true}"
  local VALIDATION_MODE="${3:-full}"
- 
+ local RECOVERY_PERFORMED=false
+
  __logd "Validating XML file integrity: ${XML_FILE} (mode: ${VALIDATION_MODE})"
- 
+
  # Check if file exists
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
   __log_finish
   return 1
  fi
- 
+
  # Basic file checks
  if [[ ! -s "${XML_FILE}" ]]; then
   __loge "ERROR: XML file is empty: ${XML_FILE}"
   __log_finish
   return 1
  fi
- 
+
  # For divided XML files, only validate structure at beginning and end
  if [[ "${VALIDATION_MODE}" == "divided" ]]; then
   __logd "Using divided XML validation mode - checking only structure boundaries"
-  
+
   # Check XML declaration at beginning
-  if ! head -n 1 "${XML_FILE}" | grep -q "<?xml" 2>/dev/null; then
+  if ! head -n 1 "${XML_FILE}" | grep -q "<?xml" 2> /dev/null; then
    __loge "ERROR: Divided XML file missing declaration at beginning: ${XML_FILE}"
    __log_finish
    return 1
   fi
-  
+
   # Check root element opening at beginning
-  if ! head -n 5 "${XML_FILE}" | grep -q "<osm-notes\|<osm" 2>/dev/null; then
+  if ! head -n 5 "${XML_FILE}" | grep -q "<osm-notes\|<osm" 2> /dev/null; then
    __loge "ERROR: Divided XML file missing root element opening: ${XML_FILE}"
    __log_finish
    return 1
   fi
-  
+
   # Check root element closing at end
-  if ! tail -n 5 "${XML_FILE}" | grep -q "</osm-notes\|</osm" 2>/dev/null; then
+  if ! tail -n 5 "${XML_FILE}" | grep -q "</osm-notes\|</osm" 2> /dev/null; then
    __loge "ERROR: Divided XML file missing root element closing: ${XML_FILE}"
    __log_finish
    return 1
   fi
-  
+
   __logd "Divided XML validation passed - structure boundaries are correct"
   __log_finish
   return 0
  fi
- 
+
  # Check for XML declaration
- if ! head -n 5 "${XML_FILE}" | grep -q "<?xml" 2>/dev/null; then
+ if ! head -n 5 "${XML_FILE}" | grep -q "<?xml" 2> /dev/null; then
   __logw "WARNING: XML file missing declaration: ${XML_FILE}"
   if [[ "${ENABLE_RECOVERY}" == "true" ]]; then
    __logd "Attempting to recover missing XML declaration..."
    if __handle_corrupted_xml_file "${XML_FILE}"; then
     __logd "XML declaration recovery successful"
+    RECOVERY_PERFORMED=true
    else
     __loge "XML declaration recovery failed"
     __log_finish
@@ -3177,25 +3179,28 @@ function __validate_xml_integrity() {
    return 1
   fi
  fi
- 
+
  # Check for root element
- if ! grep -q "<osm-notes\|<osm" "${XML_FILE}" 2>/dev/null; then
+ if ! grep -q "<osm-notes\|<osm" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: XML file missing root element: ${XML_FILE}"
   __log_finish
   return 1
  fi
- 
+
  # Check for proper closing tags
  local OPEN_TAGS CLOSE_TAGS
- OPEN_TAGS=$(grep -c "<osm-notes\|<osm" "${XML_FILE}" 2>/dev/null || echo "0")
- CLOSE_TAGS=$(grep -c "</osm-notes\|</osm" "${XML_FILE}" 2>/dev/null || echo "0")
- 
+ OPEN_TAGS=$(grep -c "<osm-notes\|<osm" "${XML_FILE}" 2> /dev/null || echo "0")
+ OPEN_TAGS=$(echo "${OPEN_TAGS}" | tr -d '[:space:]')
+ CLOSE_TAGS=$(grep -c "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null || echo "0")
+ CLOSE_TAGS=$(echo "${CLOSE_TAGS}" | tr -d '[:space:]')
+
  if [[ "${OPEN_TAGS}" -ne "${CLOSE_TAGS}" ]]; then
   __logw "WARNING: XML structure imbalance detected: ${OPEN_TAGS} open, ${CLOSE_TAGS} close"
   if [[ "${ENABLE_RECOVERY}" == "true" ]]; then
    __logd "Attempting to recover from structure imbalance..."
    if __handle_corrupted_xml_file "${XML_FILE}"; then
     __logd "Structure recovery successful"
+    RECOVERY_PERFORMED=true
    else
     __loge "Structure recovery failed"
     __log_finish
@@ -3203,20 +3208,21 @@ function __validate_xml_integrity() {
    fi
   else
    __log_finish
-    return 1
+   return 1
   fi
  fi
- 
+
  # Final validation with xmllint if available
- if command -v xmllint >/dev/null 2>&1; then
+ if command -v xmllint > /dev/null 2>&1; then
   __logd "Performing final XML validation with xmllint..."
-  if ! xmllint --noout "${XML_FILE}" 2>/dev/null; then
+  if ! xmllint --noout "${XML_FILE}" 2> /dev/null; then
    __loge "ERROR: XML file failed final validation: ${XML_FILE}"
    if [[ "${ENABLE_RECOVERY}" == "true" ]]; then
     __logd "Attempting final recovery..."
     if __handle_corrupted_xml_file "${XML_FILE}"; then
+     RECOVERY_PERFORMED=true
      # Re-validate after recovery
-     if xmllint --noout "${XML_FILE}" 2>/dev/null; then
+     if xmllint --noout "${XML_FILE}" 2> /dev/null; then
       __logi "XML file successfully recovered and validated"
       __log_finish
       return 0
@@ -3239,8 +3245,14 @@ function __validate_xml_integrity() {
  else
   __logd "xmllint not available, skipping final validation"
  fi
- 
- __logd "XML file integrity validation completed successfully"
+
+ # If recovery was performed and we reached here, validation passed
+ if [[ "${RECOVERY_PERFORMED}" == "true" ]]; then
+  __logi "XML file successfully recovered and validated"
+ else
+  __logi "XML file integrity validation completed successfully"
+ fi
+
  __log_finish
  return 0
 }
