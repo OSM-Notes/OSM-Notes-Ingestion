@@ -474,14 +474,14 @@ function __validate_osm_comments_realistic() {
    fi
 
    # Validate coordinate ranges (realistic Earth bounds)
-   if (( $(echo "${LAT} < -90" | bc -l) )) || (( $(echo "${LAT} > 90" | bc -l) )); then
+   if (($(echo "${LAT} < -90" | bc -l))) || (($(echo "${LAT} > 90" | bc -l))); then
     __logw "WARNING: Latitude out of range in line ${LINE_NUMBER}: ${LAT}"
     ((INVALID_COORDINATES++))
     ((INVALID_LINES++))
     continue
    fi
 
-   if (( $(echo "${LON} < -180" | bc -l) )) || (( $(echo "${LON} > 180" | bc -l) )); then
+   if (($(echo "${LON} < -180" | bc -l))) || (($(echo "${LON} > 180" | bc -l))); then
     __logw "WARNING: Longitude out of range in line ${LINE_NUMBER}: ${LON}"
     ((INVALID_COORDINATES++))
     ((INVALID_LINES++))

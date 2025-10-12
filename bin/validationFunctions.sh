@@ -676,7 +676,7 @@ function __validate_xml_dates() {
  __log_start
  local XML_FILE="${1}"
  local XPATH_QUERIES=("${@:2}")
- local STRICT_MODE="${STRICT_MODE:-false}"  # New parameter for strict validation
+ local STRICT_MODE="${STRICT_MODE:-false}" # New parameter for strict validation
 
  # For large files, use lightweight validation
  local FILE_SIZE
@@ -794,15 +794,15 @@ function __validate_xml_dates() {
   if [[ "${STRICT_MODE}" == "true" ]]; then
    # Look for any attribute that looks like it should be a date but isn't
    local INVALID_DATE_PATTERNS=(
-     'created_at="[^"]*[a-zA-Z][^"]*"'
-     'closed_at="[^"]*[a-zA-Z][^"]*"'
-     'timestamp="[^"]*[a-zA-Z][^"]*"'
+    'created_at="[^"]*[a-zA-Z][^"]*"'
+    'closed_at="[^"]*[a-zA-Z][^"]*"'
+    'timestamp="[^"]*[a-zA-Z][^"]*"'
    )
-   
+
    for PATTERN in "${INVALID_DATE_PATTERNS[@]}"; do
     local INVALID_DATES
     INVALID_DATES=$(grep -oE "${PATTERN}" "${XML_FILE}" 2> /dev/null || true)
-    
+
     if [[ -n "${INVALID_DATES}" ]]; then
      __loge "ERROR: Invalid date patterns found in strict mode: ${INVALID_DATES}"
      __log_finish
