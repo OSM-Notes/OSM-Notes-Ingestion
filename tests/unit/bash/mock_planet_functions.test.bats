@@ -163,11 +163,13 @@ teardown() {
   local current_timestamp
   current_timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" \
-               --stringparam default-timestamp "${current_timestamp}" \
-               "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+  # Run xsltproc without 'run' to properly redirect output to file
+  xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" \
+           --stringparam default-timestamp "${current_timestamp}" \
+           "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
   
-  [ "$status" -eq 0 ]
+  local exit_code=$?
+  [ "${exit_code}" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
