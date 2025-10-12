@@ -1872,11 +1872,11 @@ function __processPlanetXmlPart() {
 
  # Function to log to part-specific log file
  __log_to_part() {
-  local level="$1"
-  local message="$2"
-  local timestamp
-  timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-  echo "${timestamp} - ${level} - ${message}" >&${PART_LOG_FD}
+  local LEVEL="$1"
+  local MESSAGE="$2"
+  local TIMESTAMP
+  TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+  echo "${TIMESTAMP} - ${LEVEL} - ${MESSAGE}" >&${PART_LOG_FD}
  }
 
  # Start logging for this part
@@ -2669,19 +2669,19 @@ function __divide_xml_file_binary() {
 
    # Check for completed jobs with better detection
    local COMPLETED_PID=""
-   local i=0
+   local I=0
    for COMPLETED_PID in "${PIDS[@]}"; do
     if ! kill -0 "${COMPLETED_PID}" 2> /dev/null; then
      # Remove completed PID from arrays
      local TEMP_PIDS=()
      local TEMP_INFO=()
-     local j=0
+     local J=0
      for PID_ENTRY in "${PIDS[@]}"; do
       if [[ "${PID_ENTRY}" != "${COMPLETED_PID}" ]]; then
        TEMP_PIDS+=("${PID_ENTRY}")
-       TEMP_INFO+=("${PART_INFO[j]}")
+       TEMP_INFO+=("${PART_INFO[J]}")
       fi
-      ((j++))
+      ((J++))
      done
      PIDS=("${TEMP_PIDS[@]}")
      PART_INFO=("${TEMP_INFO[@]}")
@@ -2689,7 +2689,7 @@ function __divide_xml_file_binary() {
      __logd "Job ${COMPLETED_PID} completed, active jobs: ${ACTIVE_JOBS}/${MAX_THREADS}"
      break
     fi
-    ((i++))
+    ((I++))
    done
 
    # If no jobs completed, wait longer before checking again
@@ -2782,26 +2782,26 @@ function __divide_xml_file_binary() {
 
   # Check for completed jobs with better detection
   local COMPLETED_PID=""
-  local i=0
+  local I=0
   for COMPLETED_PID in "${PIDS[@]}"; do
    if ! kill -0 "${COMPLETED_PID}" 2> /dev/null; then
     # Remove completed PID from arrays
     local TEMP_PIDS=()
     local TEMP_INFO=()
-    local j=0
+    local J=0
     for PID_ENTRY in "${PIDS[@]}"; do
      if [[ "${PID_ENTRY}" != "${COMPLETED_PID}" ]]; then
       TEMP_PIDS+=("${PID_ENTRY}")
-      TEMP_INFO+=("${PART_INFO[j]}")
+      TEMP_INFO+=("${PART_INFO[J]}")
      fi
-     ((j++))
+     ((J++))
     done
     PIDS=("${TEMP_PIDS[@]}")
     PART_INFO=("${TEMP_INFO[@]}")
     ((ACTIVE_JOBS--))
     __logd "Job ${COMPLETED_PID} completed, remaining jobs: ${ACTIVE_JOBS}"
    fi
-   ((i++))
+   ((I++))
   done
 
   # If no jobs completed, wait longer before checking again
