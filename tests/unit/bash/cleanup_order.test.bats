@@ -3,13 +3,16 @@
 # Unit tests for Cleanup Order and Dependencies
 # Test file: cleanup_order.test.bats
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-10-13
 
 load "../../test_helper.bash"
 
 setup() {
-  # Source the cleanup functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
+  # Set script base directory
+  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+  
+  # Don't source the script as it auto-executes
+  # Instead, we'll read the file content directly for validation
 }
 
 @test "cleanupAll should have correct script execution order" {
@@ -17,10 +20,11 @@ setup() {
   SCRIPT_CONTENT=$(grep -A 10 "local BASE_SCRIPTS=" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh")
   
   # Check that Generic Objects comes before Base Tables
-  GENERIC_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "functionsProcess_12_dropGenericObjects" | cut -d: -f1)
-  BASE_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "processPlanetNotes_13_dropBaseTables" | cut -d: -f1)
+  GENERIC_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "Generic Objects" | cut -d: -f1)
+  BASE_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "Base Tables" | cut -d: -f1)
   
   # Generic Objects should come before Base Tables to avoid dependency issues
+  [ -n "$GENERIC_LINE" ] && [ -n "$BASE_LINE" ]
   [ "$GENERIC_LINE" -lt "$BASE_LINE" ]
 }
 
@@ -62,12 +66,13 @@ setup() {
   # Check that functions are dropped before types they depend on
   
   # Extract the order from cleanupAll.sh
-  CLEANUP_ORDER=$(grep -A 10 "local BASE_SCRIPTS=" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" | grep -E "(functionsProcess_12|processPlanetNotes_13)" | cat -n)
+  CLEANUP_ORDER=$(grep -A 10 "local BASE_SCRIPTS=" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" | grep -E "(Generic Objects|Base Tables)" | cat -n)
   
-  # functionsProcess_12_dropGenericObjects should come first
-  GENERIC_ORDER=$(echo "$CLEANUP_ORDER" | grep "functionsProcess_12" | cut -f1)
-  BASE_ORDER=$(echo "$CLEANUP_ORDER" | grep "processPlanetNotes_13" | cut -f1)
+  # Generic Objects should come first (contains functionsProcess_12_dropGenericObjects)
+  GENERIC_ORDER=$(echo "$CLEANUP_ORDER" | grep "Generic Objects" | awk '{print $1}')
+  BASE_ORDER=$(echo "$CLEANUP_ORDER" | grep "Base Tables" | awk '{print $1}')
   
+  [ -n "$GENERIC_ORDER" ] && [ -n "$BASE_ORDER" ]
   [ "$GENERIC_ORDER" -lt "$BASE_ORDER" ]
 }
 
@@ -84,8 +89,9 @@ setup() {
   
   # Solution 1: Correct order
   SCRIPT_CONTENT=$(grep -A 10 "local BASE_SCRIPTS=" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh")
-  GENERIC_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "functionsProcess_12_dropGenericObjects" | cut -d: -f1)
-  BASE_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "processPlanetNotes_13_dropBaseTables" | cut -d: -f1)
+  GENERIC_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "Generic Objects" | cut -d: -f1)
+  BASE_LINE=$(echo "$SCRIPT_CONTENT" | grep -n "Base Tables" | cut -d: -f1)
+  [ -n "$GENERIC_LINE" ] && [ -n "$BASE_LINE" ]
   [ "$GENERIC_LINE" -lt "$BASE_LINE" ]
   
   # Solution 2: CASCADE option
