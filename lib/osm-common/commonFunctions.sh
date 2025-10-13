@@ -79,13 +79,13 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
 fi
 
 # Load bash logger functions - this provides all logging functionality
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh" ]]; then
- # shellcheck source=../lib/bash_logger.sh
- source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh" ]]; then
+ # shellcheck source=../lib/osm-common/bash_logger.sh
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh"
 else
  # If bash_logger.sh is not available, this is a critical error
  # We should fail fast rather than provide fallback implementations
- echo "ERROR: Required logging library not found: ${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh" >&2
+ echo "ERROR: Required logging library not found: ${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh" >&2
  echo "ERROR: This library is essential for proper operation" >&2
  exit "${ERROR_LOGGER_UTILITY}"
 fi
