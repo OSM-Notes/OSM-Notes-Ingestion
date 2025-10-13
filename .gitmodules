@@ -1,0 +1,5 @@
+[submodule "lib/osm-common"]
+	path = lib/osm-common
+	url = https://github.com/angoca/OSM-Notes-Common.git
+	branch = main
+

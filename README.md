@@ -1,8 +1,16 @@
 # OSM-Notes-profile
 
-Mechanism to show a user and country profile about the work on OSM notes.
-Also, it allows publishing a layer with the location of the opened and
-closed notes.
+**Data Ingestion and WMS for OpenStreetMap Notes**
+
+This repository handles downloading, processing, and publishing OSM notes data.
+It provides:
+- Notes ingestion from OSM Planet and API
+- Real-time synchronization with the main OSM database
+- WMS (Web Map Service) layer publication
+- Data monitoring and validation
+
+> **Note:** The analytics, data warehouse, and ETL components have been moved to
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ## tl;dr - 5 minutes configuration
 
@@ -11,7 +19,8 @@ the crontab to invoke the notes pulling.
 This example is for polling every 15 minutes:
 
 ```text
-*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh
+# Ingestion only (Analytics moved to separate repository)
+*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh
 ```
 
 The configuration file contains the properties needed to configure this tool,
@@ -19,34 +28,47 @@ especially the database properties.
 
 ## Main functions
 
-These are the main functions of this project.
+These are the main functions of this project:
 
-* Download the notes from the OSM Planet, and then keep data in sync
+* **Notes Ingestion**: Download notes from the OSM Planet and keep data in sync
   with the main OSM database via API calls.
   This is configured with a scheduler (cron) and it does everything.
-* Updates the current country and maritime information.
+* **Country Boundaries**: Updates the current country and maritime information.
   This should be run once a month.
-* Copy the note's data to another set of tables to allow the
+* **WMS Layer**: Copy the note's data to another set of tables to allow the
   WMS layer publishing.
   This is configured via triggers on the database on the main tables.
-* Monitor the sync by comparing the daily Planet dump with the notes on the
+* **Data Monitoring**: Monitor the sync by comparing the daily Planet dump with the notes on the
   database.
   This is optional and can be configured daily with a cron.
-* Data warehouse for the notes data.
-  This is performed with an ETL that takes the note's data and changes the
-  structure to allow reports, which are used to publish the user and
-  country profile.
-  This is configured via a cron.
-* View the user or country's profile.
-  This is a basic version of the report, to test from the command line.
 
-## Consolidated Functions
+For **analytics, data warehouse, ETL, and profile generation**, see the
+[OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
 
-The project has been refactored to eliminate code duplication and improve maintainability:
+## Shared Functions (Git Submodule)
 
-* **Parallel Processing Functions** (`bin/parallelProcessingFunctions.sh`): Centralized functions for XML parallel processing, eliminating duplication across multiple scripts.
-* **Validation Functions** (`bin/consolidatedValidationFunctions.sh`): Consolidated validation functions for XML, CSV, coordinates, and database operations.
-* **Backward Compatibility**: All existing scripts maintain compatibility while using the new consolidated implementations.
+This project uses a Git submodule for shared code (`lib/osm-common/`):
+
+* **Common Functions** (`commonFunctions.sh`): Core utility functions
+* **Validation Functions** (`validationFunctions.sh`): Data validation
+* **Error Handling** (`errorHandlingFunctions.sh`): Error handling and recovery
+* **Logger** (`bash_logger.sh`): Logging library (log4j-style)
+
+These functions are shared with [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+via the [OSM-Notes-Common](https://github.com/angoca/OSM-Notes-Common) submodule.
+
+### Cloning with Submodules
+
+```bash
+# Clone with submodules
+git clone --recurse-submodules https://github.com/angoca/OSM-Notes-profile.git
+
+# Or initialize after cloning
+git clone https://github.com/angoca/OSM-Notes-profile.git
+cd OSM-Notes-profile
+git submodule init
+git submodule update
+```
 
 ## Timing
 
