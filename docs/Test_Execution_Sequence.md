@@ -1,79 +1,80 @@
-# Guía de Ejecución Secuencial de Tests
+# Sequential Test Execution Guide
 
-**Versión:** 2025-10-14  
-**Autor:** Andres Gomez (AngocA)
+**Version:** 2025-10-14  
+**Author:** Andres Gomez (AngocA)
 
-## Introducción
+## Introduction
 
-Esta guía te permite ejecutar las pruebas **por partes**, organizadas por
-prioridad, complejidad y categoría funcional. Ideal para:
+This guide allows you to execute tests **in parts**, organized by priority,
+complexity, and functional category. Ideal for:
 
-- Verificación rápida durante desarrollo
-- Debugging de componentes específicos
-- Ejecución controlada con recursos limitados
-- Identificación temprana de errores
-
----
-
-## Organización por Niveles
-
-### 📊 Resumen de Niveles
-
-| Nivel | Suites | Tests Aprox. | Tiempo | Descripción |
-|-------|--------|--------------|--------|-------------|
-| **Nivel 1 - Básico** | 15 | ~150 | 5-10 min | Tests fundamentales y rápidos |
-| **Nivel 2 - Validación** | 20 | ~250 | 10-15 min | Validación de datos y formato |
-| **Nivel 3 - Procesamiento** | 18 | ~220 | 15-20 min | Lógica de procesamiento |
-| **Nivel 4 - Integración** | 25 | ~350 | 20-30 min | Integración de componentes |
-| **Nivel 5 - Avanzado** | 18 | ~220 | 15-25 min | Tests avanzados y performance |
-| **Nivel 6 - Completo** | 8 | ~68 | 10-20 min | End-to-End Integration |
-| **TOTAL** | **104** | **~1,258** | **73-120 min** | |
-
-**Nota:** Nivel 10 (DWH) fue eliminado - componentes movidos a OSM-Notes-Analytics
+- Quick verification during development
+- Debugging specific components
+- Controlled execution with limited resources
+- Early error identification
 
 ---
 
-## Nivel 1 - Tests Básicos (5-10 minutos)
+## Organization by Levels
 
-### Objetivo
+### 📊 Level Summary
 
-Verificar funcionalidad básica, logging, y estructura de código.
+| Level | Suites | Approx. Tests | Time | Description |
+|-------|--------|---------------|------|-------------|
+| **Level 1 - Basic** | 15 | ~150 | 5-10 min | Fundamental and fast tests |
+| **Level 2 - Validation** | 20 | ~250 | 10-15 min | Data and format validation |
+| **Level 3 - XML/XSLT** | 18 | ~220 | 8-12 min | XML processing and transformation |
+| **Level 4 - Processing** | 18 | ~220 | 15-25 min | API and Planet processing logic |
+| **Level 5 - Parallel** | 18 | ~220 | 10-15 min | Parallel processing optimization |
+| **Level 6 - Cleanup** | 25 | ~350 | 12-18 min | Cleanup and error handling |
+| **Level 7 - Monitoring** | 18 | ~220 | 8-12 min | Monitoring and WMS |
+| **Level 8 - Advanced** | 18 | ~220 | 10-15 min | Advanced tests and edge cases |
+| **Level 9 - Integration** | 8 | ~68 | 10-20 min | End-to-End Integration |
+| **TOTAL** | **~158** | **~1,918** | **89-147 min** | |
 
-### Suites Incluidas
+---
+
+## Level 1 - Basic Tests (5-10 minutes)
+
+### Objective
+
+Verify basic functionality, logging, and code structure.
+
+### Included Suites
 
 ```bash
-# 1.1 - Logging básico (18 tests, ~2 min)
+# 1.1 - Enhanced logging (18 tests, ~2 min)
 bats tests/unit/bash/bash_logger_enhanced.test.bats
 
-# 1.2 - Variables de base de datos (15 tests, ~1 min)
+# 1.2 - Database variables (15 tests, ~1 min)
 bats tests/unit/bash/database_variables.test.bats
 
-# 1.3 - Formato y lint (tests estáticos, ~2 min)
+# 1.3 - Format and lint (static tests, ~2 min)
 bats tests/unit/bash/format_and_lint.test.bats
 
-# 1.4 - Convenciones de nombres - funciones (tests estáticos, ~1 min)
+# 1.4 - Naming conventions - functions (static tests, ~1 min)
 bats tests/unit/bash/function_naming_convention.test.bats
 
-# 1.5 - Convenciones de nombres - variables (tests estáticos, ~1 min)
+# 1.5 - Naming conventions - variables (static tests, ~1 min)
 bats tests/unit/bash/variable_naming_convention.test.bats
 
-# 1.6 - Validación de ayuda en scripts (tests estáticos, ~1 min)
+# 1.6 - Script help validation (static tests, ~1 min)
 bats tests/unit/bash/script_help_validation.test.bats
 
-# 1.7 - Detección de variables duplicadas (tests estáticos, ~1 min)
+# 1.7 - Duplicate variable detection (static tests, ~1 min)
 bats tests/unit/bash/variable_duplication.test.bats
 bats tests/unit/bash/variable_duplication_detection.test.bats
 
-# 1.8 - Consolidación de funciones (tests estáticos, ~1 min)
+# 1.8 - Function consolidation (static tests, ~1 min)
 bats tests/unit/bash/function_consolidation.test.bats
 ```
 
-### Comando Consolidado Nivel 1
+### Consolidated Level 1 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests básicos
+# Execute all basic tests
 bats tests/unit/bash/bash_logger_enhanced.test.bats \
      tests/unit/bash/database_variables.test.bats \
      tests/unit/bash/format_and_lint.test.bats \
@@ -85,62 +86,62 @@ bats tests/unit/bash/bash_logger_enhanced.test.bats \
      tests/unit/bash/function_consolidation.test.bats
 ```
 
-**Resultado esperado:** ✅ ~50-60 tests pasando en 5-10 minutos
+**Expected result:** ✅ ~50-60 tests passing in 5-10 minutes
 
 ---
 
-## Nivel 2 - Tests de Validación (10-15 minutos)
+## Level 2 - Validation Tests (10-15 minutes)
 
-### Objetivo
+### Objective
 
-Validar entrada de datos, coordenadas, fechas, y formatos.
+Validate data input, coordinates, dates, and formats.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
-# 2.1 - Validación centralizada (10 tests, ~1 min)
+# 2.1 - Centralized validation (10 tests, ~1 min)
 bats tests/unit/bash/centralized_validation.test.bats
 
-# 2.2 - Validación de coordenadas (11 tests, ~2 min)
+# 2.2 - Coordinate validation (11 tests, ~2 min)
 bats tests/unit/bash/coordinate_validation_enhanced.test.bats
 
-# 2.3 - Validación de fechas (15 tests, ~2 min)
+# 2.3 - Date validation (15 tests, ~2 min)
 bats tests/unit/bash/date_validation.test.bats
 
-# 2.4 - Validación de fechas UTC (tests, ~1 min)
+# 2.4 - UTC date validation (tests, ~1 min)
 bats tests/unit/bash/date_validation_utc.test.bats
 
-# 2.5 - Validación de fechas - integración (8 tests, ~1 min)
+# 2.5 - Date validation - integration (8 tests, ~1 min)
 bats tests/unit/bash/date_validation_integration.test.bats
 
-# 2.6 - Validación de boundaries (7 tests, ~1 min)
+# 2.6 - Boundary validation (7 tests, ~1 min)
 bats tests/unit/bash/boundary_validation.test.bats
 
-# 2.7 - Validación de checksums (9 tests, ~1 min)
+# 2.7 - Checksum validation (9 tests, ~1 min)
 bats tests/unit/bash/checksum_validation.test.bats
 
-# 2.8 - Validación de entrada (tests, ~1 min)
+# 2.8 - Input validation (tests, ~1 min)
 bats tests/unit/bash/input_validation.test.bats
 
-# 2.9 - Validación extendida (tests, ~2 min)
+# 2.9 - Extended validation (tests, ~2 min)
 bats tests/unit/bash/extended_validation.test.bats
 
-# 2.10 - Validación de casos edge (tests, ~1 min)
+# 2.10 - Edge case validation (tests, ~1 min)
 bats tests/unit/bash/edge_cases_validation.test.bats
 
-# 2.11 - Validación de SQL (tests, ~2 min)
+# 2.11 - SQL validation (tests, ~2 min)
 bats tests/unit/bash/sql_validation_integration.test.bats
 
-# 2.12 - Validación de constraints SQL (tests, ~2 min)
+# 2.12 - SQL constraints validation (tests, ~2 min)
 bats tests/unit/bash/sql_constraints_validation.test.bats
 ```
 
-### Comando Consolidado Nivel 2
+### Consolidated Level 2 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests de validación
+# Execute all validation tests
 bats tests/unit/bash/centralized_validation.test.bats \
      tests/unit/bash/coordinate_validation_enhanced.test.bats \
      tests/unit/bash/date_validation.test.bats \
@@ -155,65 +156,65 @@ bats tests/unit/bash/centralized_validation.test.bats \
      tests/unit/bash/sql_constraints_validation.test.bats
 ```
 
-**Resultado esperado:** ✅ ~100-120 tests pasando en 10-15 minutos
+**Expected result:** ✅ ~100-120 tests passing in 10-15 minutes
 
 ---
 
-## Nivel 3 - Tests de XML/XSLT (8-12 minutos)
+## Level 3 - XML/XSLT Tests (8-12 minutes)
 
-### Objetivo
+### Objective
 
-Validar procesamiento de XML y transformaciones XSLT.
+Validate XML processing and XSLT transformations.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
-# 3.1 - Validación de enum en CSV (9 tests, ~1 min)
+# 3.1 - CSV enum validation (9 tests, ~1 min)
 bats tests/unit/bash/csv_enum_validation.test.bats
 
-# 3.2 - Formato de enum en XSLT (tests, ~2 min)
+# 3.2 - XSLT enum format (tests, ~2 min)
 bats tests/unit/bash/xslt_enum_format.test.bats
 
-# 3.3 - Validación de enum en XSLT (tests, ~2 min)
+# 3.3 - XSLT enum validation (tests, ~2 min)
 bats tests/unit/bash/xslt_enum_validation.test.bats
 
 # 3.4 - XSLT simple (tests, ~1 min)
 bats tests/unit/bash/xslt_simple.test.bats
 
-# 3.5 - XSLT formato CSV (tests, ~2 min)
+# 3.5 - XSLT CSV format (tests, ~2 min)
 bats tests/unit/bash/xslt_csv_format.test.bats
 
-# 3.6 - XSLT recursión en notas grandes (tests, ~2 min)
+# 3.6 - XSLT large notes recursion (tests, ~2 min)
 bats tests/unit/bash/xslt_large_notes_recursion.test.bats
 
-# 3.7 - Validación XML simple (tests, ~2 min)
+# 3.7 - XML validation simple (tests, ~2 min)
 bats tests/unit/bash/xml_validation_simple.test.bats
 
-# 3.8 - Validación XML mejorada (tests, ~2 min)
+# 3.8 - XML validation enhanced (tests, ~2 min)
 bats tests/unit/bash/xml_validation_enhanced.test.bats
 
-# 3.9 - Funciones de validación XML (tests, ~2 min)
+# 3.9 - XML validation functions (tests, ~2 min)
 bats tests/unit/bash/xml_validation_functions.test.bats
 
-# 3.10 - Validación XML archivos grandes (tests, ~3 min)
+# 3.10 - XML validation large files (tests, ~3 min)
 bats tests/unit/bash/xml_validation_large_files.test.bats
 
-# 3.11 - Procesamiento XML mejorado (tests, ~2 min)
+# 3.11 - XML processing enhanced (tests, ~2 min)
 bats tests/unit/bash/xml_processing_enhanced.test.bats
 
-# 3.12 - Recuperación de corrupción XML (tests, ~2 min)
+# 3.12 - XML corruption recovery (tests, ~2 min)
 bats tests/unit/bash/xml_corruption_recovery.test.bats
 
-# 3.13 - Límites de recursos XML (tests, ~2 min)
+# 3.13 - Resource limits (tests, ~2 min)
 bats tests/unit/bash/resource_limits.test.bats
 ```
 
-### Comando Consolidado Nivel 3
+### Consolidated Level 3 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests de XML/XSLT
+# Execute all XML/XSLT tests
 bats tests/unit/bash/csv_enum_validation.test.bats \
      tests/unit/bash/xslt_enum_format.test.bats \
      tests/unit/bash/xslt_enum_validation.test.bats \
@@ -229,59 +230,59 @@ bats tests/unit/bash/csv_enum_validation.test.bats \
      tests/unit/bash/resource_limits.test.bats
 ```
 
-**Resultado esperado:** ✅ ~80-100 tests pasando en 8-12 minutos
+**Expected result:** ✅ ~80-100 tests passing in 8-12 minutes
 
 ---
 
-## Nivel 4 - Tests de Procesamiento (15-25 minutos)
+## Level 4 - Processing Tests (15-25 minutes)
 
-### Objetivo
+### Objective
 
-Validar procesamiento de datos API y Planet.
+Validate API and Planet data processing.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
-# 4.1 - ProcessAPI básico (tests, ~2 min)
+# 4.1 - ProcessAPI basic (tests, ~2 min)
 bats tests/unit/bash/processAPINotes.test.bats
 
-# 4.2 - ProcessAPI integración (tests, ~3 min)
+# 4.2 - ProcessAPI integration (tests, ~3 min)
 bats tests/unit/bash/processAPINotes_integration.test.bats
 
-# 4.3 - ProcessAPI error handling mejorado (tests, ~2 min)
+# 4.3 - ProcessAPI error handling improved (tests, ~2 min)
 bats tests/unit/bash/processAPINotes_error_handling_improved.test.bats
 
 # 4.4 - ProcessAPI parallel error (tests, ~2 min)
 bats tests/unit/bash/processAPINotes_parallel_error.test.bats
 
-# 4.5 - ProcessAPI validación histórica (tests, ~2 min)
+# 4.5 - ProcessAPI historical validation (tests, ~2 min)
 bats tests/unit/bash/historical_data_validation.test.bats
 
-# 4.6 - ProcessAPI integración histórica (tests, ~2 min)
+# 4.6 - ProcessAPI historical integration (tests, ~2 min)
 bats tests/unit/bash/processAPI_historical_integration.test.bats
 
 # 4.7 - API download verification (6 tests, ~2 min)
 bats tests/unit/bash/api_download_verification.test.bats
 
-# 4.8 - ProcessPlanet básico (tests, ~2 min)
+# 4.8 - ProcessPlanet basic (tests, ~2 min)
 bats tests/unit/bash/processPlanetNotes.test.bats
 
-# 4.9 - ProcessPlanet integración (tests, ~3 min)
+# 4.9 - ProcessPlanet integration (tests, ~3 min)
 bats tests/unit/bash/processPlanetNotes_integration.test.bats
 
-# 4.10 - ProcessPlanet integración fixed (tests, ~3 min)
+# 4.10 - ProcessPlanet integration fixed (tests, ~3 min)
 bats tests/unit/bash/processPlanetNotes_integration_fixed.test.bats
 
 # 4.11 - Mock planet functions (tests, ~2 min)
 bats tests/unit/bash/mock_planet_functions.test.bats
 ```
 
-### Comando Consolidado Nivel 4
+### Consolidated Level 4 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests de procesamiento
+# Execute all processing tests
 bats tests/unit/bash/processAPINotes.test.bats \
      tests/unit/bash/processAPINotes_integration.test.bats \
      tests/unit/bash/processAPINotes_error_handling_improved.test.bats \
@@ -295,36 +296,36 @@ bats tests/unit/bash/processAPINotes.test.bats \
      tests/unit/bash/mock_planet_functions.test.bats
 ```
 
-**Resultado esperado:** ✅ ~120-150 tests pasando en 15-25 minutos
+**Expected result:** ✅ ~120-150 tests passing in 15-25 minutes
 
 ---
 
-## Nivel 5 - Tests de Procesamiento Paralelo (10-15 minutos)
+## Level 5 - Parallel Processing Tests (10-15 minutes)
 
-### Objetivo
+### Objective
 
-Validar optimización y procesamiento paralelo.
+Validate optimization and parallel processing.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
-# 5.1 - Suite completa de parallel processing (21 tests, ~5 min)
+# 5.1 - Complete parallel processing suite (21 tests, ~5 min)
 bats tests/parallel_processing_test_suite.bats
 
-# 5.2 - Parallel processing robusto (tests, ~2 min)
+# 5.2 - Robust parallel processing (tests, ~2 min)
 bats tests/unit/bash/parallel_processing_robust.test.bats
 
-# 5.3 - Parallel processing optimización (tests, ~2 min)
+# 5.3 - Parallel processing optimization (tests, ~2 min)
 bats tests/unit/bash/parallel_processing_optimization.test.bats
 
-# 5.4 - Parallel processing validación (tests, ~2 min)
+# 5.4 - Parallel processing validation (tests, ~2 min)
 bats tests/unit/bash/parallel_processing_validation.test.bats
 
 # 5.5 - Parallel threshold (tests, ~1 min)
 bats tests/unit/bash/parallel_threshold.test.bats
 
 # 5.6 - Parallel delay test (tests, ~2 min)
-bats tests/unit/bash/parallel_delay_test.bats
+bats tests/unit/bash/parallel_delay_test.test.bats
 
 # 5.7 - Parallel delay test simple (tests, ~1 min)
 bats tests/unit/bash/parallel_delay_test_simple.bats
@@ -336,12 +337,12 @@ bats tests/unit/bash/parallel_failed_file.test.bats
 bats tests/unit/bash/binary_division_performance.test.bats
 ```
 
-### Comando Consolidado Nivel 5
+### Consolidated Level 5 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests de procesamiento paralelo
+# Execute all parallel processing tests
 bats tests/parallel_processing_test_suite.bats \
      tests/unit/bash/parallel_processing_robust.test.bats \
      tests/unit/bash/parallel_processing_optimization.test.bats \
@@ -353,23 +354,23 @@ bats tests/parallel_processing_test_suite.bats \
      tests/unit/bash/binary_division_performance.test.bats
 ```
 
-**Resultado esperado:** ✅ ~80-100 tests pasando en 10-15 minutos
+**Expected result:** ✅ ~80-100 tests passing in 10-15 minutes
 
 ---
 
-## Nivel 6 - Tests de Cleanup y Error Handling (12-18 minutos)
+## Level 6 - Cleanup and Error Handling Tests (12-18 minutes)
 
-### Objetivo
+### Objective
 
-Validar limpieza de recursos y manejo de errores.
+Validate resource cleanup and error handling.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
-# 6.1 - CleanupAll integración (16 tests, ~3 min)
+# 6.1 - CleanupAll integration (16 tests, ~3 min)
 bats tests/unit/bash/cleanupAll_integration.test.bats
 
-# 6.2 - CleanupAll básico (10 tests, ~2 min)
+# 6.2 - CleanupAll basic (10 tests, ~2 min)
 bats tests/unit/bash/cleanupAll.test.bats
 
 # 6.3 - Clean flag handling (6 tests, ~1 min)
@@ -403,12 +404,12 @@ bats tests/unit/bash/error_handling_enhanced.test.bats
 bats tests/unit/bash/error_handling_consolidated.test.bats
 ```
 
-### Comando Consolidado Nivel 6
+### Consolidated Level 6 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests de cleanup y error handling
+# Execute all cleanup and error handling tests
 bats tests/unit/bash/cleanupAll_integration.test.bats \
      tests/unit/bash/cleanupAll.test.bats \
      tests/unit/bash/clean_flag_handling.test.bats \
@@ -423,50 +424,50 @@ bats tests/unit/bash/cleanupAll_integration.test.bats \
      tests/unit/bash/error_handling_consolidated.test.bats
 ```
 
-**Resultado esperado:** ✅ ~100-120 tests pasando en 12-18 minutos
+**Expected result:** ✅ ~100-120 tests passing in 12-18 minutes
 
 ---
 
-## Nivel 7 - Tests de Monitoreo y WMS (8-12 minutos)
+## Level 7 - Monitoring and WMS Tests (8-12 minutes)
 
-### Objetivo
+### Objective
 
-Validar monitoreo, WMS, y otros componentes.
+Validate monitoring, WMS, and other components.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
 # 7.1 - Monitoring (tests, ~2 min)
 bats tests/unit/bash/monitoring.test.bats
 
-# 7.2 - Notes check verifier integración (tests, ~2 min)
+# 7.2 - Notes check verifier integration (tests, ~2 min)
 bats tests/unit/bash/notesCheckVerifier_integration.test.bats
 
-# 7.3 - Process check planet notes integración (tests, ~2 min)
+# 7.3 - Process check planet notes integration (tests, ~2 min)
 bats tests/unit/bash/processCheckPlanetNotes_integration.test.bats
 
 # 7.4 - WMS Manager (tests, ~2 min)
 bats tests/unit/bash/wmsManager.test.bats
 
-# 7.5 - WMS Manager integración (tests, ~2 min)
+# 7.5 - WMS Manager integration (tests, ~2 min)
 bats tests/unit/bash/wmsManager_integration.test.bats
 
-# 7.6 - WMS config example integración (tests, ~1 min)
+# 7.6 - WMS config example integration (tests, ~1 min)
 bats tests/unit/bash/wmsConfigExample_integration.test.bats
 
-# 7.7 - GeoServer config integración (tests, ~1 min)
+# 7.7 - GeoServer config integration (tests, ~1 min)
 bats tests/unit/bash/geoserverConfig_integration.test.bats
 
-# 7.8 - Update countries integración (tests, ~1 min)
+# 7.8 - Update countries integration (tests, ~1 min)
 bats tests/unit/bash/updateCountries_integration.test.bats
 ```
 
-### Comando Consolidado Nivel 7
+### Consolidated Level 7 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests de monitoreo y WMS
+# Execute all monitoring and WMS tests
 bats tests/unit/bash/monitoring.test.bats \
      tests/unit/bash/notesCheckVerifier_integration.test.bats \
      tests/unit/bash/processCheckPlanetNotes_integration.test.bats \
@@ -477,17 +478,17 @@ bats tests/unit/bash/monitoring.test.bats \
      tests/unit/bash/updateCountries_integration.test.bats
 ```
 
-**Resultado esperado:** ✅ ~50-70 tests pasando en 8-12 minutos
+**Expected result:** ✅ ~50-70 tests passing in 8-12 minutes
 
 ---
 
-## Nivel 8 - Tests Avanzados y Casos Edge (10-15 minutos)
+## Level 8 - Advanced and Edge Case Tests (10-15 minutes)
 
-### Objetivo
+### Objective
 
-Validar casos edge, performance, y funcionalidad avanzada.
+Validate edge cases, performance, and advanced functionality.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
 # 8.1 - Performance edge cases (tests, ~3 min)
@@ -530,12 +531,12 @@ bats tests/unit/bash/logging_improvements.test.bats
 bats tests/unit/bash/logging_pattern_validation.test.bats
 ```
 
-### Comando Consolidado Nivel 8
+### Consolidated Level 8 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests avanzados
+# Execute all advanced tests
 bats tests/unit/bash/performance_edge_cases.test.bats \
      tests/unit/bash/performance_edge_cases_simple.test.bats \
      tests/unit/bash/performance_edge_cases_quick.test.bats \
@@ -551,17 +552,17 @@ bats tests/unit/bash/performance_edge_cases.test.bats \
      tests/unit/bash/logging_pattern_validation.test.bats
 ```
 
-**Resultado esperado:** ✅ ~100-130 tests pasando en 10-15 minutos
+**Expected result:** ✅ ~100-130 tests passing in 10-15 minutes
 
 ---
 
-## Nivel 9 - Tests de Integración End-to-End (10-20 minutos)
+## Level 9 - End-to-End Integration Tests (10-20 minutes)
 
-### Objetivo
+### Objective
 
-Validar flujos completos de ingesta y procesamiento.
+Validate complete ingestion and processing flows.
 
-### Suites Incluidas
+### Included Suites
 
 ```bash
 # 9.1 - Boundary processing error integration (16 tests, ~4 min)
@@ -589,12 +590,12 @@ bats tests/integration/end_to_end.test.bats
 bats tests/integration/processAPI_historical_e2e.test.bats
 ```
 
-### Comando Consolidado Nivel 9
+### Consolidated Level 9 Command
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Ejecutar todos los tests de integración
+# Execute all integration tests
 bats tests/integration/boundary_processing_error_integration.test.bats \
      tests/integration/wms_integration.test.bats \
      tests/integration/logging_pattern_validation_integration.test.bats \
@@ -605,21 +606,18 @@ bats tests/integration/boundary_processing_error_integration.test.bats \
      tests/integration/processAPI_historical_e2e.test.bats
 ```
 
-**Resultado esperado:** ✅ ~68 tests pasando en 10-20 minutos
+**Expected result:** ✅ ~68 tests passing in 10-20 minutes
 
 ---
 
+## Quick Sequence (Quick Check - 15-20 minutes)
 
----
-
-## Secuencia Rápida (Quick Check - 15-20 minutos)
-
-Para una verificación rápida antes de commit:
+For quick verification before commit:
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Suite rápida - tests críticos
+# Quick suite - critical tests
 bats tests/unit/bash/bash_logger_enhanced.test.bats \
      tests/unit/bash/format_and_lint.test.bats \
      tests/unit/bash/centralized_validation.test.bats \
@@ -632,53 +630,53 @@ bats tests/unit/bash/bash_logger_enhanced.test.bats \
      tests/unit/bash/error_handling_consolidated.test.bats
 ```
 
-**Resultado esperado:** ✅ ~150-180 tests críticos en 15-20 minutos
+**Expected result:** ✅ ~150-180 critical tests in 15-20 minutes
 
 ---
 
-## Secuencia Completa (Full Test Suite)
+## Complete Sequence (Full Test Suite)
 
-### Opción 1: Ejecutar nivel por nivel
+### Option 1: Execute level by level
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Nivel 1 - Básico
+# Level 1 - Basic
 bats tests/unit/bash/bash_logger_enhanced.test.bats \
      tests/unit/bash/database_variables.test.bats \
      tests/unit/bash/format_and_lint.test.bats
 
-# Nivel 2 - Validación
+# Level 2 - Validation
 bats tests/unit/bash/centralized_validation.test.bats \
      tests/unit/bash/coordinate_validation_enhanced.test.bats \
      tests/unit/bash/date_validation.test.bats
 
-# ... continuar con cada nivel ...
+# ... continue with each level ...
 ```
 
-### Opción 2: Script automatizado
+### Option 2: Automated script
 
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Crear y ejecutar script de secuencia completa
+# Create and execute complete sequence script
 cat > run_tests_sequential.sh << 'EOF'
 #!/bin/bash
 
 set -euo pipefail
 
-echo "=== Nivel 1: Tests Básicos ==="
+echo "=== Level 1: Basic Tests ==="
 bats tests/unit/bash/bash_logger_enhanced.test.bats \
      tests/unit/bash/database_variables.test.bats \
      tests/unit/bash/format_and_lint.test.bats
 
-echo "=== Nivel 2: Tests de Validación ==="
+echo "=== Level 2: Validation Tests ==="
 bats tests/unit/bash/centralized_validation.test.bats \
      tests/unit/bash/coordinate_validation_enhanced.test.bats
 
-# ... agregar más niveles según necesidad ...
+# ... add more levels as needed ...
 
-echo "=== ✅ Secuencia completa finalizada ==="
+echo "=== ✅ Complete sequence finished ==="
 EOF
 
 chmod +x run_tests_sequential.sh
@@ -687,44 +685,44 @@ chmod +x run_tests_sequential.sh
 
 ---
 
-## Scripts de Ejecución por Categoría
+## Execution Scripts by Category
 
-### Por Funcionalidad
+### By Functionality
 
 ```bash
-# ProcessAPI completo
+# Complete ProcessAPI
 bats tests/unit/bash/processAPINotes*.bats \
      tests/unit/bash/api_download_verification.test.bats \
      tests/unit/bash/historical_data_validation.test.bats
 
-# ProcessPlanet completo
+# Complete ProcessPlanet
 bats tests/unit/bash/processPlanetNotes*.bats \
      tests/unit/bash/mock_planet_functions.test.bats
 
-# XML/XSLT completo
+# Complete XML/XSLT
 bats tests/unit/bash/xml*.bats tests/unit/bash/xslt*.bats
 
-# Parallel Processing completo
+# Complete Parallel Processing
 bats tests/parallel_processing_test_suite.bats \
      tests/unit/bash/parallel*.bats
 
-# Cleanup completo
+# Complete Cleanup
 bats tests/unit/bash/cleanup*.bats tests/unit/bash/clean*.bats
 
-# WMS completo
+# Complete WMS
 bats tests/unit/bash/wms*.bats tests/integration/wms_integration.test.bats
 ```
 
 ---
 
-## Monitoreo de Progreso
+## Progress Monitoring
 
-### Script con indicadores de progreso
+### Script with progress indicators
 
 ```bash
 #!/bin/bash
 
-TOTAL_LEVELS=10
+TOTAL_LEVELS=9
 CURRENT_LEVEL=0
 
 run_level() {
@@ -734,117 +732,114 @@ run_level() {
   
   echo ""
   echo "╔════════════════════════════════════════╗"
-  echo "║  Nivel $level/$TOTAL_LEVELS: $description"
+  echo "║  Level $level/$TOTAL_LEVELS: $description"
   echo "╚════════════════════════════════════════╝"
   echo ""
 }
 
-# Nivel 1
-run_level 1 "Tests Básicos"
+# Level 1
+run_level 1 "Basic Tests"
 bats tests/unit/bash/bash_logger_enhanced.test.bats
 
-# Nivel 2
-run_level 2 "Tests de Validación"
+# Level 2
+run_level 2 "Validation Tests"
 bats tests/unit/bash/centralized_validation.test.bats
 
-# ... continuar ...
+# ... continue ...
 
 echo ""
 echo "╔════════════════════════════════════════╗"
-echo "║  ✅ Todos los niveles completados!"
+echo "║  ✅ All levels completed!"
 echo "╚════════════════════════════════════════╝"
 ```
 
 ---
 
-## Recomendaciones de Uso
+## Usage Recommendations
 
-### Durante Desarrollo Activo
+### During Active Development
 
-1. **Commit rápido:** Nivel 1 + Nivel 2 (~15 min)
-2. **Antes de push:** Niveles 1-5 (~45 min)
-3. **Antes de merge:** Niveles 1-9 (~90 min)
-4. **Release:** Todos los niveles (~135 min)
+1. **Quick commit:** Level 1 + Level 2 (~15 min)
+2. **Before push:** Levels 1-5 (~45 min)
+3. **Before merge:** Levels 1-9 (~90 min)
+4. **Release:** All levels (~120 min)
 
-### Para Debugging
+### For Debugging
 
-1. Ejecutar nivel específico de la funcionalidad afectada
-2. Ejecutar suite específica del componente
-3. Ejecutar test individual: `bats archivo.bats -f "nombre del test"`
+1. Execute specific level for affected functionality
+2. Execute specific suite for the component
+3. Execute individual test: `bats file.bats -f "test name"`
 
-### Para CI/CD
+### For CI/CD
 
-1. GitHub Actions ejecuta todos automáticamente
-2. Para testing local de CI: `./tests/run_all_tests.sh --mode docker`
+1. GitHub Actions executes all automatically
+2. For local CI testing: `./tests/run_all_tests.sh --mode docker`
 
 ---
 
 ## Troubleshooting
 
-### Test falla en un nivel
+### Test fails in a level
 
 ```bash
-# Re-ejecutar solo ese nivel con verbose
-bats -t tests/unit/bash/archivo_que_fallo.test.bats
+# Re-execute only that level with verbose
+bats -t tests/unit/bash/failing_file.test.bats
 
-# Ver detalles de un test específico
-bats tests/unit/bash/archivo.test.bats -f "nombre exacto del test"
+# View details of a specific test
+bats tests/unit/bash/file.bats -f "exact test name"
 ```
 
-### PostgreSQL no disponible
+### PostgreSQL not available
 
 ```bash
-# Verificar que PostgreSQL esté corriendo
+# Verify PostgreSQL is running
 sudo systemctl status postgresql
 
-# Iniciar PostgreSQL
+# Start PostgreSQL
 sudo systemctl start postgresql
 
-# Verificar conexión
+# Verify connection
 psql -U notes -d notes -c "SELECT 1;"
 ```
 
-### Tests muy lentos
+### Tests too slow
 
 ```bash
-# Ejecutar solo quick check
+# Execute only quick check
 bats tests/unit/bash/format_and_lint.test.bats
 
-# Usar modo mock para tests sin BD
+# Use mock mode for tests without DB
 ./tests/run_all_tests.sh --mode mock --type unit
 ```
 
 ---
 
-## Resumen de Comandos Clave
+## Key Commands Summary
 
 ```bash
-# Verificación rápida (15-20 min)
+# Quick verification (15-20 min)
 ./tests/run_tests_sequential.sh quick
 
-# Nivel específico (ejemplo: Nivel 3 - XML/XSLT)
+# Specific level (example: Level 3 - XML/XSLT)
 bats tests/unit/bash/xml*.bats tests/unit/bash/xslt*.bats
 
-# Suite específica
+# Specific suite
 bats tests/unit/bash/processAPINotes.test.bats
 
-# Test individual
-bats tests/unit/bash/processAPINotes.test.bats -f "test_nombre_especifico"
+# Individual test
+bats tests/unit/bash/processAPINotes.test.bats -f "specific_test_name"
 
-# Todos los tests unitarios
+# All unit tests
 bats tests/unit/bash/*.bats
 
-# Todos los tests de integración
+# All integration tests
 bats tests/integration/*.bats
 
-# DWH completo
-./tests/run_dwh_tests.sh
-
-# Todo (no recomendado localmente, usar CI)
+# Everything (not recommended locally, use CI)
 ./tests/run_all_tests.sh --mode host --type all
 ```
 
 ---
 
-**Última actualización:** 2025-10-14  
-**Mantenedor:** Andres Gomez (AngocA)
+**Last updated:** 2025-10-14  
+**Maintainer:** Andres Gomez (AngocA)

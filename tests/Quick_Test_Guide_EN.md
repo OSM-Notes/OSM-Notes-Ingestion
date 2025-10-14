@@ -296,3 +296,4 @@ bats tests/unit/bash/suite.test.bats 2>&1 | tee test_output.log
 
 **Last update:** 2025-10-14  
 **Maintainer:** Andres Gomez (AngocA)
+

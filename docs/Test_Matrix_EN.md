@@ -34,7 +34,6 @@
 | **TOTAL** | **128+** | **~1,290+** | - | - | - | - | **84-163 min** |
 
 **Legend:**
-
 - ✅ Fully supported
 - ⚠️ Partially supported (requires additional configuration)
 - ❌ Not supported in this environment
@@ -125,7 +124,6 @@
 ```
 
 **Requirements:**
-
 - PostgreSQL installed and running
 - User `postgres` or `notes` with permissions
 - BATS installed
@@ -150,7 +148,6 @@
 ```
 
 **Requirements:**
-
 - Docker installed
 - Docker Compose installed
 - User in `docker` group (or use sudo)
@@ -173,7 +170,6 @@
 ```
 
 **Requirements:**
-
 - BATS installed
 - Mock commands in `tests/mock_commands/`
 
@@ -192,7 +188,6 @@ git push origin main
 ```
 
 **Available workflows:**
-
 - `tests.yml` - Complete test suite
 - `integration-tests.yml` - Integration tests
 - `quality-tests.yml` - Quality tests
@@ -377,3 +372,4 @@ source tests/properties.sh
 
 **Last update:** 2025-10-14  
 **Maintainer:** Andres Gomez (AngocA)
+
