@@ -2,7 +2,7 @@
 
 # Integration test for complete Planet XML processing using mock data
 # Author: Andres Gomez
-# Version: 2025-08-18
+# Version: 2025-10-14
 
 load ../test_helper
 
@@ -71,22 +71,19 @@ teardown() {
   [ -f "${xslt_file}" ]
   
   # Process XML with XSLT
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
-  # Verify CSV structure
+  # Verify CSV structure (Planet XSLT doesn't generate headers, only data)
   local line_count
   line_count=$(wc -l < "${output_file}")
-  [ "${line_count}" -gt 1 ] # Header + data
+  [ "${line_count}" -gt 0 ] # At least some data
   
-  # Check first line (should be header)
-  head -1 "${output_file}" | grep -q "id,lat,lon,created_at,status,closed_at,comment_count"
-  
-  # Check data lines
-  tail -n +2 "${output_file}" | head -1 | grep -q "^[0-9]"
+  # Check data lines (first line should start with note ID)
+  head -1 "${output_file}" | grep -q "^[0-9]"
   
   echo "✓ Notes CSV generated successfully: ${line_count} lines"
 }
@@ -99,22 +96,19 @@ teardown() {
   [ -f "${xslt_file}" ]
   
   # Process XML with XSLT
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
-  # Verify CSV structure
+  # Verify CSV structure (Planet XSLT doesn't generate headers, only data)
   local line_count
   line_count=$(wc -l < "${output_file}")
-  [ "${line_count}" -gt 1 ] # Header + data
+  [ "${line_count}" -gt 0 ] # At least some data
   
-  # Check first line (should be header)
-  head -1 "${output_file}" | grep -q "note_id,comment_id,action,timestamp,uid,user,text"
-  
-  # Check data lines
-  tail -n +2 "${output_file}" | head -1 | grep -q "^[0-9]"
+  # Check data lines (first line should start with note ID)
+  head -1 "${output_file}" | grep -q "^[0-9]"
   
   echo "✓ Comments CSV generated successfully: ${line_count} lines"
 }
@@ -127,22 +121,19 @@ teardown() {
   [ -f "${xslt_file}" ]
   
   # Process XML with XSLT
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
-  # Verify CSV structure
+  # Verify CSV structure (Planet XSLT doesn't generate headers, only data)
   local line_count
   line_count=$(wc -l < "${output_file}")
-  [ "${line_count}" -gt 1 ] # Header + data
+  [ "${line_count}" -gt 0 ] # At least some data
   
-  # Check first line (should be header)
-  head -1 "${output_file}" | grep -q "note_id,comment_id,text"
-  
-  # Check data lines
-  tail -n +2 "${output_file}" | head -1 | grep -q "^[0-9]"
+  # Check data lines (first line should start with note ID)
+  head -1 "${output_file}" | grep -q "^[0-9]"
   
   echo "✓ Text comments CSV generated successfully: ${line_count} lines"
 }
@@ -223,7 +214,7 @@ EOF
     local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
     local output_file="${TEST_OUTPUT_DIR}/mock_special_chars.csv"
     
-    run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+    run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
     
     [ "$status" -eq 0 ]
     [ -f "${output_file}" ]
@@ -243,7 +234,7 @@ EOF
   local start_time
   start_time=$(date +%s.%N)
   
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
   
   local end_time
   end_time=$(date +%s.%N)
