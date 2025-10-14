@@ -160,22 +160,15 @@ __run_wms_tests() {
 }
 
 # Function to run ETL tests
+# NOTE: ETL and Datamart tests have been moved to OSM-Notes-Analytics repository
+# This function is kept for backward compatibility but skips the tests
 __run_etl_tests() {
- log_info "Running ETL integration tests..."
-
- local TEST_RESULT=0
-
- # shellcheck disable=SC2310
- __run_test_suite \
-  "${SCRIPT_DIR}/integration/ETL_enhanced_integration.test.bats" \
-  "ETL enhanced integration" || TEST_RESULT=1
-
- # shellcheck disable=SC2310
- __run_test_suite \
-  "${SCRIPT_DIR}/integration/datamart_enhanced_integration.test.bats" \
-  "datamart enhanced integration" || TEST_RESULT=1
-
- return "${TEST_RESULT}"
+ log_warn "ETL and Datamart tests have been moved to OSM-Notes-Analytics repository"
+ log_info "See: https://github.com/OSMLatam/OSM-Notes-Analytics"
+ log_info "Tests in this repo focus on: Ingestion (Planet/API), WMS, and Monitoring"
+ 
+ # Return success to not break scripts that call this
+ return 0
 }
 
 # Function to run end-to-end tests
@@ -226,7 +219,7 @@ Options:
   --process-planet    Run process-planet integration tests
   --cleanup           Run cleanup integration tests
   --wms               Run WMS integration tests
-  --etl               Run ETL integration tests
+  --etl               [DEPRECATED] ETL tests moved to OSM-Notes-Analytics
   --e2e               Run end-to-end integration tests
 
 Environment Variables:

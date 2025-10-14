@@ -148,7 +148,8 @@ jobs:
         echo "Running specific integration tests..."
         
         # Run each test category with error handling
-        test_categories=("process-api" "process-planet" "cleanup" "wms" "etl")
+        # Note: ETL and datamart tests moved to OSM-Notes-Analytics repository
+        test_categories=("process-api" "process-planet" "cleanup" "wms")
         
         for category in "${test_categories[@]}"; do
           echo "Running ${category} tests..."
@@ -220,22 +221,17 @@ jobs:
         echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Tests Executed:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ processAPINotes_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ cleanupAll_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ processPlanetNotes_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ updateCountries_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ ETL_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ wmsManager_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ datamartUsers_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ cleanupAll_integration.test.bats (includes partition cleanup functionality)" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ processCheckPlanetNotes_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ notesCheckVerifier_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ profile_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ datamartCountries_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ geoserverConfig_integration.test.bats" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ wmsConfigExample_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ end_to_end.test.bats (Planet/API ingestion)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ processAPI_historical_e2e.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ processAPINotes_parallel_error_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ boundary_processing_error_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ wms_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ xslt_integration.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ mock_planet_processing.test.bats" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ logging_pattern_validation_integration.test.bats" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Coverage:" >> $GITHUB_STEP_SUMMARY
-        echo "- **Total Scripts Tested:** 14" >> $GITHUB_STEP_SUMMARY
-        echo "- **Categories Covered:** Processing, Cleanup, DWH, WMS, Monitor" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Scripts Tested:** 8" >> $GITHUB_STEP_SUMMARY
+        echo "- **Categories Covered:** Ingestion (Planet/API), WMS, Monitoring, Validation" >> $GITHUB_STEP_SUMMARY
+        echo "- **Note:** ETL and Datamart tests moved to OSM-Notes-Analytics repository" >> $GITHUB_STEP_SUMMARY
         echo "- **Integration Level:** Full script execution" >> $GITHUB_STEP_SUMMARY 
