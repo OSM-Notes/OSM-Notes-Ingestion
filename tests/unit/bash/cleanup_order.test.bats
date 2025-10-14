@@ -50,7 +50,7 @@ setup() {
 
 @test "SQL scripts should have valid syntax" {
   # Basic syntax check for the drop scripts
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Validate Generic Objects script
   run __validate_sql_structure "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"

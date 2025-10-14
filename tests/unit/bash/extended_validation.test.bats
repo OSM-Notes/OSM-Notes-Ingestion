@@ -13,7 +13,7 @@ setup() {
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
  source "${SCRIPT_BASE_DIRECTORY}/etc/etl.properties"
  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 
  # Create temporary test files
  TEST_DIR=$(mktemp -d)

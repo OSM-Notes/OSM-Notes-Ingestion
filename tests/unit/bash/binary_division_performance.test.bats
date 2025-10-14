@@ -89,10 +89,10 @@ source_bin_functions() {
   
   echo "Using PROJECT_ROOT: ${PROJECT_ROOT}" >&2
   
-  if [[ -f "${PROJECT_ROOT}/bin/commonFunctions.sh" ]]; then
-    source "${PROJECT_ROOT}/bin/commonFunctions.sh"
+  if [[ -f "${PROJECT_ROOT}/lib/osm-common/commonFunctions.sh" ]]; then
+    source "${PROJECT_ROOT}/lib/osm-common/commonFunctions.sh"
   else
-    echo "ERROR: commonFunctions.sh not found at ${PROJECT_ROOT}/bin/commonFunctions.sh" >&2
+    echo "ERROR: commonFunctions.sh not found at ${PROJECT_ROOT}/lib/osm-common/commonFunctions.sh" >&2
     return 1
   fi
   

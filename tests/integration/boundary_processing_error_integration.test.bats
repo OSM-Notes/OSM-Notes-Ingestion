@@ -334,7 +334,7 @@ EOF
 
  # Test that validation functions are present
  # Note: __validate_json_structure is in validationFunctions.sh which is sourced by functionsProcess.sh
- run grep -q "function __validate_json_structure" "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ run grep -q "function __validate_json_structure" "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  [ "$status" -eq 0 ]
 }
 

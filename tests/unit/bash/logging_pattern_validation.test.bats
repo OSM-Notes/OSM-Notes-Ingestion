@@ -10,7 +10,7 @@ load "../../test_helper.bash"
 setup() {
  # Source the enhanced logger
  # shellcheck disable=SC2154
- source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh"
 
  # Create temporary log file for tests
  TEST_LOG_FILE="/tmp/logging_pattern_test_$$.log"

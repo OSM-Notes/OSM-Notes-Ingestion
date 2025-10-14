@@ -9,7 +9,7 @@ load "../../test_helper.bash"
 
 setup() {
   # Source the validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Create temporary test files
   TEST_FILE="/tmp/test_checksum_file.txt"

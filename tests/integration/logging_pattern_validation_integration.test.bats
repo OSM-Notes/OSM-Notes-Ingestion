@@ -9,7 +9,7 @@ load "../test_helper.bash"
 
 setup() {
   # Source the enhanced logger
-  source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh"
   
   # Create temporary directory for test results
   TEST_TEMP_DIR="/tmp/logging_validation_test_$$"

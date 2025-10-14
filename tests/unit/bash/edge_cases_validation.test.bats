@@ -50,7 +50,7 @@ EOF
 
 @test "edge case: validation functions are tolerant by default" {
   # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test that functions don't fail immediately with edge cases
   run __validate_xml_dates "${TMP_DIR}/mixed_dates.xml" "//@created_at|//@closed_at|//@timestamp"
@@ -72,7 +72,7 @@ EOF
 EOF
   
   # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test with STRICT_MODE=true
   export STRICT_MODE="true"
@@ -90,7 +90,7 @@ EOF
 
 @test "edge case: lightweight validation handles large files gracefully" {
   # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test that lightweight validation works with edge cases
   run __validate_xml_dates_lightweight "${TMP_DIR}/malformed_parseable.xml" "//@created_at|//@closed_at|//@timestamp"
@@ -105,7 +105,7 @@ EOF
   touch "${empty_xml}"
   
   # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test with empty file
   run __validate_xml_dates "${empty_xml}" "//@created_at|//@closed_at|//@timestamp"
@@ -126,7 +126,7 @@ EOF
 EOF
   
   # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test with file containing no dates
   run __validate_xml_dates "${TMP_DIR}/no_dates.xml" "//@created_at|//@closed_at|//@timestamp"
@@ -147,7 +147,7 @@ EOF
 EOF
   
   # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test with file containing no dates
   run __validate_xml_dates "${TMP_DIR}/mixed_formats.xml" "//@created_at|//@closed_at|//@timestamp"
@@ -168,7 +168,7 @@ EOF
 EOF
   
   # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test with special characters
   run __validate_xml_dates "${TMP_DIR}/special_chars.xml" "//@created_at|//@closed_at|//@timestamp"

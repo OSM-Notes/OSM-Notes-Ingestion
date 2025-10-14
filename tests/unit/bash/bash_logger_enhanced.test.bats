@@ -9,7 +9,7 @@ load "../../test_helper.bash"
 
 setup() {
   # Source the enhanced logger
-  source "${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh"
   
   # Create temporary log file for tests
   TEST_LOG_FILE="/tmp/logger_test_$$.log"
@@ -131,7 +131,7 @@ teardown() {
 
 @test "Enhanced Logger: Environment variable LOG_LEVEL is respected" {
   # Test with LOG_LEVEL set before sourcing
-  result=$(LOG_LEVEL=DEBUG bash -c "source ${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh && echo \$__log_level")
+  result=$(LOG_LEVEL=DEBUG bash -c "source ${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh && echo \$__log_level")
   [[ "$result" == *"DEBUG"* ]]
 }
 
@@ -158,19 +158,19 @@ teardown() {
 
 @test "Enhanced Logger: Error and Fatal logs go to stderr" {
   # Error should go to stderr
-  result=$(bash -c "source ${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh && __loge 'Error test' 2>&1 1>/dev/null")
+  result=$(bash -c "source ${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh && __loge 'Error test' 2>&1 1>/dev/null")
   [[ "$result" == *"ERROR"* ]]
   [[ "$result" == *"Error test"* ]]
   
   # Fatal should go to stderr  
-  result=$(bash -c "source ${SCRIPT_BASE_DIRECTORY}/lib/bash_logger.sh && __logf 'Fatal test' 2>&1 1>/dev/null")
+  result=$(bash -c "source ${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh && __logf 'Fatal test' 2>&1 1>/dev/null")
   [[ "$result" == *"FATAL"* ]]
   [[ "$result" == *"Fatal test"* ]]
 }
 
 @test "Enhanced Logger: Integration with OSM Notes scripts" {
   # Test that logger works when sourced by actual project scripts
-  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh 2>/dev/null && echo 'Integration test passed'"
+  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh 2>/dev/null && echo 'Integration test passed'"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Integration test passed"* ]]
 }

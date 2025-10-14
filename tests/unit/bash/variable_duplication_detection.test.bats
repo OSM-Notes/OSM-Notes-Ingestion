@@ -58,10 +58,10 @@ teardown() {
 @test "function libraries should be sourceable without variable conflicts" {
  # List of function libraries to test
  local libraries=(
-   "bin/commonFunctions.sh"
+   "lib/osm-common/commonFunctions.sh"
    "bin/functionsProcess.sh"
-   "bin/validationFunctions.sh"
-   "bin/errorHandlingFunctions.sh"
+   "lib/osm-common/validationFunctions.sh"
+   "lib/osm-common/errorHandlingFunctions.sh"
    "bin/processAPIFunctions.sh"
    "bin/processPlanetFunctions.sh"
  )
@@ -79,9 +79,9 @@ teardown() {
 @test "multiple sourcing of same file should not cause variable conflicts" {
  # Test multiple sourcing of key libraries
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh' > /dev/null 2>&1
-   source '${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh' > /dev/null 2>&1
-   source '${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh' > /dev/null 2>&1
    echo 'Multiple sourcing successful'
  "
  [ "$status" -eq 0 ]
@@ -121,7 +121,7 @@ teardown() {
 @test "error codes should be consistent across files" {
  # Test that error codes are defined consistently
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh' > /dev/null 2>&1
    echo \"ERROR_HELP_MESSAGE: \${ERROR_HELP_MESSAGE:-}\"
    echo \"ERROR_INVALID_ARGUMENT: \${ERROR_INVALID_ARGUMENT:-}\"
    echo \"ERROR_MISSING_LIBRARY: \${ERROR_MISSING_LIBRARY:-}\"

@@ -10,7 +10,7 @@ load "../../test_helper.bash"
 setup() {
   # Source the functions
   source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
-  source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
   
   # Create temporary test files for cleanup testing
   TEST_FILE_1="/tmp/test_cleanup_file1.txt"

@@ -72,7 +72,7 @@ teardown() {
  
  for FUNC in "${COMMON_FUNCTIONS[@]}"; do
    # Check if function is defined in commonFunctions.sh
-   run grep -q "function ${FUNC}" bin/commonFunctions.sh
+   run grep -q "function ${FUNC}" lib/osm-common/commonFunctions.sh
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be defined in commonFunctions.sh"
  done
 }

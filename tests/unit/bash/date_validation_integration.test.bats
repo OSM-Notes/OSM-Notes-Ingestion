@@ -75,19 +75,19 @@ teardown() {
 
 @test "date validation functions are available in functionsProcess.sh" {
   # Check that the functions exist in validationFunctions.sh (loaded by functionsProcess.sh)
-  run grep -q "__validate_iso8601_date" "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  run grep -q "__validate_iso8601_date" "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   [ "$status" -eq 0 ]
   
-  run grep -q "__validate_xml_dates" "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  run grep -q "__validate_xml_dates" "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   [ "$status" -eq 0 ]
   
-  run grep -q "__validate_csv_dates" "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  run grep -q "__validate_csv_dates" "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   [ "$status" -eq 0 ]
 }
 
 @test "date validation works with planet XML format" {
   # Source functions and test with planet XML
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   run __validate_xml_dates "${TEST_PLANET_XML}" "//@created_at|//@closed_at|//@timestamp"
   [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
@@ -95,7 +95,7 @@ teardown() {
 
 @test "date validation works with API XML format" {
   # Source functions and test with API XML
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   run __validate_xml_dates "${TEST_API_XML}" "//date"
   [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
@@ -114,7 +114,7 @@ teardown() {
 EOF
   
   # Source functions and test with invalid XML
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # The function is designed to be tolerant and may not fail immediately
   # It uses sampling and only fails if too many invalid dates are found
@@ -137,7 +137,7 @@ note_id,created_at,closed_at,status
 EOF
   
   # Source functions and test CSV validation
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   run __validate_csv_dates "${test_csv}" "created_at" "closed_at"
   [ "$status" -eq 0 ]
@@ -159,7 +159,7 @@ EOF
 EOF
   
   # Source functions and test with invalid XML in strict mode
-  source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
   
   # Test with STRICT_MODE=true - should fail immediately
   export STRICT_MODE="true"

@@ -17,11 +17,11 @@ setup() {
 
  # Source the functions
  # shellcheck disable=SC2154
- source "${TEST_BASE_DIR}/bin/errorHandlingFunctions.sh"
+ source "${TEST_BASE_DIR}/lib/osm-common/errorHandlingFunctions.sh"
  # shellcheck disable=SC2154
- source "${TEST_BASE_DIR}/bin/validationFunctions.sh"
+ source "${TEST_BASE_DIR}/lib/osm-common/validationFunctions.sh"
  # shellcheck disable=SC2154
- source "${TEST_BASE_DIR}/bin/commonFunctions.sh"
+ source "${TEST_BASE_DIR}/lib/osm-common/commonFunctions.sh"
 }
 
 teardown() {
@@ -227,12 +227,12 @@ EOF
 
 @test "commonFunctions.sh should validate POSTGRES variables before use" {
  # Test that POSTGRES variables are validated
- run bash -c 'source "${TEST_BASE_DIR}/bin/commonFunctions.sh" --help'
+ run bash -c 'source "${TEST_BASE_DIR}/lib/osm-common/commonFunctions.sh" --help'
  [[ "${status}" -eq 0 ]]
 }
 
 @test "commonFunctions.sh should validate SQL file existence" {
  # Test SQL file validation
- run bash -c 'source "${TEST_BASE_DIR}/bin/commonFunctions.sh" --help'
+ run bash -c 'source "${TEST_BASE_DIR}/lib/osm-common/commonFunctions.sh" --help'
  [[ "${status}" -eq 0 ]]
 }

@@ -56,7 +56,7 @@ teardown() {
  __log_finish() { :; }
 
  # Source the error handling functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
  # Mock exit function to prevent script termination
  # shellcheck disable=SC2317
@@ -104,7 +104,7 @@ teardown() {
  __log_finish() { :; }
 
  # Source the error handling functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
  # Mock exit function to prevent script termination
  # shellcheck disable=SC2317
@@ -124,7 +124,7 @@ teardown() {
 @test "Planet Notes checksum validation issue should be fixed" {
  # Test the exact scenario that was failing
  # shellcheck disable=SC2031
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 
  # Create mock Planet file and MD5
  echo "mock planet content" > /tmp/OSM-notes-planet.xml.bz2
@@ -143,7 +143,7 @@ teardown() {
 @test "Original Planet Notes problem scenario should work" {
  # Simulate the exact failing scenario from the user's logs
  # shellcheck disable=SC2031
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 
  # Create the exact filename scenario
  echo "f451953cfcb4450a48a779d0a63dde5c  planet-notes-latest.osn.bz2" > /tmp/real_planet.md5

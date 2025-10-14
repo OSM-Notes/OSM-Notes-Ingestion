@@ -161,7 +161,7 @@ EOF
    export TMP_DIR='${TMP_DIR}'
    # Source validation functions first
    set +e
-   source '${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh' 2>/dev/null
+   source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh' 2>/dev/null
    # Test JSON validation function
    if declare -f __validate_json_structure >/dev/null; then
      __validate_json_structure '$mock_json' 'FeatureCollection'

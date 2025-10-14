@@ -317,7 +317,7 @@ EOF
 
 @test "test __validate_iso8601_date with valid dates" {
  # Test valid ISO8601 dates
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test various valid date formats
  run __validate_iso8601_date "2023-01-01T00:00:00Z" "test date"
@@ -332,7 +332,7 @@ EOF
 
 @test "test __validate_iso8601_date with leading zeros" {
  # Test dates with leading zeros (should work correctly)
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test dates with leading zeros
  run __validate_iso8601_date "2023-04-08T08:09:05Z" "test date"
@@ -344,7 +344,7 @@ EOF
 
 @test "test __validate_iso8601_date with invalid dates" {
  # Test invalid date formats
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test invalid month
  run __validate_iso8601_date "2023-13-01T00:00:00Z" "test date"
@@ -369,7 +369,7 @@ EOF
 
 @test "test __validate_iso8601_date with invalid characters" {
  # Test dates with invalid characters (should fail)
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test date with letters instead of numbers
  run __validate_iso8601_date "2023-aa-01T00:00:00Z" "test date"
@@ -398,7 +398,7 @@ EOF
 
 @test "test __validate_iso8601_date with malformed dates" {
  # Test malformed date strings
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test empty date
  run __validate_iso8601_date "" "test date"
