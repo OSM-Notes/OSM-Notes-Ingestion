@@ -11,8 +11,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-12
-VERSION="2025-08-12"
+# Version: 2025-10-18
+VERSION="2025-10-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -93,15 +93,15 @@ export ONLY_EXECUTION="no"
 
 # Load common functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
 # Load validation functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 
 # Load error handling functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
 # Shows the help information.
 function __show_help {

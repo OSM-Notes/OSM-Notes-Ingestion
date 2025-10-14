@@ -3,7 +3,7 @@
 # Manages the installation and deinstallation of WMS components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
+# Version: 2025-10-18
 
 set -euo pipefail
 
@@ -17,8 +17,8 @@ export TMP_DIR="/tmp"
 export LOG_LEVEL="INFO"
 
 # Load validation functions
-if [[ -f "${PROJECT_ROOT}/bin/validationFunctions.sh" ]]; then
- source "${PROJECT_ROOT}/bin/validationFunctions.sh"
+if [[ -f "${PROJECT_ROOT}/lib/osm-common/validationFunctions.sh" ]]; then
+ source "${PROJECT_ROOT}/lib/osm-common/validationFunctions.sh"
 fi
 
 # Load properties

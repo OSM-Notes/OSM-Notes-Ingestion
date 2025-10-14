@@ -151,8 +151,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-12
-VERSION="2025-08-12"
+# Version: 2025-10-18
+VERSION="2025-10-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -236,7 +236,7 @@ export UPDATE_NOTE_LOCATION=false
 export GENERATE_FAILED_FILE=true
 
 # Failed execution file
-# This variable is now defined in bin/commonFunctions.sh to avoid duplication
+# This variable is now defined in lib/osm-common/commonFunctions.sh to avoid duplication
 
 # CLEAN is now defined in etc/properties.sh, no need to declare it here
 
@@ -261,7 +261,7 @@ export SCRIPT_EXIT_CODE=0
 
 # Load common functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
 # Load Planet-specific functions
 # shellcheck disable=SC1091
@@ -269,11 +269,11 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
 
 # Load validation functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 
 # Load error handling functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
 # Load API-specific functions (includes POSTGRES_12_DROP_API_TABLES)
 # shellcheck disable=SC1091
@@ -738,8 +738,8 @@ function __validatePlanetNotesXMLFileComplete {
 function __validate_xml_with_enhanced_error_handling {
  __log_start
  # Source the consolidated validation functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh"
   __validate_xml_with_enhanced_error_handling "$@"
  else
   # Fallback if consolidated functions are not available
