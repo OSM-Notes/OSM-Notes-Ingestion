@@ -5,10 +5,10 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-10-18
 
 # Define version variable
-VERSION="2025-08-13"
+VERSION="2025-10-18"
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -35,27 +35,27 @@ fi
 # This ensures backward compatibility while improving code organization
 
 # Load common functions (error codes, logger, prerequisites, etc.)
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]]; then
  # shellcheck source=commonFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 else
  echo "ERROR: commonFunctions.sh not found"
  exit 1
 fi
 
 # Load validation functions
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; then
  # shellcheck source=validationFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 else
  echo "ERROR: validationFunctions.sh not found"
  exit 1
 fi
 
 # Load error handling functions
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh" ]]; then
  # shellcheck source=errorHandlingFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 else
  echo "ERROR: errorHandlingFunctions.sh not found"
  exit 1
@@ -2217,8 +2217,8 @@ function __show_help() {
 function __validate_xml_with_enhanced_error_handling() {
  __log_start
  # Source the consolidated validation functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh"
   __validate_xml_with_enhanced_error_handling "$@"
  else
   # Fallback if consolidated functions are not available
@@ -2234,8 +2234,8 @@ function __validate_xml_with_enhanced_error_handling() {
 function __validate_xml_basic() {
  __log_start
  # Source the consolidated validation functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh"
   __validate_xml_basic "$@"
  else
   # Fallback if consolidated functions are not available
@@ -2251,8 +2251,8 @@ function __validate_xml_basic() {
 function __validate_xml_structure_only() {
  __log_start
  # Source the consolidated validation functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/consolidatedValidationFunctions.sh"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh"
   __validate_xml_structure_only "$@"
  else
   # Fallback if consolidated functions are not available

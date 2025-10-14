@@ -5,7 +5,7 @@
 # Can be used for full cleanup or partition-only cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-10-18
 
 set -euo pipefail
 
@@ -19,7 +19,7 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Load common functions (includes logging)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
 # Load global properties
 # shellcheck disable=SC1091
@@ -29,9 +29,9 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 __logi "Starting cleanupAll.sh script"
 
 # Load validation functions
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; then
  # shellcheck source=validationFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 else
  __loge "ERROR: validationFunctions.sh not found"
  exit 1
