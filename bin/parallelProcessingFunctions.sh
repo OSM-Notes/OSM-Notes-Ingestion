@@ -1,10 +1,10 @@
 #!/bin/bash
 # Consolidated Parallel Processing Functions for OSM-Notes-profile
 # This file consolidates all parallel processing functions to eliminate duplication
+# Description: Centralized parallel processing functions with resource management and retry logic
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-12
-# Description: Centralized parallel processing functions with resource management and retry logic
+# Version: 2025-10-18
 
 # Load properties to ensure all required variables are available
 # Only load production properties if we're not in a test environment
@@ -16,10 +16,10 @@ fi
 
 # Load common functions if not already loaded
 if [[ -z "${__log_start:-}" ]]; then
- if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/bin/commonFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
- elif [[ -f "./bin/commonFunctions.sh" ]]; then
-  source "./bin/commonFunctions.sh"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/lib/osm-common/commonFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
+ elif [[ -f "./lib/osm-common/commonFunctions.sh" ]]; then
+  source "./lib/osm-common/commonFunctions.sh"
  fi
 fi
 

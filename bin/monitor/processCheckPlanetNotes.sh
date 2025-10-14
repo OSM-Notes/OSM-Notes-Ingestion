@@ -35,8 +35,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-11
-VERSION="2025-08-11"
+# Version: 2025-10-18
+VERSION="2025-10-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -111,15 +111,15 @@ declare -r POSTGRES_41_ANALYZE_AND_VACUUM="${SCRIPT_BASE_DIRECTORY}/sql/monitor/
 
 # Load common functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
 # Load validation functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 
 # Load error handling functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
 # Load process functions (includes validation functions)
 # shellcheck disable=SC1091

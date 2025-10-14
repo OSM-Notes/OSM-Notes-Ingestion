@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-11
-VERSION="2025-08-11"
+# Version: 2025-10-18
+VERSION="2025-10-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -81,15 +81,15 @@ readonly LOCK
 
 # Load common functions (after defining BASENAME and TMP_DIR)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/commonFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
 # Start logger
 __start_logger
 
 # Load validation functions
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh" ]]; then
- # shellcheck source=../../bin/validationFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/validationFunctions.sh"
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; then
+ # shellcheck source=../../lib/osm-common/validationFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 else
  __loge "ERROR: validationFunctions.sh not found"
  exit 1
@@ -121,7 +121,7 @@ declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-r
 
 # Load error handling functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/errorHandlingFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
 # Shows the help information.
 function __show_help {
