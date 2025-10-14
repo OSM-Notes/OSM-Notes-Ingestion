@@ -4,7 +4,7 @@
 # This file contains validation functions for various data types.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-10-14
 
 # Define version variable
 VERSION="2025-08-13"
@@ -17,7 +17,8 @@ VERSION="2025-08-13"
 # Load common functions if not already loaded
 # Set SCRIPT_BASE_DIRECTORY if not already set
 if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
- SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ # We're in lib/osm-common, so we need to go up two levels to reach project root
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 fi
 
 # Don't set LOGGER_UTILITY here - let commonFunctions.sh handle it

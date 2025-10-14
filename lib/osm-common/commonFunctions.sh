@@ -73,6 +73,9 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
  CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
  if [[ "${CURRENT_DIR}" == */bin ]]; then
   SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/.." && pwd)"
+ elif [[ "${CURRENT_DIR}" == */lib/osm-common ]]; then
+  # We're in lib/osm-common, go up two levels to project root
+  SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/../.." && pwd)"
  else
   SCRIPT_BASE_DIRECTORY="$(cd "${CURRENT_DIR}/../.." && pwd)"
  fi
