@@ -22,7 +22,7 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Counters
-TOTAL_LEVELS=10
+TOTAL_LEVELS=9
 CURRENT_LEVEL=0
 PASSED_LEVELS=0
 FAILED_LEVELS=0
@@ -118,8 +118,8 @@ Modes:
   quick         Ejecutar solo tests críticos (15-20 min)
   basic         Ejecutar niveles 1-3 (20-35 min)
   standard      Ejecutar niveles 1-6 (45-75 min)
-  full          Ejecutar todos los niveles (90-135 min)
-  level N       Ejecutar solo el nivel N (1-10)
+  full          Ejecutar todos los niveles 1-9 (85-120 min)
+  level N       Ejecutar solo el nivel N (1-9)
   help          Mostrar esta ayuda
 
 Examples:
@@ -381,26 +381,6 @@ __run_level_9() {
  fi
 }
 
-# Level 10 - DWH tests
-__run_level_10() {
- __show_level_header 10 "Tests de DWH Enhanced" "10-15 min"
- 
- __log_info "Ejecutando tests de DWH..."
- 
- if [[ -f "${SCRIPT_DIR}/run_dwh_tests.sh" ]]; then
-  if "${SCRIPT_DIR}/run_dwh_tests.sh"; then
-   __show_level_footer 10 "success"
-   return 0
-  else
-   __show_level_footer 10 "failed"
-   return 1
-  fi
- else
-  __log_warning "Script run_dwh_tests.sh no encontrado, saltando nivel 10"
-  __show_level_footer 10 "skipped"
-  return 0
- fi
-}
 
 # Show summary
 __show_summary() {
@@ -454,7 +434,7 @@ main() {
   ;;
  full)
   __show_banner
-  __log_info "Modo FULL: Todos los niveles"
+  __log_info "Modo FULL: Todos los niveles (1-9)"
   __run_level_1 || true
   __run_level_2 || true
   __run_level_3 || true
@@ -464,12 +444,11 @@ main() {
   __run_level_7 || true
   __run_level_8 || true
   __run_level_9 || true
-  __run_level_10 || true
   __show_summary
   ;;
  level)
   if [[ -z "${2:-}" ]]; then
-   __log_error "Debes especificar el número de nivel (1-10)"
+   __log_error "Debes especificar el número de nivel (1-9)"
    __show_help
    exit 1
   fi

@@ -87,11 +87,6 @@ cd /home/angoca/github/OSM-Notes-Ingestion
 ./tests/run_tests_sequential.sh level 9
 ```
 
-### Nivel 10 - DWH Enhanced (10-15 min)
-
-```bash
-./tests/run_tests_sequential.sh level 10
-```
 
 ---
 

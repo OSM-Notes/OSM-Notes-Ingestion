@@ -227,23 +227,6 @@ function __cleanup_partitions_only() {
  __log_finish
 }
 
-# Function to cleanup ETL components
-# NOTE: ETL scripts have been moved to OSM-Notes-Analytics repository
-# This function now drops the dwh schema directly if it exists
-function __cleanup_etl() {
- __log_start
- local TARGET_DB="${1}"
-
- __logi "Cleaning up DWH schema (if exists from Analytics repository)"
- __logw "ETL scripts moved to OSM-Notes-Analytics. Dropping schema directly."
-
- # Drop dwh schema if it exists
- psql -d "${TARGET_DB}" -c "DROP SCHEMA IF EXISTS dwh CASCADE;" 2>/dev/null && \
-  __logi "DWH schema dropped successfully" || \
-  __logw "DWH schema does not exist or could not be dropped"
- 
- __log_finish
-}
 
 # Function to cleanup WMS components
 function __cleanup_wms() {
@@ -362,11 +345,7 @@ function __cleanup_all() {
   return 0
  fi
 
- # Step 2: Cleanup ETL components
- __logi "Step 1: Cleaning up ETL components"
- __cleanup_etl "${TARGET_DB}"
-
- # Step 3: Cleanup WMS components
+ # Step 2: Cleanup WMS components
  __logi "Step 2: Cleaning up WMS components"
  __cleanup_wms "${TARGET_DB}"
 

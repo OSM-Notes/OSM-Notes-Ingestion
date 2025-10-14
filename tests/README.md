@@ -113,8 +113,6 @@ End-to-end integration tests:
 
 - **`end_to_end.test.bats`**: Complete workflow testing from data ingestion to output
 - **`processAPI_historical_e2e.test.bats`**: End-to-end tests for processAPI historical validation with real database scenarios
-- **`ETL_enhanced_integration.test.bats`**: Integration tests for enhanced ETL functionality
-- **`datamart_enhanced_integration.test.bats`**: Integration tests for enhanced datamart functionality
 
 ### `/tests/docker/`
 
@@ -175,7 +173,6 @@ Test data and sample files:
 - **Resource Limit Tests**: XML processing resource monitoring and limits validation
 - **Historical Data Validation Tests**: ProcessAPI prerequisite validation for historical data integrity
 - **XSLT Enum Format Tests**: PostgreSQL enum compatibility validation for CSV output
-- **DWH Enhanced Tests**: Data warehouse enhanced functionality testing
 
 ### Test Data
 
@@ -200,14 +197,11 @@ Tests can be run individually or as part of the complete test suite:
 - **ProcessAPI Integration Tests**: `cd tests/unit/bash && bats processAPI_historical_integration.test.bats`
 - **XSLT Enum Format Tests**: `cd tests/unit/bash && bats xslt_enum_format.test.bats`
 - **XML Processing Tests**: `cd tests/unit/bash && bats xml_processing_enhanced.test.bats`
-- **DWH Enhanced Tests**: `./tests/run_dwh_tests.sh`
 - **Individual Test**: `cd tests/unit/bash && bats resource_limits.test.bats -f "test_name"`
 
-## DWH Enhanced Testing Features
 
 ### Overview
 
-The DWH (Data Warehouse) enhanced testing suite validates all the improvements made to the star schema, including new dimensions, enhanced functions, and improved ETL processes.
 
 ### New Dimensions Testing
 
@@ -285,7 +279,6 @@ The DWH (Data Warehouse) enhanced testing suite validates all the improvements m
 psql -d notes -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
 
 # Specific integration test
-bats tests/integration/ETL_enhanced_integration.test.bats
 ```
 
 #### From Main Test Runner
@@ -321,7 +314,6 @@ bats tests/integration/ETL_enhanced_integration.test.bats
 
 #### Integration Tests (`tests/integration/`)
 
-**`ETL_enhanced_integration.test.bats`**:
 
 - ✅ Enhanced dimensions validation
 - ✅ SCD2 implementation validation
@@ -332,7 +324,6 @@ bats tests/integration/ETL_enhanced_integration.test.bats
 - ✅ Bridge table implementation
 - ✅ Documentation consistency
 
-**`datamart_enhanced_integration.test.bats`**:
 
 - ✅ DatamartUsers enhanced functionality
 - ✅ DatamartCountries enhanced functionality

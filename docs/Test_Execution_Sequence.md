@@ -26,9 +26,10 @@ prioridad, complejidad y categoría funcional. Ideal para:
 | **Nivel 3 - Procesamiento** | 18 | ~220 | 15-20 min | Lógica de procesamiento |
 | **Nivel 4 - Integración** | 25 | ~350 | 20-30 min | Integración de componentes |
 | **Nivel 5 - Avanzado** | 18 | ~220 | 15-25 min | Tests avanzados y performance |
-| **Nivel 6 - DWH** | 4 | ~45 | 8-15 min | Data Warehouse Enhanced |
-| **Nivel 7 - Completo** | 8 | ~68 | 10-20 min | End-to-End Integration |
-| **TOTAL** | **108** | **~1,303** | **83-135 min** | |
+| **Nivel 6 - Completo** | 8 | ~68 | 10-20 min | End-to-End Integration |
+| **TOTAL** | **104** | **~1,258** | **73-120 min** | |
+
+**Nota:** Nivel 10 (DWH) fue eliminado - componentes movidos a OSM-Notes-Analytics
 
 ---
 
@@ -608,54 +609,6 @@ bats tests/integration/boundary_processing_error_integration.test.bats \
 
 ---
 
-## Nivel 10 - Tests de DWH Enhanced (10-15 minutos)
-
-### Objetivo
-
-Validar funcionalidad de Data Warehouse mejorado.
-
-### Prerequisito
-
-```bash
-# Asegurar que el esquema DWH esté instalado
-export PGPASSWORD=your_password
-psql -U notes -d notes -f sql/dwh/ETL_22_createDWHTables.sql
-psql -U notes -d notes -f sql/dwh/ETL_24_addFunctions.sql
-psql -U notes -d notes -f sql/dwh/ETL_25_populateDimensionTables.sql
-```
-
-### Suites Incluidas
-
-```bash
-# 10.1 - DWH dimensions enhanced (SQL, ~5 min)
-psql -U notes -d notes -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
-
-# 10.2 - DWH functions enhanced (SQL, ~5 min)
-psql -U notes -d notes -f tests/unit/sql/dwh_functions_enhanced.test.sql
-
-# 10.3 - ETL enhanced integration (BATS, ~5 min)
-bats tests/integration/ETL_enhanced_integration.test.bats
-
-# 10.4 - Datamart enhanced integration (BATS, ~5 min)
-bats tests/integration/datamart_enhanced_integration.test.bats
-```
-
-### Comando Consolidado Nivel 10
-
-```bash
-cd /home/angoca/github/OSM-Notes-Ingestion
-
-# Opción A: Usar el script consolidado
-./tests/run_dwh_tests.sh
-
-# Opción B: Ejecutar manualmente
-psql -U notes -d notes -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
-psql -U notes -d notes -f tests/unit/sql/dwh_functions_enhanced.test.sql
-bats tests/integration/ETL_enhanced_integration.test.bats
-bats tests/integration/datamart_enhanced_integration.test.bats
-```
-
-**Resultado esperado:** ✅ ~45 tests pasando en 10-15 minutos
 
 ---
 
