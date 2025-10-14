@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
-VERSION="2025-10-18"
+# Version: 2025-10-14
+VERSION="2025-10-14"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -812,6 +812,10 @@ function main() {
   __logw "Base tables missing. Creating base structure and geographic data."
   __logi "This will take approximately 1-2 hours for complete setup."
 
+  # Close lock file descriptor to prevent inheritance by child processes
+  __logd "Releasing lock before spawning child processes"
+  exec 8>&-
+
   # Step 1: Create base structure (tables only)
   __logi "Step 1/3: Creating base database structure..."
   if ! "${NOTES_SYNC_SCRIPT}" --base; then
@@ -845,6 +849,12 @@ function main() {
   fi
   __logw "Complete setup finished successfully."
   __logi "System is now ready for regular API processing."
+
+  # Re-acquire lock after child processes complete
+  __logd "Re-acquiring lock after child processes"
+  exec 8> "${LOCK}"
+  flock -n 8
+  __logd "Lock re-acquired successfully"
  else
   # Base tables exist, now check if they contain historical data
   __logi "Base tables found. Validating historical data..."
