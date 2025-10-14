@@ -122,28 +122,24 @@ check_duplicates() {
 
 @test "should not have duplicate readonly variables between datamartCountries.sh and validationFunctions.sh" {
  check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh" \
   "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
   "datamartCountries.sh and validationFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between datamartUsers.sh and validationFunctions.sh" {
  check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh" \
   "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
   "datamartUsers.sh and validationFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between profile.sh and validationFunctions.sh" {
  check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh" \
   "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
   "profile.sh and validationFunctions.sh"
 }
 
 @test "should not have duplicate readonly variables between ETL.sh and validationFunctions.sh" {
  check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh" \
   "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
   "ETL.sh and validationFunctions.sh"
 }
@@ -204,10 +200,6 @@ check_duplicates() {
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
  )

@@ -218,17 +218,9 @@ EOF
  fi
 }
 
-# Test that all datamart SQL files are valid
-@test "all datamart SQL files should be valid" {
- local datamart_dirs=(
-   "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries"
-   "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers"
  )
  local failed_files=()
  
- # Test each datamart directory
- for datamart_dir in "${datamart_dirs[@]}"; do
-   if [[ -d "$datamart_dir" ]]; then
      while IFS= read -r -d '' sql_file; do
        if [[ -f "$sql_file" ]]; then
          # Test SQL validation
@@ -240,15 +232,12 @@ EOF
            failed_files+=("$sql_file")
          fi
        fi
-     done < <(find "$datamart_dir" -name "*.sql" -print0)
    fi
  done
  
  # Report results
  if [[ ${#failed_files[@]} -eq 0 ]]; then
-   echo "All datamart SQL files are valid"
  else
-   echo "The following datamart SQL files failed validation:"
    for file in "${failed_files[@]}"; do
      echo "  - $file"
    done

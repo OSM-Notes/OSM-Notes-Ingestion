@@ -228,28 +228,20 @@ function __cleanup_partitions_only() {
 }
 
 # Function to cleanup ETL components
+# NOTE: ETL scripts have been moved to OSM-Notes-Analytics repository
+# This function now drops the dwh schema directly if it exists
 function __cleanup_etl() {
  __log_start
  local TARGET_DB="${1}"
 
- __logi "Cleaning up ETL components"
+ __logi "Cleaning up DWH schema (if exists from Analytics repository)"
+ __logw "ETL scripts moved to OSM-Notes-Analytics. Dropping schema directly."
 
- local ETL_SCRIPTS=(
-  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_dropDatamartObjects.sql:Countries Datamart"
-  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_dropDatamartObjects.sql:Users Datamart"
-  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_removeStagingObjects.sql:Staging Objects"
-  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_12_removeDatamartObjects.sql:Datamart Objects"
-  "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql:DWH Objects"
- )
-
- for SCRIPT_INFO in "${ETL_SCRIPTS[@]}"; do
-  IFS=':' read -r SCRIPT_PATH SCRIPT_NAME <<< "${SCRIPT_INFO}"
-  if [[ -f "${SCRIPT_PATH}" ]]; then
-   __execute_sql_script "${TARGET_DB}" "${SCRIPT_PATH}" "${SCRIPT_NAME}"
-  else
-   __logw "Script not found: ${SCRIPT_PATH}"
-  fi
- done
+ # Drop dwh schema if it exists
+ psql -d "${TARGET_DB}" -c "DROP SCHEMA IF EXISTS dwh CASCADE;" 2>/dev/null && \
+  __logi "DWH schema dropped successfully" || \
+  __logw "DWH schema does not exist or could not be dropped"
+ 
  __log_finish
 }
 
@@ -425,7 +417,7 @@ function __show_help() {
  echo ""
  echo "Full cleanup will:"
  echo "  1. Check if the database exists"
- echo "  2. Remove ETL components (datamarts, staging, DWH objects)"
+ echo "  2. Remove DWH schema (if exists from Analytics repository)"
  echo "  3. Remove WMS components"
  echo "  4. Remove base components (tables, functions, procedures)"
  echo "  5. Clean up temporary files"

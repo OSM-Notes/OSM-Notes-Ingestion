@@ -97,11 +97,6 @@ load ../../test_helper.bash
   # Test that referenced SQL files exist and are valid
   local SQL_FILES=(
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropAllPartitions.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartCountries/datamartCountries_dropDatamartObjects.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/dwh/datamartUsers/datamartUsers_dropDatamartObjects.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/dwh/Staging_removeStagingObjects.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_12_removeDatamartObjects.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_13_removeDWHObjects.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/wms/removeFromDatabase.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"

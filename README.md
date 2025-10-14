@@ -173,13 +173,11 @@ components to work.
 
 ## Cron scheduling
 
-To run the notes database synchronization and the data warehouse process, you
-could configure the crontab like (`crontab -e`):
+To run the notes database synchronization, configure the crontab like (`crontab -e`):
 
 ```text
 # Runs the API extraction each 15 minutes.
-# Normal execution for Planet and API process and then data warehouse population.
-*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh
+*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh
 
 # Download a new Planet version, and checks if the executions have been successful.
 # Planet used to be published around 5 am (https://planet.openstreetmap.org/notes/)
@@ -189,14 +187,7 @@ could configure the crontab like (`crontab -e`):
 0 12 1 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh
 ```
 
-```text
-# Runs the API extraction in debug mode, keeping all the generated files.
-#*/15 * * * * export LOG_LEVEL=DEBUG ; export CLEAN=false ;~/OSM-Notes-profile/bin/process/processAPINotes.sh && ~/OSM-Notes-profile/bin/dwh/ETL.sh # For detailed execution messages.
-```
-
-You can also configure the ETL at different times from the notes' processing.
-However, the notes' processing should be more frequent than the ETL, otherwise
-the ETL does not have data to process.
+For **ETL and Analytics scheduling**, see the [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
 
 ## Components description
 
@@ -293,70 +284,35 @@ These are the table types on the database:
   Their schema is `wms`.
 They contain a simplified version of the notes with only the location and
   age.
-* `dwh` are the tables from the data warehouse to perform analysis on the DB.
-  They are divided into 2:
-The star schema is composed of the fact and dimensions tables.
-  * The datamarts which are precomputed views.
+* `dwh` schema contains the data warehouse tables (managed by OSM-Notes-Analytics).
+  See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for details.
 * Check tables are used for monitoring to compare the notes on the previous day
   between the normal behavior with API and the notes on the last day of the
   Planet.
 
-#### Data Warehouse (DWH) Enhanced Features
+#### Data Warehouse (DWH) Features
 
-The DWH has been significantly enhanced with new dimensions and capabilities:
+The DWH component has been moved to a separate repository for better modularity:
 
-**New Dimensions:**
-
-* **`dimension_timezones`**: Timezone support for local time calculations
-* **`dimension_seasons`**: Seasonal analysis based on date and latitude
-* **`dimension_continents`**: Continental grouping for geographical analysis
-* **`dimension_application_versions`**: Application version tracking
-* **`fact_hashtags`**: Bridge table for many-to-many hashtag relationships
-
-**Enhanced Dimensions:**
-
-* **`dimension_time_of_week`**: Renamed from `dimension_hours_of_week` with enhanced attributes (hour_of_week, period_of_day)
-* **`dimension_users`**: SCD2 implementation for username changes (valid_from, valid_to, is_current)
-* **`dimension_countries`**: ISO codes support (iso_alpha2, iso_alpha3)
-* **`dimension_days`**: Enhanced date attributes (ISO week, quarter, names, flags)
-* **`dimension_applications`**: Enhanced attributes (pattern_type, vendor, category)
-
-**New Functions:**
-
-* **`get_timezone_id_by_lonlat(lon, lat)`**: Timezone calculation from coordinates
-* **`get_season_id(ts, lat)`**: Season calculation from date and latitude
-* **`get_application_version_id(app_id, version)`**: Application version management
-* **`get_local_date_id(ts, tz_id)`**: Local date calculation
-* **`get_local_hour_of_week_id(ts, tz_id)`**: Local hour calculation
-
-**Enhanced ETL:**
-
-* New columns in facts: `action_timezone_id`, `local_action_dimension_id_date`, `action_dimension_id_season`
-* SCD2 support for user dimension
-* Bridge table for hashtag relationships
-* Application version parsing and storage
-
-For detailed documentation, see:
-
-* [DWH Star Schema Documentation](bin/dwh/README.md)
-* [DWH Data Dictionary](docs/DWH_Star_Schema_Data_Dictionary.md)
-* [DWH ERD](docs/DWH_Star_Schema_ERD.md)
+**See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for:**
+* Star schema with enhanced dimensions
+* ETL processes
+* Datamarts for countries and users
+* Profile generation
+* Complete DWH documentation
 
 ### Directories
 
 Some directories have their own README file to explain their content.
 These files include details about how to run or troubleshoot the scripts.
 
-* `bin` contains all executable scripts, and this directory contains the common
-  functions invoked from other scripts.
-* `bin/dwh` provides the scripts to perform a transformation to a data
-  warehouse and show the notes profile.
-  It also includes the datamart load and a profile tester.
-* `bin/monitor` contains a set of scripts to monitor the notes database to
-  validate it has the same data as the planet, and eventually send an email
-  message with the differences.
-* `bin/process` has the main script to download the notes database, with the
+* `bin` contains all executable scripts for ingestion and WMS.
+* `bin/monitor` contains scripts to monitor the notes database to
+  validate it has the same data as the planet, and send email
+  messages with differences.
+* `bin/process` has the main scripts to download the notes database, with the
   Planet dump and via API calls.
+* `bin/wms` contains scripts for WMS (Web Map Service) layer management.
 * `etc` configuration file for many scripts.
 * `json` JSON files for schema and testing.
 * `lib` libraries used in the project.
@@ -370,15 +326,14 @@ These files include details about how to run or troubleshoot the scripts.
   This directory also contains a script to keep a copy of the locations of the
   notes in case of a re-execution of the whole Planet process.
   And also the script to remove everything related to this project from the DB.
-* `sql/dwh` includes all scripts to perform the ETL operations on the
-  database, including the datamarts' population.
 * `sql/monitor` scripts to check the notes database, comparing it with a Planet
   dump.
 * `sql/process` has all SQL scripts to load the notes database.
 * `sql/wms` provides the mechanism to publish a WMS from the notes.
   This is the only exception to the other files under `sql` because this
   feature is supported only on SQL scripts; there is no bash script for this.
-  this is the only location of the files related to the WMS layer publishing.
+  This is the only location of the files related to the WMS layer publishing.
+* **For DWH/ETL SQL scripts**, see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 * `test` set of scripts to perform tests.
   This is not part of a Unit Test set.
 * `xsd` contains the structure of the XML documents to be retrieved - XML

@@ -78,20 +78,9 @@ teardown() {
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
-@test "Centralized validation: datamartUsers.sh should use validation functions" {
- # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh && __validate_input_file /etc/passwd 'Test file'"
- # Accept any status as long as the command doesn't crash
- # Status can be 0 (success), 1 (error), 127 (command not found), or other codes
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ] || [ "$status" -eq 241 ] || [ "$status" -eq 242 ] || [ "$status" -eq 243 ] || [ "$status" -eq 255 ]
-}
-
-@test "Centralized validation: datamartCountries.sh should use validation functions" {
- # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/dwh/datamartCountries/datamartCountries.sh && __validate_input_file /etc/passwd 'Test file'"
- # Accept any status as long as the command doesn't crash
- [ "$status" -ge 0 ] && [ "$status" -le 255 ]
-}
+# NOTE: Tests for datamartUsers.sh and datamartCountries.sh have been moved
+# to OSM-Notes-Analytics repository as these scripts are now part of Analytics
+# See: https://github.com/OSMLatam/OSM-Notes-Analytics
 
 @test "Centralized validation: notesCheckVerifier.sh should use validation functions" {
  # Test that the script loads validation functions
@@ -121,14 +110,8 @@ teardown() {
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
-@test "Centralized validation: ETL.sh should use validation functions" {
- # Test that the script loads validation functions
- # The script may fail due to database issues, but it should load successfully
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/dwh/ETL.sh && echo 'ETL.sh loaded successfully'"
- # Accept any status as long as the command doesn't crash
- # Status can be 0 (success), 1 (error), or other codes due to database issues
- [ "$status" -ge 0 ] && [ "$status" -le 255 ]
-}
+# NOTE: Test for ETL.sh has been moved to OSM-Notes-Analytics repository
+# See: https://github.com/OSMLatam/OSM-Notes-Analytics
 
 @test "Centralized validation: processPlanetNotes.sh should use validation functions" {
  # Test that the script loads validation functions
@@ -138,15 +121,13 @@ teardown() {
 }
 
 @test "Centralized validation: all scripts should have consistent validation" {
-  # Test that all scripts use the same validation approach
+  # Test that all Profile scripts use the same validation approach
+  # Note: DWH scripts moved to OSM-Notes-Analytics repository
   local scripts=(
     "${PROJECT_ROOT}/bin/process/processAPINotes.sh"
     "${PROJECT_ROOT}/bin/process/processPlanetNotes.sh"
     "${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh"
     "${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh"
-    "${PROJECT_ROOT}/bin/dwh/ETL.sh"
-    "${PROJECT_ROOT}/bin/dwh/datamartUsers/datamartUsers.sh"
-    "${PROJECT_ROOT}/bin/dwh/datamartCountries/datamartCountries.sh"
     "${PROJECT_ROOT}/bin/wms/wmsManager.sh"
     "${PROJECT_ROOT}/bin/cleanupAll.sh"
   )
@@ -159,12 +140,12 @@ teardown() {
 }
 
 @test "Centralized validation: validation functions should be available in all scripts" {
- # Test that validation functions are available after sourcing scripts
+ # Test that validation functions are available after sourcing Profile scripts
+ # Note: DWH scripts moved to OSM-Notes-Analytics repository
  local scripts=(
    "${PROJECT_ROOT}/bin/process/processAPINotes.sh"
    "${PROJECT_ROOT}/bin/process/processPlanetNotes.sh"
    "${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh"
-   "${PROJECT_ROOT}/bin/dwh/ETL.sh"
  )
  
  for script in "${scripts[@]}"; do

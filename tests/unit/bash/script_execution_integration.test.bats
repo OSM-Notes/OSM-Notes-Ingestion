@@ -114,13 +114,9 @@ teardown() {
    "bin/cleanupAll.sh"
    "bin/process/processAPINotes.sh"
    "bin/process/processPlanetNotes.sh"
-   "bin/dwh/ETL.sh"
-   "bin/dwh/profile.sh"
    "bin/wms/wmsManager.sh"
    "bin/cleanupAll.sh"
    "bin/process/updateCountries.sh"
-   "bin/dwh/datamartCountries/datamartCountries.sh"
-   "bin/dwh/datamartUsers/datamartUsers.sh"
    "bin/wms/geoserverConfig.sh"
  )
  

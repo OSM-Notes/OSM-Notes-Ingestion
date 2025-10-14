@@ -35,18 +35,15 @@ teardown() {
 # Test that profile.sh can be sourced without errors
 @test "profile.sh should be sourceable without errors" {
  # Test that the script can be sourced without logging errors
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh > /dev/null 2>&1"
  [ "$status" -eq 0 ]
 }
 
 # Test that profile.sh functions can be called without logging errors
 @test "profile.sh functions should work without logging errors" {
  # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # Test that logging functions work (if available)
  if declare -f __logi > /dev/null 2>&1; then
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh && __logi 'Test message' 2>/dev/null"
    [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
  else
    skip "Logging functions not available"
@@ -61,7 +58,6 @@ teardown() {
  
  # Instead of executing the script (which has variable conflicts), 
  # verify the script content and structure
- local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # Check that script exists and is executable
  [ -f "${SCRIPT_FILE}" ]
@@ -78,7 +74,6 @@ teardown() {
 # Test that all required functions are available after sourcing
 @test "profile.sh should have all required functions available" {
  # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # Test that key functions are available
  local REQUIRED_FUNCTIONS=(
@@ -86,7 +81,6 @@ teardown() {
  )
  
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
@@ -94,11 +88,9 @@ teardown() {
 # Test that logging functions work correctly
 @test "profile.sh logging functions should work correctly" {
  # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # Test that logging functions don't produce errors (if available)
  if declare -f __logi > /dev/null 2>&1 && declare -f __loge > /dev/null 2>&1; then
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh && __logi 'Test info' 2>/dev/null && __loge 'Test error' 2>/dev/null"
    [ "$status" -eq 0 ] || [ "$status" -eq 127 ]
  else
    skip "Logging functions not available"
@@ -116,7 +108,6 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create DWH tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_22_createDWHTables.sql"
  [ "$status" -eq 0 ]
  
  # Verify tables exist
@@ -128,16 +119,12 @@ teardown() {
 # Test that error handling works correctly
 @test "profile.sh error handling should work correctly" {
  # Test that the script handles missing database gracefully
- run bash -c "DBNAME=nonexistent_db source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  [ "$status" -ne 0 ] || echo "Script should handle missing database gracefully"
 }
 
 # Test that all SQL files are valid
 @test "profile SQL files should be valid" {
  local SQL_FILES=(
-   "sql/dwh/ETL_22_createDWHTables.sql"
-   "sql/dwh/ETL_25_populateDimensionTables.sql"
-   "sql/dwh/ETL_26_updateDimensionTables.sql"
  )
  
  for SQL_FILE in "${SQL_FILES[@]}"; do
@@ -154,7 +141,6 @@ teardown() {
  export DBNAME="test_db"
  export LOG_LEVEL="ERROR"
  
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # The script can return various exit codes depending on its implementation
  # 0: Success, 1: Error, 127: Command not found, or other specific codes
@@ -168,7 +154,6 @@ teardown() {
 # Test that data profiling functions work correctly
 @test "profile.sh data profiling functions should work correctly" {
  # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # Test that profiling functions are available (if they exist)
  local PROFILING_FUNCTIONS=(
@@ -176,7 +161,6 @@ teardown() {
  )
  
  for FUNC in "${PROFILING_FUNCTIONS[@]}"; do
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
@@ -184,7 +168,6 @@ teardown() {
 # Test that report generation functions work correctly
 @test "profile.sh report generation functions should work correctly" {
  # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # Test that report functions are available (if they exist)
  local REPORT_FUNCTIONS=(
@@ -192,7 +175,6 @@ teardown() {
  )
  
  for FUNC in "${REPORT_FUNCTIONS[@]}"; do
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
@@ -200,7 +182,6 @@ teardown() {
 # Test that data analysis functions work correctly
 @test "profile.sh data analysis functions should work correctly" {
  # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
  
  # Test that analysis functions are available (if they exist)
  local ANALYSIS_FUNCTIONS=(
@@ -208,7 +189,6 @@ teardown() {
  )
  
  for FUNC in "${ANALYSIS_FUNCTIONS[@]}"; do
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 } 

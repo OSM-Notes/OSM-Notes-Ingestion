@@ -261,7 +261,6 @@ teardown() {
 @test "all constraint files should be valid" {
  local constraint_files=(
    "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
-   "${SCRIPT_BASE_DIRECTORY}/sql/dwh/ETL_41_addConstraintsIndexesTriggers.sql"
  )
  local failed_files=()
  

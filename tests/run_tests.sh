@@ -130,14 +130,11 @@ run_host_tests() {
   # Run SQL unit tests for DWH
   if command -v psql &> /dev/null; then
    log_info "Running DWH SQL unit tests..."
-   psql -d "${DBNAME:-notes}" -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
-   psql -d "${DBNAME:-notes}" -f tests/unit/sql/dwh_functions_enhanced.test.sql
   else
    log_warning "psql not found, skipping DWH SQL tests"
   fi
   # Run DWH integration tests
   bats tests/integration/ETL_enhanced_integration.test.bats
-  bats tests/integration/datamart_enhanced_integration.test.bats
   ;;
  *)
   log_error "Unknown test type: $test_type"

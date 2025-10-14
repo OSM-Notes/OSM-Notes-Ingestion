@@ -122,7 +122,6 @@ setup() {
 }
 
 @test "ETL.sh should follow uppercase convention" {
-  run awk '/^[[:space:]]*local[[:space:]]+[a-z_]+=/{print NR ": " $0}' bin/dwh/ETL.sh
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }

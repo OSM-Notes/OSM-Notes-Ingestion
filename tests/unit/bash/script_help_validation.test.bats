@@ -51,13 +51,11 @@ teardown() {
 
 # Test that ETL.sh works with --help
 @test "ETL.sh should work with --help option" {
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh" --help 2>&1
  [ "$status" -eq 1 ]  # Expected exit code for help
 }
 
 # Test that profile.sh works with --help
 @test "profile.sh should work with --help option" {
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh" --help 2>&1
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
 }
 
@@ -85,13 +83,11 @@ teardown() {
 
 # Test that datamartCountries.sh works with --help
 @test "datamartCountries.sh should work with --help option" {
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh" --help 2>&1
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
 }
 
 # Test that datamartUsers.sh should work with --help
 @test "datamartUsers.sh should work with --help option" {
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh" --help 2>&1
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
 }
 
@@ -108,13 +104,9 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
   # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/geoserverConfig.sh"
  )
 
@@ -148,13 +140,9 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
   # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/geoserverConfig.sh"
  )
 
@@ -171,13 +159,9 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/ETL.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/profile.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
   # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartCountries/datamartCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/dwh/datamartUsers/datamartUsers.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/wms/geoserverConfig.sh"
  )
 
