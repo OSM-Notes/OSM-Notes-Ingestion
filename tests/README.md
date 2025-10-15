@@ -493,7 +493,7 @@ The `processAPI_historical_e2e.test.bats` provides real database scenario testin
 
 When historical validation fails, ProcessAPI now shows:
 
-```
+```text
 CRITICAL: Historical data validation failed!
 ProcessAPI cannot continue without historical data from Planet.
 The system needs historical context to properly process incremental updates.
