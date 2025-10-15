@@ -2462,38 +2462,80 @@ function __divide_xml_file_binary() {
  TEMP_DIR=$(mktemp -d)
  __logd "Created temporary directory: ${TEMP_DIR}"
 
- # Function to create XML part from note range
- __create_xml_part_by_notes() {
-  local PART_NUM="${1}"
-  local START_NOTE="${2}"
-  local END_NOTE="${3}"
-  local OUTPUT_FILE="${4}"
-  local ROOT_TAG_LOCAL="${5}"
+ # NEW OPTIMIZED FUNCTION: Single-pass distribution
+ # Distributes notes to multiple parts in ONE single read pass
+ __distribute_notes_single_pass() {
+  local PARTS_ARRAY_ARG="${1}"
+  local OUTPUT_DIR_ARG="${2}"
+  local ROOT_TAG_ARG="${3}"
+  local PART_PREFIX_ARG="${4}"
 
-  # Validate inputs
-  if [[ -z "${PART_NUM}" ]] || [[ -z "${START_NOTE}" ]] || [[ -z "${END_NOTE}" ]] || [[ -z "${OUTPUT_FILE}" ]] || [[ -z "${ROOT_TAG_LOCAL}" ]]; then
-   echo "ERROR: Invalid parameters passed to __create_xml_part_by_notes" >&2
-   echo "0"
-   return 1
-  fi
+  __logd "Starting single-pass distribution of notes to parts"
 
-  # Create XML wrapper
-  echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
-  echo "<${ROOT_TAG_LOCAL}>" >> "${OUTPUT_FILE}"
+  # Parse parts array from argument (format: "start:end,start:end,...")
+  IFS=',' read -ra PARTS_INFO <<< "${PARTS_ARRAY_ARG}"
 
-  # Use a more robust approach: count notes as we go and extract the range
+  # Initialize output files with XML headers
+  local PART_COUNTER=0
+  declare -A PART_FILE_MAP
+  declare -A PART_NOTE_COUNT
+  declare -A PART_START_MAP
+  declare -A PART_END_MAP
+
+  for PART_RANGE in "${PARTS_INFO[@]}"; do
+   local START_NOTE END_NOTE
+   IFS=':' read -r START_NOTE END_NOTE <<< "${PART_RANGE}"
+
+   local PART_NUM
+   PART_NUM=$(printf "%03d" "${PART_COUNTER}")
+   local OUTPUT_FILE="${OUTPUT_DIR_ARG}/${PART_PREFIX_ARG}_${PART_NUM}.xml"
+
+   # Create XML header for this part
+   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
+   echo "<${ROOT_TAG_ARG}>" >> "${OUTPUT_FILE}"
+
+   # Store mappings for quick lookup
+   PART_FILE_MAP[${PART_COUNTER}]="${OUTPUT_FILE}"
+   PART_START_MAP[${PART_COUNTER}]="${START_NOTE}"
+   PART_END_MAP[${PART_COUNTER}]="${END_NOTE}"
+   PART_NOTE_COUNT[${PART_COUNTER}]=0
+
+   __logd "Initialized part ${PART_COUNTER}: notes ${START_NOTE}-${END_NOTE} -> ${OUTPUT_FILE}"
+   ((PART_COUNTER++))
+  done
+
+  local TOTAL_PARTS=${PART_COUNTER}
+  __logi "Single-pass distribution: initialized ${TOTAL_PARTS} output files"
+
+  # Single pass through input file
   local CURRENT_NOTE=0
   local IN_NOTE=false
   local NOTE_BUFFER=""
-  local PART_NOTES=0
+  local LINES_READ=0
+  local LAST_PROGRESS_NOTE=0
 
-  # Read the input file line by line to avoid memory issues
+  __logd "Starting single-pass read of ${INPUT_XML}..."
+
   while IFS= read -r line; do
+   ((LINES_READ++))
+
+   # Progress indicator every 100k lines
+   if [[ $((LINES_READ % 100000)) -eq 0 ]]; then
+    __logd "Progress: ${LINES_READ} lines read, ${CURRENT_NOTE} notes processed"
+   fi
+
    # Check if we're entering a note
    if echo "${line}" | grep -q "^[[:space:]]*<note[^>]*>"; then
     IN_NOTE=true
     NOTE_BUFFER="${line}"
     ((CURRENT_NOTE++))
+
+    # Progress indicator every 10k notes
+    if [[ $((CURRENT_NOTE - LAST_PROGRESS_NOTE)) -ge 10000 ]]; then
+     __logi "Single-pass progress: ${CURRENT_NOTE} notes processed"
+     LAST_PROGRESS_NOTE=${CURRENT_NOTE}
+    fi
+
    elif [[ "${IN_NOTE}" == "true" ]]; then
     # We're inside a note, add line to buffer
     NOTE_BUFFER+=$'\n'"${line}"
@@ -2502,34 +2544,35 @@ function __divide_xml_file_binary() {
     if echo "${line}" | grep -q "^[[:space:]]*</note>"; then
      IN_NOTE=false
 
-     # If this note is in our target range, add it to output
-     if [[ ${CURRENT_NOTE} -gt ${START_NOTE} ]] && [[ ${CURRENT_NOTE} -le ${END_NOTE} ]]; then
-      echo "${NOTE_BUFFER}" >> "${OUTPUT_FILE}"
-      ((PART_NOTES++))
-     fi
+     # Find which part(s) this note belongs to and write it
+     for ((i = 0; i < TOTAL_PARTS; i++)); do
+      local START="${PART_START_MAP[${i}]}"
+      local END="${PART_END_MAP[${i}]}"
+
+      if [[ ${CURRENT_NOTE} -gt ${START} ]] && [[ ${CURRENT_NOTE} -le ${END} ]]; then
+       # Write note to this part's file
+       echo "${NOTE_BUFFER}" >> "${PART_FILE_MAP[${i}]}"
+       ((PART_NOTE_COUNT[${i}]++))
+       break # Each note goes to exactly one part
+      fi
+     done
 
      # Clear buffer
      NOTE_BUFFER=""
     fi
    fi
-
-   # Stop if we've processed all notes we need
-   if [[ ${CURRENT_NOTE} -gt ${END_NOTE} ]]; then
-    break
-   fi
   done < "${INPUT_XML}"
 
-  # Close XML tag
-  echo "</${ROOT_TAG_LOCAL}>" >> "${OUTPUT_FILE}"
+  __logi "Single-pass read completed: ${CURRENT_NOTE} notes processed, ${LINES_READ} lines read"
 
-  # Validate that we got some notes
-  if [[ ${PART_NOTES} -eq 0 ]]; then
-   echo "ERROR: No notes found in range ${START_NOTE}-${END_NOTE}" >&2
-   echo "0"
-   return 1
-  fi
+  # Close all XML files with closing tags
+  for ((i = 0; i < TOTAL_PARTS; i++)); do
+   echo "</${ROOT_TAG_ARG}>" >> "${PART_FILE_MAP[${i}]}"
+   __logd "Part ${i}: ${PART_NOTE_COUNT[${i}]} notes written to ${PART_FILE_MAP[${i}]}"
+  done
 
-  echo "${PART_NOTES}"
+  __logi "Single-pass distribution completed successfully for ${TOTAL_PARTS} parts"
+  return 0
  }
 
  # Function to create XML part from byte range (kept for compatibility)
@@ -2620,216 +2663,56 @@ function __divide_xml_file_binary() {
 
  __logi "Binary division completed: ${CURRENT_PARTS} parts created"
 
- # Phase 2: Create actual XML files in parallel
- __logd "Creating XML parts in parallel with max ${MAX_THREADS} concurrent threads..."
+ # Phase 2: Create actual XML files using OPTIMIZED single-pass distribution
+ __logi "Using optimized single-pass distribution method for maximum performance"
 
- # Adjust MAX_THREADS based on system resources for XML processing
- local ADJUSTED_MAX_THREADS
- ADJUSTED_MAX_THREADS=$(__adjust_workers_for_resources "${MAX_THREADS}" "XML")
- if [[ ${ADJUSTED_MAX_THREADS} -ne ${MAX_THREADS} ]]; then
-  __logd "Adjusted max threads from ${MAX_THREADS} to ${ADJUSTED_MAX_THREADS} based on system resources"
-  MAX_THREADS=${ADJUSTED_MAX_THREADS}
- fi
-
- # Additional memory-based thread limiting for XML division
- if command -v free > /dev/null 2>&1; then
-  local AVAILABLE_MEMORY_MB
-  AVAILABLE_MEMORY_MB=$(free | grep Mem | awk '{printf "%.0f", $7/1024}' || echo "0")
-  local ESTIMATED_MEMORY_PER_THREAD=100 # Estimate 100MB per thread for XML processing
-
-  if [[ ${AVAILABLE_MEMORY_MB} -gt 0 ]]; then
-   local MEMORY_BASED_THREADS
-   MEMORY_BASED_THREADS=$((AVAILABLE_MEMORY_MB / ESTIMATED_MEMORY_PER_THREAD))
-
-   if [[ ${MEMORY_BASED_THREADS} -lt ${MAX_THREADS} ]]; then
-    __logd "Memory-based thread limiting: ${AVAILABLE_MEMORY_MB} MB available, limiting to ${MEMORY_BASED_THREADS} threads (${ESTIMATED_MEMORY_PER_THREAD} MB per thread)"
-    MAX_THREADS=${MEMORY_BASED_THREADS}
-   fi
-  fi
- fi
-
- # Ensure minimum threads for processing
- if [[ ${MAX_THREADS} -lt 1 ]]; then
-  MAX_THREADS=1
-  __logw "WARNING: Adjusted to minimum 1 thread due to resource constraints"
- fi
-
- # Create job array for parallel processing
- local PIDS=()
- local PART_INFO=()
- local PART_COUNTER=0
- local ACTIVE_JOBS=0
-
+ # Convert parts array to comma-separated string for the function
+ local PARTS_STRING=""
  for PART_RANGE in "${PARTS_ARRAY[@]}"; do
-  local START_NOTE END_NOTE
-  IFS=':' read -r START_NOTE END_NOTE <<< "${PART_RANGE}"
-
-  local PART_NUM
-  PART_NUM=$(printf "%03d" "${PART_COUNTER}")
-  local OUTPUT_FILE="${OUTPUT_DIR}/${PART_PREFIX}_${PART_NUM}.xml"
-
-  # Wait if we've reached the maximum number of concurrent threads
-  local WAIT_COUNTER=0
-  while [[ ${ACTIVE_JOBS} -ge ${MAX_THREADS} ]]; do
-   if [[ $((WAIT_COUNTER % 10)) -eq 0 ]]; then
-    __logd "Max threads (${MAX_THREADS}) reached, waiting for a job to complete... (wait count: ${WAIT_COUNTER})"
-   fi
-
-   # Check for completed jobs with better detection
-   local COMPLETED_PID=""
-   local I=0
-   for COMPLETED_PID in "${PIDS[@]}"; do
-    if ! kill -0 "${COMPLETED_PID}" 2> /dev/null; then
-     # Remove completed PID from arrays
-     local TEMP_PIDS=()
-     local TEMP_INFO=()
-     local J=0
-     for PID_ENTRY in "${PIDS[@]}"; do
-      if [[ "${PID_ENTRY}" != "${COMPLETED_PID}" ]]; then
-       TEMP_PIDS+=("${PID_ENTRY}")
-       TEMP_INFO+=("${PART_INFO[J]}")
-      fi
-      ((J++))
-     done
-     PIDS=("${TEMP_PIDS[@]}")
-     PART_INFO=("${TEMP_INFO[@]}")
-     ((ACTIVE_JOBS--))
-     __logd "Job ${COMPLETED_PID} completed, active jobs: ${ACTIVE_JOBS}/${MAX_THREADS}"
-     break
-    fi
-    ((I++))
-   done
-
-   # If no jobs completed, wait longer before checking again
-   if [[ ${ACTIVE_JOBS} -ge ${MAX_THREADS} ]]; then
-    if [[ $((WAIT_COUNTER % 5)) -eq 0 ]]; then
-     __logd "No jobs completed yet, waiting 1 second before next check... (wait count: ${WAIT_COUNTER})"
-    fi
-    sleep 1
-    ((WAIT_COUNTER++))
-   fi
-  done
-
-  # Check system resources before launching new job
-  if ! __check_system_resources "minimal"; then
-   __logd "System resources low, waiting before launching part ${PART_COUNTER}..."
-   __wait_for_resources 30
-  fi
-
-  # Launch part creation in background
-  __logd "Launching part ${PART_COUNTER} creation (active jobs: ${ACTIVE_JOBS}/${MAX_THREADS}) for notes ${START_NOTE}-${END_NOTE}"
-
-  # Create a temporary log file for this part creation
-  local PART_LOG_FILE="${OUTPUT_DIR}/part_${PART_COUNTER}_creation.log"
-
-  # Launch part creation in background with logging
-  (__create_xml_part_by_notes "${PART_COUNTER}" "${START_NOTE}" "${END_NOTE}" "${OUTPUT_FILE}" "${ROOT_TAG}" > "${PART_LOG_FILE}" 2>&1) &
-  local PID=$!
-  PIDS+=("${PID}")
-  PART_INFO+=("${PART_COUNTER}:${OUTPUT_FILE}:${PID}:${PART_LOG_FILE}")
-  ((ACTIVE_JOBS++))
-
-  __logd "Launched part ${PART_COUNTER} creation (PID: ${PID}), active jobs: ${ACTIVE_JOBS}/${MAX_THREADS}"
-
-  # Show progress every 10 parts or when threads are busy
-  if [[ $((PART_COUNTER % 10)) -eq 0 ]] || [[ ${ACTIVE_JOBS} -eq ${MAX_THREADS} ]]; then
-   local PROGRESS_PCT
-   PROGRESS_PCT=$((PART_COUNTER * 100 / ${#PARTS_ARRAY[@]}))
-
-   # Show memory status if available
-   local MEMORY_STATUS=""
-   if command -v free > /dev/null 2>&1; then
-    local MEMORY_PERCENT
-    MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || echo "0")
-    MEMORY_STATUS=", Memory: ${MEMORY_PERCENT}%"
-   fi
-
-   __logi "Progress: ${PART_COUNTER}/${#PARTS_ARRAY[@]} parts (${PROGRESS_PCT}%) - Active threads: ${ACTIVE_JOBS}/${MAX_THREADS}${MEMORY_STATUS}"
-
-   # Show some debug info about the parts being created
-   if [[ ${PART_COUNTER} -le 5 ]] || [[ $((PART_COUNTER % 50)) -eq 0 ]]; then
-    __logd "Debug: Part ${PART_COUNTER} will process notes ${START_NOTE}-${END_NOTE} (${#PARTS_ARRAY[@]} total parts planned)"
-   fi
-  fi
-
-  ((PART_COUNTER++))
-
-  # Small delay to prevent overwhelming the system
-  if [[ ${ACTIVE_JOBS} -gt 0 ]]; then
-   sleep 0.5
+  if [[ -z "${PARTS_STRING}" ]]; then
+   PARTS_STRING="${PART_RANGE}"
+  else
+   PARTS_STRING="${PARTS_STRING},${PART_RANGE}"
   fi
  done
 
- # Wait for all remaining processes to complete
- __logd "Waiting for remaining ${ACTIVE_JOBS} jobs to complete..."
- local WAIT_TIMEOUT=300 # 5 minutes timeout for remaining jobs
- local WAIT_START_TIME
- WAIT_START_TIME=$(date +%s)
- local FINAL_WAIT_COUNTER=0
+ __logd "Parts array converted to string: ${#PARTS_ARRAY[@]} parts"
 
- while [[ ${ACTIVE_JOBS} -gt 0 ]]; do
-  # Check timeout
-  local CURRENT_TIME
-  CURRENT_TIME=$(date +%s)
-  local ELAPSED_TIME
-  ELAPSED_TIME=$((CURRENT_TIME - WAIT_START_TIME))
+ # Call the optimized single-pass distribution function
+ if ! __distribute_notes_single_pass "${PARTS_STRING}" "${OUTPUT_DIR}" \
+  "${ROOT_TAG}" "${PART_PREFIX}"; then
+  __loge "ERROR: Single-pass distribution failed"
+  rm -rf "${TEMP_DIR}"
+  __log_finish
+  return 1
+ fi
 
-  if [[ ${ELAPSED_TIME} -gt ${WAIT_TIMEOUT} ]]; then
-   __logw "WARNING: Timeout waiting for remaining jobs after ${WAIT_TIMEOUT}s, killing remaining processes..."
-   for PID in "${PIDS[@]}"; do
-    if kill -0 "${PID}" 2> /dev/null; then
-     kill -TERM "${PID}" 2> /dev/null || true
-     sleep 1
-     if kill -0 "${PID}" 2> /dev/null; then
-      kill -KILL "${PID}" 2> /dev/null || true
-     fi
-    fi
-   done
-   break
-  fi
-
-  # Check for completed jobs with better detection
-  local COMPLETED_PID=""
-  local I=0
-  for COMPLETED_PID in "${PIDS[@]}"; do
-   if ! kill -0 "${COMPLETED_PID}" 2> /dev/null; then
-    # Remove completed PID from arrays
-    local TEMP_PIDS=()
-    local TEMP_INFO=()
-    local J=0
-    for PID_ENTRY in "${PIDS[@]}"; do
-     if [[ "${PID_ENTRY}" != "${COMPLETED_PID}" ]]; then
-      TEMP_PIDS+=("${PID_ENTRY}")
-      TEMP_INFO+=("${PART_INFO[J]}")
-     fi
-     ((J++))
-    done
-    PIDS=("${TEMP_PIDS[@]}")
-    PART_INFO=("${TEMP_INFO[@]}")
-    ((ACTIVE_JOBS--))
-    __logd "Job ${COMPLETED_PID} completed, remaining jobs: ${ACTIVE_JOBS}"
-   fi
-   ((I++))
-  done
-
-  # If no jobs completed, wait longer before checking again
-  if [[ ${ACTIVE_JOBS} -gt 0 ]]; then
-   if [[ $((FINAL_WAIT_COUNTER % 10)) -eq 0 ]]; then
-    __logd "No jobs completed yet, waiting 2 seconds before next check... (wait count: ${FINAL_WAIT_COUNTER}, elapsed: ${ELAPSED_TIME}s)"
-   fi
-   sleep 2
-   ((FINAL_WAIT_COUNTER++))
-  fi
- done
+ __logi "Single-pass distribution completed successfully"
 
  # Collect results and validate parts
  __logd "Validating created parts..."
  local VALID_PARTS=0
  local TOTAL_NOTES_PROCESSED=0
 
- for PART_INFO_ENTRY in "${PART_INFO[@]}"; do
-  local PART_NUM OUTPUT_FILE PID PART_LOG_FILE
-  IFS=':' read -r PART_NUM OUTPUT_FILE PID PART_LOG_FILE <<< "${PART_INFO_ENTRY}"
+ # Find all created part files
+ local PART_FILES
+ mapfile -t PART_FILES < <(find "${OUTPUT_DIR}" -name "${PART_PREFIX}_*.xml" \
+  -type f | sort || true)
+
+ if [[ ${#PART_FILES[@]} -eq 0 ]]; then
+  __loge "ERROR: No part files were created"
+  rm -rf "${TEMP_DIR}"
+  __log_finish
+  return 1
+ fi
+
+ __logd "Found ${#PART_FILES[@]} part files to validate"
+
+ for OUTPUT_FILE in "${PART_FILES[@]}"; do
+  local PART_BASENAME
+  PART_BASENAME=$(basename "${OUTPUT_FILE}" .xml)
+  local PART_NUM
+  PART_NUM=$(echo "${PART_BASENAME}" | sed "s/${PART_PREFIX}_//")
 
   if [[ -f "${OUTPUT_FILE}" ]]; then
    local PART_NOTES
@@ -2844,7 +2727,8 @@ function __divide_xml_file_binary() {
     TOTAL_NOTES_PROCESSED=$((TOTAL_NOTES_PROCESSED + PART_NOTES))
     __logd "Part ${PART_NUM}: ${PART_NOTES} notes, ${PART_SIZE_MB} MB - VALID"
    else
-    __logw "Part ${PART_NUM}: No notes found - INVALID (file size: ${PART_SIZE_BYTES} bytes)"
+    __logw "Part ${PART_NUM}: No notes found - INVALID \
+(file size: ${PART_SIZE_BYTES} bytes)"
     # Show first few lines for debugging
     if [[ ${PART_SIZE_BYTES} -gt 0 ]]; then
      __logd "Debug: First 5 lines of invalid part ${PART_NUM}:"
@@ -2856,19 +2740,6 @@ function __divide_xml_file_binary() {
    fi
   else
    __logw "Part ${PART_NUM}: File not found - MISSING"
-  fi
-
-  # Check part log file for errors
-  if [[ -f "${PART_LOG_FILE}" ]]; then
-   local PART_LOG_ERRORS
-   PART_LOG_ERRORS=$(grep -i "error" "${PART_LOG_FILE}" 2> /dev/null | wc -l || echo "0")
-   if [[ ${PART_LOG_ERRORS} -gt 0 ]]; then
-    __loge "Part ${PART_NUM}: ${PART_LOG_ERRORS} errors found in part log file: ${PART_LOG_FILE}"
-    # Show part log file for debugging
-    __logd "Debug: Part log file content:"
-    cat "${PART_LOG_FILE}"
-    rm -f "${PART_LOG_FILE}"
-   fi
   fi
  done
 
