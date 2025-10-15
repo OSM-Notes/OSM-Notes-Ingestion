@@ -5,6 +5,7 @@ Shared functions and utilities for OSM Notes processing projects.
 ## Overview
 
 This repository contains common Bash functions and utilities shared between:
+
 - [OSM-Notes-Ingestion](https://github.com/OSMLatam/OSM-Notes-Ingestion) - Ingestion and WMS
 - [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) - DWH and Analytics
 
@@ -130,6 +131,7 @@ logError "Something went wrong"
 ## Version Compatibility
 
 This library requires:
+
 - **Bash** 4.0 or higher
 - **Linux** operating system
 - Standard UNIX utilities (grep, awk, sed, etc.)
@@ -146,6 +148,7 @@ This library requires:
 ### Testing
 
 Before committing changes, ensure:
+
 - All functions are documented
 - No breaking changes to public APIs
 - shellcheck passes: `shellcheck -x -o all *.sh`
@@ -154,6 +157,7 @@ Before committing changes, ensure:
 ## Versioning
 
 This project follows [Semantic Versioning](https://semver.org/):
+
 - **Major version**: Breaking changes
 - **Minor version**: New features (backward compatible)
 - **Patch version**: Bug fixes
@@ -173,6 +177,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 ## Support
 
 For issues or questions:
+
 - Create an issue in this repository
 - Check documentation in dependent projects
 - Contact: @angoca in Telegram and several social network
@@ -190,4 +195,3 @@ For issues or questions:
 ---
 
 **Version:** 2025-10-13
-
