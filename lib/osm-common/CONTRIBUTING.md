@@ -1,6 +1,6 @@
-# Contributing to OSM-Notes-profile
+# Contributing to OSM-Notes-Ingestion
 
-Thank you for your interest in contributing to the OSM-Notes-profile project!
+Thank you for your interest in contributing to the OSM-Notes-Ingestion project!
 This document provides comprehensive guidelines for contributing to this
 OpenStreetMap notes analysis system.
 
@@ -648,7 +648,7 @@ This allows you to customize database settings, user names, ETL configurations, 
 
 ---
 
-**Thank you for contributing to OSM-Notes-profile!**
+**Thank you for contributing to OSM-Notes-Ingestion!**
 
 Your contributions help make OpenStreetMap notes analysis more accessible and
 powerful for the community.
