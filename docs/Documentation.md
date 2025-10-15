@@ -1,206 +1,386 @@
-# OSM Notes Profile - System Documentation
+# OSM Notes Ingestion - System Documentation
+
+**Version:** 2025-10-14
 
 ## Overview
 
 This document provides comprehensive technical documentation for the
-OSM-Notes-profile system, including system architecture, data flow, and
+OSM-Notes-Ingestion system, including system architecture, data flow, and
 implementation details.
 
 > **Note:** For project motivation and background, see [Rationale.md](./Rationale.md).
+
+## Purpose
+
+This repository focuses exclusively on **data ingestion** from OpenStreetMap:
+
+- **Data Collection**: Extracting notes data from OSM API and Planet dumps
+- **Data Processing**: Transforming and validating note data
+- **Data Storage**: Loading processed data into PostgreSQL/PostGIS
+- **WMS Service**: Providing geographic visualization of notes
+
+> **Note:** Analytics, ETL, and Data Warehouse components are maintained in a
+> separate repository: [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+
+---
 
 ## System Architecture
 
 ### Core Components
 
-The OSM-Notes-profile system consists of several key components:
+The OSM-Notes-Ingestion system consists of the following components:
 
-1. **Data Collection Layer**
-   - API Integration: Real-time data from OSM API
-   - Planet Processing: Historical data from OSM Planet dumps
-   - Geographic Boundaries: Country and maritime boundaries via Overpass
+#### 1. Data Collection Layer
 
-2. **Data Processing Layer**
-   - ETL Processes: Data transformation and loading
-   - Parallel Processing: Partitioned data processing for large volumes
-   - Data Validation: XML structure validation and data integrity checks
+- **API Integration**: Real-time data from OSM Notes API
+  - Incremental updates every 15 minutes
+  - Limited to last 10,000 closed notes and all open notes
+  - Automatic detection of new, modified, and reopened notes
 
-3. **Data Storage Layer**
-   - PostgreSQL Database: Primary data storage
-   - PostGIS Extension: Spatial data handling
-   - Data Warehouse: Star schema for analytics
-   - Data Marts: Pre-calculated analytics for users and countries
+- **Planet Processing**: Historical data from OSM Planet dumps
+  - Complete note history since 2013
+  - Daily planet dumps processing
+  - Full database initialization and updates
 
-4. **Analytics Layer**
-   - User Profiles: Individual contributor analytics
-   - Country Profiles: Geographic community analytics
-   - Hashtag Analysis: Campaign and initiative tracking
-   - Application Usage: Tool adoption metrics
+- **Geographic Boundaries**: Country and maritime boundaries via Overpass
+  - Country polygons for spatial analysis
+  - Maritime boundaries
+  - Automatic updates
 
-5. **WMS (Web Map Service) Layer**
-   - Geographic Visualization: Map-based note display
-   - Real-time Updates: Synchronized with main database
-   - Style Management: Different styles for open/closed notes
-   - Client Integration: JOSM, Vespucci, and web applications
+#### 2. Data Processing Layer
+
+- **XML Transformation**: XSLT-based transformation from XML to CSV
+  - Separate transformations for API and Planet formats
+  - Validation and error handling
+  - Parallel processing support
+
+- **Data Validation**: Comprehensive validation functions
+  - XML structure validation
+  - Date and coordinate validation
+  - Data integrity checks
+  - Schema validation
+
+- **Parallel Processing**: Partitioned data processing for large volumes
+  - Automatic file splitting
+  - Parallel XSLT processing
+  - Resource management and optimization
+
+#### 3. Data Storage Layer
+
+- **PostgreSQL Database**: Primary data storage
+  - Core tables for notes and comments
+  - Spatial indexes for geographic queries
+  - Temporal indexes for time-based queries
+
+- **PostGIS Extension**: Spatial data handling
+  - Geographic coordinates storage
+  - Spatial queries and analysis
+  - Country assignment for notes
+
+#### 4. WMS (Web Map Service) Layer
+
+- **Geographic Visualization**: Map-based note display
+- **Real-time Updates**: Synchronized with main database
+- **Style Management**: Different styles for open/closed notes
+- **Client Integration**: JOSM, Vespucci, and web applications
+
+---
 
 ## Data Flow
 
 ### 1. Geographic Data Collection
 
-- **Source**: Overpass API queries for country and maritime boundaries
-- **Process**: Download boundary relations with specific tags
-- **Output**: PostgreSQL geometry objects for spatial queries
+**Source:** Overpass API queries for country and maritime boundaries
 
-### 2. Historical Data Processing
+**Process:**
 
-- **Source**: OSM Planet daily dumps (notes since 2013)
-- **Process**: XML parsing and transformation to CSV
-- **Output**: Base database with complete note history
+1. Download boundary relations with specific tags
+2. Transform to PostGIS geometry objects
+3. Store in `countries` table
 
-### 3. Incremental Data Synchronization
+**Output:** PostgreSQL geometry objects for spatial queries
 
-- **Source**: OSM API (recent changes, limited to 10,000 notes)
-- **Process**: Real-time synchronization every 15 minutes
-- **Output**: Updated database with latest changes
+### 2. Historical Data Processing (Planet)
 
-### 4. Data Warehouse Population
+**Source:** OSM Planet daily dumps (notes since 2013)
 
-- **Source**: Processed note data
-- **Process**: ETL transformation to star schema
-- **Output**: Analytics-ready data structures
+**Process:**
 
-### 5. Profile Generation
+1. Download Planet notes dump
+2. Transform XML to CSV using XSLT
+3. Validate data structure and content
+4. Load into temporary sync tables
+5. Merge with main tables
 
-- **Source**: Data warehouse
-- **Process**: Pre-calculated aggregations
-- **Output**: User and country profiles
+**Output:** Base database with complete note history
 
-### 6. WMS Service Delivery
+**Frequency:** Daily or on-demand
 
-- **Source**: WMS schema in database
-- **Process**: GeoServer rendering with styles
-- **Output**: Map tiles and feature information via WMS protocol
+### 3. Incremental Data Synchronization (API)
+
+**Source:** OSM Notes API (recent changes)
+
+**Process:**
+
+1. Query API for updates (last 10,000 closed + all open)
+2. Transform XML to CSV
+3. Validate and detect changes
+4. Load into temporary API tables
+5. Update main tables with new/modified notes
+
+**Output:** Updated database with latest changes
+
+**Frequency:** Every 15 minutes (configurable)
+
+### 4. Country Assignment
+
+**Process:**
+
+1. For each new/modified note
+2. Perform spatial query against country boundaries
+3. Assign country based on geographic location
+4. Update note record with country information
+
+**Output:** Notes with assigned countries
+
+### 5. WMS Service Delivery
+
+**Source:** WMS schema in database
+
+**Process:**
+
+1. Synchronize WMS tables with main tables via triggers
+2. Apply spatial and temporal indexes
+3. GeoServer renders with configured styles
+
+**Output:** Map tiles and feature information via WMS protocol
+
+---
 
 ## Database Schema
 
 ### Core Tables
 
 - **`notes`**: All OSM notes with geographic and temporal data
+  - Columns: note_id, latitude, longitude, created_at, closed_at, status
+  - Indexes: spatial (lat/lon), temporal (dates), status
+  - Approximately 4.3M notes (as of 2024)
+
 - **`note_comments`**: Comment metadata and user information
+  - Columns: note_id, sequence_action, action, action_date, user_id, username
+  - Indexes: note_id, user_id, action_date
+  - One record per comment/action
+
 - **`note_comments_text`**: Actual comment content
+  - Columns: note_id, sequence_action, text
+  - Linked to note_comments via foreign key
+  - Separated for performance (text can be large)
+
 - **`countries`**: Geographic boundaries for spatial analysis
+  - PostGIS geometry objects
+  - Country names and ISO codes
+  - Used for spatial queries and note assignment
 
-### Processing Tables
+### Processing Tables (Temporary)
 
-- **API Tables**: Temporary storage for API data (`notes_api`, `note_comments_api`,
-  `note_comments_text_api`)
-- **Sync Tables**: Temporary storage for Planet processing (`notes_sync`,
-  `note_comments_sync`, `note_comments_text_sync`)
+- **API Tables**: Temporary storage for API data
+  - `notes_api`, `note_comments_api`, `note_comments_text_api`
+  - Cleared after each sync
 
-### Analytics Tables
-
-#### Data Warehouse (DWH) Schema
-
-The data warehouse uses a star schema design with enhanced dimensions:
-
-**Fact Table:**
-
-- **`dwh.facts`**: Central fact table with note actions and metrics
-
-**Core Dimensions:**
-
-- **`dwh.dimension_users`**: User information with SCD2 support
-- **`dwh.dimension_countries`**: Country information with ISO codes
-- **`dwh.dimension_days`**: Date dimension with enhanced attributes
-- **`dwh.dimension_time_of_week`**: Time dimension with enhanced attributes
-- **`dwh.dimension_applications`**: Application information with enhanced attributes
-
-**New Dimensions:**
-
-- **`dwh.dimension_timezones`**: Timezone support for local time calculations
-- **`dwh.dimension_seasons`**: Seasonal analysis based on date and latitude
-- **`dwh.dimension_continents`**: Continental grouping for geographical analysis
-- **`dwh.dimension_application_versions`**: Application version tracking
-- **`dwh.fact_hashtags`**: Bridge table for many-to-many hashtag relationships
-
-**Enhanced Features:**
-
-- **SCD2 Support**: User dimension with historical tracking
-- **Local Time Support**: Timezone-aware date and time calculations
-- **Seasonal Analysis**: Season-based analytics for temporal patterns
-- **Application Versions**: Version tracking for application usage analysis
-- **Bridge Tables**: Many-to-many relationships for hashtags
-
-#### Data Marts
-
-- **`dwh.datamartUsers`**: Pre-calculated user profiles and analytics
-- **`dwh.datamartCountries`**: Pre-calculated country profiles and analytics
+- **Sync Tables**: Temporary storage for Planet processing
+  - `notes_sync`, `note_comments_sync`, `note_comments_text_sync`
+  - Used for bulk loading and validation
 
 ### WMS Tables
 
 - **`wms.notes_wms`**: Optimized note data for map visualization
-- **Triggers**: Automatic synchronization from main tables
-- **Indexes**: Spatial and temporal indexes for performance
+  - Simplified geometry and attributes
+  - Automatic synchronization via triggers
+  - Spatial and temporal indexes for performance
+
+### Monitoring Tables
+
+- **Check Tables**: Used for monitoring and verification
+  - Compare API vs Planet data
+  - Detect discrepancies
+  - Validate data integrity
+
+---
 
 ## Technical Implementation
 
 ### Processing Scripts
 
-- **`processAPINotes.sh`**: Incremental synchronization from OSM API
-- **`processPlanetNotes.sh`**: Historical data processing from Planet dumps
-- **`updateCountries.sh`**: Geographic boundary updates
+#### Core Processing
+
+- **`bin/process/processAPINotes.sh`**: Incremental synchronization from OSM API
+  - Configurable update frequency
+  - Automatic error handling and retry
+  - Logging and monitoring
+
+- **`bin/process/processPlanetNotes.sh`**: Historical data processing from Planet dumps
+  - Large file handling
+  - Parallel processing
+  - Checksum validation
+
+- **`bin/process/updateCountries.sh`**: Geographic boundary updates
+  - Overpass API integration
+  - Boundary validation
+  - Country table updates
+
+#### Support Functions
+
+- **`bin/functionsProcess.sh`**: Shared processing functions
+  - Database operations
+  - Validation functions
+  - Common utilities
+
+- **`bin/parallelProcessingFunctions.sh`**: Parallel processing utilities
+  - File splitting
+  - Parallel execution
+  - Resource management
+
+#### Monitoring
+
+- **`bin/monitor/notesCheckVerifier.sh`**: Verification and monitoring
+  - Data consistency checks
+  - Discrepancy detection
+  - Alert generation
+
+- **`bin/monitor/processCheckPlanetNotes.sh`**: Planet data verification
+  - Compare API vs Planet
+  - Validate note counts
+  - Generate reports
+
+#### Cleanup
+
+- **`bin/cleanupAll.sh`**: Cleanup and maintenance
+  - Remove temporary tables
+  - Clear processing data
+  - Database cleanup
 
 ### WMS Scripts
 
-- **`wmsManager.sh`**: WMS database component management
-- **`geoserverConfig.sh`**: GeoServer configuration automation
-- **`wmsConfigExample.sh`**: Configuration examples and validation
+- **`bin/wms/wmsManager.sh`**: WMS database component management
+  - Create/drop WMS schema
+  - Configure triggers and functions
+  - Manage indexes
+
+- **`bin/wms/geoserverConfig.sh`**: GeoServer configuration automation
+  - Layer configuration
+  - Style management
+  - Service setup
+
+- **`bin/wms/wmsConfigExample.sh`**: Configuration examples and validation
+  - Example configurations
+  - Validation tools
+  - Testing utilities
 
 ### Data Transformation
 
-- **XSLT Templates**: XML to CSV transformation
-- **Parallel Processing**: Partitioned data processing
-- **Data Validation**: Schema validation and integrity checks
+- **XSLT Templates** (`xslt/`):
+  - `API2CSV_notes.xslt`: API notes to CSV
+  - `API2CSV_comments.xslt`: API comments to CSV
+  - `Planet2CSV_notes.xslt`: Planet notes to CSV
+  - `Planet2CSV_comments.xslt`: Planet comments to CSV
+  - `CSV2GeoJSON.xslt`: CSV to GeoJSON conversion
+
+- **Validation**:
+  - XML schema validation (`xsd/`)
+  - Data integrity checks
+  - Coordinate validation
+  - Date format validation
 
 ### Performance Optimization
 
-- **Partitioning**: Large table partitioning for parallel processing
-- **Indexing**: Optimized database indexes for spatial and temporal queries
-- **Caching**: Pre-calculated analytics in data marts
+- **Parallel Processing**:
+  - File splitting for large XML files
+  - Concurrent XSLT transformations
+  - Parallel database loading
+
+- **Indexing**:
+  - Spatial indexes (PostGIS)
+  - Temporal indexes (dates)
+  - Composite indexes for common queries
+
+- **Caching**:
+  - WMS tables for fast map rendering
+  - Materialized views (when needed)
+
+---
 
 ## Integration Points
 
 ### External APIs
 
-- **OSM API**: Real-time note data
-- **Overpass API**: Geographic boundary data
-- **Planet Dumps**: Historical data archives
+- **OSM Notes API** (`https://api.openstreetmap.org/api/0.6/notes`)
+  - Real-time note data
+  - RESTful API
+  - XML format
+
+- **Overpass API** (`https://overpass-api.de/api/interpreter`)
+  - Geographic boundary data
+  - Custom queries via Overpass QL
+  - OSM data extraction
+
+- **Planet Dumps** (`https://planet.openstreetmap.org/planet/notes/`)
+  - Historical data archives
+  - Daily updates
+  - Complete note history
 
 ### WMS Service
 
 - **GeoServer**: WMS service provider
+  - Version 2.20+ recommended
+  - PostGIS data store
+  - SLD styles
+
 - **PostGIS**: Spatial data storage and processing
+  - Version 3.0+ recommended
+  - Spatial indexes
+  - Geographic queries
+
 - **OGC Standards**: WMS 1.3.0 compliance
+  - GetCapabilities
+  - GetMap
+  - GetFeatureInfo
 
 ### Data Formats
 
-- **XML**: Input format from OSM APIs and Planet dumps
-- **CSV**: Intermediate format for data processing
-- **PostgreSQL**: Final storage format with spatial extensions
+- **Input**: XML (from OSM API and Planet dumps)
+- **Intermediate**: CSV (for database loading)
+- **Storage**: PostgreSQL with PostGIS
+- **Output**: WMS tiles, GeoJSON
+
+---
 
 ## Monitoring and Maintenance
 
 ### System Health
 
-- **Database Monitoring**: Connection and performance metrics
-- **Processing Monitoring**: ETL job status and completion
-- **Data Quality**: Validation and integrity checks
+- **Database Monitoring**:
+  - Connection pool status
+  - Query performance
+  - Index usage
+
+- **Processing Monitoring**:
+  - Script execution status
+  - Error logs
+  - Processing times
+
+- **Data Quality**:
+  - Validation checks
+  - Integrity constraints
+  - Discrepancy detection
 
 ### Maintenance Tasks
 
 - **Regular Synchronization**: 15-minute API updates
-- **Daily Planet Processing**: Historical data updates
+- **Daily Planet Processing**: Historical data updates (optional)
 - **Weekly Boundary Updates**: Geographic data refresh
-- **Monthly Analytics**: Data mart population
+- **Monthly Cleanup**: Remove old temporary data
+
+---
 
 ## Usage Guidelines
 
@@ -209,53 +389,111 @@ The data warehouse uses a star schema design with enhanced dimensions:
 - Monitor system health and performance
 - Manage database maintenance and backups
 - Configure processing schedules and timeouts
+- Set up cron jobs for automatic processing
 
 ### For Developers
 
 - Understand data flow and transformation processes
-- Modify processing scripts and ETL procedures
-- Extend analytics and reporting capabilities
-
-### For Data Analysts
-
-- Query data warehouse for custom analytics
-- Create new data marts for specific use cases
-- Generate reports and visualizations
+- Modify processing scripts and validation procedures
+- Extend ingestion capabilities
+- Add new data sources or formats
 
 ### For End Users
 
-- Access user and country profiles
-- View note activity and contribution metrics
-- Analyze hashtag and campaign performance
 - Use WMS layers in mapping applications (JOSM, Vespucci)
 - Visualize note patterns geographically
+- Query database for custom analysis
+- Export data in various formats
+
+---
 
 ## Dependencies
 
 ### Software Requirements
 
-- **PostgreSQL**: Database server with PostGIS extension
-- **Bash**: Scripting environment for processing
-- **XSLT**: XML transformation tools
-- **Overpass**: Geographic data API
-- **GeoServer**: WMS service provider
-- **Java**: Runtime environment for GeoServer
+- **PostgreSQL** (13+): Database server
+- **PostGIS** (3.0+): Spatial extension
+- **Bash** (4.0+): Scripting environment
+- **xsltproc**: XSLT transformation
+- **xmllint**: XML validation
+- **curl/wget**: Data download
+- **GeoServer** (2.20+): WMS service provider
+- **Java** (11+): Runtime for GeoServer
 
 ### Data Dependencies
 
-- **OSM API**: Real-time note data
+- **OSM Notes API**: Real-time note data
 - **Planet Dumps**: Historical data archives
-- **Geographic Boundaries**: Country and maritime data
+- **Overpass API**: Geographic boundaries
+
+---
 
 ## Related Documentation
 
-- **System Architecture**: This document provides the high-level overview
-- **Processing Details**: See [processAPI.md](./processAPI.md) and
-  [processPlanet.md](./processPlanet.md) for specific implementation details
-- **Project Motivation**: See [Rationale.md](./Rationale.md) for background and goals
-- **Testing Suites**: See [Testing_Suites_Reference.md](./Testing_Suites_Reference.md) for comprehensive testing suite documentation
-- **Testing Guide**: See [Testing_Guide.md](./Testing_Guide.md) for testing guidelines and workflows
-- **WMS Documentation**: See [WMS_Guide.md](./WMS_Guide.md),
-  [WMS_Technical.md](./WMS_Technical.md), [WMS_User_Guide.md](./WMS_User_Guide.md),
-  [WMS_Administration.md](./WMS_Administration.md), and
-  [WMS_API_Reference.md](./WMS_API_Reference.md) for WMS-specific documentation
+### Core Documentation
+
+- **[README.md](../README.md)**: Project overview and quick start
+- **[Rationale.md](./Rationale.md)**: Project motivation and goals
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)**: Contribution guidelines
+
+### Processing Documentation
+
+- **[processAPI.md](./processAPI.md)**: API processing details
+- **[processPlanet.md](./processPlanet.md)**: Planet processing details
+- **[Input_Validation.md](./Input_Validation.md)**: Validation procedures
+- **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML
+  validation enhancements
+- **[XSLT_Profiling_Guide.md](./XSLT_Profiling_Guide.md)**: XSLT performance
+
+### Testing Documentation
+
+- **[Testing_Guide.md](./Testing_Guide.md)**: Testing guidelines
+- **[Test_Matrix.md](./Test_Matrix.md)**: Test coverage matrix
+- **[Test_Execution_Sequence.md](./Test_Execution_Sequence.md)**: Sequential
+  test execution
+- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Test
+  suites reference
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: Testing
+  workflows
+
+### WMS Documentation
+
+- **[WMS_Guide.md](./WMS_Guide.md)**: WMS overview
+- **[WMS_Technical.md](./WMS_Technical.md)**: WMS technical details
+- **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user guide
+- **[WMS_Administration.md](./WMS_Administration.md)**: WMS administration
+- **[WMS_API_Reference.md](./WMS_API_Reference.md)**: WMS API reference
+- **[WMS_Development.md](./WMS_Development.md)**: WMS development guide
+- **[WMS_Deployment.md](./WMS_Deployment.md)**: WMS deployment guide
+- **[WMS_Testing.md](./WMS_Testing.md)**: WMS testing guide
+
+### CI/CD Documentation
+
+- **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD setup
+- **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting
+
+### Other Technical Guides
+
+- **[Cleanup_Integration.md](./Cleanup_Integration.md)**: Cleanup procedures
+- **[Logging_Pattern_Validation.md](./Logging_Pattern_Validation.md)**: Logging
+  standards
+
+---
+
+## External Resources
+
+### Analytics and Data Warehouse
+
+For analytics, ETL, and data warehouse functionality, see:
+
+- **[OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)**
+  - Star schema design
+  - ETL processes
+  - Data marts (users, countries)
+  - Profile generation
+  - Advanced analytics
+
+---
+
+**Last Updated:** 2025-10-14  
+**Maintainer:** Andres Gomez (AngocA)

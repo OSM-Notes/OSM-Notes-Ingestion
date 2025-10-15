@@ -3,7 +3,7 @@
 ## Overview
 
 The `tests` directory contains comprehensive testing infrastructure for the
-OSM-Notes-profile system. It includes unit tests, integration tests,
+OSM-Notes-Ingestion system. It includes unit tests, integration tests,
 performance tests, and quality assurance tools to ensure the reliability and
 correctness of the entire system.
 
@@ -199,9 +199,7 @@ Tests can be run individually or as part of the complete test suite:
 - **XML Processing Tests**: `cd tests/unit/bash && bats xml_processing_enhanced.test.bats`
 - **Individual Test**: `cd tests/unit/bash && bats resource_limits.test.bats -f "test_name"`
 
-
 ### Overview
-
 
 ### New Dimensions Testing
 
@@ -314,7 +312,6 @@ psql -d notes -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
 
 #### Integration Tests (`tests/integration/`)
 
-
 - ✅ Enhanced dimensions validation
 - ✅ SCD2 implementation validation
 - ✅ New functions validation
@@ -323,7 +320,6 @@ psql -d notes -f tests/unit/sql/dwh_dimensions_enhanced.test.sql
 - ✅ Enhanced functions integration
 - ✅ Bridge table implementation
 - ✅ Documentation consistency
-
 
 - ✅ DatamartUsers enhanced functionality
 - ✅ DatamartCountries enhanced functionality
@@ -625,7 +621,7 @@ The `xslt_enum_format.test.bats` file provides comprehensive validation:
 ### Overview
 
 This document describes the standardized configuration values used across all test
-environments in the OSM-Notes-profile project. **Test properties are completely
+environments in the OSM-Notes-Ingestion project. **Test properties are completely
 separate from production properties** to maintain clear boundaries between
 environments.
 
@@ -762,4 +758,3 @@ The system uses different default values for production and test environments:
 3. **Maintainability**: Each environment has its own configuration file
 4. **Reliability**: Predictable behavior in each environment
 5. **Flexibility**: Easy to customize each environment independently
-

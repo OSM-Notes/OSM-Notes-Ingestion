@@ -1,8 +1,8 @@
-# Testing Guide - OSM-Notes-profile
+# Testing Guide - OSM-Notes-Ingestion
 
 ## Summary
 
-This guide provides comprehensive information about the implemented integration tests, use cases, and troubleshooting for the OSM-Notes-profile project.
+This guide provides comprehensive information about the implemented integration tests, use cases, and troubleshooting for the OSM-Notes-Ingestion project.
 
 ## GitHub Actions Workflows
 
@@ -89,13 +89,6 @@ The project includes specialized tests for consolidated functions that eliminate
 - `cleanupAll.sh` - Full cleanup
 - `cleanupAll.sh` - Comprehensive cleanup (full or partition-only)
 
-**DWH (Data Warehouse) Scripts:**
-
-- `ETL.sh` - Full ETL process
-- `profile.sh` - Data profile
-- `datamartUsers/datamartUsers.sh` - User datamart
-- `datamartCountries/datamartCountries.sh` - Country datamart
-
 **WMS (Web Map Service) Scripts:**
 
 - `wmsManager.sh` - WMS Manager
@@ -119,7 +112,7 @@ Logging pattern validation tests ensure that all bash functions follow the estab
 
 - **Unit Tests**: `tests/unit/bash/logging_pattern_validation.test.bats` - Tests individual logging patterns
 - **Integration Tests**: `tests/integration/logging_pattern_validation_integration.test.bats` - Tests validation scripts
-- **Validation Scripts**: 
+- **Validation Scripts**:
   - `tests/scripts/validate_logging_patterns.sh` - Comprehensive validation
   - `tests/scripts/validate_logging_patterns_simple.sh` - Simple validation
 - **Test Runner**: `tests/run_logging_validation_tests.sh` - Dedicated logging validation test runner
@@ -516,4 +509,4 @@ Integration tests are essential to detect real problems before they reach produc
 - ✅ **Maintain code quality**
 - ✅ **Integrate with CI/CD**
 
-**Recommendation:** Use this guide as a reference to maintain the quality and reliability of the OSM-Notes-profile project.
+**Recommendation:** Use this guide as a reference to maintain the quality and reliability of the OSM-Notes-Ingestion project.

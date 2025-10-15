@@ -8,7 +8,7 @@ The WMS system consists of several interconnected components:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│                    OSM-Notes-profile WMS                        │
+│                    OSM-Notes-Ingestion WMS                        │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
 │  │   OSM API   │    │   Planet    │    │  Boundaries │          │

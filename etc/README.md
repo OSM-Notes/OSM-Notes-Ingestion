@@ -1,6 +1,6 @@
 # Configuration Files
 
-This directory contains configuration files for the OSM-Notes-profile project.
+This directory contains configuration files for the OSM-Notes-Ingestion project.
 
 ## Files
 

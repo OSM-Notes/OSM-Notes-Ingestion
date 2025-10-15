@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2025-10-15] - Documentation Audit and Cleanup
+
+### Removed
+
+- **Historical/report files** (4 files, ~1,524 lines):
+  - `SEPARATION_SUMMARY.md` - Historical report of repository separation (2025-10-13)
+  - `INTEGRATION_TESTING_STRATEGY.md` - Strategic proposal (not technical documentation)
+  - `QUALITY_TESTING_STRATEGY.md` - Strategic proposal (not technical documentation)
+  - `tests/migration_guide.md` - Historical migration guide (test script consolidation)
+
+### Changed
+
+- **Repository name correction** (32 files, 99 references):
+  - Fixed "OSM-Notes-profile" → "OSM-Notes-Ingestion" across all documentation
+  - Affected files: README.md, all docs/, tests/, and component READMEs
+  - Now consistent with actual repository name
+
+- **File renamed for clarity**:
+  - `tests/README_TESTING.md` → `tests/Testing_Technical_Guide.md`
+  - More descriptive name distinguishes from `tests/README.md`
+  - All references updated
+
+- **docs/Documentation.md completely rewritten** (262 lines):
+  - Removed all DWH/ETL/Analytics content (was ~40% of file)
+  - Now focuses exclusively on Ingestion + WMS
+  - Updated architecture to reflect current repository scope
+  - Added clear separation note pointing to OSM-Notes-Analytics
+  - Improved structure and organization
+  - Updated all internal references
+
+### Fixed
+
+- Markdown formatting issues corrected with markdownlint
+- Removed redundant and obsolete content
+- Documentation now accurately reflects codebase
+
+### Documentation
+
+- All documentation now represents actual system functionality
+- No historical reports or strategic proposals remain
+- Clear focus on technical documentation only
+- Consistent repository naming throughout
+
 ## [2025-10-14] - Testing Infrastructure, Documentation Translation, and DWH Cleanup
 
 ### Added

@@ -3,7 +3,7 @@
 ## Overview
 
 This document provides a comprehensive reference for the WMS (Web Map Service) API used in
-the OSM-Notes-profile project. The WMS service follows the OGC WMS 1.3.0 specification
+the OSM-Notes-Ingestion project. The WMS service follows the OGC WMS 1.3.0 specification
 and provides access to OSM notes as map layers.
 
 ### Base URL

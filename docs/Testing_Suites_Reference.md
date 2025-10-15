@@ -1,8 +1,8 @@
-# Testing Suites Reference - OSM-Notes-profile
+# Testing Suites Reference - OSM-Notes-Ingestion
 
 ## Overview
 
-This document provides a comprehensive reference of all BATS testing suites in the OSM-Notes-profile project. The project contains **78 total testing suites** organized into different categories for comprehensive coverage of all system components, including the new DWH enhanced features.
+This document provides a comprehensive reference of all BATS testing suites in the OSM-Notes-Ingestion project. The project contains **78 total testing suites** organized into different categories for comprehensive coverage of all system components, including the new DWH enhanced features.
 
 ## 📊 Testing Suites Statistics
 
@@ -187,11 +187,10 @@ Integration tests validate complete workflows and system interactions:
 ### 🗄️ Database and ETL (6 suites)
 
 - **database_variables.test.bats** - Database variable management
-- **datamartCountries_integration.test.bats** - Countries datamart integration
-- **datamartUsers_integration.test.bats** - Users datamart integration
-- **ETL_enhanced.test.bats** - Enhanced ETL functionality
-- **ETL_integration.test.bats** - ETL integration testing
-- **profile_integration.test.bats** - Data profiling integration
+
+> **Note:** Tests for datamartCountries, datamartUsers, ETL, and profile are
+> maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+> repository.
 
 ### 🔧 Functions and Scripts (8 suites)
 

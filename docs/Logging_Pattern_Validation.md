@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the logging pattern validation tools that ensure all bash functions in the OSM-Notes-profile project follow the established logging conventions.
+This document describes the logging pattern validation tools that ensure all bash functions in the OSM-Notes-Ingestion project follow the established logging conventions.
 
 ## Logging Pattern Requirements
 
@@ -59,6 +59,7 @@ These tests validate the logging pattern implementation:
 - Cleanup scenarios
 
 **Run the tests:**
+
 ```bash
 cd tests
 bats unit/bash/logging_pattern_validation.test.bats
@@ -235,6 +236,7 @@ Every function should follow the pattern, regardless of size or complexity.
 ### 2. Handle All Exit Paths
 
 Ensure `__log_finish` is called before every possible exit point:
+
 - `return` statements
 - `exit` statements
 - Function end (implicit return)
@@ -288,6 +290,6 @@ To contribute to the validation tools:
 
 ## Conclusion
 
-The logging pattern validation tools help maintain code quality and consistency across the OSM-Notes-profile project. Regular use of these tools ensures that all functions provide proper logging for debugging, monitoring, and maintenance purposes.
+The logging pattern validation tools help maintain code quality and consistency across the OSM-Notes-Ingestion project. Regular use of these tools ensures that all functions provide proper logging for debugging, monitoring, and maintenance purposes.
 
 For questions or issues, please refer to the project's issue tracker or contact the development team.

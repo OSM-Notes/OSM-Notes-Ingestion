@@ -1,8 +1,8 @@
-# Testing Workflows Overview - OSM-Notes-profile
+# Testing Workflows Overview - OSM-Notes-Ingestion
 
 ## Summary
 
-This document explains the GitHub Actions workflows used in the OSM-Notes-profile project to automate testing and ensure code quality.
+This document explains the GitHub Actions workflows used in the OSM-Notes-Ingestion project to automate testing and ensure code quality.
 
 ## Why are there three workflows?
 
@@ -174,7 +174,7 @@ The three workflows work together to ensure code quality:
 - **Quality Tests:** Validates clean and well-structured code
 - **Integration Tests:** Validates operation in real environments
 
-This configuration allows quick problem detection and maintains the quality of the OSM-Notes-profile project.
+This configuration allows quick problem detection and maintains the quality of the OSM-Notes-Ingestion project.
 
 ---
 

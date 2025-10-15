@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `docs` directory contains comprehensive documentation for the OSM-Notes-profile system, including user guides, technical specifications, and implementation details. This documentation helps users and contributors understand the system architecture and usage.
+The `docs` directory contains comprehensive documentation for the OSM-Notes-Ingestion system, including user guides, technical specifications, and implementation details. This documentation helps users and contributors understand the system architecture and usage.
 
 ## Documentation Structure
 

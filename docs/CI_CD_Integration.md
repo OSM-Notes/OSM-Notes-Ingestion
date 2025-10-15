@@ -1,9 +1,9 @@
-# CI/CD Integration for OSM-Notes-profile
+# CI/CD Integration for OSM-Notes-Ingestion
 
 ## Overview
 
 This document describes the comprehensive CI/CD (Continuous Integration/Continuous
-Deployment) integration implemented for the OSM-Notes-profile project.
+Deployment) integration implemented for the OSM-Notes-Ingestion project.
 
 ## Architecture
 
@@ -324,7 +324,7 @@ psql -h localhost -U testuser -d osm_notes_test
 ## Conclusion
 
 The CI/CD integration provides comprehensive testing and quality assurance for the
-OSM-Notes-profile project. It ensures code quality, security, and reliability
+OSM-Notes-Ingestion project. It ensures code quality, security, and reliability
 through automated testing across multiple environments and scenarios.
 
 The system is designed to be maintainable, scalable, and provides clear feedback

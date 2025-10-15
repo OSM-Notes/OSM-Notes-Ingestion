@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides comprehensive testing procedures for the WMS (Web Map Service) component of the OSM-Notes-profile project. It covers environment setup, test categories, automated testing, and quality assurance procedures.
+This guide provides comprehensive testing procedures for the WMS (Web Map Service) component of the OSM-Notes-Ingestion project. It covers environment setup, test categories, automated testing, and quality assurance procedures.
 
 ### Target Audience
 

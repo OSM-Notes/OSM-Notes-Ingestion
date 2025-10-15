@@ -1,4 +1,4 @@
-# OSM-Notes-profile
+# OSM-Notes-Ingestion
 
 **Data Ingestion and WMS for OpenStreetMap Notes**
 
@@ -21,7 +21,7 @@ This example is for polling every 15 minutes:
 
 ```text
 # Ingestion only (Analytics moved to separate repository)
-*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh
+*/15 * * * * ~/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
 ```
 
 The configuration file contains the properties needed to configure this tool,
@@ -62,11 +62,11 @@ via the [OSM-Notes-Common](https://github.com/angoca/OSM-Notes-Common) submodule
 
 ```bash
 # Clone with submodules
-git clone --recurse-submodules https://github.com/angoca/OSM-Notes-profile.git
+git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
 
 # Or initialize after cloning
-git clone https://github.com/angoca/OSM-Notes-profile.git
-cd OSM-Notes-profile
+git clone https://github.com/angoca/OSM-Notes-Ingestion.git
+cd OSM-Notes-Ingestion
 git submodule init
 git submodule update
 ```
@@ -178,14 +178,14 @@ To run the notes database synchronization, configure the crontab like (`crontab 
 
 ```text
 # Runs the API extraction each 15 minutes.
-*/15 * * * * ~/OSM-Notes-profile/bin/process/processAPINotes.sh
+*/15 * * * * ~/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
 
 # Download a new Planet version, and checks if the executions have been successful.
 # Planet used to be published around 5 am (https://planet.openstreetmap.org/notes/)
-0 6 * * * ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh ; ~/OSM-Notes-profile/bin/monitor/notesCheckVerifier.sh
+0 6 * * * ~/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh ; ~/OSM-Notes-Ingestion/bin/monitor/notesCheckVerifier.sh
 
 # Runs the boundaries update. Once a month.
-0 12 1 * * ~/OSM-Notes-profile/bin/process/updateCountries.sh
+0 12 1 * * ~/OSM-Notes-Ingestion/bin/process/updateCountries.sh
 ```
 
 For **ETL and Analytics scheduling**, see the [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
@@ -376,16 +376,16 @@ Use the WMS manager script for easy installation and management:
 
 ```bash
 # Install WMS components
-~/OSM-Notes-profile/bin/wms/wmsManager.sh install
+~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh install
 
 # Check installation status
-~/OSM-Notes-profile/bin/wms/wmsManager.sh status
+~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh status
 
 # Remove WMS components
-~/OSM-Notes-profile/bin/wms/wmsManager.sh deinstall
+~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh deinstall
 
 # Show help
-~/OSM-Notes-profile/bin/wms/wmsManager.sh help
+~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh help
 ```
 
 #### Manual Installation
@@ -393,7 +393,7 @@ Use the WMS manager script for easy installation and management:
 For manual installation, execute the SQL directly:
 
 ```bash
-psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-profile/sql/wms/prepareDatabase.sql
+psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-Ingestion/sql/wms/prepareDatabase.sql
 ```
 
 ## Dependencies and libraries
@@ -429,13 +429,13 @@ This is useful if you have to recreate some parts, but the rest is working fine.
 
 ```bash
 # Remove all components from the database (uses default from properties: osm_notes)
-~/OSM-Notes-profile/bin/cleanupAll.sh
+~/OSM-Notes-Ingestion/bin/cleanupAll.sh
 
 # For test database
-~/OSM-Notes-profile/bin/cleanupAll.sh osm_notes_test
+~/OSM-Notes-Ingestion/bin/cleanupAll.sh osm_notes_test
 
 # For production database
-~/OSM-Notes-profile/bin/cleanupAll.sh osm_notes_prod
+~/OSM-Notes-Ingestion/bin/cleanupAll.sh osm_notes_prod
 ```
 
 **Note:** This script handles all components including partition tables, dependencies, and temporary files automatically. Manual cleanup is not recommended as it may leave partition tables or dependencies unresolved.

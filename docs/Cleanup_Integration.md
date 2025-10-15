@@ -131,4 +131,4 @@ bats tests/unit/bash/cleanupAll_integration.test.bats
 1. **Dry-Run Mode**: Add `--dry-run` option for testing
 2. **Selective Cleanup**: Allow cleaning specific components only
 3. **Backup Integration**: Automatic backup before cleanup operations
-4. **Progress Reporting**: Real-time progress indicators for long operations 
+4. **Progress Reporting**: Real-time progress indicators for long operations

@@ -3,7 +3,7 @@
 ## Overview
 
 This guide provides comprehensive information for developers working with the
-WMS (Web Map Service) component of the OSM-Notes-profile project. It covers
+WMS (Web Map Service) component of the OSM-Notes-Ingestion project. It covers
 architecture, database design, GeoServer integration, and extension development.
 
 ### Target Audience
@@ -1011,7 +1011,7 @@ jobs:
 #### Project Structure
 
 ```text
-OSM-Notes-profile/
+OSM-Notes-Ingestion/
 ├── bin/wms/
 │   ├── wmsManager.sh          # WMS database management
 │   ├── geoserverConfig.sh     # GeoServer configuration

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides comprehensive guidance for testing the OSM-Notes-profile project. The testing framework includes unit tests, integration tests, and performance tests to ensure code quality and reliability.
+This document provides comprehensive guidance for testing the OSM-Notes-Ingestion project. The testing framework includes unit tests, integration tests, and performance tests to ensure code quality and reliability.
 
 ## Test Structure
 
@@ -38,6 +38,7 @@ This is the main validation function that automatically chooses the appropriate 
 #### `__validate_xml_basic`
 
 Performs basic XML structure validation without schema validation:
+
 - Checks for root element `<osm-notes>`
 - Verifies note elements exist
 - Counts total notes
@@ -46,6 +47,7 @@ Performs basic XML structure validation without schema validation:
 #### `__validate_xml_structure_only`
 
 Performs lightweight structure validation for very large files:
+
 - Same as basic validation but optimized for very large files
 - No schema validation to avoid memory issues
 

@@ -3,7 +3,7 @@
 ## Overview
 
 The `bin` directory contains all the executable scripts and processing components
-of the OSM-Notes-profile system. This is the core operational directory where
+of the OSM-Notes-Ingestion system. This is the core operational directory where
 the main processing logic resides.
 
 ## Directory Structure
@@ -35,6 +35,7 @@ Monitoring and verification scripts:
 ### `/bin/cleanupAll.sh`
 
 Database maintenance script for comprehensive cleanup operations:
+
 - **Full cleanup**: Removes all components (ETL, WMS, base tables, temporary files)
 - **Partition-only cleanup**: Removes only partition tables (use `-p` or `--partitions-only` flag)
 

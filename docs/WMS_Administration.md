@@ -3,7 +3,7 @@
 ## Overview
 
 This guide provides comprehensive administration procedures for the WMS (Web
-Map Service) component of the OSM-Notes-profile project. It covers
+Map Service) component of the OSM-Notes-Ingestion project. It covers
 installation, configuration, monitoring, maintenance, and troubleshooting for
 system administrators.
 
@@ -116,12 +116,12 @@ sudo systemctl enable geoserver
 sudo systemctl start geoserver
 ```
 
-#### Step 4: OSM-Notes-profile Setup
+#### Step 4: OSM-Notes-Ingestion Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/OSM-Notes-profile.git
-cd OSM-Notes-profile
+git clone https://github.com/your-org/OSM-Notes-Ingestion.git
+cd OSM-Notes-Ingestion
 
 # Configure properties
 cp etc/properties.sh.example etc/properties.sh
@@ -372,7 +372,7 @@ main
 */5 * * * * /usr/local/bin/wms-health-check.sh
 
 # Daily maintenance at 2 AM
-0 2 * * * /opt/OSM-Notes-profile/bin/wms/wmsManager.sh maintenance
+0 2 * * * /opt/OSM-Notes-Ingestion/bin/wms/wmsManager.sh maintenance
 ```
 
 ### Performance Monitoring

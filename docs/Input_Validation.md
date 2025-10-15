@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the centralized input validation functions that have been added to the OSM-Notes-profile project to address the critical issue of **"Falta de Validación de Entrada"** (Lack of Input Validation).
+This document describes the centralized input validation functions that have been added to the OSM-Notes-Ingestion project to address the critical issue of **"Falta de Validación de Entrada"** (Lack of Input Validation).
 
 ## Problem Statement
 

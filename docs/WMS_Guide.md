@@ -2,7 +2,7 @@
 
 ## Overview
 
-The WMS (Web Map Service) component of the OSM-Notes-profile project provides a
+The WMS (Web Map Service) component of the OSM-Notes-Ingestion project provides a
 map service that displays the location of open and closed OSM notes. This
 service allows mappers to visualize note activity geographically, helping
 identify areas that need attention or have been recently processed.
@@ -68,7 +68,7 @@ Before installing WMS, ensure you have:
    java -version
    ```
 
-4. **OSM-Notes-profile Database**
+4. **OSM-Notes-Ingestion Database**
    - Main database must be populated with notes data
    - API or Planet processing should be completed
 
@@ -78,7 +78,7 @@ Before installing WMS, ensure you have:
 
 ```bash
 # Navigate to project directory
-cd OSM-Notes-profile
+cd OSM-Notes-Ingestion
 
 # Install WMS database components
 ./bin/wms/wmsManager.sh install

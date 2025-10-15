@@ -4,7 +4,7 @@
 
 The `overpass` directory contains Overpass API query files used to extract
 geographic and administrative data from OpenStreetMap. These queries support the
-OSM-Notes-profile system by providing country boundaries, maritime areas, and
+OSM-Notes-Ingestion system by providing country boundaries, maritime areas, and
 other geographic reference data.
 
 ## Directory Structure
