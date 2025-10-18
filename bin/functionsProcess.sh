@@ -138,18 +138,12 @@ function __processXmlPartsParallel() {
 # Wrapper function: Split XML for parallel processing (consolidated implementation)
 # Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __splitXmlForParallelSafe() {
- __log_start
- # Check if the consolidated function is available
- if ! declare -f __splitXmlForParallelSafeConsolidated > /dev/null 2>&1; then
-  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
-  __log_finish
-  return 1
- fi
- # Call the consolidated function
- __splitXmlForParallelSafeConsolidated "$@"
- local RETURN_CODE=$?
- __log_finish
- return "${RETURN_CODE}"
+ # This is a wrapper function that will be overridden by the real implementation
+ # in parallelProcessingFunctions.sh if that file is sourced after this one.
+ # If you see this error, it means parallelProcessingFunctions.sh wasn't loaded.
+ __loge "ERROR: This is a wrapper function. parallelProcessingFunctions.sh must be sourced to override this with the real implementation."
+ __loge "ERROR: Please ensure parallelProcessingFunctions.sh is loaded AFTER functionsProcess.sh"
+ return 1
 }
 
 # Error codes are defined in commonFunctions.sh
@@ -333,18 +327,10 @@ function __splitXmlForParallelAPI() {
 # Wrapper function for Planet format that uses parallel processing
 # Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __splitXmlForParallelPlanet() {
- __log_start
- # Check if the consolidated function is available
- if ! declare -f __splitXmlForParallelSafeConsolidated > /dev/null 2>&1; then
-  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
-  __log_finish
-  return 1
- fi
- # Call the consolidated function
- __splitXmlForParallelSafeConsolidated "$@"
- local RETURN_CODE=$?
- __log_finish
- return "${RETURN_CODE}"
+ # This is a wrapper function that will be overridden by the real implementation
+ # in parallelProcessingFunctions.sh if that file is sourced after this one.
+ __loge "ERROR: This is a wrapper function. parallelProcessingFunctions.sh must be sourced to override this with the real implementation."
+ return 1
 }
 
 # Processes a single XML part for API notes
@@ -377,15 +363,26 @@ function __processApiXmlPart() {
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
- PART_NUM="${BASENAME_PART//part_/}"
+ # Extract number from api_part_N or planet_part_N format
+ PART_NUM=$(echo "${BASENAME_PART}" | sed 's/.*_part_//' | sed 's/^0*//')
+
+ # Handle case where part number is just "0"
+ if [[ -z "${PART_NUM}" ]]; then
+  PART_NUM="0"
+ fi
+
+ # PostgreSQL partitions are 1-based (part_1, part_2, ..., part_N)
+ # But file names are 0-based (part_0, part_1, ..., part_N-1)
+ # So we need to add 1 to match PostgreSQL partition names
+ PART_NUM=$((PART_NUM + 1))
 
  # Debug: Show extraction process
  __logd "Extracting part number from: ${XML_PART}"
  __logd "Basename: ${BASENAME_PART}"
- __logd "Part number: ${PART_NUM}"
+ __logd "Part number: ${PART_NUM} (adjusted for PostgreSQL 1-based partitions)"
 
  # Validate part number
- if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
+ if [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]] || [[ ${PART_NUM} -lt 1 ]]; then
   __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
   __log_finish
   return 1
@@ -401,32 +398,27 @@ function __processApiXmlPart() {
  OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
- # Generate current timestamp for XSLT processing
- local CURRENT_TIMESTAMP
- CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
- __logd "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
-
- # Process notes
- __logd "Processing notes with xsltproc: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
+ # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing notes with xmlstarlet: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
  fi
 
- # Process comments
- __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
+ # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing comments with xmlstarlet: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
  fi
 
- # Process text comments
- __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
+ # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing text comments with xmlstarlet: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"
@@ -519,15 +511,26 @@ function __processPlanetXmlPart() {
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
- PART_NUM="${BASENAME_PART//part_/}"
+ # Extract number from planet_part_N or api_part_N format
+ PART_NUM=$(echo "${BASENAME_PART}" | sed 's/.*_part_//' | sed 's/^0*//')
+
+ # Handle case where part number is just "0"
+ if [[ -z "${PART_NUM}" ]]; then
+  PART_NUM="0"
+ fi
+
+ # PostgreSQL partitions are 1-based (part_1, part_2, ..., part_N)
+ # But file names are 0-based (part_0, part_1, ..., part_N-1)
+ # So we need to add 1 to match PostgreSQL partition names
+ PART_NUM=$((PART_NUM + 1))
 
  # Debug: Show extraction process
  __logd "Extracting part number from: ${XML_PART}"
  __logd "Basename: ${BASENAME_PART}"
- __logd "Part number: ${PART_NUM}"
+ __logd "Part number: ${PART_NUM} (adjusted for PostgreSQL 1-based partitions)"
 
  # Validate part number
- if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
+ if [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]] || [[ ${PART_NUM} -lt 1 ]]; then
   __loge "Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}"
   __log_finish
   return 1
@@ -543,14 +546,9 @@ function __processPlanetXmlPart() {
  OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
- # Generate current timestamp for XSLT processing
- local CURRENT_TIMESTAMP
- CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
- __logd "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
-
- # Process notes
- __logd "Processing notes with xsltproc: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}"
+ # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing notes with xmlstarlet: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
@@ -561,9 +559,9 @@ function __processPlanetXmlPart() {
  __logd "Adding part_id ${PART_NUM} to notes CSV"
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
- # Process comments
- __logd "Processing comments with xsltproc: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}"
+ # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing comments with xmlstarlet: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
@@ -574,9 +572,9 @@ function __processPlanetXmlPart() {
  __logd "Adding part_id ${PART_NUM} to comments CSV"
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
- # Process text comments
- __logd "Processing text comments with xsltproc: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}"
+ # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing text comments with xmlstarlet: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"

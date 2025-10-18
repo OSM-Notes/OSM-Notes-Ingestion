@@ -54,6 +54,12 @@ else
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 fi
 
+# Load processPlanetFunctions.sh to get SQL file variables
+# shellcheck disable=SC1091
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
+ source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+fi
+
 # Mask for the files and directories.
 umask 0000
 
@@ -196,8 +202,12 @@ function __trapOn() {
 function __dropCountryTables {
  __log_start
  __logi "=== DROPPING COUNTRY TABLES ==="
- __logd "Executing SQL file: ${POSTGRES_14_DROP_COUNTRY_TABLES}"
- psql -d "${DBNAME}" -f "${POSTGRES_14_DROP_COUNTRY_TABLES}"
+ __logd "Dropping countries and tries tables directly"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+-- Drop country tables
+DROP TABLE IF EXISTS countries CASCADE;
+DROP TABLE IF EXISTS tries CASCADE;
+EOF
  __logi "=== COUNTRY TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }

@@ -4,7 +4,7 @@
 # Description: Centralized parallel processing functions with resource management and retry logic
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
+# Version: 2025-10-16
 
 # Load properties to ensure all required variables are available
 # Only load production properties if we're not in a test environment
@@ -1623,76 +1623,75 @@ function __splitXmlForParallelSafe() {
 
  __logi "Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (${NOTES_PER_PART} notes per part)."
 
- # Split XML file safely using awk (memory efficient)
- __logi "Starting memory-efficient XML splitting with awk..."
+ # Split XML file with optimized single-pass AWK (much faster than awk+sed)
+ __logi "Starting optimized single-pass XML splitting with AWK..."
 
- # Get line numbers where notes start
- local NOTE_LINES
- NOTE_LINES=$(awk '/<note[^>]*>/ {print NR}' "${XML_FILE}" 2> /dev/null)
+ # Use AWK to split in a single pass through the file
+ # This is ~2x faster than the old awk+sed approach (reads file only once)
+ awk -v notes_per_part="${NOTES_PER_PART}" \
+  -v num_parts="${NUM_PARTS}" \
+  -v output_dir="${OUTPUT_DIR}" \
+  -v format_type="${FORMAT_TYPE,,}" \
+  '
+  BEGIN {
+   note_count = 0
+   current_part = 0
+   in_note = 0
+   
+   # Initialize first output file
+   output_file = output_dir "/" format_type "_part_0.xml"
+   print "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > output_file
+   print "<osm-notes>" > output_file
+  }
+  
+  # Detect start of note tag
+  /<note[^>]*>/ {
+   # Check if we need to switch to next part
+   if (note_count > 0 && note_count % notes_per_part == 0 && current_part < num_parts - 1) {
+    # Close current part
+    print "</osm-notes>" > output_file
+    close(output_file)
+    
+    # Open next part
+    current_part++
+    output_file = output_dir "/" format_type "_part_" current_part ".xml"
+    print "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > output_file
+    print "<osm-notes>" > output_file
+   }
+   note_count++
+   in_note = 1
+  }
+  
+  # Skip original XML declaration and osm-notes tags
+  /^<\?xml/ || /^<osm-notes>$/ || /^<\/osm-notes>$/ {
+   next
+  }
+  
+  # Write all other lines to current output file
+  {
+   print $0 > output_file
+  }
+  
+  END {
+   # Close last part
+   if (output_file != "") {
+    print "</osm-notes>" > output_file
+    close(output_file)
+   }
+  }
+ ' "${XML_FILE}"
 
- if [[ -z "${NOTE_LINES}" ]]; then
-  __loge "ERROR: No note start tags found in XML file"
+ # Verify parts were created
+ local CREATED_PARTS
+ CREATED_PARTS=$(find "${OUTPUT_DIR}" -name "${FORMAT_TYPE,,}_part_*.xml" -type f | wc -l)
+ 
+ if [[ "${CREATED_PARTS}" -eq 0 ]]; then
+  __loge "ERROR: No parts were created"
   __log_finish
   return 1
  fi
-
- # Convert to array
- mapfile -t NOTE_LINE_ARRAY <<< "${NOTE_LINES}"
- local TOTAL_NOTE_LINES=${#NOTE_LINE_ARRAY[@]}
-
- __logi "Found ${TOTAL_NOTE_LINES} note start positions"
-
- # Calculate notes per part
- local NOTES_PER_PART
- NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
- if [[ $((TOTAL_NOTES % NUM_PARTS)) -gt 0 ]]; then
-  NOTES_PER_PART=$((NOTES_PER_PART + 1))
- fi
-
- for ((i = 0; i < NUM_PARTS; i++)); do
-  local START_INDEX=$((i * NOTES_PER_PART))
-  local END_INDEX=$(((i + 1) * NOTES_PER_PART - 1))
-
-  if [[ "${END_INDEX}" -ge "${TOTAL_NOTE_LINES}" ]]; then
-   END_INDEX=$((TOTAL_NOTE_LINES - 1))
-  fi
-
-  if [[ "${START_INDEX}" -lt "${TOTAL_NOTE_LINES}" ]]; then
-   local OUTPUT_FILE="${OUTPUT_DIR}/${FORMAT_TYPE,,}_part_${i}.xml"
-   local START_LINE=${NOTE_LINE_ARRAY[START_INDEX]}
-   local END_LINE
-
-   if [[ "${END_INDEX}" -lt $((TOTAL_NOTE_LINES - 1)) ]]; then
-    # Find the next note start line to ensure we don't cut in the middle of a note
-    local NEXT_INDEX=$((END_INDEX + 1))
-    if [[ "${NEXT_INDEX}" -lt "${TOTAL_NOTE_LINES}" ]]; then
-     # Go to the line before the next note starts
-     END_LINE=$((NOTE_LINE_ARRAY[NEXT_INDEX] - 1))
-    else
-     # Last part - go to end of file
-     END_LINE=$(wc -l < "${XML_FILE}")
-    fi
-   else
-    # Last part - go to end of file
-    END_LINE=$(wc -l < "${XML_FILE}")
-   fi
-
-   __logd "Creating part ${i}: lines ${START_LINE}-${END_LINE}"
-
-   # Create XML wrapper
-   {
-    echo '<?xml version="1.0" encoding="UTF-8"?>'
-    echo '<osm-notes>'
-    # Extract lines using sed (memory efficient)
-    sed -n "${START_LINE},${END_LINE}p" "${XML_FILE}"
-    echo '</osm-notes>'
-   } > "${OUTPUT_FILE}"
-
-   __logd "Created ${FORMAT_TYPE,,} part ${i}: ${OUTPUT_FILE} (lines ${START_LINE}-${END_LINE})"
-  fi
- done
-
- __logi "XML splitting completed safely. Created ${NUM_PARTS} parts."
+ 
+ __logi "XML splitting completed. Created ${CREATED_PARTS} parts in single pass (optimized)."
  __log_finish
 }
 
@@ -1786,30 +1785,25 @@ function __processApiXmlPart() {
  OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
- # Generate current timestamp for XSLT processing
- local CURRENT_TIMESTAMP
- CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
- __logd "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
-
- # Process notes
+ # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
  __logd "Processing notes with robust XSLT processor: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "" "" "" "${ENABLE_XSLT_PROFILING}"; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
  fi
 
- # Process comments
+ # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
  __logd "Processing comments with robust XSLT processor: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "" "" "" "${ENABLE_XSLT_PROFILING}"; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
  fi
 
- # Process text comments
+ # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
  __logd "Processing text comments with robust XSLT processor: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING}"; then
+ if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "" "" "" "${ENABLE_XSLT_PROFILING}"; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"
  fi
@@ -1844,120 +1838,11 @@ function __processApiXmlPart() {
 #   $2: XSLT notes file (optional, uses global if not provided)
 #   $3: Output directory for CSV files
 # Returns: 0 on success, 1 on failure
-function __processPlanetXmlPart() {
- local XML_PART="${1}"
- local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_PLANET_FILE}}"
- local OUTPUT_DIR="${3}"
- local XSLT_COMMENTS_FILE_LOCAL="${XSLT_NOTE_COMMENTS_PLANET_FILE}"
- local XSLT_TEXT_FILE_LOCAL="${XSLT_TEXT_COMMENTS_PLANET_FILE}"
- local PART_NUM
- local BASENAME_PART
-
- # Extract part number from planet_part_XXX.xml
- BASENAME_PART=$(basename "${XML_PART}" .xml)
- if [[ "${BASENAME_PART}" =~ ^planet_part_([0-9]+)$ ]]; then
-  PART_NUM="${BASH_REMATCH[1]}"
- else
-  echo "ERROR: Invalid filename format: '${BASENAME_PART}'. Expected: planet_part_XXX.xml" >&2
-  return 1
- fi
-
- # Validate part number
- if [[ -z "${PART_NUM}" ]] || [[ ! "${PART_NUM}" =~ ^[0-9]+$ ]]; then
-  echo "ERROR: Invalid part number extracted: '${PART_NUM}' from file: ${XML_PART}" >&2
-  return 1
- fi
-
- # Create part-specific log file
- local PART_LOG_FILE="${OUTPUT_DIR}/planet_part_${PART_NUM}.log"
- local PART_LOG_DIR
- PART_LOG_DIR=$(dirname "${PART_LOG_FILE}")
- mkdir -p "${PART_LOG_DIR}"
-
- # Configure logging for this specific part using a dedicated file descriptor
- local PART_LOG_FD
- exec {PART_LOG_FD}> "${PART_LOG_FILE}"
-
- # Function to log to part-specific log file
- __log_to_part() {
-  local LEVEL="$1"
-  local MESSAGE="$2"
-  local TIMESTAMP
-  TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-  echo "${TIMESTAMP} - ${LEVEL} - ${MESSAGE}" >&${PART_LOG_FD}
- }
-
- # Start logging for this part
- __log_to_part "INFO" "=== STARTING PLANET XML PART ${PART_NUM} PROCESSING ==="
- __log_to_part "DEBUG" "Input XML part: ${XML_PART}"
- __log_to_part "DEBUG" "XSLT files:"
- __log_to_part "DEBUG" "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __log_to_part "DEBUG" "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __log_to_part "DEBUG" "  Text: ${XSLT_TEXT_FILE_LOCAL}"
- __log_to_part "DEBUG" "Part log file: ${PART_LOG_FILE}"
-
- __log_to_part "INFO" "Processing Planet XML part ${PART_NUM}: ${XML_PART}"
-
- # Convert XML part to CSV using XSLT
- local OUTPUT_NOTES_PART
- local OUTPUT_COMMENTS_PART
- local OUTPUT_TEXT_PART
- OUTPUT_NOTES_PART="${OUTPUT_DIR}/output-notes-part-${PART_NUM}.csv"
- OUTPUT_COMMENTS_PART="${OUTPUT_DIR}/output-comments-part-${PART_NUM}.csv"
- OUTPUT_TEXT_PART="${OUTPUT_DIR}/output-text-part-${PART_NUM}.csv"
-
- # Generate current timestamp for XSLT processing
- local CURRENT_TIMESTAMP
- CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
- __log_to_part "DEBUG" "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
-
- # Process notes
- __log_to_part "DEBUG" "Processing notes with robust XSLT processor: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING:-false}"; then
-  __log_to_part "ERROR" "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
-  return 1
- fi
-
- # Process comments
- __log_to_part "DEBUG" "Processing comments with robust XSLT processor: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING:-false}"; then
-  __log_to_part "ERROR" "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
-  return 1
- fi
-
- # Process text comments
- __log_to_part "DEBUG" "Processing text comments with robust XSLT processor: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "--stringparam" "default-timestamp" "${CURRENT_TIMESTAMP}" "${ENABLE_XSLT_PROFILING:-false}"; then
-  __log_to_part "WARNING" "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
-  : > "${OUTPUT_TEXT_PART}"
- fi
-
- # Add part_id to the end of each line for notes
- __log_to_part "DEBUG" "Adding part_id ${PART_NUM} to notes CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
-
- # Add part_id to the end of each line for comments
- __log_to_part "DEBUG" "Adding part_id ${PART_NUM} to comments CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
-
- # Add part_id to the end of each line for text comments
- __log_to_part "DEBUG" "Adding part_id ${PART_NUM} to text comments CSV"
- if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
-  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
- else
-  __log_to_part "WARNING" "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
- fi
-
- __log_to_part "INFO" "Planet XML part ${PART_NUM} processing completed successfully."
- __log_to_part "DEBUG" "Output files:"
- __log_to_part "DEBUG" "  Notes: ${OUTPUT_NOTES_PART}"
- __log_to_part "DEBUG" "  Comments: ${OUTPUT_COMMENTS_PART}"
- __log_to_part "DEBUG" "  Text: ${OUTPUT_TEXT_PART}"
-
- # Close the file descriptor
- exec {PART_LOG_FD}>&-
- return 0
-}
+# NOTE: This entire function is DISABLED to avoid overriding functionsProcess.sh version
+# The version in functionsProcess.sh has the correct signature and works properly
+# DO NOT UNCOMMENT - will cause errors
+# function __processPlanetXmlPart() { ... }
+# All code below was part of that function and is now disabled
 
 # Analyze XSLT performance profile for optimization insights
 # Parameters:

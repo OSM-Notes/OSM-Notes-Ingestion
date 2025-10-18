@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-14
-VERSION="2025-10-14"
+# Version: 2025-10-17
+VERSION="2025-10-17"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -41,6 +41,20 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
+
+# Auto-restart with setsid if not already in a new session
+# This protects against SIGHUP when terminal closes or session ends
+if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
+ echo "$(date '+%Y%m%d_%H:%M:%S') INFO: Auto-restarting with setsid for SIGHUP protection" >&2
+ export RUNNING_IN_SETSID=1
+ # Get the script name and all arguments
+ SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+ # Re-execute with setsid to create new session (immune to SIGHUP)
+ exec setsid -w "$SCRIPT_PATH" "$@"
+fi
+
+# Ignore SIGHUP signal (terminal hangup) - belt and suspenders approach
+trap '' HUP
 
 # If all generated files should be deleted. In case of an error, this could be
 # disabled.
@@ -507,32 +521,27 @@ function __processApiXmlSequential {
  local OUTPUT_COMMENTS_FILE="${TMP_DIR}/output-comments-sequential.csv"
  local OUTPUT_TEXT_FILE="${TMP_DIR}/output-text-sequential.csv"
 
- # Generate current timestamp for XSLT processing
- local CURRENT_TIMESTAMP
- CURRENT_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
- __logd "Using timestamp for XSLT processing: ${CURRENT_TIMESTAMP}"
-
- # Process notes
- __logd "Processing notes with xsltproc: ${XSLT_NOTES_API_FILE} -> ${OUTPUT_NOTES_FILE}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_NOTES_FILE}" "${XSLT_NOTES_API_FILE}" "${XML_FILE}"
+ # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing notes with xmlstarlet: ${XSLT_NOTES_API_FILE} -> ${OUTPUT_NOTES_FILE}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTES_API_FILE}" "${XML_FILE}" > "${OUTPUT_NOTES_FILE}"
  if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
   __log_finish
   return 1
  fi
 
- # Process comments
- __logd "Processing comments with xsltproc: ${XSLT_NOTE_COMMENTS_API_FILE} -> ${OUTPUT_COMMENTS_FILE}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_COMMENTS_FILE}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_FILE}"
+ # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing comments with xmlstarlet: ${XSLT_NOTE_COMMENTS_API_FILE} -> ${OUTPUT_COMMENTS_FILE}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_FILE}" > "${OUTPUT_COMMENTS_FILE}"
  if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
   __log_finish
   return 1
  fi
 
- # Process text comments
- __logd "Processing text comments with xsltproc: ${XSLT_TEXT_COMMENTS_API_FILE} -> ${OUTPUT_TEXT_FILE}"
- xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" --stringparam default-timestamp "${CURRENT_TIMESTAMP}" -o "${OUTPUT_TEXT_FILE}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_FILE}"
+ # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
+ __logd "Processing text comments with xmlstarlet: ${XSLT_TEXT_COMMENTS_API_FILE} -> ${OUTPUT_TEXT_FILE}"
+ xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_FILE}" > "${OUTPUT_TEXT_FILE}"
  if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_FILE}"
   : > "${OUTPUT_TEXT_FILE}"

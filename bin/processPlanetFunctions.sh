@@ -4,10 +4,10 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-10-17
 
 # Define version variable
-VERSION="2025-08-13"
+VERSION="2025-10-17"
 
 # Show help function
 function __show_help() {
@@ -39,6 +39,8 @@ function __show_help() {
 
 # Planet-specific variables
 # shellcheck disable=SC2034
+# Define variables with TMP_DIR - each script has its own TMP_DIR
+# so these will be specific to each execution context
 if [[ -z "${PLANET_NOTES_FILE:-}" ]]; then
  declare -r PLANET_NOTES_FILE="${TMP_DIR}/OSM-notes-planet.xml"
 fi
@@ -345,18 +347,84 @@ function __processBoundary() {
   return 1
  fi
 
+ # Debug: Show file info
+ local FILE_SIZE
+ FILE_SIZE=$(stat -c%s "${BOUNDARY_FILE}" 2> /dev/null || echo "unknown")
+ __logd "Boundary file size: ${FILE_SIZE} bytes"
+
+ local FILE_PREVIEW
+ FILE_PREVIEW=$(head -c 200 "${BOUNDARY_FILE}" 2> /dev/null || echo "Cannot read file")
+ __logd "First 200 chars of file: ${FILE_PREVIEW}"
+
  # Import boundary using ogr2ogr
  __logd "Importing boundary: ${BOUNDARY_FILE} -> ${TABLE_NAME}"
+
+ # Capture ogr2ogr output for debugging
+ local OGR_OUTPUT
+ OGR_OUTPUT=$(mktemp)
+
+ # Import GeoJSON to PostgreSQL
+ # Strategy: Use SQL SELECT to pick only needed columns, avoiding duplicates
+ # Import to temporary table first, then map to target schema
+ local TEMP_TABLE="${TABLE_NAME}_import"
+ 
+ # Note: Using -sql to SELECT only the columns we need
+ # This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
+ __logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${BOUNDARY_FILE}" \
-  -nln "${TABLE_NAME}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-  -lco GEOMETRY_NAME=geom -lco FID=id --config PG_USE_COPY YES 2> /dev/null; then
-  __logi "Successfully imported boundary: ${TABLE_NAME}"
-  __log_finish
-  return 0
+  -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+  -lco GEOMETRY_NAME=geom \
+  -dialect SQLite \
+  -sql "SELECT id, name, \"name:es\" as name_es, \"name:en\" as name_en, geometry FROM $(basename "${BOUNDARY_FILE}" .geojson)" \
+  -overwrite \
+  --config PG_USE_COPY YES 2> "${OGR_OUTPUT}"; then
+  __logd "Import successful, now mapping columns to target table: ${TABLE_NAME}"
+  
+  # The imported temp table has: id (string), name, name_es, name_en, geom
+  # The target table has: country_id (integer), country_name, country_name_es, country_name_en, geom
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_OUTPUT}" 2>&1
+   -- Insert with proper column mapping and type conversion
+   INSERT INTO ${TABLE_NAME} (country_id, country_name, country_name_es, country_name_en, geom)
+   SELECT 
+     CAST(SUBSTRING(id FROM 'relation/([0-9]+)') AS INTEGER) AS country_id,
+     COALESCE(name, 'Unknown') AS country_name,
+     name_es AS country_name_es,
+     name_en AS country_name_en,
+     geom
+   FROM ${TEMP_TABLE}
+   WHERE id LIKE 'relation/%';
+   
+   -- Drop temporary table
+   DROP TABLE ${TEMP_TABLE};
+EOF
+  then
+   __logi "Successfully imported boundary: ${TABLE_NAME}"
+   rm -f "${OGR_OUTPUT}"
+   __log_finish
+   return 0
+  else
+   __loge "ERROR: Failed to map columns from ${TEMP_TABLE} to ${TABLE_NAME}"
+   if [[ -s "${OGR_OUTPUT}" ]]; then
+    __loge "SQL error output:"
+    while IFS= read -r line; do
+     __loge "  ${line}"
+    done < "${OGR_OUTPUT}"
+   fi
+   rm -f "${OGR_OUTPUT}"
+   __log_finish
+   return 1
+  fi
  else
-  __loge "ERROR: Failed to import boundary: ${TABLE_NAME}"
-  __log_finish
-  return 1
+  __loge "ERROR: Failed to import boundary with ogr2ogr"
+  if [[ -s "${OGR_OUTPUT}" ]]; then
+   __loge "ogr2ogr error output:"
+   while IFS= read -r line; do
+    __loge "  ${line}"
+   done < "${OGR_OUTPUT}"
+   fi
+   rm -f "${OGR_OUTPUT}"
+   __log_finish
+   return 1
  fi
 }
 
@@ -393,35 +461,48 @@ function __processCountries() {
  __log_start
  __logd "Processing countries."
 
- # Download countries boundary
- __logi "Downloading countries boundary..."
- if wget -q -O "${COUNTRIES_FILE}.json" "https://overpass-api.de/api/interpreter?data=[out:json];relation[\"admin_level\"=\"2\"][\"boundary\"=\"administrative\"];out geom;"; then
-  if [[ -s "${COUNTRIES_FILE}.json" ]]; then
-   # Convert to GeoJSON
-   if jq -c '.features[] | {type: "Feature", properties: {name: .properties.name, id: .properties.id}, geometry: .geometry}' \
-    "${COUNTRIES_FILE}.json" > "${COUNTRIES_FILE}.geojson" 2> /dev/null; then
-    # Import to database
-    if __processBoundary "${COUNTRIES_FILE}.geojson" "countries"; then
-     __logi "Successfully processed countries boundary"
-     __log_finish
-     return 0
-    else
-     __loge "ERROR: Failed to import countries boundary"
+ # Download countries boundary (or use cached file if available)
+ local GEOJSON_FILE
+ if [[ -f "/tmp/countries.geojson" ]] && [[ -s "/tmp/countries.geojson" ]]; then
+  __logi "Using cached countries boundary from /tmp/countries.geojson"
+  GEOJSON_FILE="/tmp/countries.geojson"
+ else
+  __logi "Downloading countries boundary..."
+  if wget -q -O "${COUNTRIES_FILE}.json" --timeout=300 "https://overpass-api.de/api/interpreter?data=[out:json];relation[\"admin_level\"=\"2\"][\"boundary\"=\"administrative\"];out geom;"; then
+   if [[ -s "${COUNTRIES_FILE}.json" ]]; then
+    # Convert OSM JSON to GeoJSON using osmtogeojson
+    if ! osmtogeojson "${COUNTRIES_FILE}.json" > "${COUNTRIES_FILE}.geojson" 2> /dev/null; then
+     __loge "ERROR: Failed to convert OSM JSON to GeoJSON"
      __log_finish
      return 1
     fi
    else
-    __loge "ERROR: Failed to convert countries to GeoJSON"
+    __loge "ERROR: Downloaded countries file is empty"
     __log_finish
     return 1
    fi
   else
-   __loge "ERROR: Downloaded countries file is empty"
+   __loge "ERROR: Failed to download countries boundary from Overpass API"
+   __log_finish
+   return 1
+  fi
+  GEOJSON_FILE="${COUNTRIES_FILE}.geojson"
+ fi
+ 
+ # Process the GeoJSON file
+ if [[ -s "${GEOJSON_FILE}" ]]; then
+  # Import to database
+  if __processBoundary "${GEOJSON_FILE}" "countries"; then
+   __logi "Successfully processed countries boundary"
+   __log_finish
+   return 0
+  else
+   __loge "ERROR: Failed to import countries boundary"
    __log_finish
    return 1
   fi
  else
-  __loge "ERROR: Failed to download countries boundary"
+  __loge "ERROR: Countries GeoJSON file not found or empty"
   __log_finish
   return 1
  fi
@@ -432,35 +513,48 @@ function __processMaritimes() {
  __log_start
  __logd "Processing maritimes."
 
- # Download maritime boundaries
- __logi "Downloading maritime boundaries..."
- if wget -q -O "${MARITIMES_FILE}.json" "https://overpass-api.de/api/interpreter?data=[out:json];relation[\"boundary\"=\"maritime\"];out geom;"; then
-  if [[ -s "${MARITIMES_FILE}.json" ]]; then
-   # Convert to GeoJSON
-   if jq -c '.features[] | {type: "Feature", properties: {name: .properties.name, id: .properties.id}, geometry: .geometry}' \
-    "${MARITIMES_FILE}.json" > "${MARITIMES_FILE}.geojson" 2> /dev/null; then
-    # Import to database
-    if __processBoundary "${MARITIMES_FILE}.geojson" "maritimes"; then
-     __logi "Successfully processed maritime boundaries"
-     __log_finish
-     return 0
-    else
-     __loge "ERROR: Failed to import maritime boundaries"
+ # Download maritime boundaries (or use cached file if available)
+ local GEOJSON_FILE
+ if [[ -f "/tmp/maritimes.geojson" ]] && [[ -s "/tmp/maritimes.geojson" ]]; then
+  __logi "Using cached maritime boundaries from /tmp/maritimes.geojson"
+  GEOJSON_FILE="/tmp/maritimes.geojson"
+ else
+  __logi "Downloading maritime boundaries..."
+  if wget -q -O "${MARITIMES_FILE}.json" --timeout=300 "https://overpass-api.de/api/interpreter?data=[out:json];relation[\"boundary\"=\"maritime\"];out geom;"; then
+   if [[ -s "${MARITIMES_FILE}.json" ]]; then
+    # Convert OSM JSON to GeoJSON using osmtogeojson
+    if ! osmtogeojson "${MARITIMES_FILE}.json" > "${MARITIMES_FILE}.geojson" 2> /dev/null; then
+     __loge "ERROR: Failed to convert OSM JSON to GeoJSON"
      __log_finish
      return 1
     fi
    else
-    __loge "ERROR: Failed to convert maritimes to GeoJSON"
+    __loge "ERROR: Downloaded maritimes file is empty"
     __log_finish
     return 1
    fi
   else
-   __loge "ERROR: Downloaded maritimes file is empty"
+   __loge "ERROR: Failed to download maritime boundaries from Overpass API"
+   __log_finish
+   return 1
+  fi
+  GEOJSON_FILE="${MARITIMES_FILE}.geojson"
+ fi
+ 
+ # Process the GeoJSON file
+ if [[ -s "${GEOJSON_FILE}" ]]; then
+  # Import to database (maritimes go into the countries table)
+  if __processBoundary "${GEOJSON_FILE}" "countries"; then
+   __logi "Successfully processed maritime boundaries"
+   __log_finish
+   return 0
+  else
+   __loge "ERROR: Failed to import maritime boundaries"
    __log_finish
    return 1
   fi
  else
-  __loge "ERROR: Failed to download maritime boundaries"
+  __loge "ERROR: Maritimes GeoJSON file not found or empty"
   __log_finish
   return 1
  fi

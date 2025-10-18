@@ -151,8 +151,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
-VERSION="2025-10-18"
+# Version: 2025-10-17
+VERSION="2025-10-17"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -163,6 +163,20 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
+
+# Auto-restart with setsid if not already in a new session
+# This protects against SIGHUP when terminal closes or session ends
+if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
+ echo "$(date '+%Y%m%d_%H:%M:%S') INFO: Auto-restarting with setsid for SIGHUP protection" >&2
+ export RUNNING_IN_SETSID=1
+ # Get the script name and all arguments
+ SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+ # Re-execute with setsid to create new session (immune to SIGHUP)
+ exec setsid -w "$SCRIPT_PATH" "$@"
+fi
+
+# Ignore SIGHUP signal (terminal hangup) - belt and suspenders approach
+trap '' HUP
 
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can define when calling: export CLEAN=false
@@ -282,6 +296,13 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
 # Load process functions (includes GEOJSON_TEST and other variables)
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
+# Load parallel processing functions (includes __splitXmlForParallelSafe implementation)
+# MUST be loaded AFTER functionsProcess.sh to override wrapper functions
+# shellcheck disable=SC1091
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+ source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+fi
 
 # Function to handle cleanup on exit respecting CLEAN flag
 function __cleanup_on_exit() {
@@ -606,11 +627,15 @@ function __moveSyncToMain {
 }
 
 # Creates partition tables for parallel processing and verifies their creation.
+# Parameters:
+#   $1: Number of partitions to create
 function __createPartitionTables {
  __log_start
- __logi "Creating partition tables with MAX_THREADS=${MAX_THREADS}"
+ local -r NUM_PARTITIONS="${1}"
+ 
+ __logi "Creating ${NUM_PARTITIONS} partition tables for parallel processing"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "SET app.max_threads = '${MAX_THREADS}';" \
+  -c "SET app.max_threads = '${NUM_PARTITIONS}';" \
   -f "${POSTGRES_25_CREATE_PARTITIONS}"
  __logi "Partition tables creation completed"
 
@@ -626,45 +651,166 @@ function __createPartitionTables {
  __log_finish
 }
 
-# Processes Planet notes with parallel processing when notes are available.
+# Processes Planet notes with SIMPLIFIED parallel approach (prevents crash with large files)
+# Large XML files (2.2GB) can cause issues, so we split first then process parts with xmlstarlet
+# This is the working approach: split XML -> process parts -> load DB
 function __processPlanetNotesWithParallel {
  __log_start
- __logi "Processing Planet notes with parallel processing"
+ __logi "Processing Planet notes with SPLIT+PROCESS approach (using xmlstarlet for robust processing)"
 
- # Create partitions for parallel processing
- __createPartitionTables
+ # STEP 1: Calculate optimal number of parts (balance performance vs safety)
+ # Reduced from 1M to 100k to prevent OOM kills with large text fields
+ local MAX_NOTES_PER_PART=100000 # 100k notes per part for memory safety
+ local NUM_PARTS=${MAX_THREADS}
 
- # Use the consolidated function from parallelProcessingFunctions.sh
- # Check if functions are already available (loaded from functionsProcess.sh)
- if ! declare -f __processXmlIntelligently > /dev/null 2>&1; then
-  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
-   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-  else
-   __loge "ERROR: parallelProcessingFunctions.sh not found"
-   exit "${ERROR_MISSING_LIBRARY}"
+ # If total notes would create parts > MAX_NOTES_PER_PART, increase number
+ if [[ ${TOTAL_NOTES} -gt $((MAX_THREADS * MAX_NOTES_PER_PART)) ]]; then
+  NUM_PARTS=$((TOTAL_NOTES / MAX_NOTES_PER_PART))
+  # Round up if there's a remainder
+  if [[ $((TOTAL_NOTES % MAX_NOTES_PER_PART)) -gt 0 ]]; then
+   NUM_PARTS=$((NUM_PARTS + 1))
+  fi
+  __logi "Adjusted parts: ${MAX_THREADS} → ${NUM_PARTS} to keep max ${MAX_NOTES_PER_PART} notes/part (optimal chunk size)"
+ fi
+
+ # Create partitions for database (must be done AFTER calculating NUM_PARTS)
+ __createPartitionTables "${NUM_PARTS}"
+
+ local NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
+ __logi "Step 2: Splitting ${TOTAL_NOTES} notes into ${NUM_PARTS} parts (~${NOTES_PER_PART} notes/part)..."
+
+ local PARTS_DIR="${TMP_DIR}/parts"
+ mkdir -p "${PARTS_DIR}"
+
+ # Split XML using the implementation from parallelProcessingFunctions.sh
+ # (loaded at script startup to override functionsProcess.sh wrapper)
+ if ! __splitXmlForParallelSafe "${PLANET_NOTES_FILE}" \
+  "${NUM_PARTS}" "${PARTS_DIR}" "planet"; then
+  __loge "ERROR: Failed to split XML file"
+  __log_finish
+  return 1
+ fi
+
+ # STEP 3: Process each part with xmlstarlet in parallel
+ __logi "Step 3: Processing ${NUM_PARTS} XML parts in parallel with xmlstarlet (${MAX_THREADS} concurrent jobs)..."
+
+ # Find all part files and sort them numerically (not alphabetically)
+ local PART_FILES
+ mapfile -t PART_FILES < <(find "${PARTS_DIR}" -name "planet_part_*.xml" -type f | \
+  sort -t_ -k3 -n || true)
+
+ if [[ ${#PART_FILES[@]} -eq 0 ]]; then
+  __loge "ERROR: No part files found in ${PARTS_DIR}"
+  __log_finish
+  return 1
+ fi
+
+ __logi "Found ${#PART_FILES[@]} part files to process"
+
+ # Export variables and functions needed by parallel processing
+ export DBNAME TMP_DIR MAX_THREADS XSLT_MAX_DEPTH
+ export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
+ export POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES
+ export SCRIPT_BASE_DIRECTORY
+ export LOG_FILENAME  # Export log file path for parallel workers
+ 
+ # Source and export bash_logger functions for parallel jobs
+ # shellcheck disable=SC1091
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh"
+ export -f __log_start __log_finish __logi __logd __loge __logw __set_log_file
+ 
+ # Export the main processing function
+ export -f __processPlanetXmlPart
+ 
+ # Create wrapper function for parallel workers to setup logging
+ function __parallel_worker_wrapper() {
+  local -r PART_FILE="$1"
+  local -r XSLT_NOTES="$2"
+  local -r XSLT_COMMENTS="$3"
+  local -r XSLT_TEXT="$4"
+  
+  # Setup logging for this worker (appends to shared log file)
+  __set_log_file "${LOG_FILENAME}" 2>/dev/null || true
+  
+  # Execute the main processing function
+  # Output is synchronized by parallel's internal buffering
+  __processPlanetXmlPart "${PART_FILE}" "${XSLT_NOTES}" "${XSLT_COMMENTS}" "${XSLT_TEXT}"
+ }
+ export -f __parallel_worker_wrapper
+
+ # Process parts in parallel using GNU parallel if available
+ if command -v parallel > /dev/null 2>&1; then
+  __logi "Using GNU parallel for processing (${MAX_THREADS} jobs)"
+  __logi "Worker logs will be written to: ${LOG_FILENAME}"
+  
+  # Process all parts in parallel with progress tracking
+  # Workers use wrapper to setup logging correctly in each subshell
+  # --line-buffer ensures log lines from different workers don't intermix
+  if ! printf '%s\n' "${PART_FILES[@]}" | \
+   parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 --line-buffer \
+    "__parallel_worker_wrapper {} '${XSLT_NOTES_PLANET_FILE}' '${XSLT_NOTE_COMMENTS_PLANET_FILE}' '${XSLT_TEXT_COMMENTS_PLANET_FILE}'"; then
+   __loge "ERROR: Parallel processing failed"
+   __log_finish
+   return 1
+  fi
+ else
+  # Fallback: Process in batches using background jobs
+  __logi "GNU parallel not found, using background jobs (${MAX_THREADS} concurrent)"
+  
+  local ACTIVE_JOBS=0
+  local PART_NUM=0
+  local FAILED=0
+  
+  for PART_FILE in "${PART_FILES[@]}"; do
+   # Process part in background
+   (
+    if ! __processPlanetXmlPart "${PART_FILE}" \
+     "${XSLT_NOTES_PLANET_FILE}" \
+     "${XSLT_NOTE_COMMENTS_PLANET_FILE}" \
+     "${XSLT_TEXT_COMMENTS_PLANET_FILE}"; then
+     exit 1
+    fi
+   ) &
+   
+   ACTIVE_JOBS=$((ACTIVE_JOBS + 1))
+   PART_NUM=$((PART_NUM + 1))
+   
+   # Wait if we've reached max concurrent jobs
+   if [[ ${ACTIVE_JOBS} -ge ${MAX_THREADS} ]]; then
+    __logi "Waiting for batch of ${MAX_THREADS} jobs to complete..."
+    wait -n || FAILED=$((FAILED + 1))
+    ACTIVE_JOBS=$((ACTIVE_JOBS - 1))
+   fi
+  done
+  
+  # Wait for remaining jobs
+  __logi "Waiting for remaining jobs to complete..."
+  wait || FAILED=$((FAILED + 1))
+  
+  if [[ ${FAILED} -gt 0 ]]; then
+   __loge "ERROR: ${FAILED} parallel jobs failed"
+   __log_finish
+   return 1
   fi
  fi
+ 
+ __logi "All ${#PART_FILES[@]} parts processed successfully"
 
- # Export XSLT variables for parallel processing
- export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
-
- # Use intelligent XML processing that automatically chooses the best method
- __logi "Using intelligent XML processing for Planet notes"
- if ! __processXmlIntelligently "${PLANET_NOTES_FILE}" "${XSLT_NOTES_PLANET_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "Planet"; then
-  __loge "ERROR: Intelligent XML processing failed. Stopping process."
-  exit "${ERROR_DATA_VALIDATION}"
- fi
-
- # Consolidate partitions into main tables
+ # STEP 4: Consolidate partitions into main tables
+ __logi "Step 4: Consolidating ${NUM_PARTS} partitions into main tables..."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "SET app.max_threads = '${MAX_THREADS}';" \
+  -c "SET app.max_threads = '${NUM_PARTS}';" \
   -f "${POSTGRES_42_CONSOLIDATE_PARTITIONS}"
 
  # Move data from sync tables to main tables
- __logi "Moving data from sync tables to main tables"
+ __logi "Step 5: Moving data from sync tables to main tables..."
  __moveSyncToMain
 
- __logi "Planet notes processing with parallel processing completed"
+ # Clean up part files
+ __logi "Cleaning up part files..."
+ rm -rf "${PARTS_DIR}"
+
+ __logi "Planet notes processing completed successfully (split+process approach)"
  __log_finish
 }
 
