@@ -2,7 +2,7 @@
 -- This script is designed for parallel processing of Planet notes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-20
+-- Version: 2025-10-18
 
 -- Load notes into partitioned table
 COPY notes_sync_part_${PART_ID} (note_id, latitude, longitude, created_at, status, closed_at, 
@@ -14,8 +14,8 @@ WITH (FORMAT csv, DELIMITER ',', QUOTE '"', ENCODING 'UTF8');
 UPDATE notes_sync_part_${PART_ID} SET part_id = ${PART_ID} WHERE part_id IS NULL;
 
 -- Load comments into partitioned table
-COPY note_comments_sync_part_${PART_ID} (note_id, event, created_at, id_user, 
-                        username, part_id) 
+COPY note_comments_sync_part_${PART_ID} (note_id, sequence_action, event, 
+                        created_at, id_user, username, part_id) 
 FROM '${OUTPUT_COMMENTS_PART}' 
 WITH (FORMAT csv, DELIMITER ',', QUOTE '"', ENCODING 'UTF8');
 

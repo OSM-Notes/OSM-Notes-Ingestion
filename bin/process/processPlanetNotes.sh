@@ -151,8 +151,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-17
-VERSION="2025-10-17"
+# Version: 2025-10-18
+VERSION="2025-10-18"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -641,22 +641,32 @@ function __createPartitionTables {
 
  # Verify that partition tables were created
  __logi "Verifying partition tables creation..."
- psql -d "${DBNAME}" -c "
- SELECT table_name, COUNT(*) as count 
+ # Use --pset pager=off to prevent opening vi/less for long output
+ # Show summary instead of all partition names
+ psql -d "${DBNAME}" --pset pager=off -c "
+ SELECT 
+  CASE 
+   WHEN table_name LIKE 'notes_sync_part_%' THEN 'notes_sync_part'
+   WHEN table_name LIKE 'note_comments_sync_part_%' THEN 'note_comments_sync_part'
+   WHEN table_name LIKE 'note_comments_text_sync_part_%' THEN 'note_comments_text_sync_part'
+   ELSE 'other'
+  END AS partition_type,
+  COUNT(*) as partition_count
  FROM information_schema.tables 
- WHERE table_name LIKE '%_part_%' 
- GROUP BY table_name 
- ORDER BY table_name;
+ WHERE table_schema = 'public'
+  AND table_name LIKE '%_part_%' 
+ GROUP BY partition_type
+ ORDER BY partition_type;
  "
  __log_finish
 }
 
 # Processes Planet notes with SIMPLIFIED parallel approach (prevents crash with large files)
-# Large XML files (2.2GB) can cause issues, so we split first then process parts with xmlstarlet
+# Large XML files (2.2GB) can cause issues, so we split first then process parts with AWK
 # This is the working approach: split XML -> process parts -> load DB
 function __processPlanetNotesWithParallel {
  __log_start
- __logi "Processing Planet notes with SPLIT+PROCESS approach (using xmlstarlet for robust processing)"
+ __logi "Processing Planet notes with SPLIT+PROCESS approach (using AWK for fast processing)"
 
  # STEP 1: Calculate optimal number of parts (balance performance vs safety)
  # Reduced from 1M to 100k to prevent OOM kills with large text fields
@@ -691,8 +701,8 @@ function __processPlanetNotesWithParallel {
   return 1
  fi
 
- # STEP 3: Process each part with xmlstarlet in parallel
- __logi "Step 3: Processing ${NUM_PARTS} XML parts in parallel with xmlstarlet (${MAX_THREADS} concurrent jobs)..."
+ # STEP 3: Process each part with AWK in parallel
+ __logi "Step 3: Processing ${NUM_PARTS} XML parts in parallel with AWK (${MAX_THREADS} concurrent jobs)..."
 
  # Find all part files and sort them numerically (not alphabetically)
  local PART_FILES
@@ -1278,22 +1288,21 @@ function __trapOn() {
 # Process geographic data and location notes
 # This function handles the logic for checking countries/maritimes data
 # and delegating to updateCountries.sh if needed
+# Note: Maritimes are imported into the 'countries' table, not a separate table
 function __processGeographicData {
  __log_start
  __logi "Processing geographic data and location notes..."
 
- # Check if countries and maritimes data exist
+ # Check if countries data exist (includes both countries and maritimes)
  local COUNTRIES_COUNT
- local MARITIMES_COUNT
 
  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
- MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM maritimes;" 2> /dev/null || echo "0")
 
- if [[ "${COUNTRIES_COUNT}" -gt 0 ]] && [[ "${MARITIMES_COUNT}" -gt 0 ]]; then
-  __logi "Countries (${COUNTRIES_COUNT}) and maritimes (${MARITIMES_COUNT}) data found. Processing location notes..."
+ if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
+  __logi "Geographic data found (${COUNTRIES_COUNT} countries/maritimes). Processing location notes..."
   __getLocationNotes # sync
  else
-  __logw "No countries (${COUNTRIES_COUNT}) or maritimes (${MARITIMES_COUNT}) data found."
+  __logw "No geographic data found (countries: ${COUNTRIES_COUNT})."
   __loge "ERROR: Geographic data required but not available."
   __loge "Please run updateCountries.sh --base first to load initial geographic data."
   __loge "This script only processes notes and requires geographic data to be pre-loaded."
@@ -1345,17 +1354,23 @@ function main() {
   __dropSyncTables      # base
   __dropApiTables       # base
   __dropGenericObjects  # base
-  __dropBaseTables      # base
-  __createBaseTables    # base
-  __createSyncTables    # base
-  __downloadPlanetNotes # base
-  # Check if validation failed
+ __dropBaseTables      # base
+ __createBaseTables    # base
+ __createSyncTables    # base
+ __downloadPlanetNotes # base
+ # Check if XML validation is enabled
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logi "Validating Planet XML file (structure, dates, coordinates)..."
   if ! __validatePlanetNotesXMLFileComplete; then
    __loge "ERROR: XML validation failed. Stopping process."
    exit "${ERROR_DATA_VALIDATION}"
   fi
-  # Count notes in XML file
-  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+ else
+  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+  __logw "Assuming Planet XML is well-formed and valid (faster processing)"
+ fi
+ # Count notes in XML file
+ __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
   # Split XML into parts and process in parallel if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
    __processPlanetNotesWithParallel
@@ -1372,15 +1387,21 @@ function main() {
    __createBaseTables # sync
   fi
   set -E
-  __createSyncTables    # sync
-  __downloadPlanetNotes # sync
-  # Check if validation failed
+ __createSyncTables    # sync
+ __downloadPlanetNotes # sync
+ # Check if XML validation is enabled
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logi "Validating Planet XML file (structure, dates, coordinates)..."
   if ! __validatePlanetNotesXMLFileComplete; then
    __loge "ERROR: XML validation failed. Stopping process."
    exit "${ERROR_DATA_VALIDATION}"
   fi
-  # Count notes in XML file
-  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+ else
+  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+  __logw "Assuming Planet XML is well-formed and valid (faster processing)"
+ fi
+ # Count notes in XML file
+ __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
   # Split XML into parts and process in parallel if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
    __processPlanetNotesWithParallel

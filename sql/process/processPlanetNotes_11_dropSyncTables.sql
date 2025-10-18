@@ -1,48 +1,52 @@
 -- Drops sync tables and their partitions.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-20
+-- Version: 2025-10-16
 
 -- Drop partitioned sync tables (created during parallel processing)
+-- This version dynamically finds ALL partitions, not just MAX_THREADS
 DO $$
 DECLARE
-  max_threads INTEGER;
-  i INTEGER;
-  partition_name TEXT;
+  partition_record RECORD;
+  dropped_count INTEGER := 0;
 BEGIN
-  -- Get MAX_THREADS from environment variable, default to 4 if not set
-  max_threads := COALESCE(current_setting('app.max_threads', true)::INTEGER, 4);
-  
-  -- Validate MAX_THREADS
-  IF max_threads < 1 OR max_threads > 100 THEN
-    max_threads := 4; -- Use default if invalid
-  END IF;
-  
-  -- Drop partition tables for notes_sync
-  FOR i IN 1..max_threads LOOP
-    partition_name := 'notes_sync_part_' || i;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = partition_name) THEN
-      EXECUTE format('DROP TABLE IF EXISTS %I', partition_name);
-    END IF;
+  -- Drop ALL partition tables for notes_sync (find dynamically)
+  FOR partition_record IN 
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+      AND table_name LIKE 'notes_sync_part_%'
+      AND table_name ~ 'notes_sync_part_[0-9]+'
+  LOOP
+    EXECUTE format('DROP TABLE IF EXISTS %I CASCADE', partition_record.table_name);
+    dropped_count := dropped_count + 1;
   END LOOP;
   
-  -- Drop partition tables for note_comments_sync
-  FOR i IN 1..max_threads LOOP
-    partition_name := 'note_comments_sync_part_' || i;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = partition_name) THEN
-      EXECUTE format('DROP TABLE IF EXISTS %I', partition_name);
-    END IF;
+  -- Drop ALL partition tables for note_comments_sync (find dynamically)
+  FOR partition_record IN 
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+      AND table_name LIKE 'note_comments_sync_part_%'
+      AND table_name ~ 'note_comments_sync_part_[0-9]+'
+  LOOP
+    EXECUTE format('DROP TABLE IF EXISTS %I CASCADE', partition_record.table_name);
+    dropped_count := dropped_count + 1;
   END LOOP;
   
-  -- Drop partition tables for note_comments_text_sync
-  FOR i IN 1..max_threads LOOP
-    partition_name := 'note_comments_text_sync_part_' || i;
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = partition_name) THEN
-      EXECUTE format('DROP TABLE IF EXISTS %I', partition_name);
-    END IF;
+  -- Drop ALL partition tables for note_comments_text_sync (find dynamically)
+  FOR partition_record IN 
+    SELECT table_name 
+    FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+      AND table_name LIKE 'note_comments_text_sync_part_%'
+      AND table_name ~ 'note_comments_text_sync_part_[0-9]+'
+  LOOP
+    EXECUTE format('DROP TABLE IF EXISTS %I CASCADE', partition_record.table_name);
+    dropped_count := dropped_count + 1;
   END LOOP;
   
-  RAISE NOTICE 'Dropped % partition tables for each sync table', max_threads;
+  RAISE NOTICE 'Dropped % partition tables total', dropped_count;
 END $$;
 
 -- Drop main sync tables

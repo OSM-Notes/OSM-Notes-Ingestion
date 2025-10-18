@@ -11,8 +11,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
-VERSION="2025-10-18"
+# Version: 2025-10-18a
+VERSION="2025-10-18a"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -54,12 +54,6 @@ else
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 fi
 
-# Load processPlanetFunctions.sh to get SQL file variables
-# shellcheck disable=SC1091
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
- source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
-fi
-
 # Mask for the files and directories.
 umask 0000
 
@@ -67,10 +61,18 @@ declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
 # Temporal directory for all files.
+# IMPORTANT: Define TMP_DIR BEFORE loading processPlanetFunctions.sh
+# because that script uses TMP_DIR in variable initialization
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
 chmod 777 "${TMP_DIR}"
+
+# Load processPlanetFunctions.sh to get SQL file variables
+# shellcheck disable=SC1091
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
+ source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+fi
 # Log file for output.
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
@@ -261,7 +263,8 @@ function main() {
   __processCountries
   __processMaritimes
   __cleanPartial
-  __getLocationNotes
+  # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
+  # after countries are loaded, not here
  else
   __logi "Running in update mode - processing existing data only"
   STMT="UPDATE countries SET updated = TRUE"
@@ -269,7 +272,8 @@ function main() {
   __processCountries
   __processMaritimes
   __cleanPartial
-  __getLocationNotes
+  # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
+  # after countries are loaded, not here
  fi
  __log_finish
 }

@@ -538,7 +538,7 @@ function __processPlanetXmlPart() {
 
  __logi "Processing Planet XML part ${PART_NUM}: ${XML_PART}"
 
- # Convert XML part to CSV using XSLT
+ # Convert XML part to CSV using AWK (faster, no external dependencies)
  local OUTPUT_NOTES_PART
  local OUTPUT_COMMENTS_PART
  local OUTPUT_TEXT_PART
@@ -546,9 +546,9 @@ function __processPlanetXmlPart() {
  OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
- # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing notes with xmlstarlet: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
+ # Process notes with AWK (fast and dependency-free)
+ __logd "Processing notes with AWK: ${XML_PART} -> ${OUTPUT_NOTES_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
@@ -559,9 +559,9 @@ function __processPlanetXmlPart() {
  __logd "Adding part_id ${PART_NUM} to notes CSV"
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
- # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing comments with xmlstarlet: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
+ # Process comments with AWK (fast and dependency-free)
+__logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
+awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
@@ -572,9 +572,9 @@ function __processPlanetXmlPart() {
  __logd "Adding part_id ${PART_NUM} to comments CSV"
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
- # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing text comments with xmlstarlet: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
+ # Process text comments with AWK (fast and dependency-free)
+__logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
+awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"

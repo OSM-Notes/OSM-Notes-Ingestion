@@ -4,7 +4,7 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-08-18
+# Version: 2025-10-16
 
 # Database configuration.
 # shellcheck disable=SC2034
@@ -78,9 +78,11 @@ fi
 
 # XSLT processing maximum recursion depth
 # Used for complex notes with long HTML/text to avoid recursion limit errors
+# Increased to 50000 for notes with very large embedded HTML content
+# Note: Must NOT be readonly to allow exporting to parallel jobs
 # shellcheck disable=SC2034
 if [[ -z "${XSLT_MAX_DEPTH:-}" ]]; then
- declare -r XSLT_MAX_DEPTH="4000"
+ XSLT_MAX_DEPTH="50000"
 fi
 
 # Minimum number of notes to enable parallel processing.
@@ -91,9 +93,20 @@ if [[ -z "${MIN_NOTES_FOR_PARALLEL:-}" ]]; then
  declare -r MIN_NOTES_FOR_PARALLEL="10"
 fi
 
-# Set MAX_THREADS based on available cores, with limits
+# Set MAX_THREADS based on available cores, leaving some for system
+# This prevents system saturation and allows OS, PostgreSQL, and other processes to run
 if command -v nproc > /dev/null 2>&1; then
- MAX_THREADS=$(nproc)
+ TOTAL_CORES=$(nproc)
+ 
+ # Leave at least 2 cores free for system and database
+ if [[ "${TOTAL_CORES}" -gt 4 ]]; then
+  MAX_THREADS=$((TOTAL_CORES - 2))
+ elif [[ "${TOTAL_CORES}" -gt 2 ]]; then
+  MAX_THREADS=$((TOTAL_CORES - 1))  # Leave at least 1 core free
+ else
+  MAX_THREADS=1  # Use only 1 thread on systems with 1-2 cores
+ fi
+ 
  # Limit to reasonable values for production
  if [[ "${MAX_THREADS}" -gt 16 ]]; then
   MAX_THREADS=16
@@ -106,3 +119,11 @@ fi
 # Controls whether temporary files and directories should be cleaned up after processing
 # Set to false to preserve files for debugging purposes
 declare CLEAN="${CLEAN:-true}"
+
+# XML Validation configuration
+# Skip XML validation for faster processing when using trusted Planet dumps
+# Set to false to enable full validation (structure, dates, coordinates)
+# Set to true to skip all validations and assume XML is well-formed (FASTER)
+# Default: true (skip validation for speed, assuming official OSM Planet is valid)
+# WARNING: Only skip validation if you trust the XML source (e.g., official OSM Planet)
+declare SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
