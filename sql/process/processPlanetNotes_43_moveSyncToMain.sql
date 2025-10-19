@@ -1,7 +1,7 @@
 -- Moves data from sync tables to main tables after consolidation.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-20
+-- Version: 2025-10-19
 
 -- Move notes from sync to main tables
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
@@ -28,11 +28,12 @@ SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Inserting missing users' AS Text;
 
 INSERT INTO users (user_id, username)
-SELECT DISTINCT id_user, username
+SELECT id_user, MIN(username) AS username
 FROM note_comments_sync
 WHERE id_user IS NOT NULL
   AND username IS NOT NULL
   AND id_user NOT IN (SELECT user_id FROM users)
+GROUP BY id_user
 ON CONFLICT (user_id) DO UPDATE SET
  username = EXCLUDED.username;
 

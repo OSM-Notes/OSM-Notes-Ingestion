@@ -108,6 +108,7 @@ awk -f awk/extract_comment_texts.awk planet-notes.xml > texts.csv
 ## Integration
 
 These AWK scripts are used by:
+
 - `bin/functionsProcess.sh` - Calls AWK scripts during Planet processing
 - `bin/process/extractPlanetNotesAwk.sh` - Wrapper script for batch extraction
 
