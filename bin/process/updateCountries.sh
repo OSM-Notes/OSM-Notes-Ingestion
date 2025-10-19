@@ -3,6 +3,10 @@
 # Updates the current country and maritime boundaries, or
 # insert new ones.
 #
+# When running in update mode (default), it automatically re-assigns countries
+# for notes affected by boundary changes. This is much more efficient than
+# re-processing all notes.
+#
 # To not remove all generated files, you can export this variable:
 #   export CLEAN=false
 #
@@ -11,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18a
-VERSION="2025-10-18a"
+# Version: 2025-10-19
+VERSION="2025-10-19"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -222,6 +226,69 @@ function __createCountryTables {
  __log_finish
 }
 
+# Re-assigns countries only for notes affected by geometry changes.
+# This is much more efficient than re-processing all notes.
+# Only processes notes within bounding boxes of countries that were updated.
+function __reassignAffectedNotes {
+ __log_start
+ __logi "Re-assigning countries for notes affected by boundary changes..."
+
+ # Get list of countries that were updated
+ local -r UPDATED_COUNTRIES=$(psql -d "${DBNAME}" -Atq -c "
+   SELECT country_id
+   FROM countries
+   WHERE updated = TRUE;
+ ")
+
+ if [[ -z "${UPDATED_COUNTRIES}" ]]; then
+  __logi "No countries were updated, skipping re-assignment"
+  __log_finish
+  return 0
+ fi
+
+ local -r COUNT=$(echo "${UPDATED_COUNTRIES}" | wc -l)
+ __logi "Found ${COUNT} countries with updated geometries"
+
+ # Re-assign countries for notes within bounding boxes of updated countries
+ # This uses the optimized get_country function which checks current country first
+ __logi "Updating notes within affected areas..."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'SQL'
+   -- Re-assign country for notes that might be affected
+   -- The get_country function will check if note is still in current country first
+   UPDATE notes n
+   SET id_country = get_country(n.longitude, n.latitude, n.note_id)
+   WHERE EXISTS (
+     SELECT 1
+     FROM countries c
+     WHERE c.updated = TRUE
+       AND ST_Intersects(
+         ST_MakeEnvelope(
+           ST_XMin(c.geometry), ST_YMin(c.geometry),
+           ST_XMax(c.geometry), ST_YMax(c.geometry),
+           4326
+         ),
+         ST_SetSRID(ST_MakePoint(n.longitude, n.latitude), 4326)
+       )
+   );
+SQL
+
+ # Show statistics
+ local -r NOTES_UPDATED=$(psql -d "${DBNAME}" -Atq -c "
+   SELECT COUNT(*)
+   FROM tries
+   WHERE area = 'Country changed';
+ ")
+ __logi "Notes that changed country: ${NOTES_UPDATED}"
+
+ # Mark countries as processed
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+   UPDATE countries SET updated = FALSE WHERE updated = TRUE;
+ "
+
+ __logi "Re-assignment completed"
+ __log_finish
+}
+
 ######
 # MAIN
 
@@ -272,8 +339,10 @@ function main() {
   __processCountries
   __processMaritimes
   __cleanPartial
-  # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
-  # after countries are loaded, not here
+
+  # Re-assign countries for notes affected by boundary changes
+  # This is automatic and much more efficient than re-processing all notes
+  __reassignAffectedNotes
  fi
  __log_finish
 }
