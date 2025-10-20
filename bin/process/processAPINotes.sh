@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
-VERSION="2025-10-19"
+# Version: 2025-10-20
+VERSION="2025-10-20"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -152,6 +152,10 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 # Load process functions (includes PostgreSQL variables)
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
+# Load parallel processing functions (must be loaded AFTER functionsProcess.sh)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
 # Shows the help information.
 function __show_help {
@@ -493,16 +497,16 @@ function __processXMLorPlanet {
    if [[ "${TOTAL_NOTES}" -ge "${MIN_NOTES_FOR_PARALLEL}" ]]; then
     __logi "Processing ${TOTAL_NOTES} notes with parallel processing (threshold: ${MIN_NOTES_FOR_PARALLEL})"
     __splitXmlForParallelAPI "${API_NOTES_FILE}"
-    
+
     # Process XML parts in parallel using GNU parallel
     mapfile -t PART_FILES < <(find "${TMP_DIR}" -name "api_part_*.xml" -type f | sort || true)
-    
+
     if command -v parallel > /dev/null 2>&1; then
      __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
      export -f __processApiXmlPart
-     
-     if ! printf '%s\n' "${PART_FILES[@]}" | \
-      parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
+
+     if ! printf '%s\n' "${PART_FILES[@]}" \
+      | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
        "__processApiXmlPart {}"; then
       __loge "ERROR: Parallel processing failed"
       return 1

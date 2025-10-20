@@ -304,7 +304,7 @@ function __processBoundary() {
  # Strategy: Use SQL SELECT to pick only needed columns, avoiding duplicates
  # Import to temporary table first, then map to target schema
  local TEMP_TABLE="${TABLE_NAME}_import"
- 
+
  # Note: Using -sql to SELECT only the columns we need
  # This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
  __logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
@@ -316,10 +316,10 @@ function __processBoundary() {
   -overwrite \
   --config PG_USE_COPY YES 2> "${OGR_OUTPUT}"; then
   __logd "Import successful, now mapping columns to target table: ${TABLE_NAME}"
-  
+
   # The imported temp table has: id (string), name, name_es, name_en, geom
   # The target table has: country_id (integer), country_name, country_name_es, country_name_en, geom
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_OUTPUT}" 2>&1
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_OUTPUT}" 2>&1; then
    -- Insert with proper column mapping and type conversion
    INSERT INTO ${TABLE_NAME} (country_id, country_name, country_name_es, country_name_en, geom)
    SELECT 
@@ -334,7 +334,6 @@ function __processBoundary() {
    -- Drop temporary table
    DROP TABLE ${TEMP_TABLE};
 EOF
-  then
    __logi "Successfully imported boundary: ${TABLE_NAME}"
    rm -f "${OGR_OUTPUT}"
    __log_finish
@@ -358,10 +357,10 @@ EOF
    while IFS= read -r line; do
     __loge "  ${line}"
    done < "${OGR_OUTPUT}"
-   fi
-   rm -f "${OGR_OUTPUT}"
-   __log_finish
-   return 1
+  fi
+  rm -f "${OGR_OUTPUT}"
+  __log_finish
+  return 1
  fi
 }
 
@@ -425,7 +424,7 @@ function __processCountries() {
   fi
   GEOJSON_FILE="${COUNTRIES_FILE}.geojson"
  fi
- 
+
  # Process the GeoJSON file
  if [[ -s "${GEOJSON_FILE}" ]]; then
   # Import to database
@@ -477,7 +476,7 @@ function __processMaritimes() {
   fi
   GEOJSON_FILE="${MARITIMES_FILE}.geojson"
  fi
- 
+
  # Process the GeoJSON file
  if [[ -s "${GEOJSON_FILE}" ]]; then
   # Import to database (maritimes go into the countries table)

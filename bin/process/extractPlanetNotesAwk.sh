@@ -16,7 +16,7 @@
 #   - <output_dir>/note_comments_text.csv
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
+# Version: 2025-10-20
 
 set -e
 set -u
@@ -46,24 +46,24 @@ readonly EXTRACT_TEXTS_AWK="${AWK_DIR}/extract_comment_texts.awk"
 #   0 if all scripts exist, 1 otherwise
 ###############################################################################
 __validate_awk_scripts() {
- local -i ret=0
+ local -i RET=0
 
  if [[ ! -f "${EXTRACT_NOTES_AWK}" ]]; then
   __log ERROR "AWK script not found: ${EXTRACT_NOTES_AWK}"
-  ret=1
+  RET=1
  fi
 
  if [[ ! -f "${EXTRACT_COMMENTS_AWK}" ]]; then
   __log ERROR "AWK script not found: ${EXTRACT_COMMENTS_AWK}"
-  ret=1
+  RET=1
  fi
 
  if [[ ! -f "${EXTRACT_TEXTS_AWK}" ]]; then
   __log ERROR "AWK script not found: ${EXTRACT_TEXTS_AWK}"
-  ret=1
+  RET=1
  fi
 
- return "${ret}"
+ return "${RET}"
 }
 
 ###############################################################################
@@ -85,18 +85,18 @@ __extract_planet_data() {
  mkdir -p "${OUTPUT_DIR}"
 
  # Determine decompression command
- local decompress_cmd="cat"
+ local DECOMPRESS_CMD="cat"
  if [[ "${INPUT_FILE}" == *.bz2 ]]; then
-  decompress_cmd="bzcat"
+  DECOMPRESS_CMD="bzcat"
   __log DEBUG "Detected bzip2 compression, using bzcat"
  elif [[ "${INPUT_FILE}" == *.gz ]]; then
-  decompress_cmd="zcat"
+  DECOMPRESS_CMD="zcat"
   __log DEBUG "Detected gzip compression, using zcat"
  fi
 
  # Extract notes
  __log INFO "Extracting notes to ${OUTPUT_DIR}/notes.csv"
- ${decompress_cmd} "${INPUT_FILE}" \
+ ${DECOMPRESS_CMD} "${INPUT_FILE}" \
   | awk -f "${EXTRACT_NOTES_AWK}" \
    > "${OUTPUT_DIR}/notes.csv"
 
@@ -106,7 +106,7 @@ __extract_planet_data() {
 
  # Extract comments
  __log INFO "Extracting comments to ${OUTPUT_DIR}/note_comments.csv"
- ${decompress_cmd} "${INPUT_FILE}" \
+ ${DECOMPRESS_CMD} "${INPUT_FILE}" \
   | awk -f "${EXTRACT_COMMENTS_AWK}" \
    > "${OUTPUT_DIR}/note_comments.csv"
 
@@ -116,7 +116,7 @@ __extract_planet_data() {
 
  # Extract comment texts
  __log INFO "Extracting comment texts to ${OUTPUT_DIR}/note_comments_text.csv"
- ${decompress_cmd} "${INPUT_FILE}" \
+ ${DECOMPRESS_CMD} "${INPUT_FILE}" \
   | awk -f "${EXTRACT_TEXTS_AWK}" \
    > "${OUTPUT_DIR}/note_comments_text.csv"
 
