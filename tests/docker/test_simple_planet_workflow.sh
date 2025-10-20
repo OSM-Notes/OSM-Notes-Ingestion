@@ -1,6 +1,6 @@
 #!/bin/bash
 # Simplified Planet workflow test script
-# Version: 2025-07-27
+# Version: 2025-10-20
 
 set -euo pipefail
 
@@ -52,9 +52,12 @@ if [[ -n "${PLANET_NOTES_FILE:-}" && -f "${PLANET_NOTES_FILE}" ]]; then
    if [[ "${MOCK_MODE:-0}" == "1" ]]; then
     echo "Mock psql: INSERT INTO notes VALUES (${note_id}, ${note_id}, ${lat}, ${lon}, ...)"
    else
+    # Use default timestamp if created_at is empty
+    TIMESTAMP="${created_at:-2025-01-01 00:00:00+00}"
+    
     PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "
           INSERT INTO notes (id, note_id, lat, lon, status, created_at, closed_at, id_user, id_country) 
-          VALUES (${note_id}, ${note_id}, ${lat}, ${lon}, '${status}', '${created_at}', NULL, ${note_id}, 1);
+          VALUES (${note_id}, ${note_id}, ${lat}, ${lon}, '${status}', '${TIMESTAMP}', NULL, ${note_id}, 1);
         "
    fi
 
@@ -156,21 +159,21 @@ fi
 echo "📋 Verifying data..."
 if [[ "${MOCK_MODE:-0}" == "1" ]]; then
  echo "Mock psql: SELECT COUNT(*) FROM notes, note_comments, note_comments_text"
- notes_count=2
- comments_count=3
- text_count=3
+ NOTES_COUNT=2
+ COMMENTS_COUNT=3
+ TEXT_COUNT=3
 else
- notes_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | tr -d ' ')
- comments_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | tr -d ' ')
- text_count=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text;" | tr -d ' ')
+ NOTES_COUNT=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM notes;" | tr -d ' ')
+ COMMENTS_COUNT=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments;" | tr -d ' ')
+ TEXT_COUNT=$(PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -p "${TEST_DBPORT}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM note_comments_text;" | tr -d ' ')
 fi
 
 echo "📊 Results:"
-echo "  Notes: ${notes_count}"
-echo "  Comments: ${comments_count}"
-echo "  Text Comments: ${text_count}"
+echo "  Notes: ${NOTES_COUNT}"
+echo "  Comments: ${COMMENTS_COUNT}"
+echo "  Text Comments: ${TEXT_COUNT}"
 
-if [ "$notes_count" -gt 0 ] && [ "$comments_count" -gt 0 ] && [ "$text_count" -gt 0 ]; then
+if [ "$NOTES_COUNT" -gt 0 ] && [ "$COMMENTS_COUNT" -gt 0 ] && [ "$TEXT_COUNT" -gt 0 ]; then
  echo "✅ Planet workflow test completed successfully"
  exit 0
 else

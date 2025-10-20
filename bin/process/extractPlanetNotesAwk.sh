@@ -100,9 +100,9 @@ __extract_planet_data() {
   | awk -f "${EXTRACT_NOTES_AWK}" \
    > "${OUTPUT_DIR}/notes.csv"
 
- local notes_count
- notes_count=$(wc -l < "${OUTPUT_DIR}/notes.csv" || true)
- __log INFO "Extracted ${notes_count} notes"
+ local NOTES_COUNT
+ NOTES_COUNT=$(wc -l < "${OUTPUT_DIR}/notes.csv" || true)
+ __log INFO "Extracted ${NOTES_COUNT} notes"
 
  # Extract comments
  __log INFO "Extracting comments to ${OUTPUT_DIR}/note_comments.csv"
@@ -110,9 +110,9 @@ __extract_planet_data() {
   | awk -f "${EXTRACT_COMMENTS_AWK}" \
    > "${OUTPUT_DIR}/note_comments.csv"
 
- local comments_count
- comments_count=$(wc -l < "${OUTPUT_DIR}/note_comments.csv" || true)
- __log INFO "Extracted ${comments_count} comments"
+ local COMMENTS_COUNT
+ COMMENTS_COUNT=$(wc -l < "${OUTPUT_DIR}/note_comments.csv" || true)
+ __log INFO "Extracted ${COMMENTS_COUNT} comments"
 
  # Extract comment texts
  __log INFO "Extracting comment texts to ${OUTPUT_DIR}/note_comments_text.csv"
@@ -120,9 +120,9 @@ __extract_planet_data() {
   | awk -f "${EXTRACT_TEXTS_AWK}" \
    > "${OUTPUT_DIR}/note_comments_text.csv"
 
- local texts_count
- texts_count=$(wc -l < "${OUTPUT_DIR}/note_comments_text.csv" || true)
- __log INFO "Extracted ${texts_count} comment texts"
+ local TEXTS_COUNT
+ TEXTS_COUNT=$(wc -l < "${OUTPUT_DIR}/note_comments_text.csv" || true)
+ __log INFO "Extracted ${TEXTS_COUNT} comment texts"
 
  __log INFO "Extraction complete"
 }
