@@ -73,6 +73,12 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
  source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
 fi
 
+# Load consolidated parallel processing functions (must be loaded AFTER wrapper functions)
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+ # shellcheck source=parallelProcessingFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+fi
+
 # Output CSV files for processed data
 # shellcheck disable=SC2034
 declare -r OUTPUT_NOTES_CSV_FILE="${TMP_DIR}/output-notes.csv"
