@@ -49,20 +49,21 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 #### 2. Data Processing Layer
 
-- **XML Transformation**: XSLT-based transformation from XML to CSV
-  - Separate transformations for API and Planet formats
-  - Validation and error handling
+- **XML Transformation**: AWK-based extraction from XML to CSV
+  - Optimized AWK scripts for API and Planet formats
+  - Fast and memory-efficient processing
+  - No external XML dependencies
   - Parallel processing support
 
 - **Data Validation**: Comprehensive validation functions
-  - XML structure validation
+  - XML structure validation (optional)
   - Date and coordinate validation
   - Data integrity checks
-  - Schema validation
+  - Schema validation (optional)
 
 - **Parallel Processing**: Partitioned data processing for large volumes
   - Automatic file splitting
-  - Parallel XSLT processing
+  - Parallel AWK extraction
   - Resource management and optimization
 
 #### 3. Data Storage Layer
@@ -107,8 +108,8 @@ The OSM-Notes-Ingestion system consists of the following components:
 **Process:**
 
 1. Download Planet notes dump
-2. Transform XML to CSV using XSLT
-3. Validate data structure and content
+2. Transform XML to CSV using AWK extraction
+3. Validate data structure and content (optional)
 4. Load into temporary sync tables
 5. Merge with main tables
 
@@ -278,15 +279,14 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 ### Data Transformation
 
-- **XSLT Templates** (`xslt/`):
-  - `API2CSV_notes.xslt`: API notes to CSV
-  - `API2CSV_comments.xslt`: API comments to CSV
-  - `Planet2CSV_notes.xslt`: Planet notes to CSV
-  - `Planet2CSV_comments.xslt`: Planet comments to CSV
-  - `CSV2GeoJSON.xslt`: CSV to GeoJSON conversion
+- **AWK Extraction Scripts** (`awk/`):
+  - `extract_notes.awk`: Extract notes from XML to CSV
+  - `extract_comments.awk`: Extract comment metadata to CSV
+  - `extract_comment_texts.awk`: Extract comment text with HTML entity handling
+  - Fast, memory-efficient, no external dependencies
 
-- **Validation**:
-  - XML schema validation (`xsd/`)
+- **Validation** (optional):
+  - XML schema validation (`xsd/`) - only if SKIP_XML_VALIDATION=false
   - Data integrity checks
   - Coordinate validation
   - Date format validation
@@ -295,7 +295,7 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 - **Parallel Processing**:
   - File splitting for large XML files
-  - Concurrent XSLT transformations
+  - Concurrent AWK extraction (10x faster than XSLT)
   - Parallel database loading
 
 - **Indexing**:
@@ -411,14 +411,21 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 ### Software Requirements
 
+#### Required
+
 - **PostgreSQL** (13+): Database server
 - **PostGIS** (3.0+): Spatial extension
 - **Bash** (4.0+): Scripting environment
-- **xsltproc**: XSLT transformation
-- **xmllint**: XML validation
+- **GNU AWK (gawk)**: AWK extraction scripts
+- **GNU Parallel**: Parallel processing
 - **curl/wget**: Data download
-- **GeoServer** (2.20+): WMS service provider
-- **Java** (11+): Runtime for GeoServer
+- **ogr2ogr** (GDAL): Geographic data import
+- **GeoServer** (2.20+): WMS service provider (optional)
+- **Java** (11+): Runtime for GeoServer (optional)
+
+#### Optional
+
+- **xmllint**: XML validation (only if SKIP_XML_VALIDATION=false)
 
 ### Data Dependencies
 
@@ -442,8 +449,7 @@ The OSM-Notes-Ingestion system consists of the following components:
 - **[processPlanet.md](./processPlanet.md)**: Planet processing details
 - **[Input_Validation.md](./Input_Validation.md)**: Validation procedures
 - **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML
-  validation enhancements
-- **[XSLT_Profiling_Guide.md](./XSLT_Profiling_Guide.md)**: XSLT performance
+  validation enhancements (optional)
 
 ### Testing Documentation
 
