@@ -52,4 +52,3 @@ This directory provides:
 - Bash scripting environment
 - Testing frameworks and tools
 - Data processing utilities
-- XML and XSLT processing tools

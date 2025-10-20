@@ -45,7 +45,7 @@ cd /home/angoca/github/OSM-Notes-Ingestion
 ./tests/run_tests_sequential.sh level 2
 ```
 
-### Level 3 - XML/XSLT (8-12 min)
+### Level 3 - XML Processing (8-12 min)
 
 ```bash
 ./tests/run_tests_sequential.sh level 3
@@ -106,10 +106,10 @@ bats tests/unit/bash/processPlanetNotes*.bats \
      tests/unit/bash/mock_planet_functions.test.bats
 ```
 
-### XML/XSLT
+### XML Processing
 
 ```bash
-bats tests/unit/bash/xml*.bats tests/unit/bash/xslt*.bats
+bats tests/unit/bash/xml*.bats
 ```
 
 ### Parallel Processing
@@ -266,7 +266,7 @@ bats tests/unit/bash/suite.test.bats 2>&1 | tee test_output.log
 |-------|-------------|-------|------|
 | 1 | Basic (logging, format) | ~50-60 | 5-10 min |
 | 2 | Validation (data, coordinates, dates) | ~100-120 | 10-15 min |
-| 3 | XML/XSLT | ~80-100 | 8-12 min |
+| 3 | XML Processing | ~80-100 | 8-12 min |
 | 4 | Processing (API, Planet) | ~120-150 | 15-25 min |
 | 5 | Parallel Processing | ~80-100 | 10-15 min |
 | 6 | Cleanup and Error Handling | ~100-120 | 12-18 min |
