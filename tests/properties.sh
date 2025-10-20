@@ -96,6 +96,3 @@ export PARALLEL_THREADS="2"     # Conservative parallel processing
 # Test validation configuration
 export VALIDATION_TIMEOUT="60" # 1 minute for validation tests
 export VALIDATION_RETRIES="3"  # Standard validation retries
-
-# Test XSLT configuration
-export TEST_XSLT_MAX_DEPTH="4000" # Maximum depth for XSLT processing in tests

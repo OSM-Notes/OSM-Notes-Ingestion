@@ -49,11 +49,6 @@ declare MAX_THREADS="${MAX_THREADS:-4}"
 # Use production values but make them non-readonly for testing
 declare PARALLEL_PROCESS_DELAY="2"
 
-# XSLT performance profiling configuration.
-# Enable profiling to analyze and optimize XSLT transformations.
-# Profile files are saved with .profile extension for analysis.
-declare ENABLE_XSLT_PROFILING="${ENABLE_XSLT_PROFILING:-false}"
-
 # Minimum number of notes to enable parallel processing.
 # If the number of notes is less than this threshold, processing will be sequential.
 # This helps avoid the overhead of parallelization for small datasets.

@@ -3,7 +3,7 @@
 # Automates GeoServer setup for WMS layers
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-10-19
 
 set -euo pipefail
 
@@ -118,7 +118,7 @@ validate_prerequisites() {
 
  # Check if PostgreSQL is accessible
  if ! psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -c "SELECT 1;" &> /dev/null; then
-  print_status "${RED}" "❌ ERROR: Cannot connect to PostgreSQL database"
+  print_status "${RED}" "❌ ERROR: Cannot connect to PostgreSQL database '${DBNAME}' at '${DBHOST}' with user '${DBUSER}'"
   exit 1
  fi
 

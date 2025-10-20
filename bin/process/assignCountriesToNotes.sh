@@ -12,7 +12,7 @@
 #   - Function 'get_country' must exist
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
+# Version: 2025-10-19
 
 set -u
 set -e
@@ -71,62 +71,61 @@ main() {
  __logi "=== ASSIGNING COUNTRIES TO NOTES ==="
  __logi "Temporary directory: ${TMP_DIR}"
  __logi "Log file: ${LOG_FILENAME}"
- 
+
  # Verify prerequisites
  __logi "Verifying prerequisites..."
- 
+
  # Check if notes table exists and has data
  local NOTES_COUNT
- NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes;" 2>/dev/null || echo "0")
- 
+ NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes;" 2> /dev/null || echo "0")
+
  if [[ "${NOTES_COUNT}" -eq 0 ]]; then
-  __loge "ERROR: No notes found in database"
+  __loge "ERROR: No notes found in database '${DBNAME}'"
   exit 1
  fi
  __logi "Found ${NOTES_COUNT} notes to process"
- 
+
  # Check if countries table exists and has data
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2>/dev/null || echo "0")
- 
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+
  if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
-  __loge "ERROR: No countries found in database"
+  __loge "ERROR: No countries found in database '${DBNAME}'"
   __loge "Please run: DBNAME=notes ./bin/process/updateCountries.sh --base"
   exit 1
  fi
  __logi "Found ${COUNTRIES_COUNT} countries for assignment"
- 
+
  # Check if get_country function exists
  local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country';" 2>/dev/null || echo "0")
- 
+ FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country';" 2> /dev/null || echo "0")
+
  if [[ "${FUNCTION_EXISTS}" -eq 0 ]]; then
   __loge "ERROR: Function get_country not found"
   exit 1
  fi
  __logi "Function get_country verified"
- 
+
  # Set UPDATE_NOTE_LOCATION to true to process all notes
  export UPDATE_NOTE_LOCATION=true
- 
+
  # Execute the location assignment
  __logi "Starting location assignment (parallel processing)..."
  __logi "This will process notes in batches with progress visible"
- 
+
  __getLocationNotes
- 
+
  # Verify results
  local NOTES_WITH_COUNTRY
  NOTES_WITH_COUNTRY=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(id_country) FROM notes;")
- 
+
  __logi "=== ASSIGNMENT COMPLETED ==="
  __logi "Total notes: ${NOTES_COUNT}"
  __logi "Notes with country: ${NOTES_WITH_COUNTRY}"
  __logi "Percentage: $(awk "BEGIN {printf \"%.2f\", 100.0 * ${NOTES_WITH_COUNTRY} / ${NOTES_COUNT}}")%"
- 
+
  __log_finish
 }
 
 # Execute main
 main "$@"
-

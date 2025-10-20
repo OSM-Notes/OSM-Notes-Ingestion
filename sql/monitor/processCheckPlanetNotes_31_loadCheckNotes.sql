@@ -1,8 +1,8 @@
 -- Loads check notes into the check tables.
--- Sequence numbers are already generated in XSLT transformation
+-- Sequence numbers are already generated in AWK extraction
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-26
+-- Version: 2025-10-19
 
 TRUNCATE TABLE notes_check;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
@@ -22,7 +22,7 @@ TRUNCATE TABLE note_comments_check;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Uploading check comments with sequence numbers from XSLT' AS Text;
 
--- Load comments with sequence_action already provided by XSLT
+-- Load comments with sequence_action already provided by AWK
 COPY note_comments_check (note_id, sequence_action, event, created_at, id_user, username)
 FROM '${OUTPUT_COMMENTS_FILE}' csv;
 
@@ -39,7 +39,7 @@ TRUNCATE TABLE note_comments_text_check;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Uploading check text comments with sequence numbers from XSLT' AS Text;
 
--- Load text comments with sequence_action already provided by XSLT
+-- Load text comments with sequence_action already provided by AWK
 COPY note_comments_text_check (note_id, sequence_action, body)
 FROM '${OUTPUT_TEXT_COMMENTS_FILE}' csv;
 

@@ -527,8 +527,8 @@ function __processPlanetXmlPart() {
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
  # Process comments with AWK (fast and dependency-free)
-__logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
-awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
+ __logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
@@ -540,8 +540,8 @@ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OU
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
  # Process text comments with AWK (fast and dependency-free)
-__logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
-awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
+ __logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"
@@ -664,6 +664,17 @@ function __checkPrereqsCommands {
   __loge "ERROR: PostgreSQL is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## Database existence
+ __logd "Checking if database '${DBNAME}' exists."
+ # shellcheck disable=SC2154
+ if ! psql -lqt | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
+  __loge "ERROR: Database '${DBNAME}' does not exist."
+  __loge "To create the database, run the following commands:"
+  __loge "  createdb ${DBNAME}"
+  __loge "  psql -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
+  __loge "  psql -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  ## PostGIS
  __logd "Checking PostGIS."
  # shellcheck disable=SC2154
@@ -672,7 +683,8 @@ function __checkPrereqsCommands {
 EOF
  RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: PostGIS extension is missing."
+  __loge "ERROR: PostGIS extension is missing in database '${DBNAME}'."
+  __loge "To enable PostGIS, run: psql -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## btree gist
@@ -680,7 +692,8 @@ EOF
  __logd "Checking btree gist."
  RESULT=$(psql -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
  if [[ "${RESULT}" -ne 1 ]]; then
-  __loge "ERROR: btree_gist extension is missing."
+  __loge "ERROR: btree_gist extension is missing in database '${DBNAME}'."
+  __loge "To enable btree_gist, run: psql -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Wget
@@ -785,7 +798,7 @@ EOF
  # shellcheck disable=SC2154
  if ! ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
   "${GEOJSON_TEST}" -nln import -overwrite; then
-  __loge "ERROR: ogr2ogr cannot access the database."
+  __loge "ERROR: ogr2ogr cannot access the database '${DBNAME}' with user '${DB_USER}'."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -1684,26 +1697,22 @@ function __getLocationNotes {
  __log_finish
 }
 
-# Validates XML content for coordinate attributes using XPath
+# Validates XML content for coordinate attributes
 # This is the unified implementation for both API and Planet XML coordinate validation.
-# Supports auto-detection of XML format (Planet vs API) and uses xmlstarlet for robust parsing.
+# Supports auto-detection of XML format (Planet vs API) using grep/sed pattern matching.
 #
 # Parameters:
 #   $1: XML file path
-#   $2: Latitude XPath expression (optional, auto-detects based on XML structure)
-#   $3: Longitude XPath expression (optional, auto-detects based on XML structure)
 # Returns:
 #   0 if all coordinates are valid, 1 if any invalid
 #
 # XML Format Support:
-#   - Planet XML: /osm-notes/note/@lat and /osm-notes/note/@lon
-#   - API XML: //@lat and //@lon (generic)
-#   - Custom XPath: Can be specified via parameters 2 and 3
+#   - Planet XML: Extracts lat/lon attributes from <note> elements
+#   - API XML: Extracts lat/lon attributes from <note> elements
+#   - Uses grep/sed for efficient pattern matching
 function __validate_xml_coordinates() {
  __log_start
  local XML_FILE="${1}"
- local LAT_XPATH="${2:-}"
- local LON_XPATH="${3:-}"
  local VALIDATION_ERRORS=()
 
  # Check if file exists and is readable
@@ -1763,48 +1772,16 @@ function __validate_xml_coordinates() {
   fi
  fi
 
- # For smaller files, auto-detect XPath based on XML structure if not provided
- if [[ -z "${LAT_XPATH}" ]] || [[ -z "${LON_XPATH}" ]]; then
-  # Check if it's a Planet format XML (has /osm-notes/note structure)
-  # Use lightweight grep instead of xmlstarlet to avoid memory issues
-  if grep -q '<osm-notes' "${XML_FILE}" && grep -q '<note' "${XML_FILE}"; then
-   LAT_XPATH="/osm-notes/note/@lat"
-   LON_XPATH="/osm-notes/note/@lon"
-   __logd "Auto-detected Planet XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
-  elif grep -q '<osm' "${XML_FILE}" && grep -q '<note' "${XML_FILE}"; then
-   # Check if it's an API format XML (has /osm/note structure)
-   LAT_XPATH="/osm/note/@lat"
-   LON_XPATH="/osm/note/@lon"
-   __logd "Auto-detected API XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
-  else
-   # Default to generic XPath for other formats
-   LAT_XPATH="//@lat"
-   LON_XPATH="//@lon"
-   __logd "Auto-detected generic XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
-  fi
- fi
-
- # Extract coordinates using lightweight commands for smaller files
+ # For smaller files, extract coordinates using grep/sed
  local LATITUDES
  local LONGITUDES
 
- # Use grep and sed instead of xmlstarlet to avoid memory issues
- if [[ "${LAT_XPATH}" == "/osm-notes/note/@lat" ]]; then
-  # Planet format: extract lat/lon attributes from note tags
-  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
-  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
- elif [[ "${LAT_XPATH}" == "/osm/note/@lat" ]]; then
-  # API format: extract lat/lon attributes from note tags
-  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
-  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
- else
-  # Generic format: try to find any lat/lon attributes
-  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
-  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
- fi
+ # Extract coordinates using grep and sed (works for all XML formats)
+ LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
+ LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
 
  if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
-  __logw "No coordinates found in XML file using XPath: ${LAT_XPATH}, ${LON_XPATH}"
+  __logw "No coordinates found in XML file"
   __log_finish
   return 0
  fi
