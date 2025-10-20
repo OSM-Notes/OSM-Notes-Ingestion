@@ -261,7 +261,7 @@ export GENERATE_FAILED_FILE=true
 
 # Location of the common functions.
 
-# XSLT transformation files for Planet format (used by parallel processing).
+# AWK extraction scripts for Planet format (used by parallel processing).
 # (Declared in processPlanetFunctions.sh)
 
 # Control variables for functionsProcess.sh
@@ -695,8 +695,7 @@ function __processPlanetNotesWithParallel {
  __logi "Found ${#PART_FILES[@]} part files to process"
 
  # Export variables and functions needed by parallel processing
- export DBNAME TMP_DIR MAX_THREADS XSLT_MAX_DEPTH
- export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
+ export DBNAME TMP_DIR MAX_THREADS
  export POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES
  export SCRIPT_BASE_DIRECTORY
  export LOG_FILENAME  # Export log file path for parallel workers
@@ -712,16 +711,13 @@ function __processPlanetNotesWithParallel {
  # Create wrapper function for parallel workers to setup logging
  function __parallel_worker_wrapper() {
   local -r PART_FILE="$1"
-  local -r XSLT_NOTES="$2"
-  local -r XSLT_COMMENTS="$3"
-  local -r XSLT_TEXT="$4"
   
   # Setup logging for this worker (appends to shared log file)
   __set_log_file "${LOG_FILENAME}" 2>/dev/null || true
   
   # Execute the main processing function
   # Output is synchronized by parallel's internal buffering
-  __processPlanetXmlPart "${PART_FILE}" "${XSLT_NOTES}" "${XSLT_COMMENTS}" "${XSLT_TEXT}"
+  __processPlanetXmlPart "${PART_FILE}"
  }
  export -f __parallel_worker_wrapper
 
@@ -735,7 +731,7 @@ function __processPlanetNotesWithParallel {
   # --line-buffer ensures log lines from different workers don't intermix
   if ! printf '%s\n' "${PART_FILES[@]}" | \
    parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 --line-buffer \
-    "__parallel_worker_wrapper {} '${XSLT_NOTES_PLANET_FILE}' '${XSLT_NOTE_COMMENTS_PLANET_FILE}' '${XSLT_TEXT_COMMENTS_PLANET_FILE}'"; then
+    "__parallel_worker_wrapper {}"; then
    __loge "ERROR: Parallel processing failed"
    __log_finish
    return 1
@@ -751,10 +747,7 @@ function __processPlanetNotesWithParallel {
   for PART_FILE in "${PART_FILES[@]}"; do
    # Process part in background
    (
-    if ! __processPlanetXmlPart "${PART_FILE}" \
-     "${XSLT_NOTES_PLANET_FILE}" \
-     "${XSLT_NOTE_COMMENTS_PLANET_FILE}" \
-     "${XSLT_TEXT_COMMENTS_PLANET_FILE}"; then
+    if ! __processPlanetXmlPart "${PART_FILE}"; then
      exit 1
     fi
    ) &
@@ -1437,7 +1430,7 @@ function __show_help {
 
  echo "${BASENAME} version ${VERSION}"
  echo "This is a script that downloads the OSM notes from the Planet,"
- echo "processes them with a XSLT transformation, to create a flat file,"
+ echo "processes them with AWK extraction to create flat CSV files,"
  echo "and finally it uploads them into a PostgreSQL database."
  echo
  echo "It could receive one of these parameters:"

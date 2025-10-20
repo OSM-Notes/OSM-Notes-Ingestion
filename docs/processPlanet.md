@@ -129,8 +129,8 @@ Sync tables are temporary and used for incremental processing:
 
 ### 5. XML Processing
 
-- Validates XML structure against XSD schema
-- Transforms XML to CSV using XSLT templates
+- Validates XML structure against XSD schema (optional, if SKIP_XML_VALIDATION=false)
+- Transforms XML to CSV using AWK extraction
 - Processes in parallel using partitioning
 - Consolidates results from all partitions
 

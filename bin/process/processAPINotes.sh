@@ -3,7 +3,7 @@
 # This script processes the most recent notes (creation or modification) from
 # the OpenStreetMap API.
 # * It downloads the notes via an HTTP call.
-# * Then with an XSLT transformation converts the data into flat files.
+# * Then with AWK extraction converts the data into flat CSV files.
 # * It uploads the data into temp tables on a PostgreSQL database.
 # * Finally, it synchronizes the master tables.
 #
@@ -105,7 +105,7 @@ declare -i TOTAL_NOTES=-1
 
 # XML Schema of the API notes file.
 # (Declared in processAPIFunctions.sh)
-# XSLT transformation files are already defined in functionsProcess.sh
+# AWK extraction scripts are defined in awk/ directory
 
 # Script to process notes from Planet.
 declare -r PROCESS_PLANET_NOTES_SCRIPT="processPlanetNotes.sh"
@@ -461,7 +461,7 @@ function __validateApiNotesXMLFileComplete {
  __log_finish
 }
 
-# Creates the XSLT files and process the XML files with them.
+# Processes XML files with AWK extraction.
 # The CSV file structure for notes is:
 # 3451247,29.6141093,-98.4844977,"2022-11-22 02:13:03 UTC",,"open"
 # 3451210,39.7353700,-104.9626400,"2022-11-22 01:30:39 UTC","2022-11-22 02:09:32 UTC","close"
@@ -493,10 +493,26 @@ function __processXMLorPlanet {
    if [[ "${TOTAL_NOTES}" -ge "${MIN_NOTES_FOR_PARALLEL}" ]]; then
     __logi "Processing ${TOTAL_NOTES} notes with parallel processing (threshold: ${MIN_NOTES_FOR_PARALLEL})"
     __splitXmlForParallelAPI "${API_NOTES_FILE}"
-    # Export XSLT variables for parallel processing
-    export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
-    # Process XML parts in parallel using the directory where parts were created
-    __processXmlPartsParallel "${TMP_DIR}" "${XSLT_NOTES_API_FILE}" "${TMP_DIR}/output" "${MAX_THREADS}" "API"
+    
+    # Process XML parts in parallel using GNU parallel
+    mapfile -t PART_FILES < <(find "${TMP_DIR}" -name "api_part_*.xml" -type f | sort || true)
+    
+    if command -v parallel > /dev/null 2>&1; then
+     __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
+     export -f __processApiXmlPart
+     
+     if ! printf '%s\n' "${PART_FILES[@]}" | \
+      parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
+       "__processApiXmlPart {}"; then
+      __loge "ERROR: Parallel processing failed"
+      return 1
+     fi
+    else
+     __logi "GNU parallel not found, processing sequentially"
+     for PART_FILE in "${PART_FILES[@]}"; do
+      __processApiXmlPart "${PART_FILE}"
+     done
+    fi
    else
     __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
     __processApiXmlSequential "${API_NOTES_FILE}"

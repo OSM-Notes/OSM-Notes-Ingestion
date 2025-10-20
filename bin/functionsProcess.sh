@@ -320,33 +320,23 @@ function __splitXmlForParallelPlanet() {
  return 1
 }
 
-# Processes a single XML part for API notes
+# Processes a single XML part for API notes using AWK extraction
 # Parameters:
 #   $1: XML part file path
-#   $2: XSLT notes file (optional, uses global if not provided)
-#   $3: XSLT comments file (optional, uses global if not provided)
-#   $4: XSLT text comments file (optional, uses global if not provided)
 function __processApiXmlPart() {
  __log_start
  local XML_PART="${1}"
- local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_API_FILE}}"
- local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
- local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_API_FILE}}"
  local PART_NUM
  local BASENAME_PART
 
- __logi "=== STARTING API XML PART PROCESSING ==="
+ __logi "=== STARTING API XML PART PROCESSING (AWK) ==="
  __logd "Input XML part: ${XML_PART}"
- __logd "XSLT files:"
- __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
 
  # Debug: Show environment variables
  __logd "Environment check in subshell:"
  __logd "  XML_PART: '${XML_PART}'"
  __logd "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
- __logd "  XSLT_NOTES_API_FILE: '${XSLT_NOTES_API_FILE:-NOT_SET}'"
+ __logd "  SCRIPT_BASE_DIRECTORY: '${SCRIPT_BASE_DIRECTORY:-NOT_SET}'"
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
@@ -377,7 +367,7 @@ function __processApiXmlPart() {
 
  __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
 
- # Convert XML part to CSV using XSLT
+ # Convert XML part to CSV using AWK
  local OUTPUT_NOTES_PART
  local OUTPUT_COMMENTS_PART
  local OUTPUT_TEXT_PART
@@ -468,33 +458,23 @@ function __processApiXmlPart() {
  __log_finish
 }
 
-# Processes a single XML part for Planet notes
+# Processes a single XML part for Planet notes using AWK extraction
 # Parameters:
 #   $1: XML part file path
-#   $2: XSLT notes file (optional, uses global if not provided)
-#   $3: XSLT comments file (optional, uses global if not provided)
-#   $4: XSLT text comments file (optional, uses global if not provided)
 function __processPlanetXmlPart() {
  __log_start
  local XML_PART="${1}"
- local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_FILE}}"
- local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_FILE}}"
- local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_FILE}}"
  local PART_NUM
  local BASENAME_PART
 
- __logi "=== STARTING PLANET XML PART PROCESSING ==="
+ __logi "=== STARTING PLANET XML PART PROCESSING (AWK) ==="
  __logd "Input XML part: ${XML_PART}"
- __logd "XSLT files:"
- __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
 
  # Debug: Show environment variables
  __logd "Environment check in subshell:"
  __logd "  XML_PART: '${XML_PART}'"
  __logd "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
- __logd "  XSLT_NOTES_FILE: '${XSLT_NOTES_FILE:-NOT_SET}'"
+ __logd "  SCRIPT_BASE_DIRECTORY: '${SCRIPT_BASE_DIRECTORY:-NOT_SET}'"
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)

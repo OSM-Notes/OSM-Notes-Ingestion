@@ -77,7 +77,7 @@ Uses the same base tables as `processPlanetNotes.sh`:
 
 - Verifies that `processPlanetNotes.sh` is not running
 - Checks existence of base tables
-- Validates necessary SQL and XSLT files
+- Validates necessary SQL files
 
 ### 2. API Table Management
 
@@ -107,7 +107,7 @@ Uses the same base tables as `processPlanetNotes.sh`:
 ### 5. Parallel Processing
 
 - Divides XML file into parts
-- Processes each part in parallel using XSLT
+- Processes each part in parallel using AWK extraction
 - Consolidates results from all partitions
 
 ### 6. Data Integration
