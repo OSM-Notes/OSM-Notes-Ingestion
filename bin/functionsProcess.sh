@@ -1870,58 +1870,6 @@ declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIMES
 # Enhanced retry with exponential backoff and jitter
 # Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
 
-# Circuit breaker pattern implementation
-# Parameters: service_name command_to_execute
-# Returns: 0 if successful, 1 if circuit is open or command failed
-function __circuit_breaker_execute() {
- __log_start
- local SERVICE_NAME="$1"
- local COMMAND="$2"
- local CURRENT_TIME
- CURRENT_TIME=$(date +%s)
- local STATE="${CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]:-CLOSED}"
- local FAILURE_COUNT="${CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]:-0}"
- local LAST_FAILURE_TIME="${CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]:-0}"
-
- # Check if circuit is open and timeout has passed
- if [[ "${STATE}" == "OPEN" ]]; then
-  local TIME_SINCE_FAILURE=$((CURRENT_TIME - LAST_FAILURE_TIME))
-  if [[ ${TIME_SINCE_FAILURE} -gt ${CIRCUIT_BREAKER_TIMEOUT} ]]; then
-   echo "INFO: Circuit breaker for ${SERVICE_NAME} transitioning to HALF_OPEN" >&2
-   CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="HALF_OPEN"
-   STATE="HALF_OPEN"
-  else
-   echo "WARNING: Circuit breaker for ${SERVICE_NAME} is OPEN, skipping execution" >&2
-   __log_finish
-   return 1
-  fi
- fi
-
- # Execute command
- if eval "${COMMAND}"; then
-  # Success - close circuit and reset failure count
-  if [[ "${STATE}" != "CLOSED" ]]; then
-   echo "INFO: Circuit breaker for ${SERVICE_NAME} transitioning to CLOSED" >&2
-  fi
-  CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="CLOSED"
-  CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]=0
-  __log_finish
-  return 0
- else
-  # Failure - increment failure count
-  FAILURE_COUNT=$((FAILURE_COUNT + 1))
-  CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]=${FAILURE_COUNT}
-  CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]=${CURRENT_TIME}
-
-  if [[ ${FAILURE_COUNT} -ge ${CIRCUIT_BREAKER_THRESHOLD} ]]; then
-   __loge "Circuit breaker for ${SERVICE_NAME} transitioning to OPEN (${FAILURE_COUNT} failures)"
-   CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="OPEN"
-  fi
-  __log_finish
-  return 1
- fi
-}
-
 # Health check for network connectivity
 # Parameters: [timeout_seconds]
 # Returns: 0 if network is available, 1 if not
