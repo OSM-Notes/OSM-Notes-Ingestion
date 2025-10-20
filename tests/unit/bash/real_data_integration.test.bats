@@ -59,19 +59,19 @@ teardown() {
 
 @test "real planet data should transform to CSV" {
  local test_file="${FIXTURES_DIR}/xml/planet_notes_real.xml"
- local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+ local awk_script="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
  
  # Check if files exist
  if [[ ! -f "$test_file" ]]; then
    skip "Real planet data file not found: $test_file"
  fi
  
- if [[ ! -f "$xslt_file" ]]; then
-   skip "XSLT file not found: $xslt_file"
+ if [[ ! -f "$awk_script" ]]; then
+   skip "AWK script not found: $awk_script"
  fi
  
- # Test XSLT transformation
- run xsltproc "$xslt_file" "$test_file"
+ # Test AWK transformation
+ run awk -f "$awk_script" "$test_file"
  [ "$status" -eq 0 ]
  [[ "$output" == *","* ]]  # Should contain CSV format
 }
@@ -314,13 +314,13 @@ teardown() {
  [[ "$output" -gt 0 ]]
 }
 
-# Test XSLT transformations for all special cases
+# Test AWK transformations for all special cases
 @test "all special cases should transform to CSV" {
- local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"
+ local awk_script="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
  
  # Check if XSLT file exists
- if [[ ! -f "$xslt_file" ]]; then
-   skip "XSLT file not found: $xslt_file"
+ if [[ ! -f "$awk_script" ]]; then
+   skip "AWK script not found: $awk_script"
  fi
  
  # Test each special case
@@ -328,11 +328,11 @@ teardown() {
    if [[ -f "$xml_file" ]]; then
      local case_name=$(basename "$xml_file" .xml)
      
-     # Test XSLT transformation
-     run xsltproc "$xslt_file" "$xml_file"
+     # Test AWK transformation
+     run awk -f "$awk_script" "$xml_file"
      [ "$status" -eq 0 ]
      # Check if output contains CSV format or is empty (which is also valid)
-     [[ "$output" == *","* ]] || [[ -z "$output" ]] || echo "XSLT transformation for ${case_name} should produce CSV format or be empty"
+     [[ "$output" == *","* ]] || [[ -z "$output" ]] || echo "AWK transformation for ${case_name} should produce CSV format or be empty"
    fi
  done
 }
@@ -358,15 +358,15 @@ teardown() {
 # Test end-to-end workflow with real data
 @test "end-to-end workflow should work with real data" {
  local test_file="${FIXTURES_DIR}/xml/planet_notes_real.xml"
- local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+ local awk_script="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
  
  # Check if files exist
  if [[ ! -f "$test_file" ]]; then
    skip "Real planet data file not found: $test_file"
  fi
  
- if [[ ! -f "$xslt_file" ]]; then
-   skip "XSLT file not found: $xslt_file"
+ if [[ ! -f "$awk_script" ]]; then
+   skip "AWK script not found: $awk_script"
  fi
  
  # Copy test file to temporary location
@@ -383,8 +383,8 @@ teardown() {
  [[ "$note_count" =~ ^[0-9]+$ ]]
  [[ "$note_count" -gt 0 ]]
  
- # Test XSLT transformation
- run xsltproc "$xslt_file" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
+ # Test AWK transformation
+ run awk -f "$awk_script" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
  [ "$status" -eq 0 ]
  [ -f "${TMP_DIR}/notes.csv" ]
  

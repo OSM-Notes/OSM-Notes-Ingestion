@@ -113,11 +113,11 @@ EOF
  API_NOTES_FILE="${TEST_TMP_DIR}/small_notes.xml"
  export API_NOTES_FILE
  
- # Mock XSLT files
- XSLT_NOTES_API_FILE="/tmp/notes.xslt"
- XSLT_NOTE_COMMENTS_API_FILE="/tmp/comments.xslt"
- XSLT_TEXT_COMMENTS_API_FILE="/tmp/text.xslt"
- export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
+ # Mock AWK files
+ AWK_NOTES_API_FILE="/tmp/notes.awk"
+ AWK_NOTE_COMMENTS_API_FILE="/tmp/comments.awk"
+ AWK_TEXT_COMMENTS_API_FILE="/tmp/text.awk"
+ export AWK_NOTES_API_FILE AWK_NOTE_COMMENTS_API_FILE AWK_TEXT_COMMENTS_API_FILE
  
  # Run the processing logic (simplified version)
  output=""
@@ -163,11 +163,11 @@ EOF
  API_NOTES_FILE="${TEST_TMP_DIR}/large_notes.xml"
  export API_NOTES_FILE
  
- # Mock XSLT files
- XSLT_NOTES_API_FILE="/tmp/notes.xslt"
- XSLT_NOTE_COMMENTS_API_FILE="/tmp/comments.xslt"
- XSLT_TEXT_COMMENTS_API_FILE="/tmp/text.xslt"
- export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
+ # Mock AWK files
+ AWK_NOTES_API_FILE="/tmp/notes.awk"
+ AWK_NOTE_COMMENTS_API_FILE="/tmp/comments.awk"
+ AWK_TEXT_COMMENTS_API_FILE="/tmp/text.awk"
+ export AWK_NOTES_API_FILE AWK_NOTE_COMMENTS_API_FILE AWK_TEXT_COMMENTS_API_FILE
  
  # Run the processing logic (simplified version)
  output=""
@@ -210,11 +210,11 @@ EOF
  API_NOTES_FILE="${TEST_TMP_DIR}/threshold_notes.xml"
  export API_NOTES_FILE
  
- # Mock XSLT files
- XSLT_NOTES_API_FILE="/tmp/notes.xslt"
- XSLT_NOTE_COMMENTS_API_FILE="/tmp/comments.xslt"
- XSLT_TEXT_COMMENTS_API_FILE="/tmp/text.xslt"
- export XSLT_NOTES_API_FILE XSLT_NOTE_COMMENTS_API_FILE XSLT_TEXT_COMMENTS_API_FILE
+ # Mock AWK files
+ AWK_NOTES_API_FILE="/tmp/notes.awk"
+ AWK_NOTE_COMMENTS_API_FILE="/tmp/comments.awk"
+ AWK_TEXT_COMMENTS_API_FILE="/tmp/text.awk"
+ export AWK_NOTES_API_FILE AWK_NOTE_COMMENTS_API_FILE AWK_TEXT_COMMENTS_API_FILE
  
  # Run the processing logic
  output=""

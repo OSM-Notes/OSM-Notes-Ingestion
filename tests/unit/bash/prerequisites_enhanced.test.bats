@@ -196,7 +196,7 @@ setup() {
     # Test that required directories exist
     [ -d "${TEST_BASE_DIR}/bin" ]
     [ -d "${TEST_BASE_DIR}/sql" ]
-    [ -d "${TEST_BASE_DIR}/xslt" ]
+    [ -d "${TEST_BASE_DIR}/awk" ]
     [ -d "${TEST_BASE_DIR}/xsd" ]
     [ -d "${TEST_BASE_DIR}/overpass" ]
 }
@@ -289,7 +289,7 @@ setup() {
     mutt() { echo "Mock mutt"; return 0; }
     bzip2() { echo "Mock bzip2"; return 0; }
     xmllint() { echo "Mock xmllint"; return 0; }
-    xsltproc() { echo "Mock xsltproc"; return 0; }
+    awkproc() { echo "Mock awkproc"; return 0; }
     xmlstarlet() { echo "Mock xmlstarlet"; return 0; }
     
     # Mock the function itself for fast execution
@@ -394,7 +394,7 @@ EOF
     mutt() { echo "Mock mutt"; return 0; }
     bzip2() { echo "Mock bzip2"; return 0; }
     xmllint() { echo "Mock xmllint"; return 0; }
-    xsltproc() { echo "Mock xsltproc"; return 0; }
+    awkproc() { echo "Mock awkproc"; return 0; }
     xmlstarlet() { echo "Mock xmlstarlet"; return 0; }
     
     # Mock the function itself to avoid permission issues
@@ -432,7 +432,7 @@ EOF
     mutt() { echo "Mock mutt"; return 0; }
     bzip2() { echo "Mock bzip2"; return 0; }
     xmllint() { echo "Mock xmllint"; return 0; }
-    xsltproc() { echo "Mock xsltproc"; return 0; }
+    awkproc() { echo "Mock awkproc"; return 0; }
     xmlstarlet() { echo "Mock xmlstarlet"; return 0; }
     
     # Mock the function itself for full environment test
@@ -461,7 +461,7 @@ EOF
     mutt() { echo "Mock mutt"; return 0; }
     bzip2() { echo "Mock bzip2"; return 0; }
     xmllint() { echo "Mock xmllint"; return 0; }
-    xsltproc() { echo "Mock xsltproc"; return 0; }
+    awkproc() { echo "Mock awkproc"; return 0; }
     xmlstarlet() { echo "Mock xmlstarlet"; return 0; }
     
     # Mock the function itself for idempotent test

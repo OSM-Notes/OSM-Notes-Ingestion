@@ -155,18 +155,18 @@ teardown() {
   echo "✓ Special content analysis completed"
 }
 
-@test "Mock XML processing with different XSLT parameters" {
-  local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+@test "Mock XML processing with different AWK parameters" {
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_notes_with_params.csv"
   
   # Test processing with timestamp parameter
   local current_timestamp
   current_timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
   
-  # Run xsltproc without 'run' to properly redirect output to file
-  xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" \
+  # Run awkproc without 'run' to properly redirect output to file
+  awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" \
            --stringparam default-timestamp "${current_timestamp}" \
-           "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+           "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
   
   local exit_code=$?
   [ "${exit_code}" -eq 0 ]
@@ -178,7 +178,7 @@ teardown() {
   output_lines=$(wc -l < "${output_file}")
   [ "${output_lines}" -gt 1 ]
   
-  echo "✓ XSLT processing with parameters completed: ${output_lines} lines"
+  echo "✓ AWK processing with parameters completed: ${output_lines} lines"
 }
 
 @test "Mock XML parallel processing simulation" {
@@ -285,7 +285,7 @@ EOF
 }
 
 @test "Mock XML performance benchmarking" {
-  local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_benchmark.csv"
   
   # Run multiple iterations for benchmarking
@@ -298,7 +298,7 @@ EOF
     local start_time
     start_time=$(date +%s.%N)
     
-    run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
+    run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
     
     local end_time
     end_time=$(date +%s.%N)

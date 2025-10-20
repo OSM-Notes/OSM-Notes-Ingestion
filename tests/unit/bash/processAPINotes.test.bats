@@ -57,11 +57,11 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_35_consolidatePartitions.sql" ]
 }
 
-@test "XSLT files should exist" {
-  # Check if required XSLT files exist
-  [ -f "${TEST_BASE_DIR}/xslt/notes-API-csv.xslt" ]
-  [ -f "${TEST_BASE_DIR}/xslt/note_comments-API-csv.xslt" ]
-  [ -f "${TEST_BASE_DIR}/xslt/note_comments_text-API-csv.xslt" ]
+@test "AWK files should exist" {
+  # Check if required AWK files exist
+  [ -f "${TEST_BASE_DIR}/awk/extract_notes.awk" ]
+  [ -f "${TEST_BASE_DIR}/awk/extract_comments.awk" ]
+  [ -f "${TEST_BASE_DIR}/awk/extract_comment_texts.awk" ]
 }
 
 @test "XML schema files should exist" {

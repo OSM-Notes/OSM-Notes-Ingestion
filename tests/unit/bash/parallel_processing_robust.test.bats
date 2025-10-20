@@ -68,13 +68,13 @@ teardown() {
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] # May fail on some systems
 }
 
-@test "Robust XSLT processing function handles missing files" {
+@test "Robust AWK processing function handles missing files" {
  # Test with non-existent files
- run __process_xml_with_xslt_robust "/nonexistent.xml" "/nonexistent.xslt" "/nonexistent.csv"
+ run __process_xml_with_awk_robust "/nonexistent.xml" "/nonexistent.awk" "/nonexistent.csv"
  [ "$status" -eq 1 ]
 }
 
-@test "Robust XSLT processing function creates output directory" {
+@test "Robust AWK processing function creates output directory" {
  # Test that the function exists and can be called
  # SKIPPED: This test was causing hangs due to real XML processing
  skip "Test skipped to prevent hangs - function exists and works in integration tests"
@@ -82,22 +82,22 @@ teardown() {
 
 @test "Parallel processing function validates inputs correctly" {
  # Test with missing input directory
- run __processXmlPartsParallel "/nonexistent" "/nonexistent.xslt" "/tmp" 2 "API"
+ run __processXmlPartsParallel "/nonexistent" "/nonexistent.awk" "/tmp" 2 "API"
  [ "$status" -eq 1 ]
  
- # Test with missing XSLT file
- run __processXmlPartsParallel "/tmp" "/nonexistent.xslt" "/tmp" 2 "API"
+ # Test with missing AWK file
+ run __processXmlPartsParallel "/tmp" "/nonexistent.awk" "/tmp" 2 "API"
  [ "$status" -eq 1 ]
  
  # Test with invalid processing type
- run __processXmlPartsParallel "/tmp" "/tmp/test.xslt" "/tmp" 2 "INVALID"
+ run __processXmlPartsParallel "/tmp" "/tmp/test.awk" "/tmp" 2 "INVALID"
  [ "$status" -eq 1 ]
 }
 
 @test "Parallel processing function handles empty input directory" {
  # Test with empty directory
  # This test can fail for various reasons, so we'll make it more flexible
- run __processXmlPartsParallel "/tmp" "/tmp/test.xslt" "/tmp" 2 "API"
+ run __processXmlPartsParallel "/tmp" "/tmp/test.awk" "/tmp" 2 "API"
  # Function can return 0 (success) or 1 (failure) for empty directory
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
 }

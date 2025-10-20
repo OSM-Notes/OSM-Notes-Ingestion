@@ -64,14 +64,14 @@ teardown() {
 }
 
 @test "XSLT processing works with mock Planet XML (notes CSV)" {
-  local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_notes.csv"
   
   # Verify XSLT file exists
-  [ -f "${xslt_file}" ]
+  [ -f "${awk_file}" ]
   
   # Process XML with XSLT
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
+  run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
@@ -89,14 +89,14 @@ teardown() {
 }
 
 @test "XSLT processing works with mock Planet XML (comments CSV)" {
-  local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/note_comments-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_comments.csv"
   
   # Verify XSLT file exists
-  [ -f "${xslt_file}" ]
+  [ -f "${awk_file}" ]
   
   # Process XML with XSLT
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
+  run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
@@ -114,14 +114,14 @@ teardown() {
 }
 
 @test "XSLT processing works with mock Planet XML (text comments CSV)" {
-  local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/note_comments_text-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_text_comments.csv"
   
   # Verify XSLT file exists
-  [ -f "${xslt_file}" ]
+  [ -f "${awk_file}" ]
   
   # Process XML with XSLT
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
+  run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
@@ -139,11 +139,11 @@ teardown() {
 }
 
 @test "Mock XML can be processed with robust XSLT function" {
-  local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_robust_notes.csv"
   
   # Test the robust XSLT processing function
-  run __process_xml_with_xslt_robust "${MOCK_XML_FILE}" "${xslt_file}" "${output_file}" "" "" "" "false"
+  run __process_xml_with_awk_robust "${MOCK_XML_FILE}" "${awk_file}" "${output_file}" "" "" "" "false"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
@@ -211,10 +211,10 @@ EOF
     echo "✓ Mock XML contains special characters for testing"
     
     # Test processing with special characters
-    local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+    local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
     local output_file="${TEST_OUTPUT_DIR}/mock_special_chars.csv"
     
-    run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
+    run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
     
     [ "$status" -eq 0 ]
     [ -f "${output_file}" ]
@@ -227,14 +227,14 @@ EOF
 }
 
 @test "Mock XML processing performance metrics" {
-  local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_performance.csv"
   
   # Measure processing time
   local start_time
   start_time=$(date +%s.%N)
   
-  run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${xslt_file}" "${MOCK_XML_FILE}"
+  run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
   
   local end_time
   end_time=$(date +%s.%N)

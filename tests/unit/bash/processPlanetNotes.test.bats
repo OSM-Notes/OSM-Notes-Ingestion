@@ -43,11 +43,11 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
   [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_43_moveSyncToMain.sql" ]
 }
 
-@test "XSLT files should exist" {
-  # Check if required XSLT files exist
-  [ -f "${TEST_BASE_DIR}/xslt/notes-Planet-csv.xslt" ]
-  [ -f "${TEST_BASE_DIR}/xslt/note_comments-Planet-csv.xslt" ]
-  [ -f "${TEST_BASE_DIR}/xslt/note_comments_text-Planet-csv.xslt" ]
+@test "AWK files should exist" {
+  # Check if required AWK files exist
+  [ -f "${TEST_BASE_DIR}/awk/extract_notes.awk" ]
+  [ -f "${TEST_BASE_DIR}/awk/extract_comments.awk" ]
+  [ -f "${TEST_BASE_DIR}/awk/extract_comment_texts.awk" ]
 }
 
 @test "XML schema files should exist" {
