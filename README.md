@@ -144,13 +144,10 @@ EOF
 # Tool to download in parallel threads.
 sudo apt install -y aria2
 
-# Tools to process the XML and convert it into CSV.
-sudo apt -y install libxml2-utils xsltproc
+# Tools to validate XML (optional, only if SKIP_XML_VALIDATION=false).
+sudo apt -y install libxml2-utils
 
-# Tools to split the XML.
-sudo apt install xmlstarlet
-
-# Process parts in paralle.
+# Process parts in parallel.
 sudo apt install parallel
 
 # Tools to process geometries.
@@ -342,9 +339,9 @@ These files include details about how to run or troubleshoot the scripts.
   Schema.
   This helps validate the structure of the documents, preventing errors
   during the import from the Planet dump and API calls.
-- `xslt` contains all the XML transformations for the data retrieved from the
-  Planet dump and API calls.
-  They are used from `processAPINotes.sh` and `processPlanetNotes.sh`.
+- `awk` contains all the AWK extraction scripts for the data retrieved from
+  the Planet dump and API calls.
+  They convert XML to CSV efficiently with minimal dependencies.
 
 ### Monitoring
 

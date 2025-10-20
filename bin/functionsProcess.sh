@@ -675,25 +675,42 @@ function __checkPrereqsCommands {
   __loge "  psql -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## Database connectivity with specified user
+ __logd "Checking database connectivity with user '${DB_USER}'."
+ # shellcheck disable=SC2154
+ if ! psql -U "${DB_USER}" -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  __loge "ERROR: Cannot connect to database '${DBNAME}' with user '${DB_USER}'."
+  __loge "PostgreSQL authentication failed. Possible solutions:"
+  __loge "  1. If user '${DB_USER}' doesn't exist, create it:"
+  __loge "     sudo -u postgres createuser -d -P ${DB_USER}"
+  __loge "  2. Grant access to the database:"
+  __loge "     sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE \\\"${DBNAME}\\\" TO ${DB_USER};\""
+  __loge "  3. Configure PostgreSQL authentication in /etc/postgresql/*/main/pg_hba.conf:"
+  __loge "     Change 'peer' to 'md5' or 'trust' for local connections"
+  __loge "     Example: local   all   ${DB_USER}   md5"
+  __loge "     Then reload: sudo systemctl reload postgresql"
+  __loge "  4. Or use the current system user instead of '${DB_USER}'"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  ## PostGIS
  __logd "Checking PostGIS."
  # shellcheck disable=SC2154
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
+ psql -U "${DB_USER}" -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
  SELECT /* Notes-base */ PostGIS_version();
 EOF
  RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: PostGIS extension is missing in database '${DBNAME}'."
-  __loge "To enable PostGIS, run: psql -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
+  __loge "To enable PostGIS, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## btree gist
  # shellcheck disable=SC2154
  __logd "Checking btree gist."
- RESULT=$(psql -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
+ RESULT=$(psql -U "${DB_USER}" -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
  if [[ "${RESULT}" -ne 1 ]]; then
   __loge "ERROR: btree_gist extension is missing in database '${DBNAME}'."
-  __loge "To enable btree_gist, run: psql -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
+  __loge "To enable btree_gist, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Wget
