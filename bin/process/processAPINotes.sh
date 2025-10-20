@@ -900,7 +900,12 @@ function main() {
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
  if [[ "${RESULT}" -ne 0 ]]; then
-  __validateApiNotesXMLFileComplete
+  # Validate XML only if validation is enabled
+  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+   __validateApiNotesXMLFileComplete
+  else
+   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+  fi
   __countXmlNotesAPI "${API_NOTES_FILE}"
   __processXMLorPlanet
   __consolidatePartitions

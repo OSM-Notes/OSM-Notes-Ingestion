@@ -18,12 +18,12 @@ function __show_help() {
  echo
  echo "Available functions:"
  echo "  __downloadPlanetNotes      - Download Planet notes"
+ echo "  __processCountries         - Process countries data"
+ echo "  __processMaritimes         - Process maritimes data"
+ echo "  __processBoundary          - Process boundary data"
  echo "  __createBaseTables         - Create base tables"
  echo "  __createSyncTables         - Create sync tables"
  echo "  __createCountryTables      - Create country tables"
- echo "  __createPartitions         - Create partitions"
- echo "  __loadPartitionedSyncNotes - Load partitioned sync notes"
- echo "  __consolidatePartitions    - Consolidate partitions"
  echo "  __moveSyncToMain           - Move sync to main"
  echo "  __removeDuplicates         - Remove duplicates"
  echo "  __loadTextComments         - Load text comments"
@@ -269,28 +269,6 @@ function __downloadPlanetNotes() {
   __log_finish
   return 1
  fi
-}
-
-# Validate Planet notes XML file
-function __validatePlanetNotesXMLFile() {
- __log_start
- __logi "=== STARTING PLANET NOTES XML VALIDATION ==="
- __logd "Validating Planet notes XML file."
-
- if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
-  __loge "ERROR: Planet notes file not found: ${PLANET_NOTES_FILE}"
-  return 1
- fi
-
- # Use enhanced validation function
- if ! __validate_xml_with_enhanced_error_handling "${PLANET_NOTES_FILE}" "${XMLSCHEMA_PLANET_NOTES}"; then
-  __loge "ERROR: XML validation failed"
-  return 1
- fi
-
- __logi "Planet notes XML file validation completed successfully."
- __logi "=== PLANET NOTES XML VALIDATION COMPLETED SUCCESSFULLY ==="
- __log_finish
 }
 
 # Process boundary

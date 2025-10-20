@@ -778,21 +778,14 @@ EOF
   __loge "ERROR: File is missing at ${POSTGRES_32_UPLOAD_NOTE_LOCATION}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${XSLT_NOTES_PLANET_FILE}" ]]; then
-  __loge "ERROR: File is missing at ${XSLT_NOTES_PLANET_FILE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${XSLT_NOTE_COMMENTS_PLANET_FILE}" ]]; then
-  __loge "ERROR: File is missing at ${XSLT_NOTE_COMMENTS_PLANET_FILE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${XSLT_TEXT_COMMENTS_PLANET_FILE}" ]]; then
-  __loge "ERROR: File is missing at ${XSLT_TEXT_COMMENTS_PLANET_FILE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${XMLSCHEMA_PLANET_NOTES}."
-  exit "${ERROR_MISSING_LIBRARY}"
+
+ # XML Schema file (only required if validation is enabled)
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]]; then
+   __loge "ERROR: XML schema file is missing at ${XMLSCHEMA_PLANET_NOTES}."
+   __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
  if [[ ! -r "${JSON_SCHEMA_OVERPASS}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_OVERPASS}."

@@ -35,8 +35,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
-VERSION="2025-10-18"
+# Version: 2025-10-19
+VERSION="2025-10-19"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -303,7 +303,14 @@ function main() {
  __dropCheckTables
  __createCheckTables
  __downloadPlanetNotes 2>&1
- __validatePlanetNotesXMLFileComplete
+
+ # Validate XML only if validation is enabled
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __validatePlanetNotesXMLFileComplete
+ else
+  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+ fi
+
  __loadCheckNotes
  __analyzeAndVacuum
  __cleanNotesFiles

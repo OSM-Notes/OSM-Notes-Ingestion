@@ -386,36 +386,16 @@ function __checkPrereqs {
   fi
  done
 
- ## Validate XSLT files
- __logi "Validating XSLT files..."
- if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
-  __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
- fi
-
- if ! __validate_input_file "${XSLT_NOTE_COMMENTS_PLANET_FILE}" "XSLT comments file"; then
-  __loge "ERROR: XSLT comments file validation failed: ${XSLT_NOTE_COMMENTS_PLANET_FILE}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
- fi
-
- if ! __validate_input_file "${XSLT_TEXT_COMMENTS_PLANET_FILE}" "XSLT text comments file"; then
-  __loge "ERROR: XSLT text comments file validation failed: ${XSLT_TEXT_COMMENTS_PLANET_FILE}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
- fi
-
- ## Validate XML schema files
- __logi "Validating XML schema files..."
- if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
-  __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
+ ## Validate XML schema file (only if validation is enabled)
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logi "Validating XML schema file..."
+  if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
+   __loge "ERROR: XML schema file validation failed: ${XMLSCHEMA_PLANET_NOTES}"
+   __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
+   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+   __log_finish
+   return "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
 
  # Validate dates in XML files if they exist
