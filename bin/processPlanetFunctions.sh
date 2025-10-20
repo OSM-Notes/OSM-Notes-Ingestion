@@ -4,10 +4,10 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-17
+# Version: 2025-10-19
 
 # Define version variable
-VERSION="2025-10-17"
+VERSION="2025-10-19"
 
 # Show help function
 function __show_help() {
@@ -18,7 +18,6 @@ function __show_help() {
  echo
  echo "Available functions:"
  echo "  __downloadPlanetNotes      - Download Planet notes"
- echo "  __processPlanetXmlPart     - Process Planet XML part"
  echo "  __createBaseTables         - Create base tables"
  echo "  __createSyncTables         - Create sync tables"
  echo "  __createCountryTables      - Create country tables"
@@ -61,15 +60,11 @@ fi
 # shellcheck disable=SC2034
 declare OVERPASS_QUERY_FILE="${TMP_DIR}/query"
 
-# XSLT transformation files for Planet format
+# XML Schema for strict validation (optional, only used if SKIP_XML_VALIDATION=false)
 # shellcheck disable=SC2034
-if [[ -z "${XSLT_NOTES_PLANET_FILE:-}" ]]; then declare -r XSLT_NOTES_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"; fi
-if [[ -z "${XSLT_NOTE_COMMENTS_PLANET_FILE:-}" ]]; then declare -r XSLT_NOTE_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"; fi
-if [[ -z "${XSLT_TEXT_COMMENTS_PLANET_FILE:-}" ]]; then declare -r XSLT_TEXT_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"; fi
-
-# XML Schema of the Planet notes file
-# shellcheck disable=SC2034
-if [[ -z "${XMLSCHEMA_PLANET_NOTES:-}" ]]; then declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"; fi
+if [[ -z "${XMLSCHEMA_PLANET_NOTES:-}" ]]; then
+ declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
+fi
 
 # PostgreSQL SQL script files for Planet
 # shellcheck disable=SC2034
@@ -160,7 +155,7 @@ function __splitXmlForParallelPlanet() {
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
    echo '<osm-notes>' >> "${OUTPUT_FILE}"
 
-   # Extract notes for this part using sed instead of xmllint (more reliable)
+   # Extract notes for this part using sed
    # Create a temporary file for this part
    local TEMP_PART_FILE
    TEMP_PART_FILE=$(mktemp)
@@ -227,42 +222,6 @@ function __processXmlPartsParallel() {
 }
 
 # Process Planet XML part
-function __processPlanetXmlPart() {
- __log_start
- __logd "Processing Planet XML part."
-
- local XML_FILE="${1}"
- local XSLT_FILE="${2:-${XSLT_NOTES_PLANET_FILE}}"
- local OUTPUT_FILE="${3:-${OUTPUT_NOTES_CSV_FILE}}"
-
- if [[ ! -f "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file not found: ${XML_FILE}"
-  return 1
- fi
-
- if [[ ! -f "${XSLT_FILE}" ]]; then
-  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
-  return 1
- fi
-
- # Validate XML structure
- if ! __validate_xml_structure "${XML_FILE}"; then
-  __loge "ERROR: XML validation failed for ${XML_FILE}"
-  return 1
- fi
-
- # Process XML with XSLT
- __logd "Processing XML with XSLT: ${XML_FILE} -> ${OUTPUT_FILE}"
- if xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
-  __logi "Successfully processed Planet XML part: ${XML_FILE}"
-  __log_finish
-  return 0
- else
-  __loge "ERROR: Failed to process Planet XML part: ${XML_FILE}"
-  __log_finish
-  return 1
- fi
-}
 
 # Download Planet notes
 function __downloadPlanetNotes() {

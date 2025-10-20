@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-17
-VERSION="2025-10-17"
+# Version: 2025-10-19
+VERSION="2025-10-19"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -521,27 +521,27 @@ function __processApiXmlSequential {
  local OUTPUT_COMMENTS_FILE="${TMP_DIR}/output-comments-sequential.csv"
  local OUTPUT_TEXT_FILE="${TMP_DIR}/output-text-sequential.csv"
 
- # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing notes with xmlstarlet: ${XSLT_NOTES_API_FILE} -> ${OUTPUT_NOTES_FILE}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTES_API_FILE}" "${XML_FILE}" > "${OUTPUT_NOTES_FILE}"
+ # Process notes with AWK (fast and dependency-free)
+ __logd "Processing notes with AWK: ${XML_FILE} -> ${OUTPUT_NOTES_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_FILE}" > "${OUTPUT_NOTES_FILE}"
  if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
   __log_finish
   return 1
  fi
 
- # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing comments with xmlstarlet: ${XSLT_NOTE_COMMENTS_API_FILE} -> ${OUTPUT_COMMENTS_FILE}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTE_COMMENTS_API_FILE}" "${XML_FILE}" > "${OUTPUT_COMMENTS_FILE}"
+ # Process comments with AWK (fast and dependency-free)
+ __logd "Processing comments with AWK: ${XML_FILE} -> ${OUTPUT_COMMENTS_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_FILE}" > "${OUTPUT_COMMENTS_FILE}"
  if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
   __log_finish
   return 1
  fi
 
- # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing text comments with xmlstarlet: ${XSLT_TEXT_COMMENTS_API_FILE} -> ${OUTPUT_TEXT_FILE}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_TEXT_COMMENTS_API_FILE}" "${XML_FILE}" > "${OUTPUT_TEXT_FILE}"
+ # Process text comments with AWK (fast and dependency-free)
+ __logd "Processing text comments with AWK: ${XML_FILE} -> ${OUTPUT_TEXT_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_FILE}" > "${OUTPUT_TEXT_FILE}"
  if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_FILE}"
   : > "${OUTPUT_TEXT_FILE}"

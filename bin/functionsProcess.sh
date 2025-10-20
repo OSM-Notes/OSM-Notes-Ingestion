@@ -5,10 +5,10 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
+# Version: 2025-10-19
 
 # Define version variable
-VERSION="2025-10-18"
+VERSION="2025-10-19"
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -208,21 +208,8 @@ function __countXmlNotesAPI() {
   return 1
  fi
 
- # Get total number of notes for API format using xmlstarlet with timeout
- TOTAL_NOTES=$(timeout 120 xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
- local XMLSTARLET_STATUS=$?
-
- if [[ ${XMLSTARLET_STATUS} -ne 0 ]]; then
-  if [[ ${XMLSTARLET_STATUS} -eq 124 ]]; then
-   __loge "Timeout processing XML file (120s): ${XML_FILE}"
-  else
-   __loge "Error processing XML file: ${XML_FILE}"
-  fi
-  TOTAL_NOTES=0
-  export TOTAL_NOTES
-  __log_finish
-  return 1
- fi
+ # Count notes using grep (fast and reliable)
+ TOTAL_NOTES=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
@@ -398,27 +385,27 @@ function __processApiXmlPart() {
  OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
- # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing notes with xmlstarlet: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
+ # Process notes with AWK (fast and dependency-free)
+ __logd "Processing notes with AWK: ${XML_PART} -> ${OUTPUT_NOTES_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
  fi
 
- # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing comments with xmlstarlet: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
+ # Process comments with AWK (fast and dependency-free)
+ __logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
  fi
 
- # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing text comments with xmlstarlet: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
+ # Process text comments with AWK (fast and dependency-free)
+ __logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"
@@ -765,23 +752,14 @@ EOF
   __loge "ERROR: bzip2 is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## XML lint
- __logd "Checking XML lint."
- if ! xmllint --version > /dev/null 2>&1; then
-  __loge "ERROR: XMLlint is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## XSLTproc
- __logd "Checking XSLTproc."
- if ! xsltproc --version > /dev/null 2>&1; then
-  __loge "ERROR: XSLTproc is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## XMLStarlet for XML processing and splitting
- __logd "Checking XMLStarlet."
- if ! xmlstarlet --version > /dev/null 2>&1; then
-  __loge "ERROR: XMLStarlet is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
+ ## XML lint (optional, only for strict validation)
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logd "Checking XML lint."
+  if ! xmllint --version > /dev/null 2>&1; then
+   __loge "ERROR: XMLlint is missing (required for XML validation)."
+   __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
 
  ## Bash 4 or greater.

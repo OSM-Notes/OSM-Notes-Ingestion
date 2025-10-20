@@ -151,8 +151,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
-VERSION="2025-10-18"
+# Version: 2025-10-19
+VERSION="2025-10-19"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -300,9 +300,6 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 # Load parallel processing functions (includes __splitXmlForParallelSafe implementation)
 # MUST be loaded AFTER functionsProcess.sh to override wrapper functions
 # shellcheck disable=SC1091
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-fi
 
 # Function to handle cleanup on exit respecting CLEAN flag
 function __cleanup_on_exit() {

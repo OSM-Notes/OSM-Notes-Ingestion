@@ -68,23 +68,6 @@ if [[ -z "${PARALLEL_PROCESS_DELAY:-}" ]]; then
  declare -r PARALLEL_PROCESS_DELAY="2"
 fi
 
-# XSLT performance profiling configuration.
-# Enable profiling to analyze and optimize XSLT transformations.
-# Profile files are saved with .profile extension for analysis.
-# shellcheck disable=SC2034
-if [[ -z "${ENABLE_XSLT_PROFILING:-}" ]]; then
- declare -r ENABLE_XSLT_PROFILING="${ENABLE_XSLT_PROFILING:-false}"
-fi
-
-# XSLT processing maximum recursion depth
-# Used for complex notes with long HTML/text to avoid recursion limit errors
-# Increased to 50000 for notes with very large embedded HTML content
-# Note: Must NOT be readonly to allow exporting to parallel jobs
-# shellcheck disable=SC2034
-if [[ -z "${XSLT_MAX_DEPTH:-}" ]]; then
- XSLT_MAX_DEPTH="50000"
-fi
-
 # Minimum number of notes to enable parallel processing.
 # If the number of notes is less than this threshold, processing will be sequential.
 # This helps avoid the overhead of parallelization for small datasets.

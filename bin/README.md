@@ -65,7 +65,15 @@ require proper database configuration and dependencies to be installed.
 
 ## Dependencies
 
+### Required
+
 - PostgreSQL with PostGIS extension
-- XML processing tools (xmlstarlet, xsltproc)
-- Bash scripting environment
-- Required data files and schemas
+- GNU AWK (gawk)
+- GNU Parallel
+- Bash 4+ scripting environment
+- bzip2, curl, sed, grep
+- ogr2ogr (GDAL tools for geographic data)
+
+### Optional
+
+- xmllint (only for strict XML validation when `SKIP_XML_VALIDATION=false`)
