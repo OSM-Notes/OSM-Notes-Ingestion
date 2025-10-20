@@ -4,7 +4,7 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-10-16
+# Version: 2025-10-19
 
 # Database configuration.
 # shellcheck disable=SC2034
@@ -35,13 +35,6 @@ if [[ -z "${OVERPASS_INTERPRETER:-}" ]]; then
  declare -r OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
 fi
 
-# Rate limiting configuration.
-# Wait between loops when downloading boundaries, to prevent "Too many requests".
-# shellcheck disable=SC2034
-if [[ -z "${SECONDS_TO_WAIT:-}" ]]; then
- declare -r SECONDS_TO_WAIT="30"
-fi
-
 # Processing configuration.
 # Quantity of notes to process per loop, to get the location of the note.
 # shellcheck disable=SC2034
@@ -60,13 +53,6 @@ fi
 # It should be less than the number of cores of the server.
 # shellcheck disable=SC2034
 declare MAX_THREADS="4"
-
-# Delay between launching parallel processes to prevent system overload.
-# This helps stagger process creation and reduces memory pressure spikes.
-# shellcheck disable=SC2034
-if [[ -z "${PARALLEL_PROCESS_DELAY:-}" ]]; then
- declare -r PARALLEL_PROCESS_DELAY="2"
-fi
 
 # Minimum number of notes to enable parallel processing.
 # If the number of notes is less than this threshold, processing will be sequential.
