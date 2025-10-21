@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y \
     git \
     build-essential \
     libxml2-dev \
-    libxslt1-dev \
     postgresql-client \
     python3 \
     python3-pip \
@@ -25,7 +24,6 @@ RUN apt-get update && apt-get install -y \
     mutt \
     bzip2 \
     libxml2-utils \
-    xsltproc \
     xmlstarlet \
     nodejs \
     npm \
@@ -81,7 +79,7 @@ WORKDIR /app
 # Copy application files
 COPY . /app/
 
-# Ensure AWK scripts are available (replacing old XSLT)
+# Ensure AWK scripts are available
 RUN mkdir -p /app/awk
 
 # Set permissions

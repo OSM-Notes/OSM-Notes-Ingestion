@@ -14,7 +14,6 @@ RUN apt-get update && apt-get install -y \
     bats \
     shellcheck \
     shfmt \
-    xsltproc \
     xmlstarlet \
     libxml2-utils \
     mutt \
@@ -47,9 +46,9 @@ WORKDIR /app
 COPY tests/ /app/tests/
 COPY bin/ /app/bin/
 COPY sql/ /app/sql/
-COPY xslt/ /app/xslt/
 COPY etc/ /app/etc/
 COPY xsd/ /app/xsd/
+COPY awk/ /app/awk/
 
 # Make scripts executable
 RUN find /app/bin -name "*.sh" -exec chmod +x {} \;

@@ -318,9 +318,9 @@ teardown() {
 @test "all special cases should transform to CSV" {
  local awk_script="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
  
- # Check if XSLT file exists
+ # Check if AWK script exists
  if [[ ! -f "$awk_script" ]]; then
-   skip "AWK script not found: $awk_script"
+  skip "AWK script not found: $awk_script"
  fi
  
  # Test each special case

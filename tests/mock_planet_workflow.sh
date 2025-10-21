@@ -10,7 +10,6 @@ set -e
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MOCK_XML_FILE="${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/mockPlanetDump.osn.xml"
 TEST_OUTPUT_DIR="${SCRIPT_BASE_DIRECTORY}/tests/output/mock_workflow"
-XSLT_MAX_DEPTH="${XSLT_MAX_DEPTH:-4000}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,7 +45,7 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check if XSLT files exist
+    # Check if AWK scripts exist
     local awk_files=(
         "awk/notes-Planet-csv.awk"
         "awk/note_comments-Planet-csv.awk"
@@ -55,7 +54,7 @@ check_prerequisites() {
     
     for awk_file in "${awk_files[@]}"; do
         if [[ ! -f "${SCRIPT_BASE_DIRECTORY}/${awk_file}" ]]; then
-            log_error "XSLT file not found: ${awk_file}"
+            log_error "AWK script not found: ${awk_file}"
             exit 1
         fi
     done
@@ -106,7 +105,7 @@ analyze_mock_xml() {
     log_success "Mock XML analysis completed"
 }
 
-# Process XML with XSLT
+# Process XML with AWK
 process_with_awk() {
     local awk_file="$1"
     local output_file="$2"
@@ -114,7 +113,7 @@ process_with_awk() {
     
     log_info "Processing ${description}..."
     
-    if awkproc --maxdepth "${XSLT_MAX_DEPTH}" "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
+    if awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
         local line_count
         line_count=$(wc -l < "${output_file}")
         log_success "${description} completed: ${line_count} lines"
@@ -281,7 +280,7 @@ performance_testing() {
     local output_file="${TEST_OUTPUT_DIR}/performance_test.csv"
     local iterations=5
     
-    log_info "Running ${iterations} iterations of XSLT processing..."
+    log_info "Running ${iterations} iterations of AWK processing..."
     
     local total_time=0
     local min_time=999999
@@ -291,7 +290,7 @@ performance_testing() {
         local start_time
         start_time=$(date +%s.%N)
         
-        if awkproc --maxdepth "${XSLT_MAX_DEPTH}" "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
+        if awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
             local end_time
             end_time=$(date +%s.%N)
             
@@ -353,7 +352,7 @@ $(find "${TEST_OUTPUT_DIR}/parallel_parts" -name "part_*.xml" 2>/dev/null | wc -
 $(find "${TEST_OUTPUT_DIR}/parallel_parts" -name "*.csv" 2>/dev/null | wc -l) parts processed
 
 Test Results:
-- XSLT Processing: ✓
+- AWK Processing: ✓
 - Parallel Processing: ✓
 - Performance Testing: ✓
 - Error Handling: ✓

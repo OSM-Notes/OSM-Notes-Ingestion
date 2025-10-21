@@ -71,7 +71,7 @@ teardown() {
   [ -f "${awk_file}" ]
   
   # Process XML with AWK
-  run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
+  run awk -f "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
@@ -96,7 +96,7 @@ teardown() {
   [ -f "${awk_file}" ]
   
   # Process XML with AWK
-  run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
+  run awk -f "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
@@ -121,7 +121,7 @@ teardown() {
   [ -f "${awk_file}" ]
   
   # Process XML with AWK
-  run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
+  run awk -f "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]

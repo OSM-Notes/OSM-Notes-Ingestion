@@ -4,7 +4,7 @@
 # Description: Centralized parallel processing functions with resource management and retry logic
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-16
+# Version: 2025-10-21
 
 # Load properties to ensure all required variables are available
 # Only load production properties if we're not in a test environment
@@ -317,305 +317,6 @@ function __configure_system_limits() {
  fi
 }
 
-# Process XML with XSLT using robust error handling and retry logic
-# Parameters:
-#   $1: XML file path
-#   $2: XSLT file path
-#   $3: Output file path
-#   $4: XSLT parameter type (e.g., "--stringparam")
-#   $5: XSLT parameter name (e.g., "default-timestamp")
-#   $6: XSLT parameter value (e.g., timestamp string)
-#   $7: Enable profiling (optional, default: false)
-# Returns: 0 on success, 1 on failure
-function __process_xml_with_xslt_robust() {
- __log_start
- __logd "Function called with $# parameters: '$1' '$2' '$3' '${4:-}' '${5:-}' '${6:-}' '${7:-}'"
- local XML_FILE="${1}"
- local XSLT_FILE="${2}"
- local OUTPUT_FILE="${3}"
- local XSLT_PARAM_TYPE="${4:-}"
- local XSLT_PARAM_NAME="${5:-}"
- local XSLT_PARAM_VALUE="${6:-}"
- local ENABLE_PROFILING="${7:-false}"
- local TIMEOUT="${PROCESS_TIMEOUT:-300}"
- __logd "ENABLE_PROFILING parameter received: '${ENABLE_PROFILING}'"
- __logd "All parameters received: XML='${1}', XSLT='${2}', OUTPUT='${3}', PARAM_TYPE='${4:-}', PARAM_NAME='${5:-}', PARAM_VALUE='${6:-}', PROFILING='${7:-}'"
- __logd "Using default timeout: ${TIMEOUT}s"
- local RETRY_COUNT=0
- local SUCCESS=false
-
- # Build XSLT parameters array
- local XSLT_ARGS=()
- if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
-  XSLT_ARGS=("${XSLT_PARAM_TYPE}" "${XSLT_PARAM_NAME}" "${XSLT_PARAM_VALUE}")
-  __logd "Built XSLT parameters: ${XSLT_ARGS[*]}"
- fi
-
- # Validate inputs
- if [[ ! -f "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file not found: ${XML_FILE}"
-  __log_finish
-  return 1
- fi
-
- if [[ ! -f "${XSLT_FILE}" ]]; then
-  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Enhanced XML validation with corruption detection and recovery
- __logd "Performing enhanced XML validation before XSLT processing..."
-
- # Validate XML file integrity with recovery attempts
- # Use "divided" mode for XML parts since they are well-formed except at boundaries
- if ! __validate_xml_integrity "${XML_FILE}" "true" "divided"; then
-  __loge "ERROR: XML file validation failed and recovery attempts unsuccessful: ${XML_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XSLT file is not empty
- if [[ ! -s "${XSLT_FILE}" ]]; then
-  __loge "ERROR: XSLT file is empty: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XSLT file has minimum size (at least 50 bytes)
- local XSLT_SIZE
- XSLT_SIZE=$(stat -c%s "${XSLT_FILE}" 2> /dev/null || stat -f%z "${XSLT_FILE}" 2>&1 || echo "0")
- if [[ "${XSLT_SIZE}" -lt 50 ]]; then
-  __loge "ERROR: XSLT file is too small (${XSLT_SIZE} bytes), expected at least 50 bytes: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XSLT file has correct format (contains stylesheet declaration)
- if ! grep -q "xsl:stylesheet" "${XSLT_FILE}" 2> /dev/null; then
-  __loge "ERROR: XSLT file does not contain expected stylesheet elements: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XSLT file contains expected template
- if ! grep -q "xsl:template" "${XSLT_FILE}" 2> /dev/null; then
-  __loge "ERROR: XSLT file does not contain expected template elements: ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XSLT file contains expected output method
- if ! grep -q "method=\"text\"" "${XSLT_FILE}" 2> /dev/null; then
-  __loge "ERROR: XSLT file does not contain expected output method (text): ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Check if XSLT file contains expected parameter
- if ! grep -q "xsl:param.*default-timestamp" "${XSLT_FILE}" 2> /dev/null; then
-  __loge "ERROR: XSLT file does not contain expected parameter (default-timestamp): ${XSLT_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Get note count for logging
- local NOTE_COUNT
- NOTE_COUNT=$(grep -c "<note" "${XML_FILE}" 2> /dev/null || echo "0")
-
- __logd "Enhanced file validation passed: XML='${XML_FILE}', XSLT='${XSLT_FILE}' (${NOTE_COUNT} notes found)"
-
- # Create output directory if it doesn't exist
- local OUTPUT_DIR
- OUTPUT_DIR=$(dirname "${OUTPUT_FILE}")
- mkdir -p "${OUTPUT_DIR}"
-
- # Verify output directory is writable
- if [[ ! -w "${OUTPUT_DIR}" ]]; then
-  __loge "ERROR: Output directory is not writable: ${OUTPUT_DIR}"
-  __log_finish
-  return 1
- fi
-
- __logd "Processing XML with XSLT: ${XML_FILE} -> ${OUTPUT_FILE}"
- __logd "Timeout: ${TIMEOUT}s, Max retries: ${MAX_RETRIES}"
-
- __logd "Starting while loop: RETRY_COUNT=${RETRY_COUNT}, MAX_RETRIES=${MAX_RETRIES}, SUCCESS=${SUCCESS}"
- while [[ ${RETRY_COUNT} -le ${MAX_RETRIES} ]] && [[ "${SUCCESS}" == "false" ]]; do
-  if [[ ${RETRY_COUNT} -gt 0 ]]; then
-   __logw "Retry attempt ${RETRY_COUNT}/${MAX_RETRIES} for ${XML_FILE}"
-   sleep "${RETRY_DELAY}"
-  fi
-
-  # Check system resources before processing
-  if ! __check_system_resources; then
-   __logw "WARNING: System resources low, waiting before retry..."
-   if ! __wait_for_resources 60; then
-    __logw "WARNING: Resources still not available after 60s, trying with reduced resources..."
-    # Try to process with minimal resource requirements
-    if ! __check_system_resources "minimal"; then
-     __loge "ERROR: Resources not available for retry even with minimal requirements"
-     ((RETRY_COUNT++))
-     continue
-    fi
-   fi
-  fi
-
-  # Process with timeout and optional profiling
-  __logd "About to check ENABLE_PROFILING: '${ENABLE_PROFILING}' (type: $(declare -p ENABLE_PROFILING 2> /dev/null || echo 'not declared'))"
-
-  # Simplified logging to avoid syntax issues
-  if [[ "${ENABLE_PROFILING}" == "true" ]]; then
-   __logd "ENABLE_PROFILING is enabled"
-  else
-   __logd "ENABLE_PROFILING is disabled"
-  fi
-
-  if [[ "${ENABLE_PROFILING}" == "true" ]]; then
-   local PROFILE_FILE
-   PROFILE_FILE="${OUTPUT_FILE}.profile"
-   __logd "Profiling enabled, profile will be saved to: ${PROFILE_FILE}"
-   __logd "ENABLE_PROFILING value: '${ENABLE_PROFILING}'"
-
-   if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
-    local XSLT_ERROR_OUTPUT
-    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc --profile --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}")
-    local EXIT_CODE=$?
-    if [[ ${EXIT_CODE} -eq 0 ]]; then
-     if [[ -f "${OUTPUT_FILE}" ]]; then
-      SUCCESS=true
-      __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
-     else
-      __loge "XSLT processing completed but output file not created"
-     fi
-    else
-     if [[ ${EXIT_CODE} -eq 124 ]]; then
-      __loge "XSLT processing timed out after ${TIMEOUT}s"
-     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
-      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
-      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
-      __logw "Waiting for system to free memory before retry..."
-      # Wait longer for memory to be freed
-      if ! __wait_for_resources 120; then
-       __loge "Insufficient memory after 120s wait"
-      fi
-     else
-      __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
-      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
-     fi
-    fi
-   else
-    local XSLT_ERROR_OUTPUT
-    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc --profile --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2> "${PROFILE_FILE}")
-    local EXIT_CODE=$?
-    if [[ ${EXIT_CODE} -eq 0 ]]; then
-     if [[ -f "${OUTPUT_FILE}" ]]; then
-      SUCCESS=true
-      __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
-     else
-      __loge "XSLT processing completed but output file not created"
-     fi
-    else
-     if [[ ${EXIT_CODE} -eq 124 ]]; then
-      __loge "XSLT processing timed out after ${TIMEOUT}s"
-     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
-      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
-      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
-      __logw "Waiting for system to free memory before retry..."
-      # Wait longer for memory to be freed
-      if ! __wait_for_resources 120; then
-       __loge "Insufficient memory after 120s wait"
-      fi
-     else
-      __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
-      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
-     fi
-    fi
-   fi
-  else
-   if [[ -n "${XSLT_PARAM_TYPE}" ]] && [[ -n "${XSLT_PARAM_NAME}" ]] && [[ -n "${XSLT_PARAM_VALUE}" ]]; then
-    local XSLT_ERROR_OUTPUT
-    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${XSLT_ARGS[@]}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2>&1)
-    local EXIT_CODE=$?
-    if [[ ${EXIT_CODE} -eq 0 ]]; then
-     if [[ -f "${OUTPUT_FILE}" ]]; then
-      SUCCESS=true
-      __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
-     else
-      __loge "XSLT processing completed but output file not created"
-     fi
-    else
-     if [[ ${EXIT_CODE} -eq 124 ]]; then
-      __loge "XSLT processing timed out after ${TIMEOUT}s"
-     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
-      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
-      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
-      __logw "Waiting for system to free memory before retry..."
-      # Wait longer for memory to be freed
-      if ! __wait_for_resources 120; then
-       __loge "Insufficient memory after 120s wait"
-      fi
-     else
-      __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
-      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
-     fi
-    fi
-   else
-    local XSLT_ERROR_OUTPUT
-    XSLT_ERROR_OUTPUT=$(timeout "${TIMEOUT}" xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${OUTPUT_FILE}" "${XSLT_FILE}" "${XML_FILE}" 2>&1)
-    local EXIT_CODE=$?
-    if [[ ${EXIT_CODE} -eq 0 ]]; then
-     if [[ -f "${OUTPUT_FILE}" ]]; then
-      SUCCESS=true
-      __logd "XSLT processing successful on attempt ${RETRY_COUNT}"
-     else
-      __loge "XSLT processing completed but output file not created"
-     fi
-    else
-     if [[ ${EXIT_CODE} -eq 124 ]]; then
-      __loge "XSLT processing timed out after ${TIMEOUT}s"
-     elif [[ ${EXIT_CODE} -eq 11 ]] || echo "${XSLT_ERROR_OUTPUT}" | grep -qi "allocation failed\|out of memory\|segmentation fault"; then
-      __loge "XSLT processing failed due to memory allocation failure (exit code: ${EXIT_CODE})"
-      __loge "Memory error details: ${XSLT_ERROR_OUTPUT}"
-      __logw "Waiting for system to free memory before retry..."
-      # Wait longer for memory to be freed
-      if ! __wait_for_resources 120; then
-       __loge "Insufficient memory after 120s wait"
-      fi
-     else
-      __loge "XSLT processing failed with exit code: ${EXIT_CODE}"
-      __loge "XSLT error output: ${XSLT_ERROR_OUTPUT}"
-     fi
-    fi
-   fi
-  fi
-
-  if [[ "${SUCCESS}" == "false" ]]; then
-   ((RETRY_COUNT++))
-   # Clean up partial output
-   if [[ -f "${OUTPUT_FILE}" ]]; then
-    rm -f "${OUTPUT_FILE}"
-   fi
-  fi
- done
-
- if [[ "${SUCCESS}" == "true" ]]; then
-  __logd "XSLT processing completed successfully"
-  if [[ "${ENABLE_PROFILING}" == "true" ]]; then
-   local PROFILE_FILE="${OUTPUT_FILE}.profile"
-   if [[ -f "${PROFILE_FILE}" ]]; then
-    __logi "Performance profile saved to: ${PROFILE_FILE}"
-    __logd "Profile contains detailed timing information for optimization analysis"
-   fi
-  fi
-  __log_finish
-  return 0
- else
-  __loge "ERROR: XSLT processing failed after ${MAX_RETRIES} retries"
-  __log_finish
-  return 1
- fi
-}
 
 # Optimized XML file division function
 # Version: 2025-08-17
@@ -1720,17 +1421,15 @@ function __splitXmlForParallelPlanet() {
 }
 
 # Process API XML part (consolidated version)
+# Processes API XML file part using AWK extraction (parallel processing).
+# This function is called by GNU parallel or sequentially for each XML part.
+#
 # Parameters:
 #   $1: XML part file path
-#   $2: XSLT notes file (optional, uses global if not provided)
-#   $3: XSLT comments file (optional, uses global if not provided)
-#   $4: XSLT text comments file (optional, uses global if not provided)
+#
 # Returns: 0 on success, 1 on failure
 function __processApiXmlPart() {
  local XML_PART="${1}"
- local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_API_FILE}}"
- local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
- local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_API_FILE}}"
  local PART_NUM
  local BASENAME_PART
 
@@ -1767,15 +1466,11 @@ function __processApiXmlPart() {
  __log_start
  __logi "=== STARTING API XML PART ${PART_NUM} PROCESSING ==="
  __logd "Input XML part: ${XML_PART}"
- __logd "XSLT files:"
- __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
  __logd "Part log file: ${PART_LOG_FILE}"
 
  __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
 
- # Convert XML part to CSV using XSLT
+ # Convert XML part to CSV using AWK (fast and dependency-free)
  local OUTPUT_NOTES_PART
  local OUTPUT_COMMENTS_PART
  local OUTPUT_TEXT_PART
@@ -1783,25 +1478,42 @@ function __processApiXmlPart() {
  OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
- # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing notes with robust XSLT processor: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_NOTES_FILE_LOCAL}" "${OUTPUT_NOTES_PART}" "" "" "" "${ENABLE_XSLT_PROFILING}"; then
+ # Process notes with AWK
+ __logd "Processing notes with AWK: ${XML_PART} -> ${OUTPUT_NOTES_PART}"
+ if ! awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_PART}" > "${OUTPUT_NOTES_PART}"; then
+  __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
+  __log_finish
+  return 1
+ fi
+ 
+ if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
  fi
 
- # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing comments with robust XSLT processor: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_COMMENTS_FILE_LOCAL}" "${OUTPUT_COMMENTS_PART}" "" "" "" "${ENABLE_XSLT_PROFILING}"; then
+ # Process comments with AWK
+ __logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
+ if ! awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"; then
+  __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
+  __log_finish
+  return 1
+ fi
+ 
+ if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
  fi
 
- # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing text comments with robust XSLT processor: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- if ! __process_xml_with_xslt_robust "${XML_PART}" "${XSLT_TEXT_FILE_LOCAL}" "${OUTPUT_TEXT_PART}" "" "" "" "${ENABLE_XSLT_PROFILING}"; then
+ # Process text comments with AWK
+ __logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
+ if ! awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"; then
+  __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
+  : > "${OUTPUT_TEXT_PART}"
+ fi
+ 
+ if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"
  fi
