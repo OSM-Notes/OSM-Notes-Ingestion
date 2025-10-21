@@ -51,12 +51,12 @@ teardown() {
 
 # Test that ETL.sh works with --help
 @test "ETL.sh should work with --help option" {
- [ "$status" -eq 1 ]  # Expected exit code for help
+ skip "ETL.sh moved to OSM-Notes-Analytics repository"
 }
 
 # Test that profile.sh works with --help
 @test "profile.sh should work with --help option" {
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
+ skip "profile.sh moved to OSM-Notes-Analytics repository"
 }
 
 # Test that wmsManager.sh works with --help
@@ -83,12 +83,12 @@ teardown() {
 
 # Test that datamartCountries.sh works with --help
 @test "datamartCountries.sh should work with --help option" {
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
+ skip "datamartCountries.sh moved to OSM-Notes-Analytics repository"
 }
 
 # Test that datamartUsers.sh should work with --help
 @test "datamartUsers.sh should work with --help option" {
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
+ skip "datamartUsers.sh moved to OSM-Notes-Analytics repository"
 }
 
 # Test that geoserverConfig.sh should work with --help

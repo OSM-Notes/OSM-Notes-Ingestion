@@ -122,8 +122,7 @@ setup() {
 }
 
 @test "ETL.sh should follow uppercase convention" {
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
+  skip "ETL.sh moved to OSM-Notes-Analytics repository"
 }
 
 @test "wmsManager.sh should follow uppercase convention" {
