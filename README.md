@@ -20,7 +20,6 @@ the crontab to invoke the notes pulling.
 This example is for polling every 15 minutes:
 
 ```text
-# Ingestion only (Analytics moved to separate repository)
 */15 * * * * ~/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
 ```
 
@@ -101,19 +100,6 @@ The synchronization process time depends on the frequency of the calls and the
 number of comment actions.
 If the notes API call is executed every 15 minutes, the complete process takes
 less than 2 minutes to complete.
-
-**ETL and datamarts population**
-
-- 30 hours: Loading the ETL from main tables.
-  - This process is parallel according to the number of years since 2013.
-    However, not all years have the same number of notes.
-- 20 minutes: Preparing the countries' datamart.
-- 5 days: Preparing the users' datamart.
-  This process is asynchronous, which means each ETL execution processes
-  500 users.
-  This part analyzes the most active users first; then, all old users that
-  have contributed with only one note.
-  TODO ETL - parallelize
 
 ## Install prerequisites on Ubuntu
 
@@ -287,18 +273,6 @@ They contain a simplified version of the notes with only the location and
 - Check tables are used for monitoring to compare the notes on the previous day
   between the normal behavior with API and the notes on the last day of the
   Planet.
-
-#### Data Warehouse (DWH) Features
-
-The DWH component has been moved to a separate repository for better modularity:
-
-**See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for:**
-
-- Star schema with enhanced dimensions
-- ETL processes
-- Datamarts for countries and users
-- Profile generation
-- Complete DWH documentation
 
 ### Directories
 
@@ -485,41 +459,17 @@ files** (~1,000+ individual tests) covering all ingestion system components.
 
 ### Test Coverage
 
-- ✅ **Data Processing**: XML/CSV processing, ETL workflows, transformations
+- ✅ **Data Processing**: XML/CSV processing, transformations
 - ✅ **System Integration**: Database operations, API integration, WMS services
 - ✅ **Quality Assurance**: Code quality, error handling, edge cases
 - ✅ **Infrastructure**: Monitoring, configuration, tools and utilities
 - ✅ **Logging Patterns**: Logging pattern validation and compliance across all scripts
-- ✅ **DWH Enhanced**: New dimensions (timezones, seasons, continents), enhanced functions, SCD2, bridge tables
-
-### DWH Enhanced Testing
-
-The DWH enhanced features include comprehensive testing:
-
-**Unit Tests:**
-
-- `dwh_dimensions_enhanced.test.sql`: Tests for new dimensions and enhanced attributes
-- `dwh_functions_enhanced.test.sql`: Tests for new and enhanced functions
-
-**Integration Tests:**
-
-- `ETL_enhanced_integration.test.bats`: ETL enhanced functionality testing
-- `datamart_enhanced_integration.test.bats`: Datamart enhanced functionality testing
-
-**Test Coverage:**
-
-- ✅ New dimensions (timezones, seasons, continents, application versions)
-- ✅ Enhanced dimensions (SCD2 users, ISO countries, enhanced dates)
-- ✅ New functions (timezone, season, application version)
-- ✅ Enhanced ETL (staging procedures, bridge tables)
-- ✅ Datamart compatibility (integration with new dimensions)
 
 ### Documentation
 
-- [Testing Suites Reference](./docs/Testing_Suites_Reference.md) - Complete list of all 78 testing suites
+- [Testing Suites Reference](./docs/Testing_Suites_Reference.md) - Complete list of all testing suites
 - [Testing Guide](./docs/Testing_Guide.md) - Testing guidelines and workflows
 - [Testing Workflows Overview](./docs/Testing_Workflows_Overview.md) - CI/CD testing workflows
-- [DWH Testing Documentation](./tests/README.md#dwh-enhanced-testing-features) - DWH enhanced testing details
 
 For detailed testing information, see the [Testing Suites Reference](./docs/Testing_Suites_Reference.md) documentation.
 
@@ -589,7 +539,7 @@ git update-index --no-assume-unchanged etc/etl.properties
 git update-index --no-assume-unchanged etc/wms.properties.sh
 ```
 
-**Note:** This is useful for development environments where you need to customize database settings, user names, ETL configurations, or WMS settings without affecting the repository.
+**Note:** This is useful for development environments where you need to customize database settings, user names, or WMS settings without affecting the repository.
 
 ## Acknowledgments
 
