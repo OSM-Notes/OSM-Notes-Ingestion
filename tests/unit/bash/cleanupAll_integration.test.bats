@@ -48,7 +48,6 @@ load ../../test_helper.bash
     "__drop_all_partitions"
     "__verify_partition_cleanup"
     "__cleanup_partitions_only"
-    "__cleanup_etl"
     "__cleanup_wms"
     "__cleanup_api_tables"
     "__cleanup_base"
