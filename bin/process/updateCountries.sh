@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
-VERSION="2025-10-19"
+# Version: 2025-10-21
+VERSION="2025-10-21"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -138,10 +138,13 @@ function __checkPrereqs {
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --help"
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- __checkPrereqs_functions
- __log_finish
+ exit "${ERROR_INVALID_ARGUMENT}"
+fi
+
+# Validate prerequisites: commands, DB connection, and functions
+__checkPrereqsCommands
+__checkPrereqs_functions
+__log_finish
 }
 
 # Clean files and tables.

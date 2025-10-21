@@ -15,6 +15,7 @@ Version: 2025-10-21
 - [✅] Implement environment detection (Code TODO #1) - COMPLETED
 - [✅] Clarify SQL query logic (Code TODO #2) - COMPLETED
 - [✅] Validate properties file parameters (Validation #1) - COMPLETED
+- [✅] Add database connection check (Validation #2) - COMPLETED
 - [ ] Fix NULL geometry in countries (Issue #5)
 - [ ] Add basic retry logic for API calls (Issue #7)
 
@@ -40,13 +41,19 @@ Version: 2025-10-21
   - Integrated in __checkPrereqsCommands (automatic validation)
   - Removed redundant validations scattered in code
   - Fail-fast on configuration errors
+- **Monday**: ✅ Added database connection check (Validation #2)
+  - Integrated __checkPrereqsCommands in updateCountries.sh
+  - Integrated __checkPrereqsCommands in assignCountriesToNotes.sh
+  - Both scripts now validate DB connection before executing
+  - Prevents cryptic errors when DB is unavailable
+  - Validation already existed, just needed to be called
 - **Tuesday**: 
 - **Wednesday**: 
 - **Thursday**: 
 - **Friday**: 
 - **Weekend**: 
 
-**Completed this week**: 3 items  
+**Completed this week**: 4 items  
 **Blockers**: None
 
 ---
@@ -61,19 +68,27 @@ Version: 2025-10-21
 | Priority | Total | Done | In Progress | Remaining |
 |----------|-------|------|-------------|-----------|
 | 🔴 Critical | 11 | 0 | 0 | 11 |
-| 🟡 High | 14 | 3 | 0 | 11 |
+| 🟡 High | 14 | 4 | 0 | 10 |
 | 🟠 Medium | 17 | 0 | 0 | 17 |
 | 🟢 Low | 35 | 1 | 0 | 34 |
 | 📊 Refactor | 44 | 0 | 0 | 44 |
-| **TOTAL** | **121** | **4** | **0** | **117** |
+| **TOTAL** | **121** | **5** | **0** | **116** |
 
-**Overall Progress**: 3.3% (4/121)
+**Overall Progress**: 4.1% (5/121)
 
 ---
 
 ## Recently Completed
 
-1. ✅ **2025-10-21** - Validation #1: Validate properties file parameters
+1. ✅ **2025-10-21** - Validation #2: Add database connection check
+   - Added __checkPrereqsCommands to updateCountries.sh
+   - Added __checkPrereqsCommands to assignCountriesToNotes.sh
+   - Both scripts now fail early if DB is unavailable
+   - Prevents cryptic errors during execution
+   - Validation was already in __checkPrereqsCommands, just integrated
+   - Ensures all scripts using DB validate connection
+
+2. ✅ **2025-10-21** - Validation #1: Validate properties file parameters
    - Created comprehensive __validate_properties function (160 lines)
    - Validates all etc/properties.sh parameters
    - Checks: DB config, emails, URLs, numeric values, booleans
@@ -81,7 +96,7 @@ Version: 2025-10-21
    - Removed 30+ lines of redundant validation code
    - Provides detailed validation errors with fail-fast approach
 
-2. ✅ **2025-10-21** - Code TODO #2: Clarify SQL query logic
+3. ✅ **2025-10-21** - Code TODO #2: Clarify SQL query logic
    - File: sql/monitor/notesCheckVerifier-report.sql (line 118-125)
    - Documented Planet vs API comparison logic
    - Explained why notes closed today are excluded from comparison
@@ -99,11 +114,11 @@ Version: 2025-10-21
 
 ## Next 5 Items to Work On
 
-1. 🟡 Validation #2: Add database connection check in checkPrereqs (quick win)
+1. 🟡 Validation #3: Validate XSLT files before transformation (quick win)
 2. 🔴 Issue #1: Fix foreign key violation in note_comments_text
 3. 🔴 Issue #5: Fix NULL geometry in countries
 4. 🔴 Issue #7: Add basic retry logic for APIs
-5. 🟡 Validation #3: Validate XSLT files before transformation
+5. 🟡 Validation #4: Check disk space before downloads
 
 ---
 
@@ -135,8 +150,13 @@ Version: 2025-10-21
   - Integrated automatically in prerequisites check
   - Removed redundant validation code (30+ lines)
   - Major improvement in code quality and maintainability
+- ✅ **COMPLETED**: Validation #2 - Database connection check  
+  - Added __checkPrereqsCommands to 2 scripts missing it
+  - updateCountries.sh and assignCountriesToNotes.sh now validate DB
+  - Validation already existed, just needed integration
+  - All scripts using DB now have consistent validation
 - **Decision**: Continue with quick wins (validations) before tackling complex DB bugs
-- **Progress**: 3 tasks completed in one session (21% of high priority items done!)
+- **Progress**: 4 tasks completed in one session (28.6% of high priority items done!)
 
 ---
 

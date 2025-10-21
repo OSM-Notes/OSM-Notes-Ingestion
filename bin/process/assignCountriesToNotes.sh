@@ -12,7 +12,7 @@
 #   - Function 'get_country' must exist
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
+# Version: 2025-10-21
 
 set -u
 set -e
@@ -74,6 +74,9 @@ main() {
 
  # Verify prerequisites
  __logi "Verifying prerequisites..."
+ 
+ # Check prerequisites: commands, DB connection, and functions
+ __checkPrereqsCommands
 
  # Check if notes table exists and has data
  local NOTES_COUNT

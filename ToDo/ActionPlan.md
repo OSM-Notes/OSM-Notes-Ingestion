@@ -115,9 +115,12 @@ Status: In Progress
   - **Validates**: DBNAME, DB_USER, EMAILS, URLs, numeric params, booleans
   - **Integration**: Called automatically in __checkPrereqsCommands
 
-- [ ] **Validation #2**: Add database connection check in checkPrereqs
+- [✅] **Validation #2**: Add database connection check in checkPrereqs
   - **Purpose**: Fail early if DB is unreachable
-  - **Files**: checkPrereqs function
+  - **Files**: checkPrereqs function, updateCountries.sh, assignCountriesToNotes.sh
+  - **Completed**: 2025-10-21 - Added __checkPrereqsCommands to all scripts using DB
+  - **Impact**: updateCountries.sh and assignCountriesToNotes.sh now validate DB connection
+  - **Note**: Validation already existed in __checkPrereqsCommands, just needed integration
 
 - [ ] **Validation #3**: Validate XSLT files before transformation
   - **Check**: XSLT syntax and structure
@@ -591,12 +594,13 @@ Status: In Progress
 - **Refactoring**: 44 (36%)
 
 ### Status Overview
-- [✅] Completed: 4 (3.3%)
+- [✅] Completed: 5 (4.1%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
   - Validation #1: Validate properties file parameters
-- [ ] Not Started: 117 (96.7%)
+  - Validation #2: Add database connection check
+- [ ] Not Started: 116 (95.9%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 0
 
