@@ -131,10 +131,14 @@ Status: In Progress
   - **Replaced with**: AWK extraction (faster, simpler, less dependencies)
   - **Impact**: Consistent XML→CSV processing, removed xsltproc dependency
 
-- [ ] **Validation #4**: Check disk space before downloads
+- [✅] **Validation #4**: Check disk space before downloads
   - **Check for**: Planet file download, expansion, CSV generation
   - **Check for**: Boundary downloads
-  - **Files**: Download functions
+  - **Files**: bin/functionsProcess.sh - __check_disk_space function
+  - **Completed**: 2025-10-21 - Comprehensive disk space validation implemented
+  - **Integration**: Integrated in __downloadPlanetNotes, __processCountries, __processMaritimes
+  - **Estimates**: Planet 20GB, Countries 4GB, Maritimes 2.5GB
+  - **Features**: Warnings at 80% usage, detailed error messages with shortfall calculation
 
 - [ ] **Validation #5**: Validate ISO 8601 date format in XML
   - **Purpose**: Ensure date compatibility
@@ -598,14 +602,15 @@ Status: In Progress
 - **Refactoring**: 44 (36%)
 
 ### Status Overview
-- [✅] Completed: 6 (5.0%)
+- [✅] Completed: 7 (5.8%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
   - Validation #1: Validate properties file parameters
   - Validation #2: Add database connection check
   - Validation #3: XSLT validation (cancelled - code eliminated)
-- [ ] Not Started: 115 (95.0%)
+  - Validation #4: Check disk space before downloads
+- [ ] Not Started: 114 (94.2%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 0
 

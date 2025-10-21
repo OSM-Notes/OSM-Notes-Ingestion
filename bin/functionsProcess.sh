@@ -1108,9 +1108,129 @@ function __dropGenericObjects {
  __log_finish
 }
 
+# Checks if there is enough disk space for an operation.
+# This function validates available disk space before large downloads or
+# file operations to prevent failures due to insufficient space.
+#
+# Parameters:
+#   $1 - directory_path: Directory where files will be written
+#   $2 - required_space_gb: Required space in GB (can be decimal)
+#   $3 - operation_name: Name of operation for logging (optional)
+#
+# Returns:
+#   0 if enough space is available
+#   1 if insufficient space
+#
+# Example:
+#   __check_disk_space "/tmp" "15.5" "Planet download"
+function __check_disk_space {
+ __log_start
+ local DIRECTORY="${1}"
+ local REQUIRED_GB="${2}"
+ local OPERATION_NAME="${3:-file operation}"
+ 
+ # Validate parameters
+ if [[ -z "${DIRECTORY}" ]]; then
+  __loge "ERROR: Directory parameter is required"
+  __log_finish
+  return 1
+ fi
+ 
+ if [[ -z "${REQUIRED_GB}" ]]; then
+  __loge "ERROR: Required space parameter is required"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate directory exists
+ if [[ ! -d "${DIRECTORY}" ]]; then
+  __loge "ERROR: Directory does not exist: ${DIRECTORY}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Get available space in MB (df -BM outputs in MB)
+ local AVAILABLE_MB
+ AVAILABLE_MB=$(df -BM "${DIRECTORY}" | awk 'NR==2 {print $4}' | sed 's/M//')
+ 
+ # Validate we got a valid number
+ if [[ ! "${AVAILABLE_MB}" =~ ^[0-9]+$ ]]; then
+  __logw "WARNING: Could not determine available disk space, proceeding anyway"
+  __log_finish
+  return 0
+ fi
+ 
+ # Convert required GB to MB for comparison
+ # Handle decimal values by using bc or awk
+ local REQUIRED_MB
+ if command -v bc > /dev/null 2>&1; then
+  REQUIRED_MB=$(echo "${REQUIRED_GB} * 1024" | bc | cut -d. -f1)
+ else
+  # Fallback to awk if bc not available
+  REQUIRED_MB=$(awk "BEGIN {printf \"%.0f\", ${REQUIRED_GB} * 1024}")
+ fi
+ 
+ # Convert to GB for logging
+ local AVAILABLE_GB
+ if command -v bc > /dev/null 2>&1; then
+  AVAILABLE_GB=$(echo "scale=2; ${AVAILABLE_MB} / 1024" | bc)
+ else
+  AVAILABLE_GB=$(awk "BEGIN {printf \"%.2f\", ${AVAILABLE_MB} / 1024}")
+ fi
+ 
+ __logi "Disk space check for ${OPERATION_NAME}:"
+ __logi "  Directory: ${DIRECTORY}"
+ __logi "  Required: ${REQUIRED_GB} GB (${REQUIRED_MB} MB)"
+ __logi "  Available: ${AVAILABLE_GB} GB (${AVAILABLE_MB} MB)"
+ 
+ # Check if we have enough space
+ if [[ ${AVAILABLE_MB} -lt ${REQUIRED_MB} ]]; then
+  __loge "ERROR: Insufficient disk space for ${OPERATION_NAME}"
+  __loge "  Required: ${REQUIRED_GB} GB"
+  __loge "  Available: ${AVAILABLE_GB} GB"
+  __loge "  Shortfall: $(echo "scale=2; ${REQUIRED_GB} - ${AVAILABLE_GB}" | bc 2>/dev/null || echo "unknown") GB"
+  __loge "Please free up disk space in ${DIRECTORY} before proceeding"
+  __log_finish
+  return 1
+ fi
+ 
+ # Calculate percentage of space that will be used
+ local USAGE_PERCENT
+ if command -v bc > /dev/null 2>&1; then
+  USAGE_PERCENT=$(echo "scale=1; ${REQUIRED_MB} * 100 / ${AVAILABLE_MB}" | bc)
+ else
+  USAGE_PERCENT=$(awk "BEGIN {printf \"%.1f\", ${REQUIRED_MB} * 100 / ${AVAILABLE_MB}}")
+ fi
+ 
+ # Warn if we'll use more than 80% of available space
+ if (( $(echo "${USAGE_PERCENT} > 80" | bc -l 2>/dev/null || echo 0) )); then
+  __logw "WARNING: Operation will use ${USAGE_PERCENT}% of available disk space"
+  __logw "Consider freeing up more space for safety margin"
+ else
+  __logi "✓ Sufficient disk space available (${USAGE_PERCENT}% will be used)"
+ fi
+ 
+ __log_finish
+ return 0
+}
+
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
  __log_start
+ 
+ # Check disk space before downloading
+ # Planet notes file requirements:
+ # - Compressed file (.bz2): ~2 GB
+ # - Decompressed file (.xml): ~10 GB
+ # - CSV files generated: ~5 GB
+ # - Safety margin (20%): ~3.4 GB
+ # Total estimated: ~20 GB
+ __logi "Validating disk space for Planet notes download..."
+ if ! __check_disk_space "${TMP_DIR}" "20" "Planet notes download and processing"; then
+  __loge "Cannot proceed with Planet download due to insufficient disk space"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Insufficient disk space for Planet download" \
+   "echo 'No cleanup needed - download not started'"
+ fi
 
  # Check network connectivity before proceeding
  __logi "Checking network connectivity..."
@@ -1507,6 +1627,21 @@ EOF
 function __processCountries {
  __log_start
  __logi "=== STARTING COUNTRIES PROCESSING ==="
+ 
+ # Check disk space before downloading boundaries
+ # Boundaries requirements:
+ # - Country JSON files: ~1.5 GB (varies by number of countries)
+ # - GeoJSON conversions: ~1 GB
+ # - Temporary files: ~0.5 GB
+ # - Safety margin (20%): ~0.6 GB
+ # Total estimated: ~4 GB
+ __logi "Validating disk space for boundaries download..."
+ if ! __check_disk_space "${TMP_DIR}" "4" "Country boundaries download and processing"; then
+  __loge "Cannot proceed with boundaries download due to insufficient disk space"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Insufficient disk space for boundaries download" \
+   "echo 'No cleanup needed - download not started'"
+ fi
+ 
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
  set +e
@@ -1655,6 +1790,21 @@ function __processCountries {
 # geometry of the maritime area into the Postgres database with ogr2ogr.
 function __processMaritimes {
  __log_start
+ 
+ # Check disk space before downloading maritime boundaries
+ # Maritime boundaries requirements:
+ # - Maritime JSON files: ~1 GB
+ # - GeoJSON conversions: ~0.5 GB
+ # - Temporary files: ~0.3 GB
+ # - Safety margin (20%): ~0.4 GB
+ # Total estimated: ~2.5 GB
+ __logi "Validating disk space for maritime boundaries download..."
+ if ! __check_disk_space "${TMP_DIR}" "2.5" "Maritime boundaries download and processing"; then
+  __loge "Cannot proceed with maritime boundaries download due to insufficient disk space"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Insufficient disk space for maritime boundaries" \
+   "echo 'No cleanup needed - download not started'"
+ fi
+ 
  # Extracts ids of all EEZ relations into a JSON.
  __logi "Obtaining the eez ids."
  set +e
