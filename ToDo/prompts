@@ -1,285 +1,32 @@
-commit 962556d3
-Se borraron archivos de notas reales que pueden servir para validar casos más cercanos
+Notas y prompts varios - información pendiente de organizar
+==============================================================
 
+Version: 2025-10-21
 
-Corre todas las posibles pruebas que tengamos bajo bats, y hasme un resumen por suite de prueba, mostrando cuáles están fallando, cuantas bien, guárdame los errores en una tabla, para después enfocarme en la resolución de estos.
-
-
-
-
-HECHO
-Ahora quiero que actúes como un especialista de bodegas de datos, inclusive como científico de datos, teniendo presente lo mejor para generar un data warehouse óptimo, con un par datamarts.
-Quiero que me analices el script de ETL. 
-Se definió un modelo estrella, o inclusive copo de nieve para el data warehouse.
-Quiero que me analices las dimensiones que se tienen. Están bien definidas? Qué otras podríamos incluir?
-Con respecto a la tabla de hechos, están bien seleccionados? Qué otros podrían ser interesantes? sobra alguno?
-Cómo serían los casos de actualización de datos? qué estrategia recomiendas para mantener la consistencia, y que sea fácil el proceso, sobretodo en términos de desempeño.
------
-
-Desarrollar la idea de una nota mecánica/automática o si fue creada por un humano.
-Esto puede ser basado en el comentario (si es igual a otros), la ubicación (si son cercanas o eventualmente muy alejadas), creadas por el mismo usuario, creadas en un corto tiempo.
-Que la AI proponga una forma de identificarlas.
-Esto sería otra dimensión para el modelo estrella
-
-
-Generar un nivel de experiencia del usuario, y de pronto actualizar la dimensión usuarios
-Basado en uno o varios criterios, poder determinar si un usuario teiene experiencia
-
-
-Llevar la cantidad de comentarios y acciones sobre la nota (a veces es diferenete, ya que cerrar no implica comentario.)
-
-
-Cantidad de reaperturas y cerraduras de nota lleva
-
-
-Cantidad de días que ha estado abierta. ESto permite identificar notas que ha sido reabiertas
-
-
-Nota cerrada por creador. O por otro usuario.
-
-Cantidad de notas abiertas/cerradas en un mismo país (acumulado)
-
-Cantidad de notas con un hashtag específico.
-
-Cantidad de notas con un hashtag específico en la apertura
-
-Cantidad de notas con un hashtag específico en el comentario
-
-Cantidad de notas con un hashtag específico en la apertura
-
-Cantidad de notas con un hashtag específico en la resolución
-
-Cuando se identifique un cambio, por ejemplo el país de una nota por cuestiones de cambio de país, poner un flag (modified) para que solo se recalcules esas notas.
-
-4. Recomendaciones adicionales
-Auditoría y logs: Mantener logs de cambios y errores para trazabilidad.
-Pruebas de integridad: Validar que los procesos de actualización no dejen datos huérfanos o inconsistentes.
-Documentación: Mantener actualizada la documentación de los procesos y el modelo.
-Monitoreo de desempeño: Revisar periódicamente los tiempos de carga y consulta, ajustando particiones e índices según crecimiento.
-
-------
-
-## **Problemas Visibles y Áreas de Mejora**
-
-### 🔴 **Problemas Críticos**
-
-
-2. **Manejo de Errores Insuficiente**
-   - No hay manejo robusto de fallos de red
-   - Ausencia de retry logic para APIs
-   - Falta de rollback en caso de fallos
-
-3. **Problemas de Escalabilidad**
-   - Procesamiento secuencial sin paralelización
-   - No hay control de memoria para archivos grandes
-   - Ausencia de checkpointing para procesos largos
-
-### 🟡 **Problemas Moderados**
-
-4. **Gestión de Dependencias**
-   - No hay control de versiones de herramientas externas
-   - Ausencia de Docker para reproducibilidad
-   - Dependencias hardcodeadas
-
-5. **Monitoreo y Observabilidad**
-   - Logs básicos sin estructuración
-   - No hay métricas de rendimiento
-   - Ausencia de alertas automáticas
-
-6. **Seguridad**
-   - Posibles inyecciones SQL en scripts
-   - No hay sanitización de inputs
-   - Credenciales potencialmente expuestas
-
-### 🟢 **Mejoras Sugeridas**
-
-7. **Arquitectura y Diseño**
-   - Implementar patrones de retry/resilience
-   - Añadir circuit breakers para APIs
-   - Crear sistema de configuración por ambiente
-
-8. **Testing y Calidad**
-   - Añadir tests de integración
-   - Implementar CI/CD pipeline
-   - Agregar análisis estático de código
-
-9. **Documentación y Mantenimiento**
-   - Crear diagramas de arquitectura
-   - Documentar APIs y endpoints
-   - Añadir guías de troubleshooting
-
-## **Recomendaciones Prioritarias**
-
-### **Inmediatas (1-2 semanas)**
-1. Implementar validación de entrada en todos los scripts
-2. Añadir manejo de errores con `trap` en scripts críticos
-3. Crear sistema de configuración por ambiente
-
-### **Corto Plazo (1 mes)**
-1. Implementar sistema de retry para APIs
-2. Añadir logging estructurado
-3. Crear tests unitarios básicos
-
-### **Mediano Plazo (2-3 meses)**
-1. Implementar paralelización para procesamiento
-2. Añadir monitoreo y métricas
-3. Crear sistema de CI/CD
-
-
-----
-
-### Planned Improvements
-1. **Automated Deployment**
-   - Staging environment deployment
-   - Production deployment automation
-   - Rollback mechanisms
-
-2. **Enhanced Monitoring**
-   - Real-time test execution monitoring
-   - Performance trend analysis
-   - Automated alerting
-
-3. **Advanced Testing**
-   - Load testing for database operations
-   - Chaos engineering for resilience testing
-   - Mutation testing for test quality
-
-4. **Security Enhancements**
-   - Container vulnerability scanning
-   - Dependency vulnerability monitoring
-   - Automated security patching
-
-
-📋 Pendiente: Monitoreo y alertas automáticas
+NOTA: El contenido organizado de este archivo se movió a:
+- ActionPlan.md: Tareas detalladas por prioridad
+- ProgressTracker.md: Seguimiento de progreso
+- README.md: Guía de uso del directorio ToDo
 
 ---
 
-## Pending Validations (Future Work)
+Notas sueltas (pendiente de procesar):
 
-Quiero que generes una notificación por correo electrónico cuando el proceso falla. Solo cuando falla, o en la siguiente ejecución después del fallo; pero no enviar correo por cada ejecución.
+* commit 962556d3: Se borraron archivos de notas reales que pueden servir 
+  para validar casos más cercanos
 
+* Tarea pendiente: Correr todas las posibles pruebas que tengamos bajo bats,
+  y hacer un resumen por suite de prueba, mostrando cuáles están fallando,
+  cuantas bien, guardando los errores en una tabla, para después enfocarse
+  en la resolución de estos.
 
+* Recomendación adicional: Auditoría y logs - Mantener logs de cambios y 
+  errores para trazabilidad.
 
-Cuando se procesan las notas por API y por planet, creo que hay un paso que les asigna el secuence number en la DB, pero viendo los xslt, al parecer se puede incorporar en la transformación al CSV. Si es así, podrías simplificar el código con esto.
+* Recomendación adicional: Pruebas de integridad - Validar que los procesos
+  de actualización no dejen datos huérfanos o inconsistentes.
 
-Podrías hacer una validación de los archivo csv generados, para estar seguros que se insertan con la estructura correcta en la base de datos. Sobretodo que hay columnas con campos multivalor, o que pueden incluir comillas dobles, que estos son el separador de texto en el CSV; o sea, deberían venir escapados.
-
-Puedes hacer una validación de todos los parámetros del archivo properties. Creo que ya hacíamos un var verificaciones, de si un número es entero y es positivo. Algo así debería aplicarse al resto de parámetros.
-
-Se debería hacer validación de la conexión a la base de datos al principio, en checkPrereqs. Esto para asegurar que el proceso no va a fallar más adelante por conectividad hacia la DB.
-
-Podrías hacer una validación de los archivos XSLT antes de usarlos, esto con el fin de asegurar la transformación.
-
-Podrías validar que hay tamaño suficiente en disco para descargar el archivo planet  y expandirlo. Además, después se generan archivos CSV gigantes basados en esta info. También asegurar el espacio en disco para descargar todos los boundaries que son basantes.
-
-Podrías validar que el formato de fechas en el XML sean con formato IS 8601.
-
-
-
-==== revisiones iterativas, cada cierto tiempo
-
-# Flujos
-
-Podrías revisar el código, de manera que solo tenga estos puntos de entrada y opciones:
-* ProcessAPINotes
-* CheckNotes
-* UpdateCountries
-* ETL
-* profile
-
-Además, processPlanetNotes es una excepción a esta regla, y es simplemente para dividir 2 grandes procesos: procesamiento por API y procesamiento por archivo Planet.
-
-# Variables de entorno
-
-* processAPINotes puede tener como variables de entorno: CLEAN y el nivel de Logs
-* checknotes  puede tener como variables de entorno: CLEAN y el nivel de Logs
-* UpdateCountries puede tener como variables de entorno: CLEAN y el nivel de Logs
-* ETL puede tener como variables de entorno: CLEAN y el nivel de Logs
-* profile puede tener como variables de entorno: CLEAN y el nivel de Logs
-
-# parámetros
-
-* processAPINotes No tiene, solo hay una forma de invocarlo.
-* checknotes  No tiene, solo hay una forma de invocarlo.
-* UpdateCountries No tiene, solo hay una forma de invocarlo.
-* ETL  No tiene, solo hay una forma de invocarlo.
-* profile tiene el tipo de perfil (usuaio, país) y el nombre de este
-
-# cron
-
-* processAPINotes se ejecuca con alta recurrencia, cada 15 minutos
-* checknotes se ejecuta cada día a las 5 UTC, para comparar el planet de "ayer" con lo que se cargó a partir del api.
-* UpdateCountries se ejecuta el primer día de cada mes, ya que el cambio de límites poco afecta las notas, además de ser un proceso costoso por requerir analizar todas las notas
-* ETL se puede ejecutar cada 15 minutos, pero una ejecución de ETL puede llegar a tomar más de 15 minutos, por lo que se saltaría gracias a que solo se permite una ejecución de este script.
-* profile se ejecuta por demanda, cuando se solicita un perfil específico.
-
-# Generales
-
-## Sin uso
-
-Todas las variables que se definan deben ser usadas, de lo contrario debe analizarse si no se usan y borrarse
-
-Las funciones no deben aceptar **opciones** (argumentos, variables de entorno) diferentes a las de los flujos definidos. Puede haber funciones que reciban más parámetros, pero se deben simplificar para que solo se incluya lo que está definido con estos flujos.
-Quita opciones en funciones como ENABLE_PROFILING y la lógica interna asociada para simplificar el código.
-
-Revisa el código para que todas las funciones se usen como parte de los flujos especificados. No puede haber funciones para otras cosas que no se usen.
-
-Todos los archivos del proyecto deben ser usados de cierta forma por los flujos definidos, o por las suites de tests. A parte de los archivos de documentación, no puede haber archivos húerfanos, de cualquier tipo de archivo.
-
-## Formato
-
-Revisa los errores de shellcheck
-
-Todas las variables son en mayúsculas
-
-Todas las funciones comienzan con doble undersore y ser completamente en minúsculas
-
-Procura que solo hay un return por función
-
-Los nombres de los scripts deben ser lo más claro posibles.
-
-La ubicación de los archivos debe ser la más apropiada para quse entienda su funcionamiento. Los scripts de apoyo, que vienen a ser como librerías deben estar agrupados.
-
-## Pruebas
-
-Todos los archivos bajo tests deben estar asociados a una suite de tests. Si no están, agrúpalos en la que mejor suite que se ajusten o bórralos.
-
-Revisa que no haya suites de pruebas redundantes. Cada prueba debe hacer algo diferente.
-
-Las posibles ejecución de pruebas deben estar documentadas en una matriz que indentifique a qué tipo (all, unit, integraion, quality, dwh) y modo (host, mock, ci, docker) pertenecen, y cuántos scripts se corren.
-
-La documentación de pruebas debe reflejar la características de las pruebas en código, o sea esté sincronizada la documentación.
-
-## Documentación
-
-Todas las funciones deben tener un encabezado de documentación, que incluya qué hace, describa los parámetros que recibe, y si devuelve algo. También, si tiene algún exit y qué códigos arroja.
-
-La documentación README principal y de los otros directorios debe reflejar el código actual. Revisa que estén bien estructurada y que incluya la funcionalidad u opciones.
-
-La documentación de pruebas, debe mostrar el conjunto de pruebas, y qué hacen.
-
-Revisa los comentarios del código, para asegurar que corresponden al código, están bien posicionados y aportan información.
-
-La documentación debe ser clara y no redundante en cada archivo, sino que vaya profundizando ciertos aspectos.
-
-## Logging
-
-Revisa los mensajes de logs, para ver si son útiles o simplemente hacen ruido.
-
-Revisa el nivel de log, para asegurarnos que está en el nivel adecuado: ERROR los mensajes de error y muy importantes, INFO los de información y seguimiento de la ejecución, DEBUG los de detalle de la ejecución, TRACE de bajo nivel.
-
-Las ejecuciones en paralelo deben generar su propio archivo de logs, para poder revisarlos de manera independiente.
-
-## Otros
-
-Todos los archivos se deben crear bajo el directorio TMP_DIR. No puede haber archivos temporales en otro directorio. Esto permite agrupar todo en un solo lugar.
-
-Los códigos de EXIT que se manejen, deben estar declarados como constantes en un solo lugar para saber qué códigos arroja el código.
-
-Todo comando que se use debe ser validado por checkPrereqs al principio, de manera que si falta, falle al principio de la ejecución y no más adelante.
-
-No debe haber funciones wrapper que solo hagan llamar a otra función. Se deben quitar y redireccionar el llamado a quien realmente hace el proceso.
-
-No debe haber funciones legacy, ni compatibilidad hacia atrás. No se ha generado aún la primera verisón, y este proyecto es un todo, no por partes.
-De igual manera para la documentación.
+* Recomendación adicional: Monitoreo de desempeño - Revisar periódicamente
+  los tiempos de carga y consulta, ajustando particiones e índices según
+  crecimiento.
 
