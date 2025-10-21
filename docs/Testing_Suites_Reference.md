@@ -2,19 +2,19 @@
 
 ## Overview
 
-This document provides a comprehensive reference of all BATS testing suites in the OSM-Notes-Ingestion project. The project contains **78 total testing suites** organized into different categories for comprehensive coverage of all system components, including the new DWH enhanced features.
+This document provides a comprehensive reference of all BATS testing suites in the OSM-Notes-Ingestion project. The project contains **78 total testing suites** organized into different categories for comprehensive coverage of all system components.
 
 ## 📊 Testing Suites Statistics
 
 - **Total BATS Suites**: 78
 - **Integration Suites**: 8
 - **Unit Bash Suites**: 68
-- **Unit SQL Suites**: 4 (including DWH enhanced)
-- **Consolidated Test Runners**: 10 (including DWH enhanced)
+- **Unit SQL Suites**: 4
+- **Consolidated Test Runners**: 9
 
-## 🚀 Consolidated Test Runners (10 scripts)
+## 🚀 Consolidated Test Runners (9 scripts)
 
-The project has been simplified from 36 redundant test runners to 10 consolidated scripts:
+The project has been simplified from 36 redundant test runners to 9 consolidated scripts:
 
 ### Primary Test Runners
 
@@ -22,7 +22,7 @@ The project has been simplified from 36 redundant test runners to 10 consolidate
 
 - **Purpose**: Consolidated master test runner with multiple modes
 - **Modes**: host, mock, docker, ci
-- **Test Types**: all, unit, integration, quality, dwh
+- **Test Types**: all, unit, integration, quality
 - **Usage**: `./run_tests.sh --mode host --type all`
 
 #### 2. `run_tests_simple.sh` - Simple Test Runner
@@ -45,19 +45,12 @@ The project has been simplified from 36 redundant test runners to 10 consolidate
 - **Features**: Logging pattern validation, script validation, BATS tests
 - **Usage**: `./tests/run_logging_validation_tests.sh --mode all`
 
-#### 4. `run_dwh_tests.sh` - DWH Enhanced Tests Runner
-
-- **Purpose**: Dedicated DWH enhanced testing
-- **Features**: New dimensions, functions, ETL improvements
-- **Test Types**: SQL unit tests, integration tests
-- **Usage**: `./run_dwh_tests.sh`
-
 ### Specialized Test Runners
 
 #### 5. `run_all_tests.sh` - Legacy All Tests Runner
 
 - **Purpose**: Legacy runner for backward compatibility
-- **Features**: Runs all test suites including DWH enhanced
+- **Features**: Runs all test suites
 - **Usage**: `./run_all_tests.sh`
 
 #### 6. `run_integration_tests.sh` - Integration Tests

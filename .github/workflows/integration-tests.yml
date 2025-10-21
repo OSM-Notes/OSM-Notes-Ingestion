@@ -148,7 +148,6 @@ jobs:
         echo "Running specific integration tests..."
         
         # Run each test category with error handling
-        # Note: ETL and datamart tests moved to OSM-Notes-Analytics repository
         test_categories=("process-api" "process-planet" "cleanup" "wms")
         
         for category in "${test_categories[@]}"; do
@@ -233,5 +232,4 @@ jobs:
         echo "### Coverage:" >> $GITHUB_STEP_SUMMARY
         echo "- **Total Scripts Tested:** 8" >> $GITHUB_STEP_SUMMARY
         echo "- **Categories Covered:** Ingestion (Planet/API), WMS, Monitoring, Validation" >> $GITHUB_STEP_SUMMARY
-        echo "- **Note:** ETL and Datamart tests moved to OSM-Notes-Analytics repository" >> $GITHUB_STEP_SUMMARY
         echo "- **Integration Level:** Full script execution" >> $GITHUB_STEP_SUMMARY 

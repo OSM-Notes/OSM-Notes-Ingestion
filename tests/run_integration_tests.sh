@@ -159,18 +159,6 @@ __run_wms_tests() {
  return "${TEST_RESULT}"
 }
 
-# Function to run ETL tests
-# NOTE: ETL and Datamart tests have been moved to OSM-Notes-Analytics repository
-# This function is kept for backward compatibility but skips the tests
-__run_etl_tests() {
- log_warn "ETL and Datamart tests have been moved to OSM-Notes-Analytics repository"
- log_info "See: https://github.com/OSMLatam/OSM-Notes-Analytics"
- log_info "Tests in this repo focus on: Ingestion (Planet/API), WMS, and Monitoring"
- 
- # Return success to not break scripts that call this
- return 0
-}
-
 # Function to run end-to-end tests
 __run_e2e_tests() {
  log_info "Running end-to-end integration tests..."
@@ -219,7 +207,6 @@ Options:
   --process-planet    Run process-planet integration tests
   --cleanup           Run cleanup integration tests
   --wms               Run WMS integration tests
-  --etl               [DEPRECATED] ETL tests moved to OSM-Notes-Analytics
   --e2e               Run end-to-end integration tests
 
 Environment Variables:
@@ -233,7 +220,7 @@ Environment Variables:
 Examples:
   $0 --all                    # Run all integration tests
   $0 --process-api            # Run only process-api tests
-  $0 --etl                    # Run only ETL tests
+  $0 --wms                    # Run only WMS tests
 
 EOF
 }
@@ -267,10 +254,6 @@ main() {
    ;;
   --wms)
    RUN_MODE="wms"
-   shift
-   ;;
-  --etl)
-   RUN_MODE="etl"
    shift
    ;;
   --e2e)
@@ -327,10 +310,6 @@ main() {
  wms)
   # shellcheck disable=SC2310
   __run_wms_tests || FINAL_RESULT=1
-  ;;
- etl)
-  # shellcheck disable=SC2310
-  __run_etl_tests || FINAL_RESULT=1
   ;;
  e2e)
   # shellcheck disable=SC2310

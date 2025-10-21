@@ -5,7 +5,7 @@
 # Can be used for full cleanup or partition-only cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
+# Version: 2025-10-21
 
 set -euo pipefail
 
@@ -397,10 +397,9 @@ function __show_help() {
  echo ""
  echo "Full cleanup will:"
  echo "  1. Check if the database exists"
- echo "  2. Remove DWH schema (if exists from Analytics repository)"
- echo "  3. Remove WMS components"
- echo "  4. Remove base components (tables, functions, procedures)"
- echo "  5. Clean up temporary files"
+ echo "  2. Remove WMS components"
+ echo "  3. Remove base components (tables, functions, procedures)"
+ echo "  4. Clean up temporary files"
  echo ""
  echo "Partition-only cleanup will:"
  echo "  1. Check if the database exists"

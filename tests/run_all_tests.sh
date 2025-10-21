@@ -103,11 +103,10 @@ show_help() {
  echo "Test Types:"
  echo "  --unit        Run unit tests only"
  echo "  --integration Run integration tests only"
- echo "  --etl         Run ETL tests only"
  echo "  --all-tests   Run all test types"
  echo
  echo "Examples:"
- echo "  $0 --db --etl           # Run ETL tests with database"
+ echo "  $0 --db --integration   # Run integration tests with database"
  echo "  $0 --mock --unit        # Run unit tests with mock environment"
  echo "  $0 --all --all-tests    # Run all tests in all modes"
  echo

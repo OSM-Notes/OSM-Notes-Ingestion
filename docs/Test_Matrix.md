@@ -38,7 +38,6 @@
 - ⚠️ Partially supported (requires additional configuration)
 - ❌ Not supported in this environment
 
-**Note:** DWH Enhanced tests were moved to OSM-Notes-Analytics repository
 
 ---
 

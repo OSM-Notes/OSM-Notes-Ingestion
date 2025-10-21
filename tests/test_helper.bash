@@ -102,10 +102,10 @@ else
 fi
 
 # Load validation functions after defining simple logging
-if [[ -f "${TEST_BASE_DIR}/bin/validationFunctions.sh" ]]; then
+if [[ -f "${TEST_BASE_DIR}/lib/osm-common/validationFunctions.sh" ]]; then
+ source "${TEST_BASE_DIR}/lib/osm-common/validationFunctions.sh"
+elif [[ -f "${TEST_BASE_DIR}/bin/validationFunctions.sh" ]]; then
  source "${TEST_BASE_DIR}/bin/validationFunctions.sh"
-else
- echo "Warning: validationFunctions.sh not found"
 fi
 
 # Load test variables validation functions
