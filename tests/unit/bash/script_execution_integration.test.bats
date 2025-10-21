@@ -166,7 +166,7 @@ teardown() {
 }
 
 # Test that processAPINotes.sh can handle the specific error case
-@test "processAPINotes.sh should handle XSLT_NOTES_PLANET_FILE variable conflict" {
+@test "processAPINotes.sh should handle AWK_NOTES_PLANET_FILE variable conflict" {
  local script_path="${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
  
  # Check if script exists
@@ -176,8 +176,8 @@ teardown() {
  
  # Test execution and check for the specific error
  run bash "$script_path" --help 2>&1 || true
- [[ "$output" != *"XSLT_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
- [[ "$output" != *"declare: XSLT_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
+ [[ "$output" != *"AWK_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
+ [[ "$output" != *"declare: AWK_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
 }
 
 # Test that processPlanetFunctions.sh can be loaded without conflicts
@@ -223,7 +223,7 @@ teardown() {
 }
 
 # Test that the specific error from the user's report is not reproduced
-@test "should not reproduce XSLT_NOTES_PLANET_FILE readonly variable error" {
+@test "should not reproduce AWK_NOTES_PLANET_FILE readonly variable error" {
  local script_path="${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
  
  # Check if script exists
@@ -233,9 +233,9 @@ teardown() {
  
  # Test execution and specifically check for the reported error
  run bash "$script_path" --help 2>&1 || true
- [[ "$output" != *"XSLT_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
- [[ "$output" != *"declare: XSLT_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
- [[ "$output" != *"línea 28: declare: XSLT_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
+ [[ "$output" != *"AWK_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
+ [[ "$output" != *"declare: AWK_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
+ [[ "$output" != *"línea 28: declare: AWK_NOTES_PLANET_FILE: variable de sólo lectura"* ]]
 }
 
 # Test that scripts can be executed in sequence without variable conflicts

@@ -4,7 +4,7 @@
 # Simplified properties file without readonly declarations
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-17
+# Version: 2025-10-19
 
 # Database configuration.
 if [[ -z "${DBNAME:-}" ]]; then
@@ -26,10 +26,6 @@ declare PLANET="${PLANET:-https://planet.openstreetmap.org}"
 # Overpass interpreter URL. Used to download the countries and maritime boundaries.
 declare OVERPASS_INTERPRETER="${OVERPASS_INTERPRETER:-https://overpass-api.de/api/interpreter}"
 
-# Rate limiting configuration.
-# Wait between loops when downloading boundaries, to prevent "Too many requests".
-declare SECONDS_TO_WAIT="${SECONDS_TO_WAIT:-30}"
-
 # Processing configuration.
 # Quantity of notes to process per loop, to get the location of the note.
 declare LOOP_SIZE="${LOOP_SIZE:-10000}"
@@ -43,16 +39,6 @@ fi
 # Number of threads to use in parallel processing.
 # It should be less than the number of cores of the server.
 declare MAX_THREADS="${MAX_THREADS:-4}"
-
-# Delay between launching parallel processes to prevent system overload.
-# This helps stagger process creation and reduces memory pressure spikes.
-# Use production values but make them non-readonly for testing
-declare PARALLEL_PROCESS_DELAY="2"
-
-# XSLT performance profiling configuration.
-# Enable profiling to analyze and optimize XSLT transformations.
-# Profile files are saved with .profile extension for analysis.
-declare ENABLE_XSLT_PROFILING="${ENABLE_XSLT_PROFILING:-false}"
 
 # Minimum number of notes to enable parallel processing.
 # If the number of notes is less than this threshold, processing will be sequential.

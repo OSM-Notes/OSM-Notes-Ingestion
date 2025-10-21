@@ -227,7 +227,6 @@ function __cleanup_partitions_only() {
  __log_finish
 }
 
-
 # Function to cleanup WMS components
 function __cleanup_wms() {
  __log_start

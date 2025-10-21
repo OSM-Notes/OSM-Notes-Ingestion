@@ -4,10 +4,10 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-17
+# Version: 2025-10-19
 
 # Define version variable
-VERSION="2025-10-17"
+VERSION="2025-10-19"
 
 # Show help function
 function __show_help() {
@@ -18,13 +18,12 @@ function __show_help() {
  echo
  echo "Available functions:"
  echo "  __downloadPlanetNotes      - Download Planet notes"
- echo "  __processPlanetXmlPart     - Process Planet XML part"
+ echo "  __processCountries         - Process countries data"
+ echo "  __processMaritimes         - Process maritimes data"
+ echo "  __processBoundary          - Process boundary data"
  echo "  __createBaseTables         - Create base tables"
  echo "  __createSyncTables         - Create sync tables"
  echo "  __createCountryTables      - Create country tables"
- echo "  __createPartitions         - Create partitions"
- echo "  __loadPartitionedSyncNotes - Load partitioned sync notes"
- echo "  __consolidatePartitions    - Consolidate partitions"
  echo "  __moveSyncToMain           - Move sync to main"
  echo "  __removeDuplicates         - Remove duplicates"
  echo "  __loadTextComments         - Load text comments"
@@ -61,15 +60,11 @@ fi
 # shellcheck disable=SC2034
 declare OVERPASS_QUERY_FILE="${TMP_DIR}/query"
 
-# XSLT transformation files for Planet format
+# XML Schema for strict validation (optional, only used if SKIP_XML_VALIDATION=false)
 # shellcheck disable=SC2034
-if [[ -z "${XSLT_NOTES_PLANET_FILE:-}" ]]; then declare -r XSLT_NOTES_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"; fi
-if [[ -z "${XSLT_NOTE_COMMENTS_PLANET_FILE:-}" ]]; then declare -r XSLT_NOTE_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt"; fi
-if [[ -z "${XSLT_TEXT_COMMENTS_PLANET_FILE:-}" ]]; then declare -r XSLT_TEXT_COMMENTS_PLANET_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt"; fi
-
-# XML Schema of the Planet notes file
-# shellcheck disable=SC2034
-if [[ -z "${XMLSCHEMA_PLANET_NOTES:-}" ]]; then declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"; fi
+if [[ -z "${XMLSCHEMA_PLANET_NOTES:-}" ]]; then
+ declare -r XMLSCHEMA_PLANET_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
+fi
 
 # PostgreSQL SQL script files for Planet
 # shellcheck disable=SC2034
@@ -160,7 +155,7 @@ function __splitXmlForParallelPlanet() {
    echo '<?xml version="1.0" encoding="UTF-8"?>' > "${OUTPUT_FILE}"
    echo '<osm-notes>' >> "${OUTPUT_FILE}"
 
-   # Extract notes for this part using sed instead of xmllint (more reliable)
+   # Extract notes for this part using sed
    # Create a temporary file for this part
    local TEMP_PART_FILE
    TEMP_PART_FILE=$(mktemp)
@@ -227,42 +222,6 @@ function __processXmlPartsParallel() {
 }
 
 # Process Planet XML part
-function __processPlanetXmlPart() {
- __log_start
- __logd "Processing Planet XML part."
-
- local XML_FILE="${1}"
- local XSLT_FILE="${2:-${XSLT_NOTES_PLANET_FILE}}"
- local OUTPUT_FILE="${3:-${OUTPUT_NOTES_CSV_FILE}}"
-
- if [[ ! -f "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file not found: ${XML_FILE}"
-  return 1
- fi
-
- if [[ ! -f "${XSLT_FILE}" ]]; then
-  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
-  return 1
- fi
-
- # Validate XML structure
- if ! __validate_xml_structure "${XML_FILE}"; then
-  __loge "ERROR: XML validation failed for ${XML_FILE}"
-  return 1
- fi
-
- # Process XML with XSLT
- __logd "Processing XML with XSLT: ${XML_FILE} -> ${OUTPUT_FILE}"
- if xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
-  __logi "Successfully processed Planet XML part: ${XML_FILE}"
-  __log_finish
-  return 0
- else
-  __loge "ERROR: Failed to process Planet XML part: ${XML_FILE}"
-  __log_finish
-  return 1
- fi
-}
 
 # Download Planet notes
 function __downloadPlanetNotes() {
@@ -312,28 +271,6 @@ function __downloadPlanetNotes() {
  fi
 }
 
-# Validate Planet notes XML file
-function __validatePlanetNotesXMLFile() {
- __log_start
- __logi "=== STARTING PLANET NOTES XML VALIDATION ==="
- __logd "Validating Planet notes XML file."
-
- if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
-  __loge "ERROR: Planet notes file not found: ${PLANET_NOTES_FILE}"
-  return 1
- fi
-
- # Use enhanced validation function
- if ! __validate_xml_with_enhanced_error_handling "${PLANET_NOTES_FILE}" "${XMLSCHEMA_PLANET_NOTES}"; then
-  __loge "ERROR: XML validation failed"
-  return 1
- fi
-
- __logi "Planet notes XML file validation completed successfully."
- __logi "=== PLANET NOTES XML VALIDATION COMPLETED SUCCESSFULLY ==="
- __log_finish
-}
-
 # Process boundary
 function __processBoundary() {
  __log_start
@@ -367,7 +304,7 @@ function __processBoundary() {
  # Strategy: Use SQL SELECT to pick only needed columns, avoiding duplicates
  # Import to temporary table first, then map to target schema
  local TEMP_TABLE="${TABLE_NAME}_import"
- 
+
  # Note: Using -sql to SELECT only the columns we need
  # This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
  __logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
@@ -379,10 +316,10 @@ function __processBoundary() {
   -overwrite \
   --config PG_USE_COPY YES 2> "${OGR_OUTPUT}"; then
   __logd "Import successful, now mapping columns to target table: ${TABLE_NAME}"
-  
+
   # The imported temp table has: id (string), name, name_es, name_en, geom
   # The target table has: country_id (integer), country_name, country_name_es, country_name_en, geom
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_OUTPUT}" 2>&1
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_OUTPUT}" 2>&1; then
    -- Insert with proper column mapping and type conversion
    INSERT INTO ${TABLE_NAME} (country_id, country_name, country_name_es, country_name_en, geom)
    SELECT 
@@ -397,7 +334,6 @@ function __processBoundary() {
    -- Drop temporary table
    DROP TABLE ${TEMP_TABLE};
 EOF
-  then
    __logi "Successfully imported boundary: ${TABLE_NAME}"
    rm -f "${OGR_OUTPUT}"
    __log_finish
@@ -421,10 +357,10 @@ EOF
    while IFS= read -r line; do
     __loge "  ${line}"
    done < "${OGR_OUTPUT}"
-   fi
-   rm -f "${OGR_OUTPUT}"
-   __log_finish
-   return 1
+  fi
+  rm -f "${OGR_OUTPUT}"
+  __log_finish
+  return 1
  fi
 }
 
@@ -488,7 +424,7 @@ function __processCountries() {
   fi
   GEOJSON_FILE="${COUNTRIES_FILE}.geojson"
  fi
- 
+
  # Process the GeoJSON file
  if [[ -s "${GEOJSON_FILE}" ]]; then
   # Import to database
@@ -540,7 +476,7 @@ function __processMaritimes() {
   fi
   GEOJSON_FILE="${MARITIMES_FILE}.geojson"
  fi
- 
+
  # Process the GeoJSON file
  if [[ -s "${GEOJSON_FILE}" ]]; then
   # Import to database (maritimes go into the countries table)

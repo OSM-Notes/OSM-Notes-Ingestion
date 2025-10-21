@@ -78,13 +78,7 @@ The project has been simplified from 36 redundant test runners to 10 consolidate
 - **Features**: Edge cases and error scenarios
 - **Usage**: `./run_error_handling_tests.sh`
 
-#### 9. `run_xml_xslt_tests.sh` - XML/XSLT Tests
-
-- **Purpose**: XML processing and XSLT transformation tests
-- **Features**: Data transformation validation
-- **Usage**: `./run_xml_xslt_tests.sh`
-
-#### 10. `run_manual_tests.sh` - Manual Tests
+#### 9. `run_manual_tests.sh` - Manual Tests
 
 - **Purpose**: Manual testing scenarios
 - **Features**: Interactive testing
@@ -180,9 +174,6 @@ Integration tests validate complete workflows and system interactions:
 
 - **csv_enum_validation.test.bats** - CSV enum validation
 - **xml_processing_enhanced.test.bats** - Enhanced XML processing
-- **xslt_csv_format.test.bats** - XSLT CSV format validation
-- **xslt_enum_validation.test.bats** - XSLT enum validation
-- **xslt_simple.test.bats** - Simple XSLT transformations
 
 ### 🗄️ Database and ETL (6 suites)
 
@@ -318,7 +309,6 @@ Integration tests validate complete workflows and system interactions:
 ./tests/run_integration_tests.sh                               # Integration tests
 ./tests/run_mock_tests.sh                                      # Mock environment tests
 ./tests/run_error_handling_tests.sh                            # Error handling tests
-./tests/run_xml_xslt_tests.sh                                  # XML/XSLT tests
 ```
 
 ### Running Specific Test Categories

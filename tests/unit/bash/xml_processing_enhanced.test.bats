@@ -44,10 +44,10 @@ setup() {
     export TMP_DIR="${TEST_BASE_DIR}/tests/tmp"
     mkdir -p "${TMP_DIR}"
     
-    # Set default XSLT file paths for testing
-    export XSLT_NOTES_API_FILE="${TEST_BASE_DIR}/xslt/notes-API-csv.xslt"
-    export XSLT_NOTE_COMMENTS_API_FILE="${TEST_BASE_DIR}/xslt/note_comments-API-csv.xslt"
-    export XSLT_TEXT_COMMENTS_API_FILE="${TEST_BASE_DIR}/xslt/note_comments_text-API-csv.xslt"
+    # Set default AWK script paths for testing
+    export AWK_EXTRACT_NOTES="${TEST_BASE_DIR}/awk/extract_notes.awk"
+    export AWK_EXTRACT_COMMENTS="${TEST_BASE_DIR}/awk/extract_comments.awk"
+    export AWK_EXTRACT_COMMENT_TEXTS="${TEST_BASE_DIR}/awk/extract_comment_texts.awk"
     export POSTGRES_31_LOAD_API_NOTES="${TEST_BASE_DIR}/sql/process/processAPINotes_31_loadApiNotes.sql"
     
     # Load functions manually without readonly variables
@@ -161,9 +161,9 @@ load_test_functions() {
         local XML_PART="${1}"
         local PART_NUM
         
-        # Check if XSLT files exist
-        if [[ ! -f "${XSLT_NOTES_API_FILE:-}" ]]; then
-            __loge "XSLT notes file not found: ${XSLT_NOTES_API_FILE:-}"
+        # Check if AWK scripts exist
+        if [[ ! -f "${AWK_EXTRACT_NOTES:-}" ]]; then
+            __loge "AWK extract notes script not found: ${AWK_EXTRACT_NOTES:-}"
             __log_finish
             return 1
         fi
@@ -390,14 +390,14 @@ EOF
 # =============================================================================
 
 @test "enhanced __processApiXmlPart should process API XML part correctly" {
-    # Mock xsltproc for XML processing
-    xsltproc() {
+    # Mock awk for XML processing
+    awk() {
         if [[ "$1" == "-o" ]]; then
             # Create mock CSV output
             local output_file="$2"
             local input_file="$3"
             
-            # Create different CSV files based on the XSLT file being used
+            # Create different CSV files based on the AWK script being used
             if [[ "$output_file" == *"notes"* ]]; then
                 echo "id,lon,lat,date_created,status,url" > "$output_file"
                 echo "123456,-3.7038,40.4168,2025-01-15 10:30:00 UTC,closed,https://api.openstreetmap.org/api/0.6/notes/123456.xml" >> "$output_file"
@@ -410,7 +410,7 @@ EOF
             fi
             return 0
         else
-            command xsltproc "$@"
+            command awk "$@"
         fi
     }
     
@@ -427,13 +427,13 @@ EOF
     }
     
     # Set required environment variables
-    export XSLT_NOTES_API_FILE="/tmp/mock_notes.xslt"
-    export XSLT_NOTE_COMMENTS_API_FILE="/tmp/mock_comments.xslt"
-    export XSLT_TEXT_COMMENTS_API_FILE="/tmp/mock_text.xslt"
+    export AWK_EXTRACT_NOTES="/tmp/mock_notes.awk"
+    export AWK_EXTRACT_COMMENTS="/tmp/mock_comments.awk"
+    export AWK_EXTRACT_COMMENT_TEXTS="/tmp/mock_text.awk"
     export POSTGRES_31_LOAD_API_NOTES="/tmp/mock_load.sql"
     
-    # Create mock XSLT files with valid content
-    cat > "/tmp/mock_notes.xslt" << 'EOF'
+    # Create mock AWK scripts with valid content
+    cat > "/tmp/mock_notes.awk" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:output method="text" encoding="UTF-8"/>
@@ -445,7 +445,7 @@ EOF
 </xsl:stylesheet>
 EOF
 
-    cat > "/tmp/mock_comments.xslt" << 'EOF'
+    cat > "/tmp/mock_comments.awk" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:output method="text" encoding="UTF-8"/>
@@ -457,7 +457,7 @@ EOF
 </xsl:stylesheet>
 EOF
 
-    cat > "/tmp/mock_text.xslt" << 'EOF'
+    cat > "/tmp/mock_text.awk" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:output method="text" encoding="UTF-8"/>
@@ -504,18 +504,18 @@ EOF
     [ -f "${TMP_DIR}/output-text-part-1.csv" ]
     
     # Clean up mock files
-    rm -f "/tmp/mock_notes.xslt" "/tmp/mock_comments.xslt" "/tmp/mock_text.xslt" "/tmp/mock_load.sql"
+    rm -f "/tmp/mock_notes.awk" "/tmp/mock_comments.awk" "/tmp/mock_text.awk" "/tmp/mock_load.sql"
 }
 
 @test "enhanced __processPlanetXmlPart should process Planet XML part correctly" {
-    # Mock xsltproc for XML processing
-    xsltproc() {
+    # Mock awk for XML processing
+    awk() {
         if [[ "$1" == "-o" ]]; then
             # Create mock CSV output
             local output_file="$2"
             local input_file="$3"
             
-            # Create different CSV files based on the XSLT file being used
+            # Create different CSV files based on the AWK script being used
             if [[ "$output_file" == *"notes"* ]]; then
                 echo "id,lon,lat,date_created,status,url" > "$output_file"
                 echo "123456,-3.7038,40.4168,2025-01-15 10:30:00 UTC,closed,https://api.openstreetmap.org/api/0.6/notes/123456.xml" >> "$output_file"
@@ -528,7 +528,7 @@ EOF
             fi
             return 0
         else
-            command xsltproc "$@"
+            command awk "$@"
         fi
     }
     
@@ -589,7 +589,7 @@ EOF
     [ -f "${TMP_DIR}/output-text-part-1.csv" ]
     
     # Clean up mock files
-    rm -f "/tmp/mock_notes_planet.xslt" "/tmp/mock_comments_planet.xslt" "/tmp/mock_text_planet.xslt" "/tmp/mock_load_planet.sql"
+    rm -f "/tmp/mock_notes_planet.awk" "/tmp/mock_comments_planet.awk" "/tmp/mock_text_planet.awk" "/tmp/mock_load_planet.sql"
 }
 
 # =============================================================================
@@ -631,18 +631,18 @@ EOF
     fi
 }
 
-@test "enhanced XML processing should handle missing XSLT files" {
-    # Test with missing XSLT files
-    local original_xslt="${XSLT_NOTES_API_FILE:-}"
-    export XSLT_NOTES_API_FILE="/non/existent/file.xslt"
+@test "enhanced XML processing should handle missing AWK scripts" {
+    # Test with missing AWK scripts
+    local original_awk="${AWK_EXTRACT_NOTES:-}"
+    export AWK_EXTRACT_NOTES="/non/existent/file.awk"
     
     run __processApiXmlPart "${TMP_DIR}/test_part.xml" "1"
     [ "$status" -ne 0 ]
     
-    if [[ -n "$original_xslt" ]]; then
-        export XSLT_NOTES_API_FILE="$original_xslt"
+    if [[ -n "$original_awk" ]]; then
+        export AWK_EXTRACT_NOTES="$original_awk"
     else
-        unset XSLT_NOTES_API_FILE
+        unset AWK_EXTRACT_NOTES
     fi
 }
 
@@ -665,8 +665,8 @@ EOF
 }
 
 @test "enhanced XML processing should be fast for small parts" {
-    # Mock xsltproc for fast XML processing
-    xsltproc() {
+    # Mock awk for fast XML processing
+    awk() {
         if [[ "$1" == "-o" ]]; then
             # Create mock CSV output quickly
             local output_file="$2"
@@ -674,7 +674,7 @@ EOF
             echo "123456,-3.7038,40.4168,2025-01-15 10:30:00 UTC,closed,https://api.openstreetmap.org/api/0.6/notes/123456.xml" >> "$output_file"
             return 0
         else
-            command xsltproc "$@"
+            command awk "$@"
         fi
     }
     
@@ -691,9 +691,9 @@ EOF
     }
     
     # Set required environment variables
-    export XSLT_NOTES_API_FILE="/tmp/mock_notes.xslt"
-    export XSLT_NOTE_COMMENTS_API_FILE="/tmp/mock_comments.xslt"
-    export XSLT_TEXT_COMMENTS_API_FILE="/tmp/mock_text.xslt"
+    export AWK_EXTRACT_NOTES="/tmp/mock_notes.awk"
+    export AWK_EXTRACT_COMMENTS="/tmp/mock_comments.awk"
+    export AWK_EXTRACT_COMMENT_TEXTS="/tmp/mock_text.awk"
     export POSTGRES_31_LOAD_API_NOTES="/tmp/mock_load.sql"
     
     # Create mock files
@@ -735,7 +735,7 @@ EOF
     [ "$duration" -lt 3000000000 ] # Should complete in less than 3 seconds
     
     # Clean up mock files
-    rm -f "/tmp/mock_notes.xslt" "/tmp/mock_comments.xslt" "/tmp/mock_text.xslt" "/tmp/mock_load.sql"
+    rm -f "/tmp/mock_notes.awk" "/tmp/mock_comments.awk" "/tmp/mock_text.awk" "/tmp/mock_load.sql"
 }
 
 # =============================================================================
@@ -743,14 +743,14 @@ EOF
 # =============================================================================
 
 @test "enhanced XML processing pipeline should work end-to-end" {
-    # Mock xsltproc for XML processing
-    xsltproc() {
+    # Mock awk for XML processing
+    awk() {
         if [[ "$1" == "-o" ]]; then
             # Create mock CSV output
             local output_file="$2"
             local input_file="$3"
             
-            # Create different CSV files based on the XSLT file being used
+            # Create different CSV files based on the AWK script being used
             if [[ "$output_file" == *"notes"* ]]; then
                 echo "id,lon,lat,date_created,status,url" > "$output_file"
                 echo "123456,-3.7038,40.4168,2025-01-15 10:30:00 UTC,closed,https://api.openstreetmap.org/api/0.6/notes/123456.xml" >> "$output_file"
@@ -763,7 +763,7 @@ EOF
             fi
             return 0
         else
-            command xsltproc "$@"
+            command awk "$@"
         fi
     }
     
@@ -780,13 +780,13 @@ EOF
     }
     
     # Set required environment variables
-    export XSLT_NOTES_API_FILE="/tmp/mock_notes.xslt"
-    export XSLT_NOTE_COMMENTS_API_FILE="/tmp/mock_comments.xslt"
-    export XSLT_TEXT_COMMENTS_API_FILE="/tmp/mock_text.xslt"
+    export AWK_EXTRACT_NOTES="/tmp/mock_notes.awk"
+    export AWK_EXTRACT_COMMENTS="/tmp/mock_comments.awk"
+    export AWK_EXTRACT_COMMENT_TEXTS="/tmp/mock_text.awk"
     export POSTGRES_31_LOAD_API_NOTES="/tmp/mock_load.sql"
     
-    # Create mock XSLT files with valid content
-    cat > "/tmp/mock_notes.xslt" << 'EOF'
+    # Create mock AWK scripts with valid content
+    cat > "/tmp/mock_notes.awk" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:output method="text" encoding="UTF-8"/>
@@ -798,7 +798,7 @@ EOF
 </xsl:stylesheet>
 EOF
 
-    cat > "/tmp/mock_comments.xslt" << 'EOF'
+    cat > "/tmp/mock_comments.awk" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:output method="text" encoding="UTF-8"/>
@@ -810,7 +810,7 @@ EOF
 </xsl:stylesheet>
 EOF
 
-    cat > "/tmp/mock_text.xslt" << 'EOF'
+    cat > "/tmp/mock_text.awk" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:output method="text" encoding="UTF-8"/>
@@ -853,7 +853,7 @@ EOF
     [ -f "${TMP_DIR}/output-text-part-2.csv" ]
     
     # Clean up mock files
-    rm -f "/tmp/mock_notes.xslt" "/tmp/mock_comments.xslt" "/tmp/mock_text.xslt" "/tmp/mock_load.sql"
+    rm -f "/tmp/mock_notes.awk" "/tmp/mock_comments.awk" "/tmp/mock_text.awk" "/tmp/mock_load.sql"
 }
 
 # =============================================================================
@@ -861,8 +861,8 @@ EOF
 # =============================================================================
 
 @test "mock XML processing should work without external dependencies" {
-    # Mock xsltproc for XML processing
-    xsltproc() {
+    # Mock awk for XML processing
+    awk() {
         if [[ "$1" == "-o" ]]; then
             # Create mock CSV output
             local output_file="$2"
@@ -870,7 +870,7 @@ EOF
             echo "123456,-3.7038,40.4168,2025-01-15 10:30:00 UTC,closed" >> "$output_file"
             return 0
         else
-            command xsltproc "$@"
+            command awk "$@"
         fi
     }
     
@@ -887,9 +887,9 @@ EOF
     }
     
     # Set required environment variables
-    export XSLT_NOTES_API_FILE="/tmp/mock_notes.xslt"
-    export XSLT_NOTE_COMMENTS_API_FILE="/tmp/mock_comments.xslt"
-    export XSLT_TEXT_COMMENTS_API_FILE="/tmp/mock_text.xslt"
+    export AWK_EXTRACT_NOTES="/tmp/mock_notes.awk"
+    export AWK_EXTRACT_COMMENTS="/tmp/mock_comments.awk"
+    export AWK_EXTRACT_COMMENT_TEXTS="/tmp/mock_text.awk"
     export POSTGRES_31_LOAD_API_NOTES="/tmp/mock_load.sql"
     
     # Create mock files
@@ -926,7 +926,7 @@ EOF
     [ "$status" -eq 0 ]
     
     # Clean up mock files
-    rm -f "/tmp/mock_notes.xslt" "/tmp/mock_comments.xslt" "/tmp/mock_text.xslt" "/tmp/mock_load.sql"
+    rm -f "/tmp/mock_notes.awk" "/tmp/mock_comments.awk" "/tmp/mock_text.awk" "/tmp/mock_load.sql"
 }
 
 # =============================================================================
@@ -1002,7 +1002,7 @@ EOF
     # We're just testing that the function exists and can be called
     
     # Cleanup
-    rm -rf "${parts_dir}" "${output_dir}" "${xslt_file}"
+    rm -rf "${parts_dir}" "${output_dir}" "${awk_script}"
 }
 
 @test "test_divide_xml_file_debug_3_notes_2_parts" {

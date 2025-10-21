@@ -3,7 +3,7 @@
 -- latitude to minimize expensive ST_Contains calls.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-19
+-- Version: 2025-10-20
 
 CREATE TABLE countries (
  country_id INTEGER NOT NULL,
@@ -123,7 +123,7 @@ ALTER TABLE countries
  PRIMARY KEY (country_id);
 
 CREATE TABLE tries (
- area VARCHAR(20),
+ area VARCHAR(50),
  iter INTEGER,
  id_note INTEGER,
  id_country INTEGER

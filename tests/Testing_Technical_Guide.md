@@ -77,9 +77,6 @@ Performs lightweight structure validation for very large files:
 
 ```bash
 # Run all XML validation tests
-./tests/run_xml_xslt_tests.sh
-
-# Run specific XML validation tests
 bats tests/unit/bash/xml_validation_enhanced.test.bats
 bats tests/unit/bash/xml_validation_functions.test.bats
 bats tests/unit/bash/xml_validation_large_files.test.bats

@@ -5,10 +5,10 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
+# Version: 2025-10-19
 
 # Define version variable
-VERSION="2025-10-18"
+VERSION="2025-10-19"
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -71,6 +71,12 @@ fi
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
  # shellcheck source=processPlanetFunctions.sh
  source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+fi
+
+# Load consolidated parallel processing functions (must be loaded AFTER wrapper functions)
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+ # shellcheck source=parallelProcessingFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 fi
 
 # Output CSV files for processed data
@@ -208,21 +214,8 @@ function __countXmlNotesAPI() {
   return 1
  fi
 
- # Get total number of notes for API format using xmlstarlet with timeout
- TOTAL_NOTES=$(timeout 120 xmlstarlet sel -t -v "count(/osm/note)" "${XML_FILE}" 2> /dev/null)
- local XMLSTARLET_STATUS=$?
-
- if [[ ${XMLSTARLET_STATUS} -ne 0 ]]; then
-  if [[ ${XMLSTARLET_STATUS} -eq 124 ]]; then
-   __loge "Timeout processing XML file (120s): ${XML_FILE}"
-  else
-   __loge "Error processing XML file: ${XML_FILE}"
-  fi
-  TOTAL_NOTES=0
-  export TOTAL_NOTES
-  __log_finish
-  return 1
- fi
+ # Count notes using grep (fast and reliable)
+ TOTAL_NOTES=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null || echo "0")
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
@@ -333,33 +326,23 @@ function __splitXmlForParallelPlanet() {
  return 1
 }
 
-# Processes a single XML part for API notes
+# Processes a single XML part for API notes using AWK extraction
 # Parameters:
 #   $1: XML part file path
-#   $2: XSLT notes file (optional, uses global if not provided)
-#   $3: XSLT comments file (optional, uses global if not provided)
-#   $4: XSLT text comments file (optional, uses global if not provided)
 function __processApiXmlPart() {
  __log_start
  local XML_PART="${1}"
- local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_API_FILE}}"
- local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_API_FILE}}"
- local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_API_FILE}}"
  local PART_NUM
  local BASENAME_PART
 
- __logi "=== STARTING API XML PART PROCESSING ==="
+ __logi "=== STARTING API XML PART PROCESSING (AWK) ==="
  __logd "Input XML part: ${XML_PART}"
- __logd "XSLT files:"
- __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
 
  # Debug: Show environment variables
  __logd "Environment check in subshell:"
  __logd "  XML_PART: '${XML_PART}'"
  __logd "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
- __logd "  XSLT_NOTES_API_FILE: '${XSLT_NOTES_API_FILE:-NOT_SET}'"
+ __logd "  SCRIPT_BASE_DIRECTORY: '${SCRIPT_BASE_DIRECTORY:-NOT_SET}'"
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
@@ -390,7 +373,7 @@ function __processApiXmlPart() {
 
  __logi "Processing API XML part ${PART_NUM}: ${XML_PART}"
 
- # Convert XML part to CSV using XSLT
+ # Convert XML part to CSV using AWK
  local OUTPUT_NOTES_PART
  local OUTPUT_COMMENTS_PART
  local OUTPUT_TEXT_PART
@@ -398,27 +381,27 @@ function __processApiXmlPart() {
  OUTPUT_COMMENTS_PART="${TMP_DIR}/output-comments-part-${PART_NUM}.csv"
  OUTPUT_TEXT_PART="${TMP_DIR}/output-text-part-${PART_NUM}.csv"
 
- # Process notes (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing notes with xmlstarlet: ${XSLT_NOTES_FILE_LOCAL} -> ${OUTPUT_NOTES_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_NOTES_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
+ # Process notes with AWK (fast and dependency-free)
+ __logd "Processing notes with AWK: ${XML_PART} -> ${OUTPUT_NOTES_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_PART}" > "${OUTPUT_NOTES_PART}"
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
   __loge "Notes CSV file was not created: ${OUTPUT_NOTES_PART}"
   __log_finish
   return 1
  fi
 
- # Process comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing comments with xmlstarlet: ${XSLT_COMMENTS_FILE_LOCAL} -> ${OUTPUT_COMMENTS_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_COMMENTS_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
+ # Process comments with AWK (fast and dependency-free)
+ __logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
   return 1
  fi
 
- # Process text comments (using XSLT default timestamp: 2013-01-01 for missing dates)
- __logd "Processing text comments with xmlstarlet: ${XSLT_TEXT_FILE_LOCAL} -> ${OUTPUT_TEXT_PART}"
- xmlstarlet tr --maxdepth "${XSLT_MAX_DEPTH}" "${XSLT_TEXT_FILE_LOCAL}" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
+ # Process text comments with AWK (fast and dependency-free)
+ __logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"
@@ -481,33 +464,23 @@ function __processApiXmlPart() {
  __log_finish
 }
 
-# Processes a single XML part for Planet notes
+# Processes a single XML part for Planet notes using AWK extraction
 # Parameters:
 #   $1: XML part file path
-#   $2: XSLT notes file (optional, uses global if not provided)
-#   $3: XSLT comments file (optional, uses global if not provided)
-#   $4: XSLT text comments file (optional, uses global if not provided)
 function __processPlanetXmlPart() {
  __log_start
  local XML_PART="${1}"
- local XSLT_NOTES_FILE_LOCAL="${2:-${XSLT_NOTES_FILE}}"
- local XSLT_COMMENTS_FILE_LOCAL="${3:-${XSLT_NOTE_COMMENTS_FILE}}"
- local XSLT_TEXT_FILE_LOCAL="${4:-${XSLT_TEXT_COMMENTS_FILE}}"
  local PART_NUM
  local BASENAME_PART
 
- __logi "=== STARTING PLANET XML PART PROCESSING ==="
+ __logi "=== STARTING PLANET XML PART PROCESSING (AWK) ==="
  __logd "Input XML part: ${XML_PART}"
- __logd "XSLT files:"
- __logd "  Notes: ${XSLT_NOTES_FILE_LOCAL}"
- __logd "  Comments: ${XSLT_COMMENTS_FILE_LOCAL}"
- __logd "  Text: ${XSLT_TEXT_FILE_LOCAL}"
 
  # Debug: Show environment variables
  __logd "Environment check in subshell:"
  __logd "  XML_PART: '${XML_PART}'"
  __logd "  TMP_DIR: '${TMP_DIR:-NOT_SET}'"
- __logd "  XSLT_NOTES_FILE: '${XSLT_NOTES_FILE:-NOT_SET}'"
+ __logd "  SCRIPT_BASE_DIRECTORY: '${SCRIPT_BASE_DIRECTORY:-NOT_SET}'"
  __logd "  DBNAME: '${DBNAME:-NOT_SET}'"
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
@@ -560,8 +533,8 @@ function __processPlanetXmlPart() {
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
  # Process comments with AWK (fast and dependency-free)
-__logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
-awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
+ __logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OUTPUT_COMMENTS_PART}"
  if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
   __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_PART}"
   __log_finish
@@ -573,8 +546,8 @@ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_PART}" > "${OU
  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
  # Process text comments with AWK (fast and dependency-free)
-__logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
-awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
+ __logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
  if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
   __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
   : > "${OUTPUT_TEXT_PART}"
@@ -697,23 +670,53 @@ function __checkPrereqsCommands {
   __loge "ERROR: PostgreSQL is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## Database existence
+ __logd "Checking if database '${DBNAME}' exists."
+ # shellcheck disable=SC2154
+ if ! psql -lqt | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
+  __loge "ERROR: Database '${DBNAME}' does not exist."
+  __loge "To create the database, run the following commands:"
+  __loge "  createdb ${DBNAME}"
+  __loge "  psql -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
+  __loge "  psql -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ ## Database connectivity with specified user
+ __logd "Checking database connectivity with user '${DB_USER}'."
+ # shellcheck disable=SC2154
+ if ! psql -U "${DB_USER}" -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  __loge "ERROR: Cannot connect to database '${DBNAME}' with user '${DB_USER}'."
+  __loge "PostgreSQL authentication failed. Possible solutions:"
+  __loge "  1. If user '${DB_USER}' doesn't exist, create it:"
+  __loge "     sudo -u postgres createuser -d -P ${DB_USER}"
+  __loge "  2. Grant access to the database:"
+  __loge "     sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE \\\"${DBNAME}\\\" TO ${DB_USER};\""
+  __loge "  3. Configure PostgreSQL authentication in /etc/postgresql/*/main/pg_hba.conf:"
+  __loge "     Change 'peer' to 'md5' or 'trust' for local connections"
+  __loge "     Example: local   all   ${DB_USER}   md5"
+  __loge "     Then reload: sudo systemctl reload postgresql"
+  __loge "  4. Or use the current system user instead of '${DB_USER}'"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  ## PostGIS
  __logd "Checking PostGIS."
  # shellcheck disable=SC2154
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
+ psql -U "${DB_USER}" -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
  SELECT /* Notes-base */ PostGIS_version();
 EOF
  RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: PostGIS extension is missing."
+  __loge "ERROR: PostGIS extension is missing in database '${DBNAME}'."
+  __loge "To enable PostGIS, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## btree gist
  # shellcheck disable=SC2154
  __logd "Checking btree gist."
- RESULT=$(psql -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
+ RESULT=$(psql -U "${DB_USER}" -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
  if [[ "${RESULT}" -ne 1 ]]; then
-  __loge "ERROR: btree_gist extension is missing."
+  __loge "ERROR: btree_gist extension is missing in database '${DBNAME}'."
+  __loge "To enable btree_gist, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Wget
@@ -765,23 +768,14 @@ EOF
   __loge "ERROR: bzip2 is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## XML lint
- __logd "Checking XML lint."
- if ! xmllint --version > /dev/null 2>&1; then
-  __loge "ERROR: XMLlint is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## XSLTproc
- __logd "Checking XSLTproc."
- if ! xsltproc --version > /dev/null 2>&1; then
-  __loge "ERROR: XSLTproc is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- ## XMLStarlet for XML processing and splitting
- __logd "Checking XMLStarlet."
- if ! xmlstarlet --version > /dev/null 2>&1; then
-  __loge "ERROR: XMLStarlet is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
+ ## XML lint (optional, only for strict validation)
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logd "Checking XML lint."
+  if ! xmllint --version > /dev/null 2>&1; then
+   __loge "ERROR: XMLlint is missing (required for XML validation)."
+   __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
 
  ## Bash 4 or greater.
@@ -800,21 +794,14 @@ EOF
   __loge "ERROR: File is missing at ${POSTGRES_32_UPLOAD_NOTE_LOCATION}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- if [[ ! -r "${XSLT_NOTES_PLANET_FILE}" ]]; then
-  __loge "ERROR: File is missing at ${XSLT_NOTES_PLANET_FILE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${XSLT_NOTE_COMMENTS_PLANET_FILE}" ]]; then
-  __loge "ERROR: File is missing at ${XSLT_NOTE_COMMENTS_PLANET_FILE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${XSLT_TEXT_COMMENTS_PLANET_FILE}" ]]; then
-  __loge "ERROR: File is missing at ${XSLT_TEXT_COMMENTS_PLANET_FILE}."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
- if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]]; then
-  __loge "ERROR: File is missing at ${XMLSCHEMA_PLANET_NOTES}."
-  exit "${ERROR_MISSING_LIBRARY}"
+
+ # XML Schema file (only required if validation is enabled)
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]]; then
+   __loge "ERROR: XML schema file is missing at ${XMLSCHEMA_PLANET_NOTES}."
+   __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
  if [[ ! -r "${JSON_SCHEMA_OVERPASS}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_OVERPASS}."
@@ -834,7 +821,7 @@ EOF
  # shellcheck disable=SC2154
  if ! ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
   "${GEOJSON_TEST}" -nln import -overwrite; then
-  __loge "ERROR: ogr2ogr cannot access the database."
+  __loge "ERROR: ogr2ogr cannot access the database '${DBNAME}' with user '${DB_USER}'."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -1733,26 +1720,22 @@ function __getLocationNotes {
  __log_finish
 }
 
-# Validates XML content for coordinate attributes using XPath
+# Validates XML content for coordinate attributes
 # This is the unified implementation for both API and Planet XML coordinate validation.
-# Supports auto-detection of XML format (Planet vs API) and uses xmlstarlet for robust parsing.
+# Supports auto-detection of XML format (Planet vs API) using grep/sed pattern matching.
 #
 # Parameters:
 #   $1: XML file path
-#   $2: Latitude XPath expression (optional, auto-detects based on XML structure)
-#   $3: Longitude XPath expression (optional, auto-detects based on XML structure)
 # Returns:
 #   0 if all coordinates are valid, 1 if any invalid
 #
 # XML Format Support:
-#   - Planet XML: /osm-notes/note/@lat and /osm-notes/note/@lon
-#   - API XML: //@lat and //@lon (generic)
-#   - Custom XPath: Can be specified via parameters 2 and 3
+#   - Planet XML: Extracts lat/lon attributes from <note> elements
+#   - API XML: Extracts lat/lon attributes from <note> elements
+#   - Uses grep/sed for efficient pattern matching
 function __validate_xml_coordinates() {
  __log_start
  local XML_FILE="${1}"
- local LAT_XPATH="${2:-}"
- local LON_XPATH="${3:-}"
  local VALIDATION_ERRORS=()
 
  # Check if file exists and is readable
@@ -1812,48 +1795,16 @@ function __validate_xml_coordinates() {
   fi
  fi
 
- # For smaller files, auto-detect XPath based on XML structure if not provided
- if [[ -z "${LAT_XPATH}" ]] || [[ -z "${LON_XPATH}" ]]; then
-  # Check if it's a Planet format XML (has /osm-notes/note structure)
-  # Use lightweight grep instead of xmlstarlet to avoid memory issues
-  if grep -q '<osm-notes' "${XML_FILE}" && grep -q '<note' "${XML_FILE}"; then
-   LAT_XPATH="/osm-notes/note/@lat"
-   LON_XPATH="/osm-notes/note/@lon"
-   __logd "Auto-detected Planet XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
-  elif grep -q '<osm' "${XML_FILE}" && grep -q '<note' "${XML_FILE}"; then
-   # Check if it's an API format XML (has /osm/note structure)
-   LAT_XPATH="/osm/note/@lat"
-   LON_XPATH="/osm/note/@lon"
-   __logd "Auto-detected API XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
-  else
-   # Default to generic XPath for other formats
-   LAT_XPATH="//@lat"
-   LON_XPATH="//@lon"
-   __logd "Auto-detected generic XML format, using XPath: ${LAT_XPATH}, ${LON_XPATH}"
-  fi
- fi
-
- # Extract coordinates using lightweight commands for smaller files
+ # For smaller files, extract coordinates using grep/sed
  local LATITUDES
  local LONGITUDES
 
- # Use grep and sed instead of xmlstarlet to avoid memory issues
- if [[ "${LAT_XPATH}" == "/osm-notes/note/@lat" ]]; then
-  # Planet format: extract lat/lon attributes from note tags
-  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
-  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
- elif [[ "${LAT_XPATH}" == "/osm/note/@lat" ]]; then
-  # API format: extract lat/lon attributes from note tags
-  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
-  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
- else
-  # Generic format: try to find any lat/lon attributes
-  LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
-  LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
- fi
+ # Extract coordinates using grep and sed (works for all XML formats)
+ LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
+ LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
 
  if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
-  __logw "No coordinates found in XML file using XPath: ${LAT_XPATH}, ${LON_XPATH}"
+  __logw "No coordinates found in XML file"
   __log_finish
   return 0
  fi
@@ -1918,58 +1869,6 @@ declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIMES
 
 # Enhanced retry with exponential backoff and jitter
 # Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
-
-# Circuit breaker pattern implementation
-# Parameters: service_name command_to_execute
-# Returns: 0 if successful, 1 if circuit is open or command failed
-function __circuit_breaker_execute() {
- __log_start
- local SERVICE_NAME="$1"
- local COMMAND="$2"
- local CURRENT_TIME
- CURRENT_TIME=$(date +%s)
- local STATE="${CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]:-CLOSED}"
- local FAILURE_COUNT="${CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]:-0}"
- local LAST_FAILURE_TIME="${CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]:-0}"
-
- # Check if circuit is open and timeout has passed
- if [[ "${STATE}" == "OPEN" ]]; then
-  local TIME_SINCE_FAILURE=$((CURRENT_TIME - LAST_FAILURE_TIME))
-  if [[ ${TIME_SINCE_FAILURE} -gt ${CIRCUIT_BREAKER_TIMEOUT} ]]; then
-   echo "INFO: Circuit breaker for ${SERVICE_NAME} transitioning to HALF_OPEN" >&2
-   CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="HALF_OPEN"
-   STATE="HALF_OPEN"
-  else
-   echo "WARNING: Circuit breaker for ${SERVICE_NAME} is OPEN, skipping execution" >&2
-   __log_finish
-   return 1
-  fi
- fi
-
- # Execute command
- if eval "${COMMAND}"; then
-  # Success - close circuit and reset failure count
-  if [[ "${STATE}" != "CLOSED" ]]; then
-   echo "INFO: Circuit breaker for ${SERVICE_NAME} transitioning to CLOSED" >&2
-  fi
-  CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="CLOSED"
-  CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]=0
-  __log_finish
-  return 0
- else
-  # Failure - increment failure count
-  FAILURE_COUNT=$((FAILURE_COUNT + 1))
-  CIRCUIT_BREAKER_FAILURE_COUNTS[${SERVICE_NAME}]=${FAILURE_COUNT}
-  CIRCUIT_BREAKER_LAST_FAILURE_TIMES[${SERVICE_NAME}]=${CURRENT_TIME}
-
-  if [[ ${FAILURE_COUNT} -ge ${CIRCUIT_BREAKER_THRESHOLD} ]]; then
-   __loge "Circuit breaker for ${SERVICE_NAME} transitioning to OPEN (${FAILURE_COUNT} failures)"
-   CIRCUIT_BREAKER_STATES[${SERVICE_NAME}]="OPEN"
-  fi
-  __log_finish
-  return 1
- fi
-}
 
 # Health check for network connectivity
 # Parameters: [timeout_seconds]

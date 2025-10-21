@@ -363,8 +363,8 @@ check_real_commands() {
    missing_commands+=("xmllint")
  fi
  
- if ! command -v xsltproc >/dev/null 2>&1; then
-   missing_commands+=("xsltproc")
+ if ! command -v awkproc >/dev/null 2>&1; then
+   missing_commands+=("awkproc")
  fi
  
  # Check compression commands

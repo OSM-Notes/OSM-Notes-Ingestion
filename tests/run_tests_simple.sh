@@ -146,8 +146,8 @@ run_bats_tests() {
 
    # Set environment variables for tests
    export TEST_DBNAME="${TEST_DBNAME}"
-   export TEST_DBUSER="${TEST_DBUSER}"
-   export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
+   export TEST_DBUSER="${TEST_DBUSER:-$(whoami)}"
+   export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
    export TEST_DBHOST="${TEST_DBHOST:-}"
    export TEST_DBPORT="${TEST_DBPORT:-}"
 
@@ -183,10 +183,10 @@ run_e2e_tests() {
 
   # Set environment variables for tests
   export TEST_DBNAME="${TEST_DBNAME}"
-  export TEST_DBUSER="${TEST_DBUSER}"
-  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
-  export TEST_DBHOST="${TEST_DBHOST}"
-  export TEST_DBPORT="${TEST_DBPORT}"
+  export TEST_DBUSER="${TEST_DBUSER:-$(whoami)}"
+  export TEST_DBPASSWORD="${TEST_DBPASSWORD:-}"
+  export TEST_DBHOST="${TEST_DBHOST:-}"
+  export TEST_DBPORT="${TEST_DBPORT:-}"
 
   if bats "${e2e_test}" || true; then
    log_success "End-to-end tests passed"

@@ -30,8 +30,7 @@
 | **Advanced - Performance** | - | - | ✅ | ✅ | ✅ | ⚠️ | 5-10 min |
 | **Docker Integration** | 15+ | varies | ❌ | ✅ | ✅ | ❌ | 10-20 min |
 | **WMS Tests** | 3 | ~20 | ✅ | ✅ | ✅ | ⚠️ | 5-8 min |
-| **XSLT Tests** | 5 | ~35 | ✅ | ✅ | ✅ | ✅ | 3-5 min |
-| **TOTAL** | **128+** | **~1,290+** | - | - | - | - | **84-163 min** |
+| **TOTAL** | **123+** | **~1,255+** | - | - | - | - | **81-158 min** |
 
 **Legend:**
 
@@ -52,7 +51,7 @@
 | **ProcessAPI** | 7 | ~85 | Incremental API processing |
 | **ProcessPlanet** | 6 | ~75 | Complete Planet dump processing |
 | **Parallel Processing** | 6 | ~68 | Parallel processing and optimization |
-| **XML Processing** | 9 | ~95 | XML/XSLT validation and transformation |
+| **XML Processing** | 9 | ~95 | XML validation and AWK extraction |
 | **Validation** | 12 | ~140 | Data validation (coordinates, dates, etc.) |
 | **Error Handling** | 8 | ~82 | Error handling and recovery |
 | **Cleanup** | 7 | ~60 | Cleanup and maintenance |
@@ -76,7 +75,7 @@
 | 7 | `centralized_validation.test.bats` | 10 | Validation | High |
 | 8 | `cleanupAll.test.bats` | 10 | Cleanup | High |
 | 9 | `checksum_validation.test.bats` | 9 | Validation | Medium |
-| 10 | `csv_enum_validation.test.bats` | 9 | XSLT | High |
+| 10 | `csv_enum_validation.test.bats` | 9 | CSV/AWK | High |
 | 11 | `date_validation_integration.test.bats` | 8 | Validation | High |
 | 12 | `boundary_validation.test.bats` | 7 | Validation | Medium |
 | 13 | `cleanup_order.test.bats` | 7 | Cleanup | Medium |
@@ -99,9 +98,8 @@
 | 3 | `logging_pattern_validation_integration.test.bats` | 9 | Logging pattern validation | Logging, Validation |
 | 4 | `mock_planet_processing.test.bats` | 8 | Planet processing with mocks | ProcessPlanet, Mock |
 | 5 | `processAPINotes_parallel_error_integration.test.bats` | 7 | ProcessAPI with parallel errors | ProcessAPI, Parallel |
-| 6 | `xslt_integration.test.bats` | 7 | XSLT transformations integration | XSLT, XML |
-| 7 | `end_to_end.test.bats` | 6 | Complete ingestion flow | Full workflow |
-| 8 | `processAPI_historical_e2e.test.bats` | 5 | ProcessAPI with historical data | ProcessAPI, Historical |
+| 6 | `end_to_end.test.bats` | 6 | Complete ingestion flow | Full workflow |
+| 7 | `processAPI_historical_e2e.test.bats` | 5 | ProcessAPI with historical data | ProcessAPI, Historical |
 | **TOTAL** | **8** | **68** | | |
 
 ---
@@ -129,7 +127,7 @@
 - PostgreSQL installed and running
 - User `postgres` or `notes` with permissions
 - BATS installed
-- XML tools (xmllint, xsltproc)
+- xmllint (optional, for XML validation)
 - shellcheck, shfmt
 
 **Estimated time:** 84-163 minutes for all tests
@@ -206,7 +204,7 @@ git push origin main
 | Feature | Local | Docker | GitHub | Mock |
 |---------|-------|--------|--------|------|
 | **Database tests** | ✅ | ✅ | ✅ | ❌ |
-| **XSLT tests** | ✅ | ✅ | ✅ | ✅ |
+| **AWK extraction** | ✅ | ✅ | ✅ | ✅ |
 | **Parallel processing** | ✅ | ✅ | ✅ | ✅ |
 | **WMS integration** | ✅ | ✅ | ✅ | ⚠️ |
 | **Coverage reports** | ✅ | ✅ | ✅ | ❌ |
@@ -248,9 +246,6 @@ bats tests/unit/bash/processAPINotes*.bats
 # Testing ProcessPlanet
 bats tests/unit/bash/processPlanetNotes*.bats
 
-# Testing XSLT
-bats tests/unit/bash/xslt*.bats
-
 # Testing Parallel Processing
 bats tests/parallel_processing_test_suite.bats
 ```
@@ -265,7 +260,7 @@ bats tests/parallel_processing_test_suite.bats
 |-----------|-------|--------------------|
 | **ProcessAPI** | ~85 | 85-90% |
 | **ProcessPlanet** | ~75 | 80-85% |
-| **XSLT** | ~35 | 90-95% |
+| **AWK Extraction** | ~20 | 85-90% |
 | **Parallel Processing** | ~68 | 85-90% |
 | **Validation** | ~140 | 80-85% |
 | **Cleanup** | ~60 | 75-80% |

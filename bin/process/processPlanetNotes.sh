@@ -151,8 +151,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
-VERSION="2025-10-18"
+# Version: 2025-10-20
+VERSION="2025-10-20"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -261,7 +261,7 @@ export GENERATE_FAILED_FILE=true
 
 # Location of the common functions.
 
-# XSLT transformation files for Planet format (used by parallel processing).
+# AWK extraction scripts for Planet format (used by parallel processing).
 # (Declared in processPlanetFunctions.sh)
 
 # Control variables for functionsProcess.sh
@@ -300,9 +300,7 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 # Load parallel processing functions (includes __splitXmlForParallelSafe implementation)
 # MUST be loaded AFTER functionsProcess.sh to override wrapper functions
 # shellcheck disable=SC1091
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
-fi
+source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
 # Function to handle cleanup on exit respecting CLEAN flag
 function __cleanup_on_exit() {
@@ -389,36 +387,16 @@ function __checkPrereqs {
   fi
  done
 
- ## Validate XSLT files
- __logi "Validating XSLT files..."
- if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
-  __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
- fi
-
- if ! __validate_input_file "${XSLT_NOTE_COMMENTS_PLANET_FILE}" "XSLT comments file"; then
-  __loge "ERROR: XSLT comments file validation failed: ${XSLT_NOTE_COMMENTS_PLANET_FILE}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
- fi
-
- if ! __validate_input_file "${XSLT_TEXT_COMMENTS_PLANET_FILE}" "XSLT text comments file"; then
-  __loge "ERROR: XSLT text comments file validation failed: ${XSLT_TEXT_COMMENTS_PLANET_FILE}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
- fi
-
- ## Validate XML schema files
- __logi "Validating XML schema files..."
- if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
-  __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
-  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-  __log_finish
-  return "${ERROR_MISSING_LIBRARY}"
+ ## Validate XML schema file (only if validation is enabled)
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logi "Validating XML schema file..."
+  if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
+   __loge "ERROR: XML schema file validation failed: ${XMLSCHEMA_PLANET_NOTES}"
+   __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
+   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+   __log_finish
+   return "${ERROR_MISSING_LIBRARY}"
+  fi
  fi
 
  # Validate dates in XML files if they exist
@@ -632,7 +610,7 @@ function __moveSyncToMain {
 function __createPartitionTables {
  __log_start
  local -r NUM_PARTITIONS="${1}"
- 
+
  __logi "Creating ${NUM_PARTITIONS} partition tables for parallel processing"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.max_threads = '${NUM_PARTITIONS}';" \
@@ -706,8 +684,8 @@ function __processPlanetNotesWithParallel {
 
  # Find all part files and sort them numerically (not alphabetically)
  local PART_FILES
- mapfile -t PART_FILES < <(find "${PARTS_DIR}" -name "planet_part_*.xml" -type f | \
-  sort -t_ -k3 -n || true)
+ mapfile -t PART_FILES < <(find "${PARTS_DIR}" -name "planet_part_*.xml" -type f \
+  | sort -t_ -k3 -n || true)
 
  if [[ ${#PART_FILES[@]} -eq 0 ]]; then
   __loge "ERROR: No part files found in ${PARTS_DIR}"
@@ -718,33 +696,29 @@ function __processPlanetNotesWithParallel {
  __logi "Found ${#PART_FILES[@]} part files to process"
 
  # Export variables and functions needed by parallel processing
- export DBNAME TMP_DIR MAX_THREADS XSLT_MAX_DEPTH
- export XSLT_NOTES_PLANET_FILE XSLT_NOTE_COMMENTS_PLANET_FILE XSLT_TEXT_COMMENTS_PLANET_FILE
+ export DBNAME TMP_DIR MAX_THREADS
  export POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES
  export SCRIPT_BASE_DIRECTORY
- export LOG_FILENAME  # Export log file path for parallel workers
- 
+ export LOG_FILENAME # Export log file path for parallel workers
+
  # Source and export bash_logger functions for parallel jobs
  # shellcheck disable=SC1091
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh"
  export -f __log_start __log_finish __logi __logd __loge __logw __set_log_file
- 
+
  # Export the main processing function
  export -f __processPlanetXmlPart
- 
+
  # Create wrapper function for parallel workers to setup logging
  function __parallel_worker_wrapper() {
   local -r PART_FILE="$1"
-  local -r XSLT_NOTES="$2"
-  local -r XSLT_COMMENTS="$3"
-  local -r XSLT_TEXT="$4"
-  
+
   # Setup logging for this worker (appends to shared log file)
-  __set_log_file "${LOG_FILENAME}" 2>/dev/null || true
-  
+  __set_log_file "${LOG_FILENAME}" 2> /dev/null || true
+
   # Execute the main processing function
   # Output is synchronized by parallel's internal buffering
-  __processPlanetXmlPart "${PART_FILE}" "${XSLT_NOTES}" "${XSLT_COMMENTS}" "${XSLT_TEXT}"
+  __processPlanetXmlPart "${PART_FILE}"
  }
  export -f __parallel_worker_wrapper
 
@@ -752,13 +726,13 @@ function __processPlanetNotesWithParallel {
  if command -v parallel > /dev/null 2>&1; then
   __logi "Using GNU parallel for processing (${MAX_THREADS} jobs)"
   __logi "Worker logs will be written to: ${LOG_FILENAME}"
-  
+
   # Process all parts in parallel with progress tracking
   # Workers use wrapper to setup logging correctly in each subshell
   # --line-buffer ensures log lines from different workers don't intermix
-  if ! printf '%s\n' "${PART_FILES[@]}" | \
-   parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 --line-buffer \
-    "__parallel_worker_wrapper {} '${XSLT_NOTES_PLANET_FILE}' '${XSLT_NOTE_COMMENTS_PLANET_FILE}' '${XSLT_TEXT_COMMENTS_PLANET_FILE}'"; then
+  if ! printf '%s\n' "${PART_FILES[@]}" \
+   | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 --line-buffer \
+    "__parallel_worker_wrapper {}"; then
    __loge "ERROR: Parallel processing failed"
    __log_finish
    return 1
@@ -766,25 +740,22 @@ function __processPlanetNotesWithParallel {
  else
   # Fallback: Process in batches using background jobs
   __logi "GNU parallel not found, using background jobs (${MAX_THREADS} concurrent)"
-  
+
   local ACTIVE_JOBS=0
   local PART_NUM=0
   local FAILED=0
-  
+
   for PART_FILE in "${PART_FILES[@]}"; do
    # Process part in background
    (
-    if ! __processPlanetXmlPart "${PART_FILE}" \
-     "${XSLT_NOTES_PLANET_FILE}" \
-     "${XSLT_NOTE_COMMENTS_PLANET_FILE}" \
-     "${XSLT_TEXT_COMMENTS_PLANET_FILE}"; then
+    if ! __processPlanetXmlPart "${PART_FILE}"; then
      exit 1
     fi
    ) &
-   
+
    ACTIVE_JOBS=$((ACTIVE_JOBS + 1))
    PART_NUM=$((PART_NUM + 1))
-   
+
    # Wait if we've reached max concurrent jobs
    if [[ ${ACTIVE_JOBS} -ge ${MAX_THREADS} ]]; then
     __logi "Waiting for batch of ${MAX_THREADS} jobs to complete..."
@@ -792,18 +763,18 @@ function __processPlanetNotesWithParallel {
     ACTIVE_JOBS=$((ACTIVE_JOBS - 1))
    fi
   done
-  
+
   # Wait for remaining jobs
   __logi "Waiting for remaining jobs to complete..."
   wait || FAILED=$((FAILED + 1))
-  
+
   if [[ ${FAILED} -gt 0 ]]; then
    __loge "ERROR: ${FAILED} parallel jobs failed"
    __log_finish
    return 1
   fi
  fi
- 
+
  __logi "All ${#PART_FILES[@]} parts processed successfully"
 
  # STEP 4: Consolidate partitions into main tables
@@ -1354,23 +1325,23 @@ function main() {
   __dropSyncTables      # base
   __dropApiTables       # base
   __dropGenericObjects  # base
- __dropBaseTables      # base
- __createBaseTables    # base
- __createSyncTables    # base
- __downloadPlanetNotes # base
- # Check if XML validation is enabled
- if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-  __logi "Validating Planet XML file (structure, dates, coordinates)..."
-  if ! __validatePlanetNotesXMLFileComplete; then
-   __loge "ERROR: XML validation failed. Stopping process."
-   exit "${ERROR_DATA_VALIDATION}"
+  __dropBaseTables      # base
+  __createBaseTables    # base
+  __createSyncTables    # base
+  __downloadPlanetNotes # base
+  # Check if XML validation is enabled
+  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+   __logi "Validating Planet XML file (structure, dates, coordinates)..."
+   if ! __validatePlanetNotesXMLFileComplete; then
+    __loge "ERROR: XML validation failed. Stopping process."
+    exit "${ERROR_DATA_VALIDATION}"
+   fi
+  else
+   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+   __logw "Assuming Planet XML is well-formed and valid (faster processing)"
   fi
- else
-  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
-  __logw "Assuming Planet XML is well-formed and valid (faster processing)"
- fi
- # Count notes in XML file
- __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+  # Count notes in XML file
+  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
   # Split XML into parts and process in parallel if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
    __processPlanetNotesWithParallel
@@ -1387,21 +1358,21 @@ function main() {
    __createBaseTables # sync
   fi
   set -E
- __createSyncTables    # sync
- __downloadPlanetNotes # sync
- # Check if XML validation is enabled
- if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-  __logi "Validating Planet XML file (structure, dates, coordinates)..."
-  if ! __validatePlanetNotesXMLFileComplete; then
-   __loge "ERROR: XML validation failed. Stopping process."
-   exit "${ERROR_DATA_VALIDATION}"
+  __createSyncTables    # sync
+  __downloadPlanetNotes # sync
+  # Check if XML validation is enabled
+  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+   __logi "Validating Planet XML file (structure, dates, coordinates)..."
+   if ! __validatePlanetNotesXMLFileComplete; then
+    __loge "ERROR: XML validation failed. Stopping process."
+    exit "${ERROR_DATA_VALIDATION}"
+   fi
+  else
+   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+   __logw "Assuming Planet XML is well-formed and valid (faster processing)"
   fi
- else
-  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
-  __logw "Assuming Planet XML is well-formed and valid (faster processing)"
- fi
- # Count notes in XML file
- __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+  # Count notes in XML file
+  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
   # Split XML into parts and process in parallel if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
    __processPlanetNotesWithParallel
@@ -1460,7 +1431,7 @@ function __show_help {
 
  echo "${BASENAME} version ${VERSION}"
  echo "This is a script that downloads the OSM notes from the Planet,"
- echo "processes them with a XSLT transformation, to create a flat file,"
+ echo "processes them with AWK extraction to create flat CSV files,"
  echo "and finally it uploads them into a PostgreSQL database."
  echo
  echo "It could receive one of these parameters:"

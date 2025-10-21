@@ -86,7 +86,7 @@ This script:
 
 #### Problem
 
-Required tools like `xsltproc`, `xmllint`, `shfmt`, or `shellcheck` are not available.
+Required tools like `xmllint`, `shfmt`, or `shellcheck` are not available.
 
 #### Solution
 
@@ -100,18 +100,18 @@ The workflow now includes comprehensive tool installation and verification:
       postgresql-client \
       bats \
       pgtap \
-      libxml2-dev \
-      libxslt1-dev \
       libxml2-utils \
-      xsltproc \
       shellcheck \
+      gawk \
+      parallel \
       curl
 
 - name: Verify tools availability
   run: |
     echo "Verifying required tools are available..."
-    command -v xsltproc && echo "✓ xsltproc available"
-    command -v xmllint && echo "✓ xmllint available"
+    command -v awk && echo "✓ awk available"
+    command -v parallel && echo "✓ parallel available"
+    command -v xmllint && echo "✓ xmllint available (optional)"
     command -v shfmt && echo "✓ shfmt available"
     command -v shellcheck && echo "✓ shellcheck available"
     command -v bats && echo "✓ bats available"
@@ -209,7 +209,7 @@ env | grep -E "(TEST_|DB|PG)"
 
 ```bash
 # Check tool availability
-which xsltproc xmllint shfmt shellcheck bats psql
+which awk parallel xmllint shfmt shellcheck bats psql
 ```
 
 ## Prevention Strategies

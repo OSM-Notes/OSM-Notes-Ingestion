@@ -92,20 +92,20 @@ teardown() {
  [[ "$output" -gt 0 ]]         # Should be greater than 0
 }
 
-# Test that real xsltproc works with mock data
-@test "real xsltproc should transform mock XML files" {
+# Test that real awkproc works with mock data
+@test "real awkproc should transform mock XML files" {
  # Create a test XML file using mock wget
  run wget -O "${TMP_DIR}/test.xml" "https://example.com/test.xml"
  [ "$status" -eq 0 ]
  
- # Test XSLT transformation with real xsltproc
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt" ]]; then
-   run xsltproc "${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt" "${TMP_DIR}/test.xml"
-   # Don't check output as XSLT may not produce any output depending on the transformation
+ # Test AWK transformation with real awkproc
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/notes-API-csv.awk" ]]; then
+   run awkproc "${SCRIPT_BASE_DIRECTORY}/awk/notes-API-csv.awk" "${TMP_DIR}/test.xml"
+   # Don't check output as AWK may not produce any output depending on the transformation
    # Just check that the command executed without error
    [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and no output
  else
-   skip "XSLT file not available"
+   skip "AWK file not available"
  fi
 }
 
@@ -173,9 +173,9 @@ teardown() {
  [ "$status" -eq 0 ]
  [[ "$output" =~ ^[0-9]+$ ]]
  
- # Transform with real xsltproc if XSLT file exists
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" ]]; then
-   run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${TMP_DIR}/planet_notes.xml"
+ # Transform with real awkproc if AWK file exists
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" ]]; then
+   run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" "${TMP_DIR}/planet_notes.xml"
    [ "$status" -eq 0 ]
    [[ "$output" == *","* ]]  # Should contain CSV format
  fi
@@ -208,8 +208,8 @@ teardown() {
  [ "$status" -eq 0 ]
  # Don't check for mock_commands exclusion as the mock may be in PATH
  
- # Check that real xsltproc is available
- run which xsltproc
+ # Check that real awkproc is available
+ run which awkproc
  [ "$status" -eq 0 ]
  # Don't check for mock_commands exclusion as the mock may be in PATH
  
@@ -236,19 +236,19 @@ teardown() {
  [[ "$note_count" =~ ^[0-9]+$ ]]
  [[ "$note_count" -gt 0 ]]
  
- # Transform to CSV if XSLT is available
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" ]]; then
-   run xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
+ # Transform to CSV if AWK is available
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" ]]; then
+   run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
    [ "$status" -eq 0 ]
    [ -f "${TMP_DIR}/notes.csv" ]
    
-   # Check CSV output (may be empty depending on XSLT)
+   # Check CSV output (may be empty depending on AWK)
    run wc -l < "${TMP_DIR}/notes.csv"
    [ "$status" -eq 0 ]
    local csv_lines="$output"
    # Accept any number of lines (including 0)
    [[ "$csv_lines" =~ ^[0-9]+$ ]]
  else
-   skip "XSLT file not available"
+   skip "AWK file not available"
  fi
 } 

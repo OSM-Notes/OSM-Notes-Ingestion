@@ -1,5 +1,5 @@
 -- Adds constraints and triggers for comments sequence validation
--- Sequence numbers are already generated in XSLT transformation
+-- Sequence numbers are already generated in AWK extraction
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-07-26
@@ -7,7 +7,7 @@
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Setting up sequence constraints and triggers' AS Text;
 
--- Make sequence_action NOT NULL since it's always provided by XSLT
+-- Make sequence_action NOT NULL since it's always provided by AWK
 ALTER TABLE note_comments ALTER COLUMN sequence_action SET NOT NULL;
 
 -- Create unique index to ensure no duplicate sequences per note
@@ -19,14 +19,14 @@ ALTER TABLE note_comments
  ADD CONSTRAINT unique_comment_note
  UNIQUE USING INDEX unique_comment_note;
 
--- Create trigger function for new comments (when not from XSLT)
+-- Create trigger function for new comments (when not from AWK)
 CREATE OR REPLACE FUNCTION put_seq_on_comment()
   RETURNS TRIGGER AS
  $$
  DECLARE
   max_value INTEGER;
  BEGIN
-   -- Only assign sequence if not already provided (from XSLT)
+   -- Only assign sequence if not already provided (from AWK)
    IF NEW.sequence_action IS NULL THEN
      SELECT /* Notes-processPlanet */ MAX(sequence_action)
       INTO max_value

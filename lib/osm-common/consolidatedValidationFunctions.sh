@@ -228,48 +228,6 @@ function __validate_xml_structure_impl() {
 # CSV Validation Functions (Consolidated)
 # =====================================================
 
-# Validate CSV for enum compatibility
-# Parameters:
-#   $1: CSV file path
-#   $2: Column index to validate (optional, default: 0)
-# Returns: 0 if validation passes, 1 if validation fails
-function __validate_csv_for_enum_compatibility() {
- __log_start
- local CSV_FILE="${1}"
- local COLUMN_INDEX="${2:-0}"
-
- if [[ ! -f "${CSV_FILE}" ]]; then
-  __loge "ERROR: CSV file not found: ${CSV_FILE}"
-  __log_finish
-  return 1
- fi
-
- __logi "Validating CSV enum compatibility: ${CSV_FILE}, column ${COLUMN_INDEX}"
-
- # Check if CSV has content
- if [[ ! -s "${CSV_FILE}" ]]; then
-  __loge "ERROR: CSV file is empty: ${CSV_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Validate column index
- local FIRST_LINE
- FIRST_LINE=$(head -n 1 "${CSV_FILE}")
- local COLUMN_COUNT
- COLUMN_COUNT=$(echo "${FIRST_LINE}" | awk -F',' '{print NF}')
-
- if [[ "${COLUMN_INDEX}" -ge "${COLUMN_COUNT}" ]]; then
-  __loge "ERROR: Column index ${COLUMN_INDEX} is out of range (0-${COLUMN_COUNT})"
-  __log_finish
-  return 1
- fi
-
- __logi "CSV enum compatibility validation succeeded"
- __log_finish
- return 0
-}
-
 # Validate OSM comments with realistic patterns
 # Parameters:
 #   $1: CSV file path

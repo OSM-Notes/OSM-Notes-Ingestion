@@ -4,10 +4,10 @@
 # This file contains functions for processing API data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-10-19
 
 # Define version variable
-VERSION="2025-08-13"
+VERSION="2025-10-19"
 
 # Show help function
 function __show_help() {
@@ -43,15 +43,11 @@ if [[ -z "${OUTPUT_NOTES_FILE:-}" ]]; then declare -r OUTPUT_NOTES_FILE="${TMP_D
 if [[ -z "${OUTPUT_NOTE_COMMENTS_FILE:-}" ]]; then declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"; fi
 if [[ -z "${OUTPUT_TEXT_COMMENTS_FILE:-}" ]]; then declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"; fi
 
-# XSLT transformation files for API format
+# XML Schema for strict validation (optional, only used if SKIP_XML_VALIDATION=false)
 # shellcheck disable=SC2034
-if [[ -z "${XSLT_NOTES_API_FILE:-}" ]]; then declare -r XSLT_NOTES_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/notes-API-csv.xslt"; fi
-if [[ -z "${XSLT_NOTE_COMMENTS_API_FILE:-}" ]]; then declare -r XSLT_NOTE_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-API-csv.xslt"; fi
-if [[ -z "${XSLT_TEXT_COMMENTS_API_FILE:-}" ]]; then declare -r XSLT_TEXT_COMMENTS_API_FILE="${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-API-csv.xslt"; fi
-
-# XML Schema of the API notes file
-# shellcheck disable=SC2034
-if [[ -z "${XMLSCHEMA_API_NOTES:-}" ]]; then declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"; fi
+if [[ -z "${XMLSCHEMA_API_NOTES:-}" ]]; then
+ declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
+fi
 
 # PostgreSQL SQL script files for API
 # shellcheck disable=SC2034
@@ -95,40 +91,6 @@ function __splitXmlForParallelAPI() {
  fi
  # Call the consolidated function
  __splitXmlForParallelSafeConsolidated "$@"
-}
-
-# Process XML with XSLT for API
-function __processXmlWithXsltAPI() {
- __log_start
- __logd "Processing XML with XSLT for API."
-
- local XML_FILE="${1}"
- local XSLT_FILE="${2:-${XSLT_NOTES_API_FILE}}"
- local OUTPUT_FILE="${3:-${OUTPUT_NOTES_FILE}}"
-
- if [[ ! -f "${XML_FILE}" ]]; then
-  __loge "ERROR: XML file not found: ${XML_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
-
- if [[ ! -f "${XSLT_FILE}" ]]; then
-  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
-
- # Create output directory
- mkdir -p "$(dirname "${OUTPUT_FILE}")"
-
- # Process XML with XSLT
- if xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" "${XSLT_FILE}" "${XML_FILE}" > "${OUTPUT_FILE}" 2> /dev/null; then
-  __logi "XSLT processing completed successfully."
-  __log_finish
-  return 0
- else
-  __loge "ERROR: XSLT processing failed."
-  __log_finish
-  return 1
- fi
 }
 
 # Get new notes from API

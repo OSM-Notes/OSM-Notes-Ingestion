@@ -33,10 +33,8 @@ fi
 if [[ -z "${PROCESS_TIMEOUT:-}" ]]; then
  declare -r PROCESS_TIMEOUT=300
 fi
-# MAX_RETRIES is already declared in functionsProcess.sh
-if [[ -z "${MAX_RETRIES:-}" ]]; then
- declare -r MAX_RETRIES=3
-fi
+# MAX_RETRIES is already declared in functionsProcess.sh - do not redeclare
+# RETRY_DELAY can be declared here if not already set
 if [[ -z "${RETRY_DELAY:-}" ]]; then
  declare -r RETRY_DELAY=5
 fi
@@ -1684,13 +1682,13 @@ function __splitXmlForParallelSafe() {
  # Verify parts were created
  local CREATED_PARTS
  CREATED_PARTS=$(find "${OUTPUT_DIR}" -name "${FORMAT_TYPE,,}_part_*.xml" -type f | wc -l)
- 
+
  if [[ "${CREATED_PARTS}" -eq 0 ]]; then
   __loge "ERROR: No parts were created"
   __log_finish
   return 1
  fi
- 
+
  __logi "XML splitting completed. Created ${CREATED_PARTS} parts in single pass (optimized)."
  __log_finish
 }

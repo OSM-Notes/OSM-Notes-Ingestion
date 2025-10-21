@@ -32,7 +32,7 @@ teardown() {
  echo "This suite includes:"
  echo "- Resource management functions"
  echo "- Process delay system"
- echo "- Robust XSLT processing"
+ echo "- Robust AWK processing"
  echo "- System limits configuration"
  echo "- Integration with main processing functions"
 }
@@ -124,25 +124,25 @@ teardown() {
  [ "${NUMERIC_OUTPUT}" -ge 1 ]
 }
 
-# XSLT Processing Tests
-@test "Robust XSLT processing function exists" {
+# AWK Processing Tests
+@test "Robust AWK processing function exists" {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
  source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
 
- # Check that the robust XSLT function exists
- command -v __process_xml_with_xslt_robust
+ # Check that the robust AWK function exists
+ command -v __process_xml_with_awk_robust
 }
 
-@test "Robust XSLT processing handles missing files" {
+@test "Robust AWK processing handles missing files" {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
  source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
 
  # Test with missing XML file
- run __process_xml_with_xslt_robust "/nonexistent.xml" "/nonexistent.xslt" "/tmp/output.csv"
+ run __process_xml_with_awk_robust "/nonexistent.xml" "/nonexistent.awk" "/tmp/output.csv"
  [ "$status" -eq 1 ]
 }
 
@@ -279,7 +279,7 @@ teardown() {
  echo "📊 Test coverage includes:"
  echo "   - Resource management: ✅"
  echo "   - Process delay system: ✅"
- echo "   - Robust XSLT processing: ✅"
+ echo "   - Robust AWK processing: ✅"
  echo "   - System limits: ✅"
  echo "   - Integration: ✅"
  echo "   - Error handling: ✅"

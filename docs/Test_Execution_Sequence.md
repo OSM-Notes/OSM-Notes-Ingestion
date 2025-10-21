@@ -23,14 +23,13 @@ complexity, and functional category. Ideal for:
 |-------|--------|---------------|------|-------------|
 | **Level 1 - Basic** | 15 | ~150 | 5-10 min | Fundamental and fast tests |
 | **Level 2 - Validation** | 20 | ~250 | 10-15 min | Data and format validation |
-| **Level 3 - XML/XSLT** | 18 | ~220 | 8-12 min | XML processing and transformation |
-| **Level 4 - Processing** | 18 | ~220 | 15-25 min | API and Planet processing logic |
-| **Level 5 - Parallel** | 18 | ~220 | 10-15 min | Parallel processing optimization |
-| **Level 6 - Cleanup** | 25 | ~350 | 12-18 min | Cleanup and error handling |
-| **Level 7 - Monitoring** | 18 | ~220 | 8-12 min | Monitoring and WMS |
-| **Level 8 - Advanced** | 18 | ~220 | 10-15 min | Advanced tests and edge cases |
-| **Level 9 - Integration** | 8 | ~68 | 10-20 min | End-to-End Integration |
-| **TOTAL** | **~158** | **~1,918** | **89-147 min** | |
+| **Level 3 - Processing** | 18 | ~220 | 15-25 min | API and Planet processing logic |
+| **Level 4 - Parallel** | 18 | ~220 | 10-15 min | Parallel processing optimization |
+| **Level 5 - Cleanup** | 25 | ~350 | 12-18 min | Cleanup and error handling |
+| **Level 6 - Monitoring** | 18 | ~220 | 8-12 min | Monitoring and WMS |
+| **Level 7 - Advanced** | 18 | ~220 | 10-15 min | Advanced tests and edge cases |
+| **Level 8 - Integration** | 8 | ~68 | 10-20 min | End-to-End Integration |
+| **TOTAL** | **~140** | **~1,698** | **81-135 min** | |
 
 ---
 
@@ -160,11 +159,11 @@ bats tests/unit/bash/centralized_validation.test.bats \
 
 ---
 
-## Level 3 - XML/XSLT Tests (8-12 minutes)
+## Level 3 - XML Processing Tests (5-8 minutes)
 
 ### Objective
 
-Validate XML processing and XSLT transformations.
+Validate XML processing and AWK extraction.
 
 ### Included Suites
 
@@ -172,40 +171,25 @@ Validate XML processing and XSLT transformations.
 # 3.1 - CSV enum validation (9 tests, ~1 min)
 bats tests/unit/bash/csv_enum_validation.test.bats
 
-# 3.2 - XSLT enum format (tests, ~2 min)
-bats tests/unit/bash/xslt_enum_format.test.bats
-
-# 3.3 - XSLT enum validation (tests, ~2 min)
-bats tests/unit/bash/xslt_enum_validation.test.bats
-
-# 3.4 - XSLT simple (tests, ~1 min)
-bats tests/unit/bash/xslt_simple.test.bats
-
-# 3.5 - XSLT CSV format (tests, ~2 min)
-bats tests/unit/bash/xslt_csv_format.test.bats
-
-# 3.6 - XSLT large notes recursion (tests, ~2 min)
-bats tests/unit/bash/xslt_large_notes_recursion.test.bats
-
-# 3.7 - XML validation simple (tests, ~2 min)
+# 3.2 - XML validation simple (tests, ~2 min)
 bats tests/unit/bash/xml_validation_simple.test.bats
 
-# 3.8 - XML validation enhanced (tests, ~2 min)
+# 3.3 - XML validation enhanced (tests, ~2 min)
 bats tests/unit/bash/xml_validation_enhanced.test.bats
 
-# 3.9 - XML validation functions (tests, ~2 min)
+# 3.4 - XML validation functions (tests, ~2 min)
 bats tests/unit/bash/xml_validation_functions.test.bats
 
-# 3.10 - XML validation large files (tests, ~3 min)
+# 3.5 - XML validation large files (tests, ~3 min)
 bats tests/unit/bash/xml_validation_large_files.test.bats
 
-# 3.11 - XML processing enhanced (tests, ~2 min)
+# 3.6 - XML processing enhanced (tests, ~2 min)
 bats tests/unit/bash/xml_processing_enhanced.test.bats
 
-# 3.12 - XML corruption recovery (tests, ~2 min)
+# 3.7 - XML corruption recovery (tests, ~2 min)
 bats tests/unit/bash/xml_corruption_recovery.test.bats
 
-# 3.13 - Resource limits (tests, ~2 min)
+# 3.8 - Resource limits (tests, ~2 min)
 bats tests/unit/bash/resource_limits.test.bats
 ```
 
@@ -214,13 +198,8 @@ bats tests/unit/bash/resource_limits.test.bats
 ```bash
 cd /home/angoca/github/OSM-Notes-Ingestion
 
-# Execute all XML/XSLT tests
+# Execute all XML processing tests
 bats tests/unit/bash/csv_enum_validation.test.bats \
-     tests/unit/bash/xslt_enum_format.test.bats \
-     tests/unit/bash/xslt_enum_validation.test.bats \
-     tests/unit/bash/xslt_simple.test.bats \
-     tests/unit/bash/xslt_csv_format.test.bats \
-     tests/unit/bash/xslt_large_notes_recursion.test.bats \
      tests/unit/bash/xml_validation_simple.test.bats \
      tests/unit/bash/xml_validation_enhanced.test.bats \
      tests/unit/bash/xml_validation_functions.test.bats \
@@ -230,7 +209,7 @@ bats tests/unit/bash/csv_enum_validation.test.bats \
      tests/unit/bash/resource_limits.test.bats
 ```
 
-**Expected result:** ✅ ~80-100 tests passing in 8-12 minutes
+**Expected result:** ✅ ~60-80 tests passing in 5-8 minutes
 
 ---
 
@@ -580,13 +559,10 @@ bats tests/integration/mock_planet_processing.test.bats
 # 9.5 - ProcessAPI parallel error integration (7 tests, ~2 min)
 bats tests/integration/processAPINotes_parallel_error_integration.test.bats
 
-# 9.6 - XSLT integration (7 tests, ~2 min)
-bats tests/integration/xslt_integration.test.bats
-
-# 9.7 - End to end (6 tests, ~3 min)
+# 9.6 - End to end (6 tests, ~3 min)
 bats tests/integration/end_to_end.test.bats
 
-# 9.8 - ProcessAPI historical e2e (5 tests, ~2 min)
+# 9.7 - ProcessAPI historical e2e (5 tests, ~2 min)
 bats tests/integration/processAPI_historical_e2e.test.bats
 ```
 
@@ -601,7 +577,6 @@ bats tests/integration/boundary_processing_error_integration.test.bats \
      tests/integration/logging_pattern_validation_integration.test.bats \
      tests/integration/mock_planet_processing.test.bats \
      tests/integration/processAPINotes_parallel_error_integration.test.bats \
-     tests/integration/xslt_integration.test.bats \
      tests/integration/end_to_end.test.bats \
      tests/integration/processAPI_historical_e2e.test.bats
 ```
@@ -699,8 +674,8 @@ bats tests/unit/bash/processAPINotes*.bats \
 bats tests/unit/bash/processPlanetNotes*.bats \
      tests/unit/bash/mock_planet_functions.test.bats
 
-# Complete XML/XSLT
-bats tests/unit/bash/xml*.bats tests/unit/bash/xslt*.bats
+# Complete XML processing
+bats tests/unit/bash/xml*.bats
 
 # Complete Parallel Processing
 bats tests/parallel_processing_test_suite.bats \
@@ -820,8 +795,8 @@ bats tests/unit/bash/format_and_lint.test.bats
 # Quick verification (15-20 min)
 ./tests/run_tests_sequential.sh quick
 
-# Specific level (example: Level 3 - XML/XSLT)
-bats tests/unit/bash/xml*.bats tests/unit/bash/xslt*.bats
+# Specific level (example: Level 3 - XML Processing)
+bats tests/unit/bash/xml*.bats
 
 # Specific suite
 bats tests/unit/bash/processAPINotes.test.bats

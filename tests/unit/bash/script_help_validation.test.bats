@@ -49,16 +49,6 @@ teardown() {
  [ "$status" -eq 1 ]  # Expected exit code for help
 }
 
-# Test that ETL.sh works with --help
-@test "ETL.sh should work with --help option" {
- [ "$status" -eq 1 ]  # Expected exit code for help
-}
-
-# Test that profile.sh works with --help
-@test "profile.sh should work with --help option" {
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
-}
-
 # Test that wmsManager.sh works with --help
 @test "wmsManager.sh should work with --help option" {
  run bash "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh" --help
@@ -78,16 +68,6 @@ teardown() {
 # Test that updateCountries.sh works with --help
 @test "updateCountries.sh should work with --help option" {
  run bash "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --help 2>&1
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
-}
-
-# Test that datamartCountries.sh works with --help
-@test "datamartCountries.sh should work with --help option" {
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
-}
-
-# Test that datamartUsers.sh should work with --help
-@test "datamartUsers.sh should work with --help option" {
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
 }
 

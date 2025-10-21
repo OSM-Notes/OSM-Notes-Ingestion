@@ -186,7 +186,6 @@ __verify_required_tools() {
   "bats"
   "psql"
   "xmllint"
-  "xsltproc"
   "shellcheck"
  )
 

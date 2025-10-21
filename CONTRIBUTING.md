@@ -130,8 +130,8 @@ sudo apt-get install shellcheck shfmt bats
 # Install database tools
 sudo apt-get install postgresql postgis
 
-# Install XML processing tools
-sudo apt-get install libxml2-utils xsltproc xmlstarlet
+# Install XML validation tools (optional, only if SKIP_XML_VALIDATION=false)
+sudo apt-get install libxml2-utils
 
 # Install geographic tools
 sudo apt-get install gdal-bin ogr2ogr
@@ -146,7 +146,7 @@ Familiarize yourself with the project structure:
 - **`tests/`**: Comprehensive testing infrastructure
 - **`docs/`**: System documentation
 - **`etc/`**: Configuration files
-- **`xslt/`**: XML transformations
+- **`awk/`**: AWK extraction scripts (XML to CSV conversion)
 - **`xsd/`**: XML schema definitions
 - **`overpass/`**: Geographic data queries
 - **`sld/`**: Map styling definitions
@@ -347,7 +347,7 @@ project/
 │   └── fixtures/        # Test data
 ├── docs/                 # Documentation
 ├── etc/                  # Configuration
-├── xslt/                 # XML transformations
+├── awk/                  # AWK extraction scripts
 ├── xsd/                  # XML schemas
 ├── overpass/             # Geographic queries
 └── sld/                  # Map styling

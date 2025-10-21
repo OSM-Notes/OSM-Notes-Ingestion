@@ -204,9 +204,9 @@ AS $func$
   FOR m_record IN EXECUTE format(
     'SELECT geom, country_id
      FROM countries
-     WHERE country_id != COALESCE(%s, -1)
+     WHERE country_id != %L
      ORDER BY %I NULLS LAST',
-    m_current_country,
+    COALESCE(m_current_country, -1),
     m_order_column
   )
   LOOP

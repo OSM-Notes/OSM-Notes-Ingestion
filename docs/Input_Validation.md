@@ -42,7 +42,7 @@ The following validation functions are available in `bin/functionsProcess.sh`:
 - **`__validate_xml_structure(xml_file, expected_root)`**
   - Validates XML syntax and structure
   - Checks for expected root element
-  - Uses `xmllint` and `xmlstarlet`
+  - Uses `xmllint` (optional, only if SKIP_XML_VALIDATION=false)
 
 - **`__validate_csv_structure(csv_file, expected_columns)`**
   - Validates CSV structure and content
@@ -75,9 +75,8 @@ The following validation functions are available in `bin/functionsProcess.sh`:
 
 - **`__validate_xml_dates(xml_file, xpath_expression)`**
   - Validates dates in XML files
-  - Extracts dates using XPath expressions
-  - Default XPath: `//@created_at|//@closed_at|//@timestamp|//date`
-  - Requires `xmlstarlet` for XPath processing
+  - Extracts dates using grep/sed pattern matching
+  - Validates created_at, closed_at, and timestamp attributes
 
 - **`__validate_csv_dates(csv_file, date_column)`**
   - Validates dates in CSV files
@@ -153,17 +152,13 @@ function __checkPrereqs {
 ```bash
 function __checkPrereqs {
   # Validate XML schema files
-  __logi "Validating XML schema files..."
-  if ! __validate_xml_structure "${XMLSCHEMA_PLANET_NOTES}" "osm-notes"; then
-    __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
-    exit "${ERROR_MISSING_LIBRARY}"
-  fi
-  
-  # Validate XSLT files
-  __logi "Validating XSLT files..."
-  if ! __validate_input_file "${XSLT_NOTES_PLANET_FILE}" "XSLT notes file"; then
-    __loge "ERROR: XSLT notes file validation failed: ${XSLT_NOTES_PLANET_FILE}"
-    exit "${ERROR_MISSING_LIBRARY}"
+  # Validate XML schema files (only if validation is enabled)
+  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+    __logi "Validating XML schema files..."
+    if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
+      __loge "ERROR: XML schema validation failed: ${XMLSCHEMA_PLANET_NOTES}"
+      exit "${ERROR_MISSING_LIBRARY}"
+    fi
   fi
   
   # Validate dates in XML files if they exist

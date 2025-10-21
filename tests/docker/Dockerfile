@@ -1,6 +1,6 @@
 # Dockerfile for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-10-20
 
 FROM ubuntu:22.04
 
@@ -17,7 +17,6 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libxslt1-dev \
     postgresql-client \
-    bats \
     python3 \
     python3-pip \
     netcat \
@@ -37,7 +36,22 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libelf-dev \
     libdw-dev \
+    gawk \
     && rm -rf /var/lib/apt/lists/*
+
+# Install BATS-core (modern version with bats_require_minimum_version support)
+RUN git clone --depth 1 --branch v1.11.0 https://github.com/bats-core/bats-core.git /tmp/bats-core && \
+    cd /tmp/bats-core && \
+    ./install.sh /usr/local && \
+    rm -rf /tmp/bats-core
+
+# Install bats-support and bats-assert
+RUN git clone --depth 1 https://github.com/bats-core/bats-support.git /usr/local/lib/bats-support && \
+    git clone --depth 1 https://github.com/bats-core/bats-assert.git /usr/local/lib/bats-assert
+
+# Install shfmt
+RUN wget -O /usr/local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64 && \
+    chmod +x /usr/local/bin/shfmt
 
 # Install additional tools
 RUN pip3 install \
@@ -66,6 +80,9 @@ WORKDIR /app
 
 # Copy application files
 COPY . /app/
+
+# Ensure AWK scripts are available (replacing old XSLT)
+RUN mkdir -p /app/awk
 
 # Set permissions
 RUN chown -R testuser:testuser /app && \

@@ -142,9 +142,9 @@ Tested on OSM Planet with ~4.87M notes:
 
 ## See Also
 
-- `docs/AWK_vs_XSLT_Analysis.md` - Technical comparison
-- `docs/AWK_Quick_Start.md` - Quick start guide
-- `xslt/` - Previous XSLT implementation (deprecated)
+- `bin/process/processAPINotes.sh` - API notes processing (uses these scripts)
+- `bin/process/processPlanetNotes.sh` - Planet notes processing (uses these scripts)
+- `bin/process/extractPlanetNotesAwk.sh` - Planet extraction wrapper
 
 ## Author
 

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Test CSV Generation for OSM-Notes-profile
-# Tests XSLT transformations to ensure proper CSV generation
+# Tests AWK transformations to ensure proper CSV generation
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-26
+# Version: 2025-10-21
 
 set -euo pipefail
 
@@ -14,7 +14,7 @@ source "$(dirname "$0")/../properties.sh"
 # Create test output directory
 mkdir -p test_output
 
-echo "Testing CSV generation with XSLT transformations..."
+echo "Testing CSV generation with AWK transformations..."
 
 # Create a simple test XML file
 cat > test_output/test_planet.xml << 'EOF'
@@ -32,21 +32,21 @@ EOF
 
 # Test Planet notes transformation
 echo "Testing Planet notes transformation..."
-xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" ../../xslt/notes-Planet-csv.xslt test_output/test_planet.xml > test_output/planet_notes_test.csv
+awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" ../../awk/notes-Planet-csv.awk test_output/test_planet.xml > test_output/planet_notes_test.csv
 
 echo "Planet notes CSV generated:"
 cat test_output/planet_notes_test.csv
 
 # Test Planet comments transformation
 echo "Testing Planet comments transformation..."
-xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" ../../xslt/note_comments-Planet-csv.xslt test_output/test_planet.xml > test_output/planet_comments_test.csv
+awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" ../../awk/note_comments-Planet-csv.awk test_output/test_planet.xml > test_output/planet_comments_test.csv
 
 echo "Planet comments CSV generated:"
 cat test_output/planet_comments_test.csv
 
 # Test Planet text comments transformation
 echo "Testing Planet text comments transformation..."
-xsltproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" ../../xslt/note_comments_text-Planet-csv.xslt test_output/test_planet.xml > test_output/planet_text_comments_test.csv
+awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" ../../awk/note_comments_text-Planet-csv.awk test_output/test_planet.xml > test_output/planet_text_comments_test.csv
 
 echo "Planet text comments CSV generated:"
 cat test_output/planet_text_comments_test.csv

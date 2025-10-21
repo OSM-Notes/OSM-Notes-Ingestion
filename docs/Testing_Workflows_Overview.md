@@ -93,7 +93,6 @@ When you make a push or pull request, you see three different "workflow runs" be
 | `run_enhanced_tests.sh`                | tests/                                    | Advanced testability and robustness tests                                     |
 | `run_real_data_tests.sh`               | tests/                                    | Tests with real data and special cases                                        |
 | `run_parallel_tests.sh`                | tests/                                    | Validates parallel processing and concurrency                                 |
-| `run_xml_xslt_tests.sh`                | tests/                                    | XML/XSLT validation and transformation tests                                  |
 | `run_error_handling_tests.sh`          | tests/                                    | Error handling and edge case validation tests                                 |
 | `run_dwh_tests.sh`                     | tests/                                    | DWH enhanced testing (new dimensions, functions, ETL)                         |
 | `run_ci_tests.sh`                      | tests/docker/                             | CI/CD tests in Docker environment                                             |

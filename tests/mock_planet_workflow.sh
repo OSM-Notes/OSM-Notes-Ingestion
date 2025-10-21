@@ -47,21 +47,21 @@ check_prerequisites() {
     fi
     
     # Check if XSLT files exist
-    local xslt_files=(
-        "xslt/notes-Planet-csv.xslt"
-        "xslt/note_comments-Planet-csv.xslt"
-        "xslt/note_comments_text-Planet-csv.xslt"
+    local awk_files=(
+        "awk/notes-Planet-csv.awk"
+        "awk/note_comments-Planet-csv.awk"
+        "awk/note_comments_text-Planet-csv.awk"
     )
     
-    for xslt_file in "${xslt_files[@]}"; do
-        if [[ ! -f "${SCRIPT_BASE_DIRECTORY}/${xslt_file}" ]]; then
-            log_error "XSLT file not found: ${xslt_file}"
+    for awk_file in "${awk_files[@]}"; do
+        if [[ ! -f "${SCRIPT_BASE_DIRECTORY}/${awk_file}" ]]; then
+            log_error "XSLT file not found: ${awk_file}"
             exit 1
         fi
     done
     
     # Check if required commands exist
-    local commands=("xsltproc" "grep" "wc" "head" "tail")
+    local commands=("awkproc" "grep" "wc" "head" "tail")
     for cmd in "${commands[@]}"; do
         if ! command -v "${cmd}" >/dev/null 2>&1; then
             log_error "Required command not found: ${cmd}"
@@ -107,14 +107,14 @@ analyze_mock_xml() {
 }
 
 # Process XML with XSLT
-process_with_xslt() {
-    local xslt_file="$1"
+process_with_awk() {
+    local awk_file="$1"
     local output_file="$2"
     local description="$3"
     
     log_info "Processing ${description}..."
     
-    if xsltproc --maxdepth "${XSLT_MAX_DEPTH}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
+    if awkproc --maxdepth "${XSLT_MAX_DEPTH}" "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
         local line_count
         line_count=$(wc -l < "${output_file}")
         log_success "${description} completed: ${line_count} lines"
@@ -134,7 +134,7 @@ main_processing_workflow() {
     
     # Process notes
     local notes_output="${TEST_OUTPUT_DIR}/mock_notes.csv"
-    if process_with_xslt "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${notes_output}" "Notes CSV"; then
+    if process_with_awk "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" "${notes_output}" "Notes CSV"; then
         # Verify notes output
         if [[ -f "${notes_output}" ]] && [[ -s "${notes_output}" ]]; then
             local notes_lines
@@ -150,7 +150,7 @@ main_processing_workflow() {
     
     # Process comments
     local comments_output="${TEST_OUTPUT_DIR}/mock_comments.csv"
-    if process_with_xslt "${SCRIPT_BASE_DIRECTORY}/xslt/note_comments-Planet-csv.xslt" "${comments_output}" "Comments CSV"; then
+    if process_with_awk "${SCRIPT_BASE_DIRECTORY}/awk/note_comments-Planet-csv.awk" "${comments_output}" "Comments CSV"; then
         if [[ -f "${comments_output}" ]] && [[ -s "${comments_output}" ]]; then
             local comments_lines
             comments_lines=$(wc -l < "${comments_output}")
@@ -165,7 +165,7 @@ main_processing_workflow() {
     
     # Process text comments
     local text_output="${TEST_OUTPUT_DIR}/mock_text_comments.csv"
-    if process_with_xslt "${SCRIPT_BASE_DIRECTORY}/xslt/note_comments_text-Planet-csv.xslt" "${text_output}" "Text comments CSV"; then
+    if process_with_awk "${SCRIPT_BASE_DIRECTORY}/awk/note_comments_text-Planet-csv.awk" "${text_output}" "Text comments CSV"; then
         if [[ -f "${text_output}" ]] && [[ -s "${text_output}" ]]; then
             local text_lines
             text_lines=$(wc -l < "${text_output}")
@@ -261,7 +261,7 @@ EOF
             local output_csv
             output_csv="${parts_dir}/${part_name}.csv"
             
-            if process_with_xslt "${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt" "${output_csv}" "Part ${part_name}"; then
+            if process_with_awk "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" "${output_csv}" "Part ${part_name}"; then
                 ((processed_parts++))
                 local part_lines
                 part_lines=$(wc -l < "${output_csv}")
@@ -277,7 +277,7 @@ EOF
 performance_testing() {
     log_info "Running performance tests..."
     
-    local xslt_file="${SCRIPT_BASE_DIRECTORY}/xslt/notes-Planet-csv.xslt"
+    local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
     local output_file="${TEST_OUTPUT_DIR}/performance_test.csv"
     local iterations=5
     
@@ -291,7 +291,7 @@ performance_testing() {
         local start_time
         start_time=$(date +%s.%N)
         
-        if xsltproc --maxdepth "${XSLT_MAX_DEPTH}" "${xslt_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
+        if awkproc --maxdepth "${XSLT_MAX_DEPTH}" "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>/dev/null; then
             local end_time
             end_time=$(date +%s.%N)
             

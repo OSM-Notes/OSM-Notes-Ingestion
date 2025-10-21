@@ -44,7 +44,7 @@ FROM notes_api WHERE part_id = current_setting('app.part_id', true)::INTEGER;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading comments from API partition ' || current_setting('app.part_id', true) AS Text;
 
--- Load comments into specific partition (sequence_action already provided by XSLT)
+-- Load comments into specific partition (sequence_action already provided by AWK)
 COPY note_comments_api (note_id, sequence_action, event, created_at, id_user, username, part_id)
 FROM '${OUTPUT_COMMENTS_PART}' csv DELIMITER ',' QUOTE '''';
 
@@ -61,7 +61,7 @@ FROM note_comments_api WHERE part_id = current_setting('app.part_id', true)::INT
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading text comments from API partition ' || current_setting('app.part_id', true) AS Text;
 
--- Load text comments into specific partition (sequence_action already provided by XSLT)
+-- Load text comments into specific partition (sequence_action already provided by AWK)
 COPY note_comments_text_api (note_id, sequence_action, body, part_id)
 FROM '${OUTPUT_TEXT_PART}' csv DELIMITER ',' QUOTE '''';
 

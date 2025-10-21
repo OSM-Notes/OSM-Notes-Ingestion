@@ -13,7 +13,6 @@ utilities that may still be useful for specific testing scenarios.
 Legacy test files and utilities:
 
 - **`command/`**: Command-line testing utilities
-- **`xslt/`**: XSLT transformation testing files
 - **Individual test scripts**: Various test files for specific components
 - **Test utilities**: Helper scripts and testing tools
 
@@ -22,7 +21,6 @@ Legacy test files and utilities:
 ### Legacy Testing
 
 - **Command Testing**: Utilities for testing command-line operations
-- **XSLT Testing**: Tests for XML transformation processes
 - **Component Testing**: Individual component test scripts
 - **Utility Testing**: Tests for helper functions and tools
 
@@ -54,4 +52,3 @@ This directory provides:
 - Bash scripting environment
 - Testing frameworks and tools
 - Data processing utilities
-- XML and XSLT processing tools

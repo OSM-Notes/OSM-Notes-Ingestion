@@ -9,7 +9,6 @@ This directory contains BATS (Bash Automated Testing System) unit tests for shel
 - **`resource_limits.test.bats`**: Tests for XML processing resource limitations and monitoring
 - **`historical_data_validation.test.bats`**: Tests for historical data validation in processAPI
 - **`processAPI_historical_integration.test.bats`**: Integration tests for processAPI historical validation
-- **`xslt_enum_format.test.bats`**: Tests for XSLT enum format validation and PostgreSQL compatibility
 - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing and validation tests
 - **`processPlanetNotes.test.bats`**: Tests for Planet Notes processing functionality
 - **`processAPINotes.test.bats`**: Tests for API Notes processing functionality
@@ -47,39 +46,6 @@ The `processAPI_historical_integration.test.bats` provides comprehensive scenari
 3. **Fresh Installation**: Base tables don't exist (triggers planet sync)
 4. **Database Issues**: Connection failures and error handling
 5. **Script Integration**: Real processAPI script validation
-
-### XSLT Enum Format Testing
-
-The `xslt_enum_format.test.bats` file tests the critical PostgreSQL enum compatibility fix:
-
-#### Bug Fixed
-
-**Original Error:**
-
-```text
-ERROR: la sintaxis de entrada no es válida para el enum note_event_enum: «"opened"»
-```
-
-**Root Cause:** XSLT was generating CSV with quoted enum values (`"opened"`) instead of unquoted (`opened`).
-
-#### Tests Categories
-
-1. **Enum Quote Validation**: Ensures no quotes around enum values (`opened`, `commented`, `closed`, `reopened`)
-2. **XML Structure Compliance**: Tests correct XML element access (`action` vs `@action`)
-3. **CSV Format Validation**: Verifies PostgreSQL COPY command compatibility
-4. **Regression Testing**: Reproduces and validates fix for the original error
-5. **Comprehensive Format Testing**: All enum values and CSV structure validation
-
-#### Test Functions
-
-- `api_xslt_generates_enum_values_without_quotes`: Basic enum format validation
-- `api_xslt_handles_different_enum_values_correctly`: All enum values testing  
-- `planet_xslt_generates_enum_values_without_quotes`: Planet XSLT validation
-- `planet_xslt_handles_different_enum_values_correctly`: Planet enum values
-- `api_csv_format_is_compatible_with_postgresql_enum`: Database compatibility
-- `planet_csv_format_is_compatible_with_postgresql_enum`: Planet compatibility
-- `verify_fix_for_reported_enum_error`: Regression test for original bug
-- `csv_format_is_ready_for_postgresql_copy_command`: Complete format validation
 
 ### Resource Limitation Testing
 
@@ -154,13 +120,6 @@ bats processAPI_historical_integration.test.bats
 ```bash
 cd tests/unit/bash
 bats historical_data_validation.test.bats processAPI_historical_integration.test.bats
-```
-
-### XSLT Enum Format Tests
-
-```bash
-cd tests/unit/bash
-bats xslt_enum_format.test.bats
 ```
 
 ### All Bash Unit Tests
