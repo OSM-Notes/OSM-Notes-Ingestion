@@ -25,9 +25,6 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
-# Start logger (using available logging functions)
-__logi "Starting cleanupAll.sh script"
-
 # Load validation functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; then
  # shellcheck source=validationFunctions.sh
@@ -35,6 +32,11 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; th
 else
  __loge "ERROR: validationFunctions.sh not found"
  exit 1
+fi
+
+# Start logger only if not being sourced for testing
+if [[ "${SKIP_MAIN:-}" != "true" ]]; then
+ __logi "Starting cleanupAll.sh script"
 fi
 
 # Function to check if database exists
