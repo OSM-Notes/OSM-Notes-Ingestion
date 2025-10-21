@@ -12,7 +12,8 @@ Version: 2025-10-21
 
 ### This Week's Goals
 - [ ] Fix foreign key violation in note_comments_text (Issue #1)
-- [ ] Implement environment detection (Code TODO #1)
+- [✅] Implement environment detection (Code TODO #1) - COMPLETED
+- [✅] Clarify SQL query logic (Code TODO #2) - COMPLETED
 - [ ] Fix NULL geometry in countries (Issue #5)
 - [ ] Add basic retry logic for API calls (Issue #7)
 
@@ -22,14 +23,24 @@ Version: 2025-10-21
 
 ### Week of 2025-10-21
 - **Monday**: Created ActionPlan.md and ProgressTracker.md
+- **Monday**: ✅ Implemented environment detection (Code TODO #1)
+  - Modified `__handle_error_with_cleanup` function
+  - Uses TEST_MODE and BATS_TEST_NAME for detection
+  - exit in production, return in tests
+  - Updated function documentation
+- **Monday**: ✅ Clarified SQL query logic (Code TODO #2)
+  - File: sql/monitor/notesCheckVerifier-report.sql
+  - Documented why `closed_at < NOW()::DATE` filter is used
+  - Explained Planet vs API comparison logic (Planet from yesterday)
+  - Prevents false positives by excluding notes closed today
 - **Tuesday**: 
 - **Wednesday**: 
 - **Thursday**: 
 - **Friday**: 
 - **Weekend**: 
 
-**Completed this week**: 0 items  
-**Blockers**: None yet
+**Completed this week**: 2 items  
+**Blockers**: None
 
 ---
 
@@ -43,29 +54,41 @@ Version: 2025-10-21
 | Priority | Total | Done | In Progress | Remaining |
 |----------|-------|------|-------------|-----------|
 | 🔴 Critical | 11 | 0 | 0 | 11 |
-| 🟡 High | 14 | 0 | 0 | 14 |
+| 🟡 High | 14 | 2 | 0 | 12 |
 | 🟠 Medium | 17 | 0 | 0 | 17 |
 | 🟢 Low | 35 | 1 | 0 | 34 |
 | 📊 Refactor | 44 | 0 | 0 | 44 |
-| **TOTAL** | **121** | **1** | **0** | **120** |
+| **TOTAL** | **121** | **3** | **0** | **118** |
 
-**Overall Progress**: 0.8% (1/121)
+**Overall Progress**: 2.5% (3/121)
 
 ---
 
 ## Recently Completed
 
-1. ✅ DM #2: Include hashtags in note (Already implemented)
+1. ✅ **2025-10-21** - Code TODO #2: Clarify SQL query logic
+   - File: sql/monitor/notesCheckVerifier-report.sql (line 118-125)
+   - Documented Planet vs API comparison logic
+   - Explained why notes closed today are excluded from comparison
+   - Reason: Planet dump is from yesterday, API is real-time
+
+2. ✅ **2025-10-21** - Code TODO #1: Implement environment detection
+   - Modified `__handle_error_with_cleanup` in functionsProcess.sh
+   - Detects test environment via TEST_MODE or BATS_TEST_NAME
+   - Uses exit in production, return in tests
+   - Improved function documentation
+
+3. ✅ DM #2: Include hashtags in note (Already implemented)
 
 ---
 
 ## Next 5 Items to Work On
 
-1. 🔴 Issue #1: Fix foreign key violation in note_comments_text
-2. 🔴 Code TODO #1: Implement environment detection  
+1. 🟡 Validation #1: Validate properties file parameters (quick win)
+2. 🔴 Issue #1: Fix foreign key violation in note_comments_text
 3. 🔴 Issue #5: Fix NULL geometry in countries
 4. 🔴 Issue #7: Add basic retry logic for APIs
-5. 🟡 Validation #1: Validate properties file parameters
+5. 🟡 Validation #2: Add database connection check in checkPrereqs
 
 ---
 
@@ -82,6 +105,17 @@ Version: 2025-10-21
 - 121 total items identified across all priorities
 - Decided to start with critical database bugs
 - ActionPlan.md created for detailed tracking
+- ✅ **COMPLETED**: Code TODO #1 - Environment detection
+  - Solution: Check TEST_MODE or BATS_TEST_NAME variables
+  - Implementation: Modified `__handle_error_with_cleanup` function
+  - Impact: Proper behavior in test vs production environments
+- ✅ **COMPLETED**: Code TODO #2 - SQL query clarification
+  - File: sql/monitor/notesCheckVerifier-report.sql
+  - Documented Planet vs API comparison filtering logic
+  - Key insight: Planet dump from yesterday, API is real-time
+  - Prevents false positives by excluding notes closed today
+- **Decision**: Continue with quick wins (validations) before tackling complex DB bugs
+- **Progress**: 2 tasks completed in one day (both high priority TODOs in code)
 
 ---
 

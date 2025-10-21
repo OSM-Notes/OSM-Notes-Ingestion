@@ -1,7 +1,7 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-29
+-- Version: 2025-10-21
 
 -- Shows the information of the latest note, which should be recent.
 COPY
@@ -115,7 +115,14 @@ INSERT INTO temp_diff_notes
   EXCEPT
   SELECT /* Notes-check */ note_id, latitude, longitude, created_at, status
   FROM notes
-  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE) -- TODO no entiendo esto
+  -- Filter to exclude notes closed TODAY in API database.
+  -- Rationale: The Planet dump (notes_check) is from yesterday (created at 5 UTC),
+  -- so it does not contain notes that were closed today. To avoid false positives
+  -- in the comparison, we exclude notes from the API (notes) that were closed today.
+  -- This ensures a fair comparison between yesterday's Planet snapshot and API data.
+  -- We include: 1) open notes (closed_at IS NULL), and
+  --             2) notes closed before today (closed_at < NOW()::DATE)
+  WHERE (closed_at IS NULL OR closed_at < NOW()::DATE)
  ) AS t
  ORDER BY note_id
 ;

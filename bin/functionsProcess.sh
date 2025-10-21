@@ -1893,9 +1893,21 @@ function __check_network_connectivity() {
  return 1
 }
 
-# Enhanced error recovery with automatic cleanup
-# Parameters: error_code error_message [cleanup_commands...]
-# Returns: Always exits with error_code
+# Enhanced error recovery with automatic cleanup.
+# Exits in production, returns in test environment.
+#
+# Parameters:
+#   $1 - error_code: Exit/return code
+#   $2 - error_message: Error description
+#   $@ - cleanup_commands: Commands to execute before exit/return
+#
+# Environment Variables:
+#   TEST_MODE: If "true", uses return instead of exit
+#   BATS_TEST_NAME: If set, uses return instead of exit (BATS testing)
+#
+# Returns:
+#   In production: Exits with error_code
+#   In test environment: Returns with error_code
 function __handle_error_with_cleanup() {
  __log_start
  local ERROR_CODE="$1"
@@ -1938,9 +1950,14 @@ function __handle_error_with_cleanup() {
 
  __log_finish
  # Use exit in production, return in test environment
- # For now, always use return to avoid issues in test environments
- # TODO: Implement proper environment detection
- return "${ERROR_CODE}"
+ # Detect test environment via TEST_MODE or BATS_TEST_NAME variables
+ if [[ "${TEST_MODE:-false}" == "true" ]] || [[ -n "${BATS_TEST_NAME:-}" ]]; then
+  __logd "Test environment detected, using return instead of exit"
+  return "${ERROR_CODE}"
+ else
+  __logd "Production environment detected, using exit"
+  exit "${ERROR_CODE}"
+ fi
 }
 
 # Retry file operations with cleanup on failure

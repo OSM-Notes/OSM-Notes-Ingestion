@@ -93,15 +93,18 @@ Status: In Progress
 ## 🟡 HIGH PRIORITY
 
 ### Code TODOs
-- [ ] **Code TODO #1**: Implement proper environment detection
-  - **File**: bin/functionsProcess.sh:1942
+- [✅] **Code TODO #1**: Implement proper environment detection
+  - **File**: bin/functionsProcess.sh:1942-1948
   - **Issue**: Need to detect test vs production for exit/return
-  - **Solution**: Add environment variable check
+  - **Solution**: Add environment variable check (TEST_MODE, BATS_TEST_NAME)
+  - **Completed**: 2025-10-21 - Uses exit in production, return in tests
 
-- [ ] **Code TODO #2**: Clarify and document SQL query logic
-  - **File**: sql/monitor/notesCheckVerifier-report.sql:118
+- [✅] **Code TODO #2**: Clarify and document SQL query logic
+  - **File**: sql/monitor/notesCheckVerifier-report.sql:118-125
   - **Comment**: "TODO no entiendo esto" on closed_at filter
   - **Solution**: Document why `closed_at < NOW()::DATE` is used
+  - **Completed**: 2025-10-21 - Documented Planet vs API comparison logic
+  - **Explanation**: Excludes notes closed today from API to match yesterday's Planet snapshot
 
 ### Validations (from prompts)
 - [ ] **Validation #1**: Validate properties file parameters
@@ -585,9 +588,11 @@ Status: In Progress
 - **Refactoring**: 44 (36%)
 
 ### Status Overview
-- [✅] Completed: 1 (0.8%)
+- [✅] Completed: 3 (2.5%)
   - DM #2: Include hashtags in note
-- [ ] Not Started: 120 (99.2%)
+  - Code TODO #1: Implement environment detection
+  - Code TODO #2: Clarify SQL query logic
+- [ ] Not Started: 118 (97.5%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 0
 
