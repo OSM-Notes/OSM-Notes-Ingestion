@@ -5,10 +5,10 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
+# Version: 2025-10-21
 
 # Define version variable
-VERSION="2025-10-19"
+VERSION="2025-10-21"
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -653,6 +653,163 @@ function __processPlanetXmlPart() {
 # Returns:
 #   0 if all extensions exist, 1 if any missing
 
+# Validates all properties from etc/properties.sh configuration file.
+# Ensures all required parameters have valid values and proper types.
+#
+# Validates:
+#   - Database configuration (DBNAME, DB_USER)
+#   - Email configuration (EMAILS format)
+#   - URLs (OSM_API, PLANET, OVERPASS_INTERPRETER)
+#   - Numeric parameters (LOOP_SIZE, MAX_NOTES, MAX_THREADS, MIN_NOTES_FOR_PARALLEL)
+#   - Boolean parameters (CLEAN, SKIP_XML_VALIDATION)
+#
+# Returns:
+#   0 if all properties are valid
+#
+# Exits:
+#   ERROR_GENERAL (1) if any property is invalid
+function __validate_properties {
+ __log_start
+ __logi "Validating properties from configuration file"
+ 
+ local -i VALIDATION_ERRORS=0
+ 
+ # Validate DBNAME (required, non-empty string)
+ if [[ -z "${DBNAME:-}" ]]; then
+  __loge "ERROR: DBNAME is not set or empty"
+  VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+ else
+  __logd "✓ DBNAME: ${DBNAME}"
+ fi
+ 
+ # Validate DB_USER (required, non-empty string)
+ if [[ -z "${DB_USER:-}" ]]; then
+  __loge "ERROR: DB_USER is not set or empty"
+  VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+ else
+  __logd "✓ DB_USER: ${DB_USER}"
+ fi
+ 
+ # Validate EMAILS (basic email format check)
+ if [[ -n "${EMAILS:-}" ]]; then
+  # Basic email regex: contains @ and . after @
+  if [[ ! "${EMAILS}" =~ ^[^@]+@[^@]+\.[^@]+$ ]]; then
+   __logw "WARNING: EMAILS may have invalid format: ${EMAILS}"
+   __logw "Expected format: user@domain.com"
+  else
+   __logd "✓ EMAILS: ${EMAILS}"
+  fi
+ fi
+ 
+ # Validate OSM_API (URL format)
+ if [[ -n "${OSM_API:-}" ]]; then
+  if [[ ! "${OSM_API}" =~ ^https?:// ]]; then
+   __loge "ERROR: OSM_API must be a valid HTTP/HTTPS URL, got: ${OSM_API}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ OSM_API: ${OSM_API}"
+  fi
+ fi
+ 
+ # Validate PLANET (URL format)
+ if [[ -n "${PLANET:-}" ]]; then
+  if [[ ! "${PLANET}" =~ ^https?:// ]]; then
+   __loge "ERROR: PLANET must be a valid HTTP/HTTPS URL, got: ${PLANET}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ PLANET: ${PLANET}"
+  fi
+ fi
+ 
+ # Validate OVERPASS_INTERPRETER (URL format)
+ if [[ -n "${OVERPASS_INTERPRETER:-}" ]]; then
+  if [[ ! "${OVERPASS_INTERPRETER}" =~ ^https?:// ]]; then
+   __loge "ERROR: OVERPASS_INTERPRETER must be a valid HTTP/HTTPS URL, got: ${OVERPASS_INTERPRETER}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ OVERPASS_INTERPRETER: ${OVERPASS_INTERPRETER}"
+  fi
+ fi
+ 
+ # Validate LOOP_SIZE (positive integer)
+ if [[ -n "${LOOP_SIZE:-}" ]]; then
+  if [[ ! "${LOOP_SIZE}" =~ ^[1-9][0-9]*$ ]]; then
+   __loge "ERROR: LOOP_SIZE must be a positive integer, got: ${LOOP_SIZE}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ LOOP_SIZE: ${LOOP_SIZE}"
+  fi
+ fi
+ 
+ # Validate MAX_NOTES (positive integer)
+ if [[ -n "${MAX_NOTES:-}" ]]; then
+  if [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
+   __loge "ERROR: MAX_NOTES must be a positive integer, got: ${MAX_NOTES}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ MAX_NOTES: ${MAX_NOTES}"
+  fi
+ fi
+ 
+ # Validate MAX_THREADS (positive integer, reasonable limit)
+ if [[ -n "${MAX_THREADS:-}" ]]; then
+  if [[ ! "${MAX_THREADS}" =~ ^[1-9][0-9]*$ ]]; then
+   __loge "ERROR: MAX_THREADS must be a positive integer, got: ${MAX_THREADS}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  elif [[ "${MAX_THREADS}" -gt 100 ]]; then
+   __logw "WARNING: MAX_THREADS=${MAX_THREADS} exceeds recommended maximum (100)"
+   __logw "This may cause excessive resource usage"
+  elif [[ "${MAX_THREADS}" -lt 1 ]]; then
+   __loge "ERROR: MAX_THREADS must be at least 1, got: ${MAX_THREADS}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ MAX_THREADS: ${MAX_THREADS}"
+  fi
+ fi
+ 
+ # Validate MIN_NOTES_FOR_PARALLEL (positive integer)
+ if [[ -n "${MIN_NOTES_FOR_PARALLEL:-}" ]]; then
+  if [[ ! "${MIN_NOTES_FOR_PARALLEL}" =~ ^[1-9][0-9]*$ ]]; then
+   __loge "ERROR: MIN_NOTES_FOR_PARALLEL must be a positive integer, got: ${MIN_NOTES_FOR_PARALLEL}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ MIN_NOTES_FOR_PARALLEL: ${MIN_NOTES_FOR_PARALLEL}"
+  fi
+ fi
+ 
+ # Validate CLEAN (boolean: true or false)
+ if [[ -n "${CLEAN:-}" ]]; then
+  if [[ "${CLEAN}" != "true" && "${CLEAN}" != "false" ]]; then
+   __loge "ERROR: CLEAN must be 'true' or 'false', got: ${CLEAN}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ CLEAN: ${CLEAN}"
+  fi
+ fi
+ 
+ # Validate SKIP_XML_VALIDATION (boolean: true or false)
+ if [[ -n "${SKIP_XML_VALIDATION:-}" ]]; then
+  if [[ "${SKIP_XML_VALIDATION}" != "true" && "${SKIP_XML_VALIDATION}" != "false" ]]; then
+   __loge "ERROR: SKIP_XML_VALIDATION must be 'true' or 'false', got: ${SKIP_XML_VALIDATION}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ SKIP_XML_VALIDATION: ${SKIP_XML_VALIDATION}"
+  fi
+ fi
+ 
+ # Check for validation errors
+ if [[ ${VALIDATION_ERRORS} -gt 0 ]]; then
+  __loge "Properties validation failed with ${VALIDATION_ERRORS} error(s)"
+  __loge "Please check your etc/properties.sh configuration file"
+  __log_finish
+  exit "${ERROR_GENERAL}"
+ fi
+ 
+ __logi "✓ All properties validated successfully"
+ __log_finish
+ return 0
+}
+
 # Checks prerequisites commands to run the script.
 # Validates that all required tools and libraries are available.
 function __checkPrereqsCommands {
@@ -663,6 +820,10 @@ function __checkPrereqsCommands {
   __log_finish
   return 0
  fi
+ 
+ # Validate properties first (fail-fast on configuration errors)
+ __validate_properties
+ 
  set +e
  ## PostgreSQL
  __logd "Checking PostgreSQL."
@@ -825,34 +986,6 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- ## Validate configuration variables
- __logd "Validating configuration variables."
-
- # Validate MAX_THREADS
- if [[ ! "${MAX_THREADS}" =~ ^[1-9][0-9]*$ ]]; then
-  __loge "ERROR: MAX_THREADS must be a positive integer, got: ${MAX_THREADS}"
-  exit "${ERROR_GENERAL}"
- fi
- # Validate MAX_THREADS to prevent excessive resource usage
- if [[ "${MAX_THREADS}" -gt 100 ]]; then
-  __logw "MAX_THREADS exceeds 100, limiting to 100"
-  MAX_THREADS=100
- fi
- # Validate TMP_DIR
- if [[ -z "${TMP_DIR}" ]]; then
-  __loge "ERROR: TMP_DIR is not set"
-  exit "${ERROR_GENERAL}"
- fi
- # Validate DBNAME
- if [[ -z "${DBNAME}" ]]; then
-  __loge "ERROR: DBNAME is not set"
-  exit "${ERROR_GENERAL}"
- fi
- # Validate MAX_NOTES
- if [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
-  __loge "ERROR: MAX_NOTES must be a positive integer, got: ${MAX_NOTES}"
-  exit "${ERROR_GENERAL}"
- fi
  set -e
  # Mark prerequisites as checked for this execution
  PREREQS_CHECKED=true
