@@ -63,21 +63,21 @@ teardown() {
   echo "✓ Mock XML file contains ${note_count} notes and ${comment_count} comments"
 }
 
-@test "XSLT processing works with mock Planet XML (notes CSV)" {
+@test "AWK processing works with mock Planet XML (notes CSV)" {
   local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_notes.csv"
   
-  # Verify XSLT file exists
+  # Verify AWK file exists
   [ -f "${awk_file}" ]
   
-  # Process XML with XSLT
+  # Process XML with AWK
   run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
-  # Verify CSV structure (Planet XSLT doesn't generate headers, only data)
+  # Verify CSV structure (Planet AWK doesn't generate headers, only data)
   local line_count
   line_count=$(wc -l < "${output_file}")
   [ "${line_count}" -gt 0 ] # At least some data
@@ -88,21 +88,21 @@ teardown() {
   echo "✓ Notes CSV generated successfully: ${line_count} lines"
 }
 
-@test "XSLT processing works with mock Planet XML (comments CSV)" {
+@test "AWK processing works with mock Planet XML (comments CSV)" {
   local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/note_comments-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_comments.csv"
   
-  # Verify XSLT file exists
+  # Verify AWK file exists
   [ -f "${awk_file}" ]
   
-  # Process XML with XSLT
+  # Process XML with AWK
   run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
-  # Verify CSV structure (Planet XSLT doesn't generate headers, only data)
+  # Verify CSV structure (Planet AWK doesn't generate headers, only data)
   local line_count
   line_count=$(wc -l < "${output_file}")
   [ "${line_count}" -gt 0 ] # At least some data
@@ -113,21 +113,21 @@ teardown() {
   echo "✓ Comments CSV generated successfully: ${line_count} lines"
 }
 
-@test "XSLT processing works with mock Planet XML (text comments CSV)" {
+@test "AWK processing works with mock Planet XML (text comments CSV)" {
   local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/note_comments_text-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_text_comments.csv"
   
-  # Verify XSLT file exists
+  # Verify AWK file exists
   [ -f "${awk_file}" ]
   
-  # Process XML with XSLT
+  # Process XML with AWK
   run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
-  # Verify CSV structure (Planet XSLT doesn't generate headers, only data)
+  # Verify CSV structure (Planet AWK doesn't generate headers, only data)
   local line_count
   line_count=$(wc -l < "${output_file}")
   [ "${line_count}" -gt 0 ] # At least some data
@@ -138,18 +138,18 @@ teardown() {
   echo "✓ Text comments CSV generated successfully: ${line_count} lines"
 }
 
-@test "Mock XML can be processed with robust XSLT function" {
+@test "Mock XML can be processed with robust AWK function" {
   local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_robust_notes.csv"
   
-  # Test the robust XSLT processing function
+  # Test the robust AWK processing function
   run __process_xml_with_awk_robust "${MOCK_XML_FILE}" "${awk_file}" "${output_file}" "" "" "" "false"
   
   [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
-  echo "✓ Robust XSLT processing completed successfully"
+  echo "✓ Robust AWK processing completed successfully"
 }
 
 @test "Mock XML can be manually divided into parts for testing" {

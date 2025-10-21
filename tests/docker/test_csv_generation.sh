@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Test CSV Generation for OSM-Notes-profile
-# Tests XSLT transformations to ensure proper CSV generation
+# Tests AWK transformations to ensure proper CSV generation
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-26
+# Version: 2025-10-21
 
 set -euo pipefail
 
@@ -14,7 +14,7 @@ source "$(dirname "$0")/../properties.sh"
 # Create test output directory
 mkdir -p test_output
 
-echo "Testing CSV generation with XSLT transformations..."
+echo "Testing CSV generation with AWK transformations..."
 
 # Create a simple test XML file
 cat > test_output/test_planet.xml << 'EOF'

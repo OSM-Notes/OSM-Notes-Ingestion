@@ -49,16 +49,6 @@ teardown() {
  [ "$status" -eq 1 ]  # Expected exit code for help
 }
 
-# Test that ETL.sh works with --help
-@test "ETL.sh should work with --help option" {
- skip "ETL.sh moved to OSM-Notes-Analytics repository"
-}
-
-# Test that profile.sh works with --help
-@test "profile.sh should work with --help option" {
- skip "profile.sh moved to OSM-Notes-Analytics repository"
-}
-
 # Test that wmsManager.sh works with --help
 @test "wmsManager.sh should work with --help option" {
  run bash "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh" --help
@@ -79,16 +69,6 @@ teardown() {
 @test "updateCountries.sh should work with --help option" {
  run bash "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --help 2>&1
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # Accept both success and help exit codes
-}
-
-# Test that datamartCountries.sh works with --help
-@test "datamartCountries.sh should work with --help option" {
- skip "datamartCountries.sh moved to OSM-Notes-Analytics repository"
-}
-
-# Test that datamartUsers.sh should work with --help
-@test "datamartUsers.sh should work with --help option" {
- skip "datamartUsers.sh moved to OSM-Notes-Analytics repository"
 }
 
 # Test that geoserverConfig.sh should work with --help
