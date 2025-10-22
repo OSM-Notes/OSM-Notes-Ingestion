@@ -151,8 +151,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-20
-VERSION="2025-10-20"
+# Version: 2025-10-22
+VERSION="2025-10-22"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -277,6 +277,24 @@ export SCRIPT_EXIT_CODE=0
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
+# Local wrapper for __common_create_failed_marker from alertFunctions.sh
+# This adds the script-specific parameters (script name and failed file path)
+# to the common alert function.
+#
+# Parameters:
+#   $1 - error_code: The error code that triggered the failure
+#   $2 - error_message: Description of what failed
+#   $3 - required_action: (Optional) What action is needed to fix it
+#
+# Note: This wrapper allows existing code to continue using the simple 3-parameter
+# interface while calling the common 5-parameter function in alertFunctions.sh
+function __create_failed_marker() {
+ # Call the common alert function with script-specific parameters
+ # Format: script_name, error_code, error_message, required_action, failed_file
+ __common_create_failed_marker "processPlanetNotes" "${1}" "${2}" \
+  "${3:-Verify the issue and fix it manually}" "${FAILED_EXECUTION_FILE}"
+}
+
 # Load Planet-specific functions
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
@@ -288,6 +306,10 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 # Load error handling functions
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
+
+# Load alert functions for failed execution notifications
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 
 # Load API-specific functions (includes POSTGRES_12_DROP_API_TABLES)
 # shellcheck disable=SC1091
@@ -817,6 +839,9 @@ function __validatePlanetNotesXMLFileComplete {
  # Check if file exists
  if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
   __loge "ERROR: Planet notes file not found: ${PLANET_NOTES_FILE}"
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "Planet notes file not found: ${PLANET_NOTES_FILE}" \
+   "Check if the Planet XML file was downloaded correctly and exists at the expected location"
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -828,6 +853,9 @@ function __validatePlanetNotesXMLFileComplete {
  if ! __validate_xml_with_enhanced_error_handling "${PLANET_NOTES_FILE}" "${XMLSCHEMA_PLANET_NOTES}"; then
   __loge "ERROR: XML structure validation failed: ${PLANET_NOTES_FILE}"
   __cleanup_validation_temp_files
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "XML structure validation failed: ${PLANET_NOTES_FILE}" \
+   "Check if the Planet XML file is well-formed and matches the expected schema"
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -836,6 +864,9 @@ function __validatePlanetNotesXMLFileComplete {
  if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
   __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
   __cleanup_validation_temp_files
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "XML date validation failed: ${PLANET_NOTES_FILE}" \
+   "Check if the Planet XML file contains valid date formats"
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -844,6 +875,9 @@ function __validatePlanetNotesXMLFileComplete {
  if ! __validate_xml_coordinates "${PLANET_NOTES_FILE}"; then
   __loge "ERROR: XML coordinate validation failed: ${PLANET_NOTES_FILE}"
   __cleanup_validation_temp_files
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "XML coordinate validation failed: ${PLANET_NOTES_FILE}" \
+   "Check if the Planet XML file contains valid coordinate values"
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -1277,6 +1311,9 @@ function __processGeographicData {
   __loge "ERROR: Geographic data required but not available."
   __loge "Please run updateCountries.sh --base first to load initial geographic data."
   __loge "This script only processes notes and requires geographic data to be pre-loaded."
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "Geographic data required but not available (countries: ${COUNTRIES_COUNT})" \
+   "Run updateCountries.sh --base first to load initial geographic data"
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -1329,11 +1366,20 @@ function main() {
   __createBaseTables    # base
   __createSyncTables    # base
   __downloadPlanetNotes # base
+  if [[ $? -ne 0 ]]; then
+   __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
+    "Failed to download Planet notes" \
+    "Check network connectivity and OSM Planet server status. If temporary, delete this file and retry"
+   exit "${ERROR_DOWNLOADING_NOTES}"
+  fi
   # Check if XML validation is enabled
   if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
    __logi "Validating Planet XML file (structure, dates, coordinates)..."
    if ! __validatePlanetNotesXMLFileComplete; then
     __loge "ERROR: XML validation failed. Stopping process."
+    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+     "XML validation failed during Planet processing" \
+     "Check the Planet XML file for structural, date, or coordinate issues"
     exit "${ERROR_DATA_VALIDATION}"
    fi
   else
@@ -1360,11 +1406,20 @@ function main() {
   set -E
   __createSyncTables    # sync
   __downloadPlanetNotes # sync
+  if [[ $? -ne 0 ]]; then
+   __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
+    "Failed to download Planet notes" \
+    "Check network connectivity and OSM Planet server status. If temporary, delete this file and retry"
+   exit "${ERROR_DOWNLOADING_NOTES}"
+  fi
   # Check if XML validation is enabled
   if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
    __logi "Validating Planet XML file (structure, dates, coordinates)..."
    if ! __validatePlanetNotesXMLFileComplete; then
     __loge "ERROR: XML validation failed. Stopping process."
+    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+     "XML validation failed during Planet processing" \
+     "Check the Planet XML file for structural, date, or coordinate issues"
     exit "${ERROR_DATA_VALIDATION}"
    fi
   else

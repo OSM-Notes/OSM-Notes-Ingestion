@@ -123,16 +123,17 @@ Version: 2025-10-21
 
 ## Quick Stats
 
-| Priority | Total | Done | In Progress | Remaining |
-|----------|-------|------|-------------|-----------|
-| 🔴 Critical | 11 | 3 | 0 | 8 |
-| 🟡 High | 14 | 7 | 0 | 7 |
-| 🟠 Medium | 17 | 0 | 0 | 17 |
-| 🟢 Low | 35 | 1 | 0 | 34 |
-| 📊 Refactor | 44 | 0 | 0 | 44 |
-| **TOTAL** | **121** | **11** | **0** | **110** |
+| Priority | Total | Done | In Progress | Remaining | Cancelled |
+|----------|-------|------|-------------|-----------|-----------|
+| 🔴 Critical | 10 | 3 | 0 | 7 | 1 |
+| 🟡 High | 14 | 7 | 0 | 7 | 0 |
+| 🟠 Medium | 5 | 0 | 0 | 5 | 12 |
+| 🟢 Low | 9 | 1 | 0 | 8 | 26 |
+| 📊 Refactor | 44 | 0 | 0 | 44 | 0 |
+| **TOTAL** | **82** | **11** | **0** | **71** | **39** |
 
-**Overall Progress**: 9.1% (11/121)
+**Overall Progress**: 13.4% (11/82 active tasks)  
+**Note**: 39 tasks cancelled (DWH/ETL/Datamarts/Visualizer moved to different repo)
 
 ---
 
@@ -240,11 +241,11 @@ Version: 2025-10-21
 
 ## Next 5 Items to Work On
 
-1. 🟡 Validation #6: Validate CSV generated files (quick win - 45 min)
-2. 🔴 Issue #1: Fix foreign key violation in note_comments_text (1-2 hrs)
-3. 🔴 Issue #5: Fix NULL geometry in countries (1 hr)
-4. 🔴 Issue #4: NULL in recent_opened_dimension_id_date (1-2 hrs)
-5. 🔴 Issue #3: "Trying to reopen an opened note" (1 hr)
+1. 🔴 Issue #2: Desynchronization between notes and comments (1-2 hrs)
+2. 🔴 Issue #6: Network failure handling with retry (1-2 hrs)
+3. 🔴 Issue #7: Standardize retry logic for API calls (1 hr)
+4. 🔴 Issue #8: Implement rollback mechanism (2-3 hrs)
+5. 🔴 Issue #9: Fix SQL injection vulnerabilities (2-3 hrs)
 
 ---
 

@@ -49,11 +49,9 @@ Status: In Progress
   - **Behavior**: Invalid transitions logged as WARNING (NOTICE) but don't fail transaction
   - **Impact**: Prevents transaction failures, maintains OSM API data integrity
 
-- [ ] **Issue #4**: NULL value in `recent_opened_dimension_id_date`
-  - **Example**: Note 4172438, sequence 2
-  - **Root cause**: max_processed_timestamp greater than uninserted notes
-  - **Solution**: Process notes in staging that aren't in facts but are older than max_processed
-  - **Files**: sql/dwh/Staging_61_loadNotes.sql
+- [❌] **Issue #4**: NULL value in `recent_opened_dimension_id_date` - CANCELLED
+  - **Reason**: DWH code no longer in this repository
+  - **Date**: 2025-10-21
 
 #### Geometry Errors
 - [✅] **Issue #5**: Fix NULL geometry in countries update
@@ -184,67 +182,12 @@ Status: In Progress
 
 ## 🟠 MEDIUM PRIORITY
 
-### ETL Improvements (from ToDos.md)
+### ❌ ETL/DWH (CANCELLED - Code moved to different repository)
 
-#### Reporting
-- [ ] **ETL #1**: Generate change report when loading ETL
-  - **Replace**: SELECT statements with exports
-  - **Show**: Detailed changes identified
-  - **Files**: ETL scripts
+- [❌] **ETL #1-9**: All ETL improvements - CANCELLED (2025-10-21)
+- [❌] **Monitor ETL #1-3**: All Monitor ETL tasks - CANCELLED (2025-10-21)
 
-- [ ] **ETL #2**: Count hashtags in notes during ETL
-  - **Implementation**: Parse note text for hashtags
-  - **Store**: In appropriate tables
-
-- [ ] **ETL #3**: Calculate and store hashtag count in FACTS
-  - **Column**: Number of hashtags per note
-  - **Files**: Staging load procedures
-
-- [ ] **ETL #4**: Calculate currently open notes
-  - **Breakdowns**: By user, total
-  - **Storage**: DWH summary tables
-
-- [ ] **ETL #5**: Maintain count of open notes per country
-  - **Update**: On each ETL run
-  - **Files**: Country dimension updates
-
-- [ ] **ETL #6**: Use comment sequence in facts table
-  - **Current status**: Check if already implemented
-  - **Files**: Facts table structure
-
-#### Refactoring
-- [ ] **ETL #7**: Refactor CREATE and INITIAL in Staging
-  - **Issue**: Common code duplication
-  - **Solution**: Extract common logic to shared function
-  - **Files**: Staging scripts
-
-- [ ] **ETL #8**: Use separate database for DWH
-  - **Reason**: Separation of concerns, performance
-  - **Migration**: Move DWH schema to new DB
-  - **Files**: All DWH scripts, connection configs
-
-- [ ] **ETL #9**: Handle country changes for notes
-  - **Issue**: When boundaries update, notes may change country
-  - **Solution**: Update dimension and affected datamarts
-  - **Consider**: Recalculate all affected star schema values
-  - **Files**: UpdateCountries, dimension updates
-
-### Monitor ETL (from ToDos.md)
-- [ ] **Monitor ETL #1**: Handle reopened notes in DWH
-  - **Issue**: Closed flag not removed on reopen (UPDATE is expensive)
-  - **Alternative**: Process differently, maintain max action
-  - **Files**: DWH update procedures
-
-- [ ] **Monitor ETL #2**: Verify comment count equals actions in facts
-  - **Check**: note_comments count = facts actions count
-  - **Similar**: Validation for datamarts
-  - **Files**: Monitor scripts
-
-- [ ] **Monitor ETL #3**: Fix datamart reload on same day
-  - **Issue**: Reloading notes from same day
-  - **Status**: May already be fixed
-  - **Verify**: Test datamart reload behavior
-  - **Files**: Datamart loading scripts
+**Reason**: DWH/ETL code is no longer maintained in this repository
 
 ### Scalability (from prompts)
 - [ ] **Scale #1**: Implement parallel processing
@@ -267,7 +210,14 @@ Status: In Progress
 
 ## 🟢 LOW PRIORITY
 
-### Datamarts - Applications and Hashtags
+### ❌ Datamarts & Visualizer (CANCELLED - Code moved to different repository)
+
+- [❌] **DM #1-19**: All Datamart tasks - CANCELLED (2025-10-21)
+- [❌] **VIZ #1-7**: All Visualizer tasks - CANCELLED (2025-10-21)
+
+**Reason**: DWH/ETL/Datamarts/Visualizer code is no longer in this repository
+
+### Datamarts - Applications and Hashtags (LEGACY)
 
 - [ ] **DM #1**: Show applications used to create notes
   - **Source**: Parse comment text
@@ -608,15 +558,22 @@ Status: In Progress
 ## 📈 Progress Summary
 
 ### Statistics
-- **Total Items**: 121
-- **Critical**: 11 (9%)
-- **High**: 14 (12%)
-- **Medium**: 17 (14%)
-- **Low**: 35 (29%)
-- **Refactoring**: 44 (36%)
+- **Total Items**: 121 (82 active + 39 cancelled)
+- **Critical**: 10 active (was 11, -1 cancelled)
+- **High**: 14 active
+- **Medium**: 5 active (was 17, -12 cancelled)
+- **Low**: 9 active (was 35, -26 cancelled)
+- **Refactoring**: 44 active
+
+**Cancelled items** (moved to different repository):
+- Issue #4 (Critical): DWH NULL dimension
+- ETL #1-9 (Medium): 9 tasks
+- Monitor ETL #1-3 (Medium): 3 tasks
+- DM #1-19 (Low): 19 tasks
+- VIZ #1-7 (Low): 7 tasks
 
 ### Status Overview
-- [✅] Completed: 11 (9.1%)
+- [✅] Completed: 11 / 82 active tasks (13.4%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -628,24 +585,26 @@ Status: In Progress
   - Issue #5: Fix NULL geometry in countries update
   - Issue #3: Fix "Trying to reopen an opened note"
   - Issue #1: Fix foreign key violation in note_comments_text
-- [ ] Not Started: 110 (90.9%)
+- [ ] Not Started: 71 / 82 active tasks (86.6%)
 - [🔄] In Progress: 0
-- [❌] Cancelled: 0
+- [❌] Cancelled: 39 tasks (DWH/ETL/Datamarts/Visualizer moved to different repo)
 
-### By Category
-- Database Errors: 5 items
+### By Category (Active tasks only)
+- Database Errors: 4 items (was 5, -1 cancelled)
 - Error Handling: 3 items
 - Security: 3 items
 - Validations: 6 items
 - Base Monitoring: 2 items
-- ETL: 9 items
-- Monitor ETL: 3 items
 - Scalability: 3 items
-- Datamarts: 19 items
-- Visualizer: 7 items
 - Documentation: 4 items
 - Code Refactoring: 44 items
 - Other: 3 items
+
+**Cancelled categories:**
+- ETL: 9 items (cancelled)
+- Monitor ETL: 3 items (cancelled)
+- Datamarts: 19 items (cancelled)
+- Visualizer: 7 items (cancelled)
 
 ---
 

@@ -683,10 +683,10 @@ function __processPlanetXmlPart() {
 #
 # Validates:
 #   - Database configuration (DBNAME, DB_USER)
-#   - Email configuration (EMAILS format)
+#   - Email configuration (EMAILS format, ADMIN_EMAIL format)
 #   - URLs (OSM_API, PLANET, OVERPASS_INTERPRETER)
 #   - Numeric parameters (LOOP_SIZE, MAX_NOTES, MAX_THREADS, MIN_NOTES_FOR_PARALLEL)
-#   - Boolean parameters (CLEAN, SKIP_XML_VALIDATION)
+#   - Boolean parameters (CLEAN, SKIP_XML_VALIDATION, SEND_ALERT_EMAIL)
 #
 # Returns:
 #   0 if all properties are valid
@@ -821,6 +821,31 @@ function __validate_properties {
    __logd "✓ SKIP_XML_VALIDATION: ${SKIP_XML_VALIDATION}"
   fi
  fi
+ 
+ # Validate ADMIN_EMAIL (email format check)
+ if [[ -n "${ADMIN_EMAIL:-}" ]]; then
+  # Basic email regex: contains @ and . after @
+  if [[ ! "${ADMIN_EMAIL}" =~ ^[^@]+@[^@]+\.[^@]+$ ]]; then
+   __logw "WARNING: ADMIN_EMAIL may have invalid format: ${ADMIN_EMAIL}"
+   __logw "Expected format: user@domain.com"
+   __logw "Email alerts may not work correctly"
+  else
+   __logd "✓ ADMIN_EMAIL: ${ADMIN_EMAIL}"
+  fi
+ else
+  __logd "✓ ADMIN_EMAIL: using default (root@localhost)"
+ fi
+ 
+ # Validate SEND_ALERT_EMAIL (boolean: true or false)
+ if [[ -n "${SEND_ALERT_EMAIL:-}" ]]; then
+  if [[ "${SEND_ALERT_EMAIL}" != "true" && "${SEND_ALERT_EMAIL}" != "false" ]]; then
+   __loge "ERROR: SEND_ALERT_EMAIL must be 'true' or 'false', got: ${SEND_ALERT_EMAIL}"
+   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  else
+   __logd "✓ SEND_ALERT_EMAIL: ${SEND_ALERT_EMAIL}"
+  fi
+ fi
+ 
  
  # Check for validation errors
  if [[ ${VALIDATION_ERRORS} -gt 0 ]]; then

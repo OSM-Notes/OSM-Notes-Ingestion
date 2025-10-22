@@ -4,7 +4,7 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-10-19
+# Version: 2025-10-22
 
 # Database configuration.
 # shellcheck disable=SC2034
@@ -18,6 +18,18 @@ fi
 
 # Email configuration for reports.
 declare EMAILS="${EMAILS:-username@domain.com}"
+
+# Alert configuration for failed executions.
+# Email address for immediate failure alerts.
+# shellcheck disable=SC2034
+declare ADMIN_EMAIL="${ADMIN_EMAIL:-root@localhost}"
+
+# Enable/disable email alerts on failures.
+# Set to "true" to send immediate email alerts when critical errors occur.
+# Set to "false" to only create failed execution marker files without sending alerts.
+# shellcheck disable=SC2034
+declare SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-true}"
+
 
 # OpenStreetMap API configuration.
 # shellcheck disable=SC2034

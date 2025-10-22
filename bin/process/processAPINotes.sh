@@ -26,20 +26,32 @@
 #
 # FAILED EXECUTION MECHANISM:
 # When critical errors occur, the script creates a "failed execution marker file"
-# at /tmp/processAPINotes_failed_execution. This prevents subsequent executions
-# from running until the issue is resolved. The marker file contains:
-# - Timestamp of the failure
-# - Error code and description
-# - Required action to fix the issue
-# - Process ID and temporary directory
+# at /tmp/processAPINotes_failed_execution AND sends immediate alerts.
+# This prevents subsequent executions from running until the issue is resolved.
+#
+# Immediate Alerts (sent when error occurs):
+# - Email alert (if SEND_ALERT_EMAIL=true and mail is configured)
+# - Slack alert (if SEND_ALERT_SLACK=true and SLACK_WEBHOOK_URL is set)
+# - No waiting for external monitor - alerts sent instantly
+#
+# Configuration (optional environment variables):
+# - ADMIN_EMAIL: Email address for alerts (default: root@localhost)
+# - SEND_ALERT_EMAIL: Set to "false" to disable email (default: true)
+# - SLACK_WEBHOOK_URL: Slack webhook URL for alerts
+# - SEND_ALERT_SLACK: Set to "true" to enable Slack (default: false)
+#
+# Example with alerts:
+#   export ADMIN_EMAIL="admin@example.com"
+#   export SEND_ALERT_EMAIL="true"
+#   ./processAPINotes.sh
 #
 # To recover from a failed execution:
-# 1. Read the failed execution file to understand the error
-# 2. Fix the underlying issue (e.g., load historical data, fix permissions)
+# 1. Check your email/Slack for the alert with error details
+# 2. Fix the underlying issue (follow the "Required action" in the alert)
 # 3. Delete the failed execution file: rm /tmp/processAPINotes_failed_execution
 # 4. Run the script again
 #
-# Critical errors that create failed markers:
+# Critical errors that create failed markers and send alerts:
 # - Historical data validation failures (need to run processPlanetNotes.sh)
 # - XML validation failures (corrupted or invalid API data)
 # - Base structure creation failures (database/permission issues)
@@ -170,6 +182,10 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
+# Load alert functions for failed execution notifications
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
+
 # Load process functions (includes PostgreSQL variables)
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
@@ -204,39 +220,22 @@ function __show_help {
  exit "${ERROR_HELP_MESSAGE}"
 }
 
-# Creates a failed execution marker file with details.
-# This prevents subsequent executions from running until the issue is resolved.
+# Local wrapper for __common_create_failed_marker from alertFunctions.sh
+# This adds the script-specific parameters (script name and failed file path)
+# to the common alert function.
 #
 # Parameters:
 #   $1 - error_code: The error code that triggered the failure
 #   $2 - error_message: Description of what failed
 #   $3 - required_action: (Optional) What action is needed to fix it
 #
-# Returns:
-#   None (always creates file if conditions are met)
+# Note: This wrapper allows existing code to continue using the simple 3-parameter
+# interface while calling the common 5-parameter function in alertFunctions.sh
 function __create_failed_marker() {
- local ERROR_CODE="${1}"
- local ERROR_MESSAGE="${2}"
- local REQUIRED_ACTION="${3:-Verify the issue and fix it manually}"
-
- __loge "Creating failed execution marker due to: ${ERROR_MESSAGE}"
-
- if [[ "${GENERATE_FAILED_FILE}" == "true" ]] \
-  && [[ "${ONLY_EXECUTION}" == "yes" ]]; then
-  {
-   echo "Execution failed at $(date)"
-   echo "Error code: ${ERROR_CODE}"
-   echo "Error: ${ERROR_MESSAGE}"
-   echo "Process ID: $$"
-   echo "Temporary directory: ${TMP_DIR:-unknown}"
-   echo ""
-   echo "Required action: ${REQUIRED_ACTION}"
-  } > "${FAILED_EXECUTION_FILE}"
-  __loge "Failed execution file created: ${FAILED_EXECUTION_FILE}"
-  __loge "Remove this file after fixing the issue to allow new executions"
- else
-  __logd "Failed file not created (GENERATE_FAILED_FILE=${GENERATE_FAILED_FILE}, ONLY_EXECUTION=${ONLY_EXECUTION})"
- fi
+ # Call the common alert function with script-specific parameters
+ # Format: script_name, error_code, error_message, required_action, failed_file
+ __common_create_failed_marker "processAPINotes" "${1}" "${2}" \
+  "${3:-Verify the issue and fix it manually}" "${FAILED_EXECUTION_FILE}"
 }
 
 # Checks prerequisites to run the script.
