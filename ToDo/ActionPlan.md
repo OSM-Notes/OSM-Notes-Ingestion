@@ -50,11 +50,15 @@ Status: In Progress
   - **Files**: sql/dwh/Staging_61_loadNotes.sql
 
 #### Geometry Errors
-- [ ] **Issue #5**: Fix NULL geometry in countries update
+- [✅] **Issue #5**: Fix NULL geometry in countries update
   - **Example**: Country 184818 (Jordan/الأردن)
   - **Root cause**: ST_Union returning NULL for invalid geometries
-  - **Solution**: Add geometry validation before update
-  - **Files**: updateCountries script
+  - **Solution**: Add geometry validation before insert
+  - **Files**: bin/functionsProcess.sh - __processBoundary function
+  - **Completed**: 2025-10-21 - Geometry validation before INSERT implemented
+  - **Validates**: ST_Union result is NOT NULL before inserting
+  - **Diagnostics**: Logs geometry count, validity check, and failure reasons
+  - **Impact**: Prevents NULL constraint violations, provides clear error messages
 
 ### Error Handling (from prompts)
 - [ ] **Issue #6**: Implement robust network failure handling
@@ -606,7 +610,7 @@ Status: In Progress
 - **Refactoring**: 44 (36%)
 
 ### Status Overview
-- [✅] Completed: 8 (6.6%)
+- [✅] Completed: 9 (7.4%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -615,7 +619,8 @@ Status: In Progress
   - Validation #3: XSLT validation (cancelled - code eliminated)
   - Validation #4: Check disk space before downloads
   - Validation #6: Validate CSV generated files
-- [ ] Not Started: 113 (93.4%)
+  - Issue #5: Fix NULL geometry in countries update
+- [ ] Not Started: 112 (92.6%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 0
 

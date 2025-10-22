@@ -1565,21 +1565,63 @@ function __processBoundary {
   __logd "No duplicate columns detected for boundary ${ID}"
  fi
 
- # Process the imported data with special handling for Austria
+ # Process the imported data with geometry validation
  __logd "Processing imported data for boundary ${ID}..."
+ 
+ # First, validate that we can create a non-NULL geometry
+ __logd "Validating geometry before insert for boundary ${ID}..."
+ local GEOM_CHECK_QUERY
+ if [[ "${ID}" -eq 16239 ]]; then
+  # Austria - use ST_Buffer to fix topology issues
+  __logd "Using special processing for Austria (ID: 16239) with ST_Buffer"
+  GEOM_CHECK_QUERY="SELECT ST_Union(ST_Buffer(geometry, 0.0)) IS NOT NULL AS has_geom FROM import"
+ else
+  # Standard processing with ST_MakeValid
+  __logd "Using standard processing with ST_MakeValid for boundary ${ID}"
+  GEOM_CHECK_QUERY="SELECT ST_Union(ST_makeValid(geometry)) IS NOT NULL AS has_geom FROM import"
+ fi
+ 
+ local HAS_VALID_GEOM
+ HAS_VALID_GEOM=$(psql -d "${DBNAME}" -Atq -c "${GEOM_CHECK_QUERY}" 2>/dev/null || echo "f")
+ 
+ if [[ "${HAS_VALID_GEOM}" != "t" ]]; then
+  __loge "ERROR: Cannot create valid geometry for boundary ${ID}"
+  __loge "ST_Union returned NULL - possible causes:"
+  __loge "  1. No geometries in import table"
+  __loge "  2. All geometries are invalid even after ST_MakeValid"
+  __loge "  3. Geometry union operation failed"
+  
+  # Check if there are any rows in import table
+  local IMPORT_COUNT
+  IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2>/dev/null || echo "0")
+  __loge "Import table has ${IMPORT_COUNT} rows for boundary ${ID}"
+  
+  # Log a sample of geometries for debugging
+  __logd "Sample geometry validity check:"
+  psql -d "${DBNAME}" -c "SELECT ST_IsValid(geometry) AS is_valid, ST_IsValidReason(geometry) AS reason FROM import LIMIT 5" 2>/dev/null || true
+  
+  __loge "Skipping boundary ${ID} due to NULL geometry - will not update database"
+  rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+ 
+ __logi "✓ Geometry validation passed for boundary ${ID}"
+ 
+ # Now perform the actual insert with validated geometry
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
-  __logd "Using special processing for Austria (ID: 16239)"
+  __logd "Inserting boundary ${ID} with ST_Buffer processing"
   PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
  else
   # Standard processing
-  __logd "Using standard processing for boundary ${ID}"
+  __logd "Inserting boundary ${ID} with standard processing"
   PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
  fi
 
  if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
-  __loge "Failed to process boundary ${ID} data"
+  __loge "Failed to insert boundary ${ID} into countries table"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Data processing failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
   __log_finish
