@@ -85,10 +85,21 @@ Status: In Progress
     - Added comprehensive logging and error handling
   - **Impact**: Automatic recovery from network failures, reduced false positives, consistent retry behavior
 
-- [ ] **Issue #7**: Add retry logic for API calls
+- [✅] **Issue #7**: Add retry logic for API calls - COMPLETED
   - **Current**: Partial implementation
   - **Solution**: Standardize retry mechanism across all API calls
   - **Files**: functionsProcess.sh
+  - **Completed**: 2025-10-22 - Standardized retry logic across all API calls implemented
+  - **Changes**:
+    - Added __retry_overpass_api() for Overpass API calls with 300s timeout
+    - Added __retry_osm_api() for OSM API calls with 30s timeout
+    - Added __retry_geoserver_api() for GeoServer API calls with authentication
+    - Added __retry_database_operation() for database operations
+    - Replaced manual API calls in processPlanetFunctions.sh (2 Overpass calls)
+    - Replaced manual API calls in processAPIFunctions.sh (1 OSM call)
+    - Replaced manual API calls in wms/geoserverConfig.sh (2 GeoServer calls)
+    - Replaced manual DB calls in processAPINotes.sh (2 database calls)
+  - **Impact**: Consistent retry behavior across all APIs, centralized configuration, uniform error handling
 
 - [ ] **Issue #8**: Implement rollback mechanism for failed operations
   - **Current**: No transaction rollback
@@ -574,7 +585,7 @@ Status: In Progress
 
 ### Statistics
 - **Total Items**: 121 (82 active + 39 cancelled)
-- **Critical**: 8 active (was 9, -1 completed)
+- **Critical**: 7 active (was 8, -1 completed)
 - **High**: 14 active
 - **Medium**: 5 active (was 17, -12 cancelled)
 - **Low**: 9 active (was 35, -26 cancelled)
@@ -588,7 +599,7 @@ Status: In Progress
 - VIZ #1-7 (Low): 7 tasks
 
 ### Status Overview
-- [✅] Completed: 13 / 82 active tasks (15.9%)
+- [✅] Completed: 14 / 82 active tasks (17.1%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -602,7 +613,8 @@ Status: In Progress
   - Issue #1: Fix foreign key violation in note_comments_text
   - Issue #2: Fix desynchronization between notes and comments
   - Issue #6: Implement robust network failure handling
-- [ ] Not Started: 69 / 82 active tasks (84.1%)
+  - Issue #7: Standardize retry logic for API calls
+- [ ] Not Started: 68 / 82 active tasks (82.9%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 39 tasks (DWH/ETL/Datamarts/Visualizer moved to different repo)
 

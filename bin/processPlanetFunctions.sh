@@ -405,7 +405,7 @@ function __processCountries() {
   GEOJSON_FILE="/tmp/countries.geojson"
  else
   __logi "Downloading countries boundary..."
-  if wget -q -O "${COUNTRIES_FILE}.json" --timeout=300 "https://overpass-api.de/api/interpreter?data=[out:json];relation[\"admin_level\"=\"2\"][\"boundary\"=\"administrative\"];out geom;"; then
+  if __retry_overpass_api "[out:json];relation[\"admin_level\"=\"2\"][\"boundary\"=\"administrative\"];out geom;" "${COUNTRIES_FILE}.json" 3 5 300; then
    if [[ -s "${COUNTRIES_FILE}.json" ]]; then
     # Convert OSM JSON to GeoJSON using osmtogeojson
     if ! osmtogeojson "${COUNTRIES_FILE}.json" > "${COUNTRIES_FILE}.geojson" 2> /dev/null; then
@@ -457,7 +457,7 @@ function __processMaritimes() {
   GEOJSON_FILE="/tmp/maritimes.geojson"
  else
   __logi "Downloading maritime boundaries..."
-  if wget -q -O "${MARITIMES_FILE}.json" --timeout=300 "https://overpass-api.de/api/interpreter?data=[out:json];relation[\"boundary\"=\"maritime\"];out geom;"; then
+  if __retry_overpass_api "[out:json];relation[\"boundary\"=\"maritime\"];out geom;" "${MARITIMES_FILE}.json" 3 5 300; then
    if [[ -s "${MARITIMES_FILE}.json" ]]; then
     # Convert OSM JSON to GeoJSON using osmtogeojson
     if ! osmtogeojson "${MARITIMES_FILE}.json" > "${MARITIMES_FILE}.geojson" 2> /dev/null; then

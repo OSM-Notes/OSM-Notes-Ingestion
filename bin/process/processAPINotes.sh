@@ -272,7 +272,17 @@ __recover_from_gaps() {
   "
   
   local gap_count
-  gap_count=$(psql -d "${DBNAME}" -Atq -c "${gap_query}")
+  local TEMP_GAP_FILE
+  TEMP_GAP_FILE=$(mktemp)
+  
+  if ! __retry_database_operation "${gap_query}" "${TEMP_GAP_FILE}" 3 2; then
+    __loge "Failed to execute gap query after retries"
+    rm -f "${TEMP_GAP_FILE}"
+    return 1
+  fi
+  
+  gap_count=$(cat "${TEMP_GAP_FILE}")
+  rm -f "${TEMP_GAP_FILE}"
   
   if [[ "${gap_count}" -gt 0 ]]; then
     __logw "Detected ${gap_count} notes without comments in last 7 days"
@@ -728,9 +738,19 @@ function __processApiXmlSequential {
 function __insertNewNotesAndComments {
  __log_start
 
- # Get the number of notes to process
- local NOTES_COUNT
- NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(1) FROM notes_api" 2> /dev/null || echo "0")
+  # Get the number of notes to process
+  local NOTES_COUNT
+  local TEMP_COUNT_FILE
+  TEMP_COUNT_FILE=$(mktemp)
+  
+  if ! __retry_database_operation "SELECT COUNT(1) FROM notes_api" "${TEMP_COUNT_FILE}" 3 2; then
+    __loge "Failed to count notes after retries"
+    rm -f "${TEMP_COUNT_FILE}"
+    return 1
+  fi
+  
+  NOTES_COUNT=$(cat "${TEMP_COUNT_FILE}")
+  rm -f "${TEMP_COUNT_FILE}"
 
  if [[ "${NOTES_COUNT}" -gt 1000 ]]; then
   # Split the insertion into chunks

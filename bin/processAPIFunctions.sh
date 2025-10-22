@@ -109,9 +109,9 @@ function __getNewNotesFromApi() {
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
- # Download notes from API
- __logi "Downloading notes from OSM API..."
- if curl -s -o "${TEMP_FILE}" "https://api.openstreetmap.org/api/0.6/notes?limit=10000"; then
+  # Download notes from API
+  __logi "Downloading notes from OSM API..."
+  if __retry_osm_api "https://api.openstreetmap.org/api/0.6/notes?limit=10000" "${TEMP_FILE}" 5 2 30; then
   if [[ -s "${TEMP_FILE}" ]]; then
    mv "${TEMP_FILE}" "${API_NOTES_FILE}"
    __logi "Successfully downloaded notes from API: ${API_NOTES_FILE}"

@@ -109,8 +109,8 @@ validate_prerequisites() {
   exit 1
  fi
 
- # Check if GeoServer is accessible
- if ! curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${GEOSERVER_URL}/rest/about/status" &> /dev/null; then
+  # Check if GeoServer is accessible
+  if ! __retry_geoserver_api "${GEOSERVER_URL}/rest/about/status" "GET" "" "/dev/null" 3 2 30; then
   print_status "${RED}" "❌ ERROR: Cannot connect to GeoServer at ${GEOSERVER_URL}"
   print_status "${YELLOW}" "💡 Make sure GeoServer is running and credentials are correct"
   exit 1
@@ -134,8 +134,8 @@ validate_prerequisites() {
 
 # Function to check if GeoServer is configured
 is_geoserver_configured() {
- local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${WORKSPACE_URL}" &> /dev/null
+  local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
+  __retry_geoserver_api "${WORKSPACE_URL}" "GET" "" "/dev/null" 3 2 30
 }
 
 # Function to create workspace
