@@ -26,11 +26,13 @@ Status: In Progress
 ### Database Errors (from errors.md)
 
 #### Foreign Key Violations
-- [ ] **Issue #1**: Fix foreign key violation in `note_comments_text` when NeisBot writes duplicate comments
+- [✅] **Issue #1**: Fix foreign key violation in `note_comments_text` when NeisBot writes duplicate comments - COMPLETED
   - **Example**: Note 3037001
-  - **Root cause**: Duplicate comments with same text
-  - **Solution**: Add deduplication logic before insert
-  - **Files**: SQL insert procedures
+  - **Root cause**: Duplicate comments with same text cause sequence mismatch
+  - **Solution**: Added WHERE EXISTS validation before INSERT to ensure FK exists in note_comments
+  - **Files**: processAPINotes_33_loadNewTextComments.sql, processPlanetNotes_42_consolidatePartitions.sql, processPlanetNotes_43_moveSyncToMain.sql
+  - **Completed**: 2025-10-21 - FK validation prevents orphaned text comments
+  - **Impact**: Prevents foreign key violations when NeisBot or other bots create duplicate comments
 
 - [ ] **Issue #2**: Handle desynchronization between notes and comments
   - **Root cause**: If comment insertion fails, sequence gaps are created
@@ -614,7 +616,7 @@ Status: In Progress
 - **Refactoring**: 44 (36%)
 
 ### Status Overview
-- [✅] Completed: 10 (8.3%)
+- [✅] Completed: 11 (9.1%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -625,7 +627,8 @@ Status: In Progress
   - Validation #6: Validate CSV generated files
   - Issue #5: Fix NULL geometry in countries update
   - Issue #3: Fix "Trying to reopen an opened note"
-- [ ] Not Started: 111 (91.7%)
+  - Issue #1: Fix foreign key violation in note_comments_text
+- [ ] Not Started: 110 (90.9%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 0
 

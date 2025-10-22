@@ -1,7 +1,7 @@
 -- Consolidates data from all Planet sync partitions into main tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-20
+-- Version: 2025-10-21
 
 -- This script consolidates data from partitioned sync tables into the main tables
 -- It should be called after all parallel processing is complete
@@ -51,9 +51,17 @@ BEGIN
       GET DIAGNOSTICS total_comments = ROW_COUNT;
       
       -- Insert text comments from partition
+      -- Only insert if (note_id, sequence_action) exists in note_comments_sync
+      -- This prevents FK violations when duplicate comments exist
       EXECUTE format('INSERT INTO note_comments_text_sync
-  SELECT nextval(''note_comments_text_sync_id_seq''), note_id, sequence_action, body
-  FROM note_comments_text_sync_part_%s WHERE part_id = %s', i, i);
+  SELECT nextval(''note_comments_text_sync_id_seq''), t.note_id, t.sequence_action, t.body
+  FROM note_comments_text_sync_part_%s t
+  WHERE t.part_id = %s
+    AND EXISTS (
+      SELECT 1 FROM note_comments_sync nc
+      WHERE nc.note_id = t.note_id
+        AND nc.sequence_action = t.sequence_action
+    )', i, i);
       
       -- Count inserted text comments
       GET DIAGNOSTICS total_text_comments = ROW_COUNT;

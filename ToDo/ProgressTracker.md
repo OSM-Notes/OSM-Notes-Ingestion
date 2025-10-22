@@ -11,7 +11,7 @@ Version: 2025-10-21
 **Status**: 🔴 Not Started
 
 ### This Week's Goals
-- [ ] Fix foreign key violation in note_comments_text (Issue #1)
+- [✅] Fix foreign key violation in note_comments_text (Issue #1) - COMPLETED
 - [✅] Implement environment detection (Code TODO #1) - COMPLETED
 - [✅] Clarify SQL query logic (Code TODO #2) - COMPLETED
 - [✅] Validate properties file parameters (Validation #1) - COMPLETED
@@ -20,6 +20,7 @@ Version: 2025-10-21
 - [✅] Check disk space before downloads (Validation #4) - COMPLETED
 - [✅] Validate CSV structure and content (Validation #6) - COMPLETED
 - [✅] Fix NULL geometry in countries (Issue #5) - COMPLETED
+- [✅] Fix "Trying to reopen an opened note" (Issue #3) - COMPLETED
 - [ ] Add basic retry logic for API calls (Issue #7)
 
 ---
@@ -93,13 +94,24 @@ Version: 2025-10-21
   - Clarified that invalid transitions are OSM API bugs
   - Comment still inserted, but note status not changed (correct behavior)
   - Second CRITICAL bug fixed! 🎉
+- **Monday**: ✅ Fix foreign key violation in note_comments_text (Issue #1)
+  - Problem: NeisBot duplicate comments cause sequence mismatch
+  - Root cause: Text comments inserted without validating FK exists
+  - Solution: Added WHERE EXISTS validation before INSERT
+  - Files modified:
+    * processAPINotes_33_loadNewTextComments.sql (lines 12-23)
+    * processPlanetNotes_42_consolidatePartitions.sql (lines 53-64)
+    * processPlanetNotes_43_moveSyncToMain.sql (lines 64-78)
+  - Validation logic: Only insert text if (note_id, sequence_action) exists in note_comments
+  - Impact: Prevents orphaned text comments and FK violations
+  - Third CRITICAL bug fixed! 🎉🎉🎉
 - **Tuesday**: 
 - **Wednesday**: 
 - **Thursday**: 
 - **Friday**: 
 - **Weekend**: 
 
-**Completed this week**: 9 items  
+**Completed this week**: 10 items  
 **Blockers**: None
 
 ---
@@ -113,20 +125,33 @@ Version: 2025-10-21
 
 | Priority | Total | Done | In Progress | Remaining |
 |----------|-------|------|-------------|-----------|
-| 🔴 Critical | 11 | 2 | 0 | 9 |
+| 🔴 Critical | 11 | 3 | 0 | 8 |
 | 🟡 High | 14 | 7 | 0 | 7 |
 | 🟠 Medium | 17 | 0 | 0 | 17 |
 | 🟢 Low | 35 | 1 | 0 | 34 |
 | 📊 Refactor | 44 | 0 | 0 | 44 |
-| **TOTAL** | **121** | **10** | **0** | **111** |
+| **TOTAL** | **121** | **11** | **0** | **110** |
 
-**Overall Progress**: 8.3% (10/121)
+**Overall Progress**: 9.1% (11/121)
 
 ---
 
 ## Recently Completed
 
-1. ✅ **2025-10-21** - Issue #3: Fix "Trying to reopen opened note"
+1. ✅ **2025-10-21** - Issue #1: Fix foreign key violation in note_comments_text
+   - Problem: NeisBot duplicate comments cause FK violations
+   - Root cause: Text comments inserted without validating (note_id, sequence_action) exists
+   - Solution: Added WHERE EXISTS validation in all INSERT operations
+   - Files modified:
+     • processAPINotes_33_loadNewTextComments.sql (API process)
+     • processPlanetNotes_42_consolidatePartitions.sql (partition consolidation)
+     • processPlanetNotes_43_moveSyncToMain.sql (sync to main)
+   - Validation logic: SELECT 1 FROM note_comments WHERE nc.note_id = t.note_id AND nc.sequence_action = t.sequence_action
+   - Behavior: Only inserts text comments if FK exists (prevents orphaned records)
+   - Impact: No more FK violations when bots create duplicate comments
+   - **THIRD CRITICAL BUG FIXED!** 🎉🎉🎉
+
+2. ✅ **2025-10-21** - Issue #3: Fix "Trying to reopen opened note"
    - Enhanced update_note() trigger function
    - Added comprehensive header documentation (valid/invalid transitions)
    - Improved error messages for invalid transitions:
@@ -284,8 +309,13 @@ Version: 2025-10-21
   - Enhanced trigger documentation and error handling
   - Gracefully handles OSM API invalid state transitions
   - Prevents transaction failures from data issues
-- **Decision**: ALL preventive validations completed! Critical bug fixes in progress
-- **Progress**: 9 tasks completed in one session (50% high + 18% critical done!) 🎉🎉
+- ✅ **COMPLETED**: Issue #1 - Foreign key violation in note_comments_text
+  - Third critical bug fixed!
+  - Added WHERE EXISTS validation before all text comment INSERTs
+  - Prevents orphaned text comments when duplicate comments exist
+  - Fixed in 3 SQL files (API, Planet consolidation, sync to main)
+- **Decision**: ALL preventive validations completed! 3 critical bugs fixed!
+- **Progress**: 10 tasks completed in one session (50% high + 27% critical done!) 🎉🎉🎉
 
 ---
 

@@ -1,7 +1,7 @@
 -- Moves data from sync tables to main tables after consolidation.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-19
+-- Version: 2025-10-21
 
 -- Move notes from sync to main tables
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
@@ -59,11 +59,19 @@ FROM note_comments_sync;
 
 -- Move text comments from sync to main tables
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
- 'Moving text comments from sync to main tables' AS Text;
+ 'Moving text comments from sync to main tables (with FK validation)' AS Text;
 
+-- Only insert/update text comments if (note_id, sequence_action) exists in note_comments
+-- This prevents FK violations when duplicate comments are deduplicated
 INSERT INTO note_comments_text (id, note_id, sequence_action, body)
-SELECT id, note_id, sequence_action, body
-FROM note_comments_text_sync
+SELECT t.id, t.note_id, t.sequence_action, t.body
+FROM note_comments_text_sync t
+WHERE EXISTS (
+  SELECT 1
+  FROM note_comments nc
+  WHERE nc.note_id = t.note_id
+    AND nc.sequence_action = t.sequence_action
+)
 ON CONFLICT (id) DO UPDATE SET
  note_id = EXCLUDED.note_id,
  sequence_action = EXCLUDED.sequence_action,
