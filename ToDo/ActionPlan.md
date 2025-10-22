@@ -34,10 +34,17 @@ Status: In Progress
   - **Completed**: 2025-10-21 - FK validation prevents orphaned text comments
   - **Impact**: Prevents foreign key violations when NeisBot or other bots create duplicate comments
 
-- [ ] **Issue #2**: Handle desynchronization between notes and comments
+- [✅] **Issue #2**: Handle desynchronization between notes and comments - COMPLETED
   - **Root cause**: If comment insertion fails, sequence gaps are created
-  - **Solution**: Implement transaction rollback or separate max tracking
-  - **Files**: processAPINotes procedures
+  - **Solution**: Implemented transaction batching and integrity validation
+  - **Files**: processAPINotes_32_insertNewNotesAndComments.sql, processAPINotes_34_updateLastValues.sql, processAPINotes.sh
+  - **Completed**: 2025-10-21 - Transaction batching and integrity validation implemented
+  - **Changes**: 
+    - Added batch processing (50 elements per batch) with individual error handling
+    - Added integrity validation before timestamp updates
+    - Added gap recovery function to detect and log data inconsistencies
+    - Enhanced logging with success/error statistics
+  - **Impact**: Prevents desynchronization, ensures data integrity, provides detailed error reporting
 
 - [✅] **Issue #3**: Fix "Trying to reopen an opened note" error
   - **Example**: Note 3924749 - open reopened
@@ -559,7 +566,7 @@ Status: In Progress
 
 ### Statistics
 - **Total Items**: 121 (82 active + 39 cancelled)
-- **Critical**: 10 active (was 11, -1 cancelled)
+- **Critical**: 9 active (was 10, -1 completed)
 - **High**: 14 active
 - **Medium**: 5 active (was 17, -12 cancelled)
 - **Low**: 9 active (was 35, -26 cancelled)
@@ -573,7 +580,7 @@ Status: In Progress
 - VIZ #1-7 (Low): 7 tasks
 
 ### Status Overview
-- [✅] Completed: 11 / 82 active tasks (13.4%)
+- [✅] Completed: 12 / 82 active tasks (14.6%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -585,7 +592,8 @@ Status: In Progress
   - Issue #5: Fix NULL geometry in countries update
   - Issue #3: Fix "Trying to reopen an opened note"
   - Issue #1: Fix foreign key violation in note_comments_text
-- [ ] Not Started: 71 / 82 active tasks (86.6%)
+  - Issue #2: Fix desynchronization between notes and comments
+- [ ] Not Started: 70 / 82 active tasks (85.4%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 39 tasks (DWH/ETL/Datamarts/Visualizer moved to different repo)
 

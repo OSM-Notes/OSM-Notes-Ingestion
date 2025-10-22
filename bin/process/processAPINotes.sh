@@ -252,8 +252,70 @@ function __checkPrereqs {
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
- # Checks prereqs.
- __checkPrereqsCommands
+# Checks prereqs.
+__checkPrereqsCommands
+
+# Function to detect and recover from data gaps
+__recover_from_gaps() {
+  local -r FUNCTION_NAME="__recover_from_gaps"
+  __logd "Starting gap recovery process"
+  
+  # Check for notes without comments in recent data
+  local gap_query="
+    SELECT COUNT(DISTINCT n.note_id) as gap_count
+    FROM notes n
+    LEFT JOIN note_comments nc ON nc.note_id = n.note_id
+    WHERE n.created_at > (
+      SELECT timestamp FROM max_note_timestamp
+    ) - INTERVAL '7 days'
+    AND nc.note_id IS NULL
+  "
+  
+  local gap_count
+  gap_count=$(psql -d "${DBNAME}" -Atq -c "${gap_query}")
+  
+  if [[ "${gap_count}" -gt 0 ]]; then
+    __logw "Detected ${gap_count} notes without comments in last 7 days"
+    __logw "This indicates a potential data integrity issue"
+    
+    # Log detailed gap information
+    local gap_details_query="
+      SELECT n.note_id, n.created_at, n.status
+      FROM notes n
+      LEFT JOIN note_comments nc ON nc.note_id = n.note_id
+      WHERE n.created_at > (
+        SELECT timestamp FROM max_note_timestamp
+      ) - INTERVAL '7 days'
+      AND nc.note_id IS NULL
+      ORDER BY n.created_at DESC
+      LIMIT 10
+    "
+    
+    __logw "Sample of notes with gaps:"
+    psql -d "${DBNAME}" -c "${gap_details_query}" | while read -r line; do
+      __logw "  ${line}"
+    done
+    
+    # Optionally trigger a recovery process
+    if [[ "${gap_count}" -lt 100 ]]; then
+      __logi "Gap count is manageable (${gap_count}), continuing with normal processing"
+    else
+      __loge "Large gap detected (${gap_count} notes), consider manual intervention"
+      return 1
+    fi
+  else
+    __logd "No gaps detected in recent data"
+  fi
+  
+  return 0
+}
+
+# Check for data gaps before processing
+if ! __recover_from_gaps; then
+  __loge "Gap recovery check failed, aborting processing"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
+   "echo 'Gap recovery failed - manual intervention may be required'"
+fi
 
  ## Validate required files using centralized validation
  __logi "Validating required files..."
