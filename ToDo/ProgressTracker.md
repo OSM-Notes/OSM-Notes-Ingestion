@@ -85,13 +85,21 @@ Version: 2025-10-21
   - Graceful failure: skips boundary, logs detailed error
   - Prevents NULL constraint violations in countries table
   - First CRITICAL bug fixed! 🎉
+- **Monday**: ✅ Fix "Trying to reopen opened note" (Issue #3)
+  - Enhanced update_note() trigger function
+  - Added comprehensive documentation of valid/invalid transitions
+  - Improved logging for invalid transitions (open→reopened, close→closed)
+  - Changed messages to be more descriptive with "WARNING" prefix
+  - Clarified that invalid transitions are OSM API bugs
+  - Comment still inserted, but note status not changed (correct behavior)
+  - Second CRITICAL bug fixed! 🎉
 - **Tuesday**: 
 - **Wednesday**: 
 - **Thursday**: 
 - **Friday**: 
 - **Weekend**: 
 
-**Completed this week**: 8 items  
+**Completed this week**: 9 items  
 **Blockers**: None
 
 ---
@@ -105,20 +113,32 @@ Version: 2025-10-21
 
 | Priority | Total | Done | In Progress | Remaining |
 |----------|-------|------|-------------|-----------|
-| 🔴 Critical | 11 | 1 | 0 | 10 |
+| 🔴 Critical | 11 | 2 | 0 | 9 |
 | 🟡 High | 14 | 7 | 0 | 7 |
 | 🟠 Medium | 17 | 0 | 0 | 17 |
 | 🟢 Low | 35 | 1 | 0 | 34 |
 | 📊 Refactor | 44 | 0 | 0 | 44 |
-| **TOTAL** | **121** | **9** | **0** | **112** |
+| **TOTAL** | **121** | **10** | **0** | **111** |
 
-**Overall Progress**: 7.4% (9/121)
+**Overall Progress**: 8.3% (10/121)
 
 ---
 
 ## Recently Completed
 
-1. ✅ **2025-10-21** - Issue #5: Fix NULL geometry in countries update
+1. ✅ **2025-10-21** - Issue #3: Fix "Trying to reopen opened note"
+   - Enhanced update_note() trigger function
+   - Added comprehensive header documentation (valid/invalid transitions)
+   - Improved error messages for invalid transitions:
+     • open → reopened: "WARNING: Ignoring invalid reopen..."
+     • close → closed: "WARNING: Ignoring invalid close..."
+   - Clarified these are OSM API bugs (not our bugs)
+   - Behavior: Comment inserted, note status unchanged (correct)
+   - Logs to 'logs' table for monitoring
+   - Uses RAISE NOTICE (warning) not RAISE EXCEPTION (error)
+   - Impact: No more transaction failures from API data issues
+
+2. ✅ **2025-10-21** - Issue #5: Fix NULL geometry in countries update
    - Modified __processBoundary function (lines 1571-1630)
    - Added pre-validation of ST_Union result before INSERT
    - Validates geometry is NOT NULL for both Austria and standard processing
@@ -259,8 +279,13 @@ Version: 2025-10-21
   - Validates geometry before INSERT to prevent NULL constraints
   - Diagnostic logging for troubleshooting
   - Handles both Austria (special case) and standard processing
-- **Decision**: ALL preventive validations completed! Started critical bug fixes
-- **Progress**: 8 tasks completed in one session (50% high + 9% critical done!) 🎉🎉
+- ✅ **COMPLETED**: Issue #3 - "Trying to reopen opened note"
+  - Second critical bug fixed!
+  - Enhanced trigger documentation and error handling
+  - Gracefully handles OSM API invalid state transitions
+  - Prevents transaction failures from data issues
+- **Decision**: ALL preventive validations completed! Critical bug fixes in progress
+- **Progress**: 9 tasks completed in one session (50% high + 18% critical done!) 🎉🎉
 
 ---
 

@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-20
+-- Version: 2025-10-21
 
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL PRIMARY KEY,
@@ -230,6 +230,22 @@ CREATE OR REPLACE TRIGGER log_insert_note
 COMMENT ON TRIGGER log_insert_note ON notes IS
   'Updates the notes according the new comments';
 
+-- Trigger function to update note status based on comments.
+-- Handles all valid state transitions and gracefully handles invalid ones
+-- from OSM API (which sometimes allows impossible transitions).
+--
+-- Valid transitions:
+--   open → closed (comment closes note)
+--   open → hidden (comment hides note)
+--   close → reopened (comment reopens note)
+--   close → hidden (comment hides note)
+--
+-- Invalid transitions (OSM API bugs, handled gracefully with NOTICE):
+--   open → reopened (cannot reopen an open note - logged but not failed)
+--   close → closed (cannot close a closed note - logged but not failed)
+--
+-- Note: Invalid transitions are logged to 'logs' table for monitoring
+--       but do NOT cause the transaction to fail.
 CREATE OR REPLACE FUNCTION update_note()
   RETURNS TRIGGER AS
  $$
@@ -257,14 +273,20 @@ CREATE OR REPLACE FUNCTION update_note()
       closed_at = NEW.created_at
       WHERE note_id = NEW.note_id;
    ELSIF (NEW.event = 'reopened') THEN
-    -- There are some known issues in the API, and cannot be strictly validated.
-    -- Consecutives reopens.
-
-    -- Invalid operation for an open note.
+    -- There are some known issues in the API where it allows invalid
+    -- state transitions.
+    -- Reopening an already open note is invalid, but OSM API sometimes allows it.
+    -- We log this as a warning but don't fail - just ignore the invalid transition.
+    
+    -- Log the invalid operation for monitoring
     INSERT INTO logs (message) VALUES (NEW.note_id
-      || ' - Trying to reopen an opened note ' || NEW.event || '.');
-    RAISE NOTICE 'Trying to reopen an opened note: % - % %.', NEW.note_id,
-      m_status, NEW.event;
+      || ' - WARNING: Ignoring invalid reopen of already open note. '
+      || 'Current status: ' || m_status || ', Event: ' || NEW.event);
+    RAISE NOTICE 'Ignoring invalid reopen of open note: % (status: %, event: %). This is an OSM API data issue.',
+      NEW.note_id, m_status, NEW.event;
+    
+    -- Note: Comment is still inserted in note_comments table (done automatically)
+    -- but we don't update the notes table since state transition is invalid
    ELSIF (NEW.event = 'hidden') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - Update to hide open note.');
@@ -284,14 +306,20 @@ CREATE OR REPLACE FUNCTION update_note()
       closed_at = NULL
       WHERE note_id = NEW.note_id;
    ELSIF (NEW.event = 'closed') THEN
-    -- There are some known issues in the API, and this cannot be strictly
-    -- validated. Consecutives closes.
-
-    -- Invalid operation for a closed note.
+    -- There are some known issues in the API where it allows invalid
+    -- state transitions.
+    -- Closing an already closed note is invalid, but OSM API sometimes allows it.
+    -- We log this as a warning but don't fail - just ignore the invalid transition.
+    
+    -- Log the invalid operation for monitoring
     INSERT INTO logs (message) VALUES (NEW.note_id
-      || ' - Trying to close a closed note ' || NEW.event || '.');
-    RAISE NOTICE 'Trying to close a closed note: % - % %.', NEW.note_id,
-      m_status, NEW.event;
+      || ' - WARNING: Ignoring invalid close of already closed note. '
+      || 'Current status: ' || m_status || ', Event: ' || NEW.event);
+    RAISE NOTICE 'Ignoring invalid close of closed note: % (status: %, event: %). This is an OSM API data issue.',
+      NEW.note_id, m_status, NEW.event;
+    
+    -- Note: Comment is still inserted in note_comments table (done automatically)
+    -- but we don't update the notes table since state transition is invalid
    ELSIF (NEW.event = 'hidden') THEN
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - Update to hide close note.');
@@ -307,7 +335,7 @@ CREATE OR REPLACE FUNCTION update_note()
  $$ LANGUAGE plpgsql
 ;
 COMMENT ON FUNCTION update_note IS
-  'Updates the notes according the new comments';
+  'Updates note status based on comments. Handles valid state transitions and gracefully ignores invalid ones from OSM API bugs (e.g., reopening an open note). Invalid transitions are logged to the logs table for monitoring but do not cause failures.';
 
 CREATE OR REPLACE TRIGGER update_note
   AFTER INSERT ON note_comments
@@ -315,4 +343,4 @@ CREATE OR REPLACE TRIGGER update_note
   EXECUTE FUNCTION update_note()
 ;
 COMMENT ON TRIGGER update_note ON note_comments IS
-  'Updates the notes according the new comments';
+  'Updates note status according to new comments. Gracefully handles invalid state transitions from OSM API (logged as NOTICE, not error)';

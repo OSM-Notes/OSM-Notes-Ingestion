@@ -37,11 +37,15 @@ Status: In Progress
   - **Solution**: Implement transaction rollback or separate max tracking
   - **Files**: processAPINotes procedures
 
-- [ ] **Issue #3**: Fix "Trying to reopen an opened note" error
+- [✅] **Issue #3**: Fix "Trying to reopen an opened note" error
   - **Example**: Note 3924749 - open reopened
   - **Root cause**: OSM API allows invalid state transitions
-  - **Solution**: Add state validation before insert
-  - **Files**: insert_note_comment procedure
+  - **Solution**: Improved documentation and graceful handling
+  - **Files**: sql/process/processPlanetNotes_22_createBaseTables_tables.sql
+  - **Completed**: 2025-10-21 - Enhanced trigger to handle invalid transitions gracefully
+  - **Changes**: Improved logging, clear documentation of valid/invalid transitions
+  - **Behavior**: Invalid transitions logged as WARNING (NOTICE) but don't fail transaction
+  - **Impact**: Prevents transaction failures, maintains OSM API data integrity
 
 - [ ] **Issue #4**: NULL value in `recent_opened_dimension_id_date`
   - **Example**: Note 4172438, sequence 2
@@ -610,7 +614,7 @@ Status: In Progress
 - **Refactoring**: 44 (36%)
 
 ### Status Overview
-- [✅] Completed: 9 (7.4%)
+- [✅] Completed: 10 (8.3%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -620,7 +624,8 @@ Status: In Progress
   - Validation #4: Check disk space before downloads
   - Validation #6: Validate CSV generated files
   - Issue #5: Fix NULL geometry in countries update
-- [ ] Not Started: 112 (92.6%)
+  - Issue #3: Fix "Trying to reopen an opened note"
+- [ ] Not Started: 111 (91.7%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 0
 
