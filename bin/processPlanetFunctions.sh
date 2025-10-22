@@ -240,35 +240,36 @@ function __downloadPlanetNotes() {
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
- # Download Planet notes
- __logi "Downloading Planet notes from OSM..."
- if wget -q -O "${TEMP_FILE}" "https://planet.openstreetmap.org/notes/notes-latest.osn.bz2"; then
-  if [[ -s "${TEMP_FILE}" ]]; then
-   # Decompress and move
-   if bunzip2 -c "${TEMP_FILE}" > "${PLANET_NOTES_FILE}" 2> /dev/null; then
+  # Download Planet notes with robust retry logic
+  __logi "Downloading Planet notes from OSM..."
+  if ! __retry_network_operation "https://planet.openstreetmap.org/notes/notes-latest.osn.bz2" "${TEMP_FILE}" 3 5 60; then
+    __loge "ERROR: Failed to download Planet notes after retries"
+    rm -f "${TEMP_FILE}"
+    __log_finish
+    return 1
+  fi
+
+  # Verify downloaded file has content
+  if [[ ! -s "${TEMP_FILE}" ]]; then
+    __loge "ERROR: Downloaded file is empty"
+    rm -f "${TEMP_FILE}"
+    __log_finish
+    return 1
+  fi
+
+  # Decompress and move
+  if bunzip2 -c "${TEMP_FILE}" > "${PLANET_NOTES_FILE}" 2> /dev/null; then
     rm -f "${TEMP_FILE}"
     __logi "Successfully downloaded and decompressed Planet notes: ${PLANET_NOTES_FILE}"
     __logi "=== PLANET NOTES DOWNLOAD COMPLETED SUCCESSFULLY ==="
     __log_finish
     return 0
-   else
+  else
     __loge "ERROR: Failed to decompress Planet notes"
     rm -f "${TEMP_FILE}"
     __log_finish
     return 1
-   fi
-  else
-   __loge "ERROR: Downloaded file is empty"
-   rm -f "${TEMP_FILE}"
-   __log_finish
-   return 1
   fi
- else
-  __loge "ERROR: Failed to download Planet notes"
-  rm -f "${TEMP_FILE}"
-  __log_finish
-  return 1
- fi
 }
 
 # Process boundary

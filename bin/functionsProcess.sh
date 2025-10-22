@@ -5,7 +5,7 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-21
+# Version: 2025-10-22
 
 # Define version variable
 VERSION="2025-10-21"
@@ -2335,47 +2335,98 @@ function __handle_error_with_cleanup() {
  fi
 }
 
-# Retry file operations with cleanup on failure
+# Retry file operations with exponential backoff and cleanup on failure
 # Parameters: operation_command max_retries base_delay [cleanup_command]
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_file_operation() {
- __log_start
- local OPERATION_COMMAND="$1"
- local MAX_RETRIES_LOCAL="${2:-3}"
- local BASE_DELAY_LOCAL="${3:-2}"
- local CLEANUP_COMMAND="${4:-}"
- local RETRY_COUNT=0
+  __log_start
+  local OPERATION_COMMAND="$1"
+  local MAX_RETRIES_LOCAL="${2:-3}"
+  local BASE_DELAY_LOCAL="${3:-2}"
+  local CLEANUP_COMMAND="${4:-}"
+  local RETRY_COUNT=0
+  local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
 
- __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
+  __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
+  __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s"
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
-  if eval "${OPERATION_COMMAND}"; then
-   __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
-   __log_finish
-   return 0
+  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
+    if eval "${OPERATION_COMMAND}"; then
+      __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
+      __log_finish
+      return 0
+    fi
+
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+
+    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
+      __logw "File operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+      sleep "${EXPONENTIAL_DELAY}"
+      # Exponential backoff: double the delay for next attempt
+      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+    fi
+  done
+
+  # If cleanup command is provided, execute it
+  if [[ -n "${CLEANUP_COMMAND}" ]]; then
+    __logw "Executing cleanup command due to file operation failure"
+    if eval "${CLEANUP_COMMAND}"; then
+      __logd "Cleanup command executed successfully"
+    else
+      __logw "Cleanup command failed"
+    fi
   fi
 
-  RETRY_COUNT=$((RETRY_COUNT + 1))
+  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
+  __log_finish
+  return 1
+}
 
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
-   echo "WARNING: File operation failed on attempt ${RETRY_COUNT}, retrying in ${BASE_DELAY_LOCAL}s" >&2
-   sleep "${BASE_DELAY_LOCAL}"
-  fi
- done
+# Retry network operations with exponential backoff and HTTP error handling
+# Parameters: url output_file max_retries base_delay [timeout]
+# Returns: 0 if successful, 1 if failed after all retries
+function __retry_network_operation() {
+  __log_start
+  local URL="$1"
+  local OUTPUT_FILE="$2"
+  local MAX_RETRIES="${3:-5}"
+  local BASE_DELAY="${4:-2}"
+  local TIMEOUT="${5:-30}"
+  local RETRY_COUNT=0
+  local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
- # If cleanup command is provided, execute it
- if [[ -n "${CLEANUP_COMMAND}" ]]; then
-  echo "WARNING: Executing cleanup command due to file operation failure" >&2
-  if eval "${CLEANUP_COMMAND}"; then
-   __logd "Cleanup executed successfully"
-  else
-   __loge "Cleanup failed"
-  fi
- fi
+  __logd "Executing network operation with retry logic: ${URL}"
+  __logd "Output file: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Base delay: ${BASE_DELAY}s, Timeout: ${TIMEOUT}s"
 
- __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
- __log_finish
- return 1
+  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+    # Use wget with specific error handling and timeout
+    if wget --timeout="${TIMEOUT}" --tries=1 --user-agent="OSM-Notes-Ingestion/1.0" \
+       -O "${OUTPUT_FILE}" "${URL}" 2>/dev/null; then
+      # Verify the downloaded file exists and has content
+      if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+        __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
+        __log_finish
+        return 0
+      else
+        __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
+      fi
+    else
+      __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
+    fi
+
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+
+    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+      __logw "Network operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+      sleep "${EXPONENTIAL_DELAY}"
+      # Exponential backoff: double the delay for next attempt
+      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+    fi
+  done
+
+  __loge "Network operation failed after ${MAX_RETRIES} attempts"
+  __log_finish
+  return 1
 }
 
 # Validates comprehensive CSV file structure and content.
