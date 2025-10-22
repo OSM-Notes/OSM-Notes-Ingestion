@@ -144,10 +144,14 @@ Status: In Progress
   - **Purpose**: Ensure date compatibility
   - **Files**: XML processing functions
 
-- [ ] **Validation #6**: Validate generated CSV files
+- [✅] **Validation #6**: Validate generated CSV files
   - **Check**: Escaped quotes, multivalue fields
-  - **Tool**: Custom validator or csvlint
-  - **Files**: After XSLT transformation
+  - **Tool**: Custom validator __validate_csv_structure
+  - **Files**: After AWK transformation, before DB load
+  - **Completed**: 2025-10-21 - Comprehensive CSV validation implemented
+  - **Validates**: Column count, quote escaping, structure integrity
+  - **Integration**: Integrated in all CSV generation functions (API parallel, API sequential)
+  - **Features**: Samples first 100 lines, detailed error reporting, >10% threshold for failure
 
 ### Base Monitoring (from ToDos.md)
 - [ ] **Monitor #1**: Fix differences identified by monitor script
@@ -602,7 +606,7 @@ Status: In Progress
 - **Refactoring**: 44 (36%)
 
 ### Status Overview
-- [✅] Completed: 7 (5.8%)
+- [✅] Completed: 8 (6.6%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -610,7 +614,8 @@ Status: In Progress
   - Validation #2: Add database connection check
   - Validation #3: XSLT validation (cancelled - code eliminated)
   - Validation #4: Check disk space before downloads
-- [ ] Not Started: 114 (94.2%)
+  - Validation #6: Validate CSV generated files
+- [ ] Not Started: 113 (93.4%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 0
 

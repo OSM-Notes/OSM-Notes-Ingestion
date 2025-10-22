@@ -29,8 +29,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-20
-VERSION="2025-10-20"
+# Version: 2025-10-21
+VERSION="2025-10-21"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -572,6 +572,44 @@ function __processApiXmlSequential {
  __logd "  Notes: ${OUTPUT_NOTES_FILE} ($(wc -l < "${OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
  __logd "  Comments: ${OUTPUT_COMMENTS_FILE} ($(wc -l < "${OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
  __logd "  Text: ${OUTPUT_TEXT_FILE} ($(wc -l < "${OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
+
+ # Validate CSV files structure and content before loading
+ __logd "Validating CSV files structure and enum compatibility..."
+ 
+ # Validate notes
+ if ! __validate_csv_structure "${OUTPUT_NOTES_FILE}" "notes"; then
+  __loge "ERROR: Notes CSV structure validation failed"
+  __log_finish
+  return 1
+ fi
+ 
+ if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_FILE}" "notes"; then
+  __loge "ERROR: Notes CSV enum validation failed"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate comments
+ if ! __validate_csv_structure "${OUTPUT_COMMENTS_FILE}" "comments"; then
+  __loge "ERROR: Comments CSV structure validation failed"
+  __log_finish
+  return 1
+ fi
+ 
+ if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_FILE}" "comments"; then
+  __loge "ERROR: Comments CSV enum validation failed"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate text
+ if ! __validate_csv_structure "${OUTPUT_TEXT_FILE}" "text"; then
+  __loge "ERROR: Text CSV structure validation failed"
+  __log_finish
+  return 1
+ fi
+ 
+ __logi "✓ All CSV validations passed for sequential processing"
 
  __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
  __logd "Database: ${DBNAME}"

@@ -1534,6 +1534,45 @@ function __processApiXmlPart() {
   __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
  fi
 
+ # Validate CSV files structure and content before loading
+ __logd "Validating CSV files structure and enum compatibility for part ${PART_NUM}..."
+ 
+ # Validate notes structure
+ if ! __validate_csv_structure "${OUTPUT_NOTES_PART}" "notes"; then
+  __loge "ERROR: Notes CSV structure validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate notes enum values
+ if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
+  __loge "ERROR: Notes CSV enum validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate comments structure
+ if ! __validate_csv_structure "${OUTPUT_COMMENTS_PART}" "comments"; then
+  __loge "ERROR: Comments CSV structure validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate comments enum values
+ if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_PART}" "comments"; then
+  __loge "ERROR: Comments CSV enum validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate text structure (most prone to quote/escape issues)
+ if ! __validate_csv_structure "${OUTPUT_TEXT_PART}" "text"; then
+  __loge "ERROR: Text CSV structure validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+
+ __logi "✓ All CSV validations passed for API part ${PART_NUM}"
  __logi "API XML part ${PART_NUM} processing completed successfully."
  __logd "Output files:"
  __logd "  Notes: ${OUTPUT_NOTES_PART}"

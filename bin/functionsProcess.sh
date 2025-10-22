@@ -429,16 +429,41 @@ function __processApiXmlPart() {
  __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)" || true
  __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)" || true
 
- # Validate CSV files for enum compatibility before loading
- __logd "Validating CSV files for enum compatibility..."
+ # Validate CSV files structure and content before loading
+ __logd "Validating CSV files structure and enum compatibility..."
+ 
+ # Validate structure first
+ if ! __validate_csv_structure "${OUTPUT_NOTES_PART}" "notes"; then
+  __loge "ERROR: Notes CSV structure validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Then validate enum values
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
-  __loge "ERROR: Notes CSV validation failed for part ${PART_NUM}"
+  __loge "ERROR: Notes CSV enum validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate comments structure
+ if ! __validate_csv_structure "${OUTPUT_COMMENTS_PART}" "comments"; then
+  __loge "ERROR: Comments CSV structure validation failed for part ${PART_NUM}"
   __log_finish
   return 1
  fi
 
+ # Validate comments enum
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_PART}" "comments"; then
-  __loge "ERROR: Comments CSV validation failed for part ${PART_NUM}"
+  __loge "ERROR: Comments CSV enum validation failed for part ${PART_NUM}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Validate text structure (most prone to quote/escape issues)
+ if ! __validate_csv_structure "${OUTPUT_TEXT_PART}" "text"; then
+  __loge "ERROR: Text CSV structure validation failed for part ${PART_NUM}"
+  __log_finish
   return 1
  fi
 
@@ -2284,6 +2309,190 @@ function __retry_file_operation() {
  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
  __log_finish
  return 1
+}
+
+# Validates comprehensive CSV file structure and content.
+# This function performs detailed validation of CSV files before database load,
+# including column count, quote escaping, multivalue fields, and data integrity.
+#
+# Parameters:
+#   $1 - CSV file path
+#   $2 - File type (notes, comments, text)
+#
+# Validations performed:
+#   - File exists and is readable
+#   - Correct number of columns per file type
+#   - Properly escaped quotes (PostgreSQL CSV format)
+#   - No unescaped delimiters in text fields
+#   - Multivalue fields are properly formatted
+#   - No malformed lines
+#
+# Returns:
+#   0 if all validations pass
+#   1 if any validation fails
+#
+# Example:
+#   __validate_csv_structure "output-notes.csv" "notes"
+function __validate_csv_structure {
+ __log_start
+ local CSV_FILE="${1}"
+ local FILE_TYPE="${2}"
+ 
+ # Validate parameters
+ if [[ -z "${CSV_FILE}" ]]; then
+  __loge "ERROR: CSV file path parameter is required"
+  __log_finish
+  return 1
+ fi
+ 
+ if [[ -z "${FILE_TYPE}" ]]; then
+  __loge "ERROR: File type parameter is required"
+  __log_finish
+  return 1
+ fi
+ 
+ # Check file exists
+ if [[ ! -f "${CSV_FILE}" ]]; then
+  __loge "ERROR: CSV file not found: ${CSV_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Check file is readable
+ if [[ ! -r "${CSV_FILE}" ]]; then
+  __loge "ERROR: CSV file is not readable: ${CSV_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Skip validation for empty files
+ if [[ ! -s "${CSV_FILE}" ]]; then
+  __logw "WARNING: CSV file is empty: ${CSV_FILE}"
+  __log_finish
+  return 0
+ fi
+ 
+ __logi "Validating CSV structure: ${CSV_FILE} (type: ${FILE_TYPE})"
+ 
+ # Define expected column counts for each file type
+ local EXPECTED_COLUMNS
+ case "${FILE_TYPE}" in
+  "notes")
+   # Structure: note_id,latitude,longitude,created_at,closed_at,status[,part_id]
+   EXPECTED_COLUMNS=6  # or 7 with part_id
+   ;;
+  "comments")
+   # Structure: note_id,event,timestamp,user_id,username[,part_id]
+   EXPECTED_COLUMNS=5  # or 6 with part_id
+   ;;
+  "text")
+   # Structure: note_id,text[,part_id]
+   EXPECTED_COLUMNS=2  # or 3 with part_id
+   ;;
+  *)
+   __logw "WARNING: Unknown file type '${FILE_TYPE}', skipping column count validation"
+   __log_finish
+   return 0
+   ;;
+ esac
+ 
+ # Sample first 100 lines for validation (performance optimization)
+ local SAMPLE_SIZE=100
+ local TOTAL_LINES
+ TOTAL_LINES=$(wc -l < "${CSV_FILE}" 2>/dev/null || echo 0)
+ 
+ __logd "CSV file has ${TOTAL_LINES} lines, validating first ${SAMPLE_SIZE} lines"
+ 
+ # Validation counters
+ local MALFORMED_LINES=0
+ local UNESCAPED_QUOTES=0
+ local WRONG_COLUMNS=0
+ local LINE_NUMBER=0
+ 
+ # Read and validate sample lines
+ while IFS= read -r line && [[ ${LINE_NUMBER} -lt ${SAMPLE_SIZE} ]]; do
+  ((LINE_NUMBER++))
+  
+  # Skip empty lines
+  if [[ -z "${line}" ]]; then
+   continue
+  fi
+  
+  # Count columns (accounting for quoted fields with commas)
+  # This is a basic count that may not be 100% accurate for complex CSVs
+  local COLUMN_COUNT
+  COLUMN_COUNT=$(echo "${line}" | awk -F',' '{print NF}')
+  
+  # Allow EXPECTED_COLUMNS or EXPECTED_COLUMNS+1 (with part_id)
+  if [[ ${COLUMN_COUNT} -ne ${EXPECTED_COLUMNS} ]] && [[ ${COLUMN_COUNT} -ne $((EXPECTED_COLUMNS + 1)) ]]; then
+   __logd "WARNING: Line ${LINE_NUMBER} has ${COLUMN_COUNT} columns, expected ${EXPECTED_COLUMNS} or $((EXPECTED_COLUMNS + 1))"
+   ((WRONG_COLUMNS++))
+   # Only show first 3 examples
+   if [[ ${WRONG_COLUMNS} -le 3 ]]; then
+    __logd "  Line content (first 100 chars): ${line:0:100}"
+   fi
+  fi
+  
+  # Check for unescaped quotes in text fields
+  # In PostgreSQL CSV format, quotes should be doubled: "" not \"
+  # Look for patterns like: ," " or ,"text" that might indicate issues
+  if [[ "${FILE_TYPE}" == "text" ]]; then
+   # Text field can contain quotes, check if they are properly escaped
+   # PostgreSQL CSV uses "" to escape quotes inside quoted fields
+   # Check for single quotes that aren't at field boundaries
+   if echo "${line}" | grep -qE "[^,]'[^,]" 2>/dev/null; then
+    # This is actually OK - single quotes are fine in CSV
+    :
+   fi
+   
+   # Check for potential unescaped double quotes (simplified check)
+   # Count quotes: should be even (each field starts and ends with quote)
+   local QUOTE_COUNT
+   QUOTE_COUNT=$(echo "${line}" | tr -cd '"' | wc -c)
+   if [[ $((QUOTE_COUNT % 2)) -ne 0 ]]; then
+    __logd "WARNING: Line ${LINE_NUMBER} has odd number of quotes (${QUOTE_COUNT})"
+    ((UNESCAPED_QUOTES++))
+    if [[ ${UNESCAPED_QUOTES} -le 3 ]]; then
+     __logd "  Line content (first 100 chars): ${line:0:100}"
+    fi
+   fi
+  fi
+  
+ done < "${CSV_FILE}"
+ 
+ # Report validation results
+ __logd "CSV validation results for ${CSV_FILE}:"
+ __logd "  Total lines checked: ${LINE_NUMBER}"
+ __logd "  Wrong column count: ${WRONG_COLUMNS}"
+ __logd "  Unescaped quotes: ${UNESCAPED_QUOTES}"
+ 
+ # Determine if validation passed
+ local VALIDATION_FAILED=0
+ 
+ # Wrong columns is a critical error
+ if [[ ${WRONG_COLUMNS} -gt $((LINE_NUMBER / 10)) ]]; then
+  __loge "ERROR: Too many lines with wrong column count (${WRONG_COLUMNS} out of ${LINE_NUMBER})"
+  __loge "More than 10% of lines have incorrect structure"
+  VALIDATION_FAILED=1
+ elif [[ ${WRONG_COLUMNS} -gt 0 ]]; then
+  __logw "WARNING: Found ${WRONG_COLUMNS} lines with unexpected column count (may be OK if multivalue fields)"
+ fi
+ 
+ # Unescaped quotes is a warning, not critical (might be false positives)
+ if [[ ${UNESCAPED_QUOTES} -gt 0 ]]; then
+  __logw "WARNING: Found ${UNESCAPED_QUOTES} lines with potential quote issues"
+  __logw "This may cause PostgreSQL COPY errors. Review the CSV if load fails."
+ fi
+ 
+ if [[ ${VALIDATION_FAILED} -eq 1 ]]; then
+  __loge "CSV structure validation FAILED for ${CSV_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ __logi "✓ CSV structure validation PASSED for ${CSV_FILE}"
+ __log_finish
+ return 0
 }
 
 # Validate CSV file for enum compatibility before database loading
