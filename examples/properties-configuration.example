@@ -1,0 +1,95 @@
+# Properties Configuration Example for OSM Notes Ingestion
+# ==========================================================
+#
+# This file shows how to configure the properties.sh file for OSM Notes Ingestion.
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2025-10-22
+
+# =============================================================================
+# BASIC CONFIGURATION
+# =============================================================================
+
+# Database configuration
+DBNAME="osm-notes"
+DB_USER="osmuser"
+
+# Email configuration for reports
+EMAILS="admin@example.com"
+
+# Alert configuration
+ADMIN_EMAIL="admin@example.com"
+SEND_ALERT_EMAIL="true"
+
+# OpenStreetMap API configuration
+OSM_API="https://api.openstreetmap.org/api/0.6"
+
+# OpenStreetMap Planet dump URL
+PLANET="https://planet.openstreetmap.org"
+
+# Overpass interpreter URL
+OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
+
+# Processing configuration
+LOOP_SIZE="10000"
+MAX_NOTES="10000"
+MAX_THREADS="4"
+MIN_NOTES_FOR_PARALLEL="10"
+
+# Cleanup configuration
+CLEAN="true"
+
+# XML Validation configuration
+SKIP_XML_VALIDATION="false"
+
+
+# =============================================================================
+# CUSTOMIZATIONS
+# =============================================================================
+
+# For faster processing (skip XML validation):
+# SKIP_XML_VALIDATION="true"
+
+# For smaller datasets:
+# MAX_NOTES="5000"
+# LOOP_SIZE="5000"
+
+# For larger datasets:
+# MAX_NOTES="50000"
+# LOOP_SIZE="20000"
+# MAX_THREADS="8"
+
+# For testing (disable alerts):
+# SEND_ALERT_EMAIL="false"
+
+# For debugging (keep files):
+# CLEAN="false"
+
+
+# =============================================================================
+# CONFIGURATION VALIDATION
+# =============================================================================
+
+# Test your configuration:
+# 1. Check database connection:
+#    psql -U $DB_USER -d $DBNAME -c "SELECT 1;"
+
+# 2. Test email configuration:
+#    echo "Test email" | mail -s "Test" $ADMIN_EMAIL
+
+# 3. Test API access:
+#    curl -I $OSM_API
+
+# 4. Validate configuration file:
+#    source etc/properties.sh && echo "Configuration loaded successfully"
+
+
+# =============================================================================
+# NOTES
+# =============================================================================
+
+# - Always test your configuration before using it
+# - Use appropriate resource limits for your hardware
+# - Enable alerts to monitor the system
+# - Keep configuration files secure
+# - Document any custom configurations

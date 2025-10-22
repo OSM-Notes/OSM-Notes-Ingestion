@@ -1,0 +1,79 @@
+# Crontab Configuration Example for OSM Notes Ingestion
+# ========================================================
+#
+# This file shows how to configure crontab for automated OSM notes processing.
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2025-10-22
+
+# =============================================================================
+# BASIC SETUP - RECOMMENDED
+# =============================================================================
+
+# Notes synchronization every 15 minutes
+*/15 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+
+# Country boundaries update once a month (first day of each month at 2 AM)
+0 2 1 * * /home/notes/OSM-Notes-Ingestion/bin/process/updateCountries.sh --base
+
+# Planet notes processing once a week (Sundays at 3 AM)
+0 3 * * 0 /home/notes/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh --base
+
+
+# =============================================================================
+# ALTERNATIVE FREQUENCIES
+# =============================================================================
+
+# For active mapping communities (every 5 minutes):
+# */5 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+
+# For smaller deployments (every hour):
+# 0 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+
+
+# =============================================================================
+# WITH ALERTS ENABLED
+# =============================================================================
+
+# Set up email alerts
+ADMIN_EMAIL=admin@example.com
+SEND_ALERT_EMAIL=true
+
+# Standard processing with alerts
+*/15 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+0 2 1 * * /home/notes/OSM-Notes-Ingestion/bin/process/updateCountries.sh --base
+0 3 * * 0 /home/notes/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh --base
+
+
+# =============================================================================
+# INSTALLATION INSTRUCTIONS
+# =============================================================================
+
+# 1. Edit your crontab:
+#    crontab -e
+
+# 2. Copy the configuration that fits your needs from above
+
+# 3. Adjust the paths to match your installation:
+#    Replace /home/notes/OSM-Notes-Ingestion/ with your actual path
+
+# 4. Test your configuration:
+#    # Test notes processing manually
+#    /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+#    
+#    # Check crontab syntax
+#    crontab -l
+
+
+# =============================================================================
+# MONITORING
+# =============================================================================
+
+# Monitor the logs:
+tail -f /tmp/processAPINotes_*/processAPINotes.log
+
+# Check if processes are running:
+ps aux | grep processAPINotes
+
+# Verify crontab is working:
+grep CRON /var/log/syslog | tail -10

@@ -1,0 +1,83 @@
+# Database Setup Example for OSM Notes Ingestion
+# ================================================
+#
+# This file shows how to set up PostgreSQL for the OSM Notes Ingestion project.
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2025-10-22
+
+# =============================================================================
+# BASIC POSTGRESQL SETUP
+# =============================================================================
+
+# Create database
+sudo -u postgres createdb osm-notes
+
+# Create user
+sudo -u postgres createuser -d -P osmuser
+
+# Grant permissions
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"osm-notes\" TO osmuser;"
+
+# Install required extensions
+sudo -u postgres psql -d osm-notes -c "CREATE EXTENSION postgis;"
+sudo -u postgres psql -d osm-notes -c "CREATE EXTENSION btree_gist;"
+
+# Test connection
+psql -U osmuser -d osm-notes -c "SELECT 1;"
+
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Configure authentication for local connections
+# Edit /etc/postgresql/*/main/pg_hba.conf
+# Change 'peer' to 'md5' for local connections:
+# local   all             all                                     md5
+
+# Reload PostgreSQL configuration
+sudo systemctl reload postgresql
+
+
+# =============================================================================
+# TESTING YOUR SETUP
+# =============================================================================
+
+# Test database connection
+psql -U osmuser -d osm-notes -c "SELECT version();"
+
+# Check installed extensions
+psql -U osmuser -d osm-notes -c "SELECT * FROM pg_extension;"
+
+# Test PostGIS
+psql -U osmuser -d osm-notes -c "SELECT PostGIS_version();"
+
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+
+# If you get "peer authentication failed":
+# 1. Check your pg_hba.conf file
+# 2. Make sure you're using 'md5' instead of 'peer'
+# 3. Reload PostgreSQL: sudo systemctl reload postgresql
+
+# If you get "database does not exist":
+# 1. Create the database: sudo -u postgres createdb osm-notes
+# 2. Grant permissions: sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"osm-notes\" TO osmuser;"
+
+# If you get "permission denied":
+# 1. Check user permissions: sudo -u postgres psql -c "\du"
+# 2. Grant permissions: sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"osm-notes\" TO osmuser;"
+
+
+# =============================================================================
+# NOTES
+# =============================================================================
+
+# - Use strong passwords in production
+# - Configure SSL/TLS for remote connections
+# - Set up regular backups
+# - Monitor database performance
+# - Keep PostgreSQL updated

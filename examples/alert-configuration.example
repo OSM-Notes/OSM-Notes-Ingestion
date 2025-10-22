@@ -1,0 +1,193 @@
+# Alert Configuration Example for OSM Notes Ingestion
+# =====================================================
+# 
+# Alerts are now sent IMMEDIATELY when an error occurs,
+# you don't need to configure an external monitoring script.
+#
+# IMPORTANT: Alert properties are configured in etc/properties.sh
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2025-10-22
+
+# =============================================================================
+# OPTION 1: Email Only (Recommended for most users)
+# =============================================================================
+
+# Edit etc/properties.sh and configure:
+
+# ADMIN_EMAIL="admin@example.com"
+# SEND_ALERT_EMAIL="true"  # Already enabled by default
+
+# Run the script normally
+/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+
+# When it fails, you will receive an email immediately with:
+# - Error description
+# - Error code
+# - Required actions to fix it
+# - Log file location
+
+
+# =============================================================================
+# OPTION 2: No Alerts (Failed file only)
+# =============================================================================
+
+# Edit etc/properties.sh and disable all alerts:
+
+# SEND_ALERT_EMAIL="false"
+
+# The script will still create the failed file but won't send alerts
+/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+
+# Useful for:
+# - Development/testing environments
+# - When using an external monitoring system
+# - When you don't have mail configured
+
+
+# =============================================================================
+# CRONTAB CONFIGURATION
+# =============================================================================
+
+# Alert properties are automatically loaded from etc/properties.sh
+# You don't need to configure anything additional in crontab:
+
+# Edit: crontab -e
+# Add:
+0 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+
+# Alerts will work automatically according to the configuration in etc/properties.sh
+
+
+# =============================================================================
+# EMAIL CONFIGURATION (POSTFIX)
+# =============================================================================
+
+# If you don't have email configured, install Postfix:
+
+# Ubuntu/Debian:
+# sudo apt-get install postfix mailutils
+
+# During installation, select "Internet Site"
+# Enter your domain name when prompted
+
+# Test that it works:
+# echo "Test email" | mail -s "Test" your@email.com
+
+# If you don't receive the email, check:
+# 1. Postfix logs: tail -f /var/log/mail.log
+# 2. Status: systemctl status postfix
+# 3. Configuration: cat /etc/postfix/main.cf
+
+
+# =============================================================================
+# ALERT EXAMPLES
+# =============================================================================
+
+# Example 1: Historical data error
+# ------------------------------------
+# Subject: ALERT: OSM Notes processAPINotes Failed - hostname
+# 
+# Error code: 248
+# Error: Historical data validation failed - base tables exist but contain 
+#        no historical data
+# 
+# Action Required:
+# Run processPlanetNotes.sh to load historical data: 
+# /home/notes/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh
+# 
+# Recovery Steps:
+# 1. Run: ./processPlanetNotes.sh
+# 2. Delete marker: rm /tmp/processAPINotes_failed_execution
+# 3. Retry
+
+
+# Example 2: XML validation error
+# -----------------------------------
+# Subject: ALERT: OSM Notes processAPINotes Failed - hostname
+# 
+# Error code: 249
+# Error: XML structure validation failed - downloaded file does not match schema
+# 
+# Action Required:
+# Check if OSM API has changed. Verify file against schema.
+# 
+# Recovery Steps:
+# 1. Check OSM API status
+# 2. Verify XML file manually
+# 3. If temporary, delete marker and retry
+
+
+# =============================================================================
+# TEMPORARILY DISABLE ALERTS
+# =============================================================================
+
+# If you need to temporarily disable alerts (e.g., during maintenance):
+
+# Method 1: Environment variable
+export SEND_ALERT_EMAIL="false"
+/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+
+# Method 2: In the script directly (not recommended)
+# Edit processAPINotes.sh and change:
+# export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-true}"
+# to:
+# export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-false}"
+
+
+# =============================================================================
+# TROUBLESHOOTING
+# =============================================================================
+
+# I don't receive emails
+# -----------------------
+# 1. Verify that mail is installed:
+#    command -v mail
+# 
+# 2. Test sending an email manually:
+#    echo "Test" | mail -s "Test" your@email.com
+# 
+# 3. Check the script logs:
+#    tail -f /tmp/processAPINotes_*/processAPINotes.log
+#    # Look for: "Email alert sent successfully" or "Failed to send email"
+# 
+# 4. Check Postfix logs:
+#    tail -f /var/log/mail.log
+
+
+# Alerts are sent but don't arrive
+# ----------------------------------
+# 1. Check spam/junk folder
+# 2. Verify that the destination email is correct
+# 3. Check server email whitelist/blacklist
+
+
+# =============================================================================
+# NEW SYSTEM ADVANTAGES
+# =============================================================================
+
+# ✓ IMMEDIATE alerts (you don't wait 10-15 minutes)
+# ✓ No external monitoring scripts needed
+# ✓ No additional cron configuration
+# ✓ Simpler and more direct
+# ✓ Less system resources
+# ✓ Easy to configure (just environment variables)
+# ✓ Integrates with existing failed file mechanism
+
+
+# =============================================================================
+# MIGRATION FROM EXTERNAL MONITORING SYSTEM
+# =============================================================================
+
+# If you were using checkFailedExecution.sh:
+
+# 1. The external monitoring script is still valid as backup
+# 2. You can keep it for additional monitoring if you want
+# 3. Or you can remove it from crontab if you prefer only immediate alerts:
+#    crontab -e
+#    # Comment or remove the checkFailedExecution.sh line
+
+# 4. Configure the new immediate alerts:
+#    export ADMIN_EMAIL="admin@example.com"
+
+# 5. Immediate alerts are faster and more efficient
