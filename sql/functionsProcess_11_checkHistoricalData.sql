@@ -2,7 +2,7 @@
 -- This validation ensures that processAPI doesn't run without historical notes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-08-07
+-- Version: 2025-10-22
 
 DO /* Notes-historical-checkData */
 $$
@@ -31,11 +31,11 @@ BEGIN
   RAISE EXCEPTION 'Historical data validation failed: note_comments table is empty. Please run processPlanetNotes.sh first to load historical data.';
  END IF;
 
- -- Check if we have historical data (not just recent data)
- SELECT /* Notes-historical-oldest-note */ MIN(date_created::DATE)
-  INTO oldest_note_date
- FROM notes
- WHERE date_created IS NOT NULL;
+-- Check if we have historical data (not just recent data)
+SELECT /* Notes-historical-oldest-note */ MIN(created_at::DATE)
+ INTO oldest_note_date
+FROM notes
+WHERE created_at IS NOT NULL;
 
  IF (oldest_note_date IS NULL) THEN
   RAISE EXCEPTION 'Historical data validation failed: no valid creation dates found in notes table.';
@@ -47,11 +47,11 @@ BEGIN
    oldest_note_date, min_historical_days;
  END IF;
 
- -- Check if we have historical comments data
- SELECT /* Notes-historical-oldest-comment */ MIN(date::DATE)
-  INTO oldest_comment_date
- FROM note_comments
- WHERE date IS NOT NULL;
+-- Check if we have historical comments data
+SELECT /* Notes-historical-oldest-comment */ MIN(created_at::DATE)
+ INTO oldest_comment_date
+FROM note_comments
+WHERE created_at IS NOT NULL;
 
  IF (oldest_comment_date IS NULL) THEN
   RAISE EXCEPTION 'Historical data validation failed: no valid dates found in note_comments table.';

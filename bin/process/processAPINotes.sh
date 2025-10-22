@@ -24,13 +24,34 @@
 # 246) Planet process is currently running.
 # 248) Error executing the Planet dump.
 #
+# FAILED EXECUTION MECHANISM:
+# When critical errors occur, the script creates a "failed execution marker file"
+# at /tmp/processAPINotes_failed_execution. This prevents subsequent executions
+# from running until the issue is resolved. The marker file contains:
+# - Timestamp of the failure
+# - Error code and description
+# - Required action to fix the issue
+# - Process ID and temporary directory
+#
+# To recover from a failed execution:
+# 1. Read the failed execution file to understand the error
+# 2. Fix the underlying issue (e.g., load historical data, fix permissions)
+# 3. Delete the failed execution file: rm /tmp/processAPINotes_failed_execution
+# 4. Run the script again
+#
+# Critical errors that create failed markers:
+# - Historical data validation failures (need to run processPlanetNotes.sh)
+# - XML validation failures (corrupted or invalid API data)
+# - Base structure creation failures (database/permission issues)
+# - API download failures (network/API issues, may be temporary)
+#
 # For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all processAPINotes.sh
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-21
-VERSION="2025-10-21"
+# Version: 2025-10-22
+VERSION="2025-10-22"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -181,6 +202,41 @@ function __show_help {
  echo "Written by: Andres Gomez (AngocA)."
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
  exit "${ERROR_HELP_MESSAGE}"
+}
+
+# Creates a failed execution marker file with details.
+# This prevents subsequent executions from running until the issue is resolved.
+#
+# Parameters:
+#   $1 - error_code: The error code that triggered the failure
+#   $2 - error_message: Description of what failed
+#   $3 - required_action: (Optional) What action is needed to fix it
+#
+# Returns:
+#   None (always creates file if conditions are met)
+function __create_failed_marker() {
+ local ERROR_CODE="${1}"
+ local ERROR_MESSAGE="${2}"
+ local REQUIRED_ACTION="${3:-Verify the issue and fix it manually}"
+
+ __loge "Creating failed execution marker due to: ${ERROR_MESSAGE}"
+
+ if [[ "${GENERATE_FAILED_FILE}" == "true" ]] \
+  && [[ "${ONLY_EXECUTION}" == "yes" ]]; then
+  {
+   echo "Execution failed at $(date)"
+   echo "Error code: ${ERROR_CODE}"
+   echo "Error: ${ERROR_MESSAGE}"
+   echo "Process ID: $$"
+   echo "Temporary directory: ${TMP_DIR:-unknown}"
+   echo ""
+   echo "Required action: ${REQUIRED_ACTION}"
+  } > "${FAILED_EXECUTION_FILE}"
+  __loge "Failed execution file created: ${FAILED_EXECUTION_FILE}"
+  __loge "Remove this file after fixing the issue to allow new executions"
+ else
+  __logd "Failed file not created (GENERATE_FAILED_FILE=${GENERATE_FAILED_FILE}, ONLY_EXECUTION=${ONLY_EXECUTION})"
+ fi
 }
 
 # Checks prerequisites to run the script.
@@ -437,6 +493,9 @@ function __validateApiNotesXMLFileComplete {
  # Check if file exists
  if [[ ! -f "${API_NOTES_FILE}" ]]; then
   __loge "ERROR: API notes file not found: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "API notes file not found after download" \
+   "Check network connectivity and API availability. File expected at: ${API_NOTES_FILE}"
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -444,6 +503,9 @@ function __validateApiNotesXMLFileComplete {
  __logi "Validating XML structure against schema..."
  if ! __validate_xml_with_enhanced_error_handling "${API_NOTES_FILE}" "${XMLSCHEMA_API_NOTES}"; then
   __loge "ERROR: XML structure validation failed: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "XML structure validation failed - downloaded file does not match schema" \
+   "Check if OSM API has changed. Verify file: ${API_NOTES_FILE} against schema: ${XMLSCHEMA_API_NOTES}"
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -451,6 +513,9 @@ function __validateApiNotesXMLFileComplete {
  __logi "Validating dates in XML file..."
  if ! __validate_xml_dates "${API_NOTES_FILE}"; then
   __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "XML date validation failed - dates are not in expected format or invalid" \
+   "Check dates in file: ${API_NOTES_FILE}. May indicate API data corruption or format change."
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -458,6 +523,9 @@ function __validateApiNotesXMLFileComplete {
  __logi "Validating coordinates in XML file..."
  if ! __validate_xml_coordinates "${API_NOTES_FILE}"; then
   __loge "ERROR: XML coordinate validation failed: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+   "XML coordinate validation failed - coordinates are outside valid ranges" \
+   "Check coordinates in file: ${API_NOTES_FILE}. May indicate API data corruption."
   exit "${ERROR_DATA_VALIDATION}"
  fi
 
@@ -575,40 +643,40 @@ function __processApiXmlSequential {
 
  # Validate CSV files structure and content before loading
  __logd "Validating CSV files structure and enum compatibility..."
- 
+
  # Validate notes
  if ! __validate_csv_structure "${OUTPUT_NOTES_FILE}" "notes"; then
   __loge "ERROR: Notes CSV structure validation failed"
   __log_finish
   return 1
  fi
- 
+
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_FILE}" "notes"; then
   __loge "ERROR: Notes CSV enum validation failed"
   __log_finish
   return 1
  fi
- 
+
  # Validate comments
  if ! __validate_csv_structure "${OUTPUT_COMMENTS_FILE}" "comments"; then
   __loge "ERROR: Comments CSV structure validation failed"
   __log_finish
   return 1
  fi
- 
+
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_FILE}" "comments"; then
   __loge "ERROR: Comments CSV enum validation failed"
   __log_finish
   return 1
  fi
- 
+
  # Validate text
  if ! __validate_csv_structure "${OUTPUT_TEXT_FILE}" "text"; then
   __loge "ERROR: Text CSV structure validation failed"
   __log_finish
   return 1
  fi
- 
+
  __logi "✓ All CSV validations passed for sequential processing"
 
  __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
@@ -883,39 +951,51 @@ function main() {
   __logd "Releasing lock before spawning child processes"
   exec 8>&-
 
-  # Step 1: Create base structure (tables only)
-  __logi "Step 1/3: Creating base database structure..."
-  if ! "${NOTES_SYNC_SCRIPT}" --base; then
-   __loge "ERROR: Failed to create base structure. Stopping process."
+ # Step 1: Create base structure (tables only)
+ __logi "Step 1/3: Creating base database structure..."
+ if ! "${NOTES_SYNC_SCRIPT}" --base; then
+  __loge "ERROR: Failed to create base structure. Stopping process."
+  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+   "Failed to create base database structure (Step 1/3)" \
+   "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
+  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+ fi
+ __logw "Base structure created successfully."
+
+ # Step 2: Load initial geographic data
+ __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
+  if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
+   __loge "ERROR: Failed to load geographic data. Stopping process."
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Failed to load initial geographic data (Step 2/3)" \
+    "Check updateCountries.sh script and ensure geographic data files are accessible. Script: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
-  __logw "Base structure created successfully."
+  __logw "Geographic data loaded successfully."
+ else
+  __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
+  __create_failed_marker "${ERROR_MISSING_LIBRARY}" \
+   "updateCountries.sh script not found" \
+   "Install or restore updateCountries.sh at: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
 
-  # Step 2: Load initial geographic data
-  __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
-  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
-   if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
-    __loge "ERROR: Failed to load geographic data. Stopping process."
-    exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   fi
-   __logw "Geographic data loaded successfully."
-  else
-   __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
-   exit "${ERROR_MISSING_LIBRARY}"
-  fi
-
-  # Step 3: Process planet notes (now with geographic data available)
-  __logi "Step 3/3: Processing planet notes with geographic data..."
-  set +e
-  "${NOTES_SYNC_SCRIPT}" # sin argumentos
-  RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]]; then
-   __loge "ERROR: Failed to process planet notes."
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-  fi
-  __logw "Complete setup finished successfully."
-  __logi "System is now ready for regular API processing."
+ # Step 3: Process planet notes (now with geographic data available)
+ __logi "Step 3/3: Processing planet notes with geographic data..."
+ set +e
+ "${NOTES_SYNC_SCRIPT}" # sin argumentos
+ RET=${?}
+ set -e
+ if [[ "${RET}" -ne 0 ]]; then
+  __loge "ERROR: Failed to process planet notes."
+  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+   "Failed to process planet notes - historical data load failed (Step 3/3)" \
+   "Check processPlanetNotes.sh execution. Verify planet dump file availability and database space. Script: ${NOTES_SYNC_SCRIPT}"
+  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+ fi
+ __logw "Complete setup finished successfully."
+ __logi "System is now ready for regular API processing."
 
   # Re-acquire lock after child processes complete
   __logd "Re-acquiring lock after child processes"
@@ -923,13 +1003,16 @@ function main() {
   flock -n 8
   __logd "Lock re-acquired successfully"
  else
-  # Base tables exist, now check if they contain historical data
-  __logi "Base tables found. Validating historical data..."
-  __checkHistoricalData
-  if [[ "${RET_FUNC}" -ne 0 ]]; then
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-  fi
-  __logi "Historical data validation passed. ProcessAPI can continue safely."
+   # Base tables exist, now check if they contain historical data
+   __logi "Base tables found. Validating historical data..."
+   __checkHistoricalData
+   if [[ "${RET_FUNC}" -ne 0 ]]; then
+    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+     "Historical data validation failed - base tables exist but contain no historical data" \
+     "Run processPlanetNotes.sh to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
+    exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   fi
+   __logi "Historical data validation passed. ProcessAPI can continue safely."
  fi
 
  set -E
@@ -941,17 +1024,23 @@ function main() {
  __getNewNotesFromApi
  set -E
 
- # Verify that the API notes file was downloaded successfully
- if [[ ! -f "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
-  exit "${ERROR_INTERNET_ISSUE}"
- fi
+# Verify that the API notes file was downloaded successfully
+if [[ ! -f "${API_NOTES_FILE}" ]]; then
+ __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
+ __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+  "API notes file was not downloaded" \
+  "This may be temporary. Check network connectivity and OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. Expected file: ${API_NOTES_FILE}"
+ exit "${ERROR_INTERNET_ISSUE}"
+fi
 
- # Check if the file has content (not empty)
- if [[ ! -s "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
-  exit "${ERROR_INTERNET_ISSUE}"
- fi
+# Check if the file has content (not empty)
+if [[ ! -s "${API_NOTES_FILE}" ]]; then
+ __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
+ __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+  "API notes file is empty - no data received from OSM API" \
+  "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
+ exit "${ERROR_INTERNET_ISSUE}"
+fi
 
  __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
 

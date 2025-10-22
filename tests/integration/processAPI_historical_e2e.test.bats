@@ -3,7 +3,7 @@
 # End-to-end integration tests for processAPI historical data validation
 # These tests simulate real database scenarios
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-07
+# Version: 2025-10-22
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -41,7 +41,7 @@ teardown() {
         
         CREATE TABLE notes_test (
             id BIGINT PRIMARY KEY,
-            date_created TIMESTAMP,
+            created_at TIMESTAMP,
             lat DECIMAL(10,7),
             lon DECIMAL(11,7),
             status VARCHAR(20)
@@ -50,7 +50,7 @@ teardown() {
         CREATE TABLE note_comments_test (
             id BIGINT PRIMARY KEY,
             note_id BIGINT,
-            date TIMESTAMP,
+            created_at TIMESTAMP,
             action VARCHAR(20)
         );
         
@@ -85,7 +85,7 @@ EOSQL
         
         CREATE TABLE notes_test (
             id BIGINT PRIMARY KEY,
-            date_created TIMESTAMP,
+            created_at TIMESTAMP,
             lat DECIMAL(10,7),
             lon DECIMAL(11,7),
             status VARCHAR(20)
@@ -94,17 +94,17 @@ EOSQL
         CREATE TABLE note_comments_test (
             id BIGINT PRIMARY KEY,
             note_id BIGINT,
-            date TIMESTAMP,
+            created_at TIMESTAMP,
             action VARCHAR(20)
         );
         
         -- Insert only recent data (last 5 days)
-        INSERT INTO notes_test (id, date_created, lat, lon, status) VALUES
+        INSERT INTO notes_test (id, created_at, lat, lon, status) VALUES
         (1, CURRENT_DATE - INTERVAL '1 day', 40.7128, -74.0060, 'open'),
         (2, CURRENT_DATE - INTERVAL '2 days', 40.7129, -74.0061, 'open'),
         (3, CURRENT_DATE - INTERVAL '3 days', 40.7130, -74.0062, 'closed');
         
-        INSERT INTO note_comments_test (id, note_id, date, action) VALUES
+        INSERT INTO note_comments_test (id, note_id, created_at, action) VALUES
         (1, 1, CURRENT_DATE - INTERVAL '1 day', 'opened'),
         (2, 2, CURRENT_DATE - INTERVAL '2 days', 'opened'),
         (3, 3, CURRENT_DATE - INTERVAL '3 days', 'opened');
@@ -122,7 +122,7 @@ EOSQL
           RAISE EXCEPTION 'Historical data validation failed: notes table is empty';
          END IF;
 
-         SELECT MIN(date_created::DATE) INTO oldest_note_date FROM notes_test;
+         SELECT MIN(created_at::DATE) INTO oldest_note_date FROM notes_test;
          IF (current_date_check - oldest_note_date < min_historical_days) THEN
           RAISE EXCEPTION 'Historical data validation failed: insufficient historical data. Found data from %, but need at least % days of history',
            oldest_note_date, min_historical_days;
@@ -148,7 +148,7 @@ EOSQL
         
         CREATE TABLE notes_test (
             id BIGINT PRIMARY KEY,
-            date_created TIMESTAMP,
+            created_at TIMESTAMP,
             lat DECIMAL(10,7),
             lon DECIMAL(11,7),
             status VARCHAR(20)
@@ -157,19 +157,19 @@ EOSQL
         CREATE TABLE note_comments_test (
             id BIGINT PRIMARY KEY,
             note_id BIGINT,
-            date TIMESTAMP,
+            created_at TIMESTAMP,
             action VARCHAR(20)
         );
         
         -- Insert historical data (60 days ago)
-        INSERT INTO notes_test (id, date_created, lat, lon, status) VALUES
+        INSERT INTO notes_test (id, created_at, lat, lon, status) VALUES
         (1, CURRENT_DATE - INTERVAL '60 days', 40.7128, -74.0060, 'open'),
         (2, CURRENT_DATE - INTERVAL '45 days', 40.7129, -74.0061, 'open'),
         (3, CURRENT_DATE - INTERVAL '30 days', 40.7130, -74.0062, 'closed'),
         (4, CURRENT_DATE - INTERVAL '15 days', 40.7131, -74.0063, 'open'),
         (5, CURRENT_DATE - INTERVAL '1 day', 40.7132, -74.0064, 'open');
         
-        INSERT INTO note_comments_test (id, note_id, date, action) VALUES
+        INSERT INTO note_comments_test (id, note_id, created_at, action) VALUES
         (1, 1, CURRENT_DATE - INTERVAL '60 days', 'opened'),
         (2, 2, CURRENT_DATE - INTERVAL '45 days', 'opened'),
         (3, 3, CURRENT_DATE - INTERVAL '30 days', 'opened'),
@@ -195,12 +195,12 @@ EOSQL
           RAISE EXCEPTION 'Historical data validation failed: note_comments table is empty';
          END IF;
 
-         SELECT MIN(date_created::DATE) INTO oldest_note_date FROM notes_test;
+         SELECT MIN(created_at::DATE) INTO oldest_note_date FROM notes_test;
          IF (current_date_check - oldest_note_date < min_historical_days) THEN
           RAISE EXCEPTION 'Historical data validation failed: insufficient historical data';
          END IF;
 
-         SELECT MIN(date::DATE) INTO oldest_comment_date FROM note_comments_test;
+         SELECT MIN(created_at::DATE) INTO oldest_comment_date FROM note_comments_test;
          IF (current_date_check - oldest_comment_date < min_historical_days) THEN
           RAISE EXCEPTION 'Historical data validation failed: insufficient historical comment data';
          END IF;
@@ -233,8 +233,8 @@ EOSQL
         
         CREATE TABLE notes (
             id BIGINT PRIMARY KEY,
-            date_created TIMESTAMP WITH TIME ZONE,
-            date_closed TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE,
+            closed_at TIMESTAMP WITH TIME ZONE,
             lat DECIMAL(10,7) NOT NULL,
             lon DECIMAL(11,7) NOT NULL,
             status VARCHAR(20) NOT NULL
@@ -243,7 +243,7 @@ EOSQL
         CREATE TABLE note_comments (
             id BIGINT PRIMARY KEY,
             note_id BIGINT REFERENCES notes(id),
-            date TIMESTAMP WITH TIME ZONE NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL,
             uid BIGINT,
             user_name VARCHAR(255),
             action VARCHAR(20) NOT NULL,
@@ -281,8 +281,8 @@ EOSQL
         
         CREATE TABLE notes (
             id BIGINT PRIMARY KEY,
-            date_created TIMESTAMP WITH TIME ZONE,
-            date_closed TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE,
+            closed_at TIMESTAMP WITH TIME ZONE,
             lat DECIMAL(10,7) NOT NULL,
             lon DECIMAL(11,7) NOT NULL,
             status VARCHAR(20) NOT NULL
@@ -291,7 +291,7 @@ EOSQL
         CREATE TABLE note_comments (
             id BIGINT PRIMARY KEY,
             note_id BIGINT REFERENCES notes(id),
-            date TIMESTAMP WITH TIME ZONE NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE NOT NULL,
             uid BIGINT,
             user_name VARCHAR(255),
             action VARCHAR(20) NOT NULL,
@@ -304,12 +304,12 @@ EOSQL
         CREATE TABLE tries (id SERIAL PRIMARY KEY, attempt_count INT);
         
         -- Insert sufficient historical data (60 days)
-        INSERT INTO notes (id, date_created, lat, lon, status) VALUES
+        INSERT INTO notes (id, created_at, lat, lon, status) VALUES
         (1, CURRENT_DATE - INTERVAL '60 days', 40.7128, -74.0060, 'open'),
         (2, CURRENT_DATE - INTERVAL '45 days', 40.7129, -74.0061, 'closed'),
         (3, CURRENT_DATE - INTERVAL '35 days', 40.7130, -74.0062, 'open');
         
-        INSERT INTO note_comments (id, note_id, date, uid, user_name, action, text) VALUES
+        INSERT INTO note_comments (id, note_id, created_at, uid, user_name, action, text) VALUES
         (1, 1, CURRENT_DATE - INTERVAL '60 days', 1001, 'testuser1', 'opened', 'Test note 1'),
         (2, 2, CURRENT_DATE - INTERVAL '45 days', 1002, 'testuser2', 'opened', 'Test note 2'),
         (3, 2, CURRENT_DATE - INTERVAL '40 days', 1003, 'testuser3', 'closed', 'Closing note 2'),

@@ -2,7 +2,7 @@
 
 # Unit tests for historical data validation in processAPI
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-07
+# Version: 2025-10-22
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -107,7 +107,7 @@ extract_historical_data_function() {
     DB_TEST="osm_notes_test"
     psql -d postgres -c "DROP DATABASE IF EXISTS ${DB_TEST};" >/dev/null 2>&1 || true
     psql -d postgres -c "CREATE DATABASE ${DB_TEST};" >/dev/null 2>&1 || skip "Cannot create test DB"
-    psql -d "${DB_TEST}" -c 'CREATE TABLE IF NOT EXISTS notes (id SERIAL, date_created DATE); CREATE TABLE IF NOT EXISTS note_comments (id SERIAL, date DATE); CREATE TABLE IF NOT EXISTS countries (id SERIAL); CREATE TABLE IF NOT EXISTS logs (id SERIAL); CREATE TABLE IF NOT EXISTS tries (id SERIAL); TRUNCATE notes, note_comments;' >/dev/null 2>&1 || skip "Cannot prepare base tables"
+    psql -d "${DB_TEST}" -c 'CREATE TABLE IF NOT EXISTS notes (id SERIAL, created_at DATE); CREATE TABLE IF NOT EXISTS note_comments (id SERIAL, created_at DATE); CREATE TABLE IF NOT EXISTS countries (id SERIAL); CREATE TABLE IF NOT EXISTS logs (id SERIAL); CREATE TABLE IF NOT EXISTS tries (id SERIAL); TRUNCATE notes, note_comments;' >/dev/null 2>&1 || skip "Cannot prepare base tables"
 
     # Run SQL script directly to validate failure on empty tables
     run psql -d "${DB_TEST}" -v ON_ERROR_STOP=1 -f "${TEST_BASE_DIR}/sql/functionsProcess_11_checkHistoricalData.sql"
@@ -122,9 +122,9 @@ extract_historical_data_function() {
     DB_TEST="osm_notes_test"
     psql -d postgres -c "DROP DATABASE IF EXISTS ${DB_TEST};" >/dev/null 2>&1 || true
     psql -d postgres -c "CREATE DATABASE ${DB_TEST};" >/dev/null 2>&1 || skip "Cannot create test DB"
-    psql -d "${DB_TEST}" -c 'CREATE TABLE IF NOT EXISTS notes (id SERIAL, date_created DATE); CREATE TABLE IF NOT EXISTS note_comments (id SERIAL, date DATE); CREATE TABLE IF NOT EXISTS countries (id SERIAL); CREATE TABLE IF NOT EXISTS logs (id SERIAL); CREATE TABLE IF NOT EXISTS tries (id SERIAL); TRUNCATE notes, note_comments;' >/dev/null 2>&1 || skip "Cannot prepare base tables"
-    psql -d "${DB_TEST}" -c "INSERT INTO notes(date_created) VALUES (CURRENT_DATE)" >/dev/null 2>&1 || true
-    psql -d "${DB_TEST}" -c "INSERT INTO note_comments(date) VALUES (CURRENT_DATE)" >/dev/null 2>&1 || true
+    psql -d "${DB_TEST}" -c 'CREATE TABLE IF NOT EXISTS notes (id SERIAL, created_at DATE); CREATE TABLE IF NOT EXISTS note_comments (id SERIAL, created_at DATE); CREATE TABLE IF NOT EXISTS countries (id SERIAL); CREATE TABLE IF NOT EXISTS logs (id SERIAL); CREATE TABLE IF NOT EXISTS tries (id SERIAL); TRUNCATE notes, note_comments;' >/dev/null 2>&1 || skip "Cannot prepare base tables"
+    psql -d "${DB_TEST}" -c "INSERT INTO notes(created_at) VALUES (CURRENT_DATE)" >/dev/null 2>&1 || true
+    psql -d "${DB_TEST}" -c "INSERT INTO note_comments(created_at) VALUES (CURRENT_DATE)" >/dev/null 2>&1 || true
 
     # Run SQL script directly to validate failure with recent-only data
     run psql -d "${DB_TEST}" -v ON_ERROR_STOP=1 -f "${TEST_BASE_DIR}/sql/functionsProcess_11_checkHistoricalData.sql"
