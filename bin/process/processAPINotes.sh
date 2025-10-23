@@ -261,7 +261,7 @@ __recover_from_gaps() {
   __logd "Starting gap recovery process"
   
   # Check for notes without comments in recent data
-  local gap_query="
+  local GAP_QUERY="
     SELECT COUNT(DISTINCT n.note_id) as gap_count
     FROM notes n
     LEFT JOIN note_comments nc ON nc.note_id = n.note_id
@@ -271,25 +271,25 @@ __recover_from_gaps() {
     AND nc.note_id IS NULL
   "
   
-  local gap_count
+  local GAP_COUNT
   local TEMP_GAP_FILE
   TEMP_GAP_FILE=$(mktemp)
   
-  if ! __retry_database_operation "${gap_query}" "${TEMP_GAP_FILE}" 3 2; then
+  if ! __retry_database_operation "${GAP_QUERY}" "${TEMP_GAP_FILE}" 3 2; then
     __loge "Failed to execute gap query after retries"
     rm -f "${TEMP_GAP_FILE}"
     return 1
   fi
   
-  gap_count=$(cat "${TEMP_GAP_FILE}")
+  GAP_COUNT=$(cat "${TEMP_GAP_FILE}")
   rm -f "${TEMP_GAP_FILE}"
   
-  if [[ "${gap_count}" -gt 0 ]]; then
-    __logw "Detected ${gap_count} notes without comments in last 7 days"
+  if [[ "${GAP_COUNT}" -gt 0 ]]; then
+    __logw "Detected ${GAP_COUNT} notes without comments in last 7 days"
     __logw "This indicates a potential data integrity issue"
     
     # Log detailed gap information
-    local gap_details_query="
+    local GAP_DETAILS_QUERY="
       SELECT n.note_id, n.created_at, n.status
       FROM notes n
       LEFT JOIN note_comments nc ON nc.note_id = n.note_id
@@ -302,15 +302,15 @@ __recover_from_gaps() {
     "
     
     __logw "Sample of notes with gaps:"
-    psql -d "${DBNAME}" -c "${gap_details_query}" | while read -r line; do
+    psql -d "${DBNAME}" -c "${GAP_DETAILS_QUERY}" | while read -r line; do
       __logw "  ${line}"
     done
     
     # Optionally trigger a recovery process
-    if [[ "${gap_count}" -lt 100 ]]; then
-      __logi "Gap count is manageable (${gap_count}), continuing with normal processing"
+    if [[ "${GAP_COUNT}" -lt 100 ]]; then
+      __logi "Gap count is manageable (${GAP_COUNT}), continuing with normal processing"
     else
-      __loge "Large gap detected (${gap_count} notes), consider manual intervention"
+      __loge "Large gap detected (${GAP_COUNT} notes), consider manual intervention"
       return 1
     fi
   else
