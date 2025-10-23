@@ -360,8 +360,13 @@ function __validate_sql_structure() {
  # Check for balanced parentheses
  local OPEN_PARENS
  local CLOSE_PARENS
- OPEN_PARENS=$(grep -o '(' "${SQL_FILE}" | wc -l)
- CLOSE_PARENS=$(grep -o ')' "${SQL_FILE}" | wc -l)
+ # Remove comments before counting parentheses
+ local TEMP_SQL
+ TEMP_SQL=$(mktemp)
+ grep -v '^[[:space:]]*--' "${SQL_FILE}" | sed 's/--.*$//' > "${TEMP_SQL}"
+ OPEN_PARENS=$(grep -o '(' "${TEMP_SQL}" | wc -l)
+ CLOSE_PARENS=$(grep -o ')' "${TEMP_SQL}" | wc -l)
+ rm -f "${TEMP_SQL}"
 
  if [[ "${OPEN_PARENS}" -ne "${CLOSE_PARENS}" ]]; then
   __loge "ERROR: Unbalanced parentheses in SQL file: ${SQL_FILE}"

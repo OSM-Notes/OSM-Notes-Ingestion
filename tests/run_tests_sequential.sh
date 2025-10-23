@@ -183,7 +183,7 @@ __run_level_1() {
 
 # Level 2 - Validation tests
 __run_level_2() {
- __show_level_header 2 "Tests de Validación" "10-15 min"
+ __show_level_header 2 "Tests de Validación" "8-12 min"
 
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/centralized_validation.test.bats" \
@@ -443,7 +443,7 @@ main() {
   fi
   local -r level_num="$2"
   __show_banner
-  __log_info "Ejecutando solo Nivel ${level_num}"
+  __log_info "Ejecutando Nivel ${level_num}"
   "__run_level_${level_num}" || true
   __show_summary
   ;;

@@ -129,7 +129,7 @@ INSERT INTO temp_diff_notes
 
 -- Note differences between the retrieved from API and the Planet.
 -- Compare complete note details for all history (excluding today)
-\copy (
+COPY (
  SELECT /* Notes-check */ notes_check.*
  FROM notes_check
  WHERE note_id IN (
@@ -146,7 +146,7 @@ DROP TABLE IF EXISTS temp_diff_notes;
 
 -- Comment differences between the retrieved from API and the Planet.
 -- Compare complete comment details for all history (excluding today)
-\copy (
+COPY (
  SELECT /* Comments-check */ note_comments_check.*
  FROM note_comments_check
  WHERE comment_id IN (
@@ -181,7 +181,7 @@ INSERT INTO temp_diff_text_comments_id
 
 -- Text comment differences between the retrieved from API and the Planet.
 -- Compare complete text comment details for all history (excluding today)
-\copy (
+COPY (
  SELECT /* Text-comments-check */ note_comments_text_check.*
  FROM note_comments_text_check
  WHERE text_comment_id IN (

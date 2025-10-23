@@ -218,32 +218,6 @@ EOF
  fi
 }
 
- )
- local failed_files=()
- 
-     while IFS= read -r -d '' sql_file; do
-       if [[ -f "$sql_file" ]]; then
-         # Test SQL validation
-         run bash -c "
-           source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
-           __validate_sql_structure '$sql_file'
-         "
-         if [[ "$status" -ne 0 ]]; then
-           failed_files+=("$sql_file")
-         fi
-       fi
-   fi
- done
- 
- # Report results
- if [[ ${#failed_files[@]} -eq 0 ]]; then
- else
-   for file in "${failed_files[@]}"; do
-     echo "  - $file"
-   done
-   return 1
- fi
-}
 
 # Test that the validation function handles edge cases correctly
 @test "SQL validation should handle edge cases correctly" {
