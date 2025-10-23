@@ -101,10 +101,18 @@ Status: In Progress
     - Replaced manual DB calls in processAPINotes.sh (2 database calls)
   - **Impact**: Consistent retry behavior across all APIs, centralized configuration, uniform error handling
 
-- [ ] **Issue #8**: Implement rollback mechanism for failed operations
+- [✅] **Issue #8**: Implement rollback mechanism for failed operations - COMPLETED
   - **Current**: No transaction rollback
-  - **Solution**: Add trap-based cleanup and DB rollback
-  - **Files**: All main scripts
+  - **Solution**: Implemented gap logging with dual persistence instead of rollback
+  - **Files**: processAPINotes_21_createApiTables.sql, processAPINotes_34_updateLastValues.sql, functionsProcess.sh, processAPINotes.sh
+  - **Completed**: 2025-10-22 - Gap logging with dual persistence implemented
+  - **Changes**:
+    - Created data_gaps table for persistent gap tracking
+    - Modified updateLastValues to log gaps to database (with JSON array of note_ids)
+    - Added __log_data_gap() function for dual logging (file + DB)
+    - Added __check_and_log_gaps() function to query and log gaps
+    - Integrated gap checking in main() after processing
+  - **Impact**: Persistent gap tracking, queryable gaps, detailed error reporting, no complex rollback needed
 
 ### Security
 - [ ] **Issue #9**: Fix potential SQL injection vulnerabilities
@@ -585,7 +593,7 @@ Status: In Progress
 
 ### Statistics
 - **Total Items**: 121 (82 active + 39 cancelled)
-- **Critical**: 7 active (was 8, -1 completed)
+- **Critical**: 6 active (was 7, -1 completed)
 - **High**: 14 active
 - **Medium**: 5 active (was 17, -12 cancelled)
 - **Low**: 9 active (was 35, -26 cancelled)
@@ -599,7 +607,7 @@ Status: In Progress
 - VIZ #1-7 (Low): 7 tasks
 
 ### Status Overview
-- [✅] Completed: 14 / 82 active tasks (17.1%)
+- [✅] Completed: 15 / 82 active tasks (18.3%)
   - DM #2: Include hashtags in note
   - Code TODO #1: Implement environment detection
   - Code TODO #2: Clarify SQL query logic
@@ -614,7 +622,8 @@ Status: In Progress
   - Issue #2: Fix desynchronization between notes and comments
   - Issue #6: Implement robust network failure handling
   - Issue #7: Standardize retry logic for API calls
-- [ ] Not Started: 68 / 82 active tasks (82.9%)
+  - Issue #8: Implement gap logging with dual persistence
+- [ ] Not Started: 67 / 82 active tasks (81.7%)
 - [🔄] In Progress: 0
 - [❌] Cancelled: 39 tasks (DWH/ETL/Datamarts/Visualizer moved to different repo)
 

@@ -1,7 +1,7 @@
 -- Create API tables with partitioning for parallel processing.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-18
+-- Version: 2025-10-22
 
 -- Create partitioned table for notes_api
 CREATE TABLE notes_api (
@@ -94,3 +94,28 @@ COMMENT ON COLUMN note_comments_text_api.body IS
   'Text of the note comment';
 COMMENT ON COLUMN note_comments_text_api.part_id IS
   'Partition ID for parallel processing';
+
+-- Create table for tracking data gaps
+CREATE TABLE IF NOT EXISTS data_gaps (
+  id SERIAL PRIMARY KEY,
+  gap_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  gap_type VARCHAR(50) NOT NULL,
+  gap_count INTEGER NOT NULL,
+  total_count INTEGER NOT NULL,
+  gap_percentage DECIMAL(5,2) NOT NULL,
+  notes_without_comments TEXT,
+  error_details TEXT,
+  processed BOOLEAN DEFAULT FALSE,
+  processed_at TIMESTAMP
+);
+
+COMMENT ON TABLE data_gaps IS 'Tracks data integrity gaps detected during processing';
+COMMENT ON COLUMN data_gaps.gap_timestamp IS 'When the gap was detected';
+COMMENT ON COLUMN data_gaps.gap_type IS 'Type of gap: notes_without_comments, comments_without_text, etc.';
+COMMENT ON COLUMN data_gaps.gap_count IS 'Number of items with gaps';
+COMMENT ON COLUMN data_gaps.total_count IS 'Total number of items processed';
+COMMENT ON COLUMN data_gaps.gap_percentage IS 'Percentage of items with gaps';
+COMMENT ON COLUMN data_gaps.notes_without_comments IS 'List of note_ids without comments (JSON array)';
+COMMENT ON COLUMN data_gaps.error_details IS 'Details about the errors that caused gaps';
+COMMENT ON COLUMN data_gaps.processed IS 'Whether this gap has been addressed';
+COMMENT ON COLUMN data_gaps.processed_at IS 'When this gap was marked as processed';

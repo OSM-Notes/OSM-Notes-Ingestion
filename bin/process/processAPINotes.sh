@@ -904,6 +904,34 @@ function __cleanNotesFiles {
  __log_finish
 }
 
+# Function to check and log gaps from database
+function __check_and_log_gaps() {
+ __log_start
+  
+ # Query database for recent gaps
+ local GAP_QUERY="
+   SELECT 
+     gap_timestamp,
+     gap_type,
+     gap_count,
+     total_count,
+     gap_percentage,
+     error_details
+   FROM data_gaps
+   WHERE processed = FALSE
+     AND gap_timestamp > NOW() - INTERVAL '1 day'
+   ORDER BY gap_timestamp DESC
+   LIMIT 10
+ "
+ 
+ # Log gaps to file
+ local GAP_FILE="/tmp/processAPINotes_gaps.log"
+ psql -d "${DBNAME}" -c "${GAP_QUERY}" >> "${GAP_FILE}" 2>/dev/null || true
+ 
+ __logd "Checked and logged gaps from database"
+ __log_finish
+}
+
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
@@ -1106,6 +1134,7 @@ fi
   __loadApiTextComments
   __updateLastValue
  fi
+ __check_and_log_gaps
  __cleanNotesFiles
 
  rm -f "${LOCK}"

@@ -2606,6 +2606,55 @@ function __retry_database_operation() {
   return 1
 }
 
+# Function to log data gaps to file and database
+# Parameters: gap_type gap_count total_count error_details
+function __log_data_gap() {
+  __log_start
+  local GAP_TYPE="$1"
+  local GAP_COUNT="$2"
+  local TOTAL_COUNT="$3"
+  local ERROR_DETAILS="$4"
+  local GAP_PERCENTAGE=$((GAP_COUNT * 100 / TOTAL_COUNT))
+  
+  __logd "Logging data gap: ${GAP_TYPE} - ${GAP_COUNT}/${TOTAL_COUNT} (${GAP_PERCENTAGE}%)"
+  
+  # Log to file
+  local GAP_FILE="/tmp/processAPINotes_gaps.log"
+  touch "${GAP_FILE}"
+  
+  cat >> "${GAP_FILE}" << EOF
+========================================
+GAP DETECTED: $(date '+%Y-%m-%d %H:%M:%S')
+========================================
+Type: ${GAP_TYPE}
+Count: ${GAP_COUNT}/${TOTAL_COUNT} (${GAP_PERCENTAGE}%)
+Details: ${ERROR_DETAILS}
+---
+EOF
+  
+  # Log to database
+  psql -d "${DBNAME}" -c "
+    INSERT INTO data_gaps (
+      gap_type,
+      gap_count,
+      total_count,
+      gap_percentage,
+      error_details,
+      processed
+    ) VALUES (
+      '${GAP_TYPE}',
+      ${GAP_COUNT},
+      ${TOTAL_COUNT},
+      ${GAP_PERCENTAGE},
+      '${ERROR_DETAILS}',
+      FALSE
+    )
+  " 2>/dev/null || true
+  
+  __logd "Gap logged to file and database"
+  __log_finish
+}
+
 # Validates comprehensive CSV file structure and content.
 # This function performs detailed validation of CSV files before database load,
 # including column count, quote escaping, multivalue fields, and data integrity.

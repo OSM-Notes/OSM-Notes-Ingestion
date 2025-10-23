@@ -94,28 +94,24 @@ Version: 2025-10-21
   - Clarified that invalid transitions are OSM API bugs
   - Comment still inserted, but note status not changed (correct behavior)
   - Second CRITICAL bug fixed! 🎉
-- **Monday**: ✅ Standardize retry logic for API calls (Issue #7)
-  - Problem: Inconsistent retry logic across different API calls
-  - Root cause: Manual API calls without standardized retry mechanisms
-  - Solution: Implemented standardized retry functions for all API types
+- **Monday**: ✅ Implement gap logging with dual persistence (Issue #8 improvement)
+  - Problem: Gaps in data not properly logged or tracked
+  - Root cause: No persistent logging of data integrity gaps
+  - Solution: Implemented gap logging with dual persistence (file + DB)
   - Files modified:
-    * functionsProcess.sh (lines 2432-2607)
-    * processPlanetFunctions.sh (lines 408, 460)
-    * processAPIFunctions.sh (line 114)
-    * wms/geoserverConfig.sh (lines 113, 138)
-    * process/processAPINotes.sh (lines 275-285, 742-753)
+    * sql/process/processAPINotes_21_createApiTables.sql (created data_gaps table)
+    * sql/process/processAPINotes_34_updateLastValues.sql (added gap logging)
+    * bin/functionsProcess.sh (added __log_data_gap function)
+    * bin/process/processAPINotes.sh (added __check_and_log_gaps function)
   - Changes implemented:
-    - Added __retry_overpass_api() for Overpass API calls (300s timeout)
-    - Added __retry_osm_api() for OSM API calls (30s timeout)
-    - Added __retry_geoserver_api() for GeoServer API calls with authentication
-    - Added __retry_database_operation() for database operations
-    - Replaced 2 Overpass calls in processPlanetFunctions.sh
-    - Replaced 1 OSM call in processAPIFunctions.sh
-    - Replaced 2 GeoServer calls in wms/geoserverConfig.sh
-    - Replaced 2 database calls in processAPINotes.sh
-  - Behavior: Consistent retry behavior across all APIs with exponential backoff
-  - Impact: Centralized configuration, uniform error handling, improved reliability
-  - **SIXTH CRITICAL BUG FIXED!** 🎉🎉🎉🎉🎉🎉
+    - Created data_gaps table for persistent gap tracking
+    - Modified updateLastValues to log gaps to database with JSON array of note_ids
+    - Added __log_data_gap() function for dual logging (file + DB)
+    - Added __check_and_log_gaps() function to query and log gaps
+    - Integrated gap checking in main() after processing
+  - Behavior: Persistent gap tracking, queryable gaps, detailed error reporting
+  - Impact: No complex rollback needed, gaps tracked and queryable, manual intervention possible
+  - **SEVENTH CRITICAL BUG FIXED!** 🎉🎉🎉🎉🎉🎉🎉
 - **Tuesday**: 
 - **Wednesday**: 
 - **Thursday**: 
@@ -136,21 +132,40 @@ Version: 2025-10-21
 
 | Priority | Total | Done | In Progress | Remaining | Cancelled |
 |----------|-------|------|-------------|-----------|-----------|
-| 🔴 Critical | 7 | 6 | 0 | 1 | 1 |
+| 🔴 Critical | 6 | 6 | 0 | 0 | 1 |
 | 🟡 High | 14 | 7 | 0 | 7 | 0 |
 | 🟠 Medium | 5 | 0 | 0 | 5 | 12 |
 | 🟢 Low | 9 | 1 | 0 | 8 | 26 |
 | 📊 Refactor | 44 | 0 | 0 | 44 | 0 |
-| **TOTAL** | **82** | **14** | **0** | **68** | **39** |
+| **TOTAL** | **82** | **15** | **0** | **67** | **39** |
 
-**Overall Progress**: 17.1% (14/82 active tasks)  
+**Overall Progress**: 18.3% (15/82 active tasks)  
 **Note**: 39 tasks cancelled (DWH/ETL/Datamarts/Visualizer moved to different repo)
 
 ---
 
 ## Recently Completed
 
-1. ✅ **2025-10-22** - Issue #7: Standardize retry logic for API calls
+1. ✅ **2025-10-22** - Issue #8: Implement gap logging with dual persistence
+   - Problem: Gaps in data not properly logged or tracked
+   - Root cause: No persistent logging of data integrity gaps
+   - Solution: Implemented gap logging with dual persistence (file + DB)
+   - Files modified:
+     • sql/process/processAPINotes_21_createApiTables.sql (created data_gaps table)
+     • sql/process/processAPINotes_34_updateLastValues.sql (added gap logging)
+     • bin/functionsProcess.sh (added __log_data_gap function)
+     • bin/process/processAPINotes.sh (added __check_and_log_gaps function)
+   - Changes implemented:
+     - Created data_gaps table for persistent gap tracking
+     - Modified updateLastValues to log gaps to database with JSON array of note_ids
+     - Added __log_data_gap() function for dual logging (file + DB)
+     - Added __check_and_log_gaps() function to query and log gaps
+     - Integrated gap checking in main() after processing
+   - Behavior: Persistent gap tracking, queryable gaps, detailed error reporting
+   - Impact: No complex rollback needed, gaps tracked and queryable, manual intervention possible
+   - **SEVENTH CRITICAL BUG FIXED!** 🎉🎉🎉🎉🎉🎉🎉
+
+2. ✅ **2025-10-22** - Issue #7: Standardize retry logic for API calls
    - Problem: Inconsistent retry logic across different API calls
    - Root cause: Manual API calls without standardized retry mechanisms
    - Solution: Implemented standardized retry functions for all API types
@@ -308,11 +323,11 @@ Version: 2025-10-21
 
 ## Next 5 Items to Work On
 
-1. 🔴 Issue #8: Implement rollback mechanism (2-3 hrs)
-2. 🔴 Issue #9: Fix SQL injection vulnerabilities (2-3 hrs)
-3. 🔴 Issue #10: Add input sanitization for user data (1-2 hrs)
-4. 🔴 Issue #11: Remove hardcoded credentials (1 hr)
-5. 🔴 Issue #12: Implement circuit breaker pattern (2-3 hrs)
+1. 🔴 Issue #9: Fix SQL injection vulnerabilities (2-3 hrs)
+2. 🔴 Issue #10: Add input sanitization for user data (1-2 hrs)
+3. 🔴 Issue #11: Remove hardcoded credentials (1 hr)
+4. 🔴 Issue #12: Implement circuit breaker pattern (2-3 hrs)
+5. 🟡 Validation #5: Validate ISO 8601 date format in XML (30 min)
 
 ---
 
