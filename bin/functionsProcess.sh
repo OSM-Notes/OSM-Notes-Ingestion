@@ -431,21 +431,21 @@ function __processApiXmlPart() {
 
  # Validate CSV files structure and content before loading
  __logd "Validating CSV files structure and enum compatibility..."
- 
+
  # Validate structure first
  if ! __validate_csv_structure "${OUTPUT_NOTES_PART}" "notes"; then
   __loge "ERROR: Notes CSV structure validation failed for part ${PART_NUM}"
   __log_finish
   return 1
  fi
- 
+
  # Then validate enum values
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
   __loge "ERROR: Notes CSV enum validation failed for part ${PART_NUM}"
   __log_finish
   return 1
  fi
- 
+
  # Validate comments structure
  if ! __validate_csv_structure "${OUTPUT_COMMENTS_PART}" "comments"; then
   __loge "ERROR: Comments CSV structure validation failed for part ${PART_NUM}"
@@ -459,7 +459,7 @@ function __processApiXmlPart() {
   __log_finish
   return 1
  fi
- 
+
  # Validate text structure (most prone to quote/escape issues)
  if ! __validate_csv_structure "${OUTPUT_TEXT_PART}" "text"; then
   __loge "ERROR: Text CSV structure validation failed for part ${PART_NUM}"
@@ -696,9 +696,9 @@ function __processPlanetXmlPart() {
 function __validate_properties {
  __log_start
  __logi "Validating properties from configuration file"
- 
+
  local -i VALIDATION_ERRORS=0
- 
+
  # Validate DBNAME (required, non-empty string)
  if [[ -z "${DBNAME:-}" ]]; then
   __loge "ERROR: DBNAME is not set or empty"
@@ -706,7 +706,7 @@ function __validate_properties {
  else
   __logd "✓ DBNAME: ${DBNAME}"
  fi
- 
+
  # Validate DB_USER (required, non-empty string)
  if [[ -z "${DB_USER:-}" ]]; then
   __loge "ERROR: DB_USER is not set or empty"
@@ -714,7 +714,7 @@ function __validate_properties {
  else
   __logd "✓ DB_USER: ${DB_USER}"
  fi
- 
+
  # Validate EMAILS (basic email format check)
  if [[ -n "${EMAILS:-}" ]]; then
   # Basic email regex: contains @ and . after @
@@ -725,7 +725,7 @@ function __validate_properties {
    __logd "✓ EMAILS: ${EMAILS}"
   fi
  fi
- 
+
  # Validate OSM_API (URL format)
  if [[ -n "${OSM_API:-}" ]]; then
   if [[ ! "${OSM_API}" =~ ^https?:// ]]; then
@@ -735,7 +735,7 @@ function __validate_properties {
    __logd "✓ OSM_API: ${OSM_API}"
   fi
  fi
- 
+
  # Validate PLANET (URL format)
  if [[ -n "${PLANET:-}" ]]; then
   if [[ ! "${PLANET}" =~ ^https?:// ]]; then
@@ -745,7 +745,7 @@ function __validate_properties {
    __logd "✓ PLANET: ${PLANET}"
   fi
  fi
- 
+
  # Validate OVERPASS_INTERPRETER (URL format)
  if [[ -n "${OVERPASS_INTERPRETER:-}" ]]; then
   if [[ ! "${OVERPASS_INTERPRETER}" =~ ^https?:// ]]; then
@@ -755,7 +755,7 @@ function __validate_properties {
    __logd "✓ OVERPASS_INTERPRETER: ${OVERPASS_INTERPRETER}"
   fi
  fi
- 
+
  # Validate LOOP_SIZE (positive integer)
  if [[ -n "${LOOP_SIZE:-}" ]]; then
   if [[ ! "${LOOP_SIZE}" =~ ^[1-9][0-9]*$ ]]; then
@@ -765,7 +765,7 @@ function __validate_properties {
    __logd "✓ LOOP_SIZE: ${LOOP_SIZE}"
   fi
  fi
- 
+
  # Validate MAX_NOTES (positive integer)
  if [[ -n "${MAX_NOTES:-}" ]]; then
   if [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
@@ -775,7 +775,7 @@ function __validate_properties {
    __logd "✓ MAX_NOTES: ${MAX_NOTES}"
   fi
  fi
- 
+
  # Validate MAX_THREADS (positive integer, reasonable limit)
  if [[ -n "${MAX_THREADS:-}" ]]; then
   if [[ ! "${MAX_THREADS}" =~ ^[1-9][0-9]*$ ]]; then
@@ -791,7 +791,7 @@ function __validate_properties {
    __logd "✓ MAX_THREADS: ${MAX_THREADS}"
   fi
  fi
- 
+
  # Validate MIN_NOTES_FOR_PARALLEL (positive integer)
  if [[ -n "${MIN_NOTES_FOR_PARALLEL:-}" ]]; then
   if [[ ! "${MIN_NOTES_FOR_PARALLEL}" =~ ^[1-9][0-9]*$ ]]; then
@@ -801,7 +801,7 @@ function __validate_properties {
    __logd "✓ MIN_NOTES_FOR_PARALLEL: ${MIN_NOTES_FOR_PARALLEL}"
   fi
  fi
- 
+
  # Validate CLEAN (boolean: true or false)
  if [[ -n "${CLEAN:-}" ]]; then
   if [[ "${CLEAN}" != "true" && "${CLEAN}" != "false" ]]; then
@@ -811,7 +811,7 @@ function __validate_properties {
    __logd "✓ CLEAN: ${CLEAN}"
   fi
  fi
- 
+
  # Validate SKIP_XML_VALIDATION (boolean: true or false)
  if [[ -n "${SKIP_XML_VALIDATION:-}" ]]; then
   if [[ "${SKIP_XML_VALIDATION}" != "true" && "${SKIP_XML_VALIDATION}" != "false" ]]; then
@@ -821,7 +821,7 @@ function __validate_properties {
    __logd "✓ SKIP_XML_VALIDATION: ${SKIP_XML_VALIDATION}"
   fi
  fi
- 
+
  # Validate ADMIN_EMAIL (email format check)
  if [[ -n "${ADMIN_EMAIL:-}" ]]; then
   # Basic email regex: contains @ and . after @
@@ -835,7 +835,7 @@ function __validate_properties {
  else
   __logd "✓ ADMIN_EMAIL: using default (root@localhost)"
  fi
- 
+
  # Validate SEND_ALERT_EMAIL (boolean: true or false)
  if [[ -n "${SEND_ALERT_EMAIL:-}" ]]; then
   if [[ "${SEND_ALERT_EMAIL}" != "true" && "${SEND_ALERT_EMAIL}" != "false" ]]; then
@@ -845,8 +845,7 @@ function __validate_properties {
    __logd "✓ SEND_ALERT_EMAIL: ${SEND_ALERT_EMAIL}"
   fi
  fi
- 
- 
+
  # Check for validation errors
  if [[ ${VALIDATION_ERRORS} -gt 0 ]]; then
   __loge "Properties validation failed with ${VALIDATION_ERRORS} error(s)"
@@ -854,7 +853,7 @@ function __validate_properties {
   __log_finish
   exit "${ERROR_GENERAL}"
  fi
- 
+
  __logi "✓ All properties validated successfully"
  __log_finish
  return 0
@@ -870,10 +869,10 @@ function __checkPrereqsCommands {
   __log_finish
   return 0
  fi
- 
+
  # Validate properties first (fail-fast on configuration errors)
  __validate_properties
- 
+
  set +e
  ## PostgreSQL
  __logd "Checking PostgreSQL."
@@ -1178,38 +1177,38 @@ function __check_disk_space {
  local DIRECTORY="${1}"
  local REQUIRED_GB="${2}"
  local OPERATION_NAME="${3:-file operation}"
- 
+
  # Validate parameters
  if [[ -z "${DIRECTORY}" ]]; then
   __loge "ERROR: Directory parameter is required"
   __log_finish
   return 1
  fi
- 
+
  if [[ -z "${REQUIRED_GB}" ]]; then
   __loge "ERROR: Required space parameter is required"
   __log_finish
   return 1
  fi
- 
+
  # Validate directory exists
  if [[ ! -d "${DIRECTORY}" ]]; then
   __loge "ERROR: Directory does not exist: ${DIRECTORY}"
   __log_finish
   return 1
  fi
- 
+
  # Get available space in MB (df -BM outputs in MB)
  local AVAILABLE_MB
  AVAILABLE_MB=$(df -BM "${DIRECTORY}" | awk 'NR==2 {print $4}' | sed 's/M//')
- 
+
  # Validate we got a valid number
  if [[ ! "${AVAILABLE_MB}" =~ ^[0-9]+$ ]]; then
   __logw "WARNING: Could not determine available disk space, proceeding anyway"
   __log_finish
   return 0
  fi
- 
+
  # Convert required GB to MB for comparison
  # Handle decimal values by using bc or awk
  local REQUIRED_MB
@@ -1219,7 +1218,7 @@ function __check_disk_space {
   # Fallback to awk if bc not available
   REQUIRED_MB=$(awk "BEGIN {printf \"%.0f\", ${REQUIRED_GB} * 1024}")
  fi
- 
+
  # Convert to GB for logging
  local AVAILABLE_GB
  if command -v bc > /dev/null 2>&1; then
@@ -1227,23 +1226,23 @@ function __check_disk_space {
  else
   AVAILABLE_GB=$(awk "BEGIN {printf \"%.2f\", ${AVAILABLE_MB} / 1024}")
  fi
- 
+
  __logi "Disk space check for ${OPERATION_NAME}:"
  __logi "  Directory: ${DIRECTORY}"
  __logi "  Required: ${REQUIRED_GB} GB (${REQUIRED_MB} MB)"
  __logi "  Available: ${AVAILABLE_GB} GB (${AVAILABLE_MB} MB)"
- 
+
  # Check if we have enough space
  if [[ ${AVAILABLE_MB} -lt ${REQUIRED_MB} ]]; then
   __loge "ERROR: Insufficient disk space for ${OPERATION_NAME}"
   __loge "  Required: ${REQUIRED_GB} GB"
   __loge "  Available: ${AVAILABLE_GB} GB"
-  __loge "  Shortfall: $(echo "scale=2; ${REQUIRED_GB} - ${AVAILABLE_GB}" | bc 2>/dev/null || echo "unknown") GB"
+  __loge "  Shortfall: $(echo "scale=2; ${REQUIRED_GB} - ${AVAILABLE_GB}" | bc 2> /dev/null || echo "unknown") GB"
   __loge "Please free up disk space in ${DIRECTORY} before proceeding"
   __log_finish
   return 1
  fi
- 
+
  # Calculate percentage of space that will be used
  local USAGE_PERCENT
  if command -v bc > /dev/null 2>&1; then
@@ -1251,15 +1250,15 @@ function __check_disk_space {
  else
   USAGE_PERCENT=$(awk "BEGIN {printf \"%.1f\", ${REQUIRED_MB} * 100 / ${AVAILABLE_MB}}")
  fi
- 
+
  # Warn if we'll use more than 80% of available space
- if (( $(echo "${USAGE_PERCENT} > 80" | bc -l 2>/dev/null || echo 0) )); then
+ if (($(echo "${USAGE_PERCENT} > 80" | bc -l 2> /dev/null || echo 0))); then
   __logw "WARNING: Operation will use ${USAGE_PERCENT}% of available disk space"
   __logw "Consider freeing up more space for safety margin"
  else
   __logi "✓ Sufficient disk space available (${USAGE_PERCENT}% will be used)"
  fi
- 
+
  __log_finish
  return 0
 }
@@ -1267,7 +1266,7 @@ function __check_disk_space {
 # Downloads the notes from the planet.
 function __downloadPlanetNotes {
  __log_start
- 
+
  # Check disk space before downloading
  # Planet notes file requirements:
  # - Compressed file (.bz2): ~2 GB
@@ -1592,7 +1591,7 @@ function __processBoundary {
 
  # Process the imported data with geometry validation
  __logd "Processing imported data for boundary ${ID}..."
- 
+
  # First, validate that we can create a non-NULL geometry
  __logd "Validating geometry before insert for boundary ${ID}..."
  local GEOM_CHECK_QUERY
@@ -1605,34 +1604,34 @@ function __processBoundary {
   __logd "Using standard processing with ST_MakeValid for boundary ${ID}"
   GEOM_CHECK_QUERY="SELECT ST_Union(ST_makeValid(geometry)) IS NOT NULL AS has_geom FROM import"
  fi
- 
+
  local HAS_VALID_GEOM
- HAS_VALID_GEOM=$(psql -d "${DBNAME}" -Atq -c "${GEOM_CHECK_QUERY}" 2>/dev/null || echo "f")
- 
+ HAS_VALID_GEOM=$(psql -d "${DBNAME}" -Atq -c "${GEOM_CHECK_QUERY}" 2> /dev/null || echo "f")
+
  if [[ "${HAS_VALID_GEOM}" != "t" ]]; then
   __loge "ERROR: Cannot create valid geometry for boundary ${ID}"
   __loge "ST_Union returned NULL - possible causes:"
   __loge "  1. No geometries in import table"
   __loge "  2. All geometries are invalid even after ST_MakeValid"
   __loge "  3. Geometry union operation failed"
-  
+
   # Check if there are any rows in import table
   local IMPORT_COUNT
-  IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2>/dev/null || echo "0")
+  IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2> /dev/null || echo "0")
   __loge "Import table has ${IMPORT_COUNT} rows for boundary ${ID}"
-  
+
   # Log a sample of geometries for debugging
   __logd "Sample geometry validity check:"
-  psql -d "${DBNAME}" -c "SELECT ST_IsValid(geometry) AS is_valid, ST_IsValidReason(geometry) AS reason FROM import LIMIT 5" 2>/dev/null || true
-  
+  psql -d "${DBNAME}" -c "SELECT ST_IsValid(geometry) AS is_valid, ST_IsValidReason(geometry) AS reason FROM import LIMIT 5" 2> /dev/null || true
+
   __loge "Skipping boundary ${ID} due to NULL geometry - will not update database"
   rmdir "${PROCESS_LOCK}" 2> /dev/null || true
   __log_finish
   return 1
  fi
- 
+
  __logi "✓ Geometry validation passed for boundary ${ID}"
- 
+
  # Now perform the actual insert with validated geometry
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
@@ -1719,7 +1718,7 @@ EOF
 function __processCountries {
  __log_start
  __logi "=== STARTING COUNTRIES PROCESSING ==="
- 
+
  # Check disk space before downloading boundaries
  # Boundaries requirements:
  # - Country JSON files: ~1.5 GB (varies by number of countries)
@@ -1733,7 +1732,7 @@ function __processCountries {
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Insufficient disk space for boundaries download" \
    "echo 'No cleanup needed - download not started'"
  fi
- 
+
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
  set +e
@@ -1882,7 +1881,7 @@ function __processCountries {
 # geometry of the maritime area into the Postgres database with ogr2ogr.
 function __processMaritimes {
  __log_start
- 
+
  # Check disk space before downloading maritime boundaries
  # Maritime boundaries requirements:
  # - Maritime JSON files: ~1 GB
@@ -1896,7 +1895,7 @@ function __processMaritimes {
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Insufficient disk space for maritime boundaries" \
    "echo 'No cleanup needed - download not started'"
  fi
- 
+
  # Extracts ids of all EEZ relations into a JSON.
  __logi "Obtaining the eez ids."
  set +e
@@ -2339,290 +2338,290 @@ function __handle_error_with_cleanup() {
 # Parameters: operation_command max_retries base_delay [cleanup_command]
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_file_operation() {
-  __log_start
-  local OPERATION_COMMAND="$1"
-  local MAX_RETRIES_LOCAL="${2:-3}"
-  local BASE_DELAY_LOCAL="${3:-2}"
-  local CLEANUP_COMMAND="${4:-}"
-  local RETRY_COUNT=0
-  local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
+ __log_start
+ local OPERATION_COMMAND="$1"
+ local MAX_RETRIES_LOCAL="${2:-3}"
+ local BASE_DELAY_LOCAL="${3:-2}"
+ local CLEANUP_COMMAND="${4:-}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
 
-  __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
-  __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s"
+ __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
+ __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s"
 
-  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
-    if eval "${OPERATION_COMMAND}"; then
-      __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
-      __log_finish
-      return 0
-    fi
-
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-
-    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
-      __logw "File operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-      sleep "${EXPONENTIAL_DELAY}"
-      # Exponential backoff: double the delay for next attempt
-      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-    fi
-  done
-
-  # If cleanup command is provided, execute it
-  if [[ -n "${CLEANUP_COMMAND}" ]]; then
-    __logw "Executing cleanup command due to file operation failure"
-    if eval "${CLEANUP_COMMAND}"; then
-      __logd "Cleanup command executed successfully"
-    else
-      __logw "Cleanup command failed"
-    fi
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
+  if eval "${OPERATION_COMMAND}"; then
+   __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
+   __log_finish
+   return 0
   fi
 
-  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
-  __log_finish
-  return 1
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
+   __logw "File operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   # Exponential backoff: double the delay for next attempt
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
+
+ # If cleanup command is provided, execute it
+ if [[ -n "${CLEANUP_COMMAND}" ]]; then
+  __logw "Executing cleanup command due to file operation failure"
+  if eval "${CLEANUP_COMMAND}"; then
+   __logd "Cleanup command executed successfully"
+  else
+   __logw "Cleanup command failed"
+  fi
+ fi
+
+ __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
+ __log_finish
+ return 1
 }
 
 # Retry network operations with exponential backoff and HTTP error handling
 # Parameters: url output_file max_retries base_delay [timeout]
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_network_operation() {
-  __log_start
-  local URL="$1"
-  local OUTPUT_FILE="$2"
-  local MAX_RETRIES="${3:-5}"
-  local BASE_DELAY="${4:-2}"
-  local TIMEOUT="${5:-30}"
-  local RETRY_COUNT=0
-  local EXPONENTIAL_DELAY="${BASE_DELAY}"
+ __log_start
+ local URL="$1"
+ local OUTPUT_FILE="$2"
+ local MAX_RETRIES="${3:-5}"
+ local BASE_DELAY="${4:-2}"
+ local TIMEOUT="${5:-30}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
-  __logd "Executing network operation with retry logic: ${URL}"
-  __logd "Output file: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Base delay: ${BASE_DELAY}s, Timeout: ${TIMEOUT}s"
+ __logd "Executing network operation with retry logic: ${URL}"
+ __logd "Output file: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Base delay: ${BASE_DELAY}s, Timeout: ${TIMEOUT}s"
 
-  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
-    # Use wget with specific error handling and timeout
-    if wget --timeout="${TIMEOUT}" --tries=1 --user-agent="OSM-Notes-Ingestion/1.0" \
-       -O "${OUTPUT_FILE}" "${URL}" 2>/dev/null; then
-      # Verify the downloaded file exists and has content
-      if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-        __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
-        __log_finish
-        return 0
-      else
-        __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
-      fi
-    else
-      __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
-    fi
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+  # Use wget with specific error handling and timeout
+  if wget --timeout="${TIMEOUT}" --tries=1 --user-agent="OSM-Notes-Ingestion/1.0" \
+   -O "${OUTPUT_FILE}" "${URL}" 2> /dev/null; then
+   # Verify the downloaded file exists and has content
+   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+    __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
+    __log_finish
+    return 0
+   else
+    __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
+   fi
+  else
+   __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
+  fi
 
-    RETRY_COUNT=$((RETRY_COUNT + 1))
+  RETRY_COUNT=$((RETRY_COUNT + 1))
 
-    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
-      __logw "Network operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-      sleep "${EXPONENTIAL_DELAY}"
-      # Exponential backoff: double the delay for next attempt
-      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-    fi
-  done
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+   __logw "Network operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   # Exponential backoff: double the delay for next attempt
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
 
-  __loge "Network operation failed after ${MAX_RETRIES} attempts"
-  __log_finish
-  return 1
+ __loge "Network operation failed after ${MAX_RETRIES} attempts"
+ __log_finish
+ return 1
 }
 
 # Retry Overpass API calls with specific configuration
 # Parameters: query output_file max_retries base_delay timeout
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_overpass_api() {
-  __log_start
-  local QUERY="$1"
-  local OUTPUT_FILE="$2"
-  local MAX_RETRIES="${3:-3}"
-  local BASE_DELAY="${4:-5}"
-  local TIMEOUT="${5:-300}"
-  local RETRY_COUNT=0
-  local EXPONENTIAL_DELAY="${BASE_DELAY}"
+ __log_start
+ local QUERY="$1"
+ local OUTPUT_FILE="$2"
+ local MAX_RETRIES="${3:-3}"
+ local BASE_DELAY="${4:-5}"
+ local TIMEOUT="${5:-300}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
-  __logd "Executing Overpass API call with retry logic"
-  __logd "Query: ${QUERY}"
-  __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ __logd "Executing Overpass API call with retry logic"
+ __logd "Query: ${QUERY}"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
 
-  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
-    if wget -q -O "${OUTPUT_FILE}" --timeout="${TIMEOUT}" \
-       "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
-      if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-        __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
-        __log_finish
-        return 0
-      else
-        __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
-      fi
-    else
-      __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
-    fi
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+  if wget -q -O "${OUTPUT_FILE}" --timeout="${TIMEOUT}" \
+   "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
+   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+    __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
+    __log_finish
+    return 0
+   else
+    __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
+   fi
+  else
+   __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+  fi
 
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
-      __logw "Overpass API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-      sleep "${EXPONENTIAL_DELAY}"
-      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-    fi
-  done
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+   __logw "Overpass API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
 
-  __loge "Overpass API call failed after ${MAX_RETRIES} attempts"
-  __log_finish
-  return 1
+ __loge "Overpass API call failed after ${MAX_RETRIES} attempts"
+ __log_finish
+ return 1
 }
 
 # Retry OSM API calls with specific configuration
 # Parameters: url output_file max_retries base_delay timeout
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_osm_api() {
-  __log_start
-  local URL="$1"
-  local OUTPUT_FILE="$2"
-  local MAX_RETRIES="${3:-5}"
-  local BASE_DELAY="${4:-2}"
-  local TIMEOUT="${5:-30}"
-  local RETRY_COUNT=0
-  local EXPONENTIAL_DELAY="${BASE_DELAY}"
+ __log_start
+ local URL="$1"
+ local OUTPUT_FILE="$2"
+ local MAX_RETRIES="${3:-5}"
+ local BASE_DELAY="${4:-2}"
+ local TIMEOUT="${5:-30}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
-  __logd "Executing OSM API call with retry logic: ${URL}"
-  __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ __logd "Executing OSM API call with retry logic: ${URL}"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
 
-  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
-    if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-       -o "${OUTPUT_FILE}" "${URL}"; then
-      if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-        __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
-        __log_finish
-        return 0
-      else
-        __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
-      fi
-    else
-      __logw "OSM API call failed on attempt $((RETRY_COUNT + 1))"
-    fi
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+  if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+   -o "${OUTPUT_FILE}" "${URL}"; then
+   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+    __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
+    __log_finish
+    return 0
+   else
+    __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
+   fi
+  else
+   __logw "OSM API call failed on attempt $((RETRY_COUNT + 1))"
+  fi
 
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
-      __logw "OSM API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-      sleep "${EXPONENTIAL_DELAY}"
-      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-    fi
-  done
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+   __logw "OSM API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
 
-  __loge "OSM API call failed after ${MAX_RETRIES} attempts"
-  __log_finish
-  return 1
+ __loge "OSM API call failed after ${MAX_RETRIES} attempts"
+ __log_finish
+ return 1
 }
 
 # Retry GeoServer API calls with authentication
 # Parameters: url method data output_file max_retries base_delay timeout
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_geoserver_api() {
-  __log_start
-  local URL="$1"
-  local METHOD="${2:-GET}"
-  local DATA="${3:-}"
-  local OUTPUT_FILE="${4:-/dev/null}"
-  local MAX_RETRIES="${5:-3}"
-  local BASE_DELAY="${6:-2}"
-  local TIMEOUT="${7:-30}"
-  local RETRY_COUNT=0
-  local EXPONENTIAL_DELAY="${BASE_DELAY}"
+ __log_start
+ local URL="$1"
+ local METHOD="${2:-GET}"
+ local DATA="${3:-}"
+ local OUTPUT_FILE="${4:-/dev/null}"
+ local MAX_RETRIES="${5:-3}"
+ local BASE_DELAY="${6:-2}"
+ local TIMEOUT="${7:-30}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
-  __logd "Executing GeoServer API call with retry logic: ${METHOD} ${URL}"
-  __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ __logd "Executing GeoServer API call with retry logic: ${METHOD} ${URL}"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
 
-  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
-    local CURL_CMD="curl -s --connect-timeout ${TIMEOUT} --max-time ${TIMEOUT}"
-    CURL_CMD="${CURL_CMD} -u \"${GEOSERVER_USER}:${GEOSERVER_PASSWORD}\""
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+  local CURL_CMD="curl -s --connect-timeout ${TIMEOUT} --max-time ${TIMEOUT}"
+  CURL_CMD="${CURL_CMD} -u \"${GEOSERVER_USER}:${GEOSERVER_PASSWORD}\""
 
-    if [[ "${METHOD}" == "POST" ]] || [[ "${METHOD}" == "PUT" ]]; then
-      CURL_CMD="${CURL_CMD} -X ${METHOD}"
-      if [[ -n "${DATA}" ]]; then
-        CURL_CMD="${CURL_CMD} -d \"${DATA}\""
-      fi
-    fi
+  if [[ "${METHOD}" == "POST" ]] || [[ "${METHOD}" == "PUT" ]]; then
+   CURL_CMD="${CURL_CMD} -X ${METHOD}"
+   if [[ -n "${DATA}" ]]; then
+    CURL_CMD="${CURL_CMD} -d \"${DATA}\""
+   fi
+  fi
 
-    CURL_CMD="${CURL_CMD} -o \"${OUTPUT_FILE}\" \"${URL}\""
+  CURL_CMD="${CURL_CMD} -o \"${OUTPUT_FILE}\" \"${URL}\""
 
-    if eval "${CURL_CMD}"; then
-      __logd "GeoServer API call succeeded on attempt $((RETRY_COUNT + 1))"
-      __log_finish
-      return 0
-    else
-      __logw "GeoServer API call failed on attempt $((RETRY_COUNT + 1))"
-    fi
+  if eval "${CURL_CMD}"; then
+   __logd "GeoServer API call succeeded on attempt $((RETRY_COUNT + 1))"
+   __log_finish
+   return 0
+  else
+   __logw "GeoServer API call failed on attempt $((RETRY_COUNT + 1))"
+  fi
 
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
-      __logw "GeoServer API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-      sleep "${EXPONENTIAL_DELAY}"
-      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-    fi
-  done
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+   __logw "GeoServer API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
 
-  __loge "GeoServer API call failed after ${MAX_RETRIES} attempts"
-  __log_finish
-  return 1
+ __loge "GeoServer API call failed after ${MAX_RETRIES} attempts"
+ __log_finish
+ return 1
 }
 
 # Retry database operations with specific configuration
 # Parameters: query output_file max_retries base_delay
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_database_operation() {
-  __log_start
-  local QUERY="$1"
-  local OUTPUT_FILE="${2:-/dev/null}"
-  local MAX_RETRIES="${3:-3}"
-  local BASE_DELAY="${4:-2}"
-  local RETRY_COUNT=0
-  local EXPONENTIAL_DELAY="${BASE_DELAY}"
+ __log_start
+ local QUERY="$1"
+ local OUTPUT_FILE="${2:-/dev/null}"
+ local MAX_RETRIES="${3:-3}"
+ local BASE_DELAY="${4:-2}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
-  __logd "Executing database operation with retry logic"
-  __logd "Query: ${QUERY}"
-  __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}"
+ __logd "Executing database operation with retry logic"
+ __logd "Query: ${QUERY}"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}"
 
-  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
-    if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2>/dev/null; then
-      __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
-      __log_finish
-      return 0
-    else
-      __logw "Database operation failed on attempt $((RETRY_COUNT + 1))"
-    fi
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+  if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2> /dev/null; then
+   __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
+   __log_finish
+   return 0
+  else
+   __logw "Database operation failed on attempt $((RETRY_COUNT + 1))"
+  fi
 
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
-      __logw "Database operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-      sleep "${EXPONENTIAL_DELAY}"
-      EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-    fi
-  done
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+   __logw "Database operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
 
-  __loge "Database operation failed after ${MAX_RETRIES} attempts"
-  __log_finish
-  return 1
+ __loge "Database operation failed after ${MAX_RETRIES} attempts"
+ __log_finish
+ return 1
 }
 
 # Function to log data gaps to file and database
 # Parameters: gap_type gap_count total_count error_details
 function __log_data_gap() {
-  __log_start
-  local GAP_TYPE="$1"
-  local GAP_COUNT="$2"
-  local TOTAL_COUNT="$3"
-  local ERROR_DETAILS="$4"
-  local GAP_PERCENTAGE=$((GAP_COUNT * 100 / TOTAL_COUNT))
-  
-  __logd "Logging data gap: ${GAP_TYPE} - ${GAP_COUNT}/${TOTAL_COUNT} (${GAP_PERCENTAGE}%)"
-  
-  # Log to file
-  local GAP_FILE="/tmp/processAPINotes_gaps.log"
-  touch "${GAP_FILE}"
-  
-  cat >> "${GAP_FILE}" << EOF
+ __log_start
+ local GAP_TYPE="$1"
+ local GAP_COUNT="$2"
+ local TOTAL_COUNT="$3"
+ local ERROR_DETAILS="$4"
+ local GAP_PERCENTAGE=$((GAP_COUNT * 100 / TOTAL_COUNT))
+
+ __logd "Logging data gap: ${GAP_TYPE} - ${GAP_COUNT}/${TOTAL_COUNT} (${GAP_PERCENTAGE}%)"
+
+ # Log to file
+ local GAP_FILE="/tmp/processAPINotes_gaps.log"
+ touch "${GAP_FILE}"
+
+ cat >> "${GAP_FILE}" << EOF
 ========================================
 GAP DETECTED: $(date '+%Y-%m-%d %H:%M:%S')
 ========================================
@@ -2631,9 +2630,9 @@ Count: ${GAP_COUNT}/${TOTAL_COUNT} (${GAP_PERCENTAGE}%)
 Details: ${ERROR_DETAILS}
 ---
 EOF
-  
-  # Log to database
-  psql -d "${DBNAME}" -c "
+
+ # Log to database
+ psql -d "${DBNAME}" -c "
     INSERT INTO data_gaps (
       gap_type,
       gap_count,
@@ -2649,10 +2648,10 @@ EOF
       '${ERROR_DETAILS}',
       FALSE
     )
-  " 2>/dev/null || true
-  
-  __logd "Gap logged to file and database"
-  __log_finish
+  " 2> /dev/null || true
+
+ __logd "Gap logged to file and database"
+ __log_finish
 }
 
 # Validates comprehensive CSV file structure and content.
@@ -2681,92 +2680,92 @@ function __validate_csv_structure {
  __log_start
  local CSV_FILE="${1}"
  local FILE_TYPE="${2}"
- 
+
  # Validate parameters
  if [[ -z "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file path parameter is required"
   __log_finish
   return 1
  fi
- 
+
  if [[ -z "${FILE_TYPE}" ]]; then
   __loge "ERROR: File type parameter is required"
   __log_finish
   return 1
  fi
- 
+
  # Check file exists
  if [[ ! -f "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file not found: ${CSV_FILE}"
   __log_finish
   return 1
  fi
- 
+
  # Check file is readable
  if [[ ! -r "${CSV_FILE}" ]]; then
   __loge "ERROR: CSV file is not readable: ${CSV_FILE}"
   __log_finish
   return 1
  fi
- 
+
  # Skip validation for empty files
  if [[ ! -s "${CSV_FILE}" ]]; then
   __logw "WARNING: CSV file is empty: ${CSV_FILE}"
   __log_finish
   return 0
  fi
- 
+
  __logi "Validating CSV structure: ${CSV_FILE} (type: ${FILE_TYPE})"
- 
+
  # Define expected column counts for each file type
  local EXPECTED_COLUMNS
  case "${FILE_TYPE}" in
-  "notes")
-   # Structure: note_id,latitude,longitude,created_at,closed_at,status[,part_id]
-   EXPECTED_COLUMNS=6  # or 7 with part_id
-   ;;
-  "comments")
-   # Structure: note_id,event,timestamp,user_id,username[,part_id]
-   EXPECTED_COLUMNS=5  # or 6 with part_id
-   ;;
-  "text")
-   # Structure: note_id,text[,part_id]
-   EXPECTED_COLUMNS=2  # or 3 with part_id
-   ;;
-  *)
-   __logw "WARNING: Unknown file type '${FILE_TYPE}', skipping column count validation"
-   __log_finish
-   return 0
-   ;;
+ "notes")
+  # Structure: note_id,latitude,longitude,created_at,closed_at,status[,part_id]
+  EXPECTED_COLUMNS=6 # or 7 with part_id
+  ;;
+ "comments")
+  # Structure: note_id,event,timestamp,user_id,username[,part_id]
+  EXPECTED_COLUMNS=5 # or 6 with part_id
+  ;;
+ "text")
+  # Structure: note_id,text[,part_id]
+  EXPECTED_COLUMNS=2 # or 3 with part_id
+  ;;
+ *)
+  __logw "WARNING: Unknown file type '${FILE_TYPE}', skipping column count validation"
+  __log_finish
+  return 0
+  ;;
  esac
- 
+
  # Sample first 100 lines for validation (performance optimization)
  local SAMPLE_SIZE=100
  local TOTAL_LINES
- TOTAL_LINES=$(wc -l < "${CSV_FILE}" 2>/dev/null || echo 0)
- 
+ TOTAL_LINES=$(wc -l < "${CSV_FILE}" 2> /dev/null || echo 0)
+
  __logd "CSV file has ${TOTAL_LINES} lines, validating first ${SAMPLE_SIZE} lines"
- 
+
  # Validation counters
  local MALFORMED_LINES=0
  local UNESCAPED_QUOTES=0
  local WRONG_COLUMNS=0
  local LINE_NUMBER=0
- 
+
  # Read and validate sample lines
  while IFS= read -r line && [[ ${LINE_NUMBER} -lt ${SAMPLE_SIZE} ]]; do
   ((LINE_NUMBER++))
-  
+
   # Skip empty lines
   if [[ -z "${line}" ]]; then
    continue
   fi
-  
+
   # Count columns (accounting for quoted fields with commas)
   # This is a basic count that may not be 100% accurate for complex CSVs
   local COLUMN_COUNT
   COLUMN_COUNT=$(echo "${line}" | awk -F',' '{print NF}')
-  
+
   # Allow EXPECTED_COLUMNS or EXPECTED_COLUMNS+1 (with part_id)
   if [[ ${COLUMN_COUNT} -ne ${EXPECTED_COLUMNS} ]] && [[ ${COLUMN_COUNT} -ne $((EXPECTED_COLUMNS + 1)) ]]; then
    __logd "WARNING: Line ${LINE_NUMBER} has ${COLUMN_COUNT} columns, expected ${EXPECTED_COLUMNS} or $((EXPECTED_COLUMNS + 1))"
@@ -2776,7 +2775,7 @@ function __validate_csv_structure {
     __logd "  Line content (first 100 chars): ${line:0:100}"
    fi
   fi
-  
+
   # Check for unescaped quotes in text fields
   # In PostgreSQL CSV format, quotes should be doubled: "" not \"
   # Look for patterns like: ," " or ,"text" that might indicate issues
@@ -2784,11 +2783,11 @@ function __validate_csv_structure {
    # Text field can contain quotes, check if they are properly escaped
    # PostgreSQL CSV uses "" to escape quotes inside quoted fields
    # Check for single quotes that aren't at field boundaries
-   if echo "${line}" | grep -qE "[^,]'[^,]" 2>/dev/null; then
+   if echo "${line}" | grep -qE "[^,]'[^,]" 2> /dev/null; then
     # This is actually OK - single quotes are fine in CSV
     :
    fi
-   
+
    # Check for potential unescaped double quotes (simplified check)
    # Count quotes: should be even (each field starts and ends with quote)
    local QUOTE_COUNT
@@ -2801,18 +2800,18 @@ function __validate_csv_structure {
     fi
    fi
   fi
-  
+
  done < "${CSV_FILE}"
- 
+
  # Report validation results
  __logd "CSV validation results for ${CSV_FILE}:"
  __logd "  Total lines checked: ${LINE_NUMBER}"
  __logd "  Wrong column count: ${WRONG_COLUMNS}"
  __logd "  Unescaped quotes: ${UNESCAPED_QUOTES}"
- 
+
  # Determine if validation passed
  local VALIDATION_FAILED=0
- 
+
  # Wrong columns is a critical error
  if [[ ${WRONG_COLUMNS} -gt $((LINE_NUMBER / 10)) ]]; then
   __loge "ERROR: Too many lines with wrong column count (${WRONG_COLUMNS} out of ${LINE_NUMBER})"
@@ -2821,19 +2820,19 @@ function __validate_csv_structure {
  elif [[ ${WRONG_COLUMNS} -gt 0 ]]; then
   __logw "WARNING: Found ${WRONG_COLUMNS} lines with unexpected column count (may be OK if multivalue fields)"
  fi
- 
+
  # Unescaped quotes is a warning, not critical (might be false positives)
  if [[ ${UNESCAPED_QUOTES} -gt 0 ]]; then
   __logw "WARNING: Found ${UNESCAPED_QUOTES} lines with potential quote issues"
   __logw "This may cause PostgreSQL COPY errors. Review the CSV if load fails."
  fi
- 
+
  if [[ ${VALIDATION_FAILED} -eq 1 ]]; then
   __loge "CSV structure validation FAILED for ${CSV_FILE}"
   __log_finish
   return 1
  fi
- 
+
  __logi "✓ CSV structure validation PASSED for ${CSV_FILE}"
  __log_finish
  return 0

@@ -252,14 +252,14 @@ function __checkPrereqs {
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set +e
-# Checks prereqs.
-__checkPrereqsCommands
+ # Checks prereqs.
+ __checkPrereqsCommands
 
-# Function to detect and recover from data gaps
-__recover_from_gaps() {
+ # Function to detect and recover from data gaps
+ __recover_from_gaps() {
   local -r FUNCTION_NAME="__recover_from_gaps"
   __logd "Starting gap recovery process"
-  
+
   # Check for notes without comments in recent data
   local GAP_QUERY="
     SELECT COUNT(DISTINCT n.note_id) as gap_count
@@ -270,26 +270,26 @@ __recover_from_gaps() {
     ) - INTERVAL '7 days'
     AND nc.note_id IS NULL
   "
-  
+
   local GAP_COUNT
   local TEMP_GAP_FILE
   TEMP_GAP_FILE=$(mktemp)
-  
+
   if ! __retry_database_operation "${GAP_QUERY}" "${TEMP_GAP_FILE}" 3 2; then
-    __loge "Failed to execute gap query after retries"
-    rm -f "${TEMP_GAP_FILE}"
-    return 1
+   __loge "Failed to execute gap query after retries"
+   rm -f "${TEMP_GAP_FILE}"
+   return 1
   fi
-  
+
   GAP_COUNT=$(cat "${TEMP_GAP_FILE}")
   rm -f "${TEMP_GAP_FILE}"
-  
+
   if [[ "${GAP_COUNT}" -gt 0 ]]; then
-    __logw "Detected ${GAP_COUNT} notes without comments in last 7 days"
-    __logw "This indicates a potential data integrity issue"
-    
-    # Log detailed gap information
-    local GAP_DETAILS_QUERY="
+   __logw "Detected ${GAP_COUNT} notes without comments in last 7 days"
+   __logw "This indicates a potential data integrity issue"
+
+   # Log detailed gap information
+   local GAP_DETAILS_QUERY="
       SELECT n.note_id, n.created_at, n.status
       FROM notes n
       LEFT JOIN note_comments nc ON nc.note_id = n.note_id
@@ -300,32 +300,32 @@ __recover_from_gaps() {
       ORDER BY n.created_at DESC
       LIMIT 10
     "
-    
-    __logw "Sample of notes with gaps:"
-    psql -d "${DBNAME}" -c "${GAP_DETAILS_QUERY}" | while read -r line; do
-      __logw "  ${line}"
-    done
-    
-    # Optionally trigger a recovery process
-    if [[ "${GAP_COUNT}" -lt 100 ]]; then
-      __logi "Gap count is manageable (${GAP_COUNT}), continuing with normal processing"
-    else
-      __loge "Large gap detected (${GAP_COUNT} notes), consider manual intervention"
-      return 1
-    fi
-  else
-    __logd "No gaps detected in recent data"
-  fi
-  
-  return 0
-}
 
-# Check for data gaps before processing
-if ! __recover_from_gaps; then
+   __logw "Sample of notes with gaps:"
+   psql -d "${DBNAME}" -c "${GAP_DETAILS_QUERY}" | while read -r line; do
+    __logw "  ${line}"
+   done
+
+   # Optionally trigger a recovery process
+   if [[ "${GAP_COUNT}" -lt 100 ]]; then
+    __logi "Gap count is manageable (${GAP_COUNT}), continuing with normal processing"
+   else
+    __loge "Large gap detected (${GAP_COUNT} notes), consider manual intervention"
+    return 1
+   fi
+  else
+   __logd "No gaps detected in recent data"
+  fi
+
+  return 0
+ }
+
+ # Check for data gaps before processing
+ if ! __recover_from_gaps; then
   __loge "Gap recovery check failed, aborting processing"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
    "echo 'Gap recovery failed - manual intervention may be required'"
-fi
+ fi
 
  ## Validate required files using centralized validation
  __logi "Validating required files..."
@@ -487,19 +487,19 @@ function __getNewNotesFromApi {
  # Gets the values from OSM API with enhanced error handling
  # shellcheck disable=SC2153
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
-  __logi "API Request URL: ${REQUEST}"
-  __logd "Max notes limit: ${MAX_NOTES}"
-  __logi "Retrieving notes from API..."
+ __logi "API Request URL: ${REQUEST}"
+ __logd "Max notes limit: ${MAX_NOTES}"
+ __logi "Retrieving notes from API..."
 
-  # Use robust retry logic for API download
-  if ! __retry_network_operation "${REQUEST}" "${API_NOTES_FILE}" 5 2 30; then
-    __loge "Failed to download API notes after retries"
-    __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
-     "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
-    # shellcheck disable=SC2317
-    __log_finish
-    return "${ERROR_INTERNET_ISSUE}"
-  fi
+ # Use robust retry logic for API download
+ if ! __retry_network_operation "${REQUEST}" "${API_NOTES_FILE}" 5 2 30; then
+  __loge "Failed to download API notes after retries"
+  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
+   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+  # shellcheck disable=SC2317
+  __log_finish
+  return "${ERROR_INTERNET_ISSUE}"
+ fi
 
  # Since we're not capturing wget output to a file, we'll check the downloaded file
  if [[ ! -f "${API_NOTES_FILE}" ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
@@ -738,19 +738,19 @@ function __processApiXmlSequential {
 function __insertNewNotesAndComments {
  __log_start
 
-  # Get the number of notes to process
-  local NOTES_COUNT
-  local TEMP_COUNT_FILE
-  TEMP_COUNT_FILE=$(mktemp)
-  
-  if ! __retry_database_operation "SELECT COUNT(1) FROM notes_api" "${TEMP_COUNT_FILE}" 3 2; then
-    __loge "Failed to count notes after retries"
-    rm -f "${TEMP_COUNT_FILE}"
-    return 1
-  fi
-  
-  NOTES_COUNT=$(cat "${TEMP_COUNT_FILE}")
+ # Get the number of notes to process
+ local NOTES_COUNT
+ local TEMP_COUNT_FILE
+ TEMP_COUNT_FILE=$(mktemp)
+
+ if ! __retry_database_operation "SELECT COUNT(1) FROM notes_api" "${TEMP_COUNT_FILE}" 3 2; then
+  __loge "Failed to count notes after retries"
   rm -f "${TEMP_COUNT_FILE}"
+  return 1
+ fi
+
+ NOTES_COUNT=$(cat "${TEMP_COUNT_FILE}")
+ rm -f "${TEMP_COUNT_FILE}"
 
  if [[ "${NOTES_COUNT}" -gt 1000 ]]; then
   # Split the insertion into chunks
@@ -907,7 +907,7 @@ function __cleanNotesFiles {
 # Function to check and log gaps from database
 function __check_and_log_gaps() {
  __log_start
-  
+
  # Query database for recent gaps
  local GAP_QUERY="
    SELECT 
@@ -923,11 +923,11 @@ function __check_and_log_gaps() {
    ORDER BY gap_timestamp DESC
    LIMIT 10
  "
- 
+
  # Log gaps to file
  local GAP_FILE="/tmp/processAPINotes_gaps.log"
- psql -d "${DBNAME}" -c "${GAP_QUERY}" >> "${GAP_FILE}" 2>/dev/null || true
- 
+ psql -d "${DBNAME}" -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
+
  __logd "Checked and logged gaps from database"
  __log_finish
 }
@@ -1025,51 +1025,51 @@ function main() {
   __logd "Releasing lock before spawning child processes"
   exec 8>&-
 
- # Step 1: Create base structure (tables only)
- __logi "Step 1/3: Creating base database structure..."
- if ! "${NOTES_SYNC_SCRIPT}" --base; then
-  __loge "ERROR: Failed to create base structure. Stopping process."
-  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-   "Failed to create base database structure (Step 1/3)" \
-   "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
-  exit "${ERROR_EXECUTING_PLANET_DUMP}"
- fi
- __logw "Base structure created successfully."
-
- # Step 2: Load initial geographic data
- __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
-  if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
-   __loge "ERROR: Failed to load geographic data. Stopping process."
+  # Step 1: Create base structure (tables only)
+  __logi "Step 1/3: Creating base database structure..."
+  if ! "${NOTES_SYNC_SCRIPT}" --base; then
+   __loge "ERROR: Failed to create base structure. Stopping process."
    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Failed to load initial geographic data (Step 2/3)" \
-    "Check updateCountries.sh script and ensure geographic data files are accessible. Script: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+    "Failed to create base database structure (Step 1/3)" \
+    "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
-  __logw "Geographic data loaded successfully."
- else
-  __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
-  __create_failed_marker "${ERROR_MISSING_LIBRARY}" \
-   "updateCountries.sh script not found" \
-   "Install or restore updateCountries.sh at: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
+  __logw "Base structure created successfully."
 
- # Step 3: Process planet notes (now with geographic data available)
- __logi "Step 3/3: Processing planet notes with geographic data..."
- set +e
- "${NOTES_SYNC_SCRIPT}" # sin argumentos
- RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: Failed to process planet notes."
-  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-   "Failed to process planet notes - historical data load failed (Step 3/3)" \
-   "Check processPlanetNotes.sh execution. Verify planet dump file availability and database space. Script: ${NOTES_SYNC_SCRIPT}"
-  exit "${ERROR_EXECUTING_PLANET_DUMP}"
- fi
- __logw "Complete setup finished successfully."
- __logi "System is now ready for regular API processing."
+  # Step 2: Load initial geographic data
+  __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
+   if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
+    __loge "ERROR: Failed to load geographic data. Stopping process."
+    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+     "Failed to load initial geographic data (Step 2/3)" \
+     "Check updateCountries.sh script and ensure geographic data files are accessible. Script: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+    exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   fi
+   __logw "Geographic data loaded successfully."
+  else
+   __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
+   __create_failed_marker "${ERROR_MISSING_LIBRARY}" \
+    "updateCountries.sh script not found" \
+    "Install or restore updateCountries.sh at: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+   exit "${ERROR_MISSING_LIBRARY}"
+  fi
+
+  # Step 3: Process planet notes (now with geographic data available)
+  __logi "Step 3/3: Processing planet notes with geographic data..."
+  set +e
+  "${NOTES_SYNC_SCRIPT}" # sin argumentos
+  RET=${?}
+  set -e
+  if [[ "${RET}" -ne 0 ]]; then
+   __loge "ERROR: Failed to process planet notes."
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Failed to process planet notes - historical data load failed (Step 3/3)" \
+    "Check processPlanetNotes.sh execution. Verify planet dump file availability and database space. Script: ${NOTES_SYNC_SCRIPT}"
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  fi
+  __logw "Complete setup finished successfully."
+  __logi "System is now ready for regular API processing."
 
   # Re-acquire lock after child processes complete
   __logd "Re-acquiring lock after child processes"
@@ -1077,16 +1077,16 @@ function main() {
   flock -n 8
   __logd "Lock re-acquired successfully"
  else
-   # Base tables exist, now check if they contain historical data
-   __logi "Base tables found. Validating historical data..."
-   __checkHistoricalData
-   if [[ "${RET_FUNC}" -ne 0 ]]; then
-    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-     "Historical data validation failed - base tables exist but contain no historical data" \
-     "Run processPlanetNotes.sh to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-    exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   fi
-   __logi "Historical data validation passed. ProcessAPI can continue safely."
+  # Base tables exist, now check if they contain historical data
+  __logi "Base tables found. Validating historical data..."
+  __checkHistoricalData
+  if [[ "${RET_FUNC}" -ne 0 ]]; then
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Historical data validation failed - base tables exist but contain no historical data" \
+    "Run processPlanetNotes.sh to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  fi
+  __logi "Historical data validation passed. ProcessAPI can continue safely."
  fi
 
  set -E
@@ -1098,23 +1098,23 @@ function main() {
  __getNewNotesFromApi
  set -E
 
-# Verify that the API notes file was downloaded successfully
-if [[ ! -f "${API_NOTES_FILE}" ]]; then
- __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
- __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
-  "API notes file was not downloaded" \
-  "This may be temporary. Check network connectivity and OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. Expected file: ${API_NOTES_FILE}"
- exit "${ERROR_INTERNET_ISSUE}"
-fi
+ # Verify that the API notes file was downloaded successfully
+ if [[ ! -f "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+   "API notes file was not downloaded" \
+   "This may be temporary. Check network connectivity and OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. Expected file: ${API_NOTES_FILE}"
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
 
-# Check if the file has content (not empty)
-if [[ ! -s "${API_NOTES_FILE}" ]]; then
- __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
- __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
-  "API notes file is empty - no data received from OSM API" \
-  "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
- exit "${ERROR_INTERNET_ISSUE}"
-fi
+ # Check if the file has content (not empty)
+ if [[ ! -s "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+   "API notes file is empty - no data received from OSM API" \
+   "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
 
  __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
 

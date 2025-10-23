@@ -66,9 +66,9 @@ __show_level_header() {
  local -r level=$1
  local -r description=$2
  local -r estimated_time=$3
- 
+
  CURRENT_LEVEL=$level
- 
+
  echo ""
  echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
  echo -e "${CYAN}║${NC} Nivel ${level}/${TOTAL_LEVELS}: ${description}"
@@ -81,7 +81,7 @@ __show_level_header() {
 __show_level_footer() {
  local -r level=$1
  local -r status=$2
- 
+
  echo ""
  if [[ "$status" == "success" ]]; then
   echo -e "${GREEN}✅ Nivel ${level} completado exitosamente${NC}"
@@ -97,7 +97,7 @@ __show_level_footer() {
 __run_bats() {
  local tests_passed=0
  local tests_failed=0
- 
+
  if bats "$@"; then
   __log_success "Tests pasaron correctamente"
   return 0
@@ -137,9 +137,9 @@ __run_quick() {
  __log_info "Modo QUICK: Ejecutando solo tests críticos"
  __log_info "Tiempo estimado: 15-20 minutos"
  echo ""
- 
+
  __show_level_header "QUICK" "Tests Críticos" "15-20 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/bash_logger_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/format_and_lint.test.bats" \
@@ -150,8 +150,7 @@ __run_quick() {
   "${SCRIPT_DIR}/unit/bash/processAPINotes.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats" \
   "${SCRIPT_DIR}/parallel_processing_test_suite.bats" \
-  "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats"; then
   __show_level_footer "QUICK" "success"
   return 0
  else
@@ -163,7 +162,7 @@ __run_quick() {
 # Level 1 - Basic tests
 __run_level_1() {
  __show_level_header 1 "Tests Básicos" "5-10 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/bash_logger_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/database_variables.test.bats" \
@@ -173,8 +172,7 @@ __run_level_1() {
   "${SCRIPT_DIR}/unit/bash/script_help_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/variable_duplication.test.bats" \
   "${SCRIPT_DIR}/unit/bash/variable_duplication_detection.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/function_consolidation.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/function_consolidation.test.bats"; then
   __show_level_footer 1 "success"
   return 0
  else
@@ -186,7 +184,7 @@ __run_level_1() {
 # Level 2 - Validation tests
 __run_level_2() {
  __show_level_header 2 "Tests de Validación" "10-15 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/centralized_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/coordinate_validation_enhanced.test.bats" \
@@ -199,8 +197,7 @@ __run_level_2() {
   "${SCRIPT_DIR}/unit/bash/extended_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/edge_cases_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/sql_validation_integration.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/sql_constraints_validation.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/sql_constraints_validation.test.bats"; then
   __show_level_footer 2 "success"
   return 0
  else
@@ -212,7 +209,7 @@ __run_level_2() {
 # Level 3 - XML/XSLT tests
 __run_level_3() {
  __show_level_header 3 "Tests de XML/XSLT" "8-12 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/csv_enum_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xslt_enum_format.test.bats" \
@@ -226,8 +223,7 @@ __run_level_3() {
   "${SCRIPT_DIR}/unit/bash/xml_validation_large_files.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xml_processing_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xml_corruption_recovery.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/resource_limits.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/resource_limits.test.bats"; then
   __show_level_footer 3 "success"
   return 0
  else
@@ -239,7 +235,7 @@ __run_level_3() {
 # Level 4 - Processing tests
 __run_level_4() {
  __show_level_header 4 "Tests de Procesamiento" "15-25 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/processAPINotes.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotes_integration.test.bats" \
@@ -251,8 +247,7 @@ __run_level_4() {
   "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processPlanetNotes_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processPlanetNotes_integration_fixed.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/mock_planet_functions.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/mock_planet_functions.test.bats"; then
   __show_level_footer 4 "success"
   return 0
  else
@@ -264,7 +259,7 @@ __run_level_4() {
 # Level 5 - Parallel processing tests
 __run_level_5() {
  __show_level_header 5 "Tests de Procesamiento Paralelo" "10-15 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/parallel_processing_test_suite.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_processing_robust.test.bats" \
@@ -274,8 +269,7 @@ __run_level_5() {
   "${SCRIPT_DIR}/unit/bash/parallel_delay_test.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_delay_test_simple.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_failed_file.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/binary_division_performance.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/binary_division_performance.test.bats"; then
   __show_level_footer 5 "success"
   return 0
  else
@@ -287,7 +281,7 @@ __run_level_5() {
 # Level 6 - Cleanup and error handling tests
 __run_level_6() {
  __show_level_header 6 "Tests de Cleanup y Error Handling" "12-18 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/cleanupAll_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/cleanupAll.test.bats" \
@@ -300,8 +294,7 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/cleanup_dependency_fix.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling_enhanced.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats"; then
   __show_level_footer 6 "success"
   return 0
  else
@@ -313,7 +306,7 @@ __run_level_6() {
 # Level 7 - Monitoring and WMS tests
 __run_level_7() {
  __show_level_header 7 "Tests de Monitoreo y WMS" "8-12 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/monitoring.test.bats" \
   "${SCRIPT_DIR}/unit/bash/notesCheckVerifier_integration.test.bats" \
@@ -322,8 +315,7 @@ __run_level_7() {
   "${SCRIPT_DIR}/unit/bash/wmsManager_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/wmsConfigExample_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/geoserverConfig_integration.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/updateCountries_integration.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/updateCountries_integration.test.bats"; then
   __show_level_footer 7 "success"
   return 0
  else
@@ -335,7 +327,7 @@ __run_level_7() {
 # Level 8 - Advanced and edge case tests
 __run_level_8() {
  __show_level_header 8 "Tests Avanzados y Casos Edge" "10-15 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/performance_edge_cases.test.bats" \
   "${SCRIPT_DIR}/unit/bash/performance_edge_cases_simple.test.bats" \
@@ -349,8 +341,7 @@ __run_level_8() {
   "${SCRIPT_DIR}/unit/bash/functionsProcess_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/prerequisites_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/logging_improvements.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/logging_pattern_validation.test.bats"
- then
+  "${SCRIPT_DIR}/unit/bash/logging_pattern_validation.test.bats"; then
   __show_level_footer 8 "success"
   return 0
  else
@@ -362,7 +353,7 @@ __run_level_8() {
 # Level 9 - Integration tests
 __run_level_9() {
  __show_level_header 9 "Tests de Integración End-to-End" "10-20 min"
- 
+
  if __run_bats \
   "${SCRIPT_DIR}/integration/boundary_processing_error_integration.test.bats" \
   "${SCRIPT_DIR}/integration/wms_integration.test.bats" \
@@ -371,8 +362,7 @@ __run_level_9() {
   "${SCRIPT_DIR}/integration/processAPINotes_parallel_error_integration.test.bats" \
   "${SCRIPT_DIR}/integration/xslt_integration.test.bats" \
   "${SCRIPT_DIR}/integration/end_to_end.test.bats" \
-  "${SCRIPT_DIR}/integration/processAPI_historical_e2e.test.bats"
- then
+  "${SCRIPT_DIR}/integration/processAPI_historical_e2e.test.bats"; then
   __show_level_footer 9 "success"
   return 0
  else
@@ -380,7 +370,6 @@ __run_level_9() {
   return 1
  fi
 }
-
 
 # Show summary
 __show_summary() {
@@ -395,7 +384,7 @@ __show_summary() {
  echo -e "  ${GREEN}Niveles exitosos:    ${PASSED_LEVELS}${NC}"
  echo -e "  ${RED}Niveles fallidos:    ${FAILED_LEVELS}${NC}"
  echo ""
- 
+
  if [[ ${FAILED_LEVELS} -eq 0 ]]; then
   echo -e "${GREEN}✅ ¡Todos los tests pasaron exitosamente!${NC}"
   return 0
@@ -408,7 +397,7 @@ __show_summary() {
 # Main execution
 main() {
  local -r mode="${1:-help}"
- 
+
  case "$mode" in
  quick)
   __run_quick
@@ -471,5 +460,3 @@ main() {
 
 # Run main
 main "$@"
-
-

@@ -74,7 +74,7 @@ main() {
 
  # Verify prerequisites
  __logi "Verifying prerequisites..."
- 
+
  # Check prerequisites: commands, DB connection, and functions
  __checkPrereqsCommands
 

@@ -38,25 +38,25 @@ MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
 # Function to setup hybrid mock environment
 setup_hybrid_mock_environment() {
  log_info "Setting up hybrid mock environment (internet downloads only)..."
- 
+
  # Create mock commands directory if it doesn't exist
  mkdir -p "${MOCK_COMMANDS_DIR}"
- 
+
  # Create only internet-related mock commands
  create_mock_wget
  create_mock_aria2c
- 
+
  # Make mock commands executable
  chmod +x "${MOCK_COMMANDS_DIR}"/*
- 
+
  log_success "Hybrid mock environment setup completed"
 }
 
 # Function to create mock wget
 create_mock_wget() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
-   log_info "Creating mock wget..."
-   cat > "${MOCK_COMMANDS_DIR}/wget" << 'EOF'
+  log_info "Creating mock wget..."
+  cat > "${MOCK_COMMANDS_DIR}/wget" << 'EOF'
 #!/bin/bash
 
 # Mock wget command for testing (internet downloads only)
@@ -204,8 +204,8 @@ EOF
 # Function to create mock aria2c
 create_mock_aria2c() {
  if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-   log_info "Creating mock aria2c..."
-   cat > "${MOCK_COMMANDS_DIR}/aria2c" << 'EOF'
+  log_info "Creating mock aria2c..."
+  cat > "${MOCK_COMMANDS_DIR}/aria2c" << 'EOF'
 #!/bin/bash
 
 # Mock aria2c command for testing (internet downloads only)
@@ -316,119 +316,119 @@ EOF
 # Function to activate hybrid mock environment
 activate_hybrid_mock_environment() {
  log_info "Activating hybrid mock environment (internet downloads only)..."
- 
+
  # Add mock commands to PATH (only internet-related)
  export PATH="${MOCK_COMMANDS_DIR}:${PATH}"
- 
+
  # Set hybrid mock environment variables
  export HYBRID_MOCK_MODE=true
  export TEST_MODE=true
- export DBNAME="osm_notes"  # Use real database name
+ export DBNAME="osm_notes" # Use real database name
  export DB_USER="${DB_USER:-postgres}"
  export DB_PASSWORD="${DB_PASSWORD:-}"
- 
+
  log_success "Hybrid mock environment activated"
 }
 
 # Function to deactivate hybrid mock environment
 deactivate_hybrid_mock_environment() {
  log_info "Deactivating hybrid mock environment..."
- 
+
  # Remove mock commands from PATH
  export PATH=$(echo "$PATH" | sed "s|${MOCK_COMMANDS_DIR}:||g")
- 
+
  # Unset hybrid mock environment variables
  unset HYBRID_MOCK_MODE
  unset TEST_MODE
  unset DBNAME
  unset DB_USER
  unset DB_PASSWORD
- 
+
  log_success "Hybrid mock environment deactivated"
 }
 
 # Function to check if real commands are available
 check_real_commands() {
  log_info "Checking availability of real commands..."
- 
+
  local missing_commands=()
- 
+
  # Check database commands
- if ! command -v psql >/dev/null 2>&1; then
-   missing_commands+=("psql")
+ if ! command -v psql > /dev/null 2>&1; then
+  missing_commands+=("psql")
  fi
- 
+
  # Check XML processing commands
- if ! command -v xmllint >/dev/null 2>&1; then
-   missing_commands+=("xmllint")
+ if ! command -v xmllint > /dev/null 2>&1; then
+  missing_commands+=("xmllint")
  fi
- 
- if ! command -v awkproc >/dev/null 2>&1; then
-   missing_commands+=("awkproc")
+
+ if ! command -v awkproc > /dev/null 2>&1; then
+  missing_commands+=("awkproc")
  fi
- 
+
  # Check compression commands
- if ! command -v bzip2 >/dev/null 2>&1; then
-   missing_commands+=("bzip2")
+ if ! command -v bzip2 > /dev/null 2>&1; then
+  missing_commands+=("bzip2")
  fi
- 
+
  # Check conversion commands
- if ! command -v osmtogeojson >/dev/null 2>&1; then
-   log_warning "osmtogeojson not found - some tests may fail"
+ if ! command -v osmtogeojson > /dev/null 2>&1; then
+  log_warning "osmtogeojson not found - some tests may fail"
  fi
- 
+
  if [[ ${#missing_commands[@]} -gt 0 ]]; then
-   log_error "Missing required commands: ${missing_commands[*]}"
-   log_error "Please install the missing commands before running hybrid tests"
-   return 1
+  log_error "Missing required commands: ${missing_commands[*]}"
+  log_error "Please install the missing commands before running hybrid tests"
+  return 1
  else
-   log_success "All required real commands are available"
-   return 0
+  log_success "All required real commands are available"
+  return 0
  fi
 }
 
 # Main execution - only run when script is executed directly, not when sourced
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  case "${1:-}" in
-  setup)
-   setup_hybrid_mock_environment
-   ;;
-  activate)
-   activate_hybrid_mock_environment
-   ;;
-  deactivate)
-   deactivate_hybrid_mock_environment
-   ;;
-  check)
-   check_real_commands
-   ;;
-  test)
-   setup_hybrid_mock_environment
-   check_real_commands
-   activate_hybrid_mock_environment
-   log_info "Running hybrid tests with real database and XML processing..."
-   # Add your test commands here
-   deactivate_hybrid_mock_environment
-   ;;
-  --help | -h)
-   echo "Usage: $0 [COMMAND]"
-   echo
-   echo "Commands:"
-   echo "  setup      Setup hybrid mock environment (internet downloads only)"
-   echo "  activate   Activate hybrid mock environment"
-   echo "  deactivate Deactivate hybrid mock environment"
-   echo "  check      Check if real commands are available"
-   echo "  test       Setup, check, activate, run tests, and deactivate"
-   echo "  --help     Show this help"
-   echo
-   echo "This environment mocks only internet downloads (wget, aria2c)"
-   echo "but uses real commands for database and XML processing."
-   exit 0
-   ;;
-  *)
-   log_error "Unknown command: ${1:-}"
-   log_error "Use --help for usage information"
-   exit 1
-   ;;
+ setup)
+  setup_hybrid_mock_environment
+  ;;
+ activate)
+  activate_hybrid_mock_environment
+  ;;
+ deactivate)
+  deactivate_hybrid_mock_environment
+  ;;
+ check)
+  check_real_commands
+  ;;
+ test)
+  setup_hybrid_mock_environment
+  check_real_commands
+  activate_hybrid_mock_environment
+  log_info "Running hybrid tests with real database and XML processing..."
+  # Add your test commands here
+  deactivate_hybrid_mock_environment
+  ;;
+ --help | -h)
+  echo "Usage: $0 [COMMAND]"
+  echo
+  echo "Commands:"
+  echo "  setup      Setup hybrid mock environment (internet downloads only)"
+  echo "  activate   Activate hybrid mock environment"
+  echo "  deactivate Deactivate hybrid mock environment"
+  echo "  check      Check if real commands are available"
+  echo "  test       Setup, check, activate, run tests, and deactivate"
+  echo "  --help     Show this help"
+  echo
+  echo "This environment mocks only internet downloads (wget, aria2c)"
+  echo "but uses real commands for database and XML processing."
+  exit 0
+  ;;
+ *)
+  log_error "Unknown command: ${1:-}"
+  log_error "Use --help for usage information"
+  exit 1
+  ;;
  esac
-fi 
+fi

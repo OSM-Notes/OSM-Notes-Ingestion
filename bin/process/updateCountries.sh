@@ -138,13 +138,13 @@ function __checkPrereqs {
   echo "ERROR: Invalid parameter. It should be:"
   echo " * Empty string, nothing."
   echo " * --help"
- exit "${ERROR_INVALID_ARGUMENT}"
-fi
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
 
-# Validate prerequisites: commands, DB connection, and functions
-__checkPrereqsCommands
-__checkPrereqs_functions
-__log_finish
+ # Validate prerequisites: commands, DB connection, and functions
+ __checkPrereqsCommands
+ __checkPrereqs_functions
+ __log_finish
 }
 
 # Clean files and tables.

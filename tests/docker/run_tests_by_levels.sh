@@ -56,34 +56,34 @@ done
 # Function to check prerequisites
 __check_prerequisites() {
  log_info "Checking prerequisites..."
- 
+
  if ! command -v docker &> /dev/null; then
   log_error "Docker is not installed"
   exit 1
  fi
- 
+
  if ! docker compose version &> /dev/null; then
   log_error "Docker Compose is not available"
   exit 1
  fi
- 
+
  log_success "Prerequisites check completed"
 }
 
 # Function to start Docker services
 __start_docker_services() {
  log_info "Starting Docker services..."
- 
+
  cd "${SCRIPT_DIR}"
  docker compose -f "${DOCKER_COMPOSE_FILE}" up -d --build
- 
+
  log_info "Waiting for services to be ready..."
  sleep 15
- 
+
  # Wait for PostgreSQL
  local -i -r MAX_RETRIES=40
  local -i retry=0
- 
+
  while [ $retry -lt $MAX_RETRIES ]; do
   if docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T postgres \
    pg_isready -U testuser -d osm_notes_test &> /dev/null; then
@@ -94,7 +94,7 @@ __start_docker_services() {
   log_info "Waiting for PostgreSQL... (${retry}/${MAX_RETRIES})"
   sleep 2
  done
- 
+
  log_error "PostgreSQL failed to start"
  return 1
 }
@@ -102,9 +102,9 @@ __start_docker_services() {
 # Function to setup test database
 __setup_test_database() {
  log_info "Setting up test database..."
- 
+
  cd "${SCRIPT_DIR}"
- 
+
  if docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
   bash -c "cd /app/tests/docker && ./setup_test_db_docker.sh"; then
   log_success "Test database setup completed"
@@ -118,12 +118,12 @@ __setup_test_database() {
 # Function to cleanup test database
 __cleanup_test_database() {
  log_info "Cleaning up test database..."
- 
+
  cd "${SCRIPT_DIR}"
- 
+
  docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
   bash -c "psql -h postgres -U testuser -d postgres -c 'DROP DATABASE IF EXISTS osm_notes_test;'" || true
- 
+
  log_success "Test database cleaned up"
 }
 
@@ -132,9 +132,9 @@ __run_level1_tests() {
  log_level "=========================================="
  log_level "LEVEL 1: Unit Tests - Bash Scripts"
  log_level "=========================================="
- 
+
  cd "${SCRIPT_DIR}"
- 
+
  local -a test_files=(
   "tests/unit/bash/functionsProcess.test.bats"
   "tests/unit/bash/processPlanetNotes.test.bats"
@@ -146,16 +146,16 @@ __run_level1_tests() {
   "tests/unit/bash/script_help_validation.test.bats"
   "tests/unit/bash/format_and_lint.test.bats"
  )
- 
+
  for test_file in "${test_files[@]}"; do
   log_info "Running: $(basename "${test_file}")"
-  
+
   set +e
   docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
    bash -c "cd /app && bats ${test_file}"
   local exit_code=$?
   set -e
-  
+
   if [ $exit_code -eq 0 ]; then
    log_success "$(basename "${test_file}") passed"
    LEVEL_PASSED[1]=$((LEVEL_PASSED[1] + 1))
@@ -165,7 +165,7 @@ __run_level1_tests() {
   fi
   LEVEL_TOTAL[1]=$((LEVEL_TOTAL[1] + 1))
  done
- 
+
  log_level "Level 1 completed: ${LEVEL_PASSED[1]}/${LEVEL_TOTAL[1]} passed"
 }
 
@@ -174,9 +174,9 @@ __run_level2_tests() {
  log_level "=========================================="
  log_level "LEVEL 2: Unit Tests - SQL Scripts"
  log_level "=========================================="
- 
+
  cd "${SCRIPT_DIR}"
- 
+
  # Ensure database exists before running SQL tests
  log_info "Verifying database exists for SQL tests..."
  if ! docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
@@ -184,22 +184,22 @@ __run_level2_tests() {
   log_warning "Database not found, recreating..."
   __setup_test_database
  fi
- 
+
  local -a test_files=(
   "tests/unit/sql/tables_simple.test.sql"
   "tests/unit/sql/functions_simple.test.sql"
  )
- 
+
  for test_file in "${test_files[@]}"; do
   log_info "Running: $(basename "${test_file}")"
-  
+
   set +e
   docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
    bash -c "cd /app && psql -h postgres -U testuser -d osm_notes_test \
     -f ${test_file}"
   local exit_code=$?
   set -e
-  
+
   if [ $exit_code -eq 0 ]; then
    log_success "$(basename "${test_file}") passed"
    LEVEL_PASSED[2]=$((LEVEL_PASSED[2] + 1))
@@ -209,7 +209,7 @@ __run_level2_tests() {
   fi
   LEVEL_TOTAL[2]=$((LEVEL_TOTAL[2] + 1))
  done
- 
+
  log_level "Level 2 completed: ${LEVEL_PASSED[2]}/${LEVEL_TOTAL[2]} passed"
 }
 
@@ -218,9 +218,9 @@ __run_level3_tests() {
  log_level "=========================================="
  log_level "LEVEL 3: Integration Tests"
  log_level "=========================================="
- 
+
  cd "${SCRIPT_DIR}"
- 
+
  # Ensure database exists before running integration tests
  log_info "Verifying database exists for integration tests..."
  if ! docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
@@ -228,24 +228,24 @@ __run_level3_tests() {
   log_warning "Database not found, recreating..."
   __setup_test_database
  fi
- 
+
  local -a test_files=(
   "tests/integration/end_to_end.test.bats"
   "tests/integration/logging_pattern_validation_integration.test.bats"
   "tests/integration/boundary_processing_error_integration.test.bats"
   "tests/integration/processAPINotes_parallel_error_integration.test.bats"
  )
- 
+
  for test_file in "${test_files[@]}"; do
   if [[ -f "${PROJECT_ROOT}/${test_file}" ]]; then
    log_info "Running: $(basename "${test_file}")"
-   
+
    set +e
    docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
     bash -c "cd /app && bats ${test_file}"
    local exit_code=$?
    set -e
-   
+
    if [ $exit_code -eq 0 ]; then
     log_success "$(basename "${test_file}") passed"
     LEVEL_PASSED[3]=$((LEVEL_PASSED[3] + 1))
@@ -258,7 +258,7 @@ __run_level3_tests() {
    log_warning "Test file not found: ${test_file}"
   fi
  done
- 
+
  log_level "Level 3 completed: ${LEVEL_PASSED[3]}/${LEVEL_TOTAL[3]} passed"
 }
 
@@ -267,9 +267,9 @@ __run_level4_tests() {
  log_level "=========================================="
  log_level "LEVEL 4: Advanced Tests (Quality, Coverage)"
  log_level "=========================================="
- 
+
  cd "${SCRIPT_DIR}"
- 
+
  # Format and linting
  log_info "Running format and lint checks..."
  set +e
@@ -277,7 +277,7 @@ __run_level4_tests() {
   bash -c "cd /app && find bin -name '*.sh' -type f -exec shellcheck -x {} \;"
  local exit_code=$?
  set -e
- 
+
  if [ $exit_code -eq 0 ]; then
   log_success "Shellcheck passed"
   LEVEL_PASSED[4]=$((LEVEL_PASSED[4] + 1))
@@ -286,7 +286,7 @@ __run_level4_tests() {
   LEVEL_FAILED[4]=$((LEVEL_FAILED[4] + 1))
  fi
  LEVEL_TOTAL[4]=$((LEVEL_TOTAL[4] + 1))
- 
+
  # shfmt check
  log_info "Running shfmt format check..."
  set +e
@@ -294,7 +294,7 @@ __run_level4_tests() {
   bash -c "cd /app && find bin -name '*.sh' -type f -exec shfmt -d -i 1 -sr -bn {} \;"
  exit_code=$?
  set -e
- 
+
  if [ $exit_code -eq 0 ]; then
   log_success "shfmt check passed"
   LEVEL_PASSED[4]=$((LEVEL_PASSED[4] + 1))
@@ -303,7 +303,7 @@ __run_level4_tests() {
   LEVEL_FAILED[4]=$((LEVEL_FAILED[4] + 1))
  fi
  LEVEL_TOTAL[4]=$((LEVEL_TOTAL[4] + 1))
- 
+
  log_level "Level 4 completed: ${LEVEL_PASSED[4]}/${LEVEL_TOTAL[4]} passed"
 }
 
@@ -314,16 +314,16 @@ __print_summary() {
  echo "TEST EXECUTION SUMMARY BY LEVELS"
  echo "=========================================="
  echo
- 
+
  local -i total_all=0
  local -i passed_all=0
  local -i failed_all=0
- 
+
  for level in 1 2 3 4; do
   local total="${LEVEL_TOTAL[$level]}"
   local passed="${LEVEL_PASSED[$level]}"
   local failed="${LEVEL_FAILED[$level]}"
-  
+
   if [ "$total" -gt 0 ]; then
    local percentage=$((passed * 100 / total))
    echo "Level ${level}:"
@@ -333,26 +333,26 @@ __print_summary() {
    echo "  Rate:   ${percentage}%"
    echo
   fi
-  
+
   total_all=$((total_all + total))
   passed_all=$((passed_all + passed))
   failed_all=$((failed_all + failed))
  done
- 
+
  echo "=========================================="
  echo "OVERALL SUMMARY:"
  echo "=========================================="
  echo "Total Tests:  ${total_all}"
  echo "Passed:       ${passed_all} ✅"
  echo "Failed:       ${failed_all} ❌"
- 
+
  if [ "$total_all" -gt 0 ]; then
   local percentage=$((passed_all * 100 / total_all))
   echo "Success Rate: ${percentage}%"
  fi
  echo "=========================================="
  echo
- 
+
  if [ "$failed_all" -eq 0 ]; then
   log_success "All tests passed! 🎉"
   return 0
@@ -365,17 +365,17 @@ __print_summary() {
 # Function to stop Docker services
 __stop_docker_services() {
  log_info "Stopping Docker services..."
- 
+
  cd "${SCRIPT_DIR}"
  docker compose -f "${DOCKER_COMPOSE_FILE}" down --volumes --remove-orphans
- 
+
  log_success "Docker services stopped"
 }
 
 # Function to show logs
 __show_logs() {
  log_info "Showing Docker logs..."
- 
+
  cd "${SCRIPT_DIR}"
  docker compose -f "${DOCKER_COMPOSE_FILE}" logs --tail=100
 }
@@ -420,7 +420,7 @@ main() {
  local show_logs=false
  local no_cleanup=false
  local run_all=true
- 
+
  # Parse arguments
  while [[ $# -gt 0 ]]; do
   case $1 in
@@ -463,25 +463,25 @@ main() {
    ;;
   esac
  done
- 
+
  # Setup trap for cleanup - will be handled at the end
  # We don't use EXIT trap to avoid stopping services prematurely
- 
+
  # Check prerequisites
  __check_prerequisites
- 
+
  # Start Docker services
  if ! __start_docker_services; then
   log_error "Failed to start Docker services"
   exit 1
  fi
- 
+
  # Setup test database
  if ! __setup_test_database; then
   log_error "Failed to setup test database"
   exit 1
  fi
- 
+
  # Run tests based on options
  if [ "$run_all" = true ]; then
   __run_level1_tests
@@ -494,29 +494,28 @@ main() {
   [ "$run_level3" = true ] && __run_level3_tests
   [ "$run_level4" = true ] && __run_level4_tests
  fi
- 
+
  # Show logs if requested
  if [ "$show_logs" = true ]; then
   __show_logs
  fi
- 
+
  # Cleanup test database if not keeping services
  if [ "$no_cleanup" = false ]; then
   __cleanup_test_database
  fi
- 
+
  # Stop Docker services if cleanup is enabled
  if [ "$no_cleanup" = false ]; then
   __stop_docker_services
  fi
- 
+
  # Print summary and exit
  __print_summary
  local exit_code=$?
- 
+
  exit $exit_code
 }
 
 # Run main function
 main "$@"
-

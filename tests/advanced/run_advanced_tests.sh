@@ -14,8 +14,8 @@ readonly NC='\033[0m' # No Color
 
 # Load test properties
 # shellcheck disable=SC1091
-if [[ -f "$( dirname "${BASH_SOURCE[0]}")/../properties.sh" ]]; then
- source "$( dirname "${BASH_SOURCE[0]}")/../properties.sh"
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../properties.sh" ]]; then
+ source "$(dirname "${BASH_SOURCE[0]}")/../properties.sh"
 fi
 
 # Test configuration with standardized defaults
@@ -161,16 +161,16 @@ __check_prerequisites() {
 
  # Check basic tools
  if ! command -v bash > /dev/null 2>&1; then
-  missing_tools+=( "bash")
+  missing_tools+=("bash")
  fi
 
  if ! command -v find > /dev/null 2>&1; then
-  missing_tools+=( "find")
+  missing_tools+=("find")
  fi
 
  # Check testing tools
  if ! command -v bats > /dev/null 2>&1; then
-  missing_tools+=( "bats")
+  missing_tools+=("bats")
  fi
 
  # Check coverage tools ( optional)
@@ -274,9 +274,9 @@ __run_quality_tests() {
   while IFS= read -r -d '' file; do
    if ! shfmt -d "${file}" > /dev/null 2>&1; then
     __log "WARNING" "Problema de formato en: ${file}"
-    ( ( format_issues++))
+    ( (format_issues++))
    fi
-  done < <( find . -name "*.sh" -type f -print0)
+  done < <(find . -name "*.sh" -type f -print0)
 
   if [[ ${format_issues} -eq 0 ]]; then
    __log "SUCCESS" "Formato de scripts bash verificado"
@@ -293,9 +293,9 @@ __run_quality_tests() {
   while IFS= read -r -d '' file; do
    if ! shellcheck "${file}" > /dev/null 2>&1; then
     __log "WARNING" "Problema de linting en: ${file}"
-    ( ( lint_issues++))
+    ( (lint_issues++))
    fi
-  done < <( find . -name "*.sh" -type f -print0)
+  done < <(find . -name "*.sh" -type f -print0)
 
   if [[ ${lint_issues} -eq 0 ]]; then
    __log "SUCCESS" "Linting de scripts bash verificado"
@@ -308,11 +308,11 @@ __run_quality_tests() {
  local quality_report="${quality_dir}/quality_summary.md"
  cat > "${quality_report}" << EOF
 # Quality Test Summary
-Generated: $( date)
+Generated: $(date)
 
 ## Shell Script Quality
-- Format checking: $( command -v shfmt > /dev/null 2>&1 && echo "Available" || echo "Not available")
-- Linting: $( command -v shellcheck > /dev/null 2>&1 && echo "Available" || echo "Not available")
+- Format checking: $(command -v shfmt > /dev/null 2>&1 && echo "Available" || echo "Not available")
+- Linting: $(command -v shellcheck > /dev/null 2>&1 && echo "Available" || echo "Not available")
 
 ## Recommendations
 1. Use shfmt to format all shell scripts
@@ -337,25 +337,25 @@ __run_performance_tests() {
  local performance_report="${performance_dir}/performance_summary.md"
  cat > "${performance_report}" << EOF
 # Performance Test Summary
-Generated: $( date)
+Generated: $(date)
 
 ## Script Execution Times
 EOF
 
  # Test main scripts
- local scripts=( "bin/process/processPlanetNotes.sh" "bin/process/processAPINotes.sh")
+ local scripts=("bin/process/processPlanetNotes.sh" "bin/process/processAPINotes.sh")
 
  for script in "${scripts[@]}"; do
   if [[ -f "${script}" ]]; then
    __log "INFO" "Probando: ${script}"
 
    local start_time
-   start_time=$( date +%s.%N)
+   start_time=$(date +%s.%N)
    if timeout "${TEST_PERFORMANCE_TIMEOUT}" bash "${script}" --help > /dev/null 2>&1; then
     local end_time
-    end_time=$( date +%s.%N)
+    end_time=$(date +%s.%N)
     local execution_time
-    execution_time=$( echo "${end_time} - ${start_time}" | bc -l 2> /dev/null || echo "N/A")
+    execution_time=$(echo "${end_time} - ${start_time}" | bc -l 2> /dev/null || echo "N/A")
     echo "- ${script}: ${execution_time}s" >> "${performance_report}"
     __log "SUCCESS" "${script}: ${execution_time}s"
    else
@@ -382,24 +382,24 @@ __generate_final_summary() {
 
  cat > "$summary_file" << EOF
 # Advanced Tests Summary
-Generated: $( date)
+Generated: $(date)
 
 ## Test Results
 
 ### Coverage Tests
-- Status: $( if [[ "$RUN_COVERAGE" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
+- Status: $(if [[ "$RUN_COVERAGE" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
 - Threshold: ${COVERAGE_THRESHOLD}%
 
 ### Security Tests
-- Status: $( if [[ "${RUN_SECURITY}" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
+- Status: $(if [[ "${RUN_SECURITY}" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
 - Fail on High: ${SECURITY_FAIL_ON_HIGH}
 
 ### Quality Tests
-- Status: $( if [[ "${RUN_QUALITY}" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
+- Status: $(if [[ "${RUN_QUALITY}" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
 - Min Rating: ${QUALITY_MIN_RATING}
 
 ### Performance Tests
-- Status: $( if [[ "${RUN_PERFORMANCE}" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
+- Status: $(if [[ "${RUN_PERFORMANCE}" == "true" ]]; then echo "Executed"; else echo "Skipped"; fi)
 - Timeout: ${TEST_PERFORMANCE_TIMEOUT}s
 
 ## Reports Generated
@@ -407,7 +407,7 @@ EOF
 
  # List all generated reports
  find "${OUTPUT_DIR}" -name "*.md" -o -name "*.txt" -o -name "*.json" | while read -r file; do
-  echo "- $( basename "${file}")" >> "${summary_file}"
+  echo "- $(basename "${file}")" >> "${summary_file}"
  done
 
  echo "" >> "${summary_file}"
