@@ -2,7 +2,7 @@
 
 # Unit tests for Planet XML processing functions using mock data
 # Author: Andres Gomez
-# Version: 2025-08-18
+# Version: 2025-10-24
 
 load ../../test_helper
 
@@ -13,6 +13,7 @@ setup() {
   
   # Create test output directory
   mkdir -p "${TEST_OUTPUT_DIR}"
+  chmod 777 "${TEST_OUTPUT_DIR}" 2> /dev/null || true
   
   # Source the functions
   source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
