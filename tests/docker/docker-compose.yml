@@ -1,6 +1,6 @@
 # Docker Compose for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-10-24
 
 services:
   # PostgreSQL Database
@@ -24,6 +24,8 @@ services:
       timeout: 10s
       retries: 10
       start_period: 30s
+    networks:
+      - default
 
   # Application Container
   app:
@@ -139,6 +141,8 @@ services:
     command: ["python3", "mock_osm_api.py"]
     depends_on:
       - postgres
+    networks:
+      - default
 
 networks:
   default:

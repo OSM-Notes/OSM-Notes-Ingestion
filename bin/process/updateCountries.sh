@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-21
-VERSION="2025-10-21"
+# Version: 2025-10-24
+VERSION="2025-10-24"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -124,9 +124,21 @@ function __show_help {
  echo "  - Creates and manages table structures (--base mode drops and recreates)"
  echo "  - Downloads and processes geographic data"
  echo "  - Updates boundaries and verifies note locations"
+ echo "  - Re-assigns countries for notes affected by boundary changes"
+ echo
+ echo "Usage:"
+ echo "  ${BASENAME}.sh              # Update boundaries in normal mode"
+ echo "  ${BASENAME}.sh --base       # Drop and recreate base tables"
+ echo "  ${BASENAME}.sh --help       # Show this help message"
+ echo "  ${BASENAME}.sh -h           # Show this help message"
+ echo
+ echo "Environment variables:"
+ echo "  CLEAN=true|false            # Control cleanup of temporary files"
+ echo "  UPDATE_NOTE_LOCATION=true   # Re-assign countries for affected notes"
  echo
  echo "Written by: Andres Gomez (AngocA)"
  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+ exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Checks prerequisites to run the script.

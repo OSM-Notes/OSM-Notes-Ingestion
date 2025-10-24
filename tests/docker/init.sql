@@ -1,16 +1,7 @@
 -- Database initialization script for OSM-Notes-profile tests
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-28
-
--- Create test databases only if they don't exist
-SELECT 'CREATE DATABASE osm_notes_test' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'osm_notes_test')\gexec
-SELECT 'CREATE DATABASE osm_notes_wms_test' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'osm_notes_wms_test')\gexec
-
-GRANT ALL PRIVILEGES ON DATABASE osm_notes_test TO testuser;
-GRANT ALL PRIVILEGES ON DATABASE osm_notes_wms_test TO testuser;
-
--- Connect to the main test database and create tables
-\c osm_notes_test;
+-- Version: 2025-10-24
+-- Note: The database osm_notes_test is already created by Docker via POSTGRES_DB env var
 
 -- Create basic tables for testing
 CREATE TABLE IF NOT EXISTS test_notes (
@@ -49,26 +40,4 @@ INSERT INTO test_comments (note_id, user_id, username, action, text) VALUES
 (456, 789, 'user3', 'closed', 'Closing this note')
 ON CONFLICT DO NOTHING;
 
--- Connect to WMS test database and set up basic tables with PostGIS
-\c osm_notes_wms_test;
-
--- Enable PostGIS extension
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS postgis_topology;
-
--- Create notes table for WMS testing with PostGIS
-CREATE TABLE IF NOT EXISTS notes (
-    note_id INTEGER PRIMARY KEY,
-    created_at TIMESTAMP,
-    closed_at TIMESTAMP,
-    lon DOUBLE PRECISION,
-    lat DOUBLE PRECISION,
-    geometry GEOMETRY(POINT, 4326)
-);
-
--- Insert test data for WMS with geometry
-INSERT INTO notes (note_id, created_at, closed_at, lon, lat, geometry) VALUES
-(1, '2023-01-01 10:00:00', NULL, -74.006, 40.7128, ST_SetSRID(ST_MakePoint(-74.006, 40.7128), 4326)),
-(2, '2023-02-01 11:00:00', '2023-02-15 12:00:00', -118.2437, 34.0522, ST_SetSRID(ST_MakePoint(-118.2437, 34.0522), 4326)),
-(3, '2023-03-01 09:00:00', NULL, 2.3522, 48.8566, ST_SetSRID(ST_MakePoint(2.3522, 48.8566), 4326))
-ON CONFLICT (note_id) DO NOTHING; 
+-- Note: WMS database setup is handled by setup_test_db_docker.sh 

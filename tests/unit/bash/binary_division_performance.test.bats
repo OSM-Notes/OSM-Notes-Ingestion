@@ -4,7 +4,7 @@
 # Tests the binary XML division algorithm performance and functionality
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-10-24
 
 # Load test helper
 load ../../test_helper
@@ -115,14 +115,14 @@ source_bin_functions() {
 # Test binary division function exists
 @test "binary division function exists" {
   # Check if binary division function is available
-  function_exists __divide_xml_file_binary
+  declare -f __divide_xml_file_binary > /dev/null
   [ $? -eq 0 ]
 }
 
 # Test traditional division function exists
 @test "traditional division function exists" {
   # Check if traditional division function is available
-  function_exists __divide_xml_file
+  declare -f __divide_xml_file > /dev/null
   [ $? -eq 0 ]
 }
 
