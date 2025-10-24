@@ -18,10 +18,10 @@ setup_file() {
  # Create temporary directory
  mkdir -p "${TMP_DIR}"
 
- # Source the production properties file first
- echo "DEBUG: Loading properties from: ${SCRIPT_BASE_DIRECTORY}/etc/properties.sh" >&2
- source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
- echo "DEBUG: After loading properties, PARALLEL_PROCESS_DELAY = '${PARALLEL_PROCESS_DELAY:-NOT_SET}'" >&2
+ # Source the test properties file first (this has PARALLEL_PROCESS_DELAY defined)
+ echo "DEBUG: Loading test properties from: ${BATS_TEST_DIRNAME}/test_properties.sh" >&2
+ source "${BATS_TEST_DIRNAME}/test_properties.sh"
+ echo "DEBUG: After loading test properties, PARALLEL_PROCESS_DELAY = '${PARALLEL_PROCESS_DELAY:-NOT_SET}'" >&2
 }
 
 teardown() {
