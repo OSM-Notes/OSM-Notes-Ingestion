@@ -2,7 +2,7 @@
 
 # Integration test for complete Planet XML processing using mock data
 # Author: Andres Gomez
-# Version: 2025-10-14
+# Version: 2025-10-24
 
 load ../test_helper
 
@@ -71,10 +71,9 @@ teardown() {
   # Verify AWK file exists
   [ -f "${awk_file}" ]
   
-  # Process XML with AWK
-  run awk -f "${awk_file}" "${MOCK_XML_FILE}"
+  # Process XML with AWK and redirect output to file
+  awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}"
   
-  [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
@@ -90,16 +89,15 @@ teardown() {
 }
 
 @test "AWK processing works with mock Planet XML (comments CSV)" {
-  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/note_comments-Planet-csv.awk"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_comments.csv"
   
   # Verify AWK file exists
   [ -f "${awk_file}" ]
   
-  # Process XML with AWK
-  run awk -f "${awk_file}" "${MOCK_XML_FILE}"
+  # Process XML with AWK and redirect output to file
+  awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}"
   
-  [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
@@ -115,16 +113,15 @@ teardown() {
 }
 
 @test "AWK processing works with mock Planet XML (text comments CSV)" {
-  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/note_comments_text-Planet-csv.awk"
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_text_comments.csv"
   
   # Verify AWK file exists
   [ -f "${awk_file}" ]
   
-  # Process XML with AWK
-  run awk -f "${awk_file}" "${MOCK_XML_FILE}"
+  # Process XML with AWK and redirect output to file
+  awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}"
   
-  [ "$status" -eq 0 ]
   [ -f "${output_file}" ]
   [ -s "${output_file}" ]
   
