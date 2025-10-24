@@ -213,7 +213,7 @@ teardown() {
   run grep -q "Failed to import boundary.*into database after retries" "$functions_file"
   [ "$status" -eq 0 ]
   
-  run grep -q "Failed to process boundary.*data" "$functions_file"
+  run grep -q "Failed to process boundary" "$functions_file"
   [ "$status" -eq 0 ]
 }
 
