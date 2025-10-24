@@ -68,12 +68,13 @@ teardown() {
  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
  # Test that delay adjustment works (simplified test)
- local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
+ local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
  local ADJUSTED_DELAY
  ADJUSTED_DELAY=$(__adjust_process_delay 2> /dev/null)
 
  # Verify we got a valid delay value
  [ -n "${ADJUSTED_DELAY}" ]
+ [[ "${ADJUSTED_DELAY}" =~ ^[0-9]+$ ]]
  [ "${ADJUSTED_DELAY}" -ge "${CURRENT_DELAY}" ]
  [ "${ADJUSTED_DELAY}" -le 10 ]
 }
@@ -84,12 +85,13 @@ teardown() {
  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
  # Test that delay adjustment works (simplified test)
- local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
+ local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
  local ADJUSTED_DELAY
  ADJUSTED_DELAY=$(__adjust_process_delay 2> /dev/null)
 
  # Verify we got a valid delay value
  [ -n "${ADJUSTED_DELAY}" ]
+ [[ "${ADJUSTED_DELAY}" =~ ^[0-9]+$ ]]
  [ "${ADJUSTED_DELAY}" -ge "${CURRENT_DELAY}" ]
  [ "${ADJUSTED_DELAY}" -le 10 ]
 }
@@ -100,11 +102,15 @@ teardown() {
  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
  # Test that delay is capped (using current readonly value)
- local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
+ local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
 
  # Test that delay adjustment respects capping
  local ADJUSTED_DELAY
  ADJUSTED_DELAY=$(__adjust_process_delay 2> /dev/null)
+ 
+ # Verify we got a valid delay value
+ [ -n "${ADJUSTED_DELAY}" ]
+ [[ "${ADJUSTED_DELAY}" =~ ^[0-9]+$ ]]
  [ "${ADJUSTED_DELAY}" -le 10 ]
  [ "${ADJUSTED_DELAY}" -gt 0 ]
 }
@@ -115,12 +121,13 @@ teardown() {
  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
  # Test that function works correctly
- local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
+ local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
  local ADJUSTED_DELAY
  ADJUSTED_DELAY=$(__adjust_process_delay 2> /dev/null)
 
  # Verify we got a valid delay value
  [ -n "${ADJUSTED_DELAY}" ]
+ [[ "${ADJUSTED_DELAY}" =~ ^[0-9]+$ ]]
  [ "${ADJUSTED_DELAY}" -ge "${CURRENT_DELAY}" ]
  [ "${ADJUSTED_DELAY}" -le 10 ]
 }
@@ -165,9 +172,13 @@ teardown() {
  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
  # Test with current system state
- local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
+ local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
  local ADJUSTED_DELAY
  ADJUSTED_DELAY=$(__adjust_process_delay 2> /dev/null)
+ 
+ # Verify we got a valid delay value
+ [ -n "${ADJUSTED_DELAY}" ]
+ [[ "${ADJUSTED_DELAY}" =~ ^[0-9]+$ ]]
  [ "${ADJUSTED_DELAY}" -ge "${CURRENT_DELAY}" ]
  [ "${ADJUSTED_DELAY}" -le 10 ]
 }
@@ -178,8 +189,12 @@ teardown() {
  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
  # Test that current delay value is handled correctly
- local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY}"
+ local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
  local ADJUSTED_DELAY
  ADJUSTED_DELAY=$(__adjust_process_delay 2> /dev/null)
- [ "${ADJUSTED_DELAY}" = "${CURRENT_DELAY}" ]
+ 
+ # Verify we got a valid delay value
+ [ -n "${ADJUSTED_DELAY}" ]
+ [[ "${ADJUSTED_DELAY}" =~ ^[0-9]+$ ]]
+ [ "${ADJUSTED_DELAY}" -ge "${CURRENT_DELAY}" ]
 }

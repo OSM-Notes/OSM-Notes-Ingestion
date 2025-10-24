@@ -71,3 +71,9 @@ fi
 if [[ -z "${MAX_LOAD_AVERAGE:-}" ]]; then
  declare MAX_LOAD_AVERAGE="2.0"
 fi
+
+# Parallel processing delay configuration
+# Base delay in seconds between parallel process launches
+if [[ -z "${PARALLEL_PROCESS_DELAY:-}" ]]; then
+ declare PARALLEL_PROCESS_DELAY="2"
+fi
