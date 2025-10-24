@@ -2,7 +2,7 @@
 
 # Master test runner for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-28
+# Version: 2025-10-24
 
 set -euo pipefail
 
@@ -126,9 +126,6 @@ case "${1:-}" in
  --integration)
   run_db_tests --integration
   ;;
- --etl)
-  run_db_tests --etl
-  ;;
  --all-tests)
   run_db_tests --all
   ;;
@@ -149,9 +146,6 @@ case "${1:-}" in
   ;;
  --integration)
   run_mock_tests --integration
-  ;;
- --etl)
-  run_mock_tests --etl
   ;;
  --all-tests)
   run_mock_tests --all
@@ -174,9 +168,6 @@ case "${1:-}" in
  --integration)
   run_simple_tests --integration
   ;;
- --etl)
-  run_simple_tests --etl
-  ;;
  --all-tests)
   run_simple_tests
   ;;
@@ -194,13 +185,13 @@ case "${1:-}" in
  log_info "Running all test modes..."
  echo
  echo "🔧 Database Tests:"
- run_db_tests --etl || log_warning "Database tests failed"
+ run_db_tests --all || log_warning "Database tests failed"
  echo
  echo "🎭 Mock Tests:"
- run_mock_tests --etl || log_warning "Mock tests failed"
+ run_mock_tests --all || log_warning "Mock tests failed"
  echo
  echo "📋 Simple Tests:"
- run_simple_tests --etl || log_warning "Simple tests failed"
+ run_simple_tests || log_warning "Simple tests failed"
  ;;
 --help | -h)
  show_help

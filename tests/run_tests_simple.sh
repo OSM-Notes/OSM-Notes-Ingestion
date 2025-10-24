@@ -2,7 +2,7 @@
 
 # Simple Test Runner for OSM-Notes-profile (No Docker Required)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-20
+# Version: 2025-10-24
 
 set -uo pipefail
 
@@ -252,7 +252,6 @@ case "${1:-}" in
  echo "  --help, -h           Show this help message"
  echo "  --bats-only          Run only BATS tests"
  echo "  --e2e-only           Run only end-to-end tests"
- echo "  --etl                Run ETL tests"
  echo "  --no-cleanup         Don't cleanup test database after tests"
  echo
  echo "Environment variables:"
@@ -282,13 +281,6 @@ case "${1:-}" in
  setup_test_database
  run_bats_tests
  run_e2e_tests
- print_summary
- ;;
---etl)
- check_prerequisites
- setup_test_database
- run_bats_tests
- cleanup_test_database
  print_summary
  ;;
 "")

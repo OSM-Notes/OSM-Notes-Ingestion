@@ -2,7 +2,7 @@
 
 # Run mock tests that don't require real database
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-28
+# Version: 2025-10-24
 
 set -euo pipefail
 
@@ -79,10 +79,6 @@ case "${1:-}" in
  log_info "Running integration tests with mock environment..."
  run_mock_tests "${PROJECT_ROOT}/tests/integration"
  ;;
---etl)
- log_info "Running ETL tests with mock environment..."
- run_mock_tests "${PROJECT_ROOT}/tests/unit/bash/ETL_enhanced.test.bats ${PROJECT_ROOT}/tests/integration/ETL_enhanced_integration.test.bats"
- ;;
 --all)
  log_info "Running all tests with mock environment..."
  run_mock_tests "${PROJECT_ROOT}/tests/unit/bash ${PROJECT_ROOT}/tests/integration"
@@ -93,7 +89,6 @@ case "${1:-}" in
  echo "Options:"
  echo "  --unit         Run unit tests only (mock mode)"
  echo "  --integration  Run integration tests only (mock mode)"
- echo "  --etl          Run ETL tests only (mock mode)"
  echo "  --all          Run all tests (mock mode)"
  echo "  --help, -h     Show this help"
  exit 0
