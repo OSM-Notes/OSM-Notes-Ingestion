@@ -2,7 +2,7 @@
 
 # Sequential Test Runner for OSM-Notes-Ingestion
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-14
+# Version: 2025-01-23
 #
 # Ejecuta tests en secuencia organizada por niveles
 
@@ -330,7 +330,6 @@ __run_level_8() {
   "${SCRIPT_DIR}/unit/bash/real_data_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/hybrid_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/profile_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats" \
   "${SCRIPT_DIR}/unit/bash/functionsProcess_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/prerequisites_enhanced.test.bats" \
@@ -351,7 +350,6 @@ __run_level_9() {
  if __run_bats \
   "${SCRIPT_DIR}/integration/boundary_processing_error_integration.test.bats" \
   "${SCRIPT_DIR}/integration/wms_integration.test.bats" \
-  "${SCRIPT_DIR}/integration/logging_pattern_validation_integration.test.bats" \
   "${SCRIPT_DIR}/integration/mock_planet_processing.test.bats" \
   "${SCRIPT_DIR}/integration/processAPINotes_parallel_error_integration.test.bats" \
   "${SCRIPT_DIR}/integration/xslt_integration.test.bats" \

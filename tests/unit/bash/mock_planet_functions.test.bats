@@ -196,13 +196,12 @@ teardown() {
 }
 
 @test "Mock XML processing with different AWK parameters" {
-  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
+  # Use existing AWK files for testing
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_notes_with_params.csv"
   
-  # Skip if AWK file doesn't exist
-  if [[ ! -f "${awk_file}" ]]; then
-    skip "AWK file not found: ${awk_file}"
-  fi
+  # Verify AWK file exists
+  [ -f "${awk_file}" ]
   
   # Test processing with timestamp parameter
   local current_timestamp
@@ -327,13 +326,12 @@ EOF
 }
 
 @test "Mock XML performance benchmarking" {
-  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk"
+  # Use existing AWK files for testing
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
   local output_file="${TEST_OUTPUT_DIR}/mock_benchmark.csv"
   
-  # Skip if AWK file doesn't exist
-  if [[ ! -f "${awk_file}" ]]; then
-    skip "AWK file not found: ${awk_file}"
-  fi
+  # Verify AWK file exists
+  [ -f "${awk_file}" ]
   
   # Run multiple iterations for benchmarking
   local iterations=3

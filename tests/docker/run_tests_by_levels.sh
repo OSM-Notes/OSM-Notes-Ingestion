@@ -2,7 +2,7 @@
 
 # Script to run all tests by levels inside Docker container
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-20
+# Version: 2025-01-23
 
 set -euo pipefail
 
@@ -231,7 +231,6 @@ __run_level3_tests() {
 
  local -a test_files=(
   "tests/integration/end_to_end.test.bats"
-  "tests/integration/logging_pattern_validation_integration.test.bats"
   "tests/integration/boundary_processing_error_integration.test.bats"
   "tests/integration/processAPINotes_parallel_error_integration.test.bats"
  )

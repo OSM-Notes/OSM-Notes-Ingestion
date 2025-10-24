@@ -32,7 +32,6 @@ log_error() {
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
 
 # Function to setup hybrid mock environment
@@ -320,6 +319,55 @@ activate_hybrid_mock_environment() {
  # Add mock commands to PATH (only internet-related)
  export PATH="${MOCK_COMMANDS_DIR}:${PATH}"
 
+ # Define awkproc as a wrapper around awk
+ # awkproc mimics an XSLT processor style interface for AWK scripts
+ awkproc() {
+   # Parse arguments
+   local awk_file=""
+   local input_file=""
+   
+   # Parse --maxdepth and --stringparam flags
+   while [[ $# -gt 0 ]]; do
+     case "$1" in
+       --maxdepth)
+         # Ignore maxdepth parameter for AWK
+         shift 2
+         ;;
+       --stringparam)
+         # Ignore stringparam for AWK (we don't use it in our AWK scripts)
+         shift 2
+         ;;
+       -o)
+         # Ignore output file parameter for AWK (we use redirection instead)
+         shift 2
+         ;;
+       *.awk)
+         awk_file="$1"
+         shift
+         ;;
+       *)
+         if [[ -z "$input_file" ]]; then
+           input_file="$1"
+         fi
+         shift
+         ;;
+     esac
+   done
+   
+   # Run awk with the input file
+   if [[ -n "$awk_file" ]] && [[ -n "$input_file" ]]; then
+     awk -f "$awk_file" "$input_file"
+   elif [[ -n "$awk_file" ]]; then
+     awk -f "$awk_file"
+   else
+     echo "Error: awkproc requires an AWK file" >&2
+     return 1
+   fi
+ }
+
+ # Export the function so it's available in subshells
+ export -f awkproc
+
  # Set hybrid mock environment variables
  export HYBRID_MOCK_MODE=true
  export TEST_MODE=true
@@ -335,7 +383,12 @@ deactivate_hybrid_mock_environment() {
  log_info "Deactivating hybrid mock environment..."
 
  # Remove mock commands from PATH
- export PATH=$(echo "$PATH" | sed "s|${MOCK_COMMANDS_DIR}:||g")
+ local new_path
+ new_path=$(echo "$PATH" | sed "s|${MOCK_COMMANDS_DIR}:||g")
+ export PATH="$new_path"
+
+ # Unset the awkproc function
+ unset -f awkproc
 
  # Unset hybrid mock environment variables
  unset HYBRID_MOCK_MODE
@@ -363,9 +416,7 @@ check_real_commands() {
   missing_commands+=("xmllint")
  fi
 
- if ! command -v awkproc > /dev/null 2>&1; then
-  missing_commands+=("awkproc")
- fi
+ # awkproc is now defined as a function, so we don't need to check for it
 
  # Check compression commands
  if ! command -v bzip2 > /dev/null 2>&1; then

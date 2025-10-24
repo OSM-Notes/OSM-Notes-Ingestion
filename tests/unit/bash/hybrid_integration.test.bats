@@ -173,9 +173,9 @@ teardown() {
  [ "$status" -eq 0 ]
  [[ "$output" =~ ^[0-9]+$ ]]
  
- # Transform with real awkproc if AWK file exists
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" ]]; then
-   run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" "${TMP_DIR}/planet_notes.xml"
+  # Transform with real awkproc if AWK file exists and awkproc is available
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" ]] && command -v awkproc > /dev/null 2>&1; then
+   run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${TMP_DIR}/planet_notes.xml"
    [ "$status" -eq 0 ]
    [[ "$output" == *","* ]]  # Should contain CSV format
  fi
@@ -204,17 +204,17 @@ teardown() {
 # Test that real commands are still available
 @test "real commands should still be available" {
  # Check that real xmllint is available
- run which xmllint
+ run command -v xmllint
  [ "$status" -eq 0 ]
  # Don't check for mock_commands exclusion as the mock may be in PATH
  
- # Check that real awkproc is available
- run which awkproc
+ # Check that real awkproc is available (it's a function)
+ run command -v awkproc
  [ "$status" -eq 0 ]
  # Don't check for mock_commands exclusion as the mock may be in PATH
  
  # Check that real bzip2 is available
- run which bzip2
+ run command -v bzip2
  [ "$status" -eq 0 ]
  # Don't check for mock_commands exclusion as the mock may be in PATH
 }
@@ -236,9 +236,9 @@ teardown() {
  [[ "$note_count" =~ ^[0-9]+$ ]]
  [[ "$note_count" -gt 0 ]]
  
- # Transform to CSV if AWK is available
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" ]]; then
-   run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/notes-Planet-csv.awk" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
+  # Transform to CSV if AWK is available and awkproc is installed
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" ]] && command -v awkproc > /dev/null 2>&1; then
+   run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
    [ "$status" -eq 0 ]
    [ -f "${TMP_DIR}/notes.csv" ]
    

@@ -362,21 +362,34 @@ EOF
 @test "binary division parallel processing configuration" {
   local input_file="${TEST_DIR}/medium.xml"
   local output_dir="${TEST_DIR}/parallel_test"
-  # Create output directory
-  mkdir -p "${output_dir}"
   
   # Test with different thread counts
   for threads in 1 2 4; do
+    local current_output_dir="${output_dir}_${threads}"
+    
+    # Create fresh output directory for this test
+    rm -rf "${current_output_dir}"
+    mkdir -p "${current_output_dir}"
+    
     echo "Testing with ${threads} threads"
     
     # Run binary division
-    run __divide_xml_file_binary "${input_file}" "${output_dir}_${threads}" 50 10 "${threads}"
+    run __divide_xml_file_binary "${input_file}" "${current_output_dir}" 50 10 "${threads}"
+    
+    # Debug output
+    echo "Status: $status" >&2
+    echo "Output: $output" >&2
     
     # Check success
     [ "$status" -eq 0 ]
     
     # Check output directory exists
-    assert_dir_exists "${output_dir}_${threads}"
+    assert_dir_exists "${current_output_dir}"
+    
+    # Check parts were created
+    local part_count
+    part_count=$(find "${current_output_dir}" -name "*.xml" | wc -l)
+    [ "${part_count}" -gt 0 ]
   done
 }
 
@@ -385,23 +398,27 @@ EOF
   local small_file="${TEST_DIR}/small.xml"
   local large_file="${TEST_DIR}/large.xml"
   
-  # Get file sizes
+  # Check files exist
+  [ -f "${small_file}" ]
+  [ -f "${large_file}" ]
+  
+  # Get file sizes in bytes
   local small_size
   small_size=$(stat -c%s "${small_file}")
   local large_size
   large_size=$(stat -c%s "${large_file}")
   
-  # Convert to MB
-  local small_size_mb
-  small_size_mb=$((small_size / 1024 / 1024))
-  local large_size_mb
-  large_size_mb=$((large_size / 1024 / 1024))
+  # Convert to KB for better comparison (since small file is only ~10KB)
+  local small_size_kb
+  small_size_kb=$((small_size / 1024))
+  local large_size_kb
+  large_size_kb=$((large_size / 1024))
   
-  echo "Small file: ${small_size_mb} MB"
-  echo "Large file: ${large_size_mb} MB"
+  echo "Small file: ${small_size_kb} KB (${small_size} bytes)"
+  echo "Large file: ${large_size_kb} KB (${large_size} bytes)"
   
   # Both files should exist and have reasonable sizes
-  [ "${small_size_mb}" -gt 0 ]
-  [ "${large_size_mb}" -gt 0 ]
-  [ "${large_size_mb}" -gt "${small_size_mb}" ]
+  [ "${small_size}" -gt 0 ]
+  [ "${large_size}" -gt 0 ]
+  [ "${large_size}" -gt "${small_size}" ]
 }
