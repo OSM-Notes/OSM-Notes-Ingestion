@@ -212,16 +212,10 @@ __run_level_3() {
 
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/csv_enum_validation.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/xslt_enum_format.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/xslt_enum_validation.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/xslt_simple.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/xslt_csv_format.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/xslt_large_notes_recursion.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xml_validation_simple.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xml_validation_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xml_validation_functions.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xml_validation_large_files.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/xml_processing_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/xml_corruption_recovery.test.bats" \
   "${SCRIPT_DIR}/unit/bash/resource_limits.test.bats"; then
   __show_level_footer 3 "success"

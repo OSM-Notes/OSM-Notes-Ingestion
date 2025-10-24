@@ -79,3 +79,5 @@ prod/
 # - tests/output/parallel_parts/
 # - tests/output/workflow/
 # - Any file with .corrupted.* or .recovery suffix
+# Ignore submodule untracked files
+lib/osm-common/
