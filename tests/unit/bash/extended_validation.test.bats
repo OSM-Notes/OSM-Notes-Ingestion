@@ -11,8 +11,8 @@ setup() {
 
  # Load properties and functions
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/etl.properties" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/etc/etl.properties"
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/osm-notes-processing.properties" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/etc/osm-notes-processing.properties"
  fi
  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
