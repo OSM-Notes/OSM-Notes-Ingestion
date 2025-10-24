@@ -72,18 +72,26 @@ EOF
 
 # Source binary functions
 source_bin_functions() {
-  # Source common functions using PROJECT_ROOT from test environment
-  if [[ -z "${PROJECT_ROOT:-}" ]]; then
-    # Fallback: try to determine project root from current working directory
+  # Use SCRIPT_BASE_DIRECTORY from test helper
+  local PROJECT_ROOT="${SCRIPT_BASE_DIRECTORY:-}"
+  
+  # Fallback: try to determine project root from current working directory
+  if [[ -z "${PROJECT_ROOT}" ]]; then
     local current_dir
     current_dir="$(pwd)"
-    if [[ "${current_dir}" == */OSM-Notes-profile ]]; then
-      export PROJECT_ROOT="${current_dir}"
+    if [[ "${current_dir}" == */OSM-Notes-Ingestion ]]; then
+      PROJECT_ROOT="${current_dir}"
+    elif [[ "${current_dir}" == */OSM-Notes-Ingestion/* ]]; then
+      PROJECT_ROOT="${current_dir%/*OSM-Notes-Ingestion}"
+      PROJECT_ROOT="${PROJECT_ROOT}/OSM-Notes-Ingestion"
+    elif [[ "${current_dir}" == */OSM-Notes-profile ]]; then
+      PROJECT_ROOT="${current_dir}"
     elif [[ "${current_dir}" == */OSM-Notes-profile/* ]]; then
-      export PROJECT_ROOT="${current_dir%/*}"
+      PROJECT_ROOT="${current_dir%/*OSM-Notes-profile}"
+      PROJECT_ROOT="${PROJECT_ROOT}/OSM-Notes-profile"
     else
-      echo "ERROR: Cannot determine PROJECT_ROOT" >&2
-      return 1
+      # Try to find from BATS_TEST_DIRNAME
+      PROJECT_ROOT="${BATS_TEST_DIRNAME}/../../../"
     fi
   fi
   
