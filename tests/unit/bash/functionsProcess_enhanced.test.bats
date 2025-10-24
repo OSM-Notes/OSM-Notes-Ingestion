@@ -3,7 +3,7 @@
 # Enhanced unit tests for functionsProcess.sh with improved testability
 # Tests XML counting functions, validation, error handling, and performance
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-14
+# Version: 2025-10-24
 
 load "$(dirname "${BATS_TEST_FILENAME}")/../../test_helper.bash"
 
@@ -70,6 +70,7 @@ create_mock_logging_functions() {
 create_test_xml_files() {
  local test_dir="${TEST_BASE_DIR}/tests/tmp"
  mkdir -p "${test_dir}"
+ chmod 777 "${test_dir}" 2> /dev/null || true
 
  # Create test API XML with multiple notes for comprehensive testing
  cat > "${test_dir}/test_api.xml" << 'EOF'
