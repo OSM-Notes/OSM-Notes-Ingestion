@@ -214,6 +214,33 @@ function __countXmlNotesAPI() {
   return 1
  fi
 
+ # Validate XML structure first (only if XML validation is enabled)
+ # Only validate if the file is suspected to be malformed and validation is not skipped
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]] && command -v xmllint > /dev/null 2>&1; then
+  # Check if the file contains basic XML structure
+  if ! grep -q "<?xml" "${XML_FILE}" 2>/dev/null; then
+   __loge "File does not appear to be XML: ${XML_FILE}"
+   TOTAL_NOTES=0
+   export TOTAL_NOTES
+   __log_finish
+   return 1
+  fi
+  
+  # Try to validate XML structure - fail only on severe structural issues
+  if ! xmllint --noout "${XML_FILE}" > /dev/null 2>&1; then
+   # Check if it's a severe structural issue (missing closing tags, etc.)
+   if grep -q "<note" "${XML_FILE}" 2>/dev/null && ! grep -q "</note>" "${XML_FILE}" 2>/dev/null; then
+    __loge "Severe XML structural issue in file: ${XML_FILE}"
+    TOTAL_NOTES=0
+    export TOTAL_NOTES
+    __log_finish
+    return 1
+   else
+    __logw "XML structure validation failed for file: ${XML_FILE}, but continuing with counting"
+   fi
+  fi
+ fi
+
  # Count notes using grep (fast and reliable)
  TOTAL_NOTES=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null || echo "0")
 

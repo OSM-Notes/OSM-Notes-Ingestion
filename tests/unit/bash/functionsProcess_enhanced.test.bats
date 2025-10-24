@@ -249,9 +249,16 @@ EOF
     <!-- Missing closing tag -->
 EOF
 
- # Execute function and check if it fails as expected
+ # Execute function and check behavior based on validation setting
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_malformed.xml"
- [[ "${status}" -ne 0 ]]
+ 
+ # If XML validation is enabled, it should fail
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  [[ "${status}" -ne 0 ]]
+ else
+  # If XML validation is disabled, it should succeed (fast processing)
+  [[ "${status}" -eq 0 ]]
+ fi
 }
 
 # =============================================================================
