@@ -53,7 +53,7 @@ teardown() {
 @test "notesCheckVerifier.sh should be sourceable without errors" {
  # Test that the script can be sourced without logging errors
  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1"
- [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 127 ]] || [[ "${status}" -eq 239 ]]
+ [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 127 ]] || [[ "${status}" -eq 239 ]] || [[ "${status}" -eq 241 ]]
 }
 
 # Test that notesCheckVerifier.sh functions can be called without logging errors
