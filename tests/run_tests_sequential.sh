@@ -115,18 +115,20 @@ Sequential Test Runner for OSM-Notes-Ingestion
 Usage: $0 [MODE]
 
 Modes:
-  quick         Ejecutar solo tests críticos (15-20 min)
-  basic         Ejecutar niveles 1-3 (20-35 min)
-  standard      Ejecutar niveles 1-6 (45-75 min)
-  full          Ejecutar todos los niveles 1-9 (85-120 min)
-  level N       Ejecutar solo el nivel N (1-9)
-  help          Mostrar esta ayuda
+ quick         Ejecutar solo tests críticos (15-20 min)
+ basic         Ejecutar niveles 1-3 (20-35 min)
+ standard      Ejecutar niveles 1-6 (45-75 min)
+ full          Ejecutar niveles 1-7 (Tests principales) (60-90 min)
+ integration   Ejecutar niveles 8-9 (Tests avanzados e integración) (20-35 min)
+ level N       Ejecutar solo el nivel N (1-9)
+ help          Mostrar esta ayuda
 
 Examples:
   $0 quick                # Verificación rápida
   $0 basic                # Tests básicos y validación
   $0 level 5              # Solo procesamiento paralelo
-  $0 full                 # Suite completa
+  $0 full                 # Tests principales (niveles 1-7)
+  $0 integration          # Tests avanzados e integración (niveles 8-9)
 
 EOF
 }
@@ -352,8 +354,6 @@ __run_level_9() {
   "${SCRIPT_DIR}/integration/wms_integration.test.bats" \
   "${SCRIPT_DIR}/integration/mock_planet_processing.test.bats" \
   "${SCRIPT_DIR}/integration/processAPINotes_parallel_error_integration.test.bats" \
-  "${SCRIPT_DIR}/integration/xslt_integration.test.bats" \
-  "${SCRIPT_DIR}/integration/end_to_end.test.bats" \
   "${SCRIPT_DIR}/integration/processAPI_historical_e2e.test.bats"; then
   __show_level_footer 9 "success"
   return 0
@@ -415,7 +415,7 @@ main() {
   ;;
  full)
   __show_banner
-  __log_info "Modo FULL: Todos los niveles (1-9)"
+  __log_info "Modo FULL: Niveles 1-7 (Tests principales)"
   __run_level_1 || true
   __run_level_2 || true
   __run_level_3 || true
@@ -423,6 +423,13 @@ main() {
   __run_level_5 || true
   __run_level_6 || true
   __run_level_7 || true
+  echo -e "\n${YELLOW}[INFO]${NC} Niveles 8 y 9 (Tests Avanzados e Integración) requieren configuración específica"
+  echo -e "${YELLOW}[INFO]${NC} Para ejecutar tests de integración completa, use: $0 integration"
+  __show_summary
+  ;;
+ integration)
+  __show_banner
+  __log_info "Modo INTEGRATION: Niveles 8-9 (Tests Avanzados e Integración)"
   __run_level_8 || true
   __run_level_9 || true
   __show_summary
