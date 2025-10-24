@@ -2,7 +2,7 @@
 
 # Setup hybrid mock environment for testing (only internet downloads mocked)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-10-24
 
 set -euo pipefail
 
@@ -46,7 +46,11 @@ setup_hybrid_mock_environment() {
  create_mock_aria2c
 
  # Make mock commands executable
- chmod +x "${MOCK_COMMANDS_DIR}"/*
+ for file in "${MOCK_COMMANDS_DIR}"/*; do
+  if [[ -f "${file}" ]]; then
+   chmod +x "${file}" 2> /dev/null || true
+  fi
+ done
 
  log_success "Hybrid mock environment setup completed"
 }
