@@ -3,7 +3,7 @@
 # End-to-end integration tests for processAPI historical data validation
 # These tests simulate real database scenarios
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-22
+# Version: 2025-01-24
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -12,20 +12,20 @@ load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 # =============================================================================
 
 setup() {
-    # Set up test environment
-    export TEST_INTEGRATION_DB="${TEST_DBNAME}_integration"
-    export TMP_DIR="/tmp/test_integration_$$"
-    mkdir -p "${TMP_DIR}"
-    
-    # Skip if no database available
-    if [[ -z "${TEST_DBNAME}" ]]; then
-        skip "No test database available for integration tests"
-    fi
+ # Set up test environment
+ export TEST_INTEGRATION_DB="${TEST_DBNAME}_integration"
+ export TMP_DIR="/tmp/test_integration_$$"
+ mkdir -p "${TMP_DIR}"
+
+ # Skip if no database available
+ if [[ -z "${TEST_DBNAME}" ]]; then
+  skip "No test database available for integration tests"
+ fi
 }
 
 teardown() {
-    # Clean up
-    rm -rf "${TMP_DIR}" 2>/dev/null || true
+ # Clean up
+ rm -rf "${TMP_DIR}" 2> /dev/null || true
 }
 
 # =============================================================================
@@ -33,8 +33,13 @@ teardown() {
 # =============================================================================
 
 @test "integration_historical_validation_with_empty_database" {
-    # Create empty test tables to simulate fresh installation
-    run bash -c "
+ # Skip if database is not accessible
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Database ${TEST_DBNAME} is not accessible"
+ fi
+
+ # Create empty test tables to simulate fresh installation
+ run bash -c "
         # Create minimal tables structure without data
         psql -d '${TEST_DBNAME}' << 'EOSQL'
         DROP TABLE IF EXISTS notes_test, note_comments_test, countries_test, logs_test, tries_test;
@@ -68,18 +73,23 @@ teardown() {
         \$\$;
 EOSQL
     "
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    # Should fail because tables are empty
-    # Note: psql returns 0 even when SQL raises exceptions, so we check the output
-    [[ "$output" =~ "notes table is empty" ]] || [[ "$output" =~ "Historical data validation failed" ]]
+
+ echo "Exit code: $status"
+ echo "Output: $output"
+
+ # Should fail because tables are empty
+ # Note: psql returns 0 even when SQL raises exceptions, so we check the output
+ [[ "$output" =~ "notes table is empty" ]] || [[ "$output" =~ "Historical data validation failed" ]]
 }
 
 @test "integration_historical_validation_with_recent_data_only" {
-    # Create tables with recent data only (insufficient historical data)
-    run bash -c "
+ # Skip if database is not accessible
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Database ${TEST_DBNAME} is not accessible"
+ fi
+
+ # Create tables with recent data only (insufficient historical data)
+ run bash -c "
         psql -d '${TEST_DBNAME}' << 'EOSQL'
         DROP TABLE IF EXISTS notes_test, note_comments_test;
         
@@ -131,18 +141,23 @@ EOSQL
         \$\$;
 EOSQL
     "
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    # Should fail because data is too recent
-    # Note: psql returns 0 even when SQL raises exceptions, so we check the output
-    [[ "$output" =~ "insufficient historical data" ]] || [[ "$output" =~ "need at least 30 days" ]]
+
+ echo "Exit code: $status"
+ echo "Output: $output"
+
+ # Should fail because data is too recent
+ # Note: psql returns 0 even when SQL raises exceptions, so we check the output
+ [[ "$output" =~ "insufficient historical data" ]] || [[ "$output" =~ "need at least 30 days" ]]
 }
 
 @test "integration_historical_validation_with_sufficient_data" {
-    # Create tables with sufficient historical data
-    run bash -c "
+ # Skip if database is not accessible
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Database ${TEST_DBNAME} is not accessible"
+ fi
+
+ # Create tables with sufficient historical data
+ run bash -c "
         psql -d '${TEST_DBNAME}' << 'EOSQL'
         DROP TABLE IF EXISTS notes_test, note_comments_test;
         
@@ -211,13 +226,13 @@ EOSQL
         $$;
 EOSQL
     "
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    # Should succeed with sufficient historical data
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ "Historical data validation passed" ]]
+
+ echo "Exit code: $status"
+ echo "Output: $output"
+
+ # Should succeed with sufficient historical data
+ [ "$status" -eq 0 ]
+ [[ "$output" =~ "Historical data validation passed" ]]
 }
 
 # =============================================================================
@@ -225,8 +240,13 @@ EOSQL
 # =============================================================================
 
 @test "integration_actual_historical_validation_sql_with_empty_tables" {
-    # Create the actual base tables structure as empty
-    run bash -c "
+ # Skip if database is not accessible
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Database ${TEST_DBNAME} is not accessible"
+ fi
+
+ # Create the actual base tables structure as empty
+ run bash -c "
         # First create the base tables as expected by the system
         psql -d '${TEST_DBNAME}' << 'EOSQL'
         DROP TABLE IF EXISTS notes, note_comments, countries, logs, tries;
@@ -264,18 +284,23 @@ EOSQL
         # Now test the actual historical validation SQL
         psql -d '${TEST_DBNAME}' -v ON_ERROR_STOP=1 -f '${TEST_BASE_DIR}/sql/functionsProcess_11_checkHistoricalData.sql'
     "
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    # Should fail because notes and note_comments are empty
-    [ "$status" -ne 0 ]
-    [[ "$output" =~ "notes table is empty" ]] || [[ "$output" =~ "Historical data validation failed" ]]
+
+ echo "Exit code: $status"
+ echo "Output: $output"
+
+ # Should fail because notes and note_comments are empty
+ [ "$status" -ne 0 ]
+ [[ "$output" =~ "notes table is empty" ]] || [[ "$output" =~ "Historical data validation failed" ]]
 }
 
 @test "integration_actual_historical_validation_sql_with_sufficient_data" {
-    # Create base tables with sufficient historical data
-    run bash -c "
+ # Skip if database is not accessible
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Database ${TEST_DBNAME} is not accessible"
+ fi
+
+ # Create base tables with sufficient historical data
+ run bash -c "
         psql -d '${TEST_DBNAME}' << 'EOSQL'
         DROP TABLE IF EXISTS notes, note_comments, countries, logs, tries;
         
@@ -324,11 +349,11 @@ EOSQL
         # Test the actual historical validation SQL
         psql -d '${TEST_DBNAME}' -v ON_ERROR_STOP=1 -f '${TEST_BASE_DIR}/sql/functionsProcess_11_checkHistoricalData.sql'
     "
-    
-    echo "Exit code: $status"
-    echo "Output: $output"
-    
-    # Should succeed with sufficient historical data
-    [ "$status" -eq 0 ]
-    [[ "$output" =~ "Historical data validation passed" ]] || [[ "$output" =~ "days of history respectively" ]]
+
+ echo "Exit code: $status"
+ echo "Output: $output"
+
+ # Should succeed with sufficient historical data
+ [ "$status" -eq 0 ]
+ [[ "$output" =~ "Historical data validation passed" ]] || [[ "$output" =~ "days of history respectively" ]]
 }

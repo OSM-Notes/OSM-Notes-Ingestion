@@ -129,10 +129,10 @@ EOF
 
  echo "Testing boundary ID validation with Overpass API - adding delays to respect rate limiting"
  echo "Testing ${#invalid_ids[@]} invalid IDs and ${#valid_ids[@]} valid IDs"
- 
+
  local tested_count=0
  local failed_count=0
- 
+
  # Test that invalid IDs are detected
  for id in "${invalid_ids[@]}"; do
   # Create a mock query for invalid ID
@@ -158,9 +158,9 @@ EOF
   # Test Overpass API call for invalid ID
   echo "Testing invalid boundary ID: ${id}..."
   run wget -O "$mock_json" --post-file="$mock_query" "https://overpass-api.de/api/interpreter" 2>&1
-  
+
   tested_count=$((tested_count + 1))
-  
+
   # Handle rate limiting (429) or network errors gracefully
   if [ "$status" -ne 0 ]; then
    if echo "$output" | grep -q "429"; then
@@ -207,9 +207,9 @@ EOF
   # Test Overpass API call for valid ID
   echo "Testing valid boundary ID: ${id}..."
   run wget -O "$mock_json" --post-file="$mock_query" "https://overpass-api.de/api/interpreter" 2>&1
-  
+
   tested_count=$((tested_count + 1))
-  
+
   # Handle rate limiting gracefully
   if [ "$status" -ne 0 ]; then
    if echo "$output" | grep -q "429"; then
@@ -229,7 +229,7 @@ EOF
    fi
   fi
  done
- 
+
  # Summary
  echo ""
  echo "===== Test Summary ====="
@@ -237,7 +237,7 @@ EOF
  echo "Failed requests: ${failed_count}"
  echo "Successfully validated boundary ID detection with Overpass API"
  echo "Note: Rate limiting (429) is expected and handled gracefully"
- 
+
  # Test passes as long as we tested at least some IDs
  [ ${tested_count} -gt 0 ]
 }

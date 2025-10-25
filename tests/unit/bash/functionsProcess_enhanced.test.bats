@@ -70,10 +70,14 @@ create_mock_logging_functions() {
 create_test_xml_files() {
  local test_dir="${TEST_BASE_DIR}/tests/tmp"
 
- # Remove existing directory and create fresh one with proper permissions
- rm -rf "${test_dir}"
+ # Create directory if it doesn't exist
  mkdir -p "${test_dir}"
- chmod 755 "${test_dir}" 2> /dev/null || true
+
+ # Try to set permissions, but don't fail if we can't
+ chmod 777 "${test_dir}" 2> /dev/null || true
+
+ # Try to remove old files, but don't fail if we can't
+ rm -f "${test_dir}/test_*.xml" 2> /dev/null || true
 
  # Ensure we can write to the directory
  if [[ ! -w "${test_dir}" ]]; then

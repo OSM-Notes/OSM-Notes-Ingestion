@@ -1,6 +1,6 @@
 # Dockerfile for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-25
+# Version: 2025-01-24
 
 FROM ubuntu:22.04
 
@@ -83,19 +83,20 @@ COPY . /app/
 # Ensure AWK scripts are available
 RUN mkdir -p /app/awk
 
-# Create test directories with proper permissions
+# Set permissions first, then create directories as testuser
+RUN chown -R testuser:testuser /app && \
+    chmod +x /app/tests/run_tests.sh && \
+    chmod +x /app/bin/process/*.sh && \
+    chmod +x /app/bin/functionsProcess.sh
+
+# Create test directories with proper permissions as testuser
 RUN mkdir -p /app/tests/output && \
     mkdir -p /app/tests/tmp && \
     mkdir -p /app/tests/results && \
     chmod 777 /app/tests/output && \
     chmod 777 /app/tests/tmp && \
-    chmod 777 /app/tests/results
-
-# Set permissions
-RUN chown -R testuser:testuser /app && \
-    chmod +x /app/tests/run_tests.sh && \
-    chmod +x /app/bin/process/*.sh && \
-    chmod +x /app/bin/functionsProcess.sh
+    chmod 777 /app/tests/results && \
+    chown -R testuser:testuser /app/tests
 
 # Switch to test user
 USER testuser
