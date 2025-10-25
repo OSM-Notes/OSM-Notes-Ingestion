@@ -106,4 +106,3 @@ function __execute_sql_with_params() {
  # Execute SQL with variables
  eval "${SQL_CMD} -c \"${SQL_TEMPLATE}\""
 }
-

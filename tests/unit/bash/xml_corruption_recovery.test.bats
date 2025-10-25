@@ -22,6 +22,8 @@ teardown() {
  # Clean up test files only (not the directory)
  rm -f "${TEST_OUTPUT_DIR}"/*.xml 2> /dev/null || true
  rm -f "${TEST_OUTPUT_DIR}"/*.bak 2> /dev/null || true
+ # Clean up backup directory
+ rm -rf "${TEST_OUTPUT_DIR}/backup" 2> /dev/null || true
 }
 
 create_test_xml_files() {

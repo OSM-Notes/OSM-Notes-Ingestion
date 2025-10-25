@@ -355,25 +355,33 @@ setup() {
   skip "Skipping on host environment"
  fi
 
+ # Set required environment variables
+ export DBNAME="${DBNAME:-test_db}"
+ export DB_USER="${DB_USER:-test_user}"
+ export SKIP_XML_VALIDATION="true"
+
  # Create mock versions of required tools
  local mock_dir="${TEST_BASE_DIR}/tests/tmp/mock_tools"
  mkdir -p "${mock_dir}"
 
- # Mock psql
+ # Mock psql to handle all cases
  cat > "${mock_dir}/psql" << 'EOF'
 #!/bin/bash
 if [[ "$1" == "--version" ]]; then
     echo "psql (PostgreSQL) 15.1"
-elif [[ "$1" == "-d" ]] && [[ "$2" == "test_db" ]]; then
-    if [[ "$3" == "-c" ]] && [[ "$4" == "SELECT PostGIS_version();" ]]; then
-        echo "3.3.2"
-    elif [[ "$3" == "-c" ]] && [[ "$4" == "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" ]]; then
-        echo "1"
-    else
-        echo "1"
-    fi
+    exit 0
+elif [[ "$1" == "-lqt" ]]; then
+    # Mock database list
+    echo "test_db"
+    exit 0
+elif [[ "$1" == "-U" ]] && [[ "$3" == "-d" ]]; then
+    # Mock user and database connection
+    exit 0
+elif [[ "$1" == "-d" ]]; then
+    # Mock direct database connection
+    exit 0
 else
-    echo "1"
+    exit 0
 fi
 EOF
  chmod +x "${mock_dir}/psql"
@@ -383,22 +391,55 @@ EOF
 #!/bin/bash
 if [[ "$1" == "--version" ]]; then
     echo "GNU Wget 1.21.3"
+    exit 0
 elif [[ "$1" == "--timeout=10" ]]; then
     echo "HTTP/1.1 200 OK"
+    exit 0
 else
     echo "HTTP/1.1 200 OK"
+    exit 0
 fi
 EOF
  chmod +x "${mock_dir}/wget"
 
- # Mock other required commands
- for cmd in xmllint xsltproc curl grep free uptime ulimit prlimit bc timeout xmlstarlet jq ogr2ogr gdalinfo; do
+ # Mock all other required commands
+ for cmd in aria2c osmtogeojson ajv flock mutt bzip2 xmllint ogr2ogr; do
   cat > "${mock_dir}/${cmd}" << 'EOF'
 #!/bin/bash
-echo "mock ${cmd}"
+if [[ "$1" == "--version" ]] || [[ "$1" == "-v" ]] || [[ "$1" == "--help" ]] || [[ "$1" == "help" ]]; then
+    echo "mock ${cmd} version 1.0"
+    exit 0
+else
+    exit 0
+fi
 EOF
   chmod +x "${mock_dir}/${cmd}"
  done
+
+ # Mock other commands
+ for cmd in xsltproc curl grep free uptime ulimit prlimit bc timeout xmlstarlet jq gdalinfo cut tail head; do
+  cat > "${mock_dir}/${cmd}" << 'EOF'
+#!/bin/bash
+exit 0
+EOF
+  chmod +x "${mock_dir}/${cmd}"
+ done
+
+ # Create mock required files
+ mkdir -p "${mock_dir}/data" "${mock_dir}/sql" "${mock_dir}/xsd" "${mock_dir}/json"
+ touch "${mock_dir}/data/noteLocation.csv.zip"
+ touch "${mock_dir}/sql/test.sql"
+ touch "${mock_dir}/xsd/test.xsd"
+ touch "${mock_dir}/json/test.json"
+ touch "${mock_dir}/json/test.geojson"
+
+ # Set variables to point to mock files
+ export CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${mock_dir}/data/noteLocation.csv.zip"
+ export POSTGRES_32_UPLOAD_NOTE_LOCATION="${mock_dir}/sql/test.sql"
+ export XMLSCHEMA_PLANET_NOTES="${mock_dir}/xsd/test.xsd"
+ export JSON_SCHEMA_OVERPASS="${mock_dir}/json/test.json"
+ export JSON_SCHEMA_GEOJSON="${mock_dir}/json/test.geojson"
+ export GEOJSON_TEST="${mock_dir}/json/test.geojson"
 
  # Temporarily replace PATH with mock tools
  local original_path="${PATH}"
