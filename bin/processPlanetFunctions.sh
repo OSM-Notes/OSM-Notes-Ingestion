@@ -5,9 +5,10 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-19
+# Updated: 2025-10-25
 
 # Define version variable
-VERSION="2025-10-19"
+VERSION="2025-10-25"
 
 # Show help function
 function __show_help() {
@@ -301,14 +302,20 @@ function __processBoundary() {
  local OGR_OUTPUT
  OGR_OUTPUT=$(mktemp)
 
- # Import GeoJSON to PostgreSQL
- # Strategy: Use SQL SELECT to pick only needed columns, avoiding duplicates
- # Import to temporary table first, then map to target schema
- local TEMP_TABLE="${TABLE_NAME}_import"
+# Import GeoJSON to PostgreSQL
+# Strategy: Use SQL SELECT to pick only needed columns, avoiding duplicates
+# Import to temporary table first, then map to target schema
+local TEMP_TABLE="${TABLE_NAME}_import"
 
- # Note: Using -sql to SELECT only the columns we need
- # This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
- __logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
+# Sanitize table names to prevent SQL injection
+local SANITIZED_TABLE_NAME
+SANITIZED_TABLE_NAME=$(__sanitize_sql_identifier "${TABLE_NAME}")
+local SANITIZED_TEMP_TABLE
+SANITIZED_TEMP_TABLE=$(__sanitize_sql_identifier "${TEMP_TABLE}")
+
+# Note: Using -sql to SELECT only the columns we need
+# This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
+__logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${BOUNDARY_FILE}" \
   -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
   -lco GEOMETRY_NAME=geom \
@@ -322,18 +329,18 @@ function __processBoundary() {
   # The target table has: country_id (integer), country_name, country_name_es, country_name_en, geom
   if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_OUTPUT}" 2>&1; then
    -- Insert with proper column mapping and type conversion
-   INSERT INTO ${TABLE_NAME} (country_id, country_name, country_name_es, country_name_en, geom)
+   INSERT INTO ${SANITIZED_TABLE_NAME} (country_id, country_name, country_name_es, country_name_en, geom)
    SELECT 
      CAST(SUBSTRING(id FROM 'relation/([0-9]+)') AS INTEGER) AS country_id,
      COALESCE(name, 'Unknown') AS country_name,
      name_es AS country_name_es,
      name_en AS country_name_en,
      geom
-   FROM ${TEMP_TABLE}
+   FROM ${SANITIZED_TEMP_TABLE}
    WHERE id LIKE 'relation/%';
    
    -- Drop temporary table
-   DROP TABLE ${TEMP_TABLE};
+   DROP TABLE ${SANITIZED_TEMP_TABLE};
 EOF
    __logi "Successfully imported boundary: ${TABLE_NAME}"
    rm -f "${OGR_OUTPUT}"

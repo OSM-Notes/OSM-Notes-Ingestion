@@ -6,9 +6,10 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-24
+# Updated: 2025-10-25
 
 # Define version variable
-VERSION="2025-10-24"
+VERSION="2025-10-25"
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -1518,21 +1519,29 @@ function __processBoundary {
  fi
  __logd "GeoJSON validation passed for boundary ${ID}"
 
- # Extract names with error handling
- __logd "Extracting names for boundary ${ID}..."
- set +o pipefail
- local NAME
- NAME=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
-  | awk -F\" '{print $4}' | sed "s/'/''/")
- local NAME_ES
- NAME_ES=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
-  | awk -F\" '{print $4}' | sed "s/'/''/")
- local NAME_EN
- NAME_EN=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
-  | awk -F\" '{print $4}' | sed "s/'/''/")
- set -o pipefail
- set -e
- NAME_EN="${NAME_EN:-No English name}"
+# Extract names with error handling and sanitization
+__logd "Extracting names for boundary ${ID}..."
+set +o pipefail
+local NAME_RAW
+NAME_RAW=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
+ | awk -F\" '{print $4}')
+local NAME_ES_RAW
+NAME_ES_RAW=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
+ | awk -F\" '{print $4}')
+local NAME_EN_RAW
+NAME_EN_RAW=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
+ | awk -F\" '{print $4}')
+set -o pipefail
+set -e
+
+# Sanitize all names using SQL sanitization function
+local NAME
+NAME=$(__sanitize_sql_string "${NAME_RAW}")
+local NAME_ES
+NAME_ES=$(__sanitize_sql_string "${NAME_ES_RAW}")
+local NAME_EN
+NAME_EN=$(__sanitize_sql_string "${NAME_EN_RAW}")
+NAME_EN="${NAME_EN:-No English name}"
  __logi "Name: ${NAME_EN:-}."
  __logd "Extracted names for boundary ${ID}:"
  __logd "  Name: ${NAME:-N/A}"
@@ -1659,17 +1668,21 @@ function __processBoundary {
 
  __logi "✓ Geometry validation passed for boundary ${ID}"
 
- # Now perform the actual insert with validated geometry
- local PROCESS_OPERATION
- if [[ "${ID}" -eq 16239 ]]; then
-  # Austria - use ST_Buffer to fix topology issues
-  __logd "Inserting boundary ${ID} with ST_Buffer processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
- else
-  # Standard processing
-  __logd "Inserting boundary ${ID} with standard processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
- fi
+# Now perform the actual insert with validated geometry
+# Sanitize ID to ensure it's a valid integer
+local SANITIZED_ID
+SANITIZED_ID=$(__sanitize_sql_integer "${ID}")
+
+local PROCESS_OPERATION
+if [[ "${ID}" -eq 16239 ]]; then
+ # Austria - use ST_Buffer to fix topology issues
+ __logd "Inserting boundary ${ID} with ST_Buffer processing"
+ PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
+else
+ # Standard processing
+ __logd "Inserting boundary ${ID} with standard processing"
+ PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
+fi
 
  if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
   __loge "Failed to insert boundary ${ID} into countries table"

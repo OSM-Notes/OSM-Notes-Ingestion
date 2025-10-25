@@ -270,6 +270,76 @@ When adding new validation functions:
 
 ---
 
+## SQL Sanitization (Security)
+
+In addition to input validation, the project implements SQL sanitization functions to prevent SQL injection attacks. These functions are located in `lib/osm-common/validationFunctions.sh`.
+
+### SQL Sanitization Functions
+
+#### `__sanitize_sql_string(input)`
+- **Purpose**: Escapes SQL string literals to prevent injection
+- **Method**: Doubles single quotes (PostgreSQL standard: `'` → `''`)
+- **Usage**:
+  ```bash
+  local NAME_RAW=$(extract_from_file)
+  local NAME=$(__sanitize_sql_string "${NAME_RAW}")
+  psql -c "INSERT INTO table VALUES ('${NAME}')"
+  ```
+
+#### `__sanitize_sql_identifier(input)`
+- **Purpose**: Sanitizes table/column names
+- **Method**: Wraps identifier in double quotes if not already quoted
+- **Usage**:
+  ```bash
+  local TABLE_NAME="users"
+  local SAFE_TABLE=$(__sanitize_sql_identifier "${TABLE_NAME}")
+  psql -c "SELECT * FROM ${SAFE_TABLE}"
+  ```
+
+#### `__sanitize_sql_integer(input)`
+- **Purpose**: Validates and sanitizes integer values
+- **Method**: Ensures value is a valid integer
+- **Usage**:
+  ```bash
+  local ID_RAW="${1}"
+  local SAFE_ID=$(__sanitize_sql_integer "${ID_RAW}")
+  psql -c "SELECT * FROM table WHERE id=${SAFE_ID}"
+  ```
+
+### Why SQL Sanitization Matters
+
+SQL injection is a critical security vulnerability that occurs when user input is directly interpolated into SQL queries without proper sanitization. The sanitization functions ensure:
+
+1. **String Values**: Single quotes are escaped to prevent breaking out of string literals
+2. **Identifiers**: Table/column names are properly quoted to prevent injection
+3. **Integers**: Values are validated to ensure they're numeric
+
+### Implementation Example
+
+**Before (Vulnerable)**:
+```bash
+NAME=$(grep "name" file | sed "s/'/''/")
+psql -c "INSERT INTO table VALUES ('${NAME}')"
+```
+
+**After (Secure)**:
+```bash
+NAME_RAW=$(grep "name" file)
+NAME=$(__sanitize_sql_string "${NAME_RAW}")
+SANITIZED_ID=$(__sanitize_sql_integer "${ID}")
+psql -c "INSERT INTO table VALUES ('${NAME}') WHERE id=${SANITIZED_ID}"
+```
+
+### Security Notes
+
+- Always use sanitization functions when constructing dynamic SQL
+- Never trust user input or external data sources
+- Validate data types before using in SQL queries
+- Prefer parameterized queries (`psql -v`) when possible
+
+---
+
 **Author**: Andres Gomez (AngocA)  
 **Version**: 2025-07-27  
+**Updated**: 2025-10-25 (Added SQL sanitization section)  
 **Status**: Implemented and tested
