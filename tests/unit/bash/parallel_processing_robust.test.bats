@@ -24,7 +24,11 @@ setup() {
 
 teardown() {
  # Clean up temporary files
- rm -rf "${TMP_DIR}"
+ if [[ -d "${TMP_DIR}" ]]; then
+  # Fix permissions before removing
+  chmod -R u+w "${TMP_DIR}" 2>/dev/null || true
+  rm -rf "${TMP_DIR}" 2>/dev/null || true
+ fi
 }
 
 @test "Check system resources function works correctly" {
