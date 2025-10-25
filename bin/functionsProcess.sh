@@ -2437,16 +2437,16 @@ function __retry_network_operation() {
  __log_start
  local URL="$1"
  local OUTPUT_FILE="$2"
- local MAX_RETRIES="${3:-5}"
+ local LOCAL_MAX_RETRIES="${3:-5}"
  local BASE_DELAY="${4:-2}"
  local TIMEOUT="${5:-30}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
  __logd "Executing network operation with retry logic: ${URL}"
- __logd "Output file: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Base delay: ${BASE_DELAY}s, Timeout: ${TIMEOUT}s"
+ __logd "Output file: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Base delay: ${BASE_DELAY}s, Timeout: ${TIMEOUT}s"
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   # Use wget with specific error handling and timeout
   if wget --timeout="${TIMEOUT}" --tries=1 --user-agent="OSM-Notes-Ingestion/1.0" \
    -O "${OUTPUT_FILE}" "${URL}" 2> /dev/null; then
@@ -2464,7 +2464,7 @@ function __retry_network_operation() {
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
 
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
    __logw "Network operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
    sleep "${EXPONENTIAL_DELAY}"
    # Exponential backoff: double the delay for next attempt
@@ -2472,7 +2472,7 @@ function __retry_network_operation() {
   fi
  done
 
- __loge "Network operation failed after ${MAX_RETRIES} attempts"
+ __loge "Network operation failed after ${LOCAL_MAX_RETRIES} attempts"
  __log_finish
  return 1
 }
@@ -2484,7 +2484,7 @@ function __retry_overpass_api() {
  __log_start
  local QUERY="$1"
  local OUTPUT_FILE="$2"
- local MAX_RETRIES="${3:-3}"
+ local LOCAL_MAX_RETRIES="${3:-3}"
  local BASE_DELAY="${4:-5}"
  local TIMEOUT="${5:-300}"
  local RETRY_COUNT=0
@@ -2492,9 +2492,9 @@ function __retry_overpass_api() {
 
  __logd "Executing Overpass API call with retry logic"
  __logd "Query: ${QUERY}"
- __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Timeout: ${TIMEOUT}s"
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   if wget -q -O "${OUTPUT_FILE}" --timeout="${TIMEOUT}" \
    "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
@@ -2509,14 +2509,14 @@ function __retry_overpass_api() {
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
    __logw "Overpass API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
    sleep "${EXPONENTIAL_DELAY}"
    EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
   fi
  done
 
- __loge "Overpass API call failed after ${MAX_RETRIES} attempts"
+ __loge "Overpass API call failed after ${LOCAL_MAX_RETRIES} attempts"
  __log_finish
  return 1
 }
@@ -2528,16 +2528,16 @@ function __retry_osm_api() {
  __log_start
  local URL="$1"
  local OUTPUT_FILE="$2"
- local MAX_RETRIES="${3:-5}"
+ local LOCAL_MAX_RETRIES="${3:-5}"
  local BASE_DELAY="${4:-2}"
  local TIMEOUT="${5:-30}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
  __logd "Executing OSM API call with retry logic: ${URL}"
- __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Timeout: ${TIMEOUT}s"
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
    -o "${OUTPUT_FILE}" "${URL}"; then
    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
@@ -2552,14 +2552,14 @@ function __retry_osm_api() {
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
    __logw "OSM API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
    sleep "${EXPONENTIAL_DELAY}"
    EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
   fi
  done
 
- __loge "OSM API call failed after ${MAX_RETRIES} attempts"
+ __loge "OSM API call failed after ${LOCAL_MAX_RETRIES} attempts"
  __log_finish
  return 1
 }
@@ -2573,16 +2573,16 @@ function __retry_geoserver_api() {
  local METHOD="${2:-GET}"
  local DATA="${3:-}"
  local OUTPUT_FILE="${4:-/dev/null}"
- local MAX_RETRIES="${5:-3}"
+ local LOCAL_MAX_RETRIES="${5:-3}"
  local BASE_DELAY="${6:-2}"
  local TIMEOUT="${7:-30}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
  __logd "Executing GeoServer API call with retry logic: ${METHOD} ${URL}"
- __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Timeout: ${TIMEOUT}s"
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   local CURL_CMD="curl -s --connect-timeout ${TIMEOUT} --max-time ${TIMEOUT}"
   CURL_CMD="${CURL_CMD} -u \"${GEOSERVER_USER}:${GEOSERVER_PASSWORD}\""
 
@@ -2604,14 +2604,14 @@ function __retry_geoserver_api() {
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
    __logw "GeoServer API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
    sleep "${EXPONENTIAL_DELAY}"
    EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
   fi
  done
 
- __loge "GeoServer API call failed after ${MAX_RETRIES} attempts"
+ __loge "GeoServer API call failed after ${LOCAL_MAX_RETRIES} attempts"
  __log_finish
  return 1
 }
@@ -2623,16 +2623,16 @@ function __retry_database_operation() {
  __log_start
  local QUERY="$1"
  local OUTPUT_FILE="${2:-/dev/null}"
- local MAX_RETRIES="${3:-3}"
+ local LOCAL_MAX_RETRIES="${3:-3}"
  local BASE_DELAY="${4:-2}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY}"
 
  __logd "Executing database operation with retry logic"
  __logd "Query: ${QUERY}"
- __logd "Output: ${OUTPUT_FILE}, Max retries: ${MAX_RETRIES}"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}"
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2> /dev/null; then
    __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
    __log_finish
@@ -2642,14 +2642,14 @@ function __retry_database_operation() {
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
    __logw "Database operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
    sleep "${EXPONENTIAL_DELAY}"
    EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
   fi
  done
 
- __loge "Database operation failed after ${MAX_RETRIES} attempts"
+ __loge "Database operation failed after ${LOCAL_MAX_RETRIES} attempts"
  __log_finish
  return 1
 }
