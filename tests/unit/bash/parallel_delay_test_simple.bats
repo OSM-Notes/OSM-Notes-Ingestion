@@ -2,7 +2,7 @@
 # Simplified test file for parallel processing delay functionality
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-17
+# Version: 2025-10-24
 # Description: Basic tests for delay constants and simple functionality
 
 # Load test helper
@@ -17,6 +17,7 @@ setup_file() {
 
  # Create temporary directory
  mkdir -p "${TMP_DIR}"
+ chmod 777 "${TMP_DIR}" 2> /dev/null || true
 
  # Source the test properties file first (this has PARALLEL_PROCESS_DELAY defined)
  echo "DEBUG: Loading test properties from: ${BATS_TEST_DIRNAME}/test_properties.sh" >&2

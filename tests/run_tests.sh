@@ -2,7 +2,7 @@
 
 # Master Test Runner for OSM-Notes-profile (Consolidated)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-08
+# Version: 2025-10-25
 
 set -euo pipefail
 
@@ -85,6 +85,10 @@ check_prerequisites() {
   log_error "  sudo apt-get install bats"
   exit 1
  fi
+
+ # Fix permissions for test directories (if running in Docker)
+ mkdir -p "${SCRIPT_DIR}/tmp" "${SCRIPT_DIR}/unit/bash/tmp" "${SCRIPT_DIR}/output" "${SCRIPT_DIR}/results" 2> /dev/null || true
+ chmod 777 "${SCRIPT_DIR}/tmp" "${SCRIPT_DIR}/unit/bash/tmp" "${SCRIPT_DIR}/output" "${SCRIPT_DIR}/results" 2> /dev/null || true
 
  log_success "Prerequisites check completed"
 }

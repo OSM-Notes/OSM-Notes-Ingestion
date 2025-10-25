@@ -1,6 +1,6 @@
 # Dockerfile for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
+# Version: 2025-10-25
 
 FROM ubuntu:22.04
 
@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y \
     libelf-dev \
     libdw-dev \
     gawk \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install BATS-core (modern version with bats_require_minimum_version support)
