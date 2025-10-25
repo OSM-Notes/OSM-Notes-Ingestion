@@ -36,13 +36,13 @@ function __sanitize_sql_string() {
 # Security: Wraps identifier in double quotes if not already wrapped
 function __sanitize_sql_identifier() {
  local -r INPUT="${1:-}"
- 
+
  # Check if input is empty
  if [[ -z "${INPUT}" ]]; then
   __loge "ERROR: Empty identifier provided to __sanitize_sql_identifier"
   return 1
  fi
- 
+
  # Check if already quoted
  if [[ "${INPUT}" =~ ^\".*\"$ ]]; then
   echo "${INPUT}"
@@ -58,19 +58,19 @@ function __sanitize_sql_identifier() {
 # Security: Ensures value is a valid integer, prevents code injection
 function __sanitize_sql_integer() {
  local -r INPUT="${1:-}"
- 
+
  # Check if input is empty
  if [[ -z "${INPUT}" ]]; then
   __loge "ERROR: Empty integer provided to __sanitize_sql_integer"
   return 1
  fi
- 
+
  # Validate that input is a valid integer
  if [[ ! "${INPUT}" =~ ^-?[0-9]+$ ]]; then
   __loge "ERROR: Invalid integer format: ${INPUT}"
   return 1
  fi
- 
+
  echo "${INPUT}"
 }
 
@@ -87,22 +87,22 @@ function __execute_sql_with_params() {
  local -r DBNAME="${1}"
  local -r SQL_TEMPLATE="${2}"
  shift 2
- 
+
  local SQL_CMD="psql -d ${DBNAME} -v ON_ERROR_STOP=1"
- 
+
  # Add variables
  while [[ $# -ge 2 ]]; do
   local VAR_NAME="${1}"
   local VAR_VALUE="${2}"
   shift 2
-  
+
   # Sanitize variable name (remove any quotes or special chars)
   VAR_NAME="${VAR_NAME//[^a-zA-Z0-9_]/}"
-  
+
   # Add variable to psql command
   SQL_CMD="${SQL_CMD} -v ${VAR_NAME}=\"${VAR_VALUE}\""
  done
- 
+
  # Execute SQL with variables
  eval "${SQL_CMD} -c \"${SQL_TEMPLATE}\""
 }
