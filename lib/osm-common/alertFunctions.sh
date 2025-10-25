@@ -35,7 +35,7 @@ function __common_create_failed_marker() {
  local ERROR_CODE="${2}"
  local ERROR_MESSAGE="${3}"
  local REQUIRED_ACTION="${4}"
- local FAILED_EXECUTION_FILE="${5}"
+ local FAILED_FILE="${5}"
  local TIMESTAMP
  TIMESTAMP=$(date)
  local HOSTNAME_VAR
@@ -57,14 +57,14 @@ function __common_create_failed_marker() {
    echo "Server: ${HOSTNAME_VAR}"
    echo ""
    echo "Required action: ${REQUIRED_ACTION}"
-  } > "${FAILED_EXECUTION_FILE}"
-  __loge "Failed execution file created: ${FAILED_EXECUTION_FILE}"
+  } > "${FAILED_FILE}"
+  __loge "Failed execution file created: ${FAILED_FILE}"
   __loge "Remove this file after fixing the issue to allow new executions"
 
   # Send immediate email alert if enabled
   if [[ "${SEND_ALERT_EMAIL:-true}" == "true" ]]; then
    __common_send_failure_email "${SCRIPT_NAME}" "${ERROR_CODE}" \
-    "${ERROR_MESSAGE}" "${REQUIRED_ACTION}" "${FAILED_EXECUTION_FILE}" \
+    "${ERROR_MESSAGE}" "${REQUIRED_ACTION}" "${FAILED_FILE}" \
     "${TIMESTAMP}" "${HOSTNAME_VAR}"
   fi
 
@@ -90,7 +90,7 @@ function __common_send_failure_email() {
  local ERROR_CODE="${2}"
  local ERROR_MESSAGE="${3}"
  local REQUIRED_ACTION="${4}"
- local FAILED_EXECUTION_FILE="${5}"
+ local FAILED_FILE="${5}"
  local TIMESTAMP="${6}"
  local HOSTNAME_VAR="${7}"
  local EMAIL_TO="${ADMIN_EMAIL:-root@localhost}"
@@ -110,7 +110,7 @@ ALERT: OSM Notes Processing Failed
 Script: ${SCRIPT_NAME}.sh
 Time: ${TIMESTAMP}
 Server: ${HOSTNAME_VAR}
-Failed marker file: ${FAILED_EXECUTION_FILE}
+Failed marker file: ${FAILED_FILE}
 
 Error Details:
 --------------
@@ -132,7 +132,7 @@ Recovery Steps:
 1. Read the error details above
 2. Follow the required action instructions
 3. After fixing, delete the marker file:
-   rm ${FAILED_EXECUTION_FILE}
+   rm ${FAILED_FILE}
 4. Run the script again to verify the fix
 
 Logs:
