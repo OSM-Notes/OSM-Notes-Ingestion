@@ -1308,13 +1308,21 @@ function __processGeographicData {
   __getLocationNotes # sync
  else
   __logw "No geographic data found (countries: ${COUNTRIES_COUNT})."
-  __loge "ERROR: Geographic data required but not available."
-  __loge "Please run updateCountries.sh --base first to load initial geographic data."
-  __loge "This script only processes notes and requires geographic data to be pre-loaded."
-  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
-   "Geographic data required but not available (countries: ${COUNTRIES_COUNT})" \
-   "Run updateCountries.sh --base first to load initial geographic data"
-  exit "${ERROR_DATA_VALIDATION}"
+  
+  # If running in base mode and countries table exists but is empty, try to load countries
+  if [[ "${PROCESS_TYPE}" == "--base" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
+   __logi "Attempting to load countries automatically in base mode..."
+   if "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
+    __logi "Countries loaded successfully. Processing location notes..."
+    __getLocationNotes # sync
+   else
+    __logw "Failed to load countries automatically. Continuing without country assignment."
+    __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base && ./bin/process/assignCountriesToNotes.sh"
+   fi
+  else
+   __logw "Skipping location assignment - notes will be processed without country assignment."
+   __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base && ./bin/process/assignCountriesToNotes.sh"
+  fi
  fi
 
  __log_finish

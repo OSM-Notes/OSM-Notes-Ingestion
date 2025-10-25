@@ -115,6 +115,10 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
+# Load process functions (includes retry functions and other variables)
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+
 # Shows the help information.
 function __show_help {
  echo "${BASENAME} version ${VERSION}"
