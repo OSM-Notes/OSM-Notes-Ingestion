@@ -2620,38 +2620,51 @@ function __retry_geoserver_api() {
 # Parameters: query output_file max_retries base_delay
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_database_operation() {
- __log_start
- local QUERY="$1"
- local OUTPUT_FILE="${2:-/dev/null}"
- local LOCAL_MAX_RETRIES="${3:-3}"
- local BASE_DELAY="${4:-2}"
- local RETRY_COUNT=0
- local EXPONENTIAL_DELAY="${BASE_DELAY}"
+__log_start
+local QUERY="$1"
+local OUTPUT_FILE="${2:-/dev/null}"
+local LOCAL_MAX_RETRIES="${3:-3}"
+local BASE_DELAY="${4:-2}"
+local RETRY_COUNT=0
+local EXPONENTIAL_DELAY="${BASE_DELAY}"
+local ERROR_FILE
+ERROR_FILE=$(mktemp)
 
- __logd "Executing database operation with retry logic"
- __logd "Query: ${QUERY}"
- __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}"
+__logd "Executing database operation with retry logic"
+__logd "Query: ${QUERY}"
+__logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}"
 
- while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2> /dev/null; then
-   __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
-   __log_finish
-   return 0
-  else
-   __logw "Database operation failed on attempt $((RETRY_COUNT + 1))"
+while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
+ if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2> "${ERROR_FILE}"; then
+  __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
+  rm -f "${ERROR_FILE}"
+  __log_finish
+  return 0
+ else
+  __logw "Database operation failed on attempt $((RETRY_COUNT + 1))"
+  # Log the actual error from PostgreSQL
+  if [[ -s "${ERROR_FILE}" ]]; then
+   __loge "PostgreSQL error: $(cat "${ERROR_FILE}")"
   fi
+ fi
 
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
-   __logw "Database operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-   sleep "${EXPONENTIAL_DELAY}"
-   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-  fi
- done
+ RETRY_COUNT=$((RETRY_COUNT + 1))
+ if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
+  __logw "Database operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+  sleep "${EXPONENTIAL_DELAY}"
+  EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+ fi
+done
 
- __loge "Database operation failed after ${LOCAL_MAX_RETRIES} attempts"
- __log_finish
- return 1
+# Log final error before exiting
+if [[ -s "${ERROR_FILE}" ]]; then
+ __loge "Final PostgreSQL error: $(cat "${ERROR_FILE}")"
+fi
+rm -f "${ERROR_FILE}"
+
+__loge "Database operation failed after ${LOCAL_MAX_RETRIES} attempts"
+__log_finish
+return 1
 }
 
 # Function to log data gaps to file and database

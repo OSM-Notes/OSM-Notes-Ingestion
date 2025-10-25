@@ -255,34 +255,59 @@ function __checkPrereqs {
  # Checks prereqs.
  __checkPrereqsCommands
 
- # Function to detect and recover from data gaps
- __recover_from_gaps() {
-  local -r FUNCTION_NAME="__recover_from_gaps"
-  __logd "Starting gap recovery process"
+# Function to detect and recover from data gaps
+__recover_from_gaps() {
+ local -r FUNCTION_NAME="__recover_from_gaps"
+ __logd "Starting gap recovery process"
 
-  # Check for notes without comments in recent data
-  local GAP_QUERY="
-    SELECT COUNT(DISTINCT n.note_id) as gap_count
-    FROM notes n
-    LEFT JOIN note_comments nc ON nc.note_id = n.note_id
-    WHERE n.created_at > (
-      SELECT timestamp FROM max_note_timestamp
-    ) - INTERVAL '7 days'
-    AND nc.note_id IS NULL
-  "
+ # Check if max_note_timestamp table exists
+ local CHECK_TABLE_QUERY="
+   SELECT COUNT(*) FROM information_schema.tables
+   WHERE table_schema = 'public' AND table_name = 'max_note_timestamp'
+ "
 
-  local GAP_COUNT
-  local TEMP_GAP_FILE
-  TEMP_GAP_FILE=$(mktemp)
+ local TEMP_CHECK_FILE
+ TEMP_CHECK_FILE=$(mktemp)
 
-  if ! __retry_database_operation "${GAP_QUERY}" "${TEMP_GAP_FILE}" 3 2; then
-   __loge "Failed to execute gap query after retries"
-   rm -f "${TEMP_GAP_FILE}"
-   return 1
-  fi
+ if ! __retry_database_operation "${CHECK_TABLE_QUERY}" "${TEMP_CHECK_FILE}" 3 2; then
+  __logw "Failed to check if max_note_timestamp table exists"
+  rm -f "${TEMP_CHECK_FILE}"
+  __logd "Skipping gap recovery check - table may not exist yet"
+  return 0
+ fi
 
-  GAP_COUNT=$(cat "${TEMP_GAP_FILE}")
+ local TABLE_EXISTS
+ TABLE_EXISTS=$(cat "${TEMP_CHECK_FILE}")
+ rm -f "${TEMP_CHECK_FILE}"
+
+ if [[ "${TABLE_EXISTS}" -eq 0 ]]; then
+  __logd "max_note_timestamp table does not exist, skipping gap recovery"
+  return 0
+ fi
+
+ # Check for notes without comments in recent data
+ local GAP_QUERY="
+   SELECT COUNT(DISTINCT n.note_id) as gap_count
+   FROM notes n
+   LEFT JOIN note_comments nc ON nc.note_id = n.note_id
+   WHERE n.created_at > (
+     SELECT timestamp FROM max_note_timestamp
+   ) - INTERVAL '7 days'
+   AND nc.note_id IS NULL
+ "
+
+ local GAP_COUNT
+ local TEMP_GAP_FILE
+ TEMP_GAP_FILE=$(mktemp)
+
+ if ! __retry_database_operation "${GAP_QUERY}" "${TEMP_GAP_FILE}" 3 2; then
+  __loge "Failed to execute gap query after retries"
   rm -f "${TEMP_GAP_FILE}"
+  return 1
+ fi
+
+ GAP_COUNT=$(cat "${TEMP_GAP_FILE}")
+ rm -f "${TEMP_GAP_FILE}"
 
   if [[ "${GAP_COUNT}" -gt 0 ]]; then
    __logw "Detected ${GAP_COUNT} notes without comments in last 7 days"
