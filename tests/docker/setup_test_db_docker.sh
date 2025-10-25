@@ -2,7 +2,7 @@
 #
 # Test database setup script for Docker environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-04
+# Version: 2025-10-25
 
 set -euo pipefail
 
@@ -50,6 +50,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 log_info "Setting up test database environment for Docker..."
+
+# Create test directories with proper permissions
+log_info "Creating test directories..."
+mkdir -p /app/tests/tmp /app/tests/unit/bash/tmp /app/tests/output /app/tests/results 2> /dev/null || true
+mkdir -p /app/tests/output/mock_planet_unit 2> /dev/null || true
+chmod -R 777 /app/tests/tmp /app/tests/unit/bash/tmp /app/tests/output /app/tests/results 2> /dev/null || true
+log_success "Test directories created"
 
 # Test connection
 log_info "Testing database connection..."

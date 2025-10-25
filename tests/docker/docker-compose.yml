@@ -1,6 +1,6 @@
 # Docker Compose for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
+# Version: 2025-10-25
 
 services:
   # PostgreSQL Database

@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
-VERSION="2025-10-18"
+# Version: 2025-10-25
+VERSION="2025-10-25"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -345,10 +345,13 @@ function main() {
 # Allows to other user read the directory.
 chmod go+x "${TMP_DIR}"
 
-__start_logger
-if [[ ! -t 1 ]]; then
- __set_log_file "${LOG_FILE_NAME}"
- main >> "${LOG_FILE_NAME}"
-else
- main
+# Only execute main if this script is being run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+ __start_logger
+ if [[ ! -t 1 ]]; then
+  __set_log_file "${LOG_FILE_NAME}"
+  main >> "${LOG_FILE_NAME}"
+ else
+  main
+ fi
 fi
