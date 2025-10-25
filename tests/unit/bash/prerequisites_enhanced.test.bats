@@ -391,6 +391,15 @@ fi
 EOF
  chmod +x "${mock_dir}/wget"
 
+ # Mock other required commands
+ for cmd in xmllint xsltproc curl grep free uptime ulimit prlimit bc timeout xmlstarlet jq ogr2ogr gdalinfo; do
+  cat > "${mock_dir}/${cmd}" << 'EOF'
+#!/bin/bash
+echo "mock ${cmd}"
+EOF
+  chmod +x "${mock_dir}/${cmd}"
+ done
+
  # Temporarily replace PATH with mock tools
  local original_path="${PATH}"
  export PATH="${mock_dir}:${PATH}"

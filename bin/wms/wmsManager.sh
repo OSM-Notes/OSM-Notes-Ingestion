@@ -155,7 +155,7 @@ is_wms_installed() {
  # Check if WMS schema exists
  local SCHEMA_EXISTS
  SCHEMA_EXISTS=$(eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2> /dev/null | tr -d ' ' || echo "f")
- 
+
  if [[ "${SCHEMA_EXISTS}" == "t" ]]; then
   return 0
  else

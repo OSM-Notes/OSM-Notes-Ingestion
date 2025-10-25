@@ -313,6 +313,13 @@ function main() {
  __logd "Output saved at: ${TMP_DIR}."
  __logi "Processing: ${PROCESS_TYPE}."
 
+ # Handle help first, before checking prerequisites
+ if [[ "${PROCESS_TYPE}" == "-h" ]] \
+  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+  exit "${ERROR_HELP_MESSAGE}"
+ fi
+
  # Checks the prerequisities. It could terminate the process.
  __checkPrereqs
 
@@ -326,11 +333,7 @@ function main() {
  flock -n 7
  ONLY_EXECUTION="yes"
 
- if [[ "${PROCESS_TYPE}" == "-h" ]] \
-  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-  __show_help
-  exit "${ERROR_HELP_MESSAGE}"
- elif [[ "${PROCESS_TYPE}" == "--base" ]]; then
+ if [[ "${PROCESS_TYPE}" == "--base" ]]; then
   __logi "Running in base mode - dropping and recreating tables for consistency"
 
   # Drop and recreate country tables for consistency with processPlanetNotes.sh

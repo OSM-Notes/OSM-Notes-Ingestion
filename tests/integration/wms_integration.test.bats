@@ -252,6 +252,9 @@ EOF
 }
 @test "WMS integration: should install WMS components successfully" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -283,6 +286,9 @@ EOF
 }
 @test "WMS integration: should show correct status after installation" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -308,6 +314,9 @@ EOF
 }
 @test "WMS integration: should not install twice without force" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -323,6 +332,9 @@ EOF
 }
 @test "WMS integration: should force reinstall with --force" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -337,6 +349,9 @@ EOF
 }
 @test "WMS integration: should deinstall WMS components successfully" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -361,6 +376,9 @@ EOF
 }
 @test "WMS integration: should handle deinstall when not installed" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -372,6 +390,9 @@ EOF
 }
 @test "WMS integration: should show dry run output" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -383,6 +404,9 @@ EOF
 }
 @test "WMS integration: should validate PostGIS requirement" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"
@@ -416,6 +440,9 @@ EOF
 }
 @test "WMS integration: should handle missing required columns" {
  # Set database environment variables for WMS script
+ export WMS_DBNAME="${TEST_DBNAME}"
+ export WMS_DBUSER="${TEST_DBUSER}"
+ export WMS_DBPASSWORD="${TEST_DBPASSWORD}"
  export TEST_DBNAME="${TEST_DBNAME}"
  export TEST_DBUSER="${TEST_DBUSER}"
  export TEST_DBPASSWORD="${TEST_DBPASSWORD}"

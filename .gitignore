@@ -44,6 +44,7 @@ tests/**/mock_workflow_report.txt
 
 # Log files
 *.log
+output
 
 # Database files
 *.db

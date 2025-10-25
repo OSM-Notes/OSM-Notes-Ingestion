@@ -53,6 +53,15 @@ else
  exit 1
 fi
 
+# Load security functions (SQL sanitization)
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/securityFunctions.sh" ]]; then
+ # shellcheck source=securityFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/bin/securityFunctions.sh"
+else
+ echo "ERROR: securityFunctions.sh not found"
+ exit 1
+fi
+
 # Load error handling functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh" ]]; then
  # shellcheck source=errorHandlingFunctions.sh
