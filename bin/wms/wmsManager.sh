@@ -3,7 +3,7 @@
 # Manages the installation and deinstallation of WMS components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-18
+# Version: 2025-01-24
 
 set -euo pipefail
 
@@ -15,11 +15,6 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 export BASENAME="wmsManager"
 export TMP_DIR="/tmp"
 export LOG_LEVEL="INFO"
-
-# Load validation functions
-if [[ -f "${PROJECT_ROOT}/lib/osm-common/validationFunctions.sh" ]]; then
- source "${PROJECT_ROOT}/lib/osm-common/validationFunctions.sh"
-fi
 
 # Load properties
 if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
@@ -98,14 +93,24 @@ EOF
 
 # Function to validate prerequisites
 validate_prerequisites() {
- # Check if required SQL files exist using centralized validation
- if ! __validate_sql_structure "${WMS_PREPARE_SQL}"; then
-  print_status "${RED}" "❌ ERROR: WMS prepare SQL file validation failed: ${WMS_PREPARE_SQL}"
+ # Check if required SQL files exist
+ if [[ ! -f "${WMS_PREPARE_SQL}" ]]; then
+  print_status "${RED}" "❌ ERROR: WMS prepare SQL file not found: ${WMS_PREPARE_SQL}"
   exit 1
  fi
 
- if ! __validate_sql_structure "${WMS_REMOVE_SQL}"; then
-  print_status "${RED}" "❌ ERROR: WMS remove SQL file validation failed: ${WMS_REMOVE_SQL}"
+ if [[ ! -r "${WMS_PREPARE_SQL}" ]]; then
+  print_status "${RED}" "❌ ERROR: WMS prepare SQL file is not readable: ${WMS_PREPARE_SQL}"
+  exit 1
+ fi
+
+ if [[ ! -f "${WMS_REMOVE_SQL}" ]]; then
+  print_status "${RED}" "❌ ERROR: WMS remove SQL file not found: ${WMS_REMOVE_SQL}"
+  exit 1
+ fi
+
+ if [[ ! -r "${WMS_REMOVE_SQL}" ]]; then
+  print_status "${RED}" "❌ ERROR: WMS remove SQL file is not readable: ${WMS_REMOVE_SQL}"
   exit 1
  fi
 
@@ -147,7 +152,15 @@ is_wms_installed() {
   return 1
  fi
 
- eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2> /dev/null | tr -d ' ' | grep -q 't'
+ # Check if WMS schema exists
+ local SCHEMA_EXISTS
+ SCHEMA_EXISTS=$(eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2> /dev/null | tr -d ' ' || echo "f")
+ 
+ if [[ "${SCHEMA_EXISTS}" == "t" ]]; then
+  return 0
+ else
+  return 1
+ fi
 }
 
 # Function to install WMS
