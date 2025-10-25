@@ -3,7 +3,7 @@
 # Enhanced unit tests for functionsProcess.sh with improved testability
 # Tests XML counting functions, validation, error handling, and performance
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
+# Version: 2025-01-24
 
 load "$(dirname "${BATS_TEST_FILENAME}")/../../test_helper.bash"
 
@@ -69,8 +69,17 @@ create_mock_logging_functions() {
 
 create_test_xml_files() {
  local test_dir="${TEST_BASE_DIR}/tests/tmp"
+
+ # Remove existing directory and create fresh one with proper permissions
+ rm -rf "${test_dir}"
  mkdir -p "${test_dir}"
- chmod 777 "${test_dir}" 2> /dev/null || true
+ chmod 755 "${test_dir}" 2> /dev/null || true
+
+ # Ensure we can write to the directory
+ if [[ ! -w "${test_dir}" ]]; then
+  echo "ERROR: Cannot write to test directory: ${test_dir}" >&2
+  exit 1
+ fi
 
  # Create test API XML with multiple notes for comprehensive testing
  cat > "${test_dir}/test_api.xml" << 'EOF'
@@ -215,25 +224,25 @@ EOF
 
 @test "should handle xmlstarlet not available gracefully" {
  # Test graceful handling when xmlstarlet is not available
-      # Create a mock xmlstarlet that always fails
-     local mock_xmlstarlet="${TEST_BASE_DIR}/tests/tmp/mock_xmlstarlet_fail"
-     cat > "${mock_xmlstarlet}" << 'EOF'
+ # Create a mock xmlstarlet that always fails
+ local mock_xmlstarlet="${TEST_BASE_DIR}/tests/tmp/mock_xmlstarlet_fail"
+ cat > "${mock_xmlstarlet}" << 'EOF'
 #!/bin/bash
 echo "Mock xmlstarlet called with: $*" >&2
 exit 1
 EOF
- chmod +x "$mock_xmlstarlet"
+ chmod +x "${mock_xmlstarlet}"
 
  # Temporarily replace xmlstarlet with mock
- local original_path="$PATH"
- export PATH="${TEST_BASE_DIR}/tests/tmp:$PATH"
+ local original_path="${PATH}"
+ export PATH="${TEST_BASE_DIR}/tests/tmp:${PATH}"
 
  # Test the function
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
 
  # Restore original PATH
- export PATH="$original_path"
- rm -f "$mock_xmlstarlet"
+ export PATH="${original_path}"
+ rm -f "${mock_xmlstarlet}"
 
  # The function should either fail or succeed gracefully
  # We'll accept either outcome as long as it doesn't crash
@@ -252,7 +261,7 @@ EOF
 
  # Execute function and check behavior based on validation setting
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_malformed.xml"
- 
+
  # If XML validation is enabled, it should fail
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   [[ "${status}" -ne 0 ]]
@@ -273,9 +282,11 @@ EOF
   skip "xmlstarlet not available"
  fi
 
- local start_time=$(date +%s%N)
+ local start_time
+ start_time=$(date +%s%N)
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
- local end_time=$(date +%s%N)
+ local end_time
+ end_time=$(date +%s%N)
  local duration=$((end_time - start_time))
 
  [[ "${status}" -eq 0 ]]
@@ -310,7 +321,7 @@ EOF
 @test "mock XML counting should work without external dependencies" {
  # Create a mock version of xmlstarlet
  local mock_xmlstarlet="${TEST_BASE_DIR}/tests/tmp/mock_xmlstarlet"
- cat > "$mock_xmlstarlet" << 'EOF'
+ cat > "${mock_xmlstarlet}" << 'EOF'
 #!/bin/bash
 if [[ "$1" == "sel" ]] && [[ "$2" == "-t" ]] && [[ "$3" == "-v" ]]; then
     if [[ "$4" == "count(/osm/note)" ]]; then
@@ -325,18 +336,18 @@ else
     exit 1
 fi
 EOF
- chmod +x "$mock_xmlstarlet"
+ chmod +x "${mock_xmlstarlet}"
 
  # Temporarily replace xmlstarlet with mock
- local original_path="$PATH"
- export PATH="${TEST_BASE_DIR}/tests/tmp:$PATH"
+ local original_path="${PATH}"
+ export PATH="${TEST_BASE_DIR}/tests/tmp:${PATH}"
 
  # Test with mock
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
 
  # Restore original PATH
- export PATH="$original_path"
- rm -f "$mock_xmlstarlet"
+ export PATH="${original_path}"
+ rm -f "${mock_xmlstarlet}"
 
  # Check result - the function should either succeed or fail gracefully
  # We'll accept either outcome as long as it doesn't crash
