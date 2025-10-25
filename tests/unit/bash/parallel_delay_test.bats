@@ -2,7 +2,7 @@
 # Test file for parallel processing delay functionality
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-16
+# Version: 2025-10-24
 # Description: Tests for delay between parallel process launches
 
 # Require minimum bats version for --separate-stderr flag
@@ -20,6 +20,7 @@ setup() {
 
  # Create temporary directory
  mkdir -p "${TMP_DIR}"
+ chmod 777 "${TMP_DIR}" 2> /dev/null || true
 }
 
 teardown() {
