@@ -4,7 +4,7 @@
 # This file contains validation functions for various data types.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-14
+# Version: 2025-10-24
 
 # Define version variable
 VERSION="2025-08-13"
@@ -415,6 +415,13 @@ function __validate_json_structure() {
  local SCHEMA_FILE="${2:-}"
 
  if ! __validate_input_file "${JSON_FILE}" "JSON file"; then
+  __log_finish
+  return 1
+ fi
+
+ # Check if jq is available
+ if ! command -v jq > /dev/null 2>&1; then
+  __loge "ERROR: jq command not available for JSON validation"
   __log_finish
   return 1
  fi
