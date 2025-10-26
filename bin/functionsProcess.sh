@@ -2119,6 +2119,18 @@ function __getLocationNotes {
   MAX_THREADS=$((MAX_THREADS - 1))
  fi
 
+ # Check if there are any notes without country assignment
+ local NOTES_WITHOUT_COUNTRY
+ NOTES_WITHOUT_COUNTRY=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+   <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL")
+ __logi "Notes without country assignment: ${NOTES_WITHOUT_COUNTRY}"
+
+ if [[ "${NOTES_WITHOUT_COUNTRY}" -eq 0 ]]; then
+  __logi "All notes already have country assignment. Skipping location processing."
+  __log_finish
+  return 0
+ fi
+
  # Processes notes that should already have a location.
  declare -l SIZE=$((MAX_NOTE_ID_NOT_NULL / MAX_THREADS))
  __logw "Starting background process to locate notes - old..."
