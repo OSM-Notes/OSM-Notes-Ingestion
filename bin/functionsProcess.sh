@@ -1595,11 +1595,11 @@ function __processBoundary {
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special handling for Austria (ID: 16239)"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
  else
   # Standard import with field selection to avoid row size issues
   __logd "Using field-selected import for boundary ${ID}"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -nlt PROMOTE_TO_MULTI -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
  fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
@@ -1639,6 +1639,11 @@ function __processBoundary {
 
  # First, validate that we can create a non-NULL geometry
  __logd "Validating geometry before insert for boundary ${ID}..."
+
+ # Sanitize ID to ensure it's a valid integer (needed for alternative strategies)
+ local SANITIZED_ID
+ SANITIZED_ID=$(__sanitize_sql_integer "${ID}")
+
  local GEOM_CHECK_QUERY
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
@@ -1665,23 +1670,84 @@ function __processBoundary {
   IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2> /dev/null || echo "0")
   __loge "Import table has ${IMPORT_COUNT} rows for boundary ${ID}"
 
+  # Check geometry types
+  __logd "Analyzing geometry types in import table:"
+  psql -d "${DBNAME}" -c "SELECT ST_GeometryType(geometry) AS geom_type, COUNT(*) FROM import GROUP BY geom_type ORDER BY geom_type" 2> /dev/null || true
+
   # Log a sample of geometries for debugging
   __logd "Sample geometry validity check:"
   psql -d "${DBNAME}" -c "SELECT ST_IsValid(geometry) AS is_valid, ST_IsValidReason(geometry) AS reason FROM import LIMIT 5" 2> /dev/null || true
 
-  __loge "Skipping boundary ${ID} due to NULL geometry - will not update database"
+  # Check for NULL geometries
+  __logd "Checking for NULL geometries:"
+  local NULL_COUNT
+  NULL_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE geometry IS NULL" 2> /dev/null || echo "0")
+  __logd "NULL geometries: ${NULL_COUNT}"
+
+  # Check valid vs invalid
+  local VALID_COUNT
+  VALID_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_IsValid(geometry)" 2> /dev/null || echo "0")
+  __logd "Valid geometries: ${VALID_COUNT}"
+
+  # Try alternative repair strategies
+  __logi "Attempting alternative geometry repair strategies..."
+
+  # Strategy 1: Try ST_Collect instead of ST_Union
+  local ALT_QUERY="SELECT ST_Collect(ST_MakeValid(geometry)) IS NOT NULL AS has_geom FROM import"
+  local HAS_COLLECT
+  HAS_COLLECT=$(psql -d "${DBNAME}" -Atq -c "${ALT_QUERY}" 2> /dev/null || echo "f")
+
+  if [[ "${HAS_COLLECT}" == "t" ]]; then
+   __logw "ST_Collect works but not ST_Union - using ST_Collect as alternative"
+   if [[ "${ID}" -eq 16239 ]]; then
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
+   else
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
+   fi
+
+   if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
+    __loge "Alternative ST_Collect also failed"
+    __loge "Skipping boundary ${ID} due to geometry issues"
+    rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+    __log_finish
+    return 1
+   fi
+   __logi "✓ Successfully inserted boundary ${ID} using ST_Collect"
+  else
+   # Strategy 2: Try treating all geometries as points/lines and buffer them
+   __logw "Trying buffer strategy for LineString geometries..."
+   local BUFFER_QUERY="SELECT ST_Buffer(ST_MakeValid(geometry), 0.0001) IS NOT NULL AS has_geom FROM import"
+   local HAS_BUFFER
+   HAS_BUFFER=$(psql -d "${DBNAME}" -Atq -c "${BUFFER_QUERY}" 2> /dev/null || echo "f")
+
+   if [[ "${HAS_BUFFER}" == "t" ]]; then
+    __logw "Buffer strategy works - applying buffered geometries"
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)) FROM import GROUP BY 1;\""
+
+    if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
+     __loge "Buffer strategy failed"
+     __loge "Skipping boundary ${ID} due to geometry issues"
+     rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+     __log_finish
+     return 1
+    fi
+    __logi "✓ Successfully inserted boundary ${ID} using buffer strategy"
+   else
+    __loge "All repair strategies failed - skipping boundary ${ID}"
+    rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+    __log_finish
+    return 1
+   fi
+  fi
+
   rmdir "${PROCESS_LOCK}" 2> /dev/null || true
   __log_finish
-  return 1
+  return 0
  fi
 
  __logi "✓ Geometry validation passed for boundary ${ID}"
 
  # Now perform the actual insert with validated geometry
- # Sanitize ID to ensure it's a valid integer
- local SANITIZED_ID
- SANITIZED_ID=$(__sanitize_sql_integer "${ID}")
-
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
@@ -1844,46 +1910,54 @@ function __processCountries {
 
  for I in "${TMP_DIR}"/part_country_??; do
   (
-   __logi "Starting list ${I} - ${BASHPID}."
+   local SUBSHELL_PID
+   SUBSHELL_PID="${BASHPID}"
+   __logi "Starting list ${I} - ${SUBSHELL_PID}."
    # shellcheck disable=SC2154
-   if __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1; then
-    echo "SUCCESS:${BASHPID}:${I}" >> "${JOB_STATUS_FILE}"
+   local PROCESS_LIST_RET
+   if __processList "${I}" >> "${LOG_FILENAME}.${SUBSHELL_PID}" 2>&1; then
+    echo "SUCCESS:${SUBSHELL_PID}:${I}" >> "${JOB_STATUS_FILE}"
+    PROCESS_LIST_RET=0
    else
-    echo "FAILED:${BASHPID}:${I}" >> "${JOB_STATUS_FILE}"
+    echo "FAILED:${SUBSHELL_PID}:${I}" >> "${JOB_STATUS_FILE}"
+    PROCESS_LIST_RET=1
    fi
-   __logi "Finished list ${I} - ${BASHPID}."
+   __logi "Finished list ${I} - ${SUBSHELL_PID}."
    if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-    rm -f "${LOG_FILENAME}.${BASHPID}"
+    rm -f "${LOG_FILENAME}.${SUBSHELL_PID}"
    else
-    mv "${LOG_FILENAME}.${BASHPID}" "${TMP_DIR}/${BASENAME}.old.${BASHPID}"
+    mv "${LOG_FILENAME}.${SUBSHELL_PID}" "${TMP_DIR}/${BASENAME}.old.${SUBSHELL_PID}"
    fi
+   exit "${PROCESS_LIST_RET}"
   ) &
   __logi "Check log per thread for more information."
   sleep 2
  done
 
- FAIL=0
- local FAILED_JOBS=()
- for JOB in $(jobs -p); do
-  echo "${JOB}"
-  set +e
-  wait "${JOB}"
-  RET="${?}"
-  set -e
-  if [[ "${RET}" -ne 0 ]]; then
-   FAIL=$((FAIL + 1))
-   FAILED_JOBS+=("${JOB}")
-  fi
- done
+ # Wait for all background jobs to complete
  __logw "Waited for all jobs, restarting in main thread - countries."
+ for JOB in $(jobs -p); do
+  wait "${JOB}"
+ done
 
- # Check job status file for more detailed error information
+ # Check job status file for detailed error information
+ local FAIL=0
+ local FAILED_JOBS=()
+ local FAILED_JOBS_INFO=""
+
  if [[ -f "${JOB_STATUS_FILE}" ]]; then
   local FAILED_COUNT=0
   local SUCCESS_COUNT=0
+  local TOTAL_JOBS=0
   while IFS=':' read -r status pid file; do
+   TOTAL_JOBS=$((TOTAL_JOBS + 1))
    if [[ "$status" == "FAILED" ]]; then
     FAILED_COUNT=$((FAILED_COUNT + 1))
+    FAIL=$((FAIL + 1))
+    FAILED_JOBS+=("${pid}")
+    if [[ -f "${TMP_DIR}/${BASENAME}.old.${pid}" ]]; then
+     FAILED_JOBS_INFO="${FAILED_JOBS_INFO} ${pid}:${TMP_DIR}/${BASENAME}.old.${pid}"
+    fi
     __loge "Job ${pid} failed processing file: ${file}"
    elif [[ "$status" == "SUCCESS" ]]; then
     SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
@@ -1894,12 +1968,6 @@ function __processCountries {
  fi
 
  if [[ "${FAIL}" -ne 0 ]]; then
-  local FAILED_JOBS_INFO=""
-  for JOB_PID in "${FAILED_JOBS[@]}"; do
-   if [[ -f "${LOG_FILENAME}.${JOB_PID}" ]]; then
-    FAILED_JOBS_INFO="${FAILED_JOBS_INFO} ${JOB_PID}:${LOG_FILENAME}.${JOB_PID}"
-   fi
-  done
   __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}. Check individual log files for detailed error information:${FAILED_JOBS_INFO}"
   __loge "=== COUNTRIES PROCESSING FAILED ==="
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
