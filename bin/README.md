@@ -32,6 +32,15 @@ Monitoring and verification scripts:
 - **`processCheckPlanetNotes.sh`**: Verifies Planet notes processing
 - **`notesCheckVerifier.sh`**: Validates note data integrity
 
+### `/bin/scripts/`
+
+Utility scripts for data management and maintenance:
+
+- **`generateNoteLocationBackup.sh`**: Generates a CSV backup of note locations
+  (note_id, id_country) to speed up subsequent processing runs. The script exports
+  all notes with country assignments from the database and creates a compressed
+  ZIP file that can be used as a baseline for faster location processing.
+
 ### `/bin/cleanupAll.sh`
 
 Database maintenance script for comprehensive cleanup operations:
@@ -56,12 +65,33 @@ Database maintenance script for comprehensive cleanup operations:
 ### Monitoring & Maintenance
 
 - **Verification**: `bin/monitor/` scripts ensure data quality
+- **Backup Generation**: `bin/scripts/generateNoteLocationBackup.sh` creates CSV backups
+  of note location data for faster processing
 - **Cleanup**: `bin/cleanupAll.sh` maintains database performance and cleanup operations
 
 ## Usage
 
 All scripts in this directory are designed to be run from the project root and
 require proper database configuration and dependencies to be installed.
+
+### Generating Note Location Backup
+
+To create or update the note location backup used for faster processing:
+
+```bash
+# Generate backup of note locations (note_id, id_country)
+./bin/scripts/generateNoteLocationBackup.sh
+```
+
+This script:
+
+- Connects to the database and verifies it has notes with country assignments
+- Exports all note locations to a CSV file
+- Compresses the CSV into a ZIP file
+- Stores the result in `data/noteLocation.csv.zip`
+
+The backup file is automatically imported during the location processing phase
+to avoid re-calculating countries for notes that already have assignments.
 
 ## Dependencies
 
