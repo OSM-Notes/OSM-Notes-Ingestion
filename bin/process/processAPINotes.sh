@@ -78,12 +78,12 @@ set -E
 # Auto-restart with setsid if not already in a new session
 # This protects against SIGHUP when terminal closes or session ends
 if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
- echo "$(date '+%Y%m%d_%H:%M:%S') INFO: Auto-restarting with setsid for SIGHUP protection" >&2
- export RUNNING_IN_SETSID=1
- # Get the script name and all arguments
- SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
- # Re-execute with setsid to create new session (immune to SIGHUP)
- exec setsid -w "$SCRIPT_PATH" "$@"
+  echo "$(date '+%Y%m%d_%H:%M:%S') INFO: Auto-restarting with setsid for SIGHUP protection" >&2
+  export RUNNING_IN_SETSID=1
+  # Get the script name and all arguments
+  SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+  # Re-execute with setsid to create new session (immune to SIGHUP)
+  exec setsid -w "$SCRIPT_PATH" "$@"
 fi
 
 # Ignore SIGHUP signal (terminal hangup) - belt and suspenders approach
@@ -100,7 +100,7 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
- &> /dev/null && pwd)"
+  &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -130,7 +130,7 @@ readonly LOCK
 
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then
- declare -r PROCESS_TYPE=${1:-}
+  declare -r PROCESS_TYPE=${1:-}
 fi
 
 # Total notes count.
@@ -196,28 +196,28 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
 
 # Shows the help information.
 function __show_help {
- echo "${0} version ${VERSION}."
- echo
- echo "This script downloads the OSM notes from the OpenStreetMap API."
- echo "It requests the most recent ones and synchronizes them on a local"
- echo "database that holds the whole notes history."
- echo
- echo "It does not receive any parameter for regular execution. The only"
- echo "parameter allowed is to invoke the help message (-h|--help)."
- echo "This script should be configured in a crontab or similar scheduler."
- echo
- echo "Instead, it could be parametrized with the following environment"
- echo "variables."
- echo "* CLEAN={true|false/empty}: Deletes all generated files."
- echo "* LOG_LEVEL={TRACE|DEBUG|INFO|WARN|ERROR|FATAL}: Configures the"
- echo "  logger level."
- echo
- echo "This script could call processPlanetNotes.sh which use another"
- echo "environment variables. Please check the documentation of that script."
- echo
- echo "Written by: Andres Gomez (AngocA)."
- echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
- exit "${ERROR_HELP_MESSAGE}"
+  echo "${0} version ${VERSION}."
+  echo
+  echo "This script downloads the OSM notes from the OpenStreetMap API."
+  echo "It requests the most recent ones and synchronizes them on a local"
+  echo "database that holds the whole notes history."
+  echo
+  echo "It does not receive any parameter for regular execution. The only"
+  echo "parameter allowed is to invoke the help message (-h|--help)."
+  echo "This script should be configured in a crontab or similar scheduler."
+  echo
+  echo "Instead, it could be parametrized with the following environment"
+  echo "variables."
+  echo "* CLEAN={true|false/empty}: Deletes all generated files."
+  echo "* LOG_LEVEL={TRACE|DEBUG|INFO|WARN|ERROR|FATAL}: Configures the"
+  echo "  logger level."
+  echo
+  echo "This script could call processPlanetNotes.sh which use another"
+  echo "environment variables. Please check the documentation of that script."
+  echo
+  echo "Written by: Andres Gomez (AngocA)."
+  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+  exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Local wrapper for __common_create_failed_marker from alertFunctions.sh
@@ -232,61 +232,61 @@ function __show_help {
 # Note: This wrapper allows existing code to continue using the simple 3-parameter
 # interface while calling the common 5-parameter function in alertFunctions.sh
 function __create_failed_marker() {
- # Call the common alert function with script-specific parameters
- # Format: script_name, error_code, error_message, required_action, failed_file
- __common_create_failed_marker "processAPINotes" "${1}" "${2}" \
-  "${3:-Verify the issue and fix it manually}" "${FAILED_EXECUTION_FILE}"
+  # Call the common alert function with script-specific parameters
+  # Format: script_name, error_code, error_message, required_action, failed_file
+  __common_create_failed_marker "processAPINotes" "${1}" "${2}" \
+    "${3:-Verify the issue and fix it manually}" "${FAILED_EXECUTION_FILE}"
 }
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
- __log_start
- __logi "=== STARTING PREREQUISITES CHECK ==="
- __logd "Checking process type."
- if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
-  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
-  echo "ERROR: Invalid parameter. It should be:"
-  echo " * Empty string (nothing)."
-  echo " * --help"
-  __loge "ERROR: Invalid parameter."
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
- set +e
- # Checks prereqs.
- __checkPrereqsCommands
+  __log_start
+  __logi "=== STARTING PREREQUISITES CHECK ==="
+  __logd "Checking process type."
+  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
+    && [[ "${PROCESS_TYPE}" != "-h" ]]; then
+    echo "ERROR: Invalid parameter. It should be:"
+    echo " * Empty string (nothing)."
+    echo " * --help"
+    __loge "ERROR: Invalid parameter."
+    exit "${ERROR_INVALID_ARGUMENT}"
+  fi
+  set +e
+  # Checks prereqs.
+  __checkPrereqsCommands
 
-# Function to detect and recover from data gaps
-__recover_from_gaps() {
- local -r FUNCTION_NAME="__recover_from_gaps"
- __logd "Starting gap recovery process"
+  # Function to detect and recover from data gaps
+  __recover_from_gaps() {
+    local -r FUNCTION_NAME="__recover_from_gaps"
+    __logd "Starting gap recovery process"
 
- # Check if max_note_timestamp table exists
- local CHECK_TABLE_QUERY="
+    # Check if max_note_timestamp table exists
+    local CHECK_TABLE_QUERY="
    SELECT COUNT(*) FROM information_schema.tables
    WHERE table_schema = 'public' AND table_name = 'max_note_timestamp'
  "
 
- local TEMP_CHECK_FILE
- TEMP_CHECK_FILE=$(mktemp)
+    local TEMP_CHECK_FILE
+    TEMP_CHECK_FILE=$(mktemp)
 
- if ! __retry_database_operation "${CHECK_TABLE_QUERY}" "${TEMP_CHECK_FILE}" 3 2; then
-  __logw "Failed to check if max_note_timestamp table exists"
-  rm -f "${TEMP_CHECK_FILE}"
-  __logd "Skipping gap recovery check - table may not exist yet"
-  return 0
- fi
+    if ! __retry_database_operation "${CHECK_TABLE_QUERY}" "${TEMP_CHECK_FILE}" 3 2; then
+      __logw "Failed to check if max_note_timestamp table exists"
+      rm -f "${TEMP_CHECK_FILE}"
+      __logd "Skipping gap recovery check - table may not exist yet"
+      return 0
+    fi
 
- local TABLE_EXISTS
- TABLE_EXISTS=$(cat "${TEMP_CHECK_FILE}")
- rm -f "${TEMP_CHECK_FILE}"
+    local TABLE_EXISTS
+    TABLE_EXISTS=$(cat "${TEMP_CHECK_FILE}")
+    rm -f "${TEMP_CHECK_FILE}"
 
- if [[ "${TABLE_EXISTS}" -eq 0 ]]; then
-  __logd "max_note_timestamp table does not exist, skipping gap recovery"
-  return 0
- fi
+    if [[ "${TABLE_EXISTS}" -eq 0 ]]; then
+      __logd "max_note_timestamp table does not exist, skipping gap recovery"
+      return 0
+    fi
 
- # Check for notes without comments in recent data
- local GAP_QUERY="
+    # Check for notes without comments in recent data
+    local GAP_QUERY="
    SELECT COUNT(DISTINCT n.note_id) as gap_count
    FROM notes n
    LEFT JOIN note_comments nc ON nc.note_id = n.note_id
@@ -296,25 +296,25 @@ __recover_from_gaps() {
    AND nc.note_id IS NULL
  "
 
- local GAP_COUNT
- local TEMP_GAP_FILE
- TEMP_GAP_FILE=$(mktemp)
+    local GAP_COUNT
+    local TEMP_GAP_FILE
+    TEMP_GAP_FILE=$(mktemp)
 
- if ! __retry_database_operation "${GAP_QUERY}" "${TEMP_GAP_FILE}" 3 2; then
-  __loge "Failed to execute gap query after retries"
-  rm -f "${TEMP_GAP_FILE}"
-  return 1
- fi
+    if ! __retry_database_operation "${GAP_QUERY}" "${TEMP_GAP_FILE}" 3 2; then
+      __loge "Failed to execute gap query after retries"
+      rm -f "${TEMP_GAP_FILE}"
+      return 1
+    fi
 
- GAP_COUNT=$(cat "${TEMP_GAP_FILE}")
- rm -f "${TEMP_GAP_FILE}"
+    GAP_COUNT=$(cat "${TEMP_GAP_FILE}")
+    rm -f "${TEMP_GAP_FILE}"
 
-  if [[ "${GAP_COUNT}" -gt 0 ]]; then
-   __logw "Detected ${GAP_COUNT} notes without comments in last 7 days"
-   __logw "This indicates a potential data integrity issue"
+    if [[ "${GAP_COUNT}" -gt 0 ]]; then
+      __logw "Detected ${GAP_COUNT} notes without comments in last 7 days"
+      __logw "This indicates a potential data integrity issue"
 
-   # Log detailed gap information
-   local GAP_DETAILS_QUERY="
+      # Log detailed gap information
+      local GAP_DETAILS_QUERY="
       SELECT n.note_id, n.created_at, n.status
       FROM notes n
       LEFT JOIN note_comments nc ON nc.note_id = n.note_id
@@ -326,220 +326,220 @@ __recover_from_gaps() {
       LIMIT 10
     "
 
-   __logw "Sample of notes with gaps:"
-   psql -d "${DBNAME}" -c "${GAP_DETAILS_QUERY}" | while read -r line; do
-    __logw "  ${line}"
-   done
+      __logw "Sample of notes with gaps:"
+      psql -d "${DBNAME}" -c "${GAP_DETAILS_QUERY}" | while read -r line; do
+        __logw "  ${line}"
+      done
 
-   # Optionally trigger a recovery process
-   if [[ "${GAP_COUNT}" -lt 100 ]]; then
-    __logi "Gap count is manageable (${GAP_COUNT}), continuing with normal processing"
-   else
-    __loge "Large gap detected (${GAP_COUNT} notes), consider manual intervention"
-    return 1
-   fi
-  else
-   __logd "No gaps detected in recent data"
+      # Optionally trigger a recovery process
+      if [[ "${GAP_COUNT}" -lt 100 ]]; then
+        __logi "Gap count is manageable (${GAP_COUNT}), continuing with normal processing"
+      else
+        __loge "Large gap detected (${GAP_COUNT} notes), consider manual intervention"
+        return 1
+      fi
+    else
+      __logd "No gaps detected in recent data"
+    fi
+
+    return 0
+  }
+
+  # Check for data gaps before processing
+  if ! __recover_from_gaps; then
+    __loge "Gap recovery check failed, aborting processing"
+    __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
+      "echo 'Gap recovery failed - manual intervention may be required'"
   fi
 
-  return 0
- }
+  ## Validate required files using centralized validation
+  __logi "Validating required files..."
 
- # Check for data gaps before processing
- if ! __recover_from_gaps; then
-  __loge "Gap recovery check failed, aborting processing"
-  __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
-   "echo 'Gap recovery failed - manual intervention may be required'"
- fi
-
- ## Validate required files using centralized validation
- __logi "Validating required files..."
-
- # Validate sync script
- if ! __validate_input_file "${NOTES_SYNC_SCRIPT}" "Notes sync script"; then
-  __loge "ERROR: Notes sync script validation failed: ${NOTES_SYNC_SCRIPT}"
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
-
- ## Validate SQL script files using centralized validation
- __logi "Validating SQL script files..."
-
- # Create array of SQL files to validate
- local SQL_FILES=(
-  "${POSTGRES_12_DROP_API_TABLES}"
-  "${POSTGRES_21_CREATE_API_TABLES}"
-  "${POSTGRES_22_CREATE_PARTITIONS}"
-  "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
-  "${POSTGRES_31_LOAD_API_NOTES}"
-  "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}"
-  "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}"
-  "${POSTGRES_34_UPDATE_LAST_VALUES}"
-  "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
- )
-
- # Validate each SQL file
- for SQL_FILE in "${SQL_FILES[@]}"; do
-  if ! __validate_sql_structure "${SQL_FILE}"; then
-   __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
-   exit "${ERROR_MISSING_LIBRARY}"
+  # Validate sync script
+  if ! __validate_input_file "${NOTES_SYNC_SCRIPT}" "Notes sync script"; then
+    __loge "ERROR: Notes sync script validation failed: ${NOTES_SYNC_SCRIPT}"
+    exit "${ERROR_MISSING_LIBRARY}"
   fi
- done
 
- # Validate dates in API notes file if it exists
- __logi "Validating dates in API notes file..."
- if [[ -f "${API_NOTES_FILE}" ]]; then
-  if ! __validate_xml_dates "${API_NOTES_FILE}"; then
-   __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
-   exit "${ERROR_MISSING_LIBRARY}"
+  ## Validate SQL script files using centralized validation
+  __logi "Validating SQL script files..."
+
+  # Create array of SQL files to validate
+  local SQL_FILES=(
+    "${POSTGRES_12_DROP_API_TABLES}"
+    "${POSTGRES_21_CREATE_API_TABLES}"
+    "${POSTGRES_22_CREATE_PARTITIONS}"
+    "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+    "${POSTGRES_31_LOAD_API_NOTES}"
+    "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}"
+    "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}"
+    "${POSTGRES_34_UPDATE_LAST_VALUES}"
+    "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
+  )
+
+  # Validate each SQL file
+  for SQL_FILE in "${SQL_FILES[@]}"; do
+    if ! __validate_sql_structure "${SQL_FILE}"; then
+      __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
+      exit "${ERROR_MISSING_LIBRARY}"
+    fi
+  done
+
+  # Validate dates in API notes file if it exists
+  __logi "Validating dates in API notes file..."
+  if [[ -f "${API_NOTES_FILE}" ]]; then
+    if ! __validate_xml_dates "${API_NOTES_FILE}"; then
+      __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
+      exit "${ERROR_MISSING_LIBRARY}"
+    fi
   fi
- fi
 
- # CSV files are generated during processing, no need to validate them here
- # as they will be created by __processApiXmlPart function
+  # CSV files are generated during processing, no need to validate them here
+  # as they will be created by __processApiXmlPart function
 
- __checkPrereqs_functions
- __logi "=== PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
- set -e
- __log_finish
+  __checkPrereqs_functions
+  __logi "=== PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
+  set -e
+  __log_finish
 }
 
 # Drop tables for notes from API.
 function __dropApiTables {
- __log_start
- __logi "=== DROPPING API TABLES ==="
- __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
- psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
- __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
- __log_finish
+  __log_start
+  __logi "=== DROPPING API TABLES ==="
+  __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
+  psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
+  __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
+  __log_finish
 }
 
 # Checks that no processPlanetNotes is running
 function __checkNoProcessPlanet {
- __log_start
- __logi "=== CHECKING FOR RUNNING PLANET PROCESSES ==="
- local QTY
- set +e
- QTY="$(pgrep "${PROCESS_PLANET_NOTES_SCRIPT:0:15}" | wc -l)"
- set -e
- __logd "Found ${QTY} running planet processes"
- if [[ "${QTY}" -ne "0" ]]; then
-  __loge "${BASENAME} is currently running."
-  __logw "It is better to wait for it to finish."
-  exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
- fi
- __logi "=== NO CONFLICTING PROCESSES FOUND ==="
- __log_finish
+  __log_start
+  __logi "=== CHECKING FOR RUNNING PLANET PROCESSES ==="
+  local QTY
+  set +e
+  QTY="$(pgrep "${PROCESS_PLANET_NOTES_SCRIPT:0:15}" | wc -l)"
+  set -e
+  __logd "Found ${QTY} running planet processes"
+  if [[ "${QTY}" -ne "0" ]]; then
+    __loge "${BASENAME} is currently running."
+    __logw "It is better to wait for it to finish."
+    exit "${ERROR_PLANET_PROCESS_IS_RUNNING}"
+  fi
+  __logi "=== NO CONFLICTING PROCESSES FOUND ==="
+  __log_finish
 }
 
 # Creates tables for notes from API.
 function __createApiTables {
- __log_start
- __logi "=== CREATING API TABLES ==="
- __logd "Executing SQL file: ${POSTGRES_21_CREATE_API_TABLES}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
- __logi "=== API TABLES CREATED SUCCESSFULLY ==="
- __log_finish
+  __log_start
+  __logi "=== CREATING API TABLES ==="
+  __logd "Executing SQL file: ${POSTGRES_21_CREATE_API_TABLES}"
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
+  __logi "=== API TABLES CREATED SUCCESSFULLY ==="
+  __log_finish
 }
 
 # Creates partitions dynamically based on MAX_THREADS.
 function __createPartitions {
- __log_start
- __logi "=== CREATING PARTITIONS ==="
- __logd "Using MAX_THREADS: ${MAX_THREADS}"
- __logd "Executing SQL file: ${POSTGRES_22_CREATE_PARTITIONS}"
+  __log_start
+  __logi "=== CREATING PARTITIONS ==="
+  __logd "Using MAX_THREADS: ${MAX_THREADS}"
+  __logd "Executing SQL file: ${POSTGRES_22_CREATE_PARTITIONS}"
 
- export MAX_THREADS
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
- __logi "=== PARTITIONS CREATED SUCCESSFULLY ==="
- __log_finish
+  export MAX_THREADS
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
+  __logi "=== PARTITIONS CREATED SUCCESSFULLY ==="
+  __log_finish
 }
 
 # Creates table properties during the execution.
 function __createPropertiesTable {
- __log_start
- __logi "=== CREATING PROPERTIES TABLE ==="
- __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
- __log_finish
+  __log_start
+  __logi "=== CREATING PROPERTIES TABLE ==="
+  __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+  __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
+  __log_finish
 }
 
 function __getNewNotesFromApi {
- __log_start
- __logi "=== STARTING API NOTES RETRIEVAL ==="
- declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
+  __log_start
+  __logi "=== STARTING API NOTES RETRIEVAL ==="
+  declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
 
- # Check network connectivity before proceeding
- __logi "Checking network connectivity..."
- if ! __check_network_connectivity 10; then
-  __loge "Network connectivity check failed"
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
-   "rm -f ${TEMP_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
+  # Check network connectivity before proceeding
+  __logi "Checking network connectivity..."
+  if ! __check_network_connectivity 10; then
+    __loge "Network connectivity check failed"
+    __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
+      "rm -f ${TEMP_FILE} 2>/dev/null || true"
+    # shellcheck disable=SC2317
+    __log_finish
+    return "${ERROR_INTERNET_ISSUE}"
+  fi
+
+  # Gets the most recent value on the database with retry logic
+  __logi "Retrieving last update from database..."
+  __logd "Database: ${DBNAME}"
+  local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
+  local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
+
+  if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
+    __loge "Failed to retrieve last update from database after retries"
+    __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
+      "rm -f ${TEMP_FILE} 2>/dev/null || true"
+    # shellcheck disable=SC2317
+    __log_finish
+    return "${ERROR_NO_LAST_UPDATE}"
+  fi
+
+  LAST_UPDATE=$(cat "${TEMP_FILE}")
+  rm "${TEMP_FILE}"
+  __logi "Last update retrieved: ${LAST_UPDATE}"
+  if [[ "${LAST_UPDATE}" == "" ]]; then
+    __loge "No last update. Please load notes first."
+    __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
+      "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+    # shellcheck disable=SC2317
+    __log_finish
+    return "${ERROR_NO_LAST_UPDATE}"
+  fi
+
+  # Gets the values from OSM API with enhanced error handling
+  # shellcheck disable=SC2153
+  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
+  __logi "API Request URL: ${REQUEST}"
+  __logd "Max notes limit: ${MAX_NOTES}"
+  __logi "Retrieving notes from API..."
+
+  # Use robust retry logic for API download
+  if ! __retry_network_operation "${REQUEST}" "${API_NOTES_FILE}" 5 2 30; then
+    __loge "Failed to download API notes after retries"
+    __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
+      "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+    # shellcheck disable=SC2317
+    __log_finish
+    return "${ERROR_INTERNET_ISSUE}"
+  fi
+
+  # Since we're not capturing wget output to a file, we'll check the downloaded file
+  if [[ ! -f "${API_NOTES_FILE}" ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
+    __loge "API unreachable or download failed. Probably there are Internet issues."
+    GENERATE_FAILED_FILE=false
+    __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
+      "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+    # shellcheck disable=SC2317
+    __log_finish
+    return "${ERROR_INTERNET_ISSUE}"
+  fi
+
+  __logi "=== API NOTES RETRIEVAL COMPLETED SUCCESSFULLY ==="
   __log_finish
-  return "${ERROR_INTERNET_ISSUE}"
- fi
-
- # Gets the most recent value on the database with retry logic
- __logi "Retrieving last update from database..."
- __logd "Database: ${DBNAME}"
- local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
- local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
-
- if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
-  __loge "Failed to retrieve last update from database after retries"
-  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
-   "rm -f ${TEMP_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_NO_LAST_UPDATE}"
- fi
-
- LAST_UPDATE=$(cat "${TEMP_FILE}")
- rm "${TEMP_FILE}"
- __logi "Last update retrieved: ${LAST_UPDATE}"
- if [[ "${LAST_UPDATE}" == "" ]]; then
-  __loge "No last update. Please load notes first."
-  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
-   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_NO_LAST_UPDATE}"
- fi
-
- # Gets the values from OSM API with enhanced error handling
- # shellcheck disable=SC2153
- REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
- __logi "API Request URL: ${REQUEST}"
- __logd "Max notes limit: ${MAX_NOTES}"
- __logi "Retrieving notes from API..."
-
- # Use robust retry logic for API download
- if ! __retry_network_operation "${REQUEST}" "${API_NOTES_FILE}" 5 2 30; then
-  __loge "Failed to download API notes after retries"
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
-   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_INTERNET_ISSUE}"
- fi
-
- # Since we're not capturing wget output to a file, we'll check the downloaded file
- if [[ ! -f "${API_NOTES_FILE}" ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
-  __loge "API unreachable or download failed. Probably there are Internet issues."
-  GENERATE_FAILED_FILE=false
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
-   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_INTERNET_ISSUE}"
- fi
-
- __logi "=== API NOTES RETRIEVAL COMPLETED SUCCESSFULLY ==="
- __log_finish
- return 0
+  return 0
 }
 
 # Validates API notes XML file completely (structure, dates, coordinates)
@@ -548,50 +548,50 @@ function __getNewNotesFromApi {
 # Returns:
 #   0 if all validations pass, exits with ERROR_DATA_VALIDATION if any validation fails
 function __validateApiNotesXMLFileComplete {
- __log_start
- __logi "=== COMPLETE API NOTES XML VALIDATION ==="
+  __log_start
+  __logi "=== COMPLETE API NOTES XML VALIDATION ==="
 
- # Check if file exists
- if [[ ! -f "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file not found: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
-   "API notes file not found after download" \
-   "Check network connectivity and API availability. File expected at: ${API_NOTES_FILE}"
-  exit "${ERROR_DATA_VALIDATION}"
- fi
+  # Check if file exists
+  if [[ ! -f "${API_NOTES_FILE}" ]]; then
+    __loge "ERROR: API notes file not found: ${API_NOTES_FILE}"
+    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+      "API notes file not found after download" \
+      "Check network connectivity and API availability. File expected at: ${API_NOTES_FILE}"
+    exit "${ERROR_DATA_VALIDATION}"
+  fi
 
- # Validate XML structure against schema with enhanced error handling
- __logi "Validating XML structure against schema..."
- if ! __validate_xml_with_enhanced_error_handling "${API_NOTES_FILE}" "${XMLSCHEMA_API_NOTES}"; then
-  __loge "ERROR: XML structure validation failed: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
-   "XML structure validation failed - downloaded file does not match schema" \
-   "Check if OSM API has changed. Verify file: ${API_NOTES_FILE} against schema: ${XMLSCHEMA_API_NOTES}"
-  exit "${ERROR_DATA_VALIDATION}"
- fi
+  # Validate XML structure against schema with enhanced error handling
+  __logi "Validating XML structure against schema..."
+  if ! __validate_xml_with_enhanced_error_handling "${API_NOTES_FILE}" "${XMLSCHEMA_API_NOTES}"; then
+    __loge "ERROR: XML structure validation failed: ${API_NOTES_FILE}"
+    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+      "XML structure validation failed - downloaded file does not match schema" \
+      "Check if OSM API has changed. Verify file: ${API_NOTES_FILE} against schema: ${XMLSCHEMA_API_NOTES}"
+    exit "${ERROR_DATA_VALIDATION}"
+  fi
 
- # Validate dates in XML file
- __logi "Validating dates in XML file..."
- if ! __validate_xml_dates "${API_NOTES_FILE}"; then
-  __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
-   "XML date validation failed - dates are not in expected format or invalid" \
-   "Check dates in file: ${API_NOTES_FILE}. May indicate API data corruption or format change."
-  exit "${ERROR_DATA_VALIDATION}"
- fi
+  # Validate dates in XML file
+  __logi "Validating dates in XML file..."
+  if ! __validate_xml_dates "${API_NOTES_FILE}"; then
+    __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
+    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+      "XML date validation failed - dates are not in expected format or invalid" \
+      "Check dates in file: ${API_NOTES_FILE}. May indicate API data corruption or format change."
+    exit "${ERROR_DATA_VALIDATION}"
+  fi
 
- # Validate coordinates in XML file
- __logi "Validating coordinates in XML file..."
- if ! __validate_xml_coordinates "${API_NOTES_FILE}"; then
-  __loge "ERROR: XML coordinate validation failed: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_DATA_VALIDATION}" \
-   "XML coordinate validation failed - coordinates are outside valid ranges" \
-   "Check coordinates in file: ${API_NOTES_FILE}. May indicate API data corruption."
-  exit "${ERROR_DATA_VALIDATION}"
- fi
+  # Validate coordinates in XML file
+  __logi "Validating coordinates in XML file..."
+  if ! __validate_xml_coordinates "${API_NOTES_FILE}"; then
+    __loge "ERROR: XML coordinate validation failed: ${API_NOTES_FILE}"
+    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+      "XML coordinate validation failed - coordinates are outside valid ranges" \
+      "Check coordinates in file: ${API_NOTES_FILE}. May indicate API data corruption."
+    exit "${ERROR_DATA_VALIDATION}"
+  fi
 
- __logi "All API notes XML validations passed successfully"
- __log_finish
+  __logi "All API notes XML validations passed successfully"
+  __log_finish
 }
 
 # Processes XML files with AWK extraction.
@@ -612,181 +612,240 @@ function __validateApiNotesXMLFileComplete {
 
 # Checks if the quantity of notes requires synchronization with Planet
 function __processXMLorPlanet {
- __log_start
+  __log_start
 
- if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
-  __logw "Starting full synchronization from Planet."
-  __logi "This could take several minutes."
-  "${NOTES_SYNC_SCRIPT}"
-  __logw "Finished full synchronization from Planet."
- else
-  # Check if there are notes to process
-  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-   # Check if we have enough notes to justify parallel processing
-   if [[ "${TOTAL_NOTES}" -ge "${MIN_NOTES_FOR_PARALLEL}" ]]; then
-    __logi "Processing ${TOTAL_NOTES} notes with parallel processing (threshold: ${MIN_NOTES_FOR_PARALLEL})"
-    __splitXmlForParallelAPI "${API_NOTES_FILE}"
-
-    # Process XML parts in parallel using GNU parallel
-    mapfile -t PART_FILES < <(find "${TMP_DIR}" -name "api_part_*.xml" -type f | sort || true)
-
-    if command -v parallel > /dev/null 2>&1; then
-     __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
-     export -f __processApiXmlPart
-
-     if ! printf '%s\n' "${PART_FILES[@]}" \
-      | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
-       "__processApiXmlPart {}"; then
-      __loge "ERROR: Parallel processing failed"
-      return 1
-     fi
-    else
-     __logi "GNU parallel not found, processing sequentially"
-     for PART_FILE in "${PART_FILES[@]}"; do
-      __processApiXmlPart "${PART_FILE}"
-     done
-    fi
-   else
-    __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
-    __processApiXmlSequential "${API_NOTES_FILE}"
-   fi
+  if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
+    __logw "Starting full synchronization from Planet."
+    __logi "This could take several minutes."
+    "${NOTES_SYNC_SCRIPT}"
+    __logw "Finished full synchronization from Planet."
   else
-   __logi "No notes found in XML file, skipping processing."
-  fi
- fi
+    # Check if there are notes to process
+    if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+      # Check if we have enough notes to justify parallel processing
+      if [[ "${TOTAL_NOTES}" -ge "${MIN_NOTES_FOR_PARALLEL}" ]]; then
+        __logi "Processing ${TOTAL_NOTES} notes with parallel processing (threshold: ${MIN_NOTES_FOR_PARALLEL})"
+        __splitXmlForParallelAPI "${API_NOTES_FILE}"
 
- __log_finish
+        # Process XML parts in parallel using GNU parallel
+        mapfile -t PART_FILES < <(find "${TMP_DIR}" -name "api_part_*.xml" -type f | sort || true)
+
+        if command -v parallel > /dev/null 2>&1; then
+          __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
+          export -f __processApiXmlPart
+
+          if ! printf '%s\n' "${PART_FILES[@]}" \
+            | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
+              "__processApiXmlPart {}"; then
+            __loge "ERROR: Parallel processing failed"
+            return 1
+          fi
+        else
+          __logi "GNU parallel not found, processing sequentially"
+          for PART_FILE in "${PART_FILES[@]}"; do
+            __processApiXmlPart "${PART_FILE}"
+          done
+        fi
+      else
+        __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
+        __processApiXmlSequential "${API_NOTES_FILE}"
+      fi
+    else
+      __logi "No notes found in XML file, skipping processing."
+    fi
+  fi
+
+  __log_finish
 }
 
 # Processes API XML file sequentially for small datasets
 # Parameters:
 #   $1: XML file path
 function __processApiXmlSequential {
- __log_start
- __logi "=== PROCESSING API XML SEQUENTIALLY ==="
+  __log_start
+  __logi "=== PROCESSING API XML SEQUENTIALLY ==="
 
- local XML_FILE="${1}"
- local OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes-sequential.csv"
- local OUTPUT_COMMENTS_FILE="${TMP_DIR}/output-comments-sequential.csv"
- local OUTPUT_TEXT_FILE="${TMP_DIR}/output-text-sequential.csv"
+  local XML_FILE="${1}"
+  local OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes-sequential.csv"
+  local OUTPUT_COMMENTS_FILE="${TMP_DIR}/output-comments-sequential.csv"
+  local OUTPUT_TEXT_FILE="${TMP_DIR}/output-text-sequential.csv"
 
- # Process notes with AWK (fast and dependency-free)
- __logd "Processing notes with AWK: ${XML_FILE} -> ${OUTPUT_NOTES_FILE}"
- awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_FILE}" > "${OUTPUT_NOTES_FILE}"
- if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
-  __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
+  # Process notes with AWK (fast and dependency-free)
+  __logd "Processing notes with AWK: ${XML_FILE} -> ${OUTPUT_NOTES_FILE}"
+  awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_FILE}" > "${OUTPUT_NOTES_FILE}"
+  if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
+    __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
+    __log_finish
+    return 1
+  fi
+
+  # Process comments with AWK (fast and dependency-free)
+  __logd "Processing comments with AWK: ${XML_FILE} -> ${OUTPUT_COMMENTS_FILE}"
+  awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_FILE}" > "${OUTPUT_COMMENTS_FILE}"
+  if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
+    __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
+    __log_finish
+    return 1
+  fi
+
+  # Process text comments with AWK (fast and dependency-free)
+  __logd "Processing text comments with AWK: ${XML_FILE} -> ${OUTPUT_TEXT_FILE}"
+  awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_FILE}" > "${OUTPUT_TEXT_FILE}"
+  if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
+    __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_FILE}"
+    : > "${OUTPUT_TEXT_FILE}"
+  fi
+
+  # Debug: Show generated CSV files and their sizes
+  __logd "Generated CSV files:"
+  __logd "  Notes: ${OUTPUT_NOTES_FILE} ($(wc -l < "${OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
+  __logd "  Comments: ${OUTPUT_COMMENTS_FILE} ($(wc -l < "${OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
+  __logd "  Text: ${OUTPUT_TEXT_FILE} ($(wc -l < "${OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
+
+  # Validate CSV files structure and content before loading
+  __logd "Validating CSV files structure and enum compatibility..."
+
+  # Validate notes
+  if ! __validate_csv_structure "${OUTPUT_NOTES_FILE}" "notes"; then
+    __loge "ERROR: Notes CSV structure validation failed"
+    __log_finish
+    return 1
+  fi
+
+  if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_FILE}" "notes"; then
+    __loge "ERROR: Notes CSV enum validation failed"
+    __log_finish
+    return 1
+  fi
+
+  # Validate comments
+  if ! __validate_csv_structure "${OUTPUT_COMMENTS_FILE}" "comments"; then
+    __loge "ERROR: Comments CSV structure validation failed"
+    __log_finish
+    return 1
+  fi
+
+  if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_FILE}" "comments"; then
+    __loge "ERROR: Comments CSV enum validation failed"
+    __log_finish
+    return 1
+  fi
+
+  # Validate text
+  if ! __validate_csv_structure "${OUTPUT_TEXT_FILE}" "text"; then
+    __loge "ERROR: Text CSV structure validation failed"
+    __log_finish
+    return 1
+  fi
+
+  __logi "✓ All CSV validations passed for sequential processing"
+
+  __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
+  __logd "Database: ${DBNAME}"
+
+  # Load into database with single thread (no partitioning)
+  export OUTPUT_NOTES_FILE
+  export OUTPUT_COMMENTS_FILE
+  export OUTPUT_TEXT_FILE
+  export PART_ID="1"
+  export MAX_THREADS="1"
+  # shellcheck disable=SC2016
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "SET app.part_id = '1'; SET app.max_threads = '1';" \
+    -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_COMMENTS_FILE,$OUTPUT_TEXT_FILE,$PART_ID' \
+      < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+
+  __logi "=== SEQUENTIAL API XML PROCESSING COMPLETED SUCCESSFULLY ==="
   __log_finish
-  return 1
- fi
-
- # Process comments with AWK (fast and dependency-free)
- __logd "Processing comments with AWK: ${XML_FILE} -> ${OUTPUT_COMMENTS_FILE}"
- awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_FILE}" > "${OUTPUT_COMMENTS_FILE}"
- if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
-  __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
-  __log_finish
-  return 1
- fi
-
- # Process text comments with AWK (fast and dependency-free)
- __logd "Processing text comments with AWK: ${XML_FILE} -> ${OUTPUT_TEXT_FILE}"
- awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_FILE}" > "${OUTPUT_TEXT_FILE}"
- if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
-  __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_FILE}"
-  : > "${OUTPUT_TEXT_FILE}"
- fi
-
- # Debug: Show generated CSV files and their sizes
- __logd "Generated CSV files:"
- __logd "  Notes: ${OUTPUT_NOTES_FILE} ($(wc -l < "${OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
- __logd "  Comments: ${OUTPUT_COMMENTS_FILE} ($(wc -l < "${OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
- __logd "  Text: ${OUTPUT_TEXT_FILE} ($(wc -l < "${OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
-
- # Validate CSV files structure and content before loading
- __logd "Validating CSV files structure and enum compatibility..."
-
- # Validate notes
- if ! __validate_csv_structure "${OUTPUT_NOTES_FILE}" "notes"; then
-  __loge "ERROR: Notes CSV structure validation failed"
-  __log_finish
-  return 1
- fi
-
- if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_FILE}" "notes"; then
-  __loge "ERROR: Notes CSV enum validation failed"
-  __log_finish
-  return 1
- fi
-
- # Validate comments
- if ! __validate_csv_structure "${OUTPUT_COMMENTS_FILE}" "comments"; then
-  __loge "ERROR: Comments CSV structure validation failed"
-  __log_finish
-  return 1
- fi
-
- if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_FILE}" "comments"; then
-  __loge "ERROR: Comments CSV enum validation failed"
-  __log_finish
-  return 1
- fi
-
- # Validate text
- if ! __validate_csv_structure "${OUTPUT_TEXT_FILE}" "text"; then
-  __loge "ERROR: Text CSV structure validation failed"
-  __log_finish
-  return 1
- fi
-
- __logi "✓ All CSV validations passed for sequential processing"
-
- __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
- __logd "Database: ${DBNAME}"
-
- # Load into database with single thread (no partitioning)
- export OUTPUT_NOTES_FILE
- export OUTPUT_COMMENTS_FILE
- export OUTPUT_TEXT_FILE
- export PART_ID="1"
- export MAX_THREADS="1"
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "SET app.part_id = '1'; SET app.max_threads = '1';" \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_COMMENTS_FILE,$OUTPUT_TEXT_FILE,$PART_ID' \
-   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
-
- __logi "=== SEQUENTIAL API XML PROCESSING COMPLETED SUCCESSFULLY ==="
- __log_finish
 }
 
 # Inserts new notes and comments into the database with parallel processing.
 function __insertNewNotesAndComments {
- __log_start
+  __log_start
 
- # Get the number of notes to process
- local NOTES_COUNT
- local TEMP_COUNT_FILE
- TEMP_COUNT_FILE=$(mktemp)
+  # Get the number of notes to process
+  local NOTES_COUNT
+  local TEMP_COUNT_FILE
+  TEMP_COUNT_FILE=$(mktemp)
 
- if ! __retry_database_operation "SELECT COUNT(1) FROM notes_api" "${TEMP_COUNT_FILE}" 3 2; then
-  __loge "Failed to count notes after retries"
+  if ! __retry_database_operation "SELECT COUNT(1) FROM notes_api" "${TEMP_COUNT_FILE}" 3 2; then
+    __loge "Failed to count notes after retries"
+    rm -f "${TEMP_COUNT_FILE}"
+    return 1
+  fi
+
+  NOTES_COUNT=$(cat "${TEMP_COUNT_FILE}")
   rm -f "${TEMP_COUNT_FILE}"
-  return 1
- fi
 
- NOTES_COUNT=$(cat "${TEMP_COUNT_FILE}")
- rm -f "${TEMP_COUNT_FILE}"
+  if [[ "${NOTES_COUNT}" -gt 1000 ]]; then
+    # Split the insertion into chunks
+    local PARTS="${MAX_THREADS}"
 
- if [[ "${NOTES_COUNT}" -gt 1000 ]]; then
-  # Split the insertion into chunks
-  local PARTS="${MAX_THREADS}"
+    for PART in $(seq 1 "${PARTS}"); do
+      (
+        __logi "Processing insertion part ${PART}"
 
-  for PART in $(seq 1 "${PARTS}"); do
-   (
-    __logi "Processing insertion part ${PART}"
+        # Generate unique process ID with timestamp to avoid conflicts
+        PROCESS_ID="${$}_$(date +%s)_${RANDOM}_${PART}"
 
+        # Set lock with retry logic and better error handling
+        local LOCK_RETRY_COUNT=0
+        local LOCK_MAX_RETRIES=3
+        local LOCK_RETRY_DELAY=2
+
+        while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
+          if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+            __logd "Lock acquired successfully for part ${PART}: ${PROCESS_ID}"
+            break
+          else
+            LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
+            __logw "Lock acquisition failed for part ${PART}, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
+
+            if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
+              sleep "${LOCK_RETRY_DELAY}"
+            fi
+          fi
+        done
+
+        if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
+          __loge "Failed to acquire lock for part ${PART} after ${LOCK_MAX_RETRIES} attempts"
+          # Force error to trigger trap
+          false
+        fi
+
+        export PROCESS_ID
+        if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+          -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
+          __loge "Failed to process insertion part ${PART}"
+          # Remove lock even on failure
+          echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+          __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed for part ${PART}" \
+            "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
+        fi
+
+        # Remove lock on success
+        if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+          __loge "Failed to remove lock for part ${PART}"
+          __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for part ${PART}"
+        fi
+
+        __logi "Completed insertion part ${PART}"
+      ) &
+    done
+
+    # Wait for all insertion jobs to complete
+    wait
+
+    # Check if any background jobs failed
+    if ! wait; then
+      __loge "One or more insertion parts failed"
+      __handle_error_with_cleanup "${ERROR_GENERAL}" "One or more insertion parts failed"
+    fi
+
+  else
+    # For small datasets, use single connection
     # Generate unique process ID with timestamp to avoid conflicts
-    PROCESS_ID="${$}_$(date +%s)_${RANDOM}_${PART}"
+    PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
 
     # Set lock with retry logic and better error handling
     local LOCK_RETRY_COUNT=0
@@ -794,147 +853,88 @@ function __insertNewNotesAndComments {
     local LOCK_RETRY_DELAY=2
 
     while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
-     if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-      __logd "Lock acquired successfully for part ${PART}: ${PROCESS_ID}"
-      break
-     else
-      LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
-      __logw "Lock acquisition failed for part ${PART}, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
+      if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+        __logd "Lock acquired successfully: ${PROCESS_ID}"
+        break
+      else
+        LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
+        __logw "Lock acquisition failed, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
 
-      if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
-       sleep "${LOCK_RETRY_DELAY}"
+        if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
+          sleep "${LOCK_RETRY_DELAY}"
+        fi
       fi
-     fi
     done
 
     if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
-     __loge "Failed to acquire lock for part ${PART} after ${LOCK_MAX_RETRIES} attempts"
-     # Force error to trigger trap
-     false
+      __loge "Failed to acquire lock after ${LOCK_MAX_RETRIES} attempts"
+      # Force error to trigger trap
+      false
     fi
 
     export PROCESS_ID
     if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
-     __loge "Failed to process insertion part ${PART}"
-     # Remove lock even on failure
-     echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
-     __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed for part ${PART}" \
-      "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
+      -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
+      __loge "Failed to process insertion"
+      # Remove lock even on failure
+      echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+      __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed" \
+        "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
     fi
 
     # Remove lock on success
     if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-     __loge "Failed to remove lock for part ${PART}"
-     __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for part ${PART}"
+      __loge "Failed to remove lock for single process"
+      __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for single process"
     fi
-
-    __logi "Completed insertion part ${PART}"
-   ) &
-  done
-
-  # Wait for all insertion jobs to complete
-  wait
-
-  # Check if any background jobs failed
-  if ! wait; then
-   __loge "One or more insertion parts failed"
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "One or more insertion parts failed"
   fi
 
- else
-  # For small datasets, use single connection
-  # Generate unique process ID with timestamp to avoid conflicts
-  PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
-
-  # Set lock with retry logic and better error handling
-  local LOCK_RETRY_COUNT=0
-  local LOCK_MAX_RETRIES=3
-  local LOCK_RETRY_DELAY=2
-
-  while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
-   if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-    __logd "Lock acquired successfully: ${PROCESS_ID}"
-    break
-   else
-    LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
-    __logw "Lock acquisition failed, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
-
-    if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
-     sleep "${LOCK_RETRY_DELAY}"
-    fi
-   fi
-  done
-
-  if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
-   __loge "Failed to acquire lock after ${LOCK_MAX_RETRIES} attempts"
-   # Force error to trigger trap
-   false
-  fi
-
-  export PROCESS_ID
-  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
-   __loge "Failed to process insertion"
-   # Remove lock even on failure
-   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed" \
-    "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
-  fi
-
-  # Remove lock on success
-  if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-   __loge "Failed to remove lock for single process"
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for single process"
-  fi
- fi
-
- __log_finish
+  __log_finish
 }
 
 # Inserts the new text comments.
 function __loadApiTextComments {
- __log_start
- export OUTPUT_TEXT_COMMENTS_FILE
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst "\$OUTPUT_TEXT_COMMENTS_FILE" \
-   < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)"
- __log_finish
+  __log_start
+  export OUTPUT_TEXT_COMMENTS_FILE
+  # shellcheck disable=SC2016
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -c "$(envsubst "\$OUTPUT_TEXT_COMMENTS_FILE" \
+      < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)"
+  __log_finish
 }
 
 # Consolidates data from all partitions into single tables.
 function __consolidatePartitions {
- __log_start
- __logi "Consolidating data from all partitions."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
- __log_finish
+  __log_start
+  __logi "Consolidating data from all partitions."
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
+  __log_finish
 }
 
 # Updates the refreshed value.
 function __updateLastValue {
- __log_start
- __logi "Updating last update time."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_34_UPDATE_LAST_VALUES}"
- __log_finish
+  __log_start
+  __logi "Updating last update time."
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_34_UPDATE_LAST_VALUES}"
+  __log_finish
 }
 
 # Clean files generated during the process.
 function __cleanNotesFiles {
- __log_start
- if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-  rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
-   "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
- fi
- __log_finish
+  __log_start
+  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+    rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
+      "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
+  fi
+  __log_finish
 }
 
 # Function to check and log gaps from database
 function __check_and_log_gaps() {
- __log_start
+  __log_start
 
- # Query database for recent gaps
- local GAP_QUERY="
+  # Query database for recent gaps
+  local GAP_QUERY="
    SELECT 
      gap_timestamp,
      gap_type,
@@ -949,18 +949,18 @@ function __check_and_log_gaps() {
    LIMIT 10
  "
 
- # Log gaps to file
- local GAP_FILE="/tmp/processAPINotes_gaps.log"
- psql -d "${DBNAME}" -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
+  # Log gaps to file
+  local GAP_FILE="/tmp/processAPINotes_gaps.log"
+  psql -d "${DBNAME}" -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
 
- __logd "Checked and logged gaps from database"
- __log_finish
+  __logd "Checked and logged gaps from database"
+  __log_finish
 }
 
 # Function that activates the error trap.
 function __trapOn() {
- __log_start
- trap '{ 
+  __log_start
+  trap '{ 
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
@@ -987,7 +987,7 @@ function __trapOn() {
    exit "${ERROR_EXIT_CODE}";
   fi;
  }' ERR
- trap '{ 
+  trap '{ 
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
@@ -1004,167 +1004,189 @@ function __trapOn() {
   fi;
   exit ${ERROR_GENERAL};
  }' SIGINT SIGTERM
- __log_finish
+  __log_finish
 }
 
 ######
 # MAIN
 
 function main() {
- __log_start
- __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}."
- __logi "Process ID: ${$}"
- __logi "Processing: '${PROCESS_TYPE}'."
+  __log_start
+  __logi "Preparing environment."
+  __logd "Output saved at: ${TMP_DIR}."
+  __logi "Process ID: ${$}"
+  __logi "Processing: '${PROCESS_TYPE}'."
 
- if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-  __show_help
- fi
- if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
-  echo "Previous execution failed. Please verify the data and then remove the"
-  echo "next file:"
-  echo "   ${FAILED_EXECUTION_FILE}"
-  exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
- fi
- __checkPrereqs
- __logw "Process started."
-
- # Sets the trap in case of any signal.
- __trapOn
- exec 8> "${LOCK}"
- __logw "Validating single execution."
- ONLY_EXECUTION="no"
- flock -n 8
- ONLY_EXECUTION="yes"
-
- __dropApiTables
- set +E
- __checkNoProcessPlanet
- export RET_FUNC=0
- __checkBaseTables
- if [[ "${RET_FUNC}" -ne 0 ]]; then
-  __logw "Base tables missing. Creating base structure and geographic data."
-  __logi "This will take approximately 1-2 hours for complete setup."
-
-  # Close lock file descriptor to prevent inheritance by child processes
-  __logd "Releasing lock before spawning child processes"
-  exec 8>&-
-
-  # Step 1: Create base structure (tables only)
-  __logi "Step 1/3: Creating base database structure..."
-  if ! "${NOTES_SYNC_SCRIPT}" --base; then
-   __loge "ERROR: Failed to create base structure. Stopping process."
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Failed to create base database structure (Step 1/3)" \
-    "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+    __show_help
   fi
-  __logw "Base structure created successfully."
-
-  # Step 2: Load initial geographic data
-  __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
-  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
-   if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
-    __loge "ERROR: Failed to load geographic data. Stopping process."
-    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-     "Failed to load initial geographic data (Step 2/3)" \
-     "Check updateCountries.sh script and ensure geographic data files are accessible. Script: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-    exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   fi
-   __logw "Geographic data loaded successfully."
-  else
-   __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
-   __create_failed_marker "${ERROR_MISSING_LIBRARY}" \
-    "updateCountries.sh script not found" \
-    "Install or restore updateCountries.sh at: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-   exit "${ERROR_MISSING_LIBRARY}"
+  if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
+    echo "Previous execution failed. Please verify the data and then remove the"
+    echo "next file:"
+    echo "   ${FAILED_EXECUTION_FILE}"
+    exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
   fi
+  __checkPrereqs
+  __logw "Process started."
 
-  # Step 3: Process planet notes (now with geographic data available)
-  __logi "Step 3/3: Processing planet notes with geographic data..."
-  set +e
-  "${NOTES_SYNC_SCRIPT}" # sin argumentos
-  RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]]; then
-   __loge "ERROR: Failed to process planet notes."
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Failed to process planet notes - historical data load failed (Step 3/3)" \
-    "Check processPlanetNotes.sh execution. Verify planet dump file availability and database space. Script: ${NOTES_SYNC_SCRIPT}"
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-  fi
-  __logw "Complete setup finished successfully."
-  __logi "System is now ready for regular API processing."
-
-  # Re-acquire lock after child processes complete
-  __logd "Re-acquiring lock after child processes"
+  # Sets the trap in case of any signal.
+  __trapOn
   exec 8> "${LOCK}"
+  __logw "Validating single execution."
+  ONLY_EXECUTION="no"
   flock -n 8
-  __logd "Lock re-acquired successfully"
- else
-  # Base tables exist, now check if they contain historical data
-  __logi "Base tables found. Validating historical data..."
-  __checkHistoricalData
+  ONLY_EXECUTION="yes"
+
+  # Write lock file content with useful debugging information
+  cat > "${LOCK}" << EOF
+PID: $$
+Process: ${BASENAME}
+Started: $(date '+%Y-%m-%d %H:%M:%S')
+Temporary directory: ${TMP_DIR}
+Process type: ${PROCESS_TYPE}
+Main script: ${0}
+EOF
+  __logd "Lock file content written to: ${LOCK}"
+
+  __dropApiTables
+  set +E
+  __checkNoProcessPlanet
+  export RET_FUNC=0
+  __checkBaseTables
   if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Historical data validation failed - base tables exist but contain no historical data" \
-    "Run processPlanetNotes.sh to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-  fi
-  __logi "Historical data validation passed. ProcessAPI can continue safely."
- fi
+    __logw "Base tables missing. Creating base structure and geographic data."
+    __logi "This will take approximately 1-2 hours for complete setup."
 
- set -E
- __createApiTables
- __createPartitions
- __createPropertiesTable
- __createProcedures
- set +E
- __getNewNotesFromApi
- set -E
+    # Close lock file descriptor to prevent inheritance by child processes
+    __logd "Releasing lock before spawning child processes"
+    exec 8>&-
 
- # Verify that the API notes file was downloaded successfully
- if [[ ! -f "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
-   "API notes file was not downloaded" \
-   "This may be temporary. Check network connectivity and OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. Expected file: ${API_NOTES_FILE}"
-  exit "${ERROR_INTERNET_ISSUE}"
- fi
+    # Step 1: Create base structure (tables only)
+    __logi "Step 1/3: Creating base database structure..."
+    if ! "${NOTES_SYNC_SCRIPT}" --base; then
+      __loge "ERROR: Failed to create base structure. Stopping process."
+      __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+        "Failed to create base database structure (Step 1/3)" \
+        "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
+      exit "${ERROR_EXECUTING_PLANET_DUMP}"
+    fi
+    __logw "Base structure created successfully."
 
- # Check if the file has content (not empty)
- if [[ ! -s "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
-   "API notes file is empty - no data received from OSM API" \
-   "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
-  exit "${ERROR_INTERNET_ISSUE}"
- fi
+    # Step 2: Load initial geographic data
+    __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
+    if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
+      if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
+        __loge "ERROR: Failed to load geographic data. Stopping process."
+        __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+          "Failed to load initial geographic data (Step 2/3)" \
+          "Check updateCountries.sh script and ensure geographic data files are accessible. Script: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+        exit "${ERROR_EXECUTING_PLANET_DUMP}"
+      fi
+      __logw "Geographic data loaded successfully."
+    else
+      __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
+      __create_failed_marker "${ERROR_MISSING_LIBRARY}" \
+        "updateCountries.sh script not found" \
+        "Install or restore updateCountries.sh at: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+      exit "${ERROR_MISSING_LIBRARY}"
+    fi
 
- __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
+    # Step 3: Process planet notes (now with geographic data available)
+    __logi "Step 3/3: Processing planet notes with geographic data..."
+    set +e
+    "${NOTES_SYNC_SCRIPT}" # sin argumentos
+    RET=${?}
+    set -e
+    if [[ "${RET}" -ne 0 ]]; then
+      __loge "ERROR: Failed to process planet notes."
+      __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+        "Failed to process planet notes - historical data load failed (Step 3/3)" \
+        "Check processPlanetNotes.sh execution. Verify planet dump file availability and database space. Script: ${NOTES_SYNC_SCRIPT}"
+      exit "${ERROR_EXECUTING_PLANET_DUMP}"
+    fi
+    __logw "Complete setup finished successfully."
+    __logi "System is now ready for regular API processing."
 
- declare -i RESULT
- RESULT=$(wc -l < "${API_NOTES_FILE}")
- if [[ "${RESULT}" -ne 0 ]]; then
-  # Validate XML only if validation is enabled
-  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-   __validateApiNotesXMLFileComplete
+    # Re-acquire lock after child processes complete
+    __logd "Re-acquiring lock after child processes"
+    exec 8> "${LOCK}"
+    flock -n 8
+
+    # Write lock file content with useful debugging information
+    cat > "${LOCK}" << EOF
+PID: $$
+Process: ${BASENAME}
+Started: $(date '+%Y-%m-%d %H:%M:%S')
+Temporary directory: ${TMP_DIR}
+Process type: ${PROCESS_TYPE}
+Main script: ${0}
+Status: Setup completed, continuing with API processing
+EOF
+    __logd "Lock re-acquired and content updated"
   else
-   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+    # Base tables exist, now check if they contain historical data
+    __logi "Base tables found. Validating historical data..."
+    __checkHistoricalData
+    if [[ "${RET_FUNC}" -ne 0 ]]; then
+      __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+        "Historical data validation failed - base tables exist but contain no historical data" \
+        "Run processPlanetNotes.sh to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
+      exit "${ERROR_EXECUTING_PLANET_DUMP}"
+    fi
+    __logi "Historical data validation passed. ProcessAPI can continue safely."
   fi
-  __countXmlNotesAPI "${API_NOTES_FILE}"
-  __processXMLorPlanet
-  __consolidatePartitions
-  __insertNewNotesAndComments
-  __loadApiTextComments
-  __updateLastValue
- fi
- __check_and_log_gaps
- __cleanNotesFiles
 
- rm -f "${LOCK}"
- __logw "Process finished."
- __log_finish
+  set -E
+  __createApiTables
+  __createPartitions
+  __createPropertiesTable
+  __createProcedures
+  set +E
+  __getNewNotesFromApi
+  set -E
+
+  # Verify that the API notes file was downloaded successfully
+  if [[ ! -f "${API_NOTES_FILE}" ]]; then
+    __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
+    __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+      "API notes file was not downloaded" \
+      "This may be temporary. Check network connectivity and OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. Expected file: ${API_NOTES_FILE}"
+    exit "${ERROR_INTERNET_ISSUE}"
+  fi
+
+  # Check if the file has content (not empty)
+  if [[ ! -s "${API_NOTES_FILE}" ]]; then
+    __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
+    __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+      "API notes file is empty - no data received from OSM API" \
+      "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
+    exit "${ERROR_INTERNET_ISSUE}"
+  fi
+
+  __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
+
+  declare -i RESULT
+  RESULT=$(wc -l < "${API_NOTES_FILE}")
+  if [[ "${RESULT}" -ne 0 ]]; then
+    # Validate XML only if validation is enabled
+    if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+      __validateApiNotesXMLFileComplete
+    else
+      __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+    fi
+    __countXmlNotesAPI "${API_NOTES_FILE}"
+    __processXMLorPlanet
+    __consolidatePartitions
+    __insertNewNotesAndComments
+    __loadApiTextComments
+    __updateLastValue
+  fi
+  __check_and_log_gaps
+  __cleanNotesFiles
+
+  rm -f "${LOCK}"
+  __logw "Process finished."
+  __log_finish
 }
 # Return value for several functions.
 declare -i RET
@@ -1174,12 +1196,12 @@ chmod go+x "${TMP_DIR}"
 
 __start_logger
 if [[ ! -t 1 ]]; then
- __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}" 2>&1
- if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-  rmdir "${TMP_DIR}"
- fi
+  __set_log_file "${LOG_FILENAME}"
+  main >> "${LOG_FILENAME}" 2>&1
+  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+    mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+    rmdir "${TMP_DIR}"
+  fi
 else
- main
+  main
 fi

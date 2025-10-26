@@ -38,10 +38,10 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 # Only set SCRIPT_BASE_DIRECTORY if not already defined (e.g., in test environment)
 if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
- declare SCRIPT_BASE_DIRECTORY
- SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-  &> /dev/null && pwd)"
- readonly SCRIPT_BASE_DIRECTORY
+  declare SCRIPT_BASE_DIRECTORY
+  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+    &> /dev/null && pwd)"
+  readonly SCRIPT_BASE_DIRECTORY
 fi
 
 # Variable to define that the process should update the location of notes.
@@ -51,11 +51,11 @@ export UPDATE_NOTE_LOCATION=true
 # Loads the global properties.
 # shellcheck disable=SC1091
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh" ]] && [[ "${BATS_TEST_NAME:-}" != "" ]]; then
- # Use test properties when running in test environment
- source "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh"
+  # Use test properties when running in test environment
+  source "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh"
 else
- # Use production properties
- source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+  # Use production properties
+  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 fi
 
 # Mask for the files and directories.
@@ -75,7 +75,7 @@ chmod 777 "${TMP_DIR}"
 # Load processPlanetFunctions.sh to get SQL file variables
 # shellcheck disable=SC1091
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
- source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
 fi
 # Log file for output.
 declare LOG_FILENAME
@@ -89,7 +89,7 @@ readonly LOCK
 
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then
- declare -r PROCESS_TYPE=${1:-}
+  declare -r PROCESS_TYPE=${1:-}
 fi
 
 # Location of the common functions.
@@ -121,62 +121,62 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
 
 # Shows the help information.
 function __show_help {
- echo "${BASENAME} version ${VERSION}"
- echo "Updates the country and maritime boundaries."
- echo
- echo "This script handles the complete lifecycle of countries and maritimes:"
- echo "  - Creates and manages table structures (--base mode drops and recreates)"
- echo "  - Downloads and processes geographic data"
- echo "  - Updates boundaries and verifies note locations"
- echo "  - Re-assigns countries for notes affected by boundary changes"
- echo
- echo "Usage:"
- echo "  ${BASENAME}.sh              # Update boundaries in normal mode"
- echo "  ${BASENAME}.sh --base       # Drop and recreate base tables"
- echo "  ${BASENAME}.sh --help       # Show this help message"
- echo "  ${BASENAME}.sh -h           # Show this help message"
- echo
- echo "Environment variables:"
- echo "  CLEAN=true|false            # Control cleanup of temporary files"
- echo "  UPDATE_NOTE_LOCATION=true   # Re-assign countries for affected notes"
- echo
- echo "Written by: Andres Gomez (AngocA)"
- echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
- exit "${ERROR_HELP_MESSAGE}"
+  echo "${BASENAME} version ${VERSION}"
+  echo "Updates the country and maritime boundaries."
+  echo
+  echo "This script handles the complete lifecycle of countries and maritimes:"
+  echo "  - Creates and manages table structures (--base mode drops and recreates)"
+  echo "  - Downloads and processes geographic data"
+  echo "  - Updates boundaries and verifies note locations"
+  echo "  - Re-assigns countries for notes affected by boundary changes"
+  echo
+  echo "Usage:"
+  echo "  ${BASENAME}.sh              # Update boundaries in normal mode"
+  echo "  ${BASENAME}.sh --base       # Drop and recreate base tables"
+  echo "  ${BASENAME}.sh --help       # Show this help message"
+  echo "  ${BASENAME}.sh -h           # Show this help message"
+  echo
+  echo "Environment variables:"
+  echo "  CLEAN=true|false            # Control cleanup of temporary files"
+  echo "  UPDATE_NOTE_LOCATION=true   # Re-assign countries for affected notes"
+  echo
+  echo "Written by: Andres Gomez (AngocA)"
+  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+  exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
- __log_start
- if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
-  && [[ "${PROCESS_TYPE}" != "--help" ]] \
-  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
-  echo "ERROR: Invalid parameter. It should be:"
-  echo " * Empty string, nothing."
-  echo " * --help"
-  exit "${ERROR_INVALID_ARGUMENT}"
- fi
+  __log_start
+  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
+    && [[ "${PROCESS_TYPE}" != "--help" ]] \
+    && [[ "${PROCESS_TYPE}" != "-h" ]]; then
+    echo "ERROR: Invalid parameter. It should be:"
+    echo " * Empty string, nothing."
+    echo " * --help"
+    exit "${ERROR_INVALID_ARGUMENT}"
+  fi
 
- # Validate prerequisites: commands, DB connection, and functions
- __checkPrereqsCommands
- __checkPrereqs_functions
- __log_finish
+  # Validate prerequisites: commands, DB connection, and functions
+  __checkPrereqsCommands
+  __checkPrereqs_functions
+  __log_finish
 }
 
 # Clean files and tables.
 function __cleanPartial {
- __log_start
- if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-  rm -f "${QUERY_FILE}.*" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
-  echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
- fi
- __log_finish
+  __log_start
+  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+    rm -f "${QUERY_FILE}.*" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
+    echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
+  fi
+  __log_finish
 }
 
 # Function that activates the error trap.
 function __trapOn() {
- __log_start
- trap '{ 
+  __log_start
+  trap '{ 
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
@@ -203,7 +203,7 @@ function __trapOn() {
    exit "${ERROR_EXIT_CODE}";
   fi;
  }' ERR
- trap '{ 
+  trap '{ 
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
@@ -220,58 +220,58 @@ function __trapOn() {
   fi;
   exit ${ERROR_GENERAL};
  }' SIGINT SIGTERM
- __log_finish
+  __log_finish
 }
 
 # Drop existing country tables
 function __dropCountryTables {
- __log_start
- __logi "=== DROPPING COUNTRY TABLES ==="
- __logd "Dropping countries and tries tables directly"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+  __log_start
+  __logi "=== DROPPING COUNTRY TABLES ==="
+  __logd "Dropping countries and tries tables directly"
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
 -- Drop country tables
 DROP TABLE IF EXISTS countries CASCADE;
 DROP TABLE IF EXISTS tries CASCADE;
 EOF
- __logi "=== COUNTRY TABLES DROPPED SUCCESSFULLY ==="
- __log_finish
+  __logi "=== COUNTRY TABLES DROPPED SUCCESSFULLY ==="
+  __log_finish
 }
 
 # Creates country tables
 function __createCountryTables {
- __log_start
- __logi "Creating country and maritime tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
- __log_finish
+  __log_start
+  __logi "Creating country and maritime tables."
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
+  __log_finish
 }
 
 # Re-assigns countries only for notes affected by geometry changes.
 # This is much more efficient than re-processing all notes.
 # Only processes notes within bounding boxes of countries that were updated.
 function __reassignAffectedNotes {
- __log_start
- __logi "Re-assigning countries for notes affected by boundary changes..."
+  __log_start
+  __logi "Re-assigning countries for notes affected by boundary changes..."
 
- # Get list of countries that were updated
- local -r UPDATED_COUNTRIES=$(psql -d "${DBNAME}" -Atq -c "
+  # Get list of countries that were updated
+  local -r UPDATED_COUNTRIES=$(psql -d "${DBNAME}" -Atq -c "
    SELECT country_id
    FROM countries
    WHERE updated = TRUE;
  ")
 
- if [[ -z "${UPDATED_COUNTRIES}" ]]; then
-  __logi "No countries were updated, skipping re-assignment"
-  __log_finish
-  return 0
- fi
+  if [[ -z "${UPDATED_COUNTRIES}" ]]; then
+    __logi "No countries were updated, skipping re-assignment"
+    __log_finish
+    return 0
+  fi
 
- local -r COUNT=$(echo "${UPDATED_COUNTRIES}" | wc -l)
- __logi "Found ${COUNT} countries with updated geometries"
+  local -r COUNT=$(echo "${UPDATED_COUNTRIES}" | wc -l)
+  __logi "Found ${COUNT} countries with updated geometries"
 
- # Re-assign countries for notes within bounding boxes of updated countries
- # This uses the optimized get_country function which checks current country first
- __logi "Updating notes within affected areas..."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'SQL'
+  # Re-assign countries for notes within bounding boxes of updated countries
+  # This uses the optimized get_country function which checks current country first
+  __logi "Updating notes within affected areas..."
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'SQL'
    -- Re-assign country for notes that might be affected
    -- The get_country function will check if note is still in current country first
    UPDATE notes n
@@ -291,91 +291,102 @@ function __reassignAffectedNotes {
    );
 SQL
 
- # Show statistics
- local -r NOTES_UPDATED=$(psql -d "${DBNAME}" -Atq -c "
+  # Show statistics
+  local -r NOTES_UPDATED=$(psql -d "${DBNAME}" -Atq -c "
    SELECT COUNT(*)
    FROM tries
    WHERE area = 'Country changed';
  ")
- __logi "Notes that changed country: ${NOTES_UPDATED}"
+  __logi "Notes that changed country: ${NOTES_UPDATED}"
 
- # Mark countries as processed
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+  # Mark countries as processed
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
    UPDATE countries SET updated = FALSE WHERE updated = TRUE;
  "
 
- __logi "Re-assignment completed"
- __log_finish
+  __logi "Re-assignment completed"
+  __log_finish
 }
 
 ######
 # MAIN
 
 function main() {
- __log_start
- __logi "Preparing environment."
- __logd "Output saved at: ${TMP_DIR}."
- __logi "Processing: ${PROCESS_TYPE}."
+  __log_start
+  __logi "Preparing environment."
+  __logd "Output saved at: ${TMP_DIR}."
+  __logi "Processing: ${PROCESS_TYPE}."
 
- # Handle help first, before checking prerequisites
- if [[ "${PROCESS_TYPE}" == "-h" ]] \
-  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-  __show_help
-  exit "${ERROR_HELP_MESSAGE}"
- fi
+  # Handle help first, before checking prerequisites
+  if [[ "${PROCESS_TYPE}" == "-h" ]] \
+    || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+    __show_help
+    exit "${ERROR_HELP_MESSAGE}"
+  fi
 
- # Checks the prerequisities. It could terminate the process.
- __checkPrereqs
+  # Checks the prerequisities. It could terminate the process.
+  __checkPrereqs
 
- __logw "Starting process."
+  __logw "Starting process."
 
- # Sets the trap in case of any signal.
- __trapOn
- exec 7> "${LOCK}"
- __logw "Validating single execution."
- ONLY_EXECUTION="no"
- flock -n 7
- ONLY_EXECUTION="yes"
+  # Sets the trap in case of any signal.
+  __trapOn
+  exec 7> "${LOCK}"
+  __logw "Validating single execution."
+  ONLY_EXECUTION="no"
+  flock -n 7
+  ONLY_EXECUTION="yes"
 
- if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __logi "Running in base mode - dropping and recreating tables for consistency"
+  # Write lock file content with useful debugging information
+  cat > "${LOCK}" << EOF
+PID: $$
+Process: ${BASENAME}
+Started: $(date '+%Y-%m-%d %H:%M:%S')
+Temporary directory: ${TMP_DIR}
+Process type: ${PROCESS_TYPE}
+Main script: ${0}
+EOF
+  __logd "Lock file content written to: ${LOCK}"
 
-  # Drop and recreate country tables for consistency with processPlanetNotes.sh
-  __logi "Dropping existing country and maritime tables..."
-  __dropCountryTables
+  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
+    __logi "Running in base mode - dropping and recreating tables for consistency"
 
-  __logi "Creating country and maritime tables..."
-  __createCountryTables
+    # Drop and recreate country tables for consistency with processPlanetNotes.sh
+    __logi "Dropping existing country and maritime tables..."
+    __dropCountryTables
 
-  # Process countries and maritimes data
-  __logi "Processing countries and maritimes data..."
-  __processCountries
-  __processMaritimes
-  __cleanPartial
-  # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
-  # after countries are loaded, not here
- else
-  __logi "Running in update mode - processing existing data only"
-  STMT="UPDATE countries SET updated = TRUE"
-  echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-  __processCountries
-  __processMaritimes
-  __cleanPartial
+    __logi "Creating country and maritime tables..."
+    __createCountryTables
 
-  # Re-assign countries for notes affected by boundary changes
-  # This is automatic and much more efficient than re-processing all notes
-  __reassignAffectedNotes
- fi
- __log_finish
+    # Process countries and maritimes data
+    __logi "Processing countries and maritimes data..."
+    __processCountries
+    __processMaritimes
+    __cleanPartial
+    # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
+    # after countries are loaded, not here
+  else
+    __logi "Running in update mode - processing existing data only"
+    STMT="UPDATE countries SET updated = TRUE"
+    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    __processCountries
+    __processMaritimes
+    __cleanPartial
+
+    # Re-assign countries for notes affected by boundary changes
+    # This is automatic and much more efficient than re-processing all notes
+    __reassignAffectedNotes
+  fi
+  __log_finish
 }
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
- __start_logger
- if [[ ! -t 1 ]]; then
-  __set_log_file "${LOG_FILENAME}"
-  main >> "${LOG_FILENAME}" 2>&1
- else
-  main
- fi
+  __start_logger
+  if [[ ! -t 1 ]]; then
+    __set_log_file "${LOG_FILENAME}"
+    main >> "${LOG_FILENAME}" 2>&1
+  else
+    main
+  fi
 fi
