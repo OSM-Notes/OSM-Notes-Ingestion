@@ -280,200 +280,67 @@ Status: In Progress
 **Reason**: DWH/ETL code is no longer maintained in this repository
 
 ### Scalability (from prompts)
-- [ ] **Scale #1**: Implement parallel processing
+- [✅] **Scale #1**: Implement parallel processing
   - **Current**: Sequential processing
   - **Target**: Note processing, boundary updates
   - **Tools**: GNU parallel or custom implementation
   - **Files**: Main processing scripts
+  - **Status**: ALREADY IMPLEMENTED
+  - **Note**: Parallel processing already exists in processPlanetNotes.sh and processAPINotes.sh using GNU parallel
+  - **No action needed**
 
-- [ ] **Scale #2**: Add memory control for large files
+- [✅] **Scale #2**: Add memory control for large files
   - **Issue**: Large XML/CSV files can exhaust memory
-  - **Solution**: Stream processing, chunking
-  - **Files**: File processing functions
+  - **Solution**: Check memory before processing, use conservative mode if low
+  - **Files**: File processing functions, processAPINotes.sh
+  - **Completed**: 2025-01-21
+  - **Priority**: MEDIUM
+  - **Rationale**: Most beneficial for processAPI (runs every 15 min), less critical for processPlanet (monthly)
+  - **Implementation**:
+    - Added `__checkMemoryForProcessing()` function to check available RAM
+    - Checks for minimum 1GB available before allowing parallel processing
+    - Falls back to sequential processing when memory is low
+    - Graceful handling when `free` command is unavailable
+    - Logs memory status for debugging
+  - **Changes**: 
+    - Modified `__processXMLorPlanet()` to call memory check before parallel processing
+    - Memory threshold configurable (default: 1000MB)
+    - Prevents OOM kills during frequent API executions
+  - **Testing**: 
+    - Considered adding specific tests but decided against:
+      - Change is simple (one memory check)
+      - Graceful fallback handles failures
+      - Already covered by existing integration tests
+      - System tests will catch OOM issues in production
+      - Manual testing more practical (mock `free` command with different values)
 
-- [ ] **Scale #3**: Add checkpointing for long processes
+- [❌] **Scale #3**: Add checkpointing for long processes - CANCELLED
   - **Purpose**: Resume after interruption
   - **Implementation**: Save state periodically
   - **Files**: processPlanetNotes, updateCountries
+  - **Cancelled**: 2025-01-21
+  - **Reason**: Not practical because:
+    1. Each execution starts fresh (new temp dir)
+    2. Database already tracks processed state
+    3. processAPINotes runs every 15 min (idempotent by design)
+    4. Parallel processing makes resume logic very complex
+    5. Existing error handling already creates failed markers
+    6. Would require tracking temp files in /tmp (unreliable)
 
 ---
 
 ## 🟢 LOW PRIORITY
 
-### ❌ Datamarts & Visualizer (CANCELLED - Code moved to different repository)
+### ❌ Datamarts & Visualizer (MOVED TO ANALYTICS REPO)
 
-- [❌] **DM #1-19**: All Datamart tasks - CANCELLED (2025-10-21)
-- [❌] **VIZ #1-7**: All Visualizer tasks - CANCELLED (2025-10-21)
+- [❌] **DM #1-19**: All Datamart tasks - MOVED to OSM-Notes-Analytics repo (2025-01-21)
+- [❌] **VIZ #1-7**: All Visualizer tasks - MOVED to OSM-Notes-Analytics repo (2025-01-21)
+- [❌] **OTHER #1-3**: Analytics export tasks - MOVED to OSM-Notes-Analytics repo (2025-01-21)
+- [❌] **DOC #1-2**: Analytics docs - MOVED to OSM-Notes-Analytics repo (2025-01-21)
 
-**Reason**: DWH/ETL/Datamarts/Visualizer code is no longer in this repository
+**Reason**: Datamarts, Visualizations, and Analytics code is maintained in OSM-Notes-Analytics repository
 
-### Datamarts - Applications and Hashtags (LEGACY)
-
-- [ ] **DM #1**: Show applications used to create notes
-  - **Source**: Parse comment text
-  - **Display**: By user and country
-  - **Files**: Datamart user/country scripts
-
-- [ ] **DM #2**: Complete hashtag analyzer
-  - [✅] Include hashtags in note (DONE)
-  - [ ] Show most used hashtags by country
-  - [ ] Show most used hashtags for notes
-  - [ ] Filter notes by hashtag
-  - **Files**: Datamart scripts, web interface
-
-- [ ] **DM #3**: Adjust hashtag queries for comment sequence
-  - **Link**: Hashtags to specific comment sequence
-  - **Files**: Hashtag query procedures
-
-- [ ] **DM #4**: Define and assign badges
-  - **Examples**: Top contributor, quick responder, etc.
-  - **Storage**: User dimension or separate table
-  - **Files**: Datamart user calculations
-
-- [ ] **DM #5**: Parallelize user datamart processing
-  - **Issue**: Takes many hours currently
-  - **Solution**: Process users in parallel batches
-  - **Files**: Datamart user processing
-
-### Datamarts - Quality Metrics
-
-- [ ] **DM #6**: Implement note quality scoring
-  - **Bad**: < 5 characters
-  - **Regular**: < 10 characters
-  - **Complex**: > 200 characters
-  - **Detailed**: > 500 characters
-  - **Files**: Note dimension, facts
-
-- [ ] **DM #7**: Calculate "time to resolve notes"
-  - **Metric**: closed_at - created_at for closed notes
-  - **Storage**: Use in datamarts
-  - **Files**: Facts, datamart calculations
-
-- [ ] **DM #8**: Identify day with most notes created
-  - **Aggregation**: By country, global
-  - **Files**: Datamart reports
-
-- [ ] **DM #9**: Identify hour with most notes created
-  - **Dimension**: Already have hour_of_week
-  - **Files**: Datamart reports
-
-### Datamarts - Open Notes Analysis
-
-- [ ] **DM #10**: Create table of open notes by year
-  - **Columns**: Years from 2013 to current
-  - **Rows**: Countries
-  - **Values**: Notes created in year X still open
-  - **Files**: New datamart report
-
-- [ ] **DM #11**: Chart showing evolution of open notes by year
-  - **Axes**: Month, note count
-  - **Purpose**: Show aging open notes
-  - **Tool**: Visualization layer
-
-- [ ] **DM #12**: Show notes that took longest to close by country
-  - **Metric**: Time from creation to closure
-  - **Display**: Top N per country
-  - **Files**: Country datamart
-
-- [ ] **DM #13**: Show average note resolution time
-  - **Historical**: All-time average
-  - **By year**: Show performance trends
-  - **Files**: Summary reports
-
-- [ ] **DM #14**: Show most recent comment timestamp
-  - **Purpose**: "Last DB update" indicator
-  - **Files**: Summary metadata
-
-- [ ] **DM #15**: Show count of currently open notes
-  - **Breakdowns**: By country, global
-  - **Files**: Summary reports
-
-### Datamarts - Rankings
-
-- [ ] **DM #16**: Create rankings with time periods
-  - **Periods**: All-time, last year, last month, today
-  - **Categories**: Most opened, closed, commented, reopened
-  - **Top**: 100 users
-  - **Files**: Ranking datamarts
-
-- [ ] **DM #17**: Create country ranking (Neis-style)
-  - **Metrics**: Opened, closed, currently open, rate
-  - **Files**: Country datamart
-
-- [ ] **DM #18**: World user ranking
-  - **Categories**: Most opened, most closed
-  - **Files**: User ranking global
-
-- [ ] **DM #19**: Average comments per note
-  - **Global**: All notes
-  - **By country**: Per country statistics
-  - **Files**: Summary statistics
-
-### Visualizer (from ToDos.md)
-
-- [ ] **VIZ #1**: Deploy visualization tool
-  - **Options**: Metabase (from CapRover), Redash
-  - **Setup**: Container deployment
-  - **Files**: Deployment configs
-
-- [ ] **VIZ #2**: Create stored procedures for profile queries
-  - **Purpose**: Track which profiles are visited
-  - **Output**: JSON for static HTML generator
-  - **Files**: Profile query procedures
-
-- [ ] **VIZ #3**: Display special accounts differently
-  - **Example**: <https://www.openstreetmap.org/user/ContributionReviewer>
-  - **Files**: Profile generation
-
-- [ ] **VIZ #4**: Add links to OSM and API
-  - **Purpose**: Quick access to details
-  - **Note**: API shows hours but no map
-  - **Files**: HTML templates
-
-- [ ] **VIZ #5**: Display current database server time
-  - **Files**: Web interface
-
-- [ ] **VIZ #6**: Display last processing time
-  - **Source**: Processing metadata
-  - **Files**: Web interface
-
-- [ ] **VIZ #7**: Implement GitHub-style contribution tiles
-  - **Reference**: <https://github.com/sallar/github-contributions-canvas>
-  - **Files**: Visualization scripts
-
-### Other Features
-
-- [ ] **OTHER #1**: Export all or last N notes for user
-  - **Scope**: Last 10,000 open + 10,000 closed
-  - **Format**: CSV, JSON
-  - **Files**: Export procedures
-
-- [ ] **OTHER #2**: Export database in CSV format
-  - **Purpose**: Public publication
-  - **Automation**: Periodic export and publish
-  - **Files**: Export scripts
-
-- [ ] **OTHER #3**: Create animated top 10 chart
-  - **Style**: Racing bar chart over time
-  - **Categories**: Open/closed rankings
-  - **Tool**: Data visualization library
-  - **Files**: Visualization scripts
-
-### Documentation
-
-- [ ] **DOC #1**: Create activity curve diagram
-  - **Style**: GitHub tiles visualization
-  - **Data**: Last year's activities
-  - **Files**: Documentation
-
-- [ ] **DOC #2**: Create component diagram
-  - **Focus**: Information flow
-  - **Show**: Where each component gets/stores data
-  - **Files**: Documentation
-
-- [ ] **DOC #3**: Verify BACKUP is only for country downloads
-  - **Note location**: Should be by default
-  - **Files**: Configuration documentation
+**See**: `/home/angoca/github/OSM-Notes-Analytics/ToDo.md`
 
 ---
 
