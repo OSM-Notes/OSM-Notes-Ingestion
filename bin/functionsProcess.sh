@@ -5,11 +5,11 @@
 # It loads all refactored function files to maintain backward compatibility.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
-# Updated: 2025-10-25
+# Version: 2025-10-26
+# Updated: 2025-10-26
 
 # Define version variable
-VERSION="2025-10-25"
+VERSION="2025-10-26"
 
 # shellcheck disable=SC2317,SC2155,SC2154
 
@@ -1528,29 +1528,29 @@ function __processBoundary {
  fi
  __logd "GeoJSON validation passed for boundary ${ID}"
 
-# Extract names with error handling and sanitization
-__logd "Extracting names for boundary ${ID}..."
-set +o pipefail
-local NAME_RAW
-NAME_RAW=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
- | awk -F\" '{print $4}')
-local NAME_ES_RAW
-NAME_ES_RAW=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
- | awk -F\" '{print $4}')
-local NAME_EN_RAW
-NAME_EN_RAW=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
- | awk -F\" '{print $4}')
-set -o pipefail
-set -e
+ # Extract names with error handling and sanitization
+ __logd "Extracting names for boundary ${ID}..."
+ set +o pipefail
+ local NAME_RAW
+ NAME_RAW=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 \
+  | awk -F\" '{print $4}')
+ local NAME_ES_RAW
+ NAME_ES_RAW=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 \
+  | awk -F\" '{print $4}')
+ local NAME_EN_RAW
+ NAME_EN_RAW=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 \
+  | awk -F\" '{print $4}')
+ set -o pipefail
+ set -e
 
-# Sanitize all names using SQL sanitization function
-local NAME
-NAME=$(__sanitize_sql_string "${NAME_RAW}")
-local NAME_ES
-NAME_ES=$(__sanitize_sql_string "${NAME_ES_RAW}")
-local NAME_EN
-NAME_EN=$(__sanitize_sql_string "${NAME_EN_RAW}")
-NAME_EN="${NAME_EN:-No English name}"
+ # Sanitize all names using SQL sanitization function
+ local NAME
+ NAME=$(__sanitize_sql_string "${NAME_RAW}")
+ local NAME_ES
+ NAME_ES=$(__sanitize_sql_string "${NAME_ES_RAW}")
+ local NAME_EN
+ NAME_EN=$(__sanitize_sql_string "${NAME_EN_RAW}")
+ NAME_EN="${NAME_EN:-No English name}"
  __logi "Name: ${NAME_EN:-}."
  __logd "Extracted names for boundary ${ID}:"
  __logd "  Name: ${NAME:-N/A}"
@@ -1595,11 +1595,11 @@ NAME_EN="${NAME_EN:-No English name}"
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special handling for Austria (ID: 16239)"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -select name,admin_level,type,geometry ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
  else
   # Standard import with field selection to avoid row size issues
   __logd "Using field-selected import for boundary ${ID}"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -select name,admin_level,type,geometry ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -nlt PROMOTE_TO_MULTI -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
  fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
@@ -1677,21 +1677,21 @@ NAME_EN="${NAME_EN:-No English name}"
 
  __logi "✓ Geometry validation passed for boundary ${ID}"
 
-# Now perform the actual insert with validated geometry
-# Sanitize ID to ensure it's a valid integer
-local SANITIZED_ID
-SANITIZED_ID=$(__sanitize_sql_integer "${ID}")
+ # Now perform the actual insert with validated geometry
+ # Sanitize ID to ensure it's a valid integer
+ local SANITIZED_ID
+ SANITIZED_ID=$(__sanitize_sql_integer "${ID}")
 
-local PROCESS_OPERATION
-if [[ "${ID}" -eq 16239 ]]; then
- # Austria - use ST_Buffer to fix topology issues
- __logd "Inserting boundary ${ID} with ST_Buffer processing"
- PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
-else
- # Standard processing
- __logd "Inserting boundary ${ID} with standard processing"
- PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
-fi
+ local PROCESS_OPERATION
+ if [[ "${ID}" -eq 16239 ]]; then
+  # Austria - use ST_Buffer to fix topology issues
+  __logd "Inserting boundary ${ID} with ST_Buffer processing"
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
+ else
+  # Standard processing
+  __logd "Inserting boundary ${ID} with standard processing"
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
+ fi
 
  if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
   __loge "Failed to insert boundary ${ID} into countries table"
@@ -2620,51 +2620,51 @@ function __retry_geoserver_api() {
 # Parameters: query output_file max_retries base_delay
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_database_operation() {
-__log_start
-local QUERY="$1"
-local OUTPUT_FILE="${2:-/dev/null}"
-local LOCAL_MAX_RETRIES="${3:-3}"
-local BASE_DELAY="${4:-2}"
-local RETRY_COUNT=0
-local EXPONENTIAL_DELAY="${BASE_DELAY}"
-local ERROR_FILE
-ERROR_FILE=$(mktemp)
+ __log_start
+ local QUERY="$1"
+ local OUTPUT_FILE="${2:-/dev/null}"
+ local LOCAL_MAX_RETRIES="${3:-3}"
+ local BASE_DELAY="${4:-2}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
+ local ERROR_FILE
+ ERROR_FILE=$(mktemp)
 
-__logd "Executing database operation with retry logic"
-__logd "Query: ${QUERY}"
-__logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}"
+ __logd "Executing database operation with retry logic"
+ __logd "Query: ${QUERY}"
+ __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}"
 
-while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
- if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2> "${ERROR_FILE}"; then
-  __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
-  rm -f "${ERROR_FILE}"
-  __log_finish
-  return 0
- else
-  __logw "Database operation failed on attempt $((RETRY_COUNT + 1))"
-  # Log the actual error from PostgreSQL
-  if [[ -s "${ERROR_FILE}" ]]; then
-   __loge "PostgreSQL error: $(cat "${ERROR_FILE}")"
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
+  if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2> "${ERROR_FILE}"; then
+   __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
+   rm -f "${ERROR_FILE}"
+   __log_finish
+   return 0
+  else
+   __logw "Database operation failed on attempt $((RETRY_COUNT + 1))"
+   # Log the actual error from PostgreSQL
+   if [[ -s "${ERROR_FILE}" ]]; then
+    __loge "PostgreSQL error: $(cat "${ERROR_FILE}")"
+   fi
   fi
+
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
+   __logw "Database operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
+
+ # Log final error before exiting
+ if [[ -s "${ERROR_FILE}" ]]; then
+  __loge "Final PostgreSQL error: $(cat "${ERROR_FILE}")"
  fi
+ rm -f "${ERROR_FILE}"
 
- RETRY_COUNT=$((RETRY_COUNT + 1))
- if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
-  __logw "Database operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-  sleep "${EXPONENTIAL_DELAY}"
-  EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
- fi
-done
-
-# Log final error before exiting
-if [[ -s "${ERROR_FILE}" ]]; then
- __loge "Final PostgreSQL error: $(cat "${ERROR_FILE}")"
-fi
-rm -f "${ERROR_FILE}"
-
-__loge "Database operation failed after ${LOCAL_MAX_RETRIES} attempts"
-__log_finish
-return 1
+ __loge "Database operation failed after ${LOCAL_MAX_RETRIES} attempts"
+ __log_finish
+ return 1
 }
 
 # Function to log data gaps to file and database
