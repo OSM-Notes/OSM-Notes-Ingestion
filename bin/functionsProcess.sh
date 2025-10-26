@@ -2090,21 +2090,20 @@ function __processMaritimes {
 # Gets the area of each note.
 function __getLocationNotes {
  __log_start
- __logd "Testing if notes should be updated."
- # shellcheck disable=SC2154
- if [[ "${UPDATE_NOTE_LOCATION}" = false ]]; then
-  __logi "Extracting notes backup."
-  rm -f "${CSV_BACKUP_NOTE_LOCATION}"
-  unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
-  chmod 666 "${CSV_BACKUP_NOTE_LOCATION}"
+ __logd "Assigning countries to notes."
 
-  __logi "Importing notes location."
-  export CSV_BACKUP_NOTE_LOCATION
-  # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
-    < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
- fi
+ # Always import previous note locations to speed up the process
+ __logi "Extracting notes backup."
+ rm -f "${CSV_BACKUP_NOTE_LOCATION}"
+ unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
+ chmod 666 "${CSV_BACKUP_NOTE_LOCATION}"
+
+ __logi "Importing notes location."
+ export CSV_BACKUP_NOTE_LOCATION
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
+   < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
 
  # Retrieves the max note for already location processed notes (from file.)
  MAX_NOTE_ID_NOT_NULL=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
@@ -2122,7 +2121,7 @@ function __getLocationNotes {
  # Check if there are any notes without country assignment
  local NOTES_WITHOUT_COUNTRY
  NOTES_WITHOUT_COUNTRY=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-   <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL")
+  <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL")
  __logi "Notes without country assignment: ${NOTES_WITHOUT_COUNTRY}"
 
  if [[ "${NOTES_WITHOUT_COUNTRY}" -eq 0 ]]; then
@@ -2145,9 +2144,9 @@ function __getLocationNotes {
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
 
-    if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
-     __logd "Updating incorrectly located notes."
-     STMT="UPDATE notes AS n /* Notes-base thread old review */
+    # Always verify integrity of previously assigned notes
+    __logd "Updating incorrectly located notes."
+    STMT="UPDATE notes AS n /* Notes-base thread old review */
      SET id_country = NULL
      FROM countries AS c
      WHERE n.id_country = c.country_id
@@ -2155,9 +2154,8 @@ function __getLocationNotes {
       4326))
       AND ${MIN_LOOP} <= n.note_id AND n.note_id <= ${MAX_LOOP}
       AND id_country IS NOT NULL"
-     __logt "${STMT}"
-     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-    fi
+    __logt "${STMT}"
+    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
     STMT="UPDATE notes /* Notes-base thread old */
       SET id_country = get_country(longitude, latitude, note_id)
@@ -2188,9 +2186,9 @@ function __getLocationNotes {
     MAX_LOOP=${I}
     __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
 
-    if [[ "${UPDATE_NOTE_LOCATION}" = true ]]; then
-     __logd "Updating incorrectly located notes."
-     STMT="UPDATE notes AS n /* Notes-base thread new review */
+    # Always verify integrity of previously assigned notes
+    __logd "Updating incorrectly located notes."
+    STMT="UPDATE notes AS n /* Notes-base thread new review */
      SET id_country = NULL
      FROM countries AS c
      WHERE n.id_country = c.country_id
@@ -2198,9 +2196,8 @@ function __getLocationNotes {
       4326))
       AND ${MIN_LOOP} <= n.note_id AND n.note_id < ${MAX_LOOP}
       AND id_country IS NOT NULL"
-     __logt "${STMT}"
-     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-    fi
+    __logt "${STMT}"
+    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
     STMT="UPDATE notes /* Notes-base thread old */
       SET id_country = get_country(longitude, latitude, note_id)

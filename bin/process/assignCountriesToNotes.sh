@@ -109,9 +109,6 @@ main() {
  fi
  __logi "Function get_country verified"
 
- # Set UPDATE_NOTE_LOCATION to true to process all notes
- export UPDATE_NOTE_LOCATION=true
-
  # Execute the location assignment
  __logi "Starting location assignment (parallel processing)..."
  __logi "This will process notes in batches with progress visible"
