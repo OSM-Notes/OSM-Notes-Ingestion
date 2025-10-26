@@ -17,6 +17,9 @@ VERSION="2025-10-25"
 # =====================================================
 # SQL Sanitization Functions
 # =====================================================
+#
+# Note: Only functions that are actively used are kept in this file.
+# See functionsProcess.sh for usage of sanitization functions.
 
 # Sanitize SQL string literal to prevent SQL injection
 # Parameters:
@@ -105,4 +108,39 @@ function __execute_sql_with_params() {
 
  # Execute SQL with variables
  eval "${SQL_CMD} -c \"${SQL_TEMPLATE}\""
+}
+
+# Sanitize database name to allow only valid PostgreSQL identifiers
+# Parameters:
+#   $1: Database name to sanitize
+# Returns: Sanitized name or exits on error
+# Security: Prevents SQL injection, only allows [a-z0-9_]
+function __sanitize_database_name() {
+ local INPUT="${1:-}"
+ 
+ # Check if input is empty
+ if [[ -z "${INPUT}" ]]; then
+  __loge "ERROR: Empty database name provided to __sanitize_database_name"
+  return 1
+ fi
+ 
+ # Validate length (PostgreSQL limit: 63 bytes)
+ if [[ ${#INPUT} -gt 63 ]]; then
+  __loge "ERROR: Database name too long (max 63): ${INPUT}"
+  return 1
+ fi
+ 
+ # Validate characters (only lowercase, digits, underscore)
+ if [[ ! "${INPUT}" =~ ^[a-z0-9_]+$ ]]; then
+  __loge "ERROR: Invalid database name (only [a-z0-9_] allowed): ${INPUT}"
+  return 1
+ fi
+ 
+ # Check doesn't start/end with underscore (best practice)
+ if [[ "${INPUT}" =~ ^_ ]] || [[ "${INPUT}" =~ _$ ]]; then
+  __loge "ERROR: Database name cannot start or end with underscore: ${INPUT}"
+  return 1
+ fi
+ 
+ echo "${INPUT}"
 }

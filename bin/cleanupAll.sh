@@ -455,6 +455,16 @@ function main() {
   fi
  fi
 
+ # Sanitize database name to prevent SQL injection
+ # This uses the sanitization function from securityFunctions.sh
+ # loaded via functionsProcess.sh
+ if [[ -n "${DBNAME_PARAM}" ]] && [[ -n "$(declare -f __sanitize_database_name 2>/dev/null)" ]]; then
+  TARGET_DB=$(__sanitize_database_name "${DBNAME_PARAM}") || {
+   __loge "Invalid database name: ${DBNAME_PARAM}"
+   exit 1
+  }
+ fi
+
  __logi "Starting cleanup for database: ${TARGET_DB} (mode: ${CLEANUP_MODE})"
 
  # Run cleanup based on mode
