@@ -1350,6 +1350,36 @@ function main() {
 
   fi
  fi
+
+ # Check for previous failed execution
+ if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
+  __logw "Previous execution failed detected"
+  __loge "Checking failed execution file: ${FAILED_EXECUTION_FILE}"
+
+  # Display error message to user
+  __loge "========================================"
+  __loge "PREVIOUS EXECUTION FAILED"
+  __loge "========================================"
+  echo ""
+  echo "The previous execution of processPlanetNotes.sh failed."
+  echo "Please review the error details below:"
+  echo ""
+  cat "${FAILED_EXECUTION_FILE}"
+  echo ""
+  echo "========================================"
+  echo "To recover from this error:"
+  echo "1. Review the error details above"
+  echo "2. Fix the underlying problem"
+  echo "3. Delete the marker file:"
+  echo "   rm ${FAILED_EXECUTION_FILE}"
+  echo "4. Rerun the script"
+  echo "========================================"
+  echo "Note: An email notification was already sent when the error occurred."
+  echo ""
+  
+  exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+ fi
+
  # Checks the prerequisities. It could terminate the process.
  if ! __checkPrereqs; then
   exit 1

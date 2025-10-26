@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-25
-VERSION="2025-10-25"
+# Version: 2025-10-26
+VERSION="2025-10-26"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -116,6 +116,11 @@ declare -r SCRIPT_PROCESS_PLANET="processCheckPlanetNotes.sh"
 # SQL report file.
 declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-report.sql"
 
+# SQL scripts to insert missing data
+declare -r POSTGRES_51_INSERT_MISSING_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_51_insertMissingNotes.sql"
+declare -r POSTGRES_52_INSERT_MISSING_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_52_insertMissingComments.sql"
+declare -r POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_53_insertMissingTextComments.sql"
+
 ###########
 # FUNCTIONS
 
@@ -130,6 +135,9 @@ function __show_help {
   echo "for notes and the notes ingested via API calls. This script works"
   echo "better around 0h UTC, when the Planet file is published and the"
   echo "difference with the API calls are less."
+  echo ""
+  echo "After identifying differences, this script automatically inserts"
+  echo "missing data from Planet into the main database tables."
   echo
   echo "If the script returns a lot of old differences, it is because the"
   echo "API calls script failed. In this case, the best is to recreate the"
@@ -163,6 +171,20 @@ function __checkPrereqs {
     __loge "ERROR: SQL report file validation failed: ${SQL_REPORT}"
     exit "${ERROR_MISSING_LIBRARY}"
   fi
+
+  ## Validate SQL scripts for inserting missing data
+  local SQL_FILES=(
+    "${POSTGRES_51_INSERT_MISSING_NOTES}"
+    "${POSTGRES_52_INSERT_MISSING_COMMENTS}"
+    "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}"
+  )
+
+  for SQL_FILE in "${SQL_FILES[@]}"; do
+    if ! __validate_sql_structure "${SQL_FILE}"; then
+      __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
+      exit "${ERROR_MISSING_LIBRARY}"
+    fi
+  done
 
   __log_finish
   set -e
@@ -253,6 +275,67 @@ function __sendMail {
       -a "${REPORT_ZIP}" -- "${EMAILS}" 2>&1
     __logi "Message sent."
   fi
+  __log_finish
+}
+
+# Inserts missing data from check tables into main tables.
+function __insertMissingData {
+  __log_start
+  local QTY_NOTES
+  local QTY_COMMENTS
+  local QTY_TEXT_COMMENTS
+
+  # Check if there are differences
+  QTY_NOTES=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" 2>/dev/null | wc -l \
+    | cut -f 1 -d' ' || echo "0")
+  QTY_COMMENTS=$(tail -n +2 "${DIFFERENT_COMMENT_IDS_FILE}" 2>/dev/null \
+    | wc -l | cut -f 1 -d' ' || echo "0")
+  QTY_TEXT_COMMENTS=$(tail -n +2 "${DIFFERENT_TEXT_COMMENTS_FILE}" \
+    2>/dev/null | wc -l | cut -f 1 -d' ' || echo "0")
+
+  if [[ "${QTY_NOTES}" -eq 0 ]] && [[ "${QTY_COMMENTS}" -eq 0 ]] \
+    && [[ "${QTY_TEXT_COMMENTS}" -eq 0 ]]; then
+    __logi "No missing data found. Nothing to insert."
+    __log_finish
+    return 0
+  fi
+
+  __logi "Found missing data: ${QTY_NOTES} notes, ${QTY_COMMENTS} comments, ${QTY_TEXT_COMMENTS} text comments"
+  __logi "Inserting missing data from check tables into main tables..."
+
+  # Insert missing notes
+  if [[ "${QTY_NOTES}" -gt 0 ]]; then
+    __logi "Inserting ${QTY_NOTES} missing notes..."
+    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_INSERT_MISSING_NOTES}" 2>&1; then
+      __loge "ERROR: Failed to insert missing notes"
+      __log_finish
+      return 1
+    fi
+  fi
+
+  # Insert missing comments
+  if [[ "${QTY_COMMENTS}" -gt 0 ]]; then
+    __logi "Inserting ${QTY_COMMENTS} missing comments..."
+    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+      -f "${POSTGRES_52_INSERT_MISSING_COMMENTS}" 2>&1; then
+      __loge "ERROR: Failed to insert missing comments"
+      __log_finish
+      return 1
+    fi
+  fi
+
+  # Insert missing text comments
+  if [[ "${QTY_TEXT_COMMENTS}" -gt 0 ]]; then
+    __logi "Inserting ${QTY_TEXT_COMMENTS} missing text comments..."
+    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+      -f "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}" 2>&1; then
+      __loge "ERROR: Failed to insert missing text comments"
+      __log_finish
+      return 1
+    fi
+  fi
+
+  __logi "Missing data insertion completed successfully"
   __log_finish
 }
 
@@ -347,6 +430,7 @@ EOF
 
   __downloadingPlanet
   __checkingDifferences
+  __insertMissingData
   __sendMail
   __cleanFiles
   __logw "Process finished."
