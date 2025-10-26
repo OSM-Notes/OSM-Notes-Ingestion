@@ -417,15 +417,19 @@ function __checkPrereqs {
   fi
  fi
 
- # Validate dates in XML files if they exist
- __logi "Validating dates in XML files..."
- if [[ -f "${PLANET_NOTES_FILE}" ]]; then
-  if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
-   __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
-   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
-   __log_finish
-   return "${ERROR_MISSING_LIBRARY}"
+ # Validate dates in XML files if they exist (only if validation is enabled)
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logi "Validating dates in XML files..."
+  if [[ -f "${PLANET_NOTES_FILE}" ]]; then
+   if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
+    __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
+    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+    __log_finish
+    return "${ERROR_MISSING_LIBRARY}"
+   fi
   fi
+ else
+  __logw "Skipping date validation (SKIP_XML_VALIDATION=true)"
  fi
 
  ## Validate updateCountries.sh script availability

@@ -385,13 +385,17 @@ function __checkPrereqs {
     fi
   done
 
-  # Validate dates in API notes file if it exists
-  __logi "Validating dates in API notes file..."
-  if [[ -f "${API_NOTES_FILE}" ]]; then
-    if ! __validate_xml_dates "${API_NOTES_FILE}"; then
-      __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
-      exit "${ERROR_MISSING_LIBRARY}"
+  # Validate dates in API notes file if it exists (only if validation is enabled)
+  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+    __logi "Validating dates in API notes file..."
+    if [[ -f "${API_NOTES_FILE}" ]]; then
+      if ! __validate_xml_dates "${API_NOTES_FILE}"; then
+        __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
+        exit "${ERROR_MISSING_LIBRARY}"
+      fi
     fi
+  else
+    __logw "Skipping date validation (SKIP_XML_VALIDATION=true)"
   fi
 
   # CSV files are generated during processing, no need to validate them here
