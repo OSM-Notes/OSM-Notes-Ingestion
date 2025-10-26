@@ -2105,6 +2105,35 @@ function __getLocationNotes {
   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
    < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
 
+ # Verify integrity of imported note locations
+ __logi "Verifying integrity of imported note locations..."
+ local NOTES_TO_INVALIDATE
+ NOTES_TO_INVALIDATE=$(
+  psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
+SELECT COUNT(*) FROM notes AS n /* Notes-integrity count */
+WHERE EXISTS (
+  SELECT 1 FROM countries AS c
+  WHERE c.country_id = n.id_country
+  AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude), 4326))
+)
+AND n.id_country IS NOT NULL;
+EOF
+ )
+ __logi "Found ${NOTES_TO_INVALIDATE} notes with incorrect country assignments"
+
+ if [[ "${NOTES_TO_INVALIDATE}" -gt 0 ]]; then
+  __logi "Invalidating incorrect country assignments..."
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+UPDATE notes AS n /* Notes-integrity check */
+SET id_country = NULL
+FROM countries AS c
+WHERE n.id_country = c.country_id
+AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude), 4326))
+AND n.id_country IS NOT NULL;
+EOF
+  __logi "Invalidated ${NOTES_TO_INVALIDATE} notes with incorrect country assignments"
+ fi
+
  # Retrieves the max note for already location processed notes (from file.)
  MAX_NOTE_ID_NOT_NULL=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT MAX(note_id) FROM notes WHERE id_country IS NOT NULL")
