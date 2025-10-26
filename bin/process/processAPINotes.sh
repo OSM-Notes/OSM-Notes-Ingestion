@@ -257,6 +257,7 @@ function __checkPrereqs {
 
   # Function to detect and recover from data gaps
   __recover_from_gaps() {
+    # shellcheck disable=SC2034
     local -r FUNCTION_NAME="__recover_from_gaps"
     __logd "Starting gap recovery process"
 
@@ -614,6 +615,44 @@ function __validateApiNotesXMLFileComplete {
 # 3450803,'Existe otra iglesia sin nombre cercana a la posición de la nota, ¿es posible que se trate de un error, o hay una al lado de la otra?'
 # 3451247,'If you are in the area, could you please survey a more exact location for Nothing Bundt Cakes and move the node to that location? Thanks!'
 
+# Checks available memory and determines if parallel processing is safe.
+# Returns 0 if parallel processing is safe, 1 if sequential should be used.
+function __checkMemoryForProcessing {
+  __log_start
+  
+  local MINIMUM_MEMORY_MB=1000  # Minimum 1GB available for parallel processing
+  local AVAILABLE_RAM_MB
+  
+  # Check if free command is available
+  if ! command -v free > /dev/null 2>&1; then
+    __logw "Memory check unavailable (free command not found), assuming sufficient memory"
+    __log_finish
+    return 0  # Assume safe for parallel
+  fi
+  
+  # Get available memory in MB
+  AVAILABLE_RAM_MB=$(free -m | grep Mem | awk '{print $7}' 2>/dev/null || echo "0")
+  
+  # Validate we got a valid number
+  if [[ ! "${AVAILABLE_RAM_MB}" =~ ^[0-9]+$ ]]; then
+    __logw "Could not read available memory, assuming sufficient"
+    __log_finish
+    return 0
+  fi
+  
+  __logd "Available memory: ${AVAILABLE_RAM_MB}MB (minimum required: ${MINIMUM_MEMORY_MB}MB)"
+  
+  if [[ "${AVAILABLE_RAM_MB}" -lt "${MINIMUM_MEMORY_MB}" ]]; then
+    __logw "Low memory detected (${AVAILABLE_RAM_MB}MB < ${MINIMUM_MEMORY_MB}MB), recommending sequential processing"
+    __log_finish
+    return 1
+  fi
+  
+  __logd "Sufficient memory available for parallel processing"
+  __log_finish
+  return 0
+}
+
 # Checks if the quantity of notes requires synchronization with Planet
 function __processXMLorPlanet {
   __log_start
@@ -628,27 +667,35 @@ function __processXMLorPlanet {
     if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
       # Check if we have enough notes to justify parallel processing
       if [[ "${TOTAL_NOTES}" -ge "${MIN_NOTES_FOR_PARALLEL}" ]]; then
-        __logi "Processing ${TOTAL_NOTES} notes with parallel processing (threshold: ${MIN_NOTES_FOR_PARALLEL})"
-        __splitXmlForParallelAPI "${API_NOTES_FILE}"
+        __logi "Processing ${TOTAL_NOTES} notes (threshold: ${MIN_NOTES_FOR_PARALLEL})"
+        
+        # Check available memory before deciding on parallel processing
+        if __checkMemoryForProcessing; then
+          __logi "Memory check passed, using parallel processing"
+          __splitXmlForParallelAPI "${API_NOTES_FILE}"
 
-        # Process XML parts in parallel using GNU parallel
-        mapfile -t PART_FILES < <(find "${TMP_DIR}" -name "api_part_*.xml" -type f | sort || true)
+          # Process XML parts in parallel using GNU parallel
+          mapfile -t PART_FILES < <(find "${TMP_DIR}" -name "api_part_*.xml" -type f | sort || true)
 
-        if command -v parallel > /dev/null 2>&1; then
-          __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
-          export -f __processApiXmlPart
+          if command -v parallel > /dev/null 2>&1; then
+            __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
+            export -f __processApiXmlPart
 
-          if ! printf '%s\n' "${PART_FILES[@]}" \
-            | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
-              "__processApiXmlPart {}"; then
-            __loge "ERROR: Parallel processing failed"
-            return 1
+            if ! printf '%s\n' "${PART_FILES[@]}" \
+              | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
+                "__processApiXmlPart {}"; then
+              __loge "ERROR: Parallel processing failed"
+              return 1
+            fi
+          else
+            __logi "GNU parallel not found, processing sequentially"
+            for PART_FILE in "${PART_FILES[@]}"; do
+              __processApiXmlPart "${PART_FILE}"
+            done
           fi
         else
-          __logi "GNU parallel not found, processing sequentially"
-          for PART_FILE in "${PART_FILES[@]}"; do
-            __processApiXmlPart "${PART_FILE}"
-          done
+          __logi "Low memory detected, using sequential processing for safety"
+          __processApiXmlSequential "${API_NOTES_FILE}"
         fi
       else
         __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
