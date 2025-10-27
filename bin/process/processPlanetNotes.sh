@@ -141,8 +141,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-22
-VERSION="2025-10-22"
+# Version: 2025-10-27
+VERSION="2025-10-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1300,8 +1300,9 @@ function __processGeographicData {
   # If running in base mode and countries table exists but is empty, try to load countries
   if [[ "${PROCESS_TYPE}" == "--base" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
    __logi "Attempting to load countries automatically in base mode..."
+   __logi "This process may take a long time (30-60 minutes) as it downloads and processes all country boundaries..."
    if "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
-    __logi "Regions loaded successfully. Processing location notes..."
+    __logi "Countries and maritimes areas loaded successfully. Processing location notes..."
     __getLocationNotes # sync
    else
     __logw "Failed to load countries automatically. Continuing without country assignment."
