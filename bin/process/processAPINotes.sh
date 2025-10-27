@@ -59,8 +59,10 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-22
-VERSION="2025-10-22"
+# Version: 2025-10-27
+# Fixed: Move __recover_from_gaps() call to after base tables validation
+#        This allows processPlanetNotes to be called automatically when tables don't exist
+VERSION="2025-10-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -342,13 +344,6 @@ function __checkPrereqs {
 
   return 0
  }
-
- # Check for data gaps before processing
- if ! __recover_from_gaps; then
-  __loge "Gap recovery check failed, aborting processing"
-  __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
-   "echo 'Gap recovery failed - manual intervention may be required'"
- fi
 
  ## Validate required files using centralized validation
  __logi "Validating required files..."
@@ -1182,6 +1177,13 @@ EOF
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logi "Historical data validation passed. ProcessAPI can continue safely."
+  
+  # Check for data gaps after validating base tables and data
+  if ! __recover_from_gaps; then
+   __loge "Gap recovery check failed, aborting processing"
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
+    "echo 'Gap recovery failed - manual intervention may be required'"
+  fi
  fi
 
  set -E
