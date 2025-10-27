@@ -6,6 +6,9 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-27
+# Fixed: Increased Overpass API retries (5→7) and delays (15s→20s) to handle complex boundaries
+# Fixed: Changed error handling to use return instead of exit to prevent killing child threads
+# Added: Smart wait function to check Overpass API status before retrying
 
 # Define version variable
 VERSION="2025-10-27"
@@ -1456,7 +1459,10 @@ function __processBoundary {
  local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
  local OVERPASS_CLEANUP="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
 
- if ! __retry_file_operation "${OVERPASS_OPERATION}" 5 15 "${OVERPASS_CLEANUP}"; then
+ # Increased retries from 5 to 7 and base delay from 15s to 20s for complex boundaries
+ # Smart wait enabled to check Overpass API status before retrying
+ # This gives a total retry period of up to ~20 minutes instead of ~4 minutes
+ if ! __retry_file_operation "${OVERPASS_OPERATION}" 7 20 "${OVERPASS_CLEANUP}" "true"; then
   __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass API failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
@@ -2488,7 +2494,7 @@ function __handle_error_with_cleanup() {
 }
 
 # Retry file operations with exponential backoff and cleanup on failure
-# Parameters: operation_command max_retries base_delay [cleanup_command]
+# Parameters: operation_command max_retries base_delay [cleanup_command] [smart_wait]
 # Returns: 0 if successful, 1 if failed after all retries
 function __retry_file_operation() {
  __log_start
@@ -2496,13 +2502,32 @@ function __retry_file_operation() {
  local MAX_RETRIES_LOCAL="${2:-3}"
  local BASE_DELAY_LOCAL="${3:-2}"
  local CLEANUP_COMMAND="${4:-}"
+ local SMART_WAIT="${5:-false}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
 
  __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
- __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s"
+ __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s, Smart wait: ${SMART_WAIT}"
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
+  # Check Overpass API status if smart wait is enabled (only for Overpass operations)
+  if [[ "${SMART_WAIT}" == "true" ]] && [[ "${OPERATION_COMMAND}" == *"${OVERPASS_INTERPRETER}"* ]]; then
+   local WAIT_TIME
+   set +e
+   WAIT_TIME=$(__check_overpass_status 2>&1)
+   set -e
+
+   # WAIT_TIME contains output from echo, extract just the number
+   WAIT_TIME=$(echo "${WAIT_TIME}" | tail -1)
+
+   if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
+    __logd "Overpass API busy, waiting ${WAIT_TIME} seconds for slot"
+    sleep "${WAIT_TIME}"
+   elif [[ ${WAIT_TIME} -eq 0 ]]; then
+    __logd "Overpass API has slots available, proceeding"
+   fi
+  fi
+
   if eval "${OPERATION_COMMAND}"; then
    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
    __log_finish
@@ -2532,6 +2557,61 @@ function __retry_file_operation() {
  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
  __log_finish
  return 1
+}
+
+# Check Overpass API status and wait time
+# Returns: 0 if slots available now, number of seconds to wait if busy
+function __check_overpass_status() {
+ __log_start
+ # Extract the base URL from OVERPASS_INTERPRETER
+ # Handle both https://server.com/api/interpreter and https://server.com formats
+ local BASE_URL="${OVERPASS_INTERPRETER%/api/interpreter}"
+ BASE_URL="${BASE_URL%/}"  # Remove trailing slash
+ local STATUS_URL="${BASE_URL}/status"
+ local STATUS_OUTPUT
+ local AVAILABLE_SLOTS
+ local WAIT_TIME
+
+ __logd "Checking Overpass API status at ${STATUS_URL}..."
+
+ if ! STATUS_OUTPUT=$(curl -s "${STATUS_URL}" 2>&1); then
+  __logw "Could not reach Overpass API status page, assuming available"
+  __log_finish
+  echo "0"
+  return 0
+ fi
+
+ # Extract available slots number (format: "X slots available now")
+ AVAILABLE_SLOTS=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' | head -1 | grep -o '[0-9]*' || echo "0")
+
+ if [[ -n "${AVAILABLE_SLOTS}" ]] && [[ "${AVAILABLE_SLOTS}" -gt 0 ]]; then
+  __logd "Overpass API has ${AVAILABLE_SLOTS} slot(s) available now"
+  __log_finish
+  echo "0"
+  return 0
+ fi
+
+ # Extract wait time from "Slot available after" messages (format: "...in X seconds.")
+ # There can be multiple lines, we need the minimum wait time
+ local ALL_WAIT_TIMES
+ ALL_WAIT_TIMES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' | grep -o '[0-9]*' || echo "")
+
+ if [[ -n "${ALL_WAIT_TIMES}" ]]; then
+  # Find the minimum wait time from all available slots
+  WAIT_TIME=$(echo "${ALL_WAIT_TIMES}" | sort -n | head -1)
+  
+  if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
+   __logd "Overpass API busy, next slot available in ${WAIT_TIME} seconds (from ${RATE_LIMIT:-4} slots)"
+   __log_finish
+   echo "${WAIT_TIME}"
+   return 0
+  fi
+ fi
+
+ __logd "Could not determine Overpass API status, assuming available"
+ __log_finish
+ echo "0"
+ return 0
 }
 
 # Retry network operations with exponential backoff and HTTP error handling
