@@ -1,30 +1,8 @@
 Notas y prompts varios - información pendiente de organizar
 ==============================================================
 
-Version: 2025-10-21
-
-NOTA: El contenido organizado de este archivo se movió a:
-- ActionPlan.md: Tareas detalladas por prioridad
-- ProgressTracker.md: Seguimiento de progreso
-- README.md: Guía de uso del directorio ToDo
-
----
-
-Notas sueltas (pendiente de procesar):
-
 * commit 962556d3: Se borraron archivos de notas reales que pueden servir 
   para validar casos más cercanos
-
-* Tarea pendiente: Correr todas las posibles pruebas que tengamos bajo bats,
-  y hacer un resumen por suite de prueba, mostrando cuáles están fallando,
-  cuantas bien, guardando los errores en una tabla, para después enfocarse
-  en la resolución de estos.
-
-* Recomendación adicional: Auditoría y logs - Mantener logs de cambios y 
-  errores para trazabilidad.
-
-* Recomendación adicional: Pruebas de integridad - Validar que los procesos
-  de actualización no dejen datos huérfanos o inconsistentes.
 
 * Recomendación adicional: Monitoreo de desempeño - Revisar periódicamente
   los tiempos de carga y consulta, ajustando particiones e índices según
