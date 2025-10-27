@@ -6,6 +6,7 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-27
+# Added: Complex boundaries configuration support for boundaries with known timeout issues
 
 # Define version variable
 VERSION="2025-10-27"
@@ -1449,9 +1450,13 @@ function __processBoundary {
   __log_finish
   return 1
  fi
- __logd "Network connectivity confirmed for boundary ${ID}"
+  __logd "Network connectivity confirmed for boundary ${ID}"
 
- # Use retry logic for Overpass API calls
+  # Use retry logic for Overpass API calls
+  # Retry settings: 7 retries with 20s base delay (coverage ~20 minutes)
+  local MAX_RETRIES_LOCAL=7
+  local BASE_DELAY_LOCAL=20
+  
  __logd "Downloading boundary ${ID} from Overpass API..."
  local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
  local OVERPASS_CLEANUP="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
@@ -1459,8 +1464,12 @@ function __processBoundary {
  # Increased retries from 5 to 7 and base delay from 15s to 20s for complex boundaries
  # Smart wait enabled to check Overpass API status before retrying
  # This gives a total retry period of up to ~20 minutes instead of ~4 minutes
- if ! __retry_file_operation "${OVERPASS_OPERATION}" 7 20 "${OVERPASS_CLEANUP}" "true"; then
+ # Complex boundaries get even more retries and longer delays
+ if ! __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}" "${OVERPASS_CLEANUP}" "true"; then
   __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
+  if [[ "${IS_COMPLEX}" == "true" ]]; then
+   __loge "This was a complex boundary with enhanced retry settings (${MAX_RETRIES_LOCAL} retries, ${BASE_DELAY_LOCAL}s delays)"
+  fi
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass API failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
   __log_finish
