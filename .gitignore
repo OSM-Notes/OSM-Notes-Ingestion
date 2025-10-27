@@ -81,4 +81,5 @@ prod/
 # - tests/output/workflow/
 # - Any file with .corrupted.* or .recovery suffix
 # Ignore submodule untracked files
-lib/osm-common/
+# Note: Submodules should NOT be in .gitignore
+# lib/osm-common/
