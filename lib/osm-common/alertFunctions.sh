@@ -22,8 +22,6 @@
 #   GENERATE_FAILED_FILE: Set to "true" to enable (default)
 #   SEND_ALERT_EMAIL: Set to "true" to send email alerts (default: true)
 #   ADMIN_EMAIL: Email address for alerts (default: root@localhost)
-#   SEND_ALERT_SLACK: Set to "true" to send Slack alerts (default: false)
-#   SLACK_WEBHOOK_URL: Slack webhook URL for alerts
 #   ONLY_EXECUTION: Must be "yes" for alerts to be sent
 #   TMP_DIR: Temporary directory for this execution
 #   VERSION: Script version
