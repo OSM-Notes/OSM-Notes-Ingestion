@@ -39,7 +39,7 @@ BEGIN {
   }
   
   # Output CSV
-  printf "%s,%s,%s,%s,%s,%s,\n", note_id, note_lat, note_lon, date_created, status, date_closed
+  printf "%s,%s,%s,%s,%s,%s\n", note_id, note_lat, note_lon, date_created, status, date_closed
   
   # Reset state
   in_note = 0
@@ -94,7 +94,7 @@ in_note && /^\s*<\/note>/ {
   if (status == "") status = "open"
   
   # Output CSV
-  printf "%s,%s,%s,%s,%s,%s,\n", note_id, note_lat, note_lon, date_created, status, date_closed
+  printf "%s,%s,%s,%s,%s,%s\n", note_id, note_lat, note_lon, date_created, status, date_closed
   
   # Reset state
   in_note = 0
