@@ -11,7 +11,8 @@
 # Define version variable
 VERSION="2025-10-26"
 
-# shellcheck disable=SC2317,SC2155,SC2154
+# shellcheck disable=SC2317,SC2155
+# NOTE: SC2154 warnings are expected as many variables are defined in sourced files
 
 # Define script base directory (only if not already defined)
 if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
@@ -518,6 +519,7 @@ function __processApiXmlPart() {
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
+  # shellcheck disable=SC2154
   -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
    < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
@@ -888,6 +890,7 @@ function __validate_properties {
   __loge "Properties validation failed with ${VALIDATION_ERRORS} error(s)"
   __loge "Please check your etc/properties.sh configuration file"
   __log_finish
+  # shellcheck disable=SC2154
   exit "${ERROR_GENERAL}"
  fi
 
