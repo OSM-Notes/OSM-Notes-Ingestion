@@ -169,7 +169,7 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
 # Load API-specific functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh"
 
 # Load validation functions
 # shellcheck disable=SC1091
@@ -185,11 +185,11 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 
 # Load process functions (includes PostgreSQL variables)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
 # Load parallel processing functions (must be loaded AFTER functionsProcess.sh)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
 # Shows the help information.
 function __show_help {

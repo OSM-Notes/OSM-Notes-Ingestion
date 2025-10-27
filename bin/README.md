@@ -32,6 +32,16 @@ Monitoring and verification scripts:
 - **`processCheckPlanetNotes.sh`**: Verifies Planet notes processing
 - **`notesCheckVerifier.sh`**: Validates note data integrity
 
+### `/bin/lib/`
+
+Function libraries used by other scripts (not executed directly):
+
+- **`functionsProcess.sh`**: Common processing functions
+- **`processAPIFunctions.sh`**: API-specific functions
+- **`processPlanetFunctions.sh`**: Planet-specific functions
+- **`parallelProcessingFunctions.sh`**: Parallel processing functions
+- **`securityFunctions.sh`**: Security and sanitization functions
+
 ### `/bin/scripts/`
 
 Utility scripts for data management and maintenance:

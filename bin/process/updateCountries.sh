@@ -71,7 +71,7 @@ chmod 777 "${TMP_DIR}"
 # Load processPlanetFunctions.sh to get SQL file variables
 # shellcheck disable=SC1091
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
- source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 fi
 # Log file for output.
 declare LOG_FILENAME
@@ -113,7 +113,7 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
 # Load process functions (includes retry functions and other variables)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
 # Shows the help information.
 function __show_help {

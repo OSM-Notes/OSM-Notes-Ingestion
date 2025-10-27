@@ -15,7 +15,7 @@ function __show_help() {
  echo "Process Planet Functions for OSM-Notes-profile"
  echo "This file contains functions for processing Planet data."
  echo
- echo "Usage: source bin/processPlanetFunctions.sh"
+ echo "Usage: source bin/lib/processPlanetFunctions.sh"
  echo
  echo "Available functions:"
  echo "  __downloadPlanetNotes      - Download Planet notes"

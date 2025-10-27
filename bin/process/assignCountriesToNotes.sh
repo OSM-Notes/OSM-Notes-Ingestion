@@ -41,7 +41,7 @@ fi
 
 # Load common functions (contains __getLocationNotes)
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" ]]; then
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 fi
 
 # Setup temporary directory and logging

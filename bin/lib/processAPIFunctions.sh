@@ -14,7 +14,7 @@ function __show_help() {
  echo "Process API Functions for OSM-Notes-profile"
  echo "This file contains functions for processing API data."
  echo
- echo "Usage: source bin/processAPIFunctions.sh"
+ echo "Usage: source bin/lib/processAPIFunctions.sh"
  echo
  echo "Available functions:"
  echo "  __getNewNotesFromApi     - Download new notes from API"

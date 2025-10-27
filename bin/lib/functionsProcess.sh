@@ -55,9 +55,9 @@ else
 fi
 
 # Load security functions (SQL sanitization)
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/securityFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/securityFunctions.sh" ]]; then
  # shellcheck source=securityFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/securityFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/securityFunctions.sh"
 else
  echo "ERROR: securityFunctions.sh not found"
  exit 1
@@ -73,21 +73,21 @@ else
 fi
 
 # Load API-specific functions if needed
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh" ]]; then
  # shellcheck source=processAPIFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh"
 fi
 
 # Load Planet-specific functions if needed
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh" ]]; then
  # shellcheck source=processPlanetFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 fi
 
 # Load consolidated parallel processing functions (must be loaded AFTER wrapper functions)
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh" ]]; then
  # shellcheck source=parallelProcessingFunctions.sh
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 fi
 
 # Output CSV files for processed data
@@ -3098,7 +3098,7 @@ function __show_help() {
  echo "OSM-Notes-profile - Common Functions"
  echo "This file serves as the main entry point for all common functions."
  echo
- echo "Usage: source bin/functionsProcess.sh"
+ echo "Usage: source bin/lib/functionsProcess.sh"
  echo
  echo "This file loads the following function modules:"
  echo "  - commonFunctions.sh      - Common functions and error codes"

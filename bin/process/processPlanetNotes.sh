@@ -281,7 +281,7 @@ function __create_failed_marker() {
 
 # Load Planet-specific functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 
 # Load validation functions
 # shellcheck disable=SC1091
@@ -297,16 +297,16 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 
 # Load API-specific functions (includes POSTGRES_12_DROP_API_TABLES)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh"
 
 # Load process functions (includes GEOJSON_TEST and other variables)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
 # Load parallel processing functions (includes __splitXmlForParallelSafe implementation)
 # MUST be loaded AFTER functionsProcess.sh to override wrapper functions
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
 # Function to handle cleanup on exit respecting CLEAN flag
 function __cleanup_on_exit() {

@@ -65,11 +65,11 @@ These scripts are **supporting components** and should **never** be called direc
 - `bin/scripts/generateNoteLocationBackup.sh` - Called internally by updateCountries
 
 ### Function Libraries
-- `bin/functionsProcess.sh` - Library functions (sourced by other scripts)
-- `bin/processAPIFunctions.sh` - API-specific functions (sourced by other scripts)
-- `bin/processPlanetFunctions.sh` - Planet-specific functions (sourced by other scripts)
-- `bin/parallelProcessingFunctions.sh` - Parallel processing functions (sourced by other scripts)
-- `bin/securityFunctions.sh` - Security/sanitization functions (sourced by other scripts)
+- `bin/lib/functionsProcess.sh` - Library functions (sourced by other scripts)
+- `bin/lib/processAPIFunctions.sh` - API-specific functions (sourced by other scripts)
+- `bin/lib/processPlanetFunctions.sh` - Planet-specific functions (sourced by other scripts)
+- `bin/lib/parallelProcessingFunctions.sh` - Parallel processing functions (sourced by other scripts)
+- `bin/lib/securityFunctions.sh` - Security/sanitization functions (sourced by other scripts)
 
 ### WMS Helpers
 - `bin/wms/geoserverConfig.sh` - Called internally by wmsManager
