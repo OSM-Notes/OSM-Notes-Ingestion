@@ -6,6 +6,8 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-27
+# Updated: Increased retries to 10 (from 7) and changed exponential backoff from 2x to 1.5x
+#          This gives more attempts without excessively long delays
 # Added: Complex boundaries configuration support for boundaries with known timeout issues
 
 # Define version variable
@@ -1453,9 +1455,9 @@ function __processBoundary {
   __logd "Network connectivity confirmed for boundary ${ID}"
 
   # Use retry logic for Overpass API calls
-  # Retry settings: 7 retries with 20s base delay (coverage ~20 minutes)
-  local MAX_RETRIES_LOCAL=7
-  local BASE_DELAY_LOCAL=20
+  # Retry settings: 10 retries with 15s base delay (coverage ~15 minutes)
+  local MAX_RETRIES_LOCAL=10
+  local BASE_DELAY_LOCAL=15
   
  __logd "Downloading boundary ${ID} from Overpass API..."
  local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
@@ -2661,8 +2663,8 @@ function __retry_file_operation() {
   if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
    __logw "Retrying operation in ${EXPONENTIAL_DELAY}s (remaining attempts: $((MAX_RETRIES_LOCAL - RETRY_COUNT)))"
    sleep "${EXPONENTIAL_DELAY}"
-   # Exponential backoff: double the delay for next attempt
-   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+   # Exponential backoff: multiply delay by 1.5 for next attempt
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 3 / 2))
   fi
  done
 
