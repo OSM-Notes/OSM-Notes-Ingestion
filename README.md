@@ -126,17 +126,16 @@ profile can be used for any user.
 
 **Notes initial load**
 
-- 5 minutes: Downloading the countries and maritime areas.
+- 3 minutes: Downloading the countries and maritime areas.
   - This process has a pause between calls because the public Overpass turbo is
     restricted by the number of requests per minute.
     If another Overpass instance is used that does not block when many requests,
     the pause could be removed or reduced.
 - 1 minute: Download the Planet notes file.
-- 4 minutes: Processing XML notes file.
-- 12 minutes: Inserting notes into the database.
-- 5 minutes: Assign sequence to comments.
-- 5 minutes: Load text comments.
-- 5 hours: Locating notes in the appropriate country.
+- 5 minutes: Processing XML notes file.
+- 15 minutes: Inserting notes into the database.
+- 8 minutes: Processing and consolidating notes from partitions.
+- 3 hours: Locating notes in the appropriate country (parallel processing).
   - This DB process is executed in parallel with multiple threads.
 
 **WMS layer**
