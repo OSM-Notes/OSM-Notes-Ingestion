@@ -5,14 +5,18 @@
 # Can be used for full cleanup or partition-only cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-21
+# Version: 2025-10-27
 
 set -euo pipefail
+# shellcheck disable=SC2310
 
 # Define required variables
 BASENAME="cleanupAll"
 TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
+
+# Flag to track if the script should exit
+EXIT_REQUESTED=0
 
 # Define script base directory
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -72,6 +76,12 @@ function __execute_sql_script() {
  local TARGET_DB="${1}"
  local SCRIPT_PATH="${2}"
  local SCRIPT_NAME="${3}"
+
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted, skipping: ${SCRIPT_NAME}"
+  __log_finish
+  return 1
+ fi
 
  __logi "Executing ${SCRIPT_NAME}: ${SCRIPT_PATH}"
 
@@ -291,6 +301,11 @@ function __cleanup_base() {
  __logi "Cleaning up base components"
 
  # First clean up API tables to resolve enum dependencies
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
  __cleanup_api_tables "${TARGET_DB}"
 
  local BASE_SCRIPTS=(
@@ -302,9 +317,18 @@ function __cleanup_base() {
  )
 
  for SCRIPT_INFO in "${BASE_SCRIPTS[@]}"; do
+  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+   __loge "Cleanup was interrupted"
+   __log_finish
+   return 1
+  fi
   IFS=':' read -r SCRIPT_PATH SCRIPT_NAME <<< "${SCRIPT_INFO}"
   if [[ -f "${SCRIPT_PATH}" ]]; then
-   __execute_sql_script "${TARGET_DB}" "${SCRIPT_PATH}" "${SCRIPT_NAME}"
+   if ! __execute_sql_script "${TARGET_DB}" "${SCRIPT_PATH}" "${SCRIPT_NAME}"; then
+    __loge "Failed to execute: ${SCRIPT_NAME}"
+    __log_finish
+    return 1
+   fi
   else
    __logw "Script not found: ${SCRIPT_PATH}"
   fi
@@ -333,6 +357,12 @@ function __cleanup_all() {
  __logi "Starting comprehensive cleanup for database: ${TARGET_DB}"
 
  # Step 1: Check if database exists
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
+
  if ! __check_database "${TARGET_DB}"; then
   __logw "Database ${TARGET_DB} does not exist. Skipping database cleanup operations."
   __logi "Continuing with temporary file cleanup only."
@@ -347,19 +377,48 @@ function __cleanup_all() {
  fi
 
  # Step 2: Cleanup WMS components
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
  __logi "Step 2: Cleaning up WMS components"
  __cleanup_wms "${TARGET_DB}"
 
  # Step 4: Cleanup base components
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
  __logi "Step 3: Cleaning up base components"
  __cleanup_base "${TARGET_DB}"
 
  # Step 5: Cleanup temporary files
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
  __logi "Step 4: Cleaning up temporary files"
  __cleanup_temp_files
 
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
+
  __logi "Comprehensive cleanup completed successfully"
  __log_finish
+}
+
+# Function to handle interruption signals
+function __handle_interrupt() {
+ __logi "INTERRUPTED: Received interrupt signal. Cleaning up and exiting..."
+ EXIT_REQUESTED=1
+ __cleanup
+ exit 130
 }
 
 # Cleanup function
@@ -413,8 +472,9 @@ function __show_help() {
 
 # Main execution
 function main() {
- # Set up cleanup trap
+ # Set up cleanup trap and signal handlers
  trap __cleanup EXIT
+ trap __handle_interrupt INT TERM
 
  # Parse command line arguments
  local CLEANUP_MODE="all"
@@ -455,19 +515,43 @@ function main() {
  # Run cleanup based on mode
  case "${CLEANUP_MODE}" in
  "partitions")
+  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+   __loge "Cleanup was interrupted before starting"
+   exit 130
+  fi
   if __cleanup_partitions_only "${TARGET_DB}"; then
+   if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+    __loge "Cleanup was interrupted"
+    exit 130
+   fi
    __logi "Partition cleanup completed successfully"
    exit 0
   else
+   if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+    __loge "Cleanup was interrupted"
+    exit 130
+   fi
    __loge "Partition cleanup failed"
    exit 1
   fi
   ;;
  "all")
+  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+   __loge "Cleanup was interrupted before starting"
+   exit 130
+  fi
   if __cleanup_all "${TARGET_DB}"; then
+   if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+    __loge "Cleanup was interrupted"
+    exit 130
+   fi
    __logi "Comprehensive cleanup completed successfully"
    exit 0
   else
+   if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+    __loge "Cleanup was interrupted"
+    exit 130
+   fi
    __loge "Comprehensive cleanup failed"
    exit 1
   fi
