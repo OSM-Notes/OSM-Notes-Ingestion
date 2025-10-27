@@ -126,7 +126,9 @@ profile can be used for any user.
 
 **Notes initial load**
 
-- 3 minutes: Downloading the countries and maritime areas.
+- 12 minutes: Downloading the countries and maritime areas.
+  - Countries processing: ~10 minutes (6 parallel threads)
+  - Maritime boundaries processing: ~2.5 minutes (6 parallel threads)
   - This process has a pause between calls because the public Overpass turbo is
     restricted by the number of requests per minute.
     If another Overpass instance is used that does not block when many requests,
