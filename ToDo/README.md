@@ -17,11 +17,19 @@ All 31 tasks from the ActionPlan have been successfully completed:
 - **LOG #1-3** (3 tasks) - Logging improvements
 - **OTHER #4-6** (3 tasks) - Other improvements
 
+## Current Files
+
+- **README.md** - This file (project status)
+- **ToDos.md** - User-maintained task list
+- **prompts** - User-maintained prompts and notes
+
 ## Archived
+
+All completed historical documentation has been archived:
 
 - **ActionPlan**: `ToDo/completed/ActionPlan_2025-10-26.md`
 - **Historical Errors**: `ToDo/completed/errors_2024_historical.md`
-- **Error Analysis**: `ToDo/errors_Analysis_2025-10-27.md` (all errors resolved)
+- **Progress Tracker**: `ToDo/completed/ProgressTracker_2025-10-21.md`
 
 ## Project Status
 
