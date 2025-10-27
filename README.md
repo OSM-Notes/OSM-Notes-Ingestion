@@ -60,15 +60,64 @@ via the [OSM-Notes-Common](https://github.com/angoca/OSM-Notes-Common) submodule
 ### Cloning with Submodules
 
 ```bash
-# Clone with submodules
+# Clone with submodules (recommended)
 git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
 
 # Or initialize after cloning
 git clone https://github.com/angoca/OSM-Notes-Ingestion.git
 cd OSM-Notes-Ingestion
-git submodule init
-git submodule update
+git submodule update --init --recursive
 ```
+
+### Troubleshooting: Submodule Issues
+
+If you encounter the error `/lib/osm-common/commonFunctions.sh: No such file or directory`, the submódule has not been initialized. To fix:
+
+```bash
+# Initialize and update submodules
+git submodule update --init --recursive
+
+# Verify submodule exists
+ls -la lib/osm-common/commonFunctions.sh
+
+# If still having issues, re-initialize completely
+git submodule deinit -f lib/osm-common
+git submodule update --init --recursive
+```
+
+To check submodule status:
+
+```bash
+git submodule status
+```
+
+If the submodule is not properly initialized, you'll see a `-` prefix in the status output.
+
+#### Authentication Issues
+
+If you encounter authentication errors:
+
+**For SSH (recommended):**
+
+```bash
+# Test SSH connection to GitHub
+ssh -T git@github.com
+
+# If connection fails, set up SSH keys:
+# 1. Generate SSH key: ssh-keygen -t ed25519
+# 2. Add public key to GitHub: cat ~/.ssh/id_ed25519.pub
+# 3. Add key at: https://github.com/settings/keys
+```
+
+**For HTTPS:**
+
+```bash
+# Use GitHub Personal Access Token instead of password
+# Create token at: https://github.com/settings/tokens
+# Then clone: git clone https://YOUR_TOKEN@github.com/...
+```
+
+See [Submodule Troubleshooting Guide](./docs/Submodule_Troubleshooting.md) for detailed instructions.
 
 ## Timing
 
