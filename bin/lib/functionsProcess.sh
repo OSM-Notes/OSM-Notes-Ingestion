@@ -5,11 +5,10 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-26
-# Updated: 2025-10-26
+# Version: 2025-10-27
 
 # Define version variable
-VERSION="2025-10-26"
+VERSION="2025-10-27"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -505,10 +504,10 @@ function __processApiXmlPart() {
  export MAX_THREADS
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
-  # shellcheck disable=SC2154
-  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
-   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
+ # shellcheck disable=SC2154
+ -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+  < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
  __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
@@ -1927,8 +1926,16 @@ function __processCountries {
  # Wait for all background jobs to complete
  __logw "Waited for all jobs, restarting in main thread - countries."
  for JOB in $(jobs -p); do
+  set +e # Allow errors in wait
   wait "${JOB}"
+  WAIT_EXIT_CODE=$?
+  set -e
+  if [[ ${WAIT_EXIT_CODE} -ne 0 ]]; then
+   __logw "Thread ${JOB} exited with code ${WAIT_EXIT_CODE}"
+  fi
  done
+
+ __logi "All jobs reported completion. Verifying job status..."
 
  # Check job status file for detailed error information
  local FAIL=0
@@ -1960,8 +1967,9 @@ function __processCountries {
  if [[ "${FAIL}" -ne 0 ]]; then
   __loge "FAIL! (${FAIL}) - Failed jobs: ${FAILED_JOBS[*]}. Check individual log files for detailed error information:${FAILED_JOBS_INFO}"
   __loge "=== COUNTRIES PROCESSING FAILED ==="
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Countries processing failed" \
-   "echo 'Countries processing cleanup called'"
+  __loge "Continuing to allow remaining threads to finish..."
+  # Return instead of exit to avoid killing child threads
+  return "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
  __logi "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ==="
