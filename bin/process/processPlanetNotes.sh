@@ -1301,7 +1301,7 @@ function __processGeographicData {
   if [[ "${PROCESS_TYPE}" == "--base" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
    __logi "Attempting to load countries automatically in base mode..."
    if "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
-    __logi "Countries loaded successfully. Processing location notes..."
+    __logi "Regions loaded successfully. Processing location notes..."
     __getLocationNotes # sync
    else
     __logw "Failed to load countries automatically. Continuing without country assignment."
