@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-21
+-- Version: 2025-10-27
 
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL PRIMARY KEY,
@@ -282,7 +282,8 @@ CREATE OR REPLACE FUNCTION update_note()
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - WARNING: Ignoring invalid reopen of already open note. '
       || 'Current status: ' || m_status || ', Event: ' || NEW.event);
-    RAISE NOTICE 'Ignoring invalid reopen of open note: % (status: %, event: %). This is an OSM API data issue.',
+    -- Changed from RAISE NOTICE to RAISE DEBUG to avoid millions of logs in normal operation
+    RAISE DEBUG 'Ignoring invalid reopen of open note: % (status: %, event: %). This is an OSM API data issue.',
       NEW.note_id, m_status, NEW.event;
     
     -- Note: Comment is still inserted in note_comments table (done automatically)
@@ -315,7 +316,9 @@ CREATE OR REPLACE FUNCTION update_note()
     INSERT INTO logs (message) VALUES (NEW.note_id
       || ' - WARNING: Ignoring invalid close of already closed note. '
       || 'Current status: ' || m_status || ', Event: ' || NEW.event);
-    RAISE NOTICE 'Ignoring invalid close of closed note: % (status: %, event: %). This is an OSM API data issue.',
+    -- Changed from RAISE NOTICE to RAISE DEBUG to avoid millions of logs in normal operation
+    -- Use "SET client_min_messages TO DEBUG" if you need to see these messages
+    RAISE DEBUG 'Ignoring invalid close of closed note: % (status: %, event: %). This is an OSM API data issue.',
       NEW.note_id, m_status, NEW.event;
     
     -- Note: Comment is still inserted in note_comments table (done automatically)
@@ -343,4 +346,4 @@ CREATE OR REPLACE TRIGGER update_note
   EXECUTE FUNCTION update_note()
 ;
 COMMENT ON TRIGGER update_note ON note_comments IS
-  'Updates note status according to new comments. Gracefully handles invalid state transitions from OSM API (logged as NOTICE, not error)';
+  'Updates note status according to new comments. Gracefully handles invalid state transitions from OSM API (logged as DEBUG to avoid excessive logs, messages still stored in logs table)';
