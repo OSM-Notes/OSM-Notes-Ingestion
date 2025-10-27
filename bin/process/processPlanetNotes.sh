@@ -172,7 +172,7 @@ if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
  # Get the script name and all arguments
  SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
  # Re-execute with setsid to create new session (immune to SIGHUP)
- exec setsid -w "$SCRIPT_PATH" "$@"
+ exec setsid -w "${SCRIPT_PATH}" "$@"
 fi
 
 # Ignore SIGHUP signal (terminal hangup) - belt and suspenders approach
@@ -1376,7 +1376,7 @@ function main() {
   echo "========================================"
   echo "Note: An email notification was already sent when the error occurred."
   echo ""
-  
+
   exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
  fi
 

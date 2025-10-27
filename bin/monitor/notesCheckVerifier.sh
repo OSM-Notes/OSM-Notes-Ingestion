@@ -50,7 +50,7 @@ declare CLEAN="${CLEAN:-true}"
 # Base directory for the project.
 declare SCRIPT_BASE_DIRECTORY
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-  &> /dev/null && pwd)"
+ &> /dev/null && pwd)"
 readonly SCRIPT_BASE_DIRECTORY
 
 # Loads the global properties.
@@ -88,16 +88,16 @@ __start_logger
 
 # Load validation functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; then
-  # shellcheck source=../../lib/osm-common/validationFunctions.sh
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
+ # shellcheck source=../../lib/osm-common/validationFunctions.sh
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 else
-  __loge "ERROR: validationFunctions.sh not found"
-  exit 1
+ __loge "ERROR: validationFunctions.sh not found"
+ exit 1
 fi
 
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then
-  declare -r PROCESS_TYPE=${1:-}
+ declare -r PROCESS_TYPE=${1:-}
 fi
 
 # File that contains the ids or query to get the ids.
@@ -130,229 +130,229 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 
 # Shows the help information.
 function __show_help {
-  echo "${BASENAME} version ${VERSION}"
-  echo "Checks the differences in the database from the most recent planet"
-  echo "for notes and the notes ingested via API calls. This script works"
-  echo "better around 0h UTC, when the Planet file is published and the"
-  echo "difference with the API calls are less."
-  echo ""
-  echo "After identifying differences, this script automatically inserts"
-  echo "missing data from Planet into the main database tables."
-  echo
-  echo "If the script returns a lot of old differences, it is because the"
-  echo "API calls script failed. In this case, the best is to recreate the"
-  echo "base tables from a Planet with 'processPlanetNotes.sh'. Also, it is"
-  echo "very important to notify the error with a GitHub issue in the project"
-  echo "and attach as much information as possible to find a way to correct"
-  echo "the error"
-  echo
-  echo "Written por: Andres Gomez (AngocA)"
-  echo "MaptimeBogota."
-  exit "${ERROR_HELP_MESSAGE}"
+ echo "${BASENAME} version ${VERSION}"
+ echo "Checks the differences in the database from the most recent planet"
+ echo "for notes and the notes ingested via API calls. This script works"
+ echo "better around 0h UTC, when the Planet file is published and the"
+ echo "difference with the API calls are less."
+ echo ""
+ echo "After identifying differences, this script automatically inserts"
+ echo "missing data from Planet into the main database tables."
+ echo
+ echo "If the script returns a lot of old differences, it is because the"
+ echo "API calls script failed. In this case, the best is to recreate the"
+ echo "base tables from a Planet with 'processPlanetNotes.sh'. Also, it is"
+ echo "very important to notify the error with a GitHub issue in the project"
+ echo "and attach as much information as possible to find a way to correct"
+ echo "the error"
+ echo
+ echo "Written por: Andres Gomez (AngocA)"
+ echo "MaptimeBogota."
+ exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
-  __log_start
-  set +e
-  # Checks prereqs.
-  __checkPrereqsCommands
+ __log_start
+ set +e
+ # Checks prereqs.
+ __checkPrereqsCommands
 
-  ## Validate process file if provided
-  if [[ "${PROCESS_FILE}" != "" ]]; then
-    if ! __validate_input_file "${PROCESS_FILE}" "Process file"; then
-      __loge "ERROR: Process file validation failed: ${PROCESS_FILE}"
-      exit "${ERROR_INVALID_ARGUMENT}"
-    fi
+ ## Validate process file if provided
+ if [[ "${PROCESS_FILE}" != "" ]]; then
+  if ! __validate_input_file "${PROCESS_FILE}" "Process file"; then
+   __loge "ERROR: Process file validation failed: ${PROCESS_FILE}"
+   exit "${ERROR_INVALID_ARGUMENT}"
   fi
+ fi
 
-  ## Validate SQL report file
-  if ! __validate_sql_structure "${SQL_REPORT}"; then
-    __loge "ERROR: SQL report file validation failed: ${SQL_REPORT}"
-    exit "${ERROR_MISSING_LIBRARY}"
+ ## Validate SQL report file
+ if ! __validate_sql_structure "${SQL_REPORT}"; then
+  __loge "ERROR: SQL report file validation failed: ${SQL_REPORT}"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ ## Validate SQL scripts for inserting missing data
+ local SQL_FILES=(
+  "${POSTGRES_51_INSERT_MISSING_NOTES}"
+  "${POSTGRES_52_INSERT_MISSING_COMMENTS}"
+  "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}"
+ )
+
+ for SQL_FILE in "${SQL_FILES[@]}"; do
+  if ! __validate_sql_structure "${SQL_FILE}"; then
+   __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
+   exit "${ERROR_MISSING_LIBRARY}"
   fi
+ done
 
-  ## Validate SQL scripts for inserting missing data
-  local SQL_FILES=(
-    "${POSTGRES_51_INSERT_MISSING_NOTES}"
-    "${POSTGRES_52_INSERT_MISSING_COMMENTS}"
-    "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}"
-  )
-
-  for SQL_FILE in "${SQL_FILES[@]}"; do
-    if ! __validate_sql_structure "${SQL_FILE}"; then
-      __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
-      exit "${ERROR_MISSING_LIBRARY}"
-    fi
-  done
-
-  __log_finish
-  set -e
+ __log_finish
+ set -e
 }
 
 # Downloads the planet notes.
 function __downloadingPlanet {
-  __log_start
+ __log_start
 
-  "${SCRIPT_PROCESS_PLANET}"
+ "${SCRIPT_PROCESS_PLANET}"
 
-  __log_finish
+ __log_finish
 }
 
 # Checks the differences between planet and API notes.
 function __checkingDifferences {
-  __log_start
+ __log_start
 
-  LAST_NOTE=/tmp/lastNote.csv
-  LAST_COMMENT=/tmp/lastCommentNote.csv
-  DIFFERENT_NOTE_IDS_FILE=/tmp/differentNoteIds.csv
-  DIFFERENT_COMMENT_IDS_FILE=/tmp/differentNoteCommentIds.csv
-  DIRRERENT_NOTES_FILE=/tmp/differentNotes.csv
-  DIRRERENT_COMMENTS_FILE=/tmp/differentNoteComments.csv
-  DIFFERENT_TEXT_COMMENTS_FILE=/tmp/differentTextComments.csv
-  DIFFERENCES_TEXT_COMMENT=/tmp/textComments.csv
+ LAST_NOTE=/tmp/lastNote.csv
+ LAST_COMMENT=/tmp/lastCommentNote.csv
+ DIFFERENT_NOTE_IDS_FILE=/tmp/differentNoteIds.csv
+ DIFFERENT_COMMENT_IDS_FILE=/tmp/differentNoteCommentIds.csv
+ DIRRERENT_NOTES_FILE=/tmp/differentNotes.csv
+ DIRRERENT_COMMENTS_FILE=/tmp/differentNoteComments.csv
+ DIFFERENT_TEXT_COMMENTS_FILE=/tmp/differentTextComments.csv
+ DIFFERENCES_TEXT_COMMENT=/tmp/textComments.csv
 
-  export LAST_NOTE
-  export LAST_COMMENT
-  export DIFFERENT_NOTE_IDS_FILE
-  export DIFFERENT_COMMENT_IDS_FILE
-  export DIRRERENT_NOTES_FILE
-  export DIRRERENT_COMMENTS_FILE
-  export DIFFERENT_TEXT_COMMENTS_FILE
-  export DIFFERENCES_TEXT_COMMENT
-  # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIRRERENT_NOTES_FILE,$DIRRERENT_COMMENTS_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT' \
-      < "${SQL_REPORT}" || true)" 2>&1
+ export LAST_NOTE
+ export LAST_COMMENT
+ export DIFFERENT_NOTE_IDS_FILE
+ export DIFFERENT_COMMENT_IDS_FILE
+ export DIRRERENT_NOTES_FILE
+ export DIRRERENT_COMMENTS_FILE
+ export DIFFERENT_TEXT_COMMENTS_FILE
+ export DIFFERENCES_TEXT_COMMENT
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIRRERENT_NOTES_FILE,$DIRRERENT_COMMENTS_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT' \
+   < "${SQL_REPORT}" || true)" 2>&1
 
-  if [[ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ]] \
-    || [[ ! -r "${DIFFERENT_COMMENT_IDS_FILE}" ]] \
-    || [[ ! -r "${DIRRERENT_NOTES_FILE}" ]] \
-    || [[ ! -r "${DIRRERENT_COMMENTS_FILE}" ]] \
-    || [[ ! -r "${DIFFERENT_TEXT_COMMENTS_FILE}" ]] \
-    || [[ ! -r "${LAST_NOTE}" ]] \
-    || [[ ! -r "${LAST_COMMENT}" ]]; then
-    __loge "Difference files were not created."
-    exit "${ERROR_CREATING_REPORT}"
-  fi
+ if [[ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ]] \
+  || [[ ! -r "${DIFFERENT_COMMENT_IDS_FILE}" ]] \
+  || [[ ! -r "${DIRRERENT_NOTES_FILE}" ]] \
+  || [[ ! -r "${DIRRERENT_COMMENTS_FILE}" ]] \
+  || [[ ! -r "${DIFFERENT_TEXT_COMMENTS_FILE}" ]] \
+  || [[ ! -r "${LAST_NOTE}" ]] \
+  || [[ ! -r "${LAST_COMMENT}" ]]; then
+  __loge "Difference files were not created."
+  exit "${ERROR_CREATING_REPORT}"
+ fi
 
-  zip "${REPORT_ZIP}" "${DIFFERENT_NOTE_IDS_FILE}" \
-    "${DIFFERENT_COMMENT_IDS_FILE}" "${DIRRERENT_NOTES_FILE}" \
-    "${DIRRERENT_COMMENTS_FILE}" "${DIFFERENT_TEXT_COMMENTS_FILE}"
+ zip "${REPORT_ZIP}" "${DIFFERENT_NOTE_IDS_FILE}" \
+  "${DIFFERENT_COMMENT_IDS_FILE}" "${DIRRERENT_NOTES_FILE}" \
+  "${DIRRERENT_COMMENTS_FILE}" "${DIFFERENT_TEXT_COMMENTS_FILE}"
 
-  __log_finish
+ __log_finish
 }
 
 # Sends the report of differences in the database.
 function __sendMail {
-  __log_start
-  QTY_NOTES=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" | wc -l | cut -f 1 -d' ')
-  QTY_COMMENTS=$(tail -n +2 "${DIFFERENT_COMMENT_IDS_FILE}" | wc -l | cut -f 1 -d' ')
-  QTY_TEXT_COMMENTS=$(tail -n +2 "${DIFFERENT_TEXT_COMMENTS_FILE}" | wc -l | cut -f 1 -d' ')
+ __log_start
+ QTY_NOTES=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" | wc -l | cut -f 1 -d' ')
+ QTY_COMMENTS=$(tail -n +2 "${DIFFERENT_COMMENT_IDS_FILE}" | wc -l | cut -f 1 -d' ')
+ QTY_TEXT_COMMENTS=$(tail -n +2 "${DIFFERENT_TEXT_COMMENTS_FILE}" | wc -l | cut -f 1 -d' ')
 
-  if [[ "${QTY_NOTES}" -ne 0 ]] || [[ "${QTY_COMMENTS}" -ne 0 ]] || [[ "${QTY_TEXT_COMMENTS}" -ne 0 ]]; then
-    __logi "Sending mail."
-    {
-      echo "These are the differences between the Planet file and the API calls"
-      echo "for OSM notes profile."
-      echo
-      echo "Summary of differences:"
-      echo "- Missing notes: ${QTY_NOTES}"
-      echo "- Missing comments: ${QTY_COMMENTS}"
-      echo "- Missing text comments: ${QTY_TEXT_COMMENTS}"
-      echo
-      echo "Latest note information:"
-      cat "${LAST_NOTE}"
-      echo
-      echo "Latest comment information:"
-      cat "${LAST_COMMENT}"
-      echo
-      echo "Detailed differences are available in the attached ZIP file."
-      echo "This report was generated by:"
-      echo "https://github.com/OSMLatam/OSM-Notes-profile"
-    } >> "${REPORT}"
-    echo "" | mutt -s "OSM Notes profile differences" -i "${REPORT}" \
-      -a "${REPORT_ZIP}" -- "${EMAILS}" 2>&1
-    __logi "Message sent."
-  fi
-  __log_finish
+ if [[ "${QTY_NOTES}" -ne 0 ]] || [[ "${QTY_COMMENTS}" -ne 0 ]] || [[ "${QTY_TEXT_COMMENTS}" -ne 0 ]]; then
+  __logi "Sending mail."
+  {
+   echo "These are the differences between the Planet file and the API calls"
+   echo "for OSM notes profile."
+   echo
+   echo "Summary of differences:"
+   echo "- Missing notes: ${QTY_NOTES}"
+   echo "- Missing comments: ${QTY_COMMENTS}"
+   echo "- Missing text comments: ${QTY_TEXT_COMMENTS}"
+   echo
+   echo "Latest note information:"
+   cat "${LAST_NOTE}"
+   echo
+   echo "Latest comment information:"
+   cat "${LAST_COMMENT}"
+   echo
+   echo "Detailed differences are available in the attached ZIP file."
+   echo "This report was generated by:"
+   echo "https://github.com/OSMLatam/OSM-Notes-profile"
+  } >> "${REPORT}"
+  echo "" | mutt -s "OSM Notes profile differences" -i "${REPORT}" \
+   -a "${REPORT_ZIP}" -- "${EMAILS}" 2>&1
+  __logi "Message sent."
+ fi
+ __log_finish
 }
 
 # Inserts missing data from check tables into main tables.
 function __insertMissingData {
-  __log_start
-  local QTY_NOTES
-  local QTY_COMMENTS
-  local QTY_TEXT_COMMENTS
+ __log_start
+ local QTY_NOTES
+ local QTY_COMMENTS
+ local QTY_TEXT_COMMENTS
 
-  # Check if there are differences
-  QTY_NOTES=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" 2>/dev/null | wc -l \
-    | cut -f 1 -d' ' || echo "0")
-  QTY_COMMENTS=$(tail -n +2 "${DIFFERENT_COMMENT_IDS_FILE}" 2>/dev/null \
-    | wc -l | cut -f 1 -d' ' || echo "0")
-  QTY_TEXT_COMMENTS=$(tail -n +2 "${DIFFERENT_TEXT_COMMENTS_FILE}" \
-    2>/dev/null | wc -l | cut -f 1 -d' ' || echo "0")
+ # Check if there are differences
+ QTY_NOTES=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" 2> /dev/null | wc -l \
+  | cut -f 1 -d' ' || echo "0")
+ QTY_COMMENTS=$(tail -n +2 "${DIFFERENT_COMMENT_IDS_FILE}" 2> /dev/null \
+  | wc -l | cut -f 1 -d' ' || echo "0")
+ QTY_TEXT_COMMENTS=$(tail -n +2 "${DIFFERENT_TEXT_COMMENTS_FILE}" \
+  2> /dev/null | wc -l | cut -f 1 -d' ' || echo "0")
 
-  if [[ "${QTY_NOTES}" -eq 0 ]] && [[ "${QTY_COMMENTS}" -eq 0 ]] \
-    && [[ "${QTY_TEXT_COMMENTS}" -eq 0 ]]; then
-    __logi "No missing data found. Nothing to insert."
-    __log_finish
-    return 0
-  fi
-
-  __logi "Found missing data: ${QTY_NOTES} notes, ${QTY_COMMENTS} comments, ${QTY_TEXT_COMMENTS} text comments"
-  __logi "Inserting missing data from check tables into main tables..."
-
-  # Insert missing notes
-  if [[ "${QTY_NOTES}" -gt 0 ]]; then
-    __logi "Inserting ${QTY_NOTES} missing notes..."
-    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_INSERT_MISSING_NOTES}" 2>&1; then
-      __loge "ERROR: Failed to insert missing notes"
-      __log_finish
-      return 1
-    fi
-  fi
-
-  # Insert missing comments
-  if [[ "${QTY_COMMENTS}" -gt 0 ]]; then
-    __logi "Inserting ${QTY_COMMENTS} missing comments..."
-    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-      -f "${POSTGRES_52_INSERT_MISSING_COMMENTS}" 2>&1; then
-      __loge "ERROR: Failed to insert missing comments"
-      __log_finish
-      return 1
-    fi
-  fi
-
-  # Insert missing text comments
-  if [[ "${QTY_TEXT_COMMENTS}" -gt 0 ]]; then
-    __logi "Inserting ${QTY_TEXT_COMMENTS} missing text comments..."
-    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-      -f "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}" 2>&1; then
-      __loge "ERROR: Failed to insert missing text comments"
-      __log_finish
-      return 1
-    fi
-  fi
-
-  __logi "Missing data insertion completed successfully"
+ if [[ "${QTY_NOTES}" -eq 0 ]] && [[ "${QTY_COMMENTS}" -eq 0 ]] \
+  && [[ "${QTY_TEXT_COMMENTS}" -eq 0 ]]; then
+  __logi "No missing data found. Nothing to insert."
   __log_finish
+  return 0
+ fi
+
+ __logi "Found missing data: ${QTY_NOTES} notes, ${QTY_COMMENTS} comments, ${QTY_TEXT_COMMENTS} text comments"
+ __logi "Inserting missing data from check tables into main tables..."
+
+ # Insert missing notes
+ if [[ "${QTY_NOTES}" -gt 0 ]]; then
+  __logi "Inserting ${QTY_NOTES} missing notes..."
+  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_INSERT_MISSING_NOTES}" 2>&1; then
+   __loge "ERROR: Failed to insert missing notes"
+   __log_finish
+   return 1
+  fi
+ fi
+
+ # Insert missing comments
+ if [[ "${QTY_COMMENTS}" -gt 0 ]]; then
+  __logi "Inserting ${QTY_COMMENTS} missing comments..."
+  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_52_INSERT_MISSING_COMMENTS}" 2>&1; then
+   __loge "ERROR: Failed to insert missing comments"
+   __log_finish
+   return 1
+  fi
+ fi
+
+ # Insert missing text comments
+ if [[ "${QTY_TEXT_COMMENTS}" -gt 0 ]]; then
+  __logi "Inserting ${QTY_TEXT_COMMENTS} missing text comments..."
+  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}" 2>&1; then
+   __loge "ERROR: Failed to insert missing text comments"
+   __log_finish
+   return 1
+  fi
+ fi
+
+ __logi "Missing data insertion completed successfully"
+ __log_finish
 }
 
 # Clean unnecessary files.
 function __cleanFiles {
-  __log_start
-  if [[ "${CLEAN}" = "true" ]]; then
-    __logi "Cleaning unnecesary files."
-    rm -f "${REPORT}" "${REPORT_ZIP}" # Other files cannot be removed.
-  fi
-  __log_finish
+ __log_start
+ if [[ "${CLEAN}" = "true" ]]; then
+  __logi "Cleaning unnecesary files."
+  rm -f "${REPORT}" "${REPORT_ZIP}" # Other files cannot be removed.
+ fi
+ __log_finish
 }
 
 # Function that activates the error trap.
 function __trapOn() {
-  __log_start
-  trap '{ 
+ __log_start
+ trap '{ 
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
@@ -379,7 +379,7 @@ function __trapOn() {
    exit ${ERROR_EXIT_CODE};
   fi;
  }' ERR
-  trap '{ 
+ trap '{ 
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
@@ -396,29 +396,29 @@ function __trapOn() {
   fi;
   exit ${ERROR_GENERAL};
  }' SIGINT SIGTERM
-  __log_finish
+ __log_finish
 }
 
 ######
 # MAIN
 
 function main() {
-  __log_start
-  __logi "Preparing the env."
-  __logd "Output saved at: ${TMP_DIR}."
+ __log_start
+ __logi "Preparing the env."
+ __logd "Output saved at: ${TMP_DIR}."
 
-  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-    __show_help
-  fi
-  __checkPrereqs
-  __logw "Starting process."
+ if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+ fi
+ __checkPrereqs
+ __logw "Starting process."
 
-  # Sets the trap in case of any signal.
-  __trapOn
-  exec 7> "${LOCK}"
+ # Sets the trap in case of any signal.
+ __trapOn
+ exec 7> "${LOCK}"
 
-  # Write lock file content with useful debugging information
-  cat > "${LOCK}" << EOF
+ # Write lock file content with useful debugging information
+ cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
 Started: $(date '+%Y-%m-%d %H:%M:%S')
@@ -426,15 +426,15 @@ Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
 EOF
-  __logd "Lock file content written to: ${LOCK}"
+ __logd "Lock file content written to: ${LOCK}"
 
-  __downloadingPlanet
-  __checkingDifferences
-  __insertMissingData
-  __sendMail
-  __cleanFiles
-  __logw "Process finished."
-  __log_finish
+ __downloadingPlanet
+ __checkingDifferences
+ __insertMissingData
+ __sendMail
+ __cleanFiles
+ __logw "Process finished."
+ __log_finish
 }
 
 # Allows to other user read the directory.
@@ -442,11 +442,11 @@ chmod go+x "${TMP_DIR}"
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  __start_logger
-  if [[ ! -t 1 ]]; then
-    __set_log_file "${LOG_FILE_NAME}"
-    main >> "${LOG_FILE_NAME}"
-  else
-    main
-  fi
+ __start_logger
+ if [[ ! -t 1 ]]; then
+  __set_log_file "${LOG_FILE_NAME}"
+  main >> "${LOG_FILE_NAME}"
+ else
+  main
+ fi
 fi

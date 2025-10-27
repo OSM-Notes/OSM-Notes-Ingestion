@@ -54,20 +54,20 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 # Base directory for the project.
 # Only set SCRIPT_BASE_DIRECTORY if not already defined (e.g., in test environment)
 if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
-  declare SCRIPT_BASE_DIRECTORY
-  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
-    &> /dev/null && pwd)"
-  readonly SCRIPT_BASE_DIRECTORY
+ declare SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+  &> /dev/null && pwd)"
+ readonly SCRIPT_BASE_DIRECTORY
 fi
 
 # Loads the global properties.
 # shellcheck disable=SC1091
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh" ]] && [[ "${BATS_TEST_NAME:-}" != "" ]]; then
-  # Use test properties when running in test environment
-  source "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh"
+ # Use test properties when running in test environment
+ source "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh"
 else
-  # Use production properties
-  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+ # Use production properties
+ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 fi
 
 declare BASENAME
@@ -90,7 +90,7 @@ readonly LOCK
 
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then
-  declare -r PROCESS_TYPE=${1:-}
+ declare -r PROCESS_TYPE=${1:-}
 fi
 
 # Planet notes file configuration.
@@ -134,100 +134,100 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
 
 # Shows the help information.
 function __show_help {
-  echo "${0} version ${VERSION}"
-  echo "This script checks the loaded notes to validate if their state is"
-  echo "correct."
-  echo
-  echo "Written by: Andres Gomez (AngocA)"
-  echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
-  exit "${ERROR_HELP_MESSAGE}"
+ echo "${0} version ${VERSION}"
+ echo "This script checks the loaded notes to validate if their state is"
+ echo "correct."
+ echo
+ echo "Written by: Andres Gomez (AngocA)"
+ echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+ exit "${ERROR_HELP_MESSAGE}"
 }
 
 # Checks prerequisites to run the script.
 function __checkPrereqs {
-  __log_start
-  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
-    && [[ "${PROCESS_TYPE}" != "-h" ]]; then
-    echo "ERROR: Invalid parameter. It should be:"
-    echo " * Empty string, nothing."
-    echo " * --help"
-    exit "${ERROR_INVALID_ARGUMENT}"
+ __log_start
+ if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--help" ]] \
+  && [[ "${PROCESS_TYPE}" != "-h" ]]; then
+  echo "ERROR: Invalid parameter. It should be:"
+  echo " * Empty string, nothing."
+  echo " * --help"
+  exit "${ERROR_INVALID_ARGUMENT}"
+ fi
+ set +e
+ # Checks prereqs.
+ __checkPrereqsCommands
+
+ ## Validate SQL script files using centralized validation
+ __logi "Validating SQL script files..."
+
+ # Create array of SQL files to validate
+ local SQL_FILES=(
+  "${POSTGRES_11_DROP_CHECK_TABLES}"
+  "${POSTGRES_21_CREATE_CHECK_TABLES}"
+  "${POSTGRES_31_LOAD_CHECK_NOTES}"
+  "${POSTGRES_41_ANALYZE_AND_VACUUM}"
+ )
+
+ # Validate each SQL file
+ for SQL_FILE in "${SQL_FILES[@]}"; do
+  if ! __validate_sql_structure "${SQL_FILE}"; then
+   __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
+   exit "${ERROR_MISSING_LIBRARY}"
   fi
-  set +e
-  # Checks prereqs.
-  __checkPrereqsCommands
+ done
 
-  ## Validate SQL script files using centralized validation
-  __logi "Validating SQL script files..."
-
-  # Create array of SQL files to validate
-  local SQL_FILES=(
-    "${POSTGRES_11_DROP_CHECK_TABLES}"
-    "${POSTGRES_21_CREATE_CHECK_TABLES}"
-    "${POSTGRES_31_LOAD_CHECK_NOTES}"
-    "${POSTGRES_41_ANALYZE_AND_VACUUM}"
-  )
-
-  # Validate each SQL file
-  for SQL_FILE in "${SQL_FILES[@]}"; do
-    if ! __validate_sql_structure "${SQL_FILE}"; then
-      __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
-      exit "${ERROR_MISSING_LIBRARY}"
-    fi
-  done
-
-  __log_finish
-  set -e
+ __log_finish
+ set -e
 }
 
 # Drop check tables.
 function __dropCheckTables {
-  __log_start
-  __logi "Droping check tables."
-  psql -d "${DBNAME}" -f "${POSTGRES_11_DROP_CHECK_TABLES}" 2>&1
-  __log_finish
+ __log_start
+ __logi "Droping check tables."
+ psql -d "${DBNAME}" -f "${POSTGRES_11_DROP_CHECK_TABLES}" 2>&1
+ __log_finish
 }
 
 # Creates check tables that receives the whole history.
 function __createCheckTables {
-  __log_start
-  __logi "Creating tables."
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_CHECK_TABLES}"
-  __log_finish
+ __log_start
+ __logi "Creating tables."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_CHECK_TABLES}"
+ __log_finish
 }
 
 # Loads new notes from check.
 function __loadCheckNotes {
-  __log_start
-  # Loads the data in the database.
-  export OUTPUT_NOTES_FILE
-  export OUTPUT_NOTE_COMMENTS_FILE
-  # shellcheck disable=SC2016
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
-      < "${POSTGRES_31_LOAD_CHECK_NOTES}" || true)"
-  __log_finish
+ __log_start
+ # Loads the data in the database.
+ export OUTPUT_NOTES_FILE
+ export OUTPUT_NOTE_COMMENTS_FILE
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
+   < "${POSTGRES_31_LOAD_CHECK_NOTES}" || true)"
+ __log_finish
 }
 
 # Calculates statistics on all tables and vacuum.
 function __analyzeAndVacuum {
-  __log_start
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_41_ANALYZE_AND_VACUUM}"
-  __log_finish
+ __log_start
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_41_ANALYZE_AND_VACUUM}"
+ __log_finish
 }
 
 # Cleans files generated during the process.
 function __cleanNotesFiles {
-  __log_start
-  rm -f "${PLANET_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
-    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
-  __log_finish
+ __log_start
+ rm -f "${PLANET_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
+  "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
+ __log_finish
 }
 
 # Function that activates the error trap.
 function __trapOn() {
-  __log_start
-  trap '{ 
+ __log_start
+ trap '{ 
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
@@ -254,7 +254,7 @@ function __trapOn() {
    exit ${ERROR_EXIT_CODE};
   fi;
  }' ERR
-  trap '{ 
+ trap '{ 
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
@@ -271,37 +271,37 @@ function __trapOn() {
   fi;
   exit ${ERROR_GENERAL};
  }' SIGINT SIGTERM
-  __log_finish
+ __log_finish
 }
 
 ######
 # MAIN
 
 function main() {
-  __log_start
-  __logi "Preparing environment."
-  __logd "Output saved at: ${TMP_DIR}."
-  __logi "Processing: ${PROCESS_TYPE}."
+ __log_start
+ __logi "Preparing environment."
+ __logd "Output saved at: ${TMP_DIR}."
+ __logi "Processing: ${PROCESS_TYPE}."
 
-  if [[ "${PROCESS_TYPE}" == "-h" ]] \
-    || [[ "${PROCESS_TYPE}" == "--help" ]]; then
-    __show_help
-  fi
-  __checkPrereqs
-  __logw "Starting process."
+ if [[ "${PROCESS_TYPE}" == "-h" ]] \
+  || [[ "${PROCESS_TYPE}" == "--help" ]]; then
+  __show_help
+ fi
+ __checkPrereqs
+ __logw "Starting process."
 
-  # Sets the trap in case of any signal.
-  __trapOn
-  exec 7> "${LOCK}"
-  __logw "Validating single execution."
-  # shellcheck disable=SC2034
-  ONLY_EXECUTION="no"
-  flock -n 7
-  # shellcheck disable=SC2034
-  ONLY_EXECUTION="yes"
+ # Sets the trap in case of any signal.
+ __trapOn
+ exec 7> "${LOCK}"
+ __logw "Validating single execution."
+ # shellcheck disable=SC2034
+ ONLY_EXECUTION="no"
+ flock -n 7
+ # shellcheck disable=SC2034
+ ONLY_EXECUTION="yes"
 
-  # Write lock file content with useful debugging information
-  cat > "${LOCK}" << EOF
+ # Write lock file content with useful debugging information
+ cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
 Started: $(date '+%Y-%m-%d %H:%M:%S')
@@ -309,24 +309,24 @@ Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
 EOF
-  __logd "Lock file content written to: ${LOCK}"
+ __logd "Lock file content written to: ${LOCK}"
 
-  __dropCheckTables
-  __createCheckTables
-  __downloadPlanetNotes 2>&1
+ __dropCheckTables
+ __createCheckTables
+ __downloadPlanetNotes 2>&1
 
-  # Validate XML only if validation is enabled
-  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-    __validatePlanetNotesXMLFileComplete
-  else
-    __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
-  fi
+ # Validate XML only if validation is enabled
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __validatePlanetNotesXMLFileComplete
+ else
+  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+ fi
 
-  __loadCheckNotes
-  __analyzeAndVacuum
-  __cleanNotesFiles
-  __logw "Ending process."
-  __log_finish
+ __loadCheckNotes
+ __analyzeAndVacuum
+ __cleanNotesFiles
+ __logw "Ending process."
+ __log_finish
 }
 
 # Allows to other user read the directory.
@@ -334,13 +334,13 @@ chmod go+x "${TMP_DIR}"
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  __start_logger
-  if [[ ! -t 1 ]]; then
-    __set_log_file "${LOG_FILENAME}"
-    main >> "${LOG_FILENAME}"
-    mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-    rmdir "${TMP_DIR}"
-  else
-    main
-  fi
+ __start_logger
+ if [[ ! -t 1 ]]; then
+  __set_log_file "${LOG_FILENAME}"
+  main >> "${LOG_FILENAME}"
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+  rmdir "${TMP_DIR}"
+ else
+  main
+ fi
 fi

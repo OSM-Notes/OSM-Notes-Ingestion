@@ -581,7 +581,8 @@ __divide_xml_file() {
   START_TIME=$(date +%s)
 
   for ((PART_NUM = 1; PART_NUM <= NUM_PARTS; PART_NUM++)); do
-   local PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" "${PART_NUM}").xml"
+   local PART_FILE
+   PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" "${PART_NUM}").xml"
    local START_LINE=1
    local END_LINE=${TOTAL_NOTES}
 
@@ -680,7 +681,8 @@ __divide_xml_file() {
    # Check if current part is complete (by notes count)
    if [[ ${CURRENT_NOTES} -ge ${NOTES_PER_PART} ]] && [[ ${PART_NUM} -lt ${NUM_PARTS} ]]; then
     # Create part file
-    local PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" "${PART_NUM}").xml"
+    local PART_FILE
+    PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" "${PART_NUM}").xml"
 
     # Create part with header and content
     cat "${OUTPUT_DIR}/header.xml" > "${PART_FILE}"
@@ -731,7 +733,8 @@ __divide_xml_file() {
 
   # Create final part with remaining content if any
   if [[ -n "${PART_CONTENT}" ]] && [[ ${PART_NUM} -le ${NUM_PARTS} ]]; then
-   local PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" "${PART_NUM}").xml"
+   local PART_FILE
+   PART_FILE="${OUTPUT_DIR}/${PART_PREFIX}_$(printf "%03d" "${PART_NUM}").xml"
 
    cat "${OUTPUT_DIR}/header.xml" > "${PART_FILE}"
    printf "%s" "${PART_CONTENT}" >> "${PART_FILE}"

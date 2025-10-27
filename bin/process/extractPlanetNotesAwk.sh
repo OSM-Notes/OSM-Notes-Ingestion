@@ -34,10 +34,14 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
 # AWK scripts are in awk/ directory (project root)
-readonly AWK_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)/awk"
-readonly EXTRACT_NOTES_AWK="${AWK_DIR}/extract_notes.awk"
-readonly EXTRACT_COMMENTS_AWK="${AWK_DIR}/extract_comments.awk"
-readonly EXTRACT_TEXTS_AWK="${AWK_DIR}/extract_comment_texts.awk"
+AWK_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)/awk"
+readonly AWK_DIR
+EXTRACT_NOTES_AWK="${AWK_DIR}/extract_notes.awk"
+readonly EXTRACT_NOTES_AWK
+EXTRACT_COMMENTS_AWK="${AWK_DIR}/extract_comments.awk"
+readonly EXTRACT_COMMENTS_AWK
+EXTRACT_TEXTS_AWK="${AWK_DIR}/extract_comment_texts.awk"
+readonly EXTRACT_TEXTS_AWK
 
 ###############################################################################
 # Validates that required AWK scripts exist.

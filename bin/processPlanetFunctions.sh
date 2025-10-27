@@ -302,20 +302,20 @@ function __processBoundary() {
  local OGR_OUTPUT
  OGR_OUTPUT=$(mktemp)
 
-# Import GeoJSON to PostgreSQL
-# Strategy: Use SQL SELECT to pick only needed columns, avoiding duplicates
-# Import to temporary table first, then map to target schema
-local TEMP_TABLE="${TABLE_NAME}_import"
+ # Import GeoJSON to PostgreSQL
+ # Strategy: Use SQL SELECT to pick only needed columns, avoiding duplicates
+ # Import to temporary table first, then map to target schema
+ local TEMP_TABLE="${TABLE_NAME}_import"
 
-# Sanitize table names to prevent SQL injection
-local SANITIZED_TABLE_NAME
-SANITIZED_TABLE_NAME=$(__sanitize_sql_identifier "${TABLE_NAME}")
-local SANITIZED_TEMP_TABLE
-SANITIZED_TEMP_TABLE=$(__sanitize_sql_identifier "${TEMP_TABLE}")
+ # Sanitize table names to prevent SQL injection
+ local SANITIZED_TABLE_NAME
+ SANITIZED_TABLE_NAME=$(__sanitize_sql_identifier "${TABLE_NAME}")
+ local SANITIZED_TEMP_TABLE
+ SANITIZED_TEMP_TABLE=$(__sanitize_sql_identifier "${TEMP_TABLE}")
 
-# Note: Using -sql to SELECT only the columns we need
-# This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
-__logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
+ # Note: Using -sql to SELECT only the columns we need
+ # This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
+ __logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${BOUNDARY_FILE}" \
   -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
   -lco GEOMETRY_NAME=geom \

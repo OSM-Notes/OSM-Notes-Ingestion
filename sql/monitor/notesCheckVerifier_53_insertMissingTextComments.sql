@@ -58,3 +58,5 @@ ANALYZE note_comments_text;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
   'Missing text comments insertion completed' AS Text;
 
+
+

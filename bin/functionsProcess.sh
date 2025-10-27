@@ -1951,7 +1951,7 @@ function __processCountries {
   local TOTAL_JOBS=0
   while IFS=':' read -r status pid file; do
    TOTAL_JOBS=$((TOTAL_JOBS + 1))
-   if [[ "$status" == "FAILED" ]]; then
+   if [[ "${status}" == "FAILED" ]]; then
     FAILED_COUNT=$((FAILED_COUNT + 1))
     FAIL=$((FAIL + 1))
     FAILED_JOBS+=("${pid}")
@@ -1959,7 +1959,7 @@ function __processCountries {
      FAILED_JOBS_INFO="${FAILED_JOBS_INFO} ${pid}:${TMP_DIR}/${BASENAME}.old.${pid}"
     fi
     __loge "Job ${pid} failed processing file: ${file}"
-   elif [[ "$status" == "SUCCESS" ]]; then
+   elif [[ "${status}" == "SUCCESS" ]]; then
     SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
    fi
   done < "${JOB_STATUS_FILE}"
