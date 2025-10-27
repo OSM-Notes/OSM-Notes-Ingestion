@@ -78,10 +78,10 @@ Database maintenance script for comprehensive cleanup operations:
 For complete environment variable documentation, see:
 - **`bin/ENVIRONMENT_VARIABLES.md`** - All environment variables and their usage
 
-### Entry Points
+### Entry Points and Parameters
 
-For allowed script entry points, see:
-- **`bin/ENTRY_POINTS.md`** - Scripts that can be called directly
+For allowed script entry points and their parameters, see:
+- **`bin/ENTRY_POINTS.md`** - Scripts that can be called directly and their usage
 
 ## Usage
 

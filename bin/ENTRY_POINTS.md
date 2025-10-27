@@ -13,36 +13,39 @@ These are the **only scripts** that should be executed directly:
 
 ### Primary Processing
 1. **`bin/process/processAPINotes.sh`** - Processes recent notes from OSM API
-   - **Usage**: `./bin/process/processAPINotes.sh`
+   - **Usage**: `./bin/process/processAPINotes.sh` (no parameters)
    - **Purpose**: Synchronizes recent OSM notes from API
    - **When**: Scheduled every 15 minutes
    
 2. **`bin/process/processPlanetNotes.sh`** - Processes historical notes from Planet dump
-   - **Usage**: `./bin/process/processPlanetNotes.sh [--base|--boundaries]`
+   - **Usage**: `./bin/process/processPlanetNotes.sh` (sync) or `./bin/process/processPlanetNotes.sh --base`
    - **Purpose**: Loads complete historical data from Planet files
    - **When**: Initial setup or monthly sync
+   - **Parameters**: None (sync mode) or `--base` (full setup)
 
 3. **`bin/process/updateCountries.sh`** - Updates country and maritime boundaries
-   - **Usage**: `./bin/process/updateCountries.sh [--base]`
+   - **Usage**: `./bin/process/updateCountries.sh` (update) or `./bin/process/updateCountries.sh --base`
    - **Purpose**: Downloads and imports country/maritime boundaries
    - **When**: After Planet processing or manual updates
+   - **Parameters**: None (update mode) or `--base` (recreate tables)
 
 ### Monitoring
 4. **`bin/monitor/notesCheckVerifier.sh`** - Validates data integrity
-   - **Usage**: `./bin/monitor/notesCheckVerifier.sh`
+   - **Usage**: `./bin/monitor/notesCheckVerifier.sh` (no parameters)
    - **Purpose**: Compares Planet vs API data and reports differences
    - **When**: Daily automated check
 
 ### WMS (Web Map Service)
 5. **`bin/wms/wmsManager.sh`** - Manages WMS installation/status
-   - **Usage**: `./bin/wms/wmsManager.sh [install|deinstall|status]`
+   - **Usage**: `./bin/wms/wmsManager.sh <command>`
+   - **Commands**: `install`, `deinstall`, `status`, `help`
    - **Purpose**: Installs/manages GeoServer WMS layer for notes
    - **When**: Manual WMS setup or maintenance
 
 ### Maintenance
 6. **`bin/cleanupAll.sh`** - Removes all database components
-   - **Usage**: `./bin/cleanupAll.sh [OPTIONS]`
-   - **Options**: `-p` (partitions only), `-a` (all, default)
+   - **Usage**: `./bin/cleanupAll.sh` (full) or `./bin/cleanupAll.sh -p` (partitions only)
+   - **Options**: `-p`/`--partitions-only` (clean partitions only), `-a`/`--all` (full cleanup, default)
    - **Purpose**: Complete database cleanup
    - **When**: Testing or complete reset
    - **Database**: Configured in `etc/properties.sh` (DBNAME variable)
