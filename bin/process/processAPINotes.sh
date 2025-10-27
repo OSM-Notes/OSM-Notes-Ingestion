@@ -31,14 +31,11 @@
 #
 # Immediate Alerts (sent when error occurs):
 # - Email alert (if SEND_ALERT_EMAIL=true and mail is configured)
-# - Slack alert (if SEND_ALERT_SLACK=true and SLACK_WEBHOOK_URL is set)
 # - No waiting for external monitor - alerts sent instantly
 #
 # Configuration (optional environment variables):
 # - ADMIN_EMAIL: Email address for alerts (default: root@localhost)
 # - SEND_ALERT_EMAIL: Set to "false" to disable email (default: true)
-# - SLACK_WEBHOOK_URL: Slack webhook URL for alerts
-# - SEND_ALERT_SLACK: Set to "true" to enable Slack (default: false)
 #
 # Example with alerts:
 #   export ADMIN_EMAIL="admin@example.com"
@@ -46,7 +43,7 @@
 #   ./processAPINotes.sh
 #
 # To recover from a failed execution:
-# 1. Check your email/Slack for the alert with error details
+# 1. Check your email for the alert with error details
 # 2. Fix the underlying issue (follow the "Required action" in the alert)
 # 3. Delete the failed execution file: rm /tmp/processAPINotes_failed_execution
 # 4. Run the script again

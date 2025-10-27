@@ -256,10 +256,6 @@ notifications:
       - pull_request
       - issues
     
-  # Slack notifications (if configured)
-  slack:
-    enabled: false
-    webhook_url: ""
     
   # Discord notifications (if configured)
   discord:
