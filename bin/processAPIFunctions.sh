@@ -81,17 +81,8 @@ function __countXmlNotesAPI() {
  echo "${COUNT}"
 }
 
-# Split XML for parallel API processing
-# Now uses functions loaded from parallelProcessingFunctions.sh at script startup
-function __splitXmlForParallelAPI() {
- # Check if the consolidated function is available
- if ! declare -f __splitXmlForParallelSafeConsolidated > /dev/null 2>&1; then
-  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
-  return 1
- fi
- # Call the consolidated function
- __splitXmlForParallelSafeConsolidated "$@"
-}
+# Function __splitXmlForParallelAPI is defined in parallelProcessingFunctions.sh
+# No wrapper needed here as the real implementation will override any stub
 
 # Get new notes from API
 function __getNewNotesFromApi() {

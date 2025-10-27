@@ -338,29 +338,16 @@ function __countXmlNotesPlanet() {
  __log_finish
 }
 
-# Wrapper function for API format that uses parallel processing
-# Now uses functions loaded from parallelProcessingFunctions.sh at script startup
+# Functions __splitXmlForParallelAPI and __splitXmlForParallelPlanet
+# are defined in parallelProcessingFunctions.sh and will override these stubs
+# if that file is sourced after this one (which it is)
 function __splitXmlForParallelAPI() {
- __log_start
- # Check if the consolidated function is available
- if ! declare -f __splitXmlForParallelSafeConsolidated > /dev/null 2>&1; then
-  __loge "ERROR: Consolidated parallel processing functions not available. Please ensure parallelProcessingFunctions.sh was loaded."
-  __log_finish
-  return 1
- fi
- # Call the consolidated function
- __splitXmlForParallelSafeConsolidated "$@"
- local RETURN_CODE=$?
- __log_finish
- return "${RETURN_CODE}"
+ __loge "ERROR: parallelProcessingFunctions.sh must be sourced before calling this function"
+ return 1
 }
 
-# Wrapper function for Planet format that uses parallel processing
-# Now uses functions loaded from parallelProcessingFunctions.sh at script startup
 function __splitXmlForParallelPlanet() {
- # This is a wrapper function that will be overridden by the real implementation
- # in parallelProcessingFunctions.sh if that file is sourced after this one.
- __loge "ERROR: This is a wrapper function. parallelProcessingFunctions.sh must be sourced to override this with the real implementation."
+ __loge "ERROR: parallelProcessingFunctions.sh must be sourced before calling this function"
  return 1
 }
 
@@ -3120,7 +3107,7 @@ function __show_help() {
  echo "  - processAPIFunctions.sh  - API processing functions"
  echo "  - processPlanetFunctions.sh - Planet processing functions"
  echo
- echo "Available wrapper functions:"
+ echo "Available functions (defined in various source files):"
  echo "  - __checkPrereqsCommands  - Check prerequisites"
  echo "  - __createFunctionToGetCountry - Create country function"
  echo "  - __createProcedures      - Create procedures"
@@ -3133,52 +3120,23 @@ function __show_help() {
 }
 
 # Enhanced XML validation with error handling
-# Now uses consolidated functions from consolidatedValidationFunctions.sh
+# Function is defined in lib/osm-common/consolidatedValidationFunctions.sh
+# Stub function to prevent undefined function errors
 function __validate_xml_with_enhanced_error_handling() {
- __log_start
- # Source the consolidated validation functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh"
-  __validate_xml_with_enhanced_error_handling "$@"
- else
-  # Fallback if consolidated functions are not available
-  __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
-  __log_finish
-  return 1
- fi
- __log_finish
+ __loge "ERROR: consolidatedValidationFunctions.sh must be loaded before calling this function"
+ return 1
 }
 
 # Basic XML structure validation (lightweight)
-# Now uses consolidated functions from consolidatedValidationFunctions.sh
+# Function is defined in lib/osm-common/consolidatedValidationFunctions.sh
 function __validate_xml_basic() {
- __log_start
- # Source the consolidated validation functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh"
-  __validate_xml_basic "$@"
- else
-  # Fallback if consolidated functions are not available
-  __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
-  __log_finish
-  return 1
- fi
- __log_finish
+ __loge "ERROR: consolidatedValidationFunctions.sh must be loaded before calling this function"
+ return 1
 }
 
 # XML structure-only validation (very lightweight)
-# Now uses consolidated functions from consolidatedValidationFunctions.sh
+# Function is defined in lib/osm-common/consolidatedValidationFunctions.sh
 function __validate_xml_structure_only() {
- __log_start
- # Source the consolidated validation functions
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/consolidatedValidationFunctions.sh"
-  __validate_xml_structure_only "$@"
- else
-  # Fallback if consolidated functions are not available
-  __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
-  __log_finish
-  return 1
- fi
- __log_finish
+ __loge "ERROR: consolidatedValidationFunctions.sh must be loaded before calling this function"
+ return 1
 }
