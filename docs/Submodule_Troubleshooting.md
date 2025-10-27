@@ -141,17 +141,37 @@ The repository is configured to use SSH for submodule cloning. Ensure you have:
 
 ### HTTPS with Token (Alternative)
 
-If you must use HTTPS, configure Git credentials:
+If you must use HTTPS, you need a GitHub Personal Access Token:
+
+**Step 1: Create a Personal Access Token**
+
+1. Go to: <https://github.com/settings/tokens>
+2. Click "Generate new token" → "Generate new token (classic)"
+3. Give it a name: "OSM-Notes-Submodule"
+4. Select scopes: `repo` (all repository permissions)
+5. Click "Generate token"
+6. **Copy the token immediately** (you won't see it again)
+
+**Step 2: Configure Git to use the token**
 
 ```bash
-# Configure Git to use a credential helper
+# Option A: Configure credential helper to store the token
 git config --global credential.helper store
 
-# Clone with token in URL (replace YOUR_TOKEN)
-git clone https://github.com/YOUR_TOKEN@github.com/angoca/OSM-Notes-Ingestion.git
+# Now when prompted for password, paste the token instead of password
 ```
 
-Or use a GitHub Personal Access Token instead of password.
+Or use it directly in the URL:
+
+```bash
+# Replace YOUR_TOKEN with your actual token
+git config submodule.lib/osm-common.url https://YOUR_TOKEN@github.com/OSMLatam/OSM-Notes-Common.git
+
+# Then initialize the submodule
+git submodule update --init --recursive
+```
+
+**Security Note:** Store tokens securely. Consider using SSH instead (see above).
 
 ## Additional Resources
 
