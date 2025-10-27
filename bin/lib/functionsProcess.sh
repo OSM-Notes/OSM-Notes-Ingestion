@@ -6,11 +6,6 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-27
-# Updated: Increased retries to 10 (from 7) and changed exponential backoff from 2x to 1.5x
-#          This gives more attempts without excessively long delays
-# Added: Complex boundaries configuration support for boundaries with known timeout issues
-
-# Define version variable
 VERSION="2025-10-27"
 
 # shellcheck disable=SC2317,SC2155
