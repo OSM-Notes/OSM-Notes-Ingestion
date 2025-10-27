@@ -6,9 +6,6 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-27
-# Fixed: Increased Overpass API retries (5→7) and delays (15s→20s) to handle complex boundaries
-# Fixed: Changed error handling to use return instead of exit to prevent killing child threads
-# Added: Smart wait function to check Overpass API status before retrying
 
 # Define version variable
 VERSION="2025-10-27"
@@ -1474,17 +1471,77 @@ function __processBoundary {
  # Check for specific Overpass errors
  __logd "Checking Overpass API response for errors..."
  cat "${OUTPUT_OVERPASS}"
+ 
+ # Check for various Overpass API error codes
  local MANY_REQUESTS
- MANY_REQUESTS=$(grep -c "ERROR 429: Too Many Requests." "${OUTPUT_OVERPASS}")
+ local GATEWAY_TIMEOUT
+ local BAD_REQUEST
+ local INTERNAL_SERVER_ERROR
+ local SERVICE_UNAVAILABLE
+ 
+ MANY_REQUESTS=$(grep -c "ERROR 429" "${OUTPUT_OVERPASS}" || echo "0")
+ GATEWAY_TIMEOUT=$(grep -c "ERROR 504" "${OUTPUT_OVERPASS}" || echo "0")
+ BAD_REQUEST=$(grep -c "ERROR 400" "${OUTPUT_OVERPASS}" || echo "0")
+ INTERNAL_SERVER_ERROR=$(grep -c "ERROR 500" "${OUTPUT_OVERPASS}" || echo "0")
+ SERVICE_UNAVAILABLE=$(grep -c "ERROR 503" "${OUTPUT_OVERPASS}" || echo "0")
+ 
  if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
-  __loge "Too many requests to Overpass API for boundary ${ID}"
+  __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID}"
+  __loge "Consider reducing request rate or implementing rate limiting"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass rate limit exceeded for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
   __log_finish
   return 1
  fi
+ 
+ if [[ "${GATEWAY_TIMEOUT}" -ne 0 ]]; then
+  __loge "ERROR 504: Gateway timeout from Overpass API for boundary ${ID}"
+  __loge "This boundary may be too complex or the query may be too large"
+  __loge "Consider simplifying the query or using a different Overpass instance"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass timeout for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+  __log_finish
+  return 1
+ fi
+ 
+ if [[ "${BAD_REQUEST}" -ne 0 ]]; then
+  __loge "ERROR 400: Bad request to Overpass API for boundary ${ID}"
+  __loge "The query may be malformed or contains invalid parameters"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Invalid Overpass query for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+  __log_finish
+  return 1
+ fi
+ 
+ if [[ "${INTERNAL_SERVER_ERROR}" -ne 0 ]]; then
+  __loge "ERROR 500: Internal server error from Overpass API for boundary ${ID}"
+  __loge "This is a server-side issue with the Overpass API"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass server error for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+  __log_finish
+  return 1
+ fi
+ 
+ if [[ "${SERVICE_UNAVAILABLE}" -ne 0 ]]; then
+  __loge "ERROR 503: Service unavailable from Overpass API for boundary ${ID}"
+  __loge "The Overpass API may be temporarily unavailable"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass service unavailable for boundary ${ID}" \
+   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+  __log_finish
+  return 1
+ fi
+ 
+ # Check for other errors
+ local OTHER_ERRORS
+ OTHER_ERRORS=$(grep "ERROR" "${OUTPUT_OVERPASS}" || echo "")
+ if [[ -n "${OTHER_ERRORS}" ]]; then
+  __logw "Other Overpass API errors detected for boundary ${ID}:"
+  echo "${OTHER_ERRORS}" | while IFS= read -r line; do
+   __logw "  ${line}"
+  done
+ fi
 
- __logd "No Overpass API errors detected for boundary ${ID}"
+ __logd "No critical Overpass API errors detected for boundary ${ID}"
  rm -f "${OUTPUT_OVERPASS}"
 
  # Validate the JSON with a JSON schema
@@ -1743,24 +1800,61 @@ function __processBoundary {
  __logi "✓ Geometry validation passed for boundary ${ID}"
 
  # Now perform the actual insert with validated geometry
+ # Verify table exists before attempting insert
+ __logd "Verifying countries table exists before insert for boundary ${ID}..."
+ local TABLE_EXISTS
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'countries')" 2>/dev/null || echo "f")
+ 
+ if [[ "${TABLE_EXISTS}" != "t" ]]; then
+  __loge "CRITICAL: countries table does not exist in database ${DBNAME}"
+  __loge "Attempted to insert boundary ${ID} (${NAME})"
+  __loge "Thread PID: ${BASHPID}, Parent PID: $$"
+  __loge "This indicates a serious database issue"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Table countries not found in database ${DBNAME}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+  __log_finish
+  return 1
+ fi
+ __logd "Confirmed: countries table exists in database ${DBNAME}"
+ 
+ # Verify database connection is working
+ __logd "Verifying database connection for boundary ${ID}..."
+ local CONNECTION_TEST
+ CONNECTION_TEST=$(psql -d "${DBNAME}" -Atq -c "SELECT 1" 2>/dev/null || echo "FAIL")
+ 
+ if [[ "${CONNECTION_TEST}" != "1" ]]; then
+  __loge "CRITICAL: Database connection failed for boundary ${ID}"
+  __loge "Database: ${DBNAME}"
+  __loge "Thread PID: ${BASHPID}, Parent PID: $$"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Database connection failed for ${DBNAME}" \
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+  __log_finish
+  return 1
+ fi
+ __logd "Database connection verified for boundary ${ID}"
+ 
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
-  __logd "Inserting boundary ${ID} with ST_Buffer processing"
+  __logd "Preparing to insert boundary ${ID} with ST_Buffer processing"
   PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
  else
   # Standard processing
-  __logd "Inserting boundary ${ID} with standard processing"
+  __logd "Preparing to insert boundary ${ID} with standard processing"
   PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
  fi
 
+ __logd "Executing insert operation for boundary ${ID} (country: ${NAME})"
  if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
   __loge "Failed to insert boundary ${ID} into countries table"
+  __loge "Boundary details: ID=${ID}, Name=${NAME}"
+  __loge "Database: ${DBNAME}, Thread PID: ${BASHPID}, Parent PID: $$"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Data processing failed for boundary ${ID}" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
   __log_finish
   return 1
  fi
+ __logd "Insert operation completed successfully for boundary ${ID}"
  __logd "Data processing completed for boundary ${ID}"
 
  rmdir "${PROCESS_LOCK}" 2> /dev/null || true
@@ -2521,23 +2615,42 @@ function __retry_file_operation() {
    WAIT_TIME=$(echo "${WAIT_TIME}" | tail -1)
 
    if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
-    __logd "Overpass API busy, waiting ${WAIT_TIME} seconds for slot"
+    __logd "Overpass API busy, waiting ${WAIT_TIME} seconds for slot (attempt $((RETRY_COUNT + 1)))"
     sleep "${WAIT_TIME}"
    elif [[ ${WAIT_TIME} -eq 0 ]]; then
-    __logd "Overpass API has slots available, proceeding"
+    __logd "Overpass API has slots available, proceeding (attempt $((RETRY_COUNT + 1)))"
    fi
   fi
 
+  # Execute the operation and capture both stdout and stderr for better error logging
   if eval "${OPERATION_COMMAND}"; then
    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
    __log_finish
    return 0
+  else
+   local OPERATION_FAILED="true"
+   
+   # If this is an Overpass operation, check for specific error messages
+   if [[ "${OPERATION_COMMAND}" == *"${OVERPASS_INTERPRETER}"* ]]; then
+    __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+    
+    # Try to extract and log specific error messages from stderr
+    if [[ -f "${OUTPUT_OVERPASS:-}" ]]; then
+     local ERROR_LINE
+     ERROR_LINE=$(grep -i "error" "${OUTPUT_OVERPASS}" | head -1 || echo "")
+     if [[ -n "${ERROR_LINE}" ]]; then
+      __logw "Overpass error detected: ${ERROR_LINE}"
+     fi
+    fi
+   else
+    __logw "File operation failed on attempt $((RETRY_COUNT + 1))"
+   fi
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
 
   if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
-   __logw "File operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   __logw "Retrying operation in ${EXPONENTIAL_DELAY}s (remaining attempts: $((MAX_RETRIES_LOCAL - RETRY_COUNT)))"
    sleep "${EXPONENTIAL_DELAY}"
    # Exponential backoff: double the delay for next attempt
    EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
