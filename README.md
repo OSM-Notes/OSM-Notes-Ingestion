@@ -402,11 +402,12 @@ This is useful if you have to recreate some parts, but the rest is working fine.
 # Remove all components from the database (uses default from properties: osm_notes)
 ~/OSM-Notes-Ingestion/bin/cleanupAll.sh
 
-# For test database
-~/OSM-Notes-Ingestion/bin/cleanupAll.sh osm_notes_test
+# Clean only partitions
+~/OSM-Notes-Ingestion/bin/cleanupAll.sh -p
 
-# For production database
-~/OSM-Notes-Ingestion/bin/cleanupAll.sh osm_notes_prod
+# Change database in etc/properties.sh (DBNAME variable)
+# Then run cleanup for that database
+~/OSM-Notes-Ingestion/bin/cleanupAll.sh
 ```
 
 **Note:** This script handles all components including partition tables, dependencies, and temporary files automatically. Manual cleanup is not recommended as it may leave partition tables or dependencies unresolved.

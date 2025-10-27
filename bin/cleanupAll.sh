@@ -374,10 +374,12 @@ function __cleanup() {
 
 # Show help
 function __show_help() {
- echo "Usage: $0 [OPTIONS] [database_name]"
+ echo "Usage: $0 [OPTIONS]"
  echo ""
  echo "This script removes components from the OSM-Notes-profile database."
  echo "Can perform comprehensive cleanup or partition-only cleanup."
+ echo ""
+ echo "Database is configured in etc/properties.sh (DBNAME variable)."
  echo ""
  echo "OPTIONS:"
  echo "  -p, --partitions-only    Clean only partition tables"
@@ -385,13 +387,12 @@ function __show_help() {
  echo "  -h, --help              Show this help message"
  echo ""
  echo "Examples:"
- echo "  $0                       # Full cleanup using default database"
- echo "  $0 notes                 # Full cleanup using specified database"
- echo "  $0 -p osm_notes_test     # Clean only partitions in test database"
- echo "  $0 --partitions-only     # Clean only partitions in default database"
+ echo "  $0                       # Full cleanup using configured database"
+ echo "  $0 -p                    # Clean only partitions"
+ echo "  $0 --partitions-only     # Clean only partitions"
  echo ""
  echo "Database connection uses properties from etc/properties.sh:"
- echo "  Default database: osm_notes"
+ echo "  Database: ${DBNAME:-osm-notes}"
  echo "  Database user: ${DB_USER:-not set}"
  echo "  Authentication: peer (uses system user)"
  echo ""
@@ -417,7 +418,6 @@ function main() {
 
  # Parse command line arguments
  local CLEANUP_MODE="all"
- local DBNAME_PARAM=""
 
  while [[ $# -gt 0 ]]; do
   case $1 in
@@ -439,31 +439,16 @@ function main() {
    exit 1
    ;;
   *)
-   DBNAME_PARAM="$1"
-   shift
+   __loge "This script does not accept database name as argument"
+   __loge "Configure database name in etc/properties.sh (DBNAME variable)"
+   __show_help
+   exit 1
    ;;
   esac
  done
 
- # Use parameter or default from properties
- local TARGET_DB="${DBNAME_PARAM:-}"
- if [[ -z "${TARGET_DB}" ]]; then
-  if [[ -n "${DBNAME:-}" ]]; then
-   TARGET_DB="${DBNAME}"
-  else
-   TARGET_DB="osm_notes"
-  fi
- fi
-
- # Sanitize database name to prevent SQL injection
- # This uses the sanitization function from securityFunctions.sh
- # loaded via functionsProcess.sh
- if [[ -n "${DBNAME_PARAM}" ]] && [[ -n "$(declare -f __sanitize_database_name 2> /dev/null)" ]]; then
-  TARGET_DB=$(__sanitize_database_name "${DBNAME_PARAM}") || {
-   __loge "Invalid database name: ${DBNAME_PARAM}"
-   exit 1
-  }
- fi
+ # Use database from properties
+ local TARGET_DB="${DBNAME:-osm-notes}"
 
  __logi "Starting cleanup for database: ${TARGET_DB} (mode: ${CLEANUP_MODE})"
 

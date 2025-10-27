@@ -41,9 +41,11 @@ These are the **only scripts** that should be executed directly:
 
 ### Maintenance
 6. **`bin/cleanupAll.sh`** - Removes all database components
-   - **Usage**: `./bin/cleanupAll.sh [database_name]`
+   - **Usage**: `./bin/cleanupAll.sh [OPTIONS]`
+   - **Options**: `-p` (partitions only), `-a` (all, default)
    - **Purpose**: Complete database cleanup
    - **When**: Testing or complete reset
+   - **Database**: Configured in `etc/properties.sh` (DBNAME variable)
 
 ## ❌ Internal Scripts (DO NOT CALL DIRECTLY)
 

@@ -47,6 +47,7 @@ Database maintenance script for comprehensive cleanup operations:
 
 - **Full cleanup**: Removes all components (ETL, WMS, base tables, temporary files)
 - **Partition-only cleanup**: Removes only partition tables (use `-p` or `--partitions-only` flag)
+- **Database**: Configured via `etc/properties.sh` (DBNAME variable)
 
 ## Software Components
 
@@ -68,6 +69,19 @@ Database maintenance script for comprehensive cleanup operations:
 - **Backup Generation**: `bin/scripts/generateNoteLocationBackup.sh` creates CSV backups
   of note location data for faster processing
 - **Cleanup**: `bin/cleanupAll.sh` maintains database performance and cleanup operations
+  (uses database configured in `etc/properties.sh`)
+
+## Configuration
+
+### Environment Variables
+
+For complete environment variable documentation, see:
+- **`bin/ENVIRONMENT_VARIABLES.md`** - All environment variables and their usage
+
+### Entry Points
+
+For allowed script entry points, see:
+- **`bin/ENTRY_POINTS.md`** - Scripts that can be called directly
 
 ## Usage
 
