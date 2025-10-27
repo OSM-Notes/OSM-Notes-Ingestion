@@ -67,16 +67,6 @@
 # To not remove all generated files, you can export this:
 #   export CLEAN=false
 #
-# To insert the rows from a backup for boundaries and notes:
-#   export BACKUP_COUNTRIES=true
-# It will need to run these from a PostgreSQL console:
-#   INSERT INTO countries
-#    SELECT * FROM backup_countries ;
-# To create the copy before the execution:
-#   CREATE TABLE backup_countries AS TABLE countries;
-# For more information, please check this file:
-# OSM-Notes-profile/sql/copyCountriesAndLocationNotes.sql
-#
 # To increase or reduce the verbosity, you can change the logger:
 #   export LOG_LEVEL=DEBUG # For more messages.
 #   export LOG_LEVEL=WARN  # Important messages.
@@ -181,8 +171,6 @@ trap '' HUP
 # If all files should be deleted. In case of an error, this could be disabled.
 # You can define when calling: export CLEAN=false
 # CLEAN is now defined in etc/properties.sh to avoid duplication
-# If the boundary rows are retrieved from backup table.
-declare -r BACKUP_COUNTRIES=${BACKUP_COUNTRIES:-false}
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -1546,8 +1534,6 @@ function __show_help {
  echo "      Geographic data (countries and maritimes) must be loaded separately using updateCountries.sh"
  echo
  echo "Environment variable:"
- echo " * BACKUP_COUNTRIES could be set to true, to insert boundary rows from"
- echo "   backup tables."
  echo " * CLEAN could be set to false, to left all created files."
  echo " * LOG_LEVEL specifies the logger levels. Possible values are:"
  echo "   DEBUG, INFO, WARN, ERROR"
