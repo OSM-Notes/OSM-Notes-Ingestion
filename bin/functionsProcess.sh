@@ -2,7 +2,7 @@
 
 # OSM-Notes-profile - Common Functions
 # This file serves as the main entry point for all common functions.
-# It loads all refactored function files to maintain backward compatibility.
+# It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-26
@@ -33,8 +33,8 @@ if [[ -z "${QUERY_FILE:-}" ]]; then
  QUERY_FILE="${TMP_DIR}/query.op"
 fi
 
-# Load all refactored function files
-# This ensures backward compatibility while improving code organization
+# Load all function modules
+# This provides organized access to all project functions
 
 # Load common functions (error codes, logger, prerequisites, etc.)
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]]; then
