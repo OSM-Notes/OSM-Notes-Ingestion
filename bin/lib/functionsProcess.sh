@@ -1096,15 +1096,53 @@ function __checkPrereqs_functions {
 }
 
 # Checks the base tables if exist.
+# Returns: 0 if all base tables exist, non-zero if tables are missing or error occurs
+# Distinguishes between "tables missing" (should run --base) vs "connection/other errors"
 function __checkBaseTables {
  __log_start
  set +e
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}"
+ 
+ # First, verify database connection works
+ __logd "Verifying database connection..."
+ if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  __loge "ERROR: Cannot connect to database '${DBNAME}'"
+  __loge "This is NOT a 'tables missing' condition - do NOT run --base"
+  RET=1
+  set -e
+  RET_FUNC="${RET}"
+  __log_finish
+  return "${RET}"
+ fi
+ __logd "Database connection verified"
+ 
+ # Now check if tables exist
+ __logd "Checking for base tables: countries, notes, note_comments, logs, tries"
+ local PSQL_OUTPUT
+ local PSQL_ERROR
+ PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1)
  RET=${?}
+ PSQL_ERROR="${PSQL_OUTPUT}"
+ 
+ if [[ "${RET}" -ne 0 ]]; then
+  # Check if the error is specifically about missing tables
+  if echo "${PSQL_ERROR}" | grep -q "Base tables are missing"; then
+   __logw "Base tables are missing (this is expected on first run)"
+   __logd "Error details: ${PSQL_ERROR}"
+  else
+   # This is a different error (connection, permissions, SQL syntax, etc.)
+   __loge "ERROR: Failed to check base tables, but NOT because tables are missing"
+   __loge "Error type: ${PSQL_ERROR}"
+   __loge "This indicates a system/database issue, NOT missing tables"
+   __loge "Do NOT run --base automatically - manual investigation required"
+   RET=2  # Use different exit code to distinguish from "tables missing"
+  fi
+ fi
+ 
  set -e
  # shellcheck disable=SC2034
  RET_FUNC="${RET}"
  __log_finish
+ return "${RET}"
 }
 
 # Verifies if the base tables contain historical data.

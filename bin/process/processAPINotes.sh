@@ -60,9 +60,6 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-28
-# Fixed: Move __recover_from_gaps() call to after base tables validation
-#        This allows processPlanetNotes to be called automatically when tables don't exist
-#        Added check to prevent multiple updateCountries.sh executions
 VERSION="2025-10-28"
 
 #set -xv
@@ -78,7 +75,12 @@ set -E
 # Auto-restart with setsid if not already in a new session
 # This protects against SIGHUP when terminal closes or session ends
 if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
- echo "$(date '+%Y%m%d_%H:%M:%S') INFO: Auto-restarting with setsid for SIGHUP protection" >&2
+# Only show message if there's a TTY (not from cron)
+if [[ -t 1 ]]; then
+ RESTART_MESSAGE=$(date '+%Y%m%d_%H:%M:%S' || true)
+ echo "${RESTART_MESSAGE} INFO: Auto-restarting with setsid for SIGHUP protection" >&2
+ unset RESTART_MESSAGE
+fi
  export RUNNING_IN_SETSID=1
  # Get the script name and all arguments
  SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
@@ -1097,9 +1099,39 @@ EOF
  __checkNoProcessPlanet
  export RET_FUNC=0
  __checkBaseTables
- if [[ "${RET_FUNC}" -ne 0 ]]; then
-  __logw "Base tables missing. Creating base structure and geographic data."
-  __logi "This will take approximately 1-2 hours for complete setup."
+ case "${RET_FUNC}" in
+  1)
+   # Tables are missing - safe to run --base
+   __logw "Base tables missing. Creating base structure and geographic data."
+   __logi "This will take approximately 1-2 hours for complete setup."
+   ;;
+  2)
+   # Connection or other error - DO NOT run --base
+   __loge "ERROR: Cannot verify base tables due to database/system error"
+   __loge "This is NOT a 'tables missing' situation - manual investigation required"
+   __loge "Do NOT executing --base (would delete all data)"
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Cannot verify base tables due to database/system error" \
+    "Check database connectivity and permissions. Check logs for details. Script exited to prevent data loss."
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   ;;
+  0)
+   # Tables exist - continue normally
+   __logd "Base tables verified - continuing with normal processing"
+   ;;
+  *)
+   # Unknown error code
+   __loge "ERROR: Unknown return code from __checkBaseTables: ${RET_FUNC}"
+   __loge "Do NOT executing --base (would delete all data)"
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Unknown error checking base tables (code: ${RET_FUNC})" \
+    "Check logs for details. Script exited to prevent data loss."
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   ;;
+ esac
+
+ if [[ "${RET_FUNC}" -eq 1 ]]; then
+  # Only execute --base if tables are actually missing (RET_FUNC=1)
 
   # Close lock file descriptor to prevent inheritance by child processes
   __logd "Releasing lock before spawning child processes"
@@ -1109,8 +1141,8 @@ EOF
   __logi "Step 1/2: Creating base database structure and loading historical data..."
   if ! "${NOTES_SYNC_SCRIPT}" --base; then
    __loge "ERROR: Failed to create base structure. Stopping process."
-    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-     "Failed to create base database structure and load historical data (Step 1/2)" \
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Failed to create base database structure and load historical data (Step 1/2)" \
     "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
@@ -1180,8 +1212,10 @@ Main script: ${0}
 Status: Setup completed, continuing with API processing
 EOF
   __logd "Lock re-acquired and content updated"
- else
-  # Base tables exist, now check if they contain historical data
+ fi  # End of if [[ "${RET_FUNC}" -eq 1 ]]
+
+ # If RET_FUNC == 0, base tables exist - validate historical data
+ if [[ "${RET_FUNC}" -eq 0 ]]; then
   __logi "Base tables found. Validating historical data..."
   __checkHistoricalData
   if [[ "${RET_FUNC}" -ne 0 ]]; then
@@ -1258,9 +1292,16 @@ declare -i RET
 # Allows to other users read the directory.
 chmod go+x "${TMP_DIR}"
 
-__start_logger
+# If running from cron (no TTY), set log file BEFORE starting logger
+# to prevent DEBUG messages from going to stderr
+# bash_logger.sh will read LOG_FILE during initialization
 if [[ ! -t 1 ]]; then
- __set_log_file "${LOG_FILENAME}"
+ export LOG_FILE="${LOG_FILENAME}"
+fi
+
+__start_logger
+
+if [[ ! -t 1 ]]; then
  main >> "${LOG_FILENAME}" 2>&1
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
