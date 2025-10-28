@@ -4,20 +4,31 @@
 # This file shows how to configure crontab for automated OSM notes processing.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-22
+# Version: 2025-10-28
 
 # =============================================================================
 # BASIC SETUP - RECOMMENDED
 # =============================================================================
 
 # Notes synchronization every 15 minutes
+# processAPINotes.sh automatically handles Planet synchronization when needed:
+# - When API returns 10,000 notes (limit), it checks for new Planet dump
+# - If new dump is available, it automatically executes processPlanetNotes.sh (sync mode)
+# - This ensures complete data synchronization without manual intervention
 */15 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
 
 # Country boundaries update once a month (first day of each month at 2 AM)
-0 2 1 * * /home/notes/OSM-Notes-Ingestion/bin/process/updateCountries.sh --base
+# NOTE: Do NOT use --base flag here. The --base flag is only used automatically
+# during initial setup by processPlanetNotes.sh --base.
+0 2 1 * * /home/notes/OSM-Notes-Ingestion/bin/process/updateCountries.sh
 
-# Planet notes processing once a week (Sundays at 3 AM)
-0 3 * * 0 /home/notes/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh --base
+# Planet notes processing - COMPLETELY AUTOMATIC, NOT NEEDED IN CRON
+# processPlanetNotes.sh is automatically called by processAPINotes.sh when:
+# 1. Initial setup: Missing base tables detected
+# 2. Regular sync: API limit (10,000 notes) reached + new Planet dump available
+#
+# NOTE: Do NOT add processPlanetNotes.sh to cron. processAPINotes.sh handles
+# everything automatically, from initial setup to ongoing synchronization.
 
 
 # =============================================================================
@@ -41,10 +52,46 @@ SEND_ALERT_EMAIL=true
 
 # Standard processing with alerts
 */15 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
-0 2 1 * * /home/notes/OSM-Notes-Ingestion/bin/process/updateCountries.sh --base
-0 3 * * 0 /home/notes/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh --base
+0 2 1 * * /home/notes/OSM-Notes-Ingestion/bin/process/updateCountries.sh
+# Note: processPlanetNotes.sh is automatically called by processAPINotes.sh when needed
 
 
+# =============================================================================
+# INITIAL SETUP (COMPLETELY AUTOMATIC)
+# =============================================================================
+#
+# The system handles initial setup automatically when processAPINotes.sh runs
+# for the first time:
+#
+# - processAPINotes.sh detects missing base tables
+# - Automatically executes processPlanetNotes.sh --base
+# - Which creates all tables, loads historical data, and loads countries
+# - All without manual intervention
+#
+# Simply configure the cron jobs above and let the system run. The first
+# execution will handle complete setup automatically.
+#
+# To verify setup completed successfully:
+#   - Check logs in /tmp/processPlanetNotes_*/
+#   - Verify countries: psql -d notes -c "SELECT COUNT(*) FROM countries;"
+#
+# =============================================================================
+# IMPORTANT NOTES
+# =============================================================================
+#
+# - updateCountries.sh --base: Only executed automatically by processPlanetNotes.sh --base
+#   during initial setup (when processAPI detects missing tables). Do NOT use --base
+#   in monthly cron - it would delete and recreate all country data unnecessarily.
+#
+# - processPlanetNotes.sh --base: Executed automatically by processAPINotes.sh during
+#   initial setup (when base tables are missing). Regular Planet syncs (without --base)
+#   are also handled AUTOMATICALLY when API limit (10,000 notes) is reached and a new
+#   dump is available. Do NOT add processPlanetNotes.sh to cron.
+#
+# - processAPINotes.sh: Runs every 15 minutes, handles API notes. Automatically triggers
+#   Planet sync when needed (10K notes + new dump). Does NOT execute updateCountries
+#   (kept lightweight).
+#
 # =============================================================================
 # INSTALLATION INSTRUCTIONS
 # =============================================================================

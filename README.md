@@ -211,15 +211,22 @@ To run the notes database synchronization, configure the crontab like (`crontab 
 
 ```text
 # Runs the API extraction each 15 minutes.
+# processAPINotes.sh automatically handles:
+# - Initial setup: Creates tables and loads historical data if missing
+# - Regular sync: Planet synchronization when API limit (10,000 notes) reached + new dump available
 */15 * * * * ~/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
 
-# Download a new Planet version, and checks if the executions have been successful.
-# Planet used to be published around 5 am (https://planet.openstreetmap.org/notes/)
-0 6 * * * ~/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh ; ~/OSM-Notes-Ingestion/bin/monitor/notesCheckVerifier.sh
-
 # Runs the boundaries update. Once a month.
+# Note: Do NOT use --base flag here. The --base flag is only for complete system reset.
 0 12 1 * * ~/OSM-Notes-Ingestion/bin/process/updateCountries.sh
 ```
+
+**Note**: Everything is automatic! Simply configure `processAPINotes.sh` in cron. It will:
+- Handle initial setup automatically on first run (creates tables, loads historical data, loads countries)
+- Process API notes every 15 minutes
+- Automatically sync with Planet when needed (10K notes + new dump)
+
+No manual setup or separate `processPlanetNotes.sh` cron entry is required.
 
 For **ETL and Analytics scheduling**, see the [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
 
