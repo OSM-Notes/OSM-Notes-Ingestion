@@ -1232,42 +1232,49 @@ EOF
  export RET_FUNC=0
  __checkBaseTables
  if [[ "${RET_FUNC}" -ne 0 ]]; then
-  __logw "Base tables missing. Creating base structure, loading historical data, and geographic data."
+  __logw "Base tables missing. Creating base structure and loading historical data."
   __logi "This will take approximately 1-2 hours for complete setup."
+  __logi "Note: Geographic data (countries) will be loaded automatically by processPlanet --base if needed."
 
   # Close lock file descriptor to prevent inheritance by child processes
   __logd "Releasing lock before spawning child processes"
   exec 8>&-
 
   # Step 1: Create base structure and load historical data
-  # Note: processPlanetNotes.sh --base creates tables AND loads all historical data
-  __logi "Step 1/2: Creating base database structure and loading historical data..."
+  # Note: processPlanetNotes.sh --base creates tables, loads historical data, AND loads countries if needed
+  __logi "Step 1/1: Creating base database structure and loading historical data..."
   if ! "${NOTES_SYNC_SCRIPT}" --base; then
    __loge "ERROR: Failed to create base structure and load historical data. Stopping process."
    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Failed to create base database structure and load historical data (Step 1/2)" \
+    "Failed to create base database structure and load historical data" \
     "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logw "Base structure and historical data loaded successfully."
 
-  # Step 2: Load initial geographic data (countries and maritimes)
-  __logi "Step 2/2: Loading initial geographic data (countries and maritimes)..."
-  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
-   if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
-    __loge "ERROR: Failed to load geographic data. Stopping process."
-    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-     "Failed to load initial geographic data (Step 2/2)" \
-     "Check updateCountries.sh script and ensure geographic data files are accessible. Script: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-    exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   fi
-   __logw "Geographic data loaded successfully."
+  # Verify geographic data is available (not a separate step, just validation)
+  __logi "Verifying geographic data availability..."
+
+  # Check if countries were loaded by processPlanet --base
+  local COUNTRIES_COUNT
+  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+
+  if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
+   __logi "Geographic data available (${COUNTRIES_COUNT} countries/maritimes found)."
+   __logw "Setup completed successfully."
   else
-   __loge "ERROR: updateCountries.sh not found. Cannot load geographic data."
-   __create_failed_marker "${ERROR_MISSING_LIBRARY}" \
-    "updateCountries.sh script not found" \
-    "Install or restore updateCountries.sh at: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-   exit "${ERROR_MISSING_LIBRARY}"
+   __logw "WARNING: No geographic data found after processPlanet --base execution."
+   __logw "This indicates that updateCountries.sh did not complete successfully or is still running."
+   __logw "processAPI can continue without geographic data, but notes will not have country assignment."
+   __logw ""
+   __logw "To load countries manually, run:"
+   __logw "  ./bin/process/updateCountries.sh --base"
+   __logw ""
+   __logw "Note: updateCountries should typically execute:"
+   __logw "  1) During initial setup (automatically by processPlanet --base)"
+   __logw "  2) Monthly to update boundaries (executed manually via cron or scheduled job)"
+   __logw ""
+   __logw "Continuing setup without geographic data..."
   fi
 
   __logw "Complete setup finished successfully."

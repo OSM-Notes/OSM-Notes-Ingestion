@@ -1,5 +1,7 @@
 # Complete Description of processPlanetNotes.sh
 
+> **Version:** 2025-10-28
+>
 > **Note:** For a general system overview, see [Documentation.md](./Documentation.md).
 > For project motivation and background, see [Rationale.md](./Rationale.md).
 
@@ -117,6 +119,10 @@ Sync tables are temporary and used for incremental processing:
 ### 3. Geographic Data Processing
 
 - Downloads country and maritime boundaries via Overpass
+  - Uses FIFO queue system to prevent race conditions
+  - Implements smart waiting based on Overpass API status
+  - Respects rate limits (configurable via `RATE_LIMIT`)
+  - Ensures thread-safe concurrent downloads
 - Processes boundary relations with specific tags
 - Converts to PostgreSQL geometry objects
 - Organizes areas for spatial queries

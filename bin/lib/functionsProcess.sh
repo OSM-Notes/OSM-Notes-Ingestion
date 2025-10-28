@@ -2282,11 +2282,11 @@ function __getLocationNotes {
   # Proceed with verification
 
   # Store counts from parallel threads in temp files
- local TEMP_COUNT_DIR
- TEMP_COUNT_DIR=$(mktemp -d)
- local CLEANUP_TEMP_DIR="${TEMP_COUNT_DIR}"
- # shellcheck disable=SC2064
- trap 'rm -rf "${CLEANUP_TEMP_DIR}"' EXIT
+  local TEMP_COUNT_DIR
+  TEMP_COUNT_DIR=$(mktemp -d)
+  local CLEANUP_TEMP_DIR="${TEMP_COUNT_DIR}"
+  # shellcheck disable=SC2064
+  trap 'rm -rf "${CLEANUP_TEMP_DIR}"' EXIT
 
   for J in $(seq 1 1 "${VERIFY_THREADS}"); do
    (
@@ -2676,6 +2676,182 @@ function __handle_error_with_cleanup() {
  fi
 }
 
+# Download queue management functions
+# These functions implement a FIFO queue to prevent race conditions
+# when multiple threads compete for Overpass API download slots.
+# Version: 2025-10-28
+
+# Get the next ticket number in the queue
+# Returns: ticket number (integer)
+# Side effect: increments the ticket counter atomically
+function __get_download_ticket() {
+ __log_start
+ local QUEUE_DIR="${TMP_DIR}/download_queue"
+ local TICKET_FILE="${QUEUE_DIR}/ticket_counter"
+ local TICKET=0
+
+ # Create queue directory if it doesn't exist
+ mkdir -p "${QUEUE_DIR}"
+
+ # Get ticket using atomic file operation (flock)
+ # Use a temporary file to ensure atomic increment
+ (
+  flock -x 200
+  if [[ -f "${TICKET_FILE}" ]]; then
+   TICKET=$(cat "${TICKET_FILE}")
+  fi
+  TICKET=$((TICKET + 1))
+  echo "${TICKET}" > "${TICKET_FILE}"
+  echo "${TICKET}"
+ ) 200> "${QUEUE_DIR}/ticket_lock"
+
+ __log_finish
+ return 0
+}
+
+# Wait for download turn based on ticket number
+# Parameters: ticket_number
+# Returns: 0 when it's the turn, 1 on error
+function __wait_for_download_turn() {
+ __log_start
+ local MY_TICKET="${1}"
+ local QUEUE_DIR="${TMP_DIR}/download_queue"
+ local CURRENT_SERVING_FILE="${QUEUE_DIR}/current_serving"
+ local MAX_SLOTS="${RATE_LIMIT:-4}"
+ local CHECK_INTERVAL=1
+ local MAX_WAIT_TIME=3600
+ local WAIT_COUNT=0
+
+ if [[ -z "${MY_TICKET}" ]]; then
+  __loge "ERROR: Ticket number is required"
+  __log_finish
+  return 1
+ fi
+
+ __logd "Waiting for download turn (ticket: ${MY_TICKET}, max slots: ${MAX_SLOTS})"
+
+ # Initialize current serving if not exists
+ if [[ ! -f "${CURRENT_SERVING_FILE}" ]]; then
+  echo "0" > "${CURRENT_SERVING_FILE}"
+ fi
+
+ while [[ ${WAIT_COUNT} -lt ${MAX_WAIT_TIME} ]]; do
+  # Read current serving number atomically
+  local CURRENT_SERVING=0
+  (
+   flock -s 200
+   if [[ -f "${CURRENT_SERVING_FILE}" ]]; then
+    CURRENT_SERVING=$(cat "${CURRENT_SERVING_FILE}" 2> /dev/null || echo "0")
+   fi
+  ) 200> "${QUEUE_DIR}/ticket_lock"
+
+  # Calculate how many slots are currently in use
+  local ACTIVE_DOWNLOADS=0
+  if [[ -d "${QUEUE_DIR}/active" ]]; then
+   ACTIVE_DOWNLOADS=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null | wc -l)
+  fi
+
+  # Check if it's my turn (ticket <= current_serving + max_slots) and slots available
+  if [[ ${MY_TICKET} -le $((CURRENT_SERVING + MAX_SLOTS)) ]] \
+   && [[ ${ACTIVE_DOWNLOADS} -lt ${MAX_SLOTS} ]]; then
+   # Try to claim slot atomically
+   mkdir -p "${QUEUE_DIR}/active"
+   local MY_LOCK_FILE="${QUEUE_DIR}/active/${BASHPID}.${MY_TICKET}.lock"
+
+   # Use flock to ensure only one process can claim a slot at a time
+   (
+    flock -x 201
+    # Re-check active downloads after acquiring lock
+    local ACTIVE_AFTER_LOCK=0
+    if [[ -d "${QUEUE_DIR}/active" ]]; then
+     ACTIVE_AFTER_LOCK=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null | wc -l)
+    fi
+
+    # Double-check that we can still proceed
+    local CURRENT_AFTER_LOCK=0
+    if [[ -f "${CURRENT_SERVING_FILE}" ]]; then
+     CURRENT_AFTER_LOCK=$(cat "${CURRENT_SERVING_FILE}" 2> /dev/null || echo "0")
+    fi
+
+    if [[ ${MY_TICKET} -le $((CURRENT_AFTER_LOCK + MAX_SLOTS)) ]] \
+     && [[ ${ACTIVE_AFTER_LOCK} -lt ${MAX_SLOTS} ]]; then
+     # Check Overpass API status
+     local WAIT_TIME
+     set +e
+     WAIT_TIME=$(__check_overpass_status 2>&1 | tail -1)
+     set -e
+
+     if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -eq 0 ]]; then
+      # Claim the slot
+      echo "${MY_TICKET}" > "${MY_LOCK_FILE}"
+      __logd "Download slot granted (ticket: ${MY_TICKET}, position: ${ACTIVE_AFTER_LOCK})"
+      exit 0
+     fi
+    fi
+    exit 1
+   ) 201> "${QUEUE_DIR}/slot_lock"
+
+   if [[ $? -eq 0 ]]; then
+    __log_finish
+    return 0
+   fi
+  fi
+
+  sleep ${CHECK_INTERVAL}
+  WAIT_COUNT=$((WAIT_COUNT + CHECK_INTERVAL))
+
+  # Log progress every 10 seconds
+  if [[ $((WAIT_COUNT % 10)) -eq 0 ]]; then
+   __logd "Still waiting for turn (ticket: ${MY_TICKET}, current: ${CURRENT_SERVING}, active: ${ACTIVE_DOWNLOADS}/${MAX_SLOTS}, waited: ${WAIT_COUNT}s)"
+  fi
+ done
+
+ __loge "ERROR: Timeout waiting for download turn (ticket: ${MY_TICKET})"
+ __log_finish
+ return 1
+}
+
+# Release download slot and advance queue
+# Parameters: ticket_number
+# Returns: 0 on success, 1 on error
+function __release_download_ticket() {
+ __log_start
+ local MY_TICKET="${1}"
+ local QUEUE_DIR="${TMP_DIR}/download_queue"
+ local CURRENT_SERVING_FILE="${QUEUE_DIR}/current_serving"
+ local MY_LOCK_FILE="${QUEUE_DIR}/active/${BASHPID}.${MY_TICKET}.lock"
+
+ if [[ -z "${MY_TICKET}" ]]; then
+  __loge "ERROR: Ticket number is required"
+  __log_finish
+  return 1
+ fi
+
+ # Remove my lock file
+ if [[ -f "${MY_LOCK_FILE}" ]]; then
+  rm -f "${MY_LOCK_FILE}"
+  __logd "Released download slot (ticket: ${MY_TICKET})"
+ fi
+
+ # Advance current serving number if this is the next in line
+ (
+  flock -x 200
+  local CURRENT_SERVING=0
+  if [[ -f "${CURRENT_SERVING_FILE}" ]]; then
+   CURRENT_SERVING=$(cat "${CURRENT_SERVING_FILE}" 2> /dev/null || echo "0")
+  fi
+
+  # Only advance if this ticket is the one being served
+  if [[ ${MY_TICKET} -eq $((CURRENT_SERVING + 1)) ]]; then
+   echo $((MY_TICKET + 1)) > "${CURRENT_SERVING_FILE}"
+   __logd "Queue advanced (now serving: $((MY_TICKET + 1)))"
+  fi
+ ) 200> "${QUEUE_DIR}/ticket_lock"
+
+ __log_finish
+ return 0
+}
+
 # Retry file operations with exponential backoff and cleanup on failure
 # Parameters: operation_command max_retries base_delay [cleanup_command] [smart_wait]
 # Returns: 0 if successful, 1 if failed after all retries
@@ -2688,32 +2864,45 @@ function __retry_file_operation() {
  local SMART_WAIT="${5:-false}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
+ local DOWNLOAD_TICKET=0
+ local TICKET_OBTAINED=false
 
  __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
  __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s, Smart wait: ${SMART_WAIT}"
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
-  # Check Overpass API status if smart wait is enabled (only for Overpass operations)
-  if [[ "${SMART_WAIT}" == "true" ]] && [[ "${OPERATION_COMMAND}" == *"${OVERPASS_INTERPRETER}"* ]]; then
-   local WAIT_TIME
-   set +e
-   WAIT_TIME=$(__check_overpass_status 2>&1)
-   set -e
+ # Setup ticket cleanup on exit
+ # shellcheck disable=SC2317
+ __cleanup_ticket() {
+  if [[ "${TICKET_OBTAINED}" == "true" ]] && [[ ${DOWNLOAD_TICKET} -gt 0 ]]; then
+   __release_download_ticket "${DOWNLOAD_TICKET}" > /dev/null 2>&1 || true
+  fi
+ }
+ trap '__cleanup_ticket' EXIT INT TERM
 
-   # WAIT_TIME contains output from echo, extract just the number
-   WAIT_TIME=$(echo "${WAIT_TIME}" | tail -1)
+ # Get download ticket if smart wait is enabled for Overpass operations
+ if [[ "${SMART_WAIT}" == "true" ]] && [[ "${OPERATION_COMMAND}" == *"${OVERPASS_INTERPRETER}"* ]]; then
+  DOWNLOAD_TICKET=$(__get_download_ticket 2>&1 | tail -1)
+  if [[ -n "${DOWNLOAD_TICKET}" ]] && [[ ${DOWNLOAD_TICKET} -gt 0 ]]; then
+   TICKET_OBTAINED=true
+   __logd "Obtained download ticket: ${DOWNLOAD_TICKET}"
 
-   if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
-    __logd "Overpass API busy, waiting ${WAIT_TIME} seconds for slot (attempt $((RETRY_COUNT + 1)))"
-    sleep "${WAIT_TIME}"
-   elif [[ ${WAIT_TIME} -eq 0 ]]; then
-    __logd "Overpass API has slots available, proceeding (attempt $((RETRY_COUNT + 1)))"
+   # Wait for turn before attempting download
+   if ! __wait_for_download_turn "${DOWNLOAD_TICKET}"; then
+    __loge "Failed to obtain download slot after waiting"
+    __cleanup_ticket
+    trap - EXIT INT TERM
+    __log_finish
+    return 1
    fi
   fi
+ fi
 
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
   # Execute the operation and capture both stdout and stderr for better error logging
   if eval "${OPERATION_COMMAND}"; then
    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
+   __cleanup_ticket
+   trap - EXIT INT TERM
    __log_finish
    return 0
   else
@@ -2757,6 +2946,8 @@ function __retry_file_operation() {
  fi
 
  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
+ __cleanup_ticket
+ trap - EXIT INT TERM
  __log_finish
  return 1
 }

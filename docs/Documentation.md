@@ -1,6 +1,6 @@
 # OSM Notes Ingestion - System Documentation
 
-**Version:** 2025-10-14
+**Version:** 2025-01-27
 
 ## Overview
 
@@ -96,6 +96,10 @@ The OSM-Notes-Ingestion system consists of the following components:
 **Process:**
 
 1. Download boundary relations with specific tags
+   - FIFO queue system ensures orderly downloads
+   - Smart waiting respects Overpass API rate limits
+   - Prevents race conditions in parallel processing
+   - Thread-safe ticket-based queue management
 2. Transform to PostGIS geometry objects
 3. Store in `countries` table
 

@@ -88,7 +88,7 @@ In other words, this project uses these three sources of data to keep the databa
 
 ### 1. Geographic Data Collection
 
-First, it queries Overpass to get the IDs of the country and maritime boundaries, and then it downloads each of them individually. After, it converts this data into a Postgres geometry and builds the country's table.
+First, it queries Overpass to get the IDs of the country and maritime boundaries, and then it downloads each of them individually using a FIFO queue system. This queue prevents race conditions when downloading multiple boundaries in parallel, respects Overpass API rate limits, and ensures orderly processing. After downloading, it converts this data into a Postgres geometry and builds the country's table.
 
 ### 2. Historical Data Processing
 
