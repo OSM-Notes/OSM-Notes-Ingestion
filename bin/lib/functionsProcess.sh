@@ -2262,11 +2262,10 @@ for J in $(seq 1 1 "${VERIFY_THREADS}"); do
 WITH invalidated AS (
  UPDATE notes AS n /* Notes-integrity check parallel */
  SET id_country = NULL
- FROM countries AS c
- WHERE n.id_country = c.country_id
- AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude), 4326))
- AND n.id_country IS NOT NULL
+ WHERE n.id_country IS NOT NULL
  AND ${MIN_THREAD} <= n.note_id AND n.note_id < ${MAX_THREAD}
+ AND (n.id_country != get_country(n.longitude, n.latitude, n.note_id)
+   OR get_country(n.longitude, n.latitude, n.note_id) = -1)
  RETURNING n.note_id
 )
 SELECT COUNT(*) FROM invalidated;
@@ -2330,12 +2329,10 @@ fi
     __logd "Updating incorrectly located notes."
     STMT="UPDATE notes AS n /* Notes-base thread old review */
      SET id_country = NULL
-     FROM countries AS c
-     WHERE n.id_country = c.country_id
-     AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude),
-      4326))
-      AND ${MIN_LOOP} <= n.note_id AND n.note_id <= ${MAX_LOOP}
-      AND id_country IS NOT NULL"
+     WHERE n.id_country IS NOT NULL
+     AND ${MIN_LOOP} <= n.note_id AND n.note_id <= ${MAX_LOOP}
+     AND (n.id_country != get_country(n.longitude, n.latitude, n.note_id)
+       OR get_country(n.longitude, n.latitude, n.note_id) = -1)"
     __logt "${STMT}"
     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
@@ -2372,12 +2369,10 @@ fi
     __logd "Updating incorrectly located notes."
     STMT="UPDATE notes AS n /* Notes-base thread new review */
      SET id_country = NULL
-     FROM countries AS c
-     WHERE n.id_country = c.country_id
-     AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(n.longitude, n.latitude),
-      4326))
-      AND ${MIN_LOOP} <= n.note_id AND n.note_id < ${MAX_LOOP}
-      AND id_country IS NOT NULL"
+     WHERE n.id_country IS NOT NULL
+     AND ${MIN_LOOP} <= n.note_id AND n.note_id < ${MAX_LOOP}
+     AND (n.id_country != get_country(n.longitude, n.latitude, n.note_id)
+       OR get_country(n.longitude, n.latitude, n.note_id) = -1)"
     __logt "${STMT}"
     echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
