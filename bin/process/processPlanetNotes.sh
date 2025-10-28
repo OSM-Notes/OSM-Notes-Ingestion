@@ -1301,7 +1301,18 @@ function __processGeographicData {
   if [[ "${PROCESS_TYPE}" == "--base" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
    __logi "Attempting to load countries automatically in base mode..."
    __logi "This process may take a long time (30-60 minutes) as it downloads and processes all country boundaries..."
-   if "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
+
+   # Capture subprocess output to show progress
+   local UPDATE_COUNTRIES_EXIT_CODE=0
+   local line
+   set +e # Temporarily disable exit on error for pipeline
+   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base 2>&1 | while IFS= read -r line; do
+    __logi "[updateCountries] ${line}"
+   done
+   UPDATE_COUNTRIES_EXIT_CODE="${PIPESTATUS[0]}"
+   set -e # Re-enable exit on error
+
+   if [[ "${UPDATE_COUNTRIES_EXIT_CODE}" -eq 0 ]]; then
     __logi "Countries and maritimes areas loaded successfully. Processing location notes..."
     __getLocationNotes # sync
    else
