@@ -59,10 +59,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
-# Fixed: Move __recover_from_gaps() call to after base tables validation
-#        This allows processPlanetNotes to be called automatically when tables don't exist
-VERSION="2025-10-27"
+# Version: 2025-10-28
+VERSION="2025-10-28"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -645,15 +643,127 @@ function __checkMemoryForProcessing {
  return 0
 }
 
+# Checks if a new Planet dump is available
+# Returns: 0 if new dump available, 1 if same dump or unable to check
+function __checkNewPlanetDump {
+ __log_start
+ __logd "Checking if new Planet dump is available..."
+
+ # Get last processed dump date from database
+ local LAST_DUMP_DATE
+ local TEMP_CHECK_FILE
+ TEMP_CHECK_FILE=$(mktemp)
+
+ # Try to get last dump date from a marker table or properties
+ # For now, check if we can determine from last planet processing time
+ local CHECK_QUERY="
+  SELECT COALESCE(
+    MAX(processed_at),
+    CURRENT_DATE - INTERVAL '2 days'
+  )::date
+  FROM planet_processing_log
+  WHERE processing_type = 'sync'
+  LIMIT 1
+ " 2> /dev/null || echo "SELECT CURRENT_DATE - INTERVAL '2 days';"
+
+ # If table doesn't exist, assume we need to check anyway
+ psql -d "${DBNAME}" -Atq -c "${CHECK_QUERY}" > "${TEMP_CHECK_FILE}" 2> /dev/null || true
+ LAST_DUMP_DATE=$(cat "${TEMP_CHECK_FILE}" 2> /dev/null || echo "")
+ rm -f "${TEMP_CHECK_FILE}"
+
+ # Check remote dump date using HTTP HEAD request
+ # Planet dumps are typically named with dates like notes-latest.osn.bz2
+ # We can check Last-Modified header
+ local REMOTE_DATE
+ REMOTE_DATE=$(curl -sI "${PLANET}/notes/notes-latest.osn.bz2" 2> /dev/null | grep -i "last-modified" | cut -d: -f2- | xargs || echo "")
+
+ if [[ -n "${REMOTE_DATE}" ]]; then
+  # Convert to date for comparison (simplified - assumes format)
+  __logd "Remote dump date: ${REMOTE_DATE}"
+  __logd "Last processed: ${LAST_DUMP_DATE:-unknown}"
+
+  # For now, assume new dump if last processed is more than 1 day old
+  # This is a conservative check
+  local DAYS_SINCE_DUMP
+  DAYS_SINCE_DUMP=$(psql -d "${DBNAME}" -Atq \
+   -c "SELECT COALESCE(EXTRACT(DAY FROM CURRENT_DATE - '${LAST_DUMP_DATE:-1970-01-01}'::date)::int, 1)" \
+   2> /dev/null || echo "1")
+
+  if [[ "${DAYS_SINCE_DUMP}" -ge 1 ]]; then
+   __logi "New Planet dump appears to be available (last processed: ${DAYS_SINCE_DUMP} days ago)"
+   __log_finish
+   return 0
+  else
+   __logw "Planet dump was processed recently (${DAYS_SINCE_DUMP} days ago). No new dump available yet."
+   __log_finish
+   return 1
+  fi
+ else
+  __logw "Unable to check remote dump date. Assuming new dump may be available."
+  __log_finish
+  return 0 # Assume available if we can't check
+ fi
+}
+
 # Checks if the quantity of notes requires synchronization with Planet
 function __processXMLorPlanet {
  __log_start
 
- if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
-  __logw "Starting full synchronization from Planet."
-  __logi "This could take several minutes."
-  "${NOTES_SYNC_SCRIPT}"
-  __logw "Finished full synchronization from Planet."
+ # Check if we need to process Planet dump (either due to API limit or forced flag)
+ if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]] || [[ "${FORCE_PLANET_SYNC:-false}" == "true" ]]; then
+  if [[ "${FORCE_PLANET_SYNC:-false}" == "true" ]]; then
+   __logw "Processing Planet dump due to previously detected API limit (new dump now available)."
+  else
+   __logw "API returned ${TOTAL_NOTES} notes (limit: ${MAX_NOTES})."
+   __logw "This indicates there are MORE notes than the API limit can return."
+  fi
+  __logw "Full synchronization from Planet is required to avoid data loss."
+
+  # Check if new Planet dump is available before processing
+  # Skip check if FORCE_PLANET_SYNC is set (we already verified dump is available)
+  if [[ "${FORCE_PLANET_SYNC:-false}" == "true" ]] || __checkNewPlanetDump; then
+   if [[ "${FORCE_PLANET_SYNC:-false}" == "true" ]]; then
+    __logi "Processing Planet dump (verified at start of execution)."
+   else
+    __logi "New Planet dump available. Starting full synchronization from Planet."
+   fi
+   __logi "This could take several minutes."
+   "${NOTES_SYNC_SCRIPT}"
+   __logw "Finished full synchronization from Planet."
+
+   # Clear the force flag
+   unset FORCE_PLANET_SYNC
+
+   # Record the processing time
+   psql -d "${DBNAME}" -c "
+    CREATE TABLE IF NOT EXISTS planet_processing_log (
+     id SERIAL PRIMARY KEY,
+     processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     processing_type VARCHAR(20),
+     notes_count INTEGER
+    );" 2> /dev/null || true
+
+   psql -d "${DBNAME}" -c "
+    INSERT INTO planet_processing_log (processing_type, notes_count)
+    VALUES ('sync', ${TOTAL_NOTES});" 2> /dev/null || true
+  else
+   __loge "ERROR: API returned ${TOTAL_NOTES} notes (API limit reached)"
+   __loge "There are more notes available but API cannot return them (limit: ${MAX_NOTES})"
+   __loge "A new Planet dump is required to process all notes correctly."
+   __loge "No new Planet dump available yet. Stopping execution to prevent data loss."
+   __loge "This execution will block until a new Planet dump is available."
+
+   # Create failed execution marker to prevent subsequent processAPI executions
+   # This ensures we don't lose data by continuing to process incomplete API data
+   __create_failed_marker "248" \
+    "API limit reached (${TOTAL_NOTES} notes) but no new Planet dump available" \
+    "The API returned the maximum number of notes (${MAX_NOTES}), indicating more data exists. Wait for a new Planet dump to be available, then delete this marker and retry: rm ${FAILED_EXECUTION_FILE}"
+
+   __loge "Execution stopped. Next processAPI runs will be blocked until this is resolved."
+   __loge "Delete the marker file after new Planet dump is available: ${FAILED_EXECUTION_FILE}"
+   __log_finish
+   exit 248
+  fi
  else
   # Check if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
@@ -1063,11 +1173,36 @@ function main() {
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
+
+ # Check for failed execution marker, but handle "waiting for Planet dump" case specially
  if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
-  echo "Previous execution failed. Please verify the data and then remove the"
-  echo "next file:"
-  echo "   ${FAILED_EXECUTION_FILE}"
-  exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+  # Check if this is the "waiting for Planet dump" case
+  if grep -q "Error code: 248" "${FAILED_EXECUTION_FILE}" 2> /dev/null \
+   && grep -qi "API limit reached\|no new Planet dump" "${FAILED_EXECUTION_FILE}" 2> /dev/null; then
+   __logw "Previous execution stopped due to API limit (10k notes) without Planet dump."
+   __logi "Checking if new Planet dump is now available..."
+
+   # Initialize logger before checking (needed for __checkNewPlanetDump)
+   if ! __checkNewPlanetDump; then
+    __logw "No new Planet dump available yet. Execution will be skipped."
+    __logw "This execution will be blocked until new dump is available or marker is removed:"
+    __logw "   ${FAILED_EXECUTION_FILE}"
+    exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+   else
+    __logi "New Planet dump is now available! Removing failed marker and continuing."
+    rm -f "${FAILED_EXECUTION_FILE}"
+    __logi "Marker removed. Setting flag to process Planet dump after API call."
+    # Set flag to force Planet dump processing even if API returns < 10k notes
+    export FORCE_PLANET_SYNC=true
+    __logi "FORCE_PLANET_SYNC flag set. Planet dump will be processed after API data."
+   fi
+  else
+   # For other types of failures, require manual intervention
+   echo "Previous execution failed. Please verify the data and then remove the"
+   echo "next file:"
+   echo "   ${FAILED_EXECUTION_FILE}"
+   exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+  fi
  fi
  __checkPrereqs
  __logw "Process started."
@@ -1097,31 +1232,32 @@ EOF
  export RET_FUNC=0
  __checkBaseTables
  if [[ "${RET_FUNC}" -ne 0 ]]; then
-  __logw "Base tables missing. Creating base structure and geographic data."
+  __logw "Base tables missing. Creating base structure, loading historical data, and geographic data."
   __logi "This will take approximately 1-2 hours for complete setup."
 
   # Close lock file descriptor to prevent inheritance by child processes
   __logd "Releasing lock before spawning child processes"
   exec 8>&-
 
-  # Step 1: Create base structure (tables only)
-  __logi "Step 1/3: Creating base database structure..."
+  # Step 1: Create base structure and load historical data
+  # Note: processPlanetNotes.sh --base creates tables AND loads all historical data
+  __logi "Step 1/2: Creating base database structure and loading historical data..."
   if ! "${NOTES_SYNC_SCRIPT}" --base; then
-   __loge "ERROR: Failed to create base structure. Stopping process."
+   __loge "ERROR: Failed to create base structure and load historical data. Stopping process."
    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Failed to create base database structure (Step 1/3)" \
+    "Failed to create base database structure and load historical data (Step 1/2)" \
     "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
-  __logw "Base structure created successfully."
+  __logw "Base structure and historical data loaded successfully."
 
-  # Step 2: Load initial geographic data
-  __logi "Step 2/3: Loading initial geographic data (countries and maritimes)..."
+  # Step 2: Load initial geographic data (countries and maritimes)
+  __logi "Step 2/2: Loading initial geographic data (countries and maritimes)..."
   if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
    if ! "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
     __loge "ERROR: Failed to load geographic data. Stopping process."
     __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-     "Failed to load initial geographic data (Step 2/3)" \
+     "Failed to load initial geographic data (Step 2/2)" \
      "Check updateCountries.sh script and ensure geographic data files are accessible. Script: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
     exit "${ERROR_EXECUTING_PLANET_DUMP}"
    fi
@@ -1134,19 +1270,6 @@ EOF
    exit "${ERROR_MISSING_LIBRARY}"
   fi
 
-  # Step 3: Process planet notes (now with geographic data available)
-  __logi "Step 3/3: Processing planet notes with geographic data..."
-  set +e
-  "${NOTES_SYNC_SCRIPT}" # sin argumentos
-  RET=${?}
-  set -e
-  if [[ "${RET}" -ne 0 ]]; then
-   __loge "ERROR: Failed to process planet notes."
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Failed to process planet notes - historical data load failed (Step 3/3)" \
-    "Check processPlanetNotes.sh execution. Verify planet dump file availability and database space. Script: ${NOTES_SYNC_SCRIPT}"
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-  fi
   __logw "Complete setup finished successfully."
   __logi "System is now ready for regular API processing."
 
@@ -1177,7 +1300,7 @@ EOF
    exit "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
   __logi "Historical data validation passed. ProcessAPI can continue safely."
-  
+
   # Check for data gaps after validating base tables and data
   if ! __recover_from_gaps; then
    __loge "Gap recovery check failed, aborting processing"

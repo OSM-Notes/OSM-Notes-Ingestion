@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
-VERSION="2025-10-27"
+# Version: 2025-10-28
+VERSION="2025-10-28"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -1447,13 +1447,13 @@ function __processBoundary {
   __log_finish
   return 1
  fi
-  __logd "Network connectivity confirmed for boundary ${ID}"
+ __logd "Network connectivity confirmed for boundary ${ID}"
 
-  # Use retry logic for Overpass API calls
-  # Retry settings: 10 retries with 15s base delay (coverage ~15 minutes)
-  local MAX_RETRIES_LOCAL=10
-  local BASE_DELAY_LOCAL=15
-  
+ # Use retry logic for Overpass API calls
+ # Retry settings: 10 retries with 15s base delay (coverage ~15 minutes)
+ local MAX_RETRIES_LOCAL=10
+ local BASE_DELAY_LOCAL=15
+
  __logd "Downloading boundary ${ID} from Overpass API..."
  local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
  local OVERPASS_CLEANUP="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
@@ -1477,20 +1477,20 @@ function __processBoundary {
  # Check for specific Overpass errors
  __logd "Checking Overpass API response for errors..."
  cat "${OUTPUT_OVERPASS}"
- 
+
  # Check for various Overpass API error codes
  local MANY_REQUESTS
  local GATEWAY_TIMEOUT
  local BAD_REQUEST
  local INTERNAL_SERVER_ERROR
  local SERVICE_UNAVAILABLE
- 
+
  MANY_REQUESTS=$(grep -c "ERROR 429" "${OUTPUT_OVERPASS}" || echo "0")
  GATEWAY_TIMEOUT=$(grep -c "ERROR 504" "${OUTPUT_OVERPASS}" || echo "0")
  BAD_REQUEST=$(grep -c "ERROR 400" "${OUTPUT_OVERPASS}" || echo "0")
  INTERNAL_SERVER_ERROR=$(grep -c "ERROR 500" "${OUTPUT_OVERPASS}" || echo "0")
  SERVICE_UNAVAILABLE=$(grep -c "ERROR 503" "${OUTPUT_OVERPASS}" || echo "0")
- 
+
  if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
   __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID}"
   __loge "Consider reducing request rate or implementing rate limiting"
@@ -1499,7 +1499,7 @@ function __processBoundary {
   __log_finish
   return 1
  fi
- 
+
  if [[ "${GATEWAY_TIMEOUT}" -ne 0 ]]; then
   __loge "ERROR 504: Gateway timeout from Overpass API for boundary ${ID}"
   __loge "This boundary may be too complex or the query may be too large"
@@ -1509,7 +1509,7 @@ function __processBoundary {
   __log_finish
   return 1
  fi
- 
+
  if [[ "${BAD_REQUEST}" -ne 0 ]]; then
   __loge "ERROR 400: Bad request to Overpass API for boundary ${ID}"
   __loge "The query may be malformed or contains invalid parameters"
@@ -1518,7 +1518,7 @@ function __processBoundary {
   __log_finish
   return 1
  fi
- 
+
  if [[ "${INTERNAL_SERVER_ERROR}" -ne 0 ]]; then
   __loge "ERROR 500: Internal server error from Overpass API for boundary ${ID}"
   __loge "This is a server-side issue with the Overpass API"
@@ -1527,7 +1527,7 @@ function __processBoundary {
   __log_finish
   return 1
  fi
- 
+
  if [[ "${SERVICE_UNAVAILABLE}" -ne 0 ]]; then
   __loge "ERROR 503: Service unavailable from Overpass API for boundary ${ID}"
   __loge "The Overpass API may be temporarily unavailable"
@@ -1536,7 +1536,7 @@ function __processBoundary {
   __log_finish
   return 1
  fi
- 
+
  # Check for other errors
  local OTHER_ERRORS
  OTHER_ERRORS=$(grep "ERROR" "${OUTPUT_OVERPASS}" || echo "")
@@ -1809,8 +1809,8 @@ function __processBoundary {
  # Verify table exists before attempting insert
  __logd "Verifying countries table exists before insert for boundary ${ID}..."
  local TABLE_EXISTS
- TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'countries')" 2>/dev/null || echo "f")
- 
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'countries')" 2> /dev/null || echo "f")
+
  if [[ "${TABLE_EXISTS}" != "t" ]]; then
   __loge "CRITICAL: countries table does not exist in database ${DBNAME}"
   __loge "Attempted to insert boundary ${ID} (${NAME})"
@@ -1822,12 +1822,12 @@ function __processBoundary {
   return 1
  fi
  __logd "Confirmed: countries table exists in database ${DBNAME}"
- 
+
  # Verify database connection is working
  __logd "Verifying database connection for boundary ${ID}..."
  local CONNECTION_TEST
- CONNECTION_TEST=$(psql -d "${DBNAME}" -Atq -c "SELECT 1" 2>/dev/null || echo "FAIL")
- 
+ CONNECTION_TEST=$(psql -d "${DBNAME}" -Atq -c "SELECT 1" 2> /dev/null || echo "FAIL")
+
  if [[ "${CONNECTION_TEST}" != "1" ]]; then
   __loge "CRITICAL: Database connection failed for boundary ${ID}"
   __loge "Database: ${DBNAME}"
@@ -1838,7 +1838,7 @@ function __processBoundary {
   return 1
  fi
  __logd "Database connection verified for boundary ${ID}"
- 
+
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
@@ -2035,7 +2035,7 @@ function __processCountries {
  local TOTAL_JOBS
  TOTAL_JOBS=$(jobs -p | wc -l)
  __logi "Total jobs running: ${TOTAL_JOBS}"
- 
+
  for JOB in $(jobs -p); do
   set +e # Allow errors in wait
   __logi "Waiting for job ${JOB} to complete..."
@@ -2169,7 +2169,7 @@ function __processMaritimes {
  local TOTAL_MARITIME_JOBS
  TOTAL_MARITIME_JOBS=$(jobs -p | wc -l)
  __logi "Total maritime jobs running: ${TOTAL_MARITIME_JOBS}"
- 
+
  FAIL=0
  for JOB in $(jobs -p); do
   __logi "Waiting for maritime job ${JOB} to complete..."
@@ -2226,39 +2226,77 @@ function __getLocationNotes {
   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
    < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
 
-# Retrieves the max note for already location processed notes (from file.)
-MAX_NOTE_ID_NOT_NULL=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
- <<< "SELECT MAX(note_id) FROM notes WHERE id_country IS NOT NULL")
-# Retrieves the max note.
-MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
- <<< "SELECT MAX(note_id) FROM notes")
+ # Retrieves the max note for already location processed notes (from file.)
+ # Use COALESCE to handle NULL results from MAX() when no rows match
+ MAX_NOTE_ID_NOT_NULL=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  <<< "SELECT COALESCE(MAX(note_id), 0) FROM notes WHERE id_country IS NOT NULL")
+ # Retrieves the max note.
+ MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  <<< "SELECT COALESCE(MAX(note_id), 0) FROM notes")
 
-# Uses n-1 cores, if number of cores is greater than 1.
-# This prevents monopolization of the CPUs.
-if [[ "${MAX_THREADS}" -gt 1 ]]; then
- MAX_THREADS=$((MAX_THREADS - 1))
-fi
+ # Ensure numeric values (handle empty strings from psql)
+ MAX_NOTE_ID_NOT_NULL=${MAX_NOTE_ID_NOT_NULL:-0}
+ MAX_NOTE_ID=${MAX_NOTE_ID:-0}
 
-# Verify integrity of imported note locations in parallel
-# Optimized: Parallelize verification by splitting data across threads (30min→5min for 4.8M notes)
-__logi "Verifying integrity of imported note locations (parallel)..."
-local TOTAL_NOTES_TO_INVALIDATE=0
-local VERIFY_THREADS=${MAX_THREADS}
-declare -l VERIFY_SIZE=$((MAX_NOTE_ID_NOT_NULL / VERIFY_THREADS))
+ __logd "Statistics: MAX_NOTE_ID=${MAX_NOTE_ID}, MAX_NOTE_ID_NOT_NULL=${MAX_NOTE_ID_NOT_NULL}"
 
-# Store counts from parallel threads in temp files
-local TEMP_COUNT_DIR
-TEMP_COUNT_DIR=$(mktemp -d)
-trap "rm -rf ${TEMP_COUNT_DIR}" EXIT
+ # Uses n-1 cores, if number of cores is greater than 1.
+ # This prevents monopolization of the CPUs.
+ if [[ "${MAX_THREADS}" -gt 1 ]]; then
+  MAX_THREADS=$((MAX_THREADS - 1))
+ fi
 
-for J in $(seq 1 1 "${VERIFY_THREADS}"); do
- (
-  __logd "Starting integrity verification thread ${J}."
-  MIN_THREAD=$((VERIFY_SIZE * (J - 1)))
-  MAX_THREAD=$((VERIFY_SIZE * J))
-  __logd "Thread ${J}: verifying notes ${MIN_THREAD} to ${MAX_THREAD}"
+ # Verify integrity of imported note locations in parallel
+ # Optimized: Parallelize verification by splitting data across threads (30min→5min for 4.8M notes)
+ __logi "Verifying integrity of imported note locations (parallel)..."
+ local TOTAL_NOTES_TO_INVALIDATE=0
+ local VERIFY_THREADS=${MAX_THREADS}
 
-  COUNT=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
+ # If MAX_NOTE_ID_NOT_NULL is 0 but MAX_NOTE_ID > 0, it means there are notes
+ # but none have country assigned (unlikely but handle it)
+ # If MAX_NOTE_ID_NOT_NULL equals MAX_NOTE_ID, all notes have country assigned
+ if [[ "${MAX_NOTE_ID_NOT_NULL}" -eq 0 ]] && [[ "${MAX_NOTE_ID}" -gt 0 ]]; then
+  __logw "No notes with country found, but ${MAX_NOTE_ID} notes exist in DB. " \
+   "Cannot verify integrity (no countries assigned)."
+ elif [[ "${MAX_NOTE_ID_NOT_NULL}" -eq "${MAX_NOTE_ID}" ]] && [[ "${MAX_NOTE_ID}" -gt 0 ]]; then
+  __logd "All ${MAX_NOTE_ID} notes have country assigned. Will verify integrity."
+ fi
+
+ declare -l VERIFY_SIZE=0
+ if [[ "${MAX_NOTE_ID_NOT_NULL}" -gt 0 ]] && [[ "${VERIFY_THREADS}" -gt 0 ]]; then
+  VERIFY_SIZE=$((MAX_NOTE_ID_NOT_NULL / VERIFY_THREADS))
+  # Ensure minimum size of 1 if there are notes to verify
+  if [[ "${VERIFY_SIZE}" -eq 0 ]] && [[ "${MAX_NOTE_ID_NOT_NULL}" -gt 0 ]]; then
+   VERIFY_SIZE=1
+   __logw "VERIFY_SIZE was 0, setting to 1 to ensure verification runs"
+  fi
+ fi
+
+ __logd "Verification setup: VERIFY_THREADS=${VERIFY_THREADS}, VERIFY_SIZE=${VERIFY_SIZE}, MAX_NOTE_ID_NOT_NULL=${MAX_NOTE_ID_NOT_NULL}"
+
+ # Skip verification if no notes to verify
+ if [[ "${MAX_NOTE_ID_NOT_NULL}" -eq 0 ]]; then
+  __logw "No notes with country assignment found. Skipping integrity verification."
+  TOTAL_NOTES_TO_INVALIDATE=0
+ else
+  # Proceed with verification
+
+  # Store counts from parallel threads in temp files
+ local TEMP_COUNT_DIR
+ TEMP_COUNT_DIR=$(mktemp -d)
+ local CLEANUP_TEMP_DIR="${TEMP_COUNT_DIR}"
+ # shellcheck disable=SC2064
+ trap 'rm -rf "${CLEANUP_TEMP_DIR}"' EXIT
+
+  for J in $(seq 1 1 "${VERIFY_THREADS}"); do
+   (
+    __logd "Starting integrity verification thread ${J}."
+    MIN_THREAD=$((VERIFY_SIZE * (J - 1)))
+    MAX_THREAD=$((VERIFY_SIZE * J))
+    __logd "Thread ${J}: verifying notes ${MIN_THREAD} to ${MAX_THREAD}"
+
+    COUNT=$(
+     psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
 WITH invalidated AS (
  UPDATE notes AS n /* Notes-integrity check parallel */
  SET id_country = NULL
@@ -2270,34 +2308,35 @@ WITH invalidated AS (
 )
 SELECT COUNT(*) FROM invalidated;
 EOF
-  )
+    )
 
-  # Store count in temp file
-  echo "${COUNT:-0}" > "${TEMP_COUNT_DIR}/count_${J}"
-  __logd "Thread ${J}: found ${COUNT} notes to invalidate"
- ) &
-done
+    # Store count in temp file
+    echo "${COUNT:-0}" > "${TEMP_COUNT_DIR}/count_${J}"
+    __logd "Thread ${J}: found ${COUNT} notes to invalidate"
+   ) &
+  done
 
-# Wait for all verification threads to complete
-wait
+  # Wait for all verification threads to complete
+  wait
 
-# Sum up all counts
-for COUNT_FILE in "${TEMP_COUNT_DIR}"/count_*; do
- if [[ -f "${COUNT_FILE}" ]]; then
-  local COUNT
-  COUNT=$(cat "${COUNT_FILE}")
-  TOTAL_NOTES_TO_INVALIDATE=$((TOTAL_NOTES_TO_INVALIDATE + COUNT))
+  # Sum up all counts
+  for COUNT_FILE in "${TEMP_COUNT_DIR}"/count_*; do
+   if [[ -f "${COUNT_FILE}" ]]; then
+    local COUNT
+    COUNT=$(cat "${COUNT_FILE}")
+    TOTAL_NOTES_TO_INVALIDATE=$((TOTAL_NOTES_TO_INVALIDATE + COUNT))
+   fi
+  done
+
+  # Clean up temp directory
+  rm -rf "${TEMP_COUNT_DIR}"
+
+  if [[ "${TOTAL_NOTES_TO_INVALIDATE}" -gt 0 ]]; then
+   __logi "Found and invalidated ${TOTAL_NOTES_TO_INVALIDATE} notes with incorrect country assignments"
+  else
+   __logi "No incorrect country assignments found"
+  fi
  fi
-done
-
-# Clean up temp directory
-rm -rf "${TEMP_COUNT_DIR}"
-
-if [[ "${TOTAL_NOTES_TO_INVALIDATE}" -gt 0 ]]; then
- __logi "Found and invalidated ${TOTAL_NOTES_TO_INVALIDATE} notes with incorrect country assignments"
-else
- __logi "No incorrect country assignments found"
-fi
 
  # Check if there are any notes without country assignment
  local NOTES_WITHOUT_COUNTRY
@@ -2679,11 +2718,11 @@ function __retry_file_operation() {
    return 0
   else
    local OPERATION_FAILED="true"
-   
+
    # If this is an Overpass operation, check for specific error messages
    if [[ "${OPERATION_COMMAND}" == *"${OVERPASS_INTERPRETER}"* ]]; then
     __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
-    
+
     # Try to extract and log specific error messages from stderr
     if [[ -f "${OUTPUT_OVERPASS:-}" ]]; then
      local ERROR_LINE
@@ -2729,7 +2768,7 @@ function __check_overpass_status() {
  # Extract the base URL from OVERPASS_INTERPRETER
  # Handle both https://server.com/api/interpreter and https://server.com formats
  local BASE_URL="${OVERPASS_INTERPRETER%/api/interpreter}"
- BASE_URL="${BASE_URL%/}"  # Remove trailing slash
+ BASE_URL="${BASE_URL%/}" # Remove trailing slash
  local STATUS_URL="${BASE_URL}/status"
  local STATUS_OUTPUT
  local AVAILABLE_SLOTS
@@ -2762,7 +2801,7 @@ function __check_overpass_status() {
  if [[ -n "${ALL_WAIT_TIMES}" ]]; then
   # Find the minimum wait time from all available slots
   WAIT_TIME=$(echo "${ALL_WAIT_TIMES}" | sort -n | head -1)
-  
+
   if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
    __logd "Overpass API busy, next slot available in ${WAIT_TIME} seconds (from ${RATE_LIMIT:-4} slots)"
    __log_finish
