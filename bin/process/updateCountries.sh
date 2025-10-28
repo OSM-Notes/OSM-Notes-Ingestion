@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
-VERSION="2025-10-24"
+# Version: 2025-10-28
+VERSION="2025-10-28"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -329,7 +329,15 @@ function main() {
  exec 7> "${LOCK}"
  __logw "Validating single execution."
  ONLY_EXECUTION="no"
- flock -n 7
+ if ! flock -n 7; then
+  __loge "Another instance of ${BASENAME} is already running."
+  __loge "Lock file: ${LOCK}"
+  if [[ -f "${LOCK}" ]]; then
+   __loge "Lock file contents:"
+   cat "${LOCK}" >&2 || true
+  fi
+  exit 1
+ fi
  ONLY_EXECUTION="yes"
 
  # Write lock file content with useful debugging information
