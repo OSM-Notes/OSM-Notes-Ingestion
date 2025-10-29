@@ -1098,8 +1098,18 @@ EOF
  set +E
  __checkNoProcessPlanet
  export RET_FUNC=0
+ __logd "Before calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
  __checkBaseTables
- __logi "Return code from __checkBaseTables: ${RET_FUNC}"
+ __logi "After calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
+ 
+ # Double-check RET_FUNC is set correctly
+ if [[ -z "${RET_FUNC:-}" ]]; then
+  __loge "CRITICAL: RET_FUNC is empty after __checkBaseTables!"
+  __loge "This should never happen. Forcing safe exit (RET_FUNC=2)"
+  export RET_FUNC=2
+ fi
+ 
+ __logi "Final RET_FUNC value before case statement: ${RET_FUNC}"
  
  case "${RET_FUNC}" in
   1)

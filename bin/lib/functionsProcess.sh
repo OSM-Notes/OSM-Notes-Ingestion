@@ -1101,20 +1101,20 @@ function __checkPrereqs_functions {
 function __checkBaseTables {
  __log_start
  set +e
- 
+
  # First, verify database connection works
  __logd "Verifying database connection..."
  if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   __loge "This is NOT a 'tables missing' condition - do NOT run --base"
-  RET=2  # Use code 2 for connection errors (not missing tables)
+  RET=2 # Use code 2 for connection errors (not missing tables)
   set -e
-  RET_FUNC="${RET}"
+  export RET_FUNC="${RET}"
   __log_finish
   return "${RET}"
  fi
  __logd "Database connection verified"
- 
+
  # Now check if tables exist
  __logd "Checking for base tables: countries, notes, note_comments, logs, tries"
  __logd "SQL file: ${POSTGRES_11_CHECK_BASE_TABLES}"
@@ -1123,16 +1123,21 @@ function __checkBaseTables {
  PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1)
  RET=${?}
  PSQL_ERROR="${PSQL_OUTPUT}"
- 
+
  __logd "psql exit code: ${RET}"
  __logd "psql output (first 500 chars): ${PSQL_ERROR:0:500}"
- 
+
  if [[ "${RET}" -ne 0 ]]; then
   # Check if the error is specifically about missing tables
-  if echo "${PSQL_ERROR}" | grep -qi "Base tables are missing"; then
+  # First verify we have error output to check
+  if [[ -z "${PSQL_ERROR}" ]]; then
+   __loge "ERROR: psql failed (exit code ${RET}) but produced no error output"
+   __loge "This is unexpected - investigating required"
+   RET=2
+  elif echo "${PSQL_ERROR}" | grep -qi "Base tables are missing"; then
    __logw "Base tables are missing (this is expected on first run)"
    __logd "Error details: ${PSQL_ERROR}"
-   RET=1  # Tables are missing - safe to run --base
+   RET=1 # Tables are missing - safe to run --base
   else
    # This is a different error (connection, permissions, SQL syntax, etc.)
    __loge "ERROR: Failed to check base tables, but NOT because tables are missing"
@@ -1140,17 +1145,17 @@ function __checkBaseTables {
    __loge "Error output: ${PSQL_ERROR}"
    __loge "This indicates a system/database issue, NOT missing tables"
    __loge "Do NOT run --base automatically - manual investigation required"
-   RET=2  # Use different exit code to distinguish from "tables missing"
+   RET=2 # Use different exit code to distinguish from "tables missing"
   fi
  else
   # Script executed successfully - tables exist
   __logd "All base tables verified successfully"
   RET=0
  fi
- 
+
  set -e
  # shellcheck disable=SC2034
- RET_FUNC="${RET}"
+ export RET_FUNC="${RET}"
  __log_finish
  return "${RET}"
 }
@@ -1533,11 +1538,31 @@ function __processBoundary {
  local INTERNAL_SERVER_ERROR
  local SERVICE_UNAVAILABLE
 
- MANY_REQUESTS=$(grep -c "ERROR 429" "${OUTPUT_OVERPASS}" || echo "0")
- GATEWAY_TIMEOUT=$(grep -c "ERROR 504" "${OUTPUT_OVERPASS}" || echo "0")
- BAD_REQUEST=$(grep -c "ERROR 400" "${OUTPUT_OVERPASS}" || echo "0")
- INTERNAL_SERVER_ERROR=$(grep -c "ERROR 500" "${OUTPUT_OVERPASS}" || echo "0")
- SERVICE_UNAVAILABLE=$(grep -c "ERROR 503" "${OUTPUT_OVERPASS}" || echo "0")
+ # Capture error counts and remove any trailing newlines
+ MANY_REQUESTS=$(grep -c "ERROR 429" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+ MANY_REQUESTS=$(echo "${MANY_REQUESTS}" | tr -d '\n' | tr -d ' ')
+ GATEWAY_TIMEOUT=$(grep -c "ERROR 504" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+ GATEWAY_TIMEOUT=$(echo "${GATEWAY_TIMEOUT}" | tr -d '\n' | tr -d ' ')
+ BAD_REQUEST=$(grep -c "ERROR 400" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+ BAD_REQUEST=$(echo "${BAD_REQUEST}" | tr -d '\n' | tr -d ' ')
+ INTERNAL_SERVER_ERROR=$(grep -c "ERROR 500" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+ INTERNAL_SERVER_ERROR=$(echo "${INTERNAL_SERVER_ERROR}" | tr -d '\n' | tr -d ' ')
+ SERVICE_UNAVAILABLE=$(grep -c "ERROR 503" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+ SERVICE_UNAVAILABLE=$(echo "${SERVICE_UNAVAILABLE}" | tr -d '\n' | tr -d ' ')
+
+ # Ensure all variables are clean numeric values (remove any non-digit characters)
+ MANY_REQUESTS="${MANY_REQUESTS//[^0-9]/}"
+ GATEWAY_TIMEOUT="${GATEWAY_TIMEOUT//[^0-9]/}"
+ BAD_REQUEST="${BAD_REQUEST//[^0-9]/}"
+ INTERNAL_SERVER_ERROR="${INTERNAL_SERVER_ERROR//[^0-9]/}"
+ SERVICE_UNAVAILABLE="${SERVICE_UNAVAILABLE//[^0-9]/}"
+
+ # Default to 0 if empty after cleaning
+ MANY_REQUESTS="${MANY_REQUESTS:-0}"
+ GATEWAY_TIMEOUT="${GATEWAY_TIMEOUT:-0}"
+ BAD_REQUEST="${BAD_REQUEST:-0}"
+ INTERNAL_SERVER_ERROR="${INTERNAL_SERVER_ERROR:-0}"
+ SERVICE_UNAVAILABLE="${SERVICE_UNAVAILABLE:-0}"
 
  if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
   __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID}"
