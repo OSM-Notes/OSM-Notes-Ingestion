@@ -1484,14 +1484,16 @@ EOF
    __logi "No notes found in XML file, skipping processing."
   fi
  fi
- __createFunctionToGetCountry # base & sync
- __createProcedures           # all
 
  # Process geographic data and location notes for both base and sync modes
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
   __logi "Processing geographic data in base mode..."
   # Process geographic data and location notes first
+  # This creates countries and tries tables via updateCountries.sh
   __processGeographicData
+  
+  # Now create get_country() function (requires tries table to exist)
+  __createFunctionToGetCountry # base & sync
 
   # Now organize areas after geographic data is loaded
   __logi "Organizing areas after geographic data is loaded..."
@@ -1504,6 +1506,8 @@ EOF
   fi
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
   __logi "Processing geographic data in sync mode..."
+  # For sync mode, create get_country() first (tries table should already exist)
+  __createFunctionToGetCountry # base & sync
   __dropSyncTables # sync
   # Process geographic data and location notes first
   __processGeographicData
@@ -1518,6 +1522,10 @@ EOF
    __logw "Areas organization failed, but continuing with process..."
   fi
  fi
+
+ # Create procedures (required for all modes - base & sync)
+ __createProcedures  # all
+
  __cleanNotesFiles  # base & sync
  __analyzeAndVacuum # base & sync
 
