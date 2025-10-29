@@ -1102,12 +1102,25 @@ EOF
  __checkNoProcessPlanet
  export RET_FUNC=0
  __logd "Before calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
- __checkBaseTables
- local CHECK_BASE_TABLES_EXIT_CODE=$?
- # Re-enable ERR trap
- set -E
+ __checkBaseTables || CHECK_BASE_TABLES_EXIT_CODE=$?
+ # The || catches the exit code even if command fails
  __logi "After calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
  __logd "__checkBaseTables exit code: ${CHECK_BASE_TABLES_EXIT_CODE}"
+ # Re-enable ERR trap (restore the one from __trapOn)
+ trap '{ 
+  local ERROR_LINE="${LINENO}"
+  local ERROR_COMMAND="${BASH_COMMAND}"
+  local ERROR_EXIT_CODE="$?"
+  if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
+   local MAIN_SCRIPT_NAME
+   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
+   printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
+   printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
+   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+    { echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"; echo "Script: ${MAIN_SCRIPT_NAME}"; echo "Line number: ${ERROR_LINE}"; echo "Failed command: ${ERROR_COMMAND}"; echo "Exit code: ${ERROR_EXIT_CODE}"; echo "Temporary directory: ${TMP_DIR:-unknown}"; echo "Process ID: $$"; } > "${FAILED_EXECUTION_FILE}"; fi;
+   exit "${ERROR_EXIT_CODE}";
+  fi; }' ERR
+ set -E
  
  # Double-check RET_FUNC is set correctly
  if [[ -z "${RET_FUNC:-}" ]]; then
