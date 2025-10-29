@@ -672,6 +672,58 @@ function __processPlanetXmlPart() {
 # Returns:
 #   0 if valid, 1 if invalid
 
+# Validates JSON file structure and contains expected element
+# Parameters:
+#   $1: JSON file path
+#   $2: Expected element name (e.g., "elements" for OSM JSON, "features" for GeoJSON)
+# Returns:
+#   0 if valid and contains expected element, 1 if invalid or missing element
+function __validate_json_with_element {
+ __log_start
+ local JSON_FILE="${1}"
+ local EXPECTED_ELEMENT="${2:-}"
+
+ # First validate basic JSON structure
+ if ! __validate_json_structure "${JSON_FILE}"; then
+  __loge "Basic JSON validation failed for: ${JSON_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # If expected element is provided, check it exists
+ if [[ -n "${EXPECTED_ELEMENT}" ]]; then
+  if ! command -v jq > /dev/null 2>&1; then
+   __loge "ERROR: jq command not available for element validation"
+   __log_finish
+   return 1
+  fi
+
+  # Check if expected element exists and is not empty
+  local ELEMENT_COUNT
+  ELEMENT_COUNT=$(jq -r ".${EXPECTED_ELEMENT} | length" "${JSON_FILE}" 2> /dev/null || echo "0")
+
+  # Check if element exists and has content
+  if ! jq -e ".${EXPECTED_ELEMENT} != null" "${JSON_FILE}" > /dev/null 2>&1; then
+   __loge "ERROR: JSON file does not contain expected element '${EXPECTED_ELEMENT}': ${JSON_FILE}"
+   __log_finish
+   return 1
+  fi
+
+  # Check if element is not empty (for arrays, length > 0; for objects, not null)
+  if [[ "${ELEMENT_COUNT}" == "0" ]] || [[ "${ELEMENT_COUNT}" == "null" ]]; then
+   __loge "ERROR: JSON file element '${EXPECTED_ELEMENT}' is empty: ${JSON_FILE}"
+   __log_finish
+   return 1
+  fi
+
+  __logd "JSON contains expected element '${EXPECTED_ELEMENT}'"
+ fi
+
+ __logd "JSON validation with element check passed: ${JSON_FILE}"
+ __log_finish
+ return 0
+}
+
 # Validates database connection and basic functionality
 # Parameters:
 #   $1: Database name (optional, uses DBNAME if not provided)
@@ -1508,157 +1560,202 @@ function __processBoundary {
  local MAX_RETRIES_LOCAL=10
  local BASE_DELAY_LOCAL=15
 
- __logd "Downloading boundary ${ID} from Overpass API..."
- local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
- local OVERPASS_CLEANUP="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+ # Retry logic for download with validation
+ # This includes downloading and validating JSON structure
+ local DOWNLOAD_VALIDATION_RETRIES=3
+ local DOWNLOAD_VALIDATION_RETRY_COUNT=0
+ local DOWNLOAD_SUCCESS=false
 
- # Increased retries from 5 to 7 and base delay from 15s to 20s for complex boundaries
- # Smart wait enabled to check Overpass API status before retrying
- # This gives a total retry period of up to ~20 minutes instead of ~4 minutes
- # Complex boundaries get even more retries and longer delays
- if ! __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}" "${OVERPASS_CLEANUP}" "true"; then
-  __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
-  if [[ "${IS_COMPLEX}" == "true" ]]; then
-   __loge "This was a complex boundary with enhanced retry settings (${MAX_RETRIES_LOCAL} retries, ${BASE_DELAY_LOCAL}s delays)"
+ __logd "Downloading boundary ${ID} from Overpass API with validation and retry logic..."
+
+ while [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -lt ${DOWNLOAD_VALIDATION_RETRIES} ]] && [[ "${DOWNLOAD_SUCCESS}" == "false" ]]; do
+  if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -gt 0 ]]; then
+   __logw "Retrying download and validation for boundary ${ID} (attempt $((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))/${DOWNLOAD_VALIDATION_RETRIES})"
+   # Clean up previous failed attempt
+   rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
+   # Wait before retry with exponential backoff
+   local RETRY_DELAY=$((BASE_DELAY_LOCAL * DOWNLOAD_VALIDATION_RETRY_COUNT))
+   if [[ ${RETRY_DELAY} -gt 60 ]]; then
+    RETRY_DELAY=60
+   fi
+   __logd "Waiting ${RETRY_DELAY}s before retry..."
+   sleep "${RETRY_DELAY}"
   fi
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass API failed for boundary ${ID}" \
+
+  # Attempt download
+  local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
+  local OVERPASS_CLEANUP="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+
+  # Increased retries from 5 to 7 and base delay from 15s to 20s for complex boundaries
+  # Smart wait enabled to check Overpass API status before retrying
+  # This gives a total retry period of up to ~20 minutes instead of ~4 minutes
+  # Complex boundaries get even more retries and longer delays
+  if ! __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}" "${OVERPASS_CLEANUP}" "true"; then
+   __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
+   if [[ "${IS_COMPLEX}" == "true" ]]; then
+    __loge "This was a complex boundary with enhanced retry settings (${MAX_RETRIES_LOCAL} retries, ${BASE_DELAY_LOCAL}s delays)"
+   fi
+   DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
+   continue
+  fi
+  __logd "Successfully downloaded boundary ${ID} from Overpass API"
+
+  # Check for specific Overpass errors
+  __logd "Checking Overpass API response for errors..."
+  cat "${OUTPUT_OVERPASS}"
+
+  # Check for various Overpass API error codes
+  local MANY_REQUESTS
+  local GATEWAY_TIMEOUT
+  local BAD_REQUEST
+  local INTERNAL_SERVER_ERROR
+  local SERVICE_UNAVAILABLE
+
+  # Capture error counts and remove any trailing newlines
+  MANY_REQUESTS=$(grep -c "ERROR 429" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+  MANY_REQUESTS=$(echo "${MANY_REQUESTS}" | tr -d '\n' | tr -d ' ')
+  GATEWAY_TIMEOUT=$(grep -c "ERROR 504" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+  GATEWAY_TIMEOUT=$(echo "${GATEWAY_TIMEOUT}" | tr -d '\n' | tr -d ' ')
+  BAD_REQUEST=$(grep -c "ERROR 400" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+  BAD_REQUEST=$(echo "${BAD_REQUEST}" | tr -d '\n' | tr -d ' ')
+  INTERNAL_SERVER_ERROR=$(grep -c "ERROR 500" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+  INTERNAL_SERVER_ERROR=$(echo "${INTERNAL_SERVER_ERROR}" | tr -d '\n' | tr -d ' ')
+  SERVICE_UNAVAILABLE=$(grep -c "ERROR 503" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
+  SERVICE_UNAVAILABLE=$(echo "${SERVICE_UNAVAILABLE}" | tr -d '\n' | tr -d ' ')
+
+  # Ensure all variables are clean numeric values (remove any non-digit characters)
+  MANY_REQUESTS="${MANY_REQUESTS//[^0-9]/}"
+  GATEWAY_TIMEOUT="${GATEWAY_TIMEOUT//[^0-9]/}"
+  BAD_REQUEST="${BAD_REQUEST//[^0-9]/}"
+  INTERNAL_SERVER_ERROR="${INTERNAL_SERVER_ERROR//[^0-9]/}"
+  SERVICE_UNAVAILABLE="${SERVICE_UNAVAILABLE//[^0-9]/}"
+
+  # Default to 0 if empty after cleaning
+  MANY_REQUESTS="${MANY_REQUESTS:-0}"
+  GATEWAY_TIMEOUT="${GATEWAY_TIMEOUT:-0}"
+  BAD_REQUEST="${BAD_REQUEST:-0}"
+  INTERNAL_SERVER_ERROR="${INTERNAL_SERVER_ERROR:-0}"
+  SERVICE_UNAVAILABLE="${SERVICE_UNAVAILABLE:-0}"
+
+  # If we have critical errors, retry the download
+  local HAS_CRITICAL_ERROR=false
+  if [[ "${MANY_REQUESTS}" -ne 0 ]] || [[ "${GATEWAY_TIMEOUT}" -ne 0 ]] || [[ "${BAD_REQUEST}" -ne 0 ]] \
+   || [[ "${INTERNAL_SERVER_ERROR}" -ne 0 ]] || [[ "${SERVICE_UNAVAILABLE}" -ne 0 ]]; then
+   HAS_CRITICAL_ERROR=true
+   if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
+    __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID} - will retry"
+   fi
+   if [[ "${GATEWAY_TIMEOUT}" -ne 0 ]]; then
+    __loge "ERROR 504: Gateway timeout from Overpass API for boundary ${ID} - will retry"
+   fi
+   if [[ "${BAD_REQUEST}" -ne 0 ]]; then
+    __loge "ERROR 400: Bad request to Overpass API for boundary ${ID} - will retry"
+   fi
+   if [[ "${INTERNAL_SERVER_ERROR}" -ne 0 ]]; then
+    __loge "ERROR 500: Internal server error from Overpass API for boundary ${ID} - will retry"
+   fi
+   if [[ "${SERVICE_UNAVAILABLE}" -ne 0 ]]; then
+    __loge "ERROR 503: Service unavailable from Overpass API for boundary ${ID} - will retry"
+   fi
+  fi
+
+  # Check for other errors (non-critical warnings)
+  local OTHER_ERRORS
+  OTHER_ERRORS=$(grep "ERROR" "${OUTPUT_OVERPASS}" || echo "")
+  if [[ -n "${OTHER_ERRORS}" ]] && [[ "${HAS_CRITICAL_ERROR}" == "false" ]]; then
+   __logw "Other Overpass API errors detected for boundary ${ID}:"
+   echo "${OTHER_ERRORS}" | while IFS= read -r line; do
+    __logw "  ${line}"
+   done
+  fi
+
+  # If we have critical errors, retry the download
+  if [[ "${HAS_CRITICAL_ERROR}" == "true" ]]; then
+   DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
+   rm -f "${OUTPUT_OVERPASS}"
+   continue
+  fi
+
+  __logd "No critical Overpass API errors detected for boundary ${ID}"
+  rm -f "${OUTPUT_OVERPASS}"
+
+  # Validate the JSON structure and ensure it contains elements
+  __logi "Validating JSON structure for boundary ${ID}..."
+  if ! __validate_json_with_element "${JSON_FILE}" "elements"; then
+   __loge "JSON validation failed for boundary ${ID} - will retry download"
+   DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
+   continue
+  fi
+  __logd "JSON validation passed for boundary ${ID}"
+
+  # If we reach here, download and validation were successful
+  DOWNLOAD_SUCCESS=true
+ done
+
+ # Check if download and validation succeeded
+ if [[ "${DOWNLOAD_SUCCESS}" != "true" ]]; then
+  __loge "Failed to download and validate JSON for boundary ${ID} after ${DOWNLOAD_VALIDATION_RETRIES} attempts"
+  __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID} after retries" \
    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
   __log_finish
   return 1
  fi
- __logd "Successfully downloaded boundary ${ID} from Overpass API"
+ __logd "Download and validation completed successfully for boundary ${ID}"
 
- # Check for specific Overpass errors
- __logd "Checking Overpass API response for errors..."
- cat "${OUTPUT_OVERPASS}"
+ # Convert to GeoJSON with retry logic and validation
+ # Retry conversion if validation fails
+ local GEOJSON_VALIDATION_RETRIES=3
+ local GEOJSON_VALIDATION_RETRY_COUNT=0
+ local GEOJSON_SUCCESS=false
 
- # Check for various Overpass API error codes
- local MANY_REQUESTS
- local GATEWAY_TIMEOUT
- local BAD_REQUEST
- local INTERNAL_SERVER_ERROR
- local SERVICE_UNAVAILABLE
+ __logi "Converting into GeoJSON for boundary ${ID} with validation and retry logic..."
 
- # Capture error counts and remove any trailing newlines
- MANY_REQUESTS=$(grep -c "ERROR 429" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
- MANY_REQUESTS=$(echo "${MANY_REQUESTS}" | tr -d '\n' | tr -d ' ')
- GATEWAY_TIMEOUT=$(grep -c "ERROR 504" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
- GATEWAY_TIMEOUT=$(echo "${GATEWAY_TIMEOUT}" | tr -d '\n' | tr -d ' ')
- BAD_REQUEST=$(grep -c "ERROR 400" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
- BAD_REQUEST=$(echo "${BAD_REQUEST}" | tr -d '\n' | tr -d ' ')
- INTERNAL_SERVER_ERROR=$(grep -c "ERROR 500" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
- INTERNAL_SERVER_ERROR=$(echo "${INTERNAL_SERVER_ERROR}" | tr -d '\n' | tr -d ' ')
- SERVICE_UNAVAILABLE=$(grep -c "ERROR 503" "${OUTPUT_OVERPASS}" 2> /dev/null || echo "0")
- SERVICE_UNAVAILABLE=$(echo "${SERVICE_UNAVAILABLE}" | tr -d '\n' | tr -d ' ')
+ while [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -lt ${GEOJSON_VALIDATION_RETRIES} ]] && [[ "${GEOJSON_SUCCESS}" == "false" ]]; do
+  if [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -gt 0 ]]; then
+   __logw "Retrying GeoJSON conversion and validation for boundary ${ID} (attempt $((GEOJSON_VALIDATION_RETRY_COUNT + 1))/${GEOJSON_VALIDATION_RETRIES})"
+   # Clean up previous failed attempt
+   rm -f "${GEOJSON_FILE}" 2> /dev/null || true
+   # Wait before retry
+   local GEOJSON_RETRY_DELAY=$((5 * GEOJSON_VALIDATION_RETRY_COUNT))
+   if [[ ${GEOJSON_RETRY_DELAY} -gt 30 ]]; then
+    GEOJSON_RETRY_DELAY=30
+   fi
+   __logd "Waiting ${GEOJSON_RETRY_DELAY}s before GeoJSON retry..."
+   sleep "${GEOJSON_RETRY_DELAY}"
+  fi
 
- # Ensure all variables are clean numeric values (remove any non-digit characters)
- MANY_REQUESTS="${MANY_REQUESTS//[^0-9]/}"
- GATEWAY_TIMEOUT="${GATEWAY_TIMEOUT//[^0-9]/}"
- BAD_REQUEST="${BAD_REQUEST//[^0-9]/}"
- INTERNAL_SERVER_ERROR="${INTERNAL_SERVER_ERROR//[^0-9]/}"
- SERVICE_UNAVAILABLE="${SERVICE_UNAVAILABLE//[^0-9]/}"
+  local GEOJSON_OPERATION="osmtogeojson ${JSON_FILE} > ${GEOJSON_FILE}"
+  local GEOJSON_CLEANUP="rm -f ${GEOJSON_FILE} 2>/dev/null || true"
 
- # Default to 0 if empty after cleaning
- MANY_REQUESTS="${MANY_REQUESTS:-0}"
- GATEWAY_TIMEOUT="${GATEWAY_TIMEOUT:-0}"
- BAD_REQUEST="${BAD_REQUEST:-0}"
- INTERNAL_SERVER_ERROR="${INTERNAL_SERVER_ERROR:-0}"
- SERVICE_UNAVAILABLE="${SERVICE_UNAVAILABLE:-0}"
+  if ! __retry_file_operation "${GEOJSON_OPERATION}" 2 5 "${GEOJSON_CLEANUP}"; then
+   __loge "Failed to convert boundary ${ID} to GeoJSON after retries"
+   GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
+   continue
+  fi
+  __logd "GeoJSON conversion completed for boundary ${ID}"
 
- if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
-  __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID}"
-  __loge "Consider reducing request rate or implementing rate limiting"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass rate limit exceeded for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-  __log_finish
-  return 1
- fi
+  # Validate the GeoJSON structure and ensure it contains features
+  __logd "Validating GeoJSON structure for boundary ${ID}..."
+  if ! __validate_json_with_element "${GEOJSON_FILE}" "features"; then
+   __loge "GeoJSON validation failed for boundary ${ID} - will retry conversion"
+   GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
+   continue
+  fi
+  __logd "GeoJSON validation passed for boundary ${ID}"
 
- if [[ "${GATEWAY_TIMEOUT}" -ne 0 ]]; then
-  __loge "ERROR 504: Gateway timeout from Overpass API for boundary ${ID}"
-  __loge "This boundary may be too complex or the query may be too large"
-  __loge "Consider simplifying the query or using a different Overpass instance"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass timeout for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-  __log_finish
-  return 1
- fi
+  # If we reach here, conversion and validation were successful
+  GEOJSON_SUCCESS=true
+ done
 
- if [[ "${BAD_REQUEST}" -ne 0 ]]; then
-  __loge "ERROR 400: Bad request to Overpass API for boundary ${ID}"
-  __loge "The query may be malformed or contains invalid parameters"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Invalid Overpass query for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-  __log_finish
-  return 1
- fi
-
- if [[ "${INTERNAL_SERVER_ERROR}" -ne 0 ]]; then
-  __loge "ERROR 500: Internal server error from Overpass API for boundary ${ID}"
-  __loge "This is a server-side issue with the Overpass API"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass server error for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-  __log_finish
-  return 1
- fi
-
- if [[ "${SERVICE_UNAVAILABLE}" -ne 0 ]]; then
-  __loge "ERROR 503: Service unavailable from Overpass API for boundary ${ID}"
-  __loge "The Overpass API may be temporarily unavailable"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" "Overpass service unavailable for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-  __log_finish
-  return 1
- fi
-
- # Check for other errors
- local OTHER_ERRORS
- OTHER_ERRORS=$(grep "ERROR" "${OUTPUT_OVERPASS}" || echo "")
- if [[ -n "${OTHER_ERRORS}" ]]; then
-  __logw "Other Overpass API errors detected for boundary ${ID}:"
-  echo "${OTHER_ERRORS}" | while IFS= read -r line; do
-   __logw "  ${line}"
-  done
- fi
-
- __logd "No critical Overpass API errors detected for boundary ${ID}"
- rm -f "${OUTPUT_OVERPASS}"
-
- # Validate the JSON with a JSON schema
- __logi "Validating JSON structure for boundary ${ID}..."
- if ! __validate_json_structure "${JSON_FILE}" "elements"; then
-  __loge "JSON validation failed for boundary ${ID}"
-  __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID}" \
-   "rm -f ${JSON_FILE} 2>/dev/null || true"
-  __log_finish
-  return 1
- fi
- __logd "JSON validation passed for boundary ${ID}"
-
- # Convert to GeoJSON with retry logic
- __logi "Converting into GeoJSON for boundary ${ID}."
- local GEOJSON_OPERATION="osmtogeojson ${JSON_FILE} > ${GEOJSON_FILE}"
- local GEOJSON_CLEANUP="rm -f ${GEOJSON_FILE} 2>/dev/null || true"
-
- if ! __retry_file_operation "${GEOJSON_OPERATION}" 2 5 "${GEOJSON_CLEANUP}"; then
-  __loge "Failed to convert boundary ${ID} to GeoJSON after retries"
-  __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "GeoJSON conversion failed for boundary ${ID}" \
+ # Check if GeoJSON conversion and validation succeeded
+ if [[ "${GEOJSON_SUCCESS}" != "true" ]]; then
+  __loge "Failed to convert and validate GeoJSON for boundary ${ID} after ${GEOJSON_VALIDATION_RETRIES} attempts"
+  __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID} after retries" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
   __log_finish
   return 1
  fi
- __logd "GeoJSON conversion completed for boundary ${ID}"
-
- # Validate the GeoJSON with a JSON schema
- __logd "Validating GeoJSON structure for boundary ${ID}..."
- if ! __validate_json_structure "${GEOJSON_FILE}" "features"; then
-  __loge "GeoJSON validation failed for boundary ${ID}"
-  __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
-  __log_finish
-  return 1
- fi
- __logd "GeoJSON validation passed for boundary ${ID}"
+ __logd "GeoJSON conversion and validation completed successfully for boundary ${ID}"
 
  # Extract names with error handling and sanitization
  __logd "Extracting names for boundary ${ID}..."
