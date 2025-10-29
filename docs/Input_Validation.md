@@ -62,6 +62,23 @@ The following validation functions are available in `bin/functionsProcess.sh`:
   - Checks for expected root element
   - Uses `jq` if available, with fallback to `grep`
 
+- **`__validate_json_with_element(json_file, expected_element)`**
+  - Validates JSON syntax and structure (calls `__validate_json_structure`)
+  - Verifies that the JSON contains a specific expected element
+  - Checks that the element is not null and not empty
+  - Uses `jq` for element validation (requires `jq` command)
+  - Returns 0 if valid and contains expected element, 1 if invalid or missing element
+  - **Parameters:**
+    - `json_file`: Path to the JSON file to validate
+    - `expected_element`: Name of the expected element (e.g., `"elements"` for OSM JSON, `"features"` for GeoJSON)
+  - **Usage examples:**
+    - Validate OSM JSON with elements: `__validate_json_with_element "${json_file}" "elements"`
+    - Validate GeoJSON with features: `__validate_json_with_element "${geojson_file}" "features"`
+  - **Common use cases:**
+    - Validating Overpass API responses before processing
+    - Ensuring GeoJSON files have the expected structure after conversion
+    - Verifying downloaded boundary files contain required data
+
 ### Date Validation
 
 - **`__validate_iso8601_date(date_string, expected_format)`**
@@ -98,6 +115,98 @@ The following validation functions are available in `bin/functionsProcess.sh`:
 - **`__validate_database_extensions(db_name, db_user, db_host, db_port, required_extensions...)`**
   - Validates existence of required database extensions
   - Uses `pg_extension` catalog
+
+## JSON Validation with Retry Logic
+
+The `__validate_json_with_element` function is particularly important for validating downloaded files from external APIs (like Overpass API) where downloads may be corrupted or incomplete. The system implements automatic retry logic when validation fails.
+
+### Download and Validation Flow
+
+The boundary processing workflow (`__processBoundary`) demonstrates the complete flow:
+
+1. **Download** JSON file from Overpass API
+2. **Validate** JSON structure and check for expected elements
+3. **Retry** download if validation fails (up to 3 attempts)
+4. **Convert** to GeoJSON format
+5. **Validate** GeoJSON structure and check for features
+6. **Retry** conversion if validation fails (up to 3 attempts)
+
+### Example: Boundary Processing with Validation
+
+```bash
+# Download boundary from Overpass API with validation retry
+local DOWNLOAD_VALIDATION_RETRIES=3
+local DOWNLOAD_VALIDATION_RETRY_COUNT=0
+local DOWNLOAD_SUCCESS=false
+
+while [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -lt ${DOWNLOAD_VALIDATION_RETRIES} ]] && [[ "${DOWNLOAD_SUCCESS}" == "false" ]]; do
+  # Attempt download
+  wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
+
+  # Validate JSON structure and ensure it contains elements
+  if ! __validate_json_with_element "${JSON_FILE}" "elements"; then
+    __loge "JSON validation failed - will retry download"
+    DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
+    # Clean up and retry
+    rm -f "${JSON_FILE}"
+    sleep ${RETRY_DELAY}
+    continue
+  fi
+
+  # Success - exit retry loop
+  DOWNLOAD_SUCCESS=true
+done
+
+if [[ "${DOWNLOAD_SUCCESS}" != "true" ]]; then
+  __loge "Failed to download and validate JSON after ${DOWNLOAD_VALIDATION_RETRIES} attempts"
+  return 1
+fi
+```
+
+### Example: GeoJSON Conversion with Validation
+
+```bash
+# Convert to GeoJSON with validation retry
+local GEOJSON_VALIDATION_RETRIES=3
+local GEOJSON_VALIDATION_RETRY_COUNT=0
+local GEOJSON_SUCCESS=false
+
+while [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -lt ${GEOJSON_VALIDATION_RETRIES} ]] && [[ "${GEOJSON_SUCCESS}" == "false" ]]; do
+  # Convert JSON to GeoJSON
+  osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
+
+  # Validate GeoJSON structure and ensure it contains features
+  if ! __validate_json_with_element "${GEOJSON_FILE}" "features"; then
+    __loge "GeoJSON validation failed - will retry conversion"
+    GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
+    # Clean up and retry
+    rm -f "${GEOJSON_FILE}"
+    sleep ${RETRY_DELAY}
+    continue
+  fi
+
+  # Success - exit retry loop
+  GEOJSON_SUCCESS=true
+done
+```
+
+### Benefits of JSON Validation with Retry
+
+1. **Robustness**: Automatically handles corrupted downloads
+2. **Data Quality**: Ensures files contain expected structure before processing
+3. **Resilience**: Recovers from transient network issues or API problems
+4. **Clear Logging**: Provides detailed error messages for debugging
+5. **Prevents Errors**: Catches structural problems early before expensive operations
+
+### When to Use `__validate_json_with_element`
+
+Use this function when:
+
+- Downloading JSON files from external APIs (Overpass, OSM API, etc.)
+- Converting between JSON formats (OSM JSON → GeoJSON)
+- Processing files that may be corrupted or incomplete
+- Ensuring data integrity before database operations
+- Validating API responses that must contain specific elements
 
 ## Integration Examples
 
@@ -245,6 +354,12 @@ The validation functions are demonstrated in the comprehensive test suite at `te
 
 ## Version History
 
+- **2025-10-29**: Added `__validate_json_with_element` function
+  - Validates JSON structure and verifies expected elements exist and are not empty
+  - Integrated with retry logic in boundary processing workflow
+  - Enables automatic retry when downloaded files are corrupted or incomplete
+  - Used for validating Overpass API responses and GeoJSON conversions
+
 - **2025-07-27**: Initial implementation of centralized validation functions
   - Added support for SQL, XML, CSV, and configuration file validation
   - Created comprehensive test suite
@@ -277,6 +392,7 @@ In addition to input validation, the project implements SQL sanitization functio
 ### SQL Sanitization Functions
 
 #### `__sanitize_sql_string(input)`
+
 - **Purpose**: Escapes SQL string literals to prevent injection
 - **Method**: Doubles single quotes (PostgreSQL standard: `'` → `''`)
 - **Usage**:
@@ -287,6 +403,7 @@ In addition to input validation, the project implements SQL sanitization functio
   ```
 
 #### `__sanitize_sql_identifier(input)`
+
 - **Purpose**: Sanitizes table/column names
 - **Method**: Wraps identifier in double quotes if not already quoted
 - **Usage**:
@@ -297,6 +414,7 @@ In addition to input validation, the project implements SQL sanitization functio
   ```
 
 #### `__sanitize_sql_integer(input)`
+
 - **Purpose**: Validates and sanitizes integer values
 - **Method**: Ensures value is a valid integer
 - **Usage**:

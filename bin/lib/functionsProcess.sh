@@ -429,9 +429,9 @@ function __processApiXmlPart() {
   : > "${OUTPUT_TEXT_PART}"
  fi
 
- # Add part_id to the end of each line for notes
- __logd "Adding part_id ${PART_NUM} to notes CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+ # Add id_country (empty) and part_id to the end of each line for notes
+ __logd "Adding id_country (empty) and part_id ${PART_NUM} to notes CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 ",," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
  # Add part_id to the end of each line for comments
  __logd "Adding part_id ${PART_NUM} to comments CSV"
@@ -576,9 +576,9 @@ function __processPlanetXmlPart() {
   return 1
  fi
 
- # Add part_id to the end of each line
- __logd "Adding part_id ${PART_NUM} to notes CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+ # Add id_country (empty) and part_id to the end of each line
+ __logd "Adding id_country (empty) and part_id ${PART_NUM} to notes CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 ",," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
  # Process comments with AWK (fast and dependency-free)
  __logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
@@ -1535,6 +1535,9 @@ function __processBoundary {
  # Use provided query file or fall back to global
  local QUERY_FILE_TO_USE="${1:-${QUERY_FILE}}"
 
+ # Initialize IS_COMPLEX variable (defaults to false)
+ local IS_COMPLEX="${IS_COMPLEX:-false}"
+
  __logd "Boundary ID: ${ID}"
  __logd "Process ID: ${BASHPID}"
  __logd "JSON file: ${JSON_FILE}"
@@ -1592,7 +1595,7 @@ function __processBoundary {
   # Complex boundaries get even more retries and longer delays
   if ! __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}" "${OVERPASS_CLEANUP}" "true"; then
    __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
-   if [[ "${IS_COMPLEX}" == "true" ]]; then
+   if [[ "${IS_COMPLEX:-false}" == "true" ]]; then
     __loge "This was a complex boundary with enhanced retry settings (${MAX_RETRIES_LOCAL} retries, ${BASE_DELAY_LOCAL}s delays)"
    fi
    DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))

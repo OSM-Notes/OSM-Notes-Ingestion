@@ -4,7 +4,7 @@
 # Description: Centralized parallel processing functions with resource management and retry logic
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-21
+# Version: 2025-10-29
 
 # Load properties to ensure all required variables are available
 # Only load production properties if we're not in a test environment
@@ -1520,9 +1520,9 @@ function __processApiXmlPart() {
   : > "${OUTPUT_TEXT_PART}"
  fi
 
- # Add part_id to the end of each line for notes
- __logd "Adding part_id ${PART_NUM} to notes CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+ # Add id_country (empty) and part_id to the end of each line for notes
+ __logd "Adding id_country (empty) and part_id ${PART_NUM} to notes CSV"
+ awk -v part_id="${PART_NUM}" '{print $0 ",," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
  # Add part_id to the end of each line for comments
  __logd "Adding part_id ${PART_NUM} to comments CSV"
