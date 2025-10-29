@@ -1096,11 +1096,18 @@ EOF
 
  __dropApiTables
  set +E
+ set +e
+ # Temporarily disable ERR trap to avoid exiting when __checkBaseTables returns non-zero
+ trap '' ERR
  __checkNoProcessPlanet
  export RET_FUNC=0
  __logd "Before calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
  __checkBaseTables
+ local CHECK_BASE_TABLES_EXIT_CODE=$?
+ # Re-enable ERR trap
+ set -E
  __logi "After calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
+ __logd "__checkBaseTables exit code: ${CHECK_BASE_TABLES_EXIT_CODE}"
  
  # Double-check RET_FUNC is set correctly
  if [[ -z "${RET_FUNC:-}" ]]; then
@@ -1246,6 +1253,7 @@ EOF
   fi
  fi
 
+ set -e
  set -E
  __createApiTables
  __createPartitions
