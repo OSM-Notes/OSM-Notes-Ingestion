@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-28
-VERSION="2025-10-28"
+# Version: 2025-10-29
+VERSION="2025-10-29"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -1108,7 +1108,7 @@ function __checkBaseTables {
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   __loge "This is NOT a 'tables missing' condition - do NOT run --base"
   RET=2 # Use code 2 for connection errors (not missing tables)
-  set -e
+  # Don't enable set -e here as it might affect the calling script
   export RET_FUNC="${RET}"
   __log_finish
   return "${RET}"
@@ -1153,10 +1153,11 @@ function __checkBaseTables {
   RET=0
  fi
 
- set -e
  # shellcheck disable=SC2034
  export RET_FUNC="${RET}"
  __log_finish
+ # Don't enable set -e here as it might affect the calling script
+ # The calling script handles its own error handling
  return "${RET}"
 }
 

@@ -59,8 +59,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-28
-VERSION="2025-10-28"
+# Version: 2025-10-29
+VERSION="2025-10-29"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -75,12 +75,12 @@ set -E
 # Auto-restart with setsid if not already in a new session
 # This protects against SIGHUP when terminal closes or session ends
 if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
-# Only show message if there's a TTY (not from cron)
-if [[ -t 1 ]]; then
- RESTART_MESSAGE=$(date '+%Y%m%d_%H:%M:%S' || true)
- echo "${RESTART_MESSAGE} INFO: Auto-restarting with setsid for SIGHUP protection" >&2
- unset RESTART_MESSAGE
-fi
+ # Only show message if there's a TTY (not from cron)
+ if [[ -t 1 ]]; then
+  RESTART_MESSAGE=$(date '+%Y%m%d_%H:%M:%S' || true)
+  echo "${RESTART_MESSAGE} INFO: Auto-restarting with setsid for SIGHUP protection" >&2
+  unset RESTART_MESSAGE
+ fi
  export RUNNING_IN_SETSID=1
  # Get the script name and all arguments
  SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
@@ -1102,12 +1102,13 @@ EOF
  __checkNoProcessPlanet
  export RET_FUNC=0
  __logd "Before calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
- __checkBaseTables || CHECK_BASE_TABLES_EXIT_CODE=$?
- # The || catches the exit code even if command fails
- __logi "After calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
- __logd "__checkBaseTables exit code: ${CHECK_BASE_TABLES_EXIT_CODE}"
+ __checkBaseTables || true
+ local CHECK_BASE_TABLES_EXIT_CODE=$?
  # Re-enable ERR trap (restore the one from __trapOn)
- trap '{ 
+ set -E
+ set +e
+ # Don't re-enable set -e here, do it later before operations that need it
+ trap '{
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
@@ -1120,46 +1121,46 @@ EOF
     { echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"; echo "Script: ${MAIN_SCRIPT_NAME}"; echo "Line number: ${ERROR_LINE}"; echo "Failed command: ${ERROR_COMMAND}"; echo "Exit code: ${ERROR_EXIT_CODE}"; echo "Temporary directory: ${TMP_DIR:-unknown}"; echo "Process ID: $$"; } > "${FAILED_EXECUTION_FILE}"; fi;
    exit "${ERROR_EXIT_CODE}";
   fi; }' ERR
- set -E
- 
+ __logi "After calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
+ __logd "__checkBaseTables exit code: ${CHECK_BASE_TABLES_EXIT_CODE}"
  # Double-check RET_FUNC is set correctly
  if [[ -z "${RET_FUNC:-}" ]]; then
   __loge "CRITICAL: RET_FUNC is empty after __checkBaseTables!"
   __loge "This should never happen. Forcing safe exit (RET_FUNC=2)"
   export RET_FUNC=2
  fi
- 
+
  __logi "Final RET_FUNC value before case statement: ${RET_FUNC}"
- 
+
  case "${RET_FUNC}" in
-  1)
-   # Tables are missing - safe to run --base
-   __logw "Base tables missing (RET_FUNC=1). Creating base structure and geographic data."
-   __logi "This will take approximately 1-2 hours for complete setup."
-   ;;
-  2)
-   # Connection or other error - DO NOT run --base
-   __loge "ERROR: Cannot verify base tables due to database/system error (RET_FUNC=2)"
-   __loge "This is NOT a 'tables missing' situation - manual investigation required"
-   __loge "Do NOT executing --base (would delete all data)"
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Cannot verify base tables due to database/system error" \
-    "Check database connectivity and permissions. Check logs for details. Script exited to prevent data loss."
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   ;;
-  0)
-   # Tables exist - continue normally
-   __logd "Base tables verified (RET_FUNC=0) - continuing with normal processing"
-   ;;
-  *)
-   # Unknown error code
-   __loge "ERROR: Unknown return code from __checkBaseTables: ${RET_FUNC}"
-   __loge "Do NOT executing --base (would delete all data)"
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Unknown error checking base tables (code: ${RET_FUNC})" \
-    "Check logs for details. Script exited to prevent data loss."
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   ;;
+ 1)
+  # Tables are missing - safe to run --base
+  __logw "Base tables missing (RET_FUNC=1). Creating base structure and geographic data."
+  __logi "This will take approximately 1-2 hours for complete setup."
+  ;;
+ 2)
+  # Connection or other error - DO NOT run --base
+  __loge "ERROR: Cannot verify base tables due to database/system error (RET_FUNC=2)"
+  __loge "This is NOT a 'tables missing' situation - manual investigation required"
+  __loge "Do NOT executing --base (would delete all data)"
+  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+   "Cannot verify base tables due to database/system error" \
+   "Check database connectivity and permissions. Check logs for details. Script exited to prevent data loss."
+  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  ;;
+ 0)
+  # Tables exist - continue normally
+  __logd "Base tables verified (RET_FUNC=0) - continuing with normal processing"
+  ;;
+ *)
+  # Unknown error code
+  __loge "ERROR: Unknown return code from __checkBaseTables: ${RET_FUNC}"
+  __loge "Do NOT executing --base (would delete all data)"
+  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+   "Unknown error checking base tables (code: ${RET_FUNC})" \
+   "Check logs for details. Script exited to prevent data loss."
+  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  ;;
  esac
 
  if [[ "${RET_FUNC}" -eq 1 ]]; then
@@ -1244,7 +1245,7 @@ Main script: ${0}
 Status: Setup completed, continuing with API processing
 EOF
   __logd "Lock re-acquired and content updated"
- fi  # End of if [[ "${RET_FUNC}" -eq 1 ]]
+ fi # End of if [[ "${RET_FUNC}" -eq 1 ]]
 
  # If RET_FUNC == 0, base tables exist - validate historical data
  if [[ "${RET_FUNC}" -eq 0 ]]; then
