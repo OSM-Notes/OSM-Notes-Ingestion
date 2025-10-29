@@ -1099,15 +1099,17 @@ EOF
  __checkNoProcessPlanet
  export RET_FUNC=0
  __checkBaseTables
+ __logi "Return code from __checkBaseTables: ${RET_FUNC}"
+ 
  case "${RET_FUNC}" in
   1)
    # Tables are missing - safe to run --base
-   __logw "Base tables missing. Creating base structure and geographic data."
+   __logw "Base tables missing (RET_FUNC=1). Creating base structure and geographic data."
    __logi "This will take approximately 1-2 hours for complete setup."
    ;;
   2)
    # Connection or other error - DO NOT run --base
-   __loge "ERROR: Cannot verify base tables due to database/system error"
+   __loge "ERROR: Cannot verify base tables due to database/system error (RET_FUNC=2)"
    __loge "This is NOT a 'tables missing' situation - manual investigation required"
    __loge "Do NOT executing --base (would delete all data)"
    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
@@ -1117,7 +1119,7 @@ EOF
    ;;
   0)
    # Tables exist - continue normally
-   __logd "Base tables verified - continuing with normal processing"
+   __logd "Base tables verified (RET_FUNC=0) - continuing with normal processing"
    ;;
   *)
    # Unknown error code

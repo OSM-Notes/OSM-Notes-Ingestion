@@ -1107,7 +1107,7 @@ function __checkBaseTables {
  if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   __loge "This is NOT a 'tables missing' condition - do NOT run --base"
-  RET=1
+  RET=2  # Use code 2 for connection errors (not missing tables)
   set -e
   RET_FUNC="${RET}"
   __log_finish
@@ -1117,25 +1117,35 @@ function __checkBaseTables {
  
  # Now check if tables exist
  __logd "Checking for base tables: countries, notes, note_comments, logs, tries"
+ __logd "SQL file: ${POSTGRES_11_CHECK_BASE_TABLES}"
  local PSQL_OUTPUT
  local PSQL_ERROR
  PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1)
  RET=${?}
  PSQL_ERROR="${PSQL_OUTPUT}"
  
+ __logd "psql exit code: ${RET}"
+ __logd "psql output (first 500 chars): ${PSQL_ERROR:0:500}"
+ 
  if [[ "${RET}" -ne 0 ]]; then
   # Check if the error is specifically about missing tables
-  if echo "${PSQL_ERROR}" | grep -q "Base tables are missing"; then
+  if echo "${PSQL_ERROR}" | grep -qi "Base tables are missing"; then
    __logw "Base tables are missing (this is expected on first run)"
    __logd "Error details: ${PSQL_ERROR}"
+   RET=1  # Tables are missing - safe to run --base
   else
    # This is a different error (connection, permissions, SQL syntax, etc.)
    __loge "ERROR: Failed to check base tables, but NOT because tables are missing"
-   __loge "Error type: ${PSQL_ERROR}"
+   __loge "psql exit code: ${RET}"
+   __loge "Error output: ${PSQL_ERROR}"
    __loge "This indicates a system/database issue, NOT missing tables"
    __loge "Do NOT run --base automatically - manual investigation required"
    RET=2  # Use different exit code to distinguish from "tables missing"
   fi
+ else
+  # Script executed successfully - tables exist
+  __logd "All base tables verified successfully"
+  RET=0
  fi
  
  set -e
