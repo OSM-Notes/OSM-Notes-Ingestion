@@ -8,7 +8,7 @@ load "${BATS_TEST_DIRNAME}/../../test_helper"
 
 setup() {
  # Setup test environment
- export SCRIPT_DIR="$(cd "${BATS_TEST_DIRNAME}/../../../bin" && pwd)"
+ export SCRIPT_DIR="$(cd "${BATS_TEST_DIRNAME}/../../../bin/lib" && pwd)"
  
  # Source only the functions we need for testing
  if [[ -f "${SCRIPT_DIR}/functionsProcess.sh" ]]; then

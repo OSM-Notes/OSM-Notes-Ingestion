@@ -29,12 +29,9 @@ setup() {
    source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" > /dev/null 2>&1 || true
   fi
   
-  # Try loading from new location
+  # Try loading from correct location
   if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]; then
    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
-  # Try loading from old location (for compatibility)
-  elif [ -f "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" ]; then
-   source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" > /dev/null 2>&1 || true
   fi
 
   # Also ensure validationFunctions.sh is loaded

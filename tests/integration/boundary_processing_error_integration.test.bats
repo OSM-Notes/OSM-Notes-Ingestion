@@ -23,7 +23,7 @@ setup() {
  fi
 
  # Source the functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Mock logger functions
  function __log_start() { echo "LOG_START: $*"; }
@@ -43,7 +43,7 @@ teardown() {
 @test "should validate QUERY_FILE variable is defined" {
  # Test that QUERY_FILE is defined after sourcing functionsProcess.sh
  run bash -c "
-    source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+    source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
     if [[ -n \"\${QUERY_FILE:-}\" ]]; then
       echo \"QUERY_FILE is defined: \${QUERY_FILE}\"
       exit 0
@@ -86,7 +86,7 @@ __processList() {
   
   # Simulate the QUERY_FILE error
   if [[ -z "${QUERY_FILE:-}" ]]; then
-    echo "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh: línea 2112: QUERY_FILE: variable sin asignar"
+    echo "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh: línea 2112: QUERY_FILE: variable sin asignar"
     return 1
   fi
   
@@ -320,7 +320,7 @@ EOF
 # Test that validates the debug script functionality
 @test "should validate debug script functionality" {
  # Test that the debug script functionality is integrated into the main code
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that error handling functions are present
  run grep -q "function __handle_error_with_cleanup" "$functions_file"
@@ -341,7 +341,7 @@ EOF
 # Test that validates the country list validation script
 @test "should validate country list validation script" {
  # Test that the validation functionality is integrated into the main code
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that boundary processing functions are present
  run grep -q "function __processBoundary" "$functions_file"
@@ -379,7 +379,7 @@ EOF
 # Test that validates the logging improvements
 @test "should validate logging improvements" {
  # Test that the logging improvements are present in functionsProcess.sh
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test for logging improvements in __processBoundary
  run grep -q "=== STARTING BOUNDARY PROCESSING ===" "$functions_file"
@@ -405,7 +405,7 @@ EOF
 
 # Test that validates the QUERY_FILE variable definition
 @test "should validate QUERY_FILE variable definition" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that QUERY_FILE is defined in the file
  run grep -q "QUERY_FILE.*=.*TMP_DIR.*query" "$functions_file"
@@ -418,7 +418,7 @@ EOF
 
 # Test that validates the __processBoundary parameter handling
 @test "should validate __processBoundary parameter handling" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that __processBoundary accepts parameters
  run grep -q "Parameters:" "$functions_file"
@@ -476,7 +476,7 @@ EOF
 
 # Test that validates row size limit fix for Taiwan boundary
 @test "should validate row size limit fix for Taiwan boundary" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that field selection is implemented
  run grep -q "select name,admin_level,type,geometry" "$functions_file"
@@ -497,7 +497,7 @@ EOF
 
 # Test that validates the Taiwan boundary specific fix
 @test "should validate Taiwan boundary specific fix" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that the import commands use field selection for all boundaries
  local import_commands=$(grep -n "ogr2ogr.*-select" "$functions_file" | wc -l)
@@ -515,7 +515,7 @@ EOF
 # Test that validates error prevention for large boundaries
 @test "should validate error prevention for large boundaries" {
  # Test that the solution prevents row size errors
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that the import commands are robust
  run grep -q "skipfailures.*mapFieldType" "$functions_file"
@@ -536,7 +536,7 @@ EOF
 
 # Test that validates Planet notes download functionality
 @test "should validate Planet notes download functionality" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  local planet_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
 
  # Test that PLANET_NOTES_NAME is correctly set in processPlanetFunctions.sh
@@ -558,7 +558,7 @@ EOF
 
 # Test that validates file name consistency in Planet download
 @test "should validate file name consistency in Planet download" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test that the download and validation use consistent file names
  local download_operations=$(grep -c "PLANET_NOTES_NAME.*bz2" "$functions_file")
