@@ -11,6 +11,11 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 # =============================================================================
 
 setup() {
+    # Ensure TEST_BASE_DIR is set
+    if [[ -z "${TEST_BASE_DIR:-}" ]]; then
+      export TEST_BASE_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+    fi
+    
     # Set up required environment variables
     export BASENAME="test"
     export TMP_DIR="/tmp/test_$$"

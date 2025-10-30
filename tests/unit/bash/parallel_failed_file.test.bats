@@ -9,6 +9,11 @@ load "../../test_helper.bash"
 
 # Setup function to create test environment
 setup() {
+ # Ensure SCRIPT_BASE_DIRECTORY is set
+ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+   export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ fi
+
  # Create test directory
  TEST_DIR="/tmp/parallel_failed_file_test_$$"
  mkdir -p "${TEST_DIR}"
