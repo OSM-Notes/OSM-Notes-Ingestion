@@ -3,7 +3,7 @@
 # Integration tests for JSON download with validation and retry logic
 # Tests the complete flow: download -> validate -> retry if validation fails
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-29
+# Version: 2025-10-30
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -24,6 +24,11 @@ setup() {
  # test_helper.bash loads functions, but we need to ensure they're loaded correctly
  # Check both possible paths
  if ! declare -f __validate_json_with_element > /dev/null 2>&1; then
+  # Ensure commonFunctions.sh is loaded first (required by functionsProcess.sh)
+  if [ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]; then
+   source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" > /dev/null 2>&1 || true
+  fi
+  
   # Try loading from new location
   if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]; then
    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
@@ -35,6 +40,11 @@ setup() {
   # Also ensure validationFunctions.sh is loaded
   if [ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]; then
    source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" > /dev/null 2>&1 || true
+  fi
+  
+  # Verify function is now loaded
+  if ! declare -f __validate_json_with_element > /dev/null 2>&1; then
+   echo "WARNING: __validate_json_with_element function not loaded" >&2
   fi
  fi
 

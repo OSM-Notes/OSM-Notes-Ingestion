@@ -2,7 +2,7 @@
 
 # Test helper functions for BATS tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-23
+# Version: 2025-10-30
 
 # Test database configuration
 # Use the values already set by run_tests.sh, don't override them
@@ -95,10 +95,14 @@ __log_finish() {
 }
 
 # Load the functions to test
-if [[ -f "${TEST_BASE_DIR}/bin/functionsProcess.sh" ]]; then
+# Try new location first (bin/lib/functionsProcess.sh)
+if [[ -f "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" ]]; then
+ source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
+# Fallback to old location for compatibility
+elif [[ -f "${TEST_BASE_DIR}/bin/functionsProcess.sh" ]]; then
  source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
 else
- echo "Warning: functionsProcess.sh not found"
+ echo "Warning: functionsProcess.sh not found (checked bin/lib/functionsProcess.sh and bin/functionsProcess.sh)"
 fi
 
 # Load validation functions after defining simple logging
