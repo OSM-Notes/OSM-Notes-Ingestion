@@ -2,7 +2,7 @@
 
 # Mock wget command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-10-30
 
 # Function to create mock files
 create_mock_file() {
@@ -12,6 +12,34 @@ create_mock_file() {
  # Extract filename from URL if no output file specified
  if [[ -z "$output_file" ]]; then
    output_file=$(basename "$url")
+ fi
+ 
+ # Try to resolve a fixture file from URL first
+ local script_dir
+ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+ local fixtures_dir
+ fixtures_dir="${MOCK_FIXTURES_DIR:-"${script_dir}/../../test/command/extra"}"
+ local candidate=""
+ 
+ # Map common patterns to fixture filenames
+ if [[ "$url" =~ ([0-9]+)\.json$ ]]; then
+   candidate="${fixtures_dir}/${BASH_REMATCH[1]}.json"
+ elif [[ "$url" == *"countries"* ]]; then
+   candidate="${fixtures_dir}/countries"
+ elif [[ "$url" == *"maritimes"* ]]; then
+   candidate="${fixtures_dir}/maritimes"
+ elif [[ "$url" == *"OSM-notes-API.xml"* ]]; then
+   candidate="${fixtures_dir}/OSM-notes-API.xml"
+ elif [[ "$url" == *"apiCall_1.xml"* ]]; then
+   candidate="${fixtures_dir}/apiCall_1.xml"
+ elif [[ "$url" == *"mockPlanetDump.osn.xml"* ]]; then
+   candidate="${fixtures_dir}/mockPlanetDump.osn.xml"
+ fi
+ 
+ if [[ -n "$candidate" && -f "$candidate" ]]; then
+   cp -f "$candidate" "$output_file"
+   echo "Mock file created: $output_file"
+   return 0
  fi
  
  # Create mock content based on URL
@@ -91,6 +119,9 @@ done
 
 # Get URL from arguments
 URL="${ARGS[0]:-}"
+
+# Prevent unused variable warnings in shellcheck for supported options
+: "${TIMEOUT}" "${POST_FILE}"
 
 if [[ -z "$URL" ]]; then
  echo "Usage: wget [OPTIONS] URL" >&2
