@@ -2060,7 +2060,9 @@ function __overpass_download_with_endpoints() {
  local ENDPOINTS_RAW="${OVERPASS_ENDPOINTS:-${OVERPASS_INTERPRETER}}"
  IFS=',' read -r -a ENDPOINTS_ARRAY <<< "${ENDPOINTS_RAW}"
 
+ # Keep original interpreter for reference, but avoid reassigning readonly globals
  local ORIGINAL_OVERPASS="${OVERPASS_INTERPRETER}"
+ local ACTIVE_OVERPASS="${ORIGINAL_OVERPASS}"
 
  for ENDPOINT in "${ENDPOINTS_ARRAY[@]}"; do
   ENDPOINT="${ENDPOINT//[[:space:]]/}"
@@ -2069,8 +2071,8 @@ function __overpass_download_with_endpoints() {
   fi
   __logw "[overpass] Trying endpoint=${ENDPOINT} for query download"
 
-  # Temporarily point OVERPASS_INTERPRETER for smart-wait integration
-  OVERPASS_INTERPRETER="${ENDPOINT}"
+ # Select active endpoint for this attempt (do not modify readonly globals)
+ ACTIVE_OVERPASS="${ENDPOINT}"
 
   # Cleanup before each attempt
   rm -f "${LOCAL_JSON_FILE}" "${LOCAL_OUTPUT_FILE}" 2> /dev/null || true
@@ -2080,14 +2082,13 @@ function __overpass_download_with_endpoints() {
    __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
    UA_OPT="--header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\""
   fi
-  local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${LOCAL_OUTPUT_FILE}"
+ local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
   if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true"; then
    __logd "Download succeeded from endpoint=${ENDPOINT}"
    # Validate JSON has elements key
    if __validate_json_with_element "${LOCAL_JSON_FILE}" "elements"; then
-    __logd "JSON validation succeeded from endpoint=${ENDPOINT}"
-    OVERPASS_INTERPRETER="${ORIGINAL_OVERPASS}"
+   __logd "JSON validation succeeded from endpoint=${ENDPOINT}"
     __log_finish
     return 0
    else
@@ -2098,8 +2099,7 @@ function __overpass_download_with_endpoints() {
   fi
  done
 
- # Restore original interpreter
- OVERPASS_INTERPRETER="${ORIGINAL_OVERPASS}"
+# Nothing to restore; we never modified global interpreter
  __log_finish
  return 1
 }
