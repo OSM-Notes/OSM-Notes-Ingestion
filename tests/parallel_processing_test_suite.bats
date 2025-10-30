@@ -42,7 +42,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Check that all resource management functions exist
  command -v __check_system_resources
@@ -56,7 +56,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test basic resource checking
  run __check_system_resources
@@ -73,7 +73,7 @@ teardown() {
  fi
  
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test delay adjustment function
  local NUMERIC_OUTPUT
@@ -94,7 +94,7 @@ teardown() {
  fi
  
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Check that all required constants are defined
  [ -n "${PARALLEL_PROCESS_DELAY:-}" ]
@@ -109,7 +109,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test worker adjustment
  local NUMERIC_OUTPUT
@@ -123,7 +123,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test worker adjustment for XML processing (should reduce based on memory)
  local NUMERIC_OUTPUT
@@ -140,7 +140,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Check that XML processing functions exist (function may have different name)
  # Skip this test if the function doesn't exist
@@ -153,7 +153,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Skip if the function doesn't exist
  if ! command -v __processLargeXmlFile > /dev/null 2>&1; then
@@ -169,7 +169,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Check that the system limits function exists
  command -v __configure_system_limits
@@ -179,7 +179,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test that the function runs (may not have permissions to actually change limits)
  run __configure_system_limits
@@ -217,7 +217,7 @@ teardown() {
  fi
  
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test that delay system works
  local BASE_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
@@ -237,7 +237,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test resource checking under normal conditions
  run __check_system_resources
@@ -250,7 +250,7 @@ teardown() {
  # Load the parallel processing functions to get access to constants and functions
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/.."
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test that the function works correctly
  run __adjust_process_delay 2> /dev/null
@@ -274,7 +274,7 @@ teardown() {
  fi
  
  source "${BATS_TEST_DIRNAME}/../etc/properties.sh"
- source "${BATS_TEST_DIRNAME}/../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../bin/lib/parallelProcessingFunctions.sh"
 
  # Test that delay adjustment works and returns a valid value
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"

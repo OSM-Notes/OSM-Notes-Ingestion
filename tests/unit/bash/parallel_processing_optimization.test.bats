@@ -13,7 +13,7 @@ setup() {
 
  # Load properties and functions
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 }
 
 # Test parallel processing optimization functions

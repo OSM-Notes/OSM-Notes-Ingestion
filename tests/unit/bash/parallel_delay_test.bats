@@ -36,7 +36,7 @@ teardown() {
 @test "PARALLEL_PROCESS_DELAY constant is defined" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
  # Check that the constant is defined
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
  [ -n "${PARALLEL_PROCESS_DELAY}" ]
@@ -46,11 +46,11 @@ teardown() {
 @test "Adjust process delay function works correctly" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
  # Test that the function returns a valid delay
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test direct function call (function outputs to stdout, logs to stderr)
  local NUMERIC_OUTPUT
@@ -66,7 +66,7 @@ teardown() {
 @test "Process delay increases under high memory usage" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test that delay adjustment works (simplified test)
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
@@ -83,7 +83,7 @@ teardown() {
 @test "Process delay increases under high system load" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test that delay adjustment works (simplified test)
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
@@ -100,7 +100,7 @@ teardown() {
 @test "Process delay is capped at reasonable maximum" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test that delay is capped (using current readonly value)
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
@@ -119,7 +119,7 @@ teardown() {
 @test "Delay adjustment function handles missing commands gracefully" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test that function works correctly
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
@@ -136,7 +136,7 @@ teardown() {
 @test "Delay constants are properly defined" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Check that all delay-related constants are defined
  [ -n "${PARALLEL_PROCESS_DELAY}" ]
@@ -155,7 +155,7 @@ teardown() {
 @test "Delay function logs appropriate messages" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test that function works and produces output
  local ADJUSTED_DELAY
@@ -170,7 +170,7 @@ teardown() {
 @test "Delay adjustment respects system state" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test with current system state
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"
@@ -187,7 +187,7 @@ teardown() {
 @test "Zero delay is handled correctly" {
  # Load properties and functions for this test
  source "${BATS_TEST_DIRNAME}/test_properties.sh"
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Test that current delay value is handled correctly
  local CURRENT_DELAY="${PARALLEL_PROCESS_DELAY:-2}"

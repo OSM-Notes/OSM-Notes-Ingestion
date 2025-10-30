@@ -4,7 +4,7 @@
 # Tests the binary XML division algorithm performance and functionality
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
+# Version: 2025-10-30
 
 # Load test helper
 load ../../test_helper
@@ -104,10 +104,10 @@ source_bin_functions() {
     return 1
   fi
   
-  if [[ -f "${PROJECT_ROOT}/bin/parallelProcessingFunctions.sh" ]]; then
-    source "${PROJECT_ROOT}/bin/parallelProcessingFunctions.sh"
+  if [[ -f "${PROJECT_ROOT}/bin/lib/parallelProcessingFunctions.sh" ]]; then
+    source "${PROJECT_ROOT}/bin/lib/parallelProcessingFunctions.sh"
   else
-    echo "ERROR: parallelProcessingFunctions.sh not found at ${PROJECT_ROOT}/bin/parallelProcessingFunctions.sh" >&2
+    echo "ERROR: parallelProcessingFunctions.sh not found at ${PROJECT_ROOT}/bin/lib/parallelProcessingFunctions.sh" >&2
     return 1
   fi
 }

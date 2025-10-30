@@ -16,7 +16,7 @@ setup() {
   chmod 777 "${TEST_OUTPUT_DIR}" 2> /dev/null || true
   
   # Source the functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
   
   # Define awkproc as a wrapper around awk
   # awkproc mimics an XSLT processor style interface for AWK scripts

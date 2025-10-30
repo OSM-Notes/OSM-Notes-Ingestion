@@ -11,7 +11,7 @@ load "../../test_helper"
 # Load the parallel processing functions
 setup() {
  # Source the parallel processing functions
- source "${BATS_TEST_DIRNAME}/../../../bin/parallelProcessingFunctions.sh"
+ source "${BATS_TEST_DIRNAME}/../../../bin/lib/parallelProcessingFunctions.sh"
  
  # Set up test environment
  export TMP_DIR="${BATS_TEST_DIRNAME}/tmp"

@@ -15,7 +15,7 @@ setup() {
  mkdir -p "${TEST_OUTPUT_DIR}"
 
  # Source the main processing functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Verify mock file exists
  if [[ ! -f "${MOCK_XML_FILE}" ]]; then

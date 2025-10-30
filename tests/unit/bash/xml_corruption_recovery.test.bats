@@ -12,7 +12,7 @@ setup() {
  mkdir -p "${TEST_OUTPUT_DIR}"
 
  # Source the functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/parallelProcessingFunctions.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
  # Create test XML files
  create_test_xml_files
