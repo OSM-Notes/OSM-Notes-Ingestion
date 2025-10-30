@@ -1563,6 +1563,7 @@ function __show_help {
  exit "${ERROR_HELP_MESSAGE}"
 }
 
+export LOG_FILE="${LOG_FILENAME}"
 __start_logger
 if [[ ! -t 1 ]]; then
  __set_log_file "${LOG_FILENAME}"

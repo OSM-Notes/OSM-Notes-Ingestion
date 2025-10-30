@@ -385,6 +385,7 @@ EOF
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+ export LOG_FILE="${LOG_FILENAME}"
  __start_logger
  if [[ ! -t 1 ]]; then
   __set_log_file "${LOG_FILENAME}"
