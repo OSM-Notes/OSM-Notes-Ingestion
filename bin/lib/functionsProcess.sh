@@ -2950,6 +2950,38 @@ function __get_download_ticket() {
  return 0
 }
 
+# Prunes stale lock files in the active queue directory.
+# Any lock file named as <pid>.<ticket>.lock whose PID is not running
+# will be removed to prevent deadlocks.
+function __queue_prune_stale_locks() {
+ __log_start
+ local QUEUE_DIR="${TMP_DIR}/download_queue"
+ local ACTIVE_DIR="${QUEUE_DIR}/active"
+
+ if [[ ! -d "${ACTIVE_DIR}" ]]; then
+  __log_finish
+  return 0
+ fi
+
+ local LOCK_FILE
+ for LOCK_FILE in "${ACTIVE_DIR}"/*.lock; do
+  [[ -e "${LOCK_FILE}" ]] || continue
+  # Filename format: <pid>.<ticket>.lock
+  local BASENAME
+  BASENAME=$(basename "${LOCK_FILE}")
+  local PID_PART
+  PID_PART=${BASENAME%%.*}
+  if [[ "${PID_PART}" =~ ^[0-9]+$ ]]; then
+   if ! ps -p "${PID_PART}" > /dev/null 2>&1; then
+    __logw "Removing stale lock (pid not running): ${LOCK_FILE}"
+    rm -f "${LOCK_FILE}" || true
+   fi
+  fi
+ done
+ __log_finish
+ return 0
+}
+
 # Wait for download turn based on ticket number
 # Parameters: ticket_number
 # Returns: 0 when it's the turn, 1 on error
@@ -2958,10 +2990,14 @@ function __wait_for_download_turn() {
  local MY_TICKET="${1}"
  local QUEUE_DIR="${TMP_DIR}/download_queue"
  local CURRENT_SERVING_FILE="${QUEUE_DIR}/current_serving"
+ local TICKET_FILE="${QUEUE_DIR}/ticket_counter"
  local MAX_SLOTS="${RATE_LIMIT:-4}"
  local CHECK_INTERVAL=1
  local MAX_WAIT_TIME=3600
+ # Safety window to auto-heal the queue when no one is active
+ local AUTO_HEAL_AFTER=300
  local WAIT_COUNT=0
+ local LAST_HEAL_LOG=0
 
  if [[ -z "${MY_TICKET}" ]]; then
   __loge "ERROR: Ticket number is required"
@@ -2990,6 +3026,39 @@ function __wait_for_download_turn() {
   local ACTIVE_DOWNLOADS=0
   if [[ -d "${QUEUE_DIR}/active" ]]; then
    ACTIVE_DOWNLOADS=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null | wc -l)
+  fi
+
+  # Periodically prune stale locks to avoid deadlocks (every ~30s)
+  if [[ $((WAIT_COUNT % 30)) -eq 0 ]]; then
+   __queue_prune_stale_locks || true
+  fi
+
+  # Auto-heal: if no active downloads and tickets progressed beyond current,
+  # and we've waited long enough, advance current_serving to the latest ticket.
+  if [[ ${WAIT_COUNT} -ge ${AUTO_HEAL_AFTER} ]] && [[ ${ACTIVE_DOWNLOADS} -eq 0 ]]; then
+   local TICKET_COUNTER=0
+   if [[ -f "${TICKET_FILE}" ]]; then
+    TICKET_COUNTER=$(cat "${TICKET_FILE}" 2> /dev/null || echo "0")
+   fi
+   if [[ ${TICKET_COUNTER} -gt ${CURRENT_SERVING} ]]; then
+    (
+     flock -x 200
+     local CUR=0
+     if [[ -f "${CURRENT_SERVING_FILE}" ]]; then
+      CUR=$(cat "${CURRENT_SERVING_FILE}" 2> /dev/null || echo "0")
+     fi
+     # Re-check after lock and only advance if still safe (no active)
+     local ACTIVE_NOW=0
+     if [[ -d "${QUEUE_DIR}/active" ]]; then
+      ACTIVE_NOW=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null | wc -l)
+     fi
+     if [[ ${ACTIVE_NOW} -eq 0 ]] && [[ ${TICKET_COUNTER} -gt ${CUR} ]]; then
+      echo "${TICKET_COUNTER}" > "${CURRENT_SERVING_FILE}"
+      LAST_HEAL_LOG=$((WAIT_COUNT))
+      __logw "Auto-heal advanced queue (current_serving: ${CUR} -> ${TICKET_COUNTER})"
+     fi
+    ) 200> "${QUEUE_DIR}/ticket_lock"
+   fi
   fi
 
   # Check if it's my turn (ticket <= current_serving + max_slots) and slots available
