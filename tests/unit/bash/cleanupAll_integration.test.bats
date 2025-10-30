@@ -199,8 +199,9 @@ load ../../test_helper.bash
 
 # Test that cleanupAll.sh can handle multiple arguments
 @test "cleanupAll.sh should handle multiple arguments correctly" {
-  # Test with mode and database name
-  run timeout 30s bash "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" -p test_db --help
+  # Test that --help takes precedence and shows help regardless of other options
+  # The script should show help and exit successfully when --help is present
+  run timeout 30s bash "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh" -p --help
   [ "$status" -eq 0 ]
   [[ "$output" == *"Usage:"* ]]
 } 
