@@ -2,7 +2,7 @@
 
 # Mock wget command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-01-23
 
 # Function to create mock files
 create_mock_file() {
@@ -18,7 +18,7 @@ create_mock_file() {
  local script_dir
  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
  local fixtures_dir
- fixtures_dir="${MOCK_FIXTURES_DIR:-"${script_dir}/../../test/command/extra"}"
+ fixtures_dir="${MOCK_FIXTURES_DIR:-"${script_dir}/../fixtures/command/extra"}"
  local candidate=""
  
  # Map common patterns to fixture filenames

@@ -1,6 +1,6 @@
 # Offline mock commands
 
-Version: 2025-10-30
+Version: 2025-01-23
 
 This directory provides mock implementations of common CLI tools used by the
 pipeline to enable fully offline/local test runs.
@@ -16,9 +16,9 @@ Usage
 
 Fixtures
 
-- JSON and XML fixtures are located under test/command/extra/.
+- JSON and XML fixtures are located under tests/fixtures/command/extra/.
   The mocks will try to resolve fixtures automatically from URLs.
-  Examples (if the file exists under test/command/extra/):
+  Examples (if the file exists under tests/fixtures/command/extra/):
   - curl/wget .../notes/3394115.json -> 3394115.json
   - curl/wget .../countries -> countries
   - curl/wget .../maritimes -> maritimes
@@ -29,7 +29,7 @@ Fixtures
 Environment
 
 - You can override the fixtures directory with MOCK_FIXTURES_DIR.
-  Default is ../../test/command/extra relative to this directory.
+  Default is ../fixtures/command/extra relative to this directory.
 
 Notes
 
