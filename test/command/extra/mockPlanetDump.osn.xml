@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+<note id="1" lat="35.5170066" lon="139.6322554" created_at="2013-04-24T08:12:38Z" closed_at="2025-04-02T12:19:48Z">
+  <comment action="opened" timestamp="2013-04-24T08:12:38Z" uid="1" user="user1">Nota creada y despues cerrada</comment>
+  <comment action="closed" timestamp="2013-05-10T12:28:11Z" uid="2" user="user2">Nota cerrada</comment>
+</note>
+<note id="2" lat="50.9381992" lon="1.8605947" created_at="2013-04-24T08:14:28Z">
+  <comment action="opened" timestamp="2013-04-24T08:12:38Z" uid="3" user="user3">Nota abierta y no cerrada</comment>
+</note>
+<note id="3" lat="50.9381992" lon="1.8605947" created_at="2013-04-24T08:14:28Z" closed_at="2024-12-31T23:06:19Z">
+  <comment action="opened" timestamp="2013-04-24T08:14:28Z">Nota
+con múltiple
+líneas y caracateres no en inglés</comment>
+  <comment action="closed" timestamp="2024-12-31T23:06:19Z" uid="4" user="ﺮﻴﻨﺸﻫﺭ">ﻦﺟﺎﺣ ﺏﺎﻫﺭ، ﺄﻗﺪﻣ ﻡﻼﺤﻇﺓ ﺏﺩﻮﻧ ﺖﻌﻠﻴﻗﺎﺗ ﻢﻧ ﻖﺒﻟ ﻢﺴﺘﺧﺪﻤﻴﻧ ﻢﺠﻫﻮﻠﻴﻧ</comment>
+</note>
+<note id="4" lat="50.7550836" lon="6.1373234" created_at="2013-04-24T08:15:06Z" closed_at="2016-05-30T13:22:19Z">
+  <comment action="opened" timestamp="2013-04-24T08:15:07Z" uid="5" user="user5">Nota abierta, cerrar y reabierta</comment>
+  <comment action="closed" timestamp="2013-04-24T08:15:14Z" uid="5" user="user5">fine</comment>
+  <comment action="reopened" timestamp="2016-04-26T20:03:32Z" uid="6" user="user6"></comment>
+</note>
+</osm-notes>
