@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# Mock curl command for offline testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-10-30
+
+set -euo pipefail
+
+__create_mock_file() {
+ local url="$1"
+ local output_file="$2"
+
+ if [[ -z "$output_file" ]]; then
+  output_file=$(basename "$url")
+ fi
+
+ if [[ "$url" == *.xml* ]]; then
+  cat >"$output_file" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note id="123" lat="40.7128" lon="-74.0060"
+       created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z"
+           uid="12345" user="testuser">Test note</comment>
+ </note>
+</osm-notes>
+EOF
+ elif [[ "$url" == *.json* ]]; then
+  cat >"$output_file" <<'EOF'
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {"name": "Test Country"},
+   "geometry": {"type": "Polygon",
+                 "coordinates": [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
+  }
+ ]
+}
+EOF
+ else
+  echo "Mock content for $url" >"$output_file"
+ fi
+}
+
+ARGS=()
+OUTPUT_FILE=""
+SILENT=false
+SHOW_ERROR=false
+MAX_TIME=""
+DATA_FILE=""
+USER_AGENT=""
+
+while [[ $# -gt 0 ]]; do
+ case "$1" in
+  -s)
+   SILENT=true; shift ;;
+  -S)
+   SHOW_ERROR=true; shift ;;
+  -L)
+   shift ;;
+  -H)
+   shift 2 ;;
+  -o)
+   OUTPUT_FILE="$2"; shift 2 ;;
+  --max-time)
+   MAX_TIME="$2"; shift 2 ;;
+  --data|-d)
+   DATA_FILE="$2"; shift 2 ;;
+  -A|--user-agent)
+   USER_AGENT="$2"; shift 2 ;;
+  --version)
+   echo "curl 8.4.0 (mock)"; exit 0 ;;
+  http*|ftp*)
+   ARGS+=("$1"); shift ;;
+  *)
+   shift ;;
+ esac
+done
+
+# Prevent unused variable warnings in shellcheck for supported options
+: "${SILENT}" "${SHOW_ERROR}" "${MAX_TIME}" "${DATA_FILE}" "${USER_AGENT}"
+
+URL="${ARGS[0]:-}"
+if [[ -z "$URL" ]]; then
+ echo "usage: curl [options] URL" >&2
+ exit 2
+fi
+
+if [[ -n "$OUTPUT_FILE" ]]; then
+ __create_mock_file "$URL" "$OUTPUT_FILE"
+else
+ TMP_FILE=$(mktemp)
+ __create_mock_file "$URL" "$TMP_FILE"
+ cat "$TMP_FILE"
+ rm -f "$TMP_FILE"
+fi
+
+exit 0
+
+
