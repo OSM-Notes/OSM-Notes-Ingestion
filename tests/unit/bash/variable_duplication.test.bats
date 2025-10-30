@@ -79,7 +79,7 @@ check_duplicates() {
 
 @test "should not have duplicate readonly variables between functionsProcess.sh and commonFunctions.sh" {
  check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" \
+  "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" \
   "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" \
   "functionsProcess.sh and commonFunctions.sh"
 }

@@ -41,14 +41,14 @@ teardown() {
 @test "processPlanetNotes.sh should be sourceable without errors" {
  # Test that the script can be sourced without logging errors
  # We need to prevent the main function from executing
- run bash -c "source bin/functionsProcess.sh > /dev/null 2>&1; echo 'Script loaded successfully'"
+ run bash -c "source bin/lib/functionsProcess.sh > /dev/null 2>&1; echo 'Script loaded successfully'"
  [ "$status" -eq 0 ]
 }
 
 # Test that processPlanetNotes.sh functions can be called without logging errors
 @test "processPlanetNotes.sh functions should work without logging errors" {
  # Test that basic functions work
- run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test message"* ]]
 }
@@ -82,7 +82,7 @@ teardown() {
  )
  
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-   run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && declare -f ${FUNC}"
+   run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
@@ -90,7 +90,7 @@ teardown() {
 # Test that logging functions work correctly
 @test "processPlanetNotes.sh logging functions should work correctly" {
  # Test that basic functions work
- run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test info"* ]]
  [[ "$output" == *"Test error"* ]]
@@ -184,28 +184,28 @@ teardown() {
 # Test that XML processing functions work correctly
 @test "processPlanetNotes.sh XML processing functions should work correctly" {
  # Test that XML counting function works without sourcing the main script
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __countXmlNotesPlanet ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __countXmlNotesPlanet ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
  [ "$status" -eq 0 ] || echo "XML counting function should work"
 }
 
 # Test that XML validation functions work correctly
 @test "processPlanetNotes.sh XML validation functions should work correctly" {
  # Test that enhanced XML validation function works
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_with_enhanced_error_handling ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml ${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __validate_xml_with_enhanced_error_handling ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml ${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-planet-schema.xsd"
  [ "$status" -eq 0 ] || echo "Enhanced XML validation function should work"
 }
 
 # Test that XML structure validation works correctly
 @test "processPlanetNotes.sh XML structure validation should work correctly" {
  # Test that structure-only validation works for large files
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_structure_only ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __validate_xml_structure_only ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
  [ "$status" -eq 0 ] || echo "Structure-only XML validation should work"
 }
 
 # Test that XML basic validation works correctly
 @test "processPlanetNotes.sh XML basic validation should work correctly" {
  # Test that basic validation works
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_basic ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __validate_xml_basic ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/planet_notes_real.xml"
  [ "$status" -eq 0 ] || echo "Basic XML validation should work"
 }
 
@@ -218,7 +218,7 @@ teardown() {
  )
  
  for FUNC in "${PARALLEL_FUNCTIONS[@]}"; do
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && declare -f ${FUNC}"
+   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }

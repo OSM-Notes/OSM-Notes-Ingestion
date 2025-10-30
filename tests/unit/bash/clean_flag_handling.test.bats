@@ -9,7 +9,7 @@ load "../../test_helper.bash"
 
 setup() {
   # Source the functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
   
   # Create temporary test files for cleanup testing
@@ -117,7 +117,7 @@ teardown() {
   export -f exit
   
   # Source functionsProcess.sh again to ensure we have the right function
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test the functionsProcess version of error handling
   run __handle_error_with_cleanup "247" "Test integrity check failed" "rm -f ${TEST_FILE_1}" "rm -f ${TEST_FILE_2}"

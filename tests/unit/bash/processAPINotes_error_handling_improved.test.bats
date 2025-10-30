@@ -20,7 +20,7 @@ setup() {
   fi
   
   # Source the functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Mock logger functions
   function __log_start() { echo "LOG_START: $*"; }
@@ -190,7 +190,7 @@ ERROR: Log file for job 12348: /tmp/processPlanetNotes.log.12348"
 @test "should maintain backward compatibility with existing error codes" {
   # Test that error codes are still defined
   run bash -c "
-    source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+    source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
     echo \$ERROR_DOWNLOADING_BOUNDARY
   "
   [ "$status" -eq 0 ]

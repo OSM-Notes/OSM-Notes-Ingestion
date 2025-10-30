@@ -24,7 +24,7 @@ setup() {
  unset ERROR_HELP_MESSAGE ERROR_PREVIOUS_EXECUTION_FAILED ERROR_CREATING_REPORT ERROR_MISSING_LIBRARY ERROR_INVALID_ARGUMENT ERROR_LOGGER_UTILITY ERROR_DOWNLOADING_BOUNDARY_ID_LIST ERROR_NO_LAST_UPDATE ERROR_PLANET_PROCESS_IS_RUNNING ERROR_DOWNLOADING_NOTES ERROR_EXECUTING_PLANET_DUMP ERROR_DOWNLOADING_BOUNDARY ERROR_GEOJSON_CONVERSION ERROR_INTERNET_ISSUE ERROR_GENERAL 2> /dev/null || true
 
  # Source the functions
- source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+ source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
 
  # Set up logging function if not available
  if ! declare -f log_info > /dev/null; then
@@ -204,7 +204,7 @@ setup() {
 
 @test "enhanced __checkPrereqsCommands should validate required files exist" {
  # Test that required files exist
- [ -f "${TEST_BASE_DIR}/bin/functionsProcess.sh" ]
+ [ -f "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" ]
  [ -f "${TEST_BASE_DIR}/etc/properties.sh" ]
  [ -f "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd" ]
  [ -f "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" ]
@@ -225,13 +225,13 @@ setup() {
 @test "enhanced __checkPrereqsCommands should validate execute permissions" {
  # Test execute permissions on scripts - check if they exist and are readable
  # Note: Some scripts might not have execute permissions in test environment
- [ -r "${TEST_BASE_DIR}/bin/functionsProcess.sh" ]
+ [ -r "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" ]
  [ -r "${TEST_BASE_DIR}/bin/process/processAPINotes.sh" ]
  [ -r "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh" ]
 
  # Check if at least one script has execute permissions (indicating proper setup)
  local has_exec_perms=false
- if [[ -x "${TEST_BASE_DIR}/bin/functionsProcess.sh" ]] \
+ if [[ -x "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" ]] \
   || [[ -x "${TEST_BASE_DIR}/bin/process/processAPINotes.sh" ]] \
   || [[ -x "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh" ]]; then
   has_exec_perms=true
@@ -239,7 +239,7 @@ setup() {
 
  # Log the actual permissions for debugging
  echo "Script permissions:"
- ls -la "${TEST_BASE_DIR}/bin/functionsProcess.sh" || echo "functionsProcess.sh not found"
+ ls -la "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" || echo "functionsProcess.sh not found"
  ls -la "${TEST_BASE_DIR}/bin/process/processAPINotes.sh" || echo "processAPINotes.sh not found"
  ls -la "${TEST_BASE_DIR}/bin/process/processPlanetNotes.sh" || echo "processPlanetNotes.sh not found"
 

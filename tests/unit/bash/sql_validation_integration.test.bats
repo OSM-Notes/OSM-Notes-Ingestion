@@ -36,7 +36,7 @@ teardown() {
  
  # Test SQL validation
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$sql_file'
  "
  [ "$status" -eq 0 ]
@@ -57,7 +57,7 @@ teardown() {
    if [[ -f "$sql_file" ]]; then
      # Test SQL validation
      run bash -c "
-       source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+       source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
        __validate_sql_structure '$sql_file'
      "
      if [[ "$status" -ne 0 ]]; then
@@ -90,7 +90,7 @@ teardown() {
    
    # Test SQL validation
    run bash -c "
-     source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+     source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
      __validate_sql_structure '$temp_sql'
    "
    if [[ "$status" -ne 0 ]]; then
@@ -117,7 +117,7 @@ teardown() {
  
  # Test SQL validation
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$empty_sql'
  "
  [ "$status" -eq 1 ]
@@ -135,7 +135,7 @@ EOF
  
  # Test SQL validation
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$comment_sql'
  "
  [ "$status" -eq 1 ]
@@ -156,7 +156,7 @@ EOF
  
  # Test SQL validation
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$mixed_sql'
  "
  [ "$status" -eq 0 ]
@@ -173,7 +173,7 @@ EOF
  
  # Test SQL validation
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$sql_file'
  "
  [ "$status" -eq 0 ]
@@ -194,7 +194,7 @@ EOF
    if [[ -f "$sql_file" ]]; then
      # Test SQL validation
      run bash -c "
-       source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+       source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
        __validate_sql_structure '$sql_file'
      "
      if [[ "$status" -ne 0 ]]; then
@@ -220,14 +220,14 @@ EOF
 @test "SQL validation should handle edge cases correctly" {
  # Test with non-existent file
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '/non/existent/file.sql'
  "
  [ "$status" -eq 1 ]
  
  # Test with directory instead of file
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '${SCRIPT_BASE_DIRECTORY}/sql'
  "
  [ "$status" -eq 1 ]
@@ -251,14 +251,14 @@ EOF
 @test "SQL validation function should exist and be callable" {
  # Test that the function exists
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    declare -f __validate_sql_structure
  "
  [ "$status" -eq 0 ]
  
  # Test that the function can be called with help
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure --help 2>&1 || true
  "
  # Function may not support --help, so we just check it doesn't crash
@@ -278,7 +278,7 @@ INSERT INTO test VALUES (1, 'test');
 EOF
  
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$valid_sql'
  "
  [ "$status" -eq 0 ]
@@ -288,7 +288,7 @@ EOF
  echo "   " > "$whitespace_sql"
  
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$whitespace_sql'
  "
  [ "$status" -eq 1 ]
@@ -298,7 +298,7 @@ EOF
 @test "SQL validation should have proper error handling" {
  # Test with invalid file path
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure ''
  "
  [ "$status" -eq 1 ]
@@ -309,7 +309,7 @@ EOF
  chmod 000 "$no_read_sql"
  
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    __validate_sql_structure '$no_read_sql'
  "
  [ "$status" -eq 1 ]

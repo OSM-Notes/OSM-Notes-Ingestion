@@ -55,7 +55,7 @@ teardown() {
  # List of function libraries to test
  local libraries=(
    "lib/osm-common/commonFunctions.sh"
-   "bin/functionsProcess.sh"
+   "bin/lib/functionsProcess.sh"
    "lib/osm-common/validationFunctions.sh"
    "lib/osm-common/errorHandlingFunctions.sh"
    "bin/processAPIFunctions.sh"
@@ -88,7 +88,7 @@ teardown() {
 @test "readonly variables should be handled correctly" {
  # Test that we can source files with readonly variables multiple times
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    source '${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh' > /dev/null 2>&1
    source '${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh' > /dev/null 2>&1
    echo 'Readonly variables handled correctly'
@@ -101,7 +101,7 @@ teardown() {
 @test "variable declarations should be consistent across files" {
  # Test that key variables are declared consistently
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    source '${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh' > /dev/null 2>&1
    echo \"PLANET_NOTES_FILE: \${PLANET_NOTES_FILE:-}\"
    echo \"COUNTRIES_FILE: \${COUNTRIES_FILE:-}\"
@@ -132,7 +132,7 @@ teardown() {
 @test "all required variables should be defined" {
  # Test that essential variables are available after sourcing
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    source '${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh' > /dev/null 2>&1
    source '${SCRIPT_BASE_DIRECTORY}/bin/processAPIFunctions.sh' > /dev/null 2>&1
    

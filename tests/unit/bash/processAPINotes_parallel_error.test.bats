@@ -20,7 +20,7 @@ setup() {
   fi
   
   # Source the functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Mock logger functions
   function __log_start() { echo "LOG_START: $*"; }
@@ -154,7 +154,7 @@ EOF
 @test "should handle ERROR_DOWNLOADING_BOUNDARY error code" {
   # Test that the error code is defined
   run bash -c "
-    source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+    source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
     echo \$ERROR_DOWNLOADING_BOUNDARY
   "
   [ "$status" -eq 0 ]

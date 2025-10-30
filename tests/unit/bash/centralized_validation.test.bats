@@ -14,7 +14,7 @@ setup() {
   load "${BATS_TEST_DIRNAME}/../../test_helper.bash"
   
   # Load the functions to test
-  load "${BATS_TEST_DIRNAME}/../../../bin/functionsProcess.sh"
+  load "${BATS_TEST_DIRNAME}/../../../bin/lib/functionsProcess.sh"
   
   # Set up test environment
   PROJECT_ROOT="${BATS_TEST_DIRNAME}/../../.."
@@ -59,21 +59,21 @@ teardown() {
 
 @test "Centralized validation: processAPINotes.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/process/processAPINotes.sh && __validate_input_file /etc/passwd 'Test file'"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/process/processAPINotes.sh && __validate_input_file /etc/passwd 'Test file'"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
 @test "Centralized validation: processCheckPlanetNotes.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
 @test "Centralized validation: wmsManager.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/wmsManager.sh && __validate_sql_structure ${VALID_SQL_FILE}"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/wmsManager.sh && __validate_sql_structure ${VALID_SQL_FILE}"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
@@ -84,28 +84,28 @@ teardown() {
 
 @test "Centralized validation: notesCheckVerifier.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh && __validate_input_file /etc/passwd 'Test file'"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh && __validate_input_file /etc/passwd 'Test file'"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
 @test "Centralized validation: cleanupAll.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/cleanupAll.sh && __validate_sql_structure ${VALID_SQL_FILE}"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/cleanupAll.sh && __validate_sql_structure ${VALID_SQL_FILE}"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
 @test "Centralized validation: geoserverConfig.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/geoserverConfig.sh && __validate_input_file /etc/passwd 'Test file'"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/geoserverConfig.sh && __validate_input_file /etc/passwd 'Test file'"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
 @test "Centralized validation: wmsConfigExample.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/wmsConfigExample.sh && __validate_input_file /etc/passwd 'Test file'"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/wmsConfigExample.sh && __validate_input_file /etc/passwd 'Test file'"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
@@ -115,7 +115,7 @@ teardown() {
 
 @test "Centralized validation: processPlanetNotes.sh should use validation functions" {
  # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${PROJECT_ROOT}/bin/process/processPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
+ run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/process/processPlanetNotes.sh && __validate_input_file /etc/passwd 'Test file'"
  # Accept any status as long as the command doesn't crash
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
@@ -150,7 +150,7 @@ teardown() {
  
  for script in "${scripts[@]}"; do
    # Test that __validate_input_file is available
-   run bash -c "source ${PROJECT_ROOT}/bin/functionsProcess.sh && source ${script} && type __validate_input_file"
+   run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${script} && type __validate_input_file"
    # Accept any status as long as the command doesn't crash
    # Status can be 0 (success), 1 (error), 127 (command not found), or other codes
    # Including 238 (previous execution failed) and other error codes

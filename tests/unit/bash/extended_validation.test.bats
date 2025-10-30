@@ -14,7 +14,7 @@ setup() {
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/osm-notes-processing.properties" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/etc/osm-notes-processing.properties"
  fi
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 
  # Create temporary test files

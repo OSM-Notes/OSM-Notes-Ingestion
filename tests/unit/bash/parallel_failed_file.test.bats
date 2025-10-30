@@ -93,7 +93,7 @@ mock_successful_process_function() {
  export ONLY_EXECUTION="yes"
  
  # Source the actual functionsProcess.sh to get the real functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  
  # Call __validation to trigger the failed file generation
  run __validation
@@ -114,7 +114,7 @@ mock_successful_process_function() {
  export ONLY_EXECUTION="yes"
  
  # Source the actual functionsProcess.sh to get the real functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  
  # Call __validation to trigger the failed file generation
  run __validation
@@ -135,7 +135,7 @@ mock_successful_process_function() {
  export ONLY_EXECUTION="yes"
  
  # Source the actual functionsProcess.sh to get the real functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  
  # Call __validation to trigger the failed file generation
  run __validation
@@ -158,7 +158,7 @@ mock_successful_process_function() {
  export ONLY_EXECUTION="yes"
  
  # Source the actual functionsProcess.sh to get the real functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  
  # Call __validation - should not create the file
  run __validation
@@ -176,7 +176,7 @@ mock_successful_process_function() {
  export ONLY_EXECUTION="yes"
  
  # Source the actual functionsProcess.sh to get the real functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  
  # Call __validation to trigger the failed file generation
  run __validation
@@ -195,7 +195,7 @@ mock_successful_process_function() {
  export LOG_FILENAME="${TEST_DIR}/test.log"
  
  # Source the actual functionsProcess.sh to get the real functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  
  # Test a simple function that should succeed
  run __validation

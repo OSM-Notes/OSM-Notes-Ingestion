@@ -37,10 +37,10 @@ teardown() {
 
 @test "__processCountries uses __handle_error_with_cleanup instead of direct exit" {
   # Check that __processCountries no longer uses direct exit
-  ! grep -q "exit.*ERROR_DOWNLOADING_BOUNDARY" "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  ! grep -q "exit.*ERROR_DOWNLOADING_BOUNDARY" "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Check that it uses the error handler instead
-  grep -q "__handle_error_with_cleanup.*ERROR_DOWNLOADING_BOUNDARY" "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  grep -q "__handle_error_with_cleanup.*ERROR_DOWNLOADING_BOUNDARY" "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 }
 
 @test "cleanup function respects CLEAN=true for error exits" {

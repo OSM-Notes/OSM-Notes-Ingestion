@@ -20,7 +20,7 @@ setup() {
   fi
   
   # Source the functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Mock logger functions
   function __log_start() { echo "LOG_START: $*"; }
@@ -39,7 +39,7 @@ teardown() {
 # Test that validates logging markers in __processBoundary
 @test "should validate logging markers in __processBoundary" {
   # Test that the logging markers are present in the function
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for start marker (more flexible search)
   run grep -q "=== STARTING BOUNDARY PROCESSING ===" "$functions_file"
@@ -65,7 +65,7 @@ teardown() {
 
 # Test that validates logging markers in __processList
 @test "should validate logging markers in __processList" {
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for start marker (more flexible search)
   run grep -q "=== STARTING LIST PROCESSING ===" "$functions_file"
@@ -95,7 +95,7 @@ teardown() {
 
 # Test that validates logging markers in __processCountries
 @test "should validate logging markers in __processCountries" {
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for start marker (more flexible search)
   run grep -q "=== STARTING COUNTRIES PROCESSING ===" "$functions_file"
@@ -121,7 +121,7 @@ teardown() {
 
 # Test that validates detailed logging in __processBoundary
 @test "should validate detailed logging in __processBoundary" {
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for network connectivity logging
   run grep -q "Checking network connectivity for boundary" "$functions_file"
@@ -186,7 +186,7 @@ teardown() {
 
 # Test that validates error handling logging
 @test "should validate error handling logging" {
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for error logging patterns
   run grep -q "Network connectivity check failed for boundary" "$functions_file"
@@ -219,7 +219,7 @@ teardown() {
 
 # Test that validates special handling logging
 @test "should validate special handling logging" {
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for Austria special handling
   run grep -q "Using special handling for Austria" "$functions_file"
@@ -245,7 +245,7 @@ teardown() {
 
 # Test that validates QUERY_FILE variable handling
 @test "should validate QUERY_FILE variable handling" {
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for QUERY_FILE definition
   run grep -q "Define query file variable" "$functions_file"
@@ -271,7 +271,7 @@ teardown() {
 
 # Test that validates logging consistency
 @test "should validate logging consistency" {
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test that all major functions have start and end markers
   local functions=("__processBoundary" "__processList" "__processCountries")
@@ -317,7 +317,7 @@ teardown() {
 # Test that validates logging format
 @test "should validate logging format" {
   # Test that logging markers follow consistent format
-  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Test for consistent marker format
   run grep -c "=== [A-Z_ ]* ===" "$functions_file"

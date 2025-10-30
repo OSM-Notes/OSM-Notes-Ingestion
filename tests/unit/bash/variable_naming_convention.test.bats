@@ -104,7 +104,7 @@ setup() {
 
 # Test specific files that should follow the convention
 @test "functionsProcess.sh should follow uppercase convention" {
-  run awk '/^[[:space:]]*local[[:space:]]+[a-z_]+=/{print NR ": " $0}' bin/functionsProcess.sh
+  run awk '/^[[:space:]]*local[[:space:]]+[a-z_]+=/{print NR ": " $0}' bin/lib/functionsProcess.sh
   [ "$status" -eq 0 ]
   [ -z "$output" ]
 }

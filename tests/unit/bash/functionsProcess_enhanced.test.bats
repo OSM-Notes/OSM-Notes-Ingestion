@@ -31,7 +31,7 @@ setup() {
  create_mock_logging_functions
 
  # Source the functions to be tested
- source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+ source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
 
  # Verify that functions are available
  if ! declare -f __countXmlNotesPlanet > /dev/null; then

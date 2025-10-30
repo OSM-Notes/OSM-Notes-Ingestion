@@ -431,7 +431,7 @@ EOF
 
 @test "historical_validation_integrates_with_existing_checkBaseTables" {
     # Load the actual functions
-    source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
     
     # Verify both functions exist and are properly defined
     type __checkBaseTables

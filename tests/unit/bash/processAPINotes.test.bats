@@ -144,7 +144,7 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
 
 @test "single note XML should be valid" {
  # Test that single note XML is valid using enhanced validation
- source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+ source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
  run __validate_xml_with_enhanced_error_handling "$SPECIAL_CASES_DIR/single_note.xml" "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd"
  [ "$status" -eq 0 ]
  [[ "$output" == *"XML validation succeeded"* ]]
@@ -233,7 +233,7 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
 
 @test "XML counting functions should work with special cases" {
   # Source the functions
-  source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+  source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
   
   # Set up logging function if not available
   if ! declare -f log_info >/dev/null; then

@@ -53,7 +53,7 @@ teardown() {
 # Extract only the __checkHistoricalData function without loading the entire script
 extract_historical_data_function() {
     # Extract the __checkHistoricalData function
-    sed -n '/^function __checkHistoricalData/,/^}/p' "${TEST_BASE_DIR}/bin/functionsProcess.sh" > "${TMP_DIR}/historical_function.sh"
+    sed -n '/^function __checkHistoricalData/,/^}/p' "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" > "${TMP_DIR}/historical_function.sh"
     
     # Source the extracted function
     source "${TMP_DIR}/historical_function.sh"
@@ -192,14 +192,14 @@ extract_historical_data_function() {
 
 @test "test_processAPI_provides_helpful_error_messages" {
     # Messages now live in __checkHistoricalData within functionsProcess.sh
-    local func_script="${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    local func_script="${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
     grep -A 10 "CRITICAL: Historical data validation failed" "${func_script}" | grep -q "ProcessAPI cannot continue"
     grep -A 10 "CRITICAL: Historical data validation failed" "${func_script}" | grep -q "Run processPlanetNotes.sh first"
 }
 
 @test "test_processAPI_provides_full_guidance_message" {
     # Verify the extra guidance line is present in the function messages
-    local func_script="${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    local func_script="${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
     grep -A 15 "CRITICAL: Historical data validation failed" "${func_script}" | grep -q "This will load the complete historical dataset"
 }
 
@@ -217,7 +217,7 @@ extract_historical_data_function() {
 
 @test "test_historical_validation_constants_defined" {
     # Check that the SQL file constant is properly defined
-    source "${TEST_BASE_DIR}/bin/functionsProcess.sh"
+    source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
     
     # Verify the constant is defined
     [[ -n "${POSTGRES_11_CHECK_HISTORICAL_DATA}" ]]

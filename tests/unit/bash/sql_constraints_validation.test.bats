@@ -227,10 +227,10 @@ teardown() {
  fi
  
  # Test that files have valid SQL syntax
- run bash -c "source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1; __validate_sql_structure '$create_table_file'"
+ run bash -c "source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1; __validate_sql_structure '$create_table_file'"
  [ "$status" -eq 0 ]
  
- run bash -c "source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1; __validate_sql_structure '$constraints_file'"
+ run bash -c "source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1; __validate_sql_structure '$constraints_file'"
  [ "$status" -eq 0 ]
 }
 
@@ -267,7 +267,7 @@ teardown() {
  for constraint_file in "${constraint_files[@]}"; do
    if [[ -f "$constraint_file" ]]; then
      # Test SQL validation
-     run bash -c "source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1; __validate_sql_structure '$constraint_file'"
+     run bash -c "source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1; __validate_sql_structure '$constraint_file'"
      if [[ "$status" -ne 0 ]]; then
        failed_files+=("$constraint_file")
      fi

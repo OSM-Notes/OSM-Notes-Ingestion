@@ -42,7 +42,7 @@ teardown() {
 
 @test "monitoring system should detect no differences in success scenario" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -74,7 +74,7 @@ teardown() {
 
 @test "monitoring system should detect missing notes" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -108,7 +108,7 @@ teardown() {
 
 @test "monitoring system should detect missing comments" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -151,7 +151,7 @@ teardown() {
 
 @test "monitoring system should detect missing text comments" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -194,7 +194,7 @@ teardown() {
 
 @test "monitoring system should detect data corruption" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -225,7 +225,7 @@ teardown() {
 
 @test "monitoring system should handle mixed problems" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -287,7 +287,7 @@ teardown() {
 
 @test "monitoring database structure should be correct" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -309,7 +309,7 @@ teardown() {
 
 @test "monitoring should detect equal notes count for historical data" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -345,7 +345,7 @@ teardown() {
 
 @test "monitoring should detect missing notes from yesterday" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -382,7 +382,7 @@ teardown() {
 
 @test "monitoring should ignore missing notes from today" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     
@@ -419,7 +419,7 @@ teardown() {
 
 @test "monitoring should detect missing notes from last week" {
     # Skip this test if running on host (using mocks)
-    if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
+    if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
         skip "Skipping on host environment (using mocks)"
     fi
     

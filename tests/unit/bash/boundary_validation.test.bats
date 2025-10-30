@@ -15,7 +15,7 @@ setup() {
   export BASENAME="test_boundary_validation"
   
   # Source the functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
   
   # Mock logger functions
   function __log_start() { echo "LOG_START: $*"; }

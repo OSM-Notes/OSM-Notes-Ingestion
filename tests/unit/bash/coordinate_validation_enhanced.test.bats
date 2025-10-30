@@ -19,7 +19,7 @@ setup() {
  export LOG_LEVEL="DEBUG"
  
  # Source the functions we need to test
- source "${BATS_TEST_DIRNAME}/../../../bin/functionsProcess.sh"
+ source "${BATS_TEST_DIRNAME}/../../../bin/lib/functionsProcess.sh"
  
  # Create mock XML files
  create_test_xml_files

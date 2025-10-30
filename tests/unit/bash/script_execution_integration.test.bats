@@ -199,7 +199,7 @@ teardown() {
 @test "all function libraries should load together without conflicts" {
  local libraries=(
    "lib/osm-common/commonFunctions.sh"
-   "bin/functionsProcess.sh"
+   "bin/lib/functionsProcess.sh"
    "lib/osm-common/validationFunctions.sh"
    "lib/osm-common/errorHandlingFunctions.sh"
    "bin/processAPIFunctions.sh"

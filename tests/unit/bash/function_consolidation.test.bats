@@ -9,7 +9,7 @@ load "../../test_helper.bash"
 
 setup() {
   # Source the consolidated functions
-  source "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh"
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 }
 
 @test "No validation functions should be duplicated between validationFunctions.sh and functionsProcess.sh" {
@@ -41,7 +41,7 @@ setup() {
   for func in "${VALIDATION_FUNCTIONS[@]}"; do
     # Count occurrences in functionsProcess.sh (should only have comments, not actual function definitions)
     local count_in_process
-    count_in_process=$(grep -c "^function ${func}()" "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" 2>/dev/null || echo "0")
+    count_in_process=$(grep -c "^function ${func}()" "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" 2>/dev/null || echo "0")
     
     if [[ "${count_in_process}" -gt 0 ]]; then
       duplicated_functions+="${func} "
@@ -92,7 +92,7 @@ setup() {
 @test "functionsProcess.sh should be significantly smaller after consolidation" {
   # Check that functionsProcess.sh has been reduced
   local line_count
-  line_count=$(wc -l < "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh")
+  line_count=$(wc -l < "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh")
   
   # Should be less than 3500 lines (was ~3900 before consolidation)
   if [[ "${line_count}" -gt 3500 ]]; then

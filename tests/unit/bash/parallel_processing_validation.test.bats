@@ -32,7 +32,7 @@ teardown() {
 @test "parallel processing functions should be available" {
  # Test that __processCountries function exists
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    declare -f __processCountries > /dev/null && echo 'Function exists'
  "
  [ "$status" -eq 0 ]
@@ -40,7 +40,7 @@ teardown() {
  
  # Test that __processList function exists
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    declare -f __processList > /dev/null && echo 'Function exists'
  "
  [ "$status" -eq 0 ]
@@ -48,7 +48,7 @@ teardown() {
  
  # Test that __processBoundary function exists
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    declare -f __processBoundary > /dev/null && echo 'Function exists'
  "
  [ "$status" -eq 0 ]
@@ -87,7 +87,7 @@ EOF
 @test "network connectivity check should work" {
  # Test that __check_network_connectivity function exists
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    declare -f __check_network_connectivity > /dev/null && echo 'Function exists'
  "
  [ "$status" -eq 0 ]
@@ -98,7 +98,7 @@ EOF
 @test "retry logic should work correctly" {
  # Test that __retry_file_operation function exists
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    declare -f __retry_file_operation > /dev/null && echo 'Function exists'
  "
  [ "$status" -eq 0 ]
@@ -109,7 +109,7 @@ EOF
 @test "error handling functions should work correctly" {
  # Test that __handle_error_with_cleanup function exists
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    declare -f __handle_error_with_cleanup > /dev/null && echo 'Function exists'
  "
  [ "$status" -eq 0 ]
@@ -198,7 +198,7 @@ EOF
 @test "parallel processing variables should be set correctly" {
  # Test that MAX_THREADS is defined
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    echo \"MAX_THREADS: \${MAX_THREADS:-}\"
  "
  [ "$status" -eq 0 ]
@@ -206,7 +206,7 @@ EOF
  
  # Test that TMP_DIR is defined
  run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh' > /dev/null 2>&1
+   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
    echo \"TMP_DIR: \${TMP_DIR:-}\"
  "
  [ "$status" -eq 0 ]

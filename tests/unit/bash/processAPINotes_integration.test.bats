@@ -38,14 +38,14 @@ teardown() {
 @test "processAPINotes.sh should be sourceable without errors" {
  # Test that the script can be sourced without logging errors
  # We need to prevent the main function from executing
- run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh > /dev/null 2>&1; echo 'Script loaded successfully'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh > /dev/null 2>&1; echo 'Script loaded successfully'"
  [ "$status" -eq 0 ]
 }
 
 # Test that processAPINotes.sh functions can be called without logging errors
 @test "processAPINotes.sh functions should work without logging errors" {
  # Test that basic functions work
- run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && echo 'Test message' && echo 'Function test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test message"* ]]
 }
@@ -104,7 +104,7 @@ teardown() {
  )
  
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-   run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && declare -f ${FUNC}"
+   run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && declare -f ${FUNC}"
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
@@ -112,7 +112,7 @@ teardown() {
 # Test that logging functions work correctly
 @test "processAPINotes.sh logging functions should work correctly" {
  # Test that basic functions work
- run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
+ run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && echo 'Test info' && echo 'Test error' && echo 'Logging test completed'"
  [ "$status" -eq 0 ]
  [[ "$output" == *"Test info"* ]]
  [[ "$output" == *"Test error"* ]]
@@ -188,27 +188,27 @@ teardown() {
 # Test that XML processing functions work correctly
 @test "processAPINotes.sh XML processing functions should work correctly" {
  # Test that XML counting function works without sourcing the main script
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __countXmlNotesAPI ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __countXmlNotesAPI ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
  [ "$status" -eq 0 ] || echo "XML counting function should work"
 }
 
 # Test that XML validation functions work correctly
 @test "processAPINotes.sh XML validation functions should work correctly" {
  # Test that enhanced XML validation function works
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_with_enhanced_error_handling ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml ${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __validate_xml_with_enhanced_error_handling ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml ${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
  [ "$status" -eq 0 ] || echo "Enhanced XML validation function should work"
 }
 
 # Test that XML structure validation works correctly
 @test "processAPINotes.sh XML structure validation should work correctly" {
  # Test that structure-only validation works for large files
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_structure_only ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __validate_xml_structure_only ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
  [ "$status" -eq 0 ] || echo "Structure-only XML validation should work"
 }
 
 # Test that XML basic validation works correctly
 @test "processAPINotes.sh XML basic validation should work correctly" {
  # Test that basic validation works
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh && __validate_xml_basic ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
+ run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __validate_xml_basic ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
  [ "$status" -eq 0 ] || echo "Basic XML validation should work"
 } 
