@@ -257,6 +257,19 @@ Run the validation tools regularly to ensure compliance.
 2. **Logger not found**: Ensure `bash_logger.sh` is available
 3. **Permission denied**: Check file permissions and ownership
 
+### Ensuring Logs Are Written to Files
+
+- In interactive sessions (TTY), some entry points may default to stdout.
+- To persist logs to a file, set `LOG_FILE` before starting:
+
+```bash
+export LOG_LEVEL=DEBUG
+export LOG_FILE=/tmp/processCheckPlanetNotes.log
+./bin/monitor/processCheckPlanetNotes.sh --help
+```
+
+- Scripts that auto-manage temp logs still honor `LOG_FILE` when defined.
+
 ### Debug Mode
 
 Set log level to DEBUG for more detailed output:

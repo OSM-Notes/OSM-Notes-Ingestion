@@ -1,6 +1,6 @@
 # Environment Variables Documentation
 
-**Version:** 2025-10-26  
+**Version:** 2025-10-30  
 **Purpose:** Define standard environment variables for OSM-Notes-Ingestion
 
 ## Overview
@@ -20,6 +20,18 @@ These variables are used across **all scripts** and should be standardized:
 - **Default**: `ERROR`
 - **Usage**: Set higher for debugging, lower for production
 - **Example**: `export LOG_LEVEL=DEBUG`
+
+### `LOG_FILE`
+- **Purpose**: Forces logger to write to a specific file
+- **Values**: Absolute path to a writable `.log` file
+- **Default**: Not set (scripts may auto-create a temp log file)
+- **Behavior**:
+  - When set, `__start_logger` routes output to this file.
+  - Recommended for interactive/TTY sessions to persist logs.
+- **Examples**:
+  - `export LOG_FILE=/tmp/processCheckPlanetNotes.log`
+  - `LOG_FILE=/tmp/processPlanetNotes.log LOG_LEVEL=INFO \
+    ./bin/process/processPlanetNotes.sh --base`
 
 ### `CLEAN`
 - **Purpose**: Whether to delete temporary files after processing
@@ -41,6 +53,36 @@ These variables are used across **all scripts** and should be standardized:
 - **Default**: `true` (assumes OSM data is valid)
 - **Usage**: Set to `false` for strict validation (slower)
 - **Example**: `export SKIP_XML_VALIDATION=false`
+
+### Overpass Fallback and Validation
+
+These variables control the Overpass API behavior for boundary downloads.
+
+#### `OVERPASS_ENDPOINTS`
+- **Purpose**: Ordered, comma-separated list of Overpass interpreter endpoints for fallback
+- **Default**: value of `OVERPASS_INTERPRETER`
+- **Example**: `export OVERPASS_ENDPOINTS="https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter"`
+
+#### `OVERPASS_RETRIES_PER_ENDPOINT`
+- **Purpose**: Max retries per endpoint for a single boundary
+- **Default**: `3`
+- **Example**: `export OVERPASS_RETRIES_PER_ENDPOINT=4`
+
+#### `OVERPASS_BACKOFF_SECONDS`
+- **Purpose**: Base backoff (seconds) between retries (exponential per attempt)
+- **Default**: `5`
+- **Example**: `export OVERPASS_BACKOFF_SECONDS=10`
+
+#### `CONTINUE_ON_OVERPASS_ERROR`
+- **Purpose**: Continue processing other boundaries when JSON validation fails
+- **Values**: `true`, `false`
+- **Default**: `true`
+- **Behavior**: When `true`, boundary IDs that fail are added to `${TMP_DIR}/failed_boundaries.txt`
+
+#### `JSON_VALIDATOR`
+- **Purpose**: JSON validation command (must support `jq -e .`)
+- **Default**: `jq`
+- **Example**: `export JSON_VALIDATOR=/usr/bin/jq`
 
 ## 📝 Per-Script Variables
 
@@ -141,6 +183,11 @@ Defined in `etc/properties.sh` (can be overridden by environment):
 - **`OSM_API`**: OSM API URL (default: `https://api.openstreetmap.org/api/0.6`)
 - **`PLANET`**: Planet dump URL (default: `https://planet.openstreetmap.org`)
 - **`OVERPASS_INTERPRETER`**: Overpass API URL
+- **`OVERPASS_ENDPOINTS`**: Fallback endpoints (comma-separated)
+- **`OVERPASS_RETRIES_PER_ENDPOINT`**: Retries per endpoint
+- **`OVERPASS_BACKOFF_SECONDS`**: Base backoff between retries
+- **`CONTINUE_ON_OVERPASS_ERROR`**: Continue on JSON validation failure
+- **`JSON_VALIDATOR`**: JSON validator command (jq)
 - **`LOOP_SIZE`**: Notes processed per loop (default: `10000`)
 - **`MAX_NOTES`**: Max notes from API (default: `10000`)
 - **`MAX_THREADS`**: Parallel processing threads (auto-calculated)

@@ -4,7 +4,7 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-10-22
+# Version: 2025-10-30
 
 # Database configuration.
 # shellcheck disable=SC2034
@@ -46,6 +46,24 @@ fi
 if [[ -z "${OVERPASS_INTERPRETER:-}" ]]; then
  declare -r OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
 fi
+
+# Overpass fallback and validation configuration.
+# Comma-separated list of interpreter endpoints. The first one is primary.
+# Example:
+#   export OVERPASS_ENDPOINTS="https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter"
+declare OVERPASS_ENDPOINTS="${OVERPASS_ENDPOINTS:-${OVERPASS_INTERPRETER}}"
+
+# Max retries per endpoint for a single boundary download attempt.
+declare OVERPASS_RETRIES_PER_ENDPOINT="${OVERPASS_RETRIES_PER_ENDPOINT:-3}"
+
+# Base backoff (seconds) between retries within the same endpoint (exponential).
+declare OVERPASS_BACKOFF_SECONDS="${OVERPASS_BACKOFF_SECONDS:-5}"
+
+# Continue processing other boundaries on Overpass JSON validation errors.
+declare CONTINUE_ON_OVERPASS_ERROR="${CONTINUE_ON_OVERPASS_ERROR:-true}"
+
+# JSON validator command (must support: jq -e .).
+declare JSON_VALIDATOR="${JSON_VALIDATOR:-jq}"
 
 # Processing configuration.
 # Quantity of notes to process per loop, to get the location of the note.

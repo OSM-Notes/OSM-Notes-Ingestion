@@ -247,6 +247,42 @@ Edge cases tests cover boundary situations:
 
 **Expected Result:** All verifications pass.
 
+## Overpass Fallback and Continue-on-Error Testing
+
+**Objective:** Validate that boundary downloads use fallback endpoints and the process continues on invalid JSON.
+
+**Steps:**
+
+1. Configure endpoints and behavior:
+
+   ```bash
+   export OVERPASS_ENDPOINTS="https://overpass-api.de/api/interpreter,https://overpass.kumi.systems/api/interpreter"
+   export OVERPASS_RETRIES_PER_ENDPOINT=3
+   export OVERPASS_BACKOFF_SECONDS=5
+   export CONTINUE_ON_OVERPASS_ERROR=true
+   ```
+
+2. Run countries update:
+
+   ```bash
+   DBNAME=osm-notes ./bin/process/updateCountries.sh
+   ```
+
+3. Inspect results:
+
+   ```bash
+   # Failed boundaries list (when continue-on-error is enabled)
+   ls -l /tmp/updateCountries_*/failed_boundaries.txt 2>/dev/null || true
+   
+   # Logs per boundary batch
+   ls -l /tmp/updateCountries_*/updateCountries.log*
+   ```
+
+**Expected Result:**
+
+- If primary Overpass is degraded, the script retries and then falls back to a secondary endpoint.
+- Invalid JSON responses do not stop the whole process when `CONTINUE_ON_OVERPASS_ERROR=true`; failing boundary IDs are recorded in `failed_boundaries.txt`.
+
 ## Troubleshooting
 
 ### Problem 1: "log_info: orden no encontrada"
