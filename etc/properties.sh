@@ -65,6 +65,14 @@ declare CONTINUE_ON_OVERPASS_ERROR="${CONTINUE_ON_OVERPASS_ERROR:-true}"
 # JSON validator command (must support: jq -e .).
 declare JSON_VALIDATOR="${JSON_VALIDATOR:-jq}"
 
+# Generic download User-Agent applied to all HTTP requests when supported.
+# Recommended format: ProjectName/Version (+project_url; contact: email)
+# Defaults to project identity if not provided.
+if [[ -z "${DOWNLOAD_USER_AGENT:-}" ]]; then
+ # Do not break lines; keep UA in one line for header correctness
+ DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/osmlatam/OSM-Notes-Ingestion; contact: angoca@osm.lat)"
+fi
+
 # Processing configuration.
 # Quantity of notes to process per loop, to get the location of the note.
 # shellcheck disable=SC2034

@@ -7,6 +7,7 @@ setup() {
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
  export LOG_LEVEL="ERROR"
+ export DOWNLOAD_USER_AGENT="Test-UA/1.0 (+https://example.test; contact: test@example.test)"
 }
 
 teardown() {

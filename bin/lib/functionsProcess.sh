@@ -2075,7 +2075,11 @@ function __overpass_download_with_endpoints() {
   # Cleanup before each attempt
   rm -f "${LOCAL_JSON_FILE}" "${LOCAL_OUTPUT_FILE}" 2> /dev/null || true
 
-  local OP="wget -O ${LOCAL_JSON_FILE} --post-file=${LOCAL_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${LOCAL_OUTPUT_FILE}"
+  local UA_OPT=""
+  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+   UA_OPT="--header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\""
+  fi
+  local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${LOCAL_OUTPUT_FILE}"
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
   if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true"; then
    __logd "Download succeeded from endpoint=${ENDPOINT}"
@@ -2177,8 +2181,13 @@ function __processCountries {
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
  set +e
+if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+ wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_COUNTRIES}" \
+  "${OVERPASS_INTERPRETER}"
+else
  wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
   "${OVERPASS_INTERPRETER}"
+fi
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -3347,6 +3356,7 @@ function __retry_osm_api() {
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+   ${DOWNLOAD_USER_AGENT:+-H "User-Agent: ${DOWNLOAD_USER_AGENT}"} \
    -o "${OUTPUT_FILE}" "${URL}"; then
    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
     __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"

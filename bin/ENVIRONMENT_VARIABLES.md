@@ -33,6 +33,13 @@ These variables are used across **all scripts** and should be standardized:
   - `LOG_FILE=/tmp/processPlanetNotes.log LOG_LEVEL=INFO \
     ./bin/process/processPlanetNotes.sh --base`
 
+### `DOWNLOAD_USER_AGENT`
+- **Purpose**: Sets the HTTP User-Agent for all outbound downloads (Overpass, etc.)
+- **Format**: `Project/Version (+project_url; contact: email)`
+- **Default**: empty (no explicit header)
+- **Example**:
+  - `export DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/angoca/OSM-Notes-Ingestion; contact: you@example.com)"`
+
 ### `CLEAN`
 - **Purpose**: Whether to delete temporary files after processing
 - **Values**: `true`, `false`
@@ -183,6 +190,7 @@ Defined in `etc/properties.sh` (can be overridden by environment):
 - **`OSM_API`**: OSM API URL (default: `https://api.openstreetmap.org/api/0.6`)
 - **`PLANET`**: Planet dump URL (default: `https://planet.openstreetmap.org`)
 - **`OVERPASS_INTERPRETER`**: Overpass API URL
+- **`DOWNLOAD_USER_AGENT`**: User-Agent for downloads (Overpass, etc.)
 - **`OVERPASS_ENDPOINTS`**: Fallback endpoints (comma-separated)
 - **`OVERPASS_RETRIES_PER_ENDPOINT`**: Retries per endpoint
 - **`OVERPASS_BACKOFF_SECONDS`**: Base backoff between retries
