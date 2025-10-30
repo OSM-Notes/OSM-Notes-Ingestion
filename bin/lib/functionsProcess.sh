@@ -2077,6 +2077,7 @@ function __overpass_download_with_endpoints() {
 
   local UA_OPT=""
   if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+   __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
    UA_OPT="--header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\""
   fi
   local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${LOCAL_OUTPUT_FILE}"
@@ -3353,6 +3354,9 @@ function __retry_osm_api() {
 
  __logd "Executing OSM API call with retry logic: ${URL}"
  __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  __logd "Using User-Agent for OSM API: ${DOWNLOAD_USER_AGENT}"
+ fi
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
