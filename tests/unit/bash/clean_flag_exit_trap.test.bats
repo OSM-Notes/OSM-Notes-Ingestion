@@ -8,6 +8,11 @@
 load "../../test_helper.bash"
 
 setup() {
+  # Ensure SCRIPT_BASE_DIRECTORY is set
+  if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+    export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+  fi
+  
   # Create a temporary directory for testing
   TEST_TMP_DIR=$(mktemp -d "/tmp/clean_flag_test_XXXXXX")
   
