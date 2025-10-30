@@ -8,6 +8,11 @@
 load "../../test_helper.bash"
 
 setup() {
+  # Ensure SCRIPT_BASE_DIRECTORY is set
+  if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+    export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+  fi
+  
   # Source the consolidated functions
   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 }

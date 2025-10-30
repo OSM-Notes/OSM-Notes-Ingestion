@@ -9,6 +9,11 @@ setup() {
  # Load test helper functions
  load "${BATS_TEST_DIRNAME}/../../test_helper.bash"
 
+ # Ensure SCRIPT_BASE_DIRECTORY is set
+ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+   export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ fi
+
  # Load properties and functions
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/osm-notes-processing.properties" ]]; then

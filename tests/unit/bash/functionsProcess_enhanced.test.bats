@@ -12,6 +12,11 @@ load "$(dirname "${BATS_TEST_FILENAME}")/../../test_helper.bash"
 # =============================================================================
 
 setup() {
+ # Ensure TEST_BASE_DIR is set
+ if [[ -z "${TEST_BASE_DIR:-}" ]]; then
+   export TEST_BASE_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ fi
+
  # Create test XML files for different scenarios
  create_test_xml_files
 
