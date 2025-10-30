@@ -1577,12 +1577,13 @@ function __processBoundary {
    # Clean up previous failed attempt
    rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
    # Wait before retry with exponential backoff
-   local RETRY_DELAY=$((BASE_DELAY_LOCAL * DOWNLOAD_VALIDATION_RETRY_COUNT))
-   if [[ ${RETRY_DELAY} -gt 60 ]]; then
-    RETRY_DELAY=60
+   # Use BOUNDARY_RETRY_DELAY to avoid conflict with global readonly RETRY_DELAY
+   local BOUNDARY_RETRY_DELAY=$((BASE_DELAY_LOCAL * DOWNLOAD_VALIDATION_RETRY_COUNT))
+   if [[ ${BOUNDARY_RETRY_DELAY} -gt 60 ]]; then
+    BOUNDARY_RETRY_DELAY=60
    fi
-   __logd "Waiting ${RETRY_DELAY}s before retry..."
-   sleep "${RETRY_DELAY}"
+   __logd "Waiting ${BOUNDARY_RETRY_DELAY}s before retry..."
+   sleep "${BOUNDARY_RETRY_DELAY}"
   fi
 
   # Attempt download
