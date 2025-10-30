@@ -2084,7 +2084,7 @@ function __overpass_download_with_endpoints() {
   fi
  local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
-  if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true"; then
+  if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true" "${ACTIVE_OVERPASS}"; then
    __logd "Download succeeded from endpoint=${ENDPOINT}"
    # Validate JSON has elements key
    if __validate_json_with_element "${LOCAL_JSON_FILE}" "elements"; then
@@ -3103,6 +3103,8 @@ function __retry_file_operation() {
  local BASE_DELAY_LOCAL="${3:-2}"
  local CLEANUP_COMMAND="${4:-}"
  local SMART_WAIT="${5:-false}"
+ # Optional: explicit Overpass endpoint for smart-wait (avoids relying on global)
+ local SMART_WAIT_ENDPOINT="${6:-}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
  local DOWNLOAD_TICKET=0
@@ -3121,7 +3123,13 @@ function __retry_file_operation() {
  trap '__cleanup_ticket' EXIT INT TERM
 
  # Get download ticket if smart wait is enabled for Overpass operations
- if [[ "${SMART_WAIT}" == "true" ]] && [[ "${OPERATION_COMMAND}" == *"${OVERPASS_INTERPRETER}"* ]]; then
+ # Use provided SMART_WAIT_ENDPOINT when available; else fall back to OVERPASS_INTERPRETER matching
+ local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}" 
+ if [[ -z "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]] && [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
+  EFFECTIVE_OVERPASS_FOR_WAIT="${OVERPASS_INTERPRETER}"
+ fi
+
+ if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
   DOWNLOAD_TICKET=$(__get_download_ticket 2>&1 | tail -1)
   if [[ -n "${DOWNLOAD_TICKET}" ]] && [[ ${DOWNLOAD_TICKET} -gt 0 ]]; then
    TICKET_OBTAINED=true
@@ -3149,8 +3157,8 @@ function __retry_file_operation() {
   else
    local OPERATION_FAILED="true"
 
-   # If this is an Overpass operation, check for specific error messages
-   if [[ "${OPERATION_COMMAND}" == *"${OVERPASS_INTERPRETER}"* ]]; then
+  # If this looks like an Overpass operation, check for specific error messages
+  if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
     __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
 
     # Try to extract and log specific error messages from stderr
