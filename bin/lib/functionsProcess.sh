@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-29
-VERSION="2025-10-29"
+# Version: 2025-10-30
+VERSION="2025-10-30"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -1586,23 +1586,13 @@ function __processBoundary {
    sleep "${BOUNDARY_RETRY_DELAY}"
   fi
 
-  # Attempt download
-  local OVERPASS_OPERATION="wget -O ${JSON_FILE} --post-file=${QUERY_FILE_TO_USE} ${OVERPASS_INTERPRETER} 2> ${OUTPUT_OVERPASS}"
-  local OVERPASS_CLEANUP="rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-
-  # Increased retries from 5 to 7 and base delay from 15s to 20s for complex boundaries
-  # Smart wait enabled to check Overpass API status before retrying
-  # This gives a total retry period of up to ~20 minutes instead of ~4 minutes
-  # Complex boundaries get even more retries and longer delays
-  if ! __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}" "${OVERPASS_CLEANUP}" "true"; then
-   __loge "Failed to retrieve boundary ${ID} from Overpass after retries"
-   if [[ "${IS_COMPLEX:-false}" == "true" ]]; then
-    __loge "This was a complex boundary with enhanced retry settings (${MAX_RETRIES_LOCAL} retries, ${BASE_DELAY_LOCAL}s delays)"
-   fi
+  # Attempt download with fallback among endpoints
+  if ! __overpass_download_with_endpoints "${QUERY_FILE_TO_USE}" "${JSON_FILE}" "${OUTPUT_OVERPASS}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}"; then
+   __loge "Failed to retrieve boundary ${ID} from all Overpass endpoints"
    DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
    continue
   fi
-  __logd "Successfully downloaded boundary ${ID} from Overpass API"
+  __logd "Successfully downloaded boundary ${ID} from Overpass API (with fallback)"
 
   # Check for specific Overpass errors
   __logd "Checking Overpass API response for errors..."
@@ -1699,10 +1689,18 @@ function __processBoundary {
  # Check if download and validation succeeded
  if [[ "${DOWNLOAD_SUCCESS}" != "true" ]]; then
   __loge "Failed to download and validate JSON for boundary ${ID} after ${DOWNLOAD_VALIDATION_RETRIES} attempts"
-  __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID} after retries" \
-   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-  __log_finish
-  return 1
+  if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+   echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
+   __logw "Continuing after boundary failure due to CONTINUE_ON_OVERPASS_ERROR=true (id=${ID})"
+   rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2>/dev/null || true
+   __log_finish
+   return 1
+  else
+   __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID} after retries" \
+    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+   __log_finish
+   return 1
+  fi
  fi
  __logd "Download and validation completed successfully for boundary ${ID}"
 
@@ -2041,6 +2039,64 @@ function __processBoundary {
  rmdir "${PROCESS_LOCK}" 2> /dev/null || true
  __logi "=== BOUNDARY PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
+}
+
+# Download using Overpass with fallback across multiple endpoints and validate JSON
+# Parameters:
+#   $1: Query file path
+#   $2: Output JSON file path
+#   $3: Output capture/stderr file for Overpass tool (used by retry function)
+#   $4: Max retries used by underlying retry function
+#   $5: Base delay used by underlying retry function
+function __overpass_download_with_endpoints() {
+ __log_start
+ local LOCAL_QUERY_FILE="$1"
+ local LOCAL_JSON_FILE="$2"
+ local LOCAL_OUTPUT_FILE="$3"
+ local LOCAL_MAX_RETRIES="$4"
+ local LOCAL_BASE_DELAY="$5"
+
+ # Parse endpoints list
+ local ENDPOINTS_RAW="${OVERPASS_ENDPOINTS:-${OVERPASS_INTERPRETER}}"
+ IFS=',' read -r -a ENDPOINTS_ARRAY <<< "${ENDPOINTS_RAW}"
+
+ local ORIGINAL_OVERPASS="${OVERPASS_INTERPRETER}"
+
+ for ENDPOINT in "${ENDPOINTS_ARRAY[@]}"; do
+  ENDPOINT="${ENDPOINT//[[:space:]]/}"
+  if [[ -z "${ENDPOINT}" ]]; then
+   continue
+  fi
+  __logw "[overpass] Trying endpoint=${ENDPOINT} for query download"
+
+  # Temporarily point OVERPASS_INTERPRETER for smart-wait integration
+  OVERPASS_INTERPRETER="${ENDPOINT}"
+
+  # Cleanup before each attempt
+  rm -f "${LOCAL_JSON_FILE}" "${LOCAL_OUTPUT_FILE}" 2> /dev/null || true
+
+  local OP="wget -O ${LOCAL_JSON_FILE} --post-file=${LOCAL_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${LOCAL_OUTPUT_FILE}"
+  local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
+  if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true"; then
+   __logd "Download succeeded from endpoint=${ENDPOINT}"
+   # Validate JSON has elements key
+   if __validate_json_with_element "${LOCAL_JSON_FILE}" "elements"; then
+    __logd "JSON validation succeeded from endpoint=${ENDPOINT}"
+    OVERPASS_INTERPRETER="${ORIGINAL_OVERPASS}"
+    __log_finish
+    return 0
+   else
+    __logw "Invalid JSON from endpoint=${ENDPOINT}; will try next endpoint"
+   fi
+  else
+   __logw "Download failed from endpoint=${ENDPOINT}; will try next endpoint"
+  fi
+ done
+
+ # Restore original interpreter
+ OVERPASS_INTERPRETER="${ORIGINAL_OVERPASS}"
+ __log_finish
+ return 1
 }
 
 # Processes the list of countries or maritime areas in the given file.

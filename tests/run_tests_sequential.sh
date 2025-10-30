@@ -196,6 +196,7 @@ __run_level_2() {
   "${SCRIPT_DIR}/unit/bash/boundary_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/checksum_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/input_validation.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/json_validation_with_elements.test.bats" \
   "${SCRIPT_DIR}/unit/bash/extended_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/edge_cases_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/sql_validation_integration.test.bats" \
@@ -290,7 +291,9 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/cleanup_dependency_fix.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling_enhanced.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats"; then
+  "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/trap_management.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/trap_failed_marker.test.bats"; then
   __show_level_footer 6 "success"
   return 0
  else
