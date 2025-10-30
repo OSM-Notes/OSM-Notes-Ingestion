@@ -170,6 +170,25 @@ The script uses several environment variables for configuration:
 - **Error Logging**: Comprehensive error logging for debugging
 - **State Preservation**: Maintains processing state for recovery
 
+### Signal and Trap Handling
+
+The API processing uses refined trap management to ensure safe termination,
+consistent cleanup, and clear error reporting when the process is interrupted
+or an unexpected error occurs.
+
+- Trapped signals: `INT`, `TERM`, `ERR`.
+- On trap:
+  - Flushes and closes log sections properly.
+  - Marks partial runs to enable recovery on next execution.
+  - Cleans temporary directories when safe (`CLEAN=true`), preserving artifacts
+    for debugging otherwise.
+  - Exits with a non-zero error code aligned with the error category.
+
+Operational guarantees:
+- No orphan temporary directories when `CLEAN=true`.
+- No silent exits; traps always log the call stack and failure reason.
+- Compatible with parallel execution; each worker logs its own context.
+
 ## Performance Considerations
 
 ### Optimization Strategies
