@@ -141,8 +141,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
-VERSION="2025-10-27"
+# Version: 2025-10-30
+VERSION="2025-10-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1563,16 +1563,17 @@ function __show_help {
  exit "${ERROR_HELP_MESSAGE}"
 }
 
-export LOG_FILE="${LOG_FILENAME}"
-__start_logger
 if [[ ! -t 1 ]]; then
- __set_log_file "${LOG_FILENAME}"
- main >> "${LOG_FILENAME}" 2>&1
+ export LOG_FILE="${LOG_FILENAME}"
+ {
+  __start_logger
+  main
+ } >> "${LOG_FILENAME}" 2>&1
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S \
-   || true).log"
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  fi
 else
+ __start_logger
  main
 fi

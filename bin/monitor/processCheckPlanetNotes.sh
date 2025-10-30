@@ -334,14 +334,16 @@ chmod go+x "${TMP_DIR}"
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
- export LOG_FILE="${LOG_FILENAME}"
- __start_logger
  if [[ ! -t 1 ]]; then
-  __set_log_file "${LOG_FILENAME}"
-  main >> "${LOG_FILENAME}"
+  export LOG_FILE="${LOG_FILENAME}"
+  {
+   __start_logger
+   main
+  } >> "${LOG_FILENAME}" 2>&1
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  else
+  __start_logger
   main
  fi
 fi

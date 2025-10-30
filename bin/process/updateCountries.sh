@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-28
-VERSION="2025-10-28"
+# Version: 2025-10-30
+VERSION="2025-10-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -385,12 +385,14 @@ EOF
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
- export LOG_FILE="${LOG_FILENAME}"
- __start_logger
  if [[ ! -t 1 ]]; then
-  __set_log_file "${LOG_FILENAME}"
-  main >> "${LOG_FILENAME}" 2>&1
+  export LOG_FILE="${LOG_FILENAME}"
+  {
+   __start_logger
+   main
+  } >> "${LOG_FILENAME}" 2>&1
  else
+  __start_logger
   main
  fi
 fi

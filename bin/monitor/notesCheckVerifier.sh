@@ -84,7 +84,7 @@ readonly LOCK
 source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
 
 # Start logger
-__start_logger
+# (No output until execution guard below)
 
 # Load validation functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; then
@@ -443,11 +443,14 @@ chmod go+x "${TMP_DIR}"
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
- __start_logger
  if [[ ! -t 1 ]]; then
-  __set_log_file "${LOG_FILE_NAME}"
-  main >> "${LOG_FILE_NAME}"
+  export LOG_FILE="${LOG_FILE_NAME}"
+  { 
+   __start_logger
+   main
+  } >> "${LOG_FILE_NAME}" 2>&1
  else
+  __start_logger
   main
  fi
 fi

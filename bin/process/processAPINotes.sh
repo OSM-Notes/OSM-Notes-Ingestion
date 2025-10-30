@@ -59,8 +59,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-29
-VERSION="2025-10-29"
+# Version: 2025-10-30
+VERSION="2025-10-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1326,21 +1326,19 @@ declare -i RET
 # Allows to other users read the directory.
 chmod go+x "${TMP_DIR}"
 
-# If running from cron (no TTY), set log file BEFORE starting logger
-# to prevent DEBUG messages from going to stderr
-# bash_logger.sh will read LOG_FILE during initialization
+# If running from cron (no TTY), redirect logger initialization
+# and main execution to the log file to keep cron silent
 if [[ ! -t 1 ]]; then
  export LOG_FILE="${LOG_FILENAME}"
-fi
-
-__start_logger
-
-if [[ ! -t 1 ]]; then
- main >> "${LOG_FILENAME}" 2>&1
+ {
+  __start_logger
+  main
+ } >> "${LOG_FILENAME}" 2>&1
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
  fi
 else
+ __start_logger
  main
 fi
