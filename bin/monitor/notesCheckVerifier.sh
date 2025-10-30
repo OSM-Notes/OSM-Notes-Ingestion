@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-26
-VERSION="2025-10-26"
+# Version: 2025-10-30
+VERSION="2025-10-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -111,7 +111,8 @@ declare -r REPORT_ZIP=${TMP_DIR}/report.zip
 # Location of the common functions.
 
 # Script to process notes from Planet.
-declare -r SCRIPT_PROCESS_PLANET="processCheckPlanetNotes.sh"
+# Use absolute path to ensure execution under cron environments.
+declare -r SCRIPT_PROCESS_PLANET="${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
 
 # SQL report file.
 declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-report.sql"
