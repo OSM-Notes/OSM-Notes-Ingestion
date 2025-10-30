@@ -1,8 +1,14 @@
 # Test generated files
 test/xslt/*actual*
 test/xslt/test_output/
-test/command/extra/mockPlanetDump.osn.bz2*
+tests/fixtures/command/extra/mockPlanetDump.osn.bz2*
 .vscode/
+
+# Planet notes download files (generated during processing)
+planet-notes*.bz2
+planet-notes*.osn.bz2
+*.osn.bz2
+*.osn.bz2.md5
 
 # Test output directories
 tests/output/
