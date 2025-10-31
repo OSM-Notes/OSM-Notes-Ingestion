@@ -686,7 +686,8 @@ function __processPlanetNotesWithParallel {
   "${NUM_PARTS}" "${PARTS_DIR}" "planet"; then
   __loge "ERROR: Failed to split XML file"
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
+  return "${ERROR_EXECUTING_PLANET_DUMP}"
  fi
 
  # STEP 3: Process each part with AWK in parallel
@@ -700,7 +701,8 @@ function __processPlanetNotesWithParallel {
  if [[ ${#PART_FILES[@]} -eq 0 ]]; then
   __loge "ERROR: No part files found in ${PARTS_DIR}"
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
+  return "${ERROR_EXECUTING_PLANET_DUMP}"
  fi
 
  __logi "Found ${#PART_FILES[@]} part files to process"
@@ -745,7 +747,8 @@ function __processPlanetNotesWithParallel {
     "__parallel_worker_wrapper {}"; then
    __loge "ERROR: Parallel processing failed"
    __log_finish
-   return 1
+   export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
+   return "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
  else
   # Fallback: Process in batches using background jobs
@@ -781,7 +784,8 @@ function __processPlanetNotesWithParallel {
   if [[ ${FAILED} -gt 0 ]]; then
    __loge "ERROR: ${FAILED} parallel jobs failed"
    __log_finish
-   return 1
+   export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
+   return "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
  fi
 
@@ -894,7 +898,8 @@ function __validate_xml_with_enhanced_error_handling {
   # Fallback if consolidated functions are not available
   __loge "ERROR: Consolidated validation functions not found. Please ensure consolidatedValidationFunctions.sh is available."
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
+  return "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
 }
@@ -911,7 +916,8 @@ function __validate_xml_basic {
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_DATA_VALIDATION}"
+  return "${ERROR_DATA_VALIDATION}"
  fi
 
  __logi "Performing basic XML validation: ${XML_FILE}"
@@ -921,7 +927,8 @@ function __validate_xml_basic {
  if ! grep -q '<?xml' "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: XML file does not contain XML declaration"
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_DATA_VALIDATION}"
+  return "${ERROR_DATA_VALIDATION}"
  fi
 
  # Check root element
@@ -954,7 +961,8 @@ function __validate_xml_basic {
   if [[ "${OPENING_TAGS}" -ne "${CLOSING_TAGS}" ]]; then
    __loge "ERROR: Mismatched note tags: ${OPENING_TAGS} opening, ${CLOSING_TAGS} closing"
    __log_finish
-   return 1
+   export SCRIPT_EXIT_CODE="${ERROR_DATA_VALIDATION}"
+   return "${ERROR_DATA_VALIDATION}"
   fi
 
   __logi "Basic XML validation passed"
@@ -963,7 +971,8 @@ function __validate_xml_basic {
  else
   __loge "ERROR: No notes found in XML file"
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_DATA_VALIDATION}"
+  return "${ERROR_DATA_VALIDATION}"
  fi
 }
 
@@ -979,7 +988,8 @@ function __validate_xml_structure_only {
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_DATA_VALIDATION}"
+  return "${ERROR_DATA_VALIDATION}"
  fi
 
  __logi "Performing structure-only validation for very large file: ${XML_FILE}"
@@ -988,7 +998,8 @@ function __validate_xml_structure_only {
  if ! grep -q "<osm-notes>" "${XML_FILE}" 2> /dev/null; then
   __loge "ERROR: Missing root element <osm-notes> in ${XML_FILE}"
   __log_finish
-  return 1
+  export SCRIPT_EXIT_CODE="${ERROR_DATA_VALIDATION}"
+  return "${ERROR_DATA_VALIDATION}"
  fi
 
  # Check for note elements
@@ -1382,7 +1393,8 @@ function main() {
 
  # Checks the prerequisities. It could terminate the process.
  if ! __checkPrereqs; then
-  exit 1
+  # Use the exit code set by __checkPrereqs, or default to 1
+  exit "${SCRIPT_EXIT_CODE:-1}"
  fi
 
  __logw "Starting process."
