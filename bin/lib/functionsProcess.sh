@@ -1172,7 +1172,7 @@ function __checkBaseTables {
  __logd "SQL file: ${POSTGRES_11_CHECK_BASE_TABLES}"
  local PSQL_OUTPUT
  local PSQL_ERROR
- PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1)
+ PSQL_OUTPUT=$(psql -q -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1)
  RET=${?}
  PSQL_ERROR="${PSQL_OUTPUT}"
 
@@ -1234,7 +1234,7 @@ function __checkHistoricalData {
  mkdir -p "${TMP_DIR:-/tmp}" 2> /dev/null || true
 
  # Execute and capture output and exit code safely
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" > "${HIST_OUT_FILE}" 2>&1
+ psql -q -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" > "${HIST_OUT_FILE}" 2>&1
  RET=$?
 
  # Restore errexit if it was previously on
@@ -1254,16 +1254,8 @@ function __checkHistoricalData {
   RET=1
  fi
 
- # Print psql output to current logger context with appropriate levels
- if [[ -n "${HIST_OUT}" ]]; then
-  while IFS= read -r LINE; do
-   if [[ "${LINE}" == *"ERROR:"* ]]; then
-    __loge "${LINE}"
-   else
-    __logd "${LINE}"
-   fi
-  done <<< "${HIST_OUT}"
- fi
+ # Note: We don't log HIST_OUT directly to avoid variable expansion issues
+ # with pg_wrapper messages that may contain $ characters
 
  if [[ "${RET}" -eq 0 ]]; then
   __logi "Historical data validation passed"
@@ -1692,7 +1684,7 @@ function __processBoundary {
   if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
    echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
    __logw "Continuing after boundary failure due to CONTINUE_ON_OVERPASS_ERROR=true (id=${ID})"
-   rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2>/dev/null || true
+   rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
    __log_finish
    return 1
   else
@@ -2071,8 +2063,8 @@ function __overpass_download_with_endpoints() {
   fi
   __logw "[overpass] Trying endpoint=${ENDPOINT} for query download"
 
- # Select active endpoint for this attempt (do not modify readonly globals)
- ACTIVE_OVERPASS="${ENDPOINT}"
+  # Select active endpoint for this attempt (do not modify readonly globals)
+  ACTIVE_OVERPASS="${ENDPOINT}"
 
   # Cleanup before each attempt
   rm -f "${LOCAL_JSON_FILE}" "${LOCAL_OUTPUT_FILE}" 2> /dev/null || true
@@ -2082,13 +2074,13 @@ function __overpass_download_with_endpoints() {
    __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
    UA_OPT="--header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\""
   fi
- local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
+  local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
   if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true" "${ACTIVE_OVERPASS}"; then
    __logd "Download succeeded from endpoint=${ENDPOINT}"
    # Validate JSON has elements key
    if __validate_json_with_element "${LOCAL_JSON_FILE}" "elements"; then
-   __logd "JSON validation succeeded from endpoint=${ENDPOINT}"
+    __logd "JSON validation succeeded from endpoint=${ENDPOINT}"
     __log_finish
     return 0
    else
@@ -2099,7 +2091,7 @@ function __overpass_download_with_endpoints() {
   fi
  done
 
-# Nothing to restore; we never modified global interpreter
+ # Nothing to restore; we never modified global interpreter
  __log_finish
  return 1
 }
@@ -2182,13 +2174,13 @@ function __processCountries {
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
  set +e
-if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
- wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_COUNTRIES}" \
-  "${OVERPASS_INTERPRETER}"
-else
- wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
-  "${OVERPASS_INTERPRETER}"
-fi
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_COUNTRIES}" \
+   "${OVERPASS_INTERPRETER}"
+ else
+  wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
+   "${OVERPASS_INTERPRETER}"
+ fi
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
@@ -2967,10 +2959,10 @@ function __queue_prune_stale_locks() {
  for LOCK_FILE in "${ACTIVE_DIR}"/*.lock; do
   [[ -e "${LOCK_FILE}" ]] || continue
   # Filename format: <pid>.<ticket>.lock
-  local BASENAME
-  BASENAME=$(basename "${LOCK_FILE}")
+  local LOCK_BASENAME
+  LOCK_BASENAME=$(basename "${LOCK_FILE}")
   local PID_PART
-  PID_PART=${BASENAME%%.*}
+  PID_PART=${LOCK_BASENAME%%.*}
   if [[ "${PID_PART}" =~ ^[0-9]+$ ]]; then
    if ! ps -p "${PID_PART}" > /dev/null 2>&1; then
     __logw "Removing stale lock (pid not running): ${LOCK_FILE}"
@@ -3193,7 +3185,7 @@ function __retry_file_operation() {
 
  # Get download ticket if smart wait is enabled for Overpass operations
  # Use provided SMART_WAIT_ENDPOINT when available; else fall back to OVERPASS_INTERPRETER matching
- local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}" 
+ local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}"
  if [[ -z "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]] && [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
   EFFECTIVE_OVERPASS_FOR_WAIT="${OVERPASS_INTERPRETER}"
  fi
@@ -3226,8 +3218,8 @@ function __retry_file_operation() {
   else
    local OPERATION_FAILED="true"
 
-  # If this looks like an Overpass operation, check for specific error messages
-  if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
+   # If this looks like an Overpass operation, check for specific error messages
+   if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
     __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
 
     # Try to extract and log specific error messages from stderr

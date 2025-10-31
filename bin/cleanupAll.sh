@@ -48,18 +48,23 @@ function __check_database() {
  __log_start
  local TARGET_DB="${1:-}"
 
- # Use provided database name or default from properties
+ # Use provided database name or from properties
  if [[ -z "${TARGET_DB}" ]]; then
-  if [[ -n "${DBNAME:-}" ]]; then
-   TARGET_DB="${DBNAME}"
-  else
-   TARGET_DB="osm_notes"
+  if [[ -z "${DBNAME:-}" ]]; then
+   __loge "Database name not provided and DBNAME not set in properties"
+   __loge "Please set DBNAME in etc/properties.sh or pass database name as parameter"
+   __log_finish
+   return 1
   fi
+  TARGET_DB="${DBNAME}"
  fi
 
  __logi "Checking if database exists: ${TARGET_DB}"
 
- if psql -lqt | cut -d \| -f 1 | grep -qw "${TARGET_DB}"; then
+ # Check if database exists by attempting to connect to it
+ # If connection succeeds, database exists
+ set +e
+ if psql -d "${TARGET_DB}" -c "SELECT 1;" > /dev/null 2>&1; then
   __logi "Database ${TARGET_DB} exists"
   __log_finish
   return 0
@@ -451,7 +456,11 @@ function __show_help() {
  echo "  $0 --partitions-only     # Clean only partitions"
  echo ""
  echo "Database connection uses properties from etc/properties.sh:"
- echo "  Database: ${DBNAME:-osm-notes}"
+ if [[ -n "${DBNAME:-}" ]]; then
+  echo "  Database: ${DBNAME}"
+ else
+  echo "  Database: (not configured - set DBNAME in etc/properties.sh)"
+ fi
  echo "  Database user: ${DB_USER:-not set}"
  echo "  Authentication: peer (uses system user)"
  echo ""
@@ -507,8 +516,13 @@ function main() {
   esac
  done
 
- # Use database from properties
- local TARGET_DB="${DBNAME:-osm-notes}"
+ # Use database from properties (required)
+ if [[ -z "${DBNAME:-}" ]]; then
+  __loge "DBNAME not set in etc/properties.sh"
+  __loge "Please configure DBNAME in etc/properties.sh before running cleanup"
+  exit 1
+ fi
+ local TARGET_DB="${DBNAME}"
 
  __logi "Starting cleanup for database: ${TARGET_DB} (mode: ${CLEANUP_MODE})"
 
