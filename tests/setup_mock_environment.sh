@@ -572,7 +572,7 @@ create_mock_bzip2() {
 
 # Mock bzip2 command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-10-30
 
 # Parse arguments
 ARGS=()
@@ -623,7 +623,30 @@ if [[ "$DECOMPRESS" == true ]]; then
  if [[ -f "$FILE" ]]; then
    echo "Mock decompressed: $FILE"
    # Create a mock decompressed file
-   echo "Mock decompressed content" > "${FILE%.bz2}"
+   local output_file="${FILE%.bz2}"
+   
+   # If it's an OSM notes file, create valid XML content
+   if [[ "$FILE" == *"notes"* ]] || [[ "$FILE" == *".xml.bz2" ]] || [[ "$output_file" == *".xml" ]]; then
+     cat > "$output_file" << 'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note id="1001" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note 1</comment>
+ </note>
+ <note id="1002" lat="40.7129" lon="-74.0061" created_at="2023-01-01T01:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T01:00:00Z" uid="12346" user="testuser2">Test note 2</comment>
+  <comment action="commented" timestamp="2023-01-01T02:00:00Z" uid="12347" user="testuser3">This is a comment</comment>
+ </note>
+ <note id="1003" lat="40.7130" lon="-74.0062" created_at="2023-01-01T03:00:00Z" closed_at="2023-01-01T04:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T03:00:00Z" uid="12348" user="testuser4">Test note 3</comment>
+  <comment action="closed" timestamp="2023-01-01T04:00:00Z" uid="12349" user="testuser5">Closing this note</comment>
+ </note>
+</osm-notes>
+INNER_EOF
+   else
+     # For other files, use generic mock content
+     echo "Mock decompressed content" > "$output_file"
+   fi
  else
    echo "ERROR: File not found: $FILE" >&2
    exit 1

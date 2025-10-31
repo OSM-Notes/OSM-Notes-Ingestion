@@ -2,7 +2,7 @@
 
 # Mock psql command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-10-30
 
 # Function to simulate database operations
 mock_database_operation() {
@@ -11,13 +11,25 @@ mock_database_operation() {
  
  case "$operation" in
   -d)
-   # Database connection
-   echo "Connected to database: $args"
+   # Database connection - redirect to stderr to avoid polluting stdout
+   echo "Connected to database: $args" >&2
    ;;
   -c)
    # SQL command
    if [[ "$args" == *"SELECT"* ]]; then
-     if [[ "$args" == *"COUNT"* ]]; then
+     # Check for gap count query (notes without comments)
+     # This query looks for notes without comments in the last 7 days
+     if [[ "$args" == *"gap_count"* ]] || ([[ "$args" == *"LEFT JOIN note_comments"* ]] && [[ "$args" == *"nc.note_id IS NULL"* ]]); then
+       echo "0"
+     # Check for table existence queries
+     elif [[ "$args" == *"information_schema.tables"* ]] && [[ "$args" == *"table_name"* ]]; then
+       # Return 1 if checking for max_note_timestamp or other expected tables
+       if [[ "$args" == *"max_note_timestamp"* ]]; then
+         echo "1"
+       else
+         echo "1"
+       fi
+     elif [[ "$args" == *"COUNT"* ]]; then
        echo "100"
      elif [[ "$args" == *"TABLE_NAME"* ]]; then
        echo "notes"
@@ -55,7 +67,7 @@ mock_database_operation() {
   -f)
    # SQL file
    if [[ -f "$args" ]]; then
-     echo "Executing SQL file: $args"
+     echo "Executing SQL file: $args" >&2
      echo "OK"
    else
      echo "ERROR: File not found: $args" >&2
@@ -63,8 +75,8 @@ mock_database_operation() {
    fi
    ;;
   -v)
-   # Variable assignment
-   echo "Variable set: $args"
+   # Variable assignment - redirect to stderr to avoid polluting stdout
+   echo "Variable set: $args" >&2
    ;;
   --version)
    echo "psql (PostgreSQL) 15.1"
@@ -122,15 +134,21 @@ for var in "${VARIABLES[@]}"; do
 done
 
 # Process main operation
-if [[ -n "$DATABASE" ]]; then
+# Only output connection message if there's no SQL command or file
+# (to avoid polluting stdout when capturing command output)
+if [[ -n "$DATABASE" ]] && [[ -z "$COMMAND" ]] && [[ -z "$FILE" ]]; then
  mock_database_operation "-d" "$DATABASE"
 fi
 
 if [[ -n "$COMMAND" ]]; then
+ # Don't output connection message when executing a command
+ # Just execute the command directly
  mock_database_operation "-c" "$COMMAND"
 fi
 
 if [[ -n "$FILE" ]]; then
+ # Don't output connection message when executing a file
+ # Just execute the file directly
  mock_database_operation "-f" "$FILE"
 fi
 
