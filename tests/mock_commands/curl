@@ -2,7 +2,7 @@
 
 # Mock curl command for offline testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-10-30
 
 set -euo pipefail
 
@@ -41,7 +41,8 @@ __create_mock_file() {
   return 0
  fi
 
- if [[ "$url" == *.xml* ]]; then
+ # Check for XML URLs (including those with query parameters like search.xml?limit=...)
+ if [[ "$url" == *".xml"* ]] || [[ "$url" == *"/notes"* ]] || [[ "$url" == *"search.xml"* ]]; then
   cat >"$output_file" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm-notes>
@@ -49,6 +50,16 @@ __create_mock_file() {
        created_at="2023-01-01T00:00:00Z">
   <comment action="opened" timestamp="2023-01-01T00:00:00Z"
            uid="12345" user="testuser">Test note</comment>
+ </note>
+ <note id="124" lat="40.7129" lon="-74.0061"
+       created_at="2023-01-01T01:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T01:00:00Z"
+           uid="12346" user="testuser2">Test note 2</comment>
+ </note>
+ <note id="125" lat="40.7130" lon="-74.0062"
+       created_at="2023-01-01T02:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T02:00:00Z"
+           uid="12347" user="testuser3">Test note 3</comment>
  </note>
 </osm-notes>
 EOF

@@ -21,6 +21,10 @@ mock_database_operation() {
      # This query looks for notes without comments in the last 7 days
      if [[ "$args" == *"gap_count"* ]] || ([[ "$args" == *"LEFT JOIN note_comments"* ]] && [[ "$args" == *"nc.note_id IS NULL"* ]]); then
        echo "0"
+     # Check for timestamp queries (TO_CHAR with timestamp)
+     elif [[ "$args" == *"TO_CHAR"* ]] && [[ "$args" == *"timestamp"* ]]; then
+       # Return timestamp in ISO format: YYYY-MM-DDTHH24:MI:SSZ
+       echo "2023-01-01T00:00:00Z"
      # Check for table existence queries
      elif [[ "$args" == *"information_schema.tables"* ]] && [[ "$args" == *"table_name"* ]]; then
        # Return 1 if checking for max_note_timestamp or other expected tables
