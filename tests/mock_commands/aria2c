@@ -2,16 +2,31 @@
 
 # Mock aria2c command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-10-30
 
 # Function to create mock files
 create_mock_file() {
  local url="$1"
  local output_file="$2"
+ local output_dir="$3"
+ 
+ # Build full path if directory is specified
+ if [[ -n "$output_dir" && -n "$output_file" ]]; then
+   output_file="${output_dir}/${output_file}"
+ elif [[ -n "$output_dir" ]]; then
+   output_file="${output_dir}/$(basename "$url")"
+ fi
  
  # Extract filename from URL if no output file specified
  if [[ -z "$output_file" ]]; then
    output_file=$(basename "$url")
+ fi
+ 
+ # Ensure directory exists
+ local file_dir
+ file_dir=$(dirname "$output_file")
+ if [[ -n "$file_dir" && "$file_dir" != "." ]]; then
+   mkdir -p "$file_dir"
  fi
  
  # Create mock content based on URL
@@ -37,10 +52,15 @@ INNER_EOF
 # Parse arguments
 ARGS=()
 OUTPUT_FILE=""
+OUTPUT_DIR=""
 QUIET=false
 
 while [[ $# -gt 0 ]]; do
  case $1 in
+  -d)
+   OUTPUT_DIR="$2"
+   shift 2
+   ;;
   -o)
    OUTPUT_FILE="$2"
    shift 2
@@ -73,15 +93,21 @@ if [[ -z "$URL" ]]; then
 fi
 
 # Create mock file
-if [[ -n "$OUTPUT_FILE" ]]; then
- create_mock_file "$URL" "$OUTPUT_FILE"
-else
- create_mock_file "$URL"
-fi
+create_mock_file "$URL" "$OUTPUT_FILE" "$OUTPUT_DIR"
 
 # Simulate download completion
 if [[ "$QUIET" != true ]]; then
- echo "Download completed: ${OUTPUT_FILE:-$(basename "$URL")}"
+ final_name=""
+ if [[ -n "$OUTPUT_DIR" && -n "$OUTPUT_FILE" ]]; then
+   final_name="${OUTPUT_DIR}/${OUTPUT_FILE}"
+ elif [[ -n "$OUTPUT_DIR" ]]; then
+   final_name="${OUTPUT_DIR}/$(basename "$URL")"
+ elif [[ -n "$OUTPUT_FILE" ]]; then
+   final_name="$OUTPUT_FILE"
+ else
+   final_name=$(basename "$URL")
+ fi
+ echo "Download completed: $final_name"
 fi
 
 exit 0
