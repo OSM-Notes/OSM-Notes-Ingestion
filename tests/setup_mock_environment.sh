@@ -65,7 +65,7 @@ create_mock_wget() {
 
 # Mock wget command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-10-30
 
 # Function to create mock files
 create_mock_file() {
@@ -104,7 +104,28 @@ INNER_EOF
    # Create a small bzip2 file
    echo "Mock bzip2 content" | bzip2 > "$output_file" 2>/dev/null || echo "Mock bzip2 content" > "$output_file"
  elif [[ "$url" == *".md5" ]]; then
-   echo "d41d8cd98f00b204e9800998ecf8427e" > "$output_file"
+   # When downloading an MD5 file, calculate the MD5 of the related file
+   # The related file should be in the same directory without the .md5 extension
+   local related_file
+   related_file="${output_file%.md5}"
+   
+   # Check if the related file exists
+   if [[ -f "$related_file" ]]; then
+     # Calculate MD5 of the related file
+     local md5_checksum
+     if command -v md5sum > /dev/null 2>&1; then
+       md5_checksum=$(md5sum < "$related_file" | cut -d ' ' -f 1)
+     elif command -v md5 > /dev/null 2>&1; then
+       md5_checksum=$(md5 -q < "$related_file")
+     else
+       # Fallback to fixed checksum if md5 command is not available
+       md5_checksum="d41d8cd98f00b204e9800998ecf8427e"
+     fi
+     echo "$md5_checksum" > "$output_file"
+   else
+     # If related file doesn't exist, use default checksum
+     echo "d41d8cd98f00b204e9800998ecf8427e" > "$output_file"
+   fi
  else
    echo "Mock content for $url" > "$output_file"
  fi
