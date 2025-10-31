@@ -72,7 +72,40 @@ mock_database_operation() {
    # SQL file
    if [[ -f "$args" ]]; then
      echo "Executing SQL file: $args" >&2
-     echo "OK"
+     # Check if this is the base tables verification SQL
+     # If so, check if base tables have been created (for deterministic fixtures)
+     if [[ "$args" == *"checkBaseTables"* ]] || [[ "$args" == *"functionsProcess_11"* ]]; then
+       # Check if base tables marker exists (indicates tables were created)
+       local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
+       if [[ -f "${BASE_TABLES_MARKER}" ]]; then
+         # Tables already exist - return success
+         echo "OK"
+       else
+         # Tables don't exist - return error
+         echo "ERROR: Base tables are missing: countries." >&2
+         exit 1
+       fi
+     # Check if this is dropping base tables (remove marker)
+     elif [[ "$args" == *"processPlanetNotes_13_dropBaseTables"* ]] || \
+          [[ "$args" == *"dropBaseTables"* ]]; then
+       # Remove marker when base tables are dropped
+       local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
+       rm -f "${BASE_TABLES_MARKER}" 2>/dev/null || true
+       echo "OK"
+     # Check if this is creating base tables (mark them as created)
+     elif [[ "$args" == *"processPlanetNotes_21_createBaseTables_enum"* ]] || \
+          [[ "$args" == *"processPlanetNotes_22_createBaseTables_tables"* ]] || \
+          [[ "$args" == *"processPlanetNotes_23_createBaseTables_constraints"* ]]; then
+       # Mark that base tables have been created (after creating the tables themselves)
+       # Only mark on the last file (constraints) to ensure all tables are created
+       if [[ "$args" == *"processPlanetNotes_23_createBaseTables_constraints"* ]]; then
+         local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
+         touch "${BASE_TABLES_MARKER}" 2>/dev/null || true
+       fi
+       echo "OK"
+     else
+       echo "OK"
+     fi
    else
      echo "ERROR: File not found: $args" >&2
      exit 1
