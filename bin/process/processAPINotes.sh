@@ -59,7 +59,7 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-11-01
 VERSION="2025-10-30"
 
 #set -xv
@@ -712,73 +712,73 @@ function __processApiXmlSequential {
  __logi "=== PROCESSING API XML SEQUENTIALLY ==="
 
  local XML_FILE="${1}"
- local OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes-sequential.csv"
- local OUTPUT_COMMENTS_FILE="${TMP_DIR}/output-comments-sequential.csv"
- local OUTPUT_TEXT_FILE="${TMP_DIR}/output-text-sequential.csv"
+ local SEQ_OUTPUT_NOTES_FILE="${TMP_DIR}/output-notes-sequential.csv"
+ local SEQ_OUTPUT_COMMENTS_FILE="${TMP_DIR}/output-comments-sequential.csv"
+ local SEQ_OUTPUT_TEXT_FILE="${TMP_DIR}/output-text-sequential.csv"
 
  # Process notes with AWK (fast and dependency-free)
- __logd "Processing notes with AWK: ${XML_FILE} -> ${OUTPUT_NOTES_FILE}"
- awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_FILE}" > "${OUTPUT_NOTES_FILE}"
- if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
-  __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
+ __logd "Processing notes with AWK: ${XML_FILE} -> ${SEQ_OUTPUT_NOTES_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_FILE}" > "${SEQ_OUTPUT_NOTES_FILE}"
+ if [[ ! -f "${SEQ_OUTPUT_NOTES_FILE}" ]]; then
+  __loge "Notes CSV file was not created: ${SEQ_OUTPUT_NOTES_FILE}"
   __log_finish
   return 1
  fi
 
  # Process comments with AWK (fast and dependency-free)
- __logd "Processing comments with AWK: ${XML_FILE} -> ${OUTPUT_COMMENTS_FILE}"
- awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_FILE}" > "${OUTPUT_COMMENTS_FILE}"
- if [[ ! -f "${OUTPUT_COMMENTS_FILE}" ]]; then
-  __loge "Comments CSV file was not created: ${OUTPUT_COMMENTS_FILE}"
+ __logd "Processing comments with AWK: ${XML_FILE} -> ${SEQ_OUTPUT_COMMENTS_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_FILE}" > "${SEQ_OUTPUT_COMMENTS_FILE}"
+ if [[ ! -f "${SEQ_OUTPUT_COMMENTS_FILE}" ]]; then
+  __loge "Comments CSV file was not created: ${SEQ_OUTPUT_COMMENTS_FILE}"
   __log_finish
   return 1
  fi
 
  # Process text comments with AWK (fast and dependency-free)
- __logd "Processing text comments with AWK: ${XML_FILE} -> ${OUTPUT_TEXT_FILE}"
- awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_FILE}" > "${OUTPUT_TEXT_FILE}"
- if [[ ! -f "${OUTPUT_TEXT_FILE}" ]]; then
-  __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_FILE}"
-  : > "${OUTPUT_TEXT_FILE}"
+ __logd "Processing text comments with AWK: ${XML_FILE} -> ${SEQ_OUTPUT_TEXT_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_FILE}" > "${SEQ_OUTPUT_TEXT_FILE}"
+ if [[ ! -f "${SEQ_OUTPUT_TEXT_FILE}" ]]; then
+  __logw "Text comments CSV file was not created, generating empty file to continue: ${SEQ_OUTPUT_TEXT_FILE}"
+  : > "${SEQ_OUTPUT_TEXT_FILE}"
  fi
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files:"
- __logd "  Notes: ${OUTPUT_NOTES_FILE} ($(wc -l < "${OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
- __logd "  Comments: ${OUTPUT_COMMENTS_FILE} ($(wc -l < "${OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
- __logd "  Text: ${OUTPUT_TEXT_FILE} ($(wc -l < "${OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
+ __logd "  Notes: ${SEQ_OUTPUT_NOTES_FILE} ($(wc -l < "${SEQ_OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
+ __logd "  Comments: ${SEQ_OUTPUT_COMMENTS_FILE} ($(wc -l < "${SEQ_OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
+ __logd "  Text: ${SEQ_OUTPUT_TEXT_FILE} ($(wc -l < "${SEQ_OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
 
  # Validate CSV files structure and content before loading
  __logd "Validating CSV files structure and enum compatibility..."
 
  # Validate notes
- if ! __validate_csv_structure "${OUTPUT_NOTES_FILE}" "notes"; then
+ if ! __validate_csv_structure "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
   __loge "ERROR: Notes CSV structure validation failed"
   __log_finish
   return 1
  fi
 
- if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_FILE}" "notes"; then
+ if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
   __loge "ERROR: Notes CSV enum validation failed"
   __log_finish
   return 1
  fi
 
  # Validate comments
- if ! __validate_csv_structure "${OUTPUT_COMMENTS_FILE}" "comments"; then
+ if ! __validate_csv_structure "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
   __loge "ERROR: Comments CSV structure validation failed"
   __log_finish
   return 1
  fi
 
- if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_FILE}" "comments"; then
+ if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
   __loge "ERROR: Comments CSV enum validation failed"
   __log_finish
   return 1
  fi
 
  # Validate text
- if ! __validate_csv_structure "${OUTPUT_TEXT_FILE}" "text"; then
+ if ! __validate_csv_structure "${SEQ_OUTPUT_TEXT_FILE}" "text"; then
   __loge "ERROR: Text CSV structure validation failed"
   __log_finish
   return 1
@@ -790,16 +790,24 @@ function __processApiXmlSequential {
  __logd "Database: ${DBNAME}"
 
  # Load into database with single thread (no partitioning)
- export OUTPUT_NOTES_FILE
- export OUTPUT_COMMENTS_FILE
- export OUTPUT_TEXT_FILE
+ # Replace variables in SQL file to avoid conflict with readonly variables
  export PART_ID="1"
  export MAX_THREADS="1"
- # shellcheck disable=SC2016
+ # Create temporary SQL file with variables substituted
+ local TEMP_SQL
+ TEMP_SQL=$(mktemp)
+ # Replace variables in SQL file using sed
+ sed "s|\$OUTPUT_NOTES_FILE|${SEQ_OUTPUT_NOTES_FILE}|g; \
+      s|\$OUTPUT_COMMENTS_FILE|${SEQ_OUTPUT_COMMENTS_FILE}|g; \
+      s|\$OUTPUT_TEXT_FILE|${SEQ_OUTPUT_TEXT_FILE}|g; \
+      s|\$PART_ID|1|g" \
+  < "${POSTGRES_31_LOAD_API_NOTES}" > "${TEMP_SQL}" || true
+ # Execute SQL
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '1'; SET app.max_threads = '1';" \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_COMMENTS_FILE,$OUTPUT_TEXT_FILE,$PART_ID' \
-   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+  -f "${TEMP_SQL}"
+ # Clean up temp file
+ rm -f "${TEMP_SQL}"
 
  __logi "=== SEQUENTIAL API XML PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
@@ -969,7 +977,7 @@ function __updateLastValue {
 function __cleanNotesFiles {
  __log_start
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-  rm "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
+  rm -f "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
    "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
  fi
  __log_finish

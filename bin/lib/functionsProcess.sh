@@ -251,6 +251,26 @@ function __countXmlNotesAPI() {
 
  # Count notes using grep (fast and reliable)
  TOTAL_NOTES=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null || echo "0")
+ local GREP_STATUS=$?
+
+ # grep returns 0 when matches found or no matches (which is valid)
+ # grep returns 1 when no matches found in some versions (also valid)
+ if [[ ${GREP_STATUS} -ne 0 ]] && [[ ${GREP_STATUS} -ne 1 ]]; then
+  __loge "Error counting notes in XML file (exit code ${GREP_STATUS}): ${XML_FILE}"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
+
+ # Remove any whitespace and ensure it's a single integer
+ TOTAL_NOTES=$(printf '%s' "${TOTAL_NOTES}" | tr -d '[:space:]' | head -1 || echo "0")
+
+ # Ensure it's numeric, default to 0 if not
+ if [[ -z "${TOTAL_NOTES}" ]] || [[ ! "${TOTAL_NOTES}" =~ ^[0-9]+$ ]]; then
+  __loge "Invalid or empty note count returned by grep: '${TOTAL_NOTES}'"
+  TOTAL_NOTES=0
+ fi
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
   __logi "No notes found in XML file"
@@ -3526,17 +3546,34 @@ function __retry_database_operation() {
  __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}"
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  if psql -d "${DBNAME}" -Atq -c "${QUERY}" > "${OUTPUT_FILE}" 2> "${ERROR_FILE}"; then
+  # Use ON_ERROR_STOP=1 to ensure SQL errors cause command to fail
+  local PSQL_EXIT_CODE=0
+  psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 -c "${QUERY}" > "${OUTPUT_FILE}" 2> "${ERROR_FILE}" || PSQL_EXIT_CODE=$?
+
+  # Check for SQL errors in output file (with -Atq, errors may go to stdout)
+  local HAS_ERROR=false
+  if [[ -s "${OUTPUT_FILE}" ]]; then
+   if grep -qiE "^ERROR\|^error\|no existe\|relation.*does not exist" "${OUTPUT_FILE}" 2> /dev/null; then
+    HAS_ERROR=true
+    __loge "SQL error detected in output: $(head -1 "${OUTPUT_FILE}")"
+   fi
+  fi
+
+  # Check for errors in error file (stderr)
+  if [[ -s "${ERROR_FILE}" ]]; then
+   if grep -qiE "ERROR\|error\|no existe\|relation.*does not exist" "${ERROR_FILE}" 2> /dev/null; then
+    HAS_ERROR=true
+    __loge "PostgreSQL error: $(cat "${ERROR_FILE}")"
+   fi
+  fi
+
+  if [[ ${PSQL_EXIT_CODE} -eq 0 ]] && [[ "${HAS_ERROR}" == false ]]; then
    __logd "Database operation succeeded on attempt $((RETRY_COUNT + 1))"
    rm -f "${ERROR_FILE}"
    __log_finish
    return 0
   else
-   __logw "Database operation failed on attempt $((RETRY_COUNT + 1))"
-   # Log the actual error from PostgreSQL
-   if [[ -s "${ERROR_FILE}" ]]; then
-    __loge "PostgreSQL error: $(cat "${ERROR_FILE}")"
-   fi
+   __logw "Database operation failed on attempt $((RETRY_COUNT + 1)) (exit code: ${PSQL_EXIT_CODE})"
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
