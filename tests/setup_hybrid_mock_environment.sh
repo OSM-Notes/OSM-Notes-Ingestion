@@ -2,7 +2,7 @@
 
 # Setup hybrid mock environment for testing (only internet downloads mocked)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
+# Version: 2025-11-01
 
 set -euo pipefail
 
@@ -369,6 +369,16 @@ activate_hybrid_mock_environment() {
 
  # Add mock commands to PATH (only internet-related)
  export PATH="${MOCK_COMMANDS_DIR}:${PATH}"
+ hash -r 2> /dev/null || true
+
+ local aria2c_path
+ aria2c_path=$(command -v aria2c 2> /dev/null || true)
+ if [[ "${aria2c_path}" == "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
+  log_info "Mock aria2c detected: ${aria2c_path}"
+ else
+  log_warning "Mock aria2c not detected. Current path: ${aria2c_path:-unknown}"
+  log_warning "Ensure ${MOCK_COMMANDS_DIR} precedes PATH"
+ fi
 
  # Define awkproc as a wrapper around awk
  # awkproc mimics an XSLT processor style interface for AWK scripts
@@ -437,6 +447,7 @@ deactivate_hybrid_mock_environment() {
  local new_path
  new_path=$(echo "$PATH" | sed "s|${MOCK_COMMANDS_DIR}:||g")
  export PATH="$new_path"
+ hash -r 2> /dev/null || true
 
  # Unset the awkproc function
  unset -f awkproc
