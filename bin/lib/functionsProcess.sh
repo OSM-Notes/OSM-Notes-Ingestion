@@ -1580,12 +1580,18 @@ function __processBoundary {
  local DOWNLOAD_VALIDATION_RETRIES=3
  local DOWNLOAD_VALIDATION_RETRY_COUNT=0
  local DOWNLOAD_SUCCESS=false
+ local DOWNLOAD_START_TIME
+ DOWNLOAD_START_TIME=$(date +%s)
 
- __logd "Downloading boundary ${ID} from Overpass API with validation and retry logic..."
+ __logi "Starting download attempts for boundary ${ID} (max retries: ${DOWNLOAD_VALIDATION_RETRIES}, CONTINUE_ON_OVERPASS_ERROR: ${CONTINUE_ON_OVERPASS_ERROR:-false})"
 
  while [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -lt ${DOWNLOAD_VALIDATION_RETRIES} ]] && [[ "${DOWNLOAD_SUCCESS}" == "false" ]]; do
+  local ATTEMPT_NUM=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
+  local ELAPSED_TIME
+  ELAPSED_TIME=$(($(date +%s) - DOWNLOAD_START_TIME))
+
   if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -gt 0 ]]; then
-   __logw "Retrying download and validation for boundary ${ID} (attempt $((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))/${DOWNLOAD_VALIDATION_RETRIES})"
+   __logw "Retrying download and validation for boundary ${ID} (attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES}, elapsed: ${ELAPSED_TIME}s)"
    # Clean up previous failed attempt
    rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
    # Wait before retry with exponential backoff
@@ -1594,17 +1600,30 @@ function __processBoundary {
    if [[ ${BOUNDARY_RETRY_DELAY} -gt 60 ]]; then
     BOUNDARY_RETRY_DELAY=60
    fi
-   __logd "Waiting ${BOUNDARY_RETRY_DELAY}s before retry..."
+   # Reduce delay if CONTINUE_ON_OVERPASS_ERROR is enabled
+   if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]] && [[ ${BOUNDARY_RETRY_DELAY} -gt 30 ]]; then
+    BOUNDARY_RETRY_DELAY=30
+    __logd "Reduced retry delay to ${BOUNDARY_RETRY_DELAY}s due to CONTINUE_ON_OVERPASS_ERROR=true"
+   fi
+   __logw "Waiting ${BOUNDARY_RETRY_DELAY}s before retry attempt ${ATTEMPT_NUM} for boundary ${ID}..."
    sleep "${BOUNDARY_RETRY_DELAY}"
+  else
+   __logd "Starting download attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES} for boundary ${ID}"
   fi
 
   # Attempt download with fallback among endpoints
+  __logd "Attempting download for boundary ${ID} (attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES})..."
   if ! __overpass_download_with_endpoints "${QUERY_FILE_TO_USE}" "${JSON_FILE}" "${OUTPUT_OVERPASS}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}"; then
-   __loge "Failed to retrieve boundary ${ID} from all Overpass endpoints"
+   local ELAPSED_NOW
+   ELAPSED_NOW=$(($(date +%s) - DOWNLOAD_START_TIME))
+   __loge "Failed to retrieve boundary ${ID} from all Overpass endpoints (attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES}, elapsed: ${ELAPSED_NOW}s)"
    DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
+   if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -lt ${DOWNLOAD_VALIDATION_RETRIES} ]]; then
+    __logw "Will retry boundary ${ID} (remaining attempts: $((DOWNLOAD_VALIDATION_RETRIES - DOWNLOAD_VALIDATION_RETRY_COUNT)))"
+   fi
    continue
   fi
-  __logd "Successfully downloaded boundary ${ID} from Overpass API (with fallback)"
+  __logd "Successfully downloaded boundary ${ID} from Overpass API (with fallback, attempt ${ATTEMPT_NUM})"
 
   # Check for specific Overpass errors
   __logd "Checking Overpass API response for errors..."
@@ -1700,33 +1719,43 @@ function __processBoundary {
 
  # Check if download and validation succeeded
  if [[ "${DOWNLOAD_SUCCESS}" != "true" ]]; then
-  __loge "Failed to download and validate JSON for boundary ${ID} after ${DOWNLOAD_VALIDATION_RETRIES} attempts"
+  local TOTAL_TIME
+  TOTAL_TIME=$(($(date +%s) - DOWNLOAD_START_TIME))
+  __loge "Failed to download and validate JSON for boundary ${ID} after ${DOWNLOAD_VALIDATION_RETRIES} attempts (total time: ${TOTAL_TIME}s)"
   if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
    echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
-   __logw "Continuing after boundary failure due to CONTINUE_ON_OVERPASS_ERROR=true (id=${ID})"
+   __logw "Recording boundary ${ID} as failed and continuing (CONTINUE_ON_OVERPASS_ERROR=true, total time: ${TOTAL_TIME}s)"
    rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
    __log_finish
    return 1
   else
-   __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID} after retries" \
-    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+   __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID} after retries (total time: ${TOTAL_TIME}s)" \
+   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
    __log_finish
    return 1
   fi
  fi
- __logd "Download and validation completed successfully for boundary ${ID}"
+ local TOTAL_SUCCESS_TIME
+ TOTAL_SUCCESS_TIME=$(($(date +%s) - DOWNLOAD_START_TIME))
+ __logi "Download and validation completed successfully for boundary ${ID} (total time: ${TOTAL_SUCCESS_TIME}s)"
 
  # Convert to GeoJSON with retry logic and validation
  # Retry conversion if validation fails
  local GEOJSON_VALIDATION_RETRIES=3
  local GEOJSON_VALIDATION_RETRY_COUNT=0
  local GEOJSON_SUCCESS=false
+ local GEOJSON_START_TIME
+ GEOJSON_START_TIME=$(date +%s)
 
- __logi "Converting into GeoJSON for boundary ${ID} with validation and retry logic..."
+ __logi "Converting into GeoJSON for boundary ${ID} with validation and retry logic (max retries: ${GEOJSON_VALIDATION_RETRIES})..."
 
  while [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -lt ${GEOJSON_VALIDATION_RETRIES} ]] && [[ "${GEOJSON_SUCCESS}" == "false" ]]; do
+  local GEOJSON_ATTEMPT_NUM=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
+  local GEOJSON_ELAPSED
+  GEOJSON_ELAPSED=$(($(date +%s) - GEOJSON_START_TIME))
+
   if [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -gt 0 ]]; then
-   __logw "Retrying GeoJSON conversion and validation for boundary ${ID} (attempt $((GEOJSON_VALIDATION_RETRY_COUNT + 1))/${GEOJSON_VALIDATION_RETRIES})"
+   __logw "Retrying GeoJSON conversion and validation for boundary ${ID} (attempt ${GEOJSON_ATTEMPT_NUM}/${GEOJSON_VALIDATION_RETRIES}, elapsed: ${GEOJSON_ELAPSED}s)"
    # Clean up previous failed attempt
    rm -f "${GEOJSON_FILE}" 2> /dev/null || true
    # Wait before retry
@@ -1734,19 +1763,27 @@ function __processBoundary {
    if [[ ${GEOJSON_RETRY_DELAY} -gt 30 ]]; then
     GEOJSON_RETRY_DELAY=30
    fi
-   __logd "Waiting ${GEOJSON_RETRY_DELAY}s before GeoJSON retry..."
+   __logw "Waiting ${GEOJSON_RETRY_DELAY}s before GeoJSON retry attempt ${GEOJSON_ATTEMPT_NUM} for boundary ${ID}..."
    sleep "${GEOJSON_RETRY_DELAY}"
+  else
+   __logd "Starting GeoJSON conversion attempt ${GEOJSON_ATTEMPT_NUM}/${GEOJSON_VALIDATION_RETRIES} for boundary ${ID}"
   fi
 
   local GEOJSON_OPERATION="osmtogeojson ${JSON_FILE} > ${GEOJSON_FILE}"
   local GEOJSON_CLEANUP="rm -f ${GEOJSON_FILE} 2>/dev/null || true"
 
+  __logd "Attempting GeoJSON conversion for boundary ${ID} (attempt ${GEOJSON_ATTEMPT_NUM}/${GEOJSON_VALIDATION_RETRIES})..."
   if ! __retry_file_operation "${GEOJSON_OPERATION}" 2 5 "${GEOJSON_CLEANUP}"; then
-   __loge "Failed to convert boundary ${ID} to GeoJSON after retries"
+   local GEOJSON_ELAPSED_NOW
+   GEOJSON_ELAPSED_NOW=$(($(date +%s) - GEOJSON_START_TIME))
+   __loge "Failed to convert boundary ${ID} to GeoJSON (attempt ${GEOJSON_ATTEMPT_NUM}/${GEOJSON_VALIDATION_RETRIES}, elapsed: ${GEOJSON_ELAPSED_NOW}s)"
    GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
+   if [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -lt ${GEOJSON_VALIDATION_RETRIES} ]]; then
+    __logw "Will retry GeoJSON conversion for boundary ${ID} (remaining attempts: $((GEOJSON_VALIDATION_RETRIES - GEOJSON_VALIDATION_RETRY_COUNT)))"
+   fi
    continue
   fi
-  __logd "GeoJSON conversion completed for boundary ${ID}"
+  __logd "GeoJSON conversion completed for boundary ${ID} (attempt ${GEOJSON_ATTEMPT_NUM})"
 
   # Validate the GeoJSON structure and ensure it contains features
   __logd "Validating GeoJSON structure for boundary ${ID}..."
@@ -1763,13 +1800,17 @@ function __processBoundary {
 
  # Check if GeoJSON conversion and validation succeeded
  if [[ "${GEOJSON_SUCCESS}" != "true" ]]; then
-  __loge "Failed to convert and validate GeoJSON for boundary ${ID} after ${GEOJSON_VALIDATION_RETRIES} attempts"
-  __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID} after retries" \
+  local GEOJSON_TOTAL_TIME
+  GEOJSON_TOTAL_TIME=$(($(date +%s) - GEOJSON_START_TIME))
+  __loge "Failed to convert and validate GeoJSON for boundary ${ID} after ${GEOJSON_VALIDATION_RETRIES} attempts (total time: ${GEOJSON_TOTAL_TIME}s)"
+  __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID} after retries (total time: ${GEOJSON_TOTAL_TIME}s)" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
   __log_finish
   return 1
  fi
- __logd "GeoJSON conversion and validation completed successfully for boundary ${ID}"
+ local GEOJSON_TOTAL_SUCCESS_TIME
+ GEOJSON_TOTAL_SUCCESS_TIME=$(($(date +%s) - GEOJSON_START_TIME))
+ __logi "GeoJSON conversion and validation completed successfully for boundary ${ID} (total time: ${GEOJSON_TOTAL_SUCCESS_TIME}s)"
 
  # Extract names with error handling and sanitization
  __logd "Extracting names for boundary ${ID}..."
@@ -3005,11 +3046,18 @@ function __wait_for_download_turn() {
  local TICKET_FILE="${QUEUE_DIR}/ticket_counter"
  local MAX_SLOTS="${RATE_LIMIT:-4}"
  local CHECK_INTERVAL=1
+ # Reduce wait time if CONTINUE_ON_OVERPASS_ERROR is enabled to avoid blocking
  local MAX_WAIT_TIME=3600
+ if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+  MAX_WAIT_TIME=600
+  __logd "Reduced max wait time to ${MAX_WAIT_TIME}s due to CONTINUE_ON_OVERPASS_ERROR=true"
+ fi
  # Safety window to auto-heal the queue when no one is active
  local AUTO_HEAL_AFTER=300
  local WAIT_COUNT=0
  local LAST_HEAL_LOG=0
+ local START_TIME
+ START_TIME=$(date +%s)
 
  if [[ -z "${MY_TICKET}" ]]; then
   __loge "ERROR: Ticket number is required"
@@ -3017,7 +3065,7 @@ function __wait_for_download_turn() {
   return 1
  fi
 
- __logd "Waiting for download turn (ticket: ${MY_TICKET}, max slots: ${MAX_SLOTS})"
+ __logd "Waiting for download turn (ticket: ${MY_TICKET}, max slots: ${MAX_SLOTS}, max wait: ${MAX_WAIT_TIME}s)"
 
  # Initialize current serving if not exists
  if [[ ! -f "${CURRENT_SERVING_FILE}" ]]; then
@@ -3122,13 +3170,21 @@ function __wait_for_download_turn() {
   sleep ${CHECK_INTERVAL}
   WAIT_COUNT=$((WAIT_COUNT + CHECK_INTERVAL))
 
-  # Log progress every 10 seconds
+  # Log progress every 10 seconds, with more detail if waiting longer
   if [[ $((WAIT_COUNT % 10)) -eq 0 ]]; then
-   __logd "Still waiting for turn (ticket: ${MY_TICKET}, current: ${CURRENT_SERVING}, active: ${ACTIVE_DOWNLOADS}/${MAX_SLOTS}, waited: ${WAIT_COUNT}s)"
+   local ELAPSED_TIME
+   ELAPSED_TIME=$(($(date +%s) - START_TIME))
+   __logw "Still waiting for download turn (ticket: ${MY_TICKET}, current: ${CURRENT_SERVING}, active: ${ACTIVE_DOWNLOADS}/${MAX_SLOTS}, waited: ${WAIT_COUNT}s, elapsed: ${ELAPSED_TIME}s)"
+  fi
+  # Log warning every 60 seconds with more context
+  if [[ $((WAIT_COUNT % 60)) -eq 0 ]] && [[ ${WAIT_COUNT} -ge 60 ]]; then
+   __logw "Download queue wait time: ${WAIT_COUNT}s (max: ${MAX_WAIT_TIME}s). Ticket ${MY_TICKET} waiting, current serving: ${CURRENT_SERVING}, active: ${ACTIVE_DOWNLOADS}/${MAX_SLOTS}"
   fi
  done
 
- __loge "ERROR: Timeout waiting for download turn (ticket: ${MY_TICKET})"
+ local TOTAL_WAIT_TIME
+ TOTAL_WAIT_TIME=$(($(date +%s) - START_TIME))
+ __loge "ERROR: Timeout waiting for download turn (ticket: ${MY_TICKET}, waited: ${WAIT_COUNT}s, total time: ${TOTAL_WAIT_TIME}s)"
  __log_finish
  return 1
 }

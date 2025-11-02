@@ -141,8 +141,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
-VERSION="2025-10-30"
+# Version: 2025-11-01
+VERSION="2025-11-01"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -311,7 +311,9 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 # Function to handle cleanup on exit respecting CLEAN flag
 function __cleanup_on_exit() {
  __log_start
- local EXIT_CODE="${SCRIPT_EXIT_CODE:-$?}"
+ # Capture exit code immediately before any operations
+ local LAST_EXIT_CODE=$?
+ local EXIT_CODE="${SCRIPT_EXIT_CODE:-${LAST_EXIT_CODE}}"
 
  # Skip cleanup if we're just showing help
  if [[ "${SHOWING_HELP:-false}" == "true" ]]; then
