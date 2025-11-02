@@ -2977,9 +2977,207 @@ function __handle_error_with_cleanup() {
 }
 
 # Download queue management functions
-# These functions implement a FIFO queue to prevent race conditions
-# when multiple threads compete for Overpass API download slots.
-# Version: 2025-10-28
+# These functions implement a simple semaphore system to limit concurrent
+# downloads to Overpass API, preventing rate limiting issues.
+# Simpler than ticket-based queue: only limits concurrency, no ordering.
+# Version: 2025-10-29
+#
+# Alternative implementation: Simple semaphore (no tickets, no ordering)
+# Functions: __acquire_download_slot, __release_download_slot,
+# __cleanup_stale_slots, __wait_for_download_slot
+#
+# Legacy ticket-based queue system (deprecated but kept for compatibility):
+# Functions: __get_download_ticket, __wait_for_download_turn,
+# __release_download_ticket, __queue_prune_stale_locks
+
+# =============================================================================
+# Simple Semaphore System (Recommended)
+# =============================================================================
+
+# Acquire a download slot (simple semaphore - no ordering)
+# Returns: 0 on success, 1 on timeout/error
+# Side effect: Creates a lock directory in active/ directory (atomic mkdir)
+function __acquire_download_slot() {
+ __log_start
+ local QUEUE_DIR="${TMP_DIR}/download_queue"
+ local ACTIVE_DIR="${QUEUE_DIR}/active"
+ local MAX_SLOTS="${RATE_LIMIT:-4}"
+ local MY_LOCK_DIR="${ACTIVE_DIR}/${BASHPID}.lock"
+ # Keep MY_LOCK_FILE for compatibility with release function
+ local MY_LOCK_FILE="${ACTIVE_DIR}/${BASHPID}.lock"
+ local MAX_WAIT_TIME=600
+ local CHECK_INTERVAL=1
+
+ if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+  MAX_WAIT_TIME=300
+ fi
+
+ mkdir -p "${ACTIVE_DIR}"
+
+ local WAIT_COUNT=0
+ local START_TIME
+ START_TIME=$(date +%s)
+
+ while [[ ${WAIT_COUNT} -lt ${MAX_WAIT_TIME} ]]; do
+  # Clean up stale locks periodically
+  if [[ $((WAIT_COUNT % 30)) -eq 0 ]]; then
+   __cleanup_stale_slots || true
+  fi
+
+  # Try to acquire slot atomically (all operations inside flock)
+  (
+   flock -x 200
+   # Count active downloads inside flock to prevent race conditions
+   local ACTIVE_NOW=0
+   if [[ -d "${ACTIVE_DIR}" ]]; then
+    ACTIVE_NOW=$(find "${ACTIVE_DIR}" -name "*.lock" -type d 2> /dev/null | wc -l)
+   fi
+
+   # Try to create lock only if we're under the limit
+   if [[ ${ACTIVE_NOW} -lt ${MAX_SLOTS} ]]; then
+    # Use mkdir for atomic lock creation (mkdir is atomic in Linux)
+    # Format: ${BASHPID}.lock as directory name (contains PID for cleanup)
+    local MY_LOCK_DIR="${ACTIVE_DIR}/${BASHPID}.lock"
+    if ! [[ -d "${MY_LOCK_DIR}" ]] && ! [[ -f "${MY_LOCK_FILE}" ]]; then
+     # mkdir is atomic - only one process can succeed
+     if mkdir "${MY_LOCK_DIR}" 2> /dev/null; then
+      # Write PID to a file inside the lock dir for reference
+      echo "${BASHPID}" > "${MY_LOCK_DIR}/pid" 2> /dev/null || true
+      # Re-count to verify we didn't exceed limit
+      local ACTIVE_AFTER=0
+      if [[ -d "${ACTIVE_DIR}" ]]; then
+       ACTIVE_AFTER=$(find "${ACTIVE_DIR}" -name "*.lock" -type d 2> /dev/null | wc -l)
+      fi
+      # Only succeed if we didn't exceed the limit
+      if [[ ${ACTIVE_AFTER} -le ${MAX_SLOTS} ]]; then
+       local ELAPSED
+       ELAPSED=$(($(date +%s) - START_TIME))
+       __logd "Download slot acquired (active: ${ACTIVE_AFTER}/${MAX_SLOTS}, waited: ${WAIT_COUNT}s, elapsed: ${ELAPSED}s)"
+       exit 0
+      else
+       # We exceeded the limit (shouldn't happen with mkdir, but handle it)
+       rmdir "${MY_LOCK_DIR}" 2> /dev/null || true
+       __logd "Slot acquisition exceeded limit (${ACTIVE_AFTER}/${MAX_SLOTS}), retrying..."
+       exit 1
+      fi
+     fi
+     # mkdir failed (directory already exists or other error)
+     # This means another process got there first or our lock already exists
+    else
+     # Lock already exists (shouldn't happen, but handle gracefully)
+     if [[ -d "${MY_LOCK_DIR}" ]] || [[ -f "${MY_LOCK_FILE}" ]]; then
+      __logd "Lock already exists: ${MY_LOCK_DIR}"
+      exit 0
+     fi
+    fi
+   fi
+   exit 1
+  ) 200> "${QUEUE_DIR}/semaphore_lock"
+
+  if [[ $? -eq 0 ]]; then
+   __log_finish
+   return 0
+  fi
+
+  sleep ${CHECK_INTERVAL}
+  WAIT_COUNT=$((WAIT_COUNT + CHECK_INTERVAL))
+
+  # Log progress
+  if [[ $((WAIT_COUNT % 10)) -eq 0 ]]; then
+   local ELAPSED
+   ELAPSED=$(($(date +%s) - START_TIME))
+   __logw "Waiting for download slot (active: ${ACTIVE_COUNT}/${MAX_SLOTS}, waited: ${WAIT_COUNT}s, elapsed: ${ELAPSED}s)"
+  fi
+ done
+
+ local TOTAL_WAIT
+ TOTAL_WAIT=$(($(date +%s) - START_TIME))
+ __loge "ERROR: Timeout waiting for download slot (waited: ${WAIT_COUNT}s, total: ${TOTAL_WAIT}s)"
+ __log_finish
+ return 1
+}
+
+# Release a download slot
+# Returns: 0 on success, 1 on error
+function __release_download_slot() {
+ __log_start
+ local QUEUE_DIR="${TMP_DIR}/download_queue"
+ local ACTIVE_DIR="${QUEUE_DIR}/active"
+ local MY_LOCK_DIR="${ACTIVE_DIR}/${BASHPID}.lock"
+ local MY_LOCK_FILE="${ACTIVE_DIR}/${BASHPID}.lock"
+
+ # Remove lock directory (atomic operation)
+ if [[ -d "${MY_LOCK_DIR}" ]]; then
+  rm -rf "${MY_LOCK_DIR}" || true
+ elif [[ -f "${MY_LOCK_FILE}" ]]; then
+  # Legacy support: if it's a file instead of directory, remove it
+  rm -f "${MY_LOCK_FILE}" || true
+ fi
+
+ # Count remaining active slots
+ local ACTIVE_COUNT=0
+ if [[ -d "${ACTIVE_DIR}" ]]; then
+  # Count both directories and files for backward compatibility
+  ACTIVE_COUNT=$(find "${ACTIVE_DIR}" -name "*.lock" \( -type d -o -type f \) 2> /dev/null | wc -l)
+ fi
+ __logd "Download slot released (active: ${ACTIVE_COUNT}/${RATE_LIMIT:-4})"
+
+ __log_finish
+ return 0
+}
+
+# Clean up stale lock files (processes that are no longer running)
+# Returns: 0 on success
+function __cleanup_stale_slots() {
+ __log_start
+ local QUEUE_DIR="${TMP_DIR}/download_queue"
+ local ACTIVE_DIR="${QUEUE_DIR}/active"
+
+ if [[ ! -d "${ACTIVE_DIR}" ]]; then
+  __log_finish
+  return 0
+ fi
+
+ local CLEANED_COUNT=0
+ local LOCK_ITEM
+ # Handle both directories and files (for backward compatibility)
+ for LOCK_ITEM in "${ACTIVE_DIR}"/*.lock; do
+  [[ -e "${LOCK_ITEM}" ]] || continue
+  local LOCK_BASENAME
+  LOCK_BASENAME=$(basename "${LOCK_ITEM}")
+  local PID_PART
+  PID_PART=${LOCK_BASENAME%%.*}
+  if [[ "${PID_PART}" =~ ^[0-9]+$ ]]; then
+   if ! ps -p "${PID_PART}" > /dev/null 2>&1; then
+    __logw "Removing stale lock (pid not running): ${LOCK_ITEM}"
+    if [[ -d "${LOCK_ITEM}" ]]; then
+     rm -rf "${LOCK_ITEM}" || true
+    else
+     rm -f "${LOCK_ITEM}" || true
+    fi
+    CLEANED_COUNT=$((CLEANED_COUNT + 1))
+   fi
+  fi
+ done
+
+ if [[ ${CLEANED_COUNT} -gt 0 ]]; then
+  __logd "Cleaned up ${CLEANED_COUNT} stale lock(s)"
+ fi
+
+ __log_finish
+ return 0
+}
+
+# Wait for a download slot (wrapper that combines acquire)
+# Returns: 0 on success, 1 on timeout/error
+function __wait_for_download_slot() {
+ __acquire_download_slot
+ return $?
+}
+
+# =============================================================================
+# Legacy Ticket-Based Queue System (Deprecated)
+# =============================================================================
 
 # Get the next ticket number in the queue
 # Returns: ticket number (integer)
@@ -3173,16 +3371,32 @@ function __wait_for_download_turn() {
     if [[ ${MY_TICKET} -le $((CURRENT_AFTER_LOCK + MAX_SLOTS)) ]] \
      && [[ ${ACTIVE_AFTER_LOCK} -lt ${MAX_SLOTS} ]]; then
      # Check Overpass API status
-     local WAIT_TIME
+     local WAIT_TIME=0
+     local STATUS_CHECK_FAILED=false
      set +e
      WAIT_TIME=$(__check_overpass_status 2>&1 | tail -1)
+     local STATUS_CHECK_EXIT=$?
      set -e
 
-     if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -eq 0 ]]; then
+     # If status check failed or returned non-zero, allow through anyway (fallback)
+     # The queue system itself provides rate limiting through MAX_SLOTS
+     if [[ ${STATUS_CHECK_EXIT} -ne 0 ]] || [[ -z "${WAIT_TIME}" ]]; then
+      STATUS_CHECK_FAILED=true
+      __logw "Overpass status check failed or returned empty, allowing download anyway (ticket: ${MY_TICKET})"
+      WAIT_TIME=0
+     fi
+
+     if [[ ${WAIT_TIME} -eq 0 ]]; then
       # Claim the slot
       echo "${MY_TICKET}" > "${MY_LOCK_FILE}"
-      __logd "Download slot granted (ticket: ${MY_TICKET}, position: ${ACTIVE_AFTER_LOCK})"
+      if [[ "${STATUS_CHECK_FAILED}" == "true" ]]; then
+       __logd "Download slot granted (ticket: ${MY_TICKET}, position: ${ACTIVE_AFTER_LOCK}) - status check bypassed"
+      else
+       __logd "Download slot granted (ticket: ${MY_TICKET}, position: ${ACTIVE_AFTER_LOCK})"
+      fi
       exit 0
+     else
+      __logd "Overpass API not ready (wait time: ${WAIT_TIME}s), will retry"
      fi
     fi
     exit 1
@@ -3271,22 +3485,11 @@ function __retry_file_operation() {
  local SMART_WAIT_ENDPOINT="${6:-}"
  local RETRY_COUNT=0
  local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
- local DOWNLOAD_TICKET=0
- local TICKET_OBTAINED=false
 
  __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
  __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s, Smart wait: ${SMART_WAIT}"
 
- # Setup ticket cleanup on exit
- # shellcheck disable=SC2317
- __cleanup_ticket() {
-  if [[ "${TICKET_OBTAINED}" == "true" ]] && [[ ${DOWNLOAD_TICKET} -gt 0 ]]; then
-   __release_download_ticket "${DOWNLOAD_TICKET}" > /dev/null 2>&1 || true
-  fi
- }
- trap '__cleanup_ticket' EXIT INT TERM
-
- # Get download ticket if smart wait is enabled for Overpass operations
+ # Get download slot if smart wait is enabled for Overpass operations
  # Use provided SMART_WAIT_ENDPOINT when available; else fall back to OVERPASS_INTERPRETER matching
  local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}"
  if [[ -z "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]] && [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
@@ -3294,27 +3497,30 @@ function __retry_file_operation() {
  fi
 
  if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
-  DOWNLOAD_TICKET=$(__get_download_ticket 2>&1 | tail -1)
-  if [[ -n "${DOWNLOAD_TICKET}" ]] && [[ ${DOWNLOAD_TICKET} -gt 0 ]]; then
-   TICKET_OBTAINED=true
-   __logd "Obtained download ticket: ${DOWNLOAD_TICKET}"
-
-   # Wait for turn before attempting download
-   if ! __wait_for_download_turn "${DOWNLOAD_TICKET}"; then
-    __loge "Failed to obtain download slot after waiting"
-    __cleanup_ticket
-    trap - EXIT INT TERM
-    __log_finish
-    return 1
-   fi
+  # Use simple semaphore system (recommended - no tickets, no ordering)
+  if ! __wait_for_download_slot; then
+   __loge "Failed to obtain download slot after waiting"
+   trap - EXIT INT TERM
+   __log_finish
+   return 1
   fi
+  __logd "Download slot acquired, proceeding with download"
+  # Setup slot cleanup on exit
+  # shellcheck disable=SC2317
+  __cleanup_slot() {
+   __release_download_slot > /dev/null 2>&1 || true
+  }
+  trap '__cleanup_slot' EXIT INT TERM
  fi
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
   # Execute the operation and capture both stdout and stderr for better error logging
   if eval "${OPERATION_COMMAND}"; then
    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
-   __cleanup_ticket
+   # Release download slot if acquired
+   if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+    __release_download_slot > /dev/null 2>&1 || true
+   fi
    trap - EXIT INT TERM
    __log_finish
    return 0
@@ -3359,7 +3565,10 @@ function __retry_file_operation() {
  fi
 
  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
- __cleanup_ticket
+ # Release download slot if acquired
+ if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+  __release_download_slot > /dev/null 2>&1 || true
+ fi
  trap - EXIT INT TERM
  __log_finish
  return 1
