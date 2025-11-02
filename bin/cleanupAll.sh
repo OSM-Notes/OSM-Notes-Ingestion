@@ -5,7 +5,7 @@
 # Can be used for full cleanup or partition-only cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
+# Version: 2025-11-01
 
 set -euo pipefail
 # shellcheck disable=SC2310
@@ -14,6 +14,11 @@ set -euo pipefail
 BASENAME="cleanupAll"
 TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
+
+# Lock file for single execution
+if [[ -z "${LOCK:-}" ]]; then
+ declare -r LOCK="/tmp/${BASENAME}.lock"
+fi
 
 # Flag to track if the script should exit
 EXIT_REQUESTED=0
@@ -430,6 +435,13 @@ function __handle_interrupt() {
 # shellcheck disable=SC2317
 function __cleanup() {
  __log_start
+ # Remove lock file if it exists and we own it
+ if [[ -n "${LOCK:-}" ]] && [[ -f "${LOCK}" ]]; then
+  rm -f "${LOCK}" 2>/dev/null || true
+ fi
+ # Close lock file descriptor if open
+ exec 8>&- 2>/dev/null || true
+ # Remove temporary directory
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
@@ -523,6 +535,29 @@ function main() {
   exit 1
  fi
  local TARGET_DB="${DBNAME}"
+
+ # Prevent concurrent executions using flock
+ __logi "Checking for concurrent executions..."
+ exec 8> "${LOCK}"
+ if ! flock -n 8; then
+  __loge "ERROR: Another instance of ${BASENAME} is already running"
+  __loge "Lock file: ${LOCK}"
+  __loge "If you are sure no other instance is running, remove the lock file:"
+  __loge "  rm -f ${LOCK}"
+  exit 1
+ fi
+
+ # Write lock file content with useful debugging information
+ cat > "${LOCK}" << EOF
+PID: $$
+Process: ${BASENAME}
+Started: $(date '+%Y-%m-%d %H:%M:%S')
+Temporary directory: ${TMP_DIR}
+Cleanup mode: ${CLEANUP_MODE}
+Database: ${TARGET_DB}
+Main script: ${0}
+EOF
+ __logd "Lock file created: ${LOCK}"
 
  __logi "Starting cleanup for database: ${TARGET_DB} (mode: ${CLEANUP_MODE})"
 

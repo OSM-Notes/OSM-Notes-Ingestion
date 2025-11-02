@@ -141,8 +141,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-01
-VERSION="2025-11-01"
+# Version: 2025-11-02
+VERSION="2025-11-02"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1305,8 +1305,9 @@ function __processGeographicData {
  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
 
  if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
-  __logi "Geographic data found (${COUNTRIES_COUNT} countries/maritimes). Processing location notes..."
-  __getLocationNotes # sync
+  __logi "Geographic data found (${COUNTRIES_COUNT} countries/maritimes)."
+  __logi "Note: Location notes will be processed after get_country() function is created."
+  # Do not call __getLocationNotes here - it will be called after creating get_country()
  else
   __logw "No geographic data found (countries: ${COUNTRIES_COUNT})."
 
@@ -1326,8 +1327,9 @@ function __processGeographicData {
    set -e # Re-enable exit on error
 
    if [[ "${UPDATE_COUNTRIES_EXIT_CODE}" -eq 0 ]]; then
-    __logi "Countries and maritimes areas loaded successfully. Processing location notes..."
-    __getLocationNotes # sync
+    __logi "Countries and maritimes areas loaded successfully."
+    __logi "Note: Location notes will be processed after get_country() function is created."
+    # Do not call __getLocationNotes here - it will be called after creating get_country()
    else
     __logw "Failed to load countries automatically. Continuing without country assignment."
     __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base && ./bin/process/assignCountriesToNotes.sh"
@@ -1502,12 +1504,25 @@ EOF
  # Process geographic data and location notes for both base and sync modes
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
   __logi "Processing geographic data in base mode..."
-  # Process geographic data and location notes first
+  # Process geographic data first (creates countries and tries tables)
   # This creates countries and tries tables via updateCountries.sh
   __processGeographicData
   
-  # Now create get_country() function (requires tries table to exist)
+  # Create get_country() function BEFORE processing location notes
+  # This function is required by __getLocationNotes which is called
+  # inside __processGeographicData, but we need to create it after
+  # updateCountries.sh creates the tries table
+  __logi "Creating get_country() function (requires tries table to exist)..."
   __createFunctionToGetCountry # base & sync
+  
+  # Process location notes now that get_country() function exists
+  # Check if countries data exist to process location notes
+  local COUNTRIES_COUNT
+  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+  if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
+   __logi "Processing location notes with get_country() function..."
+   __getLocationNotes # sync
+  fi
 
   # Now organize areas after geographic data is loaded
   __logi "Organizing areas after geographic data is loaded..."

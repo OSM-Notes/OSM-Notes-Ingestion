@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
-VERSION="2025-10-30"
+# Version: 2025-11-02
+VERSION="2025-11-02"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -2578,9 +2578,15 @@ function __getLocationNotes {
   # Store counts from parallel threads in temp files
   local TEMP_COUNT_DIR
   TEMP_COUNT_DIR=$(mktemp -d)
+  # Ensure TEMP_COUNT_DIR is set before using it
+  if [[ -z "${TEMP_COUNT_DIR:-}" ]]; then
+   __loge "ERROR: Failed to create temporary directory for counts"
+   __log_finish
+   return 1
+  fi
   local CLEANUP_TEMP_DIR="${TEMP_COUNT_DIR}"
   # shellcheck disable=SC2064
-  trap 'rm -rf "${CLEANUP_TEMP_DIR}"' EXIT
+  trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"' EXIT
 
   for J in $(seq 1 1 "${VERIFY_THREADS}"); do
    (
@@ -3095,11 +3101,24 @@ function __wait_for_download_turn() {
 
   # Auto-heal: if no active downloads and tickets progressed beyond current,
   # and we've waited long enough, advance current_serving to the latest ticket.
-  if [[ ${WAIT_COUNT} -ge ${AUTO_HEAL_AFTER} ]] && [[ ${ACTIVE_DOWNLOADS} -eq 0 ]]; then
-   local TICKET_COUNTER=0
-   if [[ -f "${TICKET_FILE}" ]]; then
-    TICKET_COUNTER=$(cat "${TICKET_FILE}" 2> /dev/null || echo "0")
+  # More aggressive auto-heal when current_serving is stuck at 0 with high tickets
+  local TICKET_COUNTER=0
+  if [[ -f "${TICKET_FILE}" ]]; then
+   TICKET_COUNTER=$(cat "${TICKET_FILE}" 2> /dev/null || echo "0")
+  fi
+  local TICKETS_WAITING=$((TICKET_COUNTER - CURRENT_SERVING))
+  
+  # Reduce auto-heal delay when current_serving is 0 and many tickets are waiting
+  local EFFECTIVE_AUTO_HEAL_AFTER="${AUTO_HEAL_AFTER}"
+  if [[ ${CURRENT_SERVING} -eq 0 ]] && [[ ${TICKETS_WAITING} -gt 10 ]] && [[ ${ACTIVE_DOWNLOADS} -eq 0 ]]; then
+   # More aggressive: 30s instead of 300s when stuck at 0 with many tickets
+   EFFECTIVE_AUTO_HEAL_AFTER=30
+   if [[ $((WAIT_COUNT % 60)) -eq 0 ]] && [[ ${WAIT_COUNT} -ge 60 ]]; then
+    __logw "Detected queue stuck (current_serving: ${CURRENT_SERVING}, tickets waiting: ${TICKETS_WAITING}), using aggressive auto-heal (${EFFECTIVE_AUTO_HEAL_AFTER}s)"
    fi
+  fi
+  
+  if [[ ${WAIT_COUNT} -ge ${EFFECTIVE_AUTO_HEAL_AFTER} ]] && [[ ${ACTIVE_DOWNLOADS} -eq 0 ]]; then
    if [[ ${TICKET_COUNTER} -gt ${CURRENT_SERVING} ]]; then
     (
      flock -x 200
@@ -3115,9 +3134,17 @@ function __wait_for_download_turn() {
      if [[ ${ACTIVE_NOW} -eq 0 ]] && [[ ${TICKET_COUNTER} -gt ${CUR} ]]; then
       echo "${TICKET_COUNTER}" > "${CURRENT_SERVING_FILE}"
       LAST_HEAL_LOG=$((WAIT_COUNT))
-      __logw "Auto-heal advanced queue (current_serving: ${CUR} -> ${TICKET_COUNTER})"
+      __logw "Auto-heal advanced queue (current_serving: ${CUR} -> ${TICKET_COUNTER}, tickets waiting: ${TICKETS_WAITING}, waited: ${WAIT_COUNT}s)"
+     elif [[ ${ACTIVE_NOW} -gt 0 ]]; then
+      __logd "Auto-heal skipped: active downloads detected (${ACTIVE_NOW})"
+     elif [[ ${TICKET_COUNTER} -le ${CUR} ]]; then
+      __logd "Auto-heal skipped: ticket counter (${TICKET_COUNTER}) not greater than current serving (${CUR})"
      fi
     ) 200> "${QUEUE_DIR}/ticket_lock"
+   else
+    if [[ $((WAIT_COUNT % 60)) -eq 0 ]] && [[ ${WAIT_COUNT} -ge 60 ]]; then
+     __logw "Auto-heal condition met but ticket counter (${TICKET_COUNTER}) not greater than current serving (${CURRENT_SERVING})"
+    fi
    fi
   fi
 
