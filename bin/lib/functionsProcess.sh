@@ -1667,13 +1667,13 @@ function __processBoundary {
   if [[ "${MANY_REQUESTS}" -ne 0 ]] || [[ "${GATEWAY_TIMEOUT}" -ne 0 ]] || [[ "${BAD_REQUEST}" -ne 0 ]] \
    || [[ "${INTERNAL_SERVER_ERROR}" -ne 0 ]] || [[ "${SERVICE_UNAVAILABLE}" -ne 0 ]]; then
    HAS_CRITICAL_ERROR=true
-  if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
-   __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID} - IP may be rate-limited, will retry with longer delay"
-   # If 429 detected, wait longer to avoid further rate limiting
-   local RATE_LIMIT_DELAY=30
-   __logw "Waiting ${RATE_LIMIT_DELAY}s due to rate limit (429) before retry..."
-   sleep "${RATE_LIMIT_DELAY}"
-  fi
+   if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
+    __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID} - IP may be rate-limited, will retry with longer delay"
+    # If 429 detected, wait longer to avoid further rate limiting
+    local RATE_LIMIT_DELAY=30
+    __logw "Waiting ${RATE_LIMIT_DELAY}s due to rate limit (429) before retry..."
+    sleep "${RATE_LIMIT_DELAY}"
+   fi
    if [[ "${GATEWAY_TIMEOUT}" -ne 0 ]]; then
     __loge "ERROR 504: Gateway timeout from Overpass API for boundary ${ID} - will retry"
    fi
@@ -1734,7 +1734,7 @@ function __processBoundary {
    return 1
   else
    __handle_error_with_cleanup "${ERROR_DATA_VALIDATION}" "Invalid JSON structure for boundary ${ID} after retries (total time: ${TOTAL_TIME}s)" \
-   "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+    "rm -f ${JSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
    __log_finish
    return 1
   fi
@@ -3012,6 +3012,7 @@ function __acquire_download_slot() {
  local MAX_WAIT_TIME=60
  local CHECK_INTERVAL=0.5
  local MAX_RETRIES=10
+ local SLOT_MAX_RETRIES=10
 
  mkdir -p "${ACTIVE_DIR}"
 
@@ -3291,7 +3292,7 @@ function __wait_for_download_turn() {
    TICKET_COUNTER=$(cat "${TICKET_FILE}" 2> /dev/null || echo "0")
   fi
   local TICKETS_WAITING=$((TICKET_COUNTER - CURRENT_SERVING))
-  
+
   # Reduce auto-heal delay when current_serving is 0 and many tickets are waiting
   local EFFECTIVE_AUTO_HEAL_AFTER="${AUTO_HEAL_AFTER}"
   if [[ ${CURRENT_SERVING} -eq 0 ]] && [[ ${TICKETS_WAITING} -gt 10 ]] && [[ ${ACTIVE_DOWNLOADS} -eq 0 ]]; then
@@ -3301,7 +3302,7 @@ function __wait_for_download_turn() {
     __logw "Detected queue stuck (current_serving: ${CURRENT_SERVING}, tickets waiting: ${TICKETS_WAITING}), using aggressive auto-heal (${EFFECTIVE_AUTO_HEAL_AFTER}s)"
    fi
   fi
-  
+
   if [[ ${WAIT_COUNT} -ge ${EFFECTIVE_AUTO_HEAL_AFTER} ]] && [[ ${ACTIVE_DOWNLOADS} -eq 0 ]]; then
    if [[ ${TICKET_COUNTER} -gt ${CURRENT_SERVING} ]]; then
     (
