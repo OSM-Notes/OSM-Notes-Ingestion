@@ -1667,9 +1667,13 @@ function __processBoundary {
   if [[ "${MANY_REQUESTS}" -ne 0 ]] || [[ "${GATEWAY_TIMEOUT}" -ne 0 ]] || [[ "${BAD_REQUEST}" -ne 0 ]] \
    || [[ "${INTERNAL_SERVER_ERROR}" -ne 0 ]] || [[ "${SERVICE_UNAVAILABLE}" -ne 0 ]]; then
    HAS_CRITICAL_ERROR=true
-   if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
-    __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID} - will retry"
-   fi
+  if [[ "${MANY_REQUESTS}" -ne 0 ]]; then
+   __loge "ERROR 429: Too many requests to Overpass API for boundary ${ID} - IP may be rate-limited, will retry with longer delay"
+   # If 429 detected, wait longer to avoid further rate limiting
+   local RATE_LIMIT_DELAY=30
+   __logw "Waiting ${RATE_LIMIT_DELAY}s due to rate limit (429) before retry..."
+   sleep "${RATE_LIMIT_DELAY}"
+  fi
    if [[ "${GATEWAY_TIMEOUT}" -ne 0 ]]; then
     __loge "ERROR 504: Gateway timeout from Overpass API for boundary ${ID} - will retry"
    fi
@@ -2994,36 +2998,31 @@ function __handle_error_with_cleanup() {
 # Simple Semaphore System (Recommended)
 # =============================================================================
 
-# Acquire a download slot (simple semaphore - no ordering)
+# Acquire a download slot (simple FIFO - minimal wait, max 8 concurrent)
+# Overpass has 2 servers × 4 slots = 8 total slots
 # Returns: 0 on success, 1 on timeout/error
 # Side effect: Creates a lock directory in active/ directory (atomic mkdir)
 function __acquire_download_slot() {
  __log_start
  local QUEUE_DIR="${TMP_DIR}/download_queue"
  local ACTIVE_DIR="${QUEUE_DIR}/active"
- local MAX_SLOTS="${RATE_LIMIT:-4}"
+ # Overpass has 2 servers × 4 slots = 8 total concurrent slots
+ local MAX_SLOTS="${RATE_LIMIT:-8}"
  local MY_LOCK_DIR="${ACTIVE_DIR}/${BASHPID}.lock"
- # Keep MY_LOCK_FILE for compatibility with release function
- local MY_LOCK_FILE="${ACTIVE_DIR}/${BASHPID}.lock"
- local MAX_WAIT_TIME=600
- local CHECK_INTERVAL=1
-
- if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
-  MAX_WAIT_TIME=300
- fi
+ local MAX_WAIT_TIME=60
+ local CHECK_INTERVAL=0.5
+ local MAX_RETRIES=10
 
  mkdir -p "${ACTIVE_DIR}"
 
- local WAIT_COUNT=0
+ local RETRY_COUNT=0
  local START_TIME
  START_TIME=$(date +%s)
 
- while [[ ${WAIT_COUNT} -lt ${MAX_WAIT_TIME} ]]; do
-  # Clean up stale locks periodically
-  if [[ $((WAIT_COUNT % 30)) -eq 0 ]]; then
-   __cleanup_stale_slots || true
-  fi
+ # Clean up stale locks first
+ __cleanup_stale_slots || true
 
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
   # Try to acquire slot atomically (all operations inside flock)
   (
    flock -x 200
@@ -3036,10 +3035,7 @@ function __acquire_download_slot() {
    # Try to create lock only if we're under the limit
    if [[ ${ACTIVE_NOW} -lt ${MAX_SLOTS} ]]; then
     # Use mkdir for atomic lock creation (mkdir is atomic in Linux)
-    # Format: ${BASHPID}.lock as directory name (contains PID for cleanup)
-    local MY_LOCK_DIR="${ACTIVE_DIR}/${BASHPID}.lock"
-    if ! [[ -d "${MY_LOCK_DIR}" ]] && ! [[ -f "${MY_LOCK_FILE}" ]]; then
-     # mkdir is atomic - only one process can succeed
+    if ! [[ -d "${MY_LOCK_DIR}" ]]; then
      if mkdir "${MY_LOCK_DIR}" 2> /dev/null; then
       # Write PID to a file inside the lock dir for reference
       echo "${BASHPID}" > "${MY_LOCK_DIR}/pid" 2> /dev/null || true
@@ -3052,23 +3048,19 @@ function __acquire_download_slot() {
       if [[ ${ACTIVE_AFTER} -le ${MAX_SLOTS} ]]; then
        local ELAPSED
        ELAPSED=$(($(date +%s) - START_TIME))
-       __logd "Download slot acquired (active: ${ACTIVE_AFTER}/${MAX_SLOTS}, waited: ${WAIT_COUNT}s, elapsed: ${ELAPSED}s)"
+       if [[ ${ELAPSED} -gt 1 ]]; then
+        __logd "Download slot acquired (active: ${ACTIVE_AFTER}/${MAX_SLOTS}, waited: ${ELAPSED}s)"
+       fi
        exit 0
       else
        # We exceeded the limit (shouldn't happen with mkdir, but handle it)
        rmdir "${MY_LOCK_DIR}" 2> /dev/null || true
-       __logd "Slot acquisition exceeded limit (${ACTIVE_AFTER}/${MAX_SLOTS}), retrying..."
        exit 1
       fi
      fi
-     # mkdir failed (directory already exists or other error)
-     # This means another process got there first or our lock already exists
     else
      # Lock already exists (shouldn't happen, but handle gracefully)
-     if [[ -d "${MY_LOCK_DIR}" ]] || [[ -f "${MY_LOCK_FILE}" ]]; then
-      __logd "Lock already exists: ${MY_LOCK_DIR}"
-      exit 0
-     fi
+     exit 0
     fi
    fi
    exit 1
@@ -3079,20 +3071,14 @@ function __acquire_download_slot() {
    return 0
   fi
 
+  # Minimal wait - queries don't take long, so we can retry quickly
   sleep ${CHECK_INTERVAL}
-  WAIT_COUNT=$((WAIT_COUNT + CHECK_INTERVAL))
-
-  # Log progress
-  if [[ $((WAIT_COUNT % 10)) -eq 0 ]]; then
-   local ELAPSED
-   ELAPSED=$(($(date +%s) - START_TIME))
-   __logw "Waiting for download slot (active: ${ACTIVE_COUNT}/${MAX_SLOTS}, waited: ${WAIT_COUNT}s, elapsed: ${ELAPSED}s)"
-  fi
+  RETRY_COUNT=$((RETRY_COUNT + 1))
  done
 
  local TOTAL_WAIT
  TOTAL_WAIT=$(($(date +%s) - START_TIME))
- __loge "ERROR: Timeout waiting for download slot (waited: ${WAIT_COUNT}s, total: ${TOTAL_WAIT}s)"
+ __loge "ERROR: Timeout waiting for download slot (waited: ${TOTAL_WAIT}s, max retries: ${MAX_RETRIES})"
  __log_finish
  return 1
 }
