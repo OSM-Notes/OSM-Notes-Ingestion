@@ -141,8 +141,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-02
-VERSION="2025-11-02"
+# Version: 2025-11-10
+VERSION="2025-11-10"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1507,14 +1507,14 @@ EOF
   # Process geographic data first (creates countries and tries tables)
   # This creates countries and tries tables via updateCountries.sh
   __processGeographicData
-  
+
   # Create get_country() function BEFORE processing location notes
   # This function is required by __getLocationNotes which is called
   # inside __processGeographicData, but we need to create it after
   # updateCountries.sh creates the tries table
   __logi "Creating get_country() function (requires tries table to exist)..."
   __createFunctionToGetCountry # base & sync
-  
+
   # Process location notes now that get_country() function exists
   # Check if countries data exist to process location notes
   local COUNTRIES_COUNT
@@ -1537,7 +1537,7 @@ EOF
   __logi "Processing geographic data in sync mode..."
   # For sync mode, create get_country() first (tries table should already exist)
   __createFunctionToGetCountry # base & sync
-  __dropSyncTables # sync
+  __dropSyncTables             # sync
   # Process geographic data and location notes first
   __processGeographicData
 
@@ -1553,7 +1553,7 @@ EOF
  fi
 
  # Create procedures (required for all modes - base & sync)
- __createProcedures  # all
+ __createProcedures # all
 
  __cleanNotesFiles  # base & sync
  __analyzeAndVacuum # base & sync
@@ -1592,17 +1592,20 @@ function __show_help {
  exit "${ERROR_HELP_MESSAGE}"
 }
 
-if [[ ! -t 1 ]]; then
- export LOG_FILE="${LOG_FILENAME}"
- {
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+ if [[ ! -t 1 ]]; then
+  export LOG_FILE="${LOG_FILENAME}"
+  {
+   __start_logger
+   main
+  } >> "${LOG_FILENAME}" 2>&1
+  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+   mv "${LOG_FILENAME}" \
+    "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+   rmdir "${TMP_DIR}"
+  fi
+ else
   __start_logger
   main
- } >> "${LOG_FILENAME}" 2>&1
- if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-  rmdir "${TMP_DIR}"
  fi
-else
- __start_logger
- main
 fi
