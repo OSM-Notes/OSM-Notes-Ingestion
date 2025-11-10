@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-02
-VERSION="2025-11-02"
+# Version: 2025-11-10
+VERSION="2025-11-10"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -2547,8 +2547,8 @@ function __getLocationNotes {
  # Verify integrity of imported note locations in parallel
  # Optimized: Parallelize verification by splitting data across threads (30min→5min for 4.8M notes)
  __logi "Verifying integrity of imported note locations (parallel)..."
- local TOTAL_NOTES_TO_INVALIDATE=0
- local VERIFY_THREADS=${MAX_THREADS}
+ local -i TOTAL_NOTES_TO_INVALIDATE=0
+ local -i VERIFY_THREADS=${MAX_THREADS}
 
  # If MAX_NOTE_ID_NOT_NULL is 0 but MAX_NOTE_ID > 0, it means there are notes
  # but none have country assigned (unlikely but handle it)
@@ -2560,17 +2560,14 @@ function __getLocationNotes {
   __logd "All ${MAX_NOTE_ID} notes have country assigned. Will verify integrity."
  fi
 
- declare -l VERIFY_SIZE=0
- if [[ "${MAX_NOTE_ID_NOT_NULL}" -gt 0 ]] && [[ "${VERIFY_THREADS}" -gt 0 ]]; then
-  VERIFY_SIZE=$((MAX_NOTE_ID_NOT_NULL / VERIFY_THREADS))
-  # Ensure minimum size of 1 if there are notes to verify
-  if [[ "${VERIFY_SIZE}" -eq 0 ]] && [[ "${MAX_NOTE_ID_NOT_NULL}" -gt 0 ]]; then
-   VERIFY_SIZE=1
-   __logw "VERIFY_SIZE was 0, setting to 1 to ensure verification runs"
-  fi
+ local -i EFFECTIVE_VERIFY_CHUNK_SIZE
+ EFFECTIVE_VERIFY_CHUNK_SIZE=${VERIFY_CHUNK_SIZE:-100000}
+ if ((EFFECTIVE_VERIFY_CHUNK_SIZE <= 0)); then
+  __logw "VERIFY_CHUNK_SIZE invalid (${EFFECTIVE_VERIFY_CHUNK_SIZE}), resetting to 100000."
+  EFFECTIVE_VERIFY_CHUNK_SIZE=100000
  fi
 
- __logd "Verification setup: VERIFY_THREADS=${VERIFY_THREADS}, VERIFY_SIZE=${VERIFY_SIZE}, MAX_NOTE_ID_NOT_NULL=${MAX_NOTE_ID_NOT_NULL}"
+ __logd "Verification setup: threads=${VERIFY_THREADS}, chunk=${EFFECTIVE_VERIFY_CHUNK_SIZE}, max_note=${MAX_NOTE_ID_NOT_NULL}"
 
  # Skip verification if no notes to verify
  if [[ "${MAX_NOTE_ID_NOT_NULL}" -eq 0 ]]; then
@@ -2582,51 +2579,105 @@ function __getLocationNotes {
   # Store counts from parallel threads in temp files
   local TEMP_COUNT_DIR
   TEMP_COUNT_DIR=$(mktemp -d)
-  # Ensure TEMP_COUNT_DIR is set before using it
   if [[ -z "${TEMP_COUNT_DIR:-}" ]]; then
    __loge "ERROR: Failed to create temporary directory for counts"
    __log_finish
    return 1
   fi
+
+  local QUEUE_FILE
+  QUEUE_FILE=$(mktemp)
+  if [[ -z "${QUEUE_FILE:-}" ]]; then
+   __loge "ERROR: Failed to create queue file for verification chunks"
+   rm -rf "${TEMP_COUNT_DIR}"
+   __log_finish
+   return 1
+  fi
+
   local CLEANUP_TEMP_DIR="${TEMP_COUNT_DIR}"
+  local CLEANUP_QUEUE_FILE="${QUEUE_FILE}"
   # shellcheck disable=SC2064
-  trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"' EXIT
+  trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"; rm -f "${CLEANUP_QUEUE_FILE:-}"' EXIT
+
+  local -i CHUNK_START=0
+  local -i MAX_NOTE_LIMIT=$((MAX_NOTE_ID_NOT_NULL + 1))
+  while ((CHUNK_START < MAX_NOTE_LIMIT)); do
+   local -i CHUNK_END=$((CHUNK_START + EFFECTIVE_VERIFY_CHUNK_SIZE))
+   if ((CHUNK_END > MAX_NOTE_LIMIT)); then
+    CHUNK_END=${MAX_NOTE_LIMIT}
+   fi
+   printf "%s %s\n" "${CHUNK_START}" "${CHUNK_END}" >> "${QUEUE_FILE}"
+   CHUNK_START=${CHUNK_END}
+  done
+
+  exec {VERIFY_QUEUE_FD}<> "${QUEUE_FILE}"
+  local -i TOTAL_CHUNKS
+  TOTAL_CHUNKS=$(wc -l < "${QUEUE_FILE}")
+  __logd "Verification queue ready: total_chunks=${TOTAL_CHUNKS}"
 
   for J in $(seq 1 1 "${VERIFY_THREADS}"); do
    (
-    __logd "Starting integrity verification thread ${J}."
-    MIN_THREAD=$((VERIFY_SIZE * (J - 1)))
-    MAX_THREAD=$((VERIFY_SIZE * J))
-    __logd "Thread ${J}: verifying notes ${MIN_THREAD} to ${MAX_THREAD}"
+    local -i THREAD_ID=${J}
+    __logd "Starting integrity verification thread ${THREAD_ID}."
+    local -i THREAD_COUNT=0
+    while true; do
+     local RANGE_START RANGE_END
+     if ! flock -x "${VERIFY_QUEUE_FD}"; then
+      __loge "Thread ${THREAD_ID}: unable to acquire queue lock"
+      break
+     fi
+     if ! IFS=' ' read -r RANGE_START RANGE_END <&"${VERIFY_QUEUE_FD}"; then
+      flock -u "${VERIFY_QUEUE_FD}"
+      break
+     fi
+     flock -u "${VERIFY_QUEUE_FD}"
 
-    COUNT=$(
-     psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
-WITH invalidated AS (
+     if [[ -z "${RANGE_START:-}" ]]; then
+      break
+     fi
+
+     __logd "Thread ${THREAD_ID}: verifying ${RANGE_START}-${RANGE_END}"
+     local CHUNK_COUNT
+     CHUNK_COUNT=$(
+      psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
+WITH computed AS (
+ SELECT n.note_id,
+        n.id_country,
+        get_country(n.longitude, n.latitude, n.note_id) AS computed_country
+ FROM notes AS n
+ WHERE n.id_country IS NOT NULL
+ AND ${RANGE_START} <= n.note_id AND n.note_id < ${RANGE_END}
+),
+invalidated AS (
  UPDATE notes AS n /* Notes-integrity check parallel */
  SET id_country = NULL
- WHERE n.id_country IS NOT NULL
- AND ${MIN_THREAD} <= n.note_id AND n.note_id < ${MAX_THREAD}
- AND (n.id_country != get_country(n.longitude, n.latitude, n.note_id)
-   OR get_country(n.longitude, n.latitude, n.note_id) = -1)
+ FROM computed c
+ WHERE n.note_id = c.note_id
+ AND (c.computed_country = -1 OR c.computed_country <> n.id_country)
  RETURNING n.note_id
 )
 SELECT COUNT(*) FROM invalidated;
 EOF
-    )
+     )
 
-    # Store count in temp file
-    echo "${COUNT:-0}" > "${TEMP_COUNT_DIR}/count_${J}"
-    __logd "Thread ${J}: found ${COUNT} notes to invalidate"
+     CHUNK_COUNT=${CHUNK_COUNT:-0}
+     THREAD_COUNT=$((THREAD_COUNT + CHUNK_COUNT))
+     __logd "Thread ${THREAD_ID}: range ${RANGE_START}-${RANGE_END}, invalidated ${CHUNK_COUNT}"
+    done
+
+    echo "${THREAD_COUNT}" > "${TEMP_COUNT_DIR}/count_${THREAD_ID}"
+    __logd "Thread ${THREAD_ID}: total invalidated ${THREAD_COUNT}"
    ) &
   done
 
   # Wait for all verification threads to complete
   wait
+  exec {VERIFY_QUEUE_FD}>&-
 
   # Sum up all counts
   for COUNT_FILE in "${TEMP_COUNT_DIR}"/count_*; do
    if [[ -f "${COUNT_FILE}" ]]; then
-    local COUNT
+    local -i COUNT=0
     COUNT=$(cat "${COUNT_FILE}")
     TOTAL_NOTES_TO_INVALIDATE=$((TOTAL_NOTES_TO_INVALIDATE + COUNT))
    fi
@@ -2634,6 +2685,9 @@ EOF
 
   # Clean up temp directory
   rm -rf "${TEMP_COUNT_DIR}"
+  rm -f "${QUEUE_FILE}"
+  CLEANUP_QUEUE_FILE=""
+  CLEANUP_TEMP_DIR=""
 
   if [[ "${TOTAL_NOTES_TO_INVALIDATE}" -gt 0 ]]; then
    __logi "Found and invalidated ${TOTAL_NOTES_TO_INVALIDATE} notes with incorrect country assignments"
@@ -2643,7 +2697,7 @@ EOF
  fi
 
  # Check if there are any notes without country assignment
- local NOTES_WITHOUT_COUNTRY
+ local -i NOTES_WITHOUT_COUNTRY
  NOTES_WITHOUT_COUNTRY=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL")
  __logi "Notes without country assignment: ${NOTES_WITHOUT_COUNTRY}"
@@ -2654,90 +2708,192 @@ EOF
   return 0
  fi
 
- # Processes notes that should already have a location.
- declare -l SIZE=$((MAX_NOTE_ID_NOT_NULL / MAX_THREADS))
- __logw "Starting background process to locate notes - old..."
- for J in $(seq 1 1 "${MAX_THREADS}"); do
+ # Processes notes that still require country assignment.
+ local -i ASSIGNABLE_NOTES
+ ASSIGNABLE_NOTES=$(
+  psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
+SELECT COUNT(*)
+FROM notes
+WHERE id_country IS NULL
+AND longitude IS NOT NULL
+AND latitude IS NOT NULL;
+EOF
+ )
+
+ local -i NOTES_WITHOUT_COORDS
+ NOTES_WITHOUT_COORDS=$(
+  psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
+SELECT COUNT(*)
+FROM notes
+WHERE id_country IS NULL
+AND (longitude IS NULL OR latitude IS NULL);
+EOF
+ )
+
+ __logi "Notes pending assignment with coordinates: ${ASSIGNABLE_NOTES}"
+ if ((NOTES_WITHOUT_COORDS > 0)); then
+  __logw "Notes lacking coordinates pending: ${NOTES_WITHOUT_COORDS}"
+ fi
+
+ if ((ASSIGNABLE_NOTES == 0)); then
+  __logi "No notes pending assignment. Skipping geolocation pass."
+  __log_finish
+  return 0
+ fi
+
+ local -i ASSIGN_THREADS=${VERIFY_THREADS}
+ if ((ASSIGN_THREADS <= 0)); then
+  ASSIGN_THREADS=1
+ fi
+
+ local -i ASSIGN_CHUNK_SIZE
+ ASSIGN_CHUNK_SIZE=${ASSIGN_CHUNK_SIZE:-5000}
+ if ((ASSIGN_CHUNK_SIZE <= 0)); then
+  __logw "ASSIGN_CHUNK_SIZE invalid (${ASSIGN_CHUNK_SIZE}); resetting to 5000."
+  ASSIGN_CHUNK_SIZE=5000
+ fi
+
+ local ASSIGN_WORK_DIR
+ ASSIGN_WORK_DIR=$(mktemp -d)
+ if [[ -z "${ASSIGN_WORK_DIR:-}" ]]; then
+  __loge "ERROR: Failed to create assignment workspace directory"
+  __log_finish
+  return 1
+ fi
+
+ local ASSIGN_SOURCE_FILE="${ASSIGN_WORK_DIR}/note_ids.list"
+ local COPY_NOTES_SQL
+ COPY_NOTES_SQL=$(
+  cat << 'EOF'
+COPY (
+ SELECT note_id
+ FROM notes
+ WHERE id_country IS NULL
+ AND longitude IS NOT NULL
+ AND latitude IS NOT NULL
+ ORDER BY note_id
+) TO STDOUT
+EOF
+ )
+ if ! psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  -c "${COPY_NOTES_SQL}" > "${ASSIGN_SOURCE_FILE}"; then
+  __loge "ERROR: Failed to export pending note ids for assignment"
+  rm -rf "${ASSIGN_WORK_DIR}"
+  __log_finish
+  return 1
+ fi
+
+ if [[ ! -s "${ASSIGN_SOURCE_FILE}" ]]; then
+  __logi "No note IDs exported for assignment. Skipping geolocation pass."
+  rm -rf "${ASSIGN_WORK_DIR}"
+  __log_finish
+  return 0
+ fi
+
+ split -d -a 5 -l "${ASSIGN_CHUNK_SIZE}" "${ASSIGN_SOURCE_FILE}" \
+  "${ASSIGN_WORK_DIR}/chunk_"
+
+ local ASSIGN_QUEUE_FILE
+ ASSIGN_QUEUE_FILE=$(mktemp)
+ if [[ -z "${ASSIGN_QUEUE_FILE:-}" ]]; then
+  __loge "ERROR: Failed to create assignment queue file"
+  rm -rf "${ASSIGN_WORK_DIR}"
+  __log_finish
+  return 1
+ fi
+
+ for CHUNK_FILE in "${ASSIGN_WORK_DIR}"/chunk_*; do
+  if [[ -s "${CHUNK_FILE}" ]]; then
+   echo "${CHUNK_FILE}" >> "${ASSIGN_QUEUE_FILE}"
+  fi
+ done
+
+ if [[ ! -s "${ASSIGN_QUEUE_FILE}" ]]; then
+  __logi "Assignment queue empty. Skipping geolocation pass."
+  rm -rf "${ASSIGN_WORK_DIR}"
+  rm -f "${ASSIGN_QUEUE_FILE}"
+  __log_finish
+  return 0
+ fi
+
+ exec {ASSIGN_QUEUE_FD}<> "${ASSIGN_QUEUE_FILE}"
+ local -i TOTAL_ASSIGN_CHUNKS
+ TOTAL_ASSIGN_CHUNKS=$(wc -l < "${ASSIGN_QUEUE_FILE}")
+ __logd "Assignment queue ready: total_chunks=${TOTAL_ASSIGN_CHUNKS}"
+
+ local -i TOTAL_ASSIGNED=0
+ for J in $(seq 1 1 "${ASSIGN_THREADS}"); do
   (
-   __logi "Starting ${J}."
-   # shellcheck disable=SC2154
-   MIN=$((SIZE * (J - 1) + LOOP_SIZE))
-   MAX=$((SIZE * J))
-   for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
-    MIN_LOOP=$((I - LOOP_SIZE))
-    MAX_LOOP=${I}
-    __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
+   local -i THREAD_ID=${J}
+   local -i THREAD_ASSIGNED=0
+   while true; do
+    local CHUNK_PATH
+    if ! flock -x "${ASSIGN_QUEUE_FD}"; then
+     __loge "Assignment thread ${THREAD_ID}: queue lock failed"
+     break
+    fi
+    if ! read -r CHUNK_PATH <&"${ASSIGN_QUEUE_FD}"; then
+     flock -u "${ASSIGN_QUEUE_FD}"
+     break
+    fi
+    flock -u "${ASSIGN_QUEUE_FD}"
 
-    # Always verify integrity of previously assigned notes
-    __logd "Updating incorrectly located notes."
-    STMT="UPDATE notes AS n /* Notes-base thread old review */
-     SET id_country = NULL
-     WHERE n.id_country IS NOT NULL
-     AND ${MIN_LOOP} <= n.note_id AND n.note_id <= ${MAX_LOOP}
-     AND (n.id_country != get_country(n.longitude, n.latitude, n.note_id)
-       OR get_country(n.longitude, n.latitude, n.note_id) = -1)"
-    __logt "${STMT}"
-    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    if [[ -z "${CHUNK_PATH:-}" ]] || [[ ! -s "${CHUNK_PATH}" ]]; then
+     continue
+    fi
 
-    STMT="UPDATE notes /* Notes-base thread old */
-      SET id_country = get_country(longitude, latitude, note_id)
-      WHERE ${MIN_LOOP} <= note_id AND note_id <= ${MAX_LOOP}
-      AND id_country IS NULL"
-    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+    local NOTE_IDS
+    NOTE_IDS=$(tr '\n' ',' < "${CHUNK_PATH}" | sed 's/,$//')
+    if [[ -z "${NOTE_IDS:-}" ]]; then
+     continue
+    fi
+
+    local CHUNK_ASSIGNED
+    CHUNK_ASSIGNED=$(
+     psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
+WITH target AS (
+ SELECT UNNEST(ARRAY[${NOTE_IDS}])::BIGINT AS note_id
+),
+updated AS (
+ UPDATE notes AS n /* Notes-assign chunk */
+ SET id_country = get_country(n.longitude, n.latitude, n.note_id)
+ FROM target t
+ WHERE n.note_id = t.note_id
+ AND n.id_country IS NULL
+ RETURNING n.note_id
+)
+SELECT COUNT(*) FROM updated;
+EOF
+    )
+
+    CHUNK_ASSIGNED=${CHUNK_ASSIGNED:-0}
+    THREAD_ASSIGNED=$((THREAD_ASSIGNED + CHUNK_ASSIGNED))
+    __logd "Assignment thread ${THREAD_ID}: ${CHUNK_PATH}, assigned ${CHUNK_ASSIGNED}"
    done
-   __logi "Finished ${J}."
+
+   echo "${THREAD_ASSIGNED}" > "${ASSIGN_WORK_DIR}/assigned_${THREAD_ID}"
+   __logd "Assignment thread ${THREAD_ID}: total ${THREAD_ASSIGNED}"
   ) &
-  __logi "Check log per thread for more information."
  done
 
  wait
- __logw "Waited for all jobs, restarting in main thread - old notes."
+ exec {ASSIGN_QUEUE_FD}>&-
 
- # Processes new notes that do not have location.
- MAX_NOTE_ID_NOT_NULL=$((MAX_NOTE_ID_NOT_NULL - LOOP_SIZE))
- QTY=$((MAX_NOTE_ID - MAX_NOTE_ID_NOT_NULL))
- declare -l SIZE=$((QTY / MAX_THREADS))
- __logw "Starting background process to locate notes - new..."
- for J in $(seq 1 1 "${MAX_THREADS}"); do
-  (
-   __logi "Starting ${J}."
-   MIN=$((MAX_NOTE_ID_NOT_NULL + SIZE * (J - 1) + LOOP_SIZE))
-   MAX=$((MAX_NOTE_ID_NOT_NULL + SIZE * J))
-   for I in $(seq -f %1.0f "$((MAX))" "-${LOOP_SIZE}" "${MIN}"); do
-    MIN_LOOP=$((I - LOOP_SIZE))
-    MAX_LOOP=${I}
-    __logd "${I}: [${MIN_LOOP} - ${MAX_LOOP}]."
-
-    # Always verify integrity of previously assigned notes
-    __logd "Updating incorrectly located notes."
-    STMT="UPDATE notes AS n /* Notes-base thread new review */
-     SET id_country = NULL
-     WHERE n.id_country IS NOT NULL
-     AND ${MIN_LOOP} <= n.note_id AND n.note_id < ${MAX_LOOP}
-     AND (n.id_country != get_country(n.longitude, n.latitude, n.note_id)
-       OR get_country(n.longitude, n.latitude, n.note_id) = -1)"
-    __logt "${STMT}"
-    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-
-    STMT="UPDATE notes /* Notes-base thread old */
-      SET id_country = get_country(longitude, latitude, note_id)
-      WHERE ${MIN_LOOP} <= note_id AND note_id < ${MAX_LOOP}
-      AND id_country IS NULL"
-    echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-   done
-   __logi "Finished ${J}."
-  ) &
-  __logi "Check log per thread for more information."
+ for ASSIGNED_FILE in "${ASSIGN_WORK_DIR}"/assigned_*; do
+  if [[ -f "${ASSIGNED_FILE}" ]]; then
+   local -i CHUNK_COUNT=0
+   CHUNK_COUNT=$(cat "${ASSIGNED_FILE}")
+   TOTAL_ASSIGNED=$((TOTAL_ASSIGNED + CHUNK_COUNT))
+  fi
  done
 
- wait
- __logw "Waited for all jobs, restarting in main thread - new notes."
+ __logi "Notes assigned to countries in this pass: ${TOTAL_ASSIGNED}"
 
- echo "UPDATE notes /* Notes-base remaining */
-   SET id_country = get_country(longitude, latitude, note_id)
-   WHERE id_country IS NULL" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+ rm -rf "${ASSIGN_WORK_DIR}"
+ rm -f "${ASSIGN_QUEUE_FILE}"
 
  __log_finish
+ return 0
 }
 
 # Validates XML content for coordinate attributes
