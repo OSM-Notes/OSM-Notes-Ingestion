@@ -1546,6 +1546,10 @@ function __processBoundary {
  __logi "=== STARTING BOUNDARY PROCESSING ==="
  # Use provided query file or fall back to global
  local QUERY_FILE_TO_USE="${1:-${QUERY_FILE}}"
+ local RUNNING_UNDER_TEST="false"
+ if [[ -n "${BATS_TEST_NAME:-}" ]]; then
+  RUNNING_UNDER_TEST="true"
+ fi
 
  # Initialize IS_COMPLEX variable (defaults to false)
  local IS_COMPLEX="${IS_COMPLEX:-false}"
@@ -1560,24 +1564,42 @@ function __processBoundary {
  __logi "Retrieving shape ${ID}."
 
  # Check network connectivity before proceeding
- __logd "Checking network connectivity for boundary ${ID}..."
- if ! __check_network_connectivity 10; then
-  __loge "Network connectivity check failed for boundary ${ID}"
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
-  __log_finish
-  return 1
+ if [[ "${RUNNING_UNDER_TEST}" == "true" ]] && [[ "${SKIP_NETWORK_CHECK_FOR_TESTS:-true}" == "true" ]]; then
+  __logd "Skipping network connectivity check in test mode (BATS_TEST_NAME detected)"
+ elif [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]] && [[ "${SKIP_NETWORK_CHECK_ON_CONTINUE:-true}" == "true" ]]; then
+  __logd "Skipping network connectivity check because CONTINUE_ON_OVERPASS_ERROR=true"
+ else
+  __logd "Checking network connectivity for boundary ${ID}..."
+  if ! __check_network_connectivity 10; then
+   __loge "Network connectivity check failed for boundary ${ID}"
+   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
+    "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OUTPUT_OVERPASS} 2>/dev/null || true"
+   __log_finish
+   return 1
+  fi
+  __logd "Network connectivity confirmed for boundary ${ID}"
  fi
- __logd "Network connectivity confirmed for boundary ${ID}"
 
  # Use retry logic for Overpass API calls
  # Retry settings: 10 retries with 15s base delay (coverage ~15 minutes)
  local MAX_RETRIES_LOCAL=10
  local BASE_DELAY_LOCAL=15
+ if [[ "${RUNNING_UNDER_TEST}" == "true" ]]; then
+  MAX_RETRIES_LOCAL="${OVERPASS_TEST_MAX_RETRIES:-1}"
+  BASE_DELAY_LOCAL="${OVERPASS_TEST_BASE_DELAY:-1}"
+ elif [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+  MAX_RETRIES_LOCAL="${OVERPASS_CONTINUE_MAX_RETRIES_PER_ENDPOINT:-1}"
+  BASE_DELAY_LOCAL="${OVERPASS_CONTINUE_BASE_DELAY:-5}"
+ fi
 
  # Retry logic for download with validation
  # This includes downloading and validating JSON structure
  local DOWNLOAD_VALIDATION_RETRIES=3
+ if [[ "${RUNNING_UNDER_TEST}" == "true" ]]; then
+  DOWNLOAD_VALIDATION_RETRIES="${OVERPASS_TEST_VALIDATION_RETRIES:-1}"
+ elif [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+  DOWNLOAD_VALIDATION_RETRIES="${OVERPASS_CONTINUE_VALIDATION_RETRIES:-1}"
+ fi
  local DOWNLOAD_VALIDATION_RETRY_COUNT=0
  local DOWNLOAD_SUCCESS=false
  local DOWNLOAD_START_TIME
@@ -1597,16 +1619,24 @@ function __processBoundary {
    # Wait before retry with exponential backoff
    # Use BOUNDARY_RETRY_DELAY to avoid conflict with global readonly RETRY_DELAY
    local BOUNDARY_RETRY_DELAY=$((BASE_DELAY_LOCAL * DOWNLOAD_VALIDATION_RETRY_COUNT))
-   if [[ ${BOUNDARY_RETRY_DELAY} -gt 60 ]]; then
-    BOUNDARY_RETRY_DELAY=60
+   if [[ "${RUNNING_UNDER_TEST}" == "true" ]]; then
+    BOUNDARY_RETRY_DELAY=0
+   else
+    if [[ ${BOUNDARY_RETRY_DELAY} -gt 60 ]]; then
+     BOUNDARY_RETRY_DELAY=60
+    fi
+    # Reduce delay if CONTINUE_ON_OVERPASS_ERROR is enabled
+    if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]] && [[ ${BOUNDARY_RETRY_DELAY} -gt 30 ]]; then
+     BOUNDARY_RETRY_DELAY=30
+     __logd "Reduced retry delay to ${BOUNDARY_RETRY_DELAY}s due to CONTINUE_ON_OVERPASS_ERROR=true"
+    fi
    fi
-   # Reduce delay if CONTINUE_ON_OVERPASS_ERROR is enabled
-   if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]] && [[ ${BOUNDARY_RETRY_DELAY} -gt 30 ]]; then
-    BOUNDARY_RETRY_DELAY=30
-    __logd "Reduced retry delay to ${BOUNDARY_RETRY_DELAY}s due to CONTINUE_ON_OVERPASS_ERROR=true"
+   if [[ ${BOUNDARY_RETRY_DELAY} -gt 0 ]]; then
+    __logw "Waiting ${BOUNDARY_RETRY_DELAY}s before retry attempt ${ATTEMPT_NUM} for boundary ${ID}..."
+    sleep "${BOUNDARY_RETRY_DELAY}"
+   else
+    __logd "Skipping retry wait (test mode or zero delay) before attempt ${ATTEMPT_NUM}"
    fi
-   __logw "Waiting ${BOUNDARY_RETRY_DELAY}s before retry attempt ${ATTEMPT_NUM} for boundary ${ID}..."
-   sleep "${BOUNDARY_RETRY_DELAY}"
   else
    __logd "Starting download attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES} for boundary ${ID}"
   fi
@@ -2130,6 +2160,8 @@ function __overpass_download_with_endpoints() {
 
   # Select active endpoint for this attempt (do not modify readonly globals)
   ACTIVE_OVERPASS="${ENDPOINT}"
+  export CURRENT_OVERPASS_ENDPOINT="${ACTIVE_OVERPASS}"
+  export OVERPASS_ACTIVE_ENDPOINT="${ACTIVE_OVERPASS}"
 
   # Cleanup before each attempt
   rm -f "${LOCAL_JSON_FILE}" "${LOCAL_OUTPUT_FILE}" 2> /dev/null || true
@@ -2584,7 +2616,20 @@ function __getLocationNotes {
  # Optimized: Parallelize verification by splitting data across threads (30min→5min for 4.8M notes)
  __logi "Verifying integrity of imported note locations (parallel)..."
  local -i TOTAL_NOTES_TO_INVALIDATE=0
- local -i VERIFY_THREADS=${MAX_THREADS}
+ local -i VERIFY_THREAD_OVERRIDE=0
+ if [[ -n "${VERIFY_THREADS:-}" ]]; then
+  VERIFY_THREAD_OVERRIDE=${VERIFY_THREADS:-0}
+ fi
+ local -i VERIFY_THREAD_COUNT=${MAX_THREADS}
+ if ((VERIFY_THREAD_OVERRIDE > 0)); then
+  VERIFY_THREAD_COUNT=${VERIFY_THREAD_OVERRIDE}
+ fi
+ if ((VERIFY_THREAD_COUNT > MAX_THREADS)); then
+  VERIFY_THREAD_COUNT=${MAX_THREADS}
+ fi
+ if ((VERIFY_THREAD_COUNT <= 0)); then
+  VERIFY_THREAD_COUNT=1
+ fi
 
  # If MAX_NOTE_ID_NOT_NULL is 0 but MAX_NOTE_ID > 0, it means there are notes
  # but none have country assigned (unlikely but handle it)
@@ -2603,7 +2648,16 @@ function __getLocationNotes {
   EFFECTIVE_VERIFY_CHUNK_SIZE=100000
  fi
 
- __logd "Verification setup: threads=${VERIFY_THREADS}, chunk=${EFFECTIVE_VERIFY_CHUNK_SIZE}, max_note=${MAX_NOTE_ID_NOT_NULL}"
+ local -i SQL_BATCH_SIZE
+ SQL_BATCH_SIZE=${VERIFY_SQL_BATCH_SIZE:-0}
+ if ((SQL_BATCH_SIZE <= 0)); then
+  SQL_BATCH_SIZE=5000
+ fi
+ if ((SQL_BATCH_SIZE > EFFECTIVE_VERIFY_CHUNK_SIZE)); then
+  SQL_BATCH_SIZE=${EFFECTIVE_VERIFY_CHUNK_SIZE}
+ fi
+
+ __logd "Verification setup: threads=${VERIFY_THREAD_COUNT}, chunk=${EFFECTIVE_VERIFY_CHUNK_SIZE}, sub_chunk=${SQL_BATCH_SIZE}, max_note=${MAX_NOTE_ID_NOT_NULL}"
 
  # Skip verification if no notes to verify
  if [[ "${MAX_NOTE_ID_NOT_NULL}" -eq 0 ]]; then
@@ -2651,7 +2705,7 @@ function __getLocationNotes {
   TOTAL_CHUNKS=$(wc -l < "${QUEUE_FILE}")
   __logd "Verification queue ready: total_chunks=${TOTAL_CHUNKS}"
 
-  for J in $(seq 1 1 "${VERIFY_THREADS}"); do
+  for J in $(seq 1 1 "${VERIFY_THREAD_COUNT}"); do
    (
     local -i THREAD_ID=${J}
     __logd "Starting integrity verification thread ${THREAD_ID}."
@@ -2673,32 +2727,58 @@ function __getLocationNotes {
      fi
 
      __logd "Thread ${THREAD_ID}: verifying ${RANGE_START}-${RANGE_END}"
-     local CHUNK_COUNT
-     CHUNK_COUNT=$(
-      psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
+     local -i RANGE_TOTAL=0
+     local -i SUB_START=${RANGE_START}
+     local -i RANGE_LIMIT=${RANGE_END}
+     while ((SUB_START < RANGE_LIMIT)); do
+      local -i SUB_END=$((SUB_START + SQL_BATCH_SIZE))
+      if ((SUB_END > RANGE_LIMIT)); then
+       SUB_END=${RANGE_LIMIT}
+      fi
+
+      local SUB_COUNT
+      SUB_COUNT=$(
+       psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
+CREATE TEMP TABLE temp_verify_batch ON COMMIT DROP AS
+SELECT note_id
+FROM notes
+WHERE id_country IS NOT NULL
+AND ${SUB_START} <= note_id AND note_id < ${SUB_END}
+ORDER BY note_id;
+
 WITH computed AS (
- SELECT n.note_id,
-        n.id_country,
-        get_country(n.longitude, n.latitude, n.note_id) AS computed_country
- FROM notes AS n
- WHERE n.id_country IS NOT NULL
- AND ${RANGE_START} <= n.note_id AND n.note_id < ${RANGE_END}
+SELECT n.note_id,
+       n.id_country,
+       get_country(n.longitude, n.latitude, n.note_id) AS computed_country
+FROM notes AS n
+JOIN temp_verify_batch b ON b.note_id = n.note_id
 ),
 invalidated AS (
- UPDATE notes AS n /* Notes-integrity check parallel */
- SET id_country = NULL
- FROM computed c
- WHERE n.note_id = c.note_id
- AND (c.computed_country = -1 OR c.computed_country <> n.id_country)
- RETURNING n.note_id
+UPDATE notes AS n /* Notes-integrity check parallel */
+SET id_country = NULL
+FROM computed c
+WHERE n.note_id = c.note_id
+AND (c.computed_country = -1 OR c.computed_country <> n.id_country)
+RETURNING n.note_id
 )
 SELECT COUNT(*) FROM invalidated;
-EOF
-     )
 
-     CHUNK_COUNT=${CHUNK_COUNT:-0}
-     THREAD_COUNT=$((THREAD_COUNT + CHUNK_COUNT))
-     __logd "Thread ${THREAD_ID}: range ${RANGE_START}-${RANGE_END}, invalidated ${CHUNK_COUNT}"
+DISCARD ALL;
+EOF
+      )
+      SUB_COUNT=$(echo "${SUB_COUNT}" | tr -d '[:space:]')
+      if [[ -z "${SUB_COUNT}" ]]; then
+       SUB_COUNT=0
+      fi
+      local -i SUB_COUNT_INT=${SUB_COUNT}
+
+      RANGE_TOTAL=$((RANGE_TOTAL + SUB_COUNT_INT))
+      __logd "Thread ${THREAD_ID}: subrange ${SUB_START}-${SUB_END}, invalidated ${SUB_COUNT_INT}"
+      SUB_START=${SUB_END}
+     done
+
+     THREAD_COUNT=$((THREAD_COUNT + RANGE_TOTAL))
+     __logd "Thread ${THREAD_ID}: range ${RANGE_START}-${RANGE_END}, invalidated ${RANGE_TOTAL}"
     done
 
     echo "${THREAD_COUNT}" > "${TEMP_COUNT_DIR}/count_${THREAD_ID}"
@@ -2777,7 +2857,7 @@ EOF
   return 0
  fi
 
- local -i ASSIGN_THREADS=${VERIFY_THREADS}
+ local -i ASSIGN_THREADS=${VERIFY_THREAD_COUNT}
  if ((ASSIGN_THREADS <= 0)); then
   ASSIGN_THREADS=1
  fi

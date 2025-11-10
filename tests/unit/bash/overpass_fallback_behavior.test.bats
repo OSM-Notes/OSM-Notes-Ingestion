@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+# Version: 2025-11-10
+
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
 
@@ -25,14 +27,14 @@ teardown() {
   # Monkey-patch retry to simulate endpoint-specific responses
   function __retry_file_operation() {
     local OP="$1"
-    # Extract output file after -O
     local OUT
     OUT=$(echo "$OP" | awk "{for(i=1;i<=NF;i++) if (\$i==\"-O\") {print \$(i+1); exit}}")
-    # Use current interpreter to decide content
-    if [[ "${OVERPASS_INTERPRETER}" == *"endpointA"* ]]; then
+
+    local VALID_JSON="{\"elements\":[{\"id\":1}]}"
+    if [[ "${CURRENT_OVERPASS_ENDPOINT:-}" == *"endpointA"* ]]; then
       echo '{}' > "${OUT}"
     else
-      echo '{"elements":[]}' > "${OUT}"
+      printf '%s' "${VALID_JSON}" > "${OUT}"
     fi
     return 0
   }
@@ -74,7 +76,7 @@ teardown() {
   export ID=9999
   export JSON_FILE="${TMP_DIR}/${ID}.json"
   export GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
-  local QUERY_FILE_LOCAL="${TMP_DIR}/q_${ID}.op"
+  QUERY_FILE_LOCAL="${TMP_DIR}/q_${ID}.op"
   echo "[out:json]; rel(${ID}); (._;>;); out;" > "${QUERY_FILE_LOCAL}"
 
   # Expect function to return non-zero but not exit the shell, and record failed id
