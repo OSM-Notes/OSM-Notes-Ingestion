@@ -54,10 +54,10 @@ fi
 declare OVERPASS_ENDPOINTS="${OVERPASS_ENDPOINTS:-${OVERPASS_INTERPRETER}}"
 
 # Max retries per endpoint for a single boundary download attempt.
-declare OVERPASS_RETRIES_PER_ENDPOINT="${OVERPASS_RETRIES_PER_ENDPOINT:-3}"
+declare OVERPASS_RETRIES_PER_ENDPOINT="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
 
 # Base backoff (seconds) between retries within the same endpoint (exponential).
-declare OVERPASS_BACKOFF_SECONDS="${OVERPASS_BACKOFF_SECONDS:-5}"
+declare OVERPASS_BACKOFF_SECONDS="${OVERPASS_BACKOFF_SECONDS:-20}"
 
 # Continue processing other boundaries on Overpass JSON validation errors.
 declare CONTINUE_ON_OVERPASS_ERROR="${CONTINUE_ON_OVERPASS_ERROR:-true}"

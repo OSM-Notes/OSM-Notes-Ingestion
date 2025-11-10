@@ -1580,10 +1580,10 @@ function __processBoundary {
   __logd "Network connectivity confirmed for boundary ${ID}"
  fi
 
- # Use retry logic for Overpass API calls
- # Retry settings: 10 retries with 15s base delay (coverage ~15 minutes)
- local MAX_RETRIES_LOCAL=10
- local BASE_DELAY_LOCAL=15
+# Use retry logic for Overpass API calls
+# Default retry settings sourced from properties/environment
+local MAX_RETRIES_LOCAL="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
+local BASE_DELAY_LOCAL="${OVERPASS_BACKOFF_SECONDS:-20}"
  if [[ "${RUNNING_UNDER_TEST}" == "true" ]]; then
   MAX_RETRIES_LOCAL="${OVERPASS_TEST_MAX_RETRIES:-1}"
   BASE_DELAY_LOCAL="${OVERPASS_TEST_BASE_DELAY:-1}"
@@ -2440,9 +2440,8 @@ function __processCountries {
   local CLEANUP_COMMAND="__preserve_failed_boundary_artifacts '${FAILED_JOBS_INFO}'"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
    "${ERROR_MESSAGE}" "${CLEANUP_COMMAND}"
-  local HANDLER_RETURN_CODE=$?
   __log_finish
-  return "${HANDLER_RETURN_CODE}"
+  return "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
 
  __logi "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ==="
@@ -2456,12 +2455,11 @@ function __processCountries {
   local ERROR_LOGS
   ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
   __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
-   "Thread error logs detected for boundary processing" \
-   "__preserve_failed_boundary_artifacts '${ERROR_LOGS}'"
-  local HANDLER_RETURN_CODE=$?
-  __log_finish
-  return "${HANDLER_RETURN_CODE}"
+ __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
+  "Thread error logs detected for boundary processing" \
+  "__preserve_failed_boundary_artifacts '${ERROR_LOGS}'"
+ __log_finish
+ return "${ERROR_DOWNLOADING_BOUNDARY}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
   rm -f "${LOCK_OGR2OGR}/pid"
@@ -3719,10 +3717,11 @@ function __release_download_ticket() {
    CURRENT_SERVING=$(cat "${CURRENT_SERVING_FILE}" 2> /dev/null || echo "0")
   fi
 
-  # Only advance if this ticket is the one being served
-  if [[ ${MY_TICKET} -eq $((CURRENT_SERVING + 1)) ]]; then
-   echo $((MY_TICKET + 1)) > "${CURRENT_SERVING_FILE}"
-   __logd "Queue advanced (now serving: $((MY_TICKET + 1)))"
+  # Advance to next ticket when releasing the current or a newer slot
+  local NEXT_SERVING=$((MY_TICKET + 1))
+  if [[ ${NEXT_SERVING} -gt ${CURRENT_SERVING} ]]; then
+   echo "${NEXT_SERVING}" > "${CURRENT_SERVING_FILE}"
+   __logd "Queue advanced (now serving: ${NEXT_SERVING})"
   fi
  ) 200> "${QUEUE_DIR}/ticket_lock"
 

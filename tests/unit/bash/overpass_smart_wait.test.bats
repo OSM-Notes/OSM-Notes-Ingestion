@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Unit tests for Overpass API smart wait functionality
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
+# Version: 2025-11-10
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -62,24 +62,21 @@ teardown() {
 
 @test "Overpass should have 7 retries and 20s delay" {
   local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-  # Check for retry configuration with 7 and 20
-  run grep -B 5 -A 5 "__retry_file_operation.*7.*20" "${SCRIPT_FILE}"
+  run grep 'OVERPASS_RETRIES_PER_ENDPOINT:-7' "${SCRIPT_FILE}"
   [ "$status" -eq 0 ]
-  # Verify both 7 and 20 are present
-  grep_result=$(grep -B 5 -A 5 "__retry_file_operation" "${SCRIPT_FILE}" | grep "OVERPASS")
-  echo "${grep_result}" | grep -q "7" || true
-  echo "${grep_result}" | grep -q "20" || true
-}
-
-@test "Version should be 2025-10-27" {
-  local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-  run grep "Version: 2025-10-27" "${SCRIPT_FILE}"
+  run grep 'OVERPASS_BACKOFF_SECONDS:-20' "${SCRIPT_FILE}"
   [ "$status" -eq 0 ]
 }
 
-@test "VERSION variable should be 2025-10-27" {
+@test "Version should be 2025-11-10" {
   local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-  run grep "VERSION=\"2025-10-27\"" "${SCRIPT_FILE}"
+  run grep "Version: 2025-11-10" "${SCRIPT_FILE}"
+  [ "$status" -eq 0 ]
+}
+
+@test "VERSION variable should be 2025-11-10" {
+  local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+  run grep "VERSION=\"2025-11-10\"" "${SCRIPT_FILE}"
   [ "$status" -eq 0 ]
 }
 
