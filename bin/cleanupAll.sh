@@ -5,10 +5,12 @@
 # Can be used for full cleanup or partition-only cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-01
+# Version: 2025-11-10
+
+VERSION="2025-11-10"
 
 set -euo pipefail
-# shellcheck disable=SC2310
+# shellcheck disable=SC2310,SC2312
 
 # Define required variables
 BASENAME="cleanupAll"
@@ -96,7 +98,10 @@ function __execute_sql_script() {
  __logi "Executing ${SCRIPT_NAME}: ${SCRIPT_PATH}"
 
  # Validate SQL script using centralized validation
- if ! __validate_sql_structure "${SCRIPT_PATH}"; then
+ local VALIDATE_SQL_STATUS=0
+ __validate_sql_structure "${SCRIPT_PATH}"
+ VALIDATE_SQL_STATUS=$?
+ if [[ ${VALIDATE_SQL_STATUS} -ne 0 ]]; then
   __loge "ERROR: SQL script validation failed: ${SCRIPT_PATH}"
   __log_finish
   return 1
@@ -151,7 +156,10 @@ function __drop_all_partitions() {
  __logi "Dropping all partition tables using script: ${DROP_SCRIPT}"
 
  # Validate SQL script using centralized validation
- if ! __validate_sql_structure "${DROP_SCRIPT}"; then
+ local VALIDATE_DROP_STATUS=0
+ __validate_sql_structure "${DROP_SCRIPT}"
+ VALIDATE_DROP_STATUS=$?
+ if [[ ${VALIDATE_DROP_STATUS} -ne 0 ]]; then
   __loge "ERROR: Drop script validation failed: ${DROP_SCRIPT}"
   __log_finish
   return 1
@@ -219,7 +227,10 @@ function __cleanup_partitions_only() {
  __logi "Starting partition tables cleanup for database: ${TARGET_DB}"
 
  # Step 1: Check if database exists
- if ! __check_database "${TARGET_DB}"; then
+ local CHECK_DATABASE_STATUS=0
+ __check_database "${TARGET_DB}"
+ CHECK_DATABASE_STATUS=$?
+ if [[ ${CHECK_DATABASE_STATUS} -ne 0 ]]; then
   __loge "Database ${TARGET_DB} does not exist. Cannot proceed with partition cleanup."
   __log_finish
   return 1
@@ -231,7 +242,10 @@ function __cleanup_partitions_only() {
 
  # Step 3: Drop all partition tables
  __logi "Step 2: Dropping all partition tables"
- if ! __drop_all_partitions "${TARGET_DB}"; then
+ local DROP_PARTITIONS_STATUS=0
+ __drop_all_partitions "${TARGET_DB}"
+ DROP_PARTITIONS_STATUS=$?
+ if [[ ${DROP_PARTITIONS_STATUS} -ne 0 ]]; then
   __loge "Failed to drop partition tables"
   __log_finish
   return 1
@@ -239,7 +253,10 @@ function __cleanup_partitions_only() {
 
  # Step 4: Verify cleanup
  __logi "Step 3: Verifying cleanup"
- if ! __verify_partition_cleanup "${TARGET_DB}"; then
+ local VERIFY_PARTITIONS_STATUS=0
+ __verify_partition_cleanup "${TARGET_DB}"
+ VERIFY_PARTITIONS_STATUS=$?
+ if [[ ${VERIFY_PARTITIONS_STATUS} -ne 0 ]]; then
   __logw "Some partition tables may still exist"
   __log_finish
   return 1
@@ -334,7 +351,10 @@ function __cleanup_base() {
   fi
   IFS=':' read -r SCRIPT_PATH SCRIPT_NAME <<< "${SCRIPT_INFO}"
   if [[ -f "${SCRIPT_PATH}" ]]; then
-   if ! __execute_sql_script "${TARGET_DB}" "${SCRIPT_PATH}" "${SCRIPT_NAME}"; then
+   local EXECUTE_SQL_STATUS=0
+   __execute_sql_script "${TARGET_DB}" "${SCRIPT_PATH}" "${SCRIPT_NAME}"
+   EXECUTE_SQL_STATUS=$?
+   if [[ ${EXECUTE_SQL_STATUS} -ne 0 ]]; then
     __loge "Failed to execute: ${SCRIPT_NAME}"
     __log_finish
     return 1
@@ -373,7 +393,10 @@ function __cleanup_all() {
   return 1
  fi
 
- if ! __check_database "${TARGET_DB}"; then
+ local CHECK_DATABASE_STATUS_ALL=0
+ __check_database "${TARGET_DB}"
+ CHECK_DATABASE_STATUS_ALL=$?
+ if [[ ${CHECK_DATABASE_STATUS_ALL} -ne 0 ]]; then
   __logw "Database ${TARGET_DB} does not exist. Skipping database cleanup operations."
   __logi "Continuing with temporary file cleanup only."
 
@@ -437,10 +460,10 @@ function __cleanup() {
  __log_start
  # Remove lock file if it exists and we own it
  if [[ -n "${LOCK:-}" ]] && [[ -f "${LOCK}" ]]; then
-  rm -f "${LOCK}" 2>/dev/null || true
+  rm -f "${LOCK}" 2> /dev/null || true
  fi
  # Close lock file descriptor if open
- exec 8>&- 2>/dev/null || true
+ exec 8>&- 2> /dev/null || true
  # Remove temporary directory
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
@@ -548,10 +571,12 @@ function main() {
  fi
 
  # Write lock file content with useful debugging information
+ local START_TIMESTAMP=""
+ START_TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
  cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${START_TIMESTAMP}
 Temporary directory: ${TMP_DIR}
 Cleanup mode: ${CLEANUP_MODE}
 Database: ${TARGET_DB}
@@ -568,7 +593,10 @@ EOF
    __loge "Cleanup was interrupted before starting"
    exit 130
   fi
-  if __cleanup_partitions_only "${TARGET_DB}"; then
+  local CLEAN_PARTITIONS_STATUS=0
+  __cleanup_partitions_only "${TARGET_DB}"
+  CLEAN_PARTITIONS_STATUS=$?
+  if [[ ${CLEAN_PARTITIONS_STATUS} -eq 0 ]]; then
    if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
     __loge "Cleanup was interrupted"
     exit 130
@@ -589,7 +617,10 @@ EOF
    __loge "Cleanup was interrupted before starting"
    exit 130
   fi
-  if __cleanup_all "${TARGET_DB}"; then
+  local CLEAN_ALL_STATUS=0
+  __cleanup_all "${TARGET_DB}"
+  CLEAN_ALL_STATUS=$?
+  if [[ ${CLEAN_ALL_STATUS} -eq 0 ]]; then
    if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
     __loge "Cleanup was interrupted"
     exit 130

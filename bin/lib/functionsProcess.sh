@@ -2218,6 +2218,20 @@ EOF
 # Download the list of countries, then it downloads each country individually,
 # converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
 # country into the Postgres database with ogr2ogr.
+function __preserve_failed_boundary_artifacts {
+ __log_start
+ local FAILED_ARTIFACTS="${1:-}"
+
+ if [[ -n "${FAILED_ARTIFACTS}" ]]; then
+  __logi "Preserving failed boundary artifacts: ${FAILED_ARTIFACTS}"
+ else
+  __logi "No failed boundary artifacts were specified."
+ fi
+
+ __log_finish
+ return 0
+}
+
 function __processCountries {
  __log_start
  __logi "=== STARTING COUNTRIES PROCESSING ==="
@@ -2232,8 +2246,12 @@ function __processCountries {
  __logi "Validating disk space for boundaries download..."
  if ! __check_disk_space "${TMP_DIR}" "4" "Country boundaries download and processing"; then
   __loge "Cannot proceed with boundaries download due to insufficient disk space"
-  __handle_error_with_cleanup "${ERROR_GENERAL}" "Insufficient disk space for boundaries download" \
-   "echo 'No cleanup needed - download not started'"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" \
+   "Insufficient disk space for boundaries download" \
+   "__preserve_failed_boundary_artifacts 'download-not-started'"
+  local HANDLER_RETURN_CODE=$?
+  __log_finish
+  return "${HANDLER_RETURN_CODE}"
  fi
 
  # Extracts ids of all country relations into a JSON.
@@ -2250,7 +2268,12 @@ function __processCountries {
  set -e
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: Country list could not be downloaded."
-  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}" \
+   "Country list download failed" \
+   "__preserve_failed_boundary_artifacts '${COUNTRIES_BOUNDARY_IDS_FILE}'"
+  local HANDLER_RETURN_CODE=$?
+  __log_finish
+  return "${HANDLER_RETURN_CODE}"
  fi
 
  tail -n +2 "${COUNTRIES_BOUNDARY_IDS_FILE}" > "${COUNTRIES_BOUNDARY_IDS_FILE}.tmp"
@@ -2381,7 +2404,13 @@ function __processCountries {
   __loge "=== COUNTRIES PROCESSING FAILED ==="
   __loge "Continuing to allow remaining threads to finish..."
   # Return instead of exit to avoid killing child threads
-  return "${ERROR_DOWNLOADING_BOUNDARY}"
+  local ERROR_MESSAGE="Boundary processing failed for jobs: ${FAILED_JOBS[*]}"
+  local CLEANUP_COMMAND="__preserve_failed_boundary_artifacts '${FAILED_JOBS_INFO}'"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
+   "${ERROR_MESSAGE}" "${CLEANUP_COMMAND}"
+  local HANDLER_RETURN_CODE=$?
+  __log_finish
+  return "${HANDLER_RETURN_CODE}"
  fi
 
  __logi "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ==="
@@ -2395,12 +2424,19 @@ function __processCountries {
   local ERROR_LOGS
   ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
   __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
-  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
+   "Thread error logs detected for boundary processing" \
+   "__preserve_failed_boundary_artifacts '${ERROR_LOGS}'"
+  local HANDLER_RETURN_CODE=$?
+  __log_finish
+  return "${HANDLER_RETURN_CODE}"
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
   rm -f "${LOCK_OGR2OGR}/pid"
   rmdir "${LOCK_OGR2OGR}"
  fi
+
+ __log_finish
 }
 
 # Download the list of maritimes areas, then it downloads each area
