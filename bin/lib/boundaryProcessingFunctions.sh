@@ -98,8 +98,8 @@ function __log_duplicate_columns_fixed() {
 
 function __log_duplicate_columns_skip() {
  local BOUNDARY_ID="${1}"
- local reason="${2}"
- __logd "Auto-heal skipped for boundary ${BOUNDARY_ID}: ${reason}"
+ local REASON="${2}"
+ __logd "Auto-heal skipped for boundary ${BOUNDARY_ID}: ${REASON}"
 }
 
 function __log_process_complete() {
