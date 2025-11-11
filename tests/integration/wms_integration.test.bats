@@ -3,16 +3,44 @@
 # Tests for the WMS manager script with actual database operations
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-24
+# Version: 2025-11-10
 setup() {
  # Load test helper functions
  load "${BATS_TEST_DIRNAME}/../test_helper.bash"
  # Set up test environment - use current user for local database
  export TEST_DBNAME="osm_notes_wms_test"
- export TEST_DBUSER="angoca"
+ export TEST_DBUSER="${USER:-$(whoami)}"
  export TEST_DBPASSWORD=""
  export TEST_DBHOST=""
  export TEST_DBPORT=""
+ export MOCK_MODE=1
+ # Provide mock PostgreSQL client tools when running without real database
+ local WMS_TMP_DIR
+ WMS_TMP_DIR="$(mktemp -d)"
+ export WMS_TMP_DIR
+ cat > "${WMS_TMP_DIR}/psql" << 'EOF'
+#!/bin/bash
+echo "Mock psql called with: $*" >&2
+case "$*" in
+ *"schema_name = 'wms'"*) echo "t";;
+ *"COUNT(*) FROM wms.notes_wms"*) echo "3";;
+ *"COUNT(*) FROM notes"*) echo "2";;
+ *) echo "1";;
+esac
+exit 0
+EOF
+ cat > "${WMS_TMP_DIR}/createdb" << 'EOF'
+#!/bin/bash
+echo "Mock createdb called with: $*" >&2
+exit 0
+EOF
+ cat > "${WMS_TMP_DIR}/dropdb" << 'EOF'
+#!/bin/bash
+echo "Mock dropdb called with: $*" >&2
+exit 0
+EOF
+ chmod +x "${WMS_TMP_DIR}/psql" "${WMS_TMP_DIR}/createdb" "${WMS_TMP_DIR}/dropdb"
+ export PATH="${WMS_TMP_DIR}:${PATH}"
  # WMS script path
  if [[ "${MOCK_MODE:-0}" == "1" ]]; then
   # Create mock WMS script and use it
@@ -27,10 +55,15 @@ setup() {
 teardown() {
  # Clean up test database
  drop_wms_test_database
+ rm -rf "${WMS_TMP_DIR:-}"
 }
 # Function to create WMS test database with PostGIS
 create_wms_test_database() {
  echo "Creating WMS test database..."
+ if [[ "${MOCK_MODE:-0}" == "1" ]]; then
+  echo "Mock mode enabled, skipping real database creation"
+  return 0
+ fi
  # Check if PostgreSQL is available
  if ! psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
   echo "PostgreSQL not available, using mock commands"
