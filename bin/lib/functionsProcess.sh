@@ -529,13 +529,13 @@ function __processApiXmlPart() {
  export OUTPUT_TEXT_PART
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
-# shellcheck disable=SC2016
-psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
- -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
-# shellcheck disable=SC2154
-psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
- -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
- < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+ # shellcheck disable=SC2016
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
+ # shellcheck disable=SC2154
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
  __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
@@ -951,9 +951,9 @@ function __validate_properties {
   fi
  fi
 
-# Check for validation errors
-if [[ ${PROPERTY_ERROR_COUNT} -gt 0 ]]; then
- __loge "Properties validation failed with ${PROPERTY_ERROR_COUNT} error(s)"
+ # Check for validation errors
+ if [[ ${PROPERTY_ERROR_COUNT} -gt 0 ]]; then
+  __loge "Properties validation failed with ${PROPERTY_ERROR_COUNT} error(s)"
   __loge "Please check your etc/properties.sh configuration file"
   __log_finish
   # shellcheck disable=SC2154
@@ -1691,7 +1691,6 @@ function __preserve_failed_boundary_artifacts {
  return 0
 }
 
-
 # Download the list of countries, then it downloads each country individually,
 # converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
 # country into the Postgres database with ogr2ogr.
@@ -1814,7 +1813,7 @@ function __validate_csv_structure {
 
  __logd "CSV file has ${TOTAL_LINES} lines, validating first ${SAMPLE_SIZE} lines"
 
-# Validation counters
+ # Validation counters
  local UNESCAPED_QUOTES=0
  local WRONG_COLUMNS=0
  local LINE_NUMBER=0
