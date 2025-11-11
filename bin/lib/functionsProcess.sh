@@ -802,12 +802,12 @@ function __validate_properties {
  __log_start
  __logi "Validating properties from configuration file"
 
- local -i VALIDATION_ERRORS=0
+ local -i PROPERTY_ERROR_COUNT=0
 
  # Validate DBNAME (required, non-empty string)
  if [[ -z "${DBNAME:-}" ]]; then
   __loge "ERROR: DBNAME is not set or empty"
-  ((VALIDATION_ERRORS++))
+  ((PROPERTY_ERROR_COUNT++))
  else
   __logd "✓ DBNAME: ${DBNAME}"
  fi
@@ -815,7 +815,7 @@ function __validate_properties {
  # Validate DB_USER (required, non-empty string)
  if [[ -z "${DB_USER:-}" ]]; then
   __loge "ERROR: DB_USER is not set or empty"
-  ((VALIDATION_ERRORS++))
+  ((PROPERTY_ERROR_COUNT++))
  else
   __logd "✓ DB_USER: ${DB_USER}"
  fi
@@ -835,7 +835,7 @@ function __validate_properties {
  if [[ -n "${OSM_API:-}" ]]; then
   if [[ ! "${OSM_API}" =~ ^https?:// ]]; then
    __loge "ERROR: OSM_API must be a valid HTTP/HTTPS URL, got: ${OSM_API}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ OSM_API: ${OSM_API}"
   fi
@@ -845,7 +845,7 @@ function __validate_properties {
  if [[ -n "${PLANET:-}" ]]; then
   if [[ ! "${PLANET}" =~ ^https?:// ]]; then
    __loge "ERROR: PLANET must be a valid HTTP/HTTPS URL, got: ${PLANET}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ PLANET: ${PLANET}"
   fi
@@ -855,7 +855,7 @@ function __validate_properties {
  if [[ -n "${OVERPASS_INTERPRETER:-}" ]]; then
   if [[ ! "${OVERPASS_INTERPRETER}" =~ ^https?:// ]]; then
    __loge "ERROR: OVERPASS_INTERPRETER must be a valid HTTP/HTTPS URL, got: ${OVERPASS_INTERPRETER}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ OVERPASS_INTERPRETER: ${OVERPASS_INTERPRETER}"
   fi
@@ -865,7 +865,7 @@ function __validate_properties {
  if [[ -n "${LOOP_SIZE:-}" ]]; then
   if [[ ! "${LOOP_SIZE}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: LOOP_SIZE must be a positive integer, got: ${LOOP_SIZE}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ LOOP_SIZE: ${LOOP_SIZE}"
   fi
@@ -875,7 +875,7 @@ function __validate_properties {
  if [[ -n "${MAX_NOTES:-}" ]]; then
   if [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: MAX_NOTES must be a positive integer, got: ${MAX_NOTES}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ MAX_NOTES: ${MAX_NOTES}"
   fi
@@ -885,13 +885,13 @@ function __validate_properties {
  if [[ -n "${MAX_THREADS:-}" ]]; then
   if [[ ! "${MAX_THREADS}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: MAX_THREADS must be a positive integer, got: ${MAX_THREADS}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   elif [[ "${MAX_THREADS}" -gt 100 ]]; then
    __logw "WARNING: MAX_THREADS=${MAX_THREADS} exceeds recommended maximum (100)"
    __logw "This may cause excessive resource usage"
   elif [[ "${MAX_THREADS}" -lt 1 ]]; then
    __loge "ERROR: MAX_THREADS must be at least 1, got: ${MAX_THREADS}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ MAX_THREADS: ${MAX_THREADS}"
   fi
@@ -901,7 +901,7 @@ function __validate_properties {
  if [[ -n "${MIN_NOTES_FOR_PARALLEL:-}" ]]; then
   if [[ ! "${MIN_NOTES_FOR_PARALLEL}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: MIN_NOTES_FOR_PARALLEL must be a positive integer, got: ${MIN_NOTES_FOR_PARALLEL}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ MIN_NOTES_FOR_PARALLEL: ${MIN_NOTES_FOR_PARALLEL}"
   fi
@@ -911,7 +911,7 @@ function __validate_properties {
  if [[ -n "${CLEAN:-}" ]]; then
   if [[ "${CLEAN}" != "true" && "${CLEAN}" != "false" ]]; then
    __loge "ERROR: CLEAN must be 'true' or 'false', got: ${CLEAN}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ CLEAN: ${CLEAN}"
   fi
@@ -921,7 +921,7 @@ function __validate_properties {
  if [[ -n "${SKIP_XML_VALIDATION:-}" ]]; then
   if [[ "${SKIP_XML_VALIDATION}" != "true" && "${SKIP_XML_VALIDATION}" != "false" ]]; then
    __loge "ERROR: SKIP_XML_VALIDATION must be 'true' or 'false', got: ${SKIP_XML_VALIDATION}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ SKIP_XML_VALIDATION: ${SKIP_XML_VALIDATION}"
   fi
@@ -945,15 +945,15 @@ function __validate_properties {
  if [[ -n "${SEND_ALERT_EMAIL:-}" ]]; then
   if [[ "${SEND_ALERT_EMAIL}" != "true" && "${SEND_ALERT_EMAIL}" != "false" ]]; then
    __loge "ERROR: SEND_ALERT_EMAIL must be 'true' or 'false', got: ${SEND_ALERT_EMAIL}"
-   ((VALIDATION_ERRORS++))
+   ((PROPERTY_ERROR_COUNT++))
   else
    __logd "✓ SEND_ALERT_EMAIL: ${SEND_ALERT_EMAIL}"
   fi
  fi
 
- # Check for validation errors
- if [[ ${VALIDATION_ERRORS} -gt 0 ]]; then
-  __loge "Properties validation failed with ${VALIDATION_ERRORS} error(s)"
+# Check for validation errors
+if [[ ${PROPERTY_ERROR_COUNT} -gt 0 ]]; then
+ __loge "Properties validation failed with ${PROPERTY_ERROR_COUNT} error(s)"
   __loge "Please check your etc/properties.sh configuration file"
   __log_finish
   # shellcheck disable=SC2154
