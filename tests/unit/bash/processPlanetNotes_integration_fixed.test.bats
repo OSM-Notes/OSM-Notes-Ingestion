@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Version: 2025-11-10
+# Version: 2025-11-11
 
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
@@ -15,15 +15,19 @@ setup() {
  export TMP_DIR="$(mktemp -d)"
  export BASENAME="test_process_planet"
  export LOG_LEVEL="INFO"
- 
+
  # Ensure TMP_DIR exists and is writable
  if [[ ! -d "${TMP_DIR}" ]]; then
-   mkdir -p "${TMP_DIR}" || { echo "ERROR: Could not create TMP_DIR: ${TMP_DIR}" >&2; exit 1; }
+  mkdir -p "${TMP_DIR}" || {
+   echo "ERROR: Could not create TMP_DIR: ${TMP_DIR}" >&2
+   exit 1
+  }
  fi
  if [[ ! -w "${TMP_DIR}" ]]; then
-   echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2; exit 1;
+  echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2
+  exit 1
  fi
- 
+
  # Provide mock PostgreSQL client tools for environments without real database
  local MOCK_PSQL_DIR="${TMP_DIR}/mock_psql"
  mkdir -p "${MOCK_PSQL_DIR}"
@@ -53,10 +57,10 @@ EOF
 
  # Set up test database
  export TEST_DBNAME="test_osm_notes_${BASENAME}"
- 
+
  # Define logging function for tests
  log_info() {
-   echo "[INFO] $1" >&2
+  echo "[INFO] $1" >&2
  }
 }
 
@@ -65,7 +69,7 @@ teardown() {
  rm -rf "${TMP_DIR}"
  # Drop test database if it exists (only in local environment)
  if [[ -z "${CI:-}" ]]; then
-   psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
+  psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
  fi
 }
 
@@ -96,26 +100,26 @@ teardown() {
 @test "processPlanetNotes.sh should have all required functions available" {
  # Test that key functions are available
  local REQUIRED_FUNCTIONS=(
-   "__dropAllPartitions"
-   "__dropSyncTables"
-   "__dropBaseTables"
-   "__dropCountryTables"
-   "__createBaseTables"
-   "__createSyncTables"
-   "__createCountryTables"
-   "__createPartitions"
-   "__analyzeVacuum"
-   "__loadPartitionedSyncNotes"
-   "__consolidatePartitions"
-   "__moveSyncToMain"
-   "__removeDuplicates"
-   "__loadTextComments"
-   "__objectsTextComments"
+  "__dropAllPartitions"
+  "__dropSyncTables"
+  "__dropBaseTables"
+  "__dropCountryTables"
+  "__createBaseTables"
+  "__createSyncTables"
+  "__createCountryTables"
+  "__createPartitions"
+  "__analyzeVacuum"
+  "__loadPartitionedSyncNotes"
+  "__consolidatePartitions"
+  "__moveSyncToMain"
+  "__removeDuplicates"
+  "__loadTextComments"
+  "__objectsTextComments"
  )
- 
+
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-   run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && declare -f ${FUNC}"
-   [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
+  run bash -c "cd '${SCRIPT_BASE_DIRECTORY}' && source bin/lib/functionsProcess.sh && declare -f ${FUNC}"
+  [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
 
@@ -135,25 +139,28 @@ teardown() {
  # Create test database
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
  [ "$status" -eq 0 ]
- 
+
  # Create base tables
  run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
  [ "$status" -eq 0 ]
- 
+
  # Create sync tables
  run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
  [ "$status" -eq 0 ]
- 
+
  # Create country tables
  run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"
  [ "$status" -eq 0 ]
- 
+
  # Verify tables exist
  run psql -d "${TEST_DBNAME}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('notes', 'note_comments', 'note_comments_text', 'users', 'countries', 'maritimes');"
  [ "$status" -eq 0 ]
  local table_count
  table_count=$(echo "$output" | grep -Eo '[0-9]+' | tail -1)
- [[ -n "$table_count" ]] || { echo "Expected numeric count, got: $output"; false; }
+ [[ -n "$table_count" ]] || {
+  echo "Expected numeric count, got: $output"
+  false
+ }
 }
 
 # Test that error handling works correctly
@@ -166,26 +173,26 @@ teardown() {
 # Test that all SQL files are valid
 @test "processPlanetNotes SQL files should be valid" {
  local SQL_FILES=(
-   "sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
-   "sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
-   "sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
-   "sql/process/processPlanetNotes_24_createSyncTables.sql"
-   "sql/process/processPlanetNotes_25_createCountryTables.sql"
-   "sql/process/processPlanetNotes_25_createPartitions.sql"
-   "sql/consolidated_cleanup.sql"
-   "sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
-   "sql/process/processPlanetNotes_42_consolidatePartitions.sql"
-   "sql/process/processPlanetNotes_43_moveSyncToMain.sql"
-   "sql/process/processPlanetNotes_43_removeDuplicates.sql"
-   "sql/process/processPlanetNotes_44_loadTextComments.sql"
-   "sql/process/processPlanetNotes_45_objectsTextComments.sql"
+  "sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+  "sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
+  "sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+  "sql/process/processPlanetNotes_24_createSyncTables.sql"
+  "sql/process/processPlanetNotes_25_createCountryTables.sql"
+  "sql/process/processPlanetNotes_25_createPartitions.sql"
+  "sql/consolidated_cleanup.sql"
+  "sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
+  "sql/process/processPlanetNotes_42_consolidatePartitions.sql"
+  "sql/process/processPlanetNotes_43_moveSyncToMain.sql"
+  "sql/process/processPlanetNotes_43_removeDuplicates.sql"
+  "sql/process/processPlanetNotes_44_loadTextComments.sql"
+  "sql/process/processPlanetNotes_45_objectsTextComments.sql"
  )
- 
+
  for SQL_FILE in "${SQL_FILES[@]}"; do
-   [ -f "${SCRIPT_BASE_DIRECTORY}/${SQL_FILE}" ]
-   # Test that SQL file has valid syntax (basic check)
-   run grep -q "CREATE\|INSERT\|UPDATE\|SELECT" "${SCRIPT_BASE_DIRECTORY}/${SQL_FILE}"
-   [ "$status" -eq 0 ] || echo "SQL file ${SQL_FILE} should contain valid SQL"
+  [ -f "${SCRIPT_BASE_DIRECTORY}/${SQL_FILE}" ]
+  # Test that SQL file has valid syntax (basic check)
+  run grep -q "CREATE\|INSERT\|UPDATE\|SELECT" "${SCRIPT_BASE_DIRECTORY}/${SQL_FILE}"
+  [ "$status" -eq 0 ] || echo "SQL file ${SQL_FILE} should contain valid SQL"
  done
 }
 
@@ -221,13 +228,13 @@ teardown() {
 @test "processPlanetNotes.sh parallel processing functions should work correctly" {
  # Test that parallel processing functions are available
  local PARALLEL_FUNCTIONS=(
-   "__splitXmlForParallelPlanet"
-   "__processPlanetXmlPart"
+  "__splitXmlForParallelPlanet"
+  "__processPlanetXmlPart"
  )
- 
+
  for FUNC in "${PARALLEL_FUNCTIONS[@]}"; do
-   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && declare -f ${FUNC}"
-   [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
+  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && declare -f ${FUNC}"
+  [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
 

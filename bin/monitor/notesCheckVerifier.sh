@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
-VERSION="2025-10-30"
+# Version: 2025-11-11
+VERSION="2025-11-11"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -445,7 +445,7 @@ chmod go+x "${TMP_DIR}"
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  if [[ ! -t 1 ]]; then
   export LOG_FILE="${LOG_FILE_NAME}"
-  { 
+  {
    __start_logger
    main
   } >> "${LOG_FILE_NAME}" 2>&1

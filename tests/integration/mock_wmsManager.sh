@@ -1,45 +1,49 @@
 #!/bin/bash
+#!/bin/bash
+
 # Mock WMS Manager Script for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-11-11
+
+VERSION="2025-11-11"
 
 set -euo pipefail
 
-# Mock colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Mock colors (optional in tests)
+declare RED='\033[0;31m'
+declare GREEN='\033[0;32m'
+declare YELLOW='\033[1;33m'
+declare BLUE='\033[0;34m'
+declare NC='\033[0m'
 
 print_status() {
  local COLOR=$1
  local MESSAGE=$2
- echo -e "${COLOR}${MESSAGE}${NC}"
+ printf '%b%s%b\n' "${COLOR}" "${MESSAGE}" "${NC}"
 }
 
 show_help() {
+ printf 'WMS Manager Script (MOCK) - Version %s\n' "${VERSION}"
  cat << 'HELP_EOF'
 WMS Manager Script (MOCK)
-
 Usage: $0 [COMMAND] [OPTIONS]
-
 COMMANDS:
-  install     Install WMS components in the database
-  deinstall   Remove WMS components from the database
-  status      Check the status of WMS installation
-  help        Show this help message
-
+ install     Install WMS components in the database
+ deinstall   Remove WMS components from the database
+ status      Check the status of WMS installation
+ help        Show this help message
 OPTIONS:
-  --force     Force installation even if already installed
-  --dry-run   Show what would be done without executing
-  --verbose   Show detailed output
+ --force     Force installation even if already installed
+ --dry-run   Show what would be done without executing
+ --verbose   Show detailed output
 HELP_EOF
 }
 
 # Mock functions - use a file to persist state
 get_mock_state() {
  local state_file="/tmp/mock_wms_state"
- if [[ -f "$state_file" ]]; then
-  cat "$state_file"
+ if [[ -f "${state_file}" ]]; then
+  cat "${state_file}"
  else
   echo "false"
  fi
@@ -48,24 +52,31 @@ get_mock_state() {
 set_mock_state() {
  local state="$1"
  local state_file="/tmp/mock_wms_state"
- echo "$state" > "$state_file"
+ printf '%s\n' "${state}" > "${state_file}"
 }
 
 is_wms_installed() {
- [[ "$(get_mock_state)" == "true" ]]
+ local current_state
+ current_state=$(get_mock_state)
+ [[ "${current_state}" == "true" ]]
 }
 
 install_wms() {
- if [[ "${DRY_RUN:-false}" == "true" ]]; then
+ local force="${1:-false}"
+ local dry_run="${2:-false}"
+ if [[ "${dry_run}" == "true" ]]; then
   print_status "${YELLOW}" "DRY RUN: Would install WMS components"
   return 0
  fi
-
- if is_wms_installed && [[ "${FORCE:-false}" != "true" ]]; then
+ local installed="false"
+# shellcheck disable=SC2310
+ if is_wms_installed; then
+  installed="true"
+ fi
+ if [[ "${installed}" == "true" ]] && [[ "${force}" != "true" ]]; then
   print_status "${YELLOW}" "⚠️  WMS is already installed. Use --force to reinstall."
   return 0
  fi
-
  set_mock_state "true"
  print_status "${GREEN}" "✅ WMS installation completed successfully"
  print_status "${BLUE}" "📋 Installation Summary:"
@@ -75,26 +86,33 @@ install_wms() {
  print_status "${BLUE}" "   - Triggers configured for synchronization"
  print_status "${BLUE}" "   - Functions created for data management"
 }
-
 deinstall_wms() {
- if [[ "${DRY_RUN:-false}" == "true" ]]; then
+ local dry_run="${1:-false}"
+ if [[ "${dry_run}" == "true" ]]; then
   print_status "${YELLOW}" "DRY RUN: Would remove WMS components"
   return 0
  fi
-
- if ! is_wms_installed; then
+ local installed="false"
+# shellcheck disable=SC2310
+ if is_wms_installed; then
+  installed="true"
+ fi
+ if [[ "${installed}" != "true" ]]; then
   print_status "${YELLOW}" "⚠️  WMS is not installed"
   return 0
  fi
-
  set_mock_state "false"
  print_status "${GREEN}" "✅ WMS removal completed successfully"
 }
 
 show_status() {
  print_status "${BLUE}" "📊 WMS Status Report"
-
+ local installed="false"
+# shellcheck disable=SC2310
  if is_wms_installed; then
+  installed="true"
+ fi
+ if [[ "${installed}" == "true" ]]; then
   print_status "${GREEN}" "✅ WMS is installed"
   print_status "${BLUE}" "📈 WMS Statistics:"
   print_status "${BLUE}" "   - Total notes in WMS: 3"
@@ -103,13 +121,11 @@ show_status() {
   print_status "${YELLOW}" "⚠️  WMS is not installed"
  fi
 }
-
 # Main function
 main() {
  local COMMAND=""
  local FORCE=false
  local DRY_RUN=false
-
  while [[ $# -gt 0 ]]; do
   case $1 in
   install | deinstall | status | help)
@@ -135,13 +151,12 @@ main() {
    ;;
   esac
  done
-
  case "${COMMAND}" in
  install)
-  install_wms
+  install_wms "${FORCE}" "${DRY_RUN}"
   ;;
  deinstall)
-  deinstall_wms
+  deinstall_wms "${DRY_RUN}"
   ;;
  status)
   show_status
@@ -161,5 +176,4 @@ main() {
   ;;
  esac
 }
-
 main "$@"
