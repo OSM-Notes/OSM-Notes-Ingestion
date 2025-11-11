@@ -9,7 +9,7 @@ VERSION="2025-11-11"
 # shellcheck disable=SC2317,SC2155,SC2034
 
 # Ensure logging and error handling helpers exist
-if ! declare -f __log_start > 0 2>&1; then
+if ! declare -f __log_start > /dev/null 2>&1; then
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]]; then
   # shellcheck disable=SC1091
   source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
