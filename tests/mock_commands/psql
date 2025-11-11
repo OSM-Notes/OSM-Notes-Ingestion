@@ -2,126 +2,132 @@
 
 # Mock psql command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-11-11
 
 # Function to simulate database operations
 mock_database_operation() {
  local operation="$1"
  local args="$2"
- 
- case "$operation" in
-  -d)
-   # Database connection - redirect to stderr to avoid polluting stdout
-   echo "Connected to database: $args" >&2
-   ;;
-  -c)
-   # SQL command
-   if [[ "$args" == *"SELECT"* ]]; then
-     # Check for gap count query (notes without comments)
-     # This query looks for notes without comments in the last 7 days
-     if [[ "$args" == *"gap_count"* ]] || ([[ "$args" == *"LEFT JOIN note_comments"* ]] && [[ "$args" == *"nc.note_id IS NULL"* ]]); then
-       echo "0"
-     # Check for timestamp queries (TO_CHAR with timestamp)
-     elif [[ "$args" == *"TO_CHAR"* ]] && [[ "$args" == *"timestamp"* ]]; then
-       # Return timestamp in ISO format: YYYY-MM-DDTHH24:MI:SSZ
-       echo "2023-01-01T00:00:00Z"
-     # Check for table existence queries
-     elif [[ "$args" == *"information_schema.tables"* ]] && [[ "$args" == *"table_name"* ]]; then
-       # Return 1 if checking for max_note_timestamp or other expected tables
-       if [[ "$args" == *"max_note_timestamp"* ]]; then
-         echo "1"
-       else
-         echo "1"
-       fi
-     elif [[ "$args" == *"COUNT"* ]]; then
-       echo "100"
-     elif [[ "$args" == *"TABLE_NAME"* ]]; then
-       echo "notes"
-       echo "note_comments"
-       echo "countries"
-       echo "logs"
-       echo "tries"
-     else
-       echo "1|test|2023-01-01"
-     fi
-   elif [[ "$args" == *"CREATE"* ]]; then
-     echo "CREATE TABLE"
-   elif [[ "$args" == *"INSERT"* ]]; then
-     echo "INSERT 0 1"
-   elif [[ "$args" == *"UPDATE"* ]]; then
-     echo "UPDATE 1"
-   elif [[ "$args" == *"DELETE"* ]]; then
-     echo "DELETE 1"
-   elif [[ "$args" == *"DROP"* ]]; then
-     echo "DROP TABLE"
-   elif [[ "$args" == *"VACUUM"* ]]; then
-     echo "VACUUM"
-   elif [[ "$args" == *"ANALYZE"* ]]; then
-     echo "ANALYZE"
-   elif [[ "$args" == *"COPY"* ]]; then
-     # Handle COPY commands for notesCheckVerifier
-     echo "COPY 1"
-   elif [[ "$args" == *"\\copy"* ]]; then
-     # Handle \copy commands
-     echo "COPY 1"
+
+ case "${operation}" in
+ -d)
+  # Database connection - redirect to stderr to avoid polluting stdout
+  echo "Connected to database: ${args}" >&2
+  ;;
+ -c)
+  # SQL command
+  if [[ "${args}" == *"SELECT"* ]]; then
+   # Check for PostGIS version query
+   if [[ "${args}" == *"PostGIS_version"* ]]; then
+    echo "3.3.2"
+   # Check for btree_gist extension query
+   elif [[ "${args}" == *"pg_extension"* ]] && [[ "${args}" == *"btree_gist"* ]]; then
+    echo "1"
+   # Check for gap count query (notes without comments)
+   # This query looks for notes without comments in the last 7 days
+   elif [[ "${args}" == *"gap_count"* ]] || { [[ "${args}" == *"LEFT JOIN note_comments"* ]] && [[ "${args}" == *"nc.note_id IS NULL"* ]]; }; then
+    echo "0"
+   # Check for timestamp queries (TO_CHAR with timestamp)
+   elif [[ "${args}" == *"TO_CHAR"* ]] && [[ "${args}" == *"timestamp"* ]]; then
+    # Return timestamp in ISO format: YYYY-MM-DDTHH24:MI:SSZ
+    echo "2023-01-01T00:00:00Z"
+   # Check for table existence queries
+   elif [[ "${args}" == *"information_schema.tables"* ]] && [[ "${args}" == *"table_name"* ]]; then
+    # Return 1 if checking for max_note_timestamp or other expected tables
+    if [[ "${args}" == *"max_note_timestamp"* ]]; then
+     echo "1"
+    else
+     echo "1"
+    fi
+   elif [[ "${args}" == *"COUNT"* ]]; then
+    echo "100"
+   elif [[ "${args}" == *"TABLE_NAME"* ]]; then
+    echo "notes"
+    echo "note_comments"
+    echo "countries"
+    echo "logs"
+    echo "tries"
    else
+    echo "1|test|2023-01-01"
+   fi
+  elif [[ "${args}" == *"CREATE"* ]]; then
+   echo "CREATE TABLE"
+  elif [[ "${args}" == *"INSERT"* ]]; then
+   echo "INSERT 0 1"
+  elif [[ "${args}" == *"UPDATE"* ]]; then
+   echo "UPDATE 1"
+  elif [[ "${args}" == *"DELETE"* ]]; then
+   echo "DELETE 1"
+  elif [[ "${args}" == *"DROP"* ]]; then
+   echo "DROP TABLE"
+  elif [[ "${args}" == *"VACUUM"* ]]; then
+   echo "VACUUM"
+  elif [[ "${args}" == *"ANALYZE"* ]]; then
+   echo "ANALYZE"
+  elif [[ "${args}" == *"COPY"* ]]; then
+   # Handle COPY commands for notesCheckVerifier
+   echo "COPY 1"
+  elif [[ "${args}" == *"\\copy"* ]]; then
+   # Handle \copy commands
+   echo "COPY 1"
+  else
+   echo "OK"
+  fi
+  ;;
+ -f)
+  # SQL file
+  if [[ -f "${args}" ]]; then
+   echo "Executing SQL file: ${args}" >&2
+   # Check if this is the base tables verification SQL
+   # If so, check if base tables have been created (for deterministic fixtures)
+   if [[ "${args}" == *"checkBaseTables"* ]] || [[ "${args}" == *"functionsProcess_11"* ]]; then
+    # Check if base tables marker exists (indicates tables were created)
+    local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
+    if [[ -f "${BASE_TABLES_MARKER}" ]]; then
+     # Tables already exist - return success
      echo "OK"
-   fi
-   ;;
-  -f)
-   # SQL file
-   if [[ -f "$args" ]]; then
-     echo "Executing SQL file: $args" >&2
-     # Check if this is the base tables verification SQL
-     # If so, check if base tables have been created (for deterministic fixtures)
-     if [[ "$args" == *"checkBaseTables"* ]] || [[ "$args" == *"functionsProcess_11"* ]]; then
-       # Check if base tables marker exists (indicates tables were created)
-       local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
-       if [[ -f "${BASE_TABLES_MARKER}" ]]; then
-         # Tables already exist - return success
-         echo "OK"
-       else
-         # Tables don't exist - return error
-         echo "ERROR: Base tables are missing: countries." >&2
-         exit 1
-       fi
-     # Check if this is dropping base tables (remove marker)
-     elif [[ "$args" == *"processPlanetNotes_13_dropBaseTables"* ]] || \
-          [[ "$args" == *"dropBaseTables"* ]]; then
-       # Remove marker when base tables are dropped
-       local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
-       rm -f "${BASE_TABLES_MARKER}" 2>/dev/null || true
-       echo "OK"
-     # Check if this is creating base tables (mark them as created)
-     elif [[ "$args" == *"processPlanetNotes_21_createBaseTables_enum"* ]] || \
-          [[ "$args" == *"processPlanetNotes_22_createBaseTables_tables"* ]] || \
-          [[ "$args" == *"processPlanetNotes_23_createBaseTables_constraints"* ]]; then
-       # Mark that base tables have been created (after creating the tables themselves)
-       # Only mark on the last file (constraints) to ensure all tables are created
-       if [[ "$args" == *"processPlanetNotes_23_createBaseTables_constraints"* ]]; then
-         local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
-         touch "${BASE_TABLES_MARKER}" 2>/dev/null || true
-       fi
-       echo "OK"
-     else
-       echo "OK"
-     fi
-   else
-     echo "ERROR: File not found: $args" >&2
+    else
+     # Tables don't exist - return error
+     echo "ERROR: Base tables are missing: countries." >&2
      exit 1
+    fi
+   # Check if this is dropping base tables (remove marker)
+   elif [[ "${args}" == *"processPlanetNotes_13_dropBaseTables"* ]] \
+    || [[ "${args}" == *"dropBaseTables"* ]]; then
+    # Remove marker when base tables are dropped
+    local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
+    rm -f "${BASE_TABLES_MARKER}" 2> /dev/null || true
+    echo "OK"
+   # Check if this is creating base tables (mark them as created)
+   elif [[ "${args}" == *"processPlanetNotes_21_createBaseTables_enum"* ]] \
+    || [[ "${args}" == *"processPlanetNotes_22_createBaseTables_tables"* ]] \
+    || [[ "${args}" == *"processPlanetNotes_23_createBaseTables_constraints"* ]]; then
+    # Mark that base tables have been created (after creating the tables themselves)
+    # Only mark on the last file (constraints) to ensure all tables are created
+    if [[ "${args}" == *"processPlanetNotes_23_createBaseTables_constraints"* ]]; then
+     local BASE_TABLES_MARKER="/tmp/osm_notes_base_tables_created"
+     touch "${BASE_TABLES_MARKER}" 2> /dev/null || true
+    fi
+    echo "OK"
+   else
+    echo "OK"
    fi
-   ;;
-  -v)
-   # Variable assignment - redirect to stderr to avoid polluting stdout
-   echo "Variable set: $args" >&2
-   ;;
-  --version)
-   echo "psql (PostgreSQL) 15.1"
-   exit 0
-   ;;
-  *)
-   echo "Unknown operation: $operation $args"
-   ;;
+  else
+   echo "ERROR: File not found: ${args}" >&2
+   exit 1
+  fi
+  ;;
+ -v)
+  # Variable assignment - redirect to stderr to avoid polluting stdout
+  echo "Variable set: ${args}" >&2
+  ;;
+ --version)
+  echo "psql (PostgreSQL) 15.1"
+  exit 0
+  ;;
+ *)
+  echo "Unknown operation: ${operation} ${args}"
+  ;;
  esac
 }
 
@@ -134,59 +140,59 @@ VARIABLES=()
 
 while [[ $# -gt 0 ]]; do
  case $1 in
-  -d)
-   DATABASE="$2"
-   shift 2
-   ;;
-  -c)
-   COMMAND="$2"
-   shift 2
-   ;;
-  -f)
-   FILE="$2"
-   shift 2
-   ;;
-  -v)
-   VARIABLES+=("$2")
-   shift 2
-   ;;
-  --version)
-   echo "psql (PostgreSQL) 15.1"
-   exit 0
-   ;;
-  -*)
-   # Skip other options
-   shift
-   ;;
-  *)
-   ARGS+=("$1")
-   shift
-   ;;
+ -d)
+  DATABASE="$2"
+  shift 2
+  ;;
+ -c)
+  COMMAND="$2"
+  shift 2
+  ;;
+ -f)
+  FILE="$2"
+  shift 2
+  ;;
+ -v)
+  VARIABLES+=("$2")
+  shift 2
+  ;;
+ --version)
+  echo "psql (PostgreSQL) 15.1"
+  exit 0
+  ;;
+ -*)
+  # Skip other options
+  shift
+  ;;
+ *)
+  ARGS+=("$1")
+  shift
+  ;;
  esac
 done
 
 # Process variables first
 for var in "${VARIABLES[@]}"; do
- mock_database_operation "-v" "$var"
+ mock_database_operation "-v" "${var}"
 done
 
 # Process main operation
 # Only output connection message if there's no SQL command or file
 # (to avoid polluting stdout when capturing command output)
-if [[ -n "$DATABASE" ]] && [[ -z "$COMMAND" ]] && [[ -z "$FILE" ]]; then
- mock_database_operation "-d" "$DATABASE"
+if [[ -n "${DATABASE}" ]] && [[ -z "${COMMAND}" ]] && [[ -z "${FILE}" ]]; then
+ mock_database_operation "-d" "${DATABASE}"
 fi
 
-if [[ -n "$COMMAND" ]]; then
+if [[ -n "${COMMAND}" ]]; then
  # Don't output connection message when executing a command
  # Just execute the command directly
- mock_database_operation "-c" "$COMMAND"
+ mock_database_operation "-c" "${COMMAND}"
 fi
 
-if [[ -n "$FILE" ]]; then
+if [[ -n "${FILE}" ]]; then
  # Don't output connection message when executing a file
  # Just execute the file directly
- mock_database_operation "-f" "$FILE"
+ mock_database_operation "-f" "${FILE}"
 fi
 
-exit 0 
+exit 0
