@@ -596,18 +596,6 @@ function __validate_xml_coordinates() {
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-17
 
-# Retry configuration
-declare -r MAX_RETRIES="${MAX_RETRIES:-3}"
-declare -r RETRY_BASE_DELAY="2"
-declare -r MAX_DELAY="${MAX_DELAY:-60}"
-declare -r CIRCUIT_BREAKER_THRESHOLD="${CIRCUIT_BREAKER_THRESHOLD:-5}"
-declare -r CIRCUIT_BREAKER_TIMEOUT="${CIRCUIT_BREAKER_TIMEOUT:-300}"
-
-# Circuit breaker state
-declare -A CIRCUIT_BREAKER_STATES
-declare -A CIRCUIT_BREAKER_FAILURE_COUNTS
-declare -A CIRCUIT_BREAKER_LAST_FAILURE_TIMES
-
 # Enhanced retry with exponential backoff and jitter
 # Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
 
@@ -733,7 +721,6 @@ function __acquire_download_slot() {
  local MAX_WAIT_TIME=60
  local CHECK_INTERVAL=0.5
  local MAX_RETRIES=10
- local SLOT_MAX_RETRIES=10
 
  mkdir -p "${ACTIVE_DIR}"
 
@@ -967,7 +954,6 @@ function __wait_for_download_turn() {
  # Safety window to auto-heal the queue when no one is active
  local AUTO_HEAL_AFTER=300
  local WAIT_COUNT=0
- local LAST_HEAL_LOG=0
  local START_TIME
  START_TIME=$(date +%s)
 
@@ -1039,7 +1025,6 @@ function __wait_for_download_turn() {
      fi
      if [[ ${ACTIVE_NOW} -eq 0 ]] && [[ ${TICKET_COUNTER} -gt ${CUR} ]]; then
       echo "${TICKET_COUNTER}" > "${CURRENT_SERVING_FILE}"
-      LAST_HEAL_LOG=$((WAIT_COUNT))
       __logw "Auto-heal advanced queue (current_serving: ${CUR} -> ${TICKET_COUNTER}, tickets waiting: ${TICKETS_WAITING}, waited: ${WAIT_COUNT}s)"
      elif [[ ${ACTIVE_NOW} -gt 0 ]]; then
       __logd "Auto-heal skipped: active downloads detected (${ACTIVE_NOW})"
@@ -1234,8 +1219,6 @@ function __retry_file_operation() {
    __log_finish
    return 0
   else
-   local OPERATION_FAILED="true"
-
    # If this looks like an Overpass operation, check for specific error messages
    if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
     __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"

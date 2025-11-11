@@ -6,6 +6,13 @@
 
 VERSION="2025-11-11"
 
+# Directory lock for ogr2ogr imports
+declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
+
+# Overpass query templates
+declare -r OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
+declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
+
 # shellcheck disable=SC2317,SC2155,SC2034
 
 # Ensure logging and error handling helpers exist

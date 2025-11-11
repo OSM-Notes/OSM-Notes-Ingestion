@@ -183,15 +183,6 @@ function __splitXmlForParallelSafe() {
 # Common variables are defined in commonFunctions.sh
 # Additional variables specific to functionsProcess.sh
 
-# Directory for Lock when inserting in the database
-declare -r LOCK_OGR2OGR=/tmp/ogr2ogr.lock
-
-# Overpass queries
-# Get countries.
-declare -r OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
-# Get maritimes.
-declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
-
 # Note location backup file
 declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
 declare -r CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
@@ -538,12 +529,13 @@ function __processApiXmlPart() {
  export OUTPUT_TEXT_PART
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
- # shellcheck disable=SC2154
+# shellcheck disable=SC2016
+psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
+# shellcheck disable=SC2154
+psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
-  < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+ < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
  __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
@@ -815,7 +807,7 @@ function __validate_properties {
  # Validate DBNAME (required, non-empty string)
  if [[ -z "${DBNAME:-}" ]]; then
   __loge "ERROR: DBNAME is not set or empty"
-  VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  ((VALIDATION_ERRORS++))
  else
   __logd "✓ DBNAME: ${DBNAME}"
  fi
@@ -823,7 +815,7 @@ function __validate_properties {
  # Validate DB_USER (required, non-empty string)
  if [[ -z "${DB_USER:-}" ]]; then
   __loge "ERROR: DB_USER is not set or empty"
-  VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+  ((VALIDATION_ERRORS++))
  else
   __logd "✓ DB_USER: ${DB_USER}"
  fi
@@ -843,7 +835,7 @@ function __validate_properties {
  if [[ -n "${OSM_API:-}" ]]; then
   if [[ ! "${OSM_API}" =~ ^https?:// ]]; then
    __loge "ERROR: OSM_API must be a valid HTTP/HTTPS URL, got: ${OSM_API}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ OSM_API: ${OSM_API}"
   fi
@@ -853,7 +845,7 @@ function __validate_properties {
  if [[ -n "${PLANET:-}" ]]; then
   if [[ ! "${PLANET}" =~ ^https?:// ]]; then
    __loge "ERROR: PLANET must be a valid HTTP/HTTPS URL, got: ${PLANET}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ PLANET: ${PLANET}"
   fi
@@ -863,7 +855,7 @@ function __validate_properties {
  if [[ -n "${OVERPASS_INTERPRETER:-}" ]]; then
   if [[ ! "${OVERPASS_INTERPRETER}" =~ ^https?:// ]]; then
    __loge "ERROR: OVERPASS_INTERPRETER must be a valid HTTP/HTTPS URL, got: ${OVERPASS_INTERPRETER}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ OVERPASS_INTERPRETER: ${OVERPASS_INTERPRETER}"
   fi
@@ -873,7 +865,7 @@ function __validate_properties {
  if [[ -n "${LOOP_SIZE:-}" ]]; then
   if [[ ! "${LOOP_SIZE}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: LOOP_SIZE must be a positive integer, got: ${LOOP_SIZE}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ LOOP_SIZE: ${LOOP_SIZE}"
   fi
@@ -883,7 +875,7 @@ function __validate_properties {
  if [[ -n "${MAX_NOTES:-}" ]]; then
   if [[ ! "${MAX_NOTES}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: MAX_NOTES must be a positive integer, got: ${MAX_NOTES}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ MAX_NOTES: ${MAX_NOTES}"
   fi
@@ -893,13 +885,13 @@ function __validate_properties {
  if [[ -n "${MAX_THREADS:-}" ]]; then
   if [[ ! "${MAX_THREADS}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: MAX_THREADS must be a positive integer, got: ${MAX_THREADS}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   elif [[ "${MAX_THREADS}" -gt 100 ]]; then
    __logw "WARNING: MAX_THREADS=${MAX_THREADS} exceeds recommended maximum (100)"
    __logw "This may cause excessive resource usage"
   elif [[ "${MAX_THREADS}" -lt 1 ]]; then
    __loge "ERROR: MAX_THREADS must be at least 1, got: ${MAX_THREADS}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ MAX_THREADS: ${MAX_THREADS}"
   fi
@@ -909,7 +901,7 @@ function __validate_properties {
  if [[ -n "${MIN_NOTES_FOR_PARALLEL:-}" ]]; then
   if [[ ! "${MIN_NOTES_FOR_PARALLEL}" =~ ^[1-9][0-9]*$ ]]; then
    __loge "ERROR: MIN_NOTES_FOR_PARALLEL must be a positive integer, got: ${MIN_NOTES_FOR_PARALLEL}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ MIN_NOTES_FOR_PARALLEL: ${MIN_NOTES_FOR_PARALLEL}"
   fi
@@ -919,7 +911,7 @@ function __validate_properties {
  if [[ -n "${CLEAN:-}" ]]; then
   if [[ "${CLEAN}" != "true" && "${CLEAN}" != "false" ]]; then
    __loge "ERROR: CLEAN must be 'true' or 'false', got: ${CLEAN}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ CLEAN: ${CLEAN}"
   fi
@@ -929,7 +921,7 @@ function __validate_properties {
  if [[ -n "${SKIP_XML_VALIDATION:-}" ]]; then
   if [[ "${SKIP_XML_VALIDATION}" != "true" && "${SKIP_XML_VALIDATION}" != "false" ]]; then
    __loge "ERROR: SKIP_XML_VALIDATION must be 'true' or 'false', got: ${SKIP_XML_VALIDATION}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ SKIP_XML_VALIDATION: ${SKIP_XML_VALIDATION}"
   fi
@@ -953,7 +945,7 @@ function __validate_properties {
  if [[ -n "${SEND_ALERT_EMAIL:-}" ]]; then
   if [[ "${SEND_ALERT_EMAIL}" != "true" && "${SEND_ALERT_EMAIL}" != "false" ]]; then
    __loge "ERROR: SEND_ALERT_EMAIL must be 'true' or 'false', got: ${SEND_ALERT_EMAIL}"
-   VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+   ((VALIDATION_ERRORS++))
   else
    __logd "✓ SEND_ALERT_EMAIL: ${SEND_ALERT_EMAIL}"
   fi
@@ -1807,8 +1799,7 @@ function __validate_csv_structure {
 
  __logd "CSV file has ${TOTAL_LINES} lines, validating first ${SAMPLE_SIZE} lines"
 
- # Validation counters
- local MALFORMED_LINES=0
+# Validation counters
  local UNESCAPED_QUOTES=0
  local WRONG_COLUMNS=0
  local LINE_NUMBER=0
