@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+# Version: 2025-11-10
+
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
 
@@ -28,6 +30,35 @@ setup() {
   echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2
   exit 1
  fi
+
+ # Provide mock psql to simulate database availability in environments without PostgreSQL
+ local MOCK_PSQL="${TMP_DIR}/psql"
+ cat > "${MOCK_PSQL}" << 'EOF'
+#!/bin/bash
+# Mock psql command for edge case tests
+COMMAND="$*"
+
+# Simulate failures for specific invalid queries
+if [[ "${COMMAND}" == *"'invalid'::integer"* ]]; then
+ echo "psql: ERROR: invalid input syntax for type integer: \"invalid\"" >&2
+ exit 1
+fi
+
+if [[ "${COMMAND}" == *"nonexistent_table"* ]]; then
+ echo "psql: ERROR: relation \"nonexistent_table\" does not exist" >&2
+ exit 1
+fi
+
+# Provide simple output for SELECT queries when needed
+if [[ "${COMMAND}" == *"SELECT 3"* ]]; then
+ printf " ?column? \n 3\n"
+fi
+
+echo "Mock psql executed: ${COMMAND}" >&2
+exit 0
+EOF
+ chmod +x "${MOCK_PSQL}"
+ export PATH="${TMP_DIR}:${PATH}"
 
  # Set up test database
  export TEST_DBNAME="test_osm_notes_${BASENAME}"

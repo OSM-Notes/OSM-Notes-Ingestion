@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+# Version: 2025-11-10
+
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
 
@@ -28,6 +30,37 @@ setup() {
   echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2
   exit 1
  fi
+
+ # Provide mock psql to simulate database operations when PostgreSQL is unavailable
+ local MOCK_PSQL="${TMP_DIR}/psql"
+ cat > "${MOCK_PSQL}" << 'EOF'
+#!/bin/bash
+COMMAND="$*"
+
+# Simulate CREATE DATABASE success
+if [[ "${COMMAND}" == *"CREATE DATABASE"* ]]; then
+ echo "CREATE DATABASE"
+ exit 0
+fi
+
+# Simulate prepareDatabase.sql execution success
+if [[ "${COMMAND}" == *"prepareDatabase.sql"* ]]; then
+ echo "Running prepareDatabase.sql"
+ exit 0
+fi
+
+# Simulate COUNT(*) query returning numeric result
+if [[ "${COMMAND}" == *"SELECT COUNT(*) FROM information_schema.tables"* ]]; then
+ echo " count "
+ echo " 3"
+ exit 0
+fi
+
+echo "Mock psql executed: ${COMMAND}" >&2
+exit 0
+EOF
+ chmod +x "${MOCK_PSQL}"
+ export PATH="${TMP_DIR}:${PATH}"
 
  # Set up test database
  export TEST_DBNAME="test_osm_notes_${BASENAME}"

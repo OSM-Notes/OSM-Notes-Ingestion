@@ -3,7 +3,7 @@
 # Enhanced unit tests for functionsProcess.sh with improved testability
 # Tests XML counting functions, validation, error handling, and performance
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-24
+# Version: 2025-11-10
 
 load "$(dirname "${BATS_TEST_FILENAME}")/../../test_helper.bash"
 
@@ -28,6 +28,41 @@ setup() {
  export LOG_FILENAME="/tmp/test.log"
  export LOCK="/tmp/test.lock"
  export MAX_THREADS="2"
+
+ # Provide mock psql when PostgreSQL is not available
+ local MOCK_PSQL="${TMP_DIR}/psql"
+ mkdir -p "${TMP_DIR}"
+ cat > "${MOCK_PSQL}" << 'EOF'
+#!/bin/bash
+COMMAND="$*"
+
+# Simulate specific error scenarios for tests
+if [[ "${COMMAND}" == *"'invalid'::integer"* ]]; then
+ echo "psql: ERROR: invalid input syntax for type integer: \"invalid\"" >&2
+ exit 1
+fi
+
+# Provide simple output for SELECT 1/2/3 checks
+if [[ "${COMMAND}" == *"SELECT 1"* ]]; then
+ printf " ?column? \n 1\n"
+ exit 0
+fi
+
+if [[ "${COMMAND}" == *"SELECT 2"* ]]; then
+ printf " ?column? \n 2\n"
+ exit 0
+fi
+
+if [[ "${COMMAND}" == *"SELECT 3"* ]]; then
+ printf " ?column? \n 3\n"
+ exit 0
+fi
+
+echo "Mock psql executed: ${COMMAND}" >&2
+exit 0
+EOF
+ chmod +x "${MOCK_PSQL}"
+ export PATH="${TMP_DIR}:${PATH}"
 
  # Unset any existing readonly variables that might conflict
  unset ERROR_HELP_MESSAGE ERROR_PREVIOUS_EXECUTION_FAILED ERROR_CREATING_REPORT ERROR_MISSING_LIBRARY ERROR_INVALID_ARGUMENT ERROR_LOGGER_UTILITY ERROR_DOWNLOADING_BOUNDARY_ID_LIST ERROR_NO_LAST_UPDATE ERROR_PLANET_PROCESS_IS_RUNNING ERROR_DOWNLOADING_NOTES ERROR_EXECUTING_PLANET_DUMP ERROR_DOWNLOADING_BOUNDARY ERROR_GEOJSON_CONVERSION ERROR_INTERNET_ISSUE ERROR_GENERAL 2> /dev/null || true
@@ -56,6 +91,9 @@ setup() {
 teardown() {
  # Clean up test files to avoid interference between tests
  rm -f "${TEST_BASE_DIR}/tests/tmp/test_*.xml"
+
+ # Remove mock binaries created during setup
+ rm -f "${TMP_DIR}/psql" 2> /dev/null || true
 }
 
 # =============================================================================

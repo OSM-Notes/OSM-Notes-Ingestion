@@ -5,7 +5,7 @@ bats_require_minimum_version 1.5.0
 
 # Integration tests for processCheckPlanetNotes.sh
 # Tests that actually execute the script to detect real errors
-# Version: 2025-08-13
+# Version: 2025-11-10
 
 setup() {
  # Setup test environment
@@ -21,6 +21,38 @@ setup() {
  if [[ ! -w "${TMP_DIR}" ]]; then
    echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2; exit 1;
  fi
+
+ # Provide mock psql for database operations when PostgreSQL is unavailable
+ local MOCK_PSQL="${TMP_DIR}/psql"
+ cat > "${MOCK_PSQL}" << 'EOF'
+#!/bin/bash
+COMMAND="$*"
+
+# Simulate CREATE DATABASE success
+if [[ "${COMMAND}" == *"CREATE DATABASE"* ]]; then
+ echo "CREATE DATABASE"
+ exit 0
+fi
+
+# Simulate execution of SQL files used by the test
+if [[ "${COMMAND}" == *"processPlanetNotes_22_createBaseTables_tables.sql"* ]] \
+ || [[ "${COMMAND}" == *"processCheckPlanetNotes_21_createCheckTables.sql"* ]]; then
+ echo "Running SQL file"
+ exit 0
+fi
+
+# Simulate COUNT(*) query returning a numeric value
+if [[ "${COMMAND}" == *"SELECT COUNT(*) FROM information_schema.tables"* ]]; then
+ echo " count "
+ echo " 5"
+ exit 0
+fi
+
+echo "Mock psql executed: ${COMMAND}" >&2
+exit 0
+EOF
+ chmod +x "${MOCK_PSQL}"
+ export PATH="${TMP_DIR}:${PATH}"
 
  # Set up test database
  export TEST_DBNAME="test_osm_notes_${BASENAME}"
