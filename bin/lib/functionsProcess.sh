@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
-VERSION="2025-11-11"
+# Version: 2025-11-10
+VERSION="2025-11-10"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -74,6 +74,164 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/overpassFunctions.sh" ]]; then
  # shellcheck source=overpassFunctions.sh
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/overpassFunctions.sh"
 fi
+
+# ----------------------------------------------------------------------
+# Overpass smart wait helpers (centralized definitions)
+# ----------------------------------------------------------------------
+: "${OVERPASS_RETRIES_PER_ENDPOINT:=7}"
+: "${OVERPASS_BACKOFF_SECONDS:=20}"
+
+# Retry file operations with exponential backoff and cleanup on failure.
+# Parameters:
+#  $1 - operation_command
+#  $2 - max_retries (defaults to OVERPASS_RETRIES_PER_ENDPOINT or 7)
+#  $3 - base_delay (defaults to OVERPASS_BACKOFF_SECONDS or 20)
+#  $4 - cleanup_command (optional)
+#  $5 - smart_wait flag (true/false)
+#  $6 - explicit Overpass endpoint for smart wait (optional)
+# Returns:
+#  0 on success, 1 on failure after retries.
+function __retry_file_operation() {
+ __log_start
+ local OPERATION_COMMAND="$1"
+ local MAX_RETRIES_LOCAL="${2:-${OVERPASS_RETRIES_PER_ENDPOINT:-7}}"
+ local BASE_DELAY_LOCAL="${3:-${OVERPASS_BACKOFF_SECONDS:-20}}"
+ local CLEANUP_COMMAND="${4:-}"
+ local SMART_WAIT="${5:-false}"
+ local SMART_WAIT_ENDPOINT="${6:-}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
+
+ __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
+ __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s, Smart wait: ${SMART_WAIT}"
+
+ local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}"
+ if [[ -z "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]] && [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
+  EFFECTIVE_OVERPASS_FOR_WAIT="${OVERPASS_INTERPRETER}"
+ fi
+
+ if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+  if ! __wait_for_download_slot; then
+   __loge "Failed to obtain download slot after waiting"
+   trap - EXIT INT TERM
+   __log_finish
+   return 1
+  fi
+  __logd "Download slot acquired, proceeding with download"
+
+  # Probe Overpass status before continuing (non-blocking best effort)
+  local STATUS_PROBE="0"
+  set +e # Allow errors in wait
+  STATUS_PROBE=$(__check_overpass_status 2> /dev/null || echo "0")
+  set -e
+  __logd "Overpass status probe returned: ${STATUS_PROBE}"
+
+  __cleanup_slot() {
+   __release_download_slot > /dev/null 2>&1 || true
+  }
+  trap '__cleanup_slot' EXIT INT TERM
+ fi
+
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
+  if eval "${OPERATION_COMMAND}"; then
+   __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
+   if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+    __release_download_slot > /dev/null 2>&1 || true
+   fi
+   trap - EXIT INT TERM
+   __log_finish
+   return 0
+  else
+   if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
+    __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+    if [[ -f "${OUTPUT_OVERPASS:-}" ]]; then
+     local ERROR_LINE
+     ERROR_LINE=$(grep -i "error" "${OUTPUT_OVERPASS}" | head -1 || echo "")
+     if [[ -n "${ERROR_LINE}" ]]; then
+      __logw "Overpass error detected: ${ERROR_LINE}"
+     fi
+    fi
+   else
+    __logw "File operation failed on attempt $((RETRY_COUNT + 1))"
+   fi
+  fi
+
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
+   __logw "Retrying operation in ${EXPONENTIAL_DELAY}s (remaining attempts: $((MAX_RETRIES_LOCAL - RETRY_COUNT)))"
+   sleep "${EXPONENTIAL_DELAY}"
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 3 / 2))
+  fi
+ done
+
+ if [[ -n "${CLEANUP_COMMAND}" ]]; then
+  __logw "Executing cleanup command due to file operation failure"
+  if eval "${CLEANUP_COMMAND}"; then
+   __logd "Cleanup command executed successfully"
+  else
+   __logw "Cleanup command failed"
+  fi
+ fi
+
+ __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
+ if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+  __release_download_slot > /dev/null 2>&1 || true
+ fi
+ trap - EXIT INT TERM
+ __log_finish
+ return 1
+}
+
+# Check Overpass API status and wait time.
+# Returns:
+#  - echoes 0 when slots are available immediately.
+#  - echoes wait time in seconds when busy.
+function __check_overpass_status() {
+ __log_start
+ local BASE_URL="${OVERPASS_INTERPRETER%/api/interpreter}"
+ BASE_URL="${BASE_URL%/}"
+ local STATUS_URL="${BASE_URL}/status"
+ local STATUS_OUTPUT
+ local AVAILABLE_SLOTS
+ local WAIT_TIME
+
+ __logd "Checking Overpass API status at ${STATUS_URL}..."
+
+ if ! STATUS_OUTPUT=$(curl -s "${STATUS_URL}" 2>&1); then
+  __logw "Could not reach Overpass API status page, assuming available"
+  __log_finish
+  echo "0"
+  return 0
+ fi
+
+ AVAILABLE_SLOTS=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' | head -1 | grep -o '[0-9]*' || echo "0")
+
+ if [[ -n "${AVAILABLE_SLOTS}" ]] && [[ "${AVAILABLE_SLOTS}" -gt 0 ]]; then
+  __logd "Overpass API has ${AVAILABLE_SLOTS} slot(s) available now"
+  __log_finish
+  echo "0"
+  return 0
+ fi
+
+ local ALL_WAIT_TIMES
+ ALL_WAIT_TIMES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' | grep -o '[0-9]*' || echo "")
+
+ if [[ -n "${ALL_WAIT_TIMES}" ]]; then
+  WAIT_TIME=$(echo "${ALL_WAIT_TIMES}" | sort -n | head -1)
+  if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
+   __logd "Overpass API busy, next slot available in ${WAIT_TIME} seconds (from ${RATE_LIMIT:-4} slots)"
+   __log_finish
+   echo "${WAIT_TIME}"
+   return 0
+  fi
+ fi
+
+ __logd "Could not determine Overpass API status, assuming available"
+ __log_finish
+ echo "0"
+ return 0
+}
 
 # Load boundary processing helper functions
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh" ]]; then

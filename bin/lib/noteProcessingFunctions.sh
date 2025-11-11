@@ -1165,161 +1165,165 @@ function __release_download_ticket() {
  return 0
 }
 
-# Retry file operations with exponential backoff and cleanup on failure
-# Parameters: operation_command max_retries base_delay [cleanup_command] [smart_wait]
-# Returns: 0 if successful, 1 if failed after all retries
-function __retry_file_operation() {
- __log_start
- local OPERATION_COMMAND="$1"
- local MAX_RETRIES_LOCAL="${2:-3}"
- local BASE_DELAY_LOCAL="${3:-2}"
- local CLEANUP_COMMAND="${4:-}"
- local SMART_WAIT="${5:-false}"
- # Optional: explicit Overpass endpoint for smart-wait (avoids relying on global)
- local SMART_WAIT_ENDPOINT="${6:-}"
- local RETRY_COUNT=0
- local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
+if ! declare -f __retry_file_operation > /dev/null 2>&1; then
+ # Retry file operations with exponential backoff and cleanup on failure
+ # Parameters: operation_command max_retries base_delay [cleanup_command] [smart_wait]
+ # Returns: 0 if successful, 1 if failed after all retries
+ function __retry_file_operation() {
+  __log_start
+  local OPERATION_COMMAND="$1"
+  local MAX_RETRIES_LOCAL="${2:-3}"
+  local BASE_DELAY_LOCAL="${3:-2}"
+  local CLEANUP_COMMAND="${4:-}"
+  local SMART_WAIT="${5:-false}"
+  # Optional: explicit Overpass endpoint for smart-wait (avoids relying on global)
+  local SMART_WAIT_ENDPOINT="${6:-}"
+  local RETRY_COUNT=0
+  local EXPONENTIAL_DELAY="${BASE_DELAY_LOCAL}"
 
- __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
- __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s, Smart wait: ${SMART_WAIT}"
+  __logd "Executing file operation with retry logic: ${OPERATION_COMMAND}"
+  __logd "Max retries: ${MAX_RETRIES_LOCAL}, Base delay: ${BASE_DELAY_LOCAL}s, Smart wait: ${SMART_WAIT}"
 
- # Get download slot if smart wait is enabled for Overpass operations
- # Use provided SMART_WAIT_ENDPOINT when available; else fall back to OVERPASS_INTERPRETER matching
- local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}"
- if [[ -z "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]] && [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
-  EFFECTIVE_OVERPASS_FOR_WAIT="${OVERPASS_INTERPRETER}"
- fi
-
- if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
-  # Use simple semaphore system (recommended - no tickets, no ordering)
-  if ! __wait_for_download_slot; then
-   __loge "Failed to obtain download slot after waiting"
-   trap - EXIT INT TERM
-   __log_finish
-   return 1
+  # Get download slot if smart wait is enabled for Overpass operations
+  # Use provided SMART_WAIT_ENDPOINT when available; else fall back to OVERPASS_INTERPRETER matching
+  local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}"
+  if [[ -z "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]] && [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
+   EFFECTIVE_OVERPASS_FOR_WAIT="${OVERPASS_INTERPRETER}"
   fi
-  __logd "Download slot acquired, proceeding with download"
-  # Setup slot cleanup on exit
-  # shellcheck disable=SC2317
-  __cleanup_slot() {
-   __release_download_slot > /dev/null 2>&1 || true
-  }
-  trap '__cleanup_slot' EXIT INT TERM
- fi
 
- while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
-  # Execute the operation and capture both stdout and stderr for better error logging
-  if eval "${OPERATION_COMMAND}"; then
-   __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
-   # Release download slot if acquired
-   if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+  if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+   # Use simple semaphore system (recommended - no tickets, no ordering)
+   if ! __wait_for_download_slot; then
+    __loge "Failed to obtain download slot after waiting"
+    trap - EXIT INT TERM
+    __log_finish
+    return 1
+   fi
+   __logd "Download slot acquired, proceeding with download"
+   # Setup slot cleanup on exit
+   # shellcheck disable=SC2317
+   __cleanup_slot() {
     __release_download_slot > /dev/null 2>&1 || true
-   fi
-   trap - EXIT INT TERM
-   __log_finish
-   return 0
-  else
-   # If this looks like an Overpass operation, check for specific error messages
-   if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
-    __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+   }
+   trap '__cleanup_slot' EXIT INT TERM
+  fi
 
-    # Try to extract and log specific error messages from stderr
-    if [[ -f "${OUTPUT_OVERPASS:-}" ]]; then
-     local ERROR_LINE
-     ERROR_LINE=$(grep -i "error" "${OUTPUT_OVERPASS}" | head -1 || echo "")
-     if [[ -n "${ERROR_LINE}" ]]; then
-      __logw "Overpass error detected: ${ERROR_LINE}"
-     fi
+  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
+   # Execute the operation and capture both stdout and stderr for better error logging
+   if eval "${OPERATION_COMMAND}"; then
+    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
+    # Release download slot if acquired
+    if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+     __release_download_slot > /dev/null 2>&1 || true
     fi
+    trap - EXIT INT TERM
+    __log_finish
+    return 0
    else
-    __logw "File operation failed on attempt $((RETRY_COUNT + 1))"
+    # If this looks like an Overpass operation, check for specific error messages
+    if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
+     __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+
+     # Try to extract and log specific error messages from stderr
+     if [[ -f "${OUTPUT_OVERPASS:-}" ]]; then
+      local ERROR_LINE
+      ERROR_LINE=$(grep -i "error" "${OUTPUT_OVERPASS}" | head -1 || echo "")
+      if [[ -n "${ERROR_LINE}" ]]; then
+       __logw "Overpass error detected: ${ERROR_LINE}"
+      fi
+     fi
+    else
+     __logw "File operation failed on attempt $((RETRY_COUNT + 1))"
+    fi
+   fi
+
+   RETRY_COUNT=$((RETRY_COUNT + 1))
+
+   if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
+    __logw "Retrying operation in ${EXPONENTIAL_DELAY}s (remaining attempts: $((MAX_RETRIES_LOCAL - RETRY_COUNT)))"
+    sleep "${EXPONENTIAL_DELAY}"
+    # Exponential backoff: multiply delay by 1.5 for next attempt
+    EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 3 / 2))
+   fi
+  done
+
+  # If cleanup command is provided, execute it
+  if [[ -n "${CLEANUP_COMMAND}" ]]; then
+   __logw "Executing cleanup command due to file operation failure"
+   if eval "${CLEANUP_COMMAND}"; then
+    __logd "Cleanup command executed successfully"
+   else
+    __logw "Cleanup command failed"
    fi
   fi
 
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-
-  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; then
-   __logw "Retrying operation in ${EXPONENTIAL_DELAY}s (remaining attempts: $((MAX_RETRIES_LOCAL - RETRY_COUNT)))"
-   sleep "${EXPONENTIAL_DELAY}"
-   # Exponential backoff: multiply delay by 1.5 for next attempt
-   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 3 / 2))
+  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
+  # Release download slot if acquired
+  if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+   __release_download_slot > /dev/null 2>&1 || true
   fi
- done
-
- # If cleanup command is provided, execute it
- if [[ -n "${CLEANUP_COMMAND}" ]]; then
-  __logw "Executing cleanup command due to file operation failure"
-  if eval "${CLEANUP_COMMAND}"; then
-   __logd "Cleanup command executed successfully"
-  else
-   __logw "Cleanup command failed"
-  fi
- fi
-
- __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
- # Release download slot if acquired
- if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
-  __release_download_slot > /dev/null 2>&1 || true
- fi
- trap - EXIT INT TERM
- __log_finish
- return 1
-}
-
-# Check Overpass API status and wait time
-# Returns: 0 if slots available now, number of seconds to wait if busy
-function __check_overpass_status() {
- __log_start
- # Extract the base URL from OVERPASS_INTERPRETER
- # Handle both https://server.com/api/interpreter and https://server.com formats
- local BASE_URL="${OVERPASS_INTERPRETER%/api/interpreter}"
- BASE_URL="${BASE_URL%/}" # Remove trailing slash
- local STATUS_URL="${BASE_URL}/status"
- local STATUS_OUTPUT
- local AVAILABLE_SLOTS
- local WAIT_TIME
-
- __logd "Checking Overpass API status at ${STATUS_URL}..."
-
- if ! STATUS_OUTPUT=$(curl -s "${STATUS_URL}" 2>&1); then
-  __logw "Could not reach Overpass API status page, assuming available"
+  trap - EXIT INT TERM
   __log_finish
-  echo "0"
-  return 0
- fi
+  return 1
+ }
+fi
 
- # Extract available slots number (format: "X slots available now")
- AVAILABLE_SLOTS=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' | head -1 | grep -o '[0-9]*' || echo "0")
+if ! declare -f __check_overpass_status > /dev/null 2>&1; then
+ # Check Overpass API status and wait time
+ # Returns: 0 if slots available now, number of seconds to wait if busy
+ function __check_overpass_status() {
+  __log_start
+  # Extract the base URL from OVERPASS_INTERPRETER
+  # Handle both https://server.com/api/interpreter and https://server.com formats
+  local BASE_URL="${OVERPASS_INTERPRETER%/api/interpreter}"
+  BASE_URL="${BASE_URL%/}" # Remove trailing slash
+  local STATUS_URL="${BASE_URL}/status"
+  local STATUS_OUTPUT
+  local AVAILABLE_SLOTS
+  local WAIT_TIME
 
- if [[ -n "${AVAILABLE_SLOTS}" ]] && [[ "${AVAILABLE_SLOTS}" -gt 0 ]]; then
-  __logd "Overpass API has ${AVAILABLE_SLOTS} slot(s) available now"
-  __log_finish
-  echo "0"
-  return 0
- fi
+  __logd "Checking Overpass API status at ${STATUS_URL}..."
 
- # Extract wait time from "Slot available after" messages (format: "...in X seconds.")
- # There can be multiple lines, we need the minimum wait time
- local ALL_WAIT_TIMES
- ALL_WAIT_TIMES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' | grep -o '[0-9]*' || echo "")
-
- if [[ -n "${ALL_WAIT_TIMES}" ]]; then
-  # Find the minimum wait time from all available slots
-  WAIT_TIME=$(echo "${ALL_WAIT_TIMES}" | sort -n | head -1)
-
-  if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
-   __logd "Overpass API busy, next slot available in ${WAIT_TIME} seconds (from ${RATE_LIMIT:-4} slots)"
+  if ! STATUS_OUTPUT=$(curl -s "${STATUS_URL}" 2>&1); then
+   __logw "Could not reach Overpass API status page, assuming available"
    __log_finish
-   echo "${WAIT_TIME}"
+   echo "0"
    return 0
   fi
- fi
 
- __logd "Could not determine Overpass API status, assuming available"
- __log_finish
- echo "0"
- return 0
-}
+  # Extract available slots number (format: "X slots available now")
+  AVAILABLE_SLOTS=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' | head -1 | grep -o '[0-9]*' || echo "0")
+
+  if [[ -n "${AVAILABLE_SLOTS}" ]] && [[ "${AVAILABLE_SLOTS}" -gt 0 ]]; then
+   __logd "Overpass API has ${AVAILABLE_SLOTS} slot(s) available now"
+   __log_finish
+   echo "0"
+   return 0
+  fi
+
+  # Extract wait time from "Slot available after" messages (format: "...in X seconds.")
+  # There can be multiple lines, we need the minimum wait time
+  local ALL_WAIT_TIMES
+  ALL_WAIT_TIMES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' | grep -o '[0-9]*' || echo "")
+
+  if [[ -n "${ALL_WAIT_TIMES}" ]]; then
+   # Find the minimum wait time from all available slots
+   WAIT_TIME=$(echo "${ALL_WAIT_TIMES}" | sort -n | head -1)
+
+   if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
+    __logd "Overpass API busy, next slot available in ${WAIT_TIME} seconds (from ${RATE_LIMIT:-4} slots)"
+    __log_finish
+    echo "${WAIT_TIME}"
+    return 0
+   fi
+  fi
+
+  __logd "Could not determine Overpass API status, assuming available"
+  __log_finish
+  echo "0"
+  return 0
+ }
+fi
 
 # Retry network operations with exponential backoff and HTTP error handling
 # Parameters: url output_file max_retries base_delay [timeout]
