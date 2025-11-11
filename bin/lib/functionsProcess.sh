@@ -1691,8 +1691,23 @@ function __preserve_failed_boundary_artifacts {
  return 0
 }
 
+
+# Download the list of countries, then it downloads each country individually,
+# converts the OSM JSON into a GeoJSON, and then it inserts the geometry of the
+# country into the Postgres database with ogr2ogr.
 function __processCountries {
- __processCountries_impl "$@"
+ local RETURN_CODE=0
+
+ if __processCountries_impl "$@"; then
+  return 0
+ fi
+
+ RETURN_CODE=$?
+ __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
+  "Country processing wrapper detected failure (exit code: ${RETURN_CODE})" \
+  "__preserve_failed_boundary_artifacts 'wrapper-detected-failure'"
+
+ return "${ERROR_DOWNLOADING_BOUNDARY}"
 }
 
 # Download the list of maritimes areas, then it downloads each area
