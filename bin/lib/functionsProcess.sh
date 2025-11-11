@@ -5,7 +5,7 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
+# Version: 2025-11-10
 VERSION="2025-11-10"
 
 # shellcheck disable=SC2317,SC2155
