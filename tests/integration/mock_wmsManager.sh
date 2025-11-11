@@ -1,30 +1,21 @@
 #!/bin/bash
 # Mock WMS Manager Script for testing
-# Version: 2025-11-11
-
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2025-11-10
 set -euo pipefail
-
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly BLUE='\033[0;34m'
-readonly NC='\033[0m'
-
-# Prints a colored status message.
-# Parameters:
-#  $1 - Color to use.
-#  $2 - Message to display.
-function __print_status {
- local COLOR="$1"
- local MESSAGE="$2"
-
+# Mock colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+print_status() {
+ local COLOR=$1
+ local MESSAGE=$2
  echo -e "${COLOR}${MESSAGE}${NC}"
 }
-
-# Shows the help text for the mock script.
-# Parameters:
-#  None.
-function __show_help {
+show_help() {
  cat << 'HELP_EOF'
 WMS Manager Script (MOCK)
 Usage: $0 [COMMAND] [OPTIONS]
@@ -39,109 +30,87 @@ OPTIONS:
   --verbose   Show detailed output
 HELP_EOF
 }
-
-# Retrieves the persisted mock state.
-# Parameters:
-#  None.
-# Returns:
-#  Prints "true" or "false".
-function __get_mock_state {
- local STATE_FILE="/tmp/mock_wms_state"
-
- if [[ -f "${STATE_FILE}" ]]; then
-  cat "${STATE_FILE}"
+# Mock functions - use a file to persist state
+get_mock_state() {
+ local state_file="/tmp/mock_wms_state"
+ if [[ -f "${state_file}" ]]; then
+  cat "${state_file}"
  else
   echo "false"
  fi
 }
-
-# Persists the mock state for later checks.
-# Parameters:
-#  $1 - Desired state ("true" or "false").
-function __set_mock_state {
- local STATE="$1"
- local STATE_FILE="/tmp/mock_wms_state"
-
- echo "${STATE}" > "${STATE_FILE}"
+set_mock_state() {
+ local state="$1"
+ local state_file="/tmp/mock_wms_state"
+ echo "${state}" > "${state_file}"
 }
-
-# Determines whether the WMS components are installed.
-# Parameters:
-#  None.
-# Returns:
-#  0 when installed, 1 otherwise.
-function __is_wms_installed {
- [[ "$(__get_mock_state)" == "true" ]]
+is_wms_installed() {
+ local mock_state
+ mock_state=$(get_mock_state)
+ [[ "${mock_state}" == "true" ]]
 }
-
-# Simulates the WMS installation flow.
-# Parameters:
-#  None (uses global FORCE and DRY_RUN flags).
-function __install_wms {
+install_wms() {
  if [[ "${DRY_RUN:-false}" == "true" ]]; then
-  __print_status "${YELLOW}" "DRY RUN: Would install WMS components"
+  print_status "${YELLOW}" "DRY RUN: Would install WMS components"
   return 0
  fi
-
- if __is_wms_installed && [[ "${FORCE:-false}" != "true" ]]; then
-  __print_status "${YELLOW}" "⚠️  WMS already installed. Use --force to reinstall."
+ local wms_installed=false
+ if is_wms_installed; then
+  wms_installed=true
+ fi
+ if [[ "${wms_installed}" == "true" ]] \
+  && [[ "${FORCE:-false}" != "true" ]]; then
+  print_status "${YELLOW}" \
+   "⚠️  WMS is already installed. Use --force to reinstall."
   return 0
  fi
-
- __set_mock_state "true"
- __print_status "${GREEN}" "✅ WMS installation completed successfully"
- __print_status "${BLUE}" "📋 Installation Summary:"
- __print_status "${BLUE}" "   - Schema 'wms' created"
- __print_status "${BLUE}" "   - Table 'wms.notes_wms' created"
- __print_status "${BLUE}" "   - Indexes created for performance"
- __print_status "${BLUE}" "   - Triggers configured for sync"
- __print_status "${BLUE}" "   - Functions created for data management"
+ set_mock_state "true"
+ print_status "${GREEN}" "✅ WMS installation completed successfully"
+ print_status "${BLUE}" "📋 Installation Summary:"
+ print_status "${BLUE}" "   - Schema 'wms' created"
+ print_status "${BLUE}" "   - Table 'wms.notes_wms' created"
+ print_status "${BLUE}" "   - Indexes created for performance"
+ print_status "${BLUE}" "   - Triggers configured for synchronization"
+ print_status "${BLUE}" "   - Functions created for data management"
 }
-
-# Simulates the WMS removal process.
-# Parameters:
-#  None (uses global DRY_RUN flag).
-function __deinstall_wms {
+deinstall_wms() {
  if [[ "${DRY_RUN:-false}" == "true" ]]; then
-  __print_status "${YELLOW}" "DRY RUN: Would remove WMS components"
+  print_status "${YELLOW}" "DRY RUN: Would remove WMS components"
   return 0
  fi
-
- if ! __is_wms_installed; then
-  __print_status "${YELLOW}" "⚠️  WMS is not installed"
+ local wms_installed=false
+ if is_wms_installed; then
+  wms_installed=true
+ fi
+ if [[ "${wms_installed}" != "true" ]]; then
+  print_status "${YELLOW}" "⚠️  WMS is not installed"
   return 0
  fi
-
- __set_mock_state "false"
- __print_status "${GREEN}" "✅ WMS removal completed successfully"
+ set_mock_state "false"
+ print_status "${GREEN}" "✅ WMS removal completed successfully"
 }
-
-# Displays a status report for the mock environment.
-# Parameters:
-#  None.
-function __show_status {
- __print_status "${BLUE}" "📊 WMS Status Report"
-
- if __is_wms_installed; then
-  __print_status "${GREEN}" "✅ WMS is installed"
-  __print_status "${BLUE}" "📈 WMS Statistics:"
-  __print_status "${BLUE}" "   - Total notes in WMS: 3"
-  __print_status "${BLUE}" "   - Active triggers: 2"
+show_status() {
+ print_status "${BLUE}" "📊 WMS Status Report"
+ local wms_installed=false
+ if is_wms_installed; then
+  wms_installed=true
+ fi
+ if [[ "${wms_installed}" == "true" ]]; then
+  print_status "${GREEN}" "✅ WMS is installed"
+  print_status "${BLUE}" "📈 WMS Statistics:"
+  print_status "${BLUE}" "   - Total notes in WMS: 3"
+  print_status "${BLUE}" "   - Active triggers: 2"
  else
-  __print_status "${YELLOW}" "⚠️  WMS is not installed"
+  print_status "${YELLOW}" "⚠️  WMS is not installed"
  fi
 }
-
-# Entry point for the mock script.
-# Parameters:
-#  All command line arguments.
-function __main {
+# Main function
+main() {
  local COMMAND=""
  local FORCE=false
  local DRY_RUN=false
-
  while [[ $# -gt 0 ]]; do
-  case "$1" in
+  case $1 in
   install | deinstall | status | help)
    COMMAND="$1"
    shift
@@ -155,41 +124,39 @@ function __main {
    shift
    ;;
   -h | --help)
-   __show_help
+   show_help
    exit 0
    ;;
   *)
-   __print_status "${RED}" "❌ ERROR: Unknown option: $1"
-   __show_help
+   print_status "${RED}" "❌ ERROR: Unknown option: ${1}"
+   show_help
    exit 1
    ;;
   esac
  done
-
  case "${COMMAND}" in
  install)
-  __install_wms
+  install_wms
   ;;
  deinstall)
-  __deinstall_wms
+  deinstall_wms
   ;;
  status)
-  __show_status
+  show_status
   ;;
  help)
-  __show_help
+  show_help
   ;;
  "")
-  __print_status "${RED}" "❌ ERROR: No command specified"
-  __show_help
+  print_status "${RED}" "❌ ERROR: No command specified"
+  show_help
   exit 1
   ;;
  *)
-  __print_status "${RED}" "❌ ERROR: Unknown command: ${COMMAND}"
-  __show_help
+  print_status "${RED}" "❌ ERROR: Unknown command: ${COMMAND}"
+  show_help
   exit 1
   ;;
  esac
 }
-
-__main "$@"
+main "$@"

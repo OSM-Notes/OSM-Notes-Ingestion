@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Mock pgrep command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-01-23
+
+# Mock pgrep always returns no processes found (exit code 1)
+# This prevents processAPINotes from detecting running processes
+# and allows mock execution
+
+# Parse arguments
+ARGS=()
+PATTERN=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --version)
+      echo "pgrep from procps-ng 3.3.17"
+      exit 0
+      ;;
+    -*)
+      # Skip options
+      shift
+      ;;
+    *)
+      PATTERN="$1"
+      ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# In mock mode, always return no processes found
+# This allows processAPINotes to run without detecting itself
+exit 1
+
