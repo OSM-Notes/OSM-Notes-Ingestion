@@ -263,6 +263,11 @@ teardown() {
 @test "drop base tables script should work with and without existing types" {
  # Test that the drop script works whether types exist or not
  
+ # Skip when PostgreSQL client utilities are unavailable (avoids long waits)
+ if ! command -v createdb > /dev/null 2>&1 || ! command -v dropdb > /dev/null 2>&1 || ! command -v psql > /dev/null 2>&1; then
+  skip "PostgreSQL client tools not available"
+ fi
+
  # Setup test database if it doesn't exist
  if ! psql -lqt | cut -d\| -f1 | grep -qw "${TEST_DBNAME}"; then
    createdb "${TEST_DBNAME}" 2>/dev/null || skip "Could not create test database"
