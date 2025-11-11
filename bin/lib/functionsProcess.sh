@@ -5,7 +5,7 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-10
+# Version: 2025-11-11
 VERSION="2025-11-10"
 
 # shellcheck disable=SC2317,SC2155
@@ -1751,12 +1751,13 @@ function __overpass_download_with_endpoints() {
   # Cleanup before each attempt
   rm -f "${LOCAL_JSON_FILE}" "${LOCAL_OUTPUT_FILE}" 2> /dev/null || true
 
-  local UA_OPT=""
+  local OP
   if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
    __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
-   UA_OPT="--header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\""
+   OP="wget -O ${LOCAL_JSON_FILE} --header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\" --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
+  else
+   OP="wget -O ${LOCAL_JSON_FILE} --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   fi
-  local OP="wget -O ${LOCAL_JSON_FILE} ${UA_OPT} --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
   if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true" "${ACTIVE_OVERPASS}"; then
    __logd "Download succeeded from endpoint=${ENDPOINT}"

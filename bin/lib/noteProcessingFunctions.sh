@@ -1340,10 +1340,19 @@ function __retry_network_operation() {
 
  __logd "Executing network operation with retry logic: ${URL}"
  __logd "Output file: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Base delay: ${BASE_DELAY}s, Timeout: ${TIMEOUT}s"
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  __logd "Using User-Agent for network operation: ${DOWNLOAD_USER_AGENT}"
+ fi
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   # Use wget with specific error handling and timeout
-  if wget --timeout="${TIMEOUT}" --tries=1 --user-agent="OSM-Notes-Ingestion/1.0" \
+  local WGET_UA_ARG=""
+  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+   WGET_UA_ARG="--user-agent=\"${DOWNLOAD_USER_AGENT}\""
+  else
+   WGET_UA_ARG="--user-agent=\"OSM-Notes-Ingestion/1.0\""
+  fi
+  if wget --timeout="${TIMEOUT}" --tries=1 ${WGET_UA_ARG} \
    -O "${OUTPUT_FILE}" "${URL}" 2> /dev/null; then
    # Verify the downloaded file exists and has content
    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
@@ -1388,19 +1397,38 @@ function __retry_overpass_api() {
  __logd "Executing Overpass API call with retry logic"
  __logd "Query: ${QUERY}"
  __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
+ fi
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  if wget -q -O "${OUTPUT_FILE}" --timeout="${TIMEOUT}" \
-   "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
-   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-    __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
-    __log_finish
-    return 0
+  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+   if wget -q -O "${OUTPUT_FILE}" --timeout="${TIMEOUT}" \
+    --header="User-Agent: ${DOWNLOAD_USER_AGENT}" \
+    "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    fi
    else
-    __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
    fi
   else
-   __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+   if wget -q -O "${OUTPUT_FILE}" --timeout="${TIMEOUT}" \
+    "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    fi
+   else
+    __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+   fi
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -1436,18 +1464,33 @@ function __retry_osm_api() {
  fi
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-   ${DOWNLOAD_USER_AGENT:+-H "User-Agent: ${DOWNLOAD_USER_AGENT}"} \
-   -o "${OUTPUT_FILE}" "${URL}"; then
-   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-    __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
-    __log_finish
-    return 0
+  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+    -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
+    -o "${OUTPUT_FILE}" "${URL}"; then
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    fi
    else
-    __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    __logw "OSM API call failed on attempt $((RETRY_COUNT + 1))"
    fi
   else
-   __logw "OSM API call failed on attempt $((RETRY_COUNT + 1))"
+   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+    -o "${OUTPUT_FILE}" "${URL}"; then
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    fi
+   else
+    __logw "OSM API call failed on attempt $((RETRY_COUNT + 1))"
+   fi
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -1459,6 +1502,132 @@ function __retry_osm_api() {
  done
 
  __loge "OSM API call failed after ${LOCAL_MAX_RETRIES} attempts"
+ __log_finish
+ return 1
+}
+
+# Retry GeoServer API calls with authentication
+# Parameters: url method data output_file max_retries base_delay timeout
+# Returns: 0 if successful, 1 if failed after all retries
+function __retry_geoserver_api() {
+ __log_start
+ local URL="$1"
+ local METHOD="${2:-GET}"
+ local DATA="${3:-}"
+ local OUTPUT_FILE="$4"
+ local LOCAL_MAX_RETRIES="${5:-3}"
+ local BASE_DELAY="${6:-2}"
+ local TIMEOUT="${7:-30}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
+
+ __logd "Executing GeoServer API call with retry logic: ${URL}"
+ __logd "Method: ${METHOD}, Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Timeout: ${TIMEOUT}s"
+
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
+  if [[ "${METHOD}" == "POST" ]] && [[ -n "${DATA}" ]]; then
+   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+    -X POST -d "${DATA}" -o "${OUTPUT_FILE}" "${URL}"; then
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "GeoServer API call succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "GeoServer API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    fi
+   else
+    __logw "GeoServer API call failed on attempt $((RETRY_COUNT + 1))"
+   fi
+  else
+   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+    -o "${OUTPUT_FILE}" "${URL}"; then
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "GeoServer API call succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "GeoServer API call returned empty file on attempt $((RETRY_COUNT + 1))"
+    fi
+   else
+    __logw "GeoServer API call failed on attempt $((RETRY_COUNT + 1))"
+   fi
+  fi
+
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
+   __logw "GeoServer API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
+
+ __loge "GeoServer API call failed after ${LOCAL_MAX_RETRIES} attempts"
+ __log_finish
+ return 1
+}
+
+# Retry network operations with exponential backoff and HTTP error handling
+# Parameters: url output_file max_retries base_delay [timeout]
+# Returns: 0 if successful, 1 if failed after all retries
+function __retry_network_operation() {
+ __log_start
+ local URL="$1"
+ local OUTPUT_FILE="$2"
+ local LOCAL_MAX_RETRIES="${3:-5}"
+ local BASE_DELAY="${4:-2}"
+ local TIMEOUT="${5:-30}"
+ local RETRY_COUNT=0
+ local EXPONENTIAL_DELAY="${BASE_DELAY}"
+
+ __logd "Executing network operation with retry logic: ${URL}"
+ __logd "Output file: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Base delay: ${BASE_DELAY}s, Timeout: ${TIMEOUT}s"
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  __logd "Using User-Agent for network operation: ${DOWNLOAD_USER_AGENT}"
+ fi
+
+ while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
+  # Use wget with specific error handling and timeout
+  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+   if wget --timeout="${TIMEOUT}" --tries=1 --user-agent="${DOWNLOAD_USER_AGENT}" \
+    -O "${OUTPUT_FILE}" "${URL}" 2> /dev/null; then
+    # Verify the downloaded file exists and has content
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
+    fi
+   else
+    __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
+   fi
+  else
+   if wget --timeout="${TIMEOUT}" --tries=1 --user-agent="OSM-Notes-Ingestion/1.0" \
+    -O "${OUTPUT_FILE}" "${URL}" 2> /dev/null; then
+    # Verify the downloaded file exists and has content
+    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+     __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
+     __log_finish
+     return 0
+    else
+     __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
+    fi
+   else
+    __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
+   fi
+  fi
+
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+
+  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
+   __logw "Network operation failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
+   sleep "${EXPONENTIAL_DELAY}"
+   # Exponential backoff: double the delay for next attempt
+   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
+  fi
+ done
+
+ __loge "Network operation failed after ${LOCAL_MAX_RETRIES} attempts"
  __log_finish
  return 1
 }

@@ -922,8 +922,13 @@ function __processMaritimes_impl {
  # Extracts ids of all EEZ relations into a JSON.
  __logi "Obtaining the eez ids."
  set +e
- wget -O "${MARITIME_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_MARITIMES}" \
-  "${OVERPASS_INTERPRETER}"
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  wget -O "${MARITIME_BOUNDARY_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_MARITIMES}" \
+   "${OVERPASS_INTERPRETER}"
+ else
+  wget -O "${MARITIME_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_MARITIMES}" \
+   "${OVERPASS_INTERPRETER}"
+ fi
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then
