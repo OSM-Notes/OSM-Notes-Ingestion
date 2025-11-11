@@ -122,8 +122,10 @@ teardown() {
  # Verify check tables exist
  run psql -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name LIKE '%check%';"
  [ "$status" -eq 0 ]
- local count=$(echo "$output" | tr -d ' \n')
- [ "$count" -gt 0 ]
+ local count
+count=$(echo "$output" | grep -Eo '[0-9]+' | tail -1)
+[[ -n "$count" ]] || { echo "Expected numeric count, got: ${output}"; false; }
+[ "$count" -gt 0 ]
 }
 
 # Test that error handling works correctly
