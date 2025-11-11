@@ -145,6 +145,7 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
 @test "single note XML should be valid" {
  # Test that single note XML is valid using enhanced validation
  source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
+source "${TEST_BASE_DIR}/lib/osm-common/consolidatedValidationFunctions.sh"
  run __validate_xml_with_enhanced_error_handling "$SPECIAL_CASES_DIR/single_note.xml" "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd"
  [ "$status" -eq 0 ]
  [[ "$output" == *"XML validation succeeded"* ]]

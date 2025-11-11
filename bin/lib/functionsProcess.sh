@@ -1642,18 +1642,18 @@ local BASE_DELAY_LOCAL="${OVERPASS_BACKOFF_SECONDS:-20}"
   fi
 
   # Attempt download with fallback among endpoints
-  __logd "Attempting download for boundary ${ID} (attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES})..."
+  __logi "Downloading boundary ${ID} from Overpass API (attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES})..."
   if ! __overpass_download_with_endpoints "${QUERY_FILE_TO_USE}" "${JSON_FILE}" "${OUTPUT_OVERPASS}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}"; then
    local ELAPSED_NOW
    ELAPSED_NOW=$(($(date +%s) - DOWNLOAD_START_TIME))
-   __loge "Failed to retrieve boundary ${ID} from all Overpass endpoints (attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES}, elapsed: ${ELAPSED_NOW}s)"
+  __loge "Failed to retrieve boundary ${ID} from Overpass after retries (attempt ${ATTEMPT_NUM}/${DOWNLOAD_VALIDATION_RETRIES}, elapsed: ${ELAPSED_NOW}s)"
    DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
    if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -lt ${DOWNLOAD_VALIDATION_RETRIES} ]]; then
     __logw "Will retry boundary ${ID} (remaining attempts: $((DOWNLOAD_VALIDATION_RETRIES - DOWNLOAD_VALIDATION_RETRY_COUNT)))"
    fi
    continue
   fi
-  __logd "Successfully downloaded boundary ${ID} from Overpass API (with fallback, attempt ${ATTEMPT_NUM})"
+  __logi "Successfully downloaded boundary ${ID} from Overpass API (attempt ${ATTEMPT_NUM})"
 
   # Check for specific Overpass errors
   __logd "Checking Overpass API response for errors..."
@@ -1810,7 +1810,7 @@ local BASE_DELAY_LOCAL="${OVERPASS_BACKOFF_SECONDS:-20}"
   if ! __retry_file_operation "${GEOJSON_OPERATION}" 2 5 "${GEOJSON_CLEANUP}"; then
    local GEOJSON_ELAPSED_NOW
    GEOJSON_ELAPSED_NOW=$(($(date +%s) - GEOJSON_START_TIME))
-   __loge "Failed to convert boundary ${ID} to GeoJSON (attempt ${GEOJSON_ATTEMPT_NUM}/${GEOJSON_VALIDATION_RETRIES}, elapsed: ${GEOJSON_ELAPSED_NOW}s)"
+  __loge "Failed to convert boundary ${ID} to GeoJSON after retries (attempt ${GEOJSON_ATTEMPT_NUM}/${GEOJSON_VALIDATION_RETRIES}, elapsed: ${GEOJSON_ELAPSED_NOW}s)"
    GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
    if [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -lt ${GEOJSON_VALIDATION_RETRIES} ]]; then
     __logw "Will retry GeoJSON conversion for boundary ${ID} (remaining attempts: $((GEOJSON_VALIDATION_RETRIES - GEOJSON_VALIDATION_RETRY_COUNT)))"
@@ -1836,6 +1836,7 @@ local BASE_DELAY_LOCAL="${OVERPASS_BACKOFF_SECONDS:-20}"
  if [[ "${GEOJSON_SUCCESS}" != "true" ]]; then
   local GEOJSON_TOTAL_TIME
   GEOJSON_TOTAL_TIME=$(($(date +%s) - GEOJSON_START_TIME))
+  __loge "Failed to convert boundary ${ID} to GeoJSON after retries (total time: ${GEOJSON_TOTAL_TIME}s)"
   __loge "Failed to convert and validate GeoJSON for boundary ${ID} after ${GEOJSON_VALIDATION_RETRIES} attempts (total time: ${GEOJSON_TOTAL_TIME}s)"
   __handle_error_with_cleanup "${ERROR_GEOJSON_CONVERSION}" "Invalid GeoJSON structure for boundary ${ID} after retries (total time: ${GEOJSON_TOTAL_TIME}s)" \
    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true"
