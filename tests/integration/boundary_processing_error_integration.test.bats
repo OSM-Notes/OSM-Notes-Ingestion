@@ -321,15 +321,23 @@ EOF
 @test "should validate debug script functionality" {
  # Test that the debug script functionality is integrated into the main code
  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+ local error_handling_file="${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
+ local note_processing_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh"
 
- # Test that error handling functions are present
- run grep -q "function __handle_error_with_cleanup" "$functions_file"
- [ "$status" -eq 0 ]
+ # Test that error handling functions are present (in errorHandlingFunctions.sh or noteProcessingFunctions.sh)
+ if grep -q "function __handle_error_with_cleanup" "$error_handling_file" 2>/dev/null || \
+    grep -q "function __handle_error_with_cleanup" "$note_processing_file" 2>/dev/null; then
+  echo "Found __handle_error_with_cleanup"
+ else
+  echo "ERROR: __handle_error_with_cleanup not found"
+  exit 1
+ fi
 
  run grep -q "function __retry_file_operation" "$functions_file"
  [ "$status" -eq 0 ]
 
- run grep -q "function __check_network_connectivity" "$functions_file"
+ # Test that network connectivity function is present (in errorHandlingFunctions.sh)
+ run grep -q "function __check_network_connectivity" "$error_handling_file"
  [ "$status" -eq 0 ]
 
  # Test that validation functions are present
@@ -342,6 +350,8 @@ EOF
 @test "should validate country list validation script" {
  # Test that the validation functionality is integrated into the main code
  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+ local error_handling_file="${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
+ local note_processing_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh"
 
  # Test that boundary processing functions are present
  run grep -q "function __processBoundary" "$functions_file"
@@ -353,9 +363,14 @@ EOF
  run grep -q "function __processCountries" "$functions_file"
  [ "$status" -eq 0 ]
 
- # Test that error handling for invalid boundaries is present
- run grep -q "function __handle_error_with_cleanup" "$functions_file"
- [ "$status" -eq 0 ]
+ # Test that error handling for invalid boundaries is present (in errorHandlingFunctions.sh or noteProcessingFunctions.sh)
+ if grep -q "function __handle_error_with_cleanup" "$error_handling_file" 2>/dev/null || \
+    grep -q "function __handle_error_with_cleanup" "$note_processing_file" 2>/dev/null; then
+  echo "Found __handle_error_with_cleanup"
+ else
+  echo "ERROR: __handle_error_with_cleanup not found"
+  exit 1
+ fi
 }
 
 # Test that validates error message patterns
@@ -378,14 +393,15 @@ EOF
 
 # Test that validates the logging improvements
 @test "should validate logging improvements" {
- # Test that the logging improvements are present in functionsProcess.sh
+ # Test that the logging improvements are present in boundaryProcessingFunctions.sh
+ local boundary_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh"
  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
  # Test for logging improvements in __processBoundary
- run grep -q "=== STARTING BOUNDARY PROCESSING ===" "$functions_file"
+ run grep -q "=== STARTING BOUNDARY PROCESSING ===" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
- run grep -q "=== BOUNDARY PROCESSING COMPLETED SUCCESSFULLY ===" "$functions_file"
+ run grep -q "=== BOUNDARY PROCESSING COMPLETED SUCCESSFULLY ===" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
  # Test for logging improvements in __processList
@@ -396,10 +412,10 @@ EOF
  [ "$status" -eq 0 ]
 
  # Test for logging improvements in __processCountries
- run grep -q "=== STARTING COUNTRIES PROCESSING ===" "$functions_file"
+ run grep -q "=== STARTING COUNTRIES PROCESSING ===" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
- run grep -q "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ===" "$functions_file"
+ run grep -q "=== COUNTRIES PROCESSING COMPLETED SUCCESSFULLY ===" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 }
 
@@ -419,13 +435,14 @@ EOF
 # Test that validates the __processBoundary parameter handling
 @test "should validate __processBoundary parameter handling" {
  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+ local boundary_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh"
 
  # Test that __processBoundary accepts parameters
  run grep -q "Parameters:" "$functions_file"
  [ "$status" -eq 0 ]
 
- # Test that it uses local variable for query file
- run grep -q "QUERY_FILE_TO_USE.*=.*1.*QUERY_FILE" "$functions_file"
+ # Test that it uses local variable for query file (in boundaryProcessingFunctions.sh)
+ run grep -q "QUERY_FILE_TO_USE.*=.*1.*QUERY_FILE" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 }
 
@@ -476,58 +493,58 @@ EOF
 
 # Test that validates row size limit fix for Taiwan boundary
 @test "should validate row size limit fix for Taiwan boundary" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+ local boundary_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh"
 
  # Test that field selection is implemented
- run grep -q "select name,admin_level,type,geometry" "$functions_file"
+ run grep -q "select name,admin_level,type" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
  # Test that skipfailures is implemented
- run grep -q "skipfailures" "$functions_file"
+ run grep -q "skipfailures" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
  # Test that mapFieldType is implemented for standard boundaries
- run grep -q "mapFieldType StringList=String" "$functions_file"
+ run grep -q "mapFieldType StringList=String" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
  # Test that field selection logging is in place
- run grep -q "field-selected import for boundary" "$functions_file"
+ run grep -q "field-selected import for boundary" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 }
 
 # Test that validates the Taiwan boundary specific fix
 @test "should validate Taiwan boundary specific fix" {
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+ local boundary_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh"
 
  # Test that the import commands use field selection for all boundaries
- local import_commands=$(grep -n "ogr2ogr.*-select" "$functions_file" | wc -l)
+ local import_commands=$(grep -n "ogr2ogr.*-select" "$boundary_functions_file" | wc -l)
  [[ $import_commands -gt 0 ]]
 
  # Test that Austria has special handling
- run grep -q "Using special handling for Austria" "$functions_file"
+ run grep -q "Using special handling for Austria" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
  # Test that standard boundaries use field selection
- run grep -q "Using field-selected import for boundary" "$functions_file"
+ run grep -q "Using field-selected import for boundary" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 }
 
 # Test that validates error prevention for large boundaries
 @test "should validate error prevention for large boundaries" {
  # Test that the solution prevents row size errors
- local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+ local boundary_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh"
 
  # Test that the import commands are robust
- run grep -q "skipfailures.*mapFieldType" "$functions_file"
+ run grep -q "skipfailures.*mapFieldType" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
  # Test that field selection is always used
- run grep -q "select name,admin_level,type,geometry" "$functions_file"
+ run grep -q "select name,admin_level,type" "$boundary_functions_file"
  [ "$status" -eq 0 ]
 
  # Test that the solution is universal (works for all boundaries)
- local austria_imports=$(grep -c "select name,admin_level,type,geometry" "$functions_file")
- local standard_imports=$(grep -c "mapFieldType StringList=String" "$functions_file")
+ local austria_imports=$(grep -c "select name,admin_level,type" "$boundary_functions_file")
+ local standard_imports=$(grep -c "mapFieldType StringList=String" "$boundary_functions_file")
 
  # Should have at least one Austria import and one standard import
  [[ $austria_imports -gt 0 ]]
@@ -537,13 +554,13 @@ EOF
 # Test that validates Planet notes download functionality
 @test "should validate Planet notes download functionality" {
  local functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
- local planet_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh"
+ local planet_functions_file="${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 
  # Test that PLANET_NOTES_NAME is correctly set in processPlanetFunctions.sh
  run grep -q "PLANET_NOTES_NAME.*planet-notes-latest.osn" "$planet_functions_file"
  [ "$status" -eq 0 ]
 
- # Test that the download operation uses aria2c
+ # Test that the download operation uses aria2c (in functionsProcess.sh)
  run grep -q "aria2c.*PLANET_NOTES_NAME.*bz2" "$functions_file"
  [ "$status" -eq 0 ]
 

@@ -2,7 +2,7 @@
 
 # Simple Test Runner for OSM-Notes-profile (No Docker Required)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
+# Version: 2025-11-11
 
 set -uo pipefail
 
@@ -44,22 +44,58 @@ fi
 MAX_THREADS="${MAX_THREADS:-2}"
 TEST_TIMEOUT="${TEST_TIMEOUT:-300}"
 TEST_RETRIES="${TEST_RETRIES:-3}"
+TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
 
 # Test counters
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
 
+# Function to setup mock PostgreSQL if real PostgreSQL is not available
+setup_mock_postgres_if_needed() {
+ local POSTGRES_READY=false
+ local MOCK_DIR="${SCRIPT_DIR}/mock_commands"
+
+ # Check if PostgreSQL is running
+ if command -v pg_isready > /dev/null 2>&1; then
+  if pg_isready -q > /dev/null 2>&1; then
+   POSTGRES_READY=true
+  fi
+ fi
+
+ # Try direct psql connection if pg_isready didn't work
+ if [[ "${POSTGRES_READY}" != true ]] && command -v psql > /dev/null 2>&1; then
+  if command -v timeout > /dev/null 2>&1; then
+   if timeout 3s psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+    POSTGRES_READY=true
+   fi
+  else
+   if psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+    POSTGRES_READY=true
+   fi
+  fi
+ fi
+
+ # Setup mocks if PostgreSQL is not available
+ if [[ "${POSTGRES_READY}" != true ]] && [[ -d "${MOCK_DIR}" ]]; then
+  if [[ ":${PATH}:" != *":${MOCK_DIR}:"* ]]; then
+   export PATH="${MOCK_DIR}:${PATH}"
+  fi
+  export SIMPLE_TESTS_USING_MOCK_PSQL="true"
+  log_warning "PostgreSQL not available, using mock commands from ${MOCK_DIR}"
+  return 0
+ else
+  unset SIMPLE_TESTS_USING_MOCK_PSQL
+  if [[ "${POSTGRES_READY}" == true ]]; then
+   log_success "PostgreSQL is available"
+  fi
+  return 0
+ fi
+}
+
 # Function to check prerequisites
 check_prerequisites() {
  log_info "Checking prerequisites..."
-
- # Check if PostgreSQL is running (local connection with peer authentication)
- if ! pg_isready &> /dev/null; then
-  log_error "PostgreSQL is not accessible"
-  log_info "Please ensure PostgreSQL is running and accessible"
-  exit 1
- fi
 
  # Check if BATS is installed
  if ! command -v bats &> /dev/null; then
@@ -68,10 +104,13 @@ check_prerequisites() {
   exit 1
  fi
 
- # Check if psql is available
+ # Setup mock PostgreSQL if needed (won't exit if PostgreSQL not available)
+ setup_mock_postgres_if_needed
+
+ # Check if psql is available (real or mock)
  if ! command -v psql &> /dev/null; then
-  log_error "psql is not installed"
-  log_info "Please install PostgreSQL client"
+  log_error "psql is not installed and mock psql not found"
+  log_info "Please install PostgreSQL client or ensure mock commands are available"
   exit 1
  fi
 
@@ -82,14 +121,22 @@ check_prerequisites() {
 setup_test_database() {
  log_info "Setting up test database..."
 
- # For peer authentication, use local connection without host/port
- local psql_params=""
- local createdb_params=""
+ # If using mock PostgreSQL, skip real database setup
+ if [[ "${SIMPLE_TESTS_USING_MOCK_PSQL:-false}" == "true" ]]; then
+  log_info "Using mock PostgreSQL - skipping real database setup"
+  log_success "Mock test database setup completed"
+  return 0
+ fi
 
+ # For peer authentication, use local connection without host/port
  # Create test database if it doesn't exist
  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" &> /dev/null; then
   log_info "Creating test database..."
-  createdb "${TEST_DBNAME}"
+  if command -v createdb > /dev/null 2>&1; then
+   createdb "${TEST_DBNAME}" 2> /dev/null || true
+  else
+   log_warning "createdb not available, skipping database creation"
+  fi
  fi
 
  # Create base tables
@@ -111,9 +158,20 @@ setup_test_database() {
 cleanup_test_database() {
  log_info "Cleaning up test database..."
 
+ # If using mock PostgreSQL, skip real database cleanup
+ if [[ "${SIMPLE_TESTS_USING_MOCK_PSQL:-false}" == "true" ]]; then
+  log_info "Using mock PostgreSQL - skipping real database cleanup"
+  log_success "Mock test database cleanup completed"
+  return 0
+ fi
+
  # For peer authentication, use local connection without host/port
  # Drop test database
- dropdb "${TEST_DBNAME}" 2> /dev/null || true
+ if command -v dropdb > /dev/null 2>&1; then
+  dropdb "${TEST_DBNAME}" 2> /dev/null || true
+ else
+  log_warning "dropdb not available, skipping database cleanup"
+ fi
 
  log_success "Test database cleanup completed"
 }
