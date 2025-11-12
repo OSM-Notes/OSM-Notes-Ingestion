@@ -1348,6 +1348,194 @@ function __processGeographicData {
  __log_finish
 }
 
+# Checks for previous failed execution and displays error message.
+# Exits if failed execution marker file exists.
+function __checkPreviousFailedExecution {
+ __log_start
+ if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
+  __logw "Previous execution failed detected"
+  __loge "Checking failed execution file: ${FAILED_EXECUTION_FILE}"
+
+  __loge "========================================"
+  __loge "PREVIOUS EXECUTION FAILED"
+  __loge "========================================"
+  echo ""
+  echo "The previous execution of processPlanetNotes.sh failed."
+  echo "Please review the error details below:"
+  echo ""
+  cat "${FAILED_EXECUTION_FILE}"
+  echo ""
+  echo "========================================"
+  echo "To recover from this error:"
+  echo "1. Review the error details above"
+  echo "2. Fix the underlying problem"
+  echo "3. Delete the marker file:"
+  echo "   rm ${FAILED_EXECUTION_FILE}"
+  echo "4. Rerun the script"
+  echo "========================================"
+  echo "Note: An email notification was already sent when the error occurred."
+  echo ""
+
+  exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+ fi
+ __log_finish
+}
+
+# Sets up the lock file for single execution.
+# Creates lock file descriptor and writes lock file content.
+function __setupLockFile {
+ __log_start
+ __logw "Validating single execution."
+ exec 7> "${LOCK}"
+ ONLY_EXECUTION="no"
+ flock -n 7
+ ONLY_EXECUTION="yes"
+
+ cat > "${LOCK}" << EOF
+PID: $$
+Process: ${BASENAME}
+Started: $(date '+%Y-%m-%d %H:%M:%S')
+Temporary directory: ${TMP_DIR}
+Process type: ${PROCESS_TYPE}
+Main script: ${0}
+EOF
+ __logd "Lock file content written to: ${LOCK}"
+ __log_finish
+}
+
+# Downloads, validates, and processes Planet notes in base mode.
+# Creates base structure, downloads notes, validates XML, and processes them.
+function __processPlanetBaseMode {
+ __log_start
+ __logi "Running in base mode - creating complete structure and processing initial data"
+ __dropSyncTables
+ __dropApiTables
+ __dropGenericObjects
+ __dropBaseTables
+ __createBaseTables
+ __createSyncTables
+ if ! __downloadPlanetNotes; then
+  __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
+   "Failed to download Planet notes" \
+   "Check network connectivity and OSM Planet server status. If temporary, delete this file and retry"
+  exit "${ERROR_DOWNLOADING_NOTES}"
+ fi
+
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logi "Validating Planet XML file (structure, dates, coordinates)..."
+  if ! __validatePlanetNotesXMLFileComplete; then
+   __loge "ERROR: XML validation failed. Stopping process."
+   __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+    "XML validation failed during Planet processing" \
+    "Check the Planet XML file for structural, date, or coordinate issues"
+   exit "${ERROR_DATA_VALIDATION}"
+  fi
+ else
+  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+  __logw "Assuming Planet XML is well-formed and valid (faster processing)"
+ fi
+
+ __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+ if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+  __processPlanetNotesWithParallel
+ else
+  __logi "No notes found in XML file, skipping processing."
+ fi
+ __log_finish
+}
+
+# Downloads, validates, and processes Planet notes in sync mode.
+# Checks base tables, creates if needed, downloads notes, validates XML, and processes them.
+function __processPlanetSyncMode {
+ __log_start
+ __logi "Running in sync mode - processing new notes only"
+ __dropSyncTables
+ set +E
+ export RET_FUNC=0
+ __checkBaseTables
+ if [[ "${RET_FUNC}" -ne 0 ]]; then
+  __createBaseTables
+ fi
+ set -E
+ __createSyncTables
+ if ! __downloadPlanetNotes; then
+  __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
+   "Failed to download Planet notes" \
+   "Check network connectivity and OSM Planet server status. If temporary, delete this file and retry"
+  exit "${ERROR_DOWNLOADING_NOTES}"
+ fi
+
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __logi "Validating Planet XML file (structure, dates, coordinates)..."
+  if ! __validatePlanetNotesXMLFileComplete; then
+   __loge "ERROR: XML validation failed. Stopping process."
+   __create_failed_marker "${ERROR_DATA_VALIDATION}" \
+    "XML validation failed during Planet processing" \
+    "Check the Planet XML file for structural, date, or coordinate issues"
+   exit "${ERROR_DATA_VALIDATION}"
+  fi
+ else
+  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+  __logw "Assuming Planet XML is well-formed and valid (faster processing)"
+ fi
+
+ __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+ if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+  __processPlanetNotesWithParallel
+ else
+  __logi "No notes found in XML file, skipping processing."
+ fi
+ __log_finish
+}
+
+# Processes geographic data and location notes in base mode.
+# Processes geographic data, creates get_country function, processes location notes, and organizes areas.
+function __processGeographicDataBaseMode {
+ __log_start
+ __logi "Processing geographic data in base mode..."
+ __processGeographicData
+
+ __logi "Creating get_country() function (requires tries table to exist)..."
+ __createFunctionToGetCountry
+
+ local COUNTRIES_COUNT
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+ if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
+  __logi "Processing location notes with get_country() function..."
+  __getLocationNotes
+ fi
+
+ __logi "Organizing areas after geographic data is loaded..."
+ set +E
+ export RET_FUNC=0
+ __organizeAreas
+ set -E
+ if [[ "${RET_FUNC}" -ne 0 ]]; then
+  __logw "Areas organization failed, but continuing with process..."
+ fi
+ __log_finish
+}
+
+# Processes geographic data and location notes in sync mode.
+# Creates get_country function, processes geographic data, and organizes areas.
+function __processGeographicDataSyncMode {
+ __log_start
+ __logi "Processing geographic data in sync mode..."
+ __createFunctionToGetCountry
+ __dropSyncTables
+ __processGeographicData
+
+ __logi "Organizing areas after geographic data is loaded..."
+ set +E
+ export RET_FUNC=0
+ __organizeAreas
+ set -E
+ if [[ "${RET_FUNC}" -ne 0 ]]; then
+  __logw "Areas organization failed, but continuing with process..."
+ fi
+ __log_finish
+}
+
 ######
 # MAIN
 
@@ -1371,190 +1559,27 @@ function main() {
   fi
  fi
 
- # Check for previous failed execution
- if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
-  __logw "Previous execution failed detected"
-  __loge "Checking failed execution file: ${FAILED_EXECUTION_FILE}"
+ __checkPreviousFailedExecution
 
-  # Display error message to user
-  __loge "========================================"
-  __loge "PREVIOUS EXECUTION FAILED"
-  __loge "========================================"
-  echo ""
-  echo "The previous execution of processPlanetNotes.sh failed."
-  echo "Please review the error details below:"
-  echo ""
-  cat "${FAILED_EXECUTION_FILE}"
-  echo ""
-  echo "========================================"
-  echo "To recover from this error:"
-  echo "1. Review the error details above"
-  echo "2. Fix the underlying problem"
-  echo "3. Delete the marker file:"
-  echo "   rm ${FAILED_EXECUTION_FILE}"
-  echo "4. Rerun the script"
-  echo "========================================"
-  echo "Note: An email notification was already sent when the error occurred."
-  echo ""
-
-  exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
- fi
-
- # Checks the prerequisities. It could terminate the process.
  if ! __checkPrereqs; then
-  # Use the exit code set by __checkPrereqs, or default to 1
   exit "${SCRIPT_EXIT_CODE:-1}"
  fi
 
  __logw "Starting process."
 
- # Sets the trap in case of any signal.
  __trapOn
- exec 7> "${LOCK}"
- __logw "Validating single execution."
- ONLY_EXECUTION="no"
- flock -n 7
- ONLY_EXECUTION="yes"
-
- # Write lock file content with useful debugging information
- cat > "${LOCK}" << EOF
-PID: $$
-Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
-Temporary directory: ${TMP_DIR}
-Process type: ${PROCESS_TYPE}
-Main script: ${0}
-EOF
- __logd "Lock file content written to: ${LOCK}"
+ __setupLockFile
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __logi "Running in base mode - creating complete structure and processing initial data"
-  __dropSyncTables      # base
-  __dropApiTables       # base
-  __dropGenericObjects  # base
-  __dropBaseTables      # base
-  __createBaseTables    # base
-  __createSyncTables    # base
-  __downloadPlanetNotes # base
-  if [[ $? -ne 0 ]]; then
-   __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
-    "Failed to download Planet notes" \
-    "Check network connectivity and OSM Planet server status. If temporary, delete this file and retry"
-   exit "${ERROR_DOWNLOADING_NOTES}"
-  fi
-  # Check if XML validation is enabled
-  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-   __logi "Validating Planet XML file (structure, dates, coordinates)..."
-   if ! __validatePlanetNotesXMLFileComplete; then
-    __loge "ERROR: XML validation failed. Stopping process."
-    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
-     "XML validation failed during Planet processing" \
-     "Check the Planet XML file for structural, date, or coordinate issues"
-    exit "${ERROR_DATA_VALIDATION}"
-   fi
-  else
-   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
-   __logw "Assuming Planet XML is well-formed and valid (faster processing)"
-  fi
-  # Count notes in XML file
-  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
-  # Split XML into parts and process in parallel if there are notes to process
-  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-   __processPlanetNotesWithParallel
-  else
-   __logi "No notes found in XML file, skipping processing."
-  fi
+  __processPlanetBaseMode
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
-  __logi "Running in sync mode - processing new notes only"
-  __dropSyncTables # sync
-  set +E
-  export RET_FUNC=0
-  __checkBaseTables # sync
-  if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __createBaseTables # sync
-  fi
-  set -E
-  __createSyncTables    # sync
-  __downloadPlanetNotes # sync
-  if [[ $? -ne 0 ]]; then
-   __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
-    "Failed to download Planet notes" \
-    "Check network connectivity and OSM Planet server status. If temporary, delete this file and retry"
-   exit "${ERROR_DOWNLOADING_NOTES}"
-  fi
-  # Check if XML validation is enabled
-  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-   __logi "Validating Planet XML file (structure, dates, coordinates)..."
-   if ! __validatePlanetNotesXMLFileComplete; then
-    __loge "ERROR: XML validation failed. Stopping process."
-    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
-     "XML validation failed during Planet processing" \
-     "Check the Planet XML file for structural, date, or coordinate issues"
-    exit "${ERROR_DATA_VALIDATION}"
-   fi
-  else
-   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
-   __logw "Assuming Planet XML is well-formed and valid (faster processing)"
-  fi
-  # Count notes in XML file
-  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
-  # Split XML into parts and process in parallel if there are notes to process
-  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-   __processPlanetNotesWithParallel
-  else
-   __logi "No notes found in XML file, skipping processing."
-  fi
+  __processPlanetSyncMode
  fi
 
- # Process geographic data and location notes for both base and sync modes
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __logi "Processing geographic data in base mode..."
-  # Process geographic data first (creates countries and tries tables)
-  # This creates countries and tries tables via updateCountries.sh
-  __processGeographicData
-
-  # Create get_country() function BEFORE processing location notes
-  # This function is required by __getLocationNotes which is called
-  # inside __processGeographicData, but we need to create it after
-  # updateCountries.sh creates the tries table
-  __logi "Creating get_country() function (requires tries table to exist)..."
-  __createFunctionToGetCountry # base & sync
-
-  # Process location notes now that get_country() function exists
-  # Check if countries data exist to process location notes
-  local COUNTRIES_COUNT
-  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
-  if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
-   __logi "Processing location notes with get_country() function..."
-   __getLocationNotes # sync
-  fi
-
-  # Now organize areas after geographic data is loaded
-  __logi "Organizing areas after geographic data is loaded..."
-  set +E
-  export RET_FUNC=0
-  __organizeAreas # base
-  set -E
-  if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __logw "Areas organization failed, but continuing with process..."
-  fi
+  __processGeographicDataBaseMode
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
-  __logi "Processing geographic data in sync mode..."
-  # For sync mode, create get_country() first (tries table should already exist)
-  __createFunctionToGetCountry # base & sync
-  __dropSyncTables             # sync
-  # Process geographic data and location notes first
-  __processGeographicData
-
-  # Now organize areas after geographic data is loaded
-  __logi "Organizing areas after geographic data is loaded..."
-  set +E
-  export RET_FUNC=0
-  __organizeAreas # sync
-  set -E
-  if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __logw "Areas organization failed, but continuing with process..."
-  fi
+  __processGeographicDataSyncMode
  fi
 
  # Create procedures (required for all modes - base & sync)

@@ -1026,7 +1026,174 @@ function __cleanNotesFiles {
  __log_finish
 }
 
-# Function to check and log gaps from database
+# Validates that the API notes file was downloaded successfully.
+# Checks file existence and non-empty content.
+# Exits with error if validation fails.
+function __validateApiNotesFile {
+ __log_start
+ __logd "Validating API notes file: ${API_NOTES_FILE}"
+
+ if [[ ! -f "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+   "API notes file was not downloaded" \
+   "This may be temporary. Check network connectivity and OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. Expected file: ${API_NOTES_FILE}"
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+
+ if [[ ! -s "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
+  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
+   "API notes file is empty - no data received from OSM API" \
+   "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+
+ __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
+ __log_finish
+}
+
+# Validates and processes the API notes XML file.
+# Performs XML validation (if enabled), counts notes, and processes them.
+function __validateAndProcessApiXml {
+ __log_start
+ declare -i RESULT
+ RESULT=$(wc -l < "${API_NOTES_FILE}")
+ if [[ "${RESULT}" -ne 0 ]]; then
+  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+   __validateApiNotesXMLFileComplete
+  else
+   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+  fi
+  __countXmlNotesAPI "${API_NOTES_FILE}"
+  __processXMLorPlanet
+  __consolidatePartitions
+  __insertNewNotesAndComments
+  __loadApiTextComments
+  __updateLastValue
+ fi
+ __log_finish
+}
+
+# Sets up the lock file for single execution.
+# Creates lock file descriptor and writes lock file content.
+function __setupLockFile {
+ __log_start
+ __logw "Validating single execution."
+ exec 8> "${LOCK}"
+ ONLY_EXECUTION="no"
+ flock -n 8
+ ONLY_EXECUTION="yes"
+
+ cat > "${LOCK}" << EOF
+PID: $$
+Process: ${BASENAME}
+Started: $(date '+%Y-%m-%d %H:%M:%S')
+Temporary directory: ${TMP_DIR}
+Process type: ${PROCESS_TYPE}
+Main script: ${0}
+EOF
+ __logd "Lock file content written to: ${LOCK}"
+ __log_finish
+}
+
+# Validates historical data and recovers from gaps if needed.
+# Called when base tables exist (RET_FUNC == 0).
+function __validateHistoricalDataAndRecover {
+ __log_start
+ __logi "Base tables found. Validating historical data..."
+ __checkHistoricalData
+ if [[ "${RET_FUNC}" -ne 0 ]]; then
+  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+   "Historical data validation failed - base tables exist but contain no historical data" \
+   "Run processPlanetNotes.sh to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
+  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+ fi
+ __logi "Historical data validation passed. ProcessAPI can continue safely."
+
+ if ! __recover_from_gaps; then
+  __loge "Gap recovery check failed, aborting processing"
+  __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
+   "echo 'Gap recovery failed - manual intervention may be required'"
+ fi
+ __log_finish
+}
+
+# Creates base structure by executing processPlanetNotes.sh --base.
+# Verifies geographic data was loaded and re-acquires lock after completion.
+function __createBaseStructure {
+ __log_start
+ __logd "Releasing lock before spawning child processes"
+ exec 8>&-
+
+ __logi "Step 1/2: Creating base database structure and loading historical data..."
+ if ! "${NOTES_SYNC_SCRIPT}" --base; then
+  __loge "ERROR: Failed to create base structure. Stopping process."
+  __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+   "Failed to create base database structure and load historical data (Step 1/2)" \
+   "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
+  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+ fi
+ __logw "Base structure created successfully."
+
+ __logi "Step 2/2: Verifying geographic data (countries and maritimes)..."
+ local COUNTRIES_COUNT
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+
+ if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
+  __logw "No geographic data found after processPlanetNotes.sh --base"
+  __logw "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
+
+  local UPDATE_COUNTRIES_LOCK="/tmp/updateCountries.lock"
+  if [[ -f "${UPDATE_COUNTRIES_LOCK}" ]]; then
+   local LOCK_PID
+   LOCK_PID=$(grep "^PID:" "${UPDATE_COUNTRIES_LOCK}" 2> /dev/null | awk '{print $2}' || echo "")
+   if [[ -n "${LOCK_PID}" ]] && ps -p "${LOCK_PID}" > /dev/null 2>&1; then
+    __loge "updateCountries.sh is still running (PID: ${LOCK_PID}). Cannot proceed with base setup."
+    __loge "This script runs every 15 minutes and will retry automatically."
+    __loge "Current execution will exit. Next execution will check again."
+    exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   else
+    __logw "Stale lock file found. Removing it."
+    rm -f "${UPDATE_COUNTRIES_LOCK}"
+   fi
+  fi
+
+  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+  if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
+   __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
+   __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
+   __loge "Check processPlanetNotes.sh logs for errors in updateCountries.sh execution"
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Geographic data not loaded after processPlanetNotes.sh --base (Step 2/2)" \
+    "Check processPlanetNotes.sh logs. It should have called updateCountries.sh automatically via __processGeographicData(). If needed, run manually: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh --base"
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  fi
+ else
+  __logi "Geographic data verified (${COUNTRIES_COUNT} countries/maritimes found)"
+ fi
+
+ __logw "Complete setup finished successfully."
+ __logi "System is now ready for regular API processing."
+ __logi "Historical data was loaded by processPlanetNotes.sh --base in Step 1"
+
+ __logd "Re-acquiring lock after child processes"
+ exec 8> "${LOCK}"
+ flock -n 8
+
+ cat > "${LOCK}" << EOF
+PID: $$
+Process: ${BASENAME}
+Started: $(date '+%Y-%m-%d %H:%M:%S')
+Temporary directory: ${TMP_DIR}
+Process type: ${PROCESS_TYPE}
+Main script: ${0}
+Status: Setup completed, continuing with API processing
+EOF
+ __logd "Lock re-acquired and content updated"
+ __log_finish
+}
+
 function __check_and_log_gaps() {
  __log_start
 
@@ -1128,22 +1295,7 @@ function main() {
 
  # Sets the trap in case of any signal.
  __trapOn
- exec 8> "${LOCK}"
- __logw "Validating single execution."
- ONLY_EXECUTION="no"
- flock -n 8
- ONLY_EXECUTION="yes"
-
- # Write lock file content with useful debugging information
- cat > "${LOCK}" << EOF
-PID: $$
-Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
-Temporary directory: ${TMP_DIR}
-Process type: ${PROCESS_TYPE}
-Main script: ${0}
-EOF
- __logd "Lock file content written to: ${LOCK}"
+ __setupLockFile
 
  __dropApiTables
  set +E
@@ -1215,107 +1367,11 @@ EOF
  esac
 
  if [[ "${RET_FUNC}" -eq 1 ]]; then
-  # Only execute --base if tables are actually missing (RET_FUNC=1)
+  __createBaseStructure
+ fi
 
-  # Close lock file descriptor to prevent inheritance by child processes
-  __logd "Releasing lock before spawning child processes"
-  exec 8>&-
-
-  # Step 1: Create base structure and load historical data
-  __logi "Step 1/2: Creating base database structure and loading historical data..."
-  if ! "${NOTES_SYNC_SCRIPT}" --base; then
-   __loge "ERROR: Failed to create base structure. Stopping process."
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Failed to create base database structure and load historical data (Step 1/2)" \
-    "Check database permissions and disk space. Verify processPlanetNotes.sh can run with --base flag. Script: ${NOTES_SYNC_SCRIPT}"
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-  fi
-  __logw "Base structure created successfully."
-
-  # Step 2: Verify geographic data was loaded by processPlanetNotes.sh
-  __logi "Step 2/2: Verifying geographic data (countries and maritimes)..."
-  # Note: processPlanetNotes.sh --base already calls updateCountries.sh via __processGeographicData()
-  # We just need to verify it completed successfully
-  local COUNTRIES_COUNT
-  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
-
-  if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
-   __logw "No geographic data found after processPlanetNotes.sh --base"
-   __logw "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
-
-   # Check if updateCountries.sh is still running (may have been started by processPlanetNotes.sh)
-   local UPDATE_COUNTRIES_LOCK="/tmp/updateCountries.lock"
-   if [[ -f "${UPDATE_COUNTRIES_LOCK}" ]]; then
-    local LOCK_PID
-    LOCK_PID=$(grep "^PID:" "${UPDATE_COUNTRIES_LOCK}" 2> /dev/null | awk '{print $2}' || echo "")
-    if [[ -n "${LOCK_PID}" ]] && ps -p "${LOCK_PID}" > /dev/null 2>&1; then
-     __loge "updateCountries.sh is still running (PID: ${LOCK_PID}). Cannot proceed with base setup."
-     __loge "This script runs every 15 minutes and will retry automatically."
-     __loge "Current execution will exit. Next execution will check again."
-     exit "${ERROR_EXECUTING_PLANET_DUMP}"
-    else
-     __logw "Stale lock file found. Removing it."
-     rm -f "${UPDATE_COUNTRIES_LOCK}"
-    fi
-   fi
-
-   # Final check
-   COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
-   if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
-    __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
-    __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
-    __loge "Check processPlanetNotes.sh logs for errors in updateCountries.sh execution"
-    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-     "Geographic data not loaded after processPlanetNotes.sh --base (Step 2/2)" \
-     "Check processPlanetNotes.sh logs. It should have called updateCountries.sh automatically via __processGeographicData(). If needed, run manually: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh --base"
-    exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   fi
-  else
-   __logi "Geographic data verified (${COUNTRIES_COUNT} countries/maritimes found)"
-  fi
-
-  # Note: processPlanetNotes.sh --base already downloaded and processed all historical data
-  # No need to run it again without arguments
-  __logw "Complete setup finished successfully."
-  __logi "System is now ready for regular API processing."
-  __logi "Historical data was loaded by processPlanetNotes.sh --base in Step 1"
-
-  # Re-acquire lock after child processes complete
-  __logd "Re-acquiring lock after child processes"
-  exec 8> "${LOCK}"
-  flock -n 8
-
-  # Write lock file content with useful debugging information
-  cat > "${LOCK}" << EOF
-PID: $$
-Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
-Temporary directory: ${TMP_DIR}
-Process type: ${PROCESS_TYPE}
-Main script: ${0}
-Status: Setup completed, continuing with API processing
-EOF
-  __logd "Lock re-acquired and content updated"
- fi # End of if [[ "${RET_FUNC}" -eq 1 ]]
-
- # If RET_FUNC == 0, base tables exist - validate historical data
  if [[ "${RET_FUNC}" -eq 0 ]]; then
-  __logi "Base tables found. Validating historical data..."
-  __checkHistoricalData
-  if [[ "${RET_FUNC}" -ne 0 ]]; then
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Historical data validation failed - base tables exist but contain no historical data" \
-    "Run processPlanetNotes.sh to load historical data: ${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
-  fi
-  __logi "Historical data validation passed. ProcessAPI can continue safely."
-
-  # Check for data gaps after validating base tables and data
-  if ! __recover_from_gaps; then
-   __loge "Gap recovery check failed, aborting processing"
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
-    "echo 'Gap recovery failed - manual intervention may be required'"
-  fi
+  __validateHistoricalDataAndRecover
  fi
 
  set -e
@@ -1329,42 +1385,8 @@ EOF
  __getNewNotesFromApi
  set -E
 
- # Verify that the API notes file was downloaded successfully
- if [[ ! -f "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file was not downloaded: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
-   "API notes file was not downloaded" \
-   "This may be temporary. Check network connectivity and OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. Expected file: ${API_NOTES_FILE}"
-  exit "${ERROR_INTERNET_ISSUE}"
- fi
-
- # Check if the file has content (not empty)
- if [[ ! -s "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
-   "API notes file is empty - no data received from OSM API" \
-   "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
-  exit "${ERROR_INTERNET_ISSUE}"
- fi
-
- __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
-
- declare -i RESULT
- RESULT=$(wc -l < "${API_NOTES_FILE}")
- if [[ "${RESULT}" -ne 0 ]]; then
-  # Validate XML only if validation is enabled
-  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-   __validateApiNotesXMLFileComplete
-  else
-   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
-  fi
-  __countXmlNotesAPI "${API_NOTES_FILE}"
-  __processXMLorPlanet
-  __consolidatePartitions
-  __insertNewNotesAndComments
-  __loadApiTextComments
-  __updateLastValue
- fi
+ __validateApiNotesFile
+ __validateAndProcessApiXml
  __check_and_log_gaps
  __cleanNotesFiles
 
