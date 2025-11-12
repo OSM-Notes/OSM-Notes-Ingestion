@@ -2,7 +2,7 @@
 
 # Setup mock environment for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-01-23
 
 set -euo pipefail
 
@@ -47,8 +47,9 @@ setup_mock_environment() {
  create_mock_psql
  create_mock_xmllint
  create_mock_aria2c
- create_mock_bzip2
  create_mock_osmtogeojson
+ # Note: bzip2 is not mocked - we use the real command
+ # The aria2c mock copies a valid .bz2 fixture file, so bzip2 can decompress it normally
 
  # Make all mock commands executable
  chmod +x "${MOCK_COMMANDS_DIR}"/*
@@ -65,7 +66,7 @@ create_mock_wget() {
 
 # Mock wget command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-01-23
 
 # Function to create mock files
 create_mock_file() {
@@ -476,16 +477,31 @@ create_mock_aria2c() {
 
 # Mock aria2c command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-01-23
 
 # Function to create mock files
 create_mock_file() {
  local url="$1"
  local output_file="$2"
+ local output_dir="$3"
+ 
+ # Build full path if directory is specified
+ if [[ -n "$output_dir" && -n "$output_file" ]]; then
+   output_file="${output_dir}/${output_file}"
+ elif [[ -n "$output_dir" ]]; then
+   output_file="${output_dir}/$(basename "$url")"
+ fi
  
  # Extract filename from URL if no output file specified
  if [[ -z "$output_file" ]]; then
    output_file=$(basename "$url")
+ fi
+   
+ # Ensure directory exists
+ local file_dir
+ file_dir=$(dirname "$output_file")
+ if [[ -n "$file_dir" && "$file_dir" != "." ]]; then
+   mkdir -p "$file_dir"
  fi
  
  # Create mock content based on URL
@@ -498,9 +514,85 @@ create_mock_file() {
  </note>
 </osm-notes>
 INNER_EOF
- elif [[ "$url" == *".bz2" ]]; then
-   # Create a small bzip2 file
-   echo "Mock bzip2 content" | bzip2 > "$output_file" 2>/dev/null || echo "Mock bzip2 content" > "$output_file"
+ elif [[ "$url" == *".bz2" ]] || [[ "$url" == *".osn.bz2" ]]; then
+   # Use pre-prepared fixture file instead of generating on the fly
+   # This ensures the file is always valid and avoids PATH resolution issues
+   # Find the fixture file by trying multiple possible paths
+   local fixture_file=""
+   
+   # Function to find project root from a starting directory
+   find_project_root() {
+     local start_dir="$1"
+     local search_dir="${start_dir}"
+     while [[ "${search_dir}" != "/" ]]; do
+       if [[ -d "${search_dir}/tests" ]] && [[ -d "${search_dir}/tests/fixtures" ]] && [[ -f "${search_dir}/tests/fixtures/planet-notes-latest.osn.bz2" ]]; then
+         echo "${search_dir}"
+         return 0
+       fi
+       search_dir=$(dirname "${search_dir}")
+     done
+     return 1
+   }
+   
+   # Try multiple starting points to find the project root
+   local project_root=""
+   
+   # 1. Try from SCRIPT_BASE_DIRECTORY environment variable (if set)
+   if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]] && [[ -d "${SCRIPT_BASE_DIRECTORY}" ]]; then
+     project_root=$(find_project_root "${SCRIPT_BASE_DIRECTORY}" 2>/dev/null || true)
+   fi
+   
+   # 2. Try from current working directory (PWD)
+   if [[ -z "${project_root}" ]]; then
+     project_root=$(find_project_root "${PWD}" 2>/dev/null || true)
+   fi
+   
+   # 3. Try from the directory where this script is located
+   if [[ -z "${project_root}" ]]; then
+     local script_dir
+     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo "")"
+     if [[ -n "${script_dir}" ]]; then
+       project_root=$(find_project_root "${script_dir}" 2>/dev/null || true)
+     fi
+   fi
+   
+   # 4. Try absolute path (hardcoded fallback)
+   if [[ -z "${project_root}" ]] && [[ -f "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2" ]]; then
+     project_root="/home/angoca/github/OSM-Notes-Ingestion"
+   fi
+   
+   # Try multiple possible paths for the fixture file
+   for possible_path in "${project_root}/tests/fixtures/planet-notes-latest.osn.bz2" "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"; do
+     if [[ -n "${possible_path}" ]] && [[ -f "${possible_path}" ]]; then
+       fixture_file="${possible_path}"
+       break
+     fi
+   done
+   
+   # Check if fixture file exists
+   if [[ -n "${fixture_file}" ]] && [[ -f "${fixture_file}" ]]; then
+     # Copy the pre-prepared fixture file
+     cp "${fixture_file}" "$output_file" 2>/dev/null
+     local copy_exit=$?
+     if [[ $copy_exit -ne 0 ]]; then
+       echo "Error: Failed to copy fixture file from ${fixture_file}" >&2
+       exit 1
+     fi
+     # Verify the copied file is actually a bzip2 file
+     if ! file "$output_file" 2>/dev/null | grep -q "bzip2"; then
+       echo "Error: Copied file is not a valid bzip2 file" >&2
+       rm -f "$output_file" 2>/dev/null || true
+       exit 1
+     fi
+   else
+     echo "Error: Fixture file not found. Searched from:" >&2
+     echo "  - SCRIPT_BASE_DIRECTORY: ${SCRIPT_BASE_DIRECTORY:-not set}" >&2
+     echo "  - PWD: ${PWD}" >&2
+     echo "  - Script dir: $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo unknown)" >&2
+     echo "  - Project root found: ${project_root:-none}" >&2
+     echo "Please ensure tests/fixtures/planet-notes-latest.osn.bz2 exists in the project root" >&2
+     exit 1
+   fi
  else
    echo "Mock content for $url" > "$output_file"
  fi
@@ -511,12 +603,21 @@ INNER_EOF
 # Parse arguments
 ARGS=()
 OUTPUT_FILE=""
+OUTPUT_DIR=""
 QUIET=false
 
 while [[ $# -gt 0 ]]; do
  case $1 in
+  -d)
+   OUTPUT_DIR="$2"
+   shift 2
+   ;;
   -o)
    OUTPUT_FILE="$2"
+   shift 2
+   ;;
+  -x)
+   # Number of connections (ignore)
    shift 2
    ;;
   -q)
@@ -547,15 +648,21 @@ if [[ -z "$URL" ]]; then
 fi
 
 # Create mock file
-if [[ -n "$OUTPUT_FILE" ]]; then
- create_mock_file "$URL" "$OUTPUT_FILE"
-else
- create_mock_file "$URL"
-fi
+create_mock_file "$URL" "$OUTPUT_FILE" "$OUTPUT_DIR"
 
 # Simulate download completion
 if [[ "$QUIET" != true ]]; then
- echo "Download completed: ${OUTPUT_FILE:-$(basename "$URL")}"
+ final_name=""
+ if [[ -n "$OUTPUT_DIR" && -n "$OUTPUT_FILE" ]]; then
+   final_name="${OUTPUT_DIR}/${OUTPUT_FILE}"
+ elif [[ -n "$OUTPUT_DIR" ]]; then
+   final_name="${OUTPUT_DIR}/$(basename "$URL")"
+ elif [[ -n "$OUTPUT_FILE" ]]; then
+   final_name="$OUTPUT_FILE"
+ else
+   final_name=$(basename "$URL")
+ fi
+ echo "Download completed: $final_name"
 fi
 
 exit 0
@@ -563,113 +670,8 @@ EOF
  fi
 }
 
-# Function to create mock bzip2
-create_mock_bzip2() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/bzip2" ]]; then
-  log_info "Creating mock bzip2..."
-  cat > "${MOCK_COMMANDS_DIR}/bzip2" << 'EOF'
-#!/bin/bash
-
-# Mock bzip2 command for testing
-# Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
-
-# Parse arguments
-ARGS=()
-DECOMPRESS=false
-COMPRESS=false
-FORCE=false
-
-while [[ $# -gt 0 ]]; do
- case $1 in
-  -d)
-   DECOMPRESS=true
-   shift
-   ;;
-  -c)
-   COMPRESS=true
-   shift
-   ;;
-  -f)
-   FORCE=true
-   shift
-   ;;
-  --version)
-   echo "bzip2, a block-sorting file compressor.  Version 1.0.8, 13-Jul-2019."
-   exit 0
-   ;;
-  -*)
-   # Skip other options
-   shift
-   ;;
-  *)
-   ARGS+=("$1")
-   shift
-   ;;
- esac
-done
-
-# Get file from arguments
-FILE="${ARGS[0]:-}"
-
-if [[ -z "$FILE" ]]; then
- echo "Usage: bzip2 [OPTIONS] FILE" >&2
- exit 1
-fi
-
-# Simulate bzip2 operations
-if [[ "$DECOMPRESS" == true ]]; then
- # Decompress
- if [[ -f "$FILE" ]]; then
-   echo "Mock decompressed: $FILE"
-   # Create a mock decompressed file
-   local output_file="${FILE%.bz2}"
-   
-   # If it's an OSM notes file, create valid XML content
-   if [[ "$FILE" == *"notes"* ]] || [[ "$FILE" == *".xml.bz2" ]] || [[ "$output_file" == *".xml" ]]; then
-     cat > "$output_file" << 'INNER_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note id="1001" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note 1</comment>
- </note>
- <note id="1002" lat="40.7129" lon="-74.0061" created_at="2023-01-01T01:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T01:00:00Z" uid="12346" user="testuser2">Test note 2</comment>
-  <comment action="commented" timestamp="2023-01-01T02:00:00Z" uid="12347" user="testuser3">This is a comment</comment>
- </note>
- <note id="1003" lat="40.7130" lon="-74.0062" created_at="2023-01-01T03:00:00Z" closed_at="2023-01-01T04:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T03:00:00Z" uid="12348" user="testuser4">Test note 3</comment>
-  <comment action="closed" timestamp="2023-01-01T04:00:00Z" uid="12349" user="testuser5">Closing this note</comment>
- </note>
-</osm-notes>
-INNER_EOF
-   else
-     # For other files, use generic mock content
-     echo "Mock decompressed content" > "$output_file"
-   fi
- else
-   echo "ERROR: File not found: $FILE" >&2
-   exit 1
- fi
-elif [[ "$COMPRESS" == true ]]; then
- # Compress to stdout
- echo "Mock compressed content" | bzip2 2>/dev/null || echo "Mock compressed content"
-else
- # Default compression
- if [[ -f "$FILE" ]]; then
-   echo "Mock compressed: $FILE"
-   # Create a mock compressed file
-   echo "Mock compressed content" | bzip2 > "${FILE}.bz2" 2>/dev/null || echo "Mock compressed content" > "${FILE}.bz2"
- else
-   echo "ERROR: File not found: $FILE" >&2
-   exit 1
- fi
-fi
-
-exit 0
-EOF
- fi
-}
+# Function create_mock_bzip2 removed - we now use the real bzip2 command
+# The aria2c mock copies a valid .bz2 fixture file, so bzip2 can decompress it normally
 
 # Function to create mock osmtogeojson
 create_mock_osmtogeojson() {

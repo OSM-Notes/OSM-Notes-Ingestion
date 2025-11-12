@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-10
-VERSION="2025-11-10"
+# Version: 2025-11-11
+VERSION="2025-11-11"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -252,7 +252,11 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh" ]]; then
 fi
 
 # Load Planet-specific functions if needed
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh" ]]; then
+# NOTE: __downloadPlanetNotes is defined in this file (functionsProcess.sh)
+# We only load processPlanetFunctions.sh for variables and other functions, not __downloadPlanetNotes
+# If processPlanetFunctions.sh was already loaded (e.g., by processPlanetNotes.sh), skip loading it again
+# to avoid overwriting __downloadPlanetNotes
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh" ]] && [[ -z "${PLANET_NOTES_FILE:-}" ]]; then
  # shellcheck source=processPlanetFunctions.sh
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 fi
@@ -1646,24 +1650,33 @@ function __downloadPlanetNotes {
    "rm -f ${PLANET_NOTES_FILE}.bz2 2>/dev/null || true"
  fi
 
- # Extract file with retry logic
+ # Extract file - simple and direct
  __logi "Extracting Planet notes..."
- local EXTRACT_OPERATION="bzip2 -d ${PLANET_NOTES_FILE}.bz2"
- local EXTRACT_CLEANUP="rm -f ${PLANET_NOTES_FILE} 2>/dev/null || true"
+ local BZIP2_FILE="${PLANET_NOTES_FILE}.bz2"
 
- if ! __retry_file_operation "${EXTRACT_OPERATION}" 2 3 "${EXTRACT_CLEANUP}"; then
-  __loge "Failed to extract Planet notes after retries"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "File extraction failed" \
-   "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE} 2>/dev/null || true"
+ # Verify file exists before extraction
+ if [[ ! -f "${BZIP2_FILE}" ]]; then
+  __loge "ERROR: Compressed file not found: ${BZIP2_FILE}"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Compressed file not found" \
+   "rm -f \"${BZIP2_FILE}\" \"${PLANET_NOTES_FILE}\" 2>/dev/null || true"
  fi
 
- # After bzip2 extraction, the file should already have the correct name
- # PLANET_NOTES_FILE already includes .xml extension, so no renaming needed
+ # Execute bzip2 extraction
+ # Use set +e to prevent script exit on bzip2 errors
+ # We verify success by checking if the XML file exists, not by exit code
+ set +e
+ { bzip2 -d "${BZIP2_FILE}"; } > /dev/null 2>&1
+ set -e
+
+ # Check if extraction was successful by verifying the XML file exists
+ # bzip2 may return non-zero if file was already extracted, but that's OK
  if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
   __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
-  __log_finish
-  return 1
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Extracted file not found" \
+   "rm -f \"${BZIP2_FILE}\" \"${PLANET_NOTES_FILE}\" 2>/dev/null || true"
  fi
+
+ __logi "Successfully extracted Planet notes: \"${PLANET_NOTES_FILE}\""
 
  __log_finish
 }

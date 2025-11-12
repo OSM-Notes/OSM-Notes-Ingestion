@@ -2,16 +2,26 @@
 
 # Setup hybrid mock environment for testing (only internet downloads mocked)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-01
+# Version: 2025-01-23
 
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Colors for output (only define if not already set)
+if [[ -z "${RED:-}" ]]; then
+  RED='\033[0;31m'
+fi
+if [[ -z "${GREEN:-}" ]]; then
+  GREEN='\033[0;32m'
+fi
+if [[ -z "${YELLOW:-}" ]]; then
+  YELLOW='\033[1;33m'
+fi
+if [[ -z "${BLUE:-}" ]]; then
+  BLUE='\033[0;34m'
+fi
+if [[ -z "${NC:-}" ]]; then
+  NC='\033[0m' # No Color
+fi
 
 # Logging functions
 log_info() {
@@ -30,9 +40,13 @@ log_error() {
  echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
+# Configuration (only define if not already set)
+if [[ -z "${SCRIPT_DIR:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+if [[ -z "${MOCK_COMMANDS_DIR:-}" ]]; then
+  MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
+fi
 
 # Function to setup hybrid mock environment
 setup_hybrid_mock_environment() {
@@ -64,7 +78,7 @@ create_mock_wget() {
 
 # Mock wget command for testing (internet downloads only)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-01-23
 
 # Function to create mock files
 create_mock_file() {
@@ -234,7 +248,7 @@ create_mock_aria2c() {
 
 # Mock aria2c command for testing (internet downloads only)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-01-23
 
 # Function to create mock files
 create_mock_file() {
@@ -275,21 +289,85 @@ create_mock_file() {
  </note>
 </osm-notes>
 INNER_EOF
- elif [[ "$url" == *".bz2" ]]; then
-   # Create a small bzip2 file with realistic content
-   cat > "$output_file" << 'INNER_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note id="3001" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Aria2c bz2 test note 1</comment>
- </note>
- <note id="3002" lat="40.7129" lon="-74.0061" created_at="2023-01-01T01:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T01:00:00Z" uid="12346" user="testuser2">Aria2c bz2 test note 2</comment>
- </note>
-</osm-notes>
-INNER_EOF
-   # Compress the content
-   bzip2 -c "$output_file" > "${output_file}.tmp" 2>/dev/null && mv "${output_file}.tmp" "$output_file" || true
+ elif [[ "$url" == *".bz2" ]] || [[ "$url" == *".osn.bz2" ]]; then
+   # Use pre-prepared fixture file instead of generating on the fly
+   # This ensures the file is always valid and avoids PATH resolution issues
+   # Find the fixture file by trying multiple possible paths
+   local fixture_file=""
+   
+   # Function to find project root from a starting directory
+   find_project_root() {
+     local start_dir="$1"
+     local search_dir="${start_dir}"
+     while [[ "${search_dir}" != "/" ]]; do
+       if [[ -d "${search_dir}/tests" ]] && [[ -d "${search_dir}/tests/fixtures" ]] && [[ -f "${search_dir}/tests/fixtures/planet-notes-latest.osn.bz2" ]]; then
+         echo "${search_dir}"
+         return 0
+       fi
+       search_dir=$(dirname "${search_dir}")
+     done
+     return 1
+   }
+   
+   # Try multiple starting points to find the project root
+   local project_root=""
+   
+   # 1. Try from SCRIPT_BASE_DIRECTORY environment variable (if set)
+   if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]] && [[ -d "${SCRIPT_BASE_DIRECTORY}" ]]; then
+     project_root=$(find_project_root "${SCRIPT_BASE_DIRECTORY}" 2>/dev/null || true)
+   fi
+   
+   # 2. Try from current working directory (PWD)
+   if [[ -z "${project_root}" ]]; then
+     project_root=$(find_project_root "${PWD}" 2>/dev/null || true)
+   fi
+   
+   # 3. Try from the directory where this script is located
+   if [[ -z "${project_root}" ]]; then
+     local script_dir
+     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo "")"
+     if [[ -n "${script_dir}" ]]; then
+       project_root=$(find_project_root "${script_dir}" 2>/dev/null || true)
+     fi
+   fi
+   
+   # 4. Try absolute path (hardcoded fallback)
+   if [[ -z "${project_root}" ]] && [[ -f "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2" ]]; then
+     project_root="/home/angoca/github/OSM-Notes-Ingestion"
+   fi
+   
+   # Try multiple possible paths for the fixture file
+   for possible_path in "${project_root}/tests/fixtures/planet-notes-latest.osn.bz2" "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"; do
+     if [[ -n "${possible_path}" ]] && [[ -f "${possible_path}" ]]; then
+       fixture_file="${possible_path}"
+       break
+     fi
+   done
+   
+   # Check if fixture file exists
+   if [[ -n "${fixture_file}" ]] && [[ -f "${fixture_file}" ]]; then
+     # Copy the pre-prepared fixture file
+     cp "${fixture_file}" "$output_file" 2>/dev/null
+     local copy_exit=$?
+     if [[ $copy_exit -ne 0 ]]; then
+       echo "Error: Failed to copy fixture file from ${fixture_file}" >&2
+       exit 1
+     fi
+     # Verify the copied file is actually a bzip2 file
+     if ! file "$output_file" 2>/dev/null | grep -q "bzip2"; then
+       echo "Error: Copied file is not a valid bzip2 file" >&2
+       rm -f "$output_file" 2>/dev/null || true
+       exit 1
+     fi
+   else
+     echo "Error: Fixture file not found. Searched from:" >&2
+     echo "  - SCRIPT_BASE_DIRECTORY: ${SCRIPT_BASE_DIRECTORY:-not set}" >&2
+     echo "  - PWD: ${PWD}" >&2
+     echo "  - Script dir: $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo unknown)" >&2
+     echo "  - Project root found: ${project_root:-none}" >&2
+     echo "Please ensure tests/fixtures/planet-notes-latest.osn.bz2 exists in the project root" >&2
+     exit 1
+   fi
  else
    echo "Mock aria2c content for $url" > "$output_file"
  fi
@@ -311,6 +389,10 @@ while [[ $# -gt 0 ]]; do
    ;;
   -o)
    OUTPUT_FILE="$2"
+   shift 2
+   ;;
+  -x)
+   # Number of connections (ignore)
    shift 2
    ;;
   -q)
@@ -432,7 +514,10 @@ activate_hybrid_mock_environment() {
  # Set hybrid mock environment variables
  export HYBRID_MOCK_MODE=true
  export TEST_MODE=true
- export DBNAME="osm_notes" # Use real database name
+ # Only set DBNAME if not already set (allow override from calling script)
+ if [[ -z "${DBNAME:-}" ]]; then
+   export DBNAME="osm_notes" # Use real database name
+ fi
  export DB_USER="${DB_USER:-postgres}"
  export DB_PASSWORD="${DB_PASSWORD:-}"
 
