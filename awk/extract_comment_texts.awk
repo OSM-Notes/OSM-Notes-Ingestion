@@ -3,11 +3,12 @@
 # Supports both Planet and API formats with auto-detection.
 # Handles multiline text and HTML entities.
 #
-# Output format: note_id,sequence_action,"body"
+# Output format: note_id,sequence_action,"body",part_id
 # sequence_action is a counter starting from 1 for each note
+# part_id is empty (NULL), will be set by PostgreSQL during COPY
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
+# Version: 2025-11-12
 
 BEGIN {
   in_comment = 0
@@ -85,8 +86,8 @@ in_note && /^\s*<id>/ {
     gsub(/^[ \t]+|[ \t]+$/, "", text)
     
     # Output CSV with PostgreSQL column names
-    # Format: note_id,sequence_action,"body"
-    printf "%s,%s,\"%s\"\n", note_id, comment_seq, text
+    # Format: note_id,sequence_action,"body",part_id
+    printf "%s,%s,\"%s\",\n", note_id, comment_seq, text
   } else if (match($0, /<comment[^>]*>(.*)/, content)) {
     # Multiline comment start
     in_comment = 1
@@ -122,7 +123,8 @@ in_comments && /^\s*<text>/ {
     gsub(/^[ \t]+|[ \t]+$/, "", text)
     
     # Output CSV
-    printf "%s,%s,\"%s\"\n", note_id, comment_seq, text
+    # Format: note_id,sequence_action,"body",part_id
+    printf "%s,%s,\"%s\",\n", note_id, comment_seq, text
   }
   next
 }
@@ -147,8 +149,8 @@ in_comment && !/<comment / {
     gsub(/^[ \t]+|[ \t]+$/, "", comment_text)
     
     # Output CSV with PostgreSQL column names
-    # Format: note_id,sequence_action,"body"
-    printf "%s,%s,\"%s\"\n", note_id, comment_seq, comment_text
+    # Format: note_id,sequence_action,"body",part_id
+    printf "%s,%s,\"%s\",\n", note_id, comment_seq, comment_text
     
     # Reset state
     in_comment = 0

@@ -59,8 +59,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-01
-VERSION="2025-10-30"
+# Version: 2025-11-12
+VERSION="2025-11-12"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -466,6 +466,32 @@ function __createPropertiesTable {
  __log_finish
 }
 
+# Ensures get_country function exists before creating procedures.
+# The procedures (insert_note, insert_note_comment) require get_country to exist.
+# This function checks if get_country exists and creates it if missing.
+# If get_country exists but countries table does not, recreates the function as stub.
+function __ensureGetCountryFunction {
+ __log_start
+ __logd "Checking if get_country function exists..."
+
+ local FUNCTION_EXISTS
+ FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null || echo "0")
+ local COUNTRIES_TABLE_EXISTS
+ COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+
+ if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
+  __logw "get_country function not found, creating it..."
+  __createFunctionToGetCountry
+ else
+  __logd "get_country function already exists"
+  if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
+   __logw "WARNING: get_country function exists but countries table does not"
+   __createFunctionToGetCountry
+  fi
+ fi
+ __log_finish
+}
+
 function __getNewNotesFromApi {
  __log_start
  __logi "=== STARTING API NOTES RETRIEVAL ==="
@@ -786,6 +812,17 @@ function __processApiXmlSequential {
 
  __logi "✓ All CSV validations passed for sequential processing"
 
+ __logd "Setting part_id to 1 in CSV files for sequential processing..."
+ if [[ -s "${SEQ_OUTPUT_NOTES_FILE}" ]]; then
+  sed -i 's/,,$/,,1/' "${SEQ_OUTPUT_NOTES_FILE}"
+ fi
+ if [[ -s "${SEQ_OUTPUT_COMMENTS_FILE}" ]]; then
+  sed -i 's/,$/,1/' "${SEQ_OUTPUT_COMMENTS_FILE}"
+ fi
+ if [[ -s "${SEQ_OUTPUT_TEXT_FILE}" ]]; then
+  sed -i 's/,$/,1/' "${SEQ_OUTPUT_TEXT_FILE}"
+ fi
+
  __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
  __logd "Database: ${DBNAME}"
 
@@ -797,10 +834,10 @@ function __processApiXmlSequential {
  local TEMP_SQL
  TEMP_SQL=$(mktemp)
  # Replace variables in SQL file using sed
- sed "s|\$OUTPUT_NOTES_FILE|${SEQ_OUTPUT_NOTES_FILE}|g; \
-      s|\$OUTPUT_COMMENTS_FILE|${SEQ_OUTPUT_COMMENTS_FILE}|g; \
-      s|\$OUTPUT_TEXT_FILE|${SEQ_OUTPUT_TEXT_FILE}|g; \
-      s|\$PART_ID|1|g" \
+ sed "s|\${OUTPUT_NOTES_PART}|${SEQ_OUTPUT_NOTES_FILE}|g; \
+      s|\${OUTPUT_COMMENTS_PART}|${SEQ_OUTPUT_COMMENTS_FILE}|g; \
+      s|\${OUTPUT_TEXT_PART}|${SEQ_OUTPUT_TEXT_FILE}|g; \
+      s|\${PART_ID}|1|g" \
   < "${POSTGRES_31_LOAD_API_NOTES}" > "${TEMP_SQL}" || true
  # Execute SQL
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
@@ -868,7 +905,10 @@ function __insertNewNotesAndComments {
     fi
 
     export PROCESS_ID
+    local PROCESS_ID_INTEGER
+    PROCESS_ID_INTEGER=$$
     if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+     -c "SET app.process_id = '${PROCESS_ID_INTEGER}';" \
      -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
      __loge "Failed to process insertion part ${PART}"
      # Remove lock even on failure
@@ -927,7 +967,10 @@ function __insertNewNotesAndComments {
   fi
 
   export PROCESS_ID
+  local PROCESS_ID_INTEGER
+  PROCESS_ID_INTEGER=$$
   if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -c "SET app.process_id = '${PROCESS_ID_INTEGER}';" \
    -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
    __loge "Failed to process insertion"
    # Remove lock even on failure
@@ -1280,6 +1323,7 @@ EOF
  __createApiTables
  __createPartitions
  __createPropertiesTable
+ __ensureGetCountryFunction
  __createProcedures
  set +E
  __getNewNotesFromApi

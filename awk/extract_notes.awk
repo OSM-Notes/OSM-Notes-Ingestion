@@ -2,13 +2,14 @@
 # Extract notes from OSM XML to CSV format.
 # Supports both Planet and API formats with auto-detection.
 #
-# Output format: note_id,latitude,longitude,created_at,status,closed_at,id_country
+# Output format: note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
 # Status is calculated: 'close' if closed_at exists, 'open' otherwise
 # (Note: PostgreSQL ENUM uses 'close', not 'closed')
 # id_country is empty (NULL), filled later by PostgreSQL function
+# part_id is empty (NULL), will be set by PostgreSQL during COPY
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
+# Version: 2025-11-12
 
 BEGIN {
   # State variables for API format parsing
@@ -38,8 +39,8 @@ BEGIN {
     status = "open"
   }
   
-  # Output CSV
-  printf "%s,%s,%s,%s,%s,%s\n", note_id, note_lat, note_lon, date_created, status, date_closed
+  # Output CSV in correct order: note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
+  printf "%s,%s,%s,%s,%s,%s,,\n", note_id, note_lat, note_lon, date_created, date_closed, status
   
   # Reset state
   in_note = 0
@@ -93,8 +94,8 @@ in_note && /^\s*<\/note>/ {
   # If status is empty, default to open
   if (status == "") status = "open"
   
-  # Output CSV
-  printf "%s,%s,%s,%s,%s,%s\n", note_id, note_lat, note_lon, date_created, status, date_closed
+  # Output CSV in correct order: note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
+  printf "%s,%s,%s,%s,%s,%s,,\n", note_id, note_lat, note_lon, date_created, date_closed, status
   
   # Reset state
   in_note = 0

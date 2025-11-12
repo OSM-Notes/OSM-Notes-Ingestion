@@ -1,7 +1,7 @@
 -- Procedure to insert a note comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2024-02-18
+-- Version: 2025-11-12
 
 CREATE OR REPLACE PROCEDURE insert_note_comment (
   m_note_id INTEGER,
@@ -14,15 +14,24 @@ CREATE OR REPLACE PROCEDURE insert_note_comment (
 LANGUAGE plpgsql
 AS $proc$
  DECLARE
-  m_process_id_db INTEGER;
+  m_process_id_db VARCHAR(32);
+  m_process_id_db_pid INTEGER;
  BEGIN
+  -- Check the DB lock to validate it is from the same process.
+  -- Note: lock is stored as VARCHAR (e.g., "130030_1762952513_24253")
+  -- We need to extract the PID (first part before underscore) for comparison
   SELECT value
     INTO m_process_id_db
   FROM properties
   WHERE key = 'lock';
   IF (m_process_id_db IS NULL) THEN
    RAISE EXCEPTION 'This call does not have a lock.';
-  ELSIF (m_process_id_bash <> m_process_id_db) THEN
+  END IF;
+  
+  -- Extract PID from lock (first part before underscore) and convert to INTEGER
+  m_process_id_db_pid := SPLIT_PART(m_process_id_db, '_', 1)::INTEGER;
+  
+  IF (m_process_id_bash <> m_process_id_db_pid) THEN
    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%).',
      m_process_id_db, m_process_id_bash;
   END IF;

@@ -1,7 +1,7 @@
 -- Loads the notes and note comments on the API tables with parallel processing support.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-18
+-- Version: 2025-11-12
 
 -- Get partition ID and MAX_THREADS from environment variables
 DO $$
@@ -31,6 +31,10 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status, id_country, part_id)
 FROM '${OUTPUT_NOTES_PART}' csv;
 
+-- Update part_id to correct partition number (from app.part_id setting)
+UPDATE notes_api SET part_id = current_setting('app.part_id', true)::INTEGER 
+WHERE part_id IS NULL;
+
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Statistics on notes from API partition ' || current_setting('app.part_id', true) AS Text;
 ANALYZE notes_api;
@@ -48,6 +52,10 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 COPY note_comments_api (note_id, sequence_action, event, created_at, id_user, username, part_id)
 FROM '${OUTPUT_COMMENTS_PART}' csv DELIMITER ',' QUOTE '''';
 
+-- Update part_id to correct partition number for comments (from app.part_id setting)
+UPDATE note_comments_api SET part_id = current_setting('app.part_id', true)::INTEGER 
+WHERE part_id IS NULL;
+
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Statistics on comments from API partition ' || current_setting('app.part_id', true) AS Text;
 ANALYZE note_comments_api;
@@ -64,6 +72,10 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 -- Load text comments into specific partition (sequence_action already provided by AWK)
 COPY note_comments_text_api (note_id, sequence_action, body, part_id)
 FROM '${OUTPUT_TEXT_PART}' csv DELIMITER ',' QUOTE '''';
+
+-- Update part_id to correct partition number for text comments (from app.part_id setting)
+UPDATE note_comments_text_api SET part_id = current_setting('app.part_id', true)::INTEGER 
+WHERE part_id IS NULL;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Statistics on text comments from API partition ' || current_setting('app.part_id', true) AS Text;

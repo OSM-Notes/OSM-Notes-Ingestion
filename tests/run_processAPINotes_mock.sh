@@ -2,7 +2,7 @@
 
 # Script to run processAPINotes.sh in full mock mode (no internet, no real DB)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-12
 
 set -euo pipefail
 
@@ -50,9 +50,11 @@ This script sets up a complete mock environment where:
   - Database operations are mocked (psql)
   - All processing runs without external dependencies
 
-The script executes processAPINotes.sh TWICE:
+The script executes processAPINotes.sh FOUR TIMES:
   1. First execution: Resets base tables marker, triggering processPlanetNotes.sh --base
-  2. Second execution: Base tables exist, so only processAPINotes runs
+  2. Second execution: Base tables exist, uses 5 notes for sequential processing (< 10)
+  3. Third execution: Uses 20 notes for parallel processing (>= 10)
+  4. Fourth execution: No new notes (empty response) - tests handling of no updates
 
 Usage:
   ./run_processAPINotes_mock.sh [OPTIONS]
@@ -67,7 +69,7 @@ Environment variables:
                  Default: false
 
 Examples:
-  # Run with default settings (two executions)
+  # Run with default settings (four executions)
   ./run_processAPINotes_mock.sh
 
   # Run with debug logging
@@ -210,6 +212,14 @@ run_processAPINotes() {
   # Make script executable
   chmod +x "${process_script}"
 
+  # Export MOCK_NOTES_COUNT so wget mock can use it
+  if [[ -n "${MOCK_NOTES_COUNT:-}" ]]; then
+    export MOCK_NOTES_COUNT
+    log_info "MOCK_NOTES_COUNT set to: ${MOCK_NOTES_COUNT}"
+  else
+    unset MOCK_NOTES_COUNT
+  fi
+
   # Run the script
   log_info "Executing: ${process_script}"
   "${process_script}"
@@ -283,7 +293,12 @@ main() {
 
   # First execution: Reset base tables marker to trigger processPlanetNotes.sh --base
   log_info "=== FIRST EXECUTION: Will load processPlanetNotes.sh --base ==="
+  cleanup_lock_files
   reset_base_tables_marker
+
+  # Use default fixture (original OSM-notes-API.xml) for first execution
+  unset MOCK_NOTES_COUNT
+  export MOCK_NOTES_COUNT=""
 
   # Run processAPINotes (first time - will call processPlanetNotes.sh --base)
   if ! run_processAPINotes 1; then
@@ -295,13 +310,51 @@ main() {
   # Wait a moment between executions
   sleep 2
 
-  # Second execution: Base tables marker exists, so only processAPINotes runs
-  log_info "=== SECOND EXECUTION: Only processAPINotes (no processPlanetNotes) ==="
+  # Second execution: Base tables exist, use 5 notes for sequential processing
+  log_info "=== SECOND EXECUTION: Sequential processing (< 10 notes) ==="
   cleanup_lock_files
 
-  # Run processAPINotes (second time - tables exist, no processPlanetNotes call)
+  # Set MOCK_NOTES_COUNT to 5 for sequential processing (below MIN_NOTES_FOR_PARALLEL=10)
+  export MOCK_NOTES_COUNT="5"
+  log_info "Using ${MOCK_NOTES_COUNT} notes for sequential processing test"
+
+  # Run processAPINotes (second time - tables exist, sequential processing)
   if ! run_processAPINotes 2; then
     log_error "Second execution failed"
+    exit_code=$?
+  fi
+
+  # Wait a moment between executions
+  sleep 2
+
+  # Third execution: Use 20 notes for parallel processing
+  log_info "=== THIRD EXECUTION: Parallel processing (>= 10 notes) ==="
+  cleanup_lock_files
+
+  # Set MOCK_NOTES_COUNT to 20 for parallel processing (above MIN_NOTES_FOR_PARALLEL=10)
+  export MOCK_NOTES_COUNT="20"
+  log_info "Using ${MOCK_NOTES_COUNT} notes for parallel processing test"
+
+  # Run processAPINotes (third time - parallel processing)
+  if ! run_processAPINotes 3; then
+    log_error "Third execution failed"
+    exit_code=$?
+  fi
+
+  # Wait a moment between executions
+  sleep 2
+
+  # Fourth execution: No new notes (empty response)
+  log_info "=== FOURTH EXECUTION: No new notes (empty response) ==="
+  cleanup_lock_files
+
+  # Set MOCK_NOTES_COUNT to 0 for empty response (no new notes)
+  export MOCK_NOTES_COUNT="0"
+  log_info "Using ${MOCK_NOTES_COUNT} notes to simulate no new notes scenario"
+
+  # Run processAPINotes (fourth time - no new notes)
+  if ! run_processAPINotes 4; then
+    log_error "Fourth execution failed"
     exit_code=$?
   fi
 

@@ -141,8 +141,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-10
-VERSION="2025-11-10"
+# Version: 2025-11-12
+VERSION="2025-11-12"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1331,8 +1331,13 @@ function __processGeographicData {
     __logi "Note: Location notes will be processed after get_country() function is created."
     # Do not call __getLocationNotes here - it will be called after creating get_country()
    else
-    __logw "Failed to load countries automatically. Continuing without country assignment."
-    __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base && ./bin/process/assignCountriesToNotes.sh"
+    __loge "ERROR: Failed to load countries automatically. updateCountries.sh is required for proper operation."
+    __loge "This is a critical error. processPlanetNotes.sh cannot continue without geographic data."
+    __loge "Please fix the issue and run updateCountries.sh manually: ./bin/process/updateCountries.sh --base"
+    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+     "updateCountries.sh failed during processPlanetNotes.sh --base" \
+     "Fix the issue with updateCountries.sh and run manually: ./bin/process/updateCountries.sh --base"
+    exit "${ERROR_EXECUTING_PLANET_DUMP}"
    fi
   else
    __logw "Skipping location assignment - notes will be processed without country assignment."

@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
-VERSION="2025-11-11"
+# Version: 2025-11-12
+VERSION="2025-11-12"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -252,11 +252,7 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh" ]]; then
 fi
 
 # Load Planet-specific functions if needed
-# NOTE: __downloadPlanetNotes is defined in this file (functionsProcess.sh)
-# We only load processPlanetFunctions.sh for variables and other functions, not __downloadPlanetNotes
-# If processPlanetFunctions.sh was already loaded (e.g., by processPlanetNotes.sh), skip loading it again
-# to avoid overwriting __downloadPlanetNotes
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh" ]] && [[ -z "${PLANET_NOTES_FILE:-}" ]]; then
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh" ]]; then
  # shellcheck source=processPlanetFunctions.sh
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 fi
@@ -626,12 +622,12 @@ function __processApiXmlPart() {
 
  # Add part_id to the end of each line for comments
  __logd "Adding part_id ${PART_NUM} to comments CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+ awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
  # Add part_id to the end of each line for text comments
  __logd "Adding part_id ${PART_NUM} to text comments CSV"
  if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
-  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+  awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
  else
   __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
  fi
@@ -770,7 +766,7 @@ function __processPlanetXmlPart() {
 
  # Add id_country (empty) and part_id to the end of each line
  __logd "Adding id_country (empty) and part_id ${PART_NUM} to notes CSV"
- awk -v part_id="${PART_NUM}" '{print $0 ",," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+ sed "s/,,$/,,""${PART_NUM}""/" "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
  # Process comments with AWK (fast and dependency-free)
  __logd "Processing comments with AWK: ${XML_PART} -> ${OUTPUT_COMMENTS_PART}"
@@ -783,7 +779,7 @@ function __processPlanetXmlPart() {
 
  # Add part_id to the end of each line
  __logd "Adding part_id ${PART_NUM} to comments CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+ awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
  # Process text comments with AWK (fast and dependency-free)
  __logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
@@ -796,7 +792,7 @@ function __processPlanetXmlPart() {
  # Add part_id to the end of each line
  __logd "Adding part_id ${PART_NUM} to text comments CSV"
  if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
-  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+  awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
  else
   __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
  fi
@@ -1688,6 +1684,47 @@ function __downloadPlanetNotes {
 # * 65 - 180: Southeast Asia and Oceania.
 function __createFunctionToGetCountry {
  __log_start
+ # Ensure tries table exists before creating get_country function
+ __logd "Ensuring tries table exists..."
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF' || true
+CREATE TABLE IF NOT EXISTS tries (
+ area VARCHAR(50),
+ iter INTEGER,
+ id_note INTEGER,
+ id_country INTEGER
+);
+COMMENT ON TABLE tries IS
+ 'Number of tries to find a country. This is used to improve the sequence order';
+EOF
+ 
+ # Check if countries table exists before creating get_country function
+ local COUNTRIES_TABLE_EXISTS
+ COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+ 
+ if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
+  __logw "Countries table does not exist. Creating stub get_country function."
+  # Create a stub function that returns NULL when countries table doesn't exist
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF' || true
+CREATE OR REPLACE FUNCTION get_country (
+ lon DECIMAL,
+ lat DECIMAL,
+ id_note INTEGER
+) RETURNS INTEGER
+LANGUAGE plpgsql
+AS $func$
+BEGIN
+ -- Stub function: returns NULL when countries table doesn't exist
+ -- This allows procedures to work without country assignment
+ RETURN NULL;
+END;
+$func$;
+COMMENT ON FUNCTION get_country IS
+ 'Stub function: returns NULL when countries table does not exist. Run updateCountries.sh --base to create full function.';
+EOF
+  __log_finish
+  return 0
+ fi
+ 
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
  __log_finish
@@ -1696,6 +1733,31 @@ function __createFunctionToGetCountry {
 # Creates procedures to insert notes and comments.
 function __createProcedures {
  __log_start
+ __logd "Creating procedures."
+
+ # Validate that POSTGRES_22_CREATE_PROC_INSERT_NOTE is defined
+ if [[ -z "${POSTGRES_22_CREATE_PROC_INSERT_NOTE:-}" ]]; then
+  __loge "ERROR: POSTGRES_22_CREATE_PROC_INSERT_NOTE variable is not defined. This variable should be defined in the calling script"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ # Validate that POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT is defined
+ if [[ -z "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT:-}" ]]; then
+  __loge "ERROR: POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT variable is not defined. This variable should be defined in the calling script"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ # Validate that the SQL files exist
+ if [[ ! -f "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}" ]]; then
+  __loge "ERROR: SQL file not found: ${POSTGRES_22_CREATE_PROC_INSERT_NOTE}"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ if [[ ! -f "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}" ]]; then
+  __loge "ERROR: SQL file not found: ${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
  # Creates a procedure that inserts a note.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}"
@@ -1707,8 +1769,49 @@ function __createProcedures {
 }
 
 # Assigns a value to each area to find it easily.
+# This function organizes countries into geographic areas for efficient
+# country lookup. It requires the countries table to exist and have data.
 function __organizeAreas {
  __log_start
+ __logd "Organizing areas."
+
+ # Validate that POSTGRES_31_ORGANIZE_AREAS is defined
+ if [[ -z "${POSTGRES_31_ORGANIZE_AREAS:-}" ]]; then
+  __loge "ERROR: POSTGRES_31_ORGANIZE_AREAS variable is not defined"
+  __loge "ERROR: This variable should be defined in the calling script"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ # Validate that the SQL file exists
+ if [[ ! -f "${POSTGRES_31_ORGANIZE_AREAS}" ]]; then
+  __loge "ERROR: SQL file not found: ${POSTGRES_31_ORGANIZE_AREAS}"
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+
+ # Check if countries table exists
+ local COUNTRIES_TABLE_EXISTS
+ COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+
+ if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
+  __logw "Countries table does not exist. Skipping areas organization."
+  __logw "Areas organization requires countries table to be created first."
+  __logw "Run updateCountries.sh --base to create countries table."
+  __log_finish
+  return 0
+ fi
+
+ # Check if countries table has data
+ local COUNTRIES_COUNT
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+
+ if [[ "${COUNTRIES_COUNT}" -eq "0" ]]; then
+  __logw "Countries table is empty. Skipping areas organization."
+  __logw "Areas organization requires countries table to have data."
+  __logw "Run updateCountries.sh --base to load countries data."
+  __log_finish
+  return 0
+ fi
+
  set +e
  # Insert values for representative countries in each area.
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_ORGANIZE_AREAS}"
@@ -1960,16 +2063,17 @@ function __validate_csv_structure {
  local EXPECTED_COLUMNS
  case "${FILE_TYPE}" in
  "notes")
-  # Structure: note_id,latitude,longitude,created_at,closed_at,status[,part_id]
-  EXPECTED_COLUMNS=6 # or 7 with part_id
+  # Structure: note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
+  EXPECTED_COLUMNS=8
   ;;
  "comments")
-  # Structure: note_id,event,timestamp,user_id,username[,part_id]
-  EXPECTED_COLUMNS=5 # or 6 with part_id
+  # Structure: note_id,sequence_action,event,created_at,id_user,username,part_id
+  EXPECTED_COLUMNS=7
   ;;
  "text")
-  # Structure: note_id,text[,part_id]
-  EXPECTED_COLUMNS=2 # or 3 with part_id
+  # Structure: note_id,sequence_action,"body",part_id
+  # Note: body is quoted, so comma count may vary, but we expect 3 commas = 4 fields
+  EXPECTED_COLUMNS=4
   ;;
  *)
   __logw "WARNING: Unknown file type '${FILE_TYPE}', skipping column count validation"
@@ -2000,17 +2104,26 @@ function __validate_csv_structure {
   fi
 
   # Count columns (accounting for quoted fields with commas)
-  # This is a basic count that may not be 100% accurate for complex CSVs
+  # For text files, count commas instead (body field is quoted and may contain commas)
   local COLUMN_COUNT
-  COLUMN_COUNT=$(echo "${line}" | awk -F',' '{print NF}')
+  if [[ "${FILE_TYPE}" == "text" ]]; then
+   # For text files, count commas (3 commas = 4 fields: note_id,sequence_action,body,part_id)
+   local COMMA_COUNT
+   COMMA_COUNT=$(echo "${line}" | tr -cd ',' | wc -c)
+   COLUMN_COUNT=$((COMMA_COUNT + 1))
+  else
+   # For notes and comments, use standard field count
+   COLUMN_COUNT=$(echo "${line}" | awk -F',' '{print NF}')
+  fi
 
-  # Allow EXPECTED_COLUMNS or EXPECTED_COLUMNS+1 (with part_id)
-  if [[ ${COLUMN_COUNT} -ne ${EXPECTED_COLUMNS} ]] && [[ ${COLUMN_COUNT} -ne $((EXPECTED_COLUMNS + 1)) ]]; then
-   __logd "WARNING: Line ${LINE_NUMBER} has ${COLUMN_COUNT} columns, expected ${EXPECTED_COLUMNS} or $((EXPECTED_COLUMNS + 1))"
+  # Validate exact column count (no longer allowing +/-1)
+  if [[ ${COLUMN_COUNT} -ne ${EXPECTED_COLUMNS} ]]; then
+   __loge "ERROR: Line ${LINE_NUMBER} has ${COLUMN_COUNT} columns, expected ${EXPECTED_COLUMNS}"
+   __loge "This indicates a mismatch between AWK script output and SQL COPY command expectations"
    ((WRONG_COLUMNS++))
    # Only show first 3 examples
    if [[ ${WRONG_COLUMNS} -le 3 ]]; then
-    __logd "  Line content (first 100 chars): ${line:0:100}"
+    __loge "  Line content (first 200 chars): ${line:0:200}"
    fi
   fi
 

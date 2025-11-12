@@ -2,11 +2,12 @@
 # Extract note comments metadata from OSM XML to CSV format.
 # Supports both Planet and API formats with auto-detection.
 #
-# Output format: note_id,sequence_action,event,created_at,id_user,username
+# Output format: note_id,sequence_action,event,created_at,id_user,username,part_id
 # sequence_action is a counter starting from 1 for each note
+# part_id is empty (NULL), will be set by PostgreSQL during COPY
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
+# Version: 2025-11-12
 
 BEGIN {
   comment_seq = 0
@@ -84,8 +85,8 @@ in_note && /^\s*<id>/ {
     username = ""
   }
   
-  # Output CSV
-  printf "%s,%s,%s,%s,%s,%s\n", note_id, comment_seq, event, created_at, id_user, username
+  # Output CSV in correct order: note_id,sequence_action,event,created_at,id_user,username,part_id
+  printf "%s,%s,%s,%s,%s,%s,\n", note_id, comment_seq, event, created_at, id_user, username
   next
 }
 
@@ -125,8 +126,8 @@ in_comments && /^\s*<action>/ {
 
 # API format: end of comment tag, output
 in_comments && /^\s*<\/comment>/ {
-  # Output CSV
-  printf "%s,%s,%s,%s,%s,%s\n", note_id, comment_seq, comment_action, comment_date, comment_uid, comment_user
+  # Output CSV in correct order: note_id,sequence_action,event,created_at,id_user,username,part_id
+  printf "%s,%s,%s,%s,%s,%s,\n", note_id, comment_seq, comment_action, comment_date, comment_uid, comment_user
   
   # Reset for next comment
   comment_date = ""

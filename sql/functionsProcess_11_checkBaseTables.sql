@@ -1,7 +1,7 @@
 -- Verifies if the base tables are created in the database.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-29
+-- Version: 2025-11-12
 
   DO /* Notes-base-checkTables */
   $$
@@ -61,6 +61,17 @@
    ;
    IF (qty <> 1) THEN
     RAISE EXCEPTION 'Base tables are missing: tries.';
+   END IF;
+
+   -- Verify critical functions exist
+   SELECT /* Notes-base */ COUNT(proname)
+    INTO qty
+   FROM pg_proc
+   WHERE proname = 'get_country'
+   AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+   ;
+   IF (qty <> 1) THEN
+    RAISE EXCEPTION 'Critical function is missing: get_country.';
    END IF;
   END;
   $$;

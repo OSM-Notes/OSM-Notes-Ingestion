@@ -2,9 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
-
-VERSION="2025-11-11"
+# Version: 2025-11-12
+VERSION="2025-11-12"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -792,6 +791,7 @@ function __processCountries_impl {
 
  for I in "${TMP_DIR}"/part_country_??; do
   (
+   export PATH="${PATH}"
    local SUBSHELL_PID
    SUBSHELL_PID="${BASHPID}"
    __logi "Starting list ${I} - ${SUBSHELL_PID}."
@@ -951,6 +951,7 @@ function __processMaritimes_impl {
  __logw "Starting background process to process maritime boundaries..."
  for I in "${TMP_DIR}"/part_maritime_??; do
   (
+   export PATH="${PATH}"
    __logi "Starting list ${I} - ${BASHPID}."
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finished list ${I} - ${BASHPID}."

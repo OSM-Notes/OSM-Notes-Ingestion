@@ -3,7 +3,7 @@
 -- comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-22
+-- Version: 2025-11-12
 
 SELECT /* Notes-processAPI */ timestamp
 FROM max_note_timestamp;
@@ -97,7 +97,7 @@ $$
   
   -- If more than 5% of notes lack comments, don't update timestamp
   IF notes_without_comments > (total_notes * 0.05) THEN
-   RAISE NOTICE 'Too many notes without comments (%%). Not updating timestamp.', 
+   RAISE NOTICE 'Too many notes without comments (%%%). Not updating timestamp.', 
     gap_percentage::INTEGER;
    INSERT INTO logs (message) VALUES ('Timestamp update SKIPPED - too many gaps (' || 
     gap_percentage::INTEGER || '%)');

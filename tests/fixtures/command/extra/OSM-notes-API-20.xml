@@ -1,0 +1,670 @@
+<?xml version='1.0' encoding='utf-8'?>
+<osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/"><note lon="-114.9539755" lat="43.9751629">
+  <id>4854058</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854058.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4854058/reopen.xml</reopen_url>
+  <date_created>2025-07-13 19:16:10 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:43:39 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:16:10 UTC</date>
+      <uid>14249378</uid>
+      <user>Xvtn</user>
+      <user_url>https://api.openstreetmap.org/user/Xvtn</user_url>
+      <action>opened</action>
+      <text>xing stepping stones
+
+#OsmAnd</text>
+      <html>&lt;p dir="auto"&gt;xing stepping stones&lt;/p&gt;
+
+&lt;p dir="auto"&gt;#OsmAnd&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:43:39 UTC</date>
+      <uid>14249378</uid>
+      <user>Xvtn</user>
+      <user_url>https://api.openstreetmap.org/user/Xvtn</user_url>
+      <action>closed</action>
+      <text>Added</text>
+      <html>&lt;p dir="auto"&gt;Added&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="9.9770663" lat="52.1417038">
+  <id>4555663</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4555663.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4555663/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4555663/close.xml</close_url>
+  <date_created>2024-12-18 10:16:51 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2024-12-18 10:16:51 UTC</date>
+      <uid>2858810</uid>
+      <user>ortwinr</user>
+      <user_url>https://api.openstreetmap.org/user/ortwinr</user_url>
+      <action>opened</action>
+      <text>Wegeaufzeichnungen, muss ich nacharbeiten
+
+via StreetComplete 59.3
+
+GPS Trace: https://www.openstreetmap.org/user/ortwinr/traces/11706592
+</text>
+      <html>&lt;p dir="auto"&gt;Wegeaufzeichnungen, muss ich nacharbeiten&lt;/p&gt;
+
+&lt;p dir="auto"&gt;via StreetComplete 59.3&lt;/p&gt;
+
+&lt;p dir="auto"&gt;GPS Trace: &lt;a href="https://www.openstreetmap.org/user/ortwinr/traces/11706592" rel="nofollow noopener noreferrer" dir="auto"&gt;osm.org/user/ortwinr/traces/11706592&lt;/a&gt;
+&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:43:30 UTC</date>
+      <uid>12616326</uid>
+      <user>os-emmer</user>
+      <user_url>https://api.openstreetmap.org/user/os-emmer</user_url>
+      <action>commented</action>
+      <text>Hast du diese Nacharbeit bereits durchgeführt?</text>
+      <html>&lt;p dir="auto"&gt;Hast du diese Nacharbeit bereits durchgeführt?&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="44.0100825" lat="36.2041916">
+  <id>2016248</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/2016248.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/2016248/reopen.xml</reopen_url>
+  <date_created>2019-12-04 12:13:23 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:43:27 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2019-12-04 12:13:23 UTC</date>
+      <action>opened</action>
+      <text>onosm.org submitted note from a business:
+name: NewStyle-WallPaper
+phone: 07514481952
+website: 
+twitter: undefined
+hours: Saturday morning- Thursday, 08:00 am to 07:00 pm
+category: ,Home Decor
+address: طريق بحركة القديم</text>
+      <html>&lt;p dir="auto"&gt;onosm.org submitted note from a business:
+&lt;br /&gt;name: NewStyle-WallPaper
+&lt;br /&gt;phone: 07514481952
+&lt;br /&gt;website: 
+&lt;br /&gt;twitter: undefined
+&lt;br /&gt;hours: Saturday morning- Thursday, 08:00 am to 07:00 pm
+&lt;br /&gt;category: ,Home Decor
+&lt;br /&gt;address: طريق بحركة القديم&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:43:27 UTC</date>
+      <uid>1722488</uid>
+      <user>Mateusz Konieczny</user>
+      <user_url>https://api.openstreetmap.org/user/Mateusz%20Konieczny</user_url>
+      <action>closed</action>
+      <text>closing note that is duplicate of https://www.openstreetmap.org/note/2016247</text>
+      <html>&lt;p dir="auto"&gt;closing note that is duplicate of &lt;a href="https://www.openstreetmap.org/note/2016247" rel="nofollow noopener noreferrer" dir="auto"&gt;osm.org/note/2016247&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="-0.1372486" lat="38.6345606">
+  <id>4851548</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4851548.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4851548/reopen.xml</reopen_url>
+  <date_created>2025-07-12 14:47:23 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:43:12 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2025-07-12 14:47:23 UTC</date>
+      <uid>11155676</uid>
+      <user>jemily1</user>
+      <user_url>https://api.openstreetmap.org/user/jemily1</user_url>
+      <action>opened</action>
+      <text>Carrer del Roser</text>
+      <html>&lt;p dir="auto"&gt;Carrer del Roser&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:43:12 UTC</date>
+      <uid>8278438</uid>
+      <user>Jordi MF</user>
+      <user_url>https://api.openstreetmap.org/user/Jordi%20MF</user_url>
+      <action>closed</action>
+      <text>Solucionat</text>
+      <html>&lt;p dir="auto"&gt;Solucionat&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="37.4849533" lat="55.6550374">
+  <id>4854097</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854097.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854097/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854097/close.xml</close_url>
+  <date_created>2025-07-13 19:43:07 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:43:07 UTC</date>
+      <uid>5642897</uid>
+      <user>Travieso</user>
+      <user_url>https://api.openstreetmap.org/user/Travieso</user_url>
+      <action>opened</action>
+      <text>Аптека Горздрав
+
+via StreetComplete 61.1</text>
+      <html>&lt;p dir="auto"&gt;Аптека Горздрав&lt;/p&gt;
+
+&lt;p dir="auto"&gt;via StreetComplete 61.1&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="-0.1371440" lat="38.6348536">
+  <id>4851545</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4851545.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4851545/reopen.xml</reopen_url>
+  <date_created>2025-07-12 14:43:50 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:43:05 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2025-07-12 14:43:50 UTC</date>
+      <uid>11155676</uid>
+      <user>jemily1</user>
+      <user_url>https://api.openstreetmap.org/user/jemily1</user_url>
+      <action>opened</action>
+      <text>4 bolardos que impiden el paso a vehículos a esta calle peatonal</text>
+      <html>&lt;p dir="auto"&gt;4 bolardos que impiden el paso a vehículos a esta calle peatonal&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:43:05 UTC</date>
+      <uid>8278438</uid>
+      <user>Jordi MF</user>
+      <user_url>https://api.openstreetmap.org/user/Jordi%20MF</user_url>
+      <action>closed</action>
+      <text>Afegits i solucionat.</text>
+      <html>&lt;p dir="auto"&gt;Afegits i solucionat.&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="51.7825147" lat="32.4781637">
+  <id>4854096</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854096.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854096/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854096/close.xml</close_url>
+  <date_created>2025-07-13 19:43:04 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:43:04 UTC</date>
+      <action>opened</action>
+      <text>onosm.org submitted note from a business:
+نام: املاک موگهی
+addr:housenumber=170
+addr:street=الفت شرقی
+addr:place=بهارستان
+addr:city=بهارستان
+addr:postcode=8143195597
+شماره تماس: 03136801071
+شبکه‌های اجتماعی: Mougahi_business@
+ساعات کاری: شنبه تا پنجشنبه_ساعت 9 تا 10 شب
+دسته‌بندی: املاک تجاری
+توضیحات: مشاور املاک
+روش های پرداخت پذیرفته شده: 
+takeaway=no
+</text>
+      <html>&lt;p dir="auto"&gt;onosm.org submitted note from a business:
+&lt;br /&gt;نام: املاک موگهی
+&lt;br /&gt;addr:housenumber=170
+&lt;br /&gt;addr:street=الفت شرقی
+&lt;br /&gt;addr:place=بهارستان
+&lt;br /&gt;addr:city=بهارستان
+&lt;br /&gt;addr:postcode=8143195597
+&lt;br /&gt;شماره تماس: 03136801071
+&lt;br /&gt;شبکه‌های اجتماعی: Mougahi_business@
+&lt;br /&gt;ساعات کاری: شنبه تا پنجشنبه_ساعت 9 تا 10 شب
+&lt;br /&gt;دسته‌بندی: املاک تجاری
+&lt;br /&gt;توضیحات: مشاور املاک
+&lt;br /&gt;روش های پرداخت پذیرفته شده: 
+&lt;br /&gt;takeaway=no
+&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="0.9755675" lat="43.8889833">
+  <id>4854095</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854095.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854095/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854095/close.xml</close_url>
+  <date_created>2025-07-13 19:42:58 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:42:58 UTC</date>
+      <uid>23023362</uid>
+      <user>koalou</user>
+      <user_url>https://api.openstreetmap.org/user/koalou</user_url>
+      <action>opened</action>
+      <text>Couper route, plus d'éclairage public après le 670
+
+via StreetComplete 61.1</text>
+      <html>&lt;p dir="auto"&gt;Couper route, plus d'éclairage public après le 670&lt;/p&gt;
+
+&lt;p dir="auto"&gt;via StreetComplete 61.1&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="3.4390305" lat="39.6577954">
+  <id>4843856</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4843856.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4843856/reopen.xml</reopen_url>
+  <date_created>2025-07-07 21:52:12 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:42:52 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2025-07-07 21:52:12 UTC</date>
+      <uid>9434358</uid>
+      <user>wklaus</user>
+      <user_url>https://api.openstreetmap.org/user/wklaus</user_url>
+      <action>opened</action>
+      <text>"Existiert nicht mehr"
+The place has gone or never existed. A CoMaps user reported that the POI was visible on the map (see snapshot date below), but was not found on the ground.
+OSM snapshot date: 2025-06-22T05:04:15Z
+POI name: Rafael Navarro Trujillo
+POI types: amenity-restaurant
+ #CoMaps android</text>
+      <html>&lt;p dir="auto"&gt;"Existiert nicht mehr"
+&lt;br /&gt;The place has gone or never existed. A CoMaps user reported that the POI was visible on the map (see snapshot date below), but was not found on the ground.
+&lt;br /&gt;OSM snapshot date: 2025-06-22T05:04:15Z
+&lt;br /&gt;POI name: Rafael Navarro Trujillo
+&lt;br /&gt;POI types: amenity-restaurant
+&lt;br /&gt; #CoMaps android&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:42:52 UTC</date>
+      <uid>11758604</uid>
+      <user>map per</user>
+      <user_url>https://api.openstreetmap.org/user/map%20per</user_url>
+      <action>closed</action>
+      <text>Thanks, removed the restaurant</text>
+      <html>&lt;p dir="auto"&gt;Thanks, removed the restaurant&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="9.9798715" lat="52.1523875">
+  <id>4206786</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4206786.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4206786/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4206786/close.xml</close_url>
+  <date_created>2024-04-20 12:04:04 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2024-04-20 12:04:04 UTC</date>
+      <uid>18265836</uid>
+      <user>Glitterlaw</user>
+      <user_url>https://api.openstreetmap.org/user/Glitterlaw</user_url>
+      <action>opened</action>
+      <text>Unable to answer "What’s the surface quality of this road here?" – Pflugstieg (Minor/Unclassified Road) – https://osm.org/way/25582927 via StreetComplete 57.1:
+
+Noch Baustellenstr.
+
+Attached photo(s):
+https://westnordost.de/p/207888.jpg</text>
+      <html>&lt;p dir="auto"&gt;Unable to answer "What’s the surface quality of this road here?" – Pflugstieg (Minor/Unclassified Road) – &lt;a href="https://osm.org/way/25582927" rel="nofollow noopener noreferrer" dir="auto"&gt;osm.org/way/25582927&lt;/a&gt; via StreetComplete 57.1:&lt;/p&gt;
+
+&lt;p dir="auto"&gt;Noch Baustellenstr.&lt;/p&gt;
+
+&lt;p dir="auto"&gt;Attached photo(s):
+&lt;br /&gt;&lt;a href="https://westnordost.de/p/207888.jpg" rel="nofollow noopener noreferrer" dir="auto"&gt;https://westnordost.de/p/207888.jpg&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:42:38 UTC</date>
+      <uid>12616326</uid>
+      <user>os-emmer</user>
+      <user_url>https://api.openstreetmap.org/user/os-emmer</user_url>
+      <action>commented</action>
+      <text>Bei dieser Straße ist bereits seit 2018 surface=compacted angegeben. Welche Angabe soll hier fehlen?</text>
+      <html>&lt;p dir="auto"&gt;Bei dieser Straße ist bereits seit 2018 surface=compacted angegeben. Welche Angabe soll hier fehlen?&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="6.5658772" lat="49.4981278">
+  <id>3943399</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/3943399.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/3943399/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/3943399/close.xml</close_url>
+  <date_created>2023-10-16 14:03:56 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2023-10-16 14:03:56 UTC</date>
+      <uid>17719110</uid>
+      <user>mario-spitze</user>
+      <user_url>https://api.openstreetmap.org/user/mario-spitze</user_url>
+      <action>opened</action>
+      <text>Pegelhaus?
+
+via StreetComplete 54.1</text>
+      <html>&lt;p dir="auto"&gt;Pegelhaus?&lt;/p&gt;
+
+&lt;p dir="auto"&gt;via StreetComplete 54.1&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:42:22 UTC</date>
+      <uid>3740799</uid>
+      <user>Vinzenz Mai</user>
+      <user_url>https://api.openstreetmap.org/user/Vinzenz%20Mai</user_url>
+      <action>commented</action>
+      <text>Nein, kein Pegelhaus. Der Mettlacher Pegel befindet sich auf der anderen Saarseite zwischen Staustufe und Mettlacher Saarbrücke.</text>
+      <html>&lt;p dir="auto"&gt;Nein, kein Pegelhaus. Der Mettlacher Pegel befindet sich auf der anderen Saarseite zwischen Staustufe und Mettlacher Saarbrücke.&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="-43.8043897" lat="-20.6559384">
+  <id>4351025</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4351025.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4351025/reopen.xml</reopen_url>
+  <date_created>2024-07-25 19:10:10 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:42:18 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2024-07-25 19:10:10 UTC</date>
+      <uid>463504</uid>
+      <user>erickdeoliveiraleal</user>
+      <user_url>https://api.openstreetmap.org/user/erickdeoliveiraleal</user_url>
+      <action>opened</action>
+      <text>novas vias aqui</text>
+      <html>&lt;p dir="auto"&gt;novas vias aqui&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-05-20 19:19:22 UTC</date>
+      <uid>4102129</uid>
+      <user>raphaelmirc</user>
+      <user_url>https://api.openstreetmap.org/user/raphaelmirc</user_url>
+      <action>commented</action>
+      <text>Aqui está mais para um caminho do que uma via. 
+
+já que é ao lado de uma BR</text>
+      <html>&lt;p dir="auto"&gt;Aqui está mais para um caminho do que uma via. &lt;/p&gt;
+
+&lt;p dir="auto"&gt;já que é ao lado de uma BR&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:42:18 UTC</date>
+      <uid>463504</uid>
+      <user>erickdeoliveiraleal</user>
+      <user_url>https://api.openstreetmap.org/user/erickdeoliveiraleal</user_url>
+      <action>closed</action>
+      <text />
+      <html>&lt;p dir="auto"&gt;&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="50.5932461" lat="35.9520870">
+  <id>4854094</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854094.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854094/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854094/close.xml</close_url>
+  <date_created>2025-07-13 19:42:11 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:42:11 UTC</date>
+      <action>opened</action>
+      <text>onosm.org submitted note from a business:
+نام: البرز یدک
+addr:housenumber=۷۷۷
+addr:street=سی متری شهدای گمنام
+addr:place=نبش عدالت دو
+addr:city=نظرآباد
+addr:postcode=3337529931
+شماره تماس: 02645344798
+وب‌سایت: www.airodynamic.ir
+دسترسی با ویلچر: yes
+دسته‌بندی: فروشگاه های خودرو
+توضیحات: (لوازم یدکی خودرو)
+روش های پرداخت پذیرفته شده: کارت به کارت,نقد,همراه بانک,چک
+delivery=yes
+takeaway=yes
+</text>
+      <html>&lt;p dir="auto"&gt;onosm.org submitted note from a business:
+&lt;br /&gt;نام: البرز یدک
+&lt;br /&gt;addr:housenumber=۷۷۷
+&lt;br /&gt;addr:street=سی متری شهدای گمنام
+&lt;br /&gt;addr:place=نبش عدالت دو
+&lt;br /&gt;addr:city=نظرآباد
+&lt;br /&gt;addr:postcode=3337529931
+&lt;br /&gt;شماره تماس: 02645344798
+&lt;br /&gt;وب‌سایت: &lt;a href="http://www.airodynamic.ir" rel="nofollow noopener noreferrer" dir="auto"&gt;www.airodynamic.ir&lt;/a&gt;
+&lt;br /&gt;دسترسی با ویلچر: yes
+&lt;br /&gt;دسته‌بندی: فروشگاه های خودرو
+&lt;br /&gt;توضیحات: (لوازم یدکی خودرو)
+&lt;br /&gt;روش های پرداخت پذیرفته شده: کارت به کارت,نقد,همراه بانک,چک
+&lt;br /&gt;delivery=yes
+&lt;br /&gt;takeaway=yes
+&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="37.4848951" lat="55.6549673">
+  <id>4854093</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854093.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854093/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854093/close.xml</close_url>
+  <date_created>2025-07-13 19:41:26 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:41:26 UTC</date>
+      <uid>5642897</uid>
+      <user>Travieso</user>
+      <user_url>https://api.openstreetmap.org/user/Travieso</user_url>
+      <action>opened</action>
+      <text>Ермолино
+
+via StreetComplete 61.1</text>
+      <html>&lt;p dir="auto"&gt;Ермолино&lt;/p&gt;
+
+&lt;p dir="auto"&gt;via StreetComplete 61.1&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="3.4391727" lat="39.6568486">
+  <id>4843872</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4843872.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4843872/reopen.xml</reopen_url>
+  <date_created>2025-07-07 21:56:48 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:41:18 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2025-07-07 21:56:48 UTC</date>
+      <uid>9434358</uid>
+      <user>wklaus</user>
+      <user_url>https://api.openstreetmap.org/user/wklaus</user_url>
+      <action>opened</action>
+      <text>"Bauruine"
+The place has gone or never existed. A CoMaps user reported that the POI was visible on the map (see snapshot date below), but was not found on the ground.
+OSM snapshot date: 2025-06-22T05:04:15Z
+POI name: Mayurca
+POI types: building tourism-hotel
+ #CoMaps android</text>
+      <html>&lt;p dir="auto"&gt;"Bauruine"
+&lt;br /&gt;The place has gone or never existed. A CoMaps user reported that the POI was visible on the map (see snapshot date below), but was not found on the ground.
+&lt;br /&gt;OSM snapshot date: 2025-06-22T05:04:15Z
+&lt;br /&gt;POI name: Mayurca
+&lt;br /&gt;POI types: building tourism-hotel
+&lt;br /&gt; #CoMaps android&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:41:18 UTC</date>
+      <uid>11758604</uid>
+      <user>map per</user>
+      <user_url>https://api.openstreetmap.org/user/map%20per</user_url>
+      <action>closed</action>
+      <text>Thanks, marked the hotel as 'disused'</text>
+      <html>&lt;p dir="auto"&gt;Thanks, marked the hotel as 'disused'&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="-71.1193419" lat="42.3787585">
+  <id>4854092</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854092.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854092/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854092/close.xml</close_url>
+  <date_created>2025-07-13 19:41:14 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:41:14 UTC</date>
+      <uid>11063711</uid>
+      <user>kilroywashere81</user>
+      <user_url>https://api.openstreetmap.org/user/kilroywashere81</user_url>
+      <action>opened</action>
+      <text>Unable to answer "What kind of building entrance is this?" – https://osm.org/node/12911068203 via StreetComplete 61.1:
+
+Combine entrances
+
+Attached photo(s):
+https://streetcomplete.app/p/290641.jpg</text>
+      <html>&lt;p dir="auto"&gt;Unable to answer "What kind of building entrance is this?" – &lt;a href="https://osm.org/node/12911068203" rel="nofollow noopener noreferrer" dir="auto"&gt;osm.org/node/12911068203&lt;/a&gt; via StreetComplete 61.1:&lt;/p&gt;
+
+&lt;p dir="auto"&gt;Combine entrances&lt;/p&gt;
+
+&lt;p dir="auto"&gt;Attached photo(s):
+&lt;br /&gt;&lt;a href="https://streetcomplete.app/p/290641.jpg" rel="nofollow noopener noreferrer" dir="auto"&gt;https://streetcomplete.app/p/290641.jpg&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="8.7758714" lat="48.4353048">
+  <id>4854091</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854091.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854091/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854091/close.xml</close_url>
+  <date_created>2025-07-13 19:41:11 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:41:11 UTC</date>
+      <uid>6494303</uid>
+      <user>noahdoersing</user>
+      <user_url>https://api.openstreetmap.org/user/noahdoersing</user_url>
+      <action>opened</action>
+      <text>Hier befindet sich nun ein Friedwald: https://www.swp.de/lokales/rottenburg/neuer-friedwald-in-starzach-grabschmuck-ist-nicht-erwuenscht-78179929.html</text>
+      <html>&lt;p dir="auto"&gt;Hier befindet sich nun ein Friedwald: &lt;a href="https://www.swp.de/lokales/rottenburg/neuer-friedwald-in-starzach-grabschmuck-ist-nicht-erwuenscht-78179929.html" rel="nofollow noopener noreferrer" dir="auto"&gt;https://www.swp.de/lokales/rottenburg/neuer-friedwald-in-starzach-grabschmuck-ist-nicht-erwuenscht-78179929.html&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="3.4389071" lat="39.6566473">
+  <id>4843855</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4843855.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4843855/reopen.xml</reopen_url>
+  <date_created>2025-07-07 21:52:12 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:40:31 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2025-07-07 21:52:12 UTC</date>
+      <uid>9434358</uid>
+      <user>wklaus</user>
+      <user_url>https://api.openstreetmap.org/user/wklaus</user_url>
+      <action>opened</action>
+      <text>"Existiert nicht mehr"
+The place has gone or never existed. A CoMaps user reported that the POI was visible on the map (see snapshot date below), but was not found on the ground.
+OSM snapshot date: 2025-06-22T05:04:15Z
+POI has no name
+POI types: amenity-bar
+ #CoMaps android</text>
+      <html>&lt;p dir="auto"&gt;"Existiert nicht mehr"
+&lt;br /&gt;The place has gone or never existed. A CoMaps user reported that the POI was visible on the map (see snapshot date below), but was not found on the ground.
+&lt;br /&gt;OSM snapshot date: 2025-06-22T05:04:15Z
+&lt;br /&gt;POI has no name
+&lt;br /&gt;POI types: amenity-bar
+&lt;br /&gt; #CoMaps android&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:40:31 UTC</date>
+      <uid>11758604</uid>
+      <user>map per</user>
+      <user_url>https://api.openstreetmap.org/user/map%20per</user_url>
+      <action>closed</action>
+      <text>Thanks, marked the restaurant as 'disused'</text>
+      <html>&lt;p dir="auto"&gt;Thanks, marked the restaurant as 'disused'&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="9.9577800" lat="52.1526073">
+  <id>4274148</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4274148.xml</url>
+  <reopen_url>https://api.openstreetmap.org/api/0.6/notes/4274148/reopen.xml</reopen_url>
+  <date_created>2024-06-01 09:27:30 UTC</date_created>
+  <status>closed</status>
+  <date_closed>2025-07-13 19:40:29 UTC</date_closed>
+  <comments>
+    <comment>
+      <date>2024-06-01 09:27:30 UTC</date>
+      <uid>18265836</uid>
+      <user>Glitterlaw</user>
+      <user_url>https://api.openstreetmap.org/user/Glitterlaw</user_url>
+      <action>opened</action>
+      <text>Treppe nicht eingetragen 7 Stufen, keine Blindenhilfen am Boden oder am Geländer
+
+via StreetComplete 57.4
+
+Attached photo(s):
+https://westnordost.de/p/216063.jpg
+https://westnordost.de/p/216064.jpg</text>
+      <html>&lt;p dir="auto"&gt;Treppe nicht eingetragen 7 Stufen, keine Blindenhilfen am Boden oder am Geländer&lt;/p&gt;
+
+&lt;p dir="auto"&gt;via StreetComplete 57.4&lt;/p&gt;
+
+&lt;p dir="auto"&gt;Attached photo(s):
+&lt;br /&gt;&lt;a href="https://westnordost.de/p/216063.jpg" rel="nofollow noopener noreferrer" dir="auto"&gt;https://westnordost.de/p/216063.jpg&lt;/a&gt;
+&lt;br /&gt;&lt;a href="https://westnordost.de/p/216064.jpg" rel="nofollow noopener noreferrer" dir="auto"&gt;https://westnordost.de/p/216064.jpg&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-03-14 09:31:51 UTC</date>
+      <uid>43972</uid>
+      <user>chris66</user>
+      <user_url>https://api.openstreetmap.org/user/chris66</user_url>
+      <action>commented</action>
+      <text>Ist leider auf dem Luftbild nicht erkennbar. </text>
+      <html>&lt;p dir="auto"&gt;Ist leider auf dem Luftbild nicht erkennbar. &lt;/p&gt;</html>
+    </comment>
+    <comment>
+      <date>2025-07-13 19:40:29 UTC</date>
+      <uid>12616326</uid>
+      <user>os-emmer</user>
+      <user_url>https://api.openstreetmap.org/user/os-emmer</user_url>
+      <action>closed</action>
+      <text>Mit Hilfe der beiden Fotos und dem Luftbild konnte ich die Treppe eintragen:
+https://www.openstreetmap.org/changeset/168888419</text>
+      <html>&lt;p dir="auto"&gt;Mit Hilfe der beiden Fotos und dem Luftbild konnte ich die Treppe eintragen:
+&lt;br /&gt;&lt;a href="https://www.openstreetmap.org/changeset/168888419" rel="nofollow noopener noreferrer" dir="auto"&gt;osm.org/changeset/168888419&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+<note lon="-1.7475471" lat="37.4062408">
+  <id>4854090</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/4854090.xml</url>
+  <comment_url>https://api.openstreetmap.org/api/0.6/notes/4854090/comment.xml</comment_url>
+  <close_url>https://api.openstreetmap.org/api/0.6/notes/4854090/close.xml</close_url>
+  <date_created>2025-07-13 19:40:13 UTC</date_created>
+  <status>open</status>
+  <comments>
+    <comment>
+      <date>2025-07-13 19:40:13 UTC</date>
+      <action>opened</action>
+      <text>Centro médico Vita Luna
++34950464546
+https://vitaluna.es/</text>
+      <html>&lt;p dir="auto"&gt;Centro médico Vita Luna
+&lt;br /&gt;+34950464546
+&lt;br /&gt;&lt;a href="https://vitaluna.es/" rel="nofollow noopener noreferrer" dir="auto"&gt;https://vitaluna.es/&lt;/a&gt;&lt;/p&gt;</html>
+    </comment>
+  </comments>
+</note>
+</osm>
