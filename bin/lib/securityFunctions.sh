@@ -5,8 +5,6 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-25
-
-# Define version variable
 VERSION="2025-10-25"
 
 # shellcheck disable=SC2317,SC2155,SC2034

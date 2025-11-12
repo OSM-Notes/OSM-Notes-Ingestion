@@ -4,10 +4,7 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
-# Updated: 2025-10-25
-
-# Define version variable
+# Version: 2025-10-25
 VERSION="2025-10-25"
 
 # Show help function

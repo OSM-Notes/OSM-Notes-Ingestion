@@ -5,8 +5,6 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-19
-
-# Define version variable
 VERSION="2025-10-19"
 
 # Show help function

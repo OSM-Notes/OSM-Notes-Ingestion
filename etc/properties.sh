@@ -4,16 +4,18 @@
 # customization.
 #
 # Author: Andres Gomez
-# Version: 2025-10-30
+# Version: 2025-11-12
 
 # Database configuration.
+# All database connections must be controlled by this file.
+# Environment variables are ignored to ensure consistency.
 # shellcheck disable=SC2034
 if [[ -z "${DBNAME:-}" ]]; then
- declare -r DBNAME="${DBNAME:-osm-notes}"
+ declare -r DBNAME="osm-notes"
 fi
 # shellcheck disable=SC2034
 if [[ -z "${DB_USER:-}" ]]; then
- declare -r DB_USER="${DB_USER:-angoca}"
+ declare -r DB_USER="angoca"
 fi
 
 # Email configuration for reports.

@@ -61,14 +61,9 @@ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
 fi
 
 # Loads the global properties.
+# All database connections must be controlled by the properties file.
 # shellcheck disable=SC1091
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh" ]] && [[ "${BATS_TEST_NAME:-}" != "" ]]; then
- # Use test properties when running in test environment
- source "${SCRIPT_BASE_DIRECTORY}/tests/properties.sh"
-else
- # Use production properties
- source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
-fi
+source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
