@@ -340,7 +340,6 @@ function __cleanup_base() {
   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql:Sync Tables"
   "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql:Generic Objects"
   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql:Base Tables"
-  "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql:Country Tables"
  )
 
  for SCRIPT_INFO in "${BASE_SCRIPTS[@]}"; do
@@ -363,6 +362,25 @@ function __cleanup_base() {
    __logw "Script not found: ${SCRIPT_PATH}"
   fi
  done
+
+ # Drop country tables explicitly (consolidated_cleanup.sql no longer drops them)
+ # This is safe during full cleanup as these tables will be recreated by updateCountries.sh
+ if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
+  __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+ __logi "Dropping country tables (countries, tries)..."
+ if ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS tries CASCADE; DROP TABLE IF EXISTS countries CASCADE;" 2>/dev/null; then
+  __logi "SUCCESS: Country tables dropped"
+ else
+  __logw "WARNING: Some country tables may not have been dropped"
+ fi
+
  __log_finish
 }
 

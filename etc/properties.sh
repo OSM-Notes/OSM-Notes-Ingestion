@@ -1,21 +1,22 @@
 #!/bin/bash
 
-# Set of properties for all scripts. This file should be modified for specific
-# customization.
+# Properties for OSM-Notes-Ingestion
+# This file defines production properties.
+# All database connections must be controlled by properties files.
 #
-# Author: Andres Gomez
+# Author: Andres Gomez (AngocA)
 # Version: 2025-11-12
 
-# Database configuration.
+# Database configuration
 # All database connections must be controlled by this file.
 # Environment variables are ignored to ensure consistency.
 # shellcheck disable=SC2034
 if [[ -z "${DBNAME:-}" ]]; then
- declare -r DBNAME="osm-notes"
+ DBNAME="osm-notes"
 fi
 # shellcheck disable=SC2034
 if [[ -z "${DB_USER:-}" ]]; then
- declare -r DB_USER="angoca"
+ DB_USER="angoca"
 fi
 
 # Email configuration for reports.
@@ -30,8 +31,7 @@ declare ADMIN_EMAIL="${ADMIN_EMAIL:-root@localhost}"
 # Set to "true" to send immediate email alerts when critical errors occur.
 # Set to "false" to only create failed execution marker files without sending alerts.
 # shellcheck disable=SC2034
-declare SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-true}"
-
+declare SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-false}"
 
 # OpenStreetMap API configuration.
 # shellcheck disable=SC2034
@@ -106,7 +106,7 @@ fi
 # This prevents system saturation and allows OS, PostgreSQL, and other processes to run
 if command -v nproc > /dev/null 2>&1; then
  TOTAL_CORES=$(nproc)
- 
+
  # Leave at least 2 cores free for system and database
  if [[ "${TOTAL_CORES}" -gt 4 ]]; then
   MAX_THREADS=$((TOTAL_CORES - 2))
@@ -127,7 +127,7 @@ fi
 # Cleanup configuration
 # Controls whether temporary files and directories should be cleaned up after processing
 # Set to false to preserve files for debugging purposes
-declare CLEAN="${CLEAN:-true}"
+declare CLEAN="${CLEAN:-false}"
 
 # XML Validation configuration
 # Skip XML validation for faster processing when using trusted Planet dumps

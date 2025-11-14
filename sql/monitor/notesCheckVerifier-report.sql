@@ -60,8 +60,6 @@ COPY
  TO '${DIFFERENT_NOTE_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
-DROP TABLE IF EXISTS temp_diff_notes_id;
-
 -- Comment ids that are not in the API DB, but are in the Planet.
 -- Compare all historical comments (excluding today) between API and Planet
 DROP TABLE IF EXISTS temp_diff_comments_id;
@@ -71,11 +69,11 @@ CREATE TABLE temp_diff_comments_id (
 );
 
 INSERT INTO temp_diff_comments_id
- SELECT /* Comments-check */ comment_id
+ SELECT /* Comments-check */ id
  FROM note_comments_check
  WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
  EXCEPT
- SELECT /* Comments-check */ comment_id
+ SELECT /* Comments-check */ id
  FROM note_comments
  WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
 ;
@@ -84,16 +82,14 @@ COPY
  (
   SELECT /* Notes-check */ note_comments_check.*
   FROM note_comments_check
-  WHERE comment_id IN (
+  WHERE id IN (
    SELECT /* Notes-check */ comment_id
    FROM temp_diff_comments_id
   )
-  ORDER BY comment_id, created_at
+  ORDER BY id, created_at
  )
  TO '${DIFFERENT_COMMENT_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
-
-DROP TABLE IF EXISTS temp_diff_comments_id;
 
 -- Notes differences between the retrieved from API and the Planet.
 DROP TABLE IF EXISTS temp_diff_notes;
@@ -134,7 +130,7 @@ COPY (
  FROM notes_check
  WHERE note_id IN (
   SELECT /* Notes-check */ note_id
-  FROM temp_diff_notes_id
+  FROM temp_diff_notes
  )
  AND DATE(created_at) < CURRENT_DATE  -- All history except today
  ORDER BY note_id, created_at
@@ -149,16 +145,17 @@ DROP TABLE IF EXISTS temp_diff_notes;
 COPY (
  SELECT /* Comments-check */ note_comments_check.*
  FROM note_comments_check
- WHERE comment_id IN (
+ WHERE id IN (
   SELECT /* Comments-check */ comment_id
   FROM temp_diff_comments_id
  )
  AND DATE(created_at) < CURRENT_DATE  -- All history except today
- ORDER BY comment_id, created_at
+ ORDER BY id, created_at
 )
 TO '${DIFFERENT_COMMENT_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
+DROP TABLE IF EXISTS temp_diff_comments_id;
 DROP TABLE IF EXISTS temp_diff_note_comments;
 
 -- Text comment ids that are not in the API DB, but are in the Planet.
@@ -170,13 +167,25 @@ CREATE TABLE temp_diff_text_comments_id (
 );
 
 INSERT INTO temp_diff_text_comments_id
- SELECT /* Text-comments-check */ text_comment_id
+ SELECT /* Text-comments-check */ id
  FROM note_comments_text_check
- WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+ WHERE (note_id, sequence_action) IN (
+  SELECT /* Text-comments-check */ note_id, sequence_action
+  FROM note_comments_text_check
+  EXCEPT
+  SELECT /* Text-comments-check */ note_id, sequence_action
+  FROM note_comments_text
+ )
  EXCEPT
- SELECT /* Text-comments-check */ text_comment_id
+ SELECT /* Text-comments-check */ id
  FROM note_comments_text
- WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+ WHERE (note_id, sequence_action) IN (
+  SELECT /* Text-comments-check */ note_id, sequence_action
+  FROM note_comments_text_check
+  EXCEPT
+  SELECT /* Text-comments-check */ note_id, sequence_action
+  FROM note_comments_text
+ )
 ;
 
 -- Text comment differences between the retrieved from API and the Planet.
@@ -184,12 +193,11 @@ INSERT INTO temp_diff_text_comments_id
 COPY (
  SELECT /* Text-comments-check */ note_comments_text_check.*
  FROM note_comments_text_check
- WHERE text_comment_id IN (
+ WHERE id IN (
   SELECT /* Text-comments-check */ text_comment_id
   FROM temp_diff_text_comments_id
  )
- AND DATE(created_at) < CURRENT_DATE  -- All history except today
- ORDER BY text_comment_id, created_at
+ ORDER BY id, note_id, sequence_action
 )
 TO '${DIFFERENT_TEXT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
@@ -205,8 +213,7 @@ COPY (
   GROUP BY c.note_id, c.sequence_action
   ORDER BY c.note_id, c.sequence_action
  ) AS c
- JOIN
- (
+ JOIN (
   SELECT /* Notes-check */ COUNT(1) qty, t.note_id note_id, t.sequence_action
   FROM note_comments_text t
   GROUP BY t.note_id, t.sequence_action

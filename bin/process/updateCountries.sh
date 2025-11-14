@@ -46,6 +46,8 @@ fi
 
 # Loads the global properties.
 # All database connections must be controlled by the properties file.
+# If DBNAME is passed as environment variable (e.g., by processPlanetNotes.sh),
+# it will be preserved. Otherwise, properties.sh will define it.
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 
@@ -242,6 +244,17 @@ function __reassignAffectedNotes {
  __log_start
  __logi "Re-assigning countries for notes affected by boundary changes..."
 
+ # Ensure get_country function exists before using it
+ # functionsProcess.sh is already loaded at the top of the script
+ local FUNCTION_EXISTS
+ FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
+ if [[ "${FUNCTION_EXISTS:-0}" -eq "0" ]]; then
+  __logw "get_country function not found, creating it..."
+  __createFunctionToGetCountry
+  __logi "get_country function created successfully"
+ fi
+
  # Get list of countries that were updated
  local -r UPDATED_COUNTRIES=$(psql -d "${DBNAME}" -Atq -c "
    SELECT country_id
@@ -272,8 +285,8 @@ function __reassignAffectedNotes {
      WHERE c.updated = TRUE
        AND ST_Intersects(
          ST_MakeEnvelope(
-           ST_XMin(c.geometry), ST_YMin(c.geometry),
-           ST_XMax(c.geometry), ST_YMax(c.geometry),
+           ST_XMin(c.geom), ST_YMin(c.geom),
+           ST_XMax(c.geom), ST_YMax(c.geom),
            4326
          ),
          ST_SetSRID(ST_MakePoint(n.longitude, n.latitude), 4326)

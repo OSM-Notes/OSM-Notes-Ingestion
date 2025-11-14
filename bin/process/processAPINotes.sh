@@ -280,11 +280,23 @@ function __checkPrereqs {
    return 0
   fi
 
-  local TABLE_EXISTS
-  TABLE_EXISTS=$(cat "${TEMP_CHECK_FILE}")
-  rm -f "${TEMP_CHECK_FILE}"
+  # Read from file and convert to integer directly
+  local TABLE_COUNT=0
+  if [[ -f "${TEMP_CHECK_FILE:-}" ]] && [[ -s "${TEMP_CHECK_FILE:-}" ]]; then
+    # Extract only numeric value from file (psql may include connection messages)
+    # Use grep to extract digits only, or take the last line which should be the count
+    local FILE_CONTENT
+    FILE_CONTENT=$(grep -E '^[0-9]+$' "${TEMP_CHECK_FILE}" 2>/dev/null | tail -1 || echo "0")
+    # Temporarily disable set -u for arithmetic expansion to avoid issues
+    set +u
+    # Convert to integer - FILE_CONTENT is guaranteed to have a value
+    TABLE_COUNT=$((${FILE_CONTENT:-0} + 0)) || TABLE_COUNT=0
+    set -u
+  fi
+  rm -f "${TEMP_CHECK_FILE:-}"
 
-  if [[ "${TABLE_EXISTS}" -eq 0 ]]; then
+  # Use numeric comparison
+  if [[ ${TABLE_COUNT} -eq 0 ]]; then
    __logd "max_note_timestamp table does not exist, skipping gap recovery"
    return 0
   fi
@@ -300,7 +312,6 @@ function __checkPrereqs {
    AND nc.note_id IS NULL
  "
 
-  local GAP_COUNT
   local TEMP_GAP_FILE
   TEMP_GAP_FILE=$(mktemp)
 
@@ -310,10 +321,23 @@ function __checkPrereqs {
    return 1
   fi
 
-  GAP_COUNT=$(cat "${TEMP_GAP_FILE}")
-  rm -f "${TEMP_GAP_FILE}"
+  # Read from file and convert to integer directly
+  local GAP_COUNT=0
+  if [[ -f "${TEMP_GAP_FILE:-}" ]] && [[ -s "${TEMP_GAP_FILE:-}" ]]; then
+    # Extract only numeric value from file (psql may include connection messages)
+    # Use grep to extract digits only, or take the last line which should be the count
+    local GAP_CONTENT
+    GAP_CONTENT=$(grep -E '^[0-9]+$' "${TEMP_GAP_FILE}" 2>/dev/null | tail -1 || echo "0")
+    # Temporarily disable set -u for arithmetic expansion to avoid issues
+    set +u
+    # Convert to integer - GAP_CONTENT is guaranteed to have a value
+    GAP_COUNT=$((${GAP_CONTENT:-0} + 0)) || GAP_COUNT=0
+    set -u
+  fi
+  rm -f "${TEMP_GAP_FILE:-}"
 
-  if [[ "${GAP_COUNT}" -gt 0 ]]; then
+  # Use numeric comparison
+  if [[ ${GAP_COUNT} -gt 0 ]]; then
    __logw "Detected ${GAP_COUNT} notes without comments in last 7 days"
    __logw "This indicates a potential data integrity issue"
 
@@ -336,7 +360,7 @@ function __checkPrereqs {
    done
 
    # Optionally trigger a recovery process
-   if [[ "${GAP_COUNT}" -lt 100 ]]; then
+   if [[ ${GAP_COUNT} -lt 100 ]]; then
     __logi "Gap count is manageable (${GAP_COUNT}), continuing with normal processing"
    else
     __loge "Large gap detected (${GAP_COUNT} notes), consider manual intervention"
@@ -476,9 +500,9 @@ function __ensureGetCountryFunction {
  __logd "Checking if get_country function exists..."
 
  local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null || echo "0")
+ FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
  local COUNTRIES_TABLE_EXISTS
- COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+ COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null | grep -E '^[tf]$' | tail -1 || echo "f")
 
  if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
   __logw "get_country function not found, creating it..."
@@ -866,10 +890,11 @@ function __insertNewNotesAndComments {
   return 1
  fi
 
- NOTES_COUNT=$(cat "${TEMP_COUNT_FILE}")
+ # Extract only numeric value from file (psql may include connection messages)
+ NOTES_COUNT=$(grep -E '^[0-9]+$' "${TEMP_COUNT_FILE}" 2>/dev/null | tail -1 || echo "0")
  rm -f "${TEMP_COUNT_FILE}"
 
- if [[ "${NOTES_COUNT}" -gt 1000 ]]; then
+ if [[ "${NOTES_COUNT:-0}" -gt 1000 ]]; then
   # Split the insertion into chunks
   local PARTS="${MAX_THREADS}"
 
@@ -1139,9 +1164,9 @@ function __createBaseStructure {
 
  __logi "Step 2/2: Verifying geographic data (countries and maritimes)..."
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
- if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
+ if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
   __logw "No geographic data found after processPlanetNotes.sh --base"
   __logw "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
 
@@ -1160,8 +1185,8 @@ function __createBaseStructure {
    fi
   fi
 
-  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
-  if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
+  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
    __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
    __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
    __loge "Check processPlanetNotes.sh logs for errors in updateCountries.sh execution"

@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
-VERSION="2025-11-11"
+# Version: 2025-01-23
+VERSION="2025-01-23"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -117,6 +117,10 @@ declare -r SCRIPT_PROCESS_PLANET="${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCh
 # SQL report file.
 declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-report.sql"
 
+# SQL script to create check tables (fallback if processCheckPlanetNotes.sh
+# didn't run).
+declare -r POSTGRES_21_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
+
 # SQL scripts to insert missing data
 declare -r POSTGRES_51_INSERT_MISSING_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_51_insertMissingNotes.sql"
 declare -r POSTGRES_52_INSERT_MISSING_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_52_insertMissingComments.sql"
@@ -173,8 +177,9 @@ function __checkPrereqs {
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- ## Validate SQL scripts for inserting missing data
+ ## Validate SQL scripts for inserting missing data and creating check tables
  local SQL_FILES=(
+  "${POSTGRES_21_CREATE_CHECK_TABLES}"
   "${POSTGRES_51_INSERT_MISSING_NOTES}"
   "${POSTGRES_52_INSERT_MISSING_COMMENTS}"
   "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}"
@@ -204,12 +209,33 @@ function __downloadingPlanet {
 function __checkingDifferences {
  __log_start
 
+ # Verify that check tables exist, create them if they don't
+ # This handles cases where processCheckPlanetNotes.sh didn't run or failed
+ if ! psql -d "${DBNAME}" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notes_check';" 2> /dev/null | grep -q 1; then
+  __logw "Check tables do not exist. Creating them using SQL script..."
+  # Use the dedicated SQL script to create tables (with IF NOT EXISTS
+  # modification for safety)
+  # First, modify the SQL script temporarily to add IF NOT EXISTS
+  local TEMP_CREATE_SQL
+  TEMP_CREATE_SQL=$(mktemp)
+  # Add IF NOT EXISTS to CREATE TABLE statements
+  sed 's/^CREATE TABLE /CREATE TABLE IF NOT EXISTS /' \
+   "${POSTGRES_21_CREATE_CHECK_TABLES}" > "${TEMP_CREATE_SQL}"
+  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_CREATE_SQL}" 2>&1; then
+   __loge "Failed to create check tables"
+   rm -f "${TEMP_CREATE_SQL}"
+   __log_finish
+   return 1
+  fi
+  rm -f "${TEMP_CREATE_SQL}"
+  __logi "Check tables created successfully"
+ fi
+
  LAST_NOTE=/tmp/lastNote.csv
  LAST_COMMENT=/tmp/lastCommentNote.csv
  DIFFERENT_NOTE_IDS_FILE=/tmp/differentNoteIds.csv
  DIFFERENT_COMMENT_IDS_FILE=/tmp/differentNoteCommentIds.csv
- DIRRERENT_NOTES_FILE=/tmp/differentNotes.csv
- DIRRERENT_COMMENTS_FILE=/tmp/differentNoteComments.csv
+ DIFFERENT_NOTES_FILE=/tmp/differentNotes.csv
  DIFFERENT_TEXT_COMMENTS_FILE=/tmp/differentTextComments.csv
  DIFFERENCES_TEXT_COMMENT=/tmp/textComments.csv
 
@@ -217,19 +243,88 @@ function __checkingDifferences {
  export LAST_COMMENT
  export DIFFERENT_NOTE_IDS_FILE
  export DIFFERENT_COMMENT_IDS_FILE
- export DIRRERENT_NOTES_FILE
- export DIRRERENT_COMMENTS_FILE
+ export DIFFERENT_NOTES_FILE
  export DIFFERENT_TEXT_COMMENTS_FILE
  export DIFFERENCES_TEXT_COMMENT
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIRRERENT_NOTES_FILE,$DIRRERENT_COMMENTS_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT' \
-   < "${SQL_REPORT}" || true)" 2>&1
+
+ # Convert COPY TO to \copy for client-side execution (avoids server permission issues)
+ # \copy executes on the client side, so it can write files with user permissions
+ # \copy requires the query to be on a single line or properly formatted
+ # Create temporary SQL file with converted commands
+ local TEMP_SQL_FILE
+ TEMP_SQL_FILE=$(mktemp)
+
+ # Substitute variables first
+ envsubst '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIFFERENT_NOTES_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT' \
+  < "${SQL_REPORT}" > "${TEMP_SQL_FILE}.tmp" || true
+
+ # Convert COPY ... TO to \copy ... TO
+ # \copy executes on the client side, so it can write files with user permissions
+ # \copy syntax: \copy (SELECT ...) TO 'file' WITH DELIMITER ',' CSV HEADER;
+ # Use awk to handle multi-line COPY statements and convert to single-line \copy
+ awk '
+ BEGIN { in_copy = 0; copy_buffer = ""; }
+ /^COPY[ \t]*$/ || /^[ \t]*COPY[ \t]*$/ {
+   in_copy = 1;
+   copy_buffer = "\\copy (";
+   next;
+ }
+ /^COPY[ \t]*\(/ || /^[ \t]*COPY[ \t]*\(/ {
+   in_copy = 1;
+   gsub(/^[ \t]*COPY[ \t]*\(/, "\\copy (");
+   copy_buffer = $0;
+   next;
+ }
+ in_copy == 1 && /^[ \t]*\(/ {
+   next;
+ }
+ in_copy == 1 {
+   # Accumulate all lines until we find the semicolon (end of COPY statement)
+   # This includes the query, closing parenthesis, TO clause, and options
+   # Remove SQL comments (-- style) as they can cause issues with \copy
+   gsub(/^[ \t]+|[ \t]+$/, "");
+   # Remove SQL comments from the line
+   gsub(/--.*$/, "");
+   gsub(/^[ \t]+|[ \t]+$/, "");
+   if (copy_buffer != "") {
+     copy_buffer = copy_buffer " " $0;
+   } else {
+     copy_buffer = $0;
+   }
+   if (/;/) {
+     # Output complete \copy command as a single line
+     # psql requires \copy to be on a single line when reading from file
+     # Remove any remaining comments
+     gsub(/--.*$/, "", copy_buffer);
+     gsub(/[ \t]+$/, "", copy_buffer);
+     print copy_buffer;
+     in_copy = 0;
+     copy_buffer = "";
+     next;
+   }
+   next;
+ }
+ { print; }
+ ' "${TEMP_SQL_FILE}.tmp" > "${TEMP_SQL_FILE}" \
+  || sed -E 's/^COPY[ \t]+/\\copy /g; s/^[ \t]+COPY[ \t]+/\\copy /g' "${TEMP_SQL_FILE}.tmp" > "${TEMP_SQL_FILE}" || true
+
+ rm -f "${TEMP_SQL_FILE}.tmp"
+
+ # Execute SQL file with psql
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}" 2>&1
+ local PSQL_EXIT_CODE=$?
+
+ # Clean up temporary file
+ rm -f "${TEMP_SQL_FILE}"
+
+ # Exit if psql failed
+ if [[ ${PSQL_EXIT_CODE} -ne 0 ]]; then
+  exit ${PSQL_EXIT_CODE}
+ fi
 
  if [[ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ]] \
   || [[ ! -r "${DIFFERENT_COMMENT_IDS_FILE}" ]] \
-  || [[ ! -r "${DIRRERENT_NOTES_FILE}" ]] \
-  || [[ ! -r "${DIRRERENT_COMMENTS_FILE}" ]] \
+  || [[ ! -r "${DIFFERENT_NOTES_FILE}" ]] \
   || [[ ! -r "${DIFFERENT_TEXT_COMMENTS_FILE}" ]] \
   || [[ ! -r "${LAST_NOTE}" ]] \
   || [[ ! -r "${LAST_COMMENT}" ]]; then
@@ -238,8 +333,8 @@ function __checkingDifferences {
  fi
 
  zip "${REPORT_ZIP}" "${DIFFERENT_NOTE_IDS_FILE}" \
-  "${DIFFERENT_COMMENT_IDS_FILE}" "${DIRRERENT_NOTES_FILE}" \
-  "${DIRRERENT_COMMENTS_FILE}" "${DIFFERENT_TEXT_COMMENTS_FILE}"
+  "${DIFFERENT_COMMENT_IDS_FILE}" "${DIFFERENT_NOTES_FILE}" \
+  "${DIFFERENT_TEXT_COMMENTS_FILE}"
 
  __log_finish
 }

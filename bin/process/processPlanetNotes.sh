@@ -1303,9 +1303,10 @@ function __processGeographicData {
  # Check if countries data exist (includes both countries and maritimes)
  local COUNTRIES_COUNT
 
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+ # Extract only numeric value from psql output (may include connection messages)
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
- if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
+ if [[ "${COUNTRIES_COUNT:-0}" -gt 0 ]]; then
   __logi "Geographic data found (${COUNTRIES_COUNT} countries/maritimes)."
   __logi "Note: Location notes will be processed after get_country() function is created."
   # Do not call __getLocationNotes here - it will be called after creating get_country()
@@ -1318,10 +1319,12 @@ function __processGeographicData {
    __logi "This process may take a long time (30-60 minutes) as it downloads and processes all country boundaries..."
 
    # Capture subprocess output to show progress
+   # Pass DBNAME explicitly to ensure updateCountries.sh uses the correct database
+   # This is critical when running in test mode where DBNAME might be different
    local UPDATE_COUNTRIES_EXIT_CODE=0
    local line
    set +e # Temporarily disable exit on error for pipeline
-   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base 2>&1 | while IFS= read -r line; do
+   DBNAME="${DBNAME}" "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base 2>&1 | while IFS= read -r line; do
     __logi "[updateCountries] ${line}"
    done
    UPDATE_COUNTRIES_EXIT_CODE="${PIPESTATUS[0]}"
@@ -1500,8 +1503,9 @@ function __processGeographicDataBaseMode {
  __createFunctionToGetCountry
 
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
- if [[ "${COUNTRIES_COUNT}" -gt 0 ]]; then
+ # Extract only numeric value from psql output (may include connection messages)
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ if [[ "${COUNTRIES_COUNT:-0}" -gt 0 ]]; then
   __logi "Processing location notes with get_country() function..."
   __getLocationNotes
  fi
