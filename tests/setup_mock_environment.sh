@@ -48,6 +48,9 @@ setup_mock_environment() {
  create_mock_xmllint
  create_mock_aria2c
  create_mock_osmtogeojson
+ create_mock_mutt
+ # Note: ogr2ogr is only mocked when DB is mocked (full mock mode)
+ # In hybrid mode (real DB), ogr2ogr should be real to import data
  # Note: bzip2 is not mocked - we use the real command
  # The aria2c mock copies a valid .bz2 fixture file, so bzip2 can decompress it normally
 
@@ -204,9 +207,9 @@ EOF
 
 # Function to create mock psql
 create_mock_psql() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/psql" ]]; then
-  log_info "Creating mock psql..."
-  cat > "${MOCK_COMMANDS_DIR}/psql" << 'EOF'
+ # Always recreate the mock psql to ensure it has the latest logic
+ log_info "Creating/updating mock psql..."
+ cat > "${MOCK_COMMANDS_DIR}/psql" << 'EOF'
 #!/bin/bash
 
 # Mock psql command for testing
@@ -225,34 +228,201 @@ mock_database_operation() {
    ;;
   -c)
    # SQL command
-   if [[ "$args" == *"SELECT"* ]]; then
-     if [[ "$args" == *"COUNT"* ]]; then
-       echo "100"
-     elif [[ "$args" == *"TABLE_NAME"* ]]; then
-       echo "notes"
-       echo "note_comments"
-       echo "countries"
-       echo "logs"
-       echo "tries"
+   # IMPORTANT: Check for COPY commands FIRST, before SELECT
+   # The SQL may contain both COPY and SELECT commands, but COPY must be processed
+   # Handle COPY ... TO commands that generate CSV files
+   # The SQL may contain multiple COPY commands, so we need to process all of them
+   # Note: We check for "COPY" followed by "TO" to ensure we're matching COPY commands,
+   # not SELECT statements that might be inside COPY subqueries
+   # Normalize SQL first to handle multi-line format
+   local sql_check
+   sql_check=$(echo "$args" | tr '\n' ' ' | tr '\r' ' ' | sed 's/[[:space:]]\+/ /g')
+   
+   # Debug: log what we're checking (only in test mode)
+   if [[ "${TEST_MODE:-}" == "true" ]]; then
+     echo "Mock psql: Checking SQL for COPY commands (length: ${#sql_check})" >&2
+     echo "Mock psql: First 200 chars: ${sql_check:0:200}..." >&2
+   fi
+   
+   # Check if SQL contains COPY ... TO pattern
+   if echo "$sql_check" | grep -q "COPY.*TO" 2>/dev/null; then
+     # Always log when COPY is detected (for debugging)
+     echo "Mock psql: COPY.*TO pattern detected, processing COPY commands" >&2
+     echo "Mock psql: SQL length: ${#sql_check}, first 300 chars: ${sql_check:0:300}..." >&2
+     # Function to create CSV file based on path
+     create_csv_file() {
+       local filepath="$1"
+       
+       # Create directory if it doesn't exist
+       local filedir
+       filedir=$(dirname "$filepath")
+       if [[ -n "$filedir" ]] && [[ "$filedir" != "." ]]; then
+         mkdir -p "$filedir" 2>/dev/null || true
+       fi
+       
+       # Create CSV file with header based on file name
+       if [[ "$filepath" == *"lastNote"* ]] || [[ "$filepath" == *"LAST_NOTE"* ]]; then
+         echo "note_id,latitude,longitude,created_at,status,closed_at" > "$filepath"
+         echo "123,40.7128,-74.0060,2023-01-01 00:00:00,open," >> "$filepath"
+       elif [[ "$filepath" == *"lastComment"* ]] || [[ "$filepath" == *"LAST_COMMENT"* ]]; then
+         echo "comment_id,note_id,sequence_action,created_at,action,user_id,username" > "$filepath"
+         echo "456,123,1,2023-01-01 00:00:00,opened,12345,testuser" >> "$filepath"
+       elif [[ "$filepath" == *"differentNoteIds"* ]] || [[ "$filepath" == *"DIFFERENT_NOTE_IDS"* ]]; then
+         echo "note_id,latitude,longitude,created_at,status,closed_at" > "$filepath"
+         # Empty file (no differences) - just header
+       elif [[ "$filepath" == *"differentCommentIds"* ]] || [[ "$filepath" == *"DIFFERENT_COMMENT_IDS"* ]]; then
+         echo "comment_id,note_id,sequence_action,created_at,action,user_id,username" > "$filepath"
+         # Empty file (no differences) - just header
+       elif [[ "$filepath" == *"differentNotes"* ]] || [[ "$filepath" == *"DIFFERENT_NOTES"* ]] || [[ "$filepath" == *"DIRRERENT_NOTES"* ]]; then
+         echo "note_id,latitude,longitude,created_at,status,closed_at" > "$filepath"
+         # Empty file (no differences) - just header
+       elif [[ "$filepath" == *"differentNoteComments"* ]] || [[ "$filepath" == *"DIFFERENT_COMMENTS"* ]] || [[ "$filepath" == *"DIRRERENT_COMMENTS"* ]]; then
+         echo "comment_id,note_id,sequence_action,created_at,action,user_id,username" > "$filepath"
+         # Empty file (no differences) - just header
+       elif [[ "$filepath" == *"differentTextComments"* ]] || [[ "$filepath" == *"DIFFERENT_TEXT_COMMENTS"* ]]; then
+         echo "text_comment_id,note_id,sequence_action,text" > "$filepath"
+         # Empty file (no differences) - just header
+       elif [[ "$filepath" == *"textComments"* ]] || [[ "$filepath" == *"DIFFERENCES_TEXT_COMMENT"* ]]; then
+         echo "qty,note_id,sequence_action" > "$filepath"
+         # Empty file (no differences) - just header
+       else
+         # Generic CSV file
+         echo "id,value" > "$filepath"
+       fi
+     }
+     
+     # Process all COPY ... TO commands in the SQL
+     # The SQL may have multi-line format, so we need to normalize it first
+     # Normalize SQL: replace newlines with spaces and collapse multiple spaces
+     local sql_normalized
+     sql_normalized=$(echo "$args" | tr '\n' ' ' | tr '\r' ' ' | sed 's/[[:space:]]\+/ /g')
+     
+     # Extract all file paths from COPY ... TO 'path' patterns
+     local temp_file
+     temp_file=$(mktemp)
+     
+     # Extract all TO 'path' patterns from the normalized SQL
+     # Use multiple methods to ensure we catch all paths
+     
+     # Method 1: Extract paths with single quotes followed by WITH
+     echo "$sql_normalized" | sed -n "s/.*TO[[:space:]]*'\\([^']*\\)'[[:space:]]*WITH.*/\\1/p" >> "$temp_file" 2>/dev/null || true
+     
+     # Method 2: Extract paths with single quotes followed by semicolon
+     echo "$sql_normalized" | sed -n "s/.*TO[[:space:]]*'\\([^']*\\)'[[:space:]]*;.*/\\1/p" >> "$temp_file" 2>/dev/null || true
+     
+     # Method 3: Extract paths with double quotes
+     echo "$sql_normalized" | sed -n 's/.*TO[[:space:]]*"\([^"]*\)"[[:space:]]*WITH.*/\1/p' >> "$temp_file" 2>/dev/null || true
+     echo "$sql_normalized" | sed -n 's/.*TO[[:space:]]*"\([^"]*\)"[[:space:]]*;.*/\1/p' >> "$temp_file" 2>/dev/null || true
+     
+     # Method 4: Split by COPY and extract from each COPY block (most reliable)
+     # This handles multi-line SQL better
+     {
+       # Split SQL by COPY keyword to get individual COPY commands
+       echo "$sql_normalized" | sed 's/COPY/\n---COPY---/g' | grep "^---COPY---" | sed 's/^---COPY---/COPY/' | while IFS= read -r copy_block; do
+         # Extract path with single quotes from this COPY block
+         echo "$copy_block" | sed -n "s/.*TO[[:space:]]*'\\([^']*\\)'.*/\\1/p"
+         # Extract path with double quotes from this COPY block
+         echo "$copy_block" | sed -n 's/.*TO[[:space:]]*"\([^"]*\)".*/\1/p'
+       done
+     } >> "$temp_file" 2>/dev/null || true
+     
+     # Method 5: Simple extraction - find all TO 'path' patterns (last resort)
+     # This catches any remaining patterns
+     echo "$sql_normalized" | grep -o "TO[[:space:]]*'[^']*'" | sed "s/TO[[:space:]]*'\\([^']*\\)'/\\1/" >> "$temp_file" 2>/dev/null || true
+     echo "$sql_normalized" | grep -o 'TO[[:space:]]*"[^"]*"' | sed 's/TO[[:space:]]*"\([^"]*\)"/\1/' >> "$temp_file" 2>/dev/null || true
+     
+     # Remove duplicates and process each unique path
+     local processed_paths=()
+     while IFS= read -r filepath; do
+       # Clean up the path (remove leading/trailing whitespace)
+       filepath=$(echo "$filepath" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+       
+       # Skip empty paths or paths with variables not substituted
+       [[ -z "$filepath" ]] && continue
+       [[ "$filepath" == *'$'* ]] && continue  # Skip if contains unsubstituted variable
+       
+       # Remove WITH clause if present
+       filepath=$(echo "$filepath" | sed 's/[[:space:]]*WITH.*$//')
+       
+       # Check if we've already processed this path
+       local already_processed=0
+       for processed in "${processed_paths[@]}"; do
+         if [[ "$processed" == "$filepath" ]]; then
+           already_processed=1
+           break
+         fi
+       done
+       
+       if [[ $already_processed -eq 0 ]]; then
+         processed_paths+=("$filepath")
+         create_csv_file "$filepath"
+         # Always log CSV creation (for debugging)
+         echo "Mock psql: Created CSV file: $filepath" >&2
+       fi
+     done < "$temp_file"
+     
+     rm -f "$temp_file"
+     
+     # Always show what was processed (for debugging)
+     if [[ ${#processed_paths[@]} -gt 0 ]]; then
+       echo "Mock psql: Processed ${#processed_paths[@]} COPY commands" >&2
+       for path in "${processed_paths[@]}"; do
+         echo "Mock psql:   - $path" >&2
+       done
      else
-       echo "1|test|2023-01-01"
+       echo "Mock psql: WARNING - No paths were processed from COPY commands!" >&2
      fi
-   elif [[ "$args" == *"CREATE"* ]]; then
-     echo "CREATE TABLE"
-   elif [[ "$args" == *"INSERT"* ]]; then
-     echo "INSERT 0 1"
-   elif [[ "$args" == *"UPDATE"* ]]; then
-     echo "UPDATE 1"
-   elif [[ "$args" == *"DELETE"* ]]; then
-     echo "DELETE 1"
-   elif [[ "$args" == *"DROP"* ]]; then
-     echo "DROP TABLE"
-   elif [[ "$args" == *"VACUUM"* ]]; then
-     echo "VACUUM"
-   elif [[ "$args" == *"ANALYZE"* ]]; then
-     echo "ANALYZE"
+     
+     # Output result for each COPY command found
+     # PostgreSQL outputs one COPY result per command
+     local copy_count=${#processed_paths[@]}
+     if [[ $copy_count -gt 0 ]]; then
+       # Output one COPY result per file created
+       for filepath in "${processed_paths[@]}"; do
+         local lines
+         lines=$(wc -l < "$filepath" 2>/dev/null || echo 1)
+         echo "COPY $lines"
+       done
+     else
+       echo "COPY 0"
+     fi
+     # Exit early after processing COPY commands - don't process SELECT or other commands
+     # This ensures COPY commands are handled even if SQL also contains SELECT
+     # We've already output the COPY results, so we're done - exit the case with ;;
    else
-     echo "OK"
+     # If we get here, it means COPY was not processed, so handle other SQL commands
+     if [[ "$sql_check" == *"SELECT"* ]]; then
+       if [[ "${TEST_MODE:-}" == "true" ]]; then
+         echo "Mock psql: No COPY commands found, processing SELECT" >&2
+       fi
+       if [[ "$sql_check" == *"COUNT"* ]]; then
+         echo "100"
+       elif [[ "$sql_check" == *"TABLE_NAME"* ]]; then
+         echo "notes"
+         echo "note_comments"
+         echo "countries"
+         echo "logs"
+         echo "tries"
+       else
+         echo "1|test|2023-01-01"
+       fi
+     elif [[ "$sql_check" == *"CREATE"* ]]; then
+       echo "CREATE TABLE"
+     elif [[ "$sql_check" == *"INSERT"* ]]; then
+       echo "INSERT 0 1"
+     elif [[ "$sql_check" == *"UPDATE"* ]]; then
+       echo "UPDATE 1"
+     elif [[ "$sql_check" == *"DELETE"* ]]; then
+       echo "DELETE 1"
+     elif [[ "$sql_check" == *"DROP"* ]]; then
+       echo "DROP TABLE"
+     elif [[ "$sql_check" == *"VACUUM"* ]]; then
+       echo "VACUUM"
+     elif [[ "$sql_check" == *"ANALYZE"* ]]; then
+       echo "ANALYZE"
+     else
+       echo "OK"
+     fi
    fi
    ;;
   -f)
@@ -339,7 +509,7 @@ fi
 
 exit 0
 EOF
- fi
+ chmod +x "${MOCK_COMMANDS_DIR}/psql"
 }
 
 # Function to create mock xmllint
@@ -744,6 +914,158 @@ EOF
  fi
 }
 
+# Function to create mock mutt
+create_mock_mutt() {
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/mutt" ]]; then
+  log_info "Creating mock mutt..."
+  cat > "${MOCK_COMMANDS_DIR}/mutt" << 'EOF'
+#!/bin/bash
+
+# Mock mutt command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-11-12
+
+# Parse arguments
+ARGS=()
+SUBJECT=""
+BODY_FILE=""
+ATTACHMENT=""
+RECIPIENTS=""
+QUIET=false
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -s)
+   SUBJECT="$2"
+   shift 2
+   ;;
+  -i)
+   BODY_FILE="$2"
+   shift 2
+   ;;
+  -a)
+   ATTACHMENT="$2"
+   shift 2
+   ;;
+  --)
+   # Recipients come after --
+   shift
+   RECIPIENTS="$*"
+   break
+   ;;
+  --version)
+   echo "Mutt 2.2.0"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Simulate email sending (just log it)
+if [[ -n "${SUBJECT}" ]]; then
+ echo "Mock email sent:"
+ echo "  Subject: ${SUBJECT}"
+ if [[ -n "${BODY_FILE}" ]] && [[ -f "${BODY_FILE}" ]]; then
+   echo "  Body: $(head -5 "${BODY_FILE}" | tr '\n' ' ')"
+ fi
+ if [[ -n "${ATTACHMENT}" ]]; then
+   echo "  Attachment: ${ATTACHMENT}"
+ fi
+ if [[ -n "${RECIPIENTS}" ]]; then
+   echo "  Recipients: ${RECIPIENTS}"
+ fi
+fi
+
+exit 0
+EOF
+ fi
+}
+
+# Function to create mock ogr2ogr
+create_mock_ogr2ogr() {
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]]; then
+  log_info "Creating mock ogr2ogr..."
+  cat > "${MOCK_COMMANDS_DIR}/ogr2ogr" << 'EOF'
+#!/bin/bash
+
+# Mock ogr2ogr command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-11-12
+
+# Parse arguments
+ARGS=()
+OUTPUT=""
+INPUT=""
+QUIET=false
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -f)
+   OUTPUT_FORMAT="$2"
+   shift 2
+   ;;
+  -nln)
+   LAYER_NAME="$2"
+   shift 2
+   ;;
+  -nlt)
+   GEOMETRY_TYPE="$2"
+   shift 2
+   ;;
+  -q)
+   QUIET=true
+   shift
+   ;;
+  --version)
+   echo "GDAL 3.6.0"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Get input and output from arguments
+if [[ ${#ARGS[@]} -ge 2 ]]; then
+ OUTPUT="${ARGS[0]}"
+ INPUT="${ARGS[1]}"
+elif [[ ${#ARGS[@]} -eq 1 ]]; then
+ OUTPUT="${ARGS[0]}"
+fi
+
+# Simulate conversion (just verify files exist)
+if [[ -n "${INPUT}" ]] && [[ ! -f "${INPUT}" ]]; then
+ echo "ERROR: Input file not found: ${INPUT}" >&2
+ exit 1
+fi
+
+if [[ -n "${OUTPUT}" ]]; then
+ # Create a dummy output file
+ touch "${OUTPUT}" 2>/dev/null || true
+fi
+
+if [[ "$QUIET" != true ]]; then
+ echo "Mock ogr2ogr: Converted ${INPUT:-stdin} to ${OUTPUT:-stdout}"
+fi
+
+exit 0
+EOF
+ fi
+}
+
 # Function to activate mock environment
 activate_mock_environment() {
  log_info "Activating mock environment..."
@@ -754,9 +1076,8 @@ activate_mock_environment() {
  # Set mock environment variables
  export MOCK_MODE=true
  export TEST_MODE=true
- export DBNAME="mock_db"
- export DB_USER="mock_user"
- export DB_PASSWORD="mock_password"
+ # Database variables are loaded from properties file, do not export
+ # to prevent overriding properties file values in child scripts
 
  log_success "Mock environment activated"
 }
@@ -771,9 +1092,7 @@ deactivate_mock_environment() {
  # Unset mock environment variables
  unset MOCK_MODE
  unset TEST_MODE
- unset DBNAME
- unset DB_USER
- unset DB_PASSWORD
+ # Database variables are controlled by properties file, do not unset
 
  log_success "Mock environment deactivated"
 }

@@ -1,0 +1,358 @@
+#!/bin/bash
+
+# Mock ogr2ogr command for hybrid mode testing
+# When importing to countries table, inserts test data directly via psql
+# This is completely transparent to updateCountries.sh
+# Author: Andres Gomez (AngocA)
+# Version: 2025-11-12
+
+# Parse arguments
+DBNAME="${DBNAME:-osm-notes}"
+LAYER_NAME=""
+INPUT_FILE=""
+OUTPUT_DB=""
+IS_COUNTRIES_TABLE=false
+GEOM_COLUMN="geom"  # Default geometry column name
+
+# Detect mode: hybrid (use real ogr2ogr for most operations) vs mock (simulate everything)
+# HYBRID_MOCK_DIR is set in hybrid mode, MOCK_COMMANDS_DIR is set in both modes
+IS_HYBRID_MODE=false
+if [[ -n "${HYBRID_MOCK_DIR:-}" ]] && [[ "${PATH}" == *"${HYBRID_MOCK_DIR}"* ]]; then
+ IS_HYBRID_MODE=true
+fi
+
+# Debug: Log that mock was called (redirect to stderr so it doesn't interfere with ogr2ogr output)
+# This helps verify the mock is being executed
+if [[ "${HYBRID_MOCK_DEBUG:-false}" == "true" ]]; then
+ echo "Mock ogr2ogr DEBUG: called with args: $*" >&2
+ echo "Mock ogr2ogr DEBUG: IS_HYBRID_MODE=${IS_HYBRID_MODE}" >&2
+ echo "Mock ogr2ogr DEBUG: PATH=${PATH}" >&2
+fi
+
+# Save all arguments for later parsing
+ALL_ARGS=("$@")
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -f)
+   OUTPUT_FORMAT="$2"
+   shift 2
+   ;;
+  -nln)
+   LAYER_NAME="$2"
+   if [[ "$LAYER_NAME" == "countries" ]]; then
+    IS_COUNTRIES_TABLE=true
+   elif [[ "$LAYER_NAME" == "import" ]] || [[ "$LAYER_NAME" == "countries_import" ]] || [[ "$LAYER_NAME" == *"_import" ]]; then
+    # Import table is used as temporary table before mapping to countries
+    # We'll detect this and insert directly into countries
+    IS_COUNTRIES_TABLE=true
+   fi
+   shift 2
+   ;;
+  -nlt)
+   GEOMETRY_TYPE="$2"
+   shift 2
+   ;;
+  -a_srs)
+   SRS="$2"
+   shift 2
+   ;;
+  -lco)
+   # Capture layer creation options, especially GEOMETRY_NAME
+   LCO_VALUE="$2"
+   if [[ "$LCO_VALUE" == *"GEOMETRY_NAME"* ]]; then
+    # Extract value from GEOMETRY_NAME=value
+    # Handle both formats: GEOMETRY_NAME=geometry and GEOMETRY_NAME=geom
+    if [[ "$LCO_VALUE" =~ GEOMETRY_NAME=([^[:space:]]+) ]]; then
+     GEOM_COLUMN="${BASH_REMATCH[1]}"
+    elif [[ "$LCO_VALUE" == "GEOMETRY_NAME" ]]; then
+     # If next argument is the value (separate argument)
+     if [[ $# -ge 3 ]]; then
+      GEOM_COLUMN="$3"
+      shift 1
+     fi
+    fi
+   fi
+   shift 2
+   ;;
+  -select)
+   # Skip field selection - we'll insert all needed fields anyway
+   shift 2
+   ;;
+  -mapFieldType)
+   # Skip field type mapping
+   shift 2
+   ;;
+  -skipfailures)
+   # Skip failures flag - just continue
+   shift
+   ;;
+  --config)
+   # Skip config options
+   shift 2
+   ;;
+  -q)
+   QUIET=true
+   shift
+   ;;
+  --version)
+   echo "GDAL 3.6.0"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   if [[ "$1" == *"PG:dbname"* ]] || [[ "$1" == *"PostgreSQL"* ]]; then
+    OUTPUT_DB="$1"
+    # Extract DBNAME from PostgreSQL connection string if present
+    # Format: PG:dbname=DBNAME or PG:dbname=DBNAME host=... etc.
+    if [[ "$OUTPUT_DB" =~ dbname=([^[:space:]]+) ]]; then
+     DBNAME="${BASH_REMATCH[1]}"
+    fi
+   elif [[ -z "$INPUT_FILE" ]]; then
+    # Check if it's a file (exists) or looks like a file path (ends with .geojson, .json, etc.)
+    if [[ -f "$1" ]]; then
+     INPUT_FILE="$1"
+    elif [[ "$1" == *".geojson"* ]] || [[ "$1" == *".json"* ]]; then
+     # Even if file doesn't exist yet, capture it as input file
+     # This handles cases where ogr2ogr is called before the file is created
+     INPUT_FILE="$1"
+    fi
+   fi
+   shift
+   ;;
+ esac
+done
+
+# If in hybrid mode and NOT importing to countries/import tables, delegate to real ogr2ogr
+if [[ "${IS_HYBRID_MODE}" == "true" ]] && [[ "${IS_COUNTRIES_TABLE}" != "true" ]]; then
+ # Find real ogr2ogr by temporarily removing mock directories from PATH
+ REAL_OGR2OGR=""
+ OLD_PATH="${PATH}"
+ # Temporarily remove mock directories from PATH to find real ogr2ogr
+ NEW_PATH=$(echo "${OLD_PATH}" | sed "s|${HYBRID_MOCK_DIR}:||g" | sed "s|:${HYBRID_MOCK_DIR}||g")
+ if [[ -n "${MOCK_COMMANDS_DIR:-}" ]]; then
+  NEW_PATH=$(echo "${NEW_PATH}" | sed "s|${MOCK_COMMANDS_DIR}:||g" | sed "s|:${MOCK_COMMANDS_DIR}||g")
+ fi
+ PATH="${NEW_PATH}" REAL_OGR2OGR=$(command -v ogr2ogr 2> /dev/null || true)
+ PATH="${OLD_PATH}"
+ 
+ if [[ -n "${REAL_OGR2OGR}" ]] && [[ -x "${REAL_OGR2OGR}" ]]; then
+  # Delegate to real ogr2ogr
+  if [[ "${HYBRID_MOCK_DEBUG:-false}" == "true" ]]; then
+   echo "Mock ogr2ogr DEBUG: Delegating to real ogr2ogr: ${REAL_OGR2OGR}" >&2
+  fi
+  exec "${REAL_OGR2OGR}" "${ALL_ARGS[@]}"
+ else
+  # Real ogr2ogr not found, simulate success
+  if [[ "$QUIET" != "true" ]]; then
+   echo "Mock ogr2ogr: Real ogr2ogr not found, simulating success" >&2
+  fi
+  exit 0
+ fi
+fi
+
+# If importing to countries table (or import table which maps to countries), insert test data directly
+if [[ "${IS_COUNTRIES_TABLE}" == "true" ]]; then
+ # Find real psql by temporarily removing mock directories from PATH
+ REAL_PSQL=""
+ if [[ -n "${MOCK_COMMANDS_DIR:-}" ]]; then
+  OLD_PATH="${PATH}"
+  # Temporarily remove mock directory from PATH to find real psql
+  NEW_PATH=$(echo "${OLD_PATH}" | sed "s|${MOCK_COMMANDS_DIR}:||g" | sed "s|:${MOCK_COMMANDS_DIR}||g")
+  # Also remove hybrid_mock_dir if it exists
+  if [[ -n "${HYBRID_MOCK_DIR:-}" ]]; then
+   NEW_PATH=$(echo "${NEW_PATH}" | sed "s|${HYBRID_MOCK_DIR}:||g" | sed "s|:${HYBRID_MOCK_DIR}||g")
+  fi
+  PATH="${NEW_PATH}" REAL_PSQL=$(command -v psql 2> /dev/null || true)
+  PATH="${OLD_PATH}"
+ else
+  # If MOCK_COMMANDS_DIR not set, just search PATH normally
+  REAL_PSQL=$(command -v psql 2> /dev/null || true)
+ fi
+
+ if [[ -z "${REAL_PSQL}" ]] || [[ ! -x "${REAL_PSQL}" ]]; then
+  echo "Error: Real psql not found. Cannot insert test countries data." >&2
+  exit 1
+ fi
+
+ # Ensure countries table exists before inserting data
+ # The table should be created by processPlanetNotes.sh --base, but we'll create it if needed
+ "${REAL_PSQL}" -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'SQL' || true
+CREATE TABLE IF NOT EXISTS countries (
+ country_id INTEGER NOT NULL,
+ country_name VARCHAR(100) NOT NULL,
+ country_name_es VARCHAR(100),
+ country_name_en VARCHAR(100),
+ geom GEOMETRY NOT NULL,
+ updated BOOLEAN,
+ PRIMARY KEY (country_id)
+);
+CREATE INDEX IF NOT EXISTS countries_spatial ON countries USING GIST (geom);
+SQL
+
+ # Handle import table or countries table
+ if [[ "$LAYER_NAME" == "import" ]] || [[ "$LAYER_NAME" == "countries_import" ]] || [[ "$LAYER_NAME" == *"_import" ]]; then
+  # If importing to temporary import table, create it and populate it with test data
+  # The script will then map this data to the countries table
+  # Check for import table names (could be "import" or "countries_import" or any table ending in "_import")
+  # GEOM_COLUMN is already set from parsing -lco GEOMETRY_NAME above
+  # Default is "geom" which matches what the script uses
+  
+  # Try to extract boundary ID from input file name
+  # boundaryProcessingFunctions.sh uses files like: ${TMP_DIR}/${ID}.geojson
+  # Extract ID from filename if possible
+  local BOUNDARY_ID=""
+  if [[ -n "${INPUT_FILE:-}" ]] && [[ -f "${INPUT_FILE}" ]]; then
+   # Try to extract ID from filename like: /tmp/updateCountries_XXXXX/148838.geojson
+   local BASENAME_FILE
+   BASENAME_FILE=$(basename "${INPUT_FILE}" .geojson)
+   if [[ "${BASENAME_FILE}" =~ ^[0-9]+$ ]]; then
+    BOUNDARY_ID="${BASENAME_FILE}"
+   fi
+  fi
+  
+  # Create the temporary table that ogr2ogr expects
+  # Use real psql explicitly
+  # Don't use ON_ERROR_STOP=1 here to avoid failing if table doesn't exist
+  "${REAL_PSQL}" -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${LAYER_NAME};" > /dev/null 2>&1 || true
+  
+  # Determine table structure based on what columns are expected
+  # boundaryProcessingFunctions.sh uses -select name,admin_level,type
+  # but processPlanetFunctions.sh expects id, name, name_es, name_en, geom
+  # We'll create a table with both sets of columns to handle both cases
+  # Don't use ON_ERROR_STOP=1 to avoid failing if there's a minor error
+  # Create table - ignore errors (table might already exist)
+  "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
+CREATE TABLE ${LAYER_NAME} (
+ id VARCHAR,
+ name VARCHAR,
+ name_es VARCHAR,
+ name_en VARCHAR,
+ admin_level VARCHAR,
+ type VARCHAR,
+ ${GEOM_COLUMN} GEOMETRY
+);
+EOF
+  
+  # If we have a boundary ID, try to insert data that matches that specific boundary
+  # Otherwise, insert generic test data
+  if [[ -n "${BOUNDARY_ID}" ]]; then
+   # Insert data for this specific boundary ID into import table
+   # Use a simple geometry that will work with ST_Union(ST_makeValid())
+   # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
+   "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
+INSERT INTO ${LAYER_NAME} (name, admin_level, type, ${GEOM_COLUMN}) VALUES
+ ('Country ${BOUNDARY_ID}', '2', 'boundary', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326));
+EOF
+   # Also insert directly into countries table to ensure data is available
+   # This bypasses the script's INSERT FROM import step, ensuring data is always present
+   # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
+   "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
+INSERT INTO countries (country_id, country_name, geom, updated) VALUES
+ (${BOUNDARY_ID}, 'Country ${BOUNDARY_ID}', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326), FALSE)
+ON CONFLICT (country_id) DO UPDATE SET
+ country_name = EXCLUDED.country_name,
+ geom = EXCLUDED.geom,
+ updated = EXCLUDED.updated;
+EOF
+   if [[ "$QUIET" != "true" ]]; then
+    echo "Mock ogr2ogr: Inserted test data for boundary ${BOUNDARY_ID} into ${LAYER_NAME} and countries tables" >&2
+   fi
+  else
+   # Insert generic test data (fallback)
+   # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
+   "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
+INSERT INTO ${LAYER_NAME} (name, admin_level, type, ${GEOM_COLUMN}) VALUES
+ ('Test Country', '2', 'boundary', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326));
+EOF
+   # Also insert a generic country into countries table
+   # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
+   "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
+INSERT INTO countries (country_id, country_name, geom, updated) VALUES
+ (999999, 'Test Country', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326), FALSE)
+ON CONFLICT (country_id) DO UPDATE SET
+ country_name = EXCLUDED.country_name,
+ geom = EXCLUDED.geom,
+ updated = EXCLUDED.updated;
+EOF
+   if [[ "$QUIET" != "true" ]]; then
+    echo "Mock ogr2ogr: Inserted generic test data into ${LAYER_NAME} and countries tables (boundary ID not detected)" >&2
+   fi
+  fi
+  # Always return success (exit 0) to simulate successful ogr2ogr import
+  exit 0
+ fi
+
+ if [[ "$LAYER_NAME" == "countries" ]]; then
+  # If importing directly to countries table, insert test data directly
+  # Insert test countries with simple but valid geometries
+  # These cover major regions to allow get_country() function to work
+  # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
+  "${REAL_PSQL}" -d "${DBNAME}" << 'SQL' 2>/dev/null || true
+INSERT INTO countries (country_id, country_name, geom, updated) VALUES
+ (1, 'United States', ST_GeomFromText('POLYGON((-125 25, -66 25, -66 49, -125 49, -125 25))', 4326), FALSE),
+ (2, 'Canada', ST_GeomFromText('POLYGON((-141 42, -52 42, -52 83, -141 83, -141 42))', 4326), FALSE),
+ (3, 'Mexico', ST_GeomFromText('POLYGON((-118 14, -86 14, -86 32, -118 32, -118 14))', 4326), FALSE),
+ (4, 'United Kingdom', ST_GeomFromText('POLYGON((-8 50, 2 50, 2 61, -8 61, -8 50))', 4326), FALSE),
+ (5, 'France', ST_GeomFromText('POLYGON((-5 42, 8 42, 8 51, -5 51, -5 42))', 4326), FALSE),
+ (6, 'Germany', ST_GeomFromText('POLYGON((6 47, 15 47, 15 55, 6 55, 6 47))', 4326), FALSE),
+ (7, 'Spain', ST_GeomFromText('POLYGON((-10 36, 4 36, 4 44, -10 44, -10 36))', 4326), FALSE),
+ (8, 'Italy', ST_GeomFromText('POLYGON((7 36, 19 36, 19 47, 7 47, 7 36))', 4326), FALSE),
+ (9, 'Brazil', ST_GeomFromText('POLYGON((-74 -34, -34 -34, -34 6, -74 6, -74 -34))', 4326), FALSE),
+ (10, 'Argentina', ST_GeomFromText('POLYGON((-73 -55, -54 -55, -54 -22, -73 -22, -73 -55))', 4326), FALSE),
+ (11, 'Colombia', ST_GeomFromText('POLYGON((-79 4, -67 4, -67 12, -79 12, -79 4))', 4326), FALSE),
+ (12, 'China', ST_GeomFromText('POLYGON((73 18, 135 18, 135 54, 73 54, 73 18))', 4326), FALSE),
+ (13, 'Japan', ST_GeomFromText('POLYGON((123 24, 146 24, 146 46, 123 46, 123 24))', 4326), FALSE),
+ (14, 'India', ST_GeomFromText('POLYGON((68 6, 97 6, 97 37, 68 37, 68 6))', 4326), FALSE),
+ (15, 'Australia', ST_GeomFromText('POLYGON((113 -44, 154 -44, 154 -10, 113 -10, 113 -44))', 4326), FALSE),
+ (16, 'Russia', ST_GeomFromText('POLYGON((19 41, 180 41, 180 82, 19 82, 19 41))', 4326), FALSE),
+ (17, 'South Africa', ST_GeomFromText('POLYGON((16 -35, 33 -35, 33 -22, 16 -22, 16 -35))', 4326), FALSE),
+ (18, 'Egypt', ST_GeomFromText('POLYGON((25 22, 37 22, 37 32, 25 32, 25 22))', 4326), FALSE),
+ (19, 'Nigeria', ST_GeomFromText('POLYGON((3 4, 15 4, 15 14, 3 14, 3 4))', 4326), FALSE),
+ (20, 'Turkey', ST_GeomFromText('POLYGON((26 36, 45 36, 45 42, 26 42, 26 36))', 4326), FALSE)
+ON CONFLICT (country_id) DO NOTHING;
+SQL
+  if [[ "$QUIET" != "true" ]]; then
+   echo "Mock ogr2ogr: Inserted test countries data directly into countries table" >&2
+  fi
+  # Always return success (exit 0) to simulate successful ogr2ogr import
+  exit 0
+ fi
+fi
+
+# For other tables in mock mode (not hybrid), simulate success
+# In hybrid mode, we already delegated above, so this should not be reached
+# But if we reach here, simulate success for mock mode
+if [[ "${IS_HYBRID_MODE}" != "true" ]]; then
+ # Mock mode: simulate success
+ if [[ "$QUIET" != "true" ]]; then
+  echo "Mock ogr2ogr: Simulating successful import (mock mode)"
+ fi
+ exit 0
+fi
+
+# Fallback: if we reach here in hybrid mode and it's not countries/import, try real ogr2ogr
+# Find real ogr2ogr by temporarily removing mock directories from PATH
+REAL_OGR2OGR=""
+OLD_PATH="${PATH}"
+# Temporarily remove mock directories from PATH to find real ogr2ogr
+NEW_PATH=$(echo "${OLD_PATH}" | sed "s|${HYBRID_MOCK_DIR}:||g" | sed "s|:${HYBRID_MOCK_DIR}||g")
+if [[ -n "${MOCK_COMMANDS_DIR:-}" ]]; then
+ NEW_PATH=$(echo "${NEW_PATH}" | sed "s|${MOCK_COMMANDS_DIR}:||g" | sed "s|:${MOCK_COMMANDS_DIR}||g")
+fi
+PATH="${NEW_PATH}" REAL_OGR2OGR=$(command -v ogr2ogr 2> /dev/null || true)
+PATH="${OLD_PATH}"
+
+if [[ -n "${REAL_OGR2OGR}" ]] && [[ -x "${REAL_OGR2OGR}" ]]; then
+ # Use real ogr2ogr for non-countries tables
+ exec "${REAL_OGR2OGR}" "${ALL_ARGS[@]}"
+else
+ # Simulate success for other operations
+ if [[ "$QUIET" != "true" ]]; then
+  echo "Mock ogr2ogr: Simulated conversion (real ogr2ogr not available)"
+ fi
+ exit 0
+fi

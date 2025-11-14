@@ -40,9 +40,12 @@ readonly MOCK_COMMANDS_DIR
 SETUP_HYBRID_SCRIPT="${SCRIPT_DIR}/setup_hybrid_mock_environment.sh"
 readonly SETUP_HYBRID_SCRIPT
 
-# Database configuration (can be overridden with environment variables)
-DBNAME="${DBNAME:-osm-notes-test}"
-DB_USER="${DB_USER:-${USER}}"
+# Database configuration - will be set up before running scripts
+# All database connections must be controlled by properties files.
+# We'll temporarily replace etc/properties.sh with properties_test.sh
+# before executing the main scripts.
+
+# Database connection parameters (for psql command only)
 DB_HOST="${DB_HOST:-}"
 DB_PORT="${DB_PORT:-5432}"
 DB_PASSWORD="${DB_PASSWORD:-}"
@@ -122,6 +125,12 @@ check_postgresql() {
 
 # Function to setup test database
 setup_test_database() {
+  # Load DBNAME from properties file if not already loaded
+  if [[ -z "${DBNAME:-}" ]]; then
+    # shellcheck disable=SC1091
+    source "${PROJECT_ROOT}/etc/properties.sh"
+  fi
+  
   log_info "Setting up test database: ${DBNAME}"
 
   local psql_cmd="psql"
@@ -155,8 +164,44 @@ setup_test_database() {
   log_success "PostGIS extensions ready in ${DBNAME}"
 }
 
+# Function to migrate database schema (add missing columns)
+migrate_database_schema() {
+  # Load DBNAME from properties file if not already loaded
+  if [[ -z "${DBNAME:-}" ]]; then
+    # shellcheck disable=SC1091
+    source "${PROJECT_ROOT}/etc/properties.sh"
+  fi
+  
+  log_info "Migrating database schema (adding missing columns if needed)..."
+
+  local psql_cmd="psql"
+  if [[ -n "${DB_HOST:-}" ]]; then
+    psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
+  fi
+
+  local migration_script="${PROJECT_ROOT}/sql/process/processPlanetNotes_26_migrateMissingColumns.sql"
+  
+  if [[ ! -f "${migration_script}" ]]; then
+    log_warning "Migration script not found: ${migration_script}"
+    return 0
+  fi
+
+  # Execute migration script (ignore errors if tables don't exist yet)
+  if ${psql_cmd} -d "${DBNAME}" -f "${migration_script}" > /dev/null 2>&1; then
+    log_success "Database schema migration completed"
+  else
+    log_warning "Migration script execution had warnings (this is OK if tables don't exist yet)"
+  fi
+}
+
 # Function to drop base tables (for first execution)
 drop_base_tables() {
+  # Load DBNAME from properties file if not already loaded
+  if [[ -z "${DBNAME:-}" ]]; then
+    # shellcheck disable=SC1091
+    source "${PROJECT_ROOT}/etc/properties.sh"
+  fi
+  
   log_info "Dropping base tables to trigger processPlanetNotes.sh --base..."
 
   local psql_cmd="psql"
@@ -211,6 +256,20 @@ cleanup_lock_files() {
   if [[ -f "${planet_failed}" ]]; then
     log_info "Removing planet failed execution marker: ${planet_failed}"
     rm -f "${planet_failed}"
+  fi
+
+  # Clean updateCountries lock file (important for processPlanetNotes.sh --base)
+  local update_countries_lock="/tmp/updateCountries.lock"
+  if [[ -f "${update_countries_lock}" ]]; then
+    log_info "Removing updateCountries lock file: ${update_countries_lock}"
+    rm -f "${update_countries_lock}"
+  fi
+
+  # Clean updateCountries failed execution marker
+  local update_countries_failed="/tmp/updateCountries_failed_execution"
+  if [[ -f "${update_countries_failed}" ]]; then
+    log_info "Removing updateCountries failed execution marker: ${update_countries_failed}"
+    rm -f "${update_countries_failed}"
   fi
 
   log_success "Lock files cleaned"
@@ -338,7 +397,7 @@ ensure_real_psql() {
   local clean_path
   clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${real_psql_dir}$" | tr '\n' ':' | sed 's/:$//')
   
-  # Create a custom mock directory that only contains aria2c, wget, pgrep (not psql)
+  # Create a custom mock directory that only contains aria2c, wget, pgrep, ogr2ogr (not psql)
   local hybrid_mock_dir
   hybrid_mock_dir="/tmp/hybrid_mock_commands_$$"
   mkdir -p "${hybrid_mock_dir}"
@@ -346,7 +405,7 @@ ensure_real_psql() {
   # Store the directory path for cleanup
   export HYBRID_MOCK_DIR="${hybrid_mock_dir}"
   
-  # Copy only the mocks we want (aria2c, wget, pgrep)
+  # Copy only the mocks we want (aria2c, wget, pgrep, ogr2ogr)
   if [[ -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
     cp "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
     chmod +x "${hybrid_mock_dir}/aria2c"
@@ -359,12 +418,30 @@ ensure_real_psql() {
     cp "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
     chmod +x "${hybrid_mock_dir}/pgrep"
   fi
+  # Copy ogr2ogr mock for transparent country data insertion
+  # Use the mock created by setup_hybrid_mock_environment.sh (has hybrid mode logic)
+  # If it doesn't exist, create it using setup_hybrid_mock_environment.sh
+  if [[ ! -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]]; then
+    log_info "Creating ogr2ogr mock with hybrid mode support..."
+    bash "${SETUP_HYBRID_SCRIPT}" setup 2>/dev/null || true
+  fi
+  if [[ -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]]; then
+    cp "${MOCK_COMMANDS_DIR}/ogr2ogr" "${hybrid_mock_dir}/ogr2ogr"
+    chmod +x "${hybrid_mock_dir}/ogr2ogr"
+  else
+    log_error "Failed to create ogr2ogr mock"
+    return 1
+  fi
 
-  # Set PATH: hybrid mock dir first (for aria2c/wget), then real psql dir, then rest
-  # This ensures mock aria2c/wget are found before real ones, but real psql is found
+  # Set PATH: hybrid mock dir first (for aria2c/wget/ogr2ogr), then real psql dir, then rest
+  # This ensures mock aria2c/wget/ogr2ogr are found before real ones, but real psql is found
   # (since there's no psql in hybrid_mock_dir)
   export PATH="${hybrid_mock_dir}:${real_psql_dir}:${clean_path}"
   hash -r 2> /dev/null || true
+  
+  # Export MOCK_COMMANDS_DIR so mock ogr2ogr can find real ogr2ogr if needed
+  # MOCK_COMMANDS_DIR is readonly, so we just export it without reassigning
+  export MOCK_COMMANDS_DIR
 
   # Verify we're using real psql (should find it in real_psql_dir since hybrid_mock_dir has no psql)
   local current_psql
@@ -390,6 +467,17 @@ ensure_real_psql() {
   log_success "Using real psql from: ${current_psql}"
   log_success "Using mock aria2c from: ${current_aria2c}"
   
+  # Verify mock ogr2ogr is being used (should be from hybrid_mock_dir)
+  local current_ogr2ogr
+  current_ogr2ogr=$(command -v ogr2ogr 2> /dev/null || true)
+  if [[ -n "${current_ogr2ogr}" ]]; then
+    if [[ "${current_ogr2ogr}" == "${hybrid_mock_dir}/ogr2ogr" ]]; then
+      log_success "Using mock ogr2ogr from: ${current_ogr2ogr}"
+    else
+      log_warning "ogr2ogr is not from HYBRID_MOCK_DIR: ${current_ogr2ogr}"
+    fi
+  fi
+  
   # Verify real bzip2 is being used (should NOT be from mock directories)
   local current_bzip2
   current_bzip2=$(command -v bzip2)
@@ -414,9 +502,9 @@ setup_environment_variables() {
   export HYBRID_MOCK_MODE=true
   export TEST_MODE=true
 
-  # Set database variables
-  export DBNAME="${DBNAME}"
-  export DB_USER="${DB_USER}"
+  # Database variables are loaded from properties file, do not export
+  # to prevent overriding properties file values in child scripts
+  # Only export PostgreSQL client variables for psql command
   if [[ -n "${DB_HOST:-}" ]]; then
     export DB_HOST="${DB_HOST}"
   else
@@ -427,7 +515,12 @@ setup_environment_variables() {
     export DB_PASSWORD="${DB_PASSWORD}"
   fi
 
-  # PostgreSQL client variables
+  # Load DBNAME and DB_USER from properties file (which is now properties_test.sh)
+  # shellcheck disable=SC1091
+  source "${PROJECT_ROOT}/etc/properties.sh"
+
+  # PostgreSQL client variables (for psql command only)
+  # These are used by psql, not by our scripts
   export PGDATABASE="${DBNAME}"
   export PGUSER="${DB_USER}"
   if [[ -n "${DB_HOST:-}" ]]; then
@@ -451,8 +544,9 @@ setup_environment_variables() {
   export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
 
   log_success "Environment variables configured"
-  log_info "  DBNAME: ${DBNAME}"
-  log_info "  DB_USER: ${DB_USER}"
+  log_info "  Properties file: etc/properties.sh (test version)"
+  log_info "  DBNAME: ${DBNAME} (from properties file)"
+  log_info "  DB_USER: ${DB_USER} (from properties file)"
   log_info "  DB_HOST: ${DB_HOST:-unix socket}"
   log_info "  DB_PORT: ${DB_PORT}"
   log_info "  LOG_LEVEL: ${LOG_LEVEL}"
@@ -544,9 +638,19 @@ run_processAPINotes() {
     unset MOCK_NOTES_COUNT
   fi
 
+  # Export HYBRID_MOCK_DIR so mock ogr2ogr can access it
+  if [[ -n "${HYBRID_MOCK_DIR:-}" ]]; then
+    export HYBRID_MOCK_DIR
+  fi
+
+  # Export MOCK_COMMANDS_DIR so mock ogr2ogr can find real ogr2ogr if needed
+  export MOCK_COMMANDS_DIR
+
   # Run the script with clean PATH (exported so child processes inherit it)
   log_info "Executing: ${process_script}"
   log_info "PATH exported (first 200 chars): $(echo "${PATH}" | cut -c1-200)..."
+  log_info "HYBRID_MOCK_DIR: ${HYBRID_MOCK_DIR:-not set}"
+  log_info "MOCK_COMMANDS_DIR: ${MOCK_COMMANDS_DIR:-not set}"
   "${process_script}"
 
   local exit_code=$?
@@ -559,12 +663,61 @@ run_processAPINotes() {
   return ${exit_code}
 }
 
+# Function to setup test properties
+# Replaces etc/properties.sh with properties_test.sh temporarily
+# This ensures main scripts load test properties without knowing about test context
+setup_test_properties() {
+  log_info "Setting up test properties..."
+
+  local properties_file="${PROJECT_ROOT}/etc/properties.sh"
+  local test_properties_file="${PROJECT_ROOT}/etc/properties_test.sh"
+  local properties_backup="${PROJECT_ROOT}/etc/properties.sh.backup"
+
+  # Check if test properties file exists
+  if [[ ! -f "${test_properties_file}" ]]; then
+    log_error "Test properties file not found: ${test_properties_file}"
+    return 1
+  fi
+
+  # Backup original properties file if it exists and backup doesn't exist
+  if [[ -f "${properties_file}" ]] && [[ ! -f "${properties_backup}" ]]; then
+    log_info "Backing up original properties file..."
+    cp "${properties_file}" "${properties_backup}"
+  fi
+
+  # Replace properties.sh with properties_test.sh
+  log_info "Replacing properties.sh with test properties..."
+  cp "${test_properties_file}" "${properties_file}"
+
+  log_success "Test properties configured"
+}
+
+# Function to restore original properties
+restore_properties() {
+  log_info "Restoring original properties..."
+
+  local properties_file="${PROJECT_ROOT}/etc/properties.sh"
+  local properties_backup="${PROJECT_ROOT}/etc/properties.sh.backup"
+
+  # Restore original properties if backup exists
+  if [[ -f "${properties_backup}" ]]; then
+    log_info "Restoring original properties file..."
+    mv "${properties_backup}" "${properties_file}"
+    log_success "Original properties restored"
+  else
+    log_warning "Properties backup not found, skipping restore"
+  fi
+}
+
 # Function to cleanup
 cleanup() {
   # Disable error exit temporarily for cleanup
   set +e
 
   log_info "Cleaning up hybrid mock environment..."
+
+  # Restore original properties file first
+  restore_properties
 
   # Deactivate hybrid mock environment if setup script exists
   if [[ -f "${SETUP_HYBRID_SCRIPT}" ]]; then
@@ -627,11 +780,21 @@ main() {
     exit 1
   fi
 
-  # Setup test database
+  # Setup test properties FIRST (replace etc/properties.sh with properties_test.sh)
+  # This must be done before setup_test_database() which needs DBNAME
+  if ! setup_test_properties; then
+    log_error "Failed to setup test properties"
+    exit 1
+  fi
+
+  # Setup test database (now DBNAME is available from properties_test.sh)
   if ! setup_test_database; then
     log_error "Database setup failed. Aborting."
     exit 1
   fi
+
+  # Migrate database schema (add missing columns if needed)
+  migrate_database_schema
 
   # Cleanup lock files before starting
   cleanup_lock_files

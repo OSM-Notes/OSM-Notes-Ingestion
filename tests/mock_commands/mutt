@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# Mock mutt command for testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-11-12
+
+# Parse arguments
+ARGS=()
+SUBJECT=""
+BODY_FILE=""
+ATTACHMENT=""
+RECIPIENTS=""
+QUIET=false
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -s)
+   SUBJECT="$2"
+   shift 2
+   ;;
+  -i)
+   BODY_FILE="$2"
+   shift 2
+   ;;
+  -a)
+   ATTACHMENT="$2"
+   shift 2
+   ;;
+  --)
+   # Recipients come after --
+   shift
+   RECIPIENTS="$*"
+   break
+   ;;
+  --version)
+   echo "Mutt 2.2.0"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Simulate email sending (just log it)
+if [[ -n "${SUBJECT}" ]]; then
+ echo "Mock email sent:"
+ echo "  Subject: ${SUBJECT}"
+ if [[ -n "${BODY_FILE}" ]] && [[ -f "${BODY_FILE}" ]]; then
+   echo "  Body: $(head -5 "${BODY_FILE}" | tr '\n' ' ')"
+ fi
+ if [[ -n "${ATTACHMENT}" ]]; then
+   echo "  Attachment: ${ATTACHMENT}"
+ fi
+ if [[ -n "${RECIPIENTS}" ]]; then
+   echo "  Recipients: ${RECIPIENTS}"
+ fi
+fi
+
+exit 0

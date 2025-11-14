@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to run processAPINotes.sh in full mock mode (no internet, no real DB)
+# Script to run updateCountries.sh in full mock mode (no internet, no real DB)
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-12
 
@@ -43,21 +43,20 @@ readonly SETUP_MOCK_SCRIPT
 # Function to show help
 show_help() {
   cat << 'EOF'
-Script to run processAPINotes.sh in full mock mode
+Script to run updateCountries.sh in full mock mode
 
 This script sets up a complete mock environment where:
   - Internet downloads are mocked (wget, aria2c)
   - Database operations are mocked (psql)
+  - Geographic conversions are mocked (osmtogeojson, ogr2ogr)
   - All processing runs without external dependencies
 
-The script executes processAPINotes.sh FOUR TIMES:
-  1. First execution: Resets base tables marker, triggering processPlanetNotes.sh --base
-  2. Second execution: Base tables exist, uses 5 notes for sequential processing (< 10)
-  3. Third execution: Uses 20 notes for parallel processing (>= 10)
-  4. Fourth execution: No new notes (empty response) - tests handling of no updates
+The script executes updateCountries.sh in two modes:
+  1. First execution: --base mode (drops and recreates tables)
+  2. Second execution: Update mode (normal monthly update)
 
 Usage:
-  ./run_processAPINotes_mock.sh [OPTIONS]
+  ./run_updateCountries_mock.sh [OPTIONS]
 
 Options:
   --help, -h     Show this help message
@@ -69,14 +68,14 @@ Environment variables:
                  Default: false
 
 Examples:
-  # Run with default settings (four executions)
-  ./run_processAPINotes_mock.sh
+  # Run with default settings (two executions)
+  ./run_updateCountries_mock.sh
 
   # Run with debug logging
-  LOG_LEVEL=DEBUG ./run_processAPINotes_mock.sh
+  LOG_LEVEL=DEBUG ./run_updateCountries_mock.sh
 
   # Run and clean temporary files
-  CLEAN=true ./run_processAPINotes_mock.sh
+  CLEAN=true ./run_updateCountries_mock.sh
 EOF
 }
 
@@ -130,40 +129,21 @@ restore_properties() {
 cleanup_lock_files() {
   log_info "Cleaning up lock files and failed execution markers..."
 
-  # Clean processAPINotes lock file
-  local lock_file="/tmp/processAPINotes.lock"
+  # Clean updateCountries lock file
+  local lock_file="/tmp/updateCountries.lock"
   if [[ -f "${lock_file}" ]]; then
     log_info "Removing lock file: ${lock_file}"
     rm -f "${lock_file}"
   fi
 
   # Clean failed execution marker
-  local failed_file="/tmp/processAPINotes_failed_execution"
+  local failed_file="/tmp/updateCountries_failed_execution"
   if [[ -f "${failed_file}" ]]; then
     log_info "Removing failed execution marker: ${failed_file}"
     rm -f "${failed_file}"
   fi
 
-  # Clean processPlanetNotes lock file (in case it exists)
-  local planet_lock="/tmp/processPlanetNotes.lock"
-  if [[ -f "${planet_lock}" ]]; then
-    log_info "Removing planet lock file: ${planet_lock}"
-    rm -f "${planet_lock}"
-  fi
-
   log_success "Lock files cleaned"
-}
-
-# Function to reset base tables marker (simulates first run)
-reset_base_tables_marker() {
-  log_info "Resetting base tables marker to simulate first run (tables don't exist)"
-  local base_tables_marker="/tmp/osm_notes_base_tables_created"
-  if [[ -f "${base_tables_marker}" ]]; then
-    rm -f "${base_tables_marker}"
-    log_info "Base tables marker removed - processPlanetNotes.sh --base will be called"
-  else
-    log_info "Base tables marker already absent - processPlanetNotes.sh --base will be called"
-  fi
 }
 
 # Function to setup mock environment
@@ -179,9 +159,88 @@ setup_mock_environment() {
   # Create mock commands if they don't exist
   if [[ ! -f "${MOCK_COMMANDS_DIR}/psql" ]] || \
      [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]] || \
-     [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
+     [[ ! -f "${MOCK_COMMANDS_DIR}/osmtogeojson" ]]; then
     log_info "Creating mock commands..."
     bash "${SETUP_MOCK_SCRIPT}" setup
+  fi
+
+  # Create ogr2ogr mock only for full mock mode (when DB is mocked)
+  # ogr2ogr is needed to "import" GeoJSON to mocked database
+  if [[ ! -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]]; then
+    log_info "Creating mock ogr2ogr for full mock mode..."
+    # Create ogr2ogr mock inline (since we're in full mock mode)
+    cat > "${MOCK_COMMANDS_DIR}/ogr2ogr" << 'EOF'
+#!/bin/bash
+
+# Mock ogr2ogr command for testing (full mock mode only)
+# Author: Andres Gomez (AngocA)
+# Version: 2025-11-12
+
+# Parse arguments
+ARGS=()
+OUTPUT=""
+INPUT=""
+QUIET=false
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -f)
+   OUTPUT_FORMAT="$2"
+   shift 2
+   ;;
+  -nln)
+   LAYER_NAME="$2"
+   shift 2
+   ;;
+  -nlt)
+   GEOMETRY_TYPE="$2"
+   shift 2
+   ;;
+  -q)
+   QUIET=true
+   shift
+   ;;
+  --version)
+   echo "GDAL 3.6.0"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Get input and output from arguments
+if [[ ${#ARGS[@]} -ge 2 ]]; then
+ OUTPUT="${ARGS[0]}"
+ INPUT="${ARGS[1]}"
+elif [[ ${#ARGS[@]} -eq 1 ]]; then
+ OUTPUT="${ARGS[0]}"
+fi
+
+# Simulate conversion (just verify files exist)
+if [[ -n "${INPUT}" ]] && [[ ! -f "${INPUT}" ]]; then
+ echo "ERROR: Input file not found: ${INPUT}" >&2
+ exit 1
+fi
+
+if [[ -n "${OUTPUT}" ]]; then
+ # Create a dummy output file
+ touch "${OUTPUT}" 2>/dev/null || true
+fi
+
+if [[ "$QUIET" != true ]]; then
+ echo "Mock ogr2ogr: Converted ${INPUT:-stdin} to ${OUTPUT:-stdout}"
+fi
+
+exit 0
+EOF
+    chmod +x "${MOCK_COMMANDS_DIR}/ogr2ogr"
   fi
 
   # Ensure pgrep mock exists
@@ -194,7 +253,6 @@ exit 1
 EOF
     chmod +x "${MOCK_COMMANDS_DIR}/pgrep"
   fi
-
 
   # Activate mock environment
   log_info "Activating mock environment..."
@@ -238,58 +296,41 @@ setup_environment_variables() {
   # Set project base directory
   export SCRIPT_BASE_DIRECTORY="${PROJECT_ROOT}"
 
+  # Skip XML validation for faster execution
+  export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+
   log_success "Environment variables configured"
 }
 
-# Function to run processAPINotes
-run_processAPINotes() {
-  local execution_number="${1:-1}"
-  log_info "Running processAPINotes.sh in mock mode (execution #${execution_number})..."
+# Function to run updateCountries
+run_updateCountries() {
+  local execution_mode="${1:-}"
+  log_info "Running updateCountries.sh in mock mode (mode: ${execution_mode:-normal})..."
 
-  local process_script
-  process_script="${PROJECT_ROOT}/bin/process/processAPINotes.sh"
+  local update_script
+  update_script="${PROJECT_ROOT}/bin/process/updateCountries.sh"
 
-  if [[ ! -f "${process_script}" ]]; then
-    log_error "processAPINotes.sh not found: ${process_script}"
+  if [[ ! -f "${update_script}" ]]; then
+    log_error "updateCountries.sh not found: ${update_script}"
     return 1
   fi
 
   # Make script executable
-  chmod +x "${process_script}"
+  chmod +x "${update_script}"
 
-  # Export MOCK_NOTES_COUNT so wget mock can use it
-  if [[ -n "${MOCK_NOTES_COUNT:-}" ]]; then
-    export MOCK_NOTES_COUNT
-    log_info "MOCK_NOTES_COUNT set to: ${MOCK_NOTES_COUNT}"
+  # Run the script with optional mode parameter
+  log_info "Executing: ${update_script} ${execution_mode}"
+  if [[ -n "${execution_mode}" ]]; then
+    "${update_script}" "${execution_mode}"
   else
-    unset MOCK_NOTES_COUNT
+    "${update_script}"
   fi
 
-  # Run the script (capture both stdout and stderr to see errors)
-  log_info "Executing: ${process_script}"
-  # Force TTY to get output in real-time (processAPINotes.sh redirects to log file if no TTY)
-  # Use script command to create a pseudo-TTY
-  if command -v script > /dev/null 2>&1; then
-    # Use script to create pseudo-TTY so output goes to stdout/stderr
-    script -qefc "${process_script}" /dev/null 2>&1
-    local exit_code=$?
-  else
-    # Fallback: run normally and show log file after execution
-    "${process_script}" 2>&1 || true
-    local exit_code=$?
-    
-    # Find and display the log file
-    local log_file
-    log_file=$(find /tmp -name "processAPINotes_*" -type d -mtime -1 2>/dev/null | head -1)
-    if [[ -n "${log_file}" ]] && [[ -f "${log_file}/processAPINotes.log" ]]; then
-      log_info "Script output (from log file):"
-      cat "${log_file}/processAPINotes.log"
-    fi
-  fi
+  local exit_code=$?
   if [[ ${exit_code} -eq 0 ]]; then
-    log_success "processAPINotes.sh completed successfully (execution #${execution_number})"
+    log_success "updateCountries.sh completed successfully (mode: ${execution_mode:-normal})"
   else
-    log_error "processAPINotes.sh exited with code: ${exit_code} (execution #${execution_number})"
+    log_error "updateCountries.sh exited with code: ${exit_code} (mode: ${execution_mode:-normal})"
   fi
 
   return ${exit_code}
@@ -361,18 +402,12 @@ main() {
   # Setup environment variables
   setup_environment_variables
 
-  # First execution: Reset base tables marker to trigger processPlanetNotes.sh --base
-  log_info "=== FIRST EXECUTION: Will load processPlanetNotes.sh --base ==="
+  # First execution: --base mode (drops and recreates tables)
+  log_info "=== FIRST EXECUTION: --base mode ==="
   cleanup_lock_files
-  reset_base_tables_marker
 
-  # Use default fixture (original OSM-notes-API.xml) for first execution
-  unset MOCK_NOTES_COUNT
-  export MOCK_NOTES_COUNT=""
-
-  # Run processAPINotes (first time - will call processPlanetNotes.sh --base)
-  if ! run_processAPINotes 1; then
-    log_error "First execution failed"
+  if ! run_updateCountries "--base"; then
+    log_error "First execution (--base mode) failed"
     exit_code=$?
     exit ${exit_code}
   fi
@@ -380,51 +415,12 @@ main() {
   # Wait a moment between executions
   sleep 2
 
-  # Second execution: Base tables exist, use 5 notes for sequential processing
-  log_info "=== SECOND EXECUTION: Sequential processing (< 10 notes) ==="
+  # Second execution: Update mode (normal monthly update)
+  log_info "=== SECOND EXECUTION: Update mode (normal monthly update) ==="
   cleanup_lock_files
 
-  # Set MOCK_NOTES_COUNT to 5 for sequential processing (below MIN_NOTES_FOR_PARALLEL=10)
-  export MOCK_NOTES_COUNT="5"
-  log_info "Using ${MOCK_NOTES_COUNT} notes for sequential processing test"
-
-  # Run processAPINotes (second time - tables exist, sequential processing)
-  if ! run_processAPINotes 2; then
-    log_error "Second execution failed"
-    exit_code=$?
-  fi
-
-  # Wait a moment between executions
-  sleep 2
-
-  # Third execution: Use 20 notes for parallel processing
-  log_info "=== THIRD EXECUTION: Parallel processing (>= 10 notes) ==="
-  cleanup_lock_files
-
-  # Set MOCK_NOTES_COUNT to 20 for parallel processing (above MIN_NOTES_FOR_PARALLEL=10)
-  export MOCK_NOTES_COUNT="20"
-  log_info "Using ${MOCK_NOTES_COUNT} notes for parallel processing test"
-
-  # Run processAPINotes (third time - parallel processing)
-  if ! run_processAPINotes 3; then
-    log_error "Third execution failed"
-    exit_code=$?
-  fi
-
-  # Wait a moment between executions
-  sleep 2
-
-  # Fourth execution: No new notes (empty response)
-  log_info "=== FOURTH EXECUTION: No new notes (empty response) ==="
-  cleanup_lock_files
-
-  # Set MOCK_NOTES_COUNT to 0 for empty response (no new notes)
-  export MOCK_NOTES_COUNT="0"
-  log_info "Using ${MOCK_NOTES_COUNT} notes to simulate no new notes scenario"
-
-  # Run processAPINotes (fourth time - no new notes)
-  if ! run_processAPINotes 4; then
-    log_error "Fourth execution failed"
+  if ! run_updateCountries; then
+    log_error "Second execution (update mode) failed"
     exit_code=$?
   fi
 
