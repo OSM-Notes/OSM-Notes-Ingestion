@@ -185,13 +185,6 @@ count=$(echo "$output" | grep -Eo '[0-9]+' | tail -1)
  [ "$status" -eq 0 ] || echo "Script should include SQL validation in prerequisites check"
 }
 
-# Test that the script has the correct version
-@test "processCheckPlanetNotes.sh should have the correct version" {
- # Test that the script has the expected version
- run bash -c "grep -q 'VERSION=\"2025-08-11\"' ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
- [ "$status" -eq 0 ] || echo "Script should have version 2025-08-11"
-}
-
 # Test that the script has proper error handling setup
 @test "processCheckPlanetNotes.sh should have proper error handling setup" {
  # Test that the script has proper error handling

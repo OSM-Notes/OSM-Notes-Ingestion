@@ -204,10 +204,9 @@ SQL
   # Try to extract boundary ID from input file name
   # boundaryProcessingFunctions.sh uses files like: ${TMP_DIR}/${ID}.geojson
   # Extract ID from filename if possible
-  local BOUNDARY_ID=""
+  BOUNDARY_ID=""
   if [[ -n "${INPUT_FILE:-}" ]] && [[ -f "${INPUT_FILE}" ]]; then
    # Try to extract ID from filename like: /tmp/updateCountries_XXXXX/148838.geojson
-   local BASENAME_FILE
    BASENAME_FILE=$(basename "${INPUT_FILE}" .geojson)
    if [[ "${BASENAME_FILE}" =~ ^[0-9]+$ ]]; then
     BOUNDARY_ID="${BASENAME_FILE}"

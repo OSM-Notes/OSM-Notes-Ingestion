@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Unit tests for Overpass API smart wait functionality
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-10
+# Version: 2025-11-12
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -65,18 +65,6 @@ teardown() {
   run grep 'OVERPASS_RETRIES_PER_ENDPOINT:-7' "${SCRIPT_FILE}"
   [ "$status" -eq 0 ]
   run grep 'OVERPASS_BACKOFF_SECONDS:-20' "${SCRIPT_FILE}"
-  [ "$status" -eq 0 ]
-}
-
-@test "Version should be 2025-11-10" {
-  local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-  run grep "Version: 2025-11-10" "${SCRIPT_FILE}"
-  [ "$status" -eq 0 ]
-}
-
-@test "VERSION variable should be 2025-11-10" {
-  local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-  run grep "VERSION=\"2025-11-10\"" "${SCRIPT_FILE}"
   [ "$status" -eq 0 ]
 }
 

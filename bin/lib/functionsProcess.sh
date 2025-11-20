@@ -1696,11 +1696,11 @@ CREATE TABLE IF NOT EXISTS tries (
 COMMENT ON TABLE tries IS
  'Number of tries to find a country. This is used to improve the sequence order';
 EOF
- 
+
  # Check if countries table exists before creating get_country function
  local COUNTRIES_TABLE_EXISTS
  COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
- 
+
  if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
   __logw "Countries table does not exist. Creating stub get_country function."
   # Create a stub function that returns NULL when countries table doesn't exist
@@ -1724,7 +1724,7 @@ EOF
   __log_finish
   return 0
  fi
- 
+
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
  __log_finish

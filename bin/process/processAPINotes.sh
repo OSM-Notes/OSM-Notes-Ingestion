@@ -283,15 +283,15 @@ function __checkPrereqs {
   # Read from file and convert to integer directly
   local TABLE_COUNT=0
   if [[ -f "${TEMP_CHECK_FILE:-}" ]] && [[ -s "${TEMP_CHECK_FILE:-}" ]]; then
-    # Extract only numeric value from file (psql may include connection messages)
-    # Use grep to extract digits only, or take the last line which should be the count
-    local FILE_CONTENT
-    FILE_CONTENT=$(grep -E '^[0-9]+$' "${TEMP_CHECK_FILE}" 2>/dev/null | tail -1 || echo "0")
-    # Temporarily disable set -u for arithmetic expansion to avoid issues
-    set +u
-    # Convert to integer - FILE_CONTENT is guaranteed to have a value
-    TABLE_COUNT=$((${FILE_CONTENT:-0} + 0)) || TABLE_COUNT=0
-    set -u
+   # Extract only numeric value from file (psql may include connection messages)
+   # Use grep to extract digits only, or take the last line which should be the count
+   local FILE_CONTENT
+   FILE_CONTENT=$(grep -E '^[0-9]+$' "${TEMP_CHECK_FILE}" 2> /dev/null | tail -1 || echo "0")
+   # Temporarily disable set -u for arithmetic expansion to avoid issues
+   set +u
+   # Convert to integer - FILE_CONTENT is guaranteed to have a value
+   TABLE_COUNT=$((${FILE_CONTENT:-0} + 0)) || TABLE_COUNT=0
+   set -u
   fi
   rm -f "${TEMP_CHECK_FILE:-}"
 
@@ -324,15 +324,15 @@ function __checkPrereqs {
   # Read from file and convert to integer directly
   local GAP_COUNT=0
   if [[ -f "${TEMP_GAP_FILE:-}" ]] && [[ -s "${TEMP_GAP_FILE:-}" ]]; then
-    # Extract only numeric value from file (psql may include connection messages)
-    # Use grep to extract digits only, or take the last line which should be the count
-    local GAP_CONTENT
-    GAP_CONTENT=$(grep -E '^[0-9]+$' "${TEMP_GAP_FILE}" 2>/dev/null | tail -1 || echo "0")
-    # Temporarily disable set -u for arithmetic expansion to avoid issues
-    set +u
-    # Convert to integer - GAP_CONTENT is guaranteed to have a value
-    GAP_COUNT=$((${GAP_CONTENT:-0} + 0)) || GAP_COUNT=0
-    set -u
+   # Extract only numeric value from file (psql may include connection messages)
+   # Use grep to extract digits only, or take the last line which should be the count
+   local GAP_CONTENT
+   GAP_CONTENT=$(grep -E '^[0-9]+$' "${TEMP_GAP_FILE}" 2> /dev/null | tail -1 || echo "0")
+   # Temporarily disable set -u for arithmetic expansion to avoid issues
+   set +u
+   # Convert to integer - GAP_CONTENT is guaranteed to have a value
+   GAP_COUNT=$((${GAP_CONTENT:-0} + 0)) || GAP_COUNT=0
+   set -u
   fi
   rm -f "${TEMP_GAP_FILE:-}"
 
@@ -891,7 +891,7 @@ function __insertNewNotesAndComments {
  fi
 
  # Extract only numeric value from file (psql may include connection messages)
- NOTES_COUNT=$(grep -E '^[0-9]+$' "${TEMP_COUNT_FILE}" 2>/dev/null | tail -1 || echo "0")
+ NOTES_COUNT=$(grep -E '^[0-9]+$' "${TEMP_COUNT_FILE}" 2> /dev/null | tail -1 || echo "0")
  rm -f "${TEMP_COUNT_FILE}"
 
  if [[ "${NOTES_COUNT:-0}" -gt 1000 ]]; then

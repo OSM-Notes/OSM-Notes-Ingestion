@@ -375,7 +375,7 @@ function __cleanup_base() {
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
  __logi "Dropping country tables (countries, tries)..."
- if ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS tries CASCADE; DROP TABLE IF EXISTS countries CASCADE;" 2>/dev/null; then
+ if ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS tries CASCADE; DROP TABLE IF EXISTS countries CASCADE;" 2> /dev/null; then
   __logi "SUCCESS: Country tables dropped"
  else
   __logw "WARNING: Some country tables may not have been dropped"

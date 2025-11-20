@@ -1567,7 +1567,9 @@ function main() {
  __checkPreviousFailedExecution
 
  if ! __checkPrereqs; then
-  exit "${SCRIPT_EXIT_CODE:-1}"
+  local EXIT_CODE="${SCRIPT_EXIT_CODE:-${ERROR_INVALID_ARGUMENT}}"
+  export SCRIPT_EXIT_CODE="${EXIT_CODE}"
+  exit "${EXIT_CODE}"
  fi
 
  __logw "Starting process."
