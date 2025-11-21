@@ -278,47 +278,59 @@ ensure_real_commands() {
 
   # Remove mock commands directory from PATH temporarily to find real commands
   local temp_path
-  temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | tr '\n' ':' | sed 's/:$//')
+  temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
+  
+  # Add standard system directories to ensure we can find real commands
+  local standard_paths="/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
+  temp_path="${temp_path}:${standard_paths}"
 
-  # Find real psql path
+  # Find real psql path using which with clean PATH
   local real_psql_path
-  real_psql_path=""
-  while IFS= read -r dir; do
-    if [[ -f "${dir}/psql" ]] && [[ "${dir}" != "${MOCK_COMMANDS_DIR}" ]]; then
-      real_psql_path="${dir}/psql"
-      break
-    fi
-  done <<< "$(echo "${temp_path}" | tr ':' '\n')"
+  real_psql_path=$(PATH="${temp_path}" which psql 2>/dev/null || PATH="${temp_path}" command -v psql 2>/dev/null || true)
+  
+  # If still not found, search in standard directories
+  if [[ -z "${real_psql_path}" ]] || [[ "${real_psql_path}" == *"mock_commands"* ]]; then
+    for dir in /usr/bin /usr/local/bin /bin; do
+      if [[ -f "${dir}/psql" ]] && [[ "${dir}" != "${MOCK_COMMANDS_DIR}" ]]; then
+        real_psql_path="${dir}/psql"
+        break
+      fi
+    done
+  fi
 
-  if [[ -z "${real_psql_path}" ]]; then
-    log_error "Real psql command not found in PATH"
+  if [[ -z "${real_psql_path}" ]] || [[ "${real_psql_path}" == *"mock_commands"* ]]; then
+    log_error "Real psql command not found (found: ${real_psql_path:-none})"
     return 1
   fi
 
-  # Find real ogr2ogr path
+  # Find real ogr2ogr path using which with clean PATH
   local real_ogr2ogr_path
-  real_ogr2ogr_path=""
-  while IFS= read -r dir; do
-    if [[ -f "${dir}/ogr2ogr" ]] && [[ "${dir}" != "${MOCK_COMMANDS_DIR}" ]]; then
-      real_ogr2ogr_path="${dir}/ogr2ogr"
-      break
-    fi
-  done <<< "$(echo "${temp_path}" | tr ':' '\n')"
+  real_ogr2ogr_path=$(PATH="${temp_path}" which ogr2ogr 2>/dev/null || PATH="${temp_path}" command -v ogr2ogr 2>/dev/null || true)
+  
+  # If still not found, search in standard directories
+  if [[ -z "${real_ogr2ogr_path}" ]] || [[ "${real_ogr2ogr_path}" == *"mock_commands"* ]]; then
+    for dir in /usr/bin /usr/local/bin /bin; do
+      if [[ -f "${dir}/ogr2ogr" ]] && [[ "${dir}" != "${MOCK_COMMANDS_DIR}" ]]; then
+        real_ogr2ogr_path="${dir}/ogr2ogr"
+        break
+      fi
+    done
+  fi
 
-  if [[ -z "${real_ogr2ogr_path}" ]]; then
-    log_error "Real ogr2ogr command not found in PATH"
+  if [[ -z "${real_ogr2ogr_path}" ]] || [[ "${real_ogr2ogr_path}" == *"mock_commands"* ]]; then
+    log_error "Real ogr2ogr command not found (found: ${real_ogr2ogr_path:-none})"
     return 1
   fi
 
-  # Get real command directories
-  local real_psql_dir
-  real_psql_dir=$(dirname "${real_psql_path}")
-  local real_ogr2ogr_dir
-  real_ogr2ogr_dir=$(dirname "${real_ogr2ogr_path}")
+  # Get real command directories and export them for use in run_updateCountries
+  export REAL_PSQL_DIR
+  REAL_PSQL_DIR=$(dirname "${real_psql_path}")
+  export REAL_OGR2OGR_DIR
+  REAL_OGR2OGR_DIR=$(dirname "${real_ogr2ogr_path}")
 
   # Rebuild PATH: Remove ALL mock directories to ensure real commands are used
   local clean_path
-  clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${real_psql_dir}$" | grep -v "^${real_ogr2ogr_dir}$" | tr '\n' ':' | sed 's/:$//')
+  clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${REAL_PSQL_DIR}$" | grep -v "^${REAL_OGR2OGR_DIR}$" | tr '\n' ':' | sed 's/:$//')
   
   # Create a custom mock directory that only contains aria2c, wget, pgrep (not psql or ogr2ogr)
   local hybrid_mock_dir
@@ -344,7 +356,7 @@ ensure_real_commands() {
 
   # Set PATH: hybrid mock dir first (for aria2c/wget), then real command dirs, then rest
   # This ensures mock aria2c/wget are found before real ones, but real psql/ogr2ogr are found
-  export PATH="${hybrid_mock_dir}:${real_psql_dir}:${real_ogr2ogr_dir}:${clean_path}"
+  export PATH="${hybrid_mock_dir}:${REAL_PSQL_DIR}:${REAL_OGR2OGR_DIR}:${clean_path}"
   hash -r 2> /dev/null || true
 
   # Verify we're using real psql (should find it in real_psql_dir since hybrid_mock_dir has no psql)
@@ -521,12 +533,12 @@ run_updateCountries() {
   # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, wget, pgrep mocks)
   # but ensure real psql and ogr2ogr directories are also in PATH
   if [[ -n "${HYBRID_MOCK_DIR:-}" ]] && [[ -d "${HYBRID_MOCK_DIR}" ]]; then
-    # Find real command directories
-    local real_psql_dir
-    real_psql_dir=$(dirname "$(command -v psql)")
-    local real_ogr2ogr_dir
-    real_ogr2ogr_dir=$(dirname "$(command -v ogr2ogr)")
-    export PATH="${HYBRID_MOCK_DIR}:${real_psql_dir}:${real_ogr2ogr_dir}:${clean_path}"
+    # Use pre-calculated real command directories (exported by ensure_real_commands)
+    if [[ -z "${REAL_PSQL_DIR:-}" ]] || [[ -z "${REAL_OGR2OGR_DIR:-}" ]]; then
+      log_error "Real command directories not set. ensure_real_commands must be called first."
+      return 1
+    fi
+    export PATH="${HYBRID_MOCK_DIR}:${REAL_PSQL_DIR}:${REAL_OGR2OGR_DIR}:${clean_path}"
   else
     export PATH="${clean_path}"
   fi

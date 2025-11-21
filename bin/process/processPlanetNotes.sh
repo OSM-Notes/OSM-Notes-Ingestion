@@ -356,13 +356,14 @@ function __checkPrereqs {
  if [[ "${PROCESS_TYPE}" != "" ]] && [[ "${PROCESS_TYPE}" != "--base" ]] \
   && [[ "${PROCESS_TYPE}" != "--help" ]] \
   && [[ "${PROCESS_TYPE}" != "-h" ]]; then
-  echo "ERROR: Invalid parameter. It should be:"
-  echo " * Empty string, nothing."
-  echo " * --base"
-  echo " * --help"
-  __log_finish
+  echo "ERROR: Invalid parameter. It should be:" >&2
+  echo " * Empty string, nothing." >&2
+  echo " * --base" >&2
+  echo " * --help" >&2
+  __loge "ERROR: Invalid parameter."
   export SCRIPT_EXIT_CODE="${ERROR_INVALID_ARGUMENT}"
-  return "${ERROR_INVALID_ARGUMENT}"
+  __log_finish
+  exit "${ERROR_INVALID_ARGUMENT}"
  fi
  set -e
  # Checks prereqs.
@@ -1566,11 +1567,9 @@ function main() {
 
  __checkPreviousFailedExecution
 
- if ! __checkPrereqs; then
-  local EXIT_CODE="${SCRIPT_EXIT_CODE:-${ERROR_INVALID_ARGUMENT}}"
-  export SCRIPT_EXIT_CODE="${EXIT_CODE}"
-  exit "${EXIT_CODE}"
- fi
+ # Validate parameters before proceeding
+ # Note: __checkPrereqs will exit directly if invalid parameter is detected
+ __checkPrereqs
 
  __logw "Starting process."
 

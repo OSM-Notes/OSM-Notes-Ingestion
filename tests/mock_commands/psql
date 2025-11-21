@@ -12,7 +12,11 @@ mock_database_operation() {
  case "$operation" in
   -d)
    # Database connection
-   echo "Connected to database: $args"
+   # In quiet mode (-q), don't output connection message to stdout
+   # This prevents interference when capturing command output
+   if [[ "${QUIET_MODE:-false}" != "true" ]]; then
+     echo "Connected to database: $args"
+   fi
    ;;
   -c)
    # SQL command
@@ -254,6 +258,103 @@ mock_database_operation() {
    # SQL file
    if [[ -f "$args" ]]; then
      echo "Executing SQL file: $args"
+     
+     # Read SQL file and check for \copy commands
+     local sql_content
+     sql_content=$(cat "$args" 2>/dev/null || echo "")
+     local sql_normalized
+     sql_normalized=$(echo "$sql_content" | tr '\n' ' ' | tr '\r' ' ' | sed 's/[[:space:]]\+/ /g')
+     
+     # Check for \copy commands (client-side COPY)
+     # \copy can appear as \copy or \\copy in the SQL
+     # Check both raw content and normalized content for better detection
+     # Also check for patterns that might be in single-line format after conversion
+     if echo "$sql_content" | grep -qE "^[[:space:]]*\\\\copy|^[[:space:]]*\\\copy|[[:space:]]+\\\\copy|[[:space:]]+\\\copy" 2>/dev/null || echo "$sql_normalized" | grep -qE "(\\\\copy|\\\copy)" 2>/dev/null; then
+       # Extract file paths from \copy commands using a more robust method
+       # Process the normalized SQL to extract all file paths
+       local temp_file
+       temp_file=$(mktemp)
+       
+       # Extract all TO 'path' patterns from normalized SQL (single-line format after conversion)
+       # This handles the format: \copy (SELECT ...) TO '/path/file.csv' WITH ...
+       # Extract all occurrences, including those with variables like ${VAR} or $VAR
+       echo "$sql_normalized" | grep -oE "TO[[:space:]]+['\"][^'\"]+['\"]" | sed -E "s/TO[[:space:]]+['\"]([^'\"]+)['\"]/\\1/" >> "$temp_file" 2>/dev/null || true
+       
+       # Also try extracting from raw content in case normalization missed something
+       echo "$sql_content" | grep -oE "TO[[:space:]]+['\"][^'\"]+['\"]" | sed -E "s/TO[[:space:]]+['\"]([^'\"]+)['\"]/\\1/" >> "$temp_file" 2>/dev/null || true
+       
+       # If we found variables like ${VAR}, try to resolve them from environment
+       # This handles cases where variables weren't substituted before conversion
+       if grep -qE '\$\{' "$temp_file" 2>/dev/null; then
+         # Try to resolve variables from environment
+         local resolved_file
+         resolved_file=$(mktemp)
+         while IFS= read -r filepath; do
+           # If path contains ${VAR}, try to resolve it
+           if echo "$filepath" | grep -qE '\$\{'; then
+             # Try to get the variable name and resolve it
+             local var_name
+             var_name=$(echo "$filepath" | sed -E "s/.*\\\$\{([^}]+)\}.*/\\1/")
+             if [[ -n "${var_name}" ]] && [[ -n "${!var_name:-}" ]]; then
+               echo "${!var_name}" >> "$resolved_file"
+             else
+               # Keep original if can't resolve
+               echo "$filepath" >> "$resolved_file"
+             fi
+           else
+             echo "$filepath" >> "$resolved_file"
+           fi
+         done < "$temp_file"
+         mv "$resolved_file" "$temp_file"
+       fi
+       
+       # Remove duplicates and empty lines
+       sort -u "$temp_file" | grep -v "^[[:space:]]*$" > "${temp_file}.clean" 2>/dev/null || true
+       mv "${temp_file}.clean" "$temp_file" 2>/dev/null || true
+       
+       # Process each file path found
+       while IFS= read -r filepath; do
+         filepath=$(echo "$filepath" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+         [[ -z "$filepath" ]] && continue
+         
+         # Create directory if needed
+         local filedir
+         filedir=$(dirname "$filepath")
+         if [[ -n "$filedir" ]] && [[ "$filedir" != "." ]]; then
+           mkdir -p "$filedir" 2>/dev/null || true
+         fi
+         
+         # Create CSV file based on filename pattern
+         if [[ "$filepath" == *"lastNote"* ]] || [[ "$filepath" == *"LAST_NOTE"* ]]; then
+           echo "note_id,latitude,longitude,created_at,status,closed_at" > "$filepath"
+           echo "123,40.7128,-74.0060,2023-01-01 00:00:00,open," >> "$filepath"
+         elif [[ "$filepath" == *"lastComment"* ]] || [[ "$filepath" == *"LAST_COMMENT"* ]]; then
+           echo "comment_id,note_id,sequence_action,created_at,action,user_id,username" > "$filepath"
+           echo "456,123,1,2023-01-01 00:00:00,opened,12345,testuser" >> "$filepath"
+         elif [[ "$filepath" == *"differentNoteIds"* ]] || [[ "$filepath" == *"DIFFERENT_NOTE_IDS"* ]]; then
+           echo "note_id" > "$filepath"
+           # Empty file (no differences) - just header
+         elif [[ "$filepath" == *"differentCommentIds"* ]] || [[ "$filepath" == *"DIFFERENT_COMMENT_IDS"* ]]; then
+           echo "comment_id" > "$filepath"
+           # Empty file (no differences) - just header
+         elif [[ "$filepath" == *"differentNotes"* ]] || [[ "$filepath" == *"DIFFERENT_NOTES"* ]]; then
+           echo "note_id,latitude,longitude,created_at,status,closed_at" > "$filepath"
+           # Empty file (no differences) - just header
+         elif [[ "$filepath" == *"differentTextComments"* ]] || [[ "$filepath" == *"DIFFERENT_TEXT_COMMENTS"* ]]; then
+           echo "text_comment_id" > "$filepath"
+           # Empty file (no differences) - just header
+         elif [[ "$filepath" == *"textComments"* ]] || [[ "$filepath" == *"DIFFERENCES_TEXT_COMMENT"* ]]; then
+           echo "qty,note_id,sequence_action" > "$filepath"
+           # Empty file (no differences) - just header
+         else
+           # Generic CSV file
+           echo "id,value" > "$filepath"
+         fi
+       done < "$temp_file"
+       
+       rm -f "$temp_file"
+     fi
+     
      echo "OK"
    else
      echo "ERROR: File not found: $args" >&2
@@ -357,6 +458,17 @@ while [[ $# -gt 0 ]]; do
   -qt)
    QUIET_MODE=true
    TUPLES_ONLY=true
+   shift
+   ;;
+  -*)
+   # Handle flag combinations that might include -q (quiet) or -t (tuples only)
+   # This catches -Atq, -Aqt, -tAq, and any other combinations
+   if [[ "$1" == *"q"* ]]; then
+     QUIET_MODE=true
+   fi
+   if [[ "$1" == *"t"* ]]; then
+     TUPLES_ONLY=true
+   fi
    shift
    ;;
   -v)

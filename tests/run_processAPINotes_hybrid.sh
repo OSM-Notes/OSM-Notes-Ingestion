@@ -211,8 +211,8 @@ drop_base_tables() {
 
   # Check if base tables exist
   local tables_exist
-  tables_exist=$(${psql_cmd} -d "${DBNAME}" -tAc \
-    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs', 'tries');" 2>/dev/null || echo "0")
+  tables_exist=$(${psql_cmd} -d "${DBNAME}" -tAqc \
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs', 'tries');" 2>/dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
 
   if [[ "${tables_exist}" -gt 0 ]]; then
     log_info "Base tables exist, dropping them..."
