@@ -59,7 +59,7 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-01-23
 VERSION="2025-11-12"
 
 #set -xv
@@ -1239,9 +1239,9 @@ function __check_and_log_gaps() {
    LIMIT 10
  "
 
-# Log gaps to file
-local GAP_FILE="/tmp/processAPINotes_gaps.log"
-psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
+ # Log gaps to file
+ local GAP_FILE="/tmp/processAPINotes_gaps.log"
+ psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
 
  __logd "Checked and logged gaps from database"
  __log_finish

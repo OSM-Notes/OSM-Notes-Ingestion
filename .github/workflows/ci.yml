@@ -1,7 +1,7 @@
 # CI/CD Pipeline - OSM-Notes-Ingestion
 # Consolidated workflow combining quality tests, unit tests, and integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-27
+# Version: 2025-01-23
 
 name: CI/CD Pipeline
 
@@ -99,6 +99,11 @@ jobs:
         submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -109,6 +114,10 @@ jobs:
           xsltproc \
           shellcheck \
           curl
+
+    - name: Install Node.js tools
+      run: |
+        npm install -g ajv-cli
 
     - name: Install shfmt
       run: |

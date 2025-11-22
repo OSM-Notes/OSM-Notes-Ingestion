@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-01-23
 
 # Test file for extended validation functions (JSON and Database)
 
@@ -12,6 +12,11 @@ setup() {
  # Ensure SCRIPT_BASE_DIRECTORY is set
  if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
    export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ fi
+
+ # Ensure TEST_BASE_DIR is set (used by some tests)
+ if [[ -z "${TEST_BASE_DIR:-}" ]]; then
+   export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  fi
 
  # Load properties and functions
@@ -287,7 +292,7 @@ EOF
 }
 EOF
 
- run __validate_json_schema "${TEST_DIR}/valid_geojson.json" "${TEST_BASE_DIR}/json/geojsonschema.json"
+ run __validate_json_schema "${TEST_DIR}/valid_geojson.json" "${SCRIPT_BASE_DIRECTORY}/json/geojsonschema.json"
  [[ "${status}" -eq 0 ]]
 }
 
