@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
-VERSION="2025-11-12"
+# Version: 2025-11-22
+VERSION="2025-11-22"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -1389,7 +1389,16 @@ function __checkBaseTables {
   fi
  else
   # Script executed successfully - tables exist
+  # Now verify get_country function exists (non-critical - will be created if missing)
   __logd "All base tables verified successfully"
+  local FUNCTION_EXISTS
+  FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
+   __logw "get_country function is missing but tables exist - will be created automatically"
+   # Return 0 (tables OK) - function will be created by __ensureGetCountryFunction
+  else
+   __logd "get_country function verified"
+  fi
   RET=0
  fi
 

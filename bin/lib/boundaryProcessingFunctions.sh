@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
-VERSION="2025-11-12"
+# Version: 2025-11-21
+VERSION="2025-11-21"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -986,8 +986,44 @@ function __processMaritimes_impl {
  done
  __logw "All maritime jobs reported completion."
  if [[ "${FAIL}" -ne 0 ]]; then
-  echo "FAIL! (${FAIL})"
-  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+  __loge "FAIL! (${FAIL}) - Some maritime jobs failed"
+  if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+   __logw "CONTINUE_ON_OVERPASS_ERROR=true - Recording failed boundaries and continuing"
+   # Extract failed boundary IDs from job logs and consolidate into failed_boundaries.txt
+   local FAILED_BOUNDARIES_FILE="${TMP_DIR}/failed_boundaries.txt"
+   # Ensure failed_boundaries.txt exists (may have been created by __processBoundary)
+   touch "${FAILED_BOUNDARIES_FILE}" 2>/dev/null || true
+   for JOB_LOG in "${TMP_DIR}/${BASENAME}.old."*; do
+    if [[ -f "${JOB_LOG}" ]]; then
+     # Extract boundary IDs that failed from the log file
+     # Look for lines indicating failed boundaries:
+     # - "Failed to process boundary ${ID}" from __processList
+     # - "Recording boundary ${ID} as failed" from __processBoundary_impl
+     grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${JOB_LOG}" 2>/dev/null | \
+      grep -oE "[0-9]+" | \
+      while read -r FAILED_ID; do
+       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
+        # Add to failed_boundaries.txt if not already present
+        if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2>/dev/null; then
+         echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
+         __logd "Recorded failed maritime boundary ID: ${FAILED_ID}"
+        fi
+       fi
+      done || true
+    fi
+   done
+   # Also check if failed_boundaries.txt already exists from __processBoundary calls
+   if [[ -f "${FAILED_BOUNDARIES_FILE}" ]]; then
+    local FAILED_COUNT
+    FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2>/dev/null | tr -d ' ' || echo "0")
+    __logw "Total failed maritime boundaries recorded: ${FAILED_COUNT}"
+    __logw "Failed boundaries list: ${FAILED_BOUNDARIES_FILE}"
+   fi
+   __logw "Continuing despite ${FAIL} failed maritime job(s) (CONTINUE_ON_OVERPASS_ERROR=true)"
+  else
+   __loge "CONTINUE_ON_OVERPASS_ERROR=false - Exiting due to failed maritime jobs"
+   exit "${ERROR_DOWNLOADING_BOUNDARY}"
+  fi
  fi
 
  # If some of the threads generated an error.
@@ -996,7 +1032,39 @@ function __processMaritimes_impl {
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some threads generated errors."
-  exit "${ERROR_DOWNLOADING_BOUNDARY}"
+  if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+   __logw "CONTINUE_ON_OVERPASS_ERROR=true - Continuing despite error logs"
+   # Extract failed boundary IDs from error logs
+   local FAILED_BOUNDARIES_FILE="${TMP_DIR}/failed_boundaries.txt"
+   # Ensure failed_boundaries.txt exists (may have been created by __processBoundary)
+   touch "${FAILED_BOUNDARIES_FILE}" 2>/dev/null || true
+   for ERROR_LOG in "${TMP_DIR}/${BASENAME}.log."*; do
+    if [[ -f "${ERROR_LOG}" ]]; then
+     # Extract boundary IDs that failed from error log files
+     # Look for lines indicating failed boundaries:
+     # - "Failed to process boundary ${ID}" from __processList
+     # - "Recording boundary ${ID} as failed" from __processBoundary_impl
+     grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${ERROR_LOG}" 2>/dev/null | \
+      grep -oE "[0-9]+" | \
+      while read -r FAILED_ID; do
+       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
+        if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2>/dev/null; then
+         echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
+         __logd "Recorded failed maritime boundary ID from error log: ${FAILED_ID}"
+        fi
+       fi
+      done || true
+    fi
+   done
+   if [[ -f "${FAILED_BOUNDARIES_FILE}" ]]; then
+    local FAILED_COUNT
+    FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2>/dev/null | tr -d ' ' || echo "0")
+    __logw "Total failed maritime boundaries recorded: ${FAILED_COUNT}"
+   fi
+  else
+   __loge "CONTINUE_ON_OVERPASS_ERROR=false - Exiting due to error logs"
+   exit "${ERROR_DOWNLOADING_BOUNDARY}"
+  fi
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
   rm -f "${LOCK_OGR2OGR}/pid"
