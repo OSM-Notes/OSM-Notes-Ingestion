@@ -260,10 +260,17 @@ run_notesCheckVerifier() {
 }
 
 # Function to cleanup
+# This function is idempotent and can be called multiple times safely
 cleanup() {
+  # Prevent multiple simultaneous cleanup executions
+  if [[ "${CLEANUP_IN_PROGRESS:-false}" == "true" ]]; then
+    return 0
+  fi
+  export CLEANUP_IN_PROGRESS=true
+
   log_info "Cleaning up mock environment..."
 
-  # Restore original properties file first
+  # Restore original properties file first (most important)
   restore_properties
 
   # Deactivate mock environment if setup script exists
@@ -282,6 +289,7 @@ cleanup() {
   unset TEST_MODE
 
   log_success "Cleanup completed"
+  export CLEANUP_IN_PROGRESS=false
 }
 
 # Main function
@@ -304,8 +312,9 @@ main() {
       ;;
   esac
 
-  # Setup trap for cleanup
-  trap cleanup EXIT
+  # Setup trap for cleanup BEFORE making any changes
+  # Capture EXIT, SIGINT (Ctrl+C), and SIGTERM to ensure cleanup always runs
+  trap cleanup EXIT SIGINT SIGTERM
 
   # Cleanup lock files before starting
   cleanup_lock_files
