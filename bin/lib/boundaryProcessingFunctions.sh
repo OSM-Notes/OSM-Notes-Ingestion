@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-21
-VERSION="2025-11-21"
+# Version: 2025-11-22
+VERSION="2025-11-22"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -492,27 +492,56 @@ function __processBoundary_impl {
  __logd "Importing boundary ${ID} into database..."
 
  # Always use field selection to avoid row size issues
+ # Note: Some boundaries (e.g., Antarctica) may not have admin_level field
+ # -skipfailures allows ogr2ogr to continue even if fields are missing
  __logd "Using field-selected import for boundary ${ID} to avoid row size issues"
 
  local IMPORT_OPERATION
+ local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BASHPID}.log"
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special handling for Austria (ID: 16239)"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  else
   # Standard import with field selection to avoid row size issues
   __log_field_selected_import "${ID}"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
  if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
   __loge "Failed to import boundary ${ID} into database after retries"
+  # Check for real errors (not just missing field warnings)
+  if [[ -f "${OGR_ERROR_LOG}" ]]; then
+   local REAL_ERRORS
+   REAL_ERRORS=$(grep -v "Field 'admin_level' not found" "${OGR_ERROR_LOG}" 2> /dev/null | grep -v "^$" || true)
+   if [[ -n "${REAL_ERRORS}" ]]; then
+    __loge "ogr2ogr errors for boundary ${ID}:"
+    echo "${REAL_ERRORS}" | while IFS= read -r line; do
+     __loge "  ${line}"
+    done
+   else
+    __logd "Only expected warnings (missing admin_level field) for boundary ${ID}"
+   fi
+   rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+  fi
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+   "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OGR_ERROR_LOG} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
   __log_finish
   return 1
+ fi
+ # Check ogr2ogr output for warnings (missing fields are expected for some boundaries)
+ if [[ -f "${OGR_ERROR_LOG}" ]]; then
+  local REAL_ERRORS
+  REAL_ERRORS=$(grep -v "Field 'admin_level' not found" "${OGR_ERROR_LOG}" 2> /dev/null | grep -v "^$" || true)
+  if [[ -n "${REAL_ERRORS}" ]]; then
+   __logw "ogr2ogr warnings for boundary ${ID} (non-critical):"
+   echo "${REAL_ERRORS}" | while IFS= read -r line; do
+    __logw "  ${line}"
+   done
+  fi
+  rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
  fi
  __log_import_completed "${ID}"
 
@@ -992,19 +1021,19 @@ function __processMaritimes_impl {
    # Extract failed boundary IDs from job logs and consolidate into failed_boundaries.txt
    local FAILED_BOUNDARIES_FILE="${TMP_DIR}/failed_boundaries.txt"
    # Ensure failed_boundaries.txt exists (may have been created by __processBoundary)
-   touch "${FAILED_BOUNDARIES_FILE}" 2>/dev/null || true
+   touch "${FAILED_BOUNDARIES_FILE}" 2> /dev/null || true
    for JOB_LOG in "${TMP_DIR}/${BASENAME}.old."*; do
     if [[ -f "${JOB_LOG}" ]]; then
      # Extract boundary IDs that failed from the log file
      # Look for lines indicating failed boundaries:
      # - "Failed to process boundary ${ID}" from __processList
      # - "Recording boundary ${ID} as failed" from __processBoundary_impl
-     grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${JOB_LOG}" 2>/dev/null | \
-      grep -oE "[0-9]+" | \
-      while read -r FAILED_ID; do
+     grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${JOB_LOG}" 2> /dev/null \
+      | grep -oE "[0-9]+" \
+      | while read -r FAILED_ID; do
        if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
         # Add to failed_boundaries.txt if not already present
-        if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2>/dev/null; then
+        if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
          __logd "Recorded failed maritime boundary ID: ${FAILED_ID}"
         fi
@@ -1015,7 +1044,7 @@ function __processMaritimes_impl {
    # Also check if failed_boundaries.txt already exists from __processBoundary calls
    if [[ -f "${FAILED_BOUNDARIES_FILE}" ]]; then
     local FAILED_COUNT
-    FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2>/dev/null | tr -d ' ' || echo "0")
+    FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
     __logw "Total failed maritime boundaries recorded: ${FAILED_COUNT}"
     __logw "Failed boundaries list: ${FAILED_BOUNDARIES_FILE}"
    fi
@@ -1037,18 +1066,18 @@ function __processMaritimes_impl {
    # Extract failed boundary IDs from error logs
    local FAILED_BOUNDARIES_FILE="${TMP_DIR}/failed_boundaries.txt"
    # Ensure failed_boundaries.txt exists (may have been created by __processBoundary)
-   touch "${FAILED_BOUNDARIES_FILE}" 2>/dev/null || true
+   touch "${FAILED_BOUNDARIES_FILE}" 2> /dev/null || true
    for ERROR_LOG in "${TMP_DIR}/${BASENAME}.log."*; do
     if [[ -f "${ERROR_LOG}" ]]; then
      # Extract boundary IDs that failed from error log files
      # Look for lines indicating failed boundaries:
      # - "Failed to process boundary ${ID}" from __processList
      # - "Recording boundary ${ID} as failed" from __processBoundary_impl
-     grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${ERROR_LOG}" 2>/dev/null | \
-      grep -oE "[0-9]+" | \
-      while read -r FAILED_ID; do
+     grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${ERROR_LOG}" 2> /dev/null \
+      | grep -oE "[0-9]+" \
+      | while read -r FAILED_ID; do
        if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
-        if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2>/dev/null; then
+        if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
          __logd "Recorded failed maritime boundary ID from error log: ${FAILED_ID}"
         fi
@@ -1058,7 +1087,7 @@ function __processMaritimes_impl {
    done
    if [[ -f "${FAILED_BOUNDARIES_FILE}" ]]; then
     local FAILED_COUNT
-    FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2>/dev/null | tr -d ' ' || echo "0")
+    FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
     __logw "Total failed maritime boundaries recorded: ${FAILED_COUNT}"
    fi
   else
