@@ -82,6 +82,8 @@ if [[ -z "${POSTGRES_42_CONSOLIDATE_PARTITIONS:-}" ]]; then declare -r POSTGRES_
 if [[ -z "${POSTGRES_43_MOVE_SYNC_TO_MAIN:-}" ]]; then declare -r POSTGRES_43_MOVE_SYNC_TO_MAIN="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_43_moveSyncToMain.sql"; fi
 
 # Count XML notes for Planet
+# This function is overridden by functionsProcess.sh, but kept here for compatibility
+# The version in functionsProcess.sh properly exports TOTAL_NOTES variable
 function __countXmlNotesPlanet() {
  __log_start
  __logd "Counting XML notes for Planet."
@@ -91,14 +93,35 @@ function __countXmlNotesPlanet() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
-  exit "${ERROR_MISSING_LIBRARY}"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
  fi
 
  # Use grep for faster counting of large files
  COUNT=$(grep -c '<note' "${XML_FILE}" 2> /dev/null || echo "0")
- __logi "Found ${COUNT} notes in Planet XML file using grep."
+
+ # Ensure COUNT is numeric
+ if [[ -z "${COUNT}" ]] || [[ ! "${COUNT}" =~ ^[0-9]+$ ]]; then
+  __loge "Invalid or empty note count returned by grep: '${COUNT}'"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __log_finish
+  return 1
+ fi
+
+ # Convert to integer safely
+ TOTAL_NOTES=$((COUNT + 0))
+ export TOTAL_NOTES
+
+ if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
+  __logi "No notes found in XML file"
+ else
+  __logi "Total notes found: ${TOTAL_NOTES}"
+ fi
+
  __log_finish
- echo "${COUNT}"
 }
 
 # Split XML for parallel Planet processing

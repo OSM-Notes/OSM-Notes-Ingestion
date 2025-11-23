@@ -393,13 +393,24 @@ EOF
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
- if [[ ! -t 1 ]]; then
+ # Check if running as subprocess
+ # When called from processPlanetNotes.sh, we write to a separate log file
+ if [[ -n "${UPDATE_COUNTRIES_AS_SUBPROCESS:-}" ]] && [[ -n "${UPDATE_COUNTRIES_LOG_FILE:-}" ]]; then
+  # Running as subprocess - write to specified log file
+  export LOG_FILE="${UPDATE_COUNTRIES_LOG_FILE}"
+  {
+   __start_logger
+   main
+  } >> "${UPDATE_COUNTRIES_LOG_FILE}" 2>&1
+ elif [[ ! -t 1 ]]; then
+  # Not a terminal - redirect to log file
   export LOG_FILE="${LOG_FILENAME}"
   {
    __start_logger
    main
   } >> "${LOG_FILENAME}" 2>&1
  else
+  # Running in terminal - use stdout
   __start_logger
   main
  fi

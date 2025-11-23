@@ -1322,14 +1322,25 @@ function __processGeographicData {
    # Capture subprocess output to show progress
    # Pass DBNAME explicitly to ensure updateCountries.sh uses the correct database
    # This is critical when running in test mode where DBNAME might be different
+   # Set flag to indicate subprocess execution so updateCountries.sh writes to its own log
+   # Also pass TMP_DIR so updateCountries.sh can write its log in a known location
    local UPDATE_COUNTRIES_EXIT_CODE=0
-   local line
+   local UPDATE_COUNTRIES_LOG_FILE
+   UPDATE_COUNTRIES_LOG_FILE="${TMP_DIR}/updateCountries_subprocess.log"
    set +e # Temporarily disable exit on error for pipeline
-   DBNAME="${DBNAME}" "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base 2>&1 | while IFS= read -r line; do
-    __logi "[updateCountries] ${line}"
-   done
-   UPDATE_COUNTRIES_EXIT_CODE="${PIPESTATUS[0]}"
+   DBNAME="${DBNAME}" UPDATE_COUNTRIES_AS_SUBPROCESS="true" \
+    UPDATE_COUNTRIES_LOG_FILE="${UPDATE_COUNTRIES_LOG_FILE}" \
+    "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base
+   UPDATE_COUNTRIES_EXIT_CODE=$?
    set -e # Re-enable exit on error
+
+   # Log summary from updateCountries.sh log file if it exists
+   if [[ -f "${UPDATE_COUNTRIES_LOG_FILE}" ]]; then
+    __logi "updateCountries.sh completed. Summary from its log:"
+    tail -20 "${UPDATE_COUNTRIES_LOG_FILE}" | while IFS= read -r line; do
+     __logd "[updateCountries] ${line}"
+    done
+   fi
 
    if [[ "${UPDATE_COUNTRIES_EXIT_CODE}" -eq 0 ]]; then
     __logi "Countries and maritimes areas loaded successfully."
