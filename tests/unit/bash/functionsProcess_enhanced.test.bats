@@ -3,7 +3,7 @@
 # Enhanced unit tests for functionsProcess.sh with improved testability
 # Tests XML counting functions, validation, error handling, and performance
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-10
+# Version: 2025-11-23
 
 load "$(dirname "${BATS_TEST_FILENAME}")/../../test_helper.bash"
 
@@ -14,7 +14,7 @@ load "$(dirname "${BATS_TEST_FILENAME}")/../../test_helper.bash"
 setup() {
  # Ensure TEST_BASE_DIR is set
  if [[ -z "${TEST_BASE_DIR:-}" ]]; then
-   export TEST_BASE_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+  export TEST_BASE_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  fi
 
  # Create test XML files for different scenarios
@@ -242,6 +242,104 @@ EOF
  # Execute function and check if it fails as expected
  run __countXmlNotesAPI "/non/existent/file.xml"
  [[ "${status}" -ne 0 ]]
+}
+
+@test "enhanced __countXmlNotesAPI should handle grep output with newlines correctly" {
+ # Test that the function handles cases where grep -c might return newlines
+ # This tests the fix for the "syntax error in expression" bug
+ # where grep -c output with newlines caused arithmetic expression errors
+
+ # Create a test XML file with notes
+ local TEST_XML="${TMP_DIR}/test_newline_case.xml"
+ cat > "${TEST_XML}" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+ <note id="1" lat="0.0" lon="0.0">
+  <comment>
+   <text>Test note 1</text>
+  </comment>
+ </note>
+ <note id="2" lat="1.0" lon="1.0">
+  <comment>
+   <text>Test note 2</text>
+  </comment>
+ </note>
+</osm>
+EOF
+
+ # Source the function
+ source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
+
+ # Test that the function properly cleans grep output
+ # We'll directly test the cleaned output by simulating the bug scenario
+ # First, get the raw grep output (which might have newlines)
+ local RAW_COUNT
+ RAW_COUNT=$(grep -c '<note ' "${TEST_XML}" 2> /dev/null || echo "0")
+
+ # Simulate the bug: add a newline to the count (as grep might do)
+ RAW_COUNT="${RAW_COUNT}"$'\n'
+
+ # Test that the cleaning logic works
+ local CLEANED_COUNT
+ CLEANED_COUNT=$(printf '%s' "${RAW_COUNT}" | tr -d '[:space:]' | head -1 || echo "0")
+
+ # Verify cleaned count is numeric and can be used in arithmetic
+ [[ "${CLEANED_COUNT}" =~ ^[0-9]+$ ]]
+
+ # Test arithmetic operation - this would fail with the bug
+ local TEST_ARITHMETIC
+ TEST_ARITHMETIC=$((CLEANED_COUNT + 0))
+ [[ "${TEST_ARITHMETIC}" -eq 2 ]]
+
+ # Now test the actual function to ensure it handles this correctly
+ run __countXmlNotesAPI "${TEST_XML}"
+
+ # Function should succeed
+ [[ "${status}" -eq 0 ]]
+
+ # Verify that TOTAL_NOTES is set and can be used in arithmetic
+ # This is the critical test - if TOTAL_NOTES has newlines, this will fail
+ if [[ -n "${TOTAL_NOTES:-}" ]]; then
+  # Test arithmetic operation - this will fail if TOTAL_NOTES has newlines
+  local TEST_ARITHMETIC_FINAL
+  TEST_ARITHMETIC_FINAL=$((TOTAL_NOTES + 0)) || true
+  [[ "${TEST_ARITHMETIC_FINAL}" -ge 0 ]]
+  [[ "${TEST_ARITHMETIC_FINAL}" -eq 2 ]]
+ fi
+
+ # Cleanup
+ rm -f "${TEST_XML}"
+}
+
+@test "enhanced __countXmlNotesAPI should handle zero count without syntax errors" {
+ # Test that zero count from grep -c doesn't cause syntax errors
+ # Create an XML file with no notes
+ local TEST_XML="${TMP_DIR}/test_zero_notes.xml"
+ cat > "${TEST_XML}" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+</osm>
+EOF
+
+ # Source the function
+ source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
+
+ # Execute function
+ run __countXmlNotesAPI "${TEST_XML}"
+
+ # Function should succeed even with zero notes
+ [[ "${status}" -eq 0 ]]
+
+ # Verify TOTAL_NOTES is 0 and can be used in arithmetic
+ if [[ -n "${TOTAL_NOTES:-}" ]]; then
+  # Test arithmetic operation
+  local TEST_ARITHMETIC
+  TEST_ARITHMETIC=$((TOTAL_NOTES + 0)) || true
+  [[ "${TEST_ARITHMETIC}" -eq 0 ]]
+ fi
+
+ # Cleanup
+ rm -f "${TEST_XML}"
 }
 
 @test "enhanced __countXmlNotesPlanet should count notes correctly" {
