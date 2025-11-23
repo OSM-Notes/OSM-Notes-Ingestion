@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-22
-VERSION="2025-11-22"
+# Version: 2025-11-23
+VERSION="2025-11-23"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -417,7 +417,8 @@ function __countXmlNotesAPI() {
  fi
 
  # Count notes using grep (fast and reliable)
- TOTAL_NOTES=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null || echo "0")
+ # Clean output immediately to avoid newline issues
+ TOTAL_NOTES=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null | tr -d '[:space:]' || echo "0")
  local GREP_STATUS=$?
 
  # grep returns 0 when matches found or no matches (which is valid)
@@ -430,7 +431,7 @@ function __countXmlNotesAPI() {
   return 1
  fi
 
- # Remove any whitespace and ensure it's a single integer
+ # Remove any remaining whitespace and ensure it's a single integer
  TOTAL_NOTES=$(printf '%s' "${TOTAL_NOTES}" | tr -d '[:space:]' | head -1 || echo "0")
 
  # Ensure it's numeric, default to 0 if not
