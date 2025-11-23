@@ -2,7 +2,7 @@
 
 # Master test runner for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-24
+# Version: 2025-01-23
 
 set -euo pipefail
 
@@ -87,6 +87,18 @@ run_simple_tests() {
  fi
 }
 
+# Function to run CI tests locally
+run_ci_tests() {
+ log_info "Running CI tests locally (simulating GitHub Actions)..."
+
+ if [[ -f "${SCRIPT_DIR}/run_ci_tests_local.sh" ]]; then
+  "${SCRIPT_DIR}/run_ci_tests_local.sh" "$@"
+ else
+  log_error "CI test runner not found"
+  return 1
+ fi
+}
+
 # Function to show available options
 show_help() {
  echo "OSM-Notes-profile Test Runner"
@@ -98,7 +110,8 @@ show_help() {
  echo "  --db          Run tests with real database (requires PostgreSQL)"
  echo "  --mock        Run tests with mock environment (no database required)"
  echo "  --simple      Run simple tests (basic validation)"
- echo "  --all         Run all test modes"
+ echo "  --ci          Run CI tests locally (simulating GitHub Actions)"
+ echo "  --all         Run all test modes (including CI tests)"
  echo
  echo "Test Types:"
  echo "  --unit        Run unit tests only"
@@ -181,6 +194,10 @@ case "${1:-}" in
   ;;
  esac
  ;;
+--ci)
+ log_info "Running CI tests locally..."
+ run_ci_tests
+ ;;
 --all)
  log_info "Running all test modes..."
  echo
@@ -192,6 +209,9 @@ case "${1:-}" in
  echo
  echo "📋 Simple Tests:"
  run_simple_tests || log_warning "Simple tests failed"
+ echo
+ echo "🚀 CI Tests (GitHub Actions simulation):"
+ run_ci_tests || log_warning "CI tests failed"
  ;;
 --help | -h)
  show_help
