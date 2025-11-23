@@ -1947,14 +1947,14 @@ EOF
   else
    # Only move files if they exist (may not exist if processing failed)
    if [[ -f "${JSON_FILE}" ]]; then
-    mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old" 2> /dev/null || \
-     __logw "Failed to move JSON file for boundary ${ID}"
+    mv "${JSON_FILE}" "${TMP_DIR}/${ID}.json.old" 2> /dev/null \
+     || __logw "Failed to move JSON file for boundary ${ID}"
    else
     __logd "JSON file not found for boundary ${ID} (may have been cleaned up)"
    fi
    if [[ -f "${GEOJSON_FILE}" ]]; then
-    mv "${GEOJSON_FILE}" "${TMP_DIR}/${ID}.geojson.old" 2> /dev/null || \
-     __logw "Failed to move GeoJSON file for boundary ${ID}"
+    mv "${GEOJSON_FILE}" "${TMP_DIR}/${ID}.geojson.old" 2> /dev/null \
+     || __logw "Failed to move GeoJSON file for boundary ${ID}"
    else
     __logd "GeoJSON file not found for boundary ${ID} (may have been cleaned up)"
    fi
