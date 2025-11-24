@@ -2,7 +2,7 @@
 
 # Test CSV enum validation function
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-03
+# Version: 2025-11-24
 
 # Define logging functions for testing
 function __logd() { echo "DEBUG: $*"; }
@@ -58,6 +58,8 @@ function __validate_csv_for_enum_compatibility {
 
  "notes")
   # Validate note status against note_status_enum
+  # CSV order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
+  # Status is in the 5th field (after created_at)
   local INVALID_LINES=0
   local LINE_NUMBER=0
 
@@ -69,9 +71,9 @@ function __validate_csv_for_enum_compatibility {
     continue
    fi
 
-   # Extract status value (6th field)
+   # Extract status value (5th field)
    local STATUS
-   STATUS=$(echo "${line}" | cut -d',' -f6 | tr -d '"' 2> /dev/null)
+   STATUS=$(echo "${line}" | cut -d',' -f5 | tr -d '"' 2> /dev/null)
 
    # Check if status is empty or invalid (status can be empty for open notes)
    if [[ -n "${STATUS}" ]] && [[ ! "${STATUS}" =~ ^(open|close|hidden)$ ]]; then
@@ -142,16 +144,18 @@ EOF
 EOF
 
  # Valid notes CSV
+ # CSV order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
  cat > "${TEST_DIR}/valid_notes.csv" << 'EOF'
-123,40.4168,-3.7038,"2025-07-14T13:39:25Z",,"open",1,1
-124,40.4169,-3.7039,"2025-07-14T13:45:00Z","2025-07-14T14:30:00Z","close",1,1
-125,40.4170,-3.7040,"2025-07-14T15:00:00Z",,"hidden",1,1
+123,40.4168,-3.7038,"2025-07-14T13:39:25Z","open",,1,1
+124,40.4169,-3.7039,"2025-07-14T13:45:00Z","close","2025-07-14T14:30:00Z",1,1
+125,40.4170,-3.7040,"2025-07-14T15:00:00Z","hidden",,1,1
 EOF
 
  # Invalid notes CSV with invalid status
+ # CSV order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
  cat > "${TEST_DIR}/invalid_notes_bad_status.csv" << 'EOF'
-123,40.4168,-3.7038,"2025-07-14T13:39:25Z",,"invalid_status",1,1
-124,40.4169,-3.7039,"2025-07-14T13:45:00Z","2025-07-14T14:30:00Z","close",1,1
+123,40.4168,-3.7038,"2025-07-14T13:39:25Z","invalid_status",,1,1
+124,40.4169,-3.7039,"2025-07-14T13:45:00Z","close","2025-07-14T14:30:00Z",1,1
 EOF
 }
 
