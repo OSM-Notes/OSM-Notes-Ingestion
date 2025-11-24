@@ -23,6 +23,26 @@ setup() {
   exit 1
  fi
 
+ # Find real psql before activating mock environment
+ # Remove mock commands directory from PATH temporarily to find real psql
+ local mock_commands_dir="${SCRIPT_BASE_DIRECTORY}/tests/mock_commands"
+ local temp_path
+ temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${mock_commands_dir}" | tr '\n' ':' | sed 's/:$//')
+ 
+ # Find real psql path
+ local real_psql_path=""
+ while IFS= read -r dir; do
+   if [[ -f "${dir}/psql" ]] && [[ "${dir}" != "${mock_commands_dir}" ]]; then
+     real_psql_path="${dir}/psql"
+     break
+   fi
+ done <<< "$(echo "${temp_path}" | tr ':' '\n')"
+ 
+ # Export real psql path if found
+ if [[ -n "${real_psql_path}" ]]; then
+   export REAL_PSQL_PATH="${real_psql_path}"
+ fi
+
  # Setup hybrid mock environment
  source "${SCRIPT_BASE_DIRECTORY}/tests/setup_hybrid_mock_environment.sh"
  setup_hybrid_mock_environment
@@ -137,35 +157,68 @@ teardown() {
 
 # Test that real psql works (if available)
 @test "real psql should be available for database operations" {
- # Check if psql is available
- if command -v psql > /dev/null 2>&1; then
-  run psql --version
-  [ "$status" -eq 0 ]
-  # psql --version outputs "psql (PostgreSQL X.Y.Z)" or similar
-  # Check for either "psql" or "PostgreSQL" in output
-  if [[ "$output" != *"psql"* ]] && [[ "$output" != *"PostgreSQL"* ]]; then
-   echo "ERROR: psql --version output does not contain 'psql' or 'PostgreSQL': $output"
-   return 1
+ # Use real psql if available, otherwise check if mock psql is available
+ local psql_cmd=""
+ if [[ -n "${REAL_PSQL_PATH:-}" ]] && [[ -f "${REAL_PSQL_PATH}" ]]; then
+  psql_cmd="${REAL_PSQL_PATH}"
+ elif command -v psql > /dev/null 2>&1; then
+  # Check if it's the real psql (not mock)
+  # Remove mock directories from PATH temporarily to find real psql
+  local temp_path
+  temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
+  local psql_path
+  psql_path=$(PATH="${temp_path}" command -v psql 2>/dev/null || true)
+  if [[ -n "${psql_path}" ]] && [[ "${psql_path}" != *"mock_commands"* ]]; then
+   psql_cmd="${psql_path}"
   fi
- else
+ fi
+ 
+ if [[ -z "${psql_cmd}" ]]; then
   skip "psql not available"
+ fi
+ 
+ # Run psql --version using the real psql
+ # Capture both stdout and stderr to avoid issues with output redirection
+ local version_output
+ version_output=$("${psql_cmd}" --version 2>&1) || {
+  echo "ERROR: psql --version failed with exit code $?" >&2
+  return 1
+ }
+ 
+ # psql --version outputs "psql (PostgreSQL X.Y.Z)" or similar
+ # Check for either "psql" or "PostgreSQL" in output
+ if [[ "${version_output}" != *"psql"* ]] && [[ "${version_output}" != *"PostgreSQL"* ]]; then
+  echo "ERROR: psql --version output does not contain 'psql' or 'PostgreSQL': ${version_output}" >&2
+  return 1
  fi
 }
 
 # Test that real database operations work (if database is available)
 @test "real database operations should work with mock data" {
- # Skip if psql is not available
- if ! command -v psql > /dev/null 2>&1; then
+ # Use real psql if available
+ local psql_cmd=""
+ if [[ -n "${REAL_PSQL_PATH:-}" ]] && [[ -f "${REAL_PSQL_PATH}" ]]; then
+  psql_cmd="${REAL_PSQL_PATH}"
+ elif command -v psql > /dev/null 2>&1; then
+  # Check if it's the real psql (not mock)
+  local psql_path
+  psql_path=$(command -v psql)
+  if [[ "${psql_path}" != *"mock_commands"* ]]; then
+   psql_cmd="${psql_path}"
+  fi
+ fi
+ 
+ if [[ -z "${psql_cmd}" ]]; then
   skip "psql not available"
  fi
 
  # Skip if database is not accessible
- if ! psql -d "${DBNAME:-osm_notes}" -c "SELECT 1;" > /dev/null 2>&1; then
+ if ! "${psql_cmd}" -d "${DBNAME:-osm_notes}" -c "SELECT 1;" > /dev/null 2>&1; then
   skip "Database not accessible"
  fi
 
  # Test basic database operation
- run psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
+ run "${psql_cmd}" -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
  [ "$status" -eq 0 ]
  # Check for any output that indicates success
  [[ -n "$output" ]]

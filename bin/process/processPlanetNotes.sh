@@ -716,9 +716,9 @@ function __processPlanetNotesWithParallel {
 
  __logi "Found ${#PART_FILES[@]} part files to process"
  __logd "Part files list (first 5):"
- for i in "${!PART_FILES[@]}"; do
-  if [[ ${i} -lt 5 ]]; then
-   __logd "  [${i}]: ${PART_FILES[${i}]}"
+ for I in "${!PART_FILES[@]}"; do
+  if [[ ${I} -lt 5 ]]; then
+   __logd "  [${I}]: ${PART_FILES[${I}]}"
   fi
  done
 
