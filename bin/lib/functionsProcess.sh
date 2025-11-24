@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-23
-VERSION="2025-11-23"
+# Version: 2025-11-24
+VERSION="2025-11-24"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -621,17 +621,17 @@ function __processApiXmlPart() {
  __logd "Adding id_country (empty) and part_id ${PART_NUM} to notes CSV"
  awk -v part_id="${PART_NUM}" '{print $0 ",," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
- # Add part_id to the end of each line for comments
- __logd "Adding part_id ${PART_NUM} to comments CSV"
- awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+# Add part_id to the end of each line for comments
+__logd "Adding part_id ${PART_NUM} to comments CSV"
+awk -v part_id="${PART_NUM}" '{gsub(/,$/, ""); print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
- # Add part_id to the end of each line for text comments
- __logd "Adding part_id ${PART_NUM} to text comments CSV"
- if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
-  awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
- else
-  __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
- fi
+# Add part_id to the end of each line for text comments
+__logd "Adding part_id ${PART_NUM} to text comments CSV"
+if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
+ awk -v part_id="${PART_NUM}" '{gsub(/,$/, ""); print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+else
+ __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
+fi
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files for part ${PART_NUM}:"
@@ -778,25 +778,25 @@ function __processPlanetXmlPart() {
   return 1
  fi
 
- # Add part_id to the end of each line
- __logd "Adding part_id ${PART_NUM} to comments CSV"
- awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+# Add part_id to the end of each line
+__logd "Adding part_id ${PART_NUM} to comments CSV"
+awk -v part_id="${PART_NUM}" '{gsub(/,$/, ""); print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
- # Process text comments with AWK (fast and dependency-free)
- __logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
- awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
- if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
-  __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
-  : > "${OUTPUT_TEXT_PART}"
- fi
+# Process text comments with AWK (fast and dependency-free)
+__logd "Processing text comments with AWK: ${XML_PART} -> ${OUTPUT_TEXT_PART}"
+awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_PART}" > "${OUTPUT_TEXT_PART}"
+if [[ ! -f "${OUTPUT_TEXT_PART}" ]]; then
+ __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_PART}"
+ : > "${OUTPUT_TEXT_PART}"
+fi
 
- # Add part_id to the end of each line
- __logd "Adding part_id ${PART_NUM} to text comments CSV"
- if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
-  awk -v part_id="${PART_NUM}" '{sub(/,$/, part_id); print}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
- else
-  __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
- fi
+# Add part_id to the end of each line
+__logd "Adding part_id ${PART_NUM} to text comments CSV"
+if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
+ awk -v part_id="${PART_NUM}" '{gsub(/,$/, ""); print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+else
+ __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
+fi
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files for part ${PART_NUM}:"
