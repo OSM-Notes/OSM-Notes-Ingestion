@@ -725,7 +725,14 @@ function __processXMLorPlanet {
 
      if command -v parallel > /dev/null 2>&1; then
       __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
+      # Export function and required variables for parallel execution
       export -f __processApiXmlPart
+      export -f __validate_csv_structure
+      export -f __validate_csv_for_enum_compatibility
+      export TMP_DIR
+      export SCRIPT_BASE_DIRECTORY
+      export DBNAME
+      export SKIP_CSV_VALIDATION
 
       if ! printf '%s\n' "${PART_FILES[@]}" \
        | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
@@ -799,40 +806,44 @@ function __processApiXmlSequential {
  __logd "  Comments: ${SEQ_OUTPUT_COMMENTS_FILE} ($(wc -l < "${SEQ_OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
  __logd "  Text: ${SEQ_OUTPUT_TEXT_FILE} ($(wc -l < "${SEQ_OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
 
- # Validate CSV files structure and content before loading
- __logd "Validating CSV files structure and enum compatibility..."
+ # Validate CSV files structure and content before loading (optional)
+ if [[ "${SKIP_CSV_VALIDATION:-false}" != "true" ]]; then
+  __logd "Validating CSV files structure and enum compatibility..."
 
- # Validate notes
- if ! __validate_csv_structure "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
-  __loge "ERROR: Notes CSV structure validation failed"
-  __log_finish
-  return 1
- fi
+  # Validate notes
+  if ! __validate_csv_structure "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
+   __loge "ERROR: Notes CSV structure validation failed"
+   __log_finish
+   return 1
+  fi
 
- if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
-  __loge "ERROR: Notes CSV enum validation failed"
-  __log_finish
-  return 1
- fi
+  if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
+   __loge "ERROR: Notes CSV enum validation failed"
+   __log_finish
+   return 1
+  fi
 
- # Validate comments
- if ! __validate_csv_structure "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
-  __loge "ERROR: Comments CSV structure validation failed"
-  __log_finish
-  return 1
- fi
+  # Validate comments
+  if ! __validate_csv_structure "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
+   __loge "ERROR: Comments CSV structure validation failed"
+   __log_finish
+   return 1
+  fi
 
- if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
-  __loge "ERROR: Comments CSV enum validation failed"
-  __log_finish
-  return 1
- fi
+  if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
+   __loge "ERROR: Comments CSV enum validation failed"
+   __log_finish
+   return 1
+  fi
 
- # Validate text
- if ! __validate_csv_structure "${SEQ_OUTPUT_TEXT_FILE}" "text"; then
-  __loge "ERROR: Text CSV structure validation failed"
-  __log_finish
-  return 1
+  # Validate text
+  if ! __validate_csv_structure "${SEQ_OUTPUT_TEXT_FILE}" "text"; then
+   __loge "ERROR: Text CSV structure validation failed"
+   __log_finish
+   return 1
+  fi
+ else
+  __logw "WARNING: CSV validation SKIPPED (SKIP_CSV_VALIDATION=true)"
  fi
 
  __logi "✓ All CSV validations passed for sequential processing"

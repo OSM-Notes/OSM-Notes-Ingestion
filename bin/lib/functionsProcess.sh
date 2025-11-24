@@ -2374,6 +2374,8 @@ function __validate_csv_for_enum_compatibility {
 
  "notes")
   # Validate note status against note_status_enum
+  # CSV order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
+  # Status is in the 5th field (after created_at)
   local INVALID_LINES=0
   local LINE_NUMBER=0
 
@@ -2385,9 +2387,9 @@ function __validate_csv_for_enum_compatibility {
     continue
    fi
 
-   # Extract status value (6th field)
+   # Extract status value (5th field)
    local STATUS
-   STATUS=$(echo "${line}" | cut -d',' -f6 | tr -d '"' 2> /dev/null)
+   STATUS=$(echo "${line}" | cut -d',' -f5 | tr -d '"' 2> /dev/null)
 
    # Check if status is empty or invalid (status can be empty for open notes)
    if [[ -n "${STATUS}" ]] && [[ ! "${STATUS}" =~ ^(open|close|hidden)$ ]]; then

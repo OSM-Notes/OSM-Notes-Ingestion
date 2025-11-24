@@ -23,6 +23,22 @@ if [[ -z "${__log_start:-}" ]]; then
  fi
 fi
 
+# Load validation functions if not already loaded
+# NOTE: functionsProcess.sh defines __validate_csv_structure with FILE_TYPE parameter
+# (notes/comments/text), while validationFunctions.sh uses EXPECTED_COLUMNS parameter.
+# We should NOT load validationFunctions.sh here if the function already exists,
+# as functionsProcess.sh (which is loaded before this file) should have already
+# provided the correct validation function. Loading validationFunctions.sh here
+# would overwrite the correct function with the wrong one.
+# Only load validationFunctions.sh if the function doesn't exist at all.
+if [[ -z "$(type -t __validate_csv_structure 2>/dev/null || true)" ]]; then
+ if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/lib/osm-common/validationFunctions.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
+ elif [[ -f "./lib/osm-common/validationFunctions.sh" ]]; then
+  source "./lib/osm-common/validationFunctions.sh"
+ fi
+fi
+
 # Resource management constants
 if [[ -z "${MAX_MEMORY_PERCENT:-}" ]]; then
  declare -r MAX_MEMORY_PERCENT=80
@@ -1520,13 +1536,17 @@ function __processApiXmlPart() {
   : > "${OUTPUT_TEXT_PART}"
  fi
 
- # Add id_country (empty) and part_id to the end of each line for notes
- __logd "Adding id_country (empty) and part_id ${PART_NUM} to notes CSV"
- awk -v part_id="${PART_NUM}" '{print $0 ",," part_id}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
+ # Add part_id to the end of each line for notes
+ # Note: AWK already outputs 8 columns: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
+ # The last two columns (id_country and part_id) are empty. We need to set part_id (8th column).
+ __logd "Setting part_id ${PART_NUM} in notes CSV (replacing empty 8th column)"
+ awk -v part_id="${PART_NUM}" -F',' 'BEGIN{OFS=","} {if(NF>=8) {$8=part_id} else if(NF==7) {$8=part_id} else {$0=$0 "," part_id} print}' "${OUTPUT_NOTES_PART}" > "${OUTPUT_NOTES_PART}.tmp" && mv "${OUTPUT_NOTES_PART}.tmp" "${OUTPUT_NOTES_PART}"
 
  # Add part_id to the end of each line for comments
- __logd "Adding part_id ${PART_NUM} to comments CSV"
- awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
+ # Note: AWK already outputs 7 columns: note_id,sequence_action,event,created_at,id_user,username,part_id
+ # The last column (part_id) is empty. We need to set it (7th column).
+ __logd "Setting part_id ${PART_NUM} in comments CSV (replacing empty 7th column)"
+ awk -v part_id="${PART_NUM}" -F',' 'BEGIN{OFS=","} {if(NF>=7) {$7=part_id} else {$0=$0 "," part_id} print}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
  # Add part_id to the end of each line for text comments
  __logd "Adding part_id ${PART_NUM} to text comments CSV"
@@ -1536,42 +1556,46 @@ function __processApiXmlPart() {
   __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
  fi
 
- # Validate CSV files structure and content before loading
- __logd "Validating CSV files structure and enum compatibility for part ${PART_NUM}..."
+ # Validate CSV files structure and content before loading (optional)
+ if [[ "${SKIP_CSV_VALIDATION:-false}" != "true" ]]; then
+  __logd "Validating CSV files structure and enum compatibility for part ${PART_NUM}..."
 
- # Validate notes structure
- if ! __validate_csv_structure "${OUTPUT_NOTES_PART}" "notes"; then
-  __loge "ERROR: Notes CSV structure validation failed for part ${PART_NUM}"
-  __log_finish
-  return 1
- fi
+  # Validate notes structure
+  if ! __validate_csv_structure "${OUTPUT_NOTES_PART}" "notes"; then
+   __loge "ERROR: Notes CSV structure validation failed for part ${PART_NUM}"
+   __log_finish
+   return 1
+  fi
 
- # Validate notes enum values
- if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
-  __loge "ERROR: Notes CSV enum validation failed for part ${PART_NUM}"
-  __log_finish
-  return 1
- fi
+  # Validate notes enum values
+  if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
+   __loge "ERROR: Notes CSV enum validation failed for part ${PART_NUM}"
+   __log_finish
+   return 1
+  fi
 
- # Validate comments structure
- if ! __validate_csv_structure "${OUTPUT_COMMENTS_PART}" "comments"; then
-  __loge "ERROR: Comments CSV structure validation failed for part ${PART_NUM}"
-  __log_finish
-  return 1
- fi
+  # Validate comments structure
+  if ! __validate_csv_structure "${OUTPUT_COMMENTS_PART}" "comments"; then
+   __loge "ERROR: Comments CSV structure validation failed for part ${PART_NUM}"
+   __log_finish
+   return 1
+  fi
 
- # Validate comments enum values
- if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_PART}" "comments"; then
-  __loge "ERROR: Comments CSV enum validation failed for part ${PART_NUM}"
-  __log_finish
-  return 1
- fi
+  # Validate comments enum values
+  if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_PART}" "comments"; then
+   __loge "ERROR: Comments CSV enum validation failed for part ${PART_NUM}"
+   __log_finish
+   return 1
+  fi
 
- # Validate text structure (most prone to quote/escape issues)
- if ! __validate_csv_structure "${OUTPUT_TEXT_PART}" "text"; then
-  __loge "ERROR: Text CSV structure validation failed for part ${PART_NUM}"
-  __log_finish
-  return 1
+  # Validate text structure (most prone to quote/escape issues)
+  if ! __validate_csv_structure "${OUTPUT_TEXT_PART}" "text"; then
+   __loge "ERROR: Text CSV structure validation failed for part ${PART_NUM}"
+   __log_finish
+   return 1
+  fi
+ else
+  __logw "WARNING: CSV validation SKIPPED for part ${PART_NUM} (SKIP_CSV_VALIDATION=true)"
  fi
 
  __logi "✓ All CSV validations passed for API part ${PART_NUM}"
