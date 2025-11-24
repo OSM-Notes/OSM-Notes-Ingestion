@@ -141,7 +141,7 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-11-24
 VERSION="2025-11-24"
 
 #set -xv
@@ -153,6 +153,21 @@ set -e
 set -o pipefail
 # Fails if an internal function fails.
 set -E
+
+# Early parameter validation before setsid restart
+# This ensures invalid parameters are caught immediately
+# Error code 242 = Invalid argument (from documentation)
+PROCESS_TYPE_EARLY="${1:-}"
+if [[ -n "${PROCESS_TYPE_EARLY}" ]] \
+ && [[ "${PROCESS_TYPE_EARLY}" != "--base" ]] \
+ && [[ "${PROCESS_TYPE_EARLY}" != "--help" ]] \
+ && [[ "${PROCESS_TYPE_EARLY}" != "-h" ]]; then
+ echo "ERROR: Invalid parameter. It should be:" >&2
+ echo " * Empty string, nothing." >&2
+ echo " * --base" >&2
+ echo " * --help" >&2
+ exit 242
+fi
 
 # Auto-restart with setsid if not already in a new session
 # This protects against SIGHUP when terminal closes or session ends
