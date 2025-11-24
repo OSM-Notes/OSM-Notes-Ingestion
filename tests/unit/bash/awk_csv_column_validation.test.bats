@@ -3,7 +3,7 @@
 # Test CSV column structure validation for AWK scripts
 # Validates that AWK scripts generate CSV files with correct number and order of columns
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-11-24
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -130,26 +130,33 @@ validate_column_count() {
  [ -f "${output_file}" ]
  [ -s "${output_file}" ]
 
- # Expected columns: note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
+ # Expected columns: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
  # Total: 8 columns
+ # Standardized order: status before closed_at (matches base table 'notes' structure)
  validate_column_count "${output_file}" 8 "Notes (API format)"
 
- # Verify column order: first should be note_id (numeric), 5th should be closed_at or empty, 6th should be status
+ # Verify column order: first should be note_id (numeric), 5th should be status, 6th should be closed_at
  local first_line
  first_line=$(head -1 "${output_file}" | tr -d '\r\n')
 
  # Extract fields to verify order
  local note_id
- local closed_at
  local status
+ local closed_at
  note_id=$(echo "${first_line}" | cut -d',' -f1)
- closed_at=$(echo "${first_line}" | cut -d',' -f5)
- status=$(echo "${first_line}" | cut -d',' -f6)
+ status=$(echo "${first_line}" | cut -d',' -f5)
+ closed_at=$(echo "${first_line}" | cut -d',' -f6)
 
  # First column should be numeric (note_id)
  [[ "${note_id}" =~ ^[0-9]+$ ]]
 
- # 5th column should be closed_at (empty or timestamp, NOT status)
+ # 5th column should be status (open or close, NOT empty, NOT timestamp)
+ [[ -n "${status}" ]] # Must not be empty
+ [[ "${status}" =~ ^(open|close)$ ]]
+ # Must NOT be a timestamp (if it is, columns are swapped)
+ [[ ! "${status}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
+
+ # 6th column should be closed_at (empty or timestamp, NOT status)
  if [[ -n "${closed_at}" ]]; then
   # If not empty, must be a timestamp
   [[ "${closed_at}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
@@ -157,12 +164,6 @@ validate_column_count() {
   [[ "${closed_at}" != "open" ]]
   [[ "${closed_at}" != "close" ]]
  fi
-
- # 6th column should be status (open or close, NOT empty, NOT timestamp)
- [[ -n "${status}" ]] # Must not be empty
- [[ "${status}" =~ ^(open|close)$ ]]
- # Must NOT be a timestamp (if it is, columns are swapped)
- [[ ! "${status}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
 }
 
 @test "extract_notes.awk should generate CSV with 8 columns (Planet format)" {
@@ -304,21 +305,27 @@ validate_column_count() {
 
  [ -s "${output_file}" ]
 
- # SQL expects: note_id, latitude, longitude, created_at, closed_at, status, id_country, part_id
- # Verify order by checking that closed_at (5th) comes before status (6th)
+ # SQL expects: note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id
+ # Verify order by checking that status (5th) comes before closed_at (6th)
  local first_line
  first_line=$(head -1 "${output_file}" | tr -d '\r\n')
 
  # Extract fields
  local created_at
- local closed_at
  local status
+ local closed_at
  created_at=$(echo "${first_line}" | cut -d',' -f4)
- closed_at=$(echo "${first_line}" | cut -d',' -f5)
- status=$(echo "${first_line}" | cut -d',' -f6)
+ status=$(echo "${first_line}" | cut -d',' -f5)
+ closed_at=$(echo "${first_line}" | cut -d',' -f6)
 
  # created_at should be a timestamp
  [[ "${created_at}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
+
+ # status should be 'open' or 'close' (and NOT empty, NOT a timestamp)
+ [[ -n "${status}" ]] # Must not be empty
+ [[ "${status}" =~ ^(open|close)$ ]]
+ # Must NOT be a timestamp (if it is, columns are swapped)
+ [[ ! "${status}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
 
  # closed_at should be empty or a timestamp (for open notes, it's empty)
  # CRITICAL: Must NOT be 'open' or 'close' (those belong in status column)
@@ -329,12 +336,6 @@ validate_column_count() {
   [[ "${closed_at}" != "open" ]]
   [[ "${closed_at}" != "close" ]]
  fi
-
- # status should be 'open' or 'close' (and NOT empty, NOT a timestamp)
- [[ -n "${status}" ]] # Must not be empty
- [[ "${status}" =~ ^(open|close)$ ]]
- # Must NOT be a timestamp (if it is, columns are swapped)
- [[ ! "${status}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
 }
 
 @test "CSV column order should match SQL COPY command expectations (comments)" {
