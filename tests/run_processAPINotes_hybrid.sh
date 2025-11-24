@@ -123,6 +123,48 @@ check_postgresql() {
   fi
 }
 
+# Function to clean test database using cleanupAll.sh
+clean_test_database() {
+  # Load DBNAME from properties file if not already loaded
+  if [[ -z "${DBNAME:-}" ]]; then
+    # shellcheck disable=SC1091
+    source "${PROJECT_ROOT}/etc/properties.sh"
+  fi
+  
+  log_info "Cleaning test database: ${DBNAME} using cleanupAll.sh"
+
+  local psql_cmd="psql"
+  if [[ -n "${DB_HOST:-}" ]]; then
+    psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
+  fi
+
+  # Check if database exists - cleanupAll.sh requires database to exist
+  if ! ${psql_cmd} -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+    log_info "Database ${DBNAME} does not exist, skipping cleanup"
+    return 0
+  fi
+
+  local cleanup_script="${PROJECT_ROOT}/bin/cleanupAll.sh"
+  
+  if [[ ! -f "${cleanup_script}" ]]; then
+    log_error "cleanupAll.sh not found: ${cleanup_script}"
+    return 1
+  fi
+
+  # Make script executable
+  chmod +x "${cleanup_script}"
+
+  # Run cleanupAll.sh with full cleanup mode
+  # It will use DBNAME from properties.sh (which is now properties_test.sh)
+  # Suppress output but capture errors
+  if "${cleanup_script}" --all > /dev/null 2>&1; then
+    log_success "Database ${DBNAME} cleaned successfully using cleanupAll.sh"
+  else
+    # cleanupAll.sh may return non-zero if database was already clean, which is OK
+    log_info "cleanupAll.sh completed (database may have been already clean)"
+  fi
+}
+
 # Function to setup test database
 setup_test_database() {
   # Load DBNAME from properties file if not already loaded
@@ -795,6 +837,9 @@ main() {
     log_error "Failed to setup test properties"
     exit 1
   fi
+
+  # Clean test database first (drop and recreate to ensure clean state)
+  clean_test_database
 
   # Setup test database (now DBNAME is available from properties_test.sh)
   if ! setup_test_database; then
