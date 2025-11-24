@@ -188,6 +188,8 @@ function __getLocationNotes_impl {
       local SUB_COUNT
       SUB_COUNT=$(
        psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
+BEGIN;
+
 CREATE TEMP TABLE temp_verify_batch ON COMMIT DROP AS
 SELECT note_id
 FROM notes
@@ -211,6 +213,8 @@ AND (c.computed_country = -1 OR c.computed_country <> n.id_country)
 RETURNING n.note_id
 )
 SELECT COUNT(*) FROM invalidated;
+
+COMMIT;
 
 DISCARD ALL;
 EOF

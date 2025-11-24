@@ -2233,12 +2233,23 @@ function __validate_csv_structure {
   fi
 
   # Count columns (accounting for quoted fields with commas)
-  # For text files, count commas instead (body field is quoted and may contain commas)
+  # For text files, use proper CSV parsing to handle commas inside quoted fields
   local COLUMN_COUNT
   if [[ "${FILE_TYPE}" == "text" ]]; then
-   # For text files, count commas (3 commas = 4 fields: note_id,sequence_action,body,part_id)
-   local COMMA_COUNT
-   COMMA_COUNT=$(echo "${line}" | tr -cd ',' | wc -c)
+   # For text files, parse CSV properly to handle commas inside quoted body field
+   # Format: note_id,sequence_action,"body",part_id
+   # Count commas that are NOT inside quotes (bash-only, no external dependencies)
+   local TEMP_LINE="${line}"
+   local IN_QUOTES=0
+   local COMMA_COUNT=0
+   local CHAR
+   while IFS= read -r -n1 CHAR; do
+    if [[ "${CHAR}" == '"' ]]; then
+     IN_QUOTES=$((1 - IN_QUOTES))
+    elif [[ "${CHAR}" == ',' ]] && [[ ${IN_QUOTES} -eq 0 ]]; then
+     COMMA_COUNT=$((COMMA_COUNT + 1))
+    fi
+   done <<< "${TEMP_LINE}"
    COLUMN_COUNT=$((COMMA_COUNT + 1))
   else
    # For notes and comments, use standard field count
