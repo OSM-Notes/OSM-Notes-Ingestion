@@ -1550,10 +1550,11 @@ function __processApiXmlPart() {
 
  # Set part_id in the 4th column (replacing empty part_id column)
  # Note: AWK already outputs 4 columns: note_id,sequence_action,"body",part_id
- # The last column (part_id) is empty. We need to set it (4th column).
+ # The last column (part_id) is empty (trailing comma). We need to replace it.
+ # Use gsub to remove trailing comma and add part_id (handles quoted fields correctly)
  __logd "Setting part_id ${PART_NUM} in text comments CSV (replacing empty 4th column)"
  if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
-  awk -v part_id="${PART_NUM}" -F',' 'BEGIN{OFS=","} {if(NF>=4) {$4=part_id} else if(NF==3) {$0=$0 "," part_id} else {$0=$0 "," part_id} print}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+  awk -v part_id="${PART_NUM}" '{gsub(/,$/, ""); print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
  else
   __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id setting"
  fi

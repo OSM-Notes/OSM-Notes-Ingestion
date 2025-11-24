@@ -205,6 +205,5 @@ in_comment && !/<comment / {
 }
 
 
-# Version update note: extract_comment_texts.awk also needs API format support
-# but this is currently only used for Planet format in production
-# TODO: Add API format support if needed for API comments extraction
+# Version update note: API format support has been added (2025-11-24)
+# The script now handles both Planet and API formats with multiline text support
