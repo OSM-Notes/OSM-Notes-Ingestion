@@ -59,7 +59,7 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-24
 VERSION="2025-11-24"
 
 #set -xv
@@ -1264,15 +1264,25 @@ function __trapOn() {
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
-    {
-     echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
-     echo "Script: ${MAIN_SCRIPT_NAME}"
-     echo "Line number: ${ERROR_LINE}"
-     echo "Failed command: ${ERROR_COMMAND}"
-     echo "Exit code: ${ERROR_EXIT_CODE}"
-     echo "Temporary directory: ${TMP_DIR:-unknown}"
-     echo "Process ID: $$"
-    } > "${FAILED_EXECUTION_FILE}"
+    # Determine the failed execution file path
+    local FAILED_FILE_PATH="${FAILED_EXECUTION_FILE:-/tmp/${MAIN_SCRIPT_NAME}_failed_execution}"
+    # Attempt to create the failed execution file
+    # Use a subshell with error handling to prevent trap recursion
+    (
+     {
+      echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
+      echo "Script: ${MAIN_SCRIPT_NAME}"
+      echo "Line number: ${ERROR_LINE}"
+      echo "Failed command: ${ERROR_COMMAND}"
+      echo "Exit code: ${ERROR_EXIT_CODE}"
+      echo "Temporary directory: ${TMP_DIR:-unknown}"
+      echo "Process ID: $$"
+      echo "ONLY_EXECUTION was: ${ONLY_EXECUTION:-not set}"
+     } > "${FAILED_FILE_PATH}" 2>/dev/null || {
+      # If writing to primary location fails, try /tmp as fallback
+      printf "%s ERROR: Failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2>/dev/null || true
+     }
+    ) || true
    fi;
    exit "${ERROR_EXIT_CODE}";
   fi;
@@ -1284,13 +1294,23 @@ function __trapOn() {
   
   printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
-   {
-    echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
-    echo "Script: ${MAIN_SCRIPT_NAME}" 
-    echo "Temporary directory: ${TMP_DIR:-unknown}"
-    echo "Process ID: $$"
-    echo "Signal: SIGTERM/SIGINT"
-   } > "${FAILED_EXECUTION_FILE}"
+   # Determine the failed execution file path
+   local FAILED_FILE_PATH="${FAILED_EXECUTION_FILE:-/tmp/${MAIN_SCRIPT_NAME}_failed_execution}"
+   # Attempt to create the failed execution file
+   # Use a subshell with error handling to prevent trap recursion
+   (
+    {
+     echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
+     echo "Script: ${MAIN_SCRIPT_NAME}" 
+     echo "Temporary directory: ${TMP_DIR:-unknown}"
+     echo "Process ID: $$"
+     echo "Signal: SIGTERM/SIGINT"
+     echo "ONLY_EXECUTION was: ${ONLY_EXECUTION:-not set}"
+    } > "${FAILED_FILE_PATH}" 2>/dev/null || {
+     # If writing to primary location fails, try /tmp as fallback
+     printf "%s WARN: Script terminated but failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2>/dev/null || true
+    }
+   ) || true
   fi;
   exit ${ERROR_GENERAL};
  }' SIGINT SIGTERM
@@ -1352,7 +1372,26 @@ function main() {
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
-    { echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"; echo "Script: ${MAIN_SCRIPT_NAME}"; echo "Line number: ${ERROR_LINE}"; echo "Failed command: ${ERROR_COMMAND}"; echo "Exit code: ${ERROR_EXIT_CODE}"; echo "Temporary directory: ${TMP_DIR:-unknown}"; echo "Process ID: $$"; } > "${FAILED_EXECUTION_FILE}"; fi;
+    # Determine the failed execution file path
+    local FAILED_FILE_PATH="${FAILED_EXECUTION_FILE:-/tmp/${MAIN_SCRIPT_NAME}_failed_execution}"
+    # Attempt to create the failed execution file
+    # Use a subshell with error handling to prevent trap recursion
+    (
+     {
+      echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
+      echo "Script: ${MAIN_SCRIPT_NAME}"
+      echo "Line number: ${ERROR_LINE}"
+      echo "Failed command: ${ERROR_COMMAND}"
+      echo "Exit code: ${ERROR_EXIT_CODE}"
+      echo "Temporary directory: ${TMP_DIR:-unknown}"
+      echo "Process ID: $$"
+      echo "ONLY_EXECUTION was: ${ONLY_EXECUTION:-not set}"
+     } > "${FAILED_FILE_PATH}" 2>/dev/null || {
+      # If writing to primary location fails, try /tmp as fallback
+      printf "%s ERROR: Failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2>/dev/null || true
+     }
+    ) || true
+   fi;
    exit "${ERROR_EXIT_CODE}";
   fi; }' ERR
  __logi "After calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
