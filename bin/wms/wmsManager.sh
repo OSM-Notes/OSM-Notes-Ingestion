@@ -3,7 +3,7 @@
 # Manages the installation and deinstallation of WMS components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-24
+# Version: 2025-11-24
 
 set -euo pipefail
 
@@ -278,6 +278,11 @@ show_installation_summary() {
 
 # Main function
 main() {
+ # Enable bash debug mode if BASH_DEBUG environment variable is set
+ if [[ "${BASH_DEBUG:-}" == "true" ]] || [[ "${BASH_DEBUG:-}" == "1" ]]; then
+  set -xv
+ fi
+
  # Parse command line arguments
  local COMMAND=""
  local FORCE=false

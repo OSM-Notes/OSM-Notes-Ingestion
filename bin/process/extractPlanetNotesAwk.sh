@@ -16,7 +16,7 @@
 #   - <output_dir>/note_comments_text.csv
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-20
+# Version: 2025-11-24
 
 set -e
 set -u
@@ -135,6 +135,11 @@ __extract_planet_data() {
 # Main function
 ###############################################################################
 main() {
+ # Enable bash debug mode if BASH_DEBUG environment variable is set
+ if [[ "${BASH_DEBUG:-}" == "true" ]] || [[ "${BASH_DEBUG:-}" == "1" ]]; then
+  set -xv
+ fi
+
  if [[ $# -ne 2 ]]; then
   echo "Usage: $0 <input_xml> <output_dir>"
   echo ""

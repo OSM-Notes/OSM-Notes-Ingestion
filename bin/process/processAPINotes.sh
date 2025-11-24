@@ -60,7 +60,7 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-23
-VERSION="2025-11-12"
+VERSION="2025-11-24"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1301,6 +1301,11 @@ function __trapOn() {
 # MAIN
 
 function main() {
+ # Enable bash debug mode if BASH_DEBUG environment variable is set
+ if [[ "${BASH_DEBUG:-}" == "true" ]] || [[ "${BASH_DEBUG:-}" == "1" ]]; then
+  set -xv
+ fi
+
  __log_start
  __logi "Preparing environment."
  __logd "Output saved at: ${TMP_DIR}."

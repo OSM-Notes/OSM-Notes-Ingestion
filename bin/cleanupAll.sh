@@ -7,7 +7,7 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-10
 
-VERSION="2025-11-10"
+VERSION="2025-11-24"
 
 set -euo pipefail
 # shellcheck disable=SC2310,SC2312
@@ -534,6 +534,11 @@ function __show_help() {
 
 # Main execution
 function main() {
+ # Enable bash debug mode if BASH_DEBUG environment variable is set
+ if [[ "${BASH_DEBUG:-}" == "true" ]] || [[ "${BASH_DEBUG:-}" == "1" ]]; then
+  set -xv
+ fi
+
  # Set up cleanup trap and signal handlers
  trap __cleanup EXIT
  trap __handle_interrupt INT TERM

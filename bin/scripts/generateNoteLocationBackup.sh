@@ -4,7 +4,7 @@
 # faster processing in subsequent runs.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-26
+# Version: 2025-11-24
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -29,6 +29,11 @@ declare -r COMPRESSED_FILE="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
 # Main function
 ###############################################################################
 main() {
+ # Enable bash debug mode if BASH_DEBUG environment variable is set
+ if [[ "${BASH_DEBUG:-}" == "true" ]] || [[ "${BASH_DEBUG:-}" == "1" ]]; then
+  set -xv
+ fi
+
  __log_start
  __logi "Generating note location backup..."
 

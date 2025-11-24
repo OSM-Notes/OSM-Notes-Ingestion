@@ -12,7 +12,7 @@
 #   - Function 'get_country' must exist
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-21
+# Version: 2025-11-24
 
 set -u
 set -e
@@ -67,6 +67,11 @@ fi
 # Main function
 ###############################################################################
 main() {
+ # Enable bash debug mode if BASH_DEBUG environment variable is set
+ if [[ "${BASH_DEBUG:-}" == "true" ]] || [[ "${BASH_DEBUG:-}" == "1" ]]; then
+  set -xv
+ fi
+
  __log_start
  __logi "=== ASSIGNING COUNTRIES TO NOTES ==="
  __logi "Temporary directory: ${TMP_DIR}"
