@@ -5,7 +5,8 @@
 -- Version: 2025-10-18
 
 -- Load notes into partitioned table
-COPY notes_sync_part_${PART_ID} (note_id, latitude, longitude, created_at, status, closed_at, 
+-- Column order must match AWK output: note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
+COPY notes_sync_part_${PART_ID} (note_id, latitude, longitude, created_at, closed_at, status, 
                 id_country, part_id) 
 FROM '${OUTPUT_NOTES_PART}' 
 WITH (FORMAT csv, DELIMITER ',', QUOTE '"', ENCODING 'UTF8');
