@@ -1480,7 +1480,7 @@ declare -i RET
 
 # Allows to other users read the directory.
 # Protect chmod from causing script exit if it fails (e.g., TMP_DIR doesn't exist)
-chmod go+x "${TMP_DIR}" 2>/dev/null || true
+chmod go+x "${TMP_DIR}" 2> /dev/null || true
 
 # If running from cron (no TTY), redirect logger initialization
 # and main execution to the log file to keep cron silent
@@ -1493,7 +1493,7 @@ if [[ ! -t 1 ]]; then
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   # Protect rmdir from causing script exit if it fails (e.g., TMP_DIR not empty or doesn't exist)
-  rmdir "${TMP_DIR}" 2>/dev/null || true
+  rmdir "${TMP_DIR}" 2> /dev/null || true
  fi
 else
  __start_logger
