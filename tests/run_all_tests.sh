@@ -110,7 +110,7 @@ show_help() {
  echo "  --db          Run tests with real database (requires PostgreSQL)"
  echo "  --mock        Run tests with mock environment (no database required)"
  echo "  --simple      Run simple tests (basic validation)"
- echo "  --ci          Run CI tests locally (simulating GitHub Actions)"
+ echo "  --ci          Run CI tests locally (uses act if available, otherwise manual)"
  echo "  --all         Run all test modes (including CI tests)"
  echo
  echo "Test Types:"
@@ -121,12 +121,20 @@ show_help() {
  echo "Examples:"
  echo "  $0 --db --integration   # Run integration tests with database"
  echo "  $0 --mock --unit        # Run unit tests with mock environment"
+ echo "  $0 --ci                 # Run CI tests (GitHub Actions simulation)"
  echo "  $0 --all --all-tests    # Run all tests in all modes"
+ echo
+ echo "CI Tests (--ci):"
+ echo "  Uses 'act' to run GitHub Actions workflows locally if available."
+ echo "  Falls back to manual test execution if act is not installed."
+ echo "  To force manual execution: USE_ACT=false $0 --ci"
+ echo "  To use act: ./scripts/run_github_actions_local.sh --help"
  echo
  echo "Prerequisites:"
  echo "  - Database tests: PostgreSQL with user 'notes'"
  echo "  - Mock tests: No prerequisites"
  echo "  - Simple tests: Basic system tools"
+ echo "  - CI tests: act and Docker (optional, falls back to manual)"
 }
 
 # Main execution

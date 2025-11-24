@@ -43,6 +43,73 @@ else
  log_info "Running locally - simulating CI environment"
 fi
 
+# Check if act is available and user wants to use it
+USE_ACT="${USE_ACT:-auto}"
+
+if [[ "${USE_ACT}" == "auto" ]] || [[ "${USE_ACT}" == "true" ]]; then
+ # Check if act script exists
+ if [[ -f "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" ]]; then
+  # Check if act is available
+  export PATH="${HOME}/.local/bin:${PATH}"
+  if command -v act &> /dev/null || [[ -f "${HOME}/.local/bin/act" ]]; then
+   log_info "Using act to run GitHub Actions workflows..."
+   log_info "To run tests manually instead, set USE_ACT=false"
+   
+   # Parse arguments for act
+   ACT_JOB_NAME=""
+   ACT_EVENT="push"
+   ACT_ARGS=()
+   
+   # Check for job name in arguments
+   while [[ $# -gt 0 ]]; do
+    case "${1}" in
+     --job | -j)
+      ACT_JOB_NAME="${2:-}"
+      shift 2
+      ;;
+     --event | -e)
+      ACT_EVENT="${2:-}"
+      shift 2
+      ;;
+     --all | -a)
+      ACT_JOB_NAME="all"
+      shift
+      ;;
+     *)
+      if [[ -z "${ACT_JOB_NAME}" ]]; then
+       ACT_JOB_NAME="${1}"
+      else
+       ACT_ARGS+=("${1}")
+      fi
+      shift
+      ;;
+    esac
+   done
+   
+   # Run with act
+   if [[ -n "${ACT_JOB_NAME}" ]] && [[ "${ACT_JOB_NAME}" != "all" ]]; then
+    "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" --job "${ACT_JOB_NAME}" --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
+   elif [[ "${ACT_JOB_NAME}" == "all" ]]; then
+    "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" --all --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
+   else
+    # Default: run quick-checks
+    "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" --job quick-checks --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
+   fi
+   
+   exit $?
+  else
+   log_warning "act not found, falling back to manual test execution"
+   log_info "To install act: ./scripts/run_github_actions_local.sh --help"
+  fi
+ else
+  log_warning "GitHub Actions runner script not found, using manual execution"
+ fi
+fi
+
+if [[ "${USE_ACT}" == "false" ]]; then
+ log_info "Using manual test execution (USE_ACT=false)"
+fi
+
 # ============================================================================
 # STAGE 1: Quick Quality Checks
 # ============================================================================
