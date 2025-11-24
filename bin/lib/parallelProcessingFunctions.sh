@@ -1548,12 +1548,14 @@ function __processApiXmlPart() {
  __logd "Setting part_id ${PART_NUM} in comments CSV (replacing empty 7th column)"
  awk -v part_id="${PART_NUM}" -F',' 'BEGIN{OFS=","} {if(NF>=7) {$7=part_id} else {$0=$0 "," part_id} print}' "${OUTPUT_COMMENTS_PART}" > "${OUTPUT_COMMENTS_PART}.tmp" && mv "${OUTPUT_COMMENTS_PART}.tmp" "${OUTPUT_COMMENTS_PART}"
 
- # Add part_id to the end of each line for text comments
- __logd "Adding part_id ${PART_NUM} to text comments CSV"
+ # Set part_id in the 4th column (replacing empty part_id column)
+ # Note: AWK already outputs 4 columns: note_id,sequence_action,"body",part_id
+ # The last column (part_id) is empty. We need to set it (4th column).
+ __logd "Setting part_id ${PART_NUM} in text comments CSV (replacing empty 4th column)"
  if [[ -s "${OUTPUT_TEXT_PART}" ]]; then
-  awk -v part_id="${PART_NUM}" '{print $0 "," part_id}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
+  awk -v part_id="${PART_NUM}" -F',' 'BEGIN{OFS=","} {if(NF>=4) {$4=part_id} else if(NF==3) {$0=$0 "," part_id} else {$0=$0 "," part_id} print}' "${OUTPUT_TEXT_PART}" > "${OUTPUT_TEXT_PART}.tmp" && mv "${OUTPUT_TEXT_PART}.tmp" "${OUTPUT_TEXT_PART}"
  else
-  __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id append"
+  __logw "Text comments CSV is empty for part ${PART_NUM}; skipping part_id setting"
  fi
 
  # Validate CSV files structure and content before loading (optional)
