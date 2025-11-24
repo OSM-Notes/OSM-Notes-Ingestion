@@ -987,7 +987,8 @@ function __wait_for_download_turn() {
   fi
 
   # Periodically prune stale locks to avoid deadlocks (every ~30s)
-  if [[ $((WAIT_COUNT % 30)) -eq 0 ]]; then
+  # Skip pruning on first iteration (WAIT_COUNT=0) to avoid delay when slots are available
+  if [[ ${WAIT_COUNT} -gt 0 ]] && [[ $((WAIT_COUNT % 30)) -eq 0 ]]; then
    __queue_prune_stale_locks || true
   fi
 
