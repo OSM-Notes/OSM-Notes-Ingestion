@@ -1,7 +1,7 @@
 -- Consolidates data from all partitions into a single table.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-18
+-- Version: 2025-11-24
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Starting consolidation of partitioned data' AS Text;
@@ -45,8 +45,9 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Consolidating notes from all partitions' AS Text;
 
 -- Consolidate notes from all partitions
-INSERT INTO notes_api_consolidated (note_id, latitude, longitude, created_at, closed_at, status, id_country)
-SELECT note_id, latitude, longitude, created_at, closed_at, status, id_country
+-- Standardized order: note_id, latitude, longitude, created_at, status, closed_at, id_country
+INSERT INTO notes_api_consolidated (note_id, latitude, longitude, created_at, status, closed_at, id_country)
+SELECT note_id, latitude, longitude, created_at, status, closed_at, id_country
 FROM notes_api
 ORDER BY note_id;
 

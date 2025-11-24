@@ -1,7 +1,7 @@
 -- Loads the notes and note comments on the API tables with parallel processing support.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-12
+-- Version: 2025-11-24
 
 -- Get partition ID and MAX_THREADS from environment variables
 DO $$
@@ -28,7 +28,9 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading notes from API partition ' || current_setting('app.part_id', true) AS Text;
 
 -- Load notes into specific partition
-COPY notes_api (note_id, latitude, longitude, created_at, closed_at, status, id_country, part_id)
+-- Standardized order: note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id
+-- This matches the order used by Planet processing for consistency
+COPY notes_api (note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id)
 FROM '${OUTPUT_NOTES_PART}' csv;
 
 -- Update part_id to correct partition number (from app.part_id setting)

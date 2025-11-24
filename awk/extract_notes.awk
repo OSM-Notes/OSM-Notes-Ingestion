@@ -2,16 +2,14 @@
 # Extract notes from OSM XML to CSV format.
 # Supports both Planet and API formats with auto-detection.
 #
-# Output format differs by format:
-#   Planet: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
-#   API:    note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
+# Output format (standardized for both Planet and API):
+#   note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
 # Status is calculated: 'close' if closed_at exists, 'open' otherwise
 # (Note: PostgreSQL ENUM uses 'close', not 'closed')
 # id_country is empty (NULL), filled later by PostgreSQL function
 # part_id is empty (NULL), will be set by PostgreSQL during COPY
-# IMPORTANT: Order must match table physical order:
-#   - Planet: status before closed_at
-#   - API: closed_at before status
+# IMPORTANT: Standardized order for consistency - both Planet and API use the same order
+#   Order: status before closed_at (matches base table 'notes' structure)
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-24
@@ -44,7 +42,8 @@ BEGIN {
     status = "open"
   }
   
-  # Output CSV in correct order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
+  # Output CSV in standardized order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
+  # This order is used for both Planet and API formats for consistency
   printf "%s,%s,%s,%s,%s,%s,,\n", note_id, note_lat, note_lon, date_created, status, date_closed
   
   # Reset state
@@ -99,8 +98,9 @@ in_note && /^\s*<\/note>/ {
   # If status is empty, default to open
   if (status == "") status = "open"
   
-  # Output CSV in correct order for API: note_id,latitude,longitude,created_at,closed_at,status,id_country,part_id
-  printf "%s,%s,%s,%s,%s,%s,,\n", note_id, note_lat, note_lon, date_created, date_closed, status
+  # Output CSV in standardized order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
+  # This order is used for both Planet and API formats for consistency
+  printf "%s,%s,%s,%s,%s,%s,,\n", note_id, note_lat, note_lon, date_created, status, date_closed
   
   # Reset state
   in_note = 0
