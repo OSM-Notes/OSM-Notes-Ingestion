@@ -74,8 +74,8 @@ check_prerequisites() {
 
  # Check if we have the required scripts
  local required_scripts=(
-  "scripts/activate_github_actions.sh"
-  "scripts/setup_quality_monitoring.sh"
+  "tools/ci-cd/activate_github_actions.sh"
+  "tools/ci-cd/setup_quality_monitoring.sh"
  )
 
  for script in "${required_scripts[@]}"; do
@@ -112,11 +112,11 @@ setup_github_actions() {
  log_info "Setting up GitHub Actions..."
 
  if [[ "${DRY_RUN}" == true ]]; then
-  log_info "DRY RUN: Would execute ./scripts/activate_github_actions.sh --all"
+  log_info "DRY RUN: Would execute ./tools/ci-cd/activate_github_actions.sh --all"
   return 0
  fi
 
- if ./scripts/activate_github_actions.sh --all; then
+ if ./tools/ci-cd/activate_github_actions.sh --all; then
   log_success "GitHub Actions setup completed"
  else
   log_warning "GitHub Actions setup had issues (check manually)"
@@ -128,11 +128,11 @@ setup_quality_monitoring() {
  log_info "Setting up quality monitoring..."
 
  if [[ "${DRY_RUN}" == true ]]; then
-  log_info "DRY RUN: Would execute ./scripts/setup_quality_monitoring.sh --all"
+  log_info "DRY RUN: Would execute ./tools/ci-cd/setup_quality_monitoring.sh --all"
   return 0
  fi
 
- if ./scripts/setup_quality_monitoring.sh --all; then
+ if ./tools/ci-cd/setup_quality_monitoring.sh --all; then
   log_success "Quality monitoring setup completed"
  else
   log_warning "Quality monitoring setup had issues (check manually)"
@@ -220,8 +220,8 @@ generate_initial_reports() {
   echo "- .github/workflows/sonarqube.yml"
   echo "- .github/workflows/codecov.yml"
   echo "- .github/workflows/security.yml"
-  echo "- scripts/activate_github_actions.sh"
-  echo "- scripts/setup_quality_monitoring.sh"
+ echo "- tools/ci-cd/activate_github_actions.sh"
+ echo "- tools/ci-cd/setup_quality_monitoring.sh"
   echo "- tests/unit/bash/edge_cases_integration.test.bats"
   echo "- tests/unit/bash/bios.test.bats"
   echo "- docs/Testing_Guide.md"

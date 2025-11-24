@@ -126,7 +126,7 @@ sonar.projectName=OSM-Notes-profile
 sonar.projectVersion=1.0.0
 
 # Source code location
-sonar.sources=bin,scripts
+sonar.sources=bin
 sonar.tests=tests
 sonar.test.inclusions=tests/**/*.bats,tests/**/*.sh
 
@@ -199,11 +199,11 @@ jobs:
 
     - name: Run shellcheck
       run: |
-        shellcheck -x -o all bin/*.sh scripts/*.sh > shellcheck-report.json || true
+        shellcheck -x -o all bin/**/*.sh > shellcheck-report.json || true
 
     - name: Run shfmt check
       run: |
-        shfmt -d bin/ scripts/ > shfmt-report.json || true
+        shfmt -d bin/ > shfmt-report.json || true
 
     - name: SonarQube Scan
       uses: sonarqube-quality-gate-action@master
@@ -214,7 +214,7 @@ jobs:
         scannerHome: ${{ github.workspace }}/.sonar/scanner
         args: >
           -Dsonar.projectKey=osm-notes-profile
-          -Dsonar.sources=bin,scripts
+          -Dsonar.sources=bin
           -Dsonar.tests=tests
           -Dsonar.coverage.jacoco.xmlReportPaths=coverage.xml
           -Dsonar.shellcheck.reportPaths=shellcheck-report.json
@@ -311,8 +311,8 @@ jobs:
     - name: Run tests with coverage
       run: |
         # Run integration tests and generate coverage
-        coverage run --source=bin,scripts -m pytest tests/ || true
-        coverage run --append --source=bin,scripts -m bats tests/unit/bash/ || true
+        coverage run --source=bin -m pytest tests/ || true
+        coverage run --append --source=bin -m bats tests/unit/bash/ || true
         
         # Generate coverage report
         coverage xml -o coverage.xml
@@ -372,8 +372,8 @@ jobs:
 
     - name: Run Bandit security scan
       run: |
-        bandit -r bin/ scripts/ -f json -o bandit-report.json || true
-        bandit -r bin/ scripts/ -f txt -o bandit-report.txt || true
+        bandit -r bin/ -f json -o bandit-report.json || true
+        bandit -r bin/ -f txt -o bandit-report.txt || true
 
     - name: Run Safety check
       run: |
@@ -382,15 +382,15 @@ jobs:
 
     - name: Run Shellcheck security scan
       run: |
-        shellcheck -x -o all bin/*.sh scripts/*.sh > shellcheck-security.json || true
+        shellcheck -x -o all bin/**/*.sh > shellcheck-security.json || true
 
     - name: Check for secrets
       run: |
         # Check for hardcoded secrets
-        grep -r "password\|secret\|key\|token" bin/ scripts/ || echo "No obvious secrets found"
+        grep -r "password\|secret\|key\|token" bin/ || echo "No obvious secrets found"
         
         # Check for hardcoded credentials
-        grep -r "admin\|root\|test" bin/ scripts/ || echo "No obvious credentials found"
+        grep -r "admin\|root\|test" bin/ || echo "No obvious credentials found"
 
     - name: Upload security reports
       uses: actions/upload-artifact@v4
@@ -438,11 +438,11 @@ generate_reports() {
 
  # Generate shellcheck report
  log_info "Running shellcheck..."
- shellcheck -x -o all bin/*.sh scripts/*.sh > reports/shellcheck-report.txt 2>&1 || true
+ shellcheck -x -o all bin/**/*.sh > reports/shellcheck-report.txt 2>&1 || true
 
  # Generate shfmt report
  log_info "Running shfmt..."
- shfmt -d bin/ scripts/ > reports/shfmt-report.txt 2>&1 || true
+ shfmt -d bin/ > reports/shfmt-report.txt 2>&1 || true
 
  # Generate test coverage report
  log_info "Running test coverage..."
@@ -485,7 +485,7 @@ generate_reports() {
   echo "- Dependencies: See dependency-report.txt"
   echo ""
   echo "## Files Analyzed"
-  echo "- Shell scripts: $(find bin scripts -name "*.sh" | wc -l)"
+  echo "- Shell scripts: $(find bin -name "*.sh" | wc -l)"
   echo "- Test files: $(find tests -name "*.bats" | wc -l)"
   echo "- SQL files: $(find sql -name "*.sql" | wc -l)"
   echo ""
