@@ -805,16 +805,124 @@ function __processPlanetXmlPart() {
  __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)"
 
  # Load into database with partition ID and MAX_THREADS
+ __logi "=== LOADING PART ${PART_NUM} INTO DATABASE ==="
+ __logd "Database: ${DBNAME}"
+ __logd "Partition ID: ${PART_NUM}"
+ __logd "Max threads: ${MAX_THREADS}"
+ __logd "Notes CSV: ${OUTPUT_NOTES_PART}"
+ __logd "Comments CSV: ${OUTPUT_COMMENTS_PART}"
+ __logd "Text CSV: ${OUTPUT_TEXT_PART}"
+ __logd "SQL file: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
+
+ # Verify CSV files exist and have content
+ if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
+  __loge "ERROR: Notes CSV file does not exist: ${OUTPUT_NOTES_PART}"
+  __log_finish
+  return 1
+ fi
+ if [[ ! -s "${OUTPUT_NOTES_PART}" ]]; then
+  __logw "WARNING: Notes CSV file is empty: ${OUTPUT_NOTES_PART}"
+ fi
+
+ if [[ ! -f "${OUTPUT_COMMENTS_PART}" ]]; then
+  __loge "ERROR: Comments CSV file does not exist: ${OUTPUT_COMMENTS_PART}"
+  __log_finish
+  return 1
+ fi
+ if [[ ! -s "${OUTPUT_COMMENTS_PART}" ]]; then
+  __logw "WARNING: Comments CSV file is empty: ${OUTPUT_COMMENTS_PART}"
+ fi
+
+ # Verify SQL file exists
+ if [[ ! -f "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
+  __loge "ERROR: SQL file does not exist: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
+  __log_finish
+  return 1
+ fi
+
+ # Export variables for envsubst
  export OUTPUT_NOTES_PART
  export OUTPUT_COMMENTS_PART
  export OUTPUT_TEXT_PART
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" \
-  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
-   < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" || true)"
+
+ __logd "Variables exported for envsubst:"
+ __logd "  OUTPUT_NOTES_PART=${OUTPUT_NOTES_PART}"
+ __logd "  OUTPUT_COMMENTS_PART=${OUTPUT_COMMENTS_PART}"
+ __logd "  OUTPUT_TEXT_PART=${OUTPUT_TEXT_PART}"
+ __logd "  PART_ID=${PART_ID}"
+ __logd "  MAX_THREADS=${MAX_THREADS}"
+
+ # Generate SQL command with envsubst
+ __logd "Generating SQL command from template..."
+ local SQL_CMD
+ SQL_CMD=$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+  < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" 2>&1)
+ local ENVSUBST_EXIT_CODE=$?
+
+ if [[ ${ENVSUBST_EXIT_CODE} -ne 0 ]]; then
+  __loge "ERROR: envsubst failed with exit code ${ENVSUBST_EXIT_CODE}"
+  __loge "envsubst output: ${SQL_CMD}"
+  __log_finish
+  return 1
+ fi
+
+ if [[ -z "${SQL_CMD}" ]]; then
+  __loge "ERROR: envsubst produced empty SQL command"
+  __log_finish
+  return 1
+ fi
+
+ __logd "SQL command generated successfully (length: ${#SQL_CMD} characters)"
+ __logd "First 200 characters of SQL: ${SQL_CMD:0:200}..."
+
+ # Execute PostgreSQL commands
+ __logd "Setting PostgreSQL session variables..."
+ if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" 2>&1 | while IFS= read -r line; do
+  __logd "psql SET: ${line}"
+ done; then
+  __loge "ERROR: Failed to set PostgreSQL session variables"
+  __log_finish
+  return 1
+ fi
+
+ __logd "Executing COPY commands to load data into database..."
+ local PSQL_OUTPUT
+ local PSQL_EXIT_CODE
+ PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${SQL_CMD}" 2>&1)
+ PSQL_EXIT_CODE=$?
+
+ if [[ ${PSQL_EXIT_CODE} -ne 0 ]]; then
+  __loge "ERROR: psql COPY command failed with exit code ${PSQL_EXIT_CODE}"
+  __loge "psql output:"
+  echo "${PSQL_OUTPUT}" | while IFS= read -r line; do
+   __loge "  ${line}"
+  done
+  __log_finish
+  return 1
+ fi
+
+ __logd "psql COPY command output:"
+ echo "${PSQL_OUTPUT}" | while IFS= read -r line; do
+  __logd "  ${line}"
+ done
+
+ # Verify data was loaded
+ __logd "Verifying data was loaded into partition ${PART_NUM}..."
+ local NOTES_COUNT
+ local COMMENTS_COUNT
+ NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_sync_part_${PART_NUM};" 2> /dev/null || echo "0")
+ COMMENTS_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM note_comments_sync_part_${PART_NUM};" 2> /dev/null || echo "0")
+
+ __logi "Data loaded into partition ${PART_NUM}:"
+ __logi "  Notes: ${NOTES_COUNT} rows"
+ __logi "  Comments: ${COMMENTS_COUNT} rows"
+
+ if [[ "${NOTES_COUNT}" -eq 0 ]]; then
+  __logw "WARNING: No notes were loaded into partition ${PART_NUM}"
+ fi
 
  __logi "=== PLANET XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish

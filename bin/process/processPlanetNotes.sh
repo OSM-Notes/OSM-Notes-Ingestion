@@ -696,6 +696,7 @@ function __processPlanetNotesWithParallel {
 
  # STEP 3: Process each part with AWK in parallel
  __logi "Step 3: Processing ${NUM_PARTS} XML parts in parallel with AWK (${MAX_THREADS} concurrent jobs)..."
+ __logd "Looking for part files in: ${PARTS_DIR}"
 
  # Find all part files and sort them numerically (not alphabetically)
  local PART_FILES
@@ -704,12 +705,22 @@ function __processPlanetNotesWithParallel {
 
  if [[ ${#PART_FILES[@]} -eq 0 ]]; then
   __loge "ERROR: No part files found in ${PARTS_DIR}"
+  __loge "Directory contents:"
+  ls -la "${PARTS_DIR}" 2>&1 | while IFS= read -r line; do
+   __loge "  ${line}"
+  done || true
   __log_finish
   export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
   return "${ERROR_EXECUTING_PLANET_DUMP}"
  fi
 
  __logi "Found ${#PART_FILES[@]} part files to process"
+ __logd "Part files list (first 5):"
+ for i in "${!PART_FILES[@]}"; do
+  if [[ ${i} -lt 5 ]]; then
+   __logd "  [${i}]: ${PART_FILES[${i}]}"
+  fi
+ done
 
  # Export variables and functions needed by parallel processing
  export DBNAME TMP_DIR MAX_THREADS
@@ -728,13 +739,27 @@ function __processPlanetNotesWithParallel {
  # Create wrapper function for parallel workers to setup logging
  function __parallel_worker_wrapper() {
   local -r PART_FILE="$1"
+  local PART_BASENAME
+  PART_BASENAME=$(basename "${PART_FILE}")
 
   # Setup logging for this worker (appends to shared log file)
   __set_log_file "${LOG_FILENAME}" 2> /dev/null || true
 
+  # Log worker start
+  __logi "[WORKER] Starting processing of part file: ${PART_BASENAME}"
+  __logd "[WORKER] Full path: ${PART_FILE}"
+  __logd "[WORKER] DBNAME: ${DBNAME:-NOT_SET}"
+  __logd "[WORKER] TMP_DIR: ${TMP_DIR:-NOT_SET}"
+
   # Execute the main processing function
   # Output is synchronized by parallel's internal buffering
-  __processPlanetXmlPart "${PART_FILE}"
+  __logd "[WORKER] About to call __processPlanetXmlPart for ${PART_BASENAME}"
+  if __processPlanetXmlPart "${PART_FILE}"; then
+   __logi "[WORKER] Successfully completed processing of ${PART_BASENAME}"
+  else
+   __loge "[WORKER] Failed to process ${PART_BASENAME}, exit code: $?"
+   return 1
+  fi
  }
  export -f __parallel_worker_wrapper
 
@@ -742,18 +767,25 @@ function __processPlanetNotesWithParallel {
  if command -v parallel > /dev/null 2>&1; then
   __logi "Using GNU parallel for processing (${MAX_THREADS} jobs)"
   __logi "Worker logs will be written to: ${LOG_FILENAME}"
+  __logd "About to start parallel processing of ${#PART_FILES[@]} parts"
+  __logd "DBNAME: ${DBNAME}"
+  __logd "TMP_DIR: ${TMP_DIR}"
+  __logd "MAX_THREADS: ${MAX_THREADS}"
 
   # Process all parts in parallel with progress tracking
   # Workers use wrapper to setup logging correctly in each subshell
   # --line-buffer ensures log lines from different workers don't intermix
+  __logi "Starting parallel execution now..."
   if ! printf '%s\n' "${PART_FILES[@]}" \
    | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 --line-buffer \
     "__parallel_worker_wrapper {}"; then
    __loge "ERROR: Parallel processing failed"
+   __loge "Check logs for details on which part(s) failed"
    __log_finish
    export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
    return "${ERROR_EXECUTING_PLANET_DUMP}"
   fi
+  __logi "Parallel processing completed successfully"
  else
   # Fallback: Process in batches using background jobs
   __logi "GNU parallel not found, using background jobs (${MAX_THREADS} concurrent)"
@@ -1324,10 +1356,18 @@ function __processGeographicData {
    # This is critical when running in test mode where DBNAME might be different
    # Set flag to indicate subprocess execution so updateCountries.sh writes to its own log
    # Also pass TMP_DIR so updateCountries.sh can write its log in a known location
+   # IMPORTANT: The subprocess (updateCountries.sh) handles its own redirection internally
+   # via UPDATE_COUNTRIES_LOG_FILE. When UPDATE_COUNTRIES_AS_SUBPROCESS=true, updateCountries.sh
+   # redirects ALL output (including errors) to UPDATE_COUNTRIES_LOG_FILE (line 404).
+   # We don't need external redirection here - the subprocess manages its own logging.
+   # Any output that escapes would be minimal and could indicate a problem worth investigating.
    local UPDATE_COUNTRIES_EXIT_CODE=0
    local UPDATE_COUNTRIES_LOG_FILE
    UPDATE_COUNTRIES_LOG_FILE="${TMP_DIR}/updateCountries_subprocess.log"
    set +e # Temporarily disable exit on error for pipeline
+   # Let updateCountries.sh handle its own logging via internal redirection
+   # All output should go to UPDATE_COUNTRIES_LOG_FILE, but if something escapes,
+   # it's better to see it in the parent log than to lose it completely
    DBNAME="${DBNAME}" UPDATE_COUNTRIES_AS_SUBPROCESS="true" \
     UPDATE_COUNTRIES_LOG_FILE="${UPDATE_COUNTRIES_LOG_FILE}" \
     "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base
@@ -1451,11 +1491,16 @@ function __processPlanetBaseMode {
   __logw "Assuming Planet XML is well-formed and valid (faster processing)"
  fi
 
+ __logi "Counting notes in Planet XML file: ${PLANET_NOTES_FILE}"
  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+ __logi "TOTAL_NOTES after counting: ${TOTAL_NOTES}"
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+  __logi "TOTAL_NOTES is greater than 0 (${TOTAL_NOTES}), proceeding to process notes with parallel processing"
+  __logi "About to call __processPlanetNotesWithParallel"
   __processPlanetNotesWithParallel
+  __logi "Returned from __processPlanetNotesWithParallel, exit code: $?"
  else
-  __logi "No notes found in XML file, skipping processing."
+  __logi "No notes found in XML file (TOTAL_NOTES=${TOTAL_NOTES}), skipping processing."
  fi
  __log_finish
 }
@@ -1495,11 +1540,16 @@ function __processPlanetSyncMode {
   __logw "Assuming Planet XML is well-formed and valid (faster processing)"
  fi
 
+ __logi "Counting notes in Planet XML file: ${PLANET_NOTES_FILE}"
  __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+ __logi "TOTAL_NOTES after counting: ${TOTAL_NOTES}"
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+  __logi "TOTAL_NOTES is greater than 0 (${TOTAL_NOTES}), proceeding to process notes with parallel processing"
+  __logi "About to call __processPlanetNotesWithParallel"
   __processPlanetNotesWithParallel
+  __logi "Returned from __processPlanetNotesWithParallel, exit code: $?"
  else
-  __logi "No notes found in XML file, skipping processing."
+  __logi "No notes found in XML file (TOTAL_NOTES=${TOTAL_NOTES}), skipping processing."
  fi
  __log_finish
 }
