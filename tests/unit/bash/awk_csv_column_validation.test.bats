@@ -415,21 +415,27 @@ validate_column_count() {
 
  [ -s "${output_file}" ]
 
- # SQL expects: note_id, latitude, longitude, created_at, closed_at, status, id_country, part_id
- # Verify order by checking that closed_at (5th) comes before status (6th)
+ # SQL expects: note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id
+ # Verify order by checking that status (5th) comes before closed_at (6th)
  local first_line
  first_line=$(head -1 "${output_file}" | tr -d '\r\n')
 
  # Extract fields
  local created_at
- local closed_at
  local status
+ local closed_at
  created_at=$(echo "${first_line}" | cut -d',' -f4)
- closed_at=$(echo "${first_line}" | cut -d',' -f5)
- status=$(echo "${first_line}" | cut -d',' -f6)
+ status=$(echo "${first_line}" | cut -d',' -f5)
+ closed_at=$(echo "${first_line}" | cut -d',' -f6)
 
  # created_at should be a timestamp
  [[ "${created_at}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
+
+ # status should be 'open' or 'close' (and NOT empty, NOT a timestamp)
+ [[ -n "${status}" ]] # Must not be empty
+ [[ "${status}" =~ ^(open|close)$ ]]
+ # Must NOT be a timestamp (if it is, columns are swapped)
+ [[ ! "${status}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
 
  # closed_at should be empty or a timestamp (for open notes, it's empty)
  # CRITICAL: Must NOT be 'open' or 'close' (those belong in status column)
@@ -441,19 +447,13 @@ validate_column_count() {
   [[ "${closed_at}" != "close" ]]
  fi
 
- # status should be 'open' or 'close' (and NOT empty, NOT a timestamp)
- [[ -n "${status}" ]] # Must not be empty
- [[ "${status}" =~ ^(open|close)$ ]]
- # Must NOT be a timestamp (if it is, columns are swapped)
- [[ ! "${status}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
-
  # Verify SQL file has correct column order
  local sql_content
  sql_content=$(cat "${sql_file}")
- # SQL should have closed_at before status in the COPY command
- [[ "${sql_content}" =~ COPY.*created_at.*closed_at.*status ]]
- # SQL should NOT have status before closed_at
- [[ ! "${sql_content}" =~ COPY.*created_at.*status.*closed_at ]]
+ # SQL should have status before closed_at in the COPY command
+ [[ "${sql_content}" =~ COPY.*created_at.*status.*closed_at ]]
+ # SQL should NOT have closed_at before status
+ [[ ! "${sql_content}" =~ COPY.*created_at.*closed_at.*status ]]
 }
 
 @test "All CSV files should have consistent column structure across multiple notes" {
