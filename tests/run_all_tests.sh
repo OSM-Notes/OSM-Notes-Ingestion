@@ -128,7 +128,7 @@ show_help() {
  echo "  Uses 'act' to run GitHub Actions workflows locally if available."
  echo "  Falls back to manual test execution if act is not installed."
  echo "  To force manual execution: USE_ACT=false $0 --ci"
- echo "  To use act: ./scripts/run_github_actions_local.sh --help"
+ echo "  To use act: ./tools/ci-cd/run_github_actions_local.sh --help"
  echo
  echo "Prerequisites:"
  echo "  - Database tests: PostgreSQL with user 'notes'"

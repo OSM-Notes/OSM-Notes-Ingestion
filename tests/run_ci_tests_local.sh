@@ -48,7 +48,7 @@ USE_ACT="${USE_ACT:-auto}"
 
 if [[ "${USE_ACT}" == "auto" ]] || [[ "${USE_ACT}" == "true" ]]; then
  # Check if act script exists
- if [[ -f "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" ]]; then
+ if [[ -f "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" ]]; then
   # Check if act is available
   export PATH="${HOME}/.local/bin:${PATH}"
   if command -v act &> /dev/null || [[ -f "${HOME}/.local/bin/act" ]]; then
@@ -88,18 +88,18 @@ if [[ "${USE_ACT}" == "auto" ]] || [[ "${USE_ACT}" == "true" ]]; then
    
    # Run with act
    if [[ -n "${ACT_JOB_NAME}" ]] && [[ "${ACT_JOB_NAME}" != "all" ]]; then
-    "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" --job "${ACT_JOB_NAME}" --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
+    "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" --job "${ACT_JOB_NAME}" --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
    elif [[ "${ACT_JOB_NAME}" == "all" ]]; then
-    "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" --all --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
+    "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" --all --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
    else
     # Default: run quick-checks
-    "${PROJECT_ROOT}/scripts/run_github_actions_local.sh" --job quick-checks --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
+    "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" --job quick-checks --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
    fi
    
    exit $?
   else
    log_warning "act not found, falling back to manual test execution"
-   log_info "To install act: ./scripts/run_github_actions_local.sh --help"
+   log_info "To install act: ./tools/ci-cd/run_github_actions_local.sh --help"
   fi
  else
   log_warning "GitHub Actions runner script not found, using manual execution"

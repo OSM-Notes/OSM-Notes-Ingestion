@@ -52,7 +52,7 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 
 -- Load comments into specific partition (sequence_action already provided by AWK)
 COPY note_comments_api (note_id, sequence_action, event, created_at, id_user, username, part_id)
-FROM '${OUTPUT_COMMENTS_PART}' csv DELIMITER ',' QUOTE '''';
+FROM '${OUTPUT_COMMENTS_PART}' csv DELIMITER ',' QUOTE '"';
 
 -- Update part_id to correct partition number for comments (from app.part_id setting)
 UPDATE note_comments_api SET part_id = current_setting('app.part_id', true)::INTEGER 
@@ -73,7 +73,7 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 
 -- Load text comments into specific partition (sequence_action already provided by AWK)
 COPY note_comments_text_api (note_id, sequence_action, body, part_id)
-FROM '${OUTPUT_TEXT_PART}' csv DELIMITER ',' QUOTE '''';
+FROM '${OUTPUT_TEXT_PART}' csv DELIMITER ',' QUOTE '"';
 
 -- Update part_id to correct partition number for text comments (from app.part_id setting)
 UPDATE note_comments_text_api SET part_id = current_setting('app.part_id', true)::INTEGER 

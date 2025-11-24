@@ -6,7 +6,7 @@
 # This file is loaded INSTEAD of etc/properties.sh when in test mode.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-11-24
 
 # Database configuration for tests
 # These values override production values for test environments
@@ -136,3 +136,20 @@ declare CLEAN="${CLEAN:-false}"
 # Default: true (skip validation for speed, assuming official OSM Planet is valid)
 # WARNING: Only skip validation if you trust the XML source (e.g., official OSM Planet)
 declare SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+
+# Verification configuration for note location integrity checks
+# These values are smaller than production to enable parallel testing with fewer notes
+# Verification chunk size (notes per batch) - smaller for tests to activate parallelism
+# Production uses 20000, tests use 1000 to activate parallel processing with ~2000+ notes
+# shellcheck disable=SC2034
+declare VERIFY_CHUNK_SIZE="${VERIFY_CHUNK_SIZE:-1000}"
+
+# SQL sub-chunk size within each verification chunk
+# Production uses 5000, tests use 500 for faster testing
+# shellcheck disable=SC2034
+declare VERIFY_SQL_BATCH_SIZE="${VERIFY_SQL_BATCH_SIZE:-500}"
+
+# Parallel threads for verification
+# Production uses 2, tests use 2 to ensure parallel execution is tested
+# shellcheck disable=SC2034
+declare VERIFY_THREADS="${VERIFY_THREADS:-2}"

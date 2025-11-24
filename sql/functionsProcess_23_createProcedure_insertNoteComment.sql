@@ -1,7 +1,7 @@
 -- Procedure to insert a note comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-12
+-- Version: 2025-11-24
 
 CREATE OR REPLACE PROCEDURE insert_note_comment (
   m_note_id INTEGER,
@@ -16,6 +16,7 @@ AS $proc$
  DECLARE
   m_process_id_db VARCHAR(32);
   m_process_id_db_pid INTEGER;
+  m_existing_count INTEGER;
  BEGIN
   -- Check the DB lock to validate it is from the same process.
   -- Note: lock is stored as VARCHAR (e.g., "130030_1762952513_24253")
@@ -36,6 +37,22 @@ AS $proc$
      m_process_id_db, m_process_id_bash;
   END IF;
 
+  -- Check if comment already exists (by note_id, event, and created_at)
+  -- This prevents duplicate insertions when processing same notes multiple times
+  SELECT COUNT(1)
+    INTO m_existing_count
+  FROM note_comments
+  WHERE note_id = m_note_id
+    AND event = m_event
+    AND created_at = m_created_at;
+  
+  -- If comment already exists, skip insertion
+  IF m_existing_count > 0 THEN
+   INSERT INTO logs (message) VALUES (m_note_id || ' - Comment already exists, skipping insertion - '
+     || m_event || '.');
+   RETURN;
+  END IF;
+
   INSERT INTO logs (message) VALUES (m_note_id || ' - Inserting comment - '
     || m_event || '.');
 
@@ -51,19 +68,29 @@ AS $proc$
     SET username = EXCLUDED.username;
   END IF;
 
-  INSERT INTO note_comments (
-   id,
-   note_id,
-   event,
-   created_at,
-   id_user
-  ) VALUES (
-   nextval('note_comments_id_seq'),
-   m_note_id,
-   m_event,
-   m_created_at,
-   m_id_user
-  );
+  -- Insert comment with exception handling for unique constraint violations
+  -- The unique constraint is on (note_id, sequence_action) which is set by trigger
+  BEGIN
+   INSERT INTO note_comments (
+    id,
+    note_id,
+    event,
+    created_at,
+    id_user
+   ) VALUES (
+    nextval('note_comments_id_seq'),
+    m_note_id,
+    m_event,
+    m_created_at,
+    m_id_user
+   );
+  EXCEPTION
+   WHEN unique_violation THEN
+    -- Comment with same (note_id, sequence_action) already exists
+    INSERT INTO logs (message) VALUES (m_note_id || ' - Comment already exists (unique constraint), skipping - '
+      || m_event || '.');
+    RETURN;
+  END;
  END
 $proc$
 ;
