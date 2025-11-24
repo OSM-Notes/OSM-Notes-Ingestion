@@ -64,3 +64,66 @@ BEGIN
   END IF;
 END $$;
 
+-- Add part_id column to notes_api table if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'notes_api'
+    AND column_name = 'part_id'
+  ) THEN
+    -- Only add column if table exists
+    IF EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public'
+      AND table_name = 'notes_api'
+    ) THEN
+      ALTER TABLE notes_api ADD COLUMN part_id INTEGER;
+      RAISE NOTICE 'Added part_id column to notes_api table';
+    END IF;
+  END IF;
+END $$;
+
+-- Add part_id column to note_comments_api table if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'note_comments_api'
+    AND column_name = 'part_id'
+  ) THEN
+    -- Only add column if table exists
+    IF EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public'
+      AND table_name = 'note_comments_api'
+    ) THEN
+      ALTER TABLE note_comments_api ADD COLUMN part_id INTEGER;
+      RAISE NOTICE 'Added part_id column to note_comments_api table';
+    END IF;
+  END IF;
+END $$;
+
+-- Add part_id column to note_comments_text_api table if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'note_comments_text_api'
+    AND column_name = 'part_id'
+  ) THEN
+    -- Only add column if table exists
+    IF EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public'
+      AND table_name = 'note_comments_text_api'
+    ) THEN
+      ALTER TABLE note_comments_text_api ADD COLUMN part_id INTEGER;
+      RAISE NOTICE 'Added part_id column to note_comments_text_api table';
+    END IF;
+  END IF;
+END $$;
+
