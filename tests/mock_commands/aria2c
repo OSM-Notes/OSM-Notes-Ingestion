@@ -90,10 +90,19 @@ INNER_EOF
    fi
    
    # Try multiple possible paths for the fixture file
+   # Priority: 1) realistic fixture (if generated), 2) default fixture
    for possible_path in "${project_root}/tests/fixtures/planet-notes-latest.osn.bz2" "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"; do
      if [[ -n "${possible_path}" ]] && [[ -f "${possible_path}" ]]; then
-       fixture_file="${possible_path}"
-       break
+       # Check file size - if it's larger than 1KB, it's likely the realistic fixture
+       local file_size
+       file_size=$(stat -f%z "${possible_path}" 2>/dev/null || stat -c%s "${possible_path}" 2>/dev/null || echo "0")
+       if [[ "${file_size}" -gt 1024 ]]; then
+         fixture_file="${possible_path}"
+         break
+       elif [[ -z "${fixture_file}" ]]; then
+         # Keep first match as fallback
+         fixture_file="${possible_path}"
+       fi
      fi
    done
    
