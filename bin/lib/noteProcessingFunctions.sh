@@ -2,9 +2,9 @@
 
 # Note Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
+# Version: 2025-11-24
 
-VERSION="2025-11-11"
+VERSION="2025-11-24"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -41,6 +41,11 @@ function __getLocationNotes_impl {
   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
    < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
 
+ __logi "Note locations imported successfully. Starting integrity verification process..."
+ __logi "This process will verify that all assigned countries are correct by recalculating"
+ __logi "each note's country using spatial queries. This may take several minutes for"
+ __logi "large datasets (e.g., ~5 minutes for 4.8M notes with parallel processing)."
+
  # Retrieves the max note for already location processed notes (from file.)
  # Use COALESCE to handle NULL results from MAX() when no rows match
  MAX_NOTE_ID_NOT_NULL=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
@@ -63,7 +68,6 @@ function __getLocationNotes_impl {
 
  # Verify integrity of imported note locations in parallel
  # Optimized: Parallelize verification by splitting data across threads (30min→5min for 4.8M notes)
- __logi "Verifying integrity of imported note locations (parallel)..."
  local -i TOTAL_NOTES_TO_INVALIDATE=0
  local -i VERIFY_THREAD_OVERRIDE=0
  if [[ -n "${VERIFY_THREADS:-}" ]]; then
@@ -79,6 +83,15 @@ function __getLocationNotes_impl {
  if ((VERIFY_THREAD_COUNT <= 0)); then
   VERIFY_THREAD_COUNT=1
  fi
+
+ __logi "=== STARTING INTEGRITY VERIFICATION PROCESS ==="
+ __logi "This is a time-consuming operation that will:"
+ __logi "  1. Recalculate the country for each note using spatial queries"
+ __logi "  2. Compare the recalculated country with the assigned country"
+ __logi "  3. Invalidate notes with incorrect country assignments"
+ __logi "Processing ${MAX_NOTE_ID_NOT_NULL} notes in parallel (${VERIFY_THREAD_COUNT} threads)..."
+ __logi "Estimated time: ~5 minutes for 4.8M notes (without parallel: ~30 minutes)"
+ __logi "Please wait, this process cannot be interrupted..."
 
  # If MAX_NOTE_ID_NOT_NULL is 0 but MAX_NOTE_ID > 0, it means there are notes
  # but none have country assigned (unlikely but handle it)
