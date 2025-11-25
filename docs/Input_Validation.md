@@ -15,7 +15,7 @@ Previously, the project had inconsistent and scattered input validation across d
 
 ## Solution
 
-A centralized set of validation functions has been implemented in `bin/functionsProcess.sh` that provides:
+A centralized set of validation functions has been implemented in `bin/lib/functionsProcess.sh` that provides:
 
 - **Consistent validation logic** across all scripts
 - **Comprehensive error reporting** with detailed messages
@@ -24,7 +24,7 @@ A centralized set of validation functions has been implemented in `bin/functions
 
 ## Available Validation Functions
 
-The following validation functions are available in `bin/functionsProcess.sh`:
+The following validation functions are available in `bin/lib/functionsProcess.sh`:
 
 ### Basic File Validation
 

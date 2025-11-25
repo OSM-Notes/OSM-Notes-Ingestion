@@ -235,11 +235,14 @@ Sync tables are temporary and used for incremental processing:
 - Ensures data consistency between Planet and API sources
 - Coordinates processing to avoid conflicts
 
-### ETL Integration
+### Analytics Integration
 
-- Provides raw data for data warehouse ETL processes
-- Ensures data quality and integrity for analytics
-- Supports data mart population
+> **Note:** ETL processes, data warehouse, and data marts are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+
+- Provides raw data for analytics processing
+- Ensures data quality and integrity for downstream systems
+- Supports data export for analytics workflows
 
 ## Related Documentation
 

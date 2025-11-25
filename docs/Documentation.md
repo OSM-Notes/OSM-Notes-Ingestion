@@ -233,12 +233,12 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 #### Support Functions
 
-- **`bin/functionsProcess.sh`**: Shared processing functions
+- **`bin/lib/functionsProcess.sh`**: Shared processing functions
   - Database operations
   - Validation functions
   - Common utilities
 
-- **`bin/parallelProcessingFunctions.sh`**: Parallel processing utilities
+- **`bin/lib/parallelProcessingFunctions.sh`**: Parallel processing utilities
   - File splitting
   - Parallel execution
   - Resource management
@@ -274,9 +274,10 @@ The OSM-Notes-Ingestion system consists of the following components:
   - Style management
   - Service setup
 
-- **`bin/wms/wmsConfigExample.sh`**: Configuration examples and validation
+- **`bin/wms/wmsConfigExample.sh`**: Configuration examples and validation (not executable directly)
   - Example configurations
   - Validation tools
+  - Called internally by other WMS scripts
   - Testing utilities
 
 ### Data Transformation
