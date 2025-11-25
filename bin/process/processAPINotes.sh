@@ -131,6 +131,12 @@ declare LOCK
 LOCK="/tmp/${BASENAME}.lock"
 readonly LOCK
 
+# Original process start time and PID (to preserve in lock file).
+declare PROCESS_START_TIME
+PROCESS_START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+readonly PROCESS_START_TIME
+declare -r ORIGINAL_PID=$$
+
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then
  declare -r PROCESS_TYPE=${1:-}
@@ -1123,9 +1129,9 @@ function __setupLockFile {
  ONLY_EXECUTION="yes"
 
  cat > "${LOCK}" << EOF
-PID: $$
+PID: ${ORIGINAL_PID}
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${PROCESS_START_TIME}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
@@ -1218,16 +1224,20 @@ function __createBaseStructure {
  exec 8> "${LOCK}"
  flock -n 8
 
- cat > "${LOCK}" << EOF
-PID: $$
+ # Only update lock file content if it doesn't exist or PID doesn't match
+ if [[ ! -f "${LOCK}" ]] || ! grep -q "^PID: ${ORIGINAL_PID}$" "${LOCK}" 2> /dev/null; then
+  cat > "${LOCK}" << EOF
+PID: ${ORIGINAL_PID}
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${PROCESS_START_TIME}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
-Status: Setup completed, continuing with API processing
 EOF
- __logd "Lock re-acquired and content updated"
+  __logd "Lock file content written/updated: ${LOCK}"
+ else
+  __logd "Lock file already exists with correct PID, content preserved"
+ fi
  __log_finish
 }
 
