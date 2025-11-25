@@ -1,5 +1,5 @@
 #!/bin/bash
-# Consolidated Parallel Processing Functions for OSM-Notes-profile
+# Consolidated Parallel Processing Functions for OSM-Notes-Ingestion
 # This file consolidates all parallel processing functions to eliminate duplication
 # Description: Centralized parallel processing functions with resource management and retry logic
 #

@@ -25,8 +25,8 @@
 #
 # These are some examples to call this script:
 #
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh --base
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/bin/process/processPlanetNotes.sh
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh --base
+# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh
 #
 # The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
 #
