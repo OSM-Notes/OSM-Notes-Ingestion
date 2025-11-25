@@ -1,7 +1,5 @@
 # Offline mock commands
 
-Version: 2025-01-23
-
 This directory provides mock implementations of common CLI tools used by the
 pipeline to enable fully offline/local test runs.
 

@@ -13,8 +13,8 @@ As part of the service, it also locates closed notes.
 This allows us to identify areas where many notes have been opened, and imagine
 the reason why.
 
-This service uses the OSM Notes profile mechanism, which has an updated set
-of notes (open and close).
+This service uses the OSM Notes ingestion system, which maintains an updated set
+of notes (open and closed).
 To make WMS work some changes on the database are necessary, to copy just
 the necessary values into another table, with the geometry already created.
 This speeds up the queries for the WMS, without impacting the notes base table.
@@ -316,5 +316,5 @@ Under `sld`:
 Under `sql/wms`
 
 - `prepareDatabase.sql` All the necessary scripts to synchronize the OSM
-  Notes profile mechanism with this Notes WMS layer service.
+  Notes ingestion system with this Notes WMS layer service.
 - `removeFromDatabase.sql` Removes the Notes WMS part from the database.

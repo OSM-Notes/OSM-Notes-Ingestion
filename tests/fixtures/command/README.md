@@ -1,7 +1,5 @@
 # Command Fixtures
 
-Version: 2025-01-23
-
 This directory contains deterministic fixture files used by mock commands for
 offline testing.
 

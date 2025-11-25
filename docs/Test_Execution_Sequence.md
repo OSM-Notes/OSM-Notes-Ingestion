@@ -811,7 +811,3 @@ bats tests/integration/*.bats
 ./tests/run_all_tests.sh --mode host --type all
 ```
 
----
-
-**Last updated:** 2025-10-14  
-**Maintainer:** Andres Gomez (AngocA)

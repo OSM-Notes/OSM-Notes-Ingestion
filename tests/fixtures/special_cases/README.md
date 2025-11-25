@@ -1,163 +1,161 @@
-# Casos Especiales de Pruebas Unitarias
+# Special Test Cases for Unit Testing
 
-Este directorio contiene archivos XML de prueba para casos especiales que pueden
-ocurrir cuando el API devuelve datos. Estos casos están diseñados para probar
-la robustez del sistema de procesamiento de notas.
+This directory contains XML test files for special cases that may occur when the API returns data. These cases are designed to test the robustness of the note processing system.
 
-## Casos de Prueba
+## Test Cases
 
-### 1. Cero Notas (`zero_notes.xml`)
+### 1. Zero Notes (`zero_notes.xml`)
 
-- **Descripción**: API devuelve 0 notas
-- **Propósito**: Probar el manejo de casos vacíos
-- **Escenario**: `<osm></osm>` sin elementos `<note>`
+- **Description**: API returns 0 notes
+- **Purpose**: Test handling of empty cases
+- **Scenario**: `<osm></osm>` without `<note>` elements
 
-### 2. Nota Única (`single_note.xml`)
+### 2. Single Note (`single_note.xml`)
 
-- **Descripción**: API devuelve solo 1 nota
-- **Propósito**: Probar el procesamiento de una sola nota
-- **Escenario**: Una nota con dos comentarios (creación y cierre)
+- **Description**: API returns only 1 note
+- **Purpose**: Test processing of a single note
+- **Scenario**: One note with two comments (creation and closure)
 
-### 3. Menos Notas que Hilos (`less_than_threads.xml`)
+### 3. Less Notes than Threads (`less_than_threads.xml`)
 
-- **Descripción**: 5 notas (menos que 7 hilos disponibles)
-- **Propósito**: Probar cuando hay menos trabajo que hilos disponibles
-- **Escenario**: 5 notas para probar la gestión de hilos ociosos
+- **Description**: 5 notes (less than 7 available threads)
+- **Purpose**: Test when there is less work than available threads
+- **Scenario**: 5 notes to test idle thread management
 
-### 4. Igual a Núcleos (`equal_to_cores.xml`)
+### 4. Equal to Cores (`equal_to_cores.xml`)
 
-- **Descripción**: 12 notas (igual a la cantidad de núcleos)
-- **Propósito**: Asegurar que todos los hilos en paralelo se activan
-- **Escenario**: 12 notas para maximizar el uso de CPU
+- **Description**: 12 notes (equal to the number of cores)
+- **Purpose**: Ensure all parallel threads are activated
+- **Scenario**: 12 notes to maximize CPU usage
 
-### 5. Muchas Más que Núcleos (`many_more_than_cores.xml`)
+### 5. Many More than Cores (`many_more_than_cores.xml`)
 
-- **Descripción**: 25 notas (muchas más que 7 núcleos)
-- **Propósito**: Probar el procesamiento en lotes y gestión de memoria
-- **Escenario**: 25 notas para probar el procesamiento masivo
+- **Description**: 25 notes (many more than 7 cores)
+- **Purpose**: Test batch processing and memory management
+- **Scenario**: 25 notes to test massive processing
 
-### 6. Doble Cierre (`double_close.xml`)
+### 6. Double Close (`double_close.xml`)
 
-- **Descripción**: Nota cerrada dos veces consecutivas
-- **Propósito**: Probar el manejo de errores del API
-- **Escenario**: Error que a veces ocurre en el API de OSM
+- **Description**: Note closed twice consecutively
+- **Purpose**: Test API error handling
+- **Scenario**: Error that sometimes occurs in the OSM API
 
-### 7. Doble Reapertura (`double_reopen.xml`)
+### 7. Double Reopen (`double_reopen.xml`)
 
-- **Descripción**: Nota reabierta dos veces consecutivas
-- **Propósito**: Probar el manejo de errores del API
-- **Escenario**: Error que a veces ocurre en el API de OSM
+- **Description**: Note reopened twice consecutively
+- **Purpose**: Test API error handling
+- **Scenario**: Error that sometimes occurs in the OSM API
 
-### 8. Crear y Cerrar (`create_and_close.xml`)
+### 8. Create and Close (`create_and_close.xml`)
 
-- **Descripción**: Nota creada y cerrada en el mismo llamado del API
-- **Propósito**: Probar el procesamiento de eventos simultáneos
-- **Escenario**: Mismo timestamp para creación y cierre
+- **Description**: Note created and closed in the same API call
+- **Purpose**: Test processing of simultaneous events
+- **Scenario**: Same timestamp for creation and closure
 
-### 9. Cerrar y Reabrir (`close_and_reopen.xml`)
+### 9. Close and Reopen (`close_and_reopen.xml`)
 
-- **Descripción**: Nota cerrada y reabierta en el mismo llamado del API
-- **Propósito**: Probar el procesamiento de eventos simultáneos
-- **Escenario**: Mismo timestamp para cierre y reapertura
+- **Description**: Note closed and reopened in the same API call
+- **Purpose**: Test processing of simultaneous events
+- **Scenario**: Same timestamp for closure and reopening
 
-### 10. Abrir-Cerrar-Reabrir (`open_close_reopen.xml`)
+### 10. Open-Close-Reopen (`open_close_reopen.xml`)
 
-- **Descripción**: Nota abierta, cerrada y reabierta en el mismo llamado
-- **Propósito**: Probar el procesamiento de secuencias complejas
-- **Escenario**: Ciclo completo en un solo llamado del API
+- **Description**: Note opened, closed, and reopened in the same call
+- **Purpose**: Test processing of complex sequences
+- **Scenario**: Complete cycle in a single API call
 
-### 11. Ciclo Completo (`open_close_reopen_cycle.xml`)
+### 11. Complete Cycle (`open_close_reopen_cycle.xml`)
 
-- **Descripción**: Nota con ciclo completo abrir-cerrar-reabrir-cerrar
-- **Propósito**: Probar el procesamiento de ciclos complejos
-- **Escenario**: Múltiples cambios de estado en un llamado
+- **Description**: Note with complete open-close-reopen-close cycle
+- **Purpose**: Test processing of complex cycles
+- **Scenario**: Multiple state changes in one call
 
-### 12. Comentar y Cerrar (`comment_and_close.xml`)
+### 12. Comment and Close (`comment_and_close.xml`)
 
-- **Descripción**: Nota comentada y después cerrada
-- **Propósito**: Probar el procesamiento de comentarios antes del cierre
-- **Escenario**: Múltiples comentarios seguidos de cierre
+- **Description**: Note commented and then closed
+- **Purpose**: Test processing of comments before closure
+- **Scenario**: Multiple comments followed by closure
 
-## Uso en Pruebas
+## Usage in Tests
 
-### Ejecutar Pruebas con Casos Especiales
+### Running Tests with Special Cases
 
 ```bash
-# Probar con cero notas
+# Test with zero notes
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/zero_notes.xml
 
-# Probar con nota única
+# Test with single note
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/single_note.xml
 
-# Probar con menos notas que hilos
+# Test with less notes than threads
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/less_than_threads.xml
 
-# Probar con igual a núcleos
+# Test with equal to cores
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/equal_to_cores.xml
 
-# Probar con muchas más que núcleos
+# Test with many more than cores
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/many_more_than_cores.xml
 ```
 
-### Casos de Error del API
+### API Error Cases
 
 ```bash
-# Probar doble cierre
+# Test double close
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/double_close.xml
 
-# Probar doble reapertura
+# Test double reopen
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/double_reopen.xml
 
-# Probar crear y cerrar
+# Test create and close
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/create_and_close.xml
 
-# Probar cerrar y reabrir
+# Test close and reopen
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/close_and_reopen.xml
 
-# Probar abrir-cerrar-reabrir
+# Test open-close-reopen
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/open_close_reopen.xml
 
-# Probar ciclo completo
+# Test complete cycle
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/open_close_reopen_cycle.xml
 
-# Probar comentar y cerrar
+# Test comment and close
 ./bin/process/processAPINotes.sh tests/fixtures/special_cases/comment_and_close.xml
 ```
 
-## Validación de Resultados
+## Result Validation
 
-### Resultados Esperados
+### Expected Results
 
-1. **Cero Notas**: No debe generar errores, debe procesar correctamente
-2. **Nota Única**: Debe procesar la nota correctamente
-3. **Menos que Hilos**: Debe usar solo los hilos necesarios
-4. **Igual a Núcleos**: Debe usar todos los hilos disponibles
-5. **Muchas Más**: Debe procesar en lotes eficientemente
-6. **Errores del API**: Debe manejar los errores graciosamente
+1. **Zero Notes**: Should not generate errors, should process correctly
+2. **Single Note**: Should process the note correctly
+3. **Less than Threads**: Should use only necessary threads
+4. **Equal to Cores**: Should use all available threads
+5. **Many More**: Should process in batches efficiently
+6. **API Errors**: Should handle errors gracefully
 
-### Verificaciones
+### Verifications
 
-- [ ] Procesamiento sin errores
-- [ ] Uso correcto de hilos paralelos
-- [ ] Manejo de errores del API
-- [ ] Procesamiento de comentarios
-- [ ] Gestión de estados de notas
-- [ ] Rendimiento aceptable
+- [ ] Processing without errors
+- [ ] Correct use of parallel threads
+- [ ] API error handling
+- [ ] Comment processing
+- [ ] Note state management
+- [ ] Acceptable performance
 
-## Notas Técnicas
+## Technical Notes
 
-- Todos los archivos XML siguen el formato estándar de OSM
-- Los timestamps están coordinados para simular llamadas reales del API
-- Los IDs de notas y comentarios son únicos para evitar conflictos
-- Las coordenadas están en Madrid, España para consistencia
-- Los usuarios son ficticios para propósitos de prueba
+- All XML files follow the standard OSM format
+- Timestamps are coordinated to simulate real API calls
+- Note and comment IDs are unique to avoid conflicts
+- Coordinates are in Madrid, Spain for consistency
+- Users are fictional for testing purposes
 
-## Integración con CI/CD
+## CI/CD Integration
 
-Estos casos especiales se pueden integrar en el pipeline de CI/CD:
+These special cases can be integrated into the CI/CD pipeline:
 
 ```yaml
-# Ejemplo para GitHub Actions
+# Example for GitHub Actions
 - name: Test Special Cases
   run: |
     for file in tests/fixtures/special_cases/*.xml; do
@@ -166,9 +164,9 @@ Estos casos especiales se pueden integrar en el pipeline de CI/CD:
     done
 ```
 
-## Mantenimiento
+## Maintenance
 
-- Agregar nuevos casos especiales según sea necesario
-- Actualizar este README cuando se agreguen nuevos casos
-- Verificar que todos los casos funcionen con cambios en el código
-- Mantener la consistencia en el formato XML
+- Add new special cases as needed
+- Update this README when adding new cases
+- Verify that all cases work with code changes
+- Maintain consistency in XML format

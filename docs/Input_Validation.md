@@ -351,21 +351,17 @@ To migrate existing scripts to use the new validation functions:
 
 The validation functions are demonstrated in the comprehensive test suite at `tests/unit/bash/input_validation.test.bats`.
 
-## Version History
+## Key Features
 
-- **2025-10-29**: Added `__validate_json_with_element` function
-  - Validates JSON structure and verifies expected elements exist and are not empty
-  - Integrated with retry logic in boundary processing workflow
-  - Enables automatic retry when downloaded files are corrupted or incomplete
-  - Used for validating Overpass API responses and GeoJSON conversions
-
-- **2025-07-27**: Initial implementation of centralized validation functions
-  - Added support for SQL, XML, CSV, and configuration file validation
-  - Created comprehensive test suite
-  - Updated process scripts to use new validation functions
+- **JSON Validation**: `__validate_json_with_element` function validates JSON structure and verifies expected elements exist and are not empty
+- **Retry Integration**: Integrated with retry logic in boundary processing workflow
+- **Automatic Recovery**: Enables automatic retry when downloaded files are corrupted or incomplete
+- **Overpass API Support**: Used for validating Overpass API responses and GeoJSON conversions
+- **Comprehensive Coverage**: Support for SQL, XML, CSV, and configuration file validation
 
 > **Note:** ETL scripts are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
-  - **Added date validation functions**:
+
+## Date Validation Functions
     - `__validate_iso8601_date()` - Validates ISO 8601 date formats
     - `__validate_xml_dates()` - Validates dates in XML files
     - `__validate_csv_dates()` - Validates dates in CSV files

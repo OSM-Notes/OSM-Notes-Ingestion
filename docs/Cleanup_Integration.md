@@ -120,12 +120,6 @@ bats tests/unit/bash/cleanupAll_integration.test.bats
 - **Logging**: Comprehensive logging for all operations
 - **Cleanup**: Proper cleanup of temporary files and resources
 
-## Version History
-
-- **2025-08-04**: Integrated `cleanupPartitions.sh` functionality into `cleanupAll.sh`
-- **Previous**: Separate scripts for different cleanup operations
-- **Current**: Single integrated script with multiple modes
-
 ## Future Enhancements
 
 1. **Dry-Run Mode**: Add `--dry-run` option for testing
