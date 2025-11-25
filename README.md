@@ -45,6 +45,9 @@ These are the main functions of this project:
 For **analytics, data warehouse, ETL, and profile generation**, see the
 [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
 
+For **web visualization and interactive exploration** of user and country profiles, see the
+[OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer) repository.
+
 ## Shared Functions (Git Submodule)
 
 This project uses a Git submodule for shared code (`lib/osm-common/`):

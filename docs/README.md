@@ -171,8 +171,9 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-Inge
 - View note activity and contribution metrics
 - Read [Rationale.md](./Rationale.md) to understand the project's purpose
 
-> **Note:** For user and country profiles, hashtag analysis, and campaign performance,
-> see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** For interactive web visualization of user and country profiles, hashtag analysis, and campaign performance,
+> see [OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer).
+> For data warehouse and analytics backend, see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ## Dependencies
 

@@ -404,6 +404,7 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 - Use WMS layers in mapping applications (JOSM, Vespucci)
 - Visualize note patterns geographically
+- Explore user and country profiles interactively via [OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer)
 - Query database for custom analysis
 - Export data in various formats
 
@@ -500,6 +501,17 @@ For analytics, ETL, and data warehouse functionality, see:
   - Data marts (users, countries)
   - Profile generation
   - Advanced analytics
+
+### Web Visualization
+
+For interactive web visualization and exploration of user and country profiles:
+
+- **[OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer)**
+  - Interactive web interface
+  - User and country profile visualization
+  - Statistics and analytics exploration
+  - Hashtag tracking and analysis
+  - Geographic distribution visualization
 
 ---
 
