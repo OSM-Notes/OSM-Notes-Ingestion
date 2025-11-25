@@ -17,13 +17,8 @@ Scripts for processing and loading data:
 - **Data loading**: `processPlanetNotes_31_*.sql` and `processPlanetNotes_41_*.sql`
 - **API processing**: `processAPINotes_*.sql` scripts
 
-### `/sql/dwh/`
-
-Data Warehouse scripts:
-
-- **ETL processes**: `ETL_*.sql` scripts for data transformation
-- **Data marts**: `datamartUsers/` and `datamartCountries/` subdirectories
-- **Staging**: `Staging_*.sql` scripts for temporary data processing
+> **Note:** DWH (Data Warehouse), ETL, and Analytics SQL scripts have been moved to
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### `/sql/functionsProcess/`
 
@@ -57,9 +52,11 @@ Web Map Service related scripts:
 
 ### Data Processing
 
-- **ETL Scripts**: Transform raw data into structured warehouse format
-- **Data Marts**: Create specialized views for analytics
-- **Staging**: Handle temporary data during processing
+- **Note Processing**: Scripts for loading and processing OSM notes data
+- **API Integration**: Scripts for incremental API data synchronization
+
+> **Note:** For ETL scripts, data marts, and staging procedures, see
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### Functions and Procedures
 

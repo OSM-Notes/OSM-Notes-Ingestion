@@ -457,7 +457,4 @@ psql -c "INSERT INTO table VALUES ('${NAME}') WHERE id=${SANITIZED_ID}"
 
 ---
 
-**Author**: Andres Gomez (AngocA)  
-**Version**: 2025-07-27  
-**Updated**: 2025-10-25 (Added SQL sanitization section)  
 **Status**: Implemented and tested

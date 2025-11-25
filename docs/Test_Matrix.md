@@ -1,8 +1,5 @@
 # Test Matrix - OSM Notes Ingestion
 
-**Version:** 2025-10-14  
-**Author:** Andres Gomez (AngocA)
-
 ## Summary Table - Execution Types
 
 | Execution Type | Requirements | Scripts | Description |

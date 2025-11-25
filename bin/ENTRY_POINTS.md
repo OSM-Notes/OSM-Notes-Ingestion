@@ -1,6 +1,5 @@
 # Entry Points Documentation
 
-**Version:** 2025-10-26  
 **Purpose:** Define allowed entry points for OSM-Notes-Ingestion system
 
 ## Overview

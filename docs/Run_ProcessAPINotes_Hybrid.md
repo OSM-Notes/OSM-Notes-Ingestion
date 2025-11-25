@@ -1,8 +1,5 @@
 # Guide to Run processAPINotes in Hybrid Mode (Real DB, Mocked Downloads)
 
-**Version:** 2025-01-23  
-**Author:** Andres Gomez (AngocA)
-
 ## Description
 
 This document explains how to run `processAPINotes.sh` in hybrid mock mode, using

@@ -175,6 +175,3 @@ The three workflows work together to ensure code quality:
 
 This configuration allows quick problem detection and maintains the quality of the OSM-Notes-Ingestion project.
 
----
-
-*Last updated: 2025-08-04*

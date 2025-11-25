@@ -10,8 +10,9 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-Inge
 
 - **`Documentation.md`**: Comprehensive system documentation and architecture overview
 - **`Rationale.md`**: Project motivation, background, and design decisions
-- **`DWH_Star_Schema_Data_Dictionary.md`**: Complete data dictionary for DWH star schema
-- **`DWH_Star_Schema_ERD.md`**: Entity-Relationship Diagram for DWH star schema
+
+> **Note:** DWH (Data Warehouse), ETL, and Analytics documentation has been moved to
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### Technical Implementation
 
@@ -127,9 +128,9 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-Inge
 
 - **API Processing**: Real-time data processing from OSM API
 - **Planet Processing**: Large-scale data processing from Planet files
-- **ETL Processes**: Data transformation and loading procedures
-- **Data Marts**: Analytics and reporting data structures
-- **DWH Enhanced Features**: New dimensions, functions, and enhanced ETL capabilities
+
+> **Note:** ETL Processes, Data Marts, and DWH features are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### Technical Specifications
 
@@ -150,26 +151,28 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-Inge
 ### For Developers
 
 - Understand data flow and transformation processes
-- Modify processing scripts and ETL procedures
-- Extend analytics and reporting capabilities
+- Modify processing scripts and data ingestion procedures
 - Study [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for implementation details
+
+> **Note:** For ETL procedures and analytics capabilities, see
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### For Data Analysts
 
-- Query data warehouse for custom analytics
-- Create new data marts for specific use cases
-- Generate reports and visualizations
+- Query the notes database for custom analytics
 - Review [Documentation.md](./Documentation.md) for data structure information
-- Explore DWH enhanced features: timezones, seasons, continents, application versions
-- Analyze seasonal patterns and local time-based metrics
-- Study application usage patterns and version adoption
+
+> **Note:** For data warehouse queries, data marts, and advanced analytics features
+> (timezones, seasons, continents, application versions), see
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### For End Users
 
-- Access user and country profiles
 - View note activity and contribution metrics
-- Analyze hashtag and campaign performance
 - Read [Rationale.md](./Rationale.md) to understand the project's purpose
+
+> **Note:** For user and country profiles, hashtag analysis, and campaign performance,
+> see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ## Dependencies
 
@@ -183,5 +186,4 @@ When updating documentation:
 
 1. **Maintain Cross-References**: Update related document references
 2. **Keep Language Consistent**: All documentation is now in English
-3. **Update Version Information**: Include current date in document headers
-4. **Test Links**: Verify all internal links work correctly
+3. **Test Links**: Verify all internal links work correctly

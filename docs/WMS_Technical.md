@@ -708,14 +708,6 @@ echo "WMS service:"
 curl -s "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities" >/dev/null && echo "OK" || echo "FAILED"
 ```
 
-## Version Information
-
-- **WMS Version**: 1.3.0
-- **GeoServer Version**: 2.24+
-- **PostGIS Version**: 3.0+
-- **PostgreSQL Version**: 12+
-- **Last Updated**: 2025-07-27
-
 ## Related Documentation
 
 - **WMS Guide**: See `docs/WMS_Guide.md`

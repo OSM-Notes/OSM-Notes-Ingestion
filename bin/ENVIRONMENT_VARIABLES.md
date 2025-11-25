@@ -1,6 +1,5 @@
 # Environment Variables Documentation
 
-**Version:** 2025-10-30  
 **Purpose:** Define standard environment variables for OSM-Notes-Ingestion
 
 ## Overview
@@ -111,7 +110,6 @@ export LOG_LEVEL=DEBUG
 
 #### Base/Update Mode
 - No specific env vars for `--base` mode (uses parameter)
-- No specific env vars for `--boundaries` mode (uses parameter)
 
 #### Example
 ```bash

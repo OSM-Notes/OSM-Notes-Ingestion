@@ -1092,13 +1092,6 @@ pipeline {
 4. **Test Improvement**: Continuously improve test quality
 5. **Test Documentation**: Maintain comprehensive test documentation
 
-## Version Information
-
-- **WMS Version**: 1.3.0
-- **Testing Framework**: Custom Python/Bash
-- **Test Coverage**: Unit, Integration, Performance, Security
-- **Last Updated**: 2025-07-27
-
 ## Related Documentation
 
 - **WMS Guide**: See `docs/WMS_Guide.md`

@@ -325,5 +325,3 @@ The previous system (`checkFailedExecution.sh`) is still valid as:
 **Recommendation**: Use the new system by default. Keep the old one only if you need centralized monitoring.
 
 ---
-Author: Andres Gomez (AngocA)  
-Version: 2025-10-22

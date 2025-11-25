@@ -16,15 +16,6 @@ Contains the main data processing scripts:
 - **`processAPINotes.sh`**: Processes OSM notes from API endpoints
 - **`updateCountries.sh`**: Updates country data and associations
 
-### `/bin/dwh/`
-
-Data Warehouse components:
-
-- **`ETL.sh`**: Main ETL (Extract, Transform, Load) process
-- **`profile.sh`**: Generates data profiles and statistics
-- **`datamartUsers/`**: User-related data mart processing
-- **`datamartCountries/`**: Country-related data mart processing
-
 ### `/bin/monitor/`
 
 Monitoring and verification scripts:
@@ -55,7 +46,7 @@ Utility scripts for data management and maintenance:
 
 Database maintenance script for comprehensive cleanup operations:
 
-- **Full cleanup**: Removes all components (ETL, WMS, base tables, temporary files)
+- **Full cleanup**: Removes all components (WMS, base tables, temporary files)
 - **Partition-only cleanup**: Removes only partition tables (use `-p` or `--partitions-only` flag)
 - **Database**: Configured via `etc/properties.sh` (DBNAME variable)
 
@@ -65,13 +56,9 @@ Database maintenance script for comprehensive cleanup operations:
 
 - **Planet Processing**: `bin/process/processPlanetNotes.sh` handles large OSM Planet files
 - **API Processing**: `bin/process/processAPINotes.sh` processes real-time API data
-- **ETL Pipeline**: `bin/dwh/ETL.sh` orchestrates the complete data transformation
 
-### Data Warehouse
-
-- **Data Marts**: `bin/dwh/datamartUsers/` and `bin/dwh/datamartCountries/`
-  create specialized data views
-- **Profiling**: `bin/dwh/profile.sh` generates analytics and reports
+> **Note:** ETL, Data Warehouse, and Analytics components have been moved to
+> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### Monitoring & Maintenance
 

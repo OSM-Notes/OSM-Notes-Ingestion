@@ -1,7 +1,5 @@
 # OSM Notes Ingestion - System Documentation
 
-**Version:** 2025-01-27
-
 ## Overview
 
 This document provides comprehensive technical documentation for the
@@ -505,5 +503,4 @@ For analytics, ETL, and data warehouse functionality, see:
 
 ---
 
-**Last Updated:** 2025-10-14  
 **Maintainer:** Andres Gomez (AngocA)

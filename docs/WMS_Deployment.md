@@ -755,13 +755,6 @@ export GEOSERVER_DATA_DIR="/opt/geoserver/data_dir"
 export GEOSERVER_LOG_LOCATION="/var/log/geoserver"
 ```
 
-## Version Information
-
-- **WMS Version**: 1.3.0
-- **Deployment Methods**: Ansible, Docker, Kubernetes
-- **Supported Environments**: Development, Staging, Production
-- **Last Updated**: 2025-07-27
-
 ## Related Documentation
 
 - **WMS Guide**: See `docs/WMS_Guide.md`

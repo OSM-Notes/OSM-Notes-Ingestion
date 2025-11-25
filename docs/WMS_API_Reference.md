@@ -741,13 +741,6 @@ curl "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetF
 curl "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&LAYERS=osm_notes:notes_wms_layer&QUERY_LAYERS=osm_notes:notes_wms_layer&INFO_FORMAT=application/json&I=256&J=256&WIDTH=512&HEIGHT=512&CRS=EPSG:4326&BBOX=-74.1,40.7,-73.9,40.8" | jq .
 ```
 
-## Version Information
-
-- **WMS Version**: 1.3.0
-- **GeoServer Version**: 2.24+
-- **PostGIS Version**: 3.0+
-- **Last Updated**: 2025-07-27
-
 ## Related Documentation
 
 - **WMS Guide**: See `docs/WMS_Guide.md`

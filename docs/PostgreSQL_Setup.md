@@ -244,6 +244,3 @@ export DB_USER="my-custom-user"
 - [PostgreSQL Authentication Methods](https://www.postgresql.org/docs/current/auth-methods.html)
 
 ---
-
-**Author**: Andres Gomez (AngocA)  
-**Version**: 2025-10-20

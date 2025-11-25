@@ -376,8 +376,3 @@ find tests/unit/bash -name "*error*.bats" -exec bats {} \;
 - [CI/CD Integration](./CI_CD_Integration.md) - Continuous integration
 - [Input Validation](./Input_Validation.md) - Validation strategies
 
----
-
-*Last updated: 2025-01-27*
-*Total suites documented: 74*
-*Consolidated runners: 9 (reduced from 36)*

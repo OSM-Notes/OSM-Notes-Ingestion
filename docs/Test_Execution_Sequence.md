@@ -1,8 +1,5 @@
 # Sequential Test Execution Guide
 
-**Version:** 2025-10-14  
-**Author:** Andres Gomez (AngocA)
-
 ## Introduction
 
 This guide allows you to execute tests **in parts**, organized by priority,

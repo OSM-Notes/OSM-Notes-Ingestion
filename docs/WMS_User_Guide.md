@@ -385,12 +385,6 @@ Before you can use the WMS layer, you need:
 - **Video Tutorials**: Visual learning resources
 - **Workshops**: Hands-on training sessions
 
-## Version Information
-
-- **WMS Version**: 1.3.0
-- **Last Updated**: 2025-07-27
-- **Compatible with**: JOSM 0.9+, Vespucci 0.9+
-
 ## Feedback
 
 We welcome your feedback to improve this guide:

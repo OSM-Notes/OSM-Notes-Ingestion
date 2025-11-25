@@ -508,13 +508,5 @@ Potential improvements:
   <https://postgis.net/docs/ST_Contains.html>
 - **OpenStreetMap Boundaries**: 
   <https://wiki.openstreetmap.org/wiki/Tag:boundary%3Dadministrative>
-- **Spatial Indexing**: 
+- **Spatial Indexing**:
   <https://postgis.net/docs/using_postgis_dbmanagement.html#spatial_index_intro>
-
-## Author
-
-- **Andres Gomez (AngocA)**
-- OSM-LatAm, OSM-Colombia, MaptimeBogota
-- Version: 2025-10-19
-
-

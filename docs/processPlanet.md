@@ -1,7 +1,5 @@
 # Complete Description of processPlanetNotes.sh
 
-> **Version:** 2025-10-28
->
 > **Note:** For a general system overview, see [Documentation.md](./Documentation.md).
 > For project motivation and background, see [Rationale.md](./Rationale.md).
 
@@ -11,7 +9,7 @@ The `processPlanetNotes.sh` script is the central component of the OpenStreetMap
 
 ## Input Arguments
 
-The script accepts three types of arguments:
+The script accepts two types of arguments:
 
 ### 1. No argument (incremental processing)
 
@@ -39,18 +37,6 @@ The script accepts three types of arguments:
   - Downloads the complete planet file
   - Processes all notes from the planet
   - Creates the complete database structure
-
-### 3. `--boundaries` argument (boundaries only)
-
-```bash
-./processPlanetNotes.sh --boundaries
-```
-
-- **Purpose**: Processes only geographic boundaries
-- **Behavior**:
-  - Downloads country and maritime boundaries
-  - Processes and organizes geographic areas
-  - Does not process planet notes
 
 ## Table Architecture
 

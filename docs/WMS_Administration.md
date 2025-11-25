@@ -956,14 +956,6 @@ Create WMS dashboard configuration for Grafana to visualize:
 - WMS request statistics
 - System resource usage
 
-## Version Information
-
-- **WMS Version**: 1.3.0
-- **GeoServer Version**: 2.24+
-- **PostGIS Version**: 3.0+
-- **PostgreSQL Version**: 12+
-- **Last Updated**: 2025-07-27
-
 ## Related Documentation
 
 - **WMS Guide**: See `docs/WMS_Guide.md`
