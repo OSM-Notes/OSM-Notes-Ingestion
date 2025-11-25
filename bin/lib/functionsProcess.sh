@@ -281,6 +281,7 @@ declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/fun
 declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
 declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
 declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
+declare -r POSTGRES_33_VERIFY_NOTE_INTEGRITY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_33_verifyNoteIntegrity.sql"
 
 if [[ -z "${COUNTRIES_BOUNDARY_IDS_FILE:-}" ]]; then
  declare -r COUNTRIES_BOUNDARY_IDS_FILE="${TMP_DIR}/countries_boundary_ids.csv"
@@ -1375,6 +1376,10 @@ EOF
  fi
  if [[ ! -r "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_32_UPLOAD_NOTE_LOCATION}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_33_VERIFY_NOTE_INTEGRITY}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_33_VERIFY_NOTE_INTEGRITY}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 

@@ -2,9 +2,9 @@
 
 # Note Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-11-25
 
-VERSION="2025-11-24"
+VERSION="2025-11-25"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -172,7 +172,7 @@ function __getLocationNotes_impl {
   touch "${PROGRESS_FILE}.lock"
   local CLEANUP_PROGRESS_FILE="${PROGRESS_FILE}"
   local CLEANUP_PROGRESS_LOCK="${PROGRESS_FILE}.lock"
-  
+
   # Update trap to include progress file cleanup
   # shellcheck disable=SC2064
   trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"; rm -f "${CLEANUP_QUEUE_FILE:-}" "${CLEANUP_PROGRESS_FILE:-}" "${CLEANUP_PROGRESS_LOCK:-}" 2> /dev/null || true' EXIT
@@ -180,7 +180,11 @@ function __getLocationNotes_impl {
   # Start progress monitor in background
   (
    local -i LAST_REPORTED=0
-   local -i REPORT_INTERVAL=5
+   local -i REPORT_INTERVAL=30
+   local -i HEARTBEAT_INTERVAL=300
+   local -i LAST_HEARTBEAT=0
+   local START_TIME
+   START_TIME=$(date +%s)
    while true; do
     sleep "${REPORT_INTERVAL}"
     if [[ ! -f "${PROGRESS_FILE}" ]]; then
@@ -191,14 +195,46 @@ function __getLocationNotes_impl {
     if [[ ${COMPLETED_CHUNKS} -ge ${TOTAL_CHUNKS} ]]; then
      break
     fi
+    local CURRENT_TIME
+    CURRENT_TIME=$(date +%s)
+    local -i ELAPSED=$((CURRENT_TIME - START_TIME))
+
+    # Show progress when there's new progress
     if [[ ${COMPLETED_CHUNKS} -gt ${LAST_REPORTED} ]]; then
      local -i PERCENTAGE=$((COMPLETED_CHUNKS * 100 / TOTAL_CHUNKS))
      local -i PROCESSED_NOTES=$((COMPLETED_CHUNKS * EFFECTIVE_VERIFY_CHUNK_SIZE))
      if [[ ${PROCESSED_NOTES} -gt ${MAX_NOTE_ID_NOT_NULL} ]]; then
       PROCESSED_NOTES=${MAX_NOTE_ID_NOT_NULL}
      fi
-     __logi "Progress: ${COMPLETED_CHUNKS}/${TOTAL_CHUNKS} chunks completed (${PERCENTAGE}%) - ~${PROCESSED_NOTES} notes processed"
+     local -i REMAINING_CHUNKS=$((TOTAL_CHUNKS - COMPLETED_CHUNKS))
+     local -i AVG_TIME_PER_CHUNK=0
+     if [[ ${COMPLETED_CHUNKS} -gt 0 ]]; then
+      AVG_TIME_PER_CHUNK=$((ELAPSED / COMPLETED_CHUNKS))
+     fi
+     local -i ESTIMATED_REMAINING=0
+     if [[ ${AVG_TIME_PER_CHUNK} -gt 0 ]]; then
+      ESTIMATED_REMAINING=$((REMAINING_CHUNKS * AVG_TIME_PER_CHUNK))
+     fi
+     local ESTIMATED_STR=""
+     if [[ ${ESTIMATED_REMAINING} -gt 0 ]]; then
+      local -i EST_HOURS=$((ESTIMATED_REMAINING / 3600))
+      local -i EST_MINUTES=$(((ESTIMATED_REMAINING % 3600) / 60))
+      ESTIMATED_STR=" - Estimated remaining: ${EST_HOURS}h ${EST_MINUTES}m"
+     fi
+     __logi "Progress: ${COMPLETED_CHUNKS}/${TOTAL_CHUNKS} chunks completed (${PERCENTAGE}%) - ~${PROCESSED_NOTES} notes processed${ESTIMATED_STR}"
      LAST_REPORTED=${COMPLETED_CHUNKS}
+     LAST_HEARTBEAT=${CURRENT_TIME}
+    # Show heartbeat message every 5 minutes even if no progress
+    elif ((CURRENT_TIME - LAST_HEARTBEAT >= HEARTBEAT_INTERVAL)); then
+     local -i PERCENTAGE=$((COMPLETED_CHUNKS * 100 / TOTAL_CHUNKS))
+     local -i PROCESSED_NOTES=$((COMPLETED_CHUNKS * EFFECTIVE_VERIFY_CHUNK_SIZE))
+     if [[ ${PROCESSED_NOTES} -gt ${MAX_NOTE_ID_NOT_NULL} ]]; then
+      PROCESSED_NOTES=${MAX_NOTE_ID_NOT_NULL}
+     fi
+     local -i ELAPSED_HOURS=$((ELAPSED / 3600))
+     local -i ELAPSED_MINUTES=$(((ELAPSED % 3600) / 60))
+     __logi "Still processing... ${COMPLETED_CHUNKS}/${TOTAL_CHUNKS} chunks completed (${PERCENTAGE}%) - ~${PROCESSED_NOTES} notes processed - Elapsed: ${ELAPSED_HOURS}h ${ELAPSED_MINUTES}m"
+     LAST_HEARTBEAT=${CURRENT_TIME}
     fi
    done
   ) &
@@ -235,40 +271,22 @@ function __getLocationNotes_impl {
        SUB_END=${RANGE_LIMIT}
       fi
 
+      # Validate SQL file exists
+      if [[ ! -f "${POSTGRES_33_VERIFY_NOTE_INTEGRITY}" ]]; then
+       __loge "ERROR: SQL file does not exist: ${POSTGRES_33_VERIFY_NOTE_INTEGRITY}"
+       __log_finish
+       return 1
+      fi
+
+      # Export variables for envsubst
+      export SUB_START
+      export SUB_END
+
+      # Execute SQL file with parameter substitution
       local SUB_COUNT
-      SUB_COUNT=$(
-       psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
-BEGIN;
-
-CREATE TEMP TABLE temp_verify_batch ON COMMIT DROP AS
-SELECT note_id
-FROM notes
-WHERE id_country IS NOT NULL
-AND ${SUB_START} <= note_id AND note_id < ${SUB_END}
-ORDER BY note_id;
-
-WITH computed AS (
-SELECT n.note_id,
-       n.id_country,
-       get_country(n.longitude, n.latitude, n.note_id) AS computed_country
-FROM notes AS n
-JOIN temp_verify_batch b ON b.note_id = n.note_id
-),
-invalidated AS (
-UPDATE notes AS n /* Notes-integrity check parallel */
-SET id_country = NULL
-FROM computed c
-WHERE n.note_id = c.note_id
-AND (c.computed_country = -1 OR c.computed_country <> n.id_country)
-RETURNING n.note_id
-)
-SELECT COUNT(*) FROM invalidated;
-
-COMMIT;
-
-DISCARD ALL;
-EOF
-      )
+      SUB_COUNT=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+       -c "$(envsubst '$SUB_START,$SUB_END' \
+        < "${POSTGRES_33_VERIFY_NOTE_INTEGRITY}" || true)")
       SUB_COUNT=$(echo "${SUB_COUNT}" | tr -d '[:space:]')
       if [[ -z "${SUB_COUNT}" ]]; then
        SUB_COUNT=0

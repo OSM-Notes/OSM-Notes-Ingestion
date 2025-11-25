@@ -1,7 +1,7 @@
 -- Create constraints in base tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-11-25
 
 -- Users table already has PRIMARY KEY defined in CREATE TABLE
 -- ALTER TABLE users
@@ -43,6 +43,9 @@ CREATE INDEX IF NOT EXISTS notes_created ON notes (created_at);
 COMMENT ON INDEX notes_created IS 'To query by opening time';
 CREATE INDEX IF NOT EXISTS notes_countries ON notes (id_country);
 COMMENT ON INDEX notes_countries IS 'To query by location of the note';
+CREATE INDEX IF NOT EXISTS notes_country_note_id ON notes (id_country, note_id)
+  WHERE id_country IS NOT NULL;
+COMMENT ON INDEX notes_country_note_id IS 'Composite index for integrity verification queries (id_country IS NOT NULL + note_id range)';
 CREATE INDEX IF NOT EXISTS notes_spatial ON notes
   USING GIST (ST_Point(longitude, latitude));
 COMMENT ON INDEX notes_spatial IS 'Spatial index';
