@@ -2,7 +2,7 @@
 -- note's location.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-11
+-- Version: 2025-11-24
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Creating table...' AS Text;
@@ -17,6 +17,13 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading old note locations...' AS Text;
 COPY backup_note_locations (note_id, id_country)
 FROM '${CSV_BACKUP_NOTE_LOCATION}' csv;
+
+SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
+ 'Creating index on backup table...' AS Text;
+CREATE INDEX IF NOT EXISTS idx_backup_note_locations_note_id
+  ON backup_note_locations (note_id);
+ANALYZE backup_note_locations;
+
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Locations loaded. Updating notes...' AS Text;
 UPDATE notes AS n /* Notes-processAPI */
