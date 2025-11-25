@@ -1,7 +1,5 @@
 # Quick Test Execution Guide
 
-**Version:** 2025-10-14
-
 ## 🚀 Quick Commands
 
 ### Quick Verification (15-20 min)
