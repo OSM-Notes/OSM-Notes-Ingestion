@@ -232,7 +232,7 @@ fi
 
 ## Implementation in Scripts
 
-### ETL Script Example
+### Script Example
 
 ```bash
 function __checkPrereqs {
@@ -240,9 +240,8 @@ function __checkPrereqs {
   __logi "Validating SQL script files..."
   
   local sql_files=(
-    "${POSTGRES_11_CHECK_DWH_BASE_TABLES}"
-    "${POSTGRES_12_DROP_DATAMART_OBJECTS}"
-    "${POSTGRES_13_DROP_DWH_OBJECTS}"
+    "${POSTGRES_11_CHECK_BASE_TABLES}"
+    "${POSTGRES_12_CREATE_FUNCTIONS}"
     # ... more files
   )
   
@@ -363,7 +362,9 @@ The validation functions are demonstrated in the comprehensive test suite at `te
 - **2025-07-27**: Initial implementation of centralized validation functions
   - Added support for SQL, XML, CSV, and configuration file validation
   - Created comprehensive test suite
-  - Updated ETL and process scripts to use new validation functions
+  - Updated process scripts to use new validation functions
+
+> **Note:** ETL scripts are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
   - **Added date validation functions**:
     - `__validate_iso8601_date()` - Validates ISO 8601 date formats
     - `__validate_xml_dates()` - Validates dates in XML files

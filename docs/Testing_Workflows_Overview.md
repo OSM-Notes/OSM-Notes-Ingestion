@@ -67,8 +67,10 @@ When you make a push or pull request, you see three different "workflow runs" be
 **What it validates:**
 
 - Scripts can interact correctly with PostgreSQL databases and simulated external services (mock API)
-- ETL flows, note processing, and WMS administration work end-to-end
+- Note processing and WMS administration work end-to-end
 - Integration with external tools (Docker, PostGIS, etc.) is successful
+
+> **Note:** ETL flow tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 - Network connectivity and configuration tests
 
 **When it runs:** On each push or pull request to the main branch (`main`), or when manually requested.
@@ -94,7 +96,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 | `run_real_data_tests.sh`               | tests/                                    | Tests with real data and special cases                                        |
 | `run_parallel_tests.sh`                | tests/                                    | Validates parallel processing and concurrency                                 |
 | `run_error_handling_tests.sh`          | tests/                                    | Error handling and edge case validation tests                                 |
-| `run_dwh_tests.sh`                     | tests/                                    | DWH enhanced testing (new dimensions, functions, ETL)                         |
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 | `run_ci_tests.sh`                      | tests/docker/                             | CI/CD tests in Docker environment                                             |
 | `run_integration_tests.sh`             | tests/docker/                             | Integration tests in Docker environment                                       |
 | `quality-tests.yml`                    | .github/workflows/                        | GitHub Actions workflow for quality tests                                     |

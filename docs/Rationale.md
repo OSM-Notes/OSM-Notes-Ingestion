@@ -1,4 +1,4 @@
-# OSM Notes Profile - Project Rationale
+# OSM Notes Ingestion - Project Rationale
 
 ## Why This Project Exists
 

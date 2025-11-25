@@ -102,10 +102,10 @@ Unit tests for individual components:
   - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing tests
   - **Other `.test.bats` files**: Component-specific unit tests
 - **`sql/`**: Database function and table tests
-  - **`dwh_dimensions_enhanced.test.sql`**: Unit tests for enhanced DWH dimensions
-  - **`dwh_functions_enhanced.test.sql`**: Unit tests for enhanced DWH functions
   - **`tables_final_fixed.test.sql`**: Database table structure tests
   - **`functions_final_corrected.test.sql`**: Database function tests
+
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### `/tests/integration/`
 

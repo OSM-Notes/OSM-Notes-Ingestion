@@ -146,10 +146,3 @@ Tested on OSM Planet with ~4.87M notes:
 - `bin/process/processPlanetNotes.sh` - Planet notes processing (uses these scripts)
 - `bin/process/extractPlanetNotesAwk.sh` - Planet extraction wrapper
 
-## Author
-
-Andres Gomez (AngocA)
-
-## Version
-
-2025-10-18

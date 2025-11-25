@@ -1,7 +1,7 @@
 # WMS Manager Scripts
 
 This directory contains scripts for managing WMS (Web Map Service) components for
-the OSM Notes Profile project.
+the OSM-Notes-Ingestion project.
 
 ## Configuration
 

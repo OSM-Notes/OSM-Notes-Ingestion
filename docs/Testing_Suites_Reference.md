@@ -56,8 +56,10 @@ The project has been simplified from 36 redundant test runners to 9 consolidated
 #### 6. `run_integration_tests.sh` - Integration Tests
 
 - **Purpose**: Focused integration testing
-- **Features**: End-to-end workflows, DWH enhanced integration
+- **Features**: End-to-end workflows, note processing integration
 - **Usage**: `./run_integration_tests.sh`
+
+> **Note:** DWH/ETL integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 #### 7. `run_mock_tests.sh` - Mock Environment Tests
 
@@ -100,23 +102,7 @@ Integration tests validate complete workflows and system interactions:
   - Planet notes processing workflow
   - Large XML file handling
 
-### 3. ETL_enhanced_integration.test.bats
-
-- **Purpose**: DWH enhanced ETL functionality testing
-- **Coverage**: New dimensions, functions, SCD2, bridge tables
-- **Key Tests**:
-  - Enhanced dimensions validation
-  - SCD2 implementation validation
-  - New functions validation
-  - Staging procedures validation
-  - Datamart compatibility
-  - Bridge table implementation
-  - Documentation consistency
-
-### 4. datamart_enhanced_integration.test.bats
-
-- **Purpose**: Datamart enhanced functionality testing
-- **Coverage**: Datamart compatibility with new dimensions
+> **Note:** ETL and datamart integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 - **Key Tests**:
   - DatamartUsers enhanced functionality
   - DatamartCountries enhanced functionality

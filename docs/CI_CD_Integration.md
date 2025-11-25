@@ -19,11 +19,13 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
    - Tests basic functionality and script availability
    - Uses PostgreSQL service container
 
-2. **DWH Enhanced Tests** (`dwh-enhanced-tests`)
-   - Runs DWH enhanced functionality tests
-   - Tests new dimensions, functions, ETL improvements
+2. **Integration Tests** (enhanced)
+   - Runs enhanced functionality tests
+   - Tests database functions and procedures
    - Uses PostgreSQL service container with PostGIS
    - Includes SQL unit tests and integration tests
+
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 3. **Integration Tests** (`integration-tests`)
    - Runs end-to-end tests using Docker containers
