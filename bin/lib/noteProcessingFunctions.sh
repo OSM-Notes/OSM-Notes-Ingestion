@@ -500,23 +500,20 @@ EOF
      continue
     fi
 
+    # Validate SQL file exists
+    if [[ ! -f "${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}" ]]; then
+     __loge "ERROR: SQL file does not exist: ${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}"
+     continue
+    fi
+
+    # Export variable for envsubst
+    export NOTE_IDS
+
+    # Execute SQL file with parameter substitution
     local CHUNK_ASSIGNED
-    CHUNK_ASSIGNED=$(
-     psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << EOF
-WITH target AS (
- SELECT UNNEST(ARRAY[${NOTE_IDS}])::BIGINT AS note_id
-),
-updated AS (
- UPDATE notes AS n /* Notes-assign chunk */
- SET id_country = get_country(n.longitude, n.latitude, n.note_id)
- FROM target t
- WHERE n.note_id = t.note_id
- AND n.id_country IS NULL
- RETURNING n.note_id
-)
-SELECT COUNT(*) FROM updated;
-EOF
-    )
+    CHUNK_ASSIGNED=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+     -c "$(envsubst '$NOTE_IDS' \
+      < "${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}" || true)")
 
     CHUNK_ASSIGNED=${CHUNK_ASSIGNED:-0}
     THREAD_ASSIGNED=$((THREAD_ASSIGNED + CHUNK_ASSIGNED))

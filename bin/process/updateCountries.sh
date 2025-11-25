@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
-VERSION="2025-11-24"
+# Version: 2025-11-25
+VERSION="2025-11-25"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -274,25 +274,13 @@ function __reassignAffectedNotes {
  # Re-assign countries for notes within bounding boxes of updated countries
  # This uses the optimized get_country function which checks current country first
  __logi "Updating notes within affected areas..."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'SQL'
-   -- Re-assign country for notes that might be affected
-   -- The get_country function will check if note is still in current country first
-   UPDATE notes n
-   SET id_country = get_country(n.longitude, n.latitude, n.note_id)
-   WHERE EXISTS (
-     SELECT 1
-     FROM countries c
-     WHERE c.updated = TRUE
-       AND ST_Intersects(
-         ST_MakeEnvelope(
-           ST_XMin(c.geom), ST_YMin(c.geom),
-           ST_XMax(c.geom), ST_YMax(c.geom),
-           4326
-         ),
-         ST_SetSRID(ST_MakePoint(n.longitude, n.latitude), 4326)
-       )
-   );
-SQL
+ # Validate SQL file exists
+ if [[ ! -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}" ]]; then
+  __loge "ERROR: SQL file does not exist: ${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
+  __log_finish
+  return 1
+ fi
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
 
  # Show statistics
  local -r NOTES_UPDATED=$(psql -d "${DBNAME}" -Atq -c "

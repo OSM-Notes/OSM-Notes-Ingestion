@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
-VERSION="2025-11-24"
+# Version: 2025-11-25
+VERSION="2025-11-25"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -282,6 +282,9 @@ declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}
 declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
 declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
 declare -r POSTGRES_33_VERIFY_NOTE_INTEGRITY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_33_verifyNoteIntegrity.sql"
+declare -r POSTGRES_36_REASSIGN_AFFECTED_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes.sql"
+declare -r POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_37_assignCountryToNotesChunk.sql"
+declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry_stub.sql"
 
 if [[ -z "${COUNTRIES_BOUNDARY_IDS_FILE:-}" ]]; then
  declare -r COUNTRIES_BOUNDARY_IDS_FILE="${TMP_DIR}/countries_boundary_ids.csv"
@@ -1382,6 +1385,18 @@ EOF
   __loge "ERROR: File is missing at ${POSTGRES_33_VERIFY_NOTE_INTEGRITY}."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ if [[ ! -r "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_36_REASSIGN_AFFECTED_NOTES}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
+ if [[ ! -r "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" ]]; then
+  __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
 
  # XML Schema file (only required if validation is enabled)
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
@@ -1826,24 +1841,14 @@ EOF
 
  if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
   __logw "Countries table does not exist. Creating stub get_country function."
+  # Validate SQL file exists
+  if [[ ! -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" ]]; then
+   __loge "ERROR: SQL file does not exist: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}"
+   __log_finish
+   return 1
+  fi
   # Create a stub function that returns NULL when countries table doesn't exist
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF' || true
-CREATE OR REPLACE FUNCTION get_country (
- lon DECIMAL,
- lat DECIMAL,
- id_note INTEGER
-) RETURNS INTEGER
-LANGUAGE plpgsql
-AS $func$
-BEGIN
- -- Stub function: returns NULL when countries table doesn't exist
- -- This allows procedures to work without country assignment
- RETURN NULL;
-END;
-$func$;
-COMMENT ON FUNCTION get_country IS
- 'Stub function: returns NULL when countries table does not exist. Run updateCountries.sh --base to create full function.';
-EOF
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" || true
   __log_finish
   return 0
  fi
