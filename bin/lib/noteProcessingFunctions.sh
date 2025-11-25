@@ -148,8 +148,6 @@ function __getLocationNotes_impl {
 
   local CLEANUP_TEMP_DIR="${TEMP_COUNT_DIR}"
   local CLEANUP_QUEUE_FILE="${QUEUE_FILE}"
-  # shellcheck disable=SC2064
-  trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"; rm -f "${CLEANUP_QUEUE_FILE:-}"' EXIT
 
   local -i CHUNK_START=0
   local -i MAX_NOTE_LIMIT=$((MAX_NOTE_ID_NOT_NULL + 1))
@@ -165,7 +163,46 @@ function __getLocationNotes_impl {
   exec {VERIFY_QUEUE_FD}<> "${QUEUE_FILE}"
   local -i TOTAL_CHUNKS
   TOTAL_CHUNKS=$(wc -l < "${QUEUE_FILE}")
-  __logd "Verification queue ready: total_chunks=${TOTAL_CHUNKS}"
+  __logi "Verification queue ready: ${TOTAL_CHUNKS} chunks of ~${EFFECTIVE_VERIFY_CHUNK_SIZE} notes each"
+
+  # Progress tracking file for showing partial advances
+  local PROGRESS_FILE
+  PROGRESS_FILE=$(mktemp)
+  echo "0" > "${PROGRESS_FILE}"
+  touch "${PROGRESS_FILE}.lock"
+  local CLEANUP_PROGRESS_FILE="${PROGRESS_FILE}"
+  local CLEANUP_PROGRESS_LOCK="${PROGRESS_FILE}.lock"
+  
+  # Update trap to include progress file cleanup
+  # shellcheck disable=SC2064
+  trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"; rm -f "${CLEANUP_QUEUE_FILE:-}" "${CLEANUP_PROGRESS_FILE:-}" "${CLEANUP_PROGRESS_LOCK:-}" 2> /dev/null || true' EXIT
+
+  # Start progress monitor in background
+  (
+   local -i LAST_REPORTED=0
+   local -i REPORT_INTERVAL=5
+   while true; do
+    sleep "${REPORT_INTERVAL}"
+    if [[ ! -f "${PROGRESS_FILE}" ]]; then
+     break
+    fi
+    local -i COMPLETED_CHUNKS=0
+    COMPLETED_CHUNKS=$(cat "${PROGRESS_FILE}" 2> /dev/null || echo "0")
+    if [[ ${COMPLETED_CHUNKS} -ge ${TOTAL_CHUNKS} ]]; then
+     break
+    fi
+    if [[ ${COMPLETED_CHUNKS} -gt ${LAST_REPORTED} ]]; then
+     local -i PERCENTAGE=$((COMPLETED_CHUNKS * 100 / TOTAL_CHUNKS))
+     local -i PROCESSED_NOTES=$((COMPLETED_CHUNKS * EFFECTIVE_VERIFY_CHUNK_SIZE))
+     if [[ ${PROCESSED_NOTES} -gt ${MAX_NOTE_ID_NOT_NULL} ]]; then
+      PROCESSED_NOTES=${MAX_NOTE_ID_NOT_NULL}
+     fi
+     __logi "Progress: ${COMPLETED_CHUNKS}/${TOTAL_CHUNKS} chunks completed (${PERCENTAGE}%) - ~${PROCESSED_NOTES} notes processed"
+     LAST_REPORTED=${COMPLETED_CHUNKS}
+    fi
+   done
+  ) &
+  local PROGRESS_MONITOR_PID=$!
 
   for J in $(seq 1 1 "${VERIFY_THREAD_COUNT}"); do
    (
@@ -245,6 +282,14 @@ EOF
 
      THREAD_COUNT=$((THREAD_COUNT + RANGE_TOTAL))
      __logd "Thread ${THREAD_ID}: range ${RANGE_START}-${RANGE_END}, invalidated ${RANGE_TOTAL}"
+
+     # Update progress counter atomically
+     (
+      flock -x 300
+      local -i CURRENT_PROGRESS
+      CURRENT_PROGRESS=$(cat "${PROGRESS_FILE}" 2> /dev/null || echo "0")
+      echo $((CURRENT_PROGRESS + 1)) > "${PROGRESS_FILE}"
+     ) 300> "${PROGRESS_FILE}.lock"
     done
 
     echo "${THREAD_COUNT}" > "${TEMP_COUNT_DIR}/count_${THREAD_ID}"
@@ -254,6 +299,10 @@ EOF
 
   # Wait for all verification threads to complete
   wait
+
+  # Stop progress monitor
+  kill "${PROGRESS_MONITOR_PID}" 2> /dev/null || true
+  wait "${PROGRESS_MONITOR_PID}" 2> /dev/null || true
   exec {VERIFY_QUEUE_FD}>&-
 
   # Sum up all counts
@@ -268,8 +317,11 @@ EOF
   # Clean up temp directory
   rm -rf "${TEMP_COUNT_DIR}"
   rm -f "${QUEUE_FILE}"
+  rm -f "${PROGRESS_FILE}" "${PROGRESS_FILE}.lock" 2> /dev/null || true
   CLEANUP_QUEUE_FILE=""
   CLEANUP_TEMP_DIR=""
+  CLEANUP_PROGRESS_FILE=""
+  CLEANUP_PROGRESS_LOCK=""
 
   if [[ "${TOTAL_NOTES_TO_INVALIDATE}" -gt 0 ]]; then
    __logi "Found and invalidated ${TOTAL_NOTES_TO_INVALIDATE} notes with incorrect country assignments"
