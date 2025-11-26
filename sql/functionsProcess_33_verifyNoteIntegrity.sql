@@ -48,5 +48,3 @@ SELECT COUNT(*) FROM invalidated;
 
 COMMIT;
 
-DISCARD ALL;
-
