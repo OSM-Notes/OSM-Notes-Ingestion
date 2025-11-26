@@ -1125,7 +1125,15 @@ function __setupLockFile {
  __logw "Validating single execution."
  exec 8> "${LOCK}"
  ONLY_EXECUTION="no"
- flock -n 8
+ if ! flock -n 8; then
+  __loge "Another instance of ${BASENAME} is already running."
+  __loge "Lock file: ${LOCK}"
+  if [[ -f "${LOCK}" ]]; then
+   __loge "Lock file contents:"
+   cat "${LOCK}" >&2 || true
+  fi
+  exit 1
+ fi
  ONLY_EXECUTION="yes"
 
  cat > "${LOCK}" << EOF
@@ -1164,6 +1172,12 @@ function __validateHistoricalDataAndRecover {
 
 # Creates base structure by executing processPlanetNotes.sh --base.
 # Verifies geographic data was loaded and re-acquires lock after completion.
+#
+# Note: This function temporarily releases the lock file to allow child processes
+# (processPlanetNotes.sh) to run. After completion, it re-acquires the lock
+# and updates the lock file content. This is intentional behavior to prevent
+# lock conflicts with child processes. The lock file modification timestamp
+# will change when re-acquired, which is expected and normal.
 function __createBaseStructure {
  __log_start
  __logd "Releasing lock before spawning child processes"
@@ -1220,24 +1234,26 @@ function __createBaseStructure {
  __logi "System is now ready for regular API processing."
  __logi "Historical data was loaded by processPlanetNotes.sh --base in Step 1"
 
- __logd "Re-acquiring lock after child processes"
+ __logd "Re-acquiring lock after child processes (this will update lock file timestamp)"
  exec 8> "${LOCK}"
- flock -n 8
+ if ! flock -n 8; then
+  __loge "ERROR: Failed to re-acquire lock after child processes"
+  __loge "Another process may have acquired the lock"
+  exit 1
+ fi
 
- # Only update lock file content if it doesn't exist or PID doesn't match
- if [[ ! -f "${LOCK}" ]] || ! grep -q "^PID: ${ORIGINAL_PID}$" "${LOCK}" 2> /dev/null; then
-  cat > "${LOCK}" << EOF
+ # Update lock file content to reflect current process state
+ # This is intentional - the lock file is updated after child processes complete
+ cat > "${LOCK}" << EOF
 PID: ${ORIGINAL_PID}
 Process: ${BASENAME}
 Started: ${PROCESS_START_TIME}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
+Lock re-acquired: $(date '+%Y-%m-%d %H:%M:%S')
 EOF
-  __logd "Lock file content written/updated: ${LOCK}"
- else
-  __logd "Lock file already exists with correct PID, content preserved"
- fi
+ __logd "Lock file content updated after child processes: ${LOCK}"
  __log_finish
 }
 

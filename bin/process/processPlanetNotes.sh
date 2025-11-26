@@ -1459,7 +1459,15 @@ function __setupLockFile {
  __logw "Validating single execution."
  exec 7> "${LOCK}"
  ONLY_EXECUTION="no"
- flock -n 7
+ if ! flock -n 7; then
+  __loge "Another instance of ${BASENAME} is already running."
+  __loge "Lock file: ${LOCK}"
+  if [[ -f "${LOCK}" ]]; then
+   __loge "Lock file contents:"
+   cat "${LOCK}" >&2 || true
+  fi
+  exit 1
+ fi
  ONLY_EXECUTION="yes"
 
  cat > "${LOCK}" << EOF
