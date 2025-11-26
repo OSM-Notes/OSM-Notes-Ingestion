@@ -65,25 +65,31 @@ function __getLocationNotes_impl {
 
  __logd "Statistics: MAX_NOTE_ID=${MAX_NOTE_ID}, MAX_NOTE_ID_NOT_NULL=${MAX_NOTE_ID_NOT_NULL}"
 
+ # Verify integrity of imported note locations in parallel
+ # Optimized: Parallelize verification by splitting data across threads (30min→5min for 4.8M notes)
+ local -i TOTAL_NOTES_TO_INVALIDATE=0
+ # Store original MAX_THREADS before reducing it
+ local -i ORIGINAL_MAX_THREADS=${MAX_THREADS}
+ 
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
+ # Note: This reduction applies to other parallel operations, not verification threads
  if [[ "${MAX_THREADS}" -gt 1 ]]; then
   MAX_THREADS=$((MAX_THREADS - 1))
  fi
 
- # Verify integrity of imported note locations in parallel
- # Optimized: Parallelize verification by splitting data across threads (30min→5min for 4.8M notes)
- local -i TOTAL_NOTES_TO_INVALIDATE=0
+ # Calculate verify thread count using original MAX_THREADS or VERIFY_THREADS override
  local -i VERIFY_THREAD_OVERRIDE=0
  if [[ -n "${VERIFY_THREADS:-}" ]]; then
   VERIFY_THREAD_OVERRIDE=${VERIFY_THREADS:-0}
  fi
- local -i VERIFY_THREAD_COUNT=${MAX_THREADS}
+ local -i VERIFY_THREAD_COUNT=${ORIGINAL_MAX_THREADS}
  if ((VERIFY_THREAD_OVERRIDE > 0)); then
   VERIFY_THREAD_COUNT=${VERIFY_THREAD_OVERRIDE}
  fi
- if ((VERIFY_THREAD_COUNT > MAX_THREADS)); then
-  VERIFY_THREAD_COUNT=${MAX_THREADS}
+ # Limit to original MAX_THREADS, not the reduced one
+ if ((VERIFY_THREAD_COUNT > ORIGINAL_MAX_THREADS)); then
+  VERIFY_THREAD_COUNT=${ORIGINAL_MAX_THREADS}
  fi
  if ((VERIFY_THREAD_COUNT <= 0)); then
   VERIFY_THREAD_COUNT=1
