@@ -29,12 +29,17 @@ function __getLocationNotes_impl {
  __logd "Assigning countries to notes."
 
  # Always import previous note locations to speed up the process
+ __logi "=== LOADING BACKUP NOTE LOCATIONS ==="
+ __logi "This process will load note location data from backup CSV file."
+ __logi "This operation may take several minutes depending on the size of the backup file."
+ __logi "Please wait, the process is actively working..."
  __logi "Extracting notes backup."
  rm -f "${CSV_BACKUP_NOTE_LOCATION}"
  unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
  chmod 666 "${CSV_BACKUP_NOTE_LOCATION}"
 
- __logi "Importing notes location."
+ __logi "Importing notes location from backup CSV..."
+ __logi "This COPY operation may take several minutes for large datasets."
  export CSV_BACKUP_NOTE_LOCATION
  # shellcheck disable=SC2016
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
@@ -240,22 +245,28 @@ function __getLocationNotes_impl {
   ) &
   local PROGRESS_MONITOR_PID=$!
 
+  local -i THREADS_STARTED=0
+  # Export queue file path and file descriptor for threads
+  export QUEUE_FILE
+  export VERIFY_QUEUE_FD
   for J in $(seq 1 1 "${VERIFY_THREAD_COUNT}"); do
    (
     local -i THREAD_ID=${J}
-    __logd "Starting integrity verification thread ${THREAD_ID}."
+    __logi "Starting integrity verification thread ${THREAD_ID}."
     local -i THREAD_COUNT=0
+    # Open queue file in thread (file descriptors are not inherited reliably in subshells)
+    exec {THREAD_QUEUE_FD}<> "${QUEUE_FILE}"
     while true; do
      local RANGE_START RANGE_END
-     if ! flock -x "${VERIFY_QUEUE_FD}"; then
+     if ! flock -x "${THREAD_QUEUE_FD}"; then
       __loge "Thread ${THREAD_ID}: unable to acquire queue lock"
       break
      fi
-     if ! IFS=' ' read -r RANGE_START RANGE_END <&"${VERIFY_QUEUE_FD}"; then
-      flock -u "${VERIFY_QUEUE_FD}"
+     if ! IFS=' ' read -r RANGE_START RANGE_END <&"${THREAD_QUEUE_FD}"; then
+      flock -u "${THREAD_QUEUE_FD}"
       break
      fi
-     flock -u "${VERIFY_QUEUE_FD}"
+     flock -u "${THREAD_QUEUE_FD}"
 
      if [[ -z "${RANGE_START:-}" ]]; then
       break
@@ -311,12 +322,19 @@ function __getLocationNotes_impl {
     done
 
     echo "${THREAD_COUNT}" > "${TEMP_COUNT_DIR}/count_${THREAD_ID}"
-    __logd "Thread ${THREAD_ID}: total invalidated ${THREAD_COUNT}"
+    __logi "Thread ${THREAD_ID}: total invalidated ${THREAD_COUNT}"
+    exec {THREAD_QUEUE_FD}>&-
    ) &
+   THREADS_STARTED=$((THREADS_STARTED + 1))
   done
 
   # Wait for all verification threads to complete
-  wait
+  # Only wait if threads were actually started to prevent infinite blocking
+  if [[ ${THREADS_STARTED} -gt 0 ]]; then
+   wait
+  else
+   __logw "WARNING: No verification threads were started. Skipping wait."
+  fi
 
   # Stop progress monitor
   kill "${PROGRESS_MONITOR_PID}" 2> /dev/null || true

@@ -2,7 +2,7 @@
 -- note's location.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-24
+-- Version: 2025-11-25
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Creating table...' AS Text;
@@ -14,7 +14,16 @@ CREATE TABLE backup_note_locations (
 );
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Loading old note locations...' AS Text;
+ 'Loading old note locations from backup CSV...' AS Text;
+DO $$ BEGIN
+  RAISE NOTICE '============================================================================';
+  RAISE NOTICE 'LOADING BACKUP NOTE LOCATIONS';
+  RAISE NOTICE '============================================================================';
+  RAISE NOTICE 'This operation will load note location data from backup CSV file.';
+  RAISE NOTICE 'This COPY operation may take several minutes for large datasets.';
+  RAISE NOTICE 'Please wait, the process is actively working...';
+  RAISE NOTICE '============================================================================';
+END $$;
 COPY backup_note_locations (note_id, id_country)
 FROM '${CSV_BACKUP_NOTE_LOCATION}' csv;
 
