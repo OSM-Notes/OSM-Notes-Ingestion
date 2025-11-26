@@ -839,6 +839,7 @@ main() {
   fi
 
   # Clean test database first (drop and recreate to ensure clean state)
+  # This ensures the database is completely empty before first execution
   clean_test_database
 
   # Setup test database (now DBNAME is available from properties_test.sh)
@@ -847,8 +848,8 @@ main() {
     exit 1
   fi
 
-  # Migrate database schema (add missing columns if needed)
-  migrate_database_schema
+  # DO NOT migrate database schema here - tables don't exist yet
+  # Migration will happen after processPlanetNotes.sh --base creates the tables
 
   # Cleanup lock files before starting
   cleanup_lock_files
@@ -866,12 +867,14 @@ main() {
   setup_environment_variables
   log_info "Environment variables setup completed"
 
-  # First execution: Drop base tables to trigger processPlanetNotes.sh --base
+  # First execution: Ensure base tables don't exist to trigger processPlanetNotes.sh --base
   log_info "=== FIRST EXECUTION: Will load processPlanetNotes.sh --base ==="
   
   # Clean up any failed execution markers before running processPlanetNotes
   cleanup_lock_files
   
+  # Ensure base tables are dropped (database should be empty from clean_test_database)
+  # This is a safety check to ensure processAPINotes.sh will detect missing tables
   drop_base_tables
 
   # Use default fixture (original OSM-notes-API.xml) for first execution
@@ -879,11 +882,17 @@ main() {
   export MOCK_NOTES_COUNT=""
 
   # Run processAPINotes (first time - will call processPlanetNotes.sh --base)
+  # This will detect missing base tables and execute processPlanetNotes.sh --base
   if ! run_processAPINotes 1; then
     log_error "First execution failed"
     exit_code=$?
     exit ${exit_code}
   fi
+
+  # After first execution, base tables should exist (created by processPlanetNotes.sh --base)
+  # Now migrate database schema to add any missing columns
+  log_info "Migrating database schema after base tables creation..."
+  migrate_database_schema
 
   # Wait a moment between executions
   sleep 2
