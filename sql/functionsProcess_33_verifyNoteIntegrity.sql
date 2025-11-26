@@ -16,6 +16,7 @@ BEGIN;
 
 -- Optimized integrity verification: directly check if coordinates belong to assigned country
 -- This is faster than calling get_country() because we already know the country
+-- Optimization: Use INNER JOIN instead of LEFT JOIN and filter countries upfront
 WITH notes_to_verify AS (
 SELECT n.note_id,
        n.id_country,
@@ -25,16 +26,23 @@ FROM notes AS n
 WHERE n.id_country IS NOT NULL
 AND ${SUB_START} <= n.note_id AND n.note_id < ${SUB_END}
 ),
+-- Pre-filter countries to only those that appear in notes_to_verify
+countries_to_check AS (
+SELECT DISTINCT c.country_id,
+       c.geom
+FROM countries c
+INNER JOIN notes_to_verify ntv ON c.country_id = ntv.id_country
+),
 verified AS (
 SELECT ntv.note_id,
        ntv.id_country AS current_country,
        CASE
-         WHEN ST_Contains(c.geom, ST_SetSRID(ST_Point(ntv.longitude, ntv.latitude), 4326))
+         WHEN c.geom IS NOT NULL AND ST_Contains(c.geom, ST_SetSRID(ST_Point(ntv.longitude, ntv.latitude), 4326))
          THEN ntv.id_country
          ELSE -1
        END AS verified_country
 FROM notes_to_verify ntv
-LEFT JOIN countries c ON c.country_id = ntv.id_country
+LEFT JOIN countries_to_check c ON c.country_id = ntv.id_country
 ),
 invalidated AS (
 UPDATE notes AS n /* Notes-integrity check parallel */
