@@ -141,7 +141,7 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-24
-VERSION="2025-11-24"
+VERSION="2025-11-25"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -788,10 +788,11 @@ function __processPlanetNotesWithParallel {
 
   # Process all parts in parallel with progress tracking
   # Workers use wrapper to setup logging correctly in each subshell
-  # --line-buffer ensures log lines from different workers don't intermix
+  # Note: --line-buffer removed because workers write directly to log file
+  # via __set_log_file, so parallel doesn't need to buffer stdout/stderr
   __logi "Starting parallel execution now..."
   if ! printf '%s\n' "${PART_FILES[@]}" \
-   | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 --line-buffer \
+   | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
     "__parallel_worker_wrapper {}"; then
    __loge "ERROR: Parallel processing failed"
    __loge "Check logs for details on which part(s) failed"
