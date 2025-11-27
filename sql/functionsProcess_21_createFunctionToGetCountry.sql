@@ -12,8 +12,6 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-11-27
--- Optimized: Added bounding box check (ST_Intersects) before ST_Contains
--- to reduce expensive geometry operations by 50-70%
 
  CREATE OR REPLACE FUNCTION get_country (
   lon DECIMAL,
