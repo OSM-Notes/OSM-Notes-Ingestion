@@ -5,7 +5,7 @@
 # All database connections must be controlled by properties files.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-11-27
 
 # Database configuration
 # All database connections must be controlled by this file.
@@ -63,6 +63,22 @@ declare OVERPASS_BACKOFF_SECONDS="${OVERPASS_BACKOFF_SECONDS:-20}"
 
 # Continue processing other boundaries on Overpass JSON validation errors.
 declare CONTINUE_ON_OVERPASS_ERROR="${CONTINUE_ON_OVERPASS_ERROR:-true}"
+
+# Overpass retry configuration when CONTINUE_ON_OVERPASS_ERROR=true
+# These settings balance speed with success rate for boundary downloads
+# Max retries per endpoint when continuing on errors (increased from 1 to 3
+# for better success rate with temporary Overpass API issues)
+declare OVERPASS_CONTINUE_MAX_RETRIES_PER_ENDPOINT="${OVERPASS_CONTINUE_MAX_RETRIES_PER_ENDPOINT:-3}"
+
+# Base delay (seconds) between retries when continuing on errors
+# Increased from 5 to 12 seconds to give Overpass API more time to recover
+# from temporary issues like 504 Gateway Timeout
+declare OVERPASS_CONTINUE_BASE_DELAY="${OVERPASS_CONTINUE_BASE_DELAY:-12}"
+
+# Download validation retries when continuing on errors
+# Number of attempts to download and validate JSON for each boundary
+# Increased from 1 to 3 to improve success rate for temporary failures
+declare OVERPASS_CONTINUE_VALIDATION_RETRIES="${OVERPASS_CONTINUE_VALIDATION_RETRIES:-3}"
 
 # JSON validator command (must support: jq -e .).
 declare JSON_VALIDATOR="${JSON_VALIDATOR:-jq}"

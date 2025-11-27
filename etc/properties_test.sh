@@ -64,6 +64,12 @@ declare OVERPASS_BACKOFF_SECONDS="${OVERPASS_BACKOFF_SECONDS:-20}"
 # Continue processing other boundaries on Overpass JSON validation errors.
 declare CONTINUE_ON_OVERPASS_ERROR="${CONTINUE_ON_OVERPASS_ERROR:-true}"
 
+# Overpass retry configuration when CONTINUE_ON_OVERPASS_ERROR=true
+# Test values may be lower for faster test execution
+declare OVERPASS_CONTINUE_MAX_RETRIES_PER_ENDPOINT="${OVERPASS_CONTINUE_MAX_RETRIES_PER_ENDPOINT:-2}"
+declare OVERPASS_CONTINUE_BASE_DELAY="${OVERPASS_CONTINUE_BASE_DELAY:-5}"
+declare OVERPASS_CONTINUE_VALIDATION_RETRIES="${OVERPASS_CONTINUE_VALIDATION_RETRIES:-2}"
+
 # JSON validator command (must support: jq -e .).
 declare JSON_VALIDATOR="${JSON_VALIDATOR:-jq}"
 
