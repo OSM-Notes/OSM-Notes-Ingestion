@@ -20,7 +20,7 @@ BEGIN;
 -- Optimized integrity verification using JOIN + spatial index
 -- Strategy:
 -- 1. JOIN with assigned country to check if it still contains the point (fast path - 95% of cases)
--- 2. For notes that don't match, use LATERAL JOIN with spatial index to find actual country
+-- 2. For notes that don't match, use spatial index to find actual country (slow path)
 -- 3. Invalidate if country doesn't match or point is not in any country
 WITH notes_to_verify AS (
   SELECT n.note_id,
@@ -45,23 +45,38 @@ assigned_country_check AS (
   FROM notes_to_verify ntv
   INNER JOIN countries c ON c.country_id = ntv.id_country
 ),
--- Slow path: For notes that don't match, use LATERAL JOIN with spatial index
-verified AS (
-  SELECT 
-    acc.note_id,
-    acc.current_country,
-    COALESCE(
-      acc.verified_country,
-      -- Use spatial index via LATERAL JOIN (only executed for non-matching notes)
-      COALESCE(spatial_find.country_id, -1)
-    ) AS verified_country
+-- Separate fast path (matched) and slow path (need spatial search)
+matched_notes AS (
+  SELECT note_id, current_country, verified_country
+  FROM assigned_country_check
+  WHERE verified_country IS NOT NULL
+),
+unmatched_notes AS (
+  SELECT acc.note_id,
+         acc.current_country,
+         acc.longitude,
+         acc.latitude
   FROM assigned_country_check acc
-  LEFT JOIN LATERAL (
-    SELECT c.country_id
-    FROM countries c
-    WHERE ST_Contains(c.geom, ST_SetSRID(ST_Point(acc.longitude, acc.latitude), 4326))
-    LIMIT 1
-  ) spatial_find ON acc.verified_country IS NULL
+  WHERE acc.verified_country IS NULL
+),
+-- Slow path: Use spatial index only for unmatched notes
+spatial_verified AS (
+  SELECT un.note_id,
+         un.current_country,
+         COALESCE(
+           (SELECT c.country_id
+            FROM countries c
+            WHERE ST_Contains(c.geom, ST_SetSRID(ST_Point(un.longitude, un.latitude), 4326))
+            LIMIT 1),
+           -1
+         ) AS verified_country
+  FROM unmatched_notes un
+),
+-- Combine matched and spatial-verified notes
+verified AS (
+  SELECT note_id, current_country, verified_country FROM matched_notes
+  UNION ALL
+  SELECT note_id, current_country, verified_country FROM spatial_verified
 ),
 -- Invalidate notes where country doesn't match or point is not in any country
 invalidated AS (
