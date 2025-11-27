@@ -62,6 +62,8 @@ These scripts are **supporting components** and should **never** be called direc
 
 ### Utility Scripts
 - `bin/scripts/generateNoteLocationBackup.sh` - Called internally by updateCountries
+- `bin/scripts/exportCountriesBackup.sh` - Manual export of country boundaries backup
+- `bin/scripts/exportMaritimesBackup.sh` - Manual export of maritime boundaries backup
 
 ### Function Libraries
 - `bin/lib/functionsProcess.sh` - Library functions (sourced by other scripts)

@@ -63,8 +63,11 @@ Database maintenance script for comprehensive cleanup operations:
 ### Monitoring & Maintenance
 
 - **Verification**: `bin/monitor/` scripts ensure data quality
-- **Backup Generation**: `bin/scripts/generateNoteLocationBackup.sh` creates CSV backups
-  of note location data for faster processing
+- **Backup Generation**:
+  - `bin/scripts/generateNoteLocationBackup.sh` creates CSV backups of note location
+    data for faster processing
+  - `bin/scripts/exportCountriesBackup.sh` exports country boundaries to GeoJSON
+  - `bin/scripts/exportMaritimesBackup.sh` exports maritime boundaries to GeoJSON
 - **Cleanup**: `bin/cleanupAll.sh` maintains database performance and cleanup operations
   (uses database configured in `etc/properties.sh`)
 
@@ -85,7 +88,9 @@ For allowed script entry points and their parameters, see:
 All scripts in this directory are designed to be run from the project root and
 require proper database configuration and dependencies to be installed.
 
-### Generating Note Location Backup
+### Generating Backups
+
+#### Note Location Backup
 
 To create or update the note location backup used for faster processing:
 
@@ -103,6 +108,28 @@ This script:
 
 The backup file is automatically imported during the location processing phase
 to avoid re-calculating countries for notes that already have assignments.
+
+#### Boundaries Backup (Countries and Maritimes)
+
+To create or update boundaries backups used to avoid Overpass downloads:
+
+```bash
+# Export country boundaries
+./bin/scripts/exportCountriesBackup.sh
+
+# Export maritime boundaries
+./bin/scripts/exportMaritimesBackup.sh
+```
+
+These scripts:
+
+- Export boundaries from the database to GeoJSON format
+- Store results in `data/countries.geojson` and `data/maritimes.geojson`
+- Are automatically used by `processPlanet base` and `updateCountries`
+- Compare IDs before downloading to avoid unnecessary Overpass API calls
+
+See [data/BOUNDARIES_BACKUP.md](../data/BOUNDARIES_BACKUP.md) for complete
+documentation on boundaries backup functionality.
 
 ## Dependencies
 

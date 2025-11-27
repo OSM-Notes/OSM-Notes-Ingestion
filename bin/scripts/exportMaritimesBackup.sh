@@ -9,6 +9,18 @@
 #
 # Usage:
 #   ./bin/scripts/exportMaritimesBackup.sh
+#   DBNAME=osm-notes ./bin/scripts/exportMaritimesBackup.sh
+#
+# Environment variables:
+#   DBNAME - Database name (default: notes)
+#   LOG_LEVEL - Logging level (default: INFO)
+#
+# Output:
+#   data/maritimes.geojson - GeoJSON file with maritime boundaries
+#
+# See also:
+#   - data/BOUNDARIES_BACKUP.md - Complete documentation on boundaries backups
+#   - bin/scripts/exportCountriesBackup.sh - Export country boundaries
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-23

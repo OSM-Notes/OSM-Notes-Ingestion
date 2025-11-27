@@ -4,8 +4,23 @@
 # in the repository. This backup can be used by processPlanet base to avoid
 # downloading countries from Overpass on every run.
 #
+# The script filters out maritime boundaries (identified by patterns like "(EEZ)")
+# and exports only country boundaries to data/countries.geojson.
+#
 # Usage:
 #   ./bin/scripts/exportCountriesBackup.sh
+#   DBNAME=osm-notes ./bin/scripts/exportCountriesBackup.sh
+#
+# Environment variables:
+#   DBNAME - Database name (default: notes)
+#   LOG_LEVEL - Logging level (default: INFO)
+#
+# Output:
+#   data/countries.geojson - GeoJSON file with country boundaries
+#
+# See also:
+#   - data/BOUNDARIES_BACKUP.md - Complete documentation on boundaries backups
+#   - bin/scripts/exportMaritimesBackup.sh - Export maritime boundaries
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-23
