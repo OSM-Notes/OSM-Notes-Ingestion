@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-25
-VERSION="2025-11-25"
+# Version: 2025-11-27
+VERSION="2025-11-27"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -236,6 +236,54 @@ function __createCountryTables {
  __log_finish
 }
 
+# Performs maintenance operations on countries table after data is loaded.
+# This includes REINDEX of spatial indexes and ANALYZE to update statistics.
+function __maintainCountriesTable {
+ __log_start
+ __logi "Performing maintenance on countries table..."
+
+ # Check if countries table exists and has data
+ local COUNTRIES_COUNT
+ COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
+ if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
+  __logw "Countries table is empty, skipping maintenance"
+  __log_finish
+  return 0
+ fi
+
+ __logi "Found ${COUNTRIES_COUNT} countries, performing maintenance..."
+
+ # REINDEX the spatial index to ensure it's properly built
+ __logi "Rebuilding spatial index (countries_spatial)..."
+ if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX CONCURRENTLY countries_spatial;" 2> /dev/null; then
+  __logi "Spatial index rebuilt successfully"
+ else
+  # If CONCURRENTLY fails (e.g., no concurrent access), try regular REINDEX
+  __logw "CONCURRENTLY REINDEX failed, trying regular REINDEX..."
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX countries_spatial;" 2> /dev/null; then
+   __logi "Spatial index rebuilt successfully"
+  else
+   __logw "REINDEX failed, but continuing..."
+  fi
+ fi
+
+ # ANALYZE the table to update statistics
+ __logi "Updating table statistics (ANALYZE)..."
+ if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "ANALYZE countries;" 2> /dev/null; then
+  __logi "Table statistics updated successfully"
+ else
+  __logw "ANALYZE failed, but continuing..."
+ fi
+
+ # Show final index size
+ local INDEX_SIZE
+ INDEX_SIZE=$(psql -d "${DBNAME}" -Atq -c "SELECT pg_size_pretty(pg_relation_size('countries_spatial'));" 2> /dev/null | head -1 || echo "unknown")
+ __logi "Spatial index size: ${INDEX_SIZE}"
+
+ __log_finish
+}
+
 # Re-assigns countries only for notes affected by geometry changes.
 # This is much more efficient than re-processing all notes.
 # Only processes notes within bounding boxes of countries that were updated.
@@ -362,6 +410,7 @@ EOF
   __logi "Processing countries and maritimes data..."
   __processCountries
   __processMaritimes
+  __maintainCountriesTable
   __cleanPartial
   # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
   # after countries are loaded, not here
@@ -371,6 +420,7 @@ EOF
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
   __processCountries
   __processMaritimes
+  __maintainCountriesTable
   __cleanPartial
 
   # Re-assign countries for notes affected by boundary changes
