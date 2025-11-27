@@ -2,7 +2,7 @@
 
 # Master Test Runner for OSM-Notes-profile (Consolidated)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-25
+# Version: 2025-11-27
 
 set -euo pipefail
 
@@ -101,7 +101,19 @@ run_host_tests() {
 
  case "$test_type" in
  "all")
-  bats tests/unit/bash/*.bats tests/integration/*.bats tests/unit/sql/*.sql
+  log_info "Running fast unit tests first..."
+  # Run all unit tests except performance tests (which are slow)
+  for test_file in tests/unit/bash/*.bats; do
+    if [[ "${test_file}" != *"binary_division_performance.test.bats" ]]; then
+      bats "${test_file}"
+    fi
+  done
+  log_info "Running integration tests..."
+  bats tests/integration/*.bats
+  log_info "Running SQL unit tests..."
+  bats tests/unit/sql/*.sql
+  log_info "Running slow performance tests at the end..."
+  bats tests/unit/bash/binary_division_performance.test.bats
   ;;
  "unit")
   log_info "Running unit tests..."
@@ -113,9 +125,16 @@ run_host_tests() {
   bats tests/unit/bash/parallel_processing_robust.test.bats
   log_info "Running parallel delay tests..."
   bats tests/unit/bash/parallel_delay_test.bats
-  # All other unit tests
-  log_info "Running remaining unit tests..."
-  bats tests/unit/bash/*.bats
+  # All other unit tests except performance tests (which are slow)
+  log_info "Running remaining fast unit tests..."
+  for test_file in tests/unit/bash/*.bats; do
+    if [[ "${test_file}" != *"binary_division_performance.test.bats" ]]; then
+      bats "${test_file}"
+    fi
+  done
+  # Run slow performance tests at the end
+  log_info "Running slow performance tests at the end..."
+  bats tests/unit/bash/binary_division_performance.test.bats
   ;;
  "integration")
   log_info "Running integration tests..."

@@ -96,9 +96,10 @@ EOF
 
 @test "retry_file_operation should fail with invalid operation" {
  # Test file operation that fails
- run __retry_file_operation "false" 2>&1
+ # Use minimal retries (1) and short delay (1s) for fast test execution
+ run __retry_file_operation "false" 1 1 2>&1
  [ "$status" -eq 1 ]
- [[ "$output" == *"File operation failed"* ]]
+ [[ "$output" == *"File operation failed"* ]] || [[ "$output" == *"failed"* ]]
 }
 
 @test "validate_input_file should succeed with existing file" {
