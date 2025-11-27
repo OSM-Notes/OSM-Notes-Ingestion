@@ -503,8 +503,7 @@ EOF
   # Process countries and maritimes data
   __logi "Processing countries and maritimes data..."
   __processCountries
-  # Verify and reload any missing countries (may be due to Overpass limits)
-  __verifyAndReloadMissingCountries
+  __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
   __processMaritimes
   __maintainCountriesTable
   __cleanPartial
@@ -515,8 +514,7 @@ EOF
   STMT="UPDATE countries SET updated = TRUE"
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
   __processCountries
-  # Verify and reload any missing countries (may be due to Overpass limits)
-  __verifyAndReloadMissingCountries
+  __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
   __processMaritimes
   __maintainCountriesTable
   __cleanPartial
