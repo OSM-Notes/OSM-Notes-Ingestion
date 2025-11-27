@@ -63,7 +63,6 @@ All notable changes to this project will be documented in this file.
 - Level 10 test suite (DWH Enhanced) - components moved to OSM-Notes-Analytics
 - Function `__cleanup_etl()` from `bin/cleanupAll.sh`
 - Job `dwh-enhanced-tests` from `.github/workflows/tests.yml` (128 lines)
-- References to `etc/osm-notes-processing.properties` in 8 test files
 - Tests for moved files (ETL.sh, profile.sh, datamart scripts)
 - Spanish language documentation (4 files, 1,931 lines translated)
 

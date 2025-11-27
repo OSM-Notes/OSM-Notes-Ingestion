@@ -11,7 +11,7 @@ CREATE TABLE countries (
  country_name_es VARCHAR(100),
  country_name_en VARCHAR(100),
  geom GEOMETRY NOT NULL,
- -- Legacy columns (deprecated but kept for compatibility)
+ -- Fallback columns for edge cases (used when 2D grid zones don't match)
  americas INTEGER,
  europe INTEGER,
  russia_middle_east INTEGER,
@@ -56,13 +56,13 @@ COMMENT ON COLUMN countries.country_name_en IS
 COMMENT ON COLUMN countries.geom IS
   'Geometry of the country''s boundary';
 COMMENT ON COLUMN countries.americas IS
-  'DEPRECATED: Position in sequence for Americas (use zone_* columns)';
+  'Fallback: Position in sequence for Americas (used when 2D grid zones don''t match)';
 COMMENT ON COLUMN countries.europe IS
-  'DEPRECATED: Position in sequence for Europe (use zone_* columns)';
+  'Fallback: Position in sequence for Europe (used when 2D grid zones don''t match)';
 COMMENT ON COLUMN countries.russia_middle_east IS
-  'DEPRECATED: Position in sequence for Russia/Middle East (use zone_* columns)';
+  'Fallback: Position in sequence for Russia/Middle East (used when 2D grid zones don''t match)';
 COMMENT ON COLUMN countries.asia_oceania IS
-  'DEPRECATED: Position in sequence for Asia/Oceania (use zone_* columns)';
+  'Fallback: Position in sequence for Asia/Oceania (used when 2D grid zones don''t match)';
 COMMENT ON COLUMN countries.zone_us_canada IS
   'Priority for USA/Canada zone (lon:-150 to -60, lat:30 to 75)';
 COMMENT ON COLUMN countries.zone_mexico_central_america IS

@@ -185,18 +185,18 @@ AS $func$
     m_area := 'Pacific Islands';
     m_order_column := 'zone_pacific_islands';
 
-  -- FALLBACK: Use legacy logic for edge cases
+  -- FALLBACK: Use fallback logic for edge cases not covered by 2D grid
   ELSIF (lon < -30) THEN
-    m_area := 'Americas (legacy)';
+    m_area := 'Americas (fallback)';
     m_order_column := 'americas';
   ELSIF (lon < 25) THEN
-    m_area := 'Europe/Africa (legacy)';
+    m_area := 'Europe/Africa (fallback)';
     m_order_column := 'europe';
   ELSIF (lon < 65) THEN
-    m_area := 'Russia/Middle East (legacy)';
+    m_area := 'Russia/Middle East (fallback)';
     m_order_column := 'russia_middle_east';
   ELSE
-    m_area := 'Asia/Oceania (legacy)';
+    m_area := 'Asia/Oceania (fallback)';
     m_order_column := 'asia_oceania';
   END IF;
 
