@@ -89,3 +89,8 @@ prod/
 # Ignore submodule untracked files
 # Note: Submodules should NOT be in .gitignore
 # lib/osm-common/
+
+# GeoJSON backup files (uncompressed versions)
+# Only compressed .geojson.gz files are tracked in the repository
+data/countries.geojson
+data/maritimes.geojson
