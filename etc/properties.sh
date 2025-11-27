@@ -136,3 +136,32 @@ declare CLEAN="${CLEAN:-false}"
 # Default: true (skip validation for speed, assuming official OSM Planet is valid)
 # WARNING: Only skip validation if you trust the XML source (e.g., official OSM Planet)
 declare SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+
+# Overpass API rate limiting
+# Maximum number of concurrent downloads from Overpass API
+# Overpass has 2 servers × 4 slots = 8 total concurrent slots
+# shellcheck disable=SC2034
+declare RATE_LIMIT="${RATE_LIMIT:-8}"
+
+# Assignment chunk size for geolocation queue (notes per batch)
+# Number of notes processed per batch when assigning countries
+# shellcheck disable=SC2034
+declare ASSIGN_CHUNK_SIZE="${ASSIGN_CHUNK_SIZE:-5000}"
+
+# Verification configuration for note location integrity checks
+# Verification chunk size (notes per batch) for parallel processing
+# Larger chunks reduce overhead but increase memory usage per thread
+# shellcheck disable=SC2034
+declare VERIFY_CHUNK_SIZE="${VERIFY_CHUNK_SIZE:-100000}"
+
+# SQL sub-chunk size within each verification chunk
+# Number of notes processed per SQL query during integrity verification
+# Larger batches reduce query overhead but may increase memory usage per query
+# Production default: 20000 (optimized for performance with large datasets)
+# shellcheck disable=SC2034
+declare VERIFY_SQL_BATCH_SIZE="${VERIFY_SQL_BATCH_SIZE:-20000}"
+
+# Parallel threads for verification
+# Number of threads to use for parallel integrity verification
+# shellcheck disable=SC2034
+declare VERIFY_THREADS="${VERIFY_THREADS:-}"

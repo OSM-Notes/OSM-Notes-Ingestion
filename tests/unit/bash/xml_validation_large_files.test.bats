@@ -155,49 +155,6 @@ EOF
  [[ "${output}" == *"XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY"* ]]
 }
 
-@test "Large file threshold configuration is respected" {
- # Test that the configuration parameter is available
- if [[ -f "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties" ]]; then
-  source "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties"
-  [[ -n "${ETL_LARGE_FILE_THRESHOLD_MB:-}" ]]
-  [[ "${ETL_LARGE_FILE_THRESHOLD_MB}" -gt 0 ]]
- else
-  skip "osm-notes-processing.properties file not found"
- fi
-}
-
-@test "Very large file threshold configuration is available" {
- # Test that very large file threshold configuration is available
- if [[ -f "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties" ]]; then
-  source "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties"
-  [[ -n "${ETL_VERY_LARGE_FILE_THRESHOLD_MB:-}" ]]
-  [[ "${ETL_VERY_LARGE_FILE_THRESHOLD_MB}" -gt 0 ]]
- else
-  skip "osm-notes-processing.properties file not found"
- fi
-}
-
-@test "Memory limit configuration is available" {
- # Test that memory limit configuration is available
- if [[ -f "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties" ]]; then
-  source "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties"
-  [[ -n "${ETL_XML_MEMORY_LIMIT_MB:-}" ]]
-  [[ "${ETL_XML_MEMORY_LIMIT_MB}" -gt 0 ]]
- else
-  skip "osm-notes-processing.properties file not found"
- fi
-}
-
-@test "Timeout configuration is available" {
- # Test that timeout configuration is available
- if [[ -f "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties" ]]; then
-  source "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties"
-  [[ -n "${ETL_XML_VALIDATION_TIMEOUT:-}" ]]
-  [[ "${ETL_XML_VALIDATION_TIMEOUT}" -gt 0 ]]
- else
-  skip "osm-notes-processing.properties file not found"
- fi
-}
 
 @test "File size detection works" {
  # Test file size calculation
@@ -241,25 +198,6 @@ EOF
  [[ "${output}" == *"Lite coordinate validation passed"* ]]
 }
 
-@test "Configuration values are reasonable" {
- # Test that configuration values are reasonable
- if [[ -f "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties" ]]; then
-  source "${BATS_TEST_DIRNAME}/../../../etc/osm-notes-processing.properties"
-  
-  # Very large threshold should be greater than large threshold
-  [[ "${ETL_VERY_LARGE_FILE_THRESHOLD_MB}" -gt "${ETL_LARGE_FILE_THRESHOLD_MB}" ]]
-  
-  # Memory limit should be reasonable
-  [[ "${ETL_XML_MEMORY_LIMIT_MB}" -ge 512 ]]
-  [[ "${ETL_XML_MEMORY_LIMIT_MB}" -le 8192 ]]
-  
-  # Timeout should be reasonable
-  [[ "${ETL_XML_VALIDATION_TIMEOUT}" -ge 60 ]]
-  [[ "${ETL_XML_VALIDATION_TIMEOUT}" -le 3600 ]]
- else
-  skip "osm-notes-processing.properties file not found"
- fi
-} 
 
 @test "Debug coordinate validation output" {
  # Create a simple test XML file

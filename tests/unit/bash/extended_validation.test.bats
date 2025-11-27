@@ -19,10 +19,12 @@ setup() {
    export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  fi
 
- # Load properties and functions
- source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/osm-notes-processing.properties" ]]; then
-  source "${SCRIPT_BASE_DIRECTORY}/etc/osm-notes-processing.properties"
+ # Load test properties (not production properties)
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/properties_test.sh" ]]; then
+  source "${SCRIPT_BASE_DIRECTORY}/etc/properties_test.sh"
+ else
+  # Fallback to production properties if test properties not found
+  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
  fi
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"

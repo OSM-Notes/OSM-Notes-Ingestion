@@ -137,6 +137,16 @@ declare CLEAN="${CLEAN:-false}"
 # WARNING: Only skip validation if you trust the XML source (e.g., official OSM Planet)
 declare SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
 
+# Overpass API rate limiting
+# Maximum number of concurrent downloads from Overpass API
+# Overpass has 2 servers × 4 slots = 8 total concurrent slots
+# shellcheck disable=SC2034
+declare RATE_LIMIT="${RATE_LIMIT:-8}"
+
+# Assignment chunk size for geolocation queue (notes per batch)
+# shellcheck disable=SC2034
+declare ASSIGN_CHUNK_SIZE="${ASSIGN_CHUNK_SIZE:-5000}"
+
 # Verification configuration for note location integrity checks
 # These values are smaller than production to enable parallel testing with fewer notes
 # Verification chunk size (notes per batch) - smaller for tests to activate parallelism
@@ -145,9 +155,10 @@ declare SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
 declare VERIFY_CHUNK_SIZE="${VERIFY_CHUNK_SIZE:-1000}"
 
 # SQL sub-chunk size within each verification chunk
-# Production uses 5000, tests use 500 for faster testing
+# Production uses 20000, tests use 1000 for faster testing and to activate parallelism
+# with smaller datasets (larger batches = fewer queries but more memory per query)
 # shellcheck disable=SC2034
-declare VERIFY_SQL_BATCH_SIZE="${VERIFY_SQL_BATCH_SIZE:-500}"
+declare VERIFY_SQL_BATCH_SIZE="${VERIFY_SQL_BATCH_SIZE:-1000}"
 
 # Parallel threads for verification
 # Production uses 2, tests use 2 to ensure parallel execution is tested

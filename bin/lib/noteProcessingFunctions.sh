@@ -122,9 +122,12 @@ function __getLocationNotes_impl {
  fi
 
  local -i SQL_BATCH_SIZE
- SQL_BATCH_SIZE=${VERIFY_SQL_BATCH_SIZE:-0}
+ # Read SQL batch size from properties (default: 20000)
+ # This can be overridden via VERIFY_SQL_BATCH_SIZE environment variable or properties file
+ SQL_BATCH_SIZE=${VERIFY_SQL_BATCH_SIZE:-20000}
  if ((SQL_BATCH_SIZE <= 0)); then
-  SQL_BATCH_SIZE=5000
+  __logw "VERIFY_SQL_BATCH_SIZE invalid (${SQL_BATCH_SIZE}), resetting to 20000."
+  SQL_BATCH_SIZE=20000
  fi
  if ((SQL_BATCH_SIZE > EFFECTIVE_VERIFY_CHUNK_SIZE)); then
   SQL_BATCH_SIZE=${EFFECTIVE_VERIFY_CHUNK_SIZE}
@@ -157,8 +160,10 @@ function __getLocationNotes_impl {
    return 1
   fi
 
+  local QUEUE_LOCK_FILE="${QUEUE_FILE}.lock"
   local CLEANUP_TEMP_DIR="${TEMP_COUNT_DIR}"
   local CLEANUP_QUEUE_FILE="${QUEUE_FILE}"
+  local CLEANUP_QUEUE_LOCK="${QUEUE_LOCK_FILE}"
 
   local -i CHUNK_START=0
   local -i MAX_NOTE_LIMIT=$((MAX_NOTE_ID_NOT_NULL + 1))
@@ -186,7 +191,7 @@ function __getLocationNotes_impl {
 
   # Update trap to include progress file cleanup
   # shellcheck disable=SC2064
-  trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"; rm -f "${CLEANUP_QUEUE_FILE:-}" "${CLEANUP_PROGRESS_FILE:-}" "${CLEANUP_PROGRESS_LOCK:-}" 2> /dev/null || true' EXIT
+  trap 'rm -rf "${CLEANUP_TEMP_DIR:-}"; rm -f "${CLEANUP_QUEUE_FILE:-}" "${CLEANUP_QUEUE_LOCK:-}" "${CLEANUP_PROGRESS_FILE:-}" "${CLEANUP_PROGRESS_LOCK:-}" 2> /dev/null || true' EXIT
 
   # Start progress monitor in background
   (
@@ -260,21 +265,47 @@ function __getLocationNotes_impl {
     local -i THREAD_ID=${J}
     __logi "Starting integrity verification thread ${THREAD_ID}."
     local -i THREAD_COUNT=0
-    # Open queue file in thread (file descriptors are not inherited reliably in subshells)
-    exec {THREAD_QUEUE_FD}<> "${QUEUE_FILE}"
+    # Use atomic queue reading with lock file to prevent multiple threads
+    # from reading the same range
     while true; do
      local RANGE_START RANGE_END
-     if ! flock -x "${THREAD_QUEUE_FD}"; then
-      __loge "Thread ${THREAD_ID}: unable to acquire queue lock"
+     # Atomically read and remove first line from queue file
+     local TEMP_RANGE_FILE
+     TEMP_RANGE_FILE=$(mktemp)
+     (
+      exec {LOCK_FD}> "${QUEUE_LOCK_FILE}"
+      if ! flock -x "${LOCK_FD}"; then
+       __loge "Thread ${THREAD_ID}: unable to acquire queue lock"
+       exit 1
+      fi
+      # Read first line from queue file
+      if ! IFS=' ' read -r RANGE_START RANGE_END < "${QUEUE_FILE}"; then
+       # No more lines in queue
+       exit 1
+      fi
+      # Remove the first line from queue file atomically
+      # Use tail to skip first line and write to temp file, then move
+      local TEMP_QUEUE
+      TEMP_QUEUE=$(mktemp)
+      tail -n +2 "${QUEUE_FILE}" > "${TEMP_QUEUE}" 2>/dev/null || true
+      mv "${TEMP_QUEUE}" "${QUEUE_FILE}" 2>/dev/null || true
+      # Output the range for this thread
+      echo "${RANGE_START} ${RANGE_END}"
+     ) > "${TEMP_RANGE_FILE}" 2>&1
+     local LOCK_EXIT=$?
+     if [[ ${LOCK_EXIT} -ne 0 ]]; then
+      # No more ranges or lock failed
+      rm -f "${TEMP_RANGE_FILE}" 2>/dev/null || true
       break
      fi
-     if ! IFS=' ' read -r RANGE_START RANGE_END <&"${THREAD_QUEUE_FD}"; then
-      flock -u "${THREAD_QUEUE_FD}"
+     # Read the range from temp file
+     if ! IFS=' ' read -r RANGE_START RANGE_END < "${TEMP_RANGE_FILE}" 2>/dev/null; then
+      rm -f "${TEMP_RANGE_FILE}" 2>/dev/null || true
       break
      fi
-     flock -u "${THREAD_QUEUE_FD}"
+     rm -f "${TEMP_RANGE_FILE}" 2>/dev/null || true
 
-     if [[ -z "${RANGE_START:-}" ]]; then
+     if [[ -z "${RANGE_START:-}" ]] || [[ -z "${RANGE_END:-}" ]]; then
       break
      fi
 
@@ -329,7 +360,6 @@ function __getLocationNotes_impl {
 
     echo "${THREAD_COUNT}" > "${TEMP_COUNT_DIR}/count_${THREAD_ID}"
     __logi "Thread ${THREAD_ID}: total invalidated ${THREAD_COUNT}"
-    exec {THREAD_QUEUE_FD}>&-
    ) &
    THREADS_STARTED=$((THREADS_STARTED + 1))
   done
@@ -345,7 +375,6 @@ function __getLocationNotes_impl {
   # Stop progress monitor
   kill "${PROGRESS_MONITOR_PID}" 2> /dev/null || true
   wait "${PROGRESS_MONITOR_PID}" 2> /dev/null || true
-  exec {VERIFY_QUEUE_FD}>&-
 
   # Sum up all counts
   for COUNT_FILE in "${TEMP_COUNT_DIR}"/count_*; do
@@ -358,9 +387,10 @@ function __getLocationNotes_impl {
 
   # Clean up temp directory
   rm -rf "${TEMP_COUNT_DIR}"
-  rm -f "${QUEUE_FILE}"
+  rm -f "${QUEUE_FILE}" "${QUEUE_LOCK_FILE}"
   rm -f "${PROGRESS_FILE}" "${PROGRESS_FILE}.lock" 2> /dev/null || true
   CLEANUP_QUEUE_FILE=""
+  CLEANUP_QUEUE_LOCK=""
   CLEANUP_TEMP_DIR=""
   CLEANUP_PROGRESS_FILE=""
   CLEANUP_PROGRESS_LOCK=""
@@ -806,10 +836,6 @@ function __handle_error_with_cleanup() {
 # Alternative implementation: Simple semaphore (no tickets, no ordering)
 # Functions: __acquire_download_slot, __release_download_slot,
 # __cleanup_stale_slots, __wait_for_download_slot
-#
-# Legacy ticket-based queue system (deprecated but kept for compatibility):
-# Functions: __get_download_ticket, __wait_for_download_turn,
-# __release_download_ticket, __queue_prune_stale_locks
 
 # =============================================================================
 # Simple Semaphore System (Recommended)
@@ -913,7 +939,7 @@ function __release_download_slot() {
  if [[ -d "${MY_LOCK_DIR}" ]]; then
   rm -rf "${MY_LOCK_DIR}" || true
  elif [[ -f "${MY_LOCK_FILE}" ]]; then
-  # Legacy support: if it's a file instead of directory, remove it
+  # Support for file-based locks (backward compatibility)
   rm -f "${MY_LOCK_FILE}" || true
  fi
 
@@ -979,7 +1005,7 @@ function __wait_for_download_slot() {
 }
 
 # =============================================================================
-# Legacy Ticket-Based Queue System (Deprecated)
+# Ticket-Based Queue System
 # =============================================================================
 
 # Get the next ticket number in the queue
