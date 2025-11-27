@@ -219,11 +219,10 @@ function __trapOn() {
 function __dropCountryTables {
  __log_start
  __logi "=== DROPPING COUNTRY TABLES ==="
- __logd "Dropping countries and tries tables directly"
+ __logd "Dropping countries table directly"
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
 -- Drop country tables
 DROP TABLE IF EXISTS countries CASCADE;
-DROP TABLE IF EXISTS tries CASCADE;
 EOF
  __logi "=== COUNTRY TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
@@ -283,12 +282,9 @@ function __reassignAffectedNotes {
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
 
  # Show statistics
- local -r NOTES_UPDATED=$(psql -d "${DBNAME}" -Atq -c "
-   SELECT COUNT(*)
-   FROM tries
-   WHERE area = 'Country changed';
- ")
- __logi "Notes that changed country: ${NOTES_UPDATED}"
+ # Note: Statistics about country changes are no longer tracked in tries table
+ # This information can be obtained by comparing notes.id_country before and after update
+ __logi "Country assignment completed"
 
  # Mark countries as processed
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "

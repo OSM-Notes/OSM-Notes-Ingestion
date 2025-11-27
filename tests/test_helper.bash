@@ -323,13 +323,6 @@ INSERT INTO countries (country_id, name, americas, europe, russia_middle_east, a
   (5, 'Australia', FALSE, FALSE, FALSE, TRUE)
 ON CONFLICT (country_id) DO NOTHING;
 
--- Create tries table for logging
-CREATE TABLE IF NOT EXISTS tries (
-  area VARCHAR(20),
-  iter INTEGER,
-  id_note INTEGER,
-  id_country INTEGER
-);
 
 -- Drop existing procedures to avoid conflicts
 DROP PROCEDURE IF EXISTS put_lock(VARCHAR);

@@ -11,7 +11,7 @@
 -- 3. Search countries in priority order for that zone
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-19
+-- Version: 2025-11-27
 
  CREATE OR REPLACE FUNCTION get_country (
   lon DECIMAL,
@@ -48,8 +48,6 @@ AS $func$
 
     -- If still in same country, return immediately (95% of cases!)
     IF m_contains THEN
-      INSERT INTO tries VALUES ('Same country', 1, id_note,
-        m_current_country);
       RETURN m_current_country;
     END IF;
 
@@ -219,7 +217,6 @@ AS $func$
     m_iter := m_iter + 1;
   END LOOP;
 
-  INSERT INTO tries VALUES (m_area, m_iter, id_note, m_id_country);
   RETURN m_id_country;
  END
 $func$

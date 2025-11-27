@@ -52,17 +52,6 @@
     RAISE EXCEPTION 'Base tables are missing: logs.';
    END IF;
 
-   SELECT /* Notes-base */ COUNT(TABLE_NAME)
-    INTO qty
-   FROM INFORMATION_SCHEMA.TABLES
-   WHERE TABLE_SCHEMA LIKE 'public'
-   AND TABLE_TYPE LIKE 'BASE TABLE'
-   AND TABLE_NAME = 'tries'
-   ;
-   IF (qty <> 1) THEN
-    RAISE EXCEPTION 'Base tables are missing: tries.';
-   END IF;
-
    -- Note: Function get_country is verified separately in __checkBaseTables
    -- If missing, it will be created by __ensureGetCountryFunction
   END;

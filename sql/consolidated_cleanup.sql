@@ -32,7 +32,6 @@ DROP FUNCTION IF EXISTS get_country CASCADE;
 -- They should NOT be dropped during analyze/vacuum operations
 -- as they are required for the system to function.
 -- The countries table is managed by updateCountries.sh.
--- DROP TABLE IF EXISTS tries CASCADE;
 -- DROP TABLE IF EXISTS countries CASCADE;
 
 -- =====================================================

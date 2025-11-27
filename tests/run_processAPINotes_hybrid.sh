@@ -260,8 +260,8 @@ drop_base_tables() {
     log_info "Base tables exist, dropping them..."
     # Drop base tables (notes, note_comments, users, logs, etc.)
     ${psql_cmd} -d "${DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_13_dropBaseTables.sql" > /dev/null 2>&1 || true
-    # Drop country tables (countries, tries)
-    ${psql_cmd} -d "${DBNAME}" -c "DROP TABLE IF EXISTS tries CASCADE; DROP TABLE IF EXISTS countries CASCADE;" > /dev/null 2>&1 || true
+    # Drop country tables (countries)
+    ${psql_cmd} -d "${DBNAME}" -c "DROP TABLE IF EXISTS countries CASCADE;" > /dev/null 2>&1 || true
     log_success "Base tables dropped"
   else
     log_info "Base tables don't exist (already clean)"

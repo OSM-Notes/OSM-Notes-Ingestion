@@ -358,30 +358,21 @@ Compared to the old 5-zone vertical partitioning:
 
 ### Monitoring Performance
 
-Use the `tries` table to analyze performance:
+Performance analysis can be done using EXPLAIN ANALYZE:
 
 ```sql
--- Average iterations per zone
-SELECT area, AVG(iter) as avg_iterations, COUNT(*) as notes
-FROM tries
-GROUP BY area
-ORDER BY notes DESC;
+-- Analyze get_country() performance for different zones
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT get_country(longitude, latitude, note_id)
+FROM notes
+WHERE id_country IS NULL
+LIMIT 1000;
 
--- Zones with high iteration counts (need optimization)
-SELECT area, MAX(iter) as max_iterations, AVG(iter) as avg_iterations
-FROM tries
-GROUP BY area
-HAVING AVG(iter) > 5
-ORDER BY avg_iterations DESC;
-
--- Most efficient zones
-SELECT area, AVG(iter) as avg_iterations, COUNT(*) as notes
-FROM tries
-WHERE area != 'Same country'
-GROUP BY area
-HAVING COUNT(*) > 100
-ORDER BY avg_iterations ASC
-LIMIT 10;
+-- Monitor query execution times
+SELECT COUNT(*) as notes_processed,
+       AVG(EXTRACT(EPOCH FROM (clock_timestamp() - query_start))) as avg_time
+FROM pg_stat_activity
+WHERE query LIKE '%get_country%';
 ```
 
 ## Zone Overlap Strategy
@@ -422,10 +413,11 @@ psql -d notes -f sql/functionsProcess_31_organizeAreas_2DGrid.sql
 psql -d notes -f sql/functionsProcess_21_createFunctionToGetCountry.sql
 
 # 4. Test with sample notes
-SELECT area, COUNT(*) 
-FROM tries 
-WHERE created_at > NOW() - INTERVAL '1 day'
-GROUP BY area;
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT get_country(longitude, latitude, note_id)
+FROM notes
+WHERE id_country IS NULL
+LIMIT 100;
 
 # 5. Re-assign all notes (optional, can be done gradually)
 # DBNAME=notes ./bin/process/assignCountriesToNotes.sh
@@ -435,15 +427,15 @@ GROUP BY area;
 
 ### High Iteration Counts
 
-If a zone shows high average iterations:
+If a zone shows high average iterations, use EXPLAIN ANALYZE to identify
+which countries are being checked most frequently:
 
 ```sql
--- Find which countries are checked most
-SELECT area, iter, id_country, COUNT(*) as occurrences
-FROM tries
-WHERE area = 'Western Europe'
-GROUP BY area, iter, id_country
-ORDER BY iter DESC, occurrences DESC;
+-- Analyze get_country() performance for a specific zone
+EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
+SELECT get_country(longitude, latitude, note_id)
+FROM notes
+WHERE note_id IN (SELECT note_id FROM notes WHERE id_country IS NULL LIMIT 100);
 ```
 
 **Solution**: Adjust priority order for that zone in
@@ -464,9 +456,6 @@ LIMIT 100;
 SELECT get_country(longitude, latitude, note_id)
 FROM notes
 WHERE note_id = <problem_note_id>;
-
--- Check tries table for details
-SELECT * FROM tries WHERE id_note = <problem_note_id>;
 ```
 
 **Common causes**:

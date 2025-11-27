@@ -42,7 +42,7 @@ teardown() {
  run bash -c "
         # Create minimal tables structure without data
         psql -d '${TEST_DBNAME}' << 'EOSQL'
-        DROP TABLE IF EXISTS notes_test, note_comments_test, countries_test, logs_test, tries_test;
+        DROP TABLE IF EXISTS notes_test, note_comments_test, countries_test, logs_test;
         
         CREATE TABLE notes_test (
             id BIGINT PRIMARY KEY,
@@ -249,7 +249,7 @@ EOSQL
  run bash -c "
         # First create the base tables as expected by the system
         psql -d '${TEST_DBNAME}' << 'EOSQL'
-        DROP TABLE IF EXISTS notes, note_comments, countries, logs, tries;
+        DROP TABLE IF EXISTS notes, note_comments, countries, logs;
         
         CREATE TABLE notes (
             id BIGINT PRIMARY KEY,
@@ -302,7 +302,7 @@ EOSQL
  # Create base tables with sufficient historical data
  run bash -c "
         psql -d '${TEST_DBNAME}' << 'EOSQL'
-        DROP TABLE IF EXISTS notes, note_comments, countries, logs, tries;
+        DROP TABLE IF EXISTS notes, note_comments, countries, logs;
         
         CREATE TABLE notes (
             id BIGINT PRIMARY KEY,

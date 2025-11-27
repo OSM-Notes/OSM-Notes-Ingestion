@@ -3,7 +3,7 @@
 -- latitude to minimize expensive ST_Contains calls.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-20
+-- Version: 2025-11-27
 
 CREATE TABLE countries (
  country_id INTEGER NOT NULL,
@@ -121,16 +121,3 @@ COMMENT ON INDEX countries_spatial IS 'Spatial index for countries';
 ALTER TABLE countries
  ADD CONSTRAINT pk_countries
  PRIMARY KEY (country_id);
-
-CREATE TABLE tries (
- area VARCHAR(50),
- iter INTEGER,
- id_note INTEGER,
- id_country INTEGER
-);
-COMMENT ON TABLE tries IS
-  'Number of tries to find a country. This is used to improve the sequence order';
-COMMENT ON COLUMN tries.area IS 'Name of the area where the note is located';
-COMMENT ON COLUMN tries.iter IS 'Number of tries before find the proper country';
-COMMENT ON COLUMN tries.id_note IS 'OSM note id';
-COMMENT ON COLUMN tries.id_country IS 'OSM country id';

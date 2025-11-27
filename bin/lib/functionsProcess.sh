@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-25
-VERSION="2025-11-25"
+# Version: 2025-11-27
+VERSION="2025-11-27"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -1485,7 +1485,7 @@ function __checkBaseTables {
  __logd "Database connection verified"
 
  # Now check if tables exist
- __logd "Checking for base tables: countries, notes, note_comments, logs, tries"
+ __logd "Checking for base tables: countries, notes, note_comments, logs"
  __logd "SQL file: ${POSTGRES_11_CHECK_BASE_TABLES}"
  local PSQL_OUTPUT
  local PSQL_ERROR
@@ -1822,19 +1822,6 @@ function __downloadPlanetNotes {
 # * 65 - 180: Southeast Asia and Oceania.
 function __createFunctionToGetCountry {
  __log_start
- # Ensure tries table exists before creating get_country function
- __logd "Ensuring tries table exists..."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF' || true
-CREATE TABLE IF NOT EXISTS tries (
- area VARCHAR(50),
- iter INTEGER,
- id_note INTEGER,
- id_country INTEGER
-);
-COMMENT ON TABLE tries IS
- 'Number of tries to find a country. This is used to improve the sequence order';
-EOF
-
  # Check if countries table exists before creating get_country function
  local COUNTRIES_TABLE_EXISTS
  COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")

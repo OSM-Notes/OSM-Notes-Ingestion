@@ -116,13 +116,6 @@ INSERT INTO countries (country_id, name, americas, europe, russia_middle_east, a
   (5, 'Australia', FALSE, FALSE, FALSE, TRUE)
 ON CONFLICT (country_id) DO NOTHING;
 
--- Create tries table for logging
-CREATE TABLE IF NOT EXISTS tries (
-  area VARCHAR(20),
-  iter INTEGER,
-  id_note INTEGER,
-  id_country INTEGER
-);
 
 -- Create simplified get_country function
 CREATE OR REPLACE FUNCTION get_country (
@@ -153,7 +146,6 @@ BEGIN
     m_id_country := 4; -- Japan
   END IF;
   
-  INSERT INTO tries VALUES (m_area, 1, id_note, m_id_country);
   RETURN m_id_country;
 END
 $func$;
