@@ -112,6 +112,16 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
+# Overpass query files (needed for ID comparison)
+# These are already declared in boundaryProcessingFunctions.sh, but we need them here
+# Check if already declared (from boundaryProcessingFunctions.sh) before declaring
+if [[ -z "${OVERPASS_COUNTRIES:-}" ]]; then
+ declare -r OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
+fi
+if [[ -z "${OVERPASS_MARITIMES:-}" ]]; then
+ declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
+fi
+
 # Shows the help information.
 function __show_help {
  echo "${BASENAME} version ${VERSION}"
@@ -378,6 +388,199 @@ function __verifyAndReloadMissingCountries {
  return 0
 }
 
+# Checks if boundaries (countries or maritimes) need to be updated by comparing
+# IDs from Overpass query with repository backup.
+# Returns 0 if update is needed, 1 if backup matches.
+function __checkBoundariesUpdateNeeded {
+ __log_start
+ local TYPE="${1}" # "countries" or "maritimes"
+ local OVERPASS_QUERY_FILE="${2}" # Overpass query file (.op)
+ local BACKUP_FILE="${3}" # Backup GeoJSON file
+
+ __logd "Checking if ${TYPE} update is needed..."
+
+ # Determine backup file location if not provided
+ if [[ -z "${BACKUP_FILE}" ]]; then
+  if [[ "${TYPE}" == "countries" ]]; then
+   BACKUP_FILE="${SCRIPT_BASE_DIRECTORY}/data/countries.geojson"
+  elif [[ "${TYPE}" == "maritimes" ]]; then
+   BACKUP_FILE="${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson"
+  else
+   __loge "ERROR: Unknown type: ${TYPE}"
+   __log_finish
+   return 0
+  fi
+ fi
+
+ # If backup doesn't exist, update is needed
+ if [[ ! -f "${BACKUP_FILE}" ]] || [[ ! -s "${BACKUP_FILE}" ]]; then
+  __logi "No backup file found for ${TYPE}, update needed"
+  __log_finish
+  return 0
+ fi
+
+ # Download IDs from Overpass first
+ local TMP_IDS_FILE
+ TMP_IDS_FILE="${TMP_DIR}/${TYPE}_ids_from_overpass.txt"
+ __logd "Downloading ${TYPE} IDs from Overpass..."
+ set +e
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  wget -O "${TMP_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_QUERY_FILE}" \
+   "${OVERPASS_INTERPRETER}" 2> /dev/null
+ else
+  wget -O "${TMP_IDS_FILE}" --post-file="${OVERPASS_QUERY_FILE}" \
+   "${OVERPASS_INTERPRETER}" 2> /dev/null
+ fi
+ local RET=${?}
+ set -e
+
+ if [[ "${RET}" -ne 0 ]] || [[ ! -s "${TMP_IDS_FILE}" ]]; then
+  __logw "Failed to download ${TYPE} IDs from Overpass, assuming update needed"
+  __log_finish
+  return 0
+ fi
+
+ # Remove header and sort
+ tail -n +2 "${TMP_IDS_FILE}" 2> /dev/null | sort -n > "${TMP_IDS_FILE}.sorted" || true
+ mv "${TMP_IDS_FILE}.sorted" "${TMP_IDS_FILE}"
+
+ # Add special areas for countries (same as in __processCountries_impl)
+ if [[ "${TYPE}" == "countries" ]]; then
+  {
+   echo "1703814" # Gaza Strip
+   echo "1803010" # Judea and Samaria
+   echo "12931402" # Bhutan - China dispute
+   echo "192797" # Ilemi Triangle
+   echo "12940096" # Neutral zone Burkina Faso - Benin
+   echo "3335661" # Bir Tawil
+   echo "37848" # Jungholz, Austria
+   echo "3394112" # British Antarctic
+   echo "3394110" # Argentine Antarctic
+   echo "3394115" # Chilean Antarctic
+   echo "3394113" # Ross dependency
+   echo "3394111" # Australian Antarctic
+   echo "3394114" # Adelia Land
+   echo "3245621" # Queen Maud Land
+   echo "2955118" # Peter I Island
+   echo "2186646" # Antarctica continent
+  } >> "${TMP_IDS_FILE}"
+  sort -n "${TMP_IDS_FILE}" > "${TMP_IDS_FILE}.sorted"
+  mv "${TMP_IDS_FILE}.sorted" "${TMP_IDS_FILE}"
+ fi
+
+ # Extract IDs from backup GeoJSON
+ local BACKUP_IDS_FILE
+ BACKUP_IDS_FILE="${TMP_DIR}/${TYPE}_ids_from_backup.txt"
+ if command -v jq > /dev/null 2>&1; then
+  jq -r '.features[].properties.country_id' "${BACKUP_FILE}" 2> /dev/null \
+   | sort -n > "${BACKUP_IDS_FILE}" || true
+ else
+  # Fallback: use ogrinfo
+  ogrinfo -al -so "${BACKUP_FILE}" 2> /dev/null \
+   | grep -E '^country_id \(' | awk '{print $3}' | sort -n > "${BACKUP_IDS_FILE}" || true
+ fi
+
+ # Compare counts
+ local OVERPASS_COUNT
+ OVERPASS_COUNT=$(wc -l < "${TMP_IDS_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
+ local BACKUP_COUNT
+ BACKUP_COUNT=$(wc -l < "${BACKUP_IDS_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
+
+ __logd "Overpass ${TYPE} IDs: ${OVERPASS_COUNT}"
+ __logd "Backup ${TYPE} IDs: ${BACKUP_COUNT}"
+
+ if [[ "${OVERPASS_COUNT}" -eq 0 ]]; then
+  __logw "No IDs found from Overpass, update needed"
+  __log_finish
+  return 0
+ fi
+
+ if [[ "${OVERPASS_COUNT}" -ne "${BACKUP_COUNT}" ]]; then
+  __logi "${TYPE} ID counts differ (Overpass: ${OVERPASS_COUNT}, Backup: ${BACKUP_COUNT}), update needed"
+  __log_finish
+  return 0
+ fi
+
+ # Compare IDs if counts match
+ if ! diff -q "${TMP_IDS_FILE}" "${BACKUP_IDS_FILE}" > /dev/null 2>&1; then
+  __logi "${TYPE} ID lists differ, update needed"
+  __log_finish
+  return 0
+ fi
+
+ __logi "${TYPE} IDs match backup, no update needed"
+ __log_finish
+ return 1
+}
+
+# Checks if maritime boundaries need to be updated by comparing current
+# database state with the repository backup.
+# Returns 0 if update is needed, 1 if backup matches current state.
+# DEPRECATED: Use __checkBoundariesUpdateNeeded instead.
+function __checkMaritimesUpdateNeeded {
+ __log_start
+ __logd "Checking if maritime boundaries update is needed..."
+
+ # Determine backup file location
+ local REPO_MARITIMES_BACKUP
+ REPO_MARITIMES_BACKUP="${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson"
+
+ # If backup doesn't exist, update is needed
+ if [[ ! -f "${REPO_MARITIMES_BACKUP}" ]] || [[ ! -s "${REPO_MARITIMES_BACKUP}" ]]; then
+  __logi "No backup file found, update needed"
+  __log_finish
+  return 0
+ fi
+
+ # Get current maritime IDs from database
+ local CURRENT_MARITIMES_FILE
+ CURRENT_MARITIMES_FILE="${TMP_DIR}/current_maritimes_ids.txt"
+ psql -d "${DBNAME}" -Atq -c \
+  "SELECT country_id FROM countries WHERE country_name_en LIKE '%(EEZ)%' OR country_name_en LIKE '%(Contiguous Zone)%' OR country_name_en LIKE '%(maritime)%' OR country_name LIKE '%(EEZ)%' OR country_name LIKE '%(Contiguous Zone)%' OR country_name LIKE '%(maritime)%' ORDER BY country_id;" \
+  > "${CURRENT_MARITIMES_FILE}" 2> /dev/null || true
+
+ # Extract IDs from backup GeoJSON (if jq is available)
+ local BACKUP_MARITIMES_FILE
+ BACKUP_MARITIMES_FILE="${TMP_DIR}/backup_maritimes_ids.txt"
+ if command -v jq > /dev/null 2>&1; then
+  jq -r '.features[].properties.country_id' "${REPO_MARITIMES_BACKUP}" 2> /dev/null \
+   | sort -n > "${BACKUP_MARITIMES_FILE}" || true
+ else
+  # Fallback: use ogrinfo to get IDs
+  ogrinfo -al -so "${REPO_MARITIMES_BACKUP}" 2> /dev/null \
+   | grep -E '^country_id \(' | awk '{print $3}' | sort -n > "${BACKUP_MARITIMES_FILE}" || true
+ fi
+
+ # Compare counts
+ local CURRENT_COUNT
+ CURRENT_COUNT=$(wc -l < "${CURRENT_MARITIMES_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
+ local BACKUP_COUNT
+ BACKUP_COUNT=$(wc -l < "${BACKUP_MARITIMES_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
+
+ __logd "Current maritimes in database: ${CURRENT_COUNT}"
+ __logd "Maritimes in backup: ${BACKUP_COUNT}"
+
+ # If counts differ, update is needed
+ if [[ "${CURRENT_COUNT}" -ne "${BACKUP_COUNT}" ]]; then
+  __logi "Maritime count differs (current: ${CURRENT_COUNT}, backup: ${BACKUP_COUNT}), update needed"
+  __log_finish
+  return 0
+ fi
+
+ # Compare IDs if counts match
+ if [[ "${CURRENT_COUNT}" -gt 0 ]]; then
+  if ! diff -q "${CURRENT_MARITIMES_FILE}" "${BACKUP_MARITIMES_FILE}" > /dev/null 2>&1; then
+   __logi "Maritime IDs differ, update needed"
+   __log_finish
+   return 0
+  fi
+ fi
+
+ __logi "Maritime boundaries match backup, no update needed"
+ __log_finish
+ return 1
+}
+
 # Re-assigns countries only for notes affected by geometry changes.
 # This is much more efficient than re-processing all notes.
 # Only processes notes within bounding boxes of countries that were updated.
@@ -513,9 +716,24 @@ EOF
   __logi "Running in update mode - processing existing data only"
   STMT="UPDATE countries SET updated = TRUE"
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-  __processCountries
-  __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
-  __processMaritimes
+  
+  # Check if countries update is needed before processing
+  if __checkBoundariesUpdateNeeded "countries" "${OVERPASS_COUNTRIES}" "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson"; then
+   __logi "Country boundaries update needed, processing..."
+   __processCountries
+   __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
+  else
+   __logi "Country boundaries are up to date, skipping download"
+  fi
+  
+  # Check if maritimes update is needed before processing
+  if __checkBoundariesUpdateNeeded "maritimes" "${OVERPASS_MARITIMES}" "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson"; then
+   __logi "Maritime boundaries update needed, processing..."
+   __processMaritimes
+  else
+   __logi "Maritime boundaries are up to date, skipping download"
+  fi
+  
   __maintainCountriesTable
   __cleanPartial
 

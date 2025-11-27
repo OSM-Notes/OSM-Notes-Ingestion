@@ -14,6 +14,12 @@ capabilities.
 Data files and datasets:
 
 - **`noteLocation.csv.zip`**: Sample note location data in compressed CSV format
+- **`countries.geojson`**: Backup of country boundaries exported from the database.
+  Used to avoid downloading from Overpass API on every run.
+- **`maritimes.geojson`**: Backup of maritime boundaries (EEZ, Contiguous Zones)
+  exported from the database. Used to avoid downloading from Overpass API on
+  every run.
+- See [BOUNDARIES_BACKUP.md](BOUNDARIES_BACKUP.md) for details on boundaries backups.
 - **Sample datasets**: Representative data for testing and development
 - **Reference data**: Examples of expected data formats
 

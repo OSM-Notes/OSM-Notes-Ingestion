@@ -4,8 +4,8 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-25
-VERSION="2025-10-25"
+# Version: 2025-11-27
+VERSION="2025-11-27"
 
 # Show help function
 function __show_help() {
@@ -378,13 +378,31 @@ function __processCountries() {
  __log_start
  __logd "Processing countries."
 
- # Download countries boundary (or use cached file if available)
+ # Determine SCRIPT_BASE_DIRECTORY if not set
+ local REPO_COUNTRIES_BACKUP
+ if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+  REPO_COUNTRIES_BACKUP="${SCRIPT_BASE_DIRECTORY}/data/countries.geojson"
+ else
+  # Fallback: try to determine from script location
+  local SCRIPT_DIR
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd || echo "")"
+  if [[ -n "${SCRIPT_DIR}" ]]; then
+   REPO_COUNTRIES_BACKUP="${SCRIPT_DIR}/data/countries.geojson"
+  else
+   REPO_COUNTRIES_BACKUP=""
+  fi
+ fi
+
+ # Download countries boundary (or use backup/cached file if available)
  local GEOJSON_FILE
  if [[ -f "/tmp/countries.geojson" ]] && [[ -s "/tmp/countries.geojson" ]]; then
   __logi "Using cached countries boundary from /tmp/countries.geojson"
   GEOJSON_FILE="/tmp/countries.geojson"
+ elif [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && [[ -f "${REPO_COUNTRIES_BACKUP}" ]] && [[ -s "${REPO_COUNTRIES_BACKUP}" ]]; then
+  __logi "Using repository backup countries boundary from ${REPO_COUNTRIES_BACKUP}"
+  GEOJSON_FILE="${REPO_COUNTRIES_BACKUP}"
  else
-  __logi "Downloading countries boundary..."
+  __logi "No backup found, downloading countries boundary from Overpass..."
   if __retry_overpass_api "[out:json];relation[\"admin_level\"=\"2\"][\"boundary\"=\"administrative\"];out geom;" "${COUNTRIES_FILE}.json" 3 5 300; then
    if [[ -s "${COUNTRIES_FILE}.json" ]]; then
     # Convert OSM JSON to GeoJSON using osmtogeojson
@@ -430,13 +448,31 @@ function __processMaritimes() {
  __log_start
  __logd "Processing maritimes."
 
- # Download maritime boundaries (or use cached file if available)
+ # Determine SCRIPT_BASE_DIRECTORY if not set
+ local REPO_MARITIMES_BACKUP
+ if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+  REPO_MARITIMES_BACKUP="${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson"
+ else
+  # Fallback: try to determine from script location
+  local SCRIPT_DIR
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd || echo "")"
+  if [[ -n "${SCRIPT_DIR}" ]]; then
+   REPO_MARITIMES_BACKUP="${SCRIPT_DIR}/data/maritimes.geojson"
+  else
+   REPO_MARITIMES_BACKUP=""
+  fi
+ fi
+
+ # Download maritime boundaries (or use backup/cached file if available)
  local GEOJSON_FILE
  if [[ -f "/tmp/maritimes.geojson" ]] && [[ -s "/tmp/maritimes.geojson" ]]; then
   __logi "Using cached maritime boundaries from /tmp/maritimes.geojson"
   GEOJSON_FILE="/tmp/maritimes.geojson"
+ elif [[ -n "${REPO_MARITIMES_BACKUP}" ]] && [[ -f "${REPO_MARITIMES_BACKUP}" ]] && [[ -s "${REPO_MARITIMES_BACKUP}" ]]; then
+  __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
+  GEOJSON_FILE="${REPO_MARITIMES_BACKUP}"
  else
-  __logi "Downloading maritime boundaries..."
+  __logi "No backup found, downloading maritime boundaries from Overpass..."
   if __retry_overpass_api "[out:json];relation[\"boundary\"=\"maritime\"];out geom;" "${MARITIMES_FILE}.json" 3 5 300; then
    if [[ -s "${MARITIMES_FILE}.json" ]]; then
     # Convert OSM JSON to GeoJSON using osmtogeojson
