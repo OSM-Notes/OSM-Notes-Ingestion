@@ -4,8 +4,8 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-27
-VERSION="2025-11-27"
+# Version: 2025-01-23
+VERSION="2025-01-23"
 
 # Show help function
 function __show_help() {
@@ -395,13 +395,18 @@ function __processCountries() {
 
  # Download countries boundary (or use backup/cached file if available)
  local GEOJSON_FILE
+ local RESOLVED_BACKUP=""
  if [[ -f "/tmp/countries.geojson" ]] && [[ -s "/tmp/countries.geojson" ]]; then
   __logi "Using cached countries boundary from /tmp/countries.geojson"
   GEOJSON_FILE="/tmp/countries.geojson"
- elif [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && [[ -f "${REPO_COUNTRIES_BACKUP}" ]] && [[ -s "${REPO_COUNTRIES_BACKUP}" ]]; then
-  __logi "Using repository backup countries boundary from ${REPO_COUNTRIES_BACKUP}"
-  GEOJSON_FILE="${REPO_COUNTRIES_BACKUP}"
- else
+ elif [[ -n "${REPO_COUNTRIES_BACKUP}" ]]; then
+  # Try to resolve backup file (handles .geojson and .geojson.gz)
+  if __resolve_geojson_file "${REPO_COUNTRIES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
+   __logi "Using repository backup countries boundary from ${REPO_COUNTRIES_BACKUP}"
+   GEOJSON_FILE="${RESOLVED_BACKUP}"
+  fi
+fi
+if [[ -z "${GEOJSON_FILE:-}" ]]; then
   __logi "No backup found, downloading countries boundary from Overpass..."
   if __retry_overpass_api "[out:json];relation[\"admin_level\"=\"2\"][\"boundary\"=\"administrative\"];out geom;" "${COUNTRIES_FILE}.json" 3 5 300; then
    if [[ -s "${COUNTRIES_FILE}.json" ]]; then
@@ -465,13 +470,18 @@ function __processMaritimes() {
 
  # Download maritime boundaries (or use backup/cached file if available)
  local GEOJSON_FILE
+ local RESOLVED_BACKUP=""
  if [[ -f "/tmp/maritimes.geojson" ]] && [[ -s "/tmp/maritimes.geojson" ]]; then
   __logi "Using cached maritime boundaries from /tmp/maritimes.geojson"
   GEOJSON_FILE="/tmp/maritimes.geojson"
- elif [[ -n "${REPO_MARITIMES_BACKUP}" ]] && [[ -f "${REPO_MARITIMES_BACKUP}" ]] && [[ -s "${REPO_MARITIMES_BACKUP}" ]]; then
-  __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
-  GEOJSON_FILE="${REPO_MARITIMES_BACKUP}"
- else
+ elif [[ -n "${REPO_MARITIMES_BACKUP}" ]]; then
+  # Try to resolve backup file (handles .geojson and .geojson.gz)
+  if __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
+   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
+   GEOJSON_FILE="${RESOLVED_BACKUP}"
+  fi
+fi
+if [[ -z "${GEOJSON_FILE:-}" ]]; then
   __logi "No backup found, downloading maritime boundaries from Overpass..."
   if __retry_overpass_api "[out:json];relation[\"boundary\"=\"maritime\"];out geom;" "${MARITIMES_FILE}.json" 3 5 300; then
    if [[ -s "${MARITIMES_FILE}.json" ]]; then

@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-22
-VERSION="2025-11-22"
+# Version: 2025-01-23
+VERSION="2025-01-23"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -74,6 +74,66 @@ function __log_geojson_retry_delay() {
 function __log_import_start() {
  local BOUNDARY_ID="${1}"
  __logi "Importing into Postgres for boundary ${BOUNDARY_ID}."
+}
+
+# ---------------------------------------------------------------------------
+# GeoJSON file handling helpers
+# ---------------------------------------------------------------------------
+
+# Resolves a GeoJSON file path, handling compressed files (.geojson.gz)
+# If a .geojson.gz file exists, it will be decompressed to a temporary
+# location and the path to the decompressed file will be returned.
+# Parameters:
+#   $1: Base path (without extension) or full path to .geojson file
+#   $2: (optional) Output variable name for the resolved file path
+# Returns:
+#   0 if file found and ready, 1 otherwise
+# Sets:
+#   ${2} (or GEOJSON_RESOLVED_FILE) to the resolved file path
+function __resolve_geojson_file() {
+ local BASE_PATH="${1}"
+ local OUTPUT_VAR="${2:-GEOJSON_RESOLVED_FILE}"
+ local RESOLVED_FILE=""
+
+ # If BASE_PATH already has .geojson extension, use it as-is
+ if [[ "${BASE_PATH}" == *.geojson ]]; then
+  if [[ -f "${BASE_PATH}" ]] && [[ -s "${BASE_PATH}" ]]; then
+   RESOLVED_FILE="${BASE_PATH}"
+  elif [[ -f "${BASE_PATH}.gz" ]] && [[ -s "${BASE_PATH}.gz" ]]; then
+   # Decompress to temporary location
+   local TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}")"
+   if gunzip -c "${BASE_PATH}.gz" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
+    RESOLVED_FILE="${TMP_DECOMPRESSED}"
+    __logd "Decompressed ${BASE_PATH}.gz to ${RESOLVED_FILE}"
+   else
+    __loge "Failed to decompress ${BASE_PATH}.gz"
+    return 1
+   fi
+  else
+   return 1
+  fi
+ else
+  # Try .geojson first, then .geojson.gz
+  if [[ -f "${BASE_PATH}.geojson" ]] && [[ -s "${BASE_PATH}.geojson" ]]; then
+   RESOLVED_FILE="${BASE_PATH}.geojson"
+  elif [[ -f "${BASE_PATH}.geojson.gz" ]] && [[ -s "${BASE_PATH}.geojson.gz" ]]; then
+   # Decompress to temporary location
+   local TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}.geojson")"
+   if gunzip -c "${BASE_PATH}.geojson.gz" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
+    RESOLVED_FILE="${TMP_DECOMPRESSED}"
+    __logd "Decompressed ${BASE_PATH}.geojson.gz to ${RESOLVED_FILE}"
+   else
+    __loge "Failed to decompress ${BASE_PATH}.geojson.gz"
+    return 1
+   fi
+  else
+   return 1
+  fi
+ fi
+
+ # Set output variable
+ eval "${OUTPUT_VAR}=\"${RESOLVED_FILE}\""
+ return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -739,7 +799,9 @@ function __compareIdsWithBackup {
   return 1
  fi
 
- if [[ ! -f "${BACKUP_FILE}" ]] || [[ ! -s "${BACKUP_FILE}" ]]; then
+ # Resolve backup file (handles .geojson and .geojson.gz)
+ local RESOLVED_BACKUP=""
+ if ! __resolve_geojson_file "${BACKUP_FILE}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logd "Backup file not found, comparison not possible"
   __log_finish
   return 1
@@ -750,15 +812,15 @@ function __compareIdsWithBackup {
  OVERPASS_IDS_SORTED="${TMP_DIR}/overpass_ids_sorted.txt"
  tail -n +2 "${OVERPASS_IDS_FILE}" 2> /dev/null | sort -n > "${OVERPASS_IDS_SORTED}" || true
 
- # Extract IDs from backup GeoJSON
+ # Extract IDs from backup GeoJSON (use resolved file)
  local BACKUP_IDS_SORTED
  BACKUP_IDS_SORTED="${TMP_DIR}/backup_ids_sorted.txt"
  if command -v jq > /dev/null 2>&1; then
-  jq -r '.features[].properties.country_id' "${BACKUP_FILE}" 2> /dev/null \
+  jq -r '.features[].properties.country_id' "${RESOLVED_BACKUP}" 2> /dev/null \
    | sort -n > "${BACKUP_IDS_SORTED}" || true
  else
   # Fallback: use ogrinfo
-  ogrinfo -al -so "${BACKUP_FILE}" 2> /dev/null \
+  ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null \
    | grep -E '^country_id \(' | awk '{print $3}' | sort -n > "${BACKUP_IDS_SORTED}" || true
  fi
 
@@ -885,13 +947,14 @@ function __processCountries_impl {
  } >> "${COUNTRIES_BOUNDARY_IDS_FILE}"
 
  # Compare IDs with backup before processing
- if [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && [[ -f "${REPO_COUNTRIES_BACKUP}" ]] && [[ -s "${REPO_COUNTRIES_BACKUP}" ]]; then
+ local RESOLVED_BACKUP=""
+ if [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && __resolve_geojson_file "${REPO_COUNTRIES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Comparing country IDs with backup..."
-  if __compareIdsWithBackup "${COUNTRIES_BOUNDARY_IDS_FILE}" "${REPO_COUNTRIES_BACKUP}" "countries"; then
+  if __compareIdsWithBackup "${COUNTRIES_BOUNDARY_IDS_FILE}" "${RESOLVED_BACKUP}" "countries"; then
    __logi "Country IDs match backup, importing from backup..."
    # Import backup directly
    if declare -f __processBoundary > /dev/null 2>&1; then
-    if __processBoundary "${REPO_COUNTRIES_BACKUP}" "countries"; then
+    if __processBoundary "${RESOLVED_BACKUP}" "countries"; then
      __logi "Successfully imported countries from backup"
      __log_finish
      return 0
@@ -901,11 +964,14 @@ function __processCountries_impl {
    else
     # Fallback: use ogr2ogr directly
     __logd "Importing backup using ogr2ogr..."
-    if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${REPO_COUNTRIES_BACKUP}" \
+    local BACKUP_BASENAME
+    BACKUP_BASENAME="$(basename "${REPO_COUNTRIES_BACKUP}" .geojson.gz)"
+    BACKUP_BASENAME="$(basename "${BACKUP_BASENAME}" .geojson)"
+    if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
      -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
      -lco GEOMETRY_NAME=geom -lco FID=country_id \
      -dialect SQLite \
-     -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM $(basename "${REPO_COUNTRIES_BACKUP}" .geojson)" \
+     -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${BACKUP_BASENAME}" \
      --config PG_USE_COPY YES 2> /dev/null; then
      __logi "Successfully imported countries from backup"
      __log_finish
@@ -1069,11 +1135,12 @@ function __processMaritimes_impl {
  fi
 
  # Try to use repository backup first (faster, avoids Overpass download)
- if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && [[ -f "${REPO_MARITIMES_BACKUP}" ]] && [[ -s "${REPO_MARITIMES_BACKUP}" ]]; then
+ local RESOLVED_BACKUP=""
+ if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
   # Import backup directly using __processBoundary (if available) or ogr2ogr
   if declare -f __processBoundary > /dev/null 2>&1; then
-   if __processBoundary "${REPO_MARITIMES_BACKUP}" "countries"; then
+   if __processBoundary "${RESOLVED_BACKUP}" "countries"; then
     __logi "Successfully imported maritime boundaries from backup"
     __log_finish
     return 0
@@ -1083,11 +1150,14 @@ function __processMaritimes_impl {
   else
    # Fallback: use ogr2ogr directly
    __logd "Importing backup using ogr2ogr..."
-   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${REPO_MARITIMES_BACKUP}" \
+   local BACKUP_BASENAME
+   BACKUP_BASENAME="$(basename "${REPO_MARITIMES_BACKUP}" .geojson.gz)"
+   BACKUP_BASENAME="$(basename "${BACKUP_BASENAME}" .geojson)"
+   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
     -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
     -dialect SQLite \
-    -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM $(basename "${REPO_MARITIMES_BACKUP}" .geojson)" \
+    -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${BACKUP_BASENAME}" \
     --config PG_USE_COPY YES 2> /dev/null; then
     __logi "Successfully imported maritime boundaries from backup"
     __log_finish
@@ -1136,13 +1206,14 @@ function __processMaritimes_impl {
  mv "${MARITIME_BOUNDARY_IDS_FILE}.tmp" "${MARITIME_BOUNDARY_IDS_FILE}"
 
  # Compare IDs with backup before processing
- if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && [[ -f "${REPO_MARITIMES_BACKUP}" ]] && [[ -s "${REPO_MARITIMES_BACKUP}" ]]; then
+ local RESOLVED_MARITIMES_BACKUP=""
+ if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_MARITIMES_BACKUP" 2> /dev/null; then
   __logi "Comparing maritime IDs with backup..."
-  if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${REPO_MARITIMES_BACKUP}" "maritimes"; then
+  if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${RESOLVED_MARITIMES_BACKUP}" "maritimes"; then
    __logi "Maritime IDs match backup, importing from backup..."
    # Import backup directly
    if declare -f __processBoundary > /dev/null 2>&1; then
-    if __processBoundary "${REPO_MARITIMES_BACKUP}" "countries"; then
+    if __processBoundary "${RESOLVED_MARITIMES_BACKUP}" "countries"; then
      __logi "Successfully imported maritime boundaries from backup"
      __log_finish
      return 0
@@ -1150,14 +1221,17 @@ function __processMaritimes_impl {
      __logw "Failed to import from backup, falling back to Overpass download"
     fi
    else
-    # Fallback: use ogr2ogr directly
-    __logd "Importing backup using ogr2ogr..."
-    if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${REPO_MARITIMES_BACKUP}" \
-     -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-     -lco GEOMETRY_NAME=geom -lco FID=country_id \
-     -dialect SQLite \
-     -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM $(basename "${REPO_MARITIMES_BACKUP}" .geojson)" \
-     --config PG_USE_COPY YES 2> /dev/null; then
+   # Fallback: use ogr2ogr directly
+   __logd "Importing backup using ogr2ogr..."
+   local BACKUP_BASENAME
+   BACKUP_BASENAME="$(basename "${REPO_MARITIMES_BACKUP}" .geojson.gz)"
+   BACKUP_BASENAME="$(basename "${BACKUP_BASENAME}" .geojson)"
+   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
+    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+    -lco GEOMETRY_NAME=geom -lco FID=country_id \
+    -dialect SQLite \
+    -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${BACKUP_BASENAME}" \
+    --config PG_USE_COPY YES 2> /dev/null; then
      __logi "Successfully imported maritime boundaries from backup"
      __log_finish
      return 0
