@@ -1260,7 +1260,23 @@ function __checkPrereqsCommands {
  ## Database existence
  __logd "Checking if database '${DBNAME}' exists."
  # shellcheck disable=SC2154
- if ! psql -lqt | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
+ # Export PGHOST/PGPORT if DB_HOST/DB_PORT are set (for Docker support)
+ # If not set, psql will use peer authentication (socket Unix)
+ if [[ -n "${DB_HOST:-}" ]]; then
+  export PGHOST="${DB_HOST}"
+ else
+  unset PGHOST
+ fi
+ if [[ -n "${DB_PORT:-}" ]]; then
+  export PGPORT="${DB_PORT}"
+ else
+  unset PGPORT
+ fi
+ if [[ -n "${DB_USER:-}" ]]; then
+  export PGUSER="${DB_USER}"
+ fi
+
+ if ! psql -lqt 2> /dev/null | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
   __loge "ERROR: Database '${DBNAME}' does not exist."
   __loge "To create the database, run the following commands:"
   __loge "  createdb ${DBNAME}"
@@ -1271,6 +1287,7 @@ function __checkPrereqsCommands {
  ## Database connectivity with specified user
  __logd "Checking database connectivity with user '${DB_USER}'."
  # shellcheck disable=SC2154
+ # PGHOST/PGPORT/PGUSER already exported above
  if ! psql -U "${DB_USER}" -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}' with user '${DB_USER}'."
   __loge "PostgreSQL authentication failed. Possible solutions:"
@@ -1288,8 +1305,9 @@ function __checkPrereqsCommands {
  ## PostGIS
  __logd "Checking PostGIS."
  # shellcheck disable=SC2154
+ # PGHOST/PGPORT/PGUSER already exported above
  psql -U "${DB_USER}" -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
- SELECT /* Notes-base */ PostGIS_version();
+SELECT /* Notes-base */ PostGIS_version();
 EOF
  RET=${?}
  if [[ "${RET}" -ne 0 ]]; then
@@ -1300,6 +1318,7 @@ EOF
  ## btree gist
  # shellcheck disable=SC2154
  __logd "Checking btree gist."
+ # PGHOST/PGPORT/PGUSER already exported above
  RESULT=$(psql -U "${DB_USER}" -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
  if [[ "${RESULT}" -ne 1 ]]; then
   __loge "ERROR: btree_gist extension is missing in database '${DBNAME}'."
