@@ -9,9 +9,10 @@
 --   COUNT(*) of invalidated notes (notes that don't belong to assigned country)
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-27
+-- Version: 2025-11-28
 --
 -- Note: Optimized to remove unnecessary self-join. Direct UPDATE with JOIN to countries.
+-- Fixed: Ensure both geometries have SRID 4326 to avoid mixed SRID errors.
 
 DO $$
 DECLARE
@@ -19,13 +20,17 @@ DECLARE
 BEGIN
   -- Update notes that don't belong to assigned country
   -- Optimized: Direct UPDATE without self-join
+  -- Fixed: Use ST_SetSRID on c.geom to ensure SRID 4326
   UPDATE notes /* Notes-integrity check parallel */
   SET id_country = NULL
   FROM countries c
   WHERE notes.id_country = c.country_id
     AND notes.id_country IS NOT NULL
     AND ${SUB_START} <= notes.note_id AND notes.note_id < ${SUB_END}
-    AND NOT ST_Contains(c.geom, ST_SetSRID(ST_Point(notes.longitude, notes.latitude), 4326));
+    AND NOT ST_Contains(
+      ST_SetSRID(c.geom, 4326),
+      ST_SetSRID(ST_Point(notes.longitude, notes.latitude), 4326)
+    );
   
   -- Get count of affected rows
   GET DIAGNOSTICS invalidated_count = ROW_COUNT;
