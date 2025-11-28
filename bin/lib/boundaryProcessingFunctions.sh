@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-27
-VERSION="2025-11-27"
+# Version: 2025-11-28
+VERSION="2025-11-28"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -679,9 +679,9 @@ function __processBoundary_impl {
   if [[ "${HAS_COLLECT}" == "t" ]]; then
    __logw "ST_Collect works but not ST_Union - using ST_Collect as alternative"
    if [[ "${ID}" -eq 16239 ]]; then
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
    else
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_makeValid(geometry)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
    fi
 
    if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
@@ -700,7 +700,7 @@ function __processBoundary_impl {
 
    if [[ "${HAS_BUFFER}" == "t" ]]; then
     __logw "Buffer strategy works - applying buffered geometries"
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)) FROM import GROUP BY 1;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
 
     if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
      __loge "Buffer strategy failed"
@@ -761,10 +761,10 @@ function __processBoundary_impl {
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   __logd "Preparing to insert boundary ${ID} with ST_Buffer processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
  else
   __logd "Preparing to insert boundary ${ID} with standard processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
  fi
 
  __logd "Executing insert operation for boundary ${ID} (country: ${NAME})"
@@ -1014,9 +1014,25 @@ function __processCountries_impl {
       -lco GEOMETRY_NAME=geom -lco FID=country_id \
       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
       # Filter and insert only countries that exist in Overpass
-      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+      # Use UPSERT to handle conflicts if boundary already exists
+      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom; DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
        rm -f "${OGR_ERROR}"
        __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
+       # Verify that all existing countries were imported successfully
+       # Remove imported IDs from missing list to prevent duplicate processing
+       if [[ -f "${MISSING_IDS_FILE:-}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
+        local TEMP_MISSING
+        TEMP_MISSING=$(mktemp)
+        # Remove existing IDs from missing list
+        comm -23 <(sort "${MISSING_IDS_FILE}") <(sort "${EXISTING_IDS_FILE}") > "${TEMP_MISSING}" 2>/dev/null || true
+        if [[ -s "${TEMP_MISSING}" ]]; then
+         mv "${TEMP_MISSING}" "${MISSING_IDS_FILE}"
+        else
+         rm -f "${TEMP_MISSING}"
+         # No missing IDs remaining, unset the file to skip download
+         unset MISSING_IDS_FILE
+        fi
+       fi
       else
        __logw "Failed to filter and insert from backup, will download all from Overpass"
        psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
@@ -1319,7 +1335,8 @@ function __processMaritimes_impl {
       -lco GEOMETRY_NAME=geom -lco FID=country_id \
       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
       # Filter and insert only maritimes that exist in Overpass
-      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+      # Use UPSERT to handle conflicts if boundary already exists
+      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom; DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
        __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
        rm -f "${OGR_ERROR}"
       else
