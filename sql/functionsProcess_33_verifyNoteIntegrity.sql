@@ -33,13 +33,14 @@ WITH notes_to_verify AS (
     AND ${SUB_START} <= n.note_id AND n.note_id < ${SUB_END}
 ),
 -- Fast path: Check if assigned country still contains the point (uses primary key)
+-- Ensure geometry has correct SRID before comparison
 assigned_country_check AS (
   SELECT ntv.note_id,
          ntv.id_country AS current_country,
          ntv.longitude,
          ntv.latitude,
          CASE
-           WHEN ST_Contains(c.geom, ST_SetSRID(ST_Point(ntv.longitude, ntv.latitude), 4326))
+           WHEN ST_Contains(ST_SetSRID(c.geom, 4326), ST_SetSRID(ST_Point(ntv.longitude, ntv.latitude), 4326))
            THEN ntv.id_country
            ELSE NULL
          END AS verified_country
@@ -62,6 +63,7 @@ unmatched_notes AS (
 ),
 -- Slow path: Use LATERAL JOIN to force spatial index usage for unmatched notes
 -- LATERAL JOIN ensures PostgreSQL uses the spatial index efficiently
+-- Ensure geometry has correct SRID before comparison
 spatial_verified AS (
   SELECT un.note_id,
          un.current_country,
@@ -70,7 +72,7 @@ spatial_verified AS (
   LEFT JOIN LATERAL (
     SELECT c.country_id
     FROM countries c
-    WHERE ST_Contains(c.geom, ST_SetSRID(ST_Point(un.longitude, un.latitude), 4326))
+    WHERE ST_Contains(ST_SetSRID(c.geom, 4326), ST_SetSRID(ST_Point(un.longitude, un.latitude), 4326))
     LIMIT 1
   ) c ON true
 ),
