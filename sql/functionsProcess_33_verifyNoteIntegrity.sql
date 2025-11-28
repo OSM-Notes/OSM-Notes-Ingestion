@@ -12,7 +12,7 @@
 -- Version: 2025-11-28
 --
 -- Note: Optimized to remove unnecessary self-join. Direct UPDATE with JOIN to countries.
--- All geometries in countries table have SRID 4326, so no SRID normalization needed.
+-- Fixed: Normalize SRID - production has SRID 0, need to set to 4326 for ST_Contains.
 
 DO $$
 DECLARE
@@ -20,7 +20,7 @@ DECLARE
 BEGIN
   -- Update notes that don't belong to assigned country
   -- Optimized: Direct UPDATE without self-join
-  -- All countries.geom have SRID 4326, so use directly without SRID checks
+  -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
   -- Only process notes with valid coordinates (longitude and latitude not NULL)
   UPDATE notes /* Notes-integrity check parallel */
   SET id_country = NULL
@@ -31,7 +31,7 @@ BEGIN
     AND notes.latitude IS NOT NULL
     AND ${SUB_START} <= notes.note_id AND notes.note_id < ${SUB_END}
     AND NOT ST_Contains(
-      c.geom,
+      ST_SetSRID(c.geom, 4326),
       ST_SetSRID(ST_Point(notes.longitude, notes.latitude), 4326)
     );
   

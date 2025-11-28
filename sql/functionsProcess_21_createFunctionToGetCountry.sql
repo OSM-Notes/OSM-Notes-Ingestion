@@ -38,10 +38,10 @@ AS $func$
   WHERE note_id = id_note;
 
   -- OPTIMIZATION: Check if note STILL belongs to current country
-  -- All countries.geom have SRID 4326, so use directly without SRID checks
+  -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
   IF m_current_country IS NOT NULL AND m_current_country > 0 THEN
     SELECT ST_Contains(
-      geom,
+      ST_SetSRID(geom, 4326),
       ST_SetSRID(ST_Point(lon, lat), 4326)
     ) INTO m_contains
     FROM countries
@@ -223,9 +223,9 @@ AS $func$
       ST_SetSRID(ST_Point(lon, lat), 4326)
     ) THEN
       -- Only execute expensive ST_Contains if point is within bounding box
-      -- All countries.geom have SRID 4326, so use directly without SRID checks
+      -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
       m_contains := ST_Contains(
-        m_record.geom,
+        ST_SetSRID(m_record.geom, 4326),
         ST_SetSRID(ST_Point(lon, lat), 4326)
       );
       IF (m_contains) THEN

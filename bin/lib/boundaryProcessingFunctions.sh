@@ -1015,7 +1015,8 @@ function __processCountries_impl {
       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
       # Filter and insert only countries that exist in Overpass
       # Use UPSERT to handle conflicts if boundary already exists
-      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom; DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+      # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
+      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
        rm -f "${OGR_ERROR}"
        __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
        # Verify that all existing countries were imported successfully
@@ -1336,7 +1337,8 @@ function __processMaritimes_impl {
       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
       # Filter and insert only maritimes that exist in Overpass
       # Use UPSERT to handle conflicts if boundary already exists
-      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom; DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+      # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
+      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
        __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
        rm -f "${OGR_ERROR}"
       else
