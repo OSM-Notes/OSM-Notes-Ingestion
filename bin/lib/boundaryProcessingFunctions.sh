@@ -966,19 +966,14 @@ function __processCountries_impl {
   if __compareIdsWithBackup "${COUNTRIES_BOUNDARY_IDS_FILE}" "${RESOLVED_BACKUP}" "countries"; then
    __logi "Country IDs match backup, importing from backup..."
    # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
+   # Note: Import without -sql to let ogr2ogr handle column mapping automatically
+   # The GeoJSON already has the correct columns: country_id, country_name, country_name_es, country_name_en, geometry
    __logd "Importing backup using ogr2ogr..."
-   # Get the layer name from the GeoJSON file (usually "OGRGeoJSON" for GeoJSON files)
-   local LAYER_NAME
-   LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
-   __logd "Detected layer name: ${LAYER_NAME}"
-   # Capture error output for debugging
    local OGR_ERROR
    OGR_ERROR=$(mktemp)
    if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
     -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
-    -dialect SQLite \
-    -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME}" \
     --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
     __logi "Successfully imported countries from backup"
     rm -f "${OGR_ERROR}"
@@ -1008,22 +1003,29 @@ function __processCountries_impl {
     local IDS_LIST
     IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
     if [[ -n "${IDS_LIST}" ]]; then
-     # Import filtered backup using ogr2ogr with WHERE clause
-     local LAYER_NAME
-     LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
-     __logd "Detected layer name: ${LAYER_NAME}"
+     # Import filtered backup using ogr2ogr
+     # Note: We need to filter by country_id, but ogr2ogr doesn't support WHERE directly
+     # So we'll import to a temp table first, then filter and insert
      local OGR_ERROR
      OGR_ERROR=$(mktemp)
+     local TEMP_TABLE="countries_backup_import"
      if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-      -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+      -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
       -lco GEOMETRY_NAME=geom -lco FID=country_id \
-      -dialect SQLite \
-      -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME} WHERE country_id IN (${IDS_LIST})" \
       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-      rm -f "${OGR_ERROR}"
-      __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
+      # Filter and insert only countries that exist in Overpass
+      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+       rm -f "${OGR_ERROR}"
+       __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
+      else
+       __logw "Failed to filter and insert from backup, will download all from Overpass"
+       psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+       __logd "SQL error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+       rm -f "${OGR_ERROR}"
+       unset MISSING_IDS_FILE
+      fi
      else
-      __logw "Failed to import filtered backup, will download all from Overpass"
+      __logw "Failed to import backup, will download all from Overpass"
       __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
       rm -f "${OGR_ERROR}"
       unset MISSING_IDS_FILE
@@ -1210,17 +1212,13 @@ function __processMaritimes_impl {
  if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
   # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
+  # Note: Import without -sql to let ogr2ogr handle column mapping automatically
   __logd "Importing backup using ogr2ogr..."
-  local LAYER_NAME
-  LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
-  __logd "Detected layer name: ${LAYER_NAME}"
   local OGR_ERROR
   OGR_ERROR=$(mktemp)
   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
    -lco GEOMETRY_NAME=geom -lco FID=country_id \
-   -dialect SQLite \
-   -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME}" \
    --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
    __logi "Successfully imported maritime boundaries from backup"
    rm -f "${OGR_ERROR}"
@@ -1277,27 +1275,23 @@ function __processMaritimes_impl {
   if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${RESOLVED_MARITIMES_BACKUP}" "maritimes"; then
    __logi "Maritime IDs match backup, importing from backup..."
    # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
+   # Note: Import without -sql to let ogr2ogr handle column mapping automatically
    __logd "Importing backup using ogr2ogr..."
-     local LAYER_NAME
-     LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_MARITIMES_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
-     __logd "Detected layer name: ${LAYER_NAME}"
-     local OGR_ERROR
-     OGR_ERROR=$(mktemp)
-     if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
-      -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-      -lco GEOMETRY_NAME=geom -lco FID=country_id \
-      -dialect SQLite \
-      -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME}" \
-      --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-      __logi "Successfully imported maritime boundaries from backup"
-      rm -f "${OGR_ERROR}"
-      __log_finish
-      return 0
-     else
-      __logw "Failed to import from backup, falling back to Overpass download"
-      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
-      rm -f "${OGR_ERROR}"
-     fi
+   local OGR_ERROR
+   OGR_ERROR=$(mktemp)
+   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
+    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+    -lco GEOMETRY_NAME=geom -lco FID=country_id \
+    --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+    __logi "Successfully imported maritime boundaries from backup"
+    rm -f "${OGR_ERROR}"
+    __log_finish
+    return 0
+   else
+    __logw "Failed to import from backup, falling back to Overpass download"
+    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+    rm -f "${OGR_ERROR}"
+   fi
   else
    __logi "Maritime IDs differ from backup, will import backup and download only missing maritimes..."
    # Get missing IDs file path (created by __compareIdsWithBackup)
@@ -1316,21 +1310,27 @@ function __processMaritimes_impl {
     local IDS_LIST
     IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
     if [[ -n "${IDS_LIST}" ]]; then
-     local LAYER_NAME
-     LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_MARITIMES_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
-     __logd "Detected layer name: ${LAYER_NAME}"
+     # Import to temp table first, then filter and insert
      local OGR_ERROR
      OGR_ERROR=$(mktemp)
+     local TEMP_TABLE="maritimes_backup_import"
      if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
-      -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+      -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
       -lco GEOMETRY_NAME=geom -lco FID=country_id \
-      -dialect SQLite \
-      -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME} WHERE country_id IN (${IDS_LIST})" \
       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-      __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
-      rm -f "${OGR_ERROR}"
+      # Filter and insert only maritimes that exist in Overpass
+      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+       __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
+       rm -f "${OGR_ERROR}"
+      else
+       __logw "Failed to filter and insert from backup, will download all from Overpass"
+       psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+       __logd "SQL error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+       rm -f "${OGR_ERROR}"
+       unset MISSING_IDS_FILE
+      fi
      else
-      __logw "Failed to import filtered backup, will download all from Overpass"
+      __logw "Failed to import backup, will download all from Overpass"
       __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
       rm -f "${OGR_ERROR}"
       unset MISSING_IDS_FILE

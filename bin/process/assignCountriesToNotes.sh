@@ -31,16 +31,20 @@ fi
 
 # Load properties
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh" ]]; then
+ # shellcheck disable=SC1091
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 fi
 
 # Load logger
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh" ]]; then
+ # shellcheck disable=SC1091
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/bash_logger.sh"
 fi
 
 # Load common functions (contains __getLocationNotes)
-if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/functionsProcess.sh" ]]; then
+# Note: functionsProcess.sh must be loaded after properties.sh
+if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]]; then
+ # shellcheck disable=SC1091
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 fi
 
@@ -59,8 +63,11 @@ if [[ -z "${LOG_FILENAME:-}" ]]; then
  declare LOG_FILENAME
  LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
  readonly LOG_FILENAME
- # Start logger
- __set_log_file
+fi
+
+# Start logger with LOG_FILENAME
+if [[ -n "${LOG_FILENAME:-}" ]]; then
+ __set_log_file "${LOG_FILENAME}"
 fi
 
 ###############################################################################
@@ -106,13 +113,20 @@ main() {
 
  # Check if get_country function exists
  local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country';" 2> /dev/null || echo "0")
+ FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
- if [[ "${FUNCTION_EXISTS}" -eq 0 ]]; then
-  __loge "ERROR: Function get_country not found"
-  exit 1
+ if [[ "${FUNCTION_EXISTS:-0}" -eq "0" ]]; then
+  __logw "get_country function not found, creating it..."
+  if declare -f __createFunctionToGetCountry > /dev/null 2>&1; then
+   __createFunctionToGetCountry
+   __logi "get_country function created successfully"
+  else
+   __loge "ERROR: Function get_country not found and cannot create it (__createFunctionToGetCountry not available)"
+   exit 1
+  fi
+ else
+  __logi "Function get_country verified"
  fi
- __logi "Function get_country verified"
 
  # Execute the location assignment
  __logi "Starting location assignment (parallel processing)..."
