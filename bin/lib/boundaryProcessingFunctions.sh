@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
-VERSION="2025-01-23"
+# Version: 2025-11-27
+VERSION="2025-11-27"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -807,24 +807,24 @@ function __compareIdsWithBackup {
   return 1
  fi
 
- # Extract IDs from Overpass file (skip header, sort)
+ # Extract IDs from Overpass file (skip header, sort lexicographically for comm)
  local OVERPASS_IDS_SORTED
  OVERPASS_IDS_SORTED="${TMP_DIR}/overpass_ids_sorted.txt"
- tail -n +2 "${OVERPASS_IDS_FILE}" 2> /dev/null | sort -n > "${OVERPASS_IDS_SORTED}" || true
+ tail -n +2 "${OVERPASS_IDS_FILE}" 2> /dev/null | sort > "${OVERPASS_IDS_SORTED}" || true
 
- # Extract IDs from backup GeoJSON (use resolved file)
+ # Extract IDs from backup GeoJSON (use resolved file, sort lexicographically for comm)
  local BACKUP_IDS_SORTED
  BACKUP_IDS_SORTED="${TMP_DIR}/backup_ids_sorted.txt"
  if command -v jq > /dev/null 2>&1; then
   jq -r '.features[].properties.country_id' "${RESOLVED_BACKUP}" 2> /dev/null \
-   | sort -n > "${BACKUP_IDS_SORTED}" || true
+   | sort > "${BACKUP_IDS_SORTED}" || true
  else
   # Fallback: use ogrinfo
   ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null \
-   | grep -E '^country_id \(' | awk '{print $3}' | sort -n > "${BACKUP_IDS_SORTED}" || true
+   | grep -E '^country_id \(' | awk '{print $3}' | sort > "${BACKUP_IDS_SORTED}" || true
  fi
 
- # Compare counts
+ # Compare counts (for logging only)
  local OVERPASS_COUNT
  OVERPASS_COUNT=$(wc -l < "${OVERPASS_IDS_SORTED}" 2> /dev/null | tr -d ' ' || echo "0")
  local BACKUP_COUNT
@@ -839,20 +839,33 @@ function __compareIdsWithBackup {
   return 1
  fi
 
- if [[ "${OVERPASS_COUNT}" -ne "${BACKUP_COUNT}" ]]; then
-  __logi "ID counts differ (Overpass: ${OVERPASS_COUNT}, Backup: ${BACKUP_COUNT}), download needed"
+ # Check if all Overpass IDs are present in backup
+ # This allows using backup even if it has more countries than Overpass
+ # Store missing IDs file path in a known location for caller to use
+ MISSING_IDS_FILE="${TMP_DIR}/missing_${TYPE}_ids.txt"
+ comm -23 "${OVERPASS_IDS_SORTED}" "${BACKUP_IDS_SORTED}" 2> /dev/null > "${MISSING_IDS_FILE}" || true
+ local MISSING_IDS
+ MISSING_IDS=$(wc -l < "${MISSING_IDS_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
+
+ # Also create file with IDs that exist in both (for filtering backup import)
+ local EXISTING_IDS_FILE="${TMP_DIR}/existing_${TYPE}_ids.txt"
+ comm -12 "${OVERPASS_IDS_SORTED}" "${BACKUP_IDS_SORTED}" 2> /dev/null > "${EXISTING_IDS_FILE}" || true
+ export EXISTING_IDS_FILE
+
+ if [[ "${MISSING_IDS}" -gt 0 ]]; then
+  __logi "Some Overpass IDs are missing from backup (${MISSING_IDS} missing), will download only missing ones"
+  # Export missing IDs file path for use by caller
+  export MISSING_IDS_FILE
   __log_finish
   return 1
  fi
 
- # Compare IDs if counts match
- if ! diff -q "${OVERPASS_IDS_SORTED}" "${BACKUP_IDS_SORTED}" > /dev/null 2>&1; then
-  __logi "ID lists differ, download needed"
-  __log_finish
-  return 1
+ # All Overpass IDs are in backup - can use backup
+ if [[ "${OVERPASS_COUNT}" -eq "${BACKUP_COUNT}" ]]; then
+  __logi "All Overpass IDs match backup exactly (${OVERPASS_COUNT} countries), can use backup file"
+ else
+  __logi "All Overpass IDs present in backup (Overpass: ${OVERPASS_COUNT}, Backup: ${BACKUP_COUNT}), can use backup file"
  fi
-
- __logi "IDs match backup, can use backup file"
  __log_finish
  return 0
 }
@@ -952,36 +965,94 @@ function __processCountries_impl {
   __logi "Comparing country IDs with backup..."
   if __compareIdsWithBackup "${COUNTRIES_BOUNDARY_IDS_FILE}" "${RESOLVED_BACKUP}" "countries"; then
    __logi "Country IDs match backup, importing from backup..."
-   # Import backup directly
-   if declare -f __processBoundary > /dev/null 2>&1; then
-    if __processBoundary "${RESOLVED_BACKUP}" "countries"; then
-     __logi "Successfully imported countries from backup"
-     __log_finish
-     return 0
-    else
-     __logw "Failed to import from backup, falling back to Overpass download"
-    fi
+   # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
+   __logd "Importing backup using ogr2ogr..."
+   # Get the layer name from the GeoJSON file (usually "OGRGeoJSON" for GeoJSON files)
+   local LAYER_NAME
+   LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
+   __logd "Detected layer name: ${LAYER_NAME}"
+   # Capture error output for debugging
+   local OGR_ERROR
+   OGR_ERROR=$(mktemp)
+   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
+    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+    -lco GEOMETRY_NAME=geom -lco FID=country_id \
+    -dialect SQLite \
+    -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME}" \
+    --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+    __logi "Successfully imported countries from backup"
+    rm -f "${OGR_ERROR}"
+    __log_finish
+    return 0
    else
-    # Fallback: use ogr2ogr directly
-    __logd "Importing backup using ogr2ogr..."
-    local BACKUP_BASENAME
-    BACKUP_BASENAME="$(basename "${REPO_COUNTRIES_BACKUP}" .geojson.gz)"
-    BACKUP_BASENAME="$(basename "${BACKUP_BASENAME}" .geojson)"
-    if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-     -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-     -lco GEOMETRY_NAME=geom -lco FID=country_id \
-     -dialect SQLite \
-     -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${BACKUP_BASENAME}" \
-     --config PG_USE_COPY YES 2> /dev/null; then
-     __logi "Successfully imported countries from backup"
-     __log_finish
-     return 0
-    else
-     __logw "Failed to import from backup, falling back to Overpass download"
-    fi
+    __logw "Failed to import from backup, falling back to Overpass download"
+    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+    rm -f "${OGR_ERROR}"
    fi
   else
-   __logi "Country IDs differ from backup, processing from Overpass..."
+   __logi "Country IDs differ from backup, will import backup and download only missing countries..."
+   # Get missing IDs file path (created by __compareIdsWithBackup)
+   local MISSING_IDS_FILE="${TMP_DIR}/missing_countries_ids.txt"
+   local EXISTING_IDS_FILE="${TMP_DIR}/existing_countries_ids.txt"
+   
+   # Import backup first, but filter to only include countries that exist in Overpass
+   local EXISTING_COUNT=0
+   if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
+    EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
+   fi
+   
+   if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
+    __logi "Filtering backup to import only ${EXISTING_COUNT} countries that exist in Overpass..."
+    # Create WHERE clause for ogr2ogr to filter by country_id
+    # Convert IDs file to comma-separated list for SQL IN clause
+    local IDS_LIST
+    IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
+    if [[ -n "${IDS_LIST}" ]]; then
+     # Import filtered backup using ogr2ogr with WHERE clause
+     local LAYER_NAME
+     LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
+     __logd "Detected layer name: ${LAYER_NAME}"
+     local OGR_ERROR
+     OGR_ERROR=$(mktemp)
+     if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
+      -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+      -lco GEOMETRY_NAME=geom -lco FID=country_id \
+      -dialect SQLite \
+      -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME} WHERE country_id IN (${IDS_LIST})" \
+      --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+      rm -f "${OGR_ERROR}"
+      __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
+     else
+      __logw "Failed to import filtered backup, will download all from Overpass"
+      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+      rm -f "${OGR_ERROR}"
+      unset MISSING_IDS_FILE
+     fi
+    else
+     __logw "Could not create ID list for filtering, will download all from Overpass"
+     unset MISSING_IDS_FILE
+    fi
+   else
+    __logw "No existing countries found in backup, will download all from Overpass"
+    unset MISSING_IDS_FILE
+   fi
+   
+   # Skip the original import logic since we already imported filtered backup above
+   # If import failed, MISSING_IDS_FILE was unset and we'll download all from Overpass
+   
+   # If we have missing IDs file, filter COUNTRIES_BOUNDARY_IDS_FILE to only include missing ones
+   if [[ -n "${MISSING_IDS_FILE:-}" ]] && [[ -f "${MISSING_IDS_FILE}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
+    local MISSING_COUNT
+    MISSING_COUNT=$(wc -l < "${MISSING_IDS_FILE}" | tr -d ' ' || echo "0")
+    if [[ "${MISSING_COUNT}" -gt 0 ]]; then
+     __logi "Filtering to download only ${MISSING_COUNT} missing countries..."
+     cp "${MISSING_IDS_FILE}" "${COUNTRIES_BOUNDARY_IDS_FILE}"
+    else
+     __logi "No missing countries to download, all are in backup"
+     __log_finish
+     return 0
+    fi
+   fi
   fi
  fi
 
@@ -1138,33 +1209,27 @@ function __processMaritimes_impl {
  local RESOLVED_BACKUP=""
  if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
-  # Import backup directly using __processBoundary (if available) or ogr2ogr
-  if declare -f __processBoundary > /dev/null 2>&1; then
-   if __processBoundary "${RESOLVED_BACKUP}" "countries"; then
-    __logi "Successfully imported maritime boundaries from backup"
-    __log_finish
-    return 0
-   else
-    __logw "Failed to import from backup, falling back to Overpass download"
-   fi
+  # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
+  __logd "Importing backup using ogr2ogr..."
+  local LAYER_NAME
+  LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
+  __logd "Detected layer name: ${LAYER_NAME}"
+  local OGR_ERROR
+  OGR_ERROR=$(mktemp)
+  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
+   -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+   -lco GEOMETRY_NAME=geom -lco FID=country_id \
+   -dialect SQLite \
+   -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME}" \
+   --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+   __logi "Successfully imported maritime boundaries from backup"
+   rm -f "${OGR_ERROR}"
+   __log_finish
+   return 0
   else
-   # Fallback: use ogr2ogr directly
-   __logd "Importing backup using ogr2ogr..."
-   local BACKUP_BASENAME
-   BACKUP_BASENAME="$(basename "${REPO_MARITIMES_BACKUP}" .geojson.gz)"
-   BACKUP_BASENAME="$(basename "${BACKUP_BASENAME}" .geojson)"
-   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-    -lco GEOMETRY_NAME=geom -lco FID=country_id \
-    -dialect SQLite \
-    -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${BACKUP_BASENAME}" \
-    --config PG_USE_COPY YES 2> /dev/null; then
-    __logi "Successfully imported maritime boundaries from backup"
-    __log_finish
-    return 0
-   else
-    __logw "Failed to import from backup, falling back to Overpass download"
-   fi
+   __logw "Failed to import from backup, falling back to Overpass download"
+   __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+   rm -f "${OGR_ERROR}"
   fi
  fi
 
@@ -1211,36 +1276,90 @@ function __processMaritimes_impl {
   __logi "Comparing maritime IDs with backup..."
   if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${RESOLVED_MARITIMES_BACKUP}" "maritimes"; then
    __logi "Maritime IDs match backup, importing from backup..."
-   # Import backup directly
-   if declare -f __processBoundary > /dev/null 2>&1; then
-    if __processBoundary "${RESOLVED_MARITIMES_BACKUP}" "countries"; then
-     __logi "Successfully imported maritime boundaries from backup"
-     __log_finish
-     return 0
+   # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
+   __logd "Importing backup using ogr2ogr..."
+     local LAYER_NAME
+     LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_MARITIMES_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
+     __logd "Detected layer name: ${LAYER_NAME}"
+     local OGR_ERROR
+     OGR_ERROR=$(mktemp)
+     if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
+      -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+      -lco GEOMETRY_NAME=geom -lco FID=country_id \
+      -dialect SQLite \
+      -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME}" \
+      --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+      __logi "Successfully imported maritime boundaries from backup"
+      rm -f "${OGR_ERROR}"
+      __log_finish
+      return 0
+     else
+      __logw "Failed to import from backup, falling back to Overpass download"
+      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+      rm -f "${OGR_ERROR}"
+     fi
+  else
+   __logi "Maritime IDs differ from backup, will import backup and download only missing maritimes..."
+   # Get missing IDs file path (created by __compareIdsWithBackup)
+   local MISSING_IDS_FILE="${TMP_DIR}/missing_maritimes_ids.txt"
+   local EXISTING_IDS_FILE="${TMP_DIR}/existing_maritimes_ids.txt"
+   
+   # Import backup first, but filter to only include maritimes that exist in Overpass
+   local EXISTING_COUNT=0
+   if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
+    EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
+   fi
+   
+   if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
+    __logi "Filtering backup to import only ${EXISTING_COUNT} maritime boundaries that exist in Overpass..."
+    # Create WHERE clause for ogr2ogr to filter by country_id
+    local IDS_LIST
+    IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
+    if [[ -n "${IDS_LIST}" ]]; then
+     local LAYER_NAME
+     LAYER_NAME=$(ogrinfo -al -so "${RESOLVED_MARITIMES_BACKUP}" 2> /dev/null | grep -E "^Layer name:" | head -1 | awk '{print $3}' || echo "OGRGeoJSON")
+     __logd "Detected layer name: ${LAYER_NAME}"
+     local OGR_ERROR
+     OGR_ERROR=$(mktemp)
+     if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
+      -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+      -lco GEOMETRY_NAME=geom -lco FID=country_id \
+      -dialect SQLite \
+      -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${LAYER_NAME} WHERE country_id IN (${IDS_LIST})" \
+      --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+      __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
+      rm -f "${OGR_ERROR}"
+     else
+      __logw "Failed to import filtered backup, will download all from Overpass"
+      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+      rm -f "${OGR_ERROR}"
+      unset MISSING_IDS_FILE
+     fi
     else
-     __logw "Failed to import from backup, falling back to Overpass download"
+     __logw "Could not create ID list for filtering, will download all from Overpass"
+     unset MISSING_IDS_FILE
     fi
    else
-   # Fallback: use ogr2ogr directly
-   __logd "Importing backup using ogr2ogr..."
-   local BACKUP_BASENAME
-   BACKUP_BASENAME="$(basename "${REPO_MARITIMES_BACKUP}" .geojson.gz)"
-   BACKUP_BASENAME="$(basename "${BACKUP_BASENAME}" .geojson)"
-   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
-    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-    -lco GEOMETRY_NAME=geom -lco FID=country_id \
-    -dialect SQLite \
-    -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM ${BACKUP_BASENAME}" \
-    --config PG_USE_COPY YES 2> /dev/null; then
-     __logi "Successfully imported maritime boundaries from backup"
+    __logw "No existing maritime boundaries found in backup, will download all from Overpass"
+    unset MISSING_IDS_FILE
+   fi
+   
+   # Skip the original import logic since we already imported filtered backup above
+   # If import failed, MISSING_IDS_FILE was unset and we'll download all from Overpass
+   
+   # If we have missing IDs file, filter MARITIME_BOUNDARY_IDS_FILE to only include missing ones
+   if [[ -n "${MISSING_IDS_FILE:-}" ]] && [[ -f "${MISSING_IDS_FILE}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
+    local MISSING_COUNT
+    MISSING_COUNT=$(wc -l < "${MISSING_IDS_FILE}" | tr -d ' ' || echo "0")
+    if [[ "${MISSING_COUNT}" -gt 0 ]]; then
+     __logi "Filtering to download only ${MISSING_COUNT} missing maritime boundaries..."
+     cp "${MISSING_IDS_FILE}" "${MARITIME_BOUNDARY_IDS_FILE}"
+    else
+     __logi "No missing maritime boundaries to download, all are in backup"
      __log_finish
      return 0
-    else
-     __logw "Failed to import from backup, falling back to Overpass download"
     fi
    fi
-  else
-   __logi "Maritime IDs differ from backup, processing from Overpass..."
   fi
  fi
 
