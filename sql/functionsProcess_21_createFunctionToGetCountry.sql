@@ -22,6 +22,7 @@
   id_note INTEGER
 ) RETURNS INTEGER
 LANGUAGE plpgsql
+SET search_path = public
 AS $func$
  DECLARE
   m_id_country INTEGER;
