@@ -9,11 +9,12 @@
 --   COUNT(*) of invalidated notes (notes that don't belong to assigned country)
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-27
+-- Version: 2025-11-28
 --
--- Optimization: Uses JOIN with assigned country first (fast), then spatial index
--- only for notes that don't match. This avoids loading all geometries and reduces
--- execution time from ~4 minutes to ~5-10 seconds per 20k notes.
+-- Optimization: Uses JOIN with assigned country first (fast), then LATERAL JOIN
+-- with spatial index for unmatched notes. This forces PostgreSQL to use the spatial
+-- index efficiently and avoids loading all geometries. Reduces execution time from
+-- ~4 minutes to ~5-10 seconds per 20k notes.
 
 BEGIN;
 
@@ -59,18 +60,19 @@ unmatched_notes AS (
   FROM assigned_country_check acc
   WHERE acc.verified_country IS NULL
 ),
--- Slow path: Use spatial index only for unmatched notes
+-- Slow path: Use LATERAL JOIN to force spatial index usage for unmatched notes
+-- LATERAL JOIN ensures PostgreSQL uses the spatial index efficiently
 spatial_verified AS (
   SELECT un.note_id,
          un.current_country,
-         COALESCE(
-           (SELECT c.country_id
-            FROM countries c
-            WHERE ST_Contains(c.geom, ST_SetSRID(ST_Point(un.longitude, un.latitude), 4326))
-            LIMIT 1),
-           -1
-         ) AS verified_country
+         COALESCE(c.country_id, -1) AS verified_country
   FROM unmatched_notes un
+  LEFT JOIN LATERAL (
+    SELECT c.country_id
+    FROM countries c
+    WHERE ST_Contains(c.geom, ST_SetSRID(ST_Point(un.longitude, un.latitude), 4326))
+    LIMIT 1
+  ) c ON true
 ),
 -- Combine matched and spatial-verified notes
 verified AS (
