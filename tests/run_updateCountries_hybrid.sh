@@ -201,6 +201,56 @@ migrate_database_schema() {
   fi
 }
 
+# Function to modify Germany geometry for hybrid testing
+# This ensures both validation cases are tested (optimized path and full search)
+modify_germany_for_hybrid_test() {
+  # Load DBNAME from properties file if not already loaded
+  if [[ -z "${DBNAME:-}" ]]; then
+    # shellcheck disable=SC1091
+    source "${PROJECT_ROOT}/etc/properties.sh"
+  fi
+  
+  log_info "Modifying Germany geometry for hybrid test (to test both validation cases)..."
+
+  local psql_cmd="psql"
+  if [[ -n "${DB_HOST:-}" ]]; then
+    psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
+  fi
+
+  local modify_script="${PROJECT_ROOT}/sql/analysis/modify_germany_for_hybrid_test.sql"
+  
+  if [[ ! -f "${modify_script}" ]]; then
+    log_warning "Germany modification script not found: ${modify_script}"
+    return 0
+  fi
+
+  # Check if Germany exists and has notes before modifying
+  local germany_count
+  germany_count=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries WHERE country_id = 51477;" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+  
+  if [[ "${germany_count:-0}" -eq 0 ]]; then
+    log_info "Germany not found in database, skipping geometry modification"
+    return 0
+  fi
+
+  # Check if there are notes assigned to Germany
+  local notes_count
+  notes_count=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE id_country = 51477;" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+  
+  if [[ "${notes_count:-0}" -eq 0 ]]; then
+    log_info "No notes assigned to Germany yet, will modify after notes are assigned"
+    return 0
+  fi
+
+  # Execute modification script
+  if ${psql_cmd} -d "${DBNAME}" -f "${modify_script}" > /dev/null 2>&1; then
+    log_success "Germany geometry modified for hybrid test"
+    log_info "This ensures both validation cases are tested (optimized path and full search)"
+  else
+    log_warning "Germany geometry modification had warnings (this is OK if no notes in Germany)"
+  fi
+}
+
 # Function to cleanup lock files
 cleanup_lock_files() {
   log_info "Cleaning up lock files and failed execution markers..."
@@ -742,6 +792,10 @@ main() {
     exit_code=$?
     exit ${exit_code}
   fi
+
+  # Modify Germany geometry for hybrid testing after countries are loaded
+  # This ensures both validation cases are tested when verifying note integrity
+  modify_germany_for_hybrid_test
 
   # Wait a moment between executions
   sleep 2
