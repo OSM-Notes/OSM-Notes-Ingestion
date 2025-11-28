@@ -94,3 +94,16 @@ prod/
 # Only compressed .geojson.gz files are tracked in the repository
 data/countries.geojson
 data/maritimes.geojson
+
+# Node.js dependencies
+node_modules/
+
+# Test output failure logs
+test_output_failures/
+
+# Output directories and files
+output/
+output_*.log
+
+# Properties file with local configuration (should not be shared)
+etc/properties.sh_local

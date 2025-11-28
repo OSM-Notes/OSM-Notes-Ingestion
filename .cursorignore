@@ -1,6 +1,123 @@
-# Test files that should not be considered as part of the code analysis.
-# (Files have been removed as they were redundant)
+# Cursorignore - Archivos que la IA no debe considerar en el análisis
+# Version: 2025-11-27
+#
+# Este archivo especifica qué archivos y directorios deben ser ignorados
+# cuando Cursor (o cualquier asistente de IA) analiza el repositorio.
+# Esto reduce el consumo de tokens al excluir archivos grandes o innecesarios.
 
-# Complete directory for test and mock commands.
-# (Directory has been removed as it was redundant) 
+# =====================================================
+# Archivos de Datos Grandes (para reducir tokens)
+# =====================================================
 
+# Archivos GeoJSON grandes (backups comprimidos)
+data/*.geojson.gz
+data/noteLocation.csv.zip
+
+# Archivos GeoJSON sin comprimir (versiones de desarrollo)
+data/countries.geojson
+data/maritimes.geojson
+
+# =====================================================
+# Fixtures de Pruebas Grandes (solo se usan en tests)
+# =====================================================
+
+# Archivos de fixtures muy grandes (>5MB) que consumen muchos tokens
+tests/fixtures/command/extra/60189.json
+tests/fixtures/command/extra/148838.json
+tests/fixtures/command/extra/51477.json
+tests/fixtures/command/extra/OSM-notes-API.xml
+tests/fixtures/command/extra/59470.json
+tests/fixtures/command/extra/2202162.json
+tests/fixtures/command/extra/120027.json
+tests/fixtures/command/extra/1803010.json
+
+# =====================================================
+# Archivos Generados y Temporales
+# =====================================================
+
+# Archivos de log (no contienen código)
+*.log
+postgresql-*.log
+updateCountries.log
+output*.log
+
+# Archivos de salida
+output/
+output_*.log
+
+# Archivos de planet descargados
+planet-notes*.bz2
+*.osn.bz2
+
+# Directorios de salida de tests
+test_output_failures/
+tests/output/
+tests/results/
+tests/tmp/
+tests/docker/test_output/
+tests/docker/logs/
+
+# =====================================================
+# Dependencias y Build Artifacts
+# =====================================================
+
+# Dependencias de Node.js
+node_modules/
+
+# Reportes de cobertura
+coverage/
+test_coverage/
+advanced_reports/
+kcov/
+
+# Archivos de benchmark
+.benchmarks/
+
+# =====================================================
+# Archivos de Configuración Local
+# =====================================================
+
+# Configuración local que no debe compartirse
+etc/properties.sh_local
+
+# Archivos del IDE
+.vscode/
+.idea/
+
+# =====================================================
+# Archivos Temporales y de Recuperación
+# =====================================================
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de recuperación XML
+tests/**/*.corrupted.*
+tests/**/*.recovery
+tests/**/corrupted_xml_backup/
+tests/**/backup/
+
+# Archivos mock generados
+tests/**/mock_*.csv
+tests/**/mock_*.xml
+tests/**/mock_*.txt
+tests/**/mock_*.log
+
+# =====================================================
+# Archivos de Base de Datos
+# =====================================================
+
+*.db
+*.sqlite
+
+# =====================================================
+# Notas
+# =====================================================
+# Los archivos grandes de fixtures de pruebas se mantienen en el repositorio
+# para las pruebas, pero no necesitan ser analizados por la IA durante el
+# desarrollo normal. Si necesitas analizar estos archivos específicamente,
+# puedes excluirlos temporalmente de este archivo.
+#
+# Los archivos de datos grandes (geojson.gz) se mantienen como backups pero
+# no necesitan ser analizados frecuentemente por la IA.
