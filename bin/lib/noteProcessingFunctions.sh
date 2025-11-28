@@ -2,9 +2,9 @@
 
 # Note Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-25
+# Version: 2025-11-27
 
-VERSION="2025-11-25"
+VERSION="2025-11-27"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -270,46 +270,52 @@ function __getLocationNotes_impl {
     while true; do
      local RANGE_START RANGE_END
      # Atomically read and remove first line from queue file
-     local TEMP_RANGE_FILE
-     TEMP_RANGE_FILE=$(mktemp)
-     (
-      exec {LOCK_FD}> "${QUEUE_LOCK_FILE}"
-      if ! flock -x "${LOCK_FD}"; then
-       __loge "Thread ${THREAD_ID}: unable to acquire queue lock"
-       exit 1
-      fi
-      # Read first line from queue file
-      if ! IFS=' ' read -r RANGE_START RANGE_END < "${QUEUE_FILE}"; then
-       # No more lines in queue
-       exit 1
-      fi
-      # Remove the first line from queue file atomically
-      # Use tail to skip first line and write to temp file, then move
-      local TEMP_QUEUE
-      TEMP_QUEUE=$(mktemp)
-      tail -n +2 "${QUEUE_FILE}" > "${TEMP_QUEUE}" 2>/dev/null || true
-      mv "${TEMP_QUEUE}" "${QUEUE_FILE}" 2>/dev/null || true
-      # Output the range for this thread
-      echo "${RANGE_START} ${RANGE_END}"
-     ) > "${TEMP_RANGE_FILE}" 2>&1
-     local LOCK_EXIT=$?
-     if [[ ${LOCK_EXIT} -ne 0 ]]; then
-      # No more ranges or lock failed
-      rm -f "${TEMP_RANGE_FILE}" 2>/dev/null || true
+     # Use a lock file descriptor that persists for the entire operation
+     exec {QUEUE_LOCK_FD}> "${QUEUE_LOCK_FILE}"
+     if ! flock -x "${QUEUE_LOCK_FD}"; then
+      __loge "Thread ${THREAD_ID}: unable to acquire queue lock"
+      exec {QUEUE_LOCK_FD}>&-
       break
      fi
-     # Read the range from temp file
-     if ! IFS=' ' read -r RANGE_START RANGE_END < "${TEMP_RANGE_FILE}" 2>/dev/null; then
-      rm -f "${TEMP_RANGE_FILE}" 2>/dev/null || true
+     
+     # Read first line from queue file (with lock held)
+     if ! IFS=' ' read -r RANGE_START RANGE_END < "${QUEUE_FILE}"; then
+      # No more lines in queue
+      __logd "Thread ${THREAD_ID}: queue empty, exiting"
+      flock -u "${QUEUE_LOCK_FD}"
+      exec {QUEUE_LOCK_FD}>&-
       break
      fi
-     rm -f "${TEMP_RANGE_FILE}" 2>/dev/null || true
+     
+     # Remove the first line from queue file atomically (with lock held)
+     # Use tail to skip first line and write to temp file, then move
+     local TEMP_QUEUE
+     TEMP_QUEUE=$(mktemp)
+     if ! tail -n +2 "${QUEUE_FILE}" > "${TEMP_QUEUE}" 2>/dev/null; then
+      __logw "Thread ${THREAD_ID}: failed to create temp queue file"
+      rm -f "${TEMP_QUEUE}" 2>/dev/null || true
+      flock -u "${QUEUE_LOCK_FD}"
+      exec {QUEUE_LOCK_FD}>&-
+      break
+     fi
+     if ! mv "${TEMP_QUEUE}" "${QUEUE_FILE}" 2>/dev/null; then
+      __logw "Thread ${THREAD_ID}: failed to update queue file"
+      rm -f "${TEMP_QUEUE}" 2>/dev/null || true
+      flock -u "${QUEUE_LOCK_FD}"
+      exec {QUEUE_LOCK_FD}>&-
+      break
+     fi
+     
+     # Release lock after successfully reading and removing from queue
+     flock -u "${QUEUE_LOCK_FD}"
+     exec {QUEUE_LOCK_FD}>&-
 
      if [[ -z "${RANGE_START:-}" ]] || [[ -z "${RANGE_END:-}" ]]; then
+      __logw "Thread ${THREAD_ID}: invalid range read (START=${RANGE_START:-empty}, END=${RANGE_END:-empty})"
       break
      fi
 
-     __logd "Thread ${THREAD_ID}: verifying ${RANGE_START}-${RANGE_END}"
+     __logd "Thread ${THREAD_ID}: acquired range ${RANGE_START}-${RANGE_END} from queue"
      local -i RANGE_TOTAL=0
      local -i SUB_START=${RANGE_START}
      local -i RANGE_LIMIT=${RANGE_END}
