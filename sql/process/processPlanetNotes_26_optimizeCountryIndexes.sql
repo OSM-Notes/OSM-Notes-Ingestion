@@ -24,12 +24,13 @@ CREATE INDEX IF NOT EXISTS countries_bbox_gist ON countries
 COMMENT ON INDEX countries_bbox_gist IS
   'Spatial index on bounding boxes for faster ST_Intersects queries with points';
 
--- Alternative: Create expression index using box2d (smaller, faster)
--- This is more efficient than full geometry bounding box
+-- Alternative: Create expression index using ST_Envelope (bounding box as geometry)
+-- This is more efficient than full geometry and works with GIST
+-- ST_Envelope returns the bounding box as a polygon geometry
 CREATE INDEX IF NOT EXISTS countries_bbox_box2d ON countries
-  USING GIST (box2d(geom));
+  USING GIST (ST_Envelope(geom));
 COMMENT ON INDEX countries_bbox_box2d IS
-  'Spatial index on bounding boxes using box2d for faster ST_Intersects queries';
+  'Spatial index on bounding boxes using ST_Envelope for faster ST_Intersects queries';
 
 -- Update table statistics to help query planner
 ANALYZE countries;

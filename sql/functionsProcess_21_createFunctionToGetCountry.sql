@@ -70,7 +70,7 @@ AS $func$
         (geom IS NOT NULL AND ST_Contains(geom, ST_SetSRID(ST_Point(lon, lat), 4326)))
         OR
         (point_coords IS NOT NULL AND ST_DWithin(
-          point_coords,
+          ST_SetSRID(ST_MakePoint(point_coords[0], point_coords[1]), 4326),
           ST_SetSRID(ST_Point(lon, lat), 4326),
           0.001 -- ~100 meters tolerance for special points
         ))
@@ -227,14 +227,14 @@ AS $func$
   -- OPTIMIZATION: Use direct SQL query instead of loop for better PostgreSQL optimization
   -- This allows PostgreSQL to optimize the entire query and use spatial indexes efficiently
   -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
-  -- OPTIMIZATION: Use box2d(geom) for faster bounding box intersection (uses index)
+  -- OPTIMIZATION: Use ST_Envelope(geom) for faster bounding box intersection (uses index)
   SELECT country_id INTO m_id_country
   FROM countries
   WHERE country_id != COALESCE(m_current_country, -1)
-    -- First filter by bounding box (fast - uses box2d index if available)
-    -- box2d(geom) && box2d(point) is more efficient than ST_Intersects with ST_MakeEnvelope
-    -- Convert point to box2d for comparison
-    AND box2d(geom) && ST_MakeEnvelope(lon, lat, lon, lat, 4326)::box2d
+    -- First filter by bounding box (fast - uses countries_bbox_box2d or countries_bbox_gist index)
+    -- ST_Envelope(geom) && point is more efficient than ST_Intersects with ST_MakeEnvelope
+    -- Uses the optimized index created by processPlanetNotes_26_optimizeCountryIndexes.sql
+    AND ST_Envelope(geom) && ST_SetSRID(ST_Point(lon, lat), 4326)
     -- Then check exact containment (expensive, but only for filtered countries)
     AND ST_Contains(
       ST_SetSRID(geom, 4326),
@@ -280,7 +280,8 @@ AS $func$
     END NULLS LAST
   LIMIT 1;
 
-  RETURN m_id_country;
+  -- Return -1 if no country found (NULL means not found)
+  RETURN COALESCE(m_id_country, -1);
  END
 $func$
 ;
