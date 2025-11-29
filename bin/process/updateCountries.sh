@@ -243,6 +243,15 @@ function __createCountryTables {
  __log_start
  __logi "Creating country and maritime tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
+ 
+ # Create international waters table (for optimization)
+ __logi "Creating international waters table..."
+ if [[ -f "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS:-}" ]]; then
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS}" 2>&1 || __logw "Warning: Failed to create international waters table (may not exist yet)"
+ else
+  __logw "Warning: International waters table script not found, skipping"
+ fi
+ 
  __log_finish
 }
 
@@ -284,6 +293,18 @@ function __maintainCountriesTable {
   __logi "Table statistics updated successfully"
  else
   __logw "ANALYZE failed, but continuing..."
+ fi
+
+ # Create optimized indexes for bounding box queries
+ __logi "Creating optimized spatial indexes for bounding boxes..."
+ if [[ -f "${POSTGRES_26_OPTIMIZE_COUNTRY_INDEXES:-}" ]]; then
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_OPTIMIZE_COUNTRY_INDEXES}" 2>&1; then
+   __logi "Optimized spatial indexes created successfully"
+  else
+   __logw "Warning: Failed to create optimized indexes (may already exist)"
+  fi
+ else
+  __logw "Warning: Optimized indexes script not found, skipping"
  fi
 
  # Show final index size

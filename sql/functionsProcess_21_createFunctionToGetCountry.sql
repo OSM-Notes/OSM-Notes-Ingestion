@@ -22,7 +22,7 @@
   id_note INTEGER
 ) RETURNS INTEGER
 LANGUAGE plpgsql
-SET search_path = public
+SET search_path TO public
 AS $func$
  DECLARE
   m_id_country INTEGER;
@@ -55,6 +55,29 @@ AS $func$
 
     -- Note changed country - continue searching
     m_area := 'Country changed';
+  END IF;
+
+  -- OPTIMIZATION: Check international waters before searching all countries
+  -- This avoids expensive country searches for known international waters
+  -- Only check if table exists (for backward compatibility)
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_name = 'international_waters'
+  ) THEN
+    IF EXISTS (
+      SELECT 1 FROM international_waters
+      WHERE (
+        (geom IS NOT NULL AND ST_Contains(geom, ST_SetSRID(ST_Point(lon, lat), 4326)))
+        OR
+        (point_coords IS NOT NULL AND ST_DWithin(
+          point_coords,
+          ST_SetSRID(ST_Point(lon, lat), 4326),
+          0.001 -- ~100 meters tolerance for special points
+        ))
+      )
+    ) THEN
+      RETURN -1; -- Known international waters
+    END IF;
   END IF;
 
   -- Determine the geographic zone using 2D grid (lon AND lat)
@@ -204,18 +227,14 @@ AS $func$
   -- OPTIMIZATION: Use direct SQL query instead of loop for better PostgreSQL optimization
   -- This allows PostgreSQL to optimize the entire query and use spatial indexes efficiently
   -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
+  -- OPTIMIZATION: Use box2d(geom) for faster bounding box intersection (uses index)
   SELECT country_id INTO m_id_country
   FROM countries
   WHERE country_id != COALESCE(m_current_country, -1)
-    -- First filter by bounding box (fast - uses spatial index)
-    AND ST_Intersects(
-      ST_MakeEnvelope(
-        ST_XMin(geom), ST_YMin(geom),
-        ST_XMax(geom), ST_YMax(geom),
-        4326
-      ),
-      ST_SetSRID(ST_Point(lon, lat), 4326)
-    )
+    -- First filter by bounding box (fast - uses box2d index if available)
+    -- box2d(geom) && box2d(point) is more efficient than ST_Intersects with ST_MakeEnvelope
+    -- Convert point to box2d for comparison
+    AND box2d(geom) && ST_MakeEnvelope(lon, lat, lon, lat, 4326)::box2d
     -- Then check exact containment (expensive, but only for filtered countries)
     AND ST_Contains(
       ST_SetSRID(geom, 4326),
