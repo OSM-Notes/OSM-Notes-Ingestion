@@ -289,6 +289,7 @@ is_geoserver_configured() {
  local HTTP_CODE
  local WORKSPACE_EXISTS=false
  local DATASTORE_EXISTS=false
+ local LAYER_EXISTS=false
  
  # Check if workspace exists (verify HTTP status code is 200)
  HTTP_CODE=$(curl -s -o "${TEMP_FILE}" -w "%{http_code}" --connect-timeout 10 --max-time 30 \
@@ -316,10 +317,27 @@ is_geoserver_configured() {
   fi
  fi
  
+ # Check if at least one of the expected layers exists
+ # This ensures we only consider it "configured" if the layers actually exist
+ if [[ "${WORKSPACE_EXISTS}" == "true" ]] && [[ "${DATASTORE_EXISTS}" == "true" ]]; then
+  local LAYERS=("open_notes" "closed_notes" "countries" "disputed_unclaimed_areas")
+  for LAYER_NAME in "${LAYERS[@]}"; do
+   local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
+   HTTP_CODE=$(curl -s -o "${TEMP_FILE}" -w "%{http_code}" --connect-timeout 10 --max-time 30 \
+    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+    "${LAYER_URL}" 2> /dev/null)
+   
+   if [[ "${HTTP_CODE}" == "200" ]] && [[ -s "${TEMP_FILE}" ]] && grep -q "\"name\".*\"${LAYER_NAME}\"" "${TEMP_FILE}" 2> /dev/null; then
+    LAYER_EXISTS=true
+    break
+   fi
+  done
+ fi
+ 
  rm -f "${TEMP_FILE}" 2> /dev/null || true
  
- # Only return true if both workspace and datastore exist
- if [[ "${WORKSPACE_EXISTS}" == "true" ]] && [[ "${DATASTORE_EXISTS}" == "true" ]]; then
+ # Only return true if workspace, datastore, and at least one layer exist
+ if [[ "${WORKSPACE_EXISTS}" == "true" ]] && [[ "${DATASTORE_EXISTS}" == "true" ]] && [[ "${LAYER_EXISTS}" == "true" ]]; then
   return 0
  else
   return 1
@@ -647,22 +665,46 @@ upload_style() {
   return 1
  fi
 
- # Upload SLD file
+ # Check if style already exists
+ local STYLE_CHECK_URL="${GEOSERVER_URL}/rest/styles/${STYLE_NAME}"
+ local TEMP_CHECK_FILE="${TMP_DIR}/style_check_${STYLE_NAME}_$$.tmp"
+ local CHECK_HTTP_CODE
+ CHECK_HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_CHECK_FILE}" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${STYLE_CHECK_URL}" 2> /dev/null | tail -1)
+
  local TEMP_RESPONSE_FILE="${TMP_DIR}/style_response_${STYLE_NAME}_$$.tmp"
  local HTTP_CODE
- HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
-  -X POST \
-  -H "Content-Type: application/vnd.ogc.sld+xml" \
-  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-  -d "@${SLD_FILE}" \
-  "${GEOSERVER_URL}/rest/styles" 2> /dev/null | tail -1)
-
  local RESPONSE_BODY
+
+ # If style exists, update it; otherwise create it
+ if [[ "${CHECK_HTTP_CODE}" == "200" ]]; then
+  # Style exists, update it
+  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
+   -X PUT \
+   -H "Content-Type: application/vnd.ogc.sld+xml" \
+   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+   -d "@${SLD_FILE}" \
+   "${STYLE_CHECK_URL}" 2> /dev/null | tail -1)
+ else
+  # Style doesn't exist, create it
+  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
+   -X POST \
+   -H "Content-Type: application/vnd.ogc.sld+xml" \
+   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+   -d "@${SLD_FILE}" \
+   "${GEOSERVER_URL}/rest/styles" 2> /dev/null | tail -1)
+ fi
+
  RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
 
  local STYLE_UPLOADED=false
  if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
-  print_status "${GREEN}" "✅ Style '${STYLE_NAME}' uploaded"
+  if [[ "${CHECK_HTTP_CODE}" == "200" ]]; then
+   print_status "${GREEN}" "✅ Style '${STYLE_NAME}' updated"
+  else
+   print_status "${GREEN}" "✅ Style '${STYLE_NAME}' uploaded"
+  fi
   STYLE_UPLOADED=true
  elif [[ "${HTTP_CODE}" == "409" ]]; then
   print_status "${YELLOW}" "⚠️  Style '${STYLE_NAME}' already exists"
@@ -671,11 +713,18 @@ upload_style() {
   print_status "${YELLOW}" "⚠️  Style upload failed (HTTP ${HTTP_CODE})"
   if [[ -n "${RESPONSE_BODY}" ]]; then
    print_status "${YELLOW}" "   Error:"
-   echo "${RESPONSE_BODY}" | head -10 | sed 's/^/      /'
+   echo "${RESPONSE_BODY}" | head -20 | sed 's/^/      /'
+  else
+   print_status "${YELLOW}" "   (No error message returned - check GeoServer logs)"
+   print_status "${YELLOW}" "   Common causes:"
+   print_status "${YELLOW}" "   - Invalid SLD format"
+   print_status "${YELLOW}" "   - GeoServer out of memory"
+   print_status "${YELLOW}" "   - File too large"
+   print_status "${YELLOW}" "   - Check GeoServer logs: tail -f /opt/geoserver/logs/geoserver.log"
   fi
  fi
 
- rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
+ rm -f "${TEMP_RESPONSE_FILE}" "${TEMP_CHECK_FILE}" 2> /dev/null || true
 
  if [[ "${STYLE_UPLOADED}" == "true" ]]; then
   return 0
