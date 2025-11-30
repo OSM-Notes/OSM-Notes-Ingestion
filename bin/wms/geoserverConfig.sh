@@ -41,13 +41,15 @@ fi
 # Priority: GEOSERVER_DBUSER > WMS_DBUSER > defaults
 # Note: GeoServer should use the 'geoserver' user with read-only permissions
 #       This user is used to configure GeoServer datastores and verify data access
+#       GeoServer CANNOT use peer authentication, so host/port must be set
 # Default DBNAME is 'notes' to match production, but can be overridden via WMS_DBNAME
 DBNAME="${WMS_DBNAME:-${DBNAME:-notes}}"
 # Use GEOSERVER_DBUSER if set, otherwise WMS_DBUSER, otherwise default to geoserver
 DBUSER="${GEOSERVER_DBUSER:-${WMS_DBUSER:-geoserver}}"
 DBPASSWORD="${WMS_DBPASSWORD:-${DB_PASSWORD:-}}"
-DBHOST="${WMS_DBHOST:-${DB_HOST:-}}"
-DBPORT="${WMS_DBPORT:-${DB_PORT:-}}"
+# GeoServer cannot use peer authentication, so default to localhost:5432 if not set
+DBHOST="${WMS_DBHOST:-${DB_HOST:-localhost}}"
+DBPORT="${WMS_DBPORT:-${DB_PORT:-5432}}"
 
 # GeoServer configuration (from wms.properties.sh)
 # Priority: Environment variables > wms.properties.sh > defaults
@@ -225,41 +227,45 @@ validate_prerequisites() {
  fi
 
  # Test connection and capture error message
-local TEMP_ERROR_FILE="${TMP_DIR}/psql_error_$$.tmp"
-if ! eval "${PSQL_CMD} -c \"SELECT 1;\" > /dev/null 2> \"${TEMP_ERROR_FILE}\""; then
- local ERROR_MSG
- ERROR_MSG=$(cat "${TEMP_ERROR_FILE}" 2> /dev/null | head -1 || echo "Unknown error")
- rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
- 
- print_status "${RED}" "❌ ERROR: Cannot connect to PostgreSQL database '${DBNAME}'"
- if [[ -n "${DBHOST}" ]]; then
-  print_status "${RED}" "   Host: ${DBHOST}"
+ # Note: This validation is optional - GeoServer will validate the connection when creating the datastore
+ # If password is not provided, skip validation (GeoServer may have different credentials)
+ if [[ -n "${DBPASSWORD}" ]]; then
+  local TEMP_ERROR_FILE="${TMP_DIR}/psql_error_$$.tmp"
+  if ! eval "${PSQL_CMD} -c \"SELECT 1;\" > /dev/null 2> \"${TEMP_ERROR_FILE}\""; then
+   local ERROR_MSG
+   ERROR_MSG=$(cat "${TEMP_ERROR_FILE}" 2> /dev/null | head -1 || echo "Unknown error")
+   rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
+   
+   print_status "${YELLOW}" "⚠️  WARNING: Cannot validate PostgreSQL connection to '${DBNAME}'"
+   print_status "${YELLOW}" "   This is not fatal - GeoServer will validate the connection when creating the datastore"
+   if [[ -n "${DBHOST}" ]]; then
+    print_status "${YELLOW}" "   Host: ${DBHOST}"
+   fi
+   if [[ -n "${DBPORT}" ]]; then
+    print_status "${YELLOW}" "   Port: ${DBPORT}"
+   fi
+   if [[ -n "${DBUSER}" ]]; then
+    print_status "${YELLOW}" "   User: ${DBUSER}"
+   fi
+  else
+   print_status "${GREEN}" "✅ PostgreSQL connection validated"
+  fi
+  unset PGPASSWORD 2> /dev/null || true
  else
-  print_status "${YELLOW}" "   Host: localhost (peer authentication)"
+  print_status "${YELLOW}" "⚠️  Skipping PostgreSQL validation (no password provided)"
+  print_status "${YELLOW}" "   GeoServer will validate the connection when creating the datastore"
  fi
- if [[ -n "${DBPORT}" ]]; then
-  print_status "${RED}" "   Port: ${DBPORT}"
- fi
- if [[ -n "${DBUSER}" ]]; then
-  print_status "${RED}" "   User: ${DBUSER}"
- else
-  print_status "${YELLOW}" "   User: $(whoami) (peer authentication - current system user)"
- fi
- print_status "${YELLOW}" "   Error: ${ERROR_MSG}"
- print_status "${YELLOW}" "💡 Troubleshooting:"
- print_status "${YELLOW}" "   1. Verify database exists: psql -l | grep ${DBNAME}"
- print_status "${YELLOW}" "   2. Test connection: psql -d ${DBNAME} -c 'SELECT 1;'"
- print_status "${YELLOW}" "   3. Check PostgreSQL is running: systemctl status postgresql"
- print_status "${YELLOW}" "   4. Verify user permissions in pg_hba.conf"
- exit 1
-fi
-rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
 
- # Check if WMS schema exists
- if ! eval "${PSQL_CMD} -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | grep -q 't'; then
-  print_status "${RED}" "❌ ERROR: WMS schema not found. Please install WMS components first:"
-  print_status "${YELLOW}" "   bin/wms/wmsManager.sh install"
-  exit 1
+ # Check if WMS schema exists (only if we can connect to PostgreSQL)
+ if [[ -n "${DBPASSWORD}" ]]; then
+  if ! eval "${PSQL_CMD} -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | grep -q 't'; then
+   print_status "${RED}" "❌ ERROR: WMS schema not found. Please install WMS components first:"
+   print_status "${YELLOW}" "   bin/wms/wmsManager.sh install"
+   exit 1
+  fi
+ else
+  print_status "${YELLOW}" "⚠️  Skipping WMS schema validation (no password provided)"
+  print_status "${YELLOW}" "   Make sure WMS components are installed: bin/wms/wmsManager.sh install"
  fi
 
  print_status "${GREEN}" "✅ Prerequisites validated"
@@ -322,15 +328,30 @@ create_workspace() {
    }
  }"
 
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/workspace_response_$$.tmp"
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
   -X POST \
   -H "Content-Type: application/json" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -d "${WORKSPACE_DATA}" \
-  "${GEOSERVER_URL}/rest/workspaces" &> /dev/null; then
+  "${GEOSERVER_URL}/rest/workspaces" 2> /dev/null | tail -1)
+
+ local RESPONSE_BODY
+ RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
+
+ if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ Workspace '${GEOSERVER_WORKSPACE}' created"
+ elif [[ "${HTTP_CODE}" == "409" ]]; then
+  print_status "${YELLOW}" "⚠️  Workspace '${GEOSERVER_WORKSPACE}' already exists"
  else
-  print_status "${YELLOW}" "⚠️  Workspace may already exist or creation failed"
+  print_status "${RED}" "❌ ERROR: Failed to create workspace (HTTP ${HTTP_CODE})"
+  if [[ -n "${RESPONSE_BODY}" ]]; then
+   print_status "${YELLOW}" "   Response: ${RESPONSE_BODY}" | head -5
+  fi
  fi
+
+ rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 }
 
 # Function to create namespace
@@ -345,20 +366,42 @@ create_namespace() {
    }
  }"
 
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/namespace_response_$$.tmp"
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
   -X POST \
   -H "Content-Type: application/json" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -d "${NAMESPACE_DATA}" \
-  "${GEOSERVER_URL}/rest/namespaces" &> /dev/null; then
+  "${GEOSERVER_URL}/rest/namespaces" 2> /dev/null | tail -1)
+
+ local RESPONSE_BODY
+ RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
+
+ if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ Namespace '${GEOSERVER_WORKSPACE}' created"
+ elif [[ "${HTTP_CODE}" == "409" ]]; then
+  print_status "${YELLOW}" "⚠️  Namespace '${GEOSERVER_WORKSPACE}' already exists"
  else
-  print_status "${YELLOW}" "⚠️  Namespace may already exist or creation failed"
+  print_status "${RED}" "❌ ERROR: Failed to create namespace (HTTP ${HTTP_CODE})"
+  if [[ -n "${RESPONSE_BODY}" ]]; then
+   print_status "${YELLOW}" "   Response: ${RESPONSE_BODY}" | head -5
+  fi
  fi
+
+ rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 }
 
-# Function to create datastore
+# Function to create or update datastore
 create_datastore() {
- print_status "${BLUE}" "🗄️  Creating GeoServer datastore..."
+ print_status "${BLUE}" "🗄️  Creating/updating GeoServer datastore..."
+
+ # Check if datastore already exists
+ local DATASTORE_CHECK_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
+ local CHECK_RESPONSE
+ CHECK_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${DATASTORE_CHECK_URL}" 2> /dev/null)
+ local CHECK_HTTP_CODE
+ CHECK_HTTP_CODE=$(echo "${CHECK_RESPONSE}" | tail -1)
 
  local DATASTORE_DATA="{
    \"dataStore\": {
@@ -380,18 +423,53 @@ create_datastore() {
    }
  }"
 
- local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores"
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/datastore_response_$$.tmp"
+ local HTTP_CODE
+ local DATASTORE_URL
 
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d "${DATASTORE_DATA}" \
-  "${DATASTORE_URL}" &> /dev/null; then
-  print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' created"
+ if [[ "${CHECK_HTTP_CODE}" == "200" ]]; then
+  # Datastore exists, update it
+  print_status "${BLUE}" "   Datastore exists, updating connection parameters..."
+  DATASTORE_URL="${DATASTORE_CHECK_URL}"
+  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
+   -X PUT \
+   -H "Content-Type: application/json" \
+   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+   -d "${DATASTORE_DATA}" \
+   "${DATASTORE_URL}" 2> /dev/null | tail -1)
  else
-  print_status "${RED}" "❌ ERROR: Failed to create datastore"
+  # Datastore doesn't exist, create it
+  print_status "${BLUE}" "   Creating new datastore..."
+  DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores"
+  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
+   -X POST \
+   -H "Content-Type: application/json" \
+   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+   -d "${DATASTORE_DATA}" \
+   "${DATASTORE_URL}" 2> /dev/null | tail -1)
+ fi
+
+ local RESPONSE_BODY
+ RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
+
+ if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
+  if [[ "${CHECK_HTTP_CODE}" == "200" ]]; then
+   print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' updated"
+  else
+   print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' created"
+  fi
+ elif [[ "${HTTP_CODE}" == "409" ]]; then
+  print_status "${YELLOW}" "⚠️  Datastore '${GEOSERVER_STORE}' already exists"
+ else
+  print_status "${RED}" "❌ ERROR: Failed to create/update datastore (HTTP ${HTTP_CODE})"
+  if [[ -n "${RESPONSE_BODY}" ]]; then
+   print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -10)"
+  fi
+  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
   return 1
  fi
+
+ rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 }
 
 # Function to create feature type
@@ -425,16 +503,33 @@ create_feature_type() {
 
  local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes"
 
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/featuretype_response_$$.tmp"
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
   -X POST \
   -H "Content-Type: application/json" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -d "${FEATURE_TYPE_DATA}" \
-  "${FEATURE_TYPE_URL}" &> /dev/null; then
+  "${FEATURE_TYPE_URL}" 2> /dev/null | tail -1)
+
+ local RESPONSE_BODY
+ RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
+
+ if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ Feature type '${GEOSERVER_LAYER}' created"
+ elif [[ "${HTTP_CODE}" == "409" ]]; then
+  print_status "${YELLOW}" "⚠️  Feature type '${GEOSERVER_LAYER}' already exists"
  else
-  print_status "${RED}" "❌ ERROR: Failed to create feature type"
+  print_status "${RED}" "❌ ERROR: Failed to create feature type (HTTP ${HTTP_CODE})"
+  if [[ -n "${RESPONSE_BODY}" ]]; then
+   print_status "${YELLOW}" "   Response:"
+   echo "${RESPONSE_BODY}" | head -20 | sed 's/^/      /'
+  fi
+  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
   return 1
  fi
+
+ rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 }
 
 # Function to upload style
@@ -449,15 +544,30 @@ upload_style() {
  fi
 
  # Upload SLD file
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/style_response_$$.tmp"
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
   -X POST \
   -H "Content-Type: application/vnd.ogc.sld+xml" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -d "@${SLD_FILE}" \
-  "${GEOSERVER_URL}/rest/styles" &> /dev/null; then
+  "${GEOSERVER_URL}/rest/styles" 2> /dev/null | tail -1)
+
+ local RESPONSE_BODY
+ RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
+
+ if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ Style '${STYLE_NAME}' uploaded"
+ elif [[ "${HTTP_CODE}" == "409" ]]; then
+  print_status "${YELLOW}" "⚠️  Style '${STYLE_NAME}' already exists"
  else
-  print_status "${YELLOW}" "⚠️  Style upload failed or already exists"
+  print_status "${YELLOW}" "⚠️  Style upload failed (HTTP ${HTTP_CODE})"
+  if [[ -n "${RESPONSE_BODY}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
+   print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -5)"
+  fi
  fi
+
+ rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 
  # Assign style to layer
  local LAYER_STYLE_DATA="{

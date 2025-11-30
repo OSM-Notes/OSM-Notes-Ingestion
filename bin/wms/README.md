@@ -321,7 +321,7 @@ If you don't see the objects in the web interface:
    Or set them as environment variables:
    ```bash
    export GEOSERVER_USER=admin
-   export GEOSERVER_PASSWORD=OpenStreetMap
+   export GEOSERVER_PASSWORD=your_password
    ./bin/wms/geoserverConfig.sh status
    ```
 
@@ -349,7 +349,22 @@ If you don't see the objects in the web interface:
 **Common Issues:**
 - **HTTP 401 (Unauthorized)**: Credentials are incorrect. Check `etc/wms.properties.sh` or set environment variables.
 - **HTTP 404 (Not Found)**: GeoServer URL is incorrect. Verify `GEOSERVER_URL` matches your actual GeoServer installation.
-- **Objects not visible**: Installation may have failed silently. Check the output of `./bin/wms/geoserverConfig.sh install` for errors.
+- **HTTP 409 (Conflict)**: Object already exists. This is normal if you're re-running the installation.
+- **HTTP 500 (Internal Server Error)**: GeoServer encountered an error. Check GeoServer logs for details.
+- **Objects not visible**: Installation may have failed silently. The script now shows HTTP codes and error messages for each operation.
+
+**Testing with Public GeoServer URL:**
+
+If your GeoServer is publicly accessible (e.g., `https://geoserver.osm.lat/geoserver`):
+
+```bash
+export GEOSERVER_URL="https://geoserver.osm.lat/geoserver"
+export GEOSERVER_USER="admin"
+export GEOSERVER_PASSWORD="your_password"
+./bin/wms/geoserverConfig.sh install
+```
+
+The script will now show detailed error messages including HTTP status codes and API responses if creation fails.
 
 3. **Verify configuration:**
 
