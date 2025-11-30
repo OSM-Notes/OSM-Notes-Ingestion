@@ -243,7 +243,7 @@ function __createCountryTables {
  __log_start
  __logi "Creating country and maritime tables."
  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
- 
+
  # Create international waters table (for optimization)
  __logi "Creating international waters table..."
  if [[ -f "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS:-}" ]]; then
@@ -251,48 +251,48 @@ function __createCountryTables {
  else
   __logw "Warning: International waters table script not found, skipping"
  fi
- 
+
  __log_finish
 }
 
 # Refreshes the materialized view for disputed and unclaimed areas.
 # This should be called after countries are updated (monthly).
 function __refreshDisputedAreasView {
-  __log_start
-  __logi "Refreshing materialized view for disputed and unclaimed areas..."
+ __log_start
+ __logi "Refreshing materialized view for disputed and unclaimed areas..."
 
-  # Check if materialized view exists
-  local VIEW_EXISTS
-  VIEW_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_matviews WHERE schemaname = 'wms' AND matviewname = 'disputed_and_unclaimed_areas');" 2> /dev/null | tr -d ' ' || echo "f")
+ # Check if materialized view exists
+ local VIEW_EXISTS
+ VIEW_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_matviews WHERE schemaname = 'wms' AND matviewname = 'disputed_and_unclaimed_areas');" 2> /dev/null | tr -d ' ' || echo "f")
 
-  if [[ "${VIEW_EXISTS}" != "t" ]]; then
-    __logw "Materialized view wms.disputed_and_unclaimed_areas does not exist, skipping refresh"
-    __logw "Run sql/wms/prepareDatabase.sql to create it"
-    __log_finish
-    return 0
-  fi
-
-  # Check if refresh SQL file exists
-  local REFRESH_SQL
-  REFRESH_SQL="${SCRIPT_BASE_DIRECTORY}/sql/wms/refreshDisputedAreasView.sql"
-
-  if [[ ! -f "${REFRESH_SQL}" ]]; then
-    __loge "Refresh SQL file not found: ${REFRESH_SQL}"
-    __log_finish
-    return 1
-  fi
-
-  __logi "Executing refresh (this may take several minutes)..."
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REFRESH_SQL}" > /dev/null 2>&1; then
-    __logi "Materialized view refreshed successfully"
-  else
-    __loge "Failed to refresh materialized view"
-    __log_finish
-    return 1
-  fi
-
+ if [[ "${VIEW_EXISTS}" != "t" ]]; then
+  __logw "Materialized view wms.disputed_and_unclaimed_areas does not exist, skipping refresh"
+  __logw "Run sql/wms/prepareDatabase.sql to create it"
   __log_finish
   return 0
+ fi
+
+ # Check if refresh SQL file exists
+ local REFRESH_SQL
+ REFRESH_SQL="${SCRIPT_BASE_DIRECTORY}/sql/wms/refreshDisputedAreasView.sql"
+
+ if [[ ! -f "${REFRESH_SQL}" ]]; then
+  __loge "Refresh SQL file not found: ${REFRESH_SQL}"
+  __log_finish
+  return 1
+ fi
+
+ __logi "Executing refresh (this may take several minutes)..."
+ if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REFRESH_SQL}" > /dev/null 2>&1; then
+  __logi "Materialized view refreshed successfully"
+ else
+  __loge "Failed to refresh materialized view"
+  __log_finish
+  return 1
+ fi
+
+ __log_finish
+ return 0
 }
 
 # Performs maintenance operations on countries table after data is loaded.
@@ -454,9 +454,9 @@ function __verifyAndReloadMissingCountries {
 # Returns 0 if update is needed, 1 if backup matches.
 function __checkBoundariesUpdateNeeded {
  __log_start
- local TYPE="${1}" # "countries" or "maritimes"
+ local TYPE="${1}"                # "countries" or "maritimes"
  local OVERPASS_QUERY_FILE="${2}" # Overpass query file (.op)
- local BACKUP_FILE="${3}" # Backup GeoJSON file
+ local BACKUP_FILE="${3}"         # Backup GeoJSON file
 
  __logd "Checking if ${TYPE} update is needed..."
 
@@ -508,22 +508,22 @@ function __checkBoundariesUpdateNeeded {
  # Add special areas for countries (same as in __processCountries_impl)
  if [[ "${TYPE}" == "countries" ]]; then
   {
-   echo "1703814" # Gaza Strip
-   echo "1803010" # Judea and Samaria
+   echo "1703814"  # Gaza Strip
+   echo "1803010"  # Judea and Samaria
    echo "12931402" # Bhutan - China dispute
-   echo "192797" # Ilemi Triangle
+   echo "192797"   # Ilemi Triangle
    echo "12940096" # Neutral zone Burkina Faso - Benin
-   echo "3335661" # Bir Tawil
-   echo "37848" # Jungholz, Austria
-   echo "3394112" # British Antarctic
-   echo "3394110" # Argentine Antarctic
-   echo "3394115" # Chilean Antarctic
-   echo "3394113" # Ross dependency
-   echo "3394111" # Australian Antarctic
-   echo "3394114" # Adelia Land
-   echo "3245621" # Queen Maud Land
-   echo "2955118" # Peter I Island
-   echo "2186646" # Antarctica continent
+   echo "3335661"  # Bir Tawil
+   echo "37848"    # Jungholz, Austria
+   echo "3394112"  # British Antarctic
+   echo "3394110"  # Argentine Antarctic
+   echo "3394115"  # Chilean Antarctic
+   echo "3394113"  # Ross dependency
+   echo "3394111"  # Australian Antarctic
+   echo "3394114"  # Adelia Land
+   echo "3245621"  # Queen Maud Land
+   echo "2955118"  # Peter I Island
+   echo "2186646"  # Antarctica continent
   } >> "${TMP_IDS_FILE}"
   sort -n "${TMP_IDS_FILE}" > "${TMP_IDS_FILE}.sorted"
   mv "${TMP_IDS_FILE}.sorted" "${TMP_IDS_FILE}"
@@ -778,24 +778,30 @@ EOF
   __logi "Running in update mode - processing existing data only"
   STMT="UPDATE countries SET updated = TRUE"
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
-  
+
   # Check if countries update is needed before processing
   if __checkBoundariesUpdateNeeded "countries" "${OVERPASS_COUNTRIES}" "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson"; then
    __logi "Country boundaries update needed, processing..."
+   # Force download from Overpass to get updated geometries (don't use backup)
+   export FORCE_OVERPASS_DOWNLOAD="true"
    __processCountries
+   unset FORCE_OVERPASS_DOWNLOAD
    __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
   else
    __logi "Country boundaries are up to date, skipping download"
   fi
-  
+
   # Check if maritimes update is needed before processing
   if __checkBoundariesUpdateNeeded "maritimes" "${OVERPASS_MARITIMES}" "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson"; then
    __logi "Maritime boundaries update needed, processing..."
+   # Force download from Overpass to get updated geometries (don't use backup)
+   export FORCE_OVERPASS_DOWNLOAD="true"
    __processMaritimes
+   unset FORCE_OVERPASS_DOWNLOAD
   else
    __logi "Maritime boundaries are up to date, skipping download"
   fi
-  
+
   __maintainCountriesTable
   __refreshDisputedAreasView
   __cleanPartial

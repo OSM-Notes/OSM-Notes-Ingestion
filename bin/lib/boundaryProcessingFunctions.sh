@@ -551,21 +551,34 @@ function __processBoundary_impl {
  # Import with ogr2ogr using retry logic with special handling for Austria
  __logd "Importing boundary ${ID} into database..."
 
- # Always use field selection to avoid row size issues
- # Note: Some boundaries (e.g., Antarctica) may not have admin_level field
- # -skipfailures allows ogr2ogr to continue even if fields are missing
- __logd "Using field-selected import for boundary ${ID} to avoid row size issues"
+ # Import ALL features from GeoJSON but only geometry column
+ # Previous approach imported all fields, causing "row too large" errors
+ # (some GeoJSON have 19+ property fields like alt_name:*, ISO3166-*, etc.)
+ # Using -sql with SELECT geometry only imports all features but avoids
+ # the PostgreSQL row size limit (8160 bytes) by not importing unnecessary fields
+ # -skipfailures allows ogr2ogr to continue even if some features fail
+ __logd "Importing all features from GeoJSON for boundary ${ID} (geometry only)"
 
  local IMPORT_OPERATION
  local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BASHPID}.log"
+ local GEOJSON_BASENAME
+ GEOJSON_BASENAME=$(basename "${GEOJSON_FILE}" .geojson)
+
+ # When using -sql with -dialect SQLite, the table name must be the filename
+ # without extension. Since filenames are numeric IDs, we need to escape them
+ # with double quotes to treat them as identifiers, not numbers.
+ # This selects only the geometry column to avoid importing all property fields
+ # that cause "row too large" errors
  if [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special handling for Austria (ID: 16239)"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+  # Import only geometry to avoid row size limit
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -dialect SQLite -sql \"SELECT geometry FROM \\\"${GEOJSON_BASENAME}\\\"\" ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  else
-  # Standard import with field selection to avoid row size issues
-  __log_field_selected_import "${ID}"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -mapFieldType StringList=String -nlt Geometry -lco GEOMETRY_NAME=geometry -select name,admin_level,type ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+  # Standard import - import ALL features but only geometry column
+  __logd "Importing all features for boundary ${ID} (geometry only)"
+  # Import only geometry to avoid row size limit (8160 bytes)
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -dialect SQLite -sql \"SELECT geometry FROM \\\"${GEOJSON_BASENAME}\\\"\" ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
@@ -960,8 +973,9 @@ function __processCountries_impl {
  } >> "${COUNTRIES_BOUNDARY_IDS_FILE}"
 
  # Compare IDs with backup before processing
+ # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
  local RESOLVED_BACKUP=""
- if [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && __resolve_geojson_file "${REPO_COUNTRIES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
+ if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && __resolve_geojson_file "${REPO_COUNTRIES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Comparing country IDs with backup..."
   if __compareIdsWithBackup "${COUNTRIES_BOUNDARY_IDS_FILE}" "${RESOLVED_BACKUP}" "countries"; then
    __logi "Country IDs match backup, importing from backup..."
@@ -990,70 +1004,76 @@ function __processCountries_impl {
    local MISSING_IDS_FILE="${TMP_DIR}/missing_countries_ids.txt"
    local EXISTING_IDS_FILE="${TMP_DIR}/existing_countries_ids.txt"
 
-   # Import backup first, but filter to only include countries that exist in Overpass
-   local EXISTING_COUNT=0
-   if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
-    EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
-   fi
+   # If FORCE_OVERPASS_DOWNLOAD is set, skip backup import and download all from Overpass
+   if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]]; then
+    __logi "FORCE_OVERPASS_DOWNLOAD is set, skipping backup import to get updated geometries from Overpass"
+    unset MISSING_IDS_FILE
+   else
+    # Import backup first, but filter to only include countries that exist in Overpass
+    local EXISTING_COUNT=0
+    if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
+     EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
+    fi
 
-   if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
-    __logi "Filtering backup to import only ${EXISTING_COUNT} countries that exist in Overpass..."
-    # Create WHERE clause for ogr2ogr to filter by country_id
-    # Convert IDs file to comma-separated list for SQL IN clause
-    local IDS_LIST
-    IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
-    if [[ -n "${IDS_LIST}" ]]; then
-     # Import filtered backup using ogr2ogr
-     # Note: We need to filter by country_id, but ogr2ogr doesn't support WHERE directly
-     # So we'll import to a temp table first, then filter and insert
-     local OGR_ERROR
-     OGR_ERROR=$(mktemp)
-     local TEMP_TABLE="countries_backup_import"
-     if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-      -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-      -lco GEOMETRY_NAME=geom -lco FID=country_id \
-      --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-      # Filter and insert only countries that exist in Overpass
-      # Use UPSERT to handle conflicts if boundary already exists
-      # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
-      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
-       rm -f "${OGR_ERROR}"
-       __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
-       # Verify that all existing countries were imported successfully
-       # Remove imported IDs from missing list to prevent duplicate processing
-       if [[ -f "${MISSING_IDS_FILE:-}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
-        local TEMP_MISSING
-        TEMP_MISSING=$(mktemp)
-        # Remove existing IDs from missing list
-        comm -23 <(sort "${MISSING_IDS_FILE}") <(sort "${EXISTING_IDS_FILE}") > "${TEMP_MISSING}" 2> /dev/null || true
-        if [[ -s "${TEMP_MISSING}" ]]; then
-         mv "${TEMP_MISSING}" "${MISSING_IDS_FILE}"
-        else
-         rm -f "${TEMP_MISSING}"
-         # No missing IDs remaining, unset the file to skip download
-         unset MISSING_IDS_FILE
+    if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
+     __logi "Filtering backup to import only ${EXISTING_COUNT} countries that exist in Overpass..."
+     # Create WHERE clause for ogr2ogr to filter by country_id
+     # Convert IDs file to comma-separated list for SQL IN clause
+     local IDS_LIST
+     IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
+     if [[ -n "${IDS_LIST}" ]]; then
+      # Import filtered backup using ogr2ogr
+      # Note: We need to filter by country_id, but ogr2ogr doesn't support WHERE directly
+      # So we'll import to a temp table first, then filter and insert
+      local OGR_ERROR
+      OGR_ERROR=$(mktemp)
+      local TEMP_TABLE="countries_backup_import"
+      if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
+       -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+       -lco GEOMETRY_NAME=geom -lco FID=country_id \
+       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+       # Filter and insert only countries that exist in Overpass
+       # Use UPSERT to handle conflicts if boundary already exists
+       # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
+       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+        rm -f "${OGR_ERROR}"
+        __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
+        # Verify that all existing countries were imported successfully
+        # Remove imported IDs from missing list to prevent duplicate processing
+        if [[ -f "${MISSING_IDS_FILE:-}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
+         local TEMP_MISSING
+         TEMP_MISSING=$(mktemp)
+         # Remove existing IDs from missing list
+         comm -23 <(sort "${MISSING_IDS_FILE}") <(sort "${EXISTING_IDS_FILE}") > "${TEMP_MISSING}" 2> /dev/null || true
+         if [[ -s "${TEMP_MISSING}" ]]; then
+          mv "${TEMP_MISSING}" "${MISSING_IDS_FILE}"
+         else
+          rm -f "${TEMP_MISSING}"
+          # No missing IDs remaining, unset the file to skip download
+          unset MISSING_IDS_FILE
+         fi
         fi
+       else
+        __logw "Failed to filter and insert from backup, will download all from Overpass"
+        psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+        __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+        rm -f "${OGR_ERROR}"
+        unset MISSING_IDS_FILE
        fi
       else
-       __logw "Failed to filter and insert from backup, will download all from Overpass"
-       psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
-       __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+       __logw "Failed to import backup, will download all from Overpass"
+       __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
        rm -f "${OGR_ERROR}"
        unset MISSING_IDS_FILE
       fi
      else
-      __logw "Failed to import backup, will download all from Overpass"
-      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
-      rm -f "${OGR_ERROR}"
+      __logw "Could not create ID list for filtering, will download all from Overpass"
       unset MISSING_IDS_FILE
      fi
     else
-     __logw "Could not create ID list for filtering, will download all from Overpass"
+     __logw "No existing countries found in backup, will download all from Overpass"
      unset MISSING_IDS_FILE
     fi
-   else
-    __logw "No existing countries found in backup, will download all from Overpass"
-    unset MISSING_IDS_FILE
    fi
 
    # Skip the original import logic since we already imported filtered backup above
@@ -1225,8 +1245,9 @@ function __processMaritimes_impl {
  fi
 
  # Try to use repository backup first (faster, avoids Overpass download)
+ # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
  local RESOLVED_BACKUP=""
- if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
+ if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
   # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
   # Note: Import without -sql to let ogr2ogr handle column mapping automatically
@@ -1249,7 +1270,11 @@ function __processMaritimes_impl {
  fi
 
  # No backup available or backup import failed - proceed with Overpass download
- __logi "No backup found or backup import failed, downloading from Overpass..."
+ if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]]; then
+  __logi "FORCE_OVERPASS_DOWNLOAD is set, downloading from Overpass to get updated geometries..."
+ else
+  __logi "No backup found or backup import failed, downloading from Overpass..."
+ fi
 
  # Check disk space before downloading maritime boundaries
  # Maritime boundaries requirements:
@@ -1286,8 +1311,9 @@ function __processMaritimes_impl {
  mv "${MARITIME_BOUNDARY_IDS_FILE}.tmp" "${MARITIME_BOUNDARY_IDS_FILE}"
 
  # Compare IDs with backup before processing
+ # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
  local RESOLVED_MARITIMES_BACKUP=""
- if [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_MARITIMES_BACKUP" 2> /dev/null; then
+ if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_MARITIMES_BACKUP" 2> /dev/null; then
   __logi "Comparing maritime IDs with backup..."
   if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${RESOLVED_MARITIMES_BACKUP}" "maritimes"; then
    __logi "Maritime IDs match backup, importing from backup..."
@@ -1315,52 +1341,58 @@ function __processMaritimes_impl {
    local MISSING_IDS_FILE="${TMP_DIR}/missing_maritimes_ids.txt"
    local EXISTING_IDS_FILE="${TMP_DIR}/existing_maritimes_ids.txt"
 
-   # Import backup first, but filter to only include maritimes that exist in Overpass
-   local EXISTING_COUNT=0
-   if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
-    EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
-   fi
+   # If FORCE_OVERPASS_DOWNLOAD is set, skip backup import and download all from Overpass
+   if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]]; then
+    __logi "FORCE_OVERPASS_DOWNLOAD is set, skipping backup import to get updated geometries from Overpass"
+    unset MISSING_IDS_FILE
+   else
+    # Import backup first, but filter to only include maritimes that exist in Overpass
+    local EXISTING_COUNT=0
+    if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
+     EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
+    fi
 
-   if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
-    __logi "Filtering backup to import only ${EXISTING_COUNT} maritime boundaries that exist in Overpass..."
-    # Create WHERE clause for ogr2ogr to filter by country_id
-    local IDS_LIST
-    IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
-    if [[ -n "${IDS_LIST}" ]]; then
-     # Import to temp table first, then filter and insert
-     local OGR_ERROR
-     OGR_ERROR=$(mktemp)
-     local TEMP_TABLE="maritimes_backup_import"
-     if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
-      -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-      -lco GEOMETRY_NAME=geom -lco FID=country_id \
-      --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-      # Filter and insert only maritimes that exist in Overpass
-      # Use UPSERT to handle conflicts if boundary already exists
-      # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
-      if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
-       __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
-       rm -f "${OGR_ERROR}"
+    if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
+     __logi "Filtering backup to import only ${EXISTING_COUNT} maritime boundaries that exist in Overpass..."
+     # Create WHERE clause for ogr2ogr to filter by country_id
+     local IDS_LIST
+     IDS_LIST=$(tr '\n' ',' < "${EXISTING_IDS_FILE}" | sed 's/,$//' || echo "")
+     if [[ -n "${IDS_LIST}" ]]; then
+      # Import to temp table first, then filter and insert
+      local OGR_ERROR
+      OGR_ERROR=$(mktemp)
+      local TEMP_TABLE="maritimes_backup_import"
+      if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
+       -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+       -lco GEOMETRY_NAME=geom -lco FID=country_id \
+       --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+       # Filter and insert only maritimes that exist in Overpass
+       # Use UPSERT to handle conflicts if boundary already exists
+       # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
+       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+        __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
+        rm -f "${OGR_ERROR}"
+       else
+        __logw "Failed to filter and insert from backup, will download all from Overpass"
+        psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+        __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+        rm -f "${OGR_ERROR}"
+        unset MISSING_IDS_FILE
+       fi
       else
-       __logw "Failed to filter and insert from backup, will download all from Overpass"
-       psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
-       __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+       __logw "Failed to import backup, will download all from Overpass"
+       __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
        rm -f "${OGR_ERROR}"
        unset MISSING_IDS_FILE
       fi
      else
-      __logw "Failed to import backup, will download all from Overpass"
-      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
-      rm -f "${OGR_ERROR}"
+      __logw "Could not create ID list for filtering, will download all from Overpass"
       unset MISSING_IDS_FILE
      fi
     else
-     __logw "Could not create ID list for filtering, will download all from Overpass"
+     __logw "No existing maritime boundaries found in backup, will download all from Overpass"
      unset MISSING_IDS_FILE
     fi
-   else
-    __logw "No existing maritime boundaries found in backup, will download all from Overpass"
-    unset MISSING_IDS_FILE
    fi
 
    # Skip the original import logic since we already imported filtered backup above
