@@ -28,8 +28,17 @@ fi
 
 # Set database variables with priority: WMS_* > DBNAME/DB_USER (from properties.sh) > TEST_* > default
 # Use same DB connection variables as rest of project for consistency
-WMS_DB_NAME="${WMS_DBNAME:-${DBNAME:-${TEST_DBNAME:-osm_notes}}}"
-WMS_DB_USER="${WMS_DBUSER:-${DB_USER:-${TEST_DBUSER:-}}}"
+# NOTE: wmsManager.sh requires elevated privileges (CREATE, ALTER, etc.)
+#       It should use the system user (notes) or DB_USER, NOT the geoserver user
+#       If WMS_DBUSER is set to 'geoserver', ignore it and use system user (peer auth)
+WMS_DB_NAME="${WMS_DBNAME:-${DBNAME:-${TEST_DBNAME:-notes}}}"
+# For wmsManager.sh, always use system user (peer auth) or DB_USER, never geoserver
+if [[ "${WMS_DBUSER:-}" == "geoserver" ]]; then
+  # Ignore geoserver user for installation - use system user instead
+  WMS_DB_USER="${DB_USER:-${TEST_DBUSER:-}}"
+else
+  WMS_DB_USER="${WMS_DBUSER:-${DB_USER:-${TEST_DBUSER:-}}}"
+fi
 WMS_DB_PASSWORD="${WMS_DBPASSWORD:-${DB_PASSWORD:-${TEST_DBPASSWORD:-}}}"
 WMS_DB_HOST="${WMS_DBHOST:-${DB_HOST:-${TEST_DBHOST:-}}}"
 WMS_DB_PORT="${WMS_DBPORT:-${DB_PORT:-${TEST_DBPORT:-}}}"
@@ -89,8 +98,11 @@ EXAMPLES:
 
 ENVIRONMENT VARIABLES:
   Database connection (uses same variables as rest of project):
-    DBNAME         Database name (from etc/properties.sh, default: osm-notes)
-    DB_USER        Database user (from etc/properties.sh, empty for peer auth)
+  DBNAME         Database name (from etc/properties.sh, default: notes)
+  DB_USER        Database user (from etc/properties.sh, empty for peer auth)
+  
+  Note: wmsManager.sh requires elevated privileges (CREATE, ALTER, etc.)
+        It uses the system user (notes) via peer authentication, NOT geoserver
     DB_PASSWORD    Database password (from etc/properties.sh)
     DB_HOST        Database host (from etc/properties.sh, empty for peer auth)
     DB_PORT        Database port (from etc/properties.sh, empty for default)

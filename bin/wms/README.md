@@ -80,6 +80,29 @@ serve OSM notes as WMS layers.
 - PostgreSQL with PostGIS extension
 - WMS components installed in database
 - curl and jq installed
+- **Database user `geoserver` with read-only permissions** (see Database Permissions below)
+
+**Database Permissions:**
+
+Before running `geoserverConfig.sh`, you must grant read-only permissions to the
+`geoserver` user. This user is used by GeoServer to access WMS data with read-only
+privileges (principle of least privilege):
+
+```bash
+# Execute as database owner (angoca) or postgres superuser
+psql -d notes -f sql/wms/grantGeoserverPermissions.sql
+```
+
+This script will:
+- Create the `geoserver` user if it doesn't exist
+- Grant CONNECT privilege on the `notes` database
+- Grant USAGE on `public` and `wms` schemas
+- Grant SELECT (read-only) on all tables in the `wms` schema
+- Grant SELECT on the `countries` table
+- Set default privileges for future tables in the `wms` schema
+
+**Security Note:** The `geoserver` user has read-only permissions only, which
+is appropriate for WMS data access.
 
 **Usage:**
 
@@ -119,17 +142,33 @@ The script automatically uses WMS properties from `etc/wms.properties.sh`:
 
 ## Complete WMS Setup Workflow
 
-1. **Install WMS database components:**
+1. **Install WMS database components (as user 'notes' with elevated privileges):**
 
    ```bash
+   # wmsManager.sh uses the system user (notes) via peer authentication
+   # This user has privileges to create tables, triggers, etc.
    ./bin/wms/wmsManager.sh install
    ```
 
-2. **Configure GeoServer:**
+2. **Grant read-only permissions to geoserver user:**
 
    ```bash
+   # Execute as database owner (angoca) or postgres superuser
+   # This grants read-only access to the geoserver user
+   psql -d notes -f sql/wms/grantGeoserverPermissions.sql
+   ```
+
+3. **Configure GeoServer (uses 'geoserver' user for datastore):**
+
+   ```bash
+   # geoserverConfig.sh uses the 'geoserver' user to configure GeoServer datastores
+   # This user has read-only permissions (principle of least privilege)
    ./bin/wms/geoserverConfig.sh install
    ```
+
+**User Privileges Summary:**
+- **User 'notes'**: Elevated privileges (CREATE, ALTER, etc.) - used by `wmsManager.sh`
+- **User 'geoserver'**: Read-only permissions (SELECT) - used by `geoserverConfig.sh` and GeoServer
 
 3. **Verify configuration:**
 

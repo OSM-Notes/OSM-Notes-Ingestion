@@ -3,19 +3,25 @@
 # Configuration file for WMS and GeoServer components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-27
+# Version: 2025-11-30
 
 # =============================================================================
 # WMS Database Configuration
 # =============================================================================
 
 # Database connection for WMS components
-# For peer authentication (local connections), leave WMS_DBUSER, WMS_DBHOST, and WMS_DBPORT empty
-WMS_DBNAME="${WMS_DBNAME:-osm_notes}"
-WMS_DBUSER="${WMS_DBUSER:-}"  # Empty for peer authentication (uses current system user)
+# Note: wmsManager.sh uses the system user (notes) with elevated privileges for installation
+#       geoserverConfig.sh uses the geoserver user with read-only permissions
+# For peer authentication (local connections), leave WMS_DBHOST and WMS_DBPORT empty
+WMS_DBNAME="${WMS_DBNAME:-notes}"
+WMS_DBUSER="${WMS_DBUSER:-}"  # Empty for wmsManager.sh (uses system user), set to 'geoserver' for geoserverConfig.sh
 WMS_DBPASSWORD="${WMS_DBPASSWORD:-}"
 WMS_DBHOST="${WMS_DBHOST:-}"  # Empty for local/peer connections
 WMS_DBPORT="${WMS_DBPORT:-}"  # Empty for default port with peer authentication
+
+# GeoServer-specific database user (read-only permissions)
+# This is used by geoserverConfig.sh to configure GeoServer datastores
+GEOSERVER_DBUSER="${GEOSERVER_DBUSER:-geoserver}"  # GeoServer user with read-only permissions
 
 # WMS Schema configuration
 WMS_SCHEMA="${WMS_SCHEMA:-wms}"

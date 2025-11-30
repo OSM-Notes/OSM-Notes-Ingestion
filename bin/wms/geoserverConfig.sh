@@ -38,11 +38,16 @@ fi
 
 # Use WMS properties for configuration
 # Database connection for GeoServer (from WMS properties or main properties)
-DBNAME="${WMS_DBNAME:-${DBNAME:-osm_notes}}"
-DBUSER="${WMS_DBUSER:-${DB_USER:-}}"
+# Priority: GEOSERVER_DBUSER > WMS_DBUSER > defaults
+# Note: GeoServer should use the 'geoserver' user with read-only permissions
+#       This user is used to configure GeoServer datastores and verify data access
+# Default DBNAME is 'notes' to match production, but can be overridden via WMS_DBNAME
+DBNAME="${WMS_DBNAME:-${DBNAME:-notes}}"
+# Use GEOSERVER_DBUSER if set, otherwise WMS_DBUSER, otherwise default to geoserver
+DBUSER="${GEOSERVER_DBUSER:-${WMS_DBUSER:-geoserver}}"
 DBPASSWORD="${WMS_DBPASSWORD:-${DB_PASSWORD:-}}"
 DBHOST="${WMS_DBHOST:-${DB_HOST:-}}"
-DBPORT="${WMS_DBPORT:-${DB_PORT:-5432}}"
+DBPORT="${WMS_DBPORT:-${DB_PORT:-}}"
 
 # GeoServer configuration (from wms.properties.sh)
 # Allow override via environment variables or command line
@@ -180,18 +185,36 @@ validate_prerequisites() {
   unset PGPASSWORD 2> /dev/null || true
  fi
 
- if ! eval "${PSQL_CMD} -c \"SELECT 1;\" &> /dev/null"; then
-  print_status "${RED}" "❌ ERROR: Cannot connect to PostgreSQL database '${DBNAME}'"
-  if [[ -n "${DBHOST}" ]]; then
-   print_status "${RED}" "   Host: ${DBHOST}"
-  fi
-  if [[ -n "${DBUSER}" ]]; then
-   print_status "${RED}" "   User: ${DBUSER}"
-  else
-   print_status "${YELLOW}" "   Using peer authentication (current system user)"
-  fi
-  exit 1
+ # Test connection and capture error message
+local TEMP_ERROR_FILE="${TMP_DIR}/psql_error_$$.tmp"
+if ! eval "${PSQL_CMD} -c \"SELECT 1;\" > /dev/null 2> \"${TEMP_ERROR_FILE}\""; then
+ local ERROR_MSG
+ ERROR_MSG=$(cat "${TEMP_ERROR_FILE}" 2> /dev/null | head -1 || echo "Unknown error")
+ rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
+ 
+ print_status "${RED}" "❌ ERROR: Cannot connect to PostgreSQL database '${DBNAME}'"
+ if [[ -n "${DBHOST}" ]]; then
+  print_status "${RED}" "   Host: ${DBHOST}"
+ else
+  print_status "${YELLOW}" "   Host: localhost (peer authentication)"
  fi
+ if [[ -n "${DBPORT}" ]]; then
+  print_status "${RED}" "   Port: ${DBPORT}"
+ fi
+ if [[ -n "${DBUSER}" ]]; then
+  print_status "${RED}" "   User: ${DBUSER}"
+ else
+  print_status "${YELLOW}" "   User: $(whoami) (peer authentication - current system user)"
+ fi
+ print_status "${YELLOW}" "   Error: ${ERROR_MSG}"
+ print_status "${YELLOW}" "💡 Troubleshooting:"
+ print_status "${YELLOW}" "   1. Verify database exists: psql -l | grep ${DBNAME}"
+ print_status "${YELLOW}" "   2. Test connection: psql -d ${DBNAME} -c 'SELECT 1;'"
+ print_status "${YELLOW}" "   3. Check PostgreSQL is running: systemctl status postgresql"
+ print_status "${YELLOW}" "   4. Verify user permissions in pg_hba.conf"
+ exit 1
+fi
+rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
 
  # Check if WMS schema exists
  if ! eval "${PSQL_CMD} -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | grep -q 't'; then
