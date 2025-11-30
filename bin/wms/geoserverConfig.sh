@@ -569,36 +569,56 @@ upload_style() {
  local RESPONSE_BODY
  RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
 
+ local STYLE_UPLOADED=false
  if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ Style '${STYLE_NAME}' uploaded"
+  STYLE_UPLOADED=true
  elif [[ "${HTTP_CODE}" == "409" ]]; then
   print_status "${YELLOW}" "⚠️  Style '${STYLE_NAME}' already exists"
+  STYLE_UPLOADED=true
  else
   print_status "${YELLOW}" "⚠️  Style upload failed (HTTP ${HTTP_CODE})"
-  if [[ -n "${RESPONSE_BODY}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
-   print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -5)"
+  if [[ -n "${RESPONSE_BODY}" ]]; then
+   print_status "${YELLOW}" "   Error:"
+   echo "${RESPONSE_BODY}" | head -10 | sed 's/^/      /'
   fi
  fi
 
  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 
- # Assign style to layer
- local LAYER_STYLE_DATA="{
-   \"layer\": {
-     \"defaultStyle\": {
-       \"name\": \"${STYLE_NAME}\"
-     }
-   }
- }"
+ # Assign style to layer (only if style was uploaded or already exists)
+ if [[ "${STYLE_UPLOADED}" == "true" ]]; then
+  local LAYER_STYLE_DATA="{
+    \"layer\": {
+      \"defaultStyle\": {
+        \"name\": \"${STYLE_NAME}\"
+      }
+    }
+  }"
 
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-  -X PUT \
-  -H "Content-Type: application/json" \
-  -d "${LAYER_STYLE_DATA}" \
-  "${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}" &> /dev/null; then
-  print_status "${GREEN}" "✅ Style assigned to layer"
+  local TEMP_STYLE_ASSIGN_FILE="${TMP_DIR}/style_assign_response_$$.tmp"
+  local ASSIGN_HTTP_CODE
+  ASSIGN_HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_STYLE_ASSIGN_FILE}" \
+   -X PUT \
+   -H "Content-Type: application/json" \
+   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+   -d "${LAYER_STYLE_DATA}" \
+   "${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}" 2> /dev/null | tail -1)
+
+  if [[ "${ASSIGN_HTTP_CODE}" == "200" ]] || [[ "${ASSIGN_HTTP_CODE}" == "204" ]]; then
+   print_status "${GREEN}" "✅ Style assigned to layer"
+  else
+   print_status "${YELLOW}" "⚠️  Style assignment failed (HTTP ${ASSIGN_HTTP_CODE})"
+   local ASSIGN_RESPONSE
+   ASSIGN_RESPONSE=$(cat "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || echo "")
+   if [[ -n "${ASSIGN_RESPONSE}" ]]; then
+    print_status "${YELLOW}" "   Response:"
+    echo "${ASSIGN_RESPONSE}" | head -5 | sed 's/^/      /'
+   fi
+  fi
+  rm -f "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || true
  else
-  print_status "${YELLOW}" "⚠️  Style assignment failed"
+  print_status "${YELLOW}" "⚠️  Skipping style assignment (style upload failed)"
  fi
 }
 
@@ -625,10 +645,15 @@ install_geoserver_config() {
 
  # Create datastore and feature type
  if create_datastore; then
-  create_feature_type
-  upload_style
-  print_status "${GREEN}" "✅ GeoServer configuration completed successfully"
-  show_configuration_summary
+  if create_feature_type; then
+   upload_style
+   print_status "${GREEN}" "✅ GeoServer configuration completed successfully"
+   show_configuration_summary
+  else
+   print_status "${RED}" "❌ ERROR: Failed to create feature type"
+   print_status "${YELLOW}" "   Configuration is incomplete. Some components may have been created."
+   exit 1
+  fi
  else
   print_status "${RED}" "❌ ERROR: GeoServer configuration failed"
   exit 1
@@ -749,42 +774,58 @@ remove_geoserver_config() {
 
  # Remove layer
  local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${LAYER_URL}" &> /dev/null; then
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${LAYER_URL}" 2> /dev/null)
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
   print_status "${GREEN}" "✅ Layer removed"
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Layer not found (already removed)"
  else
-  print_status "${YELLOW}" "⚠️  Layer removal failed or not found"
+  print_status "${YELLOW}" "⚠️  Layer removal failed (HTTP ${HTTP_CODE})"
  fi
 
  # Remove feature type
  local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes/${GEOSERVER_LAYER}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${FEATURE_TYPE_URL}" &> /dev/null; then
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${FEATURE_TYPE_URL}" 2> /dev/null)
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
   print_status "${GREEN}" "✅ Feature type removed"
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Feature type not found (already removed)"
  else
-  print_status "${YELLOW}" "⚠️  Feature type removal failed or not found"
+  print_status "${YELLOW}" "⚠️  Feature type removal failed (HTTP ${HTTP_CODE})"
  fi
 
  # Remove datastore
  local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${DATASTORE_URL}" &> /dev/null; then
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${DATASTORE_URL}" 2> /dev/null)
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
   print_status "${GREEN}" "✅ Datastore removed"
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Datastore not found (already removed)"
  else
-  print_status "${YELLOW}" "⚠️  Datastore removal failed or not found"
+  print_status "${YELLOW}" "⚠️  Datastore removal failed (HTTP ${HTTP_CODE})"
  fi
 
  # Remove namespace (before workspace, as namespace is linked to workspace)
  local NAMESPACE_URL="${GEOSERVER_URL}/rest/namespaces/${GEOSERVER_WORKSPACE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${NAMESPACE_URL}" &> /dev/null; then
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${NAMESPACE_URL}" 2> /dev/null)
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
   print_status "${GREEN}" "✅ Namespace removed"
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Namespace not found (already removed)"
  else
-  print_status "${YELLOW}" "⚠️  Namespace removal failed or not found"
+  print_status "${YELLOW}" "⚠️  Namespace removal failed (HTTP ${HTTP_CODE})"
  fi
 
  # Remove workspace
  local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${WORKSPACE_URL}" &> /dev/null; then
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${WORKSPACE_URL}" 2> /dev/null)
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
   print_status "${GREEN}" "✅ Workspace removed"
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Workspace not found (already removed)"
  else
-  print_status "${YELLOW}" "⚠️  Workspace removal failed or not found"
+  print_status "${YELLOW}" "⚠️  Workspace removal failed (HTTP ${HTTP_CODE})"
  fi
 
  print_status "${GREEN}" "✅ GeoServer configuration removal completed"
