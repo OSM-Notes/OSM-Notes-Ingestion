@@ -5,7 +5,8 @@
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-11-30
 
--- Check if materialized view exists
+-- Check if materialized view exists before refreshing
+-- If it doesn't exist, the refresh will fail with a clear error message
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -13,8 +14,7 @@ BEGIN
     WHERE schemaname = 'wms'
     AND matviewname = 'disputed_and_unclaimed_areas'
   ) THEN
-    RAISE NOTICE 'Materialized view wms.disputed_and_unclaimed_areas does not exist. Please run sql/wms/prepareDatabase.sql first.';
-    RETURN;
+    RAISE EXCEPTION 'Materialized view wms.disputed_and_unclaimed_areas does not exist. Please run sql/wms/prepareDatabase.sql first.';
   END IF;
 END $$;
 

@@ -3,7 +3,7 @@
 # Manages the installation and deinstallation of WMS components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-11-30
 
 set -euo pipefail
 
@@ -28,14 +28,19 @@ fi
 
 # Set database variables with priority: WMS_* > TEST_* > default
 WMS_DB_NAME="${WMS_DBNAME:-${TEST_DBNAME:-osm_notes}}"
-WMS_DB_USER="${WMS_DBUSER:-${TEST_DBUSER:-postgres}}"
+WMS_DB_USER="${WMS_DBUSER:-${TEST_DBUSER:-}}"
 WMS_DB_PASSWORD="${WMS_DBPASSWORD:-${TEST_DBPASSWORD:-}}"
 WMS_DB_HOST="${WMS_DBHOST:-${TEST_DBHOST:-}}"
 WMS_DB_PORT="${WMS_DBPORT:-${TEST_DBPORT:-}}"
 
 # Export for psql commands
 export WMS_DB_NAME WMS_DB_USER WMS_DB_PASSWORD WMS_DB_HOST WMS_DB_PORT
-export PGPASSWORD="${WMS_DB_PASSWORD}"
+# Only set PGPASSWORD if password is provided (for peer auth, don't set it)
+if [[ -n "${WMS_DB_PASSWORD}" ]]; then
+  export PGPASSWORD="${WMS_DB_PASSWORD}"
+else
+  unset PGPASSWORD 2> /dev/null || true
+fi
 
 # WMS specific variables (using properties)
 WMS_SQL_DIR="${PROJECT_ROOT}/sql/wms"
@@ -82,11 +87,14 @@ EXAMPLES:
   $0 install --dry-run    # Show what would be installed
 
 ENVIRONMENT VARIABLES:
-  DBNAME      Database name (default: osm_notes)
-  DBUSER      Database user (default: postgres)
-  DBPASSWORD  Database password
-  DBHOST      Database host (default: localhost)
-  DBPORT      Database port (default: 5432)
+  WMS_DBNAME      Database name (default: osm_notes)
+  WMS_DBUSER      Database user (empty for peer authentication, uses current system user)
+  WMS_DBPASSWORD  Database password (not needed for peer authentication)
+  WMS_DBHOST      Database host (empty for local/peer connections)
+  WMS_DBPORT      Database port (empty for default port with peer authentication)
+  
+  For peer authentication (local connections), leave WMS_DBUSER, WMS_DBHOST, and
+  WMS_DBPORT empty or unset. The script will use the current system user.
 
 EOF
 }
@@ -115,9 +123,18 @@ validate_prerequisites() {
  fi
 
  # Check database connection and PostGIS
- local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
- if [[ -n "${WMS_DB_HOST}" ]]; then
-  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ # Use peer authentication if no host/user specified, otherwise use explicit user
+ local PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]] || [[ -n "${WMS_DB_USER}" ]]; then
+  # Remote connection or explicit user - need to specify user
+  if [[ -n "${WMS_DB_HOST}" ]]; then
+   PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -d \"${WMS_DB_NAME}\""
+  else
+   PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+  fi
+  if [[ -n "${WMS_DB_USER}" ]]; then
+   PSQL_CMD="${PSQL_CMD} -U \"${WMS_DB_USER}\""
+  fi
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
   PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
@@ -139,9 +156,18 @@ validate_prerequisites() {
 
 # Function to check if WMS is installed
 is_wms_installed() {
- local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
- if [[ -n "${WMS_DB_HOST}" ]]; then
-  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ # Use peer authentication if no host/user specified, otherwise use explicit user
+ local PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]] || [[ -n "${WMS_DB_USER}" ]]; then
+  # Remote connection or explicit user - need to specify user
+  if [[ -n "${WMS_DB_HOST}" ]]; then
+   PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -d \"${WMS_DB_NAME}\""
+  else
+   PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+  fi
+  if [[ -n "${WMS_DB_USER}" ]]; then
+   PSQL_CMD="${PSQL_CMD} -U \"${WMS_DB_USER}\""
+  fi
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
   PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
@@ -181,9 +207,18 @@ install_wms() {
  fi
 
  # Build psql command
- local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
- if [[ -n "${WMS_DB_HOST}" ]]; then
-  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ # Use peer authentication if no host/user specified, otherwise use explicit user
+ local PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]] || [[ -n "${WMS_DB_USER}" ]]; then
+  # Remote connection or explicit user - need to specify user
+  if [[ -n "${WMS_DB_HOST}" ]]; then
+   PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -d \"${WMS_DB_NAME}\""
+  else
+   PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+  fi
+  if [[ -n "${WMS_DB_USER}" ]]; then
+   PSQL_CMD="${PSQL_CMD} -U \"${WMS_DB_USER}\""
+  fi
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
   PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
@@ -215,9 +250,18 @@ deinstall_wms() {
  fi
 
  # Build psql command
- local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
- if [[ -n "${WMS_DB_HOST}" ]]; then
-  PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+ # Use peer authentication if no host/user specified, otherwise use explicit user
+ local PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+ if [[ -n "${WMS_DB_HOST}" ]] || [[ -n "${WMS_DB_USER}" ]]; then
+  # Remote connection or explicit user - need to specify user
+  if [[ -n "${WMS_DB_HOST}" ]]; then
+   PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -d \"${WMS_DB_NAME}\""
+  else
+   PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+  fi
+  if [[ -n "${WMS_DB_USER}" ]]; then
+   PSQL_CMD="${PSQL_CMD} -U \"${WMS_DB_USER}\""
+  fi
  fi
  if [[ -n "${WMS_DB_PORT}" ]]; then
   PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
@@ -240,9 +284,18 @@ show_status() {
   print_status "${GREEN}" "✅ WMS is installed"
 
   # Build psql command
-  local PSQL_CMD="psql -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
-  if [[ -n "${WMS_DB_HOST}" ]]; then
-   PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -U \"${WMS_DB_USER}\" -d \"${WMS_DB_NAME}\""
+  # Use peer authentication if no host/user specified, otherwise use explicit user
+  local PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+  if [[ -n "${WMS_DB_HOST}" ]] || [[ -n "${WMS_DB_USER}" ]]; then
+   # Remote connection or explicit user - need to specify user
+   if [[ -n "${WMS_DB_HOST}" ]]; then
+    PSQL_CMD="psql -h \"${WMS_DB_HOST}\" -d \"${WMS_DB_NAME}\""
+   else
+    PSQL_CMD="psql -d \"${WMS_DB_NAME}\""
+   fi
+   if [[ -n "${WMS_DB_USER}" ]]; then
+    PSQL_CMD="${PSQL_CMD} -U \"${WMS_DB_USER}\""
+   fi
   fi
   if [[ -n "${WMS_DB_PORT}" ]]; then
    PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""

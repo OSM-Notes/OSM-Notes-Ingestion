@@ -10,11 +10,12 @@
 # =============================================================================
 
 # Database connection for WMS components
+# For peer authentication (local connections), leave WMS_DBUSER, WMS_DBHOST, and WMS_DBPORT empty
 WMS_DBNAME="${WMS_DBNAME:-osm_notes}"
-WMS_DBUSER="${WMS_DBUSER:-postgres}"
+WMS_DBUSER="${WMS_DBUSER:-}"  # Empty for peer authentication (uses current system user)
 WMS_DBPASSWORD="${WMS_DBPASSWORD:-}"
-WMS_DBHOST="${WMS_DBHOST:-localhost}"
-WMS_DBPORT="${WMS_DBPORT:-5432}"
+WMS_DBHOST="${WMS_DBHOST:-}"  # Empty for local/peer connections
+WMS_DBPORT="${WMS_DBPORT:-}"  # Empty for default port with peer authentication
 
 # WMS Schema configuration
 WMS_SCHEMA="${WMS_SCHEMA:-wms}"
