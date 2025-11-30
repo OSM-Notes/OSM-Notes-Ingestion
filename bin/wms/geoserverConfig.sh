@@ -230,11 +230,15 @@ validate_prerequisites() {
  # Note: This validation is optional - GeoServer will validate the connection when creating the datastore
  # If password is not provided, skip validation (GeoServer may have different credentials)
  if [[ -n "${DBPASSWORD}" ]]; then
+  # Ensure PGPASSWORD is set and exported for psql
+  export PGPASSWORD="${DBPASSWORD}"
   local TEMP_ERROR_FILE="${TMP_DIR}/psql_error_$$.tmp"
+  # Use PGPASSWORD environment variable to avoid interactive password prompt
   if ! eval "${PSQL_CMD} -c \"SELECT 1;\" > /dev/null 2> \"${TEMP_ERROR_FILE}\""; then
    local ERROR_MSG
    ERROR_MSG=$(cat "${TEMP_ERROR_FILE}" 2> /dev/null | head -1 || echo "Unknown error")
    rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
+   unset PGPASSWORD 2> /dev/null || true
    
    print_status "${YELLOW}" "⚠️  WARNING: Cannot validate PostgreSQL connection to '${DBNAME}'"
    print_status "${YELLOW}" "   This is not fatal - GeoServer will validate the connection when creating the datastore"
@@ -249,20 +253,25 @@ validate_prerequisites() {
    fi
   else
    print_status "${GREEN}" "✅ PostgreSQL connection validated"
+   unset PGPASSWORD 2> /dev/null || true
   fi
-  unset PGPASSWORD 2> /dev/null || true
  else
   print_status "${YELLOW}" "⚠️  Skipping PostgreSQL validation (no password provided)"
   print_status "${YELLOW}" "   GeoServer will validate the connection when creating the datastore"
+  print_status "${YELLOW}" "   💡 To enable validation, set WMS_DBPASSWORD or DBPASSWORD environment variable"
  fi
 
  # Check if WMS schema exists (only if we can connect to PostgreSQL)
  if [[ -n "${DBPASSWORD}" ]]; then
-  if ! eval "${PSQL_CMD} -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | grep -q 't'; then
+  # Ensure PGPASSWORD is set for the schema check
+  export PGPASSWORD="${DBPASSWORD}"
+  if ! eval "${PSQL_CMD} -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2> /dev/null | grep -q 't'; then
+   unset PGPASSWORD 2> /dev/null || true
    print_status "${RED}" "❌ ERROR: WMS schema not found. Please install WMS components first:"
    print_status "${YELLOW}" "   bin/wms/wmsManager.sh install"
    exit 1
   fi
+  unset PGPASSWORD 2> /dev/null || true
  else
   print_status "${YELLOW}" "⚠️  Skipping WMS schema validation (no password provided)"
   print_status "${YELLOW}" "   Make sure WMS components are installed: bin/wms/wmsManager.sh install"
@@ -478,16 +487,21 @@ create_datastore() {
  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 }
 
-# Function to create feature type
-create_feature_type() {
- print_status "${BLUE}" "🗺️  Creating GeoServer feature type..."
+# Function to create feature type from table
+create_feature_type_from_table() {
+ local LAYER_NAME="${1}"
+ local TABLE_NAME="${2}"
+ local LAYER_TITLE="${3}"
+ local LAYER_DESCRIPTION="${4}"
+
+ print_status "${BLUE}" "🗺️  Creating GeoServer feature type '${LAYER_NAME}' from table '${TABLE_NAME}'..."
 
  local FEATURE_TYPE_DATA="{
    \"featureType\": {
-     \"name\": \"${GEOSERVER_LAYER}\",
-     \"nativeName\": \"${WMS_TABLE}\",
-     \"title\": \"${WMS_LAYER_TITLE}\",
-     \"description\": \"${WMS_LAYER_DESCRIPTION}\",
+     \"name\": \"${LAYER_NAME}\",
+     \"nativeName\": \"${TABLE_NAME}\",
+     \"title\": \"${LAYER_TITLE}\",
+     \"description\": \"${LAYER_DESCRIPTION}\",
      \"enabled\": true,
      \"srs\": \"${WMS_LAYER_SRS}\",
      \"nativeBoundingBox\": {
@@ -509,7 +523,7 @@ create_feature_type() {
 
  local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes"
 
- local TEMP_RESPONSE_FILE="${TMP_DIR}/featuretype_response_$$.tmp"
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/featuretype_response_${LAYER_NAME}_$$.tmp"
  local HTTP_CODE
  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
   -X POST \
@@ -522,42 +536,119 @@ create_feature_type() {
  RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
 
  if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
-  print_status "${GREEN}" "✅ Feature type '${GEOSERVER_LAYER}' created"
+  print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' created"
+  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
+  return 0
  elif [[ "${HTTP_CODE}" == "409" ]]; then
-  print_status "${YELLOW}" "⚠️  Feature type '${GEOSERVER_LAYER}' already exists"
+  print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' already exists"
+  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
+  return 0
  else
-  print_status "${RED}" "❌ ERROR: Failed to create feature type (HTTP ${HTTP_CODE})"
+  print_status "${YELLOW}" "⚠️  Failed to create feature type '${LAYER_NAME}' (HTTP ${HTTP_CODE})"
   if [[ -n "${RESPONSE_BODY}" ]]; then
    print_status "${YELLOW}" "   Response:"
-   echo "${RESPONSE_BODY}" | head -30 | sed 's/^/      /'
-  else
-   print_status "${YELLOW}" "   (No error message returned - check GeoServer logs)"
-   print_status "${YELLOW}" "   Common causes:"
-   print_status "${YELLOW}" "   - Table '${WMS_SCHEMA}.${WMS_TABLE}' does not exist"
-   print_status "${YELLOW}" "   - User '${DBUSER}' lacks permissions"
-   print_status "${YELLOW}" "   - Datastore cannot connect to PostgreSQL"
-   print_status "${YELLOW}" "   - Check GeoServer logs: tail -f /opt/geoserver/logs/geoserver.log"
+   echo "${RESPONSE_BODY}" | head -10 | sed 's/^/      /'
   fi
   rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
   return 1
  fi
+}
 
- rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
+# Function to create SQL view layer
+create_sql_view_layer() {
+ local LAYER_NAME="${1}"
+ local SQL_QUERY="${2}"
+ local LAYER_TITLE="${3}"
+ local LAYER_DESCRIPTION="${4}"
+ local GEOMETRY_COLUMN="${5:-geometry}"
+
+ print_status "${BLUE}" "🗺️  Creating GeoServer SQL view layer '${LAYER_NAME}'..."
+
+ # Escape SQL query for JSON
+ local ESCAPED_SQL
+ ESCAPED_SQL=$(echo "${SQL_QUERY}" | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
+
+ local FEATURE_TYPE_DATA="{
+   \"featureType\": {
+     \"name\": \"${LAYER_NAME}\",
+     \"nativeName\": \"${LAYER_NAME}\",
+     \"title\": \"${LAYER_TITLE}\",
+     \"description\": \"${LAYER_DESCRIPTION}\",
+     \"enabled\": true,
+     \"srs\": \"${WMS_LAYER_SRS}\",
+     \"nativeBoundingBox\": {
+       \"minx\": ${WMS_BBOX_MINX},
+       \"maxx\": ${WMS_BBOX_MAXX},
+       \"miny\": ${WMS_BBOX_MINY},
+       \"maxy\": ${WMS_BBOX_MAXY},
+       \"crs\": \"${WMS_LAYER_SRS}\"
+     },
+     \"latLon\": {
+       \"minx\": ${WMS_BBOX_MINX},
+       \"maxx\": ${WMS_BBOX_MAXX},
+       \"miny\": ${WMS_BBOX_MINY},
+       \"maxy\": ${WMS_BBOX_MAXY},
+       \"crs\": \"${WMS_LAYER_SRS}\"
+     },
+     \"metadata\": {
+       \"entry\": [
+         {\"@key\": \"JDBC_VIRTUAL_TABLE\", \"$\": \"<virtualTable><name>${LAYER_NAME}</name><sql>${ESCAPED_SQL}</sql><geometry><name>${GEOMETRY_COLUMN}</name><type>Geometry</type><srid>4326</srid></geometry></virtualTable>\"}
+       ]
+     }
+   }
+ }"
+
+ local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes"
+
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/sqlview_response_${LAYER_NAME}_$$.tmp"
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  -d "${FEATURE_TYPE_DATA}" \
+  "${FEATURE_TYPE_URL}" 2> /dev/null | tail -1)
+
+ local RESPONSE_BODY
+ RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
+
+ if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
+  print_status "${GREEN}" "✅ SQL view layer '${LAYER_NAME}' created"
+  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
+  return 0
+ elif [[ "${HTTP_CODE}" == "409" ]]; then
+  print_status "${YELLOW}" "⚠️  SQL view layer '${LAYER_NAME}' already exists"
+  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
+  return 0
+ else
+  print_status "${YELLOW}" "⚠️  Failed to create SQL view layer '${LAYER_NAME}' (HTTP ${HTTP_CODE})"
+  if [[ -n "${RESPONSE_BODY}" ]]; then
+   print_status "${YELLOW}" "   Response:"
+   echo "${RESPONSE_BODY}" | head -20 | sed 's/^/      /'
+  fi
+  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
+  return 1
+ fi
+}
+
+# Legacy function for backward compatibility
+create_feature_type() {
+ create_feature_type_from_table "${GEOSERVER_LAYER}" "${WMS_TABLE}" "${WMS_LAYER_TITLE}" "${WMS_LAYER_DESCRIPTION}"
 }
 
 # Function to upload style
 upload_style() {
- local SLD_FILE="${WMS_STYLE_FILE}"
- local STYLE_NAME="${WMS_STYLE_NAME}"
+ local SLD_FILE="${1}"
+ local STYLE_NAME="${2}"
 
  # Validate SLD file using centralized validation
  if ! __validate_input_file "${SLD_FILE}" "SLD style file"; then
   print_status "${YELLOW}" "⚠️  SLD file validation failed: ${SLD_FILE}"
-  return 0
+  return 1
  fi
 
  # Upload SLD file
- local TEMP_RESPONSE_FILE="${TMP_DIR}/style_response_$$.tmp"
+ local TEMP_RESPONSE_FILE="${TMP_DIR}/style_response_${STYLE_NAME}_$$.tmp"
  local HTTP_CODE
  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
   -X POST \
@@ -586,39 +677,51 @@ upload_style() {
 
  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 
- # Assign style to layer (only if style was uploaded or already exists)
  if [[ "${STYLE_UPLOADED}" == "true" ]]; then
-  local LAYER_STYLE_DATA="{
-    \"layer\": {
-      \"defaultStyle\": {
-        \"name\": \"${STYLE_NAME}\"
-      }
-    }
-  }"
+  return 0
+ else
+  return 1
+ fi
+}
 
-  local TEMP_STYLE_ASSIGN_FILE="${TMP_DIR}/style_assign_response_$$.tmp"
-  local ASSIGN_HTTP_CODE
-  ASSIGN_HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_STYLE_ASSIGN_FILE}" \
-   -X PUT \
-   -H "Content-Type: application/json" \
-   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -d "${LAYER_STYLE_DATA}" \
-   "${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}" 2> /dev/null | tail -1)
+# Function to assign style to layer
+assign_style_to_layer() {
+ local LAYER_NAME="${1}"
+ local STYLE_NAME="${2}"
 
-  if [[ "${ASSIGN_HTTP_CODE}" == "200" ]] || [[ "${ASSIGN_HTTP_CODE}" == "204" ]]; then
-   print_status "${GREEN}" "✅ Style assigned to layer"
-  else
-   print_status "${YELLOW}" "⚠️  Style assignment failed (HTTP ${ASSIGN_HTTP_CODE})"
-   local ASSIGN_RESPONSE
-   ASSIGN_RESPONSE=$(cat "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || echo "")
-   if [[ -n "${ASSIGN_RESPONSE}" ]]; then
-    print_status "${YELLOW}" "   Response:"
-    echo "${ASSIGN_RESPONSE}" | head -5 | sed 's/^/      /'
-   fi
+ print_status "${BLUE}" "🎨 Assigning style '${STYLE_NAME}' to layer '${LAYER_NAME}'..."
+
+ local LAYER_STYLE_DATA="{
+   \"layer\": {
+     \"defaultStyle\": {
+       \"name\": \"${STYLE_NAME}\"
+     }
+   }
+ }"
+
+ local TEMP_STYLE_ASSIGN_FILE="${TMP_DIR}/style_assign_${LAYER_NAME}_$$.tmp"
+ local ASSIGN_HTTP_CODE
+ ASSIGN_HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_STYLE_ASSIGN_FILE}" \
+  -X PUT \
+  -H "Content-Type: application/json" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  -d "${LAYER_STYLE_DATA}" \
+  "${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}" 2> /dev/null | tail -1)
+
+ if [[ "${ASSIGN_HTTP_CODE}" == "200" ]] || [[ "${ASSIGN_HTTP_CODE}" == "204" ]]; then
+  print_status "${GREEN}" "✅ Style '${STYLE_NAME}' assigned to layer '${LAYER_NAME}'"
+  rm -f "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || true
+  return 0
+ else
+  print_status "${YELLOW}" "⚠️  Style assignment failed (HTTP ${ASSIGN_HTTP_CODE})"
+  local ASSIGN_RESPONSE
+  ASSIGN_RESPONSE=$(cat "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || echo "")
+  if [[ -n "${ASSIGN_RESPONSE}" ]]; then
+   print_status "${YELLOW}" "   Response:"
+   echo "${ASSIGN_RESPONSE}" | head -5 | sed 's/^/      /'
   fi
   rm -f "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || true
- else
-  print_status "${YELLOW}" "⚠️  Skipping style assignment (style upload failed)"
+  return 1
  fi
 }
 
@@ -643,21 +746,54 @@ install_geoserver_config() {
  create_workspace
  create_namespace
 
- # Create datastore and feature type
- if create_datastore; then
-  if create_feature_type; then
-   upload_style
-   print_status "${GREEN}" "✅ GeoServer configuration completed successfully"
-   show_configuration_summary
-  else
-   print_status "${RED}" "❌ ERROR: Failed to create feature type"
-   print_status "${YELLOW}" "   Configuration is incomplete. Some components may have been created."
-   exit 1
-  fi
- else
-  print_status "${RED}" "❌ ERROR: GeoServer configuration failed"
+ # Create datastore
+ if ! create_datastore; then
+  print_status "${RED}" "❌ ERROR: GeoServer configuration failed (datastore)"
   exit 1
  fi
+
+ # Upload all styles first
+ print_status "${BLUE}" "🎨 Uploading styles..."
+ upload_style "${WMS_STYLE_OPEN_FILE}" "${WMS_STYLE_OPEN_NAME}"
+ upload_style "${WMS_STYLE_CLOSED_FILE}" "${WMS_STYLE_CLOSED_NAME}"
+ upload_style "${WMS_STYLE_COUNTRIES_FILE}" "${WMS_STYLE_COUNTRIES_NAME}"
+ upload_style "${WMS_STYLE_DISPUTED_FILE}" "${WMS_STYLE_DISPUTED_NAME}"
+
+ # Create layer 1: Open Notes (SQL view)
+ print_status "${BLUE}" "📊 Creating layer 1/4: Open Notes..."
+ local OPEN_LAYER_NAME="open_notes"
+ local OPEN_SQL="SELECT year_created_at, year_closed_at, id_country, country_shape_mod, geometry FROM wms.notes_wms WHERE year_closed_at IS NULL ORDER BY year_created_at DESC"
+ if create_sql_view_layer "${OPEN_LAYER_NAME}" "${OPEN_SQL}" "${WMS_LAYER_OPEN_NAME}" "${WMS_LAYER_OPEN_DESCRIPTION}" "geometry"; then
+  assign_style_to_layer "${OPEN_LAYER_NAME}" "${WMS_STYLE_OPEN_NAME}"
+ fi
+
+ # Create layer 2: Closed Notes (SQL view)
+ print_status "${BLUE}" "📊 Creating layer 2/4: Closed Notes..."
+ local CLOSED_LAYER_NAME="closed_notes"
+ local CLOSED_SQL="SELECT year_created_at, year_closed_at, id_country, country_shape_mod, geometry FROM wms.notes_wms WHERE year_closed_at IS NOT NULL ORDER BY year_created_at DESC"
+ if create_sql_view_layer "${CLOSED_LAYER_NAME}" "${CLOSED_SQL}" "${WMS_LAYER_CLOSED_NAME}" "${WMS_LAYER_CLOSED_DESCRIPTION}" "geometry"; then
+  assign_style_to_layer "${CLOSED_LAYER_NAME}" "${WMS_STYLE_CLOSED_NAME}"
+ fi
+
+ # Create layer 3: Countries (table)
+ print_status "${BLUE}" "📊 Creating layer 3/4: Countries..."
+ local COUNTRIES_LAYER_NAME="countries"
+ local COUNTRIES_TITLE="Countries and Maritime Areas"
+ local COUNTRIES_DESCRIPTION="Country boundaries and maritime zones from OpenStreetMap"
+ if create_feature_type_from_table "${COUNTRIES_LAYER_NAME}" "countries" "${COUNTRIES_TITLE}" "${COUNTRIES_DESCRIPTION}"; then
+  assign_style_to_layer "${COUNTRIES_LAYER_NAME}" "${WMS_STYLE_COUNTRIES_NAME}"
+ fi
+
+ # Create layer 4: Disputed and Unclaimed Areas (materialized view)
+ print_status "${BLUE}" "📊 Creating layer 4/4: Disputed and Unclaimed Areas..."
+ local DISPUTED_LAYER_NAME="disputed_unclaimed_areas"
+ local DISPUTED_SQL="SELECT id, geometry, zone_type, country_ids, country_names FROM wms.disputed_and_unclaimed_areas ORDER BY zone_type, id"
+ if create_sql_view_layer "${DISPUTED_LAYER_NAME}" "${DISPUTED_SQL}" "${WMS_LAYER_DISPUTED_NAME}" "${WMS_LAYER_DISPUTED_DESCRIPTION}" "geometry"; then
+  assign_style_to_layer "${DISPUTED_LAYER_NAME}" "${WMS_STYLE_DISPUTED_NAME}"
+ fi
+
+ print_status "${GREEN}" "✅ GeoServer configuration completed successfully"
+ show_configuration_summary
 }
 
 # Function to configure existing GeoServer
@@ -734,23 +870,34 @@ show_status() {
   print_status "${YELLOW}" "   List all datastores: ${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores.xml"
  fi
 
- # Check layer
- local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
- local LAYER_RESPONSE
- LAYER_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_URL}" 2> /dev/null)
- HTTP_CODE=$(echo "${LAYER_RESPONSE}" | tail -1)
- 
- if [[ "${HTTP_CODE}" == "200" ]] && echo "${LAYER_RESPONSE}" | grep -q "\"name\".*\"${GEOSERVER_LAYER}\""; then
-  print_status "${GREEN}" "✅ Layer '${GEOSERVER_LAYER}' exists"
+ # Check layers
+ print_status "${BLUE}" ""
+ print_status "${BLUE}" "📊 Checking layers..."
+ local LAYERS=("open_notes" "closed_notes" "countries" "disputed_unclaimed_areas")
+ local LAYER_NAMES=("Open Notes" "Closed Notes" "Countries" "Disputed/Unclaimed Areas")
+ local LAYER_COUNT=0
+ for i in "${!LAYERS[@]}"; do
+  local LAYER_NAME="${LAYERS[$i]}"
+  local LAYER_DISPLAY="${LAYER_NAMES[$i]}"
+  local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
+  local LAYER_RESPONSE
+  LAYER_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_URL}" 2> /dev/null)
+  HTTP_CODE=$(echo "${LAYER_RESPONSE}" | tail -1)
+  
+  if [[ "${HTTP_CODE}" == "200" ]] && echo "${LAYER_RESPONSE}" | grep -q "\"name\".*\"${LAYER_NAME}\""; then
+   print_status "${GREEN}" "✅ Layer '${LAYER_DISPLAY}' (${LAYER_NAME}) exists"
+   ((LAYER_COUNT++))
+  else
+   print_status "${YELLOW}" "⚠️  Layer '${LAYER_DISPLAY}' (${LAYER_NAME}) not found (HTTP ${HTTP_CODE})"
+  fi
+ done
 
+ if [[ ${LAYER_COUNT} -gt 0 ]]; then
   # Show WMS URL
   local WMS_URL="${GEOSERVER_URL}/wms"
+  print_status "${BLUE}" ""
   print_status "${BLUE}" "🌐 WMS Service URL: ${WMS_URL}"
-  print_status "${BLUE}" "📋 Layer Name: ${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
- else
-  print_status "${YELLOW}" "⚠️  Layer '${GEOSERVER_LAYER}' not found (HTTP ${HTTP_CODE})"
-  print_status "${YELLOW}" "   URL: ${LAYER_URL}"
-  print_status "${YELLOW}" "   List all layers: ${GEOSERVER_URL}/rest/layers.xml"
+  print_status "${BLUE}" "📋 Available layers: ${LAYER_COUNT}/4"
  fi
 
  # Show web interface URLs
@@ -763,6 +910,34 @@ show_status() {
  print_status "${BLUE}" "   Styles: ${GEOSERVER_URL}/web/?wicket:bookmarkablePage=:org.geoserver.web.data.style.StylesPage"
 }
 
+# Function to remove a layer
+remove_layer() {
+ local LAYER_NAME="${1}"
+
+ # Remove layer
+ local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${LAYER_URL}" 2> /dev/null)
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
+  print_status "${GREEN}" "✅ Layer '${LAYER_NAME}' removed"
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Layer '${LAYER_NAME}' not found (already removed)"
+ else
+  print_status "${YELLOW}" "⚠️  Layer '${LAYER_NAME}' removal failed (HTTP ${HTTP_CODE})"
+ fi
+
+ # Remove feature type
+ local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes/${LAYER_NAME}"
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${FEATURE_TYPE_URL}" 2> /dev/null)
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
+  print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' removed"
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' not found (already removed)"
+ else
+  print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' removal failed (HTTP ${HTTP_CODE})"
+ fi
+}
+
 # Function to remove GeoServer configuration
 remove_geoserver_config() {
  print_status "${BLUE}" "🗑️  Removing GeoServer configuration..."
@@ -772,28 +947,12 @@ remove_geoserver_config() {
   return 0
  fi
 
- # Remove layer
- local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
- local HTTP_CODE
- HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${LAYER_URL}" 2> /dev/null)
- if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
-  print_status "${GREEN}" "✅ Layer removed"
- elif [[ "${HTTP_CODE}" == "404" ]]; then
-  print_status "${YELLOW}" "⚠️  Layer not found (already removed)"
- else
-  print_status "${YELLOW}" "⚠️  Layer removal failed (HTTP ${HTTP_CODE})"
- fi
-
- # Remove feature type
- local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes/${GEOSERVER_LAYER}"
- HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${FEATURE_TYPE_URL}" 2> /dev/null)
- if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
-  print_status "${GREEN}" "✅ Feature type removed"
- elif [[ "${HTTP_CODE}" == "404" ]]; then
-  print_status "${YELLOW}" "⚠️  Feature type not found (already removed)"
- else
-  print_status "${YELLOW}" "⚠️  Feature type removal failed (HTTP ${HTTP_CODE})"
- fi
+ # Remove all layers
+ print_status "${BLUE}" "🗑️  Removing layers..."
+ remove_layer "open_notes"
+ remove_layer "closed_notes"
+ remove_layer "countries"
+ remove_layer "disputed_unclaimed_areas"
 
  # Remove datastore
  local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
@@ -836,11 +995,15 @@ show_configuration_summary() {
  print_status "${BLUE}" "📋 Configuration Summary:"
  print_status "${BLUE}" "   - Workspace: ${GEOSERVER_WORKSPACE}"
  print_status "${BLUE}" "   - Datastore: ${GEOSERVER_STORE}"
- print_status "${BLUE}" "   - Layer: ${GEOSERVER_LAYER}"
  print_status "${BLUE}" "   - Database: ${DBHOST}:${DBPORT}/${DBNAME}"
  print_status "${BLUE}" "   - Schema: wms"
  print_status "${BLUE}" "   - WMS URL: ${GEOSERVER_URL}/wms"
- print_status "${BLUE}" "   - Layer Name: ${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
+ print_status "${BLUE}" ""
+ print_status "${BLUE}" "📊 Layers created:"
+ print_status "${BLUE}" "   1. ${GEOSERVER_WORKSPACE}:open_notes (Open Notes)"
+ print_status "${BLUE}" "   2. ${GEOSERVER_WORKSPACE}:closed_notes (Closed Notes)"
+ print_status "${BLUE}" "   3. ${GEOSERVER_WORKSPACE}:countries (Countries)"
+ print_status "${BLUE}" "   4. ${GEOSERVER_WORKSPACE}:disputed_unclaimed_areas (Disputed/Unclaimed Areas)"
 }
 
 # Function to parse command line arguments

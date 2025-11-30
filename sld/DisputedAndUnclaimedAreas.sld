@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 SLD file to style disputed and unclaimed areas for WMS layer.
 Red color for disputed areas (overlapping countries).
@@ -6,7 +7,6 @@ Yellow color for unclaimed areas (gaps between countries).
 Author: Andres Gomez (AngocA)
 Version: 2025-11-30
 -->
-<?xml version="1.0" encoding="UTF-8"?>
 <StyledLayerDescriptor xmlns="http://www.opengis.net/sld" version="1.1.0" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" xmlns:ogc="http://www.opengis.net/ogc" xmlns:se="http://www.opengis.net/se" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink">
   <NamedLayer>
     <se:Name>disputed_and_unclaimed_areas</se:Name>
