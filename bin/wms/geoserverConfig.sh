@@ -227,17 +227,47 @@ rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
 }
 
 # Function to check if GeoServer is configured
+# Returns 0 if configured (workspace and datastore exist), 1 otherwise
 is_geoserver_configured() {
  local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- local TEMP_FILE="${TMP_DIR}/geoserver_workspace_$$.tmp"
- if curl -s --connect-timeout 10 --max-time 30 \
+ local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
+ local TEMP_FILE="${TMP_DIR}/geoserver_check_$$.tmp"
+ local HTTP_CODE
+ local WORKSPACE_EXISTS=false
+ local DATASTORE_EXISTS=false
+ 
+ # Check if workspace exists (verify HTTP status code is 200)
+ HTTP_CODE=$(curl -s -o "${TEMP_FILE}" -w "%{http_code}" --connect-timeout 10 --max-time 30 \
   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-  -o "${TEMP_FILE}" \
-  "${WORKSPACE_URL}" &> /dev/null; then
-  rm -f "${TEMP_FILE}" 2> /dev/null || true
+  "${WORKSPACE_URL}" 2> /dev/null)
+ 
+ if [[ "${HTTP_CODE}" == "200" ]]; then
+  # Check if response contains workspace name (verify it's not empty or error)
+  if [[ -s "${TEMP_FILE}" ]] && grep -q "\"name\".*\"${GEOSERVER_WORKSPACE}\"" "${TEMP_FILE}" 2> /dev/null; then
+   WORKSPACE_EXISTS=true
+  fi
+ fi
+ 
+ # Check if datastore exists (only if workspace exists)
+ if [[ "${WORKSPACE_EXISTS}" == "true" ]]; then
+  HTTP_CODE=$(curl -s -o "${TEMP_FILE}" -w "%{http_code}" --connect-timeout 10 --max-time 30 \
+   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+   "${DATASTORE_URL}" 2> /dev/null)
+  
+  if [[ "${HTTP_CODE}" == "200" ]]; then
+   # Check if response contains datastore name (verify it's not empty or error)
+   if [[ -s "${TEMP_FILE}" ]] && grep -q "\"name\".*\"${GEOSERVER_STORE}\"" "${TEMP_FILE}" 2> /dev/null; then
+    DATASTORE_EXISTS=true
+   fi
+  fi
+ fi
+ 
+ rm -f "${TEMP_FILE}" 2> /dev/null || true
+ 
+ # Only return true if both workspace and datastore exist
+ if [[ "${WORKSPACE_EXISTS}" == "true" ]] && [[ "${DATASTORE_EXISTS}" == "true" ]]; then
   return 0
  else
-  rm -f "${TEMP_FILE}" 2> /dev/null || true
   return 1
  fi
 }
