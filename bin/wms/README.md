@@ -182,9 +182,9 @@ When you run `geoserverConfig.sh install`, the following objects are created in 
 
 ### 2. **Namespace**
 - **Prefix**: `osm_notes` (same as workspace name)
-- **URI**: `http://osm-notes-profile` (configurable via `GEOSERVER_NAMESPACE`)
+- **URI**: `urn:osm-notes-profile` (configurable via `GEOSERVER_NAMESPACE`)
 - **Type**: Namespace
-- **Purpose**: Provides a unique identifier for the workspace
+- **Purpose**: Provides a unique identifier for the workspace (URN format, not a web URL)
 - **Location**: GeoServer → Data → Namespaces
 
 ### 3. **Datastore**
@@ -308,22 +308,48 @@ If you don't see the objects in the web interface:
    # Should match your actual GeoServer URL (e.g., http://localhost:8888/geoserver)
    ```
 
-3. **Check REST API directly**:
+3. **Verify credentials are loaded correctly**:
+   
+   The script loads credentials from `etc/wms.properties.sh`. Make sure your credentials are set there:
+   
    ```bash
-   curl -u admin:geoserver "${GEOSERVER_URL}/rest/workspaces.xml"
+   # Check current credentials in properties file
+   grep GEOSERVER_USER etc/wms.properties.sh
+   grep GEOSERVER_PASSWORD etc/wms.properties.sh
+   ```
+   
+   Or set them as environment variables:
+   ```bash
+   export GEOSERVER_USER=admin
+   export GEOSERVER_PASSWORD=OpenStreetMap
+   ./bin/wms/geoserverConfig.sh status
    ```
 
-4. **Verify credentials**:
+4. **Check REST API directly**:
    ```bash
+   # Using credentials from properties file
+   source etc/wms.properties.sh
+   curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+     "${GEOSERVER_URL}/rest/workspaces.xml"
+   ```
+
+5. **Verify credentials work**:
+   ```bash
+   source etc/wms.properties.sh
    curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
      "${GEOSERVER_URL}/rest/about/status"
    ```
 
-5. **Check GeoServer logs** for errors:
+6. **Check GeoServer logs** for errors:
    ```bash
    tail -f /opt/geoserver/logs/geoserver.log
    # Or wherever your GeoServer logs are located
    ```
+
+**Common Issues:**
+- **HTTP 401 (Unauthorized)**: Credentials are incorrect. Check `etc/wms.properties.sh` or set environment variables.
+- **HTTP 404 (Not Found)**: GeoServer URL is incorrect. Verify `GEOSERVER_URL` matches your actual GeoServer installation.
+- **Objects not visible**: Installation may have failed silently. Check the output of `./bin/wms/geoserverConfig.sh install` for errors.
 
 3. **Verify configuration:**
 

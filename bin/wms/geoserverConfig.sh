@@ -50,14 +50,27 @@ DBHOST="${WMS_DBHOST:-${DB_HOST:-}}"
 DBPORT="${WMS_DBPORT:-${DB_PORT:-}}"
 
 # GeoServer configuration (from wms.properties.sh)
+# Priority: Environment variables > wms.properties.sh > defaults
 # Allow override via environment variables or command line
+# Note: These are loaded from wms.properties.sh above, but we set defaults here
+#       if they weren't set in the properties file
 GEOSERVER_URL="${GEOSERVER_URL:-http://localhost:8080/geoserver}"
 GEOSERVER_USER="${GEOSERVER_USER:-admin}"
 GEOSERVER_PASSWORD="${GEOSERVER_PASSWORD:-geoserver}"
 GEOSERVER_WORKSPACE="${GEOSERVER_WORKSPACE:-osm_notes}"
-GEOSERVER_NAMESPACE="${GEOSERVER_NAMESPACE:-http://osm-notes-profile}"
+# Namespace URI should be a unique identifier (URN format recommended)
+# This is used as a unique identifier for the workspace, not a web URL
+GEOSERVER_NAMESPACE="${GEOSERVER_NAMESPACE:-urn:osm-notes-profile}"
 GEOSERVER_STORE="${GEOSERVER_STORE:-notes_wms}"
 GEOSERVER_LAYER="${GEOSERVER_LAYER:-notes_wms_layer}"
+
+# Debug: Show loaded credentials (for troubleshooting, only in verbose mode)
+if [[ "${VERBOSE:-false}" == "true" ]]; then
+ print_status "${BLUE}" "🔐 GeoServer credentials loaded:"
+ print_status "${BLUE}" "   URL: ${GEOSERVER_URL}"
+ print_status "${BLUE}" "   User: ${GEOSERVER_USER}"
+ print_status "${BLUE}" "   Password: ${GEOSERVER_PASSWORD:+*** (${#GEOSERVER_PASSWORD} chars)}"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -135,33 +148,59 @@ validate_prerequisites() {
  fi
 
  # Check if GeoServer is accessible
- # Try to connect to GeoServer with retry logic
+ # Try to connect to GeoServer with retry logic and verify HTTP status code
  local GEOSERVER_STATUS_URL="${GEOSERVER_URL}/rest/about/status"
  local TEMP_STATUS_FILE="${TMP_DIR}/geoserver_status_$$.tmp"
+ local TEMP_ERROR_FILE="${TMP_DIR}/geoserver_error_$$.tmp"
  local MAX_RETRIES=3
  local RETRY_COUNT=0
  local CONNECTED=false
+ local HTTP_CODE
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
-  if curl -s --connect-timeout 10 --max-time 30 \
+  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_STATUS_FILE}" \
+   --connect-timeout 10 --max-time 30 \
    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -o "${TEMP_STATUS_FILE}" \
-   "${GEOSERVER_STATUS_URL}" &> /dev/null; then
+   "${GEOSERVER_STATUS_URL}" 2> "${TEMP_ERROR_FILE}")
+  
+  if [[ "${HTTP_CODE}" == "200" ]]; then
    if [[ -f "${TEMP_STATUS_FILE}" ]] && [[ -s "${TEMP_STATUS_FILE}" ]]; then
     CONNECTED=true
     break
    fi
+  elif [[ "${HTTP_CODE}" == "401" ]]; then
+   # Authentication failed - don't retry, show error immediately
+   local ERROR_MSG
+   ERROR_MSG=$(cat "${TEMP_ERROR_FILE}" 2> /dev/null || echo "Authentication failed")
+   rm -f "${TEMP_STATUS_FILE}" "${TEMP_ERROR_FILE}" 2> /dev/null || true
+   print_status "${RED}" "❌ ERROR: Authentication failed (HTTP 401)"
+   print_status "${YELLOW}" "   Invalid credentials for GeoServer at ${GEOSERVER_URL}"
+   print_status "${YELLOW}" "   User: ${GEOSERVER_USER}"
+   print_status "${YELLOW}" "   💡 Check credentials in etc/wms.properties.sh:"
+   print_status "${YELLOW}" "      GEOSERVER_USER=\"${GEOSERVER_USER}\""
+   print_status "${YELLOW}" "      GEOSERVER_PASSWORD=\"your_password\""
+   print_status "${YELLOW}" "   💡 Or set environment variables:"
+   print_status "${YELLOW}" "      export GEOSERVER_USER=admin"
+   print_status "${YELLOW}" "      export GEOSERVER_PASSWORD=your_password"
+   exit 1
+  elif [[ "${HTTP_CODE}" == "404" ]]; then
+   # GeoServer URL might be wrong
+   print_status "${YELLOW}" "⚠️  GeoServer endpoint not found (HTTP 404) - checking URL..."
   fi
+  
   RETRY_COUNT=$((RETRY_COUNT + 1))
   if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
    sleep 2
   fi
  done
 
- rm -f "${TEMP_STATUS_FILE}" 2> /dev/null || true
+ rm -f "${TEMP_STATUS_FILE}" "${TEMP_ERROR_FILE}" 2> /dev/null || true
 
  if [[ "${CONNECTED}" != "true" ]]; then
   print_status "${RED}" "❌ ERROR: Cannot connect to GeoServer at ${GEOSERVER_URL}"
+  if [[ -n "${HTTP_CODE}" ]]; then
+   print_status "${RED}" "   HTTP Status Code: ${HTTP_CODE}"
+  fi
   print_status "${YELLOW}" "💡 Make sure GeoServer is running and credentials are correct"
   print_status "${YELLOW}" "💡 You can override the URL with: GEOSERVER_URL=http://host:port/geoserver"
   print_status "${YELLOW}" "💡 To find GeoServer port, try: netstat -tlnp | grep java | grep LISTEN"
@@ -485,6 +524,10 @@ configure_geoserver() {
 show_status() {
  print_status "${BLUE}" "📊 GeoServer Configuration Status"
 
+ # Debug: Show credentials being used (without exposing password)
+ print_status "${BLUE}" "🔐 Using credentials: User='${GEOSERVER_USER}', Password='${GEOSERVER_PASSWORD:+***}' (${#GEOSERVER_PASSWORD} chars)"
+ print_status "${BLUE}" "🌐 GeoServer URL: ${GEOSERVER_URL}"
+
  # Check if GeoServer is accessible
  local STATUS_RESPONSE
  STATUS_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${GEOSERVER_URL}/rest/about/status" 2> /dev/null)
@@ -496,6 +539,10 @@ show_status() {
  else
   print_status "${RED}" "❌ GeoServer is not accessible (HTTP ${HTTP_CODE})"
   print_status "${YELLOW}" "   Check: ${GEOSERVER_URL}/rest/about/status"
+  if [[ "${HTTP_CODE}" == "401" ]]; then
+   print_status "${YELLOW}" "   💡 Authentication failed - check credentials in etc/wms.properties.sh"
+   print_status "${YELLOW}" "   💡 Or set: export GEOSERVER_USER=admin GEOSERVER_PASSWORD=your_password"
+  fi
   return 1
  fi
 

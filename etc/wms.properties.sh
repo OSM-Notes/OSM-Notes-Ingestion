@@ -42,7 +42,9 @@ GEOSERVER_PASSWORD="${GEOSERVER_PASSWORD:-geoserver}"
 
 # GeoServer workspace and namespace
 GEOSERVER_WORKSPACE="${GEOSERVER_WORKSPACE:-osm_notes}"
-GEOSERVER_NAMESPACE="${GEOSERVER_NAMESPACE:-http://osm-notes-profile}"
+# Namespace URI should be a unique identifier (URN format recommended)
+# This is used as a unique identifier for the workspace, not a web URL
+GEOSERVER_NAMESPACE="${GEOSERVER_NAMESPACE:-urn:osm-notes-profile}"
 GEOSERVER_STORE="${GEOSERVER_STORE:-notes_wms}"
 GEOSERVER_LAYER="${GEOSERVER_LAYER:-notes_wms_layer}"
 
