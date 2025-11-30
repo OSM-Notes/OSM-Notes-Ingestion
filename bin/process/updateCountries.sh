@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-27
-VERSION="2025-11-27"
+# Version: 2025-11-30
+VERSION="2025-11-30"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -253,6 +253,46 @@ function __createCountryTables {
  fi
  
  __log_finish
+}
+
+# Refreshes the materialized view for disputed and unclaimed areas.
+# This should be called after countries are updated (monthly).
+function __refreshDisputedAreasView {
+  __log_start
+  __logi "Refreshing materialized view for disputed and unclaimed areas..."
+
+  # Check if materialized view exists
+  local VIEW_EXISTS
+  VIEW_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_matviews WHERE schemaname = 'wms' AND matviewname = 'disputed_and_unclaimed_areas');" 2> /dev/null | tr -d ' ' || echo "f")
+
+  if [[ "${VIEW_EXISTS}" != "t" ]]; then
+    __logw "Materialized view wms.disputed_and_unclaimed_areas does not exist, skipping refresh"
+    __logw "Run sql/wms/prepareDatabase.sql to create it"
+    __log_finish
+    return 0
+  fi
+
+  # Check if refresh SQL file exists
+  local REFRESH_SQL
+  REFRESH_SQL="${SCRIPT_BASE_DIRECTORY}/sql/wms/refreshDisputedAreasView.sql"
+
+  if [[ ! -f "${REFRESH_SQL}" ]]; then
+    __loge "Refresh SQL file not found: ${REFRESH_SQL}"
+    __log_finish
+    return 1
+  fi
+
+  __logi "Executing refresh (this may take several minutes)..."
+  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REFRESH_SQL}" > /dev/null 2>&1; then
+    __logi "Materialized view refreshed successfully"
+  else
+    __loge "Failed to refresh materialized view"
+    __log_finish
+    return 1
+  fi
+
+  __log_finish
+  return 0
 }
 
 # Performs maintenance operations on countries table after data is loaded.
@@ -730,6 +770,7 @@ EOF
   __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
   __processMaritimes
   __maintainCountriesTable
+  __refreshDisputedAreasView
   __cleanPartial
   # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
   # after countries are loaded, not here
@@ -756,6 +797,7 @@ EOF
   fi
   
   __maintainCountriesTable
+  __refreshDisputedAreasView
   __cleanPartial
 
   # Re-assign countries for notes affected by boundary changes

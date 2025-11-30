@@ -1,7 +1,7 @@
 -- Removes all tables related to the WMS layer.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-27
+-- Version: 2025-11-30
 
 -- Drop triggers first (in reverse order of creation)
 DROP TRIGGER IF EXISTS update_notes ON notes;
@@ -15,6 +15,10 @@ DROP FUNCTION IF EXISTS wms.insert_new_notes();
 DROP INDEX IF EXISTS wms.notes_wms_geometry_idx;
 DROP INDEX IF EXISTS wms.notes_closed;
 DROP INDEX IF EXISTS wms.notes_open;
+
+-- Drop view for disputed and unclaimed areas
+DROP MATERIALIZED VIEW IF EXISTS wms.disputed_and_unclaimed_areas CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS wms.disputed_and_unclaimed_areas_materialized CASCADE;
 
 -- Drop table
 DROP TABLE IF EXISTS wms.notes_wms;

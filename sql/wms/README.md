@@ -274,6 +274,58 @@ __On the Publishing tab:__
 
 The other options the same as for open notes.
 
+__Disputed and Unclaimed Areas__
+
+This layer uses a __materialized view__ because the query is computationally
+expensive (ST_Union over all countries, ST_Difference operations). The view is
+automatically refreshed when `updateCountries.sh` runs (typically monthly).
+
+To manually refresh the view:
+
+```bash
+psql -d notes -f sql/wms/refreshDisputedAreasView.sql
+```
+
+Or using SQL:
+
+```sql
+REFRESH MATERIALIZED VIEW CONCURRENTLY wms.disputed_and_unclaimed_areas;
+```
+
+__On the Data tab:__
+
+Layer from OSM_Notes:OSM_Notes_DS.
+
+- View Name: Disputed and Unclaimed Areas layer
+- SQL Statement:
+
+```text
+SELECT /* Disputed-WMS */ id, geometry, zone_type, country_ids, country_names
+FROM wms.disputed_and_unclaimed_areas
+ORDER BY zone_type, id
+```
+
+- Geometry Column: `geometry`
+- SRID: `4326`
+
+#### Basic Resource Info
+
+- Abstract: This layer shows disputed areas (overlapping countries) and
+  unclaimed areas (gaps between countries). The view is automatically refreshed
+  monthly when country boundaries are updated.
+
+__On the Publishing tab:__
+
+#### WMS Settings - Layers Settings
+
+- Additional Styles: OSM_Notes:DisputedAndUnclaimedAreas
+
+The other options the same as for open notes.
+
+__Note__: Disputed areas are shown in red, unclaimed areas in yellow. Maritime
+zones are excluded from unclaimed areas calculation as they are intentionally
+not claimed (international waters).
+
 ### Disk Quota
 
 - Enable disk quota
@@ -311,10 +363,18 @@ Under `sld`:
 - `ClosedNotes.sld` QGIS generated file for WMS style on closed notes.
 - `CountriesAndMaritimes.sld` QGIS generated file for WMS style on countries
   and maritimes areas.
+- `DisputedAndUnclaimedAreas.sld` SLD file for WMS style on disputed and
+  unclaimed areas (red for disputed, yellow for unclaimed)
+- `refreshDisputedAreasView.sql` SQL script to refresh the materialized view
+  (automatically called by `updateCountries.sh`)
 - `OpenNotes.sld` QGIS generated file for WMS style on open notes.
 
 Under `sql/wms`
 
 - `prepareDatabase.sql` All the necessary scripts to synchronize the OSM
-  Notes ingestion system with this Notes WMS layer service.
+  Notes ingestion system with this Notes WMS layer service. This includes
+  creating the `wms.notes_wms` table and the `wms.disputed_and_unclaimed_areas`
+  materialized view.
+- `refreshDisputedAreasView.sql` SQL script to refresh the materialized view
+  for disputed and unclaimed areas (automatically called by `updateCountries.sh`).
 - `removeFromDatabase.sql` Removes the Notes WMS part from the database.

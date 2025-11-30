@@ -133,7 +133,8 @@ bats tests/unit/bash/cleanup*.bats tests/unit/bash/clean*.bats
 
 ```bash
 bats tests/unit/bash/wms*.bats \
-     tests/integration/wms_integration.test.bats
+     tests/integration/wms_integration.test.bats \
+     tests/integration/disputed_areas_integration.test.bats
 ```
 
 ### Error Handling
