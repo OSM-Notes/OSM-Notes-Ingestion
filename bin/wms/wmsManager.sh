@@ -16,22 +16,23 @@ export BASENAME="wmsManager"
 export TMP_DIR="/tmp"
 export LOG_LEVEL="INFO"
 
-# Load properties
+# Load properties (use same DB connection as rest of project)
 if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/properties.sh"
 fi
 
-# Load WMS specific properties only if not in test mode
+# Load WMS specific properties only if not in test mode (for WMS-specific config, not DB connection)
 if [[ -z "${TEST_DBNAME:-}" ]] && [[ -f "${PROJECT_ROOT}/etc/wms.properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/wms.properties.sh"
 fi
 
-# Set database variables with priority: WMS_* > TEST_* > default
-WMS_DB_NAME="${WMS_DBNAME:-${TEST_DBNAME:-osm_notes}}"
-WMS_DB_USER="${WMS_DBUSER:-${TEST_DBUSER:-}}"
-WMS_DB_PASSWORD="${WMS_DBPASSWORD:-${TEST_DBPASSWORD:-}}"
-WMS_DB_HOST="${WMS_DBHOST:-${TEST_DBHOST:-}}"
-WMS_DB_PORT="${WMS_DBPORT:-${TEST_DBPORT:-}}"
+# Set database variables with priority: WMS_* > DBNAME/DB_USER (from properties.sh) > TEST_* > default
+# Use same DB connection variables as rest of project for consistency
+WMS_DB_NAME="${WMS_DBNAME:-${DBNAME:-${TEST_DBNAME:-osm_notes}}}"
+WMS_DB_USER="${WMS_DBUSER:-${DB_USER:-${TEST_DBUSER:-}}}"
+WMS_DB_PASSWORD="${WMS_DBPASSWORD:-${DB_PASSWORD:-${TEST_DBPASSWORD:-}}}"
+WMS_DB_HOST="${WMS_DBHOST:-${DB_HOST:-${TEST_DBHOST:-}}}"
+WMS_DB_PORT="${WMS_DBPORT:-${DB_PORT:-${TEST_DBPORT:-}}}"
 
 # Export for psql commands
 export WMS_DB_NAME WMS_DB_USER WMS_DB_PASSWORD WMS_DB_HOST WMS_DB_PORT
@@ -87,14 +88,23 @@ EXAMPLES:
   $0 install --dry-run    # Show what would be installed
 
 ENVIRONMENT VARIABLES:
-  WMS_DBNAME      Database name (default: osm_notes)
-  WMS_DBUSER      Database user (empty for peer authentication, uses current system user)
-  WMS_DBPASSWORD  Database password (not needed for peer authentication)
-  WMS_DBHOST      Database host (empty for local/peer connections)
-  WMS_DBPORT      Database port (empty for default port with peer authentication)
+  Database connection (uses same variables as rest of project):
+    DBNAME         Database name (from etc/properties.sh, default: osm-notes)
+    DB_USER        Database user (from etc/properties.sh, empty for peer auth)
+    DB_PASSWORD    Database password (from etc/properties.sh)
+    DB_HOST        Database host (from etc/properties.sh, empty for peer auth)
+    DB_PORT        Database port (from etc/properties.sh, empty for default)
   
-  For peer authentication (local connections), leave WMS_DBUSER, WMS_DBHOST, and
-  WMS_DBPORT empty or unset. The script will use the current system user.
+  WMS-specific overrides (optional, only if different from main config):
+    WMS_DBNAME     Override database name
+    WMS_DBUSER     Override database user
+    WMS_DBPASSWORD Override database password
+    WMS_DBHOST     Override database host
+    WMS_DBPORT     Override database port
+  
+  For peer authentication (local connections), leave DB_USER, DB_HOST, and
+  DB_PORT empty or unset in etc/properties.sh. The script will use the current
+  system user.
 
 EOF
 }

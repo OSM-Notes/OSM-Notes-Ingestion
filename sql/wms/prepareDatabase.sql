@@ -21,9 +21,9 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
     WHERE table_name = 'notes' 
-    AND column_name IN ('note_id', 'created_at', 'closed_at', 'lon', 'lat')
+    AND column_name IN ('note_id', 'created_at', 'closed_at', 'longitude', 'latitude')
   ) THEN
-    RAISE EXCEPTION 'Required columns (note_id, created_at, closed_at, lon, lat) not found in notes table.';
+    RAISE EXCEPTION 'Required columns (note_id, created_at, closed_at, longitude, latitude) not found in notes table.';
   END IF;
 END $$;
 
@@ -38,9 +38,9 @@ CREATE TABLE IF NOT EXISTS wms.notes_wms AS
   note_id,
   extract(year from created_at) AS year_created_at,
   extract (year from closed_at) AS year_closed_at,
-  ST_SetSRID(ST_MakePoint(lon, lat), 4326) AS geometry
+  ST_SetSRID(ST_MakePoint(longitude, latitude), 4326) AS geometry
  FROM notes
- WHERE lon IS NOT NULL AND lat IS NOT NULL  -- Only include notes with valid coordinates
+ WHERE longitude IS NOT NULL AND latitude IS NOT NULL  -- Only include notes with valid coordinates
 ;
 COMMENT ON TABLE wms.notes_wms IS
   'Locations of the notes and its opening and closing year';
@@ -69,14 +69,14 @@ CREATE OR REPLACE FUNCTION wms.insert_new_notes()
  $$
  BEGIN
   -- Only insert if coordinates are valid
-  IF NEW.lon IS NOT NULL AND NEW.lat IS NOT NULL THEN
+  IF NEW.longitude IS NOT NULL AND NEW.latitude IS NOT NULL THEN
     INSERT INTO wms.notes_wms
      VALUES
      (
       NEW.note_id,
       EXTRACT(YEAR FROM NEW.created_at),
       EXTRACT(YEAR FROM NEW.closed_at),
-      ST_SetSRID(ST_MakePoint(NEW.lon, NEW.lat), 4326)
+      ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326)
      )
     ;
   END IF;
