@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-28
-VERSION="2025-11-28"
+# Version: 2025-11-30
+VERSION="2025-11-30"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -679,9 +679,9 @@ function __processBoundary_impl {
   if [[ "${HAS_COLLECT}" == "t" ]]; then
    __logw "ST_Collect works but not ST_Union - using ST_Collect as alternative"
    if [[ "${ID}" -eq 16239 ]]; then
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_Buffer(geometry, 0.0)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
    else
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Collect(ST_makeValid(geometry)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_makeValid(geometry)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
    fi
 
    if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
@@ -700,7 +700,7 @@ function __processBoundary_impl {
 
    if [[ "${HAS_BUFFER}" == "t" ]]; then
     __logw "Buffer strategy works - applying buffered geometries"
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
 
     if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
      __loge "Buffer strategy failed"
@@ -761,10 +761,10 @@ function __processBoundary_impl {
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   __logd "Preparing to insert boundary ${ID} with ST_Buffer processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_Buffer(geometry, 0.0)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
  else
   __logd "Preparing to insert boundary ${ID} with standard processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_Union(ST_makeValid(geometry)) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = EXCLUDED.geom;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_makeValid(geometry)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
  fi
 
  __logd "Executing insert operation for boundary ${ID} (country: ${NAME})"
@@ -981,7 +981,7 @@ function __processCountries_impl {
     return 0
    else
     __logw "Failed to import from backup, falling back to Overpass download"
-    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
     rm -f "${OGR_ERROR}"
    fi
   else
@@ -989,13 +989,13 @@ function __processCountries_impl {
    # Get missing IDs file path (created by __compareIdsWithBackup)
    local MISSING_IDS_FILE="${TMP_DIR}/missing_countries_ids.txt"
    local EXISTING_IDS_FILE="${TMP_DIR}/existing_countries_ids.txt"
-   
+
    # Import backup first, but filter to only include countries that exist in Overpass
    local EXISTING_COUNT=0
    if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
     EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
    fi
-   
+
    if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
     __logi "Filtering backup to import only ${EXISTING_COUNT} countries that exist in Overpass..."
     # Create WHERE clause for ogr2ogr to filter by country_id
@@ -1025,7 +1025,7 @@ function __processCountries_impl {
         local TEMP_MISSING
         TEMP_MISSING=$(mktemp)
         # Remove existing IDs from missing list
-        comm -23 <(sort "${MISSING_IDS_FILE}") <(sort "${EXISTING_IDS_FILE}") > "${TEMP_MISSING}" 2>/dev/null || true
+        comm -23 <(sort "${MISSING_IDS_FILE}") <(sort "${EXISTING_IDS_FILE}") > "${TEMP_MISSING}" 2> /dev/null || true
         if [[ -s "${TEMP_MISSING}" ]]; then
          mv "${TEMP_MISSING}" "${MISSING_IDS_FILE}"
         else
@@ -1037,13 +1037,13 @@ function __processCountries_impl {
       else
        __logw "Failed to filter and insert from backup, will download all from Overpass"
        psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
-       __logd "SQL error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+       __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
        rm -f "${OGR_ERROR}"
        unset MISSING_IDS_FILE
       fi
      else
       __logw "Failed to import backup, will download all from Overpass"
-      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
       rm -f "${OGR_ERROR}"
       unset MISSING_IDS_FILE
      fi
@@ -1055,10 +1055,10 @@ function __processCountries_impl {
     __logw "No existing countries found in backup, will download all from Overpass"
     unset MISSING_IDS_FILE
    fi
-   
+
    # Skip the original import logic since we already imported filtered backup above
    # If import failed, MISSING_IDS_FILE was unset and we'll download all from Overpass
-   
+
    # If we have missing IDs file, filter COUNTRIES_BOUNDARY_IDS_FILE to only include missing ones
    if [[ -n "${MISSING_IDS_FILE:-}" ]] && [[ -f "${MISSING_IDS_FILE}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
     local MISSING_COUNT
@@ -1243,7 +1243,7 @@ function __processMaritimes_impl {
    return 0
   else
    __logw "Failed to import from backup, falling back to Overpass download"
-   __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+   __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
    rm -f "${OGR_ERROR}"
   fi
  fi
@@ -1306,7 +1306,7 @@ function __processMaritimes_impl {
     return 0
    else
     __logw "Failed to import from backup, falling back to Overpass download"
-    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
     rm -f "${OGR_ERROR}"
    fi
   else
@@ -1314,13 +1314,13 @@ function __processMaritimes_impl {
    # Get missing IDs file path (created by __compareIdsWithBackup)
    local MISSING_IDS_FILE="${TMP_DIR}/missing_maritimes_ids.txt"
    local EXISTING_IDS_FILE="${TMP_DIR}/existing_maritimes_ids.txt"
-   
+
    # Import backup first, but filter to only include maritimes that exist in Overpass
    local EXISTING_COUNT=0
    if [[ -f "${EXISTING_IDS_FILE}" ]] && [[ -s "${EXISTING_IDS_FILE}" ]]; then
     EXISTING_COUNT=$(wc -l < "${EXISTING_IDS_FILE}" | tr -d ' ' || echo "0")
    fi
-   
+
    if [[ "${EXISTING_COUNT}" -gt 0 ]]; then
     __logi "Filtering backup to import only ${EXISTING_COUNT} maritime boundaries that exist in Overpass..."
     # Create WHERE clause for ogr2ogr to filter by country_id
@@ -1344,13 +1344,13 @@ function __processMaritimes_impl {
       else
        __logw "Failed to filter and insert from backup, will download all from Overpass"
        psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
-       __logd "SQL error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+       __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
        rm -f "${OGR_ERROR}"
        unset MISSING_IDS_FILE
       fi
      else
       __logw "Failed to import backup, will download all from Overpass"
-      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2>/dev/null || echo 'No error output')"
+      __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
       rm -f "${OGR_ERROR}"
       unset MISSING_IDS_FILE
      fi
@@ -1362,10 +1362,10 @@ function __processMaritimes_impl {
     __logw "No existing maritime boundaries found in backup, will download all from Overpass"
     unset MISSING_IDS_FILE
    fi
-   
+
    # Skip the original import logic since we already imported filtered backup above
    # If import failed, MISSING_IDS_FILE was unset and we'll download all from Overpass
-   
+
    # If we have missing IDs file, filter MARITIME_BOUNDARY_IDS_FILE to only include missing ones
    if [[ -n "${MISSING_IDS_FILE:-}" ]] && [[ -f "${MISSING_IDS_FILE}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
     local MISSING_COUNT
