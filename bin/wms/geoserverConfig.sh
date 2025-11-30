@@ -3,7 +3,7 @@
 # Automates GeoServer setup for WMS layers
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
+# Version: 2025-11-30
 
 set -euo pipefail
 
@@ -26,13 +26,30 @@ if [[ -f "${PROJECT_ROOT}/etc/wms.properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/wms.properties.sh"
 fi
 
+# Load common functions (provides __validate_input_file, etc.)
+# Note: We don't use __retry_geoserver_api from functionsProcess.sh, we implement
+# our own retry logic directly with curl for better control
+if [[ -f "${PROJECT_ROOT}/bin/lib/functionsProcess.sh" ]]; then
+ source "${PROJECT_ROOT}/bin/lib/functionsProcess.sh"
+fi
+
 # Use WMS properties for configuration
-# Database connection for GeoServer (from WMS properties)
-DBNAME="${WMS_DBNAME}"
-DBUSER="${WMS_DBUSER}"
-DBPASSWORD="${WMS_DBPASSWORD}"
-DBHOST="${WMS_DBHOST}"
-DBPORT="${WMS_DBPORT}"
+# Database connection for GeoServer (from WMS properties or main properties)
+DBNAME="${WMS_DBNAME:-${DBNAME:-osm_notes}}"
+DBUSER="${WMS_DBUSER:-${DB_USER:-}}"
+DBPASSWORD="${WMS_DBPASSWORD:-${DB_PASSWORD:-}}"
+DBHOST="${WMS_DBHOST:-${DB_HOST:-}}"
+DBPORT="${WMS_DBPORT:-${DB_PORT:-5432}}"
+
+# GeoServer configuration (from wms.properties.sh)
+# Allow override via environment variables or command line
+GEOSERVER_URL="${GEOSERVER_URL:-http://localhost:8080/geoserver}"
+GEOSERVER_USER="${GEOSERVER_USER:-admin}"
+GEOSERVER_PASSWORD="${GEOSERVER_PASSWORD:-geoserver}"
+GEOSERVER_WORKSPACE="${GEOSERVER_WORKSPACE:-osm_notes}"
+GEOSERVER_NAMESPACE="${GEOSERVER_NAMESPACE:-http://osm-notes-profile}"
+GEOSERVER_STORE="${GEOSERVER_STORE:-notes_wms}"
+GEOSERVER_LAYER="${GEOSERVER_LAYER:-notes_wms_layer}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -110,20 +127,71 @@ validate_prerequisites() {
  fi
 
  # Check if GeoServer is accessible
- if ! __retry_geoserver_api "${GEOSERVER_URL}/rest/about/status" "GET" "" "/dev/null" 3 2 30; then
+ # Try to connect to GeoServer with retry logic
+ local GEOSERVER_STATUS_URL="${GEOSERVER_URL}/rest/about/status"
+ local TEMP_STATUS_FILE="${TMP_DIR}/geoserver_status_$$.tmp"
+ local MAX_RETRIES=3
+ local RETRY_COUNT=0
+ local CONNECTED=false
+
+ while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
+  if curl -s --connect-timeout 10 --max-time 30 \
+   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+   -o "${TEMP_STATUS_FILE}" \
+   "${GEOSERVER_STATUS_URL}" &> /dev/null; then
+   if [[ -f "${TEMP_STATUS_FILE}" ]] && [[ -s "${TEMP_STATUS_FILE}" ]]; then
+    CONNECTED=true
+    break
+   fi
+  fi
+  RETRY_COUNT=$((RETRY_COUNT + 1))
+  if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
+   sleep 2
+  fi
+ done
+
+ rm -f "${TEMP_STATUS_FILE}" 2> /dev/null || true
+
+ if [[ "${CONNECTED}" != "true" ]]; then
   print_status "${RED}" "❌ ERROR: Cannot connect to GeoServer at ${GEOSERVER_URL}"
   print_status "${YELLOW}" "💡 Make sure GeoServer is running and credentials are correct"
+  print_status "${YELLOW}" "💡 You can override the URL with: GEOSERVER_URL=http://host:port/geoserver"
+  print_status "${YELLOW}" "💡 To find GeoServer port, try: netstat -tlnp | grep java | grep LISTEN"
   exit 1
  fi
 
  # Check if PostgreSQL is accessible
- if ! psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -c "SELECT 1;" &> /dev/null; then
-  print_status "${RED}" "❌ ERROR: Cannot connect to PostgreSQL database '${DBNAME}' at '${DBHOST}' with user '${DBUSER}'"
+ local PSQL_CMD="psql -d \"${DBNAME}\""
+ if [[ -n "${DBHOST}" ]]; then
+  PSQL_CMD="psql -h \"${DBHOST}\" -d \"${DBNAME}\""
+ fi
+ if [[ -n "${DBUSER}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U \"${DBUSER}\""
+ fi
+ if [[ -n "${DBPORT}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p \"${DBPORT}\""
+ fi
+ if [[ -n "${DBPASSWORD}" ]]; then
+  export PGPASSWORD="${DBPASSWORD}"
+ else
+  unset PGPASSWORD 2> /dev/null || true
+ fi
+
+ if ! eval "${PSQL_CMD} -c \"SELECT 1;\" &> /dev/null"; then
+  print_status "${RED}" "❌ ERROR: Cannot connect to PostgreSQL database '${DBNAME}'"
+  if [[ -n "${DBHOST}" ]]; then
+   print_status "${RED}" "   Host: ${DBHOST}"
+  fi
+  if [[ -n "${DBUSER}" ]]; then
+   print_status "${RED}" "   User: ${DBUSER}"
+  else
+   print_status "${YELLOW}" "   Using peer authentication (current system user)"
+  fi
   exit 1
  fi
 
  # Check if WMS schema exists
- if ! psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -c "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');" | grep -q 't'; then
+ if ! eval "${PSQL_CMD} -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" | grep -q 't'; then
   print_status "${RED}" "❌ ERROR: WMS schema not found. Please install WMS components first:"
   print_status "${YELLOW}" "   bin/wms/wmsManager.sh install"
   exit 1
@@ -135,7 +203,17 @@ validate_prerequisites() {
 # Function to check if GeoServer is configured
 is_geoserver_configured() {
  local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- __retry_geoserver_api "${WORKSPACE_URL}" "GET" "" "/dev/null" 3 2 30
+ local TEMP_FILE="${TMP_DIR}/geoserver_workspace_$$.tmp"
+ if curl -s --connect-timeout 10 --max-time 30 \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  -o "${TEMP_FILE}" \
+  "${WORKSPACE_URL}" &> /dev/null; then
+  rm -f "${TEMP_FILE}" 2> /dev/null || true
+  return 0
+ else
+  rm -f "${TEMP_FILE}" 2> /dev/null || true
+  return 1
+ fi
 }
 
 # Function to create workspace

@@ -25,6 +25,14 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Required columns (note_id, created_at, closed_at, longitude, latitude) not found in notes table.';
   END IF;
+  -- Check if id_country exists (optional, but recommended for country-based styling)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'notes' 
+    AND column_name = 'id_country'
+  ) THEN
+    RAISE WARNING 'Column id_country not found in notes table. Country-based styling will not work. Consider running country assignment process.';
+  END IF;
 END $$;
 
 -- Creates an independent schema for all objects related to WMS.
@@ -38,6 +46,11 @@ CREATE TABLE IF NOT EXISTS wms.notes_wms AS
   note_id,
   extract(year from created_at) AS year_created_at,
   extract (year from closed_at) AS year_closed_at,
+  id_country,
+  CASE 
+    WHEN id_country IS NOT NULL THEN id_country % 6
+    ELSE NULL
+  END AS country_shape_mod,
   ST_SetSRID(ST_MakePoint(longitude, latitude), 4326) AS geometry
  FROM notes
  WHERE longitude IS NOT NULL AND latitude IS NOT NULL  -- Only include notes with valid coordinates
@@ -49,6 +62,10 @@ COMMENT ON COLUMN wms.notes_wms.year_created_at IS
   'Year when the note was created';
 COMMENT ON COLUMN wms.notes_wms.year_closed_at IS
   'Year when the note was closed';
+COMMENT ON COLUMN wms.notes_wms.id_country IS
+  'Country id where the note is located (NULL for unclaimed/disputed areas)';
+COMMENT ON COLUMN wms.notes_wms.country_shape_mod IS
+  'Modulo 6 of id_country for shape assignment (0-5, NULL if no country)';
 COMMENT ON COLUMN wms.notes_wms.geometry IS 'Location of the note';
 
 -- Index for open notes. The most important.
@@ -58,6 +75,20 @@ COMMENT ON INDEX wms.notes_open IS 'Queries based on creation year';
 -- Index for closed notes.
 CREATE INDEX IF NOT EXISTS notes_closed ON wms.notes_wms (year_closed_at);
 COMMENT ON INDEX wms.notes_closed IS 'Queries based on closed year';
+
+-- Index for country-based queries
+CREATE INDEX IF NOT EXISTS notes_wms_country_idx 
+  ON wms.notes_wms (id_country)
+  WHERE id_country IS NOT NULL;
+COMMENT ON INDEX wms.notes_wms_country_idx IS 
+  'Index for country-based queries';
+
+-- Index for shape-based queries (for SLD filtering)
+CREATE INDEX IF NOT EXISTS notes_wms_shape_mod_idx 
+  ON wms.notes_wms (country_shape_mod)
+  WHERE country_shape_mod IS NOT NULL;
+COMMENT ON INDEX wms.notes_wms_shape_mod_idx IS 
+  'Index for shape-based queries (country_shape_mod)';
 
 -- Add spatial index for better performance
 CREATE INDEX IF NOT EXISTS notes_wms_geometry_idx ON wms.notes_wms USING GIST (geometry);
@@ -76,6 +107,11 @@ CREATE OR REPLACE FUNCTION wms.insert_new_notes()
       NEW.note_id,
       EXTRACT(YEAR FROM NEW.created_at),
       EXTRACT(YEAR FROM NEW.closed_at),
+      NEW.id_country,
+      CASE 
+        WHEN NEW.id_country IS NOT NULL THEN NEW.id_country % 6
+        ELSE NULL
+      END,
       ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326)
      )
     ;
@@ -83,27 +119,35 @@ CREATE OR REPLACE FUNCTION wms.insert_new_notes()
   RETURN NEW;
  END;
  $$ LANGUAGE plpgsql
-;
-COMMENT ON FUNCTION wms.insert_new_notes IS 'Insert new notes for the WMS';
+ ;
+COMMENT ON FUNCTION wms.insert_new_notes IS 
+  'Insert new notes for the WMS including country information';
 
 -- Function for trigger when updating notes. This applies for 2 cases:
 -- * From open to close (solving).
 -- * From close to open (reopening).
+-- * When country assignment changes.
 -- It is not used when adding a comment.
 CREATE OR REPLACE FUNCTION wms.update_notes()
   RETURNS TRIGGER AS
  $$
  BEGIN
   UPDATE wms.notes_wms
-   SET year_closed_at = extract (year from NEW.closed_at)
+   SET 
+     year_closed_at = EXTRACT(YEAR FROM NEW.closed_at),
+     id_country = NEW.id_country,
+     country_shape_mod = CASE 
+       WHEN NEW.id_country IS NOT NULL THEN NEW.id_country % 6
+       ELSE NULL
+     END
    WHERE note_id = NEW.note_id
   ;
   RETURN NEW;
  END;
  $$ LANGUAGE plpgsql
-;
+ ;
 COMMENT ON FUNCTION wms.update_notes IS
-  'Updates the closing year of a note when solved';
+  'Updates the closing year, country, and shape modulo of a note when changed';
 
 -- Trigger for new notes.
 CREATE OR REPLACE TRIGGER insert_new_notes
