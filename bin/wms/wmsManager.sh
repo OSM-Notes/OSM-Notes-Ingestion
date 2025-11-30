@@ -182,7 +182,15 @@ is_wms_installed() {
  local SCHEMA_EXISTS
  SCHEMA_EXISTS=$(eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'wms');\"" 2> /dev/null | tr -d ' ' || echo "f")
 
- if [[ "${SCHEMA_EXISTS}" == "t" ]]; then
+ if [[ "${SCHEMA_EXISTS}" != "t" ]]; then
+  return 1
+ fi
+
+ # Check if main WMS table exists (more reliable check)
+ local TABLE_EXISTS
+ TABLE_EXISTS=$(eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'wms' AND table_name = 'notes_wms');\"" 2> /dev/null | tr -d ' ' || echo "f")
+
+ if [[ "${TABLE_EXISTS}" == "t" ]]; then
   return 0
  else
   return 1
@@ -301,18 +309,35 @@ show_status() {
    PSQL_CMD="${PSQL_CMD} -p \"${WMS_DB_PORT}\""
   fi
 
-  # Show basic statistics
-  local NOTE_COUNT
-  NOTE_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM wms.notes_wms;\"" | tr -d ' ')
+  # Show basic statistics (check if table exists first)
+  local TABLE_EXISTS
+  TABLE_EXISTS=$(eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = 'wms' AND table_name = 'notes_wms');\"" 2> /dev/null | tr -d ' ' || echo "f")
 
-  print_status "${BLUE}" "📈 WMS Statistics:"
-  print_status "${BLUE}" "   - Total notes in WMS: ${NOTE_COUNT}"
+  if [[ "${TABLE_EXISTS}" == "t" ]]; then
+   local NOTE_COUNT
+   NOTE_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM wms.notes_wms;\"" 2> /dev/null | tr -d ' ' || echo "0")
 
-  # Show trigger information
-  local TRIGGER_COUNT
-  TRIGGER_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');\"" | tr -d ' ')
+   print_status "${BLUE}" "📈 WMS Statistics:"
+   print_status "${BLUE}" "   - Total notes in WMS: ${NOTE_COUNT}"
 
-  print_status "${BLUE}" "   - Active triggers: ${TRIGGER_COUNT}"
+   # Show trigger information
+   local TRIGGER_COUNT
+   TRIGGER_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_name IN ('insert_new_notes', 'update_notes');\"" 2> /dev/null | tr -d ' ' || echo "0")
+
+   print_status "${BLUE}" "   - Active triggers: ${TRIGGER_COUNT}"
+
+   # Check for materialized view
+   local MATVIEW_EXISTS
+   MATVIEW_EXISTS=$(eval "${PSQL_CMD} -t -c \"SELECT EXISTS(SELECT 1 FROM pg_matviews WHERE schemaname = 'wms' AND matviewname = 'disputed_and_unclaimed_areas');\"" 2> /dev/null | tr -d ' ' || echo "f")
+   if [[ "${MATVIEW_EXISTS}" == "t" ]]; then
+    local AREAS_COUNT
+    AREAS_COUNT=$(eval "${PSQL_CMD} -t -c \"SELECT COUNT(*) FROM wms.disputed_and_unclaimed_areas;\"" 2> /dev/null | tr -d ' ' || echo "0")
+    print_status "${BLUE}" "   - Disputed/unclaimed areas: ${AREAS_COUNT}"
+   fi
+  else
+   print_status "${YELLOW}" "⚠️  WMS schema exists but main table (wms.notes_wms) is missing"
+   print_status "${YELLOW}" "   Run 'wmsManager.sh install' to complete the installation"
+  fi
 
  else
   print_status "${YELLOW}" "⚠️  WMS is not installed"
