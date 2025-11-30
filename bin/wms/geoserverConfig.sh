@@ -486,32 +486,66 @@ show_status() {
  print_status "${BLUE}" "📊 GeoServer Configuration Status"
 
  # Check if GeoServer is accessible
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${GEOSERVER_URL}/rest/about/status" &> /dev/null; then
-  print_status "${GREEN}" "✅ GeoServer is accessible"
+ local STATUS_RESPONSE
+ STATUS_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${GEOSERVER_URL}/rest/about/status" 2> /dev/null)
+ local HTTP_CODE
+ HTTP_CODE=$(echo "${STATUS_RESPONSE}" | tail -1)
+ 
+ if [[ "${HTTP_CODE}" == "200" ]]; then
+  print_status "${GREEN}" "✅ GeoServer is accessible at ${GEOSERVER_URL}"
  else
-  print_status "${RED}" "❌ GeoServer is not accessible"
+  print_status "${RED}" "❌ GeoServer is not accessible (HTTP ${HTTP_CODE})"
+  print_status "${YELLOW}" "   Check: ${GEOSERVER_URL}/rest/about/status"
   return 1
  fi
 
  # Check workspace
  local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${WORKSPACE_URL}" &> /dev/null; then
+ local WORKSPACE_RESPONSE
+ WORKSPACE_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${WORKSPACE_URL}" 2> /dev/null)
+ HTTP_CODE=$(echo "${WORKSPACE_RESPONSE}" | tail -1)
+ 
+ if [[ "${HTTP_CODE}" == "200" ]] && echo "${WORKSPACE_RESPONSE}" | grep -q "\"name\".*\"${GEOSERVER_WORKSPACE}\""; then
   print_status "${GREEN}" "✅ Workspace '${GEOSERVER_WORKSPACE}' exists"
  else
-  print_status "${YELLOW}" "⚠️  Workspace '${GEOSERVER_WORKSPACE}' not found"
+  print_status "${YELLOW}" "⚠️  Workspace '${GEOSERVER_WORKSPACE}' not found (HTTP ${HTTP_CODE})"
+  print_status "${YELLOW}" "   URL: ${WORKSPACE_URL}"
+  print_status "${YELLOW}" "   List all workspaces: ${GEOSERVER_URL}/rest/workspaces.xml"
+ fi
+
+ # Check namespace
+ local NAMESPACE_URL="${GEOSERVER_URL}/rest/namespaces/${GEOSERVER_WORKSPACE}"
+ local NAMESPACE_RESPONSE
+ NAMESPACE_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${NAMESPACE_URL}" 2> /dev/null)
+ HTTP_CODE=$(echo "${NAMESPACE_RESPONSE}" | tail -1)
+ 
+ if [[ "${HTTP_CODE}" == "200" ]] && echo "${NAMESPACE_RESPONSE}" | grep -q "\"prefix\".*\"${GEOSERVER_WORKSPACE}\""; then
+  print_status "${GREEN}" "✅ Namespace '${GEOSERVER_WORKSPACE}' exists"
+ else
+  print_status "${YELLOW}" "⚠️  Namespace '${GEOSERVER_WORKSPACE}' not found (HTTP ${HTTP_CODE})"
  fi
 
  # Check datastore
  local DATASTORE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${DATASTORE_URL}" &> /dev/null; then
+ local DATASTORE_RESPONSE
+ DATASTORE_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${DATASTORE_URL}" 2> /dev/null)
+ HTTP_CODE=$(echo "${DATASTORE_RESPONSE}" | tail -1)
+ 
+ if [[ "${HTTP_CODE}" == "200" ]] && echo "${DATASTORE_RESPONSE}" | grep -q "\"name\".*\"${GEOSERVER_STORE}\""; then
   print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' exists"
  else
-  print_status "${YELLOW}" "⚠️  Datastore '${GEOSERVER_STORE}' not found"
+  print_status "${YELLOW}" "⚠️  Datastore '${GEOSERVER_STORE}' not found (HTTP ${HTTP_CODE})"
+  print_status "${YELLOW}" "   URL: ${DATASTORE_URL}"
+  print_status "${YELLOW}" "   List all datastores: ${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores.xml"
  fi
 
  # Check layer
  local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
- if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_URL}" &> /dev/null; then
+ local LAYER_RESPONSE
+ LAYER_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_URL}" 2> /dev/null)
+ HTTP_CODE=$(echo "${LAYER_RESPONSE}" | tail -1)
+ 
+ if [[ "${HTTP_CODE}" == "200" ]] && echo "${LAYER_RESPONSE}" | grep -q "\"name\".*\"${GEOSERVER_LAYER}\""; then
   print_status "${GREEN}" "✅ Layer '${GEOSERVER_LAYER}' exists"
 
   # Show WMS URL
@@ -519,8 +553,19 @@ show_status() {
   print_status "${BLUE}" "🌐 WMS Service URL: ${WMS_URL}"
   print_status "${BLUE}" "📋 Layer Name: ${GEOSERVER_WORKSPACE}:${GEOSERVER_LAYER}"
  else
-  print_status "${YELLOW}" "⚠️  Layer '${GEOSERVER_LAYER}' not found"
+  print_status "${YELLOW}" "⚠️  Layer '${GEOSERVER_LAYER}' not found (HTTP ${HTTP_CODE})"
+  print_status "${YELLOW}" "   URL: ${LAYER_URL}"
+  print_status "${YELLOW}" "   List all layers: ${GEOSERVER_URL}/rest/layers.xml"
  fi
+
+ # Show web interface URLs
+ print_status "${BLUE}" ""
+ print_status "${BLUE}" "📱 GeoServer Web Interface:"
+ print_status "${BLUE}" "   ${GEOSERVER_URL}/web"
+ print_status "${BLUE}" "   Workspaces: ${GEOSERVER_URL}/web/?wicket:bookmarkablePage=:org.geoserver.web.data.workspace.WorkspacePage"
+ print_status "${BLUE}" "   Stores: ${GEOSERVER_URL}/web/?wicket:bookmarkablePage=:org.geoserver.web.data.store.DataStoresPage"
+ print_status "${BLUE}" "   Layers: ${GEOSERVER_URL}/web/?wicket:bookmarkablePage=:org.geoserver.web.data.layers.LayersPage"
+ print_status "${BLUE}" "   Styles: ${GEOSERVER_URL}/web/?wicket:bookmarkablePage=:org.geoserver.web.data.style.StylesPage"
 }
 
 # Function to remove GeoServer configuration

@@ -170,6 +170,161 @@ The script automatically uses WMS properties from `etc/wms.properties.sh`:
 - **User 'notes'**: Elevated privileges (CREATE, ALTER, etc.) - used by `wmsManager.sh`
 - **User 'geoserver'**: Read-only permissions (SELECT) - used by `geoserverConfig.sh` and GeoServer
 
+## GeoServer Objects Created
+
+When you run `geoserverConfig.sh install`, the following objects are created in GeoServer:
+
+### 1. **Workspace**
+- **Name**: `osm_notes` (configurable via `GEOSERVER_WORKSPACE`)
+- **Type**: Workspace
+- **Purpose**: Organizes all WMS layers for OSM notes
+- **Location**: GeoServer → Data → Workspaces
+
+### 2. **Namespace**
+- **Prefix**: `osm_notes` (same as workspace name)
+- **URI**: `http://osm-notes-profile` (configurable via `GEOSERVER_NAMESPACE`)
+- **Type**: Namespace
+- **Purpose**: Provides a unique identifier for the workspace
+- **Location**: GeoServer → Data → Namespaces
+
+### 3. **Datastore**
+- **Name**: `notes_wms` (configurable via `GEOSERVER_STORE`)
+- **Type**: PostGIS
+- **Purpose**: Connection to PostgreSQL database containing WMS data
+- **Connection Details**:
+  - Database: `notes` (configurable via `WMS_DBNAME`)
+  - Schema: `wms` (configurable via `WMS_SCHEMA`)
+  - User: `geoserver` (read-only permissions)
+  - Type: PostGIS
+- **Location**: GeoServer → Data → Stores → `osm_notes:notes_wms`
+
+### 4. **Feature Type (Layer)**
+- **Name**: `notes_wms_layer` (configurable via `GEOSERVER_LAYER`)
+- **Native Name**: `notes_wms` (table name in database)
+- **Type**: Feature Type
+- **Purpose**: Exposes the `wms.notes_wms` table as a WMS layer
+- **SRS**: EPSG:4326 (WGS84)
+- **Bounding Box**: Worldwide (-180 to 180, -90 to 90)
+- **Location**: GeoServer → Data → Layers → `osm_notes:notes_wms_layer`
+
+### 5. **Style (SLD)**
+- **Name**: `osm_notes_style` (configurable via `WMS_STYLE_NAME`, defaults to `OpenNotes` if not set)
+- **Type**: SLD (Styled Layer Descriptor)
+- **Purpose**: Defines how the layer is rendered (colors, symbols, etc.)
+- **File**: `sld/OpenNotes.sld` (configurable via `WMS_STYLE_FILE` or `WMS_STYLE_OPEN_FILE`)
+- **Location**: GeoServer → Styles → `osm_notes_style` (or `OpenNotes`)
+
+**Note**: The style is automatically assigned to the layer as the default style. The style name comes from `WMS_STYLE_NAME` (default: `osm_notes_style`), and the file comes from `WMS_STYLE_FILE` (default: `sld/OpenNotes.sld`).
+
+### Accessing the WMS Service
+
+After installation, the WMS service is available at:
+
+- **WMS URL**: `http://localhost:8888/geoserver/wms` (or your GeoServer URL)
+- **Layer Name**: `osm_notes:notes_wms_layer`
+- **GetCapabilities**: `http://localhost:8888/geoserver/wms?service=WMS&version=1.1.0&request=GetCapabilities`
+
+### Verifying Objects Were Created
+
+#### Method 1: Using the Script Status Command
+
+The easiest way to verify objects is using the built-in status command:
+
+```bash
+./bin/wms/geoserverConfig.sh status
+```
+
+This will check and report the status of all objects (workspace, namespace, datastore, layer).
+
+#### Method 2: Using REST API (Command Line)
+
+You can verify objects directly using the GeoServer REST API:
+
+```bash
+# Set your GeoServer credentials
+export GEOSERVER_URL="http://localhost:8888/geoserver"
+export GEOSERVER_USER="admin"
+export GEOSERVER_PASSWORD="geoserver"
+
+# Check workspace
+curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${GEOSERVER_URL}/rest/workspaces/osm_notes.xml"
+
+# List all workspaces
+curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${GEOSERVER_URL}/rest/workspaces.xml"
+
+# Check datastore
+curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${GEOSERVER_URL}/rest/workspaces/osm_notes/datastores/notes_wms.xml"
+
+# List all datastores in workspace
+curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${GEOSERVER_URL}/rest/workspaces/osm_notes/datastores.xml"
+
+# Check layer
+curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${GEOSERVER_URL}/rest/layers/osm_notes:notes_wms_layer.xml"
+
+# List all layers
+curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${GEOSERVER_URL}/rest/layers.xml"
+
+# List all styles
+curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${GEOSERVER_URL}/rest/styles.xml"
+```
+
+#### Method 3: Using GeoServer Web Interface
+
+You can view all created objects in the GeoServer web interface:
+
+1. **Access GeoServer Web**: `http://localhost:8888/geoserver/web`
+2. **Login** with your admin credentials
+3. **Navigate to**:
+   - **Workspaces**: Data → Workspaces → Look for `osm_notes`
+   - **Stores**: Data → Stores → Look for `osm_notes:notes_wms`
+   - **Layers**: Data → Layers → Look for `osm_notes:notes_wms_layer`
+   - **Styles**: Styles → Look for `osm_notes_style` or `OpenNotes`
+
+**Direct Links** (after logging in):
+- Workspaces: `http://localhost:8888/geoserver/web/?wicket:bookmarkablePage=:org.geoserver.web.data.workspace.WorkspacePage`
+- Stores: `http://localhost:8888/geoserver/web/?wicket:bookmarkablePage=:org.geoserver.web.data.store.DataStoresPage`
+- Layers: `http://localhost:8888/geoserver/web/?wicket:bookmarkablePage=:org.geoserver.web.data.layers.LayersPage`
+- Styles: `http://localhost:8888/geoserver/web/?wicket:bookmarkablePage=:org.geoserver.web.data.style.StylesPage`
+
+#### Troubleshooting: Objects Not Visible
+
+If you don't see the objects in the web interface:
+
+1. **Check if installation actually succeeded**:
+   ```bash
+   ./bin/wms/geoserverConfig.sh status
+   ```
+
+2. **Verify GeoServer URL is correct**:
+   ```bash
+   echo $GEOSERVER_URL
+   # Should match your actual GeoServer URL (e.g., http://localhost:8888/geoserver)
+   ```
+
+3. **Check REST API directly**:
+   ```bash
+   curl -u admin:geoserver "${GEOSERVER_URL}/rest/workspaces.xml"
+   ```
+
+4. **Verify credentials**:
+   ```bash
+   curl -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+     "${GEOSERVER_URL}/rest/about/status"
+   ```
+
+5. **Check GeoServer logs** for errors:
+   ```bash
+   tail -f /opt/geoserver/logs/geoserver.log
+   # Or wherever your GeoServer logs are located
+   ```
+
 3. **Verify configuration:**
 
    ```bash
