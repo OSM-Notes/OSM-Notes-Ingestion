@@ -12,6 +12,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 # Set required variables for functionsProcess.sh
+# SCRIPT_BASE_DIRECTORY must be set BEFORE loading functionsProcess.sh
+# so it can find commonFunctions.sh correctly
+export SCRIPT_BASE_DIRECTORY="${PROJECT_ROOT}"
 export BASENAME="geoserverConfig"
 export TMP_DIR="/tmp"
 export LOG_LEVEL="INFO"
