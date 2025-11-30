@@ -383,9 +383,15 @@ create_namespace() {
  elif [[ "${HTTP_CODE}" == "409" ]]; then
   print_status "${YELLOW}" "⚠️  Namespace '${GEOSERVER_WORKSPACE}' already exists"
  else
-  print_status "${RED}" "❌ ERROR: Failed to create namespace (HTTP ${HTTP_CODE})"
-  if [[ -n "${RESPONSE_BODY}" ]]; then
-   print_status "${YELLOW}" "   Response: ${RESPONSE_BODY}" | head -5
+  # Check if error message indicates it already exists (some GeoServer versions return 500 for this)
+  if echo "${RESPONSE_BODY}" | grep -qi "already exists"; then
+   print_status "${YELLOW}" "⚠️  Namespace '${GEOSERVER_WORKSPACE}' already exists"
+  else
+   print_status "${RED}" "❌ ERROR: Failed to create namespace (HTTP ${HTTP_CODE})"
+   if [[ -n "${RESPONSE_BODY}" ]]; then
+    print_status "${YELLOW}" "   Response:"
+    echo "${RESPONSE_BODY}" | head -10 | sed 's/^/      /'
+   fi
   fi
  fi
 
@@ -523,7 +529,14 @@ create_feature_type() {
   print_status "${RED}" "❌ ERROR: Failed to create feature type (HTTP ${HTTP_CODE})"
   if [[ -n "${RESPONSE_BODY}" ]]; then
    print_status "${YELLOW}" "   Response:"
-   echo "${RESPONSE_BODY}" | head -20 | sed 's/^/      /'
+   echo "${RESPONSE_BODY}" | head -30 | sed 's/^/      /'
+  else
+   print_status "${YELLOW}" "   (No error message returned - check GeoServer logs)"
+   print_status "${YELLOW}" "   Common causes:"
+   print_status "${YELLOW}" "   - Table '${WMS_SCHEMA}.${WMS_TABLE}' does not exist"
+   print_status "${YELLOW}" "   - User '${DBUSER}' lacks permissions"
+   print_status "${YELLOW}" "   - Datastore cannot connect to PostgreSQL"
+   print_status "${YELLOW}" "   - Check GeoServer logs: tail -f /opt/geoserver/logs/geoserver.log"
   fi
   rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
   return 1
@@ -756,6 +769,14 @@ remove_geoserver_config() {
   print_status "${GREEN}" "✅ Datastore removed"
  else
   print_status "${YELLOW}" "⚠️  Datastore removal failed or not found"
+ fi
+
+ # Remove namespace (before workspace, as namespace is linked to workspace)
+ local NAMESPACE_URL="${GEOSERVER_URL}/rest/namespaces/${GEOSERVER_WORKSPACE}"
+ if curl -s -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${NAMESPACE_URL}" &> /dev/null; then
+  print_status "${GREEN}" "✅ Namespace removed"
+ else
+  print_status "${YELLOW}" "⚠️  Namespace removal failed or not found"
  fi
 
  # Remove workspace
