@@ -200,9 +200,20 @@ validate_prerequisites() {
   print_status "${RED}" "❌ ERROR: Cannot connect to GeoServer at ${GEOSERVER_URL}"
   if [[ -n "${HTTP_CODE}" ]]; then
    print_status "${RED}" "   HTTP Status Code: ${HTTP_CODE}"
+   if [[ "${HTTP_CODE}" == "000" ]]; then
+    print_status "${YELLOW}" "   Connection failed - GeoServer may not be running or URL is incorrect"
+    if [[ -f "${TEMP_ERROR_FILE}" ]]; then
+     local CURL_ERROR
+     CURL_ERROR=$(cat "${TEMP_ERROR_FILE}" 2> /dev/null || echo "")
+     if [[ -n "${CURL_ERROR}" ]]; then
+      print_status "${YELLOW}" "   Error details: ${CURL_ERROR}"
+     fi
+    fi
+   fi
   fi
   print_status "${YELLOW}" "💡 Make sure GeoServer is running and credentials are correct"
-  print_status "${YELLOW}" "💡 You can override the URL with: GEOSERVER_URL=http://host:port/geoserver"
+  print_status "${YELLOW}" "💡 You can override the URL with: export GEOSERVER_URL=https://geoserver.osm.lat/geoserver"
+  print_status "${YELLOW}" "💡 Or set it in etc/wms.properties.sh: GEOSERVER_URL=\"https://geoserver.osm.lat/geoserver\""
   print_status "${YELLOW}" "💡 To find GeoServer port, try: netstat -tlnp | grep java | grep LISTEN"
   exit 1
  fi

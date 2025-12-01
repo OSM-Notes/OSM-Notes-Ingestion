@@ -34,11 +34,11 @@ WMS_TABLE="${WMS_TABLE:-notes_wms}"
 # GeoServer installation and access
 GEOSERVER_HOME="${GEOSERVER_HOME:-/opt/geoserver}"
 GEOSERVER_DATA_DIR="${GEOSERVER_DATA_DIR:-${GEOSERVER_HOME}/data_dir}"
-GEOSERVER_URL="${GEOSERVER_URL:-http://localhost:8080/geoserver}"
+GEOSERVER_URL="${GEOSERVER_URL:-https://geoserver.osm.lat/geoserver}"
 
 # GeoServer credentials
 GEOSERVER_USER="${GEOSERVER_USER:-admin}"
-GEOSERVER_PASSWORD="${GEOSERVER_PASSWORD:-geoserver}"
+GEOSERVER_PASSWORD="${GEOSERVER_PASSWORD:-OpenStreetMap}"
 
 # GeoServer workspace and namespace
 GEOSERVER_WORKSPACE="${GEOSERVER_WORKSPACE:-osm_notes}"
