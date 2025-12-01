@@ -65,11 +65,11 @@ WMS_LAYER_SRS="${WMS_LAYER_SRS:-EPSG:4326}"
 # WMS Layer-specific configurations (from README)
 WMS_LAYER_OPEN_NAME="${WMS_LAYER_OPEN_NAME:-Open OSM Notes layer}"
 WMS_LAYER_OPEN_DESCRIPTION="${WMS_LAYER_OPEN_DESCRIPTION:-This layer shows the location of the currently open notes. The color intensity shows the age of the creation time.}"
-WMS_LAYER_OPEN_SQL="${WMS_LAYER_OPEN_SQL:-SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry FROM wms.notes_wms WHERE year_closed_at IS NULL ORDER BY year_created_at DESC}"
+WMS_LAYER_OPEN_SQL="${WMS_LAYER_OPEN_SQL:-SELECT /* Notes-WMS */ note_id, year_created_at, year_closed_at, geometry FROM wms.notes_wms WHERE year_closed_at IS NULL ORDER BY year_created_at DESC}"
 
 WMS_LAYER_CLOSED_NAME="${WMS_LAYER_CLOSED_NAME:-Closed OSM Notes layer}"
 WMS_LAYER_CLOSED_DESCRIPTION="${WMS_LAYER_CLOSED_DESCRIPTION:-This layer shows the location of the closed notes. The color intensity shows the age of the creation time.}"
-WMS_LAYER_CLOSED_SQL="${WMS_LAYER_CLOSED_SQL:-SELECT /* Notes-WMS */ year_created_at, year_closed_at, geometry FROM wms.notes_wms WHERE year_closed_at IS NOT NULL ORDER BY year_created_at DESC}"
+WMS_LAYER_CLOSED_SQL="${WMS_LAYER_CLOSED_SQL:-SELECT /* Notes-WMS */ note_id, year_created_at, year_closed_at, geometry FROM wms.notes_wms WHERE year_closed_at IS NOT NULL ORDER BY year_created_at DESC}"
 
 WMS_LAYER_DISPUTED_NAME="${WMS_LAYER_DISPUTED_NAME:-Disputed and Unclaimed Areas layer}"
 WMS_LAYER_DISPUTED_DESCRIPTION="${WMS_LAYER_DISPUTED_DESCRIPTION:-This layer shows disputed areas (overlapping countries) and unclaimed areas (gaps between countries).}"
