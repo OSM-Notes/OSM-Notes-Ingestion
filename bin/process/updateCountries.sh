@@ -656,6 +656,59 @@ function __checkMaritimesUpdateNeeded {
  return 1
 }
 
+# Marks countries that failed to update during the update process.
+# Countries that remain with updated=TRUE after processing are marked as failed.
+function __markFailedCountryUpdates {
+ __log_start
+ __logi "Marking countries that failed to update..."
+
+ # Mark countries that failed (still have updated=TRUE) as update_failed=TRUE
+ # and record the last update attempt timestamp
+ local FAILED_COUNT
+ FAILED_COUNT=$(psql -d "${DBNAME}" -Atq -c "
+   UPDATE countries
+   SET update_failed = TRUE,
+       last_update_attempt = CURRENT_TIMESTAMP
+   WHERE updated = TRUE
+   RETURNING country_id;
+ " 2> /dev/null | wc -l | tr -d ' ' || echo "0")
+
+ if [[ "${FAILED_COUNT}" -gt 0 ]]; then
+  __logw "Marked ${FAILED_COUNT} countries as failed to update"
+  # Show sample of failed countries
+  local SAMPLE_FAILED
+  SAMPLE_FAILED=$(psql -d "${DBNAME}" -Atq -c "
+    SELECT country_id || ':' || COALESCE(country_name_en, country_name, 'Unknown')
+    FROM countries
+    WHERE update_failed = TRUE
+    ORDER BY country_id
+    LIMIT 10;
+  " 2> /dev/null | tr '\n' ',' | sed 's/,$//' || echo "")
+  if [[ -n "${SAMPLE_FAILED}" ]]; then
+   __logw "Sample failed countries: ${SAMPLE_FAILED}"
+  fi
+ else
+  __logi "No countries failed to update"
+ fi
+
+ # Mark successfully updated countries as update_failed=FALSE
+ # (countries that were processed and now have updated=FALSE)
+ local SUCCESS_COUNT
+ SUCCESS_COUNT=$(psql -d "${DBNAME}" -Atq -c "
+   UPDATE countries
+   SET update_failed = FALSE,
+       last_update_attempt = CURRENT_TIMESTAMP
+   WHERE updated = FALSE
+     AND (update_failed IS NULL OR update_failed = TRUE);
+ " 2> /dev/null | wc -l | tr -d ' ' || echo "0")
+
+ if [[ "${SUCCESS_COUNT}" -gt 0 ]]; then
+  __logi "Marked ${SUCCESS_COUNT} countries as successfully updated"
+ fi
+
+ __log_finish
+}
+
 # Re-assigns countries only for notes affected by geometry changes.
 # This is much more efficient than re-processing all notes.
 # Only processes notes within bounding boxes of countries that were updated.
@@ -790,7 +843,8 @@ EOF
   # after countries are loaded, not here
  else
   __logi "Running in update mode - processing existing data only"
-  STMT="UPDATE countries SET updated = TRUE"
+  # Mark all countries for update and record update attempt timestamp
+  STMT="UPDATE countries SET updated = TRUE, last_update_attempt = CURRENT_TIMESTAMP"
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
   # Check if countries update is needed before processing
@@ -823,6 +877,9 @@ EOF
   # Re-assign countries for notes affected by boundary changes
   # This is automatic and much more efficient than re-processing all notes
   __reassignAffectedNotes
+
+  # Mark countries that failed to update (those still with updated=TRUE)
+  __markFailedCountryUpdates
  fi
  __log_finish
 }

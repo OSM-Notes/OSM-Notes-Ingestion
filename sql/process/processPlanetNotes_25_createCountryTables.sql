@@ -3,7 +3,7 @@
 -- latitude to minimize expensive ST_Contains calls.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-27
+-- Version: 2025-12-01
 
 CREATE TABLE countries (
  country_id INTEGER NOT NULL,
@@ -41,7 +41,9 @@ CREATE TABLE countries (
  zone_pacific_islands INTEGER,
  zone_arctic INTEGER,
  zone_antarctic INTEGER,
- updated BOOLEAN
+ updated BOOLEAN,
+ last_update_attempt TIMESTAMP WITH TIME ZONE,
+ update_failed BOOLEAN DEFAULT FALSE
 );
 COMMENT ON TABLE countries IS
   'Basic data about countries and maritimes areas from OSM with 2D grid';
@@ -113,10 +115,19 @@ COMMENT ON COLUMN countries.zone_antarctic IS
   'Priority for Antarctic regions (all lon, lat<-60)';
 COMMENT ON COLUMN countries.updated IS
   'Used when updating all countries to refresh properties';
+COMMENT ON COLUMN countries.last_update_attempt IS
+  'Timestamp of the last attempt to update this country boundary';
+COMMENT ON COLUMN countries.update_failed IS
+  'Indicates if the last update attempt failed. NULL or FALSE means success or not attempted. TRUE means the update failed.';
 
 CREATE INDEX IF NOT EXISTS countries_spatial ON countries
   USING GIST (geom);
 COMMENT ON INDEX countries_spatial IS 'Spatial index for countries';
+
+CREATE INDEX IF NOT EXISTS idx_countries_update_failed ON countries (update_failed)
+ WHERE update_failed = TRUE;
+COMMENT ON INDEX idx_countries_update_failed IS
+  'Index to quickly find countries that failed to update';
 
 ALTER TABLE countries
  ADD CONSTRAINT pk_countries
