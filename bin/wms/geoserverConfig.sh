@@ -567,6 +567,46 @@ create_datastore() {
  rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
 }
 
+# Function to calculate bounding box from PostgreSQL table/view
+calculate_bbox_from_table() {
+ local TABLE_NAME="${1}"
+ 
+ # Query PostgreSQL to get the actual bounding box of the data
+ local BBOX_QUERY="SELECT ST_XMin(bbox)::numeric, ST_YMin(bbox)::numeric, ST_XMax(bbox)::numeric, ST_YMax(bbox)::numeric FROM (SELECT ST_Extent(geometry)::box2d as bbox FROM ${TABLE_NAME} WHERE geometry IS NOT NULL) t;"
+ 
+ local PSQL_CMD="psql -d \"${DBNAME}\" -t -A"
+ if [[ -n "${DBHOST}" ]]; then
+  PSQL_CMD="psql -h \"${DBHOST}\" -d \"${DBNAME}\" -t -A"
+ fi
+ if [[ -n "${DBUSER}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U \"${DBUSER}\""
+ fi
+ if [[ -n "${DBPORT}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -p \"${DBPORT}\""
+ fi
+ if [[ -n "${DBPASSWORD}" ]]; then
+  export PGPASSWORD="${DBPASSWORD}"
+ else
+  unset PGPASSWORD 2> /dev/null || true
+ fi
+ 
+ local BBOX_RESULT
+ # PostgreSQL returns values separated by | when using -A, convert to comma-separated
+ BBOX_RESULT=$(eval "${PSQL_CMD} -c \"${BBOX_QUERY}\"" 2> /dev/null | tr '|' ',' | tr -d ' ' || echo "")
+ 
+ if [[ -n "${DBPASSWORD}" ]]; then
+  unset PGPASSWORD 2> /dev/null || true
+ fi
+ 
+ # If we got a valid bounding box, use it; otherwise use defaults
+ if [[ -n "${BBOX_RESULT}" ]] && echo "${BBOX_RESULT}" | grep -qE '^-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+$'; then
+  echo "${BBOX_RESULT}"
+ else
+  # Return default bounding box (worldwide) - GeoServer will recalculate from data
+  echo "${WMS_BBOX_MINX},${WMS_BBOX_MINY},${WMS_BBOX_MAXX},${WMS_BBOX_MAXY}"
+ fi
+}
+
 # Function to create feature type from table
 create_feature_type_from_table() {
  local LAYER_NAME="${1}"
@@ -575,6 +615,12 @@ create_feature_type_from_table() {
  local LAYER_DESCRIPTION="${4}"
 
  print_status "${BLUE}" "🗺️  Creating GeoServer feature type '${LAYER_NAME}' from table '${TABLE_NAME}'..."
+
+ # Calculate actual bounding box from PostgreSQL data
+ local BBOX
+ BBOX=$(calculate_bbox_from_table "${TABLE_NAME}")
+ local BBOX_MINX BBOX_MINY BBOX_MAXX BBOX_MAXY
+ IFS=',' read -r BBOX_MINX BBOX_MINY BBOX_MAXX BBOX_MAXY <<< "${BBOX}"
 
  # For views and materialized views, we need to specify attributes explicitly
  # Check if it's a view (contains 'view' in the name, case insensitive)
@@ -679,17 +725,17 @@ create_feature_type_from_table() {
      \"enabled\": true,
      \"srs\": \"${WMS_LAYER_SRS}\",
      \"nativeBoundingBox\": {
-       \"minx\": ${WMS_BBOX_MINX},
-       \"maxx\": ${WMS_BBOX_MAXX},
-       \"miny\": ${WMS_BBOX_MINY},
-       \"maxy\": ${WMS_BBOX_MAXY},
+       \"minx\": ${BBOX_MINX},
+       \"maxx\": ${BBOX_MAXX},
+       \"miny\": ${BBOX_MINY},
+       \"maxy\": ${BBOX_MAXY},
        \"crs\": \"${WMS_LAYER_SRS}\"
      },
      \"latLonBoundingBox\": {
-       \"minx\": ${WMS_BBOX_MINX},
-       \"maxx\": ${WMS_BBOX_MAXX},
-       \"miny\": ${WMS_BBOX_MINY},
-       \"maxy\": ${WMS_BBOX_MAXY},
+       \"minx\": ${BBOX_MINX},
+       \"maxx\": ${BBOX_MAXX},
+       \"miny\": ${BBOX_MINY},
+       \"maxy\": ${BBOX_MAXY},
        \"crs\": \"${WMS_LAYER_SRS}\"
      }${ATTRIBUTES_JSON},
      \"store\": {
@@ -716,6 +762,20 @@ create_feature_type_from_table() {
 
  if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' created"
+  # Force GeoServer to recalculate bounding boxes from actual data
+  print_status "${BLUE}" "📐 Recalculating bounding boxes from data..."
+  # Use the recalculate endpoint to compute bounding boxes from actual data
+  local RECALC_URL="${FEATURE_TYPE_UPDATE_URL}?recalculate=nativebbox,latlonbbox"
+  local TEMP_RECALC_FILE="${TMP_DIR}/recalc_${LAYER_NAME}_$$.tmp"
+  local RECALC_CODE
+  RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X PUT "${RECALC_URL}" 2> /dev/null | tail -1)
+  if [[ "${RECALC_CODE}" == "200" ]]; then
+   print_status "${GREEN}" "✅ Bounding boxes recalculated"
+  else
+   print_status "${YELLOW}" "⚠️  Could not recalculate bounding boxes (HTTP ${RECALC_CODE})"
+   print_status "${YELLOW}" "   GeoServer will use the provided bounding box"
+  fi
+  rm -f "${TEMP_RECALC_FILE}" 2> /dev/null || true
   rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
   return 0
  elif [[ "${HTTP_CODE}" == "409" ]] || echo "${RESPONSE_BODY}" | grep -qi "already exists"; then
@@ -740,6 +800,19 @@ create_feature_type_from_table() {
    RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
    if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
     print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' recreated"
+    # Force GeoServer to recalculate bounding boxes from actual data
+    print_status "${BLUE}" "📐 Recalculating bounding boxes from data..."
+    local RECALC_URL="${FEATURE_TYPE_UPDATE_URL}?recalculate=nativebbox,latlonbbox"
+    local TEMP_RECALC_FILE="${TMP_DIR}/recalc_${LAYER_NAME}_$$.tmp"
+    local RECALC_CODE
+    RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X PUT "${RECALC_URL}" 2> /dev/null | tail -1)
+    if [[ "${RECALC_CODE}" == "200" ]]; then
+     print_status "${GREEN}" "✅ Bounding boxes recalculated"
+    else
+     print_status "${YELLOW}" "⚠️  Could not recalculate bounding boxes (HTTP ${RECALC_CODE})"
+     print_status "${YELLOW}" "   GeoServer will use the provided bounding box"
+    fi
+    rm -f "${TEMP_RECALC_FILE}" 2> /dev/null || true
     rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
     return 0
    fi
@@ -747,16 +820,51 @@ create_feature_type_from_table() {
   
   # Layer exists or recreation failed, try to update
   print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' already exists, updating..."
-  # Try to update using PUT
+  # Recalculate bounding box from actual data
+  local BBOX_UPDATE
+  BBOX_UPDATE=$(calculate_bbox_from_table "${TABLE_NAME}")
+  local BBOX_MINX_UPDATE BBOX_MINY_UPDATE BBOX_MAXX_UPDATE BBOX_MAXY_UPDATE
+  IFS=',' read -r BBOX_MINX_UPDATE BBOX_MINY_UPDATE BBOX_MAXX_UPDATE BBOX_MAXY_UPDATE <<< "${BBOX_UPDATE}"
+  # For update, include calculated bounding boxes
+  local FEATURE_TYPE_UPDATE_DATA="{
+   \"featureType\": {
+     \"name\": \"${LAYER_NAME}\",
+     \"nativeName\": \"${TABLE_NAME}\",
+     \"title\": \"${LAYER_TITLE}\",
+     \"description\": \"${LAYER_DESCRIPTION}\",
+     \"enabled\": true,
+     \"srs\": \"${WMS_LAYER_SRS}\",
+     \"nativeBoundingBox\": {
+       \"minx\": ${BBOX_MINX_UPDATE},
+       \"maxx\": ${BBOX_MAXX_UPDATE},
+       \"miny\": ${BBOX_MINY_UPDATE},
+       \"maxy\": ${BBOX_MAXY_UPDATE},
+       \"crs\": \"${WMS_LAYER_SRS}\"
+     },
+     \"latLonBoundingBox\": {
+       \"minx\": ${BBOX_MINX_UPDATE},
+       \"maxx\": ${BBOX_MAXX_UPDATE},
+       \"miny\": ${BBOX_MINY_UPDATE},
+       \"maxy\": ${BBOX_MAXY_UPDATE},
+       \"crs\": \"${WMS_LAYER_SRS}\"
+     }${ATTRIBUTES_JSON},
+     \"store\": {
+       \"@class\": \"dataStore\",
+       \"name\": \"${GEOSERVER_STORE}\"
+     }
+   }
+ }"
+  # Try to update using PUT (without bounding boxes - GeoServer will recalculate)
   HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
    -X PUT \
    -H "Content-Type: application/json" \
    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -d "${FEATURE_TYPE_DATA}" \
+   -d "${FEATURE_TYPE_UPDATE_DATA}" \
    "${FEATURE_TYPE_UPDATE_URL}" 2> /dev/null | tail -1)
   RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
   if [[ "${HTTP_CODE}" == "200" ]]; then
    print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' updated"
+   print_status "${GREEN}" "✅ GeoServer will recalculate bounding boxes automatically"
    rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
    return 0
   else
