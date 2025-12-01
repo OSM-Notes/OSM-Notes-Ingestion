@@ -31,7 +31,7 @@ DBNAME=osm-notes ./bin/scripts/exportCountriesBackup.sh
 
 **What it does:**
 - Connects to the database and verifies countries table exists
-- Filters out maritime boundaries (identified by patterns like "(EEZ)")
+- Filters out maritime boundaries using comprehensive patterns (see Maritime Patterns below)
 - Exports all country boundaries to GeoJSON format
 - Validates the GeoJSON structure if `jq` is available
 - Creates/updates `data/countries.geojson`
@@ -56,10 +56,7 @@ DBNAME=osm-notes ./bin/scripts/exportMaritimesBackup.sh
 
 **What it does:**
 - Connects to the database and verifies countries table exists
-- Identifies maritime boundaries by patterns in names:
-  - "(EEZ)" - Exclusive Economic Zone
-  - "(Contiguous Zone)" - Contiguous Zone
-  - "(maritime)" - Other maritime boundaries
+- Identifies maritime boundaries using comprehensive patterns (see Maritime Patterns below)
 - Exports all maritime boundaries to GeoJSON format
 - Validates the GeoJSON structure if `jq` is available
 - Creates/updates `data/maritimes.geojson`
@@ -68,6 +65,34 @@ DBNAME=osm-notes ./bin/scripts/exportMaritimesBackup.sh
 - File: `data/maritimes.geojson`
 - Format: GeoJSON (RFC 7946)
 - Typical size: ~4.9MB (30 maritime boundaries)
+
+## Maritime Patterns
+
+Maritime boundaries are identified using comprehensive case-insensitive patterns that match
+various naming conventions used in OSM:
+
+### EEZ (Exclusive Economic Zone) Patterns:
+- `(EEZ)` - With parentheses
+- `EEZ` - Without parentheses (e.g., "EEZ Spain")
+- `Exclusive Economic Zone` - Full phrase
+- `Economic Zone` - Without "Exclusive" (e.g., "Economic Zone of Iceland")
+
+### Contiguous Zone Patterns:
+- `(Contiguous Zone)` - With parentheses
+- `Contiguous Zone` - Without parentheses
+- `contiguous area` - Alternative wording (e.g., "France (contiguous area in the Mediterranean Sea)")
+- `contiguous border` - Alternative wording (e.g., "Contiguous border of France")
+
+### Maritime Patterns:
+- `(maritime)` - With parentheses
+- `maritime` - Without parentheses
+
+### Fisheries Zones:
+- `Fisheries protection zone` - (e.g., "Fisheries protection zone around Jan Mayen")
+- `Fishing territory` - (e.g., "Fishing territory around the Faroe Islands")
+
+These patterns are applied to both `country_name` and `country_name_en` fields using
+case-insensitive matching (ILIKE) to ensure all maritime boundaries are correctly identified.
 
 ## Automatic Usage
 
@@ -145,5 +170,5 @@ The backups should be updated:
 ## Author
 
 Andres Gomez (AngocA)
-Version: 2025-01-23
+Version: 2025-12-01
 

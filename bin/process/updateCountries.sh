@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-30
-VERSION="2025-11-30"
+# Version: 2025-12-01
+VERSION="2025-12-01"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -594,10 +594,24 @@ function __checkMaritimesUpdateNeeded {
  fi
 
  # Get current maritime IDs from database
+ # Use comprehensive patterns to identify all maritime boundaries
  local CURRENT_MARITIMES_FILE
  CURRENT_MARITIMES_FILE="${TMP_DIR}/current_maritimes_ids.txt"
  psql -d "${DBNAME}" -Atq -c \
-  "SELECT country_id FROM countries WHERE country_name_en LIKE '%(EEZ)%' OR country_name_en LIKE '%(Contiguous Zone)%' OR country_name_en LIKE '%(maritime)%' OR country_name LIKE '%(EEZ)%' OR country_name LIKE '%(Contiguous Zone)%' OR country_name LIKE '%(maritime)%' ORDER BY country_id;" \
+  "SELECT country_id FROM countries WHERE (
+   country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
+   country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
+   country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR
+   country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR
+   country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR
+   country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR
+   country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR
+   country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR
+   country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR
+   country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR
+   country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR
+   country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%'
+  ) ORDER BY country_id;" \
   > "${CURRENT_MARITIMES_FILE}" 2> /dev/null || true
 
  # Extract IDs from backup GeoJSON (if jq is available)

@@ -4,8 +4,9 @@
 # in the repository. This backup can be used by processPlanet base to avoid
 # downloading countries from Overpass on every run.
 #
-# The script filters out maritime boundaries (identified by patterns like "(EEZ)")
-# and exports only country boundaries to data/countries.geojson.
+# The script filters out maritime boundaries (identified by comprehensive patterns
+# including EEZ, Contiguous Zone, maritime, and fisheries zones) and exports only
+# country boundaries to data/countries.geojson.
 #
 # Usage:
 #   ./bin/scripts/exportCountriesBackup.sh
@@ -23,8 +24,8 @@
 #   - bin/scripts/exportMaritimesBackup.sh - Export maritime boundaries
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
-VERSION="2025-01-23"
+# Version: 2025-12-01
+VERSION="2025-12-01"
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -74,11 +75,26 @@ main() {
  fi
  __logi "Found ${COUNTRIES_COUNT} countries in database"
 
- # Filter out maritime boundaries (they have their own backup)
- # Countries are those that don't have maritime patterns in their names
- local COUNTRIES_ONLY_COUNT
- COUNTRIES_ONLY_COUNT=$(psql -d "${DBNAME}" -Atq -c \
-  "SELECT COUNT(*) FROM countries WHERE NOT (country_name_en LIKE '%(EEZ)%' OR country_name_en LIKE '%(Contiguous Zone)%' OR country_name_en LIKE '%(maritime)%' OR country_name LIKE '%(EEZ)%' OR country_name LIKE '%(Contiguous Zone)%' OR country_name LIKE '%(maritime)%')" 2> /dev/null || echo "0")
+# Filter out maritime boundaries (they have their own backup)
+# Countries are those that don't have maritime patterns in their names
+# Maritime patterns include: EEZ variations, Contiguous Zone variations, maritime,
+# and fisheries zones
+local COUNTRIES_ONLY_COUNT
+COUNTRIES_ONLY_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+ "SELECT COUNT(*) FROM countries WHERE NOT (
+  country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
+  country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
+  country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR
+  country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR
+  country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR
+  country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR
+  country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR
+  country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR
+  country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR
+  country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR
+  country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR
+  country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%'
+ )" 2> /dev/null || echo "0")
 
  __logi "Found ${COUNTRIES_ONLY_COUNT} countries (excluding maritimes)"
 
@@ -91,14 +107,27 @@ main() {
  __logd "Ensuring data directory exists..."
  mkdir -p "${SCRIPT_BASE_DIRECTORY}/data"
 
- # Export countries to GeoJSON using ogr2ogr
- # Exclude maritime boundaries
- __logd "Exporting country boundaries to GeoJSON..."
- if ogr2ogr -f "GeoJSON" "${OUTPUT_FILE}" \
-  "PG:dbname=${DBNAME}" \
-  -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM countries WHERE NOT (country_name_en LIKE '%(EEZ)%' OR country_name_en LIKE '%(Contiguous Zone)%' OR country_name_en LIKE '%(maritime)%' OR country_name LIKE '%(EEZ)%' OR country_name LIKE '%(Contiguous Zone)%' OR country_name LIKE '%(maritime)%')" \
-  -lco RFC7946=YES \
-  -lco WRITE_BBOX=YES 2> /dev/null; then
+# Export countries to GeoJSON using ogr2ogr
+# Exclude maritime boundaries using comprehensive patterns
+__logd "Exporting country boundaries to GeoJSON..."
+if ogr2ogr -f "GeoJSON" "${OUTPUT_FILE}" \
+ "PG:dbname=${DBNAME}" \
+ -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM countries WHERE NOT (
+  country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
+  country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
+  country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR
+  country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR
+  country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR
+  country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR
+  country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR
+  country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR
+  country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR
+  country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR
+  country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR
+  country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%'
+ )" \
+ -lco RFC7946=YES \
+ -lco WRITE_BBOX=YES 2> /dev/null; then
   __logi "Successfully exported country boundaries to GeoJSON"
  else
   __loge "ERROR: Failed to export country boundaries"
