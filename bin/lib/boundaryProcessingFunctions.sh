@@ -1000,10 +1000,21 @@ function __processCountries_impl {
     -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
     --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-    __logi "Successfully imported countries from backup"
-    rm -f "${OGR_ERROR}"
-    __log_finish
-    return 0
+    # Fix SRID: GeoJSON doesn't include CRS info, ogr2ogr may not set SRID correctly
+    # This is critical for spatial queries to work (ST_Contains fails with mixed SRIDs)
+    __logd "Ensuring SRID is set to 4326 for all geometries..."
+    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "UPDATE countries SET geom = ST_SetSRID(geom, 4326) WHERE ST_SRID(geom) = 0 OR ST_SRID(geom) IS NULL;" >> "${OGR_ERROR}" 2>&1; then
+     __logi "Successfully imported countries from backup and fixed SRID"
+     rm -f "${OGR_ERROR}"
+     __log_finish
+     return 0
+    else
+     __logw "Import succeeded but SRID fix failed (non-critical)"
+     __logd "SRID fix error: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+     rm -f "${OGR_ERROR}"
+     __log_finish
+     return 0
+    fi
    else
     __logw "Failed to import from backup, falling back to Overpass download"
     __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
