@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-01
-VERSION="2025-12-01"
+# Version: 2025-12-02
+VERSION="2025-12-02"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -520,16 +520,6 @@ function __processBoundary_impl {
  __logd "  Name ES: ${NAME_ES:-N/A}"
  __logd "  Name EN: ${NAME_EN:-N/A}"
 
- # Special handling for Taiwan (ID: 16239) - remove problematic tags to avoid oversized records
- if [[ "${ID}" -eq 16239 ]]; then
-  __log_taiwan_special_handling "${ID}"
-  if [[ -f "${GEOJSON_FILE}" ]]; then
-   grep -v "official_name" "${GEOJSON_FILE}" \
-    | grep -v "alt_name" > "${GEOJSON_FILE}-new"
-   mv "${GEOJSON_FILE}-new" "${GEOJSON_FILE}"
-  fi
- fi
-
  # Import into Postgres with retry logic
  __log_import_start "${ID}"
  __logd "Acquiring lock for boundary ${ID}..."
@@ -551,54 +541,122 @@ function __processBoundary_impl {
  # Import with ogr2ogr using retry logic with special handling for Austria
  __logd "Importing boundary ${ID} into database..."
 
-# Import ALL features from GeoJSON
-# Previous approach used -sql with SQLite dialect to select only geometry,
-# but this was causing incomplete imports (only partial features imported).
-# PostgreSQL TOAST automatically handles large rows, so we can import all fields
-# and filter by geometry type in SQL. This ensures all features are imported correctly.
-# -skipfailures allows ogr2ogr to continue even if some features fail
-__logd "Importing all features from GeoJSON for boundary ${ID}"
+ # Import ALL features from GeoJSON
+ # Previous approach used -sql with SQLite dialect to select only geometry,
+ # but this was causing incomplete imports (only partial features imported).
+ # PostgreSQL TOAST automatically handles large rows, so we can import all fields
+ # and filter by geometry type in SQL. This ensures all features are imported correctly.
+ # -skipfailures allows ogr2ogr to continue even if some features fail
+ __logd "Importing all features from GeoJSON for boundary ${ID}"
 
-local IMPORT_OPERATION
-local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BASHPID}.log"
+ local IMPORT_OPERATION
+ local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BASHPID}.log"
 
-# Import all features without -sql to ensure complete import
-# PostgreSQL TOAST will handle large rows automatically
-# We'll filter by geometry type (Polygon/MultiPolygon) in SQL before ST_Union
-if [[ "${ID}" -eq 16239 ]]; then
- # Austria - use ST_Buffer to fix topology issues
- __logd "Using special handling for Austria (ID: 16239)"
- # Import all features, geometry will be filtered in SQL
- IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
-else
- # Standard import - import ALL features
- __logd "Importing all features for boundary ${ID}"
- # Import all features, geometry will be filtered in SQL
- IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
-fi
+ # Special handling for Afghanistan (303427) and Taiwan (449220) - remove
+ # problematic tags to avoid oversized records (historical solution from git)
+ # These countries have many alt_name and official_name tags that cause "row too
+ # big" errors
+ if [[ "${ID}" -eq 303427 ]] || [[ "${ID}" -eq 449220 ]]; then
+  if [[ "${ID}" -eq 303427 ]]; then
+   __logi "Special handling for Afghanistan (ID: 303427) - removing problematic tags"
+  else
+   __logi "Special handling for Taiwan (ID: 449220) - removing problematic tags"
+  fi
+  if [[ -f "${GEOJSON_FILE}" ]]; then
+   # Remove official_name and alt_name tags to reduce row size
+   # This was the historical solution found in git history
+   local GEOJSON_TEMP="${GEOJSON_FILE}.temp"
+   grep -v "\"official_name\"" "${GEOJSON_FILE}" \
+    | grep -v "\"alt_name\"" > "${GEOJSON_TEMP}" 2> /dev/null || cp "${GEOJSON_FILE}" "${GEOJSON_TEMP}"
+   mv "${GEOJSON_TEMP}" "${GEOJSON_FILE}"
+   __logd "Removed problematic tags from GeoJSON for boundary ${ID}"
+  fi
+  # Also use PG_USE_COPY NO to allow TOAST for large geometries
+  __logd "Using PG_USE_COPY NO to allow TOAST for large rows"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+ elif [[ "${ID}" -eq 16239 ]]; then
+  # Austria - use ST_Buffer to fix topology issues
+  __logd "Using special handling for Austria (ID: 16239)"
+  # Import all features, geometry will be filtered in SQL
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+ else
+  # Standard import - import ALL features
+  __logd "Importing all features for boundary ${ID}"
+  # Import all features, geometry will be filtered in SQL
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+ fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
  if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
-  __loge "Failed to import boundary ${ID} into database after retries"
-  # Check for real errors (not just missing field warnings)
+  # Check if the error is "row is too big" - this requires a different strategy
+  local HAS_ROW_TOO_BIG=false
   if [[ -f "${OGR_ERROR_LOG}" ]]; then
-   local REAL_ERRORS
-   REAL_ERRORS=$(grep -v "Field 'admin_level' not found" "${OGR_ERROR_LOG}" 2> /dev/null | grep -v "^$" || true)
-   if [[ -n "${REAL_ERRORS}" ]]; then
-    __loge "ogr2ogr errors for boundary ${ID}:"
-    echo "${REAL_ERRORS}" | while IFS= read -r line; do
-     __loge "  ${line}"
-    done
-   else
-    __logd "Only expected warnings (missing admin_level field) for boundary ${ID}"
+   if grep -q "row is too big" "${OGR_ERROR_LOG}" 2> /dev/null; then
+    HAS_ROW_TOO_BIG=true
+    __logw "Detected 'row is too big' error for boundary ${ID} - retrying with PG_USE_COPY NO"
    fi
-   rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
   fi
-  __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
-   "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OGR_ERROR_LOG} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
-  __log_finish
-  return 1
+
+  # If "row is too big", retry with PG_USE_COPY NO (allows TOAST)
+  # Note: Afghanistan (303427) and Taiwan (449220) already use PG_USE_COPY NO
+  # from the start, so this is only for other countries that unexpectedly hit
+  # this error
+  if [[ "${HAS_ROW_TOO_BIG}" == "true" ]]; then
+   __logd "Retrying import for boundary ${ID} without COPY (using TOAST)"
+   if [[ "${ID}" -eq 16239 ]]; then
+    # Austria - use ST_Buffer to fix topology issues
+    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+   else
+    # Standard import without COPY (slower but allows TOAST for large rows)
+    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+   fi
+
+   if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
+    __loge "Failed to import boundary ${ID} even with PG_USE_COPY NO"
+    # Check for real errors (not just missing field warnings)
+    if [[ -f "${OGR_ERROR_LOG}" ]]; then
+     local REAL_ERRORS
+     REAL_ERRORS=$(grep -v "Field 'admin_level' not found" "${OGR_ERROR_LOG}" 2> /dev/null | grep -v "^$" || true)
+     if [[ -n "${REAL_ERRORS}" ]]; then
+      __loge "ogr2ogr errors for boundary ${ID}:"
+      echo "${REAL_ERRORS}" | while IFS= read -r line; do
+       __loge "  ${line}"
+      done
+     else
+      __logd "Only expected warnings (missing admin_level field) for boundary ${ID}"
+     fi
+     rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+    fi
+    __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
+     "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OGR_ERROR_LOG} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+    __log_finish
+    return 1
+   else
+    __logi "Successfully imported boundary ${ID} using PG_USE_COPY NO (TOAST)"
+   fi
+  else
+   # Other errors - log and fail
+   __loge "Failed to import boundary ${ID} into database after retries"
+   # Check for real errors (not just missing field warnings)
+   if [[ -f "${OGR_ERROR_LOG}" ]]; then
+    local REAL_ERRORS
+    REAL_ERRORS=$(grep -v "Field 'admin_level' not found" "${OGR_ERROR_LOG}" 2> /dev/null | grep -v "^$" || true)
+    if [[ -n "${REAL_ERRORS}" ]]; then
+     __loge "ogr2ogr errors for boundary ${ID}:"
+     echo "${REAL_ERRORS}" | while IFS= read -r line; do
+      __loge "  ${line}"
+     done
+    else
+     __logd "Only expected warnings (missing admin_level field) for boundary ${ID}"
+    fi
+    rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+   fi
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
+    "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OGR_ERROR_LOG} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+   __log_finish
+   return 1
+  fi
  fi
  # Check ogr2ogr output for warnings (missing fields are expected for some boundaries)
  if [[ -f "${OGR_ERROR_LOG}" ]]; then
@@ -693,10 +751,12 @@ fi
    __logw "ST_Collect works but not ST_Union - using ST_Collect as alternative (Polygons only)"
    if [[ "${ID}" -eq 16239 ]]; then
     # Collect only Polygons/MultiPolygons, ignore Points/LineStrings
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_Buffer(geometry, 0.0)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+    # Only update if new geometry is better (larger area) than existing
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Collect(ST_Buffer(geometry, 0.0)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
    else
     # Collect only Polygons/MultiPolygons, ignore Points/LineStrings
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_makeValid(geometry)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+    # Only update if new geometry is better (larger area) than existing
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Collect(ST_makeValid(geometry)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
    fi
 
    if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
@@ -779,12 +839,14 @@ fi
  if [[ "${ID}" -eq 16239 ]]; then
   __logd "Preparing to insert boundary ${ID} with ST_Buffer processing"
   # Union only Polygons/MultiPolygons (Points and LineStrings are not part of country boundaries)
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+  # Only update if new geometry is better (larger area) than existing
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
  else
   __logd "Preparing to insert boundary ${ID} with standard processing"
   # Union only Polygons/MultiPolygons (Points and LineStrings are not part of country boundaries)
   # This improves performance and prevents ST_Union from failing on mixed geometry types
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_makeValid(geometry)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+  # Only update if new geometry is better (larger area) than existing - prevents overwriting with incomplete data
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Union(ST_makeValid(geometry)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
  fi
 
  __logd "Executing insert operation for boundary ${ID} (country: ${NAME})"
