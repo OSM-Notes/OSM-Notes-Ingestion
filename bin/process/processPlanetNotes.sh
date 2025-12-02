@@ -1341,30 +1341,8 @@ function __processGeographicData {
    # Each script maintains its own TMP_DIR and log file, ensuring complete log separation
    # Pass DBNAME explicitly to ensure updateCountries.sh uses the correct database
    # This is critical when running in test mode where DBNAME might be different
-   # updateCountries.sh will create its own TMP_DIR and write its log there
-   # We can find its log by looking for the most recent updateCountries TMP_DIR
-   local UPDATE_COUNTRIES_EXIT_CODE=0
-   set +e # Temporarily disable exit on error for pipeline
    # updateCountries.sh is completely independent - it creates its own TMP_DIR and log file
-   DBNAME="${DBNAME}" "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base
-   UPDATE_COUNTRIES_EXIT_CODE=$?
-   set -e # Re-enable exit on error
-
-   # Find updateCountries.sh log file from its TMP_DIR (most recent one)
-   local UPDATE_COUNTRIES_LOG_FILE
-   UPDATE_COUNTRIES_LOG_FILE=$(ls -1rtd /tmp/updateCountries_* 2> /dev/null | tail -1)/updateCountries.log
-   if [[ -f "${UPDATE_COUNTRIES_LOG_FILE}" ]]; then
-    __logi "updateCountries.sh completed. Summary from its log:"
-    tail -20 "${UPDATE_COUNTRIES_LOG_FILE}" | while IFS= read -r line; do
-     __logd "[updateCountries] ${line}"
-    done
-   fi
-
-   if [[ "${UPDATE_COUNTRIES_EXIT_CODE}" -eq 0 ]]; then
-    __logi "Countries and maritimes areas loaded successfully."
-    __logi "Note: Location notes will be processed after get_country() function is created."
-    # Do not call __getLocationNotes here - it will be called after creating get_country()
-   else
+   if ! DBNAME="${DBNAME}" "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
     __loge "ERROR: Failed to load countries automatically. updateCountries.sh is required for proper operation."
     __loge "This is a critical error. processPlanetNotes.sh cannot continue without geographic data."
     __loge "Please fix the issue and run updateCountries.sh manually: ./bin/process/updateCountries.sh --base"
@@ -1373,6 +1351,9 @@ function __processGeographicData {
      "Fix the issue with updateCountries.sh and run manually: ./bin/process/updateCountries.sh --base"
     exit "${ERROR_EXECUTING_PLANET_DUMP}"
    fi
+   __logi "Countries and maritimes areas loaded successfully."
+   __logi "Note: Location notes will be processed after get_country() function is created."
+   # Do not call __getLocationNotes here - it will be called after creating get_country()
   else
    __logw "Skipping location assignment - notes will be processed without country assignment."
    __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base && ./bin/process/assignCountriesToNotes.sh"
