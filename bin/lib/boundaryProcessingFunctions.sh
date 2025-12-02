@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-30
-VERSION="2025-11-30"
+# Version: 2025-12-01
+VERSION="2025-12-01"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -648,10 +648,13 @@ function __processBoundary_impl {
  local GEOM_CHECK_QUERY
  if [[ "${ID}" -eq 16239 ]]; then
   __logd "Using special processing for Austria (ID: 16239) with ST_Buffer"
-  GEOM_CHECK_QUERY="SELECT ST_Union(ST_Buffer(geometry, 0.0)) IS NOT NULL AS has_geom FROM import"
+  # Filter only Polygons/MultiPolygons for ST_Union (Points and LineStrings cannot be unioned)
+  GEOM_CHECK_QUERY="SELECT ST_Union(ST_Buffer(geometry, 0.0)) IS NOT NULL AS has_geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')"
  else
   __logd "Using standard processing with ST_MakeValid for boundary ${ID}"
-  GEOM_CHECK_QUERY="SELECT ST_Union(ST_makeValid(geometry)) IS NOT NULL AS has_geom FROM import"
+  # Filter only Polygons/MultiPolygons for ST_Union (Points and LineStrings cannot be unioned)
+  # This prevents ST_Union from failing on mixed geometry types and improves performance
+  GEOM_CHECK_QUERY="SELECT ST_Union(ST_makeValid(geometry)) IS NOT NULL AS has_geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')"
  fi
 
  local HAS_VALID_GEOM
@@ -685,16 +688,19 @@ function __processBoundary_impl {
 
   __logi "Attempting alternative geometry repair strategies..."
 
-  local ALT_QUERY="SELECT ST_Collect(ST_MakeValid(geometry)) IS NOT NULL AS has_geom FROM import"
+  # Try ST_Collect only on Polygons/MultiPolygons (not Points/LineStrings)
+  local ALT_QUERY="SELECT ST_Collect(ST_MakeValid(geometry)) IS NOT NULL AS has_geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')"
   local HAS_COLLECT
   HAS_COLLECT=$(psql -d "${DBNAME}" -Atq -c "${ALT_QUERY}" 2> /dev/null || echo "f")
 
   if [[ "${HAS_COLLECT}" == "t" ]]; then
-   __logw "ST_Collect works but not ST_Union - using ST_Collect as alternative"
+   __logw "ST_Collect works but not ST_Union - using ST_Collect as alternative (Polygons only)"
    if [[ "${ID}" -eq 16239 ]]; then
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_Buffer(geometry, 0.0)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+    # Collect only Polygons/MultiPolygons, ignore Points/LineStrings
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_Buffer(geometry, 0.0)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
    else
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_makeValid(geometry)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+    # Collect only Polygons/MultiPolygons, ignore Points/LineStrings
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Collect(ST_makeValid(geometry)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
    fi
 
    if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
@@ -707,13 +713,15 @@ function __processBoundary_impl {
    __logi "✓ Successfully inserted boundary ${ID} using ST_Collect"
   else
    __logw "Trying buffer strategy for LineString geometries..."
-   local BUFFER_QUERY="SELECT ST_Buffer(ST_MakeValid(geometry), 0.0001) IS NOT NULL AS has_geom FROM import"
+   # Try buffer strategy only on Polygons/MultiPolygons
+   local BUFFER_QUERY="SELECT ST_Buffer(ST_MakeValid(geometry), 0.0001) IS NOT NULL AS has_geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')"
    local HAS_BUFFER
    HAS_BUFFER=$(psql -d "${DBNAME}" -Atq -c "${BUFFER_QUERY}" 2> /dev/null || echo "f")
 
    if [[ "${HAS_BUFFER}" == "t" ]]; then
-    __logw "Buffer strategy works - applying buffered geometries"
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+    __logw "Buffer strategy works - applying buffered geometries (Polygons only)"
+    # Buffer and union only Polygons/MultiPolygons
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
 
     if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
      __loge "Buffer strategy failed"
@@ -774,10 +782,13 @@ function __processBoundary_impl {
  local PROCESS_OPERATION
  if [[ "${ID}" -eq 16239 ]]; then
   __logd "Preparing to insert boundary ${ID} with ST_Buffer processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+  # Union only Polygons/MultiPolygons (Points and LineStrings are not part of country boundaries)
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
  else
   __logd "Preparing to insert boundary ${ID} with standard processing"
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_makeValid(geometry)), 4326) FROM import GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+  # Union only Polygons/MultiPolygons (Points and LineStrings are not part of country boundaries)
+  # This improves performance and prevents ST_Union from failing on mixed geometry types
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_makeValid(geometry)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') GROUP BY 1 ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
  fi
 
  __logd "Executing insert operation for boundary ${ID} (country: ${NAME})"
@@ -989,10 +1000,21 @@ function __processCountries_impl {
     -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
     --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-    __logi "Successfully imported countries from backup"
-    rm -f "${OGR_ERROR}"
-    __log_finish
-    return 0
+    # Fix SRID: GeoJSON doesn't include CRS info, so ensure SRID is set to 4326
+    # This is necessary because ogr2ogr may not always preserve SRID correctly
+    __logd "Ensuring SRID is set to 4326 for all geometries..."
+    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "UPDATE countries SET geom = ST_SetSRID(geom, 4326) WHERE ST_SRID(geom) = 0 OR ST_SRID(geom) IS NULL;" >> "${OGR_ERROR}" 2>&1; then
+     __logi "Successfully imported countries from backup and fixed SRID"
+     rm -f "${OGR_ERROR}"
+     __log_finish
+     return 0
+    else
+     __logw "Import succeeded but SRID fix failed (non-critical)"
+     __logd "SRID fix error: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+     rm -f "${OGR_ERROR}"
+     __log_finish
+     return 0
+    fi
    else
     __logw "Failed to import from backup, falling back to Overpass download"
     __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
