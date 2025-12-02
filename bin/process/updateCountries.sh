@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-01
-VERSION="2025-12-01"
+# Version: 2025-12-02
+VERSION="2025-12-02"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -60,6 +60,8 @@ readonly BASENAME
 # Temporal directory for all files.
 # IMPORTANT: Define TMP_DIR BEFORE loading processPlanetFunctions.sh
 # because that script uses TMP_DIR in variable initialization
+# Always create our own TMP_DIR for independent execution (like processAPINotes and processPlanetNotes)
+# When running as subprocess, we still use our own TMP_DIR but redirect logs to parent's log file
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
@@ -71,6 +73,8 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 fi
 # Log file for output.
+# Always use our own log file in our TMP_DIR (like processAPINotes and processPlanetNotes)
+# This ensures complete independence and log separation
 declare LOG_FILENAME
 LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
 readonly LOG_FILENAME
@@ -886,24 +890,18 @@ EOF
 
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
- # Check if running as subprocess
- # When called from processPlanetNotes.sh, we write to a separate log file
- if [[ -n "${UPDATE_COUNTRIES_AS_SUBPROCESS:-}" ]] && [[ -n "${UPDATE_COUNTRIES_LOG_FILE:-}" ]]; then
-  # Running as subprocess - write to specified log file
-  export LOG_FILE="${UPDATE_COUNTRIES_LOG_FILE}"
-  {
-   __start_logger
-   main
-  } >> "${UPDATE_COUNTRIES_LOG_FILE}" 2>&1
- elif [[ ! -t 1 ]]; then
+ # Always use our own log file (like processAPINotes and processPlanetNotes)
+ # This ensures complete independence regardless of how we're called
+ if [[ ! -t 1 ]]; then
   # Not a terminal - redirect to log file
   export LOG_FILE="${LOG_FILENAME}"
-  {
-   __start_logger
-   main
-  } >> "${LOG_FILENAME}" 2>&1
+  # Redirect all output to log file
+  exec >> "${LOG_FILENAME}" 2>&1
+  __start_logger
+  main
  else
   # Running in terminal - use stdout
+  export LOG_FILE="${LOG_FILENAME}"
   __start_logger
   main
  fi

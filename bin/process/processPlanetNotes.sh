@@ -1337,30 +1337,22 @@ function __processGeographicData {
    __logi "Attempting to load countries automatically in base mode..."
    __logi "This process may take a long time (30-60 minutes) as it downloads and processes all country boundaries..."
 
-   # Capture subprocess output to show progress
+   # Execute updateCountries.sh as independent subprocess (like processAPINotes does with processPlanetNotes)
+   # Each script maintains its own TMP_DIR and log file, ensuring complete log separation
    # Pass DBNAME explicitly to ensure updateCountries.sh uses the correct database
    # This is critical when running in test mode where DBNAME might be different
-   # Set flag to indicate subprocess execution so updateCountries.sh writes to its own log
-   # Also pass TMP_DIR so updateCountries.sh can write its log in a known location
-   # IMPORTANT: The subprocess (updateCountries.sh) handles its own redirection internally
-   # via UPDATE_COUNTRIES_LOG_FILE. When UPDATE_COUNTRIES_AS_SUBPROCESS=true, updateCountries.sh
-   # redirects ALL output (including errors) to UPDATE_COUNTRIES_LOG_FILE (line 404).
-   # We don't need external redirection here - the subprocess manages its own logging.
-   # Any output that escapes would be minimal and could indicate a problem worth investigating.
+   # updateCountries.sh will create its own TMP_DIR and write its log there
+   # We can find its log by looking for the most recent updateCountries TMP_DIR
    local UPDATE_COUNTRIES_EXIT_CODE=0
-   local UPDATE_COUNTRIES_LOG_FILE
-   UPDATE_COUNTRIES_LOG_FILE="${TMP_DIR}/updateCountries_subprocess.log"
    set +e # Temporarily disable exit on error for pipeline
-   # Let updateCountries.sh handle its own logging via internal redirection
-   # All output should go to UPDATE_COUNTRIES_LOG_FILE, but if something escapes,
-   # it's better to see it in the parent log than to lose it completely
-   DBNAME="${DBNAME}" UPDATE_COUNTRIES_AS_SUBPROCESS="true" \
-    UPDATE_COUNTRIES_LOG_FILE="${UPDATE_COUNTRIES_LOG_FILE}" \
-    "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base
+   # updateCountries.sh is completely independent - it creates its own TMP_DIR and log file
+   DBNAME="${DBNAME}" "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base
    UPDATE_COUNTRIES_EXIT_CODE=$?
    set -e # Re-enable exit on error
 
-   # Log summary from updateCountries.sh log file if it exists
+   # Find updateCountries.sh log file from its TMP_DIR (most recent one)
+   local UPDATE_COUNTRIES_LOG_FILE
+   UPDATE_COUNTRIES_LOG_FILE=$(ls -1rtd /tmp/updateCountries_* 2> /dev/null | tail -1)/updateCountries.log
    if [[ -f "${UPDATE_COUNTRIES_LOG_FILE}" ]]; then
     __logi "updateCountries.sh completed. Summary from its log:"
     tail -20 "${UPDATE_COUNTRIES_LOG_FILE}" | while IFS= read -r line; do
