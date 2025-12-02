@@ -990,20 +990,31 @@ function __processCountries_impl {
 
  # Extracts ids of all country relations into a JSON.
  __logi "Obtaining the countries ids."
- set +e
- if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-  wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_COUNTRIES}" \
-   "${OVERPASS_INTERPRETER}"
- else
-  wget -O "${COUNTRIES_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_COUNTRIES}" \
-   "${OVERPASS_INTERPRETER}"
- fi
- RET=${?}
- set -e
- if [[ "${RET}" -ne 0 ]]; then
-  __loge "ERROR: Country list could not be downloaded."
+ # Use retry logic with longer delays for rate limiting (429 errors)
+ local COUNTRIES_QUERY_FILE="${TMP_DIR}/countries_query.op"
+ local COUNTRIES_OUTPUT_FILE="${TMP_DIR}/countries_output.log"
+ cp "${OVERPASS_COUNTRIES}" "${COUNTRIES_QUERY_FILE}"
+ local MAX_RETRIES_COUNTRIES="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
+ local BASE_DELAY_COUNTRIES="${OVERPASS_BACKOFF_SECONDS:-20}"
+ if ! __overpass_download_with_endpoints "${COUNTRIES_QUERY_FILE}" "${COUNTRIES_BOUNDARY_IDS_FILE}" "${COUNTRIES_OUTPUT_FILE}" "${MAX_RETRIES_COUNTRIES}" "${BASE_DELAY_COUNTRIES}"; then
+  __loge "ERROR: Country list could not be downloaded after retries."
+  # Check if it's a 429 error and suggest waiting
+  if grep -q "429\|Too Many Requests" "${COUNTRIES_OUTPUT_FILE}" 2> /dev/null; then
+   __loge "Rate limiting detected (429). Please wait a few minutes and try again."
+   __loge "You may want to reduce MAX_THREADS or run during off-peak hours."
+  fi
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}" \
    "Country list download failed" \
+   "__preserve_failed_boundary_artifacts '${COUNTRIES_BOUNDARY_IDS_FILE}'"
+  local HANDLER_RETURN_CODE=$?
+  __log_finish
+  return "${HANDLER_RETURN_CODE}"
+ fi
+ # Validate the downloaded file has content
+ if [[ ! -s "${COUNTRIES_BOUNDARY_IDS_FILE}" ]]; then
+  __loge "ERROR: Country list file is empty after download."
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}" \
+   "Country list file is empty" \
    "__preserve_failed_boundary_artifacts '${COUNTRIES_BOUNDARY_IDS_FILE}'"
   local HANDLER_RETURN_CODE=$?
   __log_finish
