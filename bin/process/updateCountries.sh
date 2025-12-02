@@ -852,6 +852,8 @@ EOF
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
   # Check if countries update is needed before processing
+  # In update mode, always download from Overpass to get latest geometries
+  # (geometries can change even if IDs remain the same)
   if __checkBoundariesUpdateNeeded "countries" "${OVERPASS_COUNTRIES}" "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson"; then
    __logi "Country boundaries update needed, processing..."
    # Force download from Overpass to get updated geometries (don't use backup)
@@ -860,10 +862,17 @@ EOF
    unset FORCE_OVERPASS_DOWNLOAD
    __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
   else
-   __logi "Country boundaries are up to date, skipping download"
+   __logi "Country IDs match backup, but downloading from Overpass to get latest geometries..."
+   __logi "Geometries can change even if IDs remain the same in OSM"
+   # Force download from Overpass even if IDs match (geometries may have changed)
+   export FORCE_OVERPASS_DOWNLOAD="true"
+   __processCountries
+   unset FORCE_OVERPASS_DOWNLOAD
+   __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
   fi
 
   # Check if maritimes update is needed before processing
+  # In update mode, always download from Overpass to get latest geometries
   if __checkBoundariesUpdateNeeded "maritimes" "${OVERPASS_MARITIMES}" "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson"; then
    __logi "Maritime boundaries update needed, processing..."
    # Force download from Overpass to get updated geometries (don't use backup)
@@ -871,7 +880,12 @@ EOF
    __processMaritimes
    unset FORCE_OVERPASS_DOWNLOAD
   else
-   __logi "Maritime boundaries are up to date, skipping download"
+   __logi "Maritime IDs match backup, but downloading from Overpass to get latest geometries..."
+   __logi "Geometries can change even if IDs remain the same in OSM"
+   # Force download from Overpass even if IDs match (geometries may have changed)
+   export FORCE_OVERPASS_DOWNLOAD="true"
+   __processMaritimes
+   unset FORCE_OVERPASS_DOWNLOAD
   fi
 
   __maintainCountriesTable

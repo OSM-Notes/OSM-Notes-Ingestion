@@ -1101,8 +1101,13 @@ function __processCountries_impl {
    # Skip the original import logic since we already imported filtered backup above
    # If import failed, MISSING_IDS_FILE was unset and we'll download all from Overpass
 
-   # If we have missing IDs file, filter COUNTRIES_BOUNDARY_IDS_FILE to only include missing ones
-   if [[ -n "${MISSING_IDS_FILE:-}" ]] && [[ -f "${MISSING_IDS_FILE}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
+   # If FORCE_OVERPASS_DOWNLOAD is set, download ALL countries from Overpass (not just missing)
+   if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]]; then
+    __logi "FORCE_OVERPASS_DOWNLOAD is set, will download all countries from Overpass to get updated geometries"
+    # Use the full COUNTRIES_BOUNDARY_IDS_FILE (all countries from Overpass)
+    # Don't filter by missing IDs - we want to update all geometries
+   elif [[ -n "${MISSING_IDS_FILE:-}" ]] && [[ -f "${MISSING_IDS_FILE}" ]] && [[ -s "${MISSING_IDS_FILE}" ]]; then
+    # If we have missing IDs file, filter COUNTRIES_BOUNDARY_IDS_FILE to only include missing ones
     local MISSING_COUNT
     MISSING_COUNT=$(wc -l < "${MISSING_IDS_FILE}" | tr -d ' ' || echo "0")
     if [[ "${MISSING_COUNT}" -gt 0 ]]; then
