@@ -988,15 +988,24 @@ function __processCountries_impl {
   return "${HANDLER_RETURN_CODE}"
  fi
 
- # Extracts ids of all country relations into a JSON.
+ # Extracts ids of all country relations into a CSV file.
+ # Note: The Overpass query uses [out:csv(::id)] so it returns CSV, not JSON
  __logi "Obtaining the countries ids."
  # Use retry logic with longer delays for rate limiting (429 errors)
+ # We use __retry_file_operation directly since we need CSV, not JSON validation
  local COUNTRIES_QUERY_FILE="${TMP_DIR}/countries_query.op"
  local COUNTRIES_OUTPUT_FILE="${TMP_DIR}/countries_output.log"
  cp "${OVERPASS_COUNTRIES}" "${COUNTRIES_QUERY_FILE}"
  local MAX_RETRIES_COUNTRIES="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
  local BASE_DELAY_COUNTRIES="${OVERPASS_BACKOFF_SECONDS:-20}"
- if ! __overpass_download_with_endpoints "${COUNTRIES_QUERY_FILE}" "${COUNTRIES_BOUNDARY_IDS_FILE}" "${COUNTRIES_OUTPUT_FILE}" "${MAX_RETRIES_COUNTRIES}" "${BASE_DELAY_COUNTRIES}"; then
+ local COUNTRIES_DOWNLOAD_OPERATION
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  COUNTRIES_DOWNLOAD_OPERATION="wget -O ${COUNTRIES_BOUNDARY_IDS_FILE} --header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\" --post-file=${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
+ else
+  COUNTRIES_DOWNLOAD_OPERATION="wget -O ${COUNTRIES_BOUNDARY_IDS_FILE} --post-file=${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
+ fi
+ local COUNTRIES_CLEANUP="rm -f ${COUNTRIES_BOUNDARY_IDS_FILE} ${COUNTRIES_OUTPUT_FILE} 2>/dev/null || true"
+ if ! __retry_file_operation "${COUNTRIES_DOWNLOAD_OPERATION}" "${MAX_RETRIES_COUNTRIES}" "${BASE_DELAY_COUNTRIES}" "${COUNTRIES_CLEANUP}" "true" "${OVERPASS_INTERPRETER}"; then
   __loge "ERROR: Country list could not be downloaded after retries."
   # Check if it's a 429 error and suggest waiting
   if grep -q "429\|Too Many Requests" "${COUNTRIES_OUTPUT_FILE}" 2> /dev/null; then
@@ -1010,7 +1019,7 @@ function __processCountries_impl {
   __log_finish
   return "${HANDLER_RETURN_CODE}"
  fi
- # Validate the downloaded file has content
+ # Validate the downloaded CSV file has content (skip JSON validation for CSV)
  if [[ ! -s "${COUNTRIES_BOUNDARY_IDS_FILE}" ]]; then
   __loge "ERROR: Country list file is empty after download."
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}" \
@@ -1019,6 +1028,11 @@ function __processCountries_impl {
   local HANDLER_RETURN_CODE=$?
   __log_finish
   return "${HANDLER_RETURN_CODE}"
+ fi
+ # Validate it's CSV format (should start with @id or have at least one line with numbers)
+ if ! head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}" | grep -qE "^@id|^[0-9]+"; then
+  __logw "Warning: Country list file may not be in expected CSV format"
+  __logd "First line of file: $(head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}")"
  fi
 
  tail -n +2 "${COUNTRIES_BOUNDARY_IDS_FILE}" > "${COUNTRIES_BOUNDARY_IDS_FILE}.tmp"
