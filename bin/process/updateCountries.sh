@@ -359,6 +359,78 @@ function __maintainCountriesTable {
  __log_finish
 }
 
+# Shows a summary of failed boundary downloads (countries and maritimes)
+# at the end of execution with IDs and country names.
+function __showFailedBoundariesSummary {
+ __log_start
+ __logi "=== SUMMARY OF FAILED BOUNDARY DOWNLOADS ==="
+
+ local FAILED_BOUNDARIES_FILE="${TMP_DIR}/failed_boundaries.txt"
+ local FAILED_COUNT=0
+ local FAILED_IDS=()
+
+ # Check if failed_boundaries.txt exists
+ if [[ -f "${FAILED_BOUNDARIES_FILE}" ]] && [[ -s "${FAILED_BOUNDARIES_FILE}" ]]; then
+  FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
+  if [[ "${FAILED_COUNT}" -gt 0 ]]; then
+   # Read failed IDs into array
+   while IFS= read -r FAILED_ID; do
+    if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
+     FAILED_IDS+=("${FAILED_ID}")
+    fi
+   done < "${FAILED_BOUNDARIES_FILE}"
+
+   __logw "Found ${FAILED_COUNT} boundary/boundaries that failed to download:"
+
+   # Query database for country names
+   if [[ ${#FAILED_IDS[@]} -gt 0 ]]; then
+    # Build SQL query to get country names
+    local IDS_LIST
+    IDS_LIST=$(IFS=','; echo "${FAILED_IDS[*]}")
+    local QUERY_RESULT
+    QUERY_RESULT=$(psql -d "${DBNAME}" -Atq -c "SELECT country_id, COALESCE(country_name_en, country_name, 'Unknown') FROM countries WHERE country_id IN (${IDS_LIST}) ORDER BY country_id;" 2> /dev/null || echo "")
+
+    if [[ -n "${QUERY_RESULT}" ]]; then
+     # Display failed boundaries with names
+     while IFS='|' read -r ID NAME; do
+      if [[ -n "${ID}" ]] && [[ -n "${NAME}" ]]; then
+       __logw "  - ID: ${ID} - ${NAME}"
+      else
+       __logw "  - ID: ${ID} - (not found in database)"
+      fi
+     done <<< "${QUERY_RESULT}"
+
+     # Check for IDs not in database
+     local FOUND_IDS
+     FOUND_IDS=$(echo "${QUERY_RESULT}" | cut -d'|' -f1 | tr '\n' ' ')
+     for ID in "${FAILED_IDS[@]}"; do
+      if ! echo "${FOUND_IDS}" | grep -q "\b${ID}\b"; then
+       __logw "  - ID: ${ID} - (not found in database, download failed completely)"
+      fi
+     done
+    else
+     # If query failed, just show IDs
+     for ID in "${FAILED_IDS[@]}"; do
+      __logw "  - ID: ${ID}"
+     done
+    fi
+
+    __logw ""
+    __logw "Failed boundaries file: ${FAILED_BOUNDARIES_FILE}"
+    __logw "You can retry downloading these boundaries manually or run the script again."
+   fi
+  else
+   __logi "No failed boundaries found - all downloads completed successfully"
+  fi
+ else
+  __logi "No failed boundaries file found - all downloads completed successfully"
+ fi
+
+ __logi "=== END OF FAILED BOUNDARIES SUMMARY ==="
+ __log_finish
+ return 0
+}
+
 # Verifies that all expected countries were loaded and reloads missing ones.
 # This addresses the issue where Overpass API limits may cause some countries
 # to not be downloaded or imported correctly.
@@ -898,6 +970,9 @@ EOF
 
   # Mark countries that failed to update (those still with updated=TRUE)
   __markFailedCountryUpdates
+
+  # Show summary of failed boundary downloads
+  __showFailedBoundariesSummary
  fi
  __log_finish
 }

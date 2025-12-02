@@ -551,35 +551,31 @@ function __processBoundary_impl {
  # Import with ogr2ogr using retry logic with special handling for Austria
  __logd "Importing boundary ${ID} into database..."
 
- # Import ALL features from GeoJSON but only geometry column
- # Previous approach imported all fields, causing "row too large" errors
- # (some GeoJSON have 19+ property fields like alt_name:*, ISO3166-*, etc.)
- # Using -sql with SELECT geometry only imports all features but avoids
- # the PostgreSQL row size limit (8160 bytes) by not importing unnecessary fields
- # -skipfailures allows ogr2ogr to continue even if some features fail
- __logd "Importing all features from GeoJSON for boundary ${ID} (geometry only)"
+# Import ALL features from GeoJSON
+# Previous approach used -sql with SQLite dialect to select only geometry,
+# but this was causing incomplete imports (only partial features imported).
+# PostgreSQL TOAST automatically handles large rows, so we can import all fields
+# and filter by geometry type in SQL. This ensures all features are imported correctly.
+# -skipfailures allows ogr2ogr to continue even if some features fail
+__logd "Importing all features from GeoJSON for boundary ${ID}"
 
- local IMPORT_OPERATION
- local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BASHPID}.log"
- local GEOJSON_BASENAME
- GEOJSON_BASENAME=$(basename "${GEOJSON_FILE}" .geojson)
+local IMPORT_OPERATION
+local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BASHPID}.log"
 
- # When using -sql with -dialect SQLite, the table name must be the filename
- # without extension. Since filenames are numeric IDs, we need to escape them
- # with double quotes to treat them as identifiers, not numbers.
- # This selects only the geometry column to avoid importing all property fields
- # that cause "row too large" errors
- if [[ "${ID}" -eq 16239 ]]; then
-  # Austria - use ST_Buffer to fix topology issues
-  __logd "Using special handling for Austria (ID: 16239)"
-  # Import only geometry to avoid row size limit
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -dialect SQLite -sql \"SELECT geometry FROM \\\"${GEOJSON_BASENAME}\\\"\" ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
- else
-  # Standard import - import ALL features but only geometry column
-  __logd "Importing all features for boundary ${ID} (geometry only)"
-  # Import only geometry to avoid row size limit (8160 bytes)
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt Geometry -lco GEOMETRY_NAME=geometry -dialect SQLite -sql \"SELECT geometry FROM \\\"${GEOJSON_BASENAME}\\\"\" ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
- fi
+# Import all features without -sql to ensure complete import
+# PostgreSQL TOAST will handle large rows automatically
+# We'll filter by geometry type (Polygon/MultiPolygon) in SQL before ST_Union
+if [[ "${ID}" -eq 16239 ]]; then
+ # Austria - use ST_Buffer to fix topology issues
+ __logd "Using special handling for Austria (ID: 16239)"
+ # Import all features, geometry will be filtered in SQL
+ IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+else
+ # Standard import - import ALL features
+ __logd "Importing all features for boundary ${ID}"
+ # Import all features, geometry will be filtered in SQL
+ IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
@@ -1236,14 +1232,54 @@ function __processCountries_impl {
  set -e
  if [[ "${QTY_LOGS}" -ne 0 ]]; then
   __logw "Some threads generated errors."
-  local ERROR_LOGS
-  ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
-  __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
-  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
-   "Thread error logs detected for boundary processing" \
-   "__preserve_failed_boundary_artifacts '${ERROR_LOGS}'"
-  __log_finish
-  return "${ERROR_DOWNLOADING_BOUNDARY}"
+  if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+   __logw "CONTINUE_ON_OVERPASS_ERROR=true - Recording failed boundaries and continuing"
+   # Extract failed boundary IDs from error logs and consolidate into failed_boundaries.txt
+   local FAILED_BOUNDARIES_FILE="${TMP_DIR}/failed_boundaries.txt"
+   # Ensure failed_boundaries.txt exists (may have been created by __processBoundary)
+   touch "${FAILED_BOUNDARIES_FILE}" 2> /dev/null || true
+   for ERROR_LOG in "${TMP_DIR}/${BASENAME}.old."* "${TMP_DIR}/${BASENAME}.log."*; do
+    if [[ -f "${ERROR_LOG}" ]]; then
+     # Extract boundary IDs that failed from the log file
+     # Look for lines indicating failed boundaries:
+     # - "Failed to process boundary ${ID}" from __processList
+     # - "Recording boundary ${ID} as failed" from __processBoundary_impl
+     grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${ERROR_LOG}" 2> /dev/null \
+      | grep -oE "[0-9]+" \
+      | while read -r FAILED_ID; do
+       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
+        # Add to failed_boundaries.txt if not already present
+        if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
+         echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
+         __logd "Recorded failed country boundary ID: ${FAILED_ID}"
+        fi
+       fi
+      done || true
+    fi
+   done
+   # Also check if failed_boundaries.txt already exists from __processBoundary calls
+   if [[ -f "${FAILED_BOUNDARIES_FILE}" ]]; then
+    local FAILED_COUNT
+    FAILED_COUNT=$(wc -l < "${FAILED_BOUNDARIES_FILE}" 2> /dev/null | tr -d ' ' || echo "0")
+    if [[ "${FAILED_COUNT}" -gt 0 ]]; then
+     __logw "Total failed country boundaries recorded: ${FAILED_COUNT}"
+     __logw "Failed boundaries list: ${FAILED_BOUNDARIES_FILE}"
+    fi
+   fi
+   local ERROR_LOGS
+   ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
+   __logw "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
+   __logw "Continuing despite error logs (CONTINUE_ON_OVERPASS_ERROR=true)"
+  else
+   local ERROR_LOGS
+   ERROR_LOGS=$(find "${TMP_DIR}" -maxdepth 1 -type f -name "${BASENAME}.log.*" | tr '\n' ' ')
+   __loge "Found ${QTY_LOGS} error log files. Check them for details: ${ERROR_LOGS}"
+   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
+    "Thread error logs detected for boundary processing" \
+    "__preserve_failed_boundary_artifacts '${ERROR_LOGS}'"
+   __log_finish
+   return "${ERROR_DOWNLOADING_BOUNDARY}"
+  fi
  fi
  if [[ -d "${LOCK_OGR2OGR}" ]]; then
   rm -f "${LOCK_OGR2OGR}/pid"
