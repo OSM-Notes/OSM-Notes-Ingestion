@@ -10,10 +10,6 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-12-05
---
--- Note: Optimized to remove unnecessary self-join. Direct UPDATE with JOIN to countries.
--- Optimized: Removed ST_SetSRID from c.geom since all geometries already have SRID 4326.
--- This improves performance by eliminating unnecessary function calls per row.
 
 DO $$
 DECLARE
