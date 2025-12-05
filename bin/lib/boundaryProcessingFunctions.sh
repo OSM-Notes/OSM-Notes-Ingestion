@@ -278,6 +278,14 @@ function __processBoundary_impl {
  # Initialize IS_COMPLEX variable (defaults to false)
  local IS_COMPLEX="${IS_COMPLEX:-false}"
 
+ # Initialize IS_MARITIME variable (defaults to false for countries)
+ local IS_MARITIME_VALUE="${IS_MARITIME:-false}"
+ if [[ "${IS_MARITIME_VALUE}" == "true" ]]; then
+  IS_MARITIME_VALUE="true"
+ else
+  IS_MARITIME_VALUE="false"
+ fi
+
  __logd "Boundary ID: ${ID}"
  __logd "Process ID: ${BASHPID}"
  __logd "JSON file: ${JSON_FILE}"
@@ -841,12 +849,12 @@ function __processBoundary_impl {
     # Collect only Polygons/MultiPolygons, ignore Points/LineStrings
     # Only update if new geometry is better (larger area) than existing
     # Note: ST_Collect groups geometries but doesn't union them. Use ST_UnaryUnion to union after collect
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH collected AS (SELECT ST_Collect(ST_Buffer(geometry, 0.0)) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_geom AS (SELECT ST_SetSRID(ST_UnaryUnion(geom), 4326) AS geom FROM collected), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH collected AS (SELECT ST_Collect(ST_Buffer(geometry, 0.0)) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_geom AS (SELECT ST_SetSRID(ST_UnaryUnion(geom), 4326) AS geom FROM collected), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom, ${IS_MARITIME_VALUE} FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
    else
     # Collect only Polygons/MultiPolygons, ignore Points/LineStrings
     # Only update if new geometry is better (larger area) than existing
     # Note: ST_Collect groups geometries but doesn't union them. Use ST_UnaryUnion to union after collect
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH collected AS (SELECT ST_Collect(ST_makeValid(geometry)) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_geom AS (SELECT ST_SetSRID(ST_UnaryUnion(geom), 4326) AS geom FROM collected), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH collected AS (SELECT ST_Collect(ST_makeValid(geometry)) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_geom AS (SELECT ST_SetSRID(ST_UnaryUnion(geom), 4326) AS geom FROM collected), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom, ${IS_MARITIME_VALUE} FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
    fi
 
    if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
@@ -867,7 +875,7 @@ function __processBoundary_impl {
    if [[ "${HAS_BUFFER}" == "t" ]]; then
     __logw "Buffer strategy works - applying buffered geometries (Polygons only)"
     # Buffer and union only Polygons/MultiPolygons
-    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+    PROCESS_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326), ${IS_MARITIME_VALUE} FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
 
     if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
      __loge "Buffer strategy failed"
@@ -930,13 +938,13 @@ function __processBoundary_impl {
   __logd "Preparing to insert boundary ${ID} with ST_Buffer processing"
   # Union only Polygons/MultiPolygons (Points and LineStrings are not part of country boundaries)
   # Only update if new geometry is better (larger area) than existing
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom, ${IS_MARITIME_VALUE} FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
  else
   __logd "Preparing to insert boundary ${ID} with standard processing"
   # Union only Polygons/MultiPolygons (Points and LineStrings are not part of country boundaries)
   # This improves performance and prevents ST_Union from failing on mixed geometry types
   # Only update if new geometry is better (larger area) than existing - prevents overwriting with incomplete data
-  PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Union(ST_makeValid(geometry)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
+  PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Union(ST_makeValid(geometry)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM countries WHERE country_id = ${SANITIZED_ID}) INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom, ${IS_MARITIME_VALUE} FROM new_geom ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = CASE WHEN (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE countries.geom END WHERE (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL;\""
  fi
 
  __logd "Executing insert operation for boundary ${ID} (country: ${NAME})"
@@ -1235,7 +1243,8 @@ function __processCountries_impl {
        # Filter and insert only countries that exist in Overpass
        # Use UPSERT to handle conflicts if boundary already exists
        # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
-       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+       # Countries have is_maritime = false
+       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), FALSE FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
         rm -f "${OGR_ERROR}"
         __logi "Successfully imported ${EXISTING_COUNT} existing countries from backup"
         # Verify that all existing countries were imported successfully
@@ -1500,11 +1509,14 @@ function __processMaritimes_impl {
   __logd "Importing backup using ogr2ogr..."
   local OGR_ERROR
   OGR_ERROR=$(mktemp)
-  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-   -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-   -lco GEOMETRY_NAME=geom -lco FID=country_id \
-   --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-   __logi "Successfully imported maritime boundaries from backup"
+   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
+    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+    -lco GEOMETRY_NAME=geom -lco FID=country_id \
+    --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+   # Set is_maritime = true for all imported maritime boundaries
+   # Maritime boundaries are identified by comprehensive patterns
+   psql -d "${DBNAME}" -c "UPDATE countries SET is_maritime = TRUE WHERE (country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%') AND is_maritime IS NOT TRUE;" > /dev/null 2>&1 || true
+   __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
    rm -f "${OGR_ERROR}"
    __log_finish
    return 0
@@ -1573,7 +1585,9 @@ function __processMaritimes_impl {
     -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
     --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-    __logi "Successfully imported maritime boundaries from backup"
+    # Set is_maritime = true for all imported maritime boundaries
+    psql -d "${DBNAME}" -c "UPDATE countries SET is_maritime = TRUE WHERE (country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%') AND is_maritime IS NOT TRUE;" > /dev/null 2>&1 || true
+    __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
     rm -f "${OGR_ERROR}"
     __log_finish
     return 0
@@ -1620,7 +1634,8 @@ function __processMaritimes_impl {
        # Filter and insert only maritimes that exist in Overpass
        # Use UPSERT to handle conflicts if boundary already exists
        # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
-       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326) FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+       # Maritime boundaries have is_maritime = true
+       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), TRUE FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
         __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
         rm -f "${OGR_ERROR}"
        else
@@ -1678,6 +1693,7 @@ function __processMaritimes_impl {
  for I in "${TMP_DIR}"/part_maritime_??; do
   (
    export PATH="${PATH}"
+   export IS_MARITIME="true"
    __logi "Starting list ${I} - ${BASHPID}."
    __processList "${I}" >> "${LOG_FILENAME}.${BASHPID}" 2>&1
    __logi "Finished list ${I} - ${BASHPID}."
