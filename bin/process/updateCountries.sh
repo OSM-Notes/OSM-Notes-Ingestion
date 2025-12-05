@@ -15,8 +15,8 @@
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-02
-VERSION="2025-12-02"
+# Version: 2025-12-05
+VERSION="2025-12-05"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -386,7 +386,10 @@ function __showFailedBoundariesSummary {
    if [[ ${#FAILED_IDS[@]} -gt 0 ]]; then
     # Build SQL query to get country names
     local IDS_LIST
-    IDS_LIST=$(IFS=','; echo "${FAILED_IDS[*]}")
+    IDS_LIST=$(
+     IFS=','
+     echo "${FAILED_IDS[*]}"
+    )
     local QUERY_RESULT
     QUERY_RESULT=$(psql -d "${DBNAME}" -Atq -c "SELECT country_id, COALESCE(country_name_en, country_name, 'Unknown') FROM countries WHERE country_id IN (${IDS_LIST}) ORDER BY country_id;" 2> /dev/null || echo "")
 
@@ -908,9 +911,11 @@ EOF
   __createCountryTables
 
   # Process countries and maritimes data
+  # In base mode, use backup by default (if exists) for faster initial setup
+  # This allows processPlanet to complete quickly on first run
   __logi "Processing countries and maritimes data..."
+  __logi "Using backup if available (faster), otherwise downloading from Overpass..."
   __processCountries
-  __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
   __processMaritimes
   __maintainCountriesTable
   __refreshDisputedAreasView
@@ -923,42 +928,14 @@ EOF
   STMT="UPDATE countries SET updated = TRUE, last_update_attempt = CURRENT_TIMESTAMP"
   echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
-  # Check if countries update is needed before processing
   # In update mode, always download from Overpass to get latest geometries
   # (geometries can change even if IDs remain the same)
-  if __checkBoundariesUpdateNeeded "countries" "${OVERPASS_COUNTRIES}" "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson"; then
-   __logi "Country boundaries update needed, processing..."
-   # Force download from Overpass to get updated geometries (don't use backup)
-   export FORCE_OVERPASS_DOWNLOAD="true"
-   __processCountries
-   unset FORCE_OVERPASS_DOWNLOAD
-   __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
-  else
-   __logi "Country IDs match backup, but downloading from Overpass to get latest geometries..."
-   __logi "Geometries can change even if IDs remain the same in OSM"
-   # Force download from Overpass even if IDs match (geometries may have changed)
-   export FORCE_OVERPASS_DOWNLOAD="true"
-   __processCountries
-   unset FORCE_OVERPASS_DOWNLOAD
-   __verifyAndReloadMissingCountries # Verify and reload any missing countries (may be due to Overpass limits)
-  fi
-
-  # Check if maritimes update is needed before processing
-  # In update mode, always download from Overpass to get latest geometries
-  if __checkBoundariesUpdateNeeded "maritimes" "${OVERPASS_MARITIMES}" "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson"; then
-   __logi "Maritime boundaries update needed, processing..."
-   # Force download from Overpass to get updated geometries (don't use backup)
-   export FORCE_OVERPASS_DOWNLOAD="true"
-   __processMaritimes
-   unset FORCE_OVERPASS_DOWNLOAD
-  else
-   __logi "Maritime IDs match backup, but downloading from Overpass to get latest geometries..."
-   __logi "Geometries can change even if IDs remain the same in OSM"
-   # Force download from Overpass even if IDs match (geometries may have changed)
-   export FORCE_OVERPASS_DOWNLOAD="true"
-   __processMaritimes
-   unset FORCE_OVERPASS_DOWNLOAD
-  fi
+  # Force download from Overpass - don't use backup in update mode
+  __logi "Processing countries and maritimes from Overpass (update mode - always get latest geometries)..."
+  export FORCE_OVERPASS_DOWNLOAD="true"
+  __processCountries
+  __processMaritimes
+  unset FORCE_OVERPASS_DOWNLOAD
 
   __maintainCountriesTable
   __refreshDisputedAreasView

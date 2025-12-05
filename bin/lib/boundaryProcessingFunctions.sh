@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-02
-VERSION="2025-12-02"
+# Version: 2025-12-05
+VERSION="2025-12-05"
 
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
@@ -547,6 +547,15 @@ function __processBoundary_impl {
  # PostgreSQL TOAST automatically handles large rows, so we can import all fields
  # and filter by geometry type in SQL. This ensures all features are imported correctly.
  # -skipfailures allows ogr2ogr to continue even if some features fail
+ # Check if DB import should be skipped (for download-only mode)
+ if [[ "${SKIP_DB_IMPORT:-false}" == "true" ]]; then
+  __logi "SKIP_DB_IMPORT=true - Skipping database import for boundary ${ID}"
+  __logi "GeoJSON file saved at: ${GEOJSON_FILE}"
+  rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+  __log_finish
+  return 0
+ fi
+
  __logd "Importing all features from GeoJSON for boundary ${ID}"
 
  local IMPORT_OPERATION
@@ -1070,8 +1079,9 @@ function __processCountries_impl {
 
  # Compare IDs with backup before processing
  # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
+ # Also skip backup if SKIP_DB_IMPORT is set (download-only mode - need individual GeoJSON files)
  local RESOLVED_BACKUP=""
- if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && __resolve_geojson_file "${REPO_COUNTRIES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
+ if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -z "${SKIP_DB_IMPORT:-}" ]] && [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && __resolve_geojson_file "${REPO_COUNTRIES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Comparing country IDs with backup..."
   if __compareIdsWithBackup "${COUNTRIES_BOUNDARY_IDS_FILE}" "${RESOLVED_BACKUP}" "countries"; then
    __logi "Country IDs match backup, importing from backup..."
@@ -1111,9 +1121,13 @@ function __processCountries_impl {
    local MISSING_IDS_FILE="${TMP_DIR}/missing_countries_ids.txt"
    local EXISTING_IDS_FILE="${TMP_DIR}/existing_countries_ids.txt"
 
-   # If FORCE_OVERPASS_DOWNLOAD is set, skip backup import and download all from Overpass
-   if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]]; then
-    __logi "FORCE_OVERPASS_DOWNLOAD is set, skipping backup import to get updated geometries from Overpass"
+   # If FORCE_OVERPASS_DOWNLOAD or SKIP_DB_IMPORT is set, skip backup import and download all from Overpass
+   if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]] || [[ -n "${SKIP_DB_IMPORT:-}" ]]; then
+    if [[ -n "${SKIP_DB_IMPORT:-}" ]]; then
+     __logi "SKIP_DB_IMPORT is set, skipping backup import to generate individual GeoJSON files from Overpass"
+    else
+     __logi "FORCE_OVERPASS_DOWNLOAD is set, skipping backup import to get updated geometries from Overpass"
+    fi
     unset MISSING_IDS_FILE
    else
     # Import backup first, but filter to only include countries that exist in Overpass
@@ -1398,8 +1412,9 @@ function __processMaritimes_impl {
 
  # Try to use repository backup first (faster, avoids Overpass download)
  # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
+ # Also skip backup if SKIP_DB_IMPORT is set (download-only mode - need individual GeoJSON files)
  local RESOLVED_BACKUP=""
- if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
+ if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -z "${SKIP_DB_IMPORT:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
   # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
   # Note: Import without -sql to let ogr2ogr handle column mapping automatically
@@ -1464,8 +1479,9 @@ function __processMaritimes_impl {
 
  # Compare IDs with backup before processing
  # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
+ # Also skip backup if SKIP_DB_IMPORT is set (download-only mode - need individual GeoJSON files)
  local RESOLVED_MARITIMES_BACKUP=""
- if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_MARITIMES_BACKUP" 2> /dev/null; then
+ if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -z "${SKIP_DB_IMPORT:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_MARITIMES_BACKUP" 2> /dev/null; then
   __logi "Comparing maritime IDs with backup..."
   if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${RESOLVED_MARITIMES_BACKUP}" "maritimes"; then
    __logi "Maritime IDs match backup, importing from backup..."
@@ -1493,9 +1509,13 @@ function __processMaritimes_impl {
    local MISSING_IDS_FILE="${TMP_DIR}/missing_maritimes_ids.txt"
    local EXISTING_IDS_FILE="${TMP_DIR}/existing_maritimes_ids.txt"
 
-   # If FORCE_OVERPASS_DOWNLOAD is set, skip backup import and download all from Overpass
-   if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]]; then
-    __logi "FORCE_OVERPASS_DOWNLOAD is set, skipping backup import to get updated geometries from Overpass"
+   # If FORCE_OVERPASS_DOWNLOAD or SKIP_DB_IMPORT is set, skip backup import and download all from Overpass
+   if [[ -n "${FORCE_OVERPASS_DOWNLOAD:-}" ]] || [[ -n "${SKIP_DB_IMPORT:-}" ]]; then
+    if [[ -n "${SKIP_DB_IMPORT:-}" ]]; then
+     __logi "SKIP_DB_IMPORT is set, skipping backup import to generate individual GeoJSON files from Overpass"
+    else
+     __logi "FORCE_OVERPASS_DOWNLOAD is set, skipping backup import to get updated geometries from Overpass"
+    fi
     unset MISSING_IDS_FILE
    else
     # Import backup first, but filter to only include maritimes that exist in Overpass
