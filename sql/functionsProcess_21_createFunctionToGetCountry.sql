@@ -8,10 +8,12 @@
 -- Strategy:
 -- 1. Check if note is still in current country (95% hit rate)
 -- 2. Use 2D grid (lon+lat) to select most relevant zone
--- 3. Search countries in priority order for that zone using direct SQL query
+-- 3. Search TERRESTRIAL countries first (is_maritime = false) in priority order
+-- 4. If not found in terrestrial, search MARITIME zones (is_maritime = true)
+-- This ensures notes on land are assigned to countries, not maritime zones
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-28
+-- Version: 2025-12-05
 --
 -- Optimized: Replaced PL/pgSQL loop with direct SQL query for better
 -- PostgreSQL optimization and performance (30-40% faster).
@@ -223,7 +225,8 @@ AS $func$
     m_order_column := 'asia_oceania';
   END IF;
 
-  -- Search countries in priority order for the determined zone
+  -- Search TERRESTRIAL countries first (is_maritime = false) in priority order
+  -- This ensures notes on land are assigned to countries, not maritime zones
   -- OPTIMIZATION: Use direct SQL query instead of loop for better PostgreSQL optimization
   -- This allows PostgreSQL to optimize the entire query and use spatial indexes efficiently
   -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
@@ -231,6 +234,7 @@ AS $func$
   SELECT country_id INTO m_id_country
   FROM countries
   WHERE country_id != COALESCE(m_current_country, -1)
+    AND is_maritime = false  -- PRIORITY: Search terrestrial boundaries first
     -- First filter by bounding box (fast - uses countries_bbox_box2d or countries_bbox_gist index)
     -- ST_Envelope(geom) && point is more efficient than ST_Intersects with ST_MakeEnvelope
     -- Uses the optimized index created by processPlanetNotes_26_optimizeCountryIndexes.sql
@@ -280,11 +284,66 @@ AS $func$
     END NULLS LAST
   LIMIT 1;
 
+  -- If not found in terrestrial boundaries, search MARITIME zones (is_maritime = true)
+  -- This ensures notes in sea (not in any country) are assigned to maritime zones
+  IF m_id_country IS NULL THEN
+    SELECT country_id INTO m_id_country
+    FROM countries
+    WHERE country_id != COALESCE(m_current_country, -1)
+      AND is_maritime = true  -- FALLBACK: Search maritime boundaries only if not in terrestrial
+      -- First filter by bounding box (fast - uses countries_bbox_box2d or countries_bbox_gist index)
+      AND ST_Envelope(geom) && ST_SetSRID(ST_Point(lon, lat), 4326)
+      -- Then check exact containment (expensive, but only for filtered countries)
+      AND ST_Contains(
+        ST_SetSRID(geom, 4326),
+        ST_SetSRID(ST_Point(lon, lat), 4326)
+      )
+    ORDER BY
+      -- Priority: current country first (if exists)
+      CASE
+        WHEN country_id = m_current_country THEN 0
+        ELSE 1
+      END,
+      -- Then by zone priority (dynamic column based on 2D grid)
+      CASE m_order_column
+        WHEN 'zone_western_europe' THEN zone_western_europe
+        WHEN 'zone_eastern_europe' THEN zone_eastern_europe
+        WHEN 'zone_northern_europe' THEN zone_northern_europe
+        WHEN 'zone_southern_europe' THEN zone_southern_europe
+        WHEN 'zone_us_canada' THEN zone_us_canada
+        WHEN 'zone_mexico_central_america' THEN zone_mexico_central_america
+        WHEN 'zone_caribbean' THEN zone_caribbean
+        WHEN 'zone_northern_south_america' THEN zone_northern_south_america
+        WHEN 'zone_southern_south_america' THEN zone_southern_south_america
+        WHEN 'zone_northern_africa' THEN zone_northern_africa
+        WHEN 'zone_western_africa' THEN zone_western_africa
+        WHEN 'zone_eastern_africa' THEN zone_eastern_africa
+        WHEN 'zone_southern_africa' THEN zone_southern_africa
+        WHEN 'zone_middle_east' THEN zone_middle_east
+        WHEN 'zone_arctic' THEN zone_arctic
+        WHEN 'zone_antarctic' THEN zone_antarctic
+        WHEN 'zone_russia_north' THEN zone_russia_north
+        WHEN 'zone_russia_south' THEN zone_russia_south
+        WHEN 'zone_central_asia' THEN zone_central_asia
+        WHEN 'zone_india_south_asia' THEN zone_india_south_asia
+        WHEN 'zone_southeast_asia' THEN zone_southeast_asia
+        WHEN 'zone_eastern_asia' THEN zone_eastern_asia
+        WHEN 'zone_australia_nz' THEN zone_australia_nz
+        WHEN 'zone_pacific_islands' THEN zone_pacific_islands
+        WHEN 'americas' THEN americas
+        WHEN 'europe' THEN europe
+        WHEN 'russia_middle_east' THEN russia_middle_east
+        WHEN 'asia_oceania' THEN asia_oceania
+        ELSE NULL
+      END NULLS LAST
+    LIMIT 1;
+  END IF;
+
   -- Return -1 if no country found (NULL means not found)
   RETURN COALESCE(m_id_country, -1);
  END
 $func$
 ;
 COMMENT ON FUNCTION get_country IS
-  'Returns country using intelligent 2D grid (24 zones). Checks current country first. Uses direct SQL query with bounding box optimization for better performance.';
+  'Returns country using intelligent 2D grid (24 zones). Checks current country first. Searches terrestrial boundaries (is_maritime=false) first, then maritime zones (is_maritime=true) if not found. Uses direct SQL query with bounding box optimization for better performance.';
 
