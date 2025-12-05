@@ -259,6 +259,43 @@ function __createCountryTables {
  __log_finish
 }
 
+# Calculates and populates international waters areas.
+# This should be called after countries and maritimes are processed.
+function __calculateInternationalWaters {
+ __log_start
+ __logi "Calculating international waters areas..."
+
+ # Check if international waters table exists
+ local TABLE_EXISTS
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'international_waters');" 2> /dev/null | tr -d ' ' || echo "f")
+
+ if [[ "${TABLE_EXISTS}" != "t" ]]; then
+  __logw "International waters table does not exist, skipping calculation"
+  __logw "This is normal if processPlanetNotes_27_createInternationalWatersTable.sql was not run"
+  __log_finish
+  return 0
+ fi
+
+ # Check if calculation SQL file exists
+ if [[ ! -f "${POSTGRES_28_ADD_INTERNATIONAL_WATERS:-}" ]]; then
+  __logw "International waters calculation script not found: ${POSTGRES_28_ADD_INTERNATIONAL_WATERS:-}"
+  __logw "Skipping international waters calculation"
+  __log_finish
+  return 0
+ fi
+
+ __logi "Executing international waters calculation (this may take several minutes)..."
+ if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_28_ADD_INTERNATIONAL_WATERS}" 2>&1; then
+  __logi "International waters calculation completed successfully"
+  __log_finish
+  return 0
+ else
+  __loge "ERROR: International waters calculation failed"
+  __log_finish
+  return 1
+ fi
+}
+
 # Refreshes the materialized view for disputed and unclaimed areas.
 # This should be called after countries are updated (monthly).
 function __refreshDisputedAreasView {
@@ -918,6 +955,7 @@ EOF
   __processCountries
   __processMaritimes
   __maintainCountriesTable
+  __calculateInternationalWaters
   __refreshDisputedAreasView
   __cleanPartial
   # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
@@ -938,6 +976,7 @@ EOF
   unset FORCE_OVERPASS_DOWNLOAD
 
   __maintainCountriesTable
+  __calculateInternationalWaters
   __refreshDisputedAreasView
   __cleanPartial
 

@@ -1,6 +1,13 @@
--- Adds example international waters areas to the international_waters table.
--- This script demonstrates how to add more known international waters areas
--- to improve performance by avoiding expensive country searches.
+-- Calculates and inserts international waters areas by computing the difference
+-- between the world ocean and all country areas (terrestrial and maritime).
+-- This creates precise polygons that exclude any land or claimed maritime zones.
+--
+-- Strategy:
+-- 1. Create world bounding box (covers entire globe)
+-- 2. Union all country geometries (terrestrial + maritime)
+-- 3. Calculate difference (world - all countries) = international waters
+-- 4. Filter large ocean areas (exclude small coastal gaps)
+-- 5. Split into manageable polygons and insert
 --
 -- Usage:
 --   psql -d notes -f sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql
@@ -29,97 +36,116 @@ INSERT INTO international_waters (name, description, point_coords, is_special_po
 VALUES (
   'Null Island',
   'Point 0,0 in Gulf of Guinea - commonly used as placeholder for missing coordinates',
-  ST_SetSRID(ST_MakePoint(0, 0), 4326),
+  ST_SetSRID(ST_MakePoint(0, 0), 4326)::POINT,
   TRUE
 ) ON CONFLICT DO NOTHING;
 
 -- ============================================================================
--- LARGE OCEAN AREAS (Polygons)
+-- CALCULATE INTERNATIONAL WATERS (Precise polygons)
 -- ============================================================================
 
--- Central Pacific Ocean (far from any country)
--- Large area in the central Pacific, far from any landmass
-INSERT INTO international_waters (name, description, geom, is_special_point)
-VALUES (
-  'Central Pacific Ocean',
-  'Large area in central Pacific Ocean, far from any country (lon: -150 to -100, lat: -20 to 20)',
-  ST_SetSRID(
-    ST_MakeEnvelope(-150, -20, -100, 20, 4326),
-    4326
-  ),
-  FALSE
-) ON CONFLICT DO NOTHING;
+-- Delete existing polygon areas (keep special points)
+DELETE FROM international_waters
+WHERE is_special_point = FALSE AND geom IS NOT NULL;
 
--- South Atlantic Ocean (far from any country)
--- Large area in the South Atlantic, far from any landmass
-INSERT INTO international_waters (name, description, geom, is_special_point)
-VALUES (
-  'South Atlantic Ocean',
-  'Large area in South Atlantic Ocean, far from any country (lon: -40 to 0, lat: -50 to -30)',
-  ST_SetSRID(
-    ST_MakeEnvelope(-40, -50, 0, -30, 4326),
-    4326
+-- Calculate international waters as difference between world and all countries
+-- This includes both terrestrial and maritime zones
+WITH
+  -- Step 1: Create world bounding box
+  world_bounds AS (
+    SELECT
+      ST_SetSRID(ST_MakeEnvelope(-180, -90, 180, 90, 4326), 4326) AS geom
   ),
-  FALSE
-) ON CONFLICT DO NOTHING;
-
--- North Pacific Ocean (far from any country)
--- Large area in the North Pacific, far from any landmass
-INSERT INTO international_waters (name, description, geom, is_special_point)
-VALUES (
-  'North Pacific Ocean',
-  'Large area in North Pacific Ocean, far from any country (lon: -180 to -120, lat: 20 to 50)',
-  ST_SetSRID(
-    ST_MakeEnvelope(-180, 20, -120, 50, 4326),
-    4326
+  -- Step 2: Get all valid country geometries (terrestrial + maritime)
+  -- Fix SRID issues and filter valid geometries
+  valid_countries AS (
+    SELECT
+      CASE
+        WHEN ST_SRID(geom) = 0 OR ST_SRID(geom) IS NULL THEN
+          ST_SetSRID(geom, 4326)
+        ELSE
+          geom
+      END AS geom
+    FROM
+      countries
+    WHERE
+      ST_GeometryType(geom) IN ('ST_Polygon', 'ST_MultiPolygon')
+      AND geom IS NOT NULL
+      AND NOT ST_IsEmpty(geom)
   ),
-  FALSE
-) ON CONFLICT DO NOTHING;
-
--- Indian Ocean (far from any country)
--- Large area in the Indian Ocean, far from any landmass
-INSERT INTO international_waters (name, description, geom, is_special_point)
-VALUES (
-  'Central Indian Ocean',
-  'Large area in central Indian Ocean, far from any country (lon: 60 to 100, lat: -30 to 0)',
-  ST_SetSRID(
-    ST_MakeEnvelope(60, -30, 100, 0, 4326),
-    4326
+  -- Step 3: Union all country geometries
+  all_countries_union AS (
+    SELECT
+      ST_Union(geom) AS geom
+    FROM
+      valid_countries
   ),
+  -- Step 4: Calculate international waters (world - all countries)
+  international_waters_raw AS (
+    SELECT
+      ST_Difference(
+        wb.geom,
+        COALESCE(acu.geom, ST_GeomFromText('POLYGON EMPTY', 4326))
+      ) AS geom
+    FROM
+      world_bounds wb
+      CROSS JOIN all_countries_union acu
+  ),
+  -- Step 5: Extract individual polygons and filter by size
+  -- Only keep large ocean areas (minimum 1 square degree)
+  -- This excludes small coastal gaps and inland areas
+  international_waters_dumped AS (
+    SELECT
+      (ST_Dump(geom)).geom AS polygon_geom
+    FROM
+      international_waters_raw
+    WHERE
+      geom IS NOT NULL
+      AND NOT ST_IsEmpty(geom)
+  ),
+  international_waters_filtered AS (
+    SELECT
+      polygon_geom,
+      ST_Area(polygon_geom::geography) / (111000.0 * 111000.0) AS area_sq_degrees
+    FROM
+      international_waters_dumped
+    WHERE
+      ST_GeometryType(polygon_geom) IN ('ST_Polygon', 'ST_MultiPolygon')
+      AND ST_Area(polygon_geom::geography) > 111000.0 * 111000.0  -- Min 1 sq degree
+  ),
+  -- Step 6: Generate names and descriptions for each area
+  international_waters_named AS (
+    SELECT
+      polygon_geom,
+      area_sq_degrees,
+      'International Waters ' || ROW_NUMBER() OVER (ORDER BY area_sq_degrees DESC) AS area_name,
+      'International waters area calculated as difference between world ocean and all country areas (terrestrial and maritime). Area: ' ||
+      ROUND(area_sq_degrees::numeric, 2) || ' square degrees.' AS area_description
+    FROM
+      international_waters_filtered
+  )
+-- Step 7: Insert into international_waters table
+INSERT INTO international_waters (name, description, geom, is_special_point)
+SELECT
+  area_name,
+  area_description,
+  polygon_geom,
   FALSE
-) ON CONFLICT DO NOTHING;
+FROM
+  international_waters_named
+ORDER BY
+  area_sq_degrees DESC;
 
 -- ============================================================================
--- NOTES
+-- SUMMARY
 -- ============================================================================
 
--- To add more areas, use this template:
---
--- INSERT INTO international_waters (name, description, geom, is_special_point)
--- VALUES (
---   'Area Name',
---   'Description of the area',
---   ST_SetSRID(
---     ST_MakeEnvelope(min_lon, min_lat, max_lon, max_lat, 4326),
---     4326
---   ),
---   FALSE
--- ) ON CONFLICT DO NOTHING;
---
--- For special points:
---
--- INSERT INTO international_waters (name, description, point_coords, is_special_point)
--- VALUES (
---   'Point Name',
---   'Description of the point',
---   ST_SetSRID(ST_MakePoint(lon, lat), 4326),
---   TRUE
--- ) ON CONFLICT DO NOTHING;
-
--- Show summary
+-- Show summary of inserted international waters
 SELECT
   COUNT(*) AS total_areas,
   COUNT(CASE WHEN is_special_point THEN 1 END) AS special_points,
-  COUNT(CASE WHEN geom IS NOT NULL THEN 1 END) AS polygon_areas
-FROM international_waters;
+  COUNT(CASE WHEN geom IS NOT NULL THEN 1 END) AS polygon_areas,
+  ROUND(SUM(CASE WHEN geom IS NOT NULL THEN ST_Area(geom::geography) / (111000.0 * 111000.0) ELSE 0 END)::numeric, 2) AS total_area_sq_degrees
+FROM
+  international_waters;
 

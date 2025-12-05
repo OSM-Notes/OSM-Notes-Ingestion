@@ -78,6 +78,7 @@ if [[ -z "${POSTGRES_25_CREATE_PARTITIONS:-}" ]]; then declare -r POSTGRES_25_CR
 if [[ -z "${POSTGRES_26_CREATE_COUNTRY_TABLES:-}" ]]; then declare -r POSTGRES_26_CREATE_COUNTRY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_25_createCountryTables.sql"; fi
 if [[ -z "${POSTGRES_26_OPTIMIZE_COUNTRY_INDEXES:-}" ]]; then declare -r POSTGRES_26_OPTIMIZE_COUNTRY_INDEXES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_26_optimizeCountryIndexes.sql"; fi
 if [[ -z "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS:-}" ]]; then declare -r POSTGRES_27_CREATE_INTERNATIONAL_WATERS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_27_createInternationalWatersTable.sql"; fi
+if [[ -z "${POSTGRES_28_ADD_INTERNATIONAL_WATERS:-}" ]]; then declare -r POSTGRES_28_ADD_INTERNATIONAL_WATERS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql"; fi
 if [[ -z "${POSTGRES_31_VACUUM_AND_ANALYZE:-}" ]]; then declare -r POSTGRES_31_VACUUM_AND_ANALYZE="${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"; fi
 if [[ -z "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES:-}" ]]; then declare -r POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"; fi
 if [[ -z "${POSTGRES_42_CONSOLIDATE_PARTITIONS:-}" ]]; then declare -r POSTGRES_42_CONSOLIDATE_PARTITIONS="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_42_consolidatePartitions.sql"; fi
