@@ -349,11 +349,72 @@ function __splitXmlForParallelSafe() {
 declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
 declare -r CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
 
+# GitHub repository URL for note location backup (can be overridden via environment variable)
+declare -r DEFAULT_NOTE_LOCATION_DATA_REPO_URL="${DEFAULT_NOTE_LOCATION_DATA_REPO_URL:-https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data}"
+
 # ogr2ogr GeoJSON test file.
 declare -r GEOJSON_TEST="${SCRIPT_BASE_DIRECTORY}/json/map.geojson"
 
 ###########
 # FUNCTIONS
+
+### Note Location Backup Resolution
+
+# Resolves note location backup file, downloading from GitHub if not found locally.
+# Similar to __resolve_geojson_file but for noteLocation.csv.zip
+# Sets CSV_BACKUP_NOTE_LOCATION_COMPRESSED to the resolved file path.
+function __resolve_note_location_backup() {
+ __log_start
+ local RESOLVED_FILE=""
+ local TMP_DIR="${TMP_DIR:-/tmp}"
+ 
+ # Default GitHub repository URL for note location data
+ local NOTE_LOCATION_DATA_REPO_URL="${NOTE_LOCATION_DATA_REPO_URL:-${DEFAULT_NOTE_LOCATION_DATA_REPO_URL}}"
+ local NOTE_LOCATION_DATA_BRANCH="${NOTE_LOCATION_DATA_BRANCH:-main}"
+ 
+ # Try local file first
+ if [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]] && [[ -s "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
+  __logd "Using local note location backup: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
+  __log_finish
+  return 0
+ fi
+ 
+ # Local file not found, try downloading from GitHub
+ __logi "Local note location backup not found, attempting to download from GitHub..."
+ 
+ local FILE_NAME="noteLocation.csv.zip"
+ local DOWNLOAD_URL="${NOTE_LOCATION_DATA_REPO_URL}/${FILE_NAME}"
+ local DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}"
+ 
+ # Use __retry_network_operation if available, otherwise use wget directly
+ if declare -f __retry_network_operation > /dev/null 2>&1; then
+  if __retry_network_operation "${DOWNLOAD_URL}" "${DOWNLOADED_FILE}" 3 2 30; then
+   # Move downloaded file to expected location
+   mkdir -p "$(dirname "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}")"
+   mv "${DOWNLOADED_FILE}" "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
+   __logi "Successfully downloaded note location backup from GitHub: ${DOWNLOAD_URL}"
+   __log_finish
+   return 0
+  else
+   __loge "Failed to download note location backup from GitHub: ${DOWNLOAD_URL}"
+   __log_finish
+   return 1
+  fi
+ else
+  # Fallback to direct wget if __retry_network_operation is not available
+  if wget -q --timeout=30 --tries=3 -O "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
+   mkdir -p "$(dirname "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}")"
+   mv "${DOWNLOADED_FILE}" "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
+   __logi "Successfully downloaded note location backup from GitHub: ${DOWNLOAD_URL}"
+   __log_finish
+   return 0
+  else
+   __loge "Failed to download note location backup from GitHub: ${DOWNLOAD_URL}"
+   __log_finish
+   return 1
+  fi
+ fi
+}
 
 ### Logger
 
@@ -1391,11 +1452,17 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
- __logd "Checking files."
- if [[ ! -r "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
-  __loge "ERROR: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}."
-  exit "${ERROR_MISSING_LIBRARY}"
+__logd "Checking files."
+# Resolve note location backup file (download from GitHub if not found locally)
+# Note: __resolve_note_location_backup is defined earlier in this file
+if declare -f __resolve_note_location_backup > /dev/null 2>&1; then
+ if ! __resolve_note_location_backup; then
+  __logw "Warning: Failed to resolve note location backup file. Will continue without backup."
  fi
+fi
+if [[ ! -r "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
+ __logw "Warning: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}. Processing will continue without backup (slower)."
+fi
  if [[ ! -r "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_32_UPLOAD_NOTE_LOCATION}."
   exit "${ERROR_MISSING_LIBRARY}"

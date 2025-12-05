@@ -447,7 +447,8 @@ function __checkPrereqs {
  fi
 
  ## Validate backup files if they exist
- if [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
+ # Resolve note location backup file (download from GitHub if not found locally)
+ if __resolve_note_location_backup 2> /dev/null || [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
   __logi "Validating backup files..."
   if ! __validate_input_file "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" "Backup file"; then
    __loge "ERROR: Backup file validation failed: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"

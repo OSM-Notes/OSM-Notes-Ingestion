@@ -112,6 +112,8 @@ etc/properties.sh_local
 
 # Note location backups and generated CSV files
 # These are generated backups that can be recreated when needed
+# The compressed backup is downloaded from OSM-Notes-Data repository when needed
 data/noteLocation.csv
+data/noteLocation.csv.zip
 data/noteLocation_backup_*.csv
 data/noteLocation_combined.csv

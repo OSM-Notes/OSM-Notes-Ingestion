@@ -33,6 +33,13 @@ function __getLocationNotes_impl {
  __logi "This process will load note location data from backup CSV file."
  __logi "This operation may take several minutes depending on the size of the backup file."
  __logi "Please wait, the process is actively working..."
+ 
+ # Resolve note location backup file (download from GitHub if not found locally)
+ if ! __resolve_note_location_backup; then
+  __logw "Warning: Note location backup file not available. Will calculate all countries from scratch (slower)."
+  return 0
+ fi
+ 
  __logi "Extracting notes backup."
  rm -f "${CSV_BACKUP_NOTE_LOCATION}"
  unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
