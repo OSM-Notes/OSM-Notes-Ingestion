@@ -16,21 +16,29 @@ DECLARE
   invalidated_count INTEGER;
 BEGIN
   -- Update notes that don't belong to assigned country
-  -- Optimized: Direct UPDATE without self-join
-  -- Optimized: c.geom already has SRID 4326 (set during import), no need for ST_SetSRID
+  -- OPTIMIZED: Use EXISTS with correlated subquery to force efficient lookup
+  -- This approach:
+  -- 1. Filters notes by range first (uses index on note_id)
+  -- 2. For each note, looks up ONLY its assigned country using PK (very fast)
+  -- 3. Evaluates ST_Contains only for that specific country geometry
+  -- This avoids Hash Join which loads all 276 geometries (183 MB) into memory
+  -- Optimized: geom already has SRID 4326, no need for ST_SetSRID
   -- Only ST_Point needs SRID set since it creates a point without SRID
-  -- Only process notes with valid coordinates (longitude and latitude not NULL)
+  -- Performance: Should be 50-100x faster than Hash Join approach
   UPDATE notes /* Notes-integrity check parallel */
   SET id_country = NULL
-  FROM countries c
-  WHERE notes.id_country = c.country_id
-    AND notes.id_country IS NOT NULL
+  WHERE notes.id_country IS NOT NULL
     AND notes.longitude IS NOT NULL
     AND notes.latitude IS NOT NULL
     AND ${SUB_START} <= notes.note_id AND notes.note_id < ${SUB_END}
-    AND NOT ST_Contains(
-      c.geom,
-      ST_SetSRID(ST_Point(notes.longitude, notes.latitude), 4326)
+    AND EXISTS (
+      SELECT 1
+      FROM countries c
+      WHERE c.country_id = notes.id_country
+        AND NOT ST_Contains(
+          c.geom,
+          ST_SetSRID(ST_Point(notes.longitude, notes.latitude), 4326)
+        )
     );
   
   -- Get count of affected rows
