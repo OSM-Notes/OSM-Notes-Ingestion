@@ -72,7 +72,7 @@ AS $func$
         (geom IS NOT NULL AND ST_Contains(geom, ST_SetSRID(ST_Point(lon, lat), 4326)))
         OR
         (point_coords IS NOT NULL AND ST_DWithin(
-          ST_SetSRID(ST_MakePoint(point_coords[0], point_coords[1]), 4326),
+          point_coords,
           ST_SetSRID(ST_Point(lon, lat), 4326),
           0.001 -- ~100 meters tolerance for special points
         ))

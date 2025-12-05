@@ -6,7 +6,7 @@
 --   psql -d notes -f sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-28
+-- Version: 2025-12-05
 
 -- Ensure the table exists (for backward compatibility)
 DO $$
@@ -29,7 +29,7 @@ INSERT INTO international_waters (name, description, point_coords, is_special_po
 VALUES (
   'Null Island',
   'Point 0,0 in Gulf of Guinea - commonly used as placeholder for missing coordinates',
-  POINT(0, 0),
+  ST_SetSRID(ST_MakePoint(0, 0), 4326),
   TRUE
 ) ON CONFLICT DO NOTHING;
 
@@ -112,7 +112,7 @@ VALUES (
 -- VALUES (
 --   'Point Name',
 --   'Description of the point',
---   POINT(lon, lat),
+--   ST_SetSRID(ST_MakePoint(lon, lat), 4326),
 --   TRUE
 -- ) ON CONFLICT DO NOTHING;
 

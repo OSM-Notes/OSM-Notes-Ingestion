@@ -8,7 +8,7 @@
 -- 3. Check these first before searching all countries
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-28
+-- Version: 2025-12-05
 
 -- Table for international waters and special points
 CREATE TABLE IF NOT EXISTS international_waters (
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS international_waters (
   name VARCHAR(100) NOT NULL,
   description TEXT,
   geom GEOMETRY(POLYGON, 4326),
-  point_coords POINT,
+  point_coords GEOMETRY(POINT, 4326),
   -- Special flag for known points (like Null Island)
   is_special_point BOOLEAN DEFAULT FALSE
 );
@@ -29,7 +29,7 @@ COMMENT ON COLUMN international_waters.description IS
 COMMENT ON COLUMN international_waters.geom IS
   'Polygon geometry for international waters areas';
 COMMENT ON COLUMN international_waters.point_coords IS
-  'Point coordinates for special points (like Null Island)';
+  'Point coordinates for special points (like Null Island). Uses SRID 4326 (WGS84) for proper map display.';
 COMMENT ON COLUMN international_waters.is_special_point IS
   'True if this is a special point (not a polygon area)';
 
@@ -53,7 +53,7 @@ INSERT INTO international_waters (name, description, point_coords, is_special_po
 VALUES (
   'Null Island',
   'Point 0,0 in Gulf of Guinea - commonly used as placeholder for missing coordinates',
-  POINT(0, 0),
+  ST_SetSRID(ST_MakePoint(0, 0), 4326),
   TRUE
 ) ON CONFLICT DO NOTHING;
 
