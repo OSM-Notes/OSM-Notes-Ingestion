@@ -9,10 +9,11 @@
 --   COUNT(*) of invalidated notes (notes that don't belong to assigned country)
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-28
+-- Version: 2025-12-05
 --
 -- Note: Optimized to remove unnecessary self-join. Direct UPDATE with JOIN to countries.
--- Fixed: Normalize SRID - production has SRID 0, need to set to 4326 for ST_Contains.
+-- Optimized: Removed ST_SetSRID from c.geom since all geometries already have SRID 4326.
+-- This improves performance by eliminating unnecessary function calls per row.
 
 DO $$
 DECLARE
@@ -20,7 +21,8 @@ DECLARE
 BEGIN
   -- Update notes that don't belong to assigned country
   -- Optimized: Direct UPDATE without self-join
-  -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
+  -- Optimized: c.geom already has SRID 4326 (set during import), no need for ST_SetSRID
+  -- Only ST_Point needs SRID set since it creates a point without SRID
   -- Only process notes with valid coordinates (longitude and latitude not NULL)
   UPDATE notes /* Notes-integrity check parallel */
   SET id_country = NULL
@@ -31,7 +33,7 @@ BEGIN
     AND notes.latitude IS NOT NULL
     AND ${SUB_START} <= notes.note_id AND notes.note_id < ${SUB_END}
     AND NOT ST_Contains(
-      ST_SetSRID(c.geom, 4326),
+      c.geom,
       ST_SetSRID(ST_Point(notes.longitude, notes.latitude), 4326)
     );
   

@@ -14,9 +14,6 @@
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-12-05
---
--- Optimized: Replaced PL/pgSQL loop with direct SQL query for better
--- PostgreSQL optimization and performance (30-40% faster).
 
  CREATE OR REPLACE FUNCTION get_country (
   lon DECIMAL,
@@ -44,7 +41,7 @@ AS $func$
   -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
   IF m_current_country IS NOT NULL AND m_current_country > 0 THEN
     SELECT ST_Contains(
-      ST_SetSRID(geom, 4326),
+      geom,
       ST_SetSRID(ST_Point(lon, lat), 4326)
     ) INTO m_contains
     FROM countries
@@ -240,8 +237,9 @@ AS $func$
     -- Uses the optimized index created by processPlanetNotes_26_optimizeCountryIndexes.sql
     AND ST_Envelope(geom) && ST_SetSRID(ST_Point(lon, lat), 4326)
     -- Then check exact containment (expensive, but only for filtered countries)
+    -- Optimized: geom already has SRID 4326, no need for ST_SetSRID
     AND ST_Contains(
-      ST_SetSRID(geom, 4326),
+      geom,
       ST_SetSRID(ST_Point(lon, lat), 4326)
     )
   ORDER BY
@@ -294,8 +292,9 @@ AS $func$
       -- First filter by bounding box (fast - uses countries_bbox_box2d or countries_bbox_gist index)
       AND ST_Envelope(geom) && ST_SetSRID(ST_Point(lon, lat), 4326)
       -- Then check exact containment (expensive, but only for filtered countries)
+      -- Optimized: geom already has SRID 4326, no need for ST_SetSRID
       AND ST_Contains(
-        ST_SetSRID(geom, 4326),
+        geom,
         ST_SetSRID(ST_Point(lon, lat), 4326)
       )
     ORDER BY
