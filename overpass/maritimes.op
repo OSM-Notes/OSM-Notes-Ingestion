@@ -1,14 +1,21 @@
 /**
- * Oveerpass query to download the boundary relation id for all maritimes
+ * Overpass query to download the boundary relation id for all maritime
  * areas.
  * This is called from the processPlanetNotes.sh.
  *
+ * Searches for all relations with boundary=maritime tag, which includes:
+ * - EEZ (Exclusive Economic Zone)
+ * - Contiguous zones
+ * - Territorial seas
+ * - Internal waters
+ * - Other maritime boundaries
+ *
  * Author: Andres Gomez (AngocA)
- * Version: 2023-11-13
+ * Version: 2025-12-05
  */
 
 [out:csv(::id)];
 (
-  relation["border_type"]["border_type"~"contiguous|eez"];
+  relation["boundary"="maritime"];
 );
 out ids;
