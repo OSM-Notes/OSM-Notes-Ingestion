@@ -36,7 +36,7 @@ INSERT INTO international_waters (name, description, point_coords, is_special_po
 VALUES (
   'Null Island',
   'Point 0,0 in Gulf of Guinea - commonly used as placeholder for missing coordinates',
-  ST_SetSRID(ST_MakePoint(0, 0), 4326)::POINT,
+  ST_SetSRID(ST_MakePoint(0, 0), 4326),
   TRUE
 ) ON CONFLICT DO NOTHING;
 
