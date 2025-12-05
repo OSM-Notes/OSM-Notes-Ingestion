@@ -1,15 +1,21 @@
 # Boundaries Backup (Countries and Maritimes)
 
-This directory contains backups of country and maritime boundaries exported from
-the database. These backups are used to avoid downloading boundaries from
-Overpass API on every run of `processPlanet base`, significantly speeding up
-the process.
+Boundary backup files are stored in the [OSM-Notes-Data](https://github.com/OSMLatam/OSM-Notes-Data) repository
+to keep this repository focused on code only. The backups are automatically downloaded from GitHub
+when needed.
+
+## Files Location
+
+The backup files are stored in the external repository:
+- **Repository**: [OSM-Notes-Data](https://github.com/OSMLatam/OSM-Notes-Data)
+- **Path**: `data/countries.geojson.gz` and `data/maritimes.geojson.gz`
+- **URL**: `https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data/`
 
 ## Files
 
-- **`countries.geojson`** - GeoJSON file containing all country boundaries exported
+- **`countries.geojson.gz`** - Compressed GeoJSON file containing all country boundaries exported
   from the `countries` table (excluding maritime boundaries).
-- **`maritimes.geojson`** - GeoJSON file containing all maritime boundaries (EEZ,
+- **`maritimes.geojson.gz`** - Compressed GeoJSON file containing all maritime boundaries (EEZ,
   Contiguous Zones, etc.) exported from the `countries` table.
 
 ## Export Scripts
@@ -37,9 +43,10 @@ DBNAME=osm-notes ./bin/scripts/exportCountriesBackup.sh
 - Creates/updates `data/countries.geojson`
 
 **Output:**
-- File: `data/countries.geojson`
+- File: `data/countries.geojson` (local, uncompressed)
+- Compressed: `data/countries.geojson.gz` (uploaded to OSM-Notes-Data repository)
 - Format: GeoJSON (RFC 7946)
-- Typical size: ~137MB (286 countries)
+- Typical size: ~152MB uncompressed, ~43MB compressed (256 countries)
 
 ### `bin/scripts/exportMaritimesBackup.sh`
 
@@ -62,9 +69,10 @@ DBNAME=osm-notes ./bin/scripts/exportMaritimesBackup.sh
 - Creates/updates `data/maritimes.geojson`
 
 **Output:**
-- File: `data/maritimes.geojson`
+- File: `data/maritimes.geojson` (local, uncompressed)
+- Compressed: `data/maritimes.geojson.gz` (uploaded to OSM-Notes-Data repository)
 - Format: GeoJSON (RFC 7946)
-- Typical size: ~4.9MB (30 maritime boundaries)
+- Typical size: ~1.4MB uncompressed, ~445KB compressed (20 maritime boundaries)
 
 ## Maritime Patterns
 
@@ -96,28 +104,46 @@ case-insensitive matching (ILIKE) to ensure all maritime boundaries are correctl
 
 ## Automatic Usage
 
-The backups are automatically used by:
+The backups are automatically downloaded from GitHub and used by:
 
 1. **`processPlanet base`** - When processing planet notes in base mode, it will
-   use the backup files if available, avoiding the Overpass download entirely.
+   download the backup files from GitHub if not found locally, avoiding the Overpass download entirely.
 
 2. **`updateCountries`** - When running in update mode (without `--base`), it will:
    - Download IDs from Overpass first (lightweight query)
+   - Download backup files from GitHub if not found locally
    - Compare IDs with backup files
    - Only download full boundaries if IDs differ
    - Skip the download if IDs match the backup (much faster)
+
+### Download Behavior
+
+The system will:
+1. First check for local files in `data/` directory (for development)
+2. If not found, automatically download from GitHub repository
+3. Cache downloaded files in temporary directory for reuse
+4. Decompress `.gz` files automatically when needed
 
 ## Manual Update
 
 If you need to update the backups after changes to boundaries:
 
 ```bash
-# After running updateCountries and verifying changes
+# Step 1: Export from database (creates local uncompressed files)
 ./bin/scripts/exportCountriesBackup.sh
 ./bin/scripts/exportMaritimesBackup.sh
+
+# Step 2: Upload to OSM-Notes-Data repository
+./bin/scripts/uploadBoundariesToDataRepo.sh
 ```
 
-Then commit the updated GeoJSON files to the repository.
+The upload script will:
+1. Compress the GeoJSON files
+2. Clone or update the OSM-Notes-Data repository
+3. Copy the compressed files to the repository
+4. Commit and push the changes
+
+**Note**: You need write access to the OSM-Notes-Data repository to upload backups.
 
 ## Benefits
 
@@ -162,13 +188,26 @@ The backups should be updated:
 
 ## Related Scripts
 
-- `bin/scripts/exportCountriesBackup.sh` - Export countries
-- `bin/scripts/exportMaritimesBackup.sh` - Export maritimes
-- `bin/process/updateCountries.sh` - Updates boundaries (uses backups)
-- `bin/process/processPlanetNotes.sh` - Processes planet (uses backups)
+- `bin/scripts/exportCountriesBackup.sh` - Export countries from database
+- `bin/scripts/exportMaritimesBackup.sh` - Export maritimes from database
+- `bin/scripts/uploadBoundariesToDataRepo.sh` - Upload backups to OSM-Notes-Data repository
+- `bin/process/updateCountries.sh` - Updates boundaries (downloads backups from GitHub)
+- `bin/process/processPlanetNotes.sh` - Processes planet (downloads backups from GitHub)
+
+## Configuration
+
+You can customize the GitHub repository URL using environment variables:
+
+```bash
+# Use a different repository URL
+export BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/YourOrg/YourRepo/main/data"
+
+# Use a different branch
+export BOUNDARIES_DATA_BRANCH="develop"
+```
 
 ## Author
 
 Andres Gomez (AngocA)
-Version: 2025-12-01
+Version: 2025-12-05
 

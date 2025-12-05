@@ -5,6 +5,9 @@
 # Version: 2025-12-05
 VERSION="2025-12-05"
 
+# GitHub repository URL for boundaries data (can be overridden via environment variable)
+declare -r DEFAULT_BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data"
+
 # Directory lock for ogr2ogr imports
 declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
 
@@ -94,41 +97,117 @@ function __resolve_geojson_file() {
  local BASE_PATH="${1}"
  local OUTPUT_VAR="${2:-GEOJSON_RESOLVED_FILE}"
  local RESOLVED_FILE=""
+ local FILE_NAME=""
+ local DOWNLOAD_URL=""
 
+ # Determine file name and download URL
+ if [[ "${BASE_PATH}" == *.geojson ]]; then
+  FILE_NAME=$(basename "${BASE_PATH}")
+ else
+  FILE_NAME=$(basename "${BASE_PATH}.geojson")
+ fi
+
+ # Default GitHub repository URL for boundaries data
+ local BOUNDARIES_DATA_REPO_URL="${BOUNDARIES_DATA_REPO_URL:-https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data}"
+ local BOUNDARIES_DATA_BRANCH="${BOUNDARIES_DATA_BRANCH:-main}"
+
+ # Try local files first (for development or offline use)
  # If BASE_PATH already has .geojson extension, use it as-is
  if [[ "${BASE_PATH}" == *.geojson ]]; then
   if [[ -f "${BASE_PATH}" ]] && [[ -s "${BASE_PATH}" ]]; then
    RESOLVED_FILE="${BASE_PATH}"
+   eval "${OUTPUT_VAR}=\"${RESOLVED_FILE}\""
+   return 0
   elif [[ -f "${BASE_PATH}.gz" ]] && [[ -s "${BASE_PATH}.gz" ]]; then
    # Decompress to temporary location
    local TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}")"
    if gunzip -c "${BASE_PATH}.gz" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
     RESOLVED_FILE="${TMP_DECOMPRESSED}"
     __logd "Decompressed ${BASE_PATH}.gz to ${RESOLVED_FILE}"
+    eval "${OUTPUT_VAR}=\"${RESOLVED_FILE}\""
+    return 0
    else
     __loge "Failed to decompress ${BASE_PATH}.gz"
-    return 1
    fi
-  else
-   return 1
   fi
  else
   # Try .geojson first, then .geojson.gz
   if [[ -f "${BASE_PATH}.geojson" ]] && [[ -s "${BASE_PATH}.geojson" ]]; then
    RESOLVED_FILE="${BASE_PATH}.geojson"
+   eval "${OUTPUT_VAR}=\"${RESOLVED_FILE}\""
+   return 0
   elif [[ -f "${BASE_PATH}.geojson.gz" ]] && [[ -s "${BASE_PATH}.geojson.gz" ]]; then
    # Decompress to temporary location
    local TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}.geojson")"
    if gunzip -c "${BASE_PATH}.geojson.gz" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
     RESOLVED_FILE="${TMP_DECOMPRESSED}"
     __logd "Decompressed ${BASE_PATH}.geojson.gz to ${RESOLVED_FILE}"
+    eval "${OUTPUT_VAR}=\"${RESOLVED_FILE}\""
+    return 0
    else
     __loge "Failed to decompress ${BASE_PATH}.geojson.gz"
+   fi
+  fi
+ fi
+
+ # Local files not found, try downloading from GitHub
+ __logd "Local file not found, attempting to download from GitHub repository..."
+
+ # Try .geojson.gz first (compressed version is preferred for GitHub)
+ DOWNLOAD_URL="${BOUNDARIES_DATA_REPO_URL}/${FILE_NAME}.gz"
+ local DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}.gz"
+ local TMP_DECOMPRESSED="${TMP_DIR}/${FILE_NAME}"
+
+ # Check if we have network operation function available
+ if declare -f __retry_network_operation > /dev/null 2>&1; then
+  if __retry_network_operation "${DOWNLOAD_URL}" "${DOWNLOADED_FILE}" 3 2 30; then
+   __logd "Downloaded ${FILE_NAME}.gz from GitHub"
+  else
+   __logw "Failed to download ${FILE_NAME}.gz from GitHub, trying uncompressed version..."
+   DOWNLOAD_URL="${BOUNDARIES_DATA_REPO_URL}/${FILE_NAME}"
+   DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}"
+   TMP_DECOMPRESSED="${DOWNLOADED_FILE}"
+   if ! __retry_network_operation "${DOWNLOAD_URL}" "${DOWNLOADED_FILE}" 3 2 30; then
+    __loge "Failed to download ${FILE_NAME} from GitHub repository"
     return 1
    fi
+   __logd "Downloaded ${FILE_NAME} from GitHub"
+  fi
+ else
+  # Fallback to wget if __retry_network_operation is not available
+  if wget -q -O "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
+   __logd "Downloaded ${FILE_NAME}.gz from GitHub"
   else
+   __logw "Failed to download ${FILE_NAME}.gz from GitHub, trying uncompressed version..."
+   DOWNLOAD_URL="${BOUNDARIES_DATA_REPO_URL}/${FILE_NAME}"
+   DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}"
+   TMP_DECOMPRESSED="${DOWNLOADED_FILE}"
+   if ! wget -q -O "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
+    __loge "Failed to download ${FILE_NAME} from GitHub repository"
+    return 1
+   fi
+   __logd "Downloaded ${FILE_NAME} from GitHub"
+  fi
+ fi
+
+ # Verify downloaded file
+ if [[ ! -f "${DOWNLOADED_FILE}" ]] || [[ ! -s "${DOWNLOADED_FILE}" ]]; then
+  __loge "Downloaded file is empty or missing"
+  return 1
+ fi
+
+ # Decompress if needed
+ if [[ "${DOWNLOADED_FILE}" == *.gz ]]; then
+  if gunzip -c "${DOWNLOADED_FILE}" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
+   RESOLVED_FILE="${TMP_DECOMPRESSED}"
+   __logd "Decompressed downloaded ${FILE_NAME}.gz to ${RESOLVED_FILE}"
+   rm -f "${DOWNLOADED_FILE}" 2> /dev/null || true
+  else
+   __loge "Failed to decompress downloaded ${FILE_NAME}.gz"
    return 1
   fi
+ else
+  RESOLVED_FILE="${DOWNLOADED_FILE}"
  fi
 
  # Set output variable

@@ -91,9 +91,11 @@ prod/
 # lib/osm-common/
 
 # GeoJSON backup files (uncompressed versions)
-# Only compressed .geojson.gz files are tracked in the repository
+# Compressed versions are stored in OSM-Notes-Data repository
 data/countries.geojson
 data/maritimes.geojson
+data/countries.geojson.gz
+data/maritimes.geojson.gz
 
 # Node.js dependencies
 node_modules/
