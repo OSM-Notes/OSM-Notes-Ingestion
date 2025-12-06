@@ -1568,6 +1568,32 @@ function __processMaritimes_impl {
  tail -n +2 "${MARITIME_BOUNDARY_IDS_FILE}" > "${MARITIME_BOUNDARY_IDS_FILE}.tmp"
  mv "${MARITIME_BOUNDARY_IDS_FILE}.tmp" "${MARITIME_BOUNDARY_IDS_FILE}"
 
+ # Add missing maritime IDs found from World_EEZ analysis
+ # These IDs were identified by comparing World_EEZ shapefile with existing
+ # maritime boundaries and searching OSM for corresponding relations
+ local MISSING_MARITIME_IDS_FILE
+ if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+  MISSING_MARITIME_IDS_FILE="${SCRIPT_BASE_DIRECTORY}/data/missing_maritime_ids.txt"
+ else
+  # Fallback: try to determine base directory from script location
+  MISSING_MARITIME_IDS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd)/data/missing_maritime_ids.txt"
+ fi
+ if [[ -f "${MISSING_MARITIME_IDS_FILE}" ]] && [[ -s "${MISSING_MARITIME_IDS_FILE}" ]]; then
+  local MISSING_COUNT
+  MISSING_COUNT=$(wc -l < "${MISSING_MARITIME_IDS_FILE}" | tr -d ' ' || echo "0")
+  if [[ "${MISSING_COUNT}" -gt 0 ]]; then
+   __logi "Adding ${MISSING_COUNT} missing maritime IDs from World_EEZ analysis..."
+   # Append missing IDs to the file
+   cat "${MISSING_MARITIME_IDS_FILE}" >> "${MARITIME_BOUNDARY_IDS_FILE}"
+   # Remove duplicates and sort
+   sort -n -u "${MARITIME_BOUNDARY_IDS_FILE}" > "${MARITIME_BOUNDARY_IDS_FILE}.tmp"
+   mv "${MARITIME_BOUNDARY_IDS_FILE}.tmp" "${MARITIME_BOUNDARY_IDS_FILE}"
+   local FINAL_COUNT
+   FINAL_COUNT=$(wc -l < "${MARITIME_BOUNDARY_IDS_FILE}" | tr -d ' ' || echo "0")
+   __logi "Total maritime IDs after adding missing ones: ${FINAL_COUNT}"
+  fi
+ fi
+
  # Compare IDs with backup before processing
  # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
  # Also skip backup if SKIP_DB_IMPORT is set (download-only mode - need individual GeoJSON files)

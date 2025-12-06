@@ -187,9 +187,6 @@ BEGIN
   END IF;
 END $$;
 
--- Drop view if exists
-DROP VIEW IF EXISTS wms.disputed_and_unclaimed_areas CASCADE;
-
 -- Create materialized view for disputed and unclaimed areas
 -- This view is materialized because the query is computationally expensive
 -- (ST_Union over all countries, ST_Difference operations).
