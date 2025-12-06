@@ -4,7 +4,7 @@ SLD file to give colors to the notes. The lighter the note was recently opened.
 The darker the note was opened several years ago. It is used in GeoServer.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-11-30
+Version: 2025-12-06
 -->
 <StyledLayerDescriptor xmlns="http://www.opengis.net/sld" xmlns:se="http://www.opengis.net/se" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" version="1.1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <NamedLayer>
@@ -34,7 +34,7 @@ Version: 2025-11-30
                   <se:SvgParameter name="stroke-width">0.5</se:SvgParameter>
                 </se:Stroke>
               </se:Mark>
-              <se:Size>1</se:Size>
+              <se:Size>8</se:Size>
             </se:Graphic>
           </se:PointSymbolizer>
         </se:Rule>

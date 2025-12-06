@@ -4,7 +4,7 @@ SLD file to give colors to coutries. Pale yellow for the countries, light blue
 for the international areas. It is used in GeoServer.
 
 Author: Andres Gomez (AngocA)
-Version: 2025-11-30
+Version: 2025-12-06
 -->
 <StyledLayerDescriptor xmlns="http://www.opengis.net/sld" version="1.1.0" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.1.0/StyledLayerDescriptor.xsd" xmlns:ogc="http://www.opengis.net/ogc" xmlns:se="http://www.opengis.net/se" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink">
   <NamedLayer>
@@ -18,10 +18,10 @@ Version: 2025-11-30
             <se:Title>Ocean</se:Title>
           </se:Description>
           <ogc:Filter xmlns:ogc="http://www.opengis.net/ogc">
-            <ogc:Function name="regexp_match">
+            <ogc:PropertyIsLike wildCard="*" singleChar="." escapeChar="\\">
               <ogc:PropertyName>country_name_en</ogc:PropertyName>
-              <ogc:Literal>\(</ogc:Literal>
-            </ogc:Function>
+              <ogc:Literal>*\(*</ogc:Literal>
+            </ogc:PropertyIsLike>
           </ogc:Filter>
           <se:PolygonSymbolizer>
             <se:Fill>
@@ -41,10 +41,10 @@ Version: 2025-11-30
           </se:Description>
           <ogc:Filter xmlns:ogc="http://www.opengis.net/ogc">
             <ogc:Not>
-              <ogc:Function name="regexp_match">
+              <ogc:PropertyIsLike wildCard="*" singleChar="." escapeChar="\\">
                 <ogc:PropertyName>country_name_en</ogc:PropertyName>
-                <ogc:Literal>\(</ogc:Literal>
-              </ogc:Function>
+                <ogc:Literal>*\(*</ogc:Literal>
+              </ogc:PropertyIsLike>
             </ogc:Not>
           </ogc:Filter>
           <se:PolygonSymbolizer>

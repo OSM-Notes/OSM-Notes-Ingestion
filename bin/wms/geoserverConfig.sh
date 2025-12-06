@@ -465,9 +465,9 @@ create_datastore() {
  local CHECK_HTTP_CODE
  CHECK_HTTP_CODE=$(echo "${CHECK_RESPONSE}" | tail -1)
 
- # Note: We specify 'public' as the default schema in the datastore
+ # Note: We specify 'public' as the default schema since views are created there
  # SQL views can still access other schemas (like 'wms') by using fully qualified names
- # This prevents GeoServer from interpreting layer names as schemas
+ # This simplifies GeoServer configuration by using a single schema
  local DATASTORE_DATA="{
    \"dataStore\": {
      \"name\": \"${GEOSERVER_STORE}\",
@@ -973,6 +973,20 @@ create_sql_view_layer() {
 
  print_status "${BLUE}" "🗺️  Creating GeoServer SQL view layer '${LAYER_NAME}'..."
 
+ # Calculate actual bounding box from SQL query
+ # Extract table/view name from SQL for bounding box calculation
+ local TABLE_NAME
+ TABLE_NAME=$(echo "${SQL_QUERY}" | sed -n 's/.*FROM[[:space:]]\+\([^[:space:]]*\).*/\1/p' | tr -d ';' || echo "")
+ local BBOX
+ if [[ -n "${TABLE_NAME}" ]]; then
+  BBOX=$(calculate_bbox_from_table "${TABLE_NAME}")
+ else
+  # Use default bounding box if table name cannot be extracted
+  BBOX="${WMS_BBOX_MINX},${WMS_BBOX_MINY},${WMS_BBOX_MAXX},${WMS_BBOX_MAXY}"
+ fi
+ local BBOX_MINX BBOX_MINY BBOX_MAXX BBOX_MAXY
+ IFS=',' read -r BBOX_MINX BBOX_MINY BBOX_MAXX BBOX_MAXY <<< "${BBOX}"
+
  # Escape SQL query for XML (escape <, >, &, ", ')
  # Note: We need to escape for XML first, then for JSON
  # Replace newlines with spaces and collapse multiple spaces
@@ -1007,11 +1021,11 @@ EOF
  VIRTUAL_TABLE_CONTENT=$(cat "${TEMP_VIRTUAL_TABLE}" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
  rm -f "${TEMP_VIRTUAL_TABLE}" 2> /dev/null || true
 
- # Create JSON payload using a temporary file to avoid escaping issues
- # Note: For SQL views, we don't specify nativeName to avoid GeoServer schema interpretation issues
- # The virtual table name in JDBC_VIRTUAL_TABLE metadata is what GeoServer uses
- local TEMP_JSON="${TMP_DIR}/featuretype_${LAYER_NAME}_$$.json"
- cat > "${TEMP_JSON}" <<EOF
+# Create JSON payload using a temporary file to avoid escaping issues
+# Note: For SQL views, we don't specify nativeName to avoid schema interpretation issues
+# SQL views are virtual tables and don't have a "native" table name
+local TEMP_JSON="${TMP_DIR}/featuretype_${LAYER_NAME}_$$.json"
+cat > "${TEMP_JSON}" <<EOF
 {
   "featureType": {
     "name": "${LAYER_NAME}",
@@ -1020,17 +1034,17 @@ EOF
     "enabled": true,
     "srs": "${WMS_LAYER_SRS}",
     "nativeBoundingBox": {
-      "minx": ${WMS_BBOX_MINX},
-      "maxx": ${WMS_BBOX_MAXX},
-      "miny": ${WMS_BBOX_MINY},
-      "maxy": ${WMS_BBOX_MAXY},
+      "minx": ${BBOX_MINX},
+      "maxx": ${BBOX_MAXX},
+      "miny": ${BBOX_MINY},
+      "maxy": ${BBOX_MAXY},
       "crs": "${WMS_LAYER_SRS}"
     },
     "latLonBoundingBox": {
-      "minx": ${WMS_BBOX_MINX},
-      "maxx": ${WMS_BBOX_MAXX},
-      "miny": ${WMS_BBOX_MINY},
-      "maxy": ${WMS_BBOX_MAXY},
+      "minx": ${BBOX_MINX},
+      "maxx": ${BBOX_MAXX},
+      "miny": ${BBOX_MINY},
+      "maxy": ${BBOX_MAXY},
       "crs": "${WMS_LAYER_SRS}"
     },
     "metadata": {
@@ -1108,7 +1122,9 @@ EOF
    print_status "${YELLOW}" "⚠️  Failed to create SQL view layer '${LAYER_NAME}' (HTTP ${HTTP_CODE})"
    if [[ -n "${RESPONSE_BODY}" ]]; then
     print_status "${YELLOW}" "   Response:"
-    echo "${RESPONSE_BODY}" | head -30 | sed 's/^/      /'
+    echo "${RESPONSE_BODY}" | head -50 | sed 's/^/      /'
+    # Save error for debugging
+    echo "${RESPONSE_BODY}" > "${TMP_DIR}/geoserver_error_${LAYER_NAME}_$$.txt" 2> /dev/null || true
    fi
    print_status "${YELLOW}" "   Troubleshooting:"
    print_status "${YELLOW}" "   - Verify SQL query is valid: ${SQL_QUERY}"
@@ -1478,11 +1494,11 @@ install_geoserver_config() {
   print_status "${YELLOW}" "⚠️  ${STYLE_ERRORS} style(s) failed to upload, continuing with --force"
  fi
 
-# Create layer 1: Open Notes (PostgreSQL view)
-# Use PostgreSQL view instead of SQL view to avoid "Schema does not exist" error
+# Create layer 1: Open Notes (direct view reference)
+# Views are now in public schema, so we can reference them directly
 print_status "${BLUE}" "📊 Creating layer 1/4: Open Notes..."
 local OPEN_LAYER_NAME="notesopen"
-local OPEN_VIEW_NAME="wms.notes_open_view"
+local OPEN_VIEW_NAME="public.notes_open_view"
 if create_feature_type_from_table "${OPEN_LAYER_NAME}" "${OPEN_VIEW_NAME}" "${WMS_LAYER_OPEN_NAME}" "${WMS_LAYER_OPEN_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local OPEN_STYLE_NAME
@@ -1491,13 +1507,13 @@ if create_feature_type_from_table "${OPEN_LAYER_NAME}" "${OPEN_VIEW_NAME}" "${WM
    OPEN_STYLE_NAME="${WMS_STYLE_OPEN_NAME}"
   fi
   assign_style_to_layer "${OPEN_LAYER_NAME}" "${OPEN_STYLE_NAME}"
- fi
+fi
 
-# Create layer 2: Closed Notes (PostgreSQL view)
-# Use PostgreSQL view instead of SQL view to avoid "Schema does not exist" error
+# Create layer 2: Closed Notes (direct view reference)
+# Views are now in public schema, so we can reference them directly
 print_status "${BLUE}" "📊 Creating layer 2/4: Closed Notes..."
 local CLOSED_LAYER_NAME="notesclosed"
-local CLOSED_VIEW_NAME="wms.notes_closed_view"
+local CLOSED_VIEW_NAME="public.notes_closed_view"
 if create_feature_type_from_table "${CLOSED_LAYER_NAME}" "${CLOSED_VIEW_NAME}" "${WMS_LAYER_CLOSED_NAME}" "${WMS_LAYER_CLOSED_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local CLOSED_STYLE_NAME
@@ -1506,7 +1522,7 @@ if create_feature_type_from_table "${CLOSED_LAYER_NAME}" "${CLOSED_VIEW_NAME}" "
    CLOSED_STYLE_NAME="${WMS_STYLE_CLOSED_NAME}"
   fi
   assign_style_to_layer "${CLOSED_LAYER_NAME}" "${CLOSED_STYLE_NAME}"
- fi
+fi
 
  # Create layer 3: Countries (SQL view)
  # Note: countries table is in public schema, not wms schema
@@ -1699,12 +1715,18 @@ remove_geoserver_config() {
   return 0
  fi
 
+ # Track what was successfully removed
+ local TOTAL_LAYERS_REMOVED=0
+ local TOTAL_LAYERS_FAILED=0
+ local TOTAL_FEATURES_REMOVED=0
+ local TOTAL_FEATURES_FAILED=0
+ local DATASTORE_REMOVED=false
+ local WORKSPACE_REMOVED=false
+
  # Step 1: Remove all layers first (they depend on feature types)
  # GeoServer requires removing layers before feature types
  print_status "${BLUE}" "🗑️  Removing layers..."
  local LAYERS=("notesopen" "notesclosed" "countries" "disputedareas")
- local REMOVED_COUNT=0
- local REMOVED_FAILED_COUNT=0
  for LAYER_NAME in "${LAYERS[@]}"; do
   local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
   local HTTP_CODE
@@ -1715,22 +1737,22 @@ remove_geoserver_config() {
   rm -f "${TEMP_RESPONSE}" 2> /dev/null || true
   if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
    print_status "${GREEN}" "✅ Layer '${LAYER_NAME}' removed"
-   ((REMOVED_COUNT++))
+   TOTAL_LAYERS_REMOVED=$((TOTAL_LAYERS_REMOVED + 1))
   elif [[ "${HTTP_CODE}" == "404" ]]; then
-   # Layer doesn't exist, which is fine
-   ((REMOVED_COUNT++))
+   # Layer doesn't exist, which is fine - count as removed
+   TOTAL_LAYERS_REMOVED=$((TOTAL_LAYERS_REMOVED + 1))
   else
    print_status "${YELLOW}" "⚠️  Layer '${LAYER_NAME}' removal failed (HTTP ${HTTP_CODE})"
    if [[ -n "${RESPONSE_BODY}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
     print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -3 | tr '\n' ' ')"
    fi
-   ((REMOVED_FAILED_COUNT++))
+   TOTAL_LAYERS_FAILED=$((TOTAL_LAYERS_FAILED + 1))
   fi
  done
- if [[ ${REMOVED_COUNT} -eq 0 ]]; then
+ if [[ ${TOTAL_LAYERS_REMOVED} -eq 0 ]] && [[ ${TOTAL_LAYERS_FAILED} -eq 0 ]]; then
   print_status "${YELLOW}" "   No layers found to remove"
- elif [[ ${REMOVED_FAILED_COUNT} -gt 0 ]]; then
-  print_status "${YELLOW}" "   ⚠️  ${REMOVED_FAILED_COUNT} layer(s) could not be removed - may need manual cleanup"
+ elif [[ ${TOTAL_LAYERS_FAILED} -gt 0 ]]; then
+  print_status "${YELLOW}" "   ⚠️  ${TOTAL_LAYERS_FAILED} layer(s) could not be removed - may need manual cleanup"
  fi
 
  # Wait a moment for GeoServer to process layer deletions
@@ -1744,8 +1766,6 @@ remove_geoserver_config() {
 
  if [[ "${DATASTORE_EXISTS}" == "200" ]]; then
   print_status "${BLUE}" "🗑️  Removing feature types..."
-  local REMOVED_COUNT=0
-  local REMOVED_FAILED_COUNT=0
   for LAYER_NAME in "${LAYERS[@]}"; do
    local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes/${LAYER_NAME}"
    local HTTP_CODE
@@ -1759,22 +1779,22 @@ remove_geoserver_config() {
    rm -f "${TEMP_RESPONSE}" 2> /dev/null || true
    if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
     print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' removed"
-    ((REMOVED_COUNT++))
+    TOTAL_FEATURES_REMOVED=$((TOTAL_FEATURES_REMOVED + 1))
    elif [[ "${HTTP_CODE}" == "404" ]]; then
-    # Feature type doesn't exist, which is fine
-    ((REMOVED_COUNT++))
+    # Feature type doesn't exist, which is fine - count as removed
+    TOTAL_FEATURES_REMOVED=$((TOTAL_FEATURES_REMOVED + 1))
    else
     print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' removal failed (HTTP ${HTTP_CODE})"
     if [[ -n "${RESPONSE_BODY}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
      print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -3 | tr '\n' ' ')"
     fi
-    ((REMOVED_FAILED_COUNT++))
+    TOTAL_FEATURES_FAILED=$((TOTAL_FEATURES_FAILED + 1))
    fi
   done
-  if [[ ${REMOVED_COUNT} -eq 0 ]]; then
+  if [[ ${TOTAL_FEATURES_REMOVED} -eq 0 ]] && [[ ${TOTAL_FEATURES_FAILED} -eq 0 ]]; then
    print_status "${YELLOW}" "   No feature types found to remove"
-  elif [[ ${REMOVED_FAILED_COUNT} -gt 0 ]]; then
-   print_status "${YELLOW}" "   ⚠️  ${REMOVED_FAILED_COUNT} feature type(s) could not be removed - may need manual cleanup"
+  elif [[ ${TOTAL_FEATURES_FAILED} -gt 0 ]]; then
+   print_status "${YELLOW}" "   ⚠️  ${TOTAL_FEATURES_FAILED} feature type(s) could not be removed - may need manual cleanup"
   fi
  else
   print_status "${YELLOW}" "⚠️  Datastore not found, skipping feature type removal"
@@ -1798,12 +1818,16 @@ remove_geoserver_config() {
 
   if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
    print_status "${GREEN}" "✅ Datastore removed"
+   DATASTORE_REMOVED=true
   elif [[ "${HTTP_CODE}" == "404" ]]; then
    print_status "${YELLOW}" "⚠️  Datastore not found (already removed)"
+   DATASTORE_REMOVED=true
   elif [[ "${HTTP_CODE}" == "403" ]]; then
    print_status "${YELLOW}" "⚠️  Datastore removal failed (HTTP 403 - Forbidden)"
    print_status "${YELLOW}" "   User '${GEOSERVER_USER}' may not have permission to delete datastores"
    print_status "${YELLOW}" "   Datastore may still have feature types - try removing them first"
+   print_status "${YELLOW}" "   💡 You may need to use an admin user with full permissions"
+   print_status "${YELLOW}" "   💡 Or remove the datastore manually from GeoServer UI"
    if [[ -n "${RESPONSE_BODY}" ]]; then
     print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -3 | tr '\n' ' ')"
    fi
@@ -1866,8 +1890,10 @@ remove_geoserver_config() {
 
  if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
   print_status "${GREEN}" "✅ Workspace removed (with recurse=true, this also removes linked resources)"
+  WORKSPACE_REMOVED=true
  elif [[ "${HTTP_CODE}" == "404" ]]; then
   print_status "${YELLOW}" "⚠️  Workspace not found (already removed)"
+  WORKSPACE_REMOVED=true
  elif [[ "${HTTP_CODE}" == "401" ]]; then
   print_status "${YELLOW}" "⚠️  Workspace removal failed (HTTP 401 - Authentication failed)"
   print_status "${YELLOW}" "   Check GeoServer credentials: ${GEOSERVER_USER}"
@@ -1875,7 +1901,8 @@ remove_geoserver_config() {
   print_status "${YELLOW}" "⚠️  Workspace removal failed (HTTP 403 - Forbidden)"
   print_status "${YELLOW}" "   User '${GEOSERVER_USER}' may not have permission to delete workspaces"
   print_status "${YELLOW}" "   Workspace may still have layers/datastores - ensure they are removed first"
-  print_status "${YELLOW}" "   You may need to remove it manually from GeoServer UI or use admin user"
+  print_status "${YELLOW}" "   💡 You may need to use an admin user with full permissions"
+  print_status "${YELLOW}" "   💡 Or remove the workspace manually from GeoServer UI"
   if [[ -n "${RESPONSE_BODY}" ]]; then
    print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -5 | tr '\n' ' ')"
   fi
@@ -1886,7 +1913,46 @@ remove_geoserver_config() {
   fi
  fi
 
- print_status "${GREEN}" "✅ GeoServer configuration removal completed"
+ # Show removal summary
+ print_status "${BLUE}" ""
+ print_status "${BLUE}" "📋 Removal Summary:"
+ print_status "${BLUE}" "   - Layers removed: ${TOTAL_LAYERS_REMOVED}/4"
+ if [[ ${TOTAL_LAYERS_FAILED} -gt 0 ]]; then
+  print_status "${YELLOW}" "   - Layers failed: ${TOTAL_LAYERS_FAILED}"
+ fi
+ print_status "${BLUE}" "   - Feature types removed: ${TOTAL_FEATURES_REMOVED}/4"
+ if [[ ${TOTAL_FEATURES_FAILED} -gt 0 ]]; then
+  print_status "${YELLOW}" "   - Feature types failed: ${TOTAL_FEATURES_FAILED}"
+ fi
+ if [[ "${DATASTORE_REMOVED}" == "true" ]]; then
+  print_status "${GREEN}" "   - Datastore: Removed"
+ else
+  print_status "${YELLOW}" "   - Datastore: Still exists (may need manual removal)"
+ fi
+ if [[ "${WORKSPACE_REMOVED}" == "true" ]]; then
+  print_status "${GREEN}" "   - Workspace: Removed"
+ else
+  print_status "${YELLOW}" "   - Workspace: Still exists (may need manual removal)"
+ fi
+
+ # Final status message
+ if [[ "${WORKSPACE_REMOVED}" == "true" ]] && [[ "${DATASTORE_REMOVED}" == "true" ]] && [[ ${TOTAL_LAYERS_FAILED} -eq 0 ]] && [[ ${TOTAL_FEATURES_FAILED} -eq 0 ]]; then
+  print_status "${GREEN}" ""
+  print_status "${GREEN}" "✅ GeoServer configuration removal completed successfully"
+  print_status "${GREEN}" "   All resources have been removed"
+ else
+  print_status "${YELLOW}" ""
+  print_status "${YELLOW}" "⚠️  GeoServer configuration removal completed with warnings"
+  if [[ "${WORKSPACE_REMOVED}" != "true" ]] || [[ "${DATASTORE_REMOVED}" != "true" ]]; then
+   print_status "${YELLOW}" "   Some resources may still exist. To remove them:"
+   print_status "${YELLOW}" "   1. Use an admin user with full permissions, or"
+   print_status "${YELLOW}" "   2. Remove them manually from GeoServer UI"
+   print_status "${YELLOW}" "   3. Or run this script again after fixing permissions"
+  fi
+  if [[ ${TOTAL_LAYERS_FAILED} -gt 0 ]] || [[ ${TOTAL_FEATURES_FAILED} -gt 0 ]]; then
+   print_status "${YELLOW}" "   Some layers or feature types could not be removed automatically"
+  fi
+ fi
 }
 
 # Function to show configuration summary

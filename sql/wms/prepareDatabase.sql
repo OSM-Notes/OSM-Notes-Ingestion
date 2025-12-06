@@ -5,7 +5,7 @@
 -- the countries table (i.e., processAPI/processPlanet have been executed).
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-30
+-- Version: 2025-12-06
 
 -- Check if PostGIS extension is available
 DO $$
@@ -167,6 +167,40 @@ CREATE OR REPLACE TRIGGER update_notes
 ;
 COMMENT ON TRIGGER update_notes ON notes IS
   'Replicates the update of a note in the WMS when closed';
+
+-- =============================================================================
+-- Create views for open and closed notes (for GeoServer layers)
+-- =============================================================================
+-- These views filter the notes_wms table to separate open and closed notes
+-- for use in GeoServer feature types
+-- Note: Views are created in 'public' schema to simplify GeoServer datastore
+--       configuration (single schema for all layers)
+
+CREATE OR REPLACE VIEW public.notes_open_view AS
+SELECT 
+  note_id,
+  year_created_at,
+  year_closed_at,
+  geometry
+FROM wms.notes_wms
+WHERE year_closed_at IS NULL
+  AND geometry IS NOT NULL;
+
+COMMENT ON VIEW public.notes_open_view IS
+  'View of open notes (not closed) for WMS layer display';
+
+CREATE OR REPLACE VIEW public.notes_closed_view AS
+SELECT 
+  note_id,
+  year_created_at,
+  year_closed_at,
+  geometry
+FROM wms.notes_wms
+WHERE year_closed_at IS NOT NULL
+  AND geometry IS NOT NULL;
+
+COMMENT ON VIEW public.notes_closed_view IS
+  'View of closed notes for WMS layer display';
 
 -- =============================================================================
 -- Create view for disputed and unclaimed areas
