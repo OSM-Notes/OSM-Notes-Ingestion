@@ -1509,10 +1509,10 @@ function __processMaritimes_impl {
   __logd "Importing backup using ogr2ogr..."
   local OGR_ERROR
   OGR_ERROR=$(mktemp)
-   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
-    -lco GEOMETRY_NAME=geom -lco FID=country_id \
-    --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
+   -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+   -lco GEOMETRY_NAME=geom -lco FID=country_id \
+   --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
    # Set is_maritime = true for all imported maritime boundaries
    # Maritime boundaries are identified by comprehensive patterns
    psql -d "${DBNAME}" -c "UPDATE countries SET is_maritime = TRUE WHERE (country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%') AND is_maritime IS NOT TRUE;" > /dev/null 2>&1 || true
