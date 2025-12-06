@@ -1,9 +1,9 @@
 #!/bin/bash
 # WMS Manager Script
-# Manages the installation and deinstallation of WMS components
+# Manages the installation and removal of WMS components
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-30
+# Version: 2025-12-06
 
 set -euo pipefail
 
@@ -80,7 +80,7 @@ Usage: $0 [COMMAND] [OPTIONS]
 
 COMMANDS:
   install     Install WMS components in the database
-  deinstall   Remove WMS components from the database
+  remove      Remove WMS components from the database
   status      Check the status of WMS installation
   help        Show this help message
 
@@ -91,7 +91,7 @@ OPTIONS:
 
 EXAMPLES:
   $0 install              # Install WMS components
-  $0 deinstall            # Remove WMS components
+  $0 remove               # Remove WMS components
   $0 status               # Check installation status
   $0 install --force      # Force reinstallation
   $0 install --dry-run    # Show what would be installed
@@ -264,8 +264,9 @@ install_wms() {
  fi
 }
 
-# Function to deinstall WMS
-deinstall_wms() {
+# Function to remove WMS
+# Alias: deinstall_wms() for backward compatibility
+remove_wms() {
  print_status "${BLUE}" "🗑️  Removing WMS components..."
 
  # Check if WMS is installed
@@ -387,10 +388,11 @@ main() {
  local COMMAND=""
  local FORCE=false
  local DRY_RUN=false
+ local VERBOSE=false
 
  while [[ $# -gt 0 ]]; do
   case $1 in
-  install | deinstall | status | help)
+  install | remove | deinstall | status | help)
    COMMAND="$1"
    shift
    ;;
@@ -402,7 +404,10 @@ main() {
    DRY_RUN=true
    shift
    ;;
-
+  --verbose)
+   VERBOSE=true
+   shift
+   ;;
   -h | --help)
    show_help
    exit 0
@@ -415,9 +420,14 @@ main() {
   esac
  done
 
+ # Set log level based on verbose flag
+ if [[ "${VERBOSE}" == "true" ]]; then
+  export LOG_LEVEL="DEBUG"
+ fi
+
  # Execute command
  case "${COMMAND}" in
- install | deinstall | status)
+ install | remove | status)
   # Validate prerequisites only for commands that need database access
   validate_prerequisites
 
@@ -425,8 +435,8 @@ main() {
   install)
    install_wms
    ;;
-  deinstall)
-   deinstall_wms
+  remove)
+   remove_wms
    ;;
   status)
    show_status

@@ -51,7 +51,7 @@ Use this script to explore and validate WMS configuration:
 
 ### 1. wmsManager.sh
 
-Manages the installation and deinstallation of WMS components in the database.
+Manages the installation and removal of WMS components in the database.
 
 **Usage:**
 
@@ -63,11 +63,18 @@ Manages the installation and deinstallation of WMS components in the database.
 ./bin/wms/wmsManager.sh status
 
 # Remove WMS components
-./bin/wms/wmsManager.sh deinstall
+./bin/wms/wmsManager.sh remove
 
 # Show help
 ./bin/wms/wmsManager.sh help
 ```
+
+**Options:**
+
+- `--force`: Force installation even if already installed
+- `--dry-run`: Show what would be done without executing
+- `--verbose`: Show detailed output
+
 
 ### 2. geoserverConfig.sh
 
@@ -110,9 +117,6 @@ is appropriate for WMS data access.
 # Install and configure GeoServer
 ./bin/wms/geoserverConfig.sh install
 
-# Configure existing GeoServer installation
-./bin/wms/geoserverConfig.sh configure
-
 # Check configuration status
 ./bin/wms/geoserverConfig.sh status
 
@@ -128,6 +132,7 @@ is appropriate for WMS data access.
 - `--force`: Force configuration even if already configured
 - `--dry-run`: Show what would be done without executing
 - `--verbose`: Show detailed output
+- `--geoserver-home DIR`: GeoServer installation directory
 - `--geoserver-url URL`: GeoServer REST API URL
 - `--geoserver-user USER`: GeoServer admin username
 - `--geoserver-pass PASS`: GeoServer admin password

@@ -3,7 +3,7 @@
 # Automates GeoServer setup for WMS layers
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-30
+# Version: 2025-12-06
 
 set -euo pipefail
 
@@ -92,13 +92,14 @@ print_status() {
 show_help() {
  cat << EOF
 GeoServer Configuration Script for OSM-Notes-profile
+Automates GeoServer setup for WMS layers
 
 Usage: $0 [COMMAND] [OPTIONS]
 
 COMMANDS:
   install     Install and configure GeoServer for OSM notes WMS
-  status      Check GeoServer configuration status
   remove      Remove GeoServer configuration
+  status      Check GeoServer configuration status
   help        Show this help message
 
 OPTIONS:
@@ -112,8 +113,9 @@ OPTIONS:
 
 EXAMPLES:
   $0 install                    # Install and configure GeoServer
-  $0 status                     # Check configuration status
   $0 remove                     # Remove configuration
+  $0 status                     # Check configuration status
+  $0 install --force            # Force reconfiguration
   $0 install --dry-run          # Show what would be configured
 
 ENVIRONMENT VARIABLES:
@@ -568,10 +570,13 @@ create_datastore() {
 }
 
 # Function to calculate bounding box from PostgreSQL table/view
+# Returns bounding box as comma-separated values: minx,miny,maxx,maxy
+# If calculation fails, returns default worldwide bounding box
 calculate_bbox_from_table() {
  local TABLE_NAME="${1}"
  
  # Query PostgreSQL to get the actual bounding box of the data
+ # Handle both regular tables and views
  local BBOX_QUERY="SELECT ST_XMin(bbox)::numeric, ST_YMin(bbox)::numeric, ST_XMax(bbox)::numeric, ST_YMax(bbox)::numeric FROM (SELECT ST_Extent(geometry)::box2d as bbox FROM ${TABLE_NAME} WHERE geometry IS NOT NULL) t;"
  
  local PSQL_CMD="psql -d \"${DBNAME}\" -t -A"
@@ -591,18 +596,31 @@ calculate_bbox_from_table() {
  fi
  
  local BBOX_RESULT
+ local TEMP_ERROR="${TMP_DIR}/bbox_error_$$.tmp"
  # PostgreSQL returns values separated by | when using -A, convert to comma-separated
- BBOX_RESULT=$(eval "${PSQL_CMD} -c \"${BBOX_QUERY}\"" 2> /dev/null | tr '|' ',' | tr -d ' ' || echo "")
+ BBOX_RESULT=$(eval "${PSQL_CMD} -c \"${BBOX_QUERY}\"" 2> "${TEMP_ERROR}" | tr '|' ',' | tr -d ' ' || echo "")
  
  if [[ -n "${DBPASSWORD}" ]]; then
   unset PGPASSWORD 2> /dev/null || true
  fi
  
+ # Check for errors (table might not exist, might be empty, or query might fail)
+ if [[ -s "${TEMP_ERROR}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
+  local ERROR_MSG
+  ERROR_MSG=$(head -3 "${TEMP_ERROR}" 2> /dev/null | tr '\n' ' ' || echo "")
+  if [[ -n "${ERROR_MSG}" ]] && ! echo "${ERROR_MSG}" | grep -q "0 rows"; then
+   print_status "${YELLOW}" "   ⚠️  Warning calculating bbox for ${TABLE_NAME}: ${ERROR_MSG}"
+  fi
+ fi
+ rm -f "${TEMP_ERROR}" 2> /dev/null || true
+ 
  # If we got a valid bounding box, use it; otherwise use defaults
+ # Valid bbox format: number,number,number,number (four decimal numbers)
  if [[ -n "${BBOX_RESULT}" ]] && echo "${BBOX_RESULT}" | grep -qE '^-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+$'; then
   echo "${BBOX_RESULT}"
  else
   # Return default bounding box (worldwide) - GeoServer will recalculate from data
+  # This happens if table is empty, query fails, or result is invalid
   echo "${WMS_BBOX_MINX},${WMS_BBOX_MINY},${WMS_BBOX_MAXX},${WMS_BBOX_MAXY}"
  fi
 }
@@ -763,19 +781,50 @@ create_feature_type_from_table() {
  if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' created"
   # Force GeoServer to recalculate bounding boxes from actual data
+  # Wait a moment for GeoServer to fully initialize the feature type
   print_status "${BLUE}" "📐 Recalculating bounding boxes from data..."
+  sleep 2
   # Use the recalculate endpoint to compute bounding boxes from actual data
   local RECALC_URL="${FEATURE_TYPE_UPDATE_URL}?recalculate=nativebbox,latlonbbox"
   local TEMP_RECALC_FILE="${TMP_DIR}/recalc_${LAYER_NAME}_$$.tmp"
+  local TEMP_RECALC_ERROR="${TMP_DIR}/recalc_error_${LAYER_NAME}_$$.tmp"
   local RECALC_CODE
-  RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X PUT "${RECALC_URL}" 2> /dev/null | tail -1)
-  if [[ "${RECALC_CODE}" == "200" ]]; then
-   print_status "${GREEN}" "✅ Bounding boxes recalculated"
-  else
+  local RECALC_ATTEMPTS=0
+  local RECALC_MAX_ATTEMPTS=3
+  local RECALC_SUCCESS=false
+  
+  # Try to recalculate with retries
+  while [[ ${RECALC_ATTEMPTS} -lt ${RECALC_MAX_ATTEMPTS} ]] && [[ "${RECALC_SUCCESS}" == "false" ]]; do
+   RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" \
+    -X PUT \
+    -H "Content-Type: application/json" \
+    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+    "${RECALC_URL}" 2> "${TEMP_RECALC_ERROR}" | tail -1)
+   
+   if [[ "${RECALC_CODE}" == "200" ]]; then
+    RECALC_SUCCESS=true
+    print_status "${GREEN}" "✅ Bounding boxes recalculated"
+   else
+    RECALC_ATTEMPTS=$((RECALC_ATTEMPTS + 1))
+    if [[ ${RECALC_ATTEMPTS} -lt ${RECALC_MAX_ATTEMPTS} ]]; then
+     sleep 1
+    fi
+   fi
+  done
+  
+  if [[ "${RECALC_SUCCESS}" == "false" ]]; then
    print_status "${YELLOW}" "⚠️  Could not recalculate bounding boxes (HTTP ${RECALC_CODE})"
-   print_status "${YELLOW}" "   GeoServer will use the provided bounding box"
+   if [[ -s "${TEMP_RECALC_FILE}" ]]; then
+    local RECALC_ERROR_MSG
+    RECALC_ERROR_MSG=$(head -5 "${TEMP_RECALC_FILE}" 2> /dev/null | tr '\n' ' ' || echo "")
+    if [[ -n "${RECALC_ERROR_MSG}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
+     print_status "${YELLOW}" "   Error details: ${RECALC_ERROR_MSG}"
+    fi
+   fi
+   print_status "${YELLOW}" "   GeoServer will use the provided bounding box or calculate it automatically"
+   print_status "${YELLOW}" "   This is not critical - the layer should still work correctly"
   fi
-  rm -f "${TEMP_RECALC_FILE}" 2> /dev/null || true
+  rm -f "${TEMP_RECALC_FILE}" "${TEMP_RECALC_ERROR}" 2> /dev/null || true
   rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
   return 0
  elif [[ "${HTTP_CODE}" == "409" ]] || echo "${RESPONSE_BODY}" | grep -qi "already exists"; then
@@ -801,18 +850,49 @@ create_feature_type_from_table() {
    if [[ "${HTTP_CODE}" == "201" ]] || [[ "${HTTP_CODE}" == "200" ]]; then
     print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' recreated"
     # Force GeoServer to recalculate bounding boxes from actual data
+    # Wait a moment for GeoServer to fully initialize the feature type
     print_status "${BLUE}" "📐 Recalculating bounding boxes from data..."
+    sleep 2
     local RECALC_URL="${FEATURE_TYPE_UPDATE_URL}?recalculate=nativebbox,latlonbbox"
     local TEMP_RECALC_FILE="${TMP_DIR}/recalc_${LAYER_NAME}_$$.tmp"
+    local TEMP_RECALC_ERROR="${TMP_DIR}/recalc_error_${LAYER_NAME}_$$.tmp"
     local RECALC_CODE
-    RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X PUT "${RECALC_URL}" 2> /dev/null | tail -1)
-    if [[ "${RECALC_CODE}" == "200" ]]; then
-     print_status "${GREEN}" "✅ Bounding boxes recalculated"
-    else
+    local RECALC_ATTEMPTS=0
+    local RECALC_MAX_ATTEMPTS=3
+    local RECALC_SUCCESS=false
+    
+    # Try to recalculate with retries
+    while [[ ${RECALC_ATTEMPTS} -lt ${RECALC_MAX_ATTEMPTS} ]] && [[ "${RECALC_SUCCESS}" == "false" ]]; do
+     RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" \
+      -X PUT \
+      -H "Content-Type: application/json" \
+      -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+      "${RECALC_URL}" 2> "${TEMP_RECALC_ERROR}" | tail -1)
+     
+     if [[ "${RECALC_CODE}" == "200" ]]; then
+      RECALC_SUCCESS=true
+      print_status "${GREEN}" "✅ Bounding boxes recalculated"
+     else
+      RECALC_ATTEMPTS=$((RECALC_ATTEMPTS + 1))
+      if [[ ${RECALC_ATTEMPTS} -lt ${RECALC_MAX_ATTEMPTS} ]]; then
+       sleep 1
+      fi
+     fi
+    done
+    
+    if [[ "${RECALC_SUCCESS}" == "false" ]]; then
      print_status "${YELLOW}" "⚠️  Could not recalculate bounding boxes (HTTP ${RECALC_CODE})"
-     print_status "${YELLOW}" "   GeoServer will use the provided bounding box"
+     if [[ -s "${TEMP_RECALC_FILE}" ]]; then
+      local RECALC_ERROR_MSG
+      RECALC_ERROR_MSG=$(head -5 "${TEMP_RECALC_FILE}" 2> /dev/null | tr '\n' ' ' || echo "")
+      if [[ -n "${RECALC_ERROR_MSG}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
+       print_status "${YELLOW}" "   Error details: ${RECALC_ERROR_MSG}"
+      fi
+     fi
+     print_status "${YELLOW}" "   GeoServer will use the provided bounding box or calculate it automatically"
+     print_status "${YELLOW}" "   This is not critical - the layer should still work correctly"
     fi
-    rm -f "${TEMP_RECALC_FILE}" 2> /dev/null || true
+    rm -f "${TEMP_RECALC_FILE}" "${TEMP_RECALC_ERROR}" 2> /dev/null || true
     rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
     return 0
    fi
@@ -1348,7 +1428,13 @@ install_geoserver_config() {
  if is_geoserver_configured; then
   if [[ "${FORCE:-false}" != "true" ]]; then
    print_status "${YELLOW}" "⚠️  GeoServer is already configured. Use --force to reconfigure."
+   print_status "${YELLOW}" "💡 Tip: If you're having issues, try: $0 remove && $0 install"
    return 0
+  else
+   print_status "${YELLOW}" "⚠️  Force mode: Reconfiguring existing GeoServer setup..."
+   # Optionally clean up before reconfiguring
+   # Note: We don't do full cleanup here to avoid accidental data loss
+   # User should run 'remove' command explicitly if they want clean state
   fi
  fi
 
@@ -1528,7 +1614,7 @@ show_status() {
  # Check layers
  print_status "${BLUE}" ""
  print_status "${BLUE}" "📊 Checking layers..."
- local LAYERS=("opennotes" "closednotes" "countries" "disputedunclaimedareas")
+ local LAYERS=("notesopen" "notesclosed" "countries" "disputedareas")
  local LAYER_NAMES=("Open Notes" "Closed Notes" "Countries" "Disputed/Unclaimed Areas")
  local LAYER_COUNT=0
  for i in "${!LAYERS[@]}"; do
@@ -1613,7 +1699,44 @@ remove_geoserver_config() {
   return 0
  fi
 
- # Step 1: Remove all feature types first (they depend on datastore)
+ # Step 1: Remove all layers first (they depend on feature types)
+ # GeoServer requires removing layers before feature types
+ print_status "${BLUE}" "🗑️  Removing layers..."
+ local LAYERS=("notesopen" "notesclosed" "countries" "disputedareas")
+ local REMOVED_COUNT=0
+ local REMOVED_FAILED_COUNT=0
+ for LAYER_NAME in "${LAYERS[@]}"; do
+  local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
+  local HTTP_CODE
+  local TEMP_RESPONSE="${TMP_DIR}/layer_delete_${LAYER_NAME}_$$.tmp"
+  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${LAYER_URL}" 2> /dev/null | tail -1)
+  local RESPONSE_BODY
+  RESPONSE_BODY=$(cat "${TEMP_RESPONSE}" 2> /dev/null || echo "")
+  rm -f "${TEMP_RESPONSE}" 2> /dev/null || true
+  if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
+   print_status "${GREEN}" "✅ Layer '${LAYER_NAME}' removed"
+   ((REMOVED_COUNT++))
+  elif [[ "${HTTP_CODE}" == "404" ]]; then
+   # Layer doesn't exist, which is fine
+   ((REMOVED_COUNT++))
+  else
+   print_status "${YELLOW}" "⚠️  Layer '${LAYER_NAME}' removal failed (HTTP ${HTTP_CODE})"
+   if [[ -n "${RESPONSE_BODY}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
+    print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -3 | tr '\n' ' ')"
+   fi
+   ((REMOVED_FAILED_COUNT++))
+  fi
+ done
+ if [[ ${REMOVED_COUNT} -eq 0 ]]; then
+  print_status "${YELLOW}" "   No layers found to remove"
+ elif [[ ${REMOVED_FAILED_COUNT} -gt 0 ]]; then
+  print_status "${YELLOW}" "   ⚠️  ${REMOVED_FAILED_COUNT} layer(s) could not be removed - may need manual cleanup"
+ fi
+
+ # Wait a moment for GeoServer to process layer deletions
+ sleep 1
+
+ # Step 2: Remove all feature types (after layers are removed)
  # Check if datastore exists before trying to remove feature types
  local DATASTORE_CHECK_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}"
  local DATASTORE_EXISTS
@@ -1621,43 +1744,40 @@ remove_geoserver_config() {
 
  if [[ "${DATASTORE_EXISTS}" == "200" ]]; then
   print_status "${BLUE}" "🗑️  Removing feature types..."
-  local LAYERS=("notesopen" "notesclosed" "countries" "disputedareas")
   local REMOVED_COUNT=0
+  local REMOVED_FAILED_COUNT=0
   for LAYER_NAME in "${LAYERS[@]}"; do
    local FEATURE_TYPE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${GEOSERVER_STORE}/featuretypes/${LAYER_NAME}"
    local HTTP_CODE
-   HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${FEATURE_TYPE_URL}" 2> /dev/null)
+   local TEMP_RESPONSE="${TMP_DIR}/featuretype_delete_${LAYER_NAME}_$$.tmp"
+   # Use recurse=true to ensure all related resources are removed
+   HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE}" \
+    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+    -X DELETE "${FEATURE_TYPE_URL}?recurse=true" 2> /dev/null | tail -1)
+   local RESPONSE_BODY
+   RESPONSE_BODY=$(cat "${TEMP_RESPONSE}" 2> /dev/null || echo "")
+   rm -f "${TEMP_RESPONSE}" 2> /dev/null || true
    if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
     print_status "${GREEN}" "✅ Feature type '${LAYER_NAME}' removed"
     ((REMOVED_COUNT++))
-   elif [[ "${HTTP_CODE}" != "404" ]]; then
+   elif [[ "${HTTP_CODE}" == "404" ]]; then
+    # Feature type doesn't exist, which is fine
+    ((REMOVED_COUNT++))
+   else
     print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' removal failed (HTTP ${HTTP_CODE})"
+    if [[ -n "${RESPONSE_BODY}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
+     print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -3 | tr '\n' ' ')"
+    fi
+    ((REMOVED_FAILED_COUNT++))
    fi
   done
   if [[ ${REMOVED_COUNT} -eq 0 ]]; then
    print_status "${YELLOW}" "   No feature types found to remove"
+  elif [[ ${REMOVED_FAILED_COUNT} -gt 0 ]]; then
+   print_status "${YELLOW}" "   ⚠️  ${REMOVED_FAILED_COUNT} feature type(s) could not be removed - may need manual cleanup"
   fi
  else
   print_status "${YELLOW}" "⚠️  Datastore not found, skipping feature type removal"
- fi
-
- # Step 2: Remove all layers
- print_status "${BLUE}" "🗑️  Removing layers..."
- local LAYERS=("notesopen" "notesclosed" "countries" "disputedareas")
- local REMOVED_COUNT=0
- for LAYER_NAME in "${LAYERS[@]}"; do
-  local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
-  local HTTP_CODE
-  HTTP_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" -X DELETE "${LAYER_URL}" 2> /dev/null)
-  if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
-   print_status "${GREEN}" "✅ Layer '${LAYER_NAME}' removed"
-   ((REMOVED_COUNT++))
-  elif [[ "${HTTP_CODE}" != "404" ]]; then
-   print_status "${YELLOW}" "⚠️  Layer '${LAYER_NAME}' removal failed (HTTP ${HTTP_CODE})"
-  fi
- done
- if [[ ${REMOVED_COUNT} -eq 0 ]]; then
-  print_status "${YELLOW}" "   No layers found to remove"
  fi
 
  # Step 3: Remove datastore (must be empty of feature types)
