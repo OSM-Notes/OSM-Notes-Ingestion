@@ -14,35 +14,52 @@
 DO $$
 DECLARE
   invalidated_count INTEGER;
+  country_rec RECORD;
+  notes_in_country INTEGER;
 BEGIN
-  -- Update notes that don't belong to assigned country
-  -- OPTIMIZED: Use EXISTS with correlated subquery to force efficient lookup
-  -- This approach:
-  -- 1. Filters notes by range first (uses index on note_id)
-  -- 2. For each note, looks up ONLY its assigned country using PK (very fast)
-  -- 3. Evaluates ST_Contains only for that specific country geometry
-  -- This avoids Hash Join which loads all 276 geometries (183 MB) into memory
-  -- Optimized: geom already has SRID 4326, no need for ST_SetSRID
-  -- Only ST_Point needs SRID set since it creates a point without SRID
-  -- Performance: Should be 50-100x faster than Hash Join approach
-  UPDATE notes /* Notes-integrity check parallel */
-  SET id_country = NULL
-  WHERE notes.id_country IS NOT NULL
-    AND notes.longitude IS NOT NULL
-    AND notes.latitude IS NOT NULL
-    AND ${SUB_START} <= notes.note_id AND notes.note_id < ${SUB_END}
-    AND EXISTS (
-      SELECT 1
-      FROM countries c
-      WHERE c.country_id = notes.id_country
-        AND NOT ST_Contains(
-          c.geom,
-          ST_SetSRID(ST_Point(notes.longitude, notes.latitude), 4326)
-        )
-    );
+  invalidated_count := 0;
   
-  -- Get count of affected rows
-  GET DIAGNOSTICS invalidated_count = ROW_COUNT;
+  -- OPTIMIZED: Process country by country to avoid loading all geometries
+  -- Strategy:
+  -- 1. Loop through each country that has notes in this range
+  -- 2. For each country, get its geometry ONCE
+  -- 3. Update all notes for that country in one batch
+  -- 4. This avoids Hash Join and loads only one geometry at a time
+  -- Performance: Much faster because we process by country, not by note
+  
+  FOR country_rec IN 
+    SELECT DISTINCT c.country_id, c.geom
+    FROM countries c
+    INNER JOIN notes n ON n.id_country = c.country_id
+    WHERE n.id_country IS NOT NULL
+      AND n.longitude IS NOT NULL
+      AND n.latitude IS NOT NULL
+      AND ${SUB_START} <= n.note_id AND n.note_id < ${SUB_END}
+  LOOP
+    -- Update notes for this specific country
+    -- This approach loads only ONE geometry at a time
+    WITH notes_to_check AS (
+      SELECT note_id, longitude, latitude
+      FROM notes
+      WHERE id_country = country_rec.country_id
+        AND longitude IS NOT NULL
+        AND latitude IS NOT NULL
+        AND ${SUB_START} <= note_id AND note_id < ${SUB_END}
+    )
+    UPDATE notes
+    SET id_country = NULL
+    FROM notes_to_check ntc
+    WHERE notes.note_id = ntc.note_id
+      AND NOT ST_Contains(
+        country_rec.geom,
+        ST_SetSRID(ST_Point(ntc.longitude, ntc.latitude), 4326)
+      );
+    
+    GET DIAGNOSTICS notes_in_country = ROW_COUNT;
+    invalidated_count := invalidated_count + notes_in_country;
+  END LOOP;
+  
+  -- invalidated_count already contains the total from the loop
   
   -- Store in a temporary way to return it
   PERFORM set_config('app.invalidated_count', invalidated_count::text, false);
