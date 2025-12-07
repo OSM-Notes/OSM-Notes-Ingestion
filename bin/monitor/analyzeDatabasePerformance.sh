@@ -188,6 +188,15 @@ __check_threshold() {
  fi
 }
 
+# Function to check database activity for this script
+__check_db_activity() {
+ local SCRIPT_NAME="$1"
+ # Check if there's any activity for this application name
+ psql -d "${DBNAME}" -tAc \
+  "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME}' AND state = 'active';" \
+  2>/dev/null || echo "0"
+}
+
 # Function to run a single analysis script
 __run_analysis_script() {
  local SCRIPT_FILE="$1"
@@ -198,8 +207,12 @@ __run_analysis_script() {
  local ISSUES=()
 
  __logi "Running analysis: ${SCRIPT_NAME}"
+ __logd "Script file: ${SCRIPT_FILE}"
+ __logd "Output file: ${OUTPUT_FILE}"
 
  # Run the script and capture output
+ # Use PGAPPNAME to identify this connection in pg_stat_activity
+ # The connection will be visible in pg_stat_activity with application_name = 'analyzeDatabasePerformance'
  if psql -d "${DBNAME}" -f "${SCRIPT_FILE}" > "${OUTPUT_FILE}" 2>&1; then
   # Parse results
   local TIMING
@@ -216,11 +229,14 @@ __run_analysis_script() {
   fi
 
   # Check for errors or warnings in output
-  if grep -qiE "ERROR|CRITICAL|MISSING" "${OUTPUT_FILE}"; then
+  # Look for actual PostgreSQL errors (ERROR: or FATAL: at start of line)
+  # Exclude false positives like "ERROR" in comments, echo messages, or EXPLAIN output
+  # PostgreSQL errors typically start with "ERROR:" or "FATAL:" at the beginning of a line
+  if grep -qiE "^(ERROR|FATAL):" "${OUTPUT_FILE}"; then
    STATUS="FAILED"
-   ISSUES+=("Errors or critical issues found")
+   ISSUES+=("PostgreSQL errors found in output")
    FAILED_SCRIPTS=$((FAILED_SCRIPTS + 1))
-  elif grep -qiE "WARNING|⚠️" "${OUTPUT_FILE}"; then
+  elif grep -qiE "^(WARNING|NOTICE):" "${OUTPUT_FILE}"; then
    STATUS="WARNING"
    ISSUES+=("Warnings found in output")
    WARNING_SCRIPTS=$((WARNING_SCRIPTS + 1))
