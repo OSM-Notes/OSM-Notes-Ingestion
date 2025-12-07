@@ -462,14 +462,8 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 ### WMS Documentation
 
-- **[WMS_Guide.md](./WMS_Guide.md)**: WMS overview
-- **[WMS_Technical.md](./WMS_Technical.md)**: WMS technical details
-- **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user guide
-- **[WMS_Administration.md](./WMS_Administration.md)**: WMS administration
-- **[WMS_API_Reference.md](./WMS_API_Reference.md)**: WMS API reference
-- **[WMS_Development.md](./WMS_Development.md)**: WMS development guide
-- **[WMS_Deployment.md](./WMS_Deployment.md)**: WMS deployment guide
-- **[WMS_Testing.md](./WMS_Testing.md)**: WMS testing guide
+- **[WMS_Guide.md](./WMS_Guide.md)**: Complete WMS guide for administrators and developers
+- **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user guide for mappers
 
 ### CI/CD Documentation
 

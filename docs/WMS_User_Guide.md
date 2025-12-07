@@ -369,9 +369,7 @@ Before you can use the WMS layer, you need:
 
 ### Documentation
 
-- **Technical Guide**: See `docs/WMS_Guide.md`
-- **API Reference**: See `docs/WMS_API_Reference.md`
-- **Administration Guide**: See `docs/WMS_Administration.md`
+- **Complete WMS Guide**: See `docs/WMS_Guide.md` for technical details, administration, and deployment
 
 ### Community Support
 
