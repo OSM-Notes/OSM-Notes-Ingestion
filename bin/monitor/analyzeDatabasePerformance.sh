@@ -8,7 +8,7 @@
 # on production databases as all SQL scripts use ROLLBACK to avoid modifying data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-07
 
 set -euo pipefail
 

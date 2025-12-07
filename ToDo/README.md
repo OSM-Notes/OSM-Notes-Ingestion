@@ -23,13 +23,9 @@ All 31 tasks from the ActionPlan have been successfully completed:
 - **ToDos.md** - User-maintained task list
 - **prompts** - User-maintained prompts and notes
 
-## Archived
+## Historical Documentation
 
-All completed historical documentation has been archived:
-
-- **ActionPlan**: `ToDo/completed/ActionPlan_2025-10-26.md`
-- **Historical Errors**: `ToDo/completed/errors_2024_historical.md`
-- **Progress Tracker**: `ToDo/completed/ProgressTracker_2025-10-21.md`
+All completed historical documentation has been removed to keep the repository clean and focused on current work.
 
 ## Project Status
 
@@ -45,4 +41,4 @@ The OSM-Notes-Ingestion project is now **production-ready** with:
 
 ## Contributing
 
-If you need to add new features or tasks, please create a new task list following the existing patterns in the archived ActionPlan.
+If you need to add new features or tasks, please create a new task list in this directory.
