@@ -170,7 +170,6 @@ All WMS scripts automatically load these properties:
 
 - `bin/wms/wmsManager.sh` - WMS database management
 - `bin/wms/geoserverConfig.sh` - GeoServer configuration
-- `bin/wms/wmsConfigExample.sh` - Configuration examples and validation
 
 ## Benefits
 

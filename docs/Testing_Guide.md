@@ -91,7 +91,6 @@ The project includes specialized tests for consolidated functions that eliminate
 
 - `wmsManager.sh` - WMS Manager
 - `geoserverConfig.sh` - GeoServer configuration
-- `wmsConfigExample.sh` - Example configuration
 
 **Monitor Scripts:**
 

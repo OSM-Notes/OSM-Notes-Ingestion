@@ -428,10 +428,7 @@ bats tests/unit/bash/wmsManager.test.bats
 # 7.5 - WMS Manager integration (tests, ~2 min)
 bats tests/unit/bash/wmsManager_integration.test.bats
 
-# 7.6 - WMS config example integration (tests, ~1 min)
-bats tests/unit/bash/wmsConfigExample_integration.test.bats
-
-# 7.7 - GeoServer config integration (tests, ~1 min)
+# 7.6 - GeoServer config integration (tests, ~1 min)
 bats tests/unit/bash/geoserverConfig_integration.test.bats
 
 # 7.8 - Update countries integration (tests, ~1 min)
@@ -449,7 +446,6 @@ bats tests/unit/bash/monitoring.test.bats \
      tests/unit/bash/processCheckPlanetNotes_integration.test.bats \
      tests/unit/bash/wmsManager.test.bats \
      tests/unit/bash/wmsManager_integration.test.bats \
-     tests/unit/bash/wmsConfigExample_integration.test.bats \
      tests/unit/bash/geoserverConfig_integration.test.bats \
      tests/unit/bash/updateCountries_integration.test.bats
 ```

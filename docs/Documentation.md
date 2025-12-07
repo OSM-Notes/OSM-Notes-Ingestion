@@ -274,12 +274,6 @@ The OSM-Notes-Ingestion system consists of the following components:
   - Style management
   - Service setup
 
-- **`bin/wms/wmsConfigExample.sh`**: Configuration examples and validation (not executable directly)
-  - Example configurations
-  - Validation tools
-  - Called internally by other WMS scripts
-  - Testing utilities
-
 ### Data Transformation
 
 - **AWK Extraction Scripts** (`awk/`):

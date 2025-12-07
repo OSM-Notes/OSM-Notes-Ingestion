@@ -29,24 +29,6 @@ export GEOSERVER_URL="https://my-geoserver.com/geoserver"
 - **Logging Configuration**: Log levels and file management
 - **Development Configuration**: Debug and development mode settings
 
-### Configuration Examples (`bin/wms/wmsConfigExample.sh`)
-
-Use this script to explore and validate WMS configuration:
-
-```bash
-# Show current configuration
-./bin/wms/wmsConfigExample.sh show-config
-
-# Validate properties
-./bin/wms/wmsConfigExample.sh validate
-
-# Test connections
-./bin/wms/wmsConfigExample.sh test-connection
-
-# Show customization examples
-./bin/wms/wmsConfigExample.sh customize
-```
-
 ## Scripts
 
 ### 1. wmsManager.sh

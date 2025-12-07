@@ -107,12 +107,6 @@ teardown() {
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
-@test "Centralized validation: wmsConfigExample.sh should use validation functions" {
- # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/wmsConfigExample.sh && __validate_input_file /etc/passwd 'Test file'"
- # Accept any status as long as the command doesn't crash
- [ "$status" -ge 0 ] && [ "$status" -le 255 ]
-}
 
 # NOTE: Test for ETL.sh has been moved to OSM-Notes-Analytics repository
 # See: https://github.com/OSMLatam/OSM-Notes-Analytics

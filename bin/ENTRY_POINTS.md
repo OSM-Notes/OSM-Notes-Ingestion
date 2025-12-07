@@ -74,7 +74,6 @@ These scripts are **supporting components** and should **never** be called direc
 
 ### WMS Helpers
 - `bin/wms/geoserverConfig.sh` - Called internally by wmsManager
-- `bin/wms/wmsConfigExample.sh` - Example configuration (not executable)
 
 ## Examples
 

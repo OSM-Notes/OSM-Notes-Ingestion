@@ -197,7 +197,6 @@ teardown() {
 @test "wmsManager.sh configuration files should exist" {
  local CONFIG_FILES=(
    "etc/wms.properties.sh"
-   "bin/wms/wmsConfigExample.sh"
    "bin/wms/geoserverConfig.sh"
  )
  

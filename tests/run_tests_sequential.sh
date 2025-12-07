@@ -312,7 +312,6 @@ __run_level_7() {
   "${SCRIPT_DIR}/unit/bash/processCheckPlanetNotes_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/wmsManager.test.bats" \
   "${SCRIPT_DIR}/unit/bash/wmsManager_integration.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/wmsConfigExample_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/geoserverConfig_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/updateCountries_integration.test.bats"; then
   __show_level_footer 7 "success"

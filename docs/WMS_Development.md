@@ -1015,7 +1015,6 @@ OSM-Notes-Ingestion/
 ├── bin/wms/
 │   ├── wmsManager.sh          # WMS database management
 │   ├── geoserverConfig.sh     # GeoServer configuration
-│   ├── wmsConfigExample.sh    # Configuration examples
 │   └── README.md              # WMS scripts documentation
 ├── sql/wms/
 │   ├── prepareDatabase.sql    # WMS database setup

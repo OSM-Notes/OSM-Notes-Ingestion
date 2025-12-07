@@ -211,9 +211,8 @@ Integration tests validate complete workflows and system interactions:
 - **script_execution_integration.test.bats** - Script execution integration
 - **script_help_validation.test.bats** - Script help validation
 
-### 🌐 WMS and Web Services (3 suites)
+### 🌐 WMS and Web Services (2 suites)
 
-- **wmsConfigExample_integration.test.bats** - WMS configuration examples
 - **wmsManager.test.bats** - WMS manager functionality
 - **wmsManager_integration.test.bats** - WMS manager integration
 

@@ -315,9 +315,6 @@ tail -f /opt/geoserver/logs/geoserver.log
 **Solutions:**
 
 ```bash
-# Test database connection
-./bin/wms/wmsConfigExample.sh test-connection
-
 # Check WMS schema
 psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
@@ -374,7 +371,6 @@ psql -d osm_notes -c "SELECT schemaname, tablename, indexname FROM pg_indexes
 
 ```bash
 # Comprehensive health check
-./bin/wms/wmsConfigExample.sh validate
 ./bin/wms/wmsManager.sh status
 ./bin/wms/geoserverConfig.sh status
 ```
