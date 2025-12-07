@@ -194,7 +194,7 @@ __check_db_activity() {
  # Check if there's any activity for this application name
  psql -d "${DBNAME}" -tAc \
   "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME}' AND state = 'active';" \
-  2>/dev/null || echo "0"
+  2> /dev/null || echo "0"
 }
 
 # Function to run a single analysis script
@@ -221,10 +221,18 @@ __run_analysis_script() {
  # The connection will be visible in pg_stat_activity with application_name = 'analyzeDatabasePerformance'
  # Set statement_timeout to prevent queries from hanging indefinitely
  local TIMEOUT_SECONDS=1800 # 30 minutes
+ # Create a temporary script that sets statement_timeout and then runs the analysis script
+ local TEMP_SCRIPT
+ TEMP_SCRIPT=$(mktemp)
+ {
+  echo "SET statement_timeout = '${TIMEOUT_SECONDS}s';"
+  echo "\\set ON_ERROR_STOP on"
+  cat "${SCRIPT_FILE}"
+ } > "${TEMP_SCRIPT}"
+
  if timeout "${TIMEOUT_SECONDS}" psql -d "${DBNAME}" \
-  -v ON_ERROR_STOP=1 \
-  -c "SET statement_timeout = '${TIMEOUT_SECONDS}s';" \
-  -f "${SCRIPT_FILE}" > "${OUTPUT_FILE}" 2>&1; then
+  -f "${TEMP_SCRIPT}" > "${OUTPUT_FILE}" 2>&1; then
+  rm -f "${TEMP_SCRIPT}"
   local END_TIME
   END_TIME=$(date +%s)
   DURATION=$((END_TIME - START_TIME))
@@ -279,8 +287,8 @@ __run_analysis_script() {
    fi
    if [[ ${#ISSUES[@]} -gt 0 ]]; then
     echo "Issues:"
-    for issue in "${ISSUES[@]}"; do
-     echo "  - ${issue}"
+    for ISSUE in "${ISSUES[@]}"; do
+     echo "  - ${ISSUE}"
     done
    fi
    echo ""
@@ -294,16 +302,26 @@ __run_analysis_script() {
   local END_TIME
   END_TIME=$(date +%s)
   local DURATION=$((END_TIME - START_TIME))
-  
+
+  # Clean up temp script
+  rm -f "${TEMP_SCRIPT}"
+
   STATUS="FAILED"
   FAILED_SCRIPTS=$((FAILED_SCRIPTS + 1))
-  
+
   # Check if it was a timeout
   if [[ ${EXIT_CODE} -eq 124 ]] || [[ ${EXIT_CODE} -eq 143 ]]; then
    __loge "Script ${SCRIPT_NAME} timed out after ${DURATION} seconds (${TIMEOUT_SECONDS}s limit)"
    ISSUES+=("Script execution timed out after ${TIMEOUT_SECONDS} seconds")
   else
    __loge "Failed to execute ${SCRIPT_NAME} (exit code: ${EXIT_CODE}, duration: ${DURATION}s)"
+   # Show first few lines of error output for debugging
+   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+    __logd "First 5 lines of error output:"
+    head -5 "${OUTPUT_FILE}" | while IFS= read -r line; do
+     __logd "  ${line}"
+    done
+   fi
    ISSUES+=("Script execution failed (exit code: ${EXIT_CODE})")
   fi
 
@@ -422,7 +440,7 @@ __main() {
  mkdir -p "${OUTPUT_DIR}"
 
  # Initialize summary file
- > "${SUMMARY_FILE}"
+ : > "${SUMMARY_FILE}"
 
  __logi "Starting database performance analysis"
  __print_status "${BLUE}" "=============================================================================="
@@ -452,10 +470,10 @@ __main() {
 
  # Run each analysis script
  local SCRIPT_NUM=0
- for script in "${ANALYSIS_SCRIPTS[@]}"; do
+ for SCRIPT in "${ANALYSIS_SCRIPTS[@]}"; do
   SCRIPT_NUM=$((SCRIPT_NUM + 1))
-  __logi "Processing script ${SCRIPT_NUM}/${#ANALYSIS_SCRIPTS[@]}: $(basename "${script}")"
-  __run_analysis_script "${script}"
+  __logi "Processing script ${SCRIPT_NUM}/${#ANALYSIS_SCRIPTS[@]}: $(basename "${SCRIPT}")"
+  __run_analysis_script "${SCRIPT}"
   __logd "Completed script ${SCRIPT_NUM}/${#ANALYSIS_SCRIPTS[@]}"
  done
 
