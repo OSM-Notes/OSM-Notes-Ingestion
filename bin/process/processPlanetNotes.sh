@@ -163,10 +163,14 @@ trap '' HUP
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Base directory for the project.
-declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
- &> /dev/null && pwd)"
-readonly SCRIPT_BASE_DIRECTORY
+# Only set SCRIPT_BASE_DIRECTORY if not already defined (e.g., when sourced
+# from another script)
+if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+ declare SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+  &> /dev/null && pwd)"
+ readonly SCRIPT_BASE_DIRECTORY
+fi
 
 # Loads the global properties.
 # All database connections must be controlled by the properties file.
