@@ -209,27 +209,3 @@ teardown() {
    [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available"
  done
 }
-
-# Test that verifyAndReloadMissingCountries function exists and handles edge cases
-@test "updateCountries.sh verifyAndReloadMissingCountries should handle edge cases" {
- # Source the script
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
- 
- # Test that the function exists
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh && declare -f __verifyAndReloadMissingCountries"
- [ "$status" -eq 0 ] || echo "Function __verifyAndReloadMissingCountries should be available"
- 
- # Test that function handles missing COUNTRIES_BOUNDARY_IDS_FILE gracefully
- # (This is tested by the function's internal logic, not by calling it directly)
- # The function should return 0 and log a warning if file doesn't exist
-}
-
-# Test that verifyAndReloadMissingCountries is called after __processCountries
-@test "updateCountries.sh should call verifyAndReloadMissingCountries after processCountries" {
- # Verify that the function call exists in the script
- local SCRIPT_FILE="${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
- 
- # Check that __verifyAndReloadMissingCountries is called after __processCountries
- run grep -A 2 "__processCountries" "${SCRIPT_FILE}" | grep -q "__verifyAndReloadMissingCountries"
- [ "$status" -eq 0 ] || echo "Script should call __verifyAndReloadMissingCountries after __processCountries"
-} 

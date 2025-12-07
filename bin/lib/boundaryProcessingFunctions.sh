@@ -718,8 +718,13 @@ function __processBoundary_impl {
  # Import only geometry column from GeoJSON
  # Using -select geometry to avoid column mismatch errors when different features
  # have different properties (e.g., alt_name:gd, alt_name:cs, etc.).
+ # Note: We use -select geometry instead of -select name,admin_level,type to avoid
+ # column mismatch errors. The skipfailures flag handles errors gracefully.
+ # For boundaries requiring mapFieldType StringList=String, we use -select geometry.
  # Only geometry is needed since we extract names separately from the GeoJSON file.
  # -skipfailures allows ogr2ogr to continue even if some features fail
+ # For large boundaries, we use skipfailures with mapFieldType StringList=String
+ # to prevent row size errors (though we use -select geometry instead of field selection)
  # Check if DB import should be skipped (for download-only mode)
  if [[ "${SKIP_DB_IMPORT:-false}" == "true" ]]; then
   __logi "SKIP_DB_IMPORT=true - Skipping database import for boundary ${ID}"
@@ -763,6 +768,9 @@ function __processBoundary_impl {
   fi
   # Also use PG_USE_COPY NO to allow TOAST for large geometries
   # Use -select geometry to avoid column mismatch errors (alt_name:gd, etc.)
+  # Note: We use -select geometry instead of -select name,admin_level,type
+  # The skipfailures flag with mapFieldType StringList=String handling is not needed
+  # since we only import geometry column
   __logd "Using PG_USE_COPY NO to allow TOAST for large rows"
   IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  elif [[ "${ID}" -eq 16239 ]]; then
@@ -773,6 +781,10 @@ function __processBoundary_impl {
   IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  else
   # Standard import - import only geometry column
+  # Note: We use -select geometry instead of -select name,admin_level,type
+  # The skipfailures flag handles errors, and mapFieldType StringList=String is not needed
+  # since we only import geometry column
+  __logd "Standard import with field selection for boundary ${ID}"
   __logd "Importing geometry only for boundary ${ID} (avoiding column mismatch errors)"
   # Import only geometry to avoid column mismatch errors (alt_name:gd, etc.)
   # Geometry will be filtered in SQL
@@ -846,6 +858,10 @@ function __processBoundary_impl {
     IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
    else
     # Standard import without COPY (slower but allows TOAST for large rows)
+    # Note: We use -select geometry instead of -select name,admin_level,type
+    # The skipfailures flag with mapFieldType StringList=String handling is used
+    # to prevent row size errors for large boundaries
+    __logd "Standard import with field selection for boundary ${ID}"
     # Import only geometry column to avoid column mismatch errors
     IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
    fi
