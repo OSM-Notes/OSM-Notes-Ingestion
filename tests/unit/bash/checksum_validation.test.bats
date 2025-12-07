@@ -3,13 +3,18 @@
 # Unit tests for Checksum Validation Functions
 # Test file: checksum_validation.test.bats
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-12-07
 
 load "../../test_helper.bash"
 
 setup() {
   # Source the validation functions
   source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
+  
+  # Disable TEST_MODE and HYBRID_MOCK_MODE for checksum validation tests
+  # These tests specifically need to validate checksums, not skip validation
+  unset TEST_MODE
+  unset HYBRID_MOCK_MODE
   
   # Create temporary test files
   TEST_FILE="/tmp/test_checksum_file.txt"
