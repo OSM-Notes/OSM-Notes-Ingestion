@@ -14,6 +14,10 @@ set -euo pipefail
 
 # Define required variables
 BASENAME="cleanupAll"
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+export PGAPPNAME="${BASENAME}"
+
 TMP_DIR="/tmp/${BASENAME}_$$"
 mkdir -p "${TMP_DIR}"
 

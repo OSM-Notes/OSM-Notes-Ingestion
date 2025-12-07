@@ -186,6 +186,14 @@ if [[ -z "${BASENAME:-}" ]]; then
  BASENAME=$(basename -s .sh "${0}")
  readonly BASENAME
 fi
+
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+# Only set if not already defined (e.g., when sourced from another script)
+if [[ -z "${PGAPPNAME:-}" ]]; then
+ export PGAPPNAME="${BASENAME}"
+fi
+
 # Temporal directory for all files.
 if [[ -z "${TMP_DIR:-}" ]]; then
  declare TMP_DIR

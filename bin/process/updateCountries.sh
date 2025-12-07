@@ -63,6 +63,11 @@ unset LOG_FILE
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
+
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+export PGAPPNAME="${BASENAME}"
+
 # Temporal directory for all files.
 # IMPORTANT: Define TMP_DIR BEFORE loading processPlanetFunctions.sh
 # because that script uses TMP_DIR in variable initialization
@@ -296,7 +301,7 @@ function __calculateInternationalWaters {
  local SQL_OUTPUT
  SQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=0 -f "${POSTGRES_28_ADD_INTERNATIONAL_WATERS}" 2>&1)
  local SQL_EXIT_CODE=$?
- 
+
  if echo "${SQL_OUTPUT}" | grep -q "ERROR"; then
   __logw "WARNING: International waters calculation encountered errors (this may be expected in test/hybrid mode)"
   __logw "Continuing without international waters data - this is acceptable for testing"
