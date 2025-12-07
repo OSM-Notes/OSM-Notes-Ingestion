@@ -54,7 +54,6 @@ These are the **only scripts** that should be executed directly:
 These scripts are **supporting components** and should **never** be called directly:
 
 ### Processing Helpers
-- `bin/process/assignCountriesToNotes.sh` - Called internally by processPlanetNotes
 - `bin/process/extractPlanetNotesAwk.sh` - Called internally by processPlanetNotes
 
 ### Monitoring Helpers
@@ -101,7 +100,6 @@ These scripts are **supporting components** and should **never** be called direc
 ### ❌ Incorrect Usage (DO NOT CALL)
 ```bash
 # Internal scripts - will fail or cause issues
-./bin/process/assignCountriesToNotes.sh  # WRONG
 ./bin/process/extractPlanetNotesAwk.sh  # WRONG
 ./bin/functionsProcess.sh               # WRONG
 ./bin/wms/geoserverConfig.sh            # WRONG
