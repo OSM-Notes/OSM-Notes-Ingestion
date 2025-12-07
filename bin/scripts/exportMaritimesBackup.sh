@@ -26,13 +26,22 @@
 #   - bin/scripts/exportCountriesBackup.sh - Export country boundaries
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-01
-VERSION="2025-12-01"
+# Version: 2025-12-07
+VERSION="2025-12-07"
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
  &> /dev/null && pwd)"
 declare -r SCRIPT_BASE_DIRECTORY
+
+# Script name for logging and monitoring
+declare BASENAME
+BASENAME=$(basename -s .sh "${0}")
+readonly BASENAME
+
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+export PGAPPNAME="${BASENAME}"
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-INFO}"
@@ -77,16 +86,16 @@ main() {
  fi
  __logi "Found ${COUNTRIES_COUNT} total countries/maritimes in database"
 
-# Get count of maritime boundaries
-# Maritime boundaries are identified by comprehensive patterns including:
-# - EEZ variations: "(EEZ)", "EEZ", "Exclusive Economic Zone", "Economic Zone"
-# - Contiguous Zone variations: "(Contiguous Zone)", "Contiguous Zone", "contiguous area", "contiguous border"
-# - Maritime variations: "(maritime)", "maritime"
-# - Fisheries zones: "Fisheries protection zone", "Fishing territory"
-__logd "Counting maritime boundaries..."
-local MARITIMES_COUNT
-MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
- "SELECT COUNT(*) FROM countries WHERE (
+ # Get count of maritime boundaries
+ # Maritime boundaries are identified by comprehensive patterns including:
+ # - EEZ variations: "(EEZ)", "EEZ", "Exclusive Economic Zone", "Economic Zone"
+ # - Contiguous Zone variations: "(Contiguous Zone)", "Contiguous Zone", "contiguous area", "contiguous border"
+ # - Maritime variations: "(maritime)", "maritime"
+ # - Fisheries zones: "Fisheries protection zone", "Fishing territory"
+ __logd "Counting maritime boundaries..."
+ local MARITIMES_COUNT
+ MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM countries WHERE (
   country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
   country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
   country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR
@@ -113,12 +122,12 @@ MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
  __logd "Ensuring data directory exists..."
  mkdir -p "${SCRIPT_BASE_DIRECTORY}/data"
 
-# Export maritimes to GeoJSON using ogr2ogr
-# Use comprehensive patterns to identify all maritime boundaries
-__logd "Exporting maritime boundaries to GeoJSON..."
-if ogr2ogr -f "GeoJSON" "${OUTPUT_FILE}" \
- "PG:dbname=${DBNAME}" \
- -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM countries WHERE (
+ # Export maritimes to GeoJSON using ogr2ogr
+ # Use comprehensive patterns to identify all maritime boundaries
+ __logd "Exporting maritime boundaries to GeoJSON..."
+ if ogr2ogr -f "GeoJSON" "${OUTPUT_FILE}" \
+  "PG:dbname=${DBNAME}" \
+  -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM countries WHERE (
   country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
   country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
   country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR
@@ -132,8 +141,8 @@ if ogr2ogr -f "GeoJSON" "${OUTPUT_FILE}" \
   country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR
   country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%'
  )" \
- -lco RFC7946=YES \
- -lco WRITE_BBOX=YES 2> /dev/null; then
+  -lco RFC7946=YES \
+  -lco WRITE_BBOX=YES 2> /dev/null; then
   __logi "Successfully exported maritime boundaries to GeoJSON"
  else
   __loge "ERROR: Failed to export maritime boundaries"

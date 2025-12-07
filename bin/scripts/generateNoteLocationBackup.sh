@@ -4,12 +4,21 @@
 # faster processing in subsequent runs.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-12-07
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
  &> /dev/null && pwd)"
 declare -r SCRIPT_BASE_DIRECTORY
+
+# Script name for logging and monitoring
+declare BASENAME
+BASENAME=$(basename -s .sh "${0}")
+readonly BASENAME
+
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+export PGAPPNAME="${BASENAME}"
 
 # Logger levels: TRACE, DEBUG, INFO, WARN, ERROR, FATAL.
 declare LOG_LEVEL="${LOG_LEVEL:-INFO}"

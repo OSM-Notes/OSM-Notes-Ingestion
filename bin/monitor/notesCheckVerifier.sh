@@ -64,6 +64,11 @@ umask 0000
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
+
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+export PGAPPNAME="${BASENAME}"
+
 # Temporary directory for all files.
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
