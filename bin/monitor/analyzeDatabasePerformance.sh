@@ -8,7 +8,7 @@
 # on production databases as all SQL scripts use ROLLBACK to avoid modifying data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-01-23
 
 set -euo pipefail
 
@@ -210,10 +210,25 @@ __run_analysis_script() {
  __logd "Script file: ${SCRIPT_FILE}"
  __logd "Output file: ${OUTPUT_FILE}"
 
- # Run the script and capture output
+ # Record start time for progress tracking
+ local START_TIME
+ START_TIME=$(date +%s)
+ local DURATION=0
+ __logd "Started at: $(date '+%Y-%m-%d %H:%M:%S')"
+
+ # Run the script with timeout (30 minutes max per script)
  # Use PGAPPNAME to identify this connection in pg_stat_activity
  # The connection will be visible in pg_stat_activity with application_name = 'analyzeDatabasePerformance'
- if psql -d "${DBNAME}" -f "${SCRIPT_FILE}" > "${OUTPUT_FILE}" 2>&1; then
+ # Set statement_timeout to prevent queries from hanging indefinitely
+ local TIMEOUT_SECONDS=1800 # 30 minutes
+ if timeout "${TIMEOUT_SECONDS}" psql -d "${DBNAME}" \
+  -v ON_ERROR_STOP=1 \
+  -c "SET statement_timeout = '${TIMEOUT_SECONDS}s';" \
+  -f "${SCRIPT_FILE}" > "${OUTPUT_FILE}" 2>&1; then
+  local END_TIME
+  END_TIME=$(date +%s)
+  DURATION=$((END_TIME - START_TIME))
+  __logd "Completed in ${DURATION} seconds ($(date '+%Y-%m-%d %H:%M:%S'))"
   # Parse results
   local TIMING
   TIMING=$(__parse_timing "${OUTPUT_FILE}")
@@ -257,7 +272,10 @@ __run_analysis_script() {
    echo "=== ${SCRIPT_NAME} ==="
    echo "Status: ${STATUS}"
    if [[ -n "${TIMING}" ]] && [[ "${TIMING}" != "0" ]]; then
-    echo "Execution time: ${TIMING} ms"
+    echo "Query execution time: ${TIMING} ms"
+   fi
+   if [[ -n "${DURATION:-}" ]]; then
+    echo "Total script duration: ${DURATION} seconds"
    fi
    if [[ ${#ISSUES[@]} -gt 0 ]]; then
     echo "Issues:"
@@ -272,14 +290,32 @@ __run_analysis_script() {
    __print_status "${CYAN}" "Output saved to: ${OUTPUT_FILE}"
   fi
  else
+  local EXIT_CODE=$?
+  local END_TIME
+  END_TIME=$(date +%s)
+  local DURATION=$((END_TIME - START_TIME))
+  
   STATUS="FAILED"
   FAILED_SCRIPTS=$((FAILED_SCRIPTS + 1))
-  __loge "Failed to execute ${SCRIPT_NAME}"
+  
+  # Check if it was a timeout
+  if [[ ${EXIT_CODE} -eq 124 ]] || [[ ${EXIT_CODE} -eq 143 ]]; then
+   __loge "Script ${SCRIPT_NAME} timed out after ${DURATION} seconds (${TIMEOUT_SECONDS}s limit)"
+   ISSUES+=("Script execution timed out after ${TIMEOUT_SECONDS} seconds")
+  else
+   __loge "Failed to execute ${SCRIPT_NAME} (exit code: ${EXIT_CODE}, duration: ${DURATION}s)"
+   ISSUES+=("Script execution failed (exit code: ${EXIT_CODE})")
+  fi
 
   {
    echo "=== ${SCRIPT_NAME} ==="
    echo "Status: FAILED"
-   echo "Error: Script execution failed"
+   if [[ ${EXIT_CODE} -eq 124 ]] || [[ ${EXIT_CODE} -eq 143 ]]; then
+    echo "Error: Script execution timed out after ${TIMEOUT_SECONDS} seconds"
+   else
+    echo "Error: Script execution failed (exit code: ${EXIT_CODE})"
+   fi
+   echo "Duration: ${DURATION} seconds"
    echo ""
   } >> "${SUMMARY_FILE}"
  fi
@@ -415,8 +451,12 @@ __main() {
  echo ""
 
  # Run each analysis script
+ local SCRIPT_NUM=0
  for script in "${ANALYSIS_SCRIPTS[@]}"; do
+  SCRIPT_NUM=$((SCRIPT_NUM + 1))
+  __logi "Processing script ${SCRIPT_NUM}/${#ANALYSIS_SCRIPTS[@]}: $(basename "${script}")"
   __run_analysis_script "${script}"
+  __logd "Completed script ${SCRIPT_NUM}/${#ANALYSIS_SCRIPTS[@]}"
  done
 
  echo ""
