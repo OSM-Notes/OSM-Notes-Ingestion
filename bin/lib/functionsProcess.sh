@@ -1001,7 +1001,7 @@ function __processPlanetXmlPart() {
 # Returns:
 #   0 if all valid, 1 if any invalid
 
-# Validate XML structure (delegates to validationFunctions.sh)
+# Validate XML structure (delegates to lib/osm-common/validationFunctions.sh)
 # Parameters:
 #   $1: XML file path
 #   $2: Expected root element (optional)
