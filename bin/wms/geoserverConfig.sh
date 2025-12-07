@@ -1716,9 +1716,9 @@ show_status() {
  local LAYERS=("notesopen" "notesclosed" "countries" "disputedareas")
  local LAYER_NAMES=("Open Notes" "Closed Notes" "Countries" "Disputed/Unclaimed Areas")
  local LAYER_COUNT=0
- for i in "${!LAYERS[@]}"; do
-  local LAYER_NAME="${LAYERS[$i]}"
-  local LAYER_DISPLAY="${LAYER_NAMES[$i]}"
+ for I in "${!LAYERS[@]}"; do
+  local LAYER_NAME="${LAYERS[$I]}"
+  local LAYER_DISPLAY="${LAYER_NAMES[$I]}"
   local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
   local LAYER_RESPONSE
   LAYER_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_URL}" 2> /dev/null)

@@ -42,7 +42,7 @@ setup() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"WMS Manager Script"* ]]
   [[ "$output" == *"install"* ]]
-  [[ "$output" == *"deinstall"* ]]
+  [[ "$output" == *"remove"* ]]
   [[ "$output" == *"status"* ]]
 }
 
