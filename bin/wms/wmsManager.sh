@@ -16,6 +16,10 @@ export BASENAME="wmsManager"
 export TMP_DIR="/tmp"
 export LOG_LEVEL="INFO"
 
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+export PGAPPNAME="${BASENAME}"
+
 # Load properties (use same DB connection as rest of project)
 if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/properties.sh"
@@ -34,10 +38,10 @@ fi
 WMS_DB_NAME="${WMS_DBNAME:-${DBNAME:-${TEST_DBNAME:-notes}}}"
 # For wmsManager.sh, always use system user (peer auth) or DB_USER, never geoserver
 if [[ "${WMS_DBUSER:-}" == "geoserver" ]]; then
-  # Ignore geoserver user for installation - use system user instead
-  WMS_DB_USER="${DB_USER:-${TEST_DBUSER:-}}"
+ # Ignore geoserver user for installation - use system user instead
+ WMS_DB_USER="${DB_USER:-${TEST_DBUSER:-}}"
 else
-  WMS_DB_USER="${WMS_DBUSER:-${DB_USER:-${TEST_DBUSER:-}}}"
+ WMS_DB_USER="${WMS_DBUSER:-${DB_USER:-${TEST_DBUSER:-}}}"
 fi
 WMS_DB_PASSWORD="${WMS_DBPASSWORD:-${DB_PASSWORD:-${TEST_DBPASSWORD:-}}}"
 WMS_DB_HOST="${WMS_DBHOST:-${DB_HOST:-${TEST_DBHOST:-}}}"
@@ -47,9 +51,9 @@ WMS_DB_PORT="${WMS_DBPORT:-${DB_PORT:-${TEST_DBPORT:-}}}"
 export WMS_DB_NAME WMS_DB_USER WMS_DB_PASSWORD WMS_DB_HOST WMS_DB_PORT
 # Only set PGPASSWORD if password is provided (for peer auth, don't set it)
 if [[ -n "${WMS_DB_PASSWORD}" ]]; then
-  export PGPASSWORD="${WMS_DB_PASSWORD}"
+ export PGPASSWORD="${WMS_DB_PASSWORD}"
 else
-  unset PGPASSWORD 2> /dev/null || true
+ unset PGPASSWORD 2> /dev/null || true
 fi
 
 # WMS specific variables (using properties)
