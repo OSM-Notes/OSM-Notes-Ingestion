@@ -34,21 +34,21 @@ function __getLocationNotes_impl {
   __logd "HYBRID_MOCK_MODE=${HYBRID_MOCK_MODE:-unset}, TEST_MODE=${TEST_MODE:-unset}"
   __logd "Backup file would be: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED:-unset}"
   __logd "NOT using backup - this is intentional for faster test execution"
-  
+
   # Get count of notes that need country assignment
   local NOTES_COUNT
   NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-   <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL" 2>/dev/null || echo "0")
-  
+   <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL" 2> /dev/null || echo "0")
+
   if [[ "${NOTES_COUNT}" -eq "0" ]]; then
    __logi "All notes already have countries assigned. Skipping country calculation."
    __log_finish
    return 0
   fi
-  
+
   __logi "Calculating countries for ${NOTES_COUNT} notes using get_country() function..."
   __logd "This will be much faster than loading 4.8M notes from backup CSV"
-  
+
   # Assign countries to notes using get_country() function
   # This only processes notes that don't have a country assigned
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 <<< "
@@ -60,7 +60,7 @@ function __getLocationNotes_impl {
    __log_finish
    return 1
   }
-  
+
   __logi "Successfully assigned countries to ${NOTES_COUNT} notes."
   __logd "Backup CSV was NOT used - test execution completed faster"
   __log_finish
@@ -75,13 +75,13 @@ function __getLocationNotes_impl {
  __logi "This operation may take several minutes depending on the size of the backup file."
  __logi "Please wait, the process is actively working..."
  __logd "PRODUCTION MODE: Using backup CSV (HYBRID_MOCK_MODE=${HYBRID_MOCK_MODE:-unset}, TEST_MODE=${TEST_MODE:-unset})"
- 
+
  # Resolve note location backup file (download from GitHub if not found locally)
  if ! __resolve_note_location_backup; then
   __logw "Warning: Note location backup file not available. Will calculate all countries from scratch (slower)."
   return 0
  fi
- 
+
  __logi "Extracting notes backup."
  rm -f "${CSV_BACKUP_NOTE_LOCATION}"
  unzip "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" -d /tmp
@@ -119,7 +119,7 @@ function __getLocationNotes_impl {
  local -i TOTAL_NOTES_TO_INVALIDATE=0
  # Store original MAX_THREADS before reducing it
  local -i ORIGINAL_MAX_THREADS=${MAX_THREADS}
- 
+
  # Uses n-1 cores, if number of cores is greater than 1.
  # This prevents monopolization of the CPUs.
  # Note: This reduction applies to other parallel operations, not verification threads
@@ -326,7 +326,7 @@ function __getLocationNotes_impl {
       exec {QUEUE_LOCK_FD}>&-
       break
      fi
-     
+
      # Read first line from queue file (with lock held)
      if ! IFS=' ' read -r RANGE_START RANGE_END < "${QUEUE_FILE}"; then
       # No more lines in queue
@@ -335,26 +335,26 @@ function __getLocationNotes_impl {
       exec {QUEUE_LOCK_FD}>&-
       break
      fi
-     
+
      # Remove the first line from queue file atomically (with lock held)
      # Use tail to skip first line and write to temp file, then move
      local TEMP_QUEUE
      TEMP_QUEUE=$(mktemp)
-     if ! tail -n +2 "${QUEUE_FILE}" > "${TEMP_QUEUE}" 2>/dev/null; then
+     if ! tail -n +2 "${QUEUE_FILE}" > "${TEMP_QUEUE}" 2> /dev/null; then
       __logw "Thread ${THREAD_ID}: failed to create temp queue file"
-      rm -f "${TEMP_QUEUE}" 2>/dev/null || true
+      rm -f "${TEMP_QUEUE}" 2> /dev/null || true
       flock -u "${QUEUE_LOCK_FD}"
       exec {QUEUE_LOCK_FD}>&-
       break
      fi
-     if ! mv "${TEMP_QUEUE}" "${QUEUE_FILE}" 2>/dev/null; then
+     if ! mv "${TEMP_QUEUE}" "${QUEUE_FILE}" 2> /dev/null; then
       __logw "Thread ${THREAD_ID}: failed to update queue file"
-      rm -f "${TEMP_QUEUE}" 2>/dev/null || true
+      rm -f "${TEMP_QUEUE}" 2> /dev/null || true
       flock -u "${QUEUE_LOCK_FD}"
       exec {QUEUE_LOCK_FD}>&-
       break
      fi
-     
+
      # Release lock after successfully reading and removing from queue
      flock -u "${QUEUE_LOCK_FD}"
      exec {QUEUE_LOCK_FD}>&-
