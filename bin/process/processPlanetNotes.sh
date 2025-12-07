@@ -209,7 +209,11 @@ if [[ -z "${LOCK:-}" ]]; then
 fi
 
 # Type of process to run in the script.
-if [[ -z "${PROCESS_TYPE:-}" ]]; then
+# Only set PROCESS_TYPE if not already defined (e.g., when sourced from
+# another script that already defines it as readonly)
+# Check if variable is already declared using declare -p
+if ! declare -p PROCESS_TYPE > /dev/null 2>&1; then
+ # Variable is not declared, safe to declare it as readonly
  declare -r PROCESS_TYPE=${1:-}
 fi
 
