@@ -286,7 +286,4 @@ All analysis scripts follow the same pattern:
 
 You can safely run these scripts on production databases to monitor performance without risk of data modification.
 
-**Author**: Andres Gomez (AngocA)  
-**Version**: 2025-11-25  
-**Last Updated**: 2025-11-25
 

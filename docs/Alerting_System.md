@@ -225,7 +225,6 @@ Process Information:
 --------------------
 Process ID: 12345
 Temporary directory: /tmp/processAPINotes_20251022_010000
-Script version: 2025-10-22
 
 Action Required:
 ----------------

@@ -508,6 +508,3 @@ For interactive web visualization and exploration of user and country profiles:
   - Hashtag tracking and analysis
   - Geographic distribution visualization
 
----
-
-**Maintainer:** Andres Gomez (AngocA)

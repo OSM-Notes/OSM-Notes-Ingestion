@@ -290,8 +290,3 @@ bats tests/unit/bash/suite.test.bats 2>&1 | tee test_output.log
 - **Complete matrix:** See `docs/Test_Matrix.md`
 - **Detailed sequence:** See `docs/Test_Execution_Sequence.md`
 - **Testing guide:** See `docs/Testing_Guide.md`
-
----
-
-**Last update:** 2025-10-14  
-**Maintainer:** Andres Gomez (AngocA)

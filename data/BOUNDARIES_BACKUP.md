@@ -236,8 +236,3 @@ export BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/YourOrg/YourR
 export BOUNDARIES_DATA_BRANCH="develop"
 ```
 
-## Author
-
-Andres Gomez (AngocA)
-Version: 2025-12-05
-

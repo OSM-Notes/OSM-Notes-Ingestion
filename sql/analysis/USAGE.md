@@ -175,9 +175,3 @@ fi
 - Verifica que todas las tablas requeridas existan
 - Verifica que las extensiones necesarias estén instaladas (PostGIS, etc.)
 - Revisa los archivos de salida individuales para detalles
-
-## Autor
-
-Andres Gomez (AngocA)  
-Versión: 2025-11-25
-

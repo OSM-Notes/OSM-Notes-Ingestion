@@ -179,7 +179,3 @@ git submodule update --init --recursive
 - [GitHub SSH Setup](https://docs.github.com/en/authentication/connecting-to-github-with-ssh)
 - Main README: [README.md](../README.md)
 - Submodule Usage: [README.md](../README.md#shared-functions-git-submodule)
-
-## Version
-
-Updated: 2025-10-27

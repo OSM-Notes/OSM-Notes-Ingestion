@@ -7,44 +7,32 @@
 Todos los scripts SQL están correctamente documentados y formateados:
 
 1. **`analyze_integrity_verification_performance.sql`** ✅
-   - Autor: Andres Gomez (AngocA)
-   - Versión: 2025-11-25
    - Documentación: Completa
    - Formato: Correcto
    - Seguridad: ✅ Solo consultas SELECT/EXPLAIN (no necesita ROLLBACK)
    - Nota: Usa DROP TABLE IF EXISTS para tablas temporales de prueba, pero son seguras
 
 2. **`analyze_partition_loading_performance.sql`** ✅
-   - Autor: Andres Gomez (AngocA)
-   - Versión: 2025-11-25
    - Documentación: Completa
    - Formato: Correcto
    - Seguridad: ✅ Usa ROLLBACK después de INSERT/UPDATE
 
 3. **`analyze_partition_consolidation_performance.sql`** ✅
-   - Autor: Andres Gomez (AngocA)
-   - Versión: 2025-11-25
    - Documentación: Completa
    - Formato: Correcto
    - Seguridad: ✅ Usa ROLLBACK después de INSERT
 
 4. **`analyze_api_insertion_performance.sql`** ✅
-   - Autor: Andres Gomez (AngocA)
-   - Versión: 2025-11-25
    - Documentación: Completa
    - Formato: Correcto
    - Seguridad: ✅ Usa ROLLBACK después de INSERT/CALL
 
 5. **`analyze_country_assignment_performance.sql`** ✅
-   - Autor: Andres Gomez (AngocA)
-   - Versión: 2025-11-25
    - Documentación: Completa
    - Formato: Correcto
    - Seguridad: ✅ Usa ROLLBACK después de UPDATE
 
 6. **`analyze_country_reassignment_performance.sql`** ✅
-   - Autor: Andres Gomez (AngocA)
-   - Versión: 2025-11-25
    - Documentación: Completa
    - Formato: Correcto
    - Seguridad: ✅ Usa ROLLBACK después de UPDATE
@@ -52,8 +40,6 @@ Todos los scripts SQL están correctamente documentados y formateados:
 ### ✅ Scripts Bash (1 archivo)
 
 1. **`bin/monitor/analyzeDatabasePerformance.sh`** ✅
-   - Autor: Andres Gomez (AngocA)
-   - Versión: 2025-11-25
    - Documentación: Completa con --help
    - Formato: Correcto (shellcheck sin errores)
    - Funcionalidad: Ejecuta todos los análisis y genera reporte
@@ -125,9 +111,4 @@ Todos los scripts SQL están correctamente documentados y formateados:
 3. ✅ **Ejecutar regularmente**: Usar el script bash para monitoreo continuo
 4. ✅ **Revisar umbrales**: Ajustar umbrales de rendimiento según necesidades
 
----
-
-**Autor**: Andres Gomez (AngocA)  
-**Versión**: 2025-11-25  
-**Última revisión**: 2025-11-25
 

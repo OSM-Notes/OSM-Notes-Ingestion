@@ -175,8 +175,3 @@ Ejecutar después de:
    - **Planet**: Después de cada carga completa (semanas/meses)
    - **API**: Después de cada sincronización o diariamente
    - **Países**: Después de cada actualización de fronteras
-
----
-
-**Autor**: Andres Gomez (AngocA)  
-**Versión**: 2025-11-25

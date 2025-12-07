@@ -363,8 +363,3 @@ source tests/properties.sh
 3. Expand performance test coverage
 4. Add more large file tests in Docker
 5. Improve Mock mode compatibility
-
----
-
-**Last update:** 2025-10-14  
-**Maintainer:** Andres Gomez (AngocA)

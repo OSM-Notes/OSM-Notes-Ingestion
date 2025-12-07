@@ -80,8 +80,3 @@ gzip -k data/maritimes.geojson
 - `jq` (optional) for JSON validation
 - Database connection configured in `etc/properties.sh` or via `DBNAME` environment variable
 
-## Author
-
-Andres Gomez (AngocA)
-Version: 2025-01-23
-
