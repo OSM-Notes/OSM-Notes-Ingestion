@@ -3,7 +3,7 @@
 # Automates GeoServer setup for WMS layers
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-06
+# Version: 2025-12-07
 
 set -euo pipefail
 
@@ -27,6 +27,12 @@ fi
 # Load WMS specific properties
 if [[ -f "${PROJECT_ROOT}/etc/wms.properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/wms.properties.sh"
+fi
+
+# Load WMS local properties (overrides defaults, contains secrets like passwords)
+# This file is not tracked in git and should contain server-specific configuration
+if [[ -f "${PROJECT_ROOT}/etc/wms.properties.sh_local" ]]; then
+ source "${PROJECT_ROOT}/etc/wms.properties.sh_local"
 fi
 
 # Load common functions (provides __validate_input_file, etc.)
@@ -465,9 +471,8 @@ create_datastore() {
  local CHECK_HTTP_CODE
  CHECK_HTTP_CODE=$(echo "${CHECK_RESPONSE}" | tail -1)
 
- # Note: We specify 'public' as the default schema since views are created there
- # SQL views can still access other schemas (like 'wms') by using fully qualified names
- # This simplifies GeoServer configuration by using a single schema
+ # Note: We specify 'public' as default schema since views are created there
+ # SQL views can still access other schemas (like 'wms') using fully qualified names
  local DATASTORE_DATA="{
    \"dataStore\": {
      \"name\": \"${GEOSERVER_STORE}\",
@@ -577,7 +582,18 @@ calculate_bbox_from_table() {
  
  # Query PostgreSQL to get the actual bounding box of the data
  # Handle both regular tables and views
- local BBOX_QUERY="SELECT ST_XMin(bbox)::numeric, ST_YMin(bbox)::numeric, ST_XMax(bbox)::numeric, ST_YMax(bbox)::numeric FROM (SELECT ST_Extent(geometry)::box2d as bbox FROM ${TABLE_NAME} WHERE geometry IS NOT NULL) t;"
+ # Handle schema-qualified table names (e.g., "wms.table" or just "table")
+ # If table name doesn't contain a dot, assume it's in the default schema
+ local SCHEMA_QUALIFIED_TABLE="${TABLE_NAME}"
+ if ! echo "${TABLE_NAME}" | grep -q '\\.'; then
+  # Table name without schema - use public schema for views, wms for others
+  if echo "${TABLE_NAME}" | grep -qi "view"; then
+   SCHEMA_QUALIFIED_TABLE="public.${TABLE_NAME}"
+  else
+   SCHEMA_QUALIFIED_TABLE="wms.${TABLE_NAME}"
+  fi
+ fi
+ local BBOX_QUERY="SELECT ST_XMin(bbox)::numeric, ST_YMin(bbox)::numeric, ST_XMax(bbox)::numeric, ST_YMax(bbox)::numeric FROM (SELECT ST_Extent(geometry)::box2d as bbox FROM ${SCHEMA_QUALIFIED_TABLE} WHERE geometry IS NOT NULL) t;"
  
  local PSQL_CMD="psql -d \"${DBNAME}\" -t -A"
  if [[ -n "${DBHOST}" ]]; then
@@ -644,18 +660,24 @@ create_feature_type_from_table() {
  # Check if it's a view (contains 'view' in the name, case insensitive)
  # or a materialized view (disputed_and_unclaimed_areas)
  local IS_VIEW=0
+ local IS_DISPUTED_VIEW=0
  if echo "${TABLE_NAME}" | grep -qi "view"; then
   IS_VIEW=1
+  # Check if it's disputed areas view
+  if echo "${TABLE_NAME}" | grep -qi "disputed.*areas.*view"; then
+   IS_DISPUTED_VIEW=1
+  fi
  elif echo "${TABLE_NAME}" | grep -qi "disputed_and_unclaimed_areas"; then
   IS_VIEW=1
+  IS_DISPUTED_VIEW=1
  fi
 
  # Build attributes JSON based on table/view type
  local ATTRIBUTES_JSON=""
  if [[ ${IS_VIEW} -eq 1 ]]; then
-  # Check if it's disputed areas (materialized view) or notes views
-  if echo "${TABLE_NAME}" | grep -qi "disputed_and_unclaimed_areas"; then
-   # For disputed areas materialized view
+  # Check if it's disputed areas view or notes views
+  if [[ ${IS_DISPUTED_VIEW} -eq 1 ]] || echo "${TABLE_NAME}" | grep -qi "disputed.*areas"; then
+   # For disputed areas view (only has id, zone_type, geometry)
    ATTRIBUTES_JSON=",
      \"attributes\": {
        \"attribute\": [
@@ -667,13 +689,6 @@ create_feature_type_from_table() {
            \"binding\": \"java.lang.Integer\"
          },
          {
-           \"name\": \"geometry\",
-           \"minOccurs\": 1,
-           \"maxOccurs\": 1,
-           \"nillable\": false,
-           \"binding\": \"org.locationtech.jts.geom.Geometry\"
-         },
-         {
            \"name\": \"zone_type\",
            \"minOccurs\": 0,
            \"maxOccurs\": 1,
@@ -681,48 +696,6 @@ create_feature_type_from_table() {
            \"binding\": \"java.lang.String\"
          },
          {
-           \"name\": \"country_ids\",
-           \"minOccurs\": 0,
-           \"maxOccurs\": 1,
-           \"nillable\": true,
-           \"binding\": \"java.lang.String\"
-         },
-         {
-           \"name\": \"country_names\",
-           \"minOccurs\": 0,
-           \"maxOccurs\": 1,
-           \"nillable\": true,
-           \"binding\": \"java.lang.String\"
-         }
-       ]
-     }"
-  else
-   # For notes views (notes_open_view and notes_closed_view)
-   ATTRIBUTES_JSON=",
-     \"attributes\": {
-       \"attribute\": [
-         {
-           \"name\": \"note_id\",
-           \"minOccurs\": 0,
-           \"maxOccurs\": 1,
-           \"nillable\": true,
-           \"binding\": \"java.lang.Integer\"
-         },
-         {
-           \"name\": \"year_created_at\",
-           \"minOccurs\": 0,
-           \"maxOccurs\": 1,
-           \"nillable\": true,
-           \"binding\": \"java.lang.Double\"
-         },
-         {
-           \"name\": \"year_closed_at\",
-           \"minOccurs\": 0,
-           \"maxOccurs\": 1,
-           \"nillable\": true,
-           \"binding\": \"java.lang.Double\"
-         },
-         {
            \"name\": \"geometry\",
            \"minOccurs\": 1,
            \"maxOccurs\": 1,
@@ -731,7 +704,23 @@ create_feature_type_from_table() {
          }
        ]
      }"
+  elif echo "${TABLE_NAME}" | grep -qi "notes_open_view\|notes_closed_view"; then
+   # For notes views: Let GeoServer auto-detect attributes from the view
+   # This avoids CQL expression errors with calculated columns like age_years
+   # GeoServer will automatically detect all columns from the PostgreSQL view
+   ATTRIBUTES_JSON=""
   fi
+ fi
+
+ # Set maxFeatures for layers with many features to prevent timeout
+ # For notes_closed_view (4.4M features), limit to 50K for rendering to prevent timeout
+ # For notes_open_view (460K features), limit to 25K for rendering
+ # These limits ensure maps can render within the 60s timeout
+ local MAX_FEATURES=0
+ if echo "${TABLE_NAME}" | grep -qi "notes_closed_view"; then
+  MAX_FEATURES=50000
+ elif echo "${TABLE_NAME}" | grep -qi "notes_open_view"; then
+  MAX_FEATURES=25000
  fi
 
  local FEATURE_TYPE_DATA="{
@@ -742,6 +731,7 @@ create_feature_type_from_table() {
      \"description\": \"${LAYER_DESCRIPTION}\",
      \"enabled\": true,
      \"srs\": \"${WMS_LAYER_SRS}\",
+     \"maxFeatures\": ${MAX_FEATURES},
      \"nativeBoundingBox\": {
        \"minx\": ${BBOX_MINX},
        \"maxx\": ${BBOX_MAXX},
@@ -956,7 +946,9 @@ create_feature_type_from_table() {
   print_status "${YELLOW}" "⚠️  Failed to create feature type '${LAYER_NAME}' (HTTP ${HTTP_CODE})"
   if [[ -n "${RESPONSE_BODY}" ]]; then
    print_status "${YELLOW}" "   Response:"
-   echo "${RESPONSE_BODY}" | head -10 | sed 's/^/      /'
+   echo "${RESPONSE_BODY}" | head -50 | sed 's/^/      /'
+   # Save full error for debugging
+   echo "${RESPONSE_BODY}" > "${TMP_DIR}/geoserver_error_${LAYER_NAME}_$$.txt" 2> /dev/null || true
   fi
   rm -f "${TEMP_RESPONSE_FILE}" 2> /dev/null || true
   return 1
@@ -979,7 +971,17 @@ create_sql_view_layer() {
  TABLE_NAME=$(echo "${SQL_QUERY}" | sed -n 's/.*FROM[[:space:]]\+\([^[:space:]]*\).*/\1/p' | tr -d ';' || echo "")
  local BBOX
  if [[ -n "${TABLE_NAME}" ]]; then
-  BBOX=$(calculate_bbox_from_table "${TABLE_NAME}")
+  # Remove schema prefix if present (e.g., "public.notes_open_view" -> "notes_open_view")
+  local TABLE_NAME_CLEAN="${TABLE_NAME}"
+  if echo "${TABLE_NAME}" | grep -q '\\.'; then
+   TABLE_NAME_CLEAN=$(echo "${TABLE_NAME}" | sed 's/^[^.]*\\.//')
+  fi
+  # Try to calculate bbox, but use defaults if it fails
+  BBOX=$(calculate_bbox_from_table "${TABLE_NAME_CLEAN}" 2>/dev/null || echo "")
+  if [[ -z "${BBOX}" ]] || ! echo "${BBOX}" | grep -qE '^-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+$'; then
+   # Use default bounding box if calculation failed
+   BBOX="${WMS_BBOX_MINX},${WMS_BBOX_MINY},${WMS_BBOX_MAXX},${WMS_BBOX_MAXY}"
+  fi
  else
   # Use default bounding box if table name cannot be extracted
   BBOX="${WMS_BBOX_MINX},${WMS_BBOX_MINY},${WMS_BBOX_MAXX},${WMS_BBOX_MAXY}"
@@ -1064,12 +1066,14 @@ EOF
 
  local TEMP_RESPONSE_FILE="${TMP_DIR}/sqlview_response_${LAYER_NAME}_$$.tmp"
  local HTTP_CODE
- HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
+ HTTP_CODE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
   -X POST \
   -H "Content-Type: application/json" \
   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   -d "@${TEMP_JSON}" \
-  "${FEATURE_TYPE_URL}" 2> /dev/null | tail -1)
+  "${FEATURE_TYPE_URL}" 2> /dev/null)
+ # Extract HTTP code from last line
+ HTTP_CODE=$(echo "${HTTP_CODE}" | tail -1 | sed 's/HTTP_CODE://')
   
  local RESPONSE_BODY
  RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
@@ -1196,16 +1200,17 @@ upload_style() {
  local HTTP_CODE
  local RESPONSE_BODY
 
- # If style exists, update it; otherwise create it
+ # If style exists, delete it first to avoid corruption issues, then create it
  if [[ "${CHECK_HTTP_CODE}" == "200" ]]; then
-  # Style exists, update it
-  HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
-   -X PUT \
-   -H "Content-Type: application/vnd.ogc.sld+xml" \
+  # Style exists, delete it first to avoid corruption issues
+  print_status "${BLUE}" "   Removing existing style '${ACTUAL_STYLE_NAME}' before recreating..."
+  curl -s -w "%{http_code}" -o /dev/null \
    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
-   -d "@${SLD_FILE}" \
-   "${STYLE_CHECK_URL}" 2> /dev/null | tail -1)
- else
+   -X DELETE "${STYLE_CHECK_URL}" 2> /dev/null | tail -1 > /dev/null
+  sleep 1  # Wait a moment for GeoServer to process the deletion
+ fi
+ # Create the style (either new or after deletion)
+ if true; then
   # Style doesn't exist, create it (use the name from SLD, not the parameter)
   # GeoServer will extract the name from the SLD file itself
   HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE_FILE}" \
@@ -1424,16 +1429,90 @@ assign_style_to_layer() {
   return 0
  else
   print_status "${YELLOW}" "⚠️  Style assignment failed (HTTP ${ASSIGN_HTTP_CODE})"
-  local ASSIGN_RESPONSE
-  ASSIGN_RESPONSE=$(cat "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || echo "")
-  if [[ -n "${ASSIGN_RESPONSE}" ]]; then
-   print_status "${YELLOW}" "   Response:"
-   echo "${ASSIGN_RESPONSE}" | head -10 | sed 's/^/      /'
+  local RESPONSE_BODY
+  RESPONSE_BODY=$(cat "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || echo "")
+  if [[ -n "${RESPONSE_BODY}" ]]; then
+   print_status "${YELLOW}" "   Response: ${RESPONSE_BODY}"
   fi
-  print_status "${YELLOW}" "   Note: Style can be assigned manually from GeoServer UI if needed"
   rm -f "${TEMP_STYLE_ASSIGN_FILE}" 2> /dev/null || true
   return 1
  fi
+}
+
+# Function to add alternative style to layer
+add_alternative_style_to_layer() {
+ local LAYER_NAME="${1}"
+ local STYLE_NAME="${2}"
+
+ print_status "${BLUE}" "🎨 Adding alternative style '${STYLE_NAME}' to layer '${LAYER_NAME}'..."
+
+ # Get current layer configuration
+ local LAYER_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
+ local TEMP_LAYER_GET="${TMP_DIR}/layer_get_${LAYER_NAME}_$$.tmp"
+ local GET_HTTP_CODE
+ GET_HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_LAYER_GET}" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  "${LAYER_URL}" 2> /dev/null | tail -1)
+
+ if [[ "${GET_HTTP_CODE}" != "200" ]]; then
+  print_status "${YELLOW}" "⚠️  Could not retrieve layer '${LAYER_NAME}' (HTTP ${GET_HTTP_CODE})"
+  rm -f "${TEMP_LAYER_GET}" 2> /dev/null || true
+  return 1
+ fi
+
+ # Parse current styles from layer JSON
+ local CURRENT_STYLES
+ CURRENT_STYLES=$(jq -r '.layer.styles.style[]? // .layer.styles.style // []' "${TEMP_LAYER_GET}" 2> /dev/null || echo "[]")
+
+ # Check if style is already in the list
+ if echo "${CURRENT_STYLES}" | jq -e ".[] | select(.name == \"${STYLE_NAME}\")" > /dev/null 2>&1; then
+  print_status "${GREEN}" "✅ Alternative style '${STYLE_NAME}' already exists for layer '${LAYER_NAME}'"
+  rm -f "${TEMP_LAYER_GET}" 2> /dev/null || true
+  return 0
+ fi
+
+ # Add the new style to the styles array
+ local UPDATED_STYLES
+ UPDATED_STYLES=$(echo "${CURRENT_STYLES}" | jq ". + [{\"name\": \"${STYLE_NAME}\"}]" 2> /dev/null || echo "[{\"name\": \"${STYLE_NAME}\"}]")
+
+ # Update layer with new styles array
+ local LAYER_UPDATE_DATA
+ LAYER_UPDATE_DATA=$(jq ".layer.styles = {\"style\": ${UPDATED_STYLES}}" "${TEMP_LAYER_GET}" 2> /dev/null)
+
+ if [[ -z "${LAYER_UPDATE_DATA}" ]]; then
+  # Fallback: create minimal update JSON
+  LAYER_UPDATE_DATA="{
+   \"layer\": {
+     \"styles\": {
+       \"style\": ${UPDATED_STYLES}
+     }
+   }
+  }"
+ fi
+
+ local TEMP_STYLE_ADD="${TMP_DIR}/style_add_${LAYER_NAME}_$$.tmp"
+ local ADD_HTTP_CODE
+ ADD_HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_STYLE_ADD}" \
+  -X PUT \
+  -H "Content-Type: application/json" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  -d "${LAYER_UPDATE_DATA}" \
+  "${LAYER_URL}" 2> /dev/null | tail -1)
+
+ rm -f "${TEMP_LAYER_GET}" "${TEMP_STYLE_ADD}" 2> /dev/null || true
+
+ if [[ "${ADD_HTTP_CODE}" == "200" ]] || [[ "${ADD_HTTP_CODE}" == "204" ]]; then
+  print_status "${GREEN}" "✅ Alternative style '${STYLE_NAME}' added to layer '${LAYER_NAME}'"
+  return 0
+ else
+  print_status "${YELLOW}" "⚠️  Failed to add alternative style (HTTP ${ADD_HTTP_CODE})"
+  return 1
+ fi
+}
+
+# Legacy function for backward compatibility
+assign_style_to_layer_legacy() {
+ assign_style_to_layer "${@}"
 }
 
 # Function to install GeoServer configuration
@@ -1484,7 +1563,7 @@ install_geoserver_config() {
  if ! upload_style "${WMS_STYLE_DISPUTED_FILE}" "${WMS_STYLE_DISPUTED_NAME}"; then
   ((STYLE_ERRORS++))
  fi
-
+ # Upload country-based styles (alternative styles)
  # If styles failed and not using --force, exit
  if [[ ${STYLE_ERRORS} -gt 0 ]] && [[ "${FORCE:-false}" != "true" ]]; then
   print_status "${RED}" "❌ ERROR: Failed to upload ${STYLE_ERRORS} style(s)"
@@ -1494,11 +1573,11 @@ install_geoserver_config() {
   print_status "${YELLOW}" "⚠️  ${STYLE_ERRORS} style(s) failed to upload, continuing with --force"
  fi
 
-# Create layer 1: Open Notes (direct view reference)
-# Views are now in public schema, so we can reference them directly
+# Create layer 1: Open Notes (direct view - no schema prefix since datastore uses public)
+# Datastore is configured with schema='public', so we can reference views directly
 print_status "${BLUE}" "📊 Creating layer 1/4: Open Notes..."
 local OPEN_LAYER_NAME="notesopen"
-local OPEN_VIEW_NAME="public.notes_open_view"
+local OPEN_VIEW_NAME="notes_open_view"
 if create_feature_type_from_table "${OPEN_LAYER_NAME}" "${OPEN_VIEW_NAME}" "${WMS_LAYER_OPEN_NAME}" "${WMS_LAYER_OPEN_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local OPEN_STYLE_NAME
@@ -1509,11 +1588,11 @@ if create_feature_type_from_table "${OPEN_LAYER_NAME}" "${OPEN_VIEW_NAME}" "${WM
   assign_style_to_layer "${OPEN_LAYER_NAME}" "${OPEN_STYLE_NAME}"
 fi
 
-# Create layer 2: Closed Notes (direct view reference)
-# Views are now in public schema, so we can reference them directly
+# Create layer 2: Closed Notes (direct view - no schema prefix since datastore uses public)
+# Datastore is configured with schema='public', so we can reference views directly
 print_status "${BLUE}" "📊 Creating layer 2/4: Closed Notes..."
 local CLOSED_LAYER_NAME="notesclosed"
-local CLOSED_VIEW_NAME="public.notes_closed_view"
+local CLOSED_VIEW_NAME="notes_closed_view"
 if create_feature_type_from_table "${CLOSED_LAYER_NAME}" "${CLOSED_VIEW_NAME}" "${WMS_LAYER_CLOSED_NAME}" "${WMS_LAYER_CLOSED_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local CLOSED_STYLE_NAME
@@ -1542,12 +1621,12 @@ fi
   assign_style_to_layer "${COUNTRIES_LAYER_NAME}" "${COUNTRIES_STYLE_NAME}"
  fi
 
-# Create layer 4: Disputed and Unclaimed Areas (materialized view)
-# Use materialized view directly instead of SQL view to avoid "Schema does not exist" error
+# Create layer 4: Disputed and Unclaimed Areas (direct view reference)
+# View is created in public schema to simplify GeoServer datastore configuration
 print_status "${BLUE}" "📊 Creating layer 4/4: Disputed and Unclaimed Areas..."
 local DISPUTED_LAYER_NAME="disputedareas"
-local DISPUTED_TABLE_NAME="wms.disputed_and_unclaimed_areas"
-if create_feature_type_from_table "${DISPUTED_LAYER_NAME}" "${DISPUTED_TABLE_NAME}" "${WMS_LAYER_DISPUTED_NAME}" "${WMS_LAYER_DISPUTED_DESCRIPTION}"; then
+local DISPUTED_VIEW_NAME="disputed_areas_view"
+if create_feature_type_from_table "${DISPUTED_LAYER_NAME}" "${DISPUTED_VIEW_NAME}" "${WMS_LAYER_DISPUTED_NAME}" "${WMS_LAYER_DISPUTED_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local DISPUTED_STYLE_NAME
   DISPUTED_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_DISPUTED_FILE}")
@@ -1667,6 +1746,36 @@ show_status() {
  print_status "${BLUE}" "   Styles: ${GEOSERVER_URL}/web/?wicket:bookmarkablePage=:org.geoserver.web.data.style.StylesPage"
 }
 
+# Function to remove a style
+remove_style() {
+ local STYLE_NAME="${1}"
+
+ # Remove style (styles are global resources, not workspace-specific)
+ local STYLE_URL="${GEOSERVER_URL}/rest/styles/${STYLE_NAME}"
+ local TEMP_RESPONSE="${TMP_DIR}/style_delete_${STYLE_NAME}_$$.tmp"
+ local HTTP_CODE
+ HTTP_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RESPONSE}" \
+  -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
+  -X DELETE "${STYLE_URL}" 2> /dev/null | tail -1)
+ local RESPONSE_BODY
+ RESPONSE_BODY=$(cat "${TEMP_RESPONSE}" 2> /dev/null || echo "")
+ rm -f "${TEMP_RESPONSE}" 2> /dev/null || true
+
+ if [[ "${HTTP_CODE}" == "200" ]] || [[ "${HTTP_CODE}" == "204" ]]; then
+  print_status "${GREEN}" "✅ Style '${STYLE_NAME}' removed"
+  return 0
+ elif [[ "${HTTP_CODE}" == "404" ]]; then
+  print_status "${YELLOW}" "⚠️  Style '${STYLE_NAME}' not found (already removed)"
+  return 0
+ else
+  print_status "${YELLOW}" "⚠️  Style '${STYLE_NAME}' removal failed (HTTP ${HTTP_CODE})"
+  if [[ -n "${RESPONSE_BODY}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
+   print_status "${YELLOW}" "   Response: $(echo "${RESPONSE_BODY}" | head -3 | tr '\n' ' ')"
+  fi
+  return 1
+ fi
+}
+
 # Function to remove a layer
 remove_layer() {
  local LAYER_NAME="${1}"
@@ -1720,6 +1829,8 @@ remove_geoserver_config() {
  local TOTAL_LAYERS_FAILED=0
  local TOTAL_FEATURES_REMOVED=0
  local TOTAL_FEATURES_FAILED=0
+ local TOTAL_STYLES_REMOVED=0
+ local TOTAL_STYLES_FAILED=0
  local DATASTORE_REMOVED=false
  local WORKSPACE_REMOVED=false
 
@@ -1844,7 +1955,96 @@ remove_geoserver_config() {
   print_status "${YELLOW}" "⚠️  Datastore not found (already removed or workspace was removed)"
  fi
 
- # Step 4: Remove namespace (before workspace, as namespace is linked to workspace)
+ # Step 4: Remove styles (global resources, not workspace-specific)
+ # Styles are global in GeoServer and must be removed explicitly
+ print_status "${BLUE}" "🗑️  Removing styles..."
+
+ # Get style names from SLD files and properties
+ local STYLE_NAMES=()
+ 
+ # Try to extract style names from SLD files
+ if [[ -f "${WMS_STYLE_OPEN_FILE}" ]]; then
+  local OPEN_STYLE_NAME
+  OPEN_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_OPEN_FILE}")
+  if [[ -n "${OPEN_STYLE_NAME}" ]]; then
+   STYLE_NAMES+=("${OPEN_STYLE_NAME}")
+  fi
+  # Also try the property name
+  if [[ -n "${WMS_STYLE_OPEN_NAME}" ]] && [[ "${OPEN_STYLE_NAME}" != "${WMS_STYLE_OPEN_NAME}" ]]; then
+   STYLE_NAMES+=("${WMS_STYLE_OPEN_NAME}")
+  fi
+ fi
+
+ if [[ -f "${WMS_STYLE_CLOSED_FILE}" ]]; then
+  local CLOSED_STYLE_NAME
+  CLOSED_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_CLOSED_FILE}")
+  if [[ -n "${CLOSED_STYLE_NAME}" ]]; then
+   STYLE_NAMES+=("${CLOSED_STYLE_NAME}")
+  fi
+  # Also try the property name
+  if [[ -n "${WMS_STYLE_CLOSED_NAME}" ]] && [[ "${CLOSED_STYLE_NAME}" != "${WMS_STYLE_CLOSED_NAME}" ]]; then
+   STYLE_NAMES+=("${WMS_STYLE_CLOSED_NAME}")
+  fi
+ fi
+
+ if [[ -f "${WMS_STYLE_COUNTRIES_FILE}" ]]; then
+  local COUNTRIES_STYLE_NAME
+  COUNTRIES_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_COUNTRIES_FILE}")
+  if [[ -n "${COUNTRIES_STYLE_NAME}" ]]; then
+   STYLE_NAMES+=("${COUNTRIES_STYLE_NAME}")
+  fi
+  # Also try the property name
+  if [[ -n "${WMS_STYLE_COUNTRIES_NAME}" ]] && [[ "${COUNTRIES_STYLE_NAME}" != "${WMS_STYLE_COUNTRIES_NAME}" ]]; then
+   STYLE_NAMES+=("${WMS_STYLE_COUNTRIES_NAME}")
+  fi
+ fi
+
+ if [[ -f "${WMS_STYLE_DISPUTED_FILE}" ]]; then
+  local DISPUTED_STYLE_NAME
+  DISPUTED_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_DISPUTED_FILE}")
+  if [[ -n "${DISPUTED_STYLE_NAME}" ]]; then
+   STYLE_NAMES+=("${DISPUTED_STYLE_NAME}")
+  fi
+  # Also try the property name
+  if [[ -n "${WMS_STYLE_DISPUTED_NAME}" ]] && [[ "${DISPUTED_STYLE_NAME}" != "${WMS_STYLE_DISPUTED_NAME}" ]]; then
+   STYLE_NAMES+=("${WMS_STYLE_DISPUTED_NAME}")
+  fi
+ fi
+
+ # Also try common style name variations that might exist
+ STYLE_NAMES+=("notesopen" "notesclosed")
+ 
+ # Remove duplicate style names
+ local UNIQUE_STYLE_NAMES=()
+ for STYLE_NAME in "${STYLE_NAMES[@]}"; do
+  local IS_DUPLICATE=false
+  for UNIQUE_NAME in "${UNIQUE_STYLE_NAMES[@]}"; do
+   if [[ "${STYLE_NAME}" == "${UNIQUE_NAME}" ]]; then
+    IS_DUPLICATE=true
+    break
+   fi
+  done
+  if [[ "${IS_DUPLICATE}" == "false" ]]; then
+   UNIQUE_STYLE_NAMES+=("${STYLE_NAME}")
+  fi
+ done
+
+ # Remove each unique style
+ for STYLE_NAME in "${UNIQUE_STYLE_NAMES[@]}"; do
+  if remove_style "${STYLE_NAME}"; then
+   TOTAL_STYLES_REMOVED=$((TOTAL_STYLES_REMOVED + 1))
+  else
+   TOTAL_STYLES_FAILED=$((TOTAL_STYLES_FAILED + 1))
+  fi
+ done
+
+ if [[ ${TOTAL_STYLES_REMOVED} -eq 0 ]] && [[ ${TOTAL_STYLES_FAILED} -eq 0 ]]; then
+  print_status "${YELLOW}" "   No styles found to remove"
+ elif [[ ${TOTAL_STYLES_FAILED} -gt 0 ]]; then
+  print_status "${YELLOW}" "   ⚠️  ${TOTAL_STYLES_FAILED} style(s) could not be removed - may need manual cleanup"
+ fi
+
+ # Step 5: Remove namespace (before workspace, as namespace is linked to workspace)
  # Check if namespace exists before attempting to remove
  local NAMESPACE_CHECK_URL="${GEOSERVER_URL}/rest/namespaces/${GEOSERVER_WORKSPACE}"
  local NAMESPACE_CHECK_CODE
@@ -1880,7 +2080,7 @@ remove_geoserver_config() {
   print_status "${YELLOW}" "⚠️  Namespace not found (already removed or workspace was removed)"
  fi
 
- # Step 5: Remove workspace (this will also remove linked namespace if permissions allow)
+ # Step 6: Remove workspace (this will also remove linked namespace if permissions allow)
  print_status "${BLUE}" "🗑️  Removing workspace..."
  local WORKSPACE_URL="${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}?recurse=true"
  local TEMP_RESPONSE="${TMP_DIR}/workspace_delete_$$.tmp"
@@ -1923,6 +2123,10 @@ remove_geoserver_config() {
  print_status "${BLUE}" "   - Feature types removed: ${TOTAL_FEATURES_REMOVED}/4"
  if [[ ${TOTAL_FEATURES_FAILED} -gt 0 ]]; then
   print_status "${YELLOW}" "   - Feature types failed: ${TOTAL_FEATURES_FAILED}"
+ fi
+ print_status "${BLUE}" "   - Styles removed: ${TOTAL_STYLES_REMOVED}"
+ if [[ ${TOTAL_STYLES_FAILED} -gt 0 ]]; then
+  print_status "${YELLOW}" "   - Styles failed: ${TOTAL_STYLES_FAILED}"
  fi
  if [[ "${DATASTORE_REMOVED}" == "true" ]]; then
   print_status "${GREEN}" "   - Datastore: Removed"

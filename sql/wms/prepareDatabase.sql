@@ -5,7 +5,7 @@
 -- the countries table (i.e., processAPI/processPlanet have been executed).
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-06
+-- Version: 2025-12-07
 
 -- Check if PostGIS extension is available
 DO $$
@@ -181,6 +181,11 @@ SELECT
   note_id,
   year_created_at,
   year_closed_at,
+  -- Calculate age dynamically (years since creation)
+  EXTRACT(YEAR FROM CURRENT_DATE) - year_created_at AS age_years,
+  -- Country information for country-based styling
+  id_country,
+  country_shape_mod,
   geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NULL
@@ -188,12 +193,23 @@ WHERE year_closed_at IS NULL
 
 COMMENT ON VIEW public.notes_open_view IS
   'View of open notes (not closed) for WMS layer display';
+COMMENT ON COLUMN public.notes_open_view.age_years IS
+  'Age of the note in years (calculated dynamically from current year)';
+COMMENT ON COLUMN public.notes_open_view.id_country IS
+  'Country id where the note is located (NULL for unclaimed/disputed areas)';
+COMMENT ON COLUMN public.notes_open_view.country_shape_mod IS
+  'Modulo 6 of id_country for shape assignment (0-5, NULL if no country)';
 
 CREATE OR REPLACE VIEW public.notes_closed_view AS
 SELECT 
   note_id,
   year_created_at,
   year_closed_at,
+  -- Calculate age dynamically (years since closure)
+  EXTRACT(YEAR FROM CURRENT_DATE) - year_closed_at AS years_since_closed,
+  -- Country information for country-based styling
+  id_country,
+  country_shape_mod,
   geometry
 FROM wms.notes_wms
 WHERE year_closed_at IS NOT NULL
@@ -201,6 +217,26 @@ WHERE year_closed_at IS NOT NULL
 
 COMMENT ON VIEW public.notes_closed_view IS
   'View of closed notes for WMS layer display';
+COMMENT ON COLUMN public.notes_closed_view.years_since_closed IS
+  'Years since the note was closed (calculated dynamically from current year)';
+COMMENT ON COLUMN public.notes_closed_view.id_country IS
+  'Country id where the note is located (NULL for unclaimed/disputed areas)';
+COMMENT ON COLUMN public.notes_closed_view.country_shape_mod IS
+  'Modulo 6 of id_country for shape assignment (0-5, NULL if no country)';
+
+-- Create view for disputed and unclaimed areas (for GeoServer layer)
+-- Note: View is created in 'public' schema to simplify GeoServer datastore
+--       configuration (single schema for all layers)
+CREATE OR REPLACE VIEW public.disputed_areas_view AS
+SELECT
+  id,
+  zone_type,
+  geometry
+FROM wms.disputed_and_unclaimed_areas
+WHERE geometry IS NOT NULL;
+
+COMMENT ON VIEW public.disputed_areas_view IS
+  'View of disputed and unclaimed areas for WMS layer display';
 
 -- =============================================================================
 -- Create view for disputed and unclaimed areas
