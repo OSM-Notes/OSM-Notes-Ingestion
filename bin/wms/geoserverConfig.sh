@@ -19,6 +19,10 @@ export BASENAME="geoserverConfig"
 export TMP_DIR="/tmp"
 export LOG_LEVEL="INFO"
 
+# Set PostgreSQL application name for monitoring
+# This allows monitoring tools to identify which script is using the database
+export PGAPPNAME="${BASENAME}"
+
 # Load properties
 if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/properties.sh"
@@ -170,7 +174,7 @@ validate_prerequisites() {
    --connect-timeout 10 --max-time 30 \
    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
    "${GEOSERVER_STATUS_URL}" 2> "${TEMP_ERROR_FILE}")
-  
+
   if [[ "${HTTP_CODE}" == "200" ]]; then
    if [[ -f "${TEMP_STATUS_FILE}" ]] && [[ -s "${TEMP_STATUS_FILE}" ]]; then
     CONNECTED=true
@@ -195,7 +199,7 @@ validate_prerequisites() {
    # GeoServer URL might be wrong
    print_status "${YELLOW}" "⚠️  GeoServer endpoint not found (HTTP 404) - checking URL..."
   fi
-  
+
   RETRY_COUNT=$((RETRY_COUNT + 1))
   if [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; then
    sleep 2
@@ -256,7 +260,7 @@ validate_prerequisites() {
    ERROR_MSG=$(cat "${TEMP_ERROR_FILE}" 2> /dev/null | head -1 || echo "Unknown error")
    rm -f "${TEMP_ERROR_FILE}" 2> /dev/null || true
    unset PGPASSWORD 2> /dev/null || true
-   
+
    print_status "${YELLOW}" "⚠️  WARNING: Cannot validate PostgreSQL connection to '${DBNAME}'"
    print_status "${YELLOW}" "   Error: ${ERROR_MSG}"
    print_status "${YELLOW}" "   This is not fatal - GeoServer will validate the connection when creating the datastore"
@@ -307,25 +311,25 @@ is_geoserver_configured() {
  local HTTP_CODE
  local WORKSPACE_EXISTS=false
  local DATASTORE_EXISTS=false
- 
+
  # Check if workspace exists (verify HTTP status code is 200)
  HTTP_CODE=$(curl -s -o "${TEMP_FILE}" -w "%{http_code}" --connect-timeout 10 --max-time 30 \
   -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
   "${WORKSPACE_URL}" 2> /dev/null)
- 
+
  if [[ "${HTTP_CODE}" == "200" ]]; then
   # Check if response contains workspace name (verify it's not empty or error)
   if [[ -s "${TEMP_FILE}" ]] && grep -q "\"name\".*\"${GEOSERVER_WORKSPACE}\"" "${TEMP_FILE}" 2> /dev/null; then
    WORKSPACE_EXISTS=true
   fi
  fi
- 
+
  # Check if datastore exists (only if workspace exists)
  if [[ "${WORKSPACE_EXISTS}" == "true" ]]; then
   HTTP_CODE=$(curl -s -o "${TEMP_FILE}" -w "%{http_code}" --connect-timeout 10 --max-time 30 \
    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
    "${DATASTORE_URL}" 2> /dev/null)
-  
+
   if [[ "${HTTP_CODE}" == "200" ]]; then
    # Check if response contains datastore name (verify it's not empty or error)
    if [[ -s "${TEMP_FILE}" ]] && grep -q "\"name\".*\"${GEOSERVER_STORE}\"" "${TEMP_FILE}" 2> /dev/null; then
@@ -333,7 +337,7 @@ is_geoserver_configured() {
    fi
   fi
  fi
- 
+
  rm -f "${TEMP_FILE}" 2> /dev/null || true
 
  # Consider configured if workspace and datastore exist
@@ -579,7 +583,7 @@ create_datastore() {
 # If calculation fails, returns default worldwide bounding box
 calculate_bbox_from_table() {
  local TABLE_NAME="${1}"
- 
+
  # Query PostgreSQL to get the actual bounding box of the data
  # Handle both regular tables and views
  # Handle schema-qualified table names (e.g., "wms.table" or just "table")
@@ -594,7 +598,7 @@ calculate_bbox_from_table() {
   fi
  fi
  local BBOX_QUERY="SELECT ST_XMin(bbox)::numeric, ST_YMin(bbox)::numeric, ST_XMax(bbox)::numeric, ST_YMax(bbox)::numeric FROM (SELECT ST_Extent(geometry)::box2d as bbox FROM ${SCHEMA_QUALIFIED_TABLE} WHERE geometry IS NOT NULL) t;"
- 
+
  local PSQL_CMD="psql -d \"${DBNAME}\" -t -A"
  if [[ -n "${DBHOST}" ]]; then
   PSQL_CMD="psql -h \"${DBHOST}\" -d \"${DBNAME}\" -t -A"
@@ -610,16 +614,16 @@ calculate_bbox_from_table() {
  else
   unset PGPASSWORD 2> /dev/null || true
  fi
- 
+
  local BBOX_RESULT
  local TEMP_ERROR="${TMP_DIR}/bbox_error_$$.tmp"
  # PostgreSQL returns values separated by | when using -A, convert to comma-separated
  BBOX_RESULT=$(eval "${PSQL_CMD} -c \"${BBOX_QUERY}\"" 2> "${TEMP_ERROR}" | tr '|' ',' | tr -d ' ' || echo "")
- 
+
  if [[ -n "${DBPASSWORD}" ]]; then
   unset PGPASSWORD 2> /dev/null || true
  fi
- 
+
  # Check for errors (table might not exist, might be empty, or query might fail)
  if [[ -s "${TEMP_ERROR}" ]] && [[ "${VERBOSE:-false}" == "true" ]]; then
   local ERROR_MSG
@@ -629,7 +633,7 @@ calculate_bbox_from_table() {
   fi
  fi
  rm -f "${TEMP_ERROR}" 2> /dev/null || true
- 
+
  # If we got a valid bounding box, use it; otherwise use defaults
  # Valid bbox format: number,number,number,number (four decimal numbers)
  if [[ -n "${BBOX_RESULT}" ]] && echo "${BBOX_RESULT}" | grep -qE '^-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+$'; then
@@ -782,7 +786,7 @@ create_feature_type_from_table() {
   local RECALC_ATTEMPTS=0
   local RECALC_MAX_ATTEMPTS=3
   local RECALC_SUCCESS=false
-  
+
   # Try to recalculate with retries
   while [[ ${RECALC_ATTEMPTS} -lt ${RECALC_MAX_ATTEMPTS} ]] && [[ "${RECALC_SUCCESS}" == "false" ]]; do
    RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" \
@@ -790,7 +794,7 @@ create_feature_type_from_table() {
     -H "Content-Type: application/json" \
     -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
     "${RECALC_URL}" 2> "${TEMP_RECALC_ERROR}" | tail -1)
-   
+
    if [[ "${RECALC_CODE}" == "200" ]]; then
     RECALC_SUCCESS=true
     print_status "${GREEN}" "✅ Bounding boxes recalculated"
@@ -801,7 +805,7 @@ create_feature_type_from_table() {
     fi
    fi
   done
-  
+
   if [[ "${RECALC_SUCCESS}" == "false" ]]; then
    print_status "${YELLOW}" "⚠️  Could not recalculate bounding boxes (HTTP ${RECALC_CODE})"
    if [[ -s "${TEMP_RECALC_FILE}" ]]; then
@@ -822,7 +826,7 @@ create_feature_type_from_table() {
   local LAYER_CHECK_URL="${GEOSERVER_URL}/rest/layers/${GEOSERVER_WORKSPACE}:${LAYER_NAME}"
   local LAYER_CHECK_CODE
   LAYER_CHECK_CODE=$(curl -s -w "%{http_code}" -o /dev/null -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_CHECK_URL}" 2> /dev/null | tail -1)
-  
+
   if [[ "${LAYER_CHECK_CODE}" != "200" ]]; then
    # Layer doesn't exist, delete feature type and recreate
    print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' exists but layer doesn't, recreating..."
@@ -850,7 +854,7 @@ create_feature_type_from_table() {
     local RECALC_ATTEMPTS=0
     local RECALC_MAX_ATTEMPTS=3
     local RECALC_SUCCESS=false
-    
+
     # Try to recalculate with retries
     while [[ ${RECALC_ATTEMPTS} -lt ${RECALC_MAX_ATTEMPTS} ]] && [[ "${RECALC_SUCCESS}" == "false" ]]; do
      RECALC_CODE=$(curl -s -w "%{http_code}" -o "${TEMP_RECALC_FILE}" \
@@ -858,7 +862,7 @@ create_feature_type_from_table() {
       -H "Content-Type: application/json" \
       -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
       "${RECALC_URL}" 2> "${TEMP_RECALC_ERROR}" | tail -1)
-     
+
      if [[ "${RECALC_CODE}" == "200" ]]; then
       RECALC_SUCCESS=true
       print_status "${GREEN}" "✅ Bounding boxes recalculated"
@@ -869,7 +873,7 @@ create_feature_type_from_table() {
       fi
      fi
     done
-    
+
     if [[ "${RECALC_SUCCESS}" == "false" ]]; then
      print_status "${YELLOW}" "⚠️  Could not recalculate bounding boxes (HTTP ${RECALC_CODE})"
      if [[ -s "${TEMP_RECALC_FILE}" ]]; then
@@ -887,7 +891,7 @@ create_feature_type_from_table() {
     return 0
    fi
   fi
-  
+
   # Layer exists or recreation failed, try to update
   print_status "${YELLOW}" "⚠️  Feature type '${LAYER_NAME}' already exists, updating..."
   # Recalculate bounding box from actual data
@@ -977,7 +981,7 @@ create_sql_view_layer() {
    TABLE_NAME_CLEAN=$(echo "${TABLE_NAME}" | sed 's/^[^.]*\\.//')
   fi
   # Try to calculate bbox, but use defaults if it fails
-  BBOX=$(calculate_bbox_from_table "${TABLE_NAME_CLEAN}" 2>/dev/null || echo "")
+  BBOX=$(calculate_bbox_from_table "${TABLE_NAME_CLEAN}" 2> /dev/null || echo "")
   if [[ -z "${BBOX}" ]] || ! echo "${BBOX}" | grep -qE '^-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+$'; then
    # Use default bounding box if calculation failed
    BBOX="${WMS_BBOX_MINX},${WMS_BBOX_MINY},${WMS_BBOX_MAXX},${WMS_BBOX_MAXY}"
@@ -994,7 +998,7 @@ create_sql_view_layer() {
  # Replace newlines with spaces and collapse multiple spaces
  local CLEANED_SQL
  CLEANED_SQL=$(echo "${SQL_QUERY}" | tr '\n' ' ' | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
- 
+
  # Escape for XML: & must be first, then < and >
  local ESCAPED_SQL
  ESCAPED_SQL=$(echo "${CLEANED_SQL}" | sed 's/&/\&amp;/g' | sed 's/</\&lt;/g' | sed 's/>/\&gt;/g' | sed 's/"/\&quot;/g' | sed "s/'/\&apos;/g")
@@ -1006,7 +1010,7 @@ create_sql_view_layer() {
  # The virtual table name should not match any schema or table names
  local VIRTUAL_TABLE_NAME="vtable"
  local TEMP_VIRTUAL_TABLE="${TMP_DIR}/virtual_table_${LAYER_NAME}_$$.xml"
- cat > "${TEMP_VIRTUAL_TABLE}" <<EOF
+ cat > "${TEMP_VIRTUAL_TABLE}" << EOF
 <virtualTable>
   <name>${VIRTUAL_TABLE_NAME}</name>
   <sql>${ESCAPED_SQL}</sql>
@@ -1023,11 +1027,11 @@ EOF
  VIRTUAL_TABLE_CONTENT=$(cat "${TEMP_VIRTUAL_TABLE}" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | sed ':a;N;$!ba;s/\n/\\n/g')
  rm -f "${TEMP_VIRTUAL_TABLE}" 2> /dev/null || true
 
-# Create JSON payload using a temporary file to avoid escaping issues
-# Note: For SQL views, we don't specify nativeName to avoid schema interpretation issues
-# SQL views are virtual tables and don't have a "native" table name
-local TEMP_JSON="${TMP_DIR}/featuretype_${LAYER_NAME}_$$.json"
-cat > "${TEMP_JSON}" <<EOF
+ # Create JSON payload using a temporary file to avoid escaping issues
+ # Note: For SQL views, we don't specify nativeName to avoid schema interpretation issues
+ # SQL views are virtual tables and don't have a "native" table name
+ local TEMP_JSON="${TMP_DIR}/featuretype_${LAYER_NAME}_$$.json"
+ cat > "${TEMP_JSON}" << EOF
 {
   "featureType": {
     "name": "${LAYER_NAME}",
@@ -1074,7 +1078,7 @@ EOF
   "${FEATURE_TYPE_URL}" 2> /dev/null)
  # Extract HTTP code from last line
  HTTP_CODE=$(echo "${HTTP_CODE}" | tail -1 | sed 's/HTTP_CODE://')
-  
+
  local RESPONSE_BODY
  RESPONSE_BODY=$(cat "${TEMP_RESPONSE_FILE}" 2> /dev/null || echo "")
 
@@ -1164,7 +1168,7 @@ upload_style() {
  if ! __validate_input_file "${SLD_FILE}" "SLD style file"; then
   print_status "${YELLOW}" "⚠️  SLD file validation failed: ${SLD_FILE}"
   if [[ "${FORCE_UPLOAD}" == "true" ]]; then
-   return 0  # Continue with --force
+   return 0 # Continue with --force
   fi
   return 1
  fi
@@ -1207,7 +1211,7 @@ upload_style() {
   curl -s -w "%{http_code}" -o /dev/null \
    -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" \
    -X DELETE "${STYLE_CHECK_URL}" 2> /dev/null | tail -1 > /dev/null
-  sleep 1  # Wait a moment for GeoServer to process the deletion
+  sleep 1 # Wait a moment for GeoServer to process the deletion
  fi
  # Create the style (either new or after deletion)
  if true; then
@@ -1248,7 +1252,7 @@ upload_style() {
    else
     print_status "${YELLOW}" "⚠️  Style '${ACTUAL_STYLE_NAME}' already exists (could not update)"
     if [[ "${FORCE_UPLOAD}" == "true" ]]; then
-     STYLE_UPLOADED=true  # Continue with --force
+     STYLE_UPLOADED=true # Continue with --force
     fi
    fi
   else
@@ -1270,7 +1274,7 @@ upload_style() {
   fi
   if [[ "${FORCE_UPLOAD}" == "true" ]]; then
    print_status "${YELLOW}" "   Continuing with --force..."
-   STYLE_UPLOADED=true  # Continue with --force
+   STYLE_UPLOADED=true # Continue with --force
   fi
  fi
 
@@ -1573,12 +1577,12 @@ install_geoserver_config() {
   print_status "${YELLOW}" "⚠️  ${STYLE_ERRORS} style(s) failed to upload, continuing with --force"
  fi
 
-# Create layer 1: Open Notes (direct view - no schema prefix since datastore uses public)
-# Datastore is configured with schema='public', so we can reference views directly
-print_status "${BLUE}" "📊 Creating layer 1/4: Open Notes..."
-local OPEN_LAYER_NAME="notesopen"
-local OPEN_VIEW_NAME="notes_open_view"
-if create_feature_type_from_table "${OPEN_LAYER_NAME}" "${OPEN_VIEW_NAME}" "${WMS_LAYER_OPEN_NAME}" "${WMS_LAYER_OPEN_DESCRIPTION}"; then
+ # Create layer 1: Open Notes (direct view - no schema prefix since datastore uses public)
+ # Datastore is configured with schema='public', so we can reference views directly
+ print_status "${BLUE}" "📊 Creating layer 1/4: Open Notes..."
+ local OPEN_LAYER_NAME="notesopen"
+ local OPEN_VIEW_NAME="notes_open_view"
+ if create_feature_type_from_table "${OPEN_LAYER_NAME}" "${OPEN_VIEW_NAME}" "${WMS_LAYER_OPEN_NAME}" "${WMS_LAYER_OPEN_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local OPEN_STYLE_NAME
   OPEN_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_OPEN_FILE}")
@@ -1586,14 +1590,14 @@ if create_feature_type_from_table "${OPEN_LAYER_NAME}" "${OPEN_VIEW_NAME}" "${WM
    OPEN_STYLE_NAME="${WMS_STYLE_OPEN_NAME}"
   fi
   assign_style_to_layer "${OPEN_LAYER_NAME}" "${OPEN_STYLE_NAME}"
-fi
+ fi
 
-# Create layer 2: Closed Notes (direct view - no schema prefix since datastore uses public)
-# Datastore is configured with schema='public', so we can reference views directly
-print_status "${BLUE}" "📊 Creating layer 2/4: Closed Notes..."
-local CLOSED_LAYER_NAME="notesclosed"
-local CLOSED_VIEW_NAME="notes_closed_view"
-if create_feature_type_from_table "${CLOSED_LAYER_NAME}" "${CLOSED_VIEW_NAME}" "${WMS_LAYER_CLOSED_NAME}" "${WMS_LAYER_CLOSED_DESCRIPTION}"; then
+ # Create layer 2: Closed Notes (direct view - no schema prefix since datastore uses public)
+ # Datastore is configured with schema='public', so we can reference views directly
+ print_status "${BLUE}" "📊 Creating layer 2/4: Closed Notes..."
+ local CLOSED_LAYER_NAME="notesclosed"
+ local CLOSED_VIEW_NAME="notes_closed_view"
+ if create_feature_type_from_table "${CLOSED_LAYER_NAME}" "${CLOSED_VIEW_NAME}" "${WMS_LAYER_CLOSED_NAME}" "${WMS_LAYER_CLOSED_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local CLOSED_STYLE_NAME
   CLOSED_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_CLOSED_FILE}")
@@ -1601,7 +1605,7 @@ if create_feature_type_from_table "${CLOSED_LAYER_NAME}" "${CLOSED_VIEW_NAME}" "
    CLOSED_STYLE_NAME="${WMS_STYLE_CLOSED_NAME}"
   fi
   assign_style_to_layer "${CLOSED_LAYER_NAME}" "${CLOSED_STYLE_NAME}"
-fi
+ fi
 
  # Create layer 3: Countries (SQL view)
  # Note: countries table is in public schema, not wms schema
@@ -1621,12 +1625,12 @@ fi
   assign_style_to_layer "${COUNTRIES_LAYER_NAME}" "${COUNTRIES_STYLE_NAME}"
  fi
 
-# Create layer 4: Disputed and Unclaimed Areas (direct view reference)
-# View is created in public schema to simplify GeoServer datastore configuration
-print_status "${BLUE}" "📊 Creating layer 4/4: Disputed and Unclaimed Areas..."
-local DISPUTED_LAYER_NAME="disputedareas"
-local DISPUTED_VIEW_NAME="disputed_areas_view"
-if create_feature_type_from_table "${DISPUTED_LAYER_NAME}" "${DISPUTED_VIEW_NAME}" "${WMS_LAYER_DISPUTED_NAME}" "${WMS_LAYER_DISPUTED_DESCRIPTION}"; then
+ # Create layer 4: Disputed and Unclaimed Areas (direct view reference)
+ # View is created in public schema to simplify GeoServer datastore configuration
+ print_status "${BLUE}" "📊 Creating layer 4/4: Disputed and Unclaimed Areas..."
+ local DISPUTED_LAYER_NAME="disputedareas"
+ local DISPUTED_VIEW_NAME="disputed_areas_view"
+ if create_feature_type_from_table "${DISPUTED_LAYER_NAME}" "${DISPUTED_VIEW_NAME}" "${WMS_LAYER_DISPUTED_NAME}" "${WMS_LAYER_DISPUTED_DESCRIPTION}"; then
   # Extract actual style name from SLD
   local DISPUTED_STYLE_NAME
   DISPUTED_STYLE_NAME=$(extract_style_name_from_sld "${WMS_STYLE_DISPUTED_FILE}")
@@ -1653,7 +1657,7 @@ show_status() {
  STATUS_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${GEOSERVER_URL}/rest/about/status" 2> /dev/null)
  local HTTP_CODE
  HTTP_CODE=$(echo "${STATUS_RESPONSE}" | tail -1)
- 
+
  if [[ "${HTTP_CODE}" == "200" ]]; then
   print_status "${GREEN}" "✅ GeoServer is accessible at ${GEOSERVER_URL}"
  else
@@ -1671,7 +1675,7 @@ show_status() {
  local WORKSPACE_RESPONSE
  WORKSPACE_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${WORKSPACE_URL}" 2> /dev/null)
  HTTP_CODE=$(echo "${WORKSPACE_RESPONSE}" | tail -1)
- 
+
  if [[ "${HTTP_CODE}" == "200" ]] && echo "${WORKSPACE_RESPONSE}" | grep -q "\"name\".*\"${GEOSERVER_WORKSPACE}\""; then
   print_status "${GREEN}" "✅ Workspace '${GEOSERVER_WORKSPACE}' exists"
  else
@@ -1685,7 +1689,7 @@ show_status() {
  local NAMESPACE_RESPONSE
  NAMESPACE_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${NAMESPACE_URL}" 2> /dev/null)
  HTTP_CODE=$(echo "${NAMESPACE_RESPONSE}" | tail -1)
- 
+
  if [[ "${HTTP_CODE}" == "200" ]] && echo "${NAMESPACE_RESPONSE}" | grep -q "\"prefix\".*\"${GEOSERVER_WORKSPACE}\""; then
   print_status "${GREEN}" "✅ Namespace '${GEOSERVER_WORKSPACE}' exists"
  else
@@ -1697,7 +1701,7 @@ show_status() {
  local DATASTORE_RESPONSE
  DATASTORE_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${DATASTORE_URL}" 2> /dev/null)
  HTTP_CODE=$(echo "${DATASTORE_RESPONSE}" | tail -1)
- 
+
  if [[ "${HTTP_CODE}" == "200" ]] && echo "${DATASTORE_RESPONSE}" | grep -q "\"name\".*\"${GEOSERVER_STORE}\""; then
   print_status "${GREEN}" "✅ Datastore '${GEOSERVER_STORE}' exists"
  else
@@ -1719,7 +1723,7 @@ show_status() {
   local LAYER_RESPONSE
   LAYER_RESPONSE=$(curl -s -w "\n%{http_code}" -u "${GEOSERVER_USER}:${GEOSERVER_PASSWORD}" "${LAYER_URL}" 2> /dev/null)
   HTTP_CODE=$(echo "${LAYER_RESPONSE}" | tail -1)
-  
+
   if [[ "${HTTP_CODE}" == "200" ]] && echo "${LAYER_RESPONSE}" | grep -q "\"name\".*\"${LAYER_NAME}\""; then
    print_status "${GREEN}" "✅ Layer '${LAYER_DISPLAY}' (${LAYER_NAME}) exists"
    ((LAYER_COUNT++))
@@ -1961,7 +1965,7 @@ remove_geoserver_config() {
 
  # Get style names from SLD files and properties
  local STYLE_NAMES=()
- 
+
  # Try to extract style names from SLD files
  if [[ -f "${WMS_STYLE_OPEN_FILE}" ]]; then
   local OPEN_STYLE_NAME
@@ -2013,7 +2017,7 @@ remove_geoserver_config() {
 
  # Also try common style name variations that might exist
  STYLE_NAMES+=("notesopen" "notesclosed")
- 
+
  # Remove duplicate style names
  local UNIQUE_STYLE_NAMES=()
  for STYLE_NAME in "${STYLE_NAMES[@]}"; do
@@ -2160,7 +2164,7 @@ remove_geoserver_config() {
 }
 
 # Function to show configuration summary
- show_configuration_summary() {
+show_configuration_summary() {
  print_status "${BLUE}" "📋 Configuration Summary:"
  print_status "${BLUE}" "   - Workspace: ${GEOSERVER_WORKSPACE}"
  print_status "${BLUE}" "   - Datastore: ${GEOSERVER_STORE}"
