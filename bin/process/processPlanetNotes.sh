@@ -141,16 +141,18 @@ fi
 
 # Auto-restart with setsid if not already in a new session
 # This protects against SIGHUP when terminal closes or session ends
-if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
- echo "$(date '+%Y%m%d_%H:%M:%S') INFO: Auto-restarting with setsid for SIGHUP protection" >&2
- export RUNNING_IN_SETSID=1
- # Get the script name and all arguments
- SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
- # Re-execute with setsid to create new session (immune to SIGHUP)
- exec setsid -w "${SCRIPT_PATH}" "$@"
-fi
+# DISABLED: setsid can interfere with argument passing in some environments
+# Using trap '' HUP instead for SIGHUP protection
+# if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
+#  echo "$(date '+%Y%m%d_%H:%M:%S') INFO: Auto-restarting with setsid for SIGHUP protection" >&2
+#  export RUNNING_IN_SETSID=1
+#  # Get the script name and all arguments
+#  SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+#  # Re-execute with setsid to create new session (immune to SIGHUP)
+#  exec setsid -w "${SCRIPT_PATH}" "$@"
+# fi
 
-# Ignore SIGHUP signal (terminal hangup) - belt and suspenders approach
+# Ignore SIGHUP signal (terminal hangup) - this provides SIGHUP protection without setsid
 trap '' HUP
 
 # If all files should be deleted. In case of an error, this could be disabled.

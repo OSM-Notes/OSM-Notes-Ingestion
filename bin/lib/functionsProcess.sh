@@ -5,8 +5,8 @@
 # It loads all function modules for use across the project.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-27
-VERSION="2025-11-27"
+# Version: 2025-12-07
+VERSION="2025-12-07"
 
 # shellcheck disable=SC2317,SC2155
 # NOTE: SC2154 warnings are expected as many variables are defined in sourced files
@@ -1619,6 +1619,12 @@ function __checkBaseTables {
 
  # shellcheck disable=SC2034
  export RET_FUNC="${RET}"
+ __logd "Setting RET_FUNC=${RET} (exported)"
+ # Also write to a temp file as a backup method to ensure the value is propagated
+ # This handles cases where export doesn't work due to subshell or scope issues
+ local RET_FUNC_FILE="${TMP_DIR:-/tmp}/.ret_func_$$"
+ echo "${RET}" > "${RET_FUNC_FILE}" 2>/dev/null || true
+ __logd "Also wrote RET_FUNC=${RET} to ${RET_FUNC_FILE} as backup"
  __log_finish
  # Don't enable set -e here as it might affect the calling script
  # The calling script handles its own error handling

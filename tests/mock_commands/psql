@@ -2,7 +2,7 @@
 
 # Mock psql command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-12-07
 
 # Function to simulate database operations
 mock_database_operation() {
@@ -352,15 +352,40 @@ mock_database_operation() {
          fi
        done < "$temp_file"
        
-       rm -f "$temp_file"
-     fi
-     
-     echo "OK"
-   else
-     echo "ERROR: File not found: $args" >&2
-     exit 1
-   fi
-   ;;
+      rm -f "$temp_file"
+    fi
+    
+    # Check if SQL contains RAISE EXCEPTION or error patterns that indicate missing tables
+    if echo "$sql_content" | grep -qi "RAISE EXCEPTION" || echo "$sql_normalized" | grep -qi "RAISE EXCEPTION"; then
+      if echo "$sql_content" | grep -qiE "Base tables are missing|checkBaseTables|functionsProcess_11_checkBaseTables" || \
+         echo "$sql_normalized" | grep -qiE "Base tables are missing|checkBaseTables|functionsProcess_11_checkBaseTables"; then
+        local real_psql_path
+        real_psql_path=$(command -v /usr/bin/psql 2>/dev/null || echo "")
+        if [[ -n "$real_psql_path" ]]; then
+          local tables_exist
+          tables_exist=$("$real_psql_path" -d "${DATABASE:-notes}" -tAq -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs');" 2>/dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+          if [[ "${tables_exist}" -lt "4" ]]; then
+            echo "psql:${args}:58: ERROR:  Base tables are missing: notes." >&2
+            echo "CONTEXTO:  función PL/pgSQL inline_code_block en la línea 24 en RAISE" >&2
+            exit 3
+          fi
+        else
+          # Fallback for environments without real psql (e.g., pure mock)
+          if [[ -n "${HYBRID_MOCK_MODE:-}" ]] || [[ -n "${TEST_MODE:-}" ]]; then
+            echo "psql:${args}:58: ERROR:  Base tables are missing: notes." >&2
+            echo "CONTEXTO:  función PL/pgSQL inline_code_block en la línea 24 en RAISE" >&2
+            exit 3
+          fi
+        fi
+      fi
+    fi
+    
+    echo "OK"
+  else
+    echo "ERROR: File not found: $args" >&2
+    exit 1
+  fi
+  ;;
   -l)
    # List databases
    # Output format: name|owner|encoding|collate|ctype|access privileges

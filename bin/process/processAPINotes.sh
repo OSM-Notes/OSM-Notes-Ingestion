@@ -59,8 +59,8 @@
 # * shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
-VERSION="2025-11-24"
+# Version: 2025-12-07
+VERSION="2025-12-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1395,6 +1395,45 @@ function main() {
  __logd "Before calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
  __checkBaseTables || true
  local CHECK_BASE_TABLES_EXIT_CODE=$?
+ # CRITICAL: Immediately re-read RET_FUNC from environment after function call
+ # The function exports RET_FUNC, but we need to ensure we're reading the updated value
+ # Try multiple methods to get the correct value:
+ # 1. Read from temp file (most reliable)
+ # 2. Read from environment
+ # 3. Fall back to current value
+ local RET_FUNC_FILE="${TMP_DIR:-/tmp}/.ret_func_$$"
+ if [[ -f "${RET_FUNC_FILE}" ]]; then
+  local FILE_RET_FUNC
+  FILE_RET_FUNC=$(cat "${RET_FUNC_FILE}" 2>/dev/null | head -1 || echo "")
+  if [[ -n "${FILE_RET_FUNC}" ]] && [[ "${FILE_RET_FUNC}" =~ ^[0-9]+$ ]]; then
+   RET_FUNC="${FILE_RET_FUNC}"
+   export RET_FUNC="${RET_FUNC}"
+   __logi "After __checkBaseTables, RET_FUNC=${RET_FUNC} (read from temp file)"
+   rm -f "${RET_FUNC_FILE}" 2>/dev/null || true
+  else
+   __logw "Invalid value in temp file, trying environment..."
+   local ENV_RET_FUNC
+   ENV_RET_FUNC=$(env | grep "^RET_FUNC=" | cut -d= -f2 || echo "0")
+   if [[ -n "${ENV_RET_FUNC}" ]] && [[ "${ENV_RET_FUNC}" =~ ^[0-9]+$ ]]; then
+    RET_FUNC="${ENV_RET_FUNC}"
+    export RET_FUNC="${RET_FUNC}"
+    __logi "After __checkBaseTables, RET_FUNC=${RET_FUNC} (read from environment)"
+   else
+    __logw "RET_FUNC not found, using current value: ${RET_FUNC}"
+   fi
+  fi
+ else
+  # No temp file, try environment
+  local ENV_RET_FUNC
+  ENV_RET_FUNC=$(env | grep "^RET_FUNC=" | cut -d= -f2 || echo "0")
+  if [[ -n "${ENV_RET_FUNC}" ]] && [[ "${ENV_RET_FUNC}" =~ ^[0-9]+$ ]]; then
+   RET_FUNC="${ENV_RET_FUNC}"
+   export RET_FUNC="${RET_FUNC}"
+   __logi "After __checkBaseTables, RET_FUNC=${RET_FUNC} (read from environment)"
+  else
+   __logw "RET_FUNC not found, using current value: ${RET_FUNC}"
+  fi
+ fi
  # Re-enable ERR trap (restore the one from __trapOn)
  set -E
  set +e
@@ -1434,10 +1473,16 @@ function main() {
  __logi "After calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
  __logd "__checkBaseTables exit code: ${CHECK_BASE_TABLES_EXIT_CODE}"
  # Double-check RET_FUNC is set correctly
+ # IMPORTANT: Re-read RET_FUNC from environment in case export didn't propagate
+ # This handles cases where the function was called in a subshell or variable scope issue
  if [[ -z "${RET_FUNC:-}" ]]; then
   __loge "CRITICAL: RET_FUNC is empty after __checkBaseTables!"
   __loge "This should never happen. Forcing safe exit (RET_FUNC=2)"
   export RET_FUNC=2
+ else
+  # Force re-export to ensure it's available in current scope
+  export RET_FUNC="${RET_FUNC}"
+  __logd "Re-exported RET_FUNC=${RET_FUNC} to ensure it's in current scope"
  fi
 
  __logi "Final RET_FUNC value before case statement: ${RET_FUNC}"

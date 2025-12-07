@@ -2,9 +2,8 @@
 
 # Note Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-27
-
-VERSION="2025-11-27"
+# Version: 2025-12-07
+VERSION="2025-12-07"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -28,11 +27,54 @@ function __getLocationNotes_impl {
  __log_start
  __logd "Assigning countries to notes."
 
+ # In hybrid/test mode, skip backup and calculate countries only for processed notes
+ if [[ -n "${HYBRID_MOCK_MODE:-}" ]] || [[ -n "${TEST_MODE:-}" ]]; then
+  __logi "=== HYBRID/TEST MODE: Calculating countries for processed notes only ==="
+  __logi "Skipping backup CSV (contains 4.8M notes). Will calculate countries only for notes in database."
+  __logd "HYBRID_MOCK_MODE=${HYBRID_MOCK_MODE:-unset}, TEST_MODE=${TEST_MODE:-unset}"
+  __logd "Backup file would be: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED:-unset}"
+  __logd "NOT using backup - this is intentional for faster test execution"
+  
+  # Get count of notes that need country assignment
+  local NOTES_COUNT
+  NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+   <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL" 2>/dev/null || echo "0")
+  
+  if [[ "${NOTES_COUNT}" -eq "0" ]]; then
+   __logi "All notes already have countries assigned. Skipping country calculation."
+   __log_finish
+   return 0
+  fi
+  
+  __logi "Calculating countries for ${NOTES_COUNT} notes using get_country() function..."
+  __logd "This will be much faster than loading 4.8M notes from backup CSV"
+  
+  # Assign countries to notes using get_country() function
+  # This only processes notes that don't have a country assigned
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 <<< "
+   UPDATE notes n
+   SET id_country = get_country(n.longitude, n.latitude, n.note_id)
+   WHERE n.id_country IS NULL;
+  " || {
+   __loge "ERROR: Failed to assign countries to notes"
+   __log_finish
+   return 1
+  }
+  
+  __logi "Successfully assigned countries to ${NOTES_COUNT} notes."
+  __logd "Backup CSV was NOT used - test execution completed faster"
+  __log_finish
+  return 0
+ fi
+
  # Always import previous note locations to speed up the process
+ # NOTE: This section is ONLY executed when NOT in hybrid/test mode
+ # In hybrid/test mode, the code above handles country assignment without backup
  __logi "=== LOADING BACKUP NOTE LOCATIONS ==="
  __logi "This process will load note location data from backup CSV file."
  __logi "This operation may take several minutes depending on the size of the backup file."
  __logi "Please wait, the process is actively working..."
+ __logd "PRODUCTION MODE: Using backup CSV (HYBRID_MOCK_MODE=${HYBRID_MOCK_MODE:-unset}, TEST_MODE=${TEST_MODE:-unset})"
  
  # Resolve note location backup file (download from GitHub if not found locally)
  if ! __resolve_note_location_backup; then
