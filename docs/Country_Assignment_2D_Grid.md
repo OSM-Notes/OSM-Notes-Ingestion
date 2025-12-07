@@ -288,9 +288,10 @@ For each zone column:
    - Updates country boundaries from Overpass
    - Re-assigns affected notes efficiently
 
-2. **`bin/process/assignCountriesToNotes.sh`**
-   - Assigns countries to all notes
+2. **`bin/process/processPlanetNotes.sh`**
+   - Assigns countries to all notes automatically
    - Uses parallel processing for performance
+   - Called automatically during Planet processing
 
 ## Usage
 
@@ -309,8 +310,8 @@ psql -d notes -f sql/functionsProcess_31_organizeAreas_2DGrid.sql
 # 4. Create get_country function
 psql -d notes -f sql/functionsProcess_21_createFunctionToGetCountry.sql
 
-# 5. Assign countries to all notes
-DBNAME=notes ./bin/process/assignCountriesToNotes.sh
+# 5. Assign countries to all notes (automatic during processPlanetNotes.sh)
+# Countries are assigned automatically when processing Planet notes
 ```
 
 ### Updating Boundaries
@@ -420,7 +421,7 @@ WHERE id_country IS NULL
 LIMIT 100;
 
 # 5. Re-assign all notes (optional, can be done gradually)
-# DBNAME=notes ./bin/process/assignCountriesToNotes.sh
+# Countries are assigned automatically during processPlanetNotes.sh
 ```
 
 ## Troubleshooting

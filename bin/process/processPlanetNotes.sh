@@ -1376,7 +1376,8 @@ function __processGeographicData {
    # Do not call __getLocationNotes here - it will be called after creating get_country()
   else
    __logw "Skipping location assignment - notes will be processed without country assignment."
-   __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base && ./bin/process/assignCountriesToNotes.sh"
+   __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base"
+   __logw "Note: Countries will be assigned automatically when processPlanetNotes.sh completes."
   fi
  fi
 

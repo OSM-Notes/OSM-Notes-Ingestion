@@ -34,7 +34,7 @@ Este es el proceso principal para cargar notas históricas desde el dump complet
    - **Función bash**: `__getLocationNotes()` → `__getLocationNotes_impl()` en `bin/lib/noteProcessingFunctions.sh`
    - **Qué analiza**: Rendimiento de asignación de países a notas (UPDATE masivo con get_country())
    - **Cuándo se ejecuta**: Durante la asignación inicial de países a notas del Planet
-   - **Llamado desde**: `processPlanetNotes.sh` y `assignCountriesToNotes.sh`
+   - **Llamado desde**: `processPlanetNotes.sh` (automáticamente)
 
 ---
 
@@ -78,9 +78,9 @@ Este proceso actualiza las fronteras de países cuando cambian en OSM.
 
 ---
 
-### 📍 `assignCountriesToNotes.sh` - Asignación de Países a Notas
+### 📍 Asignación de Países a Notas (Integrado en processPlanetNotes.sh)
 
-Este proceso asigna países a notas que no tienen país asignado.
+Este proceso asigna países a notas que no tienen país asignado. Se ejecuta automáticamente durante `processPlanetNotes.sh`.
 
 **Scripts de análisis relacionados:**
 
@@ -88,7 +88,7 @@ Este proceso asigna países a notas que no tienen país asignado.
    - **SQL relacionado**: `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
    - **Función bash**: `__getLocationNotes()` → `__getLocationNotes_impl()` en `bin/lib/noteProcessingFunctions.sh`
    - **Qué analiza**: Rendimiento de asignación de países a notas (UPDATE masivo con get_country())
-   - **Cuándo se ejecuta**: Cuando se asignan países a notas que no tienen país asignado
+   - **Cuándo se ejecuta**: Automáticamente durante `processPlanetNotes.sh` después de crear la función `get_country()`
 
 ---
 
@@ -103,7 +103,6 @@ Este proceso asigna países a notas que no tienen país asignado.
 | `analyze_api_insertion_performance.sql` | `processAPINotes.sh` | `processAPINotes_32_insertNewNotesAndComments.sql` | `__insertNewNotesAndComments()` |
 | `analyze_integrity_verification_performance.sql` | `processPlanetNotes.sh` | `functionsProcess_33_verifyNoteIntegrity.sql` | `__getLocationNotes()` |
 | `analyze_country_assignment_performance.sql` | `processPlanetNotes.sh` | `functionsProcess_37_assignCountryToNotesChunk.sql` | `__getLocationNotes()` |
-| `analyze_country_assignment_performance.sql` | `assignCountriesToNotes.sh` | `functionsProcess_37_assignCountryToNotesChunk.sql` | `__getLocationNotes()` |
 | `analyze_country_reassignment_performance.sql` | `updateCountries.sh` | `functionsProcess_36_reassignAffectedNotes.sql` | `__reassignAffectedNotes()` |
 
 ---
