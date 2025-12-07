@@ -8,13 +8,17 @@
 # on production databases as all SQL scripts use ROLLBACK to avoid modifying data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-25
+# Version: 2025-12-07
 
 set -euo pipefail
 
 # Load common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+# Set SCRIPT_BASE_DIRECTORY for functionsProcess.sh
+# This must be set before loading functionsProcess.sh
+export SCRIPT_BASE_DIRECTORY="${PROJECT_ROOT}"
 
 # Set required variables for functionsProcess.sh
 export BASENAME="analyzeDatabasePerformance"
