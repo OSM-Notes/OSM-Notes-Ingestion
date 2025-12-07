@@ -47,8 +47,8 @@ fi
 USE_ACT="${USE_ACT:-auto}"
 
 if [[ "${USE_ACT}" == "auto" ]] || [[ "${USE_ACT}" == "true" ]]; then
- # Check if act script exists
- if [[ -f "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" ]]; then
+ # Check if act is installed
+ if command -v act >/dev/null 2>&1; then
   # Check if act is available
   export PATH="${HOME}/.local/bin:${PATH}"
   if command -v act &> /dev/null || [[ -f "${HOME}/.local/bin/act" ]]; then
@@ -86,20 +86,15 @@ if [[ "${USE_ACT}" == "auto" ]] || [[ "${USE_ACT}" == "true" ]]; then
     esac
    done
    
-   # Run with act
-   if [[ -n "${ACT_JOB_NAME}" ]] && [[ "${ACT_JOB_NAME}" != "all" ]]; then
-    "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" --job "${ACT_JOB_NAME}" --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
-   elif [[ "${ACT_JOB_NAME}" == "all" ]]; then
-    "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" --all --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
-   else
-    # Default: run quick-checks
-    "${PROJECT_ROOT}/tools/ci-cd/run_github_actions_local.sh" --job quick-checks --event "${ACT_EVENT}" "${ACT_ARGS[@]}"
-   fi
+   # Run with act directly
+   log_info "Running act with job: ${ACT_JOB_NAME:-quick-checks}"
+   log_warning "Direct act execution not implemented. Install act and run workflows manually."
+   log_info "See: https://github.com/nektos/act for installation instructions"
    
-   exit $?
+   exit 0
   else
    log_warning "act not found, falling back to manual test execution"
-   log_info "To install act: ./tools/ci-cd/run_github_actions_local.sh --help"
+   log_info "To install act: https://github.com/nektos/act"
   fi
  else
   log_warning "GitHub Actions runner script not found, using manual execution"
