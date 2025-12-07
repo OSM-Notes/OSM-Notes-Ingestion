@@ -6,14 +6,25 @@
 VERSION="2025-12-07"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
-declare -r DEFAULT_BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data"
+# Only set if not already declared (e.g., when sourced from another script)
+if ! declare -p DEFAULT_BOUNDARIES_DATA_REPO_URL > /dev/null 2>&1; then
+ declare -r DEFAULT_BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data"
+fi
 
 # Directory lock for ogr2ogr imports
-declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
+# Only set if not already declared (e.g., when sourced from another script)
+if ! declare -p LOCK_OGR2OGR > /dev/null 2>&1; then
+ declare -r LOCK_OGR2OGR="/tmp/ogr2ogr.lock"
+fi
 
 # Overpass query templates
-declare -r OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
-declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
+# Only set if not already declared (e.g., when sourced from another script)
+if ! declare -p OVERPASS_COUNTRIES > /dev/null 2>&1; then
+ declare -r OVERPASS_COUNTRIES="${SCRIPT_BASE_DIRECTORY}/overpass/countries.op"
+fi
+if ! declare -p OVERPASS_MARITIMES > /dev/null 2>&1; then
+ declare -r OVERPASS_MARITIMES="${SCRIPT_BASE_DIRECTORY}/overpass/maritimes.op"
+fi
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
