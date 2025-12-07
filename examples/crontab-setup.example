@@ -4,7 +4,7 @@
 # This file shows how to configure crontab for automated OSM notes processing.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-28
+# Version: 2025-12-07
 
 # =============================================================================
 # BASIC SETUP - RECOMMENDED
@@ -113,11 +113,26 @@ SEND_ALERT_EMAIL=true
 
 
 # =============================================================================
+# DATABASE PERFORMANCE MONITORING
+# =============================================================================
+
+# Database performance analysis (weekly on Sunday at 3 AM)
+# NOTE: Use /tmp/ for logs, not /var/log/ (requires root permissions)
+0 3 * * 0 /home/notes/OSM-Notes-Ingestion/bin/monitor/analyzeDatabasePerformance.sh --db notes > /tmp/db_performance_weekly_$(date +\%Y\%m\%d).log 2>&1
+
+# Alternative: Monthly performance analysis (first day of month at 2 AM)
+# 0 2 1 * * /home/notes/OSM-Notes-Ingestion/bin/monitor/analyzeDatabasePerformance.sh --db notes > /tmp/db_performance_monthly_$(date +\%Y\%m\%d).log 2>&1
+
+
+# =============================================================================
 # MONITORING
 # =============================================================================
 
 # Monitor the logs:
 tail -f /tmp/processAPINotes_*/processAPINotes.log
+
+# Monitor database performance logs:
+tail -f /tmp/db_performance_*.log
 
 # Check if processes are running:
 ps aux | grep processAPINotes
