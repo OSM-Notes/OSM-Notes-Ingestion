@@ -276,6 +276,82 @@ function __log_no_duplicate_columns() {
  __logd "No duplicate columns detected for boundary ${BOUNDARY_ID}"
 }
 
+# Validates that the imported geometry contains the country's capital city.
+# This prevents cross-contamination where a country gets another country's geometry.
+# Parameters:
+#   $1: Boundary ID (country relation ID)
+#   $2: Database name
+# Returns: 0 if validation passes, 1 if it fails or capital cannot be found
+function __validate_capital_location() {
+ local -i BOUNDARY_ID="${1}"
+ local DB_NAME="${2}"
+ local CAPITAL_JSON_FILE
+ CAPITAL_JSON_FILE=$(mktemp)
+ local CAPITAL_FOUND=false
+ local CAPITAL_LAT
+ local CAPITAL_LON
+
+ # Query Overpass for capital city: try label node first, then capital=yes
+ # Label node is the most reliable as it's part of the relation itself
+ # Use URL encoding for Overpass API query parameter
+ local CAPITAL_QUERY_LABEL
+ CAPITAL_QUERY_LABEL="[out:json][timeout:25];(relation(${BOUNDARY_ID});node(r:\"label\"););out center;"
+ # URL encode the query (basic encoding for Overpass API)
+ CAPITAL_QUERY_LABEL=$(printf '%s' "${CAPITAL_QUERY_LABEL}" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2> /dev/null || printf '%s' "${CAPITAL_QUERY_LABEL}" | sed "s/ /%20/g" | sed "s/\[/%5B/g" | sed "s/\]/%5D/g" | sed "s/(/%28/g" | sed "s/)/%29/g" | sed "s/:/%3A/g" | sed "s/\"/%22/g" | sed "s/;/%3B/g" | sed "s/,/%2C/g")
+
+ # Try to get capital from label node first
+ if __retry_overpass_api "${CAPITAL_QUERY_LABEL}" "${CAPITAL_JSON_FILE}" 2 3 30; then
+  if [[ -s "${CAPITAL_JSON_FILE}" ]]; then
+   # Extract lat/lon from label node
+   CAPITAL_LAT=$(jq -r '.elements[] | select(.type=="node") | .lat' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
+   CAPITAL_LON=$(jq -r '.elements[] | select(.type=="node") | .lon' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
+   if [[ -n "${CAPITAL_LAT}" ]] && [[ -n "${CAPITAL_LON}" ]] && [[ "${CAPITAL_LAT}" != "null" ]] && [[ "${CAPITAL_LON}" != "null" ]]; then
+    CAPITAL_FOUND=true
+   fi
+  fi
+ fi
+
+ # If label node not found, try capital=yes within relation
+ if [[ "${CAPITAL_FOUND}" == "false" ]]; then
+  local CAPITAL_QUERY_CAPITAL
+  CAPITAL_QUERY_CAPITAL="[out:json][timeout:25];(relation(${BOUNDARY_ID});node(r)[capital=yes];);out center;"
+  # URL encode the query (basic encoding for Overpass API)
+  CAPITAL_QUERY_CAPITAL=$(printf '%s' "${CAPITAL_QUERY_CAPITAL}" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2> /dev/null || printf '%s' "${CAPITAL_QUERY_CAPITAL}" | sed "s/ /%20/g" | sed "s/\[/%5B/g" | sed "s/\]/%5D/g" | sed "s/(/%28/g" | sed "s/)/%29/g" | sed "s/:/%3A/g" | sed "s/\"/%22/g" | sed "s/;/%3B/g" | sed "s/,/%2C/g" | sed "s/=/=%3D/g")
+  if __retry_overpass_api "${CAPITAL_QUERY_CAPITAL}" "${CAPITAL_JSON_FILE}" 2 3 30; then
+   if [[ -s "${CAPITAL_JSON_FILE}" ]]; then
+    CAPITAL_LAT=$(jq -r '.elements[] | select(.type=="node") | .lat' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
+    CAPITAL_LON=$(jq -r '.elements[] | select(.type=="node") | .lon' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
+    if [[ -n "${CAPITAL_LAT}" ]] && [[ -n "${CAPITAL_LON}" ]] && [[ "${CAPITAL_LAT}" != "null" ]] && [[ "${CAPITAL_LON}" != "null" ]]; then
+     CAPITAL_FOUND=true
+    fi
+   fi
+  fi
+ fi
+
+ rm -f "${CAPITAL_JSON_FILE}" 2> /dev/null || true
+
+ # If capital not found, log warning but don't fail (some countries may not have capital in OSM)
+ if [[ "${CAPITAL_FOUND}" == "false" ]]; then
+  __logw "Capital city not found for boundary ${BOUNDARY_ID} - skipping validation"
+  return 0
+ fi
+
+ # Validate that capital is within the imported geometry
+ __logd "Validating capital location for boundary ${BOUNDARY_ID}: lat=${CAPITAL_LAT}, lon=${CAPITAL_LON}"
+ local VALIDATION_RESULT
+ VALIDATION_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Contains(ST_Union(geometry), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon');" 2> /dev/null || echo "false")
+
+ if [[ "${VALIDATION_RESULT}" == "t" ]] || [[ "${VALIDATION_RESULT}" == "true" ]]; then
+  __logd "Capital validation passed for boundary ${BOUNDARY_ID}"
+  return 0
+ else
+  __loge "CRITICAL: Capital validation FAILED for boundary ${BOUNDARY_ID}"
+  __loge "Capital (${CAPITAL_LAT}, ${CAPITAL_LON}) is NOT within the imported geometry"
+  __loge "This indicates cross-contamination - rejecting import to prevent data corruption"
+  return 1
+ fi
+}
+
 function __processBoundary_impl {
  __log_start
  __logi "=== STARTING BOUNDARY PROCESSING ==="
@@ -655,6 +731,14 @@ function __processBoundary_impl {
 
  __logd "Importing all features from GeoJSON for boundary ${ID}"
 
+ # CRITICAL: Explicitly truncate import table to prevent cross-contamination
+ # between parallel processes. ogr2ogr -overwrite should do this, but explicit
+ # truncation ensures no residual data from previous failed imports.
+ __logd "Truncating import table to prevent cross-contamination for boundary ${ID}..."
+ if ! psql -d "${DBNAME}" -c "TRUNCATE TABLE import" > /dev/null 2>&1; then
+  __logw "Warning: Failed to truncate import table (may not exist yet)"
+ fi
+
  local IMPORT_OPERATION
  local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BASHPID}.log"
 
@@ -698,20 +782,63 @@ function __processBoundary_impl {
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
  if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
-  # Check if the error is "row is too big" - this requires a different strategy
+  # Check for specific error types that require different strategies
   local HAS_ROW_TOO_BIG=false
+  local HAS_GEOMETRY_FIELD_ERROR=false
   if [[ -f "${OGR_ERROR_LOG}" ]]; then
    if grep -q "row is too big" "${OGR_ERROR_LOG}" 2> /dev/null; then
     HAS_ROW_TOO_BIG=true
     __logw "Detected 'row is too big' error for boundary ${ID} - retrying with PG_USE_COPY NO"
    fi
+   if grep -qi "Field 'geometry' not found\|Field.*geometry.*not found" "${OGR_ERROR_LOG}" 2> /dev/null; then
+    HAS_GEOMETRY_FIELD_ERROR=true
+    __logw "Detected 'Field geometry not found' error for boundary ${ID} - GeoJSON may have different field name"
+   fi
   fi
 
+  # If "Field 'geometry' not found", try without -select (import all fields)
+  # This handles GeoJSON files where the geometry field has a different name
+  if [[ "${HAS_GEOMETRY_FIELD_ERROR}" == "true" ]]; then
+   __logw "Retrying import for boundary ${ID} without -select geometry (importing all fields)"
+   if [[ "${ID}" -eq 16239 ]]; then
+    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+   else
+    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+   fi
+
+   if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
+    __loge "Failed to import boundary ${ID} even without -select geometry"
+    if [[ -f "${OGR_ERROR_LOG}" ]]; then
+     local REAL_ERRORS
+     REAL_ERRORS=$(grep -v "Field 'admin_level' not found" "${OGR_ERROR_LOG}" 2> /dev/null | grep -v "^$" || true)
+     if [[ -n "${REAL_ERRORS}" ]]; then
+      __loge "ogr2ogr errors for boundary ${ID}:"
+      echo "${REAL_ERRORS}" | while IFS= read -r line; do
+       __loge "  ${line}"
+      done
+     fi
+     rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+    fi
+    if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+     echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
+     __logw "Recording boundary ${ID} as failed and continuing (CONTINUE_ON_OVERPASS_ERROR=true)"
+     rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+     __log_finish
+     return 1
+    else
+     __handle_error_with_cleanup "${ERROR_GENERAL}" "Database import failed for boundary ${ID}" \
+      "rm -f ${JSON_FILE} ${GEOJSON_FILE} ${OGR_ERROR_LOG} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+     __log_finish
+     return 1
+    fi
+   else
+    __logi "Successfully imported boundary ${ID} without -select geometry"
+   fi
   # If "row is too big", retry with PG_USE_COPY NO (allows TOAST)
   # Note: Afghanistan (303427) and Taiwan (449220) already use PG_USE_COPY NO
   # from the start, so this is only for other countries that unexpectedly hit
   # this error
-  if [[ "${HAS_ROW_TOO_BIG}" == "true" ]]; then
+  elif [[ "${HAS_ROW_TOO_BIG}" == "true" ]]; then
    __logd "Retrying import for boundary ${ID} without COPY (using TOAST)"
    if [[ "${ID}" -eq 16239 ]]; then
     # Austria - use ST_Buffer to fix topology issues
@@ -782,6 +909,67 @@ function __processBoundary_impl {
   rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
  fi
  __log_import_completed "${ID}"
+
+ # Verify that import table has data after ogr2ogr
+ __logd "Verifying import table has data for boundary ${ID}..."
+ local IMPORT_COUNT_AFTER
+ IMPORT_COUNT_AFTER=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2> /dev/null || echo "0")
+ if [[ "${IMPORT_COUNT_AFTER}" -eq "0" ]]; then
+  __loge "ERROR: Import table is empty after ogr2ogr for boundary ${ID}"
+  __loge "This indicates ogr2ogr failed to import the GeoJSON"
+  __loge "Possible causes:"
+  __loge "  1. GeoJSON file is invalid or empty"
+  __loge "  2. ogr2ogr could not find the 'geometry' field"
+  __loge "  3. All geometries were rejected by ogr2ogr"
+
+  # Check if GeoJSON file exists and has content
+  if [[ -f "${GEOJSON_FILE}" ]]; then
+   local GEOJSON_SIZE
+   GEOJSON_SIZE=$(stat -f%z "${GEOJSON_FILE}" 2> /dev/null || stat -c%s "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+   __loge "GeoJSON file size: ${GEOJSON_SIZE} bytes"
+
+   # Check if GeoJSON has features
+   if command -v jq > /dev/null 2>&1; then
+    local FEATURE_COUNT
+    FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+    __loge "GeoJSON features count: ${FEATURE_COUNT}"
+   fi
+  else
+   __loge "GeoJSON file not found: ${GEOJSON_FILE}"
+  fi
+
+  if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+   echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
+   __logw "Recording boundary ${ID} as failed and continuing (CONTINUE_ON_OVERPASS_ERROR=true)"
+   rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+   __log_finish
+   return 1
+  else
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Import table is empty after ogr2ogr for boundary ${ID}" \
+    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+   __log_finish
+   return 1
+  fi
+ fi
+ __logd "Import table has ${IMPORT_COUNT_AFTER} rows for boundary ${ID}"
+
+ # CRITICAL: Validate capital location to prevent cross-contamination
+ # This ensures the imported geometry corresponds to the correct country
+ if ! __validate_capital_location "${ID}" "${DBNAME}"; then
+  __loge "Capital validation failed for boundary ${ID} - rejecting import"
+  if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+   echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
+   __logw "Recording boundary ${ID} as failed and continuing (CONTINUE_ON_OVERPASS_ERROR=true)"
+   rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+   __log_finish
+   return 1
+  else
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Capital validation failed for boundary ${ID}" \
+    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+   __log_finish
+   return 1
+  fi
+ fi
 
  # Check for column duplication errors and handle them
  __logd "Checking for duplicate columns in import table for boundary ${ID}..."
