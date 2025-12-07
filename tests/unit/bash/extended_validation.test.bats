@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-26
 
 # Test file for extended validation functions (JSON and Database)
 

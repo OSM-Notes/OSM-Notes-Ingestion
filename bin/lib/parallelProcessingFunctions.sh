@@ -2020,7 +2020,6 @@ function __validate_xml_part() {
 }
 
 # Binary division XML file function for maximum performance
-# Version: 2025-01-23
 # Function: Divides a large XML file using binary division approach for maximum speed
 # Parameters:
 #   $1: Input XML file path

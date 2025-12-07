@@ -2,7 +2,7 @@
 
 # Mock aria2c command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-24
 
 # Function to create mock files
 create_mock_file() {

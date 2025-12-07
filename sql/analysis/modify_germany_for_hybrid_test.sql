@@ -7,7 +7,7 @@
 --   - If no notes yet, modify based on Germany's bounding box (will affect future assignments)
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-23
+-- Version: 2025-11-30
 
 DO $$
 DECLARE

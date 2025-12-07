@@ -3,7 +3,7 @@
 # Test script to verify boundaries backup functionality
 # Tests that backups are used instead of downloading from Overpass
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-27
 
 set -euo pipefail
 

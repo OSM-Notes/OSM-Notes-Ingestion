@@ -2,7 +2,7 @@
 
 # Script to run all tests by levels inside Docker container
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-10-24
 
 set -euo pipefail
 

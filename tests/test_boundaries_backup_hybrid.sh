@@ -3,7 +3,7 @@
 # Test script to verify boundaries backup usage in hybrid mode
 # Tests that backups are actually used instead of downloading from Overpass
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-27
 
 set -euo pipefail
 

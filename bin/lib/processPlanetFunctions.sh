@@ -4,8 +4,8 @@
 # This file contains functions for processing Planet data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
-VERSION="2025-01-23"
+# Version: 2025-12-05
+VERSION="2025-12-05"
 
 # Show help function
 function __show_help() {

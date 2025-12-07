@@ -80,7 +80,7 @@ create_mock_wget() {
 
 # Mock wget command for testing (internet downloads only)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-07
 
 # Function to create mock files
 create_mock_file() {
@@ -250,7 +250,7 @@ create_mock_aria2c() {
 
 # Mock aria2c command for testing (internet downloads only)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-07
 
 # Function to create mock files
 create_mock_file() {

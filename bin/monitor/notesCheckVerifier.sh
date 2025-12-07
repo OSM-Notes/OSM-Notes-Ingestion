@@ -28,8 +28,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
-VERSION="2025-11-24"
+# Version: 2025-12-07
+VERSION="2025-12-07"
 
 #set -xv
 # Fails when a variable is not initialized.

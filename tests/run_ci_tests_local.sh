@@ -2,7 +2,7 @@
 
 # Script to run GitHub Actions CI tests locally
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-07
 
 set -euo pipefail
 

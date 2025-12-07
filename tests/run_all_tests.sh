@@ -2,7 +2,7 @@
 
 # Master test runner for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-07
 
 set -euo pipefail
 

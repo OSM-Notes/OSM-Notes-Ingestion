@@ -2,7 +2,7 @@
 
 # Mock pgrep command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-11
 
 # Mock pgrep always returns no processes found (exit code 1)
 # This prevents processAPINotes from detecting running processes

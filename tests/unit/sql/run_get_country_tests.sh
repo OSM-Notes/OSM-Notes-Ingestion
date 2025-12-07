@@ -7,7 +7,7 @@
 # non-continental territories.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-30
 
 set -euo pipefail
 

@@ -3,7 +3,7 @@
 # Integration tests for boundaries backup functionality
 # Tests that backups are actually used in processPlanet and updateCountries
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-27
 
 bats_require_minimum_version 1.5.0
 

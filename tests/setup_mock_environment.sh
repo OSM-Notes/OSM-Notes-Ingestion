@@ -2,7 +2,7 @@
 
 # Setup mock environment for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-13
 
 set -euo pipefail
 
@@ -69,7 +69,7 @@ create_mock_wget() {
 
 # Mock wget command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-13
 
 # Function to create mock files
 create_mock_file() {
@@ -647,7 +647,7 @@ create_mock_aria2c() {
 
 # Mock aria2c command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-13
 
 # Function to create mock files
 create_mock_file() {

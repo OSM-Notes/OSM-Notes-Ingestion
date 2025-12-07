@@ -3,7 +3,7 @@
 # Tests for boundaries backup usage functionality
 # Verifies that backup files are used instead of downloading from Overpass
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-27
 
 bats_require_minimum_version 1.5.0
 

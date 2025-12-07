@@ -2,7 +2,7 @@
 
 # Hybrid integration tests (mock internet downloads, real database/XML processing)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-11-24
 
 setup() {
  # Setup test environment
