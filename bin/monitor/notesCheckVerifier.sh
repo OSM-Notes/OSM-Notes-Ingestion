@@ -48,10 +48,12 @@ declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 declare CLEAN="${CLEAN:-true}"
 
 # Base directory for the project.
-declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
- &> /dev/null && pwd)"
-readonly SCRIPT_BASE_DIRECTORY
+# Don't make it readonly to avoid conflicts when sourcing other scripts
+if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+ declare SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+  &> /dev/null && pwd)"
+fi
 
 # Loads the global properties.
 # shellcheck source=../../etc/properties.sh
@@ -61,19 +63,23 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 umask 0000
 
 # Name of this script.
-declare BASENAME
-BASENAME=$(basename -s .sh "${0}")
-readonly BASENAME
+# Don't make it readonly to avoid conflicts when sourcing other scripts
+if [[ -z "${BASENAME:-}" ]]; then
+ declare BASENAME
+ BASENAME=$(basename -s .sh "${0}")
+fi
 
 # Set PostgreSQL application name for monitoring
 # This allows monitoring tools to identify which script is using the database
 export PGAPPNAME="${BASENAME}"
 
 # Temporary directory for all files.
-declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
-readonly TMP_DIR
-chmod 777 "${TMP_DIR}"
+# Don't make it readonly to avoid conflicts when sourcing other scripts
+if [[ -z "${TMP_DIR:-}" ]]; then
+ declare TMP_DIR
+ TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
+ chmod 777 "${TMP_DIR}"
+fi
 # Log file for output.
 declare LOG_FILE_NAME
 LOG_FILE_NAME="${TMP_DIR}/${BASENAME}.log"
@@ -101,8 +107,9 @@ else
 fi
 
 # Type of process to run in the script.
+# Don't make it readonly to avoid conflicts when sourcing other scripts
 if [[ -z "${PROCESS_TYPE:-}" ]]; then
- declare -r PROCESS_TYPE=${1:-}
+ declare PROCESS_TYPE=${1:-}
 fi
 
 # File that contains the ids or query to get the ids.

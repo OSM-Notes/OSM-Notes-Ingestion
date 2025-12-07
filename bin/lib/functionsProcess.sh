@@ -264,27 +264,59 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh" ]]; t
 fi
 
 # Output CSV files for processed data
+# Only set if not already declared (e.g., when sourced from another script)
 # shellcheck disable=SC2034
-declare -r OUTPUT_NOTES_CSV_FILE="${TMP_DIR}/output-notes.csv"
+if ! declare -p OUTPUT_NOTES_CSV_FILE > /dev/null 2>&1; then
+ declare -r OUTPUT_NOTES_CSV_FILE="${TMP_DIR}/output-notes.csv"
+fi
 # shellcheck disable=SC2034
-declare -r OUTPUT_NOTE_COMMENTS_CSV_FILE="${TMP_DIR}/output-note_comments.csv"
+if ! declare -p OUTPUT_NOTE_COMMENTS_CSV_FILE > /dev/null 2>&1; then
+ declare -r OUTPUT_NOTE_COMMENTS_CSV_FILE="${TMP_DIR}/output-note_comments.csv"
+fi
 # shellcheck disable=SC2034
-declare -r OUTPUT_TEXT_COMMENTS_CSV_FILE="${TMP_DIR}/output-text_comments.csv"
+if ! declare -p OUTPUT_TEXT_COMMENTS_CSV_FILE > /dev/null 2>&1; then
+ declare -r OUTPUT_TEXT_COMMENTS_CSV_FILE="${TMP_DIR}/output-text_comments.csv"
+fi
 
 # PostgreSQL SQL script files
 # Check base tables.
-declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
-declare -r POSTGRES_11_CHECK_HISTORICAL_DATA="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkHistoricalData.sql"
-declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
-declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
-declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
-declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
-declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
-declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
-declare -r POSTGRES_33_VERIFY_NOTE_INTEGRITY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_33_verifyNoteIntegrity.sql"
-declare -r POSTGRES_36_REASSIGN_AFFECTED_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes.sql"
-declare -r POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_37_assignCountryToNotesChunk.sql"
-declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry_stub.sql"
+# Only set if not already declared (e.g., when sourced from another script)
+if ! declare -p POSTGRES_11_CHECK_BASE_TABLES > /dev/null 2>&1; then
+ declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
+fi
+if ! declare -p POSTGRES_11_CHECK_HISTORICAL_DATA > /dev/null 2>&1; then
+ declare -r POSTGRES_11_CHECK_HISTORICAL_DATA="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkHistoricalData.sql"
+fi
+if ! declare -p POSTGRES_12_DROP_GENERIC_OBJECTS > /dev/null 2>&1; then
+ declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
+fi
+if ! declare -p POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY > /dev/null 2>&1; then
+ declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
+fi
+if ! declare -p POSTGRES_22_CREATE_PROC_INSERT_NOTE > /dev/null 2>&1; then
+ declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
+fi
+if ! declare -p POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT > /dev/null 2>&1; then
+ declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
+fi
+if ! declare -p POSTGRES_31_ORGANIZE_AREAS > /dev/null 2>&1; then
+ declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
+fi
+if ! declare -p POSTGRES_32_UPLOAD_NOTE_LOCATION > /dev/null 2>&1; then
+ declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
+fi
+if ! declare -p POSTGRES_33_VERIFY_NOTE_INTEGRITY > /dev/null 2>&1; then
+ declare -r POSTGRES_33_VERIFY_NOTE_INTEGRITY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_33_verifyNoteIntegrity.sql"
+fi
+if ! declare -p POSTGRES_36_REASSIGN_AFFECTED_NOTES > /dev/null 2>&1; then
+ declare -r POSTGRES_36_REASSIGN_AFFECTED_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes.sql"
+fi
+if ! declare -p POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK > /dev/null 2>&1; then
+ declare -r POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_37_assignCountryToNotesChunk.sql"
+fi
+if ! declare -p POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB > /dev/null 2>&1; then
+ declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry_stub.sql"
+fi
 
 if [[ -z "${COUNTRIES_BOUNDARY_IDS_FILE:-}" ]]; then
  declare -r COUNTRIES_BOUNDARY_IDS_FILE="${TMP_DIR}/countries_boundary_ids.csv"
@@ -346,14 +378,25 @@ function __splitXmlForParallelSafe() {
 # Additional variables specific to functionsProcess.sh
 
 # Note location backup file
-declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
-declare -r CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
+# Only set if not already declared (e.g., when sourced from another script)
+if ! declare -p CSV_BACKUP_NOTE_LOCATION > /dev/null 2>&1; then
+ declare -r CSV_BACKUP_NOTE_LOCATION="/tmp/noteLocation.csv"
+fi
+if ! declare -p CSV_BACKUP_NOTE_LOCATION_COMPRESSED > /dev/null 2>&1; then
+ declare -r CSV_BACKUP_NOTE_LOCATION_COMPRESSED="${SCRIPT_BASE_DIRECTORY}/data/noteLocation.csv.zip"
+fi
 
 # GitHub repository URL for note location backup (can be overridden via environment variable)
-declare -r DEFAULT_NOTE_LOCATION_DATA_REPO_URL="${DEFAULT_NOTE_LOCATION_DATA_REPO_URL:-https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data}"
+# Only set if not already declared (e.g., when sourced from another script)
+if ! declare -p DEFAULT_NOTE_LOCATION_DATA_REPO_URL > /dev/null 2>&1; then
+ declare -r DEFAULT_NOTE_LOCATION_DATA_REPO_URL="${DEFAULT_NOTE_LOCATION_DATA_REPO_URL:-https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data}"
+fi
 
 # ogr2ogr GeoJSON test file.
-declare -r GEOJSON_TEST="${SCRIPT_BASE_DIRECTORY}/json/map.geojson"
+# Only set if not already declared (e.g., when sourced from another script)
+if ! declare -p GEOJSON_TEST > /dev/null 2>&1; then
+ declare -r GEOJSON_TEST="${SCRIPT_BASE_DIRECTORY}/json/map.geojson"
+fi
 
 ###########
 # FUNCTIONS
