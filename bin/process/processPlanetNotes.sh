@@ -111,8 +111,8 @@
 # * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
-VERSION="2025-11-25"
+# Version: 2025-12-07
+VERSION="2025-12-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1345,6 +1345,7 @@ function __processGeographicData {
    # Pass DBNAME explicitly to ensure updateCountries.sh uses the correct database
    # This is critical when running in test mode where DBNAME might be different
    # updateCountries.sh is completely independent - it creates its own TMP_DIR and log file
+   # Note: updateCountries.sh will unset LOG_FILE to prevent inheriting parent's log file
    if ! DBNAME="${DBNAME}" "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" --base; then
     __loge "ERROR: Failed to load countries automatically. updateCountries.sh is required for proper operation."
     __loge "This is a critical error. processPlanetNotes.sh cannot continue without geographic data."

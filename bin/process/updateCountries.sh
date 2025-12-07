@@ -54,6 +54,12 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 # Mask for the files and directories.
 umask 0000
 
+# CRITICAL: Unset LOG_FILE before defining our own log file to prevent
+# inheriting the parent process's log file (e.g., from processPlanetNotes.sh).
+# This must be done BEFORE loading commonFunctions.sh which loads bash_logger.sh,
+# because bash_logger.sh auto-initializes if LOG_FILE is already set.
+unset LOG_FILE
+
 declare BASENAME
 BASENAME=$(basename -s .sh "${0}")
 readonly BASENAME
@@ -61,7 +67,7 @@ readonly BASENAME
 # IMPORTANT: Define TMP_DIR BEFORE loading processPlanetFunctions.sh
 # because that script uses TMP_DIR in variable initialization
 # Always create our own TMP_DIR for independent execution (like processAPINotes and processPlanetNotes)
-# When running as subprocess, we still use our own TMP_DIR but redirect logs to parent's log file
+# When running as subprocess, we use our own TMP_DIR and our own log file for complete independence
 declare TMP_DIR
 TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
 readonly TMP_DIR
