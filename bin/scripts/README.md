@@ -55,9 +55,22 @@ scp 192.168.0.7:/home/notes/OSM-Notes-Ingestion/data/*.geojson data/
 ./bin/scripts/exportCountriesBackup.sh
 ./bin/scripts/exportMaritimesBackup.sh
 
-# Commit updated backups
-git add data/*.geojson
-git commit -m "Update boundaries backup files"
+# Compress files for upload
+gzip -k data/countries.geojson
+gzip -k data/maritimes.geojson
+
+# Upload to OSM-Notes-Data repository (requires write access)
+# See data/BOUNDARIES_BACKUP.md for detailed upload instructions
+```
+
+**Note**: To regenerate backups from scratch (e.g., after fixing import bugs), run:
+```bash
+# Regenerate boundaries from Overpass
+./bin/process/updateCountries.sh --base
+
+# Then export backups
+./bin/scripts/exportCountriesBackup.sh
+./bin/scripts/exportMaritimesBackup.sh
 ```
 
 ## Requirements

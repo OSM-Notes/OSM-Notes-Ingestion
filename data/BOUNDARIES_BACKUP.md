@@ -133,15 +133,26 @@ If you need to update the backups after changes to boundaries:
 ./bin/scripts/exportCountriesBackup.sh
 ./bin/scripts/exportMaritimesBackup.sh
 
-# Step 2: Upload to OSM-Notes-Data repository
-./bin/scripts/uploadBoundariesToDataRepo.sh
-```
+# Step 2: Compress the files
+gzip -k data/countries.geojson
+gzip -k data/maritimes.geojson
 
-The upload script will:
-1. Compress the GeoJSON files
-2. Clone or update the OSM-Notes-Data repository
-3. Copy the compressed files to the repository
-4. Commit and push the changes
+# Step 3: Upload to OSM-Notes-Data repository manually
+# Clone or update the repository
+git clone https://github.com/OSMLatam/OSM-Notes-Data.git /tmp/OSM-Notes-Data
+# Or if already cloned:
+cd /tmp/OSM-Notes-Data && git pull
+
+# Copy compressed files
+cp data/countries.geojson.gz /tmp/OSM-Notes-Data/data/
+cp data/maritimes.geojson.gz /tmp/OSM-Notes-Data/data/
+
+# Commit and push
+cd /tmp/OSM-Notes-Data
+git add data/*.geojson.gz
+git commit -m "Update boundaries backup files"
+git push
+```
 
 **Note**: You need write access to the OSM-Notes-Data repository to upload backups.
 
@@ -178,6 +189,26 @@ The backup files are standard GeoJSON files (RFC 7946) with the following struct
 }
 ```
 
+## Regenerating Backups from Scratch
+
+If you need to regenerate backups from scratch (e.g., after fixing import bugs or when
+backup files are corrupted):
+
+```bash
+# Step 1: Regenerate boundaries from Overpass API
+# This will drop and recreate the countries table, then download all boundaries
+./bin/process/updateCountries.sh --base
+
+# Step 2: Export the regenerated boundaries
+./bin/scripts/exportCountriesBackup.sh
+./bin/scripts/exportMaritimesBackup.sh
+
+# Step 3: Upload to OSM-Notes-Data repository (see Manual Update section above)
+```
+
+**Note**: Regenerating from scratch takes 30-60 minutes as it downloads all boundaries
+from Overpass API. Only do this when necessary.
+
 ## Maintenance
 
 The backups should be updated:
@@ -190,7 +221,6 @@ The backups should be updated:
 
 - `bin/scripts/exportCountriesBackup.sh` - Export countries from database
 - `bin/scripts/exportMaritimesBackup.sh` - Export maritimes from database
-- `bin/scripts/uploadBoundariesToDataRepo.sh` - Upload backups to OSM-Notes-Data repository
 - `bin/process/updateCountries.sh` - Updates boundaries (downloads backups from GitHub)
 - `bin/process/processPlanetNotes.sh` - Processes planet (downloads backups from GitHub)
 
