@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-05
-VERSION="2025-12-05"
+# Version: 2025-12-07
+VERSION="2025-12-07"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 declare -r DEFAULT_BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data"
@@ -628,11 +628,10 @@ function __processBoundary_impl {
  # Import with ogr2ogr using retry logic with special handling for Austria
  __logd "Importing boundary ${ID} into database..."
 
- # Import ALL features from GeoJSON
- # Previous approach used -sql with SQLite dialect to select only geometry,
- # but this was causing incomplete imports (only partial features imported).
- # PostgreSQL TOAST automatically handles large rows, so we can import all fields
- # and filter by geometry type in SQL. This ensures all features are imported correctly.
+ # Import only geometry column from GeoJSON
+ # Using -select geometry to avoid column mismatch errors when different features
+ # have different properties (e.g., alt_name:gd, alt_name:cs, etc.).
+ # Only geometry is needed since we extract names separately from the GeoJSON file.
  # -skipfailures allows ogr2ogr to continue even if some features fail
  # Check if DB import should be skipped (for download-only mode)
  if [[ "${SKIP_DB_IMPORT:-false}" == "true" ]]; then
@@ -668,18 +667,21 @@ function __processBoundary_impl {
    __logd "Removed problematic tags from GeoJSON for boundary ${ID}"
   fi
   # Also use PG_USE_COPY NO to allow TOAST for large geometries
+  # Use -select geometry to avoid column mismatch errors (alt_name:gd, etc.)
   __logd "Using PG_USE_COPY NO to allow TOAST for large rows"
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  elif [[ "${ID}" -eq 16239 ]]; then
   # Austria - use ST_Buffer to fix topology issues
   __logd "Using special handling for Austria (ID: 16239)"
-  # Import all features, geometry will be filtered in SQL
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+  # Import only geometry column to avoid column mismatch errors
+  # Geometry will be filtered in SQL
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  else
-  # Standard import - import ALL features
-  __logd "Importing all features for boundary ${ID}"
-  # Import all features, geometry will be filtered in SQL
-  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+  # Standard import - import only geometry column
+  __logd "Importing geometry only for boundary ${ID} (avoiding column mismatch errors)"
+  # Import only geometry to avoid column mismatch errors (alt_name:gd, etc.)
+  # Geometry will be filtered in SQL
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
  fi
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
@@ -702,10 +704,12 @@ function __processBoundary_impl {
    __logd "Retrying import for boundary ${ID} without COPY (using TOAST)"
    if [[ "${ID}" -eq 16239 ]]; then
     # Austria - use ST_Buffer to fix topology issues
-    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+    # Import only geometry column to avoid column mismatch errors
+    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
    else
     # Standard import without COPY (slower but allows TOAST for large rows)
-    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+    # Import only geometry column to avoid column mismatch errors
+    IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
    fi
 
    if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
