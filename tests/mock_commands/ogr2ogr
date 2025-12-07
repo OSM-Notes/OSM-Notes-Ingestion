@@ -241,17 +241,19 @@ EOF
   if [[ -n "${BOUNDARY_ID}" ]]; then
    # Insert data for this specific boundary ID into import table
    # Use a simple geometry that will work with ST_Union(ST_makeValid())
+   # Use a valid geometry that doesn't cross the 180 meridian to avoid PostGIS errors
    # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
    "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
 INSERT INTO ${LAYER_NAME} (name, admin_level, type, ${GEOM_COLUMN}) VALUES
- ('Country ${BOUNDARY_ID}', '2', 'boundary', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326));
+ ('Country ${BOUNDARY_ID}', '2', 'boundary', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326));
 EOF
    # Also insert directly into countries table to ensure data is available
    # This bypasses the script's INSERT FROM import step, ensuring data is always present
+   # Use a valid geometry that doesn't cross the 180 meridian
    # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
    "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
 INSERT INTO countries (country_id, country_name, geom, updated) VALUES
- (${BOUNDARY_ID}, 'Country ${BOUNDARY_ID}', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326), FALSE)
+ (${BOUNDARY_ID}, 'Country ${BOUNDARY_ID}', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326), FALSE)
 ON CONFLICT (country_id) DO UPDATE SET
  country_name = EXCLUDED.country_name,
  geom = EXCLUDED.geom,
@@ -262,16 +264,18 @@ EOF
    fi
   else
    # Insert generic test data (fallback)
+   # Use a valid geometry that doesn't cross the 180 meridian to avoid PostGIS errors
    # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
    "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
 INSERT INTO ${LAYER_NAME} (name, admin_level, type, ${GEOM_COLUMN}) VALUES
- ('Test Country', '2', 'boundary', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326));
+ ('Test Country', '2', 'boundary', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326));
 EOF
    # Also insert a generic country into countries table
+   # Use a valid geometry that doesn't cross the 180 meridian
    # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
    "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
 INSERT INTO countries (country_id, country_name, geom, updated) VALUES
- (999999, 'Test Country', ST_GeomFromText('POLYGON((-180 -90, 180 -90, 180 90, -180 90, -180 -90))', 4326), FALSE)
+ (999999, 'Test Country', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326), FALSE)
 ON CONFLICT (country_id) DO UPDATE SET
  country_name = EXCLUDED.country_name,
  geom = EXCLUDED.geom,
