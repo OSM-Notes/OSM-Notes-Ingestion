@@ -1,50 +1,50 @@
-# Uso de Scripts de Análisis de Rendimiento
+# Performance Analysis Scripts Usage
 
-## Ejecución Automática
+## Automatic Execution
 
-### Script Principal: `analyzeDatabasePerformance.sh`
+### Main Script: `analyzeDatabasePerformance.sh`
 
-El script `bin/monitor/analyzeDatabasePerformance.sh` ejecuta todos los scripts de análisis y genera un reporte resumen.
+The `bin/monitor/analyzeDatabasePerformance.sh` script runs all analysis scripts and generates a summary report.
 
-#### Uso Básico
+#### Basic Usage
 
 ```bash
-# Ejecutar con base de datos desde propiedades
+# Execute with database from properties
 ./bin/monitor/analyzeDatabasePerformance.sh
 
-# Ejecutar con base de datos específica
+# Execute with specific database
 ./bin/monitor/analyzeDatabasePerformance.sh --db osm_notes
 
-# Ejecutar con salida detallada
+# Execute with detailed output
 ./bin/monitor/analyzeDatabasePerformance.sh --verbose
 ```
 
-#### Opciones
+#### Options
 
-- `--db DATABASE`: Especifica la base de datos (sobrescribe DBNAME de propiedades)
-- `--output DIR`: Directorio de salida para resultados (por defecto: `/tmp/analyzeDatabasePerformance_*/analysis_results`)
-- `--verbose`: Muestra salida detallada de cada script de análisis
-- `--help`: Muestra ayuda
+- `--db DATABASE`: Specifies the database (overrides DBNAME from properties)
+- `--output DIR`: Output directory for results (default: `/tmp/analyzeDatabasePerformance_*/analysis_results`)
+- `--verbose`: Shows detailed output from each analysis script
+- `--help`: Shows help
 
-#### Salida
+#### Output
 
-El script genera:
+The script generates:
 
-1. **Reporte en consola**: Resumen con códigos de color
-   - ✓ Verde: Scripts que pasaron
-   - ⚠ Amarillo: Scripts con advertencias
-   - ✗ Rojo: Scripts que fallaron
+1. **Console report**: Summary with color codes
+   - ✓ Green: Scripts that passed
+   - ⚠ Yellow: Scripts with warnings
+   - ✗ Red: Scripts that failed
 
-2. **Archivo de reporte**: `performance_report.txt` en el directorio de salida
-   - Resumen ejecutivo
-   - Estado de cada script
-   - Lista de archivos de salida detallados
+2. **Report file**: `performance_report.txt` in the output directory
+   - Executive summary
+   - Status of each script
+   - List of detailed output files
 
-3. **Archivos individuales**: Un archivo `.txt` por cada script ejecutado
-   - Contiene toda la salida del script SQL
-   - Incluye EXPLAIN ANALYZE, estadísticas, etc.
+3. **Individual files**: One `.txt` file per executed script
+   - Contains all SQL script output
+   - Includes EXPLAIN ANALYZE, statistics, etc.
 
-#### Ejemplo de Salida
+#### Example Output
 
 ```
 ==============================================================================
@@ -74,85 +74,85 @@ Results Summary:
   Failed:   1 (✗)
 ```
 
-#### Códigos de Salida
+#### Exit Codes
 
-- `0`: Análisis completado (puede tener advertencias)
-- `1`: Análisis completado con errores
+- `0`: Analysis completed (may have warnings)
+- `1`: Analysis completed with errors
 
-## Ejecución Manual de Scripts Individuales
+## Manual Execution of Individual Scripts
 
-También puedes ejecutar scripts individuales directamente:
+You can also execute individual scripts directly:
 
 ```bash
-# Script específico
+# Specific script
 psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.sql
 
-# Guardar salida en archivo
+# Save output to file
 psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.sql > results.txt 2>&1
 ```
 
-## Seguridad en Producción
+## Production Safety
 
-**✅ SEGURO PARA PRODUCCIÓN**
+**✅ SAFE FOR PRODUCTION**
 
-Todos los scripts de análisis son seguros para ejecutar en bases de datos de producción porque:
+All analysis scripts are safe to run on production databases because:
 
-1. **Usan ROLLBACK**: Todos los scripts que modifican datos usan `ROLLBACK` al final
-2. **Solo lectura**: La mayoría de las operaciones son consultas de solo lectura
-3. **Sin modificaciones permanentes**: No se realizan cambios permanentes en los datos
+1. **Use ROLLBACK**: All scripts that modify data use `ROLLBACK` at the end
+2. **Read-only**: Most operations are read-only queries
+3. **No permanent modifications**: No permanent changes are made to data
 
-### Verificación
+### Verification
 
-Puedes verificar que un script es seguro revisando que contenga:
+You can verify that a script is safe by checking that it contains:
 
 ```sql
--- Al final del script
+-- At the end of the script
 ROLLBACK;
 ```
 
-O que solo contenga consultas de lectura (SELECT, EXPLAIN, etc.).
+Or that it only contains read queries (SELECT, EXPLAIN, etc.).
 
-## Interpretación de Resultados
+## Result Interpretation
 
-### Estado: PASSED ✓
+### Status: PASSED ✓
 
-- Todos los umbrales de rendimiento se cumplen
-- Los índices se están usando correctamente
-- No se detectaron problemas
+- All performance thresholds are met
+- Indexes are being used correctly
+- No problems detected
 
-### Estado: WARNING ⚠
+### Status: WARNING ⚠
 
-- Se detectaron advertencias pero no errores críticos
-- Puede indicar:
-  - Uso de sequential scan en lugar de index scan
-  - Tiempos de ejecución cerca de los umbrales
-  - Índices no utilizados aún (normal si no se han ejecutado consultas)
+- Warnings detected but no critical errors
+- May indicate:
+  - Sequential scan usage instead of index scan
+  - Execution times near thresholds
+  - Unused indexes (normal if queries haven't been executed yet)
 
-### Estado: FAILED ✗
+### Status: FAILED ✗
 
-- Se detectaron errores críticos
-- Puede indicar:
-  - Índices faltantes
-  - Errores de ejecución SQL
-  - Problemas de conectividad
+- Critical errors detected
+- May indicate:
+  - Missing indexes
+  - SQL execution errors
+  - Connectivity problems
 
-## Programación Regular
+## Regular Scheduling
 
-Para monitoreo continuo, puedes programar la ejecución regular:
+For continuous monitoring, you can schedule regular execution:
 
 ```bash
-# Crontab para ejecutar diariamente a las 2 AM
-0 2 * * * /ruta/al/proyecto/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes > /var/log/db_performance.log 2>&1
+# Crontab to run daily at 2 AM
+0 2 * * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes > /var/log/db_performance.log 2>&1
 ```
 
-## Integración con Monitoreo
+## Monitoring Integration
 
-El script puede integrarse con sistemas de monitoreo:
+The script can be integrated with monitoring systems:
 
 ```bash
-# Ejecutar y enviar alerta si hay fallos
+# Execute and send alert if there are failures
 if ! ./bin/monitor/analyzeDatabasePerformance.sh --db osm_notes; then
-  # Enviar alerta (email, Slack, etc.)
+  # Send alert (email, Slack, etc.)
   echo "Performance analysis failed" | mail -s "DB Performance Alert" admin@example.com
 fi
 ```
@@ -161,17 +161,17 @@ fi
 
 ### Error: "Cannot connect to database"
 
-- Verifica que `DBNAME` esté configurado en `etc/properties.sh`
-- Verifica permisos de conexión a PostgreSQL
-- Verifica que la base de datos exista
+- Verify that `DBNAME` is configured in `etc/properties.sh`
+- Verify PostgreSQL connection permissions
+- Verify that the database exists
 
 ### Error: "No analysis scripts found"
 
-- Verifica que el directorio `sql/analysis/` exista
-- Verifica que los scripts tengan extensión `.sql`
+- Verify that the `sql/analysis/` directory exists
+- Verify that scripts have `.sql` extension
 
-### Scripts fallan con errores SQL
+### Scripts fail with SQL errors
 
-- Verifica que todas las tablas requeridas existan
-- Verifica que las extensiones necesarias estén instaladas (PostGIS, etc.)
-- Revisa los archivos de salida individuales para detalles
+- Verify that all required tables exist
+- Verify that necessary extensions are installed (PostGIS, etc.)
+- Review individual output files for details
