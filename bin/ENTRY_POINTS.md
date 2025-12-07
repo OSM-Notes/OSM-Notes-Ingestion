@@ -35,14 +35,22 @@ These are the **only scripts** that should be executed directly:
    - **When**: Daily automated check
 
 ### WMS (Web Map Service)
-5. **`bin/wms/wmsManager.sh`** - Manages WMS installation/status
+5. **`bin/wms/wmsManager.sh`** - Manages WMS database components
    - **Usage**: `./bin/wms/wmsManager.sh <command>`
-   - **Commands**: `install`, `deinstall`, `status`, `help`
-   - **Purpose**: Installs/manages GeoServer WMS layer for notes
-   - **When**: Manual WMS setup or maintenance
+   - **Commands**: `install`, `remove`, `status`, `help`
+   - **Purpose**: Installs/manages WMS database components (tables, triggers, etc.)
+   - **When**: Initial WMS setup or database maintenance
+   - **Note**: Requires elevated privileges (uses system user via peer authentication)
+
+6. **`bin/wms/geoserverConfig.sh`** - Configures GeoServer for WMS
+   - **Usage**: `./bin/wms/geoserverConfig.sh <command>`
+   - **Commands**: `install`, `remove`, `status`, `help`
+   - **Purpose**: Configures GeoServer to serve WMS layers (workspace, datastore, layers, styles)
+   - **When**: After running `wmsManager.sh install` to configure GeoServer
+   - **Prerequisites**: GeoServer running, WMS database components installed
 
 ### Maintenance
-6. **`bin/cleanupAll.sh`** - Removes all database components
+7. **`bin/cleanupAll.sh`** - Removes all database components
    - **Usage**: `./bin/cleanupAll.sh` (full) or `./bin/cleanupAll.sh -p` (partitions only)
    - **Options**: `-p`/`--partitions-only` (clean partitions only), `-a`/`--all` (full cleanup, default)
    - **Purpose**: Complete database cleanup
@@ -54,7 +62,7 @@ These are the **only scripts** that should be executed directly:
 These scripts are **supporting components** and should **never** be called directly:
 
 ### Processing Helpers
-- `bin/process/extractPlanetNotesAwk.sh` - Called internally by processPlanetNotes
+- (None - all extraction is done directly via AWK scripts)
 
 ### Monitoring Helpers
 - `bin/monitor/processCheckPlanetNotes.sh` - Called internally by monitoring system
@@ -72,7 +80,7 @@ These scripts are **supporting components** and should **never** be called direc
 - `bin/lib/securityFunctions.sh` - Security/sanitization functions (sourced by other scripts)
 
 ### WMS Helpers
-- `bin/wms/geoserverConfig.sh` - Called internally by wmsManager
+- (None - both wmsManager.sh and geoserverConfig.sh are entry points)
 
 ## Examples
 
@@ -90,8 +98,11 @@ These scripts are **supporting components** and should **never** be called direc
 # Check data integrity (daily)
 ./bin/monitor/notesCheckVerifier.sh
 
-# Install WMS
+# Install WMS database components
 ./bin/wms/wmsManager.sh install
+
+# Configure GeoServer
+./bin/wms/geoserverConfig.sh install
 
 # Cleanup database
 ./bin/cleanupAll.sh osm_notes_test
@@ -100,9 +111,8 @@ These scripts are **supporting components** and should **never** be called direc
 ### ❌ Incorrect Usage (DO NOT CALL)
 ```bash
 # Internal scripts - will fail or cause issues
-./bin/process/extractPlanetNotesAwk.sh  # WRONG
-./bin/functionsProcess.sh               # WRONG
-./bin/wms/geoserverConfig.sh            # WRONG
+./bin/functionsProcess.sh               # WRONG (library, not executable)
+./bin/lib/*.sh                          # WRONG (libraries, not executables)
 ```
 
 ## Implementation Notes

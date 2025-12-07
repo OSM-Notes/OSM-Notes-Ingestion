@@ -107,10 +107,10 @@ awk -f awk/extract_comment_texts.awk planet-notes.xml > texts.csv
 
 ## Integration
 
-These AWK scripts are used by:
+These AWK scripts are used directly by:
 
-- `bin/functionsProcess.sh` - Calls AWK scripts during Planet processing
-- `bin/process/extractPlanetNotesAwk.sh` - Wrapper script for batch extraction
+- `bin/process/processPlanetNotes.sh` - Calls AWK scripts during Planet processing
+- `bin/process/processAPINotes.sh` - Calls AWK scripts during API processing
 
 ## Performance
 
@@ -142,7 +142,6 @@ Tested on OSM Planet with ~4.87M notes:
 
 ## See Also
 
-- `bin/process/processAPINotes.sh` - API notes processing (uses these scripts)
-- `bin/process/processPlanetNotes.sh` - Planet notes processing (uses these scripts)
-- `bin/process/extractPlanetNotesAwk.sh` - Planet extraction wrapper
+- `bin/process/processAPINotes.sh` - API notes processing (uses these scripts directly)
+- `bin/process/processPlanetNotes.sh` - Planet notes processing (uses these scripts directly)
 
