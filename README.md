@@ -122,6 +122,104 @@ ssh -T git@github.com
 
 See [Submodule Troubleshooting Guide](./docs/Submodule_Troubleshooting.md) for detailed instructions.
 
+## Getting Started for Contributors
+
+If you're new to this project and want to understand the codebase or contribute, follow this reading path:
+
+### Recommended Reading Path (~2-3 hours)
+
+1. **Start Here** (15 min)
+   - Read this README.md (you're here!)
+   - Understand the project purpose and main functions
+   - Review the directory structure below
+
+2. **Project Context** (30 min)
+   - Read [docs/Rationale.md](./docs/Rationale.md) - Why this project exists
+   - Read [docs/Documentation.md](./docs/Documentation.md) - System architecture overview
+
+3. **Core Processing** (45 min)
+   - Read [docs/processAPI.md](./docs/processAPI.md) - API processing workflow
+   - Read [docs/processPlanet.md](./docs/processPlanet.md) - Planet file processing
+
+4. **Entry Points** (20 min)
+   - Read [bin/ENTRY_POINTS.md](./bin/ENTRY_POINTS.md) - Which scripts can be called directly
+   - Understand the main entry points: `processAPINotes.sh`, `processPlanetNotes.sh`, `updateCountries.sh`
+
+5. **Testing** (30 min)
+   - Read [docs/Testing_Guide.md](./docs/Testing_Guide.md) - How to run and write tests
+   - Review [docs/Test_Execution_Guide.md](./docs/Test_Execution_Guide.md) - Test execution workflows
+
+6. **Deep Dive** (as needed)
+   - Explore specific components in `bin/`, `sql/`, `tests/`
+   - Review [docs/README.md](./docs/README.md) for complete documentation index
+
+### Project Structure
+
+```
+OSM-Notes-Ingestion/
+├── bin/                    # Executable scripts
+│   ├── process/           # Main processing scripts (entry points)
+│   ├── monitor/           # Monitoring and validation scripts
+│   ├── wms/               # WMS layer management
+│   ├── scripts/           # Utility scripts
+│   └── lib/               # Shared library functions
+├── sql/                   # SQL scripts (mirrors bin/ structure)
+│   ├── process/           # Database operations for processing
+│   ├── monitor/           # Monitoring queries
+│   ├── wms/               # WMS layer SQL
+│   └── analysis/          # Performance analysis scripts
+├── tests/                 # Comprehensive test suite
+│   ├── unit/              # Unit tests (bash, SQL)
+│   ├── integration/       # Integration tests
+│   └── mock_commands/     # Mock commands for testing
+├── docs/                  # Complete documentation
+│   ├── Documentation.md   # System architecture
+│   ├── Rationale.md       # Project motivation
+│   ├── processAPI.md      # API processing details
+│   └── processPlanet.md   # Planet processing details
+├── etc/                   # Configuration files
+│   └── properties.sh      # Main configuration
+├── lib/osm-common/        # Git submodule (shared functions)
+├── awk/                   # AWK scripts (XML to CSV conversion)
+├── overpass/              # Overpass API queries
+├── json/                  # JSON schemas and test data
+├── xsd/                   # XML Schema definitions
+└── data/                  # Data files and backups
+```
+
+### Key Concepts
+
+- **Entry Points**: Only scripts in `bin/process/` should be called directly (see [ENTRY_POINTS.md](./bin/ENTRY_POINTS.md))
+- **Processing Flow**: API → Database → WMS (see [Documentation.md](./docs/Documentation.md))
+- **Testing**: 101 test suites covering all components (see [Testing_Guide.md](./docs/Testing_Guide.md))
+- **Configuration**: All settings in `etc/properties.sh`
+
+### Quick Start for Developers
+
+1. **Clone with submodules:**
+   ```bash
+   git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
+   ```
+
+2. **Configure database** (see [Database Configuration](#database-configuration) section)
+
+3. **Run tests:**
+   ```bash
+   ./tests/run_all_tests.sh
+   ```
+
+4. **Read entry points:**
+   ```bash
+   cat bin/ENTRY_POINTS.md
+   ```
+
+5. **Explore documentation:**
+   ```bash
+   cat docs/README.md
+   ```
+
+For complete documentation navigation, see [docs/README.md](./docs/README.md).
+
 ## Timing
 
 The whole process takes several hours, even days to complete before the
@@ -130,6 +228,7 @@ profile can be used for any user.
 **Notes initial load**
 
 - 12 minutes: Downloading the countries and maritime areas.
+
   - Countries processing: ~10 minutes (6 parallel threads)
   - Maritime boundaries processing: ~2.5 minutes (6 parallel threads)
   - This process has a pause between calls because the public Overpass turbo is
@@ -141,6 +240,7 @@ profile can be used for any user.
 - 15 minutes: Inserting notes into the database.
 - 8 minutes: Processing and consolidating notes from partitions.
 - 3 hours: Locating notes in the appropriate country (parallel processing).
+
   - This DB process is executed in parallel with multiple threads.
 
 **WMS layer**
