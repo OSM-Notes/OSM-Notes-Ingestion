@@ -1536,6 +1536,69 @@ chmod +x /usr/local/bin/check-osm-notes.sh
   - Parallel execution
   - Resource management
 
+#### Code Examples: Library Functions
+
+**Using Retry Logic for File Operations:**
+
+```bash
+# Source the library
+source bin/lib/functionsProcess.sh
+
+# Retry file download with exponential backoff
+__retry_file_operation \
+  "wget -O ${OUTPUT_FILE} ${URL}" \
+  7 \
+  20 \
+  "rm -f ${OUTPUT_FILE}" \
+  true \
+  "${OVERPASS_ENDPOINT}"
+
+# Parameters:
+# 1. Operation command (download, copy, etc.)
+# 2. Max retries (default: 7)
+# 3. Base delay in seconds (default: 20)
+# 4. Cleanup command (optional, runs on failure)
+# 5. Smart wait flag (true for Overpass API rate limiting)
+# 6. Overpass endpoint (optional, for smart wait)
+```
+
+**Using Parallel Processing Functions:**
+
+```bash
+source bin/lib/parallelProcessingFunctions.sh
+
+# Split large XML file into parts
+__split_xml_file "${INPUT_XML}" "${NUM_PARTS}" "${TMP_DIR}"
+
+# Process parts in parallel
+__process_xml_parts_parallel \
+  "${TMP_DIR}" \
+  "${AWK_SCRIPT}" \
+  "${MAX_THREADS}"
+
+# Consolidate results
+__consolidate_csv_files "${TMP_DIR}" "${OUTPUT_CSV}"
+```
+
+**Using Validation Functions:**
+
+```bash
+source bin/lib/functionsProcess.sh
+
+# Validate XML file against schema
+__validation "${XML_FILE}" "xml"
+
+# Validate CSV file structure
+__validation "${CSV_FILE}" "csv"
+
+# Check if validation passed
+if [ $? -eq 0 ]; then
+  echo "Validation passed"
+else
+  echo "Validation failed - check logs"
+fi
+```
+
 #### Monitoring
 
 - **`bin/monitor/notesCheckVerifier.sh`**: Verification and monitoring
@@ -1580,6 +1643,44 @@ chmod +x /usr/local/bin/check-osm-notes.sh
   - Data integrity checks
   - Coordinate validation
   - Date format validation
+
+#### Code Examples: AWK Extraction
+
+The AWK scripts process XML files line by line, extracting structured data to CSV format:
+
+```bash
+# Extract notes from XML to CSV
+awk -f awk/extract_notes.awk input.xml > notes.csv
+
+# Extract comments metadata
+awk -f awk/extract_comments.awk input.xml > comments.csv
+
+# Extract comment texts (handles HTML entities)
+awk -f awk/extract_comment_texts.awk input.xml > comment_texts.csv
+
+# Process in parallel (used by scripts)
+parallel -j "${MAX_THREADS}" \
+  "awk -f awk/extract_notes.awk {} > {.}.csv" ::: part*.xml
+```
+
+**Example AWK Output Format:**
+
+```csv
+# notes.csv
+id,lat,lon,created_at,closed_at,status
+12345,4.6097,-74.0817,2013-01-01T00:00:00Z,,open
+12346,4.6098,-74.0818,2013-01-01T00:01:00Z,2013-01-02T00:00:00Z,closed
+
+# comments.csv
+note_id,action,created_at,uid,user
+12345,opened,2013-01-01T00:00:00Z,123,username
+12345,commented,2013-01-01T00:05:00Z,456,otheruser
+
+# comment_texts.csv
+note_id,action,text
+12345,opened,Initial note text
+12345,commented,Follow-up comment
+```
 
 ### Performance Optimization
 

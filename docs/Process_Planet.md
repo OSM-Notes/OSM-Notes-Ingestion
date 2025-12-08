@@ -137,6 +137,65 @@ Sync tables are temporary and used for incremental processing:
 3. **Rollback**: In case of error, it's easier to revert changes in temporary tables
 4. **Deduplication**: Allow removing duplicates before final insertion
 
+#### Code Example: Sync Table Operations
+
+The following example shows how sync tables are used during Planet processing:
+
+```bash
+# Source the Planet processing functions
+source bin/lib/processPlanetFunctions.sh
+
+# Create sync tables (called automatically by processPlanetNotes.sh)
+__createSyncTables
+
+# Create partitions for parallel processing
+NUM_PARTITIONS=$(($(nproc) - 2))
+__createPartitions "${NUM_PARTITIONS}"
+
+# Load data into partition tables
+for PARTITION in $(seq 0 $((NUM_PARTITIONS - 1))); do
+  CSV_FILE="${TMP_DIR}/notes_part_${PARTITION}.csv"
+  __loadPartitionedSyncNotes "${CSV_FILE}" "${PARTITION}"
+done
+
+# Consolidate partitions into sync tables
+__consolidatePartitions
+
+# Move data from sync tables to base tables
+__moveSyncToMain
+
+# Verify data was moved
+psql -d "${DBNAME}" -c "
+  SELECT 
+    (SELECT COUNT(*) FROM notes_sync) as sync_count,
+    (SELECT COUNT(*) FROM notes) as base_count;
+"
+```
+
+**SQL Example: Moving Data from Sync to Base Tables**
+
+```sql
+-- Example SQL used by __moveSyncToMain()
+-- Located in: sql/process/processPlanetNotes_43_moveSyncToMain.sql
+
+-- Insert new notes from sync to base
+INSERT INTO notes (
+  note_id, latitude, longitude, created_at, closed_at, status
+)
+SELECT 
+  note_id, latitude, longitude, created_at, closed_at, status
+FROM notes_sync
+ON CONFLICT (note_id) DO UPDATE SET
+  status = EXCLUDED.status,
+  closed_at = EXCLUDED.closed_at;
+
+-- Remove duplicates before final insertion
+DELETE FROM notes_sync
+WHERE note_id IN (
+  SELECT note_id FROM notes
+);
+```
+
 ## Processing Flow
 
 ### Detailed Sequence Diagram
@@ -314,12 +373,96 @@ Manual/Cron
 - Uses multiple threads for concurrent processing
 - Consolidates results from all partitions
 
+#### Code Example: Parallel Processing
+
+The following example shows how Planet files are processed in parallel:
+
+```bash
+# Source the Planet processing functions
+source bin/lib/processPlanetFunctions.sh
+source bin/lib/parallelProcessingFunctions.sh
+
+# Download Planet file
+PLANET_URL="https://planet.openstreetmap.org/planet/notes/planet-notes-latest.osn.bz2"
+PLANET_FILE="${TMP_DIR}/planet-notes-latest.osn.bz2"
+__downloadPlanetFile "${PLANET_URL}" "${PLANET_FILE}"
+
+# Extract notes XML from planet file
+NOTES_XML="${TMP_DIR}/notes.xml"
+bunzip2 -c "${PLANET_FILE}" | grep -E "^  <note|^  </note>" > "${NOTES_XML}"
+
+# Split XML file into parts for parallel processing
+NUM_PARTS=$((MAX_THREADS * 2))  # More parts than threads for better load balancing
+__split_xml_file "${NOTES_XML}" "${NUM_PARTS}" "${TMP_DIR}"
+
+# Process parts in parallel using AWK
+__process_xml_parts_parallel \
+  "${TMP_DIR}" \
+  "awk/extract_notes.awk" \
+  "${MAX_THREADS}"
+
+# Consolidate CSV files from all parts
+OUTPUT_CSV="${TMP_DIR}/notes_consolidated.csv"
+__consolidate_csv_files "${TMP_DIR}" "${OUTPUT_CSV}"
+
+# Load consolidated CSV into sync tables
+__loadPartitionedSyncNotes "${OUTPUT_CSV}" 0
+```
+
+**Example: XML Splitting Process**
+
+```bash
+# Manual example of splitting XML file
+# The __split_xml_file function does this automatically
+
+# Count total lines
+TOTAL_LINES=$(wc -l < "${NOTES_XML}")
+
+# Calculate lines per part
+LINES_PER_PART=$((TOTAL_LINES / NUM_PARTS))
+
+# Split into parts
+split -l "${LINES_PER_PART}" "${NOTES_XML}" "${TMP_DIR}/part_"
+
+# Process each part in parallel
+parallel -j "${MAX_THREADS}" \
+  "awk -f awk/extract_notes.awk {} > {.}.csv" \
+  ::: "${TMP_DIR}"/part_*
+```
+
 ### Performance Optimization
 
 - **Memory Management**: Efficient handling of large XML files
 - **Database Optimization**: Optimized queries and indexes
 - **Disk I/O**: Minimizes disk operations through buffering
 - **Network**: Efficient download and processing of planet files
+
+#### Code Example: Performance Monitoring
+
+```bash
+# Monitor processing performance
+echo "Starting Planet processing at $(date)"
+
+# Track memory usage
+watch -n 5 'free -h && echo "---" && ps aux | grep -E "awk|processPlanet" | head -5'
+
+# Monitor disk I/O
+iostat -x 5
+
+# Track database performance
+psql -d "${DBNAME}" -c "
+  SELECT 
+    schemaname,
+    tablename,
+    n_tup_ins as inserts,
+    n_tup_upd as updates,
+    last_vacuum,
+    last_autovacuum
+  FROM pg_stat_user_tables
+  WHERE tablename LIKE '%sync%'
+  ORDER BY tablename;
+"
+```
 
 ## Error Handling
 

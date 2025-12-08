@@ -624,6 +624,59 @@ API tables temporarily store data downloaded from the API:
   - `body`: Textual content of the comment
   - `part_id`: Partition ID for parallel processing
 
+#### Code Example: Creating and Using API Tables
+
+The following example shows how API tables are created and used during processing:
+
+```bash
+# Source the API processing functions
+source bin/lib/processAPIFunctions.sh
+
+# Create API tables (called automatically by processAPINotes.sh)
+__createApiTables
+
+# Create partitions for parallel processing
+# Number of partitions = MAX_THREADS (default: CPU cores - 2)
+NUM_PARTITIONS=$(($(nproc) - 2))
+__createPartitions "${NUM_PARTITIONS}"
+
+# Verify tables were created
+psql -d "${DBNAME}" -c "
+  SELECT 
+    schemaname,
+    tablename,
+    tableowner
+  FROM pg_tables
+  WHERE tablename LIKE 'notes_api%'
+  ORDER BY tablename;
+"
+
+# Example: Load data into a partition table
+__loadApiNotes "${CSV_FILE}" 0  # Load into partition 0
+
+# After all partitions are loaded, consolidate them
+__consolidatePartitions
+```
+
+**SQL Example: Partition Table Structure**
+
+```sql
+-- Example partition table structure
+-- Created by: sql/process/processAPINotes_42_create_partitions.sql
+
+CREATE TABLE IF NOT EXISTS notes_api_partition_0 (
+  LIKE notes_api INCLUDING ALL
+);
+
+CREATE TABLE IF NOT EXISTS notes_api_partition_1 (
+  LIKE notes_api INCLUDING ALL
+);
+
+-- After processing, data is consolidated:
+-- INSERT INTO notes_api SELECT * FROM notes_api_partition_0;
+-- INSERT INTO notes_api SELECT * FROM notes_api_partition_1;
+```
+
 ### Base Tables (Permanent)
 
 Uses the same base tables as `processPlanetNotes.sh`:
@@ -814,6 +867,66 @@ Cron/Manual
 - Processes in chunks if there is much data (>1000 notes)
 - Updates last update timestamp
 - Cleans temporary files
+
+#### Code Example: Data Integration Process
+
+The following example shows how API data is integrated into base tables:
+
+```bash
+# Source the API processing functions
+source bin/lib/processAPIFunctions.sh
+
+# After API notes are loaded into partition tables, consolidate them
+__consolidatePartitions
+
+# Insert new notes and comments from API tables to base tables
+# This uses stored procedures for efficient bulk insertion
+__insertNewNotesAndComments
+
+# Update the last processed sequence number
+LAST_VALUE=$(psql -d "${DBNAME}" -t -c \
+  "SELECT MAX(sequence_id) FROM notes_api;")
+__updateLastValue "${LAST_VALUE}"
+
+# Verify the integration
+psql -d "${DBNAME}" -c "
+  SELECT 
+    COUNT(*) as total_notes,
+    COUNT(*) FILTER (WHERE status = 'open') as open_notes,
+    COUNT(*) FILTER (WHERE status = 'closed') as closed_notes
+  FROM notes;
+"
+```
+
+**SQL Procedure Example:**
+
+The `__insertNewNotesAndComments()` function uses stored procedures for efficient insertion:
+
+```sql
+-- Example stored procedure used by __insertNewNotesAndComments()
+-- Located in: sql/process/processAPINotes_32_insertNewNotesAndComments.sql
+
+-- Insert new notes (simplified version)
+INSERT INTO notes (
+  note_id, latitude, longitude, created_at, closed_at, status
+)
+SELECT 
+  note_id, latitude, longitude, created_at, closed_at, status
+FROM notes_api
+WHERE note_id NOT IN (SELECT note_id FROM notes)
+ON CONFLICT (note_id) DO UPDATE SET
+  status = EXCLUDED.status,
+  closed_at = EXCLUDED.closed_at;
+
+-- Insert new comments
+INSERT INTO note_comments (
+  note_id, sequence_action, event, created_at, id_user, username
+)
+SELECT 
+  note_id, sequence_action, event, created_at, id_user, username
+FROM note_comments_api
+ON CONFLICT (note_id, sequence_action) DO NOTHING;
+```
 
 ## Integration with Planet Processing
 
