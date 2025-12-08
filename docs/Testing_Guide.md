@@ -1,5 +1,9 @@
 # Testing Guide - OSM-Notes-Ingestion
 
+> **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  
+> For project motivation and background, see [Rationale.md](./Rationale.md).  
+> For test execution procedures, see [Test_Execution_Guide.md](./Test_Execution_Guide.md).
+
 ## Summary
 
 This guide provides comprehensive information about the implemented integration tests, use cases, and troubleshooting for the OSM-Notes-Ingestion project.
@@ -543,3 +547,15 @@ Integration tests are essential to detect real problems before they reach produc
 - ✅ **Integrate with CI/CD**
 
 **Recommendation:** Use this guide as a reference to maintain the quality and reliability of the OSM-Notes-Ingestion project.
+
+## Related Documentation
+
+- **[Test_Execution_Guide.md](./Test_Execution_Guide.md)**: Step-by-step test execution procedures
+- **[Test_Matrix.md](./Test_Matrix.md)**: Complete test coverage matrix
+- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Detailed reference for all test suites
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows explanation
+- **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD setup and configuration
+- **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
+- **[Documentation.md](./Documentation.md)**: System architecture and overview
+- **[processAPI.md](./processAPI.md)**: API processing implementation (for testing API components)
+- **[processPlanet.md](./processPlanet.md)**: Planet processing implementation (for testing Planet components)

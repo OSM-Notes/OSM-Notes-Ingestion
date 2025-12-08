@@ -1,5 +1,8 @@
 # WMS User Guide
 
+> **Note:** For technical WMS documentation (installation, configuration, administration), see [WMS_Guide.md](./WMS_Guide.md).  
+> For system architecture overview, see [Documentation.md](./Documentation.md).
+
 ## What is WMS?
 
 WMS (Web Map Service) is a way to view OSM notes on a map. Think of it as a
@@ -24,6 +27,8 @@ The color intensity tells you how old the note is:
 
 - **Darker colors**: Older notes
 - **Lighter colors**: Newer notes
+
+> **Technical Details:** For information about WMS layer configuration, styling, and server setup, see [WMS_Guide.md](./WMS_Guide.md).
 
 ## Getting Started
 
@@ -382,6 +387,16 @@ Before you can use the WMS layer, you need:
 - **OSM Wiki**: Comprehensive mapping guides
 - **Video Tutorials**: Visual learning resources
 - **Workshops**: Hands-on training sessions
+
+## Related Documentation
+
+- **[WMS_Guide.md](./WMS_Guide.md)**: Complete technical guide for administrators and developers
+  - Installation and configuration
+  - GeoServer setup
+  - Database schema
+  - Troubleshooting
+- **[Documentation.md](./Documentation.md)**: System architecture and overview
+- **[README.md](./README.md)**: Documentation navigation guide
 
 ## Feedback
 

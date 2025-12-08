@@ -821,6 +821,15 @@ Expected results:
 
 ## References
 
+### Project Documentation
+
+- **[Documentation.md](./Documentation.md)**: System architecture and country assignment overview
+- **[processPlanet.md](./processPlanet.md)**: Planet processing (includes country assignment)
+- **[processAPI.md](./processAPI.md)**: API processing (includes country assignment)
+- **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
+
+### External References
+
 - **PostGIS Documentation**: 
   <https://postgis.net/docs/ST_Contains.html>
 - **OpenStreetMap Boundaries**: 

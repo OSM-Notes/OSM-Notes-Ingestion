@@ -1,5 +1,9 @@
 # Immediate Alerting System
 
+> **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  
+> For error handling details, see [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md).  
+> For troubleshooting, see [Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide).
+
 ## Comparison: Previous System vs New System
 
 ### ❌ Previous System (with External Monitor)
@@ -322,5 +326,13 @@ The previous system (`checkFailedExecution.sh`) is still valid as:
 - Cases where you prefer separation of responsibilities
 
 **Recommendation**: Use the new system by default. Keep the old one only if you need centralized monitoring.
+
+## Related Documentation
+
+- **[Documentation.md](./Documentation.md)**: System architecture and error handling overview
+- **[processAPI.md](./processAPI.md)**: API processing error handling implementation
+- **[processPlanet.md](./processPlanet.md)**: Planet processing error handling implementation
+- **[Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide)**: Troubleshooting guide with error recovery procedures
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable configuration (ADMIN_EMAIL, SEND_ALERT_EMAIL)
 
 ---
