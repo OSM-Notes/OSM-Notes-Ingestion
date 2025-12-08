@@ -73,6 +73,260 @@ The script **does NOT accept arguments** for normal execution. It only accepts:
 - The decision logic is internal based on database state
 - Configuration is done through environment variables
 
+## Usage Examples
+
+All examples below are verified against the actual codebase implementation.
+
+### Basic Execution
+
+```bash
+# Standard execution (production mode)
+cd /path/to/OSM-Notes-Ingestion
+./bin/process/processAPINotes.sh
+```
+
+The script automatically:
+- Creates a temporary directory at `/tmp/processAPINotes_XXXXXX`
+- Downloads notes from OSM API
+- Processes and synchronizes with the database
+- Cleans up temporary files (if `CLEAN=true`)
+
+### Environment Variable Configuration
+
+#### Debug Mode
+
+```bash
+# Enable detailed logging
+export LOG_LEVEL=DEBUG
+./bin/process/processAPINotes.sh
+
+# Enable trace-level logging (most verbose)
+export LOG_LEVEL=TRACE
+./bin/process/processAPINotes.sh
+```
+
+#### Validation Control
+
+```bash
+# Default behavior: Both XML and CSV validations are skipped by default (FASTER)
+# SKIP_XML_VALIDATION=true by default
+# SKIP_CSV_VALIDATION=true by default
+# No need to export these for default behavior
+./bin/process/processAPINotes.sh
+
+# Enable strict validation (slower but more thorough)
+export SKIP_XML_VALIDATION=false
+export SKIP_CSV_VALIDATION=false
+./bin/process/processAPINotes.sh
+```
+
+#### File Cleanup Control
+
+```bash
+# Keep temporary files for debugging
+export CLEAN=false
+export LOG_LEVEL=DEBUG
+./bin/process/processAPINotes.sh
+
+# Files will be preserved in /tmp/processAPINotes_XXXXXX/
+# Useful for inspecting CSV files, logs, and intermediate data
+```
+
+#### Email Alerts
+
+```bash
+# Configure email alerts for failures
+export ADMIN_EMAIL="admin@example.com"
+export SEND_ALERT_EMAIL=true
+export LOG_LEVEL=WARN
+./bin/process/processAPINotes.sh
+
+# Disable email alerts
+export SEND_ALERT_EMAIL=false
+./bin/process/processAPINotes.sh
+```
+
+#### Bash Debug Mode
+
+```bash
+# Enable bash debug mode (shows all commands executed)
+export BASH_DEBUG=true
+export LOG_LEVEL=TRACE
+./bin/process/processAPINotes.sh
+```
+
+### Monitoring Execution
+
+#### View Logs in Real-Time
+
+```bash
+# Find the latest log directory
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+
+# Follow log output
+tail -f "$LATEST_DIR/processAPINotes.log"
+
+# Or use the one-liner from script header
+tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+```
+
+#### Check Execution Status
+
+```bash
+# Check if script is running
+ps aux | grep processAPINotes.sh
+
+# Check lock file (contains PID and start time)
+cat /tmp/processAPINotes.lock
+
+# Check for failed execution marker
+ls -la /tmp/processAPINotes_failed_execution
+```
+
+### Error Recovery
+
+#### Recovering from Failed Execution
+
+When a critical error occurs, the script creates a failed execution marker:
+
+```bash
+# 1. Check if previous execution failed
+if [ -f /tmp/processAPINotes_failed_execution ]; then
+    echo "Previous execution failed. Check email for details."
+    cat /tmp/processAPINotes_failed_execution
+fi
+
+# 2. Review the latest log for error details
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i error "$LATEST_DIR/processAPINotes.log" | tail -20
+
+# 3. Fix the underlying issue (database, network, etc.)
+
+# 4. Remove the failed execution marker
+rm /tmp/processAPINotes_failed_execution
+
+# 5. Wait for next cron execution (recommended)
+# The script is designed to run automatically via crontab.
+# After removing the marker, wait for the next scheduled execution
+# (typically every 15 minutes for processAPINotes.sh).
+# Manual execution should only be used for testing/debugging.
+```
+
+#### Common Error Scenarios
+
+**Historical data validation failure:**
+```bash
+# Error: Base tables missing or incomplete
+# Solution: Run processPlanetNotes.sh first
+./bin/process/processPlanetNotes.sh --base
+```
+
+**XML validation failure:**
+```bash
+# Error: Invalid XML structure from API
+# Solution: Check API status
+# Note: SKIP_XML_VALIDATION=true is already the default, so validation is skipped by default
+# If you enabled validation (SKIP_XML_VALIDATION=false), you can revert to default:
+unset SKIP_XML_VALIDATION
+./bin/process/processAPINotes.sh
+```
+
+**Database connection failure:**
+```bash
+# Error: Cannot connect to database
+# Solution: Check database is running and credentials in etc/properties.sh
+psql -d osm_notes -c "SELECT 1;"
+```
+
+### Cron Job Setup
+
+#### Standard Production Cron
+
+```bash
+# Add to crontab (crontab -e)
+# Process API notes every 15 minutes
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> /var/log/osm-notes-api.log 2>&1
+```
+
+#### Cron with Environment Variables
+
+```bash
+# With specific configuration
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && export LOG_LEVEL=WARN && export SEND_ALERT_EMAIL=true && export ADMIN_EMAIL="admin@example.com" && ./bin/process/processAPINotes.sh >> /var/log/osm-notes-api.log 2>&1
+```
+
+### Database Inspection
+
+#### Check Last Update Time
+
+```bash
+# Query the last update timestamp
+psql -d osm_notes -c "SELECT last_update FROM properties WHERE key = 'last_update_api';"
+```
+
+#### Check API Tables
+
+```bash
+# View notes in API tables (before sync)
+psql -d osm_notes -c "SELECT COUNT(*) FROM notes_api;"
+psql -d osm_notes -c "SELECT note_id, latitude, longitude, status FROM notes_api LIMIT 10;"
+```
+
+#### Check Processing Status
+
+```bash
+# Check if Planet sync was triggered
+psql -d osm_notes -c "SELECT * FROM properties WHERE key LIKE '%planet%';"
+```
+
+### Testing and Development
+
+#### Development Mode
+
+```bash
+# Use test database
+export DBNAME=osm_notes_test
+
+# Enable all logging and validation
+export LOG_LEVEL=TRACE
+export SKIP_XML_VALIDATION=false
+export SKIP_CSV_VALIDATION=false
+
+# Keep files for inspection
+export CLEAN=false
+
+# Run script
+./bin/process/processAPINotes.sh
+```
+
+#### Production Mode
+
+```bash
+# Minimal logging (errors only)
+export LOG_LEVEL=ERROR
+
+# Skip validation for speed (both XML and CSV validations are skipped by default)
+# SKIP_XML_VALIDATION=true is the default, no need to export
+# SKIP_CSV_VALIDATION=true is the default, no need to export
+# Both validations are skipped by default for faster processing
+
+# Clean up files (default: true)
+export CLEAN=true
+
+# Enable alerts
+export SEND_ALERT_EMAIL=true
+export ADMIN_EMAIL="admin@production.com"
+
+# Run script
+./bin/process/processAPINotes.sh
+```
+
+### Related Documentation
+
+- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Entry point documentation
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Complete environment variable reference
+- **[Documentation.md](./Documentation.md)**: System architecture and general usage examples
+
 ## Table Architecture
 
 ### API Tables (Temporary)

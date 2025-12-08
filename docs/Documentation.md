@@ -396,6 +396,283 @@ Country Assignment Flow:
 
 ---
 
+## Usage Examples
+
+This section provides real, verified code examples based on the actual implementation. All examples reflect the current codebase behavior.
+
+### Basic Script Execution
+
+#### Processing API Notes (Incremental Sync)
+
+The `processAPINotes.sh` script does not accept command-line arguments (except `--help`). Configuration is done via environment variables:
+
+```bash
+# Basic execution (production mode)
+./bin/process/processAPINotes.sh
+
+# With debug logging
+export LOG_LEVEL=DEBUG
+./bin/process/processAPINotes.sh
+
+# Enable XML validation (default is to skip for speed)
+export SKIP_XML_VALIDATION=false
+export SKIP_CSV_VALIDATION=false
+./bin/process/processAPINotes.sh
+
+# Keep temporary files for debugging
+export CLEAN=false
+export LOG_LEVEL=DEBUG
+./bin/process/processAPINotes.sh
+
+# Enable bash debug mode (shows all commands)
+export BASH_DEBUG=true
+export LOG_LEVEL=TRACE
+./bin/process/processAPINotes.sh
+```
+
+**Note:** The script creates a temporary directory at `/tmp/processAPINotes_XXXXXX` where `XXXXXX` is a random string. Logs are written to `${TMP_DIR}/processAPINotes.log`.
+
+**Following progress:**
+
+```bash
+# Find the latest log file
+tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+```
+
+#### Processing Planet Notes (Historical Data)
+
+The `processPlanetNotes.sh` script accepts a `--base` parameter for full initialization:
+
+```bash
+# Sync mode (incremental update from Planet)
+./bin/process/processPlanetNotes.sh
+
+# Base mode (full initialization, drops and recreates tables)
+./bin/process/processPlanetNotes.sh --base
+
+# With validation enabled
+export SKIP_XML_VALIDATION=false
+export LOG_LEVEL=INFO
+./bin/process/processPlanetNotes.sh --base
+
+# Debug mode with file preservation
+export LOG_LEVEL=DEBUG
+export CLEAN=false
+./bin/process/processPlanetNotes.sh --base
+```
+
+#### Updating Country Boundaries
+
+The `updateCountries.sh` script updates geographic boundaries:
+
+```bash
+# Update mode (normal operation)
+./bin/process/updateCountries.sh
+
+# Base mode (recreate country tables)
+./bin/process/updateCountries.sh --base
+
+# With debug logging
+export LOG_LEVEL=DEBUG
+./bin/process/updateCountries.sh
+```
+
+### Environment Variables
+
+All scripts support common environment variables. See [bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md) for complete documentation.
+
+#### Common Variables
+
+```bash
+# Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+export LOG_LEVEL=DEBUG
+
+# Cleanup temporary files (true/false, default: true)
+export CLEAN=true
+
+# Skip XML validation (true/false, default: true - skips validation)
+export SKIP_XML_VALIDATION=false  # Set to false to enable validation
+
+# Skip CSV validation (true/false, default: true - skips validation)
+export SKIP_CSV_VALIDATION=false  # Set to false to enable validation
+
+# Database name override
+export DBNAME=osm_notes_test
+
+# Bash debug mode (shows all commands)
+export BASH_DEBUG=true
+```
+
+#### processAPINotes.sh Specific Variables
+
+```bash
+# Email alerts configuration
+export ADMIN_EMAIL="admin@example.com"
+export SEND_ALERT_EMAIL=true
+
+# Complete example with all options
+export LOG_LEVEL=DEBUG
+export CLEAN=false
+export SKIP_XML_VALIDATION=false
+export ADMIN_EMAIL="admin@example.com"
+export SEND_ALERT_EMAIL=true
+./bin/process/processAPINotes.sh
+```
+
+### Error Handling and Recovery
+
+#### Failed Execution Marker
+
+When critical errors occur, the script creates a failed execution marker file:
+
+```bash
+# Check if previous execution failed
+ls -la /tmp/processAPINotes_failed_execution
+
+# Recover from failed execution
+# 1. Check email for alert details
+# 2. Fix the underlying issue (database, network, etc.)
+# 3. Remove the marker file
+rm /tmp/processAPINotes_failed_execution
+
+# 4. Wait for next cron execution (recommended)
+# The script is designed to run automatically via crontab.
+# After removing the marker, wait for the next scheduled execution
+# (e.g., every 15 minutes for processAPINotes.sh)
+
+# Note: Manual execution is only for testing/debugging.
+# In production, let the cron job handle the next execution.
+```
+
+#### Lock File Management
+
+Scripts use lock files to prevent concurrent execution:
+
+```bash
+# Check if script is running
+ls -la /tmp/processAPINotes.lock
+
+# View lock file contents (shows PID and start time)
+cat /tmp/processAPINotes.lock
+
+# Remove stale lock (only if process is not running!)
+# First verify: ps aux | grep processAPINotes.sh
+rm /tmp/processAPINotes.lock
+```
+
+### Monitoring and Logging
+
+#### Viewing Logs
+
+```bash
+# Find latest log directory
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+echo "Log directory: $LATEST_DIR"
+
+# View log file
+tail -f "$LATEST_DIR/processAPINotes.log"
+
+# Search for errors
+grep -i error "$LATEST_DIR/processAPINotes.log"
+
+# Search for warnings
+grep -i warn "$LATEST_DIR/processAPINotes.log"
+```
+
+#### Database Monitoring
+
+```bash
+# Check PostgreSQL application name (shows which script is using DB)
+psql -d osm_notes -c "SELECT application_name, state, query_start FROM pg_stat_activity WHERE application_name LIKE 'process%';"
+
+# Monitor active connections
+psql -d osm_notes -c "SELECT count(*) FROM pg_stat_activity WHERE datname = 'osm_notes';"
+```
+
+### Cron Job Configuration
+
+Example crontab entries for automated execution:
+
+```bash
+# Process API notes every 15 minutes
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> /var/log/osm-notes-api.log 2>&1
+
+# Update countries daily at 2 AM
+0 2 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/updateCountries.sh >> /var/log/osm-notes-countries.log 2>&1
+
+# Verify data integrity daily at 3 AM
+0 3 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh >> /var/log/osm-notes-verify.log 2>&1
+```
+
+### Testing and Development
+
+#### Development Mode
+
+```bash
+# Use test database
+export DBNAME=osm_notes_test
+
+# Enable all logging
+export LOG_LEVEL=TRACE
+
+# Keep files for inspection
+export CLEAN=false
+
+# Enable strict validation
+export SKIP_XML_VALIDATION=false
+export SKIP_CSV_VALIDATION=false
+
+# Run script
+./bin/process/processAPINotes.sh
+```
+
+#### Production Mode
+
+```bash
+# Use production database (default)
+# DBNAME comes from etc/properties.sh
+
+# Minimal logging
+export LOG_LEVEL=ERROR
+
+# Clean up files (default: true)
+export CLEAN=true
+
+# Skip validation for speed (defaults already skip both XML and CSV validation)
+# SKIP_XML_VALIDATION=true is the default, no need to export
+# SKIP_CSV_VALIDATION=true is the default, no need to export
+# Both validations are skipped by default for faster processing
+
+# Enable alerts
+export SEND_ALERT_EMAIL=true
+export ADMIN_EMAIL="admin@production.com"
+
+# Run script
+./bin/process/processAPINotes.sh
+```
+
+### Help and Documentation
+
+All scripts support `--help` or `-h`:
+
+```bash
+# Get help for any script
+./bin/process/processAPINotes.sh --help
+./bin/process/processPlanetNotes.sh --help
+./bin/process/updateCountries.sh --help
+```
+
+### Related Documentation
+
+For more detailed examples and use cases, see:
+
+- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Allowed entry points and usage
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Complete environment variable reference
+- **[processAPI.md](./processAPI.md)**: Detailed API processing documentation
+- **[processPlanet.md](./processPlanet.md)**: Detailed Planet processing documentation
+
+---
+
 ## Database Schema
 
 ### Database Schema Diagram
