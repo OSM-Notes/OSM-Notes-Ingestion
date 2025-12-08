@@ -196,7 +196,10 @@ __run_level_2() {
   "${SCRIPT_DIR}/unit/bash/boundary_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/checksum_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/input_validation.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/json_validation_with_elements.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/json_validation_basic.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/json_validation_errors.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/json_validation_advanced.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/json_validation_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/extended_validation_json.test.bats" \
   "${SCRIPT_DIR}/unit/bash/extended_validation_database.test.bats" \
   "${SCRIPT_DIR}/unit/bash/extended_validation_coordinates.test.bats" \

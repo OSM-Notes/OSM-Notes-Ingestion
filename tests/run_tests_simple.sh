@@ -213,6 +213,10 @@ run_bats_tests() {
   "${SCRIPT_DIR}/unit/bash/binary_division_basic.test.bats"
   "${SCRIPT_DIR}/unit/bash/binary_division_performance.test.bats"
   "${SCRIPT_DIR}/unit/bash/binary_division_error_handling.test.bats"
+  "${SCRIPT_DIR}/unit/bash/json_validation_basic.test.bats"
+  "${SCRIPT_DIR}/unit/bash/json_validation_errors.test.bats"
+  "${SCRIPT_DIR}/unit/bash/json_validation_advanced.test.bats"
+  "${SCRIPT_DIR}/unit/bash/json_validation_integration.test.bats"
   "${SCRIPT_DIR}/regression/regression_suite.test.bats"
  )
 
