@@ -383,8 +383,8 @@ Functions are tested via:
 
 - **[bin/README.md](../README.md)**: Overview of bin directory structure
 - **[docs/Documentation.md](../../docs/Documentation.md)**: Complete system documentation
-- **[docs/processAPI.md](../../docs/processAPI.md)**: API processing details
-- **[docs/processPlanet.md](../../docs/processPlanet.md)**: Planet processing details
+- **[docs/Process_API.md](../../docs/Process_API.md)**: API processing details
+- **[docs/Process_Planet.md](../../docs/Process_Planet.md)**: Planet processing details
 - **[docs/Capital_Validation_Explanation.md](../../docs/Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
 - **[docs/Country_Assignment_2D_Grid.md](../../docs/Country_Assignment_2D_Grid.md)**: Country assignment strategy
 - **[docs/ST_DWithin_Explanation.md](../../docs/ST_DWithin_Explanation.md)**: PostGIS spatial functions

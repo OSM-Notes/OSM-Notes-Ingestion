@@ -1,7 +1,7 @@
 # Boundaries Backup (Countries and Maritimes)
 
 > **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  
-> For country boundary processing details, see [processPlanet.md](./processPlanet.md) and [bin/process/updateCountries.sh](../bin/process/updateCountries.sh).
+> For country boundary processing details, see [Process_Planet.md](./Process_Planet.md) and [bin/process/updateCountries.sh](../bin/process/updateCountries.sh).
 
 Boundary backup files are stored in the [OSM-Notes-Data](https://github.com/OSMLatam/OSM-Notes-Data) repository
 to keep this repository focused on code only. The backups are automatically downloaded from GitHub
@@ -243,6 +243,6 @@ export BOUNDARIES_DATA_BRANCH="develop"
 
 - **[bin/README.md](../bin/README.md)**: Script usage examples and reference
 - **[bin/scripts/README.md](../bin/scripts/README.md)**: Utility scripts documentation
-- **[processPlanet.md](./processPlanet.md)**: Planet processing (includes boundary loading)
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing (includes boundary loading)
 - **[Documentation.md](./Documentation.md)**: System architecture and data flow
 

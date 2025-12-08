@@ -248,7 +248,7 @@ export DB_USER="my-custom-user"
 - **[Documentation.md](./Documentation.md)**: System architecture and database schema
 - **[sql/README.md](../sql/README.md)**: SQL scripts and database functions documentation
 - **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Database troubleshooting and common issues
-- **[processPlanet.md](./processPlanet.md)**: Initial database setup with `--base` mode
+- **[Process_Planet.md](./Process_Planet.md)**: Initial database setup with `--base` mode
 - **[WMS_Guide.md](./WMS_Guide.md)**: WMS database setup and configuration
 
 ---

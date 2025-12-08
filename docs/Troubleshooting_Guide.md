@@ -1122,12 +1122,12 @@ All scripts use standardized error codes defined in `lib/osm-common/commonFuncti
 
 #### Scripts in bin/scripts/
 
-All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `generateNoteLocationBackup.sh`, `reloadCountriesFromOverpass.sh`, `analyzeAllBoundaries.sh`) use:
+All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `generateNoteLocationBackup.sh`) use:
 
 | Code | Meaning | Solution |
 |------|---------|----------|
 | `1` | Help message displayed | Normal exit |
-| `249` | Error downloading boundary | Check Overpass API connectivity (only `reloadCountriesFromOverpass.sh`) |
+| `249` | Error downloading boundary | Check Overpass API connectivity |
 | `255` | General error | Review logs (database connection, file operations) |
 
 ### Recovery for Each Error Code
@@ -1243,8 +1243,8 @@ If database corruption is suspected:
 ### Review Documentation
 
 - **[Documentation.md](./Documentation.md)**: Complete system documentation
-- **[processAPI.md](./processAPI.md)**: API processing details and troubleshooting
-- **[processPlanet.md](./processPlanet.md)**: Planet processing details and troubleshooting
+- **[Process_API.md](./Process_API.md)**: API processing details and troubleshooting
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details and troubleshooting
 - **[WMS_Guide.md](./WMS_Guide.md)**: WMS service installation and configuration
 - **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user troubleshooting
 
@@ -1293,7 +1293,7 @@ Use these scripts for automated diagnostics:
 ## Related Documentation
 
 - **[Documentation.md](./Documentation.md)**: Complete system documentation
-- **[processAPI.md](./processAPI.md)**: API processing details
-- **[processPlanet.md](./processPlanet.md)**: Planet processing details
+- **[Process_API.md](./Process_API.md)**: API processing details
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details
 - **[WMS_Guide.md](./WMS_Guide.md)**: WMS service guide
 - **[bin/README.md](../bin/README.md)**: Script usage and examples

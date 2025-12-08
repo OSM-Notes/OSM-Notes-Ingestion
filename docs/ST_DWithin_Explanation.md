@@ -246,7 +246,7 @@ fi
 ## Related Documentation
 
 - **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy using spatial functions
-- **[processPlanet.md](./processPlanet.md)**: Planet processing with country assignment
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing with country assignment
 - **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Country boundary processing script
 - **[sql/README.md](../sql/README.md)**: SQL functions including `get_country()` function
 - **[PostgreSQL_Setup.md](./PostgreSQL_Setup.md)**: PostGIS installation and setup

@@ -723,7 +723,7 @@ psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 ## Related Documentation
 
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
-- **API Processing**: See [processAPI.md](./processAPI.md) for API data processing details
+- **API Processing**: See [Process_API.md](./Process_API.md) for API data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
 - **Country Assignment**: See [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md) for country assignment strategy
 - **Capital Validation**: See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation details

@@ -138,8 +138,8 @@ If you're new to this project and want to understand the codebase or contribute,
    - Read [docs/Documentation.md](./docs/Documentation.md) - System architecture overview
 
 3. **Core Processing** (45 min)
-   - Read [docs/processAPI.md](./docs/processAPI.md) - API processing workflow
-   - Read [docs/processPlanet.md](./docs/processPlanet.md) - Planet file processing
+   - Read [docs/Process_API.md](./docs/Process_API.md) - API processing workflow
+   - Read [docs/Process_Planet.md](./docs/Process_Planet.md) - Planet file processing
 
 4. **Entry Points** (20 min)
    - Read [bin/ENTRY_POINTS.md](./bin/ENTRY_POINTS.md) - Which scripts can be called directly
@@ -175,8 +175,8 @@ OSM-Notes-Ingestion/
 ├── docs/                  # Complete documentation
 │   ├── Documentation.md   # System architecture
 │   ├── Rationale.md       # Project motivation
-│   ├── processAPI.md      # API processing details
-│   └── processPlanet.md   # Planet processing details
+│   ├── Process_API.md      # API processing details
+│   └── Process_Planet.md   # Planet processing details
 ├── etc/                   # Configuration files
 │   └── properties.sh      # Main configuration
 ├── lib/osm-common/        # Git submodule (shared functions)

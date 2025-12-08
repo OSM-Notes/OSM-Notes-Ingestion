@@ -137,9 +137,6 @@ Total:                975 casos
    - `bin/lib/securityFunctions.sh`: 5 funciones, necesita más tests
 
 2. **Scripts de Utilidad:**
-   - `bin/scripts/generateCountriesDownloadReport.sh`: Sin tests específicos
-   - `bin/scripts/analyzeFailedBoundaries.sh`: Sin tests específicos
-   - `bin/scripts/investigateCapitalValidationFailures.sh`: Sin tests específicos
    - `bin/monitor/analyzeDatabasePerformance.sh`: Sin tests específicos
 
 **Recomendación:** Crear suites de pruebas específicas para cada librería de

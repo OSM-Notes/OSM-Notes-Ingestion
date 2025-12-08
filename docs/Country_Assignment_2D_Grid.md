@@ -824,8 +824,8 @@ Expected results:
 ### Project Documentation
 
 - **[Documentation.md](./Documentation.md)**: System architecture and country assignment overview
-- **[processPlanet.md](./processPlanet.md)**: Planet processing (includes country assignment)
-- **[processAPI.md](./processAPI.md)**: API processing (includes country assignment)
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing (includes country assignment)
+- **[Process_API.md](./Process_API.md)**: API processing (includes country assignment)
 - **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
 - **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
 - **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions explanation

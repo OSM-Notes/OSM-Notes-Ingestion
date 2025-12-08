@@ -334,5 +334,5 @@ Other patterns may be implemented implicitly, but these are the main ones docume
 ## Related Documentation
 
 * **System Architecture**: See [Documentation.md](./Documentation.md) for technical implementation details
-* **Processing Details**: See [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for specific implementation details
+* **Processing Details**: See [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for specific implementation details
 * **Future Reevaluation**: See [ToDo/FUTURE_REEVALUATION.md](../ToDo/FUTURE_REEVALUATION.md) for items to be reconsidered in future versions

@@ -916,8 +916,8 @@ For more detailed examples and use cases, see:
 
 - **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Allowed entry points and usage
 - **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Complete environment variable reference
-- **[processAPI.md](./processAPI.md)**: Detailed API processing documentation
-- **[processPlanet.md](./processPlanet.md)**: Detailed Planet processing documentation
+- **[Process_API.md](./Process_API.md)**: Detailed API processing documentation
+- **[Process_Planet.md](./Process_Planet.md)**: Detailed Planet processing documentation
 
 ---
 
@@ -1785,7 +1785,7 @@ LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
 grep -i "error\|failed" "$LATEST_DIR/processAPINotes.log" | tail -20
 
 # Solutions
-# See detailed troubleshooting in docs/processAPI.md
+# See detailed troubleshooting in docs/Process_API.md
 # Common causes:
 # - Network connectivity issues
 # - Database connection problems
@@ -1814,7 +1814,7 @@ df -h  # Check disk space (planet files are 2GB+)
 curl -I https://planet.openstreetmap.org/planet/notes/
 
 # Solutions
-# See detailed troubleshooting in docs/processPlanet.md
+# See detailed troubleshooting in docs/Process_Planet.md
 # Common causes:
 # - Insufficient disk space
 # - Network connectivity issues
@@ -1879,7 +1879,7 @@ psql -d osm_notes -c "SELECT * FROM pg_trigger WHERE tgname LIKE '%wms%';"
 
 **Recovery for each error code:**
 
-See detailed troubleshooting in [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md).
+See detailed troubleshooting in [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md).
 
 ### Getting Help
 
@@ -1887,8 +1887,8 @@ See detailed troubleshooting in [processAPI.md](./processAPI.md) and [processPla
 
 - **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Comprehensive troubleshooting guide (all categories)
 - **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
-- [processAPI.md](./processAPI.md): API processing troubleshooting
-- [processPlanet.md](./processPlanet.md): Planet processing troubleshooting
+- [Process_API.md](./Process_API.md): API processing troubleshooting
+- [Process_Planet.md](./Process_Planet.md): Planet processing troubleshooting
 - [WMS_Guide.md](./WMS_Guide.md): WMS service troubleshooting
 
 **Check Logs:**
@@ -1977,8 +1977,8 @@ grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
 
 ### Processing Documentation
 
-- **[processAPI.md](./processAPI.md)**: API processing details
-- **[processPlanet.md](./processPlanet.md)**: Planet processing details
+- **[Process_API.md](./Process_API.md)**: API processing details
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details
 - **[Input_Validation.md](./Input_Validation.md)**: Validation procedures
 - **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML
   validation enhancements (optional)

@@ -46,8 +46,8 @@ Before contributing, familiarize yourself with:
 - **[README.md](../README.md)**: Project overview and quick start
 - **[docs/Documentation.md](../docs/Documentation.md)**: Complete system architecture and technical details
 - **[docs/Rationale.md](../docs/Rationale.md)**: Project motivation and design decisions
-- **[docs/processAPI.md](../docs/processAPI.md)**: API processing implementation details
-- **[docs/processPlanet.md](../docs/processPlanet.md)**: Planet processing implementation details
+- **[docs/Process_API.md](../docs/Process_API.md)**: API processing implementation details
+- **[docs/Process_Planet.md](../docs/Process_Planet.md)**: Planet processing implementation details
 - **[bin/README.md](../bin/README.md)**: Script usage examples and reference
 - **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Which scripts can be called directly
 
@@ -89,12 +89,12 @@ Output:
   - Runs every 15 minutes (cron)
   - Handles up to 10,000 notes per run
   - Automatically triggers Planet sync if threshold exceeded
-  - See [docs/processAPI.md](../docs/processAPI.md) for details
+  - See [docs/Process_API.md](../docs/Process_API.md) for details
 
 - **`processPlanetNotes.sh`**: Processes historical data from Planet dumps
   - Base mode: Complete setup from scratch
   - Sync mode: Incremental updates
-  - See [docs/processPlanet.md](../docs/processPlanet.md) for details
+  - See [docs/Process_Planet.md](../docs/Process_Planet.md) for details
 
 - **`updateCountries.sh`**: Updates country and maritime boundaries
   - Downloads from Overpass API
@@ -161,7 +161,7 @@ For detailed flow diagrams, see [docs/Documentation.md](../docs/Documentation.md
 2. **Understand the context**:
    - Review relevant documentation:
      - [docs/Documentation.md](../docs/Documentation.md) for system overview
-     - [docs/processAPI.md](../docs/processAPI.md) or [docs/processPlanet.md](../docs/processPlanet.md) for processing details
+     - [docs/Process_API.md](../docs/Process_API.md) or [docs/Process_Planet.md](../docs/Process_Planet.md) for processing details
      - [docs/Documentation.md#troubleshooting-guide](../docs/Documentation.md#troubleshooting-guide) for common issues
 
 3. **Create a fix**:

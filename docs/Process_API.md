@@ -922,5 +922,5 @@ Operational guarantees:
 ## Related Documentation
 
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
-- **Planet Processing**: See [processPlanet.md](./processPlanet.md) for Planet data processing details
+- **Planet Processing**: See [Process_Planet.md](./Process_Planet.md) for Planet data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals

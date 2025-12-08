@@ -10,7 +10,7 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-Inge
 
 1. **[Rationale.md](./Rationale.md)** (30 min) - Understand why this project exists
 2. **[Documentation.md](./Documentation.md)** (45 min) - Learn the system architecture
-3. **[processAPI.md](./processAPI.md)** (30 min) - Understand API processing
+3. **[Process_API.md](./Process_API.md)** (30 min) - Understand API processing
 
 **Total time: ~2 hours** for a complete overview.
 
@@ -30,8 +30,8 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 
 ### Technical Implementation
 
-- **`processAPI.md`**: API processing documentation and incremental synchronization
-- **`processPlanet.md`**: Planet file processing documentation and historical data handling
+- **`Process_API.md`**: API processing documentation and incremental synchronization
+- **`Process_Planet.md`**: Planet file processing documentation and historical data handling
 
 ### Spatial Processing
 
@@ -73,7 +73,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
         │                            │
         ▼                            ▼
 ┌───────────────┐          ┌──────────────────┐
-│ processAPI.md │          │ processPlanet.md │
+│ Process_API.md │          │ Process_Planet.md │
 │ API Processing│          │ Planet Processing│
 │ (30 min)      │          │ (30 min)         │
 └───────────────┘          └──────────────────┘
@@ -107,10 +107,10 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
   - Data flow
 
 **Step 3: Processing Details** (60 min)
-- **[processAPI.md](./processAPI.md)** - API processing (30 min)
+- **[Process_API.md](./Process_API.md)** - API processing (30 min)
   - Real-time synchronization
   - Incremental updates
-- **[processPlanet.md](./processPlanet.md)** - Planet processing (30 min)
+- **[Process_Planet.md](./Process_Planet.md)** - Planet processing (30 min)
   - Historical data loading
   - Bulk processing
 
@@ -124,8 +124,8 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **[Documentation.md](./Documentation.md)** - Architecture (45 min)
 
 **Step 2: Core Implementation** (60 min)
-- **[processAPI.md](./processAPI.md)** - API integration (30 min)
-- **[processPlanet.md](./processPlanet.md)** - Data processing (30 min)
+- **[Process_API.md](./Process_API.md)** - API integration (30 min)
+- **[Process_Planet.md](./Process_Planet.md)** - Data processing (30 min)
 
 **Step 3: Advanced Topics** (75 min)
 - **[WMS_Guide.md](./WMS_Guide.md)** - WMS technical details (45 min)
@@ -140,8 +140,8 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **[Documentation.md](./Documentation.md)** - Deployment guidelines
 
 **Step 2: Operations** (60 min)
-- **[processAPI.md](./processAPI.md)** - API operations (30 min)
-- **[processPlanet.md](./processPlanet.md)** - Planet operations (30 min)
+- **[Process_API.md](./Process_API.md)** - API operations (30 min)
+- **[Process_Planet.md](./Process_Planet.md)** - Planet operations (30 min)
 
 **Step 3: WMS Administration** (45 min)
 - **[WMS_Guide.md](./WMS_Guide.md)** - WMS installation, configuration, and administration
@@ -168,14 +168,14 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **Purpose**: Project motivation and background
 - **References**:
   - [Documentation.md](./Documentation.md) for technical details
-  - [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for implementation specifics
+  - [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for implementation specifics
 
 ### Documentation.md
 
 - **Purpose**: System architecture and technical overview
 - **References**:
   - [Rationale.md](./Rationale.md) for project motivation
-  - [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for detailed implementation
+  - [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for detailed implementation
 
 ### Testing Documentation
 
@@ -184,22 +184,22 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **Input_Validation.md**: Input validation and error handling procedures
 - **XML_Validation_Improvements.md**: XML processing and validation testing
 
-### processAPI.md
+### Process_API.md
 
 - **Purpose**: API processing and incremental synchronization
 - **References**:
   - [Documentation.md](./Documentation.md) for system architecture
   - [Rationale.md](./Rationale.md) for project background
-  - [processPlanet.md](./processPlanet.md) for related processing workflows
+  - [Process_Planet.md](./Process_Planet.md) for related processing workflows
   - [Testing_Guide.md](./Testing_Guide.md) for testing procedures
 
-### processPlanet.md
+### Process_Planet.md
 
 - **Purpose**: Planet file processing and historical data handling
 - **References**:
   - [Documentation.md](./Documentation.md) for system architecture
   - [Rationale.md](./Rationale.md) for project background
-  - [processAPI.md](./processAPI.md) for related processing workflows
+  - [Process_API.md](./Process_API.md) for related processing workflows
   - [Testing_Guide.md](./Testing_Guide.md) for testing procedures
 
 ### WMS Documentation
@@ -244,7 +244,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 
 - Understand data flow and transformation processes
 - Modify processing scripts and data ingestion procedures
-- Study [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md) for implementation details
+- Study [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for implementation details
 
 > **Note:** For ETL procedures and analytics capabilities, see
 > [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).

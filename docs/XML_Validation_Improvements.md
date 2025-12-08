@@ -262,7 +262,7 @@ These improvements successfully resolve the segmentation fault issues with large
 
 - **[Input_Validation.md](./Input_Validation.md)**: General input validation functions and procedures
 - **[Documentation.md](./Documentation.md)**: System architecture and data processing pipeline
-- **[processPlanet.md](./processPlanet.md)**: Planet file processing (uses XML validation)
-- **[processAPI.md](./processAPI.md)**: API processing (uses XML validation)
+- **[Process_Planet.md](./Process_Planet.md)**: Planet file processing (uses XML validation)
+- **[Process_API.md](./Process_API.md)**: API processing (uses XML validation)
 - **[Testing_Guide.md](./Testing_Guide.md)**: Testing procedures including XML validation tests
 - **[Rationale.md](./Rationale.md)**: Design decisions regarding XML processing with AWK

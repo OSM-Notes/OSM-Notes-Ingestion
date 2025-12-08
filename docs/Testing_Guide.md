@@ -557,5 +557,5 @@ Integration tests are essential to detect real problems before they reach produc
 - **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD setup and configuration
 - **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
 - **[Documentation.md](./Documentation.md)**: System architecture and overview
-- **[processAPI.md](./processAPI.md)**: API processing implementation (for testing API components)
-- **[processPlanet.md](./processPlanet.md)**: Planet processing implementation (for testing Planet components)
+- **[Process_API.md](./Process_API.md)**: API processing implementation (for testing API components)
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing implementation (for testing Planet components)
