@@ -49,6 +49,22 @@ This document lists technical decisions and architectural choices that should be
 - **Consideration**: Further refactoring to improve modularity and reduce duplication
 - **Rationale**: Scripts became very long and complex, requiring division. Further improvements may be needed
 
+## Data Processing Pipeline
+
+- **Current**: XML → CSV → Database pipeline
+  - XML files are converted to CSV using AWK
+  - CSV files are loaded into database using PostgreSQL COPY
+- **Consideration**: Evaluate direct XML insertion to database
+  - Eliminate CSV intermediate step
+  - Use PostgreSQL XML functions for parsing
+  - Stream large XML files directly to database
+- **Requirements**: Before implementing, analyze:
+  - Performance comparison (XML → DB vs XML → CSV → DB)
+  - Memory usage with very large XML files (2.2GB+)
+  - Error handling and recovery mechanisms
+  - Parallel processing capabilities
+- **Rationale**: CSV intermediate step was chosen for memory efficiency and bulk loading performance, but direct XML insertion could simplify the pipeline if performance is acceptable
+
 ## Performance Optimization
 
 - **Current**: Basic performance optimizations in place

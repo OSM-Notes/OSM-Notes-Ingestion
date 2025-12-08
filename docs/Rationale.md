@@ -211,6 +211,26 @@ Partitions were created so that different threads could work on different parts 
 
 * **XML Processing**: Multiple XML processing tools were evaluated (Saxon, xmlproc, xmlstarlet) before settling on AWK.
 
+* **Data Processing Pipeline (XML → CSV → Database)**:
+  * **Current Approach**: XML files from API and Planet are not inserted directly into the database because they are very large (Planet files can be 2.2GB+). The current pipeline is:
+    1. Download XML from API/Planet
+    2. Transform XML to CSV using AWK (fast, memory-efficient)
+    3. Load CSV into database using PostgreSQL COPY (very fast bulk loading)
+  * **Why CSV Intermediate Step?**:
+    * **Memory Efficiency**: CSV files are much smaller than XML (no tags, attributes, etc.)
+    * **Bulk Loading Performance**: PostgreSQL COPY command is extremely fast for CSV files
+    * **Parallel Processing**: CSV files can be easily split and processed in parallel
+    * **Error Recovery**: If database insertion fails, CSV files can be reused without re-downloading XML
+    * **Validation**: CSV structure can be validated before database insertion
+  * **Future Consideration**: Direct XML insertion could be evaluated in the future to eliminate the CSV intermediate step, potentially simplifying the pipeline. However, this would require:
+    * Efficient XML parsing directly in PostgreSQL (using XML functions)
+    * Handling very large XML files in memory or streaming
+    * Maintaining performance with bulk inserts
+    * Error handling and recovery mechanisms
+  * **Trade-offs**:
+    * **Current (XML → CSV → DB)**: More steps but proven, efficient, and allows parallel processing
+    * **Future (XML → DB)**: Fewer steps but requires more complex XML handling in database and may have performance/memory challenges with very large files
+
 ### 6. Design Patterns
 
 **What design patterns are used in the project?**
