@@ -90,6 +90,86 @@ For allowed script entry points and their parameters, see:
 All scripts in this directory are designed to be run from the project root and
 require proper database configuration and dependencies to be installed.
 
+### Quick Start Examples
+
+#### First-Time Setup
+
+Complete initial setup from scratch:
+
+```bash
+# 1. Process all historical notes from Planet (takes 1-2 hours)
+./bin/process/processPlanetNotes.sh --base
+
+# 2. Load country and maritime boundaries
+./bin/process/updateCountries.sh --base
+
+# 3. Verify setup
+psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+psql -d osm_notes -c "SELECT COUNT(*) FROM countries;"
+
+# 4. Generate backups for faster future processing
+./bin/scripts/generateNoteLocationBackup.sh
+./bin/scripts/exportCountriesBackup.sh
+./bin/scripts/exportMaritimesBackup.sh
+```
+
+#### Production Deployment
+
+Set up automated processing:
+
+```bash
+# Add to crontab (crontab -e)
+# Process API notes every 15 minutes
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >/dev/null 2>&1
+
+# Daily Planet sync (optional, at 2 AM)
+0 2 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processPlanetNotes.sh >/dev/null 2>&1
+
+# Weekly boundary updates (Sundays at 3 AM)
+0 3 * * 0 cd /path/to/OSM-Notes-Ingestion && ./bin/process/updateCountries.sh >/dev/null 2>&1
+```
+
+#### Development and Testing
+
+Run with debug logging and file preservation:
+
+```bash
+# Enable debug logging
+export LOG_LEVEL=DEBUG
+
+# Keep temporary files for inspection
+export CLEAN=false
+
+# Run API processing
+./bin/process/processAPINotes.sh
+
+# Inspect generated files
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+ls -lh "$LATEST_DIR"
+cat "$LATEST_DIR/processAPINotes.log"
+```
+
+#### Troubleshooting Mode
+
+Run with maximum verbosity:
+
+```bash
+# Enable trace-level logging (most verbose)
+export LOG_LEVEL=TRACE
+
+# Enable bash debug mode (shows all commands)
+export BASH_DEBUG=true
+
+# Keep all files
+export CLEAN=false
+
+# Run script
+./bin/process/processAPINotes.sh
+
+# Check logs
+tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+```
+
 ### Main Processing Scripts
 
 #### processAPINotes.sh
@@ -329,6 +409,28 @@ export LOG_LEVEL=DEBUG
 ./bin/monitor/notesCheckVerifier.sh
 ```
 
+**Automated Daily Verification:**
+
+```bash
+# Add to crontab for daily verification at 3 AM
+0 3 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh >> /var/log/osm-notes-verification.log 2>&1
+```
+
+**Check Specific Time Range:**
+
+```bash
+# Verify notes from last 24 hours
+export VERIFY_LAST_HOURS=24
+./bin/monitor/notesCheckVerifier.sh
+```
+
+**Exit Codes:**
+
+- `0`: Verification successful, no discrepancies
+- `1`: Help message displayed
+- `241`: Library or utility missing
+- `255`: General error or discrepancies found
+
 #### analyzeDatabasePerformance.sh
 
 Analyzes database performance and provides optimization recommendations.
@@ -360,6 +462,31 @@ Analyzes database performance and provides optimization recommendations.
 [INFO]   - Consider VACUUM ANALYZE on notes table
 [INFO]   - Index 'idx_notes_country' is underutilized
 ```
+
+**Generate Performance Report:**
+
+```bash
+# Save output to file for analysis
+./bin/monitor/analyzeDatabasePerformance.sh --db osm_notes > performance_report.txt 2>&1
+
+# Review recommendations
+grep -i "recommendation\|warning\|error" performance_report.txt
+```
+
+**Weekly Performance Monitoring:**
+
+```bash
+# Add to crontab for weekly analysis (Sundays at 4 AM)
+0 4 * * 0 cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/analyzeDatabasePerformance.sh >> /var/log/osm-notes-performance.log 2>&1
+```
+
+**Exit Codes:**
+
+- `0`: Analysis completed successfully
+- `1`: Help message displayed
+- `241`: Library or utility missing
+- `242`: Invalid argument
+- `255`: General error
 
 ### Maintenance Scripts
 
@@ -439,6 +566,52 @@ Manages WMS database components (tables, triggers, functions).
 [INFO] WMS components installed successfully.
 ```
 
+**Verify Installation:**
+
+```bash
+# Check if WMS schema exists
+psql -d osm_notes -c "\dn wms"
+
+# List WMS tables
+psql -d osm_notes -c "\dt wms.*"
+
+# Check triggers
+psql -d osm_notes -c "SELECT trigger_name, event_object_table FROM information_schema.triggers WHERE trigger_schema = 'wms';"
+```
+
+**Remove WMS Components:**
+
+```bash
+# Remove all WMS components (use with caution)
+./bin/wms/wmsManager.sh remove
+```
+
+**Expected Output (Remove):**
+
+```
+[INFO] Removing WMS components...
+[INFO] Dropping WMS schema...
+[INFO] WMS components removed successfully.
+```
+
+**Reinstall After Schema Changes:**
+
+```bash
+# Remove and reinstall to apply updates
+./bin/wms/wmsManager.sh remove
+./bin/wms/wmsManager.sh install
+```
+
+**Exit Codes:**
+
+- `0`: Operation completed successfully
+- `1`: Help message displayed
+- `241`: Library or utility missing
+- `242`: Invalid argument
+- `255`: General error
+[INFO] WMS components installed successfully.
+```
+
 **Check Status:**
 
 ```bash
@@ -495,11 +668,47 @@ Configures GeoServer for WMS service.
 ./bin/wms/geoserverConfig.sh status
 ```
 
+**Expected Output (Status):**
+
+```
+[INFO] Checking GeoServer configuration...
+[INFO] Workspace: osm_notes (exists)
+[INFO] Datastore: osm_notes_db (exists)
+[INFO] Layers: 3 configured
+[INFO] GeoServer is properly configured.
+```
+
 **Remove Configuration:**
 
 ```bash
 ./bin/wms/geoserverConfig.sh remove
 ```
+
+**Expected Output (Remove):**
+
+```
+[INFO] Removing GeoServer configuration...
+[INFO] Removing layers...
+[INFO] Removing datastore...
+[INFO] Removing workspace...
+[INFO] GeoServer configuration removed successfully.
+```
+
+**Reconfigure After Changes:**
+
+```bash
+# Remove and reinstall to apply updates
+./bin/wms/geoserverConfig.sh remove
+./bin/wms/geoserverConfig.sh install
+```
+
+**Exit Codes:**
+
+- `0`: Operation completed successfully
+- `1`: Help message displayed
+- `241`: Library or utility missing
+- `242`: Invalid argument
+- `255`: General error
 
 ### Generating Backups
 
@@ -596,113 +805,141 @@ Complete setup from scratch:
 ./bin/scripts/exportCountriesBackup.sh
 ./bin/scripts/exportMaritimesBackup.sh
 
-# 4. Install WMS components (optional)
+# 4. Install WMS components (optional, for map visualization)
 ./bin/wms/wmsManager.sh install
-./bin/wms/geoserverConfig.sh install
+
+# Expected output: Creating WMS schema, configuring triggers
+# Result: WMS tables and functions ready for GeoServer
 ```
 
 #### Daily Operations
 
-Typical daily workflow:
+Normal production workflow:
 
 ```bash
-# 1. Process recent notes from API (runs every 15 min via cron)
+# API processing runs automatically via cron (every 15 minutes)
+# Manual execution if needed:
 ./bin/process/processAPINotes.sh
 
-# 2. Daily verification (optional, can be automated)
-./bin/monitor/notesCheckVerifier.sh
+# Check processing status
+psql -d osm_notes -c "
+  SELECT 
+    COUNT(*) as total_notes,
+    COUNT(*) FILTER (WHERE status = 'open') as open_notes,
+    MAX(created_at) as latest_note
+  FROM notes;
+"
 
-# 3. Weekly boundary updates (optional)
+# View latest processing log
+tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+```
+
+#### Periodic Maintenance
+
+Weekly or monthly maintenance tasks:
+
+```bash
+# Update country boundaries (if boundaries changed in OSM)
+./bin/process/updateCountries.sh
+
+# Expected: Downloads only changed boundaries, re-assigns affected notes
+# Time: 5-15 minutes
+
+# Sync with latest Planet dump (optional, for complete data)
+./bin/process/processPlanetNotes.sh
+
+# Expected: Processes only new notes since last sync
+# Time: 30-60 minutes depending on new data volume
+
+# Regenerate backups after significant updates
+./bin/scripts/generateNoteLocationBackup.sh
+./bin/scripts/exportCountriesBackup.sh
+./bin/scripts/exportMaritimesBackup.sh
+```
+
+#### Performance Optimization
+
+Adjust processing for your system:
+
+```bash
+# Reduce parallel threads if low on memory
+export MAX_THREADS=2
+./bin/process/processPlanetNotes.sh --base
+
+# Skip validations for faster processing (production only)
+export SKIP_XML_VALIDATION=true
+export SKIP_CSV_VALIDATION=true
+./bin/process/processAPINotes.sh
+
+# Increase Overpass rate limit delay if getting rate limited
+export RATE_LIMIT=5
 ./bin/process/updateCountries.sh
 ```
 
-#### Development/Testing
+#### Data Export and Backup
 
-Testing with a separate database:
+Export data for analysis or backup:
+
+```bash
+# Export all note locations (for faster reprocessing)
+./bin/scripts/generateNoteLocationBackup.sh
+
+# Export country boundaries to GeoJSON
+./bin/scripts/exportCountriesBackup.sh
+
+# Export maritime boundaries to GeoJSON
+./bin/scripts/exportMaritimesBackup.sh
+
+# Verify exports
+ls -lh data/*.zip data/*.geojson
+```
+
+#### Error Recovery
+
+Recover from failed executions:
+
+```bash
+# Check if previous execution failed
+ls -la /tmp/processAPINotes_failed_execution
+
+# Review error details
+cat /tmp/processAPINotes_failed_execution
+
+# Check logs
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i error "$LATEST_DIR/processAPINotes.log" | tail -20
+
+# Fix the underlying issue, then remove marker
+rm /tmp/processAPINotes_failed_execution
+
+# Re-run (or wait for next cron execution)
+./bin/process/processAPINotes.sh
+```
+
+#### Testing and Development
+
+Run scripts in test mode:
 
 ```bash
 # Use test database
 export DBNAME=osm_notes_test
 
-# Run with debug logging and keep files
+# Enable debug logging
 export LOG_LEVEL=DEBUG
+
+# Keep temporary files
 export CLEAN=false
 
-# Test API processing
+# Run with validation enabled
+export SKIP_XML_VALIDATION=false
+export SKIP_CSV_VALIDATION=false
+
+# Execute script
 ./bin/process/processAPINotes.sh
 
-# Inspect generated files
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-ls -lh "$LATEST_DIR"
-cat "$LATEST_DIR/processAPINotes.log"
-```
-
-#### Troubleshooting
-
-When things go wrong:
-
-```bash
-# 1. Check if previous execution failed
-ls -la /tmp/processAPINotes_failed_execution
-cat /tmp/processAPINotes_failed_execution
-
-# 2. Review latest logs
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-tail -100 "$LATEST_DIR/processAPINotes.log"
-
-# 3. Check database status
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
-
-# 4. Verify scripts are not stuck
-ps aux | grep -E "processAPI|processPlanet"
-
-# 5. Remove failed marker and retry
-rm /tmp/processAPINotes_failed_execution
-./bin/process/processAPINotes.sh
-```
-
-#### Performance Monitoring
-
-Monitor system performance:
-
-```bash
-# Analyze database performance
-./bin/monitor/analyzeDatabasePerformance.sh
-
-# Check processing times
-grep "Processing time" /tmp/processAPINotes_*/processAPINotes.log
-
-# Monitor database size
-psql -d osm_notes -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));"
-
-# Check table sizes
-psql -d osm_notes -c "
-SELECT 
-    schemaname,
-    tablename,
-    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
-FROM pg_tables
-WHERE schemaname IN ('public', 'wms')
-ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
-"
-```
-
-#### Backup Management
-
-Create and manage backups:
-
-```bash
-# Generate all backups
-./bin/scripts/generateNoteLocationBackup.sh
-./bin/scripts/exportCountriesBackup.sh
-./bin/scripts/exportMaritimesBackup.sh
-
-# Verify backup files
-ls -lh data/*.zip data/*.geojson
-
-# Compress GeoJSON files for storage
-gzip -k data/countries.geojson
-gzip -k data/maritimes.geojson
+# Inspect results
+psql -d osm_notes_test -c "SELECT COUNT(*) FROM notes;"
+ls -lh /tmp/processAPINotes_*/
 ```
 
 ### Environment Variables

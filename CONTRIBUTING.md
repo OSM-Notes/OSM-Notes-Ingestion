@@ -43,13 +43,33 @@ OSM-Notes-Ingestion is a data ingestion system for OpenStreetMap notes. It:
 
 Before contributing, familiarize yourself with:
 
+#### Core Documentation
+
 - **[README.md](../README.md)**: Project overview and quick start
 - **[docs/Documentation.md](../docs/Documentation.md)**: Complete system architecture and technical details
 - **[docs/Rationale.md](../docs/Rationale.md)**: Project motivation and design decisions
-- **[docs/Process_API.md](../docs/Process_API.md)**: API processing implementation details
-- **[docs/Process_Planet.md](../docs/Process_Planet.md)**: Planet processing implementation details
-- **[bin/README.md](../bin/README.md)**: Script usage examples and reference
+- **[docs/Component_Dependencies.md](../docs/Component_Dependencies.md)**: Component dependencies and interactions
+- **[docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md)**: Centralized troubleshooting guide with error codes
+
+#### Processing Documentation
+
+- **[docs/Process_API.md](../docs/Process_API.md)**: API processing implementation details, sequence diagrams, and troubleshooting
+- **[docs/Process_Planet.md](../docs/Process_Planet.md)**: Planet processing implementation details, sequence diagrams, and troubleshooting
+- **[docs/Country_Assignment_2D_Grid.md](../docs/Country_Assignment_2D_Grid.md)**: Country assignment algorithm and spatial processing
+- **[docs/Capital_Validation_Explanation.md](../docs/Capital_Validation_Explanation.md)**: Capital location validation mechanism
+- **[docs/ST_DWithin_Explanation.md](../docs/ST_DWithin_Explanation.md)**: Spatial distance queries explanation
+
+#### Script Reference
+
+- **[bin/README.md](../bin/README.md)**: Script usage examples, common use cases, and reference
 - **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Which scripts can be called directly
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable documentation
+
+#### Testing Documentation
+
+- **[tests/README.md](../tests/README.md)**: Testing infrastructure overview
+- **[docs/Testing_Guide.md](../docs/Testing_Guide.md)**: Comprehensive testing guide
+- **[docs/Testing_Suites_Reference.md](../docs/Testing_Suites_Reference.md)**: Complete test suite reference
 
 ## System Architecture Overview
 
@@ -154,25 +174,40 @@ For detailed flow diagrams, see [docs/Documentation.md](../docs/Documentation.md
 **Process**:
 
 1. **Identify the issue**:
-   - Reproduce the bug
-   - Check existing issues on GitHub
-   - Review error logs and troubleshooting guides
+   - Reproduce the bug consistently
+   - Check existing issues on GitHub (avoid duplicates)
+   - Review error logs and check failed execution markers (`/tmp/*_failed_execution`)
+   - Check error codes: See [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md#error-code-reference)
 
 2. **Understand the context**:
-   - Review relevant documentation:
-     - [docs/Documentation.md](../docs/Documentation.md) for system overview
-     - [docs/Process_API.md](../docs/Process_API.md) or [docs/Process_Planet.md](../docs/Process_Planet.md) for processing details
-     - [docs/Documentation.md#troubleshooting-guide](../docs/Documentation.md#troubleshooting-guide) for common issues
+   - **System Overview**: Review [docs/Documentation.md](../docs/Documentation.md) for architecture
+   - **Component Dependencies**: Check [docs/Component_Dependencies.md](../docs/Component_Dependencies.md) to understand interactions
+   - **Processing Details**: 
+     - [docs/Process_API.md](../docs/Process_API.md) for API processing bugs
+     - [docs/Process_Planet.md](../docs/Process_Planet.md) for Planet processing bugs
+   - **Troubleshooting**: Review [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md) for common issues and solutions
+   - **Spatial Processing**: If related to country assignment, see [docs/Country_Assignment_2D_Grid.md](../docs/Country_Assignment_2D_Grid.md)
+   - **Error Codes**: Verify error codes match standards in `lib/osm-common/commonFunctions.sh`
 
-3. **Create a fix**:
+3. **Locate the problematic code**:
+   - Check script entry points: [bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)
+   - Review function libraries: `bin/lib/` and `lib/osm-common/`
+   - Check SQL scripts if database-related: `sql/process/`, `sql/wms/`
+   - Review AWK scripts if XML processing: `awk/`
+
+4. **Create a fix**:
    - Follow code standards (see [Code Standards](#code-standards))
+   - Use standardized error codes from `lib/osm-common/commonFunctions.sh`
    - Add tests for the bug (prevent regression)
    - Update documentation if behavior changes
+   - Update [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md) if it's a new error scenario
 
-4. **Test thoroughly**:
+5. **Test thoroughly**:
    - Run all tests: `./tests/run_all_tests.sh`
+   - Run specific test category: `./tests/run_tests.sh --type unit`
    - Test the specific scenario that was broken
-   - Verify no regressions
+   - Verify no regressions: `./tests/run_tests.sh --type all`
+   - Check code quality: `./tests/run_quality_tests.sh`
 
 **Example commit message**:
 ```text
@@ -191,28 +226,46 @@ Fixes #123
 **Process**:
 
 1. **Propose the feature**:
-   - Open a GitHub issue to discuss
+   - Open a GitHub issue to discuss (use "Feature Request" template)
    - Explain the use case and benefits
-   - Review architecture to understand integration points
+   - Review architecture to understand integration points:
+     - [docs/Documentation.md](../docs/Documentation.md) for system architecture
+     - [docs/Component_Dependencies.md](../docs/Component_Dependencies.md) for component interactions
+     - [docs/Rationale.md](../docs/Rationale.md) for design principles
 
 2. **Design the solution**:
-   - Review architecture documentation:
-     - [docs/Documentation.md](../docs/Documentation.md) for system architecture
-     - [docs/Rationale.md](../docs/Rationale.md) for design principles
-     - [bin/README.md](../bin/README.md) for script patterns
-   - Consider impact on existing components
-   - Plan database changes if needed
+   - **Architecture Review**:
+     - [docs/Documentation.md](../docs/Documentation.md) for system architecture and data flows
+     - [docs/Component_Dependencies.md](../docs/Component_Dependencies.md) to understand dependencies
+   - **Pattern Review**:
+     - [bin/README.md](../bin/README.md) for script patterns and examples
+     - Existing scripts in `bin/process/`, `bin/monitor/`, `bin/wms/` for patterns
+   - **Database Design**:
+     - Review existing schema: `sql/process/`, `sql/wms/`
+     - Consider spatial queries: [docs/ST_DWithin_Explanation.md](../docs/ST_DWithin_Explanation.md)
+     - Plan migrations if schema changes needed
+   - **Integration Points**:
+     - Check if it affects API processing: [docs/Process_API.md](../docs/Process_API.md)
+     - Check if it affects Planet processing: [docs/Process_Planet.md](../docs/Process_Planet.md)
+     - Review WMS integration: `bin/wms/` scripts
+   - **Error Handling**:
+     - Use standardized error codes from `lib/osm-common/commonFunctions.sh`
+     - Document new error codes in [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md)
 
 3. **Implement the feature**:
-   - Follow code standards and patterns
-   - Create comprehensive tests
+   - Follow code standards and patterns (see [Code Standards](#code-standards))
+   - Use consolidated functions when possible: `bin/parallelProcessingFunctions.sh`, `bin/consolidatedValidationFunctions.sh`
+   - Create comprehensive tests (see [Testing Requirements](#testing-requirements))
    - Update all relevant documentation
 
 4. **Documentation updates**:
-   - Update [docs/Documentation.md](../docs/Documentation.md) if architecture changes
-   - Update [bin/README.md](../bin/README.md) if adding new scripts
-   - Add usage examples
-   - Update [bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md) if adding entry points
+   - **Architecture**: Update [docs/Documentation.md](../docs/Documentation.md) if architecture changes
+   - **Component Dependencies**: Update [docs/Component_Dependencies.md](../docs/Component_Dependencies.md) if dependencies change
+   - **Script Usage**: Update [bin/README.md](../bin/README.md) with examples and use cases
+   - **Entry Points**: Update [bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md) if adding new scripts
+   - **Troubleshooting**: Add new error scenarios to [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md)
+   - **Processing Docs**: Update [docs/Process_API.md](../docs/Process_API.md) or [docs/Process_Planet.md](../docs/Process_Planet.md) if relevant
+   - **Environment Variables**: Update [bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md) if adding new variables
 
 **Example commit message**:
 ```text
@@ -235,25 +288,33 @@ Closes #456
 **Process**:
 
 1. **Identify refactoring opportunity**:
-   - Code duplication
-   - Performance improvements
-   - Better error handling
-   - Improved maintainability
+   - Code duplication (consolidate into shared functions)
+   - Performance improvements (parallel processing, optimization)
+   - Better error handling (standardize error codes)
+   - Improved maintainability (better organization, documentation)
 
 2. **Review existing patterns**:
-   - Check [docs/Documentation.md](../docs/Documentation.md) for component interactions
-   - Review consolidated functions in [CONTRIBUTING.md#consolidated-functions](#consolidated-functions)
-   - Understand shared libraries in `lib/osm-common/`
+   - **Component Interactions**: Check [docs/Documentation.md](../docs/Documentation.md) and [docs/Component_Dependencies.md](../docs/Component_Dependencies.md)
+   - **Consolidated Functions**: Review [CONTRIBUTING.md#consolidated-functions](#consolidated-functions)
+     - `bin/parallelProcessingFunctions.sh`: Parallel processing functions
+     - `bin/consolidatedValidationFunctions.sh`: Validation functions
+   - **Shared Libraries**: Understand `lib/osm-common/` structure
+   - **Error Codes**: Ensure consistency with `lib/osm-common/commonFunctions.sh`
+   - **Script Patterns**: Review existing scripts for established patterns
 
 3. **Plan the refactoring**:
-   - Ensure no functionality changes
-   - Maintain backward compatibility
-   - Consider impact on tests
+   - **Functionality Preservation**: Ensure no functionality changes
+   - **Backward Compatibility**: Maintain compatibility with existing scripts
+   - **Test Impact**: Consider impact on existing tests
+   - **Documentation**: Plan documentation updates
+   - **Error Handling**: Maintain or improve error handling
 
 4. **Execute carefully**:
-   - Make incremental changes
-   - Run tests after each change
-   - Verify behavior is unchanged
+   - Make incremental changes (one function/script at a time)
+   - Run tests after each change: `./tests/run_tests.sh --type unit`
+   - Verify behavior is unchanged: `./tests/run_all_tests.sh`
+   - Update documentation if patterns change
+   - Update [docs/Component_Dependencies.md](../docs/Component_Dependencies.md) if dependencies change
 
 **Example commit message**:
 ```text
@@ -756,6 +817,91 @@ function __function_name {
 }
 ```
 
+### How to Document Changes
+
+When making changes, update documentation as follows:
+
+#### Script Changes
+
+1. **Update Script Header**:
+   - Update version date to current date (YYYY-MM-DD)
+   - Add new examples if functionality changes
+   - Update error codes list if adding new errors
+   - Update function descriptions if behavior changes
+
+2. **Update bin/README.md**:
+   - Add usage examples for new scripts
+   - Update examples if behavior changes
+   - Add new error codes to exit codes section
+   - Update "Common Use Cases" if applicable
+
+3. **Update bin/ENTRY_POINTS.md**:
+   - Add entry point if creating new executable script
+   - Document parameters and options
+
+#### Architecture Changes
+
+1. **Update docs/Documentation.md**:
+   - Update architecture diagrams if components change
+   - Add new sequence diagrams for new processes
+   - Update data flow descriptions
+
+2. **Update docs/Component_Dependencies.md**:
+   - Add new dependencies if components interact differently
+   - Update dependency diagrams
+
+#### Error Handling Changes
+
+1. **Update docs/Troubleshooting_Guide.md**:
+   - Add new error scenarios with diagnosis and solutions
+   - Update error code reference table
+   - Add new error codes to script-specific sections
+
+2. **Update lib/osm-common/commonFunctions.sh**:
+   - Add new error code constants if needed
+   - Document error code meanings
+
+#### Processing Changes
+
+1. **Update docs/Process_API.md** or **docs/Process_Planet.md**:
+   - Update sequence diagrams if flow changes
+   - Add new troubleshooting cases
+   - Update code examples if API changes
+
+2. **Update docs/Country_Assignment_2D_Grid.md**:
+   - Document changes to country assignment algorithm
+   - Update spatial processing explanations
+
+#### Environment Variable Changes
+
+1. **Update bin/ENVIRONMENT_VARIABLES.md**:
+   - Document new environment variables
+   - Update descriptions if behavior changes
+   - Add examples of usage
+
+#### Testing Changes
+
+1. **Update tests/README.md**:
+   - Document new test suites
+   - Update test execution instructions
+
+2. **Update docs/Testing_Guide.md**:
+   - Add new test scenarios
+   - Update test execution examples
+
+#### Documentation Checklist
+
+Before submitting, verify:
+
+- [ ] Script headers updated with current date
+- [ ] bin/README.md updated with examples (if script changes)
+- [ ] docs/Troubleshooting_Guide.md updated (if error handling changes)
+- [ ] docs/Documentation.md updated (if architecture changes)
+- [ ] docs/Component_Dependencies.md updated (if dependencies change)
+- [ ] Relevant processing docs updated (Process_API.md or Process_Planet.md)
+- [ ] Cross-references verified and updated
+- [ ] All links in documentation work correctly
+
 ## Quality Assurance
 
 ### Pre-Submission Checklist
@@ -809,11 +955,20 @@ shellcheck -x -o all script.sh
 
 ### 2. Submission
 
-1. **Commit your changes**:
+1. **Commit your changes** (use conventional commits):
 
    ```bash
+   # Format: <type>(<scope>): <subject>
    git add .
-   git commit -m "feat: add new feature description"
+   git commit -m "feat(processAPI): add new feature description"
+   
+   # Common types:
+   # feat: New feature
+   # fix: Bug fix
+   # docs: Documentation changes
+   # refactor: Code refactoring
+   # test: Adding tests
+   # chore: Maintenance tasks
    ```
 
 2. **Push to your fork**:
@@ -823,10 +978,16 @@ shellcheck -x -o all script.sh
    ```
 
 3. **Create a Pull Request** with:
-   - **Clear title**: Describe the feature/fix
-   - **Detailed description**: Explain what and why
-   - **Test results**: Include test output
-   - **Screenshots**: If applicable
+   - **Clear title**: Use conventional commit format: `type(scope): description`
+   - **Detailed description**: 
+     - Explain what and why
+     - Reference related issues: `Fixes #123` or `Closes #456`
+     - List changes made
+     - Document any breaking changes
+   - **Test results**: Include test output showing all tests pass
+   - **Documentation**: List documentation files updated
+   - **Screenshots**: If applicable (for UI or visualization changes)
+   - **Checklist**: Mark completed items from pre-submission checklist
 
 ### 3. Review Process
 
