@@ -11,12 +11,12 @@ Scripts to export geographic boundaries from the database to GeoJSON backup file
 - **`exportCountriesBackup.sh`** - Exports country boundaries
   - Output: `data/countries.geojson`
   - Usage: `./bin/scripts/exportCountriesBackup.sh`
-  - See [data/BOUNDARIES_BACKUP.md](../../data/BOUNDARIES_BACKUP.md) for details
+  - See [Boundaries_Backup.md](../../docs/Boundaries_Backup.md) for details
 
 - **`exportMaritimesBackup.sh`** - Exports maritime boundaries (EEZ, Contiguous Zones)
   - Output: `data/maritimes.geojson`
   - Usage: `./bin/scripts/exportMaritimesBackup.sh`
-  - See [data/BOUNDARIES_BACKUP.md](../../data/BOUNDARIES_BACKUP.md) for details
+  - See [Boundaries_Backup.md](../../docs/Boundaries_Backup.md) for details
 
 These backups are automatically used by `processPlanet base` and `updateCountries` to
 avoid downloading boundaries from Overpass API when IDs match.
@@ -60,7 +60,7 @@ gzip -k data/countries.geojson
 gzip -k data/maritimes.geojson
 
 # Upload to OSM-Notes-Data repository (requires write access)
-# See data/BOUNDARIES_BACKUP.md for detailed upload instructions
+# See docs/Boundaries_Backup.md for detailed upload instructions
 ```
 
 **Note**: To regenerate backups from scratch (e.g., after fixing import bugs), run:

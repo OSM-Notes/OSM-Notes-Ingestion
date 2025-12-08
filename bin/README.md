@@ -128,7 +128,7 @@ These scripts:
 - Are automatically used by `processPlanet base` and `updateCountries`
 - Compare IDs before downloading to avoid unnecessary Overpass API calls
 
-See [data/BOUNDARIES_BACKUP.md](../data/BOUNDARIES_BACKUP.md) for complete
+See [Boundaries_Backup.md](../docs/Boundaries_Backup.md) for complete
 documentation on boundaries backup functionality.
 
 ## Dependencies

@@ -20,7 +20,7 @@
 #   data/countries.geojson - GeoJSON file with country boundaries
 #
 # See also:
-#   - data/BOUNDARIES_BACKUP.md - Complete documentation on boundaries backups
+#   - docs/Boundaries_Backup.md - Complete documentation on boundaries backups
 #   - bin/scripts/exportMaritimesBackup.sh - Export maritime boundaries
 #
 # Author: Andres Gomez (AngocA)
