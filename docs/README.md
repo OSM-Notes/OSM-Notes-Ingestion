@@ -4,6 +4,18 @@
 
 The `docs` directory contains comprehensive documentation for the OSM-Notes-Ingestion system, including user guides, technical specifications, and implementation details. This documentation helps users and contributors understand the system architecture and usage.
 
+## Quick Start
+
+**New to the project?** Start here:
+
+1. **[Rationale.md](./Rationale.md)** (30 min) - Understand why this project exists
+2. **[Documentation.md](./Documentation.md)** (45 min) - Learn the system architecture
+3. **[processAPI.md](./processAPI.md)** (30 min) - Understand API processing
+
+**Total time: ~2 hours** for a complete overview.
+
+For detailed navigation paths by role, see [Documentation Navigation Guide](#documentation-navigation-guide) below.
+
 ## Documentation Structure
 
 ### Core Documentation
@@ -31,37 +43,115 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-Inge
 - **`WMS_Guide.md`**: Complete WMS guide for administrators and developers (installation, configuration, administration, deployment)
 - **`WMS_User_Guide.md`**: User guide for mappers and end users
 
-## Quick Navigation
+## Documentation Navigation Guide
 
-### For New Users
+### Visual Navigation Map
 
-1. Start with **[Rationale.md](./Rationale.md)** to understand the project's purpose and motivation
-2. Read **[Documentation.md](./Documentation.md)** for system architecture and overview
-3. Review **[processAPI.md](./processAPI.md)** and **[processPlanet.md](./processPlanet.md)** for technical implementation details
-4. Check **[WMS_User_Guide.md](./WMS_User_Guide.md)** for WMS usage instructions
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    START HERE                               │
+│              [Rationale.md] (30 min)                        │
+│              Why this project exists                         │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+        ┌────────────────────────────┐
+        │  [Documentation.md]        │
+        │  System Architecture       │
+        │  (45 min)                  │
+        └────────────┬───────────────┘
+                     │
+        ┌────────────┴───────────────┐
+        │                            │
+        ▼                            ▼
+┌───────────────┐          ┌──────────────────┐
+│ processAPI.md │          │ processPlanet.md │
+│ API Processing│          │ Planet Processing│
+│ (30 min)      │          │ (30 min)         │
+└───────────────┘          └──────────────────┘
+        │                            │
+        └────────────┬───────────────┘
+                     │
+        ┌────────────┴───────────────┐
+        │                            │
+        ▼                            ▼
+┌───────────────┐          ┌──────────────────┐
+│  WMS_Guide.md │          │ Testing_Guide.md  │
+│ WMS Technical │          │ Testing Docs     │
+│ (45 min)      │          │ (30 min)         │
+└───────────────┘          └──────────────────┘
+```
 
-### For Developers
+### Recommended Reading Paths by Role
 
-1. Review **[Documentation.md](./Documentation.md)** for system architecture
-2. Study **[processAPI.md](./processAPI.md)** for API integration details
-3. Examine **[processPlanet.md](./processPlanet.md)** for data processing workflows
-4. Consult **[WMS_Guide.md](./WMS_Guide.md)** for WMS technical details and administration
-5. Read **[Testing_Guide.md](./Testing_Guide.md)** and **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** for testing procedures
+#### For New Users (~2 hours total)
 
-### For System Administrators
+**Step 1: Project Context** (30 min)
+- **[Rationale.md](./Rationale.md)** - Project purpose and motivation
+  - Why this project exists
+  - Problem statement
+  - Historical context
 
-1. Read **[Documentation.md](./Documentation.md)** for deployment and maintenance guidelines
-2. Review **[processAPI.md](./processAPI.md)** and **[processPlanet.md](./processPlanet.md)** for operational procedures
-3. Follow **[WMS_Guide.md](./WMS_Guide.md)** for WMS system administration
-4. Use **[WMS_Guide.md](./WMS_Guide.md)** for WMS installation and configuration
-5. Check **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** for CI/CD pipeline understanding
+**Step 2: System Overview** (45 min)
+- **[Documentation.md](./Documentation.md)** - System architecture and overview
+  - High-level architecture
+  - Component relationships
+  - Data flow
 
-### For Testers and QA
+**Step 3: Processing Details** (60 min)
+- **[processAPI.md](./processAPI.md)** - API processing (30 min)
+  - Real-time synchronization
+  - Incremental updates
+- **[processPlanet.md](./processPlanet.md)** - Planet processing (30 min)
+  - Historical data loading
+  - Bulk processing
 
-1. Start with **[Testing_Guide.md](./Testing_Guide.md)** for comprehensive testing procedures
-2. Read **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** to understand GitHub Actions workflows
-3. Review **[Input_Validation.md](./Input_Validation.md)** for validation testing guidelines
-4. Study **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)** for XML testing procedures
+**Step 4: Usage** (15 min)
+- **[WMS_User_Guide.md](./WMS_User_Guide.md)** - How to use WMS layer
+
+#### For Developers (~3 hours total)
+
+**Step 1: Foundation** (75 min)
+- **[Rationale.md](./Rationale.md)** - Project context (30 min)
+- **[Documentation.md](./Documentation.md)** - Architecture (45 min)
+
+**Step 2: Core Implementation** (60 min)
+- **[processAPI.md](./processAPI.md)** - API integration (30 min)
+- **[processPlanet.md](./processPlanet.md)** - Data processing (30 min)
+
+**Step 3: Advanced Topics** (75 min)
+- **[WMS_Guide.md](./WMS_Guide.md)** - WMS technical details (45 min)
+- **[Testing_Guide.md](./Testing_Guide.md)** - Testing procedures (30 min)
+
+**Step 4: CI/CD** (30 min)
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - GitHub Actions workflows
+
+#### For System Administrators (~2.5 hours total)
+
+**Step 1: Deployment** (45 min)
+- **[Documentation.md](./Documentation.md)** - Deployment guidelines
+
+**Step 2: Operations** (60 min)
+- **[processAPI.md](./processAPI.md)** - API operations (30 min)
+- **[processPlanet.md](./processPlanet.md)** - Planet operations (30 min)
+
+**Step 3: WMS Administration** (45 min)
+- **[WMS_Guide.md](./WMS_Guide.md)** - WMS installation, configuration, and administration
+
+**Step 4: Monitoring** (30 min)
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - CI/CD pipeline understanding
+
+#### For Testers and QA (~2 hours total)
+
+**Step 1: Testing Foundation** (30 min)
+- **[Testing_Guide.md](./Testing_Guide.md)** - Complete testing procedures
+
+**Step 2: CI/CD Understanding** (30 min)
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - GitHub Actions workflows
+
+**Step 3: Validation Testing** (60 min)
+- **[Input_Validation.md](./Input_Validation.md)** - Validation guidelines (30 min)
+- **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)** - XML testing (30 min)
 
 ## Documentation Cross-References
 
