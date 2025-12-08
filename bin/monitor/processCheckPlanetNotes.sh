@@ -36,7 +36,7 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-10-19
-VERSION="2025-11-24"
+VERSION="2025-12-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -95,6 +95,17 @@ fi
 
 # Planet notes file configuration.
 # (Declared in processPlanetFunctions.sh)
+
+# Output CSV files for check processing.
+if [[ -z "${OUTPUT_NOTES_FILE:-}" ]]; then
+ declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"
+fi
+if [[ -z "${OUTPUT_NOTE_COMMENTS_FILE:-}" ]]; then
+ declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"
+fi
+if [[ -z "${OUTPUT_TEXT_COMMENTS_FILE:-}" ]]; then
+ declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"
+fi
 
 # PostgreSQL SQL script files.
 # Drop check tables.
@@ -196,16 +207,116 @@ function __createCheckTables {
  __log_finish
 }
 
+# Generates CSV files from XML using AWK extraction.
+# Parameters:
+#   $1: XML file path
+function __generateCheckCsvFiles {
+ __log_start
+ __logi "Generating CSV files from XML for check processing."
+
+ local XML_FILE="${1}"
+
+ # Process notes with AWK (fast and dependency-free)
+ __logd "Processing notes with AWK: ${XML_FILE} -> ${OUTPUT_NOTES_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${XML_FILE}" > "${OUTPUT_NOTES_FILE}"
+ if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
+  __loge "Notes CSV file was not created: ${OUTPUT_NOTES_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Process comments with AWK (fast and dependency-free)
+ __logd "Processing comments with AWK: ${XML_FILE} -> ${OUTPUT_NOTE_COMMENTS_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk" "${XML_FILE}" > "${OUTPUT_NOTE_COMMENTS_FILE}"
+ if [[ ! -f "${OUTPUT_NOTE_COMMENTS_FILE}" ]]; then
+  __loge "Comments CSV file was not created: ${OUTPUT_NOTE_COMMENTS_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Process text comments with AWK (fast and dependency-free)
+ __logd "Processing text comments with AWK: ${XML_FILE} -> ${OUTPUT_TEXT_COMMENTS_FILE}"
+ awk -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk" "${XML_FILE}" > "${OUTPUT_TEXT_COMMENTS_FILE}"
+ if [[ ! -f "${OUTPUT_TEXT_COMMENTS_FILE}" ]]; then
+  __logw "Text comments CSV file was not created, generating empty file to continue: ${OUTPUT_TEXT_COMMENTS_FILE}"
+  : > "${OUTPUT_TEXT_COMMENTS_FILE}"
+ fi
+
+ # Debug: Show generated CSV files and their sizes
+ __logd "Generated CSV files:"
+ __logd "  Notes: ${OUTPUT_NOTES_FILE} ($(wc -l < "${OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
+ __logd "  Comments: ${OUTPUT_NOTE_COMMENTS_FILE} ($(wc -l < "${OUTPUT_NOTE_COMMENTS_FILE}" || echo 0) lines)" || true
+ __logd "  Text: ${OUTPUT_TEXT_COMMENTS_FILE} ($(wc -l < "${OUTPUT_TEXT_COMMENTS_FILE}" || echo 0) lines)" || true
+
+ __log_finish
+}
+
 # Loads new notes from check.
 function __loadCheckNotes {
  __log_start
  # Loads the data in the database.
- export OUTPUT_NOTES_FILE
- export OUTPUT_NOTE_COMMENTS_FILE
- # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
-   < "${POSTGRES_31_LOAD_CHECK_NOTES}" || true)"
+ # Create temporary SQL file with \copy commands
+ local TEMP_SQL_FILE
+ TEMP_SQL_FILE=$(mktemp)
+
+ # Substitute variables first
+ envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
+  < "${POSTGRES_31_LOAD_CHECK_NOTES}" > "${TEMP_SQL_FILE}.tmp" || true
+
+ # Convert COPY FROM to \copy FROM (client-side copy)
+ # \copy works from client side, so files don't need to be on server
+ # Use awk to handle multi-line COPY statements and convert to single-line \copy
+ awk '
+ BEGIN { in_copy = 0; copy_buffer = ""; }
+ /^COPY[ \t]+/ || /^[ \t]+COPY[ \t]+/ {
+   in_copy = 1;
+   gsub(/^[ \t]*COPY[ \t]+/, "\\copy ");
+   copy_buffer = $0;
+   next;
+ }
+ in_copy == 1 {
+   # Accumulate all lines until we find the semicolon (end of COPY statement)
+   gsub(/^[ \t]+|[ \t]+$/, "");
+   # Remove SQL comments from the line
+   gsub(/--.*$/, "");
+   gsub(/^[ \t]+|[ \t]+$/, "");
+   if (copy_buffer != "") {
+     copy_buffer = copy_buffer " " $0;
+   } else {
+     copy_buffer = $0;
+   }
+   if (/;/) {
+     # Output complete \copy command as a single line
+     # psql requires \copy to be on a single line when reading from file
+     # Remove any remaining comments
+     gsub(/--.*$/, "", copy_buffer);
+     gsub(/[ \t]+$/, "", copy_buffer);
+     print copy_buffer;
+     in_copy = 0;
+     copy_buffer = "";
+     next;
+   }
+   next;
+ }
+ { print; }
+ ' "${TEMP_SQL_FILE}.tmp" > "${TEMP_SQL_FILE}" \
+  || sed -E 's/^COPY[ \t]+/\\copy /g; s/^[ \t]+COPY[ \t]+/\\copy /g' "${TEMP_SQL_FILE}.tmp" > "${TEMP_SQL_FILE}" || true
+
+ rm -f "${TEMP_SQL_FILE}.tmp"
+
+ # Execute SQL file with psql (required for \copy commands)
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}" 2>&1
+ local PSQL_EXIT_CODE=$?
+
+ # Clean up temporary file
+ rm -f "${TEMP_SQL_FILE}"
+
+ if [[ ${PSQL_EXIT_CODE} -ne 0 ]]; then
+  __loge "ERROR: Failed to load check notes (exit code: ${PSQL_EXIT_CODE})"
+  __log_finish
+  return 1
+ fi
+
  __log_finish
 }
 
@@ -326,6 +437,9 @@ EOF
  else
   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
  fi
+
+ # Generate CSV files from XML
+ __generateCheckCsvFiles "${PLANET_NOTES_FILE}"
 
  __loadCheckNotes
  __analyzeAndVacuum

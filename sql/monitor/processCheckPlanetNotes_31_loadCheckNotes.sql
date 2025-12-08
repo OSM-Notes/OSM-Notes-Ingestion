@@ -1,8 +1,9 @@
 -- Loads check notes into the check tables.
 -- Sequence numbers are already generated in AWK extraction
+-- COPY commands are converted to \copy by the script for client-side execution
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-19
+-- Version: 2025-12-07
 
 TRUNCATE TABLE notes_check;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
@@ -20,11 +21,11 @@ FROM notes_check;
 
 TRUNCATE TABLE note_comments_check;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
- 'Uploading check comments with sequence numbers from XSLT' AS Text;
+ 'Uploading check comments with sequence numbers from AWK' AS Text;
 
 -- Load comments with sequence_action already provided by AWK
 COPY note_comments_check (note_id, sequence_action, event, created_at, id_user, username)
-FROM '${OUTPUT_COMMENTS_FILE}' csv;
+FROM '${OUTPUT_NOTE_COMMENTS_FILE}' csv;
 
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Statistics on check comments' AS Text;
@@ -37,7 +38,7 @@ FROM note_comments_check;
 
 TRUNCATE TABLE note_comments_text_check;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
- 'Uploading check text comments with sequence numbers from XSLT' AS Text;
+ 'Uploading check text comments with sequence numbers from AWK' AS Text;
 
 -- Load text comments with sequence_action already provided by AWK
 COPY note_comments_text_check (note_id, sequence_action, body)
@@ -53,4 +54,4 @@ SELECT /* Notes-check */ clock_timestamp() AS Processing,
 FROM note_comments_text_check;
 
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
- 'Check data loaded successfully with sequence numbers from XSLT' AS Text;
+ 'Check data loaded successfully with sequence numbers from AWK' AS Text;
