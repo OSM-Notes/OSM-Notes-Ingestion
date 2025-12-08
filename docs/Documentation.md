@@ -1441,6 +1441,479 @@ DB_PASSWORD=secure_password
 # Step 1: Create monitoring script
 cat > /usr/local/bin/check-osm-notes.sh << 'EOF'
 #!/bin/bash
+# Exit codes: 0=OK, 1=WARNING, 2=CRITICAL
+
+# Check for failed executions
+if [ -f /tmp/processAPINotes_failed_execution ]; then
+    echo "CRITICAL: processAPINotes failed"
+    exit 2
+fi
+
+# Check database connectivity
+if ! psql -d osm_notes -c "SELECT 1;" > /dev/null 2>&1; then
+    echo "CRITICAL: Database connection failed"
+    exit 2
+fi
+
+# Check data freshness (notes updated in last hour)
+LAST_UPDATE=$(psql -d osm_notes -t -c "SELECT MAX(created_at) FROM notes;")
+if [ -z "$LAST_UPDATE" ]; then
+    echo "WARNING: No notes found"
+    exit 1
+fi
+
+echo "OK: System operational"
+exit 0
+EOF
+
+chmod +x /usr/local/bin/check-osm-notes.sh
+
+# Step 2: Configure in monitoring system
+# Nagios: Add as service check
+# Prometheus: Use textfile exporter or custom exporter
+```
+
+**Prometheus Integration**:
+
+```bash
+# Create metrics exporter script
+cat > /usr/local/bin/osm-notes-exporter.sh << 'EOF'
+#!/bin/bash
+METRICS_FILE="/var/lib/prometheus/node-exporter/osm-notes.prom"
+
+# Get metrics
+NOTE_COUNT=$(psql -d osm_notes -t -c "SELECT COUNT(*) FROM notes;")
+OPEN_NOTES=$(psql -d osm_notes -t -c "SELECT COUNT(*) FROM notes WHERE status = 'open';")
+LAST_UPDATE=$(psql -d osm_notes -t -c "SELECT EXTRACT(EPOCH FROM MAX(created_at)) FROM notes;")
+
+# Write metrics
+cat > "$METRICS_FILE" << METRICS
+# HELP osm_notes_total Total number of notes
+# TYPE osm_notes_total gauge
+osm_notes_total $NOTE_COUNT
+
+# HELP osm_notes_open Open notes count
+# TYPE osm_notes_open gauge
+osm_notes_open $OPEN_NOTES
+
+# HELP osm_notes_last_update_seconds Last note update timestamp
+# TYPE osm_notes_last_update_seconds gauge
+osm_notes_last_update_seconds $LAST_UPDATE
+METRICS
+EOF
+
+chmod +x /usr/local/bin/osm-notes-exporter.sh
+
+# Add to crontab (every 5 minutes)
+# */5 * * * * /usr/local/bin/osm-notes-exporter.sh
+```
+
+### Use Case 11: Common Database Queries
+
+**Scenario**: Common queries for data analysis and reporting.
+
+**Workflow**:
+
+#### Query 1: Notes by Country
+
+```sql
+-- Get note counts by country
+SELECT 
+    c.name AS country,
+    COUNT(n.id) AS total_notes,
+    COUNT(n.id) FILTER (WHERE n.status = 'open') AS open_notes,
+    COUNT(n.id) FILTER (WHERE n.status = 'closed') AS closed_notes
+FROM notes n
+JOIN countries c ON n.id_country = c.id
+GROUP BY c.name
+ORDER BY total_notes DESC
+LIMIT 20;
+```
+
+#### Query 2: Recent Notes Activity
+
+```sql
+-- Get notes created in the last 24 hours
+SELECT 
+    id,
+    created_at,
+    status,
+    ST_Y(location) AS latitude,
+    ST_X(location) AS longitude
+FROM notes
+WHERE created_at > NOW() - INTERVAL '24 hours'
+ORDER BY created_at DESC;
+```
+
+#### Query 3: Notes by User
+
+```sql
+-- Get notes created by a specific user
+SELECT 
+    n.id,
+    n.created_at,
+    n.status,
+    c.name AS country,
+    n.comment_count
+FROM notes n
+LEFT JOIN countries c ON n.id_country = c.id
+WHERE n.created_by = 'username'
+ORDER BY n.created_at DESC;
+```
+
+#### Query 4: Notes Statistics
+
+```sql
+-- Overall statistics
+SELECT 
+    COUNT(*) AS total_notes,
+    COUNT(*) FILTER (WHERE status = 'open') AS open_notes,
+    COUNT(*) FILTER (WHERE status = 'closed') AS closed_notes,
+    COUNT(DISTINCT id_country) AS countries_with_notes,
+    AVG(comment_count) AS avg_comments_per_note,
+    MAX(created_at) AS latest_note_date
+FROM notes;
+```
+
+#### Query 5: Notes by Geographic Region
+
+```sql
+-- Get notes in a bounding box (e.g., around a city)
+SELECT 
+    id,
+    created_at,
+    status,
+    ST_Y(location) AS latitude,
+    ST_X(location) AS longitude
+FROM notes
+WHERE ST_Within(
+    location,
+    ST_MakeEnvelope(
+        -74.006, 40.712,  -- min lon, min lat
+        -73.935, 40.758,  -- max lon, max lat
+        4326
+    )
+)
+ORDER BY created_at DESC;
+```
+
+#### Query 6: Notes Requiring Attention
+
+```sql
+-- Find old open notes (older than 30 days)
+SELECT 
+    n.id,
+    n.created_at,
+    c.name AS country,
+    n.comment_count,
+    NOW() - n.created_at AS age
+FROM notes n
+LEFT JOIN countries c ON n.id_country = c.id
+WHERE n.status = 'open'
+  AND n.created_at < NOW() - INTERVAL '30 days'
+ORDER BY n.created_at ASC
+LIMIT 100;
+```
+
+### Use Case 12: Use Cases by Role
+
+**Scenario**: Different workflows for different user roles.
+
+#### For System Administrators
+
+**Daily Operations**:
+
+```bash
+# Morning health check
+./bin/monitor/notesCheckVerifier.sh
+./bin/monitor/analyzeDatabasePerformance.sh
+
+# Check for failed executions
+ls -la /tmp/*_failed_execution
+
+# Review logs
+tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+```
+
+**Weekly Maintenance**:
+
+```bash
+# Update country boundaries
+./bin/process/updateCountries.sh
+
+# Regenerate backups
+./bin/scripts/generateNoteLocationBackup.sh
+./bin/scripts/exportCountriesBackup.sh
+./bin/scripts/exportMaritimesBackup.sh
+
+# Database maintenance
+psql -d osm_notes -c "VACUUM ANALYZE notes;"
+psql -d osm_notes -c "VACUUM ANALYZE comments;"
+```
+
+**Monthly Tasks**:
+
+```bash
+# Full Planet sync
+./bin/process/processPlanetNotes.sh
+
+# Database backup
+pg_dump osm_notes | gzip > backup_$(date +%Y%m%d).sql.gz
+
+# Review system performance
+./bin/monitor/analyzeDatabasePerformance.sh > performance_report.txt
+```
+
+#### For Developers
+
+**Adding New Features**:
+
+```bash
+# 1. Create feature branch
+git checkout -b feature/new-feature
+
+# 2. Set up test environment
+export DBNAME=osm_notes_test
+createdb osm_notes_test
+psql -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+# 3. Load test data
+./bin/process/processPlanetNotes.sh --base
+
+# 4. Develop with debug logging
+export LOG_LEVEL=DEBUG
+export CLEAN=false
+
+# 5. Test changes
+./tests/run_all_tests.sh
+
+# 6. Test specific functionality
+./bin/process/processAPINotes.sh
+```
+
+**Debugging Issues**:
+
+```bash
+# Enable maximum verbosity
+export LOG_LEVEL=TRACE
+export BASH_DEBUG=true
+export CLEAN=false
+
+# Run script
+./bin/process/processAPINotes.sh
+
+# Inspect generated files
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+ls -lh "$LATEST_DIR"
+cat "$LATEST_DIR/processAPINotes.log" | grep -i error
+```
+
+#### For End Users / Data Analysts
+
+**Querying Notes Data**:
+
+```sql
+-- Find notes in your area of interest
+SELECT 
+    id,
+    created_at,
+    status,
+    ST_Y(location) AS latitude,
+    ST_X(location) AS longitude
+FROM notes
+WHERE ST_DWithin(
+    location,
+    ST_SetSRID(ST_MakePoint(-74.006, 40.712), 4326),
+    10000  -- 10km radius
+)
+ORDER BY created_at DESC;
+```
+
+**Exporting Data**:
+
+```bash
+# Export notes to CSV
+psql -d osm_notes -c "
+COPY (
+    SELECT 
+        id,
+        created_at,
+        status,
+        ST_Y(location) AS latitude,
+        ST_X(location) AS longitude,
+        comment_count
+    FROM notes
+    WHERE created_at > NOW() - INTERVAL '7 days'
+) TO STDOUT WITH CSV HEADER
+" > notes_export.csv
+
+# Export to GeoJSON
+ogr2ogr -f GeoJSON notes_export.geojson \
+    PG:"dbname=osm_notes" \
+    -sql "SELECT id, created_at, status, location FROM notes WHERE created_at > NOW() - INTERVAL '7 days'"
+```
+
+**Using WMS in Mapping Applications**:
+
+1. **JOSM**: 
+   - Imagery → Add WMS Layer
+   - URL: `http://your-server:8080/geoserver/wms`
+   - Layer: `osm_notes:notes_wms`
+
+2. **Vespucci**:
+   - Menu → Imagery → Add WMS Layer
+   - Enter WMS URL and select layer
+
+3. **QGIS**:
+   - Browser → WMS → Add connection
+   - Enter WMS URL and connect
+
+### Use Case 13: Data Analysis Workflows
+
+**Scenario**: Common analysis workflows for understanding note patterns.
+
+**Workflow 1: Country Activity Analysis**
+
+```sql
+-- Analyze note activity by country over time
+SELECT 
+    c.name AS country,
+    DATE_TRUNC('month', n.created_at) AS month,
+    COUNT(*) AS notes_count,
+    COUNT(*) FILTER (WHERE n.status = 'open') AS open_count
+FROM notes n
+JOIN countries c ON n.id_country = c.id
+WHERE n.created_at > NOW() - INTERVAL '12 months'
+GROUP BY c.name, DATE_TRUNC('month', n.created_at)
+ORDER BY month DESC, notes_count DESC;
+```
+
+**Workflow 2: User Contribution Analysis**
+
+```sql
+-- Find most active note creators
+SELECT 
+    created_by AS username,
+    COUNT(*) AS notes_created,
+    COUNT(*) FILTER (WHERE status = 'open') AS open_notes,
+    COUNT(*) FILTER (WHERE status = 'closed') AS closed_notes,
+    AVG(comment_count) AS avg_comments
+FROM notes
+WHERE created_by IS NOT NULL
+GROUP BY created_by
+ORDER BY notes_created DESC
+LIMIT 50;
+```
+
+**Workflow 3: Geographic Hotspots**
+
+```sql
+-- Find areas with high note density
+SELECT 
+    ST_Y(ST_Centroid(ST_Collect(location))) AS center_lat,
+    ST_X(ST_Centroid(ST_Collect(location))) AS center_lon,
+    COUNT(*) AS note_count,
+    COUNT(*) FILTER (WHERE status = 'open') AS open_count
+FROM notes
+GROUP BY ST_SnapToGrid(location, 0.1)  -- 0.1 degree grid
+HAVING COUNT(*) > 10
+ORDER BY note_count DESC
+LIMIT 20;
+```
+
+**Workflow 4: Temporal Patterns**
+
+```sql
+-- Analyze note creation patterns by hour of day
+SELECT 
+    EXTRACT(HOUR FROM created_at) AS hour_of_day,
+    COUNT(*) AS notes_count,
+    COUNT(*) FILTER (WHERE status = 'open') AS open_count
+FROM notes
+WHERE created_at > NOW() - INTERVAL '30 days'
+GROUP BY EXTRACT(HOUR FROM created_at)
+ORDER BY hour_of_day;
+```
+
+### Use Case 14: Integration with Web Applications
+
+**Scenario**: Integrating OSM-Notes-Ingestion data with web applications.
+
+**Workflow**:
+
+```bash
+# Step 1: Set up read-only database user for web app
+psql -d osm_notes << EOF
+CREATE USER webapp_user WITH PASSWORD 'secure_password';
+GRANT CONNECT ON DATABASE osm_notes TO webapp_user;
+GRANT USAGE ON SCHEMA public TO webapp_user;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO webapp_user;
+GRANT SELECT ON ALL TABLES IN SCHEMA wms TO webapp_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO webapp_user;
+EOF
+
+# Step 2: Create API endpoint (example with Python Flask)
+cat > /opt/webapp/api/notes.py << 'PYTHON'
+from flask import Flask, jsonify
+import psycopg2
+
+app = Flask(__name__)
+
+def get_db_connection():
+    return psycopg2.connect(
+        dbname='osm_notes',
+        user='webapp_user',
+        password='secure_password',
+        host='localhost'
+    )
+
+@app.route('/api/notes/recent')
+def recent_notes():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, created_at, status, 
+               ST_Y(location) AS lat, ST_X(location) AS lon
+        FROM notes
+        WHERE created_at > NOW() - INTERVAL '24 hours'
+        ORDER BY created_at DESC
+        LIMIT 100
+    """)
+    notes = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([{
+        'id': n[0],
+        'created_at': str(n[1]),
+        'status': n[2],
+        'latitude': n[3],
+        'longitude': n[4]
+    } for n in notes])
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+PYTHON
+```
+
+**REST API Examples**:
+
+```bash
+# Get recent notes
+curl http://localhost:5000/api/notes/recent
+
+# Get notes by country (via SQL query)
+curl "http://localhost:5000/api/notes/country?country=Colombia"
+
+# Get notes in bounding box
+curl "http://localhost:5000/api/notes/bbox?min_lon=-74&min_lat=4&max_lon=-73&max_lat=5"
+```
+
+**Workflow**:
+
+```bash
+# Step 1: Create monitoring script
+cat > /usr/local/bin/check-osm-notes.sh << 'EOF'
+#!/bin/bash
 # Check if processAPINotes is running
 if pgrep -f processAPINotes.sh > /dev/null; then
     echo "OK: processAPINotes is running"
