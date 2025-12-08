@@ -179,3 +179,10 @@ git submodule update --init --recursive
 - [GitHub SSH Setup](https://docs.github.com/en/authentication/connecting-to-github-with-ssh)
 - Main README: [README.md](../README.md)
 - Submodule Usage: [README.md](../README.md#shared-functions-git-submodule)
+
+## Related Documentation
+
+- **[README.md](../README.md)**: Project overview and submodule setup instructions
+- **[lib/osm-common/README.md](../lib/osm-common/README.md)**: Submodule documentation
+- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: General troubleshooting guide
+- **[Documentation.md](./Documentation.md)**: System architecture and dependencies

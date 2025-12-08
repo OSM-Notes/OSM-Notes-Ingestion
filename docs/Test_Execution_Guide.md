@@ -692,3 +692,12 @@ bats tests/integration/*.bats
 - **Testing workflows:** See `docs/Testing_Workflows_Overview.md`
 - **Testing suites reference:** See `docs/Testing_Suites_Reference.md`
 
+## Related Documentation
+
+- **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide with procedures and best practices
+- **[Test_Matrix.md](./Test_Matrix.md)**: Comprehensive test matrix and coverage
+- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Reference of all testing suites
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows explanation
+- **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD integration and automated testing
+- **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
+

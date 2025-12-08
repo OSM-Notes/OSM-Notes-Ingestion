@@ -356,6 +356,15 @@ source tests/properties.sh
 - **Total Time:** 84-163 minutes (local), 77-116 minutes (CI)
 - **Coverage:** 80-85% of code
 
+## Related Documentation
+
+- **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide with procedures
+- **[Test_Execution_Guide.md](./Test_Execution_Guide.md)**: Test execution guide and sequence
+- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Reference of all testing suites
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows
+- **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD integration and automated testing
+- **[Documentation.md](./Documentation.md)**: System architecture and testing overview
+
 ### Next Steps
 
 1. Execute complete matrix locally before each release

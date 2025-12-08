@@ -455,3 +455,11 @@ psql -c "INSERT INTO table VALUES ('${NAME}') WHERE id=${SANITIZED_ID}"
 ---
 
 **Status**: Implemented and tested
+
+## Related Documentation
+
+- **[Documentation.md](./Documentation.md)**: System architecture and validation overview
+- **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML validation strategies for large files
+- **[Testing_Guide.md](./Testing_Guide.md)**: Testing procedures including validation tests
+- **[bin/lib/README.md](../bin/lib/README.md)**: Function libraries documentation (includes validation functions)
+- **[lib/osm-common/validationFunctions.sh](../lib/osm-common/validationFunctions.sh)**: Validation function implementations

@@ -306,3 +306,11 @@ To contribute to the validation tools:
 The logging pattern validation tools help maintain code quality and consistency across the OSM-Notes-Ingestion project. Regular use of these tools ensures that all functions provide proper logging for debugging, monitoring, and maintenance purposes.
 
 For questions or issues, please refer to the project's issue tracker or contact the development team.
+
+## Related Documentation
+
+- **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide including logging pattern tests
+- **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD integration with logging validation
+- **[lib/osm-common/README.md](../lib/osm-common/README.md)**: Logging functions documentation
+- **[bin/lib/README.md](../bin/lib/README.md)**: Function libraries documentation
+- **[Documentation.md](./Documentation.md)**: System architecture and logging system overview
