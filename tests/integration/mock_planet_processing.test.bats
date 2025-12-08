@@ -207,7 +207,7 @@ EOF
 
   # Only test if awkproc is available
   if command -v awkproc > /dev/null 2>&1; then
-   run awkproc --maxdepth "${XSLT_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
+   run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" -o "${output_file}" "${awk_file}" "${MOCK_XML_FILE}"
 
    [ "$status" -eq 0 ]
    [ -f "${output_file}" ]

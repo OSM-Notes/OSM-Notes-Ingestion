@@ -180,11 +180,11 @@ function __adjust_workers_for_resources() {
  if command -v free > /dev/null 2>&1; then
   MEMORY_PERCENT=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100.0}' || true)
 
-  # More aggressive reduction for XML processing (XSLT is memory-intensive)
+  # More aggressive reduction for XML processing (AWK processing is memory-efficient but large files still need caution)
   if [[ "${PROCESSING_TYPE}" == "XML" ]]; then
    if [[ "${MEMORY_PERCENT}" -gt 75 ]]; then
     ADJUSTED_WORKERS=1
-    __logw "Reducing XML workers to ${ADJUSTED_WORKERS} due to very high memory usage (${MEMORY_PERCENT}%) - XSLT allocation risk" >&2
+    __logw "Reducing XML workers to ${ADJUSTED_WORKERS} due to very high memory usage (${MEMORY_PERCENT}%) - memory allocation risk" >&2
    elif [[ "${MEMORY_PERCENT}" -gt 65 ]]; then
     ADJUSTED_WORKERS=$((ADJUSTED_WORKERS / 2))
     if [[ ${ADJUSTED_WORKERS} -lt 1 ]]; then
@@ -488,7 +488,7 @@ __divide_xml_file() {
  NOTES_PER_PART=$((TOTAL_NOTES / NUM_PARTS))
 
  # Ensure reasonable notes per part for optimal processing
- # Target: 25,000 to 50,000 notes per part for XSLT memory safety
+ # Target: 25,000 to 50,000 notes per part for memory safety
  local TARGET_NOTES_PER_PART=37500 # 37,500 notes per part (reduced for memory safety)
  local MIN_NOTES_PER_PART=25000    # 25,000 notes per part (reduced for memory safety)
  local MAX_NOTES_PER_PART=50000    # 50,000 notes per part (reduced for memory safety)
@@ -717,8 +717,8 @@ __divide_xml_file() {
 
     __logd "Created line-based XML part ${PART_NUM}: ${PART_FILE} (~${PART_NOTES} notes, ~${PART_SIZE_MB} MB)"
 
-    # Check memory availability for XSLT processing
-    if ! __check_memory_for_xslt "${PART_FILE}"; then
+    # Check memory availability for XML processing
+    if ! __check_memory_for_xml_processing "${PART_FILE}"; then
      __logw "WARNING: Insufficient memory for part ${PART_NUM}, reducing part size"
      # Reduce target notes per part for remaining parts
      TARGET_NOTES_PER_PART=$((TARGET_NOTES_PER_PART / 2))
@@ -765,8 +765,8 @@ __divide_xml_file() {
 
    __logd "Created final line-based XML part ${PART_NUM}: ${PART_FILE} (~${PART_NOTES} notes, ~${PART_SIZE_MB} MB)"
 
-   # Check memory availability for XSLT processing
-   if ! __check_memory_for_xslt "${PART_FILE}"; then
+   # Check memory availability for XML processing
+   if ! __check_memory_for_xml_processing "${PART_FILE}"; then
     __logw "WARNING: Insufficient memory for final part ${PART_NUM}"
    fi
 
@@ -1888,7 +1888,7 @@ function __processXmlWithTraditionalMethod() {
 # Parameters:
 #   $1: XML part file path
 # Returns: 0 if enough memory, 1 if insufficient
-function __check_memory_for_xslt() {
+function __check_memory_for_xml_processing() {
  local XML_PART_FILE="${1}"
 
  # Get file size in MB
@@ -1896,9 +1896,9 @@ function __check_memory_for_xslt() {
  FILE_SIZE_MB=$(stat -c%s "${XML_PART_FILE}" 2> /dev/null || echo "0")
  FILE_SIZE_MB=$((FILE_SIZE_MB / 1024 / 1024))
 
- # Estimate memory needed for XSLT processing (typically 3-5x file size)
+ # Estimate memory needed for XML processing (AWK is efficient, but large files still need memory)
  local ESTIMATED_MEMORY_NEEDED
- ESTIMATED_MEMORY_NEEDED=$((FILE_SIZE_MB * 4))
+ ESTIMATED_MEMORY_NEEDED=$((FILE_SIZE_MB * 2))
 
  # Get available system memory in MB
  local AVAILABLE_MEMORY_MB
@@ -1906,7 +1906,7 @@ function __check_memory_for_xslt() {
 
  # Check if we have enough memory (need at least 2x estimated for safety)
  if [[ ${AVAILABLE_MEMORY_MB} -lt $((ESTIMATED_MEMORY_NEEDED * 2)) ]]; then
-  __logw "WARNING: Insufficient memory for XSLT processing"
+  __logw "WARNING: Insufficient memory for XML processing"
   __logw "Part size: ${FILE_SIZE_MB} MB, Estimated needed: ${ESTIMATED_MEMORY_NEEDED} MB"
   __logw "Available memory: ${AVAILABLE_MEMORY_MB} MB"
   return 1

@@ -2,7 +2,7 @@
 -- Sequence numbers are already generated in AWK extraction
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-26
+-- Version: 2025-12-07
 
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Setting up sequence constraints and triggers' AS Text;
@@ -45,7 +45,7 @@ CREATE OR REPLACE FUNCTION put_seq_on_comment()
  $$ LANGUAGE plpgsql
 ;
 COMMENT ON FUNCTION put_seq_on_comment IS
-  'Assigns the sequence value for new comments (only if not provided by XSLT)';
+  'Assigns the sequence value for new comments (only if not provided by AWK)';
 
 CREATE OR REPLACE TRIGGER put_seq_on_comment_trigger
   BEFORE INSERT ON note_comments
@@ -53,7 +53,7 @@ CREATE OR REPLACE TRIGGER put_seq_on_comment_trigger
   EXECUTE FUNCTION put_seq_on_comment()
 ;
 COMMENT ON TRIGGER put_seq_on_comment_trigger ON note_comments IS
-  'Trigger to assign sequence value only when not provided by XSLT';
+  'Trigger to assign sequence value only when not provided by AWK';
 
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
  'Sequence constraints and triggers configured' AS Text;

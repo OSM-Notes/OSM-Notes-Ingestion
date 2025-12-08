@@ -2,11 +2,11 @@
 -- Sequence numbers are already generated in AWK extraction
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-26
+-- Version: 2025-12-07
 
 TRUNCATE TABLE note_comments_text;
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
- 'Uploading text comments with sequence numbers from XSLT' AS Text;
+ 'Uploading text comments with sequence numbers from AWK' AS Text;
 
 -- Load text comments with sequence_action already provided by AWK
 COPY note_comments_text(note_id, sequence_action, body)
@@ -24,5 +24,5 @@ SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
 FROM note_comments_text;
 
 SELECT /* Notes-processPlanet */ clock_timestamp() AS Processing,
- 'Text comments loaded successfully with sequence numbers from XSLT' AS Text;
+ 'Text comments loaded successfully with sequence numbers from AWK' AS Text;
 
