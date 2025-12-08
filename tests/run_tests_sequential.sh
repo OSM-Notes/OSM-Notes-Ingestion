@@ -287,14 +287,21 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/cleanup_dependency_fix.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats" \
   "${SCRIPT_DIR}/unit/bash/security_functions.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/overpass_functions.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/overpass_functions_common.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/overpass_functions_overpass.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/overpass_functions_json.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/overpass_functions_geojson.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/overpass_functions_edge_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/note_processing_common.test.bats" \
   "${SCRIPT_DIR}/unit/bash/note_processing_network.test.bats" \
   "${SCRIPT_DIR}/unit/bash/note_processing_download_queue.test.bats" \
   "${SCRIPT_DIR}/unit/bash/note_processing_retry.test.bats" \
   "${SCRIPT_DIR}/unit/bash/note_processing_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/note_processing_location.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/boundary_processing_functions.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/boundary_processing_common.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/boundary_processing_logging.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/boundary_processing_utils.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/boundary_processing_impl.test.bats" \
   "${SCRIPT_DIR}/unit/bash/export_countries_backup.test.bats" \
   "${SCRIPT_DIR}/unit/bash/export_maritimes_backup.test.bats" \
   "${SCRIPT_DIR}/unit/bash/generate_note_location_backup.test.bats" \
