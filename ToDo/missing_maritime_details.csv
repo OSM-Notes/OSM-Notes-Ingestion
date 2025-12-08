@@ -1,0 +1,514 @@
+area_name,relation_id,relation_name,found
+"alaska",,not found,no
+"albania",,not found,no
+"albanian",,not found,no
+"algeria",,not found,no
+"algerian",,not found,no
+"alhucemas islands",,not found,no
+"american samoa",,not found,no
+"amsterdam and saint paul islands",,not found,no
+"andaman and nicobar",,not found,no
+"angola",,not found,no
+"angolan",,not found,no
+"anguilla",,not found,no
+"antigua and barbuda",,not found,no
+"antiguan and barbudan",,not found,no
+"are",3804400,"",yes
+"are",5748123,"",yes
+"are",7374343,"",yes
+"are",10639156,"",yes
+"are",10696345,"",yes
+"are",10731945,"",yes
+"are",11285925,"",yes
+"are",14530729,"",yes
+"are",14543307,"",yes
+"argentina",6090144,"",yes
+"argentina",7743573,"",yes
+"argentinian",,not found,no
+"aruba",13928429,"",yes
+"aruba",14525879,"",yes
+"aruba",14759561,"",yes
+"ascension",,not found,no
+"australia",2647638,"",yes
+"australia",8653540,"",yes
+"australian",,not found,no
+"azerbaijan",,not found,no
+"azerbaijani",,not found,no
+"azores",,not found,no
+"bahamas",,not found,no
+"bahamian",,not found,no
+"bahrain",,not found,no
+"bahraini",,not found,no
+"bajo nuevo bank",,not found,no
+"bangladesh",,not found,no
+"bangladeshi",,not found,no
+"barbadian",,not found,no
+"barbados",,not found,no
+"bassas da india",,not found,no
+"belgian",13960314,"",yes
+"belgium",7645548,"",yes
+"belize",,not found,no
+"belizean",,not found,no
+"benin",,not found,no
+"beninese",,not found,no
+"bermuda",,not found,no
+"bissau-guinean",,not found,no
+"bonaire",13928790,"",yes
+"bosnia and herzegovina",,not found,no
+"bosnian and herzegovinian",,not found,no
+"brazil",5748043,"",yes
+"brazil",5748044,"",yes
+"brazilian",,not found,no
+"british",,not found,no
+"british virgin islands",,not found,no
+"brunei",,not found,no
+"bruneian",,not found,no
+"bulgaria",,not found,no
+"bulgarian",,not found,no
+"cambodia",,not found,no
+"cambodian",,not found,no
+"cameroon",,not found,no
+"cameroonian",,not found,no
+"canada",,not found,no
+"canadian",,not found,no
+"canary islands",,not found,no
+"cape verde",,not found,no
+"cape verdean",,not found,no
+"cayman islands",,not found,no
+"ceuta",,not found,no
+"chafarinas islands",,not found,no
+"chagos archipelago",,not found,no
+"chile",3969510,"",yes
+"chile",5661754,"",yes
+"chile",7743573,"",yes
+"chilean",,not found,no
+"china",,not found,no
+"chinese",,not found,no
+"christmas island",,not found,no
+"clipperton island",,not found,no
+"cocos islands",,not found,no
+"collectivity of saint martin",,not found,no
+"colombia",2083719,"",yes
+"colombia",5748123,"",yes
+"colombia",13840048,"",yes
+"colombia",13840049,"",yes
+"colombia",13840086,"",yes
+"colombia",13840087,"",yes
+"colombian",13840049,"",yes
+"comoran",,not found,no
+"comores",,not found,no
+"congolese",,not found,no
+"cook islands",,not found,no
+"costa rica",2083772,"",yes
+"costa rican",,not found,no
+"croatia",14991415,"",yes
+"croatian",,not found,no
+"crozet islands",,not found,no
+"cuba",,not found,no
+"cuban",,not found,no
+"curaçao",13928428,"",yes
+"curaçao",14525893,"",yes
+"cypriote",,not found,no
+"cyprus",,not found,no
+"danish",,not found,no
+"democratic republic of the congo",,not found,no
+"denmark",14540303,"",yes
+"djibouti",,not found,no
+"djiboutian",,not found,no
+"dominica",3843816,"",yes
+"dominican",,not found,no
+"dominican republic",,not found,no
+"doumeira islands",,not found,no
+"dutch",3893531,"",yes
+"dutch",14011309,"",yes
+"east timor",,not found,no
+"easter island",14227159,"",yes
+"ecuador",5748124,"",yes
+"ecuador",7751575,"",yes
+"ecuador",7751576,"",yes
+"ecuadorian",,not found,no
+"egypt",,not found,no
+"egyptian",,not found,no
+"el salvador",,not found,no
+"emirati",,not found,no
+"equatorial guinea",,not found,no
+"equatorial guinean",,not found,no
+"eritrea",,not found,no
+"eritrean",,not found,no
+"estonia",,not found,no
+"estonian",,not found,no
+"europa island",,not found,no
+"faeroe",,not found,no
+"falkland / malvinas islands",,not found,no
+"federal republic of somalia",,not found,no
+"fiji",,not found,no
+"fijian",,not found,no
+"finland",,not found,no
+"finnish",,not found,no
+"france",2500903,"",yes
+"france",7787828,"",yes
+"france",7787834,"",yes
+"france",9501032,"",yes
+"france",9965686,"",yes
+"france",10621715,"",yes
+"france",10696345,"",yes
+"france",10706296,"",yes
+"france",10731945,"",yes
+"france",10737091,"",yes
+"france",10737137,"",yes
+"french",9568119,"",yes
+"french",9965686,"",yes
+"french guiana",,not found,no
+"french polynesia",9965686,"",yes
+"gabon",,not found,no
+"gabonese",,not found,no
+"galapagos",,not found,no
+"gambia",,not found,no
+"gambian",,not found,no
+"georgia",,not found,no
+"georgian",,not found,no
+"german",2713966,"",yes
+"german",3649463,"",yes
+"germany",3649463,"",yes
+"ghana",,not found,no
+"ghanaian",,not found,no
+"gibraltar",,not found,no
+"gilbert islands",,not found,no
+"glorioso islands",,not found,no
+"greater and lesser tunb"",,query failed,no
+"greece",,not found,no
+"greek",,not found,no
+"greenland",,not found,no
+"grenada",,not found,no
+"grenadian",,not found,no
+"guadeloupe",9483303,"",yes
+"guadeloupe",9554741,"",yes
+"guam",,not found,no
+"guatemala",,not found,no
+"guatemalan",,not found,no
+"guernsey",,not found,no
+"guinea",,not found,no
+"guinea-bissau",,not found,no
+"guinean",,not found,no
+"guyana",13222504,"",yes
+"guyana",13222505,"",yes
+"guyanese",,not found,no
+"haiti",,not found,no
+"haitian",,not found,no
+"halaib triangle",,not found,no
+"hawaii",,not found,no
+"heard and mcdonald islands",,not found,no
+"honduran",,not found,no
+"honduras",,not found,no
+"howland and baker islands",,not found,no
+"iceland",13955912,"",yes
+"iceland",14524408,"",yes
+"iceland",14526317,"",yes
+"icelandic",,not found,no
+"ile tromelin",,not found,no
+"india",,not found,no
+"indian",,not found,no
+"indonesia",,not found,no
+"indonesian",,not found,no
+"iran",,not found,no
+"iranian",,not found,no
+"iraq",,not found,no
+"iraqi",,not found,no
+"ireland",4121287,"",yes
+"ireland",19365481,"",yes
+"irish",,not found,no
+"islas san félix and san ambrosio",,not found,no
+"isle of man",,not found,no
+"israel",,not found,no
+"israeli",,not found,no
+"italian",4769816,"",yes
+"italy",4769816,"",yes
+"ivorian",,not found,no
+"ivory coast",,not found,no
+"jamaica",5748123,"",yes
+"jamaican",,not found,no
+"jan mayen",13955913,"",yes
+"japan",,not found,no
+"japanese",,not found,no
+"jarvis island",,not found,no
+"jersey",,not found,no
+"johnston atoll",,not found,no
+"joint regime area: barbados / guyana",,not found,no
+"joint regime area: costa rica / ecuador",,not found,no
+"joint regime area: croatia / slovenia",,not found,no
+"joint regime area: dominican republic / colombia",,not found,no
+"joint regime area: ecuador / colombia",,not found,no
+"joint regime area: france / italy",,not found,no
+"joint regime area: honduras / united kingdom",,not found,no
+"joint regime area: iceland / denmark",,not found,no
+"joint regime area: iceland / norway",,not found,no
+"joint regime area: jamaica / colombia",,not found,no
+"joint regime area: norway / russia",,not found,no
+"joint regime area: peru / ecuador",,not found,no
+"joint regime area: são tomé and principe / nigeria",,not found,no
+"joint regime area: senegal / guinea-bissau",,not found,no
+"joint regime area: south korea / japan",,not found,no
+"joint regime area: spain / france",,not found,no
+"joint regime area: sweden / norway",,not found,no
+"joint regime area torres strait treaty: papua new guinea / australia",,not found,no
+"joint regime area: united kingdom / denmark",,not found,no
+"joint regime area: united states / russia",,not found,no
+"joint regime area: uruguay / argentina",,not found,no
+"jordan",,not found,no
+"jordanian",,not found,no
+"juan de nova island",,not found,no
+"kazakh",,not found,no
+"kazakhstan",,not found,no
+"kenya",,not found,no
+"kenyan",,not found,no
+"kerguélen",,not found,no
+"kiribati",,not found,no
+"kittitian and nevisian",,not found,no
+"kuril islands",,not found,no
+"kuwait",,not found,no
+"kuwaiti",,not found,no
+"latvia",5404217,"",yes
+"latvian",5404217,"",yes
+"lebanese",,not found,no
+"lebanon",,not found,no
+"liancourt rocks",,not found,no
+"liberia",,not found,no
+"liberian",,not found,no
+"libya",,not found,no
+"libyan",,not found,no
+"line group",,not found,no
+"lithuania",,not found,no
+"lithuanian",,not found,no
+"macquarie island",,not found,no
+"madagascan",,not found,no
+"madagascar",,not found,no
+"madeira",,not found,no
+"malaysia",,not found,no
+"malaysian",,not found,no
+"maldives",,not found,no
+"maldivian",,not found,no
+"malta",,not found,no
+"maltese",,not found,no
+"marshall islands",,not found,no
+"marshallese",,not found,no
+"martinique",9483304,"",yes
+"martinique",9554740,"",yes
+"matthew and hunter islands",,not found,no
+"mauritania",,not found,no
+"mauritanian",,not found,no
+"mauritian",,not found,no
+"mayotte",,not found,no
+"melilla",,not found,no
+"mexican",,not found,no
+"mexico",,not found,no
+"micronesia",,not found,no
+"micronesian",,not found,no
+"monaco",10691624,"",yes
+"monaco",10696346,"",yes
+"monaco",10696347,"",yes
+"monégasque",,not found,no
+"montenegrin",,not found,no
+"montenegro",,not found,no
+"montserrat",,not found,no
+"moroccan",,not found,no
+"morocco",,not found,no
+"mozambican",,not found,no
+"mozambique",,not found,no
+"myanma",,not found,no
+"myanmar",,not found,no
+"name",,not found,no
+"namibia",,not found,no
+"namibian",,not found,no
+"nauru",,not found,no
+"nauruan",,not found,no
+"navassa island",,not found,no
+"netherlands",14151426,"",yes
+"netherlands",14525913,"",yes
+"new caledonia",2177258,"",yes
+"new zealand",2646063,"",yes
+"new zealand",2647601,"",yes
+"nicaragua",5945359,"",yes
+"nicaraguan",,not found,no
+"nigeria",,not found,no
+"nigerian",,not found,no
+"niue",,not found,no
+"norfolk island",,not found,no
+"north korea",,not found,no
+"north korean",,not found,no
+"northern mariana islands",,not found,no
+"norway",,not found,no
+"norwegian",13955915,"",yes
+"oecusse",,not found,no
+"oman",,not found,no
+"omani",,not found,no
+"overlapping claim alhucemas islands: spain / morocco",,not found,no
+"overlapping claim: belize / honduras",,not found,no
+"overlapping claim: canada / united states",,not found,no
+"overlapping claim ceuta: spain / morocco",,not found,no
+"overlapping claim chafarinas islands: spain / morocco",,not found,no
+"overlapping claim: colombia / dominican republic / venezuela",,not found,no
+"overlapping claim doumeira islands: eritrea / djibouti",,not found,no
+"overlapping claim: egypt / libya",,not found,no
+"overlapping claim falkland / malvinas islands: united kingdom / argentina",,not found,no
+"overlapping claim gibraltar: united kingdom / spain",,not found,no
+"overlapping claim glorioso islands: france / madagascar",,not found,no
+"overlapping claim: guyana / trinidad and tobago / venezuela",,not found,no
+"overlapping claim halaib triangle: sudan / egypt",,not found,no
+"overlapping claim ile tromelin: france / madagascar / republic of mauritius",,not found,no
+"overlapping claim: iraq / iran",,not found,no
+"overlapping claim kuril islands: japan / russia",,not found,no
+"overlapping claim liancourt rocks: japan / south korea",,not found,no
+"overlapping claim: malaysia / singapore",,not found,no
+"overlapping claim matthew and hunter islands: france / vanuatu",,not found,no
+"overlapping claim mayotte: france / comores",,not found,no
+"overlapping claim melilla: spain / morocco",,not found,no
+"overlapping claim navassa island: united states / haiti / jamaica",,not found,no
+"overlapping claim peñón de vélez de la gomera: spain / morocco",,not found,no
+"overlapping claim perejil island: spain / morocco",,not found,no
+"overlapping claim: qatar / saudi arabia / united arab emirates",,not found,no
+"overlapping claim senkaku islands: taiwan / japan / china",,not found,no
+"overlapping claim: south china sea",,not found,no
+"overlapping claim south georgia and the south sandwich islands: united kingdom / argentina",,not found,no
+"overlapping claim taiwan: taiwan / china",,not found,no
+"overlapping claim ukraine: ukraine / russia",,not found,no
+"overlapping claim: united states  / dominican republic",,not found,no
+"overlapping claim: venezuela / netherlands  / dominican republic",,not found,no
+"overlapping claim wake island / enenkio: united states / marshall islands",,not found,no
+"overlapping claim western sahara: western sahara / morocco",,not found,no
+"pakistan",,not found,no
+"pakistani",,not found,no
+"palau",,not found,no
+"palauan",,not found,no
+"palestine",,not found,no
+"palestinian",,not found,no
+"palmyra atoll",,not found,no
+"panama",2083783,"",yes
+"panamanian",,not found,no
+"papua new guinea",,not found,no
+"papua new guinean",,not found,no
+"peñón de vélez de la gomera",,not found,no
+"perejil island",,not found,no
+"peru",,not found,no
+"peruvian",,not found,no
+"philippine",4263589,"",yes
+"philippines",,not found,no
+"phoenix group",,not found,no
+"pitcairn",,not found,no
+"poland",3804400,"",yes
+"poland",9942669,"",yes
+"poland",9942670,"",yes
+"poland",10188445,"",yes
+"poland",11732667,"",yes
+"polish",10188445,"",yes
+"polish",10188446,"",yes
+"polish",11732667,"",yes
+"portugal",,not found,no
+"portuguese",,not found,no
+"prince edward islands",,not found,no
+"puerto rico",,not found,no
+"qatar",,not found,no
+"qatari",,not found,no
+"quitasueño bank",,not found,no
+"republic of mauritius",,not found,no
+"republic of the congo",,not found,no
+"réunion",7787834,"",yes
+"romania",,not found,no
+"romanian",,not found,no
+"russia",13291747,"",yes
+"russian",,not found,no
+"saba",13928790,"",yes
+"saint helena",,not found,no
+"saint kitts and nevis",,not found,no
+"saint lucia",,not found,no
+"saint lucian",,not found,no
+"saint vincent and the grenadines",,not found,no
+"saint vincentian",,not found,no
+"saint-barthélemy",9501031,"",yes
+"saint-pierre and miquelon",,not found,no
+"salvadoran",,not found,no
+"samoa",,not found,no
+"samoan",,not found,no
+"sao tome and principe",,not found,no
+"são tomé and principe",,not found,no
+"são toméan",,not found,no
+"saudi arabia",,not found,no
+"saudi arabian",,not found,no
+"senegal",,not found,no
+"senegalese",,not found,no
+"senkaku islands",,not found,no
+"serrana bank",,not found,no
+"serranilla bank",,not found,no
+"seychelles",,not found,no
+"seychellois",,not found,no
+"sierra leone",,not found,no
+"sierra leonean",,not found,no
+"singapore",,not found,no
+"singaporean",,not found,no
+"sint-eustatius",,not found,no
+"sint-maarten",,not found,no
+"slovenia",,not found,no
+"slovenian",,not found,no
+"solomon islands",,not found,no
+"somali",,not found,no
+"south africa",530468,"",yes
+"south africa",530469,"",yes
+"south african",,not found,no
+"south georgia and the south sandwich islands",,not found,no
+"south korea",,not found,no
+"south korean",,not found,no
+"spain",9991145,"",yes
+"spanish",,not found,no
+"sri lanka",,not found,no
+"sri lankan",,not found,no
+"sudan",,not found,no
+"sudanese",,not found,no
+"suriname",,not found,no
+"surinamese",,not found,no
+"svalbard",13955914,"",yes
+"sweden",14553467,"",yes
+"swedish",,not found,no
+"syria",,not found,no
+"syrian",,not found,no
+"taiwan",,not found,no
+"tanzania",,not found,no
+"tanzanian",,not found,no
+"thailand",,not found,no
+"timorese",,not found,no
+"togo",,not found,no
+"togolese",,not found,no
+"tokelau",,not found,no
+"tonga",,not found,no
+"tongan",,not found,no
+"trindade",,not found,no
+"trinidad and tobago",,not found,no
+"trinidadian and tobagonian",,not found,no
+"tristan da cunha",,not found,no
+"tunisia",19755987,"",yes
+"tunisian",,not found,no
+"turkey",,not found,no
+"turkish",,not found,no
+"turkmen",,not found,no
+"turkmenistan",,not found,no
+"turks and caicos islands",,not found,no
+"tuvalu",,not found,no
+"tuvaluan",,not found,no
+"ukraine",,not found,no
+"united arab emirates",,not found,no
+"united kingdom",10621715,"",yes
+"united kingdom",14531196,"",yes
+"united states",279001,"",yes
+"united states",279045,"",yes
+"united states virgin islands",,not found,no
+"uruguay",6089549,"",yes
+"uruguayan",,not found,no
+"vanuatu",,not found,no
+"vanuatuan",,not found,no
+"venezuela",,not found,no
+"venezuelan",,not found,no
+"vietnam",19271578,"",yes
+"vietnamese",,not found,no
+"wake island / enenkio",,not found,no
+"wallis and futuna",,not found,no
+"western sahara",,not found,no
+"yemen",,not found,no
+"yemeni",,not found,no
