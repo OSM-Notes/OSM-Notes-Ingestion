@@ -24,38 +24,41 @@ maintains the complete history.
 The API processing design was created to handle incremental updates efficiently while maintaining data consistency with the complete Planet dataset. The key design decisions include:
 
 **Separation of Concerns**:
+
 - `processAPINotes.sh` and `processPlanetNotes.sh` are kept as independent scripts, even though they perform similar operations
 - This separation allows each script to be optimized for its specific use case (incremental vs. bulk processing)
 - Over time, shared library scripts were created to avoid code duplication while maintaining script independence
 
 **Intelligent Synchronization Threshold**:
+
 - When API returns >= 10,000 notes, the system automatically triggers Planet synchronization
 - This prevents processing large API datasets inefficiently
 - Leverages the proven Planet processing pipeline for better reliability
 
 **Parallel Processing with Partitions**:
+
 - Uses database partitions equal to `MAX_THREADS` (CPU cores - 2)
 - Each thread processes its own partition, avoiding lock contention
 - Divides work into more parts than threads for better load balancing (see [Rationale.md](./Rationale.md) for details)
 
 ### Design Patterns Used
 
-* **Singleton Pattern**: Ensures only one instance of `processAPINotes.sh` runs at a time, critical for cron jobs running every 15 minutes
-* **Retry Pattern**: Implements exponential backoff for API calls and network operations
-* **Circuit Breaker Pattern**: Prevents cascading failures when API is unavailable
-* **Resource Management Pattern**: Uses `trap` handlers for cleanup of temporary files and resources
+- **Singleton Pattern**: Ensures only one instance of `processAPINotes.sh` runs at a time, critical for cron jobs running every 15 minutes
+- **Retry Pattern**: Implements exponential backoff for API calls and network operations
+- **Circuit Breaker Pattern**: Prevents cascading failures when API is unavailable
+- **Resource Management Pattern**: Uses `trap` handlers for cleanup of temporary files and resources
 
 ### Alternatives Considered
 
-* **Single Script Approach**: Considered combining API and Planet processing into one script, but rejected to maintain separation of concerns and allow independent optimization
-* **Different Partitioning Strategy**: Evaluated fixed partitions vs. dynamic partitions based on data volume; chose dynamic for better resource utilization
-* **Synchronous Processing**: Considered sequential processing but chose parallel for performance with large datasets
+- **Single Script Approach**: Considered combining API and Planet processing into one script, but rejected to maintain separation of concerns and allow independent optimization
+- **Different Partitioning Strategy**: Evaluated fixed partitions vs. dynamic partitions based on data volume; chose dynamic for better resource utilization
+- **Synchronous Processing**: Considered sequential processing but chose parallel for performance with large datasets
 
 ### Trade-offs
 
-* **Complexity vs. Performance**: Parallel processing adds complexity but significantly improves performance for large datasets
-* **Validation Speed**: Optional validations can be skipped (`SKIP_XML_VALIDATION`, `SKIP_CSV_VALIDATION`) for faster processing in production
-* **Error Recovery**: Comprehensive error handling adds overhead but ensures system reliability and easier debugging
+- **Complexity vs. Performance**: Parallel processing adds complexity but significantly improves performance for large datasets
+- **Validation Speed**: Optional validations can be skipped (`SKIP_XML_VALIDATION`, `SKIP_CSV_VALIDATION`) for faster processing in production
+- **Error Recovery**: Comprehensive error handling adds overhead but ensures system reliability and easier debugging
 
 ## Input Arguments
 
@@ -86,6 +89,7 @@ cd /path/to/OSM-Notes-Ingestion
 ```
 
 The script automatically:
+
 - Creates a temporary directory at `/tmp/processAPINotes_XXXXXX`
 - Downloads notes from OSM API
 - Processes and synchronizes with the database
@@ -215,6 +219,7 @@ rm /tmp/processAPINotes_failed_execution
 #### Common Error Scenarios
 
 **Historical data validation failure:**
+
 ```bash
 # Error: Base tables missing or incomplete
 # Solution: Run processPlanetNotes.sh first
@@ -222,6 +227,7 @@ rm /tmp/processAPINotes_failed_execution
 ```
 
 **XML validation failure:**
+
 ```bash
 # Error: Invalid XML structure from API
 # Solution: Check API status
@@ -232,6 +238,7 @@ unset SKIP_XML_VALIDATION
 ```
 
 **Database connection failure:**
+
 ```bash
 # Error: Cannot connect to database
 # Solution: Check database is running and credentials in etc/properties.sh
@@ -487,6 +494,7 @@ Uses the same base tables as `processPlanetNotes.sh`:
 ### Detailed Sequence Diagram
 
 The following diagram shows the complete execution flow of `processAPINotes.sh`:
+
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
