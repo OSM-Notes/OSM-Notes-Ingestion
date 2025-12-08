@@ -15,7 +15,7 @@
 -- 3. Minimizing cross-zone countries
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-19
+-- Version: 2025-12-08
 
 -- ============================================================================
 -- ZONE 1: USA/CANADA (lon: -150 to -60, lat: 30 to 75)
@@ -186,7 +186,7 @@ WHERE country_name_en IN ('France');
 
 -- More than 100K notes
 UPDATE countries SET zone_western_europe = 3
-WHERE country_name_en IN ('Spain', 'United Kingdom', 'Italy');
+WHERE country_name_en IN ('Spain', 'United Kingdom', 'Italy', 'Ireland');
 
 -- More than 50K notes
 UPDATE countries SET zone_western_europe = 4
