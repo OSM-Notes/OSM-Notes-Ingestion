@@ -1169,10 +1169,198 @@ Operational guarantees:
 
 ### Troubleshooting
 
-- **Log Analysis**: Reviews logs for error patterns
-- **Performance Tuning**: Adjusts parameters based on performance data
-- **Database Optimization**: Optimizes database queries and indexes
-- **System Monitoring**: Monitors system resources and performance
+This section covers common issues specific to API processing. For a comprehensive troubleshooting guide, see [Troubleshooting_Guide.md](./Troubleshooting_Guide.md).
+
+#### Common API Processing Issues
+
+**1. API Rate Limiting or Timeout**
+
+**Symptoms:**
+- Error: "API unreachable or download failed"
+- Timeout errors during API calls
+- Script fails during download phase
+
+**Diagnosis:**
+```bash
+# Test API connectivity
+curl -I "https://api.openstreetmap.org/api/0.6/notes"
+
+# Check network connectivity
+ping -c 3 api.openstreetmap.org
+
+# Review download logs
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "api\|download\|timeout" "$LATEST_DIR/processAPINotes.log" | tail -20
+```
+
+**Solutions:**
+- Check internet connectivity
+- Verify OSM API is operational: https://www.openstreetmap.org/api/status
+- The script implements automatic retry with exponential backoff
+- Wait for automatic retry or check firewall/DNS settings
+
+**2. Base Tables Missing**
+
+**Symptoms:**
+- Error: "Base tables missing or incomplete"
+- Script exits with error code 238
+- Failed execution marker created
+
+**Diagnosis:**
+```bash
+# Check if base tables exist
+psql -d "${DBNAME:-osm_notes}" -c "
+  SELECT table_name 
+  FROM information_schema.tables 
+  WHERE table_schema = 'public' 
+    AND table_name IN ('notes', 'note_comments', 'countries');
+"
+
+# Check failed execution marker
+cat /tmp/processAPINotes_failed_execution
+```
+
+**Solutions:**
+- Run initial Planet processing to create base tables:
+  ```bash
+  ./bin/process/processPlanetNotes.sh --base
+  ```
+- This will download and process historical data (takes 1-2 hours)
+- After completion, API processing will work normally
+
+**3. Large Data Gap Detected**
+
+**Symptoms:**
+- Warning: "Large gap detected (X notes), consider manual intervention"
+- Script continues but logs warning
+- May indicate API was down for extended period
+
+**Diagnosis:**
+```bash
+# Review gap details in logs
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "gap\|missing" "$LATEST_DIR/processAPINotes.log"
+
+# Check last update timestamp
+psql -d "${DBNAME:-osm_notes}" -c "
+  SELECT * FROM properties WHERE key = 'last_update_api';
+"
+```
+
+**Solutions:**
+- If gap is legitimate (API was down), script will continue normally
+- If gap is suspicious, consider running Planet sync:
+  ```bash
+  ./bin/process/processPlanetNotes.sh
+  ```
+- Review gap size: gaps < 10,000 notes are usually acceptable
+
+**4. Parallel Processing Failures**
+
+**Symptoms:**
+- Error: "Parallel processing failed"
+- Low memory warnings
+- Script falls back to sequential processing
+
+**Diagnosis:**
+```bash
+# Check memory usage
+free -h
+
+# Check system logs for OOM kills
+dmesg | grep -i "killed\|oom"
+
+# Review processing logs
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "parallel\|memory\|partition" "$LATEST_DIR/processAPINotes.log"
+```
+
+**Solutions:**
+- Reduce MAX_THREADS if memory constrained:
+  ```bash
+  export MAX_THREADS=2
+  ./bin/process/processAPINotes.sh
+  ```
+- Script automatically falls back to sequential processing if memory is low
+- Add swap space if needed: `sudo swapon --show`
+
+**5. CSV Validation Failures**
+
+**Symptoms:**
+- Error: "CSV validation failed"
+- Enum compatibility errors
+- Script exits during validation phase
+
+**Diagnosis:**
+```bash
+# Review validation errors
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "csv.*validation\|enum" "$LATEST_DIR/processAPINotes.log"
+
+# Check CSV files (if CLEAN=false)
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+head -5 "$LATEST_DIR"/*.csv
+```
+
+**Solutions:**
+- Review validation errors in logs to identify specific issues
+- Check if OSM data format changed (rare)
+- Temporarily skip validation for debugging (not recommended for production):
+  ```bash
+  export SKIP_CSV_VALIDATION=true
+  ./bin/process/processAPINotes.sh
+  ```
+
+**6. Planet Sync Triggered**
+
+**Symptoms:**
+- Message: "Starting full synchronization from Planet"
+- Script calls processPlanetNotes.sh
+- Processing takes much longer than usual
+
+**Diagnosis:**
+```bash
+# Check why Planet sync was triggered
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "total_notes\|max_notes\|planet" "$LATEST_DIR/processAPINotes.log"
+
+# Check MAX_NOTES threshold
+grep -i "MAX_NOTES" etc/properties.sh
+```
+
+**Solutions:**
+- This is normal behavior when API returns >= 10,000 notes
+- Planet sync ensures complete data consistency
+- Wait for Planet processing to complete (may take 1-2 hours)
+- After completion, API processing resumes normally
+
+#### Quick Diagnostic Commands
+
+```bash
+# Check script execution status
+ps aux | grep processAPINotes.sh
+
+# View latest log in real-time
+tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+
+# Check for failed execution
+ls -la /tmp/processAPINotes_failed_execution
+
+# Verify database connection
+psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;"
+
+# Check last update time
+psql -d "${DBNAME:-osm_notes}" -c "
+  SELECT * FROM properties WHERE key = 'last_update_api';
+"
+```
+
+#### Getting More Help
+
+- **Comprehensive Guide**: See [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for detailed troubleshooting across all components
+- **Error Codes**: See [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference) for complete error code reference
+- **Logs**: All logs are stored in `/tmp/processAPINotes_XXXXXX/processAPINotes.log`
+- **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture overview
 
 ## Related Documentation
 

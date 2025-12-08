@@ -669,6 +669,8 @@ Main Script    FIFO Queue    Semaphore    Overpass API    PostgreSQL
 
 ### Troubleshooting
 
+This section covers common issues specific to Planet processing. For a comprehensive troubleshooting guide covering all system components, see [Troubleshooting_Guide.md](./Troubleshooting_Guide.md).
+
 #### Common Error Scenarios
 
 **1. Planet File Download Failures**
@@ -976,6 +978,9 @@ tail -f "$LATEST_DIR/processPlanetNotes.log"
 
 # Monitor database activity
 watch -n 5 'psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"'
+
+# Check for failed execution marker
+ls -la /tmp/processPlanetNotes_failed_execution
 ```
 
 **Performance Analysis:**
@@ -990,6 +995,14 @@ ps aux | grep processPlanetNotes | awk '{print $6/1024 " MB"}'
 # Check database performance
 psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 ```
+
+#### Getting More Help
+
+- **Comprehensive Guide**: See [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for detailed troubleshooting across all components
+- **Error Codes**: See [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference) for complete error code reference
+- **API Processing Issues**: See [Process_API.md#troubleshooting](./Process_API.md#troubleshooting) for API-specific troubleshooting
+- **Logs**: All logs are stored in `/tmp/processPlanetNotes_XXXXXX/processPlanetNotes.log`
+- **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture overview
 
 ## Integration with Other Components
 
