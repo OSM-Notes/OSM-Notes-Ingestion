@@ -258,45 +258,147 @@ __execute_overpass_query "${QUERY_FILE}" "${OUTPUT_FILE}" "${ENDPOINT}"
 
 ### `parallelProcessingFunctions.sh`
 
-**Purpose**: Functions for coordinating parallel processing operations.
+**Purpose**: Functions for coordinating parallel processing operations, resource management, and XML file splitting.
 
 **Key Functions**:
 
-- **`__check_system_resources()`**: Check available system resources (CPU, memory)
-  - Returns: Resource status
-  - Usage: Validates system can handle parallel processing
+- **`__check_system_resources()`**: Check available system resources (CPU, memory, disk)
+  - **Parameters**: None
+  - **Returns**: `0` if resources are sufficient, `1` if insufficient
+  - **Usage**: Validates system can handle parallel processing before starting
+  - **Checks**:
+    - Available CPU cores
+    - Available memory (RAM)
+    - Available disk space
+    - System load average
+  - **Example**:
+    ```bash
+    if ! __check_system_resources; then
+        echo "Insufficient resources for parallel processing"
+        exit 1
+    fi
+    ```
 
-- **`__adjust_workers_for_resources()`**: Adjust number of workers based on resources
-  - Parameters: `requested_workers`
-  - Returns: Adjusted worker count
-  - Usage: Dynamically adjusts parallelism based on system capacity
+- **`__adjust_workers_for_resources()`**: Adjust number of workers based on available resources
+  - **Parameters**: 
+    - `requested_workers`: Desired number of workers
+  - **Returns**: Adjusted worker count (may be less than requested)
+  - **Usage**: Dynamically adjusts parallelism based on system capacity
+  - **Logic**: 
+    - Checks available CPU cores
+    - Checks available memory
+    - Reduces workers if resources are limited
+    - Default: CPU cores - 2 (leaves 2 cores for system)
+  - **Example**:
+    ```bash
+    REQUESTED=16
+    ACTUAL=$(__adjust_workers_for_resources ${REQUESTED})
+    echo "Using ${ACTUAL} workers (requested ${REQUESTED})"
+    ```
 
-- **`__processXmlPartsParallel()`**: Process XML file parts in parallel
-  - Parameters: `xml_file`, `num_parts`, `processing_function`
-  - Usage: Splits XML file and processes parts concurrently using GNU Parallel
+- **`__processXmlPartsParallel()`**: Process XML file parts in parallel using GNU Parallel
+  - **Parameters**: 
+    - `xml_file`: Path to XML file to process
+    - `num_parts`: Number of parts to split into
+    - `processing_function`: Function name to call for each part
+  - **Returns**: `0` on success, `1` on failure
+  - **Usage**: Splits XML file and processes parts concurrently
+  - **Performance**: Significantly faster than sequential processing for large files
+  - **Example**:
+    ```bash
+    __processXmlPartsParallel \
+        "${PLANET_XML}" \
+        8 \
+        "__processPlanetXmlPart"
+    ```
 
 - **`__splitXmlForParallelSafe()`**: Split XML file safely for parallel processing
-  - Parameters: `xml_file`, `num_parts`, `output_dir`
-  - Usage: Splits XML at note boundaries to avoid corruption
+  - **Parameters**: 
+    - `xml_file`: Path to XML file
+    - `num_parts`: Number of parts to create
+    - `output_dir`: Directory to write parts
+  - **Returns**: `0` on success, `1` on failure
+  - **Usage**: Splits XML at note boundaries to avoid corruption
+  - **Safety**: Ensures each part is valid XML (doesn't split mid-element)
+  - **Example**:
+    ```bash
+    mkdir -p /tmp/xml_parts
+    __splitXmlForParallelSafe \
+        "${XML_FILE}" \
+        8 \
+        "/tmp/xml_parts"
+    ```
 
-- **`__divide_xml_file()`**: Divide XML file into parts
-  - Parameters: `xml_file`, `num_parts`, `output_dir`
-  - Usage: Binary division of XML file for parallel processing
+- **`__divide_xml_file()`**: Divide XML file into parts using binary division
+  - **Parameters**: 
+    - `xml_file`: Path to XML file
+    - `num_parts`: Number of parts to create
+    - `output_dir`: Directory to write parts
+  - **Returns**: `0` on success, `1` on failure
+  - **Usage**: Binary division algorithm for efficient XML splitting
+  - **Algorithm**: Uses binary search to find split points at note boundaries
+  - **Performance**: Faster than linear scanning for large files
+  - **Example**:
+    ```bash
+    __divide_xml_file \
+        "${LARGE_XML_FILE}" \
+        24 \
+        "/tmp/parts"
+    ```
+
+- **`__wait_for_resources()`**: Wait for system resources to become available
+  - **Parameters**: 
+    - `required_memory_mb`: Required memory in MB
+    - `timeout_seconds`: Maximum time to wait
+  - **Returns**: `0` if resources available, `1` if timeout
+  - **Usage**: Waits for system resources before starting processing
+
+- **`__configure_system_limits()`**: Configure system limits for parallel processing
+  - **Parameters**: 
+    - `max_workers`: Maximum number of workers
+  - **Returns**: `0` on success, `1` on failure
+  - **Usage**: Sets ulimit and other system limits for optimal performance
 
 **Usage Example**:
 
 ```bash
 source bin/lib/parallelProcessingFunctions.sh
 
-# Check resources
-__check_system_resources
+# Check if system has enough resources
+if ! __check_system_resources; then
+    echo "Error: Insufficient system resources"
+    exit 1
+fi
 
-# Adjust workers
-WORKERS=$(__adjust_workers_for_resources 8)
+# Adjust workers based on available resources
+REQUESTED_WORKERS=16
+ACTUAL_WORKERS=$(__adjust_workers_for_resources ${REQUESTED_WORKERS})
+echo "Using ${ACTUAL_WORKERS} workers"
 
-# Process in parallel
-__processXmlPartsParallel "${XML_FILE}" "${WORKERS}" "__processXmlPart"
+# Configure system limits
+__configure_system_limits ${ACTUAL_WORKERS}
+
+# Split XML file safely
+XML_PARTS_DIR="/tmp/xml_parts_$$"
+mkdir -p "${XML_PARTS_DIR}"
+__splitXmlForParallelSafe \
+    "${PLANET_XML}" \
+    ${ACTUAL_WORKERS} \
+    "${XML_PARTS_DIR}"
+
+# Process parts in parallel
+__processXmlPartsParallel \
+    "${PLANET_XML}" \
+    ${ACTUAL_WORKERS} \
+    "__processPlanetXmlPart"
 ```
+
+**Performance Considerations**:
+
+- **Optimal Workers**: CPU cores - 2 (leaves cores for system)
+- **Memory**: Each worker needs ~500MB-2GB depending on data size
+- **Disk I/O**: Parallel processing increases disk I/O; ensure fast storage
+- **Network**: For API processing, consider rate limits
 
 ### `securityFunctions.sh`
 

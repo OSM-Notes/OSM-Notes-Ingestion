@@ -242,8 +242,28 @@ Database functions and procedures (located directly in `sql/`):
 
 Monitoring and verification scripts:
 
-- **Check tables**: `processCheckPlanetNotes_*.sql`
-- **Verification reports**: `notesCheckVerifier-report.sql`
+- **`processCheckPlanetNotes_*.sql`**: Check tables and data integrity
+  - **Purpose**: Validates Planet processing results
+  - **Usage**: Called by `notesCheckVerifier.sh` for data quality checks
+  - **Checks**: 
+    - Table existence and structure
+    - Data counts and consistency
+    - Country assignment completeness
+
+- **`notesCheckVerifier-report.sql`**: Generate verification reports
+  - **Purpose**: Creates detailed reports comparing Planet vs API data
+  - **Usage**: Called by `notesCheckVerifier.sh` for discrepancy analysis
+  - **Output**: Detailed comparison reports
+
+**Usage Example**:
+
+```bash
+# Run verification check
+psql -d osm_notes -f sql/monitor/processCheckPlanetNotes_*.sql
+
+# Generate verification report
+psql -d osm_notes -f sql/monitor/notesCheckVerifier-report.sql > report.txt
+```
 
 ### `/sql/wms/`
 
