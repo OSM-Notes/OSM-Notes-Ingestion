@@ -597,6 +597,97 @@ Execution
     │   │           └─▶ Exit with error code (no marker)
     │   │
     │   └─▶ EXIT trap triggered
+```
+
+### Error Handling Sequence Diagram
+
+The following diagram shows the detailed sequence of error handling interactions:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│          Error Handling: Detailed Component Interactions                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Script Execution    ERR Trap    Error Handler    Logger    Email System    File System
+    │                  │              │            │            │              │
+    │───command fails──▶│              │            │            │              │
+    │                  │              │            │            │              │
+    │                  │───capture error───────────▶│            │            │
+    │                  │              │            │            │              │
+    │                  │              │───get context───────────▶│            │
+    │                  │              │◀───line, cmd, code────────│            │
+    │                  │              │            │            │              │
+    │                  │              │───log error───────────────▶│            │
+    │                  │              │            │            │              │
+    │                  │              │            │───write log───────────────▶│
+    │                  │              │            │◀───logged───────────────────│
+    │                  │              │◀───logged──────────────────│            │
+    │                  │              │            │            │              │
+    │                  │───check GENERATE_FAILED_FILE───────────▶│            │
+    │                  │              │            │            │              │
+    │                  │              │───if true: create marker───────────────▶│
+    │                  │              │            │            │              │
+    │                  │              │            │            │───create file──▶│
+    │                  │              │            │            │◀───file created─│
+    │                  │              │◀───marker created───────────────────────│
+    │                  │              │            │            │              │
+    │                  │              │───if SEND_ALERT_EMAIL: send──────────────▶│
+    │                  │              │            │            │              │
+    │                  │              │            │            │───send email───▶│
+    │                  │              │            │            │◀───sent────────│
+    │                  │              │◀───alert sent───────────────────────────│
+    │                  │              │            │            │              │
+    │                  │───exit with error code───▶│            │            │
+    │                  │              │            │            │              │
+    │◀───execution stopped─────────────│              │            │            │
+```
+
+### Validation Flow Diagram
+
+The following diagram shows the validation process flow:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Validation Flow Sequence                              │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Script    Validation Functions    XML Validator    CSV Validator    Database    Logger
+  │              │                      │                │             │          │
+  │───start──────▶│                      │                │             │          │
+  │              │                      │                │             │          │
+  │              │───check SKIP_XML_VALIDATION───────────▶│             │          │
+  │              │                      │                │             │          │
+  │              │   [If false: validate XML]            │             │          │
+  │              │                      │                │             │          │
+  │              │───validate XML structure──────────────▶│             │          │
+  │              │                      │                │             │          │
+  │              │                      │───check XSD────▶│             │          │
+  │              │                      │◀───valid/invalid│             │          │
+  │              │◀───XML validation result───────────────│             │          │
+  │              │                      │                │             │          │
+  │              │───log result──────────────────────────────────────────▶│
+  │              │                      │                │             │          │
+  │              │───check SKIP_CSV_VALIDATION───────────▶│             │          │
+  │              │                      │                │             │          │
+  │              │   [If false: validate CSV]             │             │          │
+  │              │                      │                │             │          │
+  │              │───validate CSV structure───────────────▶│             │          │
+  │              │                      │                │             │          │
+  │              │                      │───check columns───────────────▶│
+  │              │                      │                │◀───valid/invalid│          │
+  │              │                      │◀───CSV validation result───────│          │
+  │              │◀───CSV validation result───────────────│             │          │
+  │              │                      │                │             │          │
+  │              │───validate enum compatibility──────────▶│             │          │
+  │              │                      │                │             │          │
+  │              │                      │───check enums───────────────────▶│
+  │              │                      │                │◀───compatible/incompatible│
+  │              │◀───enum validation result───────────────│             │          │
+  │              │                      │                │             │          │
+  │              │───log all results──────────────────────────────────────▶│
+  │              │                      │                │             │          │
+  │◀───validation complete──────────────│                      │                │             │          │
+```
     │       ├─▶ Cleanup temporary files
     │       ├─▶ Remove lock file
     │       └─▶ Exit

@@ -464,6 +464,151 @@ psql -d "${DBNAME}" -c "
 "
 ```
 
+## Detailed Sequence Diagrams
+
+### Planet Processing Sequence Diagram
+
+The following diagram shows the detailed sequence of interactions during Planet processing:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│       Detailed Sequence: processPlanetNotes.sh Component Interactions    │
+└─────────────────────────────────────────────────────────────────────────┘
+
+User/Cron      processPlanetNotes.sh    Planet Server    Overpass API    PostgreSQL    AWK Scripts
+    │                  │                     │                 │               │              │
+    │───execute───────▶│                     │                 │               │              │
+    │                  │                     │                 │               │              │
+    │                  │───check failed marker──────────────────▶│               │              │
+    │                  │◀───marker status───────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__checkPrereqs()──────────────────────▶│               │              │
+    │                  │◀───prereqs OK───────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__setupLockFile()─────────────────────▶│               │              │
+    │                  │◀───lock created───────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───Decision: --base mode?                │               │              │
+    │                  │                     │                 │               │              │
+    │                  │   [If --base: Drop all tables]         │               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__processGeographicData()──────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │                     │───Overpass query──▶│               │              │
+    │                  │                     │◀───GeoJSON─────────│               │              │
+    │                  │◀───boundaries───────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__validate_capital_location()─────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───ST_Contains check─────────────────────▶│               │              │
+    │                  │◀───validation result───────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───INSERT INTO countries─────────────────▶│               │              │
+    │                  │◀───countries loaded───────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__downloadPlanetFile()─────────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │                     │───GET planet file──▶│               │              │
+    │                  │                     │◀───bz2 archive─────│               │              │
+    │                  │◀───planet file───────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───extract notes XML──────────────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │                     │                 │               │───bunzip2───▶│
+    │                  │                     │                 │               │◀───XML───────│
+    │                  │◀───notes.xml─────────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__split_xml_file()─────────────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │                     │                 │               │───split──────▶│
+    │                  │◀───part files────────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__process_xml_parts_parallel()         │               │              │
+    │                  │                     │                 │               │              │
+    │                  │───process part_0.xml──────────────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │                     │                 │               │───extract_notes.awk──▶│
+    │                  │                     │                 │               │◀───CSV───────────────│
+    │                  │◀───part_0.csv────────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───[Process all parts in parallel]         │               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__consolidate_csv_files()──────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │                     │                 │               │───consolidate──▶│
+    │                  │◀───consolidated.csv───────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__loadPartitionedSyncNotes()───────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───COPY CSV to notes_sync──────────────────▶│               │              │
+    │                  │◀───data loaded────────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__consolidatePartitions()──────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───INSERT INTO notes_sync──────────────────▶│               │              │
+    │                  │◀───consolidated───────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__moveSyncToMain()──────────────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───INSERT INTO notes───────────────────────▶│               │              │
+    │                  │◀───notes moved────────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__getLocationNotes_impl()───────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───assign countries────────────────────────▶│               │              │
+    │                  │◀───countries assigned─────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───__dropSyncTables()──────────────────────▶│               │              │
+    │                  │                     │                 │               │              │
+    │                  │───DROP TABLE notes_sync───────────────────▶│               │              │
+    │                  │◀───tables dropped──────────────────────────│               │              │
+    │                  │                     │                 │               │              │
+    │◀───success────────│                     │                 │               │              │
+```
+
+### Overpass API Interaction Sequence
+
+The following diagram shows how the system interacts with Overpass API using FIFO queue and semaphore patterns:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│          Overpass API: FIFO Queue and Semaphore Pattern                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Main Script    FIFO Queue    Semaphore    Overpass API    PostgreSQL
+    │              │              │             │              │
+    │───request boundary───────────▶│             │              │
+    │              │              │             │              │
+    │              │───enqueue────▶│             │              │
+    │              │              │             │              │
+    │              │───wait for slot────────────▶│              │
+    │              │              │             │              │
+    │              │              │───check status───────────▶│
+    │              │              │◀───available slots─────────│
+    │              │              │             │              │
+    │              │              │───acquire slot──────────────▶│
+    │              │              │◀───slot acquired─────────────│
+    │              │              │             │              │
+    │              │───dequeue───▶│             │              │
+    │              │              │             │              │
+    │              │              │───execute query─────────────▶│
+    │              │              │             │              │
+    │              │              │             │───process query──▶│
+    │              │              │             │◀───GeoJSON───────│
+    │              │              │◀───response───────────────────│
+    │              │              │             │              │
+    │              │              │───release slot───────────────▶│
+    │              │              │◀───slot released──────────────│
+    │              │              │             │              │
+    │◀───boundary data─────────────│             │              │
+    │              │              │             │              │
+    │───process boundary───────────▶│             │              │
+    │              │              │             │              │
+    │───INSERT INTO countries─────────────────────────────────────▶│
+    │              │              │             │              │
+    │◀───boundary stored─────────────────────────────────────────────│
+```
+
 ## Error Handling
 
 ### Common Error Scenarios

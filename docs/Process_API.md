@@ -928,6 +928,148 @@ FROM note_comments_api
 ON CONFLICT (note_id, sequence_action) DO NOTHING;
 ```
 
+## Detailed Sequence Diagrams
+
+### API Processing Sequence Diagram
+
+The following diagram shows the detailed sequence of interactions between components during API processing:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│          Detailed Sequence: processAPINotes.sh Component Interactions     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Cron/User          processAPINotes.sh    OSM API      PostgreSQL    AWK Scripts
+    │                      │               │              │              │
+    │───execute───────────▶│               │              │              │
+    │                      │               │              │              │
+    │                      │───check failed marker───────▶│              │
+    │                      │◀───marker exists?────────────│              │
+    │                      │               │              │              │
+    │                      │───__checkPrereqs()───────────▶│              │
+    │                      │◀───prereqs OK────────────────│              │
+    │                      │               │              │              │
+    │                      │───__setupLockFile()──────────▶│              │
+    │                      │◀───lock created───────────────│              │
+    │                      │               │              │              │
+    │                      │───__checkBaseTables()─────────▶│              │
+    │                      │◀───RET_FUNC (0/1/2)───────────│              │
+    │                      │               │              │              │
+    │                      │───__createApiTables()─────────▶│              │
+    │                      │               │              │              │
+    │                      │───CREATE TABLE notes_api──────▶│              │
+    │                      │◀───table created──────────────│              │
+    │                      │               │              │              │
+    │                      │───__createPartitions()────────▶│              │
+    │                      │               │              │              │
+    │                      │───CREATE partition tables──────▶│              │
+    │                      │◀───partitions created──────────│              │
+    │                      │               │              │              │
+    │                      │───__getNewNotesFromApi()───────▶│              │
+    │                      │               │              │              │
+    │                      │               │───GET /api/0.6/notes───────▶│
+    │                      │               │◀───XML response─────────────│
+    │                      │◀───XML file────────────────────│              │
+    │                      │               │              │              │
+    │                      │───__countXmlNotesAPI()─────────▶│              │
+    │                      │               │              │              │
+    │                      │               │              │              │
+    │                      │───grep + wc───────────────────▶│              │
+    │                      │◀───TOTAL_NOTES──────────────────│              │
+    │                      │               │              │              │
+    │                      │───Decision: TOTAL_NOTES >= MAX? │              │
+    │                      │               │              │              │
+    │                      │   [If YES: Call processPlanetNotes.sh]       │
+    │                      │               │              │              │
+    │                      │───__splitXmlForParallelAPI()───▶│              │
+    │                      │               │              │              │
+    │                      │               │              │              │
+    │                      │───split XML into parts─────────▶│              │
+    │                      │◀───part files created──────────│              │
+    │                      │               │              │              │
+    │                      │───__processApiXmlPart() [parallel]            │
+    │                      │               │              │              │
+    │                      │───process part_0.xml────────────▶│              │
+    │                      │               │              │              │
+    │                      │               │              │───extract_notes.awk──▶│
+    │                      │               │              │◀───CSV output─────────│
+    │                      │◀───CSV file─────────────────────│              │
+    │                      │               │              │              │
+    │                      │───__loadApiNotes()──────────────▶│              │
+    │                      │               │              │              │
+    │                      │───COPY CSV to partition_0───────▶│              │
+    │                      │◀───data loaded───────────────────│              │
+    │                      │               │              │              │
+    │                      │───[Repeat for all parts in parallel]          │
+    │                      │               │              │              │
+    │                      │───__consolidatePartitions()─────▶│              │
+    │                      │               │              │              │
+    │                      │───INSERT INTO notes_api─────────▶│              │
+    │                      │◀───consolidated──────────────────│              │
+    │                      │               │              │              │
+    │                      │───__insertNewNotesAndComments()──▶│              │
+    │                      │               │              │              │
+    │                      │───INSERT INTO notes─────────────▶│              │
+    │                      │◀───notes inserted────────────────│              │
+    │                      │               │              │              │
+    │                      │───__updateLastValue()────────────▶│              │
+    │                      │               │              │              │
+    │                      │───UPDATE properties─────────────▶│              │
+    │                      │◀───updated───────────────────────│              │
+    │                      │               │              │              │
+    │                      │───__dropApiTables()─────────────▶│              │
+    │                      │               │              │              │
+    │                      │───DROP TABLE notes_api──────────▶│              │
+    │                      │◀───tables dropped────────────────│              │
+    │                      │               │              │              │
+    │◀───success───────────│               │              │              │
+```
+
+### Parallel Processing Sequence Diagram
+
+The following diagram shows how parallel processing coordinates multiple threads:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│          Parallel Processing: Multi-Thread Coordination                  │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Main Script      GNU Parallel    Thread 1    Thread 2    Thread N    PostgreSQL
+    │                 │             │            │           │            │
+    │───split XML────▶│             │            │           │            │
+    │                 │             │            │           │            │
+    │                 │───part_0───▶│            │           │            │
+    │                 │───part_1───────▶│         │           │            │
+    │                 │───part_N───────────────▶│            │            │
+    │                 │             │            │           │            │
+    │                 │───process part_0───────▶│            │            │
+    │                 │             │            │           │            │
+    │                 │             │───AWK extract─────────▶│            │
+    │                 │             │◀───CSV──────────────────│            │
+    │                 │             │            │           │            │
+    │                 │             │───load partition_0─────▶│            │
+    │                 │             │◀───loaded────────────────│            │
+    │                 │             │            │           │            │
+    │                 │             │───process part_1───────▶│            │
+    │                 │             │            │           │            │
+    │                 │             │            │───AWK extract─────────▶│
+    │                 │             │            │◀───CSV──────────────────│
+    │                 │             │            │           │            │
+    │                 │             │            │───load partition_1─────▶│
+    │                 │             │            │◀───loaded────────────────│
+    │                 │             │            │           │            │
+    │                 │             │            │           │            │
+    │                 │───[All threads complete]─────────────│            │
+    │                 │             │            │           │            │
+    │───consolidate──▶│             │            │           │            │
+    │                 │             │            │           │            │
+    │                 │───consolidate all partitions─────────▶│            │
+    │                 │             │            │           │            │
+    │                 │             │            │           │◀───INSERT───│
+    │                 │             │            │           │───consolidated─▶│
+    │◀───complete──────│             │            │           │            │
+```
+
 ## Integration with Planet Processing
 
 ### When Complete Synchronization is Required
