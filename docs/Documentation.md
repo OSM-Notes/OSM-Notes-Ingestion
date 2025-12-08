@@ -832,6 +832,474 @@ For more detailed examples and use cases, see:
 
 ---
 
+## Common Use Cases
+
+This section describes real-world scenarios and typical workflows for using the OSM-Notes-Ingestion system.
+
+### Use Case 1: Initial System Setup
+
+**Scenario**: Setting up a new OSM-Notes-Ingestion system from scratch.
+
+**Workflow**:
+
+```bash
+# Step 1: Clone repository with submodules
+git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
+cd OSM-Notes-Ingestion
+
+# Step 2: Configure database connection
+# Edit etc/properties.sh with your database credentials
+vi etc/properties.sh
+
+# Step 3: Create database and extensions
+createdb osm_notes
+psql -d osm_notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+# Step 4: Load historical data from Planet (takes 1-2 hours)
+./bin/process/processPlanetNotes.sh --base
+
+# Step 5: Load country and maritime boundaries
+./bin/process/updateCountries.sh --base
+
+# Step 6: Generate backups for faster future processing
+./bin/scripts/generateNoteLocationBackup.sh
+./bin/scripts/exportCountriesBackup.sh
+./bin/scripts/exportMaritimesBackup.sh
+
+# Step 7: Install WMS components (optional)
+./bin/wms/wmsManager.sh install
+./bin/wms/geoserverConfig.sh install
+
+# Step 8: Set up automated processing (crontab)
+crontab -e
+# Add: */15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh
+```
+
+**Expected Duration**: 2-3 hours (mostly Planet processing)
+
+**Verification**:
+
+```bash
+# Check notes count
+psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+
+# Check countries loaded
+psql -d osm_notes -c "SELECT COUNT(*) FROM countries;"
+
+# Verify WMS tables (if installed)
+psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
+```
+
+### Use Case 2: Production Deployment
+
+**Scenario**: Deploying the system in a production environment with monitoring and alerting.
+
+**Workflow**:
+
+```bash
+# Step 1: Production database setup
+# Use a dedicated PostgreSQL instance with proper backups
+createdb -E UTF8 osm_notes
+psql -d osm_notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+# Step 2: Configure production settings
+export DBNAME=osm_notes
+export ADMIN_EMAIL="admin@yourdomain.com"
+export SEND_ALERT_EMAIL=true
+export LOG_LEVEL=WARN  # Reduce log verbosity in production
+
+# Step 3: Initial data load (run during maintenance window)
+./bin/process/processPlanetNotes.sh --base
+./bin/process/updateCountries.sh --base
+
+# Step 4: Set up cron jobs
+crontab -e
+# Add:
+# */15 * * * * cd /opt/osm-notes && ./bin/process/processAPINotes.sh
+# 0 2 * * * cd /opt/osm-notes && ./bin/process/processPlanetNotes.sh
+# 0 3 * * 0 cd /opt/osm-notes && ./bin/process/updateCountries.sh
+# 0 4 * * * cd /opt/osm-notes && ./bin/monitor/notesCheckVerifier.sh
+
+# Step 5: Set up log rotation
+# Configure logrotate for /tmp/processAPINotes_* directories
+# Or redirect logs to ~/logs/ (user-writable path)
+
+# Step 6: Monitor system health
+# Set up monitoring for:
+# - Database size and performance
+# - Script execution status
+# - Failed execution markers
+# - Disk space
+```
+
+**Monitoring Setup**:
+
+```bash
+# Daily health check script
+cat > /usr/local/bin/check-osm-notes-health.sh << 'EOF'
+#!/bin/bash
+# Check for failed executions
+if [ -f /tmp/processAPINotes_failed_execution ]; then
+    echo "ALERT: processAPINotes failed"
+    cat /tmp/processAPINotes_failed_execution | mail -s "OSM Notes Alert" admin@yourdomain.com
+fi
+
+# Check database size
+DB_SIZE=$(psql -d osm_notes -t -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));")
+echo "Database size: $DB_SIZE"
+
+# Check note count
+NOTE_COUNT=$(psql -d osm_notes -t -c "SELECT COUNT(*) FROM notes;")
+echo "Total notes: $NOTE_COUNT"
+EOF
+
+chmod +x /usr/local/bin/check-osm-notes-health.sh
+
+# Add to crontab (daily at 6 AM)
+# 0 6 * * * /usr/local/bin/check-osm-notes-health.sh
+```
+
+### Use Case 3: Integration with Analytics System
+
+**Scenario**: Integrating OSM-Notes-Ingestion with [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for data warehouse and analytics.
+
+**Workflow**:
+
+```bash
+# Step 1: Ensure OSM-Notes-Ingestion is running and syncing
+# Verify data is being updated
+psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+
+# Step 2: Set up ETL from ingestion to analytics
+# The analytics system reads from the same database
+# Configure ETL to run after API processing
+
+# Step 3: Coordinate processing schedules
+# Ingestion: Every 15 minutes (processAPINotes.sh)
+# ETL: Every 30 minutes (after ingestion completes)
+# This ensures analytics data is always up-to-date
+
+# Step 4: Verify data flow
+# Check that analytics tables are being populated
+# Query analytics database for latest data
+```
+
+**Data Flow**:
+
+```text
+OSM API → processAPINotes.sh → PostgreSQL (osm_notes)
+                                           │
+                                           ▼
+                              ETL Process (OSM-Notes-Analytics)
+                                           │
+                                           ▼
+                              Data Warehouse → Data Marts
+```
+
+**Verification**:
+
+```bash
+# Check ingestion is working
+psql -d osm_notes -c "SELECT COUNT(*) FROM notes WHERE created_at > NOW() - INTERVAL '1 hour';"
+
+# Check ETL is processing
+# (Query analytics database)
+psql -d osm_notes_analytics -c "SELECT MAX(etl_timestamp) FROM fact_notes;"
+```
+
+### Use Case 4: WMS Integration with Mapping Applications
+
+**Scenario**: Setting up WMS layer for use in JOSM, Vespucci, or other mapping applications.
+
+**Workflow**:
+
+```bash
+# Step 1: Install WMS database components
+./bin/wms/wmsManager.sh install
+
+# Step 2: Configure GeoServer
+./bin/wms/geoserverConfig.sh install
+
+# Step 3: Verify WMS service
+curl "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities"
+
+# Step 4: Test in JOSM
+# - Open JOSM
+# - Imagery → Add WMS Layer
+# - URL: http://localhost:8080/geoserver/wms
+# - Select layer: osm_notes:notes_wms
+```
+
+**Configuration for External Access**:
+
+```bash
+# If serving WMS to external users, configure:
+# 1. Firewall rules (open port 8080)
+# 2. Reverse proxy (nginx/apache) for HTTPS
+# 3. GeoServer security settings
+# 4. Update WMS URL in documentation
+```
+
+**User Guide**: See [WMS_User_Guide.md](./WMS_User_Guide.md) for detailed instructions.
+
+### Use Case 5: Data Quality Monitoring
+
+**Scenario**: Monitoring data quality and detecting synchronization issues.
+
+**Workflow**:
+
+```bash
+# Step 1: Set up daily verification
+crontab -e
+# Add: 0 4 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh
+
+# Step 2: Set up database performance monitoring
+crontab -e
+# Add: 0 2 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/analyzeDatabasePerformance.sh
+
+# Step 3: Review verification results
+# Check logs for discrepancies
+LATEST_DIR=$(ls -1rtd /tmp/notesCheckVerifier_* | tail -1)
+cat "$LATEST_DIR/notesCheckVerifier.log"
+
+# Step 4: Investigate discrepancies
+# If issues found, review:
+# - API processing logs
+# - Planet processing logs
+# - Database state
+```
+
+**Automated Alerts**:
+
+```bash
+# Configure email alerts for verification failures
+export ADMIN_EMAIL="admin@yourdomain.com"
+export SEND_ALERT_EMAIL=true
+
+# The verification script will send alerts if discrepancies are found
+```
+
+### Use Case 6: Development and Testing
+
+**Scenario**: Setting up a development environment for testing changes.
+
+**Workflow**:
+
+```bash
+# Step 1: Create test database
+createdb osm_notes_test
+psql -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+# Step 2: Use test database for all operations
+export DBNAME=osm_notes_test
+
+# Step 3: Load minimal test data
+# Use mock data or small subset of real data
+./bin/process/processPlanetNotes.sh --base
+
+# Step 4: Run with debug logging
+export LOG_LEVEL=DEBUG
+export CLEAN=false  # Keep files for inspection
+
+# Step 5: Run tests
+./tests/run_all_tests.sh
+
+# Step 6: Test specific changes
+./bin/process/processAPINotes.sh
+# Inspect generated files in /tmp/processAPINotes_*/
+```
+
+**Testing Workflow**:
+
+```bash
+# 1. Make changes to code
+# 2. Run unit tests
+./tests/run_tests_simple.sh
+
+# 3. Run integration tests
+./tests/run_integration_tests.sh
+
+# 4. Test with real data (small subset)
+export DBNAME=osm_notes_test
+./bin/process/processAPINotes.sh
+
+# 5. Verify results
+psql -d osm_notes_test -c "SELECT COUNT(*) FROM notes;"
+```
+
+### Use Case 7: Disaster Recovery
+
+**Scenario**: Recovering from database corruption or data loss.
+
+**Workflow**:
+
+```bash
+# Step 1: Assess damage
+psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+psql -d osm_notes -c "SELECT COUNT(*) FROM countries;"
+
+# Step 2: Backup current state (if possible)
+pg_dump osm_notes > backup_before_recovery.sql
+
+# Step 3: Restore from Planet (full reload)
+./bin/process/processPlanetNotes.sh --base
+
+# Step 4: Reload boundaries
+./bin/process/updateCountries.sh --base
+
+# Step 5: Regenerate backups
+./bin/scripts/generateNoteLocationBackup.sh
+./bin/scripts/exportCountriesBackup.sh
+./bin/scripts/exportMaritimesBackup.sh
+
+# Step 6: Verify recovery
+psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+
+# Step 7: Resume normal operations
+# API processing will catch up with recent notes
+```
+
+**Prevention**:
+
+```bash
+# Set up regular backups
+# Daily database backup
+0 1 * * * pg_dump osm_notes | gzip > /backups/osm_notes_$(date +\%Y\%m\%d).sql.gz
+
+# Weekly full backup including boundaries
+0 2 * * 0 ./bin/scripts/exportCountriesBackup.sh && ./bin/scripts/exportMaritimesBackup.sh
+```
+
+### Use Case 8: Performance Optimization
+
+**Scenario**: Optimizing system performance for large datasets.
+
+**Workflow**:
+
+```bash
+# Step 1: Analyze current performance
+./bin/monitor/analyzeDatabasePerformance.sh
+
+# Step 2: Review query performance
+psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes WHERE id_country = 1;"
+
+# Step 3: Optimize database
+psql -d osm_notes -c "ANALYZE;"
+psql -d osm_notes -c "VACUUM FULL notes;"
+
+# Step 4: Adjust parallel processing
+# If memory is constrained, reduce MAX_THREADS
+export MAX_THREADS=4  # Default is CPU cores - 2
+
+# Step 5: Monitor improvements
+# Track processing times
+grep "Processing time" /tmp/processAPINotes_*/processAPINotes.log
+```
+
+**Performance Tuning**:
+
+```bash
+# For large datasets, consider:
+# 1. Increase database shared_buffers
+# 2. Add more indexes for common queries
+# 3. Partition large tables
+# 4. Adjust PostgreSQL configuration
+# 5. Use faster storage (SSD) for database
+```
+
+### Use Case 9: Multi-Server Deployment
+
+**Scenario**: Deploying across multiple servers (ingestion, database, WMS).
+
+**Architecture**:
+
+```text
+Server 1 (Ingestion):
+  - processAPINotes.sh (cron)
+  - processPlanetNotes.sh (manual/scheduled)
+  - updateCountries.sh (scheduled)
+
+Server 2 (Database):
+  - PostgreSQL/PostGIS
+  - Database backups
+
+Server 3 (WMS):
+  - GeoServer
+  - WMS service
+```
+
+**Configuration**:
+
+```bash
+# On ingestion server, configure remote database
+# Edit etc/properties.sh:
+DB_HOST=db-server.example.com
+DB_PORT=5432
+DBNAME=osm_notes
+DB_USER=osm_user
+DB_PASSWORD=secure_password
+
+# On WMS server, configure remote database connection in GeoServer
+# Use same database credentials
+```
+
+**Network Considerations**:
+
+- Ensure low latency between ingestion and database servers
+- Use dedicated network for database connections
+- Configure firewall rules appropriately
+- Monitor network performance
+
+### Use Case 10: Integration with External Monitoring
+
+**Scenario**: Integrating with external monitoring systems (Nagios, Prometheus, etc.).
+
+**Workflow**:
+
+```bash
+# Step 1: Create monitoring script
+cat > /usr/local/bin/check-osm-notes.sh << 'EOF'
+#!/bin/bash
+# Check if processAPINotes is running
+if pgrep -f processAPINotes.sh > /dev/null; then
+    echo "OK: processAPINotes is running"
+    exit 0
+else
+    # Check if it should be running (within last 20 minutes)
+    LAST_RUN=$(find /tmp -name "processAPINotes_*" -type d -mmin -20 | wc -l)
+    if [ "$LAST_RUN" -eq 0 ]; then
+        echo "CRITICAL: processAPINotes has not run in 20 minutes"
+        exit 2
+    else
+        echo "OK: processAPINotes completed recently"
+        exit 0
+    fi
+fi
+EOF
+
+chmod +x /usr/local/bin/check-osm-notes.sh
+
+# Step 2: Integrate with monitoring system
+# For Nagios:
+# command_line    /usr/local/bin/check-osm-notes.sh
+
+# For Prometheus:
+# Export metrics via textfile collector
+```
+
+**Metrics to Monitor**:
+
+- Script execution status
+- Database size and growth rate
+- Processing time per execution
+- Error rates
+- Failed execution markers
+- Disk space usage
+- Database connection pool
+
+---
+
 ## Database Schema
 
 ### Database Schema Diagram
