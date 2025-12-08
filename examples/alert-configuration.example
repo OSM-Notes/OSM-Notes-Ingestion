@@ -75,7 +75,8 @@
 # echo "Test email" | mail -s "Test" your@email.com
 
 # If you don't receive the email, check:
-# 1. Postfix logs: tail -f /var/log/mail.log
+# 1. Postfix logs (system logs, requires root or sudo): tail -f /var/log/mail.log
+#    Note: /var/log/mail.log is a system log file (Postfix mail server), not a project log
 # 2. Status: systemctl status postfix
 # 3. Configuration: cat /etc/postfix/main.cf
 
@@ -151,8 +152,9 @@ export SEND_ALERT_EMAIL="false"
 #    tail -f /tmp/processAPINotes_*/processAPINotes.log
 #    # Look for: "Email alert sent successfully" or "Failed to send email"
 # 
-# 4. Check Postfix logs:
+# 4. Check Postfix logs (system logs, requires root or sudo):
 #    tail -f /var/log/mail.log
+#    Note: /var/log/mail.log is a system log file (Postfix mail server), not a project log
 
 
 # Alerts are sent but don't arrive

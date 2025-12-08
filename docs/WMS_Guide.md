@@ -668,7 +668,11 @@ Create a monitoring script: `/usr/local/bin/wms-health-check.sh`
 #!/bin/bash
 # WMS Health Check Script
 
-LOG_FILE="/var/log/wms-health-check.log"
+# Use logs directory in home or project directory (no special permissions required)
+# Create directory first: mkdir -p ~/logs
+LOG_FILE="${HOME}/logs/wms-health-check.log"
+# Alternative: Use project logs directory
+# LOG_FILE="/path/to/OSM-Notes-Ingestion/logs/wms-health-check.log"
 ALERT_EMAIL="admin@yourdomain.com"
 
 # Check database connection
@@ -883,19 +887,36 @@ echo "Backup completed: $BACKUP_DIR/geoserver_${DATE}.tar.gz"
 
 Create logrotate configuration: `/etc/logrotate.d/wms`
 
+**Note:** If using logs in home directory (`~/logs/`), use absolute path in logrotate config.
+
 ```text
-/var/log/wms*.log {
+# Example for logs in home directory
+/home/username/logs/wms*.log {
     daily
     missingok
     rotate 30
     compress
     delaycompress
     notifempty
-    create 644 root root
+    create 644 username username
     postrotate
         systemctl reload geoserver
     endscript
 }
+
+# Alternative: If using /var/log/ (requires root permissions)
+# /var/log/wms*.log {
+#     daily
+#     missingok
+#     rotate 30
+#     compress
+#     delaycompress
+#     notifempty
+#     create 644 root root
+#     postrotate
+#         systemctl reload geoserver
+#     endscript
+# }
 ```
 
 #### Log Analysis

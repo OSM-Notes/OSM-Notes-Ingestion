@@ -295,7 +295,12 @@ For continuous monitoring, you can schedule regular execution:
 
 ```bash
 # Crontab to run daily at 2 AM
-0 2 * * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes > /var/log/db_performance.log 2>&1
+# Note: Script creates its own log. Redirection is optional.
+# Use logs directory in home (no special permissions required)
+0 2 * * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes >> ~/logs/db_performance.log 2>&1
+
+# Alternative: Without redirection (script creates its own log)
+0 2 * * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes >/dev/null 2>&1
 ```
 
 #### Monitoring Integration

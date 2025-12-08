@@ -595,14 +595,22 @@ Example crontab entries for automated execution:
 
 ```bash
 # Process API notes every 15 minutes
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> /var/log/osm-notes-api.log 2>&1
+# Note: Scripts create their own logs in /tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log
+# No need to redirect output unless you want additional logging
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >/dev/null 2>&1
+
+# Alternative: Redirect to a logs directory in your home or project directory
+# mkdir -p ~/logs  # Create logs directory first
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> ~/logs/osm-notes-api.log 2>&1
 
 # Update countries daily at 2 AM
-0 2 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/updateCountries.sh >> /var/log/osm-notes-countries.log 2>&1
+0 2 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/updateCountries.sh >/dev/null 2>&1
 
 # Verify data integrity daily at 3 AM
-0 3 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh >> /var/log/osm-notes-verify.log 2>&1
+0 3 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh >/dev/null 2>&1
 ```
+
+**Note:** Scripts automatically create log files in `/tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log`. The redirection in cron is optional and mainly useful for capturing startup errors. For production, you may want to redirect to a logs directory in your home or project directory (e.g., `~/logs/` or `./logs/`).
 
 ### Testing and Development
 
