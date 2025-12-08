@@ -224,7 +224,7 @@ EOF
  [[ "${status}" -eq 0 ]]
 } 
 
-@test "Test XML splitting without xmlstarlet" {
+@test "Test XML splitting with standard tools" {
  # Create a simple test XML file with multiple notes
  cat > "${TMP_DIR}/test_splitting.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>

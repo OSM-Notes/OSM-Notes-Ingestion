@@ -427,7 +427,7 @@ EOF
  done
 
  # Mock other commands
- for cmd in xsltproc curl grep free uptime ulimit prlimit bc timeout xmlstarlet jq gdalinfo cut tail head; do
+ for cmd in awk curl grep free uptime ulimit prlimit bc timeout jq gdalinfo cut tail head; do
   cat > "${mock_dir}/${cmd}" << 'EOF'
 #!/bin/bash
 exit 0

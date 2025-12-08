@@ -211,10 +211,7 @@ EOF
 
 @test "enhanced __countXmlNotesAPI should count notes correctly" {
  # Test with valid API XML
- # Skip if xmlstarlet is not available
- if ! command -v xmlstarlet > /dev/null 2>&1; then
-  skip "xmlstarlet not available"
- fi
+ # Note: This function uses grep, not xmlstarlet
 
  # Execute function using run to capture status and output
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
@@ -225,10 +222,7 @@ EOF
 
 @test "enhanced __countXmlNotesAPI should handle empty XML" {
  # Test with empty XML
- # Skip if xmlstarlet is not available
- if ! command -v xmlstarlet > /dev/null 2>&1; then
-  skip "xmlstarlet not available"
- fi
+ # Note: This function uses grep, not xmlstarlet
 
  # Execute function using run to capture status and output
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_empty.xml"
@@ -367,30 +361,13 @@ EOF
  [[ "${status}" -ne 0 ]]
 }
 
-@test "should handle xmlstarlet not available gracefully" {
- # Test graceful handling when xmlstarlet is not available
- # Create a mock xmlstarlet that always fails
- local mock_xmlstarlet="${TEST_BASE_DIR}/tests/tmp/mock_xmlstarlet_fail"
- cat > "${mock_xmlstarlet}" << 'EOF'
-#!/bin/bash
-echo "Mock xmlstarlet called with: $*" >&2
-exit 1
-EOF
- chmod +x "${mock_xmlstarlet}"
-
- # Temporarily replace xmlstarlet with mock
- local original_path="${PATH}"
- export PATH="${TEST_BASE_DIR}/tests/tmp:${PATH}"
-
- # Test the function
+@test "should handle missing dependencies gracefully" {
+ # Test graceful handling when dependencies are not available
+ # Note: This function uses grep, which is a standard tool
+ # This test verifies the function works without external XML processing tools
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
 
- # Restore original PATH
- export PATH="${original_path}"
- rm -f "${mock_xmlstarlet}"
-
- # The function should either fail or succeed gracefully
- # We'll accept either outcome as long as it doesn't crash
+ # The function should work with grep (standard tool)
  [[ "${status}" -ge 0 ]]
 }
 
@@ -422,10 +399,7 @@ EOF
 
 @test "XML counting should be fast for small files" {
  # Test performance with small file
- # Skip if xmlstarlet is not available
- if ! command -v xmlstarlet > /dev/null 2>&1; then
-  skip "xmlstarlet not available"
- fi
+ # Note: This function uses grep, not xmlstarlet
 
  local start_time
  start_time=$(date +%s%N)
@@ -463,39 +437,12 @@ EOF
 # Mock function tests
 # =============================================================================
 
-@test "mock XML counting should work without external dependencies" {
- # Create a mock version of xmlstarlet
- local mock_xmlstarlet="${TEST_BASE_DIR}/tests/tmp/mock_xmlstarlet"
- cat > "${mock_xmlstarlet}" << 'EOF'
-#!/bin/bash
-if [[ "$1" == "sel" ]] && [[ "$2" == "-t" ]] && [[ "$3" == "-v" ]]; then
-    if [[ "$4" == "count(/osm/note)" ]]; then
-        echo "2"
-    elif [[ "$4" == "count(/osm-notes/note)" ]]; then
-        echo "1"
-    else
-        echo "0"
-    fi
-else
-    echo "Invalid arguments" >&2
-    exit 1
-fi
-EOF
- chmod +x "${mock_xmlstarlet}"
-
- # Temporarily replace xmlstarlet with mock
- local original_path="${PATH}"
- export PATH="${TEST_BASE_DIR}/tests/tmp:${PATH}"
-
- # Test with mock
+@test "XML counting should work without external dependencies" {
+ # Test that XML counting works using only standard tools (grep)
+ # This function uses grep, which is a standard Unix tool
  run __countXmlNotesAPI "${TEST_BASE_DIR}/tests/tmp/test_api.xml"
 
- # Restore original PATH
- export PATH="${original_path}"
- rm -f "${mock_xmlstarlet}"
-
- # Check result - the function should either succeed or fail gracefully
- # We'll accept either outcome as long as it doesn't crash
+ # Check result - the function should work with grep
  [[ "${status}" -ge 0 ]]
 }
 

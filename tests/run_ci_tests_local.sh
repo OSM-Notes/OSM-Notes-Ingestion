@@ -212,7 +212,7 @@ if command -v apt-get > /dev/null 2>&1; then
   bats \
   postgresql-client \
   libxml2-utils \
-  xsltproc \
+  awk \
   curl || log_warning "Some packages may not be installed"
 else
  log_warning "apt-get not available, assuming dependencies are installed"
@@ -249,7 +249,7 @@ chmod +x tests/run_integration_tests.sh 2> /dev/null || true
 
 # Verify tools availability
 log_info "Verifying required tools..."
-command -v xsltproc > /dev/null 2>&1 && log_success "✓ xsltproc available" || log_warning "✗ xsltproc not available"
+command -v awk > /dev/null 2>&1 && log_success "✓ awk available" || log_warning "✗ awk not available"
 command -v xmllint > /dev/null 2>&1 && log_success "✓ xmllint available" || log_warning "✗ xmllint not available"
 command -v shfmt > /dev/null 2>&1 && log_success "✓ shfmt available" || log_warning "✗ shfmt not available"
 command -v shellcheck > /dev/null 2>&1 && log_success "✓ shellcheck available" || log_warning "✗ shellcheck not available"

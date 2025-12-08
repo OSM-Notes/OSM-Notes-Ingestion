@@ -24,7 +24,6 @@ RUN apt-get update && apt-get install -y \
     mutt \
     bzip2 \
     libxml2-utils \
-    xmlstarlet \
     nodejs \
     npm \
     gdal-bin \

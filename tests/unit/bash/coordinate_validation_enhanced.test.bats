@@ -268,9 +268,9 @@ EOF
  unset -f stat
 }
 
-# Test timeout handling for xmlstarlet operations
-@test "Timeout handling works for xmlstarlet operations" {
- # Create a file that would cause xmlstarlet to hang (simulated)
+# Test timeout handling for XML operations
+@test "Timeout handling works for XML operations" {
+ # Create a file that would cause XML processing to hang (simulated)
  local TIMEOUT_FILE="${TMP_DIR}/timeout_test.xml"
  
  # Create a file that appears small but has complex structure
@@ -283,7 +283,7 @@ EOF
 </osm-notes>
 EOF
 
- # Since we no longer use xmlstarlet, this should work without timeout issues
+ # This should work without timeout issues using standard tools
  run __validate_xml_coordinates "${TIMEOUT_FILE}"
  [ "${status}" -eq 0 ]
  [[ "${output}" == *"XML coordinate validation passed"* ]]
