@@ -24,6 +24,68 @@ This repository focuses exclusively on **data ingestion** from OpenStreetMap:
 
 ## System Architecture
 
+### Architecture Diagram
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                        OSM-Notes-Ingestion System                    │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+        ┌───────────────────────────┼───────────────────────────┐
+        │                           │                           │
+        ▼                           ▼                           ▼
+┌───────────────┐          ┌───────────────┐          ┌───────────────┐
+│  OSM Notes    │          │  OSM Planet   │          │   Overpass    │
+│     API       │          │     Dumps     │          │     API       │
+│  (Real-time)  │          │  (Historical) │          │ (Boundaries)  │
+└───────┬───────┘          └───────┬───────┘          └───────┬───────┘
+        │                          │                          │
+        │                          │                          │
+        └──────────┬───────────────┴──────────┬───────────────┘
+                   │                          │
+                   ▼                          ▼
+        ┌────────────────────┐    ┌────────────────────┐
+        │  Data Collection   │    │  Boundary Download │
+        │      Layer         │    │   (FIFO Queue)    │
+        └──────────┬─────────┘    └──────────┬─────────┘
+                   │                         │
+                   └────────────┬────────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │  Data Processing      │
+                    │      Layer           │
+                    │  ┌─────────────────┐ │
+                    │  │ XML → CSV (AWK) │ │
+                    │  │  Validation     │ │
+                    │  │  Parallel Proc  │ │
+                    │  └─────────────────┘ │
+                    └───────────┬───────────┘
+                                │
+                                ▼
+                    ┌───────────────────────┐
+                    │   Data Storage        │
+                    │      Layer            │
+                    │  ┌─────────────────┐ │
+                    │  │  PostgreSQL     │ │
+                    │  │  + PostGIS      │ │
+                    │  │  - notes        │ │
+                    │  │  - comments    │ │
+                    │  │  - countries    │ │
+                    │  └─────────────────┘ │
+                    └───────────┬───────────┘
+                                │
+                ┌───────────────┴───────────────┐
+                │                               │
+                ▼                               ▼
+    ┌───────────────────┐          ┌───────────────────┐
+    │   WMS Layer       │          │  Analytics (DWH)  │
+    │  (GeoServer)      │          │  (External Repo)  │
+    │  - Map Tiles      │          │  - Star Schema    │
+    │  - Styles         │          │  - Data Marts     │
+    └───────────────────┘          └───────────────────┘
+```
+
 ### Core Components
 
 The OSM-Notes-Ingestion system consists of the following components:
@@ -87,6 +149,104 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 ## Data Flow
 
+### Data Flow Diagram
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Data Flow Overview                           │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌──────────────┐
+│ Overpass API │
+│ (Boundaries) │
+└──────┬───────┘
+       │
+       │ Download (FIFO Queue)
+       │
+       ▼
+┌──────────────┐     ┌──────────────┐
+│   Countries  │────▶│   PostGIS    │
+│   Table      │     │  Geometry    │
+└──────────────┘     └──────────────┘
+
+┌──────────────┐
+│ OSM Planet  │
+│   Dumps     │
+└──────┬───────┘
+       │
+       │ Download
+       │
+       ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  XML File    │────▶│  AWK Extract │────▶│  CSV Files   │
+│  (2.2GB+)    │     │  (Parallel)  │     │  (Partitioned)│
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                                                  │ Load
+                                                  ▼
+                                         ┌──────────────┐
+                                         │ Sync Tables  │
+                                         │ (Temporary)  │
+                                         └──────┬───────┘
+                                                │
+                                                │ Merge
+                                                ▼
+                                         ┌──────────────┐
+                                         │  Base Tables │
+                                         │  (notes,     │
+                                         │   comments)  │
+                                         └──────┬───────┘
+                                                │
+                                                │ Country
+                                                │ Assignment
+                                                ▼
+                                         ┌──────────────┐
+                                         │  Notes with  │
+                                         │  Countries   │
+                                         └──────┬───────┘
+                                                │
+                    ┌──────────────────────────┴──────────────────────────┐
+                    │                                                       │
+                    ▼                                                       ▼
+         ┌──────────────────┐                                  ┌──────────────────┐
+         │   WMS Tables     │                                  │  Analytics DWH   │
+         │  (via Triggers)  │                                  │  (External Repo) │
+         └──────────┬───────┘                                  └───────────────────┘
+                    │
+                    ▼
+         ┌──────────────────┐
+         │    GeoServer     │
+         │   (WMS Service)  │
+         └──────────┬───────┘
+                    │
+                    ▼
+         ┌──────────────────┐
+         │  Map Clients     │
+         │ (JOSM, Vespucci)  │
+         └──────────────────┘
+
+┌──────────────┐
+│  OSM Notes   │
+│     API      │
+└──────┬───────┘
+       │
+       │ Every 15 min
+       │
+       ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  XML (API)   │────▶│  AWK Extract │────▶│  API Tables  │
+│  (<10K notes)│     │  (Parallel)  │     │ (Temporary)  │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                                  │
+                                                  │ Update
+                                                  ▼
+                                         ┌──────────────┐
+                                         │  Base Tables │
+                                         │  (Incremental│
+                                         │   Updates)   │
+                                         └──────────────┘
+```
+
 ### 1. Geographic Data Collection
 
 **Source:** Overpass API queries for country and maritime boundaries
@@ -146,6 +306,82 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 **Output:** Notes with assigned countries
 
+### Processing Sequence Diagram
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Processing Sequence Overview                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+API Processing Flow (Every 15 minutes):
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Cron    │───▶│processAPI│───▶│  OSM API │───▶│   AWK    │───▶│PostgreSQL│
+│  Scheduler│    │  Script  │    │  (XML)   │    │ Extract  │    │  (API    │
+└──────────┘    └────┬─────┘    └──────────┘    └────┬─────┘    │  Tables) │
+                     │                               │           └────┬──────┘
+                     │                               │                │
+                     │                               │                │
+                     │                               ▼                │
+                     │                      ┌──────────────┐          │
+                     │                      │   Parallel   │          │
+                     │                      │  Processing  │          │
+                     │                      │  (Partitions)│          │
+                     │                      └──────────────┘          │
+                     │                                                │
+                     │                                                ▼
+                     │                                      ┌──────────────┐
+                     │                                      │  Base Tables │
+                     └──────────────────────────────────────▶│  (Updated)  │
+                                                             └──────────────┘
+
+Planet Processing Flow (Daily/On-demand):
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Manual  │───▶│processPlan│───▶│  Planet  │───▶│   AWK    │───▶│PostgreSQL│
+│  Trigger │    │  etNotes  │    │  Dump    │    │ Extract  │    │  (Sync   │
+└──────────┘    └────┬─────┘    └──────────┘    └────┬─────┘    │  Tables) │
+                     │                               │           └────┬──────┘
+                     │                               │                │
+                     │                               ▼                │
+                     │                      ┌──────────────┐          │
+                     │                      │   Split XML  │          │
+                     │                      │   (Parallel)  │          │
+                     │                      └──────┬───────┘          │
+                     │                               │                 │
+                     │                               ▼                 │
+                     │                      ┌──────────────┐          │
+                     │                      │   Process    │          │
+                     │                      │   Parts      │          │
+                     │                      │  (Parallel)  │          │
+                     │                      └──────┬───────┘          │
+                     │                               │                 │
+                     │                               ▼                 │
+                     │                      ┌──────────────┐          │
+                     │                      │  Consolidate │          │
+                     │                      │  Partitions  │          │
+                     │                      └──────┬───────┘          │
+                     │                               │                 │
+                     │                               ▼                 │
+                     │                                      ┌──────────────┐
+                     └──────────────────────────────────────▶│  Base Tables │
+                                                             │  (Merged)   │
+                                                             └──────────────┘
+
+Country Assignment Flow:
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Notes   │───▶│  Spatial │───▶│ PostGIS  │───▶│  Notes   │
+│  (New)   │    │  Query   │    │  (ST_    │    │ (Updated │
+│          │    │          │    │ Contains)│    │  w/      │
+└──────────┘    └────┬─────┘    └────┬─────┘    │ Country) │
+                     │                │         └──────────┘
+                     │                │
+                     ▼                ▼
+              ┌──────────────┐  ┌──────────────┐
+              │  Countries   │  │  Parallel    │
+              │   Table     │  │  Processing  │
+              │  (PostGIS)  │  │  (Chunks)    │
+              └──────────────┘  └──────────────┘
+```
+
 ### 5. WMS Service Delivery
 
 **Source:** WMS schema in database
@@ -161,6 +397,69 @@ The OSM-Notes-Ingestion system consists of the following components:
 ---
 
 ## Database Schema
+
+### Database Schema Diagram
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Database Schema Overview                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Core Tables (Permanent)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────┐         ┌──────────────┐         ┌─────────────┐│
+│  │    notes     │────────▶│note_comments │────────▶│note_comments││
+│  │              │ 1:N     │              │ 1:1     │    _text    ││
+│  │ - note_id    │         │ - note_id    │         │ - note_id   ││
+│  │ - lat/lon    │         │ - sequence   │         │ - sequence  ││
+│  │ - status     │         │ - event      │         │ - body      ││
+│  │ - country_id │         │ - user_id    │         └─────────────┘│
+│  └──────┬───────┘         └──────────────┘                         │
+│         │                                                           │
+│         │ Spatial Query                                             │
+│         │                                                           │
+│         ▼                                                           │
+│  ┌──────────────┐                                                   │
+│  │   countries  │                                                   │
+│  │              │                                                   │
+│  │ - country_id │                                                   │
+│  │ - geom       │                                                   │
+│  │ (PostGIS)    │                                                   │
+│  └──────────────┘                                                   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Processing Tables (Temporary)                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  API Processing:              Planet Processing:                    │
+│  ┌──────────────┐              ┌──────────────┐                    │
+│  │ notes_api    │              │ notes_sync   │                    │
+│  │ (partitioned)│              │ (partitioned) │                    │
+│  └──────────────┘              └──────────────┘                    │
+│  ┌──────────────┐              ┌──────────────┐                    │
+│  │comments_api  │              │comments_sync │                    │
+│  └──────────────┘              └──────────────┘                    │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         WMS Tables (wms schema)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────┐                                                  │
+│  │ notes_wms    │  ← Synchronized via triggers from notes          │
+│  │              │                                                   │
+│  │ - Simplified │                                                   │
+│  │ - Optimized  │                                                   │
+│  │ - Indexed    │                                                   │
+│  └──────────────┘                                                  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ### Core Tables
 
@@ -500,4 +799,3 @@ For interactive web visualization and exploration of user and country profiles:
   - Statistics and analytics exploration
   - Hashtag tracking and analysis
   - Geographic distribution visualization
-
