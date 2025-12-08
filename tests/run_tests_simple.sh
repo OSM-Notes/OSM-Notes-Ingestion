@@ -195,6 +195,7 @@ run_bats_tests() {
   "${SCRIPT_DIR}/unit/bash/overpass_functions.test.bats"
   "${SCRIPT_DIR}/unit/bash/note_processing_functions.test.bats"
   "${SCRIPT_DIR}/unit/bash/boundary_processing_functions.test.bats"
+  "${SCRIPT_DIR}/regression/regression_suite.test.bats"
  )
 
  log_info "Total BATS tests to run: ${#bats_tests[@]}"
