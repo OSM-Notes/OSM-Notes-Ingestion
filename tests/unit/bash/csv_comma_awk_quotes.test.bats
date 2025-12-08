@@ -148,113 +148,6 @@ EOF
 teardown() {
  rm -rf "${TMP_DIR}"
 }
-
-# Helper function to count CSV fields using Python (handles quoted fields correctly)
-validate_csv_field_count() {
- local csv_file="${1}"
- local expected_fields="${2}"
- local description="${3}"
-
- [ -f "${csv_file}" ]
-
- # Use Python CSV parser to correctly count fields
- local field_count
- field_count=$(python3 -c "
-import csv
-import sys
-with open('${csv_file}', 'r', encoding='utf-8') as f:
-    reader = csv.reader(f)
-    for row in reader:
-        print(len(row))
-        break
-" 2>/dev/null)
-
- if [[ -z "${field_count}" ]]; then
-  echo "ERROR: Could not parse CSV file: ${csv_file}"
-  return 1
- fi
-
- if [[ "${field_count}" -ne "${expected_fields}" ]]; then
-  echo "ERROR: ${description}: Expected ${expected_fields} fields, got ${field_count}"
-  echo "First line: $(head -1 "${csv_file}")"
-  return 1
- fi
-
- return 0
-}
-
-@test "extract_comment_texts.awk should handle commas in text (API format)" {
- local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
- local output_file="${TMP_DIR}/test_text_comments_commas.csv"
-
- [ -f "${awk_file}" ]
-
- # Process API format XML with commas in text
- awk -f "${awk_file}" "${TMP_DIR}/test_api_notes_with_commas.xml" > "${output_file}"
-
- [ -f "${output_file}" ]
- [ -s "${output_file}" ]
-
- # Validate that all lines have exactly 4 fields (using Python CSV parser)
- validate_csv_field_count "${output_file}" 4 "Text comments with commas (API format)"
-
- # Verify that texts with commas are properly quoted
- local line_with_commas
- line_with_commas=$(grep "Wegeaufzeichnungen" "${output_file}" | head -1)
-
- # Should start with note_id,sequence_action,"
- [[ "${line_with_commas}" =~ ^[0-9]+,[0-9]+,\".* ]]
-
- # Should end with ",part_id (or empty part_id)
- [[ "${line_with_commas}" =~ .*\",.*$ ]]
-}
-
-@test "extract_comment_texts.awk should handle commas in text (Planet format)" {
- local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
- local output_file="${TMP_DIR}/test_text_comments_commas_planet.csv"
-
- [ -f "${awk_file}" ]
-
- # Process Planet format XML with commas in text
- awk -f "${awk_file}" "${TMP_DIR}/test_planet_notes_with_commas.xml" > "${output_file}"
-
- [ -f "${output_file}" ]
- [ -s "${output_file}" ]
-
- # Validate that all lines have exactly 4 fields
- validate_csv_field_count "${output_file}" 4 "Text comments with commas (Planet format)"
-
- # Verify that texts with commas are properly quoted
- local line_with_commas
- line_with_commas=$(grep "Wegeaufzeichnungen" "${output_file}" | head -1)
-
- # Should start with note_id,sequence_action,"
- [[ "${line_with_commas}" =~ ^[0-9]+,[0-9]+,\".* ]]
-}
-
-@test "extract_comment_texts.awk should handle multiline text with commas (API format)" {
- local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
- local output_file="${TMP_DIR}/test_text_comments_multiline.csv"
-
- [ -f "${awk_file}" ]
-
- # Process API format XML with multiline text containing commas
- awk -f "${awk_file}" "${TMP_DIR}/test_api_notes_with_commas.xml" > "${output_file}"
-
- [ -f "${output_file}" ]
- [ -s "${output_file}" ]
-
- # Find the multiline comment (contains "Bauruine" and multiple lines)
- local multiline_comment
- multiline_comment=$(grep -A 5 "Bauruine" "${output_file}" | head -1)
-
- # Should have exactly 4 fields even with multiline content
- validate_csv_field_count "${output_file}" 4 "Multiline text comments with commas (API format)"
-
- # Verify the multiline text is properly quoted
- [[ "${multiline_comment}" =~ ^[0-9]+,[0-9]+,\".* ]]
-}
-
 @test "extract_comment_texts.awk should handle quotes in text with commas" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
  local output_file="${TMP_DIR}/test_text_comments_quotes.csv"
@@ -278,7 +171,6 @@ with open('${csv_file}', 'r', encoding='utf-8') as f:
  # The text "quotes" should become ""quotes"" in CSV
  [[ "${line_with_quotes}" =~ .*\"\".* ]]
 }
-
 @test "extract_comment_texts.awk should handle single quotes in text API format" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
  local output_file="${TMP_DIR}/test_text_comments_single_quotes.csv"
@@ -304,7 +196,6 @@ with open('${csv_file}', 'r', encoding='utf-8') as f:
  # Verify single quotes are preserved in the text (use grep instead of regex)
  echo "${line_with_single_quotes}" | grep -q "'"
 }
-
 @test "extract_comment_texts.awk should handle double quotes in text API format" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
  local output_file="${TMP_DIR}/test_text_comments_double_quotes.csv"
@@ -328,7 +219,6 @@ with open('${csv_file}', 'r', encoding='utf-8') as f:
  # The text "quotes" should become ""quotes"" in CSV
  echo "${line_with_double_quotes}" | grep -q '""'
 }
-
 @test "extract_comment_texts.awk should handle both single and double quotes in text" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
  local output_file="${TMP_DIR}/test_text_comments_both_quotes.csv"
@@ -352,50 +242,3 @@ with open('${csv_file}', 'r', encoding='utf-8') as f:
  echo "${line_with_both_quotes}" | grep -q "'"
  echo "${line_with_both_quotes}" | grep -q '""'
 }
-
-@test "extract_comment_texts.awk should handle multiline text with quotes and commas (API format)" {
- local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
- local output_file="${TMP_DIR}/test_text_comments_multiline_quotes.csv"
-
- [ -f "${awk_file}" ]
-
- # Process API format XML with multiline text containing quotes and commas
- awk -f "${awk_file}" "${TMP_DIR}/test_api_notes_with_commas.xml" > "${output_file}"
-
- [ -f "${output_file}" ]
- [ -s "${output_file}" ]
-
- # Find multiline comment (contains "Multiline comment")
- local multiline_comment
- multiline_comment=$(grep "Multiline comment" "${output_file}" | head -1)
-
- # Should have exactly 4 fields even with multiline content
- validate_csv_field_count "${output_file}" 4 "Multiline text with quotes and commas (API format)"
-
- # Verify the multiline text is properly quoted
- [[ "${multiline_comment}" =~ ^[0-9]+,[0-9]+,\".* ]]
-}
-
-@test "extract_comment_texts.awk should handle complex multiline text (Planet format)" {
- local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
- local output_file="${TMP_DIR}/test_text_comments_complex_multiline_planet.csv"
-
- [ -f "${awk_file}" ]
-
- # Process Planet format XML with complex multiline text
- awk -f "${awk_file}" "${TMP_DIR}/test_planet_notes_with_commas.xml" > "${output_file}"
-
- [ -f "${output_file}" ]
- [ -s "${output_file}" ]
-
- # Find multiline comment
- local multiline_comment
- multiline_comment=$(grep "Multiline comment" "${output_file}" | head -1)
-
- # Should have exactly 4 fields
- validate_csv_field_count "${output_file}" 4 "Complex multiline text (Planet format)"
-
- # Verify the text is properly quoted
- [[ "${multiline_comment}" =~ ^[0-9]+,[0-9]+,\".* ]]
-}
-

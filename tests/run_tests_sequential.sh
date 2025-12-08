@@ -357,7 +357,10 @@ __run_level_8() {
 
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/performance_edge_cases.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/edge_cases_integration.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/edge_cases_files.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/edge_cases_database.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/edge_cases_infrastructure.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/edge_cases_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/real_data_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/hybrid_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats" \
@@ -369,7 +372,10 @@ __run_level_8() {
   "${SCRIPT_DIR}/unit/bash/prerequisites_database.test.bats" \
   "${SCRIPT_DIR}/unit/bash/prerequisites_filesystem.test.bats" \
   "${SCRIPT_DIR}/unit/bash/prerequisites_network.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/prerequisites_performance_mock.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_performance.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_mock.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_error_handling.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/logging_improvements.test.bats" \
   "${SCRIPT_DIR}/unit/bash/logging_pattern_validation.test.bats"; then
   __show_level_footer 8 "success"

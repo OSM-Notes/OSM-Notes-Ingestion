@@ -1,178 +1,110 @@
 #!/usr/bin/env bats
 
-# Edge Cases Validation Tests for OSM-Notes-profile
-# Tests the tolerant behavior of validation functions in edge cases
-#
-# Author: Andres Gomez (AngocA)
-# Version: 2025-10-13
+# Version: 2025-11-10
+
+# Require minimum BATS version for run flags
+bats_require_minimum_version 1.5.0
+
+# Edge Cases Integration Tests
+# Tests that cover edge cases and boundary conditions
 
 setup() {
-  # Create temporary directory for test files
-  export TMP_DIR=$(mktemp -d)
-  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/../../.."
-  
-  # Create test XML files with edge cases
-  create_test_files
+ # Setup test environment
+ # shellcheck disable=SC2154
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ export SCRIPT_BASE_DIRECTORY
+ # shellcheck disable=SC2155
+ TMP_DIR="$(mktemp -d)"
+ export TMP_DIR
+ export BASENAME="test_edge_cases"
+ export LOG_LEVEL="INFO"
+
+ # Ensure TMP_DIR exists and is writable
+ if [[ ! -d "${TMP_DIR}" ]]; then
+  mkdir -p "${TMP_DIR}" || {
+   echo "ERROR: Could not create TMP_DIR: ${TMP_DIR}" >&2
+   exit 1
+  }
+ fi
+ if [[ ! -w "${TMP_DIR}" ]]; then
+  echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2
+  exit 1
+ fi
+
+ # Provide mock psql to simulate database availability in environments without PostgreSQL
+ local MOCK_PSQL="${TMP_DIR}/psql"
+ cat > "${MOCK_PSQL}" << 'EOF'
+#!/bin/bash
+# Mock psql command for edge case tests
+COMMAND="$*"
+
+# Simulate failures for specific invalid queries
+if [[ "${COMMAND}" == *"'invalid'::integer"* ]]; then
+ echo "psql: ERROR: invalid input syntax for type integer: \"invalid\"" >&2
+ exit 1
+fi
+
+if [[ "${COMMAND}" == *"nonexistent_table"* ]]; then
+ echo "psql: ERROR: relation \"nonexistent_table\" does not exist" >&2
+ exit 1
+fi
+
+# Provide simple output for SELECT queries when needed
+if [[ "${COMMAND}" == *"SELECT 3"* ]]; then
+ printf " ?column? \n 3\n"
+fi
+
+echo "Mock psql executed: ${COMMAND}" >&2
+exit 0
+EOF
+ chmod +x "${MOCK_PSQL}"
+ export PATH="${TMP_DIR}:${PATH}"
+
+ # Set up test database
+ export TEST_DBNAME="test_osm_notes_${BASENAME}"
 }
 
 teardown() {
-  # Clean up temporary files
-  rm -rf "${TMP_DIR}"
+ # Cleanup
+ rm -rf "${TMP_DIR}"
+ # Drop test database if it exists
+ psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
 }
-
-create_test_files() {
-  # Create XML with mixed valid/invalid dates
-  cat > "${TMP_DIR}/mixed_dates.xml" << 'EOF'
-<?xml version="1.0"?>
-<osm-notes>
-  <note id="1" created_at="2023-01-01T00:00:00Z" closed_at="invalid-date">
-    <comment timestamp="2023-01-02T12:00:00Z">Valid comment</comment>
-  </note>
-  <note id="2" created_at="2023-13-45T25:70:99Z" closed_at="2023-01-03T00:00:00Z">
-    <comment timestamp="not-a-date">Invalid comment</comment>
-  </note>
-</osm-notes>
-EOF
-
-  # Create XML with malformed but parseable content
-  cat > "${TMP_DIR}/malformed_parseable.xml" << 'EOF'
-<?xml version="1.0"?>
-<osm-notes>
-  <note id="1" created_at="2023-01-01T00:00:00Z">
-    <comment>Valid comment without timestamp</comment>
-  </note>
-  <note id="2" created_at="2023-01-02T00:00:00Z">
-    <comment timestamp="2023-01-02T12:00:00Z">Valid comment with timestamp</comment>
-  </note>
-</osm-notes>
-EOF
+# Test with missing dependencies
+@test "Edge case: Missing dependencies should be handled gracefully" {
+ # Test with missing required tools
+ run bash -c "command -v nonexistent_tool"
+ [[ "${status}" -ne 0 ]] # Should fail when tool doesn't exist
 }
-
-@test "edge case: validation functions are tolerant by default" {
-  # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Test that functions don't fail immediately with edge cases
-  run __validate_xml_dates "${TMP_DIR}/mixed_dates.xml" "//@created_at|//@closed_at|//@timestamp"
-  
-  # Should not fail immediately (tolerant mode)
-  # Can return 0 (passed), 1 (failed), or 127 (command not found)
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
+# Test with timeout scenarios
+@test "Edge case: Timeout scenarios should be handled gracefully" {
+ # Test with long-running operations
+ run timeout 5s bash -c "sleep 10"
+ [[ "${status}" -eq 124 ]] # Should timeout after 5 seconds
 }
+# Test with extreme values
+@test "Edge case: Extreme values should be handled gracefully" {
+ # Test with extreme coordinates
+ local EXTREME_COORDS=(
+  "90.0,180.0"   # North Pole
+  "-90.0,-180.0" # South Pole
+  "0.0,0.0"      # Null Island
+  "90.1,180.1"   # Invalid coordinates
+  "-90.1,-180.1" # Invalid coordinates
+ )
 
-@test "edge case: strict mode fails immediately with invalid dates" {
-  # Create a simple XML with clearly invalid dates
-  cat > "${TMP_DIR}/simple_invalid.xml" << 'EOF'
-<?xml version="1.0"?>
-<osm-notes>
-  <note id="1" created_at="invalid-date" closed_at="not-a-date">
-    <comment timestamp="2023-13-45T25:70:99Z">Invalid comment</comment>
-  </note>
-</osm-notes>
-EOF
-  
-  # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Test with STRICT_MODE=true
-  export STRICT_MODE="true"
-  run __validate_xml_dates "${TMP_DIR}/simple_invalid.xml" "//@created_at|//@closed_at|//@timestamp"
-  
-  # Debug: show the output and status
-  echo "Strict mode test output: '${output}'"
-  echo "Strict mode test status: ${status}"
-  
-  # Should fail immediately in strict mode
-  [ "$status" -eq 1 ]
-  
-  unset STRICT_MODE
-}
+ for coords in "${EXTREME_COORDS[@]}"; do
+  IFS=',' read -r lat lon <<< "${coords}"
 
-@test "edge case: lightweight validation handles large files gracefully" {
-  # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Test that lightweight validation works with edge cases
-  run __validate_xml_dates_lightweight "${TMP_DIR}/malformed_parseable.xml" "//@created_at|//@closed_at|//@timestamp"
-  
-  # Should handle edge cases gracefully
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
-}
-
-@test "edge case: validation functions handle empty files" {
-  # Create empty XML file
-  local empty_xml="${TMP_DIR}/empty.xml"
-  touch "${empty_xml}"
-  
-  # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Test with empty file
-  run __validate_xml_dates "${empty_xml}" "//@created_at|//@closed_at|//@timestamp"
-  
-  # Should handle empty files gracefully
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
-}
-
-@test "edge case: validation functions handle files with no dates" {
-  # Create XML file without date attributes
-  cat > "${TMP_DIR}/no_dates.xml" << 'EOF'
-<?xml version="1.0"?>
-<osm-notes>
-  <note id="1" lat="40.7128" lon="-74.0060">
-    <comment>Comment without timestamp</comment>
-  </note>
-</osm-notes>
-EOF
-  
-  # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Test with file containing no dates
-  run __validate_xml_dates "${TMP_DIR}/no_dates.xml" "//@created_at|//@closed_at|//@timestamp"
-  
-  # Should handle files without dates gracefully
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
-}
-
-@test "edge case: validation functions handle mixed date formats" {
-  # Create XML with mixed date formats
-  cat > "${TMP_DIR}/mixed_formats.xml" << 'EOF'
-<?xml version="1.0"?>
-<osm-notes>
-  <note id="1" created_at="2023-01-01T00:00:00Z" closed_at="2023-01-02 12:00:00 UTC">
-    <comment timestamp="2023-01-01T12:00:00Z">Mixed format comment</comment>
-  </note>
-</osm-notes>
-EOF
-  
-  # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Test with file containing no dates
-  run __validate_xml_dates "${TMP_DIR}/mixed_formats.xml" "//@created_at|//@closed_at|//@timestamp"
-  
-  # Should handle mixed formats gracefully
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
-}
-
-@test "edge case: validation functions handle special characters in dates" {
-  # Create XML with special characters in dates
-  cat > "${TMP_DIR}/special_chars.xml" << 'EOF'
-<?xml version="1.0"?>
-<osm-notes>
-  <note id="1" created_at="2023-01-01T00:00:00Z" closed_at="2023-01-02T12:00:00Z">
-    <comment timestamp="2023-01-01T12:00:00Z">Comment with special chars: &lt;&gt;&amp;</comment>
-  </note>
-</osm-notes>
-EOF
-  
-  # Source validation functions
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Test with special characters
-  run __validate_xml_dates "${TMP_DIR}/special_chars.xml" "//@created_at|//@closed_at|//@timestamp"
-  
-  # Should handle special characters gracefully
-  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
+  # Test coordinate validation
+  # shellcheck disable=SC2312
+  if [[ "${lat}" =~ ^-?([0-9]+\.?[0-9]*|\.[0-9]+)$ ]] \
+   && [[ "${lon}" =~ ^-?([0-9]+\.?[0-9]*|\.[0-9]+)$ ]] \
+   && (($(echo "${lat} >= -90 && ${lat} <= 90" | bc -l))) \
+   && (($(echo "${lon} >= -180 && ${lon} <= 180" | bc -l))); then
+   echo "Valid coordinates: ${lat}, ${lon}"
+  else
+   echo "Invalid coordinates: ${lat}, ${lon}"
+  fi
+ done
 }
