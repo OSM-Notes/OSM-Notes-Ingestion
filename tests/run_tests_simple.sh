@@ -193,9 +193,16 @@ run_bats_tests() {
   "${SCRIPT_DIR}/unit/bash/parallel_processing_validation.test.bats"
   "${SCRIPT_DIR}/unit/bash/security_functions.test.bats"
   "${SCRIPT_DIR}/unit/bash/overpass_functions.test.bats"
-  "${SCRIPT_DIR}/unit/bash/note_processing_functions.test.bats"
+  "${SCRIPT_DIR}/unit/bash/note_processing_common.test.bats"
+  "${SCRIPT_DIR}/unit/bash/note_processing_network.test.bats"
+  "${SCRIPT_DIR}/unit/bash/note_processing_download_queue.test.bats"
+  "${SCRIPT_DIR}/unit/bash/note_processing_retry.test.bats"
+  "${SCRIPT_DIR}/unit/bash/note_processing_validation.test.bats"
+  "${SCRIPT_DIR}/unit/bash/note_processing_location.test.bats"
   "${SCRIPT_DIR}/unit/bash/boundary_processing_functions.test.bats"
-  "${SCRIPT_DIR}/unit/bash/utility_scripts.test.bats"
+  "${SCRIPT_DIR}/unit/bash/export_countries_backup.test.bats"
+  "${SCRIPT_DIR}/unit/bash/export_maritimes_backup.test.bats"
+  "${SCRIPT_DIR}/unit/bash/generate_note_location_backup.test.bats"
   "${SCRIPT_DIR}/regression/regression_suite.test.bats"
  )
 
