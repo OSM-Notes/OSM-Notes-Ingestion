@@ -269,7 +269,9 @@ __run_level_5() {
   "${SCRIPT_DIR}/unit/bash/parallel_threshold.test.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_delay_test.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_failed_file.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/binary_division_performance.test.bats"; then
+  "${SCRIPT_DIR}/unit/bash/binary_division_basic.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/binary_division_performance.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/binary_division_error_handling.test.bats"; then
   __show_level_footer 5 "success"
   return 0
  else

@@ -210,6 +210,9 @@ run_bats_tests() {
   "${SCRIPT_DIR}/unit/bash/export_countries_backup.test.bats"
   "${SCRIPT_DIR}/unit/bash/export_maritimes_backup.test.bats"
   "${SCRIPT_DIR}/unit/bash/generate_note_location_backup.test.bats"
+  "${SCRIPT_DIR}/unit/bash/binary_division_basic.test.bats"
+  "${SCRIPT_DIR}/unit/bash/binary_division_performance.test.bats"
+  "${SCRIPT_DIR}/unit/bash/binary_division_error_handling.test.bats"
   "${SCRIPT_DIR}/regression/regression_suite.test.bats"
  )
 
