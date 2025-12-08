@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-VERSION="2025-12-07"
+# Version: 2025-12-08
+VERSION="2025-12-08"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
@@ -338,17 +338,77 @@ function __validate_capital_location() {
 
  # Validate that capital is within the imported geometry
  __logd "Validating capital location for boundary ${BOUNDARY_ID}: lat=${CAPITAL_LAT}, lon=${CAPITAL_LON}"
+
+ # First, verify that the import table has polygon geometries
+ local POLYGON_COUNT
+ POLYGON_COUNT=$(psql -d "${DB_NAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
+
+ if [[ "${POLYGON_COUNT}" -eq 0 ]]; then
+  __loge "CRITICAL: No polygon geometries found in import table for boundary ${BOUNDARY_ID}"
+  __loge "Cannot validate capital location - import table is empty or contains no valid polygons"
+  return 1
+ fi
+
+ __logd "Found ${POLYGON_COUNT} polygon geometries in import table for boundary ${BOUNDARY_ID}"
+
+ # Check geometry validity before validation
+ local INVALID_GEOM_COUNT
+ INVALID_GEOM_COUNT=$(psql -d "${DB_NAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsValid(geometry);" 2> /dev/null || echo "0")
+
+ if [[ "${INVALID_GEOM_COUNT}" -gt "0" ]]; then
+  __logw "Found ${INVALID_GEOM_COUNT} invalid geometries in import table for boundary ${BOUNDARY_ID} - will use ST_MakeValid"
+  # Log validity reason for first invalid geometry
+  local VALIDITY_REASON
+  VALIDITY_REASON=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_IsValidReason(geometry) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsValid(geometry) LIMIT 1;" 2> /dev/null || echo "Unknown")
+  __logd "Validity reason: ${VALIDITY_REASON}"
+ fi
+
+ # Validate using ST_MakeValid to handle invalid geometries (self-intersections, etc.)
+ # Use ST_MakeValid to correct geometry topology before validation
  local VALIDATION_RESULT
- VALIDATION_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Contains(ST_Union(geometry), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon');" 2> /dev/null || echo "false")
+ local VALIDATION_ERROR_LOG
+ VALIDATION_ERROR_LOG=$(mktemp)
+ VALIDATION_RESULT=$(
+  psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
+SELECT ST_Contains(
+  ST_MakeValid(ST_Union(geometry)),
+  ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
+)
+FROM import
+WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')
+  AND NOT ST_IsEmpty(geometry);
+EOF
+ )
+
+ # Check if there was a SQL error
+ if [[ -s "${VALIDATION_ERROR_LOG}" ]]; then
+  local SQL_ERROR
+  SQL_ERROR=$(cat "${VALIDATION_ERROR_LOG}" 2> /dev/null | head -5 || echo "Unknown SQL error")
+  __logw "SQL error during validation for boundary ${BOUNDARY_ID}: ${SQL_ERROR}"
+  rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
+ fi
+ rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
 
  if [[ "${VALIDATION_RESULT}" == "t" ]] || [[ "${VALIDATION_RESULT}" == "true" ]]; then
-  __logd "Capital validation passed for boundary ${BOUNDARY_ID}"
+  __logd "Capital validation passed for boundary ${BOUNDARY_ID} (using ST_MakeValid)"
   return 0
  else
-  __loge "CRITICAL: Capital validation FAILED for boundary ${BOUNDARY_ID}"
-  __loge "Capital (${CAPITAL_LAT}, ${CAPITAL_LON}) is NOT within the imported geometry"
-  __loge "This indicates cross-contamination - rejecting import to prevent data corruption"
-  return 1
+  # Try fallback validation with ST_Intersects (more tolerant)
+  __logw "ST_Contains validation failed for boundary ${BOUNDARY_ID}, trying ST_Intersects as fallback"
+  local INTERSECTS_RESULT
+  INTERSECTS_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Intersects(ST_MakeValid(ST_Union(geometry)), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "false")
+
+  if [[ "${INTERSECTS_RESULT}" == "t" ]] || [[ "${INTERSECTS_RESULT}" == "true" ]]; then
+   __logw "Capital validation passed with ST_Intersects fallback for boundary ${BOUNDARY_ID}"
+   __logw "Capital (${CAPITAL_LAT}, ${CAPITAL_LON}) intersects but may be on boundary edge"
+   return 0
+  else
+   __loge "CRITICAL: Capital validation FAILED for boundary ${BOUNDARY_ID}"
+   __loge "Capital (${CAPITAL_LAT}, ${CAPITAL_LON}) is NOT within the imported geometry"
+   __loge "Both ST_Contains and ST_Intersects returned false"
+   __loge "This may indicate cross-contamination - rejecting import to prevent data corruption"
+   return 1
+  fi
  fi
 }
 
@@ -930,8 +990,11 @@ function __processBoundary_impl {
  __logd "Verifying import table has data for boundary ${ID}..."
  local IMPORT_COUNT_AFTER
  IMPORT_COUNT_AFTER=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2> /dev/null || echo "0")
- if [[ "${IMPORT_COUNT_AFTER}" -eq "0" ]]; then
-  __loge "ERROR: Import table is empty after ogr2ogr for boundary ${ID}"
+ local IMPORT_POLYGON_COUNT
+ IMPORT_POLYGON_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
+
+ if [[ "${IMPORT_COUNT_AFTER}" -eq 0 ]]; then
+  __loge "ERROR: Import table is completely empty after ogr2ogr for boundary ${ID}"
   __loge "This indicates ogr2ogr failed to import the GeoJSON"
   __loge "Possible causes:"
   __loge "  1. GeoJSON file is invalid or empty"
@@ -944,11 +1007,16 @@ function __processBoundary_impl {
    GEOJSON_SIZE=$(stat -f%z "${GEOJSON_FILE}" 2> /dev/null || stat -c%s "${GEOJSON_FILE}" 2> /dev/null || echo "0")
    __loge "GeoJSON file size: ${GEOJSON_SIZE} bytes"
 
-   # Check if GeoJSON has features
+   # Check if GeoJSON has features and what types
    if command -v jq > /dev/null 2>&1; then
     local FEATURE_COUNT
     FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
     __loge "GeoJSON features count: ${FEATURE_COUNT}"
+
+    # Check geometry types in GeoJSON
+    local GEOM_TYPES
+    GEOM_TYPES=$(jq -r '.features[].geometry.type' "${GEOJSON_FILE}" 2> /dev/null | sort -u | tr '\n' ',' | sed 's/,$//' || echo "Unknown")
+    __loge "Geometry types in GeoJSON: ${GEOM_TYPES}"
    fi
   else
    __loge "GeoJSON file not found: ${GEOJSON_FILE}"
@@ -966,8 +1034,28 @@ function __processBoundary_impl {
    __log_finish
    return 1
   fi
+ elif [[ "${IMPORT_POLYGON_COUNT}" -eq 0 ]]; then
+  # Table has data but no polygons - this is a warning, not necessarily a failure
+  __logw "WARNING: Import table has ${IMPORT_COUNT_AFTER} rows but no polygon geometries for boundary ${ID}"
+  __logw "This means the GeoJSON was imported but contains only non-polygon geometries (LineString, Point, etc.)"
+  __logw "Capital validation will fail as it requires polygon geometries"
+
+  # Check what geometry types were imported
+  local IMPORTED_GEOM_TYPES
+  IMPORTED_GEOM_TYPES=$(psql -d "${DBNAME}" -Atq -c "SELECT DISTINCT ST_GeometryType(geometry) FROM import ORDER BY ST_GeometryType(geometry);" 2> /dev/null | tr '\n' ',' | sed 's/,$//' || echo "Unknown")
+  __logw "Imported geometry types: ${IMPORTED_GEOM_TYPES}"
+
+  # Check what geometry types are in the GeoJSON
+  if [[ -f "${GEOJSON_FILE}" ]] && command -v jq > /dev/null 2>&1; then
+   local GEOJSON_GEOM_TYPES
+   GEOJSON_GEOM_TYPES=$(jq -r '.features[].geometry.type' "${GEOJSON_FILE}" 2> /dev/null | sort -u | tr '\n' ',' | sed 's/,$//' || echo "Unknown")
+   __logw "GeoJSON geometry types: ${GEOJSON_GEOM_TYPES}"
+  fi
+
+  # Still continue, but validation will fail
+  __logd "Continuing processing, but capital validation will likely fail"
  fi
- __logd "Import table has ${IMPORT_COUNT_AFTER} rows for boundary ${ID}"
+ __logd "Import table has ${IMPORT_COUNT_AFTER} total rows (${IMPORT_POLYGON_COUNT} polygons) for boundary ${ID}"
 
  # CRITICAL: Validate capital location to prevent cross-contamination
  # This ensures the imported geometry corresponds to the correct country
@@ -1789,31 +1877,31 @@ function __processMaritimes_impl {
  tail -n +2 "${MARITIME_BOUNDARY_IDS_FILE}" > "${MARITIME_BOUNDARY_IDS_FILE}.tmp"
  mv "${MARITIME_BOUNDARY_IDS_FILE}.tmp" "${MARITIME_BOUNDARY_IDS_FILE}"
 
-# XXX FIXME: TEMPORARY WORKAROUND - Missing Maritime IDs
-# ============================================================================
-# TODO: This file contains maritime boundary IDs that are missing from the
-# Overpass query. These IDs were identified by comparing World_EEZ shapefile
-# with existing maritime boundaries in OSM.
-#
-# ACTION REQUIRED:
-# 1. Review the IDs in ToDo/missing_maritime_ids.txt
-# 2. Add these IDs to the Overpass query in overpass/maritimes.op
-# 3. Once all IDs are in the Overpass query, remove this code block and
-#    delete ToDo/missing_maritime_ids.txt
-#
-# Current file: ToDo/missing_maritime_ids.txt
-# Related analysis: ToDo/missing_maritime_details.csv
-# ============================================================================
-# Add missing maritime IDs found from World_EEZ analysis
-# These IDs were identified by comparing World_EEZ shapefile with existing
-# maritime boundaries and searching OSM for corresponding relations
-local MISSING_MARITIME_IDS_FILE
-if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
- MISSING_MARITIME_IDS_FILE="${SCRIPT_BASE_DIRECTORY}/ToDo/missing_maritime_ids.txt"
-else
- # Fallback: try to determine base directory from script location
- MISSING_MARITIME_IDS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd)/ToDo/missing_maritime_ids.txt"
-fi
+ # XXX FIXME: TEMPORARY WORKAROUND - Missing Maritime IDs
+ # ============================================================================
+ # TODO: This file contains maritime boundary IDs that are missing from the
+ # Overpass query. These IDs were identified by comparing World_EEZ shapefile
+ # with existing maritime boundaries in OSM.
+ #
+ # ACTION REQUIRED:
+ # 1. Review the IDs in ToDo/missing_maritime_ids.txt
+ # 2. Add these IDs to the Overpass query in overpass/maritimes.op
+ # 3. Once all IDs are in the Overpass query, remove this code block and
+ #    delete ToDo/missing_maritime_ids.txt
+ #
+ # Current file: ToDo/missing_maritime_ids.txt
+ # Related analysis: ToDo/missing_maritime_details.csv
+ # ============================================================================
+ # Add missing maritime IDs found from World_EEZ analysis
+ # These IDs were identified by comparing World_EEZ shapefile with existing
+ # maritime boundaries and searching OSM for corresponding relations
+ local MISSING_MARITIME_IDS_FILE
+ if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+  MISSING_MARITIME_IDS_FILE="${SCRIPT_BASE_DIRECTORY}/ToDo/missing_maritime_ids.txt"
+ else
+  # Fallback: try to determine base directory from script location
+  MISSING_MARITIME_IDS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd)/ToDo/missing_maritime_ids.txt"
+ fi
  if [[ -f "${MISSING_MARITIME_IDS_FILE}" ]] && [[ -s "${MISSING_MARITIME_IDS_FILE}" ]]; then
   local MISSING_COUNT
   MISSING_COUNT=$(wc -l < "${MISSING_MARITIME_IDS_FILE}" | tr -d ' ' || echo "0")
