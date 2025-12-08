@@ -2,7 +2,7 @@
 
 # Unit tests for processPlanetNotes.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-24
+# Version: 2025-10-25
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 

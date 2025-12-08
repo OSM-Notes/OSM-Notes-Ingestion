@@ -4,7 +4,7 @@
 # Tests the tolerant behavior of validation functions in edge cases
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2025-10-13
 
 setup() {
   # Create temporary directory for test files

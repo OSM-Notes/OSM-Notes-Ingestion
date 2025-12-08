@@ -2,7 +2,7 @@
 
 # Test file for XML corruption recovery functions
 # Author: Andres Gomez
-# Version: 2025-01-24
+# Version: 2025-10-30
 
 load ../../test_helper
 
