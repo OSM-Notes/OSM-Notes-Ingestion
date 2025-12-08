@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 
+# Extended Validation JSON Tests
+# Tests for JSON structure and schema validation
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-26
-
-# Test file for extended validation functions (JSON and Database)
 
 setup() {
  # Load test helper functions
@@ -111,67 +111,6 @@ EOF
 
  run __validate_json_structure "${TEST_DIR}/root_test.json" "features"
  [[ "${status}" -eq 0 ]]
-}
-
-@test "validate_database_connection simple test" {
- # Simple test to isolate the problem
- echo "DEBUG: Simple database connection test"
-
- # Test with a command that should definitely fail
- run psql -h localhost -p 5434 -U test_user -d test_db -c "SELECT 1;" 2>&1
- echo "DEBUG: psql direct command status: ${status}"
- echo "DEBUG: psql direct command output: ${output}"
-
- # This should fail
- [[ "${status}" -ne 0 ]]
-}
-
-@test "validate_database_connection with invalid database" {
- # Test with clearly invalid parameters that should fail
- # Using a valid port but no PostgreSQL service on it
- # Note: We can't unset TEST_* variables as they're set by test_helper.bash
- run __validate_database_connection "test_db" "test_user" "localhost" "5434"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "validate_database_tables with missing parameters" {
- # Unset any existing database variables
- unset DBNAME DB_USER DBHOST DBPORT
-
- run __validate_database_tables
- [[ "${status}" -eq 1 ]]
-}
-
-@test "validate_database_tables with missing tables" {
- # Unset any existing database variables
- unset DBNAME DB_USER DBHOST DBPORT
-
- run __validate_database_tables "testdb" "testuser" "localhost" "5432"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "validate_database_extensions with missing parameters" {
- # Unset any existing database variables
- unset DBNAME DB_USER DBHOST DBPORT
-
- run __validate_database_extensions
- [[ "${status}" -eq 1 ]]
-}
-
-@test "validate_database_extensions with missing extensions" {
- # Unset any existing database variables
- unset DBNAME DB_USER DBHOST DBPORT
-
- run __validate_database_extensions "testdb" "testuser" "localhost" "5432"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "validate_database_extensions with specific extensions" {
- # Test with clearly invalid parameters that should fail
- # Using a valid port but no PostgreSQL service on it
- # Note: We can't unset TEST_* variables as they're set by test_helper.bash
- run __validate_database_extensions "test_db" "test_user" "localhost" "5434" "postgis" "btree_gist"
- [[ "${status}" -eq 1 ]]
 }
 
 @test "validate_json_structure with jq not available" {
@@ -353,129 +292,4 @@ EOF
  [[ "${status}" -eq 1 ]]
 }
 
-# Test coordinate validation
-@test "coordinate validation should work with valid coordinates" {
- run __validate_coordinates "40.7128" "-74.0060"
- [[ "${status}" -eq 0 ]]
-}
 
-@test "coordinate validation should fail with invalid latitude" {
- run __validate_coordinates "100.0" "-74.0060"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "coordinate validation should fail with invalid longitude" {
- run __validate_coordinates "40.7128" "200.0"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "coordinate validation should fail with non-numeric values" {
- run __validate_coordinates "abc" "def"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "coordinate validation should check precision" {
- run __validate_coordinates "40.7128000" "-74.0060000"
- [[ "${status}" -eq 0 ]]
-}
-
-# Test numeric range validation
-@test "numeric range validation should work with valid values" {
- run __validate_numeric_range "50" "0" "100" "Test value"
- [[ "${status}" -eq 0 ]]
-}
-
-@test "numeric range validation should fail with value below minimum" {
- run __validate_numeric_range "-10" "0" "100" "Test value"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "numeric range validation should fail with value above maximum" {
- run __validate_numeric_range "150" "0" "100" "Test value"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "numeric range validation should fail with non-numeric value" {
- run __validate_numeric_range "abc" "0" "100" "Test value"
- [[ "${status}" -eq 1 ]]
-}
-
-# Test string pattern validation
-@test "string pattern validation should work with valid patterns" {
- run __validate_string_pattern "test@example.com" "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" "Email"
- [[ "${status}" -eq 0 ]]
-}
-
-@test "string pattern validation should fail with invalid patterns" {
- run __validate_string_pattern "invalid-email" "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" "Email"
- [[ "${status}" -eq 1 ]]
-}
-
-# Test XML coordinate validation
-@test "XML coordinate validation should work with valid coordinates" {
- # Create a test XML file with coordinates
- cat > "${TEST_DIR}/test_coordinates.xml" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
-    <note id="1" lat="40.7128" lon="-74.0060">
-        <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test comment</comment>
-    </note>
-    <note id="2" lat="34.0522" lon="-118.2437">
-        <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test comment</comment>
-    </note>
-</osm-notes>
-EOF
-
- run __validate_xml_coordinates "${TEST_DIR}/test_coordinates.xml"
- [[ "${status}" -eq 0 ]]
-}
-
-@test "XML coordinate validation should fail with invalid coordinates" {
- # Create a test XML file with invalid coordinates
- cat > "${TEST_DIR}/test_invalid_coordinates.xml" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
-    <note id="1" lat="100.0" lon="-74.0060">
-        <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="123" user="testuser">Test comment</comment>
-    </note>
-</osm-notes>
-EOF
-
- run __validate_xml_coordinates "${TEST_DIR}/test_invalid_coordinates.xml"
- [[ "${status}" -eq 1 ]]
-}
-
-# Test CSV coordinate validation
-@test "CSV coordinate validation should work with valid coordinates" {
- # Create a test CSV file with coordinates
- cat > "${TEST_DIR}/test_coordinates.csv" << 'EOF'
-note_id,latitude,longitude,created_at,status
-1,40.7128,-74.0060,2023-01-01 00:00:00 UTC,open
-2,34.0522,-118.2437,2023-01-01 00:00:00 UTC,open
-EOF
-
- run __validate_csv_coordinates "${TEST_DIR}/test_coordinates.csv"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "CSV coordinate validation should fail with invalid coordinates" {
- # Create a test CSV file with invalid coordinates
- cat > "${TEST_DIR}/test_invalid_coordinates.csv" << 'EOF'
-note_id,latitude,longitude,created_at,status
-1,100.0,-74.0060,2023-01-01 00:00:00 UTC,open
-EOF
-
- run __validate_csv_coordinates "${TEST_DIR}/test_invalid_coordinates.csv"
- [[ "${status}" -eq 1 ]]
-}
-
-@test "CSV coordinate validation should auto-detect coordinate columns" {
- # Create a test CSV file with different column names
- cat > "${TEST_DIR}/test_coordinates_auto.csv" << 'EOF'
-id,lat,lon,date,status
-1,40.7128,-74.0060,2023-01-01,open
-EOF
-
- run __validate_csv_coordinates "${TEST_DIR}/test_coordinates_auto.csv"
- [[ "${status}" -eq 0 ]]
-}

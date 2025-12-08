@@ -197,7 +197,10 @@ __run_level_2() {
   "${SCRIPT_DIR}/unit/bash/checksum_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/input_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/json_validation_with_elements.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/extended_validation.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/extended_validation_json.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/extended_validation_database.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/extended_validation_coordinates.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/extended_validation_numeric_string.test.bats" \
   "${SCRIPT_DIR}/unit/bash/edge_cases_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/sql_validation_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/sql_constraints_validation.test.bats"; then
