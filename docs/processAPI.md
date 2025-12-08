@@ -245,6 +245,147 @@ unset SKIP_XML_VALIDATION
 psql -d osm_notes -c "SELECT 1;"
 ```
 
+**Network connectivity issues:**
+
+```bash
+# Error: Network connectivity check failed
+# Error: API unreachable or download failed
+# Diagnosis:
+ping -c 3 api.openstreetmap.org
+curl -I "https://api.openstreetmap.org/api/0.6/notes"
+
+# Solution: Check internet connection, firewall, DNS
+# The script implements retry logic with exponential backoff
+# Wait for automatic retry or check network configuration
+```
+
+**No last update timestamp:**
+
+```bash
+# Error: No last update. Please load notes first.
+# Diagnosis:
+psql -d osm_notes -c "SELECT * FROM max_note_timestamp;"
+
+# Solution: Run processPlanetNotes.sh --base first to initialize database
+./bin/process/processPlanetNotes.sh --base
+```
+
+**Planet process conflict:**
+
+```bash
+# Error: processPlanetNotes.sh is currently running
+# Diagnosis:
+ps aux | grep processPlanetNotes.sh
+cat /tmp/processPlanetNotes.lock
+
+# Solution: Wait for Planet process to complete, or if stuck:
+# 1. Verify process is actually running
+# 2. If not, remove stale lock: rm /tmp/processPlanetNotes.lock
+```
+
+**Large data gap detected:**
+
+```bash
+# Warning: Large gap detected (X notes), consider manual intervention
+# Diagnosis:
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "gap" "$LATEST_DIR/processAPINotes.log"
+
+# Solution: Review gap details in logs
+# If legitimate (e.g., API was down), script will continue
+# If suspicious, may need to run processPlanetNotes.sh for full sync
+```
+
+**Parallel processing failures:**
+
+```bash
+# Error: Parallel processing failed
+# Diagnosis:
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "parallel\|partition" "$LATEST_DIR/processAPINotes.log"
+
+# Solution:
+# 1. Check memory: free -h
+# 2. Reduce MAX_THREADS if memory constrained
+# 3. Script will fall back to sequential processing if memory is low
+export MAX_THREADS=2
+./bin/process/processAPINotes.sh
+```
+
+**CSV validation failures:**
+
+```bash
+# Error: CSV validation failed
+# Diagnosis:
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "csv.*validation\|enum" "$LATEST_DIR/processAPINotes.log"
+
+# Solution:
+# 1. Review validation errors in logs
+# 2. Check if data format changed
+# 3. Temporarily skip validation (not recommended):
+export SKIP_CSV_VALIDATION=true
+./bin/process/processAPINotes.sh
+```
+
+**Missing SQL files:**
+
+```bash
+# Error: SQL file validation failed
+# Diagnosis:
+ls -la sql/process/41_create_api_tables.sql
+ls -la sql/process/42_create_partitions.sql
+
+# Solution: Verify SQL files exist in sql/process/ directory
+# Check repository is complete: git status
+```
+
+**Memory issues during processing:**
+
+```bash
+# Error: Low memory detected, using sequential processing
+# Diagnosis:
+free -h
+dmesg | grep -i "killed\|oom"
+
+# Solution:
+# 1. Script automatically falls back to sequential processing
+# 2. Free up system memory
+# 3. Reduce MAX_THREADS if needed
+export MAX_THREADS=1
+./bin/process/processAPINotes.sh
+```
+
+**Lock file conflicts:**
+
+```bash
+# Error: Script is already running
+# Diagnosis:
+ps aux | grep processAPINotes.sh
+cat /tmp/processAPINotes.lock
+
+# Solution:
+# 1. If process is running, wait for completion
+# 2. If process is not running, remove stale lock:
+rm /tmp/processAPINotes.lock
+```
+
+**Failed execution marker present:**
+
+```bash
+# Error: Previous execution failed
+# Diagnosis:
+cat /tmp/processAPINotes_failed_execution
+
+# Solution:
+# 1. Review error details in marker file
+# 2. Check email alert (if configured)
+# 3. Review logs from failed execution
+# 4. Fix underlying issue
+# 5. Remove marker: rm /tmp/processAPINotes_failed_execution
+# 6. Wait for next cron execution (recommended)
+```
+
 ### Error Handling and Recovery Sequence
 
 The following diagram shows how errors are handled and recovered:

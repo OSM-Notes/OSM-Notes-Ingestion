@@ -1114,6 +1114,245 @@ For more detailed examples and use cases, see:
 
 ---
 
+## Troubleshooting Guide
+
+### Quick Diagnostic Commands
+
+**Check System Status:**
+
+```bash
+# Check if scripts are running
+ps aux | grep -E "processAPI|processPlanet|updateCountries"
+
+# Check lock files
+ls -la /tmp/*.lock
+
+# Check failed execution markers
+ls -la /tmp/*_failed_execution
+
+# Check latest logs
+LATEST_API=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
+LATEST_PLANET=$(ls -1rtd /tmp/processPlanetNotes_* 2>/dev/null | tail -1)
+echo "API log: $LATEST_API"
+echo "Planet log: $LATEST_PLANET"
+```
+
+**Check Database Status:**
+
+```bash
+# Test database connection
+psql -d osm_notes -c "SELECT 1;"
+
+# Check table counts
+psql -d osm_notes -c "SELECT 'notes' as table, COUNT(*) FROM notes UNION ALL SELECT 'countries', COUNT(*) FROM countries;"
+
+# Check last update
+psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+
+# Check database size
+psql -d osm_notes -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));"
+```
+
+**Check Network Connectivity:**
+
+```bash
+# Test OSM API
+curl -I "https://api.openstreetmap.org/api/0.6/notes"
+
+# Test Overpass API
+curl -s "https://overpass-api.de/api/status" | jq
+
+# Test Planet server
+curl -I "https://planet.openstreetmap.org/planet/notes/"
+```
+
+### Common Issues by Category
+
+#### Database Issues
+
+**Problem: Cannot connect to database**
+
+```bash
+# Diagnosis
+systemctl status postgresql
+psql -d osm_notes -c "SELECT 1;"
+cat etc/properties.sh | grep -i db
+
+# Solutions
+# 1. Start PostgreSQL if stopped
+sudo systemctl start postgresql
+
+# 2. Check credentials in etc/properties.sh
+# 3. Verify database exists
+psql -l | grep osm_notes
+
+# 4. Check firewall if using remote database
+```
+
+**Problem: Database out of space**
+
+```bash
+# Diagnosis
+df -h
+psql -d osm_notes -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));"
+
+# Solutions
+# 1. Free up disk space
+# 2. Vacuum database
+psql -d osm_notes -c "VACUUM FULL;"
+# 3. Consider archiving old data
+```
+
+**Problem: Slow queries**
+
+```bash
+# Diagnosis
+psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
+
+# Solutions
+# 1. Update statistics
+psql -d osm_notes -c "ANALYZE;"
+# 2. Rebuild indexes
+psql -d osm_notes -c "REINDEX DATABASE osm_notes;"
+# 3. Check for missing indexes
+```
+
+#### API Processing Issues
+
+**Problem: API processing fails repeatedly**
+
+```bash
+# Diagnosis
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+grep -i "error\|failed" "$LATEST_DIR/processAPINotes.log" | tail -20
+
+# Solutions
+# See detailed troubleshooting in docs/processAPI.md
+# Common causes:
+# - Network connectivity issues
+# - Database connection problems
+# - Missing base tables (run processPlanetNotes.sh --base)
+```
+
+**Problem: Large gaps in note sequence**
+
+```bash
+# Diagnosis
+psql -d osm_notes -c "SELECT note_id, LAG(note_id) OVER (ORDER BY note_id) as prev_id, note_id - LAG(note_id) OVER (ORDER BY note_id) as gap FROM notes ORDER BY note_id DESC LIMIT 10;"
+
+# Solutions
+# 1. Review gap details in logs
+# 2. If legitimate (API was down), script will continue
+# 3. If suspicious, consider full Planet sync
+```
+
+#### Planet Processing Issues
+
+**Problem: Planet download fails**
+
+```bash
+# Diagnosis
+df -h  # Check disk space (planet files are 2GB+)
+curl -I https://planet.openstreetmap.org/planet/notes/
+
+# Solutions
+# See detailed troubleshooting in docs/processPlanet.md
+# Common causes:
+# - Insufficient disk space
+# - Network connectivity issues
+# - Server temporarily unavailable
+```
+
+**Problem: Out of memory during processing**
+
+```bash
+# Diagnosis
+free -h
+dmesg | grep -i "killed\|oom"
+
+# Solutions
+# 1. Reduce MAX_THREADS
+export MAX_THREADS=2
+# 2. Add swap space
+# 3. Process during off-peak hours
+```
+
+#### WMS Service Issues
+
+**Problem: WMS service not responding**
+
+```bash
+# Diagnosis
+curl -I "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities"
+
+# Solutions
+# 1. Check GeoServer is running
+systemctl status geoserver
+# 2. Check database connection in GeoServer
+# 3. Review GeoServer logs
+tail -f /var/log/geoserver/geoserver.log
+```
+
+**Problem: No data in WMS layers**
+
+```bash
+# Diagnosis
+psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
+
+# Solutions
+# 1. Verify WMS tables are populated
+# 2. Check triggers are active
+psql -d osm_notes -c "SELECT * FROM pg_trigger WHERE tgname LIKE '%wms%';"
+# 3. Manually refresh WMS tables if needed
+```
+
+### Error Code Reference
+
+**processAPINotes.sh error codes:**
+
+- `1`: Help message displayed
+- `238`: Previous execution failed
+- `241`: Library or utility missing
+- `242`: Invalid argument
+- `243`: Logger utility is missing
+- `245`: No last update timestamp
+- `246`: Planet process is currently running
+- `248`: Error executing Planet dump
+
+**Recovery for each error code:**
+
+See detailed troubleshooting in [processAPI.md](./processAPI.md) and [processPlanet.md](./processPlanet.md).
+
+### Getting Help
+
+**Review Documentation:**
+
+- [processAPI.md](./processAPI.md): API processing troubleshooting
+- [processPlanet.md](./processPlanet.md): Planet processing troubleshooting
+- [WMS_Guide.md](./WMS_Guide.md): WMS service troubleshooting
+
+**Check Logs:**
+
+```bash
+# Find all log directories
+ls -1rtd /tmp/process*_* 2>/dev/null
+
+# Review latest errors
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
+grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
+```
+
+**Common Recovery Steps:**
+
+1. Check failed execution marker (if exists)
+2. Review latest logs for error details
+3. Verify prerequisites (database, network, disk space)
+4. Fix underlying issue
+5. Remove failed marker (if exists)
+6. Wait for next scheduled execution (recommended) or run manually for testing
+
+---
+
 ## Usage Guidelines
 
 ### For System Administrators

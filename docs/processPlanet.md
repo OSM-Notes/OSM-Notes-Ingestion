@@ -380,10 +380,327 @@ Manual/Cron
 
 ### Troubleshooting
 
-- **Log Analysis**: Reviews logs for error patterns
-- **Performance Tuning**: Adjusts parameters based on performance data
-- **Database Optimization**: Optimizes database queries and indexes
-- **System Monitoring**: Monitors system resources and performance
+#### Common Error Scenarios
+
+**1. Planet File Download Failures**
+
+**Symptoms:**
+
+- Script fails during download phase
+- Error messages about network connectivity
+- Timeout errors
+
+**Diagnosis:**
+
+```bash
+# Check network connectivity
+curl -I https://planet.openstreetmap.org/planet/notes/
+
+# Check disk space (planet files are 2GB+)
+df -h
+
+# Check download progress
+tail -f /tmp/processPlanetNotes_*/processPlanetNotes.log | grep -i download
+```
+
+**Solutions:**
+
+- Verify internet connectivity
+- Ensure sufficient disk space (at least 5GB free)
+- Check if planet server is accessible
+- Review retry logic in logs
+
+**2. XML Validation Failures**
+
+**Symptoms:**
+
+- Error: "XML validation failed"
+- Error: "Invalid XML structure"
+- Script exits during validation phase
+
+**Diagnosis:**
+
+```bash
+# Check validation logs
+LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
+grep -i "validation\|xml" "$LATEST_DIR/processPlanetNotes.log"
+
+# Check XML file integrity
+file /path/to/planet-notes-latest.osm.bz2
+```
+
+**Solutions:**
+
+- Skip XML validation (faster, less strict):
+  ```bash
+  export SKIP_XML_VALIDATION=true
+  ./bin/process/processPlanetNotes.sh
+  ```
+- Re-download planet file if corrupted
+- Check XSD schema file exists: `xsd/osm-notes.xsd`
+
+**3. Database Connection Issues**
+
+**Symptoms:**
+
+- Error: "Cannot connect to database"
+- Error: "Connection refused"
+- Timeout errors during database operations
+
+**Diagnosis:**
+
+```bash
+# Test database connection
+psql -d osm_notes -c "SELECT 1;"
+
+# Check database is running
+systemctl status postgresql
+
+# Check connection parameters
+cat etc/properties.sh | grep -i db
+```
+
+**Solutions:**
+
+- Verify PostgreSQL is running: `systemctl start postgresql`
+- Check database credentials in `etc/properties.sh`
+- Verify database exists: `psql -l | grep osm_notes`
+- Check firewall rules if using remote database
+
+**4. Out of Memory (OOM) Errors**
+
+**Symptoms:**
+
+- Process killed by system
+- Error: "Killed" in logs
+- System becomes unresponsive
+
+**Diagnosis:**
+
+```bash
+# Check system memory
+free -h
+
+# Check process memory usage
+ps aux | grep processPlanetNotes
+
+# Review OOM killer logs
+dmesg | grep -i "killed process"
+```
+
+**Solutions:**
+
+- Reduce `MAX_THREADS` (fewer parallel processes):
+  ```bash
+  export MAX_THREADS=2
+  ./bin/process/processPlanetNotes.sh
+  ```
+- Process in smaller chunks (modify partition size)
+- Add swap space if needed
+- Process during off-peak hours
+
+**5. Disk Space Exhaustion**
+
+**Symptoms:**
+
+- Error: "No space left on device"
+- Extraction fails
+- Database operations fail
+
+**Diagnosis:**
+
+```bash
+# Check disk space
+df -h
+
+# Find large temporary files
+du -sh /tmp/processPlanetNotes_*
+
+# Check database size
+psql -d osm_notes -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));"
+```
+
+**Solutions:**
+
+- Free up disk space (remove old logs, temp files)
+- Clean temporary directories:
+  ```bash
+  rm -rf /tmp/processPlanetNotes_*
+  ```
+- Increase disk space or use different partition
+- Enable automatic cleanup: `export CLEAN=true`
+
+**6. Lock File Issues**
+
+**Symptoms:**
+
+- Error: "Script is already running"
+- Cannot start new execution
+- Stale lock file
+
+**Diagnosis:**
+
+```bash
+# Check if process is actually running
+ps aux | grep processPlanetNotes.sh
+
+# Check lock file
+cat /tmp/processPlanetNotes.lock
+
+# Verify PID in lock file
+LOCK_PID=$(cat /tmp/processPlanetNotes.lock | cut -d: -f1)
+ps -p "$LOCK_PID"
+```
+
+**Solutions:**
+
+- If process is not running, remove stale lock:
+  ```bash
+  rm /tmp/processPlanetNotes.lock
+  ```
+- If process is running, wait for completion
+- Check for zombie processes
+
+**7. Overpass API Rate Limiting**
+
+**Symptoms:**
+
+- Boundary downloads fail
+- Error: "Rate limit exceeded"
+- Temporary bans from Overpass API
+
+**Diagnosis:**
+
+```bash
+# Check Overpass API status
+curl -s "https://overpass-api.de/api/status" | jq
+
+# Review download logs
+grep -i "overpass\|rate\|limit" /tmp/processPlanetNotes_*/processPlanetNotes.log
+```
+
+**Solutions:**
+
+- Increase delay between requests:
+  ```bash
+  export RATE_LIMIT=5  # seconds between requests
+  ```
+- Reduce concurrent downloads (semaphore pattern handles this)
+- Wait for rate limit to reset (usually 1 hour)
+- Use alternative Overpass instance if available
+
+**8. PostGIS Function Errors**
+
+**Symptoms:**
+
+- Error: "function does not exist"
+- Spatial queries fail
+- Country assignment fails
+
+**Diagnosis:**
+
+```bash
+# Check PostGIS extension
+psql -d osm_notes -c "SELECT PostGIS_version();"
+
+# Check if extension is enabled
+psql -d osm_notes -c "\dx" | grep postgis
+
+# Test spatial functions
+psql -d osm_notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
+```
+
+**Solutions:**
+
+- Install PostGIS extension:
+  ```bash
+  psql -d osm_notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+  ```
+- Verify PostGIS version (3.0+ recommended)
+- Re-run geographic data processing:
+  ```bash
+  ./bin/process/updateCountries.sh
+  ```
+
+#### Recovery Procedures
+
+**After Failed Execution:**
+
+1. Check failed execution marker:
+   ```bash
+   cat /tmp/processPlanetNotes_failed_execution
+   ```
+
+2. Review logs:
+   ```bash
+   LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
+   tail -100 "$LATEST_DIR/processPlanetNotes.log"
+   ```
+
+3. Fix underlying issue (see specific error scenarios above)
+
+4. Remove failed marker:
+   ```bash
+   rm /tmp/processPlanetNotes_failed_execution
+   ```
+
+5. Re-run script:
+   ```bash
+   ./bin/process/processPlanetNotes.sh
+   ```
+
+**Partial Processing Recovery:**
+
+If processing was interrupted:
+
+1. Check what was completed:
+   ```bash
+   psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+   ```
+
+2. For `--base` mode: Re-run from scratch (will drop and recreate tables)
+
+3. For sync mode: Re-run normally (will only process new notes)
+
+#### Diagnostic Commands
+
+**Check Processing Status:**
+
+```bash
+# Check if script is running
+ps aux | grep processPlanetNotes.sh
+
+# Check database state
+psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+psql -d osm_notes -c "SELECT COUNT(*) FROM countries;"
+
+# Check last update
+psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+```
+
+**Monitor Processing:**
+
+```bash
+# Follow logs in real-time
+LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
+tail -f "$LATEST_DIR/processPlanetNotes.log"
+
+# Monitor database activity
+watch -n 5 'psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"'
+```
+
+**Performance Analysis:**
+
+```bash
+# Check processing time
+grep "Processing time" /tmp/processPlanetNotes_*/processPlanetNotes.log
+
+# Check memory usage
+ps aux | grep processPlanetNotes | awk '{print $6/1024 " MB"}'
+
+# Check database performance
+psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
+```
 
 ## Integration with Other Components
 
