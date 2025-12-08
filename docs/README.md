@@ -191,7 +191,10 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
   - [Documentation.md](./Documentation.md) for system architecture
   - [Rationale.md](./Rationale.md) for project background
   - [Process_Planet.md](./Process_Planet.md) for related processing workflows
+  - [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for comprehensive troubleshooting
+  - [Component_Dependencies.md](./Component_Dependencies.md) for component interactions
   - [Testing_Guide.md](./Testing_Guide.md) for testing procedures
+  - [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md) for spatial processing details
 
 ### Process_Planet.md
 
@@ -200,7 +203,12 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
   - [Documentation.md](./Documentation.md) for system architecture
   - [Rationale.md](./Rationale.md) for project background
   - [Process_API.md](./Process_API.md) for related processing workflows
+  - [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for comprehensive troubleshooting
+  - [Component_Dependencies.md](./Component_Dependencies.md) for component interactions
   - [Testing_Guide.md](./Testing_Guide.md) for testing procedures
+  - [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md) for country assignment strategy
+  - [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation
+  - [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for spatial functions
 
 ### WMS Documentation
 

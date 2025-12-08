@@ -333,6 +333,28 @@ Other patterns may be implemented implicitly, but these are the main ones docume
 
 ## Related Documentation
 
-* **System Architecture**: See [Documentation.md](./Documentation.md) for technical implementation details
-* **Processing Details**: See [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for specific implementation details
-* **Future Reevaluation**: See [ToDo/FUTURE_REEVALUATION.md](../ToDo/FUTURE_REEVALUATION.md) for items to be reconsidered in future versions
+### Core Documentation
+
+- **[Documentation.md](./Documentation.md)**: Complete system architecture and technical implementation details
+- **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
+- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Troubleshooting guide for common issues
+
+### Processing Documentation
+
+- **[Process_API.md](./Process_API.md)**: API processing implementation details and design rationale
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing implementation details and design rationale
+
+### Spatial Processing Documentation
+
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy and spatial processing rationale
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation rationale and implementation
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Spatial function rationale and usage
+
+### Script Reference
+
+- **[bin/README.md](../bin/README.md)**: Script usage examples and implementation patterns
+- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and usage
+
+### Planning Documentation
+
+- **[ToDo/FUTURE_REEVALUATION.md](../ToDo/FUTURE_REEVALUATION.md)**: Items to be reconsidered in future versions

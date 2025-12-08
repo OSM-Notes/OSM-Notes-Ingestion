@@ -746,9 +746,34 @@ When a script starts, dependencies are loaded in this order:
 
 ## Related Documentation
 
-- **[Documentation.md](./Documentation.md)**: Complete system documentation
-- **[bin/lib/README.md](../bin/lib/README.md)**: Function libraries documentation
-- **[lib/osm-common/README.md](../lib/osm-common/README.md)**: Shared libraries documentation
-- **[sql/README.md](../sql/README.md)**: SQL scripts documentation
-- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Troubleshooting guide
+### Core Documentation
+
+- **[Documentation.md](./Documentation.md)**: Complete system documentation and architecture overview
+- **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
+- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Centralized troubleshooting guide
+
+### Processing Documentation
+
+- **[Process_API.md](./Process_API.md)**: API processing implementation and dependencies
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing implementation and dependencies
+
+### Spatial Processing Documentation
+
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment algorithm and spatial dependencies
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation and boundary dependencies
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Spatial function dependencies
+
+### Library Documentation
+
+- **[bin/lib/README.md](../bin/lib/README.md)**: Function libraries documentation and dependencies
+- **[lib/osm-common/README.md](../lib/osm-common/README.md)**: Shared libraries documentation and dependencies
+
+### Database Documentation
+
+- **[sql/README.md](../sql/README.md)**: SQL scripts documentation and schema dependencies
+
+### Script Reference
+
+- **[bin/README.md](../bin/README.md)**: Script usage and component interactions
+- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and call dependencies
 

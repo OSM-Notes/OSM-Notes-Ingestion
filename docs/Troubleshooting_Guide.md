@@ -1292,8 +1292,35 @@ Use these scripts for automated diagnostics:
 
 ## Related Documentation
 
-- **[Documentation.md](./Documentation.md)**: Complete system documentation
-- **[Process_API.md](./Process_API.md)**: API processing details
-- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details
-- **[WMS_Guide.md](./WMS_Guide.md)**: WMS service guide
-- **[bin/README.md](../bin/README.md)**: Script usage and examples
+### Core Documentation
+
+- **[Documentation.md](./Documentation.md)**: Complete system documentation and architecture
+- **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
+- **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
+
+### Processing Documentation
+
+- **[Process_API.md](./Process_API.md)**: API processing details, troubleshooting, and error codes
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details, troubleshooting, and error codes
+
+### Spatial Processing Documentation
+
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment algorithm and spatial processing
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation mechanism
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions explanation
+
+### Service Documentation
+
+- **[WMS_Guide.md](./WMS_Guide.md)**: WMS service guide and troubleshooting
+- **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user guide for mappers
+
+### Script Reference
+
+- **[bin/README.md](../bin/README.md)**: Script usage examples and common use cases
+- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and parameters
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable documentation
+
+### Testing Documentation
+
+- **[Testing_Guide.md](./Testing_Guide.md)**: Testing procedures and troubleshooting
+- **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
