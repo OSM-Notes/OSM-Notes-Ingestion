@@ -474,6 +474,91 @@ Shared Components
         └─▶ PostGIS functions (spatial operations)
 ```
 
+### Component Dependencies
+
+The following diagram shows the dependency relationships between components:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Component Dependency Overview                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Entry Points
+    │
+    ├─▶ processAPINotes.sh
+    │   └─▶ Depends on:
+    │       ├─▶ bin/lib/processAPIFunctions.sh
+    │       ├─▶ bin/lib/parallelProcessingFunctions.sh
+    │       ├─▶ bin/lib/functionsProcess.sh
+    │       └─▶ lib/osm-common/*.sh (all common libraries)
+    │
+    ├─▶ processPlanetNotes.sh
+    │   └─▶ Depends on:
+    │       ├─▶ bin/lib/processPlanetFunctions.sh
+    │       ├─▶ bin/lib/noteProcessingFunctions.sh
+    │       ├─▶ bin/lib/boundaryProcessingFunctions.sh
+    │       ├─▶ bin/lib/parallelProcessingFunctions.sh
+    │       └─▶ lib/osm-common/*.sh (all common libraries)
+    │
+    └─▶ updateCountries.sh
+        └─▶ Depends on:
+            ├─▶ bin/lib/boundaryProcessingFunctions.sh
+            ├─▶ bin/lib/processPlanetFunctions.sh
+            └─▶ lib/osm-common/*.sh (all common libraries)
+
+Core Libraries (bin/lib/)
+    │
+    ├─▶ functionsProcess.sh (main entry point)
+    │   └─▶ Loads:
+    │       ├─▶ lib/osm-common/commonFunctions.sh
+    │       ├─▶ lib/osm-common/validationFunctions.sh
+    │       ├─▶ lib/osm-common/errorHandlingFunctions.sh
+    │       ├─▶ bin/lib/securityFunctions.sh
+    │       └─▶ bin/lib/overpassFunctions.sh
+    │
+    ├─▶ processAPIFunctions.sh
+    │   └─▶ Depends on: functionsProcess.sh
+    │
+    ├─▶ processPlanetFunctions.sh
+    │   └─▶ Depends on: functionsProcess.sh
+    │
+    ├─▶ noteProcessingFunctions.sh
+    │   └─▶ Depends on: functionsProcess.sh
+    │
+    ├─▶ boundaryProcessingFunctions.sh
+    │   ├─▶ Depends on: functionsProcess.sh
+    │   └─▶ Depends on: overpassFunctions.sh
+    │
+    └─▶ parallelProcessingFunctions.sh
+        └─▶ Depends on: lib/osm-common/commonFunctions.sh
+
+Shared Libraries (lib/osm-common/)
+    │
+    ├─▶ commonFunctions.sh (base library)
+    │   └─▶ Provides: Logging, error codes, prerequisites
+    │
+    ├─▶ validationFunctions.sh
+    │   └─▶ Depends on: commonFunctions.sh
+    │
+    ├─▶ errorHandlingFunctions.sh
+    │   └─▶ Depends on: commonFunctions.sh
+    │
+    └─▶ alertFunctions.sh
+        └─▶ Depends on: commonFunctions.sh
+
+External Dependencies
+    │
+    ├─▶ PostgreSQL/PostGIS (database)
+    ├─▶ OSM API (data source)
+    ├─▶ OSM Planet (data source)
+    ├─▶ Overpass API (boundaries)
+    ├─▶ GNU Parallel (parallel processing)
+    ├─▶ AWK (XML processing)
+    └─▶ ogr2ogr/GDAL (GeoJSON processing)
+```
+
+> **Note:** For detailed dependency information, see [Component_Dependencies.md](./Component_Dependencies.md).
+
 ### Error Handling Flow
 
 The following diagram shows the error handling and recovery mechanism:
@@ -1796,6 +1881,7 @@ See detailed troubleshooting in [processAPI.md](./processAPI.md) and [processPla
 **Review Documentation:**
 
 - **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Comprehensive troubleshooting guide (all categories)
+- **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
 - [processAPI.md](./processAPI.md): API processing troubleshooting
 - [processPlanet.md](./processPlanet.md): Planet processing troubleshooting
 - [WMS_Guide.md](./WMS_Guide.md): WMS service troubleshooting
