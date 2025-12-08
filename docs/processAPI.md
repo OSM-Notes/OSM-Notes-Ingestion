@@ -238,6 +238,112 @@ unset SKIP_XML_VALIDATION
 psql -d osm_notes -c "SELECT 1;"
 ```
 
+### Error Handling and Recovery Sequence
+
+The following diagram shows how errors are handled and recovered:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│              Error Handling and Recovery Flow                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Normal Execution
+    │
+    ├─▶ Error occurs (any step)
+    │   │
+    │   ├─▶ ERR trap triggered
+    │   │   ├─▶ Capture error details (line, command, exit code)
+    │   │   ├─▶ Log error to file
+    │   │   └─▶ Check GENERATE_FAILED_FILE flag
+    │   │       │
+    │   │       ├─▶ If true:
+    │   │       │   ├─▶ __create_failed_marker()
+    │   │       │   │   ├─▶ Create /tmp/processAPINotes_failed_execution
+    │   │       │   │   ├─▶ Write error details to file
+    │   │       │   │   └─▶ Send email alert (if SEND_ALERT_EMAIL=true)
+    │   │       │   │
+    │   │       │   └─▶ Exit with error code
+    │   │       │
+    │   │       └─▶ If false:
+    │   │           └─▶ Exit with error code (no marker)
+    │   │
+    │   └─▶ Cleanup handlers (trap EXIT)
+    │       ├─▶ __cleanup_on_exit()
+    │       ├─▶ Remove temporary files (if CLEAN=true)
+    │       └─▶ Remove lock file
+    │
+    └─▶ Next execution attempt
+        │
+        ├─▶ Check failed execution marker
+        │   ├─▶ If exists:
+        │   │   ├─▶ Display error message
+        │   │   ├─▶ Show marker file path
+        │   │   └─▶ Exit (ERROR_PREVIOUS_EXECUTION_FAILED)
+        │   │
+        │   └─▶ If not exists:
+        │       └─▶ Continue normal execution
+        │
+        └─▶ Recovery process
+            ├─▶ Admin receives email alert
+            ├─▶ Admin reviews error details
+            ├─▶ Admin fixes underlying issue
+            ├─▶ Admin removes marker file
+            └─▶ Wait for next cron execution
+```
+
+### Component Interaction Diagram
+
+The following diagram shows how different components interact during processing:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│              Component Interaction During Processing                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+processAPINotes.sh
+    │
+    ├─▶ Calls: functionsProcess.sh
+    │   ├─▶ __checkPrereqs()
+    │   ├─▶ __checkBaseTables()
+    │   └─▶ __createBaseStructure()
+    │
+    ├─▶ Calls: processAPIFunctions.sh
+    │   ├─▶ __getNewNotesFromApi()
+    │   ├─▶ __countXmlNotesAPI()
+    │   └─▶ __processApiXmlPart()
+    │
+    ├─▶ Calls: parallelProcessingFunctions.sh
+    │   ├─▶ __splitXmlForParallelAPI()
+    │   └─▶ __processApiXmlPart() [parallel]
+    │
+    ├─▶ Calls: validationFunctions.sh
+    │   ├─▶ __validateApiNotesXMLFileComplete()
+    │   ├─▶ __validate_csv_structure()
+    │   └─▶ __validate_csv_for_enum_compatibility()
+    │
+    ├─▶ Calls: errorHandlingFunctions.sh
+    │   ├─▶ __create_failed_marker()
+    │   └─▶ __retry_* functions
+    │
+    ├─▶ Calls: commonFunctions.sh
+    │   ├─▶ __log_* functions
+    │   └─▶ __start_logger()
+    │
+    ├─▶ Calls: processPlanetNotes.sh (if TOTAL_NOTES >= MAX_NOTES)
+    │   └─▶ Full synchronization
+    │
+    ├─▶ Executes: AWK scripts
+    │   ├─▶ awk/extract_notes.awk
+    │   ├─▶ awk/extract_comments.awk
+    │   └─▶ awk/extract_comment_texts.awk
+    │
+    └─▶ Executes: SQL scripts
+        ├─▶ sql/process/41_create_api_tables.sql
+        ├─▶ sql/process/42_create_partitions.sql
+        ├─▶ sql/process/43_load_partitioned_api_notes.sql
+        └─▶ sql/process/44_consolidate_partitions.sql
+```
+
 ### Cron Job Setup
 
 #### Standard Production Cron
@@ -378,26 +484,164 @@ Uses the same base tables as `processPlanetNotes.sh`:
 
 ## Processing Flow
 
-### 1. Prerequisites Verification
+### Detailed Sequence Diagram
+
+The following diagram shows the complete execution flow of `processAPINotes.sh`:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│              processAPINotes.sh - Complete Execution Flow                │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Cron/Manual
+    │
+    ▼
+┌─────────────────┐
+│  main() starts  │
+└────────┬────────┘
+         │
+         ├─▶ Check --help parameter
+         │   └─▶ Exit if help requested
+         │
+         ├─▶ Check failed execution marker
+         │   └─▶ Exit if previous execution failed
+         │
+         ├─▶ __checkPrereqs()
+         │   ├─▶ Verify commands available
+         │   ├─▶ Verify database connection
+         │   └─▶ Verify SQL files exist
+         │
+         ├─▶ __trapOn()
+         │   └─▶ Setup error handlers and cleanup
+         │
+         ├─▶ __setupLockFile()
+         │   ├─▶ Check for existing lock
+         │   ├─▶ Create lock file (Singleton pattern)
+         │   └─▶ Exit if already running
+         │
+         ├─▶ __dropApiTables()
+         │   └─▶ Remove temporary API tables
+         │
+         ├─▶ __checkNoProcessPlanet()
+         │   └─▶ Verify processPlanetNotes.sh not running
+         │
+         ├─▶ __checkBaseTables()
+         │   ├─▶ Check if base tables exist
+         │   └─▶ Return RET_FUNC (0=OK, 1=Missing, 2=Error)
+         │
+         ├─▶ Decision: RET_FUNC value
+         │   │
+         │   ├─▶ RET_FUNC=1 (Tables missing)
+         │   │   └─▶ __createBaseStructure()
+         │   │       └─▶ Calls processPlanetNotes.sh --base
+         │   │
+         │   ├─▶ RET_FUNC=0 (Tables exist)
+         │   │   └─▶ __validateHistoricalDataAndRecover()
+         │   │       └─▶ Validates and recovers if needed
+         │   │
+         │   └─▶ RET_FUNC=2 (Error)
+         │       └─▶ Create failed marker and exit
+         │
+         ├─▶ __createApiTables()
+         │   └─▶ Create temporary API tables
+         │
+         ├─▶ __createPartitions()
+         │   └─▶ Create partitions for parallel processing
+         │
+         ├─▶ __createPropertiesTable()
+         │   └─▶ Create properties tracking table
+         │
+         ├─▶ __ensureGetCountryFunction()
+         │   └─▶ Ensure get_country() function exists
+         │
+         ├─▶ __createProcedures()
+         │   └─▶ Create database procedures
+         │
+         ├─▶ __getNewNotesFromApi()
+         │   ├─▶ Get last update timestamp from DB
+         │   ├─▶ Build OSM API URL
+         │   ├─▶ Download XML from OSM API
+         │   └─▶ Save to API_NOTES_FILE
+         │
+         ├─▶ __validateApiNotesFile()
+         │   ├─▶ Check file exists
+         │   └─▶ Check file not empty
+         │
+         ├─▶ __validateAndProcessApiXml()
+         │   │
+         │   ├─▶ __validateApiNotesXMLFileComplete() [if SKIP_XML_VALIDATION=false]
+         │   │   └─▶ Validate XML structure
+         │   │
+         │   ├─▶ __countXmlNotesAPI()
+         │   │   └─▶ Count notes in XML (sets TOTAL_NOTES)
+         │   │
+         │   ├─▶ __processXMLorPlanet()
+         │   │   │
+         │   │   ├─▶ Decision: TOTAL_NOTES >= MAX_NOTES?
+         │   │   │   │
+         │   │   │   ├─▶ YES: Call processPlanetNotes.sh (full sync)
+         │   │   │   │
+         │   │   │   └─▶ NO: Process locally
+         │   │   │       │
+         │   │   │       ├─▶ Decision: TOTAL_NOTES >= MIN_NOTES_FOR_PARALLEL?
+         │   │   │       │   │
+         │   │   │       │   ├─▶ YES: Parallel processing
+         │   │   │       │   │   ├─▶ __checkMemoryForProcessing()
+         │   │   │       │   │   ├─▶ __splitXmlForParallelAPI()
+         │   │   │       │   │   └─▶ __processApiXmlPart() [parallel]
+         │   │   │       │   │       ├─▶ AWK: XML → CSV
+         │   │   │       │   │       ├─▶ Validate CSV structure
+         │   │   │       │   │       └─▶ Load to DB partition
+         │   │   │       │   │
+         │   │   │       │   └─▶ NO: Sequential processing
+         │   │   │       │       └─▶ __processApiXmlSequential()
+         │   │   │       │           ├─▶ AWK: XML → CSV
+         │   │   │       │           └─▶ Load to DB
+         │   │   │
+         │   │   └─▶ __consolidatePartitions()
+         │   │       └─▶ Merge partition data
+         │   │
+         │   ├─▶ __insertNewNotesAndComments()
+         │   │   └─▶ Insert notes and comments to base tables
+         │   │
+         │   ├─▶ __loadApiTextComments()
+         │   │   └─▶ Load comment text to base tables
+         │   │
+         │   └─▶ __updateLastValue()
+         │       └─▶ Update last_update timestamp
+         │
+         ├─▶ __check_and_log_gaps()
+         │   └─▶ Check for data gaps and log
+         │
+         ├─▶ __cleanNotesFiles()
+         │   └─▶ Clean temporary files (if CLEAN=true)
+         │
+         └─▶ Remove lock file
+             └─▶ Exit successfully
+```
+
+### Simplified Flow Steps
+
+#### 1. Prerequisites Verification
 
 - Verifies that `processPlanetNotes.sh` is not running
 - Checks existence of base tables
 - Validates necessary SQL files
 
-### 2. API Table Management
+#### 2. API Table Management
 
 - Removes existing API tables
 - Creates new API tables with partitioning
 - Creates properties table for tracking
 
-### 3. Data Download
+#### 3. Data Download
 
 - Gets last update timestamp from database
 - Builds API URL with filtering parameters
 - Downloads new/modified notes from OSM API
 - Validates downloaded XML structure
 
-### 4. Processing Decision
+#### 4. Processing Decision
 
 **If downloaded notes >= MAX_NOTES (configurable)**:
 
@@ -409,7 +653,7 @@ Uses the same base tables as `processPlanetNotes.sh`:
 - Processes downloaded notes locally
 - Uses parallel processing with partitioning
 
-### 5. Parallel Processing
+#### 5. Parallel Processing
 
 - Divides XML file into parts
 - Processes each part in parallel using AWK extraction

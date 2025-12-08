@@ -135,13 +135,115 @@ Sync tables are temporary and used for incremental processing:
 
 ## Processing Flow
 
-### 1. Environment Preparation
+### Detailed Sequence Diagram
+
+The following diagram shows the complete execution flow of `processPlanetNotes.sh`:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│            processPlanetNotes.sh - Complete Execution Flow               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Manual/Cron
+    │
+    ▼
+┌─────────────────┐
+│  main() starts  │
+└────────┬────────┘
+         │
+         ├─▶ Check --help parameter
+         │   └─▶ Exit if help requested
+         │
+         ├─▶ __checkPreviousFailedExecution()
+         │   └─▶ Check for failed execution marker
+         │
+         ├─▶ __checkPrereqs()
+         │   ├─▶ Verify commands available
+         │   ├─▶ Verify database connection
+         │   └─▶ Verify SQL files exist
+         │
+         ├─▶ __trapOn()
+         │   └─▶ Setup error handlers and cleanup
+         │
+         ├─▶ __setupLockFile()
+         │   ├─▶ Check for existing lock
+         │   ├─▶ Create lock file (Singleton pattern)
+         │   └─▶ Exit if already running
+         │
+         ├─▶ Decision: PROCESS_TYPE
+         │   │
+         │   ├─▶ PROCESS_TYPE="--base" (Base Mode)
+         │   │   │
+         │   │   └─▶ __processPlanetBaseMode()
+         │   │       ├─▶ __dropBaseTables()
+         │   │       ├─▶ __dropApiTables()
+         │   │       ├─▶ __dropSyncTables()
+         │   │       ├─▶ __createBaseTables()
+         │   │       ├─▶ __createPartitionTables()
+         │   │       ├─▶ Download Planet file
+         │   │       ├─▶ Extract notes XML
+         │   │       ├─▶ Validate XML [if SKIP_XML_VALIDATION=false]
+         │   │       ├─▶ Split XML into parts
+         │   │       ├─▶ Process parts in parallel (AWK: XML → CSV)
+         │   │       ├─▶ Load CSV to sync tables
+         │   │       ├─▶ __removeDuplicates()
+         │   │       ├─▶ __moveSyncToMain()
+         │   │       └─▶ __loadTextComments()
+         │   │
+         │   └─▶ PROCESS_TYPE="" (Sync Mode)
+         │       │
+         │       └─▶ __processPlanetSyncMode()
+         │           ├─▶ __dropSyncTables()
+         │           ├─▶ __createSyncTables()
+         │           ├─▶ Download Planet file
+         │           ├─▶ Extract notes XML
+         │           ├─▶ Validate XML [if SKIP_XML_VALIDATION=false]
+         │           ├─▶ Split XML into parts
+         │           ├─▶ Process parts in parallel (AWK: XML → CSV)
+         │           ├─▶ Load CSV to sync tables
+         │           ├─▶ __loadSyncNotes() (only new notes)
+         │           ├─▶ __removeDuplicates()
+         │           ├─▶ __moveSyncToMain()
+         │           └─▶ __loadTextComments()
+         │
+         ├─▶ Decision: PROCESS_TYPE (Geographic Data)
+         │   │
+         │   ├─▶ PROCESS_TYPE="--base"
+         │   │   └─▶ __processGeographicDataBaseMode()
+         │   │       └─▶ __processGeographicData()
+         │   │           ├─▶ Download countries via Overpass (FIFO Queue)
+         │   │           ├─▶ Download maritimes via Overpass (FIFO Queue)
+         │   │           ├─▶ Process boundaries (PostGIS)
+         │   │           └─▶ Load to countries/maritimes tables
+         │   │
+         │   └─▶ PROCESS_TYPE=""
+         │       └─▶ __processGeographicDataSyncMode()
+         │           └─▶ __processGeographicData()
+         │               └─▶ Update boundaries (if changed)
+         │
+         ├─▶ __createProcedures()
+         │   └─▶ Create database procedures
+         │
+         ├─▶ __cleanNotesFiles()
+         │   └─▶ Clean temporary files (if CLEAN=true)
+         │
+         ├─▶ __analyzeAndVacuum()
+         │   ├─▶ ANALYZE tables
+         │   └─▶ VACUUM tables
+         │
+         └─▶ Remove lock file
+             └─▶ Exit successfully
+```
+
+### Simplified Flow Steps
+
+#### 1. Environment Preparation
 
 - Prerequisites verification (PostgreSQL, tools)
 - Creation of temporary directories
 - Logging configuration
 
-### 2. Table Management
+#### 2. Table Management
 
 **For `--base`**:
 
@@ -154,7 +256,7 @@ Sync tables are temporary and used for incremental processing:
 - Verifies existence of base tables
 - Creates sync tables for new processing
 
-### 3. Geographic Data Processing
+#### 3. Geographic Data Processing
 
 - Downloads country and maritime boundaries via Overpass
   - Uses FIFO queue system to prevent race conditions
@@ -165,33 +267,33 @@ Sync tables are temporary and used for incremental processing:
 - Converts to PostgreSQL geometry objects
 - Organizes areas for spatial queries
 
-### 4. Planet File Download
+#### 4. Planet File Download
 
 - Downloads the most recent planet file
 - Validates file integrity and size
 - Extracts notes XML from the planet file
 
-### 5. XML Processing
+#### 5. XML Processing
 
 - Validates XML structure against XSD schema (optional, if SKIP_XML_VALIDATION=false)
 - Transforms XML to CSV using AWK extraction
 - Processes in parallel using partitioning
 - Consolidates results from all partitions
 
-### 6. Data Loading
+#### 6. Data Loading
 
 - Loads processed data into sync tables
 - Validates data integrity and constraints
 - Moves data from sync to base tables
 - Removes duplicates and ensures consistency
 
-### 7. Country Association
+#### 7. Country Association
 
 - Associates each note with its corresponding country
 - Uses spatial queries to determine note location
 - Updates country information in notes table
 
-### 8. Cleanup and Optimization
+#### 8. Cleanup and Optimization
 
 - Removes temporary files and sync tables
 - Optimizes database indexes

@@ -382,6 +382,157 @@ Country Assignment Flow:
               └──────────────┘  └──────────────┘
 ```
 
+### Component Interaction Diagram
+
+The following diagram shows how different components interact during processing:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Component Interaction Overview                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Entry Points
+    │
+    ├─▶ processAPINotes.sh
+    │   │
+    │   ├─▶ Loads: bin/lib/functionsProcess.sh
+    │   │   ├─▶ Prerequisites checking
+    │   │   ├─▶ Base table validation
+    │   │   └─▶ Base structure creation
+    │   │
+    │   ├─▶ Loads: bin/lib/processAPIFunctions.sh
+    │   │   ├─▶ API download functions
+    │   │   ├─▶ XML counting functions
+    │   │   └─▶ API XML processing
+    │   │
+    │   ├─▶ Loads: bin/lib/parallelProcessingFunctions.sh
+    │   │   ├─▶ XML splitting functions
+    │   │   ├─▶ Parallel processing coordination
+    │   │   └─▶ Partition management
+    │   │
+    │   ├─▶ Loads: lib/osm-common/validationFunctions.sh
+    │   │   ├─▶ XML validation
+    │   │   ├─▶ CSV validation
+    │   │   └─▶ Enum compatibility checks
+    │   │
+    │   ├─▶ Loads: lib/osm-common/errorHandlingFunctions.sh
+    │   │   ├─▶ Failed marker creation
+    │   │   ├─▶ Retry logic
+    │   │   └─▶ Circuit breaker pattern
+    │   │
+    │   ├─▶ Executes: awk/extract_notes.awk
+    │   ├─▶ Executes: awk/extract_comments.awk
+    │   └─▶ Executes: awk/extract_comment_texts.awk
+    │
+    ├─▶ processPlanetNotes.sh
+    │   │
+    │   ├─▶ Loads: bin/lib/processPlanetFunctions.sh
+    │   │   ├─▶ Planet file download
+    │   │   ├─▶ XML extraction
+    │   │   └─▶ Planet-specific processing
+    │   │
+    │   ├─▶ Loads: bin/lib/parallelProcessingFunctions.sh
+    │   │   ├─▶ Binary division of XML
+    │   │   ├─▶ Parallel AWK processing
+    │   │   └─▶ Partition consolidation
+    │   │
+    │   ├─▶ Loads: bin/lib/boundaryProcessingFunctions.sh
+    │   │   ├─▶ Overpass API queries (FIFO Queue)
+    │   │   ├─▶ Semaphore for rate limiting
+    │   │   └─▶ Boundary processing
+    │   │
+    │   └─▶ Executes: Same AWK scripts as processAPI
+    │
+    └─▶ updateCountries.sh
+        │
+        ├─▶ Loads: bin/lib/processPlanetFunctions.sh
+        │   └─▶ Geographic data functions
+        │
+        ├─▶ Loads: bin/lib/boundaryProcessingFunctions.sh
+        │   ├─▶ Overpass API queries
+        │   └─▶ Boundary download (FIFO Queue + Semaphore)
+        │
+        └─▶ Executes: SQL scripts for country updates
+
+Shared Components
+    │
+    ├─▶ lib/osm-common/commonFunctions.sh
+    │   ├─▶ Logging system (log4j-style)
+    │   ├─▶ Common utilities
+    │   └─▶ Error handling
+    │
+    ├─▶ lib/osm-common/validationFunctions.sh
+    │   └─▶ Centralized validation
+    │
+    ├─▶ lib/osm-common/errorHandlingFunctions.sh
+    │   └─▶ Centralized error handling
+    │
+    └─▶ PostgreSQL Database
+        ├─▶ Base tables (notes, comments, countries)
+        ├─▶ Sync tables (temporary)
+        ├─▶ API tables (temporary)
+        └─▶ PostGIS functions (spatial operations)
+```
+
+### Error Handling Flow
+
+The following diagram shows the error handling and recovery mechanism:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Error Handling Flow                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Execution
+    │
+    ├─▶ Error occurs
+    │   │
+    │   ├─▶ ERR trap triggered
+    │   │   ├─▶ Capture error context
+    │   │   │   ├─▶ Line number
+    │   │   │   ├─▶ Command that failed
+    │   │   │   └─▶ Exit code
+    │   │   │
+    │   │   ├─▶ Log error details
+    │   │   │
+    │   │   └─▶ Check GENERATE_FAILED_FILE
+    │   │       │
+    │   │       ├─▶ If true:
+    │   │       │   ├─▶ Create failed marker file
+    │   │       │   │   └─▶ /tmp/SCRIPT_NAME_failed_execution
+    │   │       │   │
+    │   │       │   ├─▶ Send email alert
+    │   │       │   │   └─▶ If SEND_ALERT_EMAIL=true
+    │   │       │   │
+    │   │       │   └─▶ Exit with error code
+    │   │       │
+    │   │       └─▶ If false:
+    │   │           └─▶ Exit with error code (no marker)
+    │   │
+    │   └─▶ EXIT trap triggered
+    │       ├─▶ Cleanup temporary files
+    │       ├─▶ Remove lock file
+    │       └─▶ Exit
+    │
+    └─▶ Next execution
+        │
+        ├─▶ Check failed marker
+        │   ├─▶ If exists:
+        │   │   ├─▶ Display error message
+        │   │   ├─▶ Show marker file location
+        │   │   └─▶ Exit (prevent execution)
+        │   │
+        │   └─▶ If not exists:
+        │       └─▶ Continue normal execution
+        │
+        └─▶ Recovery (manual)
+            ├─▶ Admin reviews email alert
+            ├─▶ Admin checks logs
+            ├─▶ Admin fixes issue
+            ├─▶ Admin removes marker file
+            └─▶ Wait for next cron execution
+```
+
 ### 5. WMS Service Delivery
 
 **Source:** WMS schema in database
