@@ -4,7 +4,7 @@
 # Description: Centralized parallel processing functions with resource management and retry logic
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-29
+# Version: 2025-12-07
 
 # Load properties to ensure all required variables are available
 # Only load production properties if we're not in a test environment
@@ -930,125 +930,22 @@ __divide_xml_file() {
  return 0
 }
 
-# Process large XML file by dividing into parts and processing in parallel
-# Parameters:
-#   $1: Input XML file path
-#   $2: XSLT file for processing
-#   $3: Output directory for CSV files
-#   $4: Maximum number of workers (optional, default: MAX_THREADS)
-#   $5: Number of parts to create (optional, default: MAX_THREADS * 10)
-
-# Process large XML files with intelligent parallel processing
-# Automatically determines optimal number of parts based on file size and performance
-# Parameters:
-#   $1: Input XML file path
-#   $2: XSLT file path
-#   $3: Output directory
-#   $4: Maximum workers (optional, default: MAX_THREADS)
-# Returns: 0 on success, 1 on failure
-function __processLargeXmlFile() {
- __log_start
- local INPUT_XML="${1}"
- local XSLT_FILE="${2}"
- local OUTPUT_DIR="${3}"
- local MAX_WORKERS="${4:-${MAX_THREADS}}"
-
- __logi "Processing large XML file with intelligent parallel processing"
- __logd "Input: ${INPUT_XML}"
- __logd "XSLT: ${XSLT_FILE}"
- __logd "Output: ${OUTPUT_DIR}"
- __logd "Max workers: ${MAX_WORKERS}"
-
- # Use TMP_DIR from parent script if available, otherwise create temporary directory
- local PARTS_DIR
- if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
-  PARTS_DIR="${TMP_DIR}/xml_parts"
-  mkdir -p "${PARTS_DIR}"
-  __logd "Using TMP_DIR from parent script: ${PARTS_DIR}"
- else
-  PARTS_DIR=$(mktemp -d)
-  __logd "Created temporary parts directory: ${PARTS_DIR}"
- fi
-
- # Get file size to determine optimal division method
- local FILE_SIZE_BYTES
- FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2> /dev/null || echo "0")
- local FILE_SIZE_MB
- FILE_SIZE_MB=$((FILE_SIZE_BYTES / 1024 / 1024))
-
- # Choose division method based on file size
- if [[ ${FILE_SIZE_MB} -gt 1000 ]]; then
-  # For very large files (> 1GB), use binary division for maximum performance
-  __logi "Very large file detected (${FILE_SIZE_MB} MB), using binary division for maximum performance"
-  if ! __divide_xml_file_binary "${INPUT_XML}" "${PARTS_DIR}" "300" "100" "${MAX_WORKERS}"; then
-   __loge "ERROR: Binary division failed, falling back to traditional method"
-   if ! __divide_xml_file "${INPUT_XML}" "${PARTS_DIR}"; then
-    __loge "ERROR: Both division methods failed"
-    # Only clean up if we created the directory (not if using TMP_DIR)
-    if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
-     rm -rf "${PARTS_DIR}"
-    fi
-    __log_finish
-    return 1
-   fi
-  fi
- else
-  # For smaller files, use traditional division method
-  __logi "Standard file size (${FILE_SIZE_MB} MB), using traditional division method"
-  if ! __divide_xml_file "${INPUT_XML}" "${PARTS_DIR}"; then
-   __loge "ERROR: Failed to divide XML file"
-   # Only clean up if we created the directory (not if using TMP_DIR)
-   if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
-    rm -rf "${PARTS_DIR}"
-   fi
-   __log_finish
-   return 1
-  fi
- fi
-
- # Process parts in parallel
- if ! __processXmlPartsParallel "${PARTS_DIR}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "Planet"; then
-  __loge "ERROR: Failed to process XML parts in parallel"
-  # Clean up parts directory on failure
-  if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
-   rm -rf "${PARTS_DIR}"
-  fi
-  __logd "Cleaned up temporary parts directory after failure"
-  __log_finish
-  return 1
- fi
-
- # Clean up temporary parts only if we created the directory
- if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
-  rm -rf "${PARTS_DIR}"
-  __logd "Cleaned up temporary parts directory"
- else
-  __logd "Parts directory preserved in TMP_DIR: ${PARTS_DIR}"
- fi
-
- __logi "Successfully processed large XML file with intelligent parallel processing"
- __log_finish
- return 0
-}
-
 # Process XML parts in parallel (consolidated version)
 # Automatically detects Planet vs API format based on generated file names
 # Parameters:
 #   $1: Input directory containing XML parts
-#   $2: XSLT file for processing
-#   $3: Output directory for CSV files
-#   $4: Maximum number of workers (optional, default: 4)
-#   $5: Processing type (optional, auto-detected if not provided)
+#   $2: Output directory for CSV files (not used, kept for compatibility)
+#   $3: Maximum number of workers (optional, default: 4)
+#   $4: Processing type (optional, auto-detected if not provided)
 # Returns: 0 on success, 1 on failure
 function __processXmlPartsParallel() {
  __log_start
  __logd "Processing XML parts in parallel (consolidated version)."
 
  local INPUT_DIR="${1}"
- local XSLT_FILE="${2}"
- local OUTPUT_DIR="${3}"
- local MAX_WORKERS="${4:-${MAX_THREADS:-4}}"
- local PROCESSING_TYPE="${5:-}"
+ local OUTPUT_DIR="${2:-}"
+ local MAX_WORKERS="${3:-${MAX_THREADS:-4}}"
+ local PROCESSING_TYPE="${4:-}"
 
  # Configure system limits to prevent process killing
  __logd "Configuring system limits for parallel processing..."
@@ -1060,14 +957,10 @@ function __processXmlPartsParallel() {
   return 1
  fi
 
- if [[ ! -f "${XSLT_FILE}" ]]; then
-  __loge "ERROR: XSLT file not found: ${XSLT_FILE}"
-  __log_finish
-  return 1
+ # Create output directory if provided
+ if [[ -n "${OUTPUT_DIR}" ]]; then
+  mkdir -p "${OUTPUT_DIR}"
  fi
-
- # Create output directory
- mkdir -p "${OUTPUT_DIR}"
 
  # Auto-detect processing type if not provided
  if [[ -z "${PROCESSING_TYPE}" ]]; then
@@ -1130,7 +1023,7 @@ function __processXmlPartsParallel() {
   # Launch processing in background based on processing type
   if [[ "${PROCESSING_TYPE}" == "Planet" ]]; then
    # Launch Planet processing in background
-   __processPlanetXmlPart "${XML_FILE}" "${XSLT_FILE}" "${OUTPUT_DIR}" &
+   __processPlanetXmlPart "${XML_FILE}" &
    local PID=$!
    PIDS+=("${PID}")
    __logd "Launched Planet XML part processing in background: ${XML_FILE} (PID: ${PID})"
@@ -1199,7 +1092,7 @@ function __processXmlPartsParallel() {
 
    # Retry processing
    if [[ "${PROCESSING_TYPE}" == "Planet" ]]; then
-    __processPlanetXmlPart "${XML_FILE}" "${XSLT_FILE}" "${OUTPUT_DIR}"
+    __processPlanetXmlPart "${XML_FILE}"
    elif [[ "${PROCESSING_TYPE}" == "API" ]]; then
     __processApiXmlPart "${XML_FILE}"
    fi
@@ -1621,268 +1514,6 @@ function __processApiXmlPart() {
 # DO NOT UNCOMMENT - will cause errors
 # function __processPlanetXmlPart() { ... }
 # All code below was part of that function and is now disabled
-
-# Analyze XSLT performance profile for optimization insights
-# Parameters:
-#   $1: Profile file path
-#   $2: Output format (optional: "summary", "detailed", "csv", default: "summary")
-# Returns: 0 on success, 1 on failure
-function __analyze_xslt_profile() {
- __log_start
- local PROFILE_FILE="${1}"
- local OUTPUT_FORMAT="${2:-summary}"
-
- if [[ ! -f "${PROFILE_FILE}" ]]; then
-  __loge "ERROR: Profile file not found: ${PROFILE_FILE}"
-  __log_finish
-  return 1
- fi
-
- __logd "Analyzing XSLT performance profile: ${PROFILE_FILE}"
- __logd "Output format: ${OUTPUT_FORMAT}"
-
- # Parse profile file and extract key metrics
- local TOTAL_TIME=0
- local TEMPLATE_COUNT=0
- local SLOWEST_TEMPLATE=""
- local SLOWEST_TIME=0
-
- # Read profile file and extract timing information
- while IFS= read -r LINE; do
-  # Parse xsltproc profile format: "    0                    /                                    1     16     16"
-  if [[ "${LINE}" =~ ^[[:space:]]*([0-9]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([0-9]+)[[:space:]]+([0-9]+)[[:space:]]+([0-9]+)$ ]]; then
-   local TEMPLATE_INDEX="${BASH_REMATCH[1]}"
-   local TEMPLATE_NAME="${BASH_REMATCH[2]}"
-   local CALLS="${BASH_REMATCH[3]}"
-   local TOTAL_TIME_100US="${BASH_REMATCH[4]}"
-   local AVG_TIME_100US="${BASH_REMATCH[5]}"
-
-   # Convert from 100us units to seconds
-   local TIME_SEC
-   TIME_SEC=$(echo "scale=6; ${TOTAL_TIME_100US} * 100 / 1000000" | bc -l 2> /dev/null || echo "0")
-
-   TOTAL_TIME=$(echo "${TOTAL_TIME} + ${TIME_SEC}" | bc -l 2> /dev/null || echo "${TOTAL_TIME}")
-   ((TEMPLATE_COUNT++))
-
-   if (($(echo "${TIME_SEC} > ${SLOWEST_TIME}" | bc -l 2> /dev/null || echo "0"))); then
-    SLOWEST_TIME="${TIME_SEC}"
-    SLOWEST_TEMPLATE="${TEMPLATE_NAME}"
-   fi
-  fi
- done < "${PROFILE_FILE}"
-
- # Generate output based on format
- case "${OUTPUT_FORMAT}" in
- "summary")
-  __logi "=== XSLT PERFORMANCE PROFILE SUMMARY ==="
-  __logi "Total processing time: ${TOTAL_TIME}s"
-  __logi "Templates executed: ${TEMPLATE_COUNT}"
-  __logi "Slowest template: ${SLOWEST_TEMPLATE} (${SLOWEST_TIME}s)"
-  __logi "Average time per template: $(echo "scale=3; ${TOTAL_TIME} / ${TEMPLATE_COUNT}" | bc -l 2> /dev/null || echo "0")s"
-  ;;
- "detailed")
-  __logi "=== XSLT PERFORMANCE PROFILE DETAILED ==="
-  __logi "Total processing time: ${TOTAL_TIME}s"
-  __logi "Templates executed: ${TEMPLATE_COUNT}"
-  __logi "Slowest template: ${SLOWEST_TEMPLATE} (${SLOWEST_TIME}s)"
-  __logi "Profile file: ${PROFILE_FILE}"
-  __logd "Use 'cat ${PROFILE_FILE}' for full details"
-  ;;
- "csv")
-  echo "total_time,template_count,slowest_template,slowest_time"
-  echo "${TOTAL_TIME},${TEMPLATE_COUNT},\"${SLOWEST_TEMPLATE}\",${SLOWEST_TIME}"
-  ;;
- *)
-  __loge "ERROR: Invalid output format: ${OUTPUT_FORMAT}"
-  __log_finish
-  return 1
-  ;;
- esac
-
- __log_finish
- return 0
-}
-
-# Generate performance report from multiple profile files
-# Parameters:
-#   $1: Directory containing profile files
-#   $2: Output report file (optional)
-# Returns: 0 on success, 1 on failure
-function __generate_performance_report() {
- __log_start
- local PROFILE_DIR="${1}"
- local REPORT_FILE="${2:-}"
-
- if [[ ! -d "${PROFILE_DIR}" ]]; then
-  __loge "ERROR: Profile directory not found: ${PROFILE_DIR}"
-  __log_finish
-  return 1
- fi
-
- # Find all profile files
- local PROFILE_FILES
- mapfile -t PROFILE_FILES < <(find "${PROFILE_DIR}" -name "*.profile" -type f | sort || true)
-
- if [[ ${#PROFILE_FILES[@]} -eq 0 ]]; then
-  __logw "WARNING: No profile files found in ${PROFILE_DIR}"
-  __log_finish
-  return 0
- fi
-
- __logi "Found ${#PROFILE_FILES[@]} profile files for analysis"
-
- # Generate report
- if [[ -n "${REPORT_FILE}" ]]; then
-  # Write to file
-  {
-   echo "XSLT Performance Report - Generated: $(date)"
-   echo "================================================"
-   echo ""
-
-   for PROFILE in "${PROFILE_FILES[@]}"; do
-    echo "File: $(basename "${PROFILE}")"
-    echo "----------------------------------------"
-    __analyze_xslt_profile "${PROFILE}" "summary" | grep -E "^(Total|Templates|Slowest|Average)" || true
-    echo ""
-   done
-  } > "${REPORT_FILE}"
-
-  __logi "Performance report saved to: ${REPORT_FILE}"
- else
-  # Display on console
-  for PROFILE in "${PROFILE_FILES[@]}"; do
-   __logi "=== $(basename "${PROFILE}") ==="
-   __analyze_xslt_profile "${PROFILE}" "summary"
-   echo ""
-  done
- fi
-
- __log_finish
- return 0
-}
-
-# Intelligent XML processing decision function
-# Automatically chooses between traditional and enhanced division methods
-# Parameters:
-#   $1: Input XML file path
-#   $2: XSLT file path
-#   $3: Output directory
-#   $4: Maximum workers (optional, default: MAX_THREADS)
-#   $5: Processing type (optional, default: Planet)
-# Returns: 0 on success, 1 on failure
-function __processXmlIntelligently() {
- __log_start
- local INPUT_XML="${1}"
- local XSLT_FILE="${2}"
- local OUTPUT_DIR="${3}"
- local MAX_WORKERS="${4:-${MAX_THREADS}}"
- local PROCESSING_TYPE="${5:-Planet}"
-
- __logi "Intelligent XML processing decision"
- __logd "Input: ${INPUT_XML}"
- __logd "XSLT: ${XSLT_FILE}"
- __logd "Output: ${OUTPUT_DIR}"
- __logd "Max workers: ${MAX_WORKERS}"
- __logd "Processing type: ${PROCESSING_TYPE}"
-
- # Check if input file exists
- if [[ ! -f "${INPUT_XML}" ]]; then
-  __loge "ERROR: Input XML file not found: ${INPUT_XML}"
-  __log_finish
-  return 1
- fi
-
- # Get file size in bytes
- local FILE_SIZE_BYTES
- FILE_SIZE_BYTES=$(stat -c%s "${INPUT_XML}" 2> /dev/null || echo "0")
-
- if [[ "${FILE_SIZE_BYTES}" -eq "0" ]]; then
-  __loge "ERROR: Cannot determine file size or file is empty"
-  __log_finish
-  return 1
- fi
-
- # Convert to MB for easier comparison
- local FILE_SIZE_MB
- FILE_SIZE_MB=$((FILE_SIZE_BYTES / 1024 / 1024))
-
- __logd "File size: ${FILE_SIZE_MB} MB (${FILE_SIZE_BYTES} bytes)"
-
- # Decision logic: Use enhanced method if file is large (> 100 MB)
- if [[ "${FILE_SIZE_MB}" -gt 100 ]]; then
-  __logi "Large file detected (${FILE_SIZE_MB} MB > 100 MB), using enhanced division method"
-
-  # Delegate part calculation to __divide_xml_file for optimal performance
-  # No need to calculate parts here - let the specialized function handle it
-  if ! __processLargeXmlFile "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}"; then
-   __loge "ERROR: Enhanced XML processing failed, falling back to traditional method"
-   __logw "Falling back to traditional XML processing method"
-   if ! __processXmlWithTraditionalMethod "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
-    __loge "ERROR: Both processing methods failed"
-    __log_finish
-    return 1
-   fi
-  fi
- else
-  __logi "Standard file size (${FILE_SIZE_MB} MB ≤ 100 MB), using traditional method"
-
-  # Use traditional method
-  if ! __processXmlWithTraditionalMethod "${INPUT_XML}" "${XSLT_FILE}" "${OUTPUT_DIR}" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
-   __loge "ERROR: Traditional XML processing failed"
-   __log_finish
-   return 1
-  fi
- fi
-
- __logi "Intelligent XML processing completed successfully"
- __log_finish
- return 0
-}
-
-# Traditional XML processing method (existing flow)
-# Parameters:
-#   $1: Input XML file path
-#   $2: XSLT file path
-#   $3: Output directory
-#   $4: Maximum workers (optional, default: MAX_THREADS)
-#   $5: Processing type (optional, default: Planet)
-# Returns: 0 on success, 1 on failure
-function __processXmlWithTraditionalMethod() {
- __log_start
- local INPUT_XML="${1}"
- local XSLT_FILE="${2}"
- local OUTPUT_DIR="${3}"
- local MAX_WORKERS="${4:-${MAX_THREADS}}"
- local PROCESSING_TYPE="${5:-Planet}"
-
- __logi "Processing XML with traditional method"
- __logd "Input: ${INPUT_XML}"
- __logd "XSLT: ${XSLT_FILE}"
- __logd "Output: ${OUTPUT_DIR}"
- __logd "Max workers: ${MAX_WORKERS}"
- __logd "Processing type: ${PROCESSING_TYPE}"
-
- # Create output directory
- mkdir -p "${OUTPUT_DIR}"
-
- # Use traditional division method
- if ! __splitXmlForParallelSafe "${INPUT_XML}" "${MAX_WORKERS}" "${OUTPUT_DIR}" "${PROCESSING_TYPE}"; then
-  __loge "ERROR: Traditional XML division failed"
-  __log_finish
-  return 1
- fi
-
- # Process parts in parallel
- if ! __processXmlPartsParallel "${OUTPUT_DIR}" "${XSLT_FILE}" "${OUTPUT_DIR}/output" "${MAX_WORKERS}" "${PROCESSING_TYPE}"; then
-  __loge "ERROR: Traditional parallel processing failed"
-  __log_finish
-  return 1
- fi
-
- __logi "Traditional XML processing completed successfully"
- __log_finish
- return 0
-}
 
 # Check if system has enough memory to process XML part safely
 # Parameters:
