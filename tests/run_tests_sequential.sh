@@ -242,7 +242,6 @@ __run_level_4() {
   "${SCRIPT_DIR}/unit/bash/processAPI_historical_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/api_download_verification.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processPlanetNotes.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/processPlanetNotes_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processPlanetNotes_integration_fixed.test.bats" \
   "${SCRIPT_DIR}/unit/bash/mock_planet_functions.test.bats"; then
   __show_level_footer 4 "success"
@@ -264,7 +263,6 @@ __run_level_5() {
   "${SCRIPT_DIR}/unit/bash/parallel_processing_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_threshold.test.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_delay_test.bats" \
-  "${SCRIPT_DIR}/unit/bash/parallel_delay_test_simple.bats" \
   "${SCRIPT_DIR}/unit/bash/parallel_failed_file.test.bats" \
   "${SCRIPT_DIR}/unit/bash/binary_division_performance.test.bats"; then
   __show_level_footer 5 "success"
@@ -283,14 +281,10 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/cleanupAll_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/cleanupAll.test.bats" \
   "${SCRIPT_DIR}/unit/bash/clean_flag_handling.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/clean_flag_simple.test.bats" \
   "${SCRIPT_DIR}/unit/bash/clean_flag_exit_trap.test.bats" \
   "${SCRIPT_DIR}/unit/bash/cleanup_behavior.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/cleanup_behavior_simple.test.bats" \
   "${SCRIPT_DIR}/unit/bash/cleanup_order.test.bats" \
   "${SCRIPT_DIR}/unit/bash/cleanup_dependency_fix.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/error_handling.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/error_handling_enhanced.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_management.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_failed_marker.test.bats"; then
@@ -328,8 +322,6 @@ __run_level_8() {
 
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/performance_edge_cases.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/performance_edge_cases_simple.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/performance_edge_cases_quick.test.bats" \
   "${SCRIPT_DIR}/unit/bash/edge_cases_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/real_data_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/hybrid_integration.test.bats" \
