@@ -688,6 +688,7 @@ Script    Validation Functions    XML Validator    CSV Validator    Database    
   │              │                      │                │             │          │
   │◀───validation complete──────────────│                      │                │             │          │
 ```
+
     │       ├─▶ Cleanup temporary files
     │       ├─▶ Remove lock file
     │       └─▶ Exit
@@ -1000,15 +1001,6 @@ All scripts support `--help` or `-h`:
 ./bin/process/processPlanetNotes.sh --help
 ./bin/process/updateCountries.sh --help
 ```
-
-### Related Documentation
-
-For more detailed examples and use cases, see:
-
-- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Allowed entry points and usage
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Complete environment variable reference
-- **[Process_API.md](./Process_API.md)**: Detailed API processing documentation
-- **[Process_Planet.md](./Process_Planet.md)**: Detailed Planet processing documentation
 
 ---
 
@@ -2108,7 +2100,7 @@ chmod +x /usr/local/bin/check-osm-notes.sh
 # Source the library
 source bin/lib/functionsProcess.sh
 
-# Retry file download with exponential backoff
+# Retry file download with exponential backoff and Overpass rate limiting
 __retry_file_operation \
   "wget -O ${OUTPUT_FILE} ${URL}" \
   7 \
@@ -2124,6 +2116,15 @@ __retry_file_operation \
 # 4. Cleanup command (optional, runs on failure)
 # 5. Smart wait flag (true for Overpass API rate limiting)
 # 6. Overpass endpoint (optional, for smart wait)
+
+# Example: Download Planet file with retry and cleanup
+__retry_file_operation \
+  "curl -o ${PLANET_FILE} ${PLANET_URL}" \
+  5 \
+  30 \
+  "rm -f ${PLANET_FILE}" \
+  false \
+  ""
 ```
 
 **Using Parallel Processing Functions:**
@@ -2131,17 +2132,26 @@ __retry_file_operation \
 ```bash
 source bin/lib/parallelProcessingFunctions.sh
 
-# Split large XML file into parts
-__split_xml_file "${INPUT_XML}" "${NUM_PARTS}" "${TMP_DIR}"
+# Split large XML file into parts safely (at note boundaries)
+__splitXmlForParallelSafe \
+  "${INPUT_XML}" \
+  "${NUM_PARTS}" \
+  "${TMP_DIR}"
 
-# Process parts in parallel
-__process_xml_parts_parallel \
+# Process parts in parallel using GNU Parallel
+# Parameters: INPUT_DIR, OUTPUT_DIR (optional), MAX_WORKERS, PROCESSING_TYPE
+__processXmlPartsParallel \
   "${TMP_DIR}" \
-  "${AWK_SCRIPT}" \
-  "${MAX_THREADS}"
+  "${OUTPUT_DIR:-}" \
+  "${NUM_PARTS}" \
+  "Planet"  # or "API" for API processing
 
-# Consolidate results
-__consolidate_csv_files "${TMP_DIR}" "${OUTPUT_CSV}"
+# Alternative: Use wrapper functions for API/Planet processing
+# For API: __splitXmlForParallelAPI() then __processApiXmlPart()
+# For Planet: __splitXmlForParallelPlanet() then __processPlanetXmlPart()
+
+# Note: Consolidation is done in SQL, not via a separate function
+# See sql/process/processPlanetNotes_42_consolidatePartitions.sql
 ```
 
 **Using Validation Functions:**
@@ -2578,29 +2588,7 @@ grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
 
 ---
 
-## Usage Guidelines
-
-### For System Administrators
-
-- Monitor system health and performance
-- Manage database maintenance and backups
-- Configure processing schedules and timeouts
-- Set up cron jobs for automatic processing
-
-### For Developers
-
-- Understand data flow and transformation processes
-- Modify processing scripts and validation procedures
-- Extend ingestion capabilities
-- Add new data sources or formats
-
-### For End Users
-
-- Use WMS layers in mapping applications (JOSM, Vespucci)
-- Visualize note patterns geographically
-- Explore user and country profiles interactively via [OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer)
-- Query database for custom analysis
-- Export data in various formats
+> **Note:** For detailed usage guidelines by role (System Administrators, Developers, End Users), see [Use Case 12: Use Cases by Role](#use-case-12-use-cases-by-role) above.
 
 ---
 
