@@ -348,7 +348,11 @@ __run_level_8() {
   "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats" \
   "${SCRIPT_DIR}/unit/bash/functionsProcess_enhanced.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/prerequisites_enhanced.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_commands.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_database.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_filesystem.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_network.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/prerequisites_performance_mock.test.bats" \
   "${SCRIPT_DIR}/unit/bash/logging_improvements.test.bats" \
   "${SCRIPT_DIR}/unit/bash/logging_pattern_validation.test.bats"; then
   __show_level_footer 8 "success"
