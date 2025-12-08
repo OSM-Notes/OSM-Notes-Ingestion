@@ -14,9 +14,19 @@
 # * shellcheck -x -o all updateCountries.sh
 # * shfmt -w -i 1 -sr -bn updateCountries.sh
 #
+# This is the list of error codes:
+# 1) Help message displayed
+# 238) Previous execution failed
+# 241) Library or utility missing
+# 242) Invalid argument
+# 243) Logger utility is missing
+# 249) Error downloading boundary
+# 250) Error GeoJSON conversion
+# 255) General error
+#
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-VERSION="2025-12-07"
+# Version: 2025-12-08
+VERSION="2025-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -850,7 +860,7 @@ function main() {
    __loge "Lock file contents:"
    cat "${LOCK}" >&2 || true
   fi
-  exit 1
+  exit "${ERROR_GENERAL}"
  fi
  ONLY_EXECUTION="yes"
 

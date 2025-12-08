@@ -989,7 +989,32 @@ swapon --show
 
 ## Error Code Reference
 
-### processAPINotes.sh Error Codes
+### Standard Error Codes
+
+All scripts use standardized error codes defined in `lib/osm-common/commonFunctions.sh`:
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit, no action needed |
+| `238` | Previous execution failed | Check failed marker, fix issue, remove marker |
+| `239` | Error creating report | Check report directory permissions |
+| `241` | Library or utility missing | Install missing dependencies |
+| `242` | Invalid argument | Check script parameters |
+| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule is initialized |
+| `244` | Error downloading boundary ID list | Check Overpass API connectivity |
+| `245` | No last update timestamp | Run `processPlanetNotes.sh --base` first |
+| `246` | Planet process is currently running | Wait for Planet processing to complete |
+| `247` | Error downloading notes | Check OSM API connectivity |
+| `248` | Error executing Planet dump | Check Planet processing logs |
+| `249` | Error downloading boundary | Check Overpass API connectivity |
+| `250` | Error GeoJSON conversion | Check GDAL/ogr2ogr installation |
+| `251` | Internet issue | Check network connectivity |
+| `252` | Data validation error | Check input data format |
+| `255` | General error | Review logs for specific issue |
+
+### Script-Specific Error Codes
+
+#### processAPINotes.sh
 
 | Code | Meaning | Solution |
 |------|---------|----------|
@@ -1002,7 +1027,7 @@ swapon --show
 | `246` | Planet process is currently running | Wait for Planet processing to complete |
 | `248` | Error executing Planet dump | Check Planet processing logs |
 
-### processPlanetNotes.sh Error Codes
+#### processPlanetNotes.sh
 
 | Code | Meaning | Solution |
 |------|---------|----------|
@@ -1011,6 +1036,99 @@ swapon --show
 | `241` | Library or utility missing | Install missing dependencies |
 | `242` | Invalid argument | Check script parameters |
 | `243` | Logger utility is missing | Verify `lib/osm-common/` submodule is initialized |
+| `244` | Error downloading boundary ID list | Check Overpass API connectivity |
+| `245` | No last update timestamp | Run `processPlanetNotes.sh --base` first |
+| `246` | Planet process is currently running | Wait for Planet processing to complete |
+| `247` | Error downloading notes | Check Planet download connectivity |
+| `248` | Error executing Planet dump | Check Planet processing logs |
+| `249` | Error downloading boundary | Check Overpass API connectivity |
+| `250` | Error GeoJSON conversion | Check GDAL/ogr2ogr installation |
+| `251` | Internet issue | Check network connectivity |
+| `252` | Data validation error | Check input data format |
+| `255` | General error | Review logs for specific issue |
+
+#### updateCountries.sh
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `238` | Previous execution failed | Check failed marker |
+| `241` | Library or utility missing | Install missing dependencies |
+| `242` | Invalid argument | Check script parameters |
+| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule |
+| `249` | Error downloading boundary | Check Overpass API connectivity |
+| `250` | Error GeoJSON conversion | Check GDAL/ogr2ogr installation |
+| `255` | General error | Review logs |
+
+#### notesCheckVerifier.sh
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `238` | Previous execution failed | Check failed marker |
+| `239` | Error creating report | Check report directory permissions |
+| `241` | Library or utility missing | Install missing dependencies |
+| `242` | Invalid argument | Check script parameters |
+| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule |
+| `255` | General error | Review logs |
+
+#### processCheckPlanetNotes.sh
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `238` | Previous execution failed | Check failed marker |
+| `241` | Library or utility missing | Install missing dependencies |
+| `242` | Invalid argument | Check script parameters |
+| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule |
+| `247` | Error downloading notes | Check Planet download connectivity |
+| `255` | General error | Review logs |
+
+#### wmsManager.sh
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `241` | Library or utility missing | Install missing dependencies (PostGIS, SQL files) |
+| `242` | Invalid argument | Check script parameters |
+| `255` | General error | Review logs (database connection, PostGIS installation) |
+
+#### geoserverConfig.sh
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `241` | Library or utility missing | Install missing dependencies (curl, jq, WMS schema) |
+| `242` | Invalid argument | Check script parameters |
+| `255` | General error | Review logs (GeoServer connection, authentication) |
+
+#### cleanupAll.sh
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `241` | Library or utility missing | Install missing dependencies |
+| `242` | Invalid argument | Check script parameters |
+| `255` | General error | Review logs |
+
+#### analyzeDatabasePerformance.sh
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `241` | Library or utility missing | Install missing dependencies (SQL analysis scripts) |
+| `242` | Invalid argument | Check script parameters |
+| `255` | General error | Review logs (database connection, analysis script failures) |
+
+#### Scripts in bin/scripts/
+
+All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `generateNoteLocationBackup.sh`, `reloadCountriesFromOverpass.sh`, `analyzeAllBoundaries.sh`) use:
+
+| Code | Meaning | Solution |
+|------|---------|----------|
+| `1` | Help message displayed | Normal exit |
+| `249` | Error downloading boundary | Check Overpass API connectivity (only `reloadCountriesFromOverpass.sh`) |
+| `255` | General error | Review logs (database connection, file operations) |
 
 ### Recovery for Each Error Code
 

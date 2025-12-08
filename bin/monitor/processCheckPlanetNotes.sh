@@ -24,11 +24,13 @@
 # The database should already be prepared with base tables for notes.
 #
 # This is the list of error codes:
-# 1) Help message.
-# 241) Library or utility missing.
-# 242) Invalid argument for script invocation.
-# 243) Logger utility is not available.
-# 247) Error downloading planet notes file.
+# 1) Help message displayed
+# 238) Previous execution failed
+# 241) Library or utility missing
+# 242) Invalid argument
+# 243) Logger utility is missing
+# 247) Error downloading notes
+# 255) General error
 #
 # For contributing, please execute these commands before submitting:
 # * shellcheck -x -o all processCheckPlanetNotes.sh

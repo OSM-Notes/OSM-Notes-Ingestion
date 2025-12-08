@@ -7,8 +7,14 @@
 # to determine if performance thresholds are being met. It's safe to run
 # on production databases as all SQL scripts use ROLLBACK to avoid modifying data.
 #
+# This is the list of error codes:
+# 1) Help message displayed
+# 241) Library or utility missing
+# 242) Invalid argument
+# 255) General error
+#
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-08
 
 set -euo pipefail
 
@@ -41,14 +47,14 @@ if [[ -f "${PROJECT_ROOT}/bin/lib/functionsProcess.sh" ]]; then
  source "${PROJECT_ROOT}/bin/lib/functionsProcess.sh"
 else
  echo "ERROR: functionsProcess.sh not found"
- exit 1
+ exit "${ERROR_MISSING_LIBRARY}"
 fi
 
 # Database connection variables
 DBNAME="${DBNAME:-}"
 if [[ -z "${DBNAME}" ]]; then
  __loge "DBNAME not set. Please set it in etc/properties.sh or export it."
- exit 1
+ exit "${ERROR_INVALID_ARGUMENT}"
 fi
 
 # Analysis directory
@@ -424,17 +430,17 @@ __main() {
   *)
    __loge "Unknown option: $1"
    __show_help
-   exit 1
+   exit "${ERROR_INVALID_ARGUMENT}"
    ;;
   esac
  done
 
  # Validate database connection
  __logi "Connecting to database: ${DBNAME}"
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "Cannot connect to database: ${DBNAME}"
-  exit 1
- fi
+  exit "${ERROR_GENERAL}"
+fi
 
  # Create output directory
  mkdir -p "${OUTPUT_DIR}"
@@ -452,18 +458,18 @@ __main() {
  echo ""
 
  # Find and run all analysis scripts
- if [[ ! -d "${ANALYSIS_DIR}" ]]; then
+if [[ ! -d "${ANALYSIS_DIR}" ]]; then
   __loge "Analysis directory not found: ${ANALYSIS_DIR}"
-  exit 1
- fi
+  exit "${ERROR_MISSING_LIBRARY}"
+fi
 
  local ANALYSIS_SCRIPTS
  mapfile -t ANALYSIS_SCRIPTS < <(find "${ANALYSIS_DIR}" -name "analyze_*.sql" -type f | sort)
 
- if [[ ${#ANALYSIS_SCRIPTS[@]} -eq 0 ]]; then
+if [[ ${#ANALYSIS_SCRIPTS[@]} -eq 0 ]]; then
   __loge "No analysis scripts found in ${ANALYSIS_DIR}"
-  exit 1
- fi
+  exit "${ERROR_MISSING_LIBRARY}"
+fi
 
  __logi "Found ${#ANALYSIS_SCRIPTS[@]} analysis script(s)"
  echo ""
@@ -487,7 +493,7 @@ __main() {
  if [[ ${FAILED_SCRIPTS} -gt 0 ]]; then
   __loge "Performance analysis completed with ${FAILED_SCRIPTS} failed script(s)"
   __log_finish
-  exit 1
+  exit "${ERROR_GENERAL}"
  elif [[ ${WARNING_SCRIPTS} -gt 0 ]]; then
   __logw "Performance analysis completed with ${WARNING_SCRIPTS} warning(s)"
   __log_finish

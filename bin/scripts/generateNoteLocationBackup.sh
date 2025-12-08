@@ -3,8 +3,12 @@
 # Generates a CSV backup of note locations (note_id, id_country) for
 # faster processing in subsequent runs.
 #
+# This is the list of error codes:
+# 1) Help message displayed
+# 255) General error
+#
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-08
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -48,10 +52,10 @@ main() {
 
  # Check database connection
  __logd "Checking database connection..."
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
-  exit 1
- fi
+  exit "${ERROR_GENERAL}"
+fi
 
  # Get count of notes with country assignment
  __logd "Getting note count..."
@@ -61,10 +65,10 @@ main() {
 
  __logi "Notes with country assignment: ${NOTE_COUNT}"
 
- if [[ "${NOTE_COUNT}" -eq 0 ]]; then
+if [[ "${NOTE_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No notes with country assignment found in database"
-  exit 1
- fi
+  exit "${ERROR_GENERAL}"
+fi
 
  # Get max note_id
  __logd "Getting max note_id..."

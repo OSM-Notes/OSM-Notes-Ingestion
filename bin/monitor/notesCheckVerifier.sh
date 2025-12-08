@@ -17,11 +17,13 @@
 # export EMAILS="angoca osm.lat" ; export LOG_LEVEL=WARN; cd ~/OSM-Notes-profile ; ./notesCheckVerifier.sh
 #
 # This is the list of error codes:
-# 1) Help message.
-# 241) Library or utility missing.
-# 242) Invalid argument for script invocation.
-# 243) Logger utility is not available.
-# 239) Error creating report files.
+# 1) Help message displayed
+# 238) Previous execution failed
+# 239) Error creating report
+# 241) Library or utility missing
+# 242) Invalid argument
+# 243) Logger utility is missing
+# 255) General error
 #
 # For contributing, please execute these commands at the end:
 # * shellcheck -x -o all notesCheckVerifier.sh
@@ -103,7 +105,7 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; th
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 else
  __loge "ERROR: validationFunctions.sh not found"
- exit 1
+ exit "${ERROR_MISSING_LIBRARY}"
 fi
 
 # Type of process to run in the script.

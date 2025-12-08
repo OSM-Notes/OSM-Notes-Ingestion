@@ -25,9 +25,13 @@
 #   - docs/Boundaries_Backup.md - Complete documentation on boundaries backups
 #   - bin/scripts/exportCountriesBackup.sh - Export country boundaries
 #
+# This is the list of error codes:
+# 1) Help message displayed
+# 255) General error
+#
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-VERSION="2025-12-07"
+# Version: 2025-12-08
+VERSION="2025-12-08"
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -70,20 +74,20 @@ main() {
 
  # Check database connection
  __logd "Checking database connection..."
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
-  exit 1
- fi
+  exit "${ERROR_GENERAL}"
+fi
 
  # Check if countries table exists
  __logd "Checking countries table..."
  local COUNTRIES_COUNT
  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM countries" 2> /dev/null || echo "0")
- if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
+if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
   __loge "ERROR: Countries table is empty or does not exist"
-  exit 1
- fi
+  exit "${ERROR_GENERAL}"
+fi
  __logi "Found ${COUNTRIES_COUNT} total countries/maritimes in database"
 
  # Get count of maritime boundaries
@@ -112,11 +116,11 @@ main() {
 
  __logi "Found ${MARITIMES_COUNT} maritime boundaries"
 
- if [[ "${MARITIMES_COUNT}" -eq 0 ]]; then
+if [[ "${MARITIMES_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No maritime boundaries found in database"
   __loge "Maritime boundaries should have patterns like '(EEZ)', 'EEZ', 'Exclusive Economic Zone', 'Contiguous Zone', 'maritime', 'Fisheries protection zone', etc. in their names"
-  exit 1
- fi
+  exit "${ERROR_GENERAL}"
+fi
 
  # Create data directory if it doesn't exist
  __logd "Ensuring data directory exists..."
@@ -146,14 +150,14 @@ main() {
   __logi "Successfully exported maritime boundaries to GeoJSON"
  else
   __loge "ERROR: Failed to export maritime boundaries"
-  exit 1
+  exit "${ERROR_GENERAL}"
  fi
 
  # Verify the file was created and is not empty
- if [[ ! -f "${OUTPUT_FILE}" ]] || [[ ! -s "${OUTPUT_FILE}" ]]; then
+if [[ ! -f "${OUTPUT_FILE}" ]] || [[ ! -s "${OUTPUT_FILE}" ]]; then
   __loge "ERROR: Output file was not created or is empty"
-  exit 1
- fi
+  exit "${ERROR_GENERAL}"
+fi
 
  # Get file size
  local FILE_SIZE

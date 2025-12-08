@@ -4,10 +4,15 @@
 # This script removes all components from the database
 # Can be used for full cleanup or partition-only cleanup
 #
+# This is the list of error codes:
+# 1) Help message displayed
+# 241) Library or utility missing
+# 242) Invalid argument
+# 255) General error
+#
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-10
-
-VERSION="2025-11-24"
+# Version: 2025-12-08
+VERSION="2025-12-08"
 
 set -euo pipefail
 # shellcheck disable=SC2310,SC2312
@@ -46,7 +51,7 @@ if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; th
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
 else
  __loge "ERROR: validationFunctions.sh not found"
- exit 1
+ exit "${ERROR_MISSING_LIBRARY}"
 fi
 
 # Start logger only if not being sourced for testing

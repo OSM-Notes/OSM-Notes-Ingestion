@@ -2,8 +2,14 @@
 # GeoServer Configuration Script for OSM-Notes-profile
 # Automates GeoServer setup for WMS layers
 #
+# This is the list of error codes:
+# 1) Help message displayed
+# 241) Library or utility missing
+# 242) Invalid argument
+# 255) General error
+#
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-08
 
 set -euo pipefail
 
@@ -150,7 +156,7 @@ validate_prerequisites() {
  # Check if curl is available
  if ! command -v curl &> /dev/null; then
   print_status "${RED}" "❌ ERROR: curl is not installed"
-  exit 1
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Check if jq is available
@@ -194,7 +200,7 @@ validate_prerequisites() {
    print_status "${YELLOW}" "   💡 Or set environment variables:"
    print_status "${YELLOW}" "      export GEOSERVER_USER=admin"
    print_status "${YELLOW}" "      export GEOSERVER_PASSWORD=your_password"
-   exit 1
+   exit "${ERROR_GENERAL}"
   elif [[ "${HTTP_CODE}" == "404" ]]; then
    # GeoServer URL might be wrong
    print_status "${YELLOW}" "⚠️  GeoServer endpoint not found (HTTP 404) - checking URL..."
@@ -227,7 +233,7 @@ validate_prerequisites() {
   print_status "${YELLOW}" "💡 You can override the URL with: export GEOSERVER_URL=https://geoserver.osm.lat/geoserver"
   print_status "${YELLOW}" "💡 Or set it in etc/wms.properties.sh: GEOSERVER_URL=\"https://geoserver.osm.lat/geoserver\""
   print_status "${YELLOW}" "💡 To find GeoServer port, try: netstat -tlnp | grep java | grep LISTEN"
-  exit 1
+  exit "${ERROR_GENERAL}"
  fi
 
  # Check if PostgreSQL is accessible
@@ -291,7 +297,7 @@ validate_prerequisites() {
    unset PGPASSWORD 2> /dev/null || true
    print_status "${RED}" "❌ ERROR: WMS schema not found. Please install WMS components first:"
    print_status "${YELLOW}" "   bin/wms/wmsManager.sh install"
-   exit 1
+   exit "${ERROR_GENERAL}"
   fi
   unset PGPASSWORD 2> /dev/null || true
  else
@@ -1549,7 +1555,7 @@ install_geoserver_config() {
  # Create datastore
  if ! create_datastore; then
   print_status "${RED}" "❌ ERROR: GeoServer configuration failed (datastore)"
-  exit 1
+  exit "${ERROR_GENERAL}"
  fi
 
  # Upload all styles first
@@ -1572,7 +1578,7 @@ install_geoserver_config() {
  if [[ ${STYLE_ERRORS} -gt 0 ]] && [[ "${FORCE:-false}" != "true" ]]; then
   print_status "${RED}" "❌ ERROR: Failed to upload ${STYLE_ERRORS} style(s)"
   print_status "${YELLOW}" "   Use --force to continue despite style upload errors"
-  exit 1
+  exit "${ERROR_GENERAL}"
  elif [[ ${STYLE_ERRORS} -gt 0 ]]; then
   print_status "${YELLOW}" "⚠️  ${STYLE_ERRORS} style(s) failed to upload, continuing with --force"
  fi
@@ -2254,7 +2260,7 @@ main() {
  *)
   print_status "${RED}" "❌ ERROR: Unknown command '${COMMAND:-}'"
   print_status "${YELLOW}" "💡 Use '$0 help' for usage information"
-  exit 1
+  exit "${ERROR_INVALID_ARGUMENT}"
   ;;
  esac
 }

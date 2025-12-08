@@ -2,8 +2,14 @@
 # WMS Manager Script
 # Manages the installation and removal of WMS components
 #
+# This is the list of error codes:
+# 1) Help message displayed
+# 241) Library or utility missing
+# 242) Invalid argument
+# 255) General error
+#
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-06
+# Version: 2025-12-08
 
 set -euo pipefail
 
@@ -23,6 +29,11 @@ export PGAPPNAME="${BASENAME}"
 # Load properties (use same DB connection as rest of project)
 if [[ -f "${PROJECT_ROOT}/etc/properties.sh" ]]; then
  source "${PROJECT_ROOT}/etc/properties.sh"
+fi
+
+# Load common functions to get error codes
+if [[ -f "${PROJECT_ROOT}/lib/osm-common/commonFunctions.sh" ]]; then
+ source "${PROJECT_ROOT}/lib/osm-common/commonFunctions.sh"
 fi
 
 # Load WMS specific properties only if not in test mode (for WMS-specific config, not DB connection)
@@ -130,22 +141,22 @@ validate_prerequisites() {
  # Check if required SQL files exist
  if [[ ! -f "${WMS_PREPARE_SQL}" ]]; then
   print_status "${RED}" "❌ ERROR: WMS prepare SQL file not found: ${WMS_PREPARE_SQL}"
-  exit 1
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  if [[ ! -r "${WMS_PREPARE_SQL}" ]]; then
   print_status "${RED}" "❌ ERROR: WMS prepare SQL file is not readable: ${WMS_PREPARE_SQL}"
-  exit 1
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  if [[ ! -f "${WMS_REMOVE_SQL}" ]]; then
   print_status "${RED}" "❌ ERROR: WMS remove SQL file not found: ${WMS_REMOVE_SQL}"
-  exit 1
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  if [[ ! -r "${WMS_REMOVE_SQL}" ]]; then
   print_status "${RED}" "❌ ERROR: WMS remove SQL file is not readable: ${WMS_REMOVE_SQL}"
-  exit 1
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Check database connection and PostGIS
@@ -169,12 +180,12 @@ validate_prerequisites() {
  # Test database connection first
  if ! eval "${PSQL_CMD} -c \"SELECT 1;\"" &> /dev/null; then
   print_status "${RED}" "❌ ERROR: Cannot connect to database: ${WMS_DB_NAME}@${WMS_DB_HOST:-localhost}:${WMS_DB_PORT:-5432}"
-  exit 1
+  exit "${ERROR_GENERAL}"
  fi
 
  if ! eval "${PSQL_CMD} -c \"SELECT PostGIS_Version();\"" &> /dev/null; then
   print_status "${RED}" "❌ ERROR: PostGIS extension is not installed or not accessible"
-  exit 1
+  exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  print_status "${GREEN}" "✅ Prerequisites validated"
@@ -264,7 +275,7 @@ install_wms() {
   show_installation_summary
  else
   print_status "${RED}" "❌ ERROR: WMS installation failed"
-  exit 1
+  exit "${ERROR_GENERAL}"
  fi
 }
 
@@ -307,7 +318,7 @@ remove_wms() {
   print_status "${GREEN}" "✅ WMS removal completed successfully"
  else
   print_status "${RED}" "❌ ERROR: WMS removal failed"
-  exit 1
+  exit "${ERROR_GENERAL}"
  fi
 }
 
@@ -419,7 +430,7 @@ main() {
   *)
    print_status "${RED}" "❌ ERROR: Unknown option: $1"
    show_help
-   exit 1
+   exit "${ERROR_INVALID_ARGUMENT}"
    ;;
   esac
  done
@@ -447,7 +458,7 @@ main() {
    ;;
   *)
    print_status "${RED}" "❌ ERROR: Unknown subcommand: ${COMMAND}"
-   exit 1
+   exit "${ERROR_INVALID_ARGUMENT}"
    ;;
   esac
   ;;
@@ -457,12 +468,12 @@ main() {
  "")
   print_status "${RED}" "❌ ERROR: No command specified"
   show_help
-  exit 1
+  exit "${ERROR_INVALID_ARGUMENT}"
   ;;
  *)
   print_status "${RED}" "❌ ERROR: Unknown command: ${COMMAND}"
   show_help
-  exit 1
+  exit "${ERROR_INVALID_ARGUMENT}"
   ;;
  esac
 }
