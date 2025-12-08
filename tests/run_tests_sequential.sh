@@ -287,6 +287,7 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/cleanup_dependency_fix.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats" \
   "${SCRIPT_DIR}/unit/bash/security_functions.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/overpass_functions.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_management.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_failed_marker.test.bats"; then
   __show_level_footer 6 "success"
