@@ -1654,10 +1654,12 @@ function __processCountries_impl {
      # Look for lines indicating failed boundaries:
      # - "Failed to process boundary ${ID}" from __processList
      # - "Recording boundary ${ID} as failed" from __processBoundary_impl
+     # Use sed to extract only the ID that comes after "boundary " (avoiding false positives from timestamps, etc.)
      grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${ERROR_LOG}" 2> /dev/null \
-      | grep -oE "[0-9]+" \
+      | sed -E 's/.*boundary ([0-9]+).*/\1/' \
       | while read -r FAILED_ID; do
-       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
+       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]] && [[ "${FAILED_ID}" -ge 1000 ]]; then
+        # Only accept IDs >= 1000 to filter out false positives (real OSM relation IDs are much larger)
         # Add to failed_boundaries.txt if not already present
         if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
@@ -1787,16 +1789,31 @@ function __processMaritimes_impl {
  tail -n +2 "${MARITIME_BOUNDARY_IDS_FILE}" > "${MARITIME_BOUNDARY_IDS_FILE}.tmp"
  mv "${MARITIME_BOUNDARY_IDS_FILE}.tmp" "${MARITIME_BOUNDARY_IDS_FILE}"
 
- # Add missing maritime IDs found from World_EEZ analysis
- # These IDs were identified by comparing World_EEZ shapefile with existing
- # maritime boundaries and searching OSM for corresponding relations
- local MISSING_MARITIME_IDS_FILE
- if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
-  MISSING_MARITIME_IDS_FILE="${SCRIPT_BASE_DIRECTORY}/data/missing_maritime_ids.txt"
- else
-  # Fallback: try to determine base directory from script location
-  MISSING_MARITIME_IDS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd)/data/missing_maritime_ids.txt"
- fi
+# XXX FIXME: TEMPORARY WORKAROUND - Missing Maritime IDs
+# ============================================================================
+# TODO: This file contains maritime boundary IDs that are missing from the
+# Overpass query. These IDs were identified by comparing World_EEZ shapefile
+# with existing maritime boundaries in OSM.
+#
+# ACTION REQUIRED:
+# 1. Review the IDs in ToDo/missing_maritime_ids.txt
+# 2. Add these IDs to the Overpass query in overpass/maritimes.op
+# 3. Once all IDs are in the Overpass query, remove this code block and
+#    delete ToDo/missing_maritime_ids.txt
+#
+# Current file: ToDo/missing_maritime_ids.txt
+# Related analysis: ToDo/missing_maritime_details.csv
+# ============================================================================
+# Add missing maritime IDs found from World_EEZ analysis
+# These IDs were identified by comparing World_EEZ shapefile with existing
+# maritime boundaries and searching OSM for corresponding relations
+local MISSING_MARITIME_IDS_FILE
+if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+ MISSING_MARITIME_IDS_FILE="${SCRIPT_BASE_DIRECTORY}/ToDo/missing_maritime_ids.txt"
+else
+ # Fallback: try to determine base directory from script location
+ MISSING_MARITIME_IDS_FILE="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd)/ToDo/missing_maritime_ids.txt"
+fi
  if [[ -f "${MISSING_MARITIME_IDS_FILE}" ]] && [[ -s "${MISSING_MARITIME_IDS_FILE}" ]]; then
   local MISSING_COUNT
   MISSING_COUNT=$(wc -l < "${MISSING_MARITIME_IDS_FILE}" | tr -d ' ' || echo "0")
@@ -1986,10 +2003,12 @@ function __processMaritimes_impl {
      # Look for lines indicating failed boundaries:
      # - "Failed to process boundary ${ID}" from __processList
      # - "Recording boundary ${ID} as failed" from __processBoundary_impl
+     # Use sed to extract only the ID that comes after "boundary " (avoiding false positives from timestamps, etc.)
      grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${JOB_LOG}" 2> /dev/null \
-      | grep -oE "[0-9]+" \
+      | sed -E 's/.*boundary ([0-9]+).*/\1/' \
       | while read -r FAILED_ID; do
-       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
+       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]] && [[ "${FAILED_ID}" -ge 1000 ]]; then
+        # Only accept IDs >= 1000 to filter out false positives (real OSM relation IDs are much larger)
         # Add to failed_boundaries.txt if not already present
         if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
@@ -2031,10 +2050,12 @@ function __processMaritimes_impl {
      # Look for lines indicating failed boundaries:
      # - "Failed to process boundary ${ID}" from __processList
      # - "Recording boundary ${ID} as failed" from __processBoundary_impl
+     # Use sed to extract only the ID that comes after "boundary " (avoiding false positives from timestamps, etc.)
      grep -hE "Failed to process boundary [0-9]+|Recording boundary [0-9]+ as failed" "${ERROR_LOG}" 2> /dev/null \
-      | grep -oE "[0-9]+" \
+      | sed -E 's/.*boundary ([0-9]+).*/\1/' \
       | while read -r FAILED_ID; do
-       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]]; then
+       if [[ -n "${FAILED_ID}" ]] && [[ "${FAILED_ID}" =~ ^[0-9]+$ ]] && [[ "${FAILED_ID}" -ge 1000 ]]; then
+        # Only accept IDs >= 1000 to filter out false positives (real OSM relation IDs are much larger)
         if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
          __logd "Recorded failed maritime boundary ID from error log: ${FAILED_ID}"
