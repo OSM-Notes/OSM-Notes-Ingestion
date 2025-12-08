@@ -60,6 +60,14 @@ These variables are used across **all scripts** and should be standardized:
 - **Usage**: Set to `false` for strict validation (slower)
 - **Example**: `export SKIP_XML_VALIDATION=false`
 
+### `SKIP_CSV_VALIDATION`
+- **Purpose**: Skip CSV structure/enum validation for faster processing
+- **Values**: `true`, `false`
+- **Default**: `true` (PostgreSQL validates on COPY anyway)
+- **Usage**: Set to `false` for strict validation (slower, useful for debugging)
+- **Example**: `export SKIP_CSV_VALIDATION=false`
+- **Note**: PostgreSQL COPY will validate enums and structure anyway, so pre-validation is redundant for production
+
 ### Overpass Fallback and Validation
 
 These variables control the Overpass API behavior for boundary downloads.
@@ -206,6 +214,7 @@ Defined in `etc/properties.sh` (can be overridden by environment):
 export LOG_LEVEL=DEBUG
 export CLEAN=false
 export SKIP_XML_VALIDATION=false
+export SKIP_CSV_VALIDATION=false
 ./bin/process/processAPINotes.sh
 ```
 
@@ -213,7 +222,8 @@ export SKIP_XML_VALIDATION=false
 ```bash
 export LOG_LEVEL=ERROR
 export CLEAN=true
-export SKIP_XML_VALIDATION=true
+# SKIP_XML_VALIDATION=true is the default, no need to export
+# SKIP_CSV_VALIDATION=true is the default, no need to export
 export SEND_ALERT_EMAIL=true
 export ADMIN_EMAIL="admin@production.com"
 ./bin/process/processAPINotes.sh

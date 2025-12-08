@@ -153,6 +153,15 @@ declare CLEAN="${CLEAN:-false}"
 # WARNING: Only skip validation if you trust the XML source (e.g., official OSM Planet)
 declare SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
 
+# CSV Validation configuration
+# Skip CSV validation for faster processing when CSV files are generated correctly
+# Set to false to enable CSV validation (structure, enum compatibility)
+# Set to true to skip all CSV validations (FASTER)
+# Default: true (skip validation for speed, PostgreSQL will validate on COPY)
+# WARNING: PostgreSQL COPY will validate enums and structure anyway, so pre-validation
+# is redundant for production. Enable only for debugging CSV generation issues.
+declare SKIP_CSV_VALIDATION="${SKIP_CSV_VALIDATION:-true}"
+
 # Overpass API rate limiting
 # Maximum number of concurrent downloads from Overpass API
 # Overpass has 2 servers × 4 slots = 8 total concurrent slots

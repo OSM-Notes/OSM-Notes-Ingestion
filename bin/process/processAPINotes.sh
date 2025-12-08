@@ -818,7 +818,7 @@ function __processApiXmlSequential {
  __logd "  Text: ${SEQ_OUTPUT_TEXT_FILE} ($(wc -l < "${SEQ_OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
 
  # Validate CSV files structure and content before loading (optional)
- if [[ "${SKIP_CSV_VALIDATION:-false}" != "true" ]]; then
+ if [[ "${SKIP_CSV_VALIDATION:-true}" != "true" ]]; then
   __logd "Validating CSV files structure and enum compatibility..."
 
   # Validate notes

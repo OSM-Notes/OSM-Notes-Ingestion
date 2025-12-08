@@ -245,15 +245,26 @@ psql -d osm_notes -c "SELECT 1;"
 ```bash
 # Add to crontab (crontab -e)
 # Process API notes every 15 minutes
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> /var/log/osm-notes-api.log 2>&1
+# Note: Script creates its own log in /tmp/processAPINotes_XXXXXX/processAPINotes.log
+# No need to redirect output unless you want additional logging
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >/dev/null 2>&1
+
+# Alternative: Redirect to a logs directory (create it first: mkdir -p ~/logs)
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> ~/logs/osm-notes-api.log 2>&1
 ```
 
 #### Cron with Environment Variables
 
 ```bash
 # With specific configuration
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && export LOG_LEVEL=WARN && export SEND_ALERT_EMAIL=true && export ADMIN_EMAIL="admin@example.com" && ./bin/process/processAPINotes.sh >> /var/log/osm-notes-api.log 2>&1
+# Using logs directory in home (no special permissions required)
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && export LOG_LEVEL=WARN && export SEND_ALERT_EMAIL=true && export ADMIN_EMAIL="admin@example.com" && ./bin/process/processAPINotes.sh >> ~/logs/osm-notes-api.log 2>&1
+
+# Or without redirection (script creates its own log)
+*/15 * * * * cd /path/to/OSM-Notes-Ingestion && export LOG_LEVEL=WARN && export SEND_ALERT_EMAIL=true && export ADMIN_EMAIL="admin@example.com" && ./bin/process/processAPINotes.sh >/dev/null 2>&1
 ```
+
+**Note:** Scripts automatically create detailed logs in `/tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log`. The cron redirection is optional and mainly useful for capturing startup errors. Use `~/logs/` or `./logs/` instead of `/var/log/` to avoid requiring special permissions.
 
 ### Database Inspection
 

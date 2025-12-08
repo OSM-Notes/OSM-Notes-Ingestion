@@ -1453,7 +1453,7 @@ function __processApiXmlPart() {
  fi
 
  # Validate CSV files structure and content before loading (optional)
- if [[ "${SKIP_CSV_VALIDATION:-false}" != "true" ]]; then
+ if [[ "${SKIP_CSV_VALIDATION:-true}" != "true" ]]; then
   __logd "Validating CSV files structure and enum compatibility for part ${PART_NUM}..."
 
   # Validate notes structure

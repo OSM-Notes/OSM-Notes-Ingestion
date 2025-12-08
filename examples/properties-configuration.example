@@ -42,13 +42,17 @@ CLEAN="true"
 # XML Validation configuration
 SKIP_XML_VALIDATION="false"
 
+# CSV Validation configuration
+SKIP_CSV_VALIDATION="false"
+
 
 # =============================================================================
 # CUSTOMIZATIONS
 # =============================================================================
 
-# For faster processing (skip XML validation):
+# For faster processing (skip XML and CSV validation):
 # SKIP_XML_VALIDATION="true"
+# SKIP_CSV_VALIDATION="true"
 
 # For smaller datasets:
 # MAX_NOTES="5000"
