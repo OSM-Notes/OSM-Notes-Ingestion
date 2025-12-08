@@ -7,6 +7,58 @@
 
 The `processPlanetNotes.sh` script is the central component of the OpenStreetMap notes processing system. Its main function is to download, process, and load into a PostgreSQL database all notes from the OSM planet, either from scratch or only new notes.
 
+## Design Context
+
+### Why This Design?
+
+The Planet processing design was created to handle very large XML files (2.2GB+) efficiently while maintaining data integrity. The key design decisions include:
+
+**AWK-Based XML Processing**:
+- XML files from Planet are simple in structure and repeat elements many times
+- AWK processes XML as text files without full XML parsing, which is much faster
+- This approach was chosen after evaluating Saxon (Java, memory issues), xmlproc (memory leaks), and xmlstarlet (uses xmlproc)
+- **Trade-off**: Risk if OSM changes XML format, but API 0.6 has been stable for ~12 years
+
+**Split-Process-Consolidate Approach**:
+- Large XML files are split into parts first, then processed in parallel with AWK
+- This prevents OOM (Out of Memory) kills with large text fields
+- Each part is processed independently, then results are consolidated
+- Better than trying to process the entire file at once
+
+**Sync Tables Pattern**:
+- Temporary sync tables allow parallel processing without affecting base tables
+- Enables validation before committing to main tables
+- Provides rollback capability in case of errors
+- Allows deduplication before final insertion
+
+**Parallel Processing Strategy**:
+- Divides work into more parts than threads for better load balancing
+- Prevents scenarios where one thread finishes quickly while another processes heavy workload
+- Example: Old notes from backup have correct positions (fast), new notes need calculation (slow)
+- By dividing into more parts, threads can balance workload from a common queue
+
+### Design Patterns Used
+
+* **Singleton Pattern**: Ensures only one instance of `processPlanetNotes.sh` runs at a time
+* **FIFO Queue Pattern**: Used for downloading boundaries via Overpass API to prevent race conditions
+* **Semaphore Pattern**: Limits concurrent downloads to Overpass API, preventing rate limiting and temporary bans
+* **Retry Pattern**: Implements exponential backoff for download failures and network operations
+* **Resource Management Pattern**: Uses `trap` handlers for cleanup of temporary files and resources
+
+### Alternatives Considered
+
+* **XSLT Processing**: Initially used Saxon and xsltproc, but both had memory limitations with large files
+* **Full XML Parsing**: Considered using XML parsers, but AWK text processing proved much faster and more memory-efficient
+* **Sequential Processing**: Considered processing files sequentially, but parallel processing significantly reduces total time
+* **Fixed Partitions**: Evaluated fixed number of partitions, but dynamic partitioning based on data volume provides better resource utilization
+
+### Trade-offs
+
+* **Processing Speed vs. Memory**: AWK processing is faster but requires careful file splitting to avoid memory issues
+* **Validation vs. Performance**: Optional XML/CSV validations can be skipped for faster processing
+* **Parallel Complexity**: Parallel processing adds complexity but provides significant performance gains
+* **Sync Tables Overhead**: Temporary tables add overhead but provide safety and validation capabilities
+
 ## Input Arguments
 
 The script accepts two types of arguments:

@@ -17,6 +17,46 @@ maintains the complete history.
 - **Parallel Processing**: Uses partitioning to efficiently process large volumes
 - **Planet Integration**: Integrates with `processPlanetNotes.sh` when necessary
 
+## Design Context
+
+### Why This Design?
+
+The API processing design was created to handle incremental updates efficiently while maintaining data consistency with the complete Planet dataset. The key design decisions include:
+
+**Separation of Concerns**:
+- `processAPINotes.sh` and `processPlanetNotes.sh` are kept as independent scripts, even though they perform similar operations
+- This separation allows each script to be optimized for its specific use case (incremental vs. bulk processing)
+- Over time, shared library scripts were created to avoid code duplication while maintaining script independence
+
+**Intelligent Synchronization Threshold**:
+- When API returns >= 10,000 notes, the system automatically triggers Planet synchronization
+- This prevents processing large API datasets inefficiently
+- Leverages the proven Planet processing pipeline for better reliability
+
+**Parallel Processing with Partitions**:
+- Uses database partitions equal to `MAX_THREADS` (CPU cores - 2)
+- Each thread processes its own partition, avoiding lock contention
+- Divides work into more parts than threads for better load balancing (see [Rationale.md](./Rationale.md) for details)
+
+### Design Patterns Used
+
+* **Singleton Pattern**: Ensures only one instance of `processAPINotes.sh` runs at a time, critical for cron jobs running every 15 minutes
+* **Retry Pattern**: Implements exponential backoff for API calls and network operations
+* **Circuit Breaker Pattern**: Prevents cascading failures when API is unavailable
+* **Resource Management Pattern**: Uses `trap` handlers for cleanup of temporary files and resources
+
+### Alternatives Considered
+
+* **Single Script Approach**: Considered combining API and Planet processing into one script, but rejected to maintain separation of concerns and allow independent optimization
+* **Different Partitioning Strategy**: Evaluated fixed partitions vs. dynamic partitions based on data volume; chose dynamic for better resource utilization
+* **Synchronous Processing**: Considered sequential processing but chose parallel for performance with large datasets
+
+### Trade-offs
+
+* **Complexity vs. Performance**: Parallel processing adds complexity but significantly improves performance for large datasets
+* **Validation Speed**: Optional validations can be skipped (`SKIP_XML_VALIDATION`, `SKIP_CSV_VALIDATION`) for faster processing in production
+* **Error Recovery**: Comprehensive error handling adds overhead but ensures system reliability and easier debugging
+
 ## Input Arguments
 
 The script **does NOT accept arguments** for normal execution. It only accepts:
