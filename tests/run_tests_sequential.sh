@@ -290,6 +290,7 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/overpass_functions.test.bats" \
   "${SCRIPT_DIR}/unit/bash/note_processing_functions.test.bats" \
   "${SCRIPT_DIR}/unit/bash/boundary_processing_functions.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/utility_scripts.test.bats" \
   "${SCRIPT_DIR}/regression/regression_suite.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_management.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_failed_marker.test.bats"; then
