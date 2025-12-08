@@ -209,7 +209,8 @@ __reassignAffectedNotes
 
 - **`__validate_capital_location()`**: Validate capital city location within country boundary
   - Parameters: `country_id`, `capital_lat`, `capital_lon`
-  - Usage: Ensures capital coordinates are within country geometry
+  - Usage: Ensures capital coordinates are within country geometry (prevents data cross-contamination)
+  - Related Documentation: See [docs/Capital_Validation_Explanation.md](../../docs/Capital_Validation_Explanation.md) for detailed explanation
 
 - **`__compareIdsWithBackup()`**: Compare boundary IDs with backup files
   - Usage: Determines which boundaries need updating vs. using backup
@@ -384,6 +385,9 @@ Functions are tested via:
 - **[docs/Documentation.md](../../docs/Documentation.md)**: Complete system documentation
 - **[docs/processAPI.md](../../docs/processAPI.md)**: API processing details
 - **[docs/processPlanet.md](../../docs/processPlanet.md)**: Planet processing details
+- **[docs/Capital_Validation_Explanation.md](../../docs/Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
+- **[docs/Country_Assignment_2D_Grid.md](../../docs/Country_Assignment_2D_Grid.md)**: Country assignment strategy
+- **[docs/ST_DWithin_Explanation.md](../../docs/ST_DWithin_Explanation.md)**: PostGIS spatial functions
 - **[bin/ENVIRONMENT_VARIABLES.md](../ENVIRONMENT_VARIABLES.md)**: Environment variable reference
 
 ## Version

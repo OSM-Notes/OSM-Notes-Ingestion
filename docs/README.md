@@ -33,6 +33,12 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`processAPI.md`**: API processing documentation and incremental synchronization
 - **`processPlanet.md`**: Planet file processing documentation and historical data handling
 
+### Spatial Processing
+
+- **`Country_Assignment_2D_Grid.md`**: Country assignment strategy using 2D grid partitioning
+- **`Capital_Validation_Explanation.md`**: Capital validation to prevent data cross-contamination
+- **`ST_DWithin_Explanation.md`**: PostGIS spatial functions explanation
+
 ### Testing Documentation
 
 - **`Testing_Guide.md`**: Complete testing guide with integration tests, troubleshooting, and best practices

@@ -827,6 +827,8 @@ Expected results:
 - **[processPlanet.md](./processPlanet.md)**: Planet processing (includes country assignment)
 - **[processAPI.md](./processAPI.md)**: API processing (includes country assignment)
 - **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions explanation
 
 ### External References
 

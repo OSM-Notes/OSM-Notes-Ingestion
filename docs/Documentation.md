@@ -439,7 +439,8 @@ Entry Points
     │   ├─▶ Loads: bin/lib/boundaryProcessingFunctions.sh
     │   │   ├─▶ Overpass API queries (FIFO Queue)
     │   │   ├─▶ Semaphore for rate limiting
-    │   │   └─▶ Boundary processing
+    │   │   ├─▶ Boundary processing
+    │   │   └─▶ Capital validation (prevents cross-contamination)
     │   │
     │   └─▶ Executes: Same AWK scripts as processAPI
     │
@@ -450,7 +451,8 @@ Entry Points
         │
         ├─▶ Loads: bin/lib/boundaryProcessingFunctions.sh
         │   ├─▶ Overpass API queries
-        │   └─▶ Boundary download (FIFO Queue + Semaphore)
+        │   ├─▶ Boundary download (FIFO Queue + Semaphore)
+        │   └─▶ Capital validation (prevents cross-contamination)
         │
         └─▶ Executes: SQL scripts for country updates
 
@@ -712,6 +714,8 @@ The `updateCountries.sh` script updates geographic boundaries:
 export LOG_LEVEL=DEBUG
 ./bin/process/updateCountries.sh
 ```
+
+> **Note:** The script includes capital validation to prevent data cross-contamination. See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for details on how boundary validation works.
 
 ### Environment Variables
 
@@ -1516,8 +1520,9 @@ chmod +x /usr/local/bin/check-osm-notes.sh
 
 - **`bin/process/updateCountries.sh`**: Geographic boundary updates
   - Overpass API integration
-  - Boundary validation
+  - Boundary validation (including capital validation to prevent cross-contamination)
   - Country table updates
+  - See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for validation details
 
 #### Support Functions
 
@@ -1997,6 +2002,12 @@ grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
 
 - **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD setup
 - **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting
+
+### Spatial Processing Documentation
+
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy using 2D grid partitioning
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions explanation
 
 ### Other Technical Guides
 

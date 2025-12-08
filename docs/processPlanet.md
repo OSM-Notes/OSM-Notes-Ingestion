@@ -268,6 +268,7 @@ Manual/Cron
   - Respects rate limits (configurable via `RATE_LIMIT`)
   - Ensures thread-safe concurrent downloads
 - Processes boundary relations with specific tags
+- Validates boundaries using capital location validation (prevents cross-contamination)
 - Converts to PostgreSQL geometry objects
 - Organizes areas for spatial queries
 
@@ -724,3 +725,6 @@ psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
 - **API Processing**: See [processAPI.md](./processAPI.md) for API data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
+- **Country Assignment**: See [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md) for country assignment strategy
+- **Capital Validation**: See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation details
+- **Spatial Functions**: See [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for PostGIS spatial functions
