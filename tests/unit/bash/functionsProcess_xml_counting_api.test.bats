@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
-# Enhanced unit tests for functionsProcess.sh with improved testability
-# Tests XML counting functions, validation, error handling, and performance
+# FunctionsProcess XML Counting API Tests
+# Tests for __countXmlNotesAPI function
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-23
 
@@ -74,8 +74,8 @@ EOF
  source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh"
 
  # Verify that functions are available
- if ! declare -f __countXmlNotesPlanet > /dev/null; then
-  echo "ERROR: __countXmlNotesPlanet function not found after sourcing functionsProcess.sh"
+ if ! declare -f __countXmlNotesAPI > /dev/null; then
+  echo "ERROR: __countXmlNotesAPI function not found after sourcing functionsProcess.sh"
   exit 1
  fi
 
@@ -167,31 +167,11 @@ create_test_xml_files() {
 </osm>
 EOF
 
- # Create test Planet XML with single note for format-specific testing
- cat > "${test_dir}/test_planet.xml" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
-  <note id="123456" created_at="2025-01-15T10:30:00Z" lat="40.4168" lon="-3.7038">
-    <comment action="opened" timestamp="2025-01-15T10:30:00Z" uid="123" user="testuser">Test note</comment>
-  </note>
-</osm-notes>
-EOF
-
  # Create empty XML (API format)
  cat > "${test_dir}/test_empty.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
 </osm>
-EOF
-
- # Create empty XML (Planet format) - ensure it has at least one note element
- cat > "${test_dir}/test_empty_planet.xml" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes version="0.6" generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
-  <note id="0" created_at="2025-01-01T00:00:00Z" lat="0" lon="0">
-    <comment action="placeholder" timestamp="2025-01-01T00:00:00Z" uid="0" user="placeholder">Placeholder note</comment>
-  </note>
-</osm-notes>
 EOF
 
  # Create invalid XML
@@ -336,31 +316,6 @@ EOF
  rm -f "${TEST_XML}"
 }
 
-@test "enhanced __countXmlNotesPlanet should count notes correctly" {
- # Test with valid Planet XML
- # Execute function using run to capture status and output
- run __countXmlNotesPlanet "${TEST_BASE_DIR}/tests/tmp/test_planet.xml"
-
- # Check if function executed successfully
- [[ "${status}" -eq 0 ]]
-}
-
-@test "enhanced __countXmlNotesPlanet should handle empty XML" {
- # Test with empty XML (Planet format)
- # Execute function using run to capture status and output
- run __countXmlNotesPlanet "${TEST_BASE_DIR}/tests/tmp/test_empty_planet.xml"
-
- # Check if function executed successfully
- [[ "${status}" -eq 0 ]]
-}
-
-@test "enhanced __countXmlNotesPlanet should handle missing file" {
- # Test with non-existent file
- # Execute function and check if it fails as expected
- run __countXmlNotesPlanet "/non/existent/file.xml"
- [[ "${status}" -ne 0 ]]
-}
-
 @test "should handle missing dependencies gracefully" {
  # Test graceful handling when dependencies are not available
  # Note: This function uses grep, which is a standard tool
@@ -393,10 +348,6 @@ EOF
  fi
 }
 
-# =============================================================================
-# Performance tests
-# =============================================================================
-
 @test "XML counting should be fast for small files" {
  # Test performance with small file
  # Note: This function uses grep, not xmlstarlet
@@ -412,31 +363,6 @@ EOF
  [[ "${duration}" -lt 1000000000 ]] # Should complete in less than 1 second
 }
 
-# =============================================================================
-# Integration tests with database
-# =============================================================================
-
-@test "database functions should work with test data" {
- # Skip database tests in CI environment
- if [[ "${CI:-}" == "true" ]]; then
-  skip "Database tests skipped in CI environment"
- fi
-
- # Create test database
- create_test_database
-
- # Test database connection
- run psql -d "${TEST_DBNAME}" -c "SELECT 1;"
- [[ "${status}" -eq 0 ]]
-
- # Clean up
- drop_test_database
-}
-
-# =============================================================================
-# Mock function tests
-# =============================================================================
-
 @test "XML counting should work without external dependencies" {
  # Test that XML counting works using only standard tools (grep)
  # This function uses grep, which is a standard Unix tool
@@ -446,21 +372,3 @@ EOF
  [[ "${status}" -ge 0 ]]
 }
 
-# =============================================================================
-# Helper functions for database tests
-# =============================================================================
-
-create_test_database() {
- # Create a test database for integration tests
- # This is a simplified version for testing purposes
- if command -v psql > /dev/null 2>&1; then
-  psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
- fi
-}
-
-drop_test_database() {
- # Drop the test database
- if command -v psql > /dev/null 2>&1; then
-  psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
- fi
-}

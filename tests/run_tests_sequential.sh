@@ -350,7 +350,9 @@ __run_level_8() {
   "${SCRIPT_DIR}/unit/bash/hybrid_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/script_execution_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/functionsProcess.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/functionsProcess_enhanced.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/functionsProcess_xml_counting_api.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/functionsProcess_xml_counting_planet.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/functionsProcess_database_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/prerequisites_commands.test.bats" \
   "${SCRIPT_DIR}/unit/bash/prerequisites_database.test.bats" \
   "${SCRIPT_DIR}/unit/bash/prerequisites_filesystem.test.bats" \
