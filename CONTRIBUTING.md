@@ -6,6 +6,9 @@ OpenStreetMap notes analysis system.
 
 ## Table of Contents
 
+- [Project Context](#project-context)
+- [System Architecture Overview](#system-architecture-overview)
+- [Types of Contributions](#types-of-contributions)
 - [Code Standards](#code-standards)
 - [Development Workflow](#development-workflow)
 - [Testing Requirements](#testing-requirements)
@@ -14,6 +17,290 @@ OpenStreetMap notes analysis system.
 - [Documentation](#documentation)
 - [Quality Assurance](#quality-assurance)
 - [Pull Request Process](#pull-request-process)
+
+## Project Context
+
+### What is OSM-Notes-Ingestion?
+
+OSM-Notes-Ingestion is a data ingestion system for OpenStreetMap notes. It:
+
+- **Downloads** notes from OSM API (real-time) and Planet dumps (historical)
+- **Processes** XML data using AWK for fast, memory-efficient extraction
+- **Stores** processed data in PostgreSQL/PostGIS database
+- **Publishes** WMS (Web Map Service) layers for geographic visualization
+- **Monitors** data quality and synchronization
+
+> **Note:** Analytics, ETL, and Data Warehouse components are maintained separately in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+
+### Key Design Principles
+
+1. **Separation of Concerns**: API and Planet processing are separate scripts, optimized for their specific use cases
+2. **Performance**: AWK-based processing for speed, parallel processing for large datasets
+3. **Reliability**: Comprehensive error handling, retry logic, and monitoring
+4. **Maintainability**: Modular design, shared libraries, comprehensive testing
+
+### Essential Documentation
+
+Before contributing, familiarize yourself with:
+
+- **[README.md](../README.md)**: Project overview and quick start
+- **[docs/Documentation.md](../docs/Documentation.md)**: Complete system architecture and technical details
+- **[docs/Rationale.md](../docs/Rationale.md)**: Project motivation and design decisions
+- **[docs/processAPI.md](../docs/processAPI.md)**: API processing implementation details
+- **[docs/processPlanet.md](../docs/processPlanet.md)**: Planet processing implementation details
+- **[bin/README.md](../bin/README.md)**: Script usage examples and reference
+- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Which scripts can be called directly
+
+## System Architecture Overview
+
+### High-Level Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                    OSM-Notes-Ingestion System                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+Data Sources:
+    ├─▶ OSM Notes API (real-time, every 15 minutes)
+    ├─▶ OSM Planet Dumps (historical, daily)
+    └─▶ Overpass API (geographic boundaries)
+
+Processing Layer:
+    ├─▶ processAPINotes.sh (incremental updates)
+    ├─▶ processPlanetNotes.sh (bulk processing)
+    └─▶ updateCountries.sh (boundary updates)
+
+Storage Layer:
+    └─▶ PostgreSQL/PostGIS Database
+        ├─▶ Base tables (notes, comments, countries)
+        ├─▶ WMS schema (for map service)
+        └─▶ Temporary tables (sync, API partitions)
+
+Output:
+    ├─▶ WMS Service (GeoServer)
+    └─▶ Analytics (external repository)
+```
+
+### Core Components
+
+#### 1. Processing Scripts (`bin/process/`)
+
+- **`processAPINotes.sh`**: Processes incremental updates from OSM API
+  - Runs every 15 minutes (cron)
+  - Handles up to 10,000 notes per run
+  - Automatically triggers Planet sync if threshold exceeded
+  - See [docs/processAPI.md](../docs/processAPI.md) for details
+
+- **`processPlanetNotes.sh`**: Processes historical data from Planet dumps
+  - Base mode: Complete setup from scratch
+  - Sync mode: Incremental updates
+  - See [docs/processPlanet.md](../docs/processPlanet.md) for details
+
+- **`updateCountries.sh`**: Updates country and maritime boundaries
+  - Downloads from Overpass API
+  - Re-assigns countries for affected notes
+  - See [bin/README.md](../bin/README.md) for usage
+
+#### 2. Function Libraries (`bin/lib/` and `lib/osm-common/`)
+
+- **`bin/lib/`**: Project-specific functions
+  - `processAPIFunctions.sh`: API processing functions
+  - `processPlanetFunctions.sh`: Planet processing functions
+  - `parallelProcessingFunctions.sh`: Parallel processing coordination
+  - `boundaryProcessingFunctions.sh`: Geographic boundary processing
+
+- **`lib/osm-common/`**: Shared functions (Git submodule)
+  - `commonFunctions.sh`: Core utilities
+  - `validationFunctions.sh`: Data validation
+  - `errorHandlingFunctions.sh`: Error handling and recovery
+  - `bash_logger.sh`: Logging library
+
+#### 3. Database Layer (`sql/`)
+
+- **`sql/process/`**: Processing SQL scripts
+- **`sql/wms/`**: WMS layer SQL
+- **`sql/monitor/`**: Monitoring queries
+
+#### 4. Data Transformation (`awk/`)
+
+- AWK scripts for XML to CSV conversion
+- Optimized for large files and parallel processing
+
+### Data Flow
+
+1. **API Processing Flow**:
+   ```
+   OSM API → XML Download → AWK Extraction → CSV → Database (API tables) → Base tables
+   ```
+
+2. **Planet Processing Flow**:
+   ```
+   Planet Dump → Extract XML → Split → Parallel AWK → CSV → Database (Sync tables) → Base tables
+   ```
+
+3. **WMS Flow**:
+   ```
+   Base tables → Triggers → WMS tables → GeoServer → Map tiles
+   ```
+
+For detailed flow diagrams, see [docs/Documentation.md](../docs/Documentation.md#processing-sequence-diagram).
+
+## Types of Contributions
+
+### Bug Fixes
+
+**When to contribute**: Fixing errors, incorrect behavior, or edge cases.
+
+**Process**:
+
+1. **Identify the issue**:
+   - Reproduce the bug
+   - Check existing issues on GitHub
+   - Review error logs and troubleshooting guides
+
+2. **Understand the context**:
+   - Review relevant documentation:
+     - [docs/Documentation.md](../docs/Documentation.md) for system overview
+     - [docs/processAPI.md](../docs/processAPI.md) or [docs/processPlanet.md](../docs/processPlanet.md) for processing details
+     - [docs/Documentation.md#troubleshooting-guide](../docs/Documentation.md#troubleshooting-guide) for common issues
+
+3. **Create a fix**:
+   - Follow code standards (see [Code Standards](#code-standards))
+   - Add tests for the bug (prevent regression)
+   - Update documentation if behavior changes
+
+4. **Test thoroughly**:
+   - Run all tests: `./tests/run_all_tests.sh`
+   - Test the specific scenario that was broken
+   - Verify no regressions
+
+**Example commit message**:
+```text
+fix(processAPI): correct country assignment for notes on boundaries
+
+Fixes issue where notes exactly on country boundaries were not assigned
+to any country. Now uses ST_Contains with proper boundary handling.
+
+Fixes #123
+```
+
+### New Features
+
+**When to contribute**: Adding new functionality or capabilities.
+
+**Process**:
+
+1. **Propose the feature**:
+   - Open a GitHub issue to discuss
+   - Explain the use case and benefits
+   - Review architecture to understand integration points
+
+2. **Design the solution**:
+   - Review architecture documentation:
+     - [docs/Documentation.md](../docs/Documentation.md) for system architecture
+     - [docs/Rationale.md](../docs/Rationale.md) for design principles
+     - [bin/README.md](../bin/README.md) for script patterns
+   - Consider impact on existing components
+   - Plan database changes if needed
+
+3. **Implement the feature**:
+   - Follow code standards and patterns
+   - Create comprehensive tests
+   - Update all relevant documentation
+
+4. **Documentation updates**:
+   - Update [docs/Documentation.md](../docs/Documentation.md) if architecture changes
+   - Update [bin/README.md](../bin/README.md) if adding new scripts
+   - Add usage examples
+   - Update [bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md) if adding entry points
+
+**Example commit message**:
+```text
+feat(monitor): add database performance analysis script
+
+Adds analyzeDatabasePerformance.sh to monitor query performance,
+index usage, and provide optimization recommendations.
+
+- Analyzes slow queries
+- Reports index utilization
+- Suggests optimization strategies
+
+Closes #456
+```
+
+### Refactoring
+
+**When to contribute**: Improving code structure without changing functionality.
+
+**Process**:
+
+1. **Identify refactoring opportunity**:
+   - Code duplication
+   - Performance improvements
+   - Better error handling
+   - Improved maintainability
+
+2. **Review existing patterns**:
+   - Check [docs/Documentation.md](../docs/Documentation.md) for component interactions
+   - Review consolidated functions in [CONTRIBUTING.md#consolidated-functions](#consolidated-functions)
+   - Understand shared libraries in `lib/osm-common/`
+
+3. **Plan the refactoring**:
+   - Ensure no functionality changes
+   - Maintain backward compatibility
+   - Consider impact on tests
+
+4. **Execute carefully**:
+   - Make incremental changes
+   - Run tests after each change
+   - Verify behavior is unchanged
+
+**Example commit message**:
+```text
+refactor(parallel): consolidate XML splitting functions
+
+Consolidates XML splitting logic from multiple scripts into
+parallelProcessingFunctions.sh to eliminate duplication and improve
+maintainability.
+
+- Moves __splitXmlForParallelAPI to shared library
+- Updates all scripts to use consolidated function
+- Maintains backward compatibility
+```
+
+### Documentation Improvements
+
+**When to contribute**: Improving clarity, adding examples, fixing errors.
+
+**Process**:
+
+1. **Identify documentation gaps**:
+   - Missing examples
+   - Unclear explanations
+   - Outdated information
+   - Broken links
+
+2. **Review existing documentation**:
+   - [docs/README.md](../docs/README.md) for documentation structure
+   - Check related documents for consistency
+
+3. **Make improvements**:
+   - Add examples and use cases
+   - Clarify complex concepts
+   - Fix errors and update outdated info
+   - Add cross-references
+
+**Example commit message**:
+```text
+docs(processAPI): add troubleshooting examples for common errors
+
+Adds detailed troubleshooting examples for:
+- Network connectivity issues
+- Database connection failures
+- Memory problems during processing
+
+Improves developer experience when debugging issues.
+```
 
 ## Code Standards
 
