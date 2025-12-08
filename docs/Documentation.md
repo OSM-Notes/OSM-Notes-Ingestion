@@ -1795,6 +1795,7 @@ See detailed troubleshooting in [processAPI.md](./processAPI.md) and [processPla
 
 **Review Documentation:**
 
+- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Comprehensive troubleshooting guide (all categories)
 - [processAPI.md](./processAPI.md): API processing troubleshooting
 - [processPlanet.md](./processPlanet.md): Planet processing troubleshooting
 - [WMS_Guide.md](./WMS_Guide.md): WMS service troubleshooting

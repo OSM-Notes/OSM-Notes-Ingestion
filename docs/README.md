@@ -22,6 +22,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 
 - **`Documentation.md`**: Comprehensive system documentation and architecture overview
 - **`Rationale.md`**: Project motivation, background, and design decisions
+- **`Troubleshooting_Guide.md`**: Centralized troubleshooting guide for common problems and solutions
 
 > **Note:** DWH (Data Warehouse), ETL, and Analytics documentation has been moved to
 > [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
