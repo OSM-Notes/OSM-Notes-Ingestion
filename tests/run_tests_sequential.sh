@@ -296,7 +296,10 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/cleanup_order.test.bats" \
   "${SCRIPT_DIR}/unit/bash/cleanup_dependency_fix.test.bats" \
   "${SCRIPT_DIR}/unit/bash/error_handling_consolidated.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/security_functions.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/security_functions_sanitize.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/security_functions_injection.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/security_functions_edge_cases.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/security_functions_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/overpass_functions_common.test.bats" \
   "${SCRIPT_DIR}/unit/bash/overpass_functions_overpass.test.bats" \
   "${SCRIPT_DIR}/unit/bash/overpass_functions_json.test.bats" \
