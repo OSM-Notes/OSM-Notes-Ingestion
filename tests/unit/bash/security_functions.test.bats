@@ -3,7 +3,7 @@
 # Security Functions Tests
 # Comprehensive tests for SQL sanitization and security functions
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-15
+# Version: 2025-12-08
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 

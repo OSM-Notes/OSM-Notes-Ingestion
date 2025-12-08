@@ -2,7 +2,7 @@
 
 # Unit tests for processAPINotes.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-15
+# Version: 2025-12-08
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
