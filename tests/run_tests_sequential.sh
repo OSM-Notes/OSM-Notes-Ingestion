@@ -324,7 +324,9 @@ __run_level_7() {
  __show_level_header 7 "Tests de Monitoreo y WMS" "8-12 min"
 
  if __run_bats \
-  "${SCRIPT_DIR}/unit/bash/monitoring.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/monitoring_detection.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/monitoring_infrastructure.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/monitoring_historical.test.bats" \
   "${SCRIPT_DIR}/unit/bash/notesCheckVerifier_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processCheckPlanetNotes_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/wmsManager.test.bats" \
