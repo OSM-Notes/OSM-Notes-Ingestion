@@ -2271,9 +2271,12 @@ function __handle_corrupted_xml_file() {
      __logi "Successfully recovered XML file by truncating at line ${LAST_VALID_LINE}"
      __log_finish
      return 0
+    else
+     rm -f "${TEMP_RECOVERY_FILE}"
     fi
+   else
+    rm -f "${TEMP_RECOVERY_FILE}"
    fi
-   rm -f "${TEMP_RECOVERY_FILE}"
   fi
   ;;
 
@@ -2303,9 +2306,12 @@ function __handle_corrupted_xml_file() {
     __logi "Successfully recovered XML file by adding XML declaration"
     __log_finish
     return 0
+   else
+    rm -f "${TEMP_RECOVERY_FILE}"
    fi
+  else
+   rm -f "${TEMP_RECOVERY_FILE}"
   fi
-  rm -f "${TEMP_RECOVERY_FILE}"
   ;;
 
  *)
