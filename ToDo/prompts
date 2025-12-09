@@ -7,16 +7,3 @@ Notas y prompts varios - información pendiente de organizar
 * Recomendación adicional: Monitoreo de desempeño - Revisar periódicamente
   los tiempos de carga y consulta, ajustando particiones e índices según
   crecimiento.
-
-* Revisar los comentarios del código, y si es muy extenso, apoyarse en los
-  markdown. Además, evitar ser redundantes.
-  Estos deben sen en inglés y concisos, de manera que explicaciones largas o
-  complejas sean desde los markdown.
-
-* Error en notesCheckVerifier hybrid
-psql:/tmp/tmp.nybl2dJVkk:11: error: : No existe el fichero o el directorio
-[ERROR] notesCheckVerifier.sh exited with code: 3
-[ERROR] notesCheckVerifier.sh execution failed
-[INFO] Cleaning up hybrid mock environment...
-[INFO] Restoring original properties...
-
