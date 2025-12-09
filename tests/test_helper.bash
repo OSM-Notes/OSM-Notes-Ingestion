@@ -2,7 +2,7 @@
 
 # Test helper functions for BATS tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-01-23
 
 # Test database configuration
 # Use the values already set by run_tests.sh, don't override them
@@ -178,7 +178,7 @@ mock_psql() {
  else
   # Running on host - simulate psql
   echo "Mock psql called with: $*"
-  
+
   # Check if this is a connection test with invalid parameters
   if [[ "$*" == *"-h localhost"* ]] && [[ "$*" == *"-p 5434"* ]]; then
    # Simulate connection failure for invalid port
@@ -186,7 +186,7 @@ mock_psql() {
    echo "¿Está el servidor en ejecución en ese host y aceptando conexiones TCP/IP?" >&2
    return 2
   fi
-  
+
   # Check if this is a connection test with invalid database/user
   if [[ "$*" == *"test_db"* ]] || [[ "$*" == *"test_user"* ]]; then
    # Simulate connection failure for invalid database/user
@@ -194,7 +194,7 @@ mock_psql() {
    echo "¿Está el servidor en ejecución en ese host y aceptando conexiones TCP/IP?" >&2
    return 2
   fi
-  
+
   # For other cases, simulate success
   return 0
  fi
@@ -205,20 +205,20 @@ create_test_database() {
  echo "DEBUG: Function called"
  local dbname="${1:-${TEST_DBNAME}}"
  echo "DEBUG: dbname = ${dbname}"
- 
+
  # Check if PostgreSQL is available
- if psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+ if psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
   echo "DEBUG: PostgreSQL available, using real database"
-  
+
   # Try to connect to the specified database first
-  if psql -d "${dbname}" -c "SELECT 1;" >/dev/null 2>&1; then
+  if psql -d "${dbname}" -c "SELECT 1;" > /dev/null 2>&1; then
    echo "Test database ${dbname} already exists and is accessible"
   else
    echo "Test database ${dbname} does not exist, creating it..."
-   createdb "${dbname}" 2>/dev/null || true
+   createdb "${dbname}" 2> /dev/null || true
    echo "Test database ${dbname} created successfully"
   fi
-   
+
   # Create all database objects in a single persistent connection
   echo "Creating database objects in single connection..."
   psql -d "${dbname}" << 'EOF'
@@ -508,7 +508,7 @@ BEGIN
 END
 $proc$;
 EOF
-   
+
   return 0
  else
   echo "DEBUG: PostgreSQL not available, using simulated database"
@@ -524,7 +524,7 @@ drop_test_database() {
  if [[ -f "/app/bin/functionsProcess.sh" ]]; then
   # Running in Docker - actually drop the database to clean up between tests
   echo "Dropping test database ${dbname}..."
-  psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "postgres" -c "DROP DATABASE IF EXISTS ${dbname};" 2>/dev/null || true
+  psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "postgres" -c "DROP DATABASE IF EXISTS ${dbname};" 2> /dev/null || true
   echo "Test database ${dbname} dropped successfully"
  else
   # Running on host - simulate database drop
@@ -678,7 +678,7 @@ count_rows() {
  # Try to connect to real database first (both Docker and host)
  local result
  result=$(psql -U "${TEST_DBUSER:-$(whoami)}" -d "${dbname}" -t -c "SELECT COUNT(*) FROM ${table_name};" 2> /dev/null)
- 
+
  if [[ -n "${result}" ]] && [[ "${result}" =~ ^[0-9]+$ ]]; then
   # Successfully connected to real database
   echo "${result// /}"
@@ -688,43 +688,26 @@ count_rows() {
   if [[ "${BATS_TEST_NAME:-}" == *"sequence"* ]]; then
    # Use call stack to determine if this is the second call in sequence test
    local call_context="${BASH_LINENO[1]:-0}"
-   
+
    if [[ "${call_context}" -gt 470 ]]; then
     # This is likely the final count call - return higher values
     case "${table_name}" in
-     "notes")
-      echo "3"
-      ;;
-     "note_comments")
-      echo "4"
-      ;;
-     "note_comments_text")
-      echo "4"
-      ;;
-     *)
-      echo "2"
-      ;;
+    "notes")
+     echo "3"
+     ;;
+    "note_comments")
+     echo "4"
+     ;;
+    "note_comments_text")
+     echo "4"
+     ;;
+    *)
+     echo "2"
+     ;;
     esac
    else
     # This is likely the initial count call - return base values
     case "${table_name}" in
-     "notes")
-      echo "2"
-      ;;
-     "note_comments")
-      echo "3"
-      ;;
-     "note_comments_text")
-      echo "3"
-      ;;
-     *)
-      echo "1"
-      ;;
-    esac
-   fi
-  else
-   # Default simulation for other tests
-   case "${table_name}" in
     "notes")
      echo "2"
      ;;
@@ -737,6 +720,23 @@ count_rows() {
     *)
      echo "1"
      ;;
+    esac
+   fi
+  else
+   # Default simulation for other tests
+   case "${table_name}" in
+   "notes")
+    echo "2"
+    ;;
+   "note_comments")
+    echo "3"
+    ;;
+   "note_comments_text")
+    echo "3"
+    ;;
+   *)
+    echo "1"
+    ;;
    esac
   fi
  fi
@@ -744,10 +744,73 @@ count_rows() {
 
 # Helper function to assert directory exists
 assert_dir_exists() {
-  local dir_path="$1"
-  if [[ ! -d "${dir_path}" ]]; then
-    echo "Directory does not exist: ${dir_path}" >&2
-    return 1
-  fi
-  return 0
+ local dir_path="$1"
+ if [[ ! -d "${dir_path}" ]]; then
+  echo "Directory does not exist: ${dir_path}" >&2
+  return 1
+ fi
+ return 0
+}
+
+# Helper function to count CSV fields using awk (handles quoted fields correctly)
+# This function validates that a CSV file has the expected number of fields per row
+# Parameters:
+#   $1: csv_file - Path to the CSV file to validate
+#   $2: expected_fields - Expected number of fields per row
+#   $3: description - Description of the test for error messages
+validate_csv_field_count() {
+ local csv_file="${1}"
+ local expected_fields="${2}"
+ local description="${3}"
+
+ [ -f "${csv_file}" ]
+
+ # Use awk to parse CSV and count fields correctly
+ # This handles quoted fields with commas inside them
+ local field_count
+ field_count=$(awk '
+BEGIN {
+  in_quotes = 0
+  field_count = 0
+  char = ""
+}
+{
+  # Reset for each line
+  in_quotes = 0
+  field_count = 0
+  
+  # Process each character
+  for (i = 1; i <= length($0); i++) {
+    char = substr($0, i, 1)
+    
+    if (char == "\"") {
+      # Toggle quote state
+      in_quotes = !in_quotes
+    } else if (char == "," && !in_quotes) {
+      # Field separator (comma outside quotes)
+      field_count++
+    }
+  }
+  
+  # Last field (after last comma or if no comma)
+  field_count++
+  
+  # Print and exit after first line
+  print field_count
+  exit
+}
+' "${csv_file}" 2> /dev/null)
+
+ if [[ -z "${field_count}" ]] || ! [[ "${field_count}" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: Could not parse CSV file: ${csv_file}"
+  return 1
+ fi
+
+ if [[ "${field_count}" -ne "${expected_fields}" ]]; then
+  echo "ERROR: ${description}: Expected ${expected_fields} fields, got ${field_count}"
+  echo "First line: $(head -1 "${csv_file}")"
+  return 1
+ fi
+
+ return 0
 }

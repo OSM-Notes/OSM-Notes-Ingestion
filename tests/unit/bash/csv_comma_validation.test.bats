@@ -3,7 +3,7 @@
 # CSV Comma Validation Tests
 # Tests for CSV validation with commas in text
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-01-23
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -108,40 +108,6 @@ EOF
 
 teardown() {
  rm -rf "${TMP_DIR}"
-}
-
-# Helper function to count CSV fields using Python (handles quoted fields correctly)
-validate_csv_field_count() {
- local csv_file="${1}"
- local expected_fields="${2}"
- local description="${3}"
-
- [ -f "${csv_file}" ]
-
- # Use Python CSV parser to correctly count fields
- local field_count
- field_count=$(python3 -c "
-import csv
-import sys
-with open('${csv_file}', 'r', encoding='utf-8') as f:
-    reader = csv.reader(f)
-    for row in reader:
-        print(len(row))
-        break
-" 2>/dev/null)
-
- if [[ -z "${field_count}" ]]; then
-  echo "ERROR: Could not parse CSV file: ${csv_file}"
-  return 1
- fi
-
- if [[ "${field_count}" -ne "${expected_fields}" ]]; then
-  echo "ERROR: ${description}: Expected ${expected_fields} fields, got ${field_count}"
-  echo "First line: $(head -1 "${csv_file}")"
-  return 1
- fi
-
- return 0
 }
 
 @test "CSV validation function should accept valid CSV with commas in text" {
