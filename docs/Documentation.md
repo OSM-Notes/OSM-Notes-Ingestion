@@ -1747,7 +1747,7 @@ ogr2ogr -f GeoJSON notes_export.geojson \
 
 **Using WMS in Mapping Applications**:
 
-1. **JOSM**: 
+1. **JOSM**:
    - Imagery → Add WMS Layer
    - URL: `http://your-server:8080/geoserver/wms`
    - Layer: `osm_notes:notes_wms`

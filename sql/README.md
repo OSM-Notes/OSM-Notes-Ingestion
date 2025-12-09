@@ -15,6 +15,7 @@ Scripts for processing and loading data, organized by processing type:
 #### Planet Notes Processing (`processPlanetNotes_*.sql`)
 
 **Base Table Creation** (Sequence: 21-23):
+
 - **`processPlanetNotes_21_createBaseTables_enum.sql`**: Creates ENUM types
   - Defines: `note_status_enum`, `note_action_enum`
   - Usage: Called first during base table creation
@@ -29,6 +30,7 @@ Scripts for processing and loading data, organized by processing type:
   - Usage: Called after table creation
 
 **Table Management** (Sequence: 11-13):
+
 - **`processPlanetNotes_11_dropSyncTables.sql`**: Drops sync tables
   - Purpose: Cleanup before base mode
   - Usage: Called at start of `--base` mode
@@ -48,12 +50,14 @@ Scripts for processing and loading data, organized by processing type:
   - Usage: Called during Planet processing
 
 **Partition Management** (Sequence: 25):
+
 - **`processPlanetNotes_25_createPartitions.sql`**: Creates partition tables
   - Purpose: Creates partition tables for parallel processing
   - Creates: `notes_sync_part_0` through `notes_sync_part_N` (N = MAX_THREADS)
   - Usage: Called before parallel CSV loading
 
 **Country Tables** (Sequence: 25-28):
+
 - **`processPlanetNotes_25_createCountryTables.sql`**: Creates country tables
   - Creates: `countries`, `maritimes` tables
   - Usage: Called during initial setup
@@ -71,6 +75,7 @@ Scripts for processing and loading data, organized by processing type:
   - Usage: Called after table creation
 
 **Data Loading** (Sequence: 41-45):
+
 - **`processPlanetNotes_41_loadPartitionedSyncNotes.sql`**: Loads partitioned notes
   - Purpose: Bulk loads CSV data into partition tables using COPY
   - Usage: Called for each partition during parallel processing
@@ -104,11 +109,13 @@ Scripts for processing and loading data, organized by processing type:
 #### API Notes Processing (`processAPINotes_*.sql`)
 
 **Table Management** (Sequence: 12):
+
 - **`processAPINotes_12_dropApiTables.sql`**: Drops API tables
   - Purpose: Cleanup before recreation
   - Usage: Called at start of processing if needed
 
 **Table Creation** (Sequence: 21-23):
+
 - **`processAPINotes_21_createApiTables.sql`**: Creates API tables
   - Creates: `notes_api`, `note_comments_api`, `note_comments_text_api`
   - Purpose: Intermediate tables for API data before insertion
@@ -125,6 +132,7 @@ Scripts for processing and loading data, organized by processing type:
   - Usage: Called during initial setup
 
 **Data Loading** (Sequence: 31-35):
+
 - **`processAPINotes_31_loadApiNotes.sql`**: Loads API notes into partitions
   - Purpose: Bulk loads CSV data into API partition tables
   - Usage: Called for each partition during parallel processing
@@ -172,7 +180,7 @@ Database functions and procedures (located directly in `sql/`):
 - **`functionsProcess_22_createProcedure_insertNote.sql`**: Insert note procedure
   - **Purpose**: Inserts a new note into the database with country assignment
   - **Procedure**: `insert_note(note_id, latitude, longitude, created_at, process_id)`
-  - **Features**: 
+  - **Features**:
     - Validates process lock (prevents concurrent execution)
     - Automatically assigns country using `get_country()`
     - Inserts note as "opened" (status updated when closing comment is processed)
@@ -241,7 +249,7 @@ Monitoring and verification scripts:
 - **`processCheckPlanetNotes_*.sql`**: Check tables and data integrity
   - **Purpose**: Validates Planet processing results
   - **Usage**: Called by `notesCheckVerifier.sh` for data quality checks
-  - **Checks**: 
+  - **Checks**:
     - Table existence and structure
     - Data counts and consistency
     - Country assignment completeness
@@ -318,6 +326,7 @@ This script compares the performance of optimized vs original integrity verifica
 queries to validate that optimizations are working correctly.
 
 **Usage:**
+
 ```bash
 # Execute analysis on your database
 psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.sql
@@ -327,6 +336,7 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.s
 ```
 
 **What it does:**
+
 1. **TEST 1**: Analyzes current query plan (validates index usage and efficiency)
 2. **TEST 2**: Performance benchmarks (validates execution time meets thresholds)
 3. **TEST 3**: Index usage verification (ensures indexes are being used)
@@ -339,12 +349,14 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.s
 - Query plan should be efficient (minimal buffers, fast execution)
 
 **When to use:**
+
 - After implementing performance optimizations
 - To validate that indexes are being used correctly
 - To compare query performance before/after changes
 - To troubleshoot performance issues
 
 ## Dependencies
+
 
 - PostgreSQL 11+ with PostGIS extension
 - Proper database permissions
