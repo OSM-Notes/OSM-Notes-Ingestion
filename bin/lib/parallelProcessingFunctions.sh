@@ -81,9 +81,24 @@ function __show_help_library() {
 }
 
 # Check system resources before launching new processes
+# Validates memory usage and system load to prevent system overload
+#
 # Parameters:
-#   $1: Mode (optional, "minimal" for reduced requirements)
-# Returns: 0 if resources are available, 1 if not
+#   $1: Mode (optional, "minimal" for reduced requirements) [opcional]
+#
+# Returns:
+#   0: Resources available
+#   1: Resources not available (high memory or load)
+#
+# Examples:
+#   if __check_system_resources; then
+#     echo "System ready"
+#   fi
+#   if __check_system_resources "minimal"; then
+#     echo "System ready (minimal mode)"
+#   fi
+#
+# Related: docs/Documentation.md#parallel-processing (resource management)
 function __check_system_resources() {
  __log_start
  local MODE="${1:-normal}"
@@ -130,9 +145,21 @@ function __check_system_resources() {
 }
 
 # Wait for system resources to become available
+# Polls system resources until available or timeout
+#
 # Parameters:
-#   $1: Maximum wait time in seconds (optional, default: 60)
-# Returns: 0 if resources become available, 1 if timeout
+#   $1: Maximum wait time in seconds (optional, default: 60) [opcional]
+#
+# Returns:
+#   0: Resources became available
+#   1: Timeout waiting for resources
+#
+# Examples:
+#   if __wait_for_resources 120; then
+#     echo "Resources available"
+#   fi
+#
+# Related: docs/Documentation.md#parallel-processing (resource management)
 function __wait_for_resources() {
  __log_start
  local MAX_WAIT_TIME="${1:-60}"
@@ -930,10 +957,36 @@ __divide_xml_file() {
  return 0
 }
 
-# Process XML parts in parallel (consolidated version)
+# Process XML parts in parallel using GNU Parallel
 # Automatically detects Planet vs API format based on generated file names
+# Processes multiple XML parts concurrently with resource management
+#
 # Parameters:
-#   $1: Input directory containing XML parts
+#   $1: Input directory containing XML parts [requerido]
+#   $2: Output directory (optional, uses input dir if not provided) [opcional]
+#   $3: Maximum number of workers (optional, uses MAX_THREADS if not provided) [opcional]
+#   $4: Processing type ("Planet" or "API", optional) [opcional]
+#
+# Returns:
+#   0: Success
+#   1: Error during processing
+#
+# Strategy: See docs/Documentation.md#parallel-processing for complete workflow
+#   - Splits work into more parts than threads for better load balancing
+#   - Uses GNU Parallel for concurrent processing
+#   - Manages system resources to prevent overload
+#
+# Performance: See docs/Documentation.md#performance
+#   - Processes multiple parts concurrently
+#   - Automatically adjusts workers based on system resources
+#
+# Examples:
+#   __processXmlPartsParallel "${TMP_DIR}" "${OUTPUT_DIR}" "${NUM_PARTS}" "Planet"
+#   __processXmlPartsParallel "${TMP_DIR}" "" "${MAX_THREADS}" "API"
+#
+# Related: docs/Documentation.md#parallel-processing (complete parallel processing guide)
+# Related Functions: __splitXmlForParallelSafe(), __check_system_resources()
+function __processXmlPartsParallel() {
 #   $2: Output directory for CSV files (not used, kept for compatibility)
 #   $3: Maximum number of workers (optional, default: 4)
 #   $4: Processing type (optional, auto-detected if not provided)

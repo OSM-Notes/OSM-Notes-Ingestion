@@ -1,19 +1,32 @@
--- Function to get the country where the note is located.
--- Uses intelligent 2D grid partitioning (24 zones) to minimize expensive
--- ST_Contains calls.
--- Optimized to check current country FIRST before searching all countries.
--- This is critical when updating boundaries - 95% of notes stay in same
--- country.
+-- Get country assignment for a note using 2D grid optimization
+-- Determines which country a note belongs to based on coordinates
 --
--- Strategy:
--- 1. Check if note is still in current country (95% hit rate)
--- 2. Use 2D grid (lon+lat) to select most relevant zone
--- 3. Search TERRESTRIAL countries first (is_maritime = false) in priority order
--- 4. If not found in terrestrial, search MARITIME zones (is_maritime = true)
--- This ensures notes on land are assigned to countries, not maritime zones
+-- Parameters:
+--   lon DECIMAL: Note longitude [requerido]
+--   lat DECIMAL: Note latitude [requerido]
+--   id_note INTEGER: Note ID for optimization [requerido]
 --
--- Author: Andres Gomez (AngocA)
--- Version: 2025-12-05
+-- Returns:
+--   INTEGER: Country ID, or -1 for international waters
+--   NULL: Never (always returns INTEGER)
+--
+-- Exceptions: None (uses RETURN, not RAISE)
+--
+-- Strategy: See docs/Country_Assignment_2D_Grid.md for complete algorithm
+--   1. Check current country first (95% hit rate when updating boundaries)
+--   2. Use 2D grid (24 zones) to select relevant countries
+--   3. Search terrestrial countries before maritime zones
+--
+-- Performance: See docs/Country_Assignment_2D_Grid.md#performance
+--   - Average: <1ms per note
+--   - Optimized for boundary updates (checks current country first)
+--
+-- Examples:
+--   SELECT get_country(-74.006, 40.7128, 12345);
+--   SELECT get_country(2.3522, 48.8566, 67890);
+--
+-- Related: docs/Country_Assignment_2D_Grid.md (complete strategy, examples, troubleshooting)
+-- Related Functions: insert_note() (calls this function)
 
  CREATE OR REPLACE FUNCTION get_country (
   lon DECIMAL,
@@ -59,6 +72,7 @@ AS $func$
   -- OPTIMIZATION: Check international waters before searching all countries
   -- This avoids expensive country searches for known international waters
   -- Only check if table exists (for backward compatibility)
+  -- See docs/Country_Assignment_2D_Grid.md#international-waters for details
   IF EXISTS (
     SELECT 1 FROM information_schema.tables
     WHERE table_name = 'international_waters'
@@ -81,6 +95,7 @@ AS $func$
 
   -- Determine the geographic zone using 2D grid (lon AND lat)
   -- This reduces the number of countries to check dramatically
+  -- See docs/Country_Assignment_2D_Grid.md#zones for complete zone definitions
 
   -- Special case: Null Island (Gulf of Guinea)
   IF (-5 < lat AND lat < 4.53 AND 4 > lon AND lon > -4) THEN

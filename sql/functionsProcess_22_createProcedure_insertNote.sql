@@ -1,9 +1,34 @@
--- Procedure to insert a note. Even if the current status of the note is closed,
--- the note is inserted as opened. Then, when the comment that closes the note
--- is processed, the note will be updated to closed.
+-- Insert a new note into the database with country assignment
+-- Inserts note as "opened" status (updated to "closed" when closing comment is processed)
 --
--- Author: Andres Gomez (AngocA)
--- Version: 2025-11-12
+-- Parameters:
+--   m_note_id INTEGER: Note ID [requerido]
+--   m_latitude DECIMAL: Note latitude [requerido]
+--   m_longitude DECIMAL: Note longitude [requerido]
+--   m_created_at TIMESTAMP WITH TIME ZONE: Note creation timestamp [requerido]
+--   m_process_id_bash INTEGER: Process ID for lock validation [requerido]
+--
+-- Returns: None (procedure, not function)
+--
+-- Exceptions:
+--   RAISE EXCEPTION 'This call does not have a lock': No process lock found
+--   RAISE EXCEPTION 'The process that holds the lock...': Lock belongs to different process
+--
+-- Strategy: See docs/Process_API.md#note-insertion for complete workflow
+--   1. Validates process lock (prevents concurrent execution)
+--   2. Checks if note already exists
+--   3. Automatically assigns country using get_country()
+--   4. Inserts note as "opened" (status updated when closing comment is processed)
+--
+-- Performance: See docs/Process_API.md#performance
+--   - Uses get_country() for efficient country assignment
+--   - ON CONFLICT DO NOTHING prevents duplicate insertions
+--
+-- Examples:
+--   CALL insert_note(12345, 40.7128, -74.006, NOW(), 123);
+--
+-- Related: docs/Process_API.md (complete API processing workflow)
+-- Related Functions: get_country() (called for country assignment)
 
 CREATE OR REPLACE PROCEDURE insert_note (
   m_note_id INTEGER,

@@ -30,11 +30,23 @@ function __sanitize_sql_string() {
  echo "${SANITIZED}"
 }
 
-# Sanitize SQL identifier (table name, column name, etc.)
+# Sanitize SQL identifier to prevent SQL injection
+# Wraps identifier in double quotes if not already wrapped (PostgreSQL standard)
+#
 # Parameters:
-#   $1: Identifier to sanitize
-# Returns: Sanitized identifier
-# Security: Wraps identifier in double quotes if not already wrapped
+#   $1: Identifier to sanitize (table name, column name, etc.) [requerido]
+#
+# Returns:
+#   Sanitized identifier (wrapped in double quotes) on stdout
+#   1: Error if identifier is empty
+#
+# Security: Prevents SQL injection by properly quoting identifiers
+#
+# Examples:
+#   TABLE_NAME=$(__sanitize_sql_identifier "notes")
+#   COLUMN_NAME=$(__sanitize_sql_identifier "${USER_INPUT}")
+#
+# Related: docs/Documentation.md#security (SQL sanitization)
 function __sanitize_sql_identifier() {
  local -r INPUT="${1:-}"
 
