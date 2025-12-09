@@ -95,17 +95,31 @@ If you prefer to use Docker and have sudo access:
 Unit tests for individual components:
 
 - **`bash/`**: BATS (Bash Automated Testing System) tests for shell scripts
-  - **`resource_limits.test.bats`**: Tests for XML processing resource limitations and monitoring
-  - **`historical_data_validation.test.bats`**: Tests for historical data validation in processAPI
-  - **`processAPI_historical_integration.test.bats`**: Integration tests for processAPI historical validation
-  - **`xslt_enum_format.test.bats`**: Tests for XSLT enum format validation and PostgreSQL compatibility
-  - **`xml_processing_enhanced.test.bats`**: Enhanced XML processing tests
-  - **Other `.test.bats` files**: Component-specific unit tests
+  - **Modular Structure**: Tests are organized in modular files for better maintainability
+  - **Core Tests**: Fundamental functionality tests
+  - **Component-Specific Tests**: Individual component testing
+  - **See [tests/unit/bash/README.md](./unit/bash/README.md)** for detailed structure
 - **`sql/`**: Database function and table tests
   - **`tables_final_fixed.test.sql`**: Database table structure tests
   - **`functions_final_corrected.test.sql`**: Database function tests
 
 > **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+
+#### Test File Organization
+
+The test suite uses a **modular structure** for improved maintainability and organization:
+
+- **Tests are organized in focused modules** grouped by functionality
+- **Naming convention**: `[component]_[category].test.bats`
+  - Examples: `note_processing_common.test.bats`, `security_functions_sanitize.test.bats`
+- **Total test files**: 132 BATS test suites
+- **Module categories**: common, validation, integration, error handling, performance, etc.
+
+**Benefits of modular structure:**
+- Easier to maintain and understand
+- Faster test execution (can run specific modules)
+- Better organization by functionality
+- Manageable file sizes (typically 150-400 lines per module)
 
 ### `/tests/integration/`
 

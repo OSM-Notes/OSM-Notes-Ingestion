@@ -6,11 +6,21 @@ This document provides a comprehensive reference of all BATS testing suites in t
 
 ## 📊 Testing Suites Statistics
 
-- **Total BATS Suites**: 78
+- **Total BATS Suites**: 132
 - **Integration Suites**: 8
-- **Unit Bash Suites**: 68
+- **Unit Bash Suites**: 120
 - **Unit SQL Suites**: 4
 - **Consolidated Test Runners**: 9
+- **Modular Test Files**: 45+
+
+### Modular Structure
+
+The test suite uses a **modular structure** for improved maintainability:
+
+- **Tests organized in focused modules** grouped by functionality
+- **Naming convention**: `[component]_[category].test.bats`
+- **Module categories**: common, validation, integration, error handling, performance, etc.
+- **Benefits**: Easier maintenance, faster execution, better organization
 
 ## 🚀 Consolidated Test Runners (9 scripts)
 
