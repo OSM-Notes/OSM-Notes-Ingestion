@@ -748,12 +748,18 @@ psql -d osm_notes -c "SELECT 1;"
 systemctl status postgresql
 
 # Check connection parameters
-cat etc/properties.sh | grep -i db
+# Note: etc/properties.sh should be created from etc/properties.sh.example
+if [[ -f etc/properties.sh ]]; then
+  cat etc/properties.sh | grep -i db
+else
+  echo "ERROR: etc/properties.sh not found. Create it from etc/properties.sh.example"
+fi
 ```
 
 **Solutions:**
 
 - Verify PostgreSQL is running: `systemctl start postgresql`
+- Create `etc/properties.sh` from `etc/properties.sh.example` if it doesn't exist
 - Check database credentials in `etc/properties.sh`
 - Verify database exists: `psql -l | grep osm_notes`
 - Check firewall rules if using remote database

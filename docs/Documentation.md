@@ -970,7 +970,7 @@ export SKIP_CSV_VALIDATION=false
 
 ```bash
 # Use production database (default)
-# DBNAME comes from etc/properties.sh
+# DBNAME comes from etc/properties.sh (created from etc/properties.sh.example)
 
 # Minimal logging
 export LOG_LEVEL=ERROR
@@ -1020,6 +1020,8 @@ git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
 cd OSM-Notes-Ingestion
 
 # Step 2: Configure database connection
+# Create etc/properties.sh from the example file
+cp etc/properties.sh.example etc/properties.sh
 # Edit etc/properties.sh with your database credentials
 vi etc/properties.sh
 
@@ -1405,6 +1407,8 @@ Server 3 (WMS):
 
 ```bash
 # On ingestion server, configure remote database
+# Create etc/properties.sh from the example file (if not already created)
+cp etc/properties.sh.example etc/properties.sh
 # Edit etc/properties.sh:
 DB_HOST=db-server.example.com
 DB_PORT=5432
@@ -2409,13 +2413,20 @@ curl -I "https://planet.openstreetmap.org/planet/notes/"
 # Diagnosis
 systemctl status postgresql
 psql -d osm_notes -c "SELECT 1;"
-cat etc/properties.sh | grep -i db
+# Check if properties.sh exists, if not create from example
+if [[ -f etc/properties.sh ]]; then
+  cat etc/properties.sh | grep -i db
+else
+  echo "ERROR: etc/properties.sh not found. Create it from etc/properties.sh.example"
+fi
 
 # Solutions
 # 1. Start PostgreSQL if stopped
 sudo systemctl start postgresql
 
-# 2. Check credentials in etc/properties.sh
+# 2. Create etc/properties.sh from example if missing
+cp etc/properties.sh.example etc/properties.sh
+# Then check credentials in etc/properties.sh
 # 3. Verify database exists
 psql -l | grep osm_notes
 

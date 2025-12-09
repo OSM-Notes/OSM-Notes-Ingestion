@@ -7,9 +7,18 @@ the OSM-Notes-Ingestion project.
 
 ### WMS Properties (`etc/wms.properties.sh`)
 
-The WMS system uses a dedicated properties file for easy customization:
+The WMS system uses a dedicated properties file for easy customization.
+
+**Important**: This file is not tracked in Git for security reasons. You must
+create it from the example file:
 
 ```bash
+# Copy the example file
+cp etc/wms.properties.sh.example etc/wms.properties.sh
+
+# Edit with your credentials and settings
+vi etc/wms.properties.sh
+
 # Load WMS properties
 source etc/wms.properties.sh
 
@@ -297,7 +306,7 @@ If you don't see the objects in the web interface:
 
 3. **Verify credentials are loaded correctly**:
    
-   The script loads credentials from `etc/wms.properties.sh`. Make sure your credentials are set there:
+   The script loads credentials from `etc/wms.properties.sh` (created from `etc/wms.properties.sh.example`). Make sure your credentials are set there:
    
    ```bash
    # Check current credentials in properties file
@@ -334,7 +343,7 @@ If you don't see the objects in the web interface:
    ```
 
 **Common Issues:**
-- **HTTP 401 (Unauthorized)**: Credentials are incorrect. Check `etc/wms.properties.sh` or set environment variables.
+- **HTTP 401 (Unauthorized)**: Credentials are incorrect. Check `etc/wms.properties.sh` (created from `etc/wms.properties.sh.example`) or set environment variables.
 - **HTTP 404 (Not Found)**: GeoServer URL is incorrect. Verify `GEOSERVER_URL` matches your actual GeoServer installation.
 - **HTTP 409 (Conflict)**: Object already exists. This is normal if you're re-running the installation.
 - **HTTP 500 (Internal Server Error)**: GeoServer encountered an error. Check GeoServer logs for details.

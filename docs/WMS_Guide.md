@@ -133,6 +133,20 @@ For a complete automated setup:
 
 The WMS system uses a centralized configuration file: `etc/wms.properties.sh`
 
+**Important**: This file is not tracked in Git for security reasons. You must
+create it from the example file:
+
+```bash
+# Copy the example file
+cp etc/wms.properties.sh.example etc/wms.properties.sh
+
+# Edit with your credentials and settings
+vi etc/wms.properties.sh
+```
+
+The example file contains default values and detailed comments. Replace the
+example values with your actual configuration.
+
 #### Key Configuration Sections
 
 1. **Database Configuration**

@@ -71,7 +71,12 @@ sudo systemctl status postgresql
 psql -d "${DBNAME:-osm_notes}" -c "SELECT 1;"
 
 # Check credentials in properties file
-cat etc/properties.sh | grep -E "DBNAME|DB_USER|DB_PASSWORD|DB_HOST|DB_PORT"
+# Note: etc/properties.sh should be created from etc/properties.sh.example
+if [[ -f etc/properties.sh ]]; then
+  cat etc/properties.sh | grep -E "DBNAME|DB_USER|DB_PASSWORD|DB_HOST|DB_PORT"
+else
+  echo "ERROR: etc/properties.sh not found. Create it from etc/properties.sh.example"
+fi
 
 # Verify database exists
 psql -l | grep "${DBNAME:-osm_notes}"
@@ -89,6 +94,7 @@ sudo iptables -L | grep postgresql
    ```
 
 2. **Verify database credentials:**
+   - Create `etc/properties.sh` from `etc/properties.sh.example` if it doesn't exist
    - Check `etc/properties.sh` for correct values
    - Test connection manually: `psql -h HOST -U USER -d DBNAME`
 

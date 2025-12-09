@@ -55,7 +55,7 @@ These are the **only scripts** that should be executed directly:
    - **Options**: `-p`/`--partitions-only` (clean partitions only), `-a`/`--all` (full cleanup, default)
    - **Purpose**: Complete database cleanup
    - **When**: Testing or complete reset
-   - **Database**: Configured in `etc/properties.sh` (DBNAME variable)
+   - **Database**: Configured in `etc/properties.sh` (DBNAME variable, created from `etc/properties.sh.example`)
 
 ## ❌ Internal Scripts (DO NOT CALL DIRECTLY)
 

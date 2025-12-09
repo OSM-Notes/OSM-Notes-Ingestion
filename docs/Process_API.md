@@ -242,6 +242,7 @@ unset SKIP_XML_VALIDATION
 ```bash
 # Error: Cannot connect to database
 # Solution: Check database is running and credentials in etc/properties.sh
+# (created from etc/properties.sh.example)
 psql -d osm_notes -c "SELECT 1;"
 ```
 

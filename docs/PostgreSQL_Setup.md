@@ -123,9 +123,16 @@ current system user:
    sudo -u postgres createuser -d $(whoami)
    ```
 
-2. Modify `etc/properties.sh` or set environment variable:
+2. Create and configure `etc/properties.sh` from the example file:
 
    ```bash
+   # Copy the example file
+   cp etc/properties.sh.example etc/properties.sh
+   
+   # Edit with your settings
+   vi etc/properties.sh
+   
+   # Or set environment variable to override:
    export DB_USER=$(whoami)
    ```
 
@@ -207,14 +214,26 @@ echo "✅ All checks passed! Your PostgreSQL setup is ready."
 
 ### `etc/properties.sh`
 
-The database configuration is defined in `etc/properties.sh`:
+The database configuration is defined in `etc/properties.sh`. **Important**: This
+file is not tracked in Git for security reasons. You must create it from the
+example file:
 
 ```bash
-# Database name (default: osm-notes)
-declare -r DBNAME="${DBNAME:-osm-notes}"
+# Copy the example file
+cp etc/properties.sh.example etc/properties.sh
+
+# Edit with your database credentials
+vi etc/properties.sh
+```
+
+The configuration file defines:
+
+```bash
+# Database name (default: notes)
+DBNAME="${DBNAME:-notes}"
 
 # Database user (default: myuser)
-declare -r DB_USER="${DB_USER:-myuser}"
+DB_USER="${DB_USER:-myuser}"
 ```
 
 You can override these values using environment variables:

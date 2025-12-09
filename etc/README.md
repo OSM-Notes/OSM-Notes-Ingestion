@@ -2,19 +2,48 @@
 
 This directory contains configuration files for the OSM-Notes-Ingestion project.
 
+## Initial Setup
+
+**IMPORTANT**: The actual configuration files (`properties.sh` and `wms.properties.sh`) are
+not tracked in Git for security reasons. You must create them from the example
+files:
+
+```bash
+# Copy example files to create your local configuration
+cp etc/properties.sh.example etc/properties.sh
+cp etc/wms.properties.sh.example etc/wms.properties.sh
+
+# Edit the files with your database credentials and settings
+vi etc/properties.sh
+vi etc/wms.properties.sh
+```
+
+The example files contain default values and detailed comments. Replace the
+example values (like `myuser`, `changeme`, `your-email@domain.com`) with your
+actual configuration.
+
 ## Files
 
-### 1. properties.sh
+### 1. properties.sh.example → properties.sh
 
 Main configuration file with general project settings.
 
-### 2. wms.properties.sh
+- **Example file**: `properties.sh.example` (tracked in Git)
+- **Your local file**: `properties.sh` (not tracked in Git, contains your
+  credentials)
 
-**NEW**: WMS-specific configuration file for Web Map Service components.
+### 2. wms.properties.sh.example → wms.properties.sh
+
+WMS-specific configuration file for Web Map Service components.
+
+- **Example file**: `wms.properties.sh.example` (tracked in Git)
+- **Your local file**: `wms.properties.sh` (not tracked in Git, contains your
+  credentials)
 
 ## WMS Properties Configuration
 
-The `wms.properties.sh` file provides centralized configuration for all WMS-related components:
+The `wms.properties.sh` file (copied from `wms.properties.sh.example`) provides
+centralized configuration for all WMS-related components:
 
 ### Database Configuration
 
@@ -182,8 +211,15 @@ All WMS scripts automatically load these properties:
 
 ## Best Practices
 
-1. **Environment-Specific Files**: Create custom property files for different environments
-2. **Secure Credentials**: Use environment variables for sensitive data
-3. **Validation**: Always validate properties before use
-4. **Documentation**: Document custom configurations
-5. **Version Control**: Keep property files in version control (excluding secrets)
+1. **Use Example Files**: Always copy from `.example` files to create your local
+   configuration
+2. **Never Commit Secrets**: The actual `properties.sh` and `wms.properties.sh`
+   files are in `.gitignore` and should never be committed
+3. **Environment-Specific Files**: Create custom property files for different
+   environments using the `_local` suffix (e.g., `properties.sh_local`)
+4. **Secure Credentials**: Use environment variables for sensitive data when
+   possible
+5. **Validation**: Always validate properties before use
+6. **Documentation**: Document custom configurations in your local files
+7. **Version Control**: Only the `.example` files are tracked in Git (excluding
+   secrets)

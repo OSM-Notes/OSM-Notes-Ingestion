@@ -49,7 +49,7 @@ These variables are used across **all scripts** and should be standardized:
 ### `DBNAME`
 - **Purpose**: PostgreSQL database name
 - **Values**: String (e.g., `osm-notes`, `osm-notes_test`)
-- **Default**: `osm-notes` (from `etc/properties.sh`)
+- **Default**: `osm-notes` (from `etc/properties.sh`, created from `etc/properties.sh.example`)
 - **Usage**: Change for test/production environments
 - **Example**: `export DBNAME=osm_notes_test`
 
@@ -151,7 +151,7 @@ export LOG_LEVEL=WARN
 ```
 
 ### `wmsManager.sh` Specific
-All WMS configuration is done via **`bin/wms/wms.properties.sh`** or environment variables:
+All WMS configuration is done via **`etc/wms.properties.sh`** (created from `etc/wms.properties.sh.example`) or environment variables:
 - **`GEOSERVER_URL`**: GeoServer base URL
 - **`GEOSERVER_USER`**: GeoServer username
 - **`GEOSERVER_PASSWORD`**: GeoServer password
@@ -190,7 +190,7 @@ These variables are used internally and should **never** be set manually:
 
 ## 📋 Properties File Variables
 
-Defined in `etc/properties.sh` (can be overridden by environment):
+Defined in `etc/properties.sh` (created from `etc/properties.sh.example`, can be overridden by environment):
 
 - **`DB_USER`**: PostgreSQL user (default: `angoca`)
 - **`OSM_API`**: OSM API URL (default: `https://api.openstreetmap.org/api/0.6`)
@@ -248,7 +248,7 @@ export LOG_LEVEL=WARN
 
 ### For Users
 1. **Never** set internal variables manually
-2. Use `etc/properties.sh` for local customization
+2. Create `etc/properties.sh` from `etc/properties.sh.example` for local customization
 3. Only override environment variables when necessary
 4. Document any custom configuration
 
@@ -267,12 +267,12 @@ Old patterns to avoid:
 
 New standard:
 - Set only documented variables
-- Use `etc/properties.sh` for configuration
+- Create `etc/properties.sh` from `etc/properties.sh.example` for configuration
 - Override via environment when needed
 
 ## See Also
 
 - `bin/ENTRY_POINTS.md` - Allowed entry points
-- `etc/properties.sh` - Default configuration
+- `etc/properties.sh.example` - Configuration template (copy to `etc/properties.sh` for local use)
 - `README.md` - General usage guide
 

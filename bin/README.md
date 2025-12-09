@@ -48,7 +48,7 @@ Database maintenance script for comprehensive cleanup operations:
 
 - **Full cleanup**: Removes all components (WMS, base tables, temporary files)
 - **Partition-only cleanup**: Removes only partition tables (use `-p` or `--partitions-only` flag)
-- **Database**: Configured via `etc/properties.sh` (DBNAME variable)
+- **Database**: Configured via `etc/properties.sh` (DBNAME variable, created from `etc/properties.sh.example`)
 
 ## Software Components
 

@@ -338,9 +338,24 @@ For **ETL and Analytics scheduling**, see the [OSM-Notes-Analytics](https://gith
 ### Configuration file
 
 Before everything, you need to configure the database access and other
-properties under the next file:
+properties. **Important**: The actual configuration files are not tracked in Git
+for security reasons. You must create them from the example files:
 
-`etc/properties.sh`
+```bash
+# Copy example files to create your local configuration
+cp etc/properties.sh.example etc/properties.sh
+cp etc/wms.properties.sh.example etc/wms.properties.sh
+
+# Edit the files with your database credentials and settings
+vi etc/properties.sh
+vi etc/wms.properties.sh
+```
+
+The example files contain default values and detailed comments. Replace the
+example values (like `myuser`, `changeme`, `your-email@domain.com`) with your
+actual configuration.
+
+Main configuration file: `etc/properties.sh` (created from `etc/properties.sh.example`)
 
 You specify the database name and the user to access it.
 
@@ -677,28 +692,35 @@ The project is configured to use:
 - **User:** `myuser`
 - **Authentication:** peer (uses system user)
 
-Configuration is stored in `etc/properties.sh`.
+Configuration is stored in `etc/properties.sh` (created from `etc/properties.sh.example`).
+
+**Important**: Always create `etc/properties.sh` from the example file before
+running the scripts. The actual file is not tracked in Git for security
+reasons.
 
 For troubleshooting, check the PostgreSQL logs and ensure proper authentication configuration.
 
 ### Local Development Setup
 
-To avoid accidentally committing local configuration changes, you can configure Git to ignore changes to the properties files:
+The configuration files (`etc/properties.sh` and `etc/wms.properties.sh`) are
+already in `.gitignore` and will not be committed to the repository. This
+ensures your local credentials and settings remain secure.
+
+To set up your local configuration:
 
 ```bash
-# Tell Git to ignore changes to properties files (local development only)
-git update-index --assume-unchanged etc/properties.sh
-git update-index --assume-unchanged etc/wms.properties.sh
+# Create your local configuration files from the examples
+cp etc/properties.sh.example etc/properties.sh
+cp etc/wms.properties.sh.example etc/wms.properties.sh
 
-# Verify that the files are now ignored
-git ls-files -v | grep '^[[:lower:]]'
-
-# To re-enable tracking (if needed)
-git update-index --no-assume-unchanged etc/properties.sh
-git update-index --no-assume-unchanged etc/wms.properties.sh
+# Edit with your local settings
+vi etc/properties.sh
+vi etc/wms.properties.sh
 ```
 
-**Note:** This is useful for development environments where you need to customize database settings, user names, or WMS settings without affecting the repository.
+**Note:** The example files (`.example`) are tracked in Git and serve as
+templates. Your local files (without `.example`) contain your actual
+credentials and are ignored by Git.
 
 ## Acknowledgments
 
