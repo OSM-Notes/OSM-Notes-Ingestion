@@ -278,6 +278,45 @@ function __loadCheckNotes {
   return 1
  fi
 
+ # Post-process CSV files to remove part_id column (last column)
+ # AWK generates 8 columns for notes (with id_country,part_id), 7 for comments (with part_id), 4 for text (with part_id)
+ # Check tables have 7 columns for notes (with id_country, no part_id), 6 for comments (no part_id), 3 for text (no part_id)
+ # Remove part_id (last field) from each line using awk
+ __logd "Removing part_id column (last column) from CSV files for check tables..."
+ local TEMP_NOTES_FILE
+ TEMP_NOTES_FILE=$(mktemp)
+ # For notes: keep first 7 fields (including id_country), remove part_id (8th field)
+ awk -F',' 'BEGIN{OFS=","} {for(i=1;i<=7;i++) {if(i>1) printf ","; printf "%s", $i} printf "\n"}' "${OUTPUT_NOTES_FILE}" > "${TEMP_NOTES_FILE}" || {
+  __loge "ERROR: Failed to remove part_id column from notes CSV"
+  __log_finish
+  return 1
+ }
+ mv "${TEMP_NOTES_FILE}" "${OUTPUT_NOTES_FILE}"
+
+ local TEMP_COMMENTS_FILE
+ TEMP_COMMENTS_FILE=$(mktemp)
+ # For comments: remove last field (part_id), keep first 6 fields
+ awk -F',' 'BEGIN{OFS=","} {for(i=1;i<=6;i++) {if(i>1) printf ","; printf "%s", $i} printf "\n"}' "${OUTPUT_NOTE_COMMENTS_FILE}" > "${TEMP_COMMENTS_FILE}" || {
+  __loge "ERROR: Failed to remove part_id column from comments CSV"
+  __log_finish
+  return 1
+ }
+ mv "${TEMP_COMMENTS_FILE}" "${OUTPUT_NOTE_COMMENTS_FILE}"
+
+ local TEMP_TEXT_FILE
+ TEMP_TEXT_FILE=$(mktemp)
+ # For text comments: remove last field (part_id), keep first 3 fields
+ # Note: body field may contain commas inside quotes, but part_id is always last field after quotes
+ # Use Python or perl for proper CSV parsing, or use simple sed for trailing comma
+ sed 's/,$//' "${OUTPUT_TEXT_COMMENTS_FILE}" > "${TEMP_TEXT_FILE}" || {
+  __loge "ERROR: Failed to remove part_id column from text comments CSV"
+  __log_finish
+  return 1
+ }
+ mv "${TEMP_TEXT_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}"
+
+ __logd "CSV files post-processed: removed part_id column"
+
  # Export variables for envsubst
  # envsubst requires variables to be exported to replace them
  export OUTPUT_NOTES_FILE

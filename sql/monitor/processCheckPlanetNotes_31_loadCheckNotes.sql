@@ -3,12 +3,15 @@
 -- COPY commands are converted to \copy by the script for client-side execution
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-07
+-- Version: 2025-12-08
 
 TRUNCATE TABLE notes_check;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Uploading check notes' AS Text;
-COPY notes_check (note_id, latitude, longitude, created_at, status, closed_at)
+-- CSV format after processing: note_id,latitude,longitude,created_at,status,closed_at,id_country
+-- (part_id column is removed by script before loading)
+-- Table has: note_id,latitude,longitude,created_at,status,closed_at,id_country
+COPY notes_check (note_id, latitude, longitude, created_at, status, closed_at, id_country)
 FROM '${OUTPUT_NOTES_FILE}' csv;
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
  'Statistics on check notes' AS Text;
