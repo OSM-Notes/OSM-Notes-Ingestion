@@ -37,8 +37,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
-VERSION="2025-12-07"
+# Version: 2025-12-08
+VERSION="2025-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -261,9 +261,57 @@ function __loadCheckNotes {
  local TEMP_SQL_FILE
  TEMP_SQL_FILE=$(mktemp)
 
+ # Verify CSV files exist before attempting to load
+ if [[ ! -f "${OUTPUT_NOTES_FILE}" ]]; then
+  __loge "ERROR: Notes CSV file does not exist: ${OUTPUT_NOTES_FILE}"
+  __log_finish
+  return 1
+ fi
+ if [[ ! -f "${OUTPUT_NOTE_COMMENTS_FILE}" ]]; then
+  __loge "ERROR: Comments CSV file does not exist: ${OUTPUT_NOTE_COMMENTS_FILE}"
+  __log_finish
+  return 1
+ fi
+ if [[ ! -f "${OUTPUT_TEXT_COMMENTS_FILE}" ]]; then
+  __loge "ERROR: Text comments CSV file does not exist: ${OUTPUT_TEXT_COMMENTS_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Export variables for envsubst
+ # envsubst requires variables to be exported to replace them
+ export OUTPUT_NOTES_FILE
+ export OUTPUT_NOTE_COMMENTS_FILE
+ export OUTPUT_TEXT_COMMENTS_FILE
+
+ __logd "Exporting variables for envsubst:"
+ __logd "  OUTPUT_NOTES_FILE=${OUTPUT_NOTES_FILE}"
+ __logd "  OUTPUT_NOTE_COMMENTS_FILE=${OUTPUT_NOTE_COMMENTS_FILE}"
+ __logd "  OUTPUT_TEXT_COMMENTS_FILE=${OUTPUT_TEXT_COMMENTS_FILE}"
+
  # Substitute variables first
  envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
-  < "${POSTGRES_31_LOAD_CHECK_NOTES}" > "${TEMP_SQL_FILE}.tmp" || true
+  < "${POSTGRES_31_LOAD_CHECK_NOTES}" > "${TEMP_SQL_FILE}.tmp"
+ local ENVSUBST_EXIT_CODE=$?
+
+ if [[ ${ENVSUBST_EXIT_CODE} -ne 0 ]]; then
+  __loge "ERROR: envsubst failed with exit code ${ENVSUBST_EXIT_CODE}"
+  rm -f "${TEMP_SQL_FILE}.tmp" "${TEMP_SQL_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ # Verify that variables were actually replaced
+ if grep -q '\${OUTPUT_NOTES_FILE}\|\${OUTPUT_NOTE_COMMENTS_FILE}\|\${OUTPUT_TEXT_COMMENTS_FILE}' "${TEMP_SQL_FILE}.tmp" 2> /dev/null; then
+  __loge "ERROR: Variables were not replaced by envsubst. Check variable export."
+  __loge "First 20 lines of generated SQL:"
+  head -n 20 "${TEMP_SQL_FILE}.tmp" | while IFS= read -r line; do
+   __loge "  ${line}"
+  done || true
+  rm -f "${TEMP_SQL_FILE}.tmp" "${TEMP_SQL_FILE}"
+  __log_finish
+  return 1
+ fi
 
  # Convert COPY FROM to \copy FROM (client-side copy)
  # \copy works from client side, so files don't need to be on server
