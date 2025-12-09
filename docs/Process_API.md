@@ -243,7 +243,7 @@ unset SKIP_XML_VALIDATION
 # Error: Cannot connect to database
 # Solution: Check database is running and credentials in etc/properties.sh
 # (created from etc/properties.sh.example)
-psql -d osm_notes -c "SELECT 1;"
+psql -d notes -c "SELECT 1;"
 ```
 
 **Network connectivity issues:**
@@ -265,7 +265,7 @@ curl -I "https://api.openstreetmap.org/api/0.6/notes"
 ```bash
 # Error: No last update. Please load notes first.
 # Diagnosis:
-psql -d osm_notes -c "SELECT * FROM max_note_timestamp;"
+psql -d notes -c "SELECT * FROM max_note_timestamp;"
 
 # Solution: Run processPlanetNotes.sh --base first to initialize database
 ./bin/process/processPlanetNotes.sh --base
@@ -527,22 +527,22 @@ processAPINotes.sh
 
 ```bash
 # Query the last update timestamp
-psql -d osm_notes -c "SELECT last_update FROM properties WHERE key = 'last_update_api';"
+psql -d notes -c "SELECT last_update FROM properties WHERE key = 'last_update_api';"
 ```
 
 #### Check API Tables
 
 ```bash
 # View notes in API tables (before sync)
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes_api;"
-psql -d osm_notes -c "SELECT note_id, latitude, longitude, status FROM notes_api LIMIT 10;"
+psql -d notes -c "SELECT COUNT(*) FROM notes_api;"
+psql -d notes -c "SELECT note_id, latitude, longitude, status FROM notes_api LIMIT 10;"
 ```
 
 #### Check Processing Status
 
 ```bash
 # Check if Planet sync was triggered
-psql -d osm_notes -c "SELECT * FROM properties WHERE key LIKE '%planet%';"
+psql -d notes -c "SELECT * FROM properties WHERE key LIKE '%planet%';"
 ```
 
 ### Testing and Development
@@ -1210,7 +1210,7 @@ grep -i "api\|download\|timeout" "$LATEST_DIR/processAPINotes.log" | tail -20
 **Diagnosis:**
 ```bash
 # Check if base tables exist
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
   SELECT table_name 
   FROM information_schema.tables 
   WHERE table_schema = 'public' 
@@ -1243,7 +1243,7 @@ LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
 grep -i "gap\|missing" "$LATEST_DIR/processAPINotes.log"
 
 # Check last update timestamp
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
   SELECT * FROM properties WHERE key = 'last_update_api';
 "
 ```
@@ -1348,10 +1348,10 @@ tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
 ls -la /tmp/processAPINotes_failed_execution
 
 # Verify database connection
-psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;"
+psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;"
 
 # Check last update time
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
   SELECT * FROM properties WHERE key = 'last_update_api';
 "
 ```

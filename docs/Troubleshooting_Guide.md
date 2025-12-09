@@ -40,7 +40,7 @@ echo "API log: $LATEST_API"
 echo "Planet log: $LATEST_PLANET"
 
 # Check database connection
-psql -d "${DBNAME:-osm_notes}" -c "SELECT version();"
+psql -d "${DBNAME:-notes}" -c "SELECT version();"
 
 # Check disk space
 df -h
@@ -68,7 +68,7 @@ free -h
 sudo systemctl status postgresql
 
 # Test connection
-psql -d "${DBNAME:-osm_notes}" -c "SELECT 1;"
+psql -d "${DBNAME:-notes}" -c "SELECT 1;"
 
 # Check credentials in properties file
 # Note: etc/properties.sh should be created from etc/properties.sh.example
@@ -79,7 +79,7 @@ else
 fi
 
 # Verify database exists
-psql -l | grep "${DBNAME:-osm_notes}"
+psql -l | grep "${DBNAME:-notes}"
 
 # Check firewall (if remote database)
 sudo iptables -L | grep postgresql
@@ -100,8 +100,8 @@ sudo iptables -L | grep postgresql
 
 3. **Create database if missing:**
    ```bash
-   createdb "${DBNAME:-osm_notes}"
-   psql -d "${DBNAME:-osm_notes}" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+   createdb "${DBNAME:-notes}"
+   psql -d "${DBNAME:-notes}" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
    ```
 
 4. **Check firewall rules** (if using remote database):
@@ -125,10 +125,10 @@ sudo iptables -L | grep postgresql
 df -h
 
 # Check database size
-psql -d "${DBNAME:-osm_notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:-osm_notes}'));"
+psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:-notes}'));"
 
 # Check table sizes
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
 SELECT 
   schemaname,
   tablename,
@@ -156,8 +156,8 @@ du -sh /tmp/process*_* 2>/dev/null
 
 2. **Vacuum database:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "VACUUM FULL;"
-   psql -d "${DBNAME:-osm_notes}" -c "VACUUM ANALYZE;"
+   psql -d "${DBNAME:-notes}" -c "VACUUM FULL;"
+   psql -d "${DBNAME:-notes}" -c "VACUUM ANALYZE;"
    ```
 
 3. **Archive old data** (if applicable):
@@ -178,10 +178,10 @@ du -sh /tmp/process*_* 2>/dev/null
 
 ```bash
 # Analyze query performance
-psql -d "${DBNAME:-osm_notes}" -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
+psql -d "${DBNAME:-notes}" -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 
 # Check for missing indexes
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
 SELECT 
   schemaname,
   tablename,
@@ -195,7 +195,7 @@ ORDER BY pg_relation_size(indexrelid) DESC;
 "
 
 # Check table statistics
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
 SELECT 
   schemaname,
   tablename,
@@ -214,17 +214,17 @@ ORDER BY n_dead_tup DESC;
 
 1. **Update statistics:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "ANALYZE;"
+   psql -d "${DBNAME:-notes}" -c "ANALYZE;"
    ```
 
 2. **Rebuild indexes:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "REINDEX DATABASE ${DBNAME:-osm_notes};"
+   psql -d "${DBNAME:-notes}" -c "REINDEX DATABASE ${DBNAME:-notes};"
    ```
 
 3. **Vacuum dead rows:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "VACUUM FULL notes;"
+   psql -d "${DBNAME:-notes}" -c "VACUUM FULL notes;"
    ```
 
 4. **Check for missing indexes** (review query plans and add indexes as needed)
@@ -247,13 +247,13 @@ ORDER BY n_dead_tup DESC;
 
 ```bash
 # Check PostGIS extension
-psql -d "${DBNAME:-osm_notes}" -c "SELECT PostGIS_version();"
+psql -d "${DBNAME:-notes}" -c "SELECT PostGIS_version();"
 
 # Check if extension is enabled
-psql -d "${DBNAME:-osm_notes}" -c "\dx" | grep postgis
+psql -d "${DBNAME:-notes}" -c "\dx" | grep postgis
 
 # Test spatial functions
-psql -d "${DBNAME:-osm_notes}" -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
+psql -d "${DBNAME:-notes}" -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
 ```
 
 **Solutions:**
@@ -264,12 +264,12 @@ psql -d "${DBNAME:-osm_notes}" -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_Make
    sudo apt-get install postgis postgresql-XX-postgis-3
 
    # Enable extension in database
-   psql -d "${DBNAME:-osm_notes}" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+   psql -d "${DBNAME:-notes}" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
    ```
 
 2. **Verify PostGIS version** (3.0+ recommended):
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "SELECT PostGIS_version();"
+   psql -d "${DBNAME:-notes}" -c "SELECT PostGIS_version();"
    ```
 
 3. **Re-run geographic data processing:**
@@ -304,10 +304,10 @@ if [ -f /tmp/processAPINotes_failed_execution ]; then
 fi
 
 # Check database connection
-psql -d "${DBNAME:-osm_notes}" -c "SELECT 1;" 2>&1
+psql -d "${DBNAME:-notes}" -c "SELECT 1;" 2>&1
 
 # Check base tables exist
-psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;" 2>&1
+psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;" 2>&1
 ```
 
 **Solutions:**
@@ -344,7 +344,7 @@ psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;" 2>&1
 
 ```bash
 # Check for gaps in note sequence
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
 SELECT 
   note_id,
   LAG(note_id) OVER (ORDER BY note_id) as prev_id,
@@ -355,7 +355,7 @@ LIMIT 20;
 "
 
 # Check last processed sequence
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
 SELECT value FROM properties WHERE key = 'last_update';
 "
 ```
@@ -554,7 +554,7 @@ df -h
 du -sh /tmp/processPlanetNotes_* 2>/dev/null | sort -h
 
 # Check database size
-psql -d "${DBNAME:-osm_notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:-osm_notes}'));"
+psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:-notes}'));"
 ```
 
 **Solutions:**
@@ -680,7 +680,7 @@ tail -50 /var/log/geoserver/geoserver.log 2>/dev/null || \
 tail -50 ~/geoserver/logs/geoserver.log 2>/dev/null
 
 # Check database connection from GeoServer perspective
-psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
+psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
 ```
 
 **Solutions:**
@@ -716,10 +716,10 @@ psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
 ```bash
 # Check WMS table has data
-psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
+psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
 # Check triggers are active
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
 SELECT 
   tgname,
   tgenabled,
@@ -729,10 +729,10 @@ WHERE tgname LIKE '%wms%';
 "
 
 # Check if WMS schema exists
-psql -d "${DBNAME:-osm_notes}" -c "\dn wms"
+psql -d "${DBNAME:-notes}" -c "\dn wms"
 
 # Check main notes table has data
-psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;"
+psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;"
 ```
 
 **Solutions:**
@@ -746,13 +746,13 @@ psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;"
 2. **Check triggers are active:**
    ```bash
    # Reinstall triggers if needed
-   psql -d "${DBNAME:-osm_notes}" -f sql/wms/prepareDatabase.sql
+   psql -d "${DBNAME:-notes}" -f sql/wms/prepareDatabase.sql
    ```
 
 3. **Manually refresh WMS tables:**
    ```bash
    # Copy data from main tables to WMS tables
-   psql -d "${DBNAME:-osm_notes}" -c "
+   psql -d "${DBNAME:-notes}" -c "
    INSERT INTO wms.notes_wms
    SELECT * FROM notes
    ON CONFLICT (note_id) DO UPDATE SET
@@ -782,10 +782,10 @@ psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;"
 ps aux | grep geoserver | awk '{print $6/1024 " MB"}'
 
 # Check database query performance
-psql -d "${DBNAME:-osm_notes}" -c "EXPLAIN ANALYZE SELECT * FROM wms.notes_wms LIMIT 1000;"
+psql -d "${DBNAME:-notes}" -c "EXPLAIN ANALYZE SELECT * FROM wms.notes_wms LIMIT 1000;"
 
 # Check WMS table indexes
-psql -d "${DBNAME:-osm_notes}" -c "
+psql -d "${DBNAME:-notes}" -c "
 SELECT 
   indexname,
   indexdef
@@ -802,8 +802,8 @@ WHERE schemaname = 'wms';
 
 3. **Optimize database:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "ANALYZE wms.notes_wms;"
-   psql -d "${DBNAME:-osm_notes}" -c "VACUUM wms.notes_wms;"
+   psql -d "${DBNAME:-notes}" -c "ANALYZE wms.notes_wms;"
+   psql -d "${DBNAME:-notes}" -c "VACUUM wms.notes_wms;"
    ```
 
 4. **Increase GeoServer memory** (if needed):
@@ -926,7 +926,7 @@ grep "Processing time\|Total time" /tmp/process*_*/process*.log | tail -10
 top -bn1 | grep -E "processAPI|processPlanet|updateCountries"
 
 # Check database performance
-psql -d "${DBNAME:-osm_notes}" -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
+psql -d "${DBNAME:-notes}" -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 
 # Check parallel processing configuration
 echo "MAX_THREADS: ${MAX_THREADS:-$(nproc)}"
@@ -936,8 +936,8 @@ echo "MAX_THREADS: ${MAX_THREADS:-$(nproc)}"
 
 1. **Optimize database:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "ANALYZE;"
-   psql -d "${DBNAME:-osm_notes}" -c "VACUUM FULL;"
+   psql -d "${DBNAME:-notes}" -c "ANALYZE;"
+   psql -d "${DBNAME:-notes}" -c "VACUUM FULL;"
    ```
 
 2. **Adjust parallel processing:**
@@ -1198,8 +1198,8 @@ If processing was interrupted:
 
 1. **Check what was completed:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;"
-   psql -d "${DBNAME:-osm_notes}" -c "SELECT MAX(created_at) FROM notes;"
+   psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;"
+   psql -d "${DBNAME:-notes}" -c "SELECT MAX(created_at) FROM notes;"
    ```
 
 2. **For `--base` mode:**
@@ -1216,7 +1216,7 @@ If database corruption is suspected:
 
 1. **Backup current state:**
    ```bash
-   pg_dump "${DBNAME:-osm_notes}" > backup_before_recovery_$(date +%Y%m%d).sql
+   pg_dump "${DBNAME:-notes}" > backup_before_recovery_$(date +%Y%m%d).sql
    ```
 
 2. **Restore from Planet:**
@@ -1238,8 +1238,8 @@ If database corruption is suspected:
 
 5. **Verify recovery:**
    ```bash
-   psql -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM notes;"
-   psql -d "${DBNAME:-osm_notes}" -c "SELECT MAX(created_at) FROM notes;"
+   psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;"
+   psql -d "${DBNAME:-notes}" -c "SELECT MAX(created_at) FROM notes;"
    ```
 
 ---

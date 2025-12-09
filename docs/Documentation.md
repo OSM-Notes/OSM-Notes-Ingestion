@@ -915,10 +915,10 @@ grep -i warn "$LATEST_DIR/processAPINotes.log"
 
 ```bash
 # Check PostgreSQL application name (shows which script is using DB)
-psql -d osm_notes -c "SELECT application_name, state, query_start FROM pg_stat_activity WHERE application_name LIKE 'process%';"
+psql -d notes -c "SELECT application_name, state, query_start FROM pg_stat_activity WHERE application_name LIKE 'process%';"
 
 # Monitor active connections
-psql -d osm_notes -c "SELECT count(*) FROM pg_stat_activity WHERE datname = 'osm_notes';"
+psql -d notes -c "SELECT count(*) FROM pg_stat_activity WHERE datname = 'notes';"
 ```
 
 ### Cron Job Configuration
@@ -1026,8 +1026,8 @@ cp etc/properties.sh.example etc/properties.sh
 vi etc/properties.sh
 
 # Step 3: Create database and extensions
-createdb osm_notes
-psql -d osm_notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+createdb notes
+psql -d notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
 # Step 4: Load historical data from Planet (takes 1-2 hours)
 ./bin/process/processPlanetNotes.sh --base
@@ -1055,13 +1055,13 @@ crontab -e
 
 ```bash
 # Check notes count
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+psql -d notes -c "SELECT COUNT(*) FROM notes;"
 
 # Check countries loaded
-psql -d osm_notes -c "SELECT COUNT(*) FROM countries;"
+psql -d notes -c "SELECT COUNT(*) FROM countries;"
 
 # Verify WMS tables (if installed)
-psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
+psql -d notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 ```
 
 ### Use Case 2: Production Deployment
@@ -1073,11 +1073,11 @@ psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 ```bash
 # Step 1: Production database setup
 # Use a dedicated PostgreSQL instance with proper backups
-createdb -E UTF8 osm_notes
-psql -d osm_notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+createdb -E UTF8 notes
+psql -d notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
 # Step 2: Configure production settings
-export DBNAME=osm_notes
+export DBNAME=notes
 export ADMIN_EMAIL="admin@yourdomain.com"
 export SEND_ALERT_EMAIL=true
 export LOG_LEVEL=WARN  # Reduce log verbosity in production
@@ -1119,11 +1119,11 @@ if [ -f /tmp/processAPINotes_failed_execution ]; then
 fi
 
 # Check database size
-DB_SIZE=$(psql -d osm_notes -t -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));")
+DB_SIZE=$(psql -d notes -t -c "SELECT pg_size_pretty(pg_database_size('notes'));")
 echo "Database size: $DB_SIZE"
 
 # Check note count
-NOTE_COUNT=$(psql -d osm_notes -t -c "SELECT COUNT(*) FROM notes;")
+NOTE_COUNT=$(psql -d notes -t -c "SELECT COUNT(*) FROM notes;")
 echo "Total notes: $NOTE_COUNT"
 EOF
 
@@ -1142,7 +1142,7 @@ chmod +x /usr/local/bin/check-osm-notes-health.sh
 ```bash
 # Step 1: Ensure OSM-Notes-Ingestion is running and syncing
 # Verify data is being updated
-psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+psql -d notes -c "SELECT MAX(created_at) FROM notes;"
 
 # Step 2: Set up ETL from ingestion to analytics
 # The analytics system reads from the same database
@@ -1161,7 +1161,7 @@ psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
 **Data Flow**:
 
 ```text
-OSM API → processAPINotes.sh → PostgreSQL (osm_notes)
+OSM API → processAPINotes.sh → PostgreSQL (notes)
                                            │
                                            ▼
                               ETL Process (OSM-Notes-Analytics)
@@ -1174,7 +1174,7 @@ OSM API → processAPINotes.sh → PostgreSQL (osm_notes)
 
 ```bash
 # Check ingestion is working
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes WHERE created_at > NOW() - INTERVAL '1 hour';"
+psql -d notes -c "SELECT COUNT(*) FROM notes WHERE created_at > NOW() - INTERVAL '1 hour';"
 
 # Check ETL is processing
 # (Query analytics database)
@@ -1201,7 +1201,7 @@ curl "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetC
 # - Open JOSM
 # - Imagery → Add WMS Layer
 # - URL: http://localhost:8080/geoserver/wms
-# - Select layer: osm_notes:notes_wms
+# - Select layer: notes:notes_wms
 ```
 
 **Configuration for External Access**:
@@ -1309,11 +1309,11 @@ psql -d osm_notes_test -c "SELECT COUNT(*) FROM notes;"
 
 ```bash
 # Step 1: Assess damage
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
-psql -d osm_notes -c "SELECT COUNT(*) FROM countries;"
+psql -d notes -c "SELECT COUNT(*) FROM notes;"
+psql -d notes -c "SELECT COUNT(*) FROM countries;"
 
 # Step 2: Backup current state (if possible)
-pg_dump osm_notes > backup_before_recovery.sql
+pg_dump notes > backup_before_recovery.sql
 
 # Step 3: Restore from Planet (full reload)
 ./bin/process/processPlanetNotes.sh --base
@@ -1327,8 +1327,8 @@ pg_dump osm_notes > backup_before_recovery.sql
 ./bin/scripts/exportMaritimesBackup.sh
 
 # Step 6: Verify recovery
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
-psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+psql -d notes -c "SELECT COUNT(*) FROM notes;"
+psql -d notes -c "SELECT MAX(created_at) FROM notes;"
 
 # Step 7: Resume normal operations
 # API processing will catch up with recent notes
@@ -1339,7 +1339,7 @@ psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
 ```bash
 # Set up regular backups
 # Daily database backup
-0 1 * * * pg_dump osm_notes | gzip > /backups/osm_notes_$(date +\%Y\%m\%d).sql.gz
+0 1 * * * pg_dump notes | gzip > /backups/osm_notes_$(date +\%Y\%m\%d).sql.gz
 
 # Weekly full backup including boundaries
 0 2 * * 0 ./bin/scripts/exportCountriesBackup.sh && ./bin/scripts/exportMaritimesBackup.sh
@@ -1356,11 +1356,11 @@ psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
 ./bin/monitor/analyzeDatabasePerformance.sh
 
 # Step 2: Review query performance
-psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes WHERE id_country = 1;"
+psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes WHERE id_country = 1;"
 
 # Step 3: Optimize database
-psql -d osm_notes -c "ANALYZE;"
-psql -d osm_notes -c "VACUUM FULL notes;"
+psql -d notes -c "ANALYZE;"
+psql -d notes -c "VACUUM FULL notes;"
 
 # Step 4: Adjust parallel processing
 # If memory is constrained, reduce MAX_THREADS
@@ -1412,7 +1412,7 @@ cp etc/properties.sh.example etc/properties.sh
 # Edit etc/properties.sh:
 DB_HOST=db-server.example.com
 DB_PORT=5432
-DBNAME=osm_notes
+DBNAME=notes
 DB_USER=osm_user
 DB_PASSWORD=secure_password
 
@@ -1446,13 +1446,13 @@ if [ -f /tmp/processAPINotes_failed_execution ]; then
 fi
 
 # Check database connectivity
-if ! psql -d osm_notes -c "SELECT 1;" > /dev/null 2>&1; then
+if ! psql -d notes -c "SELECT 1;" > /dev/null 2>&1; then
     echo "CRITICAL: Database connection failed"
     exit 2
 fi
 
 # Check data freshness (notes updated in last hour)
-LAST_UPDATE=$(psql -d osm_notes -t -c "SELECT MAX(created_at) FROM notes;")
+LAST_UPDATE=$(psql -d notes -t -c "SELECT MAX(created_at) FROM notes;")
 if [ -z "$LAST_UPDATE" ]; then
     echo "WARNING: No notes found"
     exit 1
@@ -1478,9 +1478,9 @@ cat > /usr/local/bin/osm-notes-exporter.sh << 'EOF'
 METRICS_FILE="/var/lib/prometheus/node-exporter/osm-notes.prom"
 
 # Get metrics
-NOTE_COUNT=$(psql -d osm_notes -t -c "SELECT COUNT(*) FROM notes;")
-OPEN_NOTES=$(psql -d osm_notes -t -c "SELECT COUNT(*) FROM notes WHERE status = 'open';")
-LAST_UPDATE=$(psql -d osm_notes -t -c "SELECT EXTRACT(EPOCH FROM MAX(created_at)) FROM notes;")
+NOTE_COUNT=$(psql -d notes -t -c "SELECT COUNT(*) FROM notes;")
+OPEN_NOTES=$(psql -d notes -t -c "SELECT COUNT(*) FROM notes WHERE status = 'open';")
+LAST_UPDATE=$(psql -d notes -t -c "SELECT EXTRACT(EPOCH FROM MAX(created_at)) FROM notes;")
 
 # Write metrics
 cat > "$METRICS_FILE" << METRICS
@@ -1643,8 +1643,8 @@ tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
 ./bin/scripts/exportMaritimesBackup.sh
 
 # Database maintenance
-psql -d osm_notes -c "VACUUM ANALYZE notes;"
-psql -d osm_notes -c "VACUUM ANALYZE comments;"
+psql -d notes -c "VACUUM ANALYZE notes;"
+psql -d notes -c "VACUUM ANALYZE comments;"
 ```
 
 **Monthly Tasks**:
@@ -1654,7 +1654,7 @@ psql -d osm_notes -c "VACUUM ANALYZE comments;"
 ./bin/process/processPlanetNotes.sh
 
 # Database backup
-pg_dump osm_notes | gzip > backup_$(date +%Y%m%d).sql.gz
+pg_dump notes | gzip > backup_$(date +%Y%m%d).sql.gz
 
 # Review system performance
 ./bin/monitor/analyzeDatabasePerformance.sh > performance_report.txt
@@ -1729,7 +1729,7 @@ ORDER BY created_at DESC;
 
 ```bash
 # Export notes to CSV
-psql -d osm_notes -c "
+psql -d notes -c "
 COPY (
     SELECT 
         id,
@@ -1745,7 +1745,7 @@ COPY (
 
 # Export to GeoJSON
 ogr2ogr -f GeoJSON notes_export.geojson \
-    PG:"dbname=osm_notes" \
+    PG:"dbname=notes" \
     -sql "SELECT id, created_at, status, location FROM notes WHERE created_at > NOW() - INTERVAL '7 days'"
 ```
 
@@ -1754,7 +1754,7 @@ ogr2ogr -f GeoJSON notes_export.geojson \
 1. **JOSM**:
    - Imagery → Add WMS Layer
    - URL: `http://your-server:8080/geoserver/wms`
-   - Layer: `osm_notes:notes_wms`
+   - Layer: `notes:notes_wms`
 
 2. **Vespucci**:
    - Menu → Imagery → Add WMS Layer
@@ -1839,9 +1839,9 @@ ORDER BY hour_of_day;
 
 ```bash
 # Step 1: Set up read-only database user for web app
-psql -d osm_notes << EOF
+psql -d notes << EOF
 CREATE USER webapp_user WITH PASSWORD 'secure_password';
-GRANT CONNECT ON DATABASE osm_notes TO webapp_user;
+GRANT CONNECT ON DATABASE notes TO webapp_user;
 GRANT USAGE ON SCHEMA public TO webapp_user;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO webapp_user;
 GRANT SELECT ON ALL TABLES IN SCHEMA wms TO webapp_user;
@@ -1857,7 +1857,7 @@ app = Flask(__name__)
 
 def get_db_connection():
     return psycopg2.connect(
-        dbname='osm_notes',
+        dbname='notes',
         user='webapp_user',
         password='secure_password',
         host='localhost'
@@ -2378,16 +2378,16 @@ echo "Planet log: $LATEST_PLANET"
 
 ```bash
 # Test database connection
-psql -d osm_notes -c "SELECT 1;"
+psql -d notes -c "SELECT 1;"
 
 # Check table counts
-psql -d osm_notes -c "SELECT 'notes' as table, COUNT(*) FROM notes UNION ALL SELECT 'countries', COUNT(*) FROM countries;"
+psql -d notes -c "SELECT 'notes' as table, COUNT(*) FROM notes UNION ALL SELECT 'countries', COUNT(*) FROM countries;"
 
 # Check last update
-psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+psql -d notes -c "SELECT MAX(created_at) FROM notes;"
 
 # Check database size
-psql -d osm_notes -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));"
+psql -d notes -c "SELECT pg_size_pretty(pg_database_size('notes'));"
 ```
 
 **Check Network Connectivity:**
@@ -2412,7 +2412,7 @@ curl -I "https://planet.openstreetmap.org/planet/notes/"
 ```bash
 # Diagnosis
 systemctl status postgresql
-psql -d osm_notes -c "SELECT 1;"
+psql -d notes -c "SELECT 1;"
 # Check if properties.sh exists, if not create from example
 if [[ -f etc/properties.sh ]]; then
   cat etc/properties.sh | grep -i db
@@ -2428,7 +2428,7 @@ sudo systemctl start postgresql
 cp etc/properties.sh.example etc/properties.sh
 # Then check credentials in etc/properties.sh
 # 3. Verify database exists
-psql -l | grep osm_notes
+psql -l | grep notes
 
 # 4. Check firewall if using remote database
 ```
@@ -2438,12 +2438,12 @@ psql -l | grep osm_notes
 ```bash
 # Diagnosis
 df -h
-psql -d osm_notes -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));"
+psql -d notes -c "SELECT pg_size_pretty(pg_database_size('notes'));"
 
 # Solutions
 # 1. Free up disk space
 # 2. Vacuum database
-psql -d osm_notes -c "VACUUM FULL;"
+psql -d notes -c "VACUUM FULL;"
 # 3. Consider archiving old data
 ```
 
@@ -2451,13 +2451,13 @@ psql -d osm_notes -c "VACUUM FULL;"
 
 ```bash
 # Diagnosis
-psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
+psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 
 # Solutions
 # 1. Update statistics
-psql -d osm_notes -c "ANALYZE;"
+psql -d notes -c "ANALYZE;"
 # 2. Rebuild indexes
-psql -d osm_notes -c "REINDEX DATABASE osm_notes;"
+psql -d notes -c "REINDEX DATABASE notes;"
 # 3. Check for missing indexes
 ```
 
@@ -2482,7 +2482,7 @@ grep -i "error\|failed" "$LATEST_DIR/processAPINotes.log" | tail -20
 
 ```bash
 # Diagnosis
-psql -d osm_notes -c "SELECT note_id, LAG(note_id) OVER (ORDER BY note_id) as prev_id, note_id - LAG(note_id) OVER (ORDER BY note_id) as gap FROM notes ORDER BY note_id DESC LIMIT 10;"
+psql -d notes -c "SELECT note_id, LAG(note_id) OVER (ORDER BY note_id) as prev_id, note_id - LAG(note_id) OVER (ORDER BY note_id) as gap FROM notes ORDER BY note_id DESC LIMIT 10;"
 
 # Solutions
 # 1. Review gap details in logs
@@ -2541,12 +2541,12 @@ tail -f /var/log/geoserver/geoserver.log
 
 ```bash
 # Diagnosis
-psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
+psql -d notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
 # Solutions
 # 1. Verify WMS tables are populated
 # 2. Check triggers are active
-psql -d osm_notes -c "SELECT * FROM pg_trigger WHERE tgname LIKE '%wms%';"
+psql -d notes -c "SELECT * FROM pg_trigger WHERE tgname LIKE '%wms%';"
 # 3. Manually refresh WMS tables if needed
 ```
 

@@ -742,7 +742,7 @@ file /path/to/planet-notes-latest.osm.bz2
 
 ```bash
 # Test database connection
-psql -d osm_notes -c "SELECT 1;"
+psql -d notes -c "SELECT 1;"
 
 # Check database is running
 systemctl status postgresql
@@ -761,7 +761,7 @@ fi
 - Verify PostgreSQL is running: `systemctl start postgresql`
 - Create `etc/properties.sh` from `etc/properties.sh.example` if it doesn't exist
 - Check database credentials in `etc/properties.sh`
-- Verify database exists: `psql -l | grep osm_notes`
+- Verify database exists: `psql -l | grep notes`
 - Check firewall rules if using remote database
 
 **4. Out of Memory (OOM) Errors**
@@ -814,7 +814,7 @@ df -h
 du -sh /tmp/processPlanetNotes_*
 
 # Check database size
-psql -d osm_notes -c "SELECT pg_size_pretty(pg_database_size('osm_notes'));"
+psql -d notes -c "SELECT pg_size_pretty(pg_database_size('notes'));"
 ```
 
 **Solutions:**
@@ -898,20 +898,20 @@ grep -i "overpass\|rate\|limit" /tmp/processPlanetNotes_*/processPlanetNotes.log
 
 ```bash
 # Check PostGIS extension
-psql -d osm_notes -c "SELECT PostGIS_version();"
+psql -d notes -c "SELECT PostGIS_version();"
 
 # Check if extension is enabled
-psql -d osm_notes -c "\dx" | grep postgis
+psql -d notes -c "\dx" | grep postgis
 
 # Test spatial functions
-psql -d osm_notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
+psql -d notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
 ```
 
 **Solutions:**
 
 - Install PostGIS extension:
   ```bash
-  psql -d osm_notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+  psql -d notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
   ```
 - Verify PostGIS version (3.0+ recommended)
 - Re-run geographic data processing:
@@ -952,7 +952,7 @@ If processing was interrupted:
 
 1. Check what was completed:
    ```bash
-   psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+   psql -d notes -c "SELECT COUNT(*) FROM notes;"
    ```
 
 2. For `--base` mode: Re-run from scratch (will drop and recreate tables)
@@ -968,11 +968,11 @@ If processing was interrupted:
 ps aux | grep processPlanetNotes.sh
 
 # Check database state
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
-psql -d osm_notes -c "SELECT COUNT(*) FROM countries;"
+psql -d notes -c "SELECT COUNT(*) FROM notes;"
+psql -d notes -c "SELECT COUNT(*) FROM countries;"
 
 # Check last update
-psql -d osm_notes -c "SELECT MAX(created_at) FROM notes;"
+psql -d notes -c "SELECT MAX(created_at) FROM notes;"
 ```
 
 **Monitor Processing:**
@@ -983,7 +983,7 @@ LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
 tail -f "$LATEST_DIR/processPlanetNotes.log"
 
 # Monitor database activity
-watch -n 5 'psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"'
+watch -n 5 'psql -d notes -c "SELECT COUNT(*) FROM notes;"'
 
 # Check for failed execution marker
 ls -la /tmp/processPlanetNotes_failed_execution
@@ -999,7 +999,7 @@ grep "Processing time" /tmp/processPlanetNotes_*/processPlanetNotes.log
 ps aux | grep processPlanetNotes | awk '{print $6/1024 " MB"}'
 
 # Check database performance
-psql -d osm_notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
+psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 ```
 
 #### Getting More Help

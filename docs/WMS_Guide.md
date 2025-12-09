@@ -152,7 +152,7 @@ example values with your actual configuration.
 1. **Database Configuration**
 
    ```bash
-   WMS_DBNAME="osm_notes"
+   WMS_DBNAME="notes"
    WMS_DBUSER="postgres"    # WMS-specific database user
    WMS_DBHOST="localhost"
    WMS_DBPORT="5432"
@@ -381,7 +381,7 @@ tail -f /opt/geoserver/logs/geoserver.log
 
 ```bash
 # Check WMS schema
-psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
+psql -d notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
 # Reinstall WMS components if needed
 ./bin/wms/wmsManager.sh install --force
@@ -398,13 +398,13 @@ psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
 ```bash
 # Check if notes data exists
-psql -d osm_notes -c "SELECT COUNT(*) FROM notes;"
+psql -d notes -c "SELECT COUNT(*) FROM notes;"
 
 # Verify WMS data population
-psql -d osm_notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
+psql -d notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 
 # Check triggers
-psql -d osm_notes -c "SELECT * FROM information_schema.triggers
+psql -d notes -c "SELECT * FROM information_schema.triggers
   WHERE trigger_name LIKE '%wms%';"
 ```
 
@@ -423,10 +423,10 @@ psql -d osm_notes -c "SELECT * FROM information_schema.triggers
 ps aux | grep geoserver
 
 # Optimize database
-psql -d osm_notes -c "VACUUM ANALYZE wms.notes_wms;"
+psql -d notes -c "VACUUM ANALYZE wms.notes_wms;"
 
 # Check indexes
-psql -d osm_notes -c "SELECT schemaname, tablename, indexname FROM pg_indexes
+psql -d notes -c "SELECT schemaname, tablename, indexname FROM pg_indexes
   WHERE schemaname = 'wms';"
 ```
 
@@ -444,7 +444,7 @@ psql -d osm_notes -c "SELECT schemaname, tablename, indexname FROM pg_indexes
 
 ```bash
 # Check database performance
-psql -d osm_notes -c \
+psql -d notes -c \
   "SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del 
   FROM pg_stat_user_tables WHERE schemaname = 'wms';"
 
@@ -483,10 +483,10 @@ journalctl -u geoserver -f
 
 ```bash
 # Recreate WMS schema
-psql -d osm_notes -f sql/wms/prepareDatabase.sql
+psql -d notes -f sql/wms/prepareDatabase.sql
 
 # Repopulate WMS data
-psql -d osm_notes -c "INSERT INTO wms.notes_wms 
+psql -d notes -c "INSERT INTO wms.notes_wms 
   SELECT note_id, extract(year from created_at), extract(year from closed_at),
     ST_SetSRID(ST_MakePoint(lon, lat), 4326) FROM notes 
     WHERE lon IS NOT NULL AND lat IS NOT NULL;"
@@ -691,7 +691,7 @@ ALERT_EMAIL="admin@yourdomain.com"
 
 # Check database connection
 check_database() {
-    psql -h localhost -U postgres -d osm_notes -c \
+    psql -h localhost -U postgres -d notes -c \
       "SELECT COUNT(*) FROM wms.notes_wms;" >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "$(date): Database connection OK" >> $LOG_FILE
@@ -817,7 +817,7 @@ systemctl status postgresql
 
 ```bash
 # Update database statistics
-psql -d osm_notes -c "ANALYZE wms.notes_wms;"
+psql -d notes -c "ANALYZE wms.notes_wms;"
 
 # Clean old logs
 find /opt/geoserver/logs -name "*.log.*" -mtime +7 -delete
@@ -830,7 +830,7 @@ apt list --upgradable | grep -E "(postgresql|geoserver)"
 
 ```bash
 # Full system backup
-pg_dump osm_notes > /backup/osm_notes_$(date +%Y%m).sql
+pg_dump notes > /backup/osm_notes_$(date +%Y%m).sql
 
 # GeoServer backup
 cp -r /opt/geoserver/data_dir /backup/geoserver_$(date +%Y%m)
@@ -846,7 +846,7 @@ cp -r /opt/geoserver/data_dir /backup/geoserver_$(date +%Y%m)
 
 BACKUP_DIR="/backup/database"
 DATE=$(date +%Y%m%d_%H%M%S)
-DB_NAME="osm_notes"
+DB_NAME="notes"
 
 # Create backup directory
 mkdir -p $BACKUP_DIR

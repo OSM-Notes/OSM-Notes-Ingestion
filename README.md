@@ -574,7 +574,7 @@ You can use the following script to remove components from this tool.
 This is useful if you have to recreate some parts, but the rest is working fine.
 
 ```bash
-# Remove all components from the database (uses default from properties: osm_notes)
+# Remove all components from the database (uses default from properties: notes)
 ~/OSM-Notes-Ingestion/bin/cleanupAll.sh
 
 # Clean only partitions
@@ -674,21 +674,21 @@ The project uses PostgreSQL for data storage. Before running the scripts, ensure
    **Option B: Password authentication**
 
    ```bash
-   echo "localhost:5432:osm_notes:myuser:your_password" > ~/.pgpass
+   echo "localhost:5432:notes:myuser:your_password" > ~/.pgpass
    chmod 600 ~/.pgpass
    ```
 
 3. **Test connection:**
 
    ```bash
-   psql -U myuser -d osm_notes -c "SELECT 1;"
+   psql -U myuser -d notes -c "SELECT 1;"
    ```
 
 ### Database Configuration
 
 The project is configured to use:
 
-- **Database:** `osm_notes`
+- **Database:** `notes` (default from `etc/properties.sh.example`)
 - **User:** `myuser`
 - **Authentication:** peer (uses system user)
 

@@ -10,7 +10,7 @@ If you're getting authentication errors, follow these steps:
 ### Step 1: Create the Database
 
 ```bash
-createdb osm-notes
+createdb notes
 ```
 
 ### Step 2: Create PostgreSQL User
@@ -26,14 +26,14 @@ sudo -u postgres createuser -d myuser
 ### Step 3: Grant Permissions
 
 ```bash
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"osm-notes\" TO myuser;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"notes\" TO myuser;"
 ```
 
 ### Step 4: Install Extensions
 
 ```bash
-psql -U myuser -d osm-notes -c 'CREATE EXTENSION postgis;'
-psql -U myuser -d osm-notes -c 'CREATE EXTENSION btree_gist;'
+psql -U myuser -d notes -c 'CREATE EXTENSION postgis;'
+psql -U myuser -d notes -c 'CREATE EXTENSION btree_gist;'
 ```
 
 ### Step 5: Configure Authentication
@@ -48,7 +48,7 @@ Add or modify these lines (before the default "peer" lines):
 
 ```conf
 # TYPE  DATABASE        USER            ADDRESS                 METHOD
-local   osm-notes       myuser                                  md5
+local   notes           myuser                                  md5
 local   all             myuser                                  md5
 ```
 
@@ -61,7 +61,7 @@ sudo systemctl reload postgresql
 ### Step 6: Test Connection
 
 ```bash
-psql -U myuser -d osm-notes -c "SELECT 1;"
+psql -U myuser -d notes -c "SELECT 1;"
 ```
 
 If this works, you're ready to go!
@@ -107,7 +107,7 @@ Step 5 above).
 sudo apt-get install postgresql-postgis
 
 # Enable in database
-psql -U myuser -d osm-notes -c 'CREATE EXTENSION postgis;'
+   psql -U myuser -d notes -c 'CREATE EXTENSION postgis;'
 ```
 
 ---
@@ -139,9 +139,9 @@ current system user:
 3. Create database and extensions:
 
    ```bash
-   createdb osm-notes
-   psql -d osm-notes -c 'CREATE EXTENSION postgis;'
-   psql -d osm-notes -c 'CREATE EXTENSION btree_gist;'
+   createdb notes
+   psql -d notes -c 'CREATE EXTENSION postgis;'
+   psql -d notes -c 'CREATE EXTENSION btree_gist;'
    ```
 
 ---
@@ -153,7 +153,7 @@ Run this script to verify your setup:
 ```bash
 #!/bin/bash
 
-DBNAME="osm-notes"
+DBNAME="notes"
 DB_USER="myuser"
 
 echo "=== PostgreSQL Setup Verification ==="
