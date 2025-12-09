@@ -1,28 +1,42 @@
 #!/bin/bash
 
-# Updates the current country and maritime boundaries, or
-# insert new ones.
+# Update Countries - Download and update country/maritime boundaries
+# Downloads boundaries from Overpass API and updates database, automatically
+# re-assigning countries for notes affected by boundary changes
 #
-# When running in update mode (default), it automatically re-assigns countries
-# for notes affected by boundary changes. This is much more efficient than
-# re-processing all notes.
+# For detailed documentation, see:
+#   - docs/Documentation.md (system overview, boundary processing)
+#   - docs/Country_Assignment_2D_Grid.md (country assignment strategy)
+#   - docs/Capital_Validation_Explanation.md (boundary validation)
+#   - bin/README.md (usage examples, parameters)
 #
-# To not remove all generated files, you can export this variable:
-#   export CLEAN=false
+# Quick Reference:
+#   Usage: ./updateCountries.sh [--base]
+#   --base: Recreate tables mode (drops and recreates boundary tables)
+#   (no flag): Update mode (updates existing boundaries, re-assigns affected notes)
+#   Examples: export LOG_LEVEL=DEBUG ; ./updateCountries.sh
 #
-# For contributing, please execute these commands before subimitting:
-# * shellcheck -x -o all updateCountries.sh
-# * shfmt -w -i 1 -sr -bn updateCountries.sh
+# Error Codes: See docs/Troubleshooting_Guide.md for complete list and solutions
+#   1) Help message displayed
+#   238) Previous execution failed (see docs/Troubleshooting_Guide.md#failed-execution)
+#   241) Library or utility missing
+#   242) Invalid argument
+#   243) Logger utility is missing
+#   249) Error downloading boundary
+#   250) Error GeoJSON conversion
+#   255) General error
 #
-# This is the list of error codes:
-# 1) Help message displayed
-# 238) Previous execution failed
-# 241) Library or utility missing
-# 242) Invalid argument
-# 243) Logger utility is missing
-# 249) Error downloading boundary
-# 250) Error GeoJSON conversion
-# 255) General error
+# Modes:
+#   --base: Recreate tables (drops and recreates boundary tables from scratch)
+#   (update): Update mode (updates existing boundaries, efficiently re-assigns only affected notes)
+#
+# Performance: See docs/Country_Assignment_2D_Grid.md#performance
+#   - Update mode: Only re-assigns notes affected by boundary changes (much faster)
+#   - Base mode: Full reload of all boundaries
+#
+# Dependencies: PostgreSQL, PostGIS, Overpass API, ogr2ogr, lib/osm-common/
+#
+# For contributing: shellcheck -x -o all updateCountries.sh && shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-08
