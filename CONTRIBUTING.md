@@ -771,10 +771,19 @@ The project uses a consolidation strategy to eliminate code duplication and impr
 
 ## Documentation
 
+### Documentation Strategy
+
+**Principle:** Detailed documentation in Markdown (docs/) + Concise comments in code with cross-references.
+
+- **Markdown (docs/)**: Large concepts, architecture, complete workflows, design decisions, extensive guides
+- **Code Comments**: Pointed references to documentation, implementation-specific explanations, parameters, returns, minimal examples
+
+**Rule of Thumb:** If it requires more than 2-3 lines to explain, it goes in Markdown with a reference from the code.
+
 ### Required Documentation
 
-1. **Script Headers**: Every script must have a comprehensive header
-2. **Function Documentation**: All functions must be documented
+1. **Script Headers**: Every script must have a comprehensive header following the standard format
+2. **Function Documentation**: All functions must be documented following the standard format
 3. **README Files**: Each directory should have a README.md
 4. **API Documentation**: Document any new APIs or interfaces
 5. **Configuration Documentation**: Document configuration options
@@ -782,40 +791,246 @@ The project uses a consolidation strategy to eliminate code duplication and impr
 
 ### Documentation Standards
 
-#### Script Documentation
+#### Script Header Standard (Bash)
+
+**Principle:** Concise header with references to detailed documentation in Markdown.
+
+**Standard Format:**
 
 ```bash
-# Brief description of what the script does
+#!/bin/bash
+
+# <Descriptive title>
+# <Brief purpose description - 1-2 lines maximum>
 #
-# Detailed explanation of functionality
-# * Key feature 1
-# * Key feature 2
-# * Key feature 3
+# For detailed documentation, see:
+#   - docs/<main_document>.md (architecture, complete workflows)
+#   - docs/<specific_document>.md (if applicable)
+#   - bin/README.md (usage examples, parameters)
 #
-# Usage examples:
-# * Example 1
-# * Example 2
+# Quick Reference:
+#   Usage: ./<script_name>.sh [options]
+#   Examples: export LOG_LEVEL=DEBUG ; ./<script_name>.sh
 #
-# Error codes:
-# 1: Help message
-# 241: Library missing
-# 242: Invalid argument
+# Error Codes: See docs/Troubleshooting_Guide.md for complete list
+#   1) Help message displayed
+#   238) Previous execution failed
+#   <other codes> (see docs/Troubleshooting_Guide.md for details)
 #
-# Author: [Your Name]
-# Version: [YYYY-MM-DD]
+# Dependencies: <brief list>
+#
+# For contributing: shellcheck -x -o all <script> && shfmt -w -i 1 -sr -bn <script>
+#
+# Author: Andres Gomez (AngocA)
+# Version: YYYY-MM-DD
+VERSION="YYYY-MM-DD"
 ```
 
-#### Function Documentation
+**Real Example:**
 
 ```bash
-# Brief description of what the function does
-# Parameters: [list of parameters]
-# Returns: [return value description]
-# Side effects: [any side effects]
-function __function_name {
+#!/bin/bash
+
+# Process API Notes - Incremental synchronization from OSM Notes API
+# Downloads, processes, and synchronizes new/updated notes from OSM API
+#
+# For detailed documentation, see:
+#   - docs/Process_API.md (complete workflow, architecture, troubleshooting)
+#   - docs/Documentation.md (system overview, data flow)
+#   - bin/README.md (usage examples, parameters)
+#
+# Quick Reference:
+#   Usage: ./processAPINotes.sh [--help]
+#   Examples: export LOG_LEVEL=DEBUG ; ./processAPINotes.sh
+#
+# Error Codes: See docs/Troubleshooting_Guide.md for complete list
+#   1) Help message displayed
+#   238) Previous execution failed
+#   241) Library or utility missing
+#
+# Dependencies: PostgreSQL, AWK, wget, lib/osm-common/
+#
+# Author: Andres Gomez (AngocA)
+# Version: 2025-12-08
+VERSION="2025-12-08"
+```
+
+#### Function Header Standard (Bash)
+
+**Principle:** Concise header with parameters, returns, and reference to detailed documentation.
+
+**Standard Format:**
+
+```bash
+# <Descriptive title>
+# <Brief description - 1 line>
+#
+# Parameters:
+#   $1: <name> - <brief description> [required/optional]
+#   $2: <name> - <brief description> [required/optional]
+#
+# Returns:
+#   0: Success
+#   1: Error - <brief description>
+#
+# Side Effects: <brief list if applicable>
+#
+# Examples:
+#   __function_name "param1" "param2"
+#
+# Related: docs/<document>.md (detailed explanation, strategy, examples)
+# Related Functions: __related_function()
+function __function_name() {
   # Implementation
 }
 ```
+
+**Real Example:**
+
+```bash
+# Check system resources before launching new processes
+# Validates memory usage and system load to prevent system overload
+#
+# Parameters:
+#   $1: Mode (optional, "minimal" for reduced requirements) [optional]
+#
+# Returns:
+#   0: Resources available
+#   1: Resources not available (high memory or load)
+#
+# Examples:
+#   if __check_system_resources; then
+#     echo "System ready"
+#   fi
+#
+# Related: docs/Documentation.md#parallel-processing (resource management)
+function __check_system_resources() {
+  # Implementation
+}
+```
+
+#### Function/Procedure Header Standard (SQL)
+
+**Principle:** Concise header with reference to detailed documentation in Markdown.
+
+**Standard Format:**
+
+```sql
+-- <Descriptive title>
+-- <Brief description - 1-2 lines>
+--
+-- Parameters:
+--   param1 <type>: <brief description> [required/optional]
+--   param2 <type>: <brief description> [required/optional]
+--
+-- Returns:
+--   <type>: <brief description>
+--   NULL: <when returns NULL>
+--
+-- Exceptions: <brief list>
+--
+-- Strategy: See docs/<document>.md for complete algorithm
+--   - <summary of main steps>
+--
+-- Performance: See docs/<document>.md#performance
+--   - <key metrics>
+--
+-- Examples:
+--   SELECT get_country(-74.006, 40.7128, 12345);
+--
+-- Related: docs/<document>.md (detailed explanation, examples, troubleshooting)
+-- Related Functions: <other_function>()
+CREATE OR REPLACE FUNCTION function_name(...)
+```
+
+**Real Example:**
+
+```sql
+-- Get country assignment for a note using 2D grid optimization
+-- Determines which country a note belongs to based on coordinates
+--
+-- Parameters:
+--   lon DECIMAL: Note longitude [required]
+--   lat DECIMAL: Note latitude [required]
+--   id_note INTEGER: Note ID for optimization [required]
+--
+-- Returns:
+--   INTEGER: Country ID, or -1 for international waters
+--   NULL: Never (always returns INTEGER)
+--
+-- Exceptions: None (uses RETURN, not RAISE)
+--
+-- Strategy: See docs/Country_Assignment_2D_Grid.md for complete algorithm
+--   1. Check current country first (95% hit rate when updating boundaries)
+--   2. Use 2D grid (24 zones) to select relevant countries
+--   3. Search terrestrial countries before maritime zones
+--
+-- Performance: See docs/Country_Assignment_2D_Grid.md#performance
+--   - Average: <1ms per note
+--   - Optimized for boundary updates (checks current country first)
+--
+-- Examples:
+--   SELECT get_country(-74.006, 40.7128, 12345);
+--
+-- Related: docs/Country_Assignment_2D_Grid.md (complete strategy, examples)
+-- Related Functions: insert_note() (calls this function)
+CREATE OR REPLACE FUNCTION get_country(...)
+```
+
+#### Inline Comments Standard
+
+**Principle:** If it requires more than 2-3 lines, move it to Markdown with a reference.
+
+**Guidelines:**
+
+1. **Pointed and concise comments:**
+   - Explain "what" and "why" in 1-2 lines maximum
+   - Reference documentation for extensive explanations
+   - Code should be self-explanatory
+
+2. **Comments for specific implementation:**
+   - Non-obvious optimizations (with reference to docs if complex)
+   - Workarounds for known bugs
+   - Edge cases specific to the code
+
+3. **References to documentation:**
+   - For complex algorithms: "See docs/X.md for algorithm details"
+   - For strategies: "See docs/X.md#strategy for complete strategy"
+   - For troubleshooting: "See docs/Troubleshooting_Guide.md#issue"
+
+**Format:**
+
+```bash
+# OPTIMIZATION: <brief explanation> (see docs/X.md for details)
+# FIXME: <known issue> (see docs/X.md#known-issues)
+# TODO: <future improvement> (see ToDo/X.md)
+# NOTE: <important note> (see docs/X.md for context)
+# WARNING: <brief warning> (see docs/X.md#warnings for details)
+```
+
+**Real Example:**
+
+```sql
+-- OPTIMIZATION: Check current country first (95% hit rate when updating boundaries)
+-- See docs/Country_Assignment_2D_Grid.md#optimization for strategy details
+IF m_current_country IS NOT NULL AND m_current_country > 0 THEN
+  ...
+END IF;
+
+-- Determine geographic zone using 2D grid (lon AND lat)
+-- See docs/Country_Assignment_2D_Grid.md#zones for complete zone definitions
+IF (-5 < lat AND lat < 4.53 AND 4 > lon AND lon > -4) THEN
+  m_area := 'Null Island';
+  ...
+END IF;
+```
+
+### Important Notes
+
+- **Functions do NOT include Author/Version**: Only main scripts (executable files) include author and version
+- **Keep headers concise**: Detailed explanations belong in Markdown documentation
+- **Always reference documentation**: For complex concepts, algorithms, or strategies
+- **Update documentation when code changes**: Keep code comments and Markdown docs in sync
 
 ### How to Document Changes
 
