@@ -1,66 +1,45 @@
 #!/bin/bash
 
-# This script processes the most recent notes (creation or modification) from
-# the OpenStreetMap API.
-# * It downloads the notes via an HTTP call.
-# * Then with AWK extraction converts the data into flat CSV files.
-# * It uploads the data into temp tables on a PostgreSQL database.
-# * Finally, it synchronizes the master tables.
+# Process API Notes - Incremental synchronization from OSM Notes API
+# Downloads, processes, and synchronizes new/updated notes from OSM API
 #
-# These are some examples to call this script:
+# For detailed documentation, see:
+#   - docs/Process_API.md (complete workflow, architecture, troubleshooting)
+#   - docs/Documentation.md (system overview, data flow)
+#   - bin/README.md (usage examples, parameters)
 #
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-profile/processAPINotes.sh
+# Quick Reference:
+#   Usage: ./processAPINotes.sh [--help]
+#   Examples: export LOG_LEVEL=DEBUG ; ./processAPINotes.sh
+#   Monitor: tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
 #
-# To follow the progress you can execute:
-#   tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+# Error Codes: See docs/Troubleshooting_Guide.md for complete list and solutions
+#   1) Help message displayed
+#   238) Previous execution failed (see docs/Troubleshooting_Guide.md#failed-execution)
+#   241) Library or utility missing
+#   242) Invalid argument
+#   243) Logger utility is missing
+#   245) No last update (run processPlanetNotes.sh --base first)
+#   246) Planet process is currently running
+#   248) Error executing Planet dump
 #
-# This is the list of error codes:
-# 1) Help message.
-# 238) Previous execution failed.
-# 241) Library or utility missing.
-# 242) Invalid argument.
-# 243) Logger utility is missing.
-# 245) No last update.
-# 246) Planet process is currently running.
-# 248) Error executing the Planet dump.
-#
-# FAILED EXECUTION MECHANISM:
-# When critical errors occur, the script creates a "failed execution marker file"
-# at /tmp/processAPINotes_failed_execution AND sends immediate alerts.
-# This prevents subsequent executions from running until the issue is resolved.
-#
-# Immediate Alerts (sent when error occurs):
-# - Email alert (if SEND_ALERT_EMAIL=true and mail is configured)
-# - No waiting for external monitor - alerts sent instantly
+# Failed Execution Mechanism: See docs/Process_API.md#failed-execution
+#   - Creates marker file at /tmp/processAPINotes_failed_execution
+#   - Sends immediate email alerts (if SEND_ALERT_EMAIL=true)
+#   - Prevents subsequent executions until resolved
 #
 # Configuration (optional environment variables):
-# - ADMIN_EMAIL: Email address for alerts (default: root@localhost)
-# - SEND_ALERT_EMAIL: Set to "false" to disable email (default: true)
+#   - ADMIN_EMAIL: Email for alerts (default: root@localhost)
+#   - SEND_ALERT_EMAIL: Enable/disable email (default: true)
+#   - LOG_LEVEL: Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
 #
-# Example with alerts:
-#   export ADMIN_EMAIL="admin@example.com"
-#   export SEND_ALERT_EMAIL="true"
-#   ./processAPINotes.sh
+# Dependencies: PostgreSQL, AWK, wget, lib/osm-common/
 #
-# To recover from a failed execution:
-# 1. Check your email for the alert with error details
-# 2. Fix the underlying issue (follow the "Required action" in the alert)
-# 3. Delete the failed execution file: rm /tmp/processAPINotes_failed_execution
-# 4. Run the script again
-#
-# Critical errors that create failed markers and send alerts:
-# - Historical data validation failures (need to run processPlanetNotes.sh)
-# - XML validation failures (corrupted or invalid API data)
-# - Base structure creation failures (database/permission issues)
-# - API download failures (network/API issues, may be temporary)
-#
-# For contributing, please execute these commands before submitting:
-# * shellcheck -x -o all processAPINotes.sh
-# * shfmt -w -i 1 -sr -bn processAPINotes.sh
+# For contributing: shellcheck -x -o all processAPINotes.sh && shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-VERSION="2025-12-07"
+# Version: 2025-12-08
+VERSION="2025-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.

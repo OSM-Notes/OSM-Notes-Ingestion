@@ -1,118 +1,50 @@
 #!/bin/bash
 
-# This script prepares a database for note analysis and loads the notes from
-# the planet, either completely or just the missing ones. Depending on the invocation,
-# it performs different tasks.
-# The script structure is:
-# * Creates the database structure.
-# * Downloads the list of country IDs (overpass).
-# * Downloads the country boundaries (overpass).
-# * Downloads the list of maritime area IDs (overpass).
-# * Downloads the maritime area boundaries (overpass).
-# * Imports the boundaries into the database.
-# * Downloads the planet notes.
-# * Converts the notes into flat CSV files.
-# * Imports the notes into the database.
-# * Sets the order for countries by zones.
-# * Creates a function to get the country of a position using the order by
-#   zones.
-# * Runs the function against all notes.
+# Process Planet Notes - Historical data loading from OSM Planet dumps
+# Downloads, processes, and loads complete historical notes from OSM Planet files
 #
-# There are these workflows:
+# For detailed documentation, see:
+#   - docs/Process_Planet.md (complete workflow, architecture, troubleshooting)
+#   - docs/Documentation.md (system overview, data flow)
+#   - docs/PostgreSQL_Setup.md (database setup requirements)
+#   - bin/README.md (usage examples, parameters)
 #
-# * base > sync (This workflow is called from processApiNotes).
-# * boundaries (Processes the countries and maritime areas only).
+# Quick Reference:
+#   Usage: ./processPlanetNotes.sh [--base]
+#   --base: Full setup mode (downloads and processes complete planet file)
+#   (no flag): Sync mode (processes only new notes since last execution)
+#   Examples: export LOG_LEVEL=DEBUG ; ./processPlanetNotes.sh --base
+#   Monitor: tail -40f $(ls -1rtd /tmp/processPlanetNotes_* | tail -1)/processPlanetNotes.log
 #
-# These are some examples to call this script:
+# Error Codes: See docs/Troubleshooting_Guide.md for complete list and solutions
+#   1) Help message displayed
+#   241) Library or utility missing
+#   242) Invalid argument for script invocation
+#   243) Logger utility is not available
+#   244) IDs list cannot be downloaded
+#   249) Error downloading boundary
 #
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh --base
-# * export LOG_LEVEL=DEBUG ; ~/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh
+# Modes:
+#   --base: Initial setup or complete reload (downloads full planet file, creates base tables)
+#   (sync): Regular updates (processes only new notes since last execution)
 #
-# The design of this architecture is at: https://miro.com/app/board/uXjVPDTbDok=/
+# Database Requirements: See docs/PostgreSQL_Setup.md for complete setup
+#   - Database: CREATE DATABASE notes;
+#   - Extensions: CREATE EXTENSION postgis; CREATE EXTENSION btree_gist;
+#   - Permissions: GRANT USAGE ON SCHEMA public TO user;
 #
-# Known issues:
-# * Austria has an issue to be imported with ogr2ogr for a particular thing in
-#   the geometry. A simplification is done to upload it. However, there is a
-#   missing part not being imported.
-# * Taiwan has an issue to be imported with ogr2ogr for a very long row. Some
-#   fields are removed.
-# * The Gaza Strip is not at the same level as a country. The ID is hardcoded.
-# * Not all countries have defined the maritime borders. Also, not all
-#   countries have signed the Covemar.
+# Known Issues: See docs/Process_Planet.md#known-issues
+#   - Austria: Geometry simplification required for ogr2ogr import
+#   - Taiwan: Long row issue, some fields removed
+#   - Gaza Strip: ID hardcoded (not at country level)
 #
-# When running under MacOS or zsh, it is better to invoke bash:
-# bash ./processPlanetNotes.sh
+# Dependencies: PostgreSQL, PostGIS, AWK, wget, GNU Parallel, ogr2ogr, lib/osm-common/
 #
-# To follow the progress you can execute:
-#   tail -40f $(ls -1rtd /tmp/processPlanetNotes_* | tail -1)/processPlanetNotes.log
-#
-# You need to create a database called 'notes':
-#   CREATE DATABASE notes;
-# You need to install postgis and add the extension:
-#   CREATE EXTENSION postgis;
-#   CREATE EXTENSION btree_gist;
-# You also need to log into the database with the current user ${USER}
-#   createuser myuser
-#   CREATE ROLE myuser WITH LOGIN
-# You need to check the access to PostgreSQL with the following without
-# password:
-#   psql -d notes
-# This could be an option:
-#   export PGPASSWORD='password'
-# Or change the pg_hba.conf file.
-# Also you need to give permissions to create objects in public schema:
-#   GRANT USAGE ON SCHEMA public TO myuser
-#
-# To not remove all generated files, you can export this:
-#   export CLEAN=false
-#
-# To increase or reduce the verbosity, you can change the logger:
-#   export LOG_LEVEL=DEBUG # For more messages.
-#   export LOG_LEVEL=WARN  # Important messages.
-#
-# Some interesting queries to track the process:
-#
-# Sections per parameter:
-#                                   empty    base    bounda
-#                                   (sync)           ries
-# __dropSyncTables                             x
-# __dropApiTables                              x
-# __dropGenericObjects                         x
-# __dropBaseTables                             x
-# __createBaseTables                           x
-# __dropSyncTables                     x
-# __checkBaseTables                    x
-# __createBaseTables                   x
-# __createSyncTables                   x
-# __cleanPartial                               x        x
-# __downloadPlanetNotes                x
-# __validatePlanetNotesXMLFile         x
-# __createFunctionToGetCountry         x       x
-# __createProcedures                   x       x
-# __analyzeAndVacuum                   x       x
-# __loadSyncNotes                      x
-# __removeDuplicates                   x
-# __loadTextComments                   x
-# __dropSyncTables                     x
-# __organizeAreas                      x
-# __getLocationNotes                   x
-# __cleanNotesFiles                    x       x
-#
-# This is the list of error codes:
-# 1) Help message.
-# 241) Library or utility missing.
-# 242) Invalid argument for script invocation.
-# 243) Logger utility is not available.
-# 244) IDs list cannot be downloaded.
-# 249) Error downloading boundary.
-#
-# For contributing, please execute these commands before submitting:
-# * shellcheck -x -o all processPlanetNotes.sh
-# * shfmt -w -i 1 -sr -bn processPlanetNotes.sh
+# For contributing: shellcheck -x -o all processPlanetNotes.sh && shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-VERSION="2025-12-07"
+# Version: 2025-12-08
+VERSION="2025-12-08"
 
 #set -xv
 # Fails when a variable is not initialized.
