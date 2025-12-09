@@ -62,10 +62,6 @@ Scripts for processing and loading data, organized by processing type:
   - Purpose: Creates spatial indexes for efficient country queries
   - Usage: Called after country table creation
 
-- **`processPlanetNotes_26_migrateMissingColumns.sql`**: Migrates missing columns
-  - Purpose: Adds missing columns to existing tables
-  - Usage: Called during schema migrations
-
 - **`processPlanetNotes_27_createInternationalWatersTable.sql`**: Creates international waters table
   - Purpose: Handles notes in international waters
   - Usage: Called during setup

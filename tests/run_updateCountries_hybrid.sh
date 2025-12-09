@@ -171,35 +171,6 @@ setup_test_database() {
   log_success "PostGIS extensions ready in ${DBNAME}"
 }
 
-# Function to migrate database schema (add missing columns)
-migrate_database_schema() {
-  # Load DBNAME from properties file if not already loaded
-  if [[ -z "${DBNAME:-}" ]]; then
-    # shellcheck disable=SC1091
-    source "${PROJECT_ROOT}/etc/properties.sh"
-  fi
-  
-  log_info "Migrating database schema (adding missing columns if needed)..."
-
-  local psql_cmd="psql"
-  if [[ -n "${DB_HOST:-}" ]]; then
-    psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
-  fi
-
-  local migration_script="${PROJECT_ROOT}/sql/process/processPlanetNotes_26_migrateMissingColumns.sql"
-  
-  if [[ ! -f "${migration_script}" ]]; then
-    log_warning "Migration script not found: ${migration_script}"
-    return 0
-  fi
-
-  # Execute migration script (ignore errors if tables don't exist yet)
-  if ${psql_cmd} -d "${DBNAME}" -f "${migration_script}" > /dev/null 2>&1; then
-    log_success "Database schema migration completed"
-  else
-    log_warning "Migration script execution had warnings (this is OK if tables don't exist yet)"
-  fi
-}
 
 # Function to modify Germany geometry for hybrid testing
 # This ensures both validation cases are tested (optimized path and full search)
@@ -763,9 +734,6 @@ main() {
     log_error "Database setup failed. Aborting."
     exit 1
   fi
-
-  # Migrate database schema (add missing columns if needed)
-  migrate_database_schema
 
   # Cleanup lock files before starting
   cleanup_lock_files
