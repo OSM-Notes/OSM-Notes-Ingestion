@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Properties for OSM-Notes-Ingestion
-# This file defines production properties.
-# All database connections must be controlled by properties files.
+# Properties for OSM-Notes-Ingestion - EXAMPLE FILE
+# Copy this file to properties.sh for your local configuration:
+#   cp etc/properties.sh.example etc/properties.sh
+# Then edit etc/properties.sh with your database credentials.
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-27
@@ -12,11 +13,11 @@
 # Environment variables are ignored to ensure consistency.
 # shellcheck disable=SC2034
 if [[ -z "${DBNAME:-}" ]]; then
- DBNAME="osm-notes"
+ DBNAME="notes"
 fi
 # shellcheck disable=SC2034
 if [[ -z "${DB_USER:-}" ]]; then
- DB_USER="angoca"
+ DB_USER="myuser"
 fi
 
 # Email configuration for reports.
@@ -88,7 +89,7 @@ declare JSON_VALIDATOR="${JSON_VALIDATOR:-jq}"
 # Defaults to project identity if not provided.
 if [[ -z "${DOWNLOAD_USER_AGENT:-}" ]]; then
  # Do not break lines; keep UA in one line for header correctness
- DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/osmlatam/OSM-Notes-Ingestion; contact: angoca@osm.lat)"
+ DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/osmlatam/OSM-Notes-Ingestion; contact: your-email@domain.com)"
 fi
 
 # Processing configuration.
@@ -190,3 +191,4 @@ declare VERIFY_SQL_BATCH_SIZE="${VERIFY_SQL_BATCH_SIZE:-20000}"
 # Number of threads to use for parallel integrity verification
 # shellcheck disable=SC2034
 declare VERIFY_THREADS="${VERIFY_THREADS:-}"
+

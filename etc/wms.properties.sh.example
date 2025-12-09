@@ -1,6 +1,8 @@
 #!/bin/bash
-# WMS Properties Configuration
-# Configuration file for WMS and GeoServer components
+# WMS Properties Configuration - EXAMPLE FILE
+# Copy this file to wms.properties.sh for your local configuration:
+#   cp etc/wms.properties.sh.example etc/wms.properties.sh
+# Then edit etc/wms.properties.sh with your credentials and settings.
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-11-30
@@ -15,7 +17,7 @@
 # For peer authentication (local connections), leave WMS_DBHOST and WMS_DBPORT empty
 WMS_DBNAME="${WMS_DBNAME:-notes}"
 WMS_DBUSER="${WMS_DBUSER:-}"  # Empty for wmsManager.sh (uses system user), set to 'geoserver' for geoserverConfig.sh
-WMS_DBPASSWORD="${WMS_DBPASSWORD:-}"
+WMS_DBPASSWORD="${WMS_DBPASSWORD:-}"  # Set your database password here
 WMS_DBHOST="${WMS_DBHOST:-}"  # Empty for local/peer connections
 WMS_DBPORT="${WMS_DBPORT:-}"  # Empty for default port with peer authentication
 
@@ -34,11 +36,12 @@ WMS_TABLE="${WMS_TABLE:-notes_wms}"
 # GeoServer installation and access
 GEOSERVER_HOME="${GEOSERVER_HOME:-/opt/geoserver}"
 GEOSERVER_DATA_DIR="${GEOSERVER_DATA_DIR:-${GEOSERVER_HOME}/data_dir}"
-GEOSERVER_URL="${GEOSERVER_URL:-https://geoserver.osm.lat/geoserver}"
+GEOSERVER_URL="${GEOSERVER_URL:-https://geoserver.example.com/geoserver}"
 
 # GeoServer credentials
+# IMPORTANT: Change these to your actual GeoServer credentials
 GEOSERVER_USER="${GEOSERVER_USER:-admin}"
-GEOSERVER_PASSWORD="${GEOSERVER_PASSWORD:-OpenStreetMap}"
+GEOSERVER_PASSWORD="${GEOSERVER_PASSWORD:-changeme}"
 
 # GeoServer workspace and namespace
 GEOSERVER_WORKSPACE="${GEOSERVER_WORKSPACE:-osm_notes}"
@@ -87,12 +90,13 @@ WMS_ORGANIZATION_URL="${WMS_ORGANIZATION_URL:-https://osmlatam.org}"
 WMS_ORGANIZATION_WELCOME="${WMS_ORGANIZATION_WELCOME:-Set of layers provided by OpenStreetMap LatAm.}"
 
 # WMS Contact Information (from README)
-WMS_CONTACT_PERSON="${WMS_CONTACT_PERSON:-Andres Gomez Casanova - AngocA}"
+# Update these with your contact information
+WMS_CONTACT_PERSON="${WMS_CONTACT_PERSON:-Your Name}"
 WMS_CONTACT_POSITION="${WMS_CONTACT_POSITION:-Volunteer}"
-WMS_CONTACT_EMAIL="${WMS_CONTACT_EMAIL:-angoca@osm.lat}"
-WMS_CONTACT_CITY="${WMS_CONTACT_CITY:-Bogota}"
-WMS_CONTACT_STATE="${WMS_CONTACT_STATE:-D.C.}"
-WMS_CONTACT_COUNTRY="${WMS_CONTACT_COUNTRY:-Colombia}"
+WMS_CONTACT_EMAIL="${WMS_CONTACT_EMAIL:-your-email@domain.com}"
+WMS_CONTACT_CITY="${WMS_CONTACT_CITY:-Your City}"
+WMS_CONTACT_STATE="${WMS_CONTACT_STATE:-Your State}"
+WMS_CONTACT_COUNTRY="${WMS_CONTACT_COUNTRY:-Your Country}"
 
 # WMS Attribution (from README)
 WMS_ATTRIBUTION_TEXT="${WMS_ATTRIBUTION_TEXT:-OpenStreetMap contributors}"
@@ -153,7 +157,7 @@ WMS_BLOBSTORE_BASE_DIR="${WMS_BLOBSTORE_BASE_DIR:-/opt/geoserver/data_dir/blobs}
 # Authentication settings
 WMS_AUTH_ENABLED="${WMS_AUTH_ENABLED:-false}"
 WMS_AUTH_USER="${WMS_AUTH_USER:-}"
-WMS_AUTH_PASSWORD="${WMS_AUTH_PASSWORD:-}"
+WMS_AUTH_PASSWORD="${WMS_AUTH_PASSWORD:-}"  # Set your WMS authentication password here
 
 # CORS configuration
 WMS_CORS_ENABLED="${WMS_CORS_ENABLED:-true}"
@@ -373,3 +377,4 @@ else
  # Script is being sourced
  __export_wms_properties
 fi 
+

@@ -107,8 +107,13 @@ test_output_failures/
 output/
 output_*.log
 
-# Properties file with local configuration (should not be shared)
+# Configuration files with sensitive data (keep templates)
+# Real configuration files (ignored - use .example files as templates)
+etc/properties.sh
+etc/wms.properties.sh
+# Local override files (also ignored)
 etc/properties.sh_local
+etc/wms.properties.sh_local
 
 # Note location backups and generated CSV files
 # These are generated backups that can be recreated when needed
