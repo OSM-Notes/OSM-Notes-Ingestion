@@ -282,6 +282,8 @@ drop_base_tables() {
   ${psql_cmd} -d "${DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_13_dropBaseTables.sql" > /dev/null 2>&1 || true
   # Drop country tables (countries)
   ${psql_cmd} -d "${DBNAME}" -c "DROP TABLE IF EXISTS countries CASCADE;" > /dev/null 2>&1 || true
+  # Drop tries table if it exists (may not be in dropBaseTables.sql)
+  ${psql_cmd} -d "${DBNAME}" -c "DROP TABLE IF EXISTS tries CASCADE;" > /dev/null 2>&1 || true
 
   # Wait a moment for database to commit the DROP operations
   sleep 1
@@ -296,7 +298,7 @@ drop_base_tables() {
    log_warning "This may indicate a connection or transaction issue"
    log_warning "Retrying drop operation..."
    # Retry drop with explicit transaction
-   ${psql_cmd} -d "${DBNAME}" -c "BEGIN; DROP TABLE IF EXISTS countries CASCADE; COMMIT;" > /dev/null 2>&1 || true
+   ${psql_cmd} -d "${DBNAME}" -c "BEGIN; DROP TABLE IF EXISTS countries CASCADE; DROP TABLE IF EXISTS tries CASCADE; COMMIT;" > /dev/null 2>&1 || true
    ${psql_cmd} -d "${DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_13_dropBaseTables.sql" > /dev/null 2>&1 || true
    sleep 1
 
@@ -616,6 +618,9 @@ ensure_real_psql() {
 }
 
 # Function to setup environment variables
+# CRITICAL: All variables must be exported here so child processes (processAPINotes.sh -> processPlanetNotes.sh)
+# inherit them correctly. This ensures hybrid mock mode works even when processAPINotes.sh
+# spawns processPlanetNotes.sh as a child process.
 setup_environment_variables() {
  log_info "Setting up environment variables..."
 
@@ -625,7 +630,7 @@ setup_environment_variables() {
  # Set clean flag
  export CLEAN="${CLEAN:-false}"
 
- # Set hybrid mock mode flags
+ # Set hybrid mock mode flags (MUST be exported for child processes)
  export HYBRID_MOCK_MODE=true
  export TEST_MODE=true
 
@@ -663,12 +668,22 @@ setup_environment_variables() {
  # Disable email alerts in test mode
  export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-false}"
 
- # Set project base directory
+ # Set project base directory (MUST be exported for child processes)
  export SCRIPT_BASE_DIRECTORY="${PROJECT_ROOT}"
  export MOCK_FIXTURES_DIR="${PROJECT_ROOT}/tests/fixtures/command/extra"
 
  # Skip XML validation for faster execution
  export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+
+ # Export hybrid mock directory paths (MUST be exported for child processes)
+ # These are set by setup_hybrid_mock_environment() which is called before this function
+ if [[ -n "${HYBRID_MOCK_DIR:-}" ]]; then
+  export HYBRID_MOCK_DIR
+ fi
+
+ if [[ -n "${MOCK_COMMANDS_DIR:-}" ]]; then
+  export MOCK_COMMANDS_DIR
+ fi
 
  log_success "Environment variables configured"
  log_info "  Properties file: etc/properties.sh (test version)"
@@ -677,6 +692,10 @@ setup_environment_variables() {
  log_info "  DB_HOST: ${DB_HOST:-unix socket}"
  log_info "  DB_PORT: ${DB_PORT}"
  log_info "  LOG_LEVEL: ${LOG_LEVEL}"
+ log_info "  HYBRID_MOCK_MODE: ${HYBRID_MOCK_MODE}"
+ log_info "  TEST_MODE: ${TEST_MODE}"
+ log_info "  HYBRID_MOCK_DIR: ${HYBRID_MOCK_DIR:-not set}"
+ log_info "  MOCK_COMMANDS_DIR: ${MOCK_COMMANDS_DIR:-not set}"
 }
 
 # Function to run processAPINotes
@@ -773,11 +792,25 @@ run_processAPINotes() {
  # Export MOCK_COMMANDS_DIR so mock ogr2ogr can find real ogr2ogr if needed
  export MOCK_COMMANDS_DIR
 
+ # CRITICAL: Export all hybrid mock environment variables again here to ensure they are
+ # available to child processes (processAPINotes.sh -> processPlanetNotes.sh)
+ # Even though they were exported in setup_environment_variables(), we re-export here
+ # to ensure they are definitely set in the current shell session before executing
+ export HYBRID_MOCK_MODE="${HYBRID_MOCK_MODE:-true}"
+ export TEST_MODE="${TEST_MODE:-true}"
+ export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+ export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-false}"
+ export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY:-${PROJECT_ROOT}}"
+ export MOCK_FIXTURES_DIR="${MOCK_FIXTURES_DIR:-${PROJECT_ROOT}/tests/fixtures/command/extra}"
+
  # Run the script with clean PATH (exported so child processes inherit it)
+ # All environment variables are now exported and will be inherited by processAPINotes.sh
+ # and its child process processPlanetNotes.sh
  log_info "Executing: ${process_script}"
  log_info "PATH exported (first 200 chars): $(echo "${PATH}" | cut -c1-200)..."
  log_info "HYBRID_MOCK_DIR: ${HYBRID_MOCK_DIR:-not set}"
  log_info "MOCK_COMMANDS_DIR: ${MOCK_COMMANDS_DIR:-not set}"
+ log_info "All hybrid mock environment variables exported for child processes"
  "${process_script}"
 
  local exit_code=$?
