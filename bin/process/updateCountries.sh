@@ -813,14 +813,99 @@ function __reassignAffectedNotes {
 
  # Re-assign countries for notes within bounding boxes of updated countries
  # This uses the optimized get_country function which checks current country first
- __logi "Updating notes within affected areas..."
- # Validate SQL file exists
- if [[ ! -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}" ]]; then
-  __loge "ERROR: SQL file does not exist: ${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
-  __log_finish
-  return 1
+ # Process in batches with partial commits (default: 1000 notes per batch)
+ local BATCH_SIZE="${REASSIGN_NOTES_BATCH_SIZE:-1000}"
+ __logi "Updating notes within affected areas (batch size: ${BATCH_SIZE})..."
+
+ # Check if batch SQL file exists (new approach with commits)
+ local BATCH_SQL_FILE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes_batch.sql"
+ if [[ -f "${BATCH_SQL_FILE}" ]]; then
+  # Process in batches with commits after each batch
+  local TOTAL_PROCESSED=0
+  local BATCH_NUM=0
+  local PROCESSED_COUNT=0
+
+  # Get initial count of affected notes
+  local TOTAL_AFFECTED
+  TOTAL_AFFECTED=$(psql -d "${DBNAME}" -Atq -c "
+   SELECT COUNT(*)
+   FROM notes n
+   WHERE EXISTS (
+     SELECT 1
+     FROM countries c
+     WHERE c.updated = TRUE
+       AND ST_Intersects(
+         ST_MakeEnvelope(
+           ST_XMin(c.geom), ST_YMin(c.geom),
+           ST_XMax(c.geom), ST_YMax(c.geom),
+           4326
+         ),
+         ST_SetSRID(ST_MakePoint(n.longitude, n.latitude), 4326)
+       )
+   );
+  " 2> /dev/null || echo "0")
+
+  if [[ "${TOTAL_AFFECTED}" -eq "0" ]]; then
+   __logi "No notes affected by boundary changes"
+  else
+   __logi "Total notes to process: ${TOTAL_AFFECTED}"
+
+   # Process batches until no more notes
+   # Safety limit to prevent infinite loops (max 1 million batches)
+   local MAX_BATCHES=1000000
+   while [[ ${BATCH_NUM} -lt ${MAX_BATCHES} ]]; do
+    BATCH_NUM=$((BATCH_NUM + 1))
+
+    # Execute batch SQL and capture processed count from RAISE NOTICE
+    local PSQL_OUTPUT
+    PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "SET app.batch_size = '${BATCH_SIZE}';" -f "${BATCH_SQL_FILE}" 2>&1)
+    local PSQL_EXIT_CODE=$?
+
+    # Check if psql command failed
+    if [[ ${PSQL_EXIT_CODE} -ne 0 ]]; then
+     __loge "Failed to execute batch SQL (exit code: ${PSQL_EXIT_CODE})"
+     __loge "psql output: ${PSQL_OUTPUT}"
+     __log_finish
+     return 1
+    fi
+
+    # Extract processed count from RAISE NOTICE output
+    # Format: "NOTICE: PROCESSED_COUNT:1234"
+    PROCESSED_COUNT=$(echo "${PSQL_OUTPUT}" | grep -E 'PROCESSED_COUNT:[0-9]+' | sed -E 's/.*PROCESSED_COUNT:([0-9]+).*/\1/' || echo "0")
+
+    # Validate that PROCESSED_COUNT is a number
+    if ! [[ "${PROCESSED_COUNT}" =~ ^[0-9]+$ ]]; then
+     __logw "Could not parse processed count from output, assuming 0"
+     PROCESSED_COUNT=0
+    fi
+
+    if [[ "${PROCESSED_COUNT}" -eq "0" ]]; then
+     break
+    fi
+
+    TOTAL_PROCESSED=$((TOTAL_PROCESSED + PROCESSED_COUNT))
+    __logi "Batch ${BATCH_NUM}: Processed ${PROCESSED_COUNT} notes (total: ${TOTAL_PROCESSED}/${TOTAL_AFFECTED})"
+   done
+
+   # Check if we hit the safety limit
+   if [[ ${BATCH_NUM} -ge ${MAX_BATCHES} ]]; then
+    __loge "Reached maximum batch limit (${MAX_BATCHES}), stopping to prevent infinite loop"
+    __log_finish
+    return 1
+   fi
+
+   __logi "Completed: Processed ${TOTAL_PROCESSED} notes in ${BATCH_NUM} batches"
+  fi
+ else
+  # Fallback to old single-transaction approach
+  __logw "Batch SQL file not found, using single-transaction approach"
+  if [[ ! -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}" ]]; then
+   __loge "ERROR: SQL file does not exist: ${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
+   __log_finish
+   return 1
+  fi
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
  fi
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
 
  # Show statistics
  # Note: Statistics about country changes are no longer tracked in tries table

@@ -409,26 +409,32 @@ fi
 function __resolve_note_location_backup() {
  __log_start
  local RESOLVED_FILE=""
- local TMP_DIR="${TMP_DIR:-/tmp}"
- 
+ # TMP_DIR may already be defined as readonly (e.g., in
+ # updateCountries.sh). Only use default if not already defined.
+ # If TMP_DIR is readonly, we can't redeclare it, but we can still use
+ # it.
+ if [[ -z "${TMP_DIR:-}" ]]; then
+  local TMP_DIR="/tmp"
+ fi
+
  # Default GitHub repository URL for note location data
  local NOTE_LOCATION_DATA_REPO_URL="${NOTE_LOCATION_DATA_REPO_URL:-${DEFAULT_NOTE_LOCATION_DATA_REPO_URL}}"
  local NOTE_LOCATION_DATA_BRANCH="${NOTE_LOCATION_DATA_BRANCH:-main}"
- 
+
  # Try local file first
  if [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]] && [[ -s "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
   __logd "Using local note location backup: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
   __log_finish
   return 0
  fi
- 
+
  # Local file not found, try downloading from GitHub
  __logi "Local note location backup not found, attempting to download from GitHub..."
- 
+
  local FILE_NAME="noteLocation.csv.zip"
  local DOWNLOAD_URL="${NOTE_LOCATION_DATA_REPO_URL}/${FILE_NAME}"
  local DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}"
- 
+
  # Use __retry_network_operation if available, otherwise use wget directly
  if declare -f __retry_network_operation > /dev/null 2>&1; then
   if __retry_network_operation "${DOWNLOAD_URL}" "${DOWNLOADED_FILE}" 3 2 30; then
@@ -1501,17 +1507,17 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
-__logd "Checking files."
-# Resolve note location backup file (download from GitHub if not found locally)
-# Note: __resolve_note_location_backup is defined earlier in this file
-if declare -f __resolve_note_location_backup > /dev/null 2>&1; then
- if ! __resolve_note_location_backup; then
-  __logw "Warning: Failed to resolve note location backup file. Will continue without backup."
+ __logd "Checking files."
+ # Resolve note location backup file (download from GitHub if not found locally)
+ # Note: __resolve_note_location_backup is defined earlier in this file
+ if declare -f __resolve_note_location_backup > /dev/null 2>&1; then
+  if ! __resolve_note_location_backup; then
+   __logw "Warning: Failed to resolve note location backup file. Will continue without backup."
+  fi
  fi
-fi
-if [[ ! -r "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
- __logw "Warning: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}. Processing will continue without backup (slower)."
-fi
+ if [[ ! -r "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
+  __logw "Warning: Backup file is missing at ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}. Processing will continue without backup (slower)."
+ fi
  if [[ ! -r "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_32_UPLOAD_NOTE_LOCATION}."
   exit "${ERROR_MISSING_LIBRARY}"
@@ -1672,7 +1678,7 @@ function __checkBaseTables {
  # Also write to a temp file as a backup method to ensure the value is propagated
  # This handles cases where export doesn't work due to subshell or scope issues
  local RET_FUNC_FILE="${TMP_DIR:-/tmp}/.ret_func_$$"
- echo "${RET}" > "${RET_FUNC_FILE}" 2>/dev/null || true
+ echo "${RET}" > "${RET_FUNC_FILE}" 2> /dev/null || true
  __logd "Also wrote RET_FUNC=${RET} to ${RET_FUNC_FILE} as backup"
  __log_finish
  # Don't enable set -e here as it might affect the calling script

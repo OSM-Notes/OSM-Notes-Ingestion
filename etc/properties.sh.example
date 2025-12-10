@@ -128,17 +128,32 @@ if command -v nproc > /dev/null 2>&1; then
  if [[ "${TOTAL_CORES}" -gt 4 ]]; then
   MAX_THREADS=$((TOTAL_CORES - 2))
  elif [[ "${TOTAL_CORES}" -gt 2 ]]; then
-  MAX_THREADS=$((TOTAL_CORES - 1))  # Leave at least 1 core free
+  MAX_THREADS=$((TOTAL_CORES - 1)) # Leave at least 1 core free
  else
-  MAX_THREADS=1  # Use only 1 thread on systems with 1-2 cores
+  MAX_THREADS=1 # Use only 1 thread on systems with 1-2 cores
  fi
- 
+
  # Limit to reasonable values for production
  if [[ "${MAX_THREADS}" -gt 16 ]]; then
   MAX_THREADS=16
  fi
 else
  MAX_THREADS=4
+fi
+
+# Download threads configuration (for boundary downloads from Overpass)
+# Separate from MAX_THREADS to control Overpass API load
+# Lower values (4-6) prevent rate limiting issues
+# shellcheck disable=SC2034
+if [[ -z "${DOWNLOAD_MAX_THREADS:-}" ]]; then
+ declare DOWNLOAD_MAX_THREADS=4
+fi
+
+# Validate DOWNLOAD_MAX_THREADS is reasonable
+if [[ "${DOWNLOAD_MAX_THREADS}" -lt 1 ]]; then
+ DOWNLOAD_MAX_THREADS=1
+elif [[ "${DOWNLOAD_MAX_THREADS}" -gt 8 ]]; then
+ DOWNLOAD_MAX_THREADS=8
 fi
 
 # Cleanup configuration
@@ -192,3 +207,10 @@ declare VERIFY_SQL_BATCH_SIZE="${VERIFY_SQL_BATCH_SIZE:-20000}"
 # shellcheck disable=SC2034
 declare VERIFY_THREADS="${VERIFY_THREADS:-}"
 
+# Batch size for reassigning notes when country boundaries change
+# Number of notes processed per batch with partial commits
+# Smaller batches (e.g., 1000) provide better progress visibility and lower memory usage
+# Larger batches (e.g., 10000) reduce transaction overhead but increase lock duration
+# Default: 1000 notes per batch
+# shellcheck disable=SC2034
+declare REASSIGN_NOTES_BATCH_SIZE="${REASSIGN_NOTES_BATCH_SIZE:-1000}"

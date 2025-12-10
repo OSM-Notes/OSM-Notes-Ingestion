@@ -2,7 +2,7 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-09
+# Version: 2025-12-10
 VERSION="2025-12-10"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
@@ -366,16 +366,21 @@ function __validate_capital_location() {
  fi
 
  # Validate using ST_MakeValid to handle invalid geometries (self-intersections, etc.)
- # CRITICAL: Use ST_Union(ST_MakeValid(geometry)) to match the insertion process
- # This ensures validation uses the same geometry processing as insertion
- # Order matters: validate individual geometries first, then union them
+ # CRITICAL: Use the same geometry processing strategies as insertion
+ # The insertion process tries multiple strategies if ST_Union fails:
+ # 1. ST_Union(ST_MakeValid(geometry)) - standard
+ # 2. ST_Collect(ST_MakeValid(geometry)) + ST_UnaryUnion - if ST_Union fails
+ # 3. ST_Buffer(ST_MakeValid(geometry), 0.0001) + ST_Union - buffer strategy
+ # Validation must use the same strategies to match insertion results
  local VALIDATION_RESULT
  local VALIDATION_ERROR_LOG
  VALIDATION_ERROR_LOG=$(mktemp)
+
+ # Strategy 1: Try standard ST_Union(ST_MakeValid) - matches standard insertion
  VALIDATION_RESULT=$(
   psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
 SELECT ST_Contains(
-  ST_Union(ST_MakeValid(geometry)),
+  ST_SetSRID(ST_Union(ST_MakeValid(geometry)), 4326),
   ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
 )
 FROM import
@@ -384,37 +389,82 @@ WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')
 EOF
  )
 
- # Check if there was a SQL error
+ # Check if there was a SQL error or if result is NULL/false
+ local SQL_ERROR=""
  if [[ -s "${VALIDATION_ERROR_LOG}" ]]; then
-  local SQL_ERROR
   SQL_ERROR=$(cat "${VALIDATION_ERROR_LOG}" 2> /dev/null | head -5 || echo "Unknown SQL error")
-  __logw "SQL error during validation for boundary ${BOUNDARY_ID}: ${SQL_ERROR}"
-  rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
+  __logw "SQL error during ST_Union validation for boundary ${BOUNDARY_ID}: ${SQL_ERROR}"
  fi
- rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
 
- if [[ "${VALIDATION_RESULT}" == "t" ]] || [[ "${VALIDATION_RESULT}" == "true" ]]; then
-  __logd "Capital validation passed for boundary ${BOUNDARY_ID} (using ST_Union(ST_MakeValid))"
-  return 0
- else
-  # Try fallback validation with ST_Intersects (more tolerant)
-  # Use same order: ST_Union(ST_MakeValid(geometry)) to match insertion process
-  __logw "ST_Contains validation failed for boundary ${BOUNDARY_ID}, trying ST_Intersects as fallback"
+ # If ST_Union validation failed or returned NULL, try alternative strategies (matching insertion logic)
+ if [[ "${VALIDATION_RESULT}" != "t" ]] && [[ "${VALIDATION_RESULT}" != "true" ]]; then
+  __logd "ST_Union validation failed for boundary ${BOUNDARY_ID}, trying alternative strategies (matching insertion process)"
+
+  # Strategy 2: Try ST_Collect + ST_UnaryUnion (matching insertion alternative)
+  VALIDATION_RESULT=$(
+   psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
+SELECT ST_Contains(
+  ST_SetSRID(ST_UnaryUnion(ST_Collect(ST_MakeValid(geometry))), 4326),
+  ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
+)
+FROM import
+WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')
+  AND NOT ST_IsEmpty(geometry);
+EOF
+  )
+
+  if [[ "${VALIDATION_RESULT}" == "t" ]] || [[ "${VALIDATION_RESULT}" == "true" ]]; then
+   __logd "Capital validation passed for boundary ${BOUNDARY_ID} (using ST_Collect + ST_UnaryUnion)"
+   rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
+   return 0
+  fi
+
+  # Strategy 3: Try ST_Buffer strategy (matching insertion buffer strategy)
+  VALIDATION_RESULT=$(
+   psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
+SELECT ST_Contains(
+  ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326),
+  ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
+)
+FROM import
+WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')
+  AND NOT ST_IsEmpty(geometry);
+EOF
+  )
+
+  if [[ "${VALIDATION_RESULT}" == "t" ]] || [[ "${VALIDATION_RESULT}" == "true" ]]; then
+   __logd "Capital validation passed for boundary ${BOUNDARY_ID} (using ST_Buffer strategy)"
+   rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
+   return 0
+  fi
+
+  # All strategies failed, try ST_Intersects as final fallback (more tolerant)
+  __logw "All geometry processing strategies failed for boundary ${BOUNDARY_ID}, trying ST_Intersects as final fallback"
   local INTERSECTS_RESULT
-  INTERSECTS_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Intersects(ST_Union(ST_MakeValid(geometry)), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "false")
+  INTERSECTS_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Intersects(ST_SetSRID(ST_Union(ST_MakeValid(geometry)), 4326), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "false")
 
   if [[ "${INTERSECTS_RESULT}" == "t" ]] || [[ "${INTERSECTS_RESULT}" == "true" ]]; then
    __logw "Capital validation passed with ST_Intersects fallback for boundary ${BOUNDARY_ID}"
    __logw "Capital (${CAPITAL_LAT}, ${CAPITAL_LON}) intersects but may be on boundary edge"
+   rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
    return 0
-  else
-   __loge "CRITICAL: Capital validation FAILED for boundary ${BOUNDARY_ID}"
-   __loge "Capital (${CAPITAL_LAT}, ${CAPITAL_LON}) is NOT within the imported geometry"
-   __loge "Both ST_Contains and ST_Intersects returned false"
-   __loge "This may indicate cross-contamination - rejecting import to prevent data corruption"
-   return 1
   fi
+
+  # All validation strategies failed
+  __loge "CRITICAL: Capital validation FAILED for boundary ${BOUNDARY_ID}"
+  __loge "Capital (${CAPITAL_LAT}, ${CAPITAL_LON}) is NOT within the imported geometry"
+  __loge "All geometry processing strategies (ST_Union, ST_Collect+UnaryUnion, ST_Buffer) failed"
+  if [[ -n "${SQL_ERROR}" ]]; then
+   __loge "SQL error details: ${SQL_ERROR}"
+  fi
+  rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
+  return 1
  fi
+
+ # Standard ST_Union validation passed
+ __logd "Capital validation passed for boundary ${BOUNDARY_ID} (using ST_Union(ST_MakeValid))"
+ rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
+ return 0
 }
 
 function __processBoundary_impl {
@@ -1444,6 +1494,668 @@ function __compareIdsWithBackup {
  return 0
 }
 
+# Downloads a boundary JSON and converts it to GeoJSON only (no DB import)
+# Parameters:
+#   $1: Boundary ID
+# Returns: 0 on success, 1 on failure
+function __downloadBoundary_json_geojson_only() {
+ __log_start
+ local BOUNDARY_ID="${1}"
+ local LOCAL_JSON_FILE="${TMP_DIR}/${BOUNDARY_ID}.json"
+ local LOCAL_GEOJSON_FILE="${TMP_DIR}/${BOUNDARY_ID}.geojson"
+ local QUERY_FILE_LOCAL="${TMP_DIR}/query.${BOUNDARY_ID}.op"
+
+ __logi "Downloading boundary ${BOUNDARY_ID} (JSON + GeoJSON only, no DB import)"
+
+ # Create query file
+ cat << EOF > "${QUERY_FILE_LOCAL}"
+[out:json];
+rel(${BOUNDARY_ID});
+(._;>;);
+out;
+EOF
+
+ # Download JSON
+ local OUTPUT_OVERPASS="${TMP_DIR}/output.${BOUNDARY_ID}"
+ local MAX_RETRIES_LOCAL="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
+ local BASE_DELAY_LOCAL="${OVERPASS_BACKOFF_SECONDS:-20}"
+
+ if ! __overpass_download_with_endpoints "${QUERY_FILE_LOCAL}" "${LOCAL_JSON_FILE}" "${OUTPUT_OVERPASS}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}"; then
+  __loge "Failed to download JSON for boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${OUTPUT_OVERPASS}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+ rm -f "${OUTPUT_OVERPASS}"
+
+ # Validate JSON
+ if ! __validate_json_with_element "${LOCAL_JSON_FILE}" "elements"; then
+  __loge "Invalid JSON for boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Convert to GeoJSON
+ if ! osmtogeojson "${LOCAL_JSON_FILE}" > "${LOCAL_GEOJSON_FILE}" 2> /dev/null; then
+  __loge "Failed to convert to GeoJSON for boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${LOCAL_GEOJSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Validate GeoJSON
+ if ! __validate_json_with_element "${LOCAL_GEOJSON_FILE}" "features"; then
+  __loge "Invalid GeoJSON for boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${LOCAL_GEOJSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Verify GeoJSON has features
+ local FEATURE_COUNT
+ FEATURE_COUNT=$(jq '.features | length' "${LOCAL_GEOJSON_FILE}" 2> /dev/null || echo "0")
+ if [[ "${FEATURE_COUNT}" -eq 0 ]] || [[ "${FEATURE_COUNT}" == "null" ]]; then
+  __loge "GeoJSON has no features for boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${LOCAL_GEOJSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ __logi "Successfully downloaded and converted boundary ${BOUNDARY_ID} to GeoJSON"
+ rm -f "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+ __log_finish
+ return 0
+}
+
+# Imports a GeoJSON file to database with simplified validations
+# Parameters:
+#   $1: Boundary ID
+#   $2: GeoJSON file path
+# Returns: 0 on success, 1 on failure
+function __importBoundary_simplified() {
+ __log_start
+ local BOUNDARY_ID="${1}"
+ local GEOJSON_FILE="${2}"
+
+ __logi "Importing boundary ${BOUNDARY_ID} with simplified validations"
+
+ # Extract names
+ set +o pipefail
+ local NAME_RAW
+ NAME_RAW=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 | awk -F\" '{print $4}' || echo "")
+ local NAME_ES_RAW
+ NAME_ES_RAW=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 | awk -F\" '{print $4}' || echo "")
+ local NAME_EN_RAW
+ NAME_EN_RAW=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 | awk -F\" '{print $4}' || echo "")
+ set -o pipefail
+ set -e
+
+ # Sanitize names (handle empty strings)
+ local NAME
+ NAME=$(__sanitize_sql_string "${NAME_RAW}" 2> /dev/null || echo "")
+ local NAME_ES
+ NAME_ES=$(__sanitize_sql_string "${NAME_ES_RAW}" 2> /dev/null || echo "")
+ local NAME_EN
+ NAME_EN=$(__sanitize_sql_string "${NAME_EN_RAW}" 2> /dev/null || echo "")
+ NAME_EN="${NAME_EN:-No English name}"
+
+ # Initialize IS_MARITIME
+ local IS_MARITIME_VALUE="${IS_MARITIME:-false}"
+ if [[ "${IS_MARITIME_VALUE}" == "true" ]]; then
+  IS_MARITIME_VALUE="true"
+ else
+  IS_MARITIME_VALUE="false"
+ fi
+
+ # Sanitize ID (must succeed for valid boundary ID)
+ local SANITIZED_ID
+ SANITIZED_ID=$(__sanitize_sql_integer "${BOUNDARY_ID}" 2> /dev/null)
+ if [[ -z "${SANITIZED_ID}" ]]; then
+  __loge "Failed to sanitize boundary ID: ${BOUNDARY_ID}"
+  __log_finish
+  return 1
+ fi
+
+ # Truncate import table
+ if ! psql -d "${DBNAME}" -c "TRUNCATE TABLE import" > /dev/null 2>&1; then
+  __logw "Warning: Failed to truncate import table (may not exist yet)"
+ fi
+
+ # Import GeoJSON with ogr2ogr
+ local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BOUNDARY_ID}.log"
+ local IMPORT_OPERATION
+
+ if [[ "${BOUNDARY_ID}" -eq 16239 ]]; then
+  # Austria - special handling
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+ else
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+ fi
+
+ if ! eval "${IMPORT_OPERATION}"; then
+  # Try with PG_USE_COPY NO
+  __logw "Retrying import with PG_USE_COPY NO for boundary ${BOUNDARY_ID}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+  if ! eval "${IMPORT_OPERATION}"; then
+   __loge "Failed to import GeoJSON for boundary ${BOUNDARY_ID}"
+   rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+   __log_finish
+   return 1
+  fi
+ fi
+
+ # Verify import has polygons
+ local POLYGON_COUNT
+ POLYGON_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
+
+ if [[ "${POLYGON_COUNT}" -eq 0 ]]; then
+  __loge "No polygon geometries found in import table for boundary ${BOUNDARY_ID}"
+  rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Insert into countries table - SIMPLIFIED (no area validation)
+ local INSERT_OPERATION
+ if [[ "${BOUNDARY_ID}" -eq 16239 ]]; then
+  # Austria - use ST_Buffer
+  INSERT_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_Buffer(geometry, 0.0)), 4326), ${IS_MARITIME_VALUE} FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+ else
+  INSERT_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_MakeValid(geometry)), 4326), ${IS_MARITIME_VALUE} FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+ fi
+
+ if ! eval "${INSERT_OPERATION}"; then
+  __loge "Failed to insert boundary ${BOUNDARY_ID} into countries table"
+  rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Verify insert succeeded
+ local INSERTED_COUNT
+ INSERTED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries WHERE country_id = ${SANITIZED_ID} AND geom IS NOT NULL;" 2> /dev/null || echo "0")
+
+ if [[ "${INSERTED_COUNT}" -eq 0 ]]; then
+  __loge "Insert verification failed: boundary ${BOUNDARY_ID} not found in countries table after insert"
+  rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ __logi "Successfully imported boundary ${BOUNDARY_ID} to database"
+ rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+ __log_finish
+ return 0
+}
+
+# Downloads a single maritime boundary (JSON + GeoJSON only, no DB import)
+# Parameters:
+#   $1: Maritime boundary ID
+# Returns: 0 on success, 1 on failure
+function __downloadMaritime_json_geojson_only() {
+ __log_start
+ local BOUNDARY_ID="${1}"
+ local LOCAL_JSON_FILE="${TMP_DIR}/${BOUNDARY_ID}.json"
+ local LOCAL_GEOJSON_FILE="${TMP_DIR}/${BOUNDARY_ID}.geojson"
+ local QUERY_FILE_LOCAL="${TMP_DIR}/query.${BOUNDARY_ID}.op"
+
+ __logi "Downloading maritime boundary ${BOUNDARY_ID} (JSON + GeoJSON only, no DB import)"
+
+ # Create query file
+ cat << EOF > "${QUERY_FILE_LOCAL}"
+[out:json];
+rel(${BOUNDARY_ID});
+(._;>;);
+out;
+EOF
+
+ # Download JSON
+ local OUTPUT_OVERPASS="${TMP_DIR}/output.${BOUNDARY_ID}"
+ local MAX_RETRIES_LOCAL="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
+ local BASE_DELAY_LOCAL="${OVERPASS_BACKOFF_SECONDS:-20}"
+
+ if ! __overpass_download_with_endpoints "${QUERY_FILE_LOCAL}" "${LOCAL_JSON_FILE}" "${OUTPUT_OVERPASS}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}"; then
+  __loge "Failed to download JSON for maritime boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${OUTPUT_OVERPASS}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+ rm -f "${OUTPUT_OVERPASS}"
+
+ # Validate JSON
+ if ! __validate_json_with_element "${LOCAL_JSON_FILE}" "elements"; then
+  __loge "Invalid JSON for maritime boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Convert to GeoJSON
+ if ! osmtogeojson "${LOCAL_JSON_FILE}" > "${LOCAL_GEOJSON_FILE}" 2> /dev/null; then
+  __loge "Failed to convert to GeoJSON for maritime boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${LOCAL_GEOJSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Validate GeoJSON
+ if ! __validate_json_with_element "${LOCAL_GEOJSON_FILE}" "features"; then
+  __loge "Invalid GeoJSON for maritime boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${LOCAL_GEOJSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Verify GeoJSON has features
+ local FEATURE_COUNT
+ FEATURE_COUNT=$(jq '.features | length' "${LOCAL_GEOJSON_FILE}" 2> /dev/null || echo "0")
+ if [[ "${FEATURE_COUNT}" -eq 0 ]] || [[ "${FEATURE_COUNT}" == "null" ]]; then
+  __loge "GeoJSON has no features for maritime boundary ${BOUNDARY_ID}"
+  rm -f "${LOCAL_JSON_FILE}" "${LOCAL_GEOJSON_FILE}" "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ __logi "Successfully downloaded and converted maritime boundary ${BOUNDARY_ID} to GeoJSON"
+ rm -f "${QUERY_FILE_LOCAL}" 2> /dev/null || true
+ __log_finish
+ return 0
+}
+
+# Imports a maritime boundary GeoJSON file to database with simplified validations
+# Parameters:
+#   $1: Maritime boundary ID
+#   $2: GeoJSON file path
+# Returns: 0 on success, 1 on failure
+function __importMaritime_simplified() {
+ __log_start
+ local BOUNDARY_ID="${1}"
+ local GEOJSON_FILE="${2}"
+
+ __logi "Importing maritime boundary ${BOUNDARY_ID} with simplified validations"
+
+ # Extract names
+ set +o pipefail
+ local NAME_RAW
+ NAME_RAW=$(grep "\"name\":" "${GEOJSON_FILE}" | head -1 | awk -F\" '{print $4}' || echo "")
+ local NAME_ES_RAW
+ NAME_ES_RAW=$(grep "\"name:es\":" "${GEOJSON_FILE}" | head -1 | awk -F\" '{print $4}' || echo "")
+ local NAME_EN_RAW
+ NAME_EN_RAW=$(grep "\"name:en\":" "${GEOJSON_FILE}" | head -1 | awk -F\" '{print $4}' || echo "")
+ set -o pipefail
+ set -e
+
+ # Sanitize names (handle empty strings)
+ local NAME
+ NAME=$(__sanitize_sql_string "${NAME_RAW}" 2> /dev/null || echo "")
+ local NAME_ES
+ NAME_ES=$(__sanitize_sql_string "${NAME_ES_RAW}" 2> /dev/null || echo "")
+ local NAME_EN
+ NAME_EN=$(__sanitize_sql_string "${NAME_EN_RAW}" 2> /dev/null || echo "")
+ NAME_EN="${NAME_EN:-No English name}"
+
+ # Maritime boundaries always have is_maritime = true
+ local IS_MARITIME_VALUE="true"
+
+ # Sanitize ID (must succeed for valid boundary ID)
+ local SANITIZED_ID
+ SANITIZED_ID=$(__sanitize_sql_integer "${BOUNDARY_ID}" 2> /dev/null)
+ if [[ -z "${SANITIZED_ID}" ]]; then
+  __loge "Failed to sanitize maritime boundary ID: ${BOUNDARY_ID}"
+  __log_finish
+  return 1
+ fi
+
+ # Truncate import table
+ if ! psql -d "${DBNAME}" -c "TRUNCATE TABLE import" > /dev/null 2>&1; then
+  __logw "Warning: Failed to truncate import table (may not exist yet)"
+ fi
+
+ # Import GeoJSON with ogr2ogr
+ local OGR_ERROR_LOG="${TMP_DIR}/ogr_error.${BOUNDARY_ID}.log"
+ local IMPORT_OPERATION
+ IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+
+ if ! eval "${IMPORT_OPERATION}"; then
+  # Try with PG_USE_COPY NO
+  __logw "Retrying import with PG_USE_COPY NO for maritime boundary ${BOUNDARY_ID}"
+  IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
+  if ! eval "${IMPORT_OPERATION}"; then
+   __loge "Failed to import GeoJSON for maritime boundary ${BOUNDARY_ID}"
+   rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+   __log_finish
+   return 1
+  fi
+ fi
+
+ # Verify import has polygons
+ local POLYGON_COUNT
+ POLYGON_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
+
+ if [[ "${POLYGON_COUNT}" -eq 0 ]]; then
+  __loge "No polygon geometries found in import table for maritime boundary ${BOUNDARY_ID}"
+  rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Insert into countries table - SIMPLIFIED (no area validation, always is_maritime=true)
+ local INSERT_OPERATION
+ INSERT_OPERATION="psql -d ${DBNAME} -c \"INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', ST_SetSRID(ST_Union(ST_MakeValid(geometry)), 4326), ${IS_MARITIME_VALUE} FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = ST_SetSRID(EXCLUDED.geom, 4326);\""
+
+ if ! eval "${INSERT_OPERATION}"; then
+  __loge "Failed to insert maritime boundary ${BOUNDARY_ID} into countries table"
+  rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ # Verify insert succeeded
+ local INSERTED_COUNT
+ INSERTED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries WHERE country_id = ${SANITIZED_ID} AND geom IS NOT NULL AND is_maritime = true;" 2> /dev/null || echo "0")
+
+ if [[ "${INSERTED_COUNT}" -eq 0 ]]; then
+  __loge "Insert verification failed: maritime boundary ${BOUNDARY_ID} not found in countries table after insert"
+  rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+  __log_finish
+  return 1
+ fi
+
+ __logi "Successfully imported maritime boundary ${BOUNDARY_ID} to database"
+ rm -f "${OGR_ERROR_LOG}" 2> /dev/null || true
+ __log_finish
+ return 0
+}
+
+# Downloads maritime boundaries in parallel (JSON + GeoJSON only, no DB import)
+# Parameters:
+#   $1: File containing maritime boundary IDs (one per line)
+# Returns: 0 on success, 1 on failure
+function __downloadMaritimes_parallel_new() {
+ __log_start
+ local BOUNDARIES_FILE="${1}"
+ local DOWNLOAD_THREADS="${DOWNLOAD_MAX_THREADS:-4}"
+
+ __logi "Starting parallel download of maritime boundaries (threads: ${DOWNLOAD_THREADS})"
+
+ local TOTAL_LINES
+ TOTAL_LINES=$(wc -l < "${BOUNDARIES_FILE}")
+ __logi "Total maritime boundaries to download: ${TOTAL_LINES}"
+
+ # Split file into parts (only if more than 1 line)
+ if [[ "${TOTAL_LINES}" -gt 0 ]]; then
+  local SIZE=$((TOTAL_LINES / DOWNLOAD_THREADS))
+  if [[ "${SIZE}" -eq 0 ]]; then
+   SIZE=1
+  else
+   SIZE=$((SIZE + 1))
+  fi
+  split -l"${SIZE}" "${BOUNDARIES_FILE}" "${TMP_DIR}/download_maritime_part_"
+ else
+  __loge "Empty maritime boundaries file provided"
+  __log_finish
+  return 1
+ fi
+
+ # Track downloads
+ local SUCCESS_FILE="${TMP_DIR}/download_maritime_success.txt"
+ local FAILED_FILE="${TMP_DIR}/download_maritime_failed.txt"
+ rm -f "${SUCCESS_FILE}" "${FAILED_FILE}"
+
+ # Download in parallel
+ local JOB_COUNT=0
+ for PART_FILE in "${TMP_DIR}"/download_maritime_part_??; do
+  (
+   local PART_PID="${BASHPID}"
+   local PART_SUCCESS=0
+   local PART_FAILED=0
+
+   while read -r LINE; do
+    local ID
+    ID=$(echo "${LINE}" | awk '{print $1}')
+
+    if __downloadMaritime_json_geojson_only "${ID}"; then
+     echo "${ID}" >> "${SUCCESS_FILE}"
+     PART_SUCCESS=$((PART_SUCCESS + 1))
+    else
+     echo "${ID}" >> "${FAILED_FILE}"
+     PART_FAILED=$((PART_FAILED + 1))
+    fi
+   done < "${PART_FILE}"
+
+   __logi "Maritime download part ${PART_PID}: ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
+  ) &
+  JOB_COUNT=$((JOB_COUNT + 1))
+  sleep 1
+ done
+
+ # Wait for all downloads
+ __logi "Waiting for ${JOB_COUNT} maritime download jobs to complete..."
+ wait
+
+ local SUCCESS_COUNT=0
+ local FAILED_COUNT=0
+ if [[ -f "${SUCCESS_FILE}" ]]; then
+  SUCCESS_COUNT=$(wc -l < "${SUCCESS_FILE}" | tr -d ' ')
+ fi
+ if [[ -f "${FAILED_FILE}" ]]; then
+  FAILED_COUNT=$(wc -l < "${FAILED_FILE}" | tr -d ' ')
+ fi
+
+ __logi "Maritime download completed: ${SUCCESS_COUNT} succeeded, ${FAILED_COUNT} failed"
+
+ # Cleanup
+ rm -f "${TMP_DIR}"/download_maritime_part_??
+
+ if [[ "${FAILED_COUNT}" -gt 0 ]]; then
+  __logw "Some maritime downloads failed. Failed IDs in: ${FAILED_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ __log_finish
+ return 0
+}
+
+# Imports maritime boundaries sequentially from downloaded GeoJSON files
+# Parameters:
+#   $1: File containing maritime boundary IDs that were successfully downloaded
+# Returns: 0 on success, 1 on failure
+function __importMaritimes_sequential_new() {
+ __log_start
+ local SUCCESS_FILE="${1}"
+
+ __logi "Starting sequential import of maritime boundaries"
+
+ local TOTAL_LINES
+ TOTAL_LINES=$(wc -l < "${SUCCESS_FILE}")
+ __logi "Total maritime boundaries to import: ${TOTAL_LINES}"
+
+ local IMPORT_SUCCESS=0
+ local IMPORT_FAILED=0
+ local FAILED_IDS_FILE="${TMP_DIR}/import_maritime_failed.txt"
+ rm -f "${FAILED_IDS_FILE}"
+
+ local CURRENT=0
+ while read -r ID; do
+  CURRENT=$((CURRENT + 1))
+  local GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
+
+  __logi "Importing maritime boundary ${ID} (${CURRENT}/${TOTAL_LINES})"
+
+  if [[ ! -f "${GEOJSON_FILE}" ]]; then
+   __loge "GeoJSON file not found for maritime boundary ${ID}"
+   echo "${ID}" >> "${FAILED_IDS_FILE}"
+   IMPORT_FAILED=$((IMPORT_FAILED + 1))
+   continue
+  fi
+
+  if __importMaritime_simplified "${ID}" "${GEOJSON_FILE}"; then
+   IMPORT_SUCCESS=$((IMPORT_SUCCESS + 1))
+  else
+   __loge "Failed to import maritime boundary ${ID}"
+   echo "${ID}" >> "${FAILED_IDS_FILE}"
+   IMPORT_FAILED=$((IMPORT_FAILED + 1))
+  fi
+ done < "${SUCCESS_FILE}"
+
+ __logi "Import completed: ${IMPORT_SUCCESS} succeeded, ${IMPORT_FAILED} failed"
+
+ if [[ "${IMPORT_FAILED}" -gt 0 ]]; then
+  __logw "Some maritime imports failed. Failed IDs in: ${FAILED_IDS_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ __log_finish
+ return 0
+}
+
+# Downloads countries in parallel (JSON + GeoJSON only, no DB import)
+# Parameters:
+#   $1: File containing boundary IDs (one per line)
+# Returns: 0 on success, 1 on failure
+function __downloadCountries_parallel_new() {
+ __log_start
+ local BOUNDARIES_FILE="${1}"
+ local DOWNLOAD_THREADS="${DOWNLOAD_MAX_THREADS:-4}"
+
+ __logi "Starting parallel download of countries (threads: ${DOWNLOAD_THREADS})"
+
+ local TOTAL_LINES
+ TOTAL_LINES=$(wc -l < "${BOUNDARIES_FILE}")
+ __logi "Total countries to download: ${TOTAL_LINES}"
+
+ # Split file into parts (only if more than 1 line)
+ if [[ "${TOTAL_LINES}" -gt 0 ]]; then
+  local SIZE=$((TOTAL_LINES / DOWNLOAD_THREADS))
+  if [[ "${SIZE}" -eq 0 ]]; then
+   SIZE=1
+  else
+   SIZE=$((SIZE + 1))
+  fi
+  split -l"${SIZE}" "${BOUNDARIES_FILE}" "${TMP_DIR}/download_part_"
+ else
+  __loge "Empty boundaries file provided"
+  __log_finish
+  return 1
+ fi
+
+ # Track downloads
+ local SUCCESS_FILE="${TMP_DIR}/download_success.txt"
+ local FAILED_FILE="${TMP_DIR}/download_failed.txt"
+ rm -f "${SUCCESS_FILE}" "${FAILED_FILE}"
+
+ # Download in parallel
+ local JOB_COUNT=0
+ for PART_FILE in "${TMP_DIR}"/download_part_??; do
+  (
+   local PART_PID="${BASHPID}"
+   local PART_SUCCESS=0
+   local PART_FAILED=0
+
+   while read -r LINE; do
+    local ID
+    ID=$(echo "${LINE}" | awk '{print $1}')
+
+    if __downloadBoundary_json_geojson_only "${ID}"; then
+     echo "${ID}" >> "${SUCCESS_FILE}"
+     PART_SUCCESS=$((PART_SUCCESS + 1))
+    else
+     echo "${ID}" >> "${FAILED_FILE}"
+     PART_FAILED=$((PART_FAILED + 1))
+    fi
+   done < "${PART_FILE}"
+
+   __logi "Download part ${PART_PID}: ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
+  ) &
+  JOB_COUNT=$((JOB_COUNT + 1))
+  sleep 1
+ done
+
+ # Wait for all downloads
+ __logi "Waiting for ${JOB_COUNT} download jobs to complete..."
+ wait
+
+ local SUCCESS_COUNT=0
+ local FAILED_COUNT=0
+ if [[ -f "${SUCCESS_FILE}" ]]; then
+  SUCCESS_COUNT=$(wc -l < "${SUCCESS_FILE}" | tr -d ' ')
+ fi
+ if [[ -f "${FAILED_FILE}" ]]; then
+  FAILED_COUNT=$(wc -l < "${FAILED_FILE}" | tr -d ' ')
+ fi
+
+ __logi "Download completed: ${SUCCESS_COUNT} succeeded, ${FAILED_COUNT} failed"
+
+ # Cleanup
+ rm -f "${TMP_DIR}"/download_part_??
+
+ if [[ "${FAILED_COUNT}" -gt 0 ]]; then
+  __logw "Some downloads failed. Failed IDs in: ${FAILED_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ __log_finish
+ return 0
+}
+
+# Imports countries sequentially from downloaded GeoJSON files
+# Parameters:
+#   $1: File containing boundary IDs that were successfully downloaded
+# Returns: 0 on success, 1 on failure
+function __importCountries_sequential_new() {
+ __log_start
+ local SUCCESS_FILE="${1}"
+
+ __logi "Starting sequential import of countries"
+
+ local TOTAL_LINES
+ TOTAL_LINES=$(wc -l < "${SUCCESS_FILE}")
+ __logi "Total countries to import: ${TOTAL_LINES}"
+
+ local IMPORT_SUCCESS=0
+ local IMPORT_FAILED=0
+ local FAILED_IDS_FILE="${TMP_DIR}/import_failed.txt"
+ rm -f "${FAILED_IDS_FILE}"
+
+ local CURRENT=0
+ while read -r ID; do
+  CURRENT=$((CURRENT + 1))
+  local GEOJSON_FILE="${TMP_DIR}/${ID}.geojson"
+
+  __logi "Importing country ${ID} (${CURRENT}/${TOTAL_LINES})"
+
+  if [[ ! -f "${GEOJSON_FILE}" ]]; then
+   __loge "GeoJSON file not found for boundary ${ID}"
+   echo "${ID}" >> "${FAILED_IDS_FILE}"
+   IMPORT_FAILED=$((IMPORT_FAILED + 1))
+   continue
+  fi
+
+  if __importBoundary_simplified "${ID}" "${GEOJSON_FILE}"; then
+   IMPORT_SUCCESS=$((IMPORT_SUCCESS + 1))
+  else
+   __loge "Failed to import boundary ${ID}"
+   echo "${ID}" >> "${FAILED_IDS_FILE}"
+   IMPORT_FAILED=$((IMPORT_FAILED + 1))
+  fi
+ done < "${SUCCESS_FILE}"
+
+ __logi "Import completed: ${IMPORT_SUCCESS} succeeded, ${IMPORT_FAILED} failed"
+
+ if [[ "${IMPORT_FAILED}" -gt 0 ]]; then
+  __logw "Some imports failed. Failed IDs in: ${FAILED_IDS_FILE}"
+  __log_finish
+  return 1
+ fi
+
+ __log_finish
+ return 0
+}
+
 function __processCountries_impl {
  __log_start
  __logi "=== STARTING COUNTRIES PROCESSING ==="
@@ -1705,6 +2417,39 @@ function __processCountries_impl {
 
  TOTAL_LINES=$(wc -l < "${COUNTRIES_BOUNDARY_IDS_FILE}")
  __logi "Total countries to process: ${TOTAL_LINES}"
+
+ # Check if new download flow is enabled
+ if [[ "${USE_NEW_DOWNLOAD_FLOW:-true}" == "true" ]]; then
+  __logi "Using NEW download flow: parallel download + sequential import"
+  __logi "Download threads: ${DOWNLOAD_MAX_THREADS:-4}"
+
+  # Phase 1: Download in parallel
+  if ! __downloadCountries_parallel_new "${COUNTRIES_BOUNDARY_IDS_FILE}"; then
+   __logw "Some downloads failed, but continuing with successful ones"
+  fi
+
+  # Phase 2: Import sequentially
+  local SUCCESS_FILE="${TMP_DIR}/download_success.txt"
+  if [[ -f "${SUCCESS_FILE}" ]] && [[ -s "${SUCCESS_FILE}" ]]; then
+   local SUCCESS_COUNT
+   SUCCESS_COUNT=$(wc -l < "${SUCCESS_FILE}" | tr -d ' ')
+   __logi "Importing ${SUCCESS_COUNT} successfully downloaded countries sequentially"
+   if ! __importCountries_sequential_new "${SUCCESS_FILE}"; then
+    __logw "Some imports failed, but continuing"
+   fi
+  else
+   __loge "No successful downloads to import"
+   __log_finish
+   return 1
+  fi
+
+  __logi "New download flow completed"
+  __log_finish
+  return 0
+ fi
+
+ # OLD FLOW: Parallel processing (download + import together)
+ __logi "Using OLD download flow: parallel processing"
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  __logd "Total countries: ${TOTAL_LINES}"
@@ -2078,6 +2823,39 @@ function __processMaritimes_impl {
 
  TOTAL_LINES=$(wc -l < "${MARITIME_BOUNDARY_IDS_FILE}")
  __logi "Total maritime areas to process: ${TOTAL_LINES}"
+
+ # Check if new download flow is enabled (default: true, same as countries)
+ if [[ "${USE_NEW_DOWNLOAD_FLOW_MARITIMES:-true}" == "true" ]]; then
+  __logi "Using NEW download flow for maritimes: parallel download + sequential import"
+  __logi "Download threads: ${DOWNLOAD_MAX_THREADS:-4}"
+
+  # Phase 1: Download in parallel
+  if ! __downloadMaritimes_parallel_new "${MARITIME_BOUNDARY_IDS_FILE}"; then
+   __logw "Some maritime downloads failed, but continuing with successful ones"
+  fi
+
+  # Phase 2: Import sequentially
+  local SUCCESS_FILE="${TMP_DIR}/download_maritime_success.txt"
+  if [[ -f "${SUCCESS_FILE}" ]] && [[ -s "${SUCCESS_FILE}" ]]; then
+   local SUCCESS_COUNT
+   SUCCESS_COUNT=$(wc -l < "${SUCCESS_FILE}" | tr -d ' ')
+   __logi "Importing ${SUCCESS_COUNT} successfully downloaded maritime boundaries sequentially"
+   if ! __importMaritimes_sequential_new "${SUCCESS_FILE}"; then
+    __logw "Some maritime imports failed, but continuing"
+   fi
+  else
+   __loge "No successful maritime downloads to import"
+   __log_finish
+   return 1
+  fi
+
+  __logi "New maritime download flow completed"
+  __log_finish
+  return 0
+ fi
+
+ # OLD FLOW: Parallel processing (download + import together)
+ __logi "Using OLD download flow for maritimes: parallel processing"
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  split -l"${SIZE}" "${MARITIME_BOUNDARY_IDS_FILE}" "${TMP_DIR}/part_maritime_"
