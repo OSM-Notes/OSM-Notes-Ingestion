@@ -448,7 +448,7 @@ function __dropBaseTables {
  __log_start
  __logi "=== DROPPING BASE TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_13_DROP_BASE_TABLES}"
- psql -d "${DBNAME}" -f "${POSTGRES_13_DROP_BASE_TABLES}"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_13_DROP_BASE_TABLES}"
  __logi "=== BASE TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
