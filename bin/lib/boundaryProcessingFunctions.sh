@@ -3,7 +3,7 @@
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-09
-VERSION="2025-12-09"
+VERSION="2025-12-10"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
@@ -291,18 +291,19 @@ function __validate_capital_location() {
  local CAPITAL_LAT
  local CAPITAL_LON
 
- # Query Overpass for capital city: try label node first, then capital=yes
- # Label node is the most reliable as it's part of the relation itself
+ # Query Overpass for capital city: try capital=yes first, then label node as fallback
+ # capital=yes is the most reliable as it's the actual capital city
+ # label node is just a reference point for map labeling, not necessarily the capital
  # Use URL encoding for Overpass API query parameter
- local CAPITAL_QUERY_LABEL
- CAPITAL_QUERY_LABEL="[out:json][timeout:25];(relation(${BOUNDARY_ID});node(r:\"label\"););out center;"
+ local CAPITAL_QUERY_CAPITAL
+ CAPITAL_QUERY_CAPITAL="[out:json][timeout:25];(relation(${BOUNDARY_ID});node(r)[capital=yes];);out center;"
  # URL encode the query (basic encoding for Overpass API)
- CAPITAL_QUERY_LABEL=$(printf '%s' "${CAPITAL_QUERY_LABEL}" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2> /dev/null || printf '%s' "${CAPITAL_QUERY_LABEL}" | sed "s/ /%20/g" | sed "s/\[/%5B/g" | sed "s/\]/%5D/g" | sed "s/(/%28/g" | sed "s/)/%29/g" | sed "s/:/%3A/g" | sed "s/\"/%22/g" | sed "s/;/%3B/g" | sed "s/,/%2C/g")
+ CAPITAL_QUERY_CAPITAL=$(printf '%s' "${CAPITAL_QUERY_CAPITAL}" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2> /dev/null || printf '%s' "${CAPITAL_QUERY_CAPITAL}" | sed "s/ /%20/g" | sed "s/\[/%5B/g" | sed "s/\]/%5D/g" | sed "s/(/%28/g" | sed "s/)/%29/g" | sed "s/:/%3A/g" | sed "s/\"/%22/g" | sed "s/;/%3B/g" | sed "s/,/%2C/g" | sed "s/=/=%3D/g")
 
- # Try to get capital from label node first
- if __retry_overpass_api "${CAPITAL_QUERY_LABEL}" "${CAPITAL_JSON_FILE}" 2 3 30; then
+ # Try to get capital from capital=yes node first (most reliable)
+ if __retry_overpass_api "${CAPITAL_QUERY_CAPITAL}" "${CAPITAL_JSON_FILE}" 2 3 30; then
   if [[ -s "${CAPITAL_JSON_FILE}" ]]; then
-   # Extract lat/lon from label node
+   # Extract lat/lon from capital=yes node
    CAPITAL_LAT=$(jq -r '.elements[] | select(.type=="node") | .lat' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
    CAPITAL_LON=$(jq -r '.elements[] | select(.type=="node") | .lon' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
    if [[ -n "${CAPITAL_LAT}" ]] && [[ -n "${CAPITAL_LON}" ]] && [[ "${CAPITAL_LAT}" != "null" ]] && [[ "${CAPITAL_LON}" != "null" ]]; then
@@ -311,14 +312,15 @@ function __validate_capital_location() {
   fi
  fi
 
- # If label node not found, try capital=yes within relation
+ # If capital=yes not found, try label node as fallback (some countries may not have capital=yes)
  if [[ "${CAPITAL_FOUND}" == "false" ]]; then
-  local CAPITAL_QUERY_CAPITAL
-  CAPITAL_QUERY_CAPITAL="[out:json][timeout:25];(relation(${BOUNDARY_ID});node(r)[capital=yes];);out center;"
+  local CAPITAL_QUERY_LABEL
+  CAPITAL_QUERY_LABEL="[out:json][timeout:25];(relation(${BOUNDARY_ID});node(r:\"label\"););out center;"
   # URL encode the query (basic encoding for Overpass API)
-  CAPITAL_QUERY_CAPITAL=$(printf '%s' "${CAPITAL_QUERY_CAPITAL}" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2> /dev/null || printf '%s' "${CAPITAL_QUERY_CAPITAL}" | sed "s/ /%20/g" | sed "s/\[/%5B/g" | sed "s/\]/%5D/g" | sed "s/(/%28/g" | sed "s/)/%29/g" | sed "s/:/%3A/g" | sed "s/\"/%22/g" | sed "s/;/%3B/g" | sed "s/,/%2C/g" | sed "s/=/=%3D/g")
-  if __retry_overpass_api "${CAPITAL_QUERY_CAPITAL}" "${CAPITAL_JSON_FILE}" 2 3 30; then
+  CAPITAL_QUERY_LABEL=$(printf '%s' "${CAPITAL_QUERY_LABEL}" | python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.stdin.read()))" 2> /dev/null || printf '%s' "${CAPITAL_QUERY_LABEL}" | sed "s/ /%20/g" | sed "s/\[/%5B/g" | sed "s/\]/%5D/g" | sed "s/(/%28/g" | sed "s/)/%29/g" | sed "s/:/%3A/g" | sed "s/\"/%22/g" | sed "s/;/%3B/g" | sed "s/,/%2C/g")
+  if __retry_overpass_api "${CAPITAL_QUERY_LABEL}" "${CAPITAL_JSON_FILE}" 2 3 30; then
    if [[ -s "${CAPITAL_JSON_FILE}" ]]; then
+    # Extract lat/lon from label node
     CAPITAL_LAT=$(jq -r '.elements[] | select(.type=="node") | .lat' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
     CAPITAL_LON=$(jq -r '.elements[] | select(.type=="node") | .lon' "${CAPITAL_JSON_FILE}" 2> /dev/null | head -1)
     if [[ -n "${CAPITAL_LAT}" ]] && [[ -n "${CAPITAL_LON}" ]] && [[ "${CAPITAL_LAT}" != "null" ]] && [[ "${CAPITAL_LON}" != "null" ]]; then
