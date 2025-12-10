@@ -987,11 +987,6 @@ __divide_xml_file() {
 # Related: docs/Documentation.md#parallel-processing (complete parallel processing guide)
 # Related Functions: __splitXmlForParallelSafe(), __check_system_resources()
 function __processXmlPartsParallel() {
-#   $2: Output directory for CSV files (not used, kept for compatibility)
-#   $3: Maximum number of workers (optional, default: 4)
-#   $4: Processing type (optional, auto-detected if not provided)
-# Returns: 0 on success, 1 on failure
-function __processXmlPartsParallel() {
  __log_start
  __logd "Processing XML parts in parallel (consolidated version)."
 
