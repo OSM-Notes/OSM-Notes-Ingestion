@@ -366,14 +366,16 @@ function __validate_capital_location() {
  fi
 
  # Validate using ST_MakeValid to handle invalid geometries (self-intersections, etc.)
- # Use ST_MakeValid to correct geometry topology before validation
+ # CRITICAL: Use ST_Union(ST_MakeValid(geometry)) to match the insertion process
+ # This ensures validation uses the same geometry processing as insertion
+ # Order matters: validate individual geometries first, then union them
  local VALIDATION_RESULT
  local VALIDATION_ERROR_LOG
  VALIDATION_ERROR_LOG=$(mktemp)
  VALIDATION_RESULT=$(
   psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
 SELECT ST_Contains(
-  ST_MakeValid(ST_Union(geometry)),
+  ST_Union(ST_MakeValid(geometry)),
   ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
 )
 FROM import
@@ -392,13 +394,14 @@ EOF
  rm -f "${VALIDATION_ERROR_LOG}" 2> /dev/null || true
 
  if [[ "${VALIDATION_RESULT}" == "t" ]] || [[ "${VALIDATION_RESULT}" == "true" ]]; then
-  __logd "Capital validation passed for boundary ${BOUNDARY_ID} (using ST_MakeValid)"
+  __logd "Capital validation passed for boundary ${BOUNDARY_ID} (using ST_Union(ST_MakeValid))"
   return 0
  else
   # Try fallback validation with ST_Intersects (more tolerant)
+  # Use same order: ST_Union(ST_MakeValid(geometry)) to match insertion process
   __logw "ST_Contains validation failed for boundary ${BOUNDARY_ID}, trying ST_Intersects as fallback"
   local INTERSECTS_RESULT
-  INTERSECTS_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Intersects(ST_MakeValid(ST_Union(geometry)), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "false")
+  INTERSECTS_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Intersects(ST_Union(ST_MakeValid(geometry)), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "false")
 
   if [[ "${INTERSECTS_RESULT}" == "t" ]] || [[ "${INTERSECTS_RESULT}" == "true" ]]; then
    __logw "Capital validation passed with ST_Intersects fallback for boundary ${BOUNDARY_ID}"
