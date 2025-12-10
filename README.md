@@ -288,6 +288,8 @@ sudo apt -y install libxml2-utils
 
 # Process parts in parallel.
 sudo apt install parallel
+## jq (required for JSON/GeoJSON validation)
+sudo apt install -y jq
 
 # Tools to process geometries.
 sudo apt -y install npm

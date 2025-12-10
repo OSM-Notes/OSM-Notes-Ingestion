@@ -710,12 +710,16 @@ insert_note_comment(...)
 4. **Overpass API**: Geographic boundaries
 5. **OSM API**: Real-time note synchronization
 
+### Important Dependencies (Features Won't Work Without) - Continued
+
+6. **jq**: JSON and GeoJSON validation (required for boundary processing)
+7. **ogr2ogr (GDAL)**: GeoJSON processing (required for boundary processing)
+8. **osmtogeojson**: OSM JSON to GeoJSON conversion (required for boundary processing)
+
 ### Optional Dependencies (Enhanced Features)
 
 1. **GeoServer**: WMS service
-2. **ogr2ogr (GDAL)**: GeoJSON processing
-3. **SMTP Server**: Email alerts
-4. **jq**: JSON validation
+2. **SMTP Server**: Email alerts
 
 ---
 

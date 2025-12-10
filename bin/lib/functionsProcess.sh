@@ -1441,6 +1441,12 @@ EOF
   __loge "ERROR: Aria2c is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ ## jq (required for JSON/GeoJSON validation)
+ __logd "Checking jq."
+ if ! jq --version > /dev/null 2>&1; then
+  __loge "ERROR: jq is missing."
+  exit "${ERROR_MISSING_LIBRARY}"
+ fi
  ## osmtogeojson
  __logd "Checking osmtogeojson."
  if ! osmtogeojson --version > /dev/null 2>&1; then
