@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
-VERSION="2025-12-08"
+# Version: 2025-12-09
+VERSION="2025-12-09"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
@@ -705,6 +705,29 @@ function __processBoundary_impl {
    GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
    continue
   fi
+
+  # CRITICAL: Verify that the GeoJSON file actually has features and is not empty
+  # This prevents importing empty GeoJSON files that would leave the import table empty
+  local GEOJSON_FEATURE_COUNT
+  GEOJSON_FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+  if [[ "${GEOJSON_FEATURE_COUNT}" -eq 0 ]] || [[ "${GEOJSON_FEATURE_COUNT}" == "null" ]]; then
+   __loge "GeoJSON validation failed for boundary ${ID}: file has no features (count: ${GEOJSON_FEATURE_COUNT})"
+   __loge "This indicates the conversion from JSON to GeoJSON produced an empty file"
+   GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
+   continue
+  fi
+
+  # Verify that at least some features have valid polygon geometries
+  local GEOJSON_POLYGON_COUNT
+  GEOJSON_POLYGON_COUNT=$(jq '[.features[] | select(.geometry.type == "Polygon" or .geometry.type == "MultiPolygon")] | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+  if [[ "${GEOJSON_POLYGON_COUNT}" -eq 0 ]] || [[ "${GEOJSON_POLYGON_COUNT}" == "null" ]]; then
+   __logw "GeoJSON validation warning for boundary ${ID}: file has ${GEOJSON_FEATURE_COUNT} features but no polygon geometries"
+   __logw "This may indicate a problem with the conversion or the source data"
+   # Don't fail here, but log the warning - capital validation will fail later if needed
+  else
+   __logd "GeoJSON has ${GEOJSON_FEATURE_COUNT} features, ${GEOJSON_POLYGON_COUNT} with polygon geometries"
+  fi
+
   __log_geojson_validation_success "${ID}"
 
   # If we reach here, conversion and validation were successful
@@ -986,20 +1009,27 @@ function __processBoundary_impl {
  fi
  __log_import_completed "${ID}"
 
- # Verify that import table has data after ogr2ogr
+ # CRITICAL: Verify that import table has data after ogr2ogr
+ # This validation prevents cross-contamination where an empty import table could lead
+ # to inserting incorrect geometries from a previous boundary
  __logd "Verifying import table has data for boundary ${ID}..."
  local IMPORT_COUNT_AFTER
  IMPORT_COUNT_AFTER=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2> /dev/null || echo "0")
  local IMPORT_POLYGON_COUNT
  IMPORT_POLYGON_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
 
+ # Get the expected feature count from the GeoJSON file for comparison
+ local EXPECTED_FEATURE_COUNT
+ EXPECTED_FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+
  if [[ "${IMPORT_COUNT_AFTER}" -eq 0 ]]; then
-  __loge "ERROR: Import table is completely empty after ogr2ogr for boundary ${ID}"
-  __loge "This indicates ogr2ogr failed to import the GeoJSON"
+  __loge "CRITICAL ERROR: Import table is completely empty after ogr2ogr for boundary ${ID}"
+  __loge "This indicates ogr2ogr failed to import the GeoJSON, which could lead to data corruption"
   __loge "Possible causes:"
   __loge "  1. GeoJSON file is invalid or empty"
   __loge "  2. ogr2ogr could not find the 'geometry' field"
   __loge "  3. All geometries were rejected by ogr2ogr"
+  __loge "  4. ogr2ogr failed silently (check ogr2ogr logs)"
 
   # Check if GeoJSON file exists and has content
   if [[ -f "${GEOJSON_FILE}" ]]; then
@@ -1011,16 +1041,37 @@ function __processBoundary_impl {
    if command -v jq > /dev/null 2>&1; then
     local FEATURE_COUNT
     FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
-    __loge "GeoJSON features count: ${FEATURE_COUNT}"
+    __loge "GeoJSON features count: ${FEATURE_COUNT} (expected to import ${FEATURE_COUNT} rows, but got 0)"
 
     # Check geometry types in GeoJSON
     local GEOM_TYPES
     GEOM_TYPES=$(jq -r '.features[].geometry.type' "${GEOJSON_FILE}" 2> /dev/null | sort -u | tr '\n' ',' | sed 's/,$//' || echo "Unknown")
     __loge "Geometry types in GeoJSON: ${GEOM_TYPES}"
+
+    # Try to identify why ogr2ogr failed - check if geometries are valid
+    local INVALID_GEOM_COUNT
+    INVALID_GEOM_COUNT=$(jq '[.features[] | select(.geometry == null or .geometry.coordinates == null)] | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+    if [[ "${INVALID_GEOM_COUNT}" -gt 0 ]]; then
+     __loge "Found ${INVALID_GEOM_COUNT} features with null or invalid geometries in GeoJSON"
+    fi
+   fi
+
+   # Check ogr2ogr error log for clues
+   if [[ -f "${OGR_ERROR_LOG}" ]] && [[ -s "${OGR_ERROR_LOG}" ]]; then
+    __loge "ogr2ogr error log contents:"
+    while IFS= read -r line; do
+     __loge "  ${line}"
+    done < "${OGR_ERROR_LOG}" | head -20
    fi
   else
    __loge "GeoJSON file not found: ${GEOJSON_FILE}"
   fi
+
+  # CRITICAL: Never continue if import table is empty - this would cause data corruption
+  # The import table being empty means no data was imported, so we should not proceed
+  # with validation or insertion, as this could lead to inserting wrong geometries
+  __loge "CRITICAL: Rejecting boundary ${ID} - cannot proceed with empty import table"
+  __loge "This prevents data corruption where wrong geometries might be inserted"
 
   if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
    echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
@@ -1029,33 +1080,64 @@ function __processBoundary_impl {
    __log_finish
    return 1
   else
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "Import table is empty after ogr2ogr for boundary ${ID}" \
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Import table is empty after ogr2ogr for boundary ${ID} - rejecting to prevent data corruption" \
     "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
    __log_finish
    return 1
   fi
+ elif [[ "${EXPECTED_FEATURE_COUNT}" -gt 0 ]] && [[ "${IMPORT_COUNT_AFTER}" -lt $((EXPECTED_FEATURE_COUNT / 2)) ]]; then
+  # If we imported less than half of the expected features, this is suspicious
+  # It could indicate a partial import failure
+  __logw "WARNING: Imported ${IMPORT_COUNT_AFTER} rows but GeoJSON has ${EXPECTED_FEATURE_COUNT} features"
+  __logw "This suggests a partial import failure - some features were not imported"
+  # Log this but continue - some features might be non-geometry or invalid
  elif [[ "${IMPORT_POLYGON_COUNT}" -eq 0 ]]; then
-  # Table has data but no polygons - this is a warning, not necessarily a failure
-  __logw "WARNING: Import table has ${IMPORT_COUNT_AFTER} rows but no polygon geometries for boundary ${ID}"
-  __logw "This means the GeoJSON was imported but contains only non-polygon geometries (LineString, Point, etc.)"
-  __logw "Capital validation will fail as it requires polygon geometries"
+  # CRITICAL: Table has data but no polygons - this is a critical error for boundary processing
+  # Boundary processing requires polygon geometries for capital validation and insertion
+  __loge "CRITICAL ERROR: Import table has ${IMPORT_COUNT_AFTER} rows but no polygon geometries for boundary ${ID}"
+  __loge "This means the GeoJSON was imported but contains only non-polygon geometries (LineString, Point, etc.)"
+  __loge "Boundary processing requires polygon geometries - cannot proceed with validation or insertion"
 
   # Check what geometry types were imported
   local IMPORTED_GEOM_TYPES
   IMPORTED_GEOM_TYPES=$(psql -d "${DBNAME}" -Atq -c "SELECT DISTINCT ST_GeometryType(geometry) FROM import ORDER BY ST_GeometryType(geometry);" 2> /dev/null | tr '\n' ',' | sed 's/,$//' || echo "Unknown")
-  __logw "Imported geometry types: ${IMPORTED_GEOM_TYPES}"
+  __loge "Imported geometry types: ${IMPORTED_GEOM_TYPES}"
 
   # Check what geometry types are in the GeoJSON
   if [[ -f "${GEOJSON_FILE}" ]] && command -v jq > /dev/null 2>&1; then
    local GEOJSON_GEOM_TYPES
    GEOJSON_GEOM_TYPES=$(jq -r '.features[].geometry.type' "${GEOJSON_FILE}" 2> /dev/null | sort -u | tr '\n' ',' | sed 's/,$//' || echo "Unknown")
-   __logw "GeoJSON geometry types: ${GEOJSON_GEOM_TYPES}"
+   __loge "GeoJSON geometry types: ${GEOJSON_GEOM_TYPES}"
+
+   # Check if GeoJSON has polygons that weren't imported
+   local GEOJSON_POLYGON_COUNT
+   GEOJSON_POLYGON_COUNT=$(jq '[.features[] | select(.geometry.type == "Polygon" or .geometry.type == "MultiPolygon")] | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+   if [[ "${GEOJSON_POLYGON_COUNT}" -gt 0 ]]; then
+    __loge "CRITICAL: GeoJSON has ${GEOJSON_POLYGON_COUNT} polygon features but none were imported!"
+    __loge "This indicates ogr2ogr failed to import polygon geometries - possible data corruption"
+   fi
   fi
 
-  # Still continue, but validation will fail
-  __logd "Continuing processing, but capital validation will likely fail"
+  # Reject this boundary - cannot proceed without polygon geometries
+  if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
+   echo "${ID}" >> "${TMP_DIR}/failed_boundaries.txt"
+   __logw "Recording boundary ${ID} as failed and continuing (CONTINUE_ON_OVERPASS_ERROR=true)"
+   rmdir "${PROCESS_LOCK}" 2> /dev/null || true
+   __log_finish
+   return 1
+  else
+   __handle_error_with_cleanup "${ERROR_GENERAL}" "Import table has no polygon geometries for boundary ${ID} - rejecting to prevent data corruption" \
+    "rm -f ${JSON_FILE} ${GEOJSON_FILE} 2>/dev/null || true; rmdir ${PROCESS_LOCK} 2>/dev/null || true"
+   __log_finish
+   return 1
+  fi
  fi
+
+ # Log successful import with details
  __logd "Import table has ${IMPORT_COUNT_AFTER} total rows (${IMPORT_POLYGON_COUNT} polygons) for boundary ${ID}"
+ if [[ "${EXPECTED_FEATURE_COUNT}" -gt 0 ]]; then
+  __logd "GeoJSON had ${EXPECTED_FEATURE_COUNT} features - imported ${IMPORT_COUNT_AFTER} rows"
+ fi
 
  # CRITICAL: Validate capital location to prevent cross-contamination
  # This ensures the imported geometry corresponds to the correct country
