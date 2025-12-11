@@ -13,6 +13,16 @@ It provides:
 > **Note:** The analytics, data warehouse, and ETL components have been moved to
 > [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
+## Data License
+
+**Important:** This repository contains only code and configuration files. All data processed by this system comes from **OpenStreetMap (OSM)** and is licensed under the **Open Database License (ODbL)**. The processed data (notes, boundaries, etc.) stored in the database is derived from OSM and must comply with OSM's licensing requirements.
+
+- **OSM Data License:** [Open Database License (ODbL)](http://opendatacommons.org/licenses/odbl/)
+- **OSM Copyright:** [OpenStreetMap contributors](http://www.openstreetmap.org/copyright)
+- **OSM Attribution:** Required when using or distributing OSM data
+
+For more information about OSM licensing, see: [https://www.openstreetmap.org/copyright](https://www.openstreetmap.org/copyright)
+
 ## tl;dr - 5 minutes configuration
 
 You just need to download or clone this project in a Linux server and configure

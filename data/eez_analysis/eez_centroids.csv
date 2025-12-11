@@ -1,0 +1,286 @@
+eez_id,name,territory,sovereign,centroid_lat,centroid_lon
+3293|"Belgian Exclusive Economic Zone"|"Belgium"|"Belgium"|51.463206|2.721323
+5668|"Dutch Exclusive Economic Zone"|"Netherlands"|"Netherlands"|53.613349|4.186489
+5669|"German Exclusive Economic Zone"|"Germany"|"Germany"|54.553819|8.396092
+5670|"Albanian Exclusive Economic Zone"|"Albania"|"Albania"|40.927084|19.113001
+5672|"Bulgarian Exclusive Economic Zone"|"Bulgaria"|"Bulgaria"|42.933956|29.201647
+5673|"Croatian Exclusive Economic Zone"|"Croatia"|"Croatia"|43.436986|15.647792
+5674|"Danish Exclusive Economic Zone"|"Denmark"|"Denmark"|56.150070|9.205293
+5675|"Estonian Exclusive Economic Zone"|"Estonia"|"Estonia"|58.770120|23.002319
+5676|"Finnish Exclusive Economic Zone"|"Finland"|"Finland"|61.754837|21.889186
+5677|"French Exclusive Economic Zone"|"France"|"France"|46.070745|-1.961298
+5678|"Georgian Exclusive Economic Zone"|"Georgia"|"Georgia"|42.446249|40.561742
+5679|"Greek Exclusive Economic Zone"|"Greece"|"Greece"|36.507204|23.932153
+5680|"Icelandic Exclusive Economic Zone"|"Iceland"|"Iceland"|64.698265|-18.448449
+5681|"Irish Exclusive Economic Zone"|"Ireland"|"Ireland"|52.653042|-11.755442
+5682|"Italian Exclusive Economic Zone"|"Italy"|"Italy"|39.652655|12.932341
+5683|"Latvian Exclusive Economic Zone"|"Latvia"|"Latvia"|57.105083|21.352885
+5684|"Lithuanian Exclusive Economic Zone"|"Lithuania"|"Lithuania"|55.756162|20.363071
+5685|"Maltese Exclusive Economic Zone"|"Malta"|"Malta"|35.313554|15.111207
+5686|"Norwegian Exclusive Economic Zone"|"Norway"|"Norway"|68.178464|14.001296
+5687|"Polish Exclusive Economic Zone"|"Poland"|"Poland"|54.912295|17.260419
+5688|"Portuguese Exclusive Economic Zone"|"Portugal"|"Portugal"|38.319214|-10.922838
+5689|"Romanian Exclusive Economic Zone"|"Romania"|"Romania"|44.241093|30.078505
+5690|"Russian Exclusive Economic Zone"|"Russia"|"Russia"|71.321853|93.470782
+5691|"Montenegrin Exclusive Economic Zone"|"Montenegro"|"Montenegro"|41.870234|18.680147
+5692|"Slovenian Exclusive Economic Zone"|"Slovenia"|"Slovenia"|45.562875|13.578962
+5693|"Spanish Exclusive Economic Zone"|"Spain"|"Spain"|41.722013|-4.158012
+5694|"Swedish Exclusive Economic Zone"|"Sweden"|"Sweden"|59.484603|18.114015
+5695|"Overlapping claim Ukraine: Ukraine / Russia"|"Ukraine"|"Ukraine"|44.951917|33.634652
+5696|"British Exclusive Economic Zone"|"United Kingdom"|"United Kingdom"|56.792472|-4.288451
+5697|"Turkish Exclusive Economic Zone"|"Turkey"|"Turkey"|40.522244|33.220598
+8308|"Australian Exclusive Economic Zone (Cocos Islands)"|"Cocos Islands"|"Australia"|-12.031462|96.854336
+8309|"Australian Exclusive Economic Zone (Christmas Island)"|"Christmas Island"|"Australia"|-11.243581|105.365226
+8310|"Australian Exclusive Economic Zone (Norfolk Island)"|"Norfolk Island"|"Australia"|-29.093136|167.928983
+8311|"Australian Exclusive Economic Zone (Macquarie Island)"|"Macquarie Island"|"Australia"|-54.876299|158.652909
+8312|"French Exclusive Economic Zone (New Caledonia)"|"New Caledonia"|"France"|-21.018706|163.203766
+8313|"Vanuatuan Exclusive Economic Zone"|"Vanuatu"|"Vanuatu"|-16.585231|168.557429
+8314|"Solomon Islands Exclusive Economic Zone"|"Solomon Islands"|"Solomon Islands"|-10.044652|163.685391
+8315|"Palauan Exclusive Economic Zone"|"Palau"|"Palau"|6.443930|133.069498
+8316|"Micronesian Exclusive Economic Zone"|"Micronesia"|"Micronesia"|6.768434|150.322482
+8317|"Nauruan Exclusive Economic Zone"|"Nauru"|"Nauru"|-0.591131|166.123964
+8318|"Marshallese Exclusive Economic Zone"|"Marshall Islands"|"Marshall Islands"|10.151361|167.485468
+8319|"Overlapping claim Wake Island / Enenkio: United States / Marshall Islands"|"Wake Island / Enenkio"|"United States"|19.503262|166.530458
+8321|"Overlapping claim Taiwan: Taiwan / China"|"Taiwan"|"Taiwan"|21.420757|118.714575
+8322|"Philippine Exclusive Economic Zone"|"Philippines"|"Philippines"|12.267906|122.163787
+8323|"Australian Exclusive Economic Zone"|"Australia"|"Australia"|-27.362265|138.084109
+8324|"Papua New Guinean Exclusive Economic Zone"|"Papua New Guinea"|"Papua New Guinea"|-5.456634|150.719732
+8325|"Fijian Exclusive Economic Zone"|"Fiji"|"Fiji"|-17.948471|93.677349
+8326|"Tuvaluan Exclusive Economic Zone"|"Tuvalu"|"Tuvalu"|-7.812542|74.287853
+8327|"South Korean Exclusive Economic Zone"|"South Korea"|"South Korea"|35.740714|127.577123
+8328|"North Korean Exclusive Economic Zone"|"North Korea"|"North Korea"|39.827854|128.995349
+8331|"Cambodian Exclusive Economic Zone"|"Cambodia"|"Cambodia"|10.225426|102.542280
+8332|"Thailand Exclusive Economic Zone"|"Thailand"|"Thailand"|9.167288|99.628523
+8333|"Indian Exclusive Economic Zone (Andaman and Nicobar Islands)"|"Andaman and Nicobar"|"India"|9.977382|92.189667
+8334|"Comoran Exclusive Economic Zone"|"Comores"|"Comores"|-11.423142|43.454228
+8337|"Seychellois Exclusive Economic Zone"|"Seychelles"|"Seychelles"|-6.547776|52.468718
+8338|"French Exclusive Economic Zone (Réunion)"|"Réunion"|"France"|-21.781970|54.713278
+8339|"French Exclusive Economic Zone (Juan de Nova Island)"|"Juan de Nova Island"|"France"|-17.306633|42.094282
+8340|"French Exclusive Economic Zone (Bassas da India)"|"Bassas da India"|"France"|-20.860543|39.425180
+8341|"French Exclusive Economic Zone (Europa Island)"|"Europa Island"|"France"|-23.536818|40.109277
+8343|"Mauritian Exclusive Economic Zone"|"Republic of Mauritius"|"Republic of Mauritius"|-16.810213|60.117203
+8345|"Maldivian Exclusive Economic Zone"|"Maldives"|"Maldives"|2.463524|73.085451
+8346|"Sri Lankan Exclusive Economic Zone"|"Sri Lanka"|"Sri Lanka"|6.546377|81.636074
+8347|"Mozambican Exclusive Economic Zone"|"Mozambique"|"Mozambique"|-20.370615|37.957396
+8348|"Madagascan Exclusive Economic Zone"|"Madagascar"|"Madagascar"|-20.913354|47.253953
+8349|"Kenyan Exclusive Economic Zone"|"Kenya"|"Kenya"|-3.474639|41.937648
+8350|"Somali Exclusive Economic Zone"|"Federal Republic of Somalia"|"Federal Republic of Somalia"|5.022262|48.492052
+8351|"Eritrean Exclusive Economic Zone"|"Eritrea"|"Eritrea"|15.823459|40.592550
+8352|"Djiboutian Exclusive Economic Zone"|"Djibouti"|"Djibouti"|11.997104|43.432963
+8353|"Yemeni Exclusive Economic Zone"|"Yemen"|"Yemen"|12.889056|52.061610
+8354|"Omani Exclusive Economic Zone"|"Oman"|"Oman"|18.949146|58.669981
+8355|"Sudanese Exclusive Economic Zone"|"Sudan"|"Sudan"|19.747925|38.143670
+8356|"Saudi Arabian Exclusive Economic Zone"|"Saudi Arabia"|"Saudi Arabia"|22.452765|40.483133
+8357|"Kuwaiti Exclusive Economic Zone"|"Kuwait"|"Kuwait"|29.174799|48.619156
+8358|"Bahraini Exclusive Economic Zone"|"Bahrain"|"Bahrain"|26.335396|50.705336
+8359|"Pakistani Exclusive Economic Zone"|"Pakistan"|"Pakistan"|23.539495|64.711751
+8360|"Emirati Exclusive Economic Zone"|"United Arab Emirates"|"United Arab Emirates"|24.943957|53.893033
+8361|"Portuguese Exclusive Economic Zone (Azores)"|"Azores"|"Portugal"|38.475376|-27.976015
+8362|"Cape Verdean Exclusive Economic Zone"|"Cape Verde"|"Cape Verde"|16.091904|-24.171638
+8363|"Portuguese Exclusive Economic Zone (Madeira)"|"Madeira"|"Portugal"|33.173018|-16.810907
+8364|"Spanish Exclusive Economic Zone (Canary Islands)"|"Canary Islands"|"Spain"|28.367148|-17.613956
+8365|"Overlapping claim Gibraltar: United Kingdom / Spain"|"Gibraltar"|"United Kingdom"|36.088319|-5.219612
+8366|"Tunisian Exclusive Economic Zone"|"Tunisia"|"Tunisia"|36.001326|11.053189
+8367|"Moroccan Exclusive Economic Zone"|"Morocco"|"Morocco"|32.781347|-9.852014
+8368|"Overlapping claim Western Sahara: Western Sahara / Morocco"|"Western Sahara"|"Western Sahara"|23.342359|-17.695424
+8369|"Mauritanian Exclusive Economic Zone"|"Mauritania"|"Mauritania"|18.248520|-17.917548
+8370|"Gambian Exclusive Economic Zone"|"Gambia"|"Gambia"|13.328666|-18.387511
+8371|"Senegalese Exclusive Economic Zone"|"Senegal"|"Senegal"|13.694629|-18.503575
+8372|"Libyan Exclusive Economic Zone"|"Libya"|"Libya"|33.150168|18.356774
+8373|"Syrian Exclusive Economic Zone"|"Syria"|"Syria"|35.328708|35.496244
+8374|"Lebanese Exclusive Economic Zone"|"Lebanon"|"Lebanon"|33.952956|34.941862
+8375|"Israeli Exclusive Economic Zone"|"Israel"|"Israel"|32.611200|34.102197
+8376|"Cypriote Exclusive Economic Zone"|"Cyprus"|"Cyprus"|34.489291|32.635258
+8378|"Algerian Exclusive Economic Zone"|"Algeria"|"Algeria"|37.203437|3.539794
+8379|"British Exclusive Economic Zone (Ascension)"|"Ascension"|"United Kingdom"|-7.947469|-14.363373
+8380|"British Exclusive Economic Zone (Saint Helena)"|"Saint Helena"|"United Kingdom"|-15.972778|-5.708691
+8381|"Brazilian Exclusive Economic Zone (Trindade)"|"Trindade"|"Brazil"|-20.502770|-29.096436
+8382|"British Exclusive Economic Zone (Tristan da Cunha)"|"Tristan da Cunha"|"United Kingdom"|-38.761896|-11.209868
+8383|"Overlapping claim South Georgia and the South Sandwich Islands: United Kingdom / Argentina"|"South Georgia and the South Sandwich Islands"|"United Kingdom"|-56.524043|-31.263814
+8384|"South African Exclusive Economic Zone (Prince Edward Islands)"|"Prince Edward Islands"|"South Africa"|-46.832916|37.808536
+8385|"French Exclusive Economic Zone (Crozet Islands)"|"Crozet Islands"|"France"|-46.307817|51.212090
+8386|"French Exclusive Economic Zone (Amsterdam and Saint Paul Islands)"|"Amsterdam and Saint Paul Islands"|"France"|-38.294309|77.541806
+8387|"French Exclusive Economic Zone (Kerguélen)"|"Kerguélen"|"France"|-48.877945|68.974599
+8388|"Australian Exclusive Economic Zone (Heard and McDonald Islands)"|"Heard and McDonald Islands"|"Australia"|-53.498625|73.730515
+8389|"Overlapping claim Falkland / Malvinas Islands: United Kingdom / Argentina"|"Falkland / Malvinas Islands"|"United Kingdom"|-51.667026|-58.322366
+8390|"Sierra Leonean Exclusive Economic Zone"|"Sierra Leone"|"Sierra Leone"|6.635408|-14.144680
+8391|"Liberian Exclusive Economic Zone"|"Liberia"|"Liberia"|3.802803|-10.177629
+8392|"Togolese Exclusive Economic Zone"|"Togo"|"Togo"|4.639492|1.821350
+8393|"Beninese Exclusive Economic Zone"|"Benin"|"Benin"|4.841549|2.421233
+8394|"Congolese (Republic of) Exclusive Economic Zone"|"Republic of the Congo"|"Republic of the Congo"|-5.336476|10.595774
+8395|"Namibian Exclusive Economic Zone"|"Namibia"|"Namibia"|-23.649687|12.285474
+8396|"South African Exclusive Economic Zone"|"South Africa"|"South Africa"|-33.508015|24.443313
+8397|"São Toméan Exclusive Economic Zone"|"Sao Tome and Principe"|"Sao Tome and Principe"|0.779096|6.353345
+8398|"Equatorial Guinean Exclusive Economic Zone"|"Equatorial Guinea"|"Equatorial Guinea"|-1.371834|5.437451
+8400|"Ghanaian Exclusive Economic Zone"|"Ghana"|"Ghana"|3.502010|-0.850265
+8401|"French Exclusive Economic Zone (Clipperton Island)"|"Clipperton Island"|"France"|10.308689|-109.217282
+8402|"British Exclusive Economic Zone (Bermuda)"|"Bermuda"|"United Kingdom"|32.368987|-64.806926
+8403|"Ecuadorian Exclusive Economic Zone (Galapagos)"|"Galapagos"|"Ecuador"|-0.041839|-90.831742
+8404|"Bahamian Exclusive Economic Zone"|"Bahamas"|"Bahamas"|25.117156|-75.577854
+8405|"British Exclusive Economic Zone (Turks and Caicos Islands)"|"Turks and Caicos Islands"|"United Kingdom"|22.809870|-70.853615
+8406|"Cuban Exclusive Economic Zone"|"Cuba"|"Cuba"|21.600038|-81.530495
+8407|"British Exclusive Economic Zone (Cayman Islands)"|"Cayman Islands"|"United Kingdom"|19.153448|-81.139139
+8408|"Haitian Exclusive Economic Zone"|"Haiti"|"Haiti"|17.912185|-73.548560
+8409|"Dominican (Republic) Exclusive Economic Zone"|"Dominican Republic"|"Dominican Republic"|19.138263|-69.672237
+8411|"British Exclusive Economic Zone (British Virgin Islands)"|"British Virgin Islands"|"United Kingdom"|20.389876|-64.504971
+8412|"British Exclusive Economic Zone (Anguilla)"|"Anguilla"|"United Kingdom"|20.018030|-62.543285
+8413|"Kittitian and Nevisian Exclusive Economic Zone"|"Saint Kitts and Nevis"|"Saint Kitts and Nevis"|16.990220|-62.905778
+8414|"Antiguan and Barbudan Exclusive Economic Zone"|"Antigua and Barbuda"|"Antigua and Barbuda"|18.732787|-60.570639
+8415|"British Exclusive Economic Zone (Montserrat)"|"Montserrat"|"United Kingdom"|16.412923|-62.483845
+8416|"Saint Lucian Exclusive Economic Zone"|"Saint Lucia"|"Saint Lucia"|13.877704|-61.103588
+8417|"Dominican Exclusive Economic Zone"|"Dominica"|"Dominica"|15.497389|-60.721142
+8418|"Barbadian Exclusive Economic Zone"|"Barbados"|"Barbados"|13.322879|-57.993564
+8419|"Grenadian Exclusive Economic Zone"|"Grenada"|"Grenada"|12.243882|-62.058805
+8420|"Trinidadian and Tobagonian Exclusive Economic Zone"|"Trinidad and Tobago"|"Trinidad and Tobago"|10.957884|-59.984775
+8421|"Saint Vincentian Exclusive Economic Zone"|"Saint Vincent and the Grenadines"|"Saint Vincent and the Grenadines"|13.158052|-61.694424
+8423|"Panamanian Exclusive Economic Zone"|"Panama"|"Panama"|8.288804|-80.345826
+8424|"Costa Rican Exclusive Economic Zone"|"Costa Rica"|"Costa Rica"|6.736911|-86.507372
+8425|"Nicaraguan Exclusive Economic Zone"|"Nicaragua"|"Nicaragua"|12.819753|-83.495619
+8426|"Colombian Exclusive Economic Zone"|"Colombia"|"Colombia"|8.607544|-78.062220
+8427|"Honduran Exclusive Economic Zone"|"Honduras"|"Honduras"|16.911535|-83.848448
+8428|"Salvadoran Exclusive Economic Zone"|"El Salvador"|"El Salvador"|11.848587|-89.744108
+8429|"Mexican Exclusive Economic Zone"|"Mexico"|"Mexico"|21.350181|-105.333456
+8430|"Guatemalan Exclusive Economic Zone"|"Guatemala"|"Guatemala"|12.552431|-92.090797
+8431|"Ecuadorian Exclusive Economic Zone"|"Ecuador"|"Ecuador"|-0.965563|-82.208636
+8432|"Peruvian Exclusive Economic Zone"|"Peru"|"Peru"|-11.899404|-78.884775
+8433|"Venezuelan Exclusive Economic Zone"|"Venezuela"|"Venezuela"|12.788868|-65.914234
+8435|"Danish Exclusive Economic Zone (Faeroe)"|"Faeroe"|"Denmark"|62.594599|-6.996899
+8437|"Norwegian Exclusive Economic Zone (Jan Mayen)"|"Jan Mayen"|"Norway"|71.114213|-5.251293
+8438|"Danish Exclusive Economic Zone (Greenland)"|"Greenland"|"Denmark"|75.479650|-31.970964
+8439|"British Exclusive Economic Zone (Pitcairn)"|"Pitcairn"|"United Kingdom"|-24.606227|-127.421310
+8440|"French Exclusive Economic Zone (French Polynesia)"|"French Polynesia"|"France"|-18.736345|-144.003273
+8441|"Kiribati Exclusive Economic Zone (Line Group)"|"Line Group"|"Kiribati"|-3.821545|-154.726337
+8442|"United States Exclusive Economic Zone (Jarvis Islands)"|"Jarvis Island"|"United States"|-0.913995|-160.468386
+8443|"United States Exclusive Economic Zone (Palmyra Atoll)"|"Palmyra Atoll"|"United States"|6.687938|-162.898807
+8444|"United States Exclusive Economic Zone (American Samoa)"|"American Samoa"|"United States"|-13.854839|-169.063470
+8445|"Samoan Exclusive Economic Zone"|"Samoa"|"Samoa"|-13.296866|-172.753721
+8446|"New Zealand Exclusive Economic Zone (Cook Islands)"|"Cook Islands"|"New Zealand"|-15.018907|-161.303414
+8447|"New Zealand Exclusive Economic Zone (Niue)"|"Niue"|"New Zealand"|-19.523148|-169.331383
+8448|"Tongan Exclusive Economic Zone"|"Tonga"|"Tonga"|-20.221749|-174.765861
+8449|"New Zealand Exclusive Economic Zone (Tokelau)"|"Tokelau"|"New Zealand"|-8.632573|-172.084955
+8450|"Kiribati Exclusive Economic Zone (Phoenix Group)"|"Phoenix Group"|"Kiribati"|-3.731812|-172.453965
+8451|"United States Exclusive Economic Zone (Howland and Baker Islands)"|"Howland and Baker Islands"|"United States"|0.791305|-176.727268
+8452|"United States Exclusive Economic Zone (Johnston Atoll)"|"Johnston Atoll"|"United States"|16.751091|-169.506117
+8453|"United States Exclusive Economic Zone (Hawaii)"|"Hawaii"|"United States"|24.040988|-151.057527
+8454|"French Exclusive Economic Zone (Wallis and Futuna)"|"Wallis and Futuna"|"France"|-12.754920|-176.811231
+8455|"New Zealand Exclusive Economic Zone"|"New Zealand"|"New Zealand"|-42.766145|71.729344
+8456|"United States Exclusive Economic Zone"|"United States"|"United States"|34.762110|-95.821329
+8457|"Belizean Exclusive Economic Zone"|"Belize"|"Belize"|17.234439|-87.566012
+8459|"Jamaican Exclusive Economic Zone"|"Jamaica"|"Jamaica"|16.668611|-77.290894
+8460|"Guyanese Exclusive Economic Zone"|"Guyana"|"Guyana"|8.613377|-57.640945
+8461|"Surinamese Exclusive Economic Zone"|"Suriname"|"Suriname"|7.597765|-54.766979
+8462|"French Exclusive Economic Zone (French Guiana)"|"French Guiana"|"France"|6.680904|-51.756177
+8463|"United States Exclusive Economic Zone (Alaska)"|"Alaska"|"United States"|59.011699|-119.976599
+8464|"Brazilian Exclusive Economic Zone"|"Brazil"|"Brazil"|-11.097986|-39.444233
+8465|"Chilean Exclusive Economic Zone"|"Chile"|"Chile"|-40.986285|-75.628814
+8466|"Argentinian Exclusive Economic Zone"|"Argentina"|"Argentina"|-47.058682|-62.155671
+8467|"Uruguayan Exclusive Economic Zone"|"Uruguay"|"Uruguay"|-35.789271|-53.321427
+8468|"Qatari Exclusive Economic Zone"|"Qatar"|"Qatar"|25.862363|51.880763
+8469|"Iranian Exclusive Economic Zone"|"Iran"|"Iran"|29.781603|53.879360
+8470|"Iraqi Exclusive Economic Zone"|"Iraq"|"Iraq"|29.755821|48.581992
+8471|"Bissau-Guinean Exclusive Economic Zone"|"Guinea-Bissau"|"Guinea-Bissau"|10.580659|-17.567196
+8472|"Guinean Exclusive Economic Zone"|"Guinea"|"Guinea"|9.181139|-15.620507
+8473|"Ivorian Exclusive Economic Zone"|"Ivory Coast"|"Ivory Coast"|3.308910|-5.452213
+8474|"Nigerian Exclusive Economic Zone"|"Nigeria"|"Nigeria"|4.085125|4.822752
+8475|"Cameroonian Exclusive Economic Zone"|"Cameroon"|"Cameroon"|3.462777|9.310891
+8476|"Gabonese Exclusive Economic Zone"|"Gabon"|"Gabon"|-3.062541|8.738971
+8477|"Congolese (Democratic Republic of) Exclusive Economic Zone"|"Democratic Republic of the Congo"|"Democratic Republic of the Congo"|-6.401526|10.732555
+8478|"Angolan Exclusive Economic Zone"|"Angola"|"Angola"|-11.701098|11.035371
+8479|"Tanzanian Exclusive Economic Zone"|"Tanzania"|"Tanzania"|-7.210868|41.168597
+8480|"Indian Exclusive Economic Zone"|"India"|"India"|14.598072|76.085259
+8481|"Bangladeshi Exclusive Economic Zone"|"Bangladesh"|"Bangladesh"|20.475615|90.561529
+8482|"Myanma Exclusive Economic Zone"|"Myanmar"|"Myanmar"|14.996514|94.655524
+8483|"Malaysian Exclusive Economic Zone"|"Malaysia"|"Malaysia"|5.163671|109.274695
+8484|"Vietnamese Exclusive Economic Zone"|"Vietnam"|"Vietnam"|11.603792|108.750247
+8485|"Singaporean Exclusive Economic Zone"|"Singapore"|"Singapore"|1.271443|103.826769
+8486|"Chinese Exclusive Economic Zone"|"China"|"China"|27.738531|118.145698
+8487|"Japanese Exclusive Economic Zone"|"Japan"|"Japan"|29.556556|138.448625
+8488|"Kiribati Exclusive Economic Zone (Gilbert Islands)"|"Gilbert Islands"|"Kiribati"|-0.259124|172.782142
+8490|"Egyptian Exclusive Economic Zone"|"Egypt"|"Egypt"|30.447599|31.159477
+8491|"Jordanian Exclusive Economic Zone"|"Jordan"|"Jordan"|29.435168|34.946834
+8492|"Indonesian Exclusive Economic Zone"|"Indonesia"|"Indonesia"|-3.305781|117.891205
+8493|"Canadian Exclusive Economic Zone"|"Canada"|"Canada"|68.587555|-89.942363
+8494|"French Exclusive Economic Zone (Saint-Pierre and Miquelon)"|"Saint-Pierre and Miquelon"|"France"|45.857191|-56.387009
+8495|"French Exclusive Economic Zone (Collectivity of Saint Martin)"|"Collectivity of Saint Martin"|"France"|18.034692|-63.202823
+8758|"Timorese Exclusive Economic Zone"|"East Timor"|"East Timor"|-9.781558|126.854097
+21787|"Chilean Exclusive Economic Zone (Easter Island)"|"Easter Island"|"Chile"|-26.824000|-107.438688
+21788|"British Exclusive Economic Zone (Guernsey)"|"Guernsey"|"United Kingdom"|49.582961|-2.495607
+21789|"British Exclusive Economic Zone (Jersey)"|"Jersey"|"United Kingdom"|49.126453|-2.193297
+21790|"Monégasque Exclusive Economic Zone"|"Monaco"|"Monaco"|43.348015|7.587680
+21791|"Timorese Exclusive Economic Zone (Oecusse)"|"Oecusse"|"East Timor"|-9.049885|124.270747
+21792|"Joint regime area: Jamaica / Colombia"|"Jamaica"|"Jamaica"|15.470346|-79.145722
+21796|"Joint regime area: South Korea / Japan"|"South Korea"|"South Korea"|30.813959|127.578082
+21797|"Joint regime area: São Tomé and Principe / Nigeria"|"São Tomé and Principe"|"São Tomé and Principe"|2.067604|5.586989
+21798|"Joint regime area Torres Strait Treaty: Papua New Guinea / Australia"|"Papua New Guinea"|"Papua New Guinea"|-9.539655|142.408819
+21803|"Dutch Exclusive Economic Zone (Sint-Maarten)"|"Sint-Maarten"|"Netherlands"|17.938126|-63.122850
+22491|"Bosnian and Herzegovinian Exclusive Economic Zone"|"Bosnia and Herzegovina"|"Bosnia and Herzegovina"|42.916560|17.592561
+22756|"Chilean Exclusive Economic Zone (Islas San Félix and San Ambrosio)"|"Islas San Félix and San Ambrosio"|"Chile"|-26.330914|-79.990864
+26517|"Dutch Exclusive Economic Zone (Curaçao)"|"Curaçao"|"Netherlands"|13.162461|-68.971763
+26518|"Dutch Exclusive Economic Zone (Saba)"|"Saba"|"Netherlands"|17.377388|-63.601854
+26519|"Dutch Exclusive Economic Zone (Aruba)"|"Aruba"|"Netherlands"|13.741380|-69.673412
+26520|"Dutch Exclusive Economic Zone (Bonaire)"|"Bonaire"|"Netherlands"|12.711195|-68.369784
+26521|"Bruneian Exclusive Economic Zone"|"Brunei"|"Brunei"|6.062820|113.386076
+26522|"Kazakh Exclusive Economic Zone"|"Kazakhstan"|"Kazakhstan"|44.474416|51.014395
+26523|"Turkmen Exclusive Economic Zone"|"Turkmenistan"|"Turkmenistan"|39.292322|52.638534
+26524|"Azerbaijani Exclusive Economic Zone"|"Azerbaijan"|"Azerbaijan"|40.283505|50.331718
+26526|"Dutch Exclusive Economic Zone (Sint-Eustatius)"|"Sint-Eustatius"|"Netherlands"|17.338902|-63.129870
+26582|"Overlapping claim Halaib Triangle: Sudan / Egypt"|"Halaib Triangle"|"Sudan"|22.611641|36.879169
+33177|"French Exclusive Economic Zone (Guadeloupe)"|"Guadeloupe"|"France"|16.798805|-59.850443
+33178|"French Exclusive Economic Zone (Martinique)"|"Martinique"|"France"|14.975115|-60.200546
+33179|"United States Exclusive Economic Zone (Puerto Rico)"|"Puerto Rico"|"United States"|17.798210|-66.786875
+33180|"United States Exclusive Economic Zone (United States Virgin Islands)"|"United States Virgin Islands"|"United States"|17.254963|-64.924354
+33181|"Norwegian Exclusive Economic Zone (Svalbard)"|"Svalbard"|"Norway"|78.713604|18.302772
+33185|"Overlapping claim: Guyana / Trinidad and Tobago / Venezuela"|"Guyana"|"Guyana"|10.565390|-57.887116
+48943|"Overlapping claim: Canada / United States"|"Canada"|"Canada"|72.033953|-139.852002
+48944|"Overlapping claim Mayotte: France / Comores"|"Mayotte"|"France"|-13.216977|45.306562
+48945|"Overlapping claim Glorioso Islands: France / Madagascar"|"Glorioso Islands"|"Madagascar"|-11.618102|47.096897
+48946|"Overlapping claim Ile Tromelin: France / Madagascar / Republic of Mauritius"|"Ile Tromelin"|"France"|-15.711268|54.673051
+48947|"Overlapping claim Abu musa, Greater and Lesser Tunb: United Arab Emirates / Iran"|"Abu musa, Greater and Lesser Tunb"|"United Arab Emirates"|26.012689|55.171803
+48948|"Overlapping claim Matthew and Hunter Islands: France / Vanuatu"|"Matthew and Hunter Islands"|"France"|-23.279112|172.036552
+48950|"Overlapping claim Kuril Islands: Japan / Russia"|"Kuril Islands"|"Japan"|43.886057|147.961539
+48951|"Overlapping claim Navassa Island: United States / Haiti / Jamaica"|"Navassa Island"|"Haiti"|18.338143|-75.183726
+48952|"French Exclusive Economic Zone (Saint-Barthélemy)"|"Saint-Barthélemy"|"France"|17.932700|-62.627396
+48953|"Palestinian Exclusive Economic Zone"|"Palestine"|"Palestine"|31.569154|34.234438
+48954|"Overlapping claim Senkaku Islands: Taiwan / Japan / China"|"Senkaku Islands"|"Taiwan"|26.520803|124.122109
+48955|"Overlapping claim Liancourt Rocks: Japan / South Korea"|"Liancourt Rocks"|"Japan"|37.242334|131.866326
+48956|"Overlapping claim Doumeira Islands: Eritrea / Djibouti"|"Doumeira Islands"|"Eritrea"|12.758894|43.222207
+48957|"United States Exclusive Economic Zone (Guam)"|"Guam"|"United States"|12.929575|144.002608
+48961|"Joint regime area: Uruguay / Argentina"|"Uruguay"|"Uruguay"|-36.254933|-55.160957
+48962|"Joint regime area: Peru / Ecuador"|"Peru"|"Peru"|-3.388548|-82.532930
+48964|"Joint regime area: Senegal / Guinea-Bissau"|"Senegal"|"Senegal"|11.260996|-18.774429
+48965|"Overlapping claim: Venezuela / Netherlands (Aruba) / Dominican Republic"|"Venezuela"|"Venezuela"|15.303807|-69.653256
+48966|"Joint regime area: Spain / France"|"France"|"France"|45.254167|-5.333333
+48967|"Joint regime area: United Kingdom / Denmark (Faeroe Islands)"|"United Kingdom"|"United Kingdom"|60.036085|-7.518577
+48968|"Joint regime area: Costa Rica / Ecuador (Galapagos)"|"Costa Rica"|"Costa Rica"|3.226408|-88.841317
+48969|"Joint regime area: Barbados / Guyana"|"Barbados"|"Barbados"|10.680794|-57.132140
+48970|"Joint regime area: Dominican Republic / Colombia"|"Dominican Republic"|"Dominican Republic"|15.018510|-72.503861
+48971|"Overlapping claim: Colombia / Dominican Republic / Venezuela"|"Colombia"|"Colombia"|15.053343|-71.090151
+48972|"Joint regime area: Honduras / United Kingdom (Cayman Islands)"|"Honduras"|"Honduras"|18.701111|-83.942222
+48973|"Joint regime area: Iceland / Denmark (Faeroe Islands)"|"Faeroe"|"Denmark"|63.152984|-10.982042
+48974|"Joint regime area: Ecuador / Colombia"|"Ecuador"|"Ecuador"|1.460583|-81.437118
+48975|"Joint regime area: Iceland / Norway (Jan Mayen)"|"Iceland"|"Iceland"|69.291667|-8.500000
+48976|"Joint regime area: France / Italy"|"France"|"France"|41.307153|9.048857
+48977|"Joint regime area: Sweden / Norway"|"Norway"|"Norway"|58.809981|10.500954
+48978|"Joint regime area: United States / Russia"|"United States"|"United States"|61.181123|-17.127240
+48980|"United States Exclusive Economic Zone (Northern Mariana Islands)"|"Northern Mariana Islands"|"United States"|18.286598|145.739332
+48982|"Overlapping claim: United States (Puerto Rico) / Dominican Republic"|"Puerto Rico"|"United States"|20.894477|-66.841252
+48984|"Colombian Exclusive Economic Zone (Serranilla Bank)"|"Serranilla Bank"|"Colombia"|15.797192|-79.855619
+48985|"Colombian Exclusive Economic Zone (Bajo Nuevo Bank)"|"Bajo Nuevo Bank"|"Colombia"|15.849994|-78.633330
+48997|"Overlapping claim Chafarinas Islands: Spain / Morocco"|"Chafarinas Islands"|"Spain"|35.169904|-2.453559
+48998|"Overlapping claim Perejil Island: Spain / Morocco"|"Perejil Island"|"Spain"|35.914648|-5.420107
+48999|"Overlapping claim Peñón de Vélez de la Gomera: Spain / Morocco"|"Peñón de Vélez de la Gomera"|"Spain"|35.185251|-4.306088
+49000|"Overlapping claim Melilla: Spain / Morocco"|"Melilla"|"Spain"|35.316723|-2.916974
+49001|"Overlapping claim Alhucemas Islands: Spain / Morocco"|"Alhucemas Islands"|"Spain"|35.234220|-3.878664
+49002|"Overlapping claim Ceuta: Spain / Morocco"|"Ceuta"|"Spain"|35.869094|-5.305511
+49003|"Overlapping claim: South China Sea"|"China"|"China"|13.141790|114.101760
+50167|"Joint regime area: Croatia / Slovenia"|"Croatia"|"Croatia"|45.497704|13.309329
+50170|"Overlapping claim: Qatar / Saudi Arabia / United Arab Emirates"|"Qatar"|"Qatar"|24.692431|51.599859
+62589|"Mauritian Exclusive Economic Zone (Chagos Archipelago)"|"Chagos Archipelago"|"Republic of Mauritius"|-6.555934|71.993878
+62596|"Colombian Exclusive Economic Zone (Serrana Bank)"|"Serrana Bank"|"Colombia"|14.380875|-80.301849
+62598|"Colombian Exclusive Economic Zone (Quitasueño Bank)"|"Quitasueño Bank"|"Colombia"|14.303619|-81.160880
+64430|"Overlapping claim: Egypt / Libya"|"Egypt"|"Egypt"|32.812819|25.701634
+64431|"Overlapping claim: Belize / Honduras"|"Belize"|"Belize"|16.123163|-88.212890
+64440|"Overlapping claim: Malaysia / Singapore"|"Malaysia"|"Malaysia"|1.407776|104.452386
+64446|"British Exclusive Economic Zone (Isle of Man)"|"Isle of Man"|"United Kingdom"|54.188180|-4.572034
+64459|"Joint regime area: Norway / Russia"|"Norway"|"Norway"|72.924522|37.464567
+64460|"Overlapping claim: Iraq / Iran"|"Iraq"|"Iraq"|29.872350|48.692555

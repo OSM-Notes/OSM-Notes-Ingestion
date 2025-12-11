@@ -38,6 +38,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`Country_Assignment_2D_Grid.md`**: Country assignment strategy using 2D grid partitioning
 - **`Capital_Validation_Explanation.md`**: Capital validation to prevent data cross-contamination
 - **`ST_DWithin_Explanation.md`**: PostGIS spatial functions explanation
+- **`Maritime_Boundaries_Verification.md`**: Maritime boundaries verification using centroid-based approach
 
 ### Testing Documentation
 

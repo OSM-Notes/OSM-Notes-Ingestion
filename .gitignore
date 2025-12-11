@@ -122,3 +122,15 @@ data/noteLocation.csv
 data/noteLocation.csv.zip
 data/noteLocation_backup_*.csv
 data/noteLocation_combined.csv
+
+# EEZ analysis generated files (ignore all CSVs except centroids)
+# Centroids file should be included in git as it's stable and necessary
+data/eez_analysis/*.csv
+!data/eez_analysis/eez_centroids.csv
+# Keep LICENSE file (required for CC-BY attribution)
+!data/eez_analysis/LICENSE
+data/eez_analysis/*.geojson
+data/eez_analysis/*.txt
+data/eez_analysis/*.md
+data/eez_analysis/*.pid
+data/eez_analysis/*.log

@@ -453,6 +453,14 @@ updateCountries.sh
     ├─▶ boundaryProcessingFunctions.sh::__processMaritimes_impl()
     │   └─▶ Same flow as countries (maritimes table)
     │
+    ├─▶ updateCountries.sh::__checkMissingMaritimes()
+    │   ├─▶ Loads EEZ centroids from data/eez_analysis/eez_centroids.csv
+    │   ├─▶ Filters centroids already in database (ST_Contains)
+    │   ├─▶ Queries Overpass API: is_in(lat,lon) for missing centroids
+    │   ├─▶ Filters relations by maritime tags (boundary=maritime, etc.)
+    │   ├─▶ Automatically imports found relations (is_maritime=true)
+    │   └─▶ Generates report: missing_eez_osm_YYYYMMDD.csv
+    │
     ├─▶ noteProcessingFunctions.sh::__reassignAffectedNotes()
     │   └─▶ Executes: sql/functionsProcess_36_reassignAffectedNotes.sql
     │       └─▶ Uses: get_country() function
@@ -716,7 +724,26 @@ insert_note_comment(...)
 7. **ogr2ogr (GDAL)**: GeoJSON processing (required for boundary processing)
 8. **osmtogeojson**: OSM JSON to GeoJSON conversion (required for boundary processing)
 
-### Optional Dependencies (Enhanced Features)
+### Reference Data (Optional)
+
+### World_EEZ Shapefile
+
+The World_EEZ shapefile is used as a reference to identify missing maritime boundaries in OSM.
+
+- **Source:** [MarineRegions.org Downloads](https://www.marineregions.org/downloads.php)
+- **Version:** World EEZ v12 (2023-10-25)
+- **File:** World_EEZ_v12_20231025.zip
+- **Size:** ~122 MB
+- **Usage:** Used by `bin/scripts/generateEEZCentroids.sh` to generate centroids CSV
+- **Note:** This shapefile is used ONLY as a reference. Database data comes exclusively from OpenStreetMap (OSM).
+
+To download:
+1. Visit https://www.marineregions.org/downloads.php
+2. Download "World EEZ v12 (2023-10-25)" shapefile
+3. Place it at the default location: `/home/notes/World_EEZ_v12_20231025.zip`
+   (or set `EEZ_SHAPEFILE` environment variable)
+
+## Optional Dependencies (Enhanced Features)
 
 1. **GeoServer**: WMS service
 2. **SMTP Server**: Email alerts

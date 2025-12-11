@@ -214,3 +214,10 @@ declare VERIFY_THREADS="${VERIFY_THREADS:-}"
 # Default: 1000 notes per batch
 # shellcheck disable=SC2034
 declare REASSIGN_NOTES_BATCH_SIZE="${REASSIGN_NOTES_BATCH_SIZE:-1000}"
+
+# Check for missing maritime boundaries after processing
+# Compares database with OSM (queries Overpass API for all maritime boundaries)
+# Set to true to enable check, false to disable
+# Default: false (disabled)
+# shellcheck disable=SC2034
+declare CHECK_MISSING_MARITIMES="${CHECK_MISSING_MARITIMES:-false}"

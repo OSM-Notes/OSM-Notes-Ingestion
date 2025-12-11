@@ -917,6 +917,8 @@ psql -d notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
 - Re-run geographic data processing:
   ```bash
   ./bin/process/updateCountries.sh
+
+> **Note:** The `updateCountries.sh` script includes automatic verification of missing maritime boundaries using a centroid-based approach. See [Maritime_Boundaries_Verification.md](./Maritime_Boundaries_Verification.md) for details on how maritime boundaries are verified and automatically imported from OSM.
   ```
 
 #### Recovery Procedures

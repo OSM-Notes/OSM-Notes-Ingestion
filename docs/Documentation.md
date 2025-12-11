@@ -2631,6 +2631,24 @@ grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
 
 ---
 
+## Data License
+
+### OpenStreetMap Data
+
+**Important:** This system processes data from **OpenStreetMap (OSM)**. All processed data (notes, country boundaries, maritime boundaries, etc.) stored in the database is derived from OSM and must comply with OSM's licensing requirements.
+
+- **License:** [Open Database License (ODbL)](http://opendatacommons.org/licenses/odbl/)
+- **Copyright:** [OpenStreetMap contributors](http://www.openstreetmap.org/copyright)
+- **Attribution:** Required when using or distributing OSM data
+
+For more information about OSM licensing, see: [https://www.openstreetmap.org/copyright](https://www.openstreetmap.org/copyright)
+
+**Note:** This repository contains only code and configuration files. No OSM data is stored in the repository itself. All data is processed and stored in the database at runtime.
+
+### Reference Data (CC-BY 4.0)
+
+The `data/eez_analysis/eez_centroids.csv` file is a derivative work of the World_EEZ shapefile from MarineRegions.org and is licensed under **Creative Commons Attribution 4.0 International (CC-BY 4.0)**. See `data/eez_analysis/LICENSE` for full license details.
+
 ## Related Documentation
 
 ### Core Documentation

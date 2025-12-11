@@ -39,8 +39,8 @@
 # For contributing: shellcheck -x -o all updateCountries.sh && shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
-VERSION="2025-12-08"
+# Version: 2025-12-11
+VERSION="2025-12-11"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -921,6 +921,265 @@ function __reassignAffectedNotes {
  __log_finish
 }
 
+# Checks for missing maritime boundaries by verifying EEZ centroids against OSM
+# Uses centroids from World_EEZ shapefile as reference points
+# For each centroid, checks if it's contained in any maritime boundary in OSM
+# Parameters: None
+# Returns: 0 on success, 1 on failure (non-fatal, logs warning)
+function __checkMissingMaritimes() {
+ __log_start
+ __logi "Checking for missing maritime boundaries (verifying EEZ centroids against OSM)..."
+
+ # Path to EEZ centroids CSV file (should be generated from shapefile)
+ local EEZ_CENTROIDS_FILE="${SCRIPT_BASE_DIRECTORY}/data/eez_analysis/eez_centroids.csv"
+ if [[ ! -f "${EEZ_CENTROIDS_FILE}" ]]; then
+  __logd "EEZ centroids file not found: ${EEZ_CENTROIDS_FILE}"
+  __logd "To enable this check, generate centroids from World_EEZ shapefile"
+  __logd "See: bin/scripts/generateEEZCentroids.sh (if it exists)"
+  __log_finish
+  return 0
+ fi
+
+ __logi "Loading EEZ centroids from: ${EEZ_CENTROIDS_FILE}"
+ local TOTAL_CENTROIDS
+ TOTAL_CENTROIDS=$(tail -n +2 "${EEZ_CENTROIDS_FILE}" 2> /dev/null | wc -l | tr -d ' ' || echo "0")
+ if [[ "${TOTAL_CENTROIDS}" -eq 0 ]]; then
+  __logw "No centroids found in file, skipping check"
+  __log_finish
+  return 0
+ fi
+
+ __logi "Checking ${TOTAL_CENTROIDS} EEZ centroids against OSM maritime boundaries..."
+
+ # Create temporary table for centroids in database
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+  DROP TABLE IF EXISTS temp_eez_centroids CASCADE;
+  CREATE TEMP TABLE temp_eez_centroids (
+   eez_id INTEGER,
+   name TEXT,
+   territory TEXT,
+   sovereign TEXT,
+   centroid_lat NUMERIC,
+   centroid_lon NUMERIC,
+   geom GEOMETRY(Point, 4326)
+  );
+ " > /dev/null 2>&1 || {
+  __logw "Failed to create temporary table, skipping check"
+  __log_finish
+  return 0
+ }
+
+ # Load centroids from CSV (skip header line)
+ # Format expected: eez_id,name,territory,sovereign,centroid_lat,centroid_lon
+ tail -n +2 "${EEZ_CENTROIDS_FILE}" 2> /dev/null | while IFS=',' read -r eez_id name territory sovereign centroid_lat centroid_lon; do
+  # Escape quotes in text fields
+  name=$(echo "${name}" | sed "s/'/''/g")
+  territory=$(echo "${territory}" | sed "s/'/''/g")
+  sovereign=$(echo "${sovereign}" | sed "s/'/''/g")
+
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+   INSERT INTO temp_eez_centroids (eez_id, name, territory, sovereign, centroid_lat, centroid_lon, geom)
+   VALUES (
+    ${eez_id},
+    '${name}',
+    '${territory}',
+    '${sovereign}',
+    ${centroid_lat},
+    ${centroid_lon},
+    ST_SetSRID(ST_MakePoint(${centroid_lon}, ${centroid_lat}), 4326)
+   );
+  " > /dev/null 2>&1 || true
+ done
+
+ # First, filter centroids that are already covered in the database
+ # Only check in OSM those that are NOT in the database
+ __logi "Filtering centroids already covered in database..."
+ local DB_COVERED_COUNT
+ DB_COVERED_COUNT=$(psql -d "${DBNAME}" -Atq -c "
+  SELECT COUNT(*)
+  FROM temp_eez_centroids t
+  WHERE EXISTS (
+   SELECT 1
+   FROM countries c
+   WHERE c.is_maritime = true
+     AND ST_Contains(c.geom, t.geom)
+  );
+ " 2> /dev/null || echo "0")
+
+ local TOTAL_CENTROIDS
+ TOTAL_CENTROIDS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM temp_eez_centroids;" 2> /dev/null || echo "0")
+ local NOT_IN_DB_COUNT=$((TOTAL_CENTROIDS - DB_COVERED_COUNT))
+
+ __logi "Centroids already in database: ${DB_COVERED_COUNT}/${TOTAL_CENTROIDS}"
+ __logi "Centroids to check in OSM: ${NOT_IN_DB_COUNT}/${TOTAL_CENTROIDS}"
+
+ if [[ "${NOT_IN_DB_COUNT}" -eq 0 ]]; then
+  __logi "All centroids are already covered in database, no need to check OSM"
+  psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids CASCADE;" > /dev/null 2>&1 || true
+  __log_finish
+  return 0
+ fi
+
+ # Check which centroids NOT in DB are covered by any maritime boundary in OSM
+ # Query Overpass API for each centroid to see if it's contained in any maritime relation
+ local MISSING_COUNT=0
+ local CHECKED_COUNT=0
+ local OUTPUT_DIR="${SCRIPT_BASE_DIRECTORY}/data/eez_analysis"
+ mkdir -p "${OUTPUT_DIR}"
+ local MISSING_EEZ_FILE="${OUTPUT_DIR}/missing_eez_osm_$(date +%Y%m%d).csv"
+ local OVERPASS_API="${OVERPASS_INTERPRETER:-https://overpass-api.de/api/interpreter}"
+
+ # Create CSV header
+ echo "eez_id,name,territory,sovereign,centroid_lat,centroid_lon,status" > "${MISSING_EEZ_FILE}"
+
+ __logi "Querying Overpass API for centroids NOT in database (this may take a while)..."
+ local QUERY_TIMEOUT=25
+
+ # Process only centroids that are NOT in the database
+ psql -d "${DBNAME}" -Atq -c "
+  SELECT t.eez_id, t.name, t.territory, t.sovereign, t.centroid_lat, t.centroid_lon
+  FROM temp_eez_centroids t
+  WHERE NOT EXISTS (
+   SELECT 1
+   FROM countries c
+   WHERE c.is_maritime = true
+     AND ST_Contains(c.geom, t.geom)
+  )
+  ORDER BY t.eez_id;
+ " 2> /dev/null | while IFS='|' read -r eez_id name territory sovereign centroid_lat centroid_lon; do
+  CHECKED_COUNT=$((CHECKED_COUNT + 1))
+
+  # Query Overpass for relations containing this point
+  # Filter for maritime-related tags to avoid false positives (countries, regions, etc.)
+  # This finds relations with maritime tags, not just boundary=maritime
+  local OVERPASS_QUERY="[out:json][timeout:${QUERY_TIMEOUT}];
+(
+  is_in(${centroid_lat},${centroid_lon})[\"boundary\"=\"maritime\"];
+  is_in(${centroid_lat},${centroid_lon})[\"type\"=\"boundary\"][\"maritime\"=\"yes\"];
+  is_in(${centroid_lat},${centroid_lon})[\"type\"=\"boundary\"][\"boundary\"];
+);
+out;"
+
+  local TEMP_OVERLASS_RESPONSE="${TMP_DIR}/overpass_${eez_id}.json"
+  if wget -q -O "${TEMP_OVERLASS_RESPONSE}" --timeout=$((QUERY_TIMEOUT + 5)) \
+   --post-data="data=${OVERPASS_QUERY}" \
+   --header="Content-Type: application/x-www-form-urlencoded" \
+   "${OVERPASS_API}" 2> /dev/null; then
+
+   # Check if response contains any relations
+   if [[ -s "${TEMP_OVERLASS_RESPONSE}" ]] && grep -q "\"type\":\"relation\"" "${TEMP_OVERLASS_RESPONSE}" 2> /dev/null; then
+    # Found relation(s) containing this centroid
+    # Extract relation ID(s) from the response, filtering for maritime-related tags
+    local RELATION_IDS
+    # Priority 1: boundary=maritime
+    RELATION_IDS=$(jq -r '.elements[] | select(.type=="relation" and (.tags.boundary // "") == "maritime") | .id' "${TEMP_OVERLASS_RESPONSE}" 2> /dev/null | head -1 || echo "")
+    # Priority 2: type=boundary AND maritime=yes
+    if [[ -z "${RELATION_IDS}" ]]; then
+     RELATION_IDS=$(jq -r '.elements[] | select(.type=="relation" and (.tags.type // "") == "boundary" and (.tags.maritime // "") == "yes") | .id' "${TEMP_OVERLASS_RESPONSE}" 2> /dev/null | head -1 || echo "")
+    fi
+    # Priority 3: type=boundary with any boundary tag (but verify it's not administrative)
+    if [[ -z "${RELATION_IDS}" ]]; then
+     RELATION_IDS=$(jq -r '.elements[] | select(.type=="relation" and (.tags.type // "") == "boundary" and (.tags.boundary // "") != "" and (.tags.boundary // "") != "administrative") | .id' "${TEMP_OVERLASS_RESPONSE}" 2> /dev/null | head -1 || echo "")
+    fi
+
+    if [[ -n "${RELATION_IDS}" ]]; then
+     # Try to download and import this relation as maritime
+     __logd "EEZ ${eez_id} (${name}) - Found relation ${RELATION_IDS} in OSM, attempting to download and import as maritime..."
+     if __download_and_import_maritime_relation "${RELATION_IDS}" "${eez_id}" "${name}"; then
+      echo "${eez_id},\"${name}\",\"${territory}\",\"${sovereign}\",${centroid_lat},${centroid_lon},imported" >> "${MISSING_EEZ_FILE}"
+      __logi "Successfully imported relation ${RELATION_IDS} for EEZ ${eez_id} (${name})"
+     else
+      echo "${eez_id},\"${name}\",\"${territory}\",\"${sovereign}\",${centroid_lat},${centroid_lon},covered_but_failed_import" >> "${MISSING_EEZ_FILE}"
+      __logw "Found relation ${RELATION_IDS} in OSM but failed to import for EEZ ${eez_id} (${name})"
+     fi
+    else
+     echo "${eez_id},\"${name}\",\"${territory}\",\"${sovereign}\",${centroid_lat},${centroid_lon},covered_no_relation_id" >> "${MISSING_EEZ_FILE}"
+    fi
+   else
+    # No maritime relation found
+    MISSING_COUNT=$((MISSING_COUNT + 1))
+    echo "${eez_id},\"${name}\",\"${territory}\",\"${sovereign}\",${centroid_lat},${centroid_lon},missing" >> "${MISSING_EEZ_FILE}"
+    __logd "EEZ ${eez_id} (${name}) - centroid not covered by any maritime boundary in OSM"
+   fi
+  else
+   # Query failed, mark as unknown
+   echo "${eez_id},\"${name}\",\"${territory}\",\"${sovereign}\",${centroid_lat},${centroid_lon},query_failed" >> "${MISSING_EEZ_FILE}"
+  fi
+
+  rm -f "${TEMP_OVERLASS_RESPONSE}" 2> /dev/null || true
+
+  # Log progress every 10 centroids
+  if [[ $((CHECKED_COUNT % 10)) -eq 0 ]]; then
+   __logi "Progress: ${CHECKED_COUNT}/${NOT_IN_DB_COUNT} centroids checked, ${MISSING_COUNT} missing"
+  fi
+
+  # Small delay to avoid overwhelming Overpass API
+  sleep 1
+ done
+
+ # Get final missing count from CSV
+ MISSING_COUNT=$(grep -c ",missing$" "${MISSING_EEZ_FILE}" 2> /dev/null || echo "0")
+
+ __logi "Completed: ${CHECKED_COUNT} centroids checked"
+ if [[ "${MISSING_COUNT}" -eq 0 ]]; then
+  __logi "All EEZ centroids are covered by maritime boundaries in OSM"
+ else
+  __logw "Found ${MISSING_COUNT} EEZ centroids not covered by any maritime boundary in OSM"
+ fi
+
+ # Generate summary report
+ local REPORT_FILE="${OUTPUT_DIR}/missing_eez_osm_report_$(date +%Y%m%d).txt"
+ {
+  echo "Missing Maritime Boundaries Report (OSM Coverage Check)"
+  echo "Generated: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo ""
+  echo "Method: Verify EEZ centroids against OSM maritime boundaries"
+  echo "  - Total EEZ centroids checked: ${TOTAL_CENTROIDS}"
+  echo "  - Centroids covered by OSM maritime boundaries: $((TOTAL_CENTROIDS - MISSING_COUNT))"
+  echo "  - Centroids NOT covered in OSM: ${MISSING_COUNT}"
+  echo ""
+  echo "Note: Missing EEZ may not exist in OSM yet, or may have different boundaries."
+  echo "These EEZ should be added to OSM as maritime boundaries."
+  echo ""
+  echo "Detailed results: ${MISSING_EEZ_FILE}"
+ } > "${REPORT_FILE}"
+
+ __logi "Summary report: ${REPORT_FILE}"
+ __logi "Detailed results: ${MISSING_EEZ_FILE}"
+
+ # Optionally send email if configured and there are missing EEZ
+ if [[ "${MISSING_COUNT}" -gt 0 ]] && [[ "${SEND_ALERT_EMAIL:-true}" == "true" ]] && [[ -n "${ADMIN_EMAIL:-}" ]]; then
+  local EMAIL_SUBJECT="Missing Maritime Boundaries Report - ${MISSING_COUNT} EEZ in OSM not in database"
+  {
+   echo "Missing Maritime Boundaries Report"
+   echo "=================================="
+   echo ""
+   echo "Date: $(date '+%Y-%m-%d %H:%M:%S')"
+   echo "Server: $(hostname)"
+   echo ""
+   echo "Summary:"
+   echo "  - Total EEZ centroids from shapefile: ${TOTAL_CENTROIDS}"
+   echo "  - Centroids already in database: ${DB_COVERED_COUNT}"
+   echo "  - Centroids checked in OSM: ${CHECKED_COUNT}"
+   echo "  - Centroids in OSM but NOT in database: ${MISSING_COUNT}"
+   echo ""
+   echo "These EEZ exist in OSM but were not imported to database."
+   echo "They should be automatically downloaded in the next updateCountries.sh run."
+   echo ""
+   echo "Detailed results available at: ${MISSING_EEZ_FILE}"
+   echo "Full report: ${REPORT_FILE}"
+  } | mail -s "${EMAIL_SUBJECT}" "${ADMIN_EMAIL}" 2> /dev/null || {
+   __logw "Failed to send email alert (mail command may not be configured)"
+  }
+ fi
+
+ # Cleanup
+ psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids CASCADE;" > /dev/null 2>&1 || true
+
+ __log_finish
+ return 0
+}
+
 ######
 # MAIN
 
@@ -1026,6 +1285,11 @@ EOF
 
   # Show summary of failed boundary downloads
   __showFailedBoundariesSummary
+
+  # Check for missing maritime boundaries (compare DB with OSM)
+  if [[ "${CHECK_MISSING_MARITIMES:-false}" == "true" ]]; then
+   __checkMissingMaritimes
+  fi
  fi
  __log_finish
 }
