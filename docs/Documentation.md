@@ -258,6 +258,7 @@ The OSM-Notes-Ingestion system consists of the following components:
    - Smart waiting respects Overpass API rate limits
    - Prevents race conditions in parallel processing
    - Thread-safe ticket-based queue management
+
 2. Transform to PostGIS geometry objects
 3. Store in `countries` table
 

@@ -738,6 +738,7 @@ The World_EEZ shapefile is used as a reference to identify missing maritime boun
 - **Note:** This shapefile is used ONLY as a reference. Database data comes exclusively from OpenStreetMap (OSM).
 
 To download:
+
 1. Visit https://www.marineregions.org/downloads.php
 2. Download "World EEZ v12 (2023-10-25)" shapefile
 3. Place it at the default location: `/home/notes/World_EEZ_v12_20231025.zip`
