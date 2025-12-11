@@ -1,6 +1,6 @@
 -- Unit tests for database tables using pgTAP
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-07-20
+-- Version: 2025-12-11
 
 BEGIN;
 
@@ -8,7 +8,7 @@ BEGIN;
 \i /usr/share/postgresql/15/extension/pgtap.sql
 
 -- Plan the tests
-SELECT plan(20);
+SELECT plan(23);
 
 -- Test 1: Check if notes table exists
 SELECT has_table('notes');
@@ -22,25 +22,28 @@ SELECT has_table('note_comments_text');
 -- Test 4: Check if users table exists
 SELECT has_table('users');
 
--- Test 5: Check if notes_sync table exists
+-- Test 5: Check if license table exists
+SELECT has_table('license');
+
+-- Test 6: Check if notes_sync table exists
 SELECT has_table('notes_sync');
 
--- Test 6: Check if note_comments_sync table exists
+-- Test 7: Check if note_comments_sync table exists
 SELECT has_table('note_comments_sync');
 
--- Test 7: Check if note_comments_text_sync table exists
+-- Test 8: Check if note_comments_text_sync table exists
 SELECT has_table('note_comments_text_sync');
 
--- Test 8: Check if notes_api table exists
+-- Test 9: Check if notes_api table exists
 SELECT has_table('notes_api');
 
--- Test 9: Check if note_comments_api table exists
+-- Test 10: Check if note_comments_api table exists
 SELECT has_table('note_comments_api');
 
--- Test 10: Check if note_comments_text_api table exists
+-- Test 11: Check if note_comments_text_api table exists
 SELECT has_table('note_comments_text_api');
 
--- Test 11: Check notes table structure
+-- Test 12: Check notes table structure
 SELECT has_column('notes', 'note_id');
 SELECT has_column('notes', 'latitude');
 SELECT has_column('notes', 'longitude');
@@ -49,7 +52,7 @@ SELECT has_column('notes', 'status');
 SELECT has_column('notes', 'closed_at');
 SELECT has_column('notes', 'id_country');
 
--- Test 12: Check note_comments table structure
+-- Test 13: Check note_comments table structure
 SELECT has_column('note_comments', 'id');
 SELECT has_column('note_comments', 'note_id');
 SELECT has_column('note_comments', 'sequence_action');
@@ -57,31 +60,36 @@ SELECT has_column('note_comments', 'event');
 SELECT has_column('note_comments', 'created_at');
 SELECT has_column('note_comments', 'id_user');
 
--- Test 13: Check note_comments_text table structure
+-- Test 14: Check note_comments_text table structure
 SELECT has_column('note_comments_text', 'id');
 SELECT has_column('note_comments_text', 'note_id');
 SELECT has_column('note_comments_text', 'sequence_action');
 SELECT has_column('note_comments_text', 'body');
 
--- Test 14: Check users table structure
+-- Test 15: Check users table structure
 SELECT has_column('users', 'user_id');
 SELECT has_column('users', 'username');
 
--- Test 15: Check primary keys
+-- Test 16: Check license table structure
+SELECT has_column('license', 'license_name');
+SELECT has_column('license', 'data_source');
+
+-- Test 17: Check primary keys
 SELECT has_pk('notes');
 SELECT has_pk('note_comments');
 SELECT has_pk('note_comments_text');
 SELECT has_pk('users');
+SELECT has_pk('license');
 
--- Test 16: Check foreign keys
+-- Test 18: Check foreign keys
 SELECT has_fk('note_comments');
 
--- Test 17: Check indexes
+-- Test 19: Check indexes
 SELECT has_index('notes', 'notes_note_id_idx');
 SELECT has_index('note_comments', 'note_comments_note_id_idx');
 SELECT has_index('note_comments_text', 'note_comments_id_text');
 
--- Test 18: Test data insertion into notes table
+-- Test 20: Test data insertion into notes table
 DO $$
 DECLARE
   note_count INTEGER;
@@ -104,7 +112,7 @@ BEGIN
   DELETE FROM notes WHERE note_id = 999;
 END $$;
 
--- Test 19: Test data insertion into note_comments table
+-- Test 21: Test data insertion into note_comments table
 DO $$
 DECLARE
   comment_count INTEGER;
@@ -127,7 +135,7 @@ BEGIN
   DELETE FROM note_comments WHERE note_id = 999;
 END $$;
 
--- Test 20: Test data insertion into note_comments_text table
+-- Test 22: Test data insertion into note_comments_text table
 DO $$
 DECLARE
   text_count INTEGER;
@@ -148,6 +156,27 @@ BEGIN
   
   -- Clean up
   DELETE FROM note_comments_text WHERE note_id = 999;
+END $$;
+
+-- Test 23: Test license table has ODbL data and OSM source
+DO $$
+DECLARE
+  license_count INTEGER;
+  license_value VARCHAR(256);
+  source_value VARCHAR(256);
+BEGIN
+  -- Check if ODbL license exists
+  SELECT COUNT(*) INTO license_count
+  FROM license
+  WHERE license_name = 'Open Database License (ODbL)'
+    AND data_source = 'OpenStreetMap (OSM)';
+  
+  -- Assert
+  IF license_count = 1 THEN
+    RAISE NOTICE 'Test passed: ODbL license and OSM source data exist in license table';
+  ELSE
+    RAISE EXCEPTION 'Test failed: ODbL license or OSM source data not found in license table';
+  END IF;
 END $$;
 
 -- Finish the tests

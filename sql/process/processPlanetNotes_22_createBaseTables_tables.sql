@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-27
+-- Version: 2025-12-11
 
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL PRIMARY KEY,
@@ -95,6 +95,22 @@ CREATE TABLE IF NOT EXISTS properties (
 COMMENT ON TABLE properties IS 'Properties table for base load';
 COMMENT ON COLUMN properties.key IS 'Property name';
 COMMENT ON COLUMN properties.value IS 'Property value';
+
+CREATE TABLE IF NOT EXISTS license (
+ license_name VARCHAR(256) NOT NULL PRIMARY KEY,
+ data_source VARCHAR(256) NOT NULL
+);
+COMMENT ON TABLE license IS
+  'License and source information for the data stored in the database';
+COMMENT ON COLUMN license.license_name IS
+  'License name that applies to the data in the database';
+COMMENT ON COLUMN license.data_source IS
+  'Source of the data stored in the database';
+
+-- Insert license and source information for the initial load.
+INSERT INTO license (license_name, data_source) VALUES
+  ('Open Database License (ODbL)', 'OpenStreetMap (OSM)')
+ON CONFLICT (license_name) DO NOTHING;
 
 -- Insert properties only for the initial load.
 INSERT INTO properties (key, value) VALUES
