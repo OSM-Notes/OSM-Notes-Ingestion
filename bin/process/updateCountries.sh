@@ -787,7 +787,7 @@ function __reassignAffectedNotes {
  # Ensure get_country function exists before using it
  # functionsProcess.sh is already loaded at the top of the script
  local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
  if [[ "${FUNCTION_EXISTS:-0}" -eq "0" ]]; then
   __logw "get_country function not found, creating it..."
@@ -796,7 +796,7 @@ function __reassignAffectedNotes {
  fi
 
  # Get list of countries that were updated
- local -r UPDATED_COUNTRIES=$(psql -d "${DBNAME}" -Atq -c "
+ local -r UPDATED_COUNTRIES=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -Atq -c "
    SELECT country_id
    FROM countries
    WHERE updated = TRUE;
@@ -827,7 +827,7 @@ function __reassignAffectedNotes {
 
   # Get initial count of affected notes
   local TOTAL_AFFECTED
-  TOTAL_AFFECTED=$(psql -d "${DBNAME}" -Atq -c "
+  TOTAL_AFFECTED=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -Atq -c "
    SELECT COUNT(*)
    FROM notes n
    WHERE EXISTS (
@@ -858,7 +858,7 @@ function __reassignAffectedNotes {
 
     # Execute batch SQL and capture processed count from RAISE NOTICE
     local PSQL_OUTPUT
-    PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "SET app.batch_size = '${BATCH_SIZE}';" -f "${BATCH_SQL_FILE}" 2>&1)
+    PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "SET app.batch_size = '${BATCH_SIZE}';" -f "${BATCH_SQL_FILE}" 2>&1)
     local PSQL_EXIT_CODE=$?
 
     # Check if psql command failed
@@ -904,7 +904,7 @@ function __reassignAffectedNotes {
    __log_finish
    return 1
   fi
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
+  PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
  fi
 
  # Show statistics
@@ -913,7 +913,7 @@ function __reassignAffectedNotes {
  __logi "Country assignment completed"
 
  # Mark countries as processed
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+ PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
    UPDATE countries SET updated = FALSE WHERE updated = TRUE;
  "
 
