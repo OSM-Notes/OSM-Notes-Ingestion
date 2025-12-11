@@ -2693,22 +2693,31 @@ function __processMaritimes_impl {
  local RESOLVED_BACKUP=""
  if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -z "${SKIP_DB_IMPORT:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
-  # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
-  # Note: Import without -sql to let ogr2ogr handle column mapping automatically
-  __logd "Importing backup using ogr2ogr..."
+  # Import backup to temporary table first, then insert with is_maritime = TRUE
+  # This ensures all maritime boundaries have is_maritime = TRUE explicitly
+  __logd "Importing backup using ogr2ogr to temporary table..."
   local OGR_ERROR
   OGR_ERROR=$(mktemp)
+  local TEMP_TABLE="maritimes_backup_import_$$"
   if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-   -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+   -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
    -lco GEOMETRY_NAME=geom -lco FID=country_id \
    --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-   # Set is_maritime = true for all imported maritime boundaries
-   # Maritime boundaries are identified by comprehensive patterns
-   psql -d "${DBNAME}" -c "UPDATE countries SET is_maritime = TRUE WHERE (country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%') AND is_maritime IS NOT TRUE;" > /dev/null 2>&1 || true
-   __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
-   rm -f "${OGR_ERROR}"
-   __log_finish
-   return 0
+   # Insert from temporary table with is_maritime = TRUE explicitly
+   # All boundaries from maritime backup are maritime by definition
+   if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), TRUE FROM ${TEMP_TABLE} ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = TRUE, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+    __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
+    rm -f "${OGR_ERROR}"
+    __log_finish
+    return 0
+   else
+    __loge "Failed to insert maritime boundaries from temporary table"
+    __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+    psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+    rm -f "${OGR_ERROR}"
+    __log_finish
+    return 1
+   fi
   else
    __logw "Failed to import from backup, falling back to Overpass download"
    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
@@ -2765,21 +2774,31 @@ function __processMaritimes_impl {
   __logi "Comparing maritime IDs with backup..."
   if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${RESOLVED_MARITIMES_BACKUP}" "maritimes"; then
    __logi "Maritime IDs match backup, importing from backup..."
-   # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
-   # Note: Import without -sql to let ogr2ogr handle column mapping automatically
-   __logd "Importing backup using ogr2ogr..."
+   # Import backup to temporary table first, then insert with is_maritime = TRUE
+   # This ensures all maritime boundaries have is_maritime = TRUE explicitly
+   __logd "Importing backup using ogr2ogr to temporary table..."
    local OGR_ERROR
    OGR_ERROR=$(mktemp)
+   local TEMP_TABLE="maritimes_backup_import_$$"
    if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_MARITIMES_BACKUP}" \
-    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+    -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
     --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
-    # Set is_maritime = true for all imported maritime boundaries
-    psql -d "${DBNAME}" -c "UPDATE countries SET is_maritime = TRUE WHERE (country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%') AND is_maritime IS NOT TRUE;" > /dev/null 2>&1 || true
-    __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
-    rm -f "${OGR_ERROR}"
-    __log_finish
-    return 0
+    # Insert from temporary table with is_maritime = TRUE explicitly
+    # All boundaries from maritime backup are maritime by definition
+    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), TRUE FROM ${TEMP_TABLE} ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = TRUE, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+     __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
+     rm -f "${OGR_ERROR}"
+     __log_finish
+     return 0
+    else
+     __loge "Failed to insert maritime boundaries from temporary table"
+     __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+     psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+     rm -f "${OGR_ERROR}"
+     __log_finish
+     return 1
+    fi
    else
     __logw "Failed to import from backup, falling back to Overpass download"
     __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
@@ -2824,7 +2843,7 @@ function __processMaritimes_impl {
        # Use UPSERT to handle conflicts if boundary already exists
        # Fixed: Ensure SRID 4326 is preserved (GeoJSON doesn't include CRS info)
        # Maritime boundaries have is_maritime = true
-       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), TRUE FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = EXCLUDED.is_maritime, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+       if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO countries (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), TRUE FROM ${TEMP_TABLE} WHERE country_id IN (${IDS_LIST}) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = TRUE, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
         __logi "Successfully imported ${EXISTING_COUNT} existing maritime boundaries from backup"
         rm -f "${OGR_ERROR}"
        else
