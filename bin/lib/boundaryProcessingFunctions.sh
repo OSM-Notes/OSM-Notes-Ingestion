@@ -1903,28 +1903,52 @@ function __downloadMaritimes_parallel_new() {
  local FAILED_FILE="${TMP_DIR}/download_maritime_failed.txt"
  rm -f "${SUCCESS_FILE}" "${FAILED_FILE}"
 
- # Download in parallel
+ # Download in parallel with separate logs per thread
  local JOB_COUNT=0
+ local PART_NUM=0
  for PART_FILE in "${TMP_DIR}"/download_maritime_part_??; do
+  PART_NUM=$((PART_NUM + 1))
   (
    local PART_PID="${BASHPID}"
+   local PART_LOG_FILE="${TMP_DIR}/download_maritime_part_${PART_NUM}.log"
    local PART_SUCCESS=0
    local PART_FAILED=0
+
+   # Redirect all output to part-specific log file
+   exec 1>> "${PART_LOG_FILE}" 2>&1
+
+   # Get part file name for logging
+   local PART_NAME
+   PART_NAME=$(basename "${PART_FILE}")
+
+   echo "=== MARITIME DOWNLOAD PART ${PART_NUM} (PID: ${PART_PID}) ==="
+   echo "Part file: ${PART_NAME}"
+   echo "Started: $(date '+%Y-%m-%d %H:%M:%S')"
+   echo ""
 
    while read -r LINE; do
     local ID
     ID=$(echo "${LINE}" | awk '{print $1}')
 
-    if __downloadMaritime_json_geojson_only "${ID}"; then
+    echo "[PART ${PART_NUM}] Downloading maritime boundary ${ID}..."
+    if __downloadMaritime_json_geojson_only "${ID}" 2>&1; then
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))
+     echo "[PART ${PART_NUM}] ✓ Successfully downloaded ${ID}"
     else
      echo "${ID}" >> "${FAILED_FILE}"
      PART_FAILED=$((PART_FAILED + 1))
+     echo "[PART ${PART_NUM}] ✗ Failed to download ${ID}"
     fi
    done < "${PART_FILE}"
 
-   __logi "Maritime download part ${PART_PID}: ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
+   echo ""
+   echo "=== MARITIME DOWNLOAD PART ${PART_NUM} COMPLETED ==="
+   echo "Part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
+   echo "Finished: $(date '+%Y-%m-%d %H:%M:%S')"
+
+   # Also log to main log (append)
+   echo "$(date '+%Y-%m-%d %H:%M:%S') - Maritime download part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed" >> "${TMP_DIR}/updateCountries.log"
   ) &
   JOB_COUNT=$((JOB_COUNT + 1))
   sleep 1
@@ -2047,28 +2071,52 @@ function __downloadCountries_parallel_new() {
  local FAILED_FILE="${TMP_DIR}/download_failed.txt"
  rm -f "${SUCCESS_FILE}" "${FAILED_FILE}"
 
- # Download in parallel
+ # Download in parallel with separate logs per thread
  local JOB_COUNT=0
+ local PART_NUM=0
  for PART_FILE in "${TMP_DIR}"/download_part_??; do
+  PART_NUM=$((PART_NUM + 1))
   (
    local PART_PID="${BASHPID}"
+   local PART_LOG_FILE="${TMP_DIR}/download_part_${PART_NUM}.log"
    local PART_SUCCESS=0
    local PART_FAILED=0
+
+   # Redirect all output to part-specific log file
+   exec 1>> "${PART_LOG_FILE}" 2>&1
+
+   # Get part file name for logging
+   local PART_NAME
+   PART_NAME=$(basename "${PART_FILE}")
+
+   echo "=== DOWNLOAD PART ${PART_NUM} (PID: ${PART_PID}) ==="
+   echo "Part file: ${PART_NAME}"
+   echo "Started: $(date '+%Y-%m-%d %H:%M:%S')"
+   echo ""
 
    while read -r LINE; do
     local ID
     ID=$(echo "${LINE}" | awk '{print $1}')
 
-    if __downloadBoundary_json_geojson_only "${ID}"; then
+    echo "[PART ${PART_NUM}] Downloading boundary ${ID}..."
+    if __downloadBoundary_json_geojson_only "${ID}" 2>&1; then
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))
+     echo "[PART ${PART_NUM}] ✓ Successfully downloaded ${ID}"
     else
      echo "${ID}" >> "${FAILED_FILE}"
      PART_FAILED=$((PART_FAILED + 1))
+     echo "[PART ${PART_NUM}] ✗ Failed to download ${ID}"
     fi
    done < "${PART_FILE}"
 
-   __logi "Download part ${PART_PID}: ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
+   echo ""
+   echo "=== DOWNLOAD PART ${PART_NUM} COMPLETED ==="
+   echo "Part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
+   echo "Finished: $(date '+%Y-%m-%d %H:%M:%S')"
+
+   # Also log to main log (append)
+   echo "$(date '+%Y-%m-%d %H:%M:%S') - Download part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed" >> "${TMP_DIR}/updateCountries.log"
   ) &
   JOB_COUNT=$((JOB_COUNT + 1))
   sleep 1
