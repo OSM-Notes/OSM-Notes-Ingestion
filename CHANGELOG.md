@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**:
   - Added "Daemon Mode" section to `docs/Process_API.md`
   - Comprehensive daemon documentation integrated with existing API processing docs
+  - Troubleshooting guide for common systemd errors integrated into `Process_API.md`
 
 ### Changed
 
@@ -41,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated `docs/Process_API.md` to recommend daemon mode over cron
   - Reduced cron documentation to legacy/alternative status
   - All daemon documentation unified and translated to English
+  - Enhanced troubleshooting documentation for systemd service configuration errors
+
+- **systemd service file improvements**:
+  - Made `Group=` optional in `examples/systemd/osm-notes-api-daemon.service` (commented out by default)
+  - Added `PATH` environment variable to ensure command availability
+  - Added comments explaining user/group configuration
 
 ### Technical Details
 

@@ -1399,12 +1399,27 @@ psql -d "${DBNAME:-notes}" -c "
 
    **Important:** Update these lines:
    - `User=notes` → Your production user (may be different from login user)
-   - `Group=notes` → Your production group
+   - `Group=notes` → **OPTIONAL** - Comment out or remove if you get `status=216/GROUP` error. systemd will use the user's primary group automatically.
    - `WorkingDirectory=/home/notes/OSM-Notes-Ingestion` → Actual project path
    - `ExecStart=/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh` → Actual script path
    - `Documentation=file:///home/notes/OSM-Notes-Ingestion/docs/Process_API.md` → Actual docs path
 
-   **Note:** If you login as `angoca` but the process should run as `notes`, set `User=notes` and `Group=notes`.
+   **Note:** If you login as `angoca` but the process should run as `notes`, set `User=notes`. The `Group=` line is optional - if you get `status=216/GROUP` error, remove the `Group=` line and systemd will use the user's primary group automatically.
+
+   **Troubleshooting:** 
+   
+   **Error 217/USER (user not found):**
+   - Verify user exists: `getent passwd notes`
+   - Update `User=` in service file to an existing user
+   
+   **Error 216/GROUP (group not found):**
+   - Remove the `Group=` line from the service file (systemd will use user's primary group automatically)
+   - Or find primary group: `id -gn notes` and use that name
+   
+   **Error 127 (command not found):**
+   - Make script executable: `sudo chmod +x /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh`
+   - Verify script runs manually: `sudo -u notes /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh --help`
+   - Check PATH is set in service file (should include `/usr/bin:/bin`)
 
 3. **Enable and start:**
    ```bash

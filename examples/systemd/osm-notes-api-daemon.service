@@ -8,11 +8,16 @@ Requires=postgresql.service
 Type=simple
 # Production: Run as 'notes' user (different from login user 'angoca')
 # Verify user exists: getent passwd notes
+# Find primary group: id notes | grep -o 'gid=[0-9]*([^)]*)' | cut -d'(' -f2 | cut -d')' -f1
 User=notes
-Group=notes
+# Group is optional - systemd will use user's primary group automatically
+# If you need to specify, find it with: id -gn notes
+# Group=notes
 WorkingDirectory=/home/notes/OSM-Notes-Ingestion
 
 # Environment variables
+# Ensure PATH includes standard directories for commands
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="LOG_LEVEL=INFO"
 Environment="DAEMON_SLEEP_INTERVAL=60"
 Environment="CLEAN=true"
