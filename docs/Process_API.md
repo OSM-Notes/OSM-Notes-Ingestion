@@ -1392,10 +1392,19 @@ psql -d "${DBNAME:-notes}" -c "
    sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
    ```
 
-2. **Edit service file** (adjust paths if needed):
+2. **Edit service file** (REQUIRED - adjust paths and user):
    ```bash
    sudo nano /etc/systemd/system/osm-notes-api-daemon.service
    ```
+
+   **Important:** Update these lines:
+   - `User=notes` → Your production user (may be different from login user)
+   - `Group=notes` → Your production group
+   - `WorkingDirectory=/home/notes/OSM-Notes-Ingestion` → Actual project path
+   - `ExecStart=/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh` → Actual script path
+   - `Documentation=file:///home/notes/OSM-Notes-Ingestion/docs/Process_API.md` → Actual docs path
+
+   **Note:** If you login as `angoca` but the process should run as `notes`, set `User=notes` and `Group=notes`.
 
 3. **Enable and start:**
    ```bash

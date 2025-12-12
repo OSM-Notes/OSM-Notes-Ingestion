@@ -1,14 +1,16 @@
 [Unit]
 Description=OSM Notes API Processing Daemon
-Documentation=file:///path/to/OSM-Notes-Ingestion/docs/Process_API.md
+Documentation=file:///home/notes/OSM-Notes-Ingestion/docs/Process_API.md
 After=network.target postgresql.service
 Requires=postgresql.service
 
 [Service]
 Type=simple
-User=osmuser
-Group=osmuser
-WorkingDirectory=/path/to/OSM-Notes-Ingestion
+# Production: Run as 'notes' user (different from login user 'angoca')
+# Verify user exists: getent passwd notes
+User=notes
+Group=notes
+WorkingDirectory=/home/notes/OSM-Notes-Ingestion
 
 # Environment variables
 Environment="LOG_LEVEL=INFO"
@@ -18,7 +20,7 @@ Environment="SKIP_XML_VALIDATION=true"
 Environment="SKIP_CSV_VALIDATION=true"
 
 # Executable
-ExecStart=/path/to/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh
+ExecStart=/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh
 ExecReload=/bin/kill -HUP $MAINPID
 
 # Process management
