@@ -25,9 +25,23 @@ For more information about OSM licensing, see: [https://www.openstreetmap.org/co
 
 ## tl;dr - 5 minutes configuration
 
-You just need to download or clone this project in a Linux server and configure
-the crontab to invoke the notes pulling.
-This example is for polling every 15 minutes:
+### Recommended: Daemon Mode (systemd)
+
+For production use, the daemon mode is recommended for lower latency (30-60 seconds vs 15 minutes):
+
+```bash
+# Install systemd service
+sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable osm-notes-api-daemon
+sudo systemctl start osm-notes-api-daemon
+```
+
+See `docs/Process_API.md` "Daemon Mode" section for details.
+
+### Alternative: Cron Mode (Legacy)
+
+If systemd is not available, you can use cron:
 
 ```text
 */15 * * * * ~/OSM-Notes-Ingestion/bin/process/processAPINotes.sh

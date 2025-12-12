@@ -2,6 +2,8 @@
 
 > **Note:** For a general system overview, see [Documentation.md](./Documentation.md).
 > For project motivation and background, see [Rationale.md](./Rationale.md).
+> 
+> **⚠️ Recommended:** For production use, consider using `processAPINotesDaemon.sh` instead (see [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section). The daemon provides lower latency (30-60 seconds vs 15 minutes) and better efficiency.
 
 ## General Purpose
 
@@ -9,6 +11,8 @@ The `processAPINotes.sh` script is the incremental synchronization component of 
 OpenStreetMap notes processing system. Its main function is to download the most
 recent notes from the OSM API and synchronize them with the local database that
 maintains the complete history.
+
+> **Note:** This script can be run manually or via cron, but for production environments, the daemon mode (`processAPINotesDaemon.sh`) is recommended for better performance and lower latency.
 
 ## Main Features
 
@@ -43,7 +47,7 @@ The API processing design was created to handle incremental updates efficiently 
 
 ### Design Patterns Used
 
-- **Singleton Pattern**: Ensures only one instance of `processAPINotes.sh` runs at a time, critical for cron jobs running every 15 minutes
+- **Singleton Pattern**: Ensures only one instance of `processAPINotes.sh` runs at a time (also used by the daemon)
 - **Retry Pattern**: Implements exponential backoff for API calls and network operations
 - **Circuit Breaker Pattern**: Prevents cascading failures when API is unavailable
 - **Resource Management Pattern**: Uses `trap` handlers for cleanup of temporary files and resources
@@ -72,7 +76,7 @@ The script **does NOT accept arguments** for normal execution. It only accepts:
 
 **Why doesn't it accept arguments?**
 
-- It is designed to run automatically (cron job)
+- It is designed to run automatically (can be used with cron, but daemon mode is recommended)
 - The decision logic is internal based on database state
 - Configuration is done through environment variables
 
@@ -209,10 +213,9 @@ grep -i error "$LATEST_DIR/processAPINotes.log" | tail -20
 # 4. Remove the failed execution marker
 rm /tmp/processAPINotes_failed_execution
 
-# 5. Wait for next cron execution (recommended)
-# The script is designed to run automatically via crontab.
-# After removing the marker, wait for the next scheduled execution
-# (typically every 15 minutes for processAPINotes.sh).
+# 5. Wait for next execution
+# If using daemon mode: it will retry automatically
+# If using cron: wait for next scheduled execution
 # Manual execution should only be used for testing/debugging.
 ```
 
@@ -384,7 +387,7 @@ cat /tmp/processAPINotes_failed_execution
 # 3. Review logs from failed execution
 # 4. Fix underlying issue
 # 5. Remove marker: rm /tmp/processAPINotes_failed_execution
-# 6. Wait for next cron execution (recommended)
+# 6. Wait for next execution (if using cron) or let daemon retry automatically
 ```
 
 ### Error Handling and Recovery Sequence
@@ -437,7 +440,7 @@ Normal Execution
             ├─▶ Admin reviews error details
             ├─▶ Admin fixes underlying issue
             ├─▶ Admin removes marker file
-            └─▶ Wait for next cron execution
+            └─▶ Wait for next execution (cron) or automatic retry (daemon)
 ```
 
 ### Component Interaction Diagram
@@ -493,33 +496,21 @@ processAPINotes.sh
         └─▶ sql/process/44_consolidate_partitions.sql
 ```
 
-### Cron Job Setup
+### Automated Execution
 
-#### Standard Production Cron
+> **⚠️ Recommended:** For production use, use the daemon mode (`processAPINotesDaemon.sh`) instead. See the [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section for installation and configuration. The daemon provides 30-60 second latency vs 15 minutes with cron.
+
+#### Using Cron (Legacy/Alternative)
+
+If you need to use cron instead of the daemon (e.g., systemd not available):
 
 ```bash
 # Add to crontab (crontab -e)
 # Process API notes every 15 minutes
-# Note: Script creates its own log in /tmp/processAPINotes_XXXXXX/processAPINotes.log
-# No need to redirect output unless you want additional logging
 */15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >/dev/null 2>&1
-
-# Alternative: Redirect to a logs directory (create it first: mkdir -p ~/logs)
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> ~/logs/osm-notes-api.log 2>&1
 ```
 
-#### Cron with Environment Variables
-
-```bash
-# With specific configuration
-# Using logs directory in home (no special permissions required)
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && export LOG_LEVEL=WARN && export SEND_ALERT_EMAIL=true && export ADMIN_EMAIL="admin@example.com" && ./bin/process/processAPINotes.sh >> ~/logs/osm-notes-api.log 2>&1
-
-# Or without redirection (script creates its own log)
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && export LOG_LEVEL=WARN && export SEND_ALERT_EMAIL=true && export ADMIN_EMAIL="admin@example.com" && ./bin/process/processAPINotes.sh >/dev/null 2>&1
-```
-
-**Note:** Scripts automatically create detailed logs in `/tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log`. The cron redirection is optional and mainly useful for capturing startup errors. Use `~/logs/` or `./logs/` instead of `/var/log/` to avoid requiring special permissions.
+**Note:** Scripts automatically create detailed logs in `/tmp/processAPINotes_XXXXXX/processAPINotes.log`. The cron redirection is optional and mainly useful for capturing startup errors.
 
 ### Database Inspection
 
@@ -696,7 +687,7 @@ The following diagram shows the complete execution flow of `processAPINotes.sh`:
 │              processAPINotes.sh - Complete Execution Flow                │
 └─────────────────────────────────────────────────────────────────────────┘
 
-Cron/Manual
+Manual/Daemon
     │
     ▼
 ┌─────────────────┐
@@ -940,7 +931,7 @@ The following diagram shows the detailed sequence of interactions between compon
 │          Detailed Sequence: processAPINotes.sh Component Interactions     │
 └─────────────────────────────────────────────────────────────────────────┘
 
-Cron/User          processAPINotes.sh    OSM API      PostgreSQL    AWK Scripts
+User/Daemon        processAPINotesDaemon.sh    OSM API      PostgreSQL    AWK Scripts
     │                      │               │              │              │
     │───execute───────────▶│               │              │              │
     │                      │               │              │              │
@@ -1362,6 +1353,225 @@ psql -d "${DBNAME:-notes}" -c "
 - **Error Codes**: See [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference) for complete error code reference
 - **Logs**: All logs are stored in `/tmp/processAPINotes_XXXXXX/processAPINotes.log`
 - **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture overview
+
+## Daemon Mode: processAPINotesDaemon.sh (Recommended)
+
+> **Status:** **Recommended for production** - Provides lower latency and better efficiency than cron-based execution
+
+### Overview
+
+`processAPINotesDaemon.sh` is the **recommended production solution**, replacing cron-based execution of `processAPINotes.sh`. It provides the same functionality with significant improvements:
+
+- **Lower Latency**: 30-60 seconds between checks (vs 15 minutes with cron)
+- **Better Efficiency**: One-time setup instead of recreating structures each execution
+- **Adaptive Sleep**: Adjusts wait time based on processing duration
+- **Continuous Operation**: Runs indefinitely, automatically recovering from errors
+
+### Comparison: Cron Script vs Daemon
+
+| Aspect | processAPINotes.sh (Cron) | processAPINotesDaemon.sh (Daemon) ⭐ |
+|--------|---------------------------|--------------------------------------|
+| **Status** | Legacy/Alternative | **Recommended for production** |
+| **Execution** | Periodic (every 15 min) | Continuous (loop) |
+| **Latency** | 15 minutes | 30-60 seconds |
+| **Setup Overhead** | Every execution (1.8-4.5s) | Once at startup |
+| **Table Management** | DROP + CREATE each time | TRUNCATE (reuses structure) |
+| **Error Recovery** | Wait for next cron | Immediate retry |
+| **Use Case** | Legacy systems, testing | **Production, real-time systems, messaging** |
+
+**⚠️ Important:** Do NOT run both scripts simultaneously. They use the same database tables and will conflict.
+
+**Recommendation:** Use the daemon for all production deployments. The cron approach is only recommended for legacy systems or when systemd is not available.
+
+### Installation
+
+#### Using systemd (Recommended)
+
+1. **Copy service file:**
+   ```bash
+   sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+   ```
+
+2. **Edit service file** (adjust paths if needed):
+   ```bash
+   sudo nano /etc/systemd/system/osm-notes-api-daemon.service
+   ```
+
+3. **Enable and start:**
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable osm-notes-api-daemon
+   sudo systemctl start osm-notes-api-daemon
+   ```
+
+4. **Verify status:**
+   ```bash
+   sudo systemctl status osm-notes-api-daemon
+   sudo journalctl -u osm-notes-api-daemon -f
+   ```
+
+### Configuration
+
+#### Environment Variables
+
+```bash
+# Sleep interval between API checks (default: 60 seconds)
+export DAEMON_SLEEP_INTERVAL=60
+
+# Logging level
+export LOG_LEVEL=INFO
+
+# Clean temporary files after processing
+export CLEAN=true
+```
+
+#### Adaptive Sleep Logic
+
+The daemon implements intelligent sleep calculation:
+
+- **No new notes**: Sleeps full interval (60s default)
+- **Processing < interval**: Sleeps remaining time (60s - processing_time)
+- **Processing ≥ interval**: Continues immediately (no sleep)
+
+**Examples:**
+- Processed in 25s → Sleeps 35s (maintains 60s interval)
+- Processed in 80s → Sleeps 0s (continues immediately)
+- No notes → Sleeps 60s
+
+### Migration from Cron Script
+
+1. **Stop cron job:**
+   ```bash
+   crontab -e
+   # Comment or remove: */15 * * * * /path/to/processAPINotes.sh
+   ```
+
+2. **Install daemon** (see Installation section above)
+
+3. **Verify processing:**
+   ```bash
+   # Check daemon is running
+   sudo systemctl status osm-notes-api-daemon
+   
+   # Check logs
+   sudo journalctl -u osm-notes-api-daemon -n 50
+   
+   # Verify data processing
+   psql -d "${DBNAME}" -c "
+     SELECT COUNT(*), MAX(created_at) 
+     FROM notes 
+     WHERE created_at > NOW() - INTERVAL '1 hour';
+   "
+   ```
+
+### Testing
+
+Run daemon-specific tests:
+
+```bash
+# Run all daemon tests
+./tests/run_processAPINotesDaemon_tests.sh
+
+# Or run specific test suites
+bats tests/unit/bash/processAPINotesDaemon_sleep_logic.test.bats
+bats tests/unit/bash/processAPINotesDaemon_integration.test.bats
+```
+
+### Logging
+
+#### With systemd (Recommended)
+
+When running with systemd, logs are integrated with `journalctl`:
+
+```bash
+# View logs in real-time
+sudo journalctl -u osm-notes-api-daemon -f
+
+# View last 100 lines
+sudo journalctl -u osm-notes-api-daemon -n 100
+
+# View logs since today
+sudo journalctl -u osm-notes-api-daemon --since today
+
+# Filter by log level
+sudo journalctl -u osm-notes-api-daemon -p err
+```
+
+**Log location:** Systemd journal (not files)
+
+#### Manual Execution
+
+When running manually (not recommended for production), logs are written to:
+
+```
+/tmp/processAPINotesDaemon_XXXXXX/processAPINotesDaemon.log
+```
+
+Where `XXXXXX` is a random suffix. The directory persists for the daemon's lifetime.
+
+**View logs:**
+```bash
+# Find latest log directory
+LATEST_DIR=$(ls -1rtd /tmp/processAPINotesDaemon_* | tail -1)
+
+# View logs
+tail -f "${LATEST_DIR}/processAPINotesDaemon.log"
+
+# Or use the one-liner from script header
+tail -40f $(ls -1rtd /tmp/processAPINotesDaemon_* | tail -1)/processAPINotesDaemon.log
+```
+
+**Log rotation:** Logs accumulate in the same file while daemon runs. For long-running daemons, consider log rotation or use systemd.
+
+### Troubleshooting
+
+#### Daemon Not Starting
+
+```bash
+# Check service status
+sudo systemctl status osm-notes-api-daemon
+
+# Check logs
+sudo journalctl -u osm-notes-api-daemon -n 100
+
+# Verify lock file
+ls -la /tmp/processAPINotesDaemon.lock
+```
+
+#### Daemon Stops Unexpectedly
+
+The daemon exits after 5 consecutive errors. Check logs:
+
+```bash
+sudo journalctl -u osm-notes-api-daemon | grep -i error
+```
+
+#### Graceful Shutdown
+
+```bash
+# Stop daemon gracefully
+sudo systemctl stop osm-notes-api-daemon
+
+# Or send shutdown signal
+touch /tmp/processAPINotesDaemon_shutdown
+```
+
+### Files Reference
+
+**Essential Files:**
+- `bin/process/processAPINotesDaemon.sh` - Main daemon script
+- `examples/systemd/osm-notes-api-daemon.service` - systemd service file
+
+**Dependencies** (already in repository):
+- Same as `processAPINotes.sh`: `etc/properties.sh`, `lib/osm-common/`, SQL scripts, etc.
+
+### Technical Details
+
+- **Singleton Pattern**: Uses `flock` for atomic lock file management
+- **Signal Handling**: SIGTERM/SIGINT (graceful shutdown), SIGHUP (reload config), SIGUSR1 (status)
+- **Error Recovery**: Automatic retries with consecutive error limit (5)
+- **Year Change**: Handles correctly (partitions are by `part_id`, not date)
+- **Resource Management**: Automatic cleanup via `trap` handlers
 
 ## Related Documentation
 
