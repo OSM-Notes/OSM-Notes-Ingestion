@@ -2,7 +2,7 @@
 
 # Mock curl command for offline testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-12-12
 
 set -euo pipefail
 
@@ -41,27 +41,63 @@ __create_mock_file() {
   return 0
  fi
 
- # Check for XML URLs (including those with query parameters like search.xml?limit=...)
- if [[ "$url" == *".xml"* ]] || [[ "$url" == *"/notes"* ]] || [[ "$url" == *"search.xml"* ]]; then
-  cat >"$output_file" <<'EOF'
+# Check for XML URLs (including those with query parameters like search.xml?limit=...)
+if [[ "$url" == *".xml"* ]] || [[ "$url" == *"/notes"* ]] || [[ "$url" == *"search.xml"* ]]; then
+ # Validate API URL format for notes/search.xml endpoint
+ if [[ "$url" == *"/notes/search.xml"* ]]; then
+  # Verify URL includes required parameters
+  if [[ "$url" != *"from="* ]]; then
+   echo "ERROR: API URL missing 'from' parameter: $url" >&2
+   echo "Date 2025-12-09THH24:33:04Z is in a wrong format" >"$output_file"
+   exit 1
+  fi
+  
+  # Validate timestamp format in 'from' parameter
+  local FROM_PARAM
+  FROM_PARAM=$(echo "$url" | grep -oP 'from=\K[^&]*' || echo "")
+  if [[ -n "$FROM_PARAM" ]]; then
+   # Check for malformed timestamp (literal HH24)
+   if [[ "$FROM_PARAM" == *"HH24"* ]]; then
+    echo "ERROR: Malformed timestamp in API URL (contains literal HH24): $url" >&2
+    echo "Date ${FROM_PARAM} is in a wrong format" >"$output_file"
+    exit 1
+   fi
+   
+   # Validate ISO 8601 format: YYYY-MM-DDTHH:MM:SSZ
+   if [[ ! "$FROM_PARAM" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+    echo "ERROR: Invalid timestamp format in API URL: $url" >&2
+    echo "Date ${FROM_PARAM} is in a wrong format" >"$output_file"
+    exit 1
+   fi
+  fi
+ fi
+ 
+ # Validate that /notes?limit= endpoint is not used (requires bbox)
+ if [[ "$url" == *"/notes?limit="* ]] && [[ "$url" != *"bbox="* ]]; then
+  echo "ERROR: Incorrect API endpoint used. /notes?limit= requires bbox parameter: $url" >&2
+  echo "The parameter bbox is required" >"$output_file"
+  exit 1
+ fi
+ 
+ cat >"$output_file" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note id="123" lat="40.7128" lon="-74.0060"
-       created_at="2023-01-01T00:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T00:00:00Z"
-           uid="12345" user="testuser">Test note</comment>
+<osm version="0.6" generator="OpenStreetMap server">
+ <note lon="-3.7038" lat="40.4168">
+  <id>123456</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
+  <date_created>2025-12-10 10:30:00 UTC</date_created>
+  <status>open</status>
+  <comments>
+   <comment>
+    <date>2025-12-10 10:30:00 UTC</date>
+    <uid>123</uid>
+    <user>testuser</user>
+    <action>opened</action>
+    <text>Test note</text>
+   </comment>
+  </comments>
  </note>
- <note id="124" lat="40.7129" lon="-74.0061"
-       created_at="2023-01-01T01:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T01:00:00Z"
-           uid="12346" user="testuser2">Test note 2</comment>
- </note>
- <note id="125" lat="40.7130" lon="-74.0062"
-       created_at="2023-01-01T02:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T02:00:00Z"
-           uid="12347" user="testuser3">Test note 3</comment>
- </note>
-</osm-notes>
+</osm>
 EOF
  elif [[ "$url" == *.json* ]]; then
   cat >"$output_file" <<'EOF'

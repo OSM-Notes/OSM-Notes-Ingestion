@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Critical API Query Bug Fix (2025-12-12)
+
+- **Fixed incorrect API URL in `__getNewNotesFromApi` function**:
+  - **Problem**: Function in `bin/lib/processAPIFunctions.sh` was using incorrect API endpoint without date filter
+  - **Impact**: Daemon was downloading all notes without filtering by last update timestamp, causing it to always process the same old notes
+  - **Solution**: Updated function to use correct endpoint `/notes/search.xml` with `from` parameter to filter notes by last update timestamp
+  - **Files changed**: `bin/lib/processAPIFunctions.sh` (version updated to 2025-12-12)
+
+- **Fixed timestamp format bug in SQL queries**:
+  - **Problem**: Timestamp queries were generating malformed dates like `2025-12-09THH24:33:04Z` (with literal "HH24" instead of actual hour)
+  - **Impact**: API rejected malformed timestamps, preventing any notes from being downloaded
+  - **Solution**: Fixed SQL `TO_CHAR` queries to use PostgreSQL escape string syntax (`E'...'`) for proper quote escaping
+  - **Files changed**:
+    - `bin/lib/processAPIFunctions.sh` (line 107)
+    - `bin/process/processAPINotesDaemon.sh` (lines 546, 667, version updated to 2025-12-12)
+
+- **Root cause analysis**:
+  - The daemon was correctly checking for updates using the right URL format
+  - However, when downloading notes, it used a simplified function that didn't include the date filter
+  - Additionally, timestamp formatting had incorrect quote escaping in SQL queries
+  - Both issues combined prevented any new notes from being processed since December 9, 2025
+
 ### Added
 
 #### Daemon Mode for API Processing
@@ -71,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Important:** `processAPINotesDaemon.sh` does **NOT** use or call `processAPINotes.sh` directly. They are **independent scripts** that share code through common libraries:
 
 **Shared libraries** (both scripts source the same files):
+
 - `bin/lib/functionsProcess.sh` - Core processing functions
 - `bin/lib/processAPIFunctions.sh` - API-specific functions (defines `__getNewNotesFromApi`, etc.)
 - `lib/osm-common/commonFunctions.sh` - Common utilities and logging
@@ -79,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bin/lib/parallelProcessingFunctions.sh` - Parallel processing
 
 **Shared functions** (both scripts call the same library functions):
+
 - `__getNewNotesFromApi()` - Download notes from API (from `processAPIFunctions.sh`)
 - `__processXMLorPlanet()` - Process XML data (from `functionsProcess.sh`)
 - `__insertNewNotesAndComments()` - Insert data into database (from `functionsProcess.sh`)
@@ -86,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `__updateLastValue()` - Update timestamp (from `functionsProcess.sh`)
 
 **Key architectural differences**:
+
 - `processAPINotes.sh`: Executes once, exits (designed for cron)
 - `processAPINotesDaemon.sh`: Continuous loop, stays running (designed for systemd)
 - Daemon uses `TRUNCATE` instead of `DROP/CREATE` for tables (optimization)

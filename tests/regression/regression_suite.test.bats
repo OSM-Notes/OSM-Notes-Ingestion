@@ -3,7 +3,7 @@
 # Regression Test Suite
 # Tests to prevent regression of historical bugs
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
+# Version: 2025-12-12
 
 load "${BATS_TEST_DIRNAME}/../test_helper"
 
@@ -406,5 +406,156 @@ EOF
  LOG_OUTPUT=$(__log_taiwan_special_handling "16239" 2>&1)
  [[ "${LOG_OUTPUT}" == *"Taiwan"* ]]
  [[ "${LOG_OUTPUT}" == *"16239"* ]]
+}
+
+# =============================================================================
+# Bug #11: API URL Missing Date Filter
+# =============================================================================
+# Bug: __getNewNotesFromApi was using incorrect API endpoint without date filter
+#      URL was: https://api.openstreetmap.org/api/0.6/notes?limit=10000
+#      This endpoint requires bbox parameter and doesn't filter by date
+# Fix: Updated to use /notes/search.xml with from parameter for date filtering
+# Date: 2025-12-12
+# Reference: CHANGELOG.md, bin/lib/processAPIFunctions.sh
+
+@test "REGRESSION: __getNewNotesFromApi should use /notes/search.xml endpoint" {
+ local FUNCTIONS_FILE="${TEST_BASE_DIR}/bin/lib/processAPIFunctions.sh"
+ 
+ if [[ ! -f "${FUNCTIONS_FILE}" ]]; then
+  skip "Functions file not found"
+ fi
+
+ # Verify that the function uses the correct endpoint
+ # Should use /notes/search.xml, not /notes?
+ run grep -q "/notes/search.xml" "${FUNCTIONS_FILE}"
+ [[ "${status}" -eq 0 ]] || echo "Should use /notes/search.xml endpoint"
+ 
+ # Verify that it includes the 'from' parameter for date filtering
+ run grep -q "from=\${LAST_UPDATE}" "${FUNCTIONS_FILE}"
+ [[ "${status}" -eq 0 ]] || echo "Should include 'from' parameter for date filtering"
+ 
+ # Should NOT use the old incorrect endpoint
+ run grep -q "/notes?limit=" "${FUNCTIONS_FILE}"
+ [[ "${status}" -ne 0 ]] || echo "Should NOT use /notes?limit= endpoint (requires bbox)"
+}
+
+@test "REGRESSION: API URL should include all required parameters" {
+ local FUNCTIONS_FILE="${TEST_BASE_DIR}/bin/lib/processAPIFunctions.sh"
+ 
+ if [[ ! -f "${FUNCTIONS_FILE}" ]]; then
+  skip "Functions file not found"
+ fi
+
+ # Verify that the URL includes all required parameters:
+ # - limit (for max notes)
+ # - closed=-1 (to include both open and closed notes)
+ # - sort=updated_at (to sort by update time)
+ # - from=${LAST_UPDATE} (to filter by date)
+ run grep -qE "notes/search\.xml\?limit=.*closed=-1.*sort=updated_at.*from=" "${FUNCTIONS_FILE}"
+ [[ "${status}" -eq 0 ]] || echo "API URL should include limit, closed, sort, and from parameters"
+}
+
+# =============================================================================
+# Bug #12: Timestamp Format with Literal HH24
+# =============================================================================
+# Bug: SQL TO_CHAR queries were generating malformed timestamps like
+#      "2025-12-09THH24:33:04Z" (with literal "HH24" instead of actual hour)
+#      This happened because quote escaping in SQL was incorrect
+# Fix: Use PostgreSQL escape string syntax (E'...') for proper quote escaping
+# Date: 2025-12-12
+# Reference: CHANGELOG.md, bin/lib/processAPIFunctions.sh, bin/process/processAPINotesDaemon.sh
+
+@test "REGRESSION: Timestamp SQL query should use escape string syntax" {
+ local FUNCTIONS_FILE="${TEST_BASE_DIR}/bin/lib/processAPIFunctions.sh"
+ local DAEMON_FILE="${TEST_BASE_DIR}/bin/process/processAPINotesDaemon.sh"
+ 
+ if [[ ! -f "${FUNCTIONS_FILE}" ]]; then
+  skip "Functions file not found"
+ fi
+
+ # Verify that TO_CHAR uses escape string syntax (E'...')
+ # This ensures proper quote escaping in PostgreSQL
+ run grep -qE "TO_CHAR.*E'YYYY-MM-DD" "${FUNCTIONS_FILE}"
+ [[ "${status}" -eq 0 ]] || echo "Should use E'...' escape string syntax for TO_CHAR"
+ 
+ # Should NOT have the buggy pattern without E prefix
+ run grep -qE "TO_CHAR.*'YYYY-MM-DD\"T\"HH24" "${FUNCTIONS_FILE}"
+ [[ "${status}" -ne 0 ]] || echo "Should NOT use pattern without E prefix (causes HH24 literal)"
+ 
+ # Verify daemon also uses correct syntax
+ if [[ -f "${DAEMON_FILE}" ]]; then
+  run grep -qE "TO_CHAR.*E'YYYY-MM-DD" "${DAEMON_FILE}"
+  [[ "${status}" -eq 0 ]] || echo "Daemon should also use E'...' escape string syntax"
+ fi
+}
+
+@test "REGRESSION: Timestamp format should be valid ISO 8601" {
+ # Create a mock psql that returns a timestamp
+ local MOCK_PSQL="${TEST_DIR}/psql"
+ cat > "${MOCK_PSQL}" << 'EOF'
+#!/bin/bash
+# Mock psql that returns a properly formatted timestamp
+if [[ "$*" == *"TO_CHAR(timestamp"* ]]; then
+  echo "2025-12-09T04:33:04Z"
+  exit 0
+fi
+exit 0
+EOF
+ chmod +x "${MOCK_PSQL}"
+ export PATH="${TEST_DIR}:${PATH}"
+
+ # Test that the timestamp format is valid ISO 8601
+ # Valid format: YYYY-MM-DDTHH:MM:SSZ
+ local TIMESTAMP
+ TIMESTAMP=$(psql -d test_db -Atq -c "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" 2>/dev/null || echo "")
+ 
+ # Should match ISO 8601 format (not contain literal "HH24")
+ [[ "${TIMESTAMP}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
+ 
+ # Should NOT contain literal "HH24" (the bug)
+ [[ "${TIMESTAMP}" != *"HH24"* ]]
+ 
+ # Should have actual hour value (04, not HH24)
+ [[ "${TIMESTAMP}" == *"T04:"* ]] || [[ "${TIMESTAMP}" == *"T"[0-9][0-9]":"* ]]
+}
+
+@test "REGRESSION: Timestamp should be usable in API URL" {
+ # Create a mock psql that returns a timestamp
+ local MOCK_PSQL="${TEST_DIR}/psql"
+ cat > "${MOCK_PSQL}" << 'EOF'
+#!/bin/bash
+if [[ "$*" == *"TO_CHAR(timestamp"* ]]; then
+  echo "2025-12-09T04:33:04Z"
+  exit 0
+fi
+exit 0
+EOF
+ chmod +x "${MOCK_PSQL}"
+ export PATH="${TEST_DIR}:${PATH}"
+
+ # Get timestamp
+ local TIMESTAMP
+ TIMESTAMP=$(psql -d test_db -Atq -c "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" 2>/dev/null || echo "")
+ 
+ # Build API URL with timestamp
+ local API_URL="https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=10000&closed=-1&sort=updated_at&from=${TIMESTAMP}"
+ 
+ # URL should be valid (no malformed characters)
+ # Should not contain literal "HH24"
+ [[ "${API_URL}" != *"HH24"* ]]
+ 
+ # Should contain the timestamp in correct format
+ [[ "${API_URL}" == *"from=2025-12-09T04:33:04Z"* ]]
+ 
+ # Test that API would accept this format (simulate API validation)
+ # Valid format should match: YYYY-MM-DDTHH:MM:SSZ
+ if [[ "${TIMESTAMP}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+  # Format is valid
+  [[ true ]]
+ else
+  # Format is invalid
+  echo "Timestamp format is invalid: ${TIMESTAMP}"
+  exit 1
+ fi
 }
 

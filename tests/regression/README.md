@@ -3,7 +3,7 @@
 **Purpose:** Prevent regression of historical bugs and issues
 
 **Author:** Andres Gomez (AngocA)  
-**Version:** 2025-12-08
+**Version:** 2025-12-12
 
 ## Overview
 
@@ -26,6 +26,20 @@ Comprehensive regression test suite covering 10 historical bugs:
 8. **SQL Insertion for Null Island** - Invalid SQL syntax
 9. **Boundary Processing** - Missing geometry field detection
 10. **Taiwan Special Handling** - Problematic tags removal
+11. **API URL Missing Date Filter** - Incorrect API endpoint without date filtering
+12. **Timestamp Format with Literal HH24** - Malformed timestamps in SQL queries
+
+## New Unit Tests
+
+**`tests/unit/bash/processAPIFunctions_api_url.test.bats`** - Comprehensive unit tests for API URL construction and timestamp format validation:
+
+- Tests API URL endpoint correctness (`/notes/search.xml` vs `/notes?limit=`)
+- Tests URL parameter inclusion (`limit`, `closed`, `sort`, `from`)
+- Tests timestamp format validation (ISO 8601, no literal "HH24")
+- Tests timestamp URL-safety
+- Tests database timestamp retrieval
+- Tests error handling for empty timestamps
+- Tests MAX_NOTES variable usage
 
 ## Bug Documentation
 
