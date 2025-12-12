@@ -343,7 +343,7 @@ function __validate_capital_location() {
 
  # First, verify that the import table has polygon geometries
  local POLYGON_COUNT
- POLYGON_COUNT=$(psql -d "${DB_NAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
+ POLYGON_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
 
  if [[ "${POLYGON_COUNT}" -eq 0 ]]; then
   __loge "CRITICAL: No polygon geometries found in import table for boundary ${BOUNDARY_ID}"
@@ -355,13 +355,13 @@ function __validate_capital_location() {
 
  # Check geometry validity before validation
  local INVALID_GEOM_COUNT
- INVALID_GEOM_COUNT=$(psql -d "${DB_NAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsValid(geometry);" 2> /dev/null || echo "0")
+ INVALID_GEOM_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsValid(geometry);" 2> /dev/null || echo "0")
 
  if [[ "${INVALID_GEOM_COUNT}" -gt "0" ]]; then
   __logw "Found ${INVALID_GEOM_COUNT} invalid geometries in import table for boundary ${BOUNDARY_ID} - will use ST_MakeValid"
   # Log validity reason for first invalid geometry
   local VALIDITY_REASON
-  VALIDITY_REASON=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_IsValidReason(geometry) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsValid(geometry) LIMIT 1;" 2> /dev/null || echo "Unknown")
+  VALIDITY_REASON=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq -c "SELECT ST_IsValidReason(geometry) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsValid(geometry) LIMIT 1;" 2> /dev/null || echo "Unknown")
   __logd "Validity reason: ${VALIDITY_REASON}"
  fi
 
@@ -378,7 +378,7 @@ function __validate_capital_location() {
 
  # Strategy 1: Try standard ST_Union(ST_MakeValid) - matches standard insertion
  VALIDATION_RESULT=$(
-  psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
 SELECT ST_Contains(
   ST_SetSRID(ST_Union(ST_MakeValid(geometry)), 4326),
   ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
@@ -402,7 +402,7 @@ EOF
 
   # Strategy 2: Try ST_Collect + ST_UnaryUnion (matching insertion alternative)
   VALIDATION_RESULT=$(
-   psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
 SELECT ST_Contains(
   ST_SetSRID(ST_UnaryUnion(ST_Collect(ST_MakeValid(geometry))), 4326),
   ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
@@ -421,7 +421,7 @@ EOF
 
   # Strategy 3: Try ST_Buffer strategy (matching insertion buffer strategy)
   VALIDATION_RESULT=$(
-   psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq << EOF 2> "${VALIDATION_ERROR_LOG}" || echo "false"
 SELECT ST_Contains(
   ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326),
   ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)
@@ -441,7 +441,7 @@ EOF
   # All strategies failed, try ST_Intersects as final fallback (more tolerant)
   __logw "All geometry processing strategies failed for boundary ${BOUNDARY_ID}, trying ST_Intersects as final fallback"
   local INTERSECTS_RESULT
-  INTERSECTS_RESULT=$(psql -d "${DB_NAME}" -Atq -c "SELECT ST_Intersects(ST_SetSRID(ST_Union(ST_MakeValid(geometry)), 4326), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "false")
+  INTERSECTS_RESULT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq -c "SELECT ST_Intersects(ST_SetSRID(ST_Union(ST_MakeValid(geometry)), 4326), ST_SetSRID(ST_MakePoint(${CAPITAL_LON}, ${CAPITAL_LAT}), 4326)) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "false")
 
   if [[ "${INTERSECTS_RESULT}" == "t" ]] || [[ "${INTERSECTS_RESULT}" == "true" ]]; then
    __logw "Capital validation passed with ST_Intersects fallback for boundary ${BOUNDARY_ID}"
@@ -878,7 +878,7 @@ function __processBoundary_impl {
  # between parallel processes. ogr2ogr -overwrite should do this, but explicit
  # truncation ensures no residual data from previous failed imports.
  __logd "Truncating import table to prevent cross-contamination for boundary ${ID}..."
- if ! psql -d "${DBNAME}" -c "TRUNCATE TABLE import" > /dev/null 2>&1; then
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "TRUNCATE TABLE import" > /dev/null 2>&1; then
   __logw "Warning: Failed to truncate import table (may not exist yet)"
  fi
 
@@ -1069,9 +1069,9 @@ function __processBoundary_impl {
  # to inserting incorrect geometries from a previous boundary
  __logd "Verifying import table has data for boundary ${ID}..."
  local IMPORT_COUNT_AFTER
- IMPORT_COUNT_AFTER=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2> /dev/null || echo "0")
+ IMPORT_COUNT_AFTER=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import" 2> /dev/null || echo "0")
  local IMPORT_POLYGON_COUNT
- IMPORT_POLYGON_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
+ IMPORT_POLYGON_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
 
  # Get the expected feature count from the GeoJSON file for comparison
  local EXPECTED_FEATURE_COUNT

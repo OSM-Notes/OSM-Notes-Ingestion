@@ -209,7 +209,7 @@ function __cleanPartial {
  __log_start
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${QUERY_FILE}.*" "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
-  echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
+  echo "DROP TABLE IF EXISTS import" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}"
  fi
  __log_finish
 }
@@ -269,7 +269,7 @@ function __dropCountryTables {
  __log_start
  __logi "=== DROPPING COUNTRY TABLES ==="
  __logd "Dropping countries table directly"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
 -- Drop country tables
 DROP TABLE IF EXISTS countries CASCADE;
 EOF
@@ -281,12 +281,12 @@ EOF
 function __createCountryTables {
  __log_start
  __logi "Creating country and maritime tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
 
  # Create international waters table (for optimization)
  __logi "Creating international waters table..."
  if [[ -f "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS:-}" ]]; then
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS}" 2>&1 || __logw "Warning: Failed to create international waters table (may not exist yet)"
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS}" 2>&1 || __logw "Warning: Failed to create international waters table (may not exist yet)"
  else
   __logw "Warning: International waters table script not found, skipping"
  fi
@@ -302,7 +302,7 @@ function __calculateInternationalWaters {
 
  # Check if international waters table exists
  local TABLE_EXISTS
- TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'international_waters');" 2> /dev/null | tr -d ' ' || echo "f")
+ TABLE_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'international_waters');" 2> /dev/null | tr -d ' ' || echo "f")
 
  if [[ "${TABLE_EXISTS}" != "t" ]]; then
   __logw "International waters table does not exist, skipping calculation"
@@ -323,7 +323,7 @@ function __calculateInternationalWaters {
  # Use ON_ERROR_STOP=0 to allow the script to continue even if international waters calculation fails
  # This is especially important in hybrid/mock mode where test geometries may cause PostGIS errors
  local SQL_OUTPUT
- SQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=0 -f "${POSTGRES_28_ADD_INTERNATIONAL_WATERS}" 2>&1)
+ SQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 -f "${POSTGRES_28_ADD_INTERNATIONAL_WATERS}" 2>&1)
  local SQL_EXIT_CODE=$?
 
  if echo "${SQL_OUTPUT}" | grep -q "ERROR"; then
@@ -350,7 +350,7 @@ function __refreshDisputedAreasView {
 
  # Check if materialized view exists
  local VIEW_EXISTS
- VIEW_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_matviews WHERE schemaname = 'wms' AND matviewname = 'disputed_and_unclaimed_areas');" 2> /dev/null | tr -d ' ' || echo "f")
+ VIEW_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_matviews WHERE schemaname = 'wms' AND matviewname = 'disputed_and_unclaimed_areas');" 2> /dev/null | tr -d ' ' || echo "f")
 
  if [[ "${VIEW_EXISTS}" != "t" ]]; then
   __logw "Materialized view wms.disputed_and_unclaimed_areas does not exist, skipping refresh"
@@ -370,7 +370,7 @@ function __refreshDisputedAreasView {
  fi
 
  __logi "Executing refresh (this may take several minutes)..."
- if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REFRESH_SQL}" > /dev/null 2>&1; then
+ if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REFRESH_SQL}" > /dev/null 2>&1; then
   __logi "Materialized view refreshed successfully"
  else
   __loge "Failed to refresh materialized view"
@@ -390,7 +390,7 @@ function __maintainCountriesTable {
 
  # Check if countries table exists and has data
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
  if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
   __logw "Countries table is empty, skipping maintenance"
@@ -402,12 +402,12 @@ function __maintainCountriesTable {
 
  # REINDEX the spatial index to ensure it's properly built
  __logi "Rebuilding spatial index (countries_spatial)..."
- if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX CONCURRENTLY countries_spatial;" 2> /dev/null; then
+ if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX CONCURRENTLY countries_spatial;" 2> /dev/null; then
   __logi "Spatial index rebuilt successfully"
  else
   # If CONCURRENTLY fails (e.g., no concurrent access), try regular REINDEX
   __logw "CONCURRENTLY REINDEX failed, trying regular REINDEX..."
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX countries_spatial;" 2> /dev/null; then
+  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX countries_spatial;" 2> /dev/null; then
    __logi "Spatial index rebuilt successfully"
   else
    __logw "REINDEX failed, but continuing..."
@@ -416,7 +416,7 @@ function __maintainCountriesTable {
 
  # ANALYZE the table to update statistics
  __logi "Updating table statistics (ANALYZE)..."
- if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "ANALYZE countries;" 2> /dev/null; then
+ if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "ANALYZE countries;" 2> /dev/null; then
   __logi "Table statistics updated successfully"
  else
   __logw "ANALYZE failed, but continuing..."
@@ -425,7 +425,7 @@ function __maintainCountriesTable {
  # Create optimized indexes for bounding box queries
  __logi "Creating optimized spatial indexes for bounding boxes..."
  if [[ -f "${POSTGRES_26_OPTIMIZE_COUNTRY_INDEXES:-}" ]]; then
-  if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_OPTIMIZE_COUNTRY_INDEXES}" 2>&1; then
+  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_OPTIMIZE_COUNTRY_INDEXES}" 2>&1; then
    __logi "Optimized spatial indexes created successfully"
   else
    __logw "Warning: Failed to create optimized indexes (may already exist)"
@@ -436,7 +436,7 @@ function __maintainCountriesTable {
 
  # Show final index size
  local INDEX_SIZE
- INDEX_SIZE=$(psql -d "${DBNAME}" -Atq -c "SELECT pg_size_pretty(pg_relation_size('countries_spatial'));" 2> /dev/null | head -1 || echo "unknown")
+ INDEX_SIZE=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT pg_size_pretty(pg_relation_size('countries_spatial'));" 2> /dev/null | head -1 || echo "unknown")
  __logi "Spatial index size: ${INDEX_SIZE}"
 
  __log_finish
@@ -474,7 +474,7 @@ function __showFailedBoundariesSummary {
      echo "${FAILED_IDS[*]}"
     )
     local QUERY_RESULT
-    QUERY_RESULT=$(psql -d "${DBNAME}" -Atq -c "SELECT country_id, COALESCE(country_name_en, country_name, 'Unknown') FROM countries WHERE country_id IN (${IDS_LIST}) ORDER BY country_id;" 2> /dev/null || echo "")
+    QUERY_RESULT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT country_id, COALESCE(country_name_en, country_name, 'Unknown') FROM countries WHERE country_id IN (${IDS_LIST}) ORDER BY country_id;" 2> /dev/null || echo "")
 
     if [[ -n "${QUERY_RESULT}" ]]; then
      # Display failed boundaries with names
@@ -665,7 +665,7 @@ function __checkMaritimesUpdateNeeded {
  # Use comprehensive patterns to identify all maritime boundaries
  local CURRENT_MARITIMES_FILE
  CURRENT_MARITIMES_FILE="${TMP_DIR}/current_maritimes_ids.txt"
- psql -d "${DBNAME}" -Atq -c \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
   "SELECT country_id FROM countries WHERE (
    country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
    country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
@@ -733,7 +733,7 @@ function __markFailedCountryUpdates {
  # Mark countries that failed (still have updated=TRUE) as update_failed=TRUE
  # and record the last update attempt timestamp
  local FAILED_COUNT
- FAILED_COUNT=$(psql -d "${DBNAME}" -Atq -c "
+ FAILED_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
    UPDATE countries
    SET update_failed = TRUE,
        last_update_attempt = CURRENT_TIMESTAMP
@@ -745,7 +745,7 @@ function __markFailedCountryUpdates {
   __logw "Marked ${FAILED_COUNT} countries as failed to update"
   # Show sample of failed countries
   local SAMPLE_FAILED
-  SAMPLE_FAILED=$(psql -d "${DBNAME}" -Atq -c "
+  SAMPLE_FAILED=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
     SELECT country_id || ':' || COALESCE(country_name_en, country_name, 'Unknown')
     FROM countries
     WHERE update_failed = TRUE
@@ -762,7 +762,7 @@ function __markFailedCountryUpdates {
  # Mark successfully updated countries as update_failed=FALSE
  # (countries that were processed and now have updated=FALSE)
  local SUCCESS_COUNT
- SUCCESS_COUNT=$(psql -d "${DBNAME}" -Atq -c "
+ SUCCESS_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
    UPDATE countries
    SET update_failed = FALSE,
        last_update_attempt = CURRENT_TIMESTAMP
@@ -787,7 +787,7 @@ function __reassignAffectedNotes {
  # Ensure get_country function exists before using it
  # functionsProcess.sh is already loaded at the top of the script
  local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
  if [[ "${FUNCTION_EXISTS:-0}" -eq "0" ]]; then
   __logw "get_country function not found, creating it..."
@@ -796,7 +796,7 @@ function __reassignAffectedNotes {
  fi
 
  # Get list of countries that were updated
- local -r UPDATED_COUNTRIES=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -Atq -c "
+ local -r UPDATED_COUNTRIES=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
    SELECT country_id
    FROM countries
    WHERE updated = TRUE;
@@ -827,7 +827,7 @@ function __reassignAffectedNotes {
 
   # Get initial count of affected notes
   local TOTAL_AFFECTED
-  TOTAL_AFFECTED=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -Atq -c "
+  TOTAL_AFFECTED=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
    SELECT COUNT(*)
    FROM notes n
    WHERE EXISTS (
@@ -858,7 +858,7 @@ function __reassignAffectedNotes {
 
     # Execute batch SQL and capture processed count from RAISE NOTICE
     local PSQL_OUTPUT
-    PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "SET app.batch_size = '${BATCH_SIZE}';" -f "${BATCH_SQL_FILE}" 2>&1)
+    PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "SET app.batch_size = '${BATCH_SIZE}';" -f "${BATCH_SQL_FILE}" 2>&1)
     local PSQL_EXIT_CODE=$?
 
     # Check if psql command failed
@@ -904,7 +904,7 @@ function __reassignAffectedNotes {
    __log_finish
    return 1
   fi
-  PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}"
  fi
 
  # Show statistics
@@ -913,7 +913,7 @@ function __reassignAffectedNotes {
  __logi "Country assignment completed"
 
  # Mark countries as processed
- PGAPPNAME="${PGAPPNAME:-${BASENAME}}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
    UPDATE countries SET updated = FALSE WHERE updated = TRUE;
  "
 
@@ -952,7 +952,7 @@ function __checkMissingMaritimes() {
  __logi "Checking ${TOTAL_CENTROIDS} EEZ centroids against OSM maritime boundaries..."
 
  # Create temporary table for centroids in database
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
   DROP TABLE IF EXISTS temp_eez_centroids CASCADE;
   CREATE TEMP TABLE temp_eez_centroids (
    eez_id INTEGER,
@@ -977,7 +977,7 @@ function __checkMissingMaritimes() {
   territory=$(echo "${territory}" | sed "s/'/''/g")
   sovereign=$(echo "${sovereign}" | sed "s/'/''/g")
 
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
    INSERT INTO temp_eez_centroids (eez_id, name, territory, sovereign, centroid_lat, centroid_lon, geom)
    VALUES (
     ${eez_id},
@@ -995,7 +995,7 @@ function __checkMissingMaritimes() {
  # Only check in OSM those that are NOT in the database
  __logi "Filtering centroids already covered in database..."
  local DB_COVERED_COUNT
- DB_COVERED_COUNT=$(psql -d "${DBNAME}" -Atq -c "
+ DB_COVERED_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
   SELECT COUNT(*)
   FROM temp_eez_centroids t
   WHERE EXISTS (
@@ -1007,7 +1007,7 @@ function __checkMissingMaritimes() {
  " 2> /dev/null || echo "0")
 
  local TOTAL_CENTROIDS
- TOTAL_CENTROIDS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM temp_eez_centroids;" 2> /dev/null || echo "0")
+ TOTAL_CENTROIDS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM temp_eez_centroids;" 2> /dev/null || echo "0")
  local NOT_IN_DB_COUNT=$((TOTAL_CENTROIDS - DB_COVERED_COUNT))
 
  __logi "Centroids already in database: ${DB_COVERED_COUNT}/${TOTAL_CENTROIDS}"
@@ -1015,7 +1015,7 @@ function __checkMissingMaritimes() {
 
  if [[ "${NOT_IN_DB_COUNT}" -eq 0 ]]; then
   __logi "All centroids are already covered in database, no need to check OSM"
-  psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids CASCADE;" > /dev/null 2>&1 || true
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids CASCADE;" > /dev/null 2>&1 || true
   __log_finish
   return 0
  fi
@@ -1036,7 +1036,7 @@ function __checkMissingMaritimes() {
  local QUERY_TIMEOUT=25
 
  # Process only centroids that are NOT in the database
- psql -d "${DBNAME}" -Atq -c "
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
   SELECT t.eez_id, t.name, t.territory, t.sovereign, t.centroid_lat, t.centroid_lon
   FROM temp_eez_centroids t
   WHERE NOT EXISTS (
@@ -1174,7 +1174,7 @@ out;"
  fi
 
  # Cleanup
- psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids CASCADE;" > /dev/null 2>&1 || true
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids CASCADE;" > /dev/null 2>&1 || true
 
  __log_finish
  return 0
@@ -1260,7 +1260,7 @@ EOF
   __logi "Running in update mode - processing existing data only"
   # Mark all countries for update and record update attempt timestamp
   STMT="UPDATE countries SET updated = TRUE, last_update_attempt = CURRENT_TIMESTAMP"
-  echo "${STMT}" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  echo "${STMT}" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1
 
   # In update mode, always download from Overpass to get latest geometries
   # (geometries can change even if IDs remain the same)

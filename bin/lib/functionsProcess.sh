@@ -803,10 +803,10 @@ function __processApiXmlPart() {
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
  # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
  # shellcheck disable=SC2154
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
    < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
@@ -993,7 +993,7 @@ function __processPlanetXmlPart() {
 
  # Execute PostgreSQL commands
  __logd "Setting PostgreSQL session variables..."
- if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" 2>&1 | while IFS= read -r line; do
   __logd "psql SET: ${line}"
  done; then
@@ -1005,7 +1005,7 @@ function __processPlanetXmlPart() {
  __logd "Executing COPY commands to load data into database..."
  local PSQL_OUTPUT
  local PSQL_EXIT_CODE
- PSQL_OUTPUT=$(psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${SQL_CMD}" 2>&1)
+ PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "${SQL_CMD}" 2>&1)
  PSQL_EXIT_CODE=$?
 
  if [[ ${PSQL_EXIT_CODE} -ne 0 ]]; then
@@ -1027,8 +1027,8 @@ function __processPlanetXmlPart() {
  __logd "Verifying data was loaded into partition ${PART_NUM}..."
  local NOTES_COUNT
  local COMMENTS_COUNT
- NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_sync_part_${PART_NUM};" 2> /dev/null || echo "0")
- COMMENTS_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM note_comments_sync_part_${PART_NUM};" 2> /dev/null || echo "0")
+ NOTES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_sync_part_${PART_NUM};" 2> /dev/null || echo "0")
+ COMMENTS_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM note_comments_sync_part_${PART_NUM};" 2> /dev/null || echo "0")
 
  __logi "Data loaded into partition ${PART_NUM}:"
  __logi "  Notes: ${NOTES_COUNT} rows"
@@ -1398,7 +1398,7 @@ function __checkPrereqsCommands {
  __logd "Checking database connectivity with user '${DB_USER}'."
  # shellcheck disable=SC2154
  # PGHOST/PGPORT/PGUSER already exported above
- if ! psql -U "${DB_USER}" -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+ if ! PGAPPNAME="${PGAPPNAME}" psql -U "${DB_USER}" -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}' with user '${DB_USER}'."
   __loge "PostgreSQL authentication failed. Possible solutions:"
   __loge "  1. If user '${DB_USER}' doesn't exist, create it:"
@@ -1416,7 +1416,7 @@ function __checkPrereqsCommands {
  __logd "Checking PostGIS."
  # shellcheck disable=SC2154
  # PGHOST/PGPORT/PGUSER already exported above
- psql -U "${DB_USER}" -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
+ PGAPPNAME="${PGAPPNAME}" psql -U "${DB_USER}" -d "${DBNAME}" -v ON_ERROR_STOP=1 > /dev/null 2>&1 << EOF
 SELECT /* Notes-base */ PostGIS_version();
 EOF
  RET=${?}
@@ -1429,7 +1429,7 @@ EOF
  # shellcheck disable=SC2154
  __logd "Checking btree gist."
  # PGHOST/PGPORT/PGUSER already exported above
- RESULT=$(psql -U "${DB_USER}" -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
+ RESULT=$(PGAPPNAME="${PGAPPNAME}" psql -U "${DB_USER}" -t -A -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';" "${DBNAME}")
  if [[ "${RESULT}" -ne 1 ]]; then
   __loge "ERROR: btree_gist extension is missing in database '${DBNAME}'."
   __loge "To enable btree_gist, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
@@ -1614,7 +1614,7 @@ function __checkBaseTables {
 
  # First, verify database connection works
  __logd "Verifying database connection..."
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   __loge "This is NOT a 'tables missing' condition - do NOT run --base"
   RET=2 # Use code 2 for connection errors (not missing tables)
@@ -1630,7 +1630,7 @@ function __checkBaseTables {
  __logd "SQL file: ${POSTGRES_11_CHECK_BASE_TABLES}"
  local PSQL_OUTPUT
  local PSQL_ERROR
- PSQL_OUTPUT=$(psql -q -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1)
+ PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -q -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_BASE_TABLES}" 2>&1)
  RET=${?}
  PSQL_ERROR="${PSQL_OUTPUT}"
 
@@ -1662,7 +1662,7 @@ function __checkBaseTables {
   # Now verify get_country function exists (non-critical - will be created if missing)
   __logd "All base tables verified successfully"
   local FUNCTION_EXISTS
-  FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
   if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
    __logw "get_country function is missing but tables exist - will be created automatically"
    # Return 0 (tables OK) - function will be created by __ensureGetCountryFunction
@@ -1707,7 +1707,7 @@ function __checkHistoricalData {
  mkdir -p "${TMP_DIR:-/tmp}" 2> /dev/null || true
 
  # Execute and capture output and exit code safely
- psql -q -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" > "${HIST_OUT_FILE}" 2>&1
+ PGAPPNAME="${PGAPPNAME}" psql -q -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_11_CHECK_HISTORICAL_DATA}" > "${HIST_OUT_FILE}" 2>&1
  RET=$?
 
  # Restore errexit if it was previously on
@@ -1748,7 +1748,7 @@ function __checkHistoricalData {
 function __dropGenericObjects {
  __log_start
  __logi "Dropping generic objects."
- psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_GENERIC_OBJECTS}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_GENERIC_OBJECTS}"
  __log_finish
 }
 
@@ -1971,7 +1971,7 @@ function __createFunctionToGetCountry {
  __log_start
  # Check if countries table exists before creating get_country function
  local COUNTRIES_TABLE_EXISTS
- COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+ COUNTRIES_TABLE_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
 
  if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
   __logw "Countries table does not exist. Creating stub get_country function."
@@ -1982,7 +1982,7 @@ function __createFunctionToGetCountry {
    return 1
   fi
   # Create a stub function that returns NULL when countries table doesn't exist
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" || true
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" || true
   __log_finish
   return 0
  fi
@@ -2021,11 +2021,11 @@ function __createProcedures {
  fi
 
  # Creates a procedure that inserts a note.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}"
 
  # Creates a procedure that inserts a note comment.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}"
  __log_finish
 }
@@ -2052,7 +2052,7 @@ function __organizeAreas {
 
  # Check if countries table exists
  local COUNTRIES_TABLE_EXISTS
- COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+ COUNTRIES_TABLE_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
 
  if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
   __logw "Countries table does not exist. Skipping areas organization."
@@ -2064,7 +2064,7 @@ function __organizeAreas {
 
  # Check if countries table has data
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+ COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
 
  if [[ "${COUNTRIES_COUNT}" -eq "0" ]]; then
   __logw "Countries table is empty. Skipping areas organization."
@@ -2076,7 +2076,7 @@ function __organizeAreas {
 
  set +e
  # Insert values for representative countries in each area.
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_ORGANIZE_AREAS}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_ORGANIZE_AREAS}"
  RET=${?}
  set -e
  # shellcheck disable=SC2034
