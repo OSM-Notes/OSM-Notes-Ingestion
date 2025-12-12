@@ -4,8 +4,8 @@
 # This file contains functions for processing API data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-19
-VERSION="2025-10-19"
+# Version: 2025-12-12
+VERSION="2025-12-12"
 
 # Show help function
 function __show_help() {
@@ -88,6 +88,9 @@ function __getNewNotesFromApi() {
  __logd "Getting new notes from API."
 
  local TEMP_FILE
+ local LAST_UPDATE
+ local REQUEST
+
  TEMP_FILE=$(mktemp)
 
  # Check network connectivity
@@ -98,23 +101,51 @@ function __getNewNotesFromApi() {
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
- # Download notes from API
+ # Gets the most recent value on the database
+ __logi "Retrieving last update from database..."
+ __logd "Database: ${DBNAME}"
+ local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, E'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
+ local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
+
+ if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
+  __loge "Failed to retrieve last update from database after retries"
+  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
+   "rm -f ${TEMP_FILE} 2>/dev/null || true"
+  return "${ERROR_NO_LAST_UPDATE}"
+ fi
+
+ LAST_UPDATE=$(cat "${TEMP_FILE}")
+ rm "${TEMP_FILE}"
+ __logi "Last update retrieved: ${LAST_UPDATE}"
+ if [[ "${LAST_UPDATE}" == "" ]]; then
+  __loge "No last update. Please load notes first."
+  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
+   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
+  return "${ERROR_NO_LAST_UPDATE}"
+ fi
+
+ # Gets the values from OSM API with the correct URL including date filter
+ # shellcheck disable=SC2153
+ REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
+ __logi "API Request URL: ${REQUEST}"
+ __logd "Max notes limit: ${MAX_NOTES}"
  __logi "Downloading notes from OSM API..."
- if __retry_osm_api "https://api.openstreetmap.org/api/0.6/notes?limit=10000" "${TEMP_FILE}" 5 2 30; then
-  if [[ -s "${TEMP_FILE}" ]]; then
-   mv "${TEMP_FILE}" "${API_NOTES_FILE}"
+
+ # Download notes from API with retry logic
+ if __retry_osm_api "${REQUEST}" "${API_NOTES_FILE}" 5 2 30; then
+  if [[ -s "${API_NOTES_FILE}" ]]; then
    __logi "Successfully downloaded notes from API: ${API_NOTES_FILE}"
    __log_finish
    return 0
   else
    __loge "ERROR: Downloaded file is empty"
-   rm -f "${TEMP_FILE}"
+   rm -f "${API_NOTES_FILE}"
    __log_finish
    return 1
   fi
  else
   __loge "ERROR: Failed to download notes from API"
-  rm -f "${TEMP_FILE}"
+  rm -f "${API_NOTES_FILE}"
   __log_finish
   return 1
  fi

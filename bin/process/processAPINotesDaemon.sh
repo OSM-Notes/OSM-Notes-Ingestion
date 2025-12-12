@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-api-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
-VERSION="2025-01-27"
+# Version: 2025-12-12
+VERSION="2025-12-12"
 
 #set -xv
 set -u
@@ -543,7 +543,7 @@ function __daemon_init {
  
  # Get initial timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
-  "SELECT TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
+  "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
   2>/dev/null | head -1 || echo "")
  
  __logi "Daemon initialized successfully"
@@ -664,7 +664,7 @@ function __process_api_data {
  
  # Update last processed timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
-  "SELECT TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
+  "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
   2>/dev/null | head -1 || echo "")
  
  # Clean files
