@@ -1440,29 +1440,157 @@ The daemon implements intelligent sleep calculation:
 
 ### Migration from Cron Script
 
-1. **Stop cron job:**
-   ```bash
-   crontab -e
-   # Comment or remove: */15 * * * * /path/to/processAPINotes.sh
-   ```
+#### Step 1: Stop Cron Job
 
-2. **Install daemon** (see Installation section above)
+```bash
+# Edit crontab
+crontab -e
 
-3. **Verify processing:**
-   ```bash
-   # Check daemon is running
-   sudo systemctl status osm-notes-api-daemon
-   
-   # Check logs
-   sudo journalctl -u osm-notes-api-daemon -n 50
-   
-   # Verify data processing
-   psql -d "${DBNAME}" -c "
-     SELECT COUNT(*), MAX(created_at) 
-     FROM notes 
-     WHERE created_at > NOW() - INTERVAL '1 hour';
-   "
-   ```
+# Comment or remove the line:
+# */15 * * * * /path/to/OSM-Notes-Ingestion/bin/process/processAPINotes.sh >/dev/null 2>&1
+```
+
+**Verify cron is stopped:**
+```bash
+crontab -l | grep processAPINotes
+# Should return nothing or show commented line
+```
+
+#### Step 2: Install systemd Service
+
+```bash
+# 1. Copy service file
+sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+
+# 2. Edit service file (REQUIRED - adjust paths and user)
+sudo nano /etc/systemd/system/osm-notes-api-daemon.service
+```
+
+**Edit these lines in the service file:**
+- `User=osmuser` → Change to your user
+- `Group=osmuser` → Change to your group  
+- `WorkingDirectory=/path/to/OSM-Notes-Ingestion` → Change to actual path
+- `ExecStart=/path/to/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh` → Change to actual path
+- `Documentation=file:///path/to/OSM-Notes-Ingestion/docs/Process_API.md` → Change to actual path
+
+**Optional:** Adjust environment variables:
+- `LOG_LEVEL=INFO` (or DEBUG, WARN, ERROR)
+- `DAEMON_SLEEP_INTERVAL=60` (seconds between checks)
+- `CLEAN=true` (clean temporary files)
+
+#### Step 3: Enable and Start Daemon
+
+```bash
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable daemon (start on boot)
+sudo systemctl enable osm-notes-api-daemon
+
+# Start daemon
+sudo systemctl start osm-notes-api-daemon
+```
+
+#### Step 4: Verify Installation
+
+```bash
+# Check service status
+sudo systemctl status osm-notes-api-daemon
+# Should show: "Active: active (running)"
+
+# View logs in real-time
+sudo journalctl -u osm-notes-api-daemon -f
+
+# View last 50 lines
+sudo journalctl -u osm-notes-api-daemon -n 50
+```
+
+#### Step 5: Verify Data Processing
+
+```bash
+# Check that notes are being processed
+psql -d "${DBNAME}" -c "
+  SELECT COUNT(*), MAX(created_at) 
+  FROM notes 
+  WHERE created_at > NOW() - INTERVAL '1 hour';
+"
+
+# Check last processed timestamp
+psql -d "${DBNAME}" -c "
+  SELECT timestamp, NOW() - timestamp AS age 
+  FROM max_note_timestamp;
+"
+```
+
+#### Migration Checklist
+
+- [ ] Cron job removed/commented
+- [ ] Service file copied and paths updated
+- [ ] User/group set correctly in service file
+- [ ] Daemon enabled and started
+- [ ] Service status shows "active (running)"
+- [ ] Logs show successful initialization
+- [ ] Data is being processed (check database)
+- [ ] No errors in logs
+
+#### Common Issues
+
+**Service Fails to Start:**
+```bash
+# Check service status
+sudo systemctl status osm-notes-api-daemon
+
+# Check logs for errors
+sudo journalctl -u osm-notes-api-daemon -n 100
+
+# Common causes:
+# - Wrong path in ExecStart
+# - Wrong user/group
+# - Database not accessible
+# - Missing properties.sh
+```
+
+**Daemon Exits Immediately:**
+```bash
+# Check if lock file exists (another instance running)
+ls -la /tmp/processAPINotesDaemon.lock
+
+# Check logs
+sudo journalctl -u osm-notes-api-daemon -n 50
+
+# Verify database connection
+psql -d "${DBNAME}" -c "SELECT 1;"
+```
+
+**No Data Processing:**
+```bash
+# Check if daemon is checking API
+sudo journalctl -u osm-notes-api-daemon | grep -i "check\|api\|notes"
+
+# Verify API is accessible
+wget -q -O /tmp/test.xml "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1"
+
+# Check last timestamp
+psql -d "${DBNAME}" -c "SELECT * FROM max_note_timestamp;"
+```
+
+#### Rollback (If Needed)
+
+If you need to go back to cron:
+
+```bash
+# Stop and disable daemon
+sudo systemctl stop osm-notes-api-daemon
+sudo systemctl disable osm-notes-api-daemon
+
+# Remove service file
+sudo rm /etc/systemd/system/osm-notes-api-daemon.service
+sudo systemctl daemon-reload
+
+# Restore cron
+crontab -e
+# Add: */15 * * * * /path/to/OSM-Notes-Ingestion/bin/process/processAPINotes.sh >/dev/null 2>&1
+```
 
 ### Testing
 

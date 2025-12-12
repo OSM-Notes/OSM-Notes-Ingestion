@@ -15,7 +15,7 @@
 #   - LOG_LEVEL: Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
 #
 # Integration:
-#   - systemd: See docs/Daemon_Design.md for service file (recommended)
+#   - systemd: See examples/systemd/osm-notes-api-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-27
