@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `tests/unit/bash/processAPINotesDaemon_sleep_logic.test.bats` - Unit tests for adaptive sleep logic
   - `tests/unit/bash/processAPINotesDaemon_integration.test.bats` - Integration tests for daemon functionality
   - `tests/run_processAPINotesDaemon_tests.sh` - Test runner script
+  - `tests/unit/bash/process/reassignAffectedNotes_optimization.test.bats` - Unit tests for SQL optimization in country reassignment batch processing
 
 - **Documentation**:
   - Added "Daemon Mode" section to `docs/Process_API.md`
@@ -48,6 +49,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Made `Group=` optional in `examples/systemd/osm-notes-api-daemon.service` (commented out by default)
   - Added `PATH` environment variable to ensure command availability
   - Added comments explaining user/group configuration
+
+- **Error handling enhancements**:
+  - Improved error handling in `bin/lib/noteProcessingFunctions.sh` to differentiate between network and non-network errors
+  - Automatic retry mechanism for temporary network issues
+  - Enhanced error reporting in `bin/process/processAPINotes.sh` with tracking of failed jobs during note insertion
+
+- **SQL optimization**:
+  - Optimized `sql/functionsProcess_36_reassignAffectedNotes_batch.sql` to only update notes where the country has changed
+  - Reduced unnecessary database writes, improving performance in country reassignment operations
+
+- **Documentation updates**:
+  - Enhanced `docs/Process_API.md` to reflect new automatic recovery features
+  - Clarified error handling processes in API processing documentation
+  - Updated `sql/README.md` with relevant information
 
 ### Technical Details
 
