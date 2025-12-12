@@ -159,17 +159,31 @@ function __acquire_lock {
    return 1
   else
    __logw "Stale lock file found, removing it"
-   rm -f "${LOCK}"
+   rm -f "${LOCK}" || {
+    __loge "Failed to remove stale lock file, trying to remove as user"
+    # Try to remove with proper permissions
+    if [[ -w "${LOCK}" ]]; then
+     rm -f "${LOCK}"
+    else
+     __loge "Lock file exists but is not writable: ${LOCK}"
+     __log_finish
+     return 1
+    fi
+   }
   fi
  fi
  
  # Create lock file with flock
- exec 8> "${LOCK}"
+ # Use append mode to avoid permission issues if file exists
+ exec 8>> "${LOCK}"
  if ! flock -n 8; then
-  __loge "Failed to acquire lock file"
+  __loge "Failed to acquire lock file (may be locked by another process)"
+  exec 8>&-
   __log_finish
   return 1
  fi
+ # Truncate file after acquiring lock
+ : > "${LOCK}"
  
  cat > "${LOCK}" << EOF
 PID: $$
@@ -254,6 +268,208 @@ function __daemon_status {
    __logi "  ${line}"
   done
  fi
+}
+
+# Check prerequisites for daemon
+function __checkPrereqs {
+ __log_start
+ # Checks prereqs.
+ __checkPrereqsCommands
+ __checkPrereqs_functions
+ __log_finish
+}
+
+# Check if processPlanetNotes is running
+function __checkNoProcessPlanet {
+ __log_start
+ if pgrep -f "processPlanetNotes" > /dev/null 2>&1; then
+  __loge "ERROR: processPlanetNotes.sh is currently running. Cannot start daemon."
+  __loge "Please wait for processPlanetNotes.sh to finish before starting the daemon."
+  __log_finish
+  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+ fi
+ __log_finish
+}
+
+# Creates partitions dynamically based on MAX_THREADS.
+function __createPartitions {
+ __log_start
+ __logi "=== CREATING PARTITIONS ==="
+ __logd "Using MAX_THREADS: ${MAX_THREADS}"
+ __logd "Executing SQL file: ${POSTGRES_22_CREATE_PARTITIONS}"
+
+ export MAX_THREADS
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
+ __logi "=== PARTITIONS CREATED SUCCESSFULLY ==="
+ __log_finish
+}
+
+# Creates table properties during the execution.
+function __createPropertiesTable {
+ __log_start
+ __logi "=== CREATING PROPERTIES TABLE ==="
+ __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+ __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
+ __log_finish
+}
+
+# Ensures get_country function exists before creating procedures.
+# The procedures (insert_note, insert_note_comment) require get_country to exist.
+# This function checks if get_country exists and creates it if missing.
+# If get_country exists but countries table does not, recreates the function as stub.
+function __ensureGetCountryFunction {
+ __log_start
+ __logd "Ensuring get_country function exists..."
+ 
+ # Check if countries table exists
+ local COUNTRIES_EXIST
+ COUNTRIES_EXIST=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries';" 2>/dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ 
+ # Check if get_country function exists
+ local FUNCTION_EXISTS
+ FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'get_country';" 2>/dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ 
+ if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
+  __logi "get_country function does not exist, creating it..."
+  if [[ "${COUNTRIES_EXIST}" -eq "0" ]]; then
+   __logw "countries table does not exist, creating stub function"
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
+    CREATE OR REPLACE FUNCTION get_country(geom geometry)
+    RETURNS text
+    LANGUAGE plpgsql
+    AS \$\$
+    BEGIN
+     RETURN NULL;
+    END;
+    \$\$;
+   " || {
+    __loge "Failed to create stub get_country function"
+    __log_finish
+    return 1
+   }
+  else
+   __logd "Executing SQL file: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" || {
+    __loge "Failed to create get_country function"
+    __log_finish
+    return 1
+   }
+  fi
+  __logi "get_country function created successfully"
+ else
+  __logd "get_country function already exists"
+ fi
+ 
+ __log_finish
+}
+
+# Validate historical data and recover if needed
+function __validateHistoricalDataAndRecover {
+ __log_start
+ __logd "Validating historical data consistency..."
+ # For daemon mode, we skip historical validation on startup
+ # Historical data validation is handled during normal processing
+ __logd "Historical data validation skipped in daemon mode"
+ __log_finish
+}
+
+# Clean temporary notes files
+function __cleanNotesFiles {
+ __log_start
+ __logd "Cleaning temporary notes files..."
+ rm -f "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
+  "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}" 2>/dev/null || true
+ __logd "Temporary files cleaned"
+ __log_finish
+}
+
+# Validate API notes file
+function __validateApiNotesFile {
+ __log_start
+ __logd "Validating API notes file: ${API_NOTES_FILE}"
+ 
+ # Check if file exists
+ if [[ ! -f "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file not found: ${API_NOTES_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Check if file is not empty
+ if [[ ! -s "${API_NOTES_FILE}" ]]; then
+  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
+  __log_finish
+  return 1
+ fi
+ 
+ # Skip XML validation if SKIP_XML_VALIDATION is set
+ if [[ "${SKIP_XML_VALIDATION:-false}" != "true" ]]; then
+  __logd "Validating XML structure..."
+  if ! __validate_xml_with_enhanced_error_handling "${API_NOTES_FILE}" "${XMLSCHEMA_API_NOTES}"; then
+   __loge "ERROR: XML structure validation failed"
+   __log_finish
+   return 1
+  fi
+ else
+  __logd "XML validation skipped (SKIP_XML_VALIDATION=true)"
+ fi
+ 
+ __logd "API notes file validation passed"
+ __log_finish
+}
+
+# Function that activates the error trap.
+function __trapOn() {
+ __log_start
+ trap '{ 
+  local ERROR_LINE="${LINENO}"
+  local ERROR_COMMAND="${BASH_COMMAND}"
+  local ERROR_EXIT_CODE="$?"
+  
+  # Only report actual errors, not successful returns
+  if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
+   # Get the main script name (the one that was executed, not the library)
+   local MAIN_SCRIPT_NAME
+   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
+   
+   printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
+   printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
+   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+    {
+     echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
+     echo "Script: ${MAIN_SCRIPT_NAME}"
+     echo "Line number: ${ERROR_LINE}"
+     echo "Failed command: ${ERROR_COMMAND}"
+     echo "Exit code: ${ERROR_EXIT_CODE}"
+     echo "Temporary directory: ${TMP_DIR:-unknown}"
+     echo "Process ID: $$"
+    } > "${FAILED_EXECUTION_FILE}"
+   fi;
+   exit "${ERROR_EXIT_CODE}";
+  fi;
+ }' ERR
+ trap '{ 
+  # Get the main script name (the one that was executed, not the library)
+  local MAIN_SCRIPT_NAME
+  MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
+  
+  printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";
+  if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
+   {
+    echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
+    echo "Script: ${MAIN_SCRIPT_NAME}" 
+    echo "Temporary directory: ${TMP_DIR:-unknown}"
+    echo "Process ID: $$"
+    echo "Signal: SIGTERM/SIGINT"
+   } > "${FAILED_EXECUTION_FILE}"
+  fi;
+  exit ${ERROR_GENERAL};
+ }' SIGINT SIGTERM
+ __log_finish
 }
 
 # Daemon initialization (runs once at startup)

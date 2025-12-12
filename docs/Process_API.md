@@ -1418,6 +1418,7 @@ psql -d "${DBNAME:-notes}" -c "
    
    **Error 127 (command not found):**
    - Make script executable: `sudo chmod +x /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh`
+   - Use explicit bash in ExecStart: `ExecStart=/bin/bash /path/to/processAPINotesDaemon.sh` (instead of relying on shebang)
    - Verify script runs manually: `sudo -u notes /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh --help`
    - Check PATH is set in service file (should include `/usr/bin:/bin`)
 

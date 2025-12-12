@@ -16,7 +16,7 @@ User=notes
 WorkingDirectory=/home/notes/OSM-Notes-Ingestion
 
 # Environment variables
-# Ensure PATH includes standard directories for commands
+# Ensure PATH includes standard directories for commands (setsid, readlink, etc.)
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="LOG_LEVEL=INFO"
 Environment="DAEMON_SLEEP_INTERVAL=60"
@@ -25,7 +25,8 @@ Environment="SKIP_XML_VALIDATION=true"
 Environment="SKIP_CSV_VALIDATION=true"
 
 # Executable
-ExecStart=/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh
+# Use absolute path with bash explicitly
+ExecStart=/bin/bash /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh
 ExecReload=/bin/kill -HUP $MAINPID
 
 # Process management
