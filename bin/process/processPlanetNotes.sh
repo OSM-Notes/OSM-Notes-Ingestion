@@ -428,7 +428,7 @@ function __dropSyncTables {
  __log_start
  __logi "=== DROPPING SYNC TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_11_DROP_SYNC_TABLES}"
- psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_11_DROP_SYNC_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_11_DROP_SYNC_TABLES}"
  __logi "=== SYNC TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
@@ -438,7 +438,7 @@ function __dropApiTables {
  __log_start
  __logi "=== DROPPING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
- psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_12_DROP_API_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SET app.max_threads = '${MAX_THREADS}';" -f "${POSTGRES_12_DROP_API_TABLES}"
  __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
@@ -448,7 +448,7 @@ function __dropBaseTables {
  __log_start
  __logi "=== DROPPING BASE TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_13_DROP_BASE_TABLES}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_13_DROP_BASE_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_13_DROP_BASE_TABLES}"
  __logi "=== BASE TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
@@ -461,11 +461,11 @@ function __createBaseTables {
  __logd "  Enums: ${POSTGRES_21_CREATE_ENUMS}"
  __logd "  Base tables: ${POSTGRES_22_CREATE_BASE_TABLES}"
  __logd "  Constraints: ${POSTGRES_23_CREATE_CONSTRAINTS}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_ENUMS}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_ENUMS}"
 
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_22_CREATE_BASE_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_22_CREATE_BASE_TABLES}"
 
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_CREATE_CONSTRAINTS}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_23_CREATE_CONSTRAINTS}"
  __logi "=== BASE TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
@@ -475,7 +475,7 @@ function __createBaseTables {
 function __createSyncTables {
  __log_start
  __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
  __log_finish
 }
 
@@ -485,7 +485,7 @@ function __cleanPartial {
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
   rm -f "${COUNTRIES_FILE}" "${MARITIMES_FILE}"
   __logw "Dropping import table."
-  echo "DROP TABLE IF EXISTS import" | psql -d "${DBNAME}"
+  echo "DROP TABLE IF EXISTS import" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}"
  fi
  __log_finish
 }
@@ -493,7 +493,7 @@ function __cleanPartial {
 # Calculates statistics on all tables and vacuum.
 function __analyzeAndVacuum {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_VACUUM_AND_ANALYZE}"
+ PGAPPNAME="${PGAPPNAME}" PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_VACUUM_AND_ANALYZE}"
  __log_finish
 }
 
@@ -504,7 +504,7 @@ function __loadSyncNotes {
  export OUTPUT_NOTES_FILE
  export OUTPUT_NOTE_COMMENTS_FILE
  # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE' \
    < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" || true)"
  __log_finish
@@ -514,21 +514,21 @@ function __loadSyncNotes {
 function __removeDuplicates {
  __log_start
  PROCESS_ID="${$}"
- echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" \
+ echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" \
   -v ON_ERROR_STOP=1
  __logi "Lock put ${PROCESS_ID}"
 
  export PROCESS_ID
  # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_43_REMOVE_DUPLICATES}" || true)"
 
- echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" \
+ echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" \
   -v ON_ERROR_STOP=1
  # Puts the sequence. When reexecuting, some objects already exist.
  __logi "Lock removed ${PROCESS_ID}"
 
- psql -d "${DBNAME}" -f "${POSTGRES_44_COMMENTS_SEQUENCE}"
+ PGAPPNAME="${PGAPPNAME}" PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_44_COMMENTS_SEQUENCE}"
  __log_finish
 }
 
@@ -538,11 +538,11 @@ function __loadTextComments {
  # Loads the text comment in the database.
  export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
    < "${POSTGRES_45_LOAD_TEXT_COMMENTS}" || true)"
  # Some objects could already exist.
- psql -d "${DBNAME}" -f "${POSTGRES_46_OBJECTS_TEXT_COMMENTS}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_46_OBJECTS_TEXT_COMMENTS}"
  __log_finish
 }
 
@@ -550,7 +550,7 @@ function __loadTextComments {
 function __moveSyncToMain {
  __log_start
  __logi "Moving data from sync tables to main tables"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_43_MOVE_SYNC_TO_MAIN}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_43_MOVE_SYNC_TO_MAIN}"
  __log_finish
 }
 
@@ -562,7 +562,7 @@ function __createPartitionTables {
  local -r NUM_PARTITIONS="${1}"
 
  __logi "Creating ${NUM_PARTITIONS} partition tables for parallel processing"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.max_threads = '${NUM_PARTITIONS}';" \
   -f "${POSTGRES_25_CREATE_PARTITIONS}"
  __logi "Partition tables creation completed"
@@ -571,7 +571,7 @@ function __createPartitionTables {
  __logi "Verifying partition tables creation..."
  # Use --pset pager=off to prevent opening vi/less for long output
  # Show summary instead of all partition names
- psql -d "${DBNAME}" --pset pager=off -c "
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" --pset pager=off -c "
  SELECT 
   CASE 
    WHEN table_name LIKE 'notes_sync_part_%' THEN 'notes_sync_part'
@@ -766,7 +766,7 @@ function __processPlanetNotesWithParallel {
 
  # STEP 4: Consolidate partitions into main tables
  __logi "Step 4: Consolidating ${NUM_PARTS} partitions into main tables..."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.max_threads = '${NUM_PARTS}';" \
   -f "${POSTGRES_42_CONSOLIDATE_PARTITIONS}"
 
@@ -1274,7 +1274,7 @@ function __processGeographicData {
  local COUNTRIES_COUNT
 
  # Extract only numeric value from psql output (may include connection messages)
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
  if [[ "${COUNTRIES_COUNT:-0}" -gt 0 ]]; then
   __logi "Geographic data found (${COUNTRIES_COUNT} countries/maritimes)."
@@ -1486,7 +1486,7 @@ function __processGeographicDataBaseMode {
 
  local COUNTRIES_COUNT
  # Extract only numeric value from psql output (may include connection messages)
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
  if [[ "${COUNTRIES_COUNT:-0}" -gt 0 ]]; then
   __logi "Processing location notes with get_country() function..."
   __getLocationNotes

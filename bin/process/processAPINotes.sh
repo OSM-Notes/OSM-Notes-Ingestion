@@ -345,7 +345,7 @@ function __checkPrereqs {
     "
 
    __logw "Sample of notes with gaps:"
-   psql -d "${DBNAME}" -Atq -c "${GAP_DETAILS_QUERY}" | while read -r line; do
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "${GAP_DETAILS_QUERY}" | while read -r line; do
     __logw "  ${line}"
    done
 
@@ -423,7 +423,7 @@ function __dropApiTables {
  __log_start
  __logi "=== DROPPING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
- psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
  __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
@@ -451,7 +451,7 @@ function __createApiTables {
  __log_start
  __logi "=== CREATING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_21_CREATE_API_TABLES}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
  __logi "=== API TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
@@ -464,7 +464,7 @@ function __createPartitions {
  __logd "Executing SQL file: ${POSTGRES_22_CREATE_PARTITIONS}"
 
  export MAX_THREADS
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
  __logi "=== PARTITIONS CREATED SUCCESSFULLY ==="
  __log_finish
@@ -475,7 +475,7 @@ function __createPropertiesTable {
  __log_start
  __logi "=== CREATING PROPERTIES TABLE ==="
  __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
  __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
  __log_finish
@@ -866,7 +866,7 @@ function __processApiXmlSequential {
       s|\${PART_ID}|1|g" \
   < "${POSTGRES_31_LOAD_API_NOTES}" > "${TEMP_SQL}" || true
  # Execute SQL
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '1'; SET app.max_threads = '1';" \
   -f "${TEMP_SQL}"
  # Clean up temp file
@@ -912,7 +912,7 @@ function __insertNewNotesAndComments {
     local LOCK_RETRY_DELAY=2
 
     while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
-     if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+     if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
       __logd "Lock acquired successfully for part ${PART}: ${PROCESS_ID}"
       break
      else
@@ -934,18 +934,18 @@ function __insertNewNotesAndComments {
     export PROCESS_ID
     local PROCESS_ID_INTEGER
     PROCESS_ID_INTEGER=$$
-    if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+    if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
      -c "SET app.process_id = '${PROCESS_ID_INTEGER}';" \
      -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
      __loge "Failed to process insertion part ${PART}"
      # Remove lock even on failure
-     echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+     echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
      __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed for part ${PART}" \
-      "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
+      "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | PGAPPNAME=\"${PGAPPNAME}\" psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
     fi
 
     # Remove lock on success
-    if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+    if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
      __loge "Failed to remove lock for part ${PART}"
      __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for part ${PART}"
     fi
@@ -974,7 +974,7 @@ function __insertNewNotesAndComments {
   local LOCK_RETRY_DELAY=2
 
   while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
-   if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+   if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
     __logd "Lock acquired successfully: ${PROCESS_ID}"
     break
    else
@@ -996,18 +996,18 @@ function __insertNewNotesAndComments {
   export PROCESS_ID
   local PROCESS_ID_INTEGER
   PROCESS_ID_INTEGER=$$
-  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
    -c "SET app.process_id = '${PROCESS_ID_INTEGER}';" \
    -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
    __loge "Failed to process insertion"
    # Remove lock even on failure
-   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
+   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
    __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed" \
-    "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
+    "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | PGAPPNAME=\"${PGAPPNAME}\" psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
   fi
 
   # Remove lock on success
-  if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+  if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
    __loge "Failed to remove lock for single process"
    __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for single process"
   fi
@@ -1021,7 +1021,7 @@ function __loadApiTextComments {
  __log_start
  export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst "\$OUTPUT_TEXT_COMMENTS_FILE" \
    < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)"
  __log_finish
@@ -1031,7 +1031,7 @@ function __loadApiTextComments {
 function __consolidatePartitions {
  __log_start
  __logi "Consolidating data from all partitions."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
  __log_finish
 }
 
@@ -1039,7 +1039,7 @@ function __consolidatePartitions {
 function __updateLastValue {
  __log_start
  __logi "Updating last update time."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_34_UPDATE_LAST_VALUES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_34_UPDATE_LAST_VALUES}"
  __log_finish
 }
 
@@ -1179,7 +1179,7 @@ function __createBaseStructure {
 
  __logi "Step 2/2: Verifying geographic data (countries and maritimes)..."
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
  if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
   __logw "No geographic data found after processPlanetNotes.sh --base"
@@ -1200,7 +1200,7 @@ function __createBaseStructure {
    fi
   fi
 
-  COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
   if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
    __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
    __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
@@ -1262,7 +1262,7 @@ function __check_and_log_gaps() {
 
  # Log gaps to file
  local GAP_FILE="/tmp/processAPINotes_gaps.log"
- psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
 
  __logd "Checked and logged gaps from database"
  __log_finish

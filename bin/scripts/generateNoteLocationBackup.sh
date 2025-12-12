@@ -52,7 +52,7 @@ main() {
 
  # Check database connection
  __logd "Checking database connection..."
-if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   exit "${ERROR_GENERAL}"
 fi
@@ -60,7 +60,7 @@ fi
  # Get count of notes with country assignment
  __logd "Getting note count..."
  local NOTE_COUNT
- NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+ NOTE_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM notes WHERE id_country IS NOT NULL")
 
  __logi "Notes with country assignment: ${NOTE_COUNT}"
@@ -73,14 +73,14 @@ fi
  # Get max note_id
  __logd "Getting max note_id..."
  local MAX_NOTE_ID
- MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -c \
+ MAX_NOTE_ID=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
   "SELECT MAX(note_id) FROM notes WHERE id_country IS NOT NULL")
 
  __logi "Max note_id with country: ${MAX_NOTE_ID}"
 
  # Export notes to CSV
  __logd "Exporting notes to CSV..."
- psql -d "${DBNAME}" -c \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c \
   "\COPY (SELECT note_id, id_country FROM notes WHERE id_country IS NOT NULL ORDER BY note_id) TO STDOUT WITH CSV" \
   > "${OUTPUT_FILE}"
 

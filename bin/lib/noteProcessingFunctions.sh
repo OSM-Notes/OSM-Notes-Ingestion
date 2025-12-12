@@ -37,7 +37,7 @@ function __getLocationNotes_impl {
 
   # Get count of notes that need country assignment
   local NOTES_COUNT
-  NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  NOTES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
    <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL" 2> /dev/null || echo "0")
 
   if [[ "${NOTES_COUNT}" -eq "0" ]]; then
@@ -51,7 +51,7 @@ function __getLocationNotes_impl {
 
   # Assign countries to notes using get_country() function
   # This only processes notes that don't have a country assigned
-  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 <<< "
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 <<< "
    UPDATE notes n
    SET id_country = get_country(n.longitude, n.latitude, n.note_id)
    WHERE n.id_country IS NULL;
@@ -91,7 +91,7 @@ function __getLocationNotes_impl {
  __logi "This COPY operation may take several minutes for large datasets."
  export CSV_BACKUP_NOTE_LOCATION
  # shellcheck disable=SC2016
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
    < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
 
@@ -102,10 +102,10 @@ function __getLocationNotes_impl {
 
  # Retrieves the max note for already location processed notes (from file.)
  # Use COALESCE to handle NULL results from MAX() when no rows match
- MAX_NOTE_ID_NOT_NULL=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+ MAX_NOTE_ID_NOT_NULL=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT COALESCE(MAX(note_id), 0) FROM notes WHERE id_country IS NOT NULL")
  # Retrieves the max note.
- MAX_NOTE_ID=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+ MAX_NOTE_ID=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT COALESCE(MAX(note_id), 0) FROM notes")
 
  # Ensure numeric values (handle empty strings from psql)
@@ -387,7 +387,7 @@ function __getLocationNotes_impl {
 
       # Execute SQL file with parameter substitution
       local SUB_COUNT
-      SUB_COUNT=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+      SUB_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
        -c "$(envsubst '$SUB_START,$SUB_END' \
         < "${POSTGRES_33_VERIFY_NOTE_INTEGRITY}" || true)")
       SUB_COUNT=$(echo "${SUB_COUNT}" | tr -d '[:space:]')
@@ -459,7 +459,7 @@ function __getLocationNotes_impl {
 
  # Check if there are any notes without country assignment
  local -i NOTES_WITHOUT_COUNTRY
- NOTES_WITHOUT_COUNTRY=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+ NOTES_WITHOUT_COUNTRY=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   <<< "SELECT COUNT(*) FROM notes WHERE id_country IS NULL")
  __logi "Notes without country assignment: ${NOTES_WITHOUT_COUNTRY}"
 
@@ -472,7 +472,7 @@ function __getLocationNotes_impl {
  # Processes notes that still require country assignment.
  local -i ASSIGNABLE_NOTES
  ASSIGNABLE_NOTES=$(
-  psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
 SELECT COUNT(*)
 FROM notes
 WHERE id_country IS NULL
@@ -483,7 +483,7 @@ EOF
 
  local -i NOTES_WITHOUT_COORDS
  NOTES_WITHOUT_COORDS=$(
-  psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
 SELECT COUNT(*)
 FROM notes
 WHERE id_country IS NULL
@@ -536,7 +536,7 @@ COPY (
 ) TO STDOUT
 EOF
  )
- if ! psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
   -c "${COPY_NOTES_SQL}" > "${ASSIGN_SOURCE_FILE}"; then
   __loge "ERROR: Failed to export pending note ids for assignment"
   rm -rf "${ASSIGN_WORK_DIR}"
@@ -620,7 +620,7 @@ EOF
 
     # Execute SQL file with parameter substitution
     local CHUNK_ASSIGNED
-    CHUNK_ASSIGNED=$(psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+    CHUNK_ASSIGNED=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
      -c "$(envsubst '$NOTE_IDS' \
       < "${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}" || true)")
 
@@ -1895,7 +1895,7 @@ function __retry_database_operation() {
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   # Use ON_ERROR_STOP=1 to ensure SQL errors cause command to fail
   local PSQL_EXIT_CODE=0
-  psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 -c "${QUERY}" > "${OUTPUT_FILE}" 2> "${ERROR_FILE}" || PSQL_EXIT_CODE=$?
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 -c "${QUERY}" > "${OUTPUT_FILE}" 2> "${ERROR_FILE}" || PSQL_EXIT_CODE=$?
 
   # Check for SQL errors in output file (with -Atq, errors may go to stdout)
   local HAS_ERROR=false
@@ -1969,7 +1969,7 @@ Details: ${ERROR_DETAILS}
 EOF
 
  # Log to database
- psql -d "${DBNAME}" -c "
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "
     INSERT INTO data_gaps (
       gap_type,
       gap_count,

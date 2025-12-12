@@ -198,7 +198,7 @@ __check_threshold() {
 __check_db_activity() {
  local SCRIPT_NAME="$1"
  # Check if there's any activity for this application name
- psql -d "${DBNAME}" -tAc \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -tAc \
   "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME}' AND state = 'active';" \
   2> /dev/null || echo "0"
 }
@@ -236,7 +236,7 @@ __run_analysis_script() {
   cat "${SCRIPT_FILE}"
  } > "${TEMP_SCRIPT}"
 
- if timeout "${TIMEOUT_SECONDS}" psql -d "${DBNAME}" \
+ if timeout "${TIMEOUT_SECONDS}" PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" \
   -f "${TEMP_SCRIPT}" > "${OUTPUT_FILE}" 2>&1; then
   rm -f "${TEMP_SCRIPT}"
   local END_TIME

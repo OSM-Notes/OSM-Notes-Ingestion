@@ -197,7 +197,7 @@ function __checkPrereqs {
 function __dropCheckTables {
  __log_start
  __logi "Droping check tables."
- psql -d "${DBNAME}" -f "${POSTGRES_11_DROP_CHECK_TABLES}" 2>&1
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_11_DROP_CHECK_TABLES}" 2>&1
  __log_finish
 }
 
@@ -205,7 +205,7 @@ function __dropCheckTables {
 function __createCheckTables {
  __log_start
  __logi "Creating tables."
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_CHECK_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_CHECK_TABLES}"
  __log_finish
 }
 
@@ -394,7 +394,7 @@ function __loadCheckNotes {
  rm -f "${TEMP_SQL_FILE}.tmp"
 
  # Execute SQL file with psql (required for \copy commands)
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}" 2>&1
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}" 2>&1
  local PSQL_EXIT_CODE=$?
 
  # Clean up temporary file
@@ -412,7 +412,7 @@ function __loadCheckNotes {
 # Calculates statistics on all tables and vacuum.
 function __analyzeAndVacuum {
  __log_start
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_41_ANALYZE_AND_VACUUM}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_41_ANALYZE_AND_VACUUM}"
  __log_finish
 }
 

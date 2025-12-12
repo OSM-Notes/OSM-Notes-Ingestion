@@ -74,7 +74,7 @@ main() {
 
  # Check database connection
  __logd "Checking database connection..."
-if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   exit "${ERROR_GENERAL}"
 fi
@@ -82,7 +82,7 @@ fi
  # Check if countries table exists
  __logd "Checking countries table..."
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+ COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM countries" 2> /dev/null || echo "0")
 if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
   __loge "ERROR: Countries table is empty or does not exist"
@@ -98,7 +98,7 @@ fi
  # - Fisheries zones: "Fisheries protection zone", "Fishing territory"
  __logd "Counting maritime boundaries..."
  local MARITIMES_COUNT
- MARITIMES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+ MARITIMES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM countries WHERE (
   country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
   country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR

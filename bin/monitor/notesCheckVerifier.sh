@@ -225,7 +225,7 @@ function __checkingDifferences {
 
  # Verify that check tables exist, create them if they don't
  # This handles cases where processCheckPlanetNotes.sh didn't run or failed
- if ! psql -d "${DBNAME}" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notes_check';" 2> /dev/null | grep -q 1; then
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notes_check';" 2> /dev/null | grep -q 1; then
   __logw "Check tables do not exist. Creating them using SQL script..."
   # Use the dedicated SQL script to create tables (with IF NOT EXISTS
   # modification for safety)
@@ -235,7 +235,7 @@ function __checkingDifferences {
   # Add IF NOT EXISTS to CREATE TABLE statements
   sed 's/^CREATE TABLE /CREATE TABLE IF NOT EXISTS /' \
    "${POSTGRES_21_CREATE_CHECK_TABLES}" > "${TEMP_CREATE_SQL}"
-  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_CREATE_SQL}" 2>&1; then
+  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_CREATE_SQL}" 2>&1; then
    __loge "Failed to create check tables"
    rm -f "${TEMP_CREATE_SQL}"
    __log_finish
@@ -325,7 +325,7 @@ function __checkingDifferences {
  rm -f "${TEMP_SQL_FILE}.tmp"
 
  # Execute SQL file with psql
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}" 2>&1
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}" 2>&1
  local PSQL_EXIT_CODE=$?
 
  # Clean up temporary file
@@ -416,7 +416,7 @@ function __insertMissingData {
  # Insert missing notes
  if [[ "${QTY_NOTES}" -gt 0 ]]; then
   __logi "Inserting ${QTY_NOTES} missing notes..."
-  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_INSERT_MISSING_NOTES}" 2>&1; then
+  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_51_INSERT_MISSING_NOTES}" 2>&1; then
    __loge "ERROR: Failed to insert missing notes"
    __log_finish
    return 1
@@ -426,7 +426,7 @@ function __insertMissingData {
  # Insert missing comments
  if [[ "${QTY_COMMENTS}" -gt 0 ]]; then
   __logi "Inserting ${QTY_COMMENTS} missing comments..."
-  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
    -f "${POSTGRES_52_INSERT_MISSING_COMMENTS}" 2>&1; then
    __loge "ERROR: Failed to insert missing comments"
    __log_finish
@@ -437,7 +437,7 @@ function __insertMissingData {
  # Insert missing text comments
  if [[ "${QTY_TEXT_COMMENTS}" -gt 0 ]]; then
   __logi "Inserting ${QTY_TEXT_COMMENTS} missing text comments..."
-  if ! psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
    -f "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}" 2>&1; then
    __loge "ERROR: Failed to insert missing text comments"
    __log_finish

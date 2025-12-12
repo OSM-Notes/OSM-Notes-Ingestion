@@ -1987,7 +1987,7 @@ function __createFunctionToGetCountry {
   return 0
  fi
 
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
  __log_finish
 }

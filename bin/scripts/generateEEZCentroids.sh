@@ -99,7 +99,7 @@ __extract_centroids() {
  # Import to temporary database table to calculate centroids using PostGIS
  __logi "Importing to database to calculate centroids..."
  local DBNAME="${DBNAME:-notes}"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS temp_eez_centroids_calc CASCADE;" > /dev/null 2>&1 || true
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS temp_eez_centroids_calc CASCADE;" > /dev/null 2>&1 || true
 
  # Import shapefile to temporary table
  # Use -nlt PROMOTE_TO_MULTI to handle both Polygon and MultiPolygon
@@ -122,7 +122,7 @@ __extract_centroids() {
 
  # Extract features with centroids using PostGIS
  __logi "Calculating centroids using PostGIS..."
- psql -d "${DBNAME}" -Atq -c "
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
   SELECT
    COALESCE(mrgid::text, ''),
    COALESCE('\"' || REPLACE(geoname, '\"', '\"\"') || '\"', ''),
@@ -135,7 +135,7 @@ __extract_centroids() {
   ORDER BY mrgid;
  " > "${OUTPUT_CSV}.tmp" 2> /dev/null || {
   __loge "ERROR: Failed to calculate centroids"
-  psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids_calc CASCADE;" > /dev/null 2>&1 || true
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids_calc CASCADE;" > /dev/null 2>&1 || true
   exit 1
  }
 
@@ -204,7 +204,7 @@ __extract_centroids() {
  } > "${OUTPUT_DIR}/LICENSE"
 
  # Cleanup temporary table
- psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids_calc CASCADE;" > /dev/null 2>&1 || true
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS temp_eez_centroids_calc CASCADE;" > /dev/null 2>&1 || true
  rm -f "${OUTPUT_CSV}.tmp" 2> /dev/null || true
 
  local TOTAL_FEATURES
