@@ -1,0 +1,41 @@
+[Unit]
+Description=OSM Notes API Processing Daemon
+Documentation=file:///path/to/OSM-Notes-Ingestion/docs/Daemon_Design.md
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=osmuser
+Group=osmuser
+WorkingDirectory=/path/to/OSM-Notes-Ingestion
+
+# Environment variables
+Environment="LOG_LEVEL=INFO"
+Environment="DAEMON_SLEEP_INTERVAL=60"
+Environment="CLEAN=true"
+Environment="SKIP_XML_VALIDATION=true"
+Environment="SKIP_CSV_VALIDATION=true"
+
+# Executable
+ExecStart=/path/to/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=10
+
+# Resource limits (optional)
+# LimitNOFILE=65536
+# MemoryMax=2G
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=osm-notes-api-daemon
+
+[Install]
+WantedBy=multi-user.target

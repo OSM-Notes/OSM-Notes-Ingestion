@@ -244,6 +244,8 @@ __run_level_4() {
   "${SCRIPT_DIR}/unit/bash/processAPINotes_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotes_error_handling_improved.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotes_parallel_error.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_sleep_logic.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/historical_data_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPI_historical_scenarios.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPI_historical_sql.test.bats" \

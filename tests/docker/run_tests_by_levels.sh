@@ -139,6 +139,8 @@ __run_level1_tests() {
   "tests/unit/bash/functionsProcess.test.bats"
   "tests/unit/bash/processPlanetNotes.test.bats"
   "tests/unit/bash/processAPINotes.test.bats"
+  "tests/unit/bash/processAPINotesDaemon_sleep_logic.test.bats"
+  "tests/unit/bash/processAPINotesDaemon_integration.test.bats"
   "tests/unit/bash/cleanupAll.test.bats"
   "tests/unit/bash/variable_duplication.test.bats"
   "tests/unit/bash/variable_naming_convention.test.bats"
