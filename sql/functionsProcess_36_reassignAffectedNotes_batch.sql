@@ -8,6 +8,7 @@
 -- 3. Processes one batch (LIMIT) and returns count of processed notes
 -- 4. Called repeatedly from bash until no more notes to process
 -- 5. Calls get_country() which checks current country first (95% hit rate)
+-- 6. OPTIMIZATION: Only updates notes where country actually changed
 --
 -- Parameters:
 --   ${BATCH_SIZE} - Number of notes to process in this batch (default: 1000)
@@ -16,7 +17,7 @@
 --   Number of notes processed in this batch (0 when done)
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-10
+-- Version: 2025-12-12
 
 DO $$
 DECLARE
@@ -24,8 +25,11 @@ DECLARE
  processed_count BIGINT;
 BEGIN
  -- Process one batch of notes
+ -- OPTIMIZATION: Only update notes where country actually changed
+ -- get_country() already checks current country first (95% hit rate),
+ -- but we avoid unnecessary UPDATE operations when country didn't change
  WITH batch_notes AS (
-  SELECT n.note_id
+  SELECT n.note_id, n.longitude, n.latitude, n.id_country as current_country
   FROM notes n
   WHERE EXISTS (
     SELECT 1
@@ -43,11 +47,18 @@ BEGIN
   ORDER BY n.note_id
   LIMIT batch_size
   FOR UPDATE SKIP LOCKED
+ ),
+ notes_with_new_country AS (
+  SELECT bn.note_id,
+         get_country(bn.longitude, bn.latitude, bn.note_id) as new_country,
+         bn.current_country
+  FROM batch_notes bn
  )
  UPDATE notes n
- SET id_country = get_country(n.longitude, n.latitude, n.note_id)
- FROM batch_notes bn
- WHERE n.note_id = bn.note_id;
+ SET id_country = nwc.new_country
+ FROM notes_with_new_country nwc
+ WHERE n.note_id = nwc.note_id
+   AND (nwc.current_country IS DISTINCT FROM nwc.new_country);
 
  GET DIAGNOSTICS processed_count = ROW_COUNT;
  

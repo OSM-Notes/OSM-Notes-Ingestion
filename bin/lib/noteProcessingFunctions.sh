@@ -786,8 +786,6 @@ function __validate_xml_coordinates() {
 # Returns: 0 if validation passes, 1 if validation fails
 
 # Enhanced error handling and retry logic
-# Author: Andres Gomez (AngocA)
-# Version: 2025-08-17
 
 # Enhanced retry with exponential backoff and jitter
 # Parameters: command_to_execute [max_retries] [base_delay] [max_delay]
@@ -839,12 +837,26 @@ function __handle_error_with_cleanup() {
 
  __loge "Error occurred: ${ERROR_MESSAGE} (code: ${ERROR_CODE})"
 
- # Create failed execution file to prevent re-execution
- if [[ -n "${FAILED_EXECUTION_FILE:-}" ]]; then
+ # Determine if this is a temporary network error that shouldn't block future executions
+ # Network errors (ERROR_INTERNET_ISSUE) are temporary and should allow retry on next execution
+ # Only create failed execution file for non-network errors (data corruption, logic errors, etc.)
+ local IS_NETWORK_ERROR=false
+ if [[ "${ERROR_CODE}" == "${ERROR_INTERNET_ISSUE:-251}" ]] || \
+    [[ "${ERROR_MESSAGE}" == *"Network connectivity"* ]] || \
+    [[ "${ERROR_MESSAGE}" == *"API download failed"* ]] || \
+    [[ "${ERROR_MESSAGE}" == *"Internet issues"* ]]; then
+  IS_NETWORK_ERROR=true
+  __logw "Network error detected - will not create failed execution file to allow retry on next execution"
+ fi
+
+ # Create failed execution file to prevent re-execution (only for non-network errors)
+ if [[ -n "${FAILED_EXECUTION_FILE:-}" ]] && [[ "${IS_NETWORK_ERROR}" == "false" ]]; then
   __loge "Creating failed execution file: ${FAILED_EXECUTION_FILE}"
   echo "Error occurred at $(date): ${ERROR_MESSAGE} (code: ${ERROR_CODE})" > "${FAILED_EXECUTION_FILE}"
   echo "Stack trace: $(caller 0)" >> "${FAILED_EXECUTION_FILE}"
   echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"
+ elif [[ "${IS_NETWORK_ERROR}" == "true" ]]; then
+  __logw "Skipping failed execution file creation for temporary network error"
  fi
 
  # Execute cleanup commands only if CLEAN is true
@@ -868,7 +880,11 @@ function __handle_error_with_cleanup() {
  # Log error details for debugging
  __loge "Error details - Code: ${ERROR_CODE}, Message: ${ERROR_MESSAGE}"
  __loge "Stack trace: $(caller 0)"
- __loge "Failed execution file created: ${FAILED_EXECUTION_FILE:-none}"
+ if [[ "${IS_NETWORK_ERROR}" == "true" ]]; then
+  __loge "Failed execution file NOT created (network error - will retry on next execution)"
+ else
+  __loge "Failed execution file created: ${FAILED_EXECUTION_FILE:-none}"
+ fi
 
  __log_finish
  # Use exit in production, return in test environment
@@ -886,7 +902,6 @@ function __handle_error_with_cleanup() {
 # These functions implement a simple semaphore system to limit concurrent
 # downloads to Overpass API, preventing rate limiting issues.
 # Simpler than ticket-based queue: only limits concurrency, no ordering.
-# Version: 2025-10-29
 #
 # Alternative implementation: Simple semaphore (no tickets, no ordering)
 # Functions: __acquire_download_slot, __release_download_slot,

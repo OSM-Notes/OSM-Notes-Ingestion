@@ -195,7 +195,17 @@ ls -la /tmp/processAPINotes_failed_execution
 
 #### Recovering from Failed Execution
 
-When a critical error occurs, the script creates a failed execution marker:
+**Automatic Recovery for Network Errors:**
+
+The script now automatically recovers from temporary network errors:
+
+- **Network errors** (connectivity issues, API timeouts): Do NOT create a failed execution marker
+- **Auto-retry**: On next execution, the script verifies connectivity and continues automatically if restored
+- **No manual intervention needed** for temporary network issues
+
+**Manual Recovery for Data/Logic Errors:**
+
+When a critical non-network error occurs (data corruption, logic errors), the script creates a failed execution marker:
 
 ```bash
 # 1. Check if previous execution failed
@@ -208,7 +218,7 @@ fi
 LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
 grep -i error "$LATEST_DIR/processAPINotes.log" | tail -20
 
-# 3. Fix the underlying issue (database, network, etc.)
+# 3. Fix the underlying issue (database, data corruption, etc.)
 
 # 4. Remove the failed execution marker
 rm /tmp/processAPINotes_failed_execution
@@ -218,6 +228,8 @@ rm /tmp/processAPINotes_failed_execution
 # If using cron: wait for next scheduled execution
 # Manual execution should only be used for testing/debugging.
 ```
+
+**Note:** Network errors are handled automatically and do not require manual intervention. Only data corruption or logic errors require manual recovery.
 
 #### Common Error Scenarios
 
@@ -1186,10 +1198,12 @@ grep -i "api\|download\|timeout" "$LATEST_DIR/processAPINotes.log" | tail -20
 ```
 
 **Solutions:**
-- Check internet connectivity
+- **Automatic Recovery**: Network errors are handled automatically - no manual intervention needed
+- The script will automatically retry on the next execution when connectivity is restored
+- Check internet connectivity: `ping -c 3 api.openstreetmap.org`
 - Verify OSM API is operational: https://www.openstreetmap.org/api/status
-- The script implements automatic retry with exponential backoff
-- Wait for automatic retry or check firewall/DNS settings
+- The script implements automatic retry with exponential backoff (5 attempts)
+- **Note**: Network errors do NOT create a failed execution marker, allowing automatic recovery
 
 **2. Base Tables Missing**
 

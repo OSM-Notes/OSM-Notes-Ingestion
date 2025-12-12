@@ -228,6 +228,15 @@ Database functions and procedures (located directly in `sql/`):
   - **Strategy**: Uses bounding box queries before full geometry checks
   - **Usage**: Called by `updateCountries.sh` for efficient reassignment
 
+- **`functionsProcess_36_reassignAffectedNotes_batch.sql`**: Reassign affected notes (batch, optimized)
+  - **Purpose**: Batch processing version with optimization to only update notes where country changed
+  - **Strategy**: 
+    - Uses bounding box queries to find potentially affected notes
+    - Calls `get_country()` which checks current country first (95% hit rate)
+    - **OPTIMIZATION**: Only performs UPDATE when country actually changed (reduces unnecessary writes)
+  - **Performance**: Significantly faster than updating all notes, especially when most notes remain in same country
+  - **Usage**: Called repeatedly by `updateCountries.sh` until all affected notes are processed
+
 - **`functionsProcess_37_assignCountryToNotesChunk.sql`**: Assign country to notes chunk (optimized)
   - **Purpose**: Optimized version for assigning countries to note chunks
   - **Usage**: Called during Planet processing for bulk country assignment

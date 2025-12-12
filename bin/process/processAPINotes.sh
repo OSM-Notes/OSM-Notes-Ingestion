@@ -38,8 +38,8 @@
 # For contributing: shellcheck -x -o all processAPINotes.sh && shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
-VERSION="2025-12-08"
+# Version: 2025-12-12
+VERSION="2025-12-12"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -954,13 +954,17 @@ function __insertNewNotesAndComments {
    ) &
   done
 
-  # Wait for all insertion jobs to complete
-  wait
+  # Wait for all insertion jobs to complete and check for failures
+  local FAILED_JOBS=0
+  local JOB_PID
+  for PART in $(seq 1 "${PARTS}"); do
+   wait || FAILED_JOBS=$((FAILED_JOBS + 1))
+  done
 
-  # Check if any background jobs failed
-  if ! wait; then
-   __loge "One or more insertion parts failed"
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "One or more insertion parts failed"
+  if [[ ${FAILED_JOBS} -gt 0 ]]; then
+   __loge "${FAILED_JOBS} insertion parts failed out of ${PARTS}"
+   __handle_error_with_cleanup "${ERROR_GENERAL}" \
+    "${FAILED_JOBS} insertion parts failed out of ${PARTS}"
   fi
 
  else
@@ -1356,11 +1360,30 @@ function main() {
  if [[ "${PROCESS_TYPE}" == "-h" ]] || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
  fi
+ # Check for failed execution file, but verify if it's still a real problem
  if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
-  echo "Previous execution failed. Please verify the data and then remove the"
-  echo "next file:"
-  echo "   ${FAILED_EXECUTION_FILE}"
-  exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+  # Check if the failure was due to network issues
+  if grep -q "Network connectivity\|API download failed\|Internet issues" "${FAILED_EXECUTION_FILE}" 2>/dev/null; then
+   __logw "Previous execution failed due to network issues. Verifying connectivity..."
+   # Verify network connectivity before blocking
+   if __check_network_connectivity 10; then
+    __logi "Network connectivity restored. Removing failed execution marker and continuing..."
+    rm -f "${FAILED_EXECUTION_FILE}"
+   else
+    __loge "Network connectivity still unavailable. Exiting to prevent data corruption."
+    echo "Previous execution failed due to network issues. Network is still unavailable."
+    echo "Please verify connectivity and remove this file when resolved:"
+    echo "   ${FAILED_EXECUTION_FILE}"
+    exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+   fi
+  else
+   # Non-network error: require manual intervention
+   __loge "Previous execution failed (non-network error). Manual intervention required."
+   echo "Previous execution failed. Please verify the data and then remove the"
+   echo "next file:"
+   echo "   ${FAILED_EXECUTION_FILE}"
+   exit "${ERROR_PREVIOUS_EXECUTION_FAILED}"
+  fi
  fi
  __checkPrereqs
  __logw "Process started."
