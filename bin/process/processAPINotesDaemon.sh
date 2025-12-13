@@ -148,11 +148,11 @@ function __show_help {
 function __acquire_lock {
  __log_start
  __logd "Acquiring daemon lock..."
- 
+
  if [[ -f "${LOCK}" ]]; then
   local EXISTING_PID
-  EXISTING_PID=$(head -1 "${LOCK}" 2>/dev/null | grep -o 'PID: [0-9]*' | awk '{print $2}' || echo "")
-  
+  EXISTING_PID=$(head -1 "${LOCK}" 2> /dev/null | grep -o 'PID: [0-9]*' | awk '{print $2}' || echo "")
+
   if [[ -n "${EXISTING_PID}" ]] && ps -p "${EXISTING_PID}" > /dev/null 2>&1; then
    __loge "Daemon already running (PID: ${EXISTING_PID})"
    __log_finish
@@ -172,7 +172,7 @@ function __acquire_lock {
    }
   fi
  fi
- 
+
  # Create lock file with flock
  # Use append mode to avoid permission issues if file exists
  exec 8>> "${LOCK}"
@@ -184,7 +184,7 @@ function __acquire_lock {
  fi
  # Truncate file after acquiring lock
  : > "${LOCK}"
- 
+
  cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
@@ -193,7 +193,7 @@ Temporary directory: ${TMP_DIR}
 Daemon sleep interval: ${DAEMON_SLEEP_INTERVAL}
 Main script: ${0}
 EOF
- 
+
  __logd "Lock file acquired: ${LOCK}"
  __log_finish
  return 0
@@ -232,12 +232,12 @@ function __daemon_reload_config {
  # Recargar properties
  # shellcheck disable=SC1091
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
- 
+
  # Actualizar intervalo si cambió
  if [[ -n "${DAEMON_SLEEP_INTERVAL_NEW:-}" ]]; then
   DAEMON_SLEEP_INTERVAL="${DAEMON_SLEEP_INTERVAL_NEW}"
  fi
- 
+
  __logi "Configuration reloaded (sleep interval: ${DAEMON_SLEEP_INTERVAL}s)"
 }
 
@@ -248,19 +248,19 @@ function __daemon_status {
  local UPTIME_HOURS=$((UPTIME / 3600))
  local UPTIME_MINS=$(((UPTIME % 3600) / 60))
  local UPTIME_SECS=$((UPTIME % 60))
- 
+
  __logi "=== DAEMON STATUS ==="
  __logi "PID: $$"
  __logi "Uptime: ${UPTIME_HOURS}h ${UPTIME_MINS}m ${UPTIME_SECS}s"
  __logi "Sleep interval: ${DAEMON_SLEEP_INTERVAL} seconds"
  __logi "Last processed: ${LAST_PROCESSED_TIMESTAMP:-unknown}"
- 
+
  local DB_TIMESTAMP
  DB_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT TO_CHAR(timestamp, 'YYYY-MM-DD HH24:MI:SS') FROM max_note_timestamp" \
-  2>/dev/null | head -1 || echo "unknown")
+  2> /dev/null | head -1 || echo "unknown")
  __logi "Last DB timestamp: ${DB_TIMESTAMP}"
- 
+
  # Mostrar últimas líneas del log
  if [[ -f "${LOG_FILENAME}" ]]; then
   __logi "Recent log entries:"
@@ -291,17 +291,11 @@ function __checkNoProcessPlanet {
  __log_finish
 }
 
-# Creates partitions dynamically based on MAX_THREADS.
+# Creates partitions - NO LONGER NEEDED (simplified to sequential processing)
+# Kept as no-op for backward compatibility
 function __createPartitions {
  __log_start
- __logi "=== CREATING PARTITIONS ==="
- __logd "Using MAX_THREADS: ${MAX_THREADS}"
- __logd "Executing SQL file: ${POSTGRES_22_CREATE_PARTITIONS}"
-
- export MAX_THREADS
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
- __logi "=== PARTITIONS CREATED SUCCESSFULLY ==="
+ __logd "Skipping partition creation (no partitions needed for sequential processing)"
  __log_finish
 }
 
@@ -323,15 +317,15 @@ function __createPropertiesTable {
 function __ensureGetCountryFunction {
  __log_start
  __logd "Ensuring get_country function exists..."
- 
+
  # Check if countries table exists
  local COUNTRIES_EXIST
- COUNTRIES_EXIST=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries';" 2>/dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
- 
+ COUNTRIES_EXIST=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries';" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
  # Check if get_country function exists
  local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'get_country';" 2>/dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
- 
+ FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'get_country';" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
  if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
   __logi "get_country function does not exist, creating it..."
   if [[ "${COUNTRIES_EXIST}" -eq "0" ]]; then
@@ -363,7 +357,7 @@ function __ensureGetCountryFunction {
  else
   __logd "get_country function already exists"
  fi
- 
+
  __log_finish
 }
 
@@ -382,7 +376,7 @@ function __cleanNotesFiles {
  __log_start
  __logd "Cleaning temporary notes files..."
  rm -f "${API_NOTES_FILE}" "${OUTPUT_NOTES_FILE}" \
-  "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}" 2>/dev/null || true
+  "${OUTPUT_NOTE_COMMENTS_FILE}" "${OUTPUT_TEXT_COMMENTS_FILE}" 2> /dev/null || true
  __logd "Temporary files cleaned"
  __log_finish
 }
@@ -391,21 +385,21 @@ function __cleanNotesFiles {
 function __validateApiNotesFile {
  __log_start
  __logd "Validating API notes file: ${API_NOTES_FILE}"
- 
+
  # Check if file exists
  if [[ ! -f "${API_NOTES_FILE}" ]]; then
   __loge "ERROR: API notes file not found: ${API_NOTES_FILE}"
   __log_finish
   return 1
  fi
- 
+
  # Check if file is not empty
  if [[ ! -s "${API_NOTES_FILE}" ]]; then
   __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
   __log_finish
   return 1
  fi
- 
+
  # Skip XML validation if SKIP_XML_VALIDATION is set
  if [[ "${SKIP_XML_VALIDATION:-false}" != "true" ]]; then
   __logd "Validating XML structure..."
@@ -417,7 +411,7 @@ function __validateApiNotesFile {
  else
   __logd "XML validation skipped (SKIP_XML_VALIDATION=true)"
  fi
- 
+
  __logd "API notes file validation passed"
  __log_finish
 }
@@ -476,14 +470,14 @@ function __trapOn() {
 function __daemon_init {
  __log_start
  __logi "=== DAEMON INITIALIZATION ==="
- 
+
  # Check prerequisites (cached after first run)
  __logi "Checking prerequisites..."
  __checkPrereqs
- 
+
  # Setup trap
  __trapOn
- 
+
  # Check base tables
  set +e
  trap '' ERR
@@ -511,41 +505,41 @@ function __daemon_init {
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
   fi; }' ERR
- 
+
  if [[ "${RET_FUNC}" -eq 1 ]]; then
   __loge "Base tables missing. Please run processPlanetNotes.sh --base first"
   exit "${ERROR_EXECUTING_PLANET_DUMP}"
  fi
- 
+
  if [[ "${RET_FUNC}" -eq 0 ]]; then
   __validateHistoricalDataAndRecover
  fi
- 
+
  set -e
  set -E
- 
+
  # Prepare API tables (create if needed, truncate if exist)
  __logi "Preparing API tables..."
  __prepareApiTables
- 
+
  # Create partitions (only if needed)
  __logi "Checking partitions..."
  __createPartitions
- 
+
  # Create properties table
  __logi "Checking properties table..."
  __createPropertiesTable
- 
+
  # Ensure functions and procedures exist
  __logi "Checking functions and procedures..."
  __ensureGetCountryFunction
  __createProcedures
- 
+
  # Get initial timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
-  2>/dev/null | head -1 || echo "")
- 
+  2> /dev/null | head -1 || echo "")
+
  __logi "Daemon initialized successfully"
  __logi "Last processed timestamp: ${LAST_PROCESSED_TIMESTAMP:-none}"
  __log_finish
@@ -555,7 +549,7 @@ function __daemon_init {
 function __prepareApiTables {
  __log_start
  __logi "=== PREPARING API TABLES ==="
- 
+
  # Check if tables exist
  local TABLES_EXIST
  TABLES_EXIST=$(psql -d "${DBNAME}" -Atq -c "
@@ -563,8 +557,8 @@ function __prepareApiTables {
   FROM information_schema.tables 
   WHERE table_schema = 'public' 
     AND table_name IN ('notes_api', 'note_comments_api', 'note_comments_text_api')
- " 2>/dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
- 
+ " 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
  if [[ "${TABLES_EXIST}" -eq "3" ]]; then
   # Tables exist: use TRUNCATE (faster)
   __logd "Tables exist, using TRUNCATE"
@@ -579,7 +573,7 @@ EOF
   __logd "Tables don't exist, creating them"
   __createApiTables
  fi
- 
+
  __log_finish
 }
 
@@ -587,37 +581,37 @@ EOF
 function __check_api_for_updates {
  __log_start
  __logd "Checking API for updates since: ${LAST_PROCESSED_TIMESTAMP:-none}"
- 
+
  if [[ -z "${LAST_PROCESSED_TIMESTAMP}" ]]; then
   __logw "No last update timestamp, will download full dataset"
   __log_finish
-  return 0  # Return true to trigger full download
+  return 0 # Return true to trigger full download
  fi
- 
+
  # Lightweight check: query API with limit=1 to see if there are updates
  local CHECK_URL="${OSM_API}/notes/search.xml?limit=1&closed=-1&sort=updated_at&from=${LAST_PROCESSED_TIMESTAMP}"
  local TEMP_CHECK_FILE="${TMP_DIR}/api_check_$$.xml"
- 
- if wget -q --timeout=10 --tries=1 -O "${TEMP_CHECK_FILE}" "${CHECK_URL}" 2>/dev/null; then
+
+ if wget -q --timeout=10 --tries=1 -O "${TEMP_CHECK_FILE}" "${CHECK_URL}" 2> /dev/null; then
   # Check if there are notes in the XML
   local NOTE_COUNT
-  NOTE_COUNT=$(grep -c '<note ' "${TEMP_CHECK_FILE}" 2>/dev/null || echo "0")
+  NOTE_COUNT=$(grep -c '<note ' "${TEMP_CHECK_FILE}" 2> /dev/null || echo "0")
   rm -f "${TEMP_CHECK_FILE}"
-  
+
   if [[ "${NOTE_COUNT}" -gt 0 ]]; then
    __logd "Updates detected (${NOTE_COUNT} note(s) found)"
    __log_finish
-   return 0  # There are updates
+   return 0 # There are updates
   else
    __logd "No updates detected"
    __log_finish
-   return 1  # No updates
+   return 1 # No updates
   fi
  else
   __logw "Failed to check API, will retry on next cycle"
   rm -f "${TEMP_CHECK_FILE}"
   __log_finish
-  return 1  # Error, don't process this cycle
+  return 1 # Error, don't process this cycle
  fi
 }
 
@@ -627,33 +621,32 @@ function __check_api_for_updates {
 function __process_api_data {
  __log_start
  __logi "=== PROCESSING API DATA ==="
- 
+
  local CYCLE_START_TIME
  CYCLE_START_TIME=$(date +%s)
- 
+
  # Download data
  if ! __getNewNotesFromApi; then
   __loge "Failed to download notes from API"
   __log_finish
   return 1
  fi
- 
+
  # Validate file
  __validateApiNotesFile
- 
+
  # Count and process
  __countXmlNotesAPI "${API_NOTES_FILE}"
- 
+
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "Processing ${TOTAL_NOTES} notes"
-  
+
   if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
    __logw "Too many notes (${TOTAL_NOTES} >= ${MAX_NOTES}), triggering Planet sync"
    "${NOTES_SYNC_SCRIPT}"
   else
    # Process normally
    __processXMLorPlanet
-   __consolidatePartitions
    __insertNewNotesAndComments
    __loadApiTextComments
    __updateLastValue
@@ -661,17 +654,17 @@ function __process_api_data {
  else
   __logi "No notes to process"
  fi
- 
+
  # Update last processed timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
-  2>/dev/null | head -1 || echo "")
- 
+  2> /dev/null | head -1 || echo "")
+
  # Clean files
  if [[ "${CLEAN:-}" == "true" ]]; then
   __cleanNotesFiles
  fi
- 
+
  local CYCLE_DURATION
  CYCLE_DURATION=$(($(date +%s) - CYCLE_START_TIME))
  PROCESSING_DURATION="${CYCLE_DURATION}"
@@ -685,27 +678,27 @@ function __daemon_loop {
  __log_start
  __logi "=== STARTING DAEMON LOOP ==="
  __logi "Sleep interval: ${DAEMON_SLEEP_INTERVAL} seconds"
- 
+
  local CONSECUTIVE_ERRORS=0
  local MAX_CONSECUTIVE_ERRORS=5
  local CYCLE_NUMBER=0
  local HAD_UPDATES=false
- 
+
  while true; do
   CYCLE_NUMBER=$((CYCLE_NUMBER + 1))
   __logi "=== CYCLE ${CYCLE_NUMBER} ==="
-  
+
   # Check shutdown flag
   if [[ -f "${DAEMON_SHUTDOWN_FLAG}" ]]; then
    __logi "Shutdown flag detected, exiting gracefully"
    rm -f "${DAEMON_SHUTDOWN_FLAG}"
    break
   fi
-  
+
   # Reset processing duration
   PROCESSING_DURATION=0
   HAD_UPDATES=false
-  
+
   # Check API for updates
   local PROCESSING_SUCCESS=false
   if __check_api_for_updates; then
@@ -719,7 +712,7 @@ function __daemon_loop {
    else
     CONSECUTIVE_ERRORS=$((CONSECUTIVE_ERRORS + 1))
     __loge "Cycle ${CYCLE_NUMBER} failed (${CONSECUTIVE_ERRORS}/${MAX_CONSECUTIVE_ERRORS})"
-    
+
     if [[ ${CONSECUTIVE_ERRORS} -ge ${MAX_CONSECUTIVE_ERRORS} ]]; then
      __loge "Too many consecutive errors, exiting"
      __create_failed_marker "${ERROR_GENERAL}" \
@@ -731,7 +724,7 @@ function __daemon_loop {
   else
    __logd "No updates available"
   fi
-  
+
   # Calculate sleep time based on processing duration
   local SLEEP_TIME=0
   if [[ "${HAD_UPDATES}" == "true" ]] && [[ "${PROCESSING_SUCCESS}" == "true" ]]; then
@@ -755,13 +748,13 @@ function __daemon_loop {
     __logd "No updates, sleeping for ${SLEEP_TIME} seconds"
    fi
   fi
-  
+
   # Sleep before next cycle (if needed)
   if [[ ${SLEEP_TIME} -gt 0 ]]; then
    sleep "${SLEEP_TIME}"
   fi
  done
- 
+
  __log_finish
 }
 
@@ -782,35 +775,35 @@ function main() {
  if [[ "${BASH_DEBUG:-}" == "true" ]] || [[ "${BASH_DEBUG:-}" == "1" ]]; then
   set -xv
  fi
- 
+
  __log_start
  __logi "=== OSM NOTES API DAEMON STARTING ==="
  __logi "Version: ${VERSION}"
  __logi "Process ID: $$"
  __logi "Temporary directory: ${TMP_DIR}"
- 
+
  if [[ "${1:-}" == "-h" ]] || [[ "${1:-}" == "--help" ]]; then
   __show_help
  fi
- 
+
  # Acquire lock (singleton)
  if ! __acquire_lock; then
   __loge "Failed to acquire lock, daemon may already be running"
   exit 1
  fi
- 
+
  # Initialize daemon (once)
  __daemon_init
- 
+
  # Setup signal handlers
  __setup_signal_handlers
- 
+
  # Setup exit trap for cleanup
  trap '__daemon_cleanup' EXIT
- 
+
  # Main loop
  __daemon_loop
- 
+
  __logw "Daemon finished."
  __log_finish
 }

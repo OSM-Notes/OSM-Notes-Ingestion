@@ -1,90 +1,56 @@
--- Loads the notes and note comments on the API tables with parallel processing support.
+-- Loads the notes and note comments on the API tables (simplified, no partitioning)
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-24
-
--- Get partition ID and MAX_THREADS from environment variables
-DO $$
-DECLARE
-  part_id INTEGER;
-  max_threads INTEGER;
-BEGIN
-  -- Get partition ID from environment variable, default to 1 if not set
-  part_id := COALESCE(current_setting('app.part_id', true)::INTEGER, 1);
-  
-  -- Get MAX_THREADS from environment variable, default to 4 if not set
-  max_threads := COALESCE(current_setting('app.max_threads', true)::INTEGER, 4);
-  
-  -- Validate partition ID
-  IF part_id < 1 OR part_id > max_threads THEN
-    RAISE EXCEPTION 'Invalid partition ID: %. Must be between 1 and %.', part_id, max_threads;
-  END IF;
-  
-  -- Set partition ID for this session
-  PERFORM set_config('app.part_id', part_id::TEXT, false);
-END $$;
+-- Version: 2025-12-12
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Loading notes from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Loading notes from API' AS Text;
 
--- Load notes into specific partition
--- Standardized order: note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id
--- This matches the order used by Planet processing for consistency
-COPY notes_api (note_id, latitude, longitude, created_at, status, closed_at, id_country, part_id)
+-- Load notes (simplified, no partition handling)
+-- Standardized order: note_id, latitude, longitude, created_at, status, closed_at, id_country
+COPY notes_api (note_id, latitude, longitude, created_at, status, closed_at, id_country)
 FROM '${OUTPUT_NOTES_PART}' csv;
 
--- Update part_id to correct partition number (from app.part_id setting)
-UPDATE notes_api SET part_id = current_setting('app.part_id', true)::INTEGER 
-WHERE part_id IS NULL;
-
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Statistics on notes from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Statistics on notes from API' AS Text;
 ANALYZE notes_api;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Counting notes from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Counting notes from API' AS Text;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- COUNT(1) AS Qty, 'Uploaded new notes partition ' || current_setting('app.part_id', true) AS Text
-FROM notes_api WHERE part_id = current_setting('app.part_id', true)::INTEGER;
+ COUNT(1) AS Qty, 'Uploaded new notes' AS Text
+FROM notes_api;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Loading comments from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Loading comments from API' AS Text;
 
--- Load comments into specific partition (sequence_action already provided by AWK)
-COPY note_comments_api (note_id, sequence_action, event, created_at, id_user, username, part_id)
+-- Load comments (sequence_action already provided by AWK)
+COPY note_comments_api (note_id, sequence_action, event, created_at, id_user, username)
 FROM '${OUTPUT_COMMENTS_PART}' csv DELIMITER ',' QUOTE '"';
 
--- Update part_id to correct partition number for comments (from app.part_id setting)
-UPDATE note_comments_api SET part_id = current_setting('app.part_id', true)::INTEGER 
-WHERE part_id IS NULL;
-
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Statistics on comments from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Statistics on comments from API' AS Text;
 ANALYZE note_comments_api;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Counting comments from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Counting comments from API' AS Text;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- COUNT(1) AS Qty, 'Uploaded new comments partition ' || current_setting('app.part_id', true) AS Text
-FROM note_comments_api WHERE part_id = current_setting('app.part_id', true)::INTEGER;
+ COUNT(1) AS Qty, 'Uploaded new comments' AS Text
+FROM note_comments_api;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Loading text comments from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Loading text comments from API' AS Text;
 
--- Load text comments into specific partition (sequence_action already provided by AWK)
-COPY note_comments_text_api (note_id, sequence_action, body, part_id)
+-- Load text comments (sequence_action already provided by AWK)
+COPY note_comments_text_api (note_id, sequence_action, body)
 FROM '${OUTPUT_TEXT_PART}' csv DELIMITER ',' QUOTE '"';
 
--- Update part_id to correct partition number for text comments (from app.part_id setting)
-UPDATE note_comments_text_api SET part_id = current_setting('app.part_id', true)::INTEGER 
-WHERE part_id IS NULL;
-
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Statistics on text comments from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Statistics on text comments from API' AS Text;
 ANALYZE note_comments_text_api;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Counting text comments from API partition ' || current_setting('app.part_id', true) AS Text;
+ 'Counting text comments from API' AS Text;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- COUNT(1) AS Qty, 'Uploaded new text comments partition ' || current_setting('app.part_id', true) AS Text
-FROM note_comments_text_api WHERE part_id = current_setting('app.part_id', true)::INTEGER;
+ COUNT(1) AS Qty, 'Uploaded new text comments' AS Text
+FROM note_comments_text_api;

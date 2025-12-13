@@ -5,10 +5,11 @@
 #
 # Output format: note_id,sequence_action,"body",part_id
 # sequence_action is a counter starting from 1 for each note
-# part_id is empty (NULL), will be set by PostgreSQL during COPY
+# part_id is empty (NULL) - used by Planet partitions, removed by API before COPY
+# NOTE: Planet needs part_id for partitioned tables, API removes it before COPY
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-12-12
 
 BEGIN {
   in_comment = 0
@@ -159,7 +160,7 @@ in_comments && in_text {
     gsub(/^[ \t]+|[ \t]+$/, "", comment_text)
     
     # Output CSV
-    # Format: note_id,sequence_action,"body",part_id
+    # Format: note_id,sequence_action,"body",part_id,part_id
     printf "%s,%s,\"%s\",\n", note_id, comment_seq, comment_text
     
     # Reset state

@@ -4,10 +4,11 @@
 #
 # Output format: note_id,sequence_action,event,created_at,id_user,username,part_id
 # sequence_action is a counter starting from 1 for each note
-# part_id is empty (NULL), will be set by PostgreSQL during COPY
+# part_id is empty (NULL) - used by Planet partitions, removed by API before COPY
+# NOTE: Planet needs part_id for partitioned tables, API removes it before COPY
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-12-12
 
 BEGIN {
   comment_seq = 0

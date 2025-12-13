@@ -7,12 +7,13 @@
 # Status is calculated: 'close' if closed_at exists, 'open' otherwise
 # (Note: PostgreSQL ENUM uses 'close', not 'closed')
 # id_country is empty (NULL), filled later by PostgreSQL function
-# part_id is empty (NULL), will be set by PostgreSQL during COPY
+# part_id is empty (NULL) - used by Planet partitions, removed by API before COPY
 # IMPORTANT: Standardized order for consistency - both Planet and API use the same order
 #   Order: status before closed_at (matches base table 'notes' structure)
+# NOTE: Planet needs part_id for partitioned tables, API removes it before COPY
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-12-12
 
 BEGIN {
   # State variables for API format parsing

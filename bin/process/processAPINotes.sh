@@ -183,9 +183,57 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
-# Load parallel processing functions (must be loaded AFTER functionsProcess.sh)
+# Load database connection pool (for processAPINotes only)
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/databaseConnectionPool.sh"
+
+# Wrapper functions to use connection pool for processAPINotes queries
+# These functions use the simple persistent connection pool
+# Note: All database operations use connection pool (simplified sequential processing)
+
+# Execute SQL query using connection pool
+# Parameters:
+#   $1: SQL query
+#   $2: Output file (optional, defaults to stdout)
+# Returns: 0 if successful, 1 if failed
+function __db_query_pool() {
+ local SQL="${1:-}"
+ local OUTPUT_FILE="${2:-/dev/stdout}"
+
+ if [[ -z "${SQL}" ]]; then
+  __loge "SQL query is required for __db_query_pool"
+  return 1
+ fi
+
+ # Use pool for single queries
+ if ! __db_simple_pool_execute "${SQL}" "${OUTPUT_FILE}"; then
+  __loge "Database query failed using pool"
+  return 1
+ fi
+
+ return 0
+}
+
+# Execute SQL file using connection pool
+# Parameters:
+#   $1: SQL file path
+# Returns: 0 if successful, 1 if failed
+function __db_execute_file_pool() {
+ local SQL_FILE="${1:-}"
+
+ if [[ -z "${SQL_FILE}" ]] || [[ ! -f "${SQL_FILE}" ]]; then
+  __loge "SQL file is required and must exist for __db_execute_file_pool"
+  return 1
+ fi
+
+ # Use pool for file execution
+ if ! __db_simple_pool_execute "@${SQL_FILE}"; then
+  __loge "Database file execution failed using pool"
+  return 1
+ fi
+
+ return 0
+}
 
 # Shows the help information.
 function __show_help {
@@ -345,9 +393,14 @@ function __checkPrereqs {
     "
 
    __logw "Sample of notes with gaps:"
-   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "${GAP_DETAILS_QUERY}" | while read -r line; do
+   local GAP_DETAILS_FILE
+   GAP_DETAILS_FILE=$(mktemp)
+   # Use pool for query execution
+   __db_query_pool "${GAP_DETAILS_QUERY}" "${GAP_DETAILS_FILE}"
+   while IFS= read -r line; do
     __logw "  ${line}"
-   done
+   done < "${GAP_DETAILS_FILE}"
+   rm -f "${GAP_DETAILS_FILE}" 2> /dev/null || true
 
    # Optionally trigger a recovery process
    if [[ ${GAP_COUNT} -lt 100 ]]; then
@@ -410,7 +463,6 @@ function __checkPrereqs {
  fi
 
  # CSV files are generated during processing, no need to validate them here
- # as they will be created by __processApiXmlPart function
 
  __checkPrereqs_functions
  __logi "=== PREREQUISITES CHECK COMPLETED SUCCESSFULLY ==="
@@ -423,7 +475,8 @@ function __dropApiTables {
  __log_start
  __logi "=== DROPPING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
+ # Use pool for file execution
+ __db_execute_file_pool "${POSTGRES_12_DROP_API_TABLES}"
  __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
@@ -451,22 +504,18 @@ function __createApiTables {
  __log_start
  __logi "=== CREATING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_21_CREATE_API_TABLES}"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
+ # Use pool for file execution
+ __db_execute_file_pool "${POSTGRES_21_CREATE_API_TABLES}"
  __logi "=== API TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
 
-# Creates partitions dynamically based on MAX_THREADS.
+# Creates partitions - NO LONGER NEEDED (simplified to sequential processing)
+# Kept as no-op for backward compatibility
 function __createPartitions {
  __log_start
- __logi "=== CREATING PARTITIONS ==="
- __logd "Using MAX_THREADS: ${MAX_THREADS}"
- __logd "Executing SQL file: ${POSTGRES_22_CREATE_PARTITIONS}"
-
- export MAX_THREADS
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst "\$MAX_THREADS" < "${POSTGRES_22_CREATE_PARTITIONS}" || true)"
- __logi "=== PARTITIONS CREATED SUCCESSFULLY ==="
+ __logi "=== SKIPPING PARTITIONS CREATION ==="
+ __logd "Partitions not needed for sequential processing"
  __log_finish
 }
 
@@ -475,8 +524,8 @@ function __createPropertiesTable {
  __log_start
  __logi "=== CREATING PROPERTIES TABLE ==="
  __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+ # Use pool for file execution
+ __db_execute_file_pool "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
  __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
  __log_finish
 }
@@ -490,9 +539,20 @@ function __ensureGetCountryFunction {
  __logd "Checking if get_country function exists..."
 
  local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ local FUNCTION_QUERY="SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');"
+ local FUNCTION_OUTPUT
+ FUNCTION_OUTPUT=$(mktemp)
+ __db_query_pool "${FUNCTION_QUERY}" "${FUNCTION_OUTPUT}"
+ FUNCTION_EXISTS=$(grep -E '^[0-9]+$' "${FUNCTION_OUTPUT}" 2> /dev/null | tail -1 || echo "0")
+ rm -f "${FUNCTION_OUTPUT}" 2> /dev/null || true
+
  local COUNTRIES_TABLE_EXISTS
- COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null | grep -E '^[tf]$' | tail -1 || echo "f")
+ local COUNTRIES_QUERY="SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');"
+ local COUNTRIES_OUTPUT
+ COUNTRIES_OUTPUT=$(mktemp)
+ __db_query_pool "${COUNTRIES_QUERY}" "${COUNTRIES_OUTPUT}"
+ COUNTRIES_TABLE_EXISTS=$(grep -E '^[tf]$' "${COUNTRIES_OUTPUT}" 2> /dev/null | tail -1 || echo "f")
+ rm -f "${COUNTRIES_OUTPUT}" 2> /dev/null || true
 
  if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
   __logw "get_country function not found, creating it..."
@@ -523,20 +583,12 @@ function __getNewNotesFromApi {
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
- # Gets the most recent value on the database with retry logic
+ # Gets the most recent value on the database
  __logi "Retrieving last update from database..."
  __logd "Database: ${DBNAME}"
- local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
- local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
-
- if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
-  __loge "Failed to retrieve last update from database after retries"
-  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
-   "rm -f ${TEMP_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_NO_LAST_UPDATE}"
- fi
+ local LAST_UPDATE_QUERY="SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp"
+ # Use pool for query execution
+ __db_query_pool "${LAST_UPDATE_QUERY}" "${TEMP_FILE}"
 
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  rm "${TEMP_FILE}"
@@ -651,45 +703,8 @@ function __validateApiNotesXMLFileComplete {
 # 3450803,'Existe otra iglesia sin nombre cercana a la posición de la nota, ¿es posible que se trate de un error, o hay una al lado de la otra?'
 # 3451247,'If you are in the area, could you please survey a more exact location for Nothing Bundt Cakes and move the node to that location? Thanks!'
 
-# Checks available memory and determines if parallel processing is safe.
-# Returns 0 if parallel processing is safe, 1 if sequential should be used.
-function __checkMemoryForProcessing {
- __log_start
-
- local MINIMUM_MEMORY_MB=1000 # Minimum 1GB available for parallel processing
- local AVAILABLE_RAM_MB
-
- # Check if free command is available
- if ! command -v free > /dev/null 2>&1; then
-  __logw "Memory check unavailable (free command not found), assuming sufficient memory"
-  __log_finish
-  return 0 # Assume safe for parallel
- fi
-
- # Get available memory in MB
- AVAILABLE_RAM_MB=$(free -m | grep Mem | awk '{print $7}' 2> /dev/null || echo "0")
-
- # Validate we got a valid number
- if [[ ! "${AVAILABLE_RAM_MB}" =~ ^[0-9]+$ ]]; then
-  __logw "Could not read available memory, assuming sufficient"
-  __log_finish
-  return 0
- fi
-
- __logd "Available memory: ${AVAILABLE_RAM_MB}MB (minimum required: ${MINIMUM_MEMORY_MB}MB)"
-
- if [[ "${AVAILABLE_RAM_MB}" -lt "${MINIMUM_MEMORY_MB}" ]]; then
-  __logw "Low memory detected (${AVAILABLE_RAM_MB}MB < ${MINIMUM_MEMORY_MB}MB), recommending sequential processing"
-  __log_finish
-  return 1
- fi
-
- __logd "Sufficient memory available for parallel processing"
- __log_finish
- return 0
-}
-
 # Checks if the quantity of notes requires synchronization with Planet
+# Uses sequential processing for all cases (simplified for daemon mode)
 function __processXMLorPlanet {
  __log_start
 
@@ -701,49 +716,8 @@ function __processXMLorPlanet {
  else
   # Check if there are notes to process
   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-   # Check if we have enough notes to justify parallel processing
-   if [[ "${TOTAL_NOTES}" -ge "${MIN_NOTES_FOR_PARALLEL}" ]]; then
-    __logi "Processing ${TOTAL_NOTES} notes (threshold: ${MIN_NOTES_FOR_PARALLEL})"
-
-    # Check available memory before deciding on parallel processing
-    if __checkMemoryForProcessing; then
-     __logi "Memory check passed, using parallel processing"
-     __splitXmlForParallelAPI "${API_NOTES_FILE}"
-
-     # Process XML parts in parallel using GNU parallel
-     mapfile -t PART_FILES < <(find "${TMP_DIR}" -name "api_part_*.xml" -type f | sort || true)
-
-     if command -v parallel > /dev/null 2>&1; then
-      __logi "Using GNU parallel for API processing (${MAX_THREADS} jobs)"
-      # Export function and required variables for parallel execution
-      export -f __processApiXmlPart
-      export -f __validate_csv_structure
-      export -f __validate_csv_for_enum_compatibility
-      export TMP_DIR
-      export SCRIPT_BASE_DIRECTORY
-      export DBNAME
-      export SKIP_CSV_VALIDATION
-
-      if ! printf '%s\n' "${PART_FILES[@]}" \
-       | parallel --will-cite --jobs "${MAX_THREADS}" --halt now,fail=1 \
-        "__processApiXmlPart {}"; then
-       __loge "ERROR: Parallel processing failed"
-       return 1
-      fi
-     else
-      __logi "GNU parallel not found, processing sequentially"
-      for PART_FILE in "${PART_FILES[@]}"; do
-       __processApiXmlPart "${PART_FILE}"
-      done
-     fi
-    else
-     __logi "Low memory detected, using sequential processing for safety"
-     __processApiXmlSequential "${API_NOTES_FILE}"
-    fi
-   else
-    __logi "Processing ${TOTAL_NOTES} notes sequentially (below threshold: ${MIN_NOTES_FOR_PARALLEL})"
-    __processApiXmlSequential "${API_NOTES_FILE}"
-   fi
+   __logi "Processing ${TOTAL_NOTES} notes sequentially"
+   __processApiXmlSequential "${API_NOTES_FILE}"
   else
    __logi "No notes found in XML file, skipping processing."
   fi
@@ -838,204 +812,120 @@ function __processApiXmlSequential {
 
  __logi "✓ All CSV validations passed for sequential processing"
 
- __logd "Setting part_id to 1 in CSV files for sequential processing..."
- if [[ -s "${SEQ_OUTPUT_NOTES_FILE}" ]]; then
-  sed -i 's/,,$/,,1/' "${SEQ_OUTPUT_NOTES_FILE}"
- fi
- if [[ -s "${SEQ_OUTPUT_COMMENTS_FILE}" ]]; then
-  sed -i 's/,$/,1/' "${SEQ_OUTPUT_COMMENTS_FILE}"
- fi
- if [[ -s "${SEQ_OUTPUT_TEXT_FILE}" ]]; then
-  sed -i 's/,$/,1/' "${SEQ_OUTPUT_TEXT_FILE}"
- fi
+ # No part_id needed for sequential processing
 
  __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
  __logd "Database: ${DBNAME}"
 
- # Load into database with single thread (no partitioning)
- # Replace variables in SQL file to avoid conflict with readonly variables
- export PART_ID="1"
- export MAX_THREADS="1"
+ # Load into database (simplified, no partitioning)
+ # Remove part_id column from CSV files (last column) since API tables don't have it
+ # Planet needs part_id, but API tables don't, so we remove it before COPY
+ __logd "Removing part_id column from CSV files for API (last column with trailing comma)"
+ local SEQ_OUTPUT_NOTES_CLEANED="${SEQ_OUTPUT_NOTES_FILE}.cleaned"
+ local SEQ_OUTPUT_COMMENTS_CLEANED="${SEQ_OUTPUT_COMMENTS_FILE}.cleaned"
+ local SEQ_OUTPUT_TEXT_CLEANED="${SEQ_OUTPUT_TEXT_FILE}.cleaned"
+ # Remove last column (part_id) from each CSV: remove trailing comma and empty field
+ sed 's/,$//' "${SEQ_OUTPUT_NOTES_FILE}" > "${SEQ_OUTPUT_NOTES_CLEANED}"
+ sed 's/,$//' "${SEQ_OUTPUT_COMMENTS_FILE}" > "${SEQ_OUTPUT_COMMENTS_CLEANED}"
+ sed 's/,$//' "${SEQ_OUTPUT_TEXT_FILE}" > "${SEQ_OUTPUT_TEXT_CLEANED}"
  # Create temporary SQL file with variables substituted
  local TEMP_SQL
  TEMP_SQL=$(mktemp)
- # Replace variables in SQL file using sed
- sed "s|\${OUTPUT_NOTES_PART}|${SEQ_OUTPUT_NOTES_FILE}|g; \
-      s|\${OUTPUT_COMMENTS_PART}|${SEQ_OUTPUT_COMMENTS_FILE}|g; \
-      s|\${OUTPUT_TEXT_PART}|${SEQ_OUTPUT_TEXT_FILE}|g; \
-      s|\${PART_ID}|1|g" \
+ # Replace variables in SQL file using sed (point to cleaned files)
+ sed "s|\${OUTPUT_NOTES_PART}|${SEQ_OUTPUT_NOTES_CLEANED}|g; \
+      s|\${OUTPUT_COMMENTS_PART}|${SEQ_OUTPUT_COMMENTS_CLEANED}|g; \
+      s|\${OUTPUT_TEXT_PART}|${SEQ_OUTPUT_TEXT_CLEANED}|g" \
   < "${POSTGRES_31_LOAD_API_NOTES}" > "${TEMP_SQL}" || true
- # Execute SQL
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "SET app.part_id = '1'; SET app.max_threads = '1';" \
-  -f "${TEMP_SQL}"
- # Clean up temp file
- rm -f "${TEMP_SQL}"
+ # Execute SQL using pool
+ __db_execute_file_pool "@${TEMP_SQL}"
+ # Clean up temp files
+ rm -f "${TEMP_SQL}" "${SEQ_OUTPUT_NOTES_CLEANED}" "${SEQ_OUTPUT_COMMENTS_CLEANED}" "${SEQ_OUTPUT_TEXT_CLEANED}"
 
  __logi "=== SEQUENTIAL API XML PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
 }
 
-# Inserts new notes and comments into the database with parallel processing.
+# Inserts new notes and comments into the database (simplified, sequential only)
 function __insertNewNotesAndComments {
  __log_start
 
- # Get the number of notes to process
- local NOTES_COUNT
- local TEMP_COUNT_FILE
- TEMP_COUNT_FILE=$(mktemp)
+ # Generate unique process ID with timestamp to avoid conflicts
+ local PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
 
- if ! __retry_database_operation "SELECT COUNT(1) FROM notes_api" "${TEMP_COUNT_FILE}" 3 2; then
-  __loge "Failed to count notes after retries"
-  rm -f "${TEMP_COUNT_FILE}"
+ # Set lock with retry logic and better error handling
+ local LOCK_RETRY_COUNT=0
+ local LOCK_MAX_RETRIES=3
+ local LOCK_RETRY_DELAY=2
+
+ while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
+  if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+   __logd "Lock acquired successfully: ${PROCESS_ID}"
+   break
+  else
+   LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
+   __logw "Lock acquisition failed, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
+
+   if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
+    sleep "${LOCK_RETRY_DELAY}"
+   fi
+  fi
+ done
+
+ if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
+  __loge "Failed to acquire lock after ${LOCK_MAX_RETRIES} attempts"
+  __log_finish
   return 1
  fi
 
- # Extract only numeric value from file (psql may include connection messages)
- NOTES_COUNT=$(grep -E '^[0-9]+$' "${TEMP_COUNT_FILE}" 2> /dev/null | tail -1 || echo "0")
- rm -f "${TEMP_COUNT_FILE}"
+ export PROCESS_ID
+ local PROCESS_ID_INTEGER
+ PROCESS_ID_INTEGER=$$
 
- if [[ "${NOTES_COUNT:-0}" -gt 1000 ]]; then
-  # Split the insertion into chunks
-  local PARTS="${MAX_THREADS}"
+ # Prepare SQL file with process_id substitution
+ local TEMP_SQL_FILE
+ TEMP_SQL_FILE=$(mktemp)
+ local SQL_CMD
+ SQL_CMD=$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)
 
-  for PART in $(seq 1 "${PARTS}"); do
-   (
-    __logi "Processing insertion part ${PART}"
+ # Create SQL file with SET command and main SQL
+ cat > "${TEMP_SQL_FILE}" << EOF
+SET app.process_id = '${PROCESS_ID_INTEGER}';
+${SQL_CMD}
+EOF
 
-    # Generate unique process ID with timestamp to avoid conflicts
-    PROCESS_ID="${$}_$(date +%s)_${RANDOM}_${PART}"
+ # Execute insertion using pool
+ __db_execute_file_pool "${TEMP_SQL_FILE}"
 
-    # Set lock with retry logic and better error handling
-    local LOCK_RETRY_COUNT=0
-    local LOCK_MAX_RETRIES=3
-    local LOCK_RETRY_DELAY=2
+ rm -f "${TEMP_SQL_FILE}"
 
-    while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
-     if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-      __logd "Lock acquired successfully for part ${PART}: ${PROCESS_ID}"
-      break
-     else
-      LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
-      __logw "Lock acquisition failed for part ${PART}, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
-
-      if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
-       sleep "${LOCK_RETRY_DELAY}"
-      fi
-     fi
-    done
-
-    if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
-     __loge "Failed to acquire lock for part ${PART} after ${LOCK_MAX_RETRIES} attempts"
-     # Force error to trigger trap
-     false
-    fi
-
-    export PROCESS_ID
-    local PROCESS_ID_INTEGER
-    PROCESS_ID_INTEGER=$$
-    if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-     -c "SET app.process_id = '${PROCESS_ID_INTEGER}';" \
-     -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
-     __loge "Failed to process insertion part ${PART}"
-     # Remove lock even on failure
-     echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
-     __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed for part ${PART}" \
-      "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | PGAPPNAME=\"${PGAPPNAME}\" psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
-    fi
-
-    # Remove lock on success
-    if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-     __loge "Failed to remove lock for part ${PART}"
-     __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for part ${PART}"
-    fi
-
-    __logi "Completed insertion part ${PART}"
-   ) &
-  done
-
-  # Wait for all insertion jobs to complete and check for failures
-  local FAILED_JOBS=0
-  local JOB_PID
-  for PART in $(seq 1 "${PARTS}"); do
-   wait || FAILED_JOBS=$((FAILED_JOBS + 1))
-  done
-
-  if [[ ${FAILED_JOBS} -gt 0 ]]; then
-   __loge "${FAILED_JOBS} insertion parts failed out of ${PARTS}"
-   __handle_error_with_cleanup "${ERROR_GENERAL}" \
-    "${FAILED_JOBS} insertion parts failed out of ${PARTS}"
-  fi
-
- else
-  # For small datasets, use single connection
-  # Generate unique process ID with timestamp to avoid conflicts
-  PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
-
-  # Set lock with retry logic and better error handling
-  local LOCK_RETRY_COUNT=0
-  local LOCK_MAX_RETRIES=3
-  local LOCK_RETRY_DELAY=2
-
-  while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
-   if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-    __logd "Lock acquired successfully: ${PROCESS_ID}"
-    break
-   else
-    LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
-    __logw "Lock acquisition failed, attempt ${LOCK_RETRY_COUNT}/${LOCK_MAX_RETRIES}"
-
-    if [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; then
-     sleep "${LOCK_RETRY_DELAY}"
-    fi
-   fi
-  done
-
-  if [[ ${LOCK_RETRY_COUNT} -eq ${LOCK_MAX_RETRIES} ]]; then
-   __loge "Failed to acquire lock after ${LOCK_MAX_RETRIES} attempts"
-   # Force error to trigger trap
-   false
-  fi
-
-  export PROCESS_ID
-  local PROCESS_ID_INTEGER
-  PROCESS_ID_INTEGER=$$
-  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -c "SET app.process_id = '${PROCESS_ID_INTEGER}';" \
-   -c "$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)"; then
-   __loge "Failed to process insertion"
-   # Remove lock even on failure
-   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 || true
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "Database insertion failed" \
-    "echo 'CALL remove_lock(\"${PROCESS_ID}\"::VARCHAR)' | PGAPPNAME=\"${PGAPPNAME}\" psql -d \"${DBNAME}\" -v ON_ERROR_STOP=1 || true"
-  fi
-
-  # Remove lock on success
-  if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
-   __loge "Failed to remove lock for single process"
-   __handle_error_with_cleanup "${ERROR_GENERAL}" "Failed to remove lock for single process"
-  fi
+ # Remove lock on success
+ if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
+  __loge "Failed to remove lock"
+  __log_finish
+  return 1
  fi
 
  __log_finish
+ return 0
 }
 
 # Inserts the new text comments.
 function __loadApiTextComments {
  __log_start
  export OUTPUT_TEXT_COMMENTS_FILE
- # shellcheck disable=SC2016
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst "\$OUTPUT_TEXT_COMMENTS_FILE" \
-   < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)"
+ local SQL_CMD
+ SQL_CMD=$(envsubst "\$OUTPUT_TEXT_COMMENTS_FILE" \
+  < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)
+ # Use pool for query execution
+ __db_query_pool "${SQL_CMD}"
  __log_finish
 }
 
-# Consolidates data from all partitions into single tables.
+# Consolidates data from all partitions - NO LONGER NEEDED
+# Kept as no-op for backward compatibility (no partitions to consolidate)
 function __consolidatePartitions {
  __log_start
- __logi "Consolidating data from all partitions."
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
+ __logd "Skipping partition consolidation (no partitions used in sequential mode)"
  __log_finish
 }
 
@@ -1043,7 +933,8 @@ function __consolidatePartitions {
 function __updateLastValue {
  __log_start
  __logi "Updating last update time."
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_34_UPDATE_LAST_VALUES}"
+ # Use pool for file execution
+ __db_execute_file_pool "${POSTGRES_34_UPDATE_LAST_VALUES}"
  __log_finish
 }
 
@@ -1098,7 +989,6 @@ function __validateAndProcessApiXml {
   fi
   __countXmlNotesAPI "${API_NOTES_FILE}"
   __processXMLorPlanet
-  __consolidatePartitions
   __insertNewNotesAndComments
   __loadApiTextComments
   __updateLastValue
@@ -1183,7 +1073,12 @@ function __createBaseStructure {
 
  __logi "Step 2/2: Verifying geographic data (countries and maritimes)..."
  local COUNTRIES_COUNT
- COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ local COUNTRIES_COUNT_QUERY="SELECT COUNT(*) FROM countries;"
+ local COUNTRIES_COUNT_OUTPUT
+ COUNTRIES_COUNT_OUTPUT=$(mktemp)
+ __db_query_pool "${COUNTRIES_COUNT_QUERY}" "${COUNTRIES_COUNT_OUTPUT}"
+ COUNTRIES_COUNT=$(grep -E '^[0-9]+$' "${COUNTRIES_COUNT_OUTPUT}" 2> /dev/null | tail -1 || echo "0")
+ rm -f "${COUNTRIES_COUNT_OUTPUT}" 2> /dev/null || true
 
  if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
   __logw "No geographic data found after processPlanetNotes.sh --base"
@@ -1204,7 +1099,12 @@ function __createBaseStructure {
    fi
   fi
 
-  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  local COUNTRIES_COUNT_QUERY2="SELECT COUNT(*) FROM countries;"
+  local COUNTRIES_COUNT_OUTPUT2
+  COUNTRIES_COUNT_OUTPUT2=$(mktemp)
+  __db_query_pool "${COUNTRIES_COUNT_QUERY2}" "${COUNTRIES_COUNT_OUTPUT2}"
+  COUNTRIES_COUNT=$(grep -E '^[0-9]+$' "${COUNTRIES_COUNT_OUTPUT2}" 2> /dev/null | tail -1 || echo "0")
+  rm -f "${COUNTRIES_COUNT_OUTPUT2}" 2> /dev/null || true
   if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
    __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
    __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
@@ -1266,7 +1166,8 @@ function __check_and_log_gaps() {
 
  # Log gaps to file
  local GAP_FILE="/tmp/processAPINotes_gaps.log"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" >> "${GAP_FILE}" 2> /dev/null || true
+ # Use pool for query execution
+ __db_query_pool "${GAP_QUERY}" "${GAP_FILE}"
 
  __logd "Checked and logged gaps from database"
  __log_finish
@@ -1311,8 +1212,10 @@ function __trapOn() {
    fi;
    exit "${ERROR_EXIT_CODE}";
   fi;
- }' ERR
- trap '{ 
+  }' ERR
+ trap '{
+  # Cleanup database connection pool on error
+  __db_simple_pool_cleanup || true
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
@@ -1337,6 +1240,8 @@ function __trapOn() {
     }
    ) || true
   fi;
+  # Cleanup database connection pool on termination
+  __db_simple_pool_cleanup || true
   exit ${ERROR_GENERAL};
  }' SIGINT SIGTERM
  __log_finish
@@ -1363,7 +1268,7 @@ function main() {
  # Check for failed execution file, but verify if it's still a real problem
  if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
   # Check if the failure was due to network issues
-  if grep -q "Network connectivity\|API download failed\|Internet issues" "${FAILED_EXECUTION_FILE}" 2>/dev/null; then
+  if grep -q "Network connectivity\|API download failed\|Internet issues" "${FAILED_EXECUTION_FILE}" 2> /dev/null; then
    __logw "Previous execution failed due to network issues. Verifying connectivity..."
    # Verify network connectivity before blocking
    if __check_network_connectivity 10; then
@@ -1387,6 +1292,15 @@ function main() {
  fi
  __checkPrereqs
  __logw "Process started."
+
+ # Initialize database connection pool for processAPINotes
+ __logi "Initializing database connection pool..."
+ if ! __db_simple_pool_init; then
+  __loge "Failed to initialize database connection pool"
+  __logw "Falling back to direct psql connections"
+ else
+  __logi "Database connection pool initialized successfully"
+ fi
 
  # Sets the trap in case of any signal.
  __trapOn
@@ -1550,6 +1464,11 @@ function main() {
  __cleanNotesFiles
 
  rm -f "${LOCK}"
+
+ # Cleanup database connection pool
+ __logi "Cleaning up database connection pool..."
+ __db_simple_pool_cleanup || true
+
  __logw "Process finished."
  __log_finish
 }
