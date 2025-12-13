@@ -79,10 +79,13 @@ trap '' HUP
 declare LOG_LEVEL="${LOG_LEVEL:-ERROR}"
 
 # Base directory for the project.
-declare SCRIPT_BASE_DIRECTORY
-SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
- &> /dev/null && pwd)"
-readonly SCRIPT_BASE_DIRECTORY
+# Only define if not already set (e.g., when sourced from daemon)
+if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+ declare SCRIPT_BASE_DIRECTORY
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
+  &> /dev/null && pwd)"
+ readonly SCRIPT_BASE_DIRECTORY
+fi
 
 # Loads the global properties.
 # All database connections must be controlled by the properties file.
@@ -92,34 +95,52 @@ source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
 # Mask for the files and directories.
 umask 0000
 
-declare BASENAME
-BASENAME=$(basename -s .sh "${0}")
-readonly BASENAME
+# Only define if not already set (e.g., when sourced from daemon)
+if [[ -z "${BASENAME:-}" ]]; then
+ declare BASENAME
+ BASENAME=$(basename -s .sh "${0}")
+ readonly BASENAME
+fi
 
 # Set PostgreSQL application name for monitoring
 # This allows monitoring tools to identify which script is using the database
 export PGAPPNAME="${BASENAME}"
 
 # Temporary directory for all files.
-declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
-readonly TMP_DIR
-chmod 777 "${TMP_DIR}"
+# Only define if not already set (e.g., when sourced from daemon)
+if [[ -z "${TMP_DIR:-}" ]]; then
+ declare TMP_DIR
+ TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
+ readonly TMP_DIR
+ chmod 777 "${TMP_DIR}"
+fi
+
 # Log file for output.
-declare LOG_FILENAME
-LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILENAME
+# Only define if not already set (e.g., when sourced from daemon)
+if [[ -z "${LOG_FILENAME:-}" ]]; then
+ declare LOG_FILENAME
+ LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
+ readonly LOG_FILENAME
+fi
 
 # Lock file for single execution.
-declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
-readonly LOCK
+# Only define if not already set (e.g., when sourced from daemon)
+if [[ -z "${LOCK:-}" ]]; then
+ declare LOCK
+ LOCK="/tmp/${BASENAME}.lock"
+ readonly LOCK
+fi
 
 # Original process start time and PID (to preserve in lock file).
-declare PROCESS_START_TIME
-PROCESS_START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
-readonly PROCESS_START_TIME
-declare -r ORIGINAL_PID=$$
+# Only define if not already set (e.g., when sourced from daemon)
+if [[ -z "${PROCESS_START_TIME:-}" ]]; then
+ declare PROCESS_START_TIME
+ PROCESS_START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
+ readonly PROCESS_START_TIME
+fi
+if [[ -z "${ORIGINAL_PID:-}" ]]; then
+ declare -r ORIGINAL_PID=$$
+fi
 
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then
@@ -486,81 +507,6 @@ function __ensureGetCountryFunction {
  __log_finish
 }
 
-function __getNewNotesFromApi {
- __log_start
- __logi "=== STARTING API NOTES RETRIEVAL ==="
- declare TEMP_FILE="${TMP_DIR}/last_update_value.txt"
-
- # Check network connectivity before proceeding
- __logi "Checking network connectivity..."
- if ! __check_network_connectivity 10; then
-  __loge "Network connectivity check failed"
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
-   "rm -f ${TEMP_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_INTERNET_ISSUE}"
- fi
-
- # Gets the most recent value on the database with retry logic
- __logi "Retrieving last update from database..."
- __logd "Database: ${DBNAME}"
- local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
- local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
-
- if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
-  __loge "Failed to retrieve last update from database after retries"
-  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
-   "rm -f ${TEMP_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_NO_LAST_UPDATE}"
- fi
-
- LAST_UPDATE=$(cat "${TEMP_FILE}")
- rm "${TEMP_FILE}"
- __logi "Last update retrieved: ${LAST_UPDATE}"
- if [[ "${LAST_UPDATE}" == "" ]]; then
-  __loge "No last update. Please load notes first."
-  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "No last update found" \
-   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_NO_LAST_UPDATE}"
- fi
-
- # Gets the values from OSM API with enhanced error handling
- # shellcheck disable=SC2153
- REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
- __logi "API Request URL: ${REQUEST}"
- __logd "Max notes limit: ${MAX_NOTES}"
- __logi "Retrieving notes from API..."
-
- # Use robust retry logic for API download
- if ! __retry_network_operation "${REQUEST}" "${API_NOTES_FILE}" 5 2 30; then
-  __loge "Failed to download API notes after retries"
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
-   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_INTERNET_ISSUE}"
- fi
-
- # Since we're not capturing wget output to a file, we'll check the downloaded file
- if [[ ! -f "${API_NOTES_FILE}" ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
-  __loge "API unreachable or download failed. Probably there are Internet issues."
-  GENERATE_FAILED_FILE=false
-  __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "API download failed" \
-   "rm -f ${API_NOTES_FILE} 2>/dev/null || true"
-  # shellcheck disable=SC2317
-  __log_finish
-  return "${ERROR_INTERNET_ISSUE}"
- fi
-
- __logi "=== API NOTES RETRIEVAL COMPLETED SUCCESSFULLY ==="
- __log_finish
- return 0
-}
 
 # Validates API notes XML file completely (structure, dates, coordinates)
 # Parameters:
