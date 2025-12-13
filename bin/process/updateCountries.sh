@@ -908,8 +908,6 @@ function __reassignAffectedNotes {
  fi
 
  # Show statistics
- # Note: Statistics about country changes are no longer tracked in tries table
- # This information can be obtained by comparing notes.id_country before and after update
  __logi "Country assignment completed"
 
  # Mark countries as processed

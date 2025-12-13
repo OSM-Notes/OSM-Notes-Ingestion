@@ -399,10 +399,9 @@ mock_database_operation() {
          echo "100"
        elif [[ "$sql_check" == *"TABLE_NAME"* ]]; then
          echo "notes"
-         echo "note_comments"
-         echo "countries"
-         echo "logs"
-         echo "tries"
+        echo "note_comments"
+        echo "countries"
+        echo "logs"
        else
          echo "1|test|2023-01-01"
        fi

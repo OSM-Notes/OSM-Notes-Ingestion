@@ -719,12 +719,12 @@ Russia spans multiple zones. Here's how it's handled:
                             │
                             ▼
               ┌─────────────────────────┐
-              │   tries table           │
+              │  Performance Metrics    │
               │  ┌──────────────────┐   │
-              │  │ area (zone name) │   │
-              │  │ iter (# checks)  │   │
-              │  │ id_note          │   │
-              │  │ id_country       │   │
+              │  │ Zone distribution│   │
+              │  │ ST_Contains calls│   │
+              │  │ Cache hit rate   │   │
+              │  │ Assignment time  │   │
               │  └──────────────────┘   │
               └────────────┬────────────┘
                            │
@@ -732,7 +732,7 @@ Russia spans multiple zones. Here's how it's handled:
           ▼                ▼                ▼
     ┌─────────┐      ┌─────────┐     ┌──────────┐
     │ Average │      │ Maximum │     │ Zone     │
-    │ iters   │      │ iters   │     │distribution│
+    │ calls   │      │ calls   │     │distribution│
     │ per zone│      │ per zone│     │ of notes │
     └─────────┘      └─────────┘     └──────────┘
           │                │                │
@@ -748,37 +748,42 @@ Russia spans multiple zones. Here's how it's handled:
               └────────────────────────┘
 ```
 
-### Example Performance Analysis
+### Performance Monitoring
 
-After running with new system:
+Performance can be monitored using PostgreSQL's built-in query analysis tools:
 
 ```sql
-SELECT area, 
-       COUNT(*) as notes,
-       AVG(iter) as avg_checks,
-       MAX(iter) as max_checks,
-       ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 2) as pct_notes
-FROM tries
-WHERE area != 'Same country'
-GROUP BY area
-ORDER BY notes DESC
-LIMIT 10;
-```
+-- Analyze get_country() performance for a specific zone
+EXPLAIN ANALYZE
+SELECT get_country(longitude, latitude, note_id)
+FROM notes
+WHERE longitude BETWEEN -10 AND 15
+  AND latitude BETWEEN 35 AND 60
+LIMIT 1000;
 
-Expected results:
+This will show:
+- Execution time per note
+- Number of ST_Contains calls
+- Index usage
+- Cache effectiveness
 
-```
-         area          | notes  | avg_checks | max_checks | pct_notes
------------------------+--------+------------+------------+-----------
- Western Europe        | 450000 |       2.3  |        8   |   35.20
- USA/Canada            | 280000 |       1.8  |        5   |   21.90
- Eastern Asia          | 180000 |       3.1  |       12   |   14.10
- Southern Europe       | 120000 |       2.9  |       10   |    9.40
- Russia North          |  85000 |       2.5  |        7   |    6.65
- Northern S. America   |  70000 |       3.4  |       15   |    5.48
- Southeast Asia        |  65000 |       3.8  |       18   |    5.08
- Eastern Europe        |  55000 |       2.7  |        9   |    4.30
- ...                   |    ... |        ... |        ... |      ...
+For performance analysis, you can also query the notes table directly:
+
+```sql
+-- Analyze zone distribution of notes
+SELECT 
+  CASE 
+    WHEN longitude BETWEEN -10 AND 15 AND latitude BETWEEN 35 AND 60 THEN 'Western Europe'
+    WHEN longitude BETWEEN -150 AND -60 AND latitude BETWEEN 30 AND 75 THEN 'USA/Canada'
+    WHEN longitude BETWEEN 100 AND 145 AND latitude BETWEEN 20 AND 55 THEN 'Eastern Asia'
+    -- Add other zones as needed
+    ELSE 'Other'
+  END as zone,
+  COUNT(*) as notes,
+  COUNT(DISTINCT id_country) as countries
+FROM notes
+GROUP BY zone
+ORDER BY notes DESC;
 ```
 
 ### Visual Zone Boundaries

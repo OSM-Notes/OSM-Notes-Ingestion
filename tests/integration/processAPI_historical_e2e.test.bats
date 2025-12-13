@@ -273,12 +273,10 @@ EOSQL
         
         CREATE TABLE countries (id SERIAL PRIMARY KEY, name VARCHAR(255));
         CREATE TABLE logs (id SERIAL PRIMARY KEY, message TEXT);
-        CREATE TABLE tries (id SERIAL PRIMARY KEY, attempt_count INT);
         
         -- Insert minimal data to satisfy base table checks
         INSERT INTO countries (name) VALUES ('test_country');
         INSERT INTO logs (message) VALUES ('test_log');
-        INSERT INTO tries (attempt_count) VALUES (1);
 EOSQL
         
         # Now test the actual historical validation SQL

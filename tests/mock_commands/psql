@@ -2,7 +2,7 @@
 
 # Mock psql command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-13
 
 # Function to simulate database operations
 mock_database_operation() {
@@ -228,10 +228,13 @@ mock_database_operation() {
          echo "100"
        elif [[ "$sql_check" == *"TABLE_NAME"* ]]; then
          echo "notes"
-         echo "note_comments"
-         echo "countries"
-         echo "logs"
-         echo "tries"
+        echo "note_comments"
+        echo "countries"
+        echo "logs"
+       elif [[ "$sql_check" == *"max_note_timestamp"* ]] && [[ "$sql_check" == *"TO_CHAR"* ]]; then
+         # Query for max_note_timestamp - return valid ISO 8601 timestamp
+         # Format: YYYY-MM-DDTHH:MM:SSZ
+         echo "2023-01-01T00:00:00Z"
        else
          echo "1|test|2023-01-01"
        fi
