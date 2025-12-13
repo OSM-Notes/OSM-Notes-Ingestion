@@ -72,11 +72,10 @@ function __db_pool_init() {
   # Start coprocess (using eval for dynamic variable names)
   local COPROC_NAME="DB_POOL_${i}"
   if [[ -n "${DB_PASSWORD:-}" ]]; then
-   PGPASSWORD="${DB_PASSWORD}" coproc "${COPROC_NAME}" \
-    "${PSQL_CMD}" "${PSQL_ARGS[@]}" < "${PIPE_IN}" > "${PIPE_OUT}"
+   PGPASSWORD="${DB_PASSWORD}" \
+    eval 'coproc '"${COPROC_NAME}"' { '"${PSQL_CMD}"' '"$(printf '%q ' "${PSQL_ARGS[@]}")"' < '"${PIPE_IN}"' > '"${PIPE_OUT}"'; }'
   else
-   coproc "${COPROC_NAME}" \
-    "${PSQL_CMD}" "${PSQL_ARGS[@]}" < "${PIPE_IN}" > "${PIPE_OUT}"
+   eval 'coproc '"${COPROC_NAME}"' { '"${PSQL_CMD}"' '"$(printf '%q ' "${PSQL_ARGS[@]}")"' < '"${PIPE_IN}"' > '"${PIPE_OUT}"'; }'
   fi
 
   # Store connection info
@@ -296,17 +295,24 @@ function __db_simple_pool_init() {
  mkdir -p "${DB_POOL_DIR}"
  mkfifo "${PIPE_IN}" "${PIPE_OUT}" 2> /dev/null || true
 
- # Start persistent psql process
- # Note: PGAPPNAME is set as environment variable, not as psql argument
+ # Export variables before starting psql process
+ if [[ -n "${DB_PASSWORD:-}" ]]; then
+  export PGPASSWORD="${DB_PASSWORD}"
+ fi
+ export PGAPPNAME="${PGAPPNAME:-${BASENAME:-psql}}"
+ 
+ # Start persistent psql process in background with named pipes
+ # We use background process instead of coproc to avoid issues with script command
+ # The process reads from PIPE_IN and writes to PIPE_OUT
  if [[ -n "${DB_PASSWORD:-}" ]]; then
   PGPASSWORD="${DB_PASSWORD}" \
    PGAPPNAME="${PGAPPNAME:-${BASENAME:-psql}}" \
-   coproc DB_SIMPLE_POOL \
-   "${PSQL_CMD}" "${PSQL_ARGS[@]}" < "${PIPE_IN}" > "${PIPE_OUT}"
+   "${PSQL_CMD}" "${PSQL_ARGS[@]}" < "${PIPE_IN}" > "${PIPE_OUT}" 2>&1 &
+  DB_SIMPLE_POOL_PID=$!
  else
   PGAPPNAME="${PGAPPNAME:-${BASENAME:-psql}}" \
-   coproc DB_SIMPLE_POOL \
-   "${PSQL_CMD}" "${PSQL_ARGS[@]}" < "${PIPE_IN}" > "${PIPE_OUT}"
+   "${PSQL_CMD}" "${PSQL_ARGS[@]}" < "${PIPE_IN}" > "${PIPE_OUT}" 2>&1 &
+  DB_SIMPLE_POOL_PID=$!
  fi
 
  DB_POOL_INITIALIZED=1
@@ -384,6 +390,7 @@ function __db_simple_pool_execute() {
   return 1
  fi
 
+ # Use named pipes for communication
  local PIPE_IN="${DB_POOL_DIR}/simple_pool_in"
  local PIPE_OUT="${DB_POOL_DIR}/simple_pool_out"
 

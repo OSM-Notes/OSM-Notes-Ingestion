@@ -544,10 +544,38 @@ elif [[ -t 0 ]]; then
  # No stdin available, nothing to do
  :
 else
- # Read from stdin (heredoc or pipe)
- stdin_content=$(cat)
- if [[ -n "${stdin_content:-}" ]]; then
-   mock_database_operation "-c" "$stdin_content"
+ # Check if we're being used as a coprocess (stdin is a pipe, not terminal)
+ # When used with coproc, we need to stay alive to receive multiple SQL commands.
+ # The pool sends each SQL command by writing to stdin, and we process them one by one.
+ # 
+ # IMPORTANT: We add a small initial delay to ensure coproc sets up the PID correctly
+ # before we start processing. This prevents the "PID not set" issue when commands
+ # terminate too quickly.
+ 
+ # Small delay to ensure coproc PID is established (critical for coproc to work)
+ sleep 0.01 2>/dev/null || true
+ 
+ # Read and process SQL commands continuously until stdin is closed
+ while IFS= read -r line || [[ -n "${line:-}" ]]; do
+   # Accumulate multi-line SQL commands
+   if [[ -z "${sql_block:-}" ]]; then
+     sql_block="$line"
+   else
+     sql_block="$sql_block
+$line"
+   fi
+   
+   # Process when we have content (simple heuristic: if line ends or is complete)
+   # For coprocess usage, each SQL command is typically sent as a complete block
+   if [[ -n "${sql_block// /}" ]]; then
+     mock_database_operation "-c" "$sql_block"
+     sql_block=""  # Reset for next command
+   fi
+ done
+ 
+ # Process any remaining content
+ if [[ -n "${sql_block:-}" ]] && [[ -n "${sql_block// /}" ]]; then
+   mock_database_operation "-c" "$sql_block"
  fi
 fi
 
