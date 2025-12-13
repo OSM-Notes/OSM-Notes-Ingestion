@@ -231,7 +231,9 @@ $$
   END IF;
   
   -- Store integrity check result for use by updateLastValues
-  PERFORM set_config('app.integrity_check_passed', m_integrity_check_passed::TEXT, false);
+  -- Use true (session-level) so it persists until updateLastValues reads it
+  -- Must be true to persist across separate psql transactions
+  PERFORM set_config('app.integrity_check_passed', m_integrity_check_passed::TEXT, true);
  END;
 $$;
 

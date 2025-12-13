@@ -2,7 +2,7 @@
 
 # Script to run processAPINotes.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-12-13
 
 set -euo pipefail
 
@@ -268,6 +268,122 @@ modify_germany_for_hybrid_test() {
   log_info "This ensures both validation cases are tested (optimized path and full search)"
  else
   log_warning "Germany geometry modification had warnings (this is OK if no notes in Germany)"
+ fi
+}
+
+# Function to verify timestamp was updated after processing notes
+verify_timestamp_updated() {
+ local execution_number="${1:-}"
+ local initial_timestamp="${2:-}"
+ log_info "Verifying timestamp was updated after execution #${execution_number}..."
+ 
+ # Load DBNAME from properties file if not already loaded
+ if [[ -z "${DBNAME:-}" ]]; then
+  # shellcheck disable=SC1091
+  source "${PROJECT_ROOT}/etc/properties.sh"
+ fi
+ 
+ local psql_cmd="psql"
+ if [[ -n "${DB_HOST:-}" ]]; then
+  psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
+ fi
+ 
+ # Get current timestamp from max_note_timestamp
+ local current_timestamp
+ current_timestamp=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT timestamp FROM max_note_timestamp;" 2> /dev/null | head -1 || echo "")
+ 
+ if [[ -z "${current_timestamp}" ]]; then
+  log_warning "Could not retrieve timestamp from max_note_timestamp table"
+  return 0 # Don't fail test, just warn
+ fi
+ 
+ # If we have an initial timestamp, compare it with the current one
+ # This is the key check: if set_config(..., false) doesn't persist, the timestamp won't update
+ if [[ -n "${initial_timestamp}" ]]; then
+  # Get the most recent note or comment timestamp to check if there are newer notes
+  local latest_note_timestamp
+  latest_note_timestamp=$(${psql_cmd} -d "${DBNAME}" -Atq -c "
+   SELECT MAX(timestamp) FROM (
+    SELECT MAX(created_at) as timestamp FROM notes
+    UNION ALL
+    SELECT MAX(closed_at) as timestamp FROM notes WHERE closed_at IS NOT NULL
+    UNION ALL
+    SELECT MAX(created_at) as timestamp FROM note_comments
+   ) t;
+  " 2> /dev/null | head -1 || echo "")
+  
+  if [[ -z "${latest_note_timestamp}" ]]; then
+   log_warning "Could not retrieve latest note/comment timestamp, skipping verification"
+   return 0
+  fi
+  
+  # Check if there are notes newer than the initial timestamp
+  # If yes, the timestamp should have been updated
+  local has_newer_notes
+  has_newer_notes=$(${psql_cmd} -d "${DBNAME}" -Atq -c "
+   SELECT CASE WHEN timestamp '${latest_note_timestamp}' > timestamp '${initial_timestamp}' THEN 1 ELSE 0 END;
+  " 2> /dev/null | head -1 || echo "0")
+  
+  if [[ "${current_timestamp}" == "${initial_timestamp}" ]]; then
+   if [[ "${has_newer_notes}" == "1" ]]; then
+    # There are newer notes but timestamp wasn't updated - this is the bug we're detecting
+    log_error "ERROR: max_note_timestamp was NOT updated after execution #${execution_number}"
+    log_error "  Initial timestamp: ${initial_timestamp}"
+    log_error "  Current timestamp: ${current_timestamp}"
+    log_error "  Latest note/comment: ${latest_note_timestamp}"
+    log_error "  There are newer notes, but timestamp was not updated"
+    log_error "  This indicates that app.integrity_check_passed did not persist between transactions"
+    log_error "  Possible cause: set_config('app.integrity_check_passed', ..., false) instead of true"
+    return 1
+   else
+    # No newer notes, so it's OK that timestamp didn't change
+    log_success "Verified: max_note_timestamp unchanged (${current_timestamp}) - no newer notes (execution #${execution_number})"
+    return 0
+   fi
+  else
+   log_success "Verified: max_note_timestamp updated from ${initial_timestamp} to ${current_timestamp} (execution #${execution_number})"
+   return 0
+  fi
+ fi
+ 
+ # Fallback: Compare with latest note/comment timestamp if initial timestamp not provided
+ # Get the most recent note or comment timestamp
+ local latest_note_timestamp
+ latest_note_timestamp=$(${psql_cmd} -d "${DBNAME}" -Atq -c "
+  SELECT MAX(timestamp) FROM (
+   SELECT MAX(created_at) as timestamp FROM notes
+   UNION ALL
+   SELECT MAX(closed_at) as timestamp FROM notes WHERE closed_at IS NOT NULL
+   UNION ALL
+   SELECT MAX(created_at) as timestamp FROM note_comments
+  ) t;
+ " 2> /dev/null | head -1 || echo "")
+ 
+ if [[ -z "${latest_note_timestamp}" ]]; then
+  log_warning "Could not retrieve latest note/comment timestamp"
+  return 0 # Don't fail test, just warn
+ fi
+ 
+ # Compare timestamps (max_note_timestamp should be >= latest note/comment timestamp)
+ # Allow 2 seconds difference for processing time
+ local timestamp_diff
+ timestamp_diff=$(${psql_cmd} -d "${DBNAME}" -Atq -c "
+  SELECT EXTRACT(EPOCH FROM (timestamp '${latest_note_timestamp}' - timestamp '${current_timestamp}'));
+ " 2> /dev/null | head -1 || echo "0")
+ 
+ # If latest_note_timestamp is more than 2 seconds newer than current_timestamp,
+ # it means the timestamp was not updated
+ if (( $(echo "${timestamp_diff} > 2" | bc -l 2> /dev/null || echo "0") )); then
+  log_error "Timestamp was NOT updated correctly!"
+  log_error "  max_note_timestamp: ${current_timestamp}"
+  log_error "  Latest note/comment: ${latest_note_timestamp}"
+  log_error "  Difference: ${timestamp_diff} seconds"
+  log_error "This indicates that __updateLastValue did not update the timestamp"
+  log_error "Possible causes: integrity_check_passed not persisting between transactions"
+  return 1
+ else
+  log_success "Timestamp verified: ${current_timestamp} (latest: ${latest_note_timestamp})"
+  return 0
  fi
 }
 
@@ -776,6 +892,25 @@ run_processAPINotes() {
  export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY:-${PROJECT_ROOT}}"
  export MOCK_FIXTURES_DIR="${MOCK_FIXTURES_DIR:-${PROJECT_ROOT}/tests/fixtures/command/extra}"
 
+ # Capture initial timestamp BEFORE execution (for verification)
+ # This is critical to detect if set_config(..., false) prevents timestamp update
+ local initial_timestamp=""
+ if [[ ${execution_number} -gt 1 ]]; then
+  # Load DBNAME from properties file if not already loaded
+  if [[ -z "${DBNAME:-}" ]]; then
+   # shellcheck disable=SC1091
+   source "${PROJECT_ROOT}/etc/properties.sh"
+  fi
+  local psql_cmd="psql"
+  if [[ -n "${DB_HOST:-}" ]]; then
+   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
+  fi
+  initial_timestamp=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT timestamp FROM max_note_timestamp;" 2> /dev/null | head -1 || echo "")
+  if [[ -n "${initial_timestamp}" ]]; then
+   log_info "Initial timestamp before execution #${execution_number}: ${initial_timestamp}"
+  fi
+ fi
+
  # Run the script with clean PATH (exported so child processes inherit it)
  # All environment variables are now exported and will be inherited by processAPINotes.sh
  # and its child process processPlanetNotes.sh
@@ -789,6 +924,18 @@ run_processAPINotes() {
  local exit_code=$?
  if [[ ${exit_code} -eq 0 ]]; then
   log_success "processAPINotes.sh completed successfully (execution #${execution_number})"
+  
+  # Verify timestamp was updated (if notes were processed)
+  # This catches issues like set_config(..., false) not persisting between transactions
+  if [[ ${execution_number} -gt 1 ]] && [[ -n "${initial_timestamp}" ]]; then
+   # Only verify for executions after the first (first execution may not process notes)
+   # Pass initial_timestamp to detect if timestamp didn't change
+   verify_timestamp_updated "${execution_number}" "${initial_timestamp}"
+   local verify_exit_code=$?
+   if [[ ${verify_exit_code} -ne 0 ]]; then
+    exit_code=${verify_exit_code}
+   fi
+  fi
  else
   log_error "processAPINotes.sh exited with code: ${exit_code} (execution #${execution_number})"
  fi
