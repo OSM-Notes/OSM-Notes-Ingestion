@@ -19,7 +19,6 @@ maintains the complete history.
 - **Incremental Processing**: Only downloads and processes new or modified notes
 - **Intelligent Synchronization**: Automatically determines when to perform complete synchronization from Planet
 - **Sequential Processing**: Efficient sequential processing optimized for incremental updates
-- **Connection Pooling**: Uses a single persistent connection pool to reduce database overhead
 - **Planet Integration**: Integrates with `processPlanetNotes.sh` when necessary
 
 ## Design Context
@@ -40,12 +39,6 @@ The API processing design was created to handle incremental updates efficiently 
 - This prevents processing large API datasets inefficiently
 - Leverages the proven Planet processing pipeline for better reliability
 
-**Connection Pooling**:
-
-- Uses a single persistent connection pool to minimize database connection overhead
-- All database operations use the connection pool wrapper functions
-- Automatically recovers if the connection is lost
-- See [Connection Pool Implementation](./Connection_Pool_Implementation.md) for details
 
 ### Design Patterns Used
 
@@ -58,11 +51,10 @@ The API processing design was created to handle incremental updates efficiently 
 
 - **Single Script Approach**: Considered combining API and Planet processing into one script, but rejected to maintain separation of concerns and allow independent optimization
 - **Partitioning Strategy**: Evaluated partitioning for API processing but chose sequential processing for simpler architecture and better suitability for incremental updates
-- **Connection Pooling**: Evaluated multiple connection strategies and chose single persistent connection for optimal performance with frequent small queries
 
 ### Trade-offs
 
-- **Simplicity vs. Performance**: Sequential processing with connection pooling provides good performance for incremental updates while maintaining simplicity
+- **Simplicity vs. Performance**: Sequential processing provides good performance for incremental updates while maintaining simplicity
 - **Validation Speed**: Optional validations can be skipped (`SKIP_XML_VALIDATION`, `SKIP_CSV_VALIDATION`) for faster processing in production
 - **Error Recovery**: Comprehensive error handling adds overhead but ensures system reliability and easier debugging
 
@@ -314,13 +306,6 @@ grep -i "gap" "$LATEST_DIR/processAPINotes.log"
 # If suspicious, may need to run processPlanetNotes.sh for full sync
 ```
 
-**Connection pool failures:**
-
-```bash
-# Error: Connection pool failed
-# Diagnosis:
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "connection pool\|pool.*failed" "$LATEST_DIR/processAPINotes.log"
 
 # Solution:
 # 1. Check memory: free -h
@@ -477,11 +462,6 @@ processAPINotes.sh
     │   ├─▶ __getNewNotesFromApi()
     │   ├─▶ __countXmlNotesAPI()
     │   └─▶ __processApiXmlSequential()
-    │
-    ├─▶ Calls: databaseConnectionPool.sh
-    │   ├─▶ __db_simple_pool_init()
-    │   ├─▶ __db_query_pool()
-    │   └─▶ __db_execute_file_pool()
     │
     ├─▶ Calls: validationFunctions.sh
     │   ├─▶ __validateApiNotesXMLFileComplete()
@@ -643,7 +623,7 @@ source bin/lib/processAPIFunctions.sh
 __createApiTables
 
 # Verify tables were created
-__db_query_pool "SELECT 
+psql -d "${DBNAME}" -c "SELECT 
   schemaname,
   tablename,
   tableowner
@@ -745,9 +725,6 @@ Manual/Daemon
          ├─▶ __createApiTables()
          │   └─▶ Create temporary API tables
          │
-         ├─▶ __db_simple_pool_init()
-         │   └─▶ Initialize database connection pool
-         │
          ├─▶ __createPropertiesTable()
          │   └─▶ Create properties tracking table
          │
@@ -792,7 +769,7 @@ Manual/Daemon
          │   │   │       │       └─▶ __processApiXmlSequential()
          │   │   │       │           ├─▶ AWK: XML → CSV
          │   │   │       │           ├─▶ Validate CSV structure
-         │   │   │       │           └─▶ Load to DB (using connection pool)
+         │   │   │       │           └─▶ Load to DB
          │   │   │
          │   ├─▶ __insertNewNotesAndComments()
          │   │   └─▶ Insert notes and comments to base tables
@@ -826,7 +803,6 @@ Manual/Daemon
 - Removes existing API tables
 - Creates new API tables (no partitioning)
 - Creates properties table for tracking
-- Initializes database connection pool
 
 #### 3. Data Download
 
@@ -845,12 +821,12 @@ Manual/Daemon
 **If downloaded notes < MAX_NOTES**:
 
 - Processes downloaded notes locally
-- Uses sequential processing with connection pooling
+- Uses sequential processing
 
 #### 5. Sequential Processing
 
 - Processes XML file sequentially using AWK extraction
-- Loads data directly into API tables using connection pool
+- Loads data directly into API tables
 - Validates CSV structure before loading
 
 ### 6. Data Integration

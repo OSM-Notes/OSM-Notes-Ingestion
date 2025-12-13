@@ -183,57 +183,6 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
-# Load database connection pool (for processAPINotes only)
-# shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/lib/databaseConnectionPool.sh"
-
-# Wrapper functions to use connection pool for processAPINotes queries
-# These functions use the simple persistent connection pool
-
-# Execute SQL query using connection pool
-# Parameters:
-#   $1: SQL query
-#   $2: Output file (optional, defaults to stdout)
-# Returns: 0 if successful, 1 if failed
-function __db_query_pool() {
- local SQL="${1:-}"
- local OUTPUT_FILE="${2:-/dev/stdout}"
-
- if [[ -z "${SQL}" ]]; then
-  __loge "SQL query is required for __db_query_pool"
-  return 1
- fi
-
- # Use pool for single queries
- if ! __db_simple_pool_execute "${SQL}" "${OUTPUT_FILE}"; then
-  __loge "Database query failed using pool"
-  return 1
- fi
-
- return 0
-}
-
-# Execute SQL file using connection pool
-# Parameters:
-#   $1: SQL file path
-# Returns: 0 if successful, 1 if failed
-function __db_execute_file_pool() {
- local SQL_FILE="${1:-}"
-
- if [[ -z "${SQL_FILE}" ]] || [[ ! -f "${SQL_FILE}" ]]; then
-  __loge "SQL file is required and must exist for __db_execute_file_pool"
-  return 1
- fi
-
- # Use pool for file execution
- if ! __db_simple_pool_execute "@${SQL_FILE}"; then
-  __loge "Database file execution failed using pool"
-  return 1
- fi
-
- return 0
-}
-
 # Shows the help information.
 function __show_help {
  echo "${0} version ${VERSION}."
@@ -392,14 +341,9 @@ function __checkPrereqs {
     "
 
    __logw "Sample of notes with gaps:"
-   local GAP_DETAILS_FILE
-   GAP_DETAILS_FILE=$(mktemp)
-   # Use pool for query execution
-   __db_query_pool "${GAP_DETAILS_QUERY}" "${GAP_DETAILS_FILE}"
-   while IFS= read -r line; do
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "${GAP_DETAILS_QUERY}" | while IFS= read -r line; do
     __logw "  ${line}"
-   done < "${GAP_DETAILS_FILE}"
-   rm -f "${GAP_DETAILS_FILE}" 2> /dev/null || true
+   done
 
    # Optionally trigger a recovery process
    if [[ ${GAP_COUNT} -lt 100 ]]; then
@@ -472,8 +416,7 @@ function __dropApiTables {
  __log_start
  __logi "=== DROPPING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
- # Use pool for file execution
- __db_execute_file_pool "${POSTGRES_12_DROP_API_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
  __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
@@ -501,8 +444,7 @@ function __createApiTables {
  __log_start
  __logi "=== CREATING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_21_CREATE_API_TABLES}"
- # Use pool for file execution
- __db_execute_file_pool "${POSTGRES_21_CREATE_API_TABLES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
  __logi "=== API TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
@@ -512,8 +454,8 @@ function __createPropertiesTable {
  __log_start
  __logi "=== CREATING PROPERTIES TABLE ==="
  __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- # Use pool for file execution
- __db_execute_file_pool "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
  __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
  __log_finish
 }
@@ -527,20 +469,9 @@ function __ensureGetCountryFunction {
  __logd "Checking if get_country function exists..."
 
  local FUNCTION_EXISTS
- local FUNCTION_QUERY="SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');"
- local FUNCTION_OUTPUT
- FUNCTION_OUTPUT=$(mktemp)
- __db_query_pool "${FUNCTION_QUERY}" "${FUNCTION_OUTPUT}"
- FUNCTION_EXISTS=$(grep -E '^[0-9]+$' "${FUNCTION_OUTPUT}" 2> /dev/null | tail -1 || echo "0")
- rm -f "${FUNCTION_OUTPUT}" 2> /dev/null || true
-
+ FUNCTION_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
  local COUNTRIES_TABLE_EXISTS
- local COUNTRIES_QUERY="SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');"
- local COUNTRIES_OUTPUT
- COUNTRIES_OUTPUT=$(mktemp)
- __db_query_pool "${COUNTRIES_QUERY}" "${COUNTRIES_OUTPUT}"
- COUNTRIES_TABLE_EXISTS=$(grep -E '^[tf]$' "${COUNTRIES_OUTPUT}" 2> /dev/null | tail -1 || echo "f")
- rm -f "${COUNTRIES_OUTPUT}" 2> /dev/null || true
+ COUNTRIES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null | grep -E '^[tf]$' | tail -1 || echo "f")
 
  if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
   __logw "get_country function not found, creating it..."
@@ -571,12 +502,20 @@ function __getNewNotesFromApi {
   return "${ERROR_INTERNET_ISSUE}"
  fi
 
- # Gets the most recent value on the database
+ # Gets the most recent value on the database with retry logic
  __logi "Retrieving last update from database..."
  __logd "Database: ${DBNAME}"
- local LAST_UPDATE_QUERY="SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp"
- # Use pool for query execution
- __db_query_pool "${LAST_UPDATE_QUERY}" "${TEMP_FILE}"
+ local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
+ local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
+
+ if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
+  __loge "Failed to retrieve last update from database after retries"
+  __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
+   "rm -f ${TEMP_FILE} 2>/dev/null || true"
+  # shellcheck disable=SC2317
+  __log_finish
+  return "${ERROR_NO_LAST_UPDATE}"
+ fi
 
  LAST_UPDATE=$(cat "${TEMP_FILE}")
  rm "${TEMP_FILE}"
@@ -819,8 +758,8 @@ function __processApiXmlSequential {
       s|\${OUTPUT_COMMENTS_PART}|${SEQ_OUTPUT_COMMENTS_CLEANED}|g; \
       s|\${OUTPUT_TEXT_PART}|${SEQ_OUTPUT_TEXT_CLEANED}|g" \
   < "${POSTGRES_31_LOAD_API_NOTES}" > "${TEMP_SQL}" || true
- # Execute SQL using pool
- __db_execute_file_pool "@${TEMP_SQL}"
+ # Execute SQL file
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL}"
  # Clean up temp files
  rm -f "${TEMP_SQL}" "${SEQ_OUTPUT_NOTES_CLEANED}" "${SEQ_OUTPUT_COMMENTS_CLEANED}" "${SEQ_OUTPUT_TEXT_CLEANED}"
 
@@ -876,8 +815,8 @@ SET app.process_id = '${PROCESS_ID_INTEGER}';
 ${SQL_CMD}
 EOF
 
- # Execute insertion using pool
- __db_execute_file_pool "${TEMP_SQL_FILE}"
+ # Execute insertion
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}"
 
  rm -f "${TEMP_SQL_FILE}"
 
@@ -899,8 +838,9 @@ function __loadApiTextComments {
  local SQL_CMD
  SQL_CMD=$(envsubst "\$OUTPUT_TEXT_COMMENTS_FILE" \
   < "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}" || true)
- # Use pool for query execution
- __db_query_pool "${SQL_CMD}"
+ # shellcheck disable=SC2016
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "${SQL_CMD}"
  __log_finish
 }
 
@@ -909,8 +849,8 @@ function __loadApiTextComments {
 function __updateLastValue {
  __log_start
  __logi "Updating last update time."
- # Use pool for file execution
- __db_execute_file_pool "${POSTGRES_34_UPDATE_LAST_VALUES}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_34_UPDATE_LAST_VALUES}"
  __log_finish
 }
 
@@ -1049,12 +989,7 @@ function __createBaseStructure {
 
  __logi "Step 2/2: Verifying geographic data (countries and maritimes)..."
  local COUNTRIES_COUNT
- local COUNTRIES_COUNT_QUERY="SELECT COUNT(*) FROM countries;"
- local COUNTRIES_COUNT_OUTPUT
- COUNTRIES_COUNT_OUTPUT=$(mktemp)
- __db_query_pool "${COUNTRIES_COUNT_QUERY}" "${COUNTRIES_COUNT_OUTPUT}"
- COUNTRIES_COUNT=$(grep -E '^[0-9]+$' "${COUNTRIES_COUNT_OUTPUT}" 2> /dev/null | tail -1 || echo "0")
- rm -f "${COUNTRIES_COUNT_OUTPUT}" 2> /dev/null || true
+ COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
  if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
   __logw "No geographic data found after processPlanetNotes.sh --base"
@@ -1075,12 +1010,7 @@ function __createBaseStructure {
    fi
   fi
 
-  local COUNTRIES_COUNT_QUERY2="SELECT COUNT(*) FROM countries;"
-  local COUNTRIES_COUNT_OUTPUT2
-  COUNTRIES_COUNT_OUTPUT2=$(mktemp)
-  __db_query_pool "${COUNTRIES_COUNT_QUERY2}" "${COUNTRIES_COUNT_OUTPUT2}"
-  COUNTRIES_COUNT=$(grep -E '^[0-9]+$' "${COUNTRIES_COUNT_OUTPUT2}" 2> /dev/null | tail -1 || echo "0")
-  rm -f "${COUNTRIES_COUNT_OUTPUT2}" 2> /dev/null || true
+  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
   if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
    __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
    __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
@@ -1142,8 +1072,7 @@ function __check_and_log_gaps() {
 
  # Log gaps to file
  local GAP_FILE="/tmp/processAPINotes_gaps.log"
- # Use pool for query execution
- __db_query_pool "${GAP_QUERY}" "${GAP_FILE}"
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > "${GAP_FILE}" 2> /dev/null || true
 
  __logd "Checked and logged gaps from database"
  __log_finish
@@ -1190,8 +1119,6 @@ function __trapOn() {
   fi;
   }' ERR
  trap '{
-  # Cleanup database connection pool on error
-  __db_simple_pool_cleanup || true
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
@@ -1216,8 +1143,6 @@ function __trapOn() {
     }
    ) || true
   fi;
-  # Cleanup database connection pool on termination
-  __db_simple_pool_cleanup || true
   exit ${ERROR_GENERAL};
  }' SIGINT SIGTERM
  __log_finish
@@ -1268,15 +1193,6 @@ function main() {
  fi
  __checkPrereqs
  __logw "Process started."
-
- # Initialize database connection pool for processAPINotes
- __logi "Initializing database connection pool..."
- if ! __db_simple_pool_init; then
-  __loge "Failed to initialize database connection pool"
-  __logw "Falling back to direct psql connections"
- else
-  __logi "Database connection pool initialized successfully"
- fi
 
  # Sets the trap in case of any signal.
  __trapOn
@@ -1439,10 +1355,6 @@ __createPropertiesTable
  __cleanNotesFiles
 
  rm -f "${LOCK}"
-
- # Cleanup database connection pool
- __logi "Cleaning up database connection pool..."
- __db_simple_pool_cleanup || true
 
  __logw "Process finished."
  __log_finish

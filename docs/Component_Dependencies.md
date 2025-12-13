@@ -346,11 +346,6 @@ processAPINotes.sh
     ├─▶ validationFunctions.sh::__validate_xml_file() [optional]
     │   └─▶ Validates XML structure
     │
-    ├─▶ databaseConnectionPool.sh
-    │   ├─▶ __db_simple_pool_init()
-    │   ├─▶ __db_query_pool()
-    │   └─▶ __db_execute_file_pool()
-    │
     ├─▶ processAPIFunctions.sh::__processApiXmlSequential()
     │   ├─▶ Executes: awk/extract_notes.awk
     │   │   └─▶ XML → CSV (notes)
@@ -364,7 +359,7 @@ processAPINotes.sh
     │
     ├─▶ processAPIFunctions.sh::__processApiXmlSequential() [continued]
     │   └─▶ Executes: sql/process/processAPINotes_31_loadApiNotes.sql
-    │       └─▶ COPY CSV → PostgreSQL (using connection pool)
+    │       └─▶ COPY CSV → PostgreSQL
     │
     ├─▶ processAPIFunctions.sh::__insertNewNotesAndComments()
     │   └─▶ Executes: sql/process/processAPINotes_32_insertNewNotesAndComments.sql
@@ -544,7 +539,7 @@ processAPINotes.sh SQL Execution Order:
     │   └─▶ Creates properties table
     │
     ├─▶ 4. processAPINotes_31_loadApiNotes.sql
-    │   └─▶ Loads CSV into API tables (COPY command, using connection pool)
+    │   └─▶ Loads CSV into API tables (COPY command)
     │
     ├─▶ 5. processAPINotes_32_insertNewNotesAndComments.sql
     │   ├─▶ Calls: insert_note() procedure
@@ -667,7 +662,7 @@ insert_note_comment(...)
 
 | Component | Depends On | Used By |
 |-----------|------------|---------|
-| `processAPINotes.sh` | `processAPIFunctions.sh`, `databaseConnectionPool.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh` | Cron jobs, manual execution |
+| `processAPINotes.sh` | `processAPIFunctions.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh` | Cron jobs, manual execution |
 | `processPlanetNotes.sh` | `processPlanetFunctions.sh`, `noteProcessingFunctions.sh`, `boundaryProcessingFunctions.sh`, `parallelProcessingFunctions.sh`, `functionsProcess.sh`, all common libraries | `processAPINotes.sh` (when threshold exceeded), manual execution |
 | `updateCountries.sh` | `boundaryProcessingFunctions.sh`, `processPlanetFunctions.sh`, `functionsProcess.sh`, `overpassFunctions.sh`, all common libraries | Monthly cron jobs, manual execution |
 | `functionsProcess.sh` | `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `securityFunctions.sh`, `overpassFunctions.sh` | All processing scripts, all `bin/lib/*.sh` |
@@ -676,7 +671,6 @@ insert_note_comment(...)
 | `noteProcessingFunctions.sh` | `functionsProcess.sh` | `processPlanetNotes.sh` |
 | `boundaryProcessingFunctions.sh` | `functionsProcess.sh`, `overpassFunctions.sh` | `processPlanetNotes.sh`, `updateCountries.sh` |
 | `parallelProcessingFunctions.sh` | `commonFunctions.sh` | `processPlanetNotes.sh` |
-| `databaseConnectionPool.sh` | `commonFunctions.sh` | `processAPINotes.sh` |
 | `overpassFunctions.sh` | `commonFunctions.sh` | `boundaryProcessingFunctions.sh` |
 | `commonFunctions.sh` | `bash_logger.sh` (internal) | All scripts and libraries |
 | `validationFunctions.sh` | `commonFunctions.sh` | `functionsProcess.sh`, processing scripts |

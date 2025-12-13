@@ -209,8 +209,8 @@ EOF
  fi
 }
 
-# Test with database connection pooling
-@test "Performance edge case: Database connection pooling should work correctly" {
+# Test with multiple database connections
+@test "Performance edge case: Multiple database connections should work correctly" {
  # Create test database
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
  [ "$status" -eq 0 ]

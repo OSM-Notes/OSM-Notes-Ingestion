@@ -546,7 +546,7 @@ elif [[ -t 0 ]]; then
 else
  # Check if we're being used as a coprocess (stdin is a pipe, not terminal)
  # When used with coproc, we need to stay alive to receive multiple SQL commands.
- # The pool sends each SQL command by writing to stdin, and we process them one by one.
+ # Commands are sent by writing to stdin, and we process them one by one.
  # 
  # IMPORTANT: We add a small initial delay to ensure coproc sets up the PID correctly
  # before we start processing. This prevents the "PID not set" issue when commands
