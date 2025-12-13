@@ -4,8 +4,8 @@
 # This file contains functions for processing API data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-12
-VERSION="2025-12-12"
+# Version: 2025-12-13
+VERSION="2025-12-13"
 
 # Show help function
 function __show_help() {
@@ -132,7 +132,9 @@ function __getNewNotesFromApi() {
  __logi "Downloading notes from OSM API..."
 
  # Download notes from API with retry logic
- if __retry_osm_api "${REQUEST}" "${API_NOTES_FILE}" 5 2 30; then
+ # Use longer timeout for large note downloads (120 seconds)
+ # 30 seconds is insufficient for 10,000 notes (can be 12MB+)
+ if __retry_osm_api "${REQUEST}" "${API_NOTES_FILE}" 5 2 120; then
   if [[ -s "${API_NOTES_FILE}" ]]; then
    __logi "Successfully downloaded notes from API: ${API_NOTES_FILE}"
    __log_finish

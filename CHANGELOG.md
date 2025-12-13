@@ -25,11 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `bin/lib/processAPIFunctions.sh` (line 107)
     - `bin/process/processAPINotesDaemon.sh` (lines 546, 667, version updated to 2025-12-12)
 
+- **Fixed API timeout insufficient for large downloads** (2025-12-13):
+  - **Problem**: Timeout of 30 seconds was insufficient for downloading 10,000 notes (can be 12MB+)
+  - **Impact**: API calls were timing out after 5 retry attempts, preventing notes from being downloaded
+  - **Solution**: Increased timeout from 30 to 120 seconds in `__getNewNotesFromApi` function call to `__retry_osm_api`
+  - **Files changed**: `bin/lib/processAPIFunctions.sh` (line 135, version updated to 2025-12-13)
+
 - **Root cause analysis**:
   - The daemon was correctly checking for updates using the right URL format
   - However, when downloading notes, it used a simplified function that didn't include the date filter
   - Additionally, timestamp formatting had incorrect quote escaping in SQL queries
-  - Both issues combined prevented any new notes from being processed since December 9, 2025
+  - The timeout was too short for large downloads (10,000 notes can take 60-90 seconds)
+  - All issues combined prevented any new notes from being processed since December 9, 2025
 
 ### Added
 
