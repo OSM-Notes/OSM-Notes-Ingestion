@@ -113,9 +113,6 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
-# shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
-
 # Shows help information
 function __show_help {
  echo "${0} version ${VERSION}."
@@ -288,14 +285,6 @@ function __checkNoProcessPlanet {
   __log_finish
   exit "${ERROR_EXECUTING_PLANET_DUMP}"
  fi
- __log_finish
-}
-
-# Creates partitions - NO LONGER NEEDED (simplified to sequential processing)
-# Kept as no-op for backward compatibility
-function __createPartitions {
- __log_start
- __logd "Skipping partition creation (no partitions needed for sequential processing)"
  __log_finish
 }
 
@@ -523,9 +512,6 @@ function __daemon_init {
  __prepareApiTables
 
  # Create partitions (only if needed)
- __logi "Checking partitions..."
- __createPartitions
-
  # Create properties table
  __logi "Checking properties table..."
  __createPropertiesTable

@@ -47,12 +47,6 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
   [[ "$output" == *"__countXmlNotesPlanet"* ]]
 }
 
-@test "__splitXmlForParallelAPI should be available" {
-  # Just check that the function exists
-  run declare -f __splitXmlForParallelAPI
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"__splitXmlForParallelAPI"* ]]
-}
 
 @test "__splitXmlForParallelPlanet should be available" {
   # Just check that the function exists

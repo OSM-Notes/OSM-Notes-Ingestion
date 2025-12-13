@@ -196,13 +196,11 @@ teardown() {
 @test "XML splitting functions are available" {
  # Check that XML splitting functions exist
  command -v __splitXmlForParallelSafe
- command -v __splitXmlForParallelAPI
  command -v __splitXmlForParallelPlanet
 }
 
 @test "XML processing functions are available" {
  # Check that XML processing functions exist
- command -v __processApiXmlPart
  command -v __processPlanetXmlPart
 }
 

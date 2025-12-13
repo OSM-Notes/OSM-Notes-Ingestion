@@ -94,13 +94,11 @@ teardown() {
  # Test that key functions are available
  local REQUIRED_FUNCTIONS=(
    "__createApiTables"
-   "__createPartitions"
    "__createPropertiesTable"
    "__loadApiNotes"
    "__insertNewNotesAndComments"
    "__loadNewTextComments"
    "__updateLastValues"
-   "__consolidatePartitions"
  )
  
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do

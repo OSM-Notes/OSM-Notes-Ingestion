@@ -432,13 +432,11 @@ function __checkPrereqs {
  local SQL_FILES=(
   "${POSTGRES_12_DROP_API_TABLES}"
   "${POSTGRES_21_CREATE_API_TABLES}"
-  "${POSTGRES_22_CREATE_PARTITIONS}"
   "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
   "${POSTGRES_31_LOAD_API_NOTES}"
   "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}"
   "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS}"
   "${POSTGRES_34_UPDATE_LAST_VALUES}"
-  "${POSTGRES_35_CONSOLIDATE_PARTITIONS}"
  )
 
  # Validate each SQL file
@@ -507,15 +505,6 @@ function __createApiTables {
  # Use pool for file execution
  __db_execute_file_pool "${POSTGRES_21_CREATE_API_TABLES}"
  __logi "=== API TABLES CREATED SUCCESSFULLY ==="
- __log_finish
-}
-
-# Creates partitions - NO LONGER NEEDED (simplified to sequential processing)
-# Kept as no-op for backward compatibility
-function __createPartitions {
- __log_start
- __logi "=== SKIPPING PARTITIONS CREATION ==="
- __logd "Partitions not needed for sequential processing"
  __log_finish
 }
 
@@ -921,13 +910,6 @@ function __loadApiTextComments {
  __log_finish
 }
 
-# Consolidates data from all partitions - NO LONGER NEEDED
-# Kept as no-op for backward compatibility (no partitions to consolidate)
-function __consolidatePartitions {
- __log_start
- __logd "Skipping partition consolidation (no partitions used in sequential mode)"
- __log_finish
-}
 
 # Updates the refreshed value.
 function __updateLastValue {
@@ -1447,11 +1429,10 @@ function main() {
   __validateHistoricalDataAndRecover
  fi
 
- set -e
- set -E
- __createApiTables
- __createPartitions
- __createPropertiesTable
+set -e
+set -E
+__createApiTables
+__createPropertiesTable
  __ensureGetCountryFunction
  __createProcedures
  set +E
