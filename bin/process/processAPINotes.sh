@@ -757,12 +757,17 @@ function __insertNewNotesAndComments {
  SQL_CMD=$(envsubst "\$PROCESS_ID" < "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS}" || true)
 
  # Create SQL file with SET command and main SQL
+ # Include updateLastValues in the same connection to preserve app.integrity_check_passed
+ # This ensures the variable set in insertNewNotesAndComments is available in updateLastValues
  cat > "${TEMP_SQL_FILE}" << EOF
 SET app.process_id = '${PROCESS_ID_INTEGER}';
 ${SQL_CMD}
 EOF
 
- # Execute insertion
+ # Append updateLastValues SQL to the same file
+ cat "${POSTGRES_34_UPDATE_LAST_VALUES}" >> "${TEMP_SQL_FILE}"
+
+ # Execute insertion and timestamp update in the same connection
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}"
 
  rm -f "${TEMP_SQL_FILE}"
@@ -854,7 +859,6 @@ function __validateAndProcessApiXml {
   __processXMLorPlanet
   __insertNewNotesAndComments
   __loadApiTextComments
-  __updateLastValue
  fi
  __log_finish
 }

@@ -554,6 +554,8 @@ processAPINotes.sh SQL Execution Order:
     │
     └─▶ 7. processAPINotes_34_updateLastValues.sql
         └─▶ Updates last processed timestamp
+        └─▶ Note: Executed within processAPINotes_32_insertNewNotesAndComments.sql
+            in the same database connection to preserve integrity_check_passed variable
 
 processPlanetNotes.sh SQL Execution Order:
     │

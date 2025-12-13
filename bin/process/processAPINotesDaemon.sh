@@ -114,7 +114,6 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
 # Load processAPINotes.sh to get processing functions
-# (__processXMLorPlanet, __insertNewNotesAndComments, __loadApiTextComments, __updateLastValue)
 # The script detects when it's being sourced and only loads functions, doesn't execute main
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
@@ -647,7 +646,6 @@ function __process_api_data {
    __processXMLorPlanet
    __insertNewNotesAndComments
    __loadApiTextComments
-   __updateLastValue
   fi
  else
   __logi "No notes to process"

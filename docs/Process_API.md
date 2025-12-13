@@ -772,13 +772,14 @@ Manual/Daemon
          │   │   │       │           └─▶ Load to DB
          │   │   │
          │   ├─▶ __insertNewNotesAndComments()
-         │   │   └─▶ Insert notes and comments to base tables
+         │   │   ├─▶ Insert notes and comments to base tables
+         │   │   ├─▶ Validate data integrity (integrity check)
+         │   │   └─▶ Update last_update timestamp (same connection)
+         │   │       Note: Timestamp update runs in same connection to preserve
+         │   │       integrity_check_passed variable between transactions
          │   │
          │   ├─▶ __loadApiTextComments()
          │   │   └─▶ Load comment text to base tables
-         │   │
-         │   └─▶ __updateLastValue()
-         │       └─▶ Update last_update timestamp
          │
          ├─▶ __check_and_log_gaps()
          │   └─▶ Check for data gaps and log
@@ -833,7 +834,8 @@ Manual/Daemon
 
 - Inserts new notes and comments into base tables
 - Processes in chunks if there is much data (>1000 notes)
-- Updates last update timestamp
+- Validates data integrity (checks for notes without comments)
+- Updates last update timestamp (executed in same connection as insertion to preserve integrity check result)
 - Cleans temporary files
 
 #### Code Example: Data Integration Process
@@ -846,12 +848,9 @@ source bin/lib/processAPIFunctions.sh
 
 # Insert new notes and comments from API tables to base tables
 # This uses stored procedures for efficient bulk insertion
+# Note: This function also updates the timestamp automatically in the same
+# database connection to ensure integrity check results persist
 __insertNewNotesAndComments
-
-# Update the last processed sequence number
-LAST_VALUE=$(psql -d "${DBNAME}" -t -c \
-  "SELECT MAX(sequence_id) FROM notes_api;")
-__updateLastValue "${LAST_VALUE}"
 
 # Verify the integration
 psql -d "${DBNAME}" -c "
@@ -969,10 +968,11 @@ User/Daemon        processAPINotesDaemon.sh    OSM API      PostgreSQL    AWK Sc
     │                      │───INSERT INTO notes─────────────▶│              │
     │                      │◀───notes inserted────────────────│              │
     │                      │               │              │              │
-    │                      │───__updateLastValue()────────────▶│              │
+    │                      │───Integrity check───────────────▶│              │
+    │                      │◀───check passed─────────────────│              │
     │                      │               │              │              │
-    │                      │───UPDATE properties─────────────▶│              │
-    │                      │◀───updated───────────────────────│              │
+    │                      │───UPDATE max_note_timestamp─────▶│              │
+    │                      │◀───updated (same connection)────│              │
     │                      │               │              │              │
     │                      │───__dropApiTables()─────────────▶│              │
     │                      │               │              │              │
