@@ -156,7 +156,7 @@ clean_test_database() {
 
  # Run cleanupAll.sh with full cleanup mode
  # It will use DBNAME from properties.sh (which is now properties_test.sh)
- # Suppress output but capture errors
+ # Trust cleanupAll.sh to do its job correctly
  if "${cleanup_script}" --all > /dev/null 2>&1; then
   log_success "Database ${DBNAME} cleaned successfully using cleanupAll.sh"
  else
@@ -256,15 +256,15 @@ modify_germany_for_hybrid_test() {
  fi
 }
 
-# Function to drop base tables (for first execution)
-drop_base_tables() {
+# Function to verify base tables are dropped (cleanupAll.sh should have done this)
+verify_base_tables_dropped() {
  # Load DBNAME from properties file if not already loaded
  if [[ -z "${DBNAME:-}" ]]; then
   # shellcheck disable=SC1091
   source "${PROJECT_ROOT}/etc/properties.sh"
  fi
 
- log_info "Dropping base tables to trigger processPlanetNotes.sh --base..."
+ log_info "Verifying base tables are dropped (cleanupAll.sh should have done this)..."
 
  local psql_cmd="psql"
  if [[ -n "${DB_HOST:-}" ]]; then
@@ -274,60 +274,14 @@ drop_base_tables() {
  # Check if base tables exist
  local tables_exist
  tables_exist=$(${psql_cmd} -d "${DBNAME}" -tAqc \
-  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs', 'tries');" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs');" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
 
- if [[ "${tables_exist}" -gt 0 ]]; then
-  log_info "Base tables exist, dropping them..."
-  # Drop base tables (notes, note_comments, users, logs, etc.)
-  ${psql_cmd} -d "${DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_13_dropBaseTables.sql" > /dev/null 2>&1 || true
-  # Drop country tables (countries)
-  ${psql_cmd} -d "${DBNAME}" -c "DROP TABLE IF EXISTS countries CASCADE;" > /dev/null 2>&1 || true
-  # Drop tries table if it exists (may not be in dropBaseTables.sql)
-  ${psql_cmd} -d "${DBNAME}" -c "DROP TABLE IF EXISTS tries CASCADE;" > /dev/null 2>&1 || true
-
-  # Wait a moment for database to commit the DROP operations
-  sleep 1
-
-  # Verify tables were actually dropped
-  local tables_after_drop
-  tables_after_drop=$(${psql_cmd} -d "${DBNAME}" -tAqc \
-   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs', 'tries');" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
-
-  if [[ "${tables_after_drop}" -gt 0 ]]; then
-   log_warning "Warning: ${tables_after_drop} base tables still exist after drop attempt"
-   log_warning "This may indicate a connection or transaction issue"
-   log_warning "Retrying drop operation..."
-   # Retry drop with explicit transaction
-   ${psql_cmd} -d "${DBNAME}" -c "BEGIN; DROP TABLE IF EXISTS countries CASCADE; DROP TABLE IF EXISTS tries CASCADE; COMMIT;" > /dev/null 2>&1 || true
-   ${psql_cmd} -d "${DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_13_dropBaseTables.sql" > /dev/null 2>&1 || true
-   sleep 1
-
-   # Final verification
-   tables_after_drop=$(${psql_cmd} -d "${DBNAME}" -tAqc \
-    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs', 'tries');" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
-
-   if [[ "${tables_after_drop}" -gt 0 ]]; then
-    log_error "ERROR: Failed to drop base tables. ${tables_after_drop} tables still exist"
-    log_error "This will cause processAPINotes to think tables exist when they should not"
-    return 1
-   fi
-  fi
-
-  log_success "Base tables dropped and verified (${tables_exist} -> 0 tables)"
- else
-  log_info "Base tables don't exist (already clean)"
- fi
-
- # Final verification before returning
- local final_check
- final_check=$(${psql_cmd} -d "${DBNAME}" -tAqc \
-  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('countries', 'notes', 'note_comments', 'logs', 'tries');" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
-
- if [[ "${final_check}" -eq 0 ]]; then
+ if [[ "${tables_exist}" -eq 0 ]]; then
   log_success "Verified: No base tables exist (ready for processPlanetNotes.sh --base)"
   return 0
  else
-  log_error "ERROR: Base tables still exist after drop operation (${final_check} tables found)"
+  log_error "ERROR: Base tables still exist after cleanupAll.sh (${tables_exist} tables found)"
+  log_error "This indicates cleanupAll.sh did not clean the database correctly"
   return 1
  fi
 }
@@ -534,7 +488,7 @@ ensure_real_psql() {
  # Store the directory path for cleanup
  export HYBRID_MOCK_DIR="${hybrid_mock_dir}"
 
- # Copy only the mocks we want (aria2c, wget, pgrep, ogr2ogr)
+ # Copy only the mocks we want (aria2c, wget, curl, pgrep, ogr2ogr)
  if [[ -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
   cp "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
   chmod +x "${hybrid_mock_dir}/aria2c"
@@ -542,6 +496,10 @@ ensure_real_psql() {
  if [[ -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
   cp "${MOCK_COMMANDS_DIR}/wget" "${hybrid_mock_dir}/wget"
   chmod +x "${hybrid_mock_dir}/wget"
+ fi
+ if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
+  cp "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
+  chmod +x "${hybrid_mock_dir}/curl"
  fi
  if [[ -f "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
   cp "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
@@ -562,8 +520,8 @@ ensure_real_psql() {
   return 1
  fi
 
- # Set PATH: hybrid mock dir first (for aria2c/wget/ogr2ogr), then real psql dir, then rest
- # This ensures mock aria2c/wget/ogr2ogr are found before real ones, but real psql is found
+ # Set PATH: hybrid mock dir first (for aria2c/wget/curl/ogr2ogr), then real psql dir, then rest
+ # This ensures mock aria2c/wget/curl/ogr2ogr are found before real ones, but real psql is found
  # (since there's no psql in hybrid_mock_dir)
  export PATH="${hybrid_mock_dir}:${real_psql_dir}:${clean_path}"
  hash -r 2> /dev/null || true
@@ -991,10 +949,10 @@ main() {
  # Clean up any failed execution markers before running processPlanetNotes
  cleanup_lock_files
 
- # Ensure base tables are dropped (database should be empty from clean_test_database)
+ # Verify base tables are dropped (cleanupAll.sh should have done this)
  # This is a safety check to ensure processAPINotes.sh will detect missing tables
- if ! drop_base_tables; then
-  log_error "Failed to drop base tables. Cannot proceed with first execution."
+ if ! verify_base_tables_dropped; then
+  log_error "Base tables still exist after cleanupAll.sh. Cannot proceed with first execution."
   log_error "This will cause processAPINotes to incorrectly detect tables as existing"
   return 1
  fi
