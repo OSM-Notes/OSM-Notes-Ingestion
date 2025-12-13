@@ -1946,7 +1946,6 @@ chmod +x /usr/local/bin/check-osm-notes.sh
 - Error rates
 - Failed execution markers
 - Disk space usage
-- Database connection pool
 
 ---
 
@@ -2152,7 +2151,7 @@ __processXmlPartsParallel \
   "Planet"  # or "API" for API processing
 
 # Alternative: Use wrapper functions for API/Planet processing
-# For API: __splitXmlForParallelAPI() then __processApiXmlPart()
+# For API: __processApiXmlSequential()
 # For Planet: __splitXmlForParallelPlanet() then __processPlanetXmlPart()
 
 # Note: Consolidation is done in SQL, not via a separate function
@@ -2329,7 +2328,6 @@ note_id,action,text
 ### System Health
 
 - **Database Monitoring**:
-  - Connection pool status
   - Query performance
   - Index usage
 

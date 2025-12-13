@@ -243,7 +243,6 @@ __run_level_4() {
   "${SCRIPT_DIR}/unit/bash/processAPINotes.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotes_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotes_error_handling_improved.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/processAPINotes_parallel_error.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_sleep_logic.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/historical_data_validation.test.bats" \
@@ -396,7 +395,6 @@ __run_level_9() {
   "${SCRIPT_DIR}/integration/boundary_processing_error_integration.test.bats" \
   "${SCRIPT_DIR}/integration/wms_integration.test.bats" \
   "${SCRIPT_DIR}/integration/mock_planet_processing.test.bats" \
-  "${SCRIPT_DIR}/integration/processAPINotes_parallel_error_integration.test.bats" \
   "${SCRIPT_DIR}/integration/processAPI_historical_e2e.test.bats"; then
   __show_level_footer 9 "success"
   return 0

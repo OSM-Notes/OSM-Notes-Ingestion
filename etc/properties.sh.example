@@ -221,3 +221,4 @@ declare REASSIGN_NOTES_BATCH_SIZE="${REASSIGN_NOTES_BATCH_SIZE:-1000}"
 # Default: false (disabled)
 # shellcheck disable=SC2034
 declare CHECK_MISSING_MARITIMES="${CHECK_MISSING_MARITIMES:-false}"
+

@@ -693,7 +693,6 @@ psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
    ```
 
 2. **Check database connection in GeoServer:**
-   - Verify connection pool settings
    - Test database connection from GeoServer admin interface
    - Check credentials match `etc/properties.sh`
 

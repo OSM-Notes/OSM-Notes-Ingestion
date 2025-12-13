@@ -7,12 +7,12 @@
 # Status is calculated: 'close' if closed_at exists, 'open' otherwise
 # (Note: PostgreSQL ENUM uses 'close', not 'closed')
 # id_country is empty (NULL), filled later by PostgreSQL function
-# part_id is empty (NULL), will be set by PostgreSQL during COPY
+# part_id is empty (NULL) - used by Planet partitions
 # IMPORTANT: Standardized order for consistency - both Planet and API use the same order
 #   Order: status before closed_at (matches base table 'notes' structure)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-12-12
 
 BEGIN {
   # State variables for API format parsing
@@ -42,8 +42,7 @@ BEGIN {
     status = "open"
   }
   
-  # Output CSV in standardized order: note_id,latitude,longitude,created_at,status,closed_at,id_country,part_id
-  # This order is used for both Planet and API formats for consistency
+  # Output CSV in standardized order
   printf "%s,%s,%s,%s,%s,%s,,\n", note_id, note_lat, note_lon, date_created, status, date_closed
   
   # Reset state

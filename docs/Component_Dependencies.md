@@ -346,10 +346,7 @@ processAPINotes.sh
     ├─▶ validationFunctions.sh::__validate_xml_file() [optional]
     │   └─▶ Validates XML structure
     │
-    ├─▶ parallelProcessingFunctions.sh::__splitXmlForParallelAPI()
-    │   └─▶ Splits XML into parts
-    │
-    ├─▶ parallelProcessingFunctions.sh::__processApiXmlPart() [parallel]
+    ├─▶ processAPIFunctions.sh::__processApiXmlSequential()
     │   ├─▶ Executes: awk/extract_notes.awk
     │   │   └─▶ XML → CSV (notes)
     │   ├─▶ Executes: awk/extract_comments.awk
@@ -360,13 +357,9 @@ processAPINotes.sh
     ├─▶ validationFunctions.sh::__validate_csv_structure() [optional]
     │   └─▶ Validates CSV structure
     │
-    ├─▶ processAPIFunctions.sh::__loadApiNotes()
+    ├─▶ processAPIFunctions.sh::__processApiXmlSequential() [continued]
     │   └─▶ Executes: sql/process/processAPINotes_31_loadApiNotes.sql
-    │       └─▶ COPY CSV → PostgreSQL (partition tables)
-    │
-    ├─▶ processAPIFunctions.sh::__consolidatePartitions()
-    │   └─▶ Executes: sql/process/processAPINotes_35_consolidatePartitions.sql
-    │       └─▶ Merges partitions → API tables
+    │       └─▶ COPY CSV → PostgreSQL
     │
     ├─▶ processAPIFunctions.sh::__insertNewNotesAndComments()
     │   └─▶ Executes: sql/process/processAPINotes_32_insertNewNotesAndComments.sql
@@ -542,19 +535,13 @@ processAPINotes.sh SQL Execution Order:
     ├─▶ 2. processAPINotes_21_createApiTables.sql
     │   └─▶ Creates API tables
     │
-    ├─▶ 3. processAPINotes_22_createPartitions.sql
-    │   └─▶ Creates partition tables
-    │
-    ├─▶ 4. processAPINotes_23_createPropertiesTables.sql
+    ├─▶ 3. processAPINotes_23_createPropertiesTables.sql
     │   └─▶ Creates properties table
     │
-    ├─▶ 5. processAPINotes_31_loadApiNotes.sql
-    │   └─▶ Loads CSV into partitions (COPY command)
+    ├─▶ 4. processAPINotes_31_loadApiNotes.sql
+    │   └─▶ Loads CSV into API tables (COPY command)
     │
-    ├─▶ 6. processAPINotes_35_consolidatePartitions.sql
-    │   └─▶ Consolidates partitions
-    │
-    ├─▶ 7. processAPINotes_32_insertNewNotesAndComments.sql
+    ├─▶ 5. processAPINotes_32_insertNewNotesAndComments.sql
     │   ├─▶ Calls: insert_note() procedure
     │   │   └─▶ Defined in: functionsProcess_22_createProcedure_insertNote.sql
     │   │       └─▶ Uses: get_country() function
@@ -562,8 +549,11 @@ processAPINotes.sh SQL Execution Order:
     │   └─▶ Calls: insert_note_comment() procedure
     │       └─▶ Defined in: functionsProcess_23_createProcedure_insertNoteComment.sql
     │
-    └─▶ 8. processAPINotes_34_updateLastValues.sql
-        └─▶ Updates last processed sequence
+    ├─▶ 6. processAPINotes_33_loadNewTextComments.sql
+    │   └─▶ Loads comment texts into API tables
+    │
+    └─▶ 7. processAPINotes_34_updateLastValues.sql
+        └─▶ Updates last processed timestamp
 
 processPlanetNotes.sh SQL Execution Order:
     │
@@ -672,7 +662,7 @@ insert_note_comment(...)
 
 | Component | Depends On | Used By |
 |-----------|------------|---------|
-| `processAPINotes.sh` | `processAPIFunctions.sh`, `parallelProcessingFunctions.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh` | Cron jobs, manual execution |
+| `processAPINotes.sh` | `processAPIFunctions.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh` | Cron jobs, manual execution |
 | `processPlanetNotes.sh` | `processPlanetFunctions.sh`, `noteProcessingFunctions.sh`, `boundaryProcessingFunctions.sh`, `parallelProcessingFunctions.sh`, `functionsProcess.sh`, all common libraries | `processAPINotes.sh` (when threshold exceeded), manual execution |
 | `updateCountries.sh` | `boundaryProcessingFunctions.sh`, `processPlanetFunctions.sh`, `functionsProcess.sh`, `overpassFunctions.sh`, all common libraries | Monthly cron jobs, manual execution |
 | `functionsProcess.sh` | `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `securityFunctions.sh`, `overpassFunctions.sh` | All processing scripts, all `bin/lib/*.sh` |
@@ -680,7 +670,7 @@ insert_note_comment(...)
 | `processPlanetFunctions.sh` | `functionsProcess.sh` | `processPlanetNotes.sh`, `updateCountries.sh` |
 | `noteProcessingFunctions.sh` | `functionsProcess.sh` | `processPlanetNotes.sh` |
 | `boundaryProcessingFunctions.sh` | `functionsProcess.sh`, `overpassFunctions.sh` | `processPlanetNotes.sh`, `updateCountries.sh` |
-| `parallelProcessingFunctions.sh` | `commonFunctions.sh` | `processAPINotes.sh`, `processPlanetNotes.sh` |
+| `parallelProcessingFunctions.sh` | `commonFunctions.sh` | `processPlanetNotes.sh` |
 | `overpassFunctions.sh` | `commonFunctions.sh` | `boundaryProcessingFunctions.sh` |
 | `commonFunctions.sh` | `bash_logger.sh` (internal) | All scripts and libraries |
 | `validationFunctions.sh` | `commonFunctions.sh` | `functionsProcess.sh`, processing scripts |
@@ -692,7 +682,6 @@ insert_note_comment(...)
 | SQL Script | Depends On | Creates/Modifies |
 |------------|------------|------------------|
 | `processAPINotes_21_createApiTables.sql` | PostgreSQL, PostGIS | `notes_api`, `note_comments_api`, `note_comments_text_api` |
-| `processAPINotes_22_createPartitions.sql` | API tables | Partition tables (`notes_api_part_*`) |
 | `processAPINotes_32_insertNewNotesAndComments.sql` | `insert_note()`, `insert_note_comment()` procedures | `notes`, `note_comments`, `note_comments_text` |
 | `functionsProcess_21_createFunctionToGetCountry.sql` | `countries`, `maritimes`, `notes` tables, PostGIS | `get_country()` function |
 | `functionsProcess_22_createProcedure_insertNote.sql` | `get_country()` function, `notes`, `properties` tables | `insert_note()` procedure |

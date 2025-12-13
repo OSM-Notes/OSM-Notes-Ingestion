@@ -52,8 +52,8 @@ This script sets up a complete mock environment where:
 
 The script executes processAPINotes.sh FOUR TIMES:
   1. First execution: Resets base tables marker, triggering processPlanetNotes.sh --base
-  2. Second execution: Base tables exist, uses 5 notes for sequential processing (< 10)
-  3. Third execution: Uses 20 notes for parallel processing (>= 10)
+  2. Second execution: Base tables exist, uses 5 notes for sequential processing
+  3. Third execution: Uses 20 notes for sequential processing
   4. Fourth execution: No new notes (empty response) - tests handling of no updates
 
 Usage:
@@ -406,15 +406,15 @@ main() {
   # Wait a moment between executions
   sleep 2
 
-  # Third execution: Use 20 notes for parallel processing
-  log_info "=== THIRD EXECUTION: Parallel processing (>= 10 notes) ==="
+  # Third execution: Use 20 notes for sequential processing
+  log_info "=== THIRD EXECUTION: Sequential processing (>= 10 notes) ==="
   cleanup_lock_files
 
-  # Set MOCK_NOTES_COUNT to 20 for parallel processing (above MIN_NOTES_FOR_PARALLEL=10)
+  # Set MOCK_NOTES_COUNT to 20 for sequential processing
   export MOCK_NOTES_COUNT="20"
-  log_info "Using ${MOCK_NOTES_COUNT} notes for parallel processing test"
+  log_info "Using ${MOCK_NOTES_COUNT} notes for sequential processing test"
 
-  # Run processAPINotes (third time - parallel processing)
+  # Run processAPINotes (third time - sequential processing)
   if ! run_processAPINotes 3; then
     log_error "Third execution failed"
     exit_code=$?
