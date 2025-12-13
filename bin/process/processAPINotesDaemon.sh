@@ -274,13 +274,16 @@ function __daemon_status {
 }
 
 # Check prerequisites for daemon
-function __checkPrereqs {
- __log_start
- # Checks prereqs.
- __checkPrereqsCommands
- __checkPrereqs_functions
- __log_finish
-}
+# Only define if not already set (e.g., when sourced from processAPINotes.sh)
+if ! declare -f __checkPrereqs > /dev/null 2>&1; then
+ function __checkPrereqs {
+  __log_start
+  # Checks prereqs.
+  __checkPrereqsCommands
+  __checkPrereqs_functions
+  __log_finish
+ }
+fi
 
 # Check if processPlanetNotes is running
 function __checkNoProcessPlanet {
@@ -295,15 +298,18 @@ function __checkNoProcessPlanet {
 }
 
 # Creates table properties during the execution.
-function __createPropertiesTable {
- __log_start
- __logi "=== CREATING PROPERTIES TABLE ==="
- __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
- __log_finish
-}
+# Only define if not already set (e.g., when sourced from processAPINotes.sh)
+if ! declare -f __createPropertiesTable > /dev/null 2>&1; then
+ function __createPropertiesTable {
+  __log_start
+  __logi "=== CREATING PROPERTIES TABLE ==="
+  __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
+  __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
+  __log_finish
+ }
+fi
 
 # Ensures get_country function exists before creating procedures.
 # The procedures (insert_note, insert_note_comment) require get_country to exist.
