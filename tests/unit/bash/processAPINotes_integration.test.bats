@@ -140,12 +140,6 @@ teardown() {
  run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
  [ "$status" -eq 0 ]
  
- # Create partitions with environment variable substitution
- local partition_script="${TMP_DIR}/createPartitions_test.sql"
- sed "s/\$MAX_THREADS/2/g" "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_22_createPartitions.sql" > "${partition_script}"
- run psql -d "${TEST_DBNAME}" -f "${partition_script}"
- [ "$status" -eq 0 ]
- 
  # Create properties table
  run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
  [ "$status" -eq 0 ]
@@ -166,13 +160,11 @@ teardown() {
 @test "processAPINotes SQL files should be valid" {
  local SQL_FILES=(
    "sql/process/processAPINotes_21_createApiTables.sql"
-   "sql/process/processAPINotes_22_createPartitions.sql"
    "sql/process/processAPINotes_23_createPropertiesTables.sql"
    "sql/process/processAPINotes_31_loadApiNotes.sql"
    "sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
    "sql/process/processAPINotes_33_loadNewTextComments.sql"
    "sql/process/processAPINotes_34_updateLastValues.sql"
-   "sql/process/processAPINotes_35_consolidatePartitions.sql"
  )
  
  for SQL_FILE in "${SQL_FILES[@]}"; do

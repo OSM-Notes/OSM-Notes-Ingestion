@@ -1,4 +1,4 @@
--- Loads the notes and note comments on the API tables (simplified, no partitioning)
+-- Loads the notes and note comments on the API tables
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-12-12

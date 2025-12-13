@@ -18,7 +18,8 @@ maintains the complete history.
 
 - **Incremental Processing**: Only downloads and processes new or modified notes
 - **Intelligent Synchronization**: Automatically determines when to perform complete synchronization from Planet
-- **Parallel Processing**: Uses partitioning to efficiently process large volumes
+- **Sequential Processing**: Efficient sequential processing optimized for incremental updates
+- **Connection Pooling**: Uses a single persistent connection pool to reduce database overhead
 - **Planet Integration**: Integrates with `processPlanetNotes.sh` when necessary
 
 ## Design Context
@@ -39,11 +40,12 @@ The API processing design was created to handle incremental updates efficiently 
 - This prevents processing large API datasets inefficiently
 - Leverages the proven Planet processing pipeline for better reliability
 
-**Parallel Processing with Partitions**:
+**Connection Pooling**:
 
-- Uses database partitions equal to `MAX_THREADS` (CPU cores - 2)
-- Each thread processes its own partition, avoiding lock contention
-- Divides work into more parts than threads for better load balancing (see [Rationale.md](./Rationale.md) for details)
+- Uses a single persistent connection pool to minimize database connection overhead
+- All database operations use the connection pool wrapper functions
+- Automatically recovers if the connection is lost
+- See [Connection Pool Implementation](./Connection_Pool_Implementation.md) for details
 
 ### Design Patterns Used
 
@@ -55,12 +57,12 @@ The API processing design was created to handle incremental updates efficiently 
 ### Alternatives Considered
 
 - **Single Script Approach**: Considered combining API and Planet processing into one script, but rejected to maintain separation of concerns and allow independent optimization
-- **Different Partitioning Strategy**: Evaluated fixed partitions vs. dynamic partitions based on data volume; chose dynamic for better resource utilization
-- **Synchronous Processing**: Considered sequential processing but chose parallel for performance with large datasets
+- **Partitioning Strategy**: Evaluated partitioning for API processing but chose sequential processing for simpler architecture and better suitability for incremental updates
+- **Connection Pooling**: Evaluated multiple connection strategies and chose single persistent connection for optimal performance with frequent small queries
 
 ### Trade-offs
 
-- **Complexity vs. Performance**: Parallel processing adds complexity but significantly improves performance for large datasets
+- **Simplicity vs. Performance**: Sequential processing with connection pooling provides good performance for incremental updates while maintaining simplicity
 - **Validation Speed**: Optional validations can be skipped (`SKIP_XML_VALIDATION`, `SKIP_CSV_VALIDATION`) for faster processing in production
 - **Error Recovery**: Comprehensive error handling adds overhead but ensures system reliability and easier debugging
 
@@ -312,13 +314,13 @@ grep -i "gap" "$LATEST_DIR/processAPINotes.log"
 # If suspicious, may need to run processPlanetNotes.sh for full sync
 ```
 
-**Parallel processing failures:**
+**Connection pool failures:**
 
 ```bash
-# Error: Parallel processing failed
+# Error: Connection pool failed
 # Diagnosis:
 LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "parallel\|partition" "$LATEST_DIR/processAPINotes.log"
+grep -i "connection pool\|pool.*failed" "$LATEST_DIR/processAPINotes.log"
 
 # Solution:
 # 1. Check memory: free -h
@@ -474,11 +476,12 @@ processAPINotes.sh
     ├─▶ Calls: processAPIFunctions.sh
     │   ├─▶ __getNewNotesFromApi()
     │   ├─▶ __countXmlNotesAPI()
-    │   └─▶ __processApiXmlPart()
+    │   └─▶ __processApiXmlSequential()
     │
-    ├─▶ Calls: parallelProcessingFunctions.sh
-    │   ├─▶ __splitXmlForParallelAPI()
-    │   └─▶ __processApiXmlPart() [parallel]
+    ├─▶ Calls: databaseConnectionPool.sh
+    │   ├─▶ __db_simple_pool_init()
+    │   ├─▶ __db_query_pool()
+    │   └─▶ __db_execute_file_pool()
     │
     ├─▶ Calls: validationFunctions.sh
     │   ├─▶ __validateApiNotesXMLFileComplete()
@@ -502,10 +505,10 @@ processAPINotes.sh
     │   └─▶ awk/extract_comment_texts.awk
     │
     └─▶ Executes: SQL scripts
-        ├─▶ sql/process/41_create_api_tables.sql
-        ├─▶ sql/process/42_create_partitions.sql
-        ├─▶ sql/process/43_load_partitioned_api_notes.sql
-        └─▶ sql/process/44_consolidate_partitions.sql
+        ├─▶ sql/process/processAPINotes_21_createApiTables.sql
+        ├─▶ sql/process/processAPINotes_31_loadApiNotes.sql
+        ├─▶ sql/process/processAPINotes_32_insertNewNotesAndComments.sql
+        └─▶ sql/process/processAPINotes_33_loadNewTextComments.sql
 ```
 
 ### Automated Execution
@@ -639,46 +642,37 @@ source bin/lib/processAPIFunctions.sh
 # Create API tables (called automatically by processAPINotes.sh)
 __createApiTables
 
-# Create partitions for parallel processing
-# Number of partitions = MAX_THREADS (default: CPU cores - 2)
-NUM_PARTITIONS=$(($(nproc) - 2))
-__createPartitions "${NUM_PARTITIONS}"
-
 # Verify tables were created
-psql -d "${DBNAME}" -c "
-  SELECT 
-    schemaname,
-    tablename,
-    tableowner
-  FROM pg_tables
-  WHERE tablename LIKE 'notes_api%'
-  ORDER BY tablename;
-"
+__db_query_pool "SELECT 
+  schemaname,
+  tablename,
+  tableowner
+FROM pg_tables
+WHERE tablename LIKE 'notes_api%'
+ORDER BY tablename;"
 
-# Example: Load data into a partition table
-__loadApiNotes "${CSV_FILE}" 0  # Load into partition 0
-
-# After all partitions are loaded, consolidate them
-__consolidatePartitions
+# Example: Load data into API tables (sequential processing)
+__processApiXmlSequential "${XML_FILE}"
 ```
 
-**SQL Example: Partition Table Structure**
+**SQL Example: API Table Structure**
 
 ```sql
--- Example partition table structure
--- Created by: sql/process/processAPINotes_42_create_partitions.sql
+-- Example API table structure
+-- Created by: sql/process/processAPINotes_21_createApiTables.sql
 
-CREATE TABLE IF NOT EXISTS notes_api_partition_0 (
-  LIKE notes_api INCLUDING ALL
+CREATE TABLE IF NOT EXISTS notes_api (
+  note_id INTEGER NOT NULL,
+  latitude DECIMAL NOT NULL,
+  longitude DECIMAL NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  closed_at TIMESTAMP,
+  status note_status_enum,
+  id_country INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS notes_api_partition_1 (
-  LIKE notes_api INCLUDING ALL
-);
-
--- After processing, data is consolidated:
--- INSERT INTO notes_api SELECT * FROM notes_api_partition_0;
--- INSERT INTO notes_api SELECT * FROM notes_api_partition_1;
+-- Data is loaded directly into API tables using COPY command
+-- No partitions are needed for sequential processing
 ```
 
 ### Base Tables (Permanent)
@@ -751,8 +745,8 @@ Manual/Daemon
          ├─▶ __createApiTables()
          │   └─▶ Create temporary API tables
          │
-         ├─▶ __createPartitions()
-         │   └─▶ Create partitions for parallel processing
+         ├─▶ __db_simple_pool_init()
+         │   └─▶ Initialize database connection pool
          │
          ├─▶ __createPropertiesTable()
          │   └─▶ Create properties tracking table
@@ -793,20 +787,13 @@ Manual/Daemon
          │   │   │       │   │
          │   │   │       │   ├─▶ YES: Parallel processing
          │   │   │       │   │   ├─▶ __checkMemoryForProcessing()
-         │   │   │       │   │   ├─▶ __splitXmlForParallelAPI()
-         │   │   │       │   │   └─▶ __processApiXmlPart() [parallel]
-         │   │   │       │   │       ├─▶ AWK: XML → CSV
-         │   │   │       │   │       ├─▶ Validate CSV structure
-         │   │   │       │   │       └─▶ Load to DB partition
          │   │   │       │   │
-         │   │   │       │   └─▶ NO: Sequential processing
+         │   │   │       │   └─▶ Sequential processing
          │   │   │       │       └─▶ __processApiXmlSequential()
          │   │   │       │           ├─▶ AWK: XML → CSV
-         │   │   │       │           └─▶ Load to DB
+         │   │   │       │           ├─▶ Validate CSV structure
+         │   │   │       │           └─▶ Load to DB (using connection pool)
          │   │   │
-         │   │   └─▶ __consolidatePartitions()
-         │   │       └─▶ Merge partition data
-         │   │
          │   ├─▶ __insertNewNotesAndComments()
          │   │   └─▶ Insert notes and comments to base tables
          │   │
@@ -837,8 +824,9 @@ Manual/Daemon
 #### 2. API Table Management
 
 - Removes existing API tables
-- Creates new API tables with partitioning
+- Creates new API tables (no partitioning)
 - Creates properties table for tracking
+- Initializes database connection pool
 
 #### 3. Data Download
 
@@ -857,13 +845,13 @@ Manual/Daemon
 **If downloaded notes < MAX_NOTES**:
 
 - Processes downloaded notes locally
-- Uses parallel processing with partitioning
+- Uses sequential processing with connection pooling
 
-#### 5. Parallel Processing
+#### 5. Sequential Processing
 
-- Divides XML file into parts
-- Processes each part in parallel using AWK extraction
-- Consolidates results from all partitions
+- Processes XML file sequentially using AWK extraction
+- Loads data directly into API tables using connection pool
+- Validates CSV structure before loading
 
 ### 6. Data Integration
 
@@ -879,9 +867,6 @@ The following example shows how API data is integrated into base tables:
 ```bash
 # Source the API processing functions
 source bin/lib/processAPIFunctions.sh
-
-# After API notes are loaded into partition tables, consolidate them
-__consolidatePartitions
 
 # Insert new notes and comments from API tables to base tables
 # This uses stored procedures for efficient bulk insertion
@@ -985,15 +970,11 @@ User/Daemon        processAPINotesDaemon.sh    OSM API      PostgreSQL    AWK Sc
     │                      │               │              │              │
     │                      │   [If YES: Call processPlanetNotes.sh]       │
     │                      │               │              │              │
-    │                      │───__splitXmlForParallelAPI()───▶│              │
+    │                      │───__processApiXmlSequential()──▶│              │
     │                      │               │              │              │
     │                      │               │              │              │
-    │                      │───split XML into parts─────────▶│              │
-    │                      │◀───part files created──────────│              │
+    │                      │───process XML file──────────────▶│              │
     │                      │               │              │              │
-    │                      │───__processApiXmlPart() [parallel]            │
-    │                      │               │              │              │
-    │                      │───process part_0.xml────────────▶│              │
     │                      │               │              │              │
     │                      │               │              │───extract_notes.awk──▶│
     │                      │               │              │◀───CSV output─────────│
@@ -1004,12 +985,8 @@ User/Daemon        processAPINotesDaemon.sh    OSM API      PostgreSQL    AWK Sc
     │                      │───COPY CSV to partition_0───────▶│              │
     │                      │◀───data loaded───────────────────│              │
     │                      │               │              │              │
-    │                      │───[Repeat for all parts in parallel]          │
-    │                      │               │              │              │
-    │                      │───__consolidatePartitions()─────▶│              │
-    │                      │               │              │              │
-    │                      │───INSERT INTO notes_api─────────▶│              │
-    │                      │◀───consolidated──────────────────│              │
+    │                      │───load CSV into notes_api───────▶│              │
+    │                      │◀───data loaded───────────────────│              │
     │                      │               │              │              │
     │                      │───__insertNewNotesAndComments()──▶│              │
     │                      │               │              │              │
@@ -1745,3 +1722,4 @@ touch /tmp/processAPINotesDaemon_shutdown
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
 - **Planet Processing**: See [Process_Planet.md](./Process_Planet.md) for Planet data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
+

@@ -1,9 +1,9 @@
--- Create API tables (simplified, no partitioning for sequential processing)
+-- Create API tables
 --
 -- Author: Andres Gomez (AngocA)
 -- Version: 2025-12-12
 
--- Create table for notes_api (no partitioning, simplified for sequential processing)
+-- Create table for notes_api
 CREATE TABLE IF NOT EXISTS notes_api (
  note_id INTEGER NOT NULL,
  latitude DECIMAL NOT NULL,
@@ -26,7 +26,7 @@ COMMENT ON COLUMN notes_api.closed_at IS 'Timestamp when the note was closed';
 COMMENT ON COLUMN notes_api.id_country IS
   'Country id where the note is located';
 
--- Create table for note_comments_api (no partitioning)
+-- Create table for note_comments_api
 CREATE TABLE IF NOT EXISTS note_comments_api (
  id SERIAL,
  note_id INTEGER NOT NULL,
@@ -55,7 +55,7 @@ COMMENT ON COLUMN note_comments_api.created_at IS
 COMMENT ON COLUMN note_comments_api.id_user IS
   'OSM id of the user who performed the action';
 
--- Create table for note_comments_text_api (no partitioning)
+-- Create table for note_comments_text_api
 CREATE TABLE IF NOT EXISTS note_comments_text_api (
  id SERIAL,
  note_id INTEGER NOT NULL,

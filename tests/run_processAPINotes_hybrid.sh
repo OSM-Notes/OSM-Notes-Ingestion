@@ -1036,15 +1036,15 @@ main() {
  # Wait a moment between executions
  sleep 2
 
- # Third execution: Use 20 notes for parallel processing
- log_info "=== THIRD EXECUTION: Parallel processing (>= 10 notes) ==="
- cleanup_lock_files
+  # Third execution: Use 20 notes for sequential processing
+  log_info "=== THIRD EXECUTION: Sequential processing (>= 10 notes) ==="
+  cleanup_lock_files
 
- # Set MOCK_NOTES_COUNT to 20 for parallel processing (above MIN_NOTES_FOR_PARALLEL=10)
- export MOCK_NOTES_COUNT="20"
- log_info "Using ${MOCK_NOTES_COUNT} notes for parallel processing test"
+  # Set MOCK_NOTES_COUNT to 20 for sequential processing
+  export MOCK_NOTES_COUNT="20"
+  log_info "Using ${MOCK_NOTES_COUNT} notes for sequential processing test"
 
- # Run processAPINotes (third time - parallel processing)
+  # Run processAPINotes (third time - sequential processing)
  if ! run_processAPINotes 3; then
   log_error "Third execution failed"
   exit_code=$?

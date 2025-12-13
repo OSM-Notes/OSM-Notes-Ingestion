@@ -48,13 +48,11 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
   # Check if required SQL files exist
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_12_dropApiTables.sql" ]
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_21_createApiTables.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_22_createPartitions.sql" ]
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_23_createPropertiesTables.sql" ]
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_31_loadApiNotes.sql" ]
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql" ]
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_33_loadNewTextComments.sql" ]
   [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_34_updateLastValues.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_35_consolidatePartitions.sql" ]
 }
 
 @test "AWK files should exist" {

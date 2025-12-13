@@ -5,8 +5,7 @@
 #
 # Output format: note_id,sequence_action,"body",part_id
 # sequence_action is a counter starting from 1 for each note
-# part_id is empty (NULL) - used by Planet partitions, removed by API before COPY
-# NOTE: Planet needs part_id for partitioned tables, API removes it before COPY
+# part_id is empty (NULL) - used by Planet partitions
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-12
@@ -89,8 +88,7 @@ in_note && /^\s*<id>/ {
     # Trim whitespace
     gsub(/^[ \t]+|[ \t]+$/, "", text)
     
-    # Output CSV with PostgreSQL column names
-    # Format: note_id,sequence_action,"body",part_id
+    # Output CSV
     printf "%s,%s,\"%s\",\n", note_id, comment_seq, text
   } else if (match($0, /<comment[^>]*>(.*)/, content)) {
     # Multiline comment start
@@ -160,7 +158,6 @@ in_comments && in_text {
     gsub(/^[ \t]+|[ \t]+$/, "", comment_text)
     
     # Output CSV
-    # Format: note_id,sequence_action,"body",part_id,part_id
     printf "%s,%s,\"%s\",\n", note_id, comment_seq, comment_text
     
     # Reset state
@@ -192,8 +189,7 @@ in_comment && !/<comment / {
     # Trim whitespace
     gsub(/^[ \t]+|[ \t]+$/, "", comment_text)
     
-    # Output CSV with PostgreSQL column names
-    # Format: note_id,sequence_action,"body",part_id
+    # Output CSV
     printf "%s,%s,\"%s\",\n", note_id, comment_seq, comment_text
     
     # Reset state

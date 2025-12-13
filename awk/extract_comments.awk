@@ -4,8 +4,7 @@
 #
 # Output format: note_id,sequence_action,event,created_at,id_user,username,part_id
 # sequence_action is a counter starting from 1 for each note
-# part_id is empty (NULL) - used by Planet partitions, removed by API before COPY
-# NOTE: Planet needs part_id for partitioned tables, API removes it before COPY
+# part_id is empty (NULL) - used by Planet partitions
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-12
@@ -86,7 +85,7 @@ in_note && /^\s*<id>/ {
     username = ""
   }
   
-  # Output CSV in correct order: note_id,sequence_action,event,created_at,id_user,username,part_id
+  # Output CSV in correct order
   printf "%s,%s,%s,%s,%s,%s,\n", note_id, comment_seq, event, created_at, id_user, username
   next
 }
@@ -127,7 +126,7 @@ in_comments && /^\s*<action>/ {
 
 # API format: end of comment tag, output
 in_comments && /^\s*<\/comment>/ {
-  # Output CSV in correct order: note_id,sequence_action,event,created_at,id_user,username,part_id
+  # Output CSV in correct order
   printf "%s,%s,%s,%s,%s,%s,\n", note_id, comment_seq, comment_action, comment_date, comment_uid, comment_user
   
   # Reset for next comment

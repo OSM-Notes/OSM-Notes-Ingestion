@@ -189,7 +189,6 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/databaseConnectionPool.sh"
 
 # Wrapper functions to use connection pool for processAPINotes queries
 # These functions use the simple persistent connection pool
-# Note: All database operations use connection pool (simplified sequential processing)
 
 # Execute SQL query using connection pool
 # Parameters:
@@ -693,7 +692,6 @@ function __validateApiNotesXMLFileComplete {
 # 3451247,'If you are in the area, could you please survey a more exact location for Nothing Bundt Cakes and move the node to that location? Thanks!'
 
 # Checks if the quantity of notes requires synchronization with Planet
-# Uses sequential processing for all cases (simplified for daemon mode)
 function __processXMLorPlanet {
  __log_start
 
@@ -801,19 +799,15 @@ function __processApiXmlSequential {
 
  __logi "✓ All CSV validations passed for sequential processing"
 
- # No part_id needed for sequential processing
-
  __logi "=== LOADING SEQUENTIAL DATA INTO DATABASE ==="
  __logd "Database: ${DBNAME}"
 
- # Load into database (simplified, no partitioning)
- # Remove part_id column from CSV files (last column) since API tables don't have it
- # Planet needs part_id, but API tables don't, so we remove it before COPY
+ # Load into database
  __logd "Removing part_id column from CSV files for API (last column with trailing comma)"
  local SEQ_OUTPUT_NOTES_CLEANED="${SEQ_OUTPUT_NOTES_FILE}.cleaned"
  local SEQ_OUTPUT_COMMENTS_CLEANED="${SEQ_OUTPUT_COMMENTS_FILE}.cleaned"
  local SEQ_OUTPUT_TEXT_CLEANED="${SEQ_OUTPUT_TEXT_FILE}.cleaned"
- # Remove last column (part_id) from each CSV: remove trailing comma and empty field
+ # Remove last column (part_id) from each CSV
  sed 's/,$//' "${SEQ_OUTPUT_NOTES_FILE}" > "${SEQ_OUTPUT_NOTES_CLEANED}"
  sed 's/,$//' "${SEQ_OUTPUT_COMMENTS_FILE}" > "${SEQ_OUTPUT_COMMENTS_CLEANED}"
  sed 's/,$//' "${SEQ_OUTPUT_TEXT_FILE}" > "${SEQ_OUTPUT_TEXT_CLEANED}"
@@ -834,7 +828,7 @@ function __processApiXmlSequential {
  __log_finish
 }
 
-# Inserts new notes and comments into the database (simplified, sequential only)
+# Inserts new notes and comments into the database
 function __insertNewNotesAndComments {
  __log_start
 

@@ -43,7 +43,6 @@ setup() {
  __dropApiTables() { return 0; }
  __checkNoProcessPlanet() { return 0; }
  __createApiTables() { return 0; }
- __createPartitions() { return 0; }
  __createPropertiesTable() { return 0; }
 
  # Set up constants
