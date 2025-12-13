@@ -71,14 +71,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `bin/process/processAPINotes.sh` (version updated to 2025-12-13)
     - `bin/process/processAPINotesDaemon.sh` (version updated to 2025-12-13)
 
+- **Fixed `app.integrity_check_passed` variable not persisting between transactions** (2025-12-13):
+  - **Problem**: The `app.integrity_check_passed` variable was set using `set_config(..., false)`, which makes it local to the current transaction. When `__updateLastValue` executed in a separate transaction, it couldn't access the variable, defaulting to `FALSE` and skipping timestamp updates
+  - **Impact**: In production, `max_note_timestamp` was not being updated even when notes were successfully processed, causing the daemon to repeatedly process the same notes
+  - **Solution**: Changed `set_config('app.integrity_check_passed', ..., false)` to `set_config('app.integrity_check_passed', ..., true)` to make the variable persist at the session level across transactions
+  - **Files changed**:
+    - `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (line 235, version updated to 2025-12-13)
+
+- **Fixed `app.integrity_check_passed` variable not persisting between transactions** (2025-12-13):
+  - **Problem**: The `app.integrity_check_passed` variable was set using `set_config(..., false)`, which makes it local to the current transaction. When `__updateLastValue` executed in a separate transaction, it couldn't access the variable, defaulting to `FALSE` and skipping timestamp updates
+  - **Impact**: In production, `max_note_timestamp` was not being updated even when notes were successfully processed, causing the daemon to repeatedly process the same notes
+  - **Solution**: Changed `set_config('app.integrity_check_passed', ..., false)` to `set_config('app.integrity_check_passed', ..., true)` to make the variable persist at the session level across transactions
+  - **Files changed**:
+    - `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (line 235, version updated to 2025-12-13)
+
 - **Root cause analysis**:
   - The daemon was correctly checking for updates using the right URL format
   - However, when downloading notes, it used a simplified function that didn't include the date filter
   - Additionally, timestamp formatting had incorrect quote escaping in SQL queries
   - The timeout was too short for large downloads (10,000 notes can take 60-90 seconds)
+  - The `app.integrity_check_passed` variable wasn't persisting between transactions, preventing timestamp updates
   - All issues combined prevented any new notes from being processed since December 9, 2025
 
 ### Added
+
+#### Enhanced Hybrid Test Verification for Timestamp Updates (2025-12-13)
+
+- **Improved test detection of timestamp update failures**:
+  - **Change**: Enhanced `tests/run_processAPINotes_hybrid.sh` to verify that `max_note_timestamp` is actually updated after each execution
+  - **Rationale**: Previous test only checked exit codes, which didn't catch cases where processing completed but timestamp wasn't updated (e.g., due to `set_config` persistence issues)
+  - **Implementation**:
+    - Added `verify_timestamp_updated()` function that compares timestamp before and after execution
+    - Only fails if there are newer notes but timestamp wasn't updated (allows for cases with no new notes)
+    - Provides clear error messages indicating the root cause (e.g., `app.integrity_check_passed` not persisting)
+  - **Impact**: Test now catches issues like the `set_config(..., false)` bug that prevented timestamp updates in production
+  - **Files changed**:
+    - `tests/run_processAPINotes_hybrid.sh` (version updated to 2025-12-13)
 
 #### Daemon Mode for API Processing
 
