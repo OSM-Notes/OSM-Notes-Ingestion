@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-api-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-12
-VERSION="2025-12-12"
+# Version: 2025-12-13
+VERSION="2025-12-13"
 
 #set -xv
 set -u
@@ -112,6 +112,12 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+
+# Load processAPINotes.sh to get processing functions
+# (__processXMLorPlanet, __insertNewNotesAndComments, __loadApiTextComments, __updateLastValue)
+# The script detects when it's being sourced and only loads functions, doesn't execute main
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
 
 # Shows help information
 function __show_help {

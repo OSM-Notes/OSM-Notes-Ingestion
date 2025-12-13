@@ -38,8 +38,8 @@
 # For contributing: shellcheck -x -o all processAPINotes.sh && shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-12
-VERSION="2025-12-12"
+# Version: 2025-12-13
+VERSION="2025-12-13"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -772,7 +772,8 @@ function __insertNewNotesAndComments {
  __log_start
 
  # Generate unique process ID with timestamp to avoid conflicts
- local PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
+ local PROCESS_ID
+ PROCESS_ID="${$}_$(date +%s)_${RANDOM}"
 
  # Set lock with retry logic and better error handling
  local LOCK_RETRY_COUNT=0
@@ -1367,19 +1368,25 @@ declare -i RET
 chmod go+x "${TMP_DIR}" 2> /dev/null || true
 
 # If running from cron (no TTY), redirect logger initialization
-# and main execution to the log file to keep cron silent
-if [[ ! -t 1 ]]; then
- export LOG_FILE="${LOG_FILENAME}"
- {
+# Check if script is being sourced (not executed directly)
+# When sourced, ${BASH_SOURCE[0]} != ${0}
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+ # Script is being executed directly, run main function
+ # and main execution to the log file to keep cron silent
+ if [[ ! -t 1 ]]; then
+  export LOG_FILE="${LOG_FILENAME}"
+  {
+   __start_logger
+   main
+  } >> "${LOG_FILENAME}" 2>&1
+  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
+   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+   # Protect rmdir from causing script exit if it fails (e.g., TMP_DIR not empty or doesn't exist)
+   rmdir "${TMP_DIR}" 2> /dev/null || true
+  fi
+ else
   __start_logger
   main
- } >> "${LOG_FILENAME}" 2>&1
- if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-  # Protect rmdir from causing script exit if it fails (e.g., TMP_DIR not empty or doesn't exist)
-  rmdir "${TMP_DIR}" 2> /dev/null || true
  fi
-else
- __start_logger
- main
+# else: script is being sourced, do nothing (just load functions)
 fi

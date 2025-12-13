@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### API Processing Simplified to Sequential Mode (2025-12-12)
+
+- **Removed parallel processing from API processing**:
+  - **Change**: API processing (`processAPINotes.sh`) now uses sequential processing instead of parallel processing
+  - **Rationale**: For daemon mode with frequent small incremental updates (every 60 seconds), parallelism overhead is not justified
+  - **Impact**:
+    - Simplified codebase and reduced complexity
+    - Lower memory footprint for small incremental updates
+    - Faster startup time for daemon cycles
+    - All operations now use connection pool consistently
+  - **Technical details**:
+    - Removed parallel processing logic from `processAPINotes.sh`
+    - Simplified API tables (removed partitioning)
+    - Converted `__createPartitions` and `__consolidatePartitions` to NO-OP functions
+    - Removed `__checkMemoryForProcessing` function
+    - Simplified `__insertNewNotesAndComments` to sequential only
+    - Introduced `__processApiXmlSequential` function for sequential processing
+    - AWK scripts still generate `part_id` (empty) for Planet compatibility, but API processing removes this column from CSV before COPY
+  - **Pool improvements**:
+    - Added `__db_simple_pool_ensure_alive()` to detect and restart dead coprocess
+    - Removed all redundant fallbacks to direct psql calls
+    - Pool now handles recovery automatically, simplifying calling code
+  - **Files changed**:
+    - `bin/process/processAPINotes.sh`
+    - `bin/lib/processAPIFunctions.sh`
+    - `sql/process/processAPINotes_*.sql` (updated to reflect non-partitioned table structure)
+  - **Note**: Planet processing (`processPlanetNotes.sh`) still uses parallel processing for large bulk operations
+
 ### Fixed
 
 #### Critical API Query Bug Fix (2025-12-12)
@@ -28,8 +58,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed API timeout insufficient for large downloads** (2025-12-13):
   - **Problem**: Timeout of 30 seconds was insufficient for downloading 10,000 notes (can be 12MB+)
   - **Impact**: API calls were timing out after 5 retry attempts, preventing notes from being downloaded
-  - **Solution**: Increased timeout from 30 to 120 seconds in `__getNewNotesFromApi` function call to `__retry_osm_api`
+  - **Solution**: Increased timeout from 30 to 120 seconds in `__retry_osm_api` call within `__getNewNotesFromApi`
   - **Files changed**: `bin/lib/processAPIFunctions.sh` (line 135, version updated to 2025-12-13)
+
+- **Fixed missing processing functions in daemon** (2025-12-13):
+  - **Problem**: Daemon was calling functions (`__processXMLorPlanet`, `__insertNewNotesAndComments`, `__loadApiTextComments`, `__updateLastValue`) that were only defined in `processAPINotes.sh`, which the daemon was not loading
+  - **Impact**: Daemon failed with "command not found" errors when trying to process downloaded notes
+  - **Solution**:
+    - Modified `processAPINotes.sh` to detect when it's being sourced (not executed) and skip main execution
+    - Modified `processAPINotesDaemon.sh` to source `processAPINotes.sh` to load the required functions
+  - **Files changed**:
+    - `bin/process/processAPINotes.sh` (version updated to 2025-12-13)
+    - `bin/process/processAPINotesDaemon.sh` (version updated to 2025-12-13)
 
 - **Root cause analysis**:
   - The daemon was correctly checking for updates using the right URL format
@@ -99,7 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Relationship Between Scripts
 
-**Important:** `processAPINotesDaemon.sh` does **NOT** use or call `processAPINotes.sh` directly. They are **independent scripts** that share code through common libraries:
+**Important:** `processAPINotesDaemon.sh` and `processAPINotes.sh` are **independent scripts** that share code through common libraries. As of 2025-12-13, the daemon also sources `processAPINotes.sh` to load processing functions, but only when sourced (not executed directly).
 
 **Shared libraries** (both scripts source the same files):
 
@@ -109,12 +149,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `lib/osm-common/validationFunctions.sh` - Validation functions
 - `lib/osm-common/errorHandlingFunctions.sh` - Error handling
 - `bin/lib/parallelProcessingFunctions.sh` - Parallel processing
+- `bin/process/processAPINotes.sh` - Processing functions (loaded by daemon when sourced, not executed)
 
 **Shared functions** (both scripts call the same library functions):
 
 - `__getNewNotesFromApi()` - Download notes from API (from `processAPIFunctions.sh`)
-- `__processXMLorPlanet()` - Process XML data (from `functionsProcess.sh`)
-- `__insertNewNotesAndComments()` - Insert data into database (from `functionsProcess.sh`)
+- `__processXMLorPlanet()` - Process XML data (from `processAPINotes.sh`)
+- `__insertNewNotesAndComments()` - Insert data into database (from `processAPINotes.sh`)
+- `__loadApiTextComments()` - Load text comments (from `processAPINotes.sh`)
+- `__updateLastValue()` - Update last processed timestamp (from `processAPINotes.sh`)
 - `__loadApiTextComments()` - Load comment text (from `functionsProcess.sh`)
 - `__updateLastValue()` - Update timestamp (from `functionsProcess.sh`)
 
