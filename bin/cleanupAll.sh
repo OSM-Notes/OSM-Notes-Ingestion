@@ -11,8 +11,8 @@
 # 255) General error
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
-VERSION="2025-12-08"
+# Version: 2025-12-13
+VERSION="2025-12-13"
 
 set -euo pipefail
 # shellcheck disable=SC2310,SC2312
@@ -283,12 +283,44 @@ function __cleanup_wms() {
  __logi "Cleaning up WMS components"
 
  local WMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/wms/removeFromDatabase.sql"
- if [[ -f "${WMS_SCRIPT}" ]]; then
-  __execute_sql_script "${TARGET_DB}" "${WMS_SCRIPT}" "WMS Components"
- else
+ if [[ ! -f "${WMS_SCRIPT}" ]]; then
   __logw "WMS cleanup script not found: ${WMS_SCRIPT}"
+  __logw "Skipping WMS cleanup (script not found)"
+  __log_finish
+  return 0
  fi
+
+ local EXECUTE_WMS_STATUS=0
+ __execute_sql_script "${TARGET_DB}" "${WMS_SCRIPT}" "WMS Components"
+ EXECUTE_WMS_STATUS=$?
+ if [[ ${EXECUTE_WMS_STATUS} -ne 0 ]]; then
+  __loge "Failed to execute WMS cleanup script"
+  __log_finish
+  return 1
+ fi
+
+ # Verify WMS schema was dropped
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+
+ local WMS_EXISTS
+ WMS_EXISTS=$(${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT COUNT(*)
+  FROM information_schema.schemata
+  WHERE schema_name = 'wms';
+ " 2> /dev/null | tr -d ' ' || echo "0")
+
+ if [[ "${WMS_EXISTS}" -ne "0" ]]; then
+  __loge "ERROR: WMS schema still exists after cleanup"
+  __log_finish
+  return 1
+ fi
+
+ __logi "SUCCESS: WMS components removed"
  __log_finish
+ return 0
 }
 
 # Function to cleanup API tables first (to resolve enum dependencies)
@@ -318,14 +350,328 @@ function __cleanup_api_tables() {
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
 
- if ${PSQL_CMD} -d "${TARGET_DB}" -c "${API_DROP_SQL}"; then
-  __logi "SUCCESS: API tables dropped"
-  __log_finish
-  return 0
- else
-  __logw "WARNING: Some API tables may not have been dropped"
+ if ! ${PSQL_CMD} -d "${TARGET_DB}" -c "${API_DROP_SQL}" 2> /dev/null; then
+  __loge "ERROR: Failed to drop API tables"
   __log_finish
   return 1
+ fi
+
+ # Verify API tables were dropped
+ local REMAINING_API_TABLES
+ REMAINING_API_TABLES=$(${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
+  AND (table_name LIKE 'notes_api%' OR table_name LIKE 'note_comments_api%');
+ " 2> /dev/null | tr -d ' ' || echo "0")
+
+ if [[ "${REMAINING_API_TABLES}" -ne "0" ]]; then
+  __loge "ERROR: ${REMAINING_API_TABLES} API table(s) still exist after cleanup"
+  __log_finish
+  return 1
+ fi
+
+ __logi "SUCCESS: API tables dropped"
+ __log_finish
+ return 0
+}
+
+# Function to get list of all tables in database
+function __list_all_tables() {
+ __log_start
+ local TARGET_DB="${1}"
+ local OUTPUT_FILE="${2}"
+
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+
+ # Get all tables in public schema
+ ${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT table_name
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
+  ORDER BY table_name;
+ " > "${OUTPUT_FILE}" 2> /dev/null || true
+
+ __log_finish
+}
+
+# Function to get list of all functions and procedures
+function __list_all_functions() {
+ __log_start
+ local TARGET_DB="${1}"
+ local OUTPUT_FILE="${2}"
+
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+
+ # Get all functions and procedures in public schema
+ ${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT routine_name || ' (' || routine_type || ')'
+  FROM information_schema.routines
+  WHERE routine_schema = 'public'
+  ORDER BY routine_name;
+ " > "${OUTPUT_FILE}" 2> /dev/null || true
+
+ __log_finish
+}
+
+# Function to get list of all types
+function __list_all_types() {
+ __log_start
+ local TARGET_DB="${1}"
+ local OUTPUT_FILE="${2}"
+
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+
+ # Get all custom types in public schema
+ ${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT typname
+  FROM pg_type
+  WHERE typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public')
+  AND typtype = 'e'
+  ORDER BY typname;
+ " > "${OUTPUT_FILE}" 2> /dev/null || true
+
+ __log_finish
+}
+
+# Function to get list of all schemas (excluding system schemas)
+function __list_all_schemas() {
+ __log_start
+ local TARGET_DB="${1}"
+ local OUTPUT_FILE="${2}"
+
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+
+ # Get all non-system schemas
+ ${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT schema_name
+  FROM information_schema.schemata
+  WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+  ORDER BY schema_name;
+ " > "${OUTPUT_FILE}" 2> /dev/null || true
+
+ __log_finish
+}
+
+# Function to generate cleanup summary
+function __generate_cleanup_summary() {
+ __log_start
+ local TARGET_DB="${1}"
+ local BEFORE_DIR="${2}"
+ local AFTER_DIR="${3}"
+
+ __logi "=========================================="
+ __logi "CLEANUP SUMMARY"
+ __logi "=========================================="
+
+ # Compare tables
+ local BEFORE_TABLES="${BEFORE_DIR}/tables.txt"
+ local AFTER_TABLES="${AFTER_DIR}/tables.txt"
+ local TABLES_DROPPED=0
+ local TABLES_REMAINING=0
+
+ if [[ -f "${BEFORE_TABLES}" ]] && [[ -f "${AFTER_TABLES}" ]]; then
+  local DROPPED_TABLES
+  DROPPED_TABLES=$(comm -23 "${BEFORE_TABLES}" "${AFTER_TABLES}" 2> /dev/null | wc -l || echo "0")
+  DROPPED_TABLES=$(echo "${DROPPED_TABLES}" | tr -d ' ')
+  TABLES_DROPPED=$((DROPPED_TABLES))
+  TABLES_REMAINING=$(wc -l < "${AFTER_TABLES}" 2> /dev/null | tr -d ' ' || echo "0")
+  TABLES_REMAINING=$(echo "${TABLES_REMAINING}" | tr -d ' ')
+
+  __logi "Tables:"
+  __logi "  Before cleanup: $(wc -l < "${BEFORE_TABLES}" 2> /dev/null | tr -d ' ' || echo "0")"
+  __logi "  Dropped: ${TABLES_DROPPED}"
+  __logi "  Remaining: ${TABLES_REMAINING}"
+
+  if [[ ${TABLES_REMAINING} -gt 0 ]]; then
+   __logw "Remaining tables:"
+   while IFS= read -r table; do
+    __logw "  - ${table}"
+   done < "${AFTER_TABLES}"
+  fi
+ fi
+
+ # Compare functions
+ local BEFORE_FUNCTIONS="${BEFORE_DIR}/functions.txt"
+ local AFTER_FUNCTIONS="${AFTER_DIR}/functions.txt"
+ local FUNCTIONS_DROPPED=0
+ local FUNCTIONS_REMAINING=0
+
+ if [[ -f "${BEFORE_FUNCTIONS}" ]] && [[ -f "${AFTER_FUNCTIONS}" ]]; then
+  local DROPPED_FUNCTIONS
+  DROPPED_FUNCTIONS=$(comm -23 "${BEFORE_FUNCTIONS}" "${AFTER_FUNCTIONS}" 2> /dev/null | wc -l || echo "0")
+  DROPPED_FUNCTIONS=$(echo "${DROPPED_FUNCTIONS}" | tr -d ' ')
+  FUNCTIONS_DROPPED=$((DROPPED_FUNCTIONS))
+  FUNCTIONS_REMAINING=$(wc -l < "${AFTER_FUNCTIONS}" 2> /dev/null | tr -d ' ' || echo "0")
+  FUNCTIONS_REMAINING=$(echo "${FUNCTIONS_REMAINING}" | tr -d ' ')
+
+  __logi "Functions/Procedures:"
+  __logi "  Before cleanup: $(wc -l < "${BEFORE_FUNCTIONS}" 2> /dev/null | tr -d ' ' || echo "0")"
+  __logi "  Dropped: ${FUNCTIONS_DROPPED}"
+  __logi "  Remaining: ${FUNCTIONS_REMAINING}"
+
+  if [[ ${FUNCTIONS_REMAINING} -gt 0 ]]; then
+   __logw "Remaining functions/procedures:"
+   while IFS= read -r func; do
+    __logw "  - ${func}"
+   done < "${AFTER_FUNCTIONS}"
+  fi
+ fi
+
+ # Compare types
+ local BEFORE_TYPES="${BEFORE_DIR}/types.txt"
+ local AFTER_TYPES="${AFTER_DIR}/types.txt"
+ local TYPES_DROPPED=0
+ local TYPES_REMAINING=0
+
+ if [[ -f "${BEFORE_TYPES}" ]] && [[ -f "${AFTER_TYPES}" ]]; then
+  local DROPPED_TYPES
+  DROPPED_TYPES=$(comm -23 "${BEFORE_TYPES}" "${AFTER_TYPES}" 2> /dev/null | wc -l || echo "0")
+  DROPPED_TYPES=$(echo "${DROPPED_TYPES}" | tr -d ' ')
+  TYPES_DROPPED=$((DROPPED_TYPES))
+  TYPES_REMAINING=$(wc -l < "${AFTER_TYPES}" 2> /dev/null | tr -d ' ' || echo "0")
+  TYPES_REMAINING=$(echo "${TYPES_REMAINING}" | tr -d ' ')
+
+  __logi "Types:"
+  __logi "  Before cleanup: $(wc -l < "${BEFORE_TYPES}" 2> /dev/null | tr -d ' ' || echo "0")"
+  __logi "  Dropped: ${TYPES_DROPPED}"
+  __logi "  Remaining: ${TYPES_REMAINING}"
+
+  if [[ ${TYPES_REMAINING} -gt 0 ]]; then
+   __logw "Remaining types:"
+   while IFS= read -r type; do
+    __logw "  - ${type}"
+   done < "${AFTER_TYPES}"
+  fi
+ fi
+
+ # Compare schemas
+ local BEFORE_SCHEMAS="${BEFORE_DIR}/schemas.txt"
+ local AFTER_SCHEMAS="${AFTER_DIR}/schemas.txt"
+ local SCHEMAS_DROPPED=0
+ local SCHEMAS_REMAINING=0
+
+ if [[ -f "${BEFORE_SCHEMAS}" ]] && [[ -f "${AFTER_SCHEMAS}" ]]; then
+  local DROPPED_SCHEMAS
+  DROPPED_SCHEMAS=$(comm -23 "${BEFORE_SCHEMAS}" "${AFTER_SCHEMAS}" 2> /dev/null | wc -l || echo "0")
+  DROPPED_SCHEMAS=$(echo "${DROPPED_SCHEMAS}" | tr -d ' ')
+  SCHEMAS_DROPPED=$((DROPPED_SCHEMAS))
+  SCHEMAS_REMAINING=$(wc -l < "${AFTER_SCHEMAS}" 2> /dev/null | tr -d ' ' || echo "0")
+  SCHEMAS_REMAINING=$(echo "${SCHEMAS_REMAINING}" | tr -d ' ')
+
+  __logi "Schemas:"
+  __logi "  Before cleanup: $(wc -l < "${BEFORE_SCHEMAS}" 2> /dev/null | tr -d ' ' || echo "0")"
+  __logi "  Dropped: ${SCHEMAS_DROPPED}"
+  __logi "  Remaining: ${SCHEMAS_REMAINING}"
+
+  if [[ ${SCHEMAS_REMAINING} -gt 0 ]]; then
+   __logw "Remaining schemas:"
+   while IFS= read -r schema; do
+    __logw "  - ${schema}"
+   done < "${AFTER_SCHEMAS}"
+  fi
+ fi
+
+ __logi "=========================================="
+ __log_finish
+}
+
+# Function to verify cleanup completed successfully
+function __verify_cleanup_success() {
+ __log_start
+ local TARGET_DB="${1}"
+ local AFTER_DIR="${2}"
+ local VERIFICATION_FAILED=0
+
+ __logi "Verifying cleanup completed successfully..."
+
+ local PSQL_CMD="psql"
+ if [[ -n "${DB_USER:-}" ]]; then
+  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
+ fi
+
+ # List of tables that MUST be dropped (critical tables)
+ local CRITICAL_TABLES=(
+  "notes"
+  "note_comments"
+  "note_comments_text"
+  "notes_api"
+  "note_comments_api"
+  "notes_sync"
+  "note_comments_sync"
+  "note_comments_text_sync"
+  "countries"
+  "users"
+  "properties"
+  "logs"
+  "license"
+ )
+
+ local AFTER_TABLES="${AFTER_DIR}/tables.txt"
+ if [[ -f "${AFTER_TABLES}" ]]; then
+  for critical_table in "${CRITICAL_TABLES[@]}"; do
+   if grep -q "^${critical_table}$" "${AFTER_TABLES}" 2> /dev/null; then
+    __loge "ERROR: Critical table '${critical_table}' was not dropped"
+    VERIFICATION_FAILED=1
+   fi
+  done
+ fi
+
+ # Check if WMS schema still exists
+ local WMS_EXISTS
+ WMS_EXISTS=$(${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT COUNT(*)
+  FROM information_schema.schemata
+  WHERE schema_name = 'wms';
+ " 2> /dev/null | tr -d ' ' || echo "0")
+
+ if [[ "${WMS_EXISTS}" -ne "0" ]]; then
+  __loge "ERROR: WMS schema still exists after cleanup"
+  VERIFICATION_FAILED=1
+ fi
+
+ # Check for partition tables (only real partition tables, not system tables)
+ local PARTITION_COUNT
+ PARTITION_COUNT=$(${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
+  AND table_name LIKE '%_part_%'
+  AND (
+    table_name LIKE 'notes_sync_part_%'
+    OR table_name LIKE 'note_comments_sync_part_%'
+    OR table_name LIKE 'note_comments_text_sync_part_%'
+    OR table_name LIKE 'notes_api_part_%'
+    OR table_name LIKE 'note_comments_api_part_%'
+    OR table_name LIKE 'note_comments_text_api_part_%'
+  );
+ " 2> /dev/null | tr -d ' ' || echo "0")
+
+ if [[ "${PARTITION_COUNT}" -ne "0" ]]; then
+  __loge "ERROR: ${PARTITION_COUNT} partition table(s) still exist after cleanup"
+  VERIFICATION_FAILED=1
+ fi
+
+ if [[ ${VERIFICATION_FAILED} -eq 1 ]]; then
+  __loge "Cleanup verification FAILED: Some objects were not properly removed"
+  __log_finish
+  return 1
+ else
+  __logi "Cleanup verification PASSED: All critical objects were removed"
+  __log_finish
+  return 0
  fi
 }
 
@@ -384,11 +730,12 @@ function __cleanup_base() {
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
  __logi "Dropping country tables (countries)..."
- if ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS countries CASCADE;" 2> /dev/null; then
-  __logi "SUCCESS: Country tables dropped"
- else
-  __logw "WARNING: Some country tables may not have been dropped"
+ if ! ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS countries CASCADE;" 2> /dev/null; then
+  __loge "ERROR: Failed to drop countries table"
+  __log_finish
+  return 1
  fi
+ __logi "SUCCESS: Country tables dropped"
 
  __log_finish
 }
@@ -436,6 +783,17 @@ function __cleanup_all() {
   return 0
  fi
 
+ # Capture state BEFORE cleanup
+ local BEFORE_DIR="${TMP_DIR}/before"
+ local AFTER_DIR="${TMP_DIR}/after"
+ mkdir -p "${BEFORE_DIR}" "${AFTER_DIR}"
+
+ __logi "Capturing database state BEFORE cleanup..."
+ __list_all_tables "${TARGET_DB}" "${BEFORE_DIR}/tables.txt"
+ __list_all_functions "${TARGET_DB}" "${BEFORE_DIR}/functions.txt"
+ __list_all_types "${TARGET_DB}" "${BEFORE_DIR}/types.txt"
+ __list_all_schemas "${TARGET_DB}" "${BEFORE_DIR}/schemas.txt"
+
  # Step 2: Cleanup WMS components
  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
   __loge "Cleanup was interrupted"
@@ -443,18 +801,32 @@ function __cleanup_all() {
   return 1
  fi
  __logi "Step 2: Cleaning up WMS components"
+ local CLEANUP_WMS_STATUS=0
  __cleanup_wms "${TARGET_DB}"
+ CLEANUP_WMS_STATUS=$?
+ if [[ ${CLEANUP_WMS_STATUS} -ne 0 ]]; then
+  __loge "WMS cleanup failed"
+  __log_finish
+  return 1
+ fi
 
- # Step 4: Cleanup base components
+ # Step 3: Cleanup base components
  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
   __loge "Cleanup was interrupted"
   __log_finish
   return 1
  fi
  __logi "Step 3: Cleaning up base components"
+ local CLEANUP_BASE_STATUS=0
  __cleanup_base "${TARGET_DB}"
+ CLEANUP_BASE_STATUS=$?
+ if [[ ${CLEANUP_BASE_STATUS} -ne 0 ]]; then
+  __loge "Base cleanup failed"
+  __log_finish
+  return 1
+ fi
 
- # Step 5: Cleanup temporary files
+ # Step 4: Cleanup temporary files
  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
   __loge "Cleanup was interrupted"
   __log_finish
@@ -463,8 +835,27 @@ function __cleanup_all() {
  __logi "Step 4: Cleaning up temporary files"
  __cleanup_temp_files
 
+ # Capture state AFTER cleanup
+ __logi "Capturing database state AFTER cleanup..."
+ __list_all_tables "${TARGET_DB}" "${AFTER_DIR}/tables.txt"
+ __list_all_functions "${TARGET_DB}" "${AFTER_DIR}/functions.txt"
+ __list_all_types "${TARGET_DB}" "${AFTER_DIR}/types.txt"
+ __list_all_schemas "${TARGET_DB}" "${AFTER_DIR}/schemas.txt"
+
+ # Generate summary
+ __generate_cleanup_summary "${TARGET_DB}" "${BEFORE_DIR}" "${AFTER_DIR}"
+
+ # Verify cleanup succeeded
  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
   __loge "Cleanup was interrupted"
+  __log_finish
+  return 1
+ fi
+ local VERIFY_STATUS=0
+ __verify_cleanup_success "${TARGET_DB}" "${AFTER_DIR}"
+ VERIFY_STATUS=$?
+ if [[ ${VERIFY_STATUS} -ne 0 ]]; then
+  __loge "Cleanup verification failed: Some critical objects were not removed"
   __log_finish
   return 1
  fi

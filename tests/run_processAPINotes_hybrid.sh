@@ -156,12 +156,27 @@ clean_test_database() {
 
  # Run cleanupAll.sh with full cleanup mode
  # It will use DBNAME from properties.sh (which is now properties_test.sh)
- # Trust cleanupAll.sh to do its job correctly
- if "${cleanup_script}" --all > /dev/null 2>&1; then
+ # cleanupAll.sh will show a summary of what was cleaned
+ local cleanup_output
+ cleanup_output=$("${cleanup_script}" --all 2>&1)
+ local cleanup_exit_code=$?
+
+ if [[ ${cleanup_exit_code} -eq 0 ]]; then
   log_success "Database ${DBNAME} cleaned successfully using cleanupAll.sh"
+  # Show cleanup summary if available
+  if echo "${cleanup_output}" | grep -q "CLEANUP SUMMARY"; then
+   log_info "Cleanup summary:"
+   echo "${cleanup_output}" | grep -A 20 "CLEANUP SUMMARY" | while IFS= read -r line; do
+    log_info "  ${line}"
+   done
+  fi
  else
-  # cleanupAll.sh may return non-zero if database was already clean, which is OK
-  log_info "cleanupAll.sh completed (database may have been already clean)"
+  log_error "cleanupAll.sh failed with exit code: ${cleanup_exit_code}"
+  log_error "Cleanup output:"
+  echo "${cleanup_output}" | while IFS= read -r line; do
+   log_error "  ${line}"
+  done
+  return 1
  fi
 }
 
