@@ -177,15 +177,22 @@ EOF
 @test "__retry_overpass_api should handle query parameter" {
  local OUTPUT_FILE="${TEST_DIR}/output.txt"
 
- # Mock wget to succeed
- wget() {
-  if [[ "$1" == "-q" ]]; then
-   echo "result" > "$3"
-   return 0
-  fi
+ # Mock curl to succeed
+ curl() {
+  # Find the output file argument (-o)
+  local OUTPUT_ARG=""
+  local OUTPUT_FILE=""
+  local ARGS=("$@")
+  for i in "${!ARGS[@]}"; do
+   if [[ "${ARGS[$i]}" == "-o" ]] && [[ $((i + 1)) -lt ${#ARGS[@]} ]]; then
+    OUTPUT_FILE="${ARGS[$((i + 1))]}"
+    echo "result" > "${OUTPUT_FILE}"
+    return 0
+   fi
+  done
   return 1
  }
- export -f wget
+ export -f curl
 
  run __retry_overpass_api "test query" "${OUTPUT_FILE}" 3 1 30
  [[ "${status}" -eq 0 ]]

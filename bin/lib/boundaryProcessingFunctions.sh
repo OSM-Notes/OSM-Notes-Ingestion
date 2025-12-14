@@ -2286,11 +2286,7 @@ function __processCountries_impl {
  local MAX_RETRIES_COUNTRIES="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
  local BASE_DELAY_COUNTRIES="${OVERPASS_BACKOFF_SECONDS:-20}"
  local COUNTRIES_DOWNLOAD_OPERATION
- if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-  COUNTRIES_DOWNLOAD_OPERATION="curl -s -o ${COUNTRIES_BOUNDARY_IDS_FILE} -H \"User-Agent: ${DOWNLOAD_USER_AGENT}\" --data-binary @${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
- else
-  COUNTRIES_DOWNLOAD_OPERATION="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${COUNTRIES_BOUNDARY_IDS_FILE} --data-binary @${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
- fi
+ COUNTRIES_DOWNLOAD_OPERATION="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${COUNTRIES_BOUNDARY_IDS_FILE} --data-binary @${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
  local COUNTRIES_CLEANUP="rm -f ${COUNTRIES_BOUNDARY_IDS_FILE} ${COUNTRIES_OUTPUT_FILE} 2>/dev/null || true"
  if ! __retry_file_operation "${COUNTRIES_DOWNLOAD_OPERATION}" "${MAX_RETRIES_COUNTRIES}" "${BASE_DELAY_COUNTRIES}" "${COUNTRIES_CLEANUP}" "true" "${OVERPASS_INTERPRETER}"; then
   __loge "ERROR: Country list could not be downloaded after retries."
@@ -2784,13 +2780,8 @@ function __processMaritimes_impl {
  # Extracts ids of all EEZ relations into a JSON.
  __logi "Obtaining the eez ids."
  set +e
- if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-  curl -s -o "${MARITIME_BOUNDARY_IDS_FILE}" -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
-   --data-binary "@${OVERPASS_MARITIMES}" "${OVERPASS_INTERPRETER}"
- else
-  curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" -o "${MARITIME_BOUNDARY_IDS_FILE}" --data-binary "@${OVERPASS_MARITIMES}" \
-   "${OVERPASS_INTERPRETER}"
- fi
+ curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" -o "${MARITIME_BOUNDARY_IDS_FILE}" \
+  --data-binary "@${OVERPASS_MARITIMES}" "${OVERPASS_INTERPRETER}"
  RET=${?}
  set -e
  if [[ "${RET}" -ne 0 ]]; then

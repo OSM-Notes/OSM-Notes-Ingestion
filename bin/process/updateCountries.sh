@@ -553,14 +553,9 @@ function __checkBoundariesUpdateNeeded {
  TMP_IDS_FILE="${TMP_DIR}/${TYPE}_ids_from_overpass.txt"
  __logd "Downloading ${TYPE} IDs from Overpass..."
  set +e
- if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-  curl -s -o "${TMP_IDS_FILE}" -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
-   --data-binary "@${OVERPASS_QUERY_FILE}" \
-   "${OVERPASS_INTERPRETER}" 2> /dev/null
- else
-  curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" -o "${TMP_IDS_FILE}" --data-binary "@${OVERPASS_QUERY_FILE}" \
-   "${OVERPASS_INTERPRETER}" 2> /dev/null
- fi
+ curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" -o "${TMP_IDS_FILE}" \
+  --data-binary "@${OVERPASS_QUERY_FILE}" \
+  "${OVERPASS_INTERPRETER}" 2> /dev/null
  local RET=${?}
  set -e
 

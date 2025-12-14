@@ -112,7 +112,18 @@ EOF
 
  # Mock curl to return status with wait time
  curl() {
-  if [[ "$1" == "-s" ]] && [[ "$2" == "https://overpass-api.de/status" ]]; then
+  # Check if it's a status check (contains -s and status URL)
+  local HAS_S=false
+  local HAS_STATUS_URL=false
+  for arg in "$@"; do
+   if [[ "${arg}" == "-s" ]]; then
+    HAS_S=true
+   fi
+   if [[ "${arg}" == "https://overpass-api.de/status" ]] || [[ "${arg}" == *"/status" ]]; then
+    HAS_STATUS_URL=true
+   fi
+  done
+  if [[ "${HAS_S}" == "true" ]] && [[ "${HAS_STATUS_URL}" == "true" ]]; then
    echo "Slot available after in 30 seconds."
    return 0
   fi

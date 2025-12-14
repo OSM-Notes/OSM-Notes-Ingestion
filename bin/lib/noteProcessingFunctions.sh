@@ -1551,36 +1551,19 @@ function __retry_network_operation() {
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   # Use curl with specific error handling and timeout
-  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-    -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
-    -o "${OUTPUT_FILE}" "${URL}"; then
-    # Verify the downloaded file exists and has content
-    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-     __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
-     __log_finish
-     return 0
-    else
-     __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
-    fi
+  if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+   -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" \
+   -o "${OUTPUT_FILE}" "${URL}"; then
+   # Verify the downloaded file exists and has content
+   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+    __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
+    __log_finish
+    return 0
    else
-    __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
+    __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
    fi
   else
-   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-    -H "User-Agent: OSM-Notes-Ingestion/1.0" \
-    -o "${OUTPUT_FILE}" "${URL}"; then
-    # Verify the downloaded file exists and has content
-    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-     __logd "Network operation succeeded on attempt $((RETRY_COUNT + 1))"
-     __log_finish
-     return 0
-    else
-     __logw "Downloaded file is empty or missing on attempt $((RETRY_COUNT + 1))"
-    fi
-   else
-    __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
-   fi
+   __logw "Network operation failed on attempt $((RETRY_COUNT + 1))"
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -1619,35 +1602,19 @@ function __retry_overpass_api() {
  fi
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-    -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
-    -o "${OUTPUT_FILE}" \
-    "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
-    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-     __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
-     __log_finish
-     return 0
-    else
-     __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
-    fi
+  if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
+   -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" \
+   -o "${OUTPUT_FILE}" \
+   "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
+   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+    __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
+    __log_finish
+    return 0
    else
-    __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
+    __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
    fi
   else
-   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-    -o "${OUTPUT_FILE}" \
-    "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
-    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-     __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
-     __log_finish
-     return 0
-    else
-     __logw "Overpass API call returned empty file on attempt $((RETRY_COUNT + 1))"
-    fi
-   else
-    __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
-   fi
+   __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
