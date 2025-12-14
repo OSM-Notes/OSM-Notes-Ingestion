@@ -469,6 +469,9 @@ updateCountries.sh
 
 ## External Dependencies
 
+> **Note:** For detailed information about external dependencies, risks, and
+> potential impacts, see [External Dependencies and Risks](./External_Dependencies_and_Risks.md).
+
 ### System and Tool Dependencies
 
 ```text

@@ -24,6 +24,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`Rationale.md`**: Project motivation, background, and design decisions
 - **`Troubleshooting_Guide.md`**: Centralized troubleshooting guide for common problems and solutions
 - **`Component_Dependencies.md`**: Component dependencies, relationships, and data flow diagrams
+- **`External_Dependencies_and_Risks.md`**: External dependencies, risks, and potential impacts on the project
 
 > **Note:** DWH (Data Warehouse), ETL, and Analytics documentation has been moved to
 > [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
