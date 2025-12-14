@@ -43,7 +43,7 @@
 # For contributing: shellcheck -x -o all processPlanetNotes.sh && shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
+# Version: 2025-12-14
 VERSION="2025-12-08"
 
 #set -xv
@@ -1216,14 +1216,13 @@ function __cleanup_validation_temp_files {
 function __trapOn() {
  __log_start
  trap '{ 
-  local ERROR_LINE="${LINENO}"
-  local ERROR_COMMAND="${BASH_COMMAND}"
-  local ERROR_EXIT_CODE="$?"
+  ERROR_LINE="${LINENO}"
+  ERROR_COMMAND="${BASH_COMMAND}"
+  ERROR_EXIT_CODE="$?"
   
   # Only report actual errors, not successful returns
   if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
    # Get the main script name (the one that was executed, not the library)
-   local MAIN_SCRIPT_NAME
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
    
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
@@ -1244,7 +1243,6 @@ function __trapOn() {
  }' ERR
  trap '{ 
   # Get the main script name (the one that was executed, not the library)
-  local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
   
   printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";

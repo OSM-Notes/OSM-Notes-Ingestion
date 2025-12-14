@@ -2,7 +2,7 @@
 -- This script consolidates multiple small cleanup operations into a single file
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-13
+-- Version: 2025-12-14
 -- Description: Consolidated cleanup operations for better maintainability
 --
 -- NOTE: This script is used in two contexts:
@@ -13,7 +13,8 @@
 -- as it is required for the system to function. The countries table is managed
 -- by updateCountries.sh and should only be dropped during full cleanup.
 
--- Set statement timeout to 30 seconds for DROP operations
+-- Set statement timeout to 30 seconds for DROP operations only
+-- VACUUM ANALYZE needs more time, so we'll reset timeout before it
 SET statement_timeout = '30s';
 
 -- =====================================================
@@ -39,7 +40,7 @@ DROP FUNCTION IF EXISTS get_country CASCADE;
 -- =====================================================
 -- Perform VACUUM and ANALYZE on all tables to optimize performance
 -- This is safe to run after any operation and does not drop any data
-VACUUM ANALYZE;
-
--- Reset statement timeout
+-- NOTE: VACUUM ANALYZE can take a long time on large databases (7GB+)
+-- Reset statement_timeout to allow VACUUM to complete
 SET statement_timeout = DEFAULT;
+VACUUM ANALYZE;
