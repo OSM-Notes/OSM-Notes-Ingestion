@@ -116,8 +116,8 @@ __create_mock_file() {
  </note>
 </osm>
 INNER_EOF
-  else
-   # For regular API calls: use full XML with declaration
+  elif [[ "$url" == *"api.openstreetmap.org"* ]] || [[ "$url" == *"/api/0.6"* ]]; then
+   # For OSM API calls: use <osm> structure
    cat >"$output_file" <<'INNER_EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenStreetMap server">
@@ -128,6 +128,27 @@ INNER_EOF
   <status>open</status>
  </note>
 </osm>
+INNER_EOF
+  else
+   # For generic XML URLs (like example.com/test.xml): use <osm-notes> structure
+   cat >"$output_file" <<'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note lon="-3.7038" lat="40.4168">
+  <id>123456</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
+  <date_created>2025-12-10 10:30:00 UTC</date_created>
+  <status>open</status>
+  <comments>
+   <comment>
+    <user>testuser</user>
+    <action>opened</action>
+    <date>2025-12-10 10:30:00 UTC</date>
+    <text>Test note</text>
+   </comment>
+  </comments>
+ </note>
+</osm-notes>
 INNER_EOF
   fi
  elif [[ "$url" == *.json* ]] || [[ "$url" == *"overpass"* ]] || [[ -n "${DATA_FILE:-}" ]]; then
