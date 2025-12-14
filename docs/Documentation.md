@@ -1020,11 +1020,13 @@ This section describes real-world scenarios and typical workflows for using the 
 git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
 cd OSM-Notes-Ingestion
 
-# Step 2: Configure database connection
+# Step 2: Configure database connection and User-Agent
 # Create etc/properties.sh from the example file
 cp etc/properties.sh.example etc/properties.sh
-# Edit etc/properties.sh with your database credentials
+# Edit etc/properties.sh with your database credentials and email
 vi etc/properties.sh
+# Important: Replace 'your-email@domain.com' in DOWNLOAD_USER_AGENT
+# with your actual email address (OpenStreetMap best practice)
 
 # Step 3: Create database and extensions
 createdb notes
