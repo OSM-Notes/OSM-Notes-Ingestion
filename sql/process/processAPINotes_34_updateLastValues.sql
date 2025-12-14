@@ -44,20 +44,24 @@ $$
    gap_percentage := 0;
   ELSE
    -- Count notes without comments in recently inserted data
-   -- Only check notes inserted in the last hour (recent insertions from this cycle)
-   -- This prevents false positives from old notes that were already without comments
+   -- Only check notes inserted in the last hour that were created more than 30 minutes ago
+   -- This prevents false positives from very new notes that legitimately don't have comments yet
+   -- Notes created less than 30 minutes ago may not have comments yet, which is normal
+   -- OSM API may not have comments available for very new notes immediately
    SELECT COUNT(DISTINCT n.note_id)
     INTO notes_without_comments
    FROM notes n
    LEFT JOIN note_comments nc ON nc.note_id = n.note_id
    WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'  -- Check only recently inserted notes
+    AND n.created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes'  -- Only check notes old enough to have comments
     AND nc.note_id IS NULL;
    
-   -- Count total notes inserted in the last hour
+   -- Count total notes inserted in the last hour that are old enough to have comments
    SELECT COUNT(DISTINCT note_id)
     INTO total_notes
    FROM notes
-   WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour';
+   WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'
+    AND created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes';
    
    -- Calculate gap percentage
    IF total_notes > 0 THEN
@@ -70,7 +74,7 @@ $$
   -- Log gap status
   IF notes_without_comments > 0 THEN
    -- Get list of note_ids without comments (JSON array)
-   -- Only check notes inserted in the last hour
+   -- Only check notes inserted in the last hour that are old enough to have comments
    SELECT json_agg(note_id ORDER BY note_id)
     INTO notes_without_comments_json
    FROM (
@@ -78,6 +82,7 @@ $$
     FROM notes n
     LEFT JOIN note_comments nc ON nc.note_id = n.note_id
     WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'  -- Check only recently inserted notes
+      AND n.created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes'  -- Only check notes old enough to have comments
       AND nc.note_id IS NULL
     ORDER BY n.note_id
    ) t;

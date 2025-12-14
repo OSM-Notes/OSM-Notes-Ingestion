@@ -177,6 +177,7 @@ END $$;
 DO $$
 DECLARE
   comment_count INTEGER;
+  sequence_value INTEGER;
 BEGIN
   -- First create a lock
   CALL put_lock('999');
@@ -184,23 +185,59 @@ BEGIN
   -- First insert a note to satisfy foreign key constraint
   CALL insert_note(999, 40.7128, -74.0060, NOW(), 999);
   
-  -- Insert a test comment
-  CALL insert_note_comment(999, 'opened', NOW(), 123, 'test_user', 999);
+  -- Insert a test comment WITHOUT sequence_action (trigger should assign it)
+  CALL insert_note_comment(999, 'opened', NOW(), 123, 'test_user', 999, NULL);
   
-  -- Check if comment was inserted
-  SELECT COUNT(*) INTO comment_count FROM note_comments WHERE note_id = 999;
+  -- Check if comment was inserted and sequence_action was assigned
+  SELECT COUNT(*), MAX(sequence_action) INTO comment_count, sequence_value 
+  FROM note_comments WHERE note_id = 999;
   
   -- Assert
-  IF comment_count = 1 THEN
-    RAISE NOTICE 'Test passed: Comment was inserted successfully';
+  IF comment_count = 1 AND sequence_value = 1 THEN
+    RAISE NOTICE 'Test passed: Comment was inserted successfully with sequence_action = %', sequence_value;
   ELSE
-    RAISE NOTICE 'Test failed: Comment was not inserted (count: %)', comment_count;
+    RAISE NOTICE 'Test failed: Comment was not inserted correctly (count: %, sequence: %)', 
+      comment_count, sequence_value;
   END IF;
   
   -- Clean up
   DELETE FROM note_comments WHERE note_id = 999;
   DELETE FROM notes WHERE note_id = 999;
   CALL remove_lock('999');
+END $$;
+
+-- Test 14b: Test that insert_note_comment accepts and uses sequence_action parameter
+DO $$
+DECLARE
+  comment_count INTEGER;
+  test_sequence INTEGER := 5;
+  actual_sequence INTEGER;
+BEGIN
+  -- First create a lock
+  CALL put_lock('998');
+  
+  -- First insert a note to satisfy foreign key constraint
+  CALL insert_note(998, 40.7128, -74.0060, NOW(), 998);
+  
+  -- Insert a test comment WITH sequence_action
+  CALL insert_note_comment(998, 'opened', NOW(), 123, 'test_user', 998, test_sequence);
+  
+  -- Check if comment was inserted with correct sequence_action
+  SELECT COUNT(*), MAX(sequence_action) INTO comment_count, actual_sequence 
+  FROM note_comments WHERE note_id = 998 AND sequence_action = test_sequence;
+  
+  -- Assert
+  IF comment_count = 1 AND actual_sequence = test_sequence THEN
+    RAISE NOTICE 'Test passed: Comment was inserted with correct sequence_action (%)', test_sequence;
+  ELSE
+    RAISE NOTICE 'Test failed: Comment was not inserted with correct sequence_action. Expected: %, Found: %', 
+      test_sequence, actual_sequence;
+  END IF;
+  
+  -- Clean up
+  DELETE FROM note_comments WHERE note_id = 998;
+  DELETE FROM notes WHERE note_id = 998;
+  CALL remove_lock('998');
 END $$;
 
 -- Test 15: Test lock mechanism

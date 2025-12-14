@@ -273,6 +273,89 @@ modify_germany_for_hybrid_test() {
  fi
 }
 
+# Function to verify comments were actually inserted into note_comments table
+# This validates that the complete flow from note_comments_api to note_comments works
+verify_comments_inserted() {
+ local execution_number="${1}"
+ 
+ log_info "Verifying comments were inserted after execution #${execution_number}..."
+ 
+ # shellcheck disable=SC1091
+ source "${PROJECT_ROOT}/etc/properties_test.sh" 2> /dev/null || true
+ 
+ local psql_cmd
+ psql_cmd="psql"
+ if [[ -n "${DB_HOST:-}" ]]; then
+  psql_cmd="${psql_cmd} -h ${DB_HOST}"
+ fi
+ if [[ -n "${DB_PORT:-}" ]]; then
+  psql_cmd="${psql_cmd} -p ${DB_PORT}"
+ fi
+ if [[ -n "${DB_USER:-}" ]]; then
+  psql_cmd="${psql_cmd} -U ${DB_USER}"
+ fi
+ if [[ -n "${DB_PASSWORD:-}" ]]; then
+  export PGPASSWORD="${DB_PASSWORD}"
+ fi
+ 
+ # Get count of comments inserted in the last minute (should be from this execution)
+ local comments_recent
+ comments_recent=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM note_comments WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '1 minute';" \
+  2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+ 
+ # Get count of notes inserted in the last minute
+ local notes_recent
+ notes_recent=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM notes WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 minute';" \
+  2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+ 
+ # Get count of notes with comments (should match if comments were inserted)
+ local notes_with_comments
+ notes_with_comments=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(DISTINCT n.note_id) FROM notes n 
+   WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 minute'
+   AND EXISTS (SELECT 1 FROM note_comments nc WHERE nc.note_id = n.note_id);" \
+  2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+ 
+ log_info "  Comments inserted recently: ${comments_recent}"
+ log_info "  Notes inserted recently: ${notes_recent}"
+ log_info "  Notes with comments: ${notes_with_comments}"
+ 
+ # If notes were inserted but no comments were inserted, this is a problem
+ if [[ ${notes_recent} -gt 0 ]] && [[ ${comments_recent} -eq 0 ]]; then
+  log_error "  CRITICAL: Notes were inserted but NO comments were inserted!"
+  log_error "  This indicates a problem with comment insertion flow"
+  log_error "  Possible causes:"
+  log_error "    - sequence_action not being passed correctly"
+  log_error "    - Trigger overwriting sequence_action"
+  log_error "    - insert_note_comment function not accepting sequence_action parameter"
+  return 1
+ fi
+ 
+ # If notes were inserted but not all have comments, this might be a problem
+ # (Some notes might legitimately not have comments, but most should)
+ if [[ ${notes_recent} -gt 0 ]] && [[ ${notes_with_comments} -lt $((notes_recent * 9 / 10)) ]]; then
+  log_warning "  WARNING: Only ${notes_with_comments} out of ${notes_recent} notes have comments"
+  log_warning "  This might indicate a problem with comment insertion"
+  # Don't fail the test, but log a warning
+ fi
+ 
+ if [[ ${comments_recent} -gt 0 ]]; then
+  log_success "  Comments insertion verified: ${comments_recent} comments inserted"
+  return 0
+ else
+  # If no notes were processed, this is OK (empty response scenario)
+  if [[ ${notes_recent} -eq 0 ]]; then
+   log_info "  No notes processed in this execution (empty response scenario)"
+   return 0
+  else
+   log_error "  FAILED: Comments were not inserted despite notes being processed"
+   return 1
+  fi
+ fi
+}
+
 # Function to verify timestamp was updated after processing notes
 verify_timestamp_updated() {
  local execution_number="${1:-}"
@@ -966,6 +1049,16 @@ run_processAPINotes() {
    local verify_exit_code=$?
    if [[ ${verify_exit_code} -ne 0 ]]; then
     exit_code=${verify_exit_code}
+   fi
+  fi
+  
+  # Verify comments were actually inserted (not just logged as successful)
+  # This catches issues like sequence_action not being passed correctly
+  if [[ ${execution_number} -gt 1 ]]; then
+   verify_comments_inserted "${execution_number}"
+   local verify_comments_exit_code=$?
+   if [[ ${verify_comments_exit_code} -ne 0 ]]; then
+    exit_code=${verify_comments_exit_code}
    fi
   fi
  else

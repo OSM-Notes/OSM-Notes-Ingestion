@@ -9,7 +9,8 @@ CREATE OR REPLACE PROCEDURE insert_note_comment (
   m_created_at TIMESTAMP WITH TIME ZONE,
   m_id_user INTEGER,
   m_username VARCHAR(256),
-  m_process_id_bash INTEGER
+  m_process_id_bash INTEGER,
+  m_sequence_action INTEGER DEFAULT NULL
 )
 LANGUAGE plpgsql
 AS $proc$
@@ -70,16 +71,19 @@ AS $proc$
 
   -- Insert comment with exception handling for unique constraint violations
   -- The unique constraint is on (note_id, sequence_action) which is set by trigger
+  -- If sequence_action is provided, use it; otherwise let trigger assign it
   BEGIN
    INSERT INTO note_comments (
     id,
     note_id,
+    sequence_action,
     event,
     created_at,
     id_user
    ) VALUES (
     nextval('note_comments_id_seq'),
     m_note_id,
+    m_sequence_action,  -- Use provided sequence_action or NULL (trigger will assign)
     m_event,
     m_created_at,
     m_id_user
