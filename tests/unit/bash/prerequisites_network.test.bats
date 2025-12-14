@@ -109,11 +109,11 @@ EOF
  }
  export -f curl
  
- # Test version extraction
- local DETECTED_VERSION
- DETECTED_VERSION=$(grep -oP 'version="\K[0-9.]+' "${TEMP_RESPONSE}" | head -n 1)
- 
- [ "${DETECTED_VERSION}" = "0.6" ]
+  # Test version extraction - extract only from <osm> element, not XML declaration
+  local DETECTED_VERSION
+  DETECTED_VERSION=$(grep '<osm' "${TEMP_RESPONSE}" | grep -oP 'version="\K[0-9.]+' | head -n 1)
+  
+  [ "${DETECTED_VERSION}" = "0.6" ]
  
  rm -f "${TEMP_RESPONSE}"
 }
@@ -131,13 +131,13 @@ EOF
 </osm>
 EOF
  
- # Extract version
- local DETECTED_VERSION
- DETECTED_VERSION=$(grep -oP 'version="\K[0-9.]+' "${TEMP_RESPONSE}" | head -n 1)
- 
- # Version should not be 0.6
- [ "${DETECTED_VERSION}" != "0.6" ]
- [ "${DETECTED_VERSION}" = "0.7" ]
+  # Extract version - extract only from <osm> element, not XML declaration
+  local DETECTED_VERSION
+  DETECTED_VERSION=$(grep '<osm' "${TEMP_RESPONSE}" | grep -oP 'version="\K[0-9.]+' | head -n 1)
+  
+  # Version should not be 0.6
+  [ "${DETECTED_VERSION}" != "0.6" ]
+  [ "${DETECTED_VERSION}" = "0.7" ]
  
  rm -f "${TEMP_RESPONSE}"
 }
@@ -190,12 +190,12 @@ EOF
 </osm>
 EOF
  
- # Extract version (should be empty)
- local DETECTED_VERSION
- DETECTED_VERSION=$(grep -oP 'version="\K[0-9.]+' "${TEMP_RESPONSE}" | head -n 1 || echo "")
- 
- # Version should be empty
- [ -z "${DETECTED_VERSION}" ]
+  # Extract version (should be empty) - extract only from <osm> element, not XML declaration
+  local DETECTED_VERSION
+  DETECTED_VERSION=$(grep '<osm' "${TEMP_RESPONSE}" | grep -oP 'version="\K[0-9.]+' 2>/dev/null | head -n 1 || echo "")
+  
+  # Version should be empty
+  [ -z "${DETECTED_VERSION}" ]
  
  rm -f "${TEMP_RESPONSE}"
 }
