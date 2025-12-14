@@ -11,8 +11,8 @@
 # 255) General error
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-13
-VERSION="2025-12-13"
+# Version: 2025-12-15
+VERSION="2025-12-15"
 
 set -euo pipefail
 # shellcheck disable=SC2310,SC2312
@@ -122,7 +122,9 @@ function __execute_sql_script() {
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
 
- if ${PSQL_CMD} -d "${TARGET_DB}" -f "${SCRIPT_PATH}"; then
+ # Execute SQL script, redirecting stderr to avoid blocking on NOTICE messages
+ # NOTICE messages go to stderr and can fill buffers if not consumed
+ if ${PSQL_CMD} -d "${TARGET_DB}" -f "${SCRIPT_PATH}" 2>/dev/null; then
   __logi "SUCCESS: ${SCRIPT_NAME} completed"
   __log_finish
   return 0
