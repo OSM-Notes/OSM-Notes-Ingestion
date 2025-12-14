@@ -3,7 +3,7 @@
 # Export Countries Backup Script Tests
 # Tests for bin/scripts/exportCountriesBackup.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-14
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -34,22 +34,28 @@ teardown() {
 @test "exportCountriesBackup.sh should check database connection" {
  # Mock psql to simulate connection failure
  psql() {
-  if [[ "$1" == "-d" ]] && [[ "$2" == "test_db" ]] && [[ "$3" == "-c" ]]; then
+  # Check if this is the connection test query
+  if [[ "$*" == *"-d"* ]] && [[ "$*" == *"test_db"* ]] && [[ "$*" == *"-c"* ]] && [[ "$*" == *"SELECT 1;"* ]]; then
    return 1
   fi
   return 0
  }
  export -f psql
 
- # Run script and expect failure
+ # Run script and expect failure with ERROR_GENERAL (255)
  run bash "${TEST_BASE_DIR}/bin/scripts/exportCountriesBackup.sh" 2>/dev/null
- [[ "${status}" -eq 1 ]]
+ [[ "${status}" -eq 255 ]]
 }
 
 @test "exportCountriesBackup.sh should check if countries table exists" {
  # Mock psql to return 0 countries
  psql() {
-  if [[ "$*" == *"SELECT COUNT(*) FROM countries"* ]]; then
+  # Connection check should succeed
+  if [[ "$*" == *"-d"* ]] && [[ "$*" == *"test_db"* ]] && [[ "$*" == *"-c"* ]] && [[ "$*" == *"SELECT 1;"* ]]; then
+   return 0
+  fi
+  # Count query should return 0
+  if [[ "$*" == *"-Atq"* ]] && [[ "$*" == *"SELECT COUNT(*) FROM countries"* ]] && [[ "$*" != *"WHERE"* ]]; then
    echo "0"
    return 0
   fi
@@ -57,9 +63,9 @@ teardown() {
  }
  export -f psql
 
- # Run script and expect failure (empty table)
+ # Run script and expect failure with ERROR_GENERAL (255)
  run bash "${TEST_BASE_DIR}/bin/scripts/exportCountriesBackup.sh" 2>/dev/null
- [[ "${status}" -eq 1 ]]
+ [[ "${status}" -eq 255 ]]
 }
 
 @test "exportCountriesBackup.sh should export countries to GeoJSON" {
