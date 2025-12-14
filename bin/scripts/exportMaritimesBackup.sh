@@ -30,8 +30,8 @@
 # 255) General error
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
-VERSION="2025-12-08"
+# Version: 2025-12-14
+VERSION="2025-12-14"
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -74,20 +74,20 @@ main() {
 
  # Check database connection
  __logd "Checking database connection..."
-if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Check if countries table exists
  __logd "Checking countries table..."
  local COUNTRIES_COUNT
  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM countries" 2> /dev/null || echo "0")
-if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
+ if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
   __loge "ERROR: Countries table is empty or does not exist"
   exit "${ERROR_GENERAL}"
-fi
+ fi
  __logi "Found ${COUNTRIES_COUNT} total countries/maritimes in database"
 
  # Get count of maritime boundaries
@@ -116,11 +116,11 @@ fi
 
  __logi "Found ${MARITIMES_COUNT} maritime boundaries"
 
-if [[ "${MARITIMES_COUNT}" -eq 0 ]]; then
+ if [[ "${MARITIMES_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No maritime boundaries found in database"
   __loge "Maritime boundaries should have patterns like '(EEZ)', 'EEZ', 'Exclusive Economic Zone', 'Contiguous Zone', 'maritime', 'Fisheries protection zone', etc. in their names"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Create data directory if it doesn't exist
  __logd "Ensuring data directory exists..."
@@ -154,10 +154,10 @@ fi
  fi
 
  # Verify the file was created and is not empty
-if [[ ! -f "${OUTPUT_FILE}" ]] || [[ ! -s "${OUTPUT_FILE}" ]]; then
+ if [[ ! -f "${OUTPUT_FILE}" ]] || [[ ! -s "${OUTPUT_FILE}" ]]; then
   __loge "ERROR: Output file was not created or is empty"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Get file size
  local FILE_SIZE

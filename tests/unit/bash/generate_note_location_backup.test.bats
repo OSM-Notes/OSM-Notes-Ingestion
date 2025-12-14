@@ -42,9 +42,9 @@ teardown() {
  }
  export -f psql
 
- # Run script and expect failure
+ # Run script and expect failure with ERROR_GENERAL (255)
  run bash "${TEST_BASE_DIR}/bin/scripts/generateNoteLocationBackup.sh" 2>/dev/null
- [[ "${status}" -eq 1 ]]
+ [[ "${status}" -eq 255 ]]
 }
 
 @test "generateNoteLocationBackup.sh should check if notes have country assignment" {
@@ -58,9 +58,9 @@ teardown() {
  }
  export -f psql
 
- # Run script and expect failure
+ # Run script and expect failure with ERROR_GENERAL (255)
  run bash "${TEST_BASE_DIR}/bin/scripts/generateNoteLocationBackup.sh" 2>/dev/null
- [[ "${status}" -eq 1 ]]
+ [[ "${status}" -eq 255 ]]
 }
 
 @test "generateNoteLocationBackup.sh should export notes to CSV" {

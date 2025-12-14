@@ -41,9 +41,9 @@ teardown() {
  }
  export -f psql
 
- # Run script and expect failure
+ # Run script and expect failure with ERROR_GENERAL (255)
  run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
- [[ "${status}" -eq 1 ]]
+ [[ "${status}" -eq 255 ]]
 }
 
 @test "exportMaritimesBackup.sh should check if countries table exists" {
@@ -57,9 +57,9 @@ teardown() {
  }
  export -f psql
 
- # Run script and expect failure
+ # Run script and expect failure with ERROR_GENERAL (255)
  run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
- [[ "${status}" -eq 1 ]]
+ [[ "${status}" -eq 255 ]]
 }
 
 @test "exportMaritimesBackup.sh should export maritimes to GeoJSON" {
@@ -225,8 +225,8 @@ EOF
  }
  export -f psql
 
- # Run script and expect failure
+ # Run script and expect failure with ERROR_GENERAL (255)
  run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
- [[ "${status}" -eq 1 ]]
+ [[ "${status}" -eq 255 ]]
 }
 
