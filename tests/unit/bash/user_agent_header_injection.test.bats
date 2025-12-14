@@ -20,13 +20,23 @@ teardown() {
  function __retry_file_operation() {
   echo "$1" > "${TMP_DIR}/overpass_cmd.txt"
   # Extract JSON file path from command and create a mock JSON file
+  # The function uses curl with -o (lowercase), not wget with -O (uppercase)
   local CMD="$1"
-  if [[ "${CMD}" == *"-O"* ]]; then
-   local JSON_FILE
-   JSON_FILE=$(echo "${CMD}" | sed -n 's/.*-O \([^ ]*\).*/\1/p')
-   if [[ -n "${JSON_FILE}" ]]; then
-    echo '{"elements":[{"type":"relation","id":1}]}' > "${JSON_FILE}"
+  local JSON_FILE="${JSON_FILE_LOCAL}"
+  
+  # Try to extract from curl command (-o option, lowercase)
+  if [[ "${CMD}" == *"-o"* ]]; then
+   local EXTRACTED
+   EXTRACTED=$(echo "${CMD}" | sed -n 's/.*-o[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -1)
+   # Only use extracted value if it doesn't contain variable syntax
+   if [[ -n "${EXTRACTED}" ]] && [[ "${EXTRACTED}" != *"\$"* ]] && [[ "${EXTRACTED}" != *"{"* ]]; then
+    JSON_FILE="${EXTRACTED}"
    fi
+  fi
+  
+  # Create the JSON file before validation (critical for test to pass)
+  if [[ -n "${JSON_FILE}" ]]; then
+   echo '{"elements":[{"type":"relation","id":1}]}' > "${JSON_FILE}"
   fi
   return 0
  }
