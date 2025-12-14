@@ -1563,6 +1563,89 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
+ ## Network connectivity and external service access
+ __logd "Checking network connectivity and external service access."
+
+ # Check internet connectivity
+ if ! __check_network_connectivity 10; then
+  __loge "ERROR: Internet connectivity check failed."
+  __loge "The system cannot access the internet, which is required for OSM data downloads."
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+
+ # Check Planet server access
+ __logd "Checking Planet server access."
+ # shellcheck disable=SC2154
+ local PLANET_URL="${PLANET:-https://planet.openstreetmap.org}"
+ if ! timeout 10 curl -s --max-time 10 -I "${PLANET_URL}/planet/notes/" > /dev/null 2>&1; then
+  __loge "ERROR: Cannot access Planet server at ${PLANET_URL}."
+  __loge "Please check your internet connection and firewall settings."
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+ __logd "Planet server is accessible."
+
+ # Check OSM API access and version
+ __logd "Checking OSM API access and version."
+ # shellcheck disable=SC2154
+ local API_BASE_URL="${OSM_API:-https://api.openstreetmap.org/api/0.6}"
+ local API_TEST_URL="${API_BASE_URL}/notes?limit=1"
+ local TEMP_API_RESPONSE
+ TEMP_API_RESPONSE=$(mktemp)
+
+ # Download a minimal API response to check version
+ if ! timeout 15 curl -s --max-time 15 "${API_TEST_URL}" > "${TEMP_API_RESPONSE}" 2>/dev/null; then
+  rm -f "${TEMP_API_RESPONSE}"
+  __loge "ERROR: Cannot access OSM API at ${API_BASE_URL}."
+  __loge "Please check your internet connection and firewall settings."
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+
+ # Check if response contains valid XML with version attribute
+ if [[ ! -s "${TEMP_API_RESPONSE}" ]]; then
+  rm -f "${TEMP_API_RESPONSE}"
+  __loge "ERROR: OSM API returned empty response."
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+
+ # Extract version from XML response
+ local DETECTED_VERSION
+ DETECTED_VERSION=$(grep -oP 'version="\K[0-9.]+' "${TEMP_API_RESPONSE}" | head -n 1 || echo "")
+ rm -f "${TEMP_API_RESPONSE}"
+
+ if [[ -z "${DETECTED_VERSION}" ]]; then
+  __loge "ERROR: Cannot detect OSM API version from response."
+  __loge "The API response may have changed format."
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+
+ if [[ "${DETECTED_VERSION}" != "0.6" ]]; then
+  __loge "ERROR: OSM API version mismatch."
+  __loge "Expected version: 0.6, detected version: ${DETECTED_VERSION}."
+  __loge "The project is designed for API version 0.6."
+  __loge "Please check OSM API announcements for version changes."
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+ __logd "OSM API version confirmed: ${DETECTED_VERSION}."
+
+ # Check Overpass API access
+ __logd "Checking Overpass API access."
+ # shellcheck disable=SC2154
+ local OVERPASS_URL="${OVERPASS_INTERPRETER:-https://overpass-api.de/api/interpreter}"
+ # Use a minimal query to test Overpass accessibility
+ local OVERPASS_TEST_QUERY="[out:json][timeout:5];node(1);out;"
+ if ! timeout 15 curl -s --max-time 15 -X POST \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "data=${OVERPASS_TEST_QUERY}" \
+  "${OVERPASS_URL}" > /dev/null 2>&1; then
+  __loge "ERROR: Cannot access Overpass API at ${OVERPASS_URL}."
+  __loge "Please check your internet connection and firewall settings."
+  __loge "Note: Overpass access is required for downloading country boundaries."
+  exit "${ERROR_INTERNET_ISSUE}"
+ fi
+ __logd "Overpass API is accessible."
+
+ __logi "All network connectivity and external service checks passed."
+
  set -e
  # Mark prerequisites as checked for this execution
  PREREQS_CHECKED=true
