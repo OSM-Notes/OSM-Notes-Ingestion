@@ -263,14 +263,19 @@ teardown() {
  [[ -n "${DBNAME:-}" ]]
  [[ -n "${DB_USER:-}" ]]
 
- # Check that mock commands are in PATH
- run which curl
- [ "$status" -eq 0 ]
- [[ "$output" == *"mock_commands"* ]]
+ # Check that mock commands directory is in PATH
+ [[ "${PATH}" == *"mock_commands"* ]]
 
- run which aria2c
- [ "$status" -eq 0 ]
- [[ "$output" == *"mock_commands"* ]]
+ # Check that mock commands are found using command -v (more reliable than which)
+ local curl_path
+ curl_path=$(command -v curl 2>/dev/null || true)
+ [[ -n "${curl_path}" ]]
+ [[ "${curl_path}" == *"mock_commands"* ]]
+
+ local aria2c_path
+ aria2c_path=$(command -v aria2c 2>/dev/null || true)
+ [[ -n "${aria2c_path}" ]]
+ [[ "${aria2c_path}" == *"mock_commands"* ]]
 }
 
 # Test that real commands are still available
