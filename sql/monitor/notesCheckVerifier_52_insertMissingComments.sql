@@ -2,7 +2,8 @@
 -- This script is executed after differences are identified.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-26
+-- Version: 2025-12-14
+-- Optimized: Changed NOT IN to LEFT JOIN for better performance with large datasets
 
 -- Insert missing users from check comments first
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
@@ -25,6 +26,7 @@ SELECT /* Notes-check */ clock_timestamp() AS Processing,
   'Inserting missing comments from check tables' AS Text;
 
 -- Insert comments that exist in check but not in main
+-- Using LEFT JOIN instead of NOT IN for better performance with large datasets
 -- We need to get the id from the sequence first
 INSERT INTO note_comments (
   id,
@@ -36,30 +38,30 @@ INSERT INTO note_comments (
 )
 SELECT /* Notes-check */
   nextval('note_comments_id_seq'),
-  note_id,
-  sequence_action,
-  event,
-  created_at,
-  id_user
-FROM note_comments_check
-WHERE (note_id, sequence_action) NOT IN (
-  SELECT /* Notes-check */ note_id, sequence_action
-  FROM note_comments
-)
-AND (id_user IS NULL OR id_user IN (
-  SELECT /* Notes-check */ user_id FROM users
-))
+  check_c.note_id,
+  check_c.sequence_action,
+  check_c.event,
+  check_c.created_at,
+  check_c.id_user
+FROM note_comments_check check_c
+LEFT JOIN note_comments main_c
+  ON check_c.note_id = main_c.note_id
+  AND check_c.sequence_action = main_c.sequence_action
+WHERE main_c.note_id IS NULL
+  AND (check_c.id_user IS NULL OR check_c.id_user IN (
+    SELECT /* Notes-check */ user_id FROM users
+  ))
 ON CONFLICT DO NOTHING;
 
--- Show count of inserted comments
+-- Show count of inserted comments (using LEFT JOIN for performance)
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty,
   'Inserted missing comments' AS Text
-FROM note_comments_check
-WHERE (note_id, sequence_action) NOT IN (
-  SELECT /* Notes-check */ note_id, sequence_action
-  FROM note_comments
-);
+FROM note_comments_check check_c
+LEFT JOIN note_comments main_c
+  ON check_c.note_id = main_c.note_id
+  AND check_c.sequence_action = main_c.sequence_action
+WHERE main_c.note_id IS NULL;
 
 -- Update statistics
 SELECT /* Notes-check */ clock_timestamp() AS Processing,
