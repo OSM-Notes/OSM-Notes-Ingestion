@@ -287,7 +287,8 @@ fi
 # Check if processPlanetNotes is running
 function __checkNoProcessPlanet {
  __log_start
- if pgrep -f "processPlanetNotes" > /dev/null 2>&1; then
+ # Check specifically for processPlanetNotes.sh (not processCheckPlanetNotes.sh)
+ if pgrep -f "processPlanetNotes\.sh" > /dev/null 2>&1; then
   __loge "ERROR: processPlanetNotes.sh is currently running. Cannot start daemon."
   __loge "Please wait for processPlanetNotes.sh to finish before starting the daemon."
   __log_finish
