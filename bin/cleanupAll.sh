@@ -621,9 +621,9 @@ function __verify_cleanup_success() {
 
  local AFTER_TABLES="${AFTER_DIR}/tables.txt"
  if [[ -f "${AFTER_TABLES}" ]]; then
-  for critical_table in "${CRITICAL_TABLES[@]}"; do
-   if grep -q "^${critical_table}$" "${AFTER_TABLES}" 2> /dev/null; then
-    __loge "ERROR: Critical table '${critical_table}' was not dropped"
+  for CRITICAL_TABLE in "${CRITICAL_TABLES[@]}"; do
+   if grep -q "^${CRITICAL_TABLE}$" "${AFTER_TABLES}" 2> /dev/null; then
+    __loge "ERROR: Critical table '${CRITICAL_TABLE}' was not dropped"
     VERIFICATION_FAILED=1
    fi
   done
