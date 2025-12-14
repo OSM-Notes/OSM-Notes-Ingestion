@@ -68,7 +68,7 @@ create_mock_psql() {
 
 # Mock psql command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-12-14
 
 # Function to simulate database operations
 mock_database_operation() {
@@ -308,6 +308,9 @@ DATABASE=""
 COMMAND=""
 FILE=""
 VARIABLES=()
+LIST_DATABASES=false
+QUIET_MODE=false
+TUPLE_ONLY=false
 
 while [[ $# -gt 0 ]]; do
  case $1 in
@@ -327,12 +330,33 @@ while [[ $# -gt 0 ]]; do
    VARIABLES+=("$2")
    shift 2
    ;;
+  -l)
+   LIST_DATABASES=true
+   shift
+   ;;
+  -q)
+   QUIET_MODE=true
+   shift
+   ;;
+  -t)
+   TUPLE_ONLY=true
+   shift
+   ;;
   --version)
    echo "psql (PostgreSQL) 15.1"
    exit 0
    ;;
   -*)
-   # Skip other options
+   # Handle combined flags like -lqt
+   if [[ "$1" == *"l"* ]]; then
+    LIST_DATABASES=true
+   fi
+   if [[ "$1" == *"q"* ]]; then
+    QUIET_MODE=true
+   fi
+   if [[ "$1" == *"t"* ]]; then
+    TUPLE_ONLY=true
+   fi
    shift
    ;;
   *)
@@ -341,6 +365,28 @@ while [[ $# -gt 0 ]]; do
    ;;
  esac
 done
+
+# Handle list databases request
+if [[ "$LIST_DATABASES" == "true" ]]; then
+ # Return list of databases including osm-notes-test
+ if [[ "$TUPLE_ONLY" == "true" ]]; then
+  # -t flag: tuple only (no headers)
+  echo "template0"
+  echo "template1"
+  echo "postgres"
+  echo "osm-notes-test"
+ else
+  # Normal list format
+  echo "                                  List of databases"
+  echo "   Name    |  Owner   | Encoding |   Collate   |    Ctype    | ICU Locale | Locale Provider |   Access privileges"
+  echo "-----------+----------+----------+-------------+-------------+------------+-----------------+---------------------"
+  echo " template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |            | libc            | =c/postgres"
+  echo " template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |            | libc            | =c/postgres"
+  echo " postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |            | libc            |"
+  echo " osm-notes-test | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 |            | libc            |"
+ fi
+ exit 0
+fi
 
 # Process variables first
 for var in "${VARIABLES[@]}"; do
