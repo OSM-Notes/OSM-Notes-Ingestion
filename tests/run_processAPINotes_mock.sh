@@ -178,7 +178,6 @@ setup_mock_environment() {
 
   # Create mock commands if they don't exist
   if [[ ! -f "${MOCK_COMMANDS_DIR}/psql" ]] || \
-     [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]] || \
      [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
     log_info "Creating mock commands..."
     bash "${SETUP_MOCK_SCRIPT}" setup

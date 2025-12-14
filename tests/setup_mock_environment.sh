@@ -367,8 +367,8 @@ EOF
 
 # Function to create mock xmllint
 create_mock_xmllint() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/xmllint" ]]; then
-  log_info "Creating mock xmllint..."
+ # Always recreate the mock xmllint to ensure it has the latest logic
+ log_info "Creating/updating mock xmllint..."
   cat > "${MOCK_COMMANDS_DIR}/xmllint" << 'EOF'
 #!/bin/bash
 
@@ -488,13 +488,13 @@ fi
 
 exit $?
 EOF
- fi
+ chmod +x "${MOCK_COMMANDS_DIR}/xmllint"
 }
 
 # Function to create mock aria2c
 create_mock_aria2c() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-  log_info "Creating mock aria2c..."
+ # Always recreate the mock aria2c to ensure it has the latest logic
+ log_info "Creating/updating mock aria2c..."
   cat > "${MOCK_COMMANDS_DIR}/aria2c" << 'EOF'
 #!/bin/bash
 
@@ -690,7 +690,7 @@ fi
 
 exit 0
 EOF
- fi
+ chmod +x "${MOCK_COMMANDS_DIR}/aria2c"
 }
 
 # Function create_mock_bzip2 removed - we now use the real bzip2 command
@@ -698,8 +698,8 @@ EOF
 
 # Function to create mock osmtogeojson
 create_mock_osmtogeojson() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/osmtogeojson" ]]; then
-  log_info "Creating mock osmtogeojson..."
+ # Always recreate the mock osmtogeojson to ensure it has the latest logic
+ log_info "Creating/updating mock osmtogeojson..."
   cat > "${MOCK_COMMANDS_DIR}/osmtogeojson" << 'EOF'
 #!/bin/bash
 
@@ -764,13 +764,13 @@ INNER_EOF
 
 exit 0
 EOF
- fi
+ chmod +x "${MOCK_COMMANDS_DIR}/osmtogeojson"
 }
 
 # Function to create mock mutt
 create_mock_mutt() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/mutt" ]]; then
-  log_info "Creating mock mutt..."
+ # Always recreate the mock mutt to ensure it has the latest logic
+ log_info "Creating/updating mock mutt..."
   cat > "${MOCK_COMMANDS_DIR}/mutt" << 'EOF'
 #!/bin/bash
 
@@ -838,7 +838,7 @@ fi
 
 exit 0
 EOF
- fi
+ chmod +x "${MOCK_COMMANDS_DIR}/mutt"
 }
 
 # Function to create mock ogr2ogr

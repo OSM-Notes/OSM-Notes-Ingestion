@@ -56,6 +56,7 @@ setup_hybrid_mock_environment() {
  mkdir -p "${MOCK_COMMANDS_DIR}"
 
  # Create only internet-related mock commands
+ create_mock_wget
  create_mock_aria2c
  # Create mock ogr2ogr for transparent country data insertion
  create_mock_ogr2ogr
@@ -68,6 +69,176 @@ setup_hybrid_mock_environment() {
  done
 
  log_success "Hybrid mock environment setup completed"
+}
+
+# Function to create mock wget
+create_mock_wget() {
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
+  log_info "Creating mock wget..."
+  cat > "${MOCK_COMMANDS_DIR}/wget" << 'EOF'
+#!/bin/bash
+
+# Mock wget command for testing (internet downloads only)
+# Author: Andres Gomez (AngocA)
+# Version: 2025-12-07
+
+# Function to create mock files
+create_mock_file() {
+ local url="$1"
+ local output_file="$2"
+ 
+ # Extract filename from URL if no output file specified
+ if [[ -z "$output_file" ]]; then
+   output_file=$(basename "$url")
+ fi
+ 
+ # Create mock content based on URL
+ if [[ "$url" == *".xml" ]]; then
+   cat > "$output_file" << 'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note id="123" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note</comment>
+ </note>
+ <note id="124" lat="40.7129" lon="-74.0061" created_at="2023-01-01T01:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T01:00:00Z" uid="12346" user="testuser2">Another test note</comment>
+ </note>
+</osm-notes>
+INNER_EOF
+ elif [[ "$url" == *".json" ]]; then
+   cat > "$output_file" << 'INNER_EOF'
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {"name": "Test Country", "admin_level": "2"},
+   "geometry": {"type": "Polygon", "coordinates": [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
+  },
+  {
+   "type": "Feature",
+   "properties": {"name": "Test Maritime", "admin_level": "4"},
+   "geometry": {"type": "Polygon", "coordinates": [[[2,2],[3,2],[3,3],[2,3],[2,2]]]}
+  }
+ ]
+}
+INNER_EOF
+ elif [[ "$url" == *".bz2" ]]; then
+   # Create a small bzip2 file with realistic content
+   cat > "$output_file" << 'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note id="1001" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note 1</comment>
+ </note>
+ <note id="1002" lat="40.7129" lon="-74.0061" created_at="2023-01-01T01:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T01:00:00Z" uid="12346" user="testuser2">Test note 2</comment>
+  <comment action="commented" timestamp="2023-01-01T02:00:00Z" uid="12347" user="testuser3">This is a comment</comment>
+ </note>
+ <note id="1003" lat="40.7130" lon="-74.0062" created_at="2023-01-01T03:00:00Z" closed_at="2023-01-01T04:00:00Z">
+  <comment action="opened" timestamp="2023-01-01T03:00:00Z" uid="12348" user="testuser4">Test note 3</comment>
+  <comment action="closed" timestamp="2023-01-01T04:00:00Z" uid="12349" user="testuser5">Closing this note</comment>
+ </note>
+</osm-notes>
+INNER_EOF
+   # Compress the content
+   bzip2 -c "$output_file" > "${output_file}.tmp" 2>/dev/null && mv "${output_file}.tmp" "$output_file" || true
+ elif [[ "$url" == *".md5" ]]; then
+   # When downloading an MD5 file, calculate the MD5 of the related file
+   # The related file should be in the same directory without the .md5 extension
+   local related_file
+   related_file="${output_file%.md5}"
+   
+   # Check if the related file exists
+   if [[ -f "$related_file" ]]; then
+     # Calculate MD5 of the related file
+     local md5_checksum
+     if command -v md5sum > /dev/null 2>&1; then
+       md5_checksum=$(md5sum < "$related_file" | cut -d ' ' -f 1)
+     elif command -v md5 > /dev/null 2>&1; then
+       md5_checksum=$(md5 -q < "$related_file")
+     else
+       # Fallback to fixed checksum if md5 command is not available
+       md5_checksum="d41d8cd98f00b204e9800998ecf8427e"
+     fi
+     echo "$md5_checksum" > "$output_file"
+   else
+     # If related file doesn't exist, use default checksum
+     echo "d41d8cd98f00b204e9800998ecf8427e" > "$output_file"
+   fi
+ else
+   echo "Mock content for $url" > "$output_file"
+ fi
+ 
+ echo "Mock file created: $output_file"
+}
+
+# Parse arguments
+ARGS=()
+OUTPUT_FILE=""
+QUIET=false
+TIMEOUT=""
+POST_FILE=""
+
+while [[ $# -gt 0 ]]; do
+ case $1 in
+  -O)
+   OUTPUT_FILE="$2"
+   shift 2
+   ;;
+  -q)
+   QUIET=true
+   shift
+   ;;
+  --timeout=*)
+   TIMEOUT="${1#*=}"
+   shift
+   ;;
+  --post-file=*)
+   POST_FILE="${1#*=}"
+   shift
+   ;;
+  --version)
+   echo "GNU Wget 1.21.3"
+   exit 0
+   ;;
+  -*)
+   # Skip other options
+   shift
+   ;;
+  *)
+   ARGS+=("$1")
+   shift
+   ;;
+ esac
+done
+
+# Get URL from arguments
+URL="${ARGS[0]:-}"
+
+if [[ -z "$URL" ]]; then
+ echo "Usage: wget [OPTIONS] URL" >&2
+ exit 1
+fi
+
+# Create mock file
+if [[ -n "$OUTPUT_FILE" ]]; then
+ create_mock_file "$URL" "$OUTPUT_FILE"
+else
+ create_mock_file "$URL"
+fi
+
+# Simulate HTTP response
+if [[ "$QUIET" != true ]]; then
+ echo "HTTP/1.1 200 OK"
+ echo "Content-Type: application/octet-stream"
+ echo "Content-Length: $(wc -c < "${OUTPUT_FILE:-$(basename "$URL")}" 2>/dev/null || echo "0")"
+ echo ""
+fi
+
+exit 0
+EOF
+ fi
 }
 
 # Function to create mock aria2c
@@ -302,10 +473,12 @@ create_mock_ogr2ogr() {
 #!/bin/bash
 
 # Mock ogr2ogr command for hybrid mode testing
-# When importing to countries table, inserts test data directly via psql
+# When importing to import table, inserts test data into import table only.
+# The script (updateCountries.sh) will copy data from import to countries table.
+# When importing directly to countries table, inserts test data directly.
 # This is completely transparent to updateCountries.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-12-14
 
 # Parse arguments
 DBNAME="${DBNAME:-osm-notes}"
@@ -479,21 +652,6 @@ if [[ "${IS_COUNTRIES_TABLE}" == "true" ]]; then
   exit 1
  fi
 
- # Ensure countries table exists before inserting data
- # The table should be created by processPlanetNotes.sh --base, but we'll create it if needed
- "${REAL_PSQL}" -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'SQL' || true
-CREATE TABLE IF NOT EXISTS countries (
- country_id INTEGER NOT NULL,
- country_name VARCHAR(100) NOT NULL,
- country_name_es VARCHAR(100),
- country_name_en VARCHAR(100),
- geom GEOMETRY NOT NULL,
- updated BOOLEAN,
- PRIMARY KEY (country_id)
-);
-CREATE INDEX IF NOT EXISTS countries_spatial ON countries USING GIST (geom);
-SQL
-
  # Handle import table or countries table
  if [[ "$LAYER_NAME" == "import" ]] || [[ "$LAYER_NAME" == "countries_import" ]] || [[ "$LAYER_NAME" == *"_import" ]]; then
   # If importing to temporary import table, create it and populate it with test data
@@ -544,46 +702,27 @@ EOF
    # Use a simple geometry that will work with ST_Union(ST_makeValid())
    # Use a valid geometry that doesn't cross the 180 meridian to avoid PostGIS errors
    # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
+   # NOTE: We only insert into import table. The script (updateCountries.sh) will copy
+   # data from import to countries table using its normal flow.
    "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
 INSERT INTO ${LAYER_NAME} (name, admin_level, type, ${GEOM_COLUMN}) VALUES
  ('Country ${BOUNDARY_ID}', '2', 'boundary', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326));
 EOF
-   # Also insert directly into countries table to ensure data is available
-   # This bypasses the script's INSERT FROM import step, ensuring data is always present
-   # Use a valid geometry that doesn't cross the 180 meridian
-   # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
-   "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
-INSERT INTO countries (country_id, country_name, geom, updated) VALUES
- (${BOUNDARY_ID}, 'Country ${BOUNDARY_ID}', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326), FALSE)
-ON CONFLICT (country_id) DO UPDATE SET
- country_name = EXCLUDED.country_name,
- geom = EXCLUDED.geom,
- updated = EXCLUDED.updated;
-EOF
    if [[ "$QUIET" != "true" ]]; then
-    echo "Mock ogr2ogr: Inserted test data for boundary ${BOUNDARY_ID} into ${LAYER_NAME} and countries tables" >&2
+    echo "Mock ogr2ogr: Inserted test data for boundary ${BOUNDARY_ID} into ${LAYER_NAME} table" >&2
    fi
   else
    # Insert generic test data (fallback)
    # Use a valid geometry that doesn't cross the 180 meridian to avoid PostGIS errors
    # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
+   # NOTE: We only insert into import table. The script (updateCountries.sh) will copy
+   # data from import to countries table using its normal flow.
    "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
 INSERT INTO ${LAYER_NAME} (name, admin_level, type, ${GEOM_COLUMN}) VALUES
  ('Test Country', '2', 'boundary', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326));
 EOF
-   # Also insert a generic country into countries table
-   # Use a valid geometry that doesn't cross the 180 meridian
-   # Don't use ON_ERROR_STOP=1 to avoid failing if insert fails
-   "${REAL_PSQL}" -d "${DBNAME}" << EOF 2>/dev/null || true
-INSERT INTO countries (country_id, country_name, geom, updated) VALUES
- (999999, 'Test Country', ST_GeomFromText('POLYGON((-10 -10, 10 -10, 10 10, -10 10, -10 -10))', 4326), FALSE)
-ON CONFLICT (country_id) DO UPDATE SET
- country_name = EXCLUDED.country_name,
- geom = EXCLUDED.geom,
- updated = EXCLUDED.updated;
-EOF
    if [[ "$QUIET" != "true" ]]; then
-    echo "Mock ogr2ogr: Inserted generic test data into ${LAYER_NAME} and countries tables (boundary ID not detected)" >&2
+    echo "Mock ogr2ogr: Inserted generic test data into ${LAYER_NAME} table (boundary ID not detected)" >&2
    fi
   fi
   # Always return success (exit 0) to simulate successful ogr2ogr import
