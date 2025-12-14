@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-api-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-13
-VERSION="2025-12-13"
+# Version: 2025-12-14
+VERSION="2025-12-14"
 
 #set -xv
 set -u
@@ -640,7 +640,20 @@ function __process_api_data {
 
   if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
    __logw "Too many notes (${TOTAL_NOTES} >= ${MAX_NOTES}), triggering Planet sync"
-   "${NOTES_SYNC_SCRIPT}"
+   __logi "Executing: ${NOTES_SYNC_SCRIPT}"
+   if "${NOTES_SYNC_SCRIPT}"; then
+    __logi "Planet sync completed successfully"
+    # After Planet sync, update timestamp to prevent infinite loop
+    # processPlanetNotes.sh doesn't update max_note_timestamp, so we need to do it here
+    __logi "Updating timestamp after Planet sync"
+    __updateLastValue
+   else
+    local PLANET_SYNC_EXIT_CODE=$?
+    __loge "Planet sync failed with exit code: ${PLANET_SYNC_EXIT_CODE}"
+    __loge "Check processPlanetNotes.sh logs for details"
+    __loge "Failed execution marker: /tmp/processPlanetNotes_failed_execution"
+    return 1
+   fi
   else
    # Process normally
    __processXMLorPlanet
