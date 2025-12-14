@@ -597,8 +597,8 @@ EOF
  run grep -q "mv.*PLANET_NOTES_NAME.*PLANET_NOTES_FILE" "$functions_file"
  [ "$status" -eq 0 ]
 
- # Test that the MD5 download uses wget
- run grep -q "wget.*PLANET_NOTES_NAME.*bz2.md5" "$functions_file"
+ # Test that the MD5 download uses curl (wget was removed from the project)
+ run grep -q "curl.*PLANET_NOTES_NAME.*bz2.md5" "$functions_file"
  [ "$status" -eq 0 ]
 }
 
