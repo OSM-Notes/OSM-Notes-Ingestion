@@ -3,7 +3,7 @@
 -- comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-12
+-- Version: 2025-12-14
 
 SELECT /* Notes-processAPI */ timestamp
 FROM max_note_timestamp;
@@ -19,10 +19,17 @@ $$
   notes_without_comments_json TEXT;
  BEGIN
   -- Check if integrity check passed
-  integrity_check_passed := COALESCE(
-   current_setting('app.integrity_check_passed', true)::BOOLEAN, 
-   FALSE
-  );
+  -- Handle case where variable doesn't exist (returns empty string or NULL)
+  BEGIN
+   integrity_check_passed := COALESCE(
+    NULLIF(current_setting('app.integrity_check_passed', true), '')::BOOLEAN,
+    FALSE
+   );
+  EXCEPTION
+   WHEN OTHERS THEN
+    -- If variable doesn't exist or is invalid, default to FALSE
+    integrity_check_passed := FALSE;
+  END;
   
   -- Count notes without comments in recent data
   SELECT COUNT(DISTINCT n.note_id)

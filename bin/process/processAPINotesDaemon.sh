@@ -641,6 +641,14 @@ function __process_api_data {
   if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
    __logw "Too many notes (${TOTAL_NOTES} >= ${MAX_NOTES}), triggering Planet sync"
    __logi "Executing: ${NOTES_SYNC_SCRIPT}"
+   # Clean up any stale lock files from previous executions
+   # This prevents permission issues when daemon (user: notes) tries to run
+   # processPlanetNotes.sh that was previously run by another user
+   local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
+   if [[ -f "${PLANET_LOCK_FILE}" ]]; then
+    __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
+    rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
+   fi
    # Ensure required environment variables are set for processPlanetNotes.sh
    # SKIP_XML_VALIDATION=true speeds up processing (validation is optional)
    export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
