@@ -2,7 +2,7 @@
 
 # Setup mock environment for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-13
+# Version: 2025-12-15
 
 set -euo pipefail
 
@@ -68,7 +68,7 @@ create_mock_psql() {
 
 # Mock psql command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-14
+# Version: 2025-12-15
 
 # Function to simulate database operations
 mock_database_operation() {
@@ -298,8 +298,8 @@ mock_database_operation() {
    fi
    ;;
   -v)
-   # Variable assignment
-   echo "Variable set: $args"
+   # Variable assignment - write to stderr, not stdout
+   echo "Variable set: $args" >&2
    ;;
   --version)
    echo "psql (PostgreSQL) 15.1"
@@ -397,9 +397,9 @@ if [[ "$LIST_DATABASES" == "true" ]]; then
  exit 0
 fi
 
-# Process variables first
+# Process variables first (output to stderr, not stdout)
 for var in "${VARIABLES[@]}"; do
- mock_database_operation "-v" "$var"
+ mock_database_operation "-v" "$var" >&2
 done
 
 # Process main operation

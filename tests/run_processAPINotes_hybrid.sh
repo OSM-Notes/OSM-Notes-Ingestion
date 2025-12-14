@@ -2,7 +2,7 @@
 
 # Script to run processAPINotes.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-13
+# Version: 2025-12-15
 
 set -euo pipefail
 
@@ -163,19 +163,25 @@ clean_test_database() {
 
  if [[ ${cleanup_exit_code} -eq 0 ]]; then
   log_success "Database ${DBNAME} cleaned successfully using cleanupAll.sh"
-  # Show cleanup summary if available
+  # Show cleanup summary if available (limit to first 30 lines to prevent infinite loops)
   if echo "${cleanup_output}" | grep -q "CLEANUP SUMMARY"; then
    log_info "Cleanup summary:"
-   echo "${cleanup_output}" | grep -A 20 "CLEANUP SUMMARY" | while IFS= read -r line || true; do
-    log_info "  ${line}"
+   echo "${cleanup_output}" | grep -A 20 "CLEANUP SUMMARY" | head -30 | while IFS= read -r line || true; do
+    # Skip empty lines to prevent infinite output
+    if [[ -n "${line// /}" ]]; then
+     log_info "  ${line}"
+    fi
    done || true
   fi
  else
   log_error "cleanupAll.sh failed with exit code: ${cleanup_exit_code}"
-  log_error "Cleanup output:"
-  echo "${cleanup_output}" | while IFS= read -r line; do
-   log_error "  ${line}"
-  done
+  log_error "Cleanup output (first 50 lines):"
+  echo "${cleanup_output}" | head -50 | while IFS= read -r line || true; do
+   # Skip empty lines to prevent infinite output
+   if [[ -n "${line// /}" ]]; then
+    log_error "  ${line}"
+   fi
+  done || true
   return 1
  fi
 }

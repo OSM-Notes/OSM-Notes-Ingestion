@@ -130,25 +130,27 @@ INNER_EOF
 </osm>
 INNER_EOF
   else
-   # For generic XML URLs (like example.com/test.xml): use <osm-notes> structure
+   # For generic XML URLs (like example.com/test.xml): use <osm> structure with API format
+   # This format is compatible with extract_notes.awk which supports both Planet and API formats
    cat >"$output_file" <<'INNER_EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note lon="-3.7038" lat="40.4168">
+<osm version="0.6" generator="OpenStreetMap server">
+ <note lat="40.4168" lon="-3.7038">
   <id>123456</id>
   <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
   <date_created>2025-12-10 10:30:00 UTC</date_created>
   <status>open</status>
   <comments>
    <comment>
+    <date>2025-12-10 10:30:00 UTC</date>
+    <uid>12345</uid>
     <user>testuser</user>
     <action>opened</action>
-    <date>2025-12-10 10:30:00 UTC</date>
     <text>Test note</text>
    </comment>
   </comments>
  </note>
-</osm-notes>
+</osm>
 INNER_EOF
   fi
  elif [[ "$url" == *.json* ]] || [[ "$url" == *"overpass"* ]] || [[ -n "${DATA_FILE:-}" ]]; then

@@ -2,7 +2,7 @@
 
 # Script to run updateCountries.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-12-14
 
 set -euo pipefail
 
@@ -353,7 +353,7 @@ ensure_real_commands() {
   local clean_path
   clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${REAL_PSQL_DIR}$" | grep -v "^${REAL_OGR2OGR_DIR}$" | tr '\n' ':' | sed 's/:$//')
   
-  # Create a custom mock directory that only contains aria2c, wget, pgrep (not psql or ogr2ogr)
+  # Create a custom mock directory that only contains aria2c, curl, pgrep (not psql or ogr2ogr)
   local hybrid_mock_dir
   hybrid_mock_dir="/tmp/hybrid_mock_commands_$$"
   mkdir -p "${hybrid_mock_dir}"
@@ -361,14 +361,14 @@ ensure_real_commands() {
   # Store the directory path for cleanup
   export HYBRID_MOCK_DIR="${hybrid_mock_dir}"
   
-  # Copy only the mocks we want (aria2c, wget, pgrep)
+  # Copy only the mocks we want (aria2c, curl, pgrep)
   if [[ -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
     cp "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
     chmod +x "${hybrid_mock_dir}/aria2c"
   fi
-  if [[ -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
-    cp "${MOCK_COMMANDS_DIR}/wget" "${hybrid_mock_dir}/wget"
-    chmod +x "${hybrid_mock_dir}/wget"
+  if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
+    cp "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
+    chmod +x "${hybrid_mock_dir}/curl"
   fi
   if [[ -f "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
     cp "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
@@ -411,9 +411,17 @@ ensure_real_commands() {
     log_warning "Mock aria2c not active. Current: ${current_aria2c:-unknown}, Expected: ${hybrid_mock_dir}/aria2c"
   fi
 
+  # Verify mock curl is being used (should be from hybrid_mock_dir)
+  local current_curl
+  current_curl=$(command -v curl)
+  if [[ "${current_curl}" != "${hybrid_mock_dir}/curl" ]]; then
+    log_warning "Mock curl not active. Current: ${current_curl:-unknown}, Expected: ${hybrid_mock_dir}/curl"
+  fi
+
   log_success "Using real psql from: ${current_psql}"
   log_success "Using real ogr2ogr from: ${current_ogr2ogr}"
   log_success "Using mock aria2c from: ${current_aria2c:-unknown}"
+  log_success "Using mock curl from: ${current_curl:-unknown}"
   
   return 0
 }
@@ -601,9 +609,17 @@ run_updateCountries() {
     log_warning "aria2c is not from HYBRID_MOCK_DIR: ${current_aria2c}"
   fi
 
+  # Verify curl is mock (should be from HYBRID_MOCK_DIR)
+  local current_curl
+  current_curl=$(command -v curl 2>/dev/null || true)
+  if [[ -n "${current_curl}" ]] && [[ "${current_curl}" != "${HYBRID_MOCK_DIR:-}/curl" ]]; then
+    log_warning "curl is not from HYBRID_MOCK_DIR: ${current_curl}"
+  fi
+
   log_info "Using real psql: ${current_psql}"
   log_info "Using real ogr2ogr: ${current_ogr2ogr}"
   log_info "Using mock aria2c: ${current_aria2c:-not found}"
+  log_info "Using mock curl: ${current_curl:-not found}"
 
   # Final verification: ensure PATH doesn't contain MOCK_COMMANDS_DIR
   if echo "${PATH}" | grep -q "${MOCK_COMMANDS_DIR}"; then
@@ -771,6 +787,37 @@ main() {
   # Second execution: Update mode (normal monthly update)
   log_info "=== SECOND EXECUTION: Update mode (normal monthly update) ==="
   cleanup_lock_files
+
+  # Ensure countries table exists before running update mode
+  # Update mode assumes the table exists, so we need to create it if it doesn't
+  log_info "Verifying countries table exists before update mode..."
+  local psql_cmd="psql"
+  if [[ -n "${DB_HOST:-}" ]]; then
+    psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
+  fi
+
+  local countries_exists
+  countries_exists=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
+
+  if [[ "${countries_exists}" != "t" ]]; then
+    log_warning "Countries table does not exist. Creating it using DDL script..."
+    local country_sql="${PROJECT_ROOT}/sql/process/processPlanetNotes_25_createCountryTables.sql"
+    if [[ -f "${country_sql}" ]]; then
+      if ${psql_cmd} -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${country_sql}" > /dev/null 2>&1; then
+        log_success "Countries table created using DDL script"
+      else
+        log_error "Failed to create countries table using DDL script"
+        exit_code=$?
+        exit ${exit_code}
+      fi
+    else
+      log_error "Countries DDL script not found: ${country_sql}"
+      exit_code=$?
+      exit ${exit_code}
+    fi
+  else
+    log_info "Countries table already exists"
+  fi
 
   if ! run_updateCountries; then
     log_error "Second execution (update mode) failed"

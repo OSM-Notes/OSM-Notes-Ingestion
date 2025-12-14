@@ -2,7 +2,7 @@
 
 # Script to run notesCheckVerifier.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-12
+# Version: 2025-12-14
 
 set -euo pipefail
 
@@ -153,6 +153,32 @@ setup_test_database() {
     return 1
   fi
   log_success "PostGIS extensions ready in ${DBNAME}"
+  
+  # Ensure base enums exist (required for check tables)
+  # Check if enums exist before creating them
+  log_info "Ensuring base enums exist in ${DBNAME}..."
+  local note_status_exists
+  note_status_exists=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum');" 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
+  local note_event_exists
+  note_event_exists=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_event_enum');" 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
+
+  if [[ "${note_status_exists}" != "t" ]] || [[ "${note_event_exists}" != "t" ]]; then
+    log_info "Base enums missing. Creating them using DDL script..."
+    local enum_sql="${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+    if [[ -f "${enum_sql}" ]]; then
+      if ${psql_cmd} -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${enum_sql}" > /dev/null 2>&1; then
+        log_success "Base enums created using DDL script"
+      else
+        log_error "Failed to create base enums using DDL script"
+        return 1
+      fi
+    else
+      log_error "Enum SQL file not found: ${enum_sql}"
+      return 1
+    fi
+  else
+    log_success "Base enums already exist in ${DBNAME}"
+  fi
 }
 
 
