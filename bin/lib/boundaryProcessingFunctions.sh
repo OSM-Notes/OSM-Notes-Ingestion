@@ -185,15 +185,15 @@ function __resolve_geojson_file() {
    __logd "Downloaded ${FILE_NAME} from GitHub"
   fi
  else
-  # Fallback to wget if __retry_network_operation is not available
-  if wget -q -O "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
+  # Fallback to curl if __retry_network_operation is not available
+  if curl -s -o "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
    __logd "Downloaded ${FILE_NAME}.gz from GitHub"
   else
    __logw "Failed to download ${FILE_NAME}.gz from GitHub, trying uncompressed version..."
    DOWNLOAD_URL="${BOUNDARIES_DATA_REPO_URL}/${FILE_NAME}"
    DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}"
    TMP_DECOMPRESSED="${DOWNLOADED_FILE}"
-   if ! wget -q -O "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
+   if ! curl -s -o "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
     __loge "Failed to download ${FILE_NAME} from GitHub repository"
     return 1
    fi
@@ -2287,9 +2287,9 @@ function __processCountries_impl {
  local BASE_DELAY_COUNTRIES="${OVERPASS_BACKOFF_SECONDS:-20}"
  local COUNTRIES_DOWNLOAD_OPERATION
  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-  COUNTRIES_DOWNLOAD_OPERATION="wget -O ${COUNTRIES_BOUNDARY_IDS_FILE} --header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\" --post-file=${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
+  COUNTRIES_DOWNLOAD_OPERATION="curl -s -o ${COUNTRIES_BOUNDARY_IDS_FILE} -H \"User-Agent: ${DOWNLOAD_USER_AGENT}\" --data-binary @${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
  else
-  COUNTRIES_DOWNLOAD_OPERATION="wget -O ${COUNTRIES_BOUNDARY_IDS_FILE} --post-file=${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
+  COUNTRIES_DOWNLOAD_OPERATION="curl -s -o ${COUNTRIES_BOUNDARY_IDS_FILE} --data-binary @${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
  fi
  local COUNTRIES_CLEANUP="rm -f ${COUNTRIES_BOUNDARY_IDS_FILE} ${COUNTRIES_OUTPUT_FILE} 2>/dev/null || true"
  if ! __retry_file_operation "${COUNTRIES_DOWNLOAD_OPERATION}" "${MAX_RETRIES_COUNTRIES}" "${BASE_DELAY_COUNTRIES}" "${COUNTRIES_CLEANUP}" "true" "${OVERPASS_INTERPRETER}"; then
@@ -2785,10 +2785,10 @@ function __processMaritimes_impl {
  __logi "Obtaining the eez ids."
  set +e
  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-  wget -O "${MARITIME_BOUNDARY_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_MARITIMES}" \
-   "${OVERPASS_INTERPRETER}"
+  curl -s -o "${MARITIME_BOUNDARY_IDS_FILE}" -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
+   --data-binary "@${OVERPASS_MARITIMES}" "${OVERPASS_INTERPRETER}"
  else
-  wget -O "${MARITIME_BOUNDARY_IDS_FILE}" --post-file="${OVERPASS_MARITIMES}" \
+  curl -s -o "${MARITIME_BOUNDARY_IDS_FILE}" --data-binary "@${OVERPASS_MARITIMES}" \
    "${OVERPASS_INTERPRETER}"
  fi
  RET=${?}

@@ -54,7 +54,7 @@ source bin/lib/functionsProcess.sh
 
 # Use retry function for file download
 __retry_file_operation \
-  "wget -O ${OUTPUT_FILE} ${URL}" \
+  "curl -s -o ${OUTPUT_FILE} ${URL}" \
   7 \
   20 \
   "rm -f ${OUTPUT_FILE}" \
@@ -470,7 +470,7 @@ Functions depend on `lib/osm-common/` (Git submodule):
 - **PostgreSQL/PostGIS**: Database operations
 - **GNU Parallel**: Parallel processing
 - **AWK**: XML/CSV processing
-- **wget/curl**: File downloads
+- **curl**: File downloads and API calls
 - **ogr2ogr (GDAL)**: GeoJSON processing
 
 ## Testing

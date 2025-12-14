@@ -38,7 +38,7 @@
 #   - Taiwan: Long row issue, some fields removed
 #   - Gaza Strip: ID hardcoded (not at country level)
 #
-# Dependencies: PostgreSQL, PostGIS, AWK, wget, GNU Parallel, ogr2ogr, lib/osm-common/
+# Dependencies: PostgreSQL, PostGIS, AWK, curl, GNU Parallel, ogr2ogr, lib/osm-common/
 #
 # For contributing: shellcheck -x -o all processPlanetNotes.sh && shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #

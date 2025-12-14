@@ -589,7 +589,7 @@ function __check_api_for_updates {
  local CHECK_URL="${OSM_API}/notes/search.xml?limit=1&closed=-1&sort=updated_at&from=${LAST_PROCESSED_TIMESTAMP}"
  local TEMP_CHECK_FILE="${TMP_DIR}/api_check_$$.xml"
 
- if wget -q --timeout=10 --tries=1 -O "${TEMP_CHECK_FILE}" "${CHECK_URL}" 2> /dev/null; then
+ if curl -s --connect-timeout 10 --max-time 10 -o "${TEMP_CHECK_FILE}" "${CHECK_URL}" 2> /dev/null; then
   # Check if there are notes in the XML
   local NOTE_COUNT
   NOTE_COUNT=$(grep -c '<note ' "${TEMP_CHECK_FILE}" 2> /dev/null || echo "0")
@@ -641,6 +641,16 @@ function __process_api_data {
   if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
    __logw "Too many notes (${TOTAL_NOTES} >= ${MAX_NOTES}), triggering Planet sync"
    __logi "Executing: ${NOTES_SYNC_SCRIPT}"
+   # Ensure required environment variables are set for processPlanetNotes.sh
+   # SKIP_XML_VALIDATION=true speeds up processing (validation is optional)
+   export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+   # Preserve LOG_LEVEL from daemon
+   export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
+   # Ensure DBNAME and other database variables are available
+   export DBNAME="${DBNAME}"
+   export DB_USER="${DB_USER:-}"
+   export DB_HOST="${DB_HOST:-}"
+   export DB_PORT="${DB_PORT:-}"
    if "${NOTES_SYNC_SCRIPT}"; then
     __logi "Planet sync completed successfully"
     # After Planet sync, update timestamp to prevent infinite loop

@@ -435,7 +435,7 @@ function __resolve_note_location_backup() {
  local DOWNLOAD_URL="${NOTE_LOCATION_DATA_REPO_URL}/${FILE_NAME}"
  local DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}"
 
- # Use __retry_network_operation if available, otherwise use wget directly
+ # Use __retry_network_operation if available, otherwise use curl directly
  if declare -f __retry_network_operation > /dev/null 2>&1; then
   if __retry_network_operation "${DOWNLOAD_URL}" "${DOWNLOADED_FILE}" 3 2 30; then
    # Move downloaded file to expected location
@@ -450,8 +450,8 @@ function __resolve_note_location_backup() {
    return 1
   fi
  else
-  # Fallback to direct wget if __retry_network_operation is not available
-  if wget -q --timeout=30 --tries=3 -O "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
+  # Fallback to direct curl if __retry_network_operation is not available
+  if curl -s --connect-timeout 30 --max-time 30 -o "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
    mkdir -p "$(dirname "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}")"
    mv "${DOWNLOADED_FILE}" "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
    __logi "Successfully downloaded note location backup from GitHub: ${DOWNLOAD_URL}"
@@ -1435,12 +1435,6 @@ EOF
   __loge "To enable btree_gist, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
- ## Wget
- __logd "Checking wget."
- if ! wget --version > /dev/null 2>&1; then
-  __loge "ERROR: Wget is missing."
-  exit "${ERROR_MISSING_LIBRARY}"
- fi
  ## Aria2c
  __logd "Checking aria2c."
  if ! aria2c --version > /dev/null 2>&1; then
@@ -1906,7 +1900,7 @@ function __downloadPlanetNotes {
  fi
 
  # Download MD5 file with retry logic
- local MD5_OPERATION="wget -O ${PLANET_NOTES_FILE}.bz2.md5 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
+ local MD5_OPERATION="curl -s -o ${PLANET_NOTES_FILE}.bz2.md5 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
  local MD5_CLEANUP="rm -f ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
 
  if ! __retry_file_operation "${MD5_OPERATION}" 3 5 "${MD5_CLEANUP}"; then
@@ -2132,9 +2126,9 @@ function __overpass_download_with_endpoints() {
   local OP
   if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
    __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
-   OP="wget -O ${LOCAL_JSON_FILE} --header=\"User-Agent: ${DOWNLOAD_USER_AGENT}\" --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
+   OP="curl -s -o ${LOCAL_JSON_FILE} -H \"User-Agent: ${DOWNLOAD_USER_AGENT}\" --data-binary @${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   else
-   OP="wget -O ${LOCAL_JSON_FILE} --post-file=${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
+   OP="curl -s -o ${LOCAL_JSON_FILE} --data-binary @${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   fi
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
   if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true" "${ACTIVE_OVERPASS}"; then

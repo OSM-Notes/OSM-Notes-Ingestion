@@ -33,7 +33,7 @@
 #   - SEND_ALERT_EMAIL: Enable/disable email (default: true)
 #   - LOG_LEVEL: Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
 #
-# Dependencies: PostgreSQL, AWK, wget, lib/osm-common/
+# Dependencies: PostgreSQL, AWK, curl, lib/osm-common/
 #
 # For contributing: shellcheck -x -o all processAPINotes.sh && shfmt -w -i 1 -sr -bn processAPINotes.sh
 #

@@ -554,10 +554,11 @@ function __checkBoundariesUpdateNeeded {
  __logd "Downloading ${TYPE} IDs from Overpass..."
  set +e
  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-  wget -O "${TMP_IDS_FILE}" --header="User-Agent: ${DOWNLOAD_USER_AGENT}" --post-file="${OVERPASS_QUERY_FILE}" \
+  curl -s -o "${TMP_IDS_FILE}" -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
+   --data-binary "@${OVERPASS_QUERY_FILE}" \
    "${OVERPASS_INTERPRETER}" 2> /dev/null
  else
-  wget -O "${TMP_IDS_FILE}" --post-file="${OVERPASS_QUERY_FILE}" \
+  curl -s -o "${TMP_IDS_FILE}" --data-binary "@${OVERPASS_QUERY_FILE}" \
    "${OVERPASS_INTERPRETER}" 2> /dev/null
  fi
  local RET=${?}
@@ -1059,9 +1060,10 @@ function __checkMissingMaritimes() {
 out;"
 
   local TEMP_OVERLASS_RESPONSE="${TMP_DIR}/overpass_${eez_id}.json"
-  if wget -q -O "${TEMP_OVERLASS_RESPONSE}" --timeout=$((QUERY_TIMEOUT + 5)) \
-   --post-data="data=${OVERPASS_QUERY}" \
-   --header="Content-Type: application/x-www-form-urlencoded" \
+  if curl -s --connect-timeout $((QUERY_TIMEOUT + 5)) --max-time $((QUERY_TIMEOUT + 5)) \
+   -o "${TEMP_OVERLASS_RESPONSE}" \
+   -H "Content-Type: application/x-www-form-urlencoded" \
+   -d "data=${OVERPASS_QUERY}" \
    "${OVERPASS_API}" 2> /dev/null; then
 
    # Check if response contains any relations
