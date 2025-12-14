@@ -56,7 +56,7 @@ show_help() {
 Script to run processAPINotes.sh in hybrid mode (real DB, mocked downloads)
 
 This script sets up a hybrid mock environment where:
-  - Internet downloads are mocked (wget, aria2c)
+  - Internet downloads are mocked (aria2c, curl)
   - Database operations use REAL PostgreSQL
   - All processing runs with real database but without internet downloads
 
@@ -500,8 +500,7 @@ setup_hybrid_mock_environment() {
  fi
 
  # Create mock commands if they don't exist
- if [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]] \
-  || [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
   log_info "Creating mock commands..."
   bash "${SETUP_HYBRID_SCRIPT}" setup
  fi
@@ -518,7 +517,6 @@ EOF
  fi
 
  # Ensure all mock commands are executable
- chmod +x "${MOCK_COMMANDS_DIR}/wget" 2> /dev/null || true
  chmod +x "${MOCK_COMMANDS_DIR}/aria2c" 2> /dev/null || true
  chmod +x "${MOCK_COMMANDS_DIR}/pgrep" 2> /dev/null || true
 
@@ -576,7 +574,7 @@ EOF
 }
 
 # Function to ensure real psql is used (not mock)
-# This function ensures psql is real while keeping aria2c and wget mocks active
+# This function ensures psql is real while keeping aria2c and curl mocks active
 ensure_real_psql() {
  log_info "Ensuring real PostgreSQL client is used..."
 
@@ -606,12 +604,12 @@ ensure_real_psql() {
  # Rebuild PATH: Remove ALL mock directories to ensure real commands are used
  # This ensures:
  # 1. Real psql is found before mock psql (if it exists)
- # 2. Mock aria2c/wget are found before real ones (from hybrid_mock_dir)
+ # 2. Mock aria2c is found before real one (from hybrid_mock_dir)
  # 3. Real bzip2 is used (not mock)
  local clean_path
  clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${real_psql_dir}$" | tr '\n' ':' | sed 's/:$//')
 
- # Create a custom mock directory that only contains aria2c, wget, pgrep, ogr2ogr (not psql)
+ # Create a custom mock directory that only contains aria2c, curl, pgrep, ogr2ogr (not psql)
  local hybrid_mock_dir
  hybrid_mock_dir="/tmp/hybrid_mock_commands_$$"
  mkdir -p "${hybrid_mock_dir}"
@@ -619,14 +617,10 @@ ensure_real_psql() {
  # Store the directory path for cleanup
  export HYBRID_MOCK_DIR="${hybrid_mock_dir}"
 
- # Copy only the mocks we want (aria2c, wget, curl, pgrep, ogr2ogr)
+ # Copy only the mocks we want (aria2c, curl, pgrep, ogr2ogr)
  if [[ -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
   cp "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
   chmod +x "${hybrid_mock_dir}/aria2c"
- fi
- if [[ -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
-  cp "${MOCK_COMMANDS_DIR}/wget" "${hybrid_mock_dir}/wget"
-  chmod +x "${hybrid_mock_dir}/wget"
  fi
  if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
   cp "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
@@ -651,8 +645,8 @@ ensure_real_psql() {
   return 1
  fi
 
- # Set PATH: hybrid mock dir first (for aria2c/wget/curl/ogr2ogr), then real psql dir, then rest
- # This ensures mock aria2c/wget/curl/ogr2ogr are found before real ones, but real psql is found
+ # Set PATH: hybrid mock dir first (for aria2c/curl/ogr2ogr), then real psql dir, then rest
+ # This ensures mock aria2c/curl/ogr2ogr are found before real ones, but real psql is found
  # (since there's no psql in hybrid_mock_dir)
  export PATH="${hybrid_mock_dir}:${real_psql_dir}:${clean_path}"
  hash -r 2> /dev/null || true
@@ -808,7 +802,7 @@ run_processAPINotes() {
  local clean_path
  clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
 
- # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, wget, pgrep mocks)
+ # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, curl, pgrep mocks)
  # but ensure it doesn't contain bzip2
  if [[ -n "${HYBRID_MOCK_DIR:-}" ]] && [[ -d "${HYBRID_MOCK_DIR}" ]]; then
   # Check if hybrid_mock_dir has bzip2 (it shouldn't)
@@ -816,7 +810,7 @@ run_processAPINotes() {
    log_error "HYBRID_MOCK_DIR contains bzip2 mock, which should not exist"
    rm -f "${HYBRID_MOCK_DIR}/bzip2" 2> /dev/null || true
   fi
-  # Rebuild PATH: hybrid_mock_dir first (for aria2c/wget), then clean_path
+  # Rebuild PATH: hybrid_mock_dir first (for aria2c), then clean_path
   export PATH="${HYBRID_MOCK_DIR}:${clean_path}"
  else
   export PATH="${clean_path}"
@@ -865,7 +859,7 @@ run_processAPINotes() {
   export BZIP2="${current_bzip2}"
  fi
 
- # Export MOCK_NOTES_COUNT so wget mock can use it
+ # Export MOCK_NOTES_COUNT so curl mock can use it (if needed)
  if [[ -n "${MOCK_NOTES_COUNT:-}" ]]; then
   export MOCK_NOTES_COUNT
   log_info "MOCK_NOTES_COUNT set to: ${MOCK_NOTES_COUNT}"
