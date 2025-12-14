@@ -56,6 +56,7 @@ setup_hybrid_mock_environment() {
  mkdir -p "${MOCK_COMMANDS_DIR}"
 
 # Create only internet-related mock commands
+create_mock_curl
 create_mock_aria2c
  # Create mock ogr2ogr for transparent country data insertion
  create_mock_ogr2ogr
@@ -68,6 +69,152 @@ create_mock_aria2c
  done
 
  log_success "Hybrid mock environment setup completed"
+}
+
+# Function to create mock curl
+create_mock_curl() {
+ # Always recreate the mock curl to ensure it has the latest logic
+ log_info "Creating/updating mock curl..."
+ # Copy the curl mock from mock_commands directory
+ if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
+  # Use existing mock if available
+  chmod +x "${MOCK_COMMANDS_DIR}/curl" 2>/dev/null || true
+ else
+  # Create a basic curl mock if file doesn't exist
+  cat > "${MOCK_COMMANDS_DIR}/curl" << 'EOF'
+#!/bin/bash
+
+# Mock curl command for offline testing
+# Author: Andres Gomez (AngocA)
+# Version: 2025-01-23
+
+set -euo pipefail
+
+__create_mock_file() {
+ local url="$1"
+ local output_file="$2"
+
+ if [[ -z "$output_file" ]]; then
+  output_file=$(basename "$url")
+ fi
+
+ # Create directory if it doesn't exist
+ local output_dir
+ output_dir=$(dirname "$output_file")
+ if [[ -n "$output_dir" ]] && [[ "$output_dir" != "." ]]; then
+  mkdir -p "$output_dir" 2>/dev/null || true
+ fi
+
+ # Check for XML URLs (including those with query parameters like search.xml?limit=...)
+ if [[ "$url" == *".xml"* ]] || [[ "$url" == *"/notes"* ]] || [[ "$url" == *"search.xml"* ]]; then
+  if [[ "$url" == *"/notes?limit=1"* ]]; then
+   # For version check: generate minimal XML without declaration
+   cat >"$output_file" <<'INNER_EOF'
+<osm version="0.6" generator="OpenStreetMap server">
+ <note lon="-3.7038" lat="40.4168">
+  <id>123456</id>
+ </note>
+</osm>
+INNER_EOF
+  else
+   # For regular API calls: use full XML with declaration
+   cat >"$output_file" <<'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenStreetMap server">
+ <note lon="-3.7038" lat="40.4168">
+  <id>123456</id>
+  <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
+  <date_created>2025-12-10 10:30:00 UTC</date_created>
+  <status>open</status>
+ </note>
+</osm>
+INNER_EOF
+  fi
+ elif [[ "$url" == *.json* ]] || [[ "$url" == *"overpass"* ]] || [[ -n "${DATA_FILE:-}" ]]; then
+  # Overpass API format
+  cat >"$output_file" <<'INNER_EOF'
+{
+ "version": 0.6,
+ "generator": "Overpass API",
+ "osm3s": {
+  "timestamp_osm_base": "2025-12-14T00:00:00Z",
+  "copyright": "The data included in this document is from www.openstreetmap.org"
+ },
+ "elements": [
+  {
+   "type": "relation",
+   "id": 12345,
+   "tags": {
+    "type": "boundary",
+    "boundary": "administrative",
+    "admin_level": "2",
+    "name": "Test Country"
+   }
+  }
+ ]
+}
+INNER_EOF
+ else
+  echo "Mock content for $url" >"$output_file"
+ fi
+}
+
+ARGS=()
+OUTPUT_FILE=""
+SILENT=false
+SHOW_ERROR=false
+MAX_TIME=""
+DATA_FILE=""
+USER_AGENT=""
+
+while [[ $# -gt 0 ]]; do
+ case "$1" in
+  -s)
+   SILENT=true; shift ;;
+  -S)
+   SHOW_ERROR=true; shift ;;
+  -L)
+   shift ;;
+  -H)
+   shift 2 ;;
+  -o)
+   OUTPUT_FILE="$2"; shift 2 ;;
+  --max-time)
+   MAX_TIME="$2"; shift 2 ;;
+  --data|-d)
+   DATA_FILE="$2"; shift 2 ;;
+  -A|--user-agent)
+   USER_AGENT="$2"; shift 2 ;;
+  --version)
+   echo "curl 8.4.0 (mock)"; exit 0 ;;
+  http*|ftp*)
+   ARGS+=("$1"); shift ;;
+  *)
+   shift ;;
+ esac
+done
+
+: "${SILENT}" "${SHOW_ERROR}" "${MAX_TIME}" "${DATA_FILE}" "${USER_AGENT}"
+
+URL="${ARGS[0]:-}"
+if [[ -z "$URL" ]]; then
+ echo "usage: curl [options] URL" >&2
+ exit 2
+fi
+
+if [[ -n "$OUTPUT_FILE" ]]; then
+ __create_mock_file "$URL" "$OUTPUT_FILE"
+else
+ TMP_FILE=$(mktemp)
+ __create_mock_file "$URL" "$TMP_FILE"
+ cat "$TMP_FILE"
+ rm -f "$TMP_FILE"
+fi
+
+exit 0
+EOF
+  chmod +x "${MOCK_COMMANDS_DIR}/curl"
+ fi
 }
 
 # Function to create mock aria2c

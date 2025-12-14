@@ -144,3 +144,4 @@ tests/mock_commands/xmllint
 tests/mock_commands/osmtogeojson
 tests/mock_commands/mutt
 tests/mock_commands/wget
+tests/mock_commands/curl
