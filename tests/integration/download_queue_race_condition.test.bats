@@ -2,7 +2,7 @@
 # Integration test for race condition fix in download queue
 # This test simulates the original race condition scenario
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2025-10-28
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 

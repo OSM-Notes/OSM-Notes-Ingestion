@@ -2,7 +2,7 @@
 
 # Test helper functions for BATS tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-09
 
 # Test database configuration
 # Use the values already set by run_tests.sh, don't override them

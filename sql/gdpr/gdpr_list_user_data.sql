@@ -4,7 +4,7 @@
 -- Use this script to verify user data before processing GDPR requests.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-23
+-- Version: 2025-12-13
 --
 -- Usage:
 --   psql -d notes -v user_id=12345 -f sql/gdpr/gdpr_list_user_data.sql

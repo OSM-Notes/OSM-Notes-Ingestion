@@ -4,7 +4,7 @@
 # Tests the daemon behavior with mocked dependencies
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2025-12-12
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 

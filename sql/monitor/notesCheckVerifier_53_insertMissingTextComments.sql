@@ -2,7 +2,7 @@
 -- This script is executed after differences are identified.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-21
+-- Version: 2025-10-26
 
 -- Insert missing text comments from check to main tables
 SELECT /* Notes-check */ clock_timestamp() AS Processing,

@@ -13,7 +13,7 @@
 #   __db_pool_cleanup
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2025-12-13
 
 # Pool configuration
 declare -i DB_POOL_SIZE="${DB_POOL_SIZE:-3}"

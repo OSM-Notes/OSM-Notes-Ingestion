@@ -3,7 +3,7 @@
 # End-to-end integration tests for processAPI historical data validation
 # These tests simulate real database scenarios
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-24
+# Version: 2025-12-13
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Integration tests for download queue with real Overpass API
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2025-10-28
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 

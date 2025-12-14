@@ -1,6 +1,6 @@
 -- Unit tests for database tables (simplified version without pgTAP)
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-27
+-- Version: 2025-08-07
 
 BEGIN;
 

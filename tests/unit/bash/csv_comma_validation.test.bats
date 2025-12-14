@@ -3,7 +3,7 @@
 # CSV Comma Validation Tests
 # Tests for CSV validation with commas in text
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-09
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 

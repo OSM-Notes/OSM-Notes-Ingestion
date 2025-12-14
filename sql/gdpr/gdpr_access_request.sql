@@ -4,7 +4,7 @@
 -- for GDPR Article 15 (Right of Access) requests.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-23
+-- Version: 2025-12-13
 --
 -- Usage:
 --   psql -d notes -v user_id=12345 -v username='john_doe' \

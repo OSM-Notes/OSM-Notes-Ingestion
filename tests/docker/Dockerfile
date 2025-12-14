@@ -1,6 +1,6 @@
 # Dockerfile for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-24
+# Version: 2025-12-07
 
 FROM ubuntu:22.04
 
