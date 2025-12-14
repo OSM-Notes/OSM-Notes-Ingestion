@@ -198,7 +198,7 @@ function __check_overpass_status() {
 
  __logd "Checking Overpass API status at ${STATUS_URL}..."
 
- if ! STATUS_OUTPUT=$(curl -s "${STATUS_URL}" 2>&1); then
+ if ! STATUS_OUTPUT=$(curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" "${STATUS_URL}" 2>&1); then
   __logw "Could not reach Overpass API status page, assuming available"
   __log_finish
   echo "0"
@@ -451,7 +451,7 @@ function __resolve_note_location_backup() {
   fi
  else
   # Fallback to direct curl if __retry_network_operation is not available
-  if curl -s --connect-timeout 30 --max-time 30 -o "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
+  if curl -s --connect-timeout 30 --max-time 30 -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" -o "${DOWNLOADED_FILE}" "${DOWNLOAD_URL}" 2> /dev/null; then
    mkdir -p "$(dirname "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}")"
    mv "${DOWNLOADED_FILE}" "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
    __logi "Successfully downloaded note location backup from GitHub: ${DOWNLOAD_URL}"
@@ -1900,7 +1900,7 @@ function __downloadPlanetNotes {
  fi
 
  # Download MD5 file with retry logic
- local MD5_OPERATION="curl -s -o ${PLANET_NOTES_FILE}.bz2.md5 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
+ local MD5_OPERATION="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${PLANET_NOTES_FILE}.bz2.md5 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
  local MD5_CLEANUP="rm -f ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
 
  if ! __retry_file_operation "${MD5_OPERATION}" 3 5 "${MD5_CLEANUP}"; then
@@ -2124,12 +2124,8 @@ function __overpass_download_with_endpoints() {
   rm -f "${LOCAL_JSON_FILE}" "${LOCAL_OUTPUT_FILE}" 2> /dev/null || true
 
   local OP
-  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-   __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
-   OP="curl -s -o ${LOCAL_JSON_FILE} -H \"User-Agent: ${DOWNLOAD_USER_AGENT}\" --data-binary @${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
-  else
-   OP="curl -s -o ${LOCAL_JSON_FILE} --data-binary @${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
-  fi
+  __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}"
+  OP="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${LOCAL_JSON_FILE} --data-binary @${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
   if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true" "${ACTIVE_OVERPASS}"; then
    __logd "Download succeeded from endpoint=${ENDPOINT}"

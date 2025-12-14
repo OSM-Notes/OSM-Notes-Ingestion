@@ -801,7 +801,7 @@ function __check_network_connectivity() {
  __logd "Checking network connectivity"
 
  for URL in "${TEST_URLS[@]}"; do
-  if timeout "${TIMEOUT}" curl -s --connect-timeout 5 "${URL}" > /dev/null 2>&1; then
+  if timeout "${TIMEOUT}" curl -s --connect-timeout 5 -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" "${URL}" > /dev/null 2>&1; then
    __logi "Network connectivity confirmed via ${URL}"
    __log_finish
    return 0
@@ -1489,7 +1489,7 @@ if ! declare -f __check_overpass_status > /dev/null 2>&1; then
 
   __logd "Checking Overpass API status at ${STATUS_URL}..."
 
-  if ! STATUS_OUTPUT=$(curl -s "${STATUS_URL}" 2>&1); then
+  if ! STATUS_OUTPUT=$(curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" "${STATUS_URL}" 2>&1); then
    __logw "Could not reach Overpass API status page, assuming available"
    __log_finish
    echo "0"

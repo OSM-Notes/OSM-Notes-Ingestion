@@ -558,7 +558,7 @@ function __checkBoundariesUpdateNeeded {
    --data-binary "@${OVERPASS_QUERY_FILE}" \
    "${OVERPASS_INTERPRETER}" 2> /dev/null
  else
-  curl -s -o "${TMP_IDS_FILE}" --data-binary "@${OVERPASS_QUERY_FILE}" \
+  curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" -o "${TMP_IDS_FILE}" --data-binary "@${OVERPASS_QUERY_FILE}" \
    "${OVERPASS_INTERPRETER}" 2> /dev/null
  fi
  local RET=${?}
@@ -1061,8 +1061,9 @@ out;"
 
   local TEMP_OVERLASS_RESPONSE="${TMP_DIR}/overpass_${eez_id}.json"
   if curl -s --connect-timeout $((QUERY_TIMEOUT + 5)) --max-time $((QUERY_TIMEOUT + 5)) \
-   -o "${TEMP_OVERLASS_RESPONSE}" \
+   -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" \
    -H "Content-Type: application/x-www-form-urlencoded" \
+   -o "${TEMP_OVERLASS_RESPONSE}" \
    -d "data=${OVERPASS_QUERY}" \
    "${OVERPASS_API}" 2> /dev/null; then
 
