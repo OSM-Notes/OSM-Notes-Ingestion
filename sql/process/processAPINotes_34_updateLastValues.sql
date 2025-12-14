@@ -15,6 +15,7 @@ $$
   integrity_check_passed BOOLEAN;
   notes_without_comments INTEGER;
   total_notes INTEGER;
+  total_comments_in_db INTEGER;
   gap_percentage DECIMAL(5,2);
   notes_without_comments_json TEXT;
  BEGIN
@@ -31,29 +32,41 @@ $$
     integrity_check_passed := FALSE;
   END;
   
-  -- Count notes without comments in recent data
-  SELECT COUNT(DISTINCT n.note_id)
-   INTO notes_without_comments
-  FROM notes n
-  LEFT JOIN note_comments nc ON nc.note_id = n.note_id
-  WHERE n.created_at > (
-    SELECT timestamp FROM max_note_timestamp
-   ) - INTERVAL '1 day'
-   AND nc.note_id IS NULL;
+  -- Count total comments in entire database
+  -- This helps detect if we're in a state after data deletion
+  SELECT COUNT(*) INTO total_comments_in_db FROM note_comments;
   
-  -- Count total notes from last day
-  SELECT COUNT(DISTINCT note_id)
-   INTO total_notes
-  FROM notes
-  WHERE created_at > (
-    SELECT timestamp FROM max_note_timestamp
-   ) - INTERVAL '1 day';
-  
-  -- Calculate gap percentage
-  IF total_notes > 0 THEN
-   gap_percentage := (notes_without_comments::DECIMAL / total_notes::DECIMAL * 100);
-  ELSE
+  -- Special case: If database has no comments at all, skip gap checking
+  -- This handles the case after deleteDataAfterTimestamp.sql execution
+  IF total_comments_in_db = 0 THEN
+   notes_without_comments := 0;
+   total_notes := 0;
    gap_percentage := 0;
+  ELSE
+   -- Count notes without comments in recent data
+   SELECT COUNT(DISTINCT n.note_id)
+    INTO notes_without_comments
+   FROM notes n
+   LEFT JOIN note_comments nc ON nc.note_id = n.note_id
+   WHERE n.created_at > (
+     SELECT timestamp FROM max_note_timestamp
+    ) - INTERVAL '1 day'
+    AND nc.note_id IS NULL;
+   
+   -- Count total notes from last day
+   SELECT COUNT(DISTINCT note_id)
+    INTO total_notes
+   FROM notes
+   WHERE created_at > (
+     SELECT timestamp FROM max_note_timestamp
+    ) - INTERVAL '1 day';
+   
+   -- Calculate gap percentage
+   IF total_notes > 0 THEN
+    gap_percentage := (notes_without_comments::DECIMAL / total_notes::DECIMAL * 100);
+   ELSE
+    gap_percentage := 0;
+   END IF;
   END IF;
   
   -- Log gap status

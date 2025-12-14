@@ -647,7 +647,15 @@ function __process_api_data {
    local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
    if [[ -f "${PLANET_LOCK_FILE}" ]]; then
     __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
-    rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
+    # Try to remove with sudo if regular rm fails (permission issues)
+    if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
+     __logw "Could not remove lock file with regular rm, trying with sudo"
+     if command -v sudo >/dev/null 2>&1; then
+      sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
+     else
+      __logw "sudo not available, lock file may cause issues"
+     fi
+    fi
    fi
    # Ensure required environment variables are set for processPlanetNotes.sh
    # SKIP_XML_VALIDATION=true speeds up processing (validation is optional)
@@ -659,17 +667,26 @@ function __process_api_data {
    export DB_USER="${DB_USER:-}"
    export DB_HOST="${DB_HOST:-}"
    export DB_PORT="${DB_PORT:-}"
-   if "${NOTES_SYNC_SCRIPT}"; then
+   # Execute processPlanetNotes.sh and capture exit code explicitly
+   # This ensures we detect failures even if the script exits early
+   "${NOTES_SYNC_SCRIPT}"
+   local PLANET_SYNC_EXIT_CODE=$?
+   if [[ ${PLANET_SYNC_EXIT_CODE} -eq 0 ]]; then
     __logi "Planet sync completed successfully"
     # After Planet sync, update timestamp to prevent infinite loop
     # processPlanetNotes.sh doesn't update max_note_timestamp, so we need to do it here
     __logi "Updating timestamp after Planet sync"
     __updateLastValue
    else
-    local PLANET_SYNC_EXIT_CODE=$?
     __loge "Planet sync failed with exit code: ${PLANET_SYNC_EXIT_CODE}"
     __loge "Check processPlanetNotes.sh logs for details"
     __loge "Failed execution marker: /tmp/processPlanetNotes_failed_execution"
+    # Check if lock file permission issue was the cause
+    if [[ -f "${PLANET_LOCK_FILE}" ]] && ! [[ -w "${PLANET_LOCK_FILE}" ]]; then
+     __loge "Lock file permission issue detected: ${PLANET_LOCK_FILE}"
+     __loge "Lock file owner: $(stat -c '%U:%G' "${PLANET_LOCK_FILE}" 2>/dev/null || echo 'unknown')"
+     __loge "Current user: $(whoami)"
+    fi
     return 1
    fi
   else

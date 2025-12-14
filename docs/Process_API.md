@@ -892,6 +892,198 @@ FROM note_comments_api
 ON CONFLICT (note_id, sequence_action) DO NOTHING;
 ```
 
+### 7. Data Integrity Check and Gap Management
+
+The API processing system includes a comprehensive data integrity validation mechanism to ensure data consistency and detect potential issues during incremental synchronization.
+
+#### What is the Integrity Check?
+
+The integrity check (`app.integrity_check_passed`) is a PostgreSQL session variable that validates whether the data insertion process completed successfully. Specifically, it verifies that notes have their associated comments properly inserted.
+
+**Purpose:**
+- **Detect insertion failures**: Identifies cases where notes were inserted but their comments failed to insert
+- **Prevent data inconsistency**: Blocks timestamp updates when data integrity is compromised
+- **Alert on data gaps**: Logs gaps in the `data_gaps` table for monitoring and later correction
+
+#### How the Integrity Check Works
+
+The integrity check is performed in `processAPINotes_32_insertNewNotesAndComments.sql` after inserting notes and comments:
+
+1. **Count notes without comments**: Identifies notes from the last day that don't have any associated comments
+2. **Calculate gap percentage**: Determines what percentage of notes lack comments
+3. **Apply threshold**: If more than **5%** of notes lack comments, the check **fails**
+4. **Set session variable**: Stores the result in `app.integrity_check_passed` (session-level persistence)
+5. **Conditional timestamp update**: The `max_note_timestamp` is only updated if the integrity check passed
+
+**Code Location:**
+- Integrity check logic: `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (lines 193-257)
+- Timestamp update logic: `sql/process/processAPINotes_34_updateLastValues.sql` (lines 10-113)
+
+#### Integrity Check Threshold: Why 5%?
+
+The **5% threshold** is a balance between:
+- **Tolerance for minor issues**: Small gaps (<5%) are acceptable and don't block processing
+- **Detection of real problems**: Larger gaps (>5%) indicate systemic issues that need attention
+- **Practical considerations**: Some notes may legitimately have no comments (e.g., immediately closed notes)
+
+**Special Cases:**
+- **Empty database**: If `total_comments_in_db = 0` (e.g., after data cleanup), the check is permissive and passes
+- **No recent notes**: If there are no notes from the last day, the check passes (nothing to verify)
+
+#### What Happens When the Check Fails?
+
+When the integrity check fails (>5% of notes without comments):
+
+1. **Timestamp update is blocked**: `max_note_timestamp` is **not updated**, preventing the daemon from advancing
+2. **Gaps are logged**: Details are recorded in the `data_gaps` table:
+   - Gap type: `notes_without_comments`
+   - Gap count and percentage
+   - List of affected `note_id`s (as JSON array)
+   - Status: `processed = FALSE` (indicating it needs correction)
+3. **Warnings are logged**: Messages are written to the `logs` table
+4. **Processing continues**: The daemon will retry in the next cycle, potentially fixing transient issues
+
+#### Small Gaps (<5%): Accepted but Tracked
+
+Even when the integrity check **passes**, small gaps (<5%) may still exist. These are:
+- **Logged to `data_gaps` table**: For monitoring and later correction
+- **Not blocking**: Processing continues normally
+- **Corrected later**: By `notesCheckVerifier.sh` (see below)
+
+#### Gap Correction: notesCheckVerifier.sh
+
+The `notesCheckVerifier.sh` script is responsible for correcting data gaps that accumulate over time. It works in conjunction with `processCheckPlanetNotes.sh`:
+
+**How it works:**
+
+1. **Download Planet dump**: `processCheckPlanetNotes.sh` downloads a recent Planet notes dump
+2. **Populate check tables**: The Planet data is loaded into temporary check tables:
+   - `notes_check`
+   - `note_comments_check`
+   - `note_comments_text_check`
+3. **Compare with main tables**: `notesCheckVerifier.sh` identifies differences:
+   - Notes/comments that exist in Planet but not in main tables
+   - Notes/comments that exist in main tables but not in Planet
+4. **Insert missing data**: Missing data from Planet is inserted into main tables:
+   - Missing notes: `notesCheckVerifier_51_insertMissingNotes.sql`
+   - Missing comments: `notesCheckVerifier_52_insertMissingComments.sql`
+   - Missing text comments: `notesCheckVerifier_53_insertMissingTextComments.sql`
+
+**Why this works:**
+- **Planet dumps are authoritative**: They contain the complete, verified dataset
+- **Periodic correction**: Running `notesCheckVerifier.sh` regularly (e.g., daily) corrects accumulated gaps
+- **Comprehensive coverage**: Compares all historical data (excluding today) to catch gaps from any period
+
+**Typical Usage:**
+```bash
+# Run daily via cron to correct accumulated gaps
+0 3 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh
+```
+
+#### Integrity Check Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              Integrity Check and Gap Management Flow            │
+└─────────────────────────────────────────────────────────────────┘
+
+processAPINotes.sh
+    │
+    ├─▶ Insert notes and comments
+    │
+    ├─▶ Integrity Check (processAPINotes_32_insertNewNotesAndComments.sql)
+    │   │
+    │   ├─▶ Count notes without comments (last day)
+    │   ├─▶ Calculate gap percentage
+    │   │
+    │   ├─▶ IF gap > 5%:
+    │   │   ├─▶ Set integrity_check_passed = FALSE
+    │   │   ├─▶ Log to data_gaps table
+    │   │   └─▶ Block timestamp update
+    │   │
+    │   └─▶ IF gap ≤ 5%:
+    │       ├─▶ Set integrity_check_passed = TRUE
+    │       ├─▶ Log small gaps to data_gaps (if any)
+    │       └─▶ Allow timestamp update
+    │
+    └─▶ Update Timestamp (processAPINotes_34_updateLastValues.sql)
+        │
+        ├─▶ Read integrity_check_passed
+        │
+        ├─▶ IF integrity_check_passed = FALSE:
+        │   └─▶ Skip timestamp update (prevents daemon from advancing)
+        │
+        └─▶ IF integrity_check_passed = TRUE:
+            └─▶ Update max_note_timestamp to latest note/comment timestamp
+
+───────────────────────────────────────────────────────────────────
+
+Periodic Gap Correction (notesCheckVerifier.sh)
+    │
+    ├─▶ processCheckPlanetNotes.sh
+    │   ├─▶ Download recent Planet dump
+    │   └─▶ Populate check tables (notes_check, note_comments_check, etc.)
+    │
+    └─▶ notesCheckVerifier.sh
+        ├─▶ Compare check tables with main tables
+        ├─▶ Identify missing data
+        └─▶ Insert missing notes/comments/text from Planet
+            └─▶ Corrects gaps accumulated over time
+```
+
+#### Session Variable Persistence
+
+The `app.integrity_check_passed` variable must persist between the integrity check and the timestamp update. This is achieved by:
+
+1. **Session-level storage**: Using `set_config('app.integrity_check_passed', ..., true)` (the `true` parameter makes it session-level)
+2. **Same connection execution**: Both SQL scripts are executed in the **same `psql` connection** within `__insertNewNotesAndComments()`:
+   ```bash
+   # Both scripts executed in single psql call
+   cat > "${TEMP_SQL_FILE}" << EOF
+   SET app.process_id = '${PROCESS_ID_INTEGER}';
+   ${SQL_CMD}  # processAPINotes_32_insertNewNotesAndComments.sql
+   EOF
+   cat "${POSTGRES_34_UPDATE_LAST_VALUES}" >> "${TEMP_SQL_FILE}"  # processAPINotes_34_updateLastValues.sql
+   psql -d "${DBNAME}" -f "${TEMP_SQL_FILE}"  # Single connection
+   ```
+
+**Why same connection?**
+- PostgreSQL session variables persist across transactions **within the same connection**
+- Each `psql` command creates a **new connection**, so separate calls would lose the variable
+- Executing both scripts in one `psql` call ensures the variable is available to both
+
+#### Monitoring Integrity Check Status
+
+You can monitor the integrity check status by querying the database:
+
+```sql
+-- Check recent integrity check results from logs
+SELECT message, processing
+FROM logs
+WHERE message LIKE '%Integrity check%'
+ORDER BY processing DESC
+LIMIT 10;
+
+-- Check current gaps in data_gaps table
+SELECT 
+  gap_type,
+  gap_count,
+  total_count,
+  gap_percentage,
+  processed,
+  error_details
+FROM data_gaps
+WHERE processed = FALSE
+ORDER BY gap_percentage DESC;
+
+-- Check notes without comments (last day)
+SELECT COUNT(DISTINCT n.note_id) as notes_without_comments
+FROM notes n
+LEFT JOIN note_comments nc ON nc.note_id = n.note_id
+WHERE n.created_at > (SELECT timestamp FROM max_note_timestamp) - INTERVAL '1 day'
+  AND nc.note_id IS NULL;
+```
+
 ## Detailed Sequence Diagrams
 
 ### API Processing Sequence Diagram

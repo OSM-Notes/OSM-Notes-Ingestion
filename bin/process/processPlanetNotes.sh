@@ -1354,7 +1354,18 @@ function __checkPreviousFailedExecution {
 function __setupLockFile {
  __log_start
  __logw "Validating single execution."
- exec 7> "${LOCK}"
+ # Try to create/open lock file, handle permission errors explicitly
+ if ! exec 7> "${LOCK}" 2>/dev/null; then
+  __loge "Failed to create lock file: ${LOCK}"
+  __loge "Lock file owner: $(stat -c '%U:%G' "${LOCK}" 2>/dev/null || echo 'unknown')"
+  __loge "Current user: $(whoami)"
+  __loge "Lock file permissions: $(stat -c '%a' "${LOCK}" 2>/dev/null || echo 'unknown')"
+  __loge "This may be a permission issue. Try removing the lock file manually:"
+  __loge "  rm -f ${LOCK}"
+  __loge "Or run this script with appropriate permissions."
+  export SCRIPT_EXIT_CODE="${ERROR_GENERAL}"
+  exit "${ERROR_GENERAL}"
+ fi
  ONLY_EXECUTION="no"
  if ! flock -n 7; then
   __loge "Another instance of ${BASENAME} is already running."
@@ -1363,6 +1374,7 @@ function __setupLockFile {
    __loge "Lock file contents:"
    cat "${LOCK}" >&2 || true
   fi
+  export SCRIPT_EXIT_CODE=1
   exit 1
  fi
  ONLY_EXECUTION="yes"
