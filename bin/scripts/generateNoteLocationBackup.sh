@@ -8,7 +8,7 @@
 # 255) General error
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
+# Version: 2025-12-14
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -52,10 +52,10 @@ main() {
 
  # Check database connection
  __logd "Checking database connection..."
-if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Get count of notes with country assignment
  __logd "Getting note count..."
@@ -65,10 +65,10 @@ fi
 
  __logi "Notes with country assignment: ${NOTE_COUNT}"
 
-if [[ "${NOTE_COUNT}" -eq 0 ]]; then
+ if [[ "${NOTE_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No notes with country assignment found in database"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Get max note_id
  __logd "Getting max note_id..."
