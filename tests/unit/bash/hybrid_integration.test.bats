@@ -226,21 +226,30 @@ teardown() {
  # Download mock data using a local URL that the mock can handle
  run curl -s -o "${TMP_DIR}/planet_notes.xml" "https://example.com/planet-notes.xml"
  [ "$status" -eq 0 ]
+ [ -f "${TMP_DIR}/planet_notes.xml" ]
+
+ # Check if xmllint is available
+ if ! command -v xmllint > /dev/null 2>&1; then
+  skip "xmllint not available"
+ fi
 
  # Validate with real xmllint
- run xmllint --noout "${TMP_DIR}/planet_notes.xml"
+ run xmllint --noout "${TMP_DIR}/planet_notes.xml" 2>&1
  [ "$status" -eq 0 ]
 
  # Count notes with real xmllint
- run xmllint --xpath "count(//note)" "${TMP_DIR}/planet_notes.xml"
+ run xmllint --xpath "count(//note)" "${TMP_DIR}/planet_notes.xml" 2>&1
  [ "$status" -eq 0 ]
  [[ "$output" =~ ^[0-9]+$ ]]
+ [[ "$output" -gt 0 ]]
 
  # Transform with real awkproc if AWK file exists and awkproc is available
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" ]] && command -v awkproc > /dev/null 2>&1; then
-  run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${TMP_DIR}/planet_notes.xml"
+  run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${TMP_DIR}/planet_notes.xml" 2>&1
   [ "$status" -eq 0 ]
   [[ "$output" == *","* ]] # Should contain CSV format
+ else
+  skip "AWK file or awkproc not available"
  fi
 }
 
