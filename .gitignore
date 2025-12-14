@@ -143,3 +143,4 @@ tests/mock_commands/aria2c
 tests/mock_commands/xmllint
 tests/mock_commands/osmtogeojson
 tests/mock_commands/mutt
+tests/mock_commands/wget

@@ -55,9 +55,8 @@ setup_hybrid_mock_environment() {
  # Create mock commands directory if it doesn't exist
  mkdir -p "${MOCK_COMMANDS_DIR}"
 
- # Create only internet-related mock commands
- create_mock_wget
- create_mock_aria2c
+# Create only internet-related mock commands
+create_mock_aria2c
  # Create mock ogr2ogr for transparent country data insertion
  create_mock_ogr2ogr
 
@@ -69,176 +68,6 @@ setup_hybrid_mock_environment() {
  done
 
  log_success "Hybrid mock environment setup completed"
-}
-
-# Function to create mock wget
-create_mock_wget() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
-  log_info "Creating mock wget..."
-  cat > "${MOCK_COMMANDS_DIR}/wget" << 'EOF'
-#!/bin/bash
-
-# Mock wget command for testing (internet downloads only)
-# Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-
-# Function to create mock files
-create_mock_file() {
- local url="$1"
- local output_file="$2"
- 
- # Extract filename from URL if no output file specified
- if [[ -z "$output_file" ]]; then
-   output_file=$(basename "$url")
- fi
- 
- # Create mock content based on URL
- if [[ "$url" == *".xml" ]]; then
-   cat > "$output_file" << 'INNER_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note id="123" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note</comment>
- </note>
- <note id="124" lat="40.7129" lon="-74.0061" created_at="2023-01-01T01:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T01:00:00Z" uid="12346" user="testuser2">Another test note</comment>
- </note>
-</osm-notes>
-INNER_EOF
- elif [[ "$url" == *".json" ]]; then
-   cat > "$output_file" << 'INNER_EOF'
-{
- "type": "FeatureCollection",
- "features": [
-  {
-   "type": "Feature",
-   "properties": {"name": "Test Country", "admin_level": "2"},
-   "geometry": {"type": "Polygon", "coordinates": [[[0,0],[1,0],[1,1],[0,1],[0,0]]]}
-  },
-  {
-   "type": "Feature",
-   "properties": {"name": "Test Maritime", "admin_level": "4"},
-   "geometry": {"type": "Polygon", "coordinates": [[[2,2],[3,2],[3,3],[2,3],[2,2]]]}
-  }
- ]
-}
-INNER_EOF
- elif [[ "$url" == *".bz2" ]]; then
-   # Create a small bzip2 file with realistic content
-   cat > "$output_file" << 'INNER_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note id="1001" lat="40.7128" lon="-74.0060" created_at="2023-01-01T00:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T00:00:00Z" uid="12345" user="testuser">Test note 1</comment>
- </note>
- <note id="1002" lat="40.7129" lon="-74.0061" created_at="2023-01-01T01:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T01:00:00Z" uid="12346" user="testuser2">Test note 2</comment>
-  <comment action="commented" timestamp="2023-01-01T02:00:00Z" uid="12347" user="testuser3">This is a comment</comment>
- </note>
- <note id="1003" lat="40.7130" lon="-74.0062" created_at="2023-01-01T03:00:00Z" closed_at="2023-01-01T04:00:00Z">
-  <comment action="opened" timestamp="2023-01-01T03:00:00Z" uid="12348" user="testuser4">Test note 3</comment>
-  <comment action="closed" timestamp="2023-01-01T04:00:00Z" uid="12349" user="testuser5">Closing this note</comment>
- </note>
-</osm-notes>
-INNER_EOF
-   # Compress the content
-   bzip2 -c "$output_file" > "${output_file}.tmp" 2>/dev/null && mv "${output_file}.tmp" "$output_file" || true
- elif [[ "$url" == *".md5" ]]; then
-   # When downloading an MD5 file, calculate the MD5 of the related file
-   # The related file should be in the same directory without the .md5 extension
-   local related_file
-   related_file="${output_file%.md5}"
-   
-   # Check if the related file exists
-   if [[ -f "$related_file" ]]; then
-     # Calculate MD5 of the related file
-     local md5_checksum
-     if command -v md5sum > /dev/null 2>&1; then
-       md5_checksum=$(md5sum < "$related_file" | cut -d ' ' -f 1)
-     elif command -v md5 > /dev/null 2>&1; then
-       md5_checksum=$(md5 -q < "$related_file")
-     else
-       # Fallback to fixed checksum if md5 command is not available
-       md5_checksum="d41d8cd98f00b204e9800998ecf8427e"
-     fi
-     echo "$md5_checksum" > "$output_file"
-   else
-     # If related file doesn't exist, use default checksum
-     echo "d41d8cd98f00b204e9800998ecf8427e" > "$output_file"
-   fi
- else
-   echo "Mock content for $url" > "$output_file"
- fi
- 
- echo "Mock file created: $output_file"
-}
-
-# Parse arguments
-ARGS=()
-OUTPUT_FILE=""
-QUIET=false
-TIMEOUT=""
-POST_FILE=""
-
-while [[ $# -gt 0 ]]; do
- case $1 in
-  -O)
-   OUTPUT_FILE="$2"
-   shift 2
-   ;;
-  -q)
-   QUIET=true
-   shift
-   ;;
-  --timeout=*)
-   TIMEOUT="${1#*=}"
-   shift
-   ;;
-  --post-file=*)
-   POST_FILE="${1#*=}"
-   shift
-   ;;
-  --version)
-   echo "GNU Wget 1.21.3"
-   exit 0
-   ;;
-  -*)
-   # Skip other options
-   shift
-   ;;
-  *)
-   ARGS+=("$1")
-   shift
-   ;;
- esac
-done
-
-# Get URL from arguments
-URL="${ARGS[0]:-}"
-
-if [[ -z "$URL" ]]; then
- echo "Usage: wget [OPTIONS] URL" >&2
- exit 1
-fi
-
-# Create mock file
-if [[ -n "$OUTPUT_FILE" ]]; then
- create_mock_file "$URL" "$OUTPUT_FILE"
-else
- create_mock_file "$URL"
-fi
-
-# Simulate HTTP response
-if [[ "$QUIET" != true ]]; then
- echo "HTTP/1.1 200 OK"
- echo "Content-Type: application/octet-stream"
- echo "Content-Length: $(wc -c < "${OUTPUT_FILE:-$(basename "$URL")}" 2>/dev/null || echo "0")"
- echo ""
-fi
-
-exit 0
-EOF
- fi
 }
 
 # Function to create mock aria2c
@@ -980,7 +809,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo "  test       Setup, check, activate, run tests, and deactivate"
   echo "  --help     Show this help"
   echo
-  echo "This environment mocks only internet downloads (wget, aria2c)"
+  echo "This environment mocks only internet downloads (aria2c)"
   echo "but uses real commands for database and XML processing."
   exit 0
   ;;
