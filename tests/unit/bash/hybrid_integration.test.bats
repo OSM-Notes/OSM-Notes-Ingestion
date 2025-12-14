@@ -119,8 +119,9 @@ teardown() {
  [ "$status" -eq 0 ]
 
  # Test AWK transformation with real awkproc
- if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/notes-API-csv.awk" ]]; then
-  run awkproc "${SCRIPT_BASE_DIRECTORY}/awk/notes-API-csv.awk" "${TMP_DIR}/test.xml"
+ # Use extract_notes.awk which exists and supports both Planet and API formats
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" ]]; then
+  run awkproc "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${TMP_DIR}/test.xml"
   # Don't check output as AWK may not produce any output depending on the transformation
   # Just check that the command executed without error
   [ "$status" -eq 0 ] || [ "$status" -eq 1 ] # Accept both success and no output
