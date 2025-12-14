@@ -965,22 +965,22 @@ function __checkMissingMaritimes() {
 
  # Load centroids from CSV (skip header line)
  # Format expected: eez_id,name,territory,sovereign,centroid_lat,centroid_lon
- tail -n +2 "${EEZ_CENTROIDS_FILE}" 2> /dev/null | while IFS=',' read -r eez_id name territory sovereign centroid_lat centroid_lon; do
+ tail -n +2 "${EEZ_CENTROIDS_FILE}" 2> /dev/null | while IFS=',' read -r EEZ_ID NAME TERRITORY SOVEREIGN CENTROID_LAT CENTROID_LON; do
   # Escape quotes in text fields
-  name=$(echo "${name}" | sed "s/'/''/g")
-  territory=$(echo "${territory}" | sed "s/'/''/g")
-  sovereign=$(echo "${sovereign}" | sed "s/'/''/g")
+  NAME=$(echo "${NAME}" | sed "s/'/''/g")
+  TERRITORY=$(echo "${TERRITORY}" | sed "s/'/''/g")
+  SOVEREIGN=$(echo "${SOVEREIGN}" | sed "s/'/''/g")
 
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
    INSERT INTO temp_eez_centroids (eez_id, name, territory, sovereign, centroid_lat, centroid_lon, geom)
    VALUES (
-    ${eez_id},
-    '${name}',
-    '${territory}',
-    '${sovereign}',
-    ${centroid_lat},
-    ${centroid_lon},
-    ST_SetSRID(ST_MakePoint(${centroid_lon}, ${centroid_lat}), 4326)
+    ${EEZ_ID},
+    '${NAME}',
+    '${TERRITORY}',
+    '${SOVEREIGN}',
+    ${CENTROID_LAT},
+    ${CENTROID_LON},
+    ST_SetSRID(ST_MakePoint(${CENTROID_LON}, ${CENTROID_LAT}), 4326)
    );
   " > /dev/null 2>&1 || true
  done

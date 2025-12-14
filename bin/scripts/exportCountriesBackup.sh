@@ -72,20 +72,20 @@ main() {
 
  # Check database connection
  __logd "Checking database connection..."
-if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "ERROR: Cannot connect to database '${DBNAME}'"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Check if countries table exists
  __logd "Checking countries table..."
  local COUNTRIES_COUNT
  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM countries" 2> /dev/null || echo "0")
-if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
+ if [[ "${COUNTRIES_COUNT}" -eq 0 ]]; then
   __loge "ERROR: Countries table is empty or does not exist"
   exit "${ERROR_GENERAL}"
-fi
+ fi
  __logi "Found ${COUNTRIES_COUNT} countries in database"
 
  # Filter out maritime boundaries (they have their own backup)
@@ -111,10 +111,10 @@ fi
 
  __logi "Found ${COUNTRIES_ONLY_COUNT} countries (excluding maritimes)"
 
-if [[ "${COUNTRIES_ONLY_COUNT}" -eq 0 ]]; then
+ if [[ "${COUNTRIES_ONLY_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No countries found in database (excluding maritimes)"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Create data directory if it doesn't exist
  __logd "Ensuring data directory exists..."
@@ -148,10 +148,10 @@ fi
  fi
 
  # Verify the file was created and is not empty
-if [[ ! -f "${OUTPUT_FILE}" ]] || [[ ! -s "${OUTPUT_FILE}" ]]; then
+ if [[ ! -f "${OUTPUT_FILE}" ]] || [[ ! -s "${OUTPUT_FILE}" ]]; then
   __loge "ERROR: Output file was not created or is empty"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Get file size
  local FILE_SIZE

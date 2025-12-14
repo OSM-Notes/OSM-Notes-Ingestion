@@ -62,15 +62,15 @@ function __db_pool_init() {
 
  # Initialize pool connections
  __logd "Initializing connection pool (size: ${DB_POOL_SIZE})"
- local -i i=0
- while [[ ${i} -lt ${DB_POOL_SIZE} ]]; do
+ local -i I=0
+ while [[ ${I} -lt ${DB_POOL_SIZE} ]]; do
   # Create named pipe for communication
-  local PIPE_IN="${DB_POOL_DIR}/pipe_${i}_in"
-  local PIPE_OUT="${DB_POOL_DIR}/pipe_${i}_out"
+  local PIPE_IN="${DB_POOL_DIR}/pipe_${I}_in"
+  local PIPE_OUT="${DB_POOL_DIR}/pipe_${I}_out"
   mkfifo "${PIPE_IN}" "${PIPE_OUT}" 2> /dev/null || true
 
   # Start coprocess (using eval for dynamic variable names)
-  local COPROC_NAME="DB_POOL_${i}"
+  local COPROC_NAME="DB_POOL_${I}"
   if [[ -n "${DB_PASSWORD:-}" ]]; then
    PGPASSWORD="${DB_PASSWORD}" \
     eval 'coproc '"${COPROC_NAME}"' { '"${PSQL_CMD}"' '"$(printf '%q ' "${PSQL_ARGS[@]}")"' < '"${PIPE_IN}"' > '"${PIPE_OUT}"'; }'
@@ -79,11 +79,11 @@ function __db_pool_init() {
   fi
 
   # Store connection info
-  eval "DB_POOL_CONNECTIONS[${i}]=\${${COPROC_NAME}[1]}"
-  DB_POOL_IN_USE[i]=0
+  eval "DB_POOL_CONNECTIONS[${I}]=\${${COPROC_NAME}[1]}"
+  DB_POOL_IN_USE[I]=0
 
-  eval "__logd \"Connection ${i} initialized (PID: \${${COPROC_NAME}_PID})\""
-  i=$((i + 1))
+  eval "__logd \"Connection ${I} initialized (PID: \${${COPROC_NAME}_PID})\""
+  I=$((I + 1))
  done
 
  DB_POOL_INITIALIZED=1
@@ -96,19 +96,19 @@ function __db_pool_init() {
 # Parameters: None
 # Returns: Connection index or -1 if none available
 function __db_pool_get_connection() {
- local -i i=0
+ local -i I=0
  local -i MAX_WAIT=10
  local -i WAIT_COUNT=0
 
  while [[ ${WAIT_COUNT} -lt ${MAX_WAIT} ]]; do
-  i=0
-  while [[ ${i} -lt ${DB_POOL_SIZE} ]]; do
-   if [[ "${DB_POOL_IN_USE[i]}" -eq 0 ]]; then
-    DB_POOL_IN_USE[i]=1
-    echo "${i}"
+  I=0
+  while [[ ${I} -lt ${DB_POOL_SIZE} ]]; do
+   if [[ "${DB_POOL_IN_USE[I]}" -eq 0 ]]; then
+    DB_POOL_IN_USE[I]=1
+    echo "${I}"
     return 0
    fi
-   i=$((i + 1))
+   I=$((I + 1))
   done
 
   # Wait a bit before retrying
@@ -236,14 +236,14 @@ function __db_pool_cleanup() {
  __logd "Cleaning up connection pool..."
 
  # Kill all coprocesses
- local -i i=0
- while [[ ${i} -lt ${DB_POOL_SIZE} ]]; do
-  local VAR_NAME="DB_POOL_${i}_PID"
+ local -i I=0
+ while [[ ${I} -lt ${DB_POOL_SIZE} ]]; do
+  local VAR_NAME="DB_POOL_${I}_PID"
   if [[ -n "${!VAR_NAME:-}" ]]; then
    kill "${!VAR_NAME}" 2> /dev/null || true
    wait "${!VAR_NAME}" 2> /dev/null || true
   fi
-  i=$((i + 1))
+  I=$((I + 1))
  done
 
  # Remove pool directory
