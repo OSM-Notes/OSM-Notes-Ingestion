@@ -6,7 +6,7 @@
 # Then edit etc/properties.sh with your database credentials.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-27
+# Version: 2025-12-13
 
 # Database configuration
 # All database connections must be controlled by this file.
@@ -87,6 +87,9 @@ declare JSON_VALIDATOR="${JSON_VALIDATOR:-jq}"
 # Generic download User-Agent applied to all HTTP requests when supported.
 # Recommended format: ProjectName/Version (+project_url; contact: email)
 # Defaults to project identity if not provided.
+# IMPORTANT: You MUST replace 'your-email@domain.com' with your actual email
+# address. This follows OpenStreetMap best practices and allows server
+# administrators to contact you if there are issues with your requests.
 if [[ -z "${DOWNLOAD_USER_AGENT:-}" ]]; then
  # Do not break lines; keep UA in one line for header correctness
  DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/osmlatam/OSM-Notes-Ingestion; contact: your-email@domain.com)"

@@ -23,6 +23,31 @@ It provides:
 
 For more information about OSM licensing, see: [https://www.openstreetmap.org/copyright](https://www.openstreetmap.org/copyright)
 
+## GDPR Compliance
+
+**Important:** This system processes personal data from OpenStreetMap, including
+usernames (which may contain real names) and geographic locations (which may
+reveal where users live or frequent). We are committed to GDPR compliance.
+
+- **Privacy Policy:** See [docs/GDPR_Privacy_Policy.md](./docs/GDPR_Privacy_Policy.md)
+  for detailed information about data processing, retention, and your rights
+- **GDPR Procedures:** See [docs/GDPR_Procedures.md](./docs/GDPR_Procedures.md)
+  for procedures on handling data subject requests
+- **GDPR SQL Scripts:** See [sql/gdpr/README.md](./sql/gdpr/README.md) for SQL
+  scripts to handle GDPR requests
+
+### Data Subject Rights
+
+You have the right to:
+
+- **Access** your personal data (Article 15)
+- **Rectification** of inaccurate data (Article 16)
+- **Erasure** (Right to be forgotten) under specific conditions (Article 17)
+- **Data portability** (Article 20)
+- **Object** to processing (Article 21)
+
+To exercise your rights, contact: angoca@osm.lat
+
 ## tl;dr - 5 minutes configuration
 
 ### Recommended: Daemon Mode (systemd)
@@ -380,6 +405,10 @@ vi etc/wms.properties.sh
 The example files contain default values and detailed comments. Replace the
 example values (like `myuser`, `changeme`, `your-email@domain.com`) with your
 actual configuration.
+
+**Important**: Make sure to update the `DOWNLOAD_USER_AGENT` email address
+in `etc/properties.sh`. This follows OpenStreetMap best practices and allows
+server administrators to contact you if there are issues with your requests.
 
 Main configuration file: `etc/properties.sh` (created from `etc/properties.sh.example`)
 
