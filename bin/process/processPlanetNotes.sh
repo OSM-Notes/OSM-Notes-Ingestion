@@ -1634,7 +1634,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
    mv "${LOG_FILENAME}" \
     "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-   rmdir "${TMP_DIR}"
+   # Remove directory and all contents (may contain CSV files from processing)
+   rm -rf "${TMP_DIR}" 2> /dev/null || true
   fi
  else
   __start_logger
