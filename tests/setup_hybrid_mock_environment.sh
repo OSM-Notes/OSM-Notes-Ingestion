@@ -214,7 +214,7 @@ fi
 exit 0
 EOF
   chmod +x "${MOCK_COMMANDS_DIR}/curl"
- fi
+  fi
 }
 
 # Function to create mock aria2c

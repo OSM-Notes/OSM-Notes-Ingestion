@@ -58,10 +58,6 @@ setup() {
   echo "WARNING: Hybrid mock environment not activated properly" >&2
  fi
 
- # Verify mock commands are in PATH (but don't fail if not, just warn)
- if ! which wget | grep -q "mock_commands" 2> /dev/null; then
-  echo "WARNING: Mock wget not found in PATH" >&2
- fi
 }
 
 teardown() {
@@ -71,10 +67,10 @@ teardown() {
  rm -rf "${TMP_DIR}"
 }
 
-# Test that mock wget works correctly
-@test "mock wget should download XML files" {
+# Test that mock curl works correctly
+@test "mock curl should download XML files" {
  # Test downloading XML file
- run wget -O "${TMP_DIR}/test.xml" "https://example.com/test.xml"
+ run curl -s -o "${TMP_DIR}/test.xml" "https://example.com/test.xml"
  [ "$status" -eq 0 ]
  [ -f "${TMP_DIR}/test.xml" ]
 
@@ -101,8 +97,8 @@ teardown() {
 
 # Test that real xmllint works with mock data
 @test "real xmllint should validate mock XML files" {
- # Create a test XML file using mock wget
- run wget -O "${TMP_DIR}/test.xml" "https://example.com/test.xml"
+ # Create a test XML file using mock curl
+ run curl -s -o "${TMP_DIR}/test.xml" "https://example.com/test.xml"
  [ "$status" -eq 0 ]
 
  # Test XML validation with real xmllint
@@ -118,8 +114,8 @@ teardown() {
 
 # Test that real awkproc works with mock data
 @test "real awkproc should transform mock XML files" {
- # Create a test XML file using mock wget
- run wget -O "${TMP_DIR}/test.xml" "https://example.com/test.xml"
+ # Create a test XML file using mock curl
+ run curl -s -o "${TMP_DIR}/test.xml" "https://example.com/test.xml"
  [ "$status" -eq 0 ]
 
  # Test AWK transformation with real awkproc
@@ -227,7 +223,7 @@ teardown() {
 # Test that mock downloads work with real processing pipeline
 @test "mock downloads should work with real processing pipeline" {
  # Download mock data using a local URL that the mock can handle
- run wget -O "${TMP_DIR}/planet_notes.xml" "https://example.com/planet-notes.xml"
+ run curl -s -o "${TMP_DIR}/planet_notes.xml" "https://example.com/planet-notes.xml"
  [ "$status" -eq 0 ]
 
  # Validate with real xmllint
@@ -258,7 +254,7 @@ teardown() {
  [[ -n "${DB_USER:-}" ]]
 
  # Check that mock commands are in PATH
- run which wget
+ run which curl
  [ "$status" -eq 0 ]
  [[ "$output" == *"mock_commands"* ]]
 
@@ -288,7 +284,7 @@ teardown() {
 # Test end-to-end workflow with hybrid environment
 @test "end-to-end workflow should work with hybrid environment" {
  # Download mock planet data using a local URL
- run wget -O "${TMP_DIR}/planet_notes.xml" "https://example.com/planet-notes.xml"
+ run curl -s -o "${TMP_DIR}/planet_notes.xml" "https://example.com/planet-notes.xml"
  [ "$status" -eq 0 ]
 
  # Validate XML structure
