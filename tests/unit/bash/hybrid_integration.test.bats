@@ -301,13 +301,19 @@ teardown() {
  # Download mock planet data using a local URL
  run curl -s -o "${TMP_DIR}/planet_notes.xml" "https://example.com/planet-notes.xml"
  [ "$status" -eq 0 ]
+ [ -f "${TMP_DIR}/planet_notes.xml" ]
+
+ # Check if xmllint is available
+ if ! command -v xmllint > /dev/null 2>&1; then
+  skip "xmllint not available"
+ fi
 
  # Validate XML structure
- run xmllint --noout "${TMP_DIR}/planet_notes.xml"
+ run xmllint --noout "${TMP_DIR}/planet_notes.xml" 2>&1
  [ "$status" -eq 0 ]
 
  # Count notes
- run xmllint --xpath "count(//note)" "${TMP_DIR}/planet_notes.xml"
+ run xmllint --xpath "count(//note)" "${TMP_DIR}/planet_notes.xml" 2>&1
  [ "$status" -eq 0 ]
  local note_count="$output"
  [[ "$note_count" =~ ^[0-9]+$ ]]
@@ -315,8 +321,10 @@ teardown() {
 
  # Transform to CSV if AWK is available and awkproc is installed
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" ]] && command -v awkproc > /dev/null 2>&1; then
-  run awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv"
-  [ "$status" -eq 0 ]
+  # Use awkproc without run to allow redirection
+  awkproc --maxdepth "${AWK_MAX_DEPTH:-4000}" "${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk" "${TMP_DIR}/planet_notes.xml" > "${TMP_DIR}/notes.csv" 2>&1
+  local awk_status=$?
+  [ "$awk_status" -eq 0 ]
   [ -f "${TMP_DIR}/notes.csv" ]
 
   # Check CSV output (may be empty depending on AWK)
@@ -326,6 +334,6 @@ teardown() {
   # Accept any number of lines (including 0)
   [[ "$csv_lines" =~ ^[0-9]+$ ]]
  else
-  skip "AWK file not available"
+  skip "AWK file or awkproc not available"
  fi
 }
