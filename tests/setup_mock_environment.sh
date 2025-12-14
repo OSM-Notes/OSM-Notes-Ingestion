@@ -250,7 +250,16 @@ mock_database_operation() {
          echo "Mock psql: No COPY commands found, processing SELECT" >&2
        fi
        if [[ "$sql_check" == *"COUNT"* ]]; then
-         echo "100"
+         # Check for pg_extension queries (btree_gist, postgis)
+         if [[ "$sql_check" == *"pg_extension"* ]] && [[ "$sql_check" == *"extname"* ]]; then
+           if [[ "$sql_check" == *"btree_gist"* ]] || [[ "$sql_check" == *"postgis"* ]]; then
+             echo "1"
+           else
+             echo "0"
+           fi
+         else
+           echo "100"
+         fi
        elif [[ "$sql_check" == *"TABLE_NAME"* ]]; then
          echo "notes"
         echo "note_comments"
