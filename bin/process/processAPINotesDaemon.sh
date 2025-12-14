@@ -705,6 +705,11 @@ function __process_api_data {
   "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
   2> /dev/null | head -1 || echo "")
 
+ # Clean API tables after data has been inserted into main tables
+ # This prevents accumulation of data in API tables across cycles
+ __logd "Cleaning API tables after processing"
+ __prepareApiTables
+
  # Clean files
  if [[ "${CLEAN:-}" == "true" ]]; then
   __cleanNotesFiles
