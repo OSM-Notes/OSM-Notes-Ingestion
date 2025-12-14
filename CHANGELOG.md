@@ -9,6 +9,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Database Schema Enhancements (2025-12-14)
+
+- **Added `insert_time` and `update_time` columns to `notes` table**:
+  - **Change**: Added automatic timestamp tracking for when notes are inserted and updated in the database
+  - **Rationale**: Provides audit trail and enables tracking of data lifecycle in the database
+  - **Implementation**:
+    - Added `insert_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP` column
+    - Added `update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP` column
+    - Created `set_notes_timestamps()` trigger function
+    - Created `set_notes_timestamps_insert` trigger (BEFORE INSERT)
+    - Created `set_notes_timestamps_update` trigger (BEFORE UPDATE)
+    - Triggers automatically set `insert_time` on INSERT and `update_time` on INSERT/UPDATE
+    - Preserves `insert_time` on UPDATE (only updates `update_time`)
+  - **Migration**: Created and executed migration script `sql/migrations/add_insert_update_time_to_notes.sql` for production
+  - **Impact**:
+    - All new notes automatically track insertion and update times
+    - Existing notes populated with `created_at` as proxy for `insert_time`
+    - No changes required to application code (triggers handle everything)
+  - **Files changed**:
+    - `sql/process/processPlanetNotes_22_createBaseTables_tables.sql`
+    - `sql/process/processPlanetNotes_24_createSyncTables.sql`
+    - `tests/unit/sql/tables.test.sql`
+    - `tests/unit/sql/tables_simple.test.sql`
+    - `docs/Documentation.md`
+    - `docs/Process_Planet.md`
+
+- **Removed partitioning from API tables**:
+  - **Change**: Converted `notes_api`, `note_comments_api`, and `note_comments_text_api` from partitioned tables to regular tables
+  - **Rationale**: API processing is sequential (not parallel), so partitioning adds unnecessary complexity without performance benefits
+  - **Implementation**:
+    - Removed `part_id` column from all API tables
+    - Removed all partition tables (`*_api_part_*`)
+    - Updated SQL scripts to remove `part_id` from COPY statements
+    - Updated Bash scripts to remove `part_id` from CSV processing
+  - **Migration**: Created and executed migration script `sql/migrations/remove_partitioning_from_api_tables.sql` for production
+  - **Impact**:
+    - Simplified API processing code
+    - Reduced database complexity
+    - No performance impact (API processing is sequential anyway)
+  - **Files changed**:
+    - `sql/process/processAPINotes_21_createApiTables.sql`
+    - `sql/process/processAPINotes_31_loadApiNotes.sql`
+    - `sql/process/processAPINotes_12_dropApiTables.sql`
+    - `bin/process/processAPINotes.sh`
+  - **Note**: Planet processing (`processPlanetNotes.sh`) still uses partitioning for parallel processing
+
+- **Enhanced documentation for data integrity checks**:
+  - **Change**: Added comprehensive documentation section "Data Integrity Check and Gap Management" to `docs/Process_API.md`
+  - **Rationale**: Provides clear explanation of how the integrity check system works, the 5% threshold, and how `notesCheckVerifier.sh` corrects data gaps
+  - **Content**:
+    - Detailed explanation of `app.integrity_check_passed` session variable
+    - Explanation of the 5% gap threshold
+    - How `notesCheckVerifier.sh` corrects gaps by downloading Planet data from days ahead
+    - Session variable persistence mechanism
+  - **Files changed**: `docs/Process_API.md`
+
+#### Network Operations Migration: wget to curl (2025-12-13)
+
+- **Replaced wget with curl for all network operations**:
+  - **Change**: Migrated all network operations from `wget` to `curl` across the codebase
+  - **Rationale**: Improved compatibility, better error handling, and reduced dependencies
+  - **Implementation**:
+    - Replaced `wget` calls with `curl` in all processing scripts
+    - Added User-Agent headers to curl requests for better API compliance
+    - Updated documentation to reflect `curl` as the network tool dependency
+  - **Impact**:
+    - Removed `wget` as a project dependency
+    - Better error handling and HTTP status code support
+    - Improved compatibility across different systems
+  - **Files changed**:
+    - `bin/lib/boundaryProcessingFunctions.sh`
+    - `bin/lib/functionsProcess.sh`
+    - `bin/lib/noteProcessingFunctions.sh`
+    - `bin/process/processAPINotes.sh`
+    - `bin/process/processAPINotesDaemon.sh`
+    - `bin/process/processPlanetNotes.sh`
+    - `bin/process/updateCountries.sh`
+    - `bin/lib/README.md`
+
 #### API Processing Simplified to Sequential Mode (2025-12-12)
 
 - **Removed parallel processing from API processing**:
@@ -39,13 +118,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+#### Daemon and Processing Fixes (2025-12-14)
+
+- **Fixed API tables not being cleaned after each daemon cycle**:
+  - **Problem**: When migrating from cron to daemon, API tables were created once and never cleaned, causing data accumulation
+  - **Impact**: Tables accumulated data from all cycles, slowing down queries and wasting disk space
+  - **Solution**: Added `__prepareApiTables()` call after each cycle to TRUNCATE tables after data insertion
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
+- **Fixed `pgrep` false positives in daemon startup check**:
+  - **Problem**: `pgrep -f "processPlanetNotes"` was too broad and detected other processes like `processCheckPlanetNotes.sh`
+  - **Impact**: Daemon failed to start even when `processPlanetNotes.sh` was not running
+  - **Solution**: Changed pattern to `pgrep -f "processPlanetNotes\.sh"` to match only the exact script
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
+- **Fixed `rmdir` failure on non-empty directories in `processPlanetNotes.sh`**:
+  - **Problem**: `rmdir` command failed when trying to remove temporary directories that still contained files
+  - **Impact**: Script failed during cleanup phase even though data processing was successful
+  - **Solution**: Changed `rmdir "${TMP_DIR}"` to `rm -rf "${TMP_DIR}"` to forcefully remove directory and contents
+  - **Files changed**: `bin/process/processPlanetNotes.sh`
+
+- **Fixed `local` keyword usage in trap handlers**:
+  - **Problem**: `local` variables were used in trap handlers which execute in script's global context, not a function
+  - **Impact**: Script failed with "local: can only be used in a function" error
+  - **Solution**: Replaced `local` with regular variables in trap handlers within `__trapOn()` function
+  - **Files changed**: `bin/process/processPlanetNotes.sh`
+
+- **Fixed `VACUUM ANALYZE` timeout in cleanup script**:
+  - **Problem**: `statement_timeout = '30s'` was too short for `VACUUM ANALYZE` on large tables (7GB+)
+  - **Impact**: `VACUUM ANALYZE` was being killed before completion
+  - **Solution**: Reset `statement_timeout` to `DEFAULT` before executing `VACUUM ANALYZE`
+  - **Files changed**: `sql/consolidated_cleanup.sql`
+
+- **Fixed integrity check handling for databases without comments**:
+  - **Problem**: Integrity check failed when database had no comments (e.g., after data deletion with `deleteDataAfterTimestamp.sql`)
+  - **Impact**: Integrity check incorrectly flagged all notes as having gaps, preventing timestamp updates
+  - **Solution**: Added special case handling to allow integrity check to pass when `total_comments_in_db = 0`
+  - **Implementation**:
+    - In `processAPINotes_32_insertNewNotesAndComments.sql`: If `m_total_comments_in_db = 0`, set `integrity_check_passed = TRUE` permissively
+    - In `processAPINotes_34_updateLastValues.sql`: If `total_comments_in_db = 0`, set gap metrics to 0 to avoid false positives
+  - **Files changed**:
+    - `sql/process/processAPINotes_32_insertNewNotesAndComments.sql`
+    - `sql/process/processAPINotes_34_updateLastValues.sql`
+
+#### Performance Optimizations (2025-12-14)
+
+- **Optimized `notesCheckVerifier` scripts for large datasets**:
+  - **Problem**: Scripts used `NOT IN` with subqueries on millions of records, causing queries to run for 12+ hours
+  - **Impact**: `notesCheckVerifier` was blocking database resources and preventing normal operations
+  - **Solution**: Replaced `NOT IN` subqueries with `LEFT JOIN` for much better performance
+  - **Performance improvement**: Reduced execution time from 12+ hours to ~14 seconds (approximately 3,000x faster)
+  - **Files changed**:
+    - `sql/monitor/notesCheckVerifier_51_insertMissingNotes.sql`
+    - `sql/monitor/notesCheckVerifier_52_insertMissingComments.sql`
+    - `sql/monitor/notesCheckVerifier_53_insertMissingTextComments.sql`
+  - **Technical details**:
+    - Changed from: `WHERE (note_id, sequence_action) NOT IN (SELECT ... FROM note_comments)`
+    - Changed to: `LEFT JOIN note_comments ... WHERE main_c.note_id IS NULL`
+    - `LEFT JOIN` can use indexes efficiently, while `NOT IN` with large subqueries requires full table scans
+
 #### Critical API Query Bug Fix (2025-12-12)
 
 - **Fixed incorrect API URL in `__getNewNotesFromApi` function**:
   - **Problem**: Function in `bin/lib/processAPIFunctions.sh` was using incorrect API endpoint without date filter
   - **Impact**: Daemon was downloading all notes without filtering by last update timestamp, causing it to always process the same old notes
   - **Solution**: Updated function to use correct endpoint `/notes/search.xml` with `from` parameter to filter notes by last update timestamp
-  - **Files changed**: `bin/lib/processAPIFunctions.sh` (version updated to 2025-12-12)
+  - **Files changed**: `bin/lib/processAPIFunctions.sh`
 
 - **Fixed timestamp format bug in SQL queries**:
   - **Problem**: Timestamp queries were generating malformed dates like `2025-12-09THH24:33:04Z` (with literal "HH24" instead of actual hour)
@@ -53,13 +191,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Solution**: Fixed SQL `TO_CHAR` queries to use PostgreSQL escape string syntax (`E'...'`) for proper quote escaping
   - **Files changed**:
     - `bin/lib/processAPIFunctions.sh` (line 107)
-    - `bin/process/processAPINotesDaemon.sh` (lines 546, 667, version updated to 2025-12-12)
+    - `bin/process/processAPINotesDaemon.sh`
 
 - **Fixed API timeout insufficient for large downloads** (2025-12-13):
   - **Problem**: Timeout of 30 seconds was insufficient for downloading 10,000 notes (can be 12MB+)
   - **Impact**: API calls were timing out after 5 retry attempts, preventing notes from being downloaded
   - **Solution**: Increased timeout from 30 to 120 seconds in `__retry_osm_api` call within `__getNewNotesFromApi`
-  - **Files changed**: `bin/lib/processAPIFunctions.sh` (line 135, version updated to 2025-12-13)
+  - **Files changed**: `bin/lib/processAPIFunctions.sh`
 
 - **Fixed missing processing functions in daemon** (2025-12-13):
   - **Problem**: Daemon was calling functions (`__processXMLorPlanet`, `__insertNewNotesAndComments`, `__loadApiTextComments`, `__updateLastValue`) that were only defined in `processAPINotes.sh`, which the daemon was not loading
@@ -68,22 +206,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Modified `processAPINotes.sh` to detect when it's being sourced (not executed) and skip main execution
     - Modified `processAPINotesDaemon.sh` to source `processAPINotes.sh` to load the required functions
   - **Files changed**:
-    - `bin/process/processAPINotes.sh` (version updated to 2025-12-13)
-    - `bin/process/processAPINotesDaemon.sh` (version updated to 2025-12-13)
+    - `bin/process/processAPINotes.sh`
+    - `bin/process/processAPINotesDaemon.sh`
 
-- **Fixed `app.integrity_check_passed` variable not persisting between transactions** (2025-12-13):
-  - **Problem**: The `app.integrity_check_passed` variable was set using `set_config(..., false)`, which makes it local to the current transaction. When `__updateLastValue` executed in a separate transaction, it couldn't access the variable, defaulting to `FALSE` and skipping timestamp updates
+- **Fixed `app.integrity_check_passed` variable not persisting between connections** (2025-12-13):
+  - **Problem**: The `app.integrity_check_passed` variable was set using `set_config(..., false)`, which makes it local to the current transaction. Additionally, `__insertNewNotesAndComments` and `__updateLastValue` were executed in separate `psql` connections, so even with `set_config(..., true)`, the variable didn't persist because each `psql` call creates a new connection
   - **Impact**: In production, `max_note_timestamp` was not being updated even when notes were successfully processed, causing the daemon to repeatedly process the same notes
-  - **Solution**: Changed `set_config('app.integrity_check_passed', ..., false)` to `set_config('app.integrity_check_passed', ..., true)` to make the variable persist at the session level across transactions
+  - **Solution**:
+    - Changed `set_config('app.integrity_check_passed', ..., false)` to `set_config('app.integrity_check_passed', ..., true)` to make the variable persist at the session level
+    - Modified `__insertNewNotesAndComments` to execute both `processAPINotes_32_insertNewNotesAndComments.sql` and `processAPINotes_34_updateLastValues.sql` in the same `psql` connection, ensuring the variable persists between transactions
   - **Files changed**:
-    - `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (line 235, version updated to 2025-12-13)
-
-- **Fixed `app.integrity_check_passed` variable not persisting between transactions** (2025-12-13):
-  - **Problem**: The `app.integrity_check_passed` variable was set using `set_config(..., false)`, which makes it local to the current transaction. When `__updateLastValue` executed in a separate transaction, it couldn't access the variable, defaulting to `FALSE` and skipping timestamp updates
-  - **Impact**: In production, `max_note_timestamp` was not being updated even when notes were successfully processed, causing the daemon to repeatedly process the same notes
-  - **Solution**: Changed `set_config('app.integrity_check_passed', ..., false)` to `set_config('app.integrity_check_passed', ..., true)` to make the variable persist at the session level across transactions
-  - **Files changed**:
-    - `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (line 235, version updated to 2025-12-13)
+    - `sql/process/processAPINotes_32_insertNewNotesAndComments.sql`
+    - `bin/process/processAPINotes.sh`
+    - `bin/process/processAPINotesDaemon.sh`
 
 - **Root cause analysis**:
   - The daemon was correctly checking for updates using the right URL format
@@ -94,6 +229,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All issues combined prevented any new notes from being processed since December 9, 2025
 
 ### Added
+
+#### Network Connectivity Validation (2025-12-13)
+
+- **Added comprehensive network connectivity checks**:
+  - **Change**: Implemented validation functions in `functionsProcess.sh` to check connectivity before processing
+  - **Rationale**: Prevents processing failures due to network issues and provides clear error messages
+  - **Implementation**:
+    - Internet connectivity check
+    - Planet server accessibility validation
+    - OSM API access and version validation
+    - Overpass API accessibility check
+  - **Impact**:
+    - Early detection of network issues before processing starts
+    - Clear error messages for troubleshooting
+    - Prevents wasted processing time on network failures
+  - **Files changed**: `bin/lib/functionsProcess.sh`
 
 #### Enhanced Hybrid Test Verification for Timestamp Updates (2025-12-13)
 
@@ -106,7 +257,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Provides clear error messages indicating the root cause (e.g., `app.integrity_check_passed` not persisting)
   - **Impact**: Test now catches issues like the `set_config(..., false)` bug that prevented timestamp updates in production
   - **Files changed**:
-    - `tests/run_processAPINotes_hybrid.sh` (version updated to 2025-12-13)
+    - `tests/run_processAPINotes_hybrid.sh`
 
 #### Daemon Mode for API Processing
 
@@ -143,6 +294,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Reduced cron documentation to legacy/alternative status
   - All daemon documentation unified and translated to English
   - Enhanced troubleshooting documentation for systemd service configuration errors
+  - Added `docs/External_Dependencies_and_Risks.md` documenting critical external dependencies and associated risks
+  - Added `docs/GDPR_Annual_Checklist.md` for annual GDPR compliance reviews
+  - Updated GDPR documentation to include references to the annual checklist
 
 - **systemd service file improvements**:
   - Made `Group=` optional in `examples/systemd/osm-notes-api-daemon.service` (commented out by default)
