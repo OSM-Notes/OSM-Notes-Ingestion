@@ -83,16 +83,21 @@ teardown() {
  mkdir -p "${ACTIVE_DIR}"
 
  # First acquire a slot to create a lock
+ # Store the BASHPID before acquiring to ensure we use the same one
+ local ACQUIRE_PID=${BASHPID}
  __acquire_download_slot >/dev/null 2>&1
 
- # Find the lock that was created
+ # Find the lock that was created (should match the PID that acquired it)
  local LOCK_DIR
  LOCK_DIR=$(find "${ACTIVE_DIR}" -name "*.lock" -type d 2>/dev/null | head -1)
  [[ -n "${LOCK_DIR}" ]]
  [[ -d "${LOCK_DIR}" ]]
 
- run __release_download_slot 2>/dev/null
- [[ "${status}" -eq 0 ]]
+ # Release the slot (don't use run to avoid subshell BASHPID issues)
+ # The function uses BASHPID internally, which should match since we're in the same shell
+ __release_download_slot >/dev/null 2>&1
+ local RELEASE_STATUS=$?
+ [[ "${RELEASE_STATUS}" -eq 0 ]]
  
  # Lock directory should be removed
  [[ ! -d "${LOCK_DIR}" ]]
