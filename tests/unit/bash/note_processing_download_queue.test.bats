@@ -57,16 +57,23 @@ teardown() {
  export RATE_LIMIT=2
  export TMP_DIR="${TEST_DIR}"
 
- # Create 2 existing locks
+ # Create 2 existing locks with valid PIDs to prevent cleanup by __cleanup_stale_slots
+ # The function checks if PIDs exist, so we need to use real PIDs
  mkdir -p "${TEST_DIR}/download_queue/active"
- mkdir -p "${TEST_DIR}/download_queue/active/1000.lock"
- mkdir -p "${TEST_DIR}/download_queue/active/1001.lock"
+ # Create lock with current shell PID ($$ is the test runner, will not be cleaned up)
+ local TEST_PID=$$
+ mkdir -p "${TEST_DIR}/download_queue/active/${TEST_PID}.lock"
+ echo "${TEST_PID}" > "${TEST_DIR}/download_queue/active/${TEST_PID}.lock/pid"
+ # Create another lock with parent PID (PPID also exists)
+ local PARENT_PID=${PPID:-$((TEST_PID + 1))}
+ mkdir -p "${TEST_DIR}/download_queue/active/${PARENT_PID}.lock"
+ echo "${PARENT_PID}" > "${TEST_DIR}/download_queue/active/${PARENT_PID}.lock/pid"
 
  # Try to acquire third slot (should fail after retries)
- # Use run with expected failure code
- run -1 __acquire_download_slot 2>/dev/null
+ # Should fail with exit code 1 (timeout or max retries exceeded)
+ run __acquire_download_slot 2>/dev/null
  # Should fail (timeout or max retries exceeded)
- [[ "${status}" -ne 0 ]]
+ [[ "${status}" -eq 1 ]]
 }
 
 @test "__release_download_slot should remove lock directory" {
