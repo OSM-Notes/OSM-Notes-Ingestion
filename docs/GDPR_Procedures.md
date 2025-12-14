@@ -498,9 +498,16 @@ All team members handling GDPR requests must:
 protection authority in their EU/EEA country of residence. See
 [GDPR_Privacy_Policy.md](./GDPR_Privacy_Policy.md) for details.
 
-## Appendix: SQL Scripts Location
+## Appendix
+
+### SQL Scripts Location
 
 SQL scripts for GDPR requests are located in:
 `sql/gdpr/`
 
 See `sql/gdpr/README.md` for detailed usage instructions.
+
+### Annual Compliance Checklist
+
+For a practical checklist to use during annual compliance reviews, see:
+[GDPR_Annual_Checklist.md](./GDPR_Annual_Checklist.md)

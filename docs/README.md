@@ -56,6 +56,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 
 - **`GDPR_Privacy_Policy.md`**: Comprehensive GDPR privacy policy covering data processing, retention, security, and data subject rights
 - **`GDPR_Procedures.md`**: Detailed procedures for handling GDPR data subject requests (access, rectification, erasure, portability, objection)
+- **`GDPR_Annual_Checklist.md`**: Annual compliance review checklist for GDPR maintenance
 
 ## Documentation Navigation Guide
 
