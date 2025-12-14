@@ -110,7 +110,9 @@ to 0.7 or 1.0), the project could fail, especially:
 - Test API changes in development environment before production
 - Maintain flexibility in XML processing (AWK scripts can be updated)
 - Consider implementing API version detection and compatibility layers
-- Parse `version` attribute from API responses to detect version mismatches
+
+**Note**: The project automatically validates OSM API version (0.6) and network
+connectivity during prerequisites check. See [Prerequisites Validation](./Documentation.md#prerequisites-validation) in the Documentation for details.
 
 ### Risk: Historical Notes Download via API
 

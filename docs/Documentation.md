@@ -2632,6 +2632,47 @@ grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
 - **Planet Dumps**: Historical data archives
 - **Overpass API**: Geographic boundaries
 
+### Prerequisites Validation
+
+The project automatically validates external dependencies and system
+prerequisites during the prerequisites check (`__checkPrereqsCommands`). This
+validation ensures that all required external services and tools are accessible
+before processing begins.
+
+#### Automatic External Service Validations
+
+The prerequisites check validates external service connectivity:
+
+1. **Internet Connectivity**: General internet access is available
+2. **Planet Server Access**: Can connect to `planet.openstreetmap.org`
+3. **OSM API Access and Version**: Can connect to `api.openstreetmap.org` and
+   verifies that the API version is 0.6 (as required by the project)
+4. **Overpass API Access**: Can connect to Overpass API endpoints (for boundary
+   downloads)
+
+#### Validation Behavior
+
+- **On Success**: Processing continues normally
+- **On Failure**: Script exits with clear error messages indicating which
+  service is unavailable or which version mismatch was detected
+
+#### System Prerequisites Validation
+
+In addition to external service validation, the prerequisites check also
+validates:
+
+- **Database Connectivity**: PostgreSQL database exists and is accessible
+- **Database Extensions**: PostGIS and btree_gist extensions are installed
+- **Required Tools**: All required command-line tools are available (see
+  [Software Requirements](#software-requirements) above)
+- **File System**: Required files and directories exist and are accessible
+
+For installation instructions, see [Install prerequisites on
+Ubuntu](../README.md#install-prerequisites-on-ubuntu) in the main README.
+
+For details on external dependencies and risks, see [External Dependencies and
+Risks](./External_Dependencies_and_Risks.md).
+
 ---
 
 ## Data License
