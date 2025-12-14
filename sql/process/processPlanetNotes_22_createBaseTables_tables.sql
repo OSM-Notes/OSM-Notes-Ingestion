@@ -1,7 +1,7 @@
 -- Create base tables and some indexes.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-11
+-- Version: 2025-12-14
 
 CREATE TABLE IF NOT EXISTS users (
  user_id INTEGER NOT NULL PRIMARY KEY,
@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS notes (
  created_at TIMESTAMP NOT NULL,
  status note_status_enum,
  closed_at TIMESTAMP,
- id_country INTEGER
+ id_country INTEGER,
+ insert_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 COMMENT ON TABLE notes IS 'Stores all notes';
 COMMENT ON COLUMN notes.note_id IS 'OSM note id';
@@ -30,6 +32,10 @@ COMMENT ON COLUMN notes.status IS
   'Current status of the note (opened, closed; hidden is not possible)';
 COMMENT ON COLUMN notes.closed_at IS 'Timestamp when the note was closed';
 COMMENT ON COLUMN notes.id_country IS 'Country id where the note is located';
+COMMENT ON COLUMN notes.insert_time IS
+  'Timestamp when the note was inserted into the database. Automatically set by trigger';
+COMMENT ON COLUMN notes.update_time IS
+  'Timestamp when the note was last updated in the database. Automatically updated by trigger';
 
 CREATE TABLE IF NOT EXISTS note_comments (
  id SERIAL,
@@ -133,6 +139,51 @@ CREATE OR REPLACE TRIGGER update_properties_timestamp_trigger
   FOR EACH ROW
   EXECUTE FUNCTION update_properties_timestamp()
 ;
+
+-- Create trigger function to automatically set insert_time and update_time on notes
+CREATE OR REPLACE FUNCTION set_notes_timestamps()
+  RETURNS TRIGGER AS
+ $$
+ BEGIN
+  -- On INSERT: set both insert_time and update_time to current timestamp
+  IF (TG_OP = 'INSERT') THEN
+   NEW.insert_time := CURRENT_TIMESTAMP;
+   NEW.update_time := CURRENT_TIMESTAMP;
+  -- On UPDATE: only update update_time, preserve insert_time
+  ELSIF (TG_OP = 'UPDATE') THEN
+   NEW.update_time := CURRENT_TIMESTAMP;
+   -- Preserve original insert_time if it exists
+   IF (OLD.insert_time IS NOT NULL) THEN
+    NEW.insert_time := OLD.insert_time;
+   ELSE
+    -- If insert_time was NULL, set it to current timestamp (backfill)
+    NEW.insert_time := CURRENT_TIMESTAMP;
+   END IF;
+  END IF;
+  RETURN NEW;
+ END;
+ $$ LANGUAGE plpgsql
+;
+COMMENT ON FUNCTION set_notes_timestamps IS
+  'Automatically sets insert_time on INSERT and update_time on INSERT/UPDATE for notes table';
+
+-- Create trigger for INSERT: sets both insert_time and update_time
+CREATE OR REPLACE TRIGGER set_notes_timestamps_insert
+  BEFORE INSERT ON notes
+  FOR EACH ROW
+  EXECUTE FUNCTION set_notes_timestamps()
+;
+COMMENT ON TRIGGER set_notes_timestamps_insert ON notes IS
+  'Automatically sets insert_time and update_time when a note is inserted';
+
+-- Create trigger for UPDATE: updates only update_time, preserves insert_time
+CREATE OR REPLACE TRIGGER set_notes_timestamps_update
+  BEFORE UPDATE ON notes
+  FOR EACH ROW
+  EXECUTE FUNCTION set_notes_timestamps()
+;
+COMMENT ON TRIGGER set_notes_timestamps_update ON notes IS
+  'Automatically updates update_time when a note is updated, preserves insert_time';
 
 CREATE OR REPLACE PROCEDURE put_lock (
   m_id VARCHAR(32)

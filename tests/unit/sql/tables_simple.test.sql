@@ -1,6 +1,6 @@
 -- Unit tests for database tables (simplified version without pgTAP)
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-08-07
+-- Version: 2025-12-14
 
 BEGIN;
 
@@ -122,6 +122,12 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'status') THEN
     RAISE EXCEPTION 'Column status does not exist in notes table';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'insert_time') THEN
+    RAISE EXCEPTION 'Column insert_time does not exist in notes table';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'update_time') THEN
+    RAISE EXCEPTION 'Column update_time does not exist in notes table';
   END IF;
   RAISE NOTICE 'Test passed: Notes table structure is correct';
 END $$;

@@ -2019,9 +2019,11 @@ chmod +x /usr/local/bin/check-osm-notes.sh
 ### Core Tables
 
 - **`notes`**: All OSM notes with geographic and temporal data
-  - Columns: note_id, latitude, longitude, created_at, closed_at, status
+  - Columns: note_id, latitude, longitude, created_at, closed_at, status, id_country, insert_time, update_time
   - Indexes: spatial (lat/lon), temporal (dates), status
   - Approximately 4.3M notes (as of 2024)
+  - `insert_time`: Timestamp when the note was inserted into the database (automatically set by trigger)
+  - `update_time`: Timestamp when the note was last updated in the database (automatically updated by trigger)
 
 - **`note_comments`**: Comment metadata and user information
   - Columns: note_id, sequence_action, action, action_date, user_id, username

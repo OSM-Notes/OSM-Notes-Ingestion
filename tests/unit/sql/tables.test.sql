@@ -1,6 +1,6 @@
 -- Unit tests for database tables using pgTAP
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-11
+-- Version: 2025-12-14
 
 BEGIN;
 
@@ -8,7 +8,7 @@ BEGIN;
 \i /usr/share/postgresql/15/extension/pgtap.sql
 
 -- Plan the tests
-SELECT plan(23);
+SELECT plan(25);
 
 -- Test 1: Check if notes table exists
 SELECT has_table('notes');
@@ -51,6 +51,8 @@ SELECT has_column('notes', 'created_at');
 SELECT has_column('notes', 'status');
 SELECT has_column('notes', 'closed_at');
 SELECT has_column('notes', 'id_country');
+SELECT has_column('notes', 'insert_time');
+SELECT has_column('notes', 'update_time');
 
 -- Test 13: Check note_comments table structure
 SELECT has_column('note_comments', 'id');

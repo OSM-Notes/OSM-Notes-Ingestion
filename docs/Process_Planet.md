@@ -107,6 +107,8 @@ Base tables store the complete history of all notes:
   - `status`: Status (open/closed)
   - `closed_at`: Closing date (if applicable)
   - `id_country`: ID of the country where it is located
+  - `insert_time`: Timestamp when the note was inserted into the database (automatically set by trigger on INSERT)
+  - `update_time`: Timestamp when the note was last updated in the database (automatically updated by trigger on UPDATE)
 
 - **`note_comments`**: Comments associated with notes
   - `id`: Generated sequential ID

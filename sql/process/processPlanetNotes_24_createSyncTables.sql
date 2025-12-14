@@ -1,7 +1,7 @@
 -- Creates syn tables based on base tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2025-12-14
 
 CREATE TABLE notes_sync (
  note_id INTEGER NOT NULL, -- id
@@ -10,7 +10,9 @@ CREATE TABLE notes_sync (
  created_at TIMESTAMP NOT NULL,
  status note_status_enum,
  closed_at TIMESTAMP,
- id_country INTEGER
+ id_country INTEGER,
+ insert_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 COMMENT ON TABLE notes_sync IS 'Stores notes to sync';
 COMMENT ON COLUMN notes_sync.note_id IS 'OSM note id';
@@ -23,6 +25,10 @@ COMMENT ON COLUMN notes_sync.status IS
 COMMENT ON COLUMN notes_sync.closed_at IS 'Timestamp when the note was closed';
 COMMENT ON COLUMN notes_sync.id_country IS
   'Country id where the note is located';
+COMMENT ON COLUMN notes_sync.insert_time IS
+  'Timestamp when the note was inserted into the database. Automatically set by trigger';
+COMMENT ON COLUMN notes_sync.update_time IS
+  'Timestamp when the note was last updated in the database. Automatically updated by trigger';
 
 CREATE TABLE note_comments_sync (
  id SERIAL,
