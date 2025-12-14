@@ -2,7 +2,7 @@
 
 # Script to run processAPINotes.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-14
 
 set -euo pipefail
 
@@ -163,20 +163,16 @@ clean_test_database() {
 
  if [[ ${cleanup_exit_code} -eq 0 ]]; then
   log_success "Database ${DBNAME} cleaned successfully using cleanupAll.sh"
-  # Show cleanup summary if available (limit to first 30 lines to prevent infinite loops)
+  # Show cleanup summary if available (simplified to prevent infinite loops)
+  # Just check if summary exists, don't process all lines
   if echo "${cleanup_output}" | grep -q "CLEANUP SUMMARY"; then
-   log_info "Cleanup summary:"
-   echo "${cleanup_output}" | grep -A 20 "CLEANUP SUMMARY" | head -30 | while IFS= read -r line || true; do
-    # Skip empty lines to prevent infinite output
-    if [[ -n "${line// /}" ]]; then
-     log_info "  ${line}"
-    fi
-   done || true
+   log_info "Cleanup summary available (check cleanupAll.sh output for details)"
   fi
  else
   log_error "cleanupAll.sh failed with exit code: ${cleanup_exit_code}"
-  log_error "Cleanup output (first 50 lines):"
-  echo "${cleanup_output}" | head -50 | while IFS= read -r line || true; do
+  # Show only first few lines to prevent infinite loops
+  log_error "Cleanup output (first 10 lines):"
+  echo "${cleanup_output}" | head -10 | while IFS= read -r line || true; do
    # Skip empty lines to prevent infinite output
    if [[ -n "${line// /}" ]]; then
     log_error "  ${line}"
@@ -430,6 +426,7 @@ cleanup_lock_files() {
  log_info "Cleaning up lock files and failed execution markers..."
 
  # Helper function to check if lock file is stale (process not running)
+ # In test environment, we can be more aggressive about removing stale locks
  check_and_remove_stale_lock() {
   local lock_file="${1}"
   local process_name="${2:-}"
@@ -444,15 +441,50 @@ cleanup_lock_files() {
 
   if [[ -n "${lock_pid}" ]]; then
    # Check if process is actually running
-   if ps -p "${lock_pid}" > /dev/null 2>&1; then
-    log_warning "Lock file ${lock_file} has active process (PID: ${lock_pid})"
-    log_warning "Process ${process_name:-unknown} is still running, keeping lock file"
-    return 1
-   else
+   # Use ps with explicit check to avoid race conditions
+   if ! ps -p "${lock_pid}" -o pid= > /dev/null 2>&1; then
     log_info "Removing stale lock file: ${lock_file} (process PID ${lock_pid} not running)"
     rm -f "${lock_file}"
     return 0
    fi
+   
+   # Process exists - verify it's actually the expected process
+   # Check if the process command contains the expected script name
+   local proc_cmd_full
+   proc_cmd_full=$(ps -p "${lock_pid}" -o args= 2>/dev/null || echo "")
+   
+   # Additional check: verify the process is actually related to the script
+   # by checking if the temporary directory from lock file still exists
+   local tmp_dir
+   tmp_dir=$(grep "^Temporary directory:" "${lock_file}" 2>/dev/null | awk -F': ' '{print $2}' || echo "")
+   if [[ -n "${tmp_dir}" ]] && [[ ! -d "${tmp_dir}" ]]; then
+    log_warning "Lock file ${lock_file} has PID ${lock_pid} but temp dir '${tmp_dir}' doesn't exist"
+    log_info "Removing stale lock file: ${lock_file} (temp directory removed, process likely terminated)"
+    rm -f "${lock_file}"
+    return 0
+   fi
+   
+   # In test environment, if process exists but seems unrelated, remove lock
+   # Check if process command doesn't contain expected script patterns
+   if [[ -n "${proc_cmd_full}" ]] && [[ ! "${proc_cmd_full}" =~ (processAPINotes|processPlanetNotes|updateCountries) ]]; then
+    log_warning "Lock file ${lock_file} has PID ${lock_pid} but command doesn't match expected pattern"
+    log_info "Removing stale lock file: ${lock_file} (process appears unrelated)"
+    rm -f "${lock_file}"
+    return 0
+   fi
+   
+   # Final double-check: verify PID still exists (avoid race conditions)
+   # This is critical - PID might have terminated between checks
+   if ! ps -p "${lock_pid}" -o pid= > /dev/null 2>&1; then
+    log_warning "Lock file ${lock_file} PID ${lock_pid} no longer exists (race condition detected)"
+    log_info "Removing stale lock file: ${lock_file} (process terminated during verification)"
+    rm -f "${lock_file}"
+    return 0
+   fi
+   
+   log_warning "Lock file ${lock_file} has active process (PID: ${lock_pid})"
+   log_warning "Process ${process_name:-unknown} is still running, keeping lock file"
+   return 1
   else
    # No PID found, remove lock file (stale format)
    log_info "Removing lock file without valid PID: ${lock_file}"
