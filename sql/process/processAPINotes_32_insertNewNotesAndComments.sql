@@ -1,6 +1,6 @@
 -- Insert new notes and comments from API
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-13
+-- Version: 2025-12-15
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Inserting new notes and comments from API' AS Task;
@@ -204,26 +204,24 @@ $$
   SELECT COUNT(*) INTO m_total_comments_in_db FROM note_comments;
   
   -- Count notes that don't have any comments
+  -- Only check notes inserted in the last hour (recent insertions from this cycle)
+  -- This prevents false positives from old notes that were already without comments
   SELECT COUNT(DISTINCT n.note_id)
    INTO m_notes_without_comments
   FROM notes n
   LEFT JOIN note_comments nc ON nc.note_id = n.note_id
-  WHERE n.created_at > (
-    SELECT timestamp FROM max_note_timestamp
-   ) - INTERVAL '1 day'  -- Check notes from last day
+  WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'  -- Check only recently inserted notes
    AND nc.note_id IS NULL;
   
-  -- Count total notes from last day
+  -- Count total notes inserted in the last hour
   SELECT COUNT(DISTINCT note_id)
    INTO m_total_notes
   FROM notes
-  WHERE created_at > (
-    SELECT timestamp FROM max_note_timestamp
-   ) - INTERVAL '1 day';
+  WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour';
   
   -- Log integrity check results
   INSERT INTO logs (message) VALUES ('Integrity check: ' || m_notes_without_comments || 
-   ' notes without comments out of ' || m_total_notes || ' total notes from last day');
+   ' notes without comments out of ' || m_total_notes || ' total notes inserted in last hour');
   INSERT INTO logs (message) VALUES ('Total comments in database: ' || m_total_comments_in_db);
   
   -- Special case: If database has no comments at all, this is likely after a cleanup/deletion
@@ -236,9 +234,9 @@ $$
    m_integrity_check_passed := TRUE;
    INSERT INTO logs (message) VALUES ('Integrity check PASSED - no comments in database (post-cleanup state)');
   ELSIF m_total_notes = 0 THEN
-   -- If there are no notes from last day, nothing to check
+   -- If there are no notes inserted recently, nothing to check
    m_integrity_check_passed := TRUE;
-   INSERT INTO logs (message) VALUES ('Integrity check PASSED - no notes from last day to verify');
+   INSERT INTO logs (message) VALUES ('Integrity check PASSED - no notes inserted recently to verify');
   ELSIF m_notes_without_comments > (m_total_notes * 0.05) THEN
    -- If more than 5% of notes lack comments, flag as integrity issue
    m_integrity_check_passed := FALSE;

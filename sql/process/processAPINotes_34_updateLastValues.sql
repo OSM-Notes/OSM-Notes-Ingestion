@@ -3,7 +3,7 @@
 -- comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-14
+-- Version: 2025-12-15
 
 SELECT /* Notes-processAPI */ timestamp
 FROM max_note_timestamp;
@@ -43,23 +43,21 @@ $$
    total_notes := 0;
    gap_percentage := 0;
   ELSE
-   -- Count notes without comments in recent data
+   -- Count notes without comments in recently inserted data
+   -- Only check notes inserted in the last hour (recent insertions from this cycle)
+   -- This prevents false positives from old notes that were already without comments
    SELECT COUNT(DISTINCT n.note_id)
     INTO notes_without_comments
    FROM notes n
    LEFT JOIN note_comments nc ON nc.note_id = n.note_id
-   WHERE n.created_at > (
-     SELECT timestamp FROM max_note_timestamp
-    ) - INTERVAL '1 day'
+   WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'  -- Check only recently inserted notes
     AND nc.note_id IS NULL;
    
-   -- Count total notes from last day
+   -- Count total notes inserted in the last hour
    SELECT COUNT(DISTINCT note_id)
     INTO total_notes
    FROM notes
-   WHERE created_at > (
-     SELECT timestamp FROM max_note_timestamp
-    ) - INTERVAL '1 day';
+   WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour';
    
    -- Calculate gap percentage
    IF total_notes > 0 THEN
@@ -72,13 +70,14 @@ $$
   -- Log gap status
   IF notes_without_comments > 0 THEN
    -- Get list of note_ids without comments (JSON array)
+   -- Only check notes inserted in the last hour
    SELECT json_agg(note_id ORDER BY note_id)
     INTO notes_without_comments_json
    FROM (
     SELECT DISTINCT n.note_id
     FROM notes n
     LEFT JOIN note_comments nc ON nc.note_id = n.note_id
-    WHERE n.created_at > (SELECT timestamp FROM max_note_timestamp) - INTERVAL '1 day'
+    WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'  -- Check only recently inserted notes
       AND nc.note_id IS NULL
     ORDER BY n.note_id
    ) t;
