@@ -1,12 +1,13 @@
 -- Loads the notes and note comments on the API tables
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-12
+-- Version: 2025-12-14
+-- Note: Tables are no longer partitioned, part_id column removed
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Loading notes from API' AS Text;
 
--- Load notes (simplified, no partition handling)
+-- Load notes (no partitioning, no part_id)
 -- Standardized order: note_id, latitude, longitude, created_at, status, closed_at, id_country
 COPY notes_api (note_id, latitude, longitude, created_at, status, closed_at, id_country)
 FROM '${OUTPUT_NOTES_PART}' csv;

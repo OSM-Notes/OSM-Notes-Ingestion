@@ -38,7 +38,7 @@
 # For contributing: shellcheck -x -o all processAPINotes.sh && shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-13
+# Version: 2025-12-14
 VERSION="2025-12-13"
 
 #set -xv
@@ -688,11 +688,12 @@ function __processApiXmlSequential {
  __logd "Database: ${DBNAME}"
 
  # Load into database
- __logd "Removing part_id column from CSV files for API (last column with trailing comma)"
+ # Remove trailing commas from CSV files (AWK outputs trailing commas for empty columns)
+ __logd "Cleaning CSV files (removing trailing commas)"
  local SEQ_OUTPUT_NOTES_CLEANED="${SEQ_OUTPUT_NOTES_FILE}.cleaned"
  local SEQ_OUTPUT_COMMENTS_CLEANED="${SEQ_OUTPUT_COMMENTS_FILE}.cleaned"
  local SEQ_OUTPUT_TEXT_CLEANED="${SEQ_OUTPUT_TEXT_FILE}.cleaned"
- # Remove last column (part_id) from each CSV
+ # Remove trailing commas (no part_id needed, tables are not partitioned)
  sed 's/,$//' "${SEQ_OUTPUT_NOTES_FILE}" > "${SEQ_OUTPUT_NOTES_CLEANED}"
  sed 's/,$//' "${SEQ_OUTPUT_COMMENTS_FILE}" > "${SEQ_OUTPUT_COMMENTS_CLEANED}"
  sed 's/,$//' "${SEQ_OUTPUT_TEXT_FILE}" > "${SEQ_OUTPUT_TEXT_CLEANED}"
