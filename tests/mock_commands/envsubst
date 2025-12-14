@@ -2,25 +2,60 @@
 
 # Mock envsubst command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-02
+# Version: 2025-01-23
 
 # Function to substitute environment variables
 mock_envsubst() {
  local input="$1"
+ local vars_to_substitute="$2"
  
- # Replace common variables used in notesCheckVerifier
- echo "$input" | sed 's/\$LAST_NOTE/\/tmp\/lastNote.csv/g' \
+ # If specific variables are requested, only substitute those
+ if [[ -n "$vars_to_substitute" ]]; then
+  # Parse the variable list (format: $VAR1,$VAR2,...)
+  local var_list
+  var_list=$(echo "$vars_to_substitute" | sed 's/\$//g' | tr ',' ' ')
+  
+  # Build sed command to replace only requested variables
+  local sed_cmd=""
+  for var in $var_list; do
+   # Get the value from environment
+   local var_value
+   eval "var_value=\${${var}:-}"
+   if [[ -n "$var_value" ]]; then
+    # Escape special characters in the value for sed
+    var_value=$(echo "$var_value" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    # Replace ${VAR} and $VAR patterns
+    sed_cmd="${sed_cmd} s|\\\${${var}}|${var_value}|g; s|\\\$${var}|${var_value}|g;"
+   fi
+  done
+  
+  if [[ -n "$sed_cmd" ]]; then
+   echo "$input" | sed "$sed_cmd"
+  else
+   echo "$input"
+  fi
+ else
+  # Default: Replace common variables used in notesCheckVerifier
+  echo "$input" | sed 's/\$LAST_NOTE/\/tmp\/lastNote.csv/g' \
                    | sed 's/\$LAST_COMMENT/\/tmp\/lastCommentNote.csv/g' \
                    | sed 's/\$DIFFERENT_NOTE_IDS_FILE/\/tmp\/differentNoteIds.csv/g' \
                    | sed 's/\$DIFFERENT_COMMENT_IDS_FILE/\/tmp\/differentNoteCommentIds.csv/g' \
                    | sed 's/\$DIRRERENT_NOTES_FILE/\/tmp\/differentNotes.csv/g' \
                    | sed 's/\$DIRRERENT_COMMENTS_FILE/\/tmp\/differentNoteComments.csv/g' \
                    | sed 's/\$DIFFERENT_TEXT_COMMENTS_FILE/\/tmp\/differentTextComments.csv/g' \
-                   | sed 's/\$DIFFERENCES_TEXT_COMMENT/\/tmp\/textComments.csv/g'
+                   | sed 's/\$DIFFERENCES_TEXT_COMMENT/\/tmp\/textComments.csv/g' \
+                   | sed 's|\${OUTPUT_NOTES_FILE}|'"${OUTPUT_NOTES_FILE:-/tmp/notes.csv}"'|g' \
+                   | sed 's|\${OUTPUT_NOTE_COMMENTS_FILE}|'"${OUTPUT_NOTE_COMMENTS_FILE:-/tmp/note_comments.csv}"'|g' \
+                   | sed 's|\${OUTPUT_TEXT_COMMENTS_FILE}|'"${OUTPUT_TEXT_COMMENTS_FILE:-/tmp/text_comments.csv}"'|g' \
+                   | sed 's|\$OUTPUT_NOTES_FILE|'"${OUTPUT_NOTES_FILE:-/tmp/notes.csv}"'|g' \
+                   | sed 's|\$OUTPUT_NOTE_COMMENTS_FILE|'"${OUTPUT_NOTE_COMMENTS_FILE:-/tmp/note_comments.csv}"'|g' \
+                   | sed 's|\$OUTPUT_TEXT_COMMENTS_FILE|'"${OUTPUT_TEXT_COMMENTS_FILE:-/tmp/text_comments.csv}"'|g'
+ fi
 }
 
 # Parse arguments
 ARGS=()
+VARS_LIST=""
 
 while [[ $# -gt 0 ]]; do
  case $1 in
@@ -34,7 +69,12 @@ while [[ $# -gt 0 ]]; do
    exit 0
    ;;
   *)
-   ARGS+=("$1")
+   # Check if it's a variable list (format: $VAR1,$VAR2,...)
+   if [[ "$1" =~ ^\$ ]]; then
+    VARS_LIST="$1"
+   else
+    ARGS+=("$1")
+   fi
    shift
    ;;
  esac
@@ -46,6 +86,6 @@ if [[ -t 0 ]]; then
  echo "Usage: envsubst [OPTIONS] [VARIABLE...]" >&2
  exit 1
 else
- # Process stdin
- mock_envsubst "$(cat)"
+ # Process stdin with variable list if provided
+ mock_envsubst "$(cat)" "$VARS_LIST"
 fi 

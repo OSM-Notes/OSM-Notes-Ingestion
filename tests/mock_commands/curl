@@ -2,7 +2,7 @@
 
 # Mock curl command for offline testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-12
+# Version: 2025-12-14
 
 set -euo pipefail
 
@@ -12,6 +12,13 @@ __create_mock_file() {
 
  if [[ -z "$output_file" ]]; then
   output_file=$(basename "$url")
+ fi
+
+ # Create directory if it doesn't exist
+ local output_dir
+ output_dir=$(dirname "$output_file")
+ if [[ -n "$output_dir" ]] && [[ "$output_dir" != "." ]]; then
+  mkdir -p "$output_dir" 2>/dev/null || true
  fi
 
  # Try to resolve a fixture file from URL first
@@ -121,8 +128,42 @@ EOF
 </osm>
 EOF
  fi
- elif [[ "$url" == *.json* ]]; then
-  cat >"$output_file" <<'EOF'
+ elif [[ "$url" == *.json* ]] || [[ "$url" == *"overpass"* ]] || [[ -n "$DATA_FILE" ]]; then
+  # Check if this is an Overpass API call (POST with data or URL contains overpass)
+  if [[ "$url" == *"overpass"* ]] || [[ -n "$DATA_FILE" ]]; then
+   # Overpass API format
+   cat >"$output_file" <<'EOF'
+{
+ "version": 0.6,
+ "generator": "Overpass API",
+ "osm3s": {
+  "timestamp_osm_base": "2025-12-14T00:00:00Z",
+  "copyright": "The data included in this document is from www.openstreetmap.org"
+ },
+ "elements": [
+  {
+   "type": "relation",
+   "id": 12345,
+   "tags": {
+    "type": "boundary",
+    "boundary": "administrative",
+    "admin_level": "2",
+    "name": "Test Country"
+   },
+   "members": [
+    {
+     "type": "way",
+     "ref": 123,
+     "role": "outer"
+    }
+   ]
+  }
+ ]
+}
+EOF
+  else
+   # Regular GeoJSON format
+   cat >"$output_file" <<'EOF'
 {
  "type": "FeatureCollection",
  "features": [
@@ -135,6 +176,7 @@ EOF
  ]
 }
 EOF
+  fi
  else
   echo "Mock content for $url" >"$output_file"
  fi
