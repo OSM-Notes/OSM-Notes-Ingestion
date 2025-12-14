@@ -52,6 +52,11 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`WMS_Guide.md`**: Complete WMS guide for administrators and developers (installation, configuration, administration, deployment)
 - **`WMS_User_Guide.md`**: User guide for mappers and end users
 
+### GDPR Compliance
+
+- **`GDPR_Privacy_Policy.md`**: Comprehensive GDPR privacy policy covering data processing, retention, security, and data subject rights
+- **`GDPR_Procedures.md`**: Detailed procedures for handling GDPR data subject requests (access, rectification, erasure, portability, objection)
+
 ## Documentation Navigation Guide
 
 ### Visual Navigation Map
