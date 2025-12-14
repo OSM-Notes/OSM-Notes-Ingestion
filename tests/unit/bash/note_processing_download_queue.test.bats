@@ -3,7 +3,10 @@
 # Note Processing Download Queue Tests
 # Tests for download slot and ticket queue functions
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-14
+
+# Require minimum BATS version
+bats_require_minimum_version 1.5.0
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
