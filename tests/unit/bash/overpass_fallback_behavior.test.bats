@@ -27,14 +27,19 @@ teardown() {
   # Monkey-patch retry to simulate endpoint-specific responses
   function __retry_file_operation() {
     local OP="$1"
-    local OUT
-    OUT=$(echo "$OP" | awk "{for(i=1;i<=NF;i++) if (\$i==\"-O\") {print \$(i+1); exit}}")
+    # Use the JSON file path directly from the test context
+    # The command contains ${LOCAL_JSON_FILE} which maps to JSON_FILE_LOCAL in the test
+    local OUT="${JSON_FILE_LOCAL}"
 
     local VALID_JSON="{\"elements\":[{\"id\":1}]}"
+    # Check CURRENT_OVERPASS_ENDPOINT which is exported by __overpass_download_with_endpoints
+    # before calling __retry_file_operation
     if [[ "${CURRENT_OVERPASS_ENDPOINT:-}" == *"endpointA"* ]]; then
-      echo '{}' > "${OUT}"
+      # First endpoint returns invalid JSON (empty object without elements)
+      echo "{}" > "${OUT}"
     else
-      printf '%s' "${VALID_JSON}" > "${OUT}"
+      # Second endpoint (or any other) returns valid JSON with elements
+      printf "%s" "${VALID_JSON}" > "${OUT}"
     fi
     return 0
   }
