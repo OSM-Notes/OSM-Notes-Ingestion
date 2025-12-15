@@ -1,6 +1,6 @@
 -- Insert new notes and comments from API
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-15
+-- Version: 2025-12-14
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Inserting new notes and comments from API' AS Task;
@@ -108,6 +108,27 @@ FROM notes;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'current comments - before' AS Text
 FROM note_comments;
+
+-- Synchronize sequences to prevent ID conflicts
+-- This ensures sequences are aligned with actual data in tables
+DO /* Notes-processAPI-syncSequences */
+$$
+BEGIN
+  -- Synchronize note_comments_id_seq
+  PERFORM setval('note_comments_id_seq', 
+    COALESCE((SELECT MAX(id) FROM note_comments), 1), 
+    true);
+  
+  -- Synchronize note_comments_text_id_seq if it exists
+  IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'note_comments_text_id_seq') THEN
+    PERFORM setval('note_comments_text_id_seq',
+      COALESCE((SELECT MAX(id) FROM note_comments_text), 1),
+      true);
+  END IF;
+  
+  INSERT INTO logs (message) VALUES ('Sequences synchronized before comment insertion');
+END
+$$;
 
 DO /* Notes-processAPI-insertComments */
 $$
