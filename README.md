@@ -183,6 +183,7 @@ If you're new to this project and want to understand the codebase or contribute,
    - Review the directory structure below
 
 2. **Project Context** (30 min)
+   - Read [HISTORY.md](./HISTORY.md) - Project history and origins (OpenNotesLatam)
    - Read [docs/Rationale.md](./docs/Rationale.md) - Why this project exists
    - Read [docs/Documentation.md](./docs/Documentation.md) - System architecture overview
 
