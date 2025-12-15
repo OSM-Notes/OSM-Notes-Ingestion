@@ -319,6 +319,7 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/boundary_processing_logging.test.bats" \
   "${SCRIPT_DIR}/unit/bash/boundary_processing_utils.test.bats" \
   "${SCRIPT_DIR}/unit/bash/boundary_processing_impl.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/boundary_processing_download_import.test.bats" \
   "${SCRIPT_DIR}/unit/bash/export_countries_backup.test.bats" \
   "${SCRIPT_DIR}/unit/bash/export_maritimes_backup.test.bats" \
   "${SCRIPT_DIR}/unit/bash/generate_note_location_backup.test.bats" \

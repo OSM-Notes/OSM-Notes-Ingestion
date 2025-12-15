@@ -52,11 +52,12 @@ Test files follow a consistent naming pattern:
 - `prerequisites_error_handling.test.bats` - Error handling
 - `prerequisites_integration.test.bats` - Integration scenarios
 
-#### Boundary Processing (4 modules)
+#### Boundary Processing (5 modules)
 - `boundary_processing_common.test.bats` - Common functionality
 - `boundary_processing_logging.test.bats` - Logging tests (14 tests)
 - `boundary_processing_utils.test.bats` - Utility functions (10 tests)
 - `boundary_processing_impl.test.bats` - Implementation tests (3 tests)
+- `boundary_processing_download_import.test.bats` - Download and import functions (24 tests)
 
 #### Overpass Functions (5 modules)
 - `overpass_functions_common.test.bats` - Common functions (3 tests)

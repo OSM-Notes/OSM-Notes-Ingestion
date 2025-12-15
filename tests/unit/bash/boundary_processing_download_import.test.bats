@@ -81,17 +81,14 @@ EOF
 EOF
  }
 
- # Mock osmtogeojson
+ # Mock osmtogeojson - writes directly to stdout (will be redirected to file)
  osmtogeojson() {
   local JSON_FILE="${1}"
-  local GEOJSON_FILE="${2:-}"
-  if [[ -n "${GEOJSON_FILE}" ]]; then
-   create_mock_geojson "$(basename "${JSON_FILE}" .json)"
-   cat "${TMP_DIR}/$(basename "${JSON_FILE}" .json).geojson"
-  else
-   create_mock_geojson "$(basename "${JSON_FILE}" .json)"
-   cat "${TMP_DIR}/$(basename "${JSON_FILE}" .json).geojson"
-  fi
+  local BOUNDARY_ID
+  BOUNDARY_ID=$(basename "${JSON_FILE}" .json)
+  create_mock_geojson "${BOUNDARY_ID}"
+  cat "${TMP_DIR}/${BOUNDARY_ID}.geojson"
+  return 0
  }
  export -f osmtogeojson
 
@@ -108,12 +105,28 @@ EOF
  export -f jq
 
  # Mock __overpass_download_with_endpoints
+ # This function will be redefined after loading boundaryProcessingFunctions.sh
+ # to ensure it overrides any real implementation
  __overpass_download_with_endpoints() {
   local QUERY_FILE="${1}"
   local OUTPUT_FILE="${2}"
   local LOG_FILE="${3}"
-  create_mock_json "$(basename "${OUTPUT_FILE}" .json)"
-  cp "${TMP_DIR}/$(basename "${OUTPUT_FILE}" .json).json" "${OUTPUT_FILE}" 2> /dev/null || true
+  local BOUNDARY_ID
+  # Extract ID from output file name (format: /path/to/ID.json)
+  BOUNDARY_ID=$(basename "${OUTPUT_FILE}" .json)
+  # If that doesn't work, try to extract from query file
+  if [[ -z "${BOUNDARY_ID}" ]] || [[ "${BOUNDARY_ID}" == "output" ]]; then
+   BOUNDARY_ID=$(basename "${QUERY_FILE}" .op | sed 's/query\.//')
+  fi
+  # Fallback: use a default ID
+  if [[ -z "${BOUNDARY_ID}" ]]; then
+   BOUNDARY_ID="12345"
+  fi
+  create_mock_json "${BOUNDARY_ID}"
+  # Copy the created JSON to the output file
+  if [[ -f "${TMP_DIR}/${BOUNDARY_ID}.json" ]]; then
+   cp "${TMP_DIR}/${BOUNDARY_ID}.json" "${OUTPUT_FILE}" 2> /dev/null || true
+  fi
   return 0
  }
  export -f __overpass_download_with_endpoints
@@ -139,23 +152,37 @@ EOF
  export -f __sanitize_sql_integer
 
  # Mock ogr2ogr (simulate successful import)
+ # ogr2ogr is called via eval with a full command string
  ogr2ogr() {
-  # Simulate successful import by creating a mock import table entry
+  # Accept all arguments and simulate successful import
+  # The function is called via eval, so we need to handle the full command
   return 0
  }
  export -f ogr2ogr
 
  # Mock psql for database operations
+ # psql is called with: psql -d "${DBNAME}" -c "..." or psql -d "${DBNAME}" -Atq -c "..."
  psql() {
-  local DB="${1}"
-  local CMD="${2}"
+  local ARGS=("$@")
+  local CMD=""
+  local I=0
+  # Parse arguments to find -c command
+  while [[ $I -lt ${#ARGS[@]} ]]; do
+   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
+    CMD="${ARGS[$((I + 1))]}"
+    break
+   fi
+   I=$((I + 1))
+  done
+
+  # Handle different SQL commands
   if [[ "${CMD}" == *"TRUNCATE"* ]]; then
    return 0
-  elif [[ "${CMD}" == *"COUNT(*)"* ]] && [[ "${CMD}" == *"import"* ]]; then
+  elif [[ "${CMD}" == *"COUNT(*)"* ]] && [[ "${CMD}" == *"import"* ]] && [[ "${CMD}" == *"ST_GeometryType"* ]]; then
    echo "1" # Simulate polygon count
   elif [[ "${CMD}" == *"INSERT INTO countries"* ]]; then
    return 0
-  elif [[ "${CMD}" == *"SELECT COUNT(*)"* ]] && [[ "${CMD}" == *"countries"* ]]; then
+  elif [[ "${CMD}" == *"SELECT COUNT(*)"* ]] && [[ "${CMD}" == *"countries"* ]] && [[ "${CMD}" == *"country_id"* ]]; then
    echo "1" # Simulate successful insert verification
   fi
   return 0
@@ -164,6 +191,41 @@ EOF
 
  # Load boundary processing functions
  source "${TEST_BASE_DIR}/bin/lib/boundaryProcessingFunctions.sh"
+
+ # Re-define mocks after loading functions (functions may load real implementations)
+ # This ensures our mocks override any real functions that were loaded
+ __overpass_download_with_endpoints() {
+  local QUERY_FILE="${1}"
+  local OUTPUT_FILE="${2}"
+  local LOG_FILE="${3}"
+  local BOUNDARY_ID
+  # Extract ID from output file name (format: /path/to/ID.json)
+  BOUNDARY_ID=$(basename "${OUTPUT_FILE}" .json)
+  # If that doesn't work, try to extract from query file
+  if [[ -z "${BOUNDARY_ID}" ]] || [[ "${BOUNDARY_ID}" == "output" ]]; then
+   BOUNDARY_ID=$(basename "${QUERY_FILE}" .op | sed 's/query\.//')
+  fi
+  # Fallback: use a default ID
+  if [[ -z "${BOUNDARY_ID}" ]]; then
+   BOUNDARY_ID="12345"
+  fi
+  create_mock_json "${BOUNDARY_ID}"
+  # Copy the created JSON to the output file
+  if [[ -f "${TMP_DIR}/${BOUNDARY_ID}.json" ]]; then
+   cp "${TMP_DIR}/${BOUNDARY_ID}.json" "${OUTPUT_FILE}" 2> /dev/null || true
+  fi
+  return 0
+ }
+ export -f __overpass_download_with_endpoints
+
+ # Re-export other mocks
+ export -f osmtogeojson
+ export -f jq
+ export -f __validate_json_with_element
+ export -f __sanitize_sql_string
+ export -f __sanitize_sql_integer
+ export -f ogr2ogr
+ export -f psql
 }
 
 teardown() {
@@ -177,6 +239,12 @@ teardown() {
 
 @test "__downloadBoundary_json_geojson_only should download and convert boundary" {
  local BOUNDARY_ID="12345"
+
+ # Ensure mocks are available
+ export -f __overpass_download_with_endpoints
+ export -f __validate_json_with_element
+ export -f osmtogeojson
+ export -f jq
 
  run __downloadBoundary_json_geojson_only "${BOUNDARY_ID}" 2> /dev/null
  [[ "${status}" -eq 0 ]]
@@ -244,7 +312,19 @@ teardown() {
  local BOUNDARY_ID="12345"
  local GEOJSON_FILE="${TMP_DIR}/nonexistent.geojson"
 
+ # Mock ogr2ogr to fail when file doesn't exist
+ ogr2ogr() {
+  # Check if input file exists in arguments
+  local ARGS_STR="$*"
+  if [[ "${ARGS_STR}" == *"nonexistent.geojson"* ]]; then
+   return 1
+  fi
+  return 0
+ }
+ export -f ogr2ogr
+
  run __importBoundary_simplified "${BOUNDARY_ID}" "${GEOJSON_FILE}" 2> /dev/null
+ # Function should fail when ogr2ogr fails
  [[ "${status}" -ne 0 ]]
 }
 
