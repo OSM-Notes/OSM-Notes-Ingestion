@@ -2,7 +2,7 @@
 
 # Script to run processAPINotes.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-14
+# Version: 2025-12-15
 
 set -euo pipefail
 
@@ -298,23 +298,26 @@ verify_comments_inserted() {
   export PGPASSWORD="${DB_PASSWORD}"
  fi
  
- # Get count of comments inserted in the last minute (should be from this execution)
+ # Get count of comments inserted in the last 5 minutes (should be from this execution)
+ # Use processing_time instead of created_at because created_at is the OSM timestamp
+ # (which can be from the past), while processing_time is when it was inserted in DB
+ # Use 5 minutes to account for longer processing times
  local comments_recent
  comments_recent=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
-  "SELECT COUNT(*) FROM note_comments WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '1 minute';" \
+  "SELECT COUNT(*) FROM note_comments WHERE processing_time > CURRENT_TIMESTAMP - INTERVAL '5 minutes';" \
   2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
  
- # Get count of notes inserted in the last minute
+ # Get count of notes inserted in the last 5 minutes (to match comment verification interval)
  local notes_recent
  notes_recent=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
-  "SELECT COUNT(*) FROM notes WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 minute';" \
+  "SELECT COUNT(*) FROM notes WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '5 minutes';" \
   2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
  
  # Get count of notes with comments (should match if comments were inserted)
  local notes_with_comments
  notes_with_comments=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(DISTINCT n.note_id) FROM notes n 
-   WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 minute'
+   WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '5 minutes'
    AND EXISTS (SELECT 1 FROM note_comments nc WHERE nc.note_id = n.note_id);" \
   2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
  
