@@ -570,29 +570,42 @@ function __daemon_init {
  set -e
  set -E
 
+ # Create ENUMs first (needed for API tables, can be created independently)
+ # ENUMs are created with IF NOT EXISTS, so safe to create even if they already exist
+ # This matches processAPINotes.sh behavior (ENUMs are created by processPlanetNotes.sh --base,
+ # but we create them here too to ensure API tables can be created even if base tables don't exist)
+ __logi "Ensuring ENUMs exist (needed for API tables)..."
+ local ENUMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ if [[ -f "${ENUMS_SCRIPT}" ]]; then
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+   -f "${ENUMS_SCRIPT}" 2>/dev/null || {
+   __logw "Failed to create ENUMs (may already exist)"
+  }
+  __logi "ENUMs ensured (created or already exist)"
+ else
+  __logw "ENUMs script not found: ${ENUMS_SCRIPT}"
+  __logw "API tables may fail if ENUMs don't exist"
+ fi
+
  # Prepare API tables (create if needed, truncate if exist)
- # Skip if base tables don't exist (they will be created by processPlanet --base)
- if [[ "${RET_FUNC}" -eq 0 ]]; then
-  __logi "Preparing API tables..."
-  __prepareApiTables
- else
-  __logw "Skipping API tables preparation - base tables missing, will be created by processPlanet --base"
- fi
+ # API tables need ENUMs (created above), but don't need base tables
+ # This matches processAPINotes.sh behavior (always creates API tables)
+ __logi "Preparing API tables..."
+ __prepareApiTables
 
- # Create partitions (only if needed)
- # Create properties table
- # Skip if base tables don't exist (they will be created by processPlanet --base)
- if [[ "${RET_FUNC}" -eq 0 ]]; then
-  __logi "Checking properties table..."
-  __createPropertiesTable
+ # Create properties table (max_note_timestamp can be created independently)
+ # max_note_timestamp is needed even if base tables don't exist yet
+ # This matches processAPINotes.sh behavior (always creates properties table)
+ __logi "Checking properties table..."
+ __createPropertiesTable
 
-  # Ensure functions and procedures exist
-  __logi "Checking functions and procedures..."
-  __ensureGetCountryFunction
-  __createProcedures
- else
-  __logw "Skipping properties table and procedures - base tables missing, will be created by processPlanet --base"
- fi
+ # Ensure functions and procedures exist
+ # get_country can be created as stub if countries table doesn't exist
+ # Procedures depend on base tables, but can be created (they'll fail at runtime if tables don't exist)
+ # This matches processAPINotes.sh behavior (always creates functions and procedures)
+ __logi "Checking functions and procedures..."
+ __ensureGetCountryFunction
+ __createProcedures
 
  # Get initial timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
