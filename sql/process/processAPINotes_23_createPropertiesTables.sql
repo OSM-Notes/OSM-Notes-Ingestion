@@ -1,7 +1,7 @@
 -- Creates the max note timestamp table.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2023-12-08
+-- Version: 2025-12-15
 
 DO /* Notes-processAPI-createLastUpdateTable */
 $$
@@ -9,6 +9,8 @@ DECLARE
  last_update TIMESTAMP;
  new_last_update TIMESTAMP;
  qty INT;
+ notes_table_exists BOOLEAN;
+ note_comments_table_exists BOOLEAN;
 BEGIN
  SELECT /* Notes-processAPI */ COUNT(TABLE_NAME)
   INTO qty
@@ -24,19 +26,49 @@ BEGIN
     || ')';
  END IF;
 
+ -- Check if base tables exist before querying them
+ SELECT /* Notes-processAPI */ EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = 'public'
+  AND TABLE_NAME = 'notes'
+ ) INTO notes_table_exists;
+
+ SELECT /* Notes-processAPI */ EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = 'public'
+  AND TABLE_NAME = 'note_comments'
+ ) INTO note_comments_table_exists;
+
  -- Takes the max value among: most recent open note, closed note, comment.
- SELECT /* Notes-processAPI */ MAX(TIMESTAMP)
-   INTO new_last_update
- FROM (
-  SELECT /* Notes-processAPI */ MAX(created_at) AS TIMESTAMP
-  FROM notes
-  UNION
-  SELECT /* Notes-processAPI */ MAX(closed_at) AS TIMESTAMP
-  FROM notes
-  UNION
-  SELECT /* Notes-processAPI */ MAX(created_at) AS TIMESTAMP
-  FROM note_comments
- ) T;
+ -- Only query tables if they exist (for empty database scenarios)
+ IF (notes_table_exists AND note_comments_table_exists) THEN
+  SELECT /* Notes-processAPI */ MAX(TIMESTAMP)
+    INTO new_last_update
+  FROM (
+   SELECT /* Notes-processAPI */ MAX(created_at) AS TIMESTAMP
+   FROM notes
+   UNION
+   SELECT /* Notes-processAPI */ MAX(closed_at) AS TIMESTAMP
+   FROM notes
+   UNION
+   SELECT /* Notes-processAPI */ MAX(created_at) AS TIMESTAMP
+   FROM note_comments
+  ) T;
+ ELSIF (notes_table_exists) THEN
+  -- Only notes table exists
+  SELECT /* Notes-processAPI */ MAX(TIMESTAMP)
+    INTO new_last_update
+  FROM (
+   SELECT /* Notes-processAPI */ MAX(created_at) AS TIMESTAMP
+   FROM notes
+   UNION
+   SELECT /* Notes-processAPI */ MAX(closed_at) AS TIMESTAMP
+   FROM notes
+  ) T;
+ ELSE
+  -- No base tables exist, set to NULL to trigger default timestamp insertion
+  new_last_update := NULL;
+ END IF;
 
  IF (new_last_update IS NOT NULL) THEN
   SELECT /* Notes-processAPI */ timestamp
