@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-api-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-14
-VERSION="2025-12-14"
+# Version: 2025-12-15
+VERSION="2025-12-15"
 
 #set -xv
 set -u
@@ -594,6 +594,8 @@ function __check_api_for_updates {
   # Check if there are notes in the XML
   local NOTE_COUNT
   NOTE_COUNT=$(grep -c '<note ' "${TEMP_CHECK_FILE}" 2> /dev/null || echo "0")
+  # Remove any whitespace/newlines from the count
+  NOTE_COUNT=$(echo "${NOTE_COUNT}" | tr -d '[:space:]')
   rm -f "${TEMP_CHECK_FILE}"
 
   if [[ "${NOTE_COUNT}" -gt 0 ]]; then
@@ -624,10 +626,79 @@ function __process_api_data {
  CYCLE_START_TIME=$(date +%s)
 
  # Download data
- if ! __getNewNotesFromApi; then
-  __loge "Failed to download notes from API"
-  __log_finish
-  return 1
+ local API_DOWNLOAD_RESULT=0
+ __getNewNotesFromApi || API_DOWNLOAD_RESULT=$?
+
+ if [[ ${API_DOWNLOAD_RESULT} -ne 0 ]]; then
+  # Check if the error is due to empty database (no last update timestamp)
+  # This happens when the database is empty and needs initial Planet load
+  local TIMESTAMP_COUNT
+  TIMESTAMP_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+   "SELECT COUNT(*) FROM max_note_timestamp" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  
+  local NOTES_COUNT
+  NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+   "SELECT COUNT(*) FROM notes" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  
+  # Activate Planet --base if:
+  # 1. max_note_timestamp table is empty (no rows), OR
+  # 2. LAST_PROCESSED_TIMESTAMP is empty, OR
+  # 3. notes table is empty (fresh database)
+  if [[ "${TIMESTAMP_COUNT}" == "0" ]] || [[ -z "${LAST_PROCESSED_TIMESTAMP}" ]] || [[ "${NOTES_COUNT}" == "0" ]]; then
+   __logw "Database appears to be empty (no max_note_timestamp or empty table)"
+   __logw "Activating processPlanetNotes.sh --base to load initial data"
+   __logi "Executing: ${NOTES_SYNC_SCRIPT} --base"
+   
+   # Clean up any stale lock files
+   local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
+   if [[ -f "${PLANET_LOCK_FILE}" ]]; then
+    __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
+    if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
+     if command -v sudo >/dev/null 2>&1; then
+      sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
+     fi
+    fi
+   fi
+   
+   # Ensure required environment variables are set
+   export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+   export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
+   export DBNAME="${DBNAME}"
+   export DB_USER="${DB_USER:-}"
+   export DB_HOST="${DB_HOST:-}"
+   export DB_PORT="${DB_PORT:-}"
+   
+   # Execute processPlanetNotes.sh --base to load initial data
+   "${NOTES_SYNC_SCRIPT}" --base
+   local PLANET_BASE_EXIT_CODE=$?
+   
+   if [[ ${PLANET_BASE_EXIT_CODE} -eq 0 ]]; then
+    __logi "Planet base load completed successfully"
+    __logi "Updating timestamp after Planet base load"
+    __updateLastValue
+    # Update LAST_PROCESSED_TIMESTAMP for next cycle
+    LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
+     "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
+     2> /dev/null | head -1 || echo "")
+    __logi "Database initialized. Next cycle will process API updates."
+    local CYCLE_DURATION
+    CYCLE_DURATION=$(($(date +%s) - CYCLE_START_TIME))
+    PROCESSING_DURATION="${CYCLE_DURATION}"
+    __logi "Processing completed in ${CYCLE_DURATION} seconds"
+    __log_finish
+    return 0
+   else
+    __loge "Planet base load failed with exit code: ${PLANET_BASE_EXIT_CODE}"
+    __loge "Check processPlanetNotes.sh logs for details"
+    __loge "Failed execution marker: /tmp/processPlanetNotes_failed_execution"
+    __log_finish
+    return 1
+   fi
+  else
+   __loge "Failed to download notes from API (error code: ${API_DOWNLOAD_RESULT})"
+   __log_finish
+   return 1
+  fi
  fi
 
  # Validate file
