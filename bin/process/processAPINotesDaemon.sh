@@ -700,15 +700,17 @@ function __process_api_data {
   __logi "No notes to process"
  fi
 
+ # Clean API tables after data has been inserted into main tables
+ # This prevents accumulation of data in API tables across cycles
+ # IMPORTANT: This must be done BEFORE updating timestamp to ensure tables are always cleaned
+ # even if there are errors in timestamp update
+ __logd "Cleaning API tables after processing"
+ __prepareApiTables
+
  # Update last processed timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
   2> /dev/null | head -1 || echo "")
-
- # Clean API tables after data has been inserted into main tables
- # This prevents accumulation of data in API tables across cycles
- __logd "Cleaning API tables after processing"
- __prepareApiTables
 
  # Clean files
  if [[ "${CLEAN:-}" == "true" ]]; then
@@ -748,6 +750,12 @@ function __daemon_loop {
   # Reset processing duration
   PROCESSING_DURATION=0
   HAD_UPDATES=false
+
+  # Prepare API tables at the start of each cycle
+  # This ensures tables are clean before loading new data
+  # This is critical to prevent data accumulation across cycles
+  __logd "Preparing API tables at start of cycle ${CYCLE_NUMBER}"
+  __prepareApiTables
 
   # Check API for updates
   local PROCESSING_SUCCESS=false

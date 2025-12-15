@@ -38,14 +38,24 @@ AS $proc$
      m_process_id_db, m_process_id_bash;
   END IF;
 
-  -- Check if comment already exists (by note_id, event, and created_at)
-  -- This prevents duplicate insertions when processing same notes multiple times
-  SELECT COUNT(1)
-    INTO m_existing_count
-  FROM note_comments
-  WHERE note_id = m_note_id
-    AND event = m_event
-    AND created_at = m_created_at;
+  -- Check if comment already exists
+  -- First check by (note_id, sequence_action) if sequence_action is provided (more reliable)
+  -- Otherwise check by (note_id, event, created_at) for backward compatibility
+  IF m_sequence_action IS NOT NULL THEN
+   SELECT COUNT(1)
+     INTO m_existing_count
+   FROM note_comments
+   WHERE note_id = m_note_id
+     AND sequence_action = m_sequence_action;
+  ELSE
+   -- If sequence_action is NULL, check by (note_id, event, created_at)
+   SELECT COUNT(1)
+     INTO m_existing_count
+   FROM note_comments
+   WHERE note_id = m_note_id
+     AND event = m_event
+     AND created_at = m_created_at;
+  END IF;
   
   -- If comment already exists, skip insertion
   IF m_existing_count > 0 THEN

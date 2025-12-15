@@ -157,10 +157,30 @@ $$
        || COALESCE(r.sequence_action::TEXT, 'NULL') || ')';
     END IF;
     
+    -- Execute the statement and verify it actually inserted the comment
     EXECUTE m_stmt;
     
-    m_success_count := m_success_count + 1;
-    INSERT INTO logs (message) VALUES (r.note_id || ' - Comment inserted successfully');
+    -- Verify the comment was actually inserted or already exists
+    -- The function insert_note_comment may return without error if:
+    -- 1. Comment was successfully inserted
+    -- 2. Comment already exists (detected by function's pre-check) - this is OK
+    -- 3. Comment insertion failed due to unique constraint - this is an error
+    -- We check if the comment exists by (note_id, sequence_action) which is more reliable
+    -- than checking by (note_id, event, created_at) since event/created_at might differ
+    IF EXISTS (
+     SELECT 1 FROM note_comments 
+     WHERE note_id = r.note_id 
+       AND (r.sequence_action IS NULL OR sequence_action = r.sequence_action)
+    ) THEN
+     -- Comment exists (either newly inserted or already existed) - this is success
+     m_success_count := m_success_count + 1;
+     INSERT INTO logs (message) VALUES (r.note_id || ' - Comment inserted successfully');
+    ELSE
+     -- Comment was not inserted and doesn't exist - this is an error
+     m_error_count := m_error_count + 1;
+     INSERT INTO logs (message) VALUES (r.note_id || ' - Comment insertion failed: comment not found after insert');
+     RAISE NOTICE 'Comment insertion failed for note %: comment not found after insert', r.note_id;
+    END IF;
     
     -- Log batch completion every batch_size comments
     IF m_batch_count % m_batch_size = 0 THEN

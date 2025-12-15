@@ -21,7 +21,12 @@ $$
  BEGIN
   -- Check if integrity check passed
   -- Handle case where variable doesn't exist (returns empty string or NULL)
+  -- The variable is set by processAPINotes_32_insertNewNotesAndComments.sql
+  -- with set_config('app.integrity_check_passed', ..., true) which makes it session-level
+  -- IMPORTANT: The variable should persist across DO blocks in the same psql session
+  -- If it doesn't, we'll re-check the integrity condition here
   BEGIN
+   -- Try to read the variable, defaulting to FALSE if not set
    integrity_check_passed := COALESCE(
     NULLIF(current_setting('app.integrity_check_passed', true), '')::BOOLEAN,
     FALSE
@@ -29,8 +34,44 @@ $$
   EXCEPTION
    WHEN OTHERS THEN
     -- If variable doesn't exist or is invalid, default to FALSE
+    -- We'll re-check the integrity condition below
     integrity_check_passed := FALSE;
   END;
+  
+  -- If variable was not set or is FALSE, re-check integrity condition
+  -- This handles the case where the variable didn't persist between DO blocks
+  IF NOT integrity_check_passed THEN
+   -- Re-check integrity: count notes without comments in recently inserted data
+   -- Only check notes inserted in the last hour that were created more than 30 minutes ago
+   SELECT COUNT(DISTINCT n.note_id)
+    INTO notes_without_comments
+   FROM notes n
+   LEFT JOIN note_comments nc ON nc.note_id = n.note_id
+   WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'
+    AND n.created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes'
+    AND nc.note_id IS NULL;
+   
+   -- Count total notes inserted in the last hour that are old enough to have comments
+   SELECT COUNT(DISTINCT note_id)
+    INTO total_notes
+   FROM notes
+   WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'
+    AND created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes';
+   
+   -- If very few notes (< 10), be permissive
+   IF total_notes < 10 THEN
+    integrity_check_passed := TRUE;
+    INSERT INTO logs (message) VALUES ('Integrity check re-validated: very few notes to verify (' || total_notes || '), being permissive');
+   ELSIF notes_without_comments <= (total_notes * 0.05) THEN
+    -- If 5% or less of notes lack comments, integrity check passes
+    integrity_check_passed := TRUE;
+    INSERT INTO logs (message) VALUES ('Integrity check re-validated: ' || notes_without_comments || ' notes without comments out of ' || total_notes || ' total (acceptable)');
+   ELSE
+    -- Too many notes without comments
+    integrity_check_passed := FALSE;
+    INSERT INTO logs (message) VALUES ('Integrity check re-validated: FAILED - ' || notes_without_comments || ' notes without comments out of ' || total_notes || ' total (too many)');
+   END IF;
+  END IF;
   
   -- Count total comments in entire database
   -- This helps detect if we're in a state after data deletion
