@@ -762,6 +762,11 @@ function __process_api_data {
   
   if [[ ${PLANET_BASE_EXIT_CODE} -eq 0 ]]; then
    __logi "Planet base load completed successfully"
+   # Ensure max_note_timestamp table exists after Planet load
+   # This is critical because the table may not have been created during daemon_init
+   # if base tables didn't exist at that time
+   __logi "Ensuring max_note_timestamp table exists..."
+   __createPropertiesTable
    __logi "Updating timestamp after Planet base load"
    __updateLastValue
    # Update LAST_PROCESSED_TIMESTAMP for next cycle

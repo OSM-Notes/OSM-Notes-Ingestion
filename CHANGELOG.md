@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+#### Daemon Multiple Planet Executions Fix (2025-12-15)
+
+- **Fixed daemon executing Planet --base multiple times**:
+  - **Issue**: Daemon was detecting database as empty after Planet completed, causing multiple Planet executions
+  - **Root Cause**: After Planet completed, `max_note_timestamp` table might not exist yet, causing `__updateLastValue` to fail and `LAST_PROCESSED_TIMESTAMP` to remain empty
+  - **Fix**: Added `__createPropertiesTable` call after Planet completes successfully to ensure `max_note_timestamp` exists before updating it
+  - **Implementation**:
+    - Modified `__process_api_data` in `bin/process/processAPINotesDaemon.sh` to call `__createPropertiesTable` after Planet base load completes
+    - This ensures the table exists even if it wasn't created during daemon initialization (when base tables didn't exist)
+  - **Impact**:
+    - Prevents multiple Planet executions
+    - Ensures `max_note_timestamp` exists before timestamp update
+    - Allows daemon to correctly transition from Planet load to API processing
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
 #### OSM API Version Detection Fix (2025-12-15)
 
 - **Fixed OSM API version detection**:
