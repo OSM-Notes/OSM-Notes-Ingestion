@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### OSM API Version Detection Fix (2025-12-15)
+
+- **Fixed OSM API version detection**:
+  - **Issue**: Daemon was failing to start with error "Cannot detect OSM API version from response"
+  - **Root Cause**: Code was attempting to extract API version from `/api/0.6/notes?limit=1` response, which doesn't contain version information
+  - **Fix**: Changed to use dedicated `/api/versions` endpoint for version detection
+  - **Implementation**:
+    - Updated `__checkPrereqsCommands()` in `bin/lib/functionsProcess.sh` to use `/api/versions` endpoint
+    - Changed regex pattern from `version="\K[0-9.]+` to `<version>\K[0-9.]+` to match XML element format
+    - The `/api/versions` endpoint returns: `<api><version>0.6</version></api>`
+  - **Impact**:
+    - Daemon can now start successfully
+    - Version detection is more reliable and doesn't require making a data request
+    - Prevents false failures during prerequisites check
+  - **Files changed**:
+    - `bin/lib/functionsProcess.sh`
+    - `tests/unit/bash/prerequisites_network.test.bats` (updated tests to match new endpoint)
+    - `docs/External_Dependencies_and_Risks.md` (updated documentation)
+    - `docs/Documentation.md` (updated prerequisites description)
+
 ### Changed
 
 #### Daemon Enhancements and Feature Parity (2025-12-15)

@@ -86,21 +86,21 @@ setup() {
 }
 
 @test "__checkPrereqsCommands should validate OSM API version 0.6" {
- # Create mock API response with version 0.6
+ # Create mock API response from /api/versions endpoint with version 0.6
  local TEMP_RESPONSE
  TEMP_RESPONSE=$(mktemp)
  cat > "${TEMP_RESPONSE}" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm version="0.6" generator="OpenStreetMap server">
-<note lon="9.9770663" lat="52.1417038">
-  <id>123</id>
-</note>
+<osm generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <api>
+    <version>0.6</version>
+  </api>
 </osm>
 EOF
  
- # Mock curl to return the mock response
+ # Mock curl to return the mock response for /api/versions endpoint
  curl() {
-  if [[ "$*" == *"api.openstreetmap.org"* ]] && [[ "$*" == *"notes?limit=1"* ]]; then
+  if [[ "$*" == *"api.openstreetmap.org"* ]] && [[ "$*" == *"/api/versions"* ]]; then
    cat "${TEMP_RESPONSE}"
    return 0
   else
@@ -109,9 +109,10 @@ EOF
  }
  export -f curl
  
-  # Test version extraction - extract only from <osm> element, not XML declaration
+  # Test version extraction from /api/versions endpoint
+  # The endpoint returns: <api><version>0.6</version></api>
   local DETECTED_VERSION
-  DETECTED_VERSION=$(grep '<osm' "${TEMP_RESPONSE}" | grep -oP 'version="\K[0-9.]+' | head -n 1)
+  DETECTED_VERSION=$(grep -oP '<version>\K[0-9.]+' "${TEMP_RESPONSE}" | head -n 1)
   
   [ "${DETECTED_VERSION}" = "0.6" ]
  
@@ -119,21 +120,22 @@ EOF
 }
 
 @test "__checkPrereqsCommands should fail on wrong OSM API version" {
- # Create mock API response with wrong version
+ # Create mock API response from /api/versions endpoint with wrong version
  local TEMP_RESPONSE
  TEMP_RESPONSE=$(mktemp)
  cat > "${TEMP_RESPONSE}" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm version="0.7" generator="OpenStreetMap server">
-<note lon="9.9770663" lat="52.1417038">
-  <id>123</id>
-</note>
+<osm generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <api>
+    <version>0.7</version>
+  </api>
 </osm>
 EOF
  
-  # Extract version - extract only from <osm> element, not XML declaration
+  # Extract version from /api/versions endpoint
+  # The endpoint returns: <api><version>0.7</version></api>
   local DETECTED_VERSION
-  DETECTED_VERSION=$(grep '<osm' "${TEMP_RESPONSE}" | grep -oP 'version="\K[0-9.]+' | head -n 1)
+  DETECTED_VERSION=$(grep -oP '<version>\K[0-9.]+' "${TEMP_RESPONSE}" | head -n 1)
   
   # Version should not be 0.6
   [ "${DETECTED_VERSION}" != "0.6" ]
@@ -178,19 +180,18 @@ EOF
 }
 
 @test "__checkPrereqsCommands should handle missing version attribute" {
- # Create mock API response without version
+ # Create mock API response from /api/versions endpoint without version element
  local TEMP_RESPONSE
  TEMP_RESPONSE=$(mktemp)
  cat > "${TEMP_RESPONSE}" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm generator="OpenStreetMap server">
-<note lon="9.9770663" lat="52.1417038">
-  <id>123</id>
-</note>
+<osm generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+  <api>
+  </api>
 </osm>
 EOF
  
-  # Extract version (should be empty) - extract only from <osm> element, not XML declaration
+  # Extract version from /api/versions endpoint (should be empty if version element is missing)
   local DETECTED_VERSION
   DETECTED_VERSION=$(grep '<osm' "${TEMP_RESPONSE}" | grep -oP 'version="\K[0-9.]+' 2>/dev/null | head -n 1 || echo "")
   

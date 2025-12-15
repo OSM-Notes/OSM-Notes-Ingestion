@@ -61,30 +61,38 @@ The OSM API version can be detected in multiple ways:
    - Current: `https://api.openstreetmap.org/api/0.6/notes`
    - The version (`0.6`) is part of the URL structure
 
-2. **XML Response**: The API response includes the version in the root element:
+2. **Versions Endpoint**: The OSM API provides a dedicated endpoint to query the API version:
+   - Endpoint: `https://api.openstreetmap.org/api/versions`
+   - Response format:
+     ```xml
+     <?xml version="1.0" encoding="UTF-8"?>
+     <osm generator="OpenStreetMap server" ...>
+       <api>
+         <version>0.6</version>
+       </api>
+     </osm>
+     ```
+   - This is the **preferred method** for version detection as it doesn't require making a data request
 
+3. **XML Response**: The API response includes the version in the root element:
    ```xml
    <osm version="0.6" generator="OpenStreetMap server">
    ```
-
    - The `version` attribute in the `<osm>` element indicates the API version
    - This requires making an API request to obtain
 
-3. **No Standalone Endpoint**: There is no dedicated endpoint to query the API
-   version without making a request. The version must be:
-   - Extracted from the URL (if known)
-   - Parsed from an API response (requires a request)
+**Current Implementation**: The project uses the `/api/versions` endpoint to detect and validate the API version during prerequisites check. This ensures that:
+- The API version is correctly detected without making unnecessary data requests
+- Version mismatches are caught early before processing begins
+- The detected version is compared against the expected version (0.6)
 
-**Current Implementation**: The project uses the URL-based approach, storing the
-API version in the `OSM_API` configuration variable (e.g.,
-`https://api.openstreetmap.org/api/0.6`).
+The project stores the API version in the `OSM_API` configuration variable (e.g., `https://api.openstreetmap.org/api/0.6`), but also validates it dynamically using the `/api/versions` endpoint.
 
-**Future Consideration**: If API version detection becomes necessary, the
-project could:
+**Future Consideration**: If API version detection becomes necessary for compatibility:
 
-- Parse the `version` attribute from API responses
-- Compare detected version with expected version
-- Implement compatibility layers for different API versions
+- The project already implements automatic version detection via `/api/versions`
+- Version mismatches are detected and reported during prerequisites check
+- Compatibility layers for different API versions can be implemented based on detected version
 
 ### Risk: API Changes
 

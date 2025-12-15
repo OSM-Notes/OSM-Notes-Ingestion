@@ -1586,21 +1586,20 @@ EOF
 
  # Check OSM API access and version
  __logd "Checking OSM API access and version."
- # shellcheck disable=SC2154
- local API_BASE_URL="${OSM_API:-https://api.openstreetmap.org/api/0.6}"
- local API_TEST_URL="${API_BASE_URL}/notes?limit=1"
+ # Use the /api/versions endpoint to get API version information
+ local API_VERSIONS_URL="https://api.openstreetmap.org/api/versions"
  local TEMP_API_RESPONSE
  TEMP_API_RESPONSE=$(mktemp)
 
- # Download a minimal API response to check version
- if ! timeout 15 curl -s --max-time 15 "${API_TEST_URL}" > "${TEMP_API_RESPONSE}" 2>/dev/null; then
+ # Download API versions response to check version
+ if ! timeout 15 curl -s --max-time 15 "${API_VERSIONS_URL}" > "${TEMP_API_RESPONSE}" 2>/dev/null; then
   rm -f "${TEMP_API_RESPONSE}"
-  __loge "ERROR: Cannot access OSM API at ${API_BASE_URL}."
+  __loge "ERROR: Cannot access OSM API at ${API_VERSIONS_URL}."
   __loge "Please check your internet connection and firewall settings."
   exit "${ERROR_INTERNET_ISSUE}"
  fi
 
- # Check if response contains valid XML with version attribute
+ # Check if response contains valid XML
  if [[ ! -s "${TEMP_API_RESPONSE}" ]]; then
   rm -f "${TEMP_API_RESPONSE}"
   __loge "ERROR: OSM API returned empty response."
@@ -1608,8 +1607,9 @@ EOF
  fi
 
  # Extract version from XML response
+ # The /api/versions endpoint returns: <api><version>0.6</version></api>
  local DETECTED_VERSION
- DETECTED_VERSION=$(grep -oP 'version="\K[0-9.]+' "${TEMP_API_RESPONSE}" | head -n 1 || echo "")
+ DETECTED_VERSION=$(grep -oP '<version>\K[0-9.]+' "${TEMP_API_RESPONSE}" | head -n 1 || echo "")
  rm -f "${TEMP_API_RESPONSE}"
 
  if [[ -z "${DETECTED_VERSION}" ]]; then

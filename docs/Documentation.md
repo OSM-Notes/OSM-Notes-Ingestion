@@ -2646,7 +2646,8 @@ The prerequisites check validates external service connectivity:
 1. **Internet Connectivity**: General internet access is available
 2. **Planet Server Access**: Can connect to `planet.openstreetmap.org`
 3. **OSM API Access and Version**: Can connect to `api.openstreetmap.org` and
-   verifies that the API version is 0.6 (as required by the project)
+   verifies that the API version is 0.6 (as required by the project) by querying
+   the `/api/versions` endpoint
 4. **Overpass API Access**: Can connect to Overpass API endpoints (for boundary
    downloads)
 
