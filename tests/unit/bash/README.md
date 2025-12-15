@@ -8,7 +8,7 @@ This directory contains BATS (Bash Automated Testing System) unit tests for shel
 
 The test suite is organized in a **modular structure** with tests grouped by functionality for improved maintainability and organization.
 
-**Total Test Files**: 132 BATS test suites
+**Total Test Files**: 133 BATS test suites
 
 ### Naming Convention
 
@@ -93,6 +93,10 @@ Test files follow a consistent naming pattern:
 - `processAPI_historical_scenarios.test.bats` - Test scenarios (3 tests)
 - `processAPI_historical_sql.test.bats` - SQL validation (3 tests)
 - `processAPI_historical_integration.test.bats` - Integration tests (4 tests)
+
+#### Performance Testing (2 modules)
+- `performance_edge_cases.test.bats` - Performance edge cases and resource limits (14 tests)
+- `performance_benchmarks.test.bats` - Performance benchmarks with automated metrics (11 tests)
 
 #### Binary Division (3 modules)
 - `binary_division_basic.test.bats` - Basic functionality (3 tests)

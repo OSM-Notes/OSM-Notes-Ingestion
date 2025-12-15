@@ -25,6 +25,7 @@ kcov/
 
 # Performance benchmarks
 .benchmarks/
+tests/benchmark_results/*.json
 
 # Temporary files
 *.tmp

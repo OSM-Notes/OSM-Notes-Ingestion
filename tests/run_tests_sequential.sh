@@ -362,6 +362,7 @@ __run_level_8() {
 
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/performance_edge_cases.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/performance_benchmarks.test.bats" \
   "${SCRIPT_DIR}/unit/bash/edge_cases_files.test.bats" \
   "${SCRIPT_DIR}/unit/bash/edge_cases_database.test.bats" \
   "${SCRIPT_DIR}/unit/bash/edge_cases_infrastructure.test.bats" \
