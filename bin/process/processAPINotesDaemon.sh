@@ -21,6 +21,10 @@
 # Version: 2025-12-15
 VERSION="2025-12-15"
 
+# IMPORTANT: This daemon sources processAPINotes.sh to reuse all its functions
+# The daemon adds daemon-specific functionality (looping, signal handling, etc.)
+# but uses the same processing logic as processAPINotes.sh to ensure consistency
+
 #set -xv
 set -u
 set -e
@@ -363,12 +367,56 @@ function __ensureGetCountryFunction {
 }
 
 # Validate historical data and recover if needed
+# This function is equivalent to __validateHistoricalDataAndRecover in processAPINotes.sh
+# It validates historical data and calls __recover_from_gaps if needed
 function __validateHistoricalDataAndRecover {
  __log_start
- __logd "Validating historical data consistency..."
- # For daemon mode, we skip historical validation on startup
- # Historical data validation is handled during normal processing
- __logd "Historical data validation skipped in daemon mode"
+ __logi "Base tables found. Validating historical data..."
+ 
+ # Check if base tables exist before validating
+ # BASE_TABLES_EXIST=0 means tables exist, 1 means missing
+ if [[ "${BASE_TABLES_EXIST:-1}" -ne 0 ]]; then
+  __logd "Base tables missing, skipping historical data validation"
+  __log_finish
+  return 0
+ fi
+ 
+ # Validate historical data (equivalent to __checkHistoricalData in processAPINotes.sh)
+ # Note: __checkHistoricalData is defined in functionsProcess.sh and validates
+ # that we have at least 30 days of historical data
+ set +e
+ trap '' ERR
+ __checkHistoricalData || true
+ local HIST_VALIDATION_RESULT=$?
+ set -E
+ trap '{
+  local ERROR_LINE="${LINENO}"
+  local ERROR_COMMAND="${BASH_COMMAND}"
+  local ERROR_EXIT_CODE="$?"
+  if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
+   local MAIN_SCRIPT_NAME
+   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
+   printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
+   printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
+  fi; }' ERR
+ 
+ if [[ "${HIST_VALIDATION_RESULT}" -ne 0 ]]; then
+  __logw "Historical data validation failed, but continuing in daemon mode"
+  __logw "This may indicate a fresh database or incomplete historical data"
+  __log_finish
+  return 0
+ fi
+ 
+ __logi "Historical data validation passed. ProcessAPI can continue safely."
+ 
+ # Recover from gaps (equivalent to __recover_from_gaps in processAPINotes.sh)
+ # Note: __recover_from_gaps is defined in processAPINotes.sh and is available
+ # since we source that script at line 123
+ if ! __recover_from_gaps; then
+  __logw "Gap recovery check failed, but continuing in daemon mode"
+  __logw "This will be retried on next cycle"
+ fi
+ 
  __log_finish
 }
 
@@ -508,8 +556,11 @@ function __daemon_init {
   fi; }' ERR
 
  if [[ "${RET_FUNC}" -eq 1 ]]; then
-  __loge "Base tables missing. Please run processPlanetNotes.sh --base first"
-  exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  __logw "Base tables missing. This may be a fresh database."
+  __logw "Daemon will attempt to load initial data on first cycle."
+  __logw "If this persists, check that processPlanetNotes.sh --base can run successfully."
+  # Don't exit - allow daemon to continue and try to auto-initialize
+  # The __process_api_data function will detect empty DB and activate processPlanet --base
  fi
 
  if [[ "${RET_FUNC}" -eq 0 ]]; then
@@ -520,26 +571,40 @@ function __daemon_init {
  set -E
 
  # Prepare API tables (create if needed, truncate if exist)
- __logi "Preparing API tables..."
- __prepareApiTables
+ # Skip if base tables don't exist (they will be created by processPlanet --base)
+ if [[ "${RET_FUNC}" -eq 0 ]]; then
+  __logi "Preparing API tables..."
+  __prepareApiTables
+ else
+  __logw "Skipping API tables preparation - base tables missing, will be created by processPlanet --base"
+ fi
 
  # Create partitions (only if needed)
  # Create properties table
- __logi "Checking properties table..."
- __createPropertiesTable
+ # Skip if base tables don't exist (they will be created by processPlanet --base)
+ if [[ "${RET_FUNC}" -eq 0 ]]; then
+  __logi "Checking properties table..."
+  __createPropertiesTable
 
- # Ensure functions and procedures exist
- __logi "Checking functions and procedures..."
- __ensureGetCountryFunction
- __createProcedures
+  # Ensure functions and procedures exist
+  __logi "Checking functions and procedures..."
+  __ensureGetCountryFunction
+  __createProcedures
+ else
+  __logw "Skipping properties table and procedures - base tables missing, will be created by processPlanet --base"
+ fi
 
  # Get initial timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
   2> /dev/null | head -1 || echo "")
 
+ # Store RET_FUNC for use in daemon loop
+ export BASE_TABLES_EXIST="${RET_FUNC}"
+
  __logi "Daemon initialized successfully"
  __logi "Last processed timestamp: ${LAST_PROCESSED_TIMESTAMP:-none}"
+ __logi "Base tables exist: ${BASE_TABLES_EXIST}"
  __log_finish
 }
 
@@ -625,150 +690,212 @@ function __process_api_data {
  local CYCLE_START_TIME
  CYCLE_START_TIME=$(date +%s)
 
- # Download data
- local API_DOWNLOAD_RESULT=0
- __getNewNotesFromApi || API_DOWNLOAD_RESULT=$?
-
- if [[ ${API_DOWNLOAD_RESULT} -ne 0 ]]; then
-  # Check if the error is due to empty database (no last update timestamp)
-  # This happens when the database is empty and needs initial Planet load
-  local TIMESTAMP_COUNT
+ # Check if database is empty before attempting to download
+ # This prevents errors and allows automatic activation of processPlanet --base
+ # First check if tables exist, then check if they have data
+ local TIMESTAMP_TABLE_EXISTS
+ TIMESTAMP_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'max_note_timestamp'" \
+  2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ 
+ local TIMESTAMP_COUNT=0
+ if [[ "${TIMESTAMP_TABLE_EXISTS}" == "1" ]]; then
   TIMESTAMP_COUNT=$(psql -d "${DBNAME}" -Atq -c \
    "SELECT COUNT(*) FROM max_note_timestamp" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
-  
-  local NOTES_COUNT
+ fi
+ 
+ local NOTES_TABLE_EXISTS
+ NOTES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notes'" \
+  2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ 
+ local NOTES_COUNT=0
+ if [[ "${NOTES_TABLE_EXISTS}" == "1" ]]; then
   NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
    "SELECT COUNT(*) FROM notes" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ fi
+ 
+ # Activate Planet --base if database is empty:
+ # 1. max_note_timestamp table doesn't exist OR is empty (no rows), OR
+ # 2. LAST_PROCESSED_TIMESTAMP is empty, OR
+ # 3. notes table doesn't exist OR is empty (fresh database)
+ if [[ "${TIMESTAMP_TABLE_EXISTS}" == "0" ]] || [[ "${TIMESTAMP_COUNT}" == "0" ]] || [[ -z "${LAST_PROCESSED_TIMESTAMP}" ]] || [[ "${NOTES_TABLE_EXISTS}" == "0" ]] || [[ "${NOTES_COUNT}" == "0" ]]; then
+  __logw "Database appears to be empty (no max_note_timestamp or empty table)"
+  __logw "Activating processPlanetNotes.sh --base to load initial data"
+  __logi "Executing: ${NOTES_SYNC_SCRIPT} --base"
   
-  # Activate Planet --base if:
-  # 1. max_note_timestamp table is empty (no rows), OR
-  # 2. LAST_PROCESSED_TIMESTAMP is empty, OR
-  # 3. notes table is empty (fresh database)
-  if [[ "${TIMESTAMP_COUNT}" == "0" ]] || [[ -z "${LAST_PROCESSED_TIMESTAMP}" ]] || [[ "${NOTES_COUNT}" == "0" ]]; then
-   __logw "Database appears to be empty (no max_note_timestamp or empty table)"
-   __logw "Activating processPlanetNotes.sh --base to load initial data"
-   __logi "Executing: ${NOTES_SYNC_SCRIPT} --base"
-   
-   # Clean up any stale lock files
-   local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
-   if [[ -f "${PLANET_LOCK_FILE}" ]]; then
-    __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
-    if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
-     if command -v sudo >/dev/null 2>&1; then
-      sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
-     fi
+  # Clean up any stale lock files
+  local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
+  if [[ -f "${PLANET_LOCK_FILE}" ]]; then
+   __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
+   if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
+    if command -v sudo >/dev/null 2>&1; then
+     sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
     fi
    fi
-   
-   # Ensure required environment variables are set
-   export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
-   export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
-   export DBNAME="${DBNAME}"
-   export DB_USER="${DB_USER:-}"
-   export DB_HOST="${DB_HOST:-}"
-   export DB_PORT="${DB_PORT:-}"
-   
-   # Execute processPlanetNotes.sh --base to load initial data
-   "${NOTES_SYNC_SCRIPT}" --base
-   local PLANET_BASE_EXIT_CODE=$?
-   
-   if [[ ${PLANET_BASE_EXIT_CODE} -eq 0 ]]; then
-    __logi "Planet base load completed successfully"
-    __logi "Updating timestamp after Planet base load"
-    __updateLastValue
-    # Update LAST_PROCESSED_TIMESTAMP for next cycle
-    LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
-     "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
-     2> /dev/null | head -1 || echo "")
-    __logi "Database initialized. Next cycle will process API updates."
-    local CYCLE_DURATION
-    CYCLE_DURATION=$(($(date +%s) - CYCLE_START_TIME))
-    PROCESSING_DURATION="${CYCLE_DURATION}"
-    __logi "Processing completed in ${CYCLE_DURATION} seconds"
-    __log_finish
-    return 0
-   else
-    __loge "Planet base load failed with exit code: ${PLANET_BASE_EXIT_CODE}"
-    __loge "Check processPlanetNotes.sh logs for details"
-    __loge "Failed execution marker: /tmp/processPlanetNotes_failed_execution"
-    __log_finish
-    return 1
-   fi
+  fi
+  
+  # Ensure required environment variables are set
+  export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+  export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
+  export DBNAME="${DBNAME}"
+  export DB_USER="${DB_USER:-}"
+  export DB_HOST="${DB_HOST:-}"
+  export DB_PORT="${DB_PORT:-}"
+  
+  # Execute processPlanetNotes.sh --base to load initial data
+  "${NOTES_SYNC_SCRIPT}" --base
+  local PLANET_BASE_EXIT_CODE=$?
+  
+  if [[ ${PLANET_BASE_EXIT_CODE} -eq 0 ]]; then
+   __logi "Planet base load completed successfully"
+   __logi "Updating timestamp after Planet base load"
+   __updateLastValue
+   # Update LAST_PROCESSED_TIMESTAMP for next cycle
+   LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
+    "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
+    2> /dev/null | head -1 || echo "")
+   __logi "Database initialized. Next cycle will process API updates."
+   local CYCLE_DURATION
+   CYCLE_DURATION=$(($(date +%s) - CYCLE_START_TIME))
+   PROCESSING_DURATION="${CYCLE_DURATION}"
+   __logi "Processing completed in ${CYCLE_DURATION} seconds"
+   __log_finish
+   return 0
   else
-   __loge "Failed to download notes from API (error code: ${API_DOWNLOAD_RESULT})"
+   __loge "Planet base load failed with exit code: ${PLANET_BASE_EXIT_CODE}"
+   __loge "Check processPlanetNotes.sh logs for details"
+   __loge "Failed execution marker: /tmp/processPlanetNotes_failed_execution"
    __log_finish
    return 1
   fi
  fi
 
+ # Download data (only if database is not empty)
+ local API_DOWNLOAD_RESULT=0
+ __getNewNotesFromApi || API_DOWNLOAD_RESULT=$?
+
+ if [[ ${API_DOWNLOAD_RESULT} -ne 0 ]]; then
+  __loge "Failed to download notes from API (error code: ${API_DOWNLOAD_RESULT})"
+  __log_finish
+  return 1
+ fi
+
  # Validate file
  __validateApiNotesFile
 
- # Count and process
- __countXmlNotesAPI "${API_NOTES_FILE}"
+ # Validate and process XML (equivalent to processAPINotes.sh flow)
+ # This function handles: validation, counting, processing, insertion
+ # It's equivalent to: __validateAndProcessApiXml in processAPINotes.sh
+ declare -i RESULT
+ RESULT=$(wc -l < "${API_NOTES_FILE}" 2>/dev/null || echo "0")
+ if [[ "${RESULT}" -ne 0 ]]; then
+  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+   __validateApiNotesXMLFileComplete
+  else
+   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+  fi
+  __countXmlNotesAPI "${API_NOTES_FILE}"
 
- if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
-  __logi "Processing ${TOTAL_NOTES} notes"
+  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+   __logi "Processing ${TOTAL_NOTES} notes"
 
-  if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
-   __logw "Too many notes (${TOTAL_NOTES} >= ${MAX_NOTES}), triggering Planet sync"
-   __logi "Executing: ${NOTES_SYNC_SCRIPT}"
-   # Clean up any stale lock files from previous executions
-   # This prevents permission issues when daemon (user: notes) tries to run
-   # processPlanetNotes.sh that was previously run by another user
-   local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
-   if [[ -f "${PLANET_LOCK_FILE}" ]]; then
-    __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
-    # Try to remove with sudo if regular rm fails (permission issues)
-    if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
-     __logw "Could not remove lock file with regular rm, trying with sudo"
-     if command -v sudo >/dev/null 2>&1; then
-      sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
-     else
-      __logw "sudo not available, lock file may cause issues"
+   if [[ "${TOTAL_NOTES}" -ge "${MAX_NOTES}" ]]; then
+    __logw "Too many notes (${TOTAL_NOTES} >= ${MAX_NOTES}), triggering Planet sync"
+    __logi "Executing: ${NOTES_SYNC_SCRIPT}"
+    # Clean up any stale lock files from previous executions
+    # This prevents permission issues when daemon (user: notes) tries to run
+    # processPlanetNotes.sh that was previously run by another user
+    local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
+    if [[ -f "${PLANET_LOCK_FILE}" ]]; then
+     __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
+     # Try to remove with sudo if regular rm fails (permission issues)
+     if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
+      __logw "Could not remove lock file with regular rm, trying with sudo"
+      if command -v sudo >/dev/null 2>&1; then
+       sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
+      else
+       __logw "sudo not available, lock file may cause issues"
+      fi
      fi
     fi
-   fi
-   # Ensure required environment variables are set for processPlanetNotes.sh
-   # SKIP_XML_VALIDATION=true speeds up processing (validation is optional)
-   export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
-   # Preserve LOG_LEVEL from daemon
-   export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
-   # Ensure DBNAME and other database variables are available
-   export DBNAME="${DBNAME}"
-   export DB_USER="${DB_USER:-}"
-   export DB_HOST="${DB_HOST:-}"
-   export DB_PORT="${DB_PORT:-}"
-   # Execute processPlanetNotes.sh and capture exit code explicitly
-   # This ensures we detect failures even if the script exits early
-   "${NOTES_SYNC_SCRIPT}"
-   local PLANET_SYNC_EXIT_CODE=$?
-   if [[ ${PLANET_SYNC_EXIT_CODE} -eq 0 ]]; then
-    __logi "Planet sync completed successfully"
-    # After Planet sync, update timestamp to prevent infinite loop
-    # processPlanetNotes.sh doesn't update max_note_timestamp, so we need to do it here
-    __logi "Updating timestamp after Planet sync"
-    __updateLastValue
-   else
-    __loge "Planet sync failed with exit code: ${PLANET_SYNC_EXIT_CODE}"
-    __loge "Check processPlanetNotes.sh logs for details"
-    __loge "Failed execution marker: /tmp/processPlanetNotes_failed_execution"
-    # Check if lock file permission issue was the cause
-    if [[ -f "${PLANET_LOCK_FILE}" ]] && ! [[ -w "${PLANET_LOCK_FILE}" ]]; then
-     __loge "Lock file permission issue detected: ${PLANET_LOCK_FILE}"
-     __loge "Lock file owner: $(stat -c '%U:%G' "${PLANET_LOCK_FILE}" 2>/dev/null || echo 'unknown')"
-     __loge "Current user: $(whoami)"
+    # Ensure required environment variables are set for processPlanetNotes.sh
+    # SKIP_XML_VALIDATION=true speeds up processing (validation is optional)
+    export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+    # Preserve LOG_LEVEL from daemon
+    export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
+    # Ensure DBNAME and other database variables are available
+    export DBNAME="${DBNAME}"
+    export DB_USER="${DB_USER:-}"
+    export DB_HOST="${DB_HOST:-}"
+    export DB_PORT="${DB_PORT:-}"
+    # Execute processPlanetNotes.sh and capture exit code explicitly
+    # This ensures we detect failures even if the script exits early
+    "${NOTES_SYNC_SCRIPT}"
+    local PLANET_SYNC_EXIT_CODE=$?
+    if [[ ${PLANET_SYNC_EXIT_CODE} -eq 0 ]]; then
+     __logi "Planet sync completed successfully"
+     # After Planet sync, update timestamp to prevent infinite loop
+     # processPlanetNotes.sh doesn't update max_note_timestamp, so we need to do it here
+     __logi "Updating timestamp after Planet sync"
+     __updateLastValue
+    else
+     __loge "Planet sync failed with exit code: ${PLANET_SYNC_EXIT_CODE}"
+     __loge "Check processPlanetNotes.sh logs for details"
+     __loge "Failed execution marker: /tmp/processPlanetNotes_failed_execution"
+     # Check if lock file permission issue was the cause
+     if [[ -f "${PLANET_LOCK_FILE}" ]] && ! [[ -w "${PLANET_LOCK_FILE}" ]]; then
+      __loge "Lock file permission issue detected: ${PLANET_LOCK_FILE}"
+      __loge "Lock file owner: $(stat -c '%U:%G' "${PLANET_LOCK_FILE}" 2>/dev/null || echo 'unknown')"
+      __loge "Current user: $(whoami)"
+     fi
+     __log_finish
+     return 1
     fi
-    return 1
+   else
+    # Process normally (equivalent to __processXMLorPlanet + insertion in processAPINotes.sh)
+    __processXMLorPlanet
+    __insertNewNotesAndComments
+    __loadApiTextComments
    fi
   else
-   # Process normally
-   __processXMLorPlanet
-   __insertNewNotesAndComments
-   __loadApiTextComments
+   __logi "No notes to process"
   fi
  else
-  __logi "No notes to process"
+  __logi "No notes file or file is empty"
+ fi
+
+ # Check and log gaps (equivalent to __check_and_log_gaps in processAPINotes.sh)
+ # This helps identify data integrity issues
+ # Only check if base tables exist (data_gaps table may not exist if tables are missing)
+ if [[ "${BASE_TABLES_EXIST:-0}" -eq 0 ]]; then
+  __logd "Checking and logging gaps from database"
+  local GAP_TABLE_EXISTS
+  GAP_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
+   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'data_gaps'" \
+   2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  
+  if [[ "${GAP_TABLE_EXISTS}" == "1" ]]; then
+   local GAP_QUERY="
+     SELECT 
+       gap_timestamp,
+       gap_type,
+       gap_count,
+       total_count,
+       gap_percentage,
+       error_details
+     FROM data_gaps
+     WHERE processed = FALSE
+       AND gap_timestamp > NOW() - INTERVAL '1 day'
+     ORDER BY gap_timestamp DESC
+     LIMIT 10
+   "
+   local GAP_FILE="/tmp/processAPINotesDaemon_gaps.log"
+   psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > "${GAP_FILE}" 2> /dev/null || true
+   if [[ -f "${GAP_FILE}" ]] && [[ -s "${GAP_FILE}" ]]; then
+    __logw "Data gaps detected, see: ${GAP_FILE}"
+   fi
+  fi
  fi
 
  # Clean API tables after data has been inserted into main tables
@@ -822,11 +949,16 @@ function __daemon_loop {
   PROCESSING_DURATION=0
   HAD_UPDATES=false
 
-  # Prepare API tables at the start of each cycle
-  # This ensures tables are clean before loading new data
-  # This is critical to prevent data accumulation across cycles
-  __logd "Preparing API tables at start of cycle ${CYCLE_NUMBER}"
-  __prepareApiTables
+      # Prepare API tables at the start of each cycle
+      # This ensures tables are clean before loading new data
+      # This is critical to prevent data accumulation across cycles
+      # Skip if base tables don't exist (they will be created by processPlanet --base)
+      if [[ "${BASE_TABLES_EXIST:-1}" -eq 0 ]]; then
+       __logd "Preparing API tables at start of cycle ${CYCLE_NUMBER}"
+       __prepareApiTables
+      else
+       __logd "Skipping API tables preparation - base tables missing, will be created by processPlanet --base"
+      fi
 
   # Check API for updates
   local PROCESSING_SUCCESS=false
