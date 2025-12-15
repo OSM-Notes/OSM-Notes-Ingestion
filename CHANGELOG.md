@@ -9,6 +9,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Daemon Enhancements and Feature Parity (2025-12-15)
+
+- **Added gap detection to daemon**:
+  - **Change**: Daemon now includes `__recover_from_gaps()` and `__check_and_log_gaps()` functions, equivalent to `processAPINotes.sh`
+  - **Rationale**: Ensures daemon detects data integrity issues (notes without comments) before processing new data
+  - **Implementation**:
+    - `__recover_from_gaps()`: Checks for notes without comments in the last 7 days before processing
+    - `__check_and_log_gaps()`: Reads and logs gaps from `data_gaps` table after processing
+    - Both functions are called in the daemon's processing flow, matching `processAPINotes.sh` behavior
+  - **Impact**:
+    - Early detection of data integrity issues
+    - Consistent behavior between daemon and standalone script
+    - Better monitoring and troubleshooting capabilities
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
+- **Added auto-initialization for empty database**:
+  - **Change**: Daemon now automatically detects empty database and triggers `processPlanetNotes.sh --base` for initial data load
+  - **Rationale**: Allows daemon to start with a fresh database without manual intervention
+  - **Implementation**:
+    - Detects empty database by checking if `max_note_timestamp` table exists or is empty
+    - Detects if `notes` table exists or is empty
+    - Automatically executes `processPlanetNotes.sh --base` if database is empty
+    - Skips API table creation if base tables are missing (prevents enum errors)
+  - **Impact**:
+    - Daemon can start with completely empty database
+    - No manual intervention required for initial setup
+    - Prevents errors when starting daemon on fresh database
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
+- **Refactored daemon for feature parity with processAPINotes.sh**:
+  - **Change**: Consolidated and aligned daemon processing flow with `processAPINotes.sh` to prevent regressions
+  - **Rationale**: Ensures daemon has all functionality of standalone script, preventing feature gaps
+  - **Implementation**:
+    - Removed duplicate code for XML validation and processing
+    - Integrated full processing flow: validation, counting, processing, insertion, gap checking
+    - Ensured all critical steps are present and correctly called
+    - Moved `__prepareApiTables()` to beginning of each cycle to prevent data accumulation
+  - **Impact**:
+    - Daemon now has complete feature parity with standalone script
+    - Reduced risk of regressions
+    - Consistent behavior across both execution modes
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
+### Fixed
+
+#### Daemon and Processing Fixes (2025-12-15)
+
+- **Fixed syntax error in daemon gap detection**:
+  - **Problem**: `NOTE_COUNT` variable in `__check_api_for_updates` contained newlines, causing bash arithmetic comparison to fail with "syntax error in expression"
+  - **Impact**: Daemon failed to check for API updates, preventing processing
+  - **Solution**: Added `tr -d '[:space:]'` to clean `NOTE_COUNT` variable before comparison
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
+- **Fixed daemon initialization with empty database**:
+  - **Problem**: Daemon exited with error when database was empty, preventing auto-initialization
+  - **Impact**: Daemon could not start with fresh database, requiring manual `processPlanetNotes.sh --base` execution
+  - **Solution**:
+    - Modified `__daemon_init` to not exit if base tables are missing (allows main loop to handle initialization)
+    - Modified `__process_api_data` to detect empty database and automatically trigger `processPlanetNotes.sh --base`
+    - Added table existence checks before counting rows to prevent SQL errors
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
+- **Fixed API table creation errors with empty database**:
+  - **Problem**: Daemon tried to create API tables before base tables existed, causing "type does not exist" errors for enums
+  - **Impact**: Daemon failed to initialize when database was empty
+  - **Solution**: Skip `__prepareApiTables`, `__createPropertiesTable`, `__ensureGetCountryFunction`, and `__createProcedures` if base tables are missing (these depend on enums created by `processPlanetNotes.sh --base`)
+  - **Files changed**: `bin/process/processAPINotesDaemon.sh`
+
 #### Database Schema Enhancements (2025-12-14)
 
 - **Added `insert_time` and `update_time` columns to `notes` table**:

@@ -1525,6 +1525,9 @@ psql -d "${DBNAME:-notes}" -c "
 - **Better Efficiency**: One-time setup instead of recreating structures each execution
 - **Adaptive Sleep**: Adjusts wait time based on processing duration
 - **Continuous Operation**: Runs indefinitely, automatically recovering from errors
+- **Auto-Initialization**: Automatically detects empty database and triggers `processPlanetNotes.sh --base` for initial data load
+- **Gap Detection**: Includes `__recover_from_gaps()` and `__check_and_log_gaps()` functions to detect data integrity issues (notes without comments)
+- **Feature Parity**: Complete feature parity with `processAPINotes.sh` to prevent regressions
 
 ### Comparison: Cron Script vs Daemon
 

@@ -61,6 +61,42 @@ else
 fi
 
 echo ""
+echo "Running daemon auto-initialization tests..."
+echo ""
+
+# Run auto-initialization tests
+if bats "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_auto_init.test.bats"; then
+ echo -e "${GREEN}✓ Auto-initialization tests passed${NC}"
+else
+ echo -e "${RED}✗ Auto-initialization tests failed${NC}"
+ exit 1
+fi
+
+echo ""
+echo "Running daemon gap detection tests..."
+echo ""
+
+# Run gap detection tests
+if bats "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_gaps.test.bats"; then
+ echo -e "${GREEN}✓ Gap detection tests passed${NC}"
+else
+ echo -e "${RED}✗ Gap detection tests failed${NC}"
+ exit 1
+fi
+
+echo ""
+echo "Running daemon feature parity tests..."
+echo ""
+
+# Run feature parity tests
+if bats "${SCRIPT_DIR}/integration/daemon_feature_parity.test.bats"; then
+ echo -e "${GREEN}✓ Feature parity tests passed${NC}"
+else
+ echo -e "${RED}✗ Feature parity tests failed${NC}"
+ exit 1
+fi
+
+echo ""
 echo "=========================================="
 echo -e "${GREEN}All daemon tests passed!${NC}"
 echo "=========================================="
