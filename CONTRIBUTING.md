@@ -68,6 +68,10 @@ Before contributing, familiarize yourself with:
 #### Testing Documentation
 
 - **[tests/README.md](../tests/README.md)**: Testing infrastructure overview
+- **[tests/CONTRIBUTING_TESTS.md](../tests/CONTRIBUTING_TESTS.md)**: Guide for
+  contributing tests (test structure, inline comments, fixtures, mocking)
+- **[tests/fixtures/README.md](../tests/fixtures/README.md)**: Test fixtures
+  and sample data documentation
 - **[docs/Testing_Guide.md](../docs/Testing_Guide.md)**: Comprehensive testing guide
 - **[docs/Testing_Suites_Reference.md](../docs/Testing_Suites_Reference.md)**: Complete test suite reference
 

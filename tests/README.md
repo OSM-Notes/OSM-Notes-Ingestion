@@ -168,6 +168,28 @@ Test data and sample files:
 - **`sample_data.sql`**: Database test data
 - **`special_cases/`**: Edge case test scenarios
 
+## Documentation
+
+### Contributing Tests
+
+- **[CONTRIBUTING_TESTS.md](./CONTRIBUTING_TESTS.md)**: Comprehensive guide for
+  contributing tests, including:
+  - Test structure and organization
+  - Writing tests with inline comments
+  - Using fixtures and mocking dependencies
+  - Test naming conventions
+  - Code quality standards
+
+### Test Fixtures
+
+- **[fixtures/README.md](./fixtures/README.md)**: Complete documentation of test
+  fixtures and sample data:
+  - Command fixtures for mock commands
+  - Special case XML scenarios
+  - XML test data files
+  - SQL sample data
+  - Usage examples and best practices
+
 ## Software Components
 
 ### Testing Framework

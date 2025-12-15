@@ -39,24 +39,34 @@ teardown() {
 # =============================================================================
 
 @test "BENCHMARK: XML validation performance" {
+ # Test purpose: Measure XML validation performance using xmllint
+ # This benchmark helps track performance regressions in XML processing
  local -r test_name="xml_validation"
  local start_time
  start_time=$(__benchmark_start "${test_name}")
  
- # Create test XML file
+ # Create minimal test XML file with OSM note structure
+ # This represents a typical note from the OSM API
  local xml_file="${TEST_DIR}/test.xml"
  printf '<?xml version="1.0" encoding="UTF-8"?>\n<osm>\n <note id="1" lat="0.0" lon="0.0">\n  <comment action="opened" uid="1" user="test"/>\n </note>\n</osm>\n' > "${xml_file}"
  
- # Measure XML validation time
+ # Measure XML validation time using high-precision timestamps
+ # Use date +%s.%N for sub-second precision, fallback to seconds if unavailable
  local validation_start
  validation_start=$(date +%s.%N 2>/dev/null || date +%s)
  
+ # Validate XML using xmllint if available
+ # --noout: Don't output XML, just validate
+ # Redirect output to /dev/null to avoid cluttering test output
  if command -v xmllint > /dev/null 2>&1; then
   xmllint --noout "${xml_file}" > /dev/null 2>&1 || true
  fi
  
  local validation_end
  validation_end=$(date +%s.%N 2>/dev/null || date +%s)
+ 
+ # Calculate validation time using bc for floating-point arithmetic
+ # Fallback to integer arithmetic if bc is not available
  local validation_time
  if command -v bc > /dev/null 2>&1; then
   validation_time=$(echo "${validation_end} - ${validation_start}" | bc -l)
@@ -64,14 +74,18 @@ teardown() {
   validation_time=$((validation_end - validation_start))
  fi
  
+ # End benchmark and get total duration
  local duration
  duration=$(__benchmark_end "${test_name}")
  
- # Record metrics
+ # Record metrics for comparison with previous runs
+ # validation_time: Time spent validating XML
+ # total_duration: Total test execution time
  __benchmark_record "${test_name}" "validation_time" "${validation_time}" "seconds"
  __benchmark_record "${test_name}" "total_duration" "${duration}" "seconds"
  
- # Verify benchmark completed
+ # Verify benchmark completed successfully
+ # Both duration and validation_time should be non-empty
  [[ -n "${duration}" ]]
  # validation_time should be non-negative (simplified check)
  [[ -n "${validation_time}" ]]
