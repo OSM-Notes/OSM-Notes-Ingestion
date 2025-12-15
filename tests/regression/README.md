@@ -3,7 +3,7 @@
 **Purpose:** Prevent regression of historical bugs and issues
 
 **Author:** Andres Gomez (AngocA)  
-**Version:** 2025-12-12
+**Version:** 2025-12-15
 
 ## Overview
 
@@ -14,8 +14,9 @@ from reoccurring. Each test is based on a real bug that was fixed in the codebas
 
 ### `regression_suite.test.bats`
 
-Comprehensive regression test suite covering 10 historical bugs:
+Comprehensive regression test suite covering 25 historical bugs:
 
+**Original Bugs (2025-12-07 to 2025-12-12):**
 1. **Failed Boundaries Extraction** - False positives from timestamps
 2. **Capital Validation** - Incorrect coordinates handling
 3. **Empty Import Table** - GeoJSON without Polygon features
@@ -28,6 +29,25 @@ Comprehensive regression test suite covering 10 historical bugs:
 10. **Taiwan Special Handling** - Problematic tags removal
 11. **API URL Missing Date Filter** - Incorrect API endpoint without date filtering
 12. **Timestamp Format with Literal HH24** - Malformed timestamps in SQL queries
+
+**Daemon Bugs (2025-12-15):**
+13. **Syntax Error in Daemon Gap Detection** - NOTE_COUNT with newlines causing arithmetic errors
+14. **Daemon Initialization with Empty Database** - Daemon failed to start with empty DB
+15. **API Table Creation Errors with Empty Database** - Enum errors when creating API tables before base tables
+16. **OSM API Version Detection Fix** - Daemon failed to detect API version
+
+**Processing Bugs (2025-12-14):**
+17. **API Tables Not Being Cleaned** - Data accumulation between daemon cycles
+18. **pgrep False Positives** - Incorrect process detection in daemon startup check
+19. **rmdir Failure on Non-Empty Directories** - Cleanup failures in processPlanetNotes.sh
+20. **local Keyword Usage in Trap Handlers** - "local: can only be used in a function" error
+21. **VACUUM ANALYZE Timeout** - Timeout too short for large tables (7GB+)
+22. **Integrity Check Handling for Databases Without Comments** - False positives when no comments exist
+
+**Critical API Bugs (2025-12-13):**
+23. **API Timeout Insufficient for Large Downloads** - 30s timeout insufficient for 10,000 notes
+24. **Missing Processing Functions in Daemon** - Functions not loaded when daemon sourced
+25. **app.integrity_check_passed Variable Not Persisting** - Variable didn't persist between psql connections
 
 ## New Unit Tests
 
