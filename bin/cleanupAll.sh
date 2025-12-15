@@ -467,7 +467,7 @@ function __list_all_schemas() {
  __log_finish
 }
 
-# Function to generate cleanup summary
+# Function to generate cleanup summary (simplified - tables only)
 function __generate_cleanup_summary() {
  __log_start
  local TARGET_DB="${1}"
@@ -478,7 +478,7 @@ function __generate_cleanup_summary() {
  __logi "CLEANUP SUMMARY"
  __logi "=========================================="
 
- # Compare tables
+ # Compare tables only
  local BEFORE_TABLES="${BEFORE_DIR}/tables.txt"
  local AFTER_TABLES="${AFTER_DIR}/tables.txt"
  local TABLES_DROPPED=0
@@ -505,86 +505,6 @@ function __generate_cleanup_summary() {
   fi
  fi
 
- # Compare functions
- local BEFORE_FUNCTIONS="${BEFORE_DIR}/functions.txt"
- local AFTER_FUNCTIONS="${AFTER_DIR}/functions.txt"
- local FUNCTIONS_DROPPED=0
- local FUNCTIONS_REMAINING=0
-
- if [[ -f "${BEFORE_FUNCTIONS}" ]] && [[ -f "${AFTER_FUNCTIONS}" ]]; then
-  local DROPPED_FUNCTIONS
-  DROPPED_FUNCTIONS=$(comm -23 "${BEFORE_FUNCTIONS}" "${AFTER_FUNCTIONS}" 2> /dev/null | wc -l || echo "0")
-  DROPPED_FUNCTIONS=$(echo "${DROPPED_FUNCTIONS}" | tr -d ' ')
-  FUNCTIONS_DROPPED=$((DROPPED_FUNCTIONS))
-  FUNCTIONS_REMAINING=$(wc -l < "${AFTER_FUNCTIONS}" 2> /dev/null | tr -d ' ' || echo "0")
-  FUNCTIONS_REMAINING=$(echo "${FUNCTIONS_REMAINING}" | tr -d ' ')
-
-  __logi "Functions/Procedures:"
-  __logi "  Before cleanup: $(wc -l < "${BEFORE_FUNCTIONS}" 2> /dev/null | tr -d ' ' || echo "0")"
-  __logi "  Dropped: ${FUNCTIONS_DROPPED}"
-  __logi "  Remaining: ${FUNCTIONS_REMAINING}"
-
-  if [[ ${FUNCTIONS_REMAINING} -gt 0 ]]; then
-   __logw "Remaining functions/procedures:"
-   while IFS= read -r func; do
-    __logw "  - ${func}"
-   done < "${AFTER_FUNCTIONS}"
-  fi
- fi
-
- # Compare types
- local BEFORE_TYPES="${BEFORE_DIR}/types.txt"
- local AFTER_TYPES="${AFTER_DIR}/types.txt"
- local TYPES_DROPPED=0
- local TYPES_REMAINING=0
-
- if [[ -f "${BEFORE_TYPES}" ]] && [[ -f "${AFTER_TYPES}" ]]; then
-  local DROPPED_TYPES
-  DROPPED_TYPES=$(comm -23 "${BEFORE_TYPES}" "${AFTER_TYPES}" 2> /dev/null | wc -l || echo "0")
-  DROPPED_TYPES=$(echo "${DROPPED_TYPES}" | tr -d ' ')
-  TYPES_DROPPED=$((DROPPED_TYPES))
-  TYPES_REMAINING=$(wc -l < "${AFTER_TYPES}" 2> /dev/null | tr -d ' ' || echo "0")
-  TYPES_REMAINING=$(echo "${TYPES_REMAINING}" | tr -d ' ')
-
-  __logi "Types:"
-  __logi "  Before cleanup: $(wc -l < "${BEFORE_TYPES}" 2> /dev/null | tr -d ' ' || echo "0")"
-  __logi "  Dropped: ${TYPES_DROPPED}"
-  __logi "  Remaining: ${TYPES_REMAINING}"
-
-  if [[ ${TYPES_REMAINING} -gt 0 ]]; then
-   __logw "Remaining types:"
-   while IFS= read -r type; do
-    __logw "  - ${type}"
-   done < "${AFTER_TYPES}"
-  fi
- fi
-
- # Compare schemas
- local BEFORE_SCHEMAS="${BEFORE_DIR}/schemas.txt"
- local AFTER_SCHEMAS="${AFTER_DIR}/schemas.txt"
- local SCHEMAS_DROPPED=0
- local SCHEMAS_REMAINING=0
-
- if [[ -f "${BEFORE_SCHEMAS}" ]] && [[ -f "${AFTER_SCHEMAS}" ]]; then
-  local DROPPED_SCHEMAS
-  DROPPED_SCHEMAS=$(comm -23 "${BEFORE_SCHEMAS}" "${AFTER_SCHEMAS}" 2> /dev/null | wc -l || echo "0")
-  DROPPED_SCHEMAS=$(echo "${DROPPED_SCHEMAS}" | tr -d ' ')
-  SCHEMAS_DROPPED=$((DROPPED_SCHEMAS))
-  SCHEMAS_REMAINING=$(wc -l < "${AFTER_SCHEMAS}" 2> /dev/null | tr -d ' ' || echo "0")
-  SCHEMAS_REMAINING=$(echo "${SCHEMAS_REMAINING}" | tr -d ' ')
-
-  __logi "Schemas:"
-  __logi "  Before cleanup: $(wc -l < "${BEFORE_SCHEMAS}" 2> /dev/null | tr -d ' ' || echo "0")"
-  __logi "  Dropped: ${SCHEMAS_DROPPED}"
-  __logi "  Remaining: ${SCHEMAS_REMAINING}"
-
-  if [[ ${SCHEMAS_REMAINING} -gt 0 ]]; then
-   __logw "Remaining schemas:"
-   while IFS= read -r schema; do
-    __logw "  - ${schema}"
-   done < "${AFTER_SCHEMAS}"
-  fi
- fi
 
  __logi "=========================================="
  __log_finish
