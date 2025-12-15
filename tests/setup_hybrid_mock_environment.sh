@@ -105,8 +105,19 @@ __create_mock_file() {
   mkdir -p "$output_dir" 2>/dev/null || true
  fi
 
+ # Check for /api/versions endpoint (OSM API version detection)
+ if [[ "$url" == *"/api/versions"* ]]; then
+  # Return API version information in the expected format
+  cat >"$output_file" <<'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <api>
+  <version>0.6</version>
+ </api>
+</osm>
+INNER_EOF
  # Check for XML URLs (including those with query parameters like search.xml?limit=...)
- if [[ "$url" == *".xml"* ]] || [[ "$url" == *"/notes"* ]] || [[ "$url" == *"search.xml"* ]]; then
+ elif [[ "$url" == *".xml"* ]] || [[ "$url" == *"/notes"* ]] || [[ "$url" == *"search.xml"* ]]; then
   if [[ "$url" == *"/notes?limit=1"* ]]; then
    # For version check: generate minimal XML without declaration
    cat >"$output_file" <<'INNER_EOF'
