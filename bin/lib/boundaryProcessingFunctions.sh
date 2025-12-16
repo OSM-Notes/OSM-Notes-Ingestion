@@ -2379,10 +2379,36 @@ function __processCountries_impl {
   __log_finish
   return "${HANDLER_RETURN_CODE}"
  fi
+ 
+ # Validate it's not HTML (Overpass may return HTML error pages)
+ if head -5 "${COUNTRIES_BOUNDARY_IDS_FILE}" | grep -qiE "<html|<body|<head|<!DOCTYPE"; then
+  __loge "ERROR: Country list file contains HTML instead of CSV. Overpass returned an error page."
+  __loge "This usually means Overpass API is too busy or timed out."
+  local FIRST_LINES
+  FIRST_LINES=$(head -3 "${COUNTRIES_BOUNDARY_IDS_FILE}" | tr '\n' ' ')
+  __loge "First lines of response: ${FIRST_LINES}"
+  # Check for specific error messages
+  if grep -qi "timeout\|too busy" "${COUNTRIES_BOUNDARY_IDS_FILE}"; then
+   __loge "Overpass API timeout detected. Please wait a few minutes and try again."
+  fi
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}" \
+   "Country list download returned HTML error page" \
+   "__preserve_failed_boundary_artifacts '${COUNTRIES_BOUNDARY_IDS_FILE}'"
+  local HANDLER_RETURN_CODE=$?
+  __log_finish
+  return "${HANDLER_RETURN_CODE}"
+ fi
+ 
  # Validate it's CSV format (should start with @id or have at least one line with numbers)
  if ! head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}" | grep -qE "^@id|^[0-9]+"; then
-  __logw "Warning: Country list file may not be in expected CSV format"
-  __logd "First line of file: $(head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}")"
+  __loge "ERROR: Country list file is not in expected CSV format"
+  __loge "First line of file: $(head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}")"
+  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}" \
+   "Country list file format validation failed" \
+   "__preserve_failed_boundary_artifacts '${COUNTRIES_BOUNDARY_IDS_FILE}'"
+  local HANDLER_RETURN_CODE=$?
+  __log_finish
+  return "${HANDLER_RETURN_CODE}"
  fi
 
  tail -n +2 "${COUNTRIES_BOUNDARY_IDS_FILE}" > "${COUNTRIES_BOUNDARY_IDS_FILE}.tmp"
@@ -2857,6 +2883,33 @@ function __processMaritimes_impl {
  set -e
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: Maritime border list could not be downloaded."
+  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+ fi
+
+ # Validate the downloaded CSV file has content
+ if [[ ! -s "${MARITIME_BOUNDARY_IDS_FILE}" ]]; then
+  __loge "ERROR: Maritime border list file is empty after download."
+  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+ fi
+
+ # Validate it's not HTML (Overpass may return HTML error pages)
+ if head -5 "${MARITIME_BOUNDARY_IDS_FILE}" | grep -qiE "<html|<body|<head|<!DOCTYPE"; then
+  __loge "ERROR: Maritime border list file contains HTML instead of CSV. Overpass returned an error page."
+  __loge "This usually means Overpass API is too busy or timed out."
+  local FIRST_LINES
+  FIRST_LINES=$(head -3 "${MARITIME_BOUNDARY_IDS_FILE}" | tr '\n' ' ')
+  __loge "First lines of response: ${FIRST_LINES}"
+  # Check for specific error messages
+  if grep -qi "timeout\|too busy" "${MARITIME_BOUNDARY_IDS_FILE}"; then
+   __loge "Overpass API timeout detected. Please wait a few minutes and try again."
+  fi
+  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+ fi
+
+ # Validate it's CSV format (should start with @id or have at least one line with numbers)
+ if ! head -1 "${MARITIME_BOUNDARY_IDS_FILE}" | grep -qE "^@id|^[0-9]+"; then
+  __loge "ERROR: Maritime border list file is not in expected CSV format"
+  __loge "First line of file: $(head -1 "${MARITIME_BOUNDARY_IDS_FILE}")"
   exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
 
