@@ -128,8 +128,9 @@ teardown() {
  # Purpose: Verify that daemon doesn't query non-existent table
  # Expected: psql should be called with information_schema query for data_gaps
 
- local PSQL_CALLED=0
- local GAP_TABLE_CHECK_MATCHED=0
+ # Use file-based tracking since variables don't persist in subshells
+ local TRACK_FILE="${TEST_DIR}/psql_track_gaps"
+ rm -f "${TRACK_FILE}"
 
  psql() {
   local ARGS=("$@")
@@ -143,10 +144,12 @@ teardown() {
    I=$((I + 1))
   done
 
-  PSQL_CALLED=1
+  # Track that psql was called
+  echo "1" > "${TRACK_FILE}"
+  
   # Check if query is checking for data_gaps table existence
   if [[ "${CMD}" == *"data_gaps"* ]] && [[ "${CMD}" == *"information_schema"* ]]; then
-   GAP_TABLE_CHECK_MATCHED=1
+   echo "1" >> "${TRACK_FILE}"
    echo "1" # Table exists
   else
    echo "0"
@@ -162,6 +165,14 @@ teardown() {
   GAP_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'data_gaps'" \
    2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ fi
+
+ # Read tracking results
+ local PSQL_CALLED=0
+ local GAP_TABLE_CHECK_MATCHED=0
+ if [[ -f "${TRACK_FILE}" ]]; then
+  PSQL_CALLED=$(head -1 "${TRACK_FILE}" 2>/dev/null || echo "0")
+  GAP_TABLE_CHECK_MATCHED=$(tail -1 "${TRACK_FILE}" 2>/dev/null | head -1 || echo "0")
  fi
 
  [[ "${PSQL_CALLED}" -eq 1 ]]

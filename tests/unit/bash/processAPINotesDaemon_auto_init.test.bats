@@ -88,8 +88,9 @@ teardown() {
  # Purpose: Verify that daemon queries information_schema for table existence
  # Expected: psql should be called with query checking for max_note_timestamp
 
- local PSQL_CALLED=0
- local QUERY_MATCHED=0
+ # Use file-based tracking since variables in subshells don't work
+ local TRACK_FILE="${TEST_DIR}/psql_track"
+ echo "0" > "${TRACK_FILE}"
 
  psql() {
   local ARGS=("$@")
@@ -103,10 +104,10 @@ teardown() {
    I=$((I + 1))
   done
 
-  PSQL_CALLED=1
+  echo "1" > "${TRACK_FILE}"
   # Check if query contains max_note_timestamp check
   if [[ "${CMD}" == *"max_note_timestamp"* ]] && [[ "${CMD}" == *"information_schema"* ]]; then
-   QUERY_MATCHED=1
+   echo "1" > "${TEST_DIR}/query_matched"
    echo "0" # Table doesn't exist
   else
    echo "0"
@@ -121,6 +122,11 @@ teardown() {
   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'max_note_timestamp" \
   2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
+ local PSQL_CALLED
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ local QUERY_MATCHED
+ QUERY_MATCHED=$(cat "${TEST_DIR}/query_matched" 2>/dev/null || echo "0")
+
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${QUERY_MATCHED}" -eq 1 ]]
  [[ "${TIMESTAMP_TABLE_EXISTS}" == "0" ]]
@@ -131,8 +137,9 @@ teardown() {
  # Purpose: Verify that daemon queries information_schema for notes table
  # Expected: psql should be called with query checking for notes table
 
- local PSQL_CALLED=0
- local QUERY_MATCHED=0
+ # Use file-based tracking since variables in subshells don't work
+ local TRACK_FILE="${TEST_DIR}/psql_track2"
+ echo "0" > "${TRACK_FILE}"
 
  psql() {
   local ARGS=("$@")
@@ -146,10 +153,10 @@ teardown() {
    I=$((I + 1))
   done
 
-  PSQL_CALLED=1
+  echo "1" > "${TRACK_FILE}"
   # Check if query contains notes table check
   if [[ "${CMD}" == *"table_name = 'notes'"* ]] && [[ "${CMD}" == *"information_schema"* ]]; then
-   QUERY_MATCHED=1
+   echo "1" > "${TEST_DIR}/query_matched2"
    echo "0" # Table doesn't exist
   else
    echo "0"
@@ -164,6 +171,11 @@ teardown() {
   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notes'" \
   2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
+ local PSQL_CALLED
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ local QUERY_MATCHED
+ QUERY_MATCHED=$(cat "${TEST_DIR}/query_matched2" 2>/dev/null || echo "0")
+
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${QUERY_MATCHED}" -eq 1 ]]
  [[ "${NOTES_TABLE_EXISTS}" == "0" ]]
@@ -174,8 +186,9 @@ teardown() {
  # Purpose: Verify that daemon counts rows in max_note_timestamp table
  # Expected: psql should be called with COUNT query on max_note_timestamp
 
- local PSQL_CALLED=0
- local COUNT_QUERY_MATCHED=0
+ # Use file-based tracking since variables in subshells don't work
+ local TRACK_FILE="${TEST_DIR}/psql_track3"
+ echo "0" > "${TRACK_FILE}"
 
  psql() {
   local ARGS=("$@")
@@ -189,10 +202,10 @@ teardown() {
    I=$((I + 1))
   done
 
-  PSQL_CALLED=1
+  echo "1" > "${TRACK_FILE}"
   # Check if query is COUNT on max_note_timestamp
   if [[ "${CMD}" == *"COUNT(*)"* ]] && [[ "${CMD}" == *"FROM max_note_timestamp"* ]]; then
-   COUNT_QUERY_MATCHED=1
+   echo "1" > "${TEST_DIR}/count_query_matched"
    echo "0" # Table is empty
   else
    echo "0"
@@ -205,6 +218,11 @@ teardown() {
  local TIMESTAMP_COUNT=0
  TIMESTAMP_COUNT=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM max_note_timestamp" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
+ local PSQL_CALLED
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ local COUNT_QUERY_MATCHED
+ COUNT_QUERY_MATCHED=$(cat "${TEST_DIR}/count_query_matched" 2>/dev/null || echo "0")
 
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${COUNT_QUERY_MATCHED}" -eq 1 ]]
@@ -368,9 +386,6 @@ EOF
  # Purpose: Verify that daemon logs error and returns error code on failure
  # Expected: Failed Planet base load should return error code 1
 
- local PLANET_BASE_EXIT_CODE=1
- local ERROR_LOGGED=0
-
  # Mock processPlanetNotes.sh --base to fail
  NOTES_SYNC_SCRIPT="${TEST_DIR}/mock_processPlanetNotes.sh"
  cat > "${NOTES_SYNC_SCRIPT}" << 'EOF'
@@ -380,9 +395,12 @@ EOF
  chmod +x "${NOTES_SYNC_SCRIPT}"
 
  # Simulate daemon logic with failed Planet base load
+ set +e
  "${NOTES_SYNC_SCRIPT}" --base
- PLANET_BASE_EXIT_CODE=$?
+ local PLANET_BASE_EXIT_CODE=$?
+ set -e
 
+ local ERROR_LOGGED=0
  if [[ ${PLANET_BASE_EXIT_CODE} -ne 0 ]]; then
   ERROR_LOGGED=1
   # Daemon should log error and return failure
