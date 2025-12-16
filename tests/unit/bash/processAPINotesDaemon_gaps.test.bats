@@ -6,62 +6,19 @@
 # Version: 2025-12-15
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
+load "${BATS_TEST_DIRNAME}/daemon_test_helpers"
 
 setup() {
- # Create temporary test directory
- TEST_DIR=$(mktemp -d)
- export TEST_DIR
-
- # Set up test environment variables
- export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
- export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
+ __setup_daemon_test
  export BASENAME="test_daemon_gaps"
- export LOG_LEVEL="DEBUG"
- export __log_level="DEBUG"
- export TEST_MODE="true"
- export DAEMON_SLEEP_INTERVAL=60
-
- # Create mock lock file location
  export LOCK="/tmp/${BASENAME}.lock"
  export DAEMON_SHUTDOWN_FLAG="/tmp/${BASENAME}_shutdown"
-
- # Clean up any existing locks
  rm -f "${LOCK}"
  rm -f "${DAEMON_SHUTDOWN_FLAG}"
-
- # Mock psql to simulate database state
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  # Parse arguments to find -c command
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  # Default: return empty result
-  echo "0"
-  return 0
- }
- export -f psql
-
- # Load daemon functions
- source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" || true
 }
 
 teardown() {
- # Clean up test files
- rm -rf "${TEST_DIR}"
- rm -f "${LOCK}"
- rm -f "${DAEMON_SHUTDOWN_FLAG}"
- rm -f /tmp/processAPINotesDaemon*.lock
- rm -f /tmp/processAPINotesDaemon*_shutdown
- rm -f /tmp/processAPINotesDaemon_gaps.log
+ __teardown_daemon_test
 }
 
 # =============================================================================

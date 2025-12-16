@@ -109,7 +109,9 @@ EOF
 
 teardown() {
  # Clean up test files
- rm -rf "${TEST_DIR}"
+ if [[ -n "${TEST_DIR:-}" ]] && [[ -d "${TEST_DIR}" ]]; then
+  rm -rf "${TEST_DIR}"
+ fi
 }
 
 # =============================================================================

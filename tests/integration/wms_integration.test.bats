@@ -55,7 +55,9 @@ EOF
 teardown() {
  # Clean up test database
  drop_wms_test_database
- rm -rf "${WMS_TMP_DIR:-}"
+ if [[ -n "${WMS_TMP_DIR:-}" ]] && [[ -d "${WMS_TMP_DIR}" ]]; then
+  rm -rf "${WMS_TMP_DIR}"
+ fi
 }
 # Function to create WMS test database with PostGIS
 create_wms_test_database() {

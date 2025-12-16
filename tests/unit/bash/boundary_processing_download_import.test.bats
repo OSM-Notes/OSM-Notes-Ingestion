@@ -6,28 +6,11 @@
 # Version: 2025-12-15
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
+load "${BATS_TEST_DIRNAME}/../../integration/boundary_processing_helpers"
 
 setup() {
- # Create temporary test directory
- TEST_DIR=$(mktemp -d)
- export TEST_DIR
-
- # Set up test environment variables
- export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
- export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
- export BASHPID=$$
- export TEST_MODE="true"
+ __setup_boundary_test
  export BATS_TEST_NAME="test"
-
- # Set log level to DEBUG to capture all log output
- export LOG_LEVEL="DEBUG"
- export __log_level="DEBUG"
-
- # Mock external dependencies
- export OVERPASS_RETRIES_PER_ENDPOINT=2
- export OVERPASS_BACKOFF_SECONDS=1
- export DOWNLOAD_MAX_THREADS=2
 
  # Create mock JSON and GeoJSON files
  # shellcheck disable=SC2317
@@ -247,8 +230,7 @@ __overpass_download_with_endpoints() {
 }
 
 teardown() {
- # Clean up test files
- rm -rf "${TEST_DIR}"
+ __teardown_boundary_test
 }
 
 # =============================================================================

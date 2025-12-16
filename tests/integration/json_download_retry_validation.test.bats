@@ -21,41 +21,48 @@ setup() {
  export TEST_MODE="true"
  export DBNAME="${TEST_DBNAME:-test_db}"
 
- # test_helper.bash loads functions, but we need to ensure they're loaded correctly
- # Check both possible paths
- if ! declare -f __validate_json_with_element > /dev/null 2>&1; then
-  # Ensure commonFunctions.sh is loaded first (required by functionsProcess.sh)
-  if [ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]; then
-   source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" > /dev/null 2>&1 || true
-  fi
-  
-  # Try loading from correct location
-  if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]; then
-   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
-  fi
-
-  # Also ensure validationFunctions.sh is loaded
-  if [ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]; then
-   source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" > /dev/null 2>&1 || true
-  fi
-  
-  # Verify function is now loaded
-  if ! declare -f __validate_json_with_element > /dev/null 2>&1; then
-   echo "WARNING: __validate_json_with_element function not loaded" >&2
-  fi
- fi
+ # Load required functions
+ __load_validation_functions
 
  # Check if jq is available
  if ! command -v jq > /dev/null 2>&1; then
   skip "jq not available - required for JSON validation tests"
  fi
-
- # If function still not loaded, tests should handle it gracefully
 }
 
 teardown() {
  # Cleanup
- rm -rf "${TMP_DIR}" 2> /dev/null || true
+ if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
+  rm -rf "${TMP_DIR}" 2> /dev/null || true
+ fi
+}
+
+# Helper function to load validation functions
+__load_validation_functions() {
+ # Check if function already loaded
+ if declare -f __validate_json_with_element > /dev/null 2>&1; then
+  return 0
+ fi
+
+ # Ensure commonFunctions.sh is loaded first (required by functionsProcess.sh)
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" > /dev/null 2>&1 || true
+ fi
+  
+ # Try loading from correct location
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
+ fi
+
+ # Also ensure validationFunctions.sh is loaded
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" > /dev/null 2>&1 || true
+ fi
+  
+ # Verify function is now loaded
+ if ! declare -f __validate_json_with_element > /dev/null 2>&1; then
+  echo "WARNING: __validate_json_with_element function not loaded" >&2
+ fi
 }
 
 # Test that validates JSON structure after download

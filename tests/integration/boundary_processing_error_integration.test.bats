@@ -10,50 +10,21 @@
 # Version: 2025-12-15
 
 load ../test_helper
+load boundary_processing_helpers
 
 setup() {
- # Setup test environment
- export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
- export TMP_DIR="$(mktemp -d)"
+ __setup_boundary_test
  export BASENAME="test_boundary_processing_error_integration"
-
- # Ensure TMP_DIR exists and is writable
- if [[ ! -d "${TMP_DIR}" ]]; then
-  mkdir -p "${TMP_DIR}"
- fi
-
- # Source the functions
- source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-
- # Mock logger functions
- function __log_start() { echo "LOG_START: $*"; }
- function __log_finish() { echo "LOG_FINISH: $*"; }
- function __logi() { echo "INFO: $*"; }
- function __loge() { echo "ERROR: $*"; }
- function __logw() { echo "WARN: $*"; }
- function __logd() { echo "DEBUG: $*"; }
 }
 
 teardown() {
- # Cleanup test environment
- rm -rf "${TMP_DIR}"
+ __teardown_boundary_test
 }
 
 # Test that validates QUERY_FILE variable definition
 @test "should validate QUERY_FILE variable is defined" {
  # Test that QUERY_FILE is defined after sourcing functionsProcess.sh
- run bash -c "
-    source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-    if [[ -n \"\${QUERY_FILE:-}\" ]]; then
-      echo \"QUERY_FILE is defined: \${QUERY_FILE}\"
-      exit 0
-    else
-      echo \"QUERY_FILE is not defined\"
-      exit 1
-    fi
-  "
- [ "$status" -eq 0 ]
- [[ "$output" == *"QUERY_FILE is defined:"* ]]
+ __verify_query_file_defined
 }
 
 # Test that simulates the QUERY_FILE variable error
@@ -69,13 +40,8 @@ export TMP_DIR="/tmp/processPlanetNotes_ivf9cP"
 export BASENAME="processPlanetNotes"
 export LOG_FILENAME="${TMP_DIR}/processPlanetNotes.log"
 
-# Mock logger functions
-__log_start() { echo "LOG_START: $*"; }
-__log_finish() { echo "LOG_FINISH: $*"; }
-__logi() { echo "INFO: $*"; }
-__loge() { echo "ERROR: $*"; }
-__logw() { echo "WARN: $*"; }
-__logd() { echo "DEBUG: $*"; }
+# Mock logger functions (already set up by __setup_boundary_test)
+# Using helpers from boundary_processing_helpers.bash
 
 # Mock __processList function that triggers QUERY_FILE error
 __processList() {
@@ -284,13 +250,8 @@ export TMP_DIR="/tmp/processPlanetNotes_w7myIc"
 export BASENAME="processPlanetNotes"
 export LOG_FILENAME="${TMP_DIR}/processPlanetNotes.log"
 
-# Mock logger functions
-__log_start() { echo "LOG_START: $*"; }
-__log_finish() { echo "LOG_FINISH: $*"; }
-__logi() { echo "INFO: $*"; }
-__loge() { echo "ERROR: $*"; }
-__logw() { echo "WARN: $*"; }
-__logd() { echo "DEBUG: $*"; }
+# Mock logger functions (already set up by __setup_boundary_test)
+# Using helpers from boundary_processing_helpers.bash
 
 # Mock __processCountries function that fails
 __processCountries() {

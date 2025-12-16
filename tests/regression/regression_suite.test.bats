@@ -3,28 +3,17 @@
 # Regression Test Suite
 # Tests to prevent regression of historical bugs
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-12
+# Version: 2025-12-15
 
 load "${BATS_TEST_DIRNAME}/../test_helper"
+load "${BATS_TEST_DIRNAME}/regression_helpers"
 
 setup() {
- # Create temporary test directory
- TEST_DIR=$(mktemp -d)
- export TEST_DIR
-
- # Set up test environment variables
- export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
- export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
-
- # Set log level to DEBUG
- export LOG_LEVEL="DEBUG"
- export __log_level="DEBUG"
+ __setup_regression_test
 }
 
 teardown() {
- # Clean up test files
- rm -rf "${TEST_DIR}"
+ __teardown_regression_test
 }
 
 # =============================================================================
@@ -41,7 +30,7 @@ teardown() {
  # Create a log line similar to the bug scenario
  local LOG_LINE="2025-12-07 18:45:51 - Recording boundary 14296 as failed"
  local LOG_FILE="${TEST_DIR}/test.log"
- echo "${LOG_LINE}" > "${LOG_FILE}"
+ __create_test_log_file "${LOG_FILE}" "${LOG_LINE}"
 
  # OLD BUGGY METHOD (should NOT be used)
  local OLD_METHOD
@@ -49,7 +38,7 @@ teardown() {
  
  # NEW CORRECT METHOD (should be used)
  local NEW_METHOD
- NEW_METHOD=$(sed -n 's/.*boundary \([0-9]\{4,\}\).*/\1/p' "${LOG_FILE}")
+ NEW_METHOD=$(__extract_boundary_id_from_log "${LOG_FILE}")
 
  # Old method would extract "2025" (timestamp year)
  # New method should extract "14296" (boundary ID)
@@ -60,15 +49,14 @@ teardown() {
 @test "REGRESSION: Failed boundaries extraction should filter IDs < 1000" {
  # Create log lines with small numbers that should be filtered
  local LOG_FILE="${TEST_DIR}/test.log"
- cat > "${LOG_FILE}" << 'EOF'
-2025-12-07 18:45:51 - Recording boundary 14296 as failed
-2025-12-07 18:45:52 - Some other log with number 978
-2025-12-07 18:45:53 - Recording boundary 123 as failed
-EOF
+ __create_test_log_file "${LOG_FILE}" \
+  "2025-12-07 18:45:51 - Recording boundary 14296 as failed" \
+  "2025-12-07 18:45:52 - Some other log with number 978" \
+  "2025-12-07 18:45:53 - Recording boundary 123 as failed"
 
  # Extract boundary IDs using correct method
  local BOUNDARY_IDS
- BOUNDARY_IDS=$(sed -n 's/.*boundary \([0-9]\{4,\}\).*/\1/p' "${LOG_FILE}")
+ BOUNDARY_IDS=$(__extract_boundary_id_from_log "${LOG_FILE}")
 
  # Should only extract IDs >= 1000 (14296), not 123 or 978
  [[ "${BOUNDARY_IDS}" == "14296" ]]
@@ -90,14 +78,7 @@ EOF
  export DBNAME="test_db"
 
  # Mock psql to return false (capital not found)
- psql() {
-  if [[ "$1" == "-d" ]] && [[ "$3" == "-Atq" ]]; then
-   echo "false"
-   return 0
-  fi
-  return 0
- }
- export -f psql
+ __mock_psql_false
 
  # Mock __retry_overpass_api to return empty result
  __retry_overpass_api() {
@@ -231,10 +212,7 @@ EOF
 @test "REGRESSION: SQL should use LATERAL JOIN for spatial queries" {
  local SQL_FILE="${TEST_BASE_DIR}/sql/functionsProcess_33_verifyNoteIntegrity.sql"
  
- # Check if SQL file exists
- if [[ ! -f "${SQL_FILE}" ]]; then
-  skip "SQL file not found: ${SQL_FILE}"
- fi
+ __verify_file_exists "${SQL_FILE}" "SQL file not found: ${SQL_FILE}"
 
  # Verify that SQL uses LATERAL JOIN (efficient spatial index usage)
  # This was the fix in commit cf935686
@@ -251,10 +229,7 @@ EOF
 @test "REGRESSION: SQL should separate matched and unmatched paths" {
  local SQL_FILE="${TEST_BASE_DIR}/sql/functionsProcess_33_verifyNoteIntegrity.sql"
  
- # Check if SQL file exists
- if [[ ! -f "${SQL_FILE}" ]]; then
-  skip "SQL file not found: ${SQL_FILE}"
- fi
+ __verify_file_exists "${SQL_FILE}" "SQL file not found: ${SQL_FILE}"
 
  # Verify that SQL has separate handling for matched/unmatched
  # This is indicated by separate CTEs or UNION paths (fix in commit 35d52d68)
@@ -327,10 +302,7 @@ EOF
 @test "REGRESSION: SQL insertion for Null Island should be valid" {
  local SQL_FILE="${TEST_BASE_DIR}/sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql"
  
- # Check if SQL file exists
- if [[ ! -f "${SQL_FILE}" ]]; then
-  skip "SQL file not found"
- fi
+ __verify_file_exists "${SQL_FILE}" "SQL file not found"
 
  # Verify that SQL syntax is valid (basic check)
  # Should not have syntax errors like missing commas or quotes
@@ -442,9 +414,7 @@ EOF
 @test "REGRESSION: API URL should include all required parameters" {
  local FUNCTIONS_FILE="${TEST_BASE_DIR}/bin/lib/processAPIFunctions.sh"
  
- if [[ ! -f "${FUNCTIONS_FILE}" ]]; then
-  skip "Functions file not found"
- fi
+ __verify_file_exists "${FUNCTIONS_FILE}" "Functions file not found"
 
  # Verify that the URL includes all required parameters:
  # - limit (for max notes)
@@ -469,9 +439,7 @@ EOF
  local FUNCTIONS_FILE="${TEST_BASE_DIR}/bin/lib/processAPIFunctions.sh"
  local DAEMON_FILE="${TEST_BASE_DIR}/bin/process/processAPINotesDaemon.sh"
  
- if [[ ! -f "${FUNCTIONS_FILE}" ]]; then
-  skip "Functions file not found"
- fi
+ __verify_file_exists "${FUNCTIONS_FILE}" "Functions file not found"
 
  # Verify that TO_CHAR uses escape string syntax (E'...')
  # This ensures proper quote escaping in PostgreSQL
@@ -795,9 +763,8 @@ EOF
  local SQL_FILE1="${TEST_BASE_DIR}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
  local SQL_FILE2="${TEST_BASE_DIR}/sql/process/processAPINotes_34_updateLastValues.sql"
  
- if [[ ! -f "${SQL_FILE1}" ]] || [[ ! -f "${SQL_FILE2}" ]]; then
-  skip "SQL files not found"
- fi
+ __verify_file_exists "${SQL_FILE1}" "SQL files not found"
+ __verify_file_exists "${SQL_FILE2}" "SQL files not found"
  
  # Verify that SQL handles total_comments_in_db = 0 case
  # Should have special handling for empty comment databases
@@ -886,9 +853,7 @@ EOF
 @test "REGRESSION: __insertNewNotesAndComments should execute both SQL files in same connection" {
  local SCRIPT_FILE="${TEST_BASE_DIR}/bin/process/processAPINotes.sh"
  
- if [[ ! -f "${SCRIPT_FILE}" ]]; then
-  skip "Script file not found"
- fi
+ __verify_file_exists "${SCRIPT_FILE}" "Script file not found"
  
  # Verify that both SQL files are executed in the same psql connection
  # This ensures the session variable persists between transactions
