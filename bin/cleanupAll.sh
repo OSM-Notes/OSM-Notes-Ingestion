@@ -344,6 +344,8 @@ function __cleanup_api_tables() {
  DROP TABLE IF EXISTS notes_api_part_2 CASCADE;
  DROP TABLE IF EXISTS notes_api_part_3 CASCADE;
  DROP TABLE IF EXISTS notes_api_part_4 CASCADE;
+ DROP TABLE IF EXISTS max_note_timestamp CASCADE;
+ DROP TABLE IF EXISTS data_gaps CASCADE;
  "
 
  # Use peer authentication (no host, port, or password needed)
@@ -364,7 +366,12 @@ function __cleanup_api_tables() {
   SELECT COUNT(*)
   FROM information_schema.tables
   WHERE table_schema = 'public'
-  AND (table_name LIKE 'notes_api%' OR table_name LIKE 'note_comments_api%');
+  AND (
+    table_name LIKE 'notes_api%'
+    OR table_name LIKE 'note_comments_api%'
+    OR table_name = 'max_note_timestamp'
+    OR table_name = 'data_gaps'
+  );
  " 2> /dev/null | tr -d ' ' || echo "0")
 
  if [[ "${REMAINING_API_TABLES}" -ne "0" ]]; then
@@ -535,6 +542,9 @@ function __verify_cleanup_success() {
   "note_comments_sync"
   "note_comments_text_sync"
   "countries"
+  "international_waters"
+  "max_note_timestamp"
+  "data_gaps"
   "users"
   "properties"
   "logs"
@@ -651,9 +661,14 @@ function __cleanup_base() {
  if [[ -n "${DB_USER:-}" ]]; then
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
- __logi "Dropping country tables (countries)..."
+ __logi "Dropping country tables (countries, international_waters)..."
  if ! ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS countries CASCADE;" 2> /dev/null; then
   __loge "ERROR: Failed to drop countries table"
+  __log_finish
+  return 1
+ fi
+ if ! ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS international_waters CASCADE;" 2> /dev/null; then
+  __loge "ERROR: Failed to drop international_waters table"
   __log_finish
   return 1
  fi
