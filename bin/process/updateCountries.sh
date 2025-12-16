@@ -306,14 +306,45 @@ function __createCountryTablesNew {
 DROP TABLE IF EXISTS countries_new CASCADE;
 EOF
 
- # Create countries_new with same structure as countries
- __logi "Creating countries_new table with same structure as countries..."
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+ # Check if countries table exists
+ local COUNTRIES_EXISTS
+ COUNTRIES_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
+   SELECT EXISTS (
+     SELECT 1 FROM information_schema.tables 
+     WHERE table_schema = 'public' 
+       AND table_name = 'countries'
+   );
+ " 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
+
+ if [[ "${COUNTRIES_EXISTS}" == "t" ]]; then
+  # Create countries_new with same structure as countries
+  __logi "Creating countries_new table with same structure as countries..."
+  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
 -- Create countries_new table with same structure as countries
 CREATE TABLE countries_new (LIKE countries INCLUDING ALL);
 COMMENT ON TABLE countries_new IS
   'Temporary table for safe country updates - will be swapped to countries after validation';
 EOF
+ else
+  # Countries table doesn't exist, create it first using the DDL script
+  __logi "countries table does not exist, creating it first..."
+  if [[ -f "${POSTGRES_26_CREATE_COUNTRY_TABLES:-}" ]]; then
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_26_CREATE_COUNTRY_TABLES}"
+   # Now create countries_new based on the newly created countries table
+   __logi "Creating countries_new table with same structure as countries..."
+   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+-- Create countries_new table with same structure as countries
+CREATE TABLE countries_new (LIKE countries INCLUDING ALL);
+COMMENT ON TABLE countries_new IS
+  'Temporary table for safe country updates - will be swapped to countries after validation';
+EOF
+  else
+   __loge "Cannot create countries_new: countries table does not exist and DDL script not found"
+   __loge "POSTGRES_26_CREATE_COUNTRY_TABLES: ${POSTGRES_26_CREATE_COUNTRY_TABLES:-not set}"
+   __log_finish
+   return 1
+  fi
+ fi
 
  # Create international waters table if needed (for optimization)
  __logi "Creating international waters table..."
