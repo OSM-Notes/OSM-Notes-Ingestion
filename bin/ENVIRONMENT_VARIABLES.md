@@ -106,6 +106,11 @@ These variables control the Overpass API behavior for boundary downloads.
 - **`ADMIN_EMAIL`**: Email address for failure alerts (default: `root@localhost`)
 - **`SEND_ALERT_EMAIL`**: Enable/disable email alerts (`true`/`false`, default: `true`)
 
+**Note**: To manually test email sending, use:
+```bash
+echo "Test email" | mutt -s "Test" "${ADMIN_EMAIL}"
+```
+
 #### Example
 ```bash
 export ADMIN_EMAIL="admin@example.com"

@@ -261,14 +261,28 @@ This is an automated alert from OSM Notes Ingestion system.
 - Email alerts are enabled
 - You only need to configure `ADMIN_EMAIL`
 
-### What happens if I don't have mail configured?
+### What email tools does the system use?
 
-The script detects if `mail` is not available and only shows a warning in logs:
-```
-WARN: Mail command not available, skipping email alert
+The system uses **`mutt`** as the email tool. `mutt` is a **required prerequisite** 
+that is validated during the prerequisites check (`__checkPrereqsCommands`). 
+If `mutt` is not available, the script will exit with an error before attempting 
+to send any emails.
+
+### Validating Email Sending Capability
+
+The prerequisites check verifies that:
+1. `mutt` is installed
+2. `mutt` has SMTP support compiled in (for external email delivery)
+
+However, actual email delivery cannot be validated without sending a real email. 
+To manually test email sending, use:
+
+```bash
+echo "Test email" | mutt -s "Test" "${ADMIN_EMAIL}"
 ```
 
-The failed file is created anyway to prevent subsequent executions.
+The failed file is created anyway to prevent subsequent executions, even if 
+email sending fails.
 
 ### Are multiple alerts sent if it fails multiple times?
 
@@ -326,6 +340,28 @@ The previous system (`checkFailedExecution.sh`) is still valid as:
 - Cases where you prefer separation of responsibilities
 
 **Recommendation**: Use the new system by default. Keep the old one only if you need centralized monitoring.
+
+## Email Sending Locations
+
+The system sends emails in **3 different scenarios**:
+
+1. **Alert failures in `processAPINotes.sh` and `processPlanetNotes.sh`**
+   - Function: `__common_send_failure_email()` in `lib/osm-common/alertFunctions.sh`
+   - Triggered: When a critical error occurs and a failed execution marker is created
+   - Uses: `mutt` (preferred) or `mail` (fallback)
+
+2. **Missing maritime boundaries alerts in `updateCountries.sh`**
+   - Location: `bin/process/updateCountries.sh`
+   - Triggered: When EEZ (maritime boundaries) exist in OSM but not in the database
+   - Uses: `mutt` (preferred) or `mail` (fallback)
+
+3. **Database differences reports in `notesCheckVerifier.sh`**
+   - Function: `__sendMail()` in `bin/monitor/notesCheckVerifier.sh`
+   - Triggered: When differences are found between Planet file and API calls
+   - Uses: `mutt` (always used for this script)
+
+All three locations use the same email configuration (`ADMIN_EMAIL` or `EMAILS` 
+environment variables) and require `mutt` as a prerequisite.
 
 ## Related Documentation
 

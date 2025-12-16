@@ -39,8 +39,8 @@
 # For contributing: shellcheck -x -o all updateCountries.sh && shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-11
-VERSION="2025-12-11"
+# Version: 2025-12-15
+VERSION="2025-12-15"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1146,27 +1146,39 @@ out;"
  # Optionally send email if configured and there are missing EEZ
  if [[ "${MISSING_COUNT}" -gt 0 ]] && [[ "${SEND_ALERT_EMAIL:-true}" == "true" ]] && [[ -n "${ADMIN_EMAIL:-}" ]]; then
   local EMAIL_SUBJECT="Missing Maritime Boundaries Report - ${MISSING_COUNT} EEZ in OSM not in database"
-  {
-   echo "Missing Maritime Boundaries Report"
-   echo "=================================="
-   echo ""
-   echo "Date: $(date '+%Y-%m-%d %H:%M:%S')"
-   echo "Server: $(hostname)"
-   echo ""
-   echo "Summary:"
-   echo "  - Total EEZ centroids from shapefile: ${TOTAL_CENTROIDS}"
-   echo "  - Centroids already in database: ${DB_COVERED_COUNT}"
-   echo "  - Centroids checked in OSM: ${CHECKED_COUNT}"
-   echo "  - Centroids in OSM but NOT in database: ${MISSING_COUNT}"
-   echo ""
-   echo "These EEZ exist in OSM but were not imported to database."
-   echo "They should be automatically downloaded in the next updateCountries.sh run."
-   echo ""
-   echo "Detailed results available at: ${MISSING_EEZ_FILE}"
-   echo "Full report: ${REPORT_FILE}"
-  } | mail -s "${EMAIL_SUBJECT}" "${ADMIN_EMAIL}" 2> /dev/null || {
-   __logw "Failed to send email alert (mail command may not be configured)"
-  }
+  local EMAIL_BODY
+  EMAIL_BODY=$(cat << EOF
+Missing Maritime Boundaries Report
+==================================
+
+Date: $(date '+%Y-%m-%d %H:%M:%S')
+Server: $(hostname)
+
+Summary:
+  - Total EEZ centroids from shapefile: ${TOTAL_CENTROIDS}
+  - Centroids already in database: ${DB_COVERED_COUNT}
+  - Centroids checked in OSM: ${CHECKED_COUNT}
+  - Centroids in OSM but NOT in database: ${MISSING_COUNT}
+
+These EEZ exist in OSM but were not imported to database.
+They should be automatically downloaded in the next updateCountries.sh run.
+
+Detailed results available at: ${MISSING_EEZ_FILE}
+Full report: ${REPORT_FILE}
+EOF
+)
+  # mutt is a required prerequisite (checked in __checkPrereqsCommands)
+  # so it should always be available at this point
+  local TEMP_BODY_FILE
+  TEMP_BODY_FILE=$(mktemp)
+  echo "${EMAIL_BODY}" > "${TEMP_BODY_FILE}"
+  if echo "" | mutt -s "${EMAIL_SUBJECT}" -i "${TEMP_BODY_FILE}" -- "${ADMIN_EMAIL}" 2>/dev/null; then
+   __logi "Email alert sent successfully to ${ADMIN_EMAIL}"
+   rm -f "${TEMP_BODY_FILE}"
+  else
+   __logw "Failed to send email alert to ${ADMIN_EMAIL}"
+   rm -f "${TEMP_BODY_FILE}"
+  fi
  fi
 
  # Cleanup

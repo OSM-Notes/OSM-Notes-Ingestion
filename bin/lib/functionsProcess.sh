@@ -1478,6 +1478,18 @@ EOF
   __loge "ERROR: mutt is missing."
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ # Verify mutt has SMTP support compiled in
+ if ! mutt -v 2>&1 | grep -qi "USE_SMTP\|+USE_SMTP"; then
+  __logw "WARNING: mutt may not have SMTP support compiled in."
+  __logw "Email alerts to external addresses may not work."
+ fi
+ # If ADMIN_EMAIL is configured, validate email format
+ if [[ -n "${ADMIN_EMAIL:-}" ]] && [[ "${SEND_ALERT_EMAIL:-true}" == "true" ]]; then
+  __logd "Email alerts enabled (ADMIN_EMAIL=${ADMIN_EMAIL})"
+  # Note: Actual email sending capability cannot be validated without
+  # sending a real email. Test manually if needed:
+  # echo "Test" | mutt -s "Test" "${ADMIN_EMAIL}"
+ fi
  ## Block-sorting file compressor
  __logd "Checking bzip2."
  if ! bzip2 --help > /dev/null 2>&1; then

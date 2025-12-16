@@ -60,25 +60,27 @@
 
 
 # =============================================================================
-# EMAIL CONFIGURATION (POSTFIX)
+# EMAIL CONFIGURATION
 # =============================================================================
 
-# If you don't have email configured, install Postfix:
+# The system uses mutt to send emails. mutt is a required prerequisite that
+# is validated during the prerequisites check. mutt works well with external
+# SMTP servers and can send emails directly without requiring Postfix
+# configuration.
+
+# Install mutt (required):
 
 # Ubuntu/Debian:
-# sudo apt-get install postfix mailutils
+# sudo apt-get install mutt
 
-# During installation, select "Internet Site"
-# Enter your domain name when prompted
+# Test that mutt works manually:
+# echo "Test email" | mutt -s "Test" your@email.com
 
-# Test that it works:
-# echo "Test email" | mail -s "Test" your@email.com
-
-# If you don't receive the email, check:
-# 1. Postfix logs (system logs, requires root or sudo): tail -f /var/log/mail.log
-#    Note: /var/log/mail.log is a system log file (Postfix mail server), not a project log
-# 2. Status: systemctl status postfix
-# 3. Configuration: cat /etc/postfix/main.cf
+# If you don't receive emails, check:
+# 1. Verify mutt is installed: command -v mutt
+# 2. Verify mutt has SMTP support: mutt -v | grep -i smtp
+# 3. Test sending manually: echo "Test" | mutt -s "Test" your@email.com
+# 4. Check script logs for email sending errors
 
 
 # =============================================================================
