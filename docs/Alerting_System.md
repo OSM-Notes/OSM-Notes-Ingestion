@@ -348,12 +348,12 @@ The system sends emails in **3 different scenarios**:
 1. **Alert failures in `processAPINotes.sh` and `processPlanetNotes.sh`**
    - Function: `__common_send_failure_email()` in `lib/osm-common/alertFunctions.sh`
    - Triggered: When a critical error occurs and a failed execution marker is created
-   - Uses: `mutt` (preferred) or `mail` (fallback)
+   - Uses: `mutt` (required prerequisite)
 
 2. **Missing maritime boundaries alerts in `updateCountries.sh`**
    - Location: `bin/process/updateCountries.sh`
    - Triggered: When EEZ (maritime boundaries) exist in OSM but not in the database
-   - Uses: `mutt` (preferred) or `mail` (fallback)
+   - Uses: `mutt` (required prerequisite)
 
 3. **Database differences reports in `notesCheckVerifier.sh`**
    - Function: `__sendMail()` in `bin/monitor/notesCheckVerifier.sh`
