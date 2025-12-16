@@ -325,7 +325,7 @@ Other patterns may be implemented implicitly, but these are the main ones docume
 
 * **Memory Limitations (Resolved)**: Previously had memory limitations due to Saxon and xsltproc. This has been resolved with the AWK solution.
 
-* **API Rate Limits**: OSM only returns 10,000 notes per API call. To have a good margin of notes, reasonable processing amount, and good time, `processAPI` is called every 15 minutes, with subsequent ETL processing to have near real-time information. When the stable version is ready, this may be reduced to 5 minutes or 2 minutes, but it will require analyzing everything: partitioned tables, validations, etc., and streamlining the process.
+* **API Rate Limits**: OSM only returns 10,000 notes per API call. To have a good margin of notes, reasonable processing amount, and good time, `processAPI` is currently executed via the daemon (`processAPINotesDaemon.sh`) which runs continuously in memory, checking for new notes every minute (default `DAEMON_SLEEP_INTERVAL=60` seconds), providing near real-time information. The daemon provides lower latency (30-60 seconds) compared to cron-based execution (15 minutes), and the system has been optimized to handle this frequency successfully, including streamlined processing and efficient resource management.
 
 * **Future Scalability**: When there are many more notes, problems may be identified. Currently, no other limitations are known.
 

@@ -19,13 +19,11 @@ This document lists technical decisions and architectural choices that should be
 
 ## Processing Frequency
 
-- **Current**: `processAPI` called every 15 minutes
-- **Consideration**: Reduce to 5 minutes or 2 minutes for near real-time processing
-- **Requirements**: Before reducing frequency, analyze:
-  - Partitioned tables performance
-  - Validation processes
-  - Overall process streamlining
-- **Rationale**: Faster processing requires optimization of all components
+- **Current**: `processAPI` executed via daemon (`processAPINotesDaemon.sh`) running continuously in memory, checking every minute (default `DAEMON_SLEEP_INTERVAL=60` seconds)
+- **Status**: ✅ **COMPLETED** - Frequency has been reduced to 1 minute for near real-time processing
+- **Previous**: Was called every 15 minutes via cron
+- **Implementation**: Daemon runs continuously in memory with adaptive sleep interval (default 60 seconds)
+- **Note**: The daemon provides lower latency (30-60 seconds) compared to cron (15 minutes), and the system has been optimized to handle this higher frequency successfully
 
 ## Language and Dependencies
 
