@@ -405,7 +405,11 @@ __run_level_9() {
   "${SCRIPT_DIR}/integration/boundary_processing_error_integration.test.bats" \
   "${SCRIPT_DIR}/integration/wms_integration.test.bats" \
   "${SCRIPT_DIR}/integration/mock_planet_processing.test.bats" \
-  "${SCRIPT_DIR}/integration/processAPI_historical_e2e.test.bats"; then
+  "${SCRIPT_DIR}/integration/processAPI_historical_e2e.test.bats" \
+  "${SCRIPT_DIR}/integration/api_complete_e2e.test.bats" \
+  "${SCRIPT_DIR}/integration/planet_complete_e2e.test.bats" \
+  "${SCRIPT_DIR}/integration/wms_complete_e2e.test.bats" \
+  "${SCRIPT_DIR}/integration/error_scenarios_complete_e2e.test.bats"; then
   __show_level_footer 9 "success"
   return 0
  else
