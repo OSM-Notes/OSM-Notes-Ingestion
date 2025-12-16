@@ -249,6 +249,8 @@ __run_level_4() {
   "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_gaps.test.bats" \
   "${SCRIPT_DIR}/integration/daemon_feature_parity.test.bats" \
   "${SCRIPT_DIR}/integration/daemon_feature_parity_execution.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/utility_scripts_common.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/monitor_scripts_common.test.bats" \
   "${SCRIPT_DIR}/unit/bash/historical_data_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPI_historical_scenarios.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPI_historical_sql.test.bats" \
@@ -343,6 +345,8 @@ __run_level_7() {
   "${SCRIPT_DIR}/unit/bash/monitoring_detection.test.bats" \
   "${SCRIPT_DIR}/unit/bash/monitoring_infrastructure.test.bats" \
   "${SCRIPT_DIR}/unit/bash/monitoring_historical.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/monitor_scripts_common.test.bats" \
+  "${SCRIPT_DIR}/unit/bash/utility_scripts_common.test.bats" \
   "${SCRIPT_DIR}/unit/bash/notesCheckVerifier_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processCheckPlanetNotes_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/wmsManager.test.bats" \

@@ -144,7 +144,9 @@ __run_level1_tests() {
   "tests/unit/bash/processAPINotesDaemon_auto_init.test.bats"
   "tests/unit/bash/processAPINotesDaemon_gaps.test.bats"
   "tests/integration/daemon_feature_parity.test.bats" \
-  "tests/integration/daemon_feature_parity_execution.test.bats"
+  "tests/integration/daemon_feature_parity_execution.test.bats" \
+  "tests/unit/bash/utility_scripts_common.test.bats" \
+  "tests/unit/bash/monitor_scripts_common.test.bats"
   "tests/unit/bash/cleanupAll.test.bats"
   "tests/unit/bash/variable_duplication.test.bats"
   "tests/unit/bash/variable_naming_convention.test.bats"
