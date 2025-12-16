@@ -145,7 +145,8 @@ function __resolve_geojson_file() {
    return 0
   elif [[ -f "${BASE_PATH}.gz" ]] && [[ -s "${BASE_PATH}.gz" ]]; then
    # Decompress to temporary location
-   local TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}")"
+   local TMP_DECOMPRESSED
+   TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}")"
    if gunzip -c "${BASE_PATH}.gz" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
     RESOLVED_FILE="${TMP_DECOMPRESSED}"
     __logd "Decompressed ${BASE_PATH}.gz to ${RESOLVED_FILE}"
@@ -163,7 +164,8 @@ function __resolve_geojson_file() {
    return 0
   elif [[ -f "${BASE_PATH}.geojson.gz" ]] && [[ -s "${BASE_PATH}.geojson.gz" ]]; then
    # Decompress to temporary location
-   local TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}.geojson")"
+   local TMP_DECOMPRESSED
+   TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}.geojson")"
    if gunzip -c "${BASE_PATH}.geojson.gz" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
     RESOLVED_FILE="${TMP_DECOMPRESSED}"
     __logd "Decompressed ${BASE_PATH}.geojson.gz to ${RESOLVED_FILE}"

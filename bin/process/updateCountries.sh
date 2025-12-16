@@ -12,9 +12,16 @@
 #
 # Quick Reference:
 #   Usage: ./updateCountries.sh [--base]
-#   --base: Recreate tables mode (drops and recreates boundary tables)
-#   (no flag): Update mode (updates existing boundaries, re-assigns affected notes)
+#   --base: Recreate tables mode (uses safe update strategy with countries_new)
+#   (no flag): Update mode (uses safe update strategy, compares geometries, swaps if valid)
 #   Examples: export LOG_LEVEL=DEBUG ; ./updateCountries.sh
+#
+#   Safe Update Strategy:
+#     - Creates countries_new table (doesn't drop countries)
+#     - Loads new data into countries_new
+#     - Compares geometries between countries and countries_new
+#     - Swaps tables only if validation passes
+#     - Keeps countries_old as backup
 #
 # Error Codes: See docs/Troubleshooting_Guide.md for complete list and solutions
 #   1) Help message displayed
@@ -27,8 +34,14 @@
 #   255) General error
 #
 # Modes:
-#   --base: Recreate tables (drops and recreates boundary tables from scratch)
-#   (update): Update mode (updates existing boundaries, efficiently re-assigns only affected notes)
+#   --base: Recreate tables (uses safe update strategy: creates countries_new, loads data, swaps if valid)
+#   (update): Update mode (uses safe update strategy: creates countries_new, compares geometries, swaps if valid)
+#
+#   Safe Update Strategy Benefits:
+#     - No data loss: countries table remains until swap is verified
+#     - Geometry comparison: detects changes before swapping
+#     - Automatic backup: countries_old created during swap
+#     - Rollback capability: can restore from countries_old if needed
 #
 # Performance: See docs/Country_Assignment_2D_Grid.md#performance
 #   - Update mode: Only re-assigns notes affected by boundary changes (much faster)
@@ -39,8 +52,8 @@
 # For contributing: shellcheck -x -o all updateCountries.sh && shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
-VERSION="2025-12-15"
+# Version: 2025-01-23
+VERSION="2025-12-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -126,7 +139,10 @@ fi
 
 # Location of the common functions.
 declare -r QUERY_FILE="${TMP_DIR}/query"
+# Note: UPDATE_COUNTRIES_FILE and UPDATE_MARITIMES_FILE are reserved for future use
+# shellcheck disable=SC2034
 declare -r UPDATE_COUNTRIES_FILE="${TMP_DIR}/countries"
+# shellcheck disable=SC2034
 declare -r UPDATE_MARITIMES_FILE="${TMP_DIR}/maritimes"
 
 # Control variables for functionsProcess.sh
@@ -284,12 +300,12 @@ EOF
 function __createCountryTablesNew {
  __log_start
  __logi "=== CREATING COUNTRIES_NEW TABLE (SAFE UPDATE STRATEGY) ==="
- 
+
  # Drop countries_new if it exists from a previous failed run
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
 DROP TABLE IF EXISTS countries_new CASCADE;
 EOF
- 
+
  # Create countries_new with same structure as countries
  __logi "Creating countries_new table with same structure as countries..."
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
@@ -298,7 +314,7 @@ CREATE TABLE countries_new (LIKE countries INCLUDING ALL);
 COMMENT ON TABLE countries_new IS
   'Temporary table for safe country updates - will be swapped to countries after validation';
 EOF
- 
+
  # Create international waters table if needed (for optimization)
  __logi "Creating international waters table..."
  if [[ -f "${POSTGRES_27_CREATE_INTERNATIONAL_WATERS:-}" ]]; then
@@ -306,7 +322,7 @@ EOF
  else
   __logw "Warning: International waters table script not found, skipping"
  fi
- 
+
  __logi "=== COUNTRIES_NEW TABLE CREATED SUCCESSFULLY ==="
  __log_finish
 }
@@ -879,7 +895,7 @@ function __markFailedCountryUpdates {
 function __compareCountryGeometries {
  __log_start
  __logi "Comparing geometries between countries and countries_new..."
- 
+
  # Check if comparison function exists, create it if not
  local FUNCTION_EXISTS
  FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
@@ -887,7 +903,7 @@ function __compareCountryGeometries {
    WHERE proname = 'compare_all_country_geometries' 
      AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');
  " 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
- 
+
  if [[ "${FUNCTION_EXISTS:-0}" -eq "0" ]]; then
   __logi "Creating geometry comparison functions..."
   local COMPARE_SQL="${SCRIPT_BASE_DIRECTORY}/sql/analysis/compare_country_geometries.sql"
@@ -906,7 +922,7 @@ function __compareCountryGeometries {
    return 1
   fi
  fi
- 
+
  # Check if countries_new exists
  local TABLE_EXISTS
  TABLE_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
@@ -916,13 +932,13 @@ function __compareCountryGeometries {
        AND table_name = 'countries_new'
    );
  " 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
- 
+
  if [[ "${TABLE_EXISTS}" != "t" ]]; then
   __logw "countries_new table does not exist, skipping comparison"
   __log_finish
   return 1
  fi
- 
+
  # Get summary of changes
  __logi "Generating geometry comparison report..."
  local COMPARISON_REPORT
@@ -944,14 +960,14 @@ function __compareCountryGeometries {
        ELSE 6
      END;
  " 2> /dev/null || echo "")
- 
+
  if [[ -n "${COMPARISON_REPORT}" ]]; then
   __logi "Geometry comparison summary:"
   echo "${COMPARISON_REPORT}" | while IFS='|' read -r status count avg max; do
    __logi "  ${status}: ${count} countries (avg change: ${avg}%, max: ${max}%)"
   done
  fi
- 
+
  # Validate if swap is safe
  local SWAP_SAFE
  SWAP_SAFE=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
@@ -964,7 +980,7 @@ function __compareCountryGeometries {
      END AS swap_is_safe
    FROM compare_all_country_geometries(0.01);
  " 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
- 
+
  if [[ "${SWAP_SAFE}" == "t" ]]; then
   __logi "Geometry comparison: Swap is SAFE"
   __log_finish
@@ -980,21 +996,21 @@ function __compareCountryGeometries {
 function __swapCountryTables {
  __log_start
  __logi "=== SWAPPING COUNTRIES_NEW TO COUNTRIES ==="
- 
+
  # Verify countries_new exists and has data
  local COUNT_NEW
  COUNT_NEW=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
    SELECT COUNT(*) FROM countries_new;
  " 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
- 
+
  if [[ "${COUNT_NEW}" -eq "0" ]]; then
   __loge "countries_new table is empty, cannot swap"
   __log_finish
   return 1
  fi
- 
+
  __logi "countries_new has ${COUNT_NEW} countries, proceeding with swap..."
- 
+
  # Execute swap script
  local SWAP_SQL="${SCRIPT_BASE_DIRECTORY}/sql/process/processCountries_swapTables.sql"
  if [[ -f "${SWAP_SQL}" ]]; then
@@ -1012,7 +1028,7 @@ function __swapCountryTables {
  else
   __loge "Swap SQL file not found: ${SWAP_SQL}"
   __loge "Performing manual swap..."
-  
+
   # Manual swap as fallback
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
 -- Drop old backup
@@ -1032,7 +1048,7 @@ CREATE INDEX IF NOT EXISTS idx_countries_is_maritime ON countries (is_maritime) 
 -- Update statistics
 ANALYZE countries;
 EOF
-  
+
   if [[ $? -eq 0 ]]; then
    __logi "=== MANUAL SWAP COMPLETED SUCCESSFULLY ==="
    __log_finish
@@ -1292,7 +1308,8 @@ function __checkMissingMaritimes() {
  local CHECKED_COUNT=0
  local OUTPUT_DIR="${SCRIPT_BASE_DIRECTORY}/data/eez_analysis"
  mkdir -p "${OUTPUT_DIR}"
- local MISSING_EEZ_FILE="${OUTPUT_DIR}/missing_eez_osm_$(date +%Y%m%d).csv"
+ local MISSING_EEZ_FILE
+ MISSING_EEZ_FILE="${OUTPUT_DIR}/missing_eez_osm_$(date +%Y%m%d).csv"
  local OVERPASS_API="${OVERPASS_INTERPRETER:-https://overpass-api.de/api/interpreter}"
 
  # Create CSV header
@@ -1396,7 +1413,8 @@ out;"
  fi
 
  # Generate summary report
- local REPORT_FILE="${OUTPUT_DIR}/missing_eez_osm_report_$(date +%Y%m%d).txt"
+ local REPORT_FILE
+ REPORT_FILE="${OUTPUT_DIR}/missing_eez_osm_report_$(date +%Y%m%d).txt"
  {
   echo "Missing Maritime Boundaries Report (OSM Coverage Check)"
   echo "Generated: $(date '+%Y-%m-%d %H:%M:%S')"
@@ -1419,7 +1437,8 @@ out;"
  if [[ "${MISSING_COUNT}" -gt 0 ]] && [[ "${SEND_ALERT_EMAIL:-true}" == "true" ]] && [[ -n "${ADMIN_EMAIL:-}" ]]; then
   local EMAIL_SUBJECT="Missing Maritime Boundaries Report - ${MISSING_COUNT} EEZ in OSM not in database"
   local EMAIL_BODY
-  EMAIL_BODY=$(cat << EOF
+  EMAIL_BODY=$(
+   cat << EOF
 Missing Maritime Boundaries Report
 ==================================
 
@@ -1438,13 +1457,13 @@ They should be automatically downloaded in the next updateCountries.sh run.
 Detailed results available at: ${MISSING_EEZ_FILE}
 Full report: ${REPORT_FILE}
 EOF
-)
+  )
   # mutt is a required prerequisite (checked in __checkPrereqsCommands)
   # so it should always be available at this point
   local TEMP_BODY_FILE
   TEMP_BODY_FILE=$(mktemp)
   echo "${EMAIL_BODY}" > "${TEMP_BODY_FILE}"
-  if echo "" | mutt -s "${EMAIL_SUBJECT}" -i "${TEMP_BODY_FILE}" -- "${ADMIN_EMAIL}" 2>/dev/null; then
+  if echo "" | mutt -s "${EMAIL_SUBJECT}" -i "${TEMP_BODY_FILE}" -- "${ADMIN_EMAIL}" 2> /dev/null; then
    __logi "Email alert sent successfully to ${ADMIN_EMAIL}"
    rm -f "${TEMP_BODY_FILE}"
   else
@@ -1515,14 +1534,14 @@ EOF
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
   __logi "Running in base mode - using safe update strategy with countries_new"
-  
+
   # Use new safe strategy: create countries_new instead of dropping countries
   __logi "Creating countries_new table for safe updates..."
   __createCountryTablesNew
-  
+
   # Set environment variable to use countries_new for inserts
   export USE_COUNTRIES_NEW="true"
-  
+
   # Process countries and maritimes data into countries_new
   # In base mode, use backup by default (if exists) for faster initial setup
   # This allows processPlanet to complete quickly on first run
@@ -1530,10 +1549,10 @@ EOF
   __logi "Using backup if available (faster), otherwise downloading from Overpass..."
   __processCountries
   __processMaritimes
-  
+
   # Maintain countries_new table
   __maintainCountriesTableNew
-  
+
   # Compare geometries if countries table exists
   local COUNTRIES_EXISTS
   COUNTRIES_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
@@ -1543,7 +1562,7 @@ EOF
         AND table_name = 'countries'
     );
   " 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
-  
+
   if [[ "${COUNTRIES_EXISTS}" == "t" ]]; then
    __logi "Comparing geometries between countries and countries_new..."
    if __compareCountryGeometries; then
@@ -1584,21 +1603,21 @@ EOF
     exit 1
    fi
   fi
-  
+
   # After swap, maintain the new countries table
   __maintainCountriesTable
   __calculateInternationalWaters
   __refreshDisputedAreasView
   __cleanPartial
-  
+
   # Unset environment variable
   unset USE_COUNTRIES_NEW
-  
+
   # Note: __getLocationNotes is called by the main process (processAPINotes.sh)
   # after countries are loaded, not here
  else
   __logi "Running in update mode - using safe update strategy with countries_new"
-  
+
   # Check if countries table exists
   local COUNTRIES_EXISTS
   COUNTRIES_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
@@ -1608,20 +1627,20 @@ EOF
         AND table_name = 'countries'
     );
   " 2> /dev/null | grep -E '^[tf]$' | head -1 || echo "f")
-  
+
   if [[ "${COUNTRIES_EXISTS}" != "t" ]]; then
    __loge "countries table does not exist - cannot run update mode"
    __loge "Run with --base flag first to create the table"
    exit 1
   fi
-  
+
   # Create countries_new for safe updates
   __logi "Creating countries_new table for safe updates..."
   __createCountryTablesNew
-  
+
   # Set environment variable to use countries_new for inserts
   export USE_COUNTRIES_NEW="true"
-  
+
   # Mark all countries in original table for update tracking
   STMT="UPDATE countries SET updated = TRUE, last_update_attempt = CURRENT_TIMESTAMP"
   echo "${STMT}" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1
@@ -1634,10 +1653,10 @@ EOF
   __processCountries
   __processMaritimes
   unset FORCE_OVERPASS_DOWNLOAD
-  
+
   # Maintain countries_new table
   __maintainCountriesTableNew
-  
+
   # Compare geometries before swapping
   __logi "Comparing geometries between countries and countries_new..."
   if __compareCountryGeometries; then
@@ -1662,7 +1681,7 @@ EOF
      __loge "Swap failed"
      unset USE_COUNTRIES_NEW
      exit 1
-     fi
+    fi
    else
     __loge "Swap aborted due to validation warnings"
     __loge "Set FORCE_SWAP_ON_WARNING=true to force swap, or review changes manually"
@@ -1670,7 +1689,7 @@ EOF
     exit 1
    fi
   fi
-  
+
   # After swap, maintain the new countries table
   __maintainCountriesTable
   __calculateInternationalWaters
@@ -1691,7 +1710,7 @@ EOF
   if [[ "${CHECK_MISSING_MARITIMES:-false}" == "true" ]]; then
    __checkMissingMaritimes
   fi
-  
+
   # Unset environment variable
   unset USE_COUNTRIES_NEW
  fi
