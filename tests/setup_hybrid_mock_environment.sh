@@ -75,13 +75,10 @@ setup_hybrid_mock_environment() {
 create_mock_curl() {
  # Always recreate the mock curl to ensure it has the latest logic
  log_info "Creating/updating mock curl..."
- # Copy the curl mock from mock_commands directory
- if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
-  # Use existing mock if available
-  chmod +x "${MOCK_COMMANDS_DIR}/curl" 2> /dev/null || true
- else
-  # Create a basic curl mock if file doesn't exist
-  cat > "${MOCK_COMMANDS_DIR}/curl" << 'EOF'
+ # Always recreate the mock curl to ensure it has the latest logic
+ rm -f "${MOCK_COMMANDS_DIR}/curl" 2> /dev/null || true
+ # Create a basic curl mock
+ cat > "${MOCK_COMMANDS_DIR}/curl" << 'EOF'
 #!/bin/bash
 
 # Mock curl command for offline testing
@@ -245,8 +242,7 @@ fi
 
 exit 0
 EOF
-  chmod +x "${MOCK_COMMANDS_DIR}/curl"
- fi
+ chmod +x "${MOCK_COMMANDS_DIR}/curl"
 }
 
 # Function to create mock aria2c
