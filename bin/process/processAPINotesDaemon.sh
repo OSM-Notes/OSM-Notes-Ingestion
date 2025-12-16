@@ -316,55 +316,32 @@ if ! declare -f __createPropertiesTable > /dev/null 2>&1; then
 fi
 
 # Ensures get_country function exists before creating procedures.
-# The procedures (insert_note, insert_note_comment) require get_country to exist.
-# This function checks if get_country exists and creates it if missing.
-# If get_country exists but countries table does not, recreates the function as stub.
-function __ensureGetCountryFunction {
- __log_start
- __logd "Ensuring get_country function exists..."
+# Only define if not already set (e.g., when sourced from processAPINotes.sh)
+# This function uses __createFunctionToGetCountry from functionsProcess.sh
+# which handles both stub and full function creation correctly.
+if ! declare -f __ensureGetCountryFunction > /dev/null 2>&1; then
+ function __ensureGetCountryFunction {
+  __log_start
+  __logd "Checking if get_country function exists..."
 
- # Check if countries table exists
- local COUNTRIES_EXIST
- COUNTRIES_EXIST=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries';" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  local FUNCTION_EXISTS
+  FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+  local COUNTRIES_TABLE_EXISTS
+  COUNTRIES_TABLE_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null | grep -E '^[tf]$' | tail -1 || echo "f")
 
- # Check if get_country function exists
- local FUNCTION_EXISTS
- FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'get_country';" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
-
- if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
-  __logi "get_country function does not exist, creating it..."
-  if [[ "${COUNTRIES_EXIST}" -eq "0" ]]; then
-   __logw "countries table does not exist, creating stub function"
-   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
-    CREATE OR REPLACE FUNCTION get_country(geom geometry)
-    RETURNS text
-    LANGUAGE plpgsql
-    AS \$\$
-    BEGIN
-     RETURN NULL;
-    END;
-    \$\$;
-   " || {
-    __loge "Failed to create stub get_country function"
-    __log_finish
-    return 1
-   }
+  if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
+   __logw "get_country function not found, creating it..."
+   __createFunctionToGetCountry
   else
-   __logd "Executing SQL file: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
-   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-    -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" || {
-    __loge "Failed to create get_country function"
-    __log_finish
-    return 1
-   }
+   __logd "get_country function already exists"
+   if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
+    __logw "WARNING: get_country function exists but countries table does not"
+    __createFunctionToGetCountry
+   fi
   fi
-  __logi "get_country function created successfully"
- else
-  __logd "get_country function already exists"
- fi
-
- __log_finish
-}
+  __log_finish
+ }
+fi
 
 # Validate historical data and recover if needed
 # This function is equivalent to __validateHistoricalDataAndRecover in processAPINotes.sh
