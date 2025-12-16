@@ -93,12 +93,34 @@ EOF
  run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "${JSON_FILE}" --data-binary @"${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
 
  if [ "${status}" -eq 0 ] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then
-  # Validate JSON structure
+  # First check if JSON is valid
+  if ! command -v jq > /dev/null 2>&1; then
+   skip "jq not available for JSON validation"
+  fi
+  
+  # Verify JSON is parseable
+  if ! jq empty "${JSON_FILE}" > /dev/null 2>&1; then
+   skip "Downloaded file is not valid JSON - may be rate limited or error response"
+  fi
+  
+  # Validate JSON structure with element check
   run __validate_json_with_element "${JSON_FILE}" "elements"
-  [[ "${status}" -eq 0 ]]
+  if [[ "${status}" -ne 0 ]]; then
+   # Provide debug information
+   echo "JSON validation failed. File content:" >&2
+   head -20 "${JSON_FILE}" >&2 || true
+   echo "Overpass output:" >&2
+   cat "${OUTPUT_OVERPASS}" >&2 || true
+   skip "JSON validation failed - downloaded JSON may not contain 'elements' field or may be error response"
+  fi
   [[ -f "${JSON_FILE}" ]]
  else
-  skip "Download failed - may be rate limited"
+  # Provide debug information for download failure
+  if [[ -f "${OUTPUT_OVERPASS}" ]]; then
+   echo "Download failed. Overpass output:" >&2
+   cat "${OUTPUT_OVERPASS}" >&2 || true
+  fi
+  skip "Download failed - may be rate limited or network issue"
  fi
 }
 

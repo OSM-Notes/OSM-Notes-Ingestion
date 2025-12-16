@@ -246,6 +246,12 @@ __calculate_sleep_time() {
  if [[ "${DURATION}" -ge "${MAX_DURATION}" ]]; then
   echo "Warning: Sleep calculation took ${DURATION}ms (preferred limit: ${MAX_DURATION}ms)" >&2
  fi
+ # Verify duration is within absolute maximum
+ if [[ "${DURATION}" -ge "${ABSOLUTE_MAX}" ]]; then
+  echo "ERROR: Sleep calculation took ${DURATION}ms, exceeding absolute maximum of ${ABSOLUTE_MAX}ms" >&2
+  echo "This may indicate a performance regression or test environment issues" >&2
+ fi
+ # Assert that duration is less than absolute maximum
  [ "${DURATION}" -lt "${ABSOLUTE_MAX}" ]
 }
 
