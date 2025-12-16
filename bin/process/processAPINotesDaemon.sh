@@ -767,6 +767,11 @@ function __process_api_data {
    # if base tables didn't exist at that time
    __logi "Ensuring max_note_timestamp table exists..."
    __createPropertiesTable
+   # Ensure procedures exist after Planet load
+   # Procedures are needed for API processing (insert_note, insert_note_comment)
+   __logi "Ensuring procedures exist after Planet load..."
+   __ensureGetCountryFunction
+   __createProcedures
    __logi "Updating timestamp after Planet base load"
    __updateLastValue
    # Update LAST_PROCESSED_TIMESTAMP for next cycle
@@ -788,6 +793,14 @@ function __process_api_data {
    return 1
   fi
  fi
+
+ # Create API tables and procedures before processing (same as processAPINotes.sh)
+ # This ensures tables and procedures exist before processing API data
+ # This matches processAPINotes.sh behavior (lines 1296-1299)
+ __logi "Ensuring API tables and procedures exist before processing..."
+ __prepareApiTables
+ __ensureGetCountryFunction
+ __createProcedures
 
  # Download data (only if database is not empty)
  local API_DOWNLOAD_RESULT=0
@@ -916,12 +929,17 @@ function __process_api_data {
   fi
  fi
 
- # Clean API tables after data has been inserted into main tables
+ # Truncate API tables after data has been inserted into main tables
  # This prevents accumulation of data in API tables across cycles
  # IMPORTANT: This must be done BEFORE updating timestamp to ensure tables are always cleaned
  # even if there are errors in timestamp update
- __logd "Cleaning API tables after processing"
- __prepareApiTables
+ # Note: Tables were already created before processing, we only truncate here
+ __logd "Truncating API tables after processing"
+ psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+   TRUNCATE TABLE notes_api CASCADE;
+   TRUNCATE TABLE note_comments_api CASCADE;
+   TRUNCATE TABLE note_comments_text_api CASCADE;
+EOF
 
  # Update last processed timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
