@@ -3,7 +3,7 @@
 # End-to-end integration tests for processAPI historical data validation
 # These tests simulate real database scenarios
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-13
+# Version: 2025-12-16
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -249,7 +249,11 @@ EOSQL
  run bash -c "
         # First create the base tables as expected by the system
         psql -d '${TEST_DBNAME}' << 'EOSQL'
-        DROP TABLE IF EXISTS notes, note_comments, countries, logs;
+        -- Drop tables with CASCADE to handle dependencies
+        DROP TABLE IF EXISTS note_comments CASCADE;
+        DROP TABLE IF EXISTS notes CASCADE;
+        DROP TABLE IF EXISTS countries CASCADE;
+        DROP TABLE IF EXISTS logs CASCADE;
         
         CREATE TABLE notes (
             id BIGINT PRIMARY KEY,
@@ -300,7 +304,12 @@ EOSQL
  # Create base tables with sufficient historical data
  run bash -c "
         psql -d '${TEST_DBNAME}' << 'EOSQL'
-        DROP TABLE IF EXISTS notes, note_comments, countries, logs;
+        -- Drop tables with CASCADE to handle dependencies
+        DROP TABLE IF EXISTS note_comments CASCADE;
+        DROP TABLE IF EXISTS notes CASCADE;
+        DROP TABLE IF EXISTS countries CASCADE;
+        DROP TABLE IF EXISTS logs CASCADE;
+        DROP TABLE IF EXISTS tries CASCADE;
         
         CREATE TABLE notes (
             id BIGINT PRIMARY KEY,
@@ -324,7 +333,6 @@ EOSQL
         
         CREATE TABLE countries (id SERIAL PRIMARY KEY, name VARCHAR(255));
         CREATE TABLE logs (id SERIAL PRIMARY KEY, message TEXT);
-        CREATE TABLE tries (id SERIAL PRIMARY KEY, attempt_count INT);
         
         -- Insert sufficient historical data (60 days)
         INSERT INTO notes (id, created_at, lat, lon, status) VALUES
@@ -338,10 +346,9 @@ EOSQL
         (3, 2, CURRENT_DATE - INTERVAL '40 days', 1003, 'testuser3', 'closed', 'Closing note 2'),
         (4, 3, CURRENT_DATE - INTERVAL '35 days', 1004, 'testuser4', 'opened', 'Test note 3');
         
-        -- Insert base data for other tables
+        -- Insert base data for other tables (only if needed for test)
         INSERT INTO countries (name) VALUES ('test_country');
         INSERT INTO logs (message) VALUES ('test_log');
-        INSERT INTO tries (attempt_count) VALUES (1);
 EOSQL
         
         # Test the actual historical validation SQL

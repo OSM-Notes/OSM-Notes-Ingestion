@@ -43,7 +43,7 @@
 # For contributing: shellcheck -x -o all processPlanetNotes.sh && shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-14
+# Version: 2025-12-16
 VERSION="2025-12-08"
 
 #set -xv
@@ -1353,11 +1353,11 @@ function __setupLockFile {
  __log_start
  __logw "Validating single execution."
  # Try to create/open lock file, handle permission errors explicitly
- if ! exec 7> "${LOCK}" 2>/dev/null; then
+ if ! exec 7> "${LOCK}" 2> /dev/null; then
   __loge "Failed to create lock file: ${LOCK}"
-  __loge "Lock file owner: $(stat -c '%U:%G' "${LOCK}" 2>/dev/null || echo 'unknown')"
+  __loge "Lock file owner: $(stat -c '%U:%G' "${LOCK}" 2> /dev/null || echo 'unknown')"
   __loge "Current user: $(whoami)"
-  __loge "Lock file permissions: $(stat -c '%a' "${LOCK}" 2>/dev/null || echo 'unknown')"
+  __loge "Lock file permissions: $(stat -c '%a' "${LOCK}" 2> /dev/null || echo 'unknown')"
   __loge "This may be a permission issue. Try removing the lock file manually:"
   __loge "  rm -f ${LOCK}"
   __loge "Or run this script with appropriate permissions."
