@@ -56,7 +56,7 @@ show_help() {
 Script to run notesCheckVerifier.sh in hybrid mode (real DB, mocked downloads)
 
 This script sets up a hybrid mock environment where:
-  - Internet downloads are mocked (wget, aria2c)
+  - Internet downloads are mocked (curl, aria2c)
   - Database operations use REAL PostgreSQL
   - Email sending is mocked (mutt) to avoid sending real emails
   - All processing runs with real database but without internet downloads
@@ -221,7 +221,7 @@ setup_hybrid_mock_environment() {
   fi
 
   # Create mock commands if they don't exist
-  if [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]] || \
+  if [[ ! -f "${MOCK_COMMANDS_DIR}/curl" ]] || \
      [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
     log_info "Creating mock commands..."
     bash "${SETUP_HYBRID_SCRIPT}" setup
@@ -260,7 +260,7 @@ MUTTEOF
   fi
 
   # Ensure all mock commands are executable
-  chmod +x "${MOCK_COMMANDS_DIR}/wget" 2>/dev/null || true
+  chmod +x "${MOCK_COMMANDS_DIR}/curl" 2>/dev/null || true
   chmod +x "${MOCK_COMMANDS_DIR}/aria2c" 2>/dev/null || true
   chmod +x "${MOCK_COMMANDS_DIR}/pgrep" 2>/dev/null || true
   chmod +x "${MOCK_COMMANDS_DIR}/mutt" 2>/dev/null || true
@@ -289,7 +289,7 @@ MUTTEOF
 }
 
 # Function to ensure real psql is used (not mock)
-# This function ensures psql is real while keeping aria2c, wget, and mutt mocks active
+# This function ensures psql is real while keeping aria2c, curl, and mutt mocks active
 ensure_real_psql() {
   log_info "Ensuring real PostgreSQL client is used..."
 
@@ -320,7 +320,7 @@ ensure_real_psql() {
   local clean_path
   clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${real_psql_dir}$" | tr '\n' ':' | sed 's/:$//')
   
-  # Create a custom mock directory that only contains aria2c, wget, pgrep, mutt (not psql)
+  # Create a custom mock directory that only contains aria2c, curl, pgrep, mutt (not psql)
   local hybrid_mock_dir
   hybrid_mock_dir="/tmp/hybrid_mock_commands_$$"
   mkdir -p "${hybrid_mock_dir}"
@@ -328,14 +328,14 @@ ensure_real_psql() {
   # Store the directory path for cleanup
   export HYBRID_MOCK_DIR="${hybrid_mock_dir}"
   
-  # Copy only the mocks we want (aria2c, wget, pgrep, mutt)
+  # Copy only the mocks we want (aria2c, curl, pgrep, mutt)
   if [[ -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
     cp "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
     chmod +x "${hybrid_mock_dir}/aria2c"
   fi
-  if [[ -f "${MOCK_COMMANDS_DIR}/wget" ]]; then
-    cp "${MOCK_COMMANDS_DIR}/wget" "${hybrid_mock_dir}/wget"
-    chmod +x "${hybrid_mock_dir}/wget"
+  if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
+    cp "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
+    chmod +x "${hybrid_mock_dir}/curl"
   fi
   if [[ -f "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
     cp "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
@@ -346,7 +346,7 @@ ensure_real_psql() {
     chmod +x "${hybrid_mock_dir}/mutt"
   fi
 
-  # Set PATH: hybrid mock dir first (for aria2c/wget/mutt), then real psql dir, then rest
+  # Set PATH: hybrid mock dir first (for aria2c/curl/mutt), then real psql dir, then rest
   export PATH="${hybrid_mock_dir}:${real_psql_dir}:${clean_path}"
   hash -r 2> /dev/null || true
 
@@ -508,7 +508,7 @@ run_notesCheckVerifier() {
   local clean_path
   clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
   
-  # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, wget, pgrep, mutt mocks)
+  # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, curl, pgrep, mutt mocks)
   if [[ -n "${HYBRID_MOCK_DIR:-}" ]] && [[ -d "${HYBRID_MOCK_DIR}" ]]; then
     export PATH="${HYBRID_MOCK_DIR}:${clean_path}"
   else

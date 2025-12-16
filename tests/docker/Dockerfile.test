@@ -8,7 +8,6 @@ ENV TZ=UTC
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     curl \
-    wget \
     unzip \
     git \
     bats \
@@ -30,7 +29,7 @@ RUN if ! command -v bats > /dev/null; then \
     fi
 
 # Install pgTAP (simplified)
-RUN wget -O pgtap.tar.gz https://github.com/theory/pgtap/archive/refs/tags/v1.2.0.tar.gz && \
+RUN curl -sSL -o pgtap.tar.gz https://github.com/theory/pgtap/archive/refs/tags/v1.2.0.tar.gz && \
     tar -xzf pgtap.tar.gz && \
     cd pgtap-1.2.0 && \
     make && \

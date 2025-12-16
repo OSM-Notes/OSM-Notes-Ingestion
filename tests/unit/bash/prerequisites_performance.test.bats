@@ -47,8 +47,8 @@ setup() {
   echo "Mock psql"
   return 0
  }
- wget() {
-  echo "Mock wget"
+ curl() {
+  echo "Mock curl"
   return 0
  }
  aria2c() {

@@ -78,13 +78,13 @@ fi
 EOF
  chmod +x "${mock_dir}/psql"
 
- # Mock wget
- cat > "${mock_dir}/wget" << 'EOF'
+ # Mock curl
+ cat > "${mock_dir}/curl" << 'EOF'
 #!/bin/bash
 if [[ "$1" == "--version" ]]; then
-    echo "GNU Wget 1.21.3"
+    echo "curl 7.68.0"
     exit 0
-elif [[ "$1" == "--timeout=10" ]]; then
+elif [[ "$1" == "-s" ]] || [[ "$1" == "--max-time" ]]; then
     echo "HTTP/1.1 200 OK"
     exit 0
 else
@@ -92,7 +92,7 @@ else
     exit 0
 fi
 EOF
- chmod +x "${mock_dir}/wget"
+ chmod +x "${mock_dir}/curl"
 
  # Mock all other required commands
  for cmd in aria2c osmtogeojson ajv flock mutt bzip2 xmllint ogr2ogr; do

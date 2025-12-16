@@ -491,7 +491,7 @@ System Tools (Required)
     ├─▶ GNU Parallel
     │   └─▶ For parallel processing
     │
-    ├─▶ wget or curl
+    ├─▶ curl
     │   └─▶ For file downloads
     │
     └─▶ ogr2ogr (GDAL)
@@ -707,7 +707,7 @@ insert_note_comment(...)
 ### Important Dependencies (Features Won't Work Without)
 
 1. **GNU Parallel**: Parallel processing capability
-2. **wget/curl**: File downloads
+2. **curl**: File downloads
 3. **PostGIS**: Spatial operations (country assignment)
 4. **Overpass API**: Geographic boundaries
 5. **OSM API**: Real-time note synchronization

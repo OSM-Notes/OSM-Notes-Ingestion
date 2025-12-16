@@ -2110,7 +2110,7 @@ source bin/lib/functionsProcess.sh
 
 # Retry file download with exponential backoff and Overpass rate limiting
 __retry_file_operation \
-  "wget -O ${OUTPUT_FILE} ${URL}" \
+  "curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o ${OUTPUT_FILE} ${URL}" \
   7 \
   20 \
   "rm -f ${OUTPUT_FILE}" \
@@ -2617,7 +2617,7 @@ grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
 - **Bash** (4.0+): Scripting environment
 - **GNU AWK (gawk)**: AWK extraction scripts
 - **GNU Parallel**: Parallel processing
-- **curl/wget**: Data download
+- **curl**: Data download
 - **ogr2ogr** (GDAL): Geographic data import
 - **GeoServer** (2.20+): WMS service provider (optional)
 - **Java** (11+): Runtime for GeoServer (optional)

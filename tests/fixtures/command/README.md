@@ -6,7 +6,7 @@ offline testing.
 ## Location
 
 Fixtures are stored in `tests/fixtures/command/extra/` and used by the mock
-implementations in `tests/mock_commands/` (curl, wget, etc.).
+implementations in `tests/mock_commands/` (curl, etc.).
 
 ## Purpose
 
@@ -28,7 +28,7 @@ The mock commands in `tests/mock_commands/` automatically resolve these fixtures
 from URLs. For example:
 
 - `curl .../notes/3394115.json` -> `tests/fixtures/command/extra/3394115.json`
-- `wget .../countries` -> `tests/fixtures/command/extra/countries`
+- `curl .../countries` -> `tests/fixtures/command/extra/countries`
 
 ## Environment Variable
 

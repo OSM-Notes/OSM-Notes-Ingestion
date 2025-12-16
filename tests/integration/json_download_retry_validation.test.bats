@@ -3,7 +3,7 @@
 # Integration tests for JSON download with validation and retry logic
 # Tests the complete flow: download -> validate -> retry if validation fails
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-12-15
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -83,7 +83,7 @@ out;
 EOF
 
  # Download
- run wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
+ run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "${JSON_FILE}" --data-binary @"${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
 
  if [ "${status}" -eq 0 ] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then
   # Validate JSON structure
@@ -130,7 +130,7 @@ EOF
   fi
 
   # Attempt download
-  run wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
+  run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "${JSON_FILE}" --data-binary @"${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
 
   if [ "${status}" -eq 0 ] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then
    # Validate JSON structure
@@ -198,7 +198,7 @@ out;
 EOF
 
  # Download JSON first
- run wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> /dev/null
+ run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "${JSON_FILE}" --data-binary @"${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> /dev/null
 
  if [ "${status}" -ne 0 ] || [[ ! -f "${JSON_FILE}" ]] || [[ ! -s "${JSON_FILE}" ]]; then
   skip "Download failed - may be rate limited"
@@ -279,7 +279,7 @@ EOF
    sleep 2
   fi
 
-  run wget -O "${JSON_FILE}" --post-file="${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
+  run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "${JSON_FILE}" --data-binary @"${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
 
   if [ "${status}" -eq 0 ] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then
    # Step 2: Validate JSON
@@ -424,7 +424,7 @@ out;
 EOF
 
  # Use __retry_file_operation for download
- local OPERATION="wget -O '${JSON_FILE}' --post-file='${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
+ local OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
  run __retry_file_operation "${OPERATION}" 3 2 "" "true"
 
  if [ "${status}" -eq 0 ] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then

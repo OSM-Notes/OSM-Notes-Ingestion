@@ -3,7 +3,7 @@
 # Prerequisites Commands Tests
 # Tests for command availability validation
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
+# Version: 2025-12-15
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 load "$(dirname "${BATS_TEST_FILENAME}")/performance_edge_cases_helper.bash"
@@ -66,14 +66,14 @@ setup() {
  [ "$status" -ne 0 ]
 }
 
-@test "enhanced __checkPrereqsCommands should handle missing wget" {
+@test "enhanced __checkPrereqsCommands should handle missing curl" {
  # Skip this test if running on host (not in Docker)
  if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
   skip "Skipping on host environment"
  fi
 
- # Mock wget not available
- wget() { return 1; }
+ # Mock curl not available
+ curl() { return 1; }
 
  run __checkPrereqsCommands
  [ "$status" -ne 0 ]

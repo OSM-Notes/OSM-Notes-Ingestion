@@ -487,8 +487,8 @@ ping -c 3 planet.openstreetmap.org
 
 4. **Resume interrupted download:**
    ```bash
-   # wget can resume with -c flag
-   wget -c "https://planet.openstreetmap.org/planet/notes/planet-notes-latest.osn.bz2"
+   # curl can resume with -C flag
+   curl -C - -o planet-notes-latest.osn.bz2 "https://planet.openstreetmap.org/planet/notes/planet-notes-latest.osn.bz2"
    ```
 
 ### Problem: Out of Memory (OOM) During Processing

@@ -852,7 +852,7 @@ VERSION="YYYY-MM-DD"
 #   238) Previous execution failed
 #   241) Library or utility missing
 #
-# Dependencies: PostgreSQL, AWK, wget, lib/osm-common/
+# Dependencies: PostgreSQL, AWK, curl, lib/osm-common/
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-08

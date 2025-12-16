@@ -129,20 +129,29 @@ EOF
   [[ "${output}" == *"API notes file downloaded successfully"* ]]
 }
 
-@test "test direct wget download with waiting" {
-  # Test that wget command waits for completion
+@test "test direct curl download with waiting" {
+  # Test that curl command waits for completion
   local TEST_FILE="${TMP_DIR}/test_download.txt"
   
-  # Mock wget to create a file and simulate download time
-  function wget() {
-    echo "Mock wget: downloading to $2"
+  # Mock curl to create a file and simulate download time
+  function curl() {
+    # Extract output file from -o argument
+    local output_file=""
+    local prev_arg=""
+    for arg in "$@"; do
+      if [[ "${prev_arg}" == "-o" ]]; then
+        output_file="${arg}"
+      fi
+      prev_arg="${arg}"
+    done
+    echo "Mock curl: downloading to ${output_file}"
     sleep 0.1  # Simulate download time
-    echo "Downloaded content" > "$2"
+    echo "Downloaded content" > "${output_file}"
     return 0
   }
   
-  # Test the direct wget command format used in the script
-  run wget -O "${TEST_FILE}" "https://example.com"
+  # Test the direct curl command format used in the script
+  run curl -s -o "${TEST_FILE}" "https://example.com"
   
   [[ "${status}" -eq 0 ]]
   [[ -f "${TEST_FILE}" ]]
@@ -158,22 +167,31 @@ EOF
   local DOWNLOAD_BASE_DELAY=5
   local DOWNLOAD_SUCCESS=false
   
-  # Mock wget that fails first two times, succeeds on third
-  function wget() {
+  # Mock curl that fails first two times, succeeds on third
+  function curl() {
     RETRY_COUNT=$((RETRY_COUNT + 1))
+    # Extract output file from -o argument
+    local output_file=""
+    local prev_arg=""
+    for arg in "$@"; do
+      if [[ "${prev_arg}" == "-o" ]]; then
+        output_file="${arg}"
+      fi
+      prev_arg="${arg}"
+    done
     if [[ ${RETRY_COUNT} -eq 3 ]]; then
-      echo "Mock wget: success on attempt ${RETRY_COUNT}"
-      echo "Downloaded content" > "$2"
+      echo "Mock curl: success on attempt ${RETRY_COUNT}"
+      echo "Downloaded content" > "${output_file}"
       return 0
     else
-      echo "Mock wget: failed on attempt ${RETRY_COUNT}"
+      echo "Mock curl: failed on attempt ${RETRY_COUNT}"
       return 1
     fi
   }
   
   # Simulate retry logic
   while [[ ${RETRY_COUNT} -lt ${DOWNLOAD_MAX_RETRIES} ]]; do
-    if wget -O "${TEST_FILE}" "https://example.com"; then
+    if curl -s -o "${TEST_FILE}" "https://example.com"; then
       if [[ -f "${TEST_FILE}" ]] && [[ -s "${TEST_FILE}" ]]; then
         DOWNLOAD_SUCCESS=true
         break

@@ -10,19 +10,19 @@ Usage
    export PATH="$(pwd)/tests/mock_commands:$PATH"
 
 2. Run your scripts/tests as usual. The mocks will intercept calls to tools
-   such as wget and curl and produce deterministic fixture outputs.
+   such as curl and produce deterministic fixture outputs.
 
 Fixtures
 
 - JSON and XML fixtures are located under tests/fixtures/command/extra/.
   The mocks will try to resolve fixtures automatically from URLs.
   Examples (if the file exists under tests/fixtures/command/extra/):
-  - curl/wget .../notes/3394115.json -> 3394115.json
-  - curl/wget .../countries -> countries
-  - curl/wget .../maritimes -> maritimes
-  - curl/wget .../OSM-notes-API.xml -> OSM-notes-API.xml
-  - curl/wget .../apiCall_1.xml -> apiCall_1.xml
-  - curl/wget .../mockPlanetDump.osn.xml -> mockPlanetDump.osn.xml
+  - curl .../notes/3394115.json -> 3394115.json
+  - curl .../countries -> countries
+  - curl .../maritimes -> maritimes
+  - curl .../OSM-notes-API.xml -> OSM-notes-API.xml
+  - curl .../apiCall_1.xml -> apiCall_1.xml
+  - curl .../mockPlanetDump.osn.xml -> mockPlanetDump.osn.xml
 
 Environment
 

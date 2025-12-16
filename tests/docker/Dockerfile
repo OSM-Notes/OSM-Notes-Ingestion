@@ -1,6 +1,6 @@
 # Dockerfile for OSM-Notes-profile Test Environment
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-15
 
 FROM ubuntu:22.04
 
@@ -11,7 +11,6 @@ ENV TZ=UTC
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    wget \
     git \
     build-essential \
     libxml2-dev \
@@ -48,7 +47,7 @@ RUN git clone --depth 1 https://github.com/bats-core/bats-support.git /usr/local
     git clone --depth 1 https://github.com/bats-core/bats-assert.git /usr/local/lib/bats-assert
 
 # Install shfmt
-RUN wget -O /usr/local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64 && \
+RUN curl -sSL -o /usr/local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64 && \
     chmod +x /usr/local/bin/shfmt
 
 # Install additional tools

@@ -349,7 +349,7 @@ EOF
  [[ "${API_URL}" != *" "* ]]
  [[ "${API_URL}" == *"from=2025-12-09T04:33:04Z"* ]]
 
- # Should be usable in curl/wget
+ # Should be usable in curl
  [[ "${API_URL}" =~ ^https://.*from=[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]
 }
 

@@ -15,12 +15,12 @@ teardown() {
  rm -rf "${TMP_DIR}"
 }
 
-@test "Overpass wget includes User-Agent header when set" {
+@test "Overpass curl includes User-Agent header when set" {
  # Capture built operation and create mock JSON file
  function __retry_file_operation() {
   echo "$1" > "${TMP_DIR}/overpass_cmd.txt"
   # Extract JSON file path from command and create a mock JSON file
-  # The function uses curl with -o (lowercase), not wget with -O (uppercase)
+  # The function uses curl with -o (lowercase) for output file
   local CMD="$1"
   local JSON_FILE="${JSON_FILE_LOCAL}"
   

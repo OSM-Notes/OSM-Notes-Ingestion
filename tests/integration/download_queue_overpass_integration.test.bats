@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # Integration tests for download queue with real Overpass API
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-28
+# Version: 2025-12-15
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -58,7 +58,7 @@ out;
 EOF
 
   # Download with queue system
-  local OPERATION="wget -O '${JSON_FILE}' --post-file='${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
+  local OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
 
   # Use run to capture output
   run __retry_file_operation "${OPERATION}" 3 2 "" "true"
@@ -129,7 +129,7 @@ rel(${ID});
 out;
 EOF
 
-   local OPERATION="wget -O '${JSON_FILE}' --post-file='${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
+   local OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
    local START_TIME
    START_TIME=$(date +%s)
 
@@ -174,7 +174,7 @@ out;
 EOF
 
  # Try download with queue
- local OPERATION="wget -O '${JSON_FILE}' --post-file='${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
+  local OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
 
  # Check if functions are available
  if ! declare -f __retry_file_operation > /dev/null 2>&1; then
@@ -301,7 +301,7 @@ EOF
  # Simulate __processBoundary call with queue
  local MAX_RETRIES=3
  local BASE_DELAY=2
- local OVERPASS_OPERATION="wget -O '${JSON_FILE}' --post-file='${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
+  local OVERPASS_OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
 
  run __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES}" "${BASE_DELAY}" "" "true"
 

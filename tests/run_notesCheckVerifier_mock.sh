@@ -46,7 +46,7 @@ show_help() {
 Script to run notesCheckVerifier.sh in full mock mode
 
 This script sets up a complete mock environment where:
-  - Internet downloads are mocked (wget, aria2c)
+  - Internet downloads are mocked (curl, aria2c)
   - Database operations are mocked (psql)
   - Email sending is mocked (mutt)
   - All processing runs without external dependencies
@@ -163,7 +163,7 @@ setup_mock_environment() {
 
   # Create mock commands if they don't exist
   if [[ ! -f "${MOCK_COMMANDS_DIR}/psql" ]] || \
-     [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]] || \
+     [[ ! -f "${MOCK_COMMANDS_DIR}/curl" ]] || \
      [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]] || \
      [[ ! -f "${MOCK_COMMANDS_DIR}/mutt" ]]; then
     log_info "Creating mock commands..."

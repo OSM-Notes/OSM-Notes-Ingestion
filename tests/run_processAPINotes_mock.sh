@@ -46,7 +46,7 @@ show_help() {
 Script to run processAPINotes.sh in full mock mode
 
 This script sets up a complete mock environment where:
-  - Internet downloads are mocked (wget, aria2c)
+  - Internet downloads are mocked (curl, aria2c)
   - Database operations are mocked (psql)
   - All processing runs without external dependencies
 
@@ -256,7 +256,7 @@ run_processAPINotes() {
   # Make script executable
   chmod +x "${process_script}"
 
-  # Export MOCK_NOTES_COUNT so wget mock can use it
+  # Export MOCK_NOTES_COUNT so curl mock can use it
   if [[ -n "${MOCK_NOTES_COUNT:-}" ]]; then
     export MOCK_NOTES_COUNT
     log_info "MOCK_NOTES_COUNT set to: ${MOCK_NOTES_COUNT}"

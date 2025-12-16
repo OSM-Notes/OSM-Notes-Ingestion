@@ -46,7 +46,7 @@ show_help() {
 Script to run updateCountries.sh in full mock mode
 
 This script sets up a complete mock environment where:
-  - Internet downloads are mocked (wget, aria2c)
+  - Internet downloads are mocked (curl, aria2c)
   - Database operations are mocked (psql)
   - Geographic conversions are mocked (osmtogeojson, ogr2ogr)
   - All processing runs without external dependencies
@@ -158,7 +158,7 @@ setup_mock_environment() {
 
   # Create mock commands if they don't exist
   if [[ ! -f "${MOCK_COMMANDS_DIR}/psql" ]] || \
-     [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]] || \
+     [[ ! -f "${MOCK_COMMANDS_DIR}/curl" ]] || \
      [[ ! -f "${MOCK_COMMANDS_DIR}/osmtogeojson" ]]; then
     log_info "Creating mock commands..."
     bash "${SETUP_MOCK_SCRIPT}" setup

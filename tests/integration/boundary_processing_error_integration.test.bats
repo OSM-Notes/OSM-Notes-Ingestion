@@ -7,7 +7,7 @@
 # 3. Boundary processing failures
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-13
+# Version: 2025-12-15
 
 load ../test_helper
 
@@ -157,7 +157,7 @@ EOF
 
   # Test Overpass API call for invalid ID
   echo "Testing invalid boundary ID: ${id}..."
-  run wget -O "$mock_json" --post-file="$mock_query" "https://overpass-api.de/api/interpreter" 2>&1
+  run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "$mock_json" --data-binary @"$mock_query" "https://overpass-api.de/api/interpreter" 2>&1
 
   tested_count=$((tested_count + 1))
 
@@ -218,7 +218,7 @@ EOF
 
   # Test Overpass API call for valid ID
   echo "Testing valid boundary ID: ${id}..."
-  run wget -O "$mock_json" --post-file="$mock_query" "https://overpass-api.de/api/interpreter" 2>&1
+  run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "$mock_json" --data-binary @"$mock_query" "https://overpass-api.de/api/interpreter" 2>&1
 
   tested_count=$((tested_count + 1))
 

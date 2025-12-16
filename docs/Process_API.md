@@ -1755,7 +1755,7 @@ psql -d "${DBNAME}" -c "SELECT 1;"
 sudo journalctl -u osm-notes-api-daemon | grep -i "check\|api\|notes"
 
 # Verify API is accessible
-wget -q -O /tmp/test.xml "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1"
+curl -s -o /tmp/test.xml "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1"
 
 # Check last timestamp
 psql -d "${DBNAME}" -c "SELECT * FROM max_note_timestamp;"

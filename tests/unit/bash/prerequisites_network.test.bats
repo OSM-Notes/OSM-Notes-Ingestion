@@ -43,23 +43,24 @@ setup() {
 
 @test "enhanced __checkPrereqsCommands should validate internet connectivity" {
  # Test internet connectivity
- run wget --timeout=10 --tries=1 --spider https://www.google.com
+ run curl -s --max-time 10 -I https://www.google.com
  [ "$status" -eq 0 ]
 }
 
 @test "enhanced __checkPrereqsCommands should validate OSM API accessibility" {
- # Mock wget for OSM API test
- wget() {
+ # Mock curl for OSM API test
+ curl() {
   if [[ "$*" == *"api.openstreetmap.org"* ]]; then
    echo "HTTP/1.1 200 OK"
    return 0
   else
-   command wget "$@"
+   command curl "$@"
   fi
  }
+ export -f curl
 
  # Test OSM API accessibility
- run wget --timeout=10 --tries=1 --spider https://api.openstreetmap.org/api/0.6/notes
+ run curl -s --max-time 10 -I https://api.openstreetmap.org/api/0.6/notes
  [ "$status" -eq 0 ]
 }
 

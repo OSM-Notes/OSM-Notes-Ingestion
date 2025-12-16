@@ -53,7 +53,7 @@ The `run_processAPINotes_mock.sh` script performs the following:
    - Removes `/tmp/processPlanetNotes.lock` if it exists
 
 2. **Sets up complete mock environment:**
-   - Creates mock commands if they don't exist (wget, aria2c, psql, pgrep, etc.)
+   - Creates mock commands if they don't exist (curl, aria2c, psql, pgrep, etc.)
    - Activates mock environment by adding mock commands to PATH
    - The `pgrep` mock always returns that no processes are running
 
@@ -73,7 +73,7 @@ The `run_processAPINotes_mock.sh` script performs the following:
 
 ### Mock Commands Used
 
-- **wget**: Simulates HTTP downloads, creates mock XML files
+- **curl**: Simulates HTTP downloads, creates mock XML files
 - **aria2c**: Simulates downloads with aria2c, creates mock files
 - **psql**: Simulates PostgreSQL database operations. The first time it simulates that base tables don't exist to allow the REAL `processPlanetNotes.sh --base` to execute
 - **pgrep**: Always returns that no processes are running (allows execution)
@@ -132,7 +132,7 @@ Run `processAPINotes.sh` in hybrid mock mode, using a real PostgreSQL database b
 - PostgreSQL server running and accessible
 - PostgreSQL client (psql) installed
 - PostGIS extension available
-- Mock scripts in `tests/mock_commands/` (wget, aria2c, pgrep)
+- Mock scripts in `tests/mock_commands/` (curl, aria2c, pgrep)
 - Setup script `tests/setup_hybrid_mock_environment.sh`
 
 ### Basic Usage
@@ -180,7 +180,7 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
    - Removes `/tmp/processPlanetNotes.lock` if it exists
 
 4. **Sets up hybrid mock environment:**
-   - Creates mock commands if they don't exist (wget, aria2c, pgrep)
+   - Creates mock commands if they don't exist (curl, aria2c, pgrep)
    - Activates hybrid mock environment (only internet downloads mocked)
    - Ensures real `psql` is used (not mock)
 
@@ -201,7 +201,7 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
 
 ### Mock Commands Used
 
-- **wget**: Simulates HTTP downloads, creates mock XML files
+- **curl**: Simulates HTTP downloads, creates mock XML files
 - **aria2c**: Simulates downloads with aria2c, creates mock files
 - **pgrep**: Always returns that no processes are running (allows execution)
 - **psql**: Uses REAL PostgreSQL client (not mocked)
@@ -296,7 +296,7 @@ Both scripts execute `processAPINotes.sh` twice to test both scenarios:
 | Feature | Mock Mode | Hybrid Mode |
 |---------|-----------|-------------|
 | **Database** | Mocked (psql mock) | Real PostgreSQL |
-| **Internet Downloads** | Mocked (wget, aria2c) | Mocked (wget, aria2c) |
+| **Internet Downloads** | Mocked (curl, aria2c) | Mocked (curl, aria2c) |
 | **Base Tables** | Simulated with marker file | Real database tables |
 | **Data Persistence** | No (mock only) | Yes (real database) |
 | **Setup Time** | Fast | Medium |
@@ -457,7 +457,7 @@ which psql
 ### Hybrid Mode
 
 1. **Real database is used:** All database operations use the real PostgreSQL database. Data will persist between executions.
-2. **Internet downloads are mocked:** All internet downloads (wget, aria2c) are simulated using mock files.
+2. **Internet downloads are mocked:** All internet downloads (curl, aria2c) are simulated using mock files.
 3. **Base tables are dropped:** Before the first execution, base tables are dropped to ensure `processPlanetNotes.sh --base` is executed.
 4. **Database must exist or be creatable:** The script will create the database if it doesn't exist, but you need proper permissions.
 5. **PostGIS required:** The database must support PostGIS extension for the scripts to work correctly.

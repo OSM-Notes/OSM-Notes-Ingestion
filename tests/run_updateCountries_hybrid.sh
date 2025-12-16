@@ -56,7 +56,7 @@ show_help() {
 Script to run updateCountries.sh in hybrid mode (real DB, mocked downloads)
 
 This script sets up a hybrid mock environment where:
-  - Internet downloads are mocked (wget, aria2c)
+  - Internet downloads are mocked (curl, aria2c)
   - Database operations use REAL PostgreSQL
   - Geographic conversions use REAL ogr2ogr (to import to real DB)
   - All processing runs with real database but without internet downloads
@@ -254,7 +254,7 @@ setup_hybrid_mock_environment() {
   fi
 
   # Create mock commands if they don't exist
-  if [[ ! -f "${MOCK_COMMANDS_DIR}/wget" ]] || \
+  if [[ ! -f "${MOCK_COMMANDS_DIR}/curl" ]] || \
      [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
     log_info "Creating mock commands..."
     bash "${SETUP_HYBRID_SCRIPT}" setup
@@ -272,7 +272,7 @@ EOF
   fi
 
   # Ensure all mock commands are executable
-  chmod +x "${MOCK_COMMANDS_DIR}/wget" 2>/dev/null || true
+  chmod +x "${MOCK_COMMANDS_DIR}/curl" 2>/dev/null || true
   chmod +x "${MOCK_COMMANDS_DIR}/aria2c" 2>/dev/null || true
   chmod +x "${MOCK_COMMANDS_DIR}/pgrep" 2>/dev/null || true
 
@@ -293,7 +293,7 @@ EOF
 }
 
 # Function to ensure real psql and ogr2ogr are used (not mock)
-# This function ensures psql and ogr2ogr are real while keeping aria2c and wget mocks active
+# This function ensures psql and ogr2ogr are real while keeping aria2c and curl mocks active
 ensure_real_commands() {
   log_info "Ensuring real PostgreSQL client and ogr2ogr are used..."
 
@@ -375,8 +375,8 @@ ensure_real_commands() {
     chmod +x "${hybrid_mock_dir}/pgrep"
   fi
 
-  # Set PATH: hybrid mock dir first (for aria2c/wget), then real command dirs, then rest
-  # This ensures mock aria2c/wget are found before real ones, but real psql/ogr2ogr are found
+  # Set PATH: hybrid mock dir first (for aria2c/curl), then real command dirs, then rest
+  # This ensures mock aria2c/curl are found before real ones, but real psql/ogr2ogr are found
   export PATH="${hybrid_mock_dir}:${REAL_PSQL_DIR}:${REAL_OGR2OGR_DIR}:${clean_path}"
   hash -r 2> /dev/null || true
 
@@ -559,7 +559,7 @@ run_updateCountries() {
   local clean_path
   clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
   
-  # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, wget, pgrep mocks)
+  # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, curl, pgrep mocks)
   # but ensure real psql and ogr2ogr directories are also in PATH
   if [[ -n "${HYBRID_MOCK_DIR:-}" ]] && [[ -d "${HYBRID_MOCK_DIR}" ]]; then
     # Use pre-calculated real command directories (exported by ensure_real_commands)

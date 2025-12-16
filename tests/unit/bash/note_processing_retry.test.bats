@@ -104,24 +104,24 @@ teardown() {
 @test "__retry_network_operation should succeed with valid URL" {
  local OUTPUT_FILE="${TEST_DIR}/output.txt"
 
- # Create a mock wget script
- local MOCK_WGET="${TEST_DIR}/wget"
- cat > "${MOCK_WGET}" << 'EOF'
+ # Create a mock curl script
+ local MOCK_CURL="${TEST_DIR}/curl"
+ cat > "${MOCK_CURL}" << 'EOF'
 #!/bin/bash
-# Find the output file argument (-O)
+# Find the output file argument (-o)
 OUTPUT_ARG=""
 for i in "$@"; do
- if [[ "${OUTPUT_ARG}" == "-O" ]]; then
+ if [[ "${OUTPUT_ARG}" == "-o" ]]; then
   echo "mock content" > "$i"
   exit 0
  fi
- if [[ "$i" == "-O" ]]; then
-  OUTPUT_ARG="-O"
+ if [[ "$i" == "-o" ]]; then
+  OUTPUT_ARG="-o"
  fi
 done
 exit 1
 EOF
- chmod +x "${MOCK_WGET}"
+ chmod +x "${MOCK_CURL}"
 
  # Add mock to PATH
  export PATH="${TEST_DIR}:${PATH}"
@@ -136,9 +136,9 @@ EOF
  local ATTEMPT_FILE="${TEST_DIR}/attempts.txt"
  rm -f "${ATTEMPT_FILE}"
 
- # Create a mock wget script that fails twice then succeeds
- local MOCK_WGET="${TEST_DIR}/wget"
- cat > "${MOCK_WGET}" << EOF
+ # Create a mock curl script that fails twice then succeeds
+ local MOCK_CURL="${TEST_DIR}/curl"
+ cat > "${MOCK_CURL}" << EOF
 #!/bin/bash
 ATTEMPT_FILE="${ATTEMPT_FILE}"
 if [[ -f "\${ATTEMPT_FILE}" ]]; then
@@ -149,22 +149,22 @@ fi
 ATTEMPT=\$((ATTEMPT + 1))
 echo "\${ATTEMPT}" > "\${ATTEMPT_FILE}"
 
-# Find the output file argument (-O)
+# Find the output file argument (-o)
 OUTPUT_ARG=""
 for i in "\$@"; do
- if [[ "\${OUTPUT_ARG}" == "-O" ]]; then
+ if [[ "\${OUTPUT_ARG}" == "-o" ]]; then
   if [[ \${ATTEMPT} -ge 3 ]]; then
    echo "content" > "\$i"
    exit 0
   fi
  fi
- if [[ "\$i" == "-O" ]]; then
-  OUTPUT_ARG="-O"
+ if [[ "\$i" == "-o" ]]; then
+  OUTPUT_ARG="-o"
  fi
 done
 exit 1
 EOF
- chmod +x "${MOCK_WGET}"
+ chmod +x "${MOCK_CURL}"
 
  # Add mock to PATH
  export PATH="${TEST_DIR}:${PATH}"

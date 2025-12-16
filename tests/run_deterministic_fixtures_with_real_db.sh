@@ -2,7 +2,7 @@
 
 # Script to run deterministic fixtures with a real PostgreSQL database
 # This script:
-# 1. Sets up mock environment for downloads (aria2c, wget, bzip2)
+# 1. Sets up mock environment for downloads (aria2c, curl, bzip2)
 # 2. Uses real PostgreSQL database instead of mock psql
 # 3. Configures environment variables for database connection
 #
@@ -122,7 +122,7 @@ setup_test_database() {
 setup_mock_environment() {
  log_info "Setting up mock environment (downloads only)..."
  
- # Setup hybrid mock environment (includes aria2c, wget, bzip2, but NOT psql)
+ # Setup hybrid mock environment (includes aria2c, curl, bzip2, but NOT psql)
  if [[ -f "${SCRIPT_DIR}/setup_hybrid_mock_environment.sh" ]]; then
   source "${SCRIPT_DIR}/setup_hybrid_mock_environment.sh"
  else
@@ -273,7 +273,7 @@ main() {
  echo "  ./bin/cleanupAll.sh -a && ./bin/process/processAPINotes.sh"
  echo
  log_info "The scripts will use:"
- log_info "  - Mock commands for downloads (aria2c, wget)"
+ log_info "  - Mock commands for downloads (aria2c, curl)"
  log_info "  - Real PostgreSQL database: ${DBNAME}"
  log_info "  - Real psql client"
 
