@@ -2,25 +2,25 @@
 
 # Setup hybrid mock environment for testing (only internet downloads mocked)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-16
 
 set -euo pipefail
 
 # Colors for output (only define if not already set)
 if [[ -z "${RED:-}" ]]; then
-  RED='\033[0;31m'
+ RED='\033[0;31m'
 fi
 if [[ -z "${GREEN:-}" ]]; then
-  GREEN='\033[0;32m'
+ GREEN='\033[0;32m'
 fi
 if [[ -z "${YELLOW:-}" ]]; then
-  YELLOW='\033[1;33m'
+ YELLOW='\033[1;33m'
 fi
 if [[ -z "${BLUE:-}" ]]; then
-  BLUE='\033[0;34m'
+ BLUE='\033[0;34m'
 fi
 if [[ -z "${NC:-}" ]]; then
-  NC='\033[0m' # No Color
+ NC='\033[0m' # No Color
 fi
 
 # Logging functions
@@ -42,10 +42,10 @@ log_error() {
 
 # Configuration (only define if not already set)
 if [[ -z "${SCRIPT_DIR:-}" ]]; then
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 fi
 if [[ -z "${MOCK_COMMANDS_DIR:-}" ]]; then
-  MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
+ MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
 fi
 
 # Function to setup hybrid mock environment
@@ -55,9 +55,9 @@ setup_hybrid_mock_environment() {
  # Create mock commands directory if it doesn't exist
  mkdir -p "${MOCK_COMMANDS_DIR}"
 
-# Create only internet-related mock commands
-create_mock_curl
-create_mock_aria2c
+ # Create only internet-related mock commands
+ create_mock_curl
+ create_mock_aria2c
  # Create mock ogr2ogr for transparent country data insertion
  create_mock_ogr2ogr
 
@@ -78,7 +78,7 @@ create_mock_curl() {
  # Copy the curl mock from mock_commands directory
  if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
   # Use existing mock if available
-  chmod +x "${MOCK_COMMANDS_DIR}/curl" 2>/dev/null || true
+  chmod +x "${MOCK_COMMANDS_DIR}/curl" 2> /dev/null || true
  else
   # Create a basic curl mock if file doesn't exist
   cat > "${MOCK_COMMANDS_DIR}/curl" << 'EOF'
@@ -127,6 +127,16 @@ INNER_EOF
  </note>
 </osm>
 INNER_EOF
+  elif [[ "$url" == *"planet-notes"* ]] || [[ "$url" == *".osn"* ]]; then
+   # For Planet Notes format: use <osm-notes> structure
+   cat >"$output_file" <<'INNER_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm-notes>
+ <note lat="40.4168" lon="-3.7038" id="123456" created_at="2025-12-10T10:30:00Z">
+  <comment action="opened" timestamp="2025-12-10T10:30:00Z" uid="12345" user="testuser">Test note</comment>
+ </note>
+</osm-notes>
+INNER_EOF
   elif [[ "$url" == *"api.openstreetmap.org"* ]] || [[ "$url" == *"/api/0.6"* ]]; then
    # For OSM API calls: use <osm> structure
    cat >"$output_file" <<'INNER_EOF'
@@ -141,27 +151,15 @@ INNER_EOF
 </osm>
 INNER_EOF
   else
-   # For generic XML URLs (like example.com/test.xml): use <osm> structure with API format
-   # This format is compatible with extract_notes.awk which supports both Planet and API formats
+   # For generic XML URLs (like example.com/test.xml): use <osm-notes> structure with Planet format
+   # This format matches what the tests expect (osm-notes root element)
    cat >"$output_file" <<'INNER_EOF'
 <?xml version="1.0" encoding="UTF-8"?>
-<osm version="0.6" generator="OpenStreetMap server">
- <note lat="40.4168" lon="-3.7038">
-  <id>123456</id>
-  <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
-  <date_created>2025-12-10 10:30:00 UTC</date_created>
-  <status>open</status>
-  <comments>
-   <comment>
-    <date>2025-12-10 10:30:00 UTC</date>
-    <uid>12345</uid>
-    <user>testuser</user>
-    <action>opened</action>
-    <text>Test note</text>
-   </comment>
-  </comments>
+<osm-notes>
+ <note lat="40.4168" lon="-3.7038" id="123456" created_at="2025-12-10T10:30:00Z">
+  <comment action="opened" timestamp="2025-12-10T10:30:00Z" uid="12345" user="testuser">Test note</comment>
  </note>
-</osm>
+</osm-notes>
 INNER_EOF
   fi
  elif [[ "$url" == *.json* ]] || [[ "$url" == *"overpass"* ]] || [[ -n "${DATA_FILE:-}" ]]; then
@@ -248,7 +246,7 @@ fi
 exit 0
 EOF
   chmod +x "${MOCK_COMMANDS_DIR}/curl"
-  fi
+ fi
 }
 
 # Function to create mock aria2c
@@ -836,47 +834,47 @@ activate_hybrid_mock_environment() {
  # Define awkproc as a wrapper around awk
  # awkproc mimics an XSLT processor style interface for AWK scripts
  awkproc() {
-   # Parse arguments
-   local awk_file=""
-   local input_file=""
-   
-   # Parse --maxdepth and --stringparam flags
-   while [[ $# -gt 0 ]]; do
-     case "$1" in
-       --maxdepth)
-         # Ignore maxdepth parameter for AWK
-         shift 2
-         ;;
-       --stringparam)
-         # Ignore stringparam for AWK (we don't use it in our AWK scripts)
-         shift 2
-         ;;
-       -o)
-         # Ignore output file parameter for AWK (we use redirection instead)
-         shift 2
-         ;;
-       *.awk)
-         awk_file="$1"
-         shift
-         ;;
-       *)
-         if [[ -z "$input_file" ]]; then
-           input_file="$1"
-         fi
-         shift
-         ;;
-     esac
-   done
-   
-   # Run awk with the input file
-   if [[ -n "$awk_file" ]] && [[ -n "$input_file" ]]; then
-     awk -f "$awk_file" "$input_file"
-   elif [[ -n "$awk_file" ]]; then
-     awk -f "$awk_file"
-   else
-     echo "Error: awkproc requires an AWK file" >&2
-     return 1
-   fi
+  # Parse arguments
+  local awk_file=""
+  local input_file=""
+
+  # Parse --maxdepth and --stringparam flags
+  while [[ $# -gt 0 ]]; do
+   case "$1" in
+   --maxdepth)
+    # Ignore maxdepth parameter for AWK
+    shift 2
+    ;;
+   --stringparam)
+    # Ignore stringparam for AWK (we don't use it in our AWK scripts)
+    shift 2
+    ;;
+   -o)
+    # Ignore output file parameter for AWK (we use redirection instead)
+    shift 2
+    ;;
+   *.awk)
+    awk_file="$1"
+    shift
+    ;;
+   *)
+    if [[ -z "$input_file" ]]; then
+     input_file="$1"
+    fi
+    shift
+    ;;
+   esac
+  done
+
+  # Run awk with the input file
+  if [[ -n "$awk_file" ]] && [[ -n "$input_file" ]]; then
+   awk -f "$awk_file" "$input_file"
+  elif [[ -n "$awk_file" ]]; then
+   awk -f "$awk_file"
+  else
+   echo "Error: awkproc requires an AWK file" >&2
+   return 1
+  fi
  }
 
  # Export the function so it's available in subshells
@@ -887,7 +885,7 @@ activate_hybrid_mock_environment() {
  export TEST_MODE=true
  # Only set DBNAME if not already set (allow override from calling script)
  if [[ -z "${DBNAME:-}" ]]; then
-   export DBNAME="osm_notes" # Use real database name
+  export DBNAME="osm_notes" # Use real database name
  fi
  export DB_USER="${DB_USER:-postgres}"
  export DB_PASSWORD="${DB_PASSWORD:-}"
@@ -1001,4 +999,3 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   ;;
  esac
 fi
-
