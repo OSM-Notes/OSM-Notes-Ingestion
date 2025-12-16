@@ -437,10 +437,10 @@ __main() {
 
  # Validate database connection
  __logi "Connecting to database: ${DBNAME}"
-if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+ if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "Cannot connect to database: ${DBNAME}"
   exit "${ERROR_GENERAL}"
-fi
+ fi
 
  # Create output directory
  mkdir -p "${OUTPUT_DIR}"
@@ -458,18 +458,18 @@ fi
  echo ""
 
  # Find and run all analysis scripts
-if [[ ! -d "${ANALYSIS_DIR}" ]]; then
+ if [[ ! -d "${ANALYSIS_DIR}" ]]; then
   __loge "Analysis directory not found: ${ANALYSIS_DIR}"
   exit "${ERROR_MISSING_LIBRARY}"
-fi
+ fi
 
  local ANALYSIS_SCRIPTS
  mapfile -t ANALYSIS_SCRIPTS < <(find "${ANALYSIS_DIR}" -name "analyze_*.sql" -type f | sort)
 
-if [[ ${#ANALYSIS_SCRIPTS[@]} -eq 0 ]]; then
+ if [[ ${#ANALYSIS_SCRIPTS[@]} -eq 0 ]]; then
   __loge "No analysis scripts found in ${ANALYSIS_DIR}"
   exit "${ERROR_MISSING_LIBRARY}"
-fi
+ fi
 
  __logi "Found ${#ANALYSIS_SCRIPTS[@]} analysis script(s)"
  echo ""

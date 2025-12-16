@@ -410,8 +410,8 @@ function __processCountries() {
    __logi "Using repository backup countries boundary from ${REPO_COUNTRIES_BACKUP}"
    GEOJSON_FILE="${RESOLVED_BACKUP}"
   fi
-fi
-if [[ -z "${GEOJSON_FILE:-}" ]]; then
+ fi
+ if [[ -z "${GEOJSON_FILE:-}" ]]; then
   __logi "No backup found, downloading countries boundary from Overpass..."
   if __retry_overpass_api "[out:json];relation[\"admin_level\"=\"2\"][\"boundary\"=\"administrative\"];out geom;" "${COUNTRIES_FILE}.json" 3 5 300; then
    if [[ -s "${COUNTRIES_FILE}.json" ]]; then
@@ -485,8 +485,8 @@ function __processMaritimes() {
    __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
    GEOJSON_FILE="${RESOLVED_BACKUP}"
   fi
-fi
-if [[ -z "${GEOJSON_FILE:-}" ]]; then
+ fi
+ if [[ -z "${GEOJSON_FILE:-}" ]]; then
   __logi "No backup found, downloading maritime boundaries from Overpass..."
   if __retry_overpass_api "[out:json];relation[\"boundary\"=\"maritime\"];out geom;" "${MARITIMES_FILE}.json" 3 5 300; then
    if [[ -s "${MARITIMES_FILE}.json" ]]; then

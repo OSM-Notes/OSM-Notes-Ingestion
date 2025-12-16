@@ -300,7 +300,7 @@ function __db_simple_pool_init() {
   export PGPASSWORD="${DB_PASSWORD}"
  fi
  export PGAPPNAME="${PGAPPNAME:-${BASENAME:-psql}}"
- 
+
  # Start persistent psql process in background with named pipes
  # We use background process instead of coproc to avoid issues with script command
  # The process reads from PIPE_IN and writes to PIPE_OUT

@@ -74,7 +74,6 @@ function __countXmlNotesAPI() {
  echo "${COUNT}"
 }
 
-
 # Get new notes from API
 function __getNewNotesFromApi() {
  __log_start

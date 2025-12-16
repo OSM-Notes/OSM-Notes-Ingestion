@@ -1604,7 +1604,7 @@ EOF
  TEMP_API_RESPONSE=$(mktemp)
 
  # Download API versions response to check version
- if ! timeout 15 curl -s --max-time 15 "${API_VERSIONS_URL}" > "${TEMP_API_RESPONSE}" 2>/dev/null; then
+ if ! timeout 15 curl -s --max-time 15 "${API_VERSIONS_URL}" > "${TEMP_API_RESPONSE}" 2> /dev/null; then
   rm -f "${TEMP_API_RESPONSE}"
   __loge "ERROR: Cannot access OSM API at ${API_VERSIONS_URL}."
   __loge "Please check your internet connection and firewall settings."

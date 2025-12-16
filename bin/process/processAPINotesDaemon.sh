@@ -349,7 +349,7 @@ fi
 function __validateHistoricalDataAndRecover {
  __log_start
  __logi "Base tables found. Validating historical data..."
- 
+
  # Check if base tables exist before validating
  # BASE_TABLES_EXIST=0 means tables exist, 1 means missing
  if [[ "${BASE_TABLES_EXIST:-1}" -ne 0 ]]; then
@@ -357,7 +357,7 @@ function __validateHistoricalDataAndRecover {
   __log_finish
   return 0
  fi
- 
+
  # Validate historical data (equivalent to __checkHistoricalData in processAPINotes.sh)
  # Note: __checkHistoricalData is defined in functionsProcess.sh and validates
  # that we have at least 30 days of historical data
@@ -376,16 +376,16 @@ function __validateHistoricalDataAndRecover {
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
   fi; }' ERR
- 
+
  if [[ "${HIST_VALIDATION_RESULT}" -ne 0 ]]; then
   __logw "Historical data validation failed, but continuing in daemon mode"
   __logw "This may indicate a fresh database or incomplete historical data"
   __log_finish
   return 0
  fi
- 
+
  __logi "Historical data validation passed. ProcessAPI can continue safely."
- 
+
  # Recover from gaps (equivalent to __recover_from_gaps in processAPINotes.sh)
  # Note: __recover_from_gaps is defined in processAPINotes.sh and is available
  # since we source that script at line 123
@@ -393,7 +393,7 @@ function __validateHistoricalDataAndRecover {
   __logw "Gap recovery check failed, but continuing in daemon mode"
   __logw "This will be retried on next cycle"
  fi
- 
+
  __log_finish
 }
 
@@ -555,7 +555,7 @@ function __daemon_init {
  local ENUMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
  if [[ -f "${ENUMS_SCRIPT}" ]]; then
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-   -f "${ENUMS_SCRIPT}" 2>/dev/null || {
+   -f "${ENUMS_SCRIPT}" 2> /dev/null || {
    __logw "Failed to create ENUMs (may already exist)"
   }
   __logi "ENUMs ensured (created or already exist)"
@@ -687,24 +687,24 @@ function __process_api_data {
  TIMESTAMP_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'max_note_timestamp'" \
   2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
- 
+
  local TIMESTAMP_COUNT=0
  if [[ "${TIMESTAMP_TABLE_EXISTS}" == "1" ]]; then
   TIMESTAMP_COUNT=$(psql -d "${DBNAME}" -Atq -c \
    "SELECT COUNT(*) FROM max_note_timestamp" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
  fi
- 
+
  local NOTES_TABLE_EXISTS
  NOTES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notes'" \
   2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
- 
+
  local NOTES_COUNT=0
  if [[ "${NOTES_TABLE_EXISTS}" == "1" ]]; then
   NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
    "SELECT COUNT(*) FROM notes" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
  fi
- 
+
  # Activate Planet --base if database is empty:
  # 1. max_note_timestamp table doesn't exist OR is empty (no rows), OR
  # 2. LAST_PROCESSED_TIMESTAMP is empty, OR
@@ -713,18 +713,18 @@ function __process_api_data {
   __logw "Database appears to be empty (no max_note_timestamp or empty table)"
   __logw "Activating processPlanetNotes.sh --base to load initial data"
   __logi "Executing: ${NOTES_SYNC_SCRIPT} --base"
-  
+
   # Clean up any stale lock files
   local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
   if [[ -f "${PLANET_LOCK_FILE}" ]]; then
    __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
-   if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
-    if command -v sudo >/dev/null 2>&1; then
-     sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
+   if ! rm -f "${PLANET_LOCK_FILE}" 2> /dev/null; then
+    if command -v sudo > /dev/null 2>&1; then
+     sudo rm -f "${PLANET_LOCK_FILE}" 2> /dev/null || true
     fi
    fi
   fi
-  
+
   # Ensure required environment variables are set
   export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
   export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -732,11 +732,11 @@ function __process_api_data {
   export DB_USER="${DB_USER:-}"
   export DB_HOST="${DB_HOST:-}"
   export DB_PORT="${DB_PORT:-}"
-  
+
   # Execute processPlanetNotes.sh --base to load initial data
   "${NOTES_SYNC_SCRIPT}" --base
   local PLANET_BASE_EXIT_CODE=$?
-  
+
   if [[ ${PLANET_BASE_EXIT_CODE} -eq 0 ]]; then
    __logi "Planet base load completed successfully"
    # Ensure max_note_timestamp table exists after Planet load
@@ -796,7 +796,7 @@ function __process_api_data {
  # This function handles: validation, counting, processing, insertion
  # It's equivalent to: __validateAndProcessApiXml in processAPINotes.sh
  declare -i RESULT
- RESULT=$(wc -l < "${API_NOTES_FILE}" 2>/dev/null || echo "0")
+ RESULT=$(wc -l < "${API_NOTES_FILE}" 2> /dev/null || echo "0")
  if [[ "${RESULT}" -ne 0 ]]; then
   if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
    __validateApiNotesXMLFileComplete
@@ -818,10 +818,10 @@ function __process_api_data {
     if [[ -f "${PLANET_LOCK_FILE}" ]]; then
      __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
      # Try to remove with sudo if regular rm fails (permission issues)
-     if ! rm -f "${PLANET_LOCK_FILE}" 2>/dev/null; then
+     if ! rm -f "${PLANET_LOCK_FILE}" 2> /dev/null; then
       __logw "Could not remove lock file with regular rm, trying with sudo"
-      if command -v sudo >/dev/null 2>&1; then
-       sudo rm -f "${PLANET_LOCK_FILE}" 2>/dev/null || true
+      if command -v sudo > /dev/null 2>&1; then
+       sudo rm -f "${PLANET_LOCK_FILE}" 2> /dev/null || true
       else
        __logw "sudo not available, lock file may cause issues"
       fi
@@ -854,7 +854,7 @@ function __process_api_data {
      # Check if lock file permission issue was the cause
      if [[ -f "${PLANET_LOCK_FILE}" ]] && ! [[ -w "${PLANET_LOCK_FILE}" ]]; then
       __loge "Lock file permission issue detected: ${PLANET_LOCK_FILE}"
-      __loge "Lock file owner: $(stat -c '%U:%G' "${PLANET_LOCK_FILE}" 2>/dev/null || echo 'unknown')"
+      __loge "Lock file owner: $(stat -c '%U:%G' "${PLANET_LOCK_FILE}" 2> /dev/null || echo 'unknown')"
       __loge "Current user: $(whoami)"
      fi
      __log_finish
@@ -882,7 +882,7 @@ function __process_api_data {
   GAP_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'data_gaps'" \
    2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
-  
+
   if [[ "${GAP_TABLE_EXISTS}" == "1" ]]; then
    local GAP_QUERY="
      SELECT 
@@ -962,16 +962,16 @@ function __daemon_loop {
   PROCESSING_DURATION=0
   HAD_UPDATES=false
 
-      # Prepare API tables at the start of each cycle
-      # This ensures tables are clean before loading new data
-      # This is critical to prevent data accumulation across cycles
-      # Skip if base tables don't exist (they will be created by processPlanet --base)
-      if [[ "${BASE_TABLES_EXIST:-1}" -eq 0 ]]; then
-       __logd "Preparing API tables at start of cycle ${CYCLE_NUMBER}"
-       __prepareApiTables
-      else
-       __logd "Skipping API tables preparation - base tables missing, will be created by processPlanet --base"
-      fi
+  # Prepare API tables at the start of each cycle
+  # This ensures tables are clean before loading new data
+  # This is critical to prevent data accumulation across cycles
+  # Skip if base tables don't exist (they will be created by processPlanet --base)
+  if [[ "${BASE_TABLES_EXIST:-1}" -eq 0 ]]; then
+   __logd "Preparing API tables at start of cycle ${CYCLE_NUMBER}"
+   __prepareApiTables
+  else
+   __logd "Skipping API tables preparation - base tables missing, will be created by processPlanet --base"
+  fi
 
   # Check API for updates
   local PROCESSING_SUCCESS=false

@@ -507,7 +507,6 @@ function __ensureGetCountryFunction {
  __log_finish
 }
 
-
 # Validates API notes XML file completely (structure, dates, coordinates)
 # Parameters:
 #   None (uses global API_NOTES_FILE variable)
@@ -796,7 +795,6 @@ function __loadApiTextComments {
   -c "${SQL_CMD}"
  __log_finish
 }
-
 
 # Updates the refreshed value.
 function __updateLastValue {
@@ -1291,10 +1289,10 @@ function main() {
   __validateHistoricalDataAndRecover
  fi
 
-set -e
-set -E
-__createApiTables
-__createPropertiesTable
+ set -e
+ set -E
+ __createApiTables
+ __createPropertiesTable
  __ensureGetCountryFunction
  __createProcedures
  set +E

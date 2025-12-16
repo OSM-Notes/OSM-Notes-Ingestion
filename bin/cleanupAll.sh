@@ -124,7 +124,7 @@ function __execute_sql_script() {
 
  # Execute SQL script, redirecting stderr to avoid blocking on NOTICE messages
  # NOTICE messages go to stderr and can fill buffers if not consumed
- if ${PSQL_CMD} -d "${TARGET_DB}" -f "${SCRIPT_PATH}" 2>/dev/null; then
+ if ${PSQL_CMD} -d "${TARGET_DB}" -f "${SCRIPT_PATH}" 2> /dev/null; then
   __logi "SUCCESS: ${SCRIPT_NAME} completed"
   __log_finish
   return 0
@@ -511,7 +511,6 @@ function __generate_cleanup_summary() {
    done < "${AFTER_TABLES}"
   fi
  fi
-
 
  __logi "=========================================="
  __log_finish

@@ -31,7 +31,7 @@ fi
 # provided the correct validation function. Loading validationFunctions.sh here
 # would overwrite the correct function with the wrong one.
 # Only load validationFunctions.sh if the function doesn't exist at all.
-if [[ -z "$(type -t __validate_csv_structure 2>/dev/null || true)" ]]; then
+if [[ -z "$(type -t __validate_csv_structure 2> /dev/null || true)" ]]; then
  if [[ -f "${SCRIPT_BASE_DIRECTORY:-.}/lib/osm-common/validationFunctions.sh" ]]; then
   source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  elif [[ -f "./lib/osm-common/validationFunctions.sh" ]]; then

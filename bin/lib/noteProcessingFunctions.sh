@@ -841,10 +841,10 @@ function __handle_error_with_cleanup() {
  # Network errors (ERROR_INTERNET_ISSUE) are temporary and should allow retry on next execution
  # Only create failed execution file for non-network errors (data corruption, logic errors, etc.)
  local IS_NETWORK_ERROR=false
- if [[ "${ERROR_CODE}" == "${ERROR_INTERNET_ISSUE:-251}" ]] || \
-    [[ "${ERROR_MESSAGE}" == *"Network connectivity"* ]] || \
-    [[ "${ERROR_MESSAGE}" == *"API download failed"* ]] || \
-    [[ "${ERROR_MESSAGE}" == *"Internet issues"* ]]; then
+ if [[ "${ERROR_CODE}" == "${ERROR_INTERNET_ISSUE:-251}" ]] \
+  || [[ "${ERROR_MESSAGE}" == *"Network connectivity"* ]] \
+  || [[ "${ERROR_MESSAGE}" == *"API download failed"* ]] \
+  || [[ "${ERROR_MESSAGE}" == *"Internet issues"* ]]; then
   IS_NETWORK_ERROR=true
   __logw "Network error detected - will not create failed execution file to allow retry on next execution"
  fi
