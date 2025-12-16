@@ -2883,13 +2883,15 @@ function __processMaritimes_impl {
  set -e
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: Maritime border list could not be downloaded."
-  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+  __log_finish
+  return "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
 
  # Validate the downloaded CSV file has content
  if [[ ! -s "${MARITIME_BOUNDARY_IDS_FILE}" ]]; then
   __loge "ERROR: Maritime border list file is empty after download."
-  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+  __log_finish
+  return "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
 
  # Validate it's not HTML (Overpass may return HTML error pages)
@@ -2903,14 +2905,16 @@ function __processMaritimes_impl {
   if grep -qi "timeout\|too busy" "${MARITIME_BOUNDARY_IDS_FILE}"; then
    __loge "Overpass API timeout detected. Please wait a few minutes and try again."
   fi
-  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+  __log_finish
+  return "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
 
  # Validate it's CSV format (should start with @id or have at least one line with numbers)
  if ! head -1 "${MARITIME_BOUNDARY_IDS_FILE}" | grep -qE "^@id|^[0-9]+"; then
   __loge "ERROR: Maritime border list file is not in expected CSV format"
   __loge "First line of file: $(head -1 "${MARITIME_BOUNDARY_IDS_FILE}")"
-  exit "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
+  __log_finish
+  return "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
 
  tail -n +2 "${MARITIME_BOUNDARY_IDS_FILE}" > "${MARITIME_BOUNDARY_IDS_FILE}.tmp"
