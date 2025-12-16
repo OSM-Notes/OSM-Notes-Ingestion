@@ -88,11 +88,23 @@ echo ""
 echo "Running daemon feature parity tests..."
 echo ""
 
-# Run feature parity tests
+# Run feature parity tests (presence verification)
 if bats "${SCRIPT_DIR}/integration/daemon_feature_parity.test.bats"; then
  echo -e "${GREEN}✓ Feature parity tests passed${NC}"
 else
  echo -e "${RED}✗ Feature parity tests failed${NC}"
+ exit 1
+fi
+
+echo ""
+echo "Running daemon feature parity execution tests..."
+echo ""
+
+# Run feature parity execution tests (execution verification)
+if bats "${SCRIPT_DIR}/integration/daemon_feature_parity_execution.test.bats"; then
+ echo -e "${GREEN}✓ Feature parity execution tests passed${NC}"
+else
+ echo -e "${RED}✗ Feature parity execution tests failed${NC}"
  exit 1
 fi
 

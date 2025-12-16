@@ -248,6 +248,7 @@ __run_level_4() {
   "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_auto_init.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPINotesDaemon_gaps.test.bats" \
   "${SCRIPT_DIR}/integration/daemon_feature_parity.test.bats" \
+  "${SCRIPT_DIR}/integration/daemon_feature_parity_execution.test.bats" \
   "${SCRIPT_DIR}/unit/bash/historical_data_validation.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPI_historical_scenarios.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processAPI_historical_sql.test.bats" \
