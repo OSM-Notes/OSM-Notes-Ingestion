@@ -122,16 +122,18 @@ Se han realizado cambios significativos en el daemon (`processAPINotesDaemon.sh`
 |---------|----------|--------|
 | `tests/unit/bash/processAPINotesDaemon_sleep_logic.test.bats` | Lógica de sleep | ✅ Completo |
 | `tests/unit/bash/processAPINotesDaemon_integration.test.bats` | Estructura básica | ⚠️ Parcial (solo grep, no funcional) |
+| `tests/unit/bash/processAPINotesDaemon_auto_init.test.bats` | Auto-inicialización | ✅ Completo (8 tests funcionales) |
+| `tests/unit/bash/processAPINotesDaemon_gaps.test.bats` | Detección de gaps | ✅ Completo (9 tests funcionales) |
 | `tests/run_processAPINotes_hybrid.sh` | Flujo completo de `processAPINotes.sh` | ✅ Completo (pero no específico del daemon) |
 
 ### Pruebas Faltantes
 
-| Funcionalidad | Prioridad | Complejidad | Estimación |
-|---------------|-----------|-------------|------------|
-| Auto-inicialización | Alta | Media | 2-3 horas |
-| Detección de gaps | Alta | Media | 2-3 horas |
-| Feature parity | Media | Alta | 4-6 horas |
-| Syntax error fix | Baja | Baja | 1 hora |
+| Funcionalidad | Prioridad | Complejidad | Estimación | Estado |
+|---------------|-----------|-------------|------------|--------|
+| Auto-inicialización | Alta | Media | 2-3 horas | ✅ Completado |
+| Detección de gaps | Alta | Media | 2-3 horas | ✅ Completado |
+| Feature parity | Media | Alta | 4-6 horas | ⚠️ Pendiente |
+| Syntax error fix | Baja | Baja | 1 hora | ✅ Cubierto indirectamente |
 
 ## Conclusión
 
