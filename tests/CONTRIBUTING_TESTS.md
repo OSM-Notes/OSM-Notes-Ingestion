@@ -213,7 +213,7 @@ Every test file should have a header with:
 # Boundary Processing - Download and Import Tests
 # Tests for download and import functions (downloadBoundary, importBoundary, etc.)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-31
 ```
 
 ### Section Headers
@@ -476,9 +476,4 @@ When submitting a PR with tests:
 - Review `tests/unit/bash/README.md` for test organization
 - Ask questions in GitHub Discussions
 - Review test documentation in `docs/Testing_Guide.md`
-
----
-
-**Version**: 2025-01-23
-**Author**: Andres Gomez (AngocA)
 

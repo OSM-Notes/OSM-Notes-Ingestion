@@ -86,7 +86,7 @@ create_mock_curl() {
 
 # Mock curl command for offline testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-15
 
 set -euo pipefail
 

@@ -271,8 +271,3 @@ EOF
 - [Testing Guide](../../docs/Testing_Guide.md)
 - [Test Suites Reference](../../docs/Testing_Suites_Reference.md)
 
----
-
-**Version**: 2025-01-23
-**Author**: Andres Gomez (AngocA)
-

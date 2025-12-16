@@ -2,7 +2,7 @@
 
 # Mock envsubst command for testing
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2025-12-15
 
 # Function to substitute environment variables
 mock_envsubst() {
