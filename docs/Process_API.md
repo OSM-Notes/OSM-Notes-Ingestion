@@ -583,6 +583,36 @@ export ADMIN_EMAIL="admin@production.com"
 
 ### API Tables (Temporary)
 
+**IMPORTANT: Why API Tables Exist**
+
+API tables are **critical** for the incremental synchronization process. They serve as an intermediate staging area that allows the system to:
+
+1. **Download complete note data** from the OSM API (including all historical comments)
+2. **Filter and deduplicate** before inserting into base tables
+3. **Avoid duplicate insertions** by checking what already exists in the database
+4. **Provide diagnostic visibility** into what data was received vs. what was actually new
+
+**Key Behavior: OSM API Returns Complete Note History**
+
+When querying the OSM Notes API for a note, the API returns:
+- **The note itself** (with current status)
+- **ALL comments** associated with that note (not just new ones)
+
+This means if a note has 10 comments and you query it, you'll receive all 10 comments, even if 9 of them already exist in your database. The API tables store this complete data, and the insertion process intelligently filters to only insert what's actually new.
+
+**Understanding the Logs: What "Uploaded" vs "Inserted" Means**
+
+When reviewing logs, you may see:
+- `Uploaded new comments: 5` - This means 5 comments were loaded into `note_comments_api` from the API
+- But only 1-2 comments might actually be inserted into `note_comments` table
+
+**This is NORMAL and EXPECTED behavior.** The system is working correctly:
+- Most comments already exist in the database (from previous API calls)
+- Only truly new comments are inserted
+- The API tables allow this filtering to happen efficiently
+
+**Do not interpret this as a failure** - it's the system correctly avoiding duplicates.
+
 API tables temporarily store data downloaded from the API:
 
 - **`notes_api`**: Notes downloaded from the API
@@ -592,7 +622,6 @@ API tables temporarily store data downloaded from the API:
   - `status`: Status (open/closed)
   - `closed_at`: Closing date (if applicable)
   - `id_country`: ID of the country where it is located
-  - `part_id`: Partition ID for parallel processing
 
 - **`note_comments_api`**: Comments downloaded from the API
   - `id`: Generated sequential ID
@@ -602,14 +631,12 @@ API tables temporarily store data downloaded from the API:
   - `created_at`: Comment date
   - `id_user`: OSM user ID
   - `username`: OSM username
-  - `part_id`: Partition ID for parallel processing
 
 - **`note_comments_text_api`**: Comment text downloaded from the API
   - `id`: Comment ID
   - `note_id`: Reference to the note
   - `sequence_action`: Comment order
   - `body`: Textual content of the comment
-  - `part_id`: Partition ID for parallel processing
 
 #### Code Example: Creating and Using API Tables
 
@@ -837,6 +864,39 @@ Manual/Daemon
 - Validates data integrity (checks for notes without comments)
 - Updates last update timestamp (executed in same connection as insertion to preserve integrity check result)
 - Cleans temporary files
+
+**Important: Understanding Insertion Behavior**
+
+The insertion process (`__insertNewNotesAndComments`) performs intelligent deduplication:
+
+1. **For each note in `notes_api`**: Checks if it already exists in `notes` table
+   - If exists: Skips insertion (note already in database)
+   - If new: Inserts the note
+
+2. **For each comment in `note_comments_api`**: Checks if it already exists in `note_comments` table
+   - If exists: Skips insertion (comment already in database)
+   - If new: Inserts the comment
+
+**Why This Matters:**
+
+Since the OSM API returns **all comments** for a note (not just new ones), you will frequently see:
+- Many comments loaded into `note_comments_api` (e.g., "Uploaded new comments: 5")
+- But only a few actually inserted (e.g., "Comments processing completed: 1 actually inserted, 4 already existed")
+
+**This is correct behavior** - the system is avoiding duplicates. The API tables enable this filtering by allowing the system to:
+- Load all data from the API first
+- Then intelligently filter what's actually new
+- Only insert what doesn't already exist
+
+**Log Interpretation:**
+
+When reviewing logs, look for messages like:
+- `notes in API table: 3` - Total notes received from API
+- `notes in API that are NEW: 0` - Notes that will be inserted
+- `notes in API that already EXIST: 3` - Notes that will be skipped (already in DB)
+- `Notes processing completed: 0 actually inserted, 3 already existed, 0 failed`
+
+This shows the system is working correctly - it's identifying what's new vs. what already exists.
 
 #### Code Example: Data Integration Process
 
