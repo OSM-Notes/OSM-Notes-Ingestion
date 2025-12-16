@@ -24,7 +24,11 @@ SET statement_timeout = '30s';
 -- The analyze/vacuum operation should preserve these objects
 DROP PROCEDURE IF EXISTS insert_note_comment CASCADE;
 DROP PROCEDURE IF EXISTS insert_note CASCADE;
-DROP FUNCTION IF EXISTS get_country CASCADE;
+-- Drop get_country function with all possible signatures
+-- This ensures all variants are removed (including incorrect ones)
+DROP FUNCTION IF EXISTS get_country(geometry) CASCADE;
+DROP FUNCTION IF EXISTS get_country(DECIMAL, DECIMAL, INTEGER) CASCADE;
+DROP FUNCTION IF EXISTS get_country(numeric, numeric, integer) CASCADE;
 
 -- =====================================================
 -- Drop Country Tables (from processPlanetNotes_14_dropCountryTables.sql)
