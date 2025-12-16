@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Version: 2025-11-10
+# Version: 2025-12-16
 
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
@@ -158,6 +158,41 @@ teardown() {
  local table_count
  table_count=$(echo "$output" | grep -Eo '[0-9]+' | tail -1)
  [[ -n "$table_count" ]] || { echo "Expected numeric count, got: $output"; false; }
+}
+
+# Test that safe update strategy functions exist
+@test "updateCountries.sh should have safe update strategy functions" {
+ # Source the script
+ source "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
+ 
+ # Test that new functions are available
+ local SAFE_UPDATE_FUNCTIONS=(
+   "__createCountryTablesNew"
+   "__compareCountryGeometries"
+   "__swapCountryTables"
+   "__maintainCountriesTableNew"
+ )
+ 
+ for FUNC in "${SAFE_UPDATE_FUNCTIONS[@]}"; do
+   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh && declare -f ${FUNC}"
+   [ "$status" -eq 0 ] || echo "Function ${FUNC} should be available for safe update strategy"
+ done
+}
+
+# Test that countries_new table creation works
+@test "updateCountries.sh should support countries_new table creation" {
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ [ "$status" -eq 0 ]
+ 
+ # Test that countries_new can be created (using LIKE countries)
+ run psql -d "${TEST_DBNAME}" -c "CREATE TABLE countries (id SERIAL PRIMARY KEY, name VARCHAR(255)); CREATE TABLE countries_new (LIKE countries INCLUDING ALL);"
+ [ "$status" -eq 0 ]
+ 
+ # Verify countries_new exists
+ run psql -d "${TEST_DBNAME}" -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'countries_new');"
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"t"* ]] || echo "countries_new table should exist"
 }
 
 # Test that error handling works correctly

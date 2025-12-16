@@ -794,21 +794,32 @@ export CLEAN=false
 
 #### Updating Country Boundaries
 
-The `updateCountries.sh` script updates geographic boundaries:
+The `updateCountries.sh` script updates geographic boundaries using a safe update strategy:
 
 ```bash
-# Update mode (normal operation)
+# Update mode (normal operation - uses safe update strategy)
 ./bin/process/updateCountries.sh
 
-# Base mode (recreate country tables)
+# Base mode (recreate country tables - uses safe update strategy)
 ./bin/process/updateCountries.sh --base
 
 # With debug logging
 export LOG_LEVEL=DEBUG
 ./bin/process/updateCountries.sh
+
+# Force swap even if validation raises warnings (use with caution)
+export FORCE_SWAP_ON_WARNING=true
+./bin/process/updateCountries.sh
 ```
 
-> **Note:** The script includes capital validation to prevent data cross-contamination. See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for details on how boundary validation works.
+**Safe Update Strategy:**
+- Creates `countries_new` table (doesn't drop `countries`)
+- Loads new data into `countries_new`
+- Compares geometries between `countries` and `countries_new`
+- Swaps tables only if validation passes
+- Keeps `countries_old` as automatic backup
+
+> **Note:** The script includes capital validation to prevent data cross-contamination. See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for details on how boundary validation works. See [Countries_Table_Update_Strategy.md](./Countries_Table_Update_Strategy.md) for details on the safe update strategy.
 
 ### Environment Variables
 
