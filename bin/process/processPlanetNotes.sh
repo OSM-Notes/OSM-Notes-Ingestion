@@ -1427,7 +1427,14 @@ function __processPlanetBaseMode {
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "TOTAL_NOTES is greater than 0 (${TOTAL_NOTES}), proceeding to process notes with parallel processing"
   __logi "About to call __processPlanetNotesWithParallel"
-  __processPlanetNotesWithParallel
+  if ! __processPlanetNotesWithParallel; then
+   local PARALLEL_EXIT_CODE=$?
+   __loge "ERROR: Failed to process Planet notes in parallel (exit code: ${PARALLEL_EXIT_CODE})"
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Failed to process Planet notes in parallel" \
+    "Check logs for details on which part(s) failed. Review parallel processing errors."
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  fi
   __logi "Returned from __processPlanetNotesWithParallel, exit code: $?"
  else
   __logi "No notes found in XML file (TOTAL_NOTES=${TOTAL_NOTES}), skipping processing."
@@ -1476,7 +1483,14 @@ function __processPlanetSyncMode {
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "TOTAL_NOTES is greater than 0 (${TOTAL_NOTES}), proceeding to process notes with parallel processing"
   __logi "About to call __processPlanetNotesWithParallel"
-  __processPlanetNotesWithParallel
+  if ! __processPlanetNotesWithParallel; then
+   local PARALLEL_EXIT_CODE=$?
+   __loge "ERROR: Failed to process Planet notes in parallel (exit code: ${PARALLEL_EXIT_CODE})"
+   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+    "Failed to process Planet notes in parallel" \
+    "Check logs for details on which part(s) failed. Review parallel processing errors."
+   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+  fi
   __logi "Returned from __processPlanetNotesWithParallel, exit code: $?"
  else
   __logi "No notes found in XML file (TOTAL_NOTES=${TOTAL_NOTES}), skipping processing."

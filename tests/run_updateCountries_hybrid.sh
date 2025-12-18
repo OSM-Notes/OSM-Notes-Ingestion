@@ -253,12 +253,9 @@ setup_hybrid_mock_environment() {
     return 1
   fi
 
-  # Create mock commands if they don't exist
-  if [[ ! -f "${MOCK_COMMANDS_DIR}/curl" ]] || \
-     [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-    log_info "Creating mock commands..."
-    bash "${SETUP_HYBRID_SCRIPT}" setup
-  fi
+  # Always regenerate mock commands to ensure they are up-to-date
+  log_info "Regenerating mock commands to ensure they are up-to-date..."
+  bash "${SETUP_HYBRID_SCRIPT}" setup
 
   # Ensure pgrep mock exists
   if [[ ! -f "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
@@ -362,16 +359,25 @@ ensure_real_commands() {
   export HYBRID_MOCK_DIR="${hybrid_mock_dir}"
   
   # Copy only the mocks we want (aria2c, curl, pgrep)
+  # Always copy to ensure we have the latest version
   if [[ -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-    cp "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
+    cp -f "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
     chmod +x "${hybrid_mock_dir}/aria2c"
   fi
   if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
-    cp "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
+    cp -f "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
     chmod +x "${hybrid_mock_dir}/curl"
+    # Verify the copy was successful
+    if [[ ! -f "${hybrid_mock_dir}/curl" ]] || [[ ! -x "${hybrid_mock_dir}/curl" ]]; then
+      log_error "Failed to copy mock curl to ${hybrid_mock_dir}/curl"
+      return 1
+    fi
+  else
+    log_error "Mock curl not found at ${MOCK_COMMANDS_DIR}/curl"
+    return 1
   fi
   if [[ -f "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
-    cp "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
+    cp -f "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
     chmod +x "${hybrid_mock_dir}/pgrep"
   fi
 

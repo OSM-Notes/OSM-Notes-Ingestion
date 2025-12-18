@@ -1579,7 +1579,11 @@ EOF
   __logi "Processing countries and maritimes data into countries_new..."
   __logi "Using backup if available (faster), otherwise downloading from Overpass..."
   __processCountries
-  __processMaritimes
+  # Process maritimes, but don't fail if it errors (countries are more critical)
+  if ! __processMaritimes; then
+   __logw "Maritimes processing failed, but continuing with countries update"
+   __logw "Maritimes can be updated separately later if needed"
+  fi
 
   # Maintain countries_new table
   __maintainCountriesTableNew
@@ -1682,7 +1686,11 @@ EOF
   __logi "Processing countries and maritimes from Overpass into countries_new (update mode - always get latest geometries)..."
   export FORCE_OVERPASS_DOWNLOAD="true"
   __processCountries
-  __processMaritimes
+  # Process maritimes, but don't fail if it errors (countries are more critical)
+  if ! __processMaritimes; then
+   __logw "Maritimes processing failed, but continuing with countries update"
+   __logw "Maritimes can be updated separately later if needed"
+  fi
   unset FORCE_OVERPASS_DOWNLOAD
 
   # Maintain countries_new table
