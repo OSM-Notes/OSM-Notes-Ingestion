@@ -8,6 +8,30 @@ implementation details.
 
 > **Note:** For project motivation and background, see [Rationale.md](./Rationale.md).
 
+## Log Locations
+
+The system automatically detects installation mode:
+
+- **Installed mode** (production):
+  - Logs: `/var/log/osm-notes-ingestion/{daemon,processing,monitoring}/`
+  - Lock files: `/var/run/osm-notes-ingestion/`
+  - Temporary files: `/var/tmp/osm-notes-ingestion/`
+
+- **Fallback mode** (testing/development):
+  - Logs: `/tmp/osm-notes-ingestion/logs/{daemon,processing,monitoring}/`
+  - Lock files: `/tmp/osm-notes-ingestion/locks/`
+  - Temporary files: `/tmp/`
+
+To find logs automatically (works in both modes):
+```bash
+# Find latest processAPINotes.log
+find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}'
+```
+
+See [Installation_Guide.md](./Installation_Guide.md) for installation details.
+
 ## Purpose
 
 This repository focuses exclusively on **data ingestion** from OpenStreetMap:
@@ -761,13 +785,20 @@ export LOG_LEVEL=TRACE
 ./bin/process/processAPINotes.sh
 ```
 
-**Note:** The script creates a temporary directory at `/tmp/processAPINotes_XXXXXX` where `XXXXXX` is a random string. Logs are written to `${TMP_DIR}/processAPINotes.log`.
+**Note:** The script creates temporary directories and logs. Location depends on installation mode:
+- **Installed**: Logs in `/var/log/osm-notes-ingestion/processing/processAPINotes.log`
+- **Fallback**: Logs in `/tmp/osm-notes-ingestion/logs/processing/processAPINotes.log`
 
 **Following progress:**
 
 ```bash
-# Find the latest log file
-tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+# Find and tail latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -40f "${LATEST_LOG}"
+fi
 ```
 
 #### Processing Planet Notes (Historical Data)
@@ -871,13 +902,23 @@ When critical errors occur, the script creates a failed execution marker file:
 
 ```bash
 # Check if previous execution failed
-ls -la /tmp/processAPINotes_failed_execution
+# Find failed execution marker (works in both modes)
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]]; then
+  ls -la "${FAILED_FILE}"
+fi
 
 # Recover from failed execution
 # 1. Check email for alert details
 # 2. Fix the underlying issue (database, network, etc.)
 # 3. Remove the marker file
-rm /tmp/processAPINotes_failed_execution
+# Remove failed execution marker (works in both modes)
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]]; then
+  rm "${FAILED_FILE}"
+fi
 
 # 4. Wait for next cron execution (recommended)
 # The script is designed to run automatically via crontab.
@@ -894,14 +935,29 @@ Scripts use lock files to prevent concurrent execution:
 
 ```bash
 # Check if script is running
-ls -la /tmp/processAPINotes.lock
+# Find and display lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  ls -la "${LOCK_FILE}"
+fi
 
 # View lock file contents (shows PID and start time)
-cat /tmp/processAPINotes.lock
+# Find and display lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  cat "${LOCK_FILE}"
+fi
 
 # Remove stale lock (only if process is not running!)
 # First verify: ps aux | grep processAPINotes.sh
-rm /tmp/processAPINotes.lock
+# Remove lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  rm "${LOCK_FILE}"
+fi
 ```
 
 ### Monitoring and Logging
@@ -910,17 +966,19 @@ rm /tmp/processAPINotes.lock
 
 ```bash
 # Find latest log directory
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+LATEST_DIR=$(dirname "${LATEST_LOG}" 2>/dev/null || echo "")
 echo "Log directory: $LATEST_DIR"
 
-# View log file
-tail -f "$LATEST_DIR/processAPINotes.log"
-
-# Search for errors
-grep -i error "$LATEST_DIR/processAPINotes.log"
-
-# Search for warnings
-grep -i warn "$LATEST_DIR/processAPINotes.log"
+# View log file (works in both modes)
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -f "${LATEST_LOG}"
+  grep -i error "${LATEST_LOG}"
+  grep -i warn "${LATEST_LOG}"
+fi
 ```
 
 #### Database Monitoring
@@ -1043,6 +1101,15 @@ vi etc/properties.sh
 createdb notes
 psql -d notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
+# Step 3.5: Install directories (optional, for production)
+# For development/testing, you can skip this step - the system will
+# automatically use fallback mode (/tmp directories)
+# For production, install directories for persistent logs:
+sudo bin/scripts/install_directories.sh
+# Or with custom user/group:
+# sudo OSM_USER=your_user OSM_GROUP=your_group bin/scripts/install_directories.sh
+# See docs/LOCAL_SETUP.md for details
+
 # Step 4: Load historical data from Planet (takes 1-2 hours)
 ./bin/process/processPlanetNotes.sh --base
 
@@ -1090,6 +1157,14 @@ psql -d notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 createdb -E UTF8 notes
 psql -d notes -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
+# Step 1.5: Install directories for persistent logs (required for production)
+# This creates /var/log/osm-notes-ingestion/, /var/tmp/osm-notes-ingestion/,
+# and /var/run/osm-notes-ingestion/ with proper permissions and logrotate
+sudo bin/scripts/install_directories.sh
+# Or with custom user/group:
+# sudo OSM_USER=notes OSM_GROUP=maptimebogota bin/scripts/install_directories.sh
+# See docs/LOCAL_SETUP.md for details
+
 # Step 2: Configure production settings
 export DBNAME=notes
 export ADMIN_EMAIL="admin@yourdomain.com"
@@ -1109,7 +1184,9 @@ crontab -e
 # 0 4 * * * cd /opt/osm-notes && ./bin/monitor/notesCheckVerifier.sh
 
 # Step 5: Set up log rotation
-# Configure logrotate for /tmp/processAPINotes_* directories
+# Configure logrotate for logs (works in both modes)
+# Installed mode: /var/log/osm-notes-ingestion/
+# Fallback mode: /tmp/osm-notes-ingestion/logs/
 # Or redirect logs to ~/logs/ (user-writable path)
 
 # Step 6: Monitor system health
@@ -1127,7 +1204,10 @@ crontab -e
 cat > /usr/local/bin/check-osm-notes-health.sh << 'EOF'
 #!/bin/bash
 # Check for failed executions
-if [ -f /tmp/processAPINotes_failed_execution ]; then
+# Find failed execution marker (works in both modes)
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]] && [[ -f "${FAILED_FILE}" ]]; then
     echo "ALERT: processAPINotes failed"
     cat /tmp/processAPINotes_failed_execution | mail -s "OSM Notes Alert" admin@yourdomain.com
 fi
@@ -1247,8 +1327,13 @@ crontab -e
 
 # Step 3: Review verification results
 # Check logs for discrepancies
-LATEST_DIR=$(ls -1rtd /tmp/notesCheckVerifier_* | tail -1)
-cat "$LATEST_DIR/notesCheckVerifier.log"
+# Find latest notesCheckVerifier log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/monitoring /tmp/osm-notes-ingestion/logs/monitoring \
+  -name "notesCheckVerifier.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  cat "${LATEST_LOG}"
+fi
 
 # Step 4: Investigate discrepancies
 # If issues found, review:
@@ -1294,7 +1379,9 @@ export CLEAN=false  # Keep files for inspection
 
 # Step 6: Test specific changes
 ./bin/process/processAPINotes.sh
-# Inspect generated files in /tmp/processAPINotes_*/
+# Inspect generated files in temporary directories (works in both modes)
+# Installed: /var/tmp/osm-notes-ingestion/processAPINotes_*/
+# Fallback: /tmp/processAPINotes_*/
 ```
 
 **Testing Workflow**:
@@ -1382,7 +1469,13 @@ export MAX_THREADS=4  # Default is CPU cores - 2
 
 # Step 5: Monitor improvements
 # Track processing times
-grep "Processing time" /tmp/processAPINotes_*/processAPINotes.log
+# Find latest log and grep (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep "Processing time" "${LATEST_LOG}"
+fi
 ```
 
 **Performance Tuning**:
@@ -1454,7 +1547,10 @@ cat > /usr/local/bin/check-osm-notes.sh << 'EOF'
 # Exit codes: 0=OK, 1=WARNING, 2=CRITICAL
 
 # Check for failed executions
-if [ -f /tmp/processAPINotes_failed_execution ]; then
+# Find failed execution marker (works in both modes)
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]] && [[ -f "${FAILED_FILE}" ]]; then
     echo "CRITICAL: processAPINotes failed"
     exit 2
 fi
@@ -1642,7 +1738,13 @@ LIMIT 100;
 ls -la /tmp/*_failed_execution
 
 # Review logs
-tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+# Find and tail latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -f "${LATEST_LOG}"
+fi
 ```
 
 **Weekly Maintenance**:
@@ -1713,9 +1815,15 @@ export CLEAN=false
 ./bin/process/processAPINotes.sh
 
 # Inspect generated files
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+LATEST_DIR=$(dirname "${LATEST_LOG}" 2>/dev/null || echo "")
 ls -lh "$LATEST_DIR"
-cat "$LATEST_DIR/processAPINotes.log" | grep -i error
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  cat "${LATEST_LOG}" | grep -i error
+fi
 ```
 
 #### For End Users / Data Analysts
@@ -2382,8 +2490,13 @@ ls -la /tmp/*.lock
 ls -la /tmp/*_failed_execution
 
 # Check latest logs
-LATEST_API=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
-LATEST_PLANET=$(ls -1rtd /tmp/processPlanetNotes_* 2>/dev/null | tail -1)
+# Find latest logs (works in both modes)
+LATEST_API=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+LATEST_PLANET=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
 echo "API log: $LATEST_API"
 echo "Planet log: $LATEST_PLANET"
 ```
@@ -2481,8 +2594,14 @@ psql -d notes -c "REINDEX DATABASE notes;"
 
 ```bash
 # Diagnosis
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "error\|failed" "$LATEST_DIR/processAPINotes.log" | tail -20
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+LATEST_DIR=$(dirname "${LATEST_LOG}" 2>/dev/null || echo "")
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "error\|failed" "${LATEST_LOG}" | tail -20
+fi
 
 # Solutions
 # See detailed troubleshooting in docs/Process_API.md
@@ -2598,8 +2717,13 @@ See detailed troubleshooting in [Process_API.md](./Process_API.md) and [Process_
 ls -1rtd /tmp/process*_* 2>/dev/null
 
 # Review latest errors
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
-grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -50
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "error\|failed\|fatal" "${LATEST_LOG}" | tail -50
+fi
 ```
 
 **Common Recovery Steps:**

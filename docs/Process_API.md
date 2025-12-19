@@ -88,10 +88,26 @@ cd /path/to/OSM-Notes-Ingestion
 
 The script automatically:
 
-- Creates a temporary directory at `/tmp/processAPINotes_XXXXXX`
+- Creates temporary directories (location depends on installation mode)
 - Downloads notes from OSM API
 - Processes and synchronizes with the database
 - Cleans up temporary files (if `CLEAN=true`)
+
+**Log and Temporary File Locations:**
+
+The system automatically detects installation mode:
+
+- **Installed mode** (production):
+  - Logs: `/var/log/osm-notes-ingestion/processing/processAPINotes.log`
+  - Temporary files: `/var/tmp/osm-notes-ingestion/processAPINotes_XXXXXX/`
+  - Lock files: `/var/run/osm-notes-ingestion/processAPINotes.lock`
+
+- **Fallback mode** (testing/development):
+  - Logs: `/tmp/osm-notes-ingestion/logs/processing/processAPINotes.log`
+  - Temporary files: `/tmp/processAPINotes_XXXXXX/`
+  - Lock files: `/tmp/osm-notes-ingestion/locks/processAPINotes.lock`
+
+See [Installation_Guide.md](./Installation_Guide.md) for installation details.
 
 ### Environment Variable Configuration
 
@@ -130,7 +146,9 @@ export CLEAN=false
 export LOG_LEVEL=DEBUG
 ./bin/process/processAPINotes.sh
 
-# Files will be preserved in /tmp/processAPINotes_XXXXXX/
+# Files will be preserved in temporary directory
+# Installed: /var/tmp/osm-notes-ingestion/processAPINotes_XXXXXX/
+# Fallback: /tmp/processAPINotes_XXXXXX/
 # Useful for inspecting CSV files, logs, and intermediate data
 ```
 
@@ -159,17 +177,53 @@ export LOG_LEVEL=TRACE
 
 ### Monitoring Execution
 
+#### Finding Log Files
+
+The system uses different log locations depending on installation mode. Use these helper functions:
+
+```bash
+# Function to find latest processAPINotes.log (works in both modes)
+find_latest_processAPINotes_log() {
+  find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+    -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+    sort -n | tail -1 | awk '{print $2}'
+}
+
+# Function to find latest processAPINotesDaemon.log (works in both modes)
+find_latest_daemon_log() {
+  find /var/log/osm-notes-ingestion/daemon /tmp/osm-notes-ingestion/logs/daemon \
+    -name "processAPINotesDaemon.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+    sort -n | tail -1 | awk '{print $2}'
+}
+
+# Usage:
+LATEST_LOG=$(find_latest_processAPINotes_log)
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -f "${LATEST_LOG}"
+fi
+```
+
 #### View Logs in Real-Time
 
 ```bash
-# Find the latest log directory
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
+# Find the latest log file (works in both installed and fallback modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
 
 # Follow log output
-tail -f "$LATEST_DIR/processAPINotes.log"
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -f "${LATEST_LOG}"
+else
+  echo "Log file not found. Check installation or use fallback mode."
+fi
 
-# Or use the one-liner from script header
-tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+# Alternative: Direct path (if you know the mode)
+# Installed mode:
+tail -f /var/log/osm-notes-ingestion/processing/processAPINotes.log
+
+# Fallback mode:
+tail -f /tmp/osm-notes-ingestion/logs/processing/processAPINotes.log
 ```
 
 #### Check Execution Status
@@ -179,10 +233,21 @@ tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
 ps aux | grep processAPINotes.sh
 
 # Check lock file (contains PID and start time)
-cat /tmp/processAPINotes.lock
+# Installed mode: /var/run/osm-notes-ingestion/processAPINotes.lock
+# Fallback mode: /tmp/osm-notes-ingestion/locks/processAPINotes.lock
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  cat "${LOCK_FILE}"
+fi
 
 # Check for failed execution marker
-ls -la /tmp/processAPINotes_failed_execution
+# Location depends on installation mode
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]]; then
+  ls -la "${FAILED_FILE}"
+fi
 ```
 
 ### Error Recovery
@@ -209,8 +274,13 @@ if [ -f /tmp/processAPINotes_failed_execution ]; then
 fi
 
 # 2. Review the latest log for error details
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i error "$LATEST_DIR/processAPINotes.log" | tail -20
+# Find latest log file (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i error "${LATEST_LOG}" | tail -20
+fi
 
 # 3. Fix the underlying issue (database, data corruption, etc.)
 
@@ -298,8 +368,12 @@ cat /tmp/processPlanetNotes.lock
 ```bash
 # Warning: Large gap detected (X notes), consider manual intervention
 # Diagnosis:
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "gap" "$LATEST_DIR/processAPINotes.log"
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "gap" "${LATEST_LOG}"
+fi
 
 # Solution: Review gap details in logs
 # If legitimate (e.g., API was down), script will continue
@@ -320,8 +394,12 @@ export MAX_THREADS=2
 ```bash
 # Error: CSV validation failed
 # Diagnosis:
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "csv.*validation\|enum" "$LATEST_DIR/processAPINotes.log"
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "csv.*validation\|enum" "${LATEST_LOG}"
+fi
 
 # Solution:
 # 1. Review validation errors in logs
@@ -365,12 +443,22 @@ export MAX_THREADS=1
 # Error: Script is already running
 # Diagnosis:
 ps aux | grep processAPINotes.sh
-cat /tmp/processAPINotes.lock
+# Find and display lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  cat "${LOCK_FILE}"
+fi
 
 # Solution:
 # 1. If process is running, wait for completion
 # 2. If process is not running, remove stale lock:
-rm /tmp/processAPINotes.lock
+# Remove lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  rm "${LOCK_FILE}"
+fi
 ```
 
 **Failed execution marker present:**
@@ -1398,8 +1486,12 @@ curl -I "https://api.openstreetmap.org/api/0.6/notes"
 ping -c 3 api.openstreetmap.org
 
 # Review download logs
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "api\|download\|timeout" "$LATEST_DIR/processAPINotes.log" | tail -20
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "api\|download\|timeout" "${LATEST_LOG}" | tail -20
+fi
 ```
 
 **Solutions:**
@@ -1449,8 +1541,12 @@ cat /tmp/processAPINotes_failed_execution
 **Diagnosis:**
 ```bash
 # Review gap details in logs
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "gap\|missing" "$LATEST_DIR/processAPINotes.log"
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "gap\|missing" "${LATEST_LOG}"
+fi
 
 # Check last update timestamp
 psql -d "${DBNAME:-notes}" -c "
@@ -1482,8 +1578,12 @@ free -h
 dmesg | grep -i "killed\|oom"
 
 # Review processing logs
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "parallel\|memory\|partition" "$LATEST_DIR/processAPINotes.log"
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "parallel\|memory\|partition" "${LATEST_LOG}"
+fi
 ```
 
 **Solutions:**
@@ -1505,8 +1605,12 @@ grep -i "parallel\|memory\|partition" "$LATEST_DIR/processAPINotes.log"
 **Diagnosis:**
 ```bash
 # Review validation errors
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "csv.*validation\|enum" "$LATEST_DIR/processAPINotes.log"
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "csv.*validation\|enum" "${LATEST_LOG}"
+fi
 
 # Check CSV files (if CLEAN=false)
 LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
@@ -1532,8 +1636,12 @@ head -5 "$LATEST_DIR"/*.csv
 **Diagnosis:**
 ```bash
 # Check why Planet sync was triggered
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* | tail -1)
-grep -i "total_notes\|max_notes\|planet" "$LATEST_DIR/processAPINotes.log"
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "total_notes\|max_notes\|planet" "${LATEST_LOG}"
+fi
 
 # Check MAX_NOTES threshold
 grep -i "MAX_NOTES" etc/properties.sh
@@ -1552,10 +1660,21 @@ grep -i "MAX_NOTES" etc/properties.sh
 ps aux | grep processAPINotes.sh
 
 # View latest log in real-time
-tail -f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+# Find and tail latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -f "${LATEST_LOG}"
+fi
 
 # Check for failed execution
-ls -la /tmp/processAPINotes_failed_execution
+# Find failed execution marker (works in both modes)
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]]; then
+  ls -la "${FAILED_FILE}"
+fi
 
 # Verify database connection
 psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;"
@@ -1800,7 +1919,12 @@ sudo journalctl -u osm-notes-api-daemon -n 100
 **Daemon Exits Immediately:**
 ```bash
 # Check if lock file exists (another instance running)
-ls -la /tmp/processAPINotesDaemon.lock
+# Find and display daemon lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotesDaemon.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  ls -la "${LOCK_FILE}"
+fi
 
 # Check logs
 sudo journalctl -u osm-notes-api-daemon -n 50
@@ -1893,7 +2017,13 @@ LATEST_DIR=$(ls -1rtd /tmp/processAPINotesDaemon_* | tail -1)
 tail -f "${LATEST_DIR}/processAPINotesDaemon.log"
 
 # Or use the one-liner from script header
-tail -40f $(ls -1rtd /tmp/processAPINotesDaemon_* | tail -1)/processAPINotesDaemon.log
+# Find and tail latest daemon log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/daemon /tmp/osm-notes-ingestion/logs/daemon \
+  -name "processAPINotesDaemon.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -40f "${LATEST_LOG}"
+fi
 ```
 
 **Log rotation:** Logs accumulate in the same file while daemon runs. For long-running daemons, consider log rotation or use systemd.
@@ -1910,7 +2040,12 @@ sudo systemctl status osm-notes-api-daemon
 sudo journalctl -u osm-notes-api-daemon -n 100
 
 # Verify lock file
-ls -la /tmp/processAPINotesDaemon.lock
+# Find and display daemon lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotesDaemon.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  ls -la "${LOCK_FILE}"
+fi
 ```
 
 #### Daemon Stops Unexpectedly
@@ -1928,7 +2063,17 @@ sudo journalctl -u osm-notes-api-daemon | grep -i error
 sudo systemctl stop osm-notes-api-daemon
 
 # Or send shutdown signal
-touch /tmp/processAPINotesDaemon_shutdown
+# Create shutdown flag (works in both modes)
+SHUTDOWN_FLAG=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotesDaemon_shutdown" 2>/dev/null | head -1)
+if [[ -z "${SHUTDOWN_FLAG}" ]]; then
+  # Use appropriate location based on installation
+  if [[ -d "/var/run/osm-notes-ingestion" ]] && [[ -w "/var/run/osm-notes-ingestion" ]]; then
+    touch /var/run/osm-notes-ingestion/processAPINotesDaemon_shutdown
+  else
+    touch /tmp/osm-notes-ingestion/locks/processAPINotesDaemon_shutdown
+  fi
+fi
 ```
 
 ### Files Reference

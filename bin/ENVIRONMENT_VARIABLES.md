@@ -32,6 +32,41 @@ These variables are used across **all scripts** and should be standardized:
   - `LOG_FILE=/tmp/processPlanetNotes.log LOG_LEVEL=INFO \
     ./bin/process/processPlanetNotes.sh --base`
 
+### `LOG_DIR`
+- **Purpose**: Override base directory for log files
+- **Values**: Absolute path to a writable directory
+- **Default**: Auto-detected (installed: `/var/log/osm-notes-ingestion`, fallback: `/tmp/osm-notes-ingestion/logs`)
+- **Behavior**:
+  - When set, overrides automatic detection
+  - Scripts create subdirectories based on type (daemon/processing/monitoring)
+- **Example**: `export LOG_DIR=/custom/logs/path`
+
+### `TMP_DIR`
+- **Purpose**: Override base directory for temporary files
+- **Values**: Absolute path to a writable directory
+- **Default**: Auto-detected (installed: `/var/tmp/osm-notes-ingestion`, fallback: `/tmp`)
+- **Behavior**:
+  - When set, overrides automatic detection
+  - Scripts create unique subdirectories per execution
+- **Example**: `export TMP_DIR=/custom/tmp/path`
+
+### `LOCK_DIR`
+- **Purpose**: Override directory for lock files
+- **Values**: Absolute path to a writable directory
+- **Default**: Auto-detected (installed: `/var/run/osm-notes-ingestion`, fallback: `/tmp/osm-notes-ingestion/locks`)
+- **Behavior**:
+  - When set, overrides automatic detection
+- **Example**: `export LOCK_DIR=/custom/locks/path`
+
+### `FORCE_FALLBACK_MODE`
+- **Purpose**: Force fallback mode even if system is installed
+- **Values**: `true`, `false`
+- **Default**: `false`
+- **Behavior**:
+  - When `true`, uses `/tmp` directories instead of `/var/log` and `/var/tmp`
+  - Useful for testing or when running without installation
+- **Example**: `export FORCE_FALLBACK_MODE=true`
+
 ### `DOWNLOAD_USER_AGENT`
 - **Purpose**: Sets the HTTP User-Agent for all outbound downloads (Overpass, etc.)
 - **Format**: `Project/Version (+project_url; contact: email)`

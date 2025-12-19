@@ -75,20 +75,12 @@ readonly BASENAME
 # This allows monitoring tools to identify which script is using the database
 export PGAPPNAME="${BASENAME}"
 
-# Temporary directory for all files.
-declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
-readonly TMP_DIR
-chmod 777 "${TMP_DIR}"
-# Log file for output.
-declare LOG_FILENAME
-LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILENAME
+# Load path configuration functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/pathConfigurationFunctions.sh"
 
-# Lock file for single execution.
-declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
-readonly LOCK
+# Initialize all directories (logs, temp, locks)
+__init_directories "${BASENAME}"
 
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then

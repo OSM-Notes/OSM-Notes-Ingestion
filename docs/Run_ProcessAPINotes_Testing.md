@@ -48,9 +48,10 @@ CLEAN=true ./tests/run_processAPINotes_mock.sh
 The `run_processAPINotes_mock.sh` script performs the following:
 
 1. **Cleans lock files and failed execution markers:**
-   - Removes `/tmp/processAPINotes.lock` if it exists
-   - Removes `/tmp/processAPINotes_failed_execution` if it exists
-   - Removes `/tmp/processPlanetNotes.lock` if it exists
+   - Removes lock files (works in both installed and fallback modes):
+     - `/var/run/osm-notes-ingestion/processAPINotes.lock` or `/tmp/osm-notes-ingestion/locks/processAPINotes.lock`
+     - `/var/run/osm-notes-ingestion/processAPINotes_failed_execution` or `/tmp/osm-notes-ingestion/locks/processAPINotes_failed_execution`
+     - `/var/run/osm-notes-ingestion/processPlanetNotes.lock` or `/tmp/osm-notes-ingestion/locks/processPlanetNotes.lock`
 
 2. **Sets up complete mock environment:**
    - Creates mock commands if they don't exist (curl, aria2c, psql, pgrep, etc.)
@@ -175,9 +176,10 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
    - Installs PostGIS and btree_gist extensions
 
 3. **Cleans lock files and failed execution markers:**
-   - Removes `/tmp/processAPINotes.lock` if it exists
-   - Removes `/tmp/processAPINotes_failed_execution` if it exists
-   - Removes `/tmp/processPlanetNotes.lock` if it exists
+   - Removes lock files (works in both installed and fallback modes):
+     - `/var/run/osm-notes-ingestion/processAPINotes.lock` or `/tmp/osm-notes-ingestion/locks/processAPINotes.lock`
+     - `/var/run/osm-notes-ingestion/processAPINotes_failed_execution` or `/tmp/osm-notes-ingestion/locks/processAPINotes_failed_execution`
+     - `/var/run/osm-notes-ingestion/processPlanetNotes.lock` or `/tmp/osm-notes-ingestion/locks/processPlanetNotes.lock`
 
 4. **Sets up hybrid mock environment:**
    - Creates mock commands if they don't exist (curl, aria2c, pgrep)

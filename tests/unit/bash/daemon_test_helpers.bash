@@ -14,6 +14,8 @@ __setup_daemon_test() {
  export TEST_DIR
 
  # Set up test environment variables
+ # Force fallback mode for tests (use /tmp, not /var/log)
+ export FORCE_FALLBACK_MODE="true"
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="${TEST_DIR}"
  export DBNAME="${TEST_DBNAME:-test_db}"

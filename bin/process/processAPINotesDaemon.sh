@@ -67,25 +67,16 @@ readonly BASENAME
 
 export PGAPPNAME="${BASENAME}"
 
-# Temporary directory (persistent for daemon)
-declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
-readonly TMP_DIR
-chmod 777 "${TMP_DIR}"
+# Load path configuration functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/pathConfigurationFunctions.sh"
 
-# Log file
-declare LOG_FILENAME
-LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILENAME
-
-# Lock file
-declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
-readonly LOCK
+# Initialize all directories (logs, temp, locks)
+__init_directories "${BASENAME}"
 
 # Daemon configuration
 declare -i DAEMON_SLEEP_INTERVAL="${DAEMON_SLEEP_INTERVAL:-60}"
-declare DAEMON_SHUTDOWN_FLAG="/tmp/${BASENAME}_shutdown"
+declare DAEMON_SHUTDOWN_FLAG="${LOCK_DIR}/${BASENAME}_shutdown"
 declare -i DAEMON_START_TIME
 DAEMON_START_TIME=$(date +%s)
 declare LAST_PROCESSED_TIMESTAMP=""
@@ -715,7 +706,7 @@ function __process_api_data {
   __logi "Executing: ${NOTES_SYNC_SCRIPT} --base"
 
   # Clean up any stale lock files
-  local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
+  local PLANET_LOCK_FILE="${LOCK_DIR}/processPlanetNotes.lock"
   if [[ -f "${PLANET_LOCK_FILE}" ]]; then
    __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
    if ! rm -f "${PLANET_LOCK_FILE}" 2> /dev/null; then
@@ -814,7 +805,7 @@ function __process_api_data {
     # Clean up any stale lock files from previous executions
     # This prevents permission issues when daemon (user: notes) tries to run
     # processPlanetNotes.sh that was previously run by another user
-    local PLANET_LOCK_FILE="/tmp/processPlanetNotes.lock"
+    local PLANET_LOCK_FILE="${LOCK_DIR}/processPlanetNotes.lock"
     if [[ -f "${PLANET_LOCK_FILE}" ]]; then
      __logw "Removing stale lock file: ${PLANET_LOCK_FILE}"
      # Try to remove with sudo if regular rm fails (permission issues)
@@ -898,7 +889,7 @@ function __process_api_data {
      ORDER BY gap_timestamp DESC
      LIMIT 10
    "
-   local GAP_FILE="/tmp/processAPINotesDaemon_gaps.log"
+   local GAP_FILE="${LOG_DIR}/processAPINotesDaemon_gaps.log"
    psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > "${GAP_FILE}" 2> /dev/null || true
    if [[ -f "${GAP_FILE}" ]] && [[ -s "${GAP_FILE}" ]]; then
     __logw "Data gaps detected, see: ${GAP_FILE}"

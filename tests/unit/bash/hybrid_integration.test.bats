@@ -6,6 +6,8 @@
 
 setup() {
  # Setup test environment
+ # Force fallback mode for tests (use /tmp, not /var/log)
+ export FORCE_FALLBACK_MODE="true"
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
  export BASENAME="test_hybrid_integration"

@@ -75,22 +75,26 @@ fi
 # This allows monitoring tools to identify which script is using the database
 export PGAPPNAME="${BASENAME}"
 
-# Temporary directory for all files.
+# Load path configuration functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/pathConfigurationFunctions.sh"
+
+# Initialize all directories (logs, temp, locks)
 # Don't make it readonly to avoid conflicts when sourcing other scripts
 if [[ -z "${TMP_DIR:-}" ]]; then
- declare TMP_DIR
- TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
- chmod 777 "${TMP_DIR}"
+ __init_directories "${BASENAME}"
 fi
-# Log file for output.
+# Log file for output (use LOG_FILENAME from pathConfigurationFunctions)
 declare LOG_FILE_NAME
-LOG_FILE_NAME="${TMP_DIR}/${BASENAME}.log"
+LOG_FILE_NAME="${LOG_FILENAME:-${TMP_DIR}/${BASENAME}.log}"
 readonly LOG_FILE_NAME
 
-# Lock file for single git execution.
-declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
-readonly LOCK
+# Lock file for single execution (use LOCK from pathConfigurationFunctions if available)
+if [[ -z "${LOCK:-}" ]]; then
+ declare LOCK
+ LOCK="${LOCK_DIR:-/tmp}/${BASENAME}.lock"
+ readonly LOCK
+fi
 
 # Load common functions (after defining BASENAME and TMP_DIR)
 # shellcheck disable=SC1091

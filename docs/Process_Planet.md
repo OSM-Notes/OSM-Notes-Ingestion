@@ -693,7 +693,13 @@ curl -I https://planet.openstreetmap.org/planet/notes/
 df -h
 
 # Check download progress
-tail -f /tmp/processPlanetNotes_*/processPlanetNotes.log | grep -i download
+# Find and tail latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -f "${LATEST_LOG}" | grep -i download
+fi
 ```
 
 **Solutions:**
@@ -715,8 +721,13 @@ tail -f /tmp/processPlanetNotes_*/processPlanetNotes.log | grep -i download
 
 ```bash
 # Check validation logs
-LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
-grep -i "validation\|xml" "$LATEST_DIR/processPlanetNotes.log"
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "validation\|xml" "${LATEST_LOG}"
+fi
 
 # Check XML file integrity
 file /path/to/planet-notes-latest.osm.bz2
@@ -813,7 +824,8 @@ dmesg | grep -i "killed process"
 df -h
 
 # Find large temporary files
-du -sh /tmp/processPlanetNotes_*
+# Check disk usage (works in both modes)
+du -sh /var/tmp/osm-notes-ingestion/processPlanetNotes_* /tmp/processPlanetNotes_* 2>/dev/null | sort -h
 
 # Check database size
 psql -d notes -c "SELECT pg_size_pretty(pg_database_size('notes'));"
@@ -824,7 +836,8 @@ psql -d notes -c "SELECT pg_size_pretty(pg_database_size('notes'));"
 - Free up disk space (remove old logs, temp files)
 - Clean temporary directories:
   ```bash
-  rm -rf /tmp/processPlanetNotes_*
+  # Remove temporary directories (works in both modes)
+  rm -rf /var/tmp/osm-notes-ingestion/processPlanetNotes_* /tmp/processPlanetNotes_* 2>/dev/null
   ```
 - Increase disk space or use different partition
 - Enable automatic cleanup: `export CLEAN=true`
@@ -844,10 +857,20 @@ psql -d notes -c "SELECT pg_size_pretty(pg_database_size('notes'));"
 ps aux | grep processPlanetNotes.sh
 
 # Check lock file
-cat /tmp/processPlanetNotes.lock
+# Find and display lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  cat "${LOCK_FILE}"
+fi
 
 # Verify PID in lock file
-LOCK_PID=$(cat /tmp/processPlanetNotes.lock | cut -d: -f1)
+LOCK_PID=$(# Find and display lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  cat "${LOCK_FILE}"
+fi | cut -d: -f1)
 ps -p "$LOCK_PID"
 ```
 
@@ -855,7 +878,12 @@ ps -p "$LOCK_PID"
 
 - If process is not running, remove stale lock:
   ```bash
-  rm /tmp/processPlanetNotes.lock
+  # Remove lock file (works in both modes)
+  LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+    -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+  if [[ -n "${LOCK_FILE}" ]]; then
+    rm "${LOCK_FILE}"
+  fi
   ```
 - If process is running, wait for completion
 - Check for zombie processes
@@ -875,7 +903,13 @@ ps -p "$LOCK_PID"
 curl -s "https://overpass-api.de/api/status" | jq
 
 # Review download logs
-grep -i "overpass\|rate\|limit" /tmp/processPlanetNotes_*/processPlanetNotes.log
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "overpass\|rate\|limit" "${LATEST_LOG}"
+fi
 ```
 
 **Solutions:**
@@ -929,20 +963,36 @@ psql -d notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
 
 1. Check failed execution marker:
    ```bash
-   cat /tmp/processPlanetNotes_failed_execution
+   # Find and display failed execution marker (works in both modes)
+   FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+     -name "processPlanetNotes_failed_execution" 2>/dev/null | head -1)
+   if [[ -n "${FAILED_FILE}" ]] && [[ -f "${FAILED_FILE}" ]]; then
+     cat "${FAILED_FILE}"
+   fi
    ```
 
 2. Review logs:
    ```bash
    LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
-   tail -100 "$LATEST_DIR/processPlanetNotes.log"
+   # Find and tail latest log (works in both modes)
+   LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+     -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+     sort -n | tail -1 | awk '{print $2}')
+   if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+     tail -100 "${LATEST_LOG}"
+   fi
    ```
 
 3. Fix underlying issue (see specific error scenarios above)
 
 4. Remove failed marker:
    ```bash
-   rm /tmp/processPlanetNotes_failed_execution
+   # Remove failed execution marker (works in both modes)
+   FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+     -name "processPlanetNotes_failed_execution" 2>/dev/null | head -1)
+   if [[ -n "${FAILED_FILE}" ]]; then
+     rm "${FAILED_FILE}"
+   fi
    ```
 
 5. Re-run script:
@@ -984,20 +1034,37 @@ psql -d notes -c "SELECT MAX(created_at) FROM notes;"
 ```bash
 # Follow logs in real-time
 LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
-tail -f "$LATEST_DIR/processPlanetNotes.log"
+# Find and tail latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  tail -f "${LATEST_LOG}"
+fi
 
 # Monitor database activity
 watch -n 5 'psql -d notes -c "SELECT COUNT(*) FROM notes;"'
 
 # Check for failed execution marker
-ls -la /tmp/processPlanetNotes_failed_execution
+# Find and display failed execution marker (works in both modes)
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processPlanetNotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]]; then
+  ls -la "${FAILED_FILE}"
+fi
 ```
 
 **Performance Analysis:**
 
 ```bash
 # Check processing time
-grep "Processing time" /tmp/processPlanetNotes_*/processPlanetNotes.log
+# Find latest log and grep (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep "Processing time" "${LATEST_LOG}"
+fi
 
 # Check memory usage
 ps aux | grep processPlanetNotes | awk '{print $6/1024 " MB"}'
@@ -1011,7 +1078,9 @@ psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 - **Comprehensive Guide**: See [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for detailed troubleshooting across all components
 - **Error Codes**: See [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference) for complete error code reference
 - **API Processing Issues**: See [Process_API.md#troubleshooting](./Process_API.md#troubleshooting) for API-specific troubleshooting
-- **Logs**: All logs are stored in `/tmp/processPlanetNotes_XXXXXX/processPlanetNotes.log`
+- **Logs**: Logs are stored in different locations depending on installation mode:
+  - **Installed**: `/var/log/osm-notes-ingestion/processing/processPlanetNotes.log`
+  - **Fallback**: `/tmp/osm-notes-ingestion/logs/processing/processPlanetNotes.log`
 - **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture overview
 
 ## Integration with Other Components

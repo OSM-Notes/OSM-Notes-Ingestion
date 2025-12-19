@@ -29,6 +29,8 @@ export TEST_MAX_NOTES="100"
 export TEST_MODE="true"
 
 # Set required variables for functionsProcess.sh BEFORE loading scripts
+# Force fallback mode for tests (use /tmp, not /var/log)
+export FORCE_FALLBACK_MODE="true"
 export BASENAME="test"
 export TMP_DIR="/tmp/test_$$"
 export DBNAME="${TEST_DBNAME}"

@@ -146,6 +146,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 
 **Step 1: Deployment** (45 min)
 - **[Documentation.md](./Documentation.md)** - Deployment guidelines
+- **[LOCAL_SETUP.md](./LOCAL_SETUP.md)** - Local setup and directory installation
 
 **Step 2: Operations** (60 min)
 - **[Process_API.md](./Process_API.md)** - API operations (30 min)

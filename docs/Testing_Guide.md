@@ -275,10 +275,10 @@ Edge cases tests cover boundary situations:
 
    ```bash
    # Failed boundaries list (when continue-on-error is enabled)
-   ls -l /tmp/updateCountries_*/failed_boundaries.txt 2>/dev/null || true
-   
-   # Logs per boundary batch
-   ls -l /tmp/updateCountries_*/updateCountries.log*
+   # Find files in temporary directories (works in both modes)
+   find /var/tmp/osm-notes-ingestion /tmp -type d -name "updateCountries_*" 2>/dev/null | \
+     head -1 | xargs -I {} find {} -name "failed_boundaries.txt" -o -name "updateCountries.log*" 2>/dev/null | \
+     xargs ls -l 2>/dev/null || true
    ```
 
 **Expected Result:**

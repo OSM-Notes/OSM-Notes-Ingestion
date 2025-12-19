@@ -14,7 +14,8 @@
 #   --base: Full setup mode (downloads and processes complete planet file)
 #   (no flag): Sync mode (processes only new notes since last execution)
 #   Examples: export LOG_LEVEL=DEBUG ; ./processPlanetNotes.sh --base
-#   Monitor: tail -40f $(ls -1rtd /tmp/processPlanetNotes_* | tail -1)/processPlanetNotes.log
+#   Monitor: tail -f /var/log/osm-notes-ingestion/processing/processPlanetNotes.log
+#   (or /tmp/osm-notes-ingestion/logs/processing/processPlanetNotes.log in fallback mode)
 #
 # Error Codes: See docs/Troubleshooting_Guide.md for complete list and solutions
 #   1) Help message displayed
@@ -126,26 +127,14 @@ if [[ -z "${PGAPPNAME:-}" ]]; then
  export PGAPPNAME="${BASENAME}"
 fi
 
-# Temporal directory for all files.
+# Load path configuration functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/pathConfigurationFunctions.sh"
+
+# Initialize all directories (logs, temp, locks)
+# Only if not already set (e.g., when sourced from another script)
 if [[ -z "${TMP_DIR:-}" ]]; then
- declare TMP_DIR
- TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
- readonly TMP_DIR
- chmod 777 "${TMP_DIR}"
-fi
-
-# Log file for output.
-if [[ -z "${LOG_FILENAME:-}" ]]; then
- declare LOG_FILENAME
- LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
- readonly LOG_FILENAME
-fi
-
-# Lock file for single execution.
-if [[ -z "${LOCK:-}" ]]; then
- declare LOCK
- LOCK="/tmp/${BASENAME}.lock"
- readonly LOCK
+ __init_directories "${BASENAME}"
 fi
 
 # Type of process to run in the script.
@@ -1647,7 +1636,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   } >> "${LOG_FILENAME}" 2>&1
   if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
    mv "${LOG_FILENAME}" \
-    "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+    "${LOG_DIR}/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
    # Remove directory and all contents (may contain CSV files from processing)
    rm -rf "${TMP_DIR}" 2> /dev/null || true
   fi

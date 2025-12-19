@@ -105,32 +105,20 @@ readonly BASENAME
 # This allows monitoring tools to identify which script is using the database
 export PGAPPNAME="${BASENAME}"
 
-# Temporal directory for all files.
-# IMPORTANT: Define TMP_DIR BEFORE loading processPlanetFunctions.sh
+# Load path configuration functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/pathConfigurationFunctions.sh"
+
+# Initialize all directories (logs, temp, locks)
+# IMPORTANT: Initialize directories BEFORE loading processPlanetFunctions.sh
 # because that script uses TMP_DIR in variable initialization
-# Always create our own TMP_DIR for independent execution (like processAPINotes and processPlanetNotes)
-# When running as subprocess, we use our own TMP_DIR and our own log file for complete independence
-declare TMP_DIR
-TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
-readonly TMP_DIR
-chmod 777 "${TMP_DIR}"
+__init_directories "${BASENAME}"
 
 # Load processPlanetFunctions.sh to get SQL file variables
 # shellcheck disable=SC1091
 if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/processPlanetFunctions.sh" ]]; then
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processPlanetFunctions.sh"
 fi
-# Log file for output.
-# Always use our own log file in our TMP_DIR (like processAPINotes and processPlanetNotes)
-# This ensures complete independence and log separation
-declare LOG_FILENAME
-LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
-readonly LOG_FILENAME
-
-# Lock file for single execution.
-declare LOCK
-LOCK="/tmp/${BASENAME}.lock"
-readonly LOCK
 
 # Type of process to run in the script.
 if [[ -z "${PROCESS_TYPE:-}" ]]; then

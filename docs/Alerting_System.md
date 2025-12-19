@@ -13,7 +13,9 @@ Time    Event
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 01:00   processAPINotes.sh executes (cron)
         ├─ Error: Missing historical data
-        └─ Creates file: /tmp/processAPINotes_failed_execution
+        └─ Creates file: processAPINotes_failed_execution
+          (Location: /var/run/osm-notes-ingestion/ in installed mode,
+           /tmp/osm-notes-ingestion/locks/ in fallback mode)
         
         ⏰ WAIT 10-15 MINUTES
         
@@ -217,7 +219,9 @@ ALERT: OSM Notes Processing Failed
 Script: processAPINotes.sh
 Time: Wed Oct 22 01:00:07 UTC 2025
 Server: osm-notes-server
-Failed marker file: /tmp/processAPINotes_failed_execution
+Failed marker file: processAPINotes_failed_execution
+(Location: /var/run/osm-notes-ingestion/ in installed mode,
+ /tmp/osm-notes-ingestion/locks/ in fallback mode)
 
 Error Details:
 --------------
@@ -228,7 +232,9 @@ Error: Historical data validation failed - base tables exist
 Process Information:
 --------------------
 Process ID: 12345
-Temporary directory: /tmp/processAPINotes_20251022_010000
+Temporary directory: processAPINotes_20251022_010000
+(Location: /var/tmp/osm-notes-ingestion/ in installed mode,
+ /tmp/ in fallback mode)
 
 Action Required:
 ----------------
@@ -240,12 +246,26 @@ Recovery Steps:
 1. Read the error details above
 2. Follow the required action instructions
 3. After fixing, delete the marker file:
-   rm /tmp/processAPINotes_failed_execution
+   # Remove failed execution marker (works in both modes)
+   FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+     -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+   if [[ -n "${FAILED_FILE}" ]]; then
+     rm "${FAILED_FILE}"
+   fi
 4. Run the script again to verify the fix
 
 Logs:
 -----
-Check logs at: /tmp/processAPINotes_20251022_010000/processAPINotes.log
+Check logs at:
+- Installed mode: /var/log/osm-notes-ingestion/processing/processAPINotes.log
+- Fallback mode: /tmp/osm-notes-ingestion/logs/processing/processAPINotes.log
+
+Or find automatically:
+```bash
+find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}'
+```
 
 ---
 This is an automated alert from OSM Notes Ingestion system.

@@ -10,6 +10,8 @@
 
 __setup_boundary_test() {
  # Setup test environment
+ # Force fallback mode for tests (use /tmp, not /var/log)
+ export FORCE_FALLBACK_MODE="true"
  if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
   export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
  fi

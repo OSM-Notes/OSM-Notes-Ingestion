@@ -34,8 +34,13 @@ ls -la /tmp/*.lock
 ls -la /tmp/*_failed_execution
 
 # Find latest logs
-LATEST_API=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
-LATEST_PLANET=$(ls -1rtd /tmp/processPlanetNotes_* 2>/dev/null | tail -1)
+# Find latest logs (works in both installed and fallback modes)
+LATEST_API=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+LATEST_PLANET=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
 echo "API log: $LATEST_API"
 echo "Planet log: $LATEST_PLANET"
 
@@ -293,14 +298,19 @@ psql -d "${DBNAME:-notes}" -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoin
 
 ```bash
 # Check latest error logs
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
-if [ -n "$LATEST_DIR" ]; then
-  grep -i "error\|failed\|fatal" "$LATEST_DIR/processAPINotes.log" | tail -20
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "error\|failed\|fatal" "${LATEST_LOG}" | tail -20
 fi
 
-# Check failed execution marker
-if [ -f /tmp/processAPINotes_failed_execution ]; then
-  cat /tmp/processAPINotes_failed_execution
+# Check failed execution marker (works in both modes)
+FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+if [[ -n "${FAILED_FILE}" ]] && [[ -f "${FAILED_FILE}" ]]; then
+  cat "${FAILED_FILE}"
 fi
 
 # Check database connection
@@ -393,14 +403,25 @@ SELECT value FROM properties WHERE key = 'last_update';
 ps aux | grep processPlanetNotes.sh | grep -v grep
 
 # Check lock file
-cat /tmp/processPlanetNotes.lock 2>/dev/null
+# Find and display lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  cat "${LOCK_FILE}"
+fi
 ```
 
 **Solutions:**
 
 1. **If processPlanetNotes.sh is running:**
    - Wait for it to complete
-   - Monitor progress: `tail -f /tmp/processPlanetNotes_*/processPlanetNotes.log`
+   # Monitor progress (works in both modes)
+   LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+     -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+     sort -n | tail -1 | awk '{print $2}')
+   if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+     tail -f "${LATEST_LOG}"
+   fi
 
 2. **If lock file is stale** (process not running):
    ```bash
@@ -408,7 +429,12 @@ cat /tmp/processPlanetNotes.lock 2>/dev/null
    ps aux | grep processPlanetNotes.sh | grep -v grep
    
    # If not running, remove stale lock
-   rm /tmp/processPlanetNotes.lock
+   # Remove lock file (works in both modes)
+   LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+     -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+   if [[ -n "${LOCK_FILE}" ]]; then
+     rm "${LOCK_FILE}"
+   fi
    ```
 
 ### Problem: CSV Validation Failures
@@ -423,11 +449,18 @@ cat /tmp/processPlanetNotes.lock 2>/dev/null
 
 ```bash
 # Check CSV validation errors in logs
-LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
-grep -i "csv.*valid\|validation.*fail" "$LATEST_DIR/processAPINotes.log"
+# Find latest log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "csv.*valid\|validation.*fail" "${LATEST_LOG}"
+fi
 
 # Inspect CSV files (if CLEAN=false)
-find /tmp/processAPINotes_* -name "*.csv" -type f | head -1 | xargs head -20
+# Find CSV files in temporary directories (works in both modes)
+find /var/tmp/osm-notes-ingestion /tmp -type d -name "processAPINotes_*" 2>/dev/null | \
+  head -1 | xargs -I {} find {} -name "*.csv" -type f | head -1 | xargs head -20
 ```
 
 **Solutions:**
@@ -551,7 +584,8 @@ journalctl -k | grep -i "oom\|killed" | tail -20
 df -h
 
 # Find large temporary files
-du -sh /tmp/processPlanetNotes_* 2>/dev/null | sort -h
+# Check disk usage (works in both modes)
+du -sh /var/tmp/osm-notes-ingestion/processPlanetNotes_* /tmp/processPlanetNotes_* 2>/dev/null | sort -h
 
 # Check database size
 psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:-notes}'));"
@@ -565,7 +599,9 @@ psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:
    find /tmp -name "processPlanetNotes_*" -type d -mtime +7 -exec rm -rf {} \;
    
    # Remove old temporary files
-   rm -rf /tmp/processPlanetNotes_*/tmp_* 2>/dev/null
+   # Remove temporary subdirectories (works in both modes)
+   find /var/tmp/osm-notes-ingestion /tmp -type d -name "processPlanetNotes_*" 2>/dev/null | \
+     xargs -I {} find {} -type d -name "tmp_*" -exec rm -rf {} + 2>/dev/null
    ```
 
 2. **Enable automatic cleanup:**
@@ -591,11 +627,19 @@ psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:
 ps aux | grep processPlanetNotes.sh | grep -v grep
 
 # Check lock file
-cat /tmp/processPlanetNotes.lock 2>/dev/null
+# Find and display lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]]; then
+  cat "${LOCK_FILE}"
+fi
 
 # Verify PID in lock file
-if [ -f /tmp/processPlanetNotes.lock ]; then
-  LOCK_PID=$(cat /tmp/processPlanetNotes.lock | cut -d: -f1)
+# Find and check lock file (works in both modes)
+LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+  -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+if [[ -n "${LOCK_FILE}" ]] && [[ -f "${LOCK_FILE}" ]]; then
+  LOCK_PID=$(cat "${LOCK_FILE}" | cut -d: -f1)
   ps -p "$LOCK_PID" 2>/dev/null
 fi
 ```
@@ -608,12 +652,23 @@ fi
    ps aux | grep processPlanetNotes.sh | grep -v grep
    
    # If not running, remove stale lock
-   rm /tmp/processPlanetNotes.lock
+   # Remove lock file (works in both modes)
+   LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+     -name "processPlanetNotes.lock" 2>/dev/null | head -1)
+   if [[ -n "${LOCK_FILE}" ]]; then
+     rm "${LOCK_FILE}"
+   fi
    ```
 
 2. **If process is running:**
    - Wait for completion
-   - Monitor progress: `tail -f /tmp/processPlanetNotes_*/processPlanetNotes.log`
+   # Monitor progress (works in both modes)
+   LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+     -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+     sort -n | tail -1 | awk '{print $2}')
+   if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+     tail -f "${LATEST_LOG}"
+   fi
 
 3. **Check for zombie processes:**
    ```bash
@@ -636,8 +691,12 @@ LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* 2>/dev/null | tail -1)
 grep -i "xml.*valid\|validation.*fail" "$LATEST_DIR/processPlanetNotes.log"
 
 # Validate XML manually (if file exists)
-if [ -f "$LATEST_DIR/planet-notes-latest.osn" ]; then
-  xmllint --noout --schema xsd/OSM-notes-planet-schema.xsd "$LATEST_DIR/planet-notes-latest.osn" 2>&1 | head -20
+# Find planet file in temporary directories (works in both modes)
+PLANET_FILE=$(find /var/tmp/osm-notes-ingestion /tmp -type d -name "processPlanetNotes_*" 2>/dev/null | \
+  head -1 | xargs -I {} find {} -name "planet-notes-latest.osn" -type f | head -1)
+if [[ -n "${PLANET_FILE}" ]] && [[ -f "${PLANET_FILE}" ]]; then
+  xmllint --noout --schema xsd/OSM-notes-planet-schema.xsd "${PLANET_FILE}" 2>&1 | head -20
+fi
 fi
 ```
 
@@ -831,7 +890,13 @@ WHERE schemaname = 'wms';
 curl -s "https://overpass-api.de/api/status" | jq
 
 # Review download logs
-grep -i "overpass\|rate\|limit\|429" /tmp/updateCountries_*/updateCountries.log | tail -20
+# Find latest updateCountries log (works in both modes)
+LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+  -name "updateCountries.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+  sort -n | tail -1 | awk '{print $2}')
+if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+  grep -i "overpass\|rate\|limit\|429" "${LATEST_LOG}" | tail -20
+fi
 
 # Check rate limit settings
 grep -i "RATE_LIMIT\|OVERPASS" etc/properties.sh
@@ -1139,14 +1204,28 @@ All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `ge
 
 1. **Check failed execution marker:**
    ```bash
-   cat /tmp/processAPINotes_failed_execution
-   cat /tmp/processPlanetNotes_failed_execution
+   # Find and display failed execution markers (works in both modes)
+   FAILED_API=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+     -name "processAPINotes_failed_execution" 2>/dev/null | head -1)
+   FAILED_PLANET=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+     -name "processPlanetNotes_failed_execution" 2>/dev/null | head -1)
+   if [[ -n "${FAILED_API}" ]] && [[ -f "${FAILED_API}" ]]; then
+     cat "${FAILED_API}"
+   fi
+   if [[ -n "${FAILED_PLANET}" ]] && [[ -f "${FAILED_PLANET}" ]]; then
+     cat "${FAILED_PLANET}"
+   fi
    ```
 
 2. **Review logs for specific error:**
    ```bash
-   LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
-   tail -100 "$LATEST_DIR/processAPINotes.log"
+   # Find latest log (works in both modes)
+   LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
+     -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
+     sort -n | tail -1 | awk '{print $2}')
+   if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
+     tail -100 "${LATEST_LOG}"
+   fi
    ```
 
 3. **Fix underlying issue** (see specific problem sections above)

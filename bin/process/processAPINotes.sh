@@ -11,7 +11,8 @@
 # Quick Reference:
 #   Usage: ./processAPINotes.sh [--help]
 #   Examples: export LOG_LEVEL=DEBUG ; ./processAPINotes.sh
-#   Monitor: tail -40f $(ls -1rtd /tmp/processAPINotes_* | tail -1)/processAPINotes.log
+#   Monitor: tail -f /var/log/osm-notes-ingestion/processing/processAPINotes.log
+#   (or /tmp/osm-notes-ingestion/logs/processing/processAPINotes.log in fallback mode)
 #
 # Error Codes: See docs/Troubleshooting_Guide.md for complete list and solutions
 #   1) Help message displayed
@@ -106,29 +107,14 @@ fi
 # This allows monitoring tools to identify which script is using the database
 export PGAPPNAME="${BASENAME}"
 
-# Temporary directory for all files.
-# Only define if not already set (e.g., when sourced from daemon)
+# Load path configuration functions
+# shellcheck disable=SC1091
+source "${SCRIPT_BASE_DIRECTORY}/bin/lib/pathConfigurationFunctions.sh"
+
+# Initialize all directories (logs, temp, locks)
+# Only if not already set (e.g., when sourced from daemon)
 if [[ -z "${TMP_DIR:-}" ]]; then
- declare TMP_DIR
- TMP_DIR=$(mktemp -d "/tmp/${BASENAME}_XXXXXX")
- readonly TMP_DIR
- chmod 777 "${TMP_DIR}"
-fi
-
-# Log file for output.
-# Only define if not already set (e.g., when sourced from daemon)
-if [[ -z "${LOG_FILENAME:-}" ]]; then
- declare LOG_FILENAME
- LOG_FILENAME="${TMP_DIR}/${BASENAME}.log"
- readonly LOG_FILENAME
-fi
-
-# Lock file for single execution.
-# Only define if not already set (e.g., when sourced from daemon)
-if [[ -z "${LOCK:-}" ]]; then
- declare LOCK
- LOCK="/tmp/${BASENAME}.lock"
- readonly LOCK
+ __init_directories "${BASENAME}"
 fi
 
 # Original process start time and PID (to preserve in lock file).
@@ -945,7 +931,7 @@ function __createBaseStructure {
   __logw "No geographic data found after processPlanetNotes.sh --base"
   __logw "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
 
-  local UPDATE_COUNTRIES_LOCK="/tmp/updateCountries.lock"
+  local UPDATE_COUNTRIES_LOCK="${LOCK_DIR}/updateCountries.lock"
   if [[ -f "${UPDATE_COUNTRIES_LOCK}" ]]; then
    local LOCK_PID
    LOCK_PID=$(grep "^PID:" "${UPDATE_COUNTRIES_LOCK}" 2> /dev/null | awk '{print $2}' || echo "")
@@ -1021,7 +1007,7 @@ function __check_and_log_gaps() {
  "
 
  # Log gaps to file
- local GAP_FILE="/tmp/processAPINotes_gaps.log"
+ local GAP_FILE="${LOG_DIR:-/tmp}/processAPINotes_gaps.log"
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > "${GAP_FILE}" 2> /dev/null || true
 
  __logd "Checked and logged gaps from database"
@@ -1329,7 +1315,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
    main
   } >> "${LOG_FILENAME}" 2>&1
   if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
-   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
+   mv "${LOG_FILENAME}" "${LOG_DIR}/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
    # Protect rmdir from causing script exit if it fails (e.g., TMP_DIR not empty or doesn't exist)
    rmdir "${TMP_DIR}" 2> /dev/null || true
   fi

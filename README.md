@@ -50,6 +50,17 @@ To exercise your rights, contact: angoca@osm.lat
 
 ## tl;dr - 5 minutes configuration
 
+### Step 0: Install Directories (Production Only)
+
+For production, install directories for persistent logs:
+
+```bash
+# Install directories (requires sudo)
+sudo bin/scripts/install_directories.sh
+```
+
+**Note:** For development/testing, you can skip this step. The system will automatically use fallback mode (`/tmp` directories). See `docs/LOCAL_SETUP.md` for details.
+
 ### Recommended: Daemon Mode (systemd)
 
 For production use, the daemon mode is recommended for lower latency (30-60 seconds vs 15 minutes):
