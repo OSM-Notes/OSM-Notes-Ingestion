@@ -1,9 +1,9 @@
--- Insert new notes and comments from API
+-- Insert new notes and comments from API.
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-14
+-- Version: 2025-12-19
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
- 'Inserting new notes and comments from API' AS Task;
+ 'Inserting new notes and comments from API (bulk mode)' AS Task;
 
 -- Set process lock for this operation
 DO $$
@@ -21,79 +21,102 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) Qty, 'current notes - before' AS Text
 FROM notes;
 
-DO /* Notes-processAPI-insertNotes */
+DO /* Notes-processAPI-insertNotes-bulk */
 $$
  DECLARE
-  r RECORD;
-  m_closed_time VARCHAR(100);
-  m_stmt VARCHAR(200);
-  m_min_note_id INTEGER;
-  m_max_note_id INTEGER;
-  m_chunk_size INTEGER;
-  m_current_chunk INTEGER;
   m_process_id INTEGER;
-  m_batch_size INTEGER := 50;  -- Batch size for transaction processing
-  m_batch_count INTEGER := 0;   -- Counter for batch processing
-  m_success_count INTEGER := 0; -- Counter for successful insertions
-  m_error_count INTEGER := 0;   -- Counter for failed insertions
-  m_notes_cursor CURSOR FOR      -- Cursor for batch processing
-   SELECT note_id, latitude, longitude, created_at, closed_at, status
-   FROM notes_api
-   ORDER BY created_at;
+  m_process_id_db VARCHAR(32);
+  m_process_id_db_pid INTEGER;
+  m_notes_count_before INTEGER;
+  m_notes_count_after INTEGER;
+  m_existing_notes_count INTEGER;
+  m_new_notes_count INTEGER;
+  m_updated_notes_count INTEGER;
  BEGIN
-
-  -- Get process ID for parallel processing
   m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
   
   -- Check if there are notes to process
-  IF (SELECT COUNT(1) FROM notes_api) = 0 THEN
-   RETURN;
+  SELECT COUNT(*) INTO m_notes_count_before FROM notes_api;
+  IF m_notes_count_before = 0 THEN
+    RETURN;
   END IF;
   
-  -- Process notes in batches with transactions
-  FOR r IN m_notes_cursor LOOP
-   m_batch_count := m_batch_count + 1;
-   
-   -- Start transaction for each note
-   BEGIN
-    m_closed_time := QUOTE_NULLABLE(r.closed_at);
-
-    INSERT INTO logs (message) VALUES (r.note_id || ' - Batch ' || 
-     (m_batch_count / m_batch_size + 1) || ' - Processing note');
-
-    m_stmt := 'CALL insert_note (' || r.note_id || ', ' || r.latitude || ', '
-      || r.longitude || ', ' || 'TO_TIMESTAMP(''' || r.created_at
-      || ''', ''YYYY-MM-DD HH24:MI:SS'')' || ', ' || m_process_id || ')';
-    
-    EXECUTE m_stmt;
-    
-    m_success_count := m_success_count + 1;
-    INSERT INTO logs (message) VALUES (r.note_id || ' - Note inserted successfully');
-    
-    -- Log batch completion every batch_size notes
-    IF m_batch_count % m_batch_size = 0 THEN
-     INSERT INTO logs (message) VALUES ('Batch ' || (m_batch_count / m_batch_size) || 
-      ' completed: ' || m_success_count || ' notes processed');
-    END IF;
-    
-   EXCEPTION
-    WHEN OTHERS THEN
-     m_error_count := m_error_count + 1;
-     INSERT INTO logs (message) VALUES (r.note_id || ' - ERROR inserting note: ' || SQLERRM);
-     -- Continue with next note (don't fail entire batch)
-     RAISE NOTICE 'Failed to insert note %: %', r.note_id, SQLERRM;
-   END;
-  END LOOP;
+  -- Validate lock ONCE at the beginning (optimization: avoid validating in each procedure call)
+  SELECT value INTO m_process_id_db
+  FROM properties
+  WHERE key = 'lock';
   
-  -- Log final statistics
-  INSERT INTO logs (message) VALUES ('Notes processing completed: ' || 
-   m_success_count || ' successful, ' || m_error_count || ' failed');
-   
-  -- If too many errors, raise exception
-  IF m_error_count > (m_success_count * 0.1) THEN  -- More than 10% errors
-   RAISE EXCEPTION 'Too many note insertion errors: % failed out of % total', 
-    m_error_count, (m_success_count + m_error_count);
+  IF (m_process_id_db IS NULL) THEN
+    RAISE EXCEPTION 'This call does not have a lock.';
   END IF;
+  
+  m_process_id_db_pid := SPLIT_PART(m_process_id_db, '_', 1)::INTEGER;
+  
+  IF (m_process_id <> m_process_id_db_pid) THEN
+    RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%).',
+      m_process_id_db, m_process_id;
+  END IF;
+  
+  INSERT INTO logs (message) VALUES ('Lock validated. Starting bulk insertion of ' || 
+    m_notes_count_before || ' notes');
+  
+  -- Count existing notes to calculate new vs updated
+  SELECT COUNT(*) INTO m_existing_notes_count
+  FROM notes
+  WHERE note_id IN (SELECT note_id FROM notes_api);
+  
+  -- Bulk INSERT with country lookup for new notes only
+  WITH notes_with_countries AS (
+    SELECT 
+      na.note_id,
+      na.latitude,
+      na.longitude,
+      na.created_at,
+      na.closed_at,
+      na.status,
+      -- Only lookup country for notes that don't exist yet
+      CASE 
+        WHEN n.note_id IS NULL THEN get_country(na.longitude, na.latitude, na.note_id)
+        ELSE n.id_country  -- Preserve existing country
+      END as id_country
+    FROM notes_api na
+    LEFT JOIN notes n ON n.note_id = na.note_id
+  )
+  INSERT INTO notes (
+    note_id,
+    latitude,
+    longitude,
+    created_at,
+    closed_at,
+    status,
+    id_country
+  )
+  SELECT 
+    note_id,
+    latitude,
+    longitude,
+    created_at,
+    closed_at,
+    status,
+    id_country
+  FROM notes_with_countries
+  ON CONFLICT (note_id) DO UPDATE SET
+    status = EXCLUDED.status,
+    closed_at = COALESCE(EXCLUDED.closed_at, notes.closed_at),
+    -- Only update country if the new one is not NULL
+    id_country = COALESCE(EXCLUDED.id_country, notes.id_country);
+  
+  SELECT COUNT(*) INTO m_notes_count_after FROM notes;
+  m_new_notes_count := m_notes_count_before - m_existing_notes_count;
+  m_updated_notes_count := m_existing_notes_count;
+  
+  INSERT INTO logs (message) VALUES ('Bulk notes insertion completed: ' || 
+    m_new_notes_count || ' new notes, ' || m_updated_notes_count || ' updated');
+  
+ EXCEPTION
+  WHEN OTHERS THEN
+    INSERT INTO logs (message) VALUES ('ERROR in bulk notes insertion: ' || SQLERRM);
+    RAISE;
  END;
 $$;
 
@@ -130,103 +153,78 @@ BEGIN
 END
 $$;
 
-DO /* Notes-processAPI-insertComments */
+DO /* Notes-processAPI-insertComments-bulk */
 $$
  DECLARE
-  r RECORD;
-  m_created_time TEXT;
-  m_stmt VARCHAR(500);
   m_process_id INTEGER;
-  m_batch_size INTEGER := 50;     -- Batch size for transaction processing
-  m_batch_count INTEGER := 0;     -- Counter for batch processing
-  m_success_count INTEGER := 0;   -- Counter for successful insertions
-  m_error_count INTEGER := 0;     -- Counter for failed insertions
-  m_comments_cursor CURSOR FOR    -- Cursor for batch processing
-   SELECT note_id, sequence_action, event, created_at::TEXT as created_at, id_user, username
-   FROM note_comments_api
-   ORDER BY created_at, sequence_action;
+  m_comments_count_before INTEGER;
+  m_comments_count_after INTEGER;
+  m_existing_comments_count INTEGER;
+  m_new_comments_count INTEGER;
  BEGIN
-
-  -- Get process ID for parallel processing
   m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
 
-  -- Process comments in batches with transactions
-  FOR r IN m_comments_cursor LOOP
-   m_batch_count := m_batch_count + 1;
-   
-   -- Start transaction for each comment
-   BEGIN
-    -- Remove " UTC" suffix from created_at if present (API format includes it)
-    -- PostgreSQL TO_TIMESTAMP can handle it, but we normalize for consistency
-    m_created_time := REPLACE(r.created_at, ' UTC', '');
-    
-    IF (r.id_user IS NOT NULL) THEN
-     m_stmt := 'CALL insert_note_comment (' || r.note_id || ', '
-       || '''' || r.event || '''::note_event_enum, '
-       || 'TO_TIMESTAMP(''' || m_created_time
-       || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || r.id_user || ', '
-       || QUOTE_NULLABLE(r.username) || ', ' || m_process_id || ', '
-       || COALESCE(r.sequence_action::TEXT, 'NULL') || ')';
-    ELSE
-     m_stmt := 'CALL insert_note_comment (' || r.note_id || ', '
-       || '''' || r.event || '''::note_event_enum, '
-       || 'TO_TIMESTAMP(''' || m_created_time
-       || ''', ''YYYY-MM-DD HH24:MI:SS''), '
-       || 'NULL, '
-       || QUOTE_NULLABLE(r.username) || ', ' || m_process_id || ', '
-       || COALESCE(r.sequence_action::TEXT, 'NULL') || ')';
-    END IF;
-    
-    -- Execute the statement and verify it actually inserted the comment
-    EXECUTE m_stmt;
-    
-    -- Verify the comment was actually inserted or already exists
-    -- The function insert_note_comment may return without error if:
-    -- 1. Comment was successfully inserted
-    -- 2. Comment already exists (detected by function's pre-check) - this is OK
-    -- 3. Comment insertion failed due to unique constraint - this is an error
-    -- We check if the comment exists by (note_id, sequence_action) which is more reliable
-    -- than checking by (note_id, event, created_at) since event/created_at might differ
-    IF EXISTS (
-     SELECT 1 FROM note_comments 
-     WHERE note_id = r.note_id 
-       AND (r.sequence_action IS NULL OR sequence_action = r.sequence_action)
-    ) THEN
-     -- Comment exists (either newly inserted or already existed) - this is success
-     m_success_count := m_success_count + 1;
-     INSERT INTO logs (message) VALUES (r.note_id || ' - Comment inserted successfully');
-    ELSE
-     -- Comment was not inserted and doesn't exist - this is an error
-     m_error_count := m_error_count + 1;
-     INSERT INTO logs (message) VALUES (r.note_id || ' - Comment insertion failed: comment not found after insert');
-     RAISE NOTICE 'Comment insertion failed for note %: comment not found after insert', r.note_id;
-    END IF;
-    
-    -- Log batch completion every batch_size comments
-    IF m_batch_count % m_batch_size = 0 THEN
-     INSERT INTO logs (message) VALUES ('Comment batch ' || (m_batch_count / m_batch_size) || 
-      ' completed: ' || m_success_count || ' comments processed');
-    END IF;
-    
-   EXCEPTION
-    WHEN OTHERS THEN
-     m_error_count := m_error_count + 1;
-     INSERT INTO logs (message) VALUES (r.note_id || ' - ERROR inserting comment: ' || SQLERRM);
-     -- Continue with next comment (don't fail entire batch)
-     RAISE NOTICE 'Failed to insert comment for note %: %', r.note_id, SQLERRM;
-   END;
-  END LOOP;
-  
-  -- Log final statistics
-  INSERT INTO logs (message) VALUES ('Comments processing completed: ' || 
-   m_success_count || ' successful, ' || m_error_count || ' failed');
-   
-  -- If too many errors, raise exception
-  IF m_error_count > (m_success_count * 0.1) THEN  -- More than 10% errors
-   RAISE EXCEPTION 'Too many comment insertion errors: % failed out of % total', 
-    m_error_count, (m_success_count + m_error_count);
+  SELECT COUNT(*) INTO m_comments_count_before FROM note_comments_api;
+  IF m_comments_count_before = 0 THEN
+    RETURN;
   END IF;
+  
+  INSERT INTO logs (message) VALUES ('Starting bulk insertion of ' || 
+    m_comments_count_before || ' comments');
+  
+  -- Count existing comments to calculate new vs skipped
+  SELECT COUNT(*) INTO m_existing_comments_count
+  FROM note_comments
+  WHERE (note_id, sequence_action) IN (
+    SELECT note_id, sequence_action 
+    FROM note_comments_api 
+    WHERE sequence_action IS NOT NULL
+  );
+  
+  -- Bulk INSERT users first
+  INSERT INTO users (user_id, username)
+  SELECT DISTINCT id_user, username
+  FROM note_comments_api
+  WHERE id_user IS NOT NULL AND username IS NOT NULL
+  ON CONFLICT (user_id) DO UPDATE SET
+    username = EXCLUDED.username;
+  
+  -- Bulk INSERT comments (skip existing ones using NOT EXISTS for efficiency)
+  INSERT INTO note_comments (
+    id,
+    note_id,
+    sequence_action,
+    event,
+    created_at,
+    id_user
+  )
+  SELECT 
+    nextval('note_comments_id_seq'),
+    nca.note_id,
+    nca.sequence_action,
+    nca.event,
+    nca.created_at,
+    nca.id_user
+  FROM note_comments_api nca
+  WHERE NOT EXISTS (
+    -- Skip comments that already exist
+    SELECT 1 FROM note_comments nc
+    WHERE nc.note_id = nca.note_id
+      AND (nca.sequence_action IS NULL OR nc.sequence_action = nca.sequence_action)
+  )
+  ON CONFLICT (note_id, sequence_action) DO NOTHING;
+  
+  SELECT COUNT(*) INTO m_comments_count_after FROM note_comments;
+  m_new_comments_count := m_comments_count_before - m_existing_comments_count;
+  
+  INSERT INTO logs (message) VALUES ('Bulk comments insertion completed: ' || 
+    m_new_comments_count || ' new comments inserted, ' || 
+    m_existing_comments_count || ' skipped (already exist)');
+  
+ EXCEPTION
+  WHEN OTHERS THEN
+    INSERT INTO logs (message) VALUES ('ERROR in bulk comments insertion: ' || SQLERRM);
+    RAISE;
  END;
 $$;
 

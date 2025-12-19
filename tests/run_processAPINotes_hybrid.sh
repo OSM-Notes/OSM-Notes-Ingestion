@@ -330,9 +330,10 @@ verify_comments_inserted() {
   log_error "  CRITICAL: Notes were inserted but NO comments were inserted!"
   log_error "  This indicates a problem with comment insertion flow"
   log_error "  Possible causes:"
+  log_error "    - Bulk INSERT operation failed"
   log_error "    - sequence_action not being passed correctly"
   log_error "    - Trigger overwriting sequence_action"
-  log_error "    - insert_note_comment function not accepting sequence_action parameter"
+  log_error "    - Duplicate filtering preventing all comments from being inserted"
   return 1
  fi
  

@@ -1,7 +1,9 @@
 -- Test comment insertion flow from API tables to main tables
--- This test validates the complete flow: note_comments_api -> insert_note_comment -> note_comments
+-- This test validates the complete flow: note_comments_api -> bulk INSERT -> note_comments
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-15
+-- Version: 2025-12-19
+-- Note: Tests 1, 2, 4, 5 still test the procedures directly (they still exist and are useful)
+-- Test 3 now uses bulk INSERT to match the actual production code flow
 
 BEGIN;
 
@@ -78,6 +80,7 @@ END $$;
 
 -- Test 3: Test complete flow from note_comments_api to note_comments
 -- This simulates the actual processAPINotes_32_insertNewNotesAndComments.sql flow
+-- Updated to use bulk INSERT operations (as of 2025-12-19)
 DO $$
 DECLARE
   test_note_id INTEGER := 997;
@@ -85,7 +88,6 @@ DECLARE
   comments_in_api INTEGER;
   comments_in_main INTEGER;
   m_process_id INTEGER;
-  m_stmt TEXT;
 BEGIN
   -- Create note_comments_api table if it doesn't exist (for testing)
   CREATE TABLE IF NOT EXISTS note_comments_api (
@@ -101,7 +103,7 @@ BEGIN
   CALL put_lock('997');
   m_process_id := 997;
   
-  -- Insert a test note
+  -- Insert a test note (using procedure, as it's a single note)
   CALL insert_note(test_note_id, 40.7128, -74.0060, NOW(), m_process_id);
   
   -- Insert test data into note_comments_api (simulating CSV load)
@@ -114,17 +116,41 @@ BEGIN
     RAISE EXCEPTION 'Test setup failed: Comment not in API table. Count: %', comments_in_api;
   END IF;
   
-  -- Simulate the actual insertion process (like processAPINotes_32_insertNewNotesAndComments.sql)
-  -- This is the actual code path used in production
-  m_stmt := 'CALL insert_note_comment (' || test_note_id || ', '
-    || '''opened''::note_event_enum, '
-    || 'NOW(), '
-    || '123, '
-    || '''test_user'', '
-    || m_process_id || ', '
-    || test_sequence || ')';
+  -- Simulate the actual bulk insertion process (like processAPINotes_32_insertNewNotesAndComments.sql)
+  -- This uses bulk INSERT operations (updated 2025-12-19)
   
-  EXECUTE m_stmt;
+  -- Bulk INSERT users first
+  INSERT INTO users (user_id, username)
+  SELECT DISTINCT id_user, username
+  FROM note_comments_api
+  WHERE id_user IS NOT NULL AND username IS NOT NULL
+  ON CONFLICT (user_id) DO UPDATE SET
+    username = EXCLUDED.username;
+  
+  -- Bulk INSERT comments (skip existing ones using NOT EXISTS for efficiency)
+  INSERT INTO note_comments (
+    id,
+    note_id,
+    sequence_action,
+    event,
+    created_at,
+    id_user
+  )
+  SELECT 
+    nextval('note_comments_id_seq'),
+    nca.note_id,
+    nca.sequence_action,
+    nca.event,
+    nca.created_at,
+    nca.id_user
+  FROM note_comments_api nca
+  WHERE NOT EXISTS (
+    -- Skip comments that already exist
+    SELECT 1 FROM note_comments nc
+    WHERE nc.note_id = nca.note_id
+      AND (nca.sequence_action IS NULL OR nc.sequence_action = nca.sequence_action)
+  )
+  ON CONFLICT (note_id, sequence_action) DO NOTHING;
   
   -- Verify comment was inserted into main table with correct sequence_action
   SELECT COUNT(*) INTO comments_in_main 
@@ -133,7 +159,7 @@ BEGIN
   
   -- Assert
   IF comments_in_main = 1 THEN
-    RAISE NOTICE 'Test passed: Comment flowed from API table to main table with correct sequence_action (%)', test_sequence;
+    RAISE NOTICE 'Test passed: Comment flowed from API table to main table with correct sequence_action (%) using bulk INSERT', test_sequence;
   ELSE
     RAISE EXCEPTION 'Test failed: Comment not in main table with correct sequence_action. Expected: 1, Found: %', 
       comments_in_main;
@@ -143,6 +169,7 @@ BEGIN
   DELETE FROM note_comments WHERE note_id = test_note_id;
   DELETE FROM note_comments_api WHERE note_id = test_note_id;
   DELETE FROM notes WHERE note_id = test_note_id;
+  DELETE FROM users WHERE user_id = 123;
   CALL remove_lock('997');
   
   -- Drop test table

@@ -955,15 +955,17 @@ Manual/Daemon
 
 **Important: Understanding Insertion Behavior**
 
-The insertion process (`__insertNewNotesAndComments`) performs intelligent deduplication:
+The insertion process (`__insertNewNotesAndComments`) performs intelligent bulk deduplication:
 
-1. **For each note in `notes_api`**: Checks if it already exists in `notes` table
-   - If exists: Skips insertion (note already in database)
-   - If new: Inserts the note
+1. **For all notes in `notes_api`**: Performs bulk INSERT with automatic deduplication
+   - Uses `ON CONFLICT` to handle existing notes (updates status/closed_at if changed)
+   - Only performs country lookup for new notes (existing notes preserve their country)
+   - All notes processed in a single bulk operation
 
-2. **For each comment in `note_comments_api`**: Checks if it already exists in `note_comments` table
-   - If exists: Skips insertion (comment already in database)
-   - If new: Inserts the comment
+2. **For all comments in `note_comments_api`**: Performs bulk INSERT with duplicate filtering
+   - Uses `NOT EXISTS` to filter out comments that already exist before INSERT
+   - Uses `ON CONFLICT` as a safety net for any remaining duplicates
+   - All comments processed in a single bulk operation
 
 **Why This Matters:**
 
@@ -979,12 +981,11 @@ Since the OSM API returns **all comments** for a note (not just new ones), you w
 **Log Interpretation:**
 
 When reviewing logs, look for messages like:
-- `notes in API table: 3` - Total notes received from API
-- `notes in API that are NEW: 0` - Notes that will be inserted
-- `notes in API that already EXIST: 3` - Notes that will be skipped (already in DB)
-- `Notes processing completed: 0 actually inserted, 3 already existed, 0 failed`
+- `Lock validated. Starting bulk insertion of 3 notes` - Total notes being processed
+- `Bulk notes insertion completed: 1 new notes, 2 updated` - Summary of bulk operation
+- `Bulk comments insertion completed: 5 new comments inserted, 4 skipped (already exist)` - Summary of bulk operation
 
-This shows the system is working correctly - it's identifying what's new vs. what already exists.
+This shows the system is working correctly - it processes all data in bulk operations while intelligently handling duplicates.
 
 #### Code Example: Data Integration Process
 
@@ -995,7 +996,7 @@ The following example shows how API data is integrated into base tables:
 source bin/lib/processAPIFunctions.sh
 
 # Insert new notes and comments from API tables to base tables
-# This uses stored procedures for efficient bulk insertion
+# This uses bulk INSERT operations for optimal performance
 # Note: This function also updates the timestamp automatically in the same
 # database connection to ensure integrity check results persist
 __insertNewNotesAndComments
@@ -1010,33 +1011,60 @@ psql -d "${DBNAME}" -c "
 "
 ```
 
-**SQL Procedure Example:**
+**SQL Bulk Insert Example:**
 
-The `__insertNewNotesAndComments()` function uses stored procedures for efficient insertion:
+The `__insertNewNotesAndComments()` function uses bulk INSERT operations for optimal performance:
 
 ```sql
--- Example stored procedure used by __insertNewNotesAndComments()
+-- Example bulk insertion used by __insertNewNotesAndComments()
 -- Located in: sql/process/processAPINotes_32_insertNewNotesAndComments.sql
 
--- Insert new notes (simplified version)
+-- Insert notes with country lookup for new notes only
+WITH notes_with_countries AS (
+  SELECT 
+    na.note_id,
+    na.latitude,
+    na.longitude,
+    na.created_at,
+    na.closed_at,
+    na.status,
+    -- Only lookup country for notes that don't exist yet
+    CASE 
+      WHEN n.note_id IS NULL THEN get_country(na.longitude, na.latitude, na.note_id)
+      ELSE n.id_country  -- Preserve existing country
+    END as id_country
+  FROM notes_api na
+  LEFT JOIN notes n ON n.note_id = na.note_id
+)
 INSERT INTO notes (
-  note_id, latitude, longitude, created_at, closed_at, status
+  note_id, latitude, longitude, created_at, closed_at, status, id_country
 )
 SELECT 
-  note_id, latitude, longitude, created_at, closed_at, status
-FROM notes_api
-WHERE note_id NOT IN (SELECT note_id FROM notes)
+  note_id, latitude, longitude, created_at, closed_at, status, id_country
+FROM notes_with_countries
 ON CONFLICT (note_id) DO UPDATE SET
   status = EXCLUDED.status,
-  closed_at = EXCLUDED.closed_at;
+  closed_at = COALESCE(EXCLUDED.closed_at, notes.closed_at),
+  id_country = COALESCE(EXCLUDED.id_country, notes.id_country);
 
--- Insert new comments
+-- Insert comments (skip existing ones using NOT EXISTS for efficiency)
 INSERT INTO note_comments (
-  note_id, sequence_action, event, created_at, id_user, username
+  id, note_id, sequence_action, event, created_at, id_user
 )
 SELECT 
-  note_id, sequence_action, event, created_at, id_user, username
-FROM note_comments_api
+  nextval('note_comments_id_seq'),
+  nca.note_id,
+  nca.sequence_action,
+  nca.event,
+  nca.created_at,
+  nca.id_user
+FROM note_comments_api nca
+WHERE NOT EXISTS (
+  -- Skip comments that already exist
+  SELECT 1 FROM note_comments nc
+  WHERE nc.note_id = nca.note_id
+    AND (nca.sequence_action IS NULL OR nc.sequence_action = nca.sequence_action)
+)
 ON CONFLICT (note_id, sequence_action) DO NOTHING;
 ```
 
@@ -1443,8 +1471,10 @@ Operational guarantees:
 
 ### Optimization Strategies
 
-- **Parallel Processing**: Uses multiple threads for data processing
-- **Partitioning**: Divides large datasets into manageable chunks
+- **Bulk Operations**: Uses bulk INSERT operations instead of row-by-row processing for optimal performance
+- **Lock Optimization**: Validates process lock once per batch instead of per record
+- **Country Lookup Optimization**: Only performs country lookups for new notes (existing notes preserve their country)
+- **Duplicate Filtering**: Uses efficient NOT EXISTS queries to filter duplicates before INSERT operations
 - **Memory Management**: Efficient memory usage for large XML files
 - **Database Optimization**: Uses optimized queries and indexes
 

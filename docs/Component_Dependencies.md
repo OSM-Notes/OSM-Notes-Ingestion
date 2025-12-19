@@ -545,12 +545,11 @@ processAPINotes.sh SQL Execution Order:
     │   └─▶ Loads CSV into API tables (COPY command)
     │
     ├─▶ 5. processAPINotes_32_insertNewNotesAndComments.sql
-    │   ├─▶ Calls: insert_note() procedure
-    │   │   └─▶ Defined in: functionsProcess_22_createProcedure_insertNote.sql
-    │   │       └─▶ Uses: get_country() function
-    │   │           └─▶ Defined in: functionsProcess_21_createFunctionToGetCountry.sql
-    │   └─▶ Calls: insert_note_comment() procedure
-    │       └─▶ Defined in: functionsProcess_23_createProcedure_insertNoteComment.sql
+    │   ├─▶ Bulk INSERT into notes table with country lookup
+    │   │   └─▶ Uses: get_country() function (only for new notes)
+    │   │       └─▶ Defined in: functionsProcess_21_createFunctionToGetCountry.sql
+    │   └─▶ Bulk INSERT into note_comments table
+    │       └─▶ Note: Uses bulk operations instead of individual procedure calls for performance
     │
     ├─▶ 6. processAPINotes_33_loadNewTextComments.sql
     │   └─▶ Loads comment texts into API tables
@@ -644,7 +643,8 @@ insert_note(note_id, lat, lon, created_at, process_id)
     │   └─▶ logs table (for logging)
     │
     └─▶ Used by:
-        └─▶ processAPINotes_32_insertNewNotesAndComments.sql
+        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql 
+            now uses bulk INSERTs instead of this procedure for performance)
 
 insert_note_comment(...)
     │
@@ -656,7 +656,8 @@ insert_note_comment(...)
     │   └─▶ note_comments_text table
     │
     └─▶ Used by:
-        └─▶ processAPINotes_32_insertNewNotesAndComments.sql
+        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql 
+            now uses bulk INSERTs instead of this procedure for performance)
 ```
 
 ---
@@ -687,7 +688,7 @@ insert_note_comment(...)
 | SQL Script | Depends On | Creates/Modifies |
 |------------|------------|------------------|
 | `processAPINotes_21_createApiTables.sql` | PostgreSQL, PostGIS | `notes_api`, `note_comments_api`, `note_comments_text_api` |
-| `processAPINotes_32_insertNewNotesAndComments.sql` | `insert_note()`, `insert_note_comment()` procedures | `notes`, `note_comments`, `note_comments_text` |
+| `processAPINotes_32_insertNewNotesAndComments.sql` | `get_country()` function, `notes`, `note_comments`, `properties` tables | `notes`, `note_comments`, `note_comments_text` (bulk INSERT operations) |
 | `functionsProcess_21_createFunctionToGetCountry.sql` | `countries`, `maritimes`, `notes` tables, PostGIS | `get_country()` function |
 | `functionsProcess_22_createProcedure_insertNote.sql` | `get_country()` function, `notes`, `properties` tables | `insert_note()` procedure |
 | `functionsProcess_37_assignCountryToNotesChunk.sql` | `get_country()` function, `notes` table | Updates `notes.id_country` |
