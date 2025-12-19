@@ -75,171 +75,263 @@ setup_hybrid_mock_environment() {
 create_mock_curl() {
  # Always recreate the mock curl to ensure it has the latest logic
  log_info "Creating/updating mock curl..."
- # Always recreate the mock curl to ensure it has the latest logic
  rm -f "${MOCK_COMMANDS_DIR}/curl" 2> /dev/null || true
- # Create a basic curl mock
+ # Create a simple, pattern-based curl mock
  cat > "${MOCK_COMMANDS_DIR}/curl" << 'EOF'
 #!/bin/bash
 
-# Mock curl command for offline testing
+# Mock curl - simple pattern matching based on actual code usage
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-18
 
-set -euo pipefail
+set +e
+set +u
 
-__create_mock_file() {
- local url="$1"
- local output_file="$2"
+# Handle --version
+if echo "$*" | grep -q -- "--version"; then
+ echo "curl 8.4.0 (mock)"
+ exit 0
+fi
 
- if [[ -z "$output_file" ]]; then
-  output_file=$(basename "$url")
+# Convert all arguments to a single string for pattern matching
+ALL_ARGS="$*"
+
+# Pattern 1: Overpass API with --data-binary
+# Pattern: curl -s -H "..." -o FILE --data-binary @QUERY_FILE URL 2> ERROR_FILE
+if echo "$ALL_ARGS" | grep -- '-data-binary' >/dev/null 2>&1 && echo "$ALL_ARGS" | grep -- 'api/interpreter' >/dev/null 2>&1; then
+ # Extract output file (-o FILE)
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -- '-o ' | awk '{for(i=1;i<=NF;i++) if($i=="-o" && i<NF) print $(i+1)}')
+ # Extract query file (--data-binary @FILE)
+ QUERY_FILE=$(echo "$ALL_ARGS" | sed -n 's/.*--data-binary @\([^ ]*\).*/\1/p')
+ 
+ # Ensure output directory exists
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  OUTPUT_DIR=$(dirname "$OUTPUT_FILE" 2>/dev/null || echo ".")
+  if [[ "$OUTPUT_DIR" != "." ]] && [[ -n "$OUTPUT_DIR" ]]; then
+   mkdir -p "$OUTPUT_DIR" 2>/dev/null || true
+  fi
  fi
-
- # Create directory if it doesn't exist
- local output_dir
- output_dir=$(dirname "$output_file")
- if [[ -n "$output_dir" ]] && [[ "$output_dir" != "." ]]; then
-  mkdir -p "$output_dir" 2>/dev/null || true
+ 
+ # Check if query file contains CSV output
+ if [[ -f "$QUERY_FILE" ]] && grep -q "\[out:csv" "$QUERY_FILE" 2>/dev/null; then
+  # CSV output for country/maritime lists
+  if [[ -n "$OUTPUT_FILE" ]]; then
+   # Use printf instead of heredoc for more reliable execution
+   {
+    echo "@id"
+    echo "9407"
+    echo "14296"
+    echo "49903"
+    echo "49915"
+    echo "51684"
+    echo "51701"
+    echo "52411"
+    echo "53292"
+    echo "59065"
+    echo "60189"
+   } > "$OUTPUT_FILE" 2>/dev/null || {
+    # Fallback if redirection fails
+    echo "@id" > "$OUTPUT_FILE" 2>/dev/null || true
+    echo "9407" >> "$OUTPUT_FILE" 2>/dev/null || true
+    echo "14296" >> "$OUTPUT_FILE" 2>/dev/null || true
+   }
+   # Verify file was created successfully with @id header
+   if [[ ! -f "$OUTPUT_FILE" ]] || [[ ! -s "$OUTPUT_FILE" ]]; then
+    # Fallback: create file with basic content
+    echo "@id" > "$OUTPUT_FILE" 2>/dev/null || true
+    echo "9407" >> "$OUTPUT_FILE" 2>/dev/null || true
+   elif ! head -1 "$OUTPUT_FILE" | grep -q "^@id"; then
+    # If file exists but doesn't start with @id, prepend it
+    {
+     echo "@id"
+     cat "$OUTPUT_FILE"
+    } > "$OUTPUT_FILE.tmp" 2>/dev/null && mv "$OUTPUT_FILE.tmp" "$OUTPUT_FILE" 2>/dev/null || true
+   fi
+  fi
+ else
+  # JSON output for individual boundaries
+  # Extract boundary ID from query file if possible
+  BOUNDARY_ID="9407"
+  if [[ -f "$QUERY_FILE" ]]; then
+   # Try to extract ID from query like: rel(9407);
+   EXTRACTED_ID=$(grep -oE 'rel\([0-9]+\)' "$QUERY_FILE" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+   if [[ -n "$EXTRACTED_ID" ]]; then
+    BOUNDARY_ID="$EXTRACTED_ID"
+   fi
+  fi
+  if [[ -n "$OUTPUT_FILE" ]]; then
+   # Generate JSON with complete structure (relation + way + nodes) for osmtogeojson
+   # This structure allows osmtogeojson to generate valid GeoJSON with features
+   {
+    echo '{'
+    echo ' "version": 0.6,'
+    echo ' "generator": "Overpass API",'
+    echo ' "osm3s": {'
+    echo '  "timestamp_osm_base": "2025-12-14T00:00:00Z",'
+    echo '  "copyright": "The data included in this document is from www.openstreetmap.org"'
+    echo ' },'
+    echo ' "elements": ['
+    echo '  {'
+    echo '   "type": "relation",'
+    echo "   \"id\": ${BOUNDARY_ID},"
+    echo '   "members": ['
+    echo '    {'
+    echo '     "type": "way",'
+    echo '     "ref": '$((BOUNDARY_ID * 10))','
+    echo '     "role": "outer"'
+    echo '    }'
+    echo '   ],'
+    echo '   "tags": {'
+    echo '    "type": "boundary",'
+    echo '    "boundary": "administrative",'
+    echo '    "admin_level": "2",'
+    echo '    "name": "Test Country '${BOUNDARY_ID}'"'
+    echo '   }'
+    echo '  },'
+    echo '  {'
+    echo '   "type": "way",'
+    echo "   \"id\": $((BOUNDARY_ID * 10)),"
+    echo '   "nodes": ['$((BOUNDARY_ID * 100))', '$((BOUNDARY_ID * 100 + 1))', '$((BOUNDARY_ID * 100 + 2))', '$((BOUNDARY_ID * 100))'],'
+    echo '   "tags": {}'
+    echo '  },'
+    echo '  {'
+    echo '   "type": "node",'
+    echo "   \"id\": $((BOUNDARY_ID * 100)),"
+    echo '   "lat": 0.0,'
+    echo '   "lon": 0.0'
+    echo '  },'
+    echo '  {'
+    echo '   "type": "node",'
+    echo "   \"id\": $((BOUNDARY_ID * 100 + 1)),"
+    echo '   "lat": 1.0,'
+    echo '   "lon": 0.0'
+    echo '  },'
+    echo '  {'
+    echo '   "type": "node",'
+    echo "   \"id\": $((BOUNDARY_ID * 100 + 2)),"
+    echo '   "lat": 1.0,'
+    echo '   "lon": 1.0'
+    echo '  }'
+    echo ' ]'
+    echo '}'
+   } > "$OUTPUT_FILE" 2>/dev/null || {
+    # Fallback if redirection fails - minimal structure with relation and way
+    echo '{"version":0.6,"elements":[{"type":"relation","id":'${BOUNDARY_ID}',"members":[{"type":"way","ref":'$((BOUNDARY_ID * 10))',"role":"outer"}],"tags":{"type":"boundary"}},{"type":"way","id":'$((BOUNDARY_ID * 10))',"nodes":['$((BOUNDARY_ID * 100))','$((BOUNDARY_ID * 100 + 1))','$((BOUNDARY_ID * 100 + 2))','$((BOUNDARY_ID * 100))']},{"type":"node","id":'$((BOUNDARY_ID * 100))',"lat":0.0,"lon":0.0},{"type":"node","id":'$((BOUNDARY_ID * 100 + 1))',"lat":1.0,"lon":0.0},{"type":"node","id":'$((BOUNDARY_ID * 100 + 2))',"lat":1.0,"lon":1.0}]}' > "$OUTPUT_FILE" 2>/dev/null || true
+   }
+   # Verify file was created successfully with elements
+   if [[ ! -f "$OUTPUT_FILE" ]] || [[ ! -s "$OUTPUT_FILE" ]]; then
+    # Fallback: create file with minimal structure
+    echo '{"version":0.6,"elements":[{"type":"relation","id":'${BOUNDARY_ID}',"members":[{"type":"way","ref":'$((BOUNDARY_ID * 10))',"role":"outer"}],"tags":{"type":"boundary"}},{"type":"way","id":'$((BOUNDARY_ID * 10))',"nodes":['$((BOUNDARY_ID * 100))','$((BOUNDARY_ID * 100 + 1))','$((BOUNDARY_ID * 100 + 2))','$((BOUNDARY_ID * 100))']},{"type":"node","id":'$((BOUNDARY_ID * 100))',"lat":0.0,"lon":0.0},{"type":"node","id":'$((BOUNDARY_ID * 100 + 1))',"lat":1.0,"lon":0.0},{"type":"node","id":'$((BOUNDARY_ID * 100 + 2))',"lat":1.0,"lon":1.0}]}' > "$OUTPUT_FILE" 2>/dev/null || true
+   fi
+  fi
  fi
+ exit 0
+fi
 
- # Check for /api/versions endpoint (OSM API version detection)
- if [[ "$url" == *"/api/versions"* ]]; then
-  # Return API version information in the expected format
-  cat >"$output_file" <<'INNER_EOF'
+# Pattern 2: OSM API /api/versions
+# Pattern: curl -s --max-time X URL > FILE
+if echo "$ALL_ARGS" | grep -qE '/api/versions'; then
+ # Extract output file if redirected
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
+ if [[ -z "$OUTPUT_FILE" ]] && echo "$ALL_ARGS" | grep -qE '>\s+[^ ]+'; then
+  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '>\s+[^ ]+' | awk '{print $2}')
+ fi
+ 
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  cat > "$OUTPUT_FILE" << 'XML_EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
  <api>
   <version>0.6</version>
  </api>
 </osm>
-INNER_EOF
- # Check for XML URLs (including those with query parameters like search.xml?limit=...)
- elif [[ "$url" == *".xml"* ]] || [[ "$url" == *"/notes"* ]] || [[ "$url" == *"search.xml"* ]]; then
-  if [[ "$url" == *"/notes?limit=1"* ]]; then
-   # For version check: generate minimal XML without declaration
-   cat >"$output_file" <<'INNER_EOF'
-<osm version="0.6" generator="OpenStreetMap server">
- <note lon="-3.7038" lat="40.4168">
-  <id>123456</id>
- </note>
-</osm>
-INNER_EOF
-  elif [[ "$url" == *"planet-notes"* ]] || [[ "$url" == *".osn"* ]]; then
-   # For Planet Notes format: use <osm-notes> structure
-   cat >"$output_file" <<'INNER_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note lat="40.4168" lon="-3.7038" id="123456" created_at="2025-12-10T10:30:00Z">
-  <comment action="opened" timestamp="2025-12-10T10:30:00Z" uid="12345" user="testuser">Test note</comment>
- </note>
-</osm-notes>
-INNER_EOF
-  elif [[ "$url" == *"api.openstreetmap.org"* ]] || [[ "$url" == *"/api/0.6"* ]]; then
-   # For OSM API calls: use <osm> structure
-   cat >"$output_file" <<'INNER_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm version="0.6" generator="OpenStreetMap server">
- <note lon="-3.7038" lat="40.4168">
-  <id>123456</id>
-  <url>https://api.openstreetmap.org/api/0.6/notes/123456.xml</url>
-  <date_created>2025-12-10 10:30:00 UTC</date_created>
-  <status>open</status>
- </note>
-</osm>
-INNER_EOF
-  else
-   # For generic XML URLs (like example.com/test.xml): use <osm-notes> structure with Planet format
-   # This format matches what the tests expect (osm-notes root element)
-   cat >"$output_file" <<'INNER_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm-notes>
- <note lat="40.4168" lon="-3.7038" id="123456" created_at="2025-12-10T10:30:00Z">
-  <comment action="opened" timestamp="2025-12-10T10:30:00Z" uid="12345" user="testuser">Test note</comment>
- </note>
-</osm-notes>
-INNER_EOF
-  fi
- elif [[ "$url" == *.json* ]] || [[ "$url" == *"overpass"* ]] || [[ -n "${DATA_FILE:-}" ]]; then
-  # Overpass API format
-  cat >"$output_file" <<'INNER_EOF'
-{
- "version": 0.6,
- "generator": "Overpass API",
- "osm3s": {
-  "timestamp_osm_base": "2025-12-14T00:00:00Z",
-  "copyright": "The data included in this document is from www.openstreetmap.org"
- },
- "elements": [
-  {
-   "type": "relation",
-   "id": 12345,
-   "tags": {
-    "type": "boundary",
-    "boundary": "administrative",
-    "admin_level": "2",
-    "name": "Test Country"
-   }
-  }
- ]
-}
-INNER_EOF
+XML_EOF
  else
-  echo "Mock content for $url" >"$output_file"
+  # Output to stdout
+  cat << 'XML_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm generator="OpenStreetMap server" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <api>
+  <version>0.6</version>
+ </api>
+</osm>
+XML_EOF
  fi
-}
-
-ARGS=()
-OUTPUT_FILE=""
-SILENT=false
-SHOW_ERROR=false
-MAX_TIME=""
-DATA_FILE=""
-USER_AGENT=""
-
-while [[ $# -gt 0 ]]; do
- case "$1" in
-  -s)
-   SILENT=true; shift ;;
-  -S)
-   SHOW_ERROR=true; shift ;;
-  -L)
-   shift ;;
-  -H)
-   shift 2 ;;
-  -o)
-   OUTPUT_FILE="$2"; shift 2 ;;
-  --max-time)
-   MAX_TIME="$2"; shift 2 ;;
-  --data|-d)
-   DATA_FILE="$2"; shift 2 ;;
-  -A|--user-agent)
-   USER_AGENT="$2"; shift 2 ;;
-  --version)
-   echo "curl 8.4.0 (mock)"; exit 0 ;;
-  http*|ftp*)
-   ARGS+=("$1"); shift ;;
-  *)
-   shift ;;
- esac
-done
-
-: "${SILENT}" "${SHOW_ERROR}" "${MAX_TIME}" "${DATA_FILE}" "${USER_AGENT}"
-
-URL="${ARGS[0]:-}"
-if [[ -z "$URL" ]]; then
- echo "usage: curl [options] URL" >&2
- exit 2
+ exit 0
 fi
 
+# Pattern 3: HEAD requests (Planet server check)
+# Pattern: curl -s --max-time X -I URL > /dev/null
+if echo "$ALL_ARGS" | grep -qE '\s-I\s|\s--head\s'; then
+ exit 0
+fi
+
+# Pattern 4: GitHub raw content downloads (for backup files)
+# Pattern: curl -s --connect-timeout X --max-time Y -H "..." -o FILE URL
+if echo "$ALL_ARGS" | grep -qE 'raw\.githubusercontent\.com|github\.com.*/raw/'; then
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  # Check if URL or filename indicates .geojson or .geojson.gz file
+  if echo "$ALL_ARGS" | grep -qE '\.geojson\.gz|geojson.*\.gz' || echo "$OUTPUT_FILE" | grep -qE '\.geojson\.gz'; then
+   # Create a minimal gzipped GeoJSON file
+   # Use printf to avoid issues with echo and pipes
+   printf '{"type":"FeatureCollection","features":[]}' | gzip > "$OUTPUT_FILE" 2>/dev/null
+   # Verify file was created and has content
+   if [[ ! -f "$OUTPUT_FILE" ]] || [[ ! -s "$OUTPUT_FILE" ]]; then
+    # Fallback: create minimal gzip file using echo
+    echo '{"type":"FeatureCollection","features":[]}' | gzip > "$OUTPUT_FILE" 2>&1 || {
+     # Last resort: create empty file
+     touch "$OUTPUT_FILE" 2>/dev/null || true
+    }
+   fi
+  elif echo "$OUTPUT_FILE" | grep -qE '\.geojson'; then
+   # Create a minimal GeoJSON file
+   echo '{"type":"FeatureCollection","features":[]}' > "$OUTPUT_FILE" 2>/dev/null || {
+    # Fallback: create empty file
+    touch "$OUTPUT_FILE" 2>/dev/null || true
+   }
+  else
+   # Other GitHub files - create empty file
+   touch "$OUTPUT_FILE" 2>/dev/null || true
+  fi
+  exit 0
+ fi
+fi
+
+# Pattern 5: Network connectivity checks (google.com, cloudflare.com, github.com)
+# Pattern: curl -s --connect-timeout X -H "..." URL > /dev/null
+# Only match if no output file is specified (pure connectivity check)
+# Exclude raw.githubusercontent.com (handled by Pattern 4)
+if echo "$ALL_ARGS" | grep -qE 'google\.com|cloudflare\.com|github\.com'; then
+ if ! echo "$ALL_ARGS" | grep -qE 'raw\.githubusercontent\.com|github\.com.*/raw/'; then
+  if ! echo "$ALL_ARGS" | grep -qE '\s-o\s+[^ ]+'; then
+   exit 0
+  fi
+ fi
+fi
+
+# Pattern 5: Planet server checks
+# Pattern: curl -s ... planet.openstreetmap.org ...
+if echo "$ALL_ARGS" | grep -qE 'planet\.openstreetmap\.org'; then
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  echo "OK" > "$OUTPUT_FILE" 2>/dev/null || true
+ fi
+ exit 0
+fi
+
+# Default: if we have an output file, create it (for unknown cases)
+OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
 if [[ -n "$OUTPUT_FILE" ]]; then
- __create_mock_file "$URL" "$OUTPUT_FILE"
-else
- TMP_FILE=$(mktemp)
- __create_mock_file "$URL" "$TMP_FILE"
- cat "$TMP_FILE"
- rm -f "$TMP_FILE"
+ OUTPUT_DIR=$(dirname "$OUTPUT_FILE" 2>/dev/null || echo ".")
+ if [[ "$OUTPUT_DIR" != "." ]] && [[ -n "$OUTPUT_DIR" ]]; then
+  mkdir -p "$OUTPUT_DIR" 2>/dev/null || true
+ fi
+ touch "$OUTPUT_FILE" 2>/dev/null || true
+ exit 0
 fi
 
+# If no pattern matches and no output file, just succeed (for connectivity checks)
 exit 0
 EOF
  chmod +x "${MOCK_COMMANDS_DIR}/curl"

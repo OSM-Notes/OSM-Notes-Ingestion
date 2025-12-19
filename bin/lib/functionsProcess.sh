@@ -133,14 +133,58 @@ function __retry_file_operation() {
  fi
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES_LOCAL} ]]; do
+  __logd "Attempt $((RETRY_COUNT + 1))/${MAX_RETRIES_LOCAL}: Executing command"
   if eval "${OPERATION_COMMAND}"; then
-   __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
-   if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
-    __release_download_slot > /dev/null 2>&1 || true
+   local CMD_EXIT_CODE=$?
+   __logd "Command returned exit code: ${CMD_EXIT_CODE}"
+   # Verify output file exists and has content (if command uses -o or > redirection)
+   # Extract output file from command if it contains -o or > redirection
+   local OUTPUT_FILE_CHECK=""
+   if echo "${OPERATION_COMMAND}" | grep -qE '\s-o\s+[^ ]+'; then
+    # Extract file after -o
+    OUTPUT_FILE_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}' | head -1)
+    __logd "Extracted output file from -o: ${OUTPUT_FILE_CHECK}"
+   elif echo "${OPERATION_COMMAND}" | grep -qE '\s>\s+[^ ]+'; then
+    # Extract file after >
+    OUTPUT_FILE_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s>\s+[^ ]+' | awk '{print $2}' | head -1)
+    __logd "Extracted output file from >: ${OUTPUT_FILE_CHECK}"
    fi
-   trap - EXIT INT TERM
-   __log_finish
-   return 0
+   
+   # If we found an output file, verify it exists and has content
+   if [[ -n "${OUTPUT_FILE_CHECK}" ]]; then
+    # Expand variables in file path (e.g., ${TMP_DIR}/file.txt)
+    local EXPANDED_OUTPUT_FILE
+    EXPANDED_OUTPUT_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2>/dev/null || echo "${OUTPUT_FILE_CHECK}")
+    __logd "Expanded output file path: ${EXPANDED_OUTPUT_FILE}"
+    
+    if [[ ! -f "${EXPANDED_OUTPUT_FILE}" ]]; then
+     __logw "File operation reported success but output file does not exist: ${EXPANDED_OUTPUT_FILE}"
+     # Continue to retry
+    elif [[ ! -s "${EXPANDED_OUTPUT_FILE}" ]]; then
+     __logw "File operation reported success but output file is empty: ${EXPANDED_OUTPUT_FILE}"
+     # Continue to retry
+    else
+     # File exists and has content - operation truly succeeded
+     local FILE_SIZE
+     FILE_SIZE=$(ls -lh "${EXPANDED_OUTPUT_FILE}" 2>/dev/null | awk '{print $5}' || echo "unknown")
+     __logd "File operation succeeded on attempt $((RETRY_COUNT + 1)) (file verified: ${EXPANDED_OUTPUT_FILE}, size: ${FILE_SIZE})"
+     if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+      __release_download_slot > /dev/null 2>&1 || true
+     fi
+     trap - EXIT INT TERM
+     __log_finish
+     return 0
+    fi
+   else
+    # No output file to verify - assume success based on exit code
+    __logd "File operation succeeded on attempt $((RETRY_COUNT + 1)) (no output file to verify)"
+    if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+     __release_download_slot > /dev/null 2>&1 || true
+    fi
+    trap - EXIT INT TERM
+    __log_finish
+    return 0
+   fi
   else
    if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
     __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"

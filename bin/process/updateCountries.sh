@@ -1045,14 +1045,25 @@ function __swapCountryTables {
  # Execute swap script
  local SWAP_SQL="${SCRIPT_BASE_DIRECTORY}/sql/process/processCountries_swapTables.sql"
  if [[ -f "${SWAP_SQL}" ]]; then
-  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${SWAP_SQL}" > /dev/null 2>&1; then
+  local SWAP_ERROR_FILE
+  SWAP_ERROR_FILE=$(mktemp)
+  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${SWAP_SQL}" > /dev/null 2>"${SWAP_ERROR_FILE}"; then
    __logi "=== SWAP COMPLETED SUCCESSFULLY ==="
    __logi "countries_new has been swapped to countries"
    __logi "Backup available in countries_old table"
+   rm -f "${SWAP_ERROR_FILE}" 2>/dev/null || true
    __log_finish
    return 0
   else
-   __loge "Swap failed - check SQL errors above"
+   __loge "Swap failed - SQL errors:"
+   if [[ -f "${SWAP_ERROR_FILE}" ]] && [[ -s "${SWAP_ERROR_FILE}" ]]; then
+    cat "${SWAP_ERROR_FILE}" | while IFS= read -r LINE; do
+     __loge "  ${LINE}"
+    done
+   else
+    __loge "  (No error details available)"
+   fi
+   rm -f "${SWAP_ERROR_FILE}" 2>/dev/null || true
    __log_finish
    return 1
   fi

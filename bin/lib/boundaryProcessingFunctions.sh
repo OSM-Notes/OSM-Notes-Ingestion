@@ -2011,6 +2011,8 @@ function __downloadMaritimes_parallel_new() {
  for PART_FILE in "${TMP_DIR}"/download_maritime_part_??; do
   PART_NUM=$((PART_NUM + 1))
   (
+   # Ensure PATH is inherited from parent (critical for mock commands in test environment)
+   export PATH="${PATH}"
    local PART_PID="${BASHPID}"
    local PART_LOG_FILE="${TMP_DIR}/download_maritime_part_${PART_NUM}.log"
    local PART_SUCCESS=0
@@ -2179,6 +2181,8 @@ function __downloadCountries_parallel_new() {
  for PART_FILE in "${TMP_DIR}"/download_part_??; do
   PART_NUM=$((PART_NUM + 1))
   (
+   # Ensure PATH is inherited from parent (critical for mock commands in test environment)
+   export PATH="${PATH}"
    local PART_PID="${BASHPID}"
    local PART_LOG_FILE="${TMP_DIR}/download_part_${PART_NUM}.log"
    local PART_SUCCESS=0
@@ -2195,12 +2199,19 @@ function __downloadCountries_parallel_new() {
    echo "Part file: ${PART_NAME}"
    echo "Started: $(date '+%Y-%m-%d %H:%M:%S')"
    echo ""
+   echo "[PART ${PART_NUM}] Environment check:"
+   echo "[PART ${PART_NUM}] PATH: ${PATH}"
+   echo "[PART ${PART_NUM}] Which curl: $(which curl 2>&1 || echo 'curl not found')"
+   echo "[PART ${PART_NUM}] Curl version: $(curl --version 2>&1 | head -1 || echo 'curl failed')"
+   echo ""
 
    while read -r LINE; do
     local ID
     ID=$(echo "${LINE}" | awk '{print $1}')
 
     echo "[PART ${PART_NUM}] Downloading boundary ${ID}..."
+    echo "[PART ${PART_NUM}] PATH before download: ${PATH}"
+    echo "[PART ${PART_NUM}] Which curl before download: $(which curl 2>&1 || echo 'curl not found')"
     if __downloadBoundary_json_geojson_only "${ID}" 2>&1; then
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))
