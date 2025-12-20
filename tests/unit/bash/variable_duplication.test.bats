@@ -120,29 +120,9 @@ check_duplicates() {
   "processCheckPlanetNotes.sh and validationFunctions.sh"
 }
 
-@test "should not have duplicate readonly variables between datamartCountries.sh and validationFunctions.sh" {
- check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
-  "datamartCountries.sh and validationFunctions.sh"
-}
-
-@test "should not have duplicate readonly variables between datamartUsers.sh and validationFunctions.sh" {
- check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
-  "datamartUsers.sh and validationFunctions.sh"
-}
-
-@test "should not have duplicate readonly variables between profile.sh and validationFunctions.sh" {
- check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
-  "profile.sh and validationFunctions.sh"
-}
-
-@test "should not have duplicate readonly variables between ETL.sh and validationFunctions.sh" {
- check_duplicates \
-  "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" \
-  "ETL.sh and validationFunctions.sh"
-}
+# NOTE: Tests for datamartCountries.sh, datamartUsers.sh, profile.sh, and ETL.sh
+# have been moved to OSM-Notes-Analytics repository as these scripts are now
+# part of Analytics. See: https://github.com/OSMLatam/OSM-Notes-Analytics
 
 @test "should detect and report duplicate variables with detailed information" {
  # This test provides detailed information about any duplicates found

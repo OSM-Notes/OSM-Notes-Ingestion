@@ -63,8 +63,7 @@ The cleanup functionality has been integrated into a single comprehensive script
 ### Full Cleanup Mode
 
 1. **Database Check**: Verifies database existence
-2. **ETL Components**: Removes datamarts, staging, DWH objects
-4. **Base Components**: Removes tables, functions, procedures
+2. **Base Components**: Removes tables, functions, procedures
 5. **Temporary Files**: Cleans up temporary directories
 
 ### Partition-Only Mode

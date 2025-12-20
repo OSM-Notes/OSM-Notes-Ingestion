@@ -49,7 +49,7 @@ Usage: $0 [OPTIONS] [TEST_TYPE]
 Options:
   -h, --help              Show this help message
   --mode MODE             Test mode (host|mock|docker|ci)
-  --type TYPE             Test type (all|unit|integration|quality|dwh)
+  --type TYPE             Test type (all|unit|integration|quality)
 
 Modes:
   host                    Run tests on host system (default)
@@ -62,14 +62,12 @@ Test Types:
   unit                    Run only unit tests
   integration             Run only integration tests
   quality                 Run only quality tests
-  dwh                     Run only DWH enhanced tests
 
 Examples:
   $0 --mode host --type all                    # Run all tests on host
   $0 --mode mock --type unit                   # Run unit tests with mock
   $0 --mode docker --type integration          # Run integration tests in Docker
   $0 --mode ci --type all                      # Run all tests in CI
-  $0 --mode host --type dwh                    # Run DWH enhanced tests
   $0                                         # Run all tests on host (default)
 
 EOF
@@ -147,17 +145,6 @@ run_host_tests() {
   ;;
  "quality")
   bats tests/advanced/quality/*.bats
-  ;;
- "dwh")
-  log_info "Running DWH enhanced tests..."
-  # Run SQL unit tests for DWH
-  if command -v psql &> /dev/null; then
-   log_info "Running DWH SQL unit tests..."
-  else
-   log_warning "psql not found, skipping DWH SQL tests"
-  fi
-  # Run DWH integration tests
-  bats tests/integration/ETL_enhanced_integration.test.bats
   ;;
  *)
   log_error "Unknown test type: $test_type"

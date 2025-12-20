@@ -454,9 +454,10 @@ declare -r ERROR_INVALID_ARGUMENT=242
 #### File Naming Convention
 
 - **Process files**: `processAPINotes_21_createApiTables.sql`
-- **ETL files**: `ETL_11_checkDWHTables.sql`
 - **Function files**: `functionsProcess_21_createFunctionToGetCountry.sql`
 - **Drop files**: `processAPINotes_12_dropApiTables.sql`
+
+> **Note:** ETL files are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 #### SQL Code Standards
 
@@ -531,23 +532,26 @@ Familiarize yourself with the project structure:
 
 ### Overview
 
-All contributions must include comprehensive testing. The project uses **78 BATS testing suites** covering all system components, including the new DWH enhanced features.
+All contributions must include comprehensive testing. The project uses **BATS testing suites** covering all system components.
+
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### Test Categories
 
 #### Unit Tests (72 suites)
 
 - **Bash Scripts**: 68 BATS test suites for shell scripts
-- **SQL Functions**: 4 SQL test suites (including DWH enhanced)
+- **SQL Functions**: SQL test suites
+
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 #### Integration Tests (8 suites)
 
 - **End-to-End Workflows**: Complete system integration testing
-- **DWH Enhanced**: ETL and datamart enhanced functionality testing
 
 #### Validation Tests
 
-- **Data Validation**: XML/CSV processing, ETL workflows
+- **Data Validation**: XML/CSV processing and validation
 - **Error Handling**: Edge cases, error conditions
 - **Performance**: Parallel processing, optimization
 
@@ -556,39 +560,7 @@ All contributions must include comprehensive testing. The project uses **78 BATS
 - **Code Quality**: Linting, formatting, conventions
 - **Security**: Vulnerability scanning, best practices
 
-### DWH Enhanced Testing Requirements
-
-When contributing to DWH features, you must include tests for:
-
-#### New Dimensions
-
-- **`dimension_timezones`**: Timezone support testing
-- **`dimension_seasons`**: Seasonal analysis testing
-- **`dimension_continents`**: Continental grouping testing
-- **`dimension_application_versions`**: Application version testing
-- **`fact_hashtags`**: Bridge table testing
-
-#### Enhanced Dimensions
-
-- **`dimension_time_of_week`**: Renamed dimension with enhanced attributes
-- **`dimension_users`**: SCD2 implementation testing
-- **`dimension_countries`**: ISO codes testing
-- **`dimension_days`**: Enhanced date attributes testing
-- **`dimension_applications`**: Enhanced attributes testing
-
-#### New Functions
-
-- **`get_timezone_id_by_lonlat()`**: Timezone calculation testing
-- **`get_season_id()`**: Season calculation testing
-- **`get_application_version_id()`**: Application version management testing
-- **`get_local_date_id()`**: Local date calculation testing
-- **`get_local_hour_of_week_id()`**: Local hour calculation testing
-
-#### Enhanced ETL
-
-- **Staging Procedures**: New columns, SCD2, bridge tables
-- **Datamart Compatibility**: Integration with new dimensions
-- **Documentation**: Consistency with implementation
+> **Note:** DWH/ETL testing requirements are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### Running Tests
 
@@ -598,11 +570,9 @@ When contributing to DWH features, you must include tests for:
 # Run all tests (recommended)
 ./tests/run_all_tests.sh
 
-# Run DWH enhanced tests only
-./tests/run_dwh_tests.sh
-
 # Run specific test categories
-./tests/run_tests.sh --type dwh
+./tests/run_tests.sh --type unit
+./tests/run_tests.sh --type integration
 ```
 
 #### Individual Test Categories
@@ -615,9 +585,7 @@ bats tests/unit/sql/*.sql
 # Integration tests
 bats tests/integration/*.bats
 
-# DWH enhanced tests
-./tests/run_dwh_tests.sh --skip-integration  # SQL only
-./tests/run_dwh_tests.sh --skip-sql          # Integration only
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 ```
 
 #### Test Validation
@@ -636,14 +604,14 @@ All new tests must be documented in:
 
 - [Testing Suites Reference](./docs/Testing_Suites_Reference.md)
 - [Testing Guide](./docs/Testing_Guide.md)
-- [DWH Testing Documentation](./tests/README.md#dwh-enhanced-testing-features)
+
+> **Note:** DWH/ETL testing documentation is maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
 
 ### CI/CD Integration
 
 Tests are automatically run in GitHub Actions:
 
 - **Unit Tests**: Basic functionality and code quality
-- **DWH Enhanced Tests**: New dimensions, functions, ETL improvements
 - **Integration Tests**: End-to-end workflow validation
 - **Performance Tests**: System performance validation
 - **Security Tests**: Vulnerability scanning
@@ -1286,7 +1254,7 @@ git ls-files -v | grep '^[[:lower:]]'
 git update-index --no-assume-unchanged etc/properties.sh
 ```
 
-This allows you to customize database settings, user names, or ETL configurations without affecting the repository.
+This allows you to customize database settings or user names without affecting the repository.
 
 ## Version Control
 

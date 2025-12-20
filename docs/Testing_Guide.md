@@ -471,7 +471,7 @@ Edge cases tests cover boundary situations:
 ./tests/run_integration_tests.sh --process-planet
 ./tests/run_integration_tests.sh --cleanup
 # WMS tests are in the OSM-Notes-WMS repository
-./tests/run_integration_tests.sh --etl
+# ETL/DWH tests are in the OSM-Notes-Analytics repository
 ```
 
 ### Run Individual Tests

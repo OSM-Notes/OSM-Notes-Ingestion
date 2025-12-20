@@ -1211,16 +1211,7 @@ chmod +x /usr/local/bin/check-osm-notes-health.sh
 # Verify data is being updated
 psql -d notes -c "SELECT MAX(created_at) FROM notes;"
 
-# Step 2: Set up ETL from ingestion to analytics
-# The analytics system reads from the same database
-# Configure ETL to run after API processing
-
-# Step 3: Coordinate processing schedules
-# Ingestion: Every 15 minutes (processAPINotes.sh)
-# ETL: Every 30 minutes (after ingestion completes)
-# This ensures analytics data is always up-to-date
-
-# Step 4: Verify data flow
+# Step 2: Verify data flow
 # Check that analytics tables are being populated
 # Query analytics database for latest data
 ```
@@ -1243,9 +1234,8 @@ OSM API → processAPINotes.sh → PostgreSQL (notes)
 # Check ingestion is working
 psql -d notes -c "SELECT COUNT(*) FROM notes WHERE created_at > NOW() - INTERVAL '1 hour';"
 
-# Check ETL is processing
-# (Query analytics database)
-psql -d osm_notes_analytics -c "SELECT MAX(etl_timestamp) FROM fact_notes;"
+# Check analytics data (if Analytics project is deployed)
+# See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for details
 ```
 
 For **WMS (Web Map Service) layer publication**, see the
@@ -2744,7 +2734,7 @@ For analytics, ETL, and data warehouse functionality, see:
 
 - **[OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)**
   - Star schema design
-  - ETL processes
+  - ETL processes (see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics))
   - Data marts (users, countries)
   - Profile generation
   - Advanced analytics

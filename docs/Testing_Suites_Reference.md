@@ -113,11 +113,7 @@ Integration tests validate complete workflows and system interactions:
   - Large XML file handling
 
 > **Note:** ETL and datamart integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
-- **Key Tests**:
-  - DatamartUsers enhanced functionality
-  - DatamartCountries enhanced functionality
-  - Enhanced dimensions integration
-  - SCD2 integration
+- **Key Tests**: See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository
   - Bridge table integration
   - Application version integration
   - Season integration
@@ -164,7 +160,7 @@ Integration tests validate complete workflows and system interactions:
 - **csv_enum_validation.test.bats** - CSV enum validation
 - **xml_processing_enhanced.test.bats** - Enhanced XML processing
 
-### 🗄️ Database and ETL (6 suites)
+### 🗄️ Database (6 suites)
 
 - **database_variables.test.bats** - Database variable management
 
@@ -246,7 +242,6 @@ For **WMS (Web Map Service) test suites**, see the
 
 1. **Data Processing** (25 suites)
    - XML/CSV processing and validation
-   - ETL workflows and data transformation
    - Parallel processing and performance
 
 2. **System Integration** (15 suites)
