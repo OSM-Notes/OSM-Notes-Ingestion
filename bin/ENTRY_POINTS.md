@@ -34,23 +34,8 @@ These are the **only scripts** that should be executed directly:
    - **Purpose**: Compares Planet vs API data and reports differences
    - **When**: Daily automated check
 
-### WMS (Web Map Service)
-5. **`bin/wms/wmsManager.sh`** - Manages WMS database components
-   - **Usage**: `./bin/wms/wmsManager.sh <command>`
-   - **Commands**: `install`, `remove`, `status`, `help`
-   - **Purpose**: Installs/manages WMS database components (tables, triggers, etc.)
-   - **When**: Initial WMS setup or database maintenance
-   - **Note**: Requires elevated privileges (uses system user via peer authentication)
-
-6. **`bin/wms/geoserverConfig.sh`** - Configures GeoServer for WMS
-   - **Usage**: `./bin/wms/geoserverConfig.sh <command>`
-   - **Commands**: `install`, `remove`, `status`, `help`
-   - **Purpose**: Configures GeoServer to serve WMS layers (workspace, datastore, layers, styles)
-   - **When**: After running `wmsManager.sh install` to configure GeoServer
-   - **Prerequisites**: GeoServer running, WMS database components installed
-
 ### Maintenance
-7. **`bin/cleanupAll.sh`** - Removes all database components
+5. **`bin/cleanupAll.sh`** - Removes all database components
    - **Usage**: `./bin/cleanupAll.sh` (full) or `./bin/cleanupAll.sh -p` (partitions only)
    - **Options**: `-p`/`--partitions-only` (clean partitions only), `-a`/`--all` (full cleanup, default)
    - **Purpose**: Complete database cleanup
@@ -79,9 +64,6 @@ These scripts are **supporting components** and should **never** be called direc
 - `bin/lib/parallelProcessingFunctions.sh` - Parallel processing functions (sourced by other scripts)
 - `bin/lib/securityFunctions.sh` - Security/sanitization functions (sourced by other scripts)
 
-### WMS Helpers
-- (None - both wmsManager.sh and geoserverConfig.sh are entry points)
-
 ## Examples
 
 ### ✅ Correct Usage
@@ -97,12 +79,6 @@ These scripts are **supporting components** and should **never** be called direc
 
 # Check data integrity (daily)
 ./bin/monitor/notesCheckVerifier.sh
-
-# Install WMS database components
-./bin/wms/wmsManager.sh install
-
-# Configure GeoServer
-./bin/wms/geoserverConfig.sh install
 
 # Cleanup database
 ./bin/cleanupAll.sh osm_notes_test
@@ -124,7 +100,7 @@ These scripts are **supporting components** and should **never** be called direc
 
 ### Recommended Changes
 - Add deprecation warnings to internal scripts
-- Document that only 6 scripts are valid entry points
+- Document that only 5 scripts are valid entry points
 - Future: Add guards to prevent direct execution of internal scripts
 
 ## For Developers

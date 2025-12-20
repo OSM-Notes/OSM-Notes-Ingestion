@@ -419,46 +419,6 @@ function __calculateInternationalWaters {
  fi
 }
 
-# Refreshes the materialized view for disputed and unclaimed areas.
-# This should be called after countries are updated (monthly).
-function __refreshDisputedAreasView {
- __log_start
- __logi "Refreshing materialized view for disputed and unclaimed areas..."
-
- # Check if materialized view exists
- local VIEW_EXISTS
- VIEW_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_matviews WHERE schemaname = 'wms' AND matviewname = 'disputed_and_unclaimed_areas');" 2> /dev/null | tr -d ' ' || echo "f")
-
- if [[ "${VIEW_EXISTS}" != "t" ]]; then
-  __logw "Materialized view wms.disputed_and_unclaimed_areas does not exist, skipping refresh"
-  __logw "Run sql/wms/prepareDatabase.sql to create it"
-  __log_finish
-  return 0
- fi
-
- # Check if refresh SQL file exists
- local REFRESH_SQL
- REFRESH_SQL="${SCRIPT_BASE_DIRECTORY}/sql/wms/refreshDisputedAreasView.sql"
-
- if [[ ! -f "${REFRESH_SQL}" ]]; then
-  __loge "Refresh SQL file not found: ${REFRESH_SQL}"
-  __log_finish
-  return 1
- fi
-
- __logi "Executing refresh (this may take several minutes)..."
- if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${REFRESH_SQL}" > /dev/null 2>&1; then
-  __logi "Materialized view refreshed successfully"
- else
-  __loge "Failed to refresh materialized view"
-  __log_finish
-  return 1
- fi
-
- __log_finish
- return 0
-}
-
 # Performs maintenance operations on countries_new table after data is loaded.
 # This includes REINDEX of spatial indexes and ANALYZE to update statistics.
 function __maintainCountriesTableNew {
@@ -1648,7 +1608,6 @@ EOF
   # After swap, maintain the new countries table
   __maintainCountriesTable
   __calculateInternationalWaters
-  __refreshDisputedAreasView
   __cleanPartial
 
   # Unset environment variable
@@ -1738,7 +1697,6 @@ EOF
   # After swap, maintain the new countries table
   __maintainCountriesTable
   __calculateInternationalWaters
-  __refreshDisputedAreasView
   __cleanPartial
 
   # Re-assign countries for notes affected by boundary changes

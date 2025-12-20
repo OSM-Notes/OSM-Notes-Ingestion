@@ -278,13 +278,6 @@ psql -d osm_notes -f sql/monitor/processCheckPlanetNotes_*.sql
 psql -d osm_notes -f sql/monitor/notesCheckVerifier-report.sql > report.txt
 ```
 
-### `/sql/wms/`
-
-Web Map Service related scripts:
-
-- **Database preparation**: `prepareDatabase.sql`
-- **Cleanup**: `removeFromDatabase.sql`
-
 ### `/sql/analysis/`
 
 Performance analysis and validation scripts:

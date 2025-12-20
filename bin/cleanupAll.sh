@@ -277,54 +277,6 @@ function __cleanup_partitions_only() {
  __log_finish
 }
 
-# Function to cleanup WMS components
-function __cleanup_wms() {
- __log_start
- local TARGET_DB="${1}"
-
- __logi "Cleaning up WMS components"
-
- local WMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/wms/removeFromDatabase.sql"
- if [[ ! -f "${WMS_SCRIPT}" ]]; then
-  __logw "WMS cleanup script not found: ${WMS_SCRIPT}"
-  __logw "Skipping WMS cleanup (script not found)"
-  __log_finish
-  return 0
- fi
-
- local EXECUTE_WMS_STATUS=0
- __execute_sql_script "${TARGET_DB}" "${WMS_SCRIPT}" "WMS Components"
- EXECUTE_WMS_STATUS=$?
- if [[ ${EXECUTE_WMS_STATUS} -ne 0 ]]; then
-  __loge "Failed to execute WMS cleanup script"
-  __log_finish
-  return 1
- fi
-
- # Verify WMS schema was dropped
- local PSQL_CMD="psql"
- if [[ -n "${DB_USER:-}" ]]; then
-  PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
- fi
-
- local WMS_EXISTS
- WMS_EXISTS=$(${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
-  SELECT COUNT(*)
-  FROM information_schema.schemata
-  WHERE schema_name = 'wms';
- " 2> /dev/null | tr -d ' ' || echo "0")
-
- if [[ "${WMS_EXISTS}" -ne "0" ]]; then
-  __loge "ERROR: WMS schema still exists after cleanup"
-  __log_finish
-  return 1
- fi
-
- __logi "SUCCESS: WMS components removed"
- __log_finish
- return 0
-}
-
 # Function to cleanup API tables first (to resolve enum dependencies)
 function __cleanup_api_tables() {
  __log_start
@@ -560,19 +512,6 @@ function __verify_cleanup_success() {
   done
  fi
 
- # Check if WMS schema still exists
- local WMS_EXISTS
- WMS_EXISTS=$(${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
-  SELECT COUNT(*)
-  FROM information_schema.schemata
-  WHERE schema_name = 'wms';
- " 2> /dev/null | tr -d ' ' || echo "0")
-
- if [[ "${WMS_EXISTS}" -ne "0" ]]; then
-  __loge "ERROR: WMS schema still exists after cleanup"
-  VERIFICATION_FAILED=1
- fi
-
  # Check for partition tables (only real partition tables, not system tables)
  local PARTITION_COUNT
  PARTITION_COUNT=$(${PSQL_CMD} -d "${TARGET_DB}" -Atq -c "
@@ -730,29 +669,13 @@ function __cleanup_all() {
  __list_all_types "${TARGET_DB}" "${BEFORE_DIR}/types.txt"
  __list_all_schemas "${TARGET_DB}" "${BEFORE_DIR}/schemas.txt"
 
- # Step 2: Cleanup WMS components
+ # Step 2: Cleanup base components
  if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
   __loge "Cleanup was interrupted"
   __log_finish
   return 1
  fi
- __logi "Step 2: Cleaning up WMS components"
- local CLEANUP_WMS_STATUS=0
- __cleanup_wms "${TARGET_DB}"
- CLEANUP_WMS_STATUS=$?
- if [[ ${CLEANUP_WMS_STATUS} -ne 0 ]]; then
-  __loge "WMS cleanup failed"
-  __log_finish
-  return 1
- fi
-
- # Step 3: Cleanup base components
- if [[ ${EXIT_REQUESTED} -eq 1 ]]; then
-  __loge "Cleanup was interrupted"
-  __log_finish
-  return 1
- fi
- __logi "Step 3: Cleaning up base components"
+ __logi "Step 2: Cleaning up base components"
  local CLEANUP_BASE_STATUS=0
  __cleanup_base "${TARGET_DB}"
  CLEANUP_BASE_STATUS=$?
@@ -855,9 +778,8 @@ function __show_help() {
  echo ""
  echo "Full cleanup will:"
  echo "  1. Check if the database exists"
- echo "  2. Remove WMS components"
- echo "  3. Remove base components (tables, functions, procedures)"
- echo "  4. Clean up temporary files"
+ echo "  2. Remove base components (tables, functions, procedures)"
+ echo "  3. Clean up temporary files"
  echo ""
  echo "Partition-only cleanup will:"
  echo "  1. Check if the database exists"

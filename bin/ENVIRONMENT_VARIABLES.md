@@ -190,22 +190,8 @@ export LOG_LEVEL=WARN
 ./bin/monitor/notesCheckVerifier.sh
 ```
 
-### `wmsManager.sh` Specific
-All WMS configuration is done via **`etc/wms.properties.sh`** (created from `etc/wms.properties.sh.example`) or environment variables:
-- **`GEOSERVER_URL`**: GeoServer base URL
-- **`GEOSERVER_USER`**: GeoServer username
-- **`GEOSERVER_PASSWORD`**: GeoServer password
-- **`GEOSERVER_WORKSPACE`**: Workspace name
-- **`GEOSERVER_LAYER`**: Layer name
-- **`WMS_*`**: Various WMS configuration options
-
-#### Example
-```bash
-export GEOSERVER_URL="https://geoserver.example.com/geoserver"
-export GEOSERVER_USER="admin"
-export GEOSERVER_PASSWORD="secure_password"
-./bin/wms/wmsManager.sh install
-```
+For **WMS (Web Map Service) configuration**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### `cleanupAll.sh` Specific
 No script-specific variables. Accepts database name as **argument**.

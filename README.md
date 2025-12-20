@@ -1,13 +1,12 @@
 # OSM-Notes-Ingestion
 
-**Data Ingestion and WMS for OpenStreetMap Notes**
+**Data Ingestion for OpenStreetMap Notes**
 
 This repository handles downloading, processing, and publishing OSM notes data.
 It provides:
 
 - Notes ingestion from OSM Planet and API
 - Real-time synchronization with the main OSM database
-- WMS (Web Map Service) layer publication
 - Data monitoring and validation
 
 > **Note:** The analytics, data warehouse, and ETL components have been moved to
@@ -95,9 +94,6 @@ These are the main functions of this project:
   This is configured with a scheduler (cron) and it does everything.
 - **Country Boundaries**: Updates the current country and maritime information.
   This should be run once a month.
-- **WMS Layer**: Copy the note's data to another set of tables to allow the
-  WMS layer publishing.
-  This is configured via triggers on the database on the main tables.
 - **Data Monitoring**: Monitor the sync by comparing the daily Planet dump with the notes on the
   database.
   This is optional and can be configured daily with a cron.
@@ -221,13 +217,11 @@ OSM-Notes-Ingestion/
 ├── bin/                    # Executable scripts
 │   ├── process/           # Main processing scripts (entry points)
 │   ├── monitor/           # Monitoring and validation scripts
-│   ├── wms/               # WMS layer management
 │   ├── scripts/           # Utility scripts
 │   └── lib/               # Shared library functions
 ├── sql/                   # SQL scripts (mirrors bin/ structure)
 │   ├── process/           # Database operations for processing
 │   ├── monitor/           # Monitoring queries
-│   ├── wms/               # WMS layer SQL
 │   └── analysis/          # Performance analysis scripts
 ├── tests/                 # Comprehensive test suite
 │   ├── unit/              # Unit tests (bash, SQL)
@@ -303,10 +297,6 @@ profile can be used for any user.
 - 3 hours: Locating notes in the appropriate country (parallel processing).
 
   - This DB process is executed in parallel with multiple threads.
-
-**WMS layer**
-
-- 1 minute: creating the objects.
 
 **Notes synchronization**
 
@@ -407,11 +397,9 @@ for security reasons. You must create them from the example files:
 ```bash
 # Copy example files to create your local configuration
 cp etc/properties.sh.example etc/properties.sh
-cp etc/wms.properties.sh.example etc/wms.properties.sh
 
-# Edit the files with your database credentials and settings
+# Edit the file with your database credentials and settings
 vi etc/properties.sh
-vi etc/wms.properties.sh
 ```
 
 The example files contain default values and detailed comments. Replace the
@@ -506,10 +494,6 @@ These are the table types on the database:
   They don't belong to a specific schema, but a suffix.
 - Sync tables contain the data from the recent planet download.
   They don't belong to a specific schema, but a suffix.
-- WMS tables which are used to publish the WMS layer.
-  Their schema is `wms`.
-They contain a simplified version of the notes with only the location and
-  age.
 - `dwh` schema contains the data warehouse tables (managed by OSM-Notes-Analytics).
   See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for details.
 - Check tables are used for monitoring to compare the notes on the previous day
@@ -521,20 +505,18 @@ They contain a simplified version of the notes with only the location and
 Some directories have their own README file to explain their content.
 These files include details about how to run or troubleshoot the scripts.
 
-- `bin` contains all executable scripts for ingestion and WMS.
+- `bin` contains all executable scripts for ingestion.
 - `bin/monitor` contains scripts to monitor the notes database to
   validate it has the same data as the planet, and send email
   messages with differences.
 - `bin/process` has the main scripts to download the notes database, with the
   Planet dump and via API calls.
-- `bin/wms` contains scripts for WMS (Web Map Service) layer management.
 - `etc` configuration file for many scripts.
 - `json` JSON files for schema and testing.
 - `lib` libraries used in the project.
   Currently only a modified version of bash logger.
 - `overpass` queries to download data with Overpass for the countries and
   maritime boundaries.
-- `sld` files to format the WMS layer on the GeoServer.
 - `sql` contains most of the SQL statements to be executed in Postgres.
   It follows the same directory structure from `/bin` where the prefix name is
   the same as the scripts on the other directory.
@@ -544,11 +526,8 @@ These files include details about how to run or troubleshoot the scripts.
 - `sql/monitor` scripts to check the notes database, comparing it with a Planet
   dump.
 - `sql/process` has all SQL scripts to load the notes database.
-- `sql/wms` provides the mechanism to publish a WMS from the notes.
-  This is the only exception to the other files under `sql` because this
-  feature is supported only on SQL scripts; there is no bash script for this.
-  This is the only location of the files related to the WMS layer publishing.
 - **For DWH/ETL SQL scripts**, see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+- **For WMS layer publishing**, see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS).
 - `test` set of scripts to perform tests.
   This is not part of a Unit Test set.
 - `xsd` contains the structure of the XML documents to be retrieved - XML
@@ -578,36 +557,8 @@ with the `processPlanetNotes.sh` script.
 It is also recommended to create an issue in this GitHub repository, providing
 as much information as possible.
 
-### WMS layer
-
-This is the way to create the objects for the WMS layer.
-More information is in the `README.md` file under the `sql/wms` directory.
-
-#### Automated Installation (Recommended)
-
-Use the WMS manager script for easy installation and management:
-
-```bash
-# Install WMS components
-~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh install
-
-# Check installation status
-~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh status
-
-# Remove WMS components
-~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh deinstall
-
-# Show help
-~/OSM-Notes-Ingestion/bin/wms/wmsManager.sh help
-```
-
-#### Manual Installation
-
-For manual installation, execute the SQL directly:
-
-```bash
-psql -d notes -v ON_ERROR_STOP=1 -f ~/OSM-Notes-Ingestion/sql/wms/prepareDatabase.sql
-```
+For **WMS (Web Map Service) layer publication**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ## Dependencies and libraries
 
@@ -698,12 +649,11 @@ files** (~1,000+ individual tests) covering all ingestion system components.
 - **Performance Tests**: Parallel processing, edge cases, optimization
 - **Quality Tests**: Code quality, conventions, formatting
 - **Logging Pattern Tests**: Logging pattern validation and compliance
-- **WMS Tests**: Web Map Service integration and configuration
 
 ### Test Coverage
 
 - ✅ **Data Processing**: XML/CSV processing, transformations
-- ✅ **System Integration**: Database operations, API integration, WMS services
+- ✅ **System Integration**: Database operations, API integration
 - ✅ **Quality Assurance**: Code quality, error handling, edge cases
 - ✅ **Infrastructure**: Monitoring, configuration, tools and utilities
 - ✅ **Logging Patterns**: Logging pattern validation and compliance across all scripts
@@ -778,11 +728,9 @@ To set up your local configuration:
 ```bash
 # Create your local configuration files from the examples
 cp etc/properties.sh.example etc/properties.sh
-cp etc/wms.properties.sh.example etc/wms.properties.sh
 
 # Edit with your local settings
 vi etc/properties.sh
-vi etc/wms.properties.sh
 ```
 
 **Note:** The example files (`.example`) are tracked in Git and serve as
