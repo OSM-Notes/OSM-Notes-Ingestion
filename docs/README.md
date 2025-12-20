@@ -48,10 +48,8 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`Input_Validation.md`**: Input validation and error handling documentation
 - **`XML_Validation_Improvements.md`**: XML processing and validation improvements
 
-### WMS (Web Map Service)
-
-- **`WMS_Guide.md`**: Complete WMS guide for administrators and developers (installation, configuration, administration, deployment)
-- **`WMS_User_Guide.md`**: User guide for mappers and end users
+For **WMS (Web Map Service) documentation**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### GDPR Compliance
 
@@ -89,13 +87,13 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
         └────────────┬───────────────┘
                      │
         ┌────────────┴───────────────┐
-        │                            │
-        ▼                            ▼
-┌───────────────┐          ┌──────────────────┐
-│  WMS_Guide.md │          │ Testing_Guide.md  │
-│ WMS Technical │          │ Testing Docs     │
-│ (45 min)      │          │ (30 min)         │
-└───────────────┘          └──────────────────┘
+        │
+        ▼
+┌──────────────────┐
+│ Testing_Guide.md │
+│ Testing Docs     │
+│ (30 min)         │
+└──────────────────┘
 ```
 
 ### Recommended Reading Paths by Role
@@ -122,8 +120,8 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
   - Historical data loading
   - Bulk processing
 
-**Step 4: Usage** (15 min)
-- **[WMS_User_Guide.md](./WMS_User_Guide.md)** - How to use WMS layer
+**Step 4: Advanced Topics** (45 min)
+- **[Testing_Guide.md](./Testing_Guide.md)** - Testing procedures
 
 #### For Developers (~3 hours total)
 
@@ -135,8 +133,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **[Process_API.md](./Process_API.md)** - API integration (30 min)
 - **[Process_Planet.md](./Process_Planet.md)** - Data processing (30 min)
 
-**Step 3: Advanced Topics** (75 min)
-- **[WMS_Guide.md](./WMS_Guide.md)** - WMS technical details (45 min)
+**Step 3: Advanced Topics** (30 min)
 - **[Testing_Guide.md](./Testing_Guide.md)** - Testing procedures (30 min)
 
 **Step 4: CI/CD** (30 min)
@@ -152,10 +149,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **[Process_API.md](./Process_API.md)** - API operations (30 min)
 - **[Process_Planet.md](./Process_Planet.md)** - Planet operations (30 min)
 
-**Step 3: WMS Administration** (45 min)
-- **[WMS_Guide.md](./WMS_Guide.md)** - WMS installation, configuration, and administration
-
-**Step 4: Monitoring** (30 min)
+**Step 3: Monitoring** (30 min)
 - **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - CI/CD pipeline understanding
 
 #### For Testers and QA (~2 hours total)
@@ -219,10 +213,8 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
   - [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation
   - [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for spatial functions
 
-### WMS Documentation
-
-- **WMS_Guide.md**: Complete WMS guide for administrators and developers (installation, configuration, administration, deployment)
-- **WMS_User_Guide.md**: User guide for mappers and end users
+For **WMS (Web Map Service) documentation**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ## Software Components
 

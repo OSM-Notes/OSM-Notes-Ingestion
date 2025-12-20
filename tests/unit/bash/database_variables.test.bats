@@ -29,8 +29,6 @@ teardown() {
  # Set all required variables
  export DBNAME="test_db"
  export DB_USER="test_user"
- export WMS_DBNAME="wms_db"
- export WMS_DBUSER="wms_user"
  export TEST_DBNAME="test_db"
  export TEST_DBUSER="test_user"
 
@@ -42,8 +40,6 @@ teardown() {
 @test "validate_database_variables with missing DBNAME" {
  # Set variables except DBNAME
  export DB_USER="test_user"
- export WMS_DBNAME="wms_db"
- export WMS_DBUSER="wms_user"
  export TEST_DBNAME="test_db"
  export TEST_DBUSER="test_user"
 
@@ -59,8 +55,6 @@ teardown() {
 @test "validate_database_variables with missing DB_USER" {
  # Set variables except DB_USER
  export DBNAME="test_db"
- export WMS_DBNAME="wms_db"
- export WMS_DBUSER="wms_user"
  export TEST_DBNAME="test_db"
  export TEST_DBUSER="test_user"
 
@@ -73,29 +67,11 @@ teardown() {
  [[ "$output" == *"DB_USER is not set"* ]]
 }
 
-@test "validate_database_variables with missing WMS variables" {
- # Set only primary variables
- export DBNAME="test_db"
- export DB_USER="test_user"
- export TEST_DBNAME="test_db"
- export TEST_DBUSER="test_user"
-
- # Unset WMS variables
- unset WMS_DBNAME WMS_DBUSER
-
- run __validate_all_database_variables
- [ "$status" -eq 0 ]
- [[ "$output" == *"WARNING: Database variable warnings"* ]]
- [[ "$output" == *"WMS_DBNAME is not set"* ]]
- [[ "$output" == *"WMS_DBUSER is not set"* ]]
-}
 
 @test "validate_database_variables with missing TEST variables" {
  # Set only primary variables
  export DBNAME="test_db"
  export DB_USER="test_user"
- export WMS_DBNAME="wms_db"
- export WMS_DBUSER="wms_user"
 
  # Unset TEST variables
  unset TEST_DBNAME TEST_DBUSER
@@ -111,7 +87,7 @@ teardown() {
 
 @test "validate_database_variables with no variables set" {
  # Unset all variables
- unset DBNAME DB_USER WMS_DBNAME WMS_DBUSER TEST_DBNAME TEST_DBUSER
+ unset DBNAME DB_USER TEST_DBNAME TEST_DBUSER
 
  run __validate_all_database_variables
  [ "$status" -eq 1 ]
@@ -128,7 +104,7 @@ teardown() {
  export DB_USER="test_user"
 
  # Unset all other variables
- unset WMS_DBNAME WMS_DBUSER TEST_DBNAME TEST_DBUSER
+ unset TEST_DBNAME TEST_DBUSER
 
  run __validate_database_variables
  [ "$status" -eq 0 ]
@@ -160,8 +136,6 @@ teardown() {
  # Set all test variables
  export TEST_DBNAME="test_db"
  export TEST_DBUSER="test_user"
- export WMS_DBNAME="wms_db"
- export WMS_DBUSER="wms_user"
 
  run __validate_test_database_variables
  [ "$status" -eq 0 ]
@@ -171,8 +145,6 @@ teardown() {
 @test "validate_test_database_variables with missing TEST_DBNAME" {
  # Set variables except TEST_DBNAME
  export TEST_DBUSER="test_user"
- export WMS_DBNAME="wms_db"
- export WMS_DBUSER="wms_user"
 
  # Unset TEST_DBNAME
  unset TEST_DBNAME

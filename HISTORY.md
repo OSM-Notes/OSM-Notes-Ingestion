@@ -73,7 +73,7 @@ Over time, the project evolved to address these limitations:
 
 The project has been split into specialized components:
 
-- **OSM-Notes-Ingestion** (this repository): Data ingestion and WMS services
+- **OSM-Notes-Ingestion** (this repository): Data ingestion
 - **OSM-Notes-Analytics**: Data warehouse, ETL, and profile generation
 - **OSM-Notes-Viewer**: Web visualization and interactive exploration
 
@@ -132,7 +132,6 @@ Today, OSM-Notes-Ingestion is a production-ready system that:
 
 - Processes millions of notes efficiently
 - Maintains near real-time synchronization with OSM
-- Provides WMS layers for geographic visualization
 - Handles data integrity and monitoring automatically
 - Supports both incremental (API) and bulk (Planet) processing
 - Includes comprehensive testing and documentation

@@ -399,7 +399,7 @@ Data Sources:
 Processing Purposes:
 - Data analysis and research
 - Quality monitoring
-- Service provision (WMS layers)
+- Service provision via WMS layers (see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS))
 
 Retention:
 - Data is retained as part of historical records

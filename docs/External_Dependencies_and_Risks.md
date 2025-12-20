@@ -144,7 +144,6 @@ a massive XML file.
   - Pre-processed and optimized data
   - Country assignment and spatial analysis
   - Historical tracking and analytics
-  - WMS layer services
 
 ---
 
@@ -282,7 +281,7 @@ The project currently:
 - Downloads data from OSM API and Planet dumps
 - Processes and transforms data locally
 - Stores processed data in PostgreSQL database
-- Provides analytics and WMS services
+- Provides analytics services (WMS is in separate repository)
 
 ### Potential: Direct OSM Database Access
 
@@ -307,7 +306,6 @@ If the OSM database can be queried directly:
   - Pre-processed and optimized data structures
   - Country assignment and spatial analysis
   - Historical tracking and change detection
-  - WMS layer services
   - Data transformation and normalization
 
 **Consideration**:
@@ -343,7 +341,6 @@ If the OSM database can be queried directly:
 | `processPlanetNotes.sh` | ✅ **Unaffected** | ❌ **Fails** | ✅ **Unaffected** |
 | `updateCountries.sh` | ✅ **Unaffected** | ✅ **Unaffected** | ❌ **Fails** |
 | Gap correction | ⚠️ **Degraded** | ❌ **Impossible** | ✅ **Unaffected** |
-| WMS layer | ✅ **Unaffected** | ✅ **Unaffected** | ✅ **Unaffected** |
 
 **Legend**:
 

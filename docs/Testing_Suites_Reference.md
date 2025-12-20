@@ -221,10 +221,8 @@ Integration tests validate complete workflows and system interactions:
 - **script_execution_integration.test.bats** - Script execution integration
 - **script_help_validation.test.bats** - Script help validation
 
-### 🌐 WMS and Web Services (2 suites)
-
-- **wmsManager.test.bats** - WMS manager functionality
-- **wmsManager_integration.test.bats** - WMS manager integration
+For **WMS (Web Map Service) test suites**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### 📝 Logging Pattern Validation (1 suite)
 
@@ -254,7 +252,6 @@ Integration tests validate complete workflows and system interactions:
 2. **System Integration** (15 suites)
    - Database operations and connectivity
    - API integration and external services
-   - WMS and web services
 
 3. **Quality Assurance** (20 suites)
    - Code quality and conventions

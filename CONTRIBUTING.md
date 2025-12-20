@@ -27,7 +27,6 @@ OSM-Notes-Ingestion is a data ingestion system for OpenStreetMap notes. It:
 - **Downloads** notes from OSM API (real-time) and Planet dumps (historical)
 - **Processes** XML data using AWK for fast, memory-efficient extraction
 - **Stores** processed data in PostgreSQL/PostGIS database
-- **Publishes** WMS (Web Map Service) layers for geographic visualization
 - **Monitors** data quality and synchronization
 
 > **Note:** Analytics, ETL, and Data Warehouse components are maintained separately in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
@@ -97,12 +96,13 @@ Processing Layer:
 Storage Layer:
     └─▶ PostgreSQL/PostGIS Database
         ├─▶ Base tables (notes, comments, countries)
-        ├─▶ WMS schema (for map service)
         └─▶ Temporary tables (sync, API partitions)
 
 Output:
-    ├─▶ WMS Service (GeoServer)
     └─▶ Analytics (external repository)
+
+For **WMS (Web Map Service)**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 ```
 
 ### Core Components
@@ -142,7 +142,6 @@ Output:
 #### 3. Database Layer (`sql/`)
 
 - **`sql/process/`**: Processing SQL scripts
-- **`sql/wms/`**: WMS layer SQL
 - **`sql/monitor/`**: Monitoring queries
 
 #### 4. Data Transformation (`awk/`)
@@ -162,10 +161,8 @@ Output:
    Planet Dump → Extract XML → Split → Parallel AWK → CSV → Database (Sync tables) → Base tables
    ```
 
-3. **WMS Flow**:
-   ```
-   Base tables → Triggers → WMS tables → GeoServer → Map tiles
-   ```
+For **WMS (Web Map Service) flow**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 For detailed flow diagrams, see [docs/Documentation.md](../docs/Documentation.md#processing-sequence-diagram).
 
@@ -196,7 +193,7 @@ For detailed flow diagrams, see [docs/Documentation.md](../docs/Documentation.md
 3. **Locate the problematic code**:
    - Check script entry points: [bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)
    - Review function libraries: `bin/lib/` and `lib/osm-common/`
-   - Check SQL scripts if database-related: `sql/process/`, `sql/wms/`
+   - Check SQL scripts if database-related: `sql/process/`
    - Review AWK scripts if XML processing: `awk/`
 
 4. **Create a fix**:
@@ -243,15 +240,15 @@ Fixes #123
      - [docs/Component_Dependencies.md](../docs/Component_Dependencies.md) to understand dependencies
    - **Pattern Review**:
      - [bin/README.md](../bin/README.md) for script patterns and examples
-     - Existing scripts in `bin/process/`, `bin/monitor/`, `bin/wms/` for patterns
+     - Existing scripts in `bin/process/`, `bin/monitor/` for patterns
    - **Database Design**:
-     - Review existing schema: `sql/process/`, `sql/wms/`
+     - Review existing schema: `sql/process/`
      - Consider spatial queries: [docs/ST_DWithin_Explanation.md](../docs/ST_DWithin_Explanation.md)
      - Plan migrations if schema changes needed
    - **Integration Points**:
      - Check if it affects API processing: [docs/Process_API.md](../docs/Process_API.md)
      - Check if it affects Planet processing: [docs/Process_Planet.md](../docs/Process_Planet.md)
-     - Review WMS integration: `bin/wms/` scripts
+     - For WMS integration, see the [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository
    - **Error Handling**:
      - Use standardized error codes from `lib/osm-common/commonFunctions.sh`
      - Document new error codes in [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md)
@@ -1281,17 +1278,15 @@ To avoid accidentally committing local configuration changes:
 ```bash
 # Tell Git to ignore changes to properties files (local development only)
 git update-index --assume-unchanged etc/properties.sh
-git update-index --assume-unchanged etc/wms.properties.sh
 
 # Verify that the files are now ignored
 git ls-files -v | grep '^[[:lower:]]'
 
 # To re-enable tracking (if needed)
 git update-index --no-assume-unchanged etc/properties.sh
-git update-index --no-assume-unchanged etc/wms.properties.sh
 ```
 
-This allows you to customize database settings, user names, ETL configurations, or WMS settings without affecting the repository.
+This allows you to customize database settings, user names, or ETL configurations without affecting the repository.
 
 ## Version Control
 

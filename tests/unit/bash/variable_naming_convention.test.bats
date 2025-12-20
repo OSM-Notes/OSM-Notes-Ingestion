@@ -121,11 +121,6 @@ setup() {
   [ -z "$output" ]
 }
 
-@test "wmsManager.sh should follow uppercase convention" {
-  run awk '/^[[:space:]]*local[[:space:]]+[a-z_]+=/{print NR ": " $0}' bin/wms/wmsManager.sh
-  [ "$status" -eq 0 ]
-  [ -z "$output" ]
-}
 
 # Test that no lowercase variable declarations exist
 @test "no lowercase variable declarations should exist" {

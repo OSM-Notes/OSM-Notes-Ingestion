@@ -74,12 +74,6 @@ teardown() {
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
-@test "Centralized validation: wmsManager.sh should use validation functions" {
- # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/wmsManager.sh && __validate_sql_structure ${VALID_SQL_FILE}"
- # Accept any status as long as the command doesn't crash
- [ "$status" -ge 0 ] && [ "$status" -le 255 ]
-}
 
 # NOTE: Tests for datamartUsers.sh and datamartCountries.sh have been moved
 # to OSM-Notes-Analytics repository as these scripts are now part of Analytics
@@ -100,12 +94,6 @@ teardown() {
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
 
-@test "Centralized validation: geoserverConfig.sh should use validation functions" {
- # Test that the script loads validation functions
- run bash -c "source ${PROJECT_ROOT}/bin/lib/functionsProcess.sh && source ${PROJECT_ROOT}/bin/wms/geoserverConfig.sh && __validate_input_file /etc/passwd 'Test file'"
- # Accept any status as long as the command doesn't crash
- [ "$status" -ge 0 ] && [ "$status" -le 255 ]
-}
 
 
 # NOTE: Test for ETL.sh has been moved to OSM-Notes-Analytics repository
@@ -128,7 +116,6 @@ teardown() {
     "${PROJECT_ROOT}/bin/process/processPlanetNotes.sh"
     "${PROJECT_ROOT}/bin/monitor/processCheckPlanetNotes.sh"
     "${PROJECT_ROOT}/bin/monitor/notesCheckVerifier.sh"
-    "${PROJECT_ROOT}/bin/wms/wmsManager.sh"
     "${PROJECT_ROOT}/bin/cleanupAll.sh"
   )
   

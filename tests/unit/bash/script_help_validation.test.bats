@@ -49,12 +49,6 @@ teardown() {
  [ "$status" -eq 1 ] # Expected exit code for help
 }
 
-# Test that wmsManager.sh works with --help
-@test "wmsManager.sh should work with --help option" {
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh" --help
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ] # Accept both success and help exit codes
- [[ "$output" == *"Usage:"* ]] || [[ "$output" == *"WMS"* ]]
-}
 
 # Test that cleanupAll.sh works with --help (partition functionality)
 @test "cleanupAll.sh should work with --help option and show partition info" {
@@ -73,11 +67,6 @@ teardown() {
  [ "$status" -lt 128 ]
 }
 
-# Test that geoserverConfig.sh should work with --help
-@test "geoserverConfig.sh should work with --help option" {
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/wms/geoserverConfig.sh" --help 2>&1
- [ "$status" -eq 0 ] || [ "$status" -eq 1 ] # Accept both success and help exit codes
-}
 
 # Test that all scripts can be sourced without errors
 @test "all main scripts should be sourceable without errors" {
@@ -86,10 +75,8 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
   # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/wms/geoserverConfig.sh"
  )
 
  for SCRIPT in "${SCRIPTS[@]}"; do
@@ -122,10 +109,8 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
   # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/wms/geoserverConfig.sh"
  )
 
  for SCRIPT in "${SCRIPTS[@]}"; do
@@ -141,10 +126,8 @@ teardown() {
   "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
   "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/wms/wmsManager.sh"
   # cleanupPartitions.sh functionality now integrated into cleanupAll.sh
   "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh"
-  "${SCRIPT_BASE_DIRECTORY}/bin/wms/geoserverConfig.sh"
  )
 
  for SCRIPT in "${SCRIPTS[@]}"; do

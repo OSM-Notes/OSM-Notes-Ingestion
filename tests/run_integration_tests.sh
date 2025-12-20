@@ -145,19 +145,6 @@ __run_cleanup_tests() {
  return 0
 }
 
-# Function to run WMS tests
-__run_wms_tests() {
- log_info "Running WMS integration tests..."
-
- local TEST_RESULT=0
-
- # shellcheck disable=SC2310
- __run_test_suite \
-  "${SCRIPT_DIR}/integration/wms_integration.test.bats" \
-  "WMS integration" || TEST_RESULT=1
-
- return "${TEST_RESULT}"
-}
 
 # Function to run end-to-end tests
 __run_e2e_tests() {
@@ -206,7 +193,6 @@ Options:
   --process-api       Run process-api integration tests
   --process-planet    Run process-planet integration tests
   --cleanup           Run cleanup integration tests
-  --wms               Run WMS integration tests
   --e2e               Run end-to-end integration tests
 
 Environment Variables:
@@ -220,7 +206,6 @@ Environment Variables:
 Examples:
   $0 --all                    # Run all integration tests
   $0 --process-api            # Run only process-api tests
-  $0 --wms                    # Run only WMS tests
 
 EOF
 }
@@ -250,10 +235,6 @@ main() {
    ;;
   --cleanup)
    RUN_MODE="cleanup"
-   shift
-   ;;
-  --wms)
-   RUN_MODE="wms"
    shift
    ;;
   --e2e)
@@ -306,10 +287,6 @@ main() {
  cleanup)
   # shellcheck disable=SC2310
   __run_cleanup_tests || FINAL_RESULT=1
-  ;;
- wms)
-  # shellcheck disable=SC2310
-  __run_wms_tests || FINAL_RESULT=1
   ;;
  e2e)
   # shellcheck disable=SC2310

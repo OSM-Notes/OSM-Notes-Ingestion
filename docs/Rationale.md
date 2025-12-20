@@ -118,7 +118,7 @@ Subsequently, data marts are created for users and for countries, so that the da
 
 Once the base information is stored in the database, different services could be provided:
 
-* **WMS Map**: With the location of open and closed notes
+* **WMS Map**: With the location of open and closed notes (see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository)
 * **Data Warehouse**: To perform analytical queries and create user and country profiles about the status of the notes
 * **Web Viewer**: Interactive web interface to visualize and explore user and country profiles, statistics, and analytics
 

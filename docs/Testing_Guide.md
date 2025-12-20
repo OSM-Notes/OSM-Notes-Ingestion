@@ -37,7 +37,7 @@ The project uses three main GitHub Actions workflows that run automatically on e
 **What it validates:**
 
 - Scripts can interact correctly with PostgreSQL databases and external services
-- Note processing and WMS administration work end-to-end
+- Note processing works end-to-end
 - Integration with external tools (Docker, PostGIS, etc.) is successful
 
 ## Testing Scripts Summary Table
@@ -91,10 +91,8 @@ The project includes specialized tests for consolidated functions that eliminate
 - `cleanupAll.sh` - Full cleanup
 - `cleanupAll.sh` - Comprehensive cleanup (full or partition-only)
 
-**WMS (Web Map Service) Scripts:**
-
-- `wmsManager.sh` - WMS Manager
-- `geoserverConfig.sh` - GeoServer configuration
+For **WMS (Web Map Service) scripts**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 **Monitor Scripts:**
 
@@ -472,7 +470,7 @@ Edge cases tests cover boundary situations:
 ./tests/run_integration_tests.sh --process-api
 ./tests/run_integration_tests.sh --process-planet
 ./tests/run_integration_tests.sh --cleanup
-./tests/run_integration_tests.sh --wms
+# WMS tests are in the OSM-Notes-WMS repository
 ./tests/run_integration_tests.sh --etl
 ```
 

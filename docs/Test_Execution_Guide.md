@@ -51,7 +51,7 @@ cd /home/angoca/github/OSM-Notes-Ingestion
 | **Level 3 - Processing** | 18 | ~220 | 15-25 min | API and Planet processing logic |
 | **Level 4 - Parallel** | 18 | ~220 | 10-15 min | Parallel processing optimization |
 | **Level 5 - Cleanup** | 25 | ~350 | 12-18 min | Cleanup and error handling |
-| **Level 6 - Monitoring** | 18 | ~220 | 8-12 min | Monitoring and WMS |
+| **Level 6 - Monitoring** | 18 | ~220 | 8-12 min | Monitoring |
 | **Level 7 - Advanced** | 18 | ~220 | 10-15 min | Advanced tests and edge cases |
 | **Level 8 - Integration** | 8 | ~68 | 10-20 min | End-to-End Integration |
 | **TOTAL** | **~140** | **~1,698** | **81-135 min** | |
@@ -337,13 +337,13 @@ bats tests/unit/bash/error_handling_consolidated.test.bats
 
 ---
 
-### Level 7 - Monitoring and WMS Tests (8-12 min)
+### Level 7 - Monitoring Tests (8-12 min)
 
 ```bash
 ./tests/run_tests_sequential.sh level 7
 ```
 
-**Objective:** Validate monitoring, WMS, and other components.
+**Objective:** Validate monitoring and other components.
 
 **Included Suites:**
 
@@ -357,16 +357,7 @@ bats tests/unit/bash/notesCheckVerifier_integration.test.bats
 # 7.3 - Process check planet notes integration (tests, ~2 min)
 bats tests/unit/bash/processCheckPlanetNotes_integration.test.bats
 
-# 7.4 - WMS Manager (tests, ~2 min)
-bats tests/unit/bash/wmsManager.test.bats
-
-# 7.5 - WMS Manager integration (tests, ~2 min)
-bats tests/unit/bash/wmsManager_integration.test.bats
-
-# 7.6 - GeoServer config integration (tests, ~1 min)
-bats tests/unit/bash/geoserverConfig_integration.test.bats
-
-# 7.7 - Update countries integration (tests, ~1 min)
+# 7.4 - Update countries integration (tests, ~1 min)
 bats tests/unit/bash/updateCountries_integration.test.bats
 ```
 
@@ -443,10 +434,7 @@ bats tests/unit/bash/logging_pattern_validation.test.bats
 # 9.1 - Boundary processing error integration (16 tests, ~4 min)
 bats tests/integration/boundary_processing_error_integration.test.bats
 
-# 9.2 - WMS integration (10 tests, ~3 min)
-bats tests/integration/wms_integration.test.bats
-
-# 9.3 - Logging pattern validation integration (9 tests, ~2 min)
+# 9.2 - Logging pattern validation integration (9 tests, ~2 min)
 bats tests/integration/logging_pattern_validation_integration.test.bats
 
 # 9.4 - Mock planet processing (8 tests, ~2 min)
@@ -508,13 +496,8 @@ bats tests/unit/bash/*validation*.bats
 bats tests/unit/bash/cleanup*.bats tests/unit/bash/clean*.bats
 ```
 
-### WMS
-
-```bash
-bats tests/unit/bash/wms*.bats \
-     tests/integration/wms_integration.test.bats \
-     tests/integration/disputed_areas_integration.test.bats
-```
+For **WMS (Web Map Service) tests**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Error Handling
 

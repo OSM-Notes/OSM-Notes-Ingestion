@@ -512,8 +512,6 @@ External APIs
 
 External Services (Optional)
     │
-    ├─▶ GeoServer
-    │   └─▶ For WMS service
     │
     └─▶ Email Server (SMTP)
         └─▶ For alert notifications
@@ -741,7 +739,6 @@ To download:
 
 ## Optional Dependencies (Enhanced Features)
 
-1. **GeoServer**: WMS service
 2. **SMTP Server**: Email alerts
 
 ---

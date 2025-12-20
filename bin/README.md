@@ -46,7 +46,7 @@ Utility scripts for data management and maintenance:
 
 Database maintenance script for comprehensive cleanup operations:
 
-- **Full cleanup**: Removes all components (WMS, base tables, temporary files)
+- **Full cleanup**: Removes all components (base tables, temporary files)
 - **Partition-only cleanup**: Removes only partition tables (use `-p` or `--partitions-only` flag)
 - **Database**: Configured via `etc/properties.sh` (DBNAME variable, created from `etc/properties.sh.example`)
 
@@ -497,7 +497,7 @@ Removes database components. Use with caution!
 **Full Cleanup (Default):**
 
 ```bash
-# Removes ALL components (WMS, base tables, partitions, etc.)
+# Removes ALL components (base tables, partitions, etc.)
 ./bin/cleanupAll.sh
 # or explicitly
 ./bin/cleanupAll.sh --all
@@ -509,7 +509,6 @@ Removes database components. Use with caution!
 [INFO] Starting cleanupAll.sh script
 [INFO] Database: osm_notes
 [WARN] This will remove ALL database components
-[INFO] Removing WMS components...
 [INFO] Removing base tables...
 [INFO] Removing partition tables...
 [INFO] Removing temporary tables...
@@ -641,11 +640,8 @@ Complete setup from scratch:
 ./bin/scripts/exportCountriesBackup.sh
 ./bin/scripts/exportMaritimesBackup.sh
 
-# 4. Install WMS components (optional, for map visualization)
-./bin/wms/wmsManager.sh install
-
-# Expected output: Creating WMS schema, configuring triggers
-# Result: WMS tables and functions ready for GeoServer
+# For WMS (Web Map Service) components, see the
+# OSM-Notes-WMS repository: https://github.com/OSMLatam/OSM-Notes-WMS
 ```
 
 #### Daily Operations

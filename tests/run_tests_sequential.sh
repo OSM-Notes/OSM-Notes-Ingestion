@@ -337,9 +337,9 @@ __run_level_6() {
  fi
 }
 
-# Level 7 - Monitoring and WMS tests
+# Level 7 - Monitoring tests
 __run_level_7() {
- __show_level_header 7 "Tests de Monitoreo y WMS" "8-12 min"
+ __show_level_header 7 "Tests de Monitoreo" "6-10 min"
 
  if __run_bats \
   "${SCRIPT_DIR}/unit/bash/monitoring_detection.test.bats" \
@@ -349,9 +349,6 @@ __run_level_7() {
   "${SCRIPT_DIR}/unit/bash/utility_scripts_common.test.bats" \
   "${SCRIPT_DIR}/unit/bash/notesCheckVerifier_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/processCheckPlanetNotes_integration.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/wmsManager.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/wmsManager_integration.test.bats" \
-  "${SCRIPT_DIR}/unit/bash/geoserverConfig_integration.test.bats" \
   "${SCRIPT_DIR}/unit/bash/updateCountries_integration.test.bats"; then
   __show_level_footer 7 "success"
   return 0
@@ -403,12 +400,10 @@ __run_level_9() {
 
  if __run_bats \
   "${SCRIPT_DIR}/integration/boundary_processing_error_integration.test.bats" \
-  "${SCRIPT_DIR}/integration/wms_integration.test.bats" \
   "${SCRIPT_DIR}/integration/mock_planet_processing.test.bats" \
   "${SCRIPT_DIR}/integration/processAPI_historical_e2e.test.bats" \
   "${SCRIPT_DIR}/integration/api_complete_e2e.test.bats" \
   "${SCRIPT_DIR}/integration/planet_complete_e2e.test.bats" \
-  "${SCRIPT_DIR}/integration/wms_complete_e2e.test.bats" \
   "${SCRIPT_DIR}/integration/error_scenarios_complete_e2e.test.bats"; then
   __show_level_footer 9 "success"
   return 0

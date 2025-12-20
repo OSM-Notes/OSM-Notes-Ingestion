@@ -10,7 +10,6 @@ This comprehensive troubleshooting guide consolidates common problems and soluti
 - [Database Issues](#database-issues)
 - [API Processing Issues](#api-processing-issues)
 - [Planet Processing Issues](#planet-processing-issues)
-- [WMS Service Issues](#wms-service-issues)
 - [Network and Connectivity](#network-and-connectivity)
 - [Performance Issues](#performance-issues)
 - [Error Code Reference](#error-code-reference)
@@ -714,163 +713,8 @@ fi
 
 ---
 
-## WMS Service Issues
-
-### Problem: WMS Service Not Responding
-
-**Symptoms:**
-
-- Layer appears but shows no data
-- Error messages about connection
-- Blank or gray tiles
-- HTTP 500 errors
-
-**Diagnosis:**
-
-```bash
-# Test WMS service
-curl -I "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities"
-
-# Check GeoServer status
-systemctl status geoserver 2>/dev/null || service geoserver status
-
-# Check GeoServer logs
-tail -50 /var/log/geoserver/geoserver.log 2>/dev/null || \
-tail -50 ~/geoserver/logs/geoserver.log 2>/dev/null
-
-# Check database connection from GeoServer perspective
-psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
-```
-
-**Solutions:**
-
-1. **Start GeoServer:**
-   ```bash
-   sudo systemctl start geoserver
-   # OR
-   sudo service geoserver start
-   ```
-
-2. **Check database connection in GeoServer:**
-   - Test database connection from GeoServer admin interface
-   - Check credentials match `etc/properties.sh`
-
-3. **Review GeoServer logs** for specific errors
-
-4. **Restart GeoServer:**
-   ```bash
-   sudo systemctl restart geoserver
-   ```
-
-### Problem: No Data in WMS Layers
-
-**Symptoms:**
-
-- WMS layer loads but shows no notes
-- Empty map tiles
-- Zero count in layer statistics
-
-**Diagnosis:**
-
-```bash
-# Check WMS table has data
-psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM wms.notes_wms;"
-
-# Check triggers are active
-psql -d "${DBNAME:-notes}" -c "
-SELECT 
-  tgname,
-  tgenabled,
-  tgrelid::regclass
-FROM pg_trigger
-WHERE tgname LIKE '%wms%';
-"
-
-# Check if WMS schema exists
-psql -d "${DBNAME:-notes}" -c "\dn wms"
-
-# Check main notes table has data
-psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;"
-```
-
-**Solutions:**
-
-1. **Verify WMS tables are populated:**
-   ```bash
-   # If empty, refresh WMS tables
-   ./bin/wms/wmsManager.sh install
-   ```
-
-2. **Check triggers are active:**
-   ```bash
-   # Reinstall triggers if needed
-   psql -d "${DBNAME:-notes}" -f sql/wms/prepareDatabase.sql
-   ```
-
-3. **Manually refresh WMS tables:**
-   ```bash
-   # Copy data from main tables to WMS tables
-   psql -d "${DBNAME:-notes}" -c "
-   INSERT INTO wms.notes_wms
-   SELECT * FROM notes
-   ON CONFLICT (note_id) DO UPDATE SET
-     latitude = EXCLUDED.latitude,
-     longitude = EXCLUDED.longitude,
-     status = EXCLUDED.status,
-     id_country = EXCLUDED.id_country;
-   "
-   ```
-
-4. **Verify main tables have data:**
-   - If main tables are empty, run `processPlanetNotes.sh --base` first
-
-### Problem: WMS Performance Issues
-
-**Symptoms:**
-
-- Slow loading of tiles
-- Application becomes unresponsive
-- High memory usage
-- Timeout errors
-
-**Diagnosis:**
-
-```bash
-# Check GeoServer memory usage
-ps aux | grep geoserver | awk '{print $6/1024 " MB"}'
-
-# Check database query performance
-psql -d "${DBNAME:-notes}" -c "EXPLAIN ANALYZE SELECT * FROM wms.notes_wms LIMIT 1000;"
-
-# Check WMS table indexes
-psql -d "${DBNAME:-notes}" -c "
-SELECT 
-  indexname,
-  indexdef
-FROM pg_indexes
-WHERE schemaname = 'wms';
-"
-```
-
-**Solutions:**
-
-1. **Reduce zoom level** (don't zoom in too far in mapping applications)
-
-2. **Adjust transparency** to reduce rendering load
-
-3. **Optimize database:**
-   ```bash
-   psql -d "${DBNAME:-notes}" -c "ANALYZE wms.notes_wms;"
-   psql -d "${DBNAME:-notes}" -c "VACUUM wms.notes_wms;"
-   ```
-
-4. **Increase GeoServer memory** (if needed):
-   - Edit GeoServer startup script
-   - Increase `-Xmx` parameter
-
-5. **Use smaller bounding boxes** when querying
-
----
+For **WMS (Web Map Service) troubleshooting**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ## Network and Connectivity
 
@@ -1154,7 +998,7 @@ All scripts use standardized error codes defined in `lib/osm-common/commonFuncti
 | `247` | Error downloading notes | Check Planet download connectivity |
 | `255` | General error | Review logs |
 
-#### wmsManager.sh
+#### Script Error Codes
 
 | Code | Meaning | Solution |
 |------|---------|----------|
@@ -1163,12 +1007,9 @@ All scripts use standardized error codes defined in `lib/osm-common/commonFuncti
 | `242` | Invalid argument | Check script parameters |
 | `255` | General error | Review logs (database connection, PostGIS installation) |
 
-#### geoserverConfig.sh
-
-| Code | Meaning | Solution |
 |------|---------|----------|
 | `1` | Help message displayed | Normal exit |
-| `241` | Library or utility missing | Install missing dependencies (curl, jq, WMS schema) |
+| `241` | Library or utility missing | Install missing dependencies (curl, jq, etc.) |
 | `242` | Invalid argument | Check script parameters |
 | `255` | General error | Review logs (GeoServer connection, authentication) |
 
@@ -1329,8 +1170,8 @@ If database corruption is suspected:
 - **[Documentation.md](./Documentation.md)**: Complete system documentation
 - **[Process_API.md](./Process_API.md)**: API processing details and troubleshooting
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing details and troubleshooting
-- **[WMS_Guide.md](./WMS_Guide.md)**: WMS service installation and configuration
-- **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user troubleshooting
+For **WMS (Web Map Service) documentation**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Check Logs
 
@@ -1395,8 +1236,8 @@ Use these scripts for automated diagnostics:
 
 ### Service Documentation
 
-- **[WMS_Guide.md](./WMS_Guide.md)**: WMS service guide and troubleshooting
-- **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user guide for mappers
+For **WMS (Web Map Service) documentation**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Script Reference
 

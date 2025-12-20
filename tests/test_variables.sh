@@ -21,14 +21,6 @@ function __validate_test_database_variables() {
   VALIDATION_ERRORS+=("TEST_DBUSER is not set")
  fi
 
- # Check WMS-specific variables (optional for tests)
- if [[ -z "${WMS_DBNAME:-}" ]]; then
-  WARNINGS+=("WMS_DBNAME is not set (WMS tests may be affected)")
- fi
-
- if [[ -z "${WMS_DBUSER:-}" ]]; then
-  WARNINGS+=("WMS_DBUSER is not set (WMS tests may be affected)")
- fi
 
  # Report validation errors
  if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then
@@ -77,14 +69,6 @@ function __validate_all_database_variables() {
   VALIDATION_ERRORS+=("TEST_DBUSER is not set")
  fi
 
- # Check WMS-specific variables
- if [[ -z "${WMS_DBNAME:-}" ]]; then
-  WARNINGS+=("WMS_DBNAME is not set (WMS functionality may be affected)")
- fi
-
- if [[ -z "${WMS_DBUSER:-}" ]]; then
-  WARNINGS+=("WMS_DBUSER is not set (WMS functionality may be affected)")
- fi
 
  # Report validation errors
  if [[ ${#VALIDATION_ERRORS[@]} -gt 0 ]]; then

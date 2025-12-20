@@ -36,7 +36,7 @@ This directory contains the CI/CD pipeline for OSM-Notes-Ingestion.
 
 4. **Integration Tests - Full** (runs on main/develop/schedule - ~10-15 min)
    - Complete integration test suite
-   - All test categories: process-api, process-planet, cleanup, wms
+   - All test categories: process-api, process-planet, cleanup
    - End-to-end workflow validation
 
 5. **Security Scan** (always runs - ~2-3 min)

@@ -268,7 +268,6 @@ Total:                999 cases
 #### ✅ Well Covered:
 - API/Planet processing (2 suites)
 - Historical validation E2E (1 suite)
-- WMS integration (1 suite)
 - Boundary processing (2 suites)
 
 #### ⚠️ Needs Improvement:
@@ -361,8 +360,6 @@ Total:                999 cases
      - Download → Validation → Processing → Database → Country Assignment
    - ✅ **Planet Complete E2E**: `tests/integration/planet_complete_e2e.test.bats` (5 tests)
      - Download → Processing → Load → Verification
-   - ✅ **WMS Complete E2E**: `tests/integration/wms_complete_e2e.test.bats` (4 tests)
-     - Processing → Generation Layers → Services
    - ✅ **Error Scenarios E2E**: `tests/integration/error_scenarios_complete_e2e.test.bats` (11 tests)
      - Network errors, XML validation errors, DB errors, country assignment errors, recovery
    - ✅ **Total: 24 new E2E tests** (plus existing 5 historical validation tests = 29 total E2E tests)

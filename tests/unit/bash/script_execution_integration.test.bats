@@ -114,10 +114,8 @@ teardown() {
    "bin/cleanupAll.sh"
    "bin/process/processAPINotes.sh"
    "bin/process/processPlanetNotes.sh"
-   "bin/wms/wmsManager.sh"
    "bin/cleanupAll.sh"
    "bin/process/updateCountries.sh"
-   "bin/wms/geoserverConfig.sh"
  )
  
  local failed_scripts=()

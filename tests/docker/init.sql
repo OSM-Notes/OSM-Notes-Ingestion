@@ -39,5 +39,3 @@ INSERT INTO test_comments (note_id, user_id, username, action, text) VALUES
 (456, 456, 'user2', 'opened', 'Test comment 2'),
 (456, 789, 'user3', 'closed', 'Closing this note')
 ON CONFLICT DO NOTHING;
-
--- Note: WMS database setup is handled by setup_test_db_docker.sh 

@@ -48,7 +48,6 @@ load ../../test_helper.bash
     "__drop_all_partitions"
     "__verify_partition_cleanup"
     "__cleanup_partitions_only"
-    "__cleanup_wms"
     "__cleanup_api_tables"
     "__cleanup_base"
     "__cleanup_temp_files"
@@ -96,7 +95,6 @@ load ../../test_helper.bash
   # Test that referenced SQL files exist and are valid
   local SQL_FILES=(
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropAllPartitions.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/wms/removeFromDatabase.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"

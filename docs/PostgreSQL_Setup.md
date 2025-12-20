@@ -268,6 +268,7 @@ export DB_USER="my-custom-user"
 - **[sql/README.md](../sql/README.md)**: SQL scripts and database functions documentation
 - **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Database troubleshooting and common issues
 - **[Process_Planet.md](./Process_Planet.md)**: Initial database setup with `--base` mode
-- **[WMS_Guide.md](./WMS_Guide.md)**: WMS database setup and configuration
+For **WMS database setup and configuration**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ---

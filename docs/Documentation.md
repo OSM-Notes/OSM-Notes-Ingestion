@@ -39,7 +39,6 @@ This repository focuses exclusively on **data ingestion** from OpenStreetMap:
 - **Data Collection**: Extracting notes data from OSM API and Planet dumps
 - **Data Processing**: Transforming and validating note data
 - **Data Storage**: Loading processed data into PostgreSQL/PostGIS
-- **WMS Service**: Providing geographic visualization of notes
 
 > **Note:** Analytics, ETL, and Data Warehouse components are maintained in a
 > separate repository: [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
@@ -100,14 +99,14 @@ This repository focuses exclusively on **data ingestion** from OpenStreetMap:
                     └───────────┬───────────┘
                                 │
                 ┌───────────────┴───────────────┐
-                │                               │
-                ▼                               ▼
-    ┌───────────────────┐          ┌───────────────────┐
-    │   WMS Layer       │          │  Analytics (DWH)  │
-    │  (GeoServer)      │          │  (External Repo)  │
-    │  - Map Tiles      │          │  - Star Schema    │
-    │  - Styles         │          │  - Data Marts     │
-    └───────────────────┘          └───────────────────┘
+                │
+                ▼
+    ┌───────────────────┐
+    │  Analytics (DWH)  │
+    │  (External Repo)  │
+    │  - Star Schema    │
+    │  - Data Marts     │
+    └───────────────────┘
 ```
 
 ### Core Components
@@ -162,10 +161,8 @@ The OSM-Notes-Ingestion system consists of the following components:
   - Spatial queries and analysis
   - Country assignment for notes
 
-#### 4. WMS (Web Map Service) Layer
-
-- **Geographic Visualization**: Map-based note display
-- **Real-time Updates**: Synchronized with main database
+For **WMS (Web Map Service) layer publication**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 - **Style Management**: Different styles for open/closed notes
 - **Client Integration**: JOSM, Vespucci, and web applications
 
@@ -230,24 +227,15 @@ The OSM-Notes-Ingestion system consists of the following components:
                                          └──────┬───────┘
                                                 │
                     ┌──────────────────────────┴──────────────────────────┐
-                    │                                                       │
-                    ▼                                                       ▼
-         ┌──────────────────┐                                  ┌──────────────────┐
-         │   WMS Tables     │                                  │  Analytics DWH   │
-         │  (via Triggers)  │                                  │  (External Repo) │
-         └──────────┬───────┘                                  └───────────────────┘
                     │
                     ▼
          ┌──────────────────┐
-         │    GeoServer     │
-         │   (WMS Service)  │
-         └──────────┬───────┘
-                    │
-                    ▼
-         ┌──────────────────┐
-         │  Map Clients     │
-         │ (JOSM, Vespucci)  │
+         │  Analytics DWH   │
+         │  (External Repo) │
          └──────────────────┘
+
+For **WMS (Web Map Service) layer publication**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ┌──────────────┐
 │  OSM Notes   │
@@ -737,17 +725,8 @@ Script    Validation Functions    XML Validator    CSV Validator    Database    
             └─▶ Wait for next cron execution
 ```
 
-### 5. WMS Service Delivery
-
-**Source:** WMS schema in database
-
-**Process:**
-
-1. Synchronize WMS tables with main tables via triggers
-2. Apply spatial and temporal indexes
-3. GeoServer renders with configured styles
-
-**Output:** Map tiles and feature information via WMS protocol
+For **WMS (Web Map Service) layer publication**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ---
 
@@ -1121,9 +1100,6 @@ sudo bin/scripts/install_directories.sh
 ./bin/scripts/exportCountriesBackup.sh
 ./bin/scripts/exportMaritimesBackup.sh
 
-# Step 7: Install WMS components (optional)
-./bin/wms/wmsManager.sh install
-./bin/wms/geoserverConfig.sh install
 
 # Step 8: Set up automated processing (crontab)
 crontab -e
@@ -1140,9 +1116,6 @@ psql -d notes -c "SELECT COUNT(*) FROM notes;"
 
 # Check countries loaded
 psql -d notes -c "SELECT COUNT(*) FROM countries;"
-
-# Verify WMS tables (if installed)
-psql -d notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
 ```
 
 ### Use Case 2: Production Deployment
@@ -1275,42 +1248,10 @@ psql -d notes -c "SELECT COUNT(*) FROM notes WHERE created_at > NOW() - INTERVAL
 psql -d osm_notes_analytics -c "SELECT MAX(etl_timestamp) FROM fact_notes;"
 ```
 
-### Use Case 4: WMS Integration with Mapping Applications
+For **WMS (Web Map Service) layer publication**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
-**Scenario**: Setting up WMS layer for use in JOSM, Vespucci, or other mapping applications.
-
-**Workflow**:
-
-```bash
-# Step 1: Install WMS database components
-./bin/wms/wmsManager.sh install
-
-# Step 2: Configure GeoServer
-./bin/wms/geoserverConfig.sh install
-
-# Step 3: Verify WMS service
-curl "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities"
-
-# Step 4: Test in JOSM
-# - Open JOSM
-# - Imagery → Add WMS Layer
-# - URL: http://localhost:8080/geoserver/wms
-# - Select layer: notes:notes_wms
-```
-
-**Configuration for External Access**:
-
-```bash
-# If serving WMS to external users, configure:
-# 1. Firewall rules (open port 8080)
-# 2. Reverse proxy (nginx/apache) for HTTPS
-# 3. GeoServer security settings
-# 4. Update WMS URL in documentation
-```
-
-**User Guide**: See [WMS_User_Guide.md](./WMS_User_Guide.md) for detailed instructions.
-
-### Use Case 5: Data Quality Monitoring
+### Use Case 4: Data Quality Monitoring
 
 **Scenario**: Monitoring data quality and detecting synchronization issues.
 
@@ -1491,7 +1432,7 @@ fi
 
 ### Use Case 9: Multi-Server Deployment
 
-**Scenario**: Deploying across multiple servers (ingestion, database, WMS).
+**Scenario**: Deploying across multiple servers (ingestion, database).
 
 **Architecture**:
 
@@ -1505,10 +1446,10 @@ Server 2 (Database):
   - PostgreSQL/PostGIS
   - Database backups
 
-Server 3 (WMS):
-  - GeoServer
-  - WMS service
 ```
+
+**Note**: For WMS service deployment, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 **Configuration**:
 
@@ -1522,9 +1463,6 @@ DB_PORT=5432
 DBNAME=notes
 DB_USER=osm_user
 DB_PASSWORD=secure_password
-
-# On WMS server, configure remote database connection in GeoServer
-# Use same database credentials
 ```
 
 **Network Considerations**:
@@ -1871,20 +1809,8 @@ ogr2ogr -f GeoJSON notes_export.geojson \
     -sql "SELECT id, created_at, status, location FROM notes WHERE created_at > NOW() - INTERVAL '7 days'"
 ```
 
-**Using WMS in Mapping Applications**:
-
-1. **JOSM**:
-   - Imagery → Add WMS Layer
-   - URL: `http://your-server:8080/geoserver/wms`
-   - Layer: `notes:notes_wms`
-
-2. **Vespucci**:
-   - Menu → Imagery → Add WMS Layer
-   - Enter WMS URL and select layer
-
-3. **QGIS**:
-   - Browser → WMS → Add connection
-   - Enter WMS URL and connect
+For **WMS (Web Map Service) layer usage** in mapping applications, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Use Case 13: Data Analysis Workflows
 
@@ -1966,7 +1892,6 @@ CREATE USER webapp_user WITH PASSWORD 'secure_password';
 GRANT CONNECT ON DATABASE notes TO webapp_user;
 GRANT USAGE ON SCHEMA public TO webapp_user;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO webapp_user;
-GRANT SELECT ON ALL TABLES IN SCHEMA wms TO webapp_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO webapp_user;
 EOF
 
@@ -2120,20 +2045,10 @@ chmod +x /usr/local/bin/check-osm-notes.sh
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                         WMS Tables (wms schema)                      │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌──────────────┐                                                  │
-│  │ notes_wms    │  ← Synchronized via triggers from notes          │
-│  │              │                                                   │
-│  │ - Simplified │                                                   │
-│  │ - Optimized  │                                                   │
-│  │ - Indexed    │                                                   │
-│  └──────────────┘                                                  │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
 ```
+
+For **WMS (Web Map Service) tables and schema**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Core Tables
 
@@ -2169,12 +2084,8 @@ chmod +x /usr/local/bin/check-osm-notes.sh
   - `notes_sync`, `note_comments_sync`, `note_comments_text_sync`
   - Used for bulk loading and validation
 
-### WMS Tables
-
-- **`wms.notes_wms`**: Optimized note data for map visualization
-  - Simplified geometry and attributes
-  - Automatic synchronization via triggers
-  - Spatial and temporal indexes for performance
+For **WMS (Web Map Service) tables and schema**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Monitoring Tables
 
@@ -2319,17 +2230,8 @@ fi
   - Clear processing data
   - Database cleanup
 
-### WMS Scripts
-
-- **`bin/wms/wmsManager.sh`**: WMS database component management
-  - Create/drop WMS schema
-  - Configure triggers and functions
-  - Manage indexes
-
-- **`bin/wms/geoserverConfig.sh`**: GeoServer configuration automation
-  - Layer configuration
-  - Style management
-  - Service setup
+For **WMS (Web Map Service) scripts**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Data Transformation
 
@@ -2396,7 +2298,6 @@ note_id,action,text
   - Composite indexes for common queries
 
 - **Caching**:
-  - WMS tables for fast map rendering
   - Materialized views (when needed)
 
 ---
@@ -2420,29 +2321,15 @@ note_id,action,text
   - Daily updates
   - Complete note history
 
-### WMS Service
-
-- **GeoServer**: WMS service provider
-  - Version 2.20+ recommended
-  - PostGIS data store
-  - SLD styles
-
-- **PostGIS**: Spatial data storage and processing
-  - Version 3.0+ recommended
-  - Spatial indexes
-  - Geographic queries
-
-- **OGC Standards**: WMS 1.3.0 compliance
-  - GetCapabilities
-  - GetMap
-  - GetFeatureInfo
+For **WMS (Web Map Service) service configuration**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Data Formats
 
 - **Input**: XML (from OSM API and Planet dumps)
 - **Intermediate**: CSV (for database loading)
 - **Storage**: PostgreSQL with PostGIS
-- **Output**: WMS tiles, GeoJSON
+- **Output**: Database tables (for analytics and external services)
 
 ---
 
@@ -2654,34 +2541,8 @@ export MAX_THREADS=2
 # 3. Process during off-peak hours
 ```
 
-#### WMS Service Issues
-
-**Problem: WMS service not responding**
-
-```bash
-# Diagnosis
-curl -I "http://localhost:8080/geoserver/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities"
-
-# Solutions
-# 1. Check GeoServer is running
-systemctl status geoserver
-# 2. Check database connection in GeoServer
-# 3. Review GeoServer logs
-tail -f /var/log/geoserver/geoserver.log
-```
-
-**Problem: No data in WMS layers**
-
-```bash
-# Diagnosis
-psql -d notes -c "SELECT COUNT(*) FROM wms.notes_wms;"
-
-# Solutions
-# 1. Verify WMS tables are populated
-# 2. Check triggers are active
-psql -d notes -c "SELECT * FROM pg_trigger WHERE tgname LIKE '%wms%';"
-# 3. Manually refresh WMS tables if needed
-```
+For **WMS (Web Map Service) troubleshooting**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### Error Code Reference
 
@@ -2708,7 +2569,7 @@ See detailed troubleshooting in [Process_API.md](./Process_API.md) and [Process_
 - **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
 - [Process_API.md](./Process_API.md): API processing troubleshooting
 - [Process_Planet.md](./Process_Planet.md): Planet processing troubleshooting
-- [WMS_Guide.md](./WMS_Guide.md): WMS service troubleshooting
+For **WMS troubleshooting**, see the [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 **Check Logs:**
 
@@ -2754,8 +2615,6 @@ fi
 - **GNU Parallel**: Parallel processing
 - **curl**: Data download
 - **ogr2ogr** (GDAL): Geographic data import
-- **GeoServer** (2.20+): WMS service provider (optional)
-- **Java** (11+): Runtime for GeoServer (optional)
 
 #### Optional
 
@@ -2855,10 +2714,8 @@ The `data/eez_analysis/eez_centroids.csv` file is a derivative work of the World
 - **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: Testing
   workflows
 
-### WMS Documentation
-
-- **[WMS_Guide.md](./WMS_Guide.md)**: Complete WMS guide for administrators and developers
-- **[WMS_User_Guide.md](./WMS_User_Guide.md)**: WMS user guide for mappers
+For **WMS (Web Map Service) documentation**, see the
+[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
 
 ### CI/CD Documentation
 

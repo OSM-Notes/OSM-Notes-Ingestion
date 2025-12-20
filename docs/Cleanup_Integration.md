@@ -8,7 +8,7 @@ The cleanup functionality has been integrated into a single comprehensive script
 
 ### Previous State
 
-- **`cleanupAll.sh`**: Performed comprehensive cleanup (ETL, WMS, base tables, temporary files)
+- **`cleanupAll.sh`**: Performed comprehensive cleanup (base tables, temporary files)
 - **`cleanupPartitions.sh`**: Performed partition-only cleanup
 
 ### Current State
@@ -64,7 +64,6 @@ The cleanup functionality has been integrated into a single comprehensive script
 
 1. **Database Check**: Verifies database existence
 2. **ETL Components**: Removes datamarts, staging, DWH objects
-3. **WMS Components**: Removes WMS-related objects
 4. **Base Components**: Removes tables, functions, procedures
 5. **Temporary Files**: Cleans up temporary directories
 

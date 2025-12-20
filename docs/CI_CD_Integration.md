@@ -78,7 +78,6 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
 - `functionsProcess.test.bats` - Tests common functions
 - `processPlanetNotes.test.bats` - Tests Planet processing script
 - `processAPINotes.test.bats` - Tests API processing script
-- `wmsManager.test.bats` - Tests WMS management script
 
 ### 2. Integration Tests
 
@@ -89,7 +88,6 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
 **Test Files**:
 
 - `end_to_end.test.bats` - Complete workflow testing
-- `wms_integration.test.bats` - WMS integration testing
 
 ### 3. Advanced Tests
 
@@ -155,8 +153,6 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
   - `postgres`: PostgreSQL database with PostGIS
   - `app`: Main application container
   - `mock_api`: Mock OSM API server
-  - `wms_test`: WMS testing container
-  - `wms_advanced_test`: Advanced WMS testing
 
 ## Quality Assurance
 

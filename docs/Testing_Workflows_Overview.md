@@ -67,7 +67,7 @@ When you make a push or pull request, you see three different "workflow runs" be
 **What it validates:**
 
 - Scripts can interact correctly with PostgreSQL databases and simulated external services (mock API)
-- Note processing and WMS administration work end-to-end
+- Note processing works end-to-end
 - Integration with external tools (Docker, PostGIS, etc.) is successful
 
 > **Note:** ETL flow tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).

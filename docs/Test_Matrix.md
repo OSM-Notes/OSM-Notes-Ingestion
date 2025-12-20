@@ -26,7 +26,6 @@
 | **Advanced - Quality** | - | - | ✅ | ✅ | ✅ | ✅ | 5-10 min |
 | **Advanced - Performance** | - | - | ✅ | ✅ | ✅ | ⚠️ | 5-10 min |
 | **Docker Integration** | 15+ | varies | ❌ | ✅ | ✅ | ❌ | 10-20 min |
-| **WMS Tests** | 3 | ~20 | ✅ | ✅ | ✅ | ⚠️ | 5-8 min |
 | **TOTAL** | **123+** | **~1,255+** | - | - | - | - | **81-158 min** |
 
 **Legend:**
@@ -51,7 +50,6 @@
 | **Validation** | 12 | ~140 | Data validation (coordinates, dates, etc.) |
 | **Error Handling** | 8 | ~82 | Error handling and recovery |
 | **Cleanup** | 7 | ~60 | Cleanup and maintenance |
-| **WMS** | 3 | ~28 | Web Map Service integration |
 | **Monitoring** | 5 | ~48 | Monitoring and verification |
 | **Database** | 4 | ~50 | Database variables and functions |
 | **Integration** | 10 | ~115 | Script integration tests |
@@ -90,8 +88,7 @@
 | # | File | Tests | Description | Components |
 |---|------|-------|-------------|------------|
 | 1 | `boundary_processing_error_integration.test.bats` | 16 | Boundary processing with errors | ProcessPlanet, Boundaries |
-| 2 | `wms_integration.test.bats` | 10 | WMS integration | WMS, GeoServer |
-| 3 | `logging_pattern_validation_integration.test.bats` | 9 | Logging pattern validation | Logging, Validation |
+| 2 | `logging_pattern_validation_integration.test.bats` | 9 | Logging pattern validation | Logging, Validation |
 | 4 | `mock_planet_processing.test.bats` | 8 | Planet processing with mocks | ProcessPlanet, Mock |
 | 5 | `processAPINotes_parallel_error_integration.test.bats` | 7 | ProcessAPI with parallel errors | ProcessAPI, Parallel |
 | 6 | `end_to_end.test.bats` | 6 | Complete ingestion flow | Full workflow |
@@ -202,7 +199,6 @@ git push origin main
 | **Database tests** | ✅ | ✅ | ✅ | ❌ |
 | **AWK extraction** | ✅ | ✅ | ✅ | ✅ |
 | **Parallel processing** | ✅ | ✅ | ✅ | ✅ |
-| **WMS integration** | ✅ | ✅ | ✅ | ⚠️ |
 | **Coverage reports** | ✅ | ✅ | ✅ | ❌ |
 | **Security scans** | ✅ | ✅ | ✅ | ✅ |
 | **Performance tests** | ✅ | ✅ | ⚠️ | ⚠️ |
@@ -260,7 +256,6 @@ bats tests/parallel_processing_test_suite.bats
 | **Parallel Processing** | ~68 | 85-90% |
 | **Validation** | ~140 | 80-85% |
 | **Cleanup** | ~60 | 75-80% |
-| **WMS** | ~28 | 70-75% |
 | **Error Handling** | ~82 | 80-85% |
 | **Database** | ~50 | 75-80% |
 

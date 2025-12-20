@@ -245,7 +245,7 @@ OSM-Notes-Ingestion/
 ### Key Concepts
 
 - **Entry Points**: Only scripts in `bin/process/` should be called directly (see [ENTRY_POINTS.md](./bin/ENTRY_POINTS.md))
-- **Processing Flow**: API → Database → WMS (see [Documentation.md](./docs/Documentation.md))
+- **Processing Flow**: API → Database (see [Documentation.md](./docs/Documentation.md))
 - **Testing**: 101 test suites covering all components (see [Testing_Guide.md](./docs/Testing_Guide.md))
 - **Configuration**: All settings in `etc/properties.sh`
 
@@ -719,7 +719,7 @@ For troubleshooting, check the PostgreSQL logs and ensure proper authentication 
 
 ### Local Development Setup
 
-The configuration files (`etc/properties.sh` and `etc/wms.properties.sh`) are
+The configuration file (`etc/properties.sh`) is
 already in `.gitignore` and will not be committed to the repository. This
 ensures your local credentials and settings remain secure.
 
