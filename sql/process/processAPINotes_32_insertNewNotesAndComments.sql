@@ -1,6 +1,12 @@
 -- Insert new notes and comments from API.
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-19
+-- Version: 2025-12-20
+
+-- Configure session for high-priority INSERT operations
+SET statement_timeout = '5min';
+SET lock_timeout = '50ms';
+SET work_mem = '64MB';
+SET maintenance_work_mem = '256MB';
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Inserting new notes and comments from API (bulk mode)' AS Task;
