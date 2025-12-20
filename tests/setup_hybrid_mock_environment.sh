@@ -2,7 +2,7 @@
 
 # Setup hybrid mock environment for testing (only internet downloads mocked)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-16
+# Version: 2025-12-19
 
 set -euo pipefail
 
@@ -48,33 +48,76 @@ if [[ -z "${MOCK_COMMANDS_DIR:-}" ]]; then
  MOCK_COMMANDS_DIR="${SCRIPT_DIR}/mock_commands"
 fi
 
+# Cache file to track if mocks are up-to-date
+MOCK_CACHE_FILE="${MOCK_COMMANDS_DIR}/.mock_cache_version"
+readonly MOCK_CACHE_FILE
+CURRENT_MOCK_VERSION="2025-12-19-fix5"
+readonly CURRENT_MOCK_VERSION
+
+# Function to check if mock commands need to be regenerated
+needs_mock_regeneration() {
+ # If cache file doesn't exist, need to regenerate
+ if [[ ! -f "${MOCK_CACHE_FILE}" ]]; then
+  return 0
+ fi
+
+ # If version changed, need to regenerate
+ local cached_version
+ cached_version=$(cat "${MOCK_CACHE_FILE}" 2> /dev/null || echo "")
+ if [[ "${cached_version}" != "${CURRENT_MOCK_VERSION}" ]]; then
+  return 0
+ fi
+
+ # If any required mock is missing, need to regenerate
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/curl" ]] \
+  || [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]] \
+  || [[ ! -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]] \
+  || [[ ! -x "${MOCK_COMMANDS_DIR}/curl" ]] \
+  || [[ ! -x "${MOCK_COMMANDS_DIR}/aria2c" ]] \
+  || [[ ! -x "${MOCK_COMMANDS_DIR}/ogr2ogr" ]]; then
+  return 0
+ fi
+
+ # All checks passed, no regeneration needed
+ return 1
+}
+
 # Function to setup hybrid mock environment
 setup_hybrid_mock_environment() {
- log_info "Setting up hybrid mock environment (internet downloads only)..."
-
  # Create mock commands directory if it doesn't exist
  mkdir -p "${MOCK_COMMANDS_DIR}"
 
- # Create only internet-related mock commands
- create_mock_curl
- create_mock_aria2c
- # Create mock ogr2ogr for transparent country data insertion
- create_mock_ogr2ogr
+ # Check if we need to regenerate mocks (caching optimization)
+ if needs_mock_regeneration; then
+  log_info "Setting up hybrid mock environment (internet downloads only)..."
 
- # Make mock commands executable
- for file in "${MOCK_COMMANDS_DIR}"/*; do
-  if [[ -f "${file}" ]]; then
-   chmod +x "${file}" 2> /dev/null || true
-  fi
- done
+  # Create only internet-related mock commands
+  create_mock_curl
+  create_mock_aria2c
+  # Create mock ogr2ogr for transparent country data insertion
+  create_mock_ogr2ogr
 
- log_success "Hybrid mock environment setup completed"
+  # Make mock commands executable (only the ones we created)
+  chmod +x "${MOCK_COMMANDS_DIR}/curl" 2> /dev/null || true
+  chmod +x "${MOCK_COMMANDS_DIR}/aria2c" 2> /dev/null || true
+  chmod +x "${MOCK_COMMANDS_DIR}/ogr2ogr" 2> /dev/null || true
+
+  # Update cache file
+  echo "${CURRENT_MOCK_VERSION}" > "${MOCK_CACHE_FILE}" 2> /dev/null || true
+
+  log_success "Hybrid mock environment setup completed"
+ else
+  # Mocks are cached and up-to-date, skip regeneration
+  log_info "Using cached hybrid mock commands (version ${CURRENT_MOCK_VERSION})"
+ fi
 }
 
 # Function to create mock curl
 create_mock_curl() {
- # Always recreate the mock curl to ensure it has the latest logic
- log_info "Creating/updating mock curl..."
+ # Only log if verbose or if file doesn't exist
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/curl" ]] || [[ "${VERBOSE:-false}" == "true" ]]; then
+  log_info "Creating/updating mock curl..."
+ fi
  rm -f "${MOCK_COMMANDS_DIR}/curl" 2> /dev/null || true
  # Create a simple, pattern-based curl mock
  cat > "${MOCK_COMMANDS_DIR}/curl" << 'EOF'
@@ -82,7 +125,7 @@ create_mock_curl() {
 
 # Mock curl - simple pattern matching based on actual code usage
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-18
+# Version: 2025-12-19
 
 set +e
 set +u
@@ -99,10 +142,15 @@ ALL_ARGS="$*"
 # Pattern 1: Overpass API with --data-binary
 # Pattern: curl -s -H "..." -o FILE --data-binary @QUERY_FILE URL 2> ERROR_FILE
 if echo "$ALL_ARGS" | grep -- '-data-binary' >/dev/null 2>&1 && echo "$ALL_ARGS" | grep -- 'api/interpreter' >/dev/null 2>&1; then
- # Extract output file (-o FILE)
- OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -- '-o ' | awk '{for(i=1;i<=NF;i++) if($i=="-o" && i<NF) print $(i+1)}')
- # Extract query file (--data-binary @FILE)
- QUERY_FILE=$(echo "$ALL_ARGS" | sed -n 's/.*--data-binary @\([^ ]*\).*/\1/p')
+ # Extract output file (-o FILE) - improved extraction
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}' | head -1)
+ if [[ -z "$OUTPUT_FILE" ]]; then
+  # Try alternative pattern: -oFILE (no space)
+  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o[^ ]+' | sed 's/^-o//' | head -1)
+ fi
+ 
+ # Extract query file (--data-binary @FILE) - improved extraction
+ QUERY_FILE=$(echo "$ALL_ARGS" | sed -n 's/.*--data-binary @\([^ ]*\).*/\1/p' | head -1)
  
  # Ensure output directory exists
  if [[ -n "$OUTPUT_FILE" ]]; then
@@ -112,11 +160,50 @@ if echo "$ALL_ARGS" | grep -- '-data-binary' >/dev/null 2>&1 && echo "$ALL_ARGS"
   fi
  fi
  
- # Check if query file contains CSV output
- if [[ -f "$QUERY_FILE" ]] && grep -q "\[out:csv" "$QUERY_FILE" 2>/dev/null; then
-  # CSV output for country/maritime lists
+ # Determine output format: CSV (for country/maritime lists) or JSON (for individual boundaries)
+ # Default to CSV if query file not found or cannot be read (most common case)
+ IS_CSV_OUTPUT=false
+ IS_JSON_OUTPUT=false
+ 
+ # Check query file for CSV output format
+ if [[ -n "$QUERY_FILE" ]] && [[ -f "$QUERY_FILE" ]] && [[ -r "$QUERY_FILE" ]]; then
+  if grep -q "\[out:csv" "$QUERY_FILE" 2>/dev/null; then
+   IS_CSV_OUTPUT=true
+  elif grep -q "\[out:json" "$QUERY_FILE" 2>/dev/null || grep -qE 'rel\([0-9]+\)' "$QUERY_FILE" 2>/dev/null; then
+   IS_JSON_OUTPUT=true
+  fi
+ fi
+ 
+ # If output file name suggests format, check extension first (more reliable)
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  # Priority 1: Check file extension (most reliable indicator)
+  if echo "$OUTPUT_FILE" | grep -qiE '\.json$'; then
+   IS_JSON_OUTPUT=true
+   IS_CSV_OUTPUT=false
+  elif echo "$OUTPUT_FILE" | grep -qiE '\.csv$'; then
+   IS_CSV_OUTPUT=true
+   IS_JSON_OUTPUT=false
+  # Priority 2: Check filename patterns (only if extension not found)
+  elif echo "$OUTPUT_FILE" | grep -qiE '(ids|countries|maritimes)'; then
+   # Only force CSV if it's in the filename itself, not in the path
+   local filename_only
+   filename_only=$(basename "$OUTPUT_FILE")
+   if echo "$filename_only" | grep -qiE '(ids|countries|maritimes|\.csv)'; then
+    IS_CSV_OUTPUT=true
+    IS_JSON_OUTPUT=false
+   fi
+  fi
+ fi
+ 
+ # Default to CSV if still undetermined (most common case for country lists)
+ if [[ "$IS_CSV_OUTPUT" == "false" ]] && [[ "$IS_JSON_OUTPUT" == "false" ]]; then
+  IS_CSV_OUTPUT=true
+ fi
+ 
+ # Generate CSV output for country/maritime lists
+ if [[ "$IS_CSV_OUTPUT" == "true" ]]; then
   if [[ -n "$OUTPUT_FILE" ]]; then
-   # Use printf instead of heredoc for more reliable execution
+   # Create CSV file with @id header and sample country IDs
    {
     echo "@id"
     echo "9407"
@@ -130,29 +217,33 @@ if echo "$ALL_ARGS" | grep -- '-data-binary' >/dev/null 2>&1 && echo "$ALL_ARGS"
     echo "59065"
     echo "60189"
    } > "$OUTPUT_FILE" 2>/dev/null || {
-    # Fallback if redirection fails
+    # Fallback if redirection fails - write line by line
     echo "@id" > "$OUTPUT_FILE" 2>/dev/null || true
     echo "9407" >> "$OUTPUT_FILE" 2>/dev/null || true
     echo "14296" >> "$OUTPUT_FILE" 2>/dev/null || true
+    echo "49903" >> "$OUTPUT_FILE" 2>/dev/null || true
    }
    # Verify file was created successfully with @id header
    if [[ ! -f "$OUTPUT_FILE" ]] || [[ ! -s "$OUTPUT_FILE" ]]; then
-    # Fallback: create file with basic content
+    # Last resort fallback
     echo "@id" > "$OUTPUT_FILE" 2>/dev/null || true
     echo "9407" >> "$OUTPUT_FILE" 2>/dev/null || true
-   elif ! head -1 "$OUTPUT_FILE" | grep -q "^@id"; then
+   elif ! head -1 "$OUTPUT_FILE" 2>/dev/null | grep -q "^@id"; then
     # If file exists but doesn't start with @id, prepend it
     {
      echo "@id"
-     cat "$OUTPUT_FILE"
+     cat "$OUTPUT_FILE" 2>/dev/null
     } > "$OUTPUT_FILE.tmp" 2>/dev/null && mv "$OUTPUT_FILE.tmp" "$OUTPUT_FILE" 2>/dev/null || true
    fi
   fi
- else
-  # JSON output for individual boundaries
+  exit 0
+ fi
+ 
+ # Generate JSON output for individual boundaries
+ if [[ "$IS_JSON_OUTPUT" == "true" ]]; then
   # Extract boundary ID from query file if possible
   BOUNDARY_ID="9407"
-  if [[ -f "$QUERY_FILE" ]]; then
+  if [[ -n "$QUERY_FILE" ]] && [[ -f "$QUERY_FILE" ]] && [[ -r "$QUERY_FILE" ]]; then
    # Try to extract ID from query like: rel(9407);
    EXTRACTED_ID=$(grep -oE 'rel\([0-9]+\)' "$QUERY_FILE" 2>/dev/null | grep -oE '[0-9]+' | head -1)
    if [[ -n "$EXTRACTED_ID" ]]; then
@@ -224,8 +315,8 @@ if echo "$ALL_ARGS" | grep -- '-data-binary' >/dev/null 2>&1 && echo "$ALL_ARGS"
     echo '{"version":0.6,"elements":[{"type":"relation","id":'${BOUNDARY_ID}',"members":[{"type":"way","ref":'$((BOUNDARY_ID * 10))',"role":"outer"}],"tags":{"type":"boundary"}},{"type":"way","id":'$((BOUNDARY_ID * 10))',"nodes":['$((BOUNDARY_ID * 100))','$((BOUNDARY_ID * 100 + 1))','$((BOUNDARY_ID * 100 + 2))','$((BOUNDARY_ID * 100))']},{"type":"node","id":'$((BOUNDARY_ID * 100))',"lat":0.0,"lon":0.0},{"type":"node","id":'$((BOUNDARY_ID * 100 + 1))',"lat":1.0,"lon":0.0},{"type":"node","id":'$((BOUNDARY_ID * 100 + 2))',"lat":1.0,"lon":1.0}]}' > "$OUTPUT_FILE" 2>/dev/null || true
    fi
   fi
+  exit 0
  fi
- exit 0
 fi
 
 # Pattern 2: OSM API /api/versions
@@ -260,13 +351,56 @@ XML_EOF
  exit 0
 fi
 
-# Pattern 3: HEAD requests (Planet server check)
+# Pattern 3: OSM API notes search (/api/0.6/notes/search.xml or /notes/search.xml)
+# Pattern: curl -s --connect-timeout X --max-time Y -H "..." -o FILE URL
+if echo "$ALL_ARGS" | grep -qE '/api/0\.6/notes/search\.xml|/notes/search\.xml'; then
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}' | head -1)
+ if [[ -z "$OUTPUT_FILE" ]]; then
+  # Try alternative pattern: -oFILE (no space)
+  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o[^ ]+' | sed 's/^-o//' | head -1)
+ fi
+ 
+ # Ensure output directory exists
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  OUTPUT_DIR=$(dirname "$OUTPUT_FILE" 2>/dev/null || echo ".")
+  if [[ "$OUTPUT_DIR" != "." ]] && [[ -n "$OUTPUT_DIR" ]]; then
+   mkdir -p "$OUTPUT_DIR" 2>/dev/null || true
+  fi
+ fi
+ 
+ # Generate mock OSM notes XML
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  cat > "$OUTPUT_FILE" << 'XML_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OSM-Notes-Ingestion Mock">
+ <note id="1" lat="4.6097" lon="-74.0817" created_at="2025-01-01T00:00:00Z" closed_at="">
+  <comment uid="1" user="test_user" user_url="https://www.openstreetmap.org/user/test_user" action="opened" timestamp="2025-01-01T00:00:00Z">
+   <text>Test note for hybrid mock</text>
+  </comment>
+ </note>
+ <note id="2" lat="4.6097" lon="-74.0817" created_at="2025-01-01T01:00:00Z" closed_at="">
+  <comment uid="1" user="test_user" user_url="https://www.openstreetmap.org/user/test_user" action="opened" timestamp="2025-01-01T01:00:00Z">
+   <text>Another test note</text>
+  </comment>
+ </note>
+</osm>
+XML_EOF
+  # Verify file was created
+  if [[ ! -f "$OUTPUT_FILE" ]] || [[ ! -s "$OUTPUT_FILE" ]]; then
+   # Fallback: create minimal XML
+   echo '<?xml version="1.0" encoding="UTF-8"?><osm version="0.6"><note id="1" lat="0.0" lon="0.0" created_at="2025-01-01T00:00:00Z"><comment uid="1" user="test" action="opened" timestamp="2025-01-01T00:00:00Z"><text>Test</text></comment></note></osm>' > "$OUTPUT_FILE" 2>/dev/null || true
+  fi
+ fi
+ exit 0
+fi
+
+# Pattern 4: HEAD requests (Planet server check)
 # Pattern: curl -s --max-time X -I URL > /dev/null
 if echo "$ALL_ARGS" | grep -qE '\s-I\s|\s--head\s'; then
  exit 0
 fi
 
-# Pattern 4: GitHub raw content downloads (for backup files)
+# Pattern 5: GitHub raw content downloads (for backup files)
 # Pattern: curl -s --connect-timeout X --max-time Y -H "..." -o FILE URL
 if echo "$ALL_ARGS" | grep -qE 'raw\.githubusercontent\.com|github\.com.*/raw/'; then
  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
@@ -298,7 +432,7 @@ if echo "$ALL_ARGS" | grep -qE 'raw\.githubusercontent\.com|github\.com.*/raw/';
  fi
 fi
 
-# Pattern 5: Network connectivity checks (google.com, cloudflare.com, github.com)
+# Pattern 6: Network connectivity checks (google.com, cloudflare.com, github.com)
 # Pattern: curl -s --connect-timeout X -H "..." URL > /dev/null
 # Only match if no output file is specified (pure connectivity check)
 # Exclude raw.githubusercontent.com (handled by Pattern 4)
@@ -310,7 +444,37 @@ if echo "$ALL_ARGS" | grep -qE 'google\.com|cloudflare\.com|github\.com'; then
  fi
 fi
 
-# Pattern 5: Planet server checks
+# Pattern 7: Planet server MD5 files
+# Pattern: curl -s ... planet.openstreetmap.org/notes/...bz2.md5 -o FILE
+if echo "$ALL_ARGS" | grep -qE 'planet\.openstreetmap\.org.*\.bz2\.md5'; then
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  OUTPUT_DIR=$(dirname "$OUTPUT_FILE" 2>/dev/null || echo ".")
+  if [[ "$OUTPUT_DIR" != "." ]] && [[ -n "$OUTPUT_DIR" ]]; then
+   mkdir -p "$OUTPUT_DIR" 2>/dev/null || true
+  fi
+  # Generate MD5 for the fixture file (planet-notes-latest.osn.bz2)
+  # This MD5 will be used to validate the downloaded .bz2 file
+  local fixture_file="/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"
+  if [[ -f "${fixture_file}" ]] && command -v md5sum >/dev/null 2>&1; then
+   # Calculate MD5 of fixture file
+   local md5_hash
+   md5_hash=$(md5sum "${fixture_file}" 2>/dev/null | awk '{print $1}')
+   if [[ -n "${md5_hash}" ]]; then
+    echo "${md5_hash}" > "$OUTPUT_FILE" 2>/dev/null || true
+   else
+    # Fallback: use known MD5 hash
+    echo "759cb0918338101492152e6e5e7d7c78" > "$OUTPUT_FILE" 2>/dev/null || true
+   fi
+  else
+   # Fallback: use known MD5 hash
+   echo "759cb0918338101492152e6e5e7d7c78" > "$OUTPUT_FILE" 2>/dev/null || true
+  fi
+ fi
+ exit 0
+fi
+
+# Pattern 6: Planet server checks (other files)
 # Pattern: curl -s ... planet.openstreetmap.org ...
 if echo "$ALL_ARGS" | grep -qE 'planet\.openstreetmap\.org'; then
  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
@@ -339,9 +503,12 @@ EOF
 
 # Function to create mock aria2c
 create_mock_aria2c() {
- if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-  log_info "Creating mock aria2c..."
-  cat > "${MOCK_COMMANDS_DIR}/aria2c" << 'EOF'
+ # Only log if verbose or if file doesn't exist
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]] || [[ "${VERBOSE:-false}" == "true" ]]; then
+  log_info "Creating/updating mock aria2c..."
+ fi
+ rm -f "${MOCK_COMMANDS_DIR}/aria2c" 2> /dev/null || true
+ cat > "${MOCK_COMMANDS_DIR}/aria2c" << 'ARIA2C_EOF'
 #!/bin/bash
 
 # Mock aria2c command for testing (internet downloads only)
@@ -410,37 +577,38 @@ INNER_EOF
    # Try multiple starting points to find the project root
    local project_root=""
    
-   # 1. Try from SCRIPT_BASE_DIRECTORY environment variable (if set)
-   if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]] && [[ -d "${SCRIPT_BASE_DIRECTORY}" ]]; then
+   # 1. Try absolute path first (most reliable)
+   if [[ -f "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2" ]]; then
+     project_root="/home/angoca/github/OSM-Notes-Ingestion"
+     fixture_file="/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"
+   # 2. Try from SCRIPT_BASE_DIRECTORY environment variable (if set)
+   elif [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]] && [[ -d "${SCRIPT_BASE_DIRECTORY}" ]]; then
      project_root=$(find_project_root "${SCRIPT_BASE_DIRECTORY}" 2>/dev/null || true)
-   fi
-   
-   # 2. Try from current working directory (PWD)
-   if [[ -z "${project_root}" ]]; then
+     if [[ -n "${project_root}" ]]; then
+       fixture_file="${project_root}/tests/fixtures/planet-notes-latest.osn.bz2"
+     fi
+   # 3. Try from current working directory (PWD)
+   elif [[ -n "${PWD:-}" ]]; then
      project_root=$(find_project_root "${PWD}" 2>/dev/null || true)
-   fi
-   
-   # 3. Try from the directory where this script is located
-   if [[ -z "${project_root}" ]]; then
+     if [[ -n "${project_root}" ]]; then
+       fixture_file="${project_root}/tests/fixtures/planet-notes-latest.osn.bz2"
+     fi
+   # 4. Try from the directory where this script is located
+   else
      local script_dir
      script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo "")"
      if [[ -n "${script_dir}" ]]; then
        project_root=$(find_project_root "${script_dir}" 2>/dev/null || true)
+       if [[ -n "${project_root}" ]]; then
+         fixture_file="${project_root}/tests/fixtures/planet-notes-latest.osn.bz2"
+       fi
      fi
    fi
    
-   # 4. Try absolute path (hardcoded fallback)
-   if [[ -z "${project_root}" ]] && [[ -f "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2" ]]; then
-     project_root="/home/angoca/github/OSM-Notes-Ingestion"
+   # Verify fixture file exists
+   if [[ -z "${fixture_file}" ]] || [[ ! -f "${fixture_file}" ]]; then
+     fixture_file=""
    fi
-   
-   # Try multiple possible paths for the fixture file
-   for possible_path in "${project_root}/tests/fixtures/planet-notes-latest.osn.bz2" "/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"; do
-     if [[ -n "${possible_path}" ]] && [[ -f "${possible_path}" ]]; then
-       fixture_file="${possible_path}"
-       break
-     fi
-   done
    
    # Check if fixture file exists
    if [[ -n "${fixture_file}" ]] && [[ -f "${fixture_file}" ]]; then
@@ -556,15 +724,16 @@ if [[ "$QUIET" != true ]]; then
 fi
 
 exit 0
-EOF
- fi
+ARIA2C_EOF
+ chmod +x "${MOCK_COMMANDS_DIR}/aria2c"
 }
 
 # Function to create mock ogr2ogr
 create_mock_ogr2ogr() {
- # Always create/update the mock ogr2ogr with hybrid mode logic
- # This ensures it has the correct logic for hybrid mode (delegate to real ogr2ogr when not countries/import)
- log_info "Creating mock ogr2ogr for transparent country data insertion..."
+ # Only log if verbose or if file doesn't exist
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]] || [[ "${VERBOSE:-false}" == "true" ]]; then
+  log_info "Creating/updating mock ogr2ogr for transparent country data insertion..."
+ fi
  cat > "${MOCK_COMMANDS_DIR}/ogr2ogr" << 'OGR2OGR_EOF'
 #!/bin/bash
 

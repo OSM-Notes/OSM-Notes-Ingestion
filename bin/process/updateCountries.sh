@@ -284,7 +284,7 @@ EOF
  __log_finish
 }
 
-# Create countries_new table for safe updates (new strategy)
+ # Create countries_new table for safe updates (new strategy)
 function __createCountryTablesNew {
  __log_start
  __logi "=== CREATING COUNTRIES_NEW TABLE (SAFE UPDATE STRATEGY) ==="
@@ -292,6 +292,13 @@ function __createCountryTablesNew {
  # Drop countries_new if it exists from a previous failed run
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
 DROP TABLE IF EXISTS countries_new CASCADE;
+EOF
+
+ # Drop countries_old if it exists (from previous swap)
+ # This is important because constraints must have unique names in the schema
+ # If countries_old has pk_countries, we can't create it again in countries
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+DROP TABLE IF EXISTS countries_old CASCADE;
 EOF
 
  # Check if countries table exists

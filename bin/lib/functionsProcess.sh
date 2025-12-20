@@ -140,10 +140,16 @@ function __retry_file_operation() {
    # Verify output file exists and has content (if command uses -o or > redirection)
    # Extract output file from command if it contains -o or > redirection
    local OUTPUT_FILE_CHECK=""
+   local OUTPUT_DIR_CHECK=""
    if echo "${OPERATION_COMMAND}" | grep -qE '\s-o\s+[^ ]+'; then
     # Extract file after -o
     OUTPUT_FILE_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}' | head -1)
     __logd "Extracted output file from -o: ${OUTPUT_FILE_CHECK}"
+    # For aria2c, also check for -d option (output directory)
+    if echo "${OPERATION_COMMAND}" | grep -qE '\s-d\s+[^ ]+'; then
+     OUTPUT_DIR_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s-d\s+[^ ]+' | awk '{print $2}' | head -1)
+     __logd "Extracted output directory from -d: ${OUTPUT_DIR_CHECK}"
+    fi
    elif echo "${OPERATION_COMMAND}" | grep -qE '\s>\s+[^ ]+'; then
     # Extract file after >
     OUTPUT_FILE_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s>\s+[^ ]+' | awk '{print $2}' | head -1)
@@ -154,8 +160,18 @@ function __retry_file_operation() {
    if [[ -n "${OUTPUT_FILE_CHECK}" ]]; then
     # Expand variables in file path (e.g., ${TMP_DIR}/file.txt)
     local EXPANDED_OUTPUT_FILE
-    EXPANDED_OUTPUT_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2>/dev/null || echo "${OUTPUT_FILE_CHECK}")
-    __logd "Expanded output file path: ${EXPANDED_OUTPUT_FILE}"
+    if [[ -n "${OUTPUT_DIR_CHECK}" ]]; then
+     # For aria2c with -d and -o, combine directory and file
+     local EXPANDED_DIR
+     EXPANDED_DIR=$(eval echo "${OUTPUT_DIR_CHECK}" 2>/dev/null || echo "${OUTPUT_DIR_CHECK}")
+     local EXPANDED_FILE
+     EXPANDED_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2>/dev/null || echo "${OUTPUT_FILE_CHECK}")
+     EXPANDED_OUTPUT_FILE="${EXPANDED_DIR}/${EXPANDED_FILE}"
+     __logd "Combined output file path (aria2c -d -o): ${EXPANDED_OUTPUT_FILE}"
+    else
+     EXPANDED_OUTPUT_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2>/dev/null || echo "${OUTPUT_FILE_CHECK}")
+     __logd "Expanded output file path: ${EXPANDED_OUTPUT_FILE}"
+    fi
     
     if [[ ! -f "${EXPANDED_OUTPUT_FILE}" ]]; then
      __logw "File operation reported success but output file does not exist: ${EXPANDED_OUTPUT_FILE}"
@@ -2029,13 +2045,23 @@ function __downloadPlanetNotes {
  fi
 
  # Move downloaded file to expected location
+ __logi "DEBUG: Checking for downloaded file: ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2"
+ __logi "DEBUG: TMP_DIR: ${TMP_DIR}"
+ __logi "DEBUG: PLANET_NOTES_NAME: ${PLANET_NOTES_NAME}"
  if [[ -f "${TMP_DIR}/${PLANET_NOTES_NAME}.bz2" ]]; then
+  __logi "DEBUG: File exists, moving to: ${PLANET_NOTES_FILE}.bz2"
   mv "${TMP_DIR}/${PLANET_NOTES_NAME}.bz2" "${PLANET_NOTES_FILE}.bz2"
   __logi "Moved downloaded file to expected location: ${PLANET_NOTES_FILE}.bz2"
+  __logi "DEBUG: Verifying moved file exists: $([[ -f "${PLANET_NOTES_FILE}.bz2" ]] && echo "yes" || echo "no")"
  else
-  __loge "ERROR: Downloaded file not found at expected location"
+  __loge "ERROR: Downloaded file not found at expected location: ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2"
+  __loge "DEBUG: Listing files in TMP_DIR:"
+  ls -lh "${TMP_DIR}"/*.bz2 2>/dev/null | while IFS= read -r line; do
+   __loge "  ${line}"
+  done || __loge "  (no .bz2 files found)"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Downloaded file not found" \
    "rm -f ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2 2>/dev/null || true"
+  return "${ERROR_DOWNLOADING_NOTES}"
  fi
 
  # Download MD5 file with retry logic
@@ -2067,32 +2093,58 @@ function __downloadPlanetNotes {
  # Extract file - simple and direct
  __logi "Extracting Planet notes..."
  local BZIP2_FILE="${PLANET_NOTES_FILE}.bz2"
+ __logi "DEBUG: BZIP2_FILE path: ${BZIP2_FILE}"
+ __logi "DEBUG: PLANET_NOTES_FILE: ${PLANET_NOTES_FILE}"
 
  # Verify file exists before extraction
+ __logi "DEBUG: Checking if BZIP2 file exists: ${BZIP2_FILE}"
  if [[ ! -f "${BZIP2_FILE}" ]]; then
   __loge "ERROR: Compressed file not found: ${BZIP2_FILE}"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Compressed file not found" \
    "rm -f \"${BZIP2_FILE}\" \"${PLANET_NOTES_FILE}\" 2>/dev/null || true"
+  return "${ERROR_DOWNLOADING_NOTES}"
  fi
+
+ # Log file details for debugging
+ __logi "BZIP2 file exists: ${BZIP2_FILE}"
+ __logi "BZIP2 file size: $(stat -c%s "${BZIP2_FILE}" 2>/dev/null || echo "unknown") bytes"
+ __logi "BZIP2 file type: $(file "${BZIP2_FILE}" 2>/dev/null || echo "unknown")"
 
  # Execute bzip2 extraction
  # Use set +e to prevent script exit on bzip2 errors
  # We verify success by checking if the XML file exists, not by exit code
  set +e
- { bzip2 -d "${BZIP2_FILE}"; } > /dev/null 2>&1
+ local BZIP2_OUTPUT
+ local BZIP2_EXIT_CODE
+ BZIP2_OUTPUT=$(bzip2 -d "${BZIP2_FILE}" 2>&1)
+ BZIP2_EXIT_CODE=$?
  set -e
+
+ # Log bzip2 exit code and output for debugging
+ __logi "bzip2 -d exit code: ${BZIP2_EXIT_CODE}"
+ if [[ -n "${BZIP2_OUTPUT}" ]]; then
+  __logi "bzip2 -d output: ${BZIP2_OUTPUT}"
+ fi
 
  # Check if extraction was successful by verifying the XML file exists
  # bzip2 may return non-zero if file was already extracted, but that's OK
  if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
   __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
+  __loge "BZIP2 file still exists: $([[ -f "${BZIP2_FILE}" ]] && echo "yes" || echo "no")"
+  __loge "BZIP2 exit code was: ${BZIP2_EXIT_CODE}"
+  if [[ -n "${BZIP2_OUTPUT}" ]]; then
+   __loge "BZIP2 error output: ${BZIP2_OUTPUT}"
+  fi
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Extracted file not found" \
    "rm -f \"${BZIP2_FILE}\" \"${PLANET_NOTES_FILE}\" 2>/dev/null || true"
+  # __handle_error_with_cleanup returns error code, so return here
+  return "${ERROR_DOWNLOADING_NOTES}"
  fi
 
  __logi "Successfully extracted Planet notes: \"${PLANET_NOTES_FILE}\""
 
  __log_finish
+ return 0
 }
 
 # Creates a function that performs basic triage according to longitude:

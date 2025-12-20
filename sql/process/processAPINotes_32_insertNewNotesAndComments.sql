@@ -211,8 +211,9 @@ $$
     SELECT 1 FROM note_comments nc
     WHERE nc.note_id = nca.note_id
       AND (nca.sequence_action IS NULL OR nc.sequence_action = nca.sequence_action)
-  )
-  ON CONFLICT (note_id, sequence_action) DO NOTHING;
+  );
+  -- Note: ON CONFLICT removed because there's no unique constraint on (note_id, sequence_action)
+  -- The WHERE NOT EXISTS clause already handles duplicate prevention
   
   SELECT COUNT(*) INTO m_comments_count_after FROM note_comments;
   m_new_comments_count := m_comments_count_before - m_existing_comments_count;

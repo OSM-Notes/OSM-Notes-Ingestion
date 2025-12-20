@@ -350,9 +350,41 @@ function __checkingDifferences {
   exit "${ERROR_CREATING_REPORT}"
  fi
 
- zip "${REPORT_ZIP}" "${DIFFERENT_NOTE_IDS_FILE}" \
-  "${DIFFERENT_COMMENT_IDS_FILE}" "${DIFFERENT_NOTES_FILE}" \
-  "${DIFFERENT_TEXT_COMMENTS_FILE}"
+ # Ensure TMP_DIR exists before creating zip file
+ if [[ ! -d "${TMP_DIR}" ]]; then
+  __logw "Temporary directory does not exist, creating it: ${TMP_DIR}"
+  mkdir -p "${TMP_DIR}" || {
+   __loge "ERROR: Failed to create temporary directory: ${TMP_DIR}"
+   exit "${ERROR_CREATING_REPORT}"
+  }
+ fi
+
+ # Verify all files exist before zipping (some may be empty, which is OK)
+ local FILES_TO_ZIP=()
+ if [[ -f "${DIFFERENT_NOTE_IDS_FILE}" ]]; then
+  FILES_TO_ZIP+=("${DIFFERENT_NOTE_IDS_FILE}")
+ fi
+ if [[ -f "${DIFFERENT_COMMENT_IDS_FILE}" ]]; then
+  FILES_TO_ZIP+=("${DIFFERENT_COMMENT_IDS_FILE}")
+ fi
+ if [[ -f "${DIFFERENT_NOTES_FILE}" ]]; then
+  FILES_TO_ZIP+=("${DIFFERENT_NOTES_FILE}")
+ fi
+ if [[ -f "${DIFFERENT_TEXT_COMMENTS_FILE}" ]]; then
+  FILES_TO_ZIP+=("${DIFFERENT_TEXT_COMMENTS_FILE}")
+ fi
+
+ # Only create zip if there are files to zip
+ if [[ ${#FILES_TO_ZIP[@]} -gt 0 ]]; then
+  if ! zip "${REPORT_ZIP}" "${FILES_TO_ZIP[@]}" 2>&1; then
+   __loge "ERROR: Failed to create zip file: ${REPORT_ZIP}"
+   exit "${ERROR_CREATING_REPORT}"
+  fi
+ else
+  __logw "WARNING: No files to zip, creating empty zip file"
+  touch "${REPORT_ZIP}"
+  zip "${REPORT_ZIP}" "${REPORT_ZIP}" > /dev/null 2>&1 || true
+ fi
 
  __log_finish
 }

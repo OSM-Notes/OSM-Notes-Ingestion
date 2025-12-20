@@ -660,9 +660,9 @@ function __cleanup_base() {
  if [[ -n "${DB_USER:-}" ]]; then
   PSQL_CMD="${PSQL_CMD} -U ${DB_USER}"
  fi
- __logi "Dropping country tables (countries, international_waters)..."
- if ! ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS countries CASCADE;" 2> /dev/null; then
-  __loge "ERROR: Failed to drop countries table"
+ __logi "Dropping country tables (countries, countries_old, countries_new, international_waters)..."
+ if ! ${PSQL_CMD} -d "${TARGET_DB}" -c "DROP TABLE IF EXISTS countries CASCADE; DROP TABLE IF EXISTS countries_old CASCADE; DROP TABLE IF EXISTS countries_new CASCADE;" 2> /dev/null; then
+  __loge "ERROR: Failed to drop countries tables"
   __log_finish
   return 1
  fi

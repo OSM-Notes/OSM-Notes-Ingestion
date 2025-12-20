@@ -137,6 +137,16 @@ CREATE INDEX IF NOT EXISTS idx_countries_is_maritime ON countries (is_maritime)
 COMMENT ON INDEX idx_countries_is_maritime IS
   'Index to quickly find maritime boundaries';
 
-ALTER TABLE countries
- ADD CONSTRAINT pk_countries
- PRIMARY KEY (country_id);
+DO $$
+BEGIN
+ IF NOT EXISTS (
+  SELECT 1 FROM pg_constraint c
+  JOIN pg_class t ON c.conrelid = t.oid
+  WHERE c.conname = 'pk_countries' 
+  AND t.relname = 'countries'
+ ) THEN
+  ALTER TABLE countries
+   ADD CONSTRAINT pk_countries
+   PRIMARY KEY (country_id);
+ END IF;
+END $$;

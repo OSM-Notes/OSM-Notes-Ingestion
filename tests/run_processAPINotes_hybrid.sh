@@ -140,7 +140,7 @@ clean_test_database() {
 
  # Check if database exists - cleanupAll.sh requires database to exist
  if ! ${psql_cmd} -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  log_info "Database ${DBNAME} does not exist, skipping cleanup"
+  log_info "Database ${DBNAME} does not exist, will be created by setup_test_database"
   return 0
  fi
 
@@ -154,9 +154,14 @@ clean_test_database() {
  # Make script executable
  chmod +x "${cleanup_script}"
 
+ # Ensure cleanupAll.sh uses the correct properties file (properties_test.sh)
+ # The properties.sh file should already be replaced with properties_test.sh
+ # by setup_test_properties() which is called before this function
+
  # Run cleanupAll.sh with full cleanup mode
  # It will use DBNAME from properties.sh (which is now properties_test.sh)
  # cleanupAll.sh will show a summary of what was cleaned
+ log_info "Executing: ${cleanup_script} --all"
  local cleanup_output
  cleanup_output=$("${cleanup_script}" --all 2>&1)
  local cleanup_exit_code=$?
@@ -168,11 +173,15 @@ clean_test_database() {
   if echo "${cleanup_output}" | grep -q "CLEANUP SUMMARY"; then
    log_info "Cleanup summary available (check cleanupAll.sh output for details)"
   fi
+  # Show a brief summary of what was cleaned (first few lines)
+  if echo "${cleanup_output}" | grep -qE "(dropped|removed|cleaned)"; then
+   log_info "Cleanup completed - tables and data removed"
+  fi
  else
   log_error "cleanupAll.sh failed with exit code: ${cleanup_exit_code}"
   # Show only first few lines to prevent infinite loops
-  log_error "Cleanup output (first 10 lines):"
-  echo "${cleanup_output}" | head -10 | while IFS= read -r line || true; do
+  log_error "Cleanup output (first 15 lines):"
+  echo "${cleanup_output}" | head -15 | while IFS= read -r line || true; do
    # Skip empty lines to prevent infinite output
    if [[ -n "${line// /}" ]]; then
     log_error "  ${line}"
@@ -277,12 +286,12 @@ modify_germany_for_hybrid_test() {
 # This validates that the complete flow from note_comments_api to note_comments works
 verify_comments_inserted() {
  local execution_number="${1}"
- 
+
  log_info "Verifying comments were inserted after execution #${execution_number}..."
- 
+
  # shellcheck disable=SC1091
  source "${PROJECT_ROOT}/etc/properties_test.sh" 2> /dev/null || true
- 
+
  local psql_cmd
  psql_cmd="psql"
  if [[ -n "${DB_HOST:-}" ]]; then
@@ -297,7 +306,7 @@ verify_comments_inserted() {
  if [[ -n "${DB_PASSWORD:-}" ]]; then
   export PGPASSWORD="${DB_PASSWORD}"
  fi
- 
+
  # Get count of comments inserted in the last 5 minutes (should be from this execution)
  # Use processing_time instead of created_at because created_at is the OSM timestamp
  # (which can be from the past), while processing_time is when it was inserted in DB
@@ -306,13 +315,13 @@ verify_comments_inserted() {
  comments_recent=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM note_comments WHERE processing_time > CURRENT_TIMESTAMP - INTERVAL '5 minutes';" \
   2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
- 
+
  # Get count of notes inserted in the last 5 minutes (to match comment verification interval)
  local notes_recent
  notes_recent=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM notes WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '5 minutes';" \
   2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
- 
+
  # Get count of notes with comments (should match if comments were inserted)
  local notes_with_comments
  notes_with_comments=$(${psql_cmd} -d "${DBNAME}" -Atq -c \
@@ -320,11 +329,11 @@ verify_comments_inserted() {
    WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '5 minutes'
    AND EXISTS (SELECT 1 FROM note_comments nc WHERE nc.note_id = n.note_id);" \
   2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
- 
+
  log_info "  Comments inserted recently: ${comments_recent}"
  log_info "  Notes inserted recently: ${notes_recent}"
  log_info "  Notes with comments: ${notes_with_comments}"
- 
+
  # If notes were inserted but no comments were inserted, this is a problem
  if [[ ${notes_recent} -gt 0 ]] && [[ ${comments_recent} -eq 0 ]]; then
   log_error "  CRITICAL: Notes were inserted but NO comments were inserted!"
@@ -336,7 +345,7 @@ verify_comments_inserted() {
   log_error "    - Duplicate filtering preventing all comments from being inserted"
   return 1
  fi
- 
+
  # If notes were inserted but not all have comments, this might be a problem
  # (Some notes might legitimately not have comments, but most should)
  if [[ ${notes_recent} -gt 0 ]] && [[ ${notes_with_comments} -lt $((notes_recent * 9 / 10)) ]]; then
@@ -344,7 +353,7 @@ verify_comments_inserted() {
   log_warning "  This might indicate a problem with comment insertion"
   # Don't fail the test, but log a warning
  fi
- 
+
  if [[ ${comments_recent} -gt 0 ]]; then
   log_success "  Comments insertion verified: ${comments_recent} comments inserted"
   return 0
@@ -365,27 +374,27 @@ verify_timestamp_updated() {
  local execution_number="${1:-}"
  local initial_timestamp="${2:-}"
  log_info "Verifying timestamp was updated after execution #${execution_number}..."
- 
+
  # Load DBNAME from properties file if not already loaded
  if [[ -z "${DBNAME:-}" ]]; then
   # shellcheck disable=SC1091
   source "${PROJECT_ROOT}/etc/properties.sh"
  fi
- 
+
  local psql_cmd="psql"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
- 
+
  # Get current timestamp from max_note_timestamp
  local current_timestamp
  current_timestamp=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT timestamp FROM max_note_timestamp;" 2> /dev/null | head -1 || echo "")
- 
+
  if [[ -z "${current_timestamp}" ]]; then
   log_warning "Could not retrieve timestamp from max_note_timestamp table"
   return 0 # Don't fail test, just warn
  fi
- 
+
  # If we have an initial timestamp, compare it with the current one
  # This is the key check: if set_config(..., false) doesn't persist, the timestamp won't update
  if [[ -n "${initial_timestamp}" ]]; then
@@ -400,19 +409,19 @@ verify_timestamp_updated() {
     SELECT MAX(created_at) as timestamp FROM note_comments
    ) t;
   " 2> /dev/null | head -1 || echo "")
-  
+
   if [[ -z "${latest_note_timestamp}" ]]; then
    log_warning "Could not retrieve latest note/comment timestamp, skipping verification"
    return 0
   fi
-  
+
   # Check if there are notes newer than the initial timestamp
   # If yes, the timestamp should have been updated
   local has_newer_notes
   has_newer_notes=$(${psql_cmd} -d "${DBNAME}" -Atq -c "
    SELECT CASE WHEN timestamp '${latest_note_timestamp}' > timestamp '${initial_timestamp}' THEN 1 ELSE 0 END;
   " 2> /dev/null | head -1 || echo "0")
-  
+
   if [[ "${current_timestamp}" == "${initial_timestamp}" ]]; then
    if [[ "${has_newer_notes}" == "1" ]]; then
     # There are newer notes but timestamp wasn't updated - this is the bug we're detecting
@@ -434,7 +443,7 @@ verify_timestamp_updated() {
    return 0
   fi
  fi
- 
+
  # Fallback: Compare with latest note/comment timestamp if initial timestamp not provided
  # Get the most recent note or comment timestamp
  local latest_note_timestamp
@@ -447,22 +456,22 @@ verify_timestamp_updated() {
    SELECT MAX(created_at) as timestamp FROM note_comments
   ) t;
  " 2> /dev/null | head -1 || echo "")
- 
+
  if [[ -z "${latest_note_timestamp}" ]]; then
   log_warning "Could not retrieve latest note/comment timestamp"
   return 0 # Don't fail test, just warn
  fi
- 
+
  # Compare timestamps (max_note_timestamp should be >= latest note/comment timestamp)
  # Allow 2 seconds difference for processing time
  local timestamp_diff
  timestamp_diff=$(${psql_cmd} -d "${DBNAME}" -Atq -c "
   SELECT EXTRACT(EPOCH FROM (timestamp '${latest_note_timestamp}' - timestamp '${current_timestamp}'));
  " 2> /dev/null | head -1 || echo "0")
- 
+
  # If latest_note_timestamp is more than 2 seconds newer than current_timestamp,
  # it means the timestamp was not updated
- if (( $(echo "${timestamp_diff} > 2" | bc -l 2> /dev/null || echo "0") )); then
+ if (($(echo "${timestamp_diff} > 2" | bc -l 2> /dev/null || echo "0"))); then
   log_error "Timestamp was NOT updated correctly!"
   log_error "  max_note_timestamp: ${current_timestamp}"
   log_error "  Latest note/comment: ${latest_note_timestamp}"
@@ -534,23 +543,23 @@ cleanup_lock_files() {
     rm -f "${lock_file}"
     return 0
    fi
-   
+
    # Process exists - verify it's actually the expected process
    # Check if the process command contains the expected script name
    local proc_cmd_full
-   proc_cmd_full=$(ps -p "${lock_pid}" -o args= 2>/dev/null || echo "")
-   
+   proc_cmd_full=$(ps -p "${lock_pid}" -o args= 2> /dev/null || echo "")
+
    # Additional check: verify the process is actually related to the script
    # by checking if the temporary directory from lock file still exists
    local tmp_dir
-   tmp_dir=$(grep "^Temporary directory:" "${lock_file}" 2>/dev/null | awk -F': ' '{print $2}' || echo "")
+   tmp_dir=$(grep "^Temporary directory:" "${lock_file}" 2> /dev/null | awk -F': ' '{print $2}' || echo "")
    if [[ -n "${tmp_dir}" ]] && [[ ! -d "${tmp_dir}" ]]; then
     log_warning "Lock file ${lock_file} has PID ${lock_pid} but temp dir '${tmp_dir}' doesn't exist"
     log_info "Removing stale lock file: ${lock_file} (temp directory removed, process likely terminated)"
     rm -f "${lock_file}"
     return 0
    fi
-   
+
    # In test environment, if process exists but seems unrelated, remove lock
    # Check if process command doesn't contain expected script patterns
    if [[ -n "${proc_cmd_full}" ]] && [[ ! "${proc_cmd_full}" =~ (processAPINotes|processPlanetNotes|updateCountries) ]]; then
@@ -559,7 +568,7 @@ cleanup_lock_files() {
     rm -f "${lock_file}"
     return 0
    fi
-   
+
    # Final double-check: verify PID still exists (avoid race conditions)
    # This is critical - PID might have terminated between checks
    if ! ps -p "${lock_pid}" -o pid= > /dev/null 2>&1; then
@@ -568,7 +577,7 @@ cleanup_lock_files() {
     rm -f "${lock_file}"
     return 0
    fi
-   
+
    log_warning "Lock file ${lock_file} has active process (PID: ${lock_pid})"
    log_warning "Process ${process_name:-unknown} is still running, keeping lock file"
    return 1
@@ -615,6 +624,7 @@ cleanup_lock_files() {
 }
 
 # Function to setup hybrid mock environment
+# Optimized: Uses cache and reduces redundant operations
 setup_hybrid_mock_environment() {
  log_info "Setting up hybrid mock environment..."
 
@@ -624,15 +634,12 @@ setup_hybrid_mock_environment() {
   return 1
  fi
 
- # Create mock commands if they don't exist
- if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-  log_info "Creating mock commands..."
-  bash "${SETUP_HYBRID_SCRIPT}" setup
- fi
+ # Setup mock commands (will use cache if available - optimization)
+ bash "${SETUP_HYBRID_SCRIPT}" setup
 
- # Ensure pgrep mock exists
- if [[ ! -f "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
-  log_info "Creating mock pgrep..."
+ # Ensure pgrep mock exists (simple mock, always returns no processes)
+ # Only create if missing (optimization)
+ if [[ ! -f "${MOCK_COMMANDS_DIR}/pgrep" ]] || [[ ! -x "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
   cat > "${MOCK_COMMANDS_DIR}/pgrep" << 'EOF'
 #!/bin/bash
 # Mock pgrep - always returns no processes found
@@ -641,57 +648,21 @@ EOF
   chmod +x "${MOCK_COMMANDS_DIR}/pgrep"
  fi
 
- # Ensure all mock commands are executable
- chmod +x "${MOCK_COMMANDS_DIR}/aria2c" 2> /dev/null || true
- chmod +x "${MOCK_COMMANDS_DIR}/pgrep" 2> /dev/null || true
-
- # DO NOT add MOCK_COMMANDS_DIR to PATH here - it will be handled by ensure_real_psql
- # which creates a hybrid_mock_dir with only the mocks we need
-
- # Verify mock aria2c exists and is executable
- if [[ ! -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-  log_error "Mock aria2c not found at ${MOCK_COMMANDS_DIR}/aria2c"
-  return 1
- fi
- if [[ ! -x "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-  log_warning "Mock aria2c is not executable, fixing..."
-  chmod +x "${MOCK_COMMANDS_DIR}/aria2c"
- fi
-
  # Source setup script (but don't activate yet - we'll do that after ensure_real_psql)
- # Temporarily disable set -e and set -u to avoid exiting on errors in sourced script
  set +eu
- # Source the script (errors about readonly variables are handled by the setup script itself)
  source "${SETUP_HYBRID_SCRIPT}" 2> /dev/null || true
  set -eu
 
  # Ensure real psql is used (not mock) - this creates hybrid_mock_dir and sets PATH correctly
- # This MUST be done before activate_hybrid_mock_environment to avoid adding MOCK_COMMANDS_DIR to PATH
  if ! ensure_real_psql; then
   log_error "Failed to ensure real psql is used"
   return 1
  fi
 
- # Now verify that aria2c mock is active (should be from hybrid_mock_dir)
- local aria2c_path
- aria2c_path=$(command -v aria2c 2> /dev/null || true)
- if [[ "${aria2c_path}" == "${HYBRID_MOCK_DIR:-}/aria2c" ]]; then
-  log_success "Mock aria2c is active: ${aria2c_path}"
- elif [[ -n "${HYBRID_MOCK_DIR:-}" ]] && [[ -f "${HYBRID_MOCK_DIR}/aria2c" ]]; then
-  log_warning "Mock aria2c not in PATH but exists at ${HYBRID_MOCK_DIR}/aria2c"
-  log_warning "PATH: ${PATH}"
- else
-  log_warning "Mock aria2c not detected. Current path: ${aria2c_path:-unknown}"
- fi
-
- # Final verification: ensure PATH doesn't contain MOCK_COMMANDS_DIR
- # (only hybrid_mock_dir should be in PATH)
+ # Minimal verification: ensure PATH doesn't contain MOCK_COMMANDS_DIR
  if echo "${PATH}" | grep -q "${MOCK_COMMANDS_DIR}"; then
-  log_warning "MOCK_COMMANDS_DIR still in PATH, removing it..."
-  local final_path
-  final_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | tr '\n' ':' | sed 's/:$//')
-  export PATH="${final_path}"
-  hash -r 2> /dev/null || true
+  log_error "MOCK_COMMANDS_DIR still in PATH!"
+  return 1
  fi
 
  log_success "Hybrid mock environment activated"
@@ -699,130 +670,115 @@ EOF
 }
 
 # Function to ensure real psql is used (not mock)
-# This function ensures psql is real while keeping aria2c and curl mocks active
+# Optimized: Cache real command paths and reduce redundant operations
 ensure_real_psql() {
- log_info "Ensuring real PostgreSQL client is used..."
+ # Use cached path if available (optimization)
+ if [[ -n "${REAL_PSQL_DIR:-}" ]] && [[ -f "${REAL_PSQL_DIR}/psql" ]]; then
+  log_info "Using cached real psql path"
+ else
+  log_info "Finding real PostgreSQL client..."
 
- # Remove mock commands directory from PATH temporarily to find real psql
- local temp_path
- temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | tr '\n' ':' | sed 's/:$//')
+  # Remove mock commands directory from PATH temporarily to find real psql
+  local temp_path
+  temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
 
- # Find real psql path
- local real_psql_path
- real_psql_path=""
- while IFS= read -r dir; do
-  if [[ -f "${dir}/psql" ]] && [[ "${dir}" != "${MOCK_COMMANDS_DIR}" ]]; then
-   real_psql_path="${dir}/psql"
-   break
+  # Find real psql path (optimized: check standard locations first)
+  local real_psql_path=""
+  for dir in /usr/bin /usr/local/bin /bin; do
+   if [[ -f "${dir}/psql" ]] && [[ -x "${dir}/psql" ]] && [[ "${dir}" != "${MOCK_COMMANDS_DIR}" ]]; then
+    real_psql_path="${dir}/psql"
+    break
+   fi
+  done
+
+  # Fallback to which if not found in standard locations
+  if [[ -z "${real_psql_path}" ]]; then
+   real_psql_path=$(PATH="${temp_path}" command -v psql 2> /dev/null || true)
   fi
- done <<< "$(echo "${temp_path}" | tr ':' '\n')"
 
- if [[ -z "${real_psql_path}" ]]; then
-  log_error "Real psql command not found in PATH"
-  return 1
+  if [[ -z "${real_psql_path}" ]] || [[ "${real_psql_path}" == *"mock_commands"* ]]; then
+   log_error "Real psql command not found"
+   return 1
+  fi
+
+  # Cache real psql directory
+  export REAL_PSQL_DIR
+  REAL_PSQL_DIR=$(dirname "${real_psql_path}")
  fi
 
- # Get real psql directory
- local real_psql_dir
- real_psql_dir=$(dirname "${real_psql_path}")
-
  # Rebuild PATH: Remove ALL mock directories to ensure real commands are used
- # This ensures:
- # 1. Real psql is found before mock psql (if it exists)
- # 2. Mock aria2c is found before real one (from hybrid_mock_dir)
- # 3. Real bzip2 is used (not mock)
  local clean_path
- clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${real_psql_dir}$" | tr '\n' ':' | sed 's/:$//')
+ clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | grep -v "^${REAL_PSQL_DIR}$" | tr '\n' ':' | sed 's/:$//')
 
- # Create a custom mock directory that only contains aria2c, curl, pgrep, ogr2ogr (not psql)
+ # Create a custom mock directory (optimized: use fixed location per user)
  local hybrid_mock_dir
- hybrid_mock_dir="/tmp/hybrid_mock_commands_$$"
+ hybrid_mock_dir="/tmp/hybrid_mock_commands_${USER:-$(id -un)}"
  mkdir -p "${hybrid_mock_dir}"
 
  # Store the directory path for cleanup
  export HYBRID_MOCK_DIR="${hybrid_mock_dir}"
 
- # Copy only the mocks we want (aria2c, curl, pgrep, ogr2ogr)
+ # Copy only the mocks we want (optimized: only copy if newer or missing)
  if [[ -f "${MOCK_COMMANDS_DIR}/aria2c" ]]; then
-  cp "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
-  chmod +x "${hybrid_mock_dir}/aria2c"
+  if [[ ! -f "${hybrid_mock_dir}/aria2c" ]] \
+   || [[ "${MOCK_COMMANDS_DIR}/aria2c" -nt "${hybrid_mock_dir}/aria2c" ]]; then
+   cp -f "${MOCK_COMMANDS_DIR}/aria2c" "${hybrid_mock_dir}/aria2c"
+   chmod +x "${hybrid_mock_dir}/aria2c"
+  fi
  fi
  if [[ -f "${MOCK_COMMANDS_DIR}/curl" ]]; then
-  cp "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
-  chmod +x "${hybrid_mock_dir}/curl"
+  if [[ ! -f "${hybrid_mock_dir}/curl" ]] \
+   || [[ "${MOCK_COMMANDS_DIR}/curl" -nt "${hybrid_mock_dir}/curl" ]]; then
+   cp -f "${MOCK_COMMANDS_DIR}/curl" "${hybrid_mock_dir}/curl"
+   chmod +x "${hybrid_mock_dir}/curl"
+  fi
  fi
  if [[ -f "${MOCK_COMMANDS_DIR}/pgrep" ]]; then
-  cp "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
-  chmod +x "${hybrid_mock_dir}/pgrep"
+  if [[ ! -f "${hybrid_mock_dir}/pgrep" ]] \
+   || [[ "${MOCK_COMMANDS_DIR}/pgrep" -nt "${hybrid_mock_dir}/pgrep" ]]; then
+   cp -f "${MOCK_COMMANDS_DIR}/pgrep" "${hybrid_mock_dir}/pgrep"
+   chmod +x "${hybrid_mock_dir}/pgrep"
+  fi
  fi
  # Copy ogr2ogr mock for transparent country data insertion
- # Use the mock created by setup_hybrid_mock_environment.sh (has hybrid mode logic)
- # If it doesn't exist, create it using setup_hybrid_mock_environment.sh
  if [[ ! -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]]; then
-  log_info "Creating ogr2ogr mock with hybrid mode support..."
   bash "${SETUP_HYBRID_SCRIPT}" setup 2> /dev/null || true
  fi
  if [[ -f "${MOCK_COMMANDS_DIR}/ogr2ogr" ]]; then
-  cp "${MOCK_COMMANDS_DIR}/ogr2ogr" "${hybrid_mock_dir}/ogr2ogr"
-  chmod +x "${hybrid_mock_dir}/ogr2ogr"
+  if [[ ! -f "${hybrid_mock_dir}/ogr2ogr" ]] \
+   || [[ "${MOCK_COMMANDS_DIR}/ogr2ogr" -nt "${hybrid_mock_dir}/ogr2ogr" ]]; then
+   cp -f "${MOCK_COMMANDS_DIR}/ogr2ogr" "${hybrid_mock_dir}/ogr2ogr"
+   chmod +x "${hybrid_mock_dir}/ogr2ogr"
+  fi
  else
   log_error "Failed to create ogr2ogr mock"
   return 1
  fi
 
  # Set PATH: hybrid mock dir first (for aria2c/curl/ogr2ogr), then real psql dir, then rest
- # This ensures mock aria2c/curl/ogr2ogr are found before real ones, but real psql is found
- # (since there's no psql in hybrid_mock_dir)
- export PATH="${hybrid_mock_dir}:${real_psql_dir}:${clean_path}"
+ export PATH="${hybrid_mock_dir}:${REAL_PSQL_DIR}:${clean_path}"
  hash -r 2> /dev/null || true
 
  # Export MOCK_COMMANDS_DIR so mock ogr2ogr can find real ogr2ogr if needed
- # MOCK_COMMANDS_DIR is readonly, so we just export it without reassigning
  export MOCK_COMMANDS_DIR
 
- # Verify we're using real psql (should find it in real_psql_dir since hybrid_mock_dir has no psql)
- local current_psql
- current_psql=$(command -v psql)
- if [[ "${current_psql}" == "${MOCK_COMMANDS_DIR}/psql" ]] || [[ "${current_psql}" == "${hybrid_mock_dir}/psql" ]]; then
-  log_error "Mock psql is being used instead of real psql"
-  return 1
- fi
- if [[ -z "${current_psql}" ]]; then
-  log_error "psql not found in PATH"
+ # Minimal verification (optimized: only check critical commands)
+ if ! command -v psql > /dev/null 2>&1 \
+  || [[ "$(command -v psql)" == *"mock_commands"* ]] \
+  || [[ "$(command -v psql)" == *"hybrid_mock_commands"* ]]; then
+  log_error "psql not found or is a mock"
   return 1
  fi
 
- # Verify mock aria2c is being used (should be from hybrid_mock_dir)
- local current_aria2c
- current_aria2c=$(command -v aria2c)
- if [[ "${current_aria2c}" != "${hybrid_mock_dir}/aria2c" ]]; then
-  log_error "Mock aria2c not active. Current: ${current_aria2c:-unknown}, Expected: ${hybrid_mock_dir}/aria2c"
-  log_error "PATH: ${PATH}"
+ if ! command -v bzip2 > /dev/null 2>&1 \
+  || [[ "$(command -v bzip2)" == *"mock_commands"* ]] \
+  || [[ "$(command -v bzip2)" == *"hybrid_mock_commands"* ]]; then
+  log_error "bzip2 not found or is a mock"
   return 1
  fi
 
- log_success "Using real psql from: ${current_psql}"
- log_success "Using mock aria2c from: ${current_aria2c}"
-
- # Verify mock ogr2ogr is being used (should be from hybrid_mock_dir)
- local current_ogr2ogr
- current_ogr2ogr=$(command -v ogr2ogr 2> /dev/null || true)
- if [[ -n "${current_ogr2ogr}" ]]; then
-  if [[ "${current_ogr2ogr}" == "${hybrid_mock_dir}/ogr2ogr" ]]; then
-   log_success "Using mock ogr2ogr from: ${current_ogr2ogr}"
-  else
-   log_warning "ogr2ogr is not from HYBRID_MOCK_DIR: ${current_ogr2ogr}"
-  fi
- fi
-
- # Verify real bzip2 is being used (should NOT be from mock directories)
- local current_bzip2
- current_bzip2=$(command -v bzip2)
- if [[ "${current_bzip2}" == "${MOCK_COMMANDS_DIR}/bzip2" ]] || [[ "${current_bzip2}" == "${hybrid_mock_dir}/bzip2" ]]; then
-  log_error "Mock bzip2 is being used instead of real bzip2: ${current_bzip2}"
-  return 1
- fi
- log_success "Using real bzip2 from: ${current_bzip2}"
+ log_success "Real commands verified and mock environment ready"
+ return 0
 }
 
 # Function to setup environment variables
@@ -922,64 +878,25 @@ run_processAPINotes() {
  # Make script executable
  chmod +x "${process_script}"
 
- # Ensure PATH is correctly set before running (verify bzip2 is real)
- # Remove MOCK_COMMANDS_DIR from PATH to ensure real commands are used
- local clean_path
- clean_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${MOCK_COMMANDS_DIR}" | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
-
- # Keep HYBRID_MOCK_DIR in PATH (contains aria2c, curl, pgrep mocks)
- # but ensure it doesn't contain bzip2
- if [[ -n "${HYBRID_MOCK_DIR:-}" ]] && [[ -d "${HYBRID_MOCK_DIR}" ]]; then
-  # Check if hybrid_mock_dir has bzip2 (it shouldn't)
-  if [[ -f "${HYBRID_MOCK_DIR}/bzip2" ]]; then
-   log_error "HYBRID_MOCK_DIR contains bzip2 mock, which should not exist"
-   rm -f "${HYBRID_MOCK_DIR}/bzip2" 2> /dev/null || true
-  fi
-  # Rebuild PATH: hybrid_mock_dir first (for aria2c), then clean_path
-  export PATH="${HYBRID_MOCK_DIR}:${clean_path}"
- else
-  export PATH="${clean_path}"
- fi
-
- hash -r 2> /dev/null || true
-
- # Verify bzip2 is real (not mock)
- local current_bzip2
- current_bzip2=$(command -v bzip2 2> /dev/null || true)
- if [[ -z "${current_bzip2}" ]]; then
-  log_error "bzip2 command not found in PATH"
-  log_error "PATH: ${PATH}"
-  return 1
- fi
- if [[ "${current_bzip2}" == *"mock_commands"* ]] || [[ "${current_bzip2}" == *"hybrid_mock_commands"* ]]; then
-  log_error "Mock bzip2 detected in PATH before execution: ${current_bzip2}"
-  log_error "PATH: ${PATH}"
+ # Ensure PATH is correctly set before running
+ # PATH should already be set by ensure_real_psql, but verify it's correct
+ if [[ -z "${HYBRID_MOCK_DIR:-}" ]] || [[ -z "${REAL_PSQL_DIR:-}" ]]; then
+  log_error "Hybrid mock environment not properly initialized"
   return 1
  fi
 
- # Verify aria2c is mock (should be from HYBRID_MOCK_DIR)
- local current_aria2c
- current_aria2c=$(command -v aria2c 2> /dev/null || true)
- if [[ -n "${current_aria2c}" ]] && [[ "${current_aria2c}" != "${HYBRID_MOCK_DIR:-}/aria2c" ]]; then
-  log_warning "aria2c is not from HYBRID_MOCK_DIR: ${current_aria2c}"
- fi
-
- log_info "Using real bzip2: ${current_bzip2}"
- log_info "Using mock aria2c: ${current_aria2c:-not found}"
-
- # Final verification: ensure PATH doesn't contain MOCK_COMMANDS_DIR
- # This is critical: processPlanetNotes.sh must use real bzip2, not mock
+ # Minimal verification: ensure PATH doesn't contain MOCK_COMMANDS_DIR
  if echo "${PATH}" | grep -q "${MOCK_COMMANDS_DIR}"; then
-  log_error "MOCK_COMMANDS_DIR still in PATH after cleanup!"
-  log_error "PATH: ${PATH}"
+  log_error "MOCK_COMMANDS_DIR still in PATH!"
   return 1
  fi
 
  # Export PATH to ensure child processes inherit it
- # This is critical: processPlanetNotes.sh must use real bzip2, not mock
  export PATH
 
- # Also export bzip2 path as a fallback (some scripts may check this)
+ # Export bzip2 path as a fallback (some scripts may check this)
+ local current_bzip2
+ current_bzip2=$(command -v bzip2 2> /dev/null || true)
  if [[ -n "${current_bzip2}" ]]; then
   export BZIP2="${current_bzip2}"
  fi
@@ -1043,7 +960,7 @@ run_processAPINotes() {
  local exit_code=$?
  if [[ ${exit_code} -eq 0 ]]; then
   log_success "processAPINotes.sh completed successfully (execution #${execution_number})"
-  
+
   # Verify timestamp was updated (if notes were processed)
   # This catches issues like set_config(..., false) not persisting between transactions
   if [[ ${execution_number} -gt 1 ]] && [[ -n "${initial_timestamp}" ]]; then
@@ -1055,7 +972,7 @@ run_processAPINotes() {
     exit_code=${verify_exit_code}
    fi
   fi
-  
+
   # Verify comments were actually inserted (not just logged as successful)
   # This catches issues like sequence_action not being passed correctly
   if [[ ${execution_number} -gt 1 ]]; then
@@ -1208,13 +1125,10 @@ main() {
 
  # Clean test database first (drop and recreate to ensure clean state)
  # This ensures the database is completely empty before first execution
- # Don't fail if cleanup fails - database might not exist or might be clean already
- set +e
- clean_test_database
- local cleanup_db_exit=$?
- set -e
- if [[ ${cleanup_db_exit} -ne 0 ]]; then
-  log_warning "Database cleanup had issues (exit code: ${cleanup_db_exit}), continuing anyway..."
+ log_info "Cleaning test database before execution..."
+ if ! clean_test_database; then
+  log_error "Failed to clean test database. Aborting."
+  exit 1
  fi
 
  # Setup test database (now DBNAME is available from properties_test.sh)
@@ -1294,15 +1208,15 @@ main() {
  # Wait a moment between executions
  sleep 2
 
-  # Third execution: Use 20 notes for sequential processing
-  log_info "=== THIRD EXECUTION: Sequential processing (>= 10 notes) ==="
-  cleanup_lock_files
+ # Third execution: Use 20 notes for sequential processing
+ log_info "=== THIRD EXECUTION: Sequential processing (>= 10 notes) ==="
+ cleanup_lock_files
 
-  # Set MOCK_NOTES_COUNT to 20 for sequential processing
-  export MOCK_NOTES_COUNT="20"
-  log_info "Using ${MOCK_NOTES_COUNT} notes for sequential processing test"
+ # Set MOCK_NOTES_COUNT to 20 for sequential processing
+ export MOCK_NOTES_COUNT="20"
+ log_info "Using ${MOCK_NOTES_COUNT} notes for sequential processing test"
 
-  # Run processAPINotes (third time - sequential processing)
+ # Run processAPINotes (third time - sequential processing)
  if ! run_processAPINotes 3; then
   log_error "Third execution failed"
   exit_code=$?
