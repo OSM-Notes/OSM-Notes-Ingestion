@@ -1,15 +1,31 @@
 # Crontab Configuration Example for OSM Notes Ingestion
 # ========================================================
 #
+# ⚠️ ALTERNATIVE OPTION - NOT RECOMMENDED FOR PRODUCTION
+#
 # This file shows how to configure crontab for automated OSM notes processing.
+# However, the RECOMMENDED approach is to use the daemon mode (systemd service)
+# which provides lower latency (30-60 seconds vs 15 minutes) and better efficiency.
+#
+# For production deployments, see the daemon mode configuration:
+# - examples/systemd/osm-notes-api-daemon.service
+# - docs/Process_API.md "Daemon Mode" section
+#
+# Use this crontab configuration only if:
+# - systemd is not available on your system
+# - You prefer the legacy cron-based approach
+# - You need a simpler setup for testing/development
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2025-12-20
 
 # =============================================================================
-# BASIC SETUP - RECOMMENDED
+# BASIC SETUP - ALTERNATIVE (LEGACY)
 # =============================================================================
-
+#
+# Note: This is an alternative to the recommended daemon mode.
+# The daemon mode (systemd) is preferred for production use.
+#
 # Notes synchronization every 15 minutes
 # processAPINotes.sh automatically handles Planet synchronization when needed:
 # - When API returns 10,000 notes (limit), it checks for new Planet dump

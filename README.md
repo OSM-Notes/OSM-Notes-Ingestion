@@ -91,7 +91,8 @@ These are the main functions of this project:
 
 - **Notes Ingestion**: Download notes from the OSM Planet and keep data in sync
   with the main OSM database via API calls.
-  This is configured with a scheduler (cron) and it does everything.
+  This is configured with a daemon (systemd) that polls every minute, or
+  optionally with a scheduler (cron) as an alternative.
 - **Country Boundaries**: Updates the current country and maritime information.
   This should be run once a month.
 - **Data Monitoring**: Monitor the sync by comparing the daily Planet dump with the notes on the
@@ -361,9 +362,31 @@ sudo apt-get -y install gdal-bin
 If you do not configure the prerequisites, each script validates the necessary
 components to work.
 
-## Cron scheduling
+## Automated Execution
 
-To run the notes database synchronization, configure the crontab like (`crontab -e`):
+### Recommended: Daemon Mode (systemd)
+
+The daemon mode is the **recommended production solution** for automated execution. It provides lower latency (30-60 seconds vs 15 minutes) and better efficiency:
+
+```bash
+# Install systemd service
+sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable osm-notes-api-daemon
+sudo systemctl start osm-notes-api-daemon
+```
+
+The daemon automatically:
+- Polls the API every minute (configurable via `DAEMON_SLEEP_INTERVAL`)
+- Handles initial setup automatically on first run (creates tables, loads historical data, loads countries)
+- Processes API notes continuously
+- Automatically syncs with Planet when needed (10K notes + new dump)
+
+See `docs/Process_API.md` "Daemon Mode" section for detailed configuration.
+
+### Alternative: Cron Mode (Legacy)
+
+If systemd is not available, you can use cron as an alternative:
 
 ```text
 # Runs the API extraction each 15 minutes.
@@ -383,6 +406,8 @@ To run the notes database synchronization, configure the crontab like (`crontab 
 - Automatically sync with Planet when needed (10K notes + new dump)
 
 No manual setup or separate `processPlanetNotes.sh` cron entry is required.
+
+See `examples/crontab-setup.example` for detailed cron configuration examples.
 
 For **ETL and Analytics scheduling**, see the [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
 

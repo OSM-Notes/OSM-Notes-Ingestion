@@ -116,7 +116,12 @@ The OSM-Notes-Ingestion system consists of the following components:
 #### 1. Data Collection Layer
 
 - **API Integration**: Real-time data from OSM Notes API
-  - Incremental updates every 15 minutes
+  - **Daemon Mode (Recommended)**: Continuous polling every 1 minute (30-60 seconds latency)
+    - Uses `processAPINotesDaemon.sh` with systemd service
+    - Lower latency and better efficiency than cron-based execution
+  - **Cron Mode (Alternative)**: Periodic updates every 15 minutes (legacy option)
+    - Uses `processAPINotes.sh` with crontab scheduler
+    - Suitable when systemd is not available
   - Limited to last 10,000 closed notes and all open notes
   - Automatic detection of new, modified, and reopened notes
 
@@ -306,7 +311,9 @@ For **WMS (Web Map Service) layer publication**, see the
 
 **Output:** Updated database with latest changes
 
-**Frequency:** Every 15 minutes (configurable)
+**Frequency:** 
+  - **Daemon Mode (Recommended)**: Every 1 minute (30-60 seconds latency)
+  - **Cron Mode (Alternative)**: Every 15 minutes (legacy option)
 
 ### 4. Country Assignment
 
@@ -326,7 +333,7 @@ For **WMS (Web Map Service) layer publication**, see the
 │                    Processing Sequence Overview                      │
 └─────────────────────────────────────────────────────────────────────┘
 
-API Processing Flow (Every 15 minutes):
+API Processing Flow (Daemon: every 1 minute, Cron: every 15 minutes):
 ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
 │  Cron    │───▶│processAPI│───▶│  OSM API │───▶│   AWK    │───▶│PostgreSQL│
 │  Scheduler│    │  Script  │    │  (XML)   │    │ Extract  │    │  (API    │
@@ -899,13 +906,13 @@ if [[ -n "${FAILED_FILE}" ]]; then
   rm "${FAILED_FILE}"
 fi
 
-# 4. Wait for next cron execution (recommended)
-# The script is designed to run automatically via crontab.
-# After removing the marker, wait for the next scheduled execution
+# 4. Wait for next execution
+# If using daemon mode: it will retry automatically
+# If using cron mode: wait for the next scheduled execution
 # (e.g., every 15 minutes for processAPINotes.sh)
 
 # Note: Manual execution is only for testing/debugging.
-# In production, let the cron job handle the next execution.
+# In production, let the daemon or cron job handle the next execution.
 ```
 
 #### Lock File Management
@@ -970,12 +977,18 @@ psql -d notes -c "SELECT application_name, state, query_start FROM pg_stat_activ
 psql -d notes -c "SELECT count(*) FROM pg_stat_activity WHERE datname = 'notes';"
 ```
 
-### Cron Job Configuration
+### Automated Execution Configuration
 
-Example crontab entries for automated execution:
+#### Recommended: Daemon Mode (systemd)
+
+For production use, the daemon mode is recommended. See `docs/Process_API.md` "Daemon Mode" section for detailed installation and configuration instructions.
+
+#### Alternative: Cron Job Configuration
+
+If systemd is not available, you can use cron as an alternative:
 
 ```bash
-# Process API notes every 15 minutes
+# Process API notes every 15 minutes (alternative to daemon mode)
 # Note: Scripts create their own logs in /tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log
 # No need to redirect output unless you want additional logging
 */15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >/dev/null 2>&1
@@ -1101,8 +1114,15 @@ sudo bin/scripts/install_directories.sh
 ./bin/scripts/exportMaritimesBackup.sh
 
 
-# Step 8: Set up automated processing (crontab)
-crontab -e
+# Step 8: Set up automated processing
+# Recommended: Daemon mode (systemd)
+sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable osm-notes-api-daemon
+sudo systemctl start osm-notes-api-daemon
+
+# Alternative: Cron mode (if systemd not available)
+# crontab -e
 # Add: */15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh
 ```
 
