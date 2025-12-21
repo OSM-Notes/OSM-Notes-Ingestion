@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-api-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
-VERSION="2025-12-15"
+# Version: 2025-12-21
+VERSION="2025-12-21"
 
 # IMPORTANT: This daemon sources processAPINotes.sh to reuse all its functions
 # The daemon adds daemon-specific functionality (looping, signal handling, etc.)
@@ -716,6 +716,15 @@ function __process_api_data {
    fi
   fi
 
+  # Clear lock-related variables to allow processPlanetNotes.sh to initialize
+  # its own lock file. This prevents conflicts when the daemon's lock file
+  # is still active.
+  unset LOCK
+  unset LOCK_DIR
+  unset TMP_DIR
+  unset LOG_DIR
+  unset LOG_FILENAME
+
   # Ensure required environment variables are set
   export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
   export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
@@ -818,6 +827,16 @@ function __process_api_data {
       fi
      fi
     fi
+
+    # Clear lock-related variables to allow processPlanetNotes.sh to initialize
+    # its own lock file. This prevents conflicts when the daemon's lock file
+    # is still active.
+    unset LOCK
+    unset LOCK_DIR
+    unset TMP_DIR
+    unset LOG_DIR
+    unset LOG_FILENAME
+
     # Ensure required environment variables are set for processPlanetNotes.sh
     # SKIP_XML_VALIDATION=true speeds up processing (validation is optional)
     export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
