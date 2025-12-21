@@ -146,3 +146,4 @@ tests/mock_commands/osmtogeojson
 tests/mock_commands/mutt
 tests/mock_commands/wget
 tests/mock_commands/curl
+tests/mock_commands/.mock_cache_version
