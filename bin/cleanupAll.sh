@@ -11,8 +11,8 @@
 # 255) General error
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
-VERSION="2025-12-15"
+# Version: 2025-12-20
+VERSION="2025-12-20"
 
 set -euo pipefail
 # shellcheck disable=SC2310,SC2312
@@ -291,6 +291,11 @@ function __cleanup_api_tables() {
  DROP TABLE IF EXISTS note_comments_api_part_2 CASCADE;
  DROP TABLE IF EXISTS note_comments_api_part_3 CASCADE;
  DROP TABLE IF EXISTS note_comments_api_part_4 CASCADE;
+ DROP TABLE IF EXISTS note_comments_text_api CASCADE;
+ DROP TABLE IF EXISTS note_comments_text_api_part_1 CASCADE;
+ DROP TABLE IF EXISTS note_comments_text_api_part_2 CASCADE;
+ DROP TABLE IF EXISTS note_comments_text_api_part_3 CASCADE;
+ DROP TABLE IF EXISTS note_comments_text_api_part_4 CASCADE;
  DROP TABLE IF EXISTS notes_api CASCADE;
  DROP TABLE IF EXISTS notes_api_part_1 CASCADE;
  DROP TABLE IF EXISTS notes_api_part_2 CASCADE;
@@ -321,6 +326,7 @@ function __cleanup_api_tables() {
   AND (
     table_name LIKE 'notes_api%'
     OR table_name LIKE 'note_comments_api%'
+    OR table_name LIKE 'note_comments_text_api%'
     OR table_name = 'max_note_timestamp'
     OR table_name = 'data_gaps'
   );
@@ -489,6 +495,7 @@ function __verify_cleanup_success() {
   "note_comments_text"
   "notes_api"
   "note_comments_api"
+  "note_comments_text_api"
   "notes_sync"
   "note_comments_sync"
   "note_comments_text_sync"
