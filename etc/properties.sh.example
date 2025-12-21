@@ -225,4 +225,20 @@ declare REASSIGN_NOTES_BATCH_SIZE="${REASSIGN_NOTES_BATCH_SIZE:-1000}"
 # shellcheck disable=SC2034
 declare CHECK_MISSING_MARITIMES="${CHECK_MISSING_MARITIMES:-false}"
 
+# HTTP optimization configuration
+# Enable HTTP keep-alive and HTTP/2 optimizations for API calls
+# These optimizations reduce connection overhead and improve performance
+# Set to true to enable (recommended), false to disable
+# Default: true (enabled)
+# shellcheck disable=SC2034
+declare ENABLE_HTTP_OPTIMIZATIONS="${ENABLE_HTTP_OPTIMIZATIONS:-true}"
+
+# HTTP conditional caching
+# Enable conditional requests (If-Modified-Since) to avoid re-downloading
+# unchanged data. Reduces bandwidth and improves performance.
+# Set to true to enable (recommended), false to disable
+# Default: true (enabled)
+# shellcheck disable=SC2034
+declare ENABLE_HTTP_CACHE="${ENABLE_HTTP_CACHE:-true}"
+
 

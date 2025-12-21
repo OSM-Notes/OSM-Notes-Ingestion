@@ -2,8 +2,8 @@
 
 # Note Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-VERSION="2025-12-07"
+# Version: 2025-12-20
+VERSION="2025-12-20"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -1601,10 +1601,35 @@ function __retry_overpass_api() {
   __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT}"
  fi
 
+ # Build optimized curl command with HTTP keep-alive and HTTP/2 support
+ local CURL_OPTS=(
+  "-s"
+  "--connect-timeout" "${TIMEOUT}"
+  "--max-time" "${TIMEOUT}"
+  "--compressed"
+  "--http1.1"
+  "-H" "Connection: keep-alive"
+  "-H" "Accept-Encoding: gzip, deflate, br"
+ )
+
+ # Try HTTP/2 if supported (fallback to HTTP/1.1 if not)
+ if curl --http2 -s --max-time 5 "https://overpass-api.de" > /dev/null 2>&1; then
+  CURL_OPTS+=("--http2")
+  __logd "Using HTTP/2 for Overpass API"
+ else
+  __logd "HTTP/2 not available, using HTTP/1.1 with keep-alive"
+ fi
+
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  CURL_OPTS+=("-H" "User-Agent: ${DOWNLOAD_USER_AGENT}")
+ else
+  CURL_OPTS+=("-H" "User-Agent: OSM-Notes-Ingestion/1.0")
+ fi
+
+ CURL_OPTS+=("-o" "${OUTPUT_FILE}")
+
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-   -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" \
-   -o "${OUTPUT_FILE}" \
+  if curl "${CURL_OPTS[@]}" \
    "https://overpass-api.de/api/interpreter?data=${QUERY}"; then
    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
     __logd "Overpass API call succeeded on attempt $((RETRY_COUNT + 1))"
@@ -1649,34 +1674,81 @@ function __retry_osm_api() {
   __logd "Using User-Agent for OSM API: ${DOWNLOAD_USER_AGENT}"
  fi
 
+ # Build optimized curl command with HTTP keep-alive and HTTP/2 support
+ local CURL_OPTS=(
+  "-s"
+  "--connect-timeout" "${TIMEOUT}"
+  "--max-time" "${TIMEOUT}"
+  "--compressed"
+  "--http1.1"
+  "-H" "Connection: keep-alive"
+  "-H" "Accept-Encoding: gzip, deflate, br"
+ )
+
+ # Try HTTP/2 if supported (fallback to HTTP/1.1 if not)
+ local OSM_BASE_URL
+ OSM_BASE_URL=$(echo "${URL}" | sed -E 's|^https?://([^/]+).*|\1|')
+ if curl --http2 -s --max-time 5 "https://${OSM_BASE_URL}" > /dev/null 2>&1; then
+  CURL_OPTS+=("--http2")
+  __logd "Using HTTP/2 for OSM API"
+ else
+  __logd "HTTP/2 not available, using HTTP/1.1 with keep-alive"
+ fi
+
+ if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
+  CURL_OPTS+=("-H" "User-Agent: ${DOWNLOAD_USER_AGENT}")
+ fi
+
+ # Conditional caching: use If-Modified-Since if we have a cached file
+ if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]] \
+  && [[ -n "${ENABLE_HTTP_CACHE:-true}" ]] \
+  && [[ "${ENABLE_HTTP_CACHE}" == "true" ]]; then
+  local FILE_MOD_TIME
+  FILE_MOD_TIME=$(stat -c %y "${OUTPUT_FILE}" 2> /dev/null || stat -f %Sm "${OUTPUT_FILE}" 2> /dev/null || echo "")
+  if [[ -n "${FILE_MOD_TIME}" ]]; then
+   # Convert to HTTP date format (RFC 7231)
+   local HTTP_DATE
+   HTTP_DATE=$(date -u -d "${FILE_MOD_TIME}" "+%a, %d %b %Y %H:%M:%S GMT" 2> /dev/null \
+    || date -u -j -f "%Y-%m-%d %H:%M:%S" "${FILE_MOD_TIME}" "+%a, %d %b %Y %H:%M:%S GMT" 2> /dev/null \
+    || echo "")
+   if [[ -n "${HTTP_DATE}" ]]; then
+    CURL_OPTS+=("-H" "If-Modified-Since: ${HTTP_DATE}")
+    __logd "Using conditional request with If-Modified-Since: ${HTTP_DATE}"
+   fi
+  fi
+ fi
+
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  if [[ -n "${DOWNLOAD_USER_AGENT:-}" ]]; then
-   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-    -H "User-Agent: ${DOWNLOAD_USER_AGENT}" \
-    -o "${OUTPUT_FILE}" "${URL}"; then
-    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-     __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
-     __log_finish
-     return 0
-    else
-     __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
-    fi
+  # Execute curl: use temporary file for body, capture HTTP code separately
+  local TEMP_OUTPUT
+  TEMP_OUTPUT=$(mktemp)
+  local HTTP_CODE
+  HTTP_CODE=$(curl "${CURL_OPTS[@]}" -w "%{http_code}" -o "${TEMP_OUTPUT}" "${URL}" 2> /dev/null | tail -c 3)
+
+  # Handle 304 Not Modified (cached response is still valid)
+  if [[ "${HTTP_CODE}" == "304" ]]; then
+   __logd "OSM API returned 304 Not Modified - using cached file"
+   rm -f "${TEMP_OUTPUT}"
+   if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
+    __logd "OSM API call succeeded (cached) on attempt $((RETRY_COUNT + 1))"
+    __log_finish
+    return 0
+   fi
+  # Handle successful responses (200, 201, etc.)
+  elif [[ "${HTTP_CODE}" =~ ^2[0-9]{2}$ ]]; then
+   # Move temporary file to output file
+   if [[ -f "${TEMP_OUTPUT}" ]] && [[ -s "${TEMP_OUTPUT}" ]]; then
+    mv "${TEMP_OUTPUT}" "${OUTPUT_FILE}"
+    __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
+    __log_finish
+    return 0
    else
-    __logw "OSM API call failed on attempt $((RETRY_COUNT + 1))"
+    rm -f "${TEMP_OUTPUT}"
+    __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
    fi
   else
-   if curl -s --connect-timeout "${TIMEOUT}" --max-time "${TIMEOUT}" \
-    -o "${OUTPUT_FILE}" "${URL}"; then
-    if [[ -f "${OUTPUT_FILE}" ]] && [[ -s "${OUTPUT_FILE}" ]]; then
-     __logd "OSM API call succeeded on attempt $((RETRY_COUNT + 1))"
-     __log_finish
-     return 0
-    else
-     __logw "OSM API call returned empty file on attempt $((RETRY_COUNT + 1))"
-    fi
-   else
-    __logw "OSM API call failed on attempt $((RETRY_COUNT + 1))"
-   fi
+   rm -f "${TEMP_OUTPUT}"
+   __logw "OSM API call failed with HTTP ${HTTP_CODE} on attempt $((RETRY_COUNT + 1))"
   fi
 
   RETRY_COUNT=$((RETRY_COUNT + 1))
