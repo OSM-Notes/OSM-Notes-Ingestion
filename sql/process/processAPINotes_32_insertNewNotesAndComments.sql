@@ -1,6 +1,6 @@
 -- Insert new notes and comments from API.
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-20
+-- Version: 2025-12-21
 
 -- Configure session for high-priority INSERT operations
 SET statement_timeout = '5min';
@@ -38,6 +38,8 @@ $$
   m_existing_notes_count INTEGER;
   m_new_notes_count INTEGER;
   m_updated_notes_count INTEGER;
+  m_last_analyze_time TIMESTAMP;
+  m_analyze_interval_hours INTEGER := 6;
  BEGIN
   m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
   
@@ -119,6 +121,29 @@ $$
   INSERT INTO logs (message) VALUES ('Bulk notes insertion completed: ' || 
     m_new_notes_count || ' new notes, ' || m_updated_notes_count || ' updated');
   
+  -- Only run ANALYZE if:
+  -- 1. Significant number of notes were inserted/updated in this cycle (>100), OR
+  -- 2. It has been more than 6 hours since last ANALYZE (periodic maintenance)
+  -- This optimization reduces overhead for small insertions while ensuring statistics stay current
+  SELECT COALESCE(MAX(timestamp), '1970-01-01'::TIMESTAMP) INTO m_last_analyze_time
+  FROM logs
+  WHERE message LIKE 'Running ANALYZE notes%';
+  
+  IF m_notes_count_before > 100 THEN
+    INSERT INTO logs (message) VALUES ('Running ANALYZE notes (threshold: >100 notes in this cycle)');
+    ANALYZE notes;
+  ELSIF m_last_analyze_time < NOW() - (m_analyze_interval_hours || ' hours')::INTERVAL THEN
+    INSERT INTO logs (message) VALUES ('Running ANALYZE notes (periodic: >' || 
+      m_analyze_interval_hours || ' hours since last ANALYZE, ' || 
+      EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours elapsed)');
+    ANALYZE notes;
+  ELSE
+    INSERT INTO logs (message) VALUES ('Skipping ANALYZE notes (only ' || 
+      m_notes_count_before || ' notes processed, last ANALYZE ' || 
+      EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours ago, threshold: >' || 
+      m_analyze_interval_hours || ' hours)');
+  END IF;
+  
  EXCEPTION
   WHEN OTHERS THEN
     INSERT INTO logs (message) VALUES ('ERROR in bulk notes insertion: ' || SQLERRM);
@@ -128,7 +153,7 @@ $$;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   'Statistics on notes' AS Text;
-ANALYZE notes;
+-- ANALYZE moved inside DO block above (conditional)
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'current notes - after' AS Text
@@ -167,6 +192,8 @@ $$
   m_comments_count_after INTEGER;
   m_existing_comments_count INTEGER;
   m_new_comments_count INTEGER;
+  m_last_analyze_time TIMESTAMP;
+  m_analyze_interval_hours INTEGER := 6;
  BEGIN
   m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
 
@@ -228,6 +255,29 @@ $$
     m_new_comments_count || ' new comments inserted, ' || 
     m_existing_comments_count || ' skipped (already exist)');
   
+  -- Only run ANALYZE if:
+  -- 1. Significant number of comments were processed in this cycle (>100), OR
+  -- 2. It has been more than 6 hours since last ANALYZE (periodic maintenance)
+  -- This optimization reduces overhead for small insertions while ensuring statistics stay current
+  SELECT COALESCE(MAX(timestamp), '1970-01-01'::TIMESTAMP) INTO m_last_analyze_time
+  FROM logs
+  WHERE message LIKE 'Running ANALYZE note_comments%';
+  
+  IF m_comments_count_before > 100 THEN
+    INSERT INTO logs (message) VALUES ('Running ANALYZE note_comments (threshold: >100 comments in this cycle)');
+    ANALYZE note_comments;
+  ELSIF m_last_analyze_time < NOW() - (m_analyze_interval_hours || ' hours')::INTERVAL THEN
+    INSERT INTO logs (message) VALUES ('Running ANALYZE note_comments (periodic: >' || 
+      m_analyze_interval_hours || ' hours since last ANALYZE, ' || 
+      EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours elapsed)');
+    ANALYZE note_comments;
+  ELSE
+    INSERT INTO logs (message) VALUES ('Skipping ANALYZE note_comments (only ' || 
+      m_comments_count_before || ' comments processed, last ANALYZE ' || 
+      EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours ago, threshold: >' || 
+      m_analyze_interval_hours || ' hours)');
+  END IF;
+  
  EXCEPTION
   WHEN OTHERS THEN
     INSERT INTO logs (message) VALUES ('ERROR in bulk comments insertion: ' || SQLERRM);
@@ -237,7 +287,7 @@ $$;
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   'Statistics on comments' AS Text;
-ANALYZE note_comments;
+-- ANALYZE moved inside DO block above (conditional)
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
   COUNT(1) AS Qty, 'current comments - after' AS Qty
 FROM note_comments;

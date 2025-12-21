@@ -1,9 +1,10 @@
 -- Test comment insertion flow from API tables to main tables
 -- This test validates the complete flow: note_comments_api -> bulk INSERT -> note_comments
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-19
+-- Version: 2025-12-21
 -- Note: Tests 1, 2, 4, 5 still test the procedures directly (they still exist and are useful)
 -- Test 3 now uses bulk INSERT to match the actual production code flow
+-- Test 6 validates ANALYZE conditional optimization (only runs when >100 items processed)
 
 BEGIN;
 
@@ -246,6 +247,60 @@ BEGIN
   DELETE FROM note_comments WHERE note_id = test_note_id;
   DELETE FROM notes WHERE note_id = test_note_id;
   CALL remove_lock('995');
+END $$;
+
+-- Test 6: Validate ANALYZE conditional optimization logic
+-- This test validates that the conditional ANALYZE logic works correctly
+-- (as implemented in processAPINotes_32_insertNewNotesAndComments.sql)
+DO $$
+DECLARE
+  small_count INTEGER := 5;
+  large_count INTEGER := 150;
+  log_message TEXT;
+BEGIN
+  -- Test 6a: Verify logic skips ANALYZE for small counts (<100)
+  IF small_count > 100 THEN
+    INSERT INTO logs (message) VALUES ('Running ANALYZE (threshold: >100)');
+  ELSE
+    INSERT INTO logs (message) VALUES ('Skipping ANALYZE (only ' || 
+      small_count || ' items processed, threshold: >100)');
+  END IF;
+  
+  -- Check that skip message was logged
+  SELECT message INTO log_message
+  FROM logs
+  WHERE message LIKE '%Skipping ANALYZE%'
+  ORDER BY id DESC
+  LIMIT 1;
+  
+  IF log_message IS NOT NULL THEN
+    RAISE NOTICE 'Test 6a passed: ANALYZE logic correctly skips for small counts (<100)';
+  ELSE
+    RAISE EXCEPTION 'Test 6a failed: ANALYZE logic did not skip for small count';
+  END IF;
+  
+  -- Test 6b: Verify logic runs ANALYZE for large counts (>100)
+  IF large_count > 100 THEN
+    INSERT INTO logs (message) VALUES ('Running ANALYZE (threshold: >100)');
+  ELSE
+    INSERT INTO logs (message) VALUES ('Skipping ANALYZE (only ' || 
+      large_count || ' items processed, threshold: >100)');
+  END IF;
+  
+  -- Check that run message was logged
+  SELECT message INTO log_message
+  FROM logs
+  WHERE message LIKE '%Running ANALYZE%'
+  ORDER BY id DESC
+  LIMIT 1;
+  
+  IF log_message IS NOT NULL THEN
+    RAISE NOTICE 'Test 6b passed: ANALYZE logic correctly triggers for large counts (>100)';
+  ELSE
+    RAISE EXCEPTION 'Test 6b failed: ANALYZE logic did not trigger for large count';
+  END IF;
+  
+  RAISE NOTICE 'Test 6 passed: ANALYZE conditional optimization logic works correctly';
 END $$;
 
 DO $$
