@@ -51,7 +51,7 @@ fi
 # Cache file to track if mocks are up-to-date
 MOCK_CACHE_FILE="${MOCK_COMMANDS_DIR}/.mock_cache_version"
 readonly MOCK_CACHE_FILE
-CURRENT_MOCK_VERSION="2025-12-20"
+CURRENT_MOCK_VERSION="2025-12-20-curl-mock-notes-count"
 readonly CURRENT_MOCK_VERSION
 
 # Function to check if mock commands need to be regenerated
@@ -125,7 +125,7 @@ create_mock_curl() {
 
 # Mock curl - simple pattern matching based on actual code usage
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-19
+# Version: 2025-12-20
 
 set +e
 set +u
@@ -353,7 +353,14 @@ fi
 
 # Pattern 3: OSM API notes search (/api/0.6/notes/search.xml or /notes/search.xml)
 # Pattern: curl -s --connect-timeout X --max-time Y -H "..." -o FILE URL
+# Also handles: curl ... -w "%{http_code}" -o FILE URL (used by __retry_osm_api)
 if echo "$ALL_ARGS" | grep -qE '/api/0\.6/notes/search\.xml|/notes/search\.xml'; then
+ # Check if -w "%{http_code}" is used (write HTTP code to stdout after body)
+ HTTP_CODE_FORMAT=""
+ if echo "$ALL_ARGS" | grep -qE '\s-w\s+[^ ]+|--write-out'; then
+  HTTP_CODE_FORMAT=$(echo "$ALL_ARGS" | grep -oE '\s-w\s+[^ ]+|--write-out\s+[^ ]+' | awk '{print $2}' | head -1 | tr -d '"')
+ fi
+ 
  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}' | head -1)
  if [[ -z "$OUTPUT_FILE" ]]; then
   # Try alternative pattern: -oFILE (no space)
@@ -368,27 +375,71 @@ if echo "$ALL_ARGS" | grep -qE '/api/0\.6/notes/search\.xml|/notes/search\.xml';
   fi
  fi
  
- # Generate mock OSM notes XML
+ # Generate mock OSM notes XML based on MOCK_NOTES_COUNT environment variable
  if [[ -n "$OUTPUT_FILE" ]]; then
-  cat > "$OUTPUT_FILE" << 'XML_EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<osm version="0.6" generator="OSM-Notes-Ingestion Mock">
- <note id="1" lat="4.6097" lon="-74.0817" created_at="2025-01-01T00:00:00Z" closed_at="">
-  <comment uid="1" user="test_user" user_url="https://www.openstreetmap.org/user/test_user" action="opened" timestamp="2025-01-01T00:00:00Z">
-   <text>Test note for hybrid mock</text>
-  </comment>
- </note>
- <note id="2" lat="4.6097" lon="-74.0817" created_at="2025-01-01T01:00:00Z" closed_at="">
-  <comment uid="1" user="test_user" user_url="https://www.openstreetmap.org/user/test_user" action="opened" timestamp="2025-01-01T01:00:00Z">
-   <text>Another test note</text>
-  </comment>
- </note>
-</osm>
-XML_EOF
-  # Verify file was created
+  # Read MOCK_NOTES_COUNT from environment (default to 2 if not set, for backwards compatibility)
+  NOTES_COUNT="${MOCK_NOTES_COUNT:-2}"
+  
+  # Validate NOTES_COUNT is a number
+  if ! [[ "$NOTES_COUNT" =~ ^[0-9]+$ ]]; then
+   NOTES_COUNT=2
+  fi
+  
+  # Generate XML header
+  {
+   echo '<?xml version="1.0" encoding="UTF-8"?>'
+   echo '<osm version="0.6" generator="OSM-Notes-Ingestion Mock">'
+   
+   # Generate notes only if NOTES_COUNT > 0
+   if [[ "$NOTES_COUNT" -gt 0 ]]; then
+    # Generate the requested number of notes
+    local i
+    for ((i=1; i<=NOTES_COUNT; i++)); do
+     # Generate a timestamp that increments for each note (in hours)
+     local timestamp_hour=$((i - 1))
+     local timestamp_str
+     if [[ $timestamp_hour -lt 10 ]]; then
+      timestamp_str="2025-01-01T0${timestamp_hour}:00:00Z"
+     else
+      timestamp_str="2025-01-01T${timestamp_hour}:00:00Z"
+     fi
+     
+     # Use same coordinates for all notes (Bogotá, Colombia) - hardcode directly
+     # Generate note XML using printf to avoid variable expansion issues
+     printf ' <note id="%s" lat="4.6097" lon="-74.0817" created_at="%s" closed_at="">\n' "${i}" "${timestamp_str}"
+     printf '  <comment uid="%s" user="test_user_%s" user_url="https://www.openstreetmap.org/user/test_user_%s" action="opened" timestamp="%s">\n' "${i}" "${i}" "${i}" "${timestamp_str}"
+     printf '   <text>Test note %s for hybrid mock</text>\n' "${i}"
+     echo "  </comment>"
+     echo " </note>"
+    done
+   fi
+   
+   echo '</osm>'
+  } > "$OUTPUT_FILE" 2>/dev/null || {
+   # Fallback if generation fails: create minimal XML
+   if [[ "$NOTES_COUNT" -gt 0 ]]; then
+    echo '<?xml version="1.0" encoding="UTF-8"?><osm version="0.6"><note id="1" lat="4.6097" lon="-74.0817" created_at="2025-01-01T00:00:00Z" closed_at=""><comment uid="1" user="test_user" action="opened" timestamp="2025-01-01T00:00:00Z"><text>Test note for hybrid mock</text></comment></note></osm>' > "$OUTPUT_FILE" 2>/dev/null || true
+   else
+    echo '<?xml version="1.0" encoding="UTF-8"?><osm version="0.6"></osm>' > "$OUTPUT_FILE" 2>/dev/null || true
+   fi
+  }
+  
+  # Verify file was created (last resort fallback)
   if [[ ! -f "$OUTPUT_FILE" ]] || [[ ! -s "$OUTPUT_FILE" ]]; then
-   # Fallback: create minimal XML
-   echo '<?xml version="1.0" encoding="UTF-8"?><osm version="0.6"><note id="1" lat="0.0" lon="0.0" created_at="2025-01-01T00:00:00Z"><comment uid="1" user="test" action="opened" timestamp="2025-01-01T00:00:00Z"><text>Test</text></comment></note></osm>' > "$OUTPUT_FILE" 2>/dev/null || true
+   if [[ "$NOTES_COUNT" -gt 0 ]]; then
+    echo '<?xml version="1.0" encoding="UTF-8"?><osm version="0.6"><note id="1" lat="4.6097" lon="-74.0817" created_at="2025-01-01T00:00:00Z" closed_at=""><comment uid="1" user="test_user" action="opened" timestamp="2025-01-01T00:00:00Z"><text>Test</text></comment></note></osm>' > "$OUTPUT_FILE" 2>/dev/null || true
+   else
+    echo '<?xml version="1.0" encoding="UTF-8"?><osm version="0.6"></osm>' > "$OUTPUT_FILE" 2>/dev/null || true
+   fi
+  fi
+  
+  # If -w "%{http_code}" is used, write HTTP code to stdout (not to file)
+  # This mimics curl's behavior: body goes to file (-o), HTTP code goes to stdout (-w)
+  # IMPORTANT: This must be AFTER the file is written, and must go to stdout
+  if [[ -n "$HTTP_CODE_FORMAT" ]] && echo "$HTTP_CODE_FORMAT" | grep -qE '%\{http_code\}'; then
+   # Write HTTP code 200 to stdout (this is what curl does with -w "%{http_code}")
+   # Note: The HTTP code goes to stdout AFTER the body is written to the file
+   printf "200"
   fi
  fi
  exit 0
