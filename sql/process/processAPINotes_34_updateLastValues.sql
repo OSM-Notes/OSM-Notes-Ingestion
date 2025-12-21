@@ -3,7 +3,7 @@
 -- comment.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-15
+-- Version: 2025-12-20
 
 SELECT /* Notes-processAPI */ timestamp
 FROM max_note_timestamp;
@@ -184,9 +184,12 @@ $$
   ) T;
   
   -- Only update if we have a valid timestamp
+  -- Use UPSERT with ON CONFLICT since table always has id column
   IF (new_last_update IS NOT NULL) THEN
-   UPDATE max_note_timestamp
-    SET timestamp = new_last_update;
+   INSERT INTO max_note_timestamp (id, timestamp)
+   VALUES (1, new_last_update)
+   ON CONFLICT (id) DO UPDATE SET timestamp = EXCLUDED.timestamp;
+   
    INSERT INTO logs (message) VALUES ('Timestamp updated to: ' || new_last_update);
   ELSE
    -- If no valid timestamp found, keep the current value

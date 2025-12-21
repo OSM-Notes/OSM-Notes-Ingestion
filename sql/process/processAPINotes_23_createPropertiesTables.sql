@@ -1,12 +1,11 @@
 -- Creates the max note timestamp table.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-15
+-- Version: 2025-12-20
 
 DO /* Notes-processAPI-createLastUpdateTable */
 $$
 DECLARE
- last_update TIMESTAMP;
  new_last_update TIMESTAMP;
  qty INT;
  notes_table_exists BOOLEAN;
@@ -22,7 +21,9 @@ BEGIN
 
  IF (qty = 0) THEN
   EXECUTE 'CREATE TABLE max_note_timestamp ('
-    || 'timestamp TIMESTAMP NOT NULL'
+    || 'id INTEGER NOT NULL PRIMARY KEY DEFAULT 1, '
+    || 'timestamp TIMESTAMP NOT NULL, '
+    || 'CONSTRAINT max_note_timestamp_single_row CHECK (id = 1)'
     || ')';
  END IF;
 
@@ -71,22 +72,16 @@ BEGIN
  END IF;
 
  IF (new_last_update IS NOT NULL) THEN
-  SELECT /* Notes-processAPI */ timestamp
-    INTO last_update
-  FROM max_note_timestamp;
-
-  IF (last_update IS NULL) THEN
-   -- Inserting the first "Max" value.
-   INSERT INTO max_note_timestamp (timestamp) VALUES (new_last_update);
-  ELSE
-   -- Updating the "Max" value.
-   UPDATE max_note_timestamp
-     SET timestamp = new_last_update;
-  END IF;
+  -- Use UPSERT to insert or update the single row
+  INSERT INTO max_note_timestamp (id, timestamp)
+  VALUES (1, new_last_update)
+  ON CONFLICT (id)
+  DO UPDATE SET timestamp = EXCLUDED.timestamp;
  ELSE
   -- Tables are empty, insert a default timestamp
-  INSERT INTO max_note_timestamp (timestamp) VALUES (CURRENT_TIMESTAMP)
-   ON CONFLICT DO NOTHING;
+  INSERT INTO max_note_timestamp (id, timestamp)
+  VALUES (1, CURRENT_TIMESTAMP)
+  ON CONFLICT (id) DO NOTHING;
  END IF;
 END;
 $$;
