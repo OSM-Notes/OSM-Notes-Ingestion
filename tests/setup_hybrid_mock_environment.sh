@@ -52,7 +52,7 @@ fi
 MOCK_CACHE_FILE="${MOCK_COMMANDS_DIR}/.mock_cache_version"
 readonly MOCK_CACHE_FILE
 CURRENT_MOCK_VERSION="2025-12-21-curl-mock-zero-notes-fix"
-readonly CURRENT_MOCK_VERSION
+readonly CURRENT_MOCK_VERSION="2025-01-23-example-com-support"
 
 # Function to check if mock commands need to be regenerated
 needs_mock_regeneration() {
@@ -536,6 +536,72 @@ if echo "$ALL_ARGS" | grep -qE 'planet\.openstreetmap\.org'; then
  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
  if [[ -n "$OUTPUT_FILE" ]]; then
   echo "OK" > "$OUTPUT_FILE" 2>/dev/null || true
+ fi
+ exit 0
+fi
+
+# Pattern 8: Test URLs (example.com) - for hybrid integration tests only
+# Pattern: curl -s -o FILE https://example.com/test.xml or planet-notes.xml
+# This pattern is specifically for tests and should not interfere with production scripts
+if echo "$ALL_ARGS" | grep -qE 'example\.com'; then
+ OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}')
+ if [[ -z "$OUTPUT_FILE" ]]; then
+  # Try alternative pattern: -oFILE (no space)
+  OUTPUT_FILE=$(echo "$ALL_ARGS" | grep -oE '\s-o[^ ]+' | sed 's/^-o//' | head -1)
+ fi
+ 
+ if [[ -n "$OUTPUT_FILE" ]]; then
+  OUTPUT_DIR=$(dirname "$OUTPUT_FILE" 2>/dev/null || echo ".")
+  if [[ "$OUTPUT_DIR" != "." ]] && [[ -n "$OUTPUT_DIR" ]]; then
+   mkdir -p "$OUTPUT_DIR" 2>/dev/null || true
+  fi
+  # Generate mock OSM notes XML for test files
+  # Check if it's planet-notes.xml or test.xml
+  if echo "$OUTPUT_FILE" | grep -qE 'planet-notes|planet_notes'; then
+   # Generate Planet format XML with multiple notes
+   {
+    echo '<?xml version="1.0" encoding="UTF-8"?>'
+    echo '<osm version="0.6" generator="OSM-Notes-Ingestion Mock">'
+    echo '  <note id="1" lat="0.0" lon="0.0">'
+    echo '    <status>open</status>'
+    echo '    <date_created>2025-01-01T00:00:00Z</date_created>'
+    echo '    <comment>'
+    echo '      <date>2025-01-01T00:00:00Z</date>'
+    echo '      <uid>1</uid>'
+    echo '      <user>testuser</user>'
+    echo '      <text>Test note 1</text>'
+    echo '    </comment>'
+    echo '  </note>'
+    echo '  <note id="2" lat="1.0" lon="1.0">'
+    echo '    <status>open</status>'
+    echo '    <date_created>2025-01-01T01:00:00Z</date_created>'
+    echo '    <comment>'
+    echo '      <date>2025-01-01T01:00:00Z</date>'
+    echo '      <uid>2</uid>'
+    echo '      <user>testuser</user>'
+    echo '      <text>Test note 2</text>'
+    echo '    </comment>'
+    echo '  </note>'
+    echo '</osm>'
+   } > "$OUTPUT_FILE" 2>/dev/null || true
+  else
+   # Generate API format XML (osm-notes wrapper)
+   {
+    echo '<?xml version="1.0" encoding="UTF-8"?>'
+    echo '<osm-notes version="0.6" generator="OSM-Notes-Ingestion Mock">'
+    echo '  <note id="1" lat="0.0" lon="0.0">'
+    echo '    <status>open</status>'
+    echo '    <date_created>2025-01-01T00:00:00Z</date_created>'
+    echo '    <comment>'
+    echo '      <date>2025-01-01T00:00:00Z</date>'
+    echo '      <uid>1</uid>'
+    echo '      <user>testuser</user>'
+    echo '      <text>Test note</text>'
+    echo '    </comment>'
+    echo '  </note>'
+    echo '</osm-notes>'
+   } > "$OUTPUT_FILE" 2>/dev/null || true
+  fi
  fi
  exit 0
 fi
