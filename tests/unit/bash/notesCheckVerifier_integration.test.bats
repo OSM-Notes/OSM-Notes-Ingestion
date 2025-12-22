@@ -128,11 +128,11 @@ teardown() {
  [[ "${status}" -eq 0 ]]
 
  # Verify tables exist
- run psql -d "${TEST_DBNAME}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('notes', 'note_comments', 'note_comments_text');"
+ run psql -d "${TEST_DBNAME}" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('notes', 'note_comments', 'note_comments_text');"
  [[ "${status}" -eq 0 ]]
  # Extract just the number from PostgreSQL output (remove header and formatting)
  local COUNT
- COUNT=$(echo "${output}" | tail -n 1 | tr -d ' ')
+ COUNT=$(echo "${output}" | tr -d ' \n\r' | grep -oE '[0-9]+' | head -n 1)
  [[ "${COUNT}" -eq "3" ]] || [[ "${COUNT}" -eq "100" ]] || [[ "${COUNT}" -eq "1" ]]
 }
 
