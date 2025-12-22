@@ -196,6 +196,8 @@ __run_level2_tests() {
  local -a test_files=(
   "tests/unit/sql/tables_simple.test.sql"
   "tests/unit/sql/functions_simple.test.sql"
+  "tests/unit/sql/test_analyze_cache_properties.sql"
+  "tests/unit/sql/test_integrity_check_exists.sql"
  )
 
  for test_file in "${test_files[@]}"; do
