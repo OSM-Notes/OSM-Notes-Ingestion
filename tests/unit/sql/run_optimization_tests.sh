@@ -49,6 +49,7 @@ echo ""
 TESTS=(
   "test_analyze_cache_properties.sql"
   "test_integrity_check_exists.sql"
+  "test_get_country_optimization.sql"
 )
 
 PASSED=0

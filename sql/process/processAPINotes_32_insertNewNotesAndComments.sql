@@ -93,8 +93,10 @@ $$
   
   -- Stage: Bulk INSERT with country lookup
   m_stage_start := clock_timestamp();
-  -- Bulk INSERT with country lookup for new notes only
-  WITH notes_with_countries AS (
+  -- OPTIMIZATION: Separate new notes from existing ones for better query optimization
+  -- This allows PostgreSQL to optimize each path independently
+  WITH existing_notes AS (
+    -- Notes that already exist: preserve existing country assignment
     SELECT 
       na.note_id,
       na.latitude,
@@ -102,13 +104,40 @@ $$
       na.created_at,
       na.closed_at,
       na.status,
-      -- Only lookup country for notes that don't exist yet
-      CASE 
-        WHEN n.note_id IS NULL THEN get_country(na.longitude, na.latitude, na.note_id)
-        ELSE n.id_country  -- Preserve existing country
-      END as id_country
+      n.id_country  -- Use existing country assignment
+    FROM notes_api na
+    INNER JOIN notes n ON n.note_id = na.note_id
+  ),
+  new_notes AS (
+    -- Notes that don't exist yet: need country lookup
+    SELECT 
+      na.note_id,
+      na.latitude,
+      na.longitude,
+      na.created_at,
+      na.closed_at,
+      na.status
     FROM notes_api na
     LEFT JOIN notes n ON n.note_id = na.note_id
+    WHERE n.note_id IS NULL
+  ),
+  new_notes_with_countries AS (
+    -- For new notes, perform country lookup using get_country()
+    SELECT 
+      note_id,
+      latitude,
+      longitude,
+      created_at,
+      closed_at,
+      status,
+      get_country(longitude, latitude, note_id) as id_country
+    FROM new_notes
+  ),
+  all_notes_ready AS (
+    -- Combine existing notes (with preserved country) and new notes (with country lookup)
+    SELECT * FROM existing_notes
+    UNION ALL
+    SELECT * FROM new_notes_with_countries
   )
   INSERT INTO notes (
     note_id,
@@ -127,7 +156,7 @@ $$
     closed_at,
     status,
     id_country
-  FROM notes_with_countries
+  FROM all_notes_ready
   ON CONFLICT (note_id) DO UPDATE SET
     status = EXCLUDED.status,
     closed_at = COALESCE(EXCLUDED.closed_at, notes.closed_at),
