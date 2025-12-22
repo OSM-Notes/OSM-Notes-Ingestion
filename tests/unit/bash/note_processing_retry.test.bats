@@ -201,26 +201,45 @@ EOF
 @test "__retry_osm_api should use curl" {
  local OUTPUT_FILE="${TEST_DIR}/output.txt"
 
- # Create a mock curl script
+ # Create a mock curl script that handles -w flag for HTTP code
  local MOCK_CURL="${TEST_DIR}/curl"
  cat > "${MOCK_CURL}" << 'EOF'
 #!/bin/bash
-# Find the output file argument (-o)
-OUTPUT_ARG=""
-for i in "$@"; do
- if [[ "${OUTPUT_ARG}" == "-o" ]]; then
-  echo "result" > "$i"
-  exit 0
- fi
- if [[ "$i" == "-o" ]]; then
-  OUTPUT_ARG="-o"
+# Find the output file argument (-o) and handle -w flag for HTTP code
+local OUTPUT_FILE=""
+local HTTP_CODE_OUTPUT=""
+local NEXT_IS_OUTPUT=false
+local NEXT_IS_HTTP_CODE=false
+
+for arg in "$@"; do
+ if [[ "${NEXT_IS_OUTPUT}" == "true" ]]; then
+  OUTPUT_FILE="${arg}"
+  NEXT_IS_OUTPUT=false
+ elif [[ "${NEXT_IS_HTTP_CODE}" == "true" ]]; then
+  HTTP_CODE_OUTPUT="${arg}"
+  NEXT_IS_HTTP_CODE=false
+ elif [[ "${arg}" == "-o" ]]; then
+  NEXT_IS_OUTPUT=true
+ elif [[ "${arg}" == "-w" ]]; then
+  NEXT_IS_HTTP_CODE=true
  fi
 done
-exit 1
+
+# Create output file if specified (and not /dev/null)
+if [[ -n "${OUTPUT_FILE}" ]] && [[ "${OUTPUT_FILE}" != "/dev/null" ]]; then
+ echo "<osm><note id=\"1\"/></osm>" > "${OUTPUT_FILE}"
+fi
+
+# Output HTTP code if -w was used (to stdout, before file content)
+if [[ -n "${HTTP_CODE_OUTPUT}" ]]; then
+ echo -n "200"
+fi
+
+exit 0
 EOF
  chmod +x "${MOCK_CURL}"
 
- # Add mock to PATH
+ # Add mock to PATH (only for this test, won't affect hybrid scripts)
  export PATH="${TEST_DIR}:${PATH}"
 
  run __retry_osm_api "https://api.openstreetmap.org/api/0.6/notes" "${OUTPUT_FILE}" 3 1 30 2>/dev/null

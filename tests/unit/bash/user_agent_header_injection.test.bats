@@ -60,24 +60,58 @@ teardown() {
 @test "OSM API curl includes -H User-Agent when set" {
  # Mock curl in PATH to capture args and create output file
  mkdir -p "${TMP_DIR}/bin"
- cat > "${TMP_DIR}/bin/curl" <<EOF
+ cat > "${TMP_DIR}/bin/curl" <<'EOF'
 #!/bin/bash
-echo "\$@" > "${TMP_DIR}/curl_args.txt"
+# Capture all arguments
+echo "$@" > "${TMP_DIR}/curl_args.txt"
+
 # Extract output file from -o option and create it
-for arg in "\$@"; do
- if [[ "\${PREV_ARG}" == "-o" ]]; then
-  echo "<osm><note id=\"1\"/></osm>" > "\${arg}"
+# Also handle -w option for HTTP code output
+local OUTPUT_FILE=""
+local HTTP_CODE_OUTPUT=""
+local PREV_ARG=""
+local NEXT_IS_OUTPUT=false
+local NEXT_IS_HTTP_CODE=false
+
+for arg in "$@"; do
+ if [[ "${NEXT_IS_OUTPUT}" == "true" ]]; then
+  OUTPUT_FILE="${arg}"
+  NEXT_IS_OUTPUT=false
+ elif [[ "${NEXT_IS_HTTP_CODE}" == "true" ]]; then
+  HTTP_CODE_OUTPUT="${arg}"
+  NEXT_IS_HTTP_CODE=false
+ elif [[ "${arg}" == "-o" ]]; then
+  NEXT_IS_OUTPUT=true
+ elif [[ "${arg}" == "-w" ]]; then
+  NEXT_IS_HTTP_CODE=true
  fi
- PREV_ARG="\${arg}"
 done
+
+# Create output file if specified
+if [[ -n "${OUTPUT_FILE}" ]] && [[ "${OUTPUT_FILE}" != "/dev/null" ]]; then
+ echo "<osm><note id=\"1\"/></osm>" > "${OUTPUT_FILE}"
+fi
+
+# Output HTTP code if -w was used (to stdout, before the file content)
+if [[ -n "${HTTP_CODE_OUTPUT}" ]]; then
+ echo -n "200"
+fi
+
 exit 0
 EOF
  chmod +x "${TMP_DIR}/bin/curl"
  export PATH="${TMP_DIR}/bin:${PATH}"
+ 
+ # Ensure function is loaded
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" > /dev/null 2>&1 || true
+ fi
+ 
  # Check if function exists
  if ! declare -f __retry_osm_api > /dev/null 2>&1; then
   skip "__retry_osm_api function not available"
  fi
+ 
  __retry_osm_api "https://api.openstreetmap.org/api/0.6/notes?limit=1" "${TMP_DIR}/out.xml" 1 1 5
  # Check if curl args file was created
  [ -f "${TMP_DIR}/curl_args.txt" ]
