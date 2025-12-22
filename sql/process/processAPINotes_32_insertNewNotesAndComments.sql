@@ -40,16 +40,25 @@ $$
   m_updated_notes_count INTEGER;
   m_last_analyze_time TIMESTAMP;
   m_analyze_interval_hours INTEGER := 6;
+  m_stage_start TIMESTAMP;
+  m_stage_end TIMESTAMP;
+  m_stage_duration NUMERIC;
  BEGIN
   m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
   
-  -- Check if there are notes to process
+  -- Stage: Check notes to process
+  m_stage_start := clock_timestamp();
   SELECT COUNT(*) INTO m_notes_count_before FROM notes_api;
   IF m_notes_count_before = 0 THEN
     RETURN;
   END IF;
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Check notes_api count - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms');
   
-  -- Validate lock ONCE at the beginning (optimization: avoid validating in each procedure call)
+  -- Stage: Validate lock
+  m_stage_start := clock_timestamp();
   SELECT value INTO m_process_id_db
   FROM properties
   WHERE key = 'lock';
@@ -64,15 +73,26 @@ $$
     RAISE EXCEPTION 'The process that holds the lock (%) is different from the current one (%).',
       m_process_id_db, m_process_id;
   END IF;
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Validate lock - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms');
   
   INSERT INTO logs (message) VALUES ('Lock validated. Starting bulk insertion of ' || 
     m_notes_count_before || ' notes');
   
-  -- Count existing notes to calculate new vs updated
+  -- Stage: Count existing notes
+  m_stage_start := clock_timestamp();
   SELECT COUNT(*) INTO m_existing_notes_count
   FROM notes
   WHERE note_id IN (SELECT note_id FROM notes_api);
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Count existing notes - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms, Existing: ' || m_existing_notes_count);
   
+  -- Stage: Bulk INSERT with country lookup
+  m_stage_start := clock_timestamp();
   -- Bulk INSERT with country lookup for new notes only
   WITH notes_with_countries AS (
     SELECT 
@@ -113,14 +133,20 @@ $$
     closed_at = COALESCE(EXCLUDED.closed_at, notes.closed_at),
     -- Only update country if the new one is not NULL
     id_country = COALESCE(EXCLUDED.id_country, notes.id_country);
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
   
   SELECT COUNT(*) INTO m_notes_count_after FROM notes;
   m_new_notes_count := m_notes_count_before - m_existing_notes_count;
   m_updated_notes_count := m_existing_notes_count;
   
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Bulk INSERT notes (with get_country lookup) - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms, New: ' || m_new_notes_count || ', Updated: ' || m_updated_notes_count);
   INSERT INTO logs (message) VALUES ('Bulk notes insertion completed: ' || 
     m_new_notes_count || ' new notes, ' || m_updated_notes_count || ' updated');
   
+  -- Stage: ANALYZE notes (conditional)
+  m_stage_start := clock_timestamp();
   -- Only run ANALYZE if:
   -- 1. Significant number of notes were inserted/updated in this cycle (>100), OR
   -- 2. It has been more than 6 hours since last ANALYZE (periodic maintenance)
@@ -132,16 +158,28 @@ $$
   IF m_notes_count_before > 100 THEN
     INSERT INTO logs (message) VALUES ('Running ANALYZE notes (threshold: >100 notes in this cycle)');
     ANALYZE notes;
+    m_stage_end := clock_timestamp();
+    m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: ANALYZE notes - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms (EXECUTED)');
   ELSIF m_last_analyze_time < NOW() - (m_analyze_interval_hours || ' hours')::INTERVAL THEN
     INSERT INTO logs (message) VALUES ('Running ANALYZE notes (periodic: >' || 
       m_analyze_interval_hours || ' hours since last ANALYZE, ' || 
       EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours elapsed)');
     ANALYZE notes;
+    m_stage_end := clock_timestamp();
+    m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: ANALYZE notes - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms (EXECUTED - periodic)');
   ELSE
     INSERT INTO logs (message) VALUES ('Skipping ANALYZE notes (only ' || 
       m_notes_count_before || ' notes processed, last ANALYZE ' || 
       EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours ago, threshold: >' || 
       m_analyze_interval_hours || ' hours)');
+    m_stage_end := clock_timestamp();
+    m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: ANALYZE notes check - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms (SKIPPED)');
   END IF;
   
  EXCEPTION
@@ -167,7 +205,12 @@ FROM note_comments;
 -- This ensures sequences are aligned with actual data in tables
 DO /* Notes-processAPI-syncSequences */
 $$
+DECLARE
+  m_stage_start TIMESTAMP;
+  m_stage_end TIMESTAMP;
+  m_stage_duration NUMERIC;
 BEGIN
+  m_stage_start := clock_timestamp();
   -- Synchronize note_comments_id_seq
   PERFORM setval('note_comments_id_seq', 
     COALESCE((SELECT MAX(id) FROM note_comments), 1), 
@@ -179,7 +222,11 @@ BEGIN
       COALESCE((SELECT MAX(id) FROM note_comments_text), 1),
       true);
   END IF;
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
   
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Synchronize sequences (SELECT MAX(id)) - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms');
   INSERT INTO logs (message) VALUES ('Sequences synchronized before comment insertion');
 END
 $$;
@@ -194,18 +241,28 @@ $$
   m_new_comments_count INTEGER;
   m_last_analyze_time TIMESTAMP;
   m_analyze_interval_hours INTEGER := 6;
+  m_stage_start TIMESTAMP;
+  m_stage_end TIMESTAMP;
+  m_stage_duration NUMERIC;
  BEGIN
   m_process_id := COALESCE(current_setting('app.process_id', true), '0')::INTEGER;
 
+  -- Stage: Check comments to process
+  m_stage_start := clock_timestamp();
   SELECT COUNT(*) INTO m_comments_count_before FROM note_comments_api;
   IF m_comments_count_before = 0 THEN
     RETURN;
   END IF;
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Check note_comments_api count - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms');
   
   INSERT INTO logs (message) VALUES ('Starting bulk insertion of ' || 
     m_comments_count_before || ' comments');
   
-  -- Count existing comments to calculate new vs skipped
+  -- Stage: Count existing comments
+  m_stage_start := clock_timestamp();
   SELECT COUNT(*) INTO m_existing_comments_count
   FROM note_comments
   WHERE (note_id, sequence_action) IN (
@@ -213,15 +270,26 @@ $$
     FROM note_comments_api 
     WHERE sequence_action IS NOT NULL
   );
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Count existing comments - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms, Existing: ' || m_existing_comments_count);
   
-  -- Bulk INSERT users first
+  -- Stage: Bulk INSERT users
+  m_stage_start := clock_timestamp();
   INSERT INTO users (user_id, username)
   SELECT DISTINCT id_user, username
   FROM note_comments_api
   WHERE id_user IS NOT NULL AND username IS NOT NULL
   ON CONFLICT (user_id) DO UPDATE SET
     username = EXCLUDED.username;
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Bulk INSERT users - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms');
   
+  -- Stage: Bulk INSERT comments
+  m_stage_start := clock_timestamp();
   -- Bulk INSERT comments (skip existing ones using NOT EXISTS for efficiency)
   INSERT INTO note_comments (
     id,
@@ -247,14 +315,20 @@ $$
   );
   -- Note: ON CONFLICT removed because there's no unique constraint on (note_id, sequence_action)
   -- The WHERE NOT EXISTS clause already handles duplicate prevention
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
   
   SELECT COUNT(*) INTO m_comments_count_after FROM note_comments;
   m_new_comments_count := m_comments_count_before - m_existing_comments_count;
   
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Bulk INSERT comments - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms, New: ' || m_new_comments_count || ', Skipped: ' || m_existing_comments_count);
   INSERT INTO logs (message) VALUES ('Bulk comments insertion completed: ' || 
     m_new_comments_count || ' new comments inserted, ' || 
     m_existing_comments_count || ' skipped (already exist)');
   
+  -- Stage: ANALYZE note_comments (conditional)
+  m_stage_start := clock_timestamp();
   -- Only run ANALYZE if:
   -- 1. Significant number of comments were processed in this cycle (>100), OR
   -- 2. It has been more than 6 hours since last ANALYZE (periodic maintenance)
@@ -266,16 +340,28 @@ $$
   IF m_comments_count_before > 100 THEN
     INSERT INTO logs (message) VALUES ('Running ANALYZE note_comments (threshold: >100 comments in this cycle)');
     ANALYZE note_comments;
+    m_stage_end := clock_timestamp();
+    m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: ANALYZE note_comments - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms (EXECUTED)');
   ELSIF m_last_analyze_time < NOW() - (m_analyze_interval_hours || ' hours')::INTERVAL THEN
     INSERT INTO logs (message) VALUES ('Running ANALYZE note_comments (periodic: >' || 
       m_analyze_interval_hours || ' hours since last ANALYZE, ' || 
       EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours elapsed)');
     ANALYZE note_comments;
+    m_stage_end := clock_timestamp();
+    m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: ANALYZE note_comments - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms (EXECUTED - periodic)');
   ELSE
     INSERT INTO logs (message) VALUES ('Skipping ANALYZE note_comments (only ' || 
       m_comments_count_before || ' comments processed, last ANALYZE ' || 
       EXTRACT(EPOCH FROM (NOW() - m_last_analyze_time))/3600 || ' hours ago, threshold: >' || 
       m_analyze_interval_hours || ' hours)');
+    m_stage_end := clock_timestamp();
+    m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: ANALYZE note_comments check - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms (SKIPPED)');
   END IF;
   
  EXCEPTION
@@ -293,6 +379,7 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 FROM note_comments;
 
 -- Validate data integrity before proceeding
+-- OPTIMIZED: Only check notes inserted in THIS cycle (from notes_api), not all notes from last hour
 DO /* Notes-processAPI-validateIntegrity */
 $$
  DECLARE
@@ -300,35 +387,61 @@ $$
   m_total_notes INTEGER;
   m_total_comments_in_db INTEGER;
   m_integrity_check_passed BOOLEAN := TRUE;
+  m_notes_in_this_cycle INTEGER;
+  m_stage_start TIMESTAMP;
+  m_stage_end TIMESTAMP;
+  m_stage_duration NUMERIC;
  BEGIN
+  m_stage_start := clock_timestamp();
   -- Count total comments in entire database
   -- This helps detect if we're in a state after data deletion
   SELECT COUNT(*) INTO m_total_comments_in_db FROM note_comments;
   
-  -- Count notes that don't have any comments
-  -- Only check notes inserted in the last hour that were created more than 30 minutes ago
+  -- OPTIMIZATION: Check only notes from THIS cycle (from notes_api table)
+  -- This is much faster than checking all notes from last hour
+  -- notes_api still contains the note_ids from this cycle (before TRUNCATE)
+  SELECT COUNT(*) INTO m_notes_in_this_cycle FROM notes_api;
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Integrity check - count totals - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms');
+  
+  IF m_notes_in_this_cycle = 0 THEN
+   -- No notes to check in this cycle
+   m_integrity_check_passed := TRUE;
+   INSERT INTO logs (message) VALUES ('Integrity check PASSED - no notes processed in this cycle');
+   PERFORM set_config('app.integrity_check_passed', m_integrity_check_passed::TEXT, true);
+   RETURN;
+  END IF;
+  
+  -- Count notes from THIS cycle that don't have any comments
+  m_stage_start := clock_timestamp();
+  -- Only check notes that are old enough to have comments (created >30 minutes ago)
   -- This prevents false positives from very new notes that legitimately don't have comments yet
-  -- Notes created less than 30 minutes ago may not have comments yet, which is normal
-  -- OSM API may not have comments available for very new notes immediately
   SELECT COUNT(DISTINCT n.note_id)
    INTO m_notes_without_comments
   FROM notes n
+  INNER JOIN notes_api na ON na.note_id = n.note_id  -- Only check notes from this cycle
   LEFT JOIN note_comments nc ON nc.note_id = n.note_id
-  WHERE n.insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'  -- Check only recently inserted notes
-   AND n.created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes'  -- Only check notes old enough to have comments
+  WHERE n.created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes'  -- Only check notes old enough to have comments
    AND nc.note_id IS NULL;
   
-  -- Count total notes inserted in the last hour that are old enough to have comments
-  SELECT COUNT(DISTINCT note_id)
+  -- Count total notes from THIS cycle that are old enough to have comments
+  SELECT COUNT(DISTINCT n.note_id)
    INTO m_total_notes
-  FROM notes
-  WHERE insert_time > CURRENT_TIMESTAMP - INTERVAL '1 hour'
-   AND created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes';
+  FROM notes n
+  INNER JOIN notes_api na ON na.note_id = n.note_id  -- Only check notes from this cycle
+  WHERE n.created_at < CURRENT_TIMESTAMP - INTERVAL '30 minutes';
+  m_stage_end := clock_timestamp();
+  m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
+  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Integrity check - verify notes without comments - Duration: ' || 
+    ROUND(m_stage_duration, 2) || 'ms, Notes without comments: ' || m_notes_without_comments || ' / ' || m_total_notes);
   
   -- Log integrity check results
-  INSERT INTO logs (message) VALUES ('Integrity check: ' || m_notes_without_comments || 
-   ' notes without comments out of ' || m_total_notes || ' total notes inserted in last hour');
-  INSERT INTO logs (message) VALUES ('Total comments in database: ' || m_total_comments_in_db);
+  INSERT INTO logs (message) VALUES ('Integrity check (this cycle): ' || m_notes_without_comments || 
+   ' notes without comments out of ' || m_total_notes || ' total notes from this cycle (old enough to verify)');
+  INSERT INTO logs (message) VALUES ('Total notes in this cycle: ' || m_notes_in_this_cycle || 
+   ', Total comments in database: ' || m_total_comments_in_db);
   
   -- Special case: If database has no comments at all, this is likely after a cleanup/deletion
   -- In this case, we should be more permissive and allow the check to pass
