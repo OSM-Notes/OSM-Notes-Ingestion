@@ -1171,8 +1171,8 @@ main() {
  fi
 
  # Use default fixture (original OSM-notes-API.xml) for first execution
+ # Don't set MOCK_NOTES_COUNT - let curl mock use default (2 notes)
  unset MOCK_NOTES_COUNT
- export MOCK_NOTES_COUNT=""
 
  # Run processAPINotes (first time - will call processPlanetNotes.sh --base)
  # This will detect missing base tables and execute processPlanetNotes.sh --base
