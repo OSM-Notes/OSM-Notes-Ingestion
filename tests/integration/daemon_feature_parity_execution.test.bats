@@ -214,8 +214,9 @@ __get_function_calls() {
  local DAEMON_HAS_GAPS=0
  
  if [[ -n "${DAEMON_PROCESS_START}" ]]; then
+  # Function is approximately 280 lines, so search 300 lines to be safe
   local PROCESS_SECTION
-  PROCESS_SECTION=$(sed -n "${DAEMON_PROCESS_START},$((DAEMON_PROCESS_START + 200))p" "${DAEMON_FILE}")
+  PROCESS_SECTION=$(sed -n "${DAEMON_PROCESS_START},$((DAEMON_PROCESS_START + 300))p" "${DAEMON_FILE}")
   
   DAEMON_HAS_VALIDATION=$(echo "${PROCESS_SECTION}" | \
    grep -c "__validateApiNotesFile\|__validateApiNotesXMLFileComplete" 2>/dev/null | tr -d '[:space:]' || echo "0")
