@@ -199,6 +199,7 @@ __run_level2_tests() {
   "tests/unit/sql/test_analyze_cache_properties.sql"
   "tests/unit/sql/test_integrity_check_exists.sql"
   "tests/unit/sql/test_get_country_optimization.sql"
+  "tests/unit/sql/test_sequence_sync_conditional.sql"
  )
 
  for test_file in "${test_files[@]}"; do

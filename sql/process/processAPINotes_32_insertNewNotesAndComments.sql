@@ -244,32 +244,73 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 FROM note_comments;
 
 -- Synchronize sequences to prevent ID conflicts
--- This ensures sequences are aligned with actual data in tables
+-- OPTIMIZATION: Only synchronize if sequences are actually desynchronized
+-- This avoids unnecessary SELECT MAX(id) scans in each cycle
 DO /* Notes-processAPI-syncSequences */
 $$
 DECLARE
   m_stage_start TIMESTAMP;
   m_stage_end TIMESTAMP;
   m_stage_duration NUMERIC;
+  m_seq_last_value BIGINT;
+  m_max_id_table BIGINT;
+  m_needs_sync BOOLEAN := false;
+  m_text_seq_last_value BIGINT;
+  m_text_max_id_table BIGINT;
+  m_text_needs_sync BOOLEAN := false;
 BEGIN
   m_stage_start := clock_timestamp();
-  -- Synchronize note_comments_id_seq
-  PERFORM setval('note_comments_id_seq', 
-    COALESCE((SELECT MAX(id) FROM note_comments), 1), 
-    true);
+  
+  -- Check if note_comments_id_seq needs synchronization
+  SELECT last_value INTO m_seq_last_value
+  FROM pg_sequences
+  WHERE sequencename = 'note_comments_id_seq';
+  
+  SELECT COALESCE(MAX(id), 0) INTO m_max_id_table
+  FROM note_comments;
+  
+  -- Sequence is desynchronized if last_value < max_id_table
+  -- We add a small margin (5) to handle edge cases where sequence was advanced but not used
+  m_needs_sync := (m_seq_last_value < m_max_id_table - 5);
+  
+  IF m_needs_sync THEN
+    PERFORM setval('note_comments_id_seq', 
+      GREATEST(m_max_id_table, 1), 
+      true);
+    INSERT INTO logs (message) VALUES ('Sequences synchronized: note_comments_id_seq (was ' || 
+      m_seq_last_value || ', now ' || GREATEST(m_max_id_table, 1) || ', max_id=' || m_max_id_table || ')');
+  END IF;
   
   -- Synchronize note_comments_text_id_seq if it exists
   IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'note_comments_text_id_seq') THEN
-    PERFORM setval('note_comments_text_id_seq',
-      COALESCE((SELECT MAX(id) FROM note_comments_text), 1),
-      true);
+    SELECT last_value INTO m_text_seq_last_value
+    FROM pg_sequences
+    WHERE sequencename = 'note_comments_text_id_seq';
+    
+    SELECT COALESCE(MAX(id), 0) INTO m_text_max_id_table
+    FROM note_comments_text;
+    
+    m_text_needs_sync := (m_text_seq_last_value < m_text_max_id_table - 5);
+    
+    IF m_text_needs_sync THEN
+      PERFORM setval('note_comments_text_id_seq',
+        GREATEST(m_text_max_id_table, 1),
+        true);
+      INSERT INTO logs (message) VALUES ('Sequences synchronized: note_comments_text_id_seq (was ' || 
+        m_text_seq_last_value || ', now ' || GREATEST(m_text_max_id_table, 1) || ', max_id=' || m_text_max_id_table || ')');
+    END IF;
   END IF;
+  
   m_stage_end := clock_timestamp();
   m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
   
-  INSERT INTO logs (message) VALUES ('[TIMING] Stage: Synchronize sequences (SELECT MAX(id)) - Duration: ' || 
-    ROUND(m_stage_duration, 2) || 'ms');
-  INSERT INTO logs (message) VALUES ('Sequences synchronized before comment insertion');
+  IF m_needs_sync OR m_text_needs_sync THEN
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: Synchronize sequences (SELECT MAX(id)) - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms');
+  ELSE
+    INSERT INTO logs (message) VALUES ('[TIMING] Stage: Synchronize sequences check (SKIPPED - already synchronized) - Duration: ' || 
+      ROUND(m_stage_duration, 2) || 'ms');
+  END IF;
 END
 $$;
 
