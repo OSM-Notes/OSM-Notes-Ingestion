@@ -51,7 +51,7 @@ fi
 # Cache file to track if mocks are up-to-date
 MOCK_CACHE_FILE="${MOCK_COMMANDS_DIR}/.mock_cache_version"
 readonly MOCK_CACHE_FILE
-CURRENT_MOCK_VERSION="2025-12-20-curl-mock-notes-count"
+CURRENT_MOCK_VERSION="2025-12-21-curl-mock-zero-notes-fix"
 readonly CURRENT_MOCK_VERSION
 
 # Function to check if mock commands need to be regenerated
@@ -378,11 +378,16 @@ if echo "$ALL_ARGS" | grep -qE '/api/0\.6/notes/search\.xml|/notes/search\.xml';
  # Generate mock OSM notes XML based on MOCK_NOTES_COUNT environment variable
  if [[ -n "$OUTPUT_FILE" ]]; then
   # Read MOCK_NOTES_COUNT from environment (default to 2 if not set, for backwards compatibility)
-  NOTES_COUNT="${MOCK_NOTES_COUNT:-2}"
-  
-  # Validate NOTES_COUNT is a number
-  if ! [[ "$NOTES_COUNT" =~ ^[0-9]+$ ]]; then
-   NOTES_COUNT=2
+  # Important: Allow 0 as a valid value (empty API response scenario)
+  if [[ -n "${MOCK_NOTES_COUNT:-}" ]] && [[ "${MOCK_NOTES_COUNT}" =~ ^[0-9]+$ ]]; then
+   NOTES_COUNT="${MOCK_NOTES_COUNT}"
+  else
+   # Default to 2 only if MOCK_NOTES_COUNT is not set or invalid
+   NOTES_COUNT="${MOCK_NOTES_COUNT:-2}"
+   # Validate NOTES_COUNT is a number (re-validate after default assignment)
+   if ! [[ "$NOTES_COUNT" =~ ^[0-9]+$ ]]; then
+    NOTES_COUNT=2
+   fi
   fi
   
   # Generate XML header
