@@ -58,18 +58,18 @@ echo ""
 # Create log directory structure
 echo "Creating log directories..."
 mkdir -p "${LOG_DIR}"
-for subdir in "${LOG_SUBDIRS[@]}"; do
- mkdir -p "${LOG_DIR}/${subdir}"
- echo "  Created: ${LOG_DIR}/${subdir}"
+for SUBDIR in "${LOG_SUBDIRS[@]}"; do
+ mkdir -p "${LOG_DIR}/${SUBDIR}"
+ echo "  Created: ${LOG_DIR}/${SUBDIR}"
 done
 
 # Create temp directory structure
 echo ""
 echo "Creating temporary directories..."
 mkdir -p "${TMP_DIR}"
-for subdir in "${TMP_SUBDIRS[@]}"; do
- mkdir -p "${TMP_DIR}/${subdir}"
- echo "  Created: ${TMP_DIR}/${subdir}"
+for SUBDIR in "${TMP_SUBDIRS[@]}"; do
+ mkdir -p "${TMP_DIR}/${SUBDIR}"
+ echo "  Created: ${TMP_DIR}/${SUBDIR}"
 done
 
 # Create lock directory

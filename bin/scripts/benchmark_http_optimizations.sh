@@ -7,8 +7,8 @@
 # Usage: ./benchmark_http_optimizations.sh [--iterations N] [--output-dir DIR]
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-20
-VERSION="2025-12-20"
+# Version: 2025-01-23
+VERSION="2025-01-23"
 
 set -euo pipefail
 
@@ -75,95 +75,95 @@ echo ""
 
 # Function to record a metric
 record_metric() {
- local test_name="$1"
- local metric_name="$2"
- local value="$3"
- local unit="${4:-}"
+ local TEST_NAME="$1"
+ local METRIC_NAME="$2"
+ local VALUE="$3"
+ local UNIT="${4:-}"
 
- local json_entry
- json_entry=$(
+ local JSON_ENTRY
+ JSON_ENTRY=$(
   cat << EOF
 {
-  "test_name": "${test_name}",
-  "metric": "${metric_name}",
-  "value": ${value},
-  "unit": "${unit}",
+  "test_name": "${TEST_NAME}",
+  "metric": "${METRIC_NAME}",
+  "value": ${VALUE},
+  "unit": "${UNIT}",
   "timestamp": "${TIMESTAMP}",
   "version": "${VERSION}"
 }
 EOF
  )
 
- echo "${json_entry}" >> "${RESULTS_FILE}"
+ echo "${JSON_ENTRY}" >> "${RESULTS_FILE}"
 }
 
 # Function to measure time
 measure_time() {
- local start_time
- start_time=$(date +%s.%N 2> /dev/null || date +%s)
+ local START_TIME
+ START_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
  "$@" > /dev/null 2>&1
 
- local end_time
- end_time=$(date +%s.%N 2> /dev/null || date +%s)
+ local END_TIME
+ END_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
  if command -v bc > /dev/null 2>&1; then
-  echo "${end_time} - ${start_time}" | bc -l
+  echo "${END_TIME} - ${START_TIME}" | bc -l
  else
-  echo "$((end_time - start_time))"
+  echo "$((END_TIME - START_TIME))"
  fi
 }
 
 # Function to run benchmark for a single configuration
 run_benchmark() {
- local config_name="$1"
- local enable_optimizations="${2:-true}"
- local enable_cache="${3:-true}"
- local url="$4"
+ local CONFIG_NAME="$1"
+ local ENABLE_OPTIMIZATIONS="${2:-true}"
+ local ENABLE_CACHE="${3:-true}"
+ local URL="$4"
  # shellcheck disable=SC2034
- local output_file="$5"
- local iterations="${6:-${ITERATIONS}}"
+ local OUTPUT_FILE="$5"
+ local ITERATIONS="${6:-${ITERATIONS}}"
 
- export ENABLE_HTTP_OPTIMIZATIONS="${enable_optimizations}"
- export ENABLE_HTTP_CACHE="${enable_cache}"
+ export ENABLE_HTTP_OPTIMIZATIONS="${ENABLE_OPTIMIZATIONS}"
+ export ENABLE_HTTP_CACHE="${ENABLE_CACHE}"
 
- local total_time=0
- local success_count=0
- local i
+ local TOTAL_TIME=0
+ local SUCCESS_COUNT=0
+ local I
 
- echo "Running ${config_name} (${iterations} iterations)..."
+ echo "Running ${CONFIG_NAME} (${ITERATIONS} iterations)..."
 
- for ((i = 1; i <= iterations; i++)); do
-  local temp_file
-  temp_file=$(mktemp)
+ for ((I = 1; I <= ITERATIONS; I++)); do
+  local TEMP_FILE
+  TEMP_FILE=$(mktemp)
 
-  local duration
-  duration=$(measure_time __retry_osm_api "${url}" "${temp_file}" 1 1 30)
+  local DURATION
+  DURATION=$(measure_time __retry_osm_api "${URL}" "${TEMP_FILE}" 1 1 30)
 
-  if [[ -f "${temp_file}" ]] && [[ -s "${temp_file}" ]]; then
-   total_time=$(echo "${total_time} + ${duration}" | bc -l 2> /dev/null || echo "${total_time}")
-   success_count=$((success_count + 1))
+  if [[ -f "${TEMP_FILE}" ]] && [[ -s "${TEMP_FILE}" ]]; then
+   TOTAL_TIME=$(echo "${TOTAL_TIME} + ${DURATION}" | bc -l 2> /dev/null || echo "${TOTAL_TIME}")
+   SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
   fi
 
-  rm -f "${temp_file}"
+  rm -f "${TEMP_FILE}"
 
   # Small delay between requests
   sleep 0.5
  done
 
- local avg_time=0
- if [[ ${success_count} -gt 0 ]]; then
-  avg_time=$(echo "scale=4; ${total_time} / ${success_count}" | bc -l 2> /dev/null || echo "0")
+ local AVG_TIME=0
+ if [[ ${SUCCESS_COUNT} -gt 0 ]]; then
+  AVG_TIME=$(echo "scale=4; ${TOTAL_TIME} / ${SUCCESS_COUNT}" | bc -l 2> /dev/null || echo "0")
  fi
 
- record_metric "http_optimizations" "${config_name}_avg_time" "${avg_time}" "seconds"
- record_metric "http_optimizations" "${config_name}_total_time" "${total_time}" "seconds"
- record_metric "http_optimizations" "${config_name}_success_count" "${success_count}" "count"
+ record_metric "http_optimizations" "${CONFIG_NAME}_avg_time" "${AVG_TIME}" "seconds"
+ record_metric "http_optimizations" "${CONFIG_NAME}_total_time" "${TOTAL_TIME}" "seconds"
+ record_metric "http_optimizations" "${CONFIG_NAME}_success_count" "${SUCCESS_COUNT}" "count"
 
- echo "  Average: ${avg_time}s (${success_count}/${iterations} successful)"
+ echo "  Average: ${AVG_TIME}s (${SUCCESS_COUNT}/${ITERATIONS} successful)"
  echo ""
 
- echo "${avg_time}"
+ echo "${AVG_TIME}"
 }
 
 # Run benchmarks
@@ -204,7 +204,7 @@ SUCCESS_WITH=0
 echo "Running with optimizations (${NUM_REQUESTS} requests)..."
 START_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
-for ((i = 1; i <= NUM_REQUESTS; i++)); do
+for ((I = 1; I <= NUM_REQUESTS; I++)); do
  TEMP_FILE=$(mktemp)
  if __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1; then
   if [[ -f "${TEMP_FILE}" ]] && [[ -s "${TEMP_FILE}" ]]; then
@@ -234,7 +234,7 @@ SUCCESS_WITHOUT=0
 echo "Running without optimizations (${NUM_REQUESTS} requests)..."
 START_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
-for ((i = 1; i <= NUM_REQUESTS; i++)); do
+for ((I = 1; I <= NUM_REQUESTS; I++)); do
  TEMP_FILE=$(mktemp)
  if __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1; then
   if [[ -f "${TEMP_FILE}" ]] && [[ -s "${TEMP_FILE}" ]]; then
