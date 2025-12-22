@@ -21,29 +21,29 @@ OVERPASS_QUERY="${OVERPASS_QUERY:-[out:json][timeout:10];node(1);out;}"
 # Parse arguments
 while [[ $# -gt 0 ]]; do
  case $1 in
-  --iterations)
-   ITERATIONS="$2"
-   shift 2
-   ;;
-  --output-dir)
-   OUTPUT_DIR="$2"
-   shift 2
-   ;;
-  --help|-h)
-   echo "Usage: $0 [--iterations N] [--output-dir DIR]"
-   echo ""
-   echo "Benchmarks HTTP optimizations (keep-alive, HTTP/2, compression, caching)"
-   echo ""
-   echo "Options:"
-   echo "  --iterations N    Number of iterations per test (default: 5)"
-   echo "  --output-dir DIR  Output directory for results (default: ./benchmark_results)"
-   echo "  --help, -h        Show this help message"
-   exit 0
-   ;;
-  *)
-   echo "Unknown option: $1"
-   exit 1
-   ;;
+ --iterations)
+  ITERATIONS="$2"
+  shift 2
+  ;;
+ --output-dir)
+  OUTPUT_DIR="$2"
+  shift 2
+  ;;
+ --help | -h)
+  echo "Usage: $0 [--iterations N] [--output-dir DIR]"
+  echo ""
+  echo "Benchmarks HTTP optimizations (keep-alive, HTTP/2, compression, caching)"
+  echo ""
+  echo "Options:"
+  echo "  --iterations N    Number of iterations per test (default: 5)"
+  echo "  --output-dir DIR  Output directory for results (default: ./benchmark_results)"
+  echo "  --help, -h        Show this help message"
+  exit 0
+  ;;
+ *)
+  echo "Unknown option: $1"
+  exit 1
+  ;;
  esac
 done
 
@@ -79,9 +79,10 @@ record_metric() {
  local metric_name="$2"
  local value="$3"
  local unit="${4:-}"
- 
+
  local json_entry
- json_entry=$(cat << EOF
+ json_entry=$(
+  cat << EOF
 {
   "test_name": "${test_name}",
   "metric": "${metric_name}",
@@ -91,21 +92,21 @@ record_metric() {
   "version": "${VERSION}"
 }
 EOF
-)
- 
+ )
+
  echo "${json_entry}" >> "${RESULTS_FILE}"
 }
 
 # Function to measure time
 measure_time() {
  local start_time
- start_time=$(date +%s.%N 2>/dev/null || date +%s)
- 
+ start_time=$(date +%s.%N 2> /dev/null || date +%s)
+
  "$@" > /dev/null 2>&1
- 
+
  local end_time
- end_time=$(date +%s.%N 2>/dev/null || date +%s)
- 
+ end_time=$(date +%s.%N 2> /dev/null || date +%s)
+
  if command -v bc > /dev/null 2>&1; then
   echo "${end_time} - ${start_time}" | bc -l
  else
@@ -122,46 +123,46 @@ run_benchmark() {
  # shellcheck disable=SC2034
  local output_file="$5"
  local iterations="${6:-${ITERATIONS}}"
- 
+
  export ENABLE_HTTP_OPTIMIZATIONS="${enable_optimizations}"
  export ENABLE_HTTP_CACHE="${enable_cache}"
- 
+
  local total_time=0
  local success_count=0
  local i
- 
+
  echo "Running ${config_name} (${iterations} iterations)..."
- 
- for ((i=1; i<=iterations; i++)); do
+
+ for ((i = 1; i <= iterations; i++)); do
   local temp_file
   temp_file=$(mktemp)
-  
+
   local duration
   duration=$(measure_time __retry_osm_api "${url}" "${temp_file}" 1 1 30)
-  
+
   if [[ -f "${temp_file}" ]] && [[ -s "${temp_file}" ]]; then
-   total_time=$(echo "${total_time} + ${duration}" | bc -l 2>/dev/null || echo "${total_time}")
+   total_time=$(echo "${total_time} + ${duration}" | bc -l 2> /dev/null || echo "${total_time}")
    success_count=$((success_count + 1))
   fi
-  
+
   rm -f "${temp_file}"
-  
+
   # Small delay between requests
   sleep 0.5
  done
- 
+
  local avg_time=0
  if [[ ${success_count} -gt 0 ]]; then
-  avg_time=$(echo "scale=4; ${total_time} / ${success_count}" | bc -l 2>/dev/null || echo "0")
+  avg_time=$(echo "scale=4; ${total_time} / ${success_count}" | bc -l 2> /dev/null || echo "0")
  fi
- 
+
  record_metric "http_optimizations" "${config_name}_avg_time" "${avg_time}" "seconds"
  record_metric "http_optimizations" "${config_name}_total_time" "${total_time}" "seconds"
  record_metric "http_optimizations" "${config_name}_success_count" "${success_count}" "count"
- 
+
  echo "  Average: ${avg_time}s (${success_count}/${iterations} successful)"
  echo ""
- 
+
  echo "${avg_time}"
 }
 
@@ -179,7 +180,7 @@ WITHOUT_OPT=$(run_benchmark "osm_api_without_optimizations" "false" "false" \
 if command -v bc > /dev/null 2>&1 && [[ -n "${WITHOUT_OPT}" ]] && [[ -n "${WITH_OPT}" ]]; then
  IMPROVEMENT=$(echo "scale=2; (${WITHOUT_OPT} - ${WITH_OPT}) / ${WITHOUT_OPT} * 100" | bc -l)
  record_metric "http_optimizations" "osm_api_improvement_percent" "${IMPROVEMENT}" "percent"
- 
+
  echo "Results:"
  echo "  With optimizations:    ${WITH_OPT}s"
  echo "  Without optimizations: ${WITHOUT_OPT}s"
@@ -201,9 +202,9 @@ TOTAL_WITH=0
 SUCCESS_WITH=0
 
 echo "Running with optimizations (${NUM_REQUESTS} requests)..."
-START_TIME=$(date +%s.%N 2>/dev/null || date +%s)
+START_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
-for ((i=1; i<=NUM_REQUESTS; i++)); do
+for ((i = 1; i <= NUM_REQUESTS; i++)); do
  TEMP_FILE=$(mktemp)
  if __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1; then
   if [[ -f "${TEMP_FILE}" ]] && [[ -s "${TEMP_FILE}" ]]; then
@@ -214,7 +215,7 @@ for ((i=1; i<=NUM_REQUESTS; i++)); do
  sleep 0.2
 done
 
-END_TIME=$(date +%s.%N 2>/dev/null || date +%s)
+END_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 if command -v bc > /dev/null 2>&1; then
  TOTAL_WITH=$(echo "${END_TIME} - ${START_TIME}" | bc -l)
 else
@@ -231,9 +232,9 @@ TOTAL_WITHOUT=0
 SUCCESS_WITHOUT=0
 
 echo "Running without optimizations (${NUM_REQUESTS} requests)..."
-START_TIME=$(date +%s.%N 2>/dev/null || date +%s)
+START_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
-for ((i=1; i<=NUM_REQUESTS; i++)); do
+for ((i = 1; i <= NUM_REQUESTS; i++)); do
  TEMP_FILE=$(mktemp)
  if __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1; then
   if [[ -f "${TEMP_FILE}" ]] && [[ -s "${TEMP_FILE}" ]]; then
@@ -244,7 +245,7 @@ for ((i=1; i<=NUM_REQUESTS; i++)); do
  sleep 0.2
 done
 
-END_TIME=$(date +%s.%N 2>/dev/null || date +%s)
+END_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 if command -v bc > /dev/null 2>&1; then
  TOTAL_WITHOUT=$(echo "${END_TIME} - ${START_TIME}" | bc -l)
 else
@@ -257,7 +258,7 @@ record_metric "http_optimizations" "multiple_requests_without_time" "${TOTAL_WIT
 if command -v bc > /dev/null 2>&1 && [[ -n "${TOTAL_WITHOUT}" ]] && [[ -n "${TOTAL_WITH}" ]]; then
  IMPROVEMENT_MULTI=$(echo "scale=2; (${TOTAL_WITHOUT} - ${TOTAL_WITH}) / ${TOTAL_WITHOUT} * 100" | bc -l)
  record_metric "http_optimizations" "connection_reuse_improvement_percent" "${IMPROVEMENT_MULTI}" "percent"
- 
+
  echo "Results:"
  echo "  With optimizations:    ${TOTAL_WITH}s"
  echo "  Without optimizations: ${TOTAL_WITHOUT}s"
@@ -276,4 +277,3 @@ echo "  cat ${RESULTS_FILE} | jq '.'"
 echo ""
 echo "To compare with previous runs:"
 echo "  diff ${RESULTS_FILE} <previous_file>"
-

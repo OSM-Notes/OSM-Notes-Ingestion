@@ -284,7 +284,7 @@ EOF
  __log_finish
 }
 
- # Create countries_new table for safe updates (new strategy)
+# Create countries_new table for safe updates (new strategy)
 function __createCountryTablesNew {
  __log_start
  __logi "=== CREATING COUNTRIES_NEW TABLE (SAFE UPDATE STRATEGY) ==="
@@ -1002,11 +1002,11 @@ function __swapCountryTables {
  if [[ -f "${SWAP_SQL}" ]]; then
   local SWAP_ERROR_FILE
   SWAP_ERROR_FILE=$(mktemp)
-  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${SWAP_SQL}" > /dev/null 2>"${SWAP_ERROR_FILE}"; then
+  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${SWAP_SQL}" > /dev/null 2> "${SWAP_ERROR_FILE}"; then
    __logi "=== SWAP COMPLETED SUCCESSFULLY ==="
    __logi "countries_new has been swapped to countries"
    __logi "Backup available in countries_old table"
-   rm -f "${SWAP_ERROR_FILE}" 2>/dev/null || true
+   rm -f "${SWAP_ERROR_FILE}" 2> /dev/null || true
    __log_finish
    return 0
   else
@@ -1018,7 +1018,7 @@ function __swapCountryTables {
    else
     __loge "  (No error details available)"
    fi
-   rm -f "${SWAP_ERROR_FILE}" 2>/dev/null || true
+   rm -f "${SWAP_ERROR_FILE}" 2> /dev/null || true
    __log_finish
    return 1
   fi

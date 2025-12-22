@@ -155,7 +155,7 @@ function __retry_file_operation() {
     OUTPUT_FILE_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s>\s+[^ ]+' | awk '{print $2}' | head -1)
     __logd "Extracted output file from >: ${OUTPUT_FILE_CHECK}"
    fi
-   
+
    # If we found an output file, verify it exists and has content
    if [[ -n "${OUTPUT_FILE_CHECK}" ]]; then
     # Expand variables in file path (e.g., ${TMP_DIR}/file.txt)
@@ -163,16 +163,16 @@ function __retry_file_operation() {
     if [[ -n "${OUTPUT_DIR_CHECK}" ]]; then
      # For aria2c with -d and -o, combine directory and file
      local EXPANDED_DIR
-     EXPANDED_DIR=$(eval echo "${OUTPUT_DIR_CHECK}" 2>/dev/null || echo "${OUTPUT_DIR_CHECK}")
+     EXPANDED_DIR=$(eval echo "${OUTPUT_DIR_CHECK}" 2> /dev/null || echo "${OUTPUT_DIR_CHECK}")
      local EXPANDED_FILE
-     EXPANDED_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2>/dev/null || echo "${OUTPUT_FILE_CHECK}")
+     EXPANDED_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2> /dev/null || echo "${OUTPUT_FILE_CHECK}")
      EXPANDED_OUTPUT_FILE="${EXPANDED_DIR}/${EXPANDED_FILE}"
      __logd "Combined output file path (aria2c -d -o): ${EXPANDED_OUTPUT_FILE}"
     else
-     EXPANDED_OUTPUT_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2>/dev/null || echo "${OUTPUT_FILE_CHECK}")
+     EXPANDED_OUTPUT_FILE=$(eval echo "${OUTPUT_FILE_CHECK}" 2> /dev/null || echo "${OUTPUT_FILE_CHECK}")
      __logd "Expanded output file path: ${EXPANDED_OUTPUT_FILE}"
     fi
-    
+
     if [[ ! -f "${EXPANDED_OUTPUT_FILE}" ]]; then
      __logw "File operation reported success but output file does not exist: ${EXPANDED_OUTPUT_FILE}"
      # Continue to retry
@@ -182,7 +182,7 @@ function __retry_file_operation() {
     else
      # File exists and has content - operation truly succeeded
      local FILE_SIZE
-     FILE_SIZE=$(ls -lh "${EXPANDED_OUTPUT_FILE}" 2>/dev/null | awk '{print $5}' || echo "unknown")
+     FILE_SIZE=$(ls -lh "${EXPANDED_OUTPUT_FILE}" 2> /dev/null | awk '{print $5}' || echo "unknown")
      __logd "File operation succeeded on attempt $((RETRY_COUNT + 1)) (file verified: ${EXPANDED_OUTPUT_FILE}, size: ${FILE_SIZE})"
      if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
       __release_download_slot > /dev/null 2>&1 || true
@@ -2056,7 +2056,7 @@ function __downloadPlanetNotes {
  else
   __loge "ERROR: Downloaded file not found at expected location: ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2"
   __loge "DEBUG: Listing files in TMP_DIR:"
-  ls -lh "${TMP_DIR}"/*.bz2 2>/dev/null | while IFS= read -r line; do
+  ls -lh "${TMP_DIR}"/*.bz2 2> /dev/null | while IFS= read -r line; do
    __loge "  ${line}"
   done || __loge "  (no .bz2 files found)"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Downloaded file not found" \
@@ -2107,8 +2107,8 @@ function __downloadPlanetNotes {
 
  # Log file details for debugging
  __logi "BZIP2 file exists: ${BZIP2_FILE}"
- __logi "BZIP2 file size: $(stat -c%s "${BZIP2_FILE}" 2>/dev/null || echo "unknown") bytes"
- __logi "BZIP2 file type: $(file "${BZIP2_FILE}" 2>/dev/null || echo "unknown")"
+ __logi "BZIP2 file size: $(stat -c%s "${BZIP2_FILE}" 2> /dev/null || echo "unknown") bytes"
+ __logi "BZIP2 file type: $(file "${BZIP2_FILE}" 2> /dev/null || echo "unknown")"
 
  # Execute bzip2 extraction
  # Use set +e to prevent script exit on bzip2 errors

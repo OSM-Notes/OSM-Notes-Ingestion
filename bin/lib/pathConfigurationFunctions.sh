@@ -16,8 +16,8 @@ function __is_installed() {
  local INSTALLED_TMP_DIR="${2:-/var/tmp/osm-notes-ingestion}"
 
  # Check if directories exist and are writable
- if [[ -d "${INSTALLED_LOG_DIR}" ]] && [[ -w "${INSTALLED_LOG_DIR}" ]] &&
-    [[ -d "${INSTALLED_TMP_DIR}" ]] && [[ -w "${INSTALLED_TMP_DIR}" ]]; then
+ if [[ -d "${INSTALLED_LOG_DIR}" ]] && [[ -w "${INSTALLED_LOG_DIR}" ]] \
+  && [[ -d "${INSTALLED_TMP_DIR}" ]] && [[ -w "${INSTALLED_TMP_DIR}" ]]; then
   return 0
  fi
  return 1
@@ -58,8 +58,8 @@ function __init_log_dir() {
  local SCRIPT_TYPE="processing"
  if [[ "${BASENAME_VALUE}" == *"Daemon"* ]] || [[ "${BASENAME_VALUE}" == *"daemon"* ]]; then
   SCRIPT_TYPE="daemon"
- elif [[ "${BASENAME_VALUE}" == *"Monitor"* ]] || [[ "${BASENAME_VALUE}" == *"monitor"* ]] ||
-     [[ "${BASENAME_VALUE}" == *"Check"* ]] || [[ "${BASENAME_VALUE}" == *"check"* ]]; then
+ elif [[ "${BASENAME_VALUE}" == *"Monitor"* ]] || [[ "${BASENAME_VALUE}" == *"monitor"* ]] \
+  || [[ "${BASENAME_VALUE}" == *"Check"* ]] || [[ "${BASENAME_VALUE}" == *"check"* ]]; then
   SCRIPT_TYPE="monitoring"
  fi
 
@@ -109,8 +109,8 @@ function __init_tmp_dir() {
 
  # Create unique temporary directory for this execution
  local TMP_DIR
- TMP_DIR=$(mktemp -d "${BASE_TMP_DIR}/${BASENAME_VALUE}_XXXXXX" 2> /dev/null || \
-           mktemp -d "/tmp/${BASENAME_VALUE}_XXXXXX")
+ TMP_DIR=$(mktemp -d "${BASE_TMP_DIR}/${BASENAME_VALUE}_XXXXXX" 2> /dev/null \
+  || mktemp -d "/tmp/${BASENAME_VALUE}_XXXXXX")
  chmod 777 "${TMP_DIR}" 2> /dev/null || true
 
  echo "${TMP_DIR}"

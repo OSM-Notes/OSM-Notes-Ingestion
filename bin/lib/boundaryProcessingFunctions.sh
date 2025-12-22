@@ -2390,7 +2390,7 @@ function __processCountries_impl {
   __log_finish
   return "${HANDLER_RETURN_CODE}"
  fi
- 
+
  # Validate it's not HTML (Overpass may return HTML error pages)
  if head -5 "${COUNTRIES_BOUNDARY_IDS_FILE}" | grep -qiE "<html|<body|<head|<!DOCTYPE"; then
   __loge "ERROR: Country list file contains HTML instead of CSV. Overpass returned an error page."
@@ -2409,7 +2409,7 @@ function __processCountries_impl {
   __log_finish
   return "${HANDLER_RETURN_CODE}"
  fi
- 
+
  # Validate it's CSV format (should start with @id or have at least one line with numbers)
  if ! head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}" | grep -qE "^@id|^[0-9]+"; then
   __loge "ERROR: Country list file is not in expected CSV format"
