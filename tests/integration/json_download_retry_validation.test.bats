@@ -24,6 +24,16 @@ setup() {
  # Load required functions
  __load_validation_functions
 
+ # Load functionsProcess.sh to get __retry_file_operation
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
+ fi
+
+ # Load noteProcessingFunctions.sh for download queue functions (needed by __retry_file_operation with smart_wait)
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" > /dev/null 2>&1 || true
+ fi
+
  # Check if jq is available
  if ! command -v jq > /dev/null 2>&1; then
   skip "jq not available - required for JSON validation tests"
@@ -453,15 +463,16 @@ out;
 EOF
 
  # Use __retry_file_operation for download
+ # Note: Using smart_wait=false to avoid dependency on download queue functions in test environment
  local OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
- run __retry_file_operation "${OPERATION}" 3 2 "" "true"
+ run __retry_file_operation "${OPERATION}" 3 2 "" "false"
 
- if [ "${status}" -eq 0 ] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then
+ if [[ "${status}" -eq 0 ]] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then
   # Then validate
   run __validate_json_with_element "${JSON_FILE}" "elements"
   [[ "${status}" -eq 0 ]]
  else
-  skip "Download failed - may be rate limited"
+  skip "Download failed - may be rate limited or network issue"
  fi
 }
 
