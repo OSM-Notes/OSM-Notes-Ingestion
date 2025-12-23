@@ -2,7 +2,8 @@
 
 # Parallel processing validation tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-01
+# Version: 2025-12-22
+# Optimized: Consolidated function existence checks (2025-01-23)
 
 setup() {
  # Setup test environment
@@ -28,31 +29,30 @@ teardown() {
  rm -rf "${TMP_DIR}"
 }
 
-# Test that parallel processing functions are available
+# Test that parallel processing functions are available (consolidated)
 @test "parallel processing functions should be available" {
- # Test that __processCountries function exists
+ # Source functions once for all checks
  run bash -c "
    source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-   declare -f __processCountries > /dev/null && echo 'Function exists'
+   
+   # Check parallel processing functions
+   declare -f __processCountries > /dev/null && echo 'OK: __processCountries' || echo 'FAIL: __processCountries'
+   declare -f __processList > /dev/null && echo 'OK: __processList' || echo 'FAIL: __processList'
+   declare -f __processBoundary > /dev/null && echo 'OK: __processBoundary' || echo 'FAIL: __processBoundary'
+   
+   # Check network and retry functions (consolidated from separate tests)
+   declare -f __check_network_connectivity > /dev/null && echo 'OK: __check_network_connectivity' || echo 'FAIL: __check_network_connectivity'
+   declare -f __retry_file_operation > /dev/null && echo 'OK: __retry_file_operation' || echo 'FAIL: __retry_file_operation'
+   
+   # Check error handling functions (consolidated from separate tests)
+   declare -f __handle_error_with_cleanup > /dev/null && echo 'OK: __handle_error_with_cleanup' || echo 'FAIL: __handle_error_with_cleanup'
  "
  [ "$status" -eq 0 ]
- [[ "$output" == *"Function exists"* ]]
  
- # Test that __processList function exists
- run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-   declare -f __processList > /dev/null && echo 'Function exists'
- "
- [ "$status" -eq 0 ]
- [[ "$output" == *"Function exists"* ]]
- 
- # Test that __processBoundary function exists
- run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-   declare -f __processBoundary > /dev/null && echo 'Function exists'
- "
- [ "$status" -eq 0 ]
- [[ "$output" == *"Function exists"* ]]
+ # Verify all functions exist (all should start with "OK:")
+ local ok_count
+ ok_count=$(echo "$output" | grep -c "^OK:")
+ [[ "${ok_count}" -eq 6 ]]
 }
 
 # Test that parallel processing handles job failures correctly
@@ -83,38 +83,10 @@ EOF
  [ "$status" -eq 0 ]
 }
 
-# Test that network connectivity check works
-@test "network connectivity check should work" {
- # Test that __check_network_connectivity function exists
- run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-   declare -f __check_network_connectivity > /dev/null && echo 'Function exists'
- "
- [ "$status" -eq 0 ]
- [[ "$output" == *"Function exists"* ]]
-}
-
-# Test that retry logic works correctly
-@test "retry logic should work correctly" {
- # Test that __retry_file_operation function exists
- run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-   declare -f __retry_file_operation > /dev/null && echo 'Function exists'
- "
- [ "$status" -eq 0 ]
- [[ "$output" == *"Function exists"* ]]
-}
-
-# Test that error handling functions work correctly
-@test "error handling functions should work correctly" {
- # Test that __handle_error_with_cleanup function exists
- run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-   declare -f __handle_error_with_cleanup > /dev/null && echo 'Function exists'
- "
- [ "$status" -eq 0 ]
- [[ "$output" == *"Function exists"* ]]
-}
+# Note: Tests "network connectivity check should work", "retry logic should work correctly",
+# and "error handling functions should work correctly" consolidated into
+# "parallel processing functions should be available" test below for optimization (2025-01-23).
+# These tests only verified function existence, which is now done in a single consolidated test.
 
 # Test that Overpass API error handling works
 @test "Overpass API error handling should work" {
