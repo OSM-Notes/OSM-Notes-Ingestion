@@ -62,9 +62,14 @@ if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
   unset RESTART_MESSAGE
  fi
  export RUNNING_IN_SETSID=1
+ # Ensure PATH is exported before re-execution (critical for hybrid mock mode)
+ # This is especially important in hybrid mock mode where PATH contains mock commands
+ export PATH="${PATH}"
  # Get the script name and all arguments
  SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
  # Re-execute with setsid to create new session (immune to SIGHUP)
+ # setsid preserves environment variables, but we explicitly export PATH to ensure
+ # mock commands in hybrid mode are available after re-execution
  exec setsid -w "${SCRIPT_PATH}" "$@"
 fi
 

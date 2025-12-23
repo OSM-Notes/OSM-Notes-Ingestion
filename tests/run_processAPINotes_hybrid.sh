@@ -894,12 +894,8 @@ run_processAPINotes() {
  # Export PATH to ensure child processes inherit it
  export PATH
 
- # Export bzip2 path as a fallback (some scripts may check this)
- local current_bzip2
- current_bzip2=$(command -v bzip2 2> /dev/null || true)
- if [[ -n "${current_bzip2}" ]]; then
-  export BZIP2="${current_bzip2}"
- fi
+ # Don't export BZIP2 - it conflicts with BZIP2_FILE variable used in functionsProcess.sh
+ # The bzip2 command will be found via PATH
 
  # Export MOCK_NOTES_COUNT so curl mock can use it (if needed)
  if [[ -n "${MOCK_NOTES_COUNT:-}" ]]; then
@@ -955,7 +951,32 @@ run_processAPINotes() {
  log_info "HYBRID_MOCK_DIR: ${HYBRID_MOCK_DIR:-not set}"
  log_info "MOCK_COMMANDS_DIR: ${MOCK_COMMANDS_DIR:-not set}"
  log_info "All hybrid mock environment variables exported for child processes"
- "${process_script}"
+ 
+ # Capture both stdout and stderr to a temporary file to see errors
+ local error_log="/tmp/processAPINotes_hybrid_error_$$.log"
+ # Ensure RUNNING_IN_SETSID is exported to prevent re-execution
+ export RUNNING_IN_SETSID=1
+ local script_exit_code=0
+ # Use script command to capture all output including early failures
+ # The -q flag makes script quiet (no script started/ended messages)
+ # -c executes the command and exits
+ # This ensures we capture output even if script fails very early
+ script -q -c "${process_script}" "${error_log}" 2>&1 || script_exit_code=$?
+ 
+ if [[ ${script_exit_code} -ne 0 ]]; then
+  log_error "Script failed with exit code: ${script_exit_code}"
+  log_error "Full output (last 200 lines):"
+  if [[ -s "${error_log}" ]]; then
+   sed -n '$(( $(wc -l < "${error_log}" 2>/dev/null || echo 0) - 199 )),$p' "${error_log}" 2>/dev/null | head -200 | while IFS= read -r line || true; do
+    log_error "  ${line}"
+   done
+  else
+   log_error "  Error log file is empty - script failed before writing any output"
+  fi
+  rm -f "${error_log}"
+  return ${script_exit_code}
+ fi
+ rm -f "${error_log}"
 
  local exit_code=$?
  if [[ ${exit_code} -eq 0 ]]; then

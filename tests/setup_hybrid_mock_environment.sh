@@ -51,7 +51,6 @@ fi
 # Cache file to track if mocks are up-to-date
 MOCK_CACHE_FILE="${MOCK_COMMANDS_DIR}/.mock_cache_version"
 readonly MOCK_CACHE_FILE
-CURRENT_MOCK_VERSION="2025-12-21-curl-mock-zero-notes-fix"
 readonly CURRENT_MOCK_VERSION="2025-01-23-example-com-support"
 
 # Function to check if mock commands need to be regenerated
