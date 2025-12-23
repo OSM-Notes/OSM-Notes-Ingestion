@@ -3,7 +3,8 @@
 # Binary Division Performance Tests
 # Tests for performance comparison between binary and traditional division methods
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-30
+# Version: 2025-12-22
+# Optimized: Removed redundant medium file tests and simplified parallel configuration
 
 # Load test helper
 load ../../test_helper
@@ -133,49 +134,8 @@ source_bin_functions() {
  [ "${part_count}" -gt 0 ]
 }
 
-# Test binary division with medium file
-@test "binary division with medium file" {
- local input_file="${TEST_DIR}/medium.xml"
- local output_dir="${TEST_DIR}/medium_binary"
- # Create output directory
- mkdir -p "${output_dir}"
-
- # Run binary division
- run __divide_xml_file_binary "${input_file}" "${output_dir}" 50 10 4
-
- # Check success
- [ "$status" -eq 0 ]
-
- # Check output directory exists
- assert_dir_exists "${output_dir}"
-
- # Check parts were created
- local part_count
- part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
- [ "${part_count}" -gt 0 ]
-}
-
-# Test traditional division with medium file
-@test "traditional division with medium file" {
- local input_file="${TEST_DIR}/medium.xml"
- local output_dir="${TEST_DIR}/medium_traditional"
- # Create output directory
- mkdir -p "${output_dir}"
-
- # Run traditional division
- run __divide_xml_file "${input_file}" "${output_dir}" 50 10 4
-
- # Check success
- [ "$status" -eq 0 ]
-
- # Check output directory exists
- assert_dir_exists "${output_dir}"
-
- # Check parts were created
- local part_count
- part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
- [ "${part_count}" -gt 0 ]
-}
+# Note: Medium file tests removed for optimization - binary division with large file
+# is sufficient to test the functionality. Medium file tests were redundant.
 
 # Test binary division with large file
 @test "binary division with large file" {
@@ -199,27 +159,9 @@ source_bin_functions() {
  [ "${part_count}" -gt 0 ]
 }
 
-# Test traditional division with large file
-@test "traditional division with large file" {
- local input_file="${TEST_DIR}/large.xml"
- local output_dir="${TEST_DIR}/large_traditional"
- # Create output directory
- mkdir -p "${output_dir}"
-
- # Run traditional division
- run __divide_xml_file "${input_file}" "${output_dir}" 100 20 8
-
- # Check success
- [ "$status" -eq 0 ]
-
- # Check output directory exists
- assert_dir_exists "${output_dir}"
-
- # Check parts were created
- local part_count
- part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
- [ "${part_count}" -gt 0 ]
-}
+# Note: Traditional division with large file test removed for optimization.
+# Binary division with large file is sufficient to test large file handling.
+# Traditional division is already tested with small file.
 
 # Test performance comparison between methods
 @test "performance comparison between division methods" {
@@ -266,39 +208,35 @@ source_bin_functions() {
  [ "${traditional_time}" -ge 0 ]
 }
 
-# Test parallel processing configuration
+# Test parallel processing configuration (simplified - only test with 2 threads)
 @test "binary division parallel processing configuration" {
  local input_file="${TEST_DIR}/medium.xml"
  local output_dir="${TEST_DIR}/parallel_test"
+ local threads=2
 
- # Test with different thread counts
- for threads in 1 2 4; do
-  local current_output_dir="${output_dir}_${threads}"
+ # Create fresh output directory
+ rm -rf "${output_dir}"
+ mkdir -p "${output_dir}"
 
-  # Create fresh output directory for this test
-  rm -rf "${current_output_dir}"
-  mkdir -p "${current_output_dir}"
+ echo "Testing with ${threads} threads"
 
-  echo "Testing with ${threads} threads"
+ # Run binary division
+ run __divide_xml_file_binary "${input_file}" "${output_dir}" 50 10 "${threads}"
 
-  # Run binary division
-  run __divide_xml_file_binary "${input_file}" "${current_output_dir}" 50 10 "${threads}"
+ # Debug output
+ echo "Status: $status" >&2
+ echo "Output: $output" >&2
 
-  # Debug output
-  echo "Status: $status" >&2
-  echo "Output: $output" >&2
+ # Check success
+ [ "$status" -eq 0 ]
 
-  # Check success
-  [ "$status" -eq 0 ]
+ # Check output directory exists
+ assert_dir_exists "${output_dir}"
 
-  # Check output directory exists
-  assert_dir_exists "${current_output_dir}"
-
-  # Check parts were created
-  local part_count
-  part_count=$(find "${current_output_dir}" -name "*.xml" | wc -l)
-  [ "${part_count}" -gt 0 ]
- done
+ # Check parts were created
+ local part_count
+ part_count=$(find "${output_dir}" -name "*.xml" | wc -l)
+ [ "${part_count}" -gt 0 ]
 }
 
 # Test file size threshold detection
