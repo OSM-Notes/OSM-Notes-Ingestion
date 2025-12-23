@@ -30,8 +30,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
-VERSION="2025-12-07"
+# Version: 2025-12-22
+VERSION="2025-12-22"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -143,6 +143,8 @@ declare -r POSTGRES_21_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor
 declare -r POSTGRES_51_INSERT_MISSING_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_51_insertMissingNotes.sql"
 declare -r POSTGRES_52_INSERT_MISSING_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_52_insertMissingComments.sql"
 declare -r POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_53_insertMissingTextComments.sql"
+ declare -r POSTGRES_54_MARK_MISSING_NOTES_AS_HIDDEN=\
+"${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_54_markMissingNotesAsHidden.sql"
 
 ###########
 # FUNCTIONS
@@ -159,8 +161,9 @@ function __show_help {
  echo "better around 0h UTC, when the Planet file is published and the"
  echo "difference with the API calls are less."
  echo ""
- echo "After identifying differences, this script automatically inserts"
- echo "missing data from Planet into the main database tables."
+ echo "After identifying differences, this script automatically:"
+ echo "  - Inserts missing data from Planet into the main database tables"
+ echo "  - Marks notes as hidden that exist in system but not in Planet"
  echo
  echo "If the script returns a lot of old differences, it is because the"
  echo "API calls script failed. In this case, the best is to recreate the"
@@ -201,6 +204,7 @@ function __checkPrereqs {
   "${POSTGRES_51_INSERT_MISSING_NOTES}"
   "${POSTGRES_52_INSERT_MISSING_COMMENTS}"
   "${POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS}"
+  "${POSTGRES_54_MARK_MISSING_NOTES_AS_HIDDEN}"
  )
 
  for SQL_FILE in "${SQL_FILES[@]}"; do
@@ -256,6 +260,7 @@ function __checkingDifferences {
  DIFFERENT_NOTES_FILE=/tmp/differentNotes.csv
  DIFFERENT_TEXT_COMMENTS_FILE=/tmp/differentTextComments.csv
  DIFFERENCES_TEXT_COMMENT=/tmp/textComments.csv
+ NOTES_IN_MAIN_NOT_IN_CHECK_FILE=/tmp/notesInMainNotInCheck.csv
 
  export LAST_NOTE
  export LAST_COMMENT
@@ -264,6 +269,7 @@ function __checkingDifferences {
  export DIFFERENT_NOTES_FILE
  export DIFFERENT_TEXT_COMMENTS_FILE
  export DIFFERENCES_TEXT_COMMENT
+ export NOTES_IN_MAIN_NOT_IN_CHECK_FILE
 
  # Convert COPY TO to \copy for client-side execution (avoids server permission issues)
  # \copy executes on the client side, so it can write files with user permissions
@@ -273,7 +279,8 @@ function __checkingDifferences {
  TEMP_SQL_FILE=$(mktemp)
 
  # Substitute variables first
- envsubst '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIFFERENT_NOTES_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT' \
+ envsubst \
+'$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIFFERENT_NOTES_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT,$NOTES_IN_MAIN_NOT_IN_CHECK_FILE' \
   < "${SQL_REPORT}" > "${TEMP_SQL_FILE}.tmp" || true
 
  # Convert COPY ... TO to \copy ... TO
@@ -345,7 +352,8 @@ function __checkingDifferences {
   || [[ ! -r "${DIFFERENT_NOTES_FILE}" ]] \
   || [[ ! -r "${DIFFERENT_TEXT_COMMENTS_FILE}" ]] \
   || [[ ! -r "${LAST_NOTE}" ]] \
-  || [[ ! -r "${LAST_COMMENT}" ]]; then
+  || [[ ! -r "${LAST_COMMENT}" ]] \
+  || [[ ! -r "${NOTES_IN_MAIN_NOT_IN_CHECK_FILE}" ]]; then
   __loge "Difference files were not created."
   exit "${ERROR_CREATING_REPORT}"
  fi
@@ -373,6 +381,9 @@ function __checkingDifferences {
  if [[ -f "${DIFFERENT_TEXT_COMMENTS_FILE}" ]]; then
   FILES_TO_ZIP+=("${DIFFERENT_TEXT_COMMENTS_FILE}")
  fi
+ if [[ -f "${NOTES_IN_MAIN_NOT_IN_CHECK_FILE}" ]]; then
+  FILES_TO_ZIP+=("${NOTES_IN_MAIN_NOT_IN_CHECK_FILE}")
+ fi
 
  # Only create zip if there are files to zip
  if [[ ${#FILES_TO_ZIP[@]} -gt 0 ]]; then
@@ -395,17 +406,24 @@ function __sendMail {
  QTY_NOTES=$(tail -n +2 "${DIFFERENT_NOTE_IDS_FILE}" | wc -l | cut -f 1 -d' ')
  QTY_COMMENTS=$(tail -n +2 "${DIFFERENT_COMMENT_IDS_FILE}" | wc -l | cut -f 1 -d' ')
  QTY_TEXT_COMMENTS=$(tail -n +2 "${DIFFERENT_TEXT_COMMENTS_FILE}" | wc -l | cut -f 1 -d' ')
+ QTY_NOTES_IN_MAIN_NOT_IN_CHECK=$(tail -n +2 \
+  "${NOTES_IN_MAIN_NOT_IN_CHECK_FILE}" 2> /dev/null | wc -l | cut -f 1 -d' ' \
+  || echo "0")
 
- if [[ "${QTY_NOTES}" -ne 0 ]] || [[ "${QTY_COMMENTS}" -ne 0 ]] || [[ "${QTY_TEXT_COMMENTS}" -ne 0 ]]; then
+ if [[ "${QTY_NOTES}" -ne 0 ]] || [[ "${QTY_COMMENTS}" -ne 0 ]] \
+  || [[ "${QTY_TEXT_COMMENTS}" -ne 0 ]] \
+  || [[ "${QTY_NOTES_IN_MAIN_NOT_IN_CHECK}" -ne 0 ]]; then
   __logi "Sending mail."
   {
    echo "These are the differences between the Planet file and the API calls"
    echo "for OSM notes profile."
    echo
    echo "Summary of differences:"
-   echo "- Missing notes: ${QTY_NOTES}"
+   echo "- Missing notes (in Planet, not in API): ${QTY_NOTES}"
    echo "- Missing comments: ${QTY_COMMENTS}"
    echo "- Missing text comments: ${QTY_TEXT_COMMENTS}"
+   echo "- Notes in system but not in Planet (marked as hidden):" \
+    "${QTY_NOTES_IN_MAIN_NOT_IN_CHECK}"
    echo
    echo "Latest note information:"
    cat "${LAST_NOTE}"
@@ -482,6 +500,40 @@ function __insertMissingData {
  fi
 
  __logi "Missing data insertion completed successfully"
+ __log_finish
+}
+
+# Marks notes as hidden that exist in main table but not in check table.
+# These are notes that were created before the initial planet dump used to
+# populate the database, and were later hidden by the Data Working Group.
+function __markMissingNotesAsHidden {
+ __log_start
+ local QTY_NOTES_IN_MAIN_NOT_IN_CHECK
+
+ # Check if there are notes in main but not in check
+ QTY_NOTES_IN_MAIN_NOT_IN_CHECK=$(tail -n +2 \
+  "${NOTES_IN_MAIN_NOT_IN_CHECK_FILE}" 2> /dev/null | wc -l | cut -f 1 -d' ' \
+  || echo "0")
+
+ if [[ "${QTY_NOTES_IN_MAIN_NOT_IN_CHECK}" -eq 0 ]]; then
+  __logi \
+"No notes found in system that are missing from planet. Nothing to mark."
+  __log_finish
+  return 0
+ fi
+
+ __logi \
+"Found ${QTY_NOTES_IN_MAIN_NOT_IN_CHECK} notes in system not in planet. Marking as hidden..."
+
+ # Mark missing notes as hidden
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_54_MARK_MISSING_NOTES_AS_HIDDEN}" 2>&1; then
+  __loge "ERROR: Failed to mark missing notes as hidden"
+  __log_finish
+  return 1
+ fi
+
+ __logi "Missing notes marked as hidden completed successfully"
  __log_finish
 }
 
@@ -582,6 +634,7 @@ EOF
  __downloadingPlanet
  __checkingDifferences
  __insertMissingData
+ __markMissingNotesAsHidden
  __sendMail
  __cleanFiles
  __logw "Process finished."

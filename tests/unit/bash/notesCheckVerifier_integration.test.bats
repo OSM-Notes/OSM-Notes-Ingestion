@@ -91,6 +91,8 @@ teardown() {
   "__checkPrereqs"
   "__downloadingPlanet"
   "__checkingDifferences"
+  "__insertMissingData"
+  "__markMissingNotesAsHidden"
   "__sendMail"
   "__cleanFiles"
  )
@@ -147,6 +149,7 @@ teardown() {
 @test "notesCheckVerifier SQL files should be valid" {
  local SQL_FILES=(
   "sql/monitor/notesCheckVerifier-report.sql"
+  "sql/monitor/notesCheckVerifier_54_markMissingNotesAsHidden.sql"
  )
 
  for SQL_FILE in "${SQL_FILES[@]}"; do
@@ -176,6 +179,8 @@ teardown() {
  local VERIFICATION_FUNCTIONS=(
   "__checkingDifferences"
   "__downloadingPlanet"
+  "__insertMissingData"
+  "__markMissingNotesAsHidden"
   "__sendMail"
  )
 
@@ -223,4 +228,123 @@ teardown() {
   run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1; declare -f ${FUNC}"
   [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 241 ]] || echo "Function ${FUNC} should be available"
  done
+}
+
+# Test that markMissingNotesAsHidden SQL script works correctly
+@test "notesCheckVerifier_54_markMissingNotesAsHidden.sql should mark notes as hidden correctly" {
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+ [[ "${status}" -eq 0 ]] || skip "Cannot create test database"
+
+ # Create enum types and tables
+ psql -d "${TEST_DBNAME}" << 'SQL'
+  DO $$ 
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+      CREATE TYPE note_status_enum AS ENUM ('open', 'close', 'hidden');
+    END IF;
+  END $$;
+  
+  CREATE TABLE IF NOT EXISTS notes (
+    note_id INTEGER NOT NULL PRIMARY KEY,
+    latitude DECIMAL NOT NULL,
+    longitude DECIMAL NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    status note_status_enum,
+    closed_at TIMESTAMP,
+    id_country INTEGER,
+    insert_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+  
+  CREATE TABLE IF NOT EXISTS notes_check (
+    note_id INTEGER NOT NULL,
+    latitude DECIMAL NOT NULL,
+    longitude DECIMAL NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    status note_status_enum,
+    closed_at TIMESTAMP,
+    id_country INTEGER
+  );
+SQL
+
+ # Insert test data: notes that are in main but not in check
+ # Note 1: should be marked as hidden (in main, not in check, status='open')
+ # Note 2: should be marked as hidden (in main, not in check, status='close')
+ # Note 3: should NOT be marked (already hidden)
+ # Note 4: should NOT be marked (exists in both tables)
+ # Note 5: should NOT be marked (created today, should be excluded)
+ 
+ # Use SQL to calculate dates for better compatibility
+ psql -d "${TEST_DBNAME}" <<SQL
+  DO \$\$
+  DECLARE
+    v_yesterday DATE;
+    v_today DATE;
+  BEGIN
+    v_today := CURRENT_DATE;
+    v_yesterday := CURRENT_DATE - INTERVAL '1 day';
+    
+    -- Note 1: Open note not in check (should be marked as hidden)
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, closed_at)
+    VALUES (1, 40.0, -74.0, v_yesterday + INTERVAL '10 hours', 'open', NULL);
+    
+    -- Note 2: Closed note not in check (should be marked as hidden)
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, closed_at)
+    VALUES (2, 41.0, -75.0, v_yesterday + INTERVAL '11 hours', 'close', v_yesterday + INTERVAL '12 hours');
+    
+    -- Note 3: Already hidden note not in check (should NOT be marked again)
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, closed_at)
+    VALUES (3, 42.0, -76.0, v_yesterday + INTERVAL '13 hours', 'hidden', v_yesterday + INTERVAL '14 hours');
+    
+    -- Note 4: Note that exists in both tables (should NOT be marked)
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, closed_at)
+    VALUES (4, 43.0, -77.0, v_yesterday + INTERVAL '15 hours', 'open', NULL);
+    
+    INSERT INTO notes_check (note_id, latitude, longitude, created_at, status, closed_at)
+    VALUES (4, 43.0, -77.0, v_yesterday + INTERVAL '15 hours', 'open', NULL);
+    
+    -- Note 5: Note created today (should NOT be marked, excluded from processing)
+    INSERT INTO notes (note_id, latitude, longitude, created_at, status, closed_at)
+    VALUES (5, 44.0, -78.0, v_today + INTERVAL '10 hours', 'open', NULL);
+  END \$\$;
+SQL
+
+
+ # Execute the SQL script
+ run psql -d "${TEST_DBNAME}" -f \
+  "${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_54_markMissingNotesAsHidden.sql"
+ [[ "${status}" -eq 0 ]]
+
+ # Verify results
+ # Note 1 should now be hidden
+ local note1_status
+ note1_status=$(psql -d "${TEST_DBNAME}" -tAc "SELECT status FROM notes WHERE note_id = 1;")
+ [[ "${note1_status}" == "hidden" ]]
+
+ # Note 2 should now be hidden
+ local note2_status
+ note2_status=$(psql -d "${TEST_DBNAME}" -tAc "SELECT status FROM notes WHERE note_id = 2;")
+ [[ "${note2_status}" == "hidden" ]]
+
+ # Note 3 should remain hidden (already was)
+ local note3_status
+ note3_status=$(psql -d "${TEST_DBNAME}" -tAc "SELECT status FROM notes WHERE note_id = 3;")
+ [[ "${note3_status}" == "hidden" ]]
+
+ # Note 4 should remain open (exists in check table)
+ local note4_status
+ note4_status=$(psql -d "${TEST_DBNAME}" -tAc "SELECT status FROM notes WHERE note_id = 4;")
+ [[ "${note4_status}" == "open" ]]
+
+ # Note 5 should remain open (created today, excluded)
+ local note5_status
+ note5_status=$(psql -d "${TEST_DBNAME}" -tAc "SELECT status FROM notes WHERE note_id = 5;")
+ [[ "${note5_status}" == "open" ]]
+
+ # Verify closed_at was set for notes that were marked as hidden
+ local note1_closed_at
+ note1_closed_at=$(psql -d "${TEST_DBNAME}" -tAc \
+  "SELECT closed_at IS NOT NULL FROM notes WHERE note_id = 1;")
+ [[ "${note1_closed_at}" == "t" ]]
 }

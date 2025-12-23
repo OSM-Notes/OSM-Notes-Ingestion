@@ -1,7 +1,7 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-10-21
+-- Version: 2025-01-23
 
 -- Shows the information of the latest note, which should be recent.
 COPY
@@ -203,6 +203,46 @@ TO '${DIFFERENT_TEXT_COMMENTS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
 DROP TABLE IF EXISTS temp_diff_text_comments;
+
+-- Note ids that are in the API DB but NOT in the Planet.
+-- These are notes that were created before the initial planet dump used to
+-- populate the database, and were later hidden. Since hidden notes don't
+-- appear in planet dumps, they exist in our system but not in the planet.
+-- Compare all historical data (excluding today) between API and Planet
+DROP TABLE IF EXISTS temp_notes_in_main_not_in_check;
+
+CREATE TABLE temp_notes_in_main_not_in_check (
+ note_id INTEGER
+);
+COMMENT ON TABLE temp_notes_in_main_not_in_check IS
+  'Temporal table for notes that exist in main table but not in check table';
+COMMENT ON COLUMN temp_notes_in_main_not_in_check.note_id IS 'OSM note id';
+
+INSERT INTO temp_notes_in_main_not_in_check
+ SELECT /* Notes-check */ note_id
+ FROM notes
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+ EXCEPT
+ SELECT /* Notes-check */ note_id
+ FROM notes_check
+ WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+;
+
+-- Notes that are in main table but not in check table
+COPY
+ (
+  SELECT /* Notes-check */ notes.*
+  FROM notes
+  WHERE note_id IN (
+   SELECT /* Notes-check */ note_id
+   FROM temp_notes_in_main_not_in_check
+  )
+  ORDER BY note_id, created_at
+ )
+ TO '${NOTES_IN_MAIN_NOT_IN_CHECK_FILE}' WITH DELIMITER ',' CSV HEADER
+;
+
+DROP TABLE IF EXISTS temp_notes_in_main_not_in_check;
 
 -- Differences between comments and text
 COPY (
