@@ -130,7 +130,7 @@ Se han realizado cambios significativos en el daemon (`processAPINotesDaemon.sh`
 | Archivo | Cobertura | Estado |
 |---------|----------|--------|
 | `tests/unit/bash/processAPINotesDaemon_sleep_logic.test.bats` | Lógica de sleep | ✅ Completo |
-| `tests/unit/bash/processAPINotesDaemon_integration.test.bats` | Estructura básica | ⚠️ Parcial (solo grep, no funcional) |
+| `tests/unit/bash/processAPINotesDaemon_integration.test.bats` | Integración funcional | ✅ Completo (16 tests funcionales, 2025-01-23) |
 | `tests/unit/bash/processAPINotesDaemon_auto_init.test.bats` | Auto-inicialización | ✅ Completo (15 tests funcionales) |
 | `tests/unit/bash/processAPINotesDaemon_gaps.test.bats` | Detección de gaps | ✅ Completo (16 tests funcionales) |
 | `tests/integration/daemon_feature_parity.test.bats` | Feature parity (presencia) | ✅ Completo (23 tests) |
