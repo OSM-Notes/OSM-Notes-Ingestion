@@ -721,10 +721,12 @@ function __insertNewNotesAndComments {
  local LOCK_RETRY_COUNT=0
  local LOCK_MAX_RETRIES=3
  local LOCK_RETRY_DELAY=2
+ local LOCK_ACQUIRED=0
 
  while [[ ${LOCK_RETRY_COUNT} -lt ${LOCK_MAX_RETRIES} ]]; do
   if echo "CALL put_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
    __logd "Lock acquired successfully: ${PROCESS_ID}"
+   LOCK_ACQUIRED=1
    break
   else
    LOCK_RETRY_COUNT=$((LOCK_RETRY_COUNT + 1))
@@ -741,6 +743,17 @@ function __insertNewNotesAndComments {
   __log_finish
   return 1
  fi
+
+ # Function to cleanup lock (always remove, even on error)
+ __cleanup_insert_lock() {
+  if [[ ${LOCK_ACQUIRED} -eq 1 ]] && [[ -n "${PROCESS_ID:-}" ]]; then
+   __logd "Cleaning up lock: ${PROCESS_ID}"
+   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 >/dev/null 2>&1 || true
+  fi
+ }
+
+ # Register cleanup trap (will execute on function exit)
+ trap '__cleanup_insert_lock' EXIT
 
  export PROCESS_ID
  local PROCESS_ID_INTEGER
@@ -765,15 +778,33 @@ EOF
 
  # Execute insertion and timestamp update in the same connection
  # Use --pset pager=off to prevent opening vi/less for long output
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 --pset pager=off -f "${TEMP_SQL_FILE}"
+ local SQL_EXIT_CODE=0
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 --pset pager=off -f "${TEMP_SQL_FILE}" || SQL_EXIT_CODE=$?
 
  rm -f "${TEMP_SQL_FILE}"
 
- # Remove lock on success
+ # Remove trap before explicit lock removal (normal path)
+ trap - EXIT
+
+ # Remove lock explicitly (normal success path)
  if ! echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1; then
   __loge "Failed to remove lock"
   __log_finish
   return 1
+ fi
+
+ LOCK_ACQUIRED=0
+
+ # Return error if SQL execution failed
+ # Note: lock cleanup will happen via EXIT trap if we return here
+ if [[ ${SQL_EXIT_CODE} -ne 0 ]]; then
+  __loge "SQL execution failed with exit code: ${SQL_EXIT_CODE}"
+  __log_finish
+  # Remove trap since we're handling cleanup explicitly in error path
+  trap - EXIT
+  # Try to remove lock even on error (ignore failures)
+  echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 >/dev/null 2>&1 || true
+  return ${SQL_EXIT_CODE}
  fi
 
  __log_finish
@@ -853,8 +884,14 @@ function __validateAndProcessApiXml {
   fi
   __countXmlNotesAPI "${API_NOTES_FILE}"
   __processXMLorPlanet
-  __insertNewNotesAndComments
-  __loadApiTextComments
+  # Only insert notes if there are notes to process (TOTAL_NOTES > 0)
+  # TOTAL_NOTES is exported by __countXmlNotesAPI
+  if [[ "${TOTAL_NOTES:-0}" -gt 0 ]]; then
+   __insertNewNotesAndComments
+   __loadApiTextComments
+  else
+   __logi "No notes to insert, skipping insertion"
+  fi
  fi
  __log_finish
 }

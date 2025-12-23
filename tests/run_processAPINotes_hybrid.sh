@@ -620,6 +620,35 @@ cleanup_lock_files() {
   rm -f "${update_countries_failed}"
  fi
 
+ # Clean database lock (stored in properties table) if stale
+ # This is critical because locks are stored in DB, not just files
+ # In test environment, we remove locks older than 1 minute (much shorter than 5 min timeout)
+ log_info "Cleaning up stale database locks..."
+ if [[ -z "${DBNAME:-}" ]]; then
+  # shellcheck disable=SC1091
+  source "${PROJECT_ROOT}/etc/properties.sh"
+ fi
+
+ local psql_cmd="psql"
+ if [[ -n "${DB_HOST:-}" ]]; then
+  psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
+ fi
+
+ # In test environment, remove ALL locks (not just stale ones)
+ # This ensures clean state between test executions
+ # Production uses 5-minute timeout, but tests need immediate cleanup
+ local lock_cleanup_result
+ lock_cleanup_result=$(${psql_cmd} -d "${DBNAME}" -Atq -c "
+  DELETE FROM properties WHERE key = 'lock';
+  SELECT COUNT(*) FROM properties WHERE key = 'lock';
+ " 2>/dev/null | head -1 || echo "0")
+
+ if [[ "${lock_cleanup_result}" =~ ^[0-9]+$ ]] && [[ "${lock_cleanup_result}" -eq 0 ]]; then
+  log_info "All database locks cleaned (lock table is now empty)"
+ else
+  log_warning "Database lock cleanup: ${lock_cleanup_result} lock(s) still remain"
+ fi
+
  log_success "Lock files cleaned"
 }
 

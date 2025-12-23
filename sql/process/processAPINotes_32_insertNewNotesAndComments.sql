@@ -270,15 +270,16 @@ BEGIN
   FROM note_comments;
   
   -- Sequence is desynchronized if last_value < max_id_table
-  -- We add a small margin (5) to handle edge cases where sequence was advanced but not used
-  m_needs_sync := (m_seq_last_value < m_max_id_table - 5);
+  -- Always sync if sequence is behind (don't use margin - be conservative to prevent duplicates)
+  m_needs_sync := (m_seq_last_value < m_max_id_table);
   
   IF m_needs_sync THEN
+    -- Set sequence to max_id_table (use true for is_called so nextval() returns max_id_table + 1)
     PERFORM setval('note_comments_id_seq', 
-      GREATEST(m_max_id_table, 1), 
+      GREATEST(m_max_id_table, 0), 
       true);
     INSERT INTO logs (message) VALUES ('Sequences synchronized: note_comments_id_seq (was ' || 
-      m_seq_last_value || ', now ' || GREATEST(m_max_id_table, 1) || ', max_id=' || m_max_id_table || ')');
+      m_seq_last_value || ', now ' || GREATEST(m_max_id_table, 0) || ', nextval will return ' || (GREATEST(m_max_id_table, 0) + 1) || ', max_id=' || m_max_id_table || ')');
   END IF;
   
   -- Synchronize note_comments_text_id_seq if it exists
@@ -290,14 +291,14 @@ BEGIN
     SELECT COALESCE(MAX(id), 0) INTO m_text_max_id_table
     FROM note_comments_text;
     
-    m_text_needs_sync := (m_text_seq_last_value < m_text_max_id_table - 5);
+    m_text_needs_sync := (m_text_seq_last_value < m_text_max_id_table);
     
     IF m_text_needs_sync THEN
       PERFORM setval('note_comments_text_id_seq',
-        GREATEST(m_text_max_id_table, 1),
+        GREATEST(m_text_max_id_table, 0),
         true);
       INSERT INTO logs (message) VALUES ('Sequences synchronized: note_comments_text_id_seq (was ' || 
-        m_text_seq_last_value || ', now ' || GREATEST(m_text_max_id_table, 1) || ', max_id=' || m_text_max_id_table || ')');
+        m_text_seq_last_value || ', now ' || GREATEST(m_text_max_id_table, 0) || ', nextval will return ' || (GREATEST(m_text_max_id_table, 0) + 1) || ', max_id=' || m_text_max_id_table || ')');
     END IF;
   END IF;
   
@@ -392,9 +393,13 @@ $$
   FROM note_comments_api nca
   WHERE NOT EXISTS (
     -- Skip comments that already exist
+    -- Handle both cases: with sequence_action and without (for backward compatibility)
     SELECT 1 FROM note_comments nc
     WHERE nc.note_id = nca.note_id
-      AND (nca.sequence_action IS NULL OR nc.sequence_action = nca.sequence_action)
+      AND (
+        (nca.sequence_action IS NOT NULL AND nc.sequence_action = nca.sequence_action)
+        OR (nca.sequence_action IS NULL AND nc.note_id = nca.note_id AND nc.event = nca.event AND nc.created_at = nca.created_at)
+      )
   );
   -- Note: ON CONFLICT removed because there's no unique constraint on (note_id, sequence_action)
   -- The WHERE NOT EXISTS clause already handles duplicate prevention
