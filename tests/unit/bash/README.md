@@ -100,7 +100,7 @@ Test files follow a consistent naming pattern:
 
 #### Binary Division (3 modules)
 - `binary_division_basic.test.bats` - Basic functionality (3 tests)
-- `binary_division_performance.test.bats` - Performance tests (8 tests)
+- `binary_division_performance.test.bats` - Performance tests (5 tests)
 - `binary_division_error_handling.test.bats` - Error handling (3 tests)
 
 #### JSON Validation (4 modules)
