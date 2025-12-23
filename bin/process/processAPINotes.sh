@@ -428,7 +428,8 @@ function __dropApiTables {
  __log_start
  __logi "=== DROPPING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_12_DROP_API_TABLES}"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_12_DROP_API_TABLES}"
+ # Use --pset pager=off to prevent opening vi/less for long output
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" --pset pager=off -f "${POSTGRES_12_DROP_API_TABLES}"
  __logi "=== API TABLES DROPPED SUCCESSFULLY ==="
  __log_finish
 }
@@ -456,7 +457,8 @@ function __createApiTables {
  __log_start
  __logi "=== CREATING API TABLES ==="
  __logd "Executing SQL file: ${POSTGRES_21_CREATE_API_TABLES}"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_API_TABLES}"
+ # Use --pset pager=off to prevent opening vi/less for long output
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 --pset pager=off -f "${POSTGRES_21_CREATE_API_TABLES}"
  __logi "=== API TABLES CREATED SUCCESSFULLY ==="
  __log_finish
 }
@@ -466,7 +468,9 @@ function __createPropertiesTable {
  __log_start
  __logi "=== CREATING PROPERTIES TABLE ==="
  __logd "Executing SQL file: ${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ # Use --pset pager=off to prevent opening vi/less for long output
+ # This prevents blocking when SELECT statements produce output
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 --pset pager=off \
   -f "${POSTGRES_23_CREATE_PROPERTIES_TABLE}"
  __logi "=== PROPERTIES TABLE CREATED SUCCESSFULLY ==="
  __log_finish
@@ -696,7 +700,8 @@ function __processApiXmlSequential {
       s|\${OUTPUT_TEXT_PART}|${SEQ_OUTPUT_TEXT_CLEANED}|g" \
   < "${POSTGRES_31_LOAD_API_NOTES}" > "${TEMP_SQL}" || true
  # Execute SQL file
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL}"
+ # Use --pset pager=off to prevent opening vi/less for long output
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 --pset pager=off -f "${TEMP_SQL}"
  # Clean up temp files
  rm -f "${TEMP_SQL}" "${SEQ_OUTPUT_NOTES_CLEANED}" "${SEQ_OUTPUT_COMMENTS_CLEANED}" "${SEQ_OUTPUT_TEXT_CLEANED}"
 
@@ -759,7 +764,8 @@ EOF
  cat "${POSTGRES_34_UPDATE_LAST_VALUES}" >> "${TEMP_SQL_FILE}"
 
  # Execute insertion and timestamp update in the same connection
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL_FILE}"
+ # Use --pset pager=off to prevent opening vi/less for long output
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 --pset pager=off -f "${TEMP_SQL_FILE}"
 
  rm -f "${TEMP_SQL_FILE}"
 
