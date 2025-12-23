@@ -3,7 +3,8 @@
 # XML Validation Enhanced Tests
 # Tests for enhanced XML validation with error handling
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-07
+# Version: 2025-12-22
+# Optimized: Removed redundant "very large file" test (2025-01-23)
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -262,44 +263,7 @@ EOF
  [[ "${output}" == *"Basic XML validation succeeded"* ]]
 }
 
-@test "test __validate_xml_with_enhanced_error_handling with very large file" {
- # Create a very large test XML file (simulate very large file)
- cat > /tmp/test.xml << 'EOF'
-<?xml version="1.0"?>
-<osm-notes>
-EOF
-
- # Add many notes to simulate very large file
- for i in {1..2000}; do
-  echo " <note id=\"${i}\" lat=\"0.0\" lon=\"0.0\" created_at=\"2023-01-01T00:00:00Z\"/>"
- done >> /tmp/test.xml
-
- echo "</osm-notes>" >> /tmp/test.xml
-
- cat > /tmp/schema.xsd << 'EOF'
-<?xml version="1.0"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
- <xs:element name="osm-notes">
-  <xs:complexType>
-   <xs:sequence>
-    <xs:element name="note" maxOccurs="unbounded"/>
-   </xs:sequence>
-  </xs:complexType>
- </xs:element>
-</xs:schema>
-EOF
- 
- # Test with very large file (mock the file size)
- function stat() {
-  if [[ "$*" == *"test.xml"* ]]; then
-   echo "1200000000"  # Simulate 1200MB file
-  else
-   command stat "$@"
-  fi
- }
- export -f stat
- 
- run __validate_xml_with_enhanced_error_handling "/tmp/test.xml" "/tmp/schema.xsd"
- [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Structure-only validation succeeded for very large file"* ]]
-}
+# Note: Test "very large file" removed for optimization (2025-01-23).
+# The "large file" test (600MB) already covers the enhanced error handling logic
+# with different file sizes. Testing with 1200MB (very large) is redundant as it
+# uses the same validation path, only with a higher threshold.

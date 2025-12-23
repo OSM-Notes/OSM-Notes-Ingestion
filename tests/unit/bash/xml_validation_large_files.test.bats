@@ -2,7 +2,7 @@
 
 # Test file for large XML file validation
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-07
+# Version: 2025-12-22
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -172,31 +172,14 @@ EOF
  [[ "${AVAILABLE_MEMORY_MB}" -gt 0 ]]
 }
 
-@test "XML structure validation handles large files" {
- # Test that basic XML structure validation works for large files
- run __validate_xml_structure "${TMP_DIR}/large_test.xml"
- [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"XML STRUCTURE VALIDATION COMPLETED SUCCESSFULLY"* ]]
-}
+# Note: Test "XML structure validation handles large files" removed for optimization (2025-01-23).
+# This test is a duplicate of "Structure-only validation works with large files" (line 151),
+# both test the same function with the same file. The earlier test is sufficient.
 
-@test "Enhanced validation handles different file sizes" {
- # Test enhanced validation with different file sizes (mocked)
- 
- # Mock stat function to simulate different file sizes
- function stat() {
-  if [[ "$*" == *"large_test.xml"* ]]; then
-   echo "600000000"  # Simulate 600MB file
-  else
-   command stat "$@"
-  fi
- }
- export -f stat
- 
- # Test with large file
- run __validate_xml_coordinates "${TMP_DIR}/large_test.xml"
- [[ "${status}" -eq 0 ]]
- [[ "${output}" == *"Lite coordinate validation passed"* ]]
-}
+# Note: Test "Enhanced validation handles different file sizes" removed for optimization (2025-01-23).
+# This test is redundant with "Enhanced XML validation works with large files" (line 118).
+# Both test __validate_xml_coordinates with large files. The mock of file size doesn't add
+# sufficient value to justify a separate test.
 
 
 @test "Debug coordinate validation output" {

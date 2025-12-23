@@ -2,8 +2,9 @@
 # Test file for robust parallel processing functions
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-16
+# Version: 2025-12-22
 # Description: Tests for robust parallel processing with resource management
+# Optimized: Removed skipped tests for consolidated functions (2025-01-23)
 
 # Load test helper
 load "../../test_helper"
@@ -72,17 +73,10 @@ teardown() {
  [ "$status" -eq 0 ] || [ "$status" -eq 1 ] # May fail on some systems
 }
 
-@test "Robust AWK processing function handles missing files" {
- # This function has been consolidated into __processLargeXmlFile
- # Skip this test as the original function no longer exists
- skip "Robust AWK processing function consolidated into __processLargeXmlFile"
-}
-
-@test "Robust AWK processing function creates output directory" {
- # This function has been consolidated into __processLargeXmlFile
- # Skip this test as the original function no longer exists
- skip "Robust AWK processing function consolidated into __processLargeXmlFile"
-}
+# Note: Tests "Robust AWK processing function handles missing files" and
+# "Robust AWK processing function creates output directory" removed for optimization (2025-01-23).
+# These functions have been consolidated into __processLargeXmlFile and the tests were already skipped.
+# Removing them improves code maintainability without affecting test coverage.
 
 @test "Parallel processing function validates inputs correctly" {
  # Test with missing input directory
