@@ -539,7 +539,9 @@ function __loadTextComments {
 function __moveSyncToMain {
  __log_start
  __logi "Moving data from sync tables to main tables"
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_43_MOVE_SYNC_TO_MAIN}"
+ # Use --pset pager=off to prevent opening vi/less for long output
+ # This prevents blocking when SELECT statements produce output
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 --pset pager=off -f "${POSTGRES_43_MOVE_SYNC_TO_MAIN}"
  __log_finish
 }
 
