@@ -1,6 +1,6 @@
 -- Insert new notes and comments from API.
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-22
+-- Version: 2025-12-23
 
 -- Configure session for high-priority INSERT operations
 SET statement_timeout = '5min';
@@ -375,6 +375,7 @@ $$
   -- Stage: Bulk INSERT comments
   m_stage_start := clock_timestamp();
   -- Bulk INSERT comments (skip existing ones using NOT EXISTS for efficiency)
+  -- Use ON CONFLICT (id) DO NOTHING as additional protection against sequence desynchronization
   INSERT INTO note_comments (
     id,
     note_id,
@@ -400,9 +401,11 @@ $$
         (nca.sequence_action IS NOT NULL AND nc.sequence_action = nca.sequence_action)
         OR (nca.sequence_action IS NULL AND nc.note_id = nca.note_id AND nc.event = nca.event AND nc.created_at = nca.created_at)
       )
-  );
-  -- Note: ON CONFLICT removed because there's no unique constraint on (note_id, sequence_action)
-  -- The WHERE NOT EXISTS clause already handles duplicate prevention
+  )
+  ON CONFLICT (id) DO NOTHING;
+  -- Note: ON CONFLICT (id) DO NOTHING handles cases where nextval() generates an ID that already exists
+  -- This can happen if the sequence is desynchronized. The WHERE NOT EXISTS clause prevents logical duplicates,
+  -- and ON CONFLICT handles sequence-related duplicates
   m_stage_end := clock_timestamp();
   m_stage_duration := EXTRACT(EPOCH FROM (m_stage_end - m_stage_start)) * 1000;
   

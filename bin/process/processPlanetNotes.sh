@@ -44,8 +44,8 @@
 # For contributing: shellcheck -x -o all processPlanetNotes.sh && shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-16
-VERSION="2025-12-08"
+# Version: 2025-12-23
+VERSION="2025-12-23"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1272,7 +1272,18 @@ function __processGeographicData {
  else
   __logw "No geographic data found (countries: ${COUNTRIES_COUNT})."
 
-  # If running in base mode and countries table exists but is empty, try to load countries
+  # If running in base mode, try to load countries automatically
+  # This handles both cases: when countries table doesn't exist or when it's empty
+  __logd "Checking conditions to load countries automatically:"
+  __logd "  PROCESS_TYPE: '${PROCESS_TYPE}'"
+  __logd "  Expected: '--base'"
+  __logd "  updateCountries.sh path: '${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh'"
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
+   __logd "  updateCountries.sh exists: YES"
+  else
+   __logd "  updateCountries.sh exists: NO"
+  fi
+
   if [[ "${PROCESS_TYPE}" == "--base" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
    __logi "Attempting to load countries automatically in base mode..."
    __logi "This process may take a long time (30-60 minutes) as it downloads and processes all country boundaries..."
@@ -1292,11 +1303,34 @@ function __processGeographicData {
      "Fix the issue with updateCountries.sh and run manually: ./bin/process/updateCountries.sh --base"
     exit "${ERROR_EXECUTING_PLANET_DUMP}"
    fi
-   __logi "Countries and maritimes areas loaded successfully."
-   __logi "Note: Location notes will be processed after get_country() function is created."
-   # Do not call __getLocationNotes here - it will be called after creating get_country()
+
+   # Verify that countries were actually loaded after updateCountries.sh execution
+   # Re-check COUNTRIES_COUNT to confirm data is present
+   local COUNTRIES_COUNT_AFTER
+   COUNTRIES_COUNT_AFTER=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
+   if [[ "${COUNTRIES_COUNT_AFTER:-0}" -gt 0 ]]; then
+    __logi "Countries and maritimes areas loaded successfully (${COUNTRIES_COUNT_AFTER} countries/maritimes)."
+    __logi "Note: Location notes will be processed after get_country() function is created."
+    # Do not call __getLocationNotes here - it will be called after creating get_country()
+   else
+    __loge "ERROR: updateCountries.sh completed, but no countries were found in the database (count: ${COUNTRIES_COUNT_AFTER})."
+    __loge "This indicates that updateCountries.sh did not load the data correctly."
+    __loge "Please check the updateCountries.sh log file and run it manually: ./bin/process/updateCountries.sh --base"
+    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+     "updateCountries.sh completed but no countries loaded during processPlanetNotes.sh --base" \
+     "Check updateCountries.sh log and run manually: ./bin/process/updateCountries.sh --base"
+    exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   fi
   else
-   __logw "Skipping location assignment - notes will be processed without country assignment."
+   __logw "Skipping automatic country loading."
+   if [[ "${PROCESS_TYPE}" != "--base" ]]; then
+    __logw "  Reason: Not running in base mode (PROCESS_TYPE='${PROCESS_TYPE}')."
+   fi
+   if [[ ! -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
+    __logw "  Reason: updateCountries.sh not found at '${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh'."
+   fi
+   __logw "Notes will be processed without country assignment."
    __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base"
    __logw "Note: Countries will be assigned automatically when processPlanetNotes.sh completes."
   fi
