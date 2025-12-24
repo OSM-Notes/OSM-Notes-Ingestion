@@ -1265,6 +1265,10 @@ For **WMS (Web Map Service) layer publication**, see the
 
 **Scenario**: Monitoring data quality and detecting synchronization issues.
 
+> **Note:** For comprehensive system monitoring across all repositories, see
+> [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> This use case describes local monitoring scripts specific to ingestion.
+
 **Workflow**:
 
 ```bash
@@ -1486,6 +1490,10 @@ DB_PASSWORD=secure_password
 
 **Scenario**: Integrating with external monitoring systems (Nagios, Prometheus, etc.).
 
+> **Note:** For centralized monitoring across all OSM Notes repositories, see
+> [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> This use case describes integration with external monitoring systems for this repository.
+
 **Workflow**:
 
 ```bash
@@ -1525,6 +1533,7 @@ chmod +x /usr/local/bin/check-osm-notes.sh
 # Step 2: Configure in monitoring system
 # Nagios: Add as service check
 # Prometheus: Use textfile exporter or custom exporter
+# Or use OSM-Notes-Monitoring for centralized monitoring
 ```
 
 **Prometheus Integration**:
@@ -2345,21 +2354,28 @@ For **WMS (Web Map Service) service configuration**, see the
 
 ## Monitoring and Maintenance
 
+> **Note:** For centralized monitoring, alerting, and API security across all
+> OSM Notes repositories, see [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> This section describes local monitoring capabilities specific to this repository.
+
 ### System Health
 
 - **Database Monitoring**:
   - Query performance
   - Index usage
+  - See `bin/monitor/analyzeDatabasePerformance.sh`
 
 - **Processing Monitoring**:
   - Script execution status
   - Error logs
   - Processing times
+  - See [Alerting_System.md](./Alerting_System.md) for integrated alerts
 
 - **Data Quality**:
   - Validation checks
   - Integrity constraints
   - Discrepancy detection
+  - See `bin/monitor/notesCheckVerifier.sh` and `bin/monitor/processCheckPlanetNotes.sh`
 
 ### Maintenance Tasks
 

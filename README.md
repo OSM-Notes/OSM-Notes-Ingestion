@@ -565,16 +565,19 @@ These files include details about how to run or troubleshoot the scripts.
 
 ### Monitoring
 
-Periodically, you can run the following script to monitor and validate that
-executions are correct, and also that notes processing have not had errors:
-`processCheckPlanetNotes.sh`.
+This repository includes local monitoring scripts for data quality verification:
 
-This script will create 2 tables, one for notes and one for comments, with the
- suffix `_check`.
-By querying the tables with and without the suffix, you can get the
-differences;
-however, it better works around 6h UTC when the OSM Planet file is published.
-This will compare the differences between the API process and the Planet data.
+- **`bin/monitor/processCheckPlanetNotes.sh`**: Verifies Planet notes processing
+  - Creates check tables with `_check` suffix
+  - Compares differences between API process and Planet data
+  - Best run around 6h UTC when OSM Planet file is published
+- **`bin/monitor/notesCheckVerifier.sh`**: Validates note data integrity
+- **`bin/monitor/analyzeDatabasePerformance.sh`**: Analyzes database performance
+
+> **Note:** For centralized monitoring, alerting, and API security across all
+> OSM Notes repositories, see [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> The scripts in `bin/monitor/` are specific to this repository and focus on
+> data quality verification for ingestion.
 
 If you find many differences, especially for comments older than one day, it
 means the script failed in the past, and the best is to recreate the database
