@@ -748,7 +748,7 @@ function __insertNewNotesAndComments {
  __cleanup_insert_lock() {
   if [[ ${LOCK_ACQUIRED} -eq 1 ]] && [[ -n "${PROCESS_ID:-}" ]]; then
    __logd "Cleaning up lock: ${PROCESS_ID}"
-   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 >/dev/null 2>&1 || true
+   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 > /dev/null 2>&1 || true
   fi
  }
 
@@ -803,7 +803,7 @@ EOF
   # Remove trap since we're handling cleanup explicitly in error path
   trap - EXIT
   # Try to remove lock even on error (ignore failures)
-  echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 >/dev/null 2>&1 || true
+  echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 > /dev/null 2>&1 || true
   return ${SQL_EXIT_CODE}
  fi
 
