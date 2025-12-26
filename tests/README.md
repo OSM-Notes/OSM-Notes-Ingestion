@@ -180,6 +180,14 @@ Test data and sample files:
   - Test naming conventions
   - Code quality standards
 
+- **[TESTING_STRATEGIES.md](./TESTING_STRATEGIES.md)**: Comprehensive testing
+  strategies and approaches, including:
+  - Testing philosophy and principles
+  - Test types and strategies (unit, integration, E2E, performance, security)
+  - Mocking and test data strategies
+  - Performance and regression testing strategies
+  - Test maintenance best practices
+
 ### Test Fixtures
 
 - **[fixtures/README.md](./fixtures/README.md)**: Complete documentation of test

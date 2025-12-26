@@ -75,13 +75,18 @@ __load_validation_functions() {
  fi
 }
 
-# Test that validates JSON structure after download
+# =============================================================================
+# Test: JSON Structure Validation After Download
+# =============================================================================
+# Purpose: Verify that JSON structure is validated after successful download
+# Scenario: Download JSON from Overpass API and validate structure
+# Expected: Downloaded JSON should be valid and contain required elements
 @test "should validate JSON structure after successful download" {
  if ! command -v curl > /dev/null; then
   skip "curl not available for connectivity check"
  fi
 
- # Check connectivity
+ # Arrange: Check connectivity to Overpass API
  if ! curl -s --max-time 5 "${OVERPASS_INTERPRETER%/api/interpreter}/status" > /dev/null 2>&1; then
   skip "Overpass API not reachable"
  fi
@@ -134,13 +139,18 @@ EOF
  fi
 }
 
-# Test retry logic when JSON validation fails after download
+# =============================================================================
+# Test: Retry Logic When JSON Validation Fails
+# =============================================================================
+# Purpose: Verify that the system retries downloads when JSON validation fails
+# Scenario: First download returns corrupted JSON, system should retry
+# Expected: System should retry download and eventually succeed or fail gracefully
 @test "should retry download when JSON validation fails" {
  if ! command -v curl > /dev/null; then
   skip "curl not available"
  fi
 
- # Create a mock scenario where first download is corrupted
+ # Arrange: Create a mock scenario where first download is corrupted
  local TEST_ID="3793105"
  local JSON_FILE="${TMP_DIR}/${TEST_ID}.json"
  local QUERY_FILE="${TMP_DIR}/query_${TEST_ID}.op"
@@ -191,9 +201,14 @@ EOF
  fi
 }
 
-# Test that corrupted JSON files trigger retry
+# =============================================================================
+# Test: Corrupted JSON Detection and Retry Trigger
+# =============================================================================
+# Purpose: Verify that corrupted JSON files are detected and trigger retry logic
+# Scenario: JSON file has valid structure but empty elements array
+# Expected: Validation should fail and trigger retry mechanism
 @test "should detect corrupted JSON and trigger retry" {
- # Create a corrupted JSON file (valid structure but empty elements)
+ # Arrange: Create a corrupted JSON file (valid structure but empty elements)
  cat > "${TMP_DIR}/corrupted.json" << 'EOF'
 {
   "version": 0.6,
@@ -208,7 +223,12 @@ EOF
  [[ "${output}" == *"is empty"* ]]
 }
 
-# Test GeoJSON conversion with validation and retry
+# =============================================================================
+# Test: GeoJSON Conversion with Validation and Retry
+# =============================================================================
+# Purpose: Verify that GeoJSON conversion includes validation and retry logic
+# Scenario: Convert JSON to GeoJSON and validate the result
+# Expected: GeoJSON should be validated and retry should occur if validation fails
 @test "should validate GeoJSON after conversion with retry logic" {
  if ! command -v osmtogeojson > /dev/null; then
   skip "osmtogeojson not available"
