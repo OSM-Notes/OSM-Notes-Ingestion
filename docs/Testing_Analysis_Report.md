@@ -4,7 +4,7 @@
 **Date:** 2025-12-15  
 **Last Updated:** 2025-12-23  
 **Author:** Automated Analysis  
-**Version:** 1.5 (Updated with refactored regression and E2E test modules)
+**Version:** 1.6 (Updated with enhanced inline comments in older test files)
 
 ---
 
@@ -219,7 +219,7 @@ Total:                999 cases
 
 ### 3.5 Test Documentation
 
-**Rating: A- (88/100)** ✅ **IMPROVED**
+**Rating: A (90/100)** ✅ **IMPROVED**
 
 ✅ **Completed:**
 - ✅ Comprehensive contribution guide created: `tests/CONTRIBUTING_TESTS.md`
@@ -227,14 +227,20 @@ Total:                999 cases
 - ✅ Testing strategies document created: `tests/TESTING_STRATEGIES.md`
 - ✅ Inline comments added to key test files
 - ✅ Test sections organized with comment headers
+- ✅ Enhanced comments in older test files:
+  - `date_validation_utc.test.bats` - Added detailed comments explaining regex patterns, octal fix, and XML extraction
+  - `download_queue.test.bats` - Added comments explaining FIFO queue system, rate limiting, and ticket management
+  - `mock_planet_functions.test.bats` - Added comments explaining XML structure validation and attribute requirements
+  - `mock_planet_processing.test.bats` - Added comments explaining AWK processing workflows
 
 ⚠️ **Remaining Improvements:**
 - Some older tests may still lack explanatory comments (ongoing improvement)
 - Continue adding inline comments to tests as they are modified
 
 **Status:** Test documentation significantly improved. Comprehensive guides and
-strategies document created. Inline documentation continues to be enhanced as
-tests are maintained.
+strategies document created. Inline documentation enhanced in older test files,
+with detailed comments explaining test purpose, expected behavior, and complex
+logic. Documentation continues to be enhanced as tests are maintained.
 
 ### 3.6 Maintainability
 

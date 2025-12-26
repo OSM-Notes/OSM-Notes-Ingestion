@@ -1,11 +1,13 @@
 #!/usr/bin/env bats
 # Unit tests for download queue FIFO system
+# Tests the ticket-based queue system for managing concurrent Overpass API downloads
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-28
+# Version: 2025-12-23
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 setup() {
+ # Set up test environment
  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
  export BASENAME="test_download_queue"
@@ -13,27 +15,38 @@ setup() {
  export RATE_LIMIT=4
  export OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
 
- # Load functions
+ # Load functions from processing library
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1
 }
 
 teardown() {
- # Cleanup queue directory
+ # Cleanup queue directory and temporary files
  rm -rf "${TMP_DIR}/download_queue" 2> /dev/null || true
  rm -rf "${TMP_DIR}" 2> /dev/null || true
 }
 
+# =============================================================================
+# Ticket System Basic Functionality
+# =============================================================================
+
 @test "__get_download_ticket should exist" {
+ # Test: Verify function exists
+ # Purpose: Ensure download ticket function is available
+ # Expected: Function should be defined
  declare -f __get_download_ticket
  [ "$?" -eq 0 ]
 }
 
 @test "__get_download_ticket should return sequential ticket numbers" {
+ # Test: Verify ticket numbers are sequential and unique
+ # Purpose: Ensure FIFO queue maintains proper ticket ordering
+ # Expected: Each call should return incrementing ticket numbers (1, 2, 3...)
  local TICKET1 TICKET2 TICKET3
  TICKET1=$(__get_download_ticket 2>&1 | grep -E "^[0-9]+$" | head -1)
  TICKET2=$(__get_download_ticket 2>&1 | grep -E "^[0-9]+$" | head -1)
  TICKET3=$(__get_download_ticket 2>&1 | grep -E "^[0-9]+$" | head -1)
 
+ # Verify sequential numbering
  [ "${TICKET1}" -eq 1 ]
  [ "${TICKET2}" -eq 2 ]
  [ "${TICKET3}" -eq 3 ]
@@ -50,18 +63,22 @@ teardown() {
 }
 
 @test "__wait_for_download_turn should accept ticket when slots available" {
- # Get a ticket
+ # Test: Verify ticket is accepted when download slots are available
+ # Purpose: Ensure queue allows downloads when rate limit is not exceeded
+ # Expected: Function should return quickly and create lock file when slots available
+ # Get a ticket from the queue
  local TICKET
  TICKET=$(__get_download_ticket 2>&1 | grep -E "^[0-9]+$" | head -1)
 
- # Mock __check_overpass_status
+ # Mock Overpass API status check to return available slots
+ # Return "0" indicates slots are available (not at rate limit)
  __check_overpass_status() {
   echo "0"
   return 0
  }
  export -f __check_overpass_status
 
- # Wait for turn (should succeed quickly)
+ # Wait for turn (should succeed quickly when slots available)
  local START_TIME
  START_TIME=$(date +%s)
  __wait_for_download_turn "${TICKET}"
@@ -69,10 +86,10 @@ teardown() {
  END_TIME=$(date +%s)
  local ELAPSED=$((END_TIME - START_TIME))
 
- # Should complete quickly (< 2 seconds)
+ # Should complete quickly (< 2 seconds) when slots are available
  [ "${ELAPSED}" -lt 2 ]
 
- # Verify lock file was created
+ # Verify lock file was created to mark ticket as active
  [ -f "${TMP_DIR}/download_queue/active/${BASHPID}.${TICKET}.lock" ]
 }
 
@@ -130,29 +147,34 @@ teardown() {
 }
 
 @test "__wait_for_download_turn should respect RATE_LIMIT" {
- # Set lower RATE_LIMIT for testing
+ # Test: Verify queue enforces rate limit when maximum concurrent downloads reached
+ # Purpose: Ensure system respects Overpass API rate limits to prevent throttling
+ # Expected: Ticket should wait when rate limit is reached, not proceed immediately
+ # Set lower RATE_LIMIT for testing (2 concurrent downloads max)
  export RATE_LIMIT=2
 
- # Create scenario with 2 active downloads (at limit)
+ # Create scenario with 2 active downloads (at rate limit)
+ # Simulate two other processes holding active download slots
  mkdir -p "${TMP_DIR}/download_queue/active"
  echo "1" > "${TMP_DIR}/download_queue/active/1000.1.lock"
  echo "2" > "${TMP_DIR}/download_queue/active/1001.2.lock"
 
- # Initialize serving
+ # Initialize queue serving counter
  echo "0" > "${TMP_DIR}/download_queue/current_serving"
 
- # Get ticket 3
+ # Get ticket 3 (should wait since we're at limit)
  local TICKET
  TICKET=$(__get_download_ticket 2>&1 | grep -E "^[0-9]+$" | head -1)
 
- # Mock API to return slots available
+ # Mock API to return slots available (but queue should still enforce limit)
  __check_overpass_status() {
   echo "0"
   return 0
  }
  export -f __check_overpass_status
 
- # Should wait since we're at limit
+ # Should wait since we're at rate limit
+ # Use timeout to prevent test from hanging
  run timeout 2 bash -c "
     source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
     __check_overpass_status() { echo '0'; return 0; }
@@ -162,7 +184,8 @@ teardown() {
     __wait_for_download_turn '${TICKET}'
   "
 
- # Should timeout (not get slot immediately)
+ # Should timeout (not get slot immediately) or not create lock file
+ # This verifies that rate limit is being enforced
  [ "${status}" -ne 0 ] || [ ! -f "${TMP_DIR}/download_queue/active/${BASHPID}.${TICKET}.lock" ]
 }
 

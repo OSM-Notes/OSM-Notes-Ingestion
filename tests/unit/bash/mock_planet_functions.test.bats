@@ -1,8 +1,10 @@
 #!/usr/bin/env bats
 
 # Unit tests for Planet XML processing functions using mock data
-# Author: Andres Gomez
-# Version: 2025-10-24
+# Tests XML structure validation, AWK processing, parallel processing simulation,
+# and error handling using mock Planet dump files
+# Author: Andres Gomez (AngocA)
+# Version: 2025-12-23
 
 load ../../test_helper
 
@@ -70,11 +72,18 @@ teardown() {
   rm -rf "${TEST_OUTPUT_DIR}"
 }
 
+# =============================================================================
+# Mock XML Structure Validation
+# =============================================================================
+
 @test "Mock XML file structure analysis" {
-  # Analyze the structure of the mock XML file
+  # Test: Analyze and validate structure of mock Planet XML file
+  # Purpose: Verify mock XML contains expected elements for testing
+  # Expected: File should contain notes, comments, users, and UIDs
   local xml_file="${MOCK_XML_FILE}"
   
-  # Count different elements
+  # Count different elements in mock XML
+  # These counts verify the mock file has realistic structure
   local note_count
   note_count=$(grep -c "<note" "${xml_file}")
   local comment_count
@@ -84,7 +93,8 @@ teardown() {
   local uid_count
   uid_count=$(grep -c "uid=" "${xml_file}")
   
-  # Verify expected structure
+  # Verify expected structure exists
+  # All counts should be > 0 to ensure mock file is valid for testing
   [ "${note_count}" -gt 0 ]
   [ "${comment_count}" -gt 0 ]
   [ "${user_count}" -gt 0 ]
@@ -98,9 +108,13 @@ teardown() {
 }
 
 @test "Mock XML note attributes validation" {
+  # Test: Validate that notes in mock XML have required attributes
+  # Purpose: Ensure mock data matches real OSM note structure
+  # Expected: All notes should have id, lat, lon, created_at; some may have closed_at
   local xml_file="${MOCK_XML_FILE}"
   
   # Check that notes have required attributes
+  # These attributes are mandatory for OSM notes
   local notes_with_id
   notes_with_id=$(grep -c 'id="[^"]*"' "${xml_file}")
   local notes_with_lat
@@ -110,13 +124,13 @@ teardown() {
   local notes_with_created
   notes_with_created=$(grep -c 'created_at="[^"]*"' "${xml_file}")
   
-  # All notes should have these attributes
+  # All notes should have these required attributes
   [ "${notes_with_id}" -gt 0 ]
   [ "${notes_with_lat}" -gt 0 ]
   [ "${notes_with_lon}" -gt 0 ]
   [ "${notes_with_created}" -gt 0 ]
   
-  # Check that some notes have closed_at attribute
+  # Check that some notes have closed_at attribute (optional, only for closed notes)
   local notes_with_closed
   notes_with_closed=$(grep -c 'closed_at="[^"]*"' "${xml_file}")
   [ "${notes_with_closed}" -ge 0 ]

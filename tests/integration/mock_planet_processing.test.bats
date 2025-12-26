@@ -1,8 +1,9 @@
 #!/usr/bin/env bats
 
 # Integration test for complete Planet XML processing using mock data
-# Author: Andres Gomez
-# Version: 2025-10-24
+# Tests end-to-end AWK processing workflows with mock Planet dump files
+# Author: Andres Gomez (AngocA)
+# Version: 2025-12-23
 
 load ../test_helper
 
@@ -63,29 +64,40 @@ teardown() {
  echo "✓ Mock XML file contains ${note_count} notes and ${comment_count} comments"
 }
 
+# =============================================================================
+# AWK Processing Tests
+# =============================================================================
+
 @test "AWK processing works with mock Planet XML (notes CSV)" {
- # Use existing AWK file for testing
- local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
- local output_file="${TEST_OUTPUT_DIR}/mock_notes.csv"
+  # Test: Process mock Planet XML to extract notes as CSV
+  # Purpose: Verify AWK script correctly extracts note data from XML structure
+  # Expected: CSV file should be created with note data, one line per note
+  # Use existing AWK file for testing
+  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
+  local output_file="${TEST_OUTPUT_DIR}/mock_notes.csv"
 
- # Verify AWK file exists
- [ -f "${awk_file}" ]
+  # Verify AWK file exists
+  [ -f "${awk_file}" ]
 
- # Process XML with AWK and redirect output to file
- awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}"
+  # Process XML with AWK and redirect output to file
+  # AWK script parses XML and extracts note attributes into CSV format
+  awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}"
 
- [ -f "${output_file}" ]
- [ -s "${output_file}" ]
+  # Verify output file was created and is not empty
+  [ -f "${output_file}" ]
+  [ -s "${output_file}" ]
 
- # Verify CSV structure (Planet AWK doesn't generate headers, only data)
- local line_count
- line_count=$(wc -l < "${output_file}")
- [ "${line_count}" -gt 0 ] # At least some data
+  # Verify CSV structure (Planet AWK doesn't generate headers, only data)
+  # Each line represents one note with comma-separated values
+  local line_count
+  line_count=$(wc -l < "${output_file}")
+  [ "${line_count}" -gt 0 ] # At least some data
 
- # Check data lines (first line should start with note ID)
- head -1 "${output_file}" | grep -q "^[0-9]"
+  # Check data lines (first line should start with note ID)
+  # This verifies CSV format is correct (numeric ID first)
+  head -1 "${output_file}" | grep -q "^[0-9]"
 
- echo "✓ Notes CSV generated successfully: ${line_count} lines"
+  echo "✓ Notes CSV generated successfully: ${line_count} lines"
 }
 
 @test "AWK processing works with mock Planet XML (comments CSV)" {
