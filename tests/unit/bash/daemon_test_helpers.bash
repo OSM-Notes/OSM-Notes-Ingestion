@@ -2,27 +2,24 @@
 
 # Common helper functions for daemon tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-23
+
+# Load common helpers
+if [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
+ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helpers_common.bash"
+else
+ source "$(dirname "${BASH_SOURCE[0]}")/../../test_helpers_common.bash"
+fi
 
 # =============================================================================
 # Setup and Teardown Helpers
 # =============================================================================
 
 __setup_daemon_test() {
- # Create temporary test directory
- TEST_DIR=$(mktemp -d)
- export TEST_DIR
+ # Use common setup function
+ __common_setup_test_dir "test_daemon"
 
- # Set up test environment variables
- # Force fallback mode for tests (use /tmp, not /var/log)
- export FORCE_FALLBACK_MODE="true"
- export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
- export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
- export BASENAME="test_daemon"
- export LOG_LEVEL="DEBUG"
- export __log_level="DEBUG"
- export TEST_MODE="true"
+ # Set daemon-specific environment variables
  export DAEMON_SLEEP_INTERVAL=60
 
  # Create mock lock file location
@@ -34,46 +31,28 @@ __setup_daemon_test() {
  rm -f "${DAEMON_SHUTDOWN_FLAG}"
 
  # Mock psql to simulate database state
- __setup_mock_psql
+ __common_setup_mock_psql
 
  # Load daemon functions
  source "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" 2>/dev/null || true
 }
 
 __teardown_daemon_test() {
- # Clean up test files
- if [[ -n "${TEST_DIR:-}" ]] && [[ -d "${TEST_DIR}" ]]; then
-  rm -rf "${TEST_DIR}"
- fi
- rm -f "${LOCK:-}"
- rm -f "${DAEMON_SHUTDOWN_FLAG:-}"
- rm -f /tmp/processAPINotesDaemon*.lock
- rm -f /tmp/processAPINotesDaemon*_shutdown
- rm -f /tmp/processAPINotesDaemon*.log
+ # Use common teardown function with additional patterns
+ __common_teardown_test_dir \
+  "${LOCK:-}" \
+  "${DAEMON_SHUTDOWN_FLAG:-}" \
+  "/tmp/processAPINotesDaemon*.lock" \
+  "/tmp/processAPINotesDaemon*_shutdown" \
+  "/tmp/processAPINotesDaemon*.log"
 }
 
 # =============================================================================
 # Mock Helpers
 # =============================================================================
 
+# Use common mock psql function (alias for backward compatibility)
 __setup_mock_psql() {
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  # Parse arguments to find -c command
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  # Default: return empty result
-  echo "0"
-  return 0
- }
- export -f psql
+ __common_setup_mock_psql "0"
 }
 

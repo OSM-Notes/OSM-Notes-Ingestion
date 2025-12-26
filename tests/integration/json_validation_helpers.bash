@@ -4,6 +4,13 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-23
 
+# Load common helpers
+if [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
+ load "$(dirname "$BATS_TEST_FILENAME")/../test_helpers_common.bash"
+else
+ source "$(dirname "${BASH_SOURCE[0]}")/../test_helpers_common.bash"
+fi
+
 # =============================================================================
 # Setup and Teardown Helpers
 # =============================================================================
@@ -12,15 +19,13 @@ __setup_json_validation_test() {
  # Load test helper first
  load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
- SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
- export SCRIPT_BASE_DIRECTORY
- export TMP_DIR="$(mktemp -d)"
- export BASENAME="test_json_validation_integration"
+ # Use common setup function
+ __common_setup_test_dir "test_json_validation_integration"
+
+ # Set JSON validation-specific environment variables
  export BASHPID=$$
  export RATE_LIMIT=4
  export OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
- export TEST_MODE="true"
- export DBNAME="${TEST_DBNAME:-test_db}"
 
  # Load required functions
  __load_validation_functions
@@ -42,10 +47,8 @@ __setup_json_validation_test() {
 }
 
 __teardown_json_validation_test() {
- # Cleanup
- if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
-  rm -rf "${TMP_DIR}" 2> /dev/null || true
- fi
+ # Use common teardown function
+ __common_teardown_test_dir
 }
 
 # =============================================================================

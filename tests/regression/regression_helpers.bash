@@ -2,56 +2,40 @@
 
 # Common helper functions for regression tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-23
+
+# Load common helpers
+if [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
+ load "$(dirname "$BATS_TEST_FILENAME")/../test_helpers_common.bash"
+else
+ source "$(dirname "${BASH_SOURCE[0]}")/../test_helpers_common.bash"
+fi
 
 # =============================================================================
 # Setup and Teardown Helpers
 # =============================================================================
 
 __setup_regression_test() {
- # Create temporary test directory
- TEST_DIR=$(mktemp -d)
- export TEST_DIR
-
- # Set up test environment variables
- export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
- export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
-
- # Set log level to DEBUG
- export LOG_LEVEL="DEBUG"
- export __log_level="DEBUG"
+ # Use common setup function
+ __common_setup_test_dir "test_regression"
 }
 
 __teardown_regression_test() {
- # Clean up test files
- if [[ -n "${TEST_DIR:-}" ]] && [[ -d "${TEST_DIR}" ]]; then
-  rm -rf "${TEST_DIR}"
- fi
+ # Use common teardown function
+ __common_teardown_test_dir
 }
 
 # =============================================================================
 # File Verification Helpers
 # =============================================================================
 
+# Use common verification functions (aliases for backward compatibility)
 __verify_file_exists() {
- local FILE_PATH="$1"
- local SKIP_MSG="${2:-File not found}"
-
- if [[ ! -f "${FILE_PATH}" ]]; then
-  skip "${SKIP_MSG}"
- fi
+ __common_verify_file_exists "$@"
 }
 
 __verify_pattern_in_file() {
- local FILE_PATH="$1"
- local PATTERN="$2"
- local ERROR_MSG="${3:-Pattern not found}"
-
- __verify_file_exists "${FILE_PATH}"
-
- run grep -qE "${PATTERN}" "${FILE_PATH}"
- [[ "${status}" -eq 0 ]] || echo "${ERROR_MSG}"
+ __common_verify_pattern_in_file "$@"
 }
 
 # =============================================================================
@@ -68,67 +52,39 @@ __extract_boundary_id_from_log() {
  echo "${BOUNDARY_ID}"
 }
 
+# Use common test log file creation function (alias for backward compatibility)
 __create_test_log_file() {
- local LOG_FILE="$1"
- shift
- local LOG_LINES=("$@")
-
- printf '%s\n' "${LOG_LINES[@]}" > "${LOG_FILE}"
+ __common_create_test_log_file "$@"
 }
 
 # =============================================================================
 # SQL Verification Helpers
 # =============================================================================
 
+# Use common SQL verification function (alias for backward compatibility)
 __verify_sql_pattern() {
- local SQL_FILE="$1"
- local PATTERN="$2"
- local ERROR_MSG="${3:-SQL pattern not found}"
-
- __verify_file_exists "${SQL_FILE}"
-
- run grep -qE "${PATTERN}" "${SQL_FILE}"
- [[ "${status}" -eq 0 ]] || echo "${ERROR_MSG}"
+ __common_verify_sql_pattern "$@"
 }
 
 # =============================================================================
 # Script Verification Helpers
 # =============================================================================
 
+# Use common script verification function (alias for backward compatibility)
 __verify_script_pattern() {
- local SCRIPT_FILE="$1"
- local PATTERN="$2"
- local ERROR_MSG="${3:-Script pattern not found}"
-
- __verify_file_exists "${SCRIPT_FILE}"
-
- run grep -qE "${PATTERN}" "${SCRIPT_FILE}"
- [[ "${status}" -eq 0 ]] || echo "${ERROR_MSG}"
+ __common_verify_script_pattern "$@"
 }
 
 # =============================================================================
 # Mock Helpers
 # =============================================================================
 
+# Use common mock psql functions (aliases for backward compatibility)
 __mock_psql_false() {
- psql() {
-  if [[ "$1" == "-d" ]] && [[ "$3" == "-Atq" ]]; then
-   echo "false"
-   return 0
-  fi
-  return 0
- }
- export -f psql
+ __common_mock_psql_false
 }
 
 __mock_psql_empty() {
- psql() {
-  if [[ "$1" == "-d" ]] && [[ "$3" == "-Atq" ]]; then
-   echo ""
-   return 0
-  fi
-  return 0
- }
- export -f psql
+ __common_mock_psql_empty
 }
 
