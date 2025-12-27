@@ -59,7 +59,10 @@ EOF
  __create_overpass_query "${TEST_ID}" "${QUERY_FILE}"
 
  # Setup mock curl that returns corrupted JSON first, then valid JSON
- local RETRY_COUNT=0
+ # Use a file to track retry count across function calls
+ local RETRY_COUNT_FILE="${TMP_DIR}/retry_count.txt"
+ echo "0" > "${RETRY_COUNT_FILE}"
+ 
  curl() {
   local ARGS=("$@")
   local OUTPUT_FILE=""
@@ -72,11 +75,15 @@ EOF
    fi
   done
   
+  # Read current retry count
+  local CURRENT_RETRY
+  CURRENT_RETRY=$(cat "${RETRY_COUNT_FILE}" 2>/dev/null || echo "0")
+  
   # First attempt: return corrupted JSON
   # Subsequent attempts: return valid JSON
-  if [[ ${RETRY_COUNT} -eq 0 ]]; then
+  if [[ ${CURRENT_RETRY} -eq 0 ]]; then
    cp "${CORRUPTED_JSON}" "${OUTPUT_FILE}"
-   RETRY_COUNT=$((RETRY_COUNT + 1))
+   echo "1" > "${RETRY_COUNT_FILE}"
   else
    cp "${VALID_JSON}" "${OUTPUT_FILE}"
   fi
@@ -245,8 +252,26 @@ EOF
  # Create query
  __create_overpass_query "${TEST_ID}" "${QUERY_FILE}"
 
- # Setup mock curl
- __setup_mock_curl_overpass "${QUERY_FILE}" "${VALID_JSON}"
+ # Setup mock curl that returns valid JSON
+ curl() {
+  local ARGS=("$@")
+  local OUTPUT_FILE=""
+  
+  # Extract output file
+  for i in "${!ARGS[@]}"; do
+   if [[ "${ARGS[$i]}" == "-o" ]] && [[ $((i + 1)) -lt ${#ARGS[@]} ]]; then
+    OUTPUT_FILE="${ARGS[$((i + 1))]}"
+    break
+   fi
+  done
+  
+  # Copy valid JSON to output file
+  if [[ -n "${OUTPUT_FILE}" ]]; then
+   cp "${VALID_JSON}" "${OUTPUT_FILE}"
+  fi
+  return 0
+ }
+ export -f curl
 
  # Use __retry_file_operation for download
  # Note: Using smart_wait=false to avoid dependency on download queue functions in test environment

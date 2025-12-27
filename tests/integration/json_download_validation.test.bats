@@ -46,10 +46,40 @@ EOF
  # Create query file
  __create_overpass_query "${TEST_ID}" "${QUERY_FILE}"
 
- # Setup mock curl for Overpass API
- __setup_mock_curl_overpass "${QUERY_FILE}" "${VALID_JSON}"
+ # Setup mock curl for Overpass API that uses our valid JSON
+ curl() {
+  local ARGS=("$@")
+  local OUTPUT_FILE=""
+  
+  # Extract output file
+  for i in "${!ARGS[@]}"; do
+   if [[ "${ARGS[$i]}" == "-o" ]] && [[ $((i + 1)) -lt ${#ARGS[@]} ]]; then
+    OUTPUT_FILE="${ARGS[$((i + 1))]}"
+    break
+   fi
+  done
+  
+  # Check if this is an Overpass API call
+  local IS_OVERPASS=false
+  for arg in "${ARGS[@]}"; do
+   if echo "${arg}" | grep -qE "overpass.*api.*interpreter|api/interpreter"; then
+    IS_OVERPASS=true
+    break
+   fi
+  done
+  
+  if [[ "${IS_OVERPASS}" == "true" ]] && [[ -n "${OUTPUT_FILE}" ]]; then
+   # Copy our valid JSON to output file
+   cp "${VALID_JSON}" "${OUTPUT_FILE}"
+   return 0
+  fi
+  
+  # Default: return success
+  return 0
+ }
+ export -f curl
 
- # Download using the helper function (which uses curl)
+ # Download using curl
  run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "${JSON_FILE}" --data-binary @"${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> /dev/null
 
  # Verify download succeeded
