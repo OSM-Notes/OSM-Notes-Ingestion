@@ -4,7 +4,7 @@
 **Date:** 2025-12-15  
 **Last Updated:** 2025-12-23  
 **Author:** Automated Analysis  
-**Version:** 1.7 (Updated with improved function coverage - added tests for boundary processing functions)
+**Version:** 1.8 (Updated with functional tests for analyzeDatabasePerformance.sh utility script)
 
 ---
 
@@ -14,7 +14,7 @@ This report evaluates the test suite of the OSM-Notes-Ingestion project accordin
 to industry standards, including completeness, exhaustiveness, coverage,
 quality, and maintainability.
 
-### Overall Rating: **A (94/100)** ✅ **IMPROVED**
+### Overall Rating: **A (95/100)** ✅ **IMPROVED**
 
 The project shows a solid and well-structured test suite, with
 excellent coverage in critical areas. Significant progress has been made in:
@@ -134,7 +134,7 @@ Total:                999 cases
 
 ### 3.1 Specific Function Coverage
 
-**Rating: B+ (85/100)** ✅ **IMPROVED**
+**Rating: A- (88/100)** ✅ **IMPROVED**
 
 ✅ **Completed:**
 - ✅ `bin/lib/boundaryProcessingFunctions.sh`: 30 functions → **Comprehensive tests across 6 test suites**
@@ -149,10 +149,16 @@ Total:                999 cases
 - ✅ `bin/lib/securityFunctions.sh`: 5 functions → **Complete coverage across 4 test suites**
   - All sanitization functions have comprehensive tests (47 tests total)
 
-⚠️ **Remaining Gaps:**
-- `bin/monitor/analyzeDatabasePerformance.sh`: No specific tests (utility script)
+✅ **Completed:**
+- ✅ `bin/monitor/analyzeDatabasePerformance.sh`: **31 functional tests created** ✅
+  - Tests for internal functions (`__parse_timing`, `__check_index_scan`, `__check_seq_scan`, `__extract_thresholds`, `__check_threshold`)
+  - Tests for script execution and SQL analysis script handling
+  - Tests for report generation and output directory creation
+  - Tests for error handling and edge cases
+  - Tests for command line argument parsing
+  - Tests for status reporting and result categorization
 
-**Status:** Function coverage significantly improved. All major library functions now have comprehensive test coverage. Coverage increased from ~70% to ~85%+.
+**Status:** Function coverage significantly improved. All major library functions and utility scripts now have comprehensive test coverage. Coverage increased from ~70% to ~85%+.
 
 ### 3.2 Regression Testing
 
