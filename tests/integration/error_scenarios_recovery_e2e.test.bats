@@ -64,7 +64,7 @@ teardown() {
   if __retry_with_recovery; then
    break
   fi
-  sleep 0.1
+  __test_sleep 0.1
  done
 
  # Should succeed after recovery

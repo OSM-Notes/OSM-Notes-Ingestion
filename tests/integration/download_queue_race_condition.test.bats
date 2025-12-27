@@ -69,7 +69,7 @@ teardown() {
     local WAIT_MS=$((WAIT_TIME / 1000000))
 
     # Simulate download
-    sleep 0.1
+    __test_sleep 0.1
 
     # Record result
     echo "PID_${i}:TICKET_${TICKET}:WAIT_${WAIT_MS}ms:SUCCESS" >> "${RESULTS_FILE}"
@@ -157,7 +157,7 @@ teardown() {
     echo "${TICKET}:$(date +%s%N)" >> "${ORDER_FILE}"
 
     # Hold slot briefly
-    sleep 0.2
+    __test_sleep 0.2
 
     # Release
     __release_download_ticket "${TICKET}" > /dev/null 2>&1 || true
@@ -233,7 +233,7 @@ teardown() {
   ) &
 
   # Small delay to simulate rapid requests
-  sleep 0.1
+  __test_sleep 0.1
  done
 
  # Wait for all

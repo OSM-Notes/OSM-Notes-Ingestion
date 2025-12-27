@@ -61,7 +61,7 @@ __start_mock_server() {
  if command -v python3 > /dev/null 2>&1; then
   python3 -m http.server "${port}" > /dev/null 2>&1 &
   MOCK_SERVER_PID=$!
-  sleep 1
+  __test_sleep 1
   return 0
  fi
  return 1

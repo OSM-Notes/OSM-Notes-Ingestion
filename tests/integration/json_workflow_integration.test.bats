@@ -47,7 +47,7 @@ teardown() {
  while [[ ${DOWNLOAD_RETRY_COUNT} -lt ${MAX_DOWNLOAD_RETRIES} ]] && [[ "${DOWNLOAD_SUCCESS}" == "false" ]]; do
   if [[ ${DOWNLOAD_RETRY_COUNT} -gt 0 ]]; then
    rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
-   sleep 2
+   __test_sleep 2
   fi
 
   run curl -s -H "User-Agent: OSM-Notes-Ingestion/1.0" -o "${JSON_FILE}" --data-binary @"${QUERY_FILE}" "${OVERPASS_INTERPRETER}" 2> "${OUTPUT_OVERPASS}"
@@ -77,7 +77,7 @@ teardown() {
  while [[ ${GEOJSON_RETRY_COUNT} -lt ${MAX_GEOJSON_RETRIES} ]] && [[ "${GEOJSON_SUCCESS}" == "false" ]]; do
   if [[ ${GEOJSON_RETRY_COUNT} -gt 0 ]]; then
    rm -f "${GEOJSON_FILE}" 2> /dev/null || true
-   sleep 1
+   __test_sleep 1
   fi
 
   # Step 4: Convert

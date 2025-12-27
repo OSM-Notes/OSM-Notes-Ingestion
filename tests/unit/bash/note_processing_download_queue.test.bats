@@ -212,7 +212,7 @@ teardown() {
  [[ "${status}" -eq 0 ]]
  
  # Wait a moment for file system to sync
- sleep 0.1
+ __test_sleep 0.1
  
  # Lock file should be removed
  [[ ! -f "${LOCK_FILE}" ]] || echo "Lock file still exists: ${LOCK_FILE}"

@@ -52,7 +52,7 @@ teardown() {
  while [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -lt ${GEOJSON_VALIDATION_RETRIES} ]] && [[ "${GEOJSON_SUCCESS}" == "false" ]]; do
   if [[ ${GEOJSON_VALIDATION_RETRY_COUNT} -gt 0 ]]; then
    rm -f "${GEOJSON_FILE}" 2> /dev/null || true
-   sleep 1
+   __test_sleep 1
   fi
 
   # Convert to GeoJSON

@@ -74,7 +74,7 @@ EOF
   fi
 
   # Small delay between downloads
-  sleep 1
+  __test_sleep 1
  done
 
  # Should have at least some success (skip if no connectivity)
@@ -238,7 +238,7 @@ EOF
  done
 
  # Wait a bit
- sleep 3
+ __test_sleep 3
 
  # Check how many locks were created (should be <= RATE_LIMIT)
  if [ -d "${TMP_DIR}/download_queue/active" ]; then

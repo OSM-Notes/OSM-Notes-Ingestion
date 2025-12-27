@@ -115,7 +115,7 @@ __calculate_sleep_time() {
  START_TIME=$(date +%s)
 
  # Simulate processing
- sleep 1
+ __test_sleep 1
 
  local END_TIME
  END_TIME=$(date +%s)
@@ -281,7 +281,7 @@ __calculate_sleep_time() {
  START_TIME=$(date +%s)
 
  # Simulate processing
- sleep 1
+ __test_sleep 1
 
  local END_TIME
  END_TIME=$(date +%s)

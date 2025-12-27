@@ -145,7 +145,7 @@ EOF
       prev_arg="${arg}"
     done
     echo "Mock curl: downloading to ${output_file}"
-    sleep 0.1  # Simulate download time
+    __test_sleep 0.1  # Simulate download time
     echo "Downloaded content" > "${output_file}"
     return 0
   }
@@ -198,7 +198,7 @@ EOF
       fi
     fi
     RETRY_COUNT=$((RETRY_COUNT + 1))
-    sleep 0.1  # Short delay for test
+    __test_sleep 0.1  # Short delay for test
   done
   
   [[ "${DOWNLOAD_SUCCESS}" == true ]]

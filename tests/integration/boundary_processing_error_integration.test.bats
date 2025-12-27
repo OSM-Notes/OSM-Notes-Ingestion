@@ -118,7 +118,7 @@ EOF
   # Add delay between API calls to respect Overpass rate limiting (recommended: 1-2 seconds)
   if [ ${tested_count} -gt 0 ]; then
    echo "Waiting 3 seconds before next API call to respect Overpass rate limiting..."
-   sleep 3
+   __test_sleep 3
   fi
 
   # Test Overpass API call for invalid ID
@@ -179,7 +179,7 @@ EOF
   # Add delay between API calls
   if [ ${tested_count} -gt 0 ]; then
    echo "Waiting 3 seconds before next API call to respect Overpass rate limiting..."
-   sleep 3
+   __test_sleep 3
   fi
 
   # Test Overpass API call for valid ID

@@ -98,7 +98,7 @@ teardown() {
    SUCCESS=1
    break
   fi
-  sleep 0.1
+  __test_sleep 0.1
  done
 
  # Should succeed after retries

@@ -5,6 +5,8 @@
 # Version: 2025-12-22
 # Optimized: Consolidated function existence checks (2025-01-23)
 
+load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
+
 setup() {
  # Setup test environment
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
@@ -63,7 +65,7 @@ teardown() {
 #!/bin/bash
 # Mock job that fails
 echo "Mock job starting..."
-sleep 1
+__test_sleep 1
 exit 1  # Simulate failure
 EOF
  chmod +x "$mock_job_script"
