@@ -176,11 +176,51 @@ jobs:
       with:
         submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 2  # Need history for test selection
+
+    # Cache apt packages
+    - name: Cache apt packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt
+        key: ${{ runner.os }}-apt-${{ hashFiles('**/apt-packages.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-apt-
+
+    # Cache test fixtures
+    - name: Cache test fixtures
+      uses: actions/cache@v4
+      with:
+        path: |
+          tests/fixtures
+          tests/tmp
+        key: ${{ runner.os }}-fixtures-${{ hashFiles('tests/fixtures/**/*') }}
+        restore-keys: |
+          ${{ runner.os }}-fixtures-
+
+    # Cache Node.js dependencies
+    - name: Cache Node.js dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    # Cache shfmt binary
+    - name: Cache shfmt
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/bin/shfmt
+        key: ${{ runner.os }}-shfmt-v5.2.0
+        restore-keys: |
+          ${{ runner.os }}-shfmt-
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
 
     - name: Install dependencies
       run: |
@@ -199,9 +239,14 @@ jobs:
 
     - name: Install shfmt
       run: |
-        if ! command -v shfmt; then
-          chmod +x tests/install_shfmt.sh
-          ./tests/install_shfmt.sh
+        if ! command -v shfmt > /dev/null 2>&1; then
+          if [[ -f ~/.local/bin/shfmt ]]; then
+            mkdir -p ~/.local/bin
+            export PATH="$HOME/.local/bin:$PATH"
+          else
+            chmod +x tests/install_shfmt.sh
+            ./tests/install_shfmt.sh
+          fi
         fi
 
     - name: Setup test environment
