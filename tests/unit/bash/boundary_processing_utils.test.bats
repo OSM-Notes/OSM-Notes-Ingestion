@@ -32,6 +32,38 @@ teardown() {
 }
 
 # =============================================================================
+# Tests for __get_countries_table_name
+# =============================================================================
+
+@test "__get_countries_table_name should return 'countries' by default" {
+ # Test default behavior (USE_COUNTRIES_NEW not set)
+ unset USE_COUNTRIES_NEW
+ result=$(__get_countries_table_name)
+ [[ "${result}" == "countries" ]]
+}
+
+@test "__get_countries_table_name should return 'countries_new' when USE_COUNTRIES_NEW=true" {
+ # Test with USE_COUNTRIES_NEW=true
+ export USE_COUNTRIES_NEW="true"
+ result=$(__get_countries_table_name)
+ [[ "${result}" == "countries_new" ]]
+}
+
+@test "__get_countries_table_name should return 'countries' when USE_COUNTRIES_NEW=false" {
+ # Test with USE_COUNTRIES_NEW=false
+ export USE_COUNTRIES_NEW="false"
+ result=$(__get_countries_table_name)
+ [[ "${result}" == "countries" ]]
+}
+
+@test "__get_countries_table_name should return 'countries' when USE_COUNTRIES_NEW is empty" {
+ # Test with empty USE_COUNTRIES_NEW
+ export USE_COUNTRIES_NEW=""
+ result=$(__get_countries_table_name)
+ [[ "${result}" == "countries" ]]
+}
+
+# =============================================================================
 # Tests for __resolve_geojson_file
 # =============================================================================
 

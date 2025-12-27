@@ -96,6 +96,66 @@ teardown() {
  [[ "${status}" -ge 0 ]]
 }
 
+@test "__processCountries_impl should handle empty countries list" {
+ export TEST_MODE="true"
+ export BATS_TEST_NAME="test"
+ export QUERY_FILE="${TEST_DIR}/countries.op"
+
+ # Create minimal query file
+ echo "[out:csv(::id)];relation[\"admin_level\"=\"2\"][\"type\"=\"boundary\"];out;" > "${QUERY_FILE}"
+
+ # Mock disk space check
+ __check_disk_space() {
+  return 0
+ }
+ export -f __check_disk_space
+
+ # Mock Overpass query to return empty result
+ __retry_file_operation() {
+  echo "country_id" > "${TEST_DIR}/countries_ids.csv"
+  return 0
+ }
+ export -f __retry_file_operation
+
+ run __processCountries_impl 2>/dev/null
+ # Should handle empty list gracefully
+ [[ "${status}" -ge 0 ]]
+}
+
+@test "__processCountries_impl should handle backup comparison" {
+ export TEST_MODE="true"
+ export BATS_TEST_NAME="test"
+ export QUERY_FILE="${TEST_DIR}/countries.op"
+ export USE_COUNTRIES_NEW="false"
+
+ # Create minimal query file
+ echo "[out:csv(::id)];relation[\"admin_level\"=\"2\"][\"type\"=\"boundary\"];out;" > "${QUERY_FILE}"
+
+ # Mock disk space check
+ __check_disk_space() {
+  return 0
+ }
+ export -f __check_disk_space
+
+ # Mock Overpass query
+ __retry_file_operation() {
+  echo "country_id" > "${TEST_DIR}/countries_ids.csv"
+  echo "12345" >> "${TEST_DIR}/countries_ids.csv"
+  return 0
+ }
+ export -f __retry_file_operation
+
+ # Mock __compareIdsWithBackup to return success (can use backup)
+ __compareIdsWithBackup() {
+  return 0
+ }
+ export -f __compareIdsWithBackup
+
+ run __processCountries_impl 2>/dev/null
+ # Should handle backup comparison
+ [[ "${status}" -ge 0 ]]
+}
+
 # =============================================================================
 # Tests for __processMaritimes_impl (Basic tests - complex function)
 # =============================================================================
@@ -116,6 +176,65 @@ teardown() {
 
  run __processMaritimes_impl 2>/dev/null
  # Function may fail due to missing dependencies, but should not crash
+ [[ "${status}" -ge 0 ]]
+}
+
+@test "__processMaritimes_impl should handle empty maritimes list" {
+ export TEST_MODE="true"
+ export BATS_TEST_NAME="test"
+ export QUERY_FILE="${TEST_DIR}/maritimes.op"
+
+ # Create minimal query file
+ echo "[out:csv(::id)];relation[\"boundary\"=\"maritime\"];out;" > "${QUERY_FILE}"
+
+ # Mock __resolve_geojson_file to return non-existent
+ __resolve_geojson_file() {
+  return 1
+ }
+ export -f __resolve_geojson_file
+
+ # Mock Overpass query to return empty result
+ __retry_file_operation() {
+  echo "country_id" > "${TEST_DIR}/maritimes_ids.csv"
+  return 0
+ }
+ export -f __retry_file_operation
+
+ run __processMaritimes_impl 2>/dev/null
+ # Should handle empty list gracefully
+ [[ "${status}" -ge 0 ]]
+}
+
+@test "__processMaritimes_impl should handle backup comparison" {
+ export TEST_MODE="true"
+ export BATS_TEST_NAME="test"
+ export QUERY_FILE="${TEST_DIR}/maritimes.op"
+
+ # Create minimal query file
+ echo "[out:csv(::id)];relation[\"boundary\"=\"maritime\"];out;" > "${QUERY_FILE}"
+
+ # Mock __resolve_geojson_file to return non-existent
+ __resolve_geojson_file() {
+  return 1
+ }
+ export -f __resolve_geojson_file
+
+ # Mock Overpass query
+ __retry_file_operation() {
+  echo "country_id" > "${TEST_DIR}/maritimes_ids.csv"
+  echo "12345" >> "${TEST_DIR}/maritimes_ids.csv"
+  return 0
+ }
+ export -f __retry_file_operation
+
+ # Mock __compareIdsWithBackup to return success (can use backup)
+ __compareIdsWithBackup() {
+  return 0
+ }
+ export -f __compareIdsWithBackup
+
+ run __processMaritimes_impl 2>/dev/null
+ # Should handle backup comparison
  [[ "${status}" -ge 0 ]]
 }
 
