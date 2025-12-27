@@ -413,6 +413,45 @@ __setup_mock_ogr2ogr() {
  export -f ogr2ogr
 }
 
+# =============================================================================
+# Database Connectivity Helpers
+# =============================================================================
+
+# Check database connectivity
+# Usage: __check_database_connectivity [DBNAME]
+# Returns: 0 if database is accessible, 1 otherwise
+# Sets: __DB_AVAILABLE=1 if accessible, 0 otherwise
+__check_database_connectivity() {
+ local DBNAME_TO_CHECK="${1:-${DBNAME:-osm_notes_ingestion_test}}"
+ 
+ # Check if psql is available
+ if ! command -v psql > /dev/null 2>&1; then
+  export __DB_AVAILABLE=0
+  return 1
+ fi
+ 
+ # Check database connectivity
+ if psql -d "${DBNAME_TO_CHECK}" -c "SELECT 1;" > /dev/null 2>&1; then
+  export __DB_AVAILABLE=1
+  return 0
+ else
+  export __DB_AVAILABLE=0
+  return 1
+ fi
+}
+
+# Skip test if database is not available
+# Usage: __skip_if_no_database [DBNAME] [MESSAGE]
+# Example: __skip_if_no_database "${DBNAME}" "Database not available"
+__skip_if_no_database() {
+ local DBNAME_TO_CHECK="${1:-${DBNAME:-osm_notes_ingestion_test}}"
+ local MESSAGE="${2:-Database ${DBNAME_TO_CHECK} not available}"
+ 
+ if ! __check_database_connectivity "${DBNAME_TO_CHECK}"; then
+  skip "${MESSAGE}"
+ fi
+}
+
 # Mock curl for API calls with pattern matching
 # Usage: __setup_mock_curl_for_api [URL_PATTERN] [RESPONSE_FILE] [HTTP_CODE]
 # Example: __setup_mock_curl_for_api "api.openstreetmap.org" "/tmp/response.xml" 200

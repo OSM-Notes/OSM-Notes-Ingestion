@@ -127,6 +127,11 @@ export PGUSER="${TEST_DBUSER}"
 export PGPASSWORD="${TEST_DBPASSWORD}"
 export PGDATABASE="${TEST_DBNAME}"
 
+# Load common test helpers
+if [[ -f "${TEST_BASE_DIR}/tests/test_helpers_common.bash" ]]; then
+ source "${TEST_BASE_DIR}/tests/test_helpers_common.bash"
+fi
+
 # Initialize logging system
 __start_logger
 

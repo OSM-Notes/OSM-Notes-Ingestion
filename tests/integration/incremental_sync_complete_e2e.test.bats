@@ -112,9 +112,7 @@ teardown() {
  # Expected: New notes are inserted into database
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Use existing table structure (note_id, latitude, longitude)
  # Check if table exists and has correct structure
@@ -190,9 +188,7 @@ EOSQL
  # Expected: All steps complete successfully
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Step 1: Check last sync timestamp
  local LAST_SYNC_FILE="${TMP_DIR}/last_sync.txt"
@@ -277,9 +273,7 @@ EOF
  # Expected: Only new notes are inserted, existing notes are not duplicated
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Check table structure and use appropriate column names
  local TABLE_EXISTS

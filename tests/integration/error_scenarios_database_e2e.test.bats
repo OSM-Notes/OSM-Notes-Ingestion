@@ -44,9 +44,7 @@ teardown() {
  # Expected: Error is caught and logged
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Mock psql to fail
  psql() {
@@ -72,9 +70,7 @@ teardown() {
  # Expected: Error is caught and logged
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Create test table with constraint
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true

@@ -48,9 +48,7 @@ teardown() {
  # Expected: Partition tables exist with correct structure
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Create partition table structure
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -92,9 +90,7 @@ EOSQL
  # Expected: Data is distributed across partitions based on ID ranges
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Create and populate partitions
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -147,9 +143,7 @@ EOSQL
  # Expected: All partition data is moved to main table
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Create main table and partitions
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -216,9 +210,7 @@ EOSQL
  # Expected: Data integrity checks pass
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Create partition with data
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -258,9 +250,7 @@ EOSQL
  # Expected: All steps complete successfully
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Step 1: Create partitions
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -353,9 +343,7 @@ EOF
  # Expected: Partitions are dropped after successful consolidation
 
  # Skip if database not available
- if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${DBNAME} not available"
- fi
+ __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
  # Create partitions and consolidate
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
