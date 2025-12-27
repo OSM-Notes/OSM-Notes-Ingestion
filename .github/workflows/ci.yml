@@ -26,6 +26,68 @@ permissions:
 
 jobs:
   # ============================================================================
+  # STAGE 0: Test Selection (determines which tests to run)
+  # ============================================================================
+  test-selection:
+    name: Test Selection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    outputs:
+      boundary_tests: ${{ steps.select.outputs.boundary_tests }}
+      note_tests: ${{ steps.select.outputs.note_tests }}
+      security_tests: ${{ steps.select.outputs.security_tests }}
+      validation_tests: ${{ steps.select.outputs.validation_tests }}
+      performance_tests: ${{ steps.select.outputs.performance_tests }}
+      integration_tests: ${{ steps.select.outputs.integration_tests }}
+      run_all: ${{ steps.select.outputs.run_all }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2  # Need history for diff
+    
+    - name: Determine test selection
+      id: select
+      run: |
+        # Source the test selection script
+        source tests/select_tests_by_changes.sh
+        
+        # Determine which tests to run
+        determine_test_selection
+        
+        # Export results
+        {
+          echo "boundary_tests=${RUN_BOUNDARY_TESTS:-false}"
+          echo "note_tests=${RUN_NOTE_TESTS:-false}"
+          echo "security_tests=${RUN_SECURITY_TESTS:-false}"
+          echo "validation_tests=${RUN_VALIDATION_TESTS:-false}"
+          echo "performance_tests=${RUN_PERFORMANCE_TESTS:-false}"
+          echo "integration_tests=${RUN_INTEGRATION_TESTS:-false}"
+          
+          # Determine if we should run all tests
+          if [[ "${RUN_BOUNDARY_TESTS}" == "true" ]] && \
+             [[ "${RUN_NOTE_TESTS}" == "true" ]] && \
+             [[ "${RUN_SECURITY_TESTS}" == "true" ]] && \
+             [[ "${RUN_VALIDATION_TESTS}" == "true" ]]; then
+            echo "run_all=true"
+          else
+            echo "run_all=false"
+          fi
+        } >> "$GITHUB_OUTPUT"
+    
+    - name: Show test selection
+      run: |
+        echo "## Test Selection Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- Boundary tests: ${{ steps.select.outputs.boundary_tests }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Note tests: ${{ steps.select.outputs.note_tests }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security tests: ${{ steps.select.outputs.security_tests }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Validation tests: ${{ steps.select.outputs.validation_tests }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance tests: ${{ steps.select.outputs.performance_tests }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Integration tests: ${{ steps.select.outputs.integration_tests }}" >> $GITHUB_STEP_SUMMARY
+  
+  # ============================================================================
   # STAGE 1: Quick Quality Checks (always run - fast feedback)
   # ============================================================================
   quick-checks:
