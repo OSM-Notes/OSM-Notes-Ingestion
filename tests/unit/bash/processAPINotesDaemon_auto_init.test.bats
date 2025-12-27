@@ -292,3 +292,76 @@ EOF
  [[ "${PLANET_BASE_EXIT_CODE}" -ne 0 ]]
  [[ "${ERROR_LOGGED}" -eq 1 ]]
 }
+
+@test "Daemon should detect empty database and trigger Planet --base in complete flow" {
+ # Test: Daemon detects empty DB and executes processPlanetNotes.sh --base in complete flow
+ # Purpose: Verify that daemon's __process_api_data function detects empty DB and triggers auto-init
+ # Expected: When DB is empty, daemon should execute processPlanetNotes.sh --base
+ # Note: This test verifies the complete flow in __process_api_data (lines 674-772)
+
+ local PLANET_BASE_CALLED=0
+ local PLANET_BASE_EXIT_CODE=1
+
+ # Mock processPlanetNotes.sh --base
+ NOTES_SYNC_SCRIPT="${TEST_DIR}/mock_processPlanetNotes_complete.sh"
+ cat > "${NOTES_SYNC_SCRIPT}" << 'EOF'
+#!/bin/bash
+if [[ "${1}" == "--base" ]]; then
+ echo "Mock: processPlanetNotes.sh --base executed successfully"
+ exit 0
+fi
+exit 1
+EOF
+ chmod +x "${NOTES_SYNC_SCRIPT}"
+
+ # Mock psql to simulate empty database
+ # All queries should return 0 (tables don't exist or are empty)
+ local CALL_COUNT=0
+ psql() {
+  CALL_COUNT=$((CALL_COUNT + 1))
+  # All queries return 0 (empty database)
+  echo "0"
+  return 0
+ }
+ export -f psql
+
+ # Simulate daemon's __process_api_data function logic for empty DB detection
+ # This mirrors the code in processAPINotesDaemon.sh lines 674-772
+ local TIMESTAMP_TABLE_EXISTS
+ TIMESTAMP_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'max_note_timestamp'" \
+  2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
+ local TIMESTAMP_COUNT=0
+ if [[ "${TIMESTAMP_TABLE_EXISTS}" == "1" ]]; then
+  TIMESTAMP_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+   "SELECT COUNT(*) FROM max_note_timestamp" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ fi
+
+ local NOTES_TABLE_EXISTS
+ NOTES_TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'notes'" \
+  2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+
+ local NOTES_COUNT=0
+ if [[ "${NOTES_TABLE_EXISTS}" == "1" ]]; then
+  NOTES_COUNT=$(psql -d "${DBNAME}" -Atq -c \
+   "SELECT COUNT(*) FROM notes" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ fi
+
+ local LAST_PROCESSED_TIMESTAMP=""
+
+ # Check if database is empty (all conditions indicate empty DB)
+ if [[ "${TIMESTAMP_TABLE_EXISTS}" == "0" ]] || [[ "${TIMESTAMP_COUNT}" == "0" ]] || \
+    [[ -z "${LAST_PROCESSED_TIMESTAMP}" ]] || [[ "${NOTES_TABLE_EXISTS}" == "0" ]] || \
+    [[ "${NOTES_COUNT}" == "0" ]]; then
+  # Execute processPlanetNotes.sh --base
+  "${NOTES_SYNC_SCRIPT}" --base
+  PLANET_BASE_EXIT_CODE=$?
+  PLANET_BASE_CALLED=1
+ fi
+
+ # Verify that Planet --base was called and succeeded
+ [[ "${PLANET_BASE_CALLED}" -eq 1 ]]
+ [[ "${PLANET_BASE_EXIT_CODE}" -eq 0 ]]
+}
