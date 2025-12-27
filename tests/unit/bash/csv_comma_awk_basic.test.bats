@@ -149,6 +149,11 @@ teardown() {
  rm -rf "${TMP_DIR}"
 }
 @test "extract_comment_texts.awk should handle commas in text (API format)" {
+ # Test: AWK script handles commas in comment text for API format
+ # Purpose: Verify that commas in comment text are properly quoted in CSV output
+ # Expected: CSV should have exactly 4 fields, with text containing commas properly quoted
+ # Note: This ensures CSV parsing doesn't break when comments contain commas
+
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
  local output_file="${TMP_DIR}/test_text_comments_commas.csv"
 
@@ -174,6 +179,11 @@ teardown() {
  [[ "${line_with_commas}" =~ .*\",.*$ ]]
 }
 @test "extract_comment_texts.awk should handle commas in text (Planet format)" {
+ # Test: AWK script handles commas in comment text for Planet format
+ # Purpose: Verify that commas in comment text are properly quoted in CSV output for Planet format
+ # Expected: CSV should have exactly 4 fields, with text containing commas properly quoted
+ # Note: Planet format has different XML structure but should produce same CSV format
+
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
  local output_file="${TMP_DIR}/test_text_comments_commas_planet.csv"
 

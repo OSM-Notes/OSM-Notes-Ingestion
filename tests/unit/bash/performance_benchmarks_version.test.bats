@@ -41,6 +41,11 @@ teardown() {
 # =============================================================================
 
 @test "BENCHMARK: Compare with previous version" {
+ # Test: Benchmark version comparison functionality
+ # Purpose: Verify that benchmark comparison system works correctly
+ # Expected: Should establish baseline, record second run, and compare results
+ # Note: This test verifies the benchmark infrastructure for performance tracking
+
  local -r test_name="xml_validation"
  
  # Run benchmark first to establish baseline

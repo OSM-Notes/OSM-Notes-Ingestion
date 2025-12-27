@@ -70,8 +70,17 @@ teardown() {
  # Drop test database if it exists
  psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2> /dev/null || true
 }
+# =============================================================================
+# Edge Cases: File Handling
+# =============================================================================
+
 # Test with very large XML files
 @test "Edge case: Very large XML files should be handled gracefully" {
+ # Test: System handles very large XML files without memory issues
+ # Purpose: Verify that large XML files (1000+ notes) are processed correctly
+ # Expected: File should be created, validated, and processed without errors
+ # Note: This tests memory efficiency and file handling for production-scale data
+
  # Create a large XML file
  local LARGE_XML="${TMP_DIR}/large_notes.xml"
 
@@ -108,8 +117,14 @@ EOF
  run xmllint --noout "${LARGE_XML}"
  [[ "${status}" -eq 0 ]]
 }
+
 # Test with malformed XML files
 @test "Edge case: Malformed XML files should be handled gracefully" {
+ # Test: System detects and handles malformed XML files
+ # Purpose: Verify that invalid XML structure is detected and handled appropriately
+ # Expected: xmllint should detect malformed XML and return error status
+ # Note: This ensures data validation prevents processing of corrupted files
+
  # Create malformed XML files
  local MALFORMED_XML="${TMP_DIR}/malformed_notes.xml"
 
