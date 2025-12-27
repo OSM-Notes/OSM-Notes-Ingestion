@@ -6,6 +6,7 @@
 # Version: 2025-12-15
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
+load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 load "${BATS_TEST_DIRNAME}/daemon_test_helpers"
 
 setup() {
@@ -48,29 +49,11 @@ teardown() {
  local TRACK_FILE="${TEST_DIR}/psql_track"
  echo "0" > "${TRACK_FILE}"
 
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  echo "1" > "${TRACK_FILE}"
-  # Check if query contains max_note_timestamp check
-  if [[ "${CMD}" == *"max_note_timestamp"* ]] && [[ "${CMD}" == *"information_schema"* ]]; then
-   echo "1" > "${TEST_DIR}/query_matched"
-   echo "0" # Table doesn't exist
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
+ # Mock psql with tracking and pattern matching using common helper
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${TEST_DIR}/query_matched" \
+  "max_note_timestamp:0" \
+  "information_schema:0" \
+  ".*:0"
 
  # Simulate the check that daemon does
  local TIMESTAMP_TABLE_EXISTS
@@ -97,29 +80,11 @@ teardown() {
  local TRACK_FILE="${TEST_DIR}/psql_track2"
  echo "0" > "${TRACK_FILE}"
 
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  echo "1" > "${TRACK_FILE}"
-  # Check if query contains notes table check
-  if [[ "${CMD}" == *"table_name = 'notes'"* ]] && [[ "${CMD}" == *"information_schema"* ]]; then
-   echo "1" > "${TEST_DIR}/query_matched2"
-   echo "0" # Table doesn't exist
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
+ # Mock psql with tracking and pattern matching using common helper
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${TEST_DIR}/query_matched2" \
+  "notes:0" \
+  "information_schema:0" \
+  ".*:0"
 
  # Simulate the check that daemon does
  local NOTES_TABLE_EXISTS
@@ -146,29 +111,11 @@ teardown() {
  local TRACK_FILE="${TEST_DIR}/psql_track3"
  echo "0" > "${TRACK_FILE}"
 
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  echo "1" > "${TRACK_FILE}"
-  # Check if query is COUNT on max_note_timestamp
-  if [[ "${CMD}" == *"COUNT(*)"* ]] && [[ "${CMD}" == *"FROM max_note_timestamp"* ]]; then
-   echo "1" > "${TEST_DIR}/count_query_matched"
-   echo "0" # Table is empty
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
+ # Mock psql with tracking and pattern matching using common helper
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${TEST_DIR}/count_query_matched" \
+  "COUNT\\(\\*\\):0" \
+  "max_note_timestamp:0" \
+  ".*:0"
 
  # Simulate the check that daemon does
  local TIMESTAMP_COUNT=0
@@ -207,31 +154,11 @@ exit 1
 EOF
  chmod +x "${NOTES_SYNC_SCRIPT}"
 
- # Mock psql to return empty database state
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  # Return 0 for table existence checks (tables don't exist)
-  if [[ "${CMD}" == *"information_schema"* ]]; then
-   echo "0"
-  # Return 0 for COUNT queries (tables are empty)
-  elif [[ "${CMD}" == *"COUNT(*)"* ]]; then
-   echo "0"
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
+ # Mock psql to return empty database state using common helper
+ __setup_mock_psql_with_tracking "" \
+  "information_schema:0" \
+  "COUNT\\(\\*\\):0" \
+  ".*:0"
 
  # Simulate daemon's auto-initialization logic
  local TIMESTAMP_TABLE_EXISTS=0

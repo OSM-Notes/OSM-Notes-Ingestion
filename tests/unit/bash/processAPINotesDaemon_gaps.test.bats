@@ -6,6 +6,7 @@
 # Version: 2025-12-15
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
+load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 load "${BATS_TEST_DIRNAME}/daemon_test_helpers"
 
 setup() {
@@ -46,27 +47,9 @@ teardown() {
  export -f __checkHistoricalData
 
  # Mock psql to return that max_note_timestamp table exists
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  # Return 1 for table existence check (table exists)
-  if [[ "${CMD}" == *"information_schema.tables"* ]] && [[ "${CMD}" == *"max_note_timestamp"* ]]; then
-   echo "1"
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
+ __setup_mock_psql_with_tracking "" "" \
+  "information_schema.tables.*max_note_timestamp:1" \
+  ".*:0"
 
  # Simulate __validateHistoricalDataAndRecover logic
  local BASE_TABLES_EXIST=0
@@ -89,31 +72,10 @@ teardown() {
  local TRACK_FILE="${TEST_DIR}/psql_track_gaps"
  rm -f "${TRACK_FILE}"
 
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  # Track that psql was called
-  echo "1" > "${TRACK_FILE}"
-  
-  # Check if query is checking for data_gaps table existence
-  if [[ "${CMD}" == *"data_gaps"* ]] && [[ "${CMD}" == *"information_schema"* ]]; then
-   echo "1" >> "${TRACK_FILE}"
-   echo "1" # Table exists
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
+ # Mock psql with tracking and pattern matching
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${TEST_DIR}/gap_table_check_matched" \
+  "data_gaps.*information_schema:1" \
+  ".*:0"
 
  # Simulate daemon's gap checking logic
  local BASE_TABLES_EXIST=0
@@ -127,10 +89,8 @@ teardown() {
  # Read tracking results
  local PSQL_CALLED=0
  local GAP_TABLE_CHECK_MATCHED=0
- if [[ -f "${TRACK_FILE}" ]]; then
-  PSQL_CALLED=$(head -1 "${TRACK_FILE}" 2>/dev/null || echo "0")
-  GAP_TABLE_CHECK_MATCHED=$(tail -1 "${TRACK_FILE}" 2>/dev/null | head -1 || echo "0")
- fi
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ GAP_TABLE_CHECK_MATCHED=$(cat "${TEST_DIR}/gap_table_check_matched" 2>/dev/null || echo "0")
 
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${GAP_TABLE_CHECK_MATCHED}" -eq 1 ]]
@@ -141,35 +101,17 @@ teardown() {
  # Purpose: Verify that daemon queries for recent unprocessed gaps
  # Expected: psql should be called with query for gaps in last 1 day
 
+ local TRACK_FILE="${TEST_DIR}/psql_track_gaps_query"
+ local MATCH_FILE="${TEST_DIR}/gap_query_matched"
+ rm -f "${TRACK_FILE}" "${MATCH_FILE}"
+
+ # Mock psql with tracking and pattern matching
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${MATCH_FILE}" \
+  "FROM data_gaps.*INTERVAL '1 day'.*processed = FALSE:2025-01-23|missing_comments|10|100|10.0|" \
+  ".*:0"
+
  local PSQL_CALLED=0
  local GAP_QUERY_MATCHED=0
-
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  PSQL_CALLED=1
-  # Check if query is for gaps in last 24 hours
-  if [[ "${CMD}" == *"FROM data_gaps"* ]] && \
-     [[ "${CMD}" == *"INTERVAL '1 day'"* ]] && \
-     [[ "${CMD}" == *"processed = FALSE"* ]]; then
-   GAP_QUERY_MATCHED=1
-   # Return sample gap data
-   echo "2025-01-23|missing_comments|10|100|10.0|"
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
 
  # Simulate daemon's gap querying logic
  local BASE_TABLES_EXIST=0
@@ -193,6 +135,9 @@ teardown() {
   psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > "${GAP_FILE}" 2> /dev/null || true
  fi
 
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ GAP_QUERY_MATCHED=$(cat "${MATCH_FILE}" 2>/dev/null || echo "0")
+
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${GAP_QUERY_MATCHED}" -eq 1 ]]
  [[ -f "/tmp/processAPINotesDaemon_gaps.log" ]]
@@ -207,28 +152,9 @@ teardown() {
  rm -f "${GAP_FILE}"
 
  # Mock psql to return gap data
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  # Return gap data for gap query
-  if [[ "${CMD}" == *"FROM data_gaps"* ]]; then
-   echo "2025-01-23 10:00:00|missing_comments|5|50|10.0|"
-   return 0
-  fi
-  # Return 1 for table existence check
-  echo "1"
-  return 0
- }
- export -f psql
+ __setup_mock_psql_with_tracking "" "" \
+  "FROM data_gaps:2025-01-23 10:00:00|missing_comments|5|50|10.0|" \
+  ".*:1"
 
  # Simulate daemon's gap logging logic
  local BASE_TABLES_EXIST=0
@@ -287,32 +213,18 @@ teardown() {
  # Purpose: Verify that daemon filters for unprocessed gaps
  # Expected: SQL query should include WHERE processed = FALSE
 
+ local TRACK_FILE="${TEST_DIR}/psql_track_unprocessed"
+ local MATCH_FILE="${TEST_DIR}/unprocessed_filter_matched"
+ rm -f "${TRACK_FILE}" "${MATCH_FILE}"
+
+ # Mock psql with tracking and pattern matching
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${MATCH_FILE}" \
+  "processed = FALSE:0" \
+  "processed.*FALSE:0" \
+  ".*:0"
+
  local PSQL_CALLED=0
  local UNPROCESSED_FILTER_MATCHED=0
-
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  PSQL_CALLED=1
-  # Check if query includes processed = FALSE filter
-  if [[ "${CMD}" == *"processed = FALSE"* ]] || [[ "${CMD}" == *"processed.*FALSE"* ]]; then
-   UNPROCESSED_FILTER_MATCHED=1
-   echo "0" # No gaps
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
 
  # Simulate daemon's gap query
  local GAP_QUERY="
@@ -331,6 +243,9 @@ teardown() {
  "
  psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > /dev/null 2>&1 || true
 
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ UNPROCESSED_FILTER_MATCHED=$(cat "${MATCH_FILE}" 2>/dev/null || echo "0")
+
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${UNPROCESSED_FILTER_MATCHED}" -eq 1 ]]
 }
@@ -340,32 +255,17 @@ teardown() {
  # Purpose: Verify that daemon doesn't query unlimited gaps
  # Expected: SQL query should include LIMIT 10
 
+ local TRACK_FILE="${TEST_DIR}/psql_track_limit"
+ local MATCH_FILE="${TEST_DIR}/limit_matched"
+ rm -f "${TRACK_FILE}" "${MATCH_FILE}"
+
+ # Mock psql with tracking and pattern matching
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${MATCH_FILE}" \
+  "LIMIT 10:0" \
+  ".*:0"
+
  local PSQL_CALLED=0
  local LIMIT_MATCHED=0
-
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  PSQL_CALLED=1
-  # Check if query includes LIMIT 10
-  if [[ "${CMD}" == *"LIMIT 10"* ]]; then
-   LIMIT_MATCHED=1
-   echo "0" # No gaps
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
 
  # Simulate daemon's gap query with LIMIT
  local GAP_QUERY="
@@ -384,6 +284,9 @@ teardown() {
  "
  psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > /dev/null 2>&1 || true
 
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ LIMIT_MATCHED=$(cat "${MATCH_FILE}" 2>/dev/null || echo "0")
+
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${LIMIT_MATCHED}" -eq 1 ]]
 }
@@ -396,34 +299,17 @@ teardown() {
  # This test verifies the logic in processAPINotes.sh's __recover_from_gaps
  # The daemon sources processAPINotes.sh, so this function is available
 
+ local TRACK_FILE="${TEST_DIR}/psql_track_seven_days"
+ local MATCH_FILE="${TEST_DIR}/seven_days_interval_matched"
+ rm -f "${TRACK_FILE}" "${MATCH_FILE}"
+
+ # Mock psql with tracking and pattern matching
+ __setup_mock_psql_with_tracking "${TRACK_FILE}" "${MATCH_FILE}" \
+  "INTERVAL '7 days'.*created_at.*max_note_timestamp:0" \
+  ".*:0"
+
  local PSQL_CALLED=0
  local SEVEN_DAYS_INTERVAL_MATCHED=0
-
- psql() {
-  local ARGS=("$@")
-  local CMD=""
-  local I=0
-  while [[ $I -lt ${#ARGS[@]} ]]; do
-   if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
-    CMD="${ARGS[$((I + 1))]}"
-    break
-   fi
-   I=$((I + 1))
-  done
-
-  PSQL_CALLED=1
-  # Check if query includes INTERVAL '7 days' for gap detection
-  if [[ "${CMD}" == *"INTERVAL '7 days'"* ]] && \
-     [[ "${CMD}" == *"created_at"* ]] && \
-     [[ "${CMD}" == *"max_note_timestamp"* ]]; then
-   SEVEN_DAYS_INTERVAL_MATCHED=1
-   echo "0" # No gaps found
-  else
-   echo "0"
-  fi
-  return 0
- }
- export -f psql
 
  # Simulate __recover_from_gaps query logic
  # This is the query from processAPINotes.sh that checks for gaps
@@ -437,6 +323,9 @@ teardown() {
    AND nc.note_id IS NULL
  "
  psql -d "${DBNAME}" -Atq -c "${GAP_QUERY}" > /dev/null 2>&1 || true
+
+ PSQL_CALLED=$(cat "${TRACK_FILE}" 2>/dev/null || echo "0")
+ SEVEN_DAYS_INTERVAL_MATCHED=$(cat "${MATCH_FILE}" 2>/dev/null || echo "0")
 
  [[ "${PSQL_CALLED}" -eq 1 ]]
  [[ "${SEVEN_DAYS_INTERVAL_MATCHED}" -eq 1 ]]

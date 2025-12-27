@@ -6,6 +6,7 @@
 # Version: 2025-12-15
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
+load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 load "${BATS_TEST_DIRNAME}/../../integration/boundary_processing_helpers"
 
 setup() {
@@ -136,12 +137,8 @@ EOF
 
  # Mock ogr2ogr (simulate successful import)
  # ogr2ogr is called via eval with a full command string
- ogr2ogr() {
-  # Accept all arguments and simulate successful import
-  # The function is called via eval, so we need to handle the full command
-  return 0
- }
- export -f ogr2ogr
+ # Mock ogr2ogr using common helper
+ __setup_mock_ogr2ogr "true"
 
 # Mock psql for database operations
 # Purpose: Avoid actual database connections during unit tests
@@ -313,15 +310,8 @@ teardown() {
  local GEOJSON_FILE="${TMP_DIR}/nonexistent.geojson"
 
  # Mock ogr2ogr to fail when file doesn't exist
- ogr2ogr() {
-  # Check if input file exists in arguments
-  local ARGS_STR="$*"
-  if [[ "${ARGS_STR}" == *"nonexistent.geojson"* ]]; then
-   return 1
-  fi
-  return 0
- }
- export -f ogr2ogr
+ # Mock ogr2ogr to fail for nonexistent files
+ __setup_mock_ogr2ogr "false" "File not found"
 
  run __importBoundary_simplified "${BOUNDARY_ID}" "${GEOJSON_FILE}" 2> /dev/null
  # Function should fail when ogr2ogr fails
@@ -343,10 +333,8 @@ teardown() {
  local GEOJSON_FILE="${TMP_DIR}/${BOUNDARY_ID}.geojson"
 
  # Mock ogr2ogr to fail
- ogr2ogr() {
-  return 1
- }
- export -f ogr2ogr
+ # Mock ogr2ogr to fail
+ __setup_mock_ogr2ogr "false" "Import failed"
 
  run __importBoundary_simplified "${BOUNDARY_ID}" "${GEOJSON_FILE}" 2> /dev/null
  [[ "${status}" -ne 0 ]]

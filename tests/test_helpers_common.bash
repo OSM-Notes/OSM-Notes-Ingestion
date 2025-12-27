@@ -286,6 +286,67 @@ __setup_mock_psql_count() {
  __setup_mock_psql_for_query "${QUERY_PATTERN}" "${COUNT}" 0
 }
 
+# Mock psql with tracking and pattern-based responses
+# Usage: __setup_mock_psql_with_tracking [TRACK_FILE] [MATCH_FILE] [PATTERN1:RESULT1] [PATTERN2:RESULT2] ...
+# Example: __setup_mock_psql_with_tracking "/tmp/track" "/tmp/match" "max_note_timestamp:0" "COUNT(*):5"
+__setup_mock_psql_with_tracking() {
+ export MOCK_PSQL_TRACK_FILE="${1:-}"
+ export MOCK_PSQL_MATCH_FILE="${2:-}"
+ shift 2 2>/dev/null || shift 1 2>/dev/null || true
+ export MOCK_PSQL_PATTERNS="$*"
+ 
+ # If second arg doesn't look like a file path, treat it as first pattern
+ if [[ -n "${MOCK_PSQL_MATCH_FILE}" ]] && [[ "${MOCK_PSQL_MATCH_FILE}" != *"/"* ]] && [[ "${MOCK_PSQL_MATCH_FILE}" == *":"* ]]; then
+  export MOCK_PSQL_PATTERNS="${MOCK_PSQL_MATCH_FILE} ${MOCK_PSQL_PATTERNS}"
+  export MOCK_PSQL_MATCH_FILE=""
+ fi
+ 
+ psql() {
+  local ARGS=("$@")
+  local CMD=""
+  
+  # Track call if track file provided
+  if [[ -n "${MOCK_PSQL_TRACK_FILE}" ]]; then
+   echo "1" > "${MOCK_PSQL_TRACK_FILE}" 2>/dev/null || true
+  fi
+  
+  # Extract SQL command from -c argument
+  for i in "${!ARGS[@]}"; do
+   if [[ "${ARGS[$i]}" == "-c" ]] && [[ $((i + 1)) -lt ${#ARGS[@]} ]]; then
+    CMD="${ARGS[$((i + 1))]}"
+    break
+   fi
+  done
+  
+  # Pattern matching: check each pattern:result pair
+  # Convert space-separated string to array
+  local PATTERNS_ARRAY
+  IFS=' ' read -ra PATTERNS_ARRAY <<< "${MOCK_PSQL_PATTERNS}"
+  
+  for PATTERN_RESULT in "${PATTERNS_ARRAY[@]}"; do
+   local PATTERN="${PATTERN_RESULT%%:*}"
+   local RESULT="${PATTERN_RESULT#*:}"
+   
+   if [[ -n "${PATTERN}" ]] && echo "${CMD}" | grep -qE "${PATTERN}"; then
+    # Track match if match file provided
+    if [[ -n "${MOCK_PSQL_MATCH_FILE}" ]]; then
+     echo "1" > "${MOCK_PSQL_MATCH_FILE}" 2>/dev/null || true
+    elif [[ -n "${MOCK_PSQL_TRACK_FILE}" ]]; then
+     # Use track file base name with _matched suffix
+     echo "1" > "${MOCK_PSQL_TRACK_FILE%.*}_matched" 2>/dev/null || true
+    fi
+    echo "${RESULT}"
+    return 0
+   fi
+  done
+  
+  # Default: return 0 if no pattern matched
+  echo "0"
+  return 0
+ }
+ export -f psql
+}
+
 # Mock osmtogeojson for OSM→GeoJSON conversion
 # Usage: __setup_mock_osmtogeojson [INPUT_PATTERN] [OUTPUT_FILE]
 # Example: __setup_mock_osmtogeojson ".*\.json" "/tmp/output.geojson"

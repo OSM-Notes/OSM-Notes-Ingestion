@@ -6,9 +6,18 @@
 
 # Load common helpers
 if [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
- load "$(dirname "$BATS_TEST_FILENAME")/../test_helpers_common.bash"
+ # Try relative path first, then absolute path
+ if [[ -f "$(dirname "$BATS_TEST_FILENAME")/../test_helpers_common.bash" ]]; then
+  load "$(dirname "$BATS_TEST_FILENAME")/../test_helpers_common.bash"
+ elif [[ -f "$(dirname "$BATS_TEST_FILENAME")/../../test_helpers_common.bash" ]]; then
+  load "$(dirname "$BATS_TEST_FILENAME")/../../test_helpers_common.bash"
+ fi
 else
- source "$(dirname "${BASH_SOURCE[0]}")/../test_helpers_common.bash"
+ if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../test_helpers_common.bash" ]]; then
+  source "$(dirname "${BASH_SOURCE[0]}")/../test_helpers_common.bash"
+ elif [[ -f "$(dirname "${BASH_SOURCE[0]}")/../../test_helpers_common.bash" ]]; then
+  source "$(dirname "${BASH_SOURCE[0]}")/../../test_helpers_common.bash"
+ fi
 fi
 
 # =============================================================================
