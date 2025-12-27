@@ -278,6 +278,15 @@ jobs:
         echo "Running unit tests group: ${{ matrix.test-group.name }}"
         echo "Pattern: ${{ matrix.test-group.pattern }}"
         
+        # Ensure results directory exists and create log file
+        mkdir -p tests/results
+        LOG_FILE="tests/results/unit-tests-${{ matrix.test-group.name }}.log"
+        touch "${LOG_FILE}"
+        echo "Test execution started at $(date)" > "${LOG_FILE}"
+        echo "Test group: ${{ matrix.test-group.name }}" >> "${LOG_FILE}"
+        echo "Pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
+        echo "" >> "${LOG_FILE}"
+        
         # Set CI environment for sleep optimization
         export CI=true
         export GITHUB_ACTIONS=true
@@ -306,6 +315,7 @@ jobs:
         # Run all found tests with parallelization
         if [[ -n "${TEST_FILES}" ]]; then
           echo "Found tests: ${TEST_FILES}"
+          echo "Found tests: ${TEST_FILES}" >> "${LOG_FILE}"
           
           # Determine optimal number of parallel jobs
           # Use number of CPU cores, but cap at 4 to avoid overwhelming database
@@ -315,29 +325,57 @@ jobs:
           fi
           
           echo "Running tests with ${PARALLEL_JOBS} parallel jobs..."
+          echo "Running tests with ${PARALLEL_JOBS} parallel jobs..." >> "${LOG_FILE}"
           
           # Count test files
           TEST_COUNT=$(echo "${TEST_FILES}" | wc -w)
           
+          TEST_EXIT_CODE=0
           if [[ ${TEST_COUNT} -gt 1 ]] && command -v parallel > /dev/null 2>&1; then
             # Use BATS parallel execution if multiple test files and parallel is available
             echo "Using BATS parallel execution (${PARALLEL_JOBS} jobs)..."
+            echo "Using BATS parallel execution (${PARALLEL_JOBS} jobs)..." >> "${LOG_FILE}"
             for test_file in ${TEST_FILES}; do
               echo "Queued: ${test_file}"
+              echo "Queued: ${test_file}" >> "${LOG_FILE}"
             done
             
             # Run tests in parallel using BATS --jobs
-            bats --jobs "${PARALLEL_JOBS}" ${TEST_FILES} 2>&1 | tee tests/results/unit-tests-${{ matrix.test-group.name }}.log
+            set +o pipefail  # Allow pipe to continue even if bats fails
+            bats --jobs "${PARALLEL_JOBS}" ${TEST_FILES} 2>&1 | tee -a "${LOG_FILE}"
+            TEST_EXIT_CODE=${PIPESTATUS[0]}
+            set -o pipefail
           else
             # Sequential execution for single test or if parallel not available
             echo "Using sequential execution..."
+            echo "Using sequential execution..." >> "${LOG_FILE}"
             for test_file in ${TEST_FILES}; do
               echo "Running: ${test_file}"
-              bats "${test_file}" 2>&1 | tee -a tests/results/unit-tests-${{ matrix.test-group.name }}.log
+              echo "Running: ${test_file}" >> "${LOG_FILE}"
+              set +o pipefail  # Allow pipe to continue even if bats fails
+              bats "${test_file}" 2>&1 | tee -a "${LOG_FILE}"
+              FILE_EXIT_CODE=${PIPESTATUS[0]}
+              set -o pipefail
+              if [[ ${FILE_EXIT_CODE} -ne 0 ]]; then
+                TEST_EXIT_CODE=${FILE_EXIT_CODE}
+                echo "Test ${test_file} failed with exit code ${FILE_EXIT_CODE}" >> "${LOG_FILE}"
+              fi
             done
+          fi
+          
+          echo "" >> "${LOG_FILE}"
+          echo "Test execution completed at $(date)" >> "${LOG_FILE}"
+          echo "Exit code: ${TEST_EXIT_CODE}" >> "${LOG_FILE}"
+          
+          # Exit with test result code (0 if all passed, non-zero if any failed)
+          if [[ ${TEST_EXIT_CODE} -ne 0 ]]; then
+            exit ${TEST_EXIT_CODE}
           fi
         else
           echo "No tests found for pattern: ${{ matrix.test-group.pattern }}"
+          echo "No tests found for pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
+          echo "Test execution completed at $(date)" >> "${LOG_FILE}"
+          echo "Exit code: 0 (no tests to run)" >> "${LOG_FILE}"
         fi
       env:
         TEST_DBNAME: osm_notes_test
@@ -358,12 +396,14 @@ jobs:
     - name: Upload unit test results (group ${{ matrix.test-group.name }})
       uses: actions/upload-artifact@v4
       if: always()
+      continue-on-error: true
       with:
         name: unit-test-results-${{ matrix.test-group.name }}
         path: |
           tests/results/unit-tests-${{ matrix.test-group.name }}.log
           tests/tmp/
         retention-days: 7
+        if-no-files-found: warn
 
   # ============================================================================
   # STAGE 3: Quick Integration Tests (always run on PR, full on main/develop)
