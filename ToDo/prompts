@@ -1,9 +1,0 @@
-Notas y prompts varios - información pendiente de organizar
-==============================================================
-
-* commit 962556d3: Se borraron archivos de notas reales que pueden servir 
-  para validar casos más cercanos
-
-* Recomendación adicional: Monitoreo de desempeño - Revisar periódicamente
-  los tiempos de carga y consulta, ajustando particiones e índices según
-  crecimiento.
