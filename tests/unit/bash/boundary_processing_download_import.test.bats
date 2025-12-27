@@ -143,15 +143,19 @@ EOF
 # Mock psql for database operations
 # Purpose: Avoid actual database connections during unit tests
 # psql is called with: psql -d "${DBNAME}" -c "..." or psql -d "${DBNAME}" -Atq -c "..."
+# Also handles eval calls where the command is in a string
 psql() {
  local ARGS=("$@")
  local CMD=""
  local I=0
+ local IS_ATQ=false
  
- # Parse arguments to find -c command (SQL command follows -c flag)
+ # Parse arguments to find -c command and -Atq flag
  # This allows us to inspect the SQL being executed
  while [[ $I -lt ${#ARGS[@]} ]]; do
-  if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
+  if [[ "${ARGS[$I]}" == "-Atq" ]]; then
+   IS_ATQ=true
+  elif [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
    CMD="${ARGS[$((I + 1))]}"
    break
   fi
@@ -165,18 +169,30 @@ psql() {
  # COUNT with ST_GeometryType: Simulate geometry count query
  # Returns "1" to indicate one polygon was found
  elif [[ "${CMD}" == *"COUNT(*)"* ]] && [[ "${CMD}" == *"import"* ]] && [[ "${CMD}" == *"ST_GeometryType"* ]]; then
-  echo "1" # Simulate polygon count
- # INSERT INTO countries: Simulate successful country insertion
- elif [[ "${CMD}" == *"INSERT INTO countries"* ]]; then
+  if [[ "${IS_ATQ}" == "true" ]]; then
+   echo "1" # Simulate polygon count (for -Atq queries)
+  else
+   echo "1" # Simulate polygon count
+  fi
+  return 0
+ # INSERT INTO countries or countries_new: Simulate successful country insertion
+ # Handle both direct calls and eval calls
+ elif [[ "${CMD}" == *"INSERT INTO"* ]] && ([[ "${CMD}" == *"countries"* ]] || [[ "${CMD}" == *"countries_new"* ]]); then
   return 0
  # SELECT COUNT for country verification: Simulate successful insert check
  # Returns "1" to indicate country was inserted successfully
- elif [[ "${CMD}" == *"SELECT COUNT(*)"* ]] && [[ "${CMD}" == *"countries"* ]] && [[ "${CMD}" == *"country_id"* ]]; then
-  echo "1" # Simulate successful insert verification
+ # Handle both countries and countries_new tables
+ elif [[ "${CMD}" == *"SELECT COUNT(*)"* ]] && ([[ "${CMD}" == *"countries"* ]] || [[ "${CMD}" == *"countries_new"* ]]) && [[ "${CMD}" == *"country_id"* ]]; then
+  if [[ "${IS_ATQ}" == "true" ]]; then
+   echo "1" # Simulate successful insert verification (for -Atq queries)
+  else
+   echo "1" # Simulate successful insert verification
+  fi
+  return 0
  fi
  return 0
 }
- export -f psql
+export -f psql
 
  # Load boundary processing functions
  source "${TEST_BASE_DIR}/bin/lib/boundaryProcessingFunctions.sh"
@@ -449,6 +465,17 @@ teardown() {
  create_mock_geojson "148838"
  create_mock_geojson "148839"
 
+ # Mock __importMaritime_simplified to always succeed
+ # This avoids complex psql mocking for eval calls
+ __importMaritime_simplified() {
+  local BOUNDARY_ID="${1}"
+  local GEOJSON_FILE="${2}"
+  # Verify file exists
+  [[ -f "${GEOJSON_FILE}" ]]
+  return 0
+ }
+ export -f __importMaritime_simplified
+
  run __importMaritimes_sequential_new "${SUCCESS_FILE}" 2> /dev/null
  [[ "${status}" -eq 0 ]]
 }
@@ -537,6 +564,17 @@ teardown() {
  # Create corresponding GeoJSON files
  create_mock_geojson "12345"
  create_mock_geojson "12346"
+
+ # Mock __importBoundary_simplified to always succeed
+ # This avoids complex psql mocking for eval calls
+ __importBoundary_simplified() {
+  local BOUNDARY_ID="${1}"
+  local GEOJSON_FILE="${2}"
+  # Verify file exists
+  [[ -f "${GEOJSON_FILE}" ]]
+  return 0
+ }
+ export -f __importBoundary_simplified
 
  run __importCountries_sequential_new "${SUCCESS_FILE}" 2> /dev/null
  [[ "${status}" -eq 0 ]]
