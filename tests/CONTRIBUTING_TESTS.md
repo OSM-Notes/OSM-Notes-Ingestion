@@ -299,35 +299,194 @@ For complex or reusable test data, add it to `tests/fixtures/`.
 
 ## Mocking External Dependencies
 
-### Mocking Commands
+### Mocking Strategy
 
-Mock external commands to avoid:
-- Network calls
-- File system operations
-- Database connections
-- External API calls
+The project follows a **consistent mocking strategy** to ensure tests are:
+- **Fast**: Avoid slow network calls and external dependencies
+- **Reliable**: Tests don't depend on external service availability
+- **Maintainable**: Use common helpers instead of inline mocks
+- **Isolated**: Each test is independent and doesn't affect others
+
+### When to Use Mocks
+
+#### Always Mock Services Requiring Internet
+
+Mock external services that require internet connectivity:
+- **OSM Notes API** (`api.openstreetmap.org`)
+- **Overpass API** (`overpass-api.de`)
+- **OSM Planet Server** (`planet.openstreetmap.org`)
+
+**Reason**: These services may be unavailable, slow, or rate-limited during testing.
+
+#### Use Real Services When Local
+
+Use real services when they are local and reliable:
+- **PostgreSQL** (local database `osm_notes_ingestion_test`)
+- **System tools** (`xmllint`, `bzip2`, `jq`, `osmtogeojson`, `ogr2ogr`)
+
+**Reason**: Local services are fast, reliable, and provide better test coverage.
+
+### Use Common Helpers Instead of Inline Mocks
+
+**❌ Avoid**: Creating inline mocks in each test file
 
 ```bash
+# BAD: Inline mock duplicated across files
+psql() {
+  local ARGS=("$@")
+  # ... complex parsing logic ...
+  echo "result"
+  return 0
+}
+export -f psql
+```
+
+**✅ Prefer**: Using common helpers from `test_helpers_common.bash`
+
+```bash
+# GOOD: Use common helper
+load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
+
 setup() {
-  # Mock curl to avoid network calls
-  curl() {
-    echo '{"status": "ok"}'
-    return 0
-  }
-  export -f curl
-  
-  # Mock psql to avoid database connections
-  psql() {
-    echo "mocked psql output"
-    return 0
-  }
-  export -f psql
+  # Use common helper for psql mocking
+  __setup_mock_psql_for_query "SELECT.*FROM notes" "5" 0
 }
 ```
 
+### Available Mocking Helpers
+
+#### PostgreSQL Mocking (`test_helpers_common.bash`)
+
+```bash
+# Mock psql for query results
+__setup_mock_psql_for_query "QUERY_PATTERN" "RESULT" [EXIT_CODE]
+
+# Mock psql for boolean results
+__setup_mock_psql_boolean "QUERY_PATTERN" "t|f"
+
+# Mock psql for count results
+__setup_mock_psql_count "QUERY_PATTERN" "COUNT"
+
+# Mock psql with tracking and pattern matching
+__setup_mock_psql_with_tracking "TRACK_FILE" "MATCH_FILE" "PATTERN1:RESULT1" ...
+```
+
+**Example**:
+```bash
+@test "Function should query database correctly" {
+  # Mock psql to return count of 5
+  __setup_mock_psql_count "SELECT COUNT" "5"
+  
+  run function_that_queries_db
+  
+  [[ "${status}" -eq 0 ]]
+  [[ "${output}" == "5" ]]
+}
+```
+
+#### GeoJSON Processing Mocking
+
+```bash
+# Mock osmtogeojson for OSM→GeoJSON conversion
+__setup_mock_osmtogeojson "INPUT_PATTERN" "OUTPUT_FILE"
+
+# Mock ogr2ogr for GeoJSON→PostgreSQL import
+__setup_mock_ogr2ogr "true|false" [ERROR_MESSAGE]
+```
+
+**Example**:
+```bash
+@test "Function should convert JSON to GeoJSON" {
+  __setup_mock_osmtogeojson ".*\.json" "/tmp/output.geojson"
+  
+  run convert_to_geojson "input.json"
+  
+  [[ "${status}" -eq 0 ]]
+  [[ -f "/tmp/output.geojson" ]]
+}
+```
+
+#### API Mocking
+
+```bash
+# Mock curl for API calls
+__setup_mock_curl_for_api "URL_PATTERN" "RESPONSE" [STATUS_CODE]
+
+# Mock curl for Overpass API
+__setup_mock_curl_overpass "QUERY_PATTERN" "RESPONSE" [STATUS_CODE]
+```
+
+**Example**:
+```bash
+@test "Function should download from API" {
+  __setup_mock_curl_for_api "api.openstreetmap.org" '<?xml version="1.0"?><osm></osm>' 0
+  
+  run download_from_api
+  
+  [[ "${status}" -eq 0 ]]
+}
+```
+
+### Service Availability Helpers
+
+Use `service_availability_helpers.bash` to check service availability before running tests:
+
+```bash
+load "${BATS_TEST_DIRNAME}/service_availability_helpers"
+
+@test "Function should work with Overpass API" {
+  # Skip if Overpass API is not available
+  __skip_if_overpass_api_unavailable "Overpass API not available"
+  
+  # Test implementation
+  run function_that_uses_overpass
+  
+  [[ "${status}" -eq 0 ]]
+}
+```
+
+**Available Skip Helpers**:
+- `__skip_if_osm_api_unavailable [MESSAGE]`
+- `__skip_if_overpass_api_unavailable [MESSAGE]`
+- `__skip_if_planet_server_unavailable [MESSAGE]`
+- `__skip_if_postgresql_unavailable [DBNAME] [MESSAGE]`
+- `__skip_if_network_unavailable [MESSAGE]`
+- `__skip_if_external_services_not_required [MESSAGE]`
+
+### Hybrid Tests
+
+**Hybrid tests** (`run_*_hybrid.sh`) are the recommended approach for integration tests:
+
+- ✅ **Mock internet services**: OSM API, Overpass API, Planet Server
+- ✅ **Use real local services**: PostgreSQL database, system tools
+- ✅ **Better coverage**: Tests real database interactions
+- ✅ **Faster execution**: No network delays
+
+**Example**: `tests/run_processAPINotes_hybrid.sh`
+
+### Database Connectivity
+
+For tests requiring database access, use the database connectivity helper:
+
+```bash
+load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
+
+@test "Function should insert into database" {
+  # Skip if database is not available
+  __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
+  
+  # Test implementation
+  run function_that_inserts_data
+  
+  [[ "${status}" -eq 0 ]]
+}
+```
+
+**Note**: The default test database is `osm_notes_ingestion_test`. Set `TEST_DBNAME` environment variable to use a different database.
+
 ### Mocking Internal Functions
 
-Mock internal functions when testing in isolation:
+Mock internal functions when testing components in isolation:
 
 ```bash
 setup() {
@@ -353,6 +512,22 @@ create_mock_json() {
   # ... implementation
 }
 ```
+
+### Best Practices
+
+1. **Always use common helpers** instead of creating inline mocks
+2. **Check service availability** before running tests that require external services
+3. **Use hybrid tests** for integration testing (mock internet, use real DB)
+4. **Document complex mocks** with inline comments explaining behavior
+5. **Keep mocks simple** - they should simulate behavior, not replicate full implementation
+6. **Test both success and failure** scenarios with mocks
+
+### Additional Resources
+
+- `tests/test_helpers_common.bash` - Common mocking helpers
+- `tests/integration/service_availability_helpers.bash` - Service availability checks
+- `tests/TESTING_STRATEGIES.md` - Comprehensive testing strategies
+- `docs/External_Services_Mocking_Analysis.md` - Detailed mocking analysis
 
 ## Test Naming Conventions
 
@@ -470,6 +645,8 @@ When submitting a PR with tests:
 - [Project Testing Guide](../docs/Testing_Guide.md)
 - [Test Suites Reference](../docs/Testing_Suites_Reference.md)
 - [Fixtures Documentation](./fixtures/README.md)
+- [External Services Mocking Analysis](../docs/External_Services_Mocking_Analysis.md) - Detailed analysis of mocking strategy
+- [Service Availability Helpers](./integration/service_availability_helpers.bash) - Helpers for checking service availability
 
 ## Getting Help
 
