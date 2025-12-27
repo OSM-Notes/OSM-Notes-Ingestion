@@ -6,6 +6,7 @@
 # Version: 2025-12-23
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
+load "$(dirname "$BATS_TEST_FILENAME")/service_availability_helpers"
 load "$(dirname "$BATS_TEST_FILENAME")/json_validation_helpers.bash"
 
 setup() {

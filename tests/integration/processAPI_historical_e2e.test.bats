@@ -6,6 +6,7 @@
 # Version: 2025-12-16
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
+load "$(dirname "$BATS_TEST_FILENAME")/service_availability_helpers"
 
 # =============================================================================
 # Test setup and teardown
@@ -34,9 +35,7 @@ teardown() {
 
 @test "integration_historical_validation_with_empty_database" {
  # Skip if database is not accessible
- if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${TEST_DBNAME} is not accessible"
- fi
+ __skip_if_postgresql_unavailable "${TEST_DBNAME}" "Database ${TEST_DBNAME} is not accessible"
 
  # Create empty test tables to simulate fresh installation
  run bash -c "
@@ -84,9 +83,7 @@ EOSQL
 
 @test "integration_historical_validation_with_recent_data_only" {
  # Skip if database is not accessible
- if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${TEST_DBNAME} is not accessible"
- fi
+ __skip_if_postgresql_unavailable "${TEST_DBNAME}" "Database ${TEST_DBNAME} is not accessible"
 
  # Create tables with recent data only (insufficient historical data)
  run bash -c "
@@ -152,9 +149,7 @@ EOSQL
 
 @test "integration_historical_validation_with_sufficient_data" {
  # Skip if database is not accessible
- if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${TEST_DBNAME} is not accessible"
- fi
+ __skip_if_postgresql_unavailable "${TEST_DBNAME}" "Database ${TEST_DBNAME} is not accessible"
 
  # Create tables with sufficient historical data
  run bash -c "
@@ -241,9 +236,7 @@ EOSQL
 
 @test "integration_actual_historical_validation_sql_with_empty_tables" {
  # Skip if database is not accessible
- if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${TEST_DBNAME} is not accessible"
- fi
+ __skip_if_postgresql_unavailable "${TEST_DBNAME}" "Database ${TEST_DBNAME} is not accessible"
 
  # Create the actual base tables structure as empty
  run bash -c "
@@ -297,9 +290,7 @@ EOSQL
 
 @test "integration_actual_historical_validation_sql_with_sufficient_data" {
  # Skip if database is not accessible
- if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database ${TEST_DBNAME} is not accessible"
- fi
+ __skip_if_postgresql_unavailable "${TEST_DBNAME}" "Database ${TEST_DBNAME} is not accessible"
 
  # Create base tables with sufficient historical data
  run bash -c "

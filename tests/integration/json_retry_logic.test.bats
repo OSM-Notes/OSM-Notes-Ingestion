@@ -64,7 +64,8 @@ teardown() {
  done
 
  # Should eventually succeed (if API is available)
- if curl -s --max-time 5 "${OVERPASS_INTERPRETER%/api/interpreter}/status" > /dev/null 2>&1; then
+ # Use service availability helper
+ if __check_overpass_api_status 5 && [[ "${__OVERPASS_API_STATUS_AVAILABLE:-0}" -eq 1 ]]; then
   [[ "${DOWNLOAD_SUCCESS}" == "true" ]]
  else
   skip "Overpass API not reachable"

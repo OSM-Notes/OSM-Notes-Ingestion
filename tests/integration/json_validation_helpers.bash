@@ -86,13 +86,38 @@ __load_validation_functions() {
 # Connectivity Helpers
 # =============================================================================
 
-__check_overpass_connectivity() {
- if ! command -v curl > /dev/null; then
-  skip "curl not available for connectivity check"
- fi
+# Load service availability helpers if available
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/service_availability_helpers.bash" ]]; then
+ source "$(dirname "${BASH_SOURCE[0]}")/service_availability_helpers.bash"
+fi
 
- if ! curl -s --max-time 5 "${OVERPASS_INTERPRETER%/api/interpreter}/status" > /dev/null 2>&1; then
-  skip "Overpass API not reachable"
+# Legacy function for backward compatibility
+# Use __skip_if_overpass_api_unavailable instead
+__check_overpass_connectivity() {
+ if [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
+  # Running in BATS - use new helper
+  if command -v __skip_if_overpass_api_unavailable > /dev/null 2>&1; then
+   __skip_if_overpass_api_unavailable "Overpass API not reachable"
+  else
+   # Fallback to old implementation
+   if ! command -v curl > /dev/null; then
+    skip "curl not available for connectivity check"
+   fi
+   if ! curl -s --max-time 5 "${OVERPASS_INTERPRETER%/api/interpreter}/status" > /dev/null 2>&1; then
+    skip "Overpass API not reachable"
+   fi
+  fi
+ else
+  # Not in BATS - just check availability
+  if command -v __check_overpass_api_status > /dev/null 2>&1; then
+   __check_overpass_api_status 5
+  else
+   # Fallback
+   if ! command -v curl > /dev/null; then
+    return 1
+   fi
+   curl -s --max-time 5 "${OVERPASS_INTERPRETER%/api/interpreter}/status" > /dev/null 2>&1
+  fi
  fi
 }
 
