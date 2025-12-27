@@ -83,3 +83,102 @@ teardown() {
  [[ "${status}" -ne 0 ]]
 }
 
+# =============================================================================
+# Advanced SQL Injection Attack Vectors
+# =============================================================================
+
+@test "SQL injection: blind SQL injection attempt should be sanitized" {
+ # Test blind SQL injection (no visible output)
+ malicious_input="' AND (SELECT SUBSTRING(@@version,1,1))='5' --"
+ sanitized=$(__sanitize_sql_string "${malicious_input}")
+
+ # Should escape quotes
+ [[ "${sanitized}" == *"''"* ]]
+ # Should not contain unescaped quotes
+ [[ "${sanitized}" != *"'"* ]] || [[ "${sanitized}" == *"''"* ]]
+}
+
+@test "SQL injection: time-based SQL injection attempt should be sanitized" {
+ # Test time-based SQL injection (SLEEP/BENCHMARK)
+ malicious_input="'; WAITFOR DELAY '00:00:05' --"
+ sanitized=$(__sanitize_sql_string "${malicious_input}")
+
+ # Should escape quotes
+ [[ "${sanitized}" == *"''"* ]]
+}
+
+@test "SQL injection: stacked queries should be sanitized" {
+ # Test stacked queries (multiple statements)
+ malicious_input="'; INSERT INTO users VALUES ('hacker'); --"
+ sanitized=$(__sanitize_sql_string "${malicious_input}")
+
+ # Should escape quotes
+ [[ "${sanitized}" == *"''"* ]]
+}
+
+@test "SQL injection: comment-based injection should be sanitized" {
+ # Test comment-based injection
+ malicious_input="'/**/OR/**/1=1--"
+ sanitized=$(__sanitize_sql_string "${malicious_input}")
+
+ # Should escape quotes
+ [[ "${sanitized}" == *"''"* ]]
+}
+
+@test "SQL injection: hex-encoded injection should be sanitized" {
+ # Test hex-encoded injection attempt
+ malicious_input="' OR 0x41414141=0x41414141 --"
+ sanitized=$(__sanitize_sql_string "${malicious_input}")
+
+ # Should escape quotes
+ [[ "${sanitized}" == *"''"* ]]
+}
+
+@test "SQL injection: identifier with SQL keywords should be quoted" {
+ # Test identifier containing SQL keywords
+ malicious_identifier="SELECT FROM WHERE"
+ sanitized=$(__sanitize_sql_identifier "${malicious_identifier}")
+
+ # Should be wrapped in quotes
+ [[ "${sanitized}" == "\"${malicious_identifier}\"" ]]
+}
+
+@test "SQL injection: identifier with special characters should be quoted" {
+ # Test identifier with special characters
+ malicious_identifier="table-name; DROP"
+ sanitized=$(__sanitize_sql_identifier "${malicious_identifier}")
+
+ # Should be wrapped in quotes
+ [[ "${sanitized}" == "\"${malicious_identifier}\"" ]]
+}
+
+@test "SQL injection: integer with SQL code should be rejected" {
+ # Test integer with embedded SQL code
+ malicious_integer="1 UNION SELECT * FROM users"
+
+ run __sanitize_sql_integer "${malicious_integer}"
+
+ # Should fail validation
+ [[ "${status}" -ne 0 ]]
+}
+
+@test "SQL injection: integer with hex should be rejected" {
+ # Test integer with hex encoding
+ malicious_integer="0x41414141"
+
+ run __sanitize_sql_integer "${malicious_integer}"
+
+ # Should fail validation
+ [[ "${status}" -ne 0 ]]
+}
+
+@test "SQL injection: database name with SQL keywords should be rejected" {
+ # Test database name with SQL keywords
+ malicious_dbname="DROP DATABASE test"
+
+ run __sanitize_database_name "${malicious_dbname}"
+
+ # Should fail validation (contains uppercase and spaces)
+ [[ "${status}" -ne 0 ]]
+}
+

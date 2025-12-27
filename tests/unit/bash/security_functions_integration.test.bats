@@ -89,3 +89,73 @@ EOF
  [[ "${status}" -eq 0 ]]
 }
 
+# =============================================================================
+# Combined Attack Scenarios
+# =============================================================================
+
+@test "Combined attack: SQL injection with encoding evasion should be sanitized" {
+ # Test combination of SQL injection and encoding evasion
+ malicious_input="' OR 1=1 --"
+ sanitized=$(__sanitize_sql_string "${malicious_input}")
+
+ # Should escape quotes
+ [[ "${sanitized}" == *"''"* ]]
+}
+
+@test "Combined attack: identifier injection with special chars should be quoted" {
+ # Test identifier with both injection and special characters
+ malicious_id="table'; DROP TABLE users; --"
+ sanitized=$(__sanitize_sql_identifier "${malicious_id}")
+
+ # Should be wrapped in quotes
+ [[ "${sanitized}" == "\"${malicious_id}\"" ]]
+}
+
+@test "Combined attack: multiple sanitization functions should work together" {
+ # Test that multiple sanitization functions can be used together
+ string_input="test'value"
+ identifier_input="table_name"
+ integer_input="123"
+
+ sanitized_string=$(__sanitize_sql_string "${string_input}")
+ sanitized_identifier=$(__sanitize_sql_identifier "${identifier_input}")
+ sanitized_integer=$(__sanitize_sql_integer "${integer_input}")
+
+ # All should work correctly
+ [[ "${sanitized_string}" == *"''"* ]]
+ [[ "${sanitized_identifier}" == "\"${identifier_input}\"" ]]
+ [[ "${sanitized_integer}" == "${integer_input}" ]]
+}
+
+@test "Performance: sanitization should handle large strings efficiently" {
+ # Test performance with large string (1000 characters)
+ large_string="$(printf 'a%.0s' {1..500})'$(printf 'b%.0s' {1..500})"
+
+ start_time=$(date +%s%N)
+ result=$(__sanitize_sql_string "${large_string}")
+ end_time=$(date +%s%N)
+
+ duration=$(( (end_time - start_time) / 1000000 ))
+
+ # Should complete in reasonable time (< 100ms)
+ [[ ${duration} -lt 100 ]]
+ # Should escape quotes
+ [[ "${result}" == *"''"* ]]
+}
+
+@test "Performance: sanitization should handle many quotes efficiently" {
+ # Test performance with many quotes (100 quotes)
+ many_quotes="$(printf "'%.0s" {1..100})"
+
+ start_time=$(date +%s%N)
+ result=$(__sanitize_sql_string "${many_quotes}")
+ end_time=$(date +%s%N)
+
+ duration=$(( (end_time - start_time) / 1000000 ))
+
+ # Should complete in reasonable time (< 100ms)
+ [[ ${duration} -lt 100 ]]
+ # Should double all quotes (200 quotes)
+ [[ "${result}" == "$(printf "''%.0s" {1..100})" ]]
+}
+
