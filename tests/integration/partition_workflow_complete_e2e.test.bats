@@ -11,7 +11,8 @@ load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 # Setup and Teardown
 # =============================================================================
 
-setup() {
+# Shared database setup (runs once per file, not per test)
+setup_file() {
  # Set up test environment
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="$(mktemp -d)"
@@ -29,13 +30,33 @@ setup() {
  __loge() { echo "ERROR: $*" >&2; }
  __logw() { :; }
  export -f __log_start __log_finish __logi __logd __loge __logw
+ 
+ # Setup shared database schema once for all tests
+ __shared_db_setup_file
+}
+
+setup() {
+ # Per-test setup (runs before each test)
+ # Use shared database setup from setup_file
+ :
 }
 
 teardown() {
- # Clean up
+ # Per-test cleanup (runs after each test)
+ # Truncate test data instead of dropping tables (faster)
+ # Note: Partition tables are dropped in individual tests as needed
+ __truncate_test_tables notes_api note_comments note_comments_text notes users
+}
+
+# Shared database teardown (runs once per file, not per test)
+teardown_file() {
+ # Clean up temporary directory
  if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
+ 
+ # Shared database teardown (truncates tables, preserves schema)
+ __shared_db_teardown_file
 }
 
 # =============================================================================

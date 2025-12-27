@@ -473,6 +473,175 @@ __test_wait_for() {
 }
 
 # =============================================================================
+# Shared Database Setup Helpers (setup_file/teardown_file)
+# =============================================================================
+
+# Shared database setup for test file (runs once per file, not per test)
+# Usage: Call setup_file() in your test file
+# This creates base tables once for all tests in the file
+# Example:
+#   setup_file() {
+#     __shared_db_setup_file
+#   }
+__shared_db_setup_file() {
+ local DBNAME_TO_SETUP="${DBNAME:-osm_notes_ingestion_test}"
+ 
+ # Skip if database is not available
+ if ! __check_database_connectivity "${DBNAME_TO_SETUP}"; then
+  echo "Warning: Database ${DBNAME_TO_SETUP} not available, skipping setup" >&2
+  return 0
+ fi
+ 
+ # Check if setup already done (avoid duplicate setup)
+ if [[ -n "${__SHARED_DB_SETUP_DONE:-}" ]]; then
+  return 0
+ fi
+ 
+ # Create base schema using existing create_test_database function if available
+ # Otherwise, create minimal schema
+ if declare -f create_test_database > /dev/null 2>&1; then
+  create_test_database "${DBNAME_TO_SETUP}" > /dev/null 2>&1 || true
+ else
+  # Minimal schema creation
+  psql -d "${DBNAME_TO_SETUP}" << 'EOF' > /dev/null 2>&1 || true
+-- Install required extensions
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- Create ENUM types
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+    CREATE TYPE note_status_enum AS ENUM ('open', 'close', 'hidden');
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_event_enum') THEN
+    CREATE TYPE note_event_enum AS ENUM ('opened', 'closed', 'reopened', 'commented', 'hidden');
+  END IF;
+END
+$$;
+
+-- Create base tables (if not exist)
+CREATE TABLE IF NOT EXISTS users (
+  user_id INTEGER NOT NULL PRIMARY KEY,
+  username VARCHAR(256) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notes (
+  id INTEGER NOT NULL,
+  note_id INTEGER NOT NULL,
+  lat DECIMAL(10,8) NOT NULL,
+  lon DECIMAL(11,8) NOT NULL,
+  status note_status_enum NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  closed_at TIMESTAMP WITH TIME ZONE,
+  id_user INTEGER,
+  id_country INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS note_comments (
+  id INTEGER NOT NULL,
+  note_id INTEGER NOT NULL,
+  event note_event_enum NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  id_user INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS note_comments_text (
+  id INTEGER NOT NULL,
+  note_id INTEGER NOT NULL,
+  event note_event_enum NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  id_user INTEGER,
+  text TEXT
+);
+
+CREATE TABLE IF NOT EXISTS countries (
+  country_id INTEGER PRIMARY KEY,
+  country_name VARCHAR(256) NOT NULL,
+  country_name_es VARCHAR(256),
+  country_name_en VARCHAR(256),
+  geom GEOMETRY(POLYGON, 4326),
+  is_maritime BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS import (
+  geometry GEOMETRY
+);
+
+CREATE TABLE IF NOT EXISTS notes_api (
+  note_id INTEGER PRIMARY KEY,
+  latitude DECIMAL(10,8) NOT NULL,
+  longitude DECIMAL(11,8) NOT NULL,
+  status note_status_enum NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  closed_at TIMESTAMP WITH TIME ZONE,
+  id_country INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS properties (
+  key VARCHAR(32) PRIMARY KEY,
+  value TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+EOF
+ fi
+ 
+ # Mark setup as done
+ export __SHARED_DB_SETUP_DONE=1
+}
+
+# Shared database teardown for test file (runs once per file)
+# Usage: Call teardown_file() in your test file
+# This truncates tables instead of dropping them (faster)
+# Example:
+#   teardown_file() {
+#     __shared_db_teardown_file
+#   }
+__shared_db_teardown_file() {
+ local DBNAME_TO_CLEAN="${DBNAME:-osm_notes_ingestion_test}"
+ 
+ # Skip if database is not available
+ if ! __check_database_connectivity "${DBNAME_TO_CLEAN}"; then
+  return 0
+ fi
+ 
+ # Truncate tables instead of dropping (much faster)
+ # This preserves schema but removes data
+ psql -d "${DBNAME_TO_CLEAN}" << 'EOF' > /dev/null 2>&1 || true
+-- Truncate all tables (preserves schema, removes data)
+TRUNCATE TABLE IF EXISTS notes_api CASCADE;
+TRUNCATE TABLE IF EXISTS note_comments_text CASCADE;
+TRUNCATE TABLE IF EXISTS note_comments CASCADE;
+TRUNCATE TABLE IF EXISTS notes CASCADE;
+TRUNCATE TABLE IF EXISTS users CASCADE;
+TRUNCATE TABLE IF EXISTS countries CASCADE;
+TRUNCATE TABLE IF EXISTS import CASCADE;
+TRUNCATE TABLE IF EXISTS properties CASCADE;
+EOF
+ 
+ # Reset setup flag for next file
+ unset __SHARED_DB_SETUP_DONE
+}
+
+# Optimized table cleanup: Truncate instead of Drop
+# Usage: __truncate_test_tables [TABLE1] [TABLE2] ...
+# Example: __truncate_test_tables notes note_comments
+__truncate_test_tables() {
+ local DBNAME_TO_USE="${DBNAME:-osm_notes_ingestion_test}"
+ local TABLES=("$@")
+ 
+ if [[ ${#TABLES[@]} -eq 0 ]]; then
+  # Default: truncate common test tables
+  TABLES=("notes_api" "note_comments_text" "note_comments" "notes" "users" "countries" "import" "properties")
+ fi
+ 
+ for table in "${TABLES[@]}"; do
+  psql -d "${DBNAME_TO_USE}" -c "TRUNCATE TABLE IF EXISTS ${table} CASCADE;" > /dev/null 2>&1 || true
+ done
+}
+
+# =============================================================================
 # Database Connectivity Helpers
 # =============================================================================
 

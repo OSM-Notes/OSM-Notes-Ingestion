@@ -11,7 +11,9 @@ load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 # Setup and Teardown
 # =============================================================================
 
-setup() {
+# Shared database setup (runs once per file, not per test)
+# This optimizes database operations by creating tables once
+setup_file() {
  # Set up test environment
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="$(mktemp -d)"
@@ -20,6 +22,14 @@ setup() {
  export BASENAME="test_incremental_sync_e2e"
  export LOG_LEVEL="ERROR"
  export TEST_MODE="true"
+ 
+ # Setup shared database schema once for all tests
+ __shared_db_setup_file
+}
+
+setup() {
+ # Per-test setup (runs before each test)
+ # Use shared database setup from setup_file
 
  # Create mock API XML file with new notes
  cat > "${TMP_DIR}/api_notes_new.xml" << 'EOF'
@@ -49,10 +59,20 @@ EOF
 }
 
 teardown() {
- # Clean up
+ # Per-test cleanup (runs after each test)
+ # Truncate test data instead of dropping tables (faster)
+ __truncate_test_tables notes_api note_comments note_comments_text
+}
+
+# Shared database teardown (runs once per file, not per test)
+teardown_file() {
+ # Clean up temporary directory
  if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
+ 
+ # Shared database teardown (truncates tables, preserves schema)
+ __shared_db_teardown_file
 }
 
 # =============================================================================
