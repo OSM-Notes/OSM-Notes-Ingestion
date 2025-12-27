@@ -70,12 +70,28 @@ jobs:
         find bin -name "*.sh" -type f -exec head -1 {} \; | grep "#!/bin/bash"
 
   # ============================================================================
-  # STAGE 2: Unit Tests (always run)
+  # STAGE 2: Unit Tests (always run) - Parallelized for faster execution
   # ============================================================================
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: quick-checks
+    timeout-minutes: 5  # Unit tests should be fast
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group:
+          - name: "process-api-planet"
+            pattern: "tests/unit/bash/processAPINotes*.bats tests/unit/bash/processPlanetNotes*.bats"
+          - name: "boundary-overpass"
+            pattern: "tests/unit/bash/boundary*.bats tests/unit/bash/overpass*.bats"
+          - name: "security-validation"
+            pattern: "tests/unit/bash/security*.bats tests/unit/bash/*validation*.bats"
+          - name: "performance-parallel"
+            pattern: "tests/unit/bash/performance*.bats tests/unit/bash/parallel*.bats"
+          - name: "other-tests"
+            pattern: "tests/unit/bash/*.bats"
+            exclude: "tests/unit/bash/processAPINotes*.bats tests/unit/bash/processPlanetNotes*.bats tests/unit/bash/boundary*.bats tests/unit/bash/overpass*.bats tests/unit/bash/security*.bats tests/unit/bash/*validation*.bats tests/unit/bash/performance*.bats tests/unit/bash/parallel*.bats"
     
     services:
       postgres:
@@ -149,10 +165,46 @@ jobs:
           sleep 2
         done
 
-    - name: Run unit tests
+    - name: Run unit tests (group ${{ matrix.test-group.name }})
       run: |
-        echo "Running unit tests..."
-        bats tests/unit/bash/ 2>&1 | tee tests/results/unit-tests.log
+        echo "Running unit tests group: ${{ matrix.test-group.name }}"
+        echo "Pattern: ${{ matrix.test-group.pattern }}"
+        
+        # Set CI environment for sleep optimization
+        export CI=true
+        export GITHUB_ACTIONS=true
+        
+        # Find and run tests matching pattern
+        # Handle multiple patterns separated by spaces
+        TEST_FILES=""
+        for pattern in ${{ matrix.test-group.pattern }}; do
+          if [[ "${pattern}" == "tests/unit/bash/*.bats" ]]; then
+            # Special handling for "other-tests" group - exclude already covered patterns
+            for test_file in tests/unit/bash/*.bats; do
+              if [[ ! "${test_file}" =~ (processAPINotes|processPlanetNotes|boundary|overpass|security|validation|performance|parallel) ]]; then
+                TEST_FILES="${TEST_FILES} ${test_file}"
+              fi
+            done
+          else
+            # Expand glob pattern
+            for test_file in ${pattern}; do
+              if [[ -f "${test_file}" ]]; then
+                TEST_FILES="${TEST_FILES} ${test_file}"
+              fi
+            done
+          fi
+        done
+        
+        # Run all found tests
+        if [[ -n "${TEST_FILES}" ]]; then
+          echo "Found tests: ${TEST_FILES}"
+          for test_file in ${TEST_FILES}; do
+            echo "Running: ${test_file}"
+            bats "${test_file}" 2>&1 | tee -a tests/results/unit-tests-${{ matrix.test-group.name }}.log
+          done
+        else
+          echo "No tests found for pattern: ${{ matrix.test-group.pattern }}"
+        fi
       env:
         TEST_DBNAME: osm_notes_test
         TEST_DBUSER: postgres
@@ -166,14 +218,16 @@ jobs:
         DBPORT: 5432
         LOG_LEVEL: INFO
         MAX_THREADS: 2
+        CI: true
+        GITHUB_ACTIONS: true
 
-    - name: Upload unit test results
+    - name: Upload unit test results (group ${{ matrix.test-group.name }})
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: unit-test-results
+        name: unit-test-results-${{ matrix.test-group.name }}
         path: |
-          tests/results/
+          tests/results/unit-tests-${{ matrix.test-group.name }}.log
           tests/tmp/
         retention-days: 7
 
@@ -184,6 +238,7 @@ jobs:
     name: Integration Tests (Quick)
     runs-on: ubuntu-latest
     needs: unit-tests
+    timeout-minutes: 5  # Quick integration tests should be fast
     if: github.event_name == 'pull_request'
     
     services:

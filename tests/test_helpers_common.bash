@@ -414,6 +414,65 @@ __setup_mock_ogr2ogr() {
 }
 
 # =============================================================================
+# Sleep/Delay Optimization Helpers
+# =============================================================================
+
+# Optimized sleep function that uses multiplier in CI
+# Usage: __test_sleep [SECONDS]
+# Example: __test_sleep 5  # Sleeps 5 seconds locally, 0.5 seconds in CI
+__test_sleep() {
+ local SECONDS="${1:-1}"
+ local MULTIPLIER="${ACTIVE_SLEEP_MULTIPLIER:-1}"
+ local SLEEP_TIME
+ SLEEP_TIME=$(awk "BEGIN {printf \"%.2f\", ${SECONDS} * ${MULTIPLIER}}")
+ 
+ # Minimum sleep of 0.01 seconds to avoid zero sleep
+ if (( $(echo "${SLEEP_TIME} < 0.01" | bc -l 2>/dev/null || echo "0") )); then
+  SLEEP_TIME=0.01
+ fi
+ 
+ sleep "${SLEEP_TIME}"
+}
+
+# Optimized wait function with exponential backoff
+# Usage: __test_wait_for [COMMAND] [MAX_WAIT_SECONDS] [INITIAL_WAIT_SECONDS]
+# Example: __test_wait_for "psql -c 'SELECT 1'" 10 0.5
+__test_wait_for() {
+ local COMMAND="${1}"
+ local MAX_WAIT="${2:-10}"
+ local INITIAL_WAIT="${3:-0.5}"
+ local MULTIPLIER="${ACTIVE_SLEEP_MULTIPLIER:-1}"
+ 
+ local CURRENT_WAIT="${INITIAL_WAIT}"
+ local ELAPSED=0
+ 
+ while (( $(echo "${ELAPSED} < ${MAX_WAIT}" | bc -l 2>/dev/null || echo "0") )); do
+  if eval "${COMMAND}" > /dev/null 2>&1; then
+   return 0
+  fi
+  
+  local SLEEP_TIME
+  SLEEP_TIME=$(awk "BEGIN {printf \"%.2f\", ${CURRENT_WAIT} * ${MULTIPLIER}}")
+  
+  # Minimum sleep of 0.01 seconds
+  if (( $(echo "${SLEEP_TIME} < 0.01" | bc -l 2>/dev/null || echo "0") )); then
+   SLEEP_TIME=0.01
+  fi
+  
+  sleep "${SLEEP_TIME}"
+  ELAPSED=$(awk "BEGIN {printf \"%.2f\", ${ELAPSED} + ${CURRENT_WAIT}}")
+  CURRENT_WAIT=$(awk "BEGIN {printf \"%.2f\", ${CURRENT_WAIT} * 2}")
+  
+  # Cap at max wait
+  if (( $(echo "${CURRENT_WAIT} > ${MAX_WAIT}" | bc -l 2>/dev/null || echo "0") )); then
+   CURRENT_WAIT="${MAX_WAIT}"
+  fi
+ done
+ 
+ return 1
+}
+
+# =============================================================================
 # Database Connectivity Helpers
 # =============================================================================
 

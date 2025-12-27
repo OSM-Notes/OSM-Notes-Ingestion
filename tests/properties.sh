@@ -85,6 +85,19 @@ export CI_TIMEOUT="600"    # 10 minutes for CI/CD tests
 export CI_MAX_RETRIES="20" # More retries for CI environment
 export CI_MAX_THREADS="2"  # Conservative threading for CI
 
+# Test sleep multiplier for CI optimization
+# In CI, reduce sleep times by 90% to speed up tests
+# Local tests use realistic delays, CI uses minimal delays
+export TEST_SLEEP_MULTIPLIER="${TEST_SLEEP_MULTIPLIER:-1}"
+export CI_TEST_SLEEP_MULTIPLIER="${CI_TEST_SLEEP_MULTIPLIER:-0.1}"  # 10x faster in CI
+
+# Determine which multiplier to use
+if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
+  export ACTIVE_SLEEP_MULTIPLIER="${CI_TEST_SLEEP_MULTIPLIER}"
+else
+  export ACTIVE_SLEEP_MULTIPLIER="${TEST_SLEEP_MULTIPLIER}"
+fi
+
 # Test Docker configuration
 export DOCKER_TIMEOUT="300"    # 5 minutes for Docker operations
 export DOCKER_MAX_RETRIES="10" # Docker-specific retries

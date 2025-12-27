@@ -45,7 +45,7 @@ teardown() {
   if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -gt 0 ]]; then
    # Clean up previous failed attempt
    rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
-   sleep 1
+   __test_sleep 1
   fi
 
   # Attempt download
@@ -60,6 +60,11 @@ teardown() {
    fi
   else
    DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
+  fi
+  
+  # Use optimized sleep for retry delay (faster in CI)
+  if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -lt ${DOWNLOAD_VALIDATION_RETRIES} ]] && [[ "${DOWNLOAD_SUCCESS}" == "false" ]]; then
+   __test_sleep 1
   fi
  done
 
@@ -119,7 +124,7 @@ EOF
    SUCCESS=true
   else
    RETRY_COUNT=$((RETRY_COUNT + 1))
-   sleep 0.1
+   __test_sleep 0.1
   fi
  done
 
