@@ -848,6 +848,18 @@ jobs:
           tests/benchmark_results/regression_report.json
         retention-days: 30
 
+    - name: Generate performance dashboard
+      if: always()
+      run: |
+        echo "Generating performance dashboard..."
+        export RESULTS_DIR="${PWD}/tests/benchmark_results"
+        export BASELINE_FILE="${PWD}/tests/benchmark_results/baseline.json"
+        export OUTPUT_DIR="${PWD}/tests/benchmark_results/dashboard"
+        
+        ./tests/generate_performance_dashboard.sh || {
+          echo "Dashboard generation failed, but continuing..."
+        }
+
     - name: Upload performance baseline
       uses: actions/upload-artifact@v4
       if: success()
@@ -855,6 +867,16 @@ jobs:
         name: performance-baseline
         path: tests/benchmark_results/baseline.json
         retention-days: 90
+
+    - name: Upload performance dashboard
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-dashboard
+        path: |
+          tests/benchmark_results/dashboard/
+          tests/benchmark_results/regression_report.json
+        retention-days: 30
 
     - name: Display regression summary
       if: always()
@@ -880,6 +902,14 @@ jobs:
               ""
             end)
           ' >> $GITHUB_STEP_SUMMARY || cat tests/benchmark_results/regression_report.json >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Add dashboard link if available
+        if [[ -f "tests/benchmark_results/dashboard/index.html" ]]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Performance Dashboard" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the \`performance-dashboard\` artifact to view the interactive HTML dashboard." >> $GITHUB_STEP_SUMMARY
         fi
 
   # ============================================================================
