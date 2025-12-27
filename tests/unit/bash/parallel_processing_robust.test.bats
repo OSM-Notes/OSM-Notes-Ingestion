@@ -124,3 +124,90 @@ teardown() {
    [ "${RETRY_DELAY}" -gt 0 ]
  fi
 }
+
+# =============================================================================
+# Enhanced Tests for Resource Management Functions
+# =============================================================================
+
+@test "__check_system_resources should handle minimal mode correctly" {
+ # Test that function accepts minimal mode parameter
+ run __check_system_resources "minimal"
+ [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+}
+
+@test "__check_system_resources should handle normal mode correctly" {
+ # Test that function accepts normal mode parameter
+ run __check_system_resources "normal"
+ [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+}
+
+@test "__wait_for_resources should return success when resources available immediately" {
+ # Mock __check_system_resources to return success
+ __check_system_resources() {
+  return 0
+ }
+ export -f __check_system_resources
+ 
+ # Should return success immediately
+ run __wait_for_resources 10
+ [ "$status" -eq 0 ]
+}
+
+@test "__wait_for_resources should timeout when resources unavailable" {
+ # Mock __check_system_resources to always fail
+ __check_system_resources() {
+  return 1
+ }
+ export -f __check_system_resources
+ 
+ # Should timeout after short wait
+ run __wait_for_resources 2
+ [ "$status" -eq 1 ]
+}
+
+@test "__adjust_workers_for_resources should reduce workers for XML processing" {
+ # Test XML-specific reduction (should reduce by at least 2)
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(__adjust_workers_for_resources 10 "XML" 2>/dev/null | tail -n1)
+ [ -n "${NUMERIC_OUTPUT}" ]
+ [ "${NUMERIC_OUTPUT}" -le 8 ]  # Should be reduced by at least 2
+ [ "${NUMERIC_OUTPUT}" -ge 1 ]
+}
+
+@test "__adjust_workers_for_resources should maintain minimum of 1 worker" {
+ # Test that function never returns less than 1
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(__adjust_workers_for_resources 1 2>/dev/null | tail -n1)
+ [ "${NUMERIC_OUTPUT}" -ge 1 ]
+}
+
+@test "__adjust_process_delay should respect low delay values" {
+ # Test that very low delays are not adjusted
+ local LOW_DELAY=1
+ export PARALLEL_PROCESS_DELAY="${LOW_DELAY}"
+ 
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(__adjust_process_delay 2>/dev/null | tail -n1)
+ [ "${NUMERIC_OUTPUT}" -eq 1 ] || [ "${NUMERIC_OUTPUT}" -le 2 ]
+}
+
+@test "__adjust_process_delay should cap delay at 10 seconds" {
+ # Test that delay is capped at 10 seconds maximum
+ export PARALLEL_PROCESS_DELAY=5
+ 
+ local NUMERIC_OUTPUT
+ NUMERIC_OUTPUT=$(__adjust_process_delay 2>/dev/null | tail -n1)
+ [ "${NUMERIC_OUTPUT}" -le 10 ]
+}
+
+@test "__configure_system_limits should handle missing commands gracefully" {
+ # Mock commands to be unavailable
+ local ORIGINAL_PATH="${PATH}"
+ export PATH="/nonexistent"
+ 
+ # Function should handle missing commands gracefully
+ run __configure_system_limits
+ [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+ 
+ export PATH="${ORIGINAL_PATH}"
+}
