@@ -58,6 +58,9 @@ teardown() {
  # Launch parallel downloads
  for i in $(seq 1 ${NUM_PARALLEL}); do
   (
+   # Load test helper first to get logging functions
+   source "${SCRIPT_BASE_DIRECTORY}/tests/test_helper.bash" > /dev/null 2>&1 || true
+   
    # Load functions in subshell
    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" > /dev/null 2>&1 || true
@@ -89,7 +92,8 @@ teardown() {
    START_TIME=$(date +%s%N)
 
    # Wait for turn (simulating the download)
-   if timeout 10 bash -c "__wait_for_download_turn ${TICKET}" 2> /dev/null; then
+   # Call function directly (it's already loaded in this subshell)
+   if timeout 10 __wait_for_download_turn "${TICKET}" 2> /dev/null; then
     local END_TIME
     END_TIME=$(date +%s%N)
     local WAIT_TIME=$((END_TIME - START_TIME))
@@ -192,8 +196,13 @@ teardown() {
  # Launch threads that will get tickets
  for i in $(seq 1 ${NUM_THREADS}); do
   (
-   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1
+   # Load test helper first to get logging functions
+   source "${SCRIPT_BASE_DIRECTORY}/tests/test_helper.bash" > /dev/null 2>&1 || true
+   
+   # Load functions in subshell
+   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" > /dev/null 2>&1 || true
+   
    export TMP_DIR="${TMP_DIR}"
    export BASHPID=$((BASHPID + i))
    export RATE_LIMIT=4
@@ -212,6 +221,7 @@ teardown() {
    TICKET=$(__get_download_ticket 2>&1 | grep -E "^[0-9]+$" | head -1)
 
    # Wait for turn
+   # Function is already loaded in this subshell
    if timeout 5 __wait_for_download_turn "${TICKET}" 2> /dev/null; then
     # Record when we got our turn
     echo "${TICKET}:$(date +%s%N)" >> "${ORDER_FILE}"
@@ -317,8 +327,13 @@ teardown() {
  # Make rapid requests
  for i in $(seq 1 ${NUM_REQUESTS}); do
   (
-   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1
+   # Load test helper first to get logging functions
+   source "${SCRIPT_BASE_DIRECTORY}/tests/test_helper.bash" > /dev/null 2>&1 || true
+   
+   # Load functions in subshell
+   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" > /dev/null 2>&1 || true
+   
    export TMP_DIR="${TMP_DIR}"
    export BASHPID=$((BASHPID + i))
    export RATE_LIMIT=4
@@ -336,6 +351,7 @@ teardown() {
    TICKET=$(__get_download_ticket 2>&1 | grep -E "^[0-9]+$" | head -1)
 
    # Should eventually get a turn
+   # Function is already loaded in this subshell
    if timeout 3 __wait_for_download_turn "${TICKET}" 2> /dev/null; then
     echo "success" >> "${TMP_DIR}/rapid_success_${i}.txt"
     __release_download_ticket "${TICKET}" > /dev/null 2>&1 || true
