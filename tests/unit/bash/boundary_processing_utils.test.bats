@@ -6,6 +6,7 @@
 # Version: 2025-12-08
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
+load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 
 setup() {
  # Create temporary test directory
@@ -15,7 +16,7 @@ setup() {
  # Set up test environment variables
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
+ export DBNAME="${TEST_DBNAME:-osm_notes_ingestion_test}"
  export BASHPID=$$
 
  # Set log level to DEBUG to capture all log output
@@ -124,17 +125,10 @@ teardown() {
 # =============================================================================
 
 @test "__validate_capital_location should validate capital location" {
- export DBNAME="test_db"
+ export DBNAME="osm_notes_ingestion_test"
 
- # Mock psql to return success
- psql() {
-  if [[ "$1" == "-d" ]] && [[ "$3" == "-Atq" ]]; then
-   echo "true"
-   return 0
-  fi
-  return 0
- }
- export -f psql
+ # Mock psql to return success using common helper
+ __setup_mock_psql_boolean ".*" "t"
 
  # Mock __retry_overpass_api to return valid capital data
  __retry_overpass_api() {
@@ -160,17 +154,10 @@ EOF
 }
 
 @test "__validate_capital_location should handle missing capital" {
- export DBNAME="test_db"
+ export DBNAME="osm_notes_ingestion_test"
 
- # Mock psql to return false (capital not in boundary)
- psql() {
-  if [[ "$1" == "-d" ]] && [[ "$3" == "-Atq" ]]; then
-   echo "false"
-   return 0
-  fi
-  return 0
- }
- export -f psql
+ # Mock psql to return false (capital not in boundary) using common helper
+ __setup_mock_psql_boolean ".*" "f"
 
  # Mock __retry_overpass_api to return empty result
  __retry_overpass_api() {

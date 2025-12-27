@@ -6,6 +6,7 @@
 # Version: 2025-12-07
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
+load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 
 setup() {
  # Create temporary test directory
@@ -15,7 +16,7 @@ setup() {
  # Set up test environment variables
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
+ export DBNAME="${TEST_DBNAME:-osm_notes_ingestion_test}"
  export RATE_LIMIT="${RATE_LIMIT:-8}"
  export BASHPID=$$
 
@@ -177,22 +178,10 @@ EOF
 @test "__retry_overpass_api should handle query parameter" {
  local OUTPUT_FILE="${TEST_DIR}/output.txt"
 
- # Mock curl to succeed
- curl() {
-  # Find the output file argument (-o)
-  local OUTPUT_ARG=""
-  local OUTPUT_FILE=""
-  local ARGS=("$@")
-  for i in "${!ARGS[@]}"; do
-   if [[ "${ARGS[$i]}" == "-o" ]] && [[ $((i + 1)) -lt ${#ARGS[@]} ]]; then
-    OUTPUT_FILE="${ARGS[$((i + 1))]}"
-    echo "result" > "${OUTPUT_FILE}"
-    return 0
-   fi
-  done
-  return 1
- }
- export -f curl
+ # Mock curl for Overpass API using common helper
+ local MOCK_RESPONSE="${TEST_DIR}/mock_response.json"
+ echo "result" > "${MOCK_RESPONSE}"
+ __setup_mock_curl_overpass "" "${MOCK_RESPONSE}"
 
  run __retry_overpass_api "test query" "${OUTPUT_FILE}" 3 1 30
  [[ "${status}" -eq 0 ]]
@@ -281,14 +270,8 @@ EOF
  local OUTPUT_FILE="${TEST_DIR}/output.txt"
 
  # Mock psql to succeed
- psql() {
-  if [[ "$1" == "-d" ]] && [[ "$3" == "-Atq" ]]; then
-   echo "result" > "$6"
-   return 0
-  fi
-  return 1
- }
- export -f psql
+ # Mock psql using common helper
+ __setup_mock_psql_for_query ".*" "result" 0
 
  run __retry_database_operation "SELECT 1" "${OUTPUT_FILE}" 3 1
  [[ "${status}" -eq 0 ]]
@@ -297,17 +280,12 @@ EOF
 @test "__retry_database_operation should detect SQL errors" {
  local OUTPUT_FILE="${TEST_DIR}/output.txt"
 
- # Mock psql to return error
- psql() {
-  if [[ "$1" == "-d" ]]; then
-   echo "ERROR: syntax error" > "$6"
-   return 1
-  fi
-  return 1
- }
- export -f psql
+ # Mock psql to return error (both exit code and error message)
+ # The function checks for ERROR in output, so we need both
+ __setup_mock_psql_for_query ".*" "ERROR: syntax error" 1
 
  run __retry_database_operation "INVALID SQL" "${OUTPUT_FILE}" 2 1
+ # Function should detect error and return 1 after retries
  [[ "${status}" -eq 1 ]]
 }
 

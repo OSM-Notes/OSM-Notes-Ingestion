@@ -15,7 +15,7 @@ setup() {
  # Set up test environment variables
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="${TEST_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
+ export DBNAME="${TEST_DBNAME:-osm_notes_ingestion_test}"
  export LOG_LEVEL="DEBUG"
  export __log_level="DEBUG"
 

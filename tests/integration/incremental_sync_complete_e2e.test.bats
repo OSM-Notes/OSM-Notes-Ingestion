@@ -16,7 +16,7 @@ setup() {
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="$(mktemp -d)"
  export TEST_DIR="${TMP_DIR}"
- export DBNAME="${TEST_DBNAME:-test_db}"
+ export DBNAME="${TEST_DBNAME:-osm_notes_ingestion_test}"
  export BASENAME="test_incremental_sync_e2e"
  export LOG_LEVEL="ERROR"
  export TEST_MODE="true"
