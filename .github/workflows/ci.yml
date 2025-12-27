@@ -723,25 +723,164 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 2  # Need history for baseline comparison
 
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y postgresql-client
+        sudo apt-get install -y \
+          bats \
+          postgresql-client \
+          libxml2-utils \
+          xsltproc \
+          shellcheck \
+          curl \
+          parallel \
+          jq \
+          bc
 
-    - name: Create benchmarks directory
+    - name: Install Node.js tools
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Node.js tools
       run: |
-        mkdir -p .benchmarks
-        echo "Performance tests executed at $(date)" > .benchmarks/performance.log
-        echo "Database: osm_notes_test" >> .benchmarks/performance.log
+        npm install -g ajv-cli
+
+    - name: Install shfmt
+      run: |
+        if ! command -v shfmt > /dev/null 2>&1; then
+          if [[ -f ~/.local/bin/shfmt ]]; then
+            mkdir -p ~/.local/bin
+            export PATH="$HOME/.local/bin:$PATH"
+          else
+            chmod +x tests/install_shfmt.sh
+            ./tests/install_shfmt.sh
+          fi
+        fi
+
+    - name: Setup test environment
+      run: |
+        mkdir -p tests/tmp
+        mkdir -p tests/results
+        mkdir -p tests/benchmark_results
+        chmod +x tests/run_integration_tests.sh
+        chmod +x tests/analyze_performance_regressions.sh
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U postgres; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+
+    - name: Download baseline (if exists)
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+      with:
+        name: performance-baseline
+        path: tests/benchmark_results/
+
+    - name: Run performance benchmarks
+      run: |
+        echo "Running performance benchmarks..."
+        export CI=true
+        export GITHUB_ACTIONS=true
+        export TEST_DBNAME=osm_notes_test
+        export TEST_DBUSER=postgres
+        export TEST_DBPASSWORD=postgres
+        export TEST_DBHOST=localhost
+        export TEST_DBPORT=5432
+        export DBNAME=osm_notes_test
+        export DB_USER=postgres
+        export DBPASSWORD=postgres
+        export DBHOST=localhost
+        export DBPORT=5432
+        export LOG_LEVEL=ERROR
+        export MAX_THREADS=2
+        export BENCHMARK_RESULTS_DIR="${PWD}/tests/benchmark_results"
+        
+        # Run all performance benchmark tests
+        bats tests/unit/bash/performance_benchmarks*.bats || {
+          echo "Some benchmarks failed, but continuing with regression analysis..."
+        }
+
+    - name: Create baseline if not exists
+      run: |
+        if [[ ! -f "tests/benchmark_results/baseline.json" ]]; then
+          echo "No baseline found, creating from current results..."
+          ./tests/analyze_performance_regressions.sh create-baseline || true
+        fi
+
+    - name: Analyze performance regressions
+      run: |
+        echo "Analyzing performance regressions..."
+        export BASELINE_FILE="${PWD}/tests/benchmark_results/baseline.json"
+        export CURRENT_RESULTS_DIR="${PWD}/tests/benchmark_results"
+        export OUTPUT_FILE="${PWD}/tests/benchmark_results/regression_report.json"
+        
+        ./tests/analyze_performance_regressions.sh analyze || {
+          EXIT_CODE=$?
+          echo "Performance regressions detected!"
+          echo ""
+          echo "=== Regression Report ==="
+          if [[ -f "${OUTPUT_FILE}" ]]; then
+            cat "${OUTPUT_FILE}" | jq '.' || cat "${OUTPUT_FILE}"
+          fi
+          exit $EXIT_CODE
+        }
+
+    - name: Update baseline with current results
+      if: success()
+      run: |
+        echo "Updating baseline with current results..."
+        ./tests/analyze_performance_regressions.sh create-baseline
 
     - name: Upload performance results
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-test-results
-        path: .benchmarks/
-        retention-days: 7
+        path: |
+          tests/benchmark_results/*.json
+          tests/benchmark_results/regression_report.json
+        retention-days: 30
+
+    - name: Upload performance baseline
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: performance-baseline
+        path: tests/benchmark_results/baseline.json
+        retention-days: 90
+
+    - name: Display regression summary
+      if: always()
+      run: |
+        if [[ -f "tests/benchmark_results/regression_report.json" ]]; then
+          echo "=== Performance Regression Summary ===" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat tests/benchmark_results/regression_report.json | jq -r '
+            "**Total Tests:** \(.summary.total_tests)\n" +
+            "**Regressions:** \(.summary.regressions)\n" +
+            "**Improvements:** \(.summary.improvements)\n" +
+            "**Stable:** \(.summary.stable)\n\n" +
+            (if .regressions | length > 0 then
+              "### ⚠️ Regressions Detected\n\n" +
+              (.regressions | map("- \(.)") | join("\n")) + "\n\n"
+            else
+              "### ✅ No Regressions\n\n"
+            end) +
+            (if .improvements | length > 0 then
+              "### 🎉 Improvements\n\n" +
+              (.improvements | map("- \(.)") | join("\n")) + "\n\n"
+            else
+              ""
+            end)
+          ' >> $GITHUB_STEP_SUMMARY || cat tests/benchmark_results/regression_report.json >> $GITHUB_STEP_SUMMARY
+        fi
 
   # ============================================================================
   # FINAL: Test Summary
