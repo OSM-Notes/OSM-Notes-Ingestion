@@ -150,9 +150,9 @@ function __list_partition_tables() {
 
  ${PSQL_CMD} -d "${TARGET_DB}" -c "
  SELECT table_name, COUNT(*) as count
- FROM information_schema.tables 
- WHERE table_name LIKE '%_part_%' 
- GROUP BY table_name 
+ FROM information_schema.tables
+ WHERE table_name LIKE '%_part_%'
+ GROUP BY table_name
  ORDER BY table_name;
  "
  __log_finish
@@ -208,8 +208,8 @@ function __verify_partition_cleanup() {
 
  local REMAINING_COUNT
  REMAINING_COUNT=$(${PSQL_CMD} -d "${TARGET_DB}" -t -c "
- SELECT COUNT(*) 
- FROM information_schema.tables 
+ SELECT COUNT(*)
+ FROM information_schema.tables
  WHERE table_name LIKE '%_part_%';
  " | tr -d ' ')
 
@@ -220,9 +220,9 @@ function __verify_partition_cleanup() {
  else
   __logw "WARNING: ${REMAINING_COUNT} partition tables still exist"
   ${PSQL_CMD} -d "${TARGET_DB}" -c "
-  SELECT table_name 
-  FROM information_schema.tables 
-  WHERE table_name LIKE '%_part_%' 
+  SELECT table_name
+  FROM information_schema.tables
+  WHERE table_name LIKE '%_part_%'
   ORDER BY table_name;
   "
   __log_finish

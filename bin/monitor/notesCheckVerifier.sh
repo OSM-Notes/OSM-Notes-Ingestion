@@ -30,7 +30,7 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-22
+# Version: 2025-01-23
 VERSION="2025-12-22"
 
 #set -xv
@@ -143,8 +143,7 @@ declare -r POSTGRES_21_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor
 declare -r POSTGRES_51_INSERT_MISSING_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_51_insertMissingNotes.sql"
 declare -r POSTGRES_52_INSERT_MISSING_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_52_insertMissingComments.sql"
 declare -r POSTGRES_53_INSERT_MISSING_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_53_insertMissingTextComments.sql"
- declare -r POSTGRES_54_MARK_MISSING_NOTES_AS_HIDDEN=\
-"${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_54_markMissingNotesAsHidden.sql"
+declare -r POSTGRES_54_MARK_MISSING_NOTES_AS_HIDDEN="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_54_markMissingNotesAsHidden.sql"
 
 ###########
 # FUNCTIONS
@@ -280,7 +279,7 @@ function __checkingDifferences {
 
  # Substitute variables first
  envsubst \
-'$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIFFERENT_NOTES_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT,$NOTES_IN_MAIN_NOT_IN_CHECK_FILE' \
+  '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIFFERENT_NOTES_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT,$NOTES_IN_MAIN_NOT_IN_CHECK_FILE' \
   < "${SQL_REPORT}" > "${TEMP_SQL_FILE}.tmp" || true
 
  # Convert COPY ... TO to \copy ... TO
@@ -517,13 +516,13 @@ function __markMissingNotesAsHidden {
 
  if [[ "${QTY_NOTES_IN_MAIN_NOT_IN_CHECK}" -eq 0 ]]; then
   __logi \
-"No notes found in system that are missing from planet. Nothing to mark."
+   "No notes found in system that are missing from planet. Nothing to mark."
   __log_finish
   return 0
  fi
 
  __logi \
-"Found ${QTY_NOTES_IN_MAIN_NOT_IN_CHECK} notes in system not in planet. Marking as hidden..."
+  "Found ${QTY_NOTES_IN_MAIN_NOT_IN_CHECK} notes in system not in planet. Marking as hidden..."
 
  # Mark missing notes as hidden
  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
@@ -550,17 +549,17 @@ function __cleanFiles {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ 
+ trap '{
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
-  
+
   # Only report actual errors, not successful returns
   if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
    # Get the main script name (the one that was executed, not the library)
    local MAIN_SCRIPT_NAME
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-   
+
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
@@ -577,16 +576,16 @@ function __trapOn() {
    exit ${ERROR_EXIT_CODE};
   fi;
  }' ERR
- trap '{ 
+ trap '{
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-  
+
   printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
    {
     echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
-    echo "Script: ${MAIN_SCRIPT_NAME}" 
+    echo "Script: ${MAIN_SCRIPT_NAME}"
     echo "Temporary directory: ${TMP_DIR:-unknown}"
     echo "Process ID: $$"
     echo "Signal: SIGTERM/SIGINT"

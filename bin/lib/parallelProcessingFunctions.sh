@@ -1295,13 +1295,13 @@ function __splitXmlForParallelSafe() {
    note_count = 0
    current_part = 0
    in_note = 0
-   
+
    # Initialize first output file
    output_file = output_dir "/" format_type "_part_0.xml"
    print "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" > output_file
    print "<osm-notes>" > output_file
   }
-  
+
   # Detect start of note tag
   /<note[^>]*>/ {
    # Check if we need to switch to next part
@@ -1309,7 +1309,7 @@ function __splitXmlForParallelSafe() {
     # Close current part
     print "</osm-notes>" > output_file
     close(output_file)
-    
+
     # Open next part
     current_part++
     output_file = output_dir "/" format_type "_part_" current_part ".xml"
@@ -1319,17 +1319,17 @@ function __splitXmlForParallelSafe() {
    note_count++
    in_note = 1
   }
-  
+
   # Skip original XML declaration and osm-notes tags
   /^<\?xml/ || /^<osm-notes>$/ || /^<\/osm-notes>$/ {
    next
   }
-  
+
   # Write all other lines to current output file
   {
    print $0 > output_file
   }
-  
+
   END {
    # Close last part
    if (output_file != "") {

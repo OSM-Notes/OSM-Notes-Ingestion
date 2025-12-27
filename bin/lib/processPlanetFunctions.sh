@@ -308,7 +308,7 @@ function __processBoundary() {
    -- Fix SRID: GeoJSON doesn't include CRS info, ensure SRID is set to 4326
    -- This is critical for spatial queries (ST_Contains fails with mixed SRIDs)
    INSERT INTO ${SANITIZED_TABLE_NAME} (country_id, country_name, country_name_es, country_name_en, geom)
-   SELECT 
+   SELECT
      CAST(SUBSTRING(id FROM 'relation/([0-9]+)') AS INTEGER) AS country_id,
      COALESCE(name, 'Unknown') AS country_name,
      name_es AS country_name_es,
@@ -316,7 +316,7 @@ function __processBoundary() {
      ST_SetSRID(geom, 4326) AS geom
    FROM ${SANITIZED_TEMP_TABLE}
    WHERE id LIKE 'relation/%';
-   
+
    -- Drop temporary table
    DROP TABLE ${SANITIZED_TEMP_TABLE};
 EOF

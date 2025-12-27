@@ -220,7 +220,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'none'
 
     - name: Install dependencies
       run: |
@@ -392,6 +391,19 @@ jobs:
         MAX_THREADS: 2
         CI: true
         GITHUB_ACTIONS: true
+
+    - name: Prepare test artifacts
+      if: always()
+      run: |
+        mkdir -p tests/results tests/tmp
+        LOG_FILE="tests/results/unit-tests-${{ matrix.test-group.name }}.log"
+        if [[ ! -f "${LOG_FILE}" ]]; then
+          echo "No test log file found, creating placeholder..." > "${LOG_FILE}"
+          echo "Test group: ${{ matrix.test-group.name }}" >> "${LOG_FILE}"
+          echo "Pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
+          echo "Status: No tests executed or log file not created" >> "${LOG_FILE}"
+        fi
+        touch tests/tmp/.gitkeep
 
     - name: Upload unit test results (group ${{ matrix.test-group.name }})
       uses: actions/upload-artifact@v4
@@ -779,11 +791,10 @@ jobs:
           jq \
           bc
 
-    - name: Install Node.js tools
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'none'
 
     - name: Install Node.js tools
       run: |

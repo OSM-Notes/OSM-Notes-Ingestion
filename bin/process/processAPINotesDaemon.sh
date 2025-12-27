@@ -436,17 +436,17 @@ function __validateApiNotesFile {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ 
+ trap '{
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
-  
+
   # Only report actual errors, not successful returns
   if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
    # Get the main script name (the one that was executed, not the library)
    local MAIN_SCRIPT_NAME
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-   
+
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
@@ -463,16 +463,16 @@ function __trapOn() {
    exit "${ERROR_EXIT_CODE}";
   fi;
  }' ERR
- trap '{ 
+ trap '{
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-  
+
   printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
    {
     echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
-    echo "Script: ${MAIN_SCRIPT_NAME}" 
+    echo "Script: ${MAIN_SCRIPT_NAME}"
     echo "Temporary directory: ${TMP_DIR:-unknown}"
     echo "Process ID: $$"
     echo "Signal: SIGTERM/SIGINT"
@@ -597,9 +597,9 @@ function __prepareApiTables {
  # Check if tables exist
  local TABLES_EXIST
  TABLES_EXIST=$(psql -d "${DBNAME}" -Atq -c "
-  SELECT COUNT(*) 
-  FROM information_schema.tables 
-  WHERE table_schema = 'public' 
+  SELECT COUNT(*)
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
     AND table_name IN ('notes_api', 'note_comments_api', 'note_comments_text_api')
  " 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
@@ -895,7 +895,7 @@ function __process_api_data {
 
   if [[ "${GAP_TABLE_EXISTS}" == "1" ]]; then
    local GAP_QUERY="
-     SELECT 
+     SELECT
        gap_timestamp,
        gap_type,
        gap_count,

@@ -1040,7 +1040,7 @@ function __check_and_log_gaps() {
 
  # Query database for recent gaps
  local GAP_QUERY="
-   SELECT 
+   SELECT
      gap_timestamp,
      gap_type,
      gap_count,
@@ -1065,17 +1065,17 @@ function __check_and_log_gaps() {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ 
+ trap '{
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
   local ERROR_EXIT_CODE="$?"
-  
+
   # Only report actual errors, not successful returns
   if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
    # Get the main script name (the one that was executed, not the library)
    local MAIN_SCRIPT_NAME
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-   
+
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
@@ -1106,7 +1106,7 @@ function __trapOn() {
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-  
+
   printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
    # Determine the failed execution file path
@@ -1116,7 +1116,7 @@ function __trapOn() {
    (
     {
      echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
-     echo "Script: ${MAIN_SCRIPT_NAME}" 
+     echo "Script: ${MAIN_SCRIPT_NAME}"
      echo "Temporary directory: ${TMP_DIR:-unknown}"
      echo "Process ID: $$"
      echo "Signal: SIGTERM/SIGINT"

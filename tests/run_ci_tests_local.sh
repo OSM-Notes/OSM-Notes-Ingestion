@@ -88,10 +88,37 @@ if [[ "${USE_ACT}" == "auto" ]] || [[ "${USE_ACT}" == "true" ]]; then
    
    # Run with act directly
    log_info "Running act with job: ${ACT_JOB_NAME:-quick-checks}"
-   log_warning "Direct act execution not implemented. Install act and run workflows manually."
-   log_info "See: https://github.com/nektos/act for installation instructions"
+   log_info "Event: ${ACT_EVENT}"
    
-   exit 0
+   # Create event JSON file
+   cat > /tmp/act_event.json << 'EOF'
+{
+  "push": {
+    "ref": "refs/heads/main"
+  }
+}
+EOF
+   
+   # Build act command as array
+   ACT_CMD_ARRAY=(
+     act
+     -W .github/workflows/ci.yml
+     --eventpath /tmp/act_event.json
+   )
+   
+   if [[ -n "${ACT_JOB_NAME}" ]] && [[ "${ACT_JOB_NAME}" != "all" ]]; then
+    ACT_CMD_ARRAY+=(--job "${ACT_JOB_NAME}")
+   fi
+   
+   # Add any additional arguments
+   if [[ ${#ACT_ARGS[@]} -gt 0 ]]; then
+    ACT_CMD_ARRAY+=("${ACT_ARGS[@]}")
+   fi
+   
+   log_info "Executing: ${ACT_CMD_ARRAY[*]}"
+   "${ACT_CMD_ARRAY[@]}"
+   
+   exit $?
   else
    log_warning "act not found, falling back to manual test execution"
    log_info "To install act: https://github.com/nektos/act"

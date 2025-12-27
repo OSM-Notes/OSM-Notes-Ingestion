@@ -563,17 +563,17 @@ function __createPartitionTables {
  # Use --pset pager=off to prevent opening vi/less for long output
  # Show summary instead of all partition names
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" --pset pager=off -c "
- SELECT 
-  CASE 
+ SELECT
+  CASE
    WHEN table_name LIKE 'notes_sync_part_%' THEN 'notes_sync_part'
    WHEN table_name LIKE 'note_comments_sync_part_%' THEN 'note_comments_sync_part'
    WHEN table_name LIKE 'note_comments_text_sync_part_%' THEN 'note_comments_text_sync_part'
    ELSE 'other'
   END AS partition_type,
   COUNT(*) as partition_count
- FROM information_schema.tables 
+ FROM information_schema.tables
  WHERE table_schema = 'public'
-  AND table_name LIKE '%_part_%' 
+  AND table_name LIKE '%_part_%'
  GROUP BY partition_type
  ORDER BY partition_type;
  "
@@ -1206,16 +1206,16 @@ function __cleanup_validation_temp_files {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
- trap '{ 
+ trap '{
   ERROR_LINE="${LINENO}"
   ERROR_COMMAND="${BASH_COMMAND}"
   ERROR_EXIT_CODE="$?"
-  
+
   # Only report actual errors, not successful returns
   if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
    # Get the main script name (the one that was executed, not the library)
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-   
+
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
    printf "ERROR: Failed command: %s (exit code: %d)\n" "${ERROR_COMMAND}" "${ERROR_EXIT_CODE}";
    if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
@@ -1232,15 +1232,15 @@ function __trapOn() {
    exit ${ERROR_EXIT_CODE};
   fi;
  }' ERR
- trap '{ 
+ trap '{
   # Get the main script name (the one that was executed, not the library)
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
-  
+
   printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
    {
     echo "Script terminated at $(date +%Y%m%d_%H:%M:%S)"
-    echo "Script: ${MAIN_SCRIPT_NAME}" 
+    echo "Script: ${MAIN_SCRIPT_NAME}"
     echo "Temporary directory: ${TMP_DIR:-unknown}"
     echo "Process ID: $$"
     echo "Signal: SIGTERM/SIGINT"
