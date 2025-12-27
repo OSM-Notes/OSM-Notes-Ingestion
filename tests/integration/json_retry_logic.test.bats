@@ -23,18 +23,66 @@ teardown() {
 # Scenario: First download returns corrupted JSON, system should retry
 # Expected: System should retry download and eventually succeed or fail gracefully
 @test "should retry download when JSON validation fails" {
- if ! command -v curl > /dev/null; then
-  skip "curl not available"
- fi
-
- # Arrange: Create a mock scenario where first download is corrupted
+ # Arrange: Create a mock scenario where first download is corrupted, then succeeds
  local TEST_ID="3793105"
  local JSON_FILE="${TMP_DIR}/${TEST_ID}.json"
  local QUERY_FILE="${TMP_DIR}/query_${TEST_ID}.op"
  local OUTPUT_OVERPASS="${TMP_DIR}/output_${TEST_ID}.txt"
+ local CORRUPTED_JSON="${TMP_DIR}/corrupted_${TEST_ID}.json"
+ local VALID_JSON="${TMP_DIR}/valid_${TEST_ID}.json"
+
+ # Create corrupted JSON (valid structure but empty elements)
+ cat > "${CORRUPTED_JSON}" << 'EOF'
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "elements": []
+}
+EOF
+
+ # Create valid JSON
+ cat > "${VALID_JSON}" << 'EOF'
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "elements": [
+    {
+      "type": "relation",
+      "id": 3793105,
+      "members": []
+    }
+  ]
+}
+EOF
 
  # Create query
  __create_overpass_query "${TEST_ID}" "${QUERY_FILE}"
+
+ # Setup mock curl that returns corrupted JSON first, then valid JSON
+ local RETRY_COUNT=0
+ curl() {
+  local ARGS=("$@")
+  local OUTPUT_FILE=""
+  
+  # Extract output file
+  for i in "${!ARGS[@]}"; do
+   if [[ "${ARGS[$i]}" == "-o" ]] && [[ $((i + 1)) -lt ${#ARGS[@]} ]]; then
+    OUTPUT_FILE="${ARGS[$((i + 1))]}"
+    break
+   fi
+  done
+  
+  # First attempt: return corrupted JSON
+  # Subsequent attempts: return valid JSON
+  if [[ ${RETRY_COUNT} -eq 0 ]]; then
+   cp "${CORRUPTED_JSON}" "${OUTPUT_FILE}"
+   RETRY_COUNT=$((RETRY_COUNT + 1))
+  else
+   cp "${VALID_JSON}" "${OUTPUT_FILE}"
+  fi
+  return 0
+ }
+ export -f curl
 
  # Simulate retry logic
  local DOWNLOAD_VALIDATION_RETRIES=3
@@ -45,7 +93,7 @@ teardown() {
   if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -gt 0 ]]; then
    # Clean up previous failed attempt
    rm -f "${JSON_FILE}" "${OUTPUT_OVERPASS}" 2> /dev/null || true
-   __test_sleep 1
+   __test_sleep 0.1
   fi
 
   # Attempt download
@@ -64,17 +112,13 @@ teardown() {
   
   # Use optimized sleep for retry delay (faster in CI)
   if [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -lt ${DOWNLOAD_VALIDATION_RETRIES} ]] && [[ "${DOWNLOAD_SUCCESS}" == "false" ]]; then
-   __test_sleep 1
+   __test_sleep 0.1
   fi
  done
 
- # Should eventually succeed (if API is available)
- # Use service availability helper
- if __check_overpass_api_status 5 && [[ "${__OVERPASS_API_STATUS_AVAILABLE:-0}" -eq 1 ]]; then
-  [[ "${DOWNLOAD_SUCCESS}" == "true" ]]
- else
-  skip "Overpass API not reachable"
- fi
+ # Should eventually succeed after retry
+ [[ "${DOWNLOAD_SUCCESS}" == "true" ]]
+ [[ ${DOWNLOAD_VALIDATION_RETRY_COUNT} -eq 1 ]]
 }
 
 # =============================================================================
@@ -140,10 +184,6 @@ EOF
 # Scenario: API returns error response, system should detect and retry
 # Expected: Error detection should trigger retry mechanism
 @test "should retry download when Overpass API returns errors" {
- if ! command -v curl > /dev/null; then
-  skip "curl not available"
- fi
-
  # Test with a mock error response file
  local ERROR_OUTPUT="${TMP_DIR}/error_output.txt"
  echo "ERROR 429: Too Many Requests." > "${ERROR_OUTPUT}"
@@ -155,6 +195,20 @@ EOF
 
  # Should detect error
  [[ "${MANY_REQUESTS}" -gt 0 ]]
+
+ # Verify error response format
+ local ERROR_RESPONSE="${TMP_DIR}/error_response.json"
+ cat > "${ERROR_RESPONSE}" << 'EOF'
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "remark": "runtime error: Query timed out"
+}
+EOF
+
+ # Error response should fail validation (no elements)
+ run __validate_json_with_element "${ERROR_RESPONSE}" "elements"
+ [[ "${status}" -ne 0 ]]
 }
 
 # =============================================================================
@@ -164,34 +218,48 @@ EOF
 # Scenario: Use __retry_file_operation to download JSON with retry logic
 # Expected: Download should succeed with retry mechanism
 @test "should integrate with __retry_file_operation for downloads" {
- if ! command -v curl > /dev/null; then
-  skip "curl not available"
- fi
-
  if ! declare -f __retry_file_operation > /dev/null 2>&1; then
   skip "__retry_file_operation function not available"
  fi
 
- __check_overpass_connectivity
-
  local TEST_ID="3793105"
  local JSON_FILE="${TMP_DIR}/${TEST_ID}.json"
  local QUERY_FILE="${TMP_DIR}/query_${TEST_ID}.op"
+ local VALID_JSON="${TMP_DIR}/valid_response.json"
+
+ # Create valid JSON response
+ cat > "${VALID_JSON}" << 'EOF'
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "elements": [
+    {
+      "type": "relation",
+      "id": 3793105,
+      "members": []
+    }
+  ]
+}
+EOF
 
  # Create query
  __create_overpass_query "${TEST_ID}" "${QUERY_FILE}"
+
+ # Setup mock curl
+ __setup_mock_curl_overpass "${QUERY_FILE}" "${VALID_JSON}"
 
  # Use __retry_file_operation for download
  # Note: Using smart_wait=false to avoid dependency on download queue functions in test environment
  local OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
  run __retry_file_operation "${OPERATION}" 3 2 "" "false"
 
- if [[ "${status}" -eq 0 ]] && [[ -f "${JSON_FILE}" ]] && [[ -s "${JSON_FILE}" ]]; then
-  # Then validate
-  run __validate_json_with_element "${JSON_FILE}" "elements"
-  [[ "${status}" -eq 0 ]]
- else
-  skip "Download failed - may be rate limited or network issue"
- fi
+ # Download should succeed
+ [[ "${status}" -eq 0 ]]
+ [[ -f "${JSON_FILE}" ]]
+ [[ -s "${JSON_FILE}" ]]
+
+ # Then validate
+ run __validate_json_with_element "${JSON_FILE}" "elements"
+ [[ "${status}" -eq 0 ]]
 }
 
