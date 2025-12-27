@@ -1,7 +1,7 @@
 # CI/CD Pipeline - OSM-Notes-Ingestion
 # Consolidated workflow combining quality tests, unit tests, and integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-27
 
 name: CI/CD Pipeline
 
@@ -198,14 +198,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-fixtures-
 
-    # Cache Node.js dependencies
-    - name: Cache Node.js dependencies
+    # Cache Node.js global packages
+    - name: Cache Node.js global packages
       uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('package.json') }}
+        key: ${{ runner.os }}-node-global-v1
         restore-keys: |
-          ${{ runner.os }}-node-
+          ${{ runner.os }}-node-global-
 
     # Cache shfmt binary
     - name: Cache shfmt
@@ -220,7 +220,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: 'none'
 
     - name: Install dependencies
       run: |
@@ -783,7 +783,7 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: 'none'
 
     - name: Install Node.js tools
       run: |
