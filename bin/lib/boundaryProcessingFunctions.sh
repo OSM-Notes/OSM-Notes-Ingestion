@@ -2464,17 +2464,20 @@ function __processCountries_impl {
    # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
    # Note: Import without -sql to let ogr2ogr handle column mapping automatically
    # The GeoJSON already has the correct columns: country_id, country_name, country_name_es, country_name_en, geometry
-   __logd "Importing backup using ogr2ogr..."
+   # Determine which table to use (countries or countries_new) based on USE_COUNTRIES_NEW
+   local COUNTRIES_TABLE
+   COUNTRIES_TABLE=$(__get_countries_table_name)
+   __logd "Importing backup using ogr2ogr to table: ${COUNTRIES_TABLE}..."
    local OGR_ERROR
    OGR_ERROR=$(mktemp)
    if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${RESOLVED_BACKUP}" \
-    -nln "countries" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
+    -nln "${COUNTRIES_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
     --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
     # Fix SRID: GeoJSON doesn't include CRS info, ogr2ogr may not set SRID correctly
     # This is critical for spatial queries to work (ST_Contains fails with mixed SRIDs)
     __logd "Ensuring SRID is set to 4326 for all geometries..."
-    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "UPDATE countries SET geom = ST_SetSRID(geom, 4326) WHERE ST_SRID(geom) = 0 OR ST_SRID(geom) IS NULL;" >> "${OGR_ERROR}" 2>&1; then
+    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "UPDATE ${COUNTRIES_TABLE} SET geom = ST_SetSRID(geom, 4326) WHERE ST_SRID(geom) = 0 OR ST_SRID(geom) IS NULL;" >> "${OGR_ERROR}" 2>&1; then
      __logi "Successfully imported countries from backup and fixed SRID"
      rm -f "${OGR_ERROR}"
      __log_finish
