@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-16
-VERSION="2025-12-16"
+# Version: 2025-01-23
+VERSION="2025-01-23"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
@@ -2201,7 +2201,7 @@ function __downloadCountries_parallel_new() {
    echo ""
    echo "[PART ${PART_NUM}] Environment check:"
    echo "[PART ${PART_NUM}] PATH: ${PATH}"
-   echo "[PART ${PART_NUM}] Which curl: $(which curl 2>&1 || echo 'curl not found')"
+   echo "[PART ${PART_NUM}] Which curl: $(command -v curl 2>&1 || echo 'curl not found')"
    echo "[PART ${PART_NUM}] Curl version: $(curl --version 2>&1 | head -1 || echo 'curl failed')"
    echo ""
 
@@ -2211,7 +2211,7 @@ function __downloadCountries_parallel_new() {
 
     echo "[PART ${PART_NUM}] Downloading boundary ${ID}..."
     echo "[PART ${PART_NUM}] PATH before download: ${PATH}"
-    echo "[PART ${PART_NUM}] Which curl before download: $(which curl 2>&1 || echo 'curl not found')"
+    echo "[PART ${PART_NUM}] Which curl before download: $(command -v curl 2>&1 || echo 'curl not found')"
     if __downloadBoundary_json_geojson_only "${ID}" 2>&1; then
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))

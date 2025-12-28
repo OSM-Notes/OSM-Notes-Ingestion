@@ -343,7 +343,7 @@ function __checkingDifferences {
 
  # Exit if psql failed
  if [[ ${PSQL_EXIT_CODE} -ne 0 ]]; then
-  exit ${PSQL_EXIT_CODE}
+  exit "${PSQL_EXIT_CODE}"
  fi
 
  if [[ ! -r "${DIFFERENT_NOTE_IDS_FILE}" ]] \
@@ -573,7 +573,7 @@ function __trapOn() {
      echo "Process ID: $$"
     } > "${FAILED_EXECUTION_FILE}"
    fi;
-   exit ${ERROR_EXIT_CODE};
+   exit "${ERROR_EXIT_CODE}";
   fi;
  }' ERR
  trap '{
@@ -591,7 +591,7 @@ function __trapOn() {
     echo "Signal: SIGTERM/SIGINT"
    } > "${FAILED_EXECUTION_FILE}"
   fi;
-  exit ${ERROR_GENERAL};
+  exit "${ERROR_GENERAL}";
  }' SIGINT SIGTERM
  __log_finish
 }
