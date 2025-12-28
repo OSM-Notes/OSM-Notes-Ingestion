@@ -3,7 +3,7 @@
 # AWK CSV Consistency Tests
 # Tests for validating consistent column structure across multiple notes
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-12-28
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -120,6 +120,7 @@ count_columns() {
  local awk_comments="${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk"
 
  # Create XML with notes having different numbers of comments
+ # Each tag must be on its own line for AWK to process correctly
  cat > "${TMP_DIR}/test_varying_comments.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenStreetMap server">
@@ -128,7 +129,13 @@ count_columns() {
     <date_created>2023-01-01T00:00:00Z</date_created>
     <status>open</status>
     <comments>
-      <comment><date>2023-01-01T00:00:00Z</date><uid>1</uid><user>user1</user><action>opened</action><text>Comment 1</text></comment>
+      <comment>
+        <date>2023-01-01T00:00:00Z</date>
+        <uid>1</uid>
+        <user>user1</user>
+        <action>opened</action>
+        <text>Comment 1</text>
+      </comment>
     </comments>
   </note>
   <note lat="40.7129" lon="-74.0061">
@@ -136,9 +143,27 @@ count_columns() {
     <date_created>2023-01-02T00:00:00Z</date_created>
     <status>open</status>
     <comments>
-      <comment><date>2023-01-02T00:00:00Z</date><uid>2</uid><user>user2</user><action>opened</action><text>Comment 1</text></comment>
-      <comment><date>2023-01-02T01:00:00Z</date><uid>3</uid><user>user3</user><action>commented</action><text>Comment 2</text></comment>
-      <comment><date>2023-01-02T02:00:00Z</date><uid>4</uid><user>user4</user><action>commented</action><text>Comment 3</text></comment>
+      <comment>
+        <date>2023-01-02T00:00:00Z</date>
+        <uid>2</uid>
+        <user>user2</user>
+        <action>opened</action>
+        <text>Comment 1</text>
+      </comment>
+      <comment>
+        <date>2023-01-02T01:00:00Z</date>
+        <uid>3</uid>
+        <user>user3</user>
+        <action>commented</action>
+        <text>Comment 2</text>
+      </comment>
+      <comment>
+        <date>2023-01-02T02:00:00Z</date>
+        <uid>4</uid>
+        <user>user4</user>
+        <action>commented</action>
+        <text>Comment 3</text>
+      </comment>
     </comments>
   </note>
 </osm>

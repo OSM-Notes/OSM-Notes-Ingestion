@@ -3,7 +3,7 @@
 # Boundary Processing Download and Import Tests
 # Tests for download and import functions (downloadBoundary, importBoundary, etc.)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-28
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
@@ -152,15 +152,36 @@ psql() {
  
  # Parse arguments to find -c command and -Atq flag
  # This allows us to inspect the SQL being executed
+ # Handle both direct calls and eval calls (where args may be in a single string)
  while [[ $I -lt ${#ARGS[@]} ]]; do
   if [[ "${ARGS[$I]}" == "-Atq" ]]; then
    IS_ATQ=true
   elif [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
    CMD="${ARGS[$((I + 1))]}"
+   # Remove surrounding quotes if present (from eval calls)
+   CMD="${CMD#\"}"
+   CMD="${CMD%\"}"
+   break
+  # Handle case where command might be in a single argument (from eval)
+  elif [[ "${ARGS[$I]}" == *"-c"* ]] && [[ "${ARGS[$I]}" == *"INSERT"* ]]; then
+   # Extract command from combined argument
+   CMD="${ARGS[$I]#*-c }"
+   CMD="${CMD#\"}"
+   CMD="${CMD%\"}"
    break
   fi
   I=$((I + 1))
  done
+
+ # If CMD is still empty, try to extract from all args combined (eval case)
+ if [[ -z "${CMD}" ]]; then
+  local ALL_ARGS="${*}"
+  if [[ "${ALL_ARGS}" == *"-c"* ]] && [[ "${ALL_ARGS}" == *"INSERT"* ]]; then
+   CMD="${ALL_ARGS#*-c }"
+   CMD="${CMD#\"}"
+   CMD="${CMD%\"}"
+  fi
+ fi
 
  # Handle different SQL commands based on their content
  # TRUNCATE: Simulate successful table truncation
@@ -190,6 +211,7 @@ psql() {
   fi
   return 0
  fi
+ # Default: return success for any other psql command
  return 0
 }
 export -f psql

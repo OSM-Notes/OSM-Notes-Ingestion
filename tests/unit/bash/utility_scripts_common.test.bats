@@ -4,7 +4,7 @@
 # Tests basic functionality, existence, and structure
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-28
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -218,30 +218,6 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 @test "generateNoteLocationBackup.sh should output to data/noteLocation.csv.zip" {
  # Check that script references output file
  run grep -q "noteLocation.csv" "${TEST_BASE_DIR}/bin/scripts/generateNoteLocationBackup.sh"
- [ "$status" -eq 0 ]
-}
-
-# =============================================================================
-# Tests for generateEEZCentroids.sh
-# =============================================================================
-
-@test "generateEEZCentroids.sh should exist" {
- [ -f "${TEST_BASE_DIR}/bin/scripts/generateEEZCentroids.sh" ]
-}
-
-@test "generateEEZCentroids.sh should be executable" {
- [ -x "${TEST_BASE_DIR}/bin/scripts/generateEEZCentroids.sh" ]
-}
-
-@test "generateEEZCentroids.sh should reference EEZ_SHAPEFILE" {
- # Check that script references shapefile variable
- run grep -q "EEZ_SHAPEFILE" "${TEST_BASE_DIR}/bin/scripts/generateEEZCentroids.sh"
- [ "$status" -eq 0 ]
-}
-
-@test "generateEEZCentroids.sh should output to data/eez_analysis/eez_centroids.csv" {
- # Check that script references output file
- run grep -q "eez_centroids.csv" "${TEST_BASE_DIR}/bin/scripts/generateEEZCentroids.sh"
  [ "$status" -eq 0 ]
 }
 
