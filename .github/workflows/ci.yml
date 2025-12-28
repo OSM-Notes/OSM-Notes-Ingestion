@@ -1,7 +1,7 @@
 # CI/CD Pipeline - OSM-Notes-Ingestion
 # Consolidated workflow combining quality tests, unit tests, and integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-27
+# Version: 2025-12-28
 
 name: CI/CD Pipeline
 
@@ -153,7 +153,6 @@ jobs:
             pattern: "tests/unit/bash/performance*.bats tests/unit/bash/parallel*.bats"
           - name: "other-tests"
             pattern: "tests/unit/bash/*.bats"
-            exclude: "tests/unit/bash/processAPINotes*.bats tests/unit/bash/processPlanetNotes*.bats tests/unit/bash/boundary*.bats tests/unit/bash/overpass*.bats tests/unit/bash/security*.bats tests/unit/bash/*validation*.bats tests/unit/bash/performance*.bats tests/unit/bash/parallel*.bats"
     
     services:
       postgres:
@@ -293,23 +292,28 @@ jobs:
         # Find and run tests matching pattern
         # Handle multiple patterns separated by spaces
         TEST_FILES=""
+        # Process each pattern (GitHub Actions expands the pattern string)
         for pattern in ${{ matrix.test-group.pattern }}; do
           if [[ "${pattern}" == "tests/unit/bash/*.bats" ]]; then
             # Special handling for "other-tests" group - exclude already covered patterns
             for test_file in tests/unit/bash/*.bats; do
-              if [[ ! "${test_file}" =~ (processAPINotes|processPlanetNotes|boundary|overpass|security|validation|performance|parallel) ]]; then
+              if [[ -f "${test_file}" ]] && [[ ! "${test_file}" =~ (processAPINotes|processPlanetNotes|boundary|overpass|security|validation|performance|parallel) ]]; then
                 TEST_FILES="${TEST_FILES} ${test_file}"
               fi
             done
           else
-            # Expand glob pattern
+            # Expand glob pattern - use shopt to ensure glob expansion works correctly
+            shopt -s nullglob
             for test_file in ${pattern}; do
               if [[ -f "${test_file}" ]]; then
                 TEST_FILES="${TEST_FILES} ${test_file}"
               fi
             done
+            shopt -u nullglob
           fi
         done
+        # Trim leading space if present
+        TEST_FILES="${TEST_FILES# }"
         
         # Run all found tests with parallelization
         if [[ -n "${TEST_FILES}" ]]; then
@@ -403,6 +407,8 @@ jobs:
           echo "Pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
           echo "Status: No tests executed or log file not created" >> "${LOG_FILE}"
         fi
+        # Ensure tmp directory has at least one file to avoid tar errors
+        echo "Test artifacts prepared at $(date)" > tests/tmp/artifact_info.txt
         touch tests/tmp/.gitkeep
 
     - name: Upload unit test results (group ${{ matrix.test-group.name }})
@@ -413,7 +419,7 @@ jobs:
         name: unit-test-results-${{ matrix.test-group.name }}
         path: |
           tests/results/unit-tests-${{ matrix.test-group.name }}.log
-          tests/tmp/
+          tests/tmp/**
         retention-days: 7
         if-no-files-found: warn
 
