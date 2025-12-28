@@ -51,7 +51,7 @@
 # - Mark notes as hidden that exist in system but not in Planet
 # Note: It's normal for this script to do nothing if tables are already correct.
 # Only sends email if differences are found.
-0 6 * * * EMAILS="andres.gomez@ac3.org.co" /home/notes/OSM-Notes-Ingestion/bin/monitor/notesCheckVerifier.sh
+0 6 * * * EMAILS="notes@osm.lat" /home/notes/OSM-Notes-Ingestion/bin/monitor/notesCheckVerifier.sh
 
 # Database performance analysis: Monthly (first day at 3 AM, after updateCountries)
 # Analyzes database performance and generates reports
