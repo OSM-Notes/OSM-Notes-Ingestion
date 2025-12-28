@@ -66,10 +66,10 @@ For production use, the daemon mode is recommended for lower latency (30-60 seco
 
 ```bash
 # Install systemd service
-sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable osm-notes-api-daemon
-sudo systemctl start osm-notes-api-daemon
+sudo systemctl enable osm-notes-ingestion-daemon
+sudo systemctl start osm-notes-ingestion-daemon
 ```
 
 See `docs/Process_API.md` "Daemon Mode" section for details.
@@ -370,10 +370,10 @@ The daemon mode is the **recommended production solution** for automated executi
 
 ```bash
 # Install systemd service
-sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable osm-notes-api-daemon
-sudo systemctl start osm-notes-api-daemon
+sudo systemctl enable osm-notes-ingestion-daemon
+sudo systemctl start osm-notes-ingestion-daemon
 ```
 
 The daemon automatically:

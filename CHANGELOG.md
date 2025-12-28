@@ -375,7 +375,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configuration reload via SIGHUP
   - Status reporting via SIGUSR1
 
-- **systemd integration**: `examples/systemd/osm-notes-api-daemon.service`
+- **systemd integration**: `examples/systemd/osm-notes-ingestion-daemon.service`
   - Service file for managing daemon with systemd
   - Automatic restart on failure
   - Integrated logging with journalctl
@@ -404,7 +404,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated GDPR documentation to include references to the annual checklist
 
 - **systemd service file improvements**:
-  - Made `Group=` optional in `examples/systemd/osm-notes-api-daemon.service` (commented out by default)
+  - Made `Group=` optional in `examples/systemd/osm-notes-ingestion-daemon.service` (commented out by default)
   - Added `PATH` environment variable to ensure command availability
   - Added comments explaining user/group configuration
 

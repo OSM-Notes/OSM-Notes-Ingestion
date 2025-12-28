@@ -1123,10 +1123,10 @@ sudo bin/scripts/install_directories.sh
 
 # Step 8: Set up automated processing
 # Recommended: Daemon mode (systemd)
-sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable osm-notes-api-daemon
-sudo systemctl start osm-notes-api-daemon
+sudo systemctl enable osm-notes-ingestion-daemon
+sudo systemctl start osm-notes-ingestion-daemon
 
 # Alternative: Cron mode (if systemd not available)
 # crontab -e

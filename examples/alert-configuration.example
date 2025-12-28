@@ -51,11 +51,11 @@
 # The daemon (processAPINotesDaemon.sh) runs as a systemd service, not via cron.
 
 # Set up the daemon service:
-# See examples/systemd/osm-notes-api-daemon.service
-# sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+# See examples/systemd/osm-notes-ingestion-daemon.service
+# sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
 # sudo systemctl daemon-reload
-# sudo systemctl enable osm-notes-api-daemon
-# sudo systemctl start osm-notes-api-daemon
+# sudo systemctl enable osm-notes-ingestion-daemon
+# sudo systemctl start osm-notes-ingestion-daemon
 
 # Alerts will work automatically according to the configuration in etc/properties.sh
 # The daemon will send alerts immediately when errors occur.
@@ -131,7 +131,7 @@
 
 # Method 1: Environment variable (configure in etc/properties.sh)
 # SEND_ALERT_EMAIL="false"
-# Then restart the daemon: sudo systemctl restart osm-notes-api-daemon
+# Then restart the daemon: sudo systemctl restart osm-notes-ingestion-daemon
 
 # Method 2: In the properties file (recommended)
 # Edit etc/properties.sh and change:
@@ -155,7 +155,7 @@
 # 3. Check the daemon logs:
 #    tail -f /tmp/processAPINotesDaemon_*/processAPINotesDaemon.log
 #    # Or use journalctl:
-#    journalctl -u osm-notes-api-daemon -f
+#    journalctl -u osm-notes-ingestion-daemon -f
 #    # Look for: "Email alert sent successfully" or "Failed to send email"
 # 
 # 4. Check Postfix logs (system logs, requires root or sudo):

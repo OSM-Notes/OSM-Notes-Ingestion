@@ -107,7 +107,7 @@ The daemon automatically loads these variables.
 
 **Option 2: In systemd service file**
 
-Edit `examples/systemd/osm-notes-api-daemon.service`:
+Edit `examples/systemd/osm-notes-ingestion-daemon.service`:
 
 ```ini
 [Service]

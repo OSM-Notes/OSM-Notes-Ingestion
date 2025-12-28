@@ -485,7 +485,7 @@ WHERE (message LIKE '%ERROR%' OR message LIKE '%error%' OR message LIKE '%Error%
 
 **Commands:**
 ```bash
-systemctl status osm-notes-api-daemon.service
+systemctl status osm-notes-ingestion-daemon.service
 ps aux | grep processAPINotesDaemon
 ```
 

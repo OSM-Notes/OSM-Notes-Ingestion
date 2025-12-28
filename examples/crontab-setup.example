@@ -8,7 +8,7 @@
 # via systemd service, NOT via cron.
 #
 # For production deployments, the daemon mode is REQUIRED:
-# - examples/systemd/osm-notes-api-daemon.service
+# - examples/systemd/osm-notes-ingestion-daemon.service
 # - docs/Process_API.md "Daemon Mode" section
 #
 # This crontab file is ONLY for:
@@ -95,7 +95,7 @@
 # =============================================================================
 
 # 1. First, set up the daemon (REQUIRED for API notes processing):
-#    See examples/systemd/osm-notes-api-daemon.service
+#    See examples/systemd/osm-notes-ingestion-daemon.service
 #    This handles all API notes ingestion automatically.
 
 # 2. Then, edit your crontab for maintenance/monitoring tasks:
@@ -135,12 +135,12 @@
 # tail -f /home/notes/logs/db_performance_*.log
 
 # Check if daemon is running:
-# systemctl status osm-notes-api-daemon
+# systemctl status osm-notes-ingestion-daemon
 # ps aux | grep processAPINotesDaemon
 
 # Check daemon status and recent activity:
-# systemctl status osm-notes-api-daemon
-# journalctl -u osm-notes-api-daemon -f
+# systemctl status osm-notes-ingestion-daemon
+# journalctl -u osm-notes-ingestion-daemon -f
 
 # Verify crontab is working:
 # crontab -l

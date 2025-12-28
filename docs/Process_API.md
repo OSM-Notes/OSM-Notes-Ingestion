@@ -1761,12 +1761,12 @@ psql -d "${DBNAME:-notes}" -c "
 
 1. **Copy service file:**
    ```bash
-   sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+   sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
    ```
 
 2. **Edit service file** (REQUIRED - adjust paths and user):
    ```bash
-   sudo nano /etc/systemd/system/osm-notes-api-daemon.service
+   sudo nano /etc/systemd/system/osm-notes-ingestion-daemon.service
    ```
 
    **Important:** Update these lines:
@@ -1797,14 +1797,14 @@ psql -d "${DBNAME:-notes}" -c "
 3. **Enable and start:**
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable osm-notes-api-daemon
-   sudo systemctl start osm-notes-api-daemon
+   sudo systemctl enable osm-notes-ingestion-daemon
+   sudo systemctl start osm-notes-ingestion-daemon
    ```
 
 4. **Verify status:**
    ```bash
-   sudo systemctl status osm-notes-api-daemon
-   sudo journalctl -u osm-notes-api-daemon -f
+   sudo systemctl status osm-notes-ingestion-daemon
+   sudo journalctl -u osm-notes-ingestion-daemon -f
    ```
 
 ### Configuration
@@ -1857,10 +1857,10 @@ crontab -l | grep processAPINotes
 
 ```bash
 # 1. Copy service file
-sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
 
 # 2. Edit service file (REQUIRED - adjust paths and user)
-sudo nano /etc/systemd/system/osm-notes-api-daemon.service
+sudo nano /etc/systemd/system/osm-notes-ingestion-daemon.service
 ```
 
 **Edit these lines in the service file:**
@@ -1882,24 +1882,24 @@ sudo nano /etc/systemd/system/osm-notes-api-daemon.service
 sudo systemctl daemon-reload
 
 # Enable daemon (start on boot)
-sudo systemctl enable osm-notes-api-daemon
+sudo systemctl enable osm-notes-ingestion-daemon
 
 # Start daemon
-sudo systemctl start osm-notes-api-daemon
+sudo systemctl start osm-notes-ingestion-daemon
 ```
 
 #### Step 4: Verify Installation
 
 ```bash
 # Check service status
-sudo systemctl status osm-notes-api-daemon
+sudo systemctl status osm-notes-ingestion-daemon
 # Should show: "Active: active (running)"
 
 # View logs in real-time
-sudo journalctl -u osm-notes-api-daemon -f
+sudo journalctl -u osm-notes-ingestion-daemon -f
 
 # View last 50 lines
-sudo journalctl -u osm-notes-api-daemon -n 50
+sudo journalctl -u osm-notes-ingestion-daemon -n 50
 ```
 
 #### Step 5: Verify Data Processing
@@ -1935,10 +1935,10 @@ psql -d "${DBNAME}" -c "
 **Service Fails to Start:**
 ```bash
 # Check service status
-sudo systemctl status osm-notes-api-daemon
+sudo systemctl status osm-notes-ingestion-daemon
 
 # Check logs for errors
-sudo journalctl -u osm-notes-api-daemon -n 100
+sudo journalctl -u osm-notes-ingestion-daemon -n 100
 
 # Common causes:
 # - Wrong path in ExecStart
@@ -1958,7 +1958,7 @@ if [[ -n "${LOCK_FILE}" ]]; then
 fi
 
 # Check logs
-sudo journalctl -u osm-notes-api-daemon -n 50
+sudo journalctl -u osm-notes-ingestion-daemon -n 50
 
 # Verify database connection
 psql -d "${DBNAME}" -c "SELECT 1;"
@@ -1967,7 +1967,7 @@ psql -d "${DBNAME}" -c "SELECT 1;"
 **No Data Processing:**
 ```bash
 # Check if daemon is checking API
-sudo journalctl -u osm-notes-api-daemon | grep -i "check\|api\|notes"
+sudo journalctl -u osm-notes-ingestion-daemon | grep -i "check\|api\|notes"
 
 # Verify API is accessible
 curl -s -o /tmp/test.xml "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1"
@@ -1982,11 +1982,11 @@ If you need to go back to cron:
 
 ```bash
 # Stop and disable daemon
-sudo systemctl stop osm-notes-api-daemon
-sudo systemctl disable osm-notes-api-daemon
+sudo systemctl stop osm-notes-ingestion-daemon
+sudo systemctl disable osm-notes-ingestion-daemon
 
 # Remove service file
-sudo rm /etc/systemd/system/osm-notes-api-daemon.service
+sudo rm /etc/systemd/system/osm-notes-ingestion-daemon.service
 sudo systemctl daemon-reload
 
 # Restore cron
@@ -2015,16 +2015,16 @@ When running with systemd, logs are integrated with `journalctl`:
 
 ```bash
 # View logs in real-time
-sudo journalctl -u osm-notes-api-daemon -f
+sudo journalctl -u osm-notes-ingestion-daemon -f
 
 # View last 100 lines
-sudo journalctl -u osm-notes-api-daemon -n 100
+sudo journalctl -u osm-notes-ingestion-daemon -n 100
 
 # View logs since today
-sudo journalctl -u osm-notes-api-daemon --since today
+sudo journalctl -u osm-notes-ingestion-daemon --since today
 
 # Filter by log level
-sudo journalctl -u osm-notes-api-daemon -p err
+sudo journalctl -u osm-notes-ingestion-daemon -p err
 ```
 
 **Log location:** Systemd journal (not files)
@@ -2065,10 +2065,10 @@ fi
 
 ```bash
 # Check service status
-sudo systemctl status osm-notes-api-daemon
+sudo systemctl status osm-notes-ingestion-daemon
 
 # Check logs
-sudo journalctl -u osm-notes-api-daemon -n 100
+sudo journalctl -u osm-notes-ingestion-daemon -n 100
 
 # Verify lock file
 # Find and display daemon lock file (works in both modes)
@@ -2084,14 +2084,14 @@ fi
 The daemon exits after 5 consecutive errors. Check logs:
 
 ```bash
-sudo journalctl -u osm-notes-api-daemon | grep -i error
+sudo journalctl -u osm-notes-ingestion-daemon | grep -i error
 ```
 
 #### Graceful Shutdown
 
 ```bash
 # Stop daemon gracefully
-sudo systemctl stop osm-notes-api-daemon
+sudo systemctl stop osm-notes-ingestion-daemon
 
 # Or send shutdown signal
 # Create shutdown flag (works in both modes)
@@ -2111,7 +2111,7 @@ fi
 
 **Essential Files:**
 - `bin/process/processAPINotesDaemon.sh` - Main daemon script
-- `examples/systemd/osm-notes-api-daemon.service` - systemd service file
+- `examples/systemd/osm-notes-ingestion-daemon.service` - systemd service file
 
 **Dependencies** (already in repository):
 - Same as `processAPINotes.sh`: `etc/properties.sh`, `lib/osm-common/`, SQL scripts, etc.

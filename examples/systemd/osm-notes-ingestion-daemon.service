@@ -1,5 +1,5 @@
 [Unit]
-Description=OSM Notes API Processing Daemon
+Description=OSM Notes Ingestion Processing Daemon
 Documentation=file:///home/notes/OSM-Notes-Ingestion/docs/Process_API.md
 After=network.target postgresql.service
 Requires=postgresql.service
@@ -43,7 +43,7 @@ RestartSec=10
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=osm-notes-api-daemon
+SyslogIdentifier=osm-notes-ingestion-daemon
 
 [Install]
 WantedBy=multi-user.target
