@@ -189,6 +189,42 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 2  # Need history for test selection
 
+    - name: Verify submodule initialization
+      run: |
+        echo "Verifying submodule initialization..."
+        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+          echo "WARNING: Submodule lib/osm-common not initialized correctly"
+          echo "Submodule status:"
+          git submodule status || true
+          echo "Attempting to initialize submodule..."
+          git submodule update --init --recursive || {
+            echo "Failed to initialize submodule with recursive update"
+            echo "Attempting manual initialization..."
+            git submodule init || true
+            git submodule update || {
+              echo "ERROR: Failed to update submodule"
+              echo "Trying to fix submodule URL..."
+              git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git || true
+              git submodule sync || true
+              git submodule update --init --recursive || {
+                echo "ERROR: All submodule initialization attempts failed"
+                exit 1
+              }
+            }
+          }
+        fi
+        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+          echo "ERROR: commonFunctions.sh not found after initialization"
+          echo "Submodule status:"
+          git submodule status
+          echo "Contents of lib/osm-common/:"
+          ls -la lib/osm-common/ || echo "Directory does not exist"
+          exit 1
+        fi
+        echo "✓ Submodule initialized correctly"
+        echo "Submodule files:"
+        ls -la lib/osm-common/ | head -10
+
     # Cache apt packages
     - name: Cache apt packages
       uses: actions/cache@v4
@@ -427,6 +463,16 @@ jobs:
         echo "Pattern: ${{ matrix.test-group.pattern }}" >> tests/tmp/artifact_info.txt
         # List all files in tmp directory for debugging
         ls -la tests/tmp/ > tests/tmp/file_list.txt 2>&1 || echo "No files in tmp directory" > tests/tmp/file_list.txt
+        # Ensure files exist before upload (create empty file if directory is empty)
+        if [[ ! -f tests/tmp/artifact_info.txt ]]; then
+          echo "Test artifacts prepared at $(date)" > tests/tmp/artifact_info.txt
+        fi
+        if [[ ! -f tests/tmp/file_list.txt ]]; then
+          echo "No files in tmp directory" > tests/tmp/file_list.txt
+        fi
+        # Verify files exist
+        test -f tests/tmp/artifact_info.txt || exit 1
+        test -f tests/tmp/file_list.txt || exit 1
 
     - name: Upload unit test results (group ${{ matrix.test-group.name }})
       uses: actions/upload-artifact@v4
@@ -440,6 +486,7 @@ jobs:
           tests/tmp/file_list.txt
         retention-days: 7
         if-no-files-found: warn
+        compression-level: 1
 
   # ============================================================================
   # STAGE 3: Quick Integration Tests (always run on PR, full on main/develop)
@@ -472,6 +519,40 @@ jobs:
       with:
         submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Verify submodule initialization
+      run: |
+        echo "Verifying submodule initialization..."
+        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+          echo "WARNING: Submodule lib/osm-common not initialized correctly"
+          echo "Submodule status:"
+          git submodule status || true
+          echo "Attempting to initialize submodule..."
+          git submodule update --init --recursive || {
+            echo "Failed to initialize submodule with recursive update"
+            echo "Attempting manual initialization..."
+            git submodule init || true
+            git submodule update || {
+              echo "ERROR: Failed to update submodule"
+              echo "Trying to fix submodule URL..."
+              git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git || true
+              git submodule sync || true
+              git submodule update --init --recursive || {
+                echo "ERROR: All submodule initialization attempts failed"
+                exit 1
+              }
+            }
+          }
+        fi
+        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+          echo "ERROR: commonFunctions.sh not found after initialization"
+          echo "Submodule status:"
+          git submodule status
+          echo "Contents of lib/osm-common/:"
+          ls -la lib/osm-common/ || echo "Directory does not exist"
+          exit 1
+        fi
+        echo "✓ Submodule initialized correctly"
 
     - name: Install dependencies
       run: |
@@ -566,6 +647,40 @@ jobs:
       with:
         submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Verify submodule initialization
+      run: |
+        echo "Verifying submodule initialization..."
+        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+          echo "WARNING: Submodule lib/osm-common not initialized correctly"
+          echo "Submodule status:"
+          git submodule status || true
+          echo "Attempting to initialize submodule..."
+          git submodule update --init --recursive || {
+            echo "Failed to initialize submodule with recursive update"
+            echo "Attempting manual initialization..."
+            git submodule init || true
+            git submodule update || {
+              echo "ERROR: Failed to update submodule"
+              echo "Trying to fix submodule URL..."
+              git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git || true
+              git submodule sync || true
+              git submodule update --init --recursive || {
+                echo "ERROR: All submodule initialization attempts failed"
+                exit 1
+              }
+            }
+          }
+        fi
+        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+          echo "ERROR: commonFunctions.sh not found after initialization"
+          echo "Submodule status:"
+          git submodule status
+          echo "Contents of lib/osm-common/:"
+          ls -la lib/osm-common/ || echo "Directory does not exist"
+          exit 1
+        fi
+        echo "✓ Submodule initialized correctly"
 
     - name: Setup Python
       uses: actions/setup-python@v4
