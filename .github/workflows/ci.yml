@@ -138,7 +138,7 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: quick-checks
-    timeout-minutes: 5  # Unit tests should be fast
+    timeout-minutes: 20  # Increased timeout for groups with many tests
     strategy:
       fail-fast: false
       matrix:
@@ -151,7 +151,19 @@ jobs:
             pattern: "tests/unit/bash/security*.bats tests/unit/bash/*validation*.bats"
           - name: "performance-parallel"
             pattern: "tests/unit/bash/performance*.bats tests/unit/bash/parallel*.bats"
-          - name: "other-tests"
+          - name: "cleanup-tests"
+            pattern: "tests/unit/bash/cleanup*.bats tests/unit/bash/clean_flag*.bats tests/unit/bash/cleanupAll*.bats"
+          - name: "prerequisites-tests"
+            pattern: "tests/unit/bash/prerequisites*.bats"
+          - name: "note-processing-tests"
+            pattern: "tests/unit/bash/note_processing*.bats tests/unit/bash/noteProcessingProgressLogging*.bats tests/unit/bash/notesCheckVerifier_integration*.bats"
+          - name: "csv-awk-tests"
+            pattern: "tests/unit/bash/csv*.bats tests/unit/bash/awk*.bats"
+          - name: "xml-utility-tests"
+            pattern: "tests/unit/bash/xml*.bats tests/unit/bash/utility*.bats tests/unit/bash/function*.bats tests/unit/bash/script*.bats tests/unit/bash/trap*.bats tests/unit/bash/variable*.bats tests/unit/bash/format_and_lint*.bats tests/unit/bash/pathConfigurationFunctions*.bats"
+          - name: "edge-cases-integration-tests"
+            pattern: "tests/unit/bash/edge_cases*.bats tests/unit/bash/*_integration.test.bats"
+          - name: "other-misc-tests"
             pattern: "tests/unit/bash/*.bats"
     
     services:
@@ -295,9 +307,10 @@ jobs:
         # Process each pattern (GitHub Actions expands the pattern string)
         for pattern in ${{ matrix.test-group.pattern }}; do
           if [[ "${pattern}" == "tests/unit/bash/*.bats" ]]; then
-            # Special handling for "other-tests" group - exclude already covered patterns
+            # Special handling for "other-misc-tests" group - exclude already covered patterns
             for test_file in tests/unit/bash/*.bats; do
-              if [[ -f "${test_file}" ]] && [[ ! "${test_file}" =~ (processAPINotes|processPlanetNotes|boundary|overpass|security|validation|performance|parallel) ]]; then
+              if [[ -f "${test_file}" ]] && \
+                 [[ ! "${test_file}" =~ (processAPINotes|processPlanetNotes|boundary|overpass|security|validation|performance|parallel|cleanup|clean_flag|cleanupAll|prerequisites|note_processing|noteProcessingProgressLogging|notesCheckVerifier_integration|csv|awk|xml|utility|function|script|trap|variable|format_and_lint|pathConfigurationFunctions|edge_cases|_integration\.test) ]]; then
                 TEST_FILES="${TEST_FILES} ${test_file}"
               fi
             done
@@ -408,8 +421,12 @@ jobs:
           echo "Status: No tests executed or log file not created" >> "${LOG_FILE}"
         fi
         # Ensure tmp directory has at least one file to avoid tar errors
+        mkdir -p tests/tmp
         echo "Test artifacts prepared at $(date)" > tests/tmp/artifact_info.txt
-        touch tests/tmp/.gitkeep
+        echo "Test group: ${{ matrix.test-group.name }}" >> tests/tmp/artifact_info.txt
+        echo "Pattern: ${{ matrix.test-group.pattern }}" >> tests/tmp/artifact_info.txt
+        # List all files in tmp directory for debugging
+        ls -la tests/tmp/ > tests/tmp/file_list.txt 2>&1 || echo "No files in tmp directory" > tests/tmp/file_list.txt
 
     - name: Upload unit test results (group ${{ matrix.test-group.name }})
       uses: actions/upload-artifact@v4
@@ -419,7 +436,8 @@ jobs:
         name: unit-test-results-${{ matrix.test-group.name }}
         path: |
           tests/results/unit-tests-${{ matrix.test-group.name }}.log
-          tests/tmp/**
+          tests/tmp/artifact_info.txt
+          tests/tmp/file_list.txt
         retention-days: 7
         if-no-files-found: warn
 
