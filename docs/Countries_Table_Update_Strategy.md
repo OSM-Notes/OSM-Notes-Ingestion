@@ -1,50 +1,18 @@
 # Countries Table Update Strategy
 
-**Version:** 2025-12-16  
-**Author:** Andres Gomez (AngocA)
+## Overview
 
-## Current Problem Analysis
+The `updateCountries.sh` script uses a **temporary tables strategy** to safely
+update country boundaries. This approach ensures data integrity, allows for
+rollback, and prevents data loss during updates.
 
-### Why was the table dropped? (BEFORE - No longer applies)
+## Current Strategy: Temporary Tables + Swap
 
-**NOTE: This strategy is NO LONGER used. The temporary tables strategy has been implemented.**
+### How It Works
 
-Previously, `updateCountries.sh` dropped the `countries` table in these cases:
+The update process follows these steps:
 
-1. **`--base` mode**: Dropped and recreated from scratch
-   ```bash
-   __dropCountryTables  # DROP TABLE countries CASCADE;
-   __createCountryTables
-   ```
-
-2. **Update mode**: Did NOT drop, but marked all as `updated=TRUE` and updated them one by one
-   ```sql
-   UPDATE countries SET updated = TRUE, last_update_attempt = CURRENT_TIMESTAMP
-   ```
-
-### New Strategy Implemented (2025-12-16)
-
-Now `updateCountries.sh` uses a temporary tables strategy:
-
-1. **`--base` mode**: Creates `countries_new`, loads data, compares, and performs swap
-2. **Update mode**: Creates `countries_new`, loads data, compares geometries, and swaps only if safe
-
-### Problems with the Previous Strategy
-
-1. **Data loss risk**: If the process fails during loading, the table may remain empty or corrupted
-2. **No rollback**: No way to revert to the previous version if something goes wrong
-3. **No comparison**: New geometry is not compared with the old one before replacing
-4. **Downtime**: During update, the table may be in an inconsistent state
-
-## Proposed Strategy: Temporary Tables + Swap
-
-### Concept
-
-Similar to how API tables (`notes_api`, `note_comments_api`) are handled, use a temporary table to load new data, compare with existing data, and only perform the swap if everything is correct.
-
-### Proposed Flow
-
-```
+```text
 1. Create countries_new (temporary table)
 2. Load new data into countries_new
 3. Compare geometries (countries vs countries_new)
@@ -65,7 +33,7 @@ Similar to how API tables (`notes_api`, `note_comments_api`) are handled, use a 
 4. **No downtime**: Original table remains available during loading
 5. **Automatic backup**: `countries_old` remains as backup
 
-## Implementation
+## Implementation Details
 
 ### 1. Create Temporary Table
 
@@ -76,16 +44,24 @@ CREATE TABLE countries_new (LIKE countries INCLUDING ALL);
 
 ### 2. Load Data into Temporary Table
 
-The loading process is the same, but into `countries_new` instead of `countries`.
+Data is loaded into `countries_new` instead of directly into `countries`.
 
 ### 3. Compare Geometries
 
-Function to compare geometries and detect changes:
+The system automatically compares geometries between the old and new tables:
 
 ```sql
 -- Compare old vs new geometry
 -- Returns: 'increased', 'decreased', 'unchanged', 'new', 'deleted'
 ```
+
+**Metrics compared:**
+
+- **Area**: `ST_Area(geom)` - Did it increase or decrease?
+- **Perimeter**: `ST_Perimeter(geom)` - Edge changes
+- **Number of vertices**: `ST_NPoints(geom)` - Complexity
+- **Bounding box**: `ST_Envelope(geom)` - Spatial extent
+- **Hausdorff distance**: Shape changes
 
 ### 4. Perform Swap (Only if everything OK)
 
@@ -109,14 +85,6 @@ DROP TABLE IF EXISTS countries_old;
 
 ## Geometry Comparison
 
-### Metrics to Compare
-
-1. **Area**: `ST_Area(geom)` - Did it increase or decrease?
-2. **Perimeter**: `ST_Perimeter(geom)` - Edge changes
-3. **Number of vertices**: `ST_NPoints(geom)` - Complexity
-4. **Bounding box**: `ST_Envelope(geom)` - Spatial extent
-5. **Hausdorff distance**: Shape changes
-
 ### Comparison Function
 
 ```sql
@@ -139,32 +107,54 @@ CREATE OR REPLACE FUNCTION compare_country_geometries(
 - **Minor change**: 0.01% - 1% (minor adjustments)
 - **Significant change**: > 1% (real boundary changes)
 
-## Implementation Status
+## Usage
 
-### ✅ Phase 1: Preparation - COMPLETED
+### Update Mode (Default)
 
-1. ✅ Geometry comparison function created (`compare_country_geometries.sql`)
-2. ✅ SQL script to create temporary table implemented
-3. ✅ `__createCountryTablesNew` function created
+```bash
+# Update countries and automatically re-assign affected notes
+./bin/process/updateCountries.sh
 
-### ✅ Phase 2: Load into Temporary Table - COMPLETED
+# The process:
+# 1. Creates countries_new
+# 2. Loads data into countries_new
+# 3. Compares with countries
+# 4. Generates change report
+# 5. If everything OK: swap
+# 6. If it fails: keeps original countries
+```
 
-1. ✅ `__processCountries` modified to use `countries_new` when `USE_COUNTRIES_NEW=true`
-2. ✅ `boundaryProcessingFunctions.sh` modified to insert into dynamic table
-3. ✅ Update logic maintained
+### Base Mode
 
-### ✅ Phase 3: Comparison and Validation - COMPLETED
+```bash
+# Recreate countries table from scratch
+./bin/process/updateCountries.sh --base
 
-1. ✅ `__compareCountryGeometries` function implemented
-2. ✅ Automatically generates change report
-3. ✅ Validates if swap is safe before proceeding
+# Same process, but starts fresh
+```
 
-### ✅ Phase 4: Conditional Swap - COMPLETED
+## Change Report
 
-1. ✅ `__swapCountryTables` function implemented
-2. ✅ Only swaps if validation passes (or if forced with `FORCE_SWAP_ON_WARNING=true`)
-3. ✅ Maintains automatic backup (`countries_old`)
-4. ✅ Cleans up temporary table after swap
+After comparison, a report is generated showing changes:
+
+```text
+Country ID: 12345 (Colombia)
+  Status: increased
+  Area change: +0.5% (larger)
+  Perimeter change: +2.1% (larger)
+  Vertices: +150 (more complex)
+  Geometry changed: TRUE
+```
+
+## Rollback Procedure
+
+If something goes wrong after the swap:
+
+```sql
+-- Restore from backup
+ALTER TABLE countries RENAME TO countries_failed;
+ALTER TABLE countries_old RENAME TO countries;
+```
 
 ## Required Scripts
 
@@ -180,55 +170,16 @@ Function and queries to compare geometries.
 
 Script to safely perform table swap.
 
-## Usage Example
-
-```bash
-# Update mode with new strategy
-./bin/process/updateCountries.sh
-
-# The process:
-# 1. Creates countries_new
-# 2. Loads data into countries_new
-# 3. Compares with countries
-# 4. Generates change report
-# 5. If everything OK: swap
-# 6. If it fails: keeps original countries
-```
-
-## Change Report
-
-After comparison, a report is generated:
-
-```
-Country ID: 12345 (Colombia)
-  Status: increased
-  Area change: +0.5% (larger)
-  Perimeter change: +2.1% (larger)
-  Vertices: +150 (more complex)
-  Geometry changed: TRUE
-```
-
-## Rollback
-
-If something goes wrong after the swap:
-
-```sql
--- Restore from backup
-ALTER TABLE countries RENAME TO countries_failed;
-ALTER TABLE countries_old RENAME TO countries;
-```
-
 ## Considerations
 
 1. **Disk space**: Requires space for two complete tables temporarily
-2. **Processing time**: Comparison adds time, but it's valuable
+2. **Processing time**: Comparison adds time, but it's valuable for safety
 3. **Indexes**: Must be recreated after swap (or use INCLUDING ALL)
 4. **Dependencies**: Other tables/views that depend on `countries` must be updated
 
-## Next Steps
+## Related Documentation
 
-1. ✅ Implement comparison function
-2. ✅ Modify `updateCountries.sh` to use temporary table
-3. ✅ Add validations before swap
-4. Test in development environment
-5. ✅ Document complete process
+- **[Documentation.md](./Documentation.md)**: System architecture overview
+- **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Update script implementation
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy
+- **[Maritime_Boundaries_Verification.md](./Maritime_Boundaries_Verification.md)**: Maritime boundaries handling

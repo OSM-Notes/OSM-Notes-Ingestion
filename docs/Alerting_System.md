@@ -1,125 +1,46 @@
-# Immediate Alerting System
+# Alerting System
 
 > **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  
 > For error handling details, see [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md).  
 > For troubleshooting, see [Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide).
 
-## Comparison: Previous System vs New System
+## Overview
 
-### ❌ Previous System (with External Monitor)
+The OSM Notes Ingestion system includes an immediate alerting mechanism that
+sends email notifications when critical errors occur during processing. Alerts
+are sent automatically within seconds of an error, ensuring administrators
+are notified promptly.
 
-```
-Time    Event
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-01:00   processAPINotesDaemon.sh executes (daemon)
-        ├─ Error: Missing historical data
-        └─ Creates file: processAPINotesDaemon_failed_execution
-          (Location: /var/run/osm-notes-ingestion/ in installed mode,
-           /tmp/osm-notes-ingestion/locks/ in fallback mode)
-        
-        ⏰ WAIT 10-15 MINUTES
-        
-01:15   checkFailedExecution.sh executes (cron - legacy)
-        ├─ Detects failed file
-        ├─ Reads content
-        └─ 📧 Sends email to admin
-        
-        👤 Admin receives alert (15 minutes after error)
-```
+## How It Works
 
-**Problems:**
-- ⏰ 10-15 minute delay in notification
-- 🔄 Requires additional script
-- 📅 Requires additional cron configuration
-- 💾 Uses more resources (script running every 15 min)
-- 🔧 More complex to configure
-
-
-### ✅ New System (Immediate Alerts)
+When a critical error occurs during script execution:
 
 ```
 Time    Event
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 01:00   processAPINotesDaemon.sh executes (daemon)
         ├─ Error: Missing historical data
-        ├─ Creates file: /tmp/processAPINotesDaemon_failed_execution
+        ├─ Creates file: processAPINotesDaemon_failed_execution
+        │  (Location: /var/run/osm-notes-ingestion/ in installed mode,
+        │   /tmp/osm-notes-ingestion/locks/ in fallback mode)
         └─ 📧 Sends email IMMEDIATELY
         
         👤 Admin receives alert (seconds after error)
 ```
 
-**Advantages:**
-- ⚡ Alert in seconds, not minutes
-- 🎯 Simpler (no additional scripts)
-- 💰 Less system resources
-- 🔧 Easier to configure (just environment variables)
-- 📱 Simple email-based alerting
-
+**Key Features:**
+- ⚡ Immediate alerts (seconds, not minutes)
+- 🎯 Simple configuration (just environment variables)
+- 💰 Efficient (no additional monitoring scripts required)
+- 📱 Email-based alerting using `mutt`
 
 ## System Architecture
 
-### Previous Architecture
-
 ```
 ┌─────────────────────────────────────────────────────┐
 │                                                     │
-│  CRON JOB #1: Processing                           │
-│  */60 * * * * processAPINotes.sh                   │
-│                                                     │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-         ┌─────────────────┐
-         │ Does it fail?   │
-         └────┬────────────┘
-              │
-              ▼ YES
-    ┌──────────────────────┐
-    │ Creates file:        │
-    │ /tmp/...failed...    │
-    └──────────┬───────────┘
-               │
-               │ ⏰ WAIT (10-15 min)
-               │
-┌──────────────┴──────────────────────────────────────┐
-│                                                     │
-│  CRON JOB #2: Monitoring                           │
-│  */15 * * * * checkFailedExecution.sh              │
-│                                                     │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-         ┌─────────────────┐
-         │ Does file exist?│
-         └────┬────────────┘
-              │
-              ▼ YES
-    ┌──────────────────────┐
-    │ Reads file           │
-    │ Sends email 📧       │
-    └──────────┬───────────┘
-               │
-               ▼
-    ┌──────────────────────┐
-    │ Admin receives alert │
-    │ (15 min later)       │
-    └──────────────────────┘
-```
-
-**Required components:**
-- 2 different scripts
-- 2 cron configurations
-- 1 state file (anti-spam)
-- Separate logging system
-
-
-### New Architecture (Improved)
-
-```
-┌─────────────────────────────────────────────────────┐
-│                                                     │
-│  CRON JOB: Processing                              │
-│  */60 * * * * processAPINotes.sh                   │
+│  DAEMON/SYSTEMD SERVICE: Processing               │
+│  processAPINotesDaemon.sh                          │
 │  Variables:                                         │
 │    ADMIN_EMAIL=admin@example.com                   │
 │    SEND_ALERT_EMAIL=true                           │
@@ -150,15 +71,16 @@ Time    Event
 ```
 
 **Required components:**
-- 1 script
-- 1 cron configuration
+- 1 script (processAPINotesDaemon.sh or processPlanetNotes.sh)
+- 1 systemd service or cron configuration
 - Simple environment variables
 - Everything integrated
-
 
 ## Configuration
 
 ### Environment Variables
+
+Configure alerting in `etc/properties.sh`:
 
 ```bash
 # Email (enabled by default)
@@ -170,9 +92,31 @@ GENERATE_FAILED_FILE="true"            # Create failed file
 ONLY_EXECUTION="yes"                   # (internal, set by script)
 ```
 
-### Where to Configure
+### Configuration Options
 
-**Option 1: Directly in crontab**
+**Option 1: In properties file (Recommended)**
+
+Edit `etc/properties.sh`:
+
+```bash
+ADMIN_EMAIL="admin@example.com"
+SEND_ALERT_EMAIL="true"
+```
+
+The daemon automatically loads these variables.
+
+**Option 2: In systemd service file**
+
+Edit `examples/systemd/osm-notes-api-daemon.service`:
+
+```ini
+[Service]
+Environment="ADMIN_EMAIL=admin@example.com"
+Environment="SEND_ALERT_EMAIL=true"
+```
+
+**Option 3: Directly in crontab (if using cron instead of systemd)**
+
 ```bash
 crontab -e
 
@@ -181,34 +125,11 @@ SEND_ALERT_EMAIL=true
 0 * * * * /path/to/processAPINotes.sh
 ```
 
-**Option 2: In a wrapper script**
-```bash
-#!/bin/bash
-# /home/notes/bin/run-with-alerts.sh
-
-export ADMIN_EMAIL="admin@example.com"
-export SEND_ALERT_EMAIL="true"
-
-exec /path/to/processAPINotes.sh "$@"
-```
-
-**Option 3: In configuration file**
-```bash
-# /etc/osm-notes/alerts.conf
-
-ADMIN_EMAIL="admin@example.com"
-SEND_ALERT_EMAIL="true"
-```
-
-Then in crontab:
-```bash
-0 * * * * source /etc/osm-notes/alerts.conf && /path/to/processAPINotes.sh
-```
-
-
 ## Alert Examples
 
-### Email Alert
+### Email Alert Format
+
+When an error occurs, you will receive an email like this:
 
 ```
 Subject: ALERT: OSM Notes processAPINotes Failed - hostname
@@ -271,7 +192,6 @@ find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/proce
 This is an automated alert from OSM Notes Ingestion system.
 ```
 
-
 ## Frequently Asked Questions
 
 ### Do I need to configure anything additional?
@@ -313,53 +233,15 @@ No. The failed file mechanism prevents subsequent executions:
 
 Only **ONE alert** is sent until you delete the failed file.
 
+### How do I disable email alerts?
 
-## Migration
+Set `SEND_ALERT_EMAIL="false"` in `etc/properties.sh`. The failed file will
+still be created to prevent subsequent executions, but no email will be sent.
 
-If you already have the previous system configured:
-
-1. **Update `processAPINotes.sh`** (already done)
-2. **Configure environment variables:**
-   ```bash
-   export ADMIN_EMAIL="admin@example.com"
-   ```
-3. **Optional: Disable external monitor:**
-   ```bash
-   crontab -e
-   # Comment or remove: */15 * * * * checkFailedExecution.sh
-   ```
-4. **Test the new system**
-5. **Keep the external monitor as backup if you prefer**
-
-
-## Benefits Summary
-
-| Feature | Previous System | New System |
-|---------|----------------|------------|
-| **Alert time** | 10-15 minutes | Seconds |
-| **Required scripts** | 2 | 1 |
-| **Cron configuration** | 2 jobs | 1 job |
-| **Complexity** | High | Low |
-| **System resources** | Moderate | Low |
-| **Configuration ease** | Medium | High |
-| **Alert channels** | Email | Email |
-| **Maintenance** | Complex | Simple |
-
-## Conclusion
-
-The new immediate alerting system is:
-- ✅ **Faster**: Alerts in seconds instead of minutes
-- ✅ **Simpler**: Single configuration
-- ✅ **More efficient**: Less system resources
-- ✅ **More reliable**: Simple email-based alerting
-- ✅ **Easier**: Just configure environment variables
-
-The previous system (`checkFailedExecution.sh`) is still valid as:
-- Backup/redundancy
-- Centralized monitoring of multiple scripts
-- Cases where you prefer separation of responsibilities
-
-**Recommendation**: Use the new system by default. Keep the old one only if you need centralized monitoring.
+This is useful for:
+- Development/testing environments
+- When using an external monitoring system
+- When you don't have mail configured
 
 ## Email Sending Locations
 
@@ -390,5 +272,4 @@ environment variables) and require `mutt` as a prerequisite.
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing error handling implementation
 - **[Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide)**: Troubleshooting guide with error recovery procedures
 - **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable configuration (ADMIN_EMAIL, SEND_ALERT_EMAIL)
-
----
+- **[examples/alert-configuration.example](../examples/alert-configuration.example)**: Example alert configuration

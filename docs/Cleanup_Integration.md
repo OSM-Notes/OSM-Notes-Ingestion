@@ -1,25 +1,16 @@
-# Cleanup Script Integration
+# Cleanup Script Documentation
 
 ## Overview
 
-The cleanup functionality has been integrated into a single comprehensive script (`cleanupAll.sh`) that can perform both full cleanup and partition-only cleanup operations.
-
-## Integration Details
-
-### Previous State
-
-- **`cleanupAll.sh`**: Performed comprehensive cleanup (base tables, temporary files)
-- **`cleanupPartitions.sh`**: Performed partition-only cleanup
-
-### Current State
-
-- **`cleanupAll.sh`**: Integrated script that supports both modes:
-  - **Full cleanup** (default): Removes all components
-  - **Partition-only cleanup**: Removes only partition tables
+The `cleanupAll.sh` script provides comprehensive cleanup functionality for
+the OSM Notes Ingestion system. It can perform both full cleanup (removing all
+components) and partition-only cleanup (removing only partition tables).
 
 ## Usage
 
 ### Full Cleanup (Default)
+
+Removes all components: base tables, functions, procedures, and temporary files.
 
 ```bash
 # Clean everything using default database
@@ -34,6 +25,8 @@ The cleanup functionality has been integrated into a single comprehensive script
 ```
 
 ### Partition-Only Cleanup
+
+Removes only partition tables, keeping base tables and other components intact.
 
 ```bash
 # Clean only partitions using default database
@@ -64,7 +57,7 @@ The cleanup functionality has been integrated into a single comprehensive script
 
 1. **Database Check**: Verifies database existence
 2. **Base Components**: Removes tables, functions, procedures
-5. **Temporary Files**: Cleans up temporary directories
+3. **Temporary Files**: Cleans up temporary directories
 
 ### Partition-Only Mode
 
@@ -73,34 +66,17 @@ The cleanup functionality has been integrated into a single comprehensive script
 3. **Drop Partitions**: Removes all partition tables
 4. **Verify Cleanup**: Confirms all partitions are removed
 
-## Benefits of Integration
+## Benefits
 
-1. **Reduced Maintenance**: Single script to maintain instead of two
-2. **Consistent Interface**: Same command-line interface for both operations
+1. **Unified Interface**: Single script for all cleanup operations
+2. **Consistent Behavior**: Same command-line interface for both modes
 3. **Shared Code**: Common functions (database connection, validation, logging)
-4. **Better Testing**: Comprehensive test coverage for both modes
-5. **Simplified Documentation**: One set of documentation instead of two
-
-## Migration Guide
-
-### For Users
-
-- **Old**: `./bin/cleanupPartitions.sh database_name`
-- **New**: `./bin/cleanupAll.sh -p database_name`
-
-- **Old**: `./bin/cleanupAll.sh database_name` (still works)
-- **New**: `./bin/cleanupAll.sh database_name` (same)
-
-### For Developers
-
-- All partition cleanup functionality is now in `cleanupAll.sh`
-- Functions are prefixed with `__` for internal use
-- Both modes use the same validation and logging infrastructure
-- Tests have been updated to cover both modes
+4. **Comprehensive Testing**: Full test coverage for both modes
+5. **Simplified Maintenance**: One script to maintain instead of multiple
 
 ## Testing
 
-The integration includes comprehensive tests:
+The script includes comprehensive tests:
 
 ```bash
 # Run cleanup integration tests
@@ -118,7 +94,23 @@ bats tests/unit/bash/cleanupAll_integration.test.bats
 - **Logging**: Comprehensive logging for all operations
 - **Cleanup**: Proper cleanup of temporary files and resources
 
+## When to Use Each Mode
+
+### Use Full Cleanup When:
+- Starting fresh with a new database
+- Removing all data and components
+- Resetting the entire system
+- Before major upgrades or migrations
+
+### Use Partition-Only Cleanup When:
+- Removing old partition tables to free disk space
+- Cleaning up after data retention policies
+- Maintaining base tables while removing historical partitions
+- Regular maintenance operations
+
 ## Future Enhancements
+
+Potential improvements planned:
 
 1. **Dry-Run Mode**: Add `--dry-run` option for testing
 2. **Selective Cleanup**: Allow cleaning specific components only
