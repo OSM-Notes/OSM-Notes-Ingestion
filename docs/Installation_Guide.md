@@ -47,7 +47,12 @@ The installation script creates `/etc/logrotate.d/osm-notes-ingestion` with:
 - Daily rotation
 - 30 days retention
 - Automatic compression
-- Reloads daemon after rotation
+- Uses `copytruncate` to avoid interrupting the daemon during rotation
+
+**Note:** If you have an existing installation with the old configuration (that reloads the daemon), you can update it by running:
+```bash
+sudo bin/scripts/update_logrotate_config.sh
+```
 
 To customize, edit `/etc/logrotate.d/osm-notes-ingestion`.
 

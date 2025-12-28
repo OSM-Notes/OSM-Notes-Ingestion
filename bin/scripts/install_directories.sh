@@ -4,8 +4,8 @@
 # Creates standard Linux directories for logs and temporary files
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-23
-VERSION="2025-12-23"
+# Version: 2025-12-28
+VERSION="2025-12-28"
 
 set -euo pipefail
 
@@ -108,12 +108,10 @@ cat > /etc/logrotate.d/osm-notes-ingestion << 'EOF'
     missingok
     notifempty
     copytruncate
-    sharedscripts
-    postrotate
-        # Reload daemon if running (non-blocking)
-        # Note: With copytruncate, reload is optional but harmless
-        systemctl reload osm-notes-api-daemon > /dev/null 2>&1 || true
-    endscript
+    # No postrotate needed: copytruncate copies content and truncates
+    # the original file, keeping the same inode and file descriptor.
+    # The daemon continues writing to the same file descriptor without
+    # needing a reload or restart.
 }
 EOF
 echo "  Created: /etc/logrotate.d/osm-notes-ingestion"
