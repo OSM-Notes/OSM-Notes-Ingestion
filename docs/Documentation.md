@@ -1322,11 +1322,11 @@ export SEND_ALERT_EMAIL=true
 
 ```bash
 # Step 1: Create test database
-createdb osm_notes_test
-psql -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+createdb osm_notes_ingestion_test
+psql -d osm_notes_ingestion_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
 # Step 2: Use test database for all operations
-export DBNAME=osm_notes_test
+export DBNAME=osm_notes_ingestion_test
 
 # Step 3: Load minimal test data
 # Use mock data or small subset of real data
@@ -1357,11 +1357,11 @@ export CLEAN=false  # Keep files for inspection
 ./tests/run_integration_tests.sh
 
 # 4. Test with real data (small subset)
-export DBNAME=osm_notes_test
+export DBNAME=osm_notes_ingestion_test
 ./bin/process/processAPINotes.sh
 
 # 5. Verify results
-psql -d osm_notes_test -c "SELECT COUNT(*) FROM notes;"
+psql -d osm_notes_ingestion_test -c "SELECT COUNT(*) FROM notes;"
 ```
 
 ### Use Case 7: Disaster Recovery
@@ -1749,9 +1749,9 @@ pg_dump notes | gzip > backup_$(date +%Y%m%d).sql.gz
 git checkout -b feature/new-feature
 
 # 2. Set up test environment
-export DBNAME=osm_notes_test
-createdb osm_notes_test
-psql -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+export DBNAME=osm_notes_ingestion_test
+createdb osm_notes_ingestion_test
+psql -d osm_notes_ingestion_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
 # 3. Load test data
 ./bin/process/processPlanetNotes.sh --base

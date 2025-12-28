@@ -6,13 +6,13 @@
 # This file is loaded INSTEAD of etc/properties.sh when in test mode.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2025-01-23
 
 # Database configuration for tests
 # These values override production values for test environments
 # shellcheck disable=SC2034
 if [[ -z "${DBNAME:-}" ]]; then
-  DBNAME="osm-notes-test"
+  DBNAME="osm_notes_ingestion_test"
 fi
 # shellcheck disable=SC2034
 if [[ -z "${DB_USER:-}" ]]; then

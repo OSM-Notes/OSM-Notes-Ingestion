@@ -83,10 +83,10 @@ These variables are used across **all scripts** and should be standardized:
 
 ### `DBNAME`
 - **Purpose**: PostgreSQL database name
-- **Values**: String (e.g., `osm-notes`, `osm-notes_test`)
-- **Default**: `osm-notes` (from `etc/properties.sh`, created from `etc/properties.sh.example`)
+- **Values**: String (e.g., `notes` for production, `osm_notes_ingestion_test` for tests)
+- **Default**: `notes` (from `etc/properties.sh`, created from `etc/properties.sh.example`)
 - **Usage**: Change for test/production environments
-- **Example**: `export DBNAME=osm_notes_test`
+- **Example**: `export DBNAME=osm_notes_ingestion_test`
 
 ### `SKIP_XML_VALIDATION`
 - **Purpose**: Skip XML structure/date validation for faster processing

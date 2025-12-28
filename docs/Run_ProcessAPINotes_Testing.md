@@ -172,7 +172,7 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
    - Tests connection to PostgreSQL server
 
 2. **Sets up test database:**
-   - Creates database if it doesn't exist (default: `osm-notes-test`)
+   - Creates database if it doesn't exist (default: `osm_notes_ingestion_test`)
    - Installs PostGIS and btree_gist extensions
 
 3. **Cleans lock files and failed execution markers:**
@@ -215,7 +215,7 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
 |----------|-------------|---------------|
 | `LOG_LEVEL` | Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL) | `INFO` |
 | `CLEAN` | Clean temporary files after execution | `false` |
-| `DBNAME` | Database name | `osm-notes-test` |
+| `DBNAME` | Database name | `osm_notes_ingestion_test` |
 | `DB_USER` | Database user | Current user (`$USER`) |
 | `DB_HOST` | Database host (empty for unix socket) | Empty |
 | `DB_PORT` | Database port | `5432` |

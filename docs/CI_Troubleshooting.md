@@ -137,7 +137,7 @@ The Docker Compose configuration has been updated with:
 
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_test"]
+  test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_ingestion_test"]
   interval: 5s
   timeout: 10s
   retries: 20
@@ -176,7 +176,7 @@ done
 
 ```bash
 export PGPASSWORD=testpass
-psql -h localhost -U testuser -d osm_notes_test -c "SELECT version();" || exit 1
+psql -h localhost -U testuser -d osm_notes_ingestion_test -c "SELECT version();" || exit 1
 ```
 
 ## Debugging Steps
@@ -220,7 +220,7 @@ Always include health checks for database services:
 
 ```yaml
 healthcheck:
-  test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_test"]
+  test: ["CMD-SHELL", "pg_isready -U testuser -d osm_notes_ingestion_test"]
   interval: 5s
   timeout: 10s
   retries: 20

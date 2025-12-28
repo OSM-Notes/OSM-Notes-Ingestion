@@ -229,7 +229,7 @@ Edge cases tests cover boundary situations:
 1. Verify database connectivity:
 
    ```bash
-   psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "SELECT 1;"
+   psql -h localhost -p 5432 -U postgres -d osm_notes_ingestion_test -c "SELECT 1;"
    ```
 
 2. Verify required tools:
@@ -339,19 +339,19 @@ Edge cases tests cover boundary situations:
 1. Verify that tables exist:
 
    ```bash
-   psql -d osm_notes_test -c "SELECT COUNT(*) FROM information_schema.tables;"
+   psql -d osm_notes_ingestion_test -c "SELECT COUNT(*) FROM information_schema.tables;"
    ```
 
 2. Create tables if they don't exist:
 
    ```bash
-   psql -d osm_notes_test -f sql/process/processPlanetNotes_22_createBaseTables_tables.sql
+   psql -d osm_notes_ingestion_test -f sql/process/processPlanetNotes_22_createBaseTables_tables.sql
    ```
 
 3. Verify SQL scripts:
 
    ```bash
-   psql -d osm_notes_test -f sql/process/processAPINotes_23_createPropertiesTables.sql
+   psql -d osm_notes_ingestion_test -f sql/process/processAPINotes_23_createPropertiesTables.sql
    ```
 
 ### Problem 3: "FAIL! (1) - __validation error"
@@ -485,7 +485,7 @@ bats tests/unit/bash/edge_cases_integration.test.bats
 
 ```bash
 # Verify database
-psql -d osm_notes_test -c "SELECT version();"
+psql -d osm_notes_ingestion_test -c "SELECT version();"
 
 # Verify tools
 command -v bats && echo "BATS OK"

@@ -190,7 +190,7 @@ shellcheck -x -o all
 ### Test Configuration
 
 ```bash
-TEST_DBNAME=osm_notes_test      # Test database name
+TEST_DBNAME=osm_notes_ingestion_test      # Test database name
 TEST_DBUSER=testuser            # Test database user
 TEST_DBPASSWORD=testpass        # Test database password
 TEST_DBHOST=localhost           # Test database host

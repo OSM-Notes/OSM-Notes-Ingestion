@@ -298,7 +298,7 @@ environments.
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
-| `TEST_DBNAME` | `osm_notes_test` | Test database name |
+| `TEST_DBNAME` | `osm_notes_ingestion_test` | Test database name |
 | `TEST_DBUSER` | `testuser` (Docker) / `postgres` (Host) | Test-specific database user |
 | `TEST_DBPASSWORD` | `testpass` (Docker) / `` (Host) | Database password |
 | `TEST_DBHOST` | `postgres` (Docker) / `localhost` (Host) | Database host |

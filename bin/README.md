@@ -537,7 +537,7 @@ Removes database components. Use with caution!
 
 ```bash
 # Cleanup specific database
-DBNAME=osm_notes_test ./bin/cleanupAll.sh
+DBNAME=osm_notes_ingestion_test ./bin/cleanupAll.sh
 ```
 
 **Warning:** This script permanently removes data. Always backup before running!
@@ -609,7 +609,7 @@ To create or update boundaries backups used to avoid Overpass downloads:
 **With Custom Database:**
 
 ```bash
-DBNAME=osm_notes_test ./bin/scripts/exportCountriesBackup.sh
+DBNAME=osm_notes_ingestion_test ./bin/scripts/exportCountriesBackup.sh
 ```
 
 **These scripts:**
@@ -754,7 +754,7 @@ Run scripts in test mode:
 
 ```bash
 # Use test database
-export DBNAME=osm_notes_test
+export DBNAME=osm_notes_ingestion_test
 
 # Enable debug logging
 export LOG_LEVEL=DEBUG
@@ -770,7 +770,7 @@ export SKIP_CSV_VALIDATION=false
 ./bin/process/processAPINotes.sh
 
 # Inspect results
-psql -d osm_notes_test -c "SELECT COUNT(*) FROM notes;"
+psql -d osm_notes_ingestion_test -c "SELECT COUNT(*) FROM notes;"
 ls -lh /tmp/processAPINotes_*/
 ```
 
@@ -792,7 +792,7 @@ export CLEAN=false
 
 ```bash
 # Override database name (default: from etc/properties.sh)
-export DBNAME=osm_notes_test
+export DBNAME=osm_notes_ingestion_test
 ```
 
 **Processing Control:**
