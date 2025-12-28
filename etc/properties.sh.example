@@ -6,7 +6,7 @@
 # Then edit etc/properties.sh with your database credentials.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-13
+# Version: 2025-12-28
 
 # Database configuration
 # All database connections must be controlled by this file.
@@ -17,7 +17,7 @@ if [[ -z "${DBNAME:-}" ]]; then
 fi
 # shellcheck disable=SC2034
 if [[ -z "${DB_USER:-}" ]]; then
- DB_USER="myuser"
+ DB_USER="notes"
 fi
 
 # Email configuration for reports.

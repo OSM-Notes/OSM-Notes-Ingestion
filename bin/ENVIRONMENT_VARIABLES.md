@@ -218,7 +218,7 @@ These variables are used internally and should **never** be set manually:
 
 Defined in `etc/properties.sh` (created from `etc/properties.sh.example`, can be overridden by environment):
 
-- **`DB_USER`**: PostgreSQL user (default: `angoca`)
+- **`DB_USER`**: PostgreSQL user (default: `notes`)
 - **`OSM_API`**: OSM API URL (default: `https://api.openstreetmap.org/api/0.6`)
 - **`PLANET`**: Planet dump URL (default: `https://planet.openstreetmap.org`)
 - **`OVERPASS_INTERPRETER`**: Overpass API URL

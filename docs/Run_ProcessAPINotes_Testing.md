@@ -240,7 +240,7 @@ DBNAME=my_test_db DB_USER=postgres ./tests/run_processAPINotes_hybrid.sh
 #### Example 3: Execution with remote database
 
 ```bash
-DBNAME=notes DB_USER=myuser DB_HOST=192.168.0.100 DB_PORT=5432 \
+DBNAME=notes DB_USER=notes DB_HOST=192.168.0.100 DB_PORT=5432 \
   DB_PASSWORD=mypass ./tests/run_processAPINotes_hybrid.sh
 ```
 

@@ -427,7 +427,7 @@ vi etc/properties.sh
 ```
 
 The example files contain default values and detailed comments. Replace the
-example values (like `myuser`, `changeme`, `your-email@domain.com`) with your
+example values (like `notes`, `changeme`, `your-email@domain.com`) with your
 actual configuration.
 
 **Important**: Make sure to update the `DOWNLOAD_USER_AGENT` email address
@@ -718,14 +718,14 @@ The project uses PostgreSQL for data storage. Before running the scripts, ensure
    **Option B: Password authentication**
 
    ```bash
-   echo "localhost:5432:notes:myuser:your_password" > ~/.pgpass
+   echo "localhost:5432:notes:notes:your_password" > ~/.pgpass
    chmod 600 ~/.pgpass
    ```
 
 3. **Test connection:**
 
    ```bash
-   psql -U myuser -d notes -c "SELECT 1;"
+   psql -U notes -d notes -c "SELECT 1;"
    ```
 
 ### Database Configuration
@@ -733,7 +733,7 @@ The project uses PostgreSQL for data storage. Before running the scripts, ensure
 The project is configured to use:
 
 - **Database:** `notes` (default from `etc/properties.sh.example`)
-- **User:** `myuser`
+- **User:** `notes`
 - **Authentication:** peer (uses system user)
 
 Configuration is stored in `etc/properties.sh` (created from `etc/properties.sh.example`).

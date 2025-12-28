@@ -16,7 +16,7 @@ vi etc/properties.sh
 ```
 
 The example files contain default values and detailed comments. Replace the
-example values (like `myuser`, `changeme`, `your-email@domain.com`) with your
+example values (like `notes`, `changeme`, `your-email@domain.com`) with your
 actual configuration.
 
 ## Files

@@ -17,23 +17,23 @@ createdb notes
 
 ```bash
 # Create user with password (recommended)
-sudo -u postgres createuser -d -P myuser
+sudo -u postgres createuser -d -P notes
 
 # Or create user without password (for development only)
-sudo -u postgres createuser -d myuser
+sudo -u postgres createuser -d notes
 ```
 
 ### Step 3: Grant Permissions
 
 ```bash
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"notes\" TO myuser;"
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"notes\" TO notes;"
 ```
 
 ### Step 4: Install Extensions
 
 ```bash
-psql -U myuser -d notes -c 'CREATE EXTENSION postgis;'
-psql -U myuser -d notes -c 'CREATE EXTENSION btree_gist;'
+psql -U notes -d notes -c 'CREATE EXTENSION postgis;'
+psql -U notes -d notes -c 'CREATE EXTENSION btree_gist;'
 ```
 
 ### Step 5: Configure Authentication
@@ -48,8 +48,8 @@ Add or modify these lines (before the default "peer" lines):
 
 ```conf
 # TYPE  DATABASE        USER            ADDRESS                 METHOD
-local   notes           myuser                                  md5
-local   all             myuser                                  md5
+local   notes           notes                                   md5
+local   all             notes                                   md5
 ```
 
 Reload PostgreSQL:
@@ -61,7 +61,7 @@ sudo systemctl reload postgresql
 ### Step 6: Test Connection
 
 ```bash
-psql -U myuser -d notes -c "SELECT 1;"
+psql -U notes -d notes -c "SELECT 1;"
 ```
 
 If this works, you're ready to go!
@@ -107,7 +107,7 @@ Step 5 above).
 sudo apt-get install postgresql-postgis
 
 # Enable in database
-   psql -U myuser -d notes -c 'CREATE EXTENSION postgis;'
+   psql -U notes -d notes -c 'CREATE EXTENSION postgis;'
 ```
 
 ---
@@ -154,7 +154,7 @@ Run this script to verify your setup:
 #!/bin/bash
 
 DBNAME="notes"
-DB_USER="myuser"
+DB_USER="notes"
 
 echo "=== PostgreSQL Setup Verification ==="
 echo
@@ -232,8 +232,8 @@ The configuration file defines:
 # Database name (default: notes)
 DBNAME="${DBNAME:-notes}"
 
-# Database user (default: myuser)
-DB_USER="${DB_USER:-myuser}"
+# Database user (default: notes)
+DB_USER="${DB_USER:-notes}"
 ```
 
 You can override these values using environment variables:
