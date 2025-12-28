@@ -666,7 +666,8 @@ insert_note_comment(...)
 
 | Component | Depends On | Used By |
 |-----------|------------|---------|
-| `processAPINotes.sh` | `processAPIFunctions.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh` | Cron jobs, manual execution |
+| `processAPINotes.sh` | `processAPIFunctions.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh` | Manual execution (testing), daemon mode (production) |
+| `processAPINotesDaemon.sh` | Same as `processAPINotes.sh` | Systemd service (REQUIRED for production) |
 | `processPlanetNotes.sh` | `processPlanetFunctions.sh`, `noteProcessingFunctions.sh`, `boundaryProcessingFunctions.sh`, `parallelProcessingFunctions.sh`, `functionsProcess.sh`, all common libraries | `processAPINotes.sh` (when threshold exceeded), manual execution |
 | `updateCountries.sh` | `boundaryProcessingFunctions.sh`, `processPlanetFunctions.sh`, `functionsProcess.sh`, `overpassFunctions.sh`, all common libraries | Monthly cron jobs, manual execution |
 | `functionsProcess.sh` | `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `securityFunctions.sh`, `overpassFunctions.sh` | All processing scripts, all `bin/lib/*.sh` |

@@ -12,7 +12,7 @@ OpenStreetMap notes processing system. Its main function is to download the most
 recent notes from the OSM API and synchronize them with the local database that
 maintains the complete history.
 
-> **Note:** This script can be run manually or via cron, but for production environments, the daemon mode (`processAPINotesDaemon.sh`) is recommended for better performance and lower latency.
+> **Note:** This script can be run manually for testing, but for production environments, the daemon mode (`processAPINotesDaemon.sh`) is **REQUIRED**. The daemon provides better performance and lower latency than manual execution.
 
 ## Main Features
 
@@ -581,19 +581,11 @@ processAPINotes.sh
 
 ### Automated Execution
 
-> **⚠️ Recommended:** For production use, use the daemon mode (`processAPINotesDaemon.sh`) instead. See the [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section for installation and configuration. The daemon provides 30-60 second latency vs 15 minutes with cron.
+> **⚠️ REQUIRED:** For production use, the daemon mode (`processAPINotesDaemon.sh`) is **REQUIRED**. See the [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section for installation and configuration. The daemon provides 30-60 second latency vs 15 minutes with cron, and is the standard production deployment method.
 
-#### Using Cron (Legacy/Alternative)
+**Important:** Do NOT add `processAPINotes.sh` to cron. The daemon mode replaces cron-based execution for API notes processing. Cron is only used for maintenance and monitoring tasks (see `examples/crontab-setup.example`).
 
-If you need to use cron instead of the daemon (e.g., systemd not available):
-
-```bash
-# Add to crontab (crontab -e)
-# Process API notes every 15 minutes
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >/dev/null 2>&1
-```
-
-**Note:** Scripts automatically create detailed logs in `/tmp/processAPINotes_XXXXXX/processAPINotes.log`. The cron redirection is optional and mainly useful for capturing startup errors.
+**Note:** Scripts automatically create detailed logs in `/tmp/processAPINotesDaemon_XXXXXX/processAPINotesDaemon.log` (daemon mode) or `/tmp/processAPINotes_XXXXXX/processAPINotes.log` (manual execution).
 
 ### Database Inspection
 
@@ -1128,7 +1120,12 @@ Even when the integrity check **passes**, small gaps (<5%) may still exist. Thes
 
 #### Gap Correction: notesCheckVerifier.sh
 
-The `notesCheckVerifier.sh` script is responsible for correcting data gaps that accumulate over time. It works in conjunction with `processCheckPlanetNotes.sh`:
+The `notesCheckVerifier.sh` script is responsible for correcting data gaps and problems that accumulate over time from API calls. It works in conjunction with `processCheckPlanetNotes.sh`:
+
+**Main purposes:**
+1. **Correct problems from API calls**: Inserts missing notes/comments that were not captured by the API ingestion process
+2. **Identify hidden notes**: Marks notes as hidden that exist in the system but not in Planet (these can only be detected by comparing with Planet dump)
+3. **Data integrity**: Ensures the database matches the authoritative Planet dump
 
 **How it works:**
 
@@ -1138,22 +1135,26 @@ The `notesCheckVerifier.sh` script is responsible for correcting data gaps that 
    - `note_comments_check`
    - `note_comments_text_check`
 3. **Compare with main tables**: `notesCheckVerifier.sh` identifies differences:
-   - Notes/comments that exist in Planet but not in main tables
-   - Notes/comments that exist in main tables but not in Planet
+   - Notes/comments that exist in Planet but not in main tables (missing data from API)
+   - Notes/comments that exist in main tables but not in Planet (hidden notes)
 4. **Insert missing data**: Missing data from Planet is inserted into main tables:
    - Missing notes: `notesCheckVerifier_51_insertMissingNotes.sql`
    - Missing comments: `notesCheckVerifier_52_insertMissingComments.sql`
    - Missing text comments: `notesCheckVerifier_53_insertMissingTextComments.sql`
+5. **Mark hidden notes**: Notes that exist in system but not in Planet are marked as hidden:
+   - `notesCheckVerifier_54_markMissingNotesAsHidden.sql`
 
 **Why this works:**
 - **Planet dumps are authoritative**: They contain the complete, verified dataset
-- **Periodic correction**: Running `notesCheckVerifier.sh` regularly (e.g., daily) corrects accumulated gaps
+- **Periodic correction**: Running `notesCheckVerifier.sh` regularly (e.g., daily) corrects accumulated gaps from API calls
+- **Hidden notes detection**: Only Planet dump comparison can identify notes that were hidden by the Data Working Group
 - **Comprehensive coverage**: Compares all historical data (excluding today) to catch gaps from any period
+- **Normal operation**: It's normal for this script to do nothing if tables are already correct - it only acts when differences are found
 
 **Typical Usage:**
 ```bash
-# Run daily via cron to correct accumulated gaps
-0 3 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh
+# Run daily via cron to correct accumulated gaps and identify hidden notes
+0 6 * * * cd /path/to/OSM-Notes-Ingestion && EMAILS="your-email@example.com" ./bin/monitor/notesCheckVerifier.sh
 ```
 
 #### Integrity Check Flow Diagram

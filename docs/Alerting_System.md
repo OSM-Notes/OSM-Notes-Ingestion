@@ -11,15 +11,15 @@
 ```
 Time    Event
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-01:00   processAPINotes.sh executes (cron)
+01:00   processAPINotesDaemon.sh executes (daemon)
         ├─ Error: Missing historical data
-        └─ Creates file: processAPINotes_failed_execution
+        └─ Creates file: processAPINotesDaemon_failed_execution
           (Location: /var/run/osm-notes-ingestion/ in installed mode,
            /tmp/osm-notes-ingestion/locks/ in fallback mode)
         
         ⏰ WAIT 10-15 MINUTES
         
-01:15   checkFailedExecution.sh executes (cron)
+01:15   checkFailedExecution.sh executes (cron - legacy)
         ├─ Detects failed file
         ├─ Reads content
         └─ 📧 Sends email to admin
@@ -40,9 +40,9 @@ Time    Event
 ```
 Time    Event
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-01:00   processAPINotes.sh executes (cron)
+01:00   processAPINotesDaemon.sh executes (daemon)
         ├─ Error: Missing historical data
-        ├─ Creates file: /tmp/processAPINotes_failed_execution
+        ├─ Creates file: /tmp/processAPINotesDaemon_failed_execution
         └─ 📧 Sends email IMMEDIATELY
         
         👤 Admin receives alert (seconds after error)

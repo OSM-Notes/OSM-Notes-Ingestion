@@ -18,9 +18,7 @@
 # ADMIN_EMAIL="admin@example.com"
 # SEND_ALERT_EMAIL="true"  # Already enabled by default
 
-# Run the script normally
-/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
-
+# The daemon runs automatically as a systemd service.
 # When it fails, you will receive an email immediately with:
 # - Error description
 # - Error code
@@ -36,8 +34,8 @@
 
 # SEND_ALERT_EMAIL="false"
 
-# The script will still create the failed file but won't send alerts
-/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+# The daemon will still create the failed file but won't send alerts
+# (when SEND_ALERT_EMAIL="false" is configured)
 
 # Useful for:
 # - Development/testing environments
@@ -46,17 +44,21 @@
 
 
 # =============================================================================
-# CRONTAB CONFIGURATION
+# DAEMON CONFIGURATION (REQUIRED)
 # =============================================================================
 
 # Alert properties are automatically loaded from etc/properties.sh
-# You don't need to configure anything additional in crontab:
+# The daemon (processAPINotesDaemon.sh) runs as a systemd service, not via cron.
 
-# Edit: crontab -e
-# Add:
-0 * * * * /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+# Set up the daemon service:
+# See examples/systemd/osm-notes-api-daemon.service
+# sudo cp examples/systemd/osm-notes-api-daemon.service /etc/systemd/system/
+# sudo systemctl daemon-reload
+# sudo systemctl enable osm-notes-api-daemon
+# sudo systemctl start osm-notes-api-daemon
 
 # Alerts will work automatically according to the configuration in etc/properties.sh
+# The daemon will send alerts immediately when errors occur.
 
 
 # =============================================================================
@@ -127,12 +129,12 @@
 
 # If you need to temporarily disable alerts (e.g., during maintenance):
 
-# Method 1: Environment variable
-export SEND_ALERT_EMAIL="false"
-/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+# Method 1: Environment variable (configure in etc/properties.sh)
+# SEND_ALERT_EMAIL="false"
+# Then restart the daemon: sudo systemctl restart osm-notes-api-daemon
 
-# Method 2: In the script directly (not recommended)
-# Edit processAPINotes.sh and change:
+# Method 2: In the properties file (recommended)
+# Edit etc/properties.sh and change:
 # export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-true}"
 # to:
 # export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-false}"
@@ -150,8 +152,10 @@ export SEND_ALERT_EMAIL="false"
 # 2. Test sending an email manually:
 #    echo "Test" | mail -s "Test" your@email.com
 # 
-# 3. Check the script logs:
-#    tail -f /tmp/processAPINotes_*/processAPINotes.log
+# 3. Check the daemon logs:
+#    tail -f /tmp/processAPINotesDaemon_*/processAPINotesDaemon.log
+#    # Or use journalctl:
+#    journalctl -u osm-notes-api-daemon -f
 #    # Look for: "Email alert sent successfully" or "Failed to send email"
 # 
 # 4. Check Postfix logs (system logs, requires root or sudo):

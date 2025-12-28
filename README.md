@@ -384,28 +384,27 @@ The daemon automatically:
 
 See `docs/Process_API.md` "Daemon Mode" section for detailed configuration.
 
-### Alternative: Cron Mode (Legacy)
+### Maintenance and Monitoring Tasks (Cron)
 
-If systemd is not available, you can use cron as an alternative:
+While the main API notes processing runs as a daemon, you still need to configure cron for maintenance and monitoring tasks:
 
 ```text
-# Runs the API extraction each 15 minutes.
-# processAPINotes.sh automatically handles:
-# - Initial setup: Creates tables and loads historical data if missing
-# - Regular sync: Planet synchronization when API limit (10,000 notes) reached + new dump available
-*/15 * * * * ~/OSM-Notes-Ingestion/bin/process/processAPINotes.sh
+# Country boundaries update: Once a month (first day at 2 AM)
+0 2 1 * * ~/OSM-Notes-Ingestion/bin/process/updateCountries.sh
 
-# Runs the boundaries update. Once a month.
-# Note: Do NOT use --base flag here. The --base flag is only for complete system reset.
-0 12 1 * * ~/OSM-Notes-Ingestion/bin/process/updateCountries.sh
+# Data verification and correction: Daily check and correction (6 AM)
+# Corrects problems from API calls and identifies hidden notes (only detectable with Planet)
+# Note: It's normal for this script to do nothing if tables are already correct.
+0 6 * * * EMAILS="your-email@example.com" ~/OSM-Notes-Ingestion/bin/monitor/notesCheckVerifier.sh
+
+# Database performance analysis: Monthly (first day at 3 AM)
+0 3 1 * * ~/OSM-Notes-Ingestion/bin/monitor/analyzeDatabasePerformance.sh --db notes > ~/logs/db_performance_monthly_$(date +\%Y\%m\%d).log 2>&1
 ```
 
-**Note**: Everything is automatic! Simply configure `processAPINotes.sh` in cron. It will:
-- Handle initial setup automatically on first run (creates tables, loads historical data, loads countries)
-- Process API notes every 15 minutes
-- Automatically sync with Planet when needed (10K notes + new dump)
-
-No manual setup or separate `processPlanetNotes.sh` cron entry is required.
+**Important**: 
+- Do NOT add `processAPINotes.sh` to cron - it is handled by the daemon
+- Do NOT add `processPlanetNotes.sh` to cron - it is automatically called by the daemon when needed
+- Cron is only for maintenance (country updates) and monitoring (verification, performance analysis)
 
 See `examples/crontab-setup.example` for detailed cron configuration examples.
 

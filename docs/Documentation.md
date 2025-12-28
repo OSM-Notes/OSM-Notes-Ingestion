@@ -118,10 +118,8 @@ The OSM-Notes-Ingestion system consists of the following components:
 - **API Integration**: Real-time data from OSM Notes API
   - **Daemon Mode (Recommended)**: Continuous polling every 1 minute (30-60 seconds latency)
     - Uses `processAPINotesDaemon.sh` with systemd service
-    - Lower latency and better efficiency than cron-based execution
-  - **Cron Mode (Alternative)**: Periodic updates every 15 minutes (legacy option)
-    - Uses `processAPINotes.sh` with crontab scheduler
-    - Suitable when systemd is not available
+    - Lower latency and better efficiency than manual execution
+    - **REQUIRED** for production deployments
   - Limited to last 10,000 closed notes and all open notes
   - Automatic detection of new, modified, and reopened notes
 
@@ -979,32 +977,41 @@ psql -d notes -c "SELECT count(*) FROM pg_stat_activity WHERE datname = 'notes';
 
 ### Automated Execution Configuration
 
-#### Recommended: Daemon Mode (systemd)
+#### Required: Daemon Mode (systemd)
 
-For production use, the daemon mode is recommended. See `docs/Process_API.md` "Daemon Mode" section for detailed installation and configuration instructions.
+For production use, the daemon mode is **REQUIRED**. The main API notes processing runs as a systemd service (daemon), not via cron. See `docs/Process_API.md` "Daemon Mode" section for detailed installation and configuration instructions.
 
-#### Alternative: Cron Job Configuration
+The daemon (`processAPINotesDaemon.sh`) handles:
+- Continuous API notes ingestion (polls every minute)
+- Automatic initial setup (creates tables, loads historical data, loads countries)
+- Automatic Planet synchronization when needed (10K notes + new dump)
 
-If systemd is not available, you can use cron as an alternative:
+#### Maintenance and Monitoring Tasks (Cron)
+
+While the main API notes processing runs as a daemon, you need to configure cron for maintenance and monitoring tasks:
 
 ```bash
-# Process API notes every 15 minutes (alternative to daemon mode)
-# Note: Scripts create their own logs in /tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log
-# No need to redirect output unless you want additional logging
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >/dev/null 2>&1
+# Country boundaries update: Monthly (first day at 2 AM)
+0 2 1 * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/updateCountries.sh >/dev/null 2>&1
 
-# Alternative: Redirect to a logs directory in your home or project directory
-# mkdir -p ~/logs  # Create logs directory first
-*/15 * * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/processAPINotes.sh >> ~/logs/osm-notes-api.log 2>&1
+# Data verification and correction: Daily check and correction (6 AM)
+# Corrects problems from API calls and identifies hidden notes (only detectable with Planet)
+# Note: It's normal for this script to do nothing if tables are already correct.
+0 6 * * * cd /path/to/OSM-Notes-Ingestion && EMAILS="your-email@example.com" ./bin/monitor/notesCheckVerifier.sh >/dev/null 2>&1
 
-# Update countries daily at 2 AM
-0 2 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/process/updateCountries.sh >/dev/null 2>&1
-
-# Verify data integrity daily at 3 AM
-0 3 * * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/notesCheckVerifier.sh >/dev/null 2>&1
+# Database performance analysis: Monthly (first day at 3 AM)
+# Create logs directory first: mkdir -p ~/logs
+0 3 1 * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/analyzeDatabasePerformance.sh --db notes > ~/logs/db_performance_monthly_$(date +\%Y\%m\%d).log 2>&1
 ```
 
-**Note:** Scripts automatically create log files in `/tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log`. The redirection in cron is optional and mainly useful for capturing startup errors. For production, you may want to redirect to a logs directory in your home or project directory (e.g., `~/logs/` or `./logs/`).
+**Important Notes:**
+- Do NOT add `processAPINotes.sh` to cron - it is handled by the daemon
+- Do NOT add `processPlanetNotes.sh` to cron - it is automatically called by the daemon when needed
+- Cron is only for maintenance (country updates) and monitoring (verification, performance analysis)
+- Scripts automatically create log files in `/tmp/SCRIPT_NAME_XXXXXX/SCRIPT_NAME.log`
+- For production, consider redirecting logs to a persistent directory (e.g., `~/logs/` or `./logs/`)
+
+See `examples/crontab-setup.example` for detailed cron configuration examples.
 
 ### Testing and Development
 
@@ -1452,9 +1459,9 @@ fi
 
 ```text
 Server 1 (Ingestion):
-  - processAPINotes.sh (cron)
-  - processPlanetNotes.sh (manual/scheduled)
-  - updateCountries.sh (scheduled)
+  - processAPINotesDaemon.sh (systemd service - REQUIRED)
+  - processPlanetNotes.sh (automatic, called by daemon when needed)
+  - updateCountries.sh (scheduled via cron - monthly)
 
 Server 2 (Database):
   - PostgreSQL/PostGIS
