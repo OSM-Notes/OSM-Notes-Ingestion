@@ -45,7 +45,7 @@ You have the right to:
 - **Data portability** (Article 20)
 - **Object** to processing (Article 21)
 
-To exercise your rights, contact: angoca@osm.lat
+To exercise your rights, contact: notes@osm.lat
 
 ## tl;dr - 5 minutes configuration
 

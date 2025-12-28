@@ -204,7 +204,7 @@ legitimate interest).
 
 To exercise any of your GDPR rights, please contact:
 
-**Email:** `angoca@osm.lat`
+**Email:** `notes@osm.lat`
 
 **Subject Line:** GDPR Data Subject Request
 

@@ -5,7 +5,7 @@
 #
 # To change the email addresses of the recipients, the EMAILS environment
 # variable can be changed like:
-#   export EMAILS="maptime.bogota@gmail.com,contact@osm.org"
+#   export EMAILS="notes@osm.lat"
 #
 # To check the last execution, you can just run:
 #   cd $(find /tmp/ -name "notesCheckVerifier_*" -type d -printf "%T@ %p\n" 2> /dev/null | sort -n | cut -d' ' -f 2- | tail -n 1) ; tail -f notesCheckVerifier.log ; cd -
@@ -172,7 +172,7 @@ function __show_help {
  echo "the error"
  echo
  echo "Written por: Andres Gomez (AngocA)"
- echo "MaptimeBogota."
+ echo "OSM Latam."
  exit "${ERROR_HELP_MESSAGE}"
 }
 

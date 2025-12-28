@@ -14,7 +14,7 @@ Ingestion system.
 
 **Step 1.1: Receive Request**
 
-- Requests should be received via email at: `angoca@osm.lat`
+- Requests should be received via email at: `notes@osm.lat`
 - Subject line should contain: "GDPR Data Subject Request"
 - All requests must be logged for tracking and audit purposes
   - **Tracking System:** GitHub Issues in this repository
@@ -51,7 +51,7 @@ provide:
 - Your OSM username or User ID
 - Additional verification if required
 
-If you have any questions, please contact us at angoca@osm.lat quoting reference
+If you have any questions, please contact us at notes@osm.lat quoting reference
 [REF-NUMBER].
 
 Best regards,
@@ -140,7 +140,7 @@ Provide the following information that only you would know:
 Please respond within 7 days. If we don't receive verification, we cannot
 process your request.
 
-If you have questions, please contact us at `angoca@osm.lat` quoting reference
+If you have questions, please contact us at `notes@osm.lat` quoting reference
 [REF-NUMBER].
 
 Best regards,

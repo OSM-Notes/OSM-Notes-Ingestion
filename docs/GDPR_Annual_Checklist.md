@@ -57,7 +57,7 @@ perform this review in January to assess the previous year's compliance.
 - [ ] Verify SQL scripts in `sql/gdpr/` are still functional
 - [ ] Test GDPR request scripts with sample data (if possible)
 - [ ] Review GitHub Issues system for tracking requests
-- [ ] Verify email contact `angoca@osm.lat` is still active and monitored
+- [ ] Verify email contact `notes@osm.lat` is still active and monitored
 
 ### Compliance Audit
 

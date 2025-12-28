@@ -180,12 +180,12 @@ export LOG_LEVEL=INFO
 
 #### Email Recipients
 - **`EMAILS`**: Comma-separated list of email recipients for reports
-- **Default**: `maptime.bogota@gmail.com,contact@osm.org`
+- **Default**: `notes@osm.lat`
 - **Usage**: Override for custom recipients
 
 #### Example
 ```bash
-export EMAILS="admin@example.com,backup@example.com"
+export EMAILS="notes@osm.lat"
 export LOG_LEVEL=WARN
 ./bin/monitor/notesCheckVerifier.sh
 ```
