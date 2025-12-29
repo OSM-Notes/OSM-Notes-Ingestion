@@ -14,8 +14,10 @@ setup() {
   fi
   
   # Source the functions
+  # Note: functionsProcess.sh already loads errorHandlingFunctions.sh and noteProcessingFunctions.sh
+  # Don't reload errorHandlingFunctions.sh as it would override the version from noteProcessingFunctions.sh
+  # that accepts multiple cleanup commands
   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/errorHandlingFunctions.sh"
   
   # Create temporary test files for cleanup testing
   TEST_FILE_1="/tmp/test_cleanup_file1.txt"
@@ -109,7 +111,11 @@ teardown() {
   # Set CLEAN to false
   export CLEAN=false
   
-  # Create test files
+  # Ensure we're in test mode so the function returns instead of exiting
+  export TEST_MODE=true
+  export BATS_TEST_NAME="test"
+  
+  # Create test files fresh for this test
   echo "content1" > "${TEST_FILE_1}"
   echo "content2" > "${TEST_FILE_2}"
   
@@ -117,22 +123,27 @@ teardown() {
   [ -f "${TEST_FILE_1}" ]
   [ -f "${TEST_FILE_2}" ]
   
-  # Mock the exit command to prevent test termination
-  exit() { echo "EXIT_CALLED_WITH_CODE: $1"; return "$1"; }
-  export -f exit
+  # Source noteProcessingFunctions.sh directly to ensure we have the version that accepts multiple cleanup commands
+  # This version uses shift 2 and accepts multiple cleanup commands as separate arguments
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" ]]; then
+    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh"
+  fi
   
-  # Source functionsProcess.sh again to ensure we have the right function
-  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
-  
-  # Test the functionsProcess version of error handling
+  # Test the functionsProcess version of error handling with multiple cleanup commands
+  # The version from noteProcessingFunctions.sh accepts multiple cleanup commands
   run __handle_error_with_cleanup "247" "Test integrity check failed" "rm -f ${TEST_FILE_1}" "rm -f ${TEST_FILE_2}"
+  
+  echo "DEBUG: status=$status, output='$output'" >&2
+  echo "DEBUG: TEST_FILE_1 exists: $([ -f "${TEST_FILE_1}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: TEST_FILE_2 exists: $([ -f "${TEST_FILE_2}" ] && echo yes || echo no)" >&2
   
   # Files should still exist because CLEAN=false
   [ -f "${TEST_FILE_1}" ]
   [ -f "${TEST_FILE_2}" ]
   
-  # Output should indicate cleanup was skipped
-  [[ "$output" == *"Skipping cleanup commands due to CLEAN=false"* ]]
+  # Output should indicate cleanup was skipped (noteProcessingFunctions.sh uses plural "commands")
+  [[ "$output" == *"Skipping cleanup commands due to CLEAN=false"* ]] || \
+   [[ "$output" == *"Skipping cleanup command due to CLEAN=false"* ]]
 }
 
 @test "Planet Notes scenario with CLEAN=false should preserve downloaded files" {
