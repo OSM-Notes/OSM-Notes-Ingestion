@@ -3,7 +3,7 @@
 # Prerequisites Database Tests
 # Tests for database prerequisites validation
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
+# Version: 2025-12-29
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 load "$(dirname "${BATS_TEST_FILENAME}")/performance_edge_cases_helper.bash"
@@ -48,11 +48,15 @@ setup() {
 }
 
 @test "enhanced __checkPrereqsCommands should validate PostGIS extension" {
+ # Check if we're using mock PostgreSQL
+ if [[ "${PERFORMANCE_EDGE_CASES_USING_MOCK_PSQL:-false}" == "true" ]]; then
+  skip "Skipping PostGIS test when using mock PostgreSQL"
+ fi
+
  # Create test database (will use mock if PostgreSQL not available)
- create_test_database || {
-  echo "DEBUG: PostgreSQL not available, using simulated database"
-  echo "Test database ${TEST_DBNAME} created (simulated)"
- }
+ if ! create_test_database; then
+  skip "PostgreSQL not available, skipping PostGIS test"
+ fi
 
  # Test PostGIS extension
  run psql -d "${TEST_DBNAME}" -c "SELECT PostGIS_version();"
@@ -63,11 +67,15 @@ setup() {
 }
 
 @test "enhanced __checkPrereqsCommands should validate btree_gist extension" {
+ # Check if we're using mock PostgreSQL
+ if [[ "${PERFORMANCE_EDGE_CASES_USING_MOCK_PSQL:-false}" == "true" ]]; then
+  skip "Skipping btree_gist test when using mock PostgreSQL"
+ fi
+
  # Create test database (will use mock if PostgreSQL not available)
- create_test_database || {
-  echo "DEBUG: PostgreSQL not available, using simulated database"
-  echo "Test database ${TEST_DBNAME} created (simulated)"
- }
+ if ! create_test_database; then
+  skip "PostgreSQL not available, skipping btree_gist test"
+ fi
 
  # Test btree_gist extension
  run psql -d "${TEST_DBNAME}" -c "SELECT COUNT(1) FROM pg_extension WHERE extname = 'btree_gist';"

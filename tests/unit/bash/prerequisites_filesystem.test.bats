@@ -3,7 +3,7 @@
 # Prerequisites Filesystem Tests
 # Tests for filesystem and permission validation
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
+# Version: 2025-12-29
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 load "$(dirname "${BATS_TEST_FILENAME}")/performance_edge_cases_helper.bash"
@@ -53,7 +53,8 @@ setup() {
 @test "enhanced __checkPrereqsCommands should validate required files exist" {
  # Test that required files exist
  [ -f "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" ]
- [ -f "${TEST_BASE_DIR}/etc/properties.sh" ]
+ # properties.sh can be in etc/ or tests/ directory
+ [ -f "${TEST_BASE_DIR}/etc/properties.sh" ] || [ -f "${TEST_BASE_DIR}/tests/properties.sh" ] || [ -f "${TEST_BASE_DIR}/etc/properties_test.sh" ]
  [ -f "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd" ]
  [ -f "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" ]
 }
