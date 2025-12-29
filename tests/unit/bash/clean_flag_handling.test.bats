@@ -13,6 +13,10 @@ setup() {
     export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
   fi
   
+  # Ensure test mode is enabled so functions return instead of exit
+  export TEST_MODE=true
+  export BATS_TEST_NAME="${BATS_TEST_NAME:-test}"
+  
   # Source the functions
   # Note: functionsProcess.sh already loads errorHandlingFunctions.sh and noteProcessingFunctions.sh
   # Don't reload errorHandlingFunctions.sh as it would override the version from noteProcessingFunctions.sh
@@ -37,6 +41,10 @@ teardown() {
 @test "error handling should respect CLEAN=false and preserve files" {
   # Set CLEAN to false
   export CLEAN=false
+  
+  # Ensure test mode is enabled (should already be set in setup, but ensure it)
+  export TEST_MODE=true
+  export BATS_TEST_NAME="${BATS_TEST_NAME:-test}"
   
   # Recreate test files to ensure they exist
   echo "test content 1" > "${TEST_FILE_1}"
@@ -71,6 +79,10 @@ teardown() {
   # Set CLEAN to true (default behavior)
   export CLEAN=true
   
+  # Ensure test mode is enabled (should already be set in setup, but ensure it)
+  export TEST_MODE=true
+  export BATS_TEST_NAME="${BATS_TEST_NAME:-test}"
+  
   # Verify files exist before test
   [ -f "${TEST_FILE_1}" ]
   [ -f "${TEST_FILE_2}" ]
@@ -95,6 +107,10 @@ teardown() {
 @test "error handling should default to CLEAN=true when not set" {
   # Don't set CLEAN variable (should default to true)
   unset CLEAN
+  
+  # Ensure test mode is enabled (should already be set in setup, but ensure it)
+  export TEST_MODE=true
+  export BATS_TEST_NAME="${BATS_TEST_NAME:-test}"
   
   # Verify files exist before test
   [ -f "${TEST_FILE_1}" ]
@@ -157,6 +173,10 @@ teardown() {
   # Set CLEAN to false (like user reported)
   export CLEAN=false
   
+  # Ensure test mode is enabled (should already be set in setup, but ensure it)
+  export TEST_MODE=true
+  export BATS_TEST_NAME="${BATS_TEST_NAME:-test}"
+  
   # Create mock Planet Notes files
   MOCK_PLANET="/tmp/OSM-notes-planet.xml.bz2"
   MOCK_MD5="/tmp/OSM-notes-planet.xml.bz2.md5"
@@ -167,10 +187,6 @@ teardown() {
   # Verify files exist
   [ -f "${MOCK_PLANET}" ]
   [ -f "${MOCK_MD5}" ]
-  
-  # Mock the exit command
-  exit() { echo "EXIT_CALLED_WITH_CODE: $1"; return "$1"; }
-  export -f exit
   
   # Simulate the exact cleanup command from Planet Notes processing
   CLEANUP_CMD="rm -f ${MOCK_PLANET} ${MOCK_MD5} 2>/dev/null || true"
