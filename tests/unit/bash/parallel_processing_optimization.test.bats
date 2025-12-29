@@ -9,8 +9,14 @@ load "../../test_helper"
 
 # Setup function to load required functions
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
+ 
  # Set up test environment
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/../../../"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
 
  # Load properties and functions
  source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
@@ -19,6 +25,12 @@ setup() {
 
 # Teardown function to clean up test directories
 teardown() {
+ # Restore original properties if needed
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Clean up any test directories that might have been created
  local TEST_DIR="${TEST_BASE_DIR}/tests/tmp/test_output"
  if [[ -d "${TEST_DIR}" ]]; then

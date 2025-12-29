@@ -9,7 +9,13 @@
 load ../../test_helper
 
 setup() {
+  # Setup test properties first (this must be done before any script sources properties.sh)
+  if declare -f setup_test_properties > /dev/null 2>&1; then
+   setup_test_properties
+  fi
+  
   SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
   TEST_OUTPUT_DIR="${SCRIPT_BASE_DIRECTORY}/tests/output/mock_planet_unit"
   MOCK_XML_FILE="${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/mockPlanetDump.osn.xml"
   
@@ -68,6 +74,11 @@ setup() {
 }
 
 teardown() {
+  # Restore original properties if needed
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  if declare -f restore_properties > /dev/null 2>&1; then
+   restore_properties
+  fi
   # Clean up test output
   rm -rf "${TEST_OUTPUT_DIR}"
 }

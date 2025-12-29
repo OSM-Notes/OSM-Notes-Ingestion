@@ -7,6 +7,11 @@
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
+ 
  # Set up test environment
  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
@@ -14,12 +19,19 @@ setup() {
  export BASHPID=$$
  export RATE_LIMIT=4
  export OVERPASS_INTERPRETER="https://overpass-api.de/api/interpreter"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
 
  # Load functions from processing library
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1
 }
 
 teardown() {
+ # Restore original properties if needed
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Cleanup queue directory and temporary files
  rm -rf "${TMP_DIR}/download_queue" 2> /dev/null || true
  rm -rf "${TMP_DIR}" 2> /dev/null || true

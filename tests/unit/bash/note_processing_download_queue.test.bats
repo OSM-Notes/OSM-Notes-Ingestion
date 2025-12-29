@@ -11,6 +11,11 @@ bats_require_minimum_version 1.5.0
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
+ 
  # Create temporary test directory
  TEST_DIR=$(mktemp -d)
  export TEST_DIR
@@ -31,6 +36,11 @@ setup() {
 }
 
 teardown() {
+ # Restore original properties if needed
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Clean up test files
  rm -rf "${TEST_DIR}"
 }

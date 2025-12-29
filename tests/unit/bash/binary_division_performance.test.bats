@@ -11,6 +11,11 @@ load ../../test_helper
 
 # Test setup
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
+ 
  # Create test directory
  TEST_DIR="${BATS_TEST_TMPDIR}/binary_division_test"
  mkdir -p "${TEST_DIR}"
@@ -24,6 +29,11 @@ setup() {
 
 # Test teardown
 teardown() {
+ # Restore original properties if needed
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Cleanup test directory
  rm -rf "${TEST_DIR}"
 }

@@ -8,11 +8,17 @@
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
+ 
  # Setup test environment
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
  export BASENAME="test_parallel_processing"
  export LOG_LEVEL="INFO"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  
  # Ensure TMP_DIR exists and is writable
  if [[ ! -d "${TMP_DIR}" ]]; then
@@ -27,6 +33,12 @@ setup() {
 }
 
 teardown() {
+ # Restore original properties if needed
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Cleanup
  rm -rf "${TMP_DIR}"
 }

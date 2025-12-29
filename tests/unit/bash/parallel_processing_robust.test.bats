@@ -11,12 +11,18 @@ load "../../test_helper"
 
 # Load the parallel processing functions
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
+ 
  # Source the parallel processing functions
  source "${BATS_TEST_DIRNAME}/../../../bin/lib/parallelProcessingFunctions.sh"
  
  # Set up test environment
  export TMP_DIR="${BATS_TEST_DIRNAME}/tmp"
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/../../../"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  export MAX_THREADS=2
  
  # Create temporary directory
@@ -24,6 +30,12 @@ setup() {
 }
 
 teardown() {
+ # Restore original properties if needed
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Clean up temporary files
  if [[ -d "${TMP_DIR}" ]]; then
   # Fix permissions before removing
