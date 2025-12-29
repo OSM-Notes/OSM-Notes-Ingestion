@@ -191,14 +191,29 @@ export TEST_BASE_DIR
 
 # Function to restore original properties
 restore_properties() {
- local properties_file="${TEST_BASE_DIR}/etc/properties.sh"
- local properties_backup="${TEST_BASE_DIR}/etc/properties.sh.backup"
+ # Use TEST_BASE_DIR if available, otherwise try to detect it
+ local base_dir="${TEST_BASE_DIR:-}"
+ if [[ -z "${base_dir}" ]]; then
+  # Try to detect from BASH_SOURCE if available
+  if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+   base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  else
+   # Fallback: use current directory
+   base_dir="$(pwd)"
+  fi
+ fi
+
+ local properties_file="${base_dir}/etc/properties.sh"
+ local properties_backup="${base_dir}/etc/properties.sh.backup"
 
  # Restore original properties if backup exists
  if [[ -f "${properties_backup}" ]]; then
   mv "${properties_backup}" "${properties_file}"
  fi
 }
+
+# Export function so it's available in sub-shells and test setup/teardown
+export -f restore_properties
 
 # Setup file function - runs once before all tests in a file
 # This ensures properties.sh is set up before any test runs

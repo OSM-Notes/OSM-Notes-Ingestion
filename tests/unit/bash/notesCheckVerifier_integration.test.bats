@@ -3,6 +3,9 @@
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
 
+# Load test helper to get setup_test_properties and restore_properties functions
+load ../../test_helper.bash
+
 # Integration tests for notesCheckVerifier.sh
 # Tests that actually execute the script to detect real errors
 
@@ -19,7 +22,8 @@ setup() {
 
  # Setup test properties first (this must be done before any script sources properties.sh)
  # Use TEST_BASE_DIR from test_helper if available, otherwise use SCRIPT_BASE_DIRECTORY
- TEST_BASE_DIR="${TEST_BASE_DIR:-${SCRIPT_BASE_DIRECTORY}}"
+ export TEST_BASE_DIR="${TEST_BASE_DIR:-${SCRIPT_BASE_DIRECTORY}}"
+ # Call setup_test_properties (should be available from load)
  setup_test_properties
 
  # Ensure TMP_DIR exists and is writable
@@ -49,7 +53,12 @@ setup() {
 
 teardown() {
  # Restore original properties
- restore_properties
+ # Ensure TEST_BASE_DIR is set
+ export TEST_BASE_DIR="${TEST_BASE_DIR:-${SCRIPT_BASE_DIRECTORY}}"
+ # Ensure function is available
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
 
  # Cleanup
  rm -rf "${TMP_DIR}"

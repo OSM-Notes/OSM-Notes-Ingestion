@@ -17,6 +17,18 @@ setup() {
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 }
 
+# Teardown function to clean up test directories
+teardown() {
+ # Clean up any test directories that might have been created
+ local TEST_DIR="${TEST_BASE_DIR}/tests/tmp/test_output"
+ if [[ -d "${TEST_DIR}" ]]; then
+  # Force remove all files and directories
+  find "${TEST_DIR}" -type f -delete 2>/dev/null || true
+  find "${TEST_DIR}" -type d -delete 2>/dev/null || true
+  rm -rf "${TEST_DIR}" 2>/dev/null || true
+ fi
+}
+
 # Test parallel processing optimization functions
 @test "test parallel processing optimization functions" {
  # Test setup
@@ -68,6 +80,13 @@ EOF
  mkdir -p "${TEST_DIR}/small_parts"
  mkdir -p "${TEST_DIR}/large_parts"
 
+ # Verify small XML file exists before calling function
+ if [[ ! -f "${SMALL_XML}" ]]; then
+  echo "ERROR: Small XML file not created: ${SMALL_XML}" >&2
+  ls -la "${TEST_DIR}/" >&2
+  return 1
+ fi
+
  run __divide_xml_file "${SMALL_XML}" "${TEST_DIR}/small_parts" 5 10 4
  echo "DEBUG: status=$status, output='$output'" >&2
  [ "$status" -eq 0 ]
@@ -88,8 +107,10 @@ EOF
  [ -d "${TEST_DIR}/small_parts" ]
  [ -d "${TEST_DIR}/large_parts" ]
 
- # Cleanup
- rm -rf "${TEST_DIR}"
+ # Cleanup - force remove all files and directories
+ find "${TEST_DIR}" -type f -delete 2>/dev/null || true
+ find "${TEST_DIR}" -type d -delete 2>/dev/null || true
+ rm -rf "${TEST_DIR}" 2>/dev/null || true
 }
 
 # Note: Test "performance optimization logic" removed for optimization.
@@ -132,8 +153,10 @@ EOF
  [ "$status" -ne 0 ]
  echo "$output" | grep -q "ERROR: Input XML file and output directory are required"
 
- # Cleanup
- rm -rf "${TEST_DIR}"
+ # Cleanup - force remove all files and directories
+ find "${TEST_DIR}" -type f -delete 2>/dev/null || true
+ find "${TEST_DIR}" -type d -delete 2>/dev/null || true
+ rm -rf "${TEST_DIR}" 2>/dev/null || true
 }
 
 # Test performance metrics calculation
@@ -166,6 +189,8 @@ EOF
  echo "$output" | grep -q -E "(MB/s|N/A)"
  echo "$output" | grep -q -E "(notes/s|N/A)"
 
- # Cleanup
- rm -rf "${TEST_DIR}"
+ # Cleanup - force remove all files and directories
+ find "${TEST_DIR}" -type f -delete 2>/dev/null || true
+ find "${TEST_DIR}" -type d -delete 2>/dev/null || true
+ rm -rf "${TEST_DIR}" 2>/dev/null || true
 }

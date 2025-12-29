@@ -8,6 +8,11 @@
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
 setup() {
+ # Ensure SCRIPT_BASE_DIRECTORY is set
+ if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ fi
+
  # Extract just the function we need from processPlanetNotes.sh
  cat > /tmp/test_planet_functions.sh << 'EOF'
 #!/bin/bash
@@ -27,10 +32,18 @@ function __validate_xml_basic() { echo "Basic validation passed"; return 0; }
 EOF
  
  # Extract the specific function from processPlanetNotes.sh
- sed -n '/^function __validate_xml_with_enhanced_error_handling/,/^}/p' \
-  "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" >> /tmp/test_planet_functions.sh 2>/dev/null || true
+ if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" ]]; then
+  sed -n '/^function __validate_xml_with_enhanced_error_handling/,/^}/p' \
+   "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh" >> /tmp/test_planet_functions.sh 2>/dev/null || true
+ fi
  
- source /tmp/test_planet_functions.sh
+ # Verify file exists before sourcing
+ if [[ -f /tmp/test_planet_functions.sh ]]; then
+  source /tmp/test_planet_functions.sh
+ else
+  echo "ERROR: Failed to create test_planet_functions.sh" >&2
+  exit 1
+ fi
 }
 
 teardown() {

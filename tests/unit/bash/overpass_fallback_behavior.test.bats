@@ -29,6 +29,10 @@ teardown() {
   JSON_FILE_LOCAL="${TMP_DIR}/16239.json"
   OUTPUT_OVERPASS_LOCAL="${TMP_DIR}/out"
 
+  # Track which endpoint is being called
+  ENDPOINT_CALL_COUNT=0
+  export ENDPOINT_CALL_COUNT
+
   # Monkey-patch retry to simulate endpoint-specific responses
   function __retry_file_operation() {
     local OP="$1"
@@ -39,7 +43,7 @@ teardown() {
     local OUT
     # Extract file path from command - look for -o followed by the file path
     # The path is between -o and --data-binary
-    OUT=$(echo "${OP}" | sed -n 's/.*-o[[:space:]]*\([^[:space:]]*\).*/\1/p' || echo "")
+    OUT=$(echo "${OP}" | sed -n "s/.*-o[[:space:]]*\([^[:space:]]*\).*/\1/p" || echo "")
     
     # Fallback: use the known JSON file path from test context
     # This ensures we always have a valid path even if extraction fails
@@ -47,10 +51,14 @@ teardown() {
       OUT="${JSON_FILE_LOCAL}"
     fi
 
+    # Increment call count to track which endpoint is being called
+    ENDPOINT_CALL_COUNT=$((ENDPOINT_CALL_COUNT + 1))
+    export ENDPOINT_CALL_COUNT
+
     local VALID_JSON="{\"elements\":[{\"id\":1}]}"
     # Check CURRENT_OVERPASS_ENDPOINT which is exported by __overpass_download_with_endpoints
-    # before calling __retry_file_operation
-    if [[ "${CURRENT_OVERPASS_ENDPOINT:-}" == *"endpointA"* ]]; then
+    # before calling __retry_file_operation, or use call count as fallback
+    if [[ "${CURRENT_OVERPASS_ENDPOINT:-}" == *"endpointA"* ]] || [[ "${ENDPOINT_CALL_COUNT}" -eq 1 ]]; then
       # First endpoint returns invalid JSON (empty object without elements)
       echo "{}" > "${OUT}"
     else
@@ -66,10 +74,17 @@ teardown() {
 
   if __overpass_download_with_endpoints "${QUERY_FILE_LOCAL}" "${JSON_FILE_LOCAL}" "${OUTPUT_OVERPASS_LOCAL}" 1 1; then
     # File must contain a valid JSON with elements key
-    grep -q '"elements"' "${JSON_FILE_LOCAL}"
-    exit 0
+    if grep -q '"elements"' "${JSON_FILE_LOCAL}"; then
+      exit 0
+    else
+      echo "JSON file does not contain elements key" >&2
+      cat "${JSON_FILE_LOCAL}" >&2
+      exit 1
+    fi
   else
     echo "expected success with fallback" >&2
+    echo "Endpoint call count: ${ENDPOINT_CALL_COUNT}" >&2
+    echo "CURRENT_OVERPASS_ENDPOINT: ${CURRENT_OVERPASS_ENDPOINT:-not set}" >&2
     exit 1
   fi
  '

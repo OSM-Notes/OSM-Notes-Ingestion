@@ -211,7 +211,8 @@ EOF
 
 # Test with multiple database connections
 @test "Performance edge case: Multiple database connections should work correctly" {
- # Create test database
+ # Create test database (drop first if exists to avoid conflicts)
+ psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
  [ "$status" -eq 0 ]
 
