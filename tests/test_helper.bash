@@ -178,11 +178,17 @@ setup_test_properties() {
 
  # Backup original properties file if it exists and backup doesn't exist
  if [[ -f "${properties_file}" ]] && [[ ! -f "${properties_backup}" ]]; then
-  cp "${properties_file}" "${properties_backup}"
+  cp "${properties_file}" "${properties_backup}" 2>/dev/null || true
+ fi
+
+ # If original file didn't exist, create a marker so restore_properties knows to remove it
+ if [[ ! -f "${properties_file}" ]] && [[ ! -f "${properties_backup}" ]]; then
+  # Create empty backup file as marker that original didn't exist
+  touch "${properties_backup}" 2>/dev/null || true
  fi
 
  # Replace properties.sh with test properties
- cp "${source_file}" "${properties_file}"
+ cp "${source_file}" "${properties_file}" 2>/dev/null || true
 }
 
 # Export function and TEST_BASE_DIR so it's available in sub-shells
@@ -208,7 +214,15 @@ restore_properties() {
 
  # Restore original properties if backup exists
  if [[ -f "${properties_backup}" ]]; then
-  mv "${properties_backup}" "${properties_file}"
+  # Check if backup is empty (marker that original file didn't exist)
+  if [[ ! -s "${properties_backup}" ]]; then
+   # Original file didn't exist, remove the test properties file
+   rm -f "${properties_file}" 2>/dev/null || true
+   rm -f "${properties_backup}" 2>/dev/null || true
+  else
+   # Restore original file from backup
+   mv "${properties_backup}" "${properties_file}" 2>/dev/null || true
+  fi
  fi
 }
 

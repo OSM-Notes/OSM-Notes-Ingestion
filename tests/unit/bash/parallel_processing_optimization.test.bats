@@ -33,8 +33,25 @@ teardown() {
 @test "test parallel processing optimization functions" {
  # Test setup
  local TEST_DIR="${TEST_BASE_DIR}/tests/tmp/test_output"
- mkdir -p "${TEST_DIR}"
+ 
+ # Ensure TEST_BASE_DIR is set
+ if [[ -z "${TEST_BASE_DIR:-}" ]]; then
+  TEST_BASE_DIR="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+  export TEST_BASE_DIR
+ fi
+ 
+ # Create test directory and ensure it exists
+ mkdir -p "${TEST_DIR}" || {
+  echo "ERROR: Could not create TEST_DIR: ${TEST_DIR}" >&2
+  return 1
+ }
  chmod 777 "${TEST_DIR}" 2> /dev/null || true
+
+ # Verify directory was created
+ if [[ ! -d "${TEST_DIR}" ]]; then
+  echo "ERROR: TEST_DIR does not exist after creation: ${TEST_DIR}" >&2
+  return 1
+ fi
 
  # Create test XML files of different sizes
  local SMALL_XML="${TEST_DIR}/small.xml"
@@ -53,12 +70,28 @@ teardown() {
 </osm-notes>
 EOF
 
+ # Verify small XML file was created
+ if [[ ! -f "${SMALL_XML}" ]]; then
+  echo "ERROR: Small XML file not created: ${SMALL_XML}" >&2
+  ls -la "${TEST_DIR}/" >&2
+  return 1
+ fi
+
  # Note: Medium XML file creation removed for optimization
  # Large file test is sufficient to verify processing methods
 
  # Large XML (should use position-based processing)
  local LARGE_SIZE=6000 # 6GB equivalent
- echo '<?xml version="1.0" encoding="UTF-8"?>' > "${LARGE_XML}"
+ # Ensure directory exists before creating file
+ mkdir -p "$(dirname "${LARGE_XML}")" || {
+  echo "ERROR: Could not create directory for LARGE_XML: $(dirname "${LARGE_XML}")" >&2
+  return 1
+ }
+ 
+ echo '<?xml version="1.0" encoding="UTF-8"?>' > "${LARGE_XML}" || {
+  echo "ERROR: Could not create LARGE_XML file: ${LARGE_XML}" >&2
+  return 1
+ }
  echo '<osm-notes>' >> "${LARGE_XML}"
 
  # Generate many notes to simulate large file
@@ -68,6 +101,13 @@ EOF
   echo "</note>" >> "${LARGE_XML}"
  done
  echo '</osm-notes>' >> "${LARGE_XML}"
+ 
+ # Verify large XML file was created
+ if [[ ! -f "${LARGE_XML}" ]]; then
+  echo "ERROR: Large XML file not created: ${LARGE_XML}" >&2
+  ls -la "${TEST_DIR}/" >&2
+  return 1
+ fi
 
  # Test small file processing (should use line-by-line)
  # Debug: check if function is available
