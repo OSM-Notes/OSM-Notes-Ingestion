@@ -3,7 +3,7 @@
 # Unit tests for CLEAN flag handling in error functions
 # Test file: clean_flag_handling.test.bats
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-13
+# Version: 2025-12-29
 
 load "../../test_helper.bash"
 
@@ -57,7 +57,10 @@ teardown() {
   [ -f "${TEST_FILE_2}" ]
   
   # Output should indicate cleanup was skipped
-  [[ "$output" == *"Skipping cleanup command due to CLEAN=false"* ]]
+  # Note: functionsProcess.sh loads noteProcessingFunctions.sh which uses plural "commands"
+  # but errorHandlingFunctions.sh uses singular "command", so we check for both
+  [[ "$output" == *"Skipping cleanup commands due to CLEAN=false"* ]] || \
+   [[ "$output" == *"Skipping cleanup command due to CLEAN=false"* ]]
 }
 
 @test "error handling should execute cleanup when CLEAN=true" {
