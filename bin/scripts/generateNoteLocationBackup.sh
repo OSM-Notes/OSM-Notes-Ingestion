@@ -90,9 +90,9 @@ main() {
 
  # Get file sizes
  local CSV_SIZE
- CSV_SIZE=$(ls -lh "${OUTPUT_FILE}" | awk '{print $5}')
+ CSV_SIZE=$(stat -c%s "${OUTPUT_FILE}" 2> /dev/null | numfmt --to=iec-i --suffix=B || echo "unknown")
  local ZIP_SIZE
- ZIP_SIZE=$(ls -lh "${COMPRESSED_FILE}" | awk '{print $5}')
+ ZIP_SIZE=$(stat -c%s "${COMPRESSED_FILE}" 2> /dev/null | numfmt --to=iec-i --suffix=B || echo "unknown")
 
  __logi "CSV file size: ${CSV_SIZE}"
  __logi "Compressed size: ${ZIP_SIZE}"

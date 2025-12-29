@@ -387,6 +387,8 @@ function __getLocationNotes_impl {
 
       # Execute SQL file with parameter substitution
       local SUB_COUNT
+      # shellcheck disable=SC2016
+      # envsubst requires single quotes for variable names to expand them
       SUB_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
        -c "$(envsubst '$SUB_START,$SUB_END' \
         < "${POSTGRES_33_VERIFY_NOTE_INTEGRITY}" || true)")
@@ -620,6 +622,8 @@ EOF
 
     # Execute SQL file with parameter substitution
     local CHUNK_ASSIGNED
+    # shellcheck disable=SC2016
+    # envsubst requires single quotes for variable names to expand them
     CHUNK_ASSIGNED=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
      -c "$(envsubst '$NOTE_IDS' \
       < "${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}" || true)")
@@ -985,7 +989,7 @@ function __acquire_download_slot() {
   fi
 
   # Minimal wait - queries don't take long, so we can retry quickly
-  sleep ${CHECK_INTERVAL}
+  sleep "${CHECK_INTERVAL}"
   RETRY_COUNT=$((RETRY_COUNT + 1))
  done
 
@@ -1306,7 +1310,7 @@ function __wait_for_download_turn() {
    fi
   fi
 
-  sleep ${CHECK_INTERVAL}
+  sleep "${CHECK_INTERVAL}"
   WAIT_COUNT=$((WAIT_COUNT + CHECK_INTERVAL))
 
   # Log progress every 10 seconds, with more detail if waiting longer

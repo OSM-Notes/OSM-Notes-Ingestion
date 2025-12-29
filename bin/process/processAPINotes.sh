@@ -1201,7 +1201,7 @@ function main() {
  local RET_FUNC_FILE="${TMP_DIR:-/tmp}/.ret_func_$$"
  if [[ -f "${RET_FUNC_FILE}" ]]; then
   local FILE_RET_FUNC
-  FILE_RET_FUNC=$(cat "${RET_FUNC_FILE}" 2> /dev/null | head -1 || echo "")
+  FILE_RET_FUNC=$(head -1 "${RET_FUNC_FILE}" 2> /dev/null || echo "")
   if [[ -n "${FILE_RET_FUNC}" ]] && [[ "${FILE_RET_FUNC}" =~ ^[0-9]+$ ]]; then
    RET_FUNC="${FILE_RET_FUNC}"
    export RET_FUNC="${RET_FUNC}"

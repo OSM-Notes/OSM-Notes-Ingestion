@@ -462,10 +462,12 @@ function __createBaseTables {
 # Creates sync tables that receives the whole history, but then keep the new
 # ones.
 function __createSyncTables {
- __log_start
- __logi "Creating tables."
- PGAPPNAME="${PGAPPNAME}" PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
- __log_finish
+__log_start
+__logi "Creating tables."
+# shellcheck disable=SC2097,SC2098
+# PGAPPNAME is set at script initialization and passed to psql
+PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
+__log_finish
 }
 
 # Clean files and tables.
@@ -482,7 +484,9 @@ function __cleanPartial {
 # Calculates statistics on all tables and vacuum.
 function __analyzeAndVacuum {
  __log_start
- PGAPPNAME="${PGAPPNAME}" PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_VACUUM_AND_ANALYZE}"
+ # shellcheck disable=SC2097,SC2098
+ # PGAPPNAME is set at script initialization and passed to psql
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_VACUUM_AND_ANALYZE}"
  __log_finish
 }
 
@@ -508,7 +512,8 @@ function __removeDuplicates {
  __logi "Lock put ${PROCESS_ID}"
 
  export PROCESS_ID
- # shellcheck disable=SC2016
+ # shellcheck disable=SC2016,SC2154
+ # POSTGRES_43_REMOVE_DUPLICATES is defined in processPlanetFunctions.sh
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$PROCESS_ID' < "${POSTGRES_43_REMOVE_DUPLICATES}" || true)"
 
@@ -517,7 +522,10 @@ function __removeDuplicates {
  # Puts the sequence. When reexecuting, some objects already exist.
  __logi "Lock removed ${PROCESS_ID}"
 
- PGAPPNAME="${PGAPPNAME}" PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_44_COMMENTS_SEQUENCE}"
+ # shellcheck disable=SC2097,SC2098,SC2154
+ # PGAPPNAME is set at script initialization and passed to psql
+ # POSTGRES_44_COMMENTS_SEQUENCE is defined in processPlanetFunctions.sh
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_44_COMMENTS_SEQUENCE}"
  __log_finish
 }
 
@@ -526,7 +534,8 @@ function __loadTextComments {
  __log_start
  # Loads the text comment in the database.
  export OUTPUT_TEXT_COMMENTS_FILE
- # shellcheck disable=SC2016
+ # shellcheck disable=SC2016,SC2154
+ # POSTGRES_45_LOAD_TEXT_COMMENTS and POSTGRES_46_OBJECTS_TEXT_COMMENTS are defined in processPlanetFunctions.sh
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
    < "${POSTGRES_45_LOAD_TEXT_COMMENTS}" || true)"

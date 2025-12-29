@@ -1012,9 +1012,9 @@ function __swapCountryTables {
   else
    __loge "Swap failed - SQL errors:"
    if [[ -f "${SWAP_ERROR_FILE}" ]] && [[ -s "${SWAP_ERROR_FILE}" ]]; then
-    cat "${SWAP_ERROR_FILE}" | while IFS= read -r LINE; do
+    while IFS= read -r LINE; do
      __loge "  ${LINE}"
-    done
+    done < "${SWAP_ERROR_FILE}"
    else
     __loge "  (No error details available)"
    fi
@@ -1046,7 +1046,7 @@ CREATE INDEX IF NOT EXISTS idx_countries_is_maritime ON countries (is_maritime) 
 ANALYZE countries;
 EOF
 
-  if [[ $? -eq 0 ]]; then
+  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${TEMP_SQL}" > /dev/null 2>&1; then
    __logi "=== MANUAL SWAP COMPLETED SUCCESSFULLY ==="
    __log_finish
    return 0
@@ -1252,9 +1252,9 @@ function __checkMissingMaritimes() {
  # Format expected: eez_id,name,territory,sovereign,centroid_lat,centroid_lon
  tail -n +2 "${EEZ_CENTROIDS_FILE}" 2> /dev/null | while IFS=',' read -r EEZ_ID NAME TERRITORY SOVEREIGN CENTROID_LAT CENTROID_LON; do
   # Escape quotes in text fields
-  NAME=$(echo "${NAME}" | sed "s/'/''/g")
-  TERRITORY=$(echo "${TERRITORY}" | sed "s/'/''/g")
-  SOVEREIGN=$(echo "${SOVEREIGN}" | sed "s/'/''/g")
+  NAME="${NAME//\'/\'\'}"
+  TERRITORY="${TERRITORY//\'/\'\'}"
+  SOVEREIGN="${SOVEREIGN//\'/\'\'}"
 
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "
    INSERT INTO temp_eez_centroids (eez_id, name, territory, sovereign, centroid_lat, centroid_lon, geom)
