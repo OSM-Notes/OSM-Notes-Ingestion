@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete incremental synchronization flow
 # Tests: Check → Download → Process → Update → Verify
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-23
+# Version: 2025-12-29
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -149,11 +149,12 @@ teardown_file() {
   # Table exists, use real structure
   # Simulate processing and insertion using real column names
   # Note: Remove existing test data first to avoid conflicts
+  # Status must use note_status_enum type ('open', 'close', 'hidden')
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
 EOSQL
 
   # Verify notes were inserted using real column name
@@ -162,14 +163,22 @@ EOSQL
   [[ "${NOTE_COUNT}" -ge 2 ]]
  else
   # Table doesn't exist, create test structure with correct schema
+  # First ensure enum type exists
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+    CREATE TYPE note_status_enum AS ENUM ('open', 'close', 'hidden');
+  END IF;
+END
+$$;
 CREATE TABLE IF NOT EXISTS notes_api (
  note_id INTEGER NOT NULL,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
  closed_at TIMESTAMP,
- status VARCHAR(20),
+ status note_status_enum,
  id_country INTEGER
 );
 EOSQL
@@ -177,8 +186,8 @@ EOSQL
   # Insert using correct structure
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
 EOSQL
 
   # Verify notes were inserted using correct column name
@@ -233,29 +242,38 @@ EOSQL
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
   # Use real structure (note_id, latitude, longitude)
+  # Status must use note_status_enum type
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
 EOSQL
   local SYNCED_COUNT
   SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
  else
   # Create test structure with correct schema
+  # First ensure enum type exists
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+    CREATE TYPE note_status_enum AS ENUM ('open', 'close', 'hidden');
+  END IF;
+END
+$$;
 CREATE TABLE IF NOT EXISTS notes_api (
  note_id INTEGER NOT NULL,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
  closed_at TIMESTAMP,
- status VARCHAR(20),
+ status note_status_enum,
  id_country INTEGER
 );
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
 EOSQL
   local SYNCED_COUNT
   SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
@@ -313,17 +331,17 @@ EOF
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 EOSQL
 
-  # Insert existing note
+  # Insert existing note (status must use enum type)
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum);
 EOSQL
 
   # Simulate partial update (note 20001 exists, 20002 is new)
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
 EOSQL
 
   # Verify both notes exist
@@ -336,25 +354,33 @@ EOSQL
   [[ "${NOTE1_COUNT}" -ge 1 ]] && [[ "${NOTE2_COUNT}" -ge 1 ]]
  else
   # Create test structure with correct schema
+  # First ensure enum type exists
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+    CREATE TYPE note_status_enum AS ENUM ('open', 'close', 'hidden');
+  END IF;
+END
+$$;
 CREATE TABLE IF NOT EXISTS notes_api (
  note_id INTEGER NOT NULL,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
  closed_at TIMESTAMP,
- status VARCHAR(20),
+ status note_status_enum,
  id_country INTEGER
 );
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum);
 EOSQL
 
   # Simulate partial update
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
 EOSQL
 
   local TOTAL_COUNT
