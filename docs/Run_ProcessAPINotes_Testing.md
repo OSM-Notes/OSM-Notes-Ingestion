@@ -1,127 +1,20 @@
-# Guide to Run processAPINotes in Testing Modes
+# Guide to Run processAPINotes in Testing Mode
 
 ## Overview
 
-This document explains how to run `processAPINotes.sh` in different testing modes:
-- **Mock Mode**: Complete mock environment without database or internet
+This document explains how to run `processAPINotes.sh` in hybrid testing mode:
+
 - **Hybrid Mode**: Real database with mocked internet downloads
 
-Both modes allow testing `processAPINotes.sh` without requiring full production setup.
+This mode allows testing `processAPINotes.sh` without requiring full production setup or internet connectivity.
 
 ---
 
-## Mock Mode (Full Mock)
-
-### Description
-
-Run `processAPINotes.sh` in full mock mode, without requiring internet connection or access to a real database. All operations are simulated.
-
-### Requirements
-
-- Bash 4.0 or higher
-- Mock scripts in `tests/mock_commands/`
-- Setup script `tests/setup_mock_environment.sh`
-
-### Basic Usage
-
-#### Simple execution
-
-```bash
-cd /home/angoca/github/OSM-Notes-Ingestion
-./tests/run_processAPINotes_mock.sh
-```
-
-#### With custom logging level
-
-```bash
-LOG_LEVEL=DEBUG ./tests/run_processAPINotes_mock.sh
-```
-
-#### Cleaning temporary files after execution
-
-```bash
-CLEAN=true ./tests/run_processAPINotes_mock.sh
-```
-
-### What the Script Does
-
-The `run_processAPINotes_mock.sh` script performs the following:
-
-1. **Cleans lock files and failed execution markers:**
-   - Removes lock files (works in both installed and fallback modes):
-     - `/var/run/osm-notes-ingestion/processAPINotes.lock` or `/tmp/osm-notes-ingestion/locks/processAPINotes.lock`
-     - `/var/run/osm-notes-ingestion/processAPINotes_failed_execution` or `/tmp/osm-notes-ingestion/locks/processAPINotes_failed_execution`
-     - `/var/run/osm-notes-ingestion/processPlanetNotes.lock` or `/tmp/osm-notes-ingestion/locks/processPlanetNotes.lock`
-
-2. **Sets up complete mock environment:**
-   - Creates mock commands if they don't exist (curl, aria2c, psql, pgrep, etc.)
-   - Activates mock environment by adding mock commands to PATH
-   - The `pgrep` mock always returns that no processes are running
-
-3. **Configures environment variables:**
-   - `MOCK_MODE=true`: Indicates we are in mock mode
-   - `TEST_MODE=true`: Indicates test mode
-   - `DBNAME=mock_db`: Mock database
-   - `SEND_ALERT_EMAIL=false`: Disables email alerts
-
-4. **Executes processAPINotes.sh TWICE:**
-   - **First execution**: Resets the base tables marker, which causes `processAPINotes.sh` to execute `processPlanetNotes.sh --base` (REAL script) to create the base structure and load historical data.
-   - **Second execution**: The base tables marker already exists (created by the first execution), so only `processAPINotes.sh` is executed without calling `processPlanetNotes.sh`.
-
-5. **Cleans up environment:**
-   - Deactivates mock environment when finished
-   - Restores original PATH
-
-### Mock Commands Used
-
-- **curl**: Simulates HTTP downloads, creates mock XML files
-- **aria2c**: Simulates downloads with aria2c, creates mock files
-- **psql**: Simulates PostgreSQL database operations. The first time it simulates that base tables don't exist to allow the REAL `processPlanetNotes.sh --base` to execute
-- **pgrep**: Always returns that no processes are running (allows execution)
-- **processPlanetNotes.sh**: The REAL script (not mock) is executed when base tables don't exist
-- **xmllint**: Validates mock XML
-- **bzip2**: Handles mock compressed files
-
-### Available Environment Variables
-
-| Variable | Description | Default Value |
-|----------|-------------|---------------|
-| `LOG_LEVEL` | Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL) | `INFO` |
-| `CLEAN` | Clean temporary files after execution | `false` |
-| `DBNAME` | Mock database name | `mock_db` |
-| `DB_USER` | Mock database user | `mock_user` |
-| `DB_PASSWORD` | Mock database password | `mock_password` |
-| `SEND_ALERT_EMAIL` | Send email alerts | `false` |
-
-### Usage Examples
-
-#### Example 1: Basic execution with INFO logging
-
-```bash
-./tests/run_processAPINotes_mock.sh
-```
-
-#### Example 2: Execution with detailed logging
-
-```bash
-LOG_LEVEL=DEBUG ./tests/run_processAPINotes_mock.sh
-```
-
-#### Example 3: Execution with automatic cleanup
-
-```bash
-CLEAN=true LOG_LEVEL=INFO ./tests/run_processAPINotes_mock.sh
-```
-
-#### Example 4: Execution with custom mock database
-
-```bash
-DBNAME=my_mock_db DB_USER=my_user ./tests/run_processAPINotes_mock.sh
-```
+**Note:** Full mock mode (with mocked PostgreSQL) has been removed due to complexity and error-prone nature. Only hybrid mode is supported, which uses a real PostgreSQL database but mocks internet downloads.
 
 ---
 
-## Hybrid Mode (Real DB, Mocked Downloads)
+## Hybrid Mode (Real Database, Mocked Downloads)
 
 ### Description
 
@@ -211,17 +104,17 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
 
 ### Available Environment Variables
 
-| Variable | Description | Default Value |
-|----------|-------------|---------------|
-| `LOG_LEVEL` | Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL) | `INFO` |
-| `CLEAN` | Clean temporary files after execution | `false` |
-| `DBNAME` | Database name | `osm_notes_ingestion_test` |
-| `DB_USER` | Database user | Current user (`$USER`) |
-| `DB_HOST` | Database host (empty for unix socket) | Empty |
-| `DB_PORT` | Database port | `5432` |
-| `DB_PASSWORD` | Database password (if required) | Empty |
-| `SEND_ALERT_EMAIL` | Send email alerts | `false` |
-| `SKIP_XML_VALIDATION` | Skip XML validation | `true` |
+| Variable              | Description                                    | Default Value              |
+| --------------------- | ---------------------------------------------- | ------------------------- |
+| `LOG_LEVEL`           | Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL) | `INFO`              |
+| `CLEAN`               | Clean temporary files after execution          | `false`                   |
+| `DBNAME`              | Database name                                  | `osm_notes_ingestion_test` |
+| `DB_USER`             | Database user                                  | Current user (`$USER`)    |
+| `DB_HOST`             | Database host (empty for unix socket)          | Empty                     |
+| `DB_PORT`             | Database port                                  | `5432`                    |
+| `DB_PASSWORD`         | Database password (if required)               | Empty                     |
+| `SEND_ALERT_EMAIL`    | Send email alerts                              | `false`                   |
+| `SKIP_XML_VALIDATION` | Skip XML validation                            | `true`                    |
 
 ### Usage Examples
 
@@ -279,7 +172,6 @@ The `processAPINotes.sh` script can call `processPlanetNotes.sh` in two situatio
 2. **Base structure creation** (line 1183):
    - When base tables don't exist (`RET_FUNC == 1`)
    - Calls `processPlanetNotes.sh --base` (the REAL script)
-   - In mock mode: The `psql` mock simulates that tables don't exist the first time
    - In hybrid mode: Base tables are dropped before first execution
 
 **Double execution:**
@@ -293,59 +185,7 @@ Both scripts execute `processAPINotes.sh` twice to test both scenarios:
 
 ---
 
-## Mode Comparison
-
-| Feature | Mock Mode | Hybrid Mode |
-|---------|-----------|-------------|
-| **Database** | Mocked (psql mock) | Real PostgreSQL |
-| **Internet Downloads** | Mocked (curl, aria2c) | Mocked (curl, aria2c) |
-| **Base Tables** | Simulated with marker file | Real database tables |
-| **Data Persistence** | No (mock only) | Yes (real database) |
-| **Setup Time** | Fast | Medium |
-| **Use Case** | Quick testing without DB | Integration testing with real DB |
-| **Requirements** | None | PostgreSQL server |
-
----
-
 ## Troubleshooting
-
-### Mock Mode Issues
-
-#### Error: Mock setup script not found
-
-**Problem:** The script cannot find `setup_mock_environment.sh`
-
-**Solution:** Make sure you are in the project root directory:
-
-```bash
-cd /home/angoca/github/OSM-Notes-Ingestion
-```
-
-#### Error: processAPINotes.sh not found
-
-**Problem:** The script cannot find `processAPINotes.sh`
-
-**Solution:** Verify that the script exists:
-
-```bash
-ls -la bin/process/processAPINotes.sh
-```
-
-#### Mock commands are not being used
-
-**Problem:** Real commands are being executed instead of mocks
-
-**Solution:** Verify PATH:
-
-```bash
-echo $PATH | grep mock_commands
-```
-
-If it doesn't appear, the script should add it automatically. If it persists, execute manually:
-
-```bash
-export PATH="$(pwd)/tests/mock_commands:$PATH"
-```
 
 ### Hybrid Mode Issues
 
@@ -416,7 +256,7 @@ which psql
 # Should NOT point to tests/mock_commands/psql
 ```
 
-### Common Issues (Both Modes)
+### Common Issues
 
 #### Error: processAPINotes is currently running (code 246)
 
@@ -448,14 +288,6 @@ which psql
 
 ## Important Notes
 
-### Mock Mode
-
-1. **No real downloads:** All internet downloads are simulated using mock files.
-2. **No real database access:** All database operations are simulated by the psql mock.
-3. **Temporary files:** Temporary files are created in `/tmp/` and can be automatically cleaned if `CLEAN=true`.
-4. **Logs:** Logs are generated in the temporary directory created by processAPINotes.sh.
-5. **Exit codes:** The script respects exit codes from processAPINotes.sh.
-
 ### Hybrid Mode
 
 1. **Real database is used:** All database operations use the real PostgreSQL database. Data will persist between executions.
@@ -470,9 +302,7 @@ which psql
 
 ## References
 
-- `tests/setup_mock_environment.sh`: Mock environment setup script
 - `tests/setup_hybrid_mock_environment.sh`: Hybrid mock environment setup script
 - `tests/mock_commands/README.md`: Mock commands documentation
 - `docs/Test_Matrix.md`: Test compatibility matrix
 - `docs/Testing_Guide.md`: Complete testing guide
-
