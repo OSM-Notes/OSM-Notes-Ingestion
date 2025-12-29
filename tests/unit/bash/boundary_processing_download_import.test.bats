@@ -13,6 +13,18 @@ setup() {
  __setup_boundary_test
  export BATS_TEST_NAME="test"
 
+ # Create a temporary directory for mock commands and add it to PATH
+ # This ensures that eval calls can find mocked commands like ogr2ogr
+ # IMPORTANT: Put mock directory FIRST in PATH to override real commands
+ MOCK_CMD_DIR="${TMP_DIR}/mock_cmds"
+ mkdir -p "${MOCK_CMD_DIR}"
+ # Remove any existing ogr2ogr from PATH temporarily to ensure mock is used
+ OLD_PATH="${PATH}"
+ CLEAN_PATH=$(echo "${OLD_PATH}" | tr ':' '\n' | grep -v "${MOCK_CMD_DIR}" | tr '\n' ':')
+ export PATH="${MOCK_CMD_DIR}:${CLEAN_PATH}"
+ # Also export MOCK_CMD_DIR so it's available in function context
+ export MOCK_CMD_DIR
+
  # Create mock JSON and GeoJSON files
  # shellcheck disable=SC2317
  create_mock_json() {
@@ -137,8 +149,28 @@ EOF
 
  # Mock ogr2ogr (simulate successful import)
  # ogr2ogr is called via eval with a full command string
- # Mock ogr2ogr using common helper
+ # IMPORTANT: For eval calls, we need an executable script, not just a function
+ # Create executable script FIRST, then function as fallback
+ cat > "${MOCK_CMD_DIR}/ogr2ogr" << 'EOFMOCK'
+#!/bin/bash
+# Mock ogr2ogr script for eval calls
+# Always succeeds to simulate successful import
+# This script is used when ogr2ogr is called via eval
+# Debug: log to file to verify it's being called
+echo "Mock ogr2ogr script called with args: $@" >> "${TMP_DIR}/ogr2ogr_mock.log" 2>&1 || true
+exit 0
+EOFMOCK
+ chmod +x "${MOCK_CMD_DIR}/ogr2ogr"
+ # Verify the script was created and is executable
+ if [[ ! -x "${MOCK_CMD_DIR}/ogr2ogr" ]]; then
+  echo "ERROR: Failed to create ogr2ogr mock script" >&2
+  exit 1
+ fi
+ # Also create function mock as fallback (though script should take precedence)
  __setup_mock_ogr2ogr "true"
+ # Unset the function to force use of script when available
+ # This ensures eval calls use the script, not the function
+ unset -f ogr2ogr 2>/dev/null || true
 
 # Mock psql for database operations
 # Purpose: Avoid actual database connections during unit tests
@@ -238,7 +270,11 @@ psql() {
 export -f psql
 
  # Load boundary processing functions
+ # Ensure PATH with mock commands is available when functions are loaded
+ export PATH="${MOCK_CMD_DIR}:${PATH}"
  source "${TEST_BASE_DIR}/bin/lib/boundaryProcessingFunctions.sh"
+ # Re-export PATH after loading functions to ensure it's still available
+ export PATH="${MOCK_CMD_DIR}:${PATH}"
 
 # Re-define mocks after loading functions (functions may load real implementations)
 # Purpose: Ensure our mocks override any real functions that were loaded
@@ -275,13 +311,28 @@ __overpass_download_with_endpoints() {
 }
  export -f __overpass_download_with_endpoints
 
- # Re-export other mocks
+ # Re-export other mocks after loading functions to ensure they're available
+ # This is critical for eval calls where functions may not be in scope
  export -f osmtogeojson
  export -f jq
  export -f __validate_json_with_element
  export -f __sanitize_sql_string
  export -f __sanitize_sql_integer
- export -f ogr2ogr
+ # Ensure executable script is still available after function loading
+ # Unset any function that may have been created to force use of script
+ unset -f ogr2ogr 2>/dev/null || true
+ if [[ ! -f "${MOCK_CMD_DIR}/ogr2ogr" ]] || [[ ! -x "${MOCK_CMD_DIR}/ogr2ogr" ]]; then
+  cat > "${MOCK_CMD_DIR}/ogr2ogr" << 'EOFMOCK2'
+#!/bin/bash
+# Mock ogr2ogr script for eval calls
+# Always succeeds to simulate successful import
+echo "Mock ogr2ogr script called with args: $@" >> "${TMP_DIR}/ogr2ogr_mock.log" 2>&1 || true
+exit 0
+EOFMOCK2
+  chmod +x "${MOCK_CMD_DIR}/ogr2ogr"
+ fi
+ # Ensure PATH still has mock directory first
+ export PATH="${MOCK_CMD_DIR}:${PATH}"
  # Re-export psql mock after loading functions to ensure it's available
  export -f psql
 }

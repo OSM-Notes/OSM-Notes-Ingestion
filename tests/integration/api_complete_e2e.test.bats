@@ -32,6 +32,13 @@ setup() {
  # Per-test setup (runs before each test)
  # Use shared database setup from setup_file
 
+ # Ensure TMP_DIR exists (it should be created in setup_file, but verify)
+ if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
+  export TMP_DIR="$(mktemp -d)"
+  export TEST_DIR="${TMP_DIR}"
+  export API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
+ fi
+
  # Create minimal test XML file
  cat > "${API_NOTES_FILE}" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -248,6 +255,13 @@ EOSQL
 
  # Simulate complete workflow
  # Step 1: Download (mock)
+ # Ensure TMP_DIR exists before creating files
+ if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
+  export TMP_DIR="$(mktemp -d)"
+  export TEST_DIR="${TMP_DIR}"
+  export API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"
+ fi
+
  local DOWNLOADED_FILE="${TMP_DIR}/workflow.xml"
  cp "${API_NOTES_FILE}" "${DOWNLOADED_FILE}"
 

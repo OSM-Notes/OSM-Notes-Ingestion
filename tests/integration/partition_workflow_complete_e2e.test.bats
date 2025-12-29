@@ -337,6 +337,12 @@ EOSQL
  # Purpose: Verify that multiple partitions can be loaded in parallel
  # Expected: Multiple partitions are loaded successfully
 
+ # Ensure TMP_DIR exists (it should be created in setup_file, but verify)
+ if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
+  export TMP_DIR="$(mktemp -d)"
+  export TEST_DIR="${TMP_DIR}"
+ fi
+
  # Create mock partition data files
  for PART_NUM in 1 2 3; do
   cat > "${TMP_DIR}/partition_${PART_NUM}.csv" << EOF

@@ -168,13 +168,15 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 @test "benchmark_http_optimizations.sh should handle --iterations argument" {
  # Check that script handles iterations argument
- run grep -q "--iterations" "${TEST_BASE_DIR}/bin/scripts/benchmark_http_optimizations.sh"
+ # Use -- to prevent grep from interpreting --iterations as an option
+ run grep -q -- "--iterations" "${TEST_BASE_DIR}/bin/scripts/benchmark_http_optimizations.sh"
  [ "$status" -eq 0 ]
 }
 
 @test "benchmark_http_optimizations.sh should handle --output-dir argument" {
  # Check that script handles output-dir argument
- run grep -q "--output-dir" "${TEST_BASE_DIR}/bin/scripts/benchmark_http_optimizations.sh"
+ # Use -- to prevent grep from interpreting --output-dir as an option
+ run grep -q -- "--output-dir" "${TEST_BASE_DIR}/bin/scripts/benchmark_http_optimizations.sh"
  [ "$status" -eq 0 ]
 }
 

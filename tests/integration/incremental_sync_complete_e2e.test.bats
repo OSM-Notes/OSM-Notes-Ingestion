@@ -31,6 +31,12 @@ setup() {
  # Per-test setup (runs before each test)
  # Use shared database setup from setup_file
 
+ # Ensure TMP_DIR exists (it should be created in setup_file, but verify)
+ if [[ -z "${TMP_DIR:-}" ]] || [[ ! -d "${TMP_DIR}" ]]; then
+  export TMP_DIR="$(mktemp -d)"
+  export TEST_DIR="${TMP_DIR}"
+ fi
+
  # Create mock API XML file with new notes
  cat > "${TMP_DIR}/api_notes_new.xml" << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
