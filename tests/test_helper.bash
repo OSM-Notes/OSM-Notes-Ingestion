@@ -2,7 +2,7 @@
 
 # Test helper functions for BATS tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-09
+# Version: 2025-12-29
 
 # Test database configuration
 # Use the values already set by run_tests.sh, don't override them
@@ -143,6 +143,46 @@ __start_logger
 #  }
 # fi
 
+# Function to setup test properties
+# Replaces etc/properties.sh with test properties temporarily
+# This ensures main scripts load test properties without knowing about test context
+setup_test_properties() {
+ local properties_file="${TEST_BASE_DIR}/etc/properties.sh"
+ local test_properties_file="${TEST_BASE_DIR}/etc/properties_test.sh"
+ local tests_properties_file="${TEST_BASE_DIR}/tests/properties.sh"
+ local properties_backup="${TEST_BASE_DIR}/etc/properties.sh.backup"
+
+ # Determine which test properties file to use
+ local source_file=""
+ if [[ -f "${test_properties_file}" ]]; then
+  source_file="${test_properties_file}"
+ elif [[ -f "${tests_properties_file}" ]]; then
+  source_file="${tests_properties_file}"
+ else
+  # If no test properties file exists, skip setup
+  return 0
+ fi
+
+ # Backup original properties file if it exists and backup doesn't exist
+ if [[ -f "${properties_file}" ]] && [[ ! -f "${properties_backup}" ]]; then
+  cp "${properties_file}" "${properties_backup}"
+ fi
+
+ # Replace properties.sh with test properties
+ cp "${source_file}" "${properties_file}"
+}
+
+# Function to restore original properties
+restore_properties() {
+ local properties_file="${TEST_BASE_DIR}/etc/properties.sh"
+ local properties_backup="${TEST_BASE_DIR}/etc/properties.sh.backup"
+
+ # Restore original properties if backup exists
+ if [[ -f "${properties_backup}" ]]; then
+  mv "${properties_backup}" "${properties_file}"
+ fi
+}
+
 # Setup function - runs before each test
 setup() {
  # Create temporary directory
@@ -151,6 +191,9 @@ setup() {
  # Set up test environment
  export TMP_DIR="${TEST_TMP_DIR}"
  export DBNAME="${TEST_DBNAME}"
+
+ # Setup test properties (replace etc/properties.sh with test properties)
+ setup_test_properties
 
  # Mock external commands if needed
  if ! command -v psql &> /dev/null; then
@@ -161,6 +204,9 @@ setup() {
 
 # Teardown function - runs after each test
 teardown() {
+ # Restore original properties
+ restore_properties
+
  # Clean up temporary directory
  rm -rf "${TEST_TMP_DIR}"
 }

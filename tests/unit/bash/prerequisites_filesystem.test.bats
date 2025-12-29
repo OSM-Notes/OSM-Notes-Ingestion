@@ -53,8 +53,8 @@ setup() {
 @test "enhanced __checkPrereqsCommands should validate required files exist" {
  # Test that required files exist
  [ -f "${TEST_BASE_DIR}/bin/lib/functionsProcess.sh" ]
- # properties.sh can be in etc/ or tests/ directory
- [ -f "${TEST_BASE_DIR}/etc/properties.sh" ] || [ -f "${TEST_BASE_DIR}/tests/properties.sh" ] || [ -f "${TEST_BASE_DIR}/etc/properties_test.sh" ]
+ # properties.sh should be in etc/ directory (moved there by setup_test_properties)
+ [ -f "${TEST_BASE_DIR}/etc/properties.sh" ]
  [ -f "${TEST_BASE_DIR}/xsd/OSM-notes-API-schema.xsd" ]
  [ -f "${TEST_BASE_DIR}/xsd/OSM-notes-planet-schema.xsd" ]
 }

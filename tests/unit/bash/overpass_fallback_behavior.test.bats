@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Version: 2025-11-10
+# Version: 2025-12-29
 
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
@@ -24,12 +24,28 @@ teardown() {
   # Load libs
   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
+  QUERY_FILE_LOCAL="${TMP_DIR}/q.op"
+  echo "[out:json]; rel(16239); (._;>;); out;" > "${QUERY_FILE_LOCAL}"
+  JSON_FILE_LOCAL="${TMP_DIR}/16239.json"
+  OUTPUT_OVERPASS_LOCAL="${TMP_DIR}/out"
+
   # Monkey-patch retry to simulate endpoint-specific responses
   function __retry_file_operation() {
     local OP="$1"
-    # Use the JSON file path directly from the test context
-    # The command contains ${LOCAL_JSON_FILE} which maps to JSON_FILE_LOCAL in the test
-    local OUT="${JSON_FILE_LOCAL}"
+    # Extract the output file path from the command
+    # The command format is: curl ... -o ${LOCAL_JSON_FILE} ...
+    # The variable LOCAL_JSON_FILE is expanded when OP is constructed,
+    # so we need to extract it from the command string
+    local OUT
+    # Extract file path from command - look for -o followed by the file path
+    # The path is between -o and --data-binary
+    OUT=$(echo "${OP}" | sed -n 's/.*-o[[:space:]]*\([^[:space:]]*\).*/\1/p' || echo "")
+    
+    # Fallback: use the known JSON file path from test context
+    # This ensures we always have a valid path even if extraction fails
+    if [[ -z "${OUT}" ]] || [[ "${OUT}" == *"\$"* ]]; then
+      OUT="${JSON_FILE_LOCAL}"
+    fi
 
     local VALID_JSON="{\"elements\":[{\"id\":1}]}"
     # Check CURRENT_OVERPASS_ENDPOINT which is exported by __overpass_download_with_endpoints
@@ -47,11 +63,6 @@ teardown() {
   export OVERPASS_ENDPOINTS="https://overpass.endpointA/api/interpreter,https://overpass.endpointB/api/interpreter"
   export OVERPASS_RETRIES_PER_ENDPOINT=1
   export OVERPASS_BACKOFF_SECONDS=1
-
-  QUERY_FILE_LOCAL="${TMP_DIR}/q.op"
-  echo "[out:json]; rel(16239); (._;>;); out;" > "${QUERY_FILE_LOCAL}"
-  JSON_FILE_LOCAL="${TMP_DIR}/16239.json"
-  OUTPUT_OVERPASS_LOCAL="${TMP_DIR}/out"
 
   if __overpass_download_with_endpoints "${QUERY_FILE_LOCAL}" "${JSON_FILE_LOCAL}" "${OUTPUT_OVERPASS_LOCAL}" 1 1; then
     # File must contain a valid JSON with elements key
