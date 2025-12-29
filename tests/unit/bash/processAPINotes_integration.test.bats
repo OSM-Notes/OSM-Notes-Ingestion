@@ -6,12 +6,16 @@ bats_require_minimum_version 1.5.0
 # Integration tests for processAPINotes.sh
 # Tests that actually execute the script to detect real errors
 
+# Load test helper to get setup_test_properties and restore_properties
+load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
+
 setup() {
  # Setup test environment
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
  export BASENAME="test_process_api"
  export LOG_LEVEL="INFO"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  
  # Ensure TMP_DIR exists and is writable
  if [[ ! -d "${TMP_DIR}" ]]; then
@@ -23,9 +27,20 @@ setup() {
  
  # Set up test database
  export TEST_DBNAME="test_osm_notes_${BASENAME}"
+ 
+ # Setup test properties so scripts can load properties.sh
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
 }
 
 teardown() {
+ # Restore original properties if needed
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Cleanup
  rm -rf "${TMP_DIR}"
  # Drop test database if it exists and PostgreSQL is accessible

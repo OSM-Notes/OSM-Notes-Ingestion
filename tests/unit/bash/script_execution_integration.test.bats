@@ -4,12 +4,16 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-08-01
 
+# Load test helper to get setup_test_properties and restore_properties
+load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
+
 setup() {
  # Setup test environment
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
  export BASENAME="test_script_execution"
  export LOG_LEVEL="INFO"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  
  # Ensure TMP_DIR exists and is writable
  if [[ ! -d "${TMP_DIR}" ]]; then
@@ -21,9 +25,20 @@ setup() {
  
  # Set fixtures directory
  export FIXTURES_DIR="${SCRIPT_BASE_DIRECTORY}/tests/fixtures"
+ 
+ # Setup test properties so scripts can load properties.sh
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
 }
 
 teardown() {
+ # Restore original properties if needed
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+ 
  # Cleanup
  rm -rf "${TMP_DIR}"
 }
