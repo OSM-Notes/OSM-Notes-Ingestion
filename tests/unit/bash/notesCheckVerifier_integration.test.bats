@@ -17,6 +17,11 @@ setup() {
  export BASENAME="test_notes_check_verifier"
  export LOG_LEVEL="INFO"
 
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ # Use TEST_BASE_DIR from test_helper if available, otherwise use SCRIPT_BASE_DIRECTORY
+ TEST_BASE_DIR="${TEST_BASE_DIR:-${SCRIPT_BASE_DIRECTORY}}"
+ setup_test_properties
+
  # Ensure TMP_DIR exists and is writable
  if [[ ! -d "${TMP_DIR}" ]]; then
   mkdir -p "${TMP_DIR}" || {
@@ -43,6 +48,9 @@ setup() {
 }
 
 teardown() {
+ # Restore original properties
+ restore_properties
+
  # Cleanup
  rm -rf "${TMP_DIR}"
  # Drop test database if it exists
@@ -51,8 +59,11 @@ teardown() {
 
 # Test that notesCheckVerifier.sh can be sourced without errors
 @test "notesCheckVerifier.sh should be sourceable without errors" {
+ # Ensure properties.sh exists before sourcing (setup_test_properties is called in setup, but sub-shells need it too)
+ # Export TEST_BASE_DIR so setup_test_properties can use it in sub-shell
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  # Test that the script can be sourced without logging errors
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1"
+ run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1"
  [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 127 ]] || [[ "${status}" -eq 239 ]] || [[ "${status}" -eq 241 ]]
 }
 
@@ -64,7 +75,9 @@ teardown() {
  set -e
 
  # Test that available functions work
- run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh && __show_help"
+ # Export TEST_BASE_DIR so setup_test_properties can use it in sub-shell
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh && __show_help"
  [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 1 ]]
  [[ "${output}" == *"version"* ]] || [[ "${output}" == *"Mock"* ]]
 }
@@ -98,7 +111,8 @@ teardown() {
  )
 
  for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh && declare -f ${FUNC}"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh && declare -f ${FUNC}"
   [[ "${status}" -eq 0 ]] || echo "Function ${FUNC} should be available"
  done
 }
@@ -111,7 +125,8 @@ teardown() {
  set -e
 
   # Test that available functions don't produce errors
-  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh && __checkPrereqs"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh && __checkPrereqs"
   [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 239 ]] || [[ "${status}" -eq 241 ]]
  [[ "${output}" != *"orden no encontrada"* ]]
  [[ "${output}" != *"command not found"* ]]
@@ -185,7 +200,8 @@ teardown() {
  )
 
  for FUNC in "${VERIFICATION_FUNCTIONS[@]}"; do
-  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1; declare -f ${FUNC}"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1; declare -f ${FUNC}"
   [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 241 ]] || echo "Function ${FUNC} should be available"
  done
 }
@@ -205,7 +221,8 @@ teardown() {
  )
 
  for FUNC in "${REPORT_FUNCTIONS[@]}"; do
-  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1; declare -f ${FUNC}"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1; declare -f ${FUNC}"
   [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 241 ]] || echo "Function ${FUNC} should be available"
  done
 }
@@ -225,7 +242,8 @@ teardown() {
  )
 
  for FUNC in "${VALIDATION_FUNCTIONS[@]}"; do
-  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1; declare -f ${FUNC}"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source ${SCRIPT_BASE_DIRECTORY}/bin/monitor/notesCheckVerifier.sh > /dev/null 2>&1; declare -f ${FUNC}"
   [[ "${status}" -eq 0 ]] || [[ "${status}" -eq 241 ]] || echo "Function ${FUNC} should be available"
  done
 }

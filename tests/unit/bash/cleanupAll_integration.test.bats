@@ -12,18 +12,21 @@ load ../../test_helper.bash
 # Test that cleanupAll.sh can be sourced without errors
 @test "cleanupAll.sh should be sourceable without errors" {
   # Test that the script can be sourced without errors
-  run bash -c "SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh > /dev/null 2>&1"
+  # Ensure properties.sh exists in sub-shell
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh > /dev/null 2>&1"
   [ "$status" -eq 0 ]
 }
 
 # Test that cleanupAll.sh functions can be called without logging errors  
 @test "cleanupAll.sh functions should work without logging errors" {
   # Test that functions can be called without errors - simplified test
-  run bash -c "SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   [ "$status" -eq 0 ]
   
   # Test basic function availability instead of logging
-  run bash -c "SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh && declare -f __check_database"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh && declare -f __check_database"
   [ "$status" -eq 0 ]
 }
 
@@ -57,8 +60,9 @@ load ../../test_helper.bash
     "main"
   )
   
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
   for FUNC in "${REQUIRED_FUNCTIONS[@]}"; do
-    run bash -c "SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh && declare -f ${FUNC}"
+    run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh && declare -f ${FUNC}"
     [ "$status" -eq 0 ]
   done
 }
@@ -66,7 +70,8 @@ load ../../test_helper.bash
 # Test that cleanupAll.sh logging functions should work correctly
 @test "cleanupAll.sh logging functions should work correctly" {
   # Simplified logging test - just check that script loads without errors
-  run bash -c "SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   [ "$status" -eq 0 ]
   
   # Test that main function exists instead of complex logging
@@ -85,7 +90,8 @@ load ../../test_helper.bash
 # Test that cleanupAll.sh error handling should work correctly
 @test "cleanupAll.sh error handling should work correctly" {
   # Test with non-existent database
-  run bash -c "DBNAME=nonexistent_db SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; DBNAME=nonexistent_db SKIP_MAIN=true source ${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh"
   # Should not crash, but may log errors
   [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || [ "$status" -eq 127 ]
 }

@@ -9,6 +9,9 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 load "$(dirname "${BATS_TEST_FILENAME}")/performance_edge_cases_helper.bash"
 
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ setup_test_properties
+
  # Set up required environment variables for functionsProcess.sh
  export BASENAME="test"
  export TMP_DIR="/tmp/test_$$"
@@ -35,6 +38,11 @@ setup() {
   log_start() { echo "[START] $*"; }
   log_finish() { echo "[FINISH] $*"; }
  fi
+}
+
+teardown() {
+ # Restore original properties
+ restore_properties
 }
 
 # =============================================================================

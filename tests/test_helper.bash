@@ -146,11 +146,24 @@ __start_logger
 # Function to setup test properties
 # Replaces etc/properties.sh with test properties temporarily
 # This ensures main scripts load test properties without knowing about test context
+# This function can be called from sub-shells if TEST_BASE_DIR is exported
 setup_test_properties() {
- local properties_file="${TEST_BASE_DIR}/etc/properties.sh"
- local test_properties_file="${TEST_BASE_DIR}/etc/properties_test.sh"
- local tests_properties_file="${TEST_BASE_DIR}/tests/properties.sh"
- local properties_backup="${TEST_BASE_DIR}/etc/properties.sh.backup"
+ # Use TEST_BASE_DIR if available, otherwise try to detect it
+ local base_dir="${TEST_BASE_DIR:-}"
+ if [[ -z "${base_dir}" ]]; then
+  # Try to detect from BASH_SOURCE if available
+  if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+   base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  else
+   # Fallback: use current directory
+   base_dir="$(pwd)"
+  fi
+ fi
+
+ local properties_file="${base_dir}/etc/properties.sh"
+ local test_properties_file="${base_dir}/etc/properties_test.sh"
+ local tests_properties_file="${base_dir}/tests/properties.sh"
+ local properties_backup="${base_dir}/etc/properties.sh.backup"
 
  # Determine which test properties file to use
  local source_file=""
@@ -172,6 +185,10 @@ setup_test_properties() {
  cp "${source_file}" "${properties_file}"
 }
 
+# Export function and TEST_BASE_DIR so it's available in sub-shells
+export -f setup_test_properties
+export TEST_BASE_DIR
+
 # Function to restore original properties
 restore_properties() {
  local properties_file="${TEST_BASE_DIR}/etc/properties.sh"
@@ -181,6 +198,13 @@ restore_properties() {
  if [[ -f "${properties_backup}" ]]; then
   mv "${properties_backup}" "${properties_file}"
  fi
+}
+
+# Setup file function - runs once before all tests in a file
+# This ensures properties.sh is set up before any test runs
+setup_file() {
+ # Setup test properties once before all tests
+ setup_test_properties
 }
 
 # Setup function - runs before each test
@@ -193,6 +217,7 @@ setup() {
  export DBNAME="${TEST_DBNAME}"
 
  # Setup test properties (replace etc/properties.sh with test properties)
+ # This is called again in case setup_file() wasn't called (for compatibility)
  setup_test_properties
 
  # Mock external commands if needed
