@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete Planet processing flow
 # Tests: Download → Processing → Load → Verification
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2025-12-29
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -134,45 +134,63 @@ teardown_file() {
  # Skip if database not available
  __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
- # Create test tables
- psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+ # Check if table exists and use correct structure
+ local TABLE_EXISTS
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes');" 2>/dev/null || echo "f")
+
+ if [[ "${TABLE_EXISTS}" == "t" ]]; then
+  # Table exists, use real structure (note_id, latitude, longitude)
+  # Remove existing test data first to avoid conflicts
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DELETE FROM notes WHERE note_id IN (1001, 1002);
+DELETE FROM note_comments WHERE note_id IN (1001, 1002);
+EOSQL
+
+  # Simulate loading notes from Planet using real structure
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'),
+(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'closed');
+EOSQL
+
+  # Verify notes were loaded using correct column name
+  local NOTE_COUNT
+  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+  [[ "${NOTE_COUNT}" -ge 2 ]]
+ else
+  # Table doesn't exist, create test structure with correct schema
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 CREATE TABLE IF NOT EXISTS notes (
- id BIGINT PRIMARY KEY,
- created_at TIMESTAMP WITH TIME ZONE,
- closed_at TIMESTAMP WITH TIME ZONE,
- lat DECIMAL(10,7) NOT NULL,
- lon DECIMAL(11,7) NOT NULL,
- status VARCHAR(20)
+ note_id INTEGER NOT NULL,
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ closed_at TIMESTAMP,
+ status VARCHAR(20),
+ id_country INTEGER
 );
 CREATE TABLE IF NOT EXISTS note_comments (
- id BIGSERIAL PRIMARY KEY,
- note_id BIGINT REFERENCES notes(id),
- created_at TIMESTAMP WITH TIME ZONE NOT NULL,
- uid BIGINT,
- user_name VARCHAR(255),
- action VARCHAR(20) NOT NULL,
- text TEXT
+ id SERIAL,
+ note_id INTEGER NOT NULL,
+ sequence_action INTEGER,
+ event VARCHAR(20) NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ id_user INTEGER
 );
 EOSQL
 
- # Simulate loading notes from Planet
- psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
-INSERT INTO notes (id, created_at, closed_at, lat, lon, status) VALUES
+  # Simulate loading notes from Planet using correct structure
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'),
-(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'closed')
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO note_comments (note_id, created_at, uid, user_name, action, text) VALUES
-(1001, '2025-12-01 00:00:00+00', 1, 'user1', 'opened', 'Planet note 1'),
-(1002, '2025-12-02 00:00:00+00', 2, 'user2', 'opened', 'Planet note 2'),
-(1002, '2025-12-10 00:00:00+00', 3, 'user3', 'closed', 'Closing note 2')
-ON CONFLICT DO NOTHING;
+(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'closed');
 EOSQL
 
- # Verify notes were loaded
- local NOTE_COUNT
- NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE id IN (1001, 1002);" 2>/dev/null || echo "0")
- [[ "${NOTE_COUNT}" -ge 2 ]]
+  # Verify notes were loaded using correct column name
+  local NOTE_COUNT
+  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+  [[ "${NOTE_COUNT}" -ge 2 ]]
+ fi
 
  # Verify comments were loaded
  local COMMENT_COUNT
@@ -188,19 +206,27 @@ EOSQL
  # Skip if database not available
  __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
 
- # Verify note 1001 is open
+ # Ensure test data exists first
+ psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DELETE FROM notes WHERE note_id IN (1001, 1002);
+INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'),
+(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'closed');
+EOSQL
+
+ # Verify note 1001 is open using correct column name
  local NOTE1_STATUS
- NOTE1_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE id = 1001;" 2>/dev/null || echo "")
+ NOTE1_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE note_id = 1001;" 2>/dev/null || echo "")
  [[ "${NOTE1_STATUS}" == "open" ]]
 
- # Verify note 1002 is closed
+ # Verify note 1002 is closed using correct column name
  local NOTE2_STATUS
- NOTE2_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE id = 1002;" 2>/dev/null || echo "")
+ NOTE2_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE note_id = 1002;" 2>/dev/null || echo "")
  [[ "${NOTE2_STATUS}" == "closed" ]]
 
- # Verify note 1002 has closed_at timestamp
+ # Verify note 1002 has closed_at timestamp using correct column name
  local NOTE2_CLOSED
- NOTE2_CLOSED=$(psql -d "${DBNAME}" -Atq -c "SELECT closed_at IS NOT NULL FROM notes WHERE id = 1002;" 2>/dev/null || echo "f")
+ NOTE2_CLOSED=$(psql -d "${DBNAME}" -Atq -c "SELECT closed_at IS NOT NULL FROM notes WHERE note_id = 1002;" 2>/dev/null || echo "f")
  [[ "${NOTE2_CLOSED}" == "t" ]]
 }
 
@@ -223,24 +249,41 @@ EOSQL
  [[ "${NOTE_COUNT}" -ge 2 ]]
 
  # Step 3: Load to database (simulated)
- psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
-CREATE TABLE IF NOT EXISTS notes (
- id BIGINT PRIMARY KEY,
- created_at TIMESTAMP WITH TIME ZONE,
- closed_at TIMESTAMP WITH TIME ZONE,
- lat DECIMAL(10,7) NOT NULL,
- lon DECIMAL(11,7) NOT NULL,
- status VARCHAR(20)
-);
-INSERT INTO notes (id, created_at, closed_at, lat, lon, status) VALUES
+ # Check table structure and use appropriate column names
+ local TABLE_EXISTS
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes');" 2>/dev/null || echo "f")
+
+ if [[ "${TABLE_EXISTS}" == "t" ]]; then
+  # Use real structure (note_id, latitude, longitude)
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DELETE FROM notes WHERE note_id IN (1001, 1002);
+INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'),
-(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'closed')
-ON CONFLICT (id) DO NOTHING;
+(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'closed');
 EOSQL
+  local LOADED_COUNT
+  LOADED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+ else
+  # Create test structure with correct schema
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+CREATE TABLE IF NOT EXISTS notes (
+ note_id INTEGER NOT NULL,
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ closed_at TIMESTAMP,
+ status VARCHAR(20),
+ id_country INTEGER
+);
+INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'),
+(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'closed');
+EOSQL
+  local LOADED_COUNT
+  LOADED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+ fi
 
  # Step 4: Verify
- local LOADED_COUNT
- LOADED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE id IN (1001, 1002);" 2>/dev/null || echo "0")
  [[ "${LOADED_COUNT}" -eq 2 ]]
 }
 

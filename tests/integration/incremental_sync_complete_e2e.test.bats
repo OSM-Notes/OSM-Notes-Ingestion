@@ -161,29 +161,29 @@ EOSQL
   NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
  else
-  # Table doesn't exist, create test structure
+  # Table doesn't exist, create test structure with correct schema
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 CREATE TABLE IF NOT EXISTS notes_api (
- id BIGINT PRIMARY KEY,
- created_at TIMESTAMP WITH TIME ZONE,
- closed_at TIMESTAMP WITH TIME ZONE,
- lat DECIMAL(10,7) NOT NULL,
- lon DECIMAL(11,7) NOT NULL,
- status VARCHAR(20)
+ note_id INTEGER NOT NULL,
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ closed_at TIMESTAMP,
+ status VARCHAR(20),
+ id_country INTEGER
 );
 EOSQL
 
-  # Insert using test structure
+  # Insert using correct structure
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
-INSERT INTO notes_api (id, created_at, lat, lon, status) VALUES
+INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open')
-ON CONFLICT (id) DO NOTHING;
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
 EOSQL
 
-  # Verify notes were inserted
+  # Verify notes were inserted using correct column name
   local NOTE_COUNT
-  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE id IN (20001, 20002);" 2>/dev/null || echo "0")
+  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
  fi
 }
@@ -242,22 +242,23 @@ EOSQL
   local SYNCED_COUNT
   SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
  else
-  # Create test structure
+  # Create test structure with correct schema
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 CREATE TABLE IF NOT EXISTS notes_api (
- id BIGINT PRIMARY KEY,
- created_at TIMESTAMP WITH TIME ZONE,
- lat DECIMAL(10,7) NOT NULL,
- lon DECIMAL(11,7) NOT NULL,
- status VARCHAR(20)
+ note_id INTEGER NOT NULL,
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ closed_at TIMESTAMP,
+ status VARCHAR(20),
+ id_country INTEGER
 );
-INSERT INTO notes_api (id, created_at, lat, lon, status) VALUES
+INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open')
-ON CONFLICT (id) DO NOTHING;
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
 EOSQL
   local SYNCED_COUNT
-  SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE id IN (20001, 20002);" 2>/dev/null || echo "0")
+  SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
  fi
 
  # Step 4: Update timestamp
@@ -334,30 +335,30 @@ EOSQL
   # We expect at least note 20001 to exist (inserted first), and ideally both
   [[ "${NOTE1_COUNT}" -ge 1 ]] && [[ "${NOTE2_COUNT}" -ge 1 ]]
  else
-  # Create test structure
+  # Create test structure with correct schema
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 CREATE TABLE IF NOT EXISTS notes_api (
- id BIGINT PRIMARY KEY,
- created_at TIMESTAMP WITH TIME ZONE,
- lat DECIMAL(10,7) NOT NULL,
- lon DECIMAL(11,7) NOT NULL,
- status VARCHAR(20)
+ note_id INTEGER NOT NULL,
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ closed_at TIMESTAMP,
+ status VARCHAR(20),
+ id_country INTEGER
 );
-INSERT INTO notes_api (id, created_at, lat, lon, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open')
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open');
 EOSQL
 
   # Simulate partial update
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
-INSERT INTO notes_api (id, created_at, lat, lon, status) VALUES
+INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open')
-ON CONFLICT (id) DO NOTHING;
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open');
 EOSQL
 
   local TOTAL_COUNT
-  TOTAL_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE id IN (20001, 20002);" 2>/dev/null || echo "0")
+  TOTAL_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
   [[ "${TOTAL_COUNT}" -eq 2 ]]
  fi
 }
