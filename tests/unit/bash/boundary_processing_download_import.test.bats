@@ -149,23 +149,20 @@ psql() {
  local CMD=""
  local I=0
  local IS_ATQ=false
+ local ALL_ARGS_STR="${*}"
  
- # Parse arguments to find -c command and -Atq flag
- # This allows us to inspect the SQL being executed
+ # Check for -Atq flag first (can be anywhere in args)
+ if [[ "${ALL_ARGS_STR}" == *"-Atq"* ]]; then
+  IS_ATQ=true
+ fi
+ 
+ # Parse arguments to find -c command
  # Handle both direct calls and eval calls (where args may be in a single string)
+ # First try standard parsing
  while [[ $I -lt ${#ARGS[@]} ]]; do
-  if [[ "${ARGS[$I]}" == "-Atq" ]]; then
-   IS_ATQ=true
-  elif [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
+  if [[ "${ARGS[$I]}" == "-c" ]] && [[ $((I + 1)) -lt ${#ARGS[@]} ]]; then
    CMD="${ARGS[$((I + 1))]}"
-   # Remove surrounding quotes if present (from eval calls)
-   CMD="${CMD#\"}"
-   CMD="${CMD%\"}"
-   break
-  # Handle case where command might be in a single argument (from eval)
-  elif [[ "${ARGS[$I]}" == *"-c"* ]] && [[ "${ARGS[$I]}" == *"INSERT"* ]]; then
-   # Extract command from combined argument
-   CMD="${ARGS[$I]#*-c }"
+   # Remove surrounding quotes if present
    CMD="${CMD#\"}"
    CMD="${CMD%\"}"
    break
@@ -174,44 +171,68 @@ psql() {
  done
 
  # If CMD is still empty, try to extract from all args combined (eval case)
- if [[ -z "${CMD}" ]]; then
-  local ALL_ARGS="${*}"
-  if [[ "${ALL_ARGS}" == *"-c"* ]] && [[ "${ALL_ARGS}" == *"INSERT"* ]]; then
-   CMD="${ALL_ARGS#*-c }"
-   CMD="${CMD#\"}"
-   CMD="${CMD%\"}"
-  fi
+ # This handles cases where eval passes the entire command as a single string
+ if [[ -z "${CMD}" ]] && [[ "${ALL_ARGS_STR}" == *"-c"* ]]; then
+  # Extract everything after -c
+  CMD="${ALL_ARGS_STR#*-c }"
+  # Remove leading whitespace
+  CMD="${CMD#"${CMD%%[![:space:]]*}"}"
+  # Remove surrounding quotes (handle both single and double quotes)
+  CMD="${CMD#\"}"
+  CMD="${CMD%\"}"
+  CMD="${CMD#'}"
+  CMD="${CMD%'}"
+  # Remove any remaining quotes at start/end
+  while [[ "${CMD:0:1}" == "\"" ]] || [[ "${CMD:0:1}" == "'" ]]; do
+   CMD="${CMD:1}"
+  done
+  while [[ "${CMD: -1}" == "\"" ]] || [[ "${CMD: -1}" == "'" ]]; do
+   CMD="${CMD:0:-1}"
+  done
  fi
 
  # Handle different SQL commands based on their content
  # TRUNCATE: Simulate successful table truncation
- if [[ "${CMD}" == *"TRUNCATE"* ]]; then
+ if [[ "${ALL_ARGS_STR}" == *"TRUNCATE"* ]] || [[ "${CMD}" == *"TRUNCATE"* ]]; then
   return 0
  # COUNT with ST_GeometryType: Simulate geometry count query
  # Returns "1" to indicate one polygon was found
+ elif [[ "${ALL_ARGS_STR}" == *"COUNT(*)"* ]] && [[ "${ALL_ARGS_STR}" == *"import"* ]] && [[ "${ALL_ARGS_STR}" == *"ST_GeometryType"* ]]; then
+  if [[ "${IS_ATQ}" == "true" ]]; then
+   echo "1"
+  else
+   echo "1"
+  fi
+  return 0
  elif [[ "${CMD}" == *"COUNT(*)"* ]] && [[ "${CMD}" == *"import"* ]] && [[ "${CMD}" == *"ST_GeometryType"* ]]; then
   if [[ "${IS_ATQ}" == "true" ]]; then
-   echo "1" # Simulate polygon count (for -Atq queries)
+   echo "1"
   else
-   echo "1" # Simulate polygon count
+   echo "1"
   fi
   return 0
  # INSERT INTO countries or countries_new: Simulate successful country insertion
  # Handle both direct calls and eval calls
- elif [[ "${CMD}" == *"INSERT INTO"* ]] && ([[ "${CMD}" == *"countries"* ]] || [[ "${CMD}" == *"countries_new"* ]]); then
+ # Check both ALL_ARGS_STR and CMD to catch eval cases
+ # This is a more permissive check to handle eval cases where command parsing may fail
+ elif ([[ "${ALL_ARGS_STR}" == *"INSERT INTO"* ]] && ([[ "${ALL_ARGS_STR}" == *"countries"* ]] || [[ "${ALL_ARGS_STR}" == *"countries_new"* ]])) || \
+      ([[ -n "${CMD}" ]] && [[ "${CMD}" == *"INSERT INTO"* ]] && ([[ "${CMD}" == *"countries"* ]] || [[ "${CMD}" == *"countries_new"* ]])); then
   return 0
  # SELECT COUNT for country verification: Simulate successful insert check
  # Returns "1" to indicate country was inserted successfully
  # Handle both countries and countries_new tables
- elif [[ "${CMD}" == *"SELECT COUNT(*)"* ]] && ([[ "${CMD}" == *"countries"* ]] || [[ "${CMD}" == *"countries_new"* ]]) && [[ "${CMD}" == *"country_id"* ]]; then
+ # Also handles queries with is_maritime check
+ elif ([[ "${ALL_ARGS_STR}" == *"SELECT COUNT(*)"* ]] && ([[ "${ALL_ARGS_STR}" == *"countries"* ]] || [[ "${ALL_ARGS_STR}" == *"countries_new"* ]]) && [[ "${ALL_ARGS_STR}" == *"country_id"* ]]) || \
+      ([[ "${CMD}" == *"SELECT COUNT(*)"* ]] && ([[ "${CMD}" == *"countries"* ]] || [[ "${CMD}" == *"countries_new"* ]]) && [[ "${CMD}" == *"country_id"* ]]); then
   if [[ "${IS_ATQ}" == "true" ]]; then
-   echo "1" # Simulate successful insert verification (for -Atq queries)
+   echo "1"
   else
-   echo "1" # Simulate successful insert verification
+   echo "1"
   fi
   return 0
  fi
  # Default: return success for any other psql command
+ # This ensures that any psql call that doesn't match above patterns still succeeds
  return 0
 }
 export -f psql
@@ -261,6 +282,7 @@ __overpass_download_with_endpoints() {
  export -f __sanitize_sql_string
  export -f __sanitize_sql_integer
  export -f ogr2ogr
+ # Re-export psql mock after loading functions to ensure it's available
  export -f psql
 }
 
