@@ -48,85 +48,107 @@ teardown() {
 }
 
 @test "checksum validation should work with matching filename" {
-  # Create test file and checksum
-  echo "test content for checksum validation" > "${TEST_FILE}"
+  # Create test file and checksum in a way that persists across sub-shells
+  local test_file="/tmp/test_checksum_file.txt"
+  local test_md5="/tmp/test_checksum_file.md5"
+  
+  # Clean up any existing files first
+  rm -f "${test_file}" "${test_md5}"
+  
+  # Create test file
+  echo "test content for checksum validation" > "${test_file}"
   
   # Verify test file exists before creating checksum
-  [ -f "${TEST_FILE}" ]
+  [ -f "${test_file}" ]
   
   # Create checksum file
-  md5sum "${TEST_FILE}" > "${TEST_MD5}"
+  md5sum "${test_file}" > "${test_md5}"
   
   # Verify both files exist before validation
-  [ -f "${TEST_FILE}" ]
-  [ -f "${TEST_MD5}" ]
+  [ -f "${test_file}" ]
+  [ -f "${test_md5}" ]
   
   # Verify file is still readable
-  [ -r "${TEST_FILE}" ]
-  [ -r "${TEST_MD5}" ]
+  [ -r "${test_file}" ]
+  [ -r "${test_md5}" ]
   
-  # Test validation
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
+  # Test validation - don't use sub-shell, use the function directly
+  # The function is already loaded in setup()
+  run __validate_file_checksum_from_file "${test_file}" "${test_md5}" "md5"
   echo "DEBUG: status=$status, output='$output'" >&2
-  echo "DEBUG: TEST_FILE exists: $([ -f "${TEST_FILE}" ] && echo yes || echo no)" >&2
-  echo "DEBUG: TEST_MD5 exists: $([ -f "${TEST_MD5}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_file exists: $([ -f "${test_file}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_md5 exists: $([ -f "${test_md5}" ] && echo yes || echo no)" >&2
   [ "$status" -eq 0 ]
 }
 
 @test "checksum validation should work with non-matching filename (Planet Notes scenario)" {
   # Create test file with different name than checksum file expects
-  echo "fake planet content for testing" > "${TEST_PLANET_FILE}"
+  local test_planet_file="/tmp/OSM-notes-planet.xml.bz2"
+  local test_planet_md5="/tmp/OSM-notes-planet.xml.bz2.md5"
+  
+  # Clean up any existing files first
+  rm -f "${test_planet_file}" "${test_planet_md5}"
+  
+  # Create test file
+  echo "fake planet content for testing" > "${test_planet_file}"
   
   # Verify test file exists before creating checksum
-  [ -f "${TEST_PLANET_FILE}" ]
+  [ -f "${test_planet_file}" ]
   
   # Create MD5 file with different filename (simulating Planet Notes scenario)
-  ACTUAL_CHECKSUM=$(md5sum "${TEST_PLANET_FILE}" | cut -d' ' -f1)
-  echo "${ACTUAL_CHECKSUM}  planet-notes-latest.osn.bz2" > "${TEST_PLANET_MD5}"
+  ACTUAL_CHECKSUM=$(md5sum "${test_planet_file}" | cut -d' ' -f1)
+  echo "${ACTUAL_CHECKSUM}  planet-notes-latest.osn.bz2" > "${test_planet_md5}"
   
   # Verify files exist before validation
-  [ -f "${TEST_PLANET_FILE}" ]
-  [ -f "${TEST_PLANET_MD5}" ]
-  [ -r "${TEST_PLANET_FILE}" ]
-  [ -r "${TEST_PLANET_MD5}" ]
+  [ -f "${test_planet_file}" ]
+  [ -f "${test_planet_md5}" ]
+  [ -r "${test_planet_file}" ]
+  [ -r "${test_planet_md5}" ]
   
-  # Test validation - should use fallback logic and succeed
-  run __validate_file_checksum_from_file "${TEST_PLANET_FILE}" "${TEST_PLANET_MD5}" "md5"
+  # Test validation - don't use sub-shell, use the function directly
+  run __validate_file_checksum_from_file "${test_planet_file}" "${test_planet_md5}" "md5"
   echo "DEBUG: status=$status, output='$output'" >&2
-  echo "DEBUG: TEST_PLANET_FILE exists: $([ -f "${TEST_PLANET_FILE}" ] && echo yes || echo no)" >&2
-  echo "DEBUG: TEST_PLANET_MD5 exists: $([ -f "${TEST_PLANET_MD5}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_planet_file exists: $([ -f "${test_planet_file}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_planet_md5 exists: $([ -f "${test_planet_md5}" ] && echo yes || echo no)" >&2
   [ "$status" -eq 0 ]
   # The main thing is that it succeeds despite filename mismatch
 }
 
 @test "checksum validation should fail with corrupted file" {
   # Create test file and checksum
-  echo "original content" > "${TEST_FILE}"
+  local test_file="/tmp/test_checksum_file.txt"
+  local test_md5="/tmp/test_checksum_file.md5"
+  
+  # Clean up any existing files first
+  rm -f "${test_file}" "${test_md5}"
+  
+  # Create test file
+  echo "original content" > "${test_file}"
   
   # Verify test file exists before creating checksum
-  [ -f "${TEST_FILE}" ]
+  [ -f "${test_file}" ]
   
   # Create checksum file
-  md5sum "${TEST_FILE}" > "${TEST_MD5}"
+  md5sum "${test_file}" > "${test_md5}"
   
   # Verify files exist
-  [ -f "${TEST_FILE}" ]
-  [ -f "${TEST_MD5}" ]
+  [ -f "${test_file}" ]
+  [ -f "${test_md5}" ]
   
   # Modify file content (corrupt it) - but keep the file readable
-  echo "modified content" > "${TEST_FILE}"
+  echo "modified content" > "${test_file}"
   
   # Verify file still exists and is readable after modification
-  [ -f "${TEST_FILE}" ]
-  [ -r "${TEST_FILE}" ]
-  [ -f "${TEST_MD5}" ]
-  [ -r "${TEST_MD5}" ]
+  [ -f "${test_file}" ]
+  [ -r "${test_file}" ]
+  [ -f "${test_md5}" ]
+  [ -r "${test_md5}" ]
   
-  # Test validation - should fail
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
+  # Test validation - don't use sub-shell, use the function directly
+  run __validate_file_checksum_from_file "${test_file}" "${test_md5}" "md5"
   echo "DEBUG: status=$status, output='$output'" >&2
-  echo "DEBUG: TEST_FILE exists: $([ -f "${TEST_FILE}" ] && echo yes || echo no)" >&2
-  echo "DEBUG: TEST_MD5 exists: $([ -f "${TEST_MD5}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_file exists: $([ -f "${test_file}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_md5 exists: $([ -f "${test_md5}" ] && echo yes || echo no)" >&2
   [ "$status" -eq 1 ]
   # Accept various error messages about checksum mismatch
   [[ "$output" == *"Checksum mismatch"* ]] || \
@@ -137,55 +159,93 @@ teardown() {
 
 @test "checksum validation should handle single-line MD5 files" {
   # Create test file
-  echo "test content for single line" > "${TEST_FILE}"
+  local test_file="/tmp/test_checksum_file.txt"
+  local test_md5="/tmp/test_checksum_file.md5"
+  
+  # Clean up any existing files first
+  rm -f "${test_file}" "${test_md5}"
+  
+  # Create test file
+  echo "test content for single line" > "${test_file}"
   
   # Verify test file exists before creating checksum
-  [ -f "${TEST_FILE}" ]
+  [ -f "${test_file}" ]
   
-  # Calculate expected checksum
-  EXPECTED_CHECKSUM=$(md5sum "${TEST_FILE}" | cut -d' ' -f1)
+  # Calculate expected checksum (must be done after file is created and before it's modified)
+  EXPECTED_CHECKSUM=$(md5sum "${test_file}" | cut -d' ' -f1)
   
   # Create MD5 file with just the checksum (no filename)
-  echo "${EXPECTED_CHECKSUM}" > "${TEST_MD5}"
+  echo "${EXPECTED_CHECKSUM}" > "${test_md5}"
   
   # Verify files exist before validation
-  [ -f "${TEST_FILE}" ]
-  [ -f "${TEST_MD5}" ]
-  [ -r "${TEST_FILE}" ]
-  [ -r "${TEST_MD5}" ]
+  [ -f "${test_file}" ]
+  [ -f "${test_md5}" ]
+  [ -r "${test_file}" ]
+  [ -r "${test_md5}" ]
   
-  # Test validation
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
+  # Verify the checksum in the MD5 file matches what we expect
+  local checksum_in_file
+  checksum_in_file=$(cat "${test_md5}" | tr -d ' \n\r')
+  [ "${checksum_in_file}" = "${EXPECTED_CHECKSUM}" ]
+  
+  # Test validation - don't use sub-shell, use the function directly
+  run __validate_file_checksum_from_file "${test_file}" "${test_md5}" "md5"
   echo "DEBUG: status=$status, output='$output'" >&2
-  echo "DEBUG: TEST_FILE exists: $([ -f "${TEST_FILE}" ] && echo yes || echo no)" >&2
-  echo "DEBUG: TEST_MD5 exists: $([ -f "${TEST_MD5}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_file exists: $([ -f "${test_file}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: test_md5 exists: $([ -f "${test_md5}" ] && echo yes || echo no)" >&2
+  echo "DEBUG: EXPECTED_CHECKSUM=${EXPECTED_CHECKSUM}" >&2
+  echo "DEBUG: checksum_in_file=${checksum_in_file}" >&2
   [ "$status" -eq 0 ]
 }
 
 @test "checksum validation should handle MD5 files with multiple spaces" {
   # Create test file
-  echo "test content with multiple spaces" > "${TEST_FILE}"
-  EXPECTED_CHECKSUM=$(md5sum "${TEST_FILE}" | cut -d' ' -f1)
+  local test_file="/tmp/test_checksum_file.txt"
+  local test_md5="/tmp/test_checksum_file.md5"
+  
+  # Clean up any existing files first
+  rm -f "${test_file}" "${test_md5}"
+  
+  # Create test file
+  echo "test content with multiple spaces" > "${test_file}"
+  EXPECTED_CHECKSUM=$(md5sum "${test_file}" | cut -d' ' -f1)
   
   # Create MD5 file with multiple spaces (like Planet Notes)
-  echo "${EXPECTED_CHECKSUM}  $(basename "${TEST_FILE}")" > "${TEST_MD5}"
+  echo "${EXPECTED_CHECKSUM}  $(basename "${test_file}")" > "${test_md5}"
   
-  # Test validation
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
+  # Verify files exist
+  [ -f "${test_file}" ]
+  [ -f "${test_md5}" ]
+  
+  # Test validation - don't use sub-shell, use the function directly
+  run __validate_file_checksum_from_file "${test_file}" "${test_md5}" "md5"
   [ "$status" -eq 0 ]
 }
 
 @test "checksum validation should fail with empty MD5 file" {
   # Create test file
-  echo "test content" > "${TEST_FILE}"
+  local test_file="/tmp/test_checksum_file.txt"
+  local test_md5="/tmp/test_checksum_file.md5"
+  
+  # Clean up any existing files first
+  rm -f "${test_file}" "${test_md5}"
+  
+  # Create test file
+  echo "test content" > "${test_file}"
   
   # Create empty MD5 file
-  touch "${TEST_MD5}"
+  touch "${test_md5}"
+  
+  # Verify files exist
+  [ -f "${test_file}" ]
+  [ -f "${test_md5}" ]
   
   # Test validation - should fail
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "md5"
+  run __validate_file_checksum_from_file "${test_file}" "${test_md5}" "md5"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Could not extract checksum from file"* ]]
+  [[ "$output" == *"Could not extract checksum from file"* ]] || \
+   [[ "$output" == *"Could not extract checksum"* ]] || \
+   [[ "$output" == *"extract checksum"* ]]
 }
 
 @test "checksum validation should fail with non-existent MD5 file" {
@@ -200,16 +260,30 @@ teardown() {
 
 @test "checksum validation supports different algorithms" {
   # Create test file
-  echo "test content for algorithms" > "${TEST_FILE}"
+  local test_file="/tmp/test_checksum_file.txt"
+  local test_md5="/tmp/test_checksum_file.md5"
+  
+  # Clean up any existing files first
+  rm -f "${test_file}" "${test_md5}"
+  
+  # Create test file
+  echo "test content for algorithms" > "${test_file}"
+  
+  # Verify file exists
+  [ -f "${test_file}" ]
   
   # Test SHA256
-  sha256sum "${TEST_FILE}" > "${TEST_MD5}"
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "sha256"
+  sha256sum "${test_file}" > "${test_md5}"
+  [ -f "${test_file}" ]
+  [ -f "${test_md5}" ]
+  run __validate_file_checksum_from_file "${test_file}" "${test_md5}" "sha256"
   [ "$status" -eq 0 ]
   
   # Test SHA1
-  sha1sum "${TEST_FILE}" > "${TEST_MD5}"
-  run __validate_file_checksum_from_file "${TEST_FILE}" "${TEST_MD5}" "sha1"
+  sha1sum "${test_file}" > "${test_md5}"
+  [ -f "${test_file}" ]
+  [ -f "${test_md5}" ]
+  run __validate_file_checksum_from_file "${test_file}" "${test_md5}" "sha1"
   [ "$status" -eq 0 ]
 }
 

@@ -38,6 +38,10 @@ teardown() {
   # Set CLEAN to false
   export CLEAN=false
   
+  # Recreate test files to ensure they exist
+  echo "test content 1" > "${TEST_FILE_1}"
+  echo "test content 2" > "${TEST_FILE_2}"
+  
   # Verify files exist before test
   [ -f "${TEST_FILE_1}" ]
   [ -f "${TEST_FILE_2}" ]

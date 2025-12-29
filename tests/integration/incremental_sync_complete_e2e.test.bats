@@ -154,7 +154,12 @@ teardown_file() {
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
 EOSQL
 
   # Verify notes were inserted using real column name
@@ -247,7 +252,12 @@ EOSQL
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
 EOSQL
   local SYNCED_COUNT
   SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
@@ -334,14 +344,24 @@ EOSQL
   # Insert existing note (status must use enum type)
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
-(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum);
+(20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
 EOSQL
 
   # Simulate partial update (note 20001 exists, 20002 is new)
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
 EOSQL
 
   # Verify both notes exist

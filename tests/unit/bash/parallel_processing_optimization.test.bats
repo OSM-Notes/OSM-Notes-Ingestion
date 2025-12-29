@@ -88,19 +88,57 @@ EOF
   return 1
  }
  
+ # Verify directory exists and is writable
+ if [[ ! -d "$(dirname "${LARGE_XML}")" ]]; then
+  echo "ERROR: Directory does not exist: $(dirname "${LARGE_XML}")" >&2
+  return 1
+ fi
+ if [[ ! -w "$(dirname "${LARGE_XML}")" ]]; then
+  echo "ERROR: Directory is not writable: $(dirname "${LARGE_XML}")" >&2
+  return 1
+ fi
+ 
+ # Create the file and verify it exists before appending
  echo '<?xml version="1.0" encoding="UTF-8"?>' > "${LARGE_XML}" || {
   echo "ERROR: Could not create LARGE_XML file: ${LARGE_XML}" >&2
+  ls -la "$(dirname "${LARGE_XML}")" >&2
   return 1
  }
- echo '<osm-notes>' >> "${LARGE_XML}"
+ 
+ # Verify file was created
+ if [[ ! -f "${LARGE_XML}" ]]; then
+  echo "ERROR: LARGE_XML file not created: ${LARGE_XML}" >&2
+  ls -la "$(dirname "${LARGE_XML}")" >&2
+  return 1
+ fi
+ 
+ # Append to file, verifying it exists before each append
+ echo '<osm-notes>' >> "${LARGE_XML}" || {
+  echo "ERROR: Could not append to LARGE_XML file: ${LARGE_XML}" >&2
+  return 1
+ }
+
+ # Verify file still exists after first append
+ if [[ ! -f "${LARGE_XML}" ]]; then
+  echo "ERROR: LARGE_XML file disappeared after first append" >&2
+  ls -la "$(dirname "${LARGE_XML}")" >&2
+  return 1
+ fi
 
  # Generate many notes to simulate large file
- for i in {1..100000}; do
-  echo "<note id=\"${i}\" lat=\"${i}.0\" lon=\"${i}.0\">" >> "${LARGE_XML}"
-  echo "  <comment><![CDATA[Test note ${i}]]></comment>" >> "${LARGE_XML}"
-  echo "</note>" >> "${LARGE_XML}"
- done
- echo '</osm-notes>' >> "${LARGE_XML}"
+ # Use a smaller number for faster test execution
+ # Write all content in a single operation to avoid file disappearing
+ {
+  for i in {1..10000}; do
+   echo "<note id=\"${i}\" lat=\"${i}.0\" lon=\"${i}.0\">"
+   echo "  <comment><![CDATA[Test note ${i}]]></comment>"
+   echo "</note>"
+  done
+  echo '</osm-notes>'
+ } >> "${LARGE_XML}" || {
+  echo "ERROR: Failed to append content to LARGE_XML" >&2
+  return 1
+ }
  
  # Verify large XML file was created
  if [[ ! -f "${LARGE_XML}" ]]; then

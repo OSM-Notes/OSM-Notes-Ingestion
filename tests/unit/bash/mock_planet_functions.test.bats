@@ -343,10 +343,24 @@ EOF
 @test "Mock XML performance benchmarking" {
   # Use existing AWK files for testing
   local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
+  
+  # Ensure TEST_OUTPUT_DIR is set and exists
+  if [[ -z "${TEST_OUTPUT_DIR:-}" ]]; then
+   TEST_OUTPUT_DIR="${SCRIPT_BASE_DIRECTORY}/tests/output/mock_planet_unit"
+  fi
+  mkdir -p "${TEST_OUTPUT_DIR}"
+  
   local output_file="${TEST_OUTPUT_DIR}/mock_benchmark.csv"
   
   # Verify AWK file exists
   [ -f "${awk_file}" ]
+  
+  # Verify MOCK_XML_FILE exists
+  [ -f "${MOCK_XML_FILE}" ]
+  
+  # Verify output directory exists and is writable
+  [ -d "${TEST_OUTPUT_DIR}" ]
+  [ -w "${TEST_OUTPUT_DIR}" ]
   
   # Run multiple iterations for benchmarking
   local iterations=3
@@ -358,7 +372,8 @@ EOF
     local start_time
     start_time=$(date +%s.%N)
     
-    # Run awk directly
+    # Run awk directly - ensure output directory exists
+    mkdir -p "$(dirname "${output_file}")"
     awk -f "${awk_file}" "${MOCK_XML_FILE}" > "${output_file}" 2>&1
     local exit_code=$?
     
