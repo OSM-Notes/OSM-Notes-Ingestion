@@ -9,6 +9,8 @@ load "${BATS_TEST_DIRNAME}/../../test_helper"
 setup() {
  # Setup test environment
  export SCRIPT_DIR="$(cd "${BATS_TEST_DIRNAME}/../../../bin/lib" && pwd)"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  
  # Source only the functions we need for testing
  if [[ -f "${SCRIPT_DIR}/functionsProcess.sh" ]]; then
@@ -28,6 +30,10 @@ setup() {
   rm -f /tmp/sample_validation.xml
   return 0
  }
+}
+
+teardown() {
+ restore_properties
 }
 
 @test "test script loading" {

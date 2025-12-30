@@ -16,7 +16,9 @@ setup() {
  # Set up test environment first
  export TMP_DIR="${BATS_TEST_DIRNAME}/tmp"
  export SCRIPT_BASE_DIRECTORY="${BATS_TEST_DIRNAME}/../../../"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  export MAX_THREADS=2
+ setup_test_properties
 
  # Create temporary directory
  mkdir -p "${TMP_DIR}"
@@ -31,6 +33,7 @@ teardown() {
   # Remove directory
   rmdir "${TMP_DIR}" 2> /dev/null || true
  fi
+ restore_properties
 }
 
 @test "PARALLEL_PROCESS_DELAY constant is defined" {

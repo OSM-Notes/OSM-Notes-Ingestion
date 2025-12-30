@@ -13,6 +13,8 @@ setup() {
  if [[ -z "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
    export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  fi
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
 
  # Create test directory
  TEST_DIR="/tmp/parallel_failed_file_test_$$"
@@ -51,6 +53,7 @@ teardown() {
  rm -rf "${TMP_DIR}"
  # Remove failed execution file
  rm -f "${FAILED_EXECUTION_FILE}"
+ restore_properties
 }
 
 # Mock function that always fails

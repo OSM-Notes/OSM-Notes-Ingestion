@@ -12,6 +12,8 @@ setup() {
  
  # Setup test environment
  export SCRIPT_DIR="$(cd "${BATS_TEST_DIRNAME}/../../../bin" && pwd)"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  
  # Source the functions we need for testing
  if [[ -f "${SCRIPT_DIR}/functionsProcess.sh" ]]; then
@@ -66,6 +68,7 @@ teardown() {
  if [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
+ restore_properties
 }
 
 @test "Functions are available after sourcing" {

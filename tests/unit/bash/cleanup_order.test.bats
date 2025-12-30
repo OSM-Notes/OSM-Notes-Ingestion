@@ -10,9 +10,15 @@ load "../../test_helper.bash"
 setup() {
   # Set script base directory
   SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  setup_test_properties
   
   # Don't source the script as it auto-executes
   # Instead, we'll read the file content directly for validation
+}
+
+teardown() {
+  restore_properties
 }
 
 @test "cleanupAll should have correct script execution order" {
@@ -50,14 +56,12 @@ setup() {
 
 @test "SQL scripts should have valid syntax" {
   # Basic syntax check for the drop scripts
-  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
-  
-  # Validate Generic Objects script
-  run __validate_sql_structure "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
+  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh' && __validate_sql_structure '${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql'"
   [ "$status" -eq 0 ]
   
   # Validate Base Tables script
-  run __validate_sql_structure "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh' && __validate_sql_structure '${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql'"
   [ "$status" -eq 0 ]
 }
 

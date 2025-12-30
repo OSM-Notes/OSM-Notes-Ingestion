@@ -8,6 +8,8 @@
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
 setup() {
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  # Source validation functions
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" 2>/dev/null || true
 }
@@ -15,6 +17,7 @@ setup() {
 teardown() {
  # Cleanup test files
  rm -f /tmp/test_*.xml
+ restore_properties
 }
 
 # =============================================================================
@@ -23,6 +26,8 @@ teardown() {
 
 @test "test __validate_iso8601_date with valid dates" {
  # Test valid ISO8601 dates
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test various valid date formats
@@ -38,6 +43,8 @@ teardown() {
 
 @test "test __validate_iso8601_date with leading zeros" {
  # Test dates with leading zeros (should work correctly)
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test dates with leading zeros
@@ -50,6 +57,8 @@ teardown() {
 
 @test "test __validate_iso8601_date with invalid dates" {
  # Test invalid date formats
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test invalid month
@@ -75,6 +84,8 @@ teardown() {
 
 @test "test __validate_iso8601_date with invalid characters" {
  # Test dates with invalid characters (should fail)
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test date with letters instead of numbers
@@ -104,6 +115,8 @@ teardown() {
 
 @test "test __validate_iso8601_date with malformed dates" {
  # Test malformed date strings
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh"
  
  # Test empty date

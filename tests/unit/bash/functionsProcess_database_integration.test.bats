@@ -25,6 +25,9 @@ setup() {
  export LOG_FILENAME="/tmp/test.log"
  export LOCK="/tmp/test.lock"
  export MAX_THREADS="2"
+ 
+ # Setup test properties
+ setup_test_properties
 
  # Provide mock psql when PostgreSQL is not available
  local MOCK_PSQL="${TMP_DIR}/psql"
@@ -82,6 +85,7 @@ EOF
 teardown() {
  # Remove mock binaries created during setup
  rm -f "${TMP_DIR}/psql" 2> /dev/null || true
+ restore_properties
 }
 
 # =============================================================================
