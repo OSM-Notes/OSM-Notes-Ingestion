@@ -145,8 +145,8 @@ __start_logger
 
 # Function to setup test properties
 # Replaces etc/properties.sh with test properties temporarily
+# Uses atomic directory-based locking to prevent concurrent modifications
 # This ensures main scripts load test properties without knowing about test context
-# This function can be called from sub-shells if TEST_BASE_DIR is exported
 setup_test_properties() {
  # Use TEST_BASE_DIR if available, otherwise try to detect it
  local base_dir="${TEST_BASE_DIR:-}"
@@ -179,7 +179,7 @@ setup_test_properties() {
   fi
  fi
 
- # Verify that base_dir exists and contains etc/properties_test.sh or tests/test_helper.bash
+ # Verify that base_dir exists
  if [[ ! -d "${base_dir}" ]]; then
   echo "ERROR: Base directory does not exist: ${base_dir}" >&2
   return 1
@@ -192,6 +192,7 @@ setup_test_properties() {
  local test_properties_file="${base_dir}/etc/properties_test.sh"
  local tests_properties_file="${base_dir}/tests/properties.sh"
  local properties_backup="${base_dir}/etc/properties.sh.backup"
+ local lock_dir="${base_dir}/etc/.properties_lock"
 
  # Determine which test properties file to use
  local source_file=""
@@ -204,21 +205,20 @@ setup_test_properties() {
   return 0
  fi
 
- # Backup original properties file if it exists and backup doesn't exist
- # Use a lock file to prevent concurrent modifications in parallel test execution
- local lock_file="${base_dir}/etc/properties.sh.lock"
- local lock_timeout=10
+ # Use atomic directory creation as lock (mkdir is atomic)
+ # Wait for lock with timeout (max 5 seconds)
+ local lock_timeout=50
  local lock_attempts=0
-
- # Try to acquire lock (simple file-based lock)
- while [[ -f "${lock_file}" ]] && [[ ${lock_attempts} -lt ${lock_timeout} ]]; do
+ while ! mkdir "${lock_dir}" 2>/dev/null; do
+  if [[ ${lock_attempts} -ge ${lock_timeout} ]]; then
+   echo "WARNING: Could not acquire lock for properties.sh setup after ${lock_timeout} attempts" >&2
+   return 1
+  fi
   sleep 0.1
   lock_attempts=$((lock_attempts + 1))
  done
 
- # Create lock file
- touch "${lock_file}" 2>/dev/null || true
-
+ # Lock acquired, proceed with setup
  # Backup original properties file if it exists and backup doesn't exist
  if [[ -f "${properties_file}" ]] && [[ ! -f "${properties_backup}" ]]; then
   cp "${properties_file}" "${properties_backup}" 2>/dev/null || true
@@ -234,7 +234,7 @@ setup_test_properties() {
  cp "${source_file}" "${properties_file}" 2>/dev/null || true
 
  # Release lock
- rm -f "${lock_file}" 2>/dev/null || true
+ rmdir "${lock_dir}" 2>/dev/null || true
 }
 
 # Export function and TEST_BASE_DIR so it's available in sub-shells
@@ -266,6 +266,19 @@ restore_properties() {
 
  local properties_file="${base_dir}/etc/properties.sh"
  local properties_backup="${base_dir}/etc/properties.sh.backup"
+ local lock_dir="${base_dir}/etc/.properties_lock"
+
+ # Use atomic directory creation as lock
+ local lock_timeout=50
+ local lock_attempts=0
+ while ! mkdir "${lock_dir}" 2>/dev/null; do
+  if [[ ${lock_attempts} -ge ${lock_timeout} ]]; then
+   echo "WARNING: Could not acquire lock for properties.sh restore after ${lock_timeout} attempts" >&2
+   return 1
+  fi
+  sleep 0.1
+  lock_attempts=$((lock_attempts + 1))
+ done
 
  # Restore original properties if backup exists
  if [[ -f "${properties_backup}" ]]; then
@@ -279,6 +292,9 @@ restore_properties() {
    mv "${properties_backup}" "${properties_file}" 2>/dev/null || true
   fi
  fi
+
+ # Release lock
+ rmdir "${lock_dir}" 2>/dev/null || true
 }
 
 # Export function so it's available in sub-shells and test setup/teardown
