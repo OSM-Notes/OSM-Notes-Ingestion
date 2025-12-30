@@ -1,7 +1,7 @@
 # CI/CD Pipeline - OSM-Notes-Ingestion
 # Consolidated workflow combining quality tests, unit tests, and integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-28
+# Version: 2025-12-30
 
 name: CI/CD Pipeline
 
@@ -279,6 +279,14 @@ jobs:
           shellcheck \
           curl \
           parallel
+
+    - name: Clean apt cache for caching
+      run: |
+        # Remove lock files and partial downloads that cannot be cached
+        sudo rm -f /var/cache/apt/archives/lock
+        sudo rm -rf /var/cache/apt/archives/partial
+        # Ensure proper permissions for cache directory
+        sudo chown -R root:root /var/cache/apt || true
 
     - name: Install Node.js tools
       run: |
