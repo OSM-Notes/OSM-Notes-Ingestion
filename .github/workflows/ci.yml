@@ -227,9 +227,11 @@ jobs:
 
     # Cache apt packages
     # Using only archives directory to avoid permission issues with lock files
+    # Disabled due to permission issues with tar - using continue-on-error as fallback
     - name: Cache apt packages
       uses: actions/cache@v4
       continue-on-error: true
+      if: false  # Disable cache to avoid tar warnings
       with:
         path: /var/cache/apt/archives
         key: ${{ runner.os }}-apt-archives-${{ hashFiles('**/apt-packages.txt') }}

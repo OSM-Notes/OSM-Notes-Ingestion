@@ -18,10 +18,18 @@ teardown() {
 
 @test "__overpass_download_with_endpoints falls back to second endpoint when first returns invalid JSON" {
  run bash -c '
-  set -u
+  set +u
   set +e
   export SCRIPT_BASE_DIRECTORY
   export TMP_DIR
+  # Load common functions first (logging, etc.)
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]]; then
+    source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" || true
+  fi
+  # Load validation functions
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" ]]; then
+    source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh" || true
+  fi
   # Load libs
   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" || exit 1
 
@@ -72,6 +80,13 @@ teardown() {
   export OVERPASS_ENDPOINTS="https://overpass.endpointA/api/interpreter,https://overpass.endpointB/api/interpreter"
   export OVERPASS_RETRIES_PER_ENDPOINT=1
   export OVERPASS_BACKOFF_SECONDS=1
+  # Set default OVERPASS_INTERPRETER if not set (required by function)
+  export OVERPASS_INTERPRETER="${OVERPASS_INTERPRETER:-https://overpass.endpointA/api/interpreter}"
+  # Mock functions that may be called but not needed for this test
+  __wait_for_download_slot() { return 0; }
+  __release_download_slot() { return 0; }
+  __check_overpass_status() { echo "0"; return 0; }
+  export -f __wait_for_download_slot __release_download_slot __check_overpass_status
 
   if __overpass_download_with_endpoints "${QUERY_FILE_LOCAL}" "${JSON_FILE_LOCAL}" "${OUTPUT_OVERPASS_LOCAL}" 1 1; then
     # File must contain a valid JSON with elements key
@@ -94,10 +109,14 @@ teardown() {
 
 @test "__processBoundary continues and records failed boundary when all endpoints invalid and CONTINUE_ON_OVERPASS_ERROR=true" {
  run bash -c '
-  set -u
+  set +u
   set +e
   export SCRIPT_BASE_DIRECTORY
   export TMP_DIR
+  # Load common functions first (logging, etc.)
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" ]]; then
+    source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" || true
+  fi
   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" || exit 1
 
   # Force helper to fail regardless of endpoint
