@@ -1610,6 +1610,13 @@ EOF
   __calculateInternationalWaters
   __cleanPartial
 
+  # Remind user to generate backups after successful base setup
+  __logi "=== BASE SETUP COMPLETED SUCCESSFULLY ==="
+  __logi "To generate backup files for future use, run:"
+  __logi "  ./bin/scripts/exportCountriesBackup.sh"
+  __logi "  ./bin/scripts/exportMaritimesBackup.sh"
+  __logi "These backups will be used to speed up future updates."
+
   # Unset environment variable
   unset USE_COUNTRIES_NEW
 
@@ -1713,6 +1720,13 @@ EOF
   if [[ "${CHECK_MISSING_MARITIMES:-false}" == "true" ]]; then
    __checkMissingMaritimes
   fi
+
+  # Remind user to generate backups after successful update
+  __logi "=== UPDATE COUNTRIES COMPLETED SUCCESSFULLY ==="
+  __logi "To generate backup files for future use, run:"
+  __logi "  ./bin/scripts/exportCountriesBackup.sh"
+  __logi "  ./bin/scripts/exportMaritimesBackup.sh"
+  __logi "These backups will be used to speed up future updates."
 
   # Unset environment variable
   unset USE_COUNTRIES_NEW
