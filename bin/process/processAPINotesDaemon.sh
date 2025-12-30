@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-ingestion-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-21
-VERSION="2025-12-21"
+# Version: 2025-12-30
+VERSION="2025-12-30"
 
 # IMPORTANT: This daemon sources processAPINotes.sh to reuse all its functions
 # The daemon adds daemon-specific functionality (looping, signal handling, etc.)
@@ -739,6 +739,14 @@ function __process_api_data {
 
   if [[ ${PLANET_BASE_EXIT_CODE} -eq 0 ]]; then
    __logi "Planet base load completed successfully"
+   # Reinitialize directories after processPlanetNotes.sh execution
+   # This is critical because we unset TMP_DIR, LOCK_DIR, etc. before
+   # calling processPlanetNotes.sh to avoid lock conflicts, but these
+   # variables are needed for the next cycle (e.g., __check_api_for_updates)
+   __logd "Reinitializing directories after Planet base load"
+   __init_directories "${BASENAME}"
+   # Update DAEMON_SHUTDOWN_FLAG path after reinitializing LOCK_DIR
+   DAEMON_SHUTDOWN_FLAG="${LOCK_DIR}/${BASENAME}_shutdown"
    # Ensure max_note_timestamp table exists after Planet load
    # This is critical because the table may not have been created during daemon_init
    # if base tables didn't exist at that time
@@ -853,6 +861,14 @@ function __process_api_data {
     local PLANET_SYNC_EXIT_CODE=$?
     if [[ ${PLANET_SYNC_EXIT_CODE} -eq 0 ]]; then
      __logi "Planet sync completed successfully"
+     # Reinitialize directories after processPlanetNotes.sh execution
+     # This is critical because we unset TMP_DIR, LOCK_DIR, etc. before
+     # calling processPlanetNotes.sh to avoid lock conflicts, but these
+     # variables are needed for the next cycle (e.g., __check_api_for_updates)
+     __logd "Reinitializing directories after Planet sync"
+     __init_directories "${BASENAME}"
+     # Update DAEMON_SHUTDOWN_FLAG path after reinitializing LOCK_DIR
+     DAEMON_SHUTDOWN_FLAG="${LOCK_DIR}/${BASENAME}_shutdown"
      # After Planet sync, update timestamp to prevent infinite loop
      # processPlanetNotes.sh doesn't update max_note_timestamp, so we need to do it here
      __logi "Updating timestamp after Planet sync"
