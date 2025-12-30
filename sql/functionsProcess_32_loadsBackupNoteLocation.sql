@@ -2,7 +2,7 @@
 -- note's location.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-25
+-- Version: 2025-12-30
 
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Creating table...' AS Text;
@@ -39,7 +39,8 @@ UPDATE notes AS n /* Notes-processAPI */
  SET id_country = b.id_country
  FROM backup_note_locations AS b
  WHERE b.note_id = n.note_id
- AND n.id_country IS NULL;
+ AND (n.id_country IS NULL OR n.id_country = -1)
+ AND b.id_country > 0;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Notes updated with location...' AS Text;
 

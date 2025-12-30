@@ -8,7 +8,7 @@
 --   COUNT(*) of notes that were successfully assigned a country
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-11-25
+-- Version: 2025-12-30
 
 WITH target AS (
   SELECT UNNEST(ARRAY[${NOTE_IDS}])::BIGINT AS note_id
@@ -18,7 +18,7 @@ updated AS (
   SET id_country = get_country(n.longitude, n.latitude, n.note_id)
   FROM target t
   WHERE n.note_id = t.note_id
-  AND n.id_country IS NULL
+  AND (n.id_country IS NULL OR n.id_country = -1)
   RETURNING n.note_id
 )
 SELECT COUNT(*) FROM updated;
