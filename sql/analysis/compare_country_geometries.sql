@@ -59,15 +59,15 @@ BEGIN
       END AS status,
       CASE
         WHEN o.old_area > 0 THEN
-          ABS((n.new_area - o.old_area) / o.old_area * 100)
-        WHEN n.new_area > 0 THEN 100
-        ELSE 0
+          ABS((n.new_area - o.old_area) / o.old_area * 100)::numeric
+        WHEN n.new_area > 0 THEN 100::numeric
+        ELSE 0::numeric
       END AS area_change_percent,
       CASE
         WHEN o.old_perimeter > 0 THEN
-          ABS((n.new_perimeter - o.old_perimeter) / o.old_perimeter * 100)
-        WHEN n.new_perimeter > 0 THEN 100
-        ELSE 0
+          ABS((n.new_perimeter - o.old_perimeter) / o.old_perimeter * 100)::numeric
+        WHEN n.new_perimeter > 0 THEN 100::numeric
+        ELSE 0::numeric
       END AS perimeter_change_percent,
       COALESCE(n.new_vertices, 0) - COALESCE(o.old_vertices, 0) AS vertices_change,
       CASE
@@ -78,14 +78,14 @@ BEGIN
     FULL OUTER JOIN new_countries n ON o.country_id = n.country_id
   )
   SELECT
-    country_id,
-    status,
-    area_change_percent,
-    perimeter_change_percent,
-    vertices_change,
-    geometry_changed
+    compared.country_id,
+    compared.status,
+    compared.area_change_percent,
+    compared.perimeter_change_percent,
+    compared.vertices_change,
+    compared.geometry_changed
   FROM compared
-  ORDER BY country_id;
+  ORDER BY compared.country_id;
 END;
 $func$;
 
