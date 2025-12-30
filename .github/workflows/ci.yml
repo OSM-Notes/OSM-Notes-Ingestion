@@ -372,56 +372,34 @@ jobs:
         # Trim leading space if present
         TEST_FILES="${TEST_FILES# }"
         
-        # Run all found tests with parallelization
+        # Run all found tests sequentially
+        # Since all tests share the same PostgreSQL database, sequential execution
+        # is required to avoid database conflicts and race conditions
         if [[ -n "${TEST_FILES}" ]]; then
           echo "Found tests: ${TEST_FILES}"
           echo "Found tests: ${TEST_FILES}" >> "${LOG_FILE}"
           
-          # Determine optimal number of parallel jobs
-          # Use number of CPU cores, but cap at 4 to avoid overwhelming database
-          PARALLEL_JOBS=$(nproc)
-          if [[ ${PARALLEL_JOBS} -gt 4 ]]; then
-            PARALLEL_JOBS=4
-          fi
-          
-          echo "Running tests with ${PARALLEL_JOBS} parallel jobs..."
-          echo "Running tests with ${PARALLEL_JOBS} parallel jobs..." >> "${LOG_FILE}"
-          
           # Count test files
           TEST_COUNT=$(echo "${TEST_FILES}" | wc -w)
           
+          echo "Running ${TEST_COUNT} test file(s) sequentially to avoid database conflicts..."
+          echo "Running ${TEST_COUNT} test file(s) sequentially to avoid database conflicts..." >> "${LOG_FILE}"
+          
           TEST_EXIT_CODE=0
-          if [[ ${TEST_COUNT} -gt 1 ]] && command -v parallel > /dev/null 2>&1; then
-            # Use BATS parallel execution if multiple test files and parallel is available
-            echo "Using BATS parallel execution (${PARALLEL_JOBS} jobs)..."
-            echo "Using BATS parallel execution (${PARALLEL_JOBS} jobs)..." >> "${LOG_FILE}"
-            for test_file in ${TEST_FILES}; do
-              echo "Queued: ${test_file}"
-              echo "Queued: ${test_file}" >> "${LOG_FILE}"
-            done
-            
-            # Run tests in parallel using BATS --jobs
+          # Sequential execution prevents database conflicts when multiple tests
+          # share the same PostgreSQL database instance
+          for test_file in ${TEST_FILES}; do
+            echo "Running: ${test_file}"
+            echo "Running: ${test_file}" >> "${LOG_FILE}"
             set +o pipefail  # Allow pipe to continue even if bats fails
-            bats --jobs "${PARALLEL_JOBS}" ${TEST_FILES} 2>&1 | tee -a "${LOG_FILE}"
-            TEST_EXIT_CODE=${PIPESTATUS[0]}
+            bats "${test_file}" 2>&1 | tee -a "${LOG_FILE}"
+            FILE_EXIT_CODE=${PIPESTATUS[0]}
             set -o pipefail
-          else
-            # Sequential execution for single test or if parallel not available
-            echo "Using sequential execution..."
-            echo "Using sequential execution..." >> "${LOG_FILE}"
-            for test_file in ${TEST_FILES}; do
-              echo "Running: ${test_file}"
-              echo "Running: ${test_file}" >> "${LOG_FILE}"
-              set +o pipefail  # Allow pipe to continue even if bats fails
-              bats "${test_file}" 2>&1 | tee -a "${LOG_FILE}"
-              FILE_EXIT_CODE=${PIPESTATUS[0]}
-              set -o pipefail
-              if [[ ${FILE_EXIT_CODE} -ne 0 ]]; then
-                TEST_EXIT_CODE=${FILE_EXIT_CODE}
-                echo "Test ${test_file} failed with exit code ${FILE_EXIT_CODE}" >> "${LOG_FILE}"
-              fi
-            done
-          fi
+            if [[ ${FILE_EXIT_CODE} -ne 0 ]]; then
+              TEST_EXIT_CODE=${FILE_EXIT_CODE}
+              echo "Test ${test_file} failed with exit code ${FILE_EXIT_CODE}" >> "${LOG_FILE}"
+            fi
+          done
           
           echo "" >> "${LOG_FILE}"
           echo "Test execution completed at $(date)" >> "${LOG_FILE}"
