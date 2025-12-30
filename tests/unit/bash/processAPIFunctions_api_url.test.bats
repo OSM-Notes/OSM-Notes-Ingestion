@@ -8,6 +8,8 @@
 load "$(dirname "${BATS_TEST_FILENAME}")/../../test_helper.bash"
 
 setup() {
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  # Create temporary test directory
  TEST_DIR=$(mktemp -d)
  export TEST_DIR
@@ -112,6 +114,7 @@ teardown() {
  if [[ -n "${TEST_DIR:-}" ]] && [[ -d "${TEST_DIR}" ]]; then
   rm -rf "${TEST_DIR}"
  fi
+ restore_properties
 }
 
 # =============================================================================

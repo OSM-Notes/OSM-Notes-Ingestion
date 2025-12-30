@@ -6,6 +6,8 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 setup() {
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ setup_test_properties
  export TMP_DIR="$(mktemp -d)"
  export LOG_LEVEL="DEBUG"
  export DOWNLOAD_USER_AGENT="UA-Test/1.0 (+https://example.test; contact: test@example.test)"
@@ -13,6 +15,7 @@ setup() {
 
 teardown() {
  rm -rf "${TMP_DIR}"
+ restore_properties
 }
 
 @test "Overpass curl includes User-Agent header when set" {

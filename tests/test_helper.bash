@@ -151,14 +151,42 @@ setup_test_properties() {
  # Use TEST_BASE_DIR if available, otherwise try to detect it
  local base_dir="${TEST_BASE_DIR:-}"
  if [[ -z "${base_dir}" ]]; then
+  # Try SCRIPT_BASE_DIRECTORY if available
+  if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+   base_dir="${SCRIPT_BASE_DIRECTORY}"
   # Try to detect from BASH_SOURCE if available
-  if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
    base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  # Try to detect from BATS_TEST_DIRNAME if available
+  elif [[ -n "${BATS_TEST_DIRNAME:-}" ]]; then
+   base_dir="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+  # Try to detect from BATS_TEST_FILENAME if available
+  elif [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
+   base_dir="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
   else
-   # Fallback: use current directory
-   base_dir="$(pwd)"
+   # Fallback: try to detect from current directory by looking for etc/properties_test.sh
+   local current_dir="$(pwd)"
+   if [[ -f "${current_dir}/etc/properties_test.sh" ]] || [[ -f "${current_dir}/tests/test_helper.bash" ]]; then
+    base_dir="${current_dir}"
+   elif [[ -f "${current_dir}/../etc/properties_test.sh" ]] || [[ -f "${current_dir}/../tests/test_helper.bash" ]]; then
+    base_dir="$(cd "${current_dir}/.." && pwd)"
+   elif [[ -f "${current_dir}/../../etc/properties_test.sh" ]] || [[ -f "${current_dir}/../../tests/test_helper.bash" ]]; then
+    base_dir="$(cd "${current_dir}/../.." && pwd)"
+   else
+    # Last fallback: use current directory
+    base_dir="${current_dir}"
+   fi
   fi
  fi
+
+ # Verify that base_dir exists and contains etc/properties_test.sh or tests/test_helper.bash
+ if [[ ! -d "${base_dir}" ]]; then
+  echo "ERROR: Base directory does not exist: ${base_dir}" >&2
+  return 1
+ fi
+
+ # Export TEST_BASE_DIR for sub-shells
+ export TEST_BASE_DIR="${base_dir}"
 
  local properties_file="${base_dir}/etc/properties.sh"
  local test_properties_file="${base_dir}/etc/properties_test.sh"
@@ -177,6 +205,21 @@ setup_test_properties() {
  fi
 
  # Backup original properties file if it exists and backup doesn't exist
+ # Use a lock file to prevent concurrent modifications in parallel test execution
+ local lock_file="${base_dir}/etc/properties.sh.lock"
+ local lock_timeout=10
+ local lock_attempts=0
+
+ # Try to acquire lock (simple file-based lock)
+ while [[ -f "${lock_file}" ]] && [[ ${lock_attempts} -lt ${lock_timeout} ]]; do
+  sleep 0.1
+  lock_attempts=$((lock_attempts + 1))
+ done
+
+ # Create lock file
+ touch "${lock_file}" 2>/dev/null || true
+
+ # Backup original properties file if it exists and backup doesn't exist
  if [[ -f "${properties_file}" ]] && [[ ! -f "${properties_backup}" ]]; then
   cp "${properties_file}" "${properties_backup}" 2>/dev/null || true
  fi
@@ -189,6 +232,9 @@ setup_test_properties() {
 
  # Replace properties.sh with test properties
  cp "${source_file}" "${properties_file}" 2>/dev/null || true
+
+ # Release lock
+ rm -f "${lock_file}" 2>/dev/null || true
 }
 
 # Export function and TEST_BASE_DIR so it's available in sub-shells
@@ -200,9 +246,18 @@ restore_properties() {
  # Use TEST_BASE_DIR if available, otherwise try to detect it
  local base_dir="${TEST_BASE_DIR:-}"
  if [[ -z "${base_dir}" ]]; then
+  # Try SCRIPT_BASE_DIRECTORY if available
+  if [[ -n "${SCRIPT_BASE_DIRECTORY:-}" ]]; then
+   base_dir="${SCRIPT_BASE_DIRECTORY}"
   # Try to detect from BASH_SOURCE if available
-  if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  elif [[ -n "${BASH_SOURCE[0]:-}" ]]; then
    base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  # Try to detect from BATS_TEST_DIRNAME if available
+  elif [[ -n "${BATS_TEST_DIRNAME:-}" ]]; then
+   base_dir="$(cd "${BATS_TEST_DIRNAME}/../.." && pwd)"
+  # Try to detect from BATS_TEST_FILENAME if available
+  elif [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
+   base_dir="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
   else
    # Fallback: use current directory
    base_dir="$(pwd)"
