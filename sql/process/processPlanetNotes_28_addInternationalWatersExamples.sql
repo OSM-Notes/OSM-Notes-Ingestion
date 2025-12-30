@@ -13,7 +13,7 @@
 --   psql -d notes -f sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-05
+-- Version: 2025-12-29
 
 -- Ensure the table exists (for backward compatibility)
 DO $$
@@ -57,15 +57,19 @@ WITH
       ST_SetSRID(ST_MakeEnvelope(-180, -90, 180, 90, 4326), 4326) AS geom
   ),
   -- Step 2: Get all valid country geometries (terrestrial + maritime)
-  -- Fix SRID issues and filter valid geometries
+  -- Fix SRID issues, validate and repair geometries before union
+  -- CRITICAL: ST_MakeValid ensures geometries are valid before ST_Union
+  -- This prevents silent failures when invalid geometries cause union to fail
   valid_countries AS (
     SELECT
-      CASE
-        WHEN ST_SRID(geom) = 0 OR ST_SRID(geom) IS NULL THEN
-          ST_SetSRID(geom, 4326)
-        ELSE
-          geom
-      END AS geom
+      ST_MakeValid(
+        CASE
+          WHEN ST_SRID(geom) = 0 OR ST_SRID(geom) IS NULL THEN
+            ST_SetSRID(geom, 4326)
+          ELSE
+            geom
+        END
+      ) AS geom
     FROM
       countries
     WHERE
@@ -74,18 +78,35 @@ WITH
       AND NOT ST_IsEmpty(geom)
   ),
   -- Step 3: Union all country geometries
+  -- CRITICAL FIX: Use ST_Union directly to ensure all geometries are included
+  -- ST_Union handles overlapping geometries correctly and ensures all maritime
+  -- zones (Australia, Colombia, South Africa, NZ, etc.) are properly merged
+  -- before subtraction. This prevents missing maritime zones in the calculation.
   all_countries_union AS (
     SELECT
       ST_Union(geom) AS geom
     FROM
       valid_countries
+    WHERE
+      geom IS NOT NULL
+      AND NOT ST_IsEmpty(geom)
   ),
   -- Step 4: Calculate international waters (world - all countries)
+  -- Ensure both geometries are valid before difference operation
+  -- This prevents errors when maritime zones have complex geometries
+  -- Handle case where union might be NULL or empty (should not happen, but safety check)
   international_waters_raw AS (
     SELECT
-      ST_Difference(
-        wb.geom,
-        COALESCE(acu.geom, ST_GeomFromText('POLYGON EMPTY', 4326))
+      ST_MakeValid(
+        ST_Difference(
+          wb.geom,
+          CASE
+            WHEN acu.geom IS NULL OR ST_IsEmpty(acu.geom) THEN
+              ST_GeomFromText('POLYGON EMPTY', 4326)
+            ELSE
+              ST_MakeValid(acu.geom)
+          END
+        )
       ) AS geom
     FROM
       world_bounds wb
