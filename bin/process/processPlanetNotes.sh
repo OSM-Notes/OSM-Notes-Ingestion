@@ -462,12 +462,12 @@ function __createBaseTables {
 # Creates sync tables that receives the whole history, but then keep the new
 # ones.
 function __createSyncTables {
-__log_start
-__logi "Creating tables."
-# shellcheck disable=SC2097,SC2098
-# PGAPPNAME is set at script initialization and passed to psql
-PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
-__log_finish
+ __log_start
+ __logi "Creating tables."
+ # shellcheck disable=SC2097,SC2098
+ # PGAPPNAME is set at script initialization and passed to psql
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_24_CREATE_SYNC_TABLES}"
+ __log_finish
 }
 
 # Clean files and tables.
