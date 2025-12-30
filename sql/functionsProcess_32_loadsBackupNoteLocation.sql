@@ -38,6 +38,7 @@ SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
 UPDATE notes AS n /* Notes-processAPI */
  SET id_country = b.id_country
  FROM backup_note_locations AS b
+ INNER JOIN countries AS c ON c.country_id = b.id_country
  WHERE b.note_id = n.note_id
  AND (n.id_country IS NULL OR n.id_country = -1)
  AND b.id_country > 0;
