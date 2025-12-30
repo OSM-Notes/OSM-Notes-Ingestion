@@ -10,8 +10,14 @@ bats_require_minimum_version 1.5.0
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
 setup() {
+ # Setup test properties first (this must be done before any script sources properties.sh)
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
+ 
  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export SCRIPT_BASE_DIRECTORY
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
  export TMP_DIR="$(mktemp -d)"
  export LOG_LEVEL="ERROR"
  export TEST_MODE="true"
@@ -77,6 +83,11 @@ EOF
 }
 
 teardown() {
+ # Restore original properties if needed
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
  # Cleanup test backups (keep real ones if they exist)
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson.test" ]]; then
   mv "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson.test" "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson" 2>/dev/null || true
