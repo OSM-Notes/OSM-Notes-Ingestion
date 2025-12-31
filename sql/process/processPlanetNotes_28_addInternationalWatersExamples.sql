@@ -284,7 +284,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(10, 54, 30, 66, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(10, 54, 30, 66, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(10, 54, 30, 66, 4326)
+          )
         THEN
           'Baltic Sea - International Waters'
         -- Black Sea: 27-42°E, 41-47°N
@@ -292,7 +295,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(27, 41, 42, 47, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(27, 41, 42, 47, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(27, 41, 42, 47, 4326)
+          )
         THEN
           'Black Sea - International Waters'
         -- Caspian Sea: 47-54°E, 37-47°N
@@ -300,7 +306,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(47, 37, 54, 47, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(47, 37, 54, 47, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(47, 37, 54, 47, 4326)
+          )
         THEN
           'Caspian Sea - International Waters'
         -- Aegean Sea: 23-30°E, 36-41°N
@@ -308,7 +317,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(23, 36, 30, 41, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          )
         THEN
           'Aegean Sea - International Waters'
         -- Mediterranean Sea (central): -6-36°E, 30-46°N
@@ -316,7 +328,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(-6, 30, 36, 46, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          )
           AND NOT ST_Intersects(
             sin.polygon_geom,
             ST_MakeEnvelope(23, 36, 30, 41, 4326)
@@ -328,7 +343,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(48, 24, 56, 30, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(48, 24, 56, 30, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(48, 24, 56, 30, 4326)
+          )
         THEN
           'Persian Gulf - International Waters'
         -- Red Sea: 32-44°E, 12-30°N
@@ -336,7 +354,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(32, 12, 44, 30, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(32, 12, 44, 30, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(32, 12, 44, 30, 4326)
+          )
         THEN
           'Red Sea - International Waters'
         -- Default: Generic name based on region
@@ -351,7 +372,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(10, 54, 30, 66, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(10, 54, 30, 66, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(10, 54, 30, 66, 4326)
+          )
         THEN
           'International waters in Baltic Sea. Area: '
             || ROUND(sin.area_sq_degrees::numeric, 2)
@@ -360,7 +384,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(27, 41, 42, 47, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(27, 41, 42, 47, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(27, 41, 42, 47, 4326)
+          )
         THEN
           'International waters in Black Sea. Area: '
             || ROUND(sin.area_sq_degrees::numeric, 2)
@@ -369,7 +396,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(47, 37, 54, 47, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(47, 37, 54, 47, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(47, 37, 54, 47, 4326)
+          )
         THEN
           'International waters in Caspian Sea. Area: '
             || ROUND(sin.area_sq_degrees::numeric, 2)
@@ -378,7 +408,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(23, 36, 30, 41, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          )
         THEN
           'International waters in Aegean Sea. Area: '
             || ROUND(sin.area_sq_degrees::numeric, 2)
@@ -387,7 +420,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(-6, 30, 36, 46, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          )
           AND NOT ST_Intersects(
             sin.polygon_geom,
             ST_MakeEnvelope(23, 36, 30, 41, 4326)
@@ -400,7 +436,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(48, 24, 56, 30, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(48, 24, 56, 30, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(48, 24, 56, 30, 4326)
+          )
         THEN
           'International waters in Persian Gulf. Area: '
             || ROUND(sin.area_sq_degrees::numeric, 2)
@@ -409,7 +448,10 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(32, 12, 44, 30, 4326)
         )
-          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(32, 12, 44, 30, 4326)
+          AND ST_Within(
+            ST_Centroid(sin.polygon_geom),
+            ST_MakeEnvelope(32, 12, 44, 30, 4326)
+          )
         THEN
           'International waters in Red Sea. Area: '
             || ROUND(sin.area_sq_degrees::numeric, 2)
