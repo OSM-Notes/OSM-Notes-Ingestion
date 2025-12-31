@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
-VERSION="2025-01-23"
+# Version: 2025-12-30
+VERSION="2025-12-30"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
@@ -2039,6 +2039,12 @@ function __downloadMaritimes_parallel_new() {
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))
      echo "[PART ${PART_NUM}] ✓ Successfully downloaded ${ID}"
+     # Add delay after successful download to avoid rate limiting from Overpass API
+     # This prevents ban/rate limiting when downloading many boundaries in parallel
+     local DOWNLOAD_DELAY="${BOUNDARY_DOWNLOAD_DELAY:-2}"
+     if [[ "${DOWNLOAD_DELAY}" -gt 0 ]] && [[ "${RUNNING_UNDER_TEST:-false}" != "true" ]]; then
+      sleep "${DOWNLOAD_DELAY}"
+     fi
     else
      echo "${ID}" >> "${FAILED_FILE}"
      PART_FAILED=$((PART_FAILED + 1))
@@ -2216,6 +2222,12 @@ function __downloadCountries_parallel_new() {
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))
      echo "[PART ${PART_NUM}] ✓ Successfully downloaded ${ID}"
+     # Add delay after successful download to avoid rate limiting from Overpass API
+     # This prevents ban/rate limiting when downloading many boundaries in parallel
+     local DOWNLOAD_DELAY="${BOUNDARY_DOWNLOAD_DELAY:-2}"
+     if [[ "${DOWNLOAD_DELAY}" -gt 0 ]] && [[ "${RUNNING_UNDER_TEST:-false}" != "true" ]]; then
+      sleep "${DOWNLOAD_DELAY}"
+     fi
     else
      echo "${ID}" >> "${FAILED_FILE}"
      PART_FAILED=$((PART_FAILED + 1))
