@@ -14,7 +14,7 @@
 --   psql -d notes -f sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-01
+-- Version: 2025-12-31
 --
 -- SOLUTION: Divide world into ocean regions to avoid precision issues
 -- PostGIS ST_Difference can fail with very large global geometries
@@ -149,14 +149,14 @@ WITH
     SELECT
       'atlantic' AS region,
       ST_SetSRID(
-        ST_MakeEnvelope(-70, -60, 20, 80, 4326),
+        ST_MakeEnvelope(-70, -60, 20, 60, 4326),
         4326
       ) AS geom
     UNION ALL
     SELECT
       'indian' AS region,
       ST_SetSRID(
-        ST_MakeEnvelope(20, -60, 110, 30, 4326),
+        ST_MakeEnvelope(20, -60, 110, 60, 4326),
         4326
       ) AS geom
     UNION ALL
@@ -280,13 +280,26 @@ WITH
       sin.area_sq_degrees,
       CASE
         -- Baltic Sea: 10-30°E, 54-66°N
+        -- Identify if polygon intersects significantly with Baltic Sea
+        -- (centroid within OR >30% of polygon area within sea envelope)
         WHEN ST_Intersects(
           sin.polygon_geom,
           ST_MakeEnvelope(10, 54, 30, 66, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(10, 54, 30, 66, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(10, 54, 30, 66, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(10, 54, 30, 66, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'Baltic Sea - International Waters'
@@ -295,9 +308,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(27, 41, 42, 47, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(27, 41, 42, 47, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(27, 41, 42, 47, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(27, 41, 42, 47, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'Black Sea - International Waters'
@@ -306,9 +330,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(47, 37, 54, 47, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(47, 37, 54, 47, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(47, 37, 54, 47, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(47, 37, 54, 47, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'Caspian Sea - International Waters'
@@ -317,20 +352,43 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(23, 36, 30, 41, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(23, 36, 30, 41, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(23, 36, 30, 41, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'Aegean Sea - International Waters'
         -- Mediterranean Sea (central): -6-36°E, 30-46°N
+        -- Exclude Aegean Sea which is handled separately
         WHEN ST_Intersects(
           sin.polygon_geom,
           ST_MakeEnvelope(-6, 30, 36, 46, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
           AND NOT ST_Intersects(
             sin.polygon_geom,
@@ -343,9 +401,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(48, 24, 56, 30, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(48, 24, 56, 30, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(48, 24, 56, 30, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(48, 24, 56, 30, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'Persian Gulf - International Waters'
@@ -354,9 +423,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(32, 12, 44, 30, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(32, 12, 44, 30, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(32, 12, 44, 30, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(32, 12, 44, 30, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'Red Sea - International Waters'
@@ -368,13 +448,25 @@ WITH
       END AS area_name,
       CASE
         -- Specific sea descriptions
+        -- Use same logic as area_name for consistency
         WHEN ST_Intersects(
           sin.polygon_geom,
           ST_MakeEnvelope(10, 54, 30, 66, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(10, 54, 30, 66, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(10, 54, 30, 66, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(10, 54, 30, 66, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'International waters in Baltic Sea. Area: '
@@ -384,9 +476,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(27, 41, 42, 47, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(27, 41, 42, 47, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(27, 41, 42, 47, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(27, 41, 42, 47, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'International waters in Black Sea. Area: '
@@ -396,9 +499,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(47, 37, 54, 47, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(47, 37, 54, 47, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(47, 37, 54, 47, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(47, 37, 54, 47, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'International waters in Caspian Sea. Area: '
@@ -408,9 +522,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(23, 36, 30, 41, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(23, 36, 30, 41, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(23, 36, 30, 41, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'International waters in Aegean Sea. Area: '
@@ -420,9 +545,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(-6, 30, 36, 46, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
           AND NOT ST_Intersects(
             sin.polygon_geom,
@@ -436,9 +572,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(48, 24, 56, 30, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(48, 24, 56, 30, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(48, 24, 56, 30, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(48, 24, 56, 30, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'International waters in Persian Gulf. Area: '
@@ -448,9 +595,20 @@ WITH
           sin.polygon_geom,
           ST_MakeEnvelope(32, 12, 44, 30, 4326)
         )
-          AND ST_Within(
-            ST_Centroid(sin.polygon_geom),
-            ST_MakeEnvelope(32, 12, 44, 30, 4326)
+          AND (
+            ST_Within(
+              ST_Centroid(sin.polygon_geom),
+              ST_MakeEnvelope(32, 12, 44, 30, 4326)
+            )
+            OR ST_Area(
+              ST_Intersection(
+                sin.polygon_geom,
+                ST_MakeEnvelope(32, 12, 44, 30, 4326)
+              )::geography
+            ) / NULLIF(
+              ST_Area(sin.polygon_geom::geography),
+              0
+            ) > 0.3
           )
         THEN
           'International waters in Red Sea. Area: '
