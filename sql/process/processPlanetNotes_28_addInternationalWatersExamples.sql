@@ -14,7 +14,7 @@
 --   psql -d notes -f sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-29
+-- Version: 2025-12-31
 --
 -- SOLUTION: Divide world into ocean regions to avoid precision issues
 -- PostGIS ST_Difference can fail with very large global geometries
@@ -160,10 +160,15 @@ WITH
         4326
       ) AS geom
     UNION ALL
+    -- CRITICAL FIX: pacific_east cannot cross 180°/-180° meridian.
+    -- ST_MakeEnvelope(110, -60, -180, 60) fails because xmin > xmax.
+    -- Solution: Only cover 110° to 180° (Australia, Japan, SE Asia, Pacific
+    -- Islands). The area from -180° to -100° is already covered by
+    -- pacific_west, so no duplication needed.
     SELECT
       'pacific_east' AS region,
       ST_SetSRID(
-        ST_MakeEnvelope(110, -60, -180, 60, 4326),
+        ST_MakeEnvelope(110, -60, 180, 60, 4326),
         4326
       ) AS geom
     UNION ALL
