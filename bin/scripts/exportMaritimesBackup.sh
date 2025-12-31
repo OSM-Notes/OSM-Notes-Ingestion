@@ -4,11 +4,8 @@
 # in the repository. This backup can be used by processPlanet base to avoid
 # downloading maritimes from Overpass on every run.
 #
-# Maritime boundaries are identified by comprehensive patterns including:
-# - EEZ variations: "(EEZ)", "EEZ", "Exclusive Economic Zone", "Economic Zone"
-# - Contiguous Zone variations: "(Contiguous Zone)", "Contiguous Zone", "contiguous area", "contiguous border"
-# - Maritime variations: "(maritime)", "maritime"
-# - Fisheries zones: "Fisheries protection zone", "Fishing territory"
+# Maritime boundaries are identified using the is_maritime column
+# (is_maritime = true) in the countries table.
 #
 # Usage:
 #   ./bin/scripts/exportMaritimesBackup.sh
@@ -30,8 +27,8 @@
 # 255) General error
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-14
-VERSION="2025-12-14"
+# Version: 2025-12-30
+VERSION="2025-12-30"
 
 # Base directory for the project.
 SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
@@ -91,34 +88,18 @@ main() {
  __logi "Found ${COUNTRIES_COUNT} total countries/maritimes in database"
 
  # Get count of maritime boundaries
- # Maritime boundaries are identified by comprehensive patterns including:
- # - EEZ variations: "(EEZ)", "EEZ", "Exclusive Economic Zone", "Economic Zone"
- # - Contiguous Zone variations: "(Contiguous Zone)", "Contiguous Zone", "contiguous area", "contiguous border"
- # - Maritime variations: "(maritime)", "maritime"
- # - Fisheries zones: "Fisheries protection zone", "Fishing territory"
+ # Maritime boundaries are identified by is_maritime = true
+ # Use the is_maritime column for reliable identification
  __logd "Counting maritime boundaries..."
  local MARITIMES_COUNT
  MARITIMES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c \
-  "SELECT COUNT(*) FROM countries WHERE (
-  country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
-  country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
-  country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR
-  country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR
-  country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR
-  country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR
-  country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR
-  country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR
-  country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR
-  country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR
-  country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR
-  country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%'
- )" 2> /dev/null || echo "0")
+  "SELECT COUNT(*) FROM countries WHERE is_maritime = true" 2> /dev/null || echo "0")
 
  __logi "Found ${MARITIMES_COUNT} maritime boundaries"
 
  if [[ "${MARITIMES_COUNT}" -eq 0 ]]; then
   __loge "ERROR: No maritime boundaries found in database"
-  __loge "Maritime boundaries should have patterns like '(EEZ)', 'EEZ', 'Exclusive Economic Zone', 'Contiguous Zone', 'maritime', 'Fisheries protection zone', etc. in their names"
+  __loge "Maritime boundaries should have is_maritime = true in the countries table"
   exit "${ERROR_GENERAL}"
  fi
 
@@ -127,29 +108,23 @@ main() {
  mkdir -p "${SCRIPT_BASE_DIRECTORY}/data"
 
  # Export maritimes to GeoJSON using ogr2ogr
- # Use comprehensive patterns to identify all maritime boundaries
+ # Use is_maritime = true to identify maritime boundaries
  __logd "Exporting maritime boundaries to GeoJSON..."
+ local OGR_ERROR
+ OGR_ERROR=$(mktemp)
  if ogr2ogr -f "GeoJSON" "${OUTPUT_FILE}" \
   "PG:dbname=${DBNAME}" \
-  -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM countries WHERE (
-  country_name_en ILIKE '%(EEZ)%' OR country_name_en ILIKE '%EEZ%' OR
-  country_name_en ILIKE '%Exclusive Economic Zone%' OR country_name_en ILIKE '%Economic Zone%' OR
-  country_name_en ILIKE '%(Contiguous Zone)%' OR country_name_en ILIKE '%Contiguous Zone%' OR
-  country_name_en ILIKE '%contiguous area%' OR country_name_en ILIKE '%contiguous border%' OR
-  country_name_en ILIKE '%(maritime)%' OR country_name_en ILIKE '%maritime%' OR
-  country_name_en ILIKE '%Fisheries protection zone%' OR country_name_en ILIKE '%Fishing territory%' OR
-  country_name ILIKE '%(EEZ)%' OR country_name ILIKE '%EEZ%' OR
-  country_name ILIKE '%Exclusive Economic Zone%' OR country_name ILIKE '%Economic Zone%' OR
-  country_name ILIKE '%(Contiguous Zone)%' OR country_name ILIKE '%Contiguous Zone%' OR
-  country_name ILIKE '%contiguous area%' OR country_name ILIKE '%contiguous border%' OR
-  country_name ILIKE '%(maritime)%' OR country_name ILIKE '%maritime%' OR
-  country_name ILIKE '%Fisheries protection zone%' OR country_name ILIKE '%Fishing territory%'
- )" \
+  -sql "SELECT country_id, country_name, country_name_es, country_name_en, geom FROM countries WHERE is_maritime = true" \
   -lco RFC7946=YES \
-  -lco WRITE_BBOX=YES 2> /dev/null; then
+  -lco WRITE_BBOX=YES 2> "${OGR_ERROR}"; then
   __logi "Successfully exported maritime boundaries to GeoJSON"
+  rm -f "${OGR_ERROR}"
  else
   __loge "ERROR: Failed to export maritime boundaries"
+  if [[ -s "${OGR_ERROR}" ]]; then
+   __loge "ogr2ogr error output: $(cat "${OGR_ERROR}")"
+  fi
+  rm -f "${OGR_ERROR}"
   exit "${ERROR_GENERAL}"
  fi
 
@@ -167,6 +142,13 @@ main() {
 
  __logi "Backup file size: ${FILE_SIZE_HUMAN}"
  __logi "Backup created successfully: ${OUTPUT_FILE}"
+ __logi ""
+ __logi "=== EXPORT COMPLETED ==="
+ __logi "File location: ${OUTPUT_FILE}"
+ __logi "Next steps:"
+ __logi "  1. Compress: gzip -k ${OUTPUT_FILE}"
+ __logi "  2. Upload to OSM-Notes-Data repository"
+ __logi "  3. See docs/Boundaries_Backup.md for details"
 
  # Validate GeoJSON structure
  __logd "Validating GeoJSON structure..."
