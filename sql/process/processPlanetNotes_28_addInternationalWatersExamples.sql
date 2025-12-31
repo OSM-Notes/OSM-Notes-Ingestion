@@ -14,7 +14,7 @@
 --   psql -d notes -f sql/process/processPlanetNotes_28_addInternationalWatersExamples.sql
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-12-31
+-- Version: 2025-01-01
 --
 -- SOLUTION: Divide world into ocean regions to avoid precision issues
 -- PostGIS ST_Difference can fail with very large global geometries
@@ -258,26 +258,184 @@ WITH
       AND ST_Area(polygon_geom::geography)
         > 111000.0 * 111000.0 * 0.0001  -- Min 0.0001 sq degree (~123 km²)
   ),
-  -- Step 6: Generate names and descriptions for each area
+  -- Step 6: Identify specific seas and generate appropriate names
+  -- Detect known seas and assign specific names instead of generic
+  -- "International Waters - Atlantic X"
+  seas_identification_with_numbers AS (
+    SELECT
+      region,
+      polygon_geom,
+      area_sq_degrees,
+      ROW_NUMBER() OVER (
+        PARTITION BY region
+        ORDER BY area_sq_degrees DESC
+      ) AS region_number
+    FROM
+      international_waters_filtered
+  ),
+  seas_identification AS (
+    SELECT
+      sin.region,
+      sin.polygon_geom,
+      sin.area_sq_degrees,
+      CASE
+        -- Baltic Sea: 10-30°E, 54-66°N
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(10, 54, 30, 66, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(10, 54, 30, 66, 4326)
+        THEN
+          'Baltic Sea - International Waters'
+        -- Black Sea: 27-42°E, 41-47°N
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(27, 41, 42, 47, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(27, 41, 42, 47, 4326)
+        THEN
+          'Black Sea - International Waters'
+        -- Caspian Sea: 47-54°E, 37-47°N
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(47, 37, 54, 47, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(47, 37, 54, 47, 4326)
+        THEN
+          'Caspian Sea - International Waters'
+        -- Aegean Sea: 23-30°E, 36-41°N
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(23, 36, 30, 41, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(23, 36, 30, 41, 4326)
+        THEN
+          'Aegean Sea - International Waters'
+        -- Mediterranean Sea (central): -6-36°E, 30-46°N
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          AND NOT ST_Intersects(
+            sin.polygon_geom,
+            ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          )
+        THEN
+          'Mediterranean Sea - International Waters'
+        -- Persian Gulf: 48-56°E, 24-30°N
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(48, 24, 56, 30, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(48, 24, 56, 30, 4326)
+        THEN
+          'Persian Gulf - International Waters'
+        -- Red Sea: 32-44°E, 12-30°N
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(32, 12, 44, 30, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(32, 12, 44, 30, 4326)
+        THEN
+          'Red Sea - International Waters'
+        -- Default: Generic name based on region
+        ELSE
+          'International Waters - '
+            || REPLACE(INITCAP(sin.region), '_', ' ') || ' '
+            || sin.region_number
+      END AS area_name,
+      CASE
+        -- Specific sea descriptions
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(10, 54, 30, 66, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(10, 54, 30, 66, 4326)
+        THEN
+          'International waters in Baltic Sea. Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(27, 41, 42, 47, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(27, 41, 42, 47, 4326)
+        THEN
+          'International waters in Black Sea. Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(47, 37, 54, 47, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(47, 37, 54, 47, 4326)
+        THEN
+          'International waters in Caspian Sea. Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(23, 36, 30, 41, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(23, 36, 30, 41, 4326)
+        THEN
+          'International waters in Aegean Sea. Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(-6, 30, 36, 46, 4326)
+          AND NOT ST_Intersects(
+            sin.polygon_geom,
+            ST_MakeEnvelope(23, 36, 30, 41, 4326)
+          )
+        THEN
+          'International waters in Mediterranean Sea. Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(48, 24, 56, 30, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(48, 24, 56, 30, 4326)
+        THEN
+          'International waters in Persian Gulf. Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+        WHEN ST_Intersects(
+          sin.polygon_geom,
+          ST_MakeEnvelope(32, 12, 44, 30, 4326)
+        )
+          AND ST_Centroid(sin.polygon_geom) <@ ST_MakeEnvelope(32, 12, 44, 30, 4326)
+        THEN
+          'International waters in Red Sea. Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+        -- Default: Generic description
+        ELSE
+          'International waters in '
+            || REPLACE(INITCAP(sin.region), '_', ' ')
+            || ' Ocean. Calculated as difference between ocean region and '
+            || 'all country areas (terrestrial and maritime). Area: '
+            || ROUND(sin.area_sq_degrees::numeric, 2)
+            || ' square degrees.'
+      END AS area_description
+    FROM
+      seas_identification_with_numbers sin
+  ),
+  -- Step 7: Final naming (kept for consistency, but already done above)
   international_waters_named AS (
     SELECT
       region,
       polygon_geom,
       area_sq_degrees,
-      'International Waters - '
-        || REPLACE(INITCAP(region), '_', ' ') || ' '
-        || ROW_NUMBER() OVER (
-          PARTITION BY region
-          ORDER BY area_sq_degrees DESC
-        ) AS area_name,
-      'International waters in '
-        || REPLACE(INITCAP(region), '_', ' ')
-        || ' Ocean. Calculated as difference between ocean region and '
-        || 'all country areas (terrestrial and maritime). Area: '
-        || ROUND(area_sq_degrees::numeric, 2)
-        || ' square degrees.' AS area_description
+      area_name,
+      area_description
     FROM
-      international_waters_filtered
+      seas_identification
   )
 -- Step 7: Insert into international_waters table
 -- Insert each region separately to avoid UNION issues
