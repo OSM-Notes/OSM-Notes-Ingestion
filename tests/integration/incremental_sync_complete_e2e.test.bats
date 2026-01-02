@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete incremental synchronization flow
 # Tests: Check → Download → Process → Update → Verify
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-29
+# Version: 2026-01-02
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -22,7 +22,7 @@ setup_file() {
  export BASENAME="test_incremental_sync_e2e"
  export LOG_LEVEL="ERROR"
  export TEST_MODE="true"
- 
+
  # Setup shared database schema once for all tests
  __shared_db_setup_file
 }
@@ -76,7 +76,7 @@ teardown_file() {
  if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
- 
+
  # Shared database teardown (truncates tables, preserves schema)
  __shared_db_teardown_file
 }
@@ -143,10 +143,25 @@ teardown_file() {
  # Use existing table structure (note_id, latitude, longitude)
  # Check if table exists and has correct structure
  local TABLE_EXISTS
- TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2>/dev/null || echo "f")
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
   # Table exists, use real structure
+  # Ensure PRIMARY KEY exists for ON CONFLICT to work
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+-- Add PRIMARY KEY if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'pk_notes_api' 
+    AND conrelid = 'notes_api'::regclass
+  ) THEN
+    ALTER TABLE notes_api ADD CONSTRAINT pk_notes_api PRIMARY KEY (note_id);
+  END IF;
+END $$;
+EOSQL
+
   # Simulate processing and insertion using real column names
   # Note: Remove existing test data first to avoid conflicts
   # Status must use note_status_enum type ('open', 'close', 'hidden')
@@ -164,7 +179,7 @@ EOSQL
 
   # Verify notes were inserted using real column name
   local NOTE_COUNT
-  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
+  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2> /dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
  else
   # Table doesn't exist, create test structure with correct schema
@@ -178,7 +193,7 @@ BEGIN
 END
 $$;
 CREATE TABLE IF NOT EXISTS notes_api (
- note_id INTEGER NOT NULL,
+ note_id INTEGER NOT NULL PRIMARY KEY,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
@@ -197,7 +212,7 @@ EOSQL
 
   # Verify notes were inserted using correct column name
   local NOTE_COUNT
-  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
+  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2> /dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
  fi
 }
@@ -243,9 +258,24 @@ EOSQL
  # Step 3: Process and insert (simulated)
  # Check table structure and use appropriate column names
  local TABLE_EXISTS
- TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2>/dev/null || echo "f")
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
+  # Ensure PRIMARY KEY exists for ON CONFLICT to work
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+-- Add PRIMARY KEY if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'pk_notes_api' 
+    AND conrelid = 'notes_api'::regclass
+  ) THEN
+    ALTER TABLE notes_api ADD CONSTRAINT pk_notes_api PRIMARY KEY (note_id);
+  END IF;
+END $$;
+EOSQL
+
   # Use real structure (note_id, latitude, longitude)
   # Status must use note_status_enum type
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -260,7 +290,7 @@ ON CONFLICT (note_id) DO UPDATE SET
  status = EXCLUDED.status;
 EOSQL
   local SYNCED_COUNT
-  SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
+  SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2> /dev/null || echo "0")
  else
   # Create test structure with correct schema
   # First ensure enum type exists
@@ -273,7 +303,7 @@ BEGIN
 END
 $$;
 CREATE TABLE IF NOT EXISTS notes_api (
- note_id INTEGER NOT NULL,
+ note_id INTEGER NOT NULL PRIMARY KEY,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
@@ -286,7 +316,7 @@ INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
 EOSQL
   local SYNCED_COUNT
-  SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
+  SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2> /dev/null || echo "0")
  fi
 
  # Step 4: Update timestamp
@@ -332,9 +362,24 @@ EOF
 
  # Check table structure and use appropriate column names
  local TABLE_EXISTS
- TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2>/dev/null || echo "f")
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
+  # Ensure PRIMARY KEY exists for ON CONFLICT to work
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+-- Add PRIMARY KEY if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'pk_notes_api' 
+    AND conrelid = 'notes_api'::regclass
+  ) THEN
+    ALTER TABLE notes_api ADD CONSTRAINT pk_notes_api PRIMARY KEY (note_id);
+  END IF;
+END $$;
+EOSQL
+
   # Use real structure (note_id, latitude, longitude)
   # Clean up test data first
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -367,9 +412,9 @@ EOSQL
   # Verify both notes exist
   # Check for each note separately to handle potential duplicates
   local NOTE1_COUNT
-  NOTE1_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id = 20001;" 2>/dev/null || echo "0")
+  NOTE1_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id = 20001;" 2> /dev/null || echo "0")
   local NOTE2_COUNT
-  NOTE2_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id = 20002;" 2>/dev/null || echo "0")
+  NOTE2_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id = 20002;" 2> /dev/null || echo "0")
   # We expect at least note 20001 to exist (inserted first), and ideally both
   [[ "${NOTE1_COUNT}" -ge 1 ]] && [[ "${NOTE2_COUNT}" -ge 1 ]]
  else
@@ -384,7 +429,7 @@ BEGIN
 END
 $$;
 CREATE TABLE IF NOT EXISTS notes_api (
- note_id INTEGER NOT NULL,
+ note_id INTEGER NOT NULL PRIMARY KEY,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
@@ -400,12 +445,16 @@ EOSQL
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
-(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum);
+(20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
 EOSQL
 
   local TOTAL_COUNT
-  TOTAL_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2>/dev/null || echo "0")
+  TOTAL_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2> /dev/null || echo "0")
   [[ "${TOTAL_COUNT}" -eq 2 ]]
  fi
 }
-

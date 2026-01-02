@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete Planet processing flow
 # Tests: Download → Processing → Load → Verification
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-29
+# Version: 2026-01-02
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -70,7 +70,7 @@ teardown() {
  # Per-test cleanup (runs after each test)
  # Truncate test data instead of dropping tables (faster)
  # Note: Only truncate if tables exist to avoid errors
- __truncate_test_tables notes note_comments 2>/dev/null || true
+ __truncate_test_tables notes note_comments 2> /dev/null || true
 }
 
 # Shared database teardown (runs once per file, not per test)
@@ -79,7 +79,7 @@ teardown_file() {
  if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
   rm -rf "${TMP_DIR}"
  fi
- 
+
  # Shared database teardown (truncates tables, preserves schema)
  __shared_db_teardown_file
 }
@@ -95,11 +95,11 @@ teardown_file() {
 
  # Mock download - use test file
  local PLANET_FILE="${TMP_DIR}/planet-notes-test.osn.xml"
- 
+
  # Verify file exists
  [[ -f "${PLANET_FILE}" ]]
  [[ -s "${PLANET_FILE}" ]]
- 
+
  # Verify XML structure
  run grep -q "<osm-notes>" "${PLANET_FILE}"
  [ "$status" -eq 0 ]
@@ -113,12 +113,12 @@ teardown_file() {
  # Expected: Notes are extracted from XML
 
  local PLANET_FILE="${TMP_DIR}/planet-notes-test.osn.xml"
- 
+
  # Verify XML can be parsed (basic check)
  run grep -c "<note" "${PLANET_FILE}"
  [ "$status" -eq 0 ]
  [[ "${output}" -ge 2 ]]
- 
+
  # Verify note IDs are present
  run grep -q 'id="1001"' "${PLANET_FILE}"
  [ "$status" -eq 0 ]
@@ -136,7 +136,7 @@ teardown_file() {
 
  # Check if table exists and use correct structure
  local TABLE_EXISTS
- TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes');" 2>/dev/null || echo "f")
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
   # Table exists, check which column names it uses (lat/lon vs latitude/longitude)
@@ -148,27 +148,60 @@ EOSQL
 
   # Check if table has latitude/longitude or lat/lon columns
   local HAS_LATITUDE
-  HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2>/dev/null || echo "f")
-  
+  HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2> /dev/null || echo "f")
+
   if [[ "${HAS_LATITUDE}" == "t" ]]; then
    # Use latitude/longitude columns
-   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+   # Check if PRIMARY KEY exists to use ON CONFLICT
+   local HAS_PK
+   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p');" 2> /dev/null || echo "f")
+   if [[ "${HAS_PK}" == "t" ]]; then
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
+EOSQL
+   else
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
+   fi
   else
    # Use lat/lon columns (from __shared_db_setup_file)
-   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+   local HAS_PK
+   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p');" 2> /dev/null || echo "f")
+   if [[ "${HAS_PK}" == "t" ]]; then
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
+(1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ lat = EXCLUDED.lat,
+ lon = EXCLUDED.lon,
+ status = EXCLUDED.status;
+EOSQL
+   else
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
+   fi
   fi
 
   # Verify notes were loaded using correct column name
   local NOTE_COUNT
-  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2> /dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
  else
   # Table doesn't exist, create test structure with correct schema
@@ -182,7 +215,7 @@ BEGIN
 END
 $$;
 CREATE TABLE IF NOT EXISTS notes (
- note_id INTEGER NOT NULL,
+ note_id INTEGER NOT NULL PRIMARY KEY,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
@@ -201,7 +234,7 @@ CREATE TABLE IF NOT EXISTS note_comments (
 EOSQL
 
   # Simulate loading notes from Planet using correct structure
-  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
@@ -209,13 +242,13 @@ EOSQL
 
   # Verify notes were loaded using correct column name
   local NOTE_COUNT
-  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+  NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2> /dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
  fi
 
  # Verify comments were loaded
  local COMMENT_COUNT
- COMMENT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM note_comments WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+ COMMENT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM note_comments WHERE note_id IN (1001, 1002);" 2> /dev/null || echo "0")
  [[ "${COMMENT_COUNT}" -ge 3 ]]
 }
 
@@ -230,8 +263,8 @@ EOSQL
  # Ensure test data exists first
  # Check which column names the table uses
  local HAS_LATITUDE
- HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2>/dev/null || echo "f")
- 
+ HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2> /dev/null || echo "f")
+
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 DELETE FROM notes WHERE note_id IN (1001, 1002);
 EOSQL
@@ -240,9 +273,9 @@ EOSQL
   # Use latitude/longitude columns
   # Check if PRIMARY KEY exists on note_id to use ON CONFLICT
   local HAS_PK
-  HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2>/dev/null || echo "f")
+  HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
   if [[ "${HAS_PK}" == "t" ]]; then
-   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -254,7 +287,7 @@ ON CONFLICT (note_id) DO UPDATE SET
  status = EXCLUDED.status;
 EOSQL
   else
-   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
@@ -263,9 +296,9 @@ EOSQL
  else
   # Use lat/lon columns
   local HAS_PK
-  HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2>/dev/null || echo "f")
+  HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
   if [[ "${HAS_PK}" == "t" ]]; then
-   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -277,7 +310,7 @@ ON CONFLICT (note_id) DO UPDATE SET
  status = EXCLUDED.status;
 EOSQL
   else
-   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
@@ -285,21 +318,26 @@ EOSQL
   fi
  fi
 
+ # Verify notes were inserted before checking status
+ local NOTE_COUNT
+ NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2> /dev/null || echo "0")
+ [[ "${NOTE_COUNT}" -ge 2 ]]
+
  # Verify note 1001 is open using correct column name
  # Note: status enum returns 'open' or 'close', not 'closed'
  local NOTE1_STATUS
- NOTE1_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE note_id = 1001;" 2>/dev/null || echo "")
+ NOTE1_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE note_id = 1001;" 2> /dev/null || echo "")
  [[ "${NOTE1_STATUS}" == "open" ]]
 
  # Verify note 1002 is closed using correct column name
  # Note: status enum uses 'close' not 'closed'
  local NOTE2_STATUS
- NOTE2_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE note_id = 1002;" 2>/dev/null || echo "")
+ NOTE2_STATUS=$(psql -d "${DBNAME}" -Atq -c "SELECT status FROM notes WHERE note_id = 1002;" 2> /dev/null || echo "")
  [[ "${NOTE2_STATUS}" == "close" ]]
 
  # Verify note 1002 has closed_at timestamp using correct column name
  local NOTE2_CLOSED
- NOTE2_CLOSED=$(psql -d "${DBNAME}" -Atq -c "SELECT closed_at IS NOT NULL FROM notes WHERE note_id = 1002;" 2>/dev/null || echo "f")
+ NOTE2_CLOSED=$(psql -d "${DBNAME}" -Atq -c "SELECT closed_at IS NOT NULL FROM notes WHERE note_id = 1002;" 2> /dev/null || echo "f")
  [[ "${NOTE2_CLOSED}" == "t" ]]
 }
 
@@ -324,25 +362,25 @@ EOSQL
  # Step 3: Load to database (simulated)
  # Check table structure and use appropriate column names
  local TABLE_EXISTS
- TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes');" 2>/dev/null || echo "f")
+ TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
   # Use real structure, check which column names it uses
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 DELETE FROM notes WHERE note_id IN (1001, 1002);
 EOSQL
-  
+
   # Check if table has latitude/longitude or lat/lon columns
   local HAS_LATITUDE
-  HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2>/dev/null || echo "f")
-  
+  HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2> /dev/null || echo "f")
+
   if [[ "${HAS_LATITUDE}" == "t" ]]; then
    # Use latitude/longitude columns
    # Check if PRIMARY KEY exists on note_id to use ON CONFLICT
    local HAS_PK
-   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2>/dev/null || echo "f")
+   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
    if [[ "${HAS_PK}" == "t" ]]; then
-    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -354,7 +392,7 @@ ON CONFLICT (note_id) DO UPDATE SET
  status = EXCLUDED.status;
 EOSQL
    else
-    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
@@ -363,9 +401,9 @@ EOSQL
   else
    # Use lat/lon columns
    local HAS_PK
-   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2>/dev/null || echo "f")
+   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
    if [[ "${HAS_PK}" == "t" ]]; then
-    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -377,7 +415,7 @@ ON CONFLICT (note_id) DO UPDATE SET
  status = EXCLUDED.status;
 EOSQL
    else
-    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
@@ -385,7 +423,7 @@ EOSQL
    fi
   fi
   local LOADED_COUNT
-  LOADED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+  LOADED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2> /dev/null || echo "0")
  else
   # Create test structure with correct schema
   # First ensure enum type exists
@@ -398,7 +436,7 @@ BEGIN
 END
 $$;
 CREATE TABLE IF NOT EXISTS notes (
- note_id INTEGER NOT NULL,
+ note_id INTEGER NOT NULL PRIMARY KEY,
  latitude DECIMAL NOT NULL,
  longitude DECIMAL NOT NULL,
  created_at TIMESTAMP NOT NULL,
@@ -411,10 +449,9 @@ INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) 
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
   local LOADED_COUNT
-  LOADED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2>/dev/null || echo "0")
+  LOADED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2> /dev/null || echo "0")
  fi
 
  # Step 4: Verify
  [[ "${LOADED_COUNT}" -eq 2 ]]
 }
-
