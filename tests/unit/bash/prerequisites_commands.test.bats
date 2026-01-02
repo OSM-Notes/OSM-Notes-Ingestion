@@ -3,7 +3,7 @@
 # Prerequisites Commands Tests
 # Tests for command availability validation
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2026-01-02
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 load "$(dirname "${BATS_TEST_FILENAME}")/performance_edge_cases_helper.bash"
@@ -54,9 +54,9 @@ teardown() {
 # =============================================================================
 
 @test "enhanced __checkPrereqsCommands should validate all required tools" {
- # Skip this test if running on host (not in Docker)
- if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment"
+ # Verify that the function is available
+ if ! declare -f __checkPrereqsCommands > /dev/null 2>&1; then
+  skip "Function __checkPrereqsCommands not available"
  fi
 
  # Test that all required tools are available
@@ -66,29 +66,37 @@ teardown() {
 }
 
 @test "enhanced __checkPrereqsCommands should handle missing PostgreSQL" {
- # Skip this test if running on host (not in Docker)
- if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment"
+ # Verify that the function is available
+ if ! declare -f __checkPrereqsCommands > /dev/null 2>&1; then
+  skip "Function __checkPrereqsCommands not available"
  fi
 
  # Mock PostgreSQL not available
  psql() { return 1; }
+ export -f psql
 
  run __checkPrereqsCommands
  [ "$status" -ne 0 ]
+
+ # Restore psql
+ unset -f psql 2> /dev/null || true
 }
 
 @test "enhanced __checkPrereqsCommands should handle missing curl" {
- # Skip this test if running on host (not in Docker)
- if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment"
+ # Verify that the function is available
+ if ! declare -f __checkPrereqsCommands > /dev/null 2>&1; then
+  skip "Function __checkPrereqsCommands not available"
  fi
 
  # Mock curl not available
  curl() { return 1; }
+ export -f curl
 
  run __checkPrereqsCommands
  [ "$status" -ne 0 ]
+
+ # Restore curl
+ unset -f curl 2> /dev/null || true
 }
 
 @test "enhanced __checkPrereqsCommands should handle missing aria2c" {

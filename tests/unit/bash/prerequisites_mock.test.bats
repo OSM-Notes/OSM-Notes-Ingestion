@@ -3,7 +3,7 @@
 # Prerequisites Mock Tests
 # Tests for prerequisites checking with mock dependencies
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-11
+# Version: 2026-01-02
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 load "$(dirname "${BATS_TEST_FILENAME}")/performance_edge_cases_helper.bash"
@@ -13,7 +13,7 @@ setup() {
  if declare -f setup_test_properties > /dev/null 2>&1; then
   setup_test_properties
  fi
- 
+
  # Set up required environment variables for functionsProcess.sh
  export BASENAME="test"
  export TMP_DIR="/tmp/test_$$"
@@ -56,7 +56,7 @@ teardown() {
 @test "mock prerequisites check should work without external dependencies" {
  # Skip this test if running on host (not in Docker)
  if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment"
+  skip "Function not available in test environment"
  fi
 
  # Set required environment variables
@@ -157,4 +157,3 @@ EOF
  export PATH="${original_path}"
  rm -rf "${mock_dir}"
 }
-
