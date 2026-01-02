@@ -936,13 +936,23 @@ function __process_api_data {
  # This prevents accumulation of data in API tables across cycles
  # IMPORTANT: This must be done BEFORE updating timestamp to ensure tables are always cleaned
  # even if there are errors in timestamp update
- # Note: Tables were already created before processing, we only truncate here
+ # Note: Tables may not exist if processPlanetNotes.sh was executed (it drops API tables)
+ # So we check if tables exist before attempting to truncate
  __logd "Truncating API tables after processing"
- psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
-   TRUNCATE TABLE notes_api CASCADE;
-   TRUNCATE TABLE note_comments_api CASCADE;
-   TRUNCATE TABLE note_comments_text_api CASCADE;
+ local API_TABLES_EXIST
+ API_TABLES_EXIST=$(psql -d "${DBNAME}" -Atq -c \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('notes_api', 'note_comments_api', 'note_comments_text_api')" \
+  2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ 
+ if [[ "${API_TABLES_EXIST}" == "3" ]]; then
+  psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
+    TRUNCATE TABLE notes_api CASCADE;
+    TRUNCATE TABLE note_comments_api CASCADE;
+    TRUNCATE TABLE note_comments_text_api CASCADE;
 EOF
+ else
+  __logd "API tables do not exist (likely dropped by processPlanetNotes.sh), skipping truncate"
+ fi
 
  # Update last processed timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
