@@ -943,7 +943,7 @@ function __process_api_data {
  API_TABLES_EXIST=$(psql -d "${DBNAME}" -Atq -c \
   "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('notes_api', 'note_comments_api', 'note_comments_text_api')" \
   2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
- 
+
  if [[ "${API_TABLES_EXIST}" == "3" ]]; then
   psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF
     TRUNCATE TABLE notes_api CASCADE;
