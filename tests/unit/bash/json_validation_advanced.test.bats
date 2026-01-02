@@ -76,11 +76,11 @@ EOF
 
 @test "validate_json_with_element requires jq command" {
  # Test behavior when jq is not available
- # Strategy: Remove jq from PATH temporarily by creating a restricted PATH
+ # Strategy: Remove jq from PATH completely and clear bash hash
  local original_path="${PATH}"
  local jq_was_available=false
  local jq_path=""
- local temp_bin_dir=""
+ local restricted_path=""
 
  if command -v jq &> /dev/null; then
   jq_was_available=true
@@ -88,38 +88,50 @@ EOF
   # Get directory where jq is located
   local jq_dir
   jq_dir=$(dirname "${jq_path}")
-  # Create a temporary directory
-  temp_bin_dir=$(mktemp -d)
+
+  # Remove jq from bash hash
+  hash -d jq 2> /dev/null || true
+
   # Build new PATH excluding jq's directory
-  local new_path="${temp_bin_dir}"
+  restricted_path=""
   IFS=':' read -ra PATH_ARRAY <<< "${PATH}"
   for path_dir in "${PATH_ARRAY[@]}"; do
    if [[ "${path_dir}" != "${jq_dir}" ]] && [[ -n "${path_dir}" ]]; then
-    new_path="${new_path}:${path_dir}"
+    if [[ -z "${restricted_path}" ]]; then
+     restricted_path="${path_dir}"
+    else
+     restricted_path="${restricted_path}:${path_dir}"
+    fi
    fi
   done
-  export PATH="${new_path}"
-  # Clear bash command hash to force re-lookup
-  hash -r 2> /dev/null || true
+
+  # If restricted_path is empty, use a minimal safe PATH
+  if [[ -z "${restricted_path}" ]]; then
+   restricted_path="/usr/bin:/bin"
+  fi
+
+  # Verify jq is no longer available with restricted PATH
+  if PATH="${restricted_path}" command -v jq &> /dev/null; then
+   # jq still found, skip this test
+   skip "Cannot simulate jq not being available (jq found in multiple locations)"
+  fi
  fi
 
  # Test that function detects missing jq
+ # Use env to ensure PATH is set in the subshell
  # __validate_json_structure will check command -v jq first
  # and should fail because jq is not in PATH
- run __validate_json_with_element "${TEST_DIR}/osm_valid.json" "elements"
+ if [[ "${jq_was_available}" == "true" ]]; then
+  # Run with restricted PATH
+  PATH="${restricted_path}" run __validate_json_with_element "${TEST_DIR}/osm_valid.json" "elements"
+ else
+  # jq was not available, test should work as-is
+  run __validate_json_with_element "${TEST_DIR}/osm_valid.json" "elements"
+ fi
  # Function should return error status
  [[ "${status}" -eq 1 ]]
  # The error should mention jq
  [[ "${output}" == *"jq"* ]]
-
- # Restore PATH if jq was available
- if [[ "${jq_was_available}" == "true" ]]; then
-  export PATH="${original_path}"
-  hash -r 2> /dev/null || true
-  if [[ -n "${temp_bin_dir}" ]] && [[ -d "${temp_bin_dir}" ]]; then
-   rm -rf "${temp_bin_dir}"
-  fi
- fi
 }
 
 @test "validate_json_with_element with OSM JSON containing multiple elements" {
