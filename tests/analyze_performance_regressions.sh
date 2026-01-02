@@ -3,7 +3,7 @@
 # Performance Regression Detection Script
 # Compares current benchmark results against baseline and detects regressions
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-23
+# Version: 2026-01-02
 
 set -euo pipefail
 
@@ -70,6 +70,8 @@ load_baseline() {
 }
 
 # Load current metrics from result files
+# Handles both JSONL format (multiple JSON objects separated by newlines)
+# and single JSON object format
 load_current() {
  local test_name="${1}"
  local metric_name="${2}"
@@ -80,7 +82,13 @@ load_current() {
   return 0
  fi
  
- jq -r "select(.metric == \"${metric_name}\") | .value" \
+ # Try to read as JSONL (multiple JSON objects) first
+ # If that fails, try as single JSON object or array
+ jq -r -s '.[] | select(.metric == "'"${metric_name}"'") | .value' \
+  "${result_file}" 2>/dev/null | tail -1 || \
+ jq -r 'select(.metric == "'"${metric_name}"'") | .value' \
+  "${result_file}" 2>/dev/null | tail -1 || \
+ jq -r '.[] | select(.metric == "'"${metric_name}"'") | .value' \
   "${result_file}" 2>/dev/null | tail -1 || echo ""
 }
 
@@ -181,8 +189,11 @@ analyze_benchmarks() {
   test_name=$(basename "${result_file}" .json)
   
   # Extract metrics from current results
+  # Handle both JSONL format (multiple JSON objects) and single JSON object/array
   local metrics
-  metrics=$(jq -r '.metric' "${result_file}" 2>/dev/null || true)
+  metrics=$(jq -r -s '.[] | .metric' "${result_file}" 2>/dev/null || \
+            jq -r '.metric' "${result_file}" 2>/dev/null || \
+            jq -r '.[] | .metric' "${result_file}" 2>/dev/null || true)
   
   while IFS= read -r metric_name; do
    [[ -z "${metric_name}" ]] && continue
@@ -267,11 +278,20 @@ create_baseline() {
  result_files=$(find "${CURRENT_RESULTS_DIR}" -name "*.json" -type f 2>/dev/null || true)
  
  while IFS= read -r result_file; do
-  local file_data
-  file_data=$(jq -c '.' "${result_file}" 2>/dev/null || echo "[]")
+  [[ -z "${result_file}" ]] && continue
   
-  # Merge into baseline
-  baseline_data=$(echo "${baseline_data}" | jq -c ". + [${file_data}]" 2>/dev/null || echo "${baseline_data}")
+  # Handle JSONL format (multiple JSON objects separated by newlines)
+  # Convert to array format for baseline
+  local file_data
+  file_data=$(jq -s '.' "${result_file}" 2>/dev/null || \
+              jq -c '.' "${result_file}" 2>/dev/null || echo "[]")
+  
+  # If file_data is an array, merge it; otherwise wrap it in an array
+  if echo "${file_data}" | jq -e 'type == "array"' > /dev/null 2>&1; then
+   baseline_data=$(echo "${baseline_data}" | jq -c ". + ${file_data}" 2>/dev/null || echo "${baseline_data}")
+  else
+   baseline_data=$(echo "${baseline_data}" | jq -c ". + [${file_data}]" 2>/dev/null || echo "${baseline_data}")
+  fi
  done <<< "${result_files}"
  
  # Save baseline

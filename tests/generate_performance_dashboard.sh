@@ -3,7 +3,7 @@
 # Performance Dashboard Generator
 # Generates HTML dashboard from benchmark results
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-23
+# Version: 2026-01-02
 
 set -euo pipefail
 
@@ -40,6 +40,8 @@ check_dependencies() {
 }
 
 # Get latest benchmark value for a test and metric
+# Handles both JSONL format (multiple JSON objects separated by newlines)
+# and single JSON object/array format
 get_latest_value() {
  local test_name="${1}"
  local metric_name="${2}"
@@ -51,7 +53,13 @@ get_latest_value() {
  fi
  
  if command -v jq > /dev/null 2>&1; then
-  jq -r "select(.metric == \"${metric_name}\") | .value" \
+  # Try to read as JSONL (multiple JSON objects) first
+  # If that fails, try as single JSON object or array
+  jq -r -s '.[] | select(.metric == "'"${metric_name}"'") | .value' \
+   "${result_file}" 2>/dev/null | tail -1 || \
+  jq -r 'select(.metric == "'"${metric_name}"'") | .value' \
+   "${result_file}" 2>/dev/null | tail -1 || \
+  jq -r '.[] | select(.metric == "'"${metric_name}"'") | .value' \
    "${result_file}" 2>/dev/null | tail -1 || echo ""
  else
   # Fallback: use grep and awk
@@ -172,9 +180,12 @@ generate_html_dashboard() {
   test_names+=("${test_name}")
   
   # Extract metrics from file
+  # Handle both JSONL format (multiple JSON objects) and single JSON object/array
   if command -v jq > /dev/null 2>&1; then
    local metrics
-   metrics=$(jq -r '.metric' "${result_file}" 2>/dev/null | sort -u || true)
+   metrics=$(jq -r -s '.[] | .metric' "${result_file}" 2>/dev/null | sort -u || \
+             jq -r '.metric' "${result_file}" 2>/dev/null | sort -u || \
+             jq -r '.[] | .metric' "${result_file}" 2>/dev/null | sort -u || true)
    while IFS= read -r metric; do
     [[ -z "${metric}" ]] && continue
     tests_metrics["${test_name}.${metric}"]=1
@@ -349,9 +360,14 @@ EOF
   total_tests=$((total_tests + 1))
   
   # Get unit from result file
+  # Handle both JSONL format (multiple JSON objects) and single JSON object/array
   local unit
   if command -v jq > /dev/null 2>&1; then
-   unit=$(jq -r "select(.metric == \"${metric_name}\") | .unit" \
+   unit=$(jq -r -s '.[] | select(.metric == "'"${metric_name}"'") | .unit' \
+    "${RESULTS_DIR}/${test_name}.json" 2>/dev/null | tail -1 || \
+    jq -r "select(.metric == \"${metric_name}\") | .unit" \
+    "${RESULTS_DIR}/${test_name}.json" 2>/dev/null | tail -1 || \
+    jq -r '.[] | select(.metric == "'"${metric_name}"'") | .unit' \
     "${RESULTS_DIR}/${test_name}.json" 2>/dev/null | tail -1 || echo "")
   fi
   
@@ -461,9 +477,12 @@ generate_markdown_report() {
   test_names+=("${test_name}")
   
   # Extract metrics from file
+  # Handle both JSONL format (multiple JSON objects) and single JSON object/array
   if command -v jq > /dev/null 2>&1; then
    local metrics
-   metrics=$(jq -r '.metric' "${result_file}" 2>/dev/null | sort -u || true)
+   metrics=$(jq -r -s '.[] | .metric' "${result_file}" 2>/dev/null | sort -u || \
+             jq -r '.metric' "${result_file}" 2>/dev/null | sort -u || \
+             jq -r '.[] | .metric' "${result_file}" 2>/dev/null | sort -u || true)
    while IFS= read -r metric; do
     [[ -z "${metric}" ]] && continue
     tests_metrics["${test_name}.${metric}"]=1
