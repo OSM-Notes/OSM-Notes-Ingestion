@@ -345,9 +345,22 @@ EOF
   fi
  fi
 
+ # Check if PostGIS is available, install if not
+ local has_postgis
+ local postgis_installed_by_test=false
+ has_postgis=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_extension WHERE extname = 'postgis';" 2> /dev/null || echo "0")
+
+ if [[ "${has_postgis}" -eq "0" ]]; then
+  # Try to install PostGIS extension
+  if psql -d "${DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1; then
+   postgis_installed_by_test=true
+   has_postgis=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_extension WHERE extname = 'postgis';" 2> /dev/null || echo "0")
+  fi
+ fi
+
  # Try to create import table with only Point geometries (no polygons)
  # Use command psql explicitly to avoid mock interception
- if command -v psql > /dev/null 2>&1; then
+ if command -v psql > /dev/null 2>&1 && [[ "${has_postgis}" -gt "0" ]]; then
   psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS import CASCADE;" 2> /dev/null || true
   psql -d "${DBNAME}" -c "CREATE TABLE import (geometry GEOMETRY);" 2> /dev/null || true
 
@@ -364,6 +377,13 @@ EOF
 
   # The validation should detect this and reject
   [[ "${POLYGON_COUNT}" -eq 0 ]]
+
+  # Cleanup: Remove PostGIS if we installed it
+  if [[ "${postgis_installed_by_test}" == "true" ]]; then
+   psql -d "${DBNAME}" -c "DROP EXTENSION IF EXISTS postgis CASCADE;" > /dev/null 2>&1 || true
+  fi
+ elif [[ "${has_postgis}" -eq "0" ]]; then
+  skip "PostGIS extension not available and could not be installed"
  else
   skip "psql command not available"
  fi

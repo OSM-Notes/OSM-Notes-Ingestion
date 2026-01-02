@@ -76,28 +76,49 @@ EOF
 
 @test "validate_json_with_element requires jq command" {
  # Test behavior when jq is not available
- # If jq is available, temporarily modify PATH to hide it
+ # Strategy: Remove jq from PATH temporarily by creating a restricted PATH
  local original_path="${PATH}"
  local jq_was_available=false
+ local jq_path=""
+ local temp_bin_dir=""
 
  if command -v jq &> /dev/null; then
   jq_was_available=true
-  # Create a temporary directory that doesn't contain jq
-  local temp_bin_dir
+  jq_path=$(command -v jq)
+  # Get directory where jq is located
+  local jq_dir
+  jq_dir=$(dirname "${jq_path}")
+  # Create a temporary directory
   temp_bin_dir=$(mktemp -d)
-  # Temporarily modify PATH to exclude jq
-  export PATH="${temp_bin_dir}:${PATH}"
+  # Build new PATH excluding jq's directory
+  local new_path="${temp_bin_dir}"
+  IFS=':' read -ra PATH_ARRAY <<< "${PATH}"
+  for path_dir in "${PATH_ARRAY[@]}"; do
+   if [[ "${path_dir}" != "${jq_dir}" ]] && [[ -n "${path_dir}" ]]; then
+    new_path="${new_path}:${path_dir}"
+   fi
+  done
+  export PATH="${new_path}"
+  # Clear bash command hash to force re-lookup
+  hash -r 2> /dev/null || true
  fi
 
  # Test that function detects missing jq
+ # __validate_json_structure will check command -v jq first
+ # and should fail because jq is not in PATH
  run __validate_json_with_element "${TEST_DIR}/osm_valid.json" "elements"
+ # Function should return error status
  [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"jq command not available"* ]] || [[ "${output}" == *"jq"* ]]
+ # The error should mention jq
+ [[ "${output}" == *"jq"* ]]
 
  # Restore PATH if jq was available
  if [[ "${jq_was_available}" == "true" ]]; then
   export PATH="${original_path}"
-  rm -rf "${temp_bin_dir}"
+  hash -r 2> /dev/null || true
+  if [[ -n "${temp_bin_dir}" ]] && [[ -d "${temp_bin_dir}" ]]; then
+   rm -rf "${temp_bin_dir}"
+  fi
  fi
 }
 
