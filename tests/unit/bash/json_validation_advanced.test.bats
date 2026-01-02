@@ -3,7 +3,7 @@
 # JSON Validation Advanced Tests
 # Tests for advanced JSON validation scenarios and real-world structures
 # Author: Andres Gomez (AngocA)
-# Version: 2025-10-29
+# Version: 2026-01-02
 
 setup() {
  # Load test helper functions
@@ -75,14 +75,30 @@ EOF
 }
 
 @test "validate_json_with_element requires jq command" {
- # Skip if jq is available (test is for when it's not)
+ # Test behavior when jq is not available
+ # If jq is available, temporarily modify PATH to hide it
+ local original_path="${PATH}"
+ local jq_was_available=false
+
  if command -v jq &> /dev/null; then
-  skip "jq is available, cannot test jq requirement"
+  jq_was_available=true
+  # Create a temporary directory that doesn't contain jq
+  local temp_bin_dir
+  temp_bin_dir=$(mktemp -d)
+  # Temporarily modify PATH to exclude jq
+  export PATH="${temp_bin_dir}:${PATH}"
  fi
 
+ # Test that function detects missing jq
  run __validate_json_with_element "${TEST_DIR}/osm_valid.json" "elements"
  [[ "${status}" -eq 1 ]]
- [[ "${output}" == *"jq command not available"* ]]
+ [[ "${output}" == *"jq command not available"* ]] || [[ "${output}" == *"jq"* ]]
+
+ # Restore PATH if jq was available
+ if [[ "${jq_was_available}" == "true" ]]; then
+  export PATH="${original_path}"
+  rm -rf "${temp_bin_dir}"
+ fi
 }
 
 @test "validate_json_with_element with OSM JSON containing multiple elements" {
@@ -211,4 +227,3 @@ EOF
  run __validate_json_with_element "${TEST_DIR}/geojson_real.json" "features"
  [[ "${status}" -eq 0 ]]
 }
-

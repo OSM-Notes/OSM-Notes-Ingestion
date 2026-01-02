@@ -2,7 +2,7 @@
 
 # Monitoring Historical Tests
 # Tests for monitoring historical data differences
-# Version: 2025-07-26
+# Version: 2026-01-02
 
 load ../../test_helper
 
@@ -26,24 +26,33 @@ setup() {
  export TEST_DBPORT=""
 
  # Create test database using peer authentication
- dropdb "${TEST_DBNAME}" 2>/dev/null || true
- createdb "${TEST_DBNAME}" 2>/dev/null || true
+ dropdb "${TEST_DBNAME}" 2> /dev/null || true
+ createdb "${TEST_DBNAME}" 2> /dev/null || true
 
  # Load base structure
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2>/dev/null || true
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2>/dev/null || true
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql" 2>/dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql" 2> /dev/null || true
 }
 
 teardown() {
  # Clean up test database using peer authentication
- dropdb "${TEST_DBNAME}" 2>/dev/null || true
+ dropdb "${TEST_DBNAME}" 2> /dev/null || true
 }
 
 @test "monitoring should detect equal notes count for historical data" {
- # Skip this test if running on host (using mocks)
- if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment (using mocks)"
+ # Check if database is available
+ load "${BATS_TEST_DIRNAME}/../../test_helper"
+ if declare -f __skip_if_no_database > /dev/null 2>&1; then
+  __skip_if_no_database "${TEST_DBNAME}" "Database not available"
+ else
+  # Fallback: check psql availability
+  if ! command -v psql > /dev/null 2>&1; then
+   skip "psql not available"
+  fi
+  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+   skip "Database ${TEST_DBNAME} not accessible"
+  fi
  fi
 
  # Load historical data (yesterday and before) into both tables with equal counts
@@ -77,9 +86,18 @@ teardown() {
 }
 
 @test "monitoring should detect missing notes from yesterday" {
- # Skip this test if running on host (using mocks)
- if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment (using mocks)"
+ # Check if database is available
+ load "${BATS_TEST_DIRNAME}/../../test_helper"
+ if declare -f __skip_if_no_database > /dev/null 2>&1; then
+  __skip_if_no_database "${TEST_DBNAME}" "Database not available"
+ else
+  # Fallback: check psql availability
+  if ! command -v psql > /dev/null 2>&1; then
+   skip "psql not available"
+  fi
+  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+   skip "Database ${TEST_DBNAME} not accessible"
+  fi
  fi
 
  # Load complete historical data into check tables (Planet data)
@@ -114,9 +132,18 @@ teardown() {
 }
 
 @test "monitoring should ignore missing notes from today" {
- # Skip this test if running on host (using mocks)
- if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment (using mocks)"
+ # Check if database is available
+ load "${BATS_TEST_DIRNAME}/../../test_helper"
+ if declare -f __skip_if_no_database > /dev/null 2>&1; then
+  __skip_if_no_database "${TEST_DBNAME}" "Database not available"
+ else
+  # Fallback: check psql availability
+  if ! command -v psql > /dev/null 2>&1; then
+   skip "psql not available"
+  fi
+  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+   skip "Database ${TEST_DBNAME} not accessible"
+  fi
  fi
 
  # Load data including today's notes into check tables (Planet data)
@@ -151,9 +178,18 @@ teardown() {
 }
 
 @test "monitoring should detect missing notes from last week" {
- # Skip this test if running on host (using mocks)
- if [[ ! -f "/app/bin/lib/functionsProcess.sh" ]]; then
-  skip "Skipping on host environment (using mocks)"
+ # Check if database is available
+ load "${BATS_TEST_DIRNAME}/../../test_helper"
+ if declare -f __skip_if_no_database > /dev/null 2>&1; then
+  __skip_if_no_database "${TEST_DBNAME}" "Database not available"
+ else
+  # Fallback: check psql availability
+  if ! command -v psql > /dev/null 2>&1; then
+   skip "psql not available"
+  fi
+  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+   skip "Database ${TEST_DBNAME} not accessible"
+  fi
  fi
 
  # Load complete historical data including last week into check tables (Planet data)
@@ -191,4 +227,3 @@ teardown() {
  [ "$status" -eq 0 ]
  [[ "$output" =~ "6" ]] # Should find 6 differences (missing notes from last week)
 }
-
