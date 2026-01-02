@@ -3,7 +3,7 @@
 # Export Maritimes Backup Script Tests
 # Tests for bin/scripts/exportMaritimesBackup.sh
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-07
+# Version: 2026-01-02
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -12,7 +12,7 @@ setup() {
  if declare -f setup_test_properties > /dev/null 2>&1; then
   setup_test_properties
  fi
- 
+
  # Create temporary test directory
  TEST_DIR=$(mktemp -d)
  export TEST_DIR
@@ -34,7 +34,7 @@ teardown() {
  if declare -f restore_properties > /dev/null 2>&1; then
   restore_properties
  fi
- 
+
  # Clean up test files
  rm -rf "${TEST_DIR}"
  # Clean up data directory files created during tests
@@ -52,7 +52,7 @@ teardown() {
  export -f psql
 
  # Run script and expect failure with ERROR_GENERAL (255)
- run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
+ run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2> /dev/null
  [[ "${status}" -eq 255 ]]
 }
 
@@ -68,7 +68,7 @@ teardown() {
  export -f psql
 
  # Run script and expect failure with ERROR_GENERAL (255)
- run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
+ run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2> /dev/null
  [[ "${status}" -eq 255 ]]
 }
 
@@ -85,7 +85,7 @@ teardown() {
    return 0
   fi
   # Maritime count query (with WHERE clause)
-  if [[ "$*" == *"-Atq"* ]] && [[ "$*" == *"SELECT COUNT(*) FROM countries WHERE ("* ]]; then
+  if [[ "$*" == *"-Atq"* ]] && [[ "$*" == *"SELECT COUNT(*) FROM countries WHERE is_maritime = true"* ]]; then
    echo "5"
    return 0
   fi
@@ -150,7 +150,7 @@ EOF
  export -f numfmt
 
  # Run script
- run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
+ run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2> /dev/null
  [[ "${status}" -eq 0 ]]
  [[ -f "${TEST_BASE_DIR}/data/maritimes.geojson" ]]
 }
@@ -168,7 +168,7 @@ EOF
    return 0
   fi
   # Maritime count query (with WHERE clause)
-  if [[ "$*" == *"-Atq"* ]] && [[ "$*" == *"SELECT COUNT(*) FROM countries WHERE ("* ]]; then
+  if [[ "$*" == *"-Atq"* ]] && [[ "$*" == *"SELECT COUNT(*) FROM countries WHERE is_maritime = true"* ]]; then
    echo "8"
    return 0
   fi
@@ -210,7 +210,7 @@ EOF
  export -f numfmt
 
  # Run script
- run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
+ run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2> /dev/null
  [[ "${status}" -eq 0 ]]
 }
 
@@ -227,7 +227,7 @@ EOF
    return 0
   fi
   # Maritime count query (no maritimes)
-  if [[ "$*" == *"-Atq"* ]] && [[ "$*" == *"SELECT COUNT(*) FROM countries WHERE ("* ]]; then
+  if [[ "$*" == *"-Atq"* ]] && [[ "$*" == *"SELECT COUNT(*) FROM countries WHERE is_maritime = true"* ]]; then
    echo "0"
    return 0
   fi
@@ -236,7 +236,6 @@ EOF
  export -f psql
 
  # Run script and expect failure with ERROR_GENERAL (255)
- run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2>/dev/null
+ run bash "${TEST_BASE_DIR}/bin/scripts/exportMaritimesBackup.sh" 2> /dev/null
  [[ "${status}" -eq 255 ]]
 }
-
