@@ -3,7 +3,7 @@
 # Tests for boundaries backup usage functionality
 # Verifies that backup files are used instead of downloading from Overpass
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-27
+# Version: 2026-01-02
 
 bats_require_minimum_version 1.5.0
 
@@ -14,7 +14,7 @@ setup() {
  if declare -f setup_test_properties > /dev/null 2>&1; then
   setup_test_properties
  fi
- 
+
  SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export SCRIPT_BASE_DIRECTORY
  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
@@ -90,10 +90,10 @@ teardown() {
  fi
  # Cleanup test backups (keep real ones if they exist)
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson.test" ]]; then
-  mv "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson.test" "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson" 2>/dev/null || true
+  mv "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson.test" "${SCRIPT_BASE_DIRECTORY}/data/countries.geojson" 2> /dev/null || true
  fi
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson.test" ]]; then
-  mv "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson.test" "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson" 2>/dev/null || true
+  mv "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson.test" "${SCRIPT_BASE_DIRECTORY}/data/maritimes.geojson" 2> /dev/null || true
  fi
  rm -rf "${TMP_DIR}"
 }
@@ -156,7 +156,67 @@ teardown() {
 
 @test "export scripts should create valid GeoJSON files" {
  # Test exportCountriesBackup.sh creates valid file structure
- skip "Requires database connection - test in hybrid mode instead"
+ # Check if database is available
+ load "${BATS_TEST_DIRNAME}/../../test_helper"
+ local DB_TO_CHECK="${DBNAME:-notes}"
+
+ if declare -f __skip_if_no_database > /dev/null 2>&1; then
+  __skip_if_no_database "${DB_TO_CHECK}" "Database not available"
+ else
+  # Fallback: check psql availability
+  if ! command -v psql > /dev/null 2>&1; then
+   skip "psql not available"
+  fi
+  if ! psql -d "${DB_TO_CHECK}" -c "SELECT 1;" > /dev/null 2>&1; then
+   skip "Database ${DB_TO_CHECK} not accessible"
+  fi
+ fi
+
+ # Check if countries table exists and has data
+ local COUNTRIES_COUNT
+ COUNTRIES_COUNT=$(psql -d "${DB_TO_CHECK}" -Atq -c "SELECT COUNT(*) FROM countries WHERE is_maritime = false;" 2> /dev/null || echo "0")
+ if [[ "${COUNTRIES_COUNT}" == "0" ]]; then
+  skip "Countries table is empty or does not exist"
+ fi
+
+ # Backup existing file if it exists
+ local GEOJSON_FILE="${SCRIPT_BASE_DIRECTORY}/data/countries.geojson"
+ if [[ -f "${GEOJSON_FILE}" ]]; then
+  mv "${GEOJSON_FILE}" "${GEOJSON_FILE}.backup" 2> /dev/null || true
+ fi
+
+ # Run export script
+ run bash "${SCRIPT_BASE_DIRECTORY}/bin/scripts/exportCountriesBackup.sh"
+
+ # Restore backup if test failed
+ if [[ "${status}" -ne 0 ]] && [[ -f "${GEOJSON_FILE}.backup" ]]; then
+  mv "${GEOJSON_FILE}.backup" "${GEOJSON_FILE}" 2> /dev/null || true
+ fi
+
+ # Check if script succeeded
+ [[ "${status}" -eq 0 ]]
+
+ # Check if output file exists
+ [[ -f "${GEOJSON_FILE}" ]]
+
+ # Validate GeoJSON structure if jq is available
+ if command -v jq > /dev/null 2>&1; then
+  run jq empty "${GEOJSON_FILE}"
+  [[ "${status}" -eq 0 ]]
+
+  # Check that it's a FeatureCollection
+  run jq -r '.type' "${GEOJSON_FILE}"
+  [[ "${output}" == "FeatureCollection" ]]
+
+  # Check that it has features
+  run jq '.features | length' "${GEOJSON_FILE}"
+  [[ "${output}" -gt 0 ]]
+ fi
+
+ # Restore backup if it existed
+ if [[ -f "${GEOJSON_FILE}.backup" ]]; then
+  mv "${GEOJSON_FILE}.backup" "${GEOJSON_FILE}" 2> /dev/null || true
+ fi
 }
 
 @test "backup files should have correct structure" {
@@ -177,4 +237,3 @@ teardown() {
  [ "$output" != "null" ]
  [ "$output" != "" ]
 }
-

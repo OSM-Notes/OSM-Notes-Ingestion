@@ -3,7 +3,7 @@
 # Boundary Processing Implementation Tests
 # Tests for implementation functions (processBoundary, processCountries, processMaritimes)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-09
+# Version: 2026-01-02
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -60,7 +60,7 @@ teardown() {
  }
  export -f __retry_file_operation
 
- run __processBoundary_impl "${QUERY_FILE}" 2>/dev/null
+ run __processBoundary_impl "${QUERY_FILE}" 2> /dev/null
  # Function may fail due to missing dependencies, but should not crash
  [[ "${status}" -ge 0 ]]
 }
@@ -91,7 +91,7 @@ teardown() {
  }
  export -f __retry_file_operation
 
- run __processCountries_impl 2>/dev/null
+ run __processCountries_impl 2> /dev/null
  # Function may fail due to missing dependencies, but should not crash
  [[ "${status}" -ge 0 ]]
 }
@@ -117,7 +117,7 @@ teardown() {
  }
  export -f __retry_file_operation
 
- run __processCountries_impl 2>/dev/null
+ run __processCountries_impl 2> /dev/null
  # Should handle empty list gracefully
  [[ "${status}" -ge 0 ]]
 }
@@ -151,7 +151,7 @@ teardown() {
  }
  export -f __compareIdsWithBackup
 
- run __processCountries_impl 2>/dev/null
+ run __processCountries_impl 2> /dev/null
  # Should handle backup comparison
  [[ "${status}" -ge 0 ]]
 }
@@ -174,7 +174,7 @@ teardown() {
  }
  export -f __resolve_geojson_file
 
- run __processMaritimes_impl 2>/dev/null
+ run __processMaritimes_impl 2> /dev/null
  # Function may fail due to missing dependencies, but should not crash
  [[ "${status}" -ge 0 ]]
 }
@@ -200,7 +200,7 @@ teardown() {
  }
  export -f __retry_file_operation
 
- run __processMaritimes_impl 2>/dev/null
+ run __processMaritimes_impl 2> /dev/null
  # Should handle empty list gracefully
  [[ "${status}" -ge 0 ]]
 }
@@ -233,7 +233,7 @@ teardown() {
  }
  export -f __compareIdsWithBackup
 
- run __processMaritimes_impl 2>/dev/null
+ run __processMaritimes_impl 2> /dev/null
  # Should handle backup comparison
  [[ "${status}" -ge 0 ]]
 }
@@ -261,7 +261,7 @@ EOF
  fi
 
  # The validation should detect empty features and reject
- FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2>/dev/null || echo "0")
+ FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
  [[ "${FEATURE_COUNT}" == "0" ]]
 }
 
@@ -293,8 +293,8 @@ EOF
  fi
 
  # Should have 1 feature but 0 polygons
- FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2>/dev/null || echo "0")
- POLYGON_COUNT=$(jq '[.features[] | select(.geometry.type == "Polygon" or .geometry.type == "MultiPolygon")] | length' "${GEOJSON_FILE}" 2>/dev/null || echo "0")
+ FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+ POLYGON_COUNT=$(jq '[.features[] | select(.geometry.type == "Polygon" or .geometry.type == "MultiPolygon")] | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
 
  [[ "${FEATURE_COUNT}" == "1" ]]
  [[ "${POLYGON_COUNT}" == "0" ]]
@@ -310,11 +310,11 @@ EOF
 
  # Create import table and ensure it's empty (simulating ogr2ogr failure)
  if command -v psql > /dev/null 2>&1; then
-  psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS import CASCADE;" 2>/dev/null || true
-  psql -d "${DBNAME}" -c "CREATE TABLE import (geometry GEOMETRY);" 2>/dev/null || true
+  psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS import CASCADE;" 2> /dev/null || true
+  psql -d "${DBNAME}" -c "CREATE TABLE import (geometry GEOMETRY);" 2> /dev/null || true
 
   # Verify table is empty
-  IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import;" 2>/dev/null || echo "0")
+  IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import;" 2> /dev/null || echo "0")
   [[ "${IMPORT_COUNT}" == "0" ]]
 
   # The validation should detect this and reject (return non-zero)
@@ -331,23 +331,32 @@ EOF
  export ID="66666"
  export DBNAME="${TEST_DBNAME:-test_db}"
 
- # Skip test if psql is not available or if TEST_MODE is set (mock environment)
- if ! command -v psql > /dev/null 2>&1 || [[ "${TEST_MODE:-}" == "true" ]]; then
-  skip "psql not available or running in mock environment"
+ # Check if database is available
+ load "${BATS_TEST_DIRNAME}/../../test_helper"
+ if declare -f __skip_if_no_database > /dev/null 2>&1; then
+  __skip_if_no_database "${DBNAME}" "Database not available"
+ else
+  # Fallback: check psql availability and connectivity
+  if ! command -v psql > /dev/null 2>&1; then
+   skip "psql not available"
+  fi
+  if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+   skip "Database ${DBNAME} not accessible"
+  fi
  fi
 
  # Try to create import table with only Point geometries (no polygons)
  # Use command psql explicitly to avoid mock interception
  if command -v psql > /dev/null 2>&1; then
-  psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS import CASCADE;" 2>/dev/null || true
-  psql -d "${DBNAME}" -c "CREATE TABLE import (geometry GEOMETRY);" 2>/dev/null || true
+  psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS import CASCADE;" 2> /dev/null || true
+  psql -d "${DBNAME}" -c "CREATE TABLE import (geometry GEOMETRY);" 2> /dev/null || true
 
   # Insert a Point (not a polygon)
-  psql -d "${DBNAME}" -c "INSERT INTO import (geometry) VALUES (ST_SetSRID(ST_MakePoint(0, 0), 4326));" 2>/dev/null || true
+  psql -d "${DBNAME}" -c "INSERT INTO import (geometry) VALUES (ST_SetSRID(ST_MakePoint(0, 0), 4326));" 2> /dev/null || true
 
   # Count total rows and polygon rows
-  IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import;" 2>/dev/null || echo "0")
-  POLYGON_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2>/dev/null || echo "0")
+  IMPORT_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import;" 2> /dev/null || echo "0")
+  POLYGON_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
 
   # Should have 1 row but 0 polygons
   [[ "${IMPORT_COUNT}" == "1" ]]
@@ -388,10 +397,9 @@ EOF
  fi
 
  # Should pass validation: has features and has polygons
- FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2>/dev/null || echo "0")
- POLYGON_COUNT=$(jq '[.features[] | select(.geometry.type == "Polygon" or .geometry.type == "MultiPolygon")] | length' "${GEOJSON_FILE}" 2>/dev/null || echo "0")
+ FEATURE_COUNT=$(jq '.features | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
+ POLYGON_COUNT=$(jq '[.features[] | select(.geometry.type == "Polygon" or .geometry.type == "MultiPolygon")] | length' "${GEOJSON_FILE}" 2> /dev/null || echo "0")
 
  [[ "${FEATURE_COUNT}" == "1" ]]
  [[ "${POLYGON_COUNT}" == "1" ]]
 }
-
