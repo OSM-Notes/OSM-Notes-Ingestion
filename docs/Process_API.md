@@ -1749,7 +1749,40 @@ psql -d "${DBNAME:-notes}" -c "
 | **Setup Overhead** | Every execution (1.8-4.5s) | Once at startup |
 | **Table Management** | DROP + CREATE each time | TRUNCATE (reuses structure) |
 | **Error Recovery** | Wait for next cron | Immediate retry |
+| **Memory Usage** | 23-39 MB (normal operation) | 23-39 MB (normal operation) |
 | **Use Case** | Legacy systems, testing | **Production, real-time systems, messaging** |
+
+### Memory Usage
+
+#### Normal Operation (API Processing)
+
+The daemon has very low memory footprint during normal operation:
+
+- **Typical Memory**: 23-39 MB
+- **Peak Memory**: ~40 MB
+- **CPU Usage**: Low (<1% average)
+- **Cycle Duration**: 9-11 seconds per cycle
+
+This is because normal API processing handles small incremental updates (typically <100 notes per minute).
+
+#### Planet Sync Operation
+
+When the daemon triggers `processPlanetNotes.sh` (when `TOTAL_NOTES >= MAX_NOTES`), memory usage increases significantly:
+
+- **Peak Memory**: 6-7 GB (observed in production)
+- **Duration**: 1-2 hours (depending on data volume)
+- **Operations**:
+  - Parallel processing of 50+ XML parts (6 concurrent threads)
+  - Processing ~5 million notes
+  - Geographic integrity verification (spatial queries on millions of records)
+  - Database consolidation operations
+
+**Note**: This high memory usage is **expected and normal** for Planet processing. The system is designed to handle this, and the daemon automatically recovers to normal memory usage after Planet sync completes.
+
+**Recommendations**:
+- Ensure system has at least 8 GB RAM available during Planet sync operations
+- Monitor memory usage during Planet sync (it's normal to see 6-7 GB peak)
+- Planet sync operations are infrequent (only triggered when >=10,000 notes accumulate)
 
 **⚠️ Important:** Do NOT run both scripts simultaneously. They use the same database tables and will conflict.
 
@@ -2086,6 +2119,19 @@ The daemon exits after 5 consecutive errors. Check logs:
 ```bash
 sudo journalctl -u osm-notes-ingestion-daemon | grep -i error
 ```
+
+#### Daemon Fails After Planet Sync
+
+If the daemon fails immediately after `processPlanetNotes.sh` completes successfully, it may be due to API tables being dropped during Planet sync. This has been fixed in the code, but if you encounter this issue:
+
+**Symptoms:**
+- Daemon fails with exit code 1 after Planet sync completes
+- Error about missing tables (`notes_api`, `note_comments_api`, `note_comments_text_api`)
+
+**Solution:**
+- The daemon now checks if API tables exist before truncating them
+- If tables don't exist (dropped by `processPlanetNotes.sh`), the daemon skips truncation
+- Restart the daemon: `sudo systemctl restart osm-notes-ingestion-daemon`
 
 #### Graceful Shutdown
 

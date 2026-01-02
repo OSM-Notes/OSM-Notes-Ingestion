@@ -785,6 +785,18 @@ fi
 - Error: "Killed" in logs
 - System becomes unresponsive
 
+**Expected Memory Usage:**
+
+- **Normal Operation**: 23-39 MB (when called from daemon for API processing)
+- **Planet Processing (Base Mode)**: 6-7 GB peak (observed in production)
+  - Processing ~5 million notes
+  - 50+ XML parts processed in parallel (6 concurrent threads)
+  - Geographic integrity verification (spatial queries)
+  - Database consolidation operations
+- **Planet Processing (Sync Mode)**: Similar to base mode, depends on data volume
+
+**Note**: High memory usage (6-7 GB) during Planet processing is **expected and normal**. The system is designed to handle this. Ensure your system has sufficient RAM (recommended: 8+ GB).
+
 **Diagnosis:**
 
 ```bash
@@ -796,6 +808,9 @@ ps aux | grep processPlanetNotes
 
 # Review OOM killer logs
 dmesg | grep -i "killed process"
+
+# Monitor memory during processing
+watch -n 5 'ps aux | grep processPlanetNotes | grep -v grep'
 ```
 
 **Solutions:**
@@ -808,6 +823,7 @@ dmesg | grep -i "killed process"
 - Process in smaller chunks (modify partition size)
 - Add swap space if needed
 - Process during off-peak hours
+- Ensure system has sufficient RAM (8+ GB recommended for Planet processing)
 
 **5. Disk Space Exhaustion**
 
@@ -1069,8 +1085,15 @@ fi
 # Check memory usage
 ps aux | grep processPlanetNotes | awk '{print $6/1024 " MB"}'
 
+# Monitor memory usage over time
+watch -n 5 'ps aux | grep processPlanetNotes | grep -v grep | awk "{print \$6/1024 \" MB\"}"'
+
 # Check database performance
 psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
+
+# Expected memory usage:
+# - Normal operation: 23-39 MB
+# - Planet processing: 6-7 GB peak (normal and expected)
 ```
 
 #### Getting More Help
