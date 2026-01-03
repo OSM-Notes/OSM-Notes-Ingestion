@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete incremental synchronization flow
 # Tests: Check → Download → Process → Update → Verify
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
+# Version: 2026-01-04
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -146,10 +146,38 @@ teardown_file() {
  TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
-  # Table exists, use structure from DDL (processAPINotes_21_createApiTables.sql):
-  # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
-  # Ensure PRIMARY KEY exists for ON CONFLICT to work
-  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+  # Table exists, check actual structure first
+  local HAS_NOTE_ID
+  HAS_NOTE_ID=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes_api' AND column_name = 'note_id');" 2> /dev/null || echo "f")
+  local HAS_ID
+  HAS_ID=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes_api' AND column_name = 'id');" 2> /dev/null || echo "f")
+  local HAS_LATITUDE
+  HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes_api' AND column_name = 'latitude');" 2> /dev/null || echo "f")
+
+  # If table doesn't have note_id, recreate it with correct structure
+  if [[ "${HAS_NOTE_ID}" != "t" ]]; then
+   # Recreate table with correct DDL structure
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DROP TABLE IF EXISTS notes_api CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+    CREATE TYPE note_status_enum AS ENUM ('open', 'close', 'hidden');
+  END IF;
+END $$;
+CREATE TABLE notes_api (
+ note_id INTEGER NOT NULL PRIMARY KEY,
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ closed_at TIMESTAMP,
+ status note_status_enum,
+ id_country INTEGER
+);
+EOSQL
+  else
+   # Ensure PRIMARY KEY exists for ON CONFLICT to work
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -161,6 +189,7 @@ BEGIN
   END IF;
 END $$;
 EOSQL
+  fi
 
   # Simulate processing and insertion using DDL structure
   # Status must use note_status_enum type ('open', 'close', 'hidden')
@@ -411,6 +440,32 @@ BEGIN
   END IF;
 END $$;
 EOSQL
+
+  # Check actual structure first
+  local HAS_NOTE_ID
+  HAS_NOTE_ID=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes_api' AND column_name = 'note_id');" 2> /dev/null || echo "f")
+
+  # If table doesn't have note_id, recreate it with correct structure
+  if [[ "${HAS_NOTE_ID}" != "t" ]]; then
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DROP TABLE IF EXISTS notes_api CASCADE;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_status_enum') THEN
+    CREATE TYPE note_status_enum AS ENUM ('open', 'close', 'hidden');
+  END IF;
+END $$;
+CREATE TABLE notes_api (
+ note_id INTEGER NOT NULL PRIMARY KEY,
+ latitude DECIMAL NOT NULL,
+ longitude DECIMAL NOT NULL,
+ created_at TIMESTAMP NOT NULL,
+ closed_at TIMESTAMP,
+ status note_status_enum,
+ id_country INTEGER
+);
+EOSQL
+  fi
 
   # Use real structure from DDL
   # Clean up test data first

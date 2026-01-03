@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete Planet processing flow
 # Tests: Download → Processing → Load → Verification
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
+# Version: 2026-01-05
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -142,8 +142,8 @@ teardown_file() {
   # Table exists, check which column names it uses (lat/lon vs latitude/longitude)
   # Remove existing test data first to avoid conflicts
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
-DELETE FROM notes WHERE note_id IN (1001, 1002);
 DELETE FROM note_comments WHERE note_id IN (1001, 1002);
+DELETE FROM notes WHERE note_id IN (1001, 1002);
 EOSQL
 
   # Use structure from DDL (processPlanetNotes_22_createBaseTables_tables.sql):
@@ -328,10 +328,108 @@ INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) 
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
 
+  # Simulate loading comments for the notes
+  # Check if note_comments has sequence_action column
+  local HAS_SEQUENCE_ACTION
+  HAS_SEQUENCE_ACTION=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'note_comments' AND column_name = 'sequence_action');" 2> /dev/null || echo "f")
+
+  # Check if note_comments id has default (SERIAL) or needs explicit values
+  local ID_HAS_DEFAULT
+  ID_HAS_DEFAULT=$(psql -d "${DBNAME}" -Atq -c "SELECT column_default IS NOT NULL FROM information_schema.columns WHERE table_name = 'note_comments' AND column_name = 'id';" 2> /dev/null || echo "f")
+
+  if [[ "${HAS_SEQUENCE_ACTION}" == "t" ]]; then
+   if [[ "${ID_HAS_DEFAULT}" == "t" ]]; then
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
+(1001, 0, 'opened', '2025-12-01 00:00:00+00', 1),
+(1001, 1, 'commented', '2025-12-01 01:00:00+00', 2),
+(1002, 0, 'opened', '2025-12-02 00:00:00+00', 1),
+(1002, 1, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+   else
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+INSERT INTO note_comments (id, note_id, sequence_action, event, created_at, id_user) VALUES
+(1, 1001, 0, 'opened', '2025-12-01 00:00:00+00', 1),
+(2, 1001, 1, 'commented', '2025-12-01 01:00:00+00', 2),
+(3, 1002, 0, 'opened', '2025-12-02 00:00:00+00', 1),
+(4, 1002, 1, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+   fi
+  else
+   if [[ "${ID_HAS_DEFAULT}" == "t" ]]; then
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+INSERT INTO note_comments (note_id, event, created_at, id_user) VALUES
+(1001, 'opened', '2025-12-01 00:00:00+00', 1),
+(1001, 'commented', '2025-12-01 01:00:00+00', 2),
+(1002, 'opened', '2025-12-02 00:00:00+00', 1),
+(1002, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+   else
+    psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+INSERT INTO note_comments (id, note_id, event, created_at, id_user) VALUES
+(1, 1001, 'opened', '2025-12-01 00:00:00+00', 1),
+(2, 1001, 'commented', '2025-12-01 01:00:00+00', 2),
+(3, 1002, 'opened', '2025-12-02 00:00:00+00', 1),
+(4, 1002, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+   fi
+  fi
+
   # Verify notes were loaded using correct column name
   local NOTE_COUNT
   NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes WHERE note_id IN (1001, 1002);" 2> /dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
+ fi
+
+ # Simulate loading comments for the notes (ensure comments exist for both cases)
+ # Check if note_comments has sequence_action column
+ local HAS_SEQUENCE_ACTION
+ HAS_SEQUENCE_ACTION=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'note_comments' AND column_name = 'sequence_action');" 2> /dev/null || echo "f")
+
+ # Check if note_comments id has default (SERIAL) or needs explicit values
+ local ID_HAS_DEFAULT
+ ID_HAS_DEFAULT=$(psql -d "${DBNAME}" -Atq -c "SELECT column_default IS NOT NULL FROM information_schema.columns WHERE table_name = 'note_comments' AND column_name = 'id';" 2> /dev/null || echo "f")
+
+ if [[ "${HAS_SEQUENCE_ACTION}" == "t" ]]; then
+  if [[ "${ID_HAS_DEFAULT}" == "t" ]]; then
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DELETE FROM note_comments WHERE note_id IN (1001, 1002);
+INSERT INTO note_comments (note_id, sequence_action, event, created_at, id_user) VALUES
+(1001, 0, 'opened', '2025-12-01 00:00:00+00', 1),
+(1001, 1, 'commented', '2025-12-01 01:00:00+00', 2),
+(1002, 0, 'opened', '2025-12-02 00:00:00+00', 1),
+(1002, 1, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+  else
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DELETE FROM note_comments WHERE note_id IN (1001, 1002);
+INSERT INTO note_comments (id, note_id, sequence_action, event, created_at, id_user) VALUES
+(1, 1001, 0, 'opened', '2025-12-01 00:00:00+00', 1),
+(2, 1001, 1, 'commented', '2025-12-01 01:00:00+00', 2),
+(3, 1002, 0, 'opened', '2025-12-02 00:00:00+00', 1),
+(4, 1002, 1, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+  fi
+ else
+  if [[ "${ID_HAS_DEFAULT}" == "t" ]]; then
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DELETE FROM note_comments WHERE note_id IN (1001, 1002);
+INSERT INTO note_comments (note_id, event, created_at, id_user) VALUES
+(1001, 'opened', '2025-12-01 00:00:00+00', 1),
+(1001, 'commented', '2025-12-01 01:00:00+00', 2),
+(1002, 'opened', '2025-12-02 00:00:00+00', 1),
+(1002, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+  else
+   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DELETE FROM note_comments WHERE note_id IN (1001, 1002);
+INSERT INTO note_comments (id, note_id, event, created_at, id_user) VALUES
+(1, 1001, 'opened', '2025-12-01 00:00:00+00', 1),
+(2, 1001, 'commented', '2025-12-01 01:00:00+00', 2),
+(3, 1002, 'opened', '2025-12-02 00:00:00+00', 1),
+(4, 1002, 'closed', '2025-12-10 00:00:00+00', 1);
+EOSQL
+  fi
  fi
 
  # Verify comments were loaded
@@ -353,6 +451,10 @@ EOSQL
  local HAS_LATITUDE
  HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2> /dev/null || echo "f")
 
+ # Check if table has id column (test_helper.bash creates notes with id)
+ local HAS_ID
+ HAS_ID=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'id');" 2> /dev/null || echo "f")
+
  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 DELETE FROM notes WHERE note_id IN (1001, 1002);
 EOSQL
@@ -364,8 +466,24 @@ EOSQL
   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
   if [[ "${HAS_PK}" == "t" ]]; then
    local INSERT_RESULT
-   INSERT_RESULT=$(
-    psql -d "${DBNAME}" << 'EOSQL' 2>&1
+   if [[ "${HAS_ID}" == "t" ]]; then
+    # Table has id column, must provide it
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
+EOSQL
+    )
+   else
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -376,20 +494,31 @@ ON CONFLICT (note_id) DO UPDATE SET
  longitude = EXCLUDED.longitude,
  status = EXCLUDED.status;
 EOSQL
-   )
+    )
+   fi
    if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
     echo "INSERT failed: ${INSERT_RESULT}" >&2
     false
    fi
   else
    local INSERT_RESULT
-   INSERT_RESULT=$(
-    psql -d "${DBNAME}" << 'EOSQL' 2>&1
+   if [[ "${HAS_ID}" == "t" ]]; then
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
+EOSQL
+    )
+   else
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
-   )
+    )
+   fi
    if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
     echo "INSERT failed: ${INSERT_RESULT}" >&2
     false
@@ -401,8 +530,24 @@ EOSQL
   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
   if [[ "${HAS_PK}" == "t" ]]; then
    local INSERT_RESULT
-   INSERT_RESULT=$(
-    psql -d "${DBNAME}" << 'EOSQL' 2>&1
+   if [[ "${HAS_ID}" == "t" ]]; then
+    # Table has id column (test_helper.bash structure), must provide it
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, lat, lon, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ lat = EXCLUDED.lat,
+ lon = EXCLUDED.lon,
+ status = EXCLUDED.status;
+EOSQL
+    )
+   else
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -413,20 +558,32 @@ ON CONFLICT (note_id) DO UPDATE SET
  lon = EXCLUDED.lon,
  status = EXCLUDED.status;
 EOSQL
-   )
+    )
+   fi
    if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
     echo "INSERT failed: ${INSERT_RESULT}" >&2
     false
    fi
   else
    local INSERT_RESULT
-   INSERT_RESULT=$(
-    psql -d "${DBNAME}" << 'EOSQL' 2>&1
+   if [[ "${HAS_ID}" == "t" ]]; then
+    # Table has id column (test_helper.bash structure), must provide it
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, lat, lon, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
+EOSQL
+    )
+   else
+    INSERT_RESULT=$(
+     psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
-   )
+    )
+   fi
    if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
     echo "INSERT failed: ${INSERT_RESULT}" >&2
     false
