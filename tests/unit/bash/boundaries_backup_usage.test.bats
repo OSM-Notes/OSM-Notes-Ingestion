@@ -3,7 +3,7 @@
 # Tests for boundaries backup usage functionality
 # Verifies that backup files are used instead of downloading from Overpass
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-02
+# Version: 2026-01-03
 
 bats_require_minimum_version 1.5.0
 
@@ -176,7 +176,20 @@ teardown() {
  local COUNTRIES_COUNT
  COUNTRIES_COUNT=$(psql -d "${DB_TO_CHECK}" -Atq -c "SELECT COUNT(*) FROM countries WHERE is_maritime = false;" 2> /dev/null || echo "0")
  if [[ "${COUNTRIES_COUNT}" == "0" ]]; then
-  skip "Countries table is empty or does not exist"
+  # Try to setup countries table if setup script exists
+  local setup_script="${BATS_TEST_DIRNAME}/../../setup_countries_table.sh"
+  if [[ -f "${setup_script}" ]]; then
+   # Temporarily change DBNAME for setup script
+   local OLD_DBNAME="${DBNAME:-}"
+   export DBNAME="${DB_TO_CHECK}"
+   bash "${setup_script}" > /dev/null 2>&1 || true
+   export DBNAME="${OLD_DBNAME}"
+   # Check again after setup
+   COUNTRIES_COUNT=$(psql -d "${DB_TO_CHECK}" -Atq -c "SELECT COUNT(*) FROM countries WHERE is_maritime = false;" 2> /dev/null || echo "0")
+  fi
+  if [[ "${COUNTRIES_COUNT}" == "0" ]]; then
+   skip "Countries table is empty or does not exist"
+  fi
  fi
 
  # Backup existing file if it exists

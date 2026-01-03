@@ -2,7 +2,7 @@
 
 # Hybrid integration tests (mock internet downloads, real database/XML processing)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-11-24
+# Version: 2026-01-03
 
 setup() {
  # Setup test environment
@@ -30,19 +30,19 @@ setup() {
  local mock_commands_dir="${SCRIPT_BASE_DIRECTORY}/tests/mock_commands"
  local temp_path
  temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "${mock_commands_dir}" | tr '\n' ':' | sed 's/:$//')
- 
+
  # Find real psql path
  local real_psql_path=""
  while IFS= read -r dir; do
-   if [[ -f "${dir}/psql" ]] && [[ "${dir}" != "${mock_commands_dir}" ]]; then
-     real_psql_path="${dir}/psql"
-     break
-   fi
+  if [[ -f "${dir}/psql" ]] && [[ "${dir}" != "${mock_commands_dir}" ]]; then
+   real_psql_path="${dir}/psql"
+   break
+  fi
  done <<< "$(echo "${temp_path}" | tr ':' '\n')"
- 
+
  # Export real psql path if found
  if [[ -n "${real_psql_path}" ]]; then
-   export REAL_PSQL_PATH="${real_psql_path}"
+  export REAL_PSQL_PATH="${real_psql_path}"
  fi
 
  # Setup hybrid mock environment
@@ -166,16 +166,16 @@ teardown() {
   local temp_path
   temp_path=$(echo "${PATH}" | tr ':' '\n' | grep -v "mock_commands" | tr '\n' ':' | sed 's/:$//')
   local psql_path
-  psql_path=$(PATH="${temp_path}" command -v psql 2>/dev/null || true)
+  psql_path=$(PATH="${temp_path}" command -v psql 2> /dev/null || true)
   if [[ -n "${psql_path}" ]] && [[ "${psql_path}" != *"mock_commands"* ]]; then
    psql_cmd="${psql_path}"
   fi
  fi
- 
+
  if [[ -z "${psql_cmd}" ]]; then
   skip "psql not available"
  fi
- 
+
  # Run psql --version using the real psql
  # Capture both stdout and stderr to avoid issues with output redirection
  local version_output
@@ -183,7 +183,7 @@ teardown() {
   echo "ERROR: psql --version failed with exit code $?" >&2
   return 1
  }
- 
+
  # psql --version outputs "psql (PostgreSQL X.Y.Z)" or similar
  # Check for either "psql" or "PostgreSQL" in output
  if [[ "${version_output}" != *"psql"* ]] && [[ "${version_output}" != *"PostgreSQL"* ]]; then
@@ -206,18 +206,24 @@ teardown() {
    psql_cmd="${psql_path}"
   fi
  fi
- 
+
  if [[ -z "${psql_cmd}" ]]; then
   skip "psql not available"
  fi
 
- # Skip if database is not accessible
- if ! "${psql_cmd}" -d "${DBNAME:-osm_notes}" -c "SELECT 1;" > /dev/null 2>&1; then
-  skip "Database not accessible"
+ # Use __skip_if_no_database helper if available
+ local DB_TO_CHECK="${DBNAME:-${TEST_DBNAME:-osm_notes_ingestion_test}}"
+ if declare -f __skip_if_no_database > /dev/null 2>&1; then
+  __skip_if_no_database "${DB_TO_CHECK}" "Database not accessible"
+ else
+  # Fallback: check manually
+  if ! "${psql_cmd}" -d "${DB_TO_CHECK}" -c "SELECT 1;" > /dev/null 2>&1; then
+   skip "Database not accessible"
+  fi
  fi
 
  # Test basic database operation
- run "${psql_cmd}" -d "${DBNAME:-osm_notes}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
+ run "${psql_cmd}" -d "${DB_TO_CHECK}" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';"
  [ "$status" -eq 0 ]
  # Check for any output that indicates success
  [[ -n "$output" ]]
@@ -270,12 +276,12 @@ teardown() {
 
  # Check that mock commands are found using command -v (more reliable than which)
  local curl_path
- curl_path=$(command -v curl 2>/dev/null || true)
+ curl_path=$(command -v curl 2> /dev/null || true)
  [[ -n "${curl_path}" ]]
  [[ "${curl_path}" == *"mock_commands"* ]]
 
  local aria2c_path
- aria2c_path=$(command -v aria2c 2>/dev/null || true)
+ aria2c_path=$(command -v aria2c 2> /dev/null || true)
  [[ -n "${aria2c_path}" ]]
  [[ "${aria2c_path}" == *"mock_commands"* ]]
 }

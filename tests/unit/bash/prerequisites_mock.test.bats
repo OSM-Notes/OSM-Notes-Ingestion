@@ -3,7 +3,7 @@
 # Prerequisites Mock Tests
 # Tests for prerequisites checking with mock dependencies
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-02
+# Version: 2026-01-03
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 load "$(dirname "${BATS_TEST_FILENAME}")/performance_edge_cases_helper.bash"
@@ -54,9 +54,17 @@ teardown() {
 # =============================================================================
 
 @test "mock prerequisites check should work without external dependencies" {
- # Skip this test if running on host (not in Docker)
- if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
-  skip "Function not available in test environment"
+ # Check if function is available instead of checking Docker path
+ if ! declare -f __checkPrereqsCommands > /dev/null 2>&1; then
+  # Try to load the function from the script
+  local script_path="${SCRIPT_BASE_DIRECTORY:-${BATS_TEST_DIRNAME}/../../}/bin/lib/functionsProcess.sh"
+  if [[ -f "${script_path}" ]]; then
+   source "${script_path}" || true
+  fi
+  # Check again after loading
+  if ! declare -f __checkPrereqsCommands > /dev/null 2>&1; then
+   skip "Function not available in test environment"
+  fi
  fi
 
  # Set required environment variables
