@@ -1,7 +1,7 @@
 -- Generates a report of the differences between base tables and check tables.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-23
+-- Version: 2026-01-03
 
 -- Shows the information of the latest note, which should be recent.
 COPY
@@ -60,33 +60,41 @@ COPY
  TO '${DIFFERENT_NOTE_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
 
--- Comment ids that are not in the API DB, but are in the Planet.
+-- Comments that are not in the API DB, but are in the Planet.
 -- Compare all historical comments (excluding today) between API and Planet
+-- IMPORTANT: Compare by (note_id, sequence_action) instead of id, because
+-- API inserts use nextval() which generates different IDs than Planet dumps.
+-- This prevents false positives when comments exist with same logical content
+-- but different sequential IDs.
 DROP TABLE IF EXISTS temp_diff_comments_id;
 
 CREATE TABLE temp_diff_comments_id (
- comment_id INTEGER
+ note_id INTEGER,
+ sequence_action INTEGER
 );
 
 INSERT INTO temp_diff_comments_id
- SELECT /* Comments-check */ id
+ SELECT /* Comments-check */ note_id, sequence_action
  FROM note_comments_check
  WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+   AND sequence_action IS NOT NULL  -- Only compare comments with sequence_action
  EXCEPT
- SELECT /* Comments-check */ id
+ SELECT /* Comments-check */ note_id, sequence_action
  FROM note_comments
  WHERE DATE(created_at) < CURRENT_DATE  -- All history except today
+   AND sequence_action IS NOT NULL  -- Only compare comments with sequence_action
 ;
 
 COPY
  (
   SELECT /* Notes-check */ note_comments_check.*
   FROM note_comments_check
-  WHERE id IN (
-   SELECT /* Notes-check */ comment_id
+  WHERE (note_id, sequence_action) IN (
+   SELECT /* Notes-check */ note_id, sequence_action
    FROM temp_diff_comments_id
   )
-  ORDER BY id, created_at
+  AND DATE(created_at) < CURRENT_DATE  -- All history except today
+  ORDER BY note_id, sequence_action, created_at
  )
  TO '${DIFFERENT_COMMENT_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
 ;
@@ -142,21 +150,10 @@ DROP TABLE IF EXISTS temp_diff_notes;
 
 -- Comment differences between the retrieved from API and the Planet.
 -- Compare complete comment details for all history (excluding today)
-COPY (
- SELECT /* Comments-check */ note_comments_check.*
- FROM note_comments_check
- WHERE id IN (
-  SELECT /* Comments-check */ comment_id
-  FROM temp_diff_comments_id
- )
- AND DATE(created_at) < CURRENT_DATE  -- All history except today
- ORDER BY id, created_at
-)
-TO '${DIFFERENT_COMMENT_IDS_FILE}' WITH DELIMITER ',' CSV HEADER
-;
+-- Note: The COPY statement above already handles this correctly using
+-- (note_id, sequence_action) comparison. This section is kept for documentation.
 
-DROP TABLE IF EXISTS temp_diff_comments_id;
-DROP TABLE IF EXISTS temp_diff_note_comments;
+-- Clean up temporary tables (moved to end after all uses)
 
 -- Text comment ids that are not in the API DB, but are in the Planet.
 -- Compare all historical text comments (excluding today) between API and Planet
@@ -265,3 +262,7 @@ COPY (
  )
  TO '${DIFFERENCES_TEXT_COMMENT}' WITH DELIMITER ',' CSV HEADER
 ;
+
+-- Clean up temporary tables used for comment comparison
+DROP TABLE IF EXISTS temp_diff_comments_id;
+DROP TABLE IF EXISTS temp_diff_note_comments;
