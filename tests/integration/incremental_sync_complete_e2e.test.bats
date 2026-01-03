@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete incremental synchronization flow
 # Tests: Check → Download → Process → Update → Verify
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-02
+# Version: 2026-01-03
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -146,10 +146,10 @@ teardown_file() {
  TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
-  # Table exists, use real structure
+  # Table exists, use structure from DDL (processAPINotes_21_createApiTables.sql):
+  # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
   # Ensure PRIMARY KEY exists for ON CONFLICT to work
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
--- Add PRIMARY KEY if it doesn't exist
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -162,8 +162,7 @@ BEGIN
 END $$;
 EOSQL
 
-  # Simulate processing and insertion using real column names
-  # Note: Remove existing test data first to avoid conflicts
+  # Simulate processing and insertion using DDL structure
   # Status must use note_status_enum type ('open', 'close', 'hidden')
   local INSERT_RESULT
   INSERT_RESULT=$(
@@ -185,7 +184,7 @@ EOSQL
    false
   fi
 
-  # Verify notes were inserted using real column name
+  # Verify notes were inserted
   local NOTE_COUNT
   NOTE_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2> /dev/null || echo "0")
   [[ "${NOTE_COUNT}" -ge 2 ]]
@@ -284,7 +283,23 @@ BEGIN
 END $$;
 EOSQL
 
-  # Use real structure (note_id, latitude, longitude)
+  # Use structure from DDL (processAPINotes_21_createApiTables.sql):
+  # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
+  # Ensure PRIMARY KEY exists for ON CONFLICT to work
+  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'pk_notes_api' 
+    AND conrelid = 'notes_api'::regclass
+  ) THEN
+    ALTER TABLE notes_api ADD CONSTRAINT pk_notes_api PRIMARY KEY (note_id);
+  END IF;
+END $$;
+EOSQL
+
+  # Use real structure from DDL
   # Status must use note_status_enum type
   local INSERT_RESULT
   INSERT_RESULT=$(
@@ -381,9 +396,10 @@ EOF
  TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
+  # Use structure from DDL (processAPINotes_21_createApiTables.sql):
+  # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
   # Ensure PRIMARY KEY exists for ON CONFLICT to work
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
--- Add PRIMARY KEY if it doesn't exist
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -396,7 +412,7 @@ BEGIN
 END $$;
 EOSQL
 
-  # Use real structure (note_id, latitude, longitude)
+  # Use real structure from DDL
   # Clean up test data first
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
@@ -442,12 +458,10 @@ EOSQL
   fi
 
   # Verify both notes exist
-  # Check for each note separately to handle potential duplicates
   local NOTE1_COUNT
   NOTE1_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id = 20001;" 2> /dev/null || echo "0")
   local NOTE2_COUNT
   NOTE2_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id = 20002;" 2> /dev/null || echo "0")
-  # We expect at least note 20001 to exist (inserted first), and ideally both
   [[ "${NOTE1_COUNT}" -ge 1 ]] && [[ "${NOTE2_COUNT}" -ge 1 ]]
  else
   # Create test structure with correct schema

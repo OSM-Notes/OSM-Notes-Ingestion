@@ -3,7 +3,7 @@
 # End-to-end integration tests for complete Planet processing flow
 # Tests: Download → Processing → Load → Verification
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-02
+# Version: 2026-01-03
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 
@@ -146,19 +146,41 @@ DELETE FROM notes WHERE note_id IN (1001, 1002);
 DELETE FROM note_comments WHERE note_id IN (1001, 1002);
 EOSQL
 
-  # Check if table has latitude/longitude or lat/lon columns
+  # Use structure from DDL (processPlanetNotes_22_createBaseTables_tables.sql):
+  # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
+  # Check for latitude/longitude vs lat/lon (test_helper.bash uses lat/lon)
   local HAS_LATITUDE
   HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2> /dev/null || echo "f")
 
+  # Check if table has id column (test_helper.bash creates notes with id)
+  local HAS_ID
+  HAS_ID=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'id');" 2> /dev/null || echo "f")
+
   if [[ "${HAS_LATITUDE}" == "t" ]]; then
-   # Use latitude/longitude columns
+   # Use latitude/longitude columns (production DDL structure)
    # Check if PRIMARY KEY exists to use ON CONFLICT
    local HAS_PK
-   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p');" 2> /dev/null || echo "f")
+   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
    if [[ "${HAS_PK}" == "t" ]]; then
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     # Table has id column, must provide it
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
+EOSQL
+     )
+    else
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -169,33 +191,60 @@ ON CONFLICT (note_id) DO UPDATE SET
  longitude = EXCLUDED.longitude,
  status = EXCLUDED.status;
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
     fi
    else
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
+EOSQL
+     )
+    else
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
     fi
    fi
   else
-   # Use lat/lon columns (from __shared_db_setup_file)
+   # Use lat/lon columns (test_helper.bash structure)
    local HAS_PK
    HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p');" 2> /dev/null || echo "f")
    if [[ "${HAS_PK}" == "t" ]]; then
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     # Table has id column (test_helper.bash structure), must provide it
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, lat, lon, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ lat = EXCLUDED.lat,
+ lon = EXCLUDED.lon,
+ status = EXCLUDED.status;
+EOSQL
+     )
+    else
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -206,20 +255,31 @@ ON CONFLICT (note_id) DO UPDATE SET
  lon = EXCLUDED.lon,
  status = EXCLUDED.status;
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
     fi
    else
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, lat, lon, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
+EOSQL
+     )
+    else
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
@@ -426,19 +486,43 @@ EOSQL
 DELETE FROM notes WHERE note_id IN (1001, 1002);
 EOSQL
 
-  # Check if table has latitude/longitude or lat/lon columns
+  # Use structure from DDL (processPlanetNotes_22_createBaseTables_tables.sql):
+  # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
+  # Check if PRIMARY KEY exists to use ON CONFLICT
+  local HAS_PK
+  HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
+
+  # Check if table has id column (test_helper.bash creates notes with id)
+  local HAS_ID
+  HAS_ID=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'id');" 2> /dev/null || echo "f")
+
+  # Check for latitude/longitude vs lat/lon
   local HAS_LATITUDE
   HAS_LATITUDE=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'notes' AND column_name = 'latitude');" 2> /dev/null || echo "f")
 
   if [[ "${HAS_LATITUDE}" == "t" ]]; then
-   # Use latitude/longitude columns
-   # Check if PRIMARY KEY exists on note_id to use ON CONFLICT
-   local HAS_PK
-   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
+   # Use latitude/longitude columns (production DDL structure)
    if [[ "${HAS_PK}" == "t" ]]; then
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     # Table has id column (test_helper.bash structure), must provide it
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ latitude = EXCLUDED.latitude,
+ longitude = EXCLUDED.longitude,
+ status = EXCLUDED.status;
+EOSQL
+     )
+    else
+     # Production DDL structure (no id column)
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -449,33 +533,60 @@ ON CONFLICT (note_id) DO UPDATE SET
  longitude = EXCLUDED.longitude,
  status = EXCLUDED.status;
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
     fi
    else
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, latitude, longitude, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
+EOSQL
+     )
+    else
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, latitude, longitude, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
     fi
    fi
   else
-   # Use lat/lon columns
+   # Use lat/lon columns (test_helper.bash structure)
    local HAS_PK
-   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p' AND conkey::text LIKE '%note_id%');" 2> /dev/null || echo "f")
+   HAS_PK=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid = 'notes'::regclass AND contype = 'p');" 2> /dev/null || echo "f")
    if [[ "${HAS_PK}" == "t" ]]; then
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     # Table has id column (test_helper.bash structure), must provide it
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, lat, lon, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
+ON CONFLICT (note_id) DO UPDATE SET
+ created_at = EXCLUDED.created_at,
+ closed_at = EXCLUDED.closed_at,
+ lat = EXCLUDED.lat,
+ lon = EXCLUDED.lon,
+ status = EXCLUDED.status;
+EOSQL
+     )
+    else
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum)
@@ -486,20 +597,31 @@ ON CONFLICT (note_id) DO UPDATE SET
  lon = EXCLUDED.lon,
  status = EXCLUDED.status;
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
     fi
    else
     local INSERT_RESULT
-    INSERT_RESULT=$(
-     psql -d "${DBNAME}" << 'EOSQL' 2>&1
+    if [[ "${HAS_ID}" == "t" ]]; then
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
+INSERT INTO notes (id, note_id, created_at, closed_at, lat, lon, status) VALUES
+(1001, 1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
+(1002, 1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
+EOSQL
+     )
+    else
+     INSERT_RESULT=$(
+      psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes (note_id, created_at, closed_at, lat, lon, status) VALUES
 (1001, '2025-12-01 00:00:00+00', NULL, 40.7128, -74.0060, 'open'::note_status_enum),
 (1002, '2025-12-02 00:00:00+00', '2025-12-10 00:00:00+00', 34.0522, -118.2437, 'close'::note_status_enum);
 EOSQL
-    )
+     )
+    fi
     if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
      echo "INSERT failed: ${INSERT_RESULT}" >&2
      false
