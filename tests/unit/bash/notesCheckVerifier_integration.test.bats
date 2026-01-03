@@ -436,8 +436,12 @@ SQL
  # Drop test database if it exists (cleanup from previous runs)
  psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" > /dev/null 2>&1 || true
 
- # Create test database
+ # Create test database (ignore error if it already exists from a previous test)
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+ # Note: CREATE DATABASE might fail if database already exists, which is OK
+ # We'll verify the database exists by trying to connect to it
+
+ # Verify database exists by connecting to it
  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   skip "Cannot connect to test database"
  fi
@@ -572,8 +576,12 @@ SQL
  # Drop test database if it exists (cleanup from previous runs)
  psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" > /dev/null 2>&1 || true
 
- # Create test database
+ # Create test database (ignore error if it already exists from a previous test)
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+ # Note: CREATE DATABASE might fail if database already exists, which is OK
+ # We'll verify the database exists by trying to connect to it
+
+ # Verify database exists by connecting to it
  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   skip "Cannot connect to test database"
  fi
@@ -698,8 +706,12 @@ SQL
  # Drop test database if it exists (cleanup from previous runs)
  psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" > /dev/null 2>&1 || true
 
- # Create test database
+ # Create test database (ignore error if it already exists from a previous test)
  run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+ # Note: CREATE DATABASE might fail if database already exists, which is OK
+ # We'll verify the database exists by trying to connect to it
+
+ # Verify database exists by connecting to it
  if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   skip "Cannot connect to test database"
  fi
