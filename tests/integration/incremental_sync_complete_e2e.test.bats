@@ -165,7 +165,9 @@ EOSQL
   # Simulate processing and insertion using real column names
   # Note: Remove existing test data first to avoid conflicts
   # Status must use note_status_enum type ('open', 'close', 'hidden')
-  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+  local INSERT_RESULT
+  INSERT_RESULT=$(
+   psql -d "${DBNAME}" << 'EOSQL' 2>&1
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
@@ -176,6 +178,12 @@ ON CONFLICT (note_id) DO UPDATE SET
  longitude = EXCLUDED.longitude,
  status = EXCLUDED.status;
 EOSQL
+  )
+  # Check if INSERT failed
+  if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
+   echo "INSERT failed: ${INSERT_RESULT}" >&2
+   false
+  fi
 
   # Verify notes were inserted using real column name
   local NOTE_COUNT
@@ -278,7 +286,9 @@ EOSQL
 
   # Use real structure (note_id, latitude, longitude)
   # Status must use note_status_enum type
-  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+  local INSERT_RESULT
+  INSERT_RESULT=$(
+   psql -d "${DBNAME}" << 'EOSQL' 2>&1
 DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
@@ -289,6 +299,12 @@ ON CONFLICT (note_id) DO UPDATE SET
  longitude = EXCLUDED.longitude,
  status = EXCLUDED.status;
 EOSQL
+  )
+  # Check if INSERT failed
+  if echo "${INSERT_RESULT}" | grep -qiE "^ERROR|^FATAL"; then
+   echo "INSERT failed: ${INSERT_RESULT}" >&2
+   false
+  fi
   local SYNCED_COUNT
   SYNCED_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api WHERE note_id IN (20001, 20002);" 2> /dev/null || echo "0")
  else
@@ -387,7 +403,9 @@ DELETE FROM notes_api WHERE note_id IN (20001, 20002);
 EOSQL
 
   # Insert existing note (status must use enum type)
-  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+  local INSERT_RESULT1
+  INSERT_RESULT1=$(
+   psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum)
 ON CONFLICT (note_id) DO UPDATE SET
@@ -396,9 +414,17 @@ ON CONFLICT (note_id) DO UPDATE SET
  longitude = EXCLUDED.longitude,
  status = EXCLUDED.status;
 EOSQL
+  )
+  # Check if INSERT failed
+  if echo "${INSERT_RESULT1}" | grep -qiE "^ERROR|^FATAL"; then
+   echo "INSERT failed: ${INSERT_RESULT1}" >&2
+   false
+  fi
 
   # Simulate partial update (note 20001 exists, 20002 is new)
-  psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
+  local INSERT_RESULT2
+  INSERT_RESULT2=$(
+   psql -d "${DBNAME}" << 'EOSQL' 2>&1
 INSERT INTO notes_api (note_id, created_at, latitude, longitude, status) VALUES
 (20001, '2025-12-23 10:00:00+00', 40.7128, -74.0060, 'open'::note_status_enum),
 (20002, '2025-12-23 11:00:00+00', 34.0522, -118.2437, 'open'::note_status_enum)
@@ -408,6 +434,12 @@ ON CONFLICT (note_id) DO UPDATE SET
  longitude = EXCLUDED.longitude,
  status = EXCLUDED.status;
 EOSQL
+  )
+  # Check if INSERT failed
+  if echo "${INSERT_RESULT2}" | grep -qiE "^ERROR|^FATAL"; then
+   echo "INSERT failed: ${INSERT_RESULT2}" >&2
+   false
+  fi
 
   # Verify both notes exist
   # Check for each note separately to handle potential duplicates
