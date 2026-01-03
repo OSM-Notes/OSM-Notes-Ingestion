@@ -420,3 +420,403 @@ SQL
   "SELECT closed_at IS NOT NULL FROM notes WHERE note_id = 1;")
  [[ "${note1_closed_at}" == "t" ]]
 }
+
+# Test that notesCheckVerifier report compares comments by (note_id, sequence_action) not by id
+@test "notesCheckVerifier report should compare comments by logical content not by id" {
+ # Check if PostgreSQL is available
+ if ! command -v psql > /dev/null 2>&1; then
+  skip "PostgreSQL client (psql) not available"
+ fi
+
+ # Check if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Cannot connect to PostgreSQL"
+ fi
+
+ # Drop test database if it exists (cleanup from previous runs)
+ psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" > /dev/null 2>&1 || true
+
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Cannot connect to test database"
+ fi
+
+ # Create base tables and types
+ psql -d "${TEST_DBNAME}" << 'SQL'
+  DO $$ 
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_event_enum') THEN
+      CREATE TYPE note_event_enum AS ENUM ('opened', 'closed', 'reopened', 'commented', 'hidden');
+    END IF;
+  END $$;
+  
+  CREATE TABLE IF NOT EXISTS note_comments (
+    id INTEGER NOT NULL PRIMARY KEY,
+    note_id INTEGER NOT NULL,
+    sequence_action INTEGER,
+    event note_event_enum NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id_user INTEGER,
+    username VARCHAR(256)
+  );
+  
+  CREATE TABLE IF NOT EXISTS note_comments_check (
+    id INTEGER NOT NULL,
+    note_id INTEGER NOT NULL,
+    sequence_action INTEGER,
+    event note_event_enum NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id_user INTEGER,
+    username VARCHAR(256)
+  );
+  
+  CREATE UNIQUE INDEX IF NOT EXISTS note_comments_note_seq_idx 
+    ON note_comments (note_id, sequence_action) 
+    WHERE sequence_action IS NOT NULL;
+SQL
+
+ # Insert test data: comments with same (note_id, sequence_action) but different IDs
+ # This simulates the scenario where API inserts use nextval() generating different IDs
+ # than Planet dumps
+ psql -d "${TEST_DBNAME}" << 'SQL'
+  -- Comment in check table: id=100, note_id=1, sequence_action=1
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (100, 1, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+  
+  -- Comment in main table: id=200, note_id=1, sequence_action=1 (same logical content, different ID)
+  INSERT INTO note_comments (id, note_id, sequence_action, event, created_at)
+  VALUES (200, 1, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+  
+  -- Comment in check table: id=101, note_id=2, sequence_action=1 (truly missing)
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (101, 2, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+  
+  -- Comment in check table: id=102, note_id=3, sequence_action=1 (truly missing)
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (102, 3, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+SQL
+
+ # Execute the corrected comparison logic from the report
+ local missing_count
+ missing_count=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT note_id, sequence_action
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+    EXCEPT
+    SELECT note_id, sequence_action
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+  ) AS diff;
+ ")
+
+ # Should only find 2 missing comments (note_id=2 and note_id=3), NOT note_id=1
+ # because it exists with same (note_id, sequence_action) even though ID is different
+ [[ "${missing_count}" -eq "2" ]]
+
+ # Verify that note_id=1 is NOT in the missing list
+ local note1_missing
+ note1_missing=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT note_id, sequence_action
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+    EXCEPT
+    SELECT note_id, sequence_action
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+  ) AS diff
+  WHERE note_id = 1 AND sequence_action = 1;
+ ")
+ [[ "${note1_missing}" -eq "0" ]]
+
+ # Verify that note_id=2 IS in the missing list
+ local note2_missing
+ note2_missing=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT note_id, sequence_action
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+    EXCEPT
+    SELECT note_id, sequence_action
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+  ) AS diff
+  WHERE note_id = 2 AND sequence_action = 1;
+ ")
+ [[ "${note2_missing}" -eq "1" ]]
+}
+
+# Test that notesCheckVerifier does not generate false positives for comments with different IDs
+@test "notesCheckVerifier should not report false positives for comments with different IDs" {
+ # Check if PostgreSQL is available
+ if ! command -v psql > /dev/null 2>&1; then
+  skip "PostgreSQL client (psql) not available"
+ fi
+
+ # Check if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Cannot connect to PostgreSQL"
+ fi
+
+ # Drop test database if it exists (cleanup from previous runs)
+ psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" > /dev/null 2>&1 || true
+
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Cannot connect to test database"
+ fi
+
+ # Create base tables and types
+ psql -d "${TEST_DBNAME}" << 'SQL'
+  DO $$ 
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_event_enum') THEN
+      CREATE TYPE note_event_enum AS ENUM ('opened', 'closed', 'reopened', 'commented', 'hidden');
+    END IF;
+  END $$;
+  
+  CREATE TABLE IF NOT EXISTS note_comments (
+    id INTEGER NOT NULL PRIMARY KEY,
+    note_id INTEGER NOT NULL,
+    sequence_action INTEGER,
+    event note_event_enum NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id_user INTEGER,
+    username VARCHAR(256)
+  );
+  
+  CREATE TABLE IF NOT EXISTS note_comments_check (
+    id INTEGER NOT NULL,
+    note_id INTEGER NOT NULL,
+    sequence_action INTEGER,
+    event note_event_enum NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id_user INTEGER,
+    username VARCHAR(256)
+  );
+  
+  CREATE UNIQUE INDEX IF NOT EXISTS note_comments_note_seq_idx 
+    ON note_comments (note_id, sequence_action) 
+    WHERE sequence_action IS NOT NULL;
+SQL
+
+ # Insert multiple comments with same logical content but different IDs
+ # This simulates the real-world scenario where 205 comments had different IDs
+ psql -d "${TEST_DBNAME}" << 'SQL'
+  -- Insert 10 comments in check table
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES 
+    (100, 1, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (101, 2, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (102, 3, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (103, 4, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (104, 5, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (105, 6, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (106, 7, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (107, 8, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (108, 9, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (109, 10, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+  
+  -- Insert same comments in main table but with DIFFERENT IDs (simulating API nextval())
+  INSERT INTO note_comments (id, note_id, sequence_action, event, created_at)
+  VALUES 
+    (200, 1, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (201, 2, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (202, 3, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (203, 4, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (204, 5, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (205, 6, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (206, 7, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (207, 8, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (208, 9, 1, 'opened', CURRENT_DATE - INTERVAL '2 days'),
+    (209, 10, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+SQL
+
+ # Execute the corrected comparison logic
+ local false_positives
+ false_positives=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT note_id, sequence_action
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+    EXCEPT
+    SELECT note_id, sequence_action
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+  ) AS diff;
+ ")
+
+ # Should find 0 false positives because all comments exist with same (note_id, sequence_action)
+ [[ "${false_positives}" -eq "0" ]]
+
+ # Verify old comparison method (by ID) would have found false positives
+ local old_method_count
+ old_method_count=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT id
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+    EXCEPT
+    SELECT id
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+  ) AS diff;
+ ")
+
+ # Old method would incorrectly report 10 "missing" comments
+ [[ "${old_method_count}" -eq "10" ]]
+}
+
+# Test that notesCheckVerifier report correctly identifies truly missing comments
+@test "notesCheckVerifier should correctly identify truly missing comments" {
+ # Check if PostgreSQL is available
+ if ! command -v psql > /dev/null 2>&1; then
+  skip "PostgreSQL client (psql) not available"
+ fi
+
+ # Check if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Cannot connect to PostgreSQL"
+ fi
+
+ # Drop test database if it exists (cleanup from previous runs)
+ psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" > /dev/null 2>&1 || true
+
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};" 2> /dev/null || true
+ if ! psql -d "${TEST_DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
+  skip "Cannot connect to test database"
+ fi
+
+ # Create base tables and types
+ psql -d "${TEST_DBNAME}" << 'SQL'
+  DO $$ 
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_event_enum') THEN
+      CREATE TYPE note_event_enum AS ENUM ('opened', 'closed', 'reopened', 'commented', 'hidden');
+    END IF;
+  END $$;
+  
+  CREATE TABLE IF NOT EXISTS note_comments (
+    id INTEGER NOT NULL PRIMARY KEY,
+    note_id INTEGER NOT NULL,
+    sequence_action INTEGER,
+    event note_event_enum NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id_user INTEGER,
+    username VARCHAR(256)
+  );
+  
+  CREATE TABLE IF NOT EXISTS note_comments_check (
+    id INTEGER NOT NULL,
+    note_id INTEGER NOT NULL,
+    sequence_action INTEGER,
+    event note_event_enum NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id_user INTEGER,
+    username VARCHAR(256)
+  );
+  
+  CREATE UNIQUE INDEX IF NOT EXISTS note_comments_note_seq_idx 
+    ON note_comments (note_id, sequence_action) 
+    WHERE sequence_action IS NOT NULL;
+SQL
+
+ # Insert test data: mix of existing and missing comments
+ psql -d "${TEST_DBNAME}" << 'SQL'
+  -- Comments that exist in both tables (should NOT be reported as missing)
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (100, 1, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+  INSERT INTO note_comments (id, note_id, sequence_action, event, created_at)
+  VALUES (200, 1, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');  -- Different ID, same content
+  
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (101, 2, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');
+  INSERT INTO note_comments (id, note_id, sequence_action, event, created_at)
+  VALUES (201, 2, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');  -- Different ID, same content
+  
+  -- Comments that exist ONLY in check table (SHOULD be reported as missing)
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (102, 3, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');  -- Missing
+  
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (103, 4, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');  -- Missing
+  
+  INSERT INTO note_comments_check (id, note_id, sequence_action, event, created_at)
+  VALUES (104, 5, 1, 'opened', CURRENT_DATE - INTERVAL '2 days');  -- Missing
+SQL
+
+ # Execute the corrected comparison logic
+ local missing_count
+ missing_count=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT note_id, sequence_action
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+    EXCEPT
+    SELECT note_id, sequence_action
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+  ) AS diff;
+ ")
+
+ # Should find exactly 3 missing comments (note_id 3, 4, 5)
+ [[ "${missing_count}" -eq "3" ]]
+
+ # Verify specific missing comments
+ local missing_note3
+ missing_note3=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT note_id, sequence_action
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+    EXCEPT
+    SELECT note_id, sequence_action
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+  ) AS diff
+  WHERE note_id = 3 AND sequence_action = 1;
+ ")
+ [[ "${missing_note3}" -eq "1" ]]
+
+ # Verify that existing comments are NOT reported as missing
+ local false_positive_note1
+ false_positive_note1=$(psql -d "${TEST_DBNAME}" -tAc "
+  SELECT COUNT(*)
+  FROM (
+    SELECT note_id, sequence_action
+    FROM note_comments_check
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+    EXCEPT
+    SELECT note_id, sequence_action
+    FROM note_comments
+    WHERE DATE(created_at) < CURRENT_DATE
+      AND sequence_action IS NOT NULL
+  ) AS diff
+  WHERE note_id = 1 AND sequence_action = 1;
+ ")
+ [[ "${false_positive_note1}" -eq "0" ]]
+}
