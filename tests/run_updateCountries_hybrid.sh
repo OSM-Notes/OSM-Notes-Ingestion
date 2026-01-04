@@ -2,7 +2,7 @@
 
 # Script to run updateCountries.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-19
+# Version: 2026-01-03
 
 set -euo pipefail
 
@@ -341,32 +341,52 @@ run_processPlanetNotes_base() {
 cleanup_lock_files() {
  log_info "Cleaning up lock files and failed execution markers..."
 
- # Clean updateCountries lock file
- local lock_file="/tmp/updateCountries.lock"
- if [[ -f "${lock_file}" ]]; then
-  log_info "Removing lock file: ${lock_file}"
-  rm -f "${lock_file}"
+ # Clean updateCountries lock file (check both old and new locations)
+ local lock_file_old="/tmp/updateCountries.lock"
+ local lock_file_new="/tmp/osm-notes-ingestion/locks/updateCountries.lock"
+ if [[ -f "${lock_file_old}" ]]; then
+  log_info "Removing lock file: ${lock_file_old}"
+  rm -f "${lock_file_old}"
+ fi
+ if [[ -f "${lock_file_new}" ]]; then
+  log_info "Removing lock file: ${lock_file_new}"
+  rm -f "${lock_file_new}"
  fi
 
- # Clean failed execution marker
- local failed_file="/tmp/updateCountries_failed_execution"
- if [[ -f "${failed_file}" ]]; then
-  log_info "Removing failed execution marker: ${failed_file}"
-  rm -f "${failed_file}"
+ # Clean failed execution marker (check both old and new locations)
+ local failed_file_old="/tmp/updateCountries_failed_execution"
+ local failed_file_new="/tmp/osm-notes-ingestion/locks/updateCountries_failed_execution"
+ if [[ -f "${failed_file_old}" ]]; then
+  log_info "Removing failed execution marker: ${failed_file_old}"
+  rm -f "${failed_file_old}"
+ fi
+ if [[ -f "${failed_file_new}" ]]; then
+  log_info "Removing failed execution marker: ${failed_file_new}"
+  rm -f "${failed_file_new}"
  fi
 
- # Clean processPlanetNotes lock file (in case it exists)
- local planet_lock="/tmp/processPlanetNotes.lock"
- if [[ -f "${planet_lock}" ]]; then
-  log_info "Removing processPlanetNotes lock file: ${planet_lock}"
-  rm -f "${planet_lock}"
+ # Clean processPlanetNotes lock file (check both old and new locations)
+ local planet_lock_old="/tmp/processPlanetNotes.lock"
+ local planet_lock_new="/tmp/osm-notes-ingestion/locks/processPlanetNotes.lock"
+ if [[ -f "${planet_lock_old}" ]]; then
+  log_info "Removing processPlanetNotes lock file: ${planet_lock_old}"
+  rm -f "${planet_lock_old}"
+ fi
+ if [[ -f "${planet_lock_new}" ]]; then
+  log_info "Removing processPlanetNotes lock file: ${planet_lock_new}"
+  rm -f "${planet_lock_new}"
  fi
 
- # Clean processPlanetNotes failed execution marker
- local planet_failed="/tmp/processPlanetNotes_failed_execution"
- if [[ -f "${planet_failed}" ]]; then
-  log_info "Removing processPlanetNotes failed execution marker: ${planet_failed}"
-  rm -f "${planet_failed}"
+ # Clean processPlanetNotes failed execution marker (check both old and new locations)
+ local planet_failed_old="/tmp/processPlanetNotes_failed_execution"
+ local planet_failed_new="/tmp/osm-notes-ingestion/locks/processPlanetNotes_failed_execution"
+ if [[ -f "${planet_failed_old}" ]]; then
+  log_info "Removing processPlanetNotes failed execution marker: ${planet_failed_old}"
+  rm -f "${planet_failed_old}"
+ fi
+ if [[ -f "${planet_failed_new}" ]]; then
+  log_info "Removing processPlanetNotes failed execution marker: ${planet_failed_new}"
+  rm -f "${planet_failed_new}"
  fi
 
  log_success "Lock files cleaned"
@@ -596,6 +616,10 @@ setup_environment_variables() {
 
  # Skip XML validation for faster execution
  export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+
+ # Disable automatic country loading in processPlanetNotes.sh
+ # The test will run updateCountries.sh separately after processPlanetNotes.sh
+ export SKIP_AUTO_LOAD_COUNTRIES="${SKIP_AUTO_LOAD_COUNTRIES:-true}"
 
  log_success "Environment variables configured"
  log_info "  Properties file: etc/properties.sh (test version)"

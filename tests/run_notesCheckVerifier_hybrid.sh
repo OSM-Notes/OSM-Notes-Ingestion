@@ -2,7 +2,7 @@
 
 # Script to run notesCheckVerifier.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2026-01-03
 
 set -euo pipefail
 
@@ -553,6 +553,14 @@ setup_environment_variables() {
 
  # Skip XML validation for faster execution
  export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+
+ # Disable automatic country loading in processPlanetNotes.sh
+ # The test will run updateCountries.sh separately if needed
+ export SKIP_AUTO_LOAD_COUNTRIES="${SKIP_AUTO_LOAD_COUNTRIES:-true}"
+
+ # Disable psql pager to prevent vi/less from blocking in non-interactive mode
+ export PGPAGER="${PGPAGER:-off}"
+ export PAGER="${PAGER:-off}"
 
  log_success "Environment variables configured"
  log_info "  Properties file: etc/properties.sh (test version)"

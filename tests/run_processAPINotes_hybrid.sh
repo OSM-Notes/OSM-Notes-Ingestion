@@ -2,7 +2,7 @@
 
 # Script to run processAPINotes.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-15
+# Version: 2026-01-03
 
 set -euo pipefail
 
@@ -868,6 +868,11 @@ setup_environment_variables() {
  # Skip XML validation for faster execution
  export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
 
+ # Disable automatic country loading in processPlanetNotes.sh
+ # processAPINotes.sh will trigger processPlanetNotes.sh --base, but we don't want
+ # processPlanetNotes.sh to automatically load countries (it would fail in hybrid mode)
+ export SKIP_AUTO_LOAD_COUNTRIES="${SKIP_AUTO_LOAD_COUNTRIES:-true}"
+
  # Export hybrid mock directory paths (MUST be exported for child processes)
  # These are set by setup_hybrid_mock_environment() which is called before this function
  if [[ -n "${HYBRID_MOCK_DIR:-}" ]]; then
@@ -949,6 +954,7 @@ run_processAPINotes() {
  export HYBRID_MOCK_MODE="${HYBRID_MOCK_MODE:-true}"
  export TEST_MODE="${TEST_MODE:-true}"
  export SKIP_XML_VALIDATION="${SKIP_XML_VALIDATION:-true}"
+ export SKIP_AUTO_LOAD_COUNTRIES="${SKIP_AUTO_LOAD_COUNTRIES:-true}"
  export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-false}"
  export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY:-${PROJECT_ROOT}}"
  export MOCK_FIXTURES_DIR="${MOCK_FIXTURES_DIR:-${PROJECT_ROOT}/tests/fixtures/command/extra}"
