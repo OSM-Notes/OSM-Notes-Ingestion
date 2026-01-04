@@ -589,8 +589,8 @@ cleanup_lock_files() {
   fi
  }
 
- # Clean processAPINotes lock file
- check_and_remove_stale_lock "/tmp/processAPINotes.lock" "processAPINotes"
+ # Clean processAPINotes lock file (correct path used by processAPINotes.sh)
+ check_and_remove_stale_lock "/tmp/osm-notes-ingestion/locks/processAPINotes.lock" "processAPINotes"
 
  # Clean failed execution markers
  local failed_file="/tmp/processAPINotes_failed_execution"
@@ -1014,6 +1014,15 @@ run_processAPINotes() {
  rm -f "${error_log}"
 
  local exit_code=$?
+ 
+ # Always clean up lock file after execution (even if script failed)
+ # This ensures the next execution doesn't fail due to stale lock file
+ local lock_file="/tmp/osm-notes-ingestion/locks/processAPINotes.lock"
+ if [[ -f "${lock_file}" ]]; then
+  log_info "Cleaning up lock file after execution: ${lock_file}"
+  rm -f "${lock_file}"
+ fi
+ 
  if [[ ${exit_code} -eq 0 ]]; then
   log_success "processAPINotes.sh completed successfully (execution #${execution_number})"
 
