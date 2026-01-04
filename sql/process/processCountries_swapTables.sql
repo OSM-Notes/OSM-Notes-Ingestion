@@ -10,7 +10,7 @@
 -- Always verify the swap before dropping the backup.
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2026-01-03
+-- Version: 2026-01-04
 
 -- ============================================================================
 -- STEP 1: Verify countries_new exists and has data
@@ -166,7 +166,7 @@ BEGIN
     SELECT COUNT(*) INTO backup_count_val FROM countries_old;
     note_text := 'countries_old table kept as backup. Drop manually after verification.';
   ELSE
-    note_text := 'No backup table (first execution in --base mode)';
+    note_text := 'No backup table (first execution in base mode)';
   END IF;
 
   -- Display summary
