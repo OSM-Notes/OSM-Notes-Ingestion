@@ -5,7 +5,7 @@ bats_require_minimum_version 1.5.0
 
 # Integration tests for processCheckPlanetNotes.sh
 # Tests that actually execute the script to detect real errors
-# Version: 2025-11-10
+# Version: 2026-01-03
 
 # Load test helper to get setup_test_properties and restore_properties
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
@@ -13,17 +13,26 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 setup() {
  # Setup test environment
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
- export TMP_DIR="$(mktemp -d)"
+ 
+ # Create TMP_DIR with error handling
+ local TMP_DIR_CREATED
+ TMP_DIR_CREATED=$(mktemp -d 2>/dev/null) || {
+   echo "ERROR: Could not create temporary directory" >&2
+   exit 1
+ }
+ export TMP_DIR="${TMP_DIR_CREATED}"
  export BASENAME="test_process_check_planet"
  export LOG_LEVEL="INFO"
  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
 
  # Ensure TMP_DIR exists and is writable
  if [[ ! -d "${TMP_DIR}" ]]; then
-   mkdir -p "${TMP_DIR}" || { echo "ERROR: Could not create TMP_DIR: ${TMP_DIR}" >&2; exit 1; }
+   echo "ERROR: TMP_DIR does not exist: ${TMP_DIR}" >&2
+   exit 1
  fi
  if [[ ! -w "${TMP_DIR}" ]]; then
-   echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2; exit 1;
+   echo "ERROR: TMP_DIR not writable: ${TMP_DIR}" >&2
+   exit 1
  fi
 
  # Provide mock psql for database operations when PostgreSQL is unavailable
@@ -32,10 +41,41 @@ setup() {
 #!/bin/bash
 COMMAND="$*"
 
-# Simulate CREATE DATABASE success
+# Handle psql --version
+if [[ "${COMMAND}" == *"--version"* ]]; then
+ echo "psql (PostgreSQL) 14.0"
+ exit 0
+fi
+
+# Handle psql -lqt (list databases)
+if [[ "${COMMAND}" == *"-lqt"* ]]; then
+ # Return empty list to simulate database not existing
+ exit 0
+fi
+
+# Handle CREATE DATABASE success
 if [[ "${COMMAND}" == *"CREATE DATABASE"* ]]; then
  echo "CREATE DATABASE"
  exit 0
+fi
+
+# Handle DROP DATABASE (from teardown)
+if [[ "${COMMAND}" == *"DROP DATABASE"* ]]; then
+ echo "DROP DATABASE"
+ exit 0
+fi
+
+# Handle database connection test (SELECT 1)
+if [[ "${COMMAND}" == *"SELECT 1"* ]]; then
+ # Simulate database connection failure
+ echo "ERROR: database does not exist" >&2
+ exit 1
+fi
+
+# Handle PostGIS version check
+if [[ "${COMMAND}" == *"PostGIS_version"* ]]; then
+ echo "ERROR: PostGIS extension is missing" >&2
+ exit 1
 fi
 
 # Simulate execution of SQL files used by the test
@@ -52,8 +92,9 @@ if [[ "${COMMAND}" == *"SELECT COUNT(*) FROM information_schema.tables"* ]]; the
  exit 0
 fi
 
-echo "Mock psql executed: ${COMMAND}" >&2
-exit 0
+# Default: simulate database error for other commands
+echo "ERROR: Mock psql - database connection failed: ${COMMAND}" >&2
+exit 1
 EOF
  chmod +x "${MOCK_PSQL}"
  export PATH="${TMP_DIR}:${PATH}"
@@ -74,10 +115,20 @@ teardown() {
   restore_properties
  fi
  
- # Cleanup
- rm -rf "${TMP_DIR}"
- # Drop test database if it exists
- psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
+ # Restore original PATH to use real psql for cleanup
+ local ORIGINAL_PATH
+ ORIGINAL_PATH=$(echo "${PATH}" | sed "s|${TMP_DIR}:||g")
+ export PATH="${ORIGINAL_PATH}"
+ 
+ # Drop test database if it exists (use real psql, not mock)
+ if command -v psql > /dev/null 2>&1; then
+   psql -d postgres -c "DROP DATABASE IF EXISTS ${TEST_DBNAME};" 2>/dev/null || true
+ fi
+ 
+ # Cleanup temporary directory
+ if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
+   rm -rf "${TMP_DIR}"
+ fi
 }
 
 # Test that processCheckPlanetNotes.sh can be executed without errors
@@ -170,16 +221,25 @@ count=$(echo "$output" | grep -Eo '[0-9]+' | tail -1)
 # Test that the script can be executed without parameters
 @test "processCheckPlanetNotes.sh should handle no parameters gracefully" {
  # Test that the script doesn't crash when run without parameters
- run bash "${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh"
- [ "$status" -ne 0 ] && [ "$status" -ge 0 ] && [ "$status" -le 255 ] # Should exit with error for missing database
- [[ "$output" == *"database"* ]] || [[ "$output" == *"ERROR"* ]] || echo "Script should show error for missing database"
+ # Unset DBNAME to simulate missing database configuration
+ run bash -c "unset DBNAME; bash ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh 2>&1"
+ # Should exit with error for missing database
+ [ "$status" -ne 0 ]
+ # Should show error message related to database
+ [[ "$output" == *"database"* ]] || [[ "$output" == *"ERROR"* ]] || [[ "$output" == *"Database"* ]] || echo "Script should show error for missing database. Output: ${output}"
 }
 
 # Test that the script can handle help parameter correctly
 @test "processCheckPlanetNotes.sh should handle help parameter correctly" {
  # Test that the script shows help when --help is passed
  # Use a clean environment to avoid variable conflicts
- run bash -c "unset SCRIPT_BASE_DIRECTORY; cd ${SCRIPT_BASE_DIRECTORY} && bash bin/monitor/processCheckPlanetNotes.sh --help"
+ # Ensure TMP_DIR exists for this test
+ local TEST_TMP_DIR
+ TEST_TMP_DIR=$(mktemp -d)
+ export TMP_DIR="${TEST_TMP_DIR}"
+ run bash -c "unset SCRIPT_BASE_DIRECTORY; cd ${SCRIPT_BASE_DIRECTORY} && bash bin/monitor/processCheckPlanetNotes.sh --help 2>&1"
+ # Cleanup
+ rm -rf "${TEST_TMP_DIR}"
  # The script may fail due to variable conflicts, but it should at least start
  [ "$status" -ge 0 ] && [ "$status" -le 255 ]
 }
