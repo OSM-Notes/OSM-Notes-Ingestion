@@ -44,7 +44,7 @@
 # For contributing: shellcheck -x -o all processPlanetNotes.sh && shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-23
+# Version: 2026-01-03
 VERSION="2025-12-23"
 
 #set -xv
@@ -1293,7 +1293,8 @@ function __processGeographicData {
    __logd "  updateCountries.sh exists: NO"
   fi
 
-  if [[ "${PROCESS_TYPE}" == "--base" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
+  if [[ "${PROCESS_TYPE}" == "--base" ]] && [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]] \
+   && [[ "${SKIP_AUTO_LOAD_COUNTRIES:-false}" != "true" ]]; then
    __logi "Attempting to load countries automatically in base mode..."
    __logi "This process may take a long time (30-60 minutes) as it downloads and processes all country boundaries..."
 
@@ -1338,6 +1339,9 @@ function __processGeographicData {
    fi
    if [[ ! -f "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" ]]; then
     __logw "  Reason: updateCountries.sh not found at '${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh'."
+   fi
+   if [[ "${SKIP_AUTO_LOAD_COUNTRIES:-false}" == "true" ]]; then
+    __logw "  Reason: SKIP_AUTO_LOAD_COUNTRIES=true (test mode or manual control)."
    fi
    __logw "Notes will be processed without country assignment."
    __logw "To assign countries later, run: ./bin/process/updateCountries.sh --base"

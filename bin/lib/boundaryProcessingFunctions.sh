@@ -2,7 +2,7 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-30
+# Version: 2026-01-03
 VERSION="2025-12-30"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
@@ -2189,6 +2189,8 @@ function __downloadCountries_parallel_new() {
   (
    # Ensure PATH is inherited from parent (critical for mock commands in test environment)
    export PATH="${PATH}"
+   # Export USE_COUNTRIES_NEW for child processes (critical for parallel imports)
+   export USE_COUNTRIES_NEW="${USE_COUNTRIES_NEW:-false}"
    local PART_PID="${BASHPID}"
    local PART_LOG_FILE="${TMP_DIR}/download_part_${PART_NUM}.log"
    local PART_SUCCESS=0
@@ -2282,6 +2284,9 @@ function __downloadCountries_parallel_new() {
 function __importCountries_sequential_new() {
  __log_start
  local SUCCESS_FILE="${1}"
+
+ # Ensure USE_COUNTRIES_NEW is exported for this function and child processes
+ export USE_COUNTRIES_NEW="${USE_COUNTRIES_NEW:-false}"
 
  __logi "Starting sequential import of countries"
 

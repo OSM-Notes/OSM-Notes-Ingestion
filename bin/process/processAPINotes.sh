@@ -39,7 +39,7 @@
 # For contributing: shellcheck -x -o all processAPINotes.sh && shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-14
+# Version: 2026-01-03
 VERSION="2025-12-13"
 
 #set -xv
@@ -976,33 +976,41 @@ function __createBaseStructure {
  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
 
  if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
-  __logw "No geographic data found after processPlanetNotes.sh --base"
-  __logw "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
+  # In hybrid/test mode with SKIP_AUTO_LOAD_COUNTRIES, countries may not be loaded automatically
+  # This is expected behavior - the test will load countries separately if needed
+  if [[ "${SKIP_AUTO_LOAD_COUNTRIES:-false}" == "true" ]] || [[ -n "${HYBRID_MOCK_MODE:-}" ]] || [[ -n "${TEST_MODE:-}" ]]; then
+   __logw "No geographic data found after processPlanetNotes.sh --base"
+   __logw "SKIP_AUTO_LOAD_COUNTRIES is enabled (hybrid/test mode) - countries will be loaded separately if needed"
+   __logw "Continuing without geographic data verification (expected in test mode)"
+  else
+   __logw "No geographic data found after processPlanetNotes.sh --base"
+   __logw "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
 
-  local UPDATE_COUNTRIES_LOCK="${LOCK_DIR}/updateCountries.lock"
-  if [[ -f "${UPDATE_COUNTRIES_LOCK}" ]]; then
-   local LOCK_PID
-   LOCK_PID=$(grep "^PID:" "${UPDATE_COUNTRIES_LOCK}" 2> /dev/null | awk '{print $2}' || echo "")
-   if [[ -n "${LOCK_PID}" ]] && ps -p "${LOCK_PID}" > /dev/null 2>&1; then
-    __loge "updateCountries.sh is still running (PID: ${LOCK_PID}). Cannot proceed with base setup."
-    __loge "This script runs every 15 minutes and will retry automatically."
-    __loge "Current execution will exit. Next execution will check again."
-    exit "${ERROR_EXECUTING_PLANET_DUMP}"
-   else
-    __logw "Stale lock file found. Removing it."
-    rm -f "${UPDATE_COUNTRIES_LOCK}"
+   local UPDATE_COUNTRIES_LOCK="${LOCK_DIR}/updateCountries.lock"
+   if [[ -f "${UPDATE_COUNTRIES_LOCK}" ]]; then
+    local LOCK_PID
+    LOCK_PID=$(grep "^PID:" "${UPDATE_COUNTRIES_LOCK}" 2> /dev/null | awk '{print $2}' || echo "")
+    if [[ -n "${LOCK_PID}" ]] && ps -p "${LOCK_PID}" > /dev/null 2>&1; then
+     __loge "updateCountries.sh is still running (PID: ${LOCK_PID}). Cannot proceed with base setup."
+     __loge "This script runs every 15 minutes and will retry automatically."
+     __loge "Current execution will exit. Next execution will check again."
+     exit "${ERROR_EXECUTING_PLANET_DUMP}"
+    else
+     __logw "Stale lock file found. Removing it."
+     rm -f "${UPDATE_COUNTRIES_LOCK}"
+    fi
    fi
-  fi
 
-  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
-  if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
-   __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
-   __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
-   __loge "Check processPlanetNotes.sh logs for errors in updateCountries.sh execution"
-   __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
-    "Geographic data not loaded after processPlanetNotes.sh --base (Step 2/2)" \
-    "Check processPlanetNotes.sh logs. It should have called updateCountries.sh automatically via __processGeographicData(). If needed, run manually: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh --base"
-   exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+   if [[ "${COUNTRIES_COUNT:-0}" -eq 0 ]]; then
+    __loge "ERROR: Geographic data not loaded after processPlanetNotes.sh --base"
+    __loge "processPlanetNotes.sh should have loaded countries automatically via __processGeographicData()"
+    __loge "Check processPlanetNotes.sh logs for errors in updateCountries.sh execution"
+    __create_failed_marker "${ERROR_EXECUTING_PLANET_DUMP}" \
+     "Geographic data not loaded after processPlanetNotes.sh --base (Step 2/2)" \
+     "Check processPlanetNotes.sh logs. It should have called updateCountries.sh automatically via __processGeographicData(). If needed, run manually: ${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh --base"
+    exit "${ERROR_EXECUTING_PLANET_DUMP}"
+   fi
   fi
  else
   __logi "Geographic data verified (${COUNTRIES_COUNT} countries/maritimes found)"
