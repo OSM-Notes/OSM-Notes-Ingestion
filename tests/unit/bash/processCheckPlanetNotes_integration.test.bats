@@ -221,12 +221,36 @@ count=$(echo "$output" | grep -Eo '[0-9]+' | tail -1)
 # Test that the script can be executed without parameters
 @test "processCheckPlanetNotes.sh should handle no parameters gracefully" {
  # Test that the script doesn't crash when run without parameters
- # Unset DBNAME to simulate missing database configuration
+ # Unset DBNAME and create a temporary properties file without DBNAME to simulate missing database configuration
+ local TEMP_PROPERTIES="${TMP_DIR}/properties_no_dbname.sh"
+ # Create a properties file without DBNAME default
+ cat > "${TEMP_PROPERTIES}" << 'EOF'
+#!/bin/bash
+# Test properties without DBNAME default
+# DBNAME is intentionally not set here to test error handling
+declare DB_USER="${DB_USER:-${USER:-testuser}}"
+declare EMAILS="${EMAILS:-test@example.com}"
+declare OSM_API="${OSM_API:-https://api.openstreetmap.org/api/0.6}"
+declare PLANET="${PLANET:-https://planet.openstreetmap.org}"
+declare OVERPASS_INTERPRETER="${OVERPASS_INTERPRETER:-https://overpass-api.de/api/interpreter}"
+EOF
+ # Temporarily replace etc/properties.sh with our test version
+ local ORIGINAL_PROPERTIES="${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+ local BACKUP_PROPERTIES="${TMP_DIR}/properties_backup.sh"
+ cp "${ORIGINAL_PROPERTIES}" "${BACKUP_PROPERTIES}" 2>/dev/null || true
+ cp "${TEMP_PROPERTIES}" "${ORIGINAL_PROPERTIES}"
+ 
+ # Run script without DBNAME
  run bash -c "unset DBNAME; bash ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh 2>&1"
+ local EXIT_CODE=$?
+ 
+ # Restore original properties file
+ cp "${BACKUP_PROPERTIES}" "${ORIGINAL_PROPERTIES}" 2>/dev/null || true
+ 
  # Should exit with error for missing database
- [ "$status" -ne 0 ]
+ [ "$EXIT_CODE" -ne 0 ]
  # Should show error message related to database
- [[ "$output" == *"database"* ]] || [[ "$output" == *"ERROR"* ]] || [[ "$output" == *"Database"* ]] || echo "Script should show error for missing database. Output: ${output}"
+ [[ "$output" == *"database"* ]] || [[ "$output" == *"ERROR"* ]] || [[ "$output" == *"Database"* ]] || [[ "$output" == *"DBNAME"* ]] || echo "Script should show error for missing database. Output: ${output}"
 }
 
 # Test that the script can handle help parameter correctly
