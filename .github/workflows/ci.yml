@@ -1,7 +1,7 @@
 # CI/CD Pipeline - OSM-Notes-Ingestion
 # Consolidated workflow combining quality tests, unit tests, and integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-30
+# Version: 2026-01-07
 
 name: CI/CD Pipeline
 
@@ -355,8 +355,12 @@ jobs:
         # Find and run tests matching pattern
         # Handle multiple patterns separated by spaces
         TEST_FILES=""
-        # Process each pattern (GitHub Actions expands the pattern string)
-        for pattern in ${{ matrix.test-group.pattern }}; do
+        # Store pattern in variable to handle spaces correctly
+        PATTERN_STRING="${{ matrix.test-group.pattern }}"
+        # Convert pattern string to array, splitting on spaces
+        read -ra PATTERNS <<< "${PATTERN_STRING}"
+        # Process each pattern
+        for pattern in "${PATTERNS[@]}"; do
           if [[ "${pattern}" == "tests/unit/bash/*.bats" ]]; then
             # Special handling for "other-misc-tests" group - exclude already covered patterns
             for test_file in tests/unit/bash/*.bats; do
