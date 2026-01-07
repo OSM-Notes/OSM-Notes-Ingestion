@@ -91,9 +91,11 @@ function __getLocationNotes_impl {
  __logi "This COPY operation may take several minutes for large datasets."
  export CSV_BACKUP_NOTE_LOCATION
  # shellcheck disable=SC2016
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
-   < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
+# shellcheck disable=SC2154
+# POSTGRES_32_UPLOAD_NOTE_LOCATION is defined in pathConfigurationFunctions.sh
+PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
+  < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
 
  __logi "Note locations imported successfully. Starting integrity verification process..."
  __logi "This process will verify that all assigned countries are correct by recalculating"
@@ -375,6 +377,8 @@ function __getLocationNotes_impl {
       fi
 
       # Validate SQL file exists
+      # shellcheck disable=SC2154
+      # POSTGRES_33_VERIFY_NOTE_INTEGRITY is defined in pathConfigurationFunctions.sh
       if [[ ! -f "${POSTGRES_33_VERIFY_NOTE_INTEGRITY}" ]]; then
        __loge "ERROR: SQL file does not exist: ${POSTGRES_33_VERIFY_NOTE_INTEGRITY}"
        __log_finish
@@ -612,6 +616,8 @@ EOF
     fi
 
     # Validate SQL file exists
+    # shellcheck disable=SC2154
+    # POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK is defined in pathConfigurationFunctions.sh
     if [[ ! -f "${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}" ]]; then
      __loge "ERROR: SQL file does not exist: ${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}"
      continue

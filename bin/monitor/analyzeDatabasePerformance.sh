@@ -47,6 +47,8 @@ if [[ -f "${PROJECT_ROOT}/bin/lib/functionsProcess.sh" ]]; then
  source "${PROJECT_ROOT}/bin/lib/functionsProcess.sh"
 else
  echo "ERROR: functionsProcess.sh not found"
+ # shellcheck disable=SC2154
+ # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
  exit "${ERROR_MISSING_LIBRARY}"
 fi
 
@@ -54,6 +56,8 @@ fi
 DBNAME="${DBNAME:-}"
 if [[ -z "${DBNAME}" ]]; then
  __loge "DBNAME not set. Please set it in etc/properties.sh or export it."
+ # shellcheck disable=SC2154
+ # ERROR_INVALID_ARGUMENT is defined in lib/osm-common/commonFunctions.sh
  exit "${ERROR_INVALID_ARGUMENT}"
 fi
 
@@ -390,6 +394,8 @@ __generate_report() {
   echo "=============================================================================="
   echo "Individual script outputs are saved in: ${OUTPUT_DIR}"
   echo ""
+  # shellcheck disable=SC2012
+  # Using ls for human-readable output is acceptable here
   ls -lh "${OUTPUT_DIR}"/*.txt 2> /dev/null | awk '{print "  " $9 " (" $5 ")"}' || echo "  No output files found"
   echo ""
   echo "=============================================================================="
@@ -439,6 +445,8 @@ __main() {
  __logi "Connecting to database: ${DBNAME}"
  if ! psql -d "${DBNAME}" -c "SELECT 1;" > /dev/null 2>&1; then
   __loge "Cannot connect to database: ${DBNAME}"
+  # shellcheck disable=SC2154
+  # ERROR_GENERAL is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_GENERAL}"
  fi
 
@@ -493,6 +501,8 @@ __main() {
  if [[ ${FAILED_SCRIPTS} -gt 0 ]]; then
   __loge "Performance analysis completed with ${FAILED_SCRIPTS} failed script(s)"
   __log_finish
+  # shellcheck disable=SC2154
+  # ERROR_GENERAL is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_GENERAL}"
  elif [[ ${WARNING_SCRIPTS} -gt 0 ]]; then
   __logw "Performance analysis completed with ${WARNING_SCRIPTS} warning(s)"

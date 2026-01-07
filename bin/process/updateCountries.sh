@@ -221,6 +221,8 @@ function __cleanPartial {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
+ # shellcheck disable=SC2154
+ # Variables are assigned dynamically within the trap handler
  trap '{
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"
@@ -239,8 +241,8 @@ function __trapOn() {
      echo "Error occurred at $(date +%Y%m%d_%H:%M:%S)"
      echo "Script: ${MAIN_SCRIPT_NAME}"
      echo "Line number: ${ERROR_LINE}"
-     echo "Failed command: "${ERROR_COMMAND}"
-     echo "Exit code: "${ERROR_EXIT_CODE}"
+     echo "Failed command: ${ERROR_COMMAND}"
+     echo "Exit code: ${ERROR_EXIT_CODE}"
      echo "Temporary directory: ${TMP_DIR:-unknown}"
      echo "Process ID: $$"
     } > "${FAILED_EXECUTION_FILE}"
@@ -248,6 +250,8 @@ function __trapOn() {
    exit "${ERROR_EXIT_CODE}";
   fi;
  }' ERR
+ # shellcheck disable=SC2154
+ # ERROR_GENERAL is assigned dynamically
  trap '{
   # Get the main script name (the one that was executed, not the library)
   local MAIN_SCRIPT_NAME
@@ -263,7 +267,7 @@ function __trapOn() {
     echo "Signal: SIGTERM/SIGINT"
    } > "${FAILED_EXECUTION_FILE}"
   fi;
-  exit ${ERROR_GENERAL};
+  exit "${ERROR_GENERAL}";
  }' SIGINT SIGTERM
  __log_finish
 }

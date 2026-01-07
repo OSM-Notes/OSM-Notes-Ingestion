@@ -535,12 +535,16 @@ function __loadTextComments {
  # Loads the text comment in the database.
  export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016,SC2154
- # POSTGRES_45_LOAD_TEXT_COMMENTS and POSTGRES_46_OBJECTS_TEXT_COMMENTS are defined in processPlanetFunctions.sh
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
-   < "${POSTGRES_45_LOAD_TEXT_COMMENTS}" || true)"
- # Some objects could already exist.
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_46_OBJECTS_TEXT_COMMENTS}"
+# POSTGRES_45_LOAD_TEXT_COMMENTS and POSTGRES_46_OBJECTS_TEXT_COMMENTS are defined in processPlanetFunctions.sh
+# shellcheck disable=SC2154
+# POSTGRES_45_LOAD_TEXT_COMMENTS is defined in processPlanetFunctions.sh
+PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
+  < "${POSTGRES_45_LOAD_TEXT_COMMENTS}" || true)"
+# Some objects could already exist.
+# shellcheck disable=SC2154
+# POSTGRES_46_OBJECTS_TEXT_COMMENTS is defined in processPlanetFunctions.sh
+PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_46_OBJECTS_TEXT_COMMENTS}"
  __log_finish
 }
 
@@ -642,6 +646,8 @@ function __processPlanetNotesWithParallel {
  if [[ ${#PART_FILES[@]} -eq 0 ]]; then
   __loge "ERROR: No part files found in ${PARTS_DIR}"
   __loge "Directory contents:"
+  # shellcheck disable=SC2012
+  # Using ls for human-readable directory listing is acceptable here
   ls -la "${PARTS_DIR}" 2>&1 | while IFS= read -r line; do
    __loge "  ${line}"
   done || true
@@ -1215,14 +1221,17 @@ function __cleanup_validation_temp_files {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
+ # shellcheck disable=SC2154
+ # Variables are assigned dynamically within the trap handler
  trap '{
-  ERROR_LINE="${LINENO}"
-  ERROR_COMMAND="${BASH_COMMAND}"
-  ERROR_EXIT_CODE="$?"
+  local ERROR_LINE="${LINENO}"
+  local ERROR_COMMAND="${BASH_COMMAND}"
+  local ERROR_EXIT_CODE="$?"
 
   # Only report actual errors, not successful returns
   if [[ "${ERROR_EXIT_CODE}" -ne 0 ]]; then
    # Get the main script name (the one that was executed, not the library)
+   local MAIN_SCRIPT_NAME
    MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
 
    printf "%s ERROR: The script %s did not finish correctly. Temporary directory: ${TMP_DIR:-} - Line number: %d.\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}" "${ERROR_LINE}";
@@ -1238,11 +1247,14 @@ function __trapOn() {
      echo "Process ID: $$"
     } > "${FAILED_EXECUTION_FILE}"
    fi;
-   exit ${ERROR_EXIT_CODE};
+   exit "${ERROR_EXIT_CODE}";
   fi;
  }' ERR
+ # shellcheck disable=SC2154
+ # ERROR_GENERAL is assigned dynamically
  trap '{
   # Get the main script name (the one that was executed, not the library)
+  local MAIN_SCRIPT_NAME
   MAIN_SCRIPT_NAME=$(basename "${0}" .sh)
 
   printf "%s WARN: The script %s was terminated. Temporary directory: ${TMP_DIR:-}\n" "$(date +%Y%m%d_%H:%M:%S)" "${MAIN_SCRIPT_NAME}";
@@ -1255,7 +1267,7 @@ function __trapOn() {
     echo "Signal: SIGTERM/SIGINT"
    } > "${FAILED_EXECUTION_FILE}"
   fi;
-  exit ${ERROR_GENERAL};
+  exit "${ERROR_GENERAL}";
  }' SIGINT SIGTERM
  __log_finish
 }

@@ -205,6 +205,8 @@ function __retry_file_operation() {
      else
       # File exists, has content, and is not HTML error - operation truly succeeded
       local FILE_SIZE
+      # shellcheck disable=SC2012
+      # Using ls for human-readable file size is acceptable here
       FILE_SIZE=$(ls -lh "${EXPANDED_OUTPUT_FILE}" 2> /dev/null | awk '{print $5}' || echo "unknown")
       __logd "File operation succeeded on attempt $((RETRY_COUNT + 1)) (file verified: ${EXPANDED_OUTPUT_FILE}, size: ${FILE_SIZE})"
       if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
@@ -1011,7 +1013,9 @@ function __processPlanetXmlPart() {
  __logd "Notes CSV: ${OUTPUT_NOTES_PART}"
  __logd "Comments CSV: ${OUTPUT_COMMENTS_PART}"
  __logd "Text CSV: ${OUTPUT_TEXT_PART}"
- __logd "SQL file: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
+ # shellcheck disable=SC2154
+# POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES is defined in pathConfigurationFunctions.sh
+__logd "SQL file: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
 
  # Verify CSV files exist and have content
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
@@ -1032,8 +1036,10 @@ function __processPlanetXmlPart() {
   __logw "WARNING: Comments CSV file is empty: ${OUTPUT_COMMENTS_PART}"
  fi
 
- # Verify SQL file exists
- if [[ ! -f "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
+# Verify SQL file exists
+# shellcheck disable=SC2154
+# POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES is defined in pathConfigurationFunctions.sh
+if [[ ! -f "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
   __loge "ERROR: SQL file does not exist: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
   __log_finish
   return 1
@@ -1452,6 +1458,8 @@ function __checkPrereqsCommands {
  __logd "Checking PostgreSQL."
  if ! psql --version > /dev/null 2>&1; then
   __loge "ERROR: PostgreSQL is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Database existence
@@ -1479,6 +1487,8 @@ function __checkPrereqsCommands {
   __loge "  createdb ${DBNAME}"
   __loge "  psql -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
   __loge "  psql -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Database connectivity with specified user
@@ -1497,6 +1507,8 @@ function __checkPrereqsCommands {
   __loge "     Example: local   all   ${DB_USER}   md5"
   __loge "     Then reload: sudo systemctl reload postgresql"
   __loge "  4. Or use the current system user instead of '${DB_USER}'"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## PostGIS
@@ -1510,6 +1522,8 @@ EOF
  if [[ "${RET}" -ne 0 ]]; then
   __loge "ERROR: PostGIS extension is missing in database '${DBNAME}'."
   __loge "To enable PostGIS, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION postgis;'"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## btree gist
@@ -1520,36 +1534,48 @@ EOF
  if [[ "${RESULT}" -ne 1 ]]; then
   __loge "ERROR: btree_gist extension is missing in database '${DBNAME}'."
   __loge "To enable btree_gist, run: psql -U ${DB_USER} -d ${DBNAME} -c 'CREATE EXTENSION btree_gist;'"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Aria2c
  __logd "Checking aria2c."
  if ! aria2c --version > /dev/null 2>&1; then
   __loge "ERROR: Aria2c is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## jq (required for JSON/GeoJSON validation)
  __logd "Checking jq."
  if ! jq --version > /dev/null 2>&1; then
   __loge "ERROR: jq is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## osmtogeojson
  __logd "Checking osmtogeojson."
  if ! osmtogeojson --version > /dev/null 2>&1; then
   __loge "ERROR: osmtogeojson is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## JSON validator
  __logd "Checking ajv."
  if ! ajv help > /dev/null 2>&1; then
   __loge "ERROR: ajv is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## gdal ogr2ogr
  __logd "Checking ogr2ogr."
  if ! ogr2ogr --version > /dev/null 2>&1; then
   __loge "ERROR: ogr2ogr is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -1557,12 +1583,16 @@ EOF
  __logd "Checking flock."
  if ! flock --version > /dev/null 2>&1; then
   __loge "ERROR: flock is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Mutt
  __logd "Checking mutt."
  if ! mutt -v > /dev/null 2>&1; then
   __loge "ERROR: mutt is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  # Verify mutt has SMTP support compiled in
@@ -1581,6 +1611,8 @@ EOF
  __logd "Checking bzip2."
  if ! bzip2 --help > /dev/null 2>&1; then
   __loge "ERROR: bzip2 is missing."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## XML lint (optional, only for strict validation)
@@ -1589,7 +1621,9 @@ EOF
   if ! xmllint --version > /dev/null 2>&1; then
    __loge "ERROR: XMLlint is missing (required for XML validation)."
    __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
-   exit "${ERROR_MISSING_LIBRARY}"
+   # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
+  exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
 
@@ -1597,6 +1631,8 @@ EOF
  __logd "Checking Bash version."
  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
   __loge "ERROR: Requires Bash 4+."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -1613,22 +1649,32 @@ EOF
  fi
  if [[ ! -r "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_32_UPLOAD_NOTE_LOCATION}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_33_VERIFY_NOTE_INTEGRITY}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_33_VERIFY_NOTE_INTEGRITY}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_36_REASSIGN_AFFECTED_NOTES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_36_REASSIGN_AFFECTED_NOTES}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -1637,19 +1683,27 @@ EOF
   if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]]; then
    __loge "ERROR: XML schema file is missing at ${XMLSCHEMA_PLANET_NOTES}."
    __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
-   exit "${ERROR_MISSING_LIBRARY}"
+   # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
+  exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
  if [[ ! -r "${JSON_SCHEMA_OVERPASS}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_OVERPASS}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${JSON_SCHEMA_GEOJSON}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_GEOJSON}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  if [[ ! -r "${GEOJSON_TEST}" ]]; then
   __loge "ERROR: File is missing at ${GEOJSON_TEST}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -1659,6 +1713,8 @@ EOF
  if ! ogr2ogr -f "PostgreSQL" PG:"dbname=${DBNAME} user=${DB_USER}" \
   "${GEOJSON_TEST}" -nln import -overwrite; then
   __loge "ERROR: ogr2ogr cannot access the database '${DBNAME}' with user '${DB_USER}'."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -1669,6 +1725,8 @@ EOF
  if ! __check_network_connectivity 10; then
   __loge "ERROR: Internet connectivity check failed."
   __loge "The system cannot access the internet, which is required for OSM data downloads."
+  # shellcheck disable=SC2154
+  # ERROR_INTERNET_ISSUE is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_INTERNET_ISSUE}"
  fi
 
@@ -1756,26 +1814,36 @@ function __checkPrereqs_functions {
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_11_CHECK_BASE_TABLES}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_11_CHECK_BASE_TABLES}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_22_CREATE_PROC_INSERT_NOTE}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  ## Checks postgres scripts.
  if [[ ! -r "${POSTGRES_31_ORGANIZE_AREAS}" ]]; then
   __loge "ERROR: File is missing at ${POSTGRES_31_ORGANIZE_AREAS}."
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  __log_finish
@@ -2067,6 +2135,8 @@ function __downloadPlanetNotes {
 
  if ! __retry_file_operation "${DOWNLOAD_OPERATION}" 3 10 "${DOWNLOAD_CLEANUP}"; then
   __loge "Failed to download Planet notes after retries"
+  # shellcheck disable=SC2154
+  # ERROR_DOWNLOADING_NOTES is defined in lib/osm-common/commonFunctions.sh
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "Planet download failed" \
    "rm -f ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2 2>/dev/null || true"
  fi
@@ -2083,6 +2153,8 @@ function __downloadPlanetNotes {
  else
   __loge "ERROR: Downloaded file not found at expected location: ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2"
   __loge "DEBUG: Listing files in TMP_DIR:"
+  # shellcheck disable=SC2012
+  # Using ls for human-readable directory listing is acceptable here
   ls -lh "${TMP_DIR}"/*.bz2 2> /dev/null | while IFS= read -r line; do
    __loge "  ${line}"
   done || __loge "  (no .bz2 files found)"
@@ -2212,23 +2284,31 @@ function __createProcedures {
  # Validate that POSTGRES_22_CREATE_PROC_INSERT_NOTE is defined
  if [[ -z "${POSTGRES_22_CREATE_PROC_INSERT_NOTE:-}" ]]; then
   __loge "ERROR: POSTGRES_22_CREATE_PROC_INSERT_NOTE variable is not defined. This variable should be defined in the calling script"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Validate that POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT is defined
  if [[ -z "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT:-}" ]]; then
   __loge "ERROR: POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT variable is not defined. This variable should be defined in the calling script"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Validate that the SQL files exist
  if [[ ! -f "${POSTGRES_22_CREATE_PROC_INSERT_NOTE}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_22_CREATE_PROC_INSERT_NOTE}"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  if [[ ! -f "${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT}"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -2253,12 +2333,16 @@ function __organizeAreas {
  if [[ -z "${POSTGRES_31_ORGANIZE_AREAS:-}" ]]; then
   __loge "ERROR: POSTGRES_31_ORGANIZE_AREAS variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Validate that the SQL file exists
  if [[ ! -f "${POSTGRES_31_ORGANIZE_AREAS}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_31_ORGANIZE_AREAS}"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -2458,6 +2542,8 @@ function __processCountries {
  fi
 
  RETURN_CODE=$?
+ # shellcheck disable=SC2154
+ # ERROR_DOWNLOADING_BOUNDARY is defined in lib/osm-common/commonFunctions.sh
  __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY}" \
   "Country processing wrapper detected failure (exit code: ${RETURN_CODE})" \
   "__preserve_failed_boundary_artifacts 'wrapper-detected-failure'"
