@@ -1073,6 +1073,8 @@ function __check_and_log_gaps() {
 # Function that activates the error trap.
 function __trapOn() {
  __log_start
+ # shellcheck disable=SC2154
+ # Variables are assigned dynamically within the trap handler
  trap '{
   local ERROR_LINE="${LINENO}"
   local ERROR_COMMAND="${BASH_COMMAND}"

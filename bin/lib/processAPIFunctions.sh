@@ -32,14 +32,16 @@ function __show_help() {
 # shellcheck disable=SC2317,SC2155,SC2034
 
 # API-specific variables
-# shellcheck disable=SC2034
+# shellcheck disable=SC2034,SC2154
+# TMP_DIR is defined in etc/properties.sh or environment
 if [[ -z "${API_NOTES_FILE:-}" ]]; then declare -r API_NOTES_FILE="${TMP_DIR}/OSM-notes-API.xml"; fi
 if [[ -z "${OUTPUT_NOTES_FILE:-}" ]]; then declare -r OUTPUT_NOTES_FILE="${TMP_DIR}/notes.csv"; fi
 if [[ -z "${OUTPUT_NOTE_COMMENTS_FILE:-}" ]]; then declare -r OUTPUT_NOTE_COMMENTS_FILE="${TMP_DIR}/note_comments.csv"; fi
 if [[ -z "${OUTPUT_TEXT_COMMENTS_FILE:-}" ]]; then declare -r OUTPUT_TEXT_COMMENTS_FILE="${TMP_DIR}/note_comments_text.csv"; fi
 
 # XML Schema for strict validation (optional, only used if SKIP_XML_VALIDATION=false)
-# shellcheck disable=SC2034
+# shellcheck disable=SC2034,SC2154
+# SCRIPT_BASE_DIRECTORY is defined in the main script
 if [[ -z "${XMLSCHEMA_API_NOTES:-}" ]]; then
  declare -r XMLSCHEMA_API_NOTES="${SCRIPT_BASE_DIRECTORY}/xsd/OSM-notes-API-schema.xsd"
 fi

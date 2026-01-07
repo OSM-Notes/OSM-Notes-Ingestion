@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
-VERSION="2025-12-30"
+# Version: 2026-01-07
+VERSION="2026-01-07"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
@@ -146,6 +146,8 @@ function __resolve_geojson_file() {
   elif [[ -f "${BASE_PATH}.gz" ]] && [[ -s "${BASE_PATH}.gz" ]]; then
    # Decompress to temporary location
    local TMP_DECOMPRESSED
+   # shellcheck disable=SC2154
+   # TMP_DIR is defined in etc/properties.sh or environment
    TMP_DECOMPRESSED="${TMP_DIR}/$(basename "${BASE_PATH}")"
    if gunzip -c "${BASE_PATH}.gz" > "${TMP_DECOMPRESSED}" 2> /dev/null; then
     RESOLVED_FILE="${TMP_DECOMPRESSED}"
@@ -359,6 +361,8 @@ function __validate_capital_location() {
 
  # First, verify that the import table has polygon geometries
  local POLYGON_COUNT
+ # shellcheck disable=SC2154
+ # PGAPPNAME is defined in etc/properties.sh or environment
  POLYGON_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DB_NAME}" -Atq -c "SELECT COUNT(*) FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon') AND NOT ST_IsEmpty(geometry);" 2> /dev/null || echo "0")
 
  if [[ "${POLYGON_COUNT}" -eq 0 ]]; then
@@ -506,6 +510,8 @@ function __processBoundary_impl {
 
  __logd "Boundary ID: ${ID}"
  __logd "Process ID: ${BASHPID}"
+ # shellcheck disable=SC2154
+ # JSON_FILE is set by the caller function via eval
  __logd "JSON file: ${JSON_FILE}"
  __logd "GeoJSON file: ${GEOJSON_FILE}"
  __logd "Query file: ${QUERY_FILE_TO_USE}"
@@ -2381,6 +2387,8 @@ function __processCountries_impl {
  local MAX_RETRIES_COUNTRIES="${OVERPASS_RETRIES_PER_ENDPOINT:-7}"
  local BASE_DELAY_COUNTRIES="${OVERPASS_BACKOFF_SECONDS:-20}"
  local COUNTRIES_DOWNLOAD_OPERATION
+ # shellcheck disable=SC2154
+ # COUNTRIES_BOUNDARY_IDS_FILE, COUNTRIES_QUERY_FILE, COUNTRIES_OUTPUT_FILE, and OVERPASS_INTERPRETER are defined earlier in the function
  COUNTRIES_DOWNLOAD_OPERATION="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${COUNTRIES_BOUNDARY_IDS_FILE} --data-binary @${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
  local COUNTRIES_CLEANUP="rm -f ${COUNTRIES_BOUNDARY_IDS_FILE} ${COUNTRIES_OUTPUT_FILE} 2>/dev/null || true"
  if ! __retry_file_operation "${COUNTRIES_DOWNLOAD_OPERATION}" "${MAX_RETRIES_COUNTRIES}" "${BASE_DELAY_COUNTRIES}" "${COUNTRIES_CLEANUP}" "true" "${OVERPASS_INTERPRETER}"; then
@@ -2655,6 +2663,8 @@ function __processCountries_impl {
 
  # OLD FLOW: Parallel processing (download + import together)
  __logi "Using OLD download flow: parallel processing"
+ # shellcheck disable=SC2154
+ # MAX_THREADS is defined in etc/properties.sh or environment
  SIZE=$((TOTAL_LINES / MAX_THREADS))
  SIZE=$((SIZE + 1))
  __logd "Total countries: ${TOTAL_LINES}"
@@ -2690,6 +2700,8 @@ function __processCountries_impl {
    if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
     rm -f "${LOG_FILENAME}.${SUBSHELL_PID}"
    else
+    # shellcheck disable=SC2154
+    # BASENAME is defined earlier in the function
     mv "${LOG_FILENAME}.${SUBSHELL_PID}" "${TMP_DIR}/${BASENAME}.old.${SUBSHELL_PID}"
    fi
    exit "${PROCESS_LIST_RET}"
@@ -2908,6 +2920,8 @@ function __processMaritimes_impl {
  # Extracts ids of all EEZ relations into a JSON.
  __logi "Obtaining the eez ids."
  set +e
+ # shellcheck disable=SC2154
+ # MARITIME_BOUNDARY_IDS_FILE is defined earlier in the function
  curl -s -H "User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}" -o "${MARITIME_BOUNDARY_IDS_FILE}" \
   --data-binary "@${OVERPASS_MARITIMES}" "${OVERPASS_INTERPRETER}"
  RET=${?}

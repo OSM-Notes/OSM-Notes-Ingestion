@@ -91,11 +91,11 @@ function __getLocationNotes_impl {
  __logi "This COPY operation may take several minutes for large datasets."
  export CSV_BACKUP_NOTE_LOCATION
  # shellcheck disable=SC2016
-# shellcheck disable=SC2154
-# POSTGRES_32_UPLOAD_NOTE_LOCATION is defined in pathConfigurationFunctions.sh
-PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
- -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
-  < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
+ # shellcheck disable=SC2154
+ # POSTGRES_32_UPLOAD_NOTE_LOCATION is defined in pathConfigurationFunctions.sh
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
+   < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
 
  __logi "Note locations imported successfully. Starting integrity verification process..."
  __logi "This process will verify that all assigned countries are correct by recalculating"
@@ -1405,6 +1405,8 @@ if ! declare -f __retry_file_operation > /dev/null 2>&1; then
   # Use provided SMART_WAIT_ENDPOINT when available; else fall back to OVERPASS_INTERPRETER matching
   local EFFECTIVE_OVERPASS_FOR_WAIT="${SMART_WAIT_ENDPOINT:-}"
   if [[ -z "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]] && [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
+   # shellcheck disable=SC2154
+   # OVERPASS_INTERPRETER is defined in etc/properties.sh or environment
    EFFECTIVE_OVERPASS_FOR_WAIT="${OVERPASS_INTERPRETER}"
   fi
 
@@ -1856,6 +1858,8 @@ function __retry_geoserver_api() {
 
  while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
   local CURL_CMD="curl -s --connect-timeout ${TIMEOUT} --max-time ${TIMEOUT}"
+  # shellcheck disable=SC2154
+  # GEOSERVER_USER and GEOSERVER_PASSWORD are defined in etc/properties.sh or environment
   CURL_CMD="${CURL_CMD} -u \"${GEOSERVER_USER}:${GEOSERVER_PASSWORD}\""
 
   if [[ "${METHOD}" == "POST" ]] || [[ "${METHOD}" == "PUT" ]]; then

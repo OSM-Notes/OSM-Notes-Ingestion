@@ -202,6 +202,8 @@ __check_threshold() {
 __check_db_activity() {
  local SCRIPT_NAME="$1"
  # Check if there's any activity for this application name
+ # shellcheck disable=SC2097,SC2098
+ # PGAPPNAME is set in the environment before calling this function
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -tAc \
   "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME}' AND state = 'active';" \
   2> /dev/null || echo "0"

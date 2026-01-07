@@ -38,6 +38,8 @@ function __show_help() {
 # shellcheck disable=SC2034
 # Define variables with TMP_DIR - each script has its own TMP_DIR
 # so these will be specific to each execution context
+# shellcheck disable=SC2154
+# TMP_DIR is defined in etc/properties.sh or environment
 if [[ -z "${PLANET_NOTES_FILE:-}" ]]; then
  declare -r PLANET_NOTES_FILE="${TMP_DIR}/OSM-notes-planet.xml"
 fi
@@ -186,6 +188,8 @@ function __splitXmlForParallelPlanet() {
 
    # Extract notes using sed pattern matching
    # Find the start of the note and extract until the end
+   # shellcheck disable=SC2034
+   # NOTE_PATTERN is defined for documentation/clarity but not used directly
    local NOTE_PATTERN="<note[^>]*>.*?</note>"
    sed -n "/<note[^>]*>/,/<\/note>/p" "${XML_FILE}" \
     | sed -n "${START_POS},${END_POS}p" > "${TEMP_PART_FILE}" 2> /dev/null || true
@@ -292,6 +296,8 @@ function __processBoundary() {
  # Note: Using -sql to SELECT only the columns we need
  # This avoids the duplicate column issue (name:es vs name:ES become same column in PostgreSQL)
  __logd "Importing with column selection to temporary table: ${TEMP_TABLE}"
+ # shellcheck disable=SC2154
+ # DBNAME is defined in etc/properties.sh or environment
  if ogr2ogr -f "PostgreSQL" "PG:dbname=${DBNAME}" "${BOUNDARY_FILE}" \
   -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
   -lco GEOMETRY_NAME=geom \

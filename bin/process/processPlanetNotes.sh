@@ -44,8 +44,8 @@
 # For contributing: shellcheck -x -o all processPlanetNotes.sh && shfmt -w -i 1 -sr -bn processPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
-VERSION="2025-12-23"
+# Version: 2026-01-07
+VERSION="2026-01-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -535,16 +535,16 @@ function __loadTextComments {
  # Loads the text comment in the database.
  export OUTPUT_TEXT_COMMENTS_FILE
  # shellcheck disable=SC2016,SC2154
-# POSTGRES_45_LOAD_TEXT_COMMENTS and POSTGRES_46_OBJECTS_TEXT_COMMENTS are defined in processPlanetFunctions.sh
-# shellcheck disable=SC2154
-# POSTGRES_45_LOAD_TEXT_COMMENTS is defined in processPlanetFunctions.sh
-PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
- -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
-  < "${POSTGRES_45_LOAD_TEXT_COMMENTS}" || true)"
-# Some objects could already exist.
-# shellcheck disable=SC2154
-# POSTGRES_46_OBJECTS_TEXT_COMMENTS is defined in processPlanetFunctions.sh
-PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_46_OBJECTS_TEXT_COMMENTS}"
+ # POSTGRES_45_LOAD_TEXT_COMMENTS and POSTGRES_46_OBJECTS_TEXT_COMMENTS are defined in processPlanetFunctions.sh
+ # shellcheck disable=SC2154
+ # POSTGRES_45_LOAD_TEXT_COMMENTS is defined in processPlanetFunctions.sh
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_TEXT_COMMENTS_FILE' \
+   < "${POSTGRES_45_LOAD_TEXT_COMMENTS}" || true)"
+ # Some objects could already exist.
+ # shellcheck disable=SC2154
+ # POSTGRES_46_OBJECTS_TEXT_COMMENTS is defined in processPlanetFunctions.sh
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -f "${POSTGRES_46_OBJECTS_TEXT_COMMENTS}"
  __log_finish
 }
 

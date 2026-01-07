@@ -12,6 +12,8 @@ VERSION="2025-12-18"
 # Detect if system is "installed" (production mode)
 # Checks if standard directories exist and are writable
 function __is_installed() {
+ # shellcheck disable=SC2120
+ # Parameters are optional with default values; function can be called without arguments
  local INSTALLED_LOG_DIR="${1:-/var/log/osm-notes-ingestion}"
  local INSTALLED_TMP_DIR="${2:-/var/tmp/osm-notes-ingestion}"
 

@@ -101,6 +101,8 @@ function __show_help_library() {
 # Related: docs/Documentation.md#parallel-processing (resource management)
 function __check_system_resources() {
  __log_start
+ # shellcheck disable=SC2120
+ # MODE parameter is optional and has a default value
  local MODE="${1:-normal}"
  local MEMORY_PERCENT
  local CURRENT_LOAD
@@ -254,6 +256,8 @@ function __adjust_process_delay() {
  # Use warning level logging to ensure output goes to stderr
  __logw "Starting process delay adjustment"
  # Use a different variable name to avoid readonly conflicts
+ # shellcheck disable=SC2154
+ # PARALLEL_PROCESS_DELAY is defined in etc/properties.sh or environment
  local ADJUSTED_DELAY="${PARALLEL_PROCESS_DELAY}"
  local MEMORY_PERCENT
 

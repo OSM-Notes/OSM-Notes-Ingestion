@@ -494,6 +494,8 @@ fi
 # Sets CSV_BACKUP_NOTE_LOCATION_COMPRESSED to the resolved file path.
 function __resolve_note_location_backup() {
  __log_start
+ # shellcheck disable=SC2034
+ # RESOLVED_FILE is used via eval to set OUTPUT_VAR dynamically
  local RESOLVED_FILE=""
  # TMP_DIR may already be defined as readonly (e.g., in
  # updateCountries.sh). Only use default if not already defined.
@@ -561,6 +563,8 @@ function __validation {
  else
   if [[ "${GENERATE_FAILED_FILE}" = true ]]; then
    __logw "Generating file for failed execution."
+   # shellcheck disable=SC2154
+   # FAILED_EXECUTION_FILE is defined in processAPINotes.sh or environment
    touch "${FAILED_EXECUTION_FILE}"
   else
    __logi "Do not generate file for failed execution."
@@ -888,14 +892,15 @@ function __processApiXmlPart() {
  export OUTPUT_TEXT_PART
  export PART_ID="${PART_NUM}"
  export MAX_THREADS
- # shellcheck disable=SC2016
+ # shellcheck disable=SC2016,SC2154
+ # PGAPPNAME is defined in etc/properties.sh or environment
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
-# shellcheck disable=SC2154,SC2016
-# SC2016: envsubst requires single quotes to prevent shell expansion
-PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
- -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
-  < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+ # shellcheck disable=SC2154,SC2016
+ # SC2016: envsubst requires single quotes to prevent shell expansion
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
  __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
@@ -1014,8 +1019,8 @@ function __processPlanetXmlPart() {
  __logd "Comments CSV: ${OUTPUT_COMMENTS_PART}"
  __logd "Text CSV: ${OUTPUT_TEXT_PART}"
  # shellcheck disable=SC2154
-# POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES is defined in pathConfigurationFunctions.sh
-__logd "SQL file: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
+ # POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES is defined in pathConfigurationFunctions.sh
+ __logd "SQL file: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
 
  # Verify CSV files exist and have content
  if [[ ! -f "${OUTPUT_NOTES_PART}" ]]; then
@@ -1036,10 +1041,10 @@ __logd "SQL file: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
   __logw "WARNING: Comments CSV file is empty: ${OUTPUT_COMMENTS_PART}"
  fi
 
-# Verify SQL file exists
-# shellcheck disable=SC2154
-# POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES is defined in pathConfigurationFunctions.sh
-if [[ ! -f "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
+ # Verify SQL file exists
+ # shellcheck disable=SC2154
+ # POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES is defined in pathConfigurationFunctions.sh
+ if [[ ! -f "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
   __loge "ERROR: SQL file does not exist: ${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}"
   __log_finish
   return 1
@@ -1059,13 +1064,13 @@ if [[ ! -f "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" ]]; then
  __logd "  PART_ID=${PART_ID}"
  __logd "  MAX_THREADS=${MAX_THREADS}"
 
-# Generate SQL command with envsubst
-__logd "Generating SQL command from template..."
-local SQL_CMD
-# shellcheck disable=SC2016
-# SC2016: envsubst requires single quotes to prevent shell expansion
-SQL_CMD=$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
- < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" 2>&1)
+ # Generate SQL command with envsubst
+ __logd "Generating SQL command from template..."
+ local SQL_CMD
+ # shellcheck disable=SC2016
+ # SC2016: envsubst requires single quotes to prevent shell expansion
+ SQL_CMD=$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+  < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" 2>&1)
  local ENVSUBST_EXIT_CODE=$?
 
  if [[ ${ENVSUBST_EXIT_CODE} -ne 0 ]]; then
@@ -1622,8 +1627,8 @@ EOF
    __loge "ERROR: XMLlint is missing (required for XML validation)."
    __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
    # shellcheck disable=SC2154
-  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
-  exit "${ERROR_MISSING_LIBRARY}"
+   # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
+   exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
 
@@ -1684,16 +1689,20 @@ EOF
    __loge "ERROR: XML schema file is missing at ${XMLSCHEMA_PLANET_NOTES}."
    __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
    # shellcheck disable=SC2154
-  # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
-  exit "${ERROR_MISSING_LIBRARY}"
+   # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
+   exit "${ERROR_MISSING_LIBRARY}"
   fi
  fi
+ # shellcheck disable=SC2154
+ # JSON_SCHEMA_OVERPASS is defined in pathConfigurationFunctions.sh
  if [[ ! -r "${JSON_SCHEMA_OVERPASS}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_OVERPASS}."
   # shellcheck disable=SC2154
   # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ # shellcheck disable=SC2154
+ # JSON_SCHEMA_GEOJSON is defined in pathConfigurationFunctions.sh
  if [[ ! -r "${JSON_SCHEMA_GEOJSON}" ]]; then
   __loge "ERROR: File is missing at ${JSON_SCHEMA_GEOJSON}."
   # shellcheck disable=SC2154
@@ -2124,12 +2133,16 @@ function __downloadPlanetNotes {
  __logi "Checking network connectivity..."
  if ! __check_network_connectivity 15; then
   __loge "Network connectivity check failed"
+  # shellcheck disable=SC2154
+  # PLANET_NOTES_FILE is defined in processPlanetFunctions.sh
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
    "rm -f ${PLANET_NOTES_FILE}.bz2 ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
  fi
 
  # Download Planet notes with retry logic
  __logw "Retrieving Planet notes file..."
+ # shellcheck disable=SC2154
+ # PLANET_NOTES_NAME is defined in processPlanetFunctions.sh
  local DOWNLOAD_OPERATION="aria2c -d ${TMP_DIR} -o ${PLANET_NOTES_NAME}.bz2 -x 8 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
  local DOWNLOAD_CLEANUP="rm -f ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2 2>/dev/null || true"
 
