@@ -241,7 +241,9 @@ EOF
  cp "${TEMP_PROPERTIES}" "${ORIGINAL_PROPERTIES}"
  
  # Run script without DBNAME
- run bash -c "unset DBNAME; bash ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh 2>&1"
+ # Note: We need to unset DBNAME in the same shell that runs the script
+ # because the script sources etc/properties.sh which may set DBNAME
+ run bash -c "unset DBNAME; export DBNAME=''; bash ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh 2>&1"
  
  # Restore original properties file
  cp "${BACKUP_PROPERTIES}" "${ORIGINAL_PROPERTIES}" 2>/dev/null || true

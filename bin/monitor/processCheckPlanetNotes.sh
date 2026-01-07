@@ -37,8 +37,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-04
-VERSION="2026-01-04"
+# Version: 2026-01-07
+VERSION="2026-01-07"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -538,14 +538,28 @@ chmod go+x "${TMP_DIR}"
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  if [[ ! -t 1 ]]; then
   export LOG_FILE="${LOG_FILENAME}"
+  # Initialize SCRIPT_EXIT_CODE before main execution so trap handlers can use it
+  # This is needed because processPlanetNotes.sh sets a trap EXIT that uses SCRIPT_EXIT_CODE
+  export SCRIPT_EXIT_CODE=0
+  # Execute main function and capture exit code
+  # Note: We need to preserve exit code even if trap handlers execute
+  set +e
   {
    __start_logger
    main
   } >> "${LOG_FILENAME}" 2>&1
   EXIT_CODE=$?
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
-  rmdir "${TMP_DIR}"
-  exit "${EXIT_CODE}"
+  # Preserve exit code before cleanup operations
+  # Export SCRIPT_EXIT_CODE so trap handlers can access it
+  export SCRIPT_EXIT_CODE="${EXIT_CODE}"
+  # Preserve exit code before any cleanup operations that might change it
+  FINAL_EXIT_CODE="${EXIT_CODE}"
+  set -e
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log" 2>/dev/null || true
+  rmdir "${TMP_DIR}" 2>/dev/null || true
+  # Disable trap before exit to prevent it from changing exit code
+  trap - EXIT
+  exit "${FINAL_EXIT_CODE}"
  else
   __start_logger
   main
