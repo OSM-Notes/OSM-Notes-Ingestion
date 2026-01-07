@@ -12,7 +12,14 @@ from reoccurring. Each test is based on a real bug that was fixed in the codebas
 
 ## Test Structure
 
-### `regression_suite.test.bats`
+### Regression Test Suites
+
+The regression tests are organized into multiple test files:
+
+- **`regression_suite_original_bugs.test.bats`** - Original bugs (2025-12-07 to 2025-12-12)
+- **`regression_suite_daemon_bugs.test.bats`** - Daemon bugs (2025-12-15)
+- **`regression_suite_processing_bugs.test.bats`** - Processing bugs (2025-12-14)
+- **`regression_suite_api_bugs.test.bats`** - Critical API bugs (2025-12-13)
 
 Comprehensive regression test suite covering 25 historical bugs:
 
@@ -74,10 +81,16 @@ Each test includes:
 
 ```bash
 # Run all regression tests
-bats tests/regression/regression_suite.test.bats
+bats tests/regression/regression_suite_original_bugs.test.bats
+bats tests/regression/regression_suite_daemon_bugs.test.bats
+bats tests/regression/regression_suite_processing_bugs.test.bats
+bats tests/regression/regression_suite_api_bugs.test.bats
 
 # Run with verbose output
-bats -v tests/regression/regression_suite.test.bats
+bats -v tests/regression/regression_suite_original_bugs.test.bats
+bats -v tests/regression/regression_suite_daemon_bugs.test.bats
+bats -v tests/regression/regression_suite_processing_bugs.test.bats
+bats -v tests/regression/regression_suite_api_bugs.test.bats
 ```
 
 ## Adding New Regression Tests

@@ -326,7 +326,10 @@ __run_level_6() {
   "${SCRIPT_DIR}/unit/bash/export_countries_backup.test.bats" \
   "${SCRIPT_DIR}/unit/bash/export_maritimes_backup.test.bats" \
   "${SCRIPT_DIR}/unit/bash/generate_note_location_backup.test.bats" \
-  "${SCRIPT_DIR}/regression/regression_suite.test.bats" \
+  "${SCRIPT_DIR}/regression/regression_suite_original_bugs.test.bats" \
+  "${SCRIPT_DIR}/regression/regression_suite_daemon_bugs.test.bats" \
+  "${SCRIPT_DIR}/regression/regression_suite_processing_bugs.test.bats" \
+  "${SCRIPT_DIR}/regression/regression_suite_api_bugs.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_management.test.bats" \
   "${SCRIPT_DIR}/unit/bash/trap_failed_marker.test.bats"; then
   __show_level_footer 6 "success"

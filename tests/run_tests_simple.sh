@@ -221,8 +221,11 @@ run_bats_tests() {
   "${SCRIPT_DIR}/unit/bash/json_validation_errors.test.bats"
   "${SCRIPT_DIR}/unit/bash/json_validation_advanced.test.bats"
   "${SCRIPT_DIR}/unit/bash/json_validation_integration.test.bats"
-  "${SCRIPT_DIR}/regression/regression_suite.test.bats"
- )
+  "${SCRIPT_DIR}/regression/regression_suite_original_bugs.test.bats"
+  "${SCRIPT_DIR}/regression/regression_suite_daemon_bugs.test.bats"
+  "${SCRIPT_DIR}/regression/regression_suite_processing_bugs.test.bats"
+  "${SCRIPT_DIR}/regression/regression_suite_api_bugs.test.bats"
+)
 
  log_info "Total BATS tests to run: ${#bats_tests[@]}"
  log_info "BATS tests: ${bats_tests[*]}"
