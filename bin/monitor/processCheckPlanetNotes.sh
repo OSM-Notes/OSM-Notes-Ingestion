@@ -566,7 +566,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   FINAL_EXIT_CODE="${EXIT_CODE}"
   set -e
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log" 2> /dev/null || true
-  rmdir "${TMP_DIR}" 2> /dev/null || true
+  # Clean up temporary directory and all its contents
+  # Use rm -rf instead of rmdir to ensure all temporary files are removed
+  # This matches the cleanup behavior from processPlanetNotes.sh
+  if [[ -d "${TMP_DIR}" ]]; then
+   rm -rf "${TMP_DIR}" 2> /dev/null || true
+  fi
   exit "${FINAL_EXIT_CODE}"
  else
   __start_logger
