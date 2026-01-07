@@ -324,9 +324,11 @@ function __loadCheckNotes {
  __logd "  OUTPUT_NOTE_COMMENTS_FILE=${OUTPUT_NOTE_COMMENTS_FILE}"
  __logd "  OUTPUT_TEXT_COMMENTS_FILE=${OUTPUT_TEXT_COMMENTS_FILE}"
 
- # Substitute variables first
- envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
-  < "${POSTGRES_31_LOAD_CHECK_NOTES}" > "${TEMP_SQL_FILE}.tmp"
+# Substitute variables first
+# shellcheck disable=SC2016
+# SC2016: envsubst requires single quotes to prevent shell expansion
+envsubst '$OUTPUT_NOTES_FILE,$OUTPUT_NOTE_COMMENTS_FILE,$OUTPUT_TEXT_COMMENTS_FILE' \
+ < "${POSTGRES_31_LOAD_CHECK_NOTES}" > "${TEMP_SQL_FILE}.tmp"
  local ENVSUBST_EXIT_CODE=$?
 
  if [[ ${ENVSUBST_EXIT_CODE} -ne 0 ]]; then
@@ -336,8 +338,10 @@ function __loadCheckNotes {
   return 1
  fi
 
- # Verify that variables were actually replaced
- if grep -q '\${OUTPUT_NOTES_FILE}\|\${OUTPUT_NOTE_COMMENTS_FILE}\|\${OUTPUT_TEXT_COMMENTS_FILE}' "${TEMP_SQL_FILE}.tmp" 2> /dev/null; then
+# Verify that variables were actually replaced
+# shellcheck disable=SC2016
+# SC2016: Single quotes needed to prevent shell expansion in grep pattern
+if grep -q '\${OUTPUT_NOTES_FILE}\|\${OUTPUT_NOTE_COMMENTS_FILE}\|\${OUTPUT_TEXT_COMMENTS_FILE}' "${TEMP_SQL_FILE}.tmp" 2> /dev/null; then
   __loge "ERROR: Variables were not replaced by envsubst. Check variable export."
   __loge "First 20 lines of generated SQL:"
   head -n 20 "${TEMP_SQL_FILE}.tmp" | while IFS= read -r line; do
@@ -561,8 +565,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   # Preserve exit code before any cleanup operations that might change it
   FINAL_EXIT_CODE="${EXIT_CODE}"
   set -e
-  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log" 2>/dev/null || true
-  rmdir "${TMP_DIR}" 2>/dev/null || true
+  mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log" 2> /dev/null || true
+  rmdir "${TMP_DIR}" 2> /dev/null || true
   exit "${FINAL_EXIT_CODE}"
  else
   __start_logger

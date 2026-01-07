@@ -120,7 +120,7 @@ main() {
  else
   __loge "ERROR: Failed to export country boundaries"
   if [[ -s "${OGR_ERROR}" ]]; then
-   __loge "ogr2ogr error output: $(cat "${OGR_ERROR}")"
+   __loge "ogr2ogr error output: $(cat "${OGR_ERROR}" || echo "")"
   fi
   rm -f "${OGR_ERROR}"
   exit "${ERROR_GENERAL}"

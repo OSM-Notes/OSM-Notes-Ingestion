@@ -804,7 +804,7 @@ EOF
   trap - EXIT
   # Try to remove lock even on error (ignore failures)
   echo "CALL remove_lock('${PROCESS_ID}'::VARCHAR)" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=0 > /dev/null 2>&1 || true
-  return ${SQL_EXIT_CODE}
+  return "${SQL_EXIT_CODE}"
  fi
 
  __log_finish
@@ -1101,9 +1101,9 @@ function __trapOn() {
       echo "Temporary directory: ${TMP_DIR:-unknown}"
       echo "Process ID: $$"
       echo "ONLY_EXECUTION was: ${ONLY_EXECUTION:-not set}"
-     } > "${FAILED_FILE_PATH}" 2>/dev/null || {
+     } > "${FAILED_FILE_PATH}" 2> /dev/null || {
       # If writing to primary location fails, try /tmp as fallback
-      printf "%s ERROR: Failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2>/dev/null || true
+      printf "%s ERROR: Failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2> /dev/null || true
      }
     ) || true
    fi;
@@ -1129,9 +1129,9 @@ function __trapOn() {
      echo "Process ID: $$"
      echo "Signal: SIGTERM/SIGINT"
      echo "ONLY_EXECUTION was: ${ONLY_EXECUTION:-not set}"
-    } > "${FAILED_FILE_PATH}" 2>/dev/null || {
+    } > "${FAILED_FILE_PATH}" 2> /dev/null || {
      # If writing to primary location fails, try /tmp as fallback
-     printf "%s WARN: Script terminated but failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2>/dev/null || true
+     printf "%s WARN: Script terminated but failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2> /dev/null || true
     }
    ) || true
   fi;
@@ -1267,9 +1267,9 @@ function main() {
       echo "Temporary directory: ${TMP_DIR:-unknown}"
       echo "Process ID: $$"
       echo "ONLY_EXECUTION was: ${ONLY_EXECUTION:-not set}"
-     } > "${FAILED_FILE_PATH}" 2>/dev/null || {
+     } > "${FAILED_FILE_PATH}" 2> /dev/null || {
       # If writing to primary location fails, try /tmp as fallback
-      printf "%s ERROR: Failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2>/dev/null || true
+      printf "%s ERROR: Failed to write failed execution file to %s\n" "$(date +%Y%m%d_%H:%M:%S)" "${FAILED_FILE_PATH}" > "/tmp/${MAIN_SCRIPT_NAME}_failed_execution_fallback" 2> /dev/null || true
      }
     ) || true
    fi;

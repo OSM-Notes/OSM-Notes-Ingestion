@@ -889,10 +889,11 @@ function __processApiXmlPart() {
  # shellcheck disable=SC2016
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';"
- # shellcheck disable=SC2154
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
-   < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
+# shellcheck disable=SC2154,SC2016
+# SC2016: envsubst requires single quotes to prevent shell expansion
+PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ -c "$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+  < "${POSTGRES_31_LOAD_API_NOTES}" || true)"
 
  __logi "=== API XML PART ${PART_NUM} PROCESSING COMPLETED SUCCESSFULLY ==="
  __log_finish
@@ -1052,11 +1053,13 @@ function __processPlanetXmlPart() {
  __logd "  PART_ID=${PART_ID}"
  __logd "  MAX_THREADS=${MAX_THREADS}"
 
- # Generate SQL command with envsubst
- __logd "Generating SQL command from template..."
- local SQL_CMD
- SQL_CMD=$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
-  < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" 2>&1)
+# Generate SQL command with envsubst
+__logd "Generating SQL command from template..."
+local SQL_CMD
+# shellcheck disable=SC2016
+# SC2016: envsubst requires single quotes to prevent shell expansion
+SQL_CMD=$(envsubst '$OUTPUT_NOTES_PART,$OUTPUT_COMMENTS_PART,$OUTPUT_TEXT_PART,$PART_ID' \
+ < "${POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES}" 2>&1)
  local ENVSUBST_EXIT_CODE=$?
 
  if [[ ${ENVSUBST_EXIT_CODE} -ne 0 ]]; then

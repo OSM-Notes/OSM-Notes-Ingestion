@@ -408,7 +408,7 @@ EOF
  # Check if there was a SQL error or if result is NULL/false
  local SQL_ERROR=""
  if [[ -s "${VALIDATION_ERROR_LOG}" ]]; then
-  SQL_ERROR=$(cat "${VALIDATION_ERROR_LOG}" 2> /dev/null | head -5 || echo "Unknown SQL error")
+  SQL_ERROR=$(head -5 "${VALIDATION_ERROR_LOG}" 2> /dev/null || echo "Unknown SQL error")
   __logw "SQL error during ST_Union validation for boundary ${BOUNDARY_ID}: ${SQL_ERROR}"
  fi
 

@@ -982,8 +982,9 @@ function __acquire_download_slot() {
    fi
    exit 1
   ) 200> "${QUEUE_DIR}/semaphore_lock"
+  local EXIT_CODE=$?
 
-  if [[ $? -eq 0 ]]; then
+  if [[ ${EXIT_CODE} -eq 0 ]]; then
    __log_finish
    return 0
   fi
@@ -1303,8 +1304,9 @@ function __wait_for_download_turn() {
     fi
     exit 1
    ) 201> "${QUEUE_DIR}/slot_lock"
+   local EXIT_CODE=$?
 
-   if [[ $? -eq 0 ]]; then
+   if [[ ${EXIT_CODE} -eq 0 ]]; then
     __log_finish
     return 0
    fi

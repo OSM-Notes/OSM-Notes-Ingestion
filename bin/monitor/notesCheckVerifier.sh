@@ -277,10 +277,12 @@ function __checkingDifferences {
  local TEMP_SQL_FILE
  TEMP_SQL_FILE=$(mktemp)
 
- # Substitute variables first
- envsubst \
-  '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIFFERENT_NOTES_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT,$NOTES_IN_MAIN_NOT_IN_CHECK_FILE' \
-  < "${SQL_REPORT}" > "${TEMP_SQL_FILE}.tmp" || true
+# Substitute variables first
+# shellcheck disable=SC2016
+# SC2016: envsubst requires single quotes to prevent shell expansion
+envsubst \
+ '$LAST_NOTE,$LAST_COMMENT,$DIFFERENT_NOTE_IDS_FILE,$DIFFERENT_COMMENT_IDS_FILE,$DIFFERENT_NOTES_FILE,$DIFFERENT_TEXT_COMMENTS_FILE,$DIFFERENCES_TEXT_COMMENT,$NOTES_IN_MAIN_NOT_IN_CHECK_FILE' \
+ < "${SQL_REPORT}" > "${TEMP_SQL_FILE}.tmp" || true
 
  # Convert COPY ... TO to \copy ... TO
  # \copy executes on the client side, so it can write files with user permissions
