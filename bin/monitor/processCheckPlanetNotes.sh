@@ -37,8 +37,8 @@
 # * shfmt -w -i 1 -sr -bn processCheckPlanetNotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-08
-VERSION="2025-12-08"
+# Version: 2026-01-04
+VERSION="2026-01-04"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -158,8 +158,9 @@ function __checkPrereqs {
   echo " * --help"
   exit "${ERROR_INVALID_ARGUMENT}"
  fi
- set +e
  # Checks prereqs.
+ # Note: __checkPrereqsCommands calls __validate_properties which will exit
+ # if DBNAME is not set, so we don't need set +e here
  __checkPrereqsCommands
 
  ## Validate SQL script files using centralized validation
@@ -174,15 +175,16 @@ function __checkPrereqs {
  )
 
  # Validate each SQL file
+ set +e
  for SQL_FILE in "${SQL_FILES[@]}"; do
   if ! __validate_sql_structure "${SQL_FILE}"; then
    __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    exit "${ERROR_MISSING_LIBRARY}"
   fi
  done
+ set -e
 
  __log_finish
- set -e
 }
 
 # Drop check tables.

@@ -242,13 +242,13 @@ EOF
  
  # Run script without DBNAME
  run bash -c "unset DBNAME; bash ${SCRIPT_BASE_DIRECTORY}/bin/monitor/processCheckPlanetNotes.sh 2>&1"
- local EXIT_CODE=$?
  
  # Restore original properties file
  cp "${BACKUP_PROPERTIES}" "${ORIGINAL_PROPERTIES}" 2>/dev/null || true
  
  # Should exit with error for missing database
- [ "$EXIT_CODE" -ne 0 ]
+ # Note: $status is set by bats 'run' command, not $EXIT_CODE
+ [ "$status" -ne 0 ]
  # Should show error message related to database
  [[ "$output" == *"database"* ]] || [[ "$output" == *"ERROR"* ]] || [[ "$output" == *"Database"* ]] || [[ "$output" == *"DBNAME"* ]] || echo "Script should show error for missing database. Output: ${output}"
 }
