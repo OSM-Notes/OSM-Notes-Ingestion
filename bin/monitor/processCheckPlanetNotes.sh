@@ -542,8 +542,10 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
    __start_logger
    main
   } >> "${LOG_FILENAME}" 2>&1
+  EXIT_CODE=$?
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log"
   rmdir "${TMP_DIR}"
+  exit "${EXIT_CODE}"
  else
   __start_logger
   main
