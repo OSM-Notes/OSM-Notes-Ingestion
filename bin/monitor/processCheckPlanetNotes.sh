@@ -133,6 +133,8 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 # Load planet-specific functions for validation
 # shellcheck disable=SC1091
 source "${SCRIPT_BASE_DIRECTORY}/bin/process/processPlanetNotes.sh"
+# Note: processPlanetNotes.sh sets a trap EXIT that uses SCRIPT_EXIT_CODE
+# We will manage this trap in the execution block below
 # __downloadPlanetNotes
 # __validatePlanetNotesXMLFile
 # __validatePlanetNotesXMLFileComplete
@@ -538,16 +540,20 @@ chmod go+x "${TMP_DIR}"
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  if [[ ! -t 1 ]]; then
   export LOG_FILE="${LOG_FILENAME}"
-  # Initialize SCRIPT_EXIT_CODE before main execution so trap handlers can use it
+  # Disable trap before main execution to prevent it from changing exit code
   # This is needed because processPlanetNotes.sh sets a trap EXIT that uses SCRIPT_EXIT_CODE
+  # The trap was set when we sourced processPlanetNotes.sh above
+  trap - EXIT
+  # Initialize SCRIPT_EXIT_CODE before main execution so trap handlers can use it
   export SCRIPT_EXIT_CODE=0
-  # Execute main function and capture exit code
-  # Note: We need to preserve exit code even if trap handlers execute
+  # Execute main function in a subshell to capture exit code correctly
+  # Note: Using subshell ( ... ) instead of block { ... } so that exit calls
+  # within main don't exit the entire script, allowing us to capture the exit code
   set +e
-  {
+  (
    __start_logger
    main
-  } >> "${LOG_FILENAME}" 2>&1
+  ) >> "${LOG_FILENAME}" 2>&1
   EXIT_CODE=$?
   # Preserve exit code before cleanup operations
   # Export SCRIPT_EXIT_CODE so trap handlers can access it
@@ -557,8 +563,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   set -e
   mv "${LOG_FILENAME}" "/tmp/${BASENAME}_$(date +%Y-%m-%d_%H-%M-%S || true).log" 2>/dev/null || true
   rmdir "${TMP_DIR}" 2>/dev/null || true
-  # Disable trap before exit to prevent it from changing exit code
-  trap - EXIT
   exit "${FINAL_EXIT_CODE}"
  else
   __start_logger
