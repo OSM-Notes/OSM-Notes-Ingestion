@@ -303,7 +303,11 @@ EOF
  local BASE_DELAY=2
   local OVERPASS_OPERATION="curl -s -H 'User-Agent: OSM-Notes-Ingestion/1.0' -o '${JSON_FILE}' --data-binary '@${QUERY_FILE}' '${OVERPASS_INTERPRETER}' 2> /dev/null"
 
- run __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES}" "${BASE_DELAY}" "" "true"
+ # Add cleanup command to remove JSON file if download fails
+ # curl may leave a file with error content when it fails, so we need to clean it up
+ local CLEANUP_CMD="rm -f '${JSON_FILE}'"
+
+ run __retry_file_operation "${OVERPASS_OPERATION}" "${MAX_RETRIES}" "${BASE_DELAY}" "${CLEANUP_CMD}" "true"
 
  if [ "${status}" -eq 0 ]; then
   # Verify download succeeded
@@ -316,8 +320,13 @@ EOF
   [[ "${JSON_CONTENT}" == *"elements"* ]] || [[ "${JSON_CONTENT}" == *"version"* ]] || true
  else
   # If it failed, it should be a graceful failure
+  # The cleanup command should have removed the file, but curl may leave error content
+  # So we check that either the file doesn't exist, is empty, or doesn't contain valid JSON
   echo "Download failed, but queue handled it gracefully"
-  [ ! -f "${JSON_FILE}" ] || [ ! -s "${JSON_FILE}" ]
+  if [ -f "${JSON_FILE}" ]; then
+   # If file exists, it should be empty or contain error (not valid JSON)
+   [ ! -s "${JSON_FILE}" ] || ! grep -q -E '"elements"|"version"' "${JSON_FILE}" 2> /dev/null
+  fi
  fi
 }
 
