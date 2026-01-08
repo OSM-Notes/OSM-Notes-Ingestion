@@ -1072,38 +1072,38 @@ function __monitor_xmllint_resources {
 
  __logi "Starting resource monitoring for xmllint PID: ${XMLLINT_PID}"
 
-  {
-   local DATE_START
-   DATE_START=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
-   echo "${DATE_START} - Starting resource monitoring for PID ${XMLLINT_PID}"
+ {
+  local DATE_START
+  DATE_START=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+  echo "${DATE_START} - Starting resource monitoring for PID ${XMLLINT_PID}"
 
-   while kill -0 "${XMLLINT_PID}" 2> /dev/null; do
-    if ps -p "${XMLLINT_PID}" > /dev/null 2>&1; then
-     local CPU_USAGE
-     local MEM_USAGE
-     local RSS_KB
-     CPU_USAGE=$(ps -p "${XMLLINT_PID}" -o %cpu --no-headers 2> /dev/null | tr -d ' ')
-     MEM_USAGE=$(ps -p "${XMLLINT_PID}" -o %mem --no-headers 2> /dev/null | tr -d ' ')
-     RSS_KB=$(ps -p "${XMLLINT_PID}" -o rss --no-headers 2> /dev/null | tr -d ' ')
+  while kill -0 "${XMLLINT_PID}" 2> /dev/null; do
+   if ps -p "${XMLLINT_PID}" > /dev/null 2>&1; then
+    local CPU_USAGE
+    local MEM_USAGE
+    local RSS_KB
+    CPU_USAGE=$(ps -p "${XMLLINT_PID}" -o %cpu --no-headers 2> /dev/null | tr -d ' ')
+    MEM_USAGE=$(ps -p "${XMLLINT_PID}" -o %mem --no-headers 2> /dev/null | tr -d ' ')
+    RSS_KB=$(ps -p "${XMLLINT_PID}" -o rss --no-headers 2> /dev/null | tr -d ' ')
 
-     local DATE_NOW
-     DATE_NOW=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
-     echo "${DATE_NOW} - PID: ${XMLLINT_PID}, CPU: ${CPU_USAGE}%, Memory: ${MEM_USAGE}%, RSS: ${RSS_KB}KB"
+    local DATE_NOW
+    DATE_NOW=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+    echo "${DATE_NOW} - PID: ${XMLLINT_PID}, CPU: ${CPU_USAGE}%, Memory: ${MEM_USAGE}%, RSS: ${RSS_KB}KB"
 
-     # Check if memory usage is too high
-     if [[ -n "${RSS_KB}" ]] && [[ "${RSS_KB}" -gt 2097152 ]]; then # 2GB in KB
-      local DATE_WARN
-      DATE_WARN=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
-      echo "${DATE_WARN} - WARNING: Memory usage exceeds 2GB (${RSS_KB}KB)"
-     fi
+    # Check if memory usage is too high
+    if [[ -n "${RSS_KB}" ]] && [[ "${RSS_KB}" -gt 2097152 ]]; then # 2GB in KB
+     local DATE_WARN
+     DATE_WARN=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+     echo "${DATE_WARN} - WARNING: Memory usage exceeds 2GB (${RSS_KB}KB)"
     fi
-    sleep "${INTERVAL}"
-   done
+   fi
+   sleep "${INTERVAL}"
+  done
 
-   local DATE_END
-   DATE_END=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
-   echo "${DATE_END} - Process ${XMLLINT_PID} finished or terminated"
-  } >> "${MONITOR_LOG}" 2>&1 &
+  local DATE_END
+  DATE_END=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+  echo "${DATE_END} - Process ${XMLLINT_PID} finished or terminated"
+ } >> "${MONITOR_LOG}" 2>&1 &
 
  local MONITOR_PID=$!
  echo "${MONITOR_PID}"
