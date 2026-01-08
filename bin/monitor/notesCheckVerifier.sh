@@ -30,8 +30,8 @@
 # * shfmt -w -i 1 -sr -bn notesCheckVerifier.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
-VERSION="2025-12-22"
+# Version: 2026-01-08
+VERSION="2026-01-08"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -139,6 +139,9 @@ declare -r SQL_REPORT="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier-r
 # didn't run).
 declare -r POSTGRES_21_CREATE_CHECK_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_21_createCheckTables.sql"
 
+# SQL script to create history tables for tracking missing comments/text comments
+declare -r POSTGRES_20_CREATE_HISTORY_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_20_createHistoryTables.sql"
+
 # SQL scripts to insert missing data
 declare -r POSTGRES_51_INSERT_MISSING_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_51_insertMissingNotes.sql"
 declare -r POSTGRES_52_INSERT_MISSING_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/monitor/notesCheckVerifier_52_insertMissingComments.sql"
@@ -199,6 +202,7 @@ function __checkPrereqs {
 
  ## Validate SQL scripts for inserting missing data and creating check tables
  local SQL_FILES=(
+  "${POSTGRES_20_CREATE_HISTORY_TABLES}"
   "${POSTGRES_21_CREATE_CHECK_TABLES}"
   "${POSTGRES_51_INSERT_MISSING_NOTES}"
   "${POSTGRES_52_INSERT_MISSING_COMMENTS}"
@@ -469,6 +473,16 @@ function __insertMissingData {
 
  __logi "Found missing data: ${QTY_NOTES} notes, ${QTY_COMMENTS} comments, ${QTY_TEXT_COMMENTS} text comments"
  __logi "Inserting missing data from check tables into main tables..."
+
+ # Ensure history tables exist before inserting missing data
+ # This allows tracking of what was missing before insertion
+ __logd "Ensuring history tables exist..."
+ if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -P pager=off \
+  -f "${POSTGRES_20_CREATE_HISTORY_TABLES}" 2>&1; then
+  __loge "ERROR: Failed to create history tables"
+  __log_finish
+  return 1
+ fi
 
  # Insert missing notes
  if [[ "${QTY_NOTES}" -gt 0 ]]; then
