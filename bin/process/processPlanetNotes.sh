@@ -313,36 +313,42 @@ function __checkPrereqs {
 
  # Validate each SQL file
  for SQL_FILE in "${SQL_FILES[@]}"; do
-  if ! __validate_sql_structure "${SQL_FILE}"; then
+  __validate_sql_structure "${SQL_FILE}" || VALIDATION_RESULT=$?
+  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
    __log_finish
    return "${ERROR_MISSING_LIBRARY}"
   fi
+  unset VALIDATION_RESULT
  done
 
  ## Validate XML schema file (only if validation is enabled)
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __logi "Validating XML schema file..."
-  if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
+  __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file" || VALIDATION_RESULT=$?
+  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: XML schema file validation failed: ${XMLSCHEMA_PLANET_NOTES}"
    __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
    __log_finish
    return "${ERROR_MISSING_LIBRARY}"
   fi
+  unset VALIDATION_RESULT
  fi
 
  # Validate dates in XML files if they exist (only if validation is enabled)
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __logi "Validating dates in XML files..."
   if [[ -f "${PLANET_NOTES_FILE}" ]]; then
-   if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
+   __validate_xml_dates "${PLANET_NOTES_FILE}" || VALIDATION_RESULT=$?
+   if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
     __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
     export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
     __log_finish
     return "${ERROR_MISSING_LIBRARY}"
    fi
+   unset VALIDATION_RESULT
   fi
  else
   __logw "Skipping date validation (SKIP_XML_VALIDATION=true)"
@@ -350,60 +356,74 @@ function __checkPrereqs {
 
  ## Validate updateCountries.sh script availability
  __logi "Validating updateCountries.sh script availability..."
- if ! __validate_input_file "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" "updateCountries script"; then
+ __validate_input_file "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" "updateCountries script" || VALIDATION_RESULT=$?
+ if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: updateCountries.sh script validation failed"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
   __log_finish
   return "${ERROR_MISSING_LIBRARY}"
  fi
+ unset VALIDATION_RESULT
 
  # CSV files are generated during processing, no need to validate them here
  # as they will be created by __processPlanetXmlPart function
 
  ## Validate JSON schema files
  __logi "Validating JSON schema files..."
- if ! __validate_input_file "${JSON_SCHEMA_OVERPASS}" "JSON schema file"; then
+ __validate_input_file "${JSON_SCHEMA_OVERPASS}" "JSON schema file" || VALIDATION_RESULT=$?
+ if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: JSON schema file validation failed: ${JSON_SCHEMA_OVERPASS}"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
   __log_finish
   return "${ERROR_MISSING_LIBRARY}"
  fi
+ unset VALIDATION_RESULT
 
- if ! __validate_input_file "${JSON_SCHEMA_GEOJSON}" "GeoJSON schema file"; then
+ __validate_input_file "${JSON_SCHEMA_GEOJSON}" "GeoJSON schema file" || VALIDATION_RESULT=$?
+ if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: GeoJSON schema file validation failed: ${JSON_SCHEMA_GEOJSON}"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
   __log_finish
   return "${ERROR_MISSING_LIBRARY}"
  fi
+ unset VALIDATION_RESULT
 
  ## Validate test files
  __logi "Validating JSON schema files..."
- if ! __validate_input_file "${GEOJSON_TEST}" "GeoJSON test file"; then
+ __validate_input_file "${GEOJSON_TEST}" "GeoJSON test file" || VALIDATION_RESULT=$?
+ if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: GeoJSON test file validation failed: ${GEOJSON_TEST}"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
   __log_finish
   return "${ERROR_MISSING_LIBRARY}"
  fi
+ unset VALIDATION_RESULT
 
  ## Validate backup files if they exist
  # Resolve note location backup file (download from GitHub if not found locally)
- if __resolve_note_location_backup 2> /dev/null || [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
+ __resolve_note_location_backup 2> /dev/null || RESOLVE_RESULT=$?
+ if [[ "${RESOLVE_RESULT:-0}" -eq 0 ]] || [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
   __logi "Validating backup files..."
-  if ! __validate_input_file "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" "Backup file"; then
+  __validate_input_file "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" "Backup file" || VALIDATION_RESULT=$?
+  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: Backup file validation failed: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
    __log_finish
    return "${ERROR_MISSING_LIBRARY}"
   fi
+  unset VALIDATION_RESULT
  fi
+ unset RESOLVE_RESULT
 
  if [[ -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
-  if ! __validate_sql_structure "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"; then
+  __validate_sql_structure "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || VALIDATION_RESULT=$?
+  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: Upload SQL file validation failed: ${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
    __log_finish
    return "${ERROR_MISSING_LIBRARY}"
   fi
+  unset VALIDATION_RESULT
  fi
 
  __checkPrereqs_functions
@@ -626,13 +646,15 @@ function __processPlanetNotesWithParallel {
 
  # Split XML using the implementation from parallelProcessingFunctions.sh
  # (loaded at script startup to override functionsProcess.sh wrapper)
- if ! __splitXmlForParallelSafe "${PLANET_NOTES_FILE}" \
-  "${NUM_PARTS}" "${PARTS_DIR}" "planet"; then
+ __splitXmlForParallelSafe "${PLANET_NOTES_FILE}" \
+  "${NUM_PARTS}" "${PARTS_DIR}" "planet" || SPLIT_RESULT=$?
+ if [[ "${SPLIT_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: Failed to split XML file"
   __log_finish
   export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
   return "${ERROR_EXECUTING_PLANET_DUMP}"
  fi
+ unset SPLIT_RESULT
 
  # STEP 3: Process each part with AWK in parallel
  __logi "Step 3: Processing ${NUM_PARTS} XML parts in parallel with AWK (${MAX_THREADS} concurrent jobs)..."
@@ -696,12 +718,14 @@ function __processPlanetNotesWithParallel {
   # Execute the main processing function
   # Output is synchronized by parallel's internal buffering
   __logd "[WORKER] About to call __processPlanetXmlPart for ${PART_BASENAME}"
-  if __processPlanetXmlPart "${PART_FILE}"; then
+  __processPlanetXmlPart "${PART_FILE}" || PROCESS_RESULT=$?
+  if [[ "${PROCESS_RESULT:-0}" -eq 0 ]]; then
    __logi "[WORKER] Successfully completed processing of ${PART_BASENAME}"
   else
-   __loge "[WORKER] Failed to process ${PART_BASENAME}, exit code: $?"
+   __loge "[WORKER] Failed to process ${PART_BASENAME}, exit code: ${PROCESS_RESULT:-1}"
    return 1
   fi
+  unset PROCESS_RESULT
  }
  export -f __parallel_worker_wrapper
 
@@ -740,9 +764,11 @@ function __processPlanetNotesWithParallel {
   for PART_FILE in "${PART_FILES[@]}"; do
    # Process part in background
    (
-    if ! __processPlanetXmlPart "${PART_FILE}"; then
+    __processPlanetXmlPart "${PART_FILE}" || PROCESS_RESULT=$?
+    if [[ "${PROCESS_RESULT:-0}" -ne 0 ]]; then
      exit 1
     fi
+    unset PROCESS_RESULT
    ) &
 
    ACTIVE_JOBS=$((ACTIVE_JOBS + 1))
