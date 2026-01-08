@@ -1064,6 +1064,8 @@ function __createBaseStructure {
 
  # Update lock file content to reflect current process state
  # This is intentional - the lock file is updated after child processes complete
+ local LOCK_REACQUIRED_TIME
+ LOCK_REACQUIRED_TIME=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
  cat > "${LOCK}" << EOF
 PID: ${ORIGINAL_PID}
 Process: ${BASENAME}
@@ -1071,7 +1073,7 @@ Started: ${PROCESS_START_TIME}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
-Lock re-acquired: ${PROCESS_START_TIME}
+Lock re-acquired: ${LOCK_REACQUIRED_TIME}
 EOF
  __logd "Lock file content updated after child processes: ${LOCK}"
  __log_finish

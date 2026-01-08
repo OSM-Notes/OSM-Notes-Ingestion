@@ -1036,11 +1036,12 @@ function __processXmlPartsParallel() {
    API_CHECK=$(find "${INPUT_DIR}" -name "api_part_*.xml" -type f 2> /dev/null | head -1 || echo "")
    if [[ -n "${API_CHECK}" ]]; then
     PROCESSING_TYPE="API"
-   __logd "Auto-detected API format from file names"
-  else
-   __loge "ERROR: Cannot auto-detect processing type. No planet_part_*.xml or api_part_*.xml files found"
-   __log_finish
-   return 1
+    __logd "Auto-detected API format from file names"
+   else
+    __loge "ERROR: Cannot auto-detect processing type. No planet_part_*.xml or api_part_*.xml files found"
+    __log_finish
+    return 1
+   fi
   fi
  fi
 
